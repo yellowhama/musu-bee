@@ -55,14 +55,13 @@ test.describe("Wave G E2E — 5 Scenarios", () => {
   // Scenario 2: 채널 전환
   // ─────────────────────────────────────────────
   test("S2: 채널 전환 — clicking channels updates active state", async ({ page }) => {
-    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await page.goto("/", { waitUntil: "networkidle" });
     await page.locator("textarea").first().waitFor({ timeout: 5000 });
 
     const t0 = Date.now();
     const textarea = page.locator("textarea").first();
 
-    // Use evaluate el.click() — native DOM click bubbles through React's event delegation
-    await page.locator('[data-testid="channel-item-dev"]').evaluate(el => (el as HTMLElement).click());
+    await page.locator('[data-testid="channel-item-dev"]').click();
     // After clicking 'dev', its unread count should be 0. We can assert the absence of the unread badge.
     await expect(page.locator('[data-testid="channel-item-dev"] span[style*="background: #ef4444"]')).not.toBeVisible();
 
@@ -71,8 +70,9 @@ test.describe("Wave G E2E — 5 Scenarios", () => {
       () => textarea.getAttribute("placeholder"),
       { timeout: 2000 }
     ).toContain("dev");
-    await page.locator('[data-testid="channel-item-tasks"]').evaluate(el => (el as HTMLElement).click());
-    // After clicking 'tasks', its unread count should be 0.
+
+    await page.locator('[data-testid="channel-item-tasks"]').click();
+    // After activating 'tasks', its unread count should be 0.
     await expect(page.locator('[data-testid="channel-item-tasks"] span[style*="background: #ef4444"]')).not.toBeVisible();
 
     await expect.poll(
@@ -91,10 +91,9 @@ test.describe("Wave G E2E — 5 Scenarios", () => {
   // Scenario 3: 실시간 메시지
   // ─────────────────────────────────────────────
   test("S3: 실시간 메시지 — sending message in tasks channel shows it", async ({ page }) => {
-    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await page.goto("/", { waitUntil: "networkidle" });
 
-    // Navigate to tasks (non-agent channel, uses local state)
-    await page.locator('[data-testid="channel-item-tasks"]').evaluate(el => (el as HTMLElement).click());
+    await page.locator('[data-testid="channel-item-tasks"]').click();
     await expect.poll(
       () => page.locator("textarea").first().getAttribute("placeholder"),
       { timeout: 2000 }
