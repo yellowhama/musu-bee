@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import path from "path";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -22,10 +23,24 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
-    command: "npm run dev",
-    url: "http://localhost:3001",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      command: "npm run dev",
+      url: "http://localhost:3001",
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    {
+      command: [
+        `MUSU_PORT_MANAGER_PORT=1355`,
+        `MUSU_PORT_MANAGER_ALLOW_FALLBACK=false`,
+        `MUSU_PORT_DATA_ROOT=/tmp/musu-port-e2e`,
+        `MUSU_PORT_SEED_SERVICES=${path.resolve(__dirname, "../musu-port/data/seed-services.json")}`,
+        path.resolve(__dirname, "../musu-port/target/release/musu-portd"),
+      ].join(" "),
+      url: "http://localhost:1355/health",
+      reuseExistingServer: !process.env.CI,
+      timeout: 30_000,
+    },
+  ],
 });
