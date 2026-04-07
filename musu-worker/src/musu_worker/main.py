@@ -4,7 +4,18 @@ Endpoints:
   GET  /health           — liveness + GPU info
   GET  /capabilities     — available adapters / CLIs
   POST /execute/cli      — run claude or codex CLI
-  POST /execute/process  — run arbitrary command
+  POST /execute/process  — run arbitrary command (intentional RCE endpoint)
+
+SECURITY NOTE
+-------------
+/execute/process is an intentional Remote Code Execution (RCE) endpoint.
+It runs any command passed by the caller with the privileges of the worker
+process.  This is required for the musu multi-machine orchestration model.
+
+MUSU_WORKER_TOKEN **must** be set in any deployment that is accessible beyond
+a trusted, isolated network (e.g. Tailscale).  Without a token every caller
+can execute arbitrary commands on the host.  A startup warning is emitted
+when the token is absent.
 """
 
 from __future__ import annotations
@@ -19,10 +30,15 @@ import uvicorn
 from fastapi import Depends, FastAPI
 from pydantic import BaseModel, Field
 
-from musu_worker.auth import require_auth
+from musu_worker.auth import require_auth, warn_if_open_mode
 from musu_worker.executors import ExecResult, run_cli, run_process
 
 app = FastAPI(title="musu-worker", version="0.1.0")
+
+
+@app.on_event("startup")
+async def _startup() -> None:
+    warn_if_open_mode()
 
 
 # ---------------------------------------------------------------------------

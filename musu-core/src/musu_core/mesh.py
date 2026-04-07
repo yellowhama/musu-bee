@@ -11,11 +11,15 @@ Parses ~/.musu/nodes.toml and provides:
 
 from __future__ import annotations
 
+import logging
 import os
 import tomllib
+import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+_logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -85,13 +89,28 @@ class MeshRegistry:
         self._health_interval = int(mesh.get("health_interval_sec", 30))
 
         for node_dict in mesh.get("nodes", []):
+            node_name = node_dict.get("name")
+            tailscale_ip = node_dict.get("tailscale_ip")
+            if not node_name or not tailscale_ip:
+                raise ValueError(
+                    f"nodes.toml: each [[mesh.nodes]] entry must have 'name' and "
+                    f"'tailscale_ip' (got: {node_dict!r})"
+                )
             n = NodeInfo(
-                name=node_dict["name"],
-                tailscale_ip=node_dict["tailscale_ip"],
+                name=node_name,
+                tailscale_ip=tailscale_ip,
                 roles=node_dict.get("roles", []),
                 gpu=node_dict.get("gpu", ""),
             )
             self._nodes[n.name] = n
+
+        if self._self_name and self._self_name not in self._nodes:
+            warnings.warn(
+                f"nodes.toml: mesh.self = {self._self_name!r} is not in the loaded "
+                f"nodes list; is_local() will return False for all nodes. "
+                f"Check your [[mesh.nodes]] entries.",
+                stacklevel=2,
+            )
 
         for aa in mesh.get("agent_assignments", []):
             self._assignments.append(

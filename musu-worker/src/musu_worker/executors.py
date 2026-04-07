@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import pathlib
 import shutil
 import subprocess
 from dataclasses import dataclass
@@ -26,6 +27,23 @@ async def run_process(
     env_extra: dict[str, str] | None = None,
 ) -> ExecResult:
     """Run an arbitrary process asynchronously."""
+    if cwd is not None:
+        cwd_path = pathlib.Path(cwd)
+        if not cwd_path.exists():
+            return ExecResult(
+                stdout="",
+                stderr=f"Working directory does not exist: {cwd!r}",
+                exit_code=1,
+                success=False,
+            )
+        if not cwd_path.is_dir():
+            return ExecResult(
+                stdout="",
+                stderr=f"Working directory is not a directory: {cwd!r}",
+                exit_code=1,
+                success=False,
+            )
+
     env = os.environ.copy()
     if env_extra:
         env.update(env_extra)

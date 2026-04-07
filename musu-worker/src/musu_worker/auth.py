@@ -6,12 +6,28 @@ If the env var is unset the server runs in open mode (useful for local dev).
 
 from __future__ import annotations
 
+import logging
 import os
 
 from fastapi import HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+_logger = logging.getLogger(__name__)
 _bearer = HTTPBearer(auto_error=False)
+
+
+def warn_if_open_mode() -> None:
+    """Emit a loud warning if MUSU_WORKER_TOKEN is not set.
+
+    Call this once at server startup.  Open mode means every endpoint is
+    unauthenticated — safe only on a trusted network (e.g. Tailscale).
+    """
+    if os.environ.get("MUSU_WORKER_TOKEN") is None:
+        _logger.warning(
+            "MUSU_WORKER_TOKEN is not set — server is running in OPEN AUTH MODE. "
+            "All endpoints are unauthenticated. "
+            "Set MUSU_WORKER_TOKEN before deploying beyond a trusted (Tailscale) network."
+        )
 
 
 def get_token() -> str | None:
