@@ -234,45 +234,56 @@ async def route_message(
     # 3. Save incoming message as a user comment
     backend.add_comment(task_id=task_id, body=message, author_kind="user")
 
-    # 4. Execute via adapter
-    adapter = get_adapter(agent_dict["adapter_type"])
-    if adapter is None:
-        raise RuntimeError(f"Unknown adapter type: {agent_dict['adapter_type']!r}")
+    # 4. Execute via Router (supports fallback chain) when possible, else direct adapter call
+    if isinstance(backend, LocalBackend):
+        _router = Router(backend=backend, config=cfg)
+        route_result = await _router.route(
+            RouteRequest(agent_id=agent_id, prompt=message, task_id=task_id)
+        )
+        if not route_result.success:
+            raise RuntimeError(f"Adapter returned failure: {route_result.error}")
+        response_summary = route_result.summary
+    else:
+        # Non-local backend (e.g. PaperclipBackend): direct adapter call without fallback chain
+        adapter = get_adapter(agent_dict["adapter_type"])
+        if adapter is None:
+            raise RuntimeError(f"Unknown adapter type: {agent_dict['adapter_type']!r}")
 
-    adapter_config: dict[str, Any] = {
-        "model": cfg.default_model,
-        "command": cfg.claude_command,
-        "timeout_sec": cfg.adapter_timeout_sec,
-    }
-    adapter_config.update(agent_dict.get("adapter_config") or {})
+        adapter_config: dict[str, Any] = {
+            "model": cfg.default_model,
+            "command": cfg.claude_command,
+            "timeout_sec": cfg.adapter_timeout_sec,
+        }
+        adapter_config.update(agent_dict.get("adapter_config") or {})
 
-    run_id = str(uuid.uuid4())
-    ctx = AdapterContext(
-        run_id=run_id,
-        prompt=message,
-        agent_id=agent_id,
-        agent_name=agent_dict["name"],
-        agent_role=agent_dict.get("role", ""),
-        adapter_type=agent_dict["adapter_type"],
-        config=adapter_config,
-        task_id=task_id,
-    )
+        run_id = str(uuid.uuid4())
+        ctx = AdapterContext(
+            run_id=run_id,
+            prompt=message,
+            agent_id=agent_id,
+            agent_name=agent_dict["name"],
+            agent_role=agent_dict.get("role", ""),
+            adapter_type=agent_dict["adapter_type"],
+            config=adapter_config,
+            task_id=task_id,
+        )
 
-    try:
-        result = await adapter.execute(ctx)
-    except Exception as exc:  # noqa: BLE001
-        raise RuntimeError(f"Adapter execution failed: {exc}") from exc
+        try:
+            result = await adapter.execute(ctx)
+        except Exception as exc:  # noqa: BLE001
+            raise RuntimeError(f"Adapter execution failed: {exc}") from exc
 
-    if not result.success:
-        raise RuntimeError(f"Adapter returned failure: {result.error}")
+        if not result.success:
+            raise RuntimeError(f"Adapter returned failure: {result.error}")
+        response_summary = result.summary
 
     # 5. Save response as agent comment
     backend.add_comment(
         task_id=task_id,
-        body=result.summary,
+        body=response_summary,
         author_agent_id=agent_id,
         author_kind="agent",
     )
 
     # 6. Return summary
-    return result.summary
+    return response_summary

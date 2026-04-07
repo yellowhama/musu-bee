@@ -35,22 +35,26 @@ def test_paperclip_backend_is_backend_abc():
     assert isinstance(pb, BackendABC)
 
 
-def test_paperclip_backend_stubs_raise(tmp_path):
+def test_paperclip_backend_methods_callable(tmp_path):
+    """PaperclipBackend implements BackendABC — methods exist and are callable.
+
+    HTTP calls are mocked to avoid network dependency in unit tests.
+    """
+    import httpx
+    from unittest.mock import MagicMock
+
     pb = PaperclipBackend(api_url="http://x", api_key="k", company_id="c")
-    with pytest.raises(NotImplementedError):
-        pb.get_agent("id")
-    with pytest.raises(NotImplementedError):
+
+    mock_response = MagicMock()
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json = MagicMock(return_value=[])
+    mock_response.status_code = 200
+
+    with patch.object(pb._client, "get", return_value=mock_response) as mock_get, \
+         patch.object(pb._client, "post", return_value=mock_response) as mock_post:
+        # These should not raise — PaperclipBackend now has real implementations
         pb.list_agents()
-    with pytest.raises(NotImplementedError):
-        pb.create_task("title")
-    with pytest.raises(NotImplementedError):
-        pb.get_task("id")
-    with pytest.raises(NotImplementedError):
-        pb.list_tasks()
-    with pytest.raises(NotImplementedError):
-        pb.add_comment("id", "body")
-    with pytest.raises(NotImplementedError):
-        pb.get_comments("id")
+        mock_get.assert_called()
 
 
 # ---------------------------------------------------------------------------

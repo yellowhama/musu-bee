@@ -4,10 +4,39 @@ from __future__ import annotations
 
 import json
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from musu_core.db import Database
+
+# ---------------------------------------------------------------------------
+# fallback_chain schema validation
+# ---------------------------------------------------------------------------
+
+def validate_fallback_chain(chain: list[dict[str, Any]]) -> None:
+    """Raise ValueError if *chain* is not a valid fallback chain.
+
+    Each entry must be a dict with at least an ``adapter_type`` key (str).
+    Additional keys are adapter-specific and passed through unchecked.
+    """
+    if not isinstance(chain, list):
+        raise ValueError(f"fallback_chain must be a list, got {type(chain).__name__}")
+    for i, entry in enumerate(chain):
+        if not isinstance(entry, dict):
+            raise ValueError(
+                f"fallback_chain[{i}] must be a dict, got {type(entry).__name__}"
+            )
+        if "adapter_type" not in entry:
+            raise ValueError(f"fallback_chain[{i}] missing required key 'adapter_type'")
+        if not isinstance(entry["adapter_type"], str) or not entry["adapter_type"]:
+            raise ValueError(
+                f"fallback_chain[{i}]['adapter_type'] must be a non-empty string"
+            )
+
+
+# Sentinel distinguishing "not provided" from None (clear the chain).
+class _UNSET:
+    pass
 
 
 @dataclass
@@ -52,16 +81,20 @@ class AgentRegistry:
         adapter_type: str = "process",
         adapter_config: dict[str, Any] | None = None,
         agent_id: str | None = None,
+        fallback_chain: list[dict[str, Any]] | None = None,
     ) -> Agent:
+        if fallback_chain is not None:
+            validate_fallback_chain(fallback_chain)
         aid = agent_id or str(uuid.uuid4())
         config_json = json.dumps(adapter_config or {})
+        chain_json = json.dumps(fallback_chain) if fallback_chain is not None else None
         rows = self._db.execute(
             """
-            INSERT INTO agents (id, name, role, adapter_type, adapter_config)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO agents (id, name, role, adapter_type, adapter_config, fallback_chain)
+            VALUES (?, ?, ?, ?, ?, ?)
             RETURNING *
             """,
-            (aid, name, role, adapter_type, config_json),
+            (aid, name, role, adapter_type, config_json, chain_json),
         )
         return Agent.from_row(rows[0])
 
@@ -97,7 +130,10 @@ class AgentRegistry:
         adapter_type: str | None = None,
         adapter_config: dict[str, Any] | None = None,
         status: str | None = None,
+        fallback_chain: list[dict[str, Any]] | None | type[_UNSET] = _UNSET,
     ) -> Agent | None:
+        if fallback_chain is not _UNSET and fallback_chain is not None:
+            validate_fallback_chain(fallback_chain)  # type: ignore[arg-type]
         agent = self.get(agent_id)
         if agent is None:
             return None
@@ -106,15 +142,22 @@ class AgentRegistry:
         new_adapter_type = adapter_type if adapter_type is not None else agent.adapter_type
         new_config = json.dumps(adapter_config if adapter_config is not None else agent.adapter_config)
         new_status = status if status is not None else agent.status
+        new_chain: list[dict[str, Any]] | None
+        if fallback_chain is _UNSET:
+            new_chain = agent.fallback_chain
+        else:
+            new_chain = fallback_chain  # type: ignore[assignment]
+        chain_json = json.dumps(new_chain) if new_chain is not None else None
         rows = self._db.execute(
             """
             UPDATE agents
             SET name = ?, role = ?, adapter_type = ?, adapter_config = ?,
-                status = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+                status = ?, fallback_chain = ?,
+                updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
             WHERE id = ?
             RETURNING *
             """,
-            (new_name, new_role, new_adapter_type, new_config, new_status, agent_id),
+            (new_name, new_role, new_adapter_type, new_config, new_status, chain_json, agent_id),
         )
         return Agent.from_row(rows[0]) if rows else None
 
