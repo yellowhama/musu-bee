@@ -71,6 +71,7 @@ pub struct Supervisor {
     services: HashMap<String, ServiceState>,
     /// Pre-computed shutdown order (dependents before their dependencies).
     shutdown_order: Vec<String>,
+    #[allow(dead_code)]
     grace_period: Duration,
     /// IPC state shared with the socket server; also exposes `shutdown_notify`.
     pub ipc: IpcHandle,
