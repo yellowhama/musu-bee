@@ -185,3 +185,105 @@ def test_import_from_package():
     assert hasattr(r_module, "RouteRequest")
     assert hasattr(r_module, "RouteResult")
     assert hasattr(r_module, "make_router")
+
+
+# ---------------------------------------------------------------------------
+# Fallback chain (MUS-884)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def agent_with_fallback(backend):
+    """Agent configured with a hermes fallback."""
+    agent = backend.agents.create(
+        name="fallback-agent",
+        role="assistant",
+        adapter_type="claude_local",
+        adapter_config={"model": "claude-sonnet-4-5"},
+    )
+    # Store fallback_chain in DB
+    backend._db.execute(
+        "UPDATE agents SET fallback_chain = ? WHERE id = ?",
+        (json.dumps([{"adapter_type": "hermes", "model": "qwen3.5-9b"}]), agent.id),
+    )
+    return agent.id
+
+
+def test_fallback_triggered_on_retriable_failure(router, backend, agent_with_fallback):
+    """Primary adapter fails with is_retriable=True → fallback adapter is called."""
+    primary_fail = AdapterResult(
+        run_id="r1",
+        success=False,
+        summary="",
+        error="rate limit",
+        is_retriable=True,
+    )
+    fallback_ok = AdapterResult(
+        run_id="r1",
+        success=True,
+        summary="fallback response",
+        is_retriable=False,
+    )
+
+    primary_mock = AsyncMock(return_value=primary_fail)
+    fallback_mock = AsyncMock(return_value=fallback_ok)
+
+    with patch("musu_core.adapters.claude_local.ClaudeLocalAdapter.execute", primary_mock), \
+         patch("musu_core.adapters.hermes.HermesAdapter.execute", fallback_mock):
+        result = asyncio.run(router.route(RouteRequest(agent_id=agent_with_fallback, prompt="go")))
+
+    assert result.success
+    assert result.summary == "fallback response"
+    assert result.adapter_result is not None
+    assert result.adapter_result.raw.get("fallback_used") == "hermes"
+    fallback_mock.assert_called_once()
+
+
+def test_fallback_not_triggered_on_non_retriable_failure(router, backend, agent_with_fallback):
+    """Primary adapter fails with is_retriable=False → fallback NOT called."""
+    primary_fail = AdapterResult(
+        run_id="r2",
+        success=False,
+        summary="",
+        error="bad prompt (400)",
+        is_retriable=False,
+    )
+
+    primary_mock = AsyncMock(return_value=primary_fail)
+    fallback_mock = AsyncMock()
+
+    with patch("musu_core.adapters.claude_local.ClaudeLocalAdapter.execute", primary_mock), \
+         patch("musu_core.adapters.hermes.HermesAdapter.execute", fallback_mock):
+        result = asyncio.run(router.route(RouteRequest(agent_id=agent_with_fallback, prompt="bad")))
+
+    assert not result.success
+    fallback_mock.assert_not_called()
+
+
+def test_fallback_stops_on_non_retriable_fallback_failure(router, backend, agent_with_fallback):
+    """Fallback adapter returns non-retriable failure → chain stops immediately."""
+    primary_fail = AdapterResult(
+        run_id="r3", success=False, summary="", error="rate limit", is_retriable=True
+    )
+    fallback_fail = AdapterResult(
+        run_id="r3", success=False, summary="", error="bad model config", is_retriable=False
+    )
+
+    primary_mock = AsyncMock(return_value=primary_fail)
+    fallback_mock = AsyncMock(return_value=fallback_fail)
+
+    with patch("musu_core.adapters.claude_local.ClaudeLocalAdapter.execute", primary_mock), \
+         patch("musu_core.adapters.hermes.HermesAdapter.execute", fallback_mock):
+        result = asyncio.run(router.route(RouteRequest(agent_id=agent_with_fallback, prompt="bad")))
+
+    assert not result.success
+    fallback_mock.assert_called_once()
+
+
+def test_is_retriable_field_on_adapter_result():
+    """AdapterResult.is_retriable defaults to False."""
+    r = AdapterResult(run_id="x", success=True, summary="ok")
+    assert r.is_retriable is False
+
+    r2 = AdapterResult(run_id="x", success=False, summary="", is_retriable=True)
+    assert r2.is_retriable is True

@@ -79,6 +79,12 @@ def _open(db_path: str) -> sqlite3.Connection:
     conn.executescript(_SCHEMA)
     conn.execute("PRAGMA journal_mode = WAL;")
     conn.execute("PRAGMA foreign_keys = ON;")
+    # Migration: add fallback_chain column if it does not exist yet
+    try:
+        conn.execute("ALTER TABLE agents ADD COLUMN fallback_chain TEXT DEFAULT NULL;")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass  # column already exists
     return conn
 
 

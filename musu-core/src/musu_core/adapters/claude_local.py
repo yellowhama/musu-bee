@@ -180,6 +180,16 @@ class ClaudeLocalAdapter(BaseAdapter):
             else:
                 error = "Empty response from Claude"
 
+        # Detect infrastructure failures that are safe to retry with a fallback adapter.
+        # - exit_code == -1: our internal timeout sentinel
+        # - stderr/stdout hints at rate-limit (429), connect error, or timeout
+        is_retriable = False
+        if not success:
+            retriable_hints = ("rate limit", "429", "connect error", "connection refused", "timed out", "timeout")
+            combined = f"{stderr} {stdout}".lower()
+            if exit_code == -1 or any(h in combined for h in retriable_hints):
+                is_retriable = True
+
         return AdapterResult(
             run_id=ctx.run_id,
             success=success,
@@ -188,6 +198,7 @@ class ClaudeLocalAdapter(BaseAdapter):
             usage=parsed.get("usage"),
             cost_usd=parsed.get("cost_usd"),
             error=error,
+            is_retriable=is_retriable,
             raw={
                 "exit_code": exit_code,
                 "stdout_snippet": stdout[:500],

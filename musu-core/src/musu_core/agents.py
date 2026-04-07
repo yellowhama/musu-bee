@@ -20,9 +20,14 @@ class Agent:
     status: str
     created_at: str
     updated_at: str
+    # Optional ordered list of fallback adapter configs tried on retriable failure.
+    # Each entry: {"adapter_type": "hermes", "model": "...", ...}
+    fallback_chain: list[dict[str, Any]] | None = None
 
     @staticmethod
     def from_row(row: Any) -> "Agent":
+        keys = row.keys()
+        raw_chain = row["fallback_chain"] if "fallback_chain" in keys else None
         return Agent(
             id=row["id"],
             name=row["name"],
@@ -32,6 +37,7 @@ class Agent:
             status=row["status"],
             created_at=row["created_at"],
             updated_at=row["updated_at"],
+            fallback_chain=json.loads(raw_chain) if raw_chain else None,
         )
 
 

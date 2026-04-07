@@ -59,6 +59,9 @@ class AdapterResult:
     error: str | None = None
     # Raw adapter-specific payload for debugging
     raw: dict[str, Any] = field(default_factory=dict)
+    # True = infrastructure failure (rate limit, timeout, connect error) — safe to retry with next
+    # adapter in fallback_chain. False = logic/prompt failure — stop immediately.
+    is_retriable: bool = False
 
 
 class BaseAdapter(ABC):

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Any
 
 from musu_core.adapters.base import AdapterContext, AdapterResult
@@ -128,7 +128,35 @@ class Router:
                 success=False,
                 summary="",
                 error=error_msg,
+                is_retriable=True,  # unknown exception treated as infra failure
             )
+
+        # --- 4b. Fallback chain ---
+        fallback_chain = agent.fallback_chain or []
+        if not result.success and result.is_retriable and fallback_chain:
+            for fallback_spec in fallback_chain:
+                fb_adapter_type = fallback_spec.get("adapter_type", "")
+                fb_adapter = get_adapter(fb_adapter_type)
+                if fb_adapter is None:
+                    continue
+                fb_config: dict[str, Any] = {**adapter_config, **fallback_spec}
+                fb_ctx = replace(ctx, adapter_type=fb_adapter_type, config=fb_config)
+                try:
+                    result = await fb_adapter.execute(fb_ctx)
+                except Exception as exc:  # noqa: BLE001
+                    from musu_core.adapters.base import AdapterResult as AR
+
+                    result = AR(
+                        run_id=run_id,
+                        success=False,
+                        summary="",
+                        error=f"Fallback adapter {fb_adapter_type!r} raised: {exc}",
+                        is_retriable=True,
+                    )
+                if result.success or not result.is_retriable:
+                    if result.success:
+                        result.raw["fallback_used"] = fb_adapter_type
+                    break
 
         # --- 5. Log result ---
         self._backend.log_execution_result(result, task_id=req.task_id)
