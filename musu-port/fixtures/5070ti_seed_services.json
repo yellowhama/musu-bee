@@ -1,0 +1,16 @@
+[
+  {
+    "name": "inference-api",
+    "alias": "inference",
+    "enabled": true,
+    "running": true,
+    "port": 8787
+  },
+  {
+    "name": "model-server",
+    "alias": "model",
+    "enabled": true,
+    "running": true,
+    "port": 18081
+  }
+]
