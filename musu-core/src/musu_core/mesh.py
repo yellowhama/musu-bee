@@ -11,7 +11,6 @@ Parses ~/.musu/nodes.toml and provides:
 
 from __future__ import annotations
 
-import asyncio
 import os
 import tomllib
 from dataclasses import dataclass, field
@@ -160,9 +159,6 @@ class MeshRegistry:
                 return resp.status_code == 200
         except Exception:
             return False
-
-    def check_health_sync(self, name: str, timeout: float = 5.0) -> bool:
-        return asyncio.run(self.check_health(name, timeout))
 
     # ------------------------------------------------------------------
     # Properties
