@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import CheckoutButton from "@/components/CheckoutButton";
 
 export const metadata: Metadata = {
   title: "MUSU — AI가 운영하는 나만의 팀",
@@ -10,6 +11,7 @@ export const metadata: Metadata = {
 const TIERS = [
   {
     name: "Free",
+    tier: "free" as const,
     price: "무료",
     period: "",
     devices: "기기 1대",
@@ -19,6 +21,7 @@ const TIERS = [
   },
   {
     name: "Pro",
+    tier: "pro" as const,
     price: "₩12,000",
     period: "/월",
     devices: "기기 최대 3대",
@@ -28,6 +31,7 @@ const TIERS = [
   },
   {
     name: "Team",
+    tier: "team" as const,
     price: "₩25,000",
     period: "/월",
     devices: "기기 무제한",
@@ -55,7 +59,15 @@ const VALUE_PROPS = [
   },
 ] as const;
 
-export default function ProLandingPage() {
+interface PageProps {
+  searchParams: Promise<{ success?: string; cancelled?: string; tier?: string }>;
+}
+
+export default async function ProLandingPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const isSuccess = params.success === "1";
+  const isCancelled = params.cancelled === "1";
+
   return (
     <div
       style={{
@@ -67,6 +79,37 @@ export default function ProLandingPage() {
         overflowX: "hidden",
       }}
     >
+      {/* ── Payment status banner ── */}
+      {isSuccess && (
+        <div
+          style={{
+            background: "rgba(34,197,94,0.1)",
+            border: "1px solid rgba(34,197,94,0.3)",
+            color: "#86efac",
+            padding: "12px 24px",
+            textAlign: "center",
+            fontSize: 14,
+            fontWeight: 600,
+          }}
+        >
+          결제가 완료되었습니다! MUSU {params.tier?.toUpperCase() ?? "Pro"} 플랜이 활성화되었습니다.
+        </div>
+      )}
+      {isCancelled && (
+        <div
+          style={{
+            background: "rgba(239,68,68,0.08)",
+            border: "1px solid rgba(239,68,68,0.2)",
+            color: "#fca5a5",
+            padding: "12px 24px",
+            textAlign: "center",
+            fontSize: 14,
+          }}
+        >
+          결제가 취소되었습니다. 언제든지 다시 시도할 수 있습니다.
+        </div>
+      )}
+
       {/* ── Nav ── */}
       <nav
         style={{
@@ -487,24 +530,15 @@ export default function ProLandingPage() {
                   </li>
                 ))}
               </ul>
-              <a
-                href="/"
+              <CheckoutButton
+                tier={tier.tier}
+                label={tier.cta}
                 style={{
-                  display: "block",
-                  textAlign: "center",
-                  textDecoration: "none",
-                  padding: "12px 0",
-                  borderRadius: 10,
-                  fontSize: 14,
-                  fontWeight: 700,
                   background: tier.highlight ? "#0a0a0a" : "#1a1a1a",
                   color: tier.highlight ? "#facc15" : "#f3f4f6",
                   border: tier.highlight ? "none" : "1px solid #2d2d2d",
-                  letterSpacing: "-0.01em",
                 }}
-              >
-                {tier.cta}
-              </a>
+              />
             </div>
           ))}
         </div>
