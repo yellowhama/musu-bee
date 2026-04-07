@@ -6,7 +6,7 @@ import uuid
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Any
 
-from musu_core.adapters.base import AdapterContext, AdapterResult
+from musu_core.adapters.base import AdapterContext, AdapterResult, RETRIABLE_ERROR_CODES
 from musu_core.adapters.registry import get_adapter
 from musu_core.backends.local import LocalBackend
 from musu_core.config import Config, get_config
@@ -132,8 +132,17 @@ class Router:
             )
 
         # --- 4b. Fallback chain ---
+        # Use error_code when set; otherwise fall back to is_retriable flag.
         fallback_chain = agent.fallback_chain or []
-        if not result.success and result.is_retriable and fallback_chain:
+        _should_fallback = (
+            not result.success
+            and fallback_chain
+            and (
+                (result.error_code is not None and result.error_code in RETRIABLE_ERROR_CODES)
+                or (result.error_code is None and result.is_retriable)
+            )
+        )
+        if _should_fallback:
             for fallback_spec in fallback_chain:
                 fb_adapter_type = fallback_spec.get("adapter_type", "")
                 fb_adapter = get_adapter(fb_adapter_type)
@@ -144,7 +153,7 @@ class Router:
                 try:
                     result = await fb_adapter.execute(fb_ctx)
                 except Exception as exc:  # noqa: BLE001
-                    from musu_core.adapters.base import AdapterResult as AR
+                    from musu_core.adapters.base import AdapterResult as AR, ErrorCode as EC
 
                     result = AR(
                         run_id=run_id,
@@ -152,8 +161,12 @@ class Router:
                         summary="",
                         error=f"Fallback adapter {fb_adapter_type!r} raised: {exc}",
                         is_retriable=True,
+                        error_code=EC.UNKNOWN,
                     )
-                if result.success or not result.is_retriable:
+                _fb_retriable = (
+                    result.error_code is not None and result.error_code in RETRIABLE_ERROR_CODES
+                ) or (result.error_code is None and result.is_retriable)
+                if result.success or not _fb_retriable:
                     if result.success:
                         result.raw["fallback_used"] = fb_adapter_type
                     break

@@ -4,7 +4,31 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any
+
+
+class ErrorCode(str, Enum):
+    """Structured error category for a failed AdapterResult.
+
+    Retriable codes (safe to try the next adapter in fallback_chain):
+        RATE_LIMIT, TIMEOUT, MODEL_UNAVAILABLE, UNKNOWN
+
+    Non-retriable codes (fallback unlikely to help):
+        CONTEXT_EXCEEDED
+    """
+
+    RATE_LIMIT = "rate_limit"
+    TIMEOUT = "timeout"
+    CONTEXT_EXCEEDED = "context_exceeded"
+    MODEL_UNAVAILABLE = "model_unavailable"
+    UNKNOWN = "unknown"
+
+
+#: Error codes for which the router should attempt the fallback chain.
+RETRIABLE_ERROR_CODES: frozenset[ErrorCode] = frozenset(
+    {ErrorCode.RATE_LIMIT, ErrorCode.TIMEOUT, ErrorCode.MODEL_UNAVAILABLE, ErrorCode.UNKNOWN}
+)
 
 
 @dataclass
@@ -62,6 +86,8 @@ class AdapterResult:
     # True = infrastructure failure (rate limit, timeout, connect error) — safe to retry with next
     # adapter in fallback_chain. False = logic/prompt failure — stop immediately.
     is_retriable: bool = False
+    # Structured error category (None on success)
+    error_code: ErrorCode | None = None
 
 
 class BaseAdapter(ABC):

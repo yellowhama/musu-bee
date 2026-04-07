@@ -8,7 +8,7 @@ import os
 import uuid
 from typing import Any
 
-from musu_core.adapters.base import AdapterContext, AdapterResult, BaseAdapter, UsageSummary
+from musu_core.adapters.base import AdapterContext, AdapterResult, BaseAdapter, ErrorCode, UsageSummary
 
 # Env vars that cause "cannot be launched inside another session" errors when
 # Claude Code runs nested inside another Claude Code session.
@@ -180,15 +180,29 @@ class ClaudeLocalAdapter(BaseAdapter):
             else:
                 error = "Empty response from Claude"
 
-        # Detect infrastructure failures that are safe to retry with a fallback adapter.
-        # - exit_code == -1: our internal timeout sentinel
-        # - stderr/stdout hints at rate-limit (429), connect error, or timeout
+        # Classify the error and decide whether fallback is safe.
+        error_code: ErrorCode | None = None
         is_retriable = False
         if not success:
-            retriable_hints = ("rate limit", "429", "connect error", "connection refused", "timed out", "timeout")
             combined = f"{stderr} {stdout}".lower()
-            if exit_code == -1 or any(h in combined for h in retriable_hints):
+            if exit_code == -1:
+                error_code = ErrorCode.TIMEOUT
                 is_retriable = True
+            elif any(h in combined for h in ("rate limit", "429", "too many requests")):
+                error_code = ErrorCode.RATE_LIMIT
+                is_retriable = True
+            elif any(h in combined for h in ("context", "too long", "maximum context", "context window", "context_length")):
+                error_code = ErrorCode.CONTEXT_EXCEEDED
+                is_retriable = False  # same context will fail any adapter
+            elif any(h in combined for h in ("connect error", "connection refused", "model not available", "model_not_found", "no such model")):
+                error_code = ErrorCode.MODEL_UNAVAILABLE
+                is_retriable = True
+            elif any(h in combined for h in ("timed out", "timeout")):
+                error_code = ErrorCode.TIMEOUT
+                is_retriable = True
+            else:
+                error_code = ErrorCode.UNKNOWN
+                is_retriable = False
 
         return AdapterResult(
             run_id=ctx.run_id,
@@ -199,6 +213,7 @@ class ClaudeLocalAdapter(BaseAdapter):
             cost_usd=parsed.get("cost_usd"),
             error=error,
             is_retriable=is_retriable,
+            error_code=error_code,
             raw={
                 "exit_code": exit_code,
                 "stdout_snippet": stdout[:500],
