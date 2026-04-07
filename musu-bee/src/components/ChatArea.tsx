@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ChannelId, Message } from "@/types";
 
 interface ChatAreaProps {
@@ -10,6 +10,9 @@ interface ChatAreaProps {
   isAgentTyping?: boolean;
   isConnected?: boolean;
   channelDescription?: string;
+  isLoadingHistory?: boolean;
+  hasMoreHistory?: boolean;
+  loadOlderMessages?: () => void;
 }
 
 function MessageBubble({ msg }: { msg: Message }) {
@@ -109,16 +112,56 @@ export default function ChatArea({
   isAgentTyping = false,
   isConnected,
   channelDescription,
+  isLoadingHistory = false,
+  hasMoreHistory = false,
+  loadOlderMessages,
 }: ChatAreaProps) {
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // Whether the user is near the bottom of the message list
+  const isNearBottomRef = useRef(true);
+  // Scroll height saved just before history prepend, for restoration
+  const prevScrollHeightRef = useRef(0);
 
   // Messages are already filtered by the parent for agent channels
   const channelMessages = messages;
 
+  // Save scroll height when history load starts (before messages are prepended)
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [channelMessages.length, isAgentTyping]);
+    if (isLoadingHistory && scrollRef.current) {
+      prevScrollHeightRef.current = scrollRef.current.scrollHeight;
+    }
+  }, [isLoadingHistory]);
+
+  // After history prepend: restore scroll position so the user stays in place
+  useLayoutEffect(() => {
+    if (isLoadingHistory) return;
+    const el = scrollRef.current;
+    if (!el || !prevScrollHeightRef.current) return;
+    const diff = el.scrollHeight - prevScrollHeightRef.current;
+    if (diff > 0 && !isNearBottomRef.current) {
+      el.scrollTop = diff;
+    }
+    prevScrollHeightRef.current = 0;
+  }, [isLoadingHistory, channelMessages.length]);
+
+  // Auto-scroll to bottom on new messages — only when near bottom or on initial load
+  useEffect(() => {
+    if (isLoadingHistory) return; // skip during history load to avoid fighting restoration
+    if (isNearBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [channelMessages.length, isAgentTyping, isLoadingHistory]);
+
+  function handleScroll(e: React.UIEvent<HTMLDivElement>) {
+    const el = e.currentTarget;
+    isNearBottomRef.current =
+      el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+    if (el.scrollTop < 80 && hasMoreHistory && !isLoadingHistory) {
+      loadOlderMessages?.();
+    }
+  }
 
   function handleSend() {
     const text = input.trim();
@@ -198,6 +241,8 @@ export default function ChatArea({
 
       {/* Message list */}
       <div
+        ref={scrollRef}
+        onScroll={handleScroll}
         style={{
           flex: 1,
           overflowY: "auto",
@@ -206,7 +251,41 @@ export default function ChatArea({
           flexDirection: "column",
         }}
       >
-        {channelMessages.length === 0 && (
+        {/* History loading spinner */}
+        {isLoadingHistory && (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              padding: "8px 0 4px",
+              flexShrink: 0,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 12,
+                color: "#6b7280",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <span
+                style={{
+                  display: "inline-block",
+                  width: 12,
+                  height: 12,
+                  border: "2px solid #374151",
+                  borderTopColor: "#a78bfa",
+                  borderRadius: "50%",
+                  animation: "spin 0.8s linear infinite",
+                }}
+              />
+              이전 메시지 불러오는 중...
+            </span>
+          </div>
+        )}
+        {channelMessages.length === 0 && !isLoadingHistory && (
           <div
             style={{
               flex: 1,

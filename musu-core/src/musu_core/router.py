@@ -146,11 +146,28 @@ class Router:
         _original_failure_reason = (result.error_code.value if result.error_code else "unknown")
         _fallback_adapters_tried: list[str] = []
         if _should_fallback:
+            # --- Depth limit + cycle prevention ---
+            _max_depth: int = self._config.max_fallback_depth
+            _depth: int = 0
+            # Seed with primary adapter so it is never retried as a fallback.
+            _seen_adapter_types: set[str] = {agent.adapter_type}
+
             for fallback_spec in fallback_chain:
+                if _depth >= _max_depth:
+                    # Hard cap reached — stop walking the chain.
+                    break
+
                 fb_adapter_type = fallback_spec.get("adapter_type", "")
+                if fb_adapter_type in _seen_adapter_types:
+                    # Cycle detected — skip this entry, do NOT count toward depth.
+                    continue
+
                 fb_adapter = get_adapter(fb_adapter_type)
                 if fb_adapter is None:
                     continue
+
+                _seen_adapter_types.add(fb_adapter_type)
+                _depth += 1
                 _fallback_adapters_tried.append(fb_adapter_type)
                 fb_config: dict[str, Any] = {**adapter_config, **fallback_spec}
                 fb_ctx = replace(ctx, adapter_type=fb_adapter_type, config=fb_config)

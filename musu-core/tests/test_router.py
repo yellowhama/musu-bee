@@ -287,3 +287,130 @@ def test_is_retriable_field_on_adapter_result():
 
     r2 = AdapterResult(run_id="x", success=False, summary="", is_retriable=True)
     assert r2.is_retriable is True
+
+
+# ---------------------------------------------------------------------------
+# MUS-897: depth limit + cycle prevention
+# ---------------------------------------------------------------------------
+
+
+def _fail_result(run_id: str = "r") -> AdapterResult:
+    return AdapterResult(run_id=run_id, success=False, summary="", error="rate limit", is_retriable=True)
+
+
+def _ok_result(run_id: str = "r") -> AdapterResult:
+    return AdapterResult(run_id=run_id, success=True, summary="done")
+
+
+def test_fallback_depth_limit_stops_chain(backend, cfg):
+    """Fallback chain with 5 entries is capped at max_fallback_depth=2."""
+    cfg_limited = Config(
+        db_path=cfg.db_path,
+        default_model=cfg.default_model,
+        claude_command=cfg.claude_command,
+        adapter_timeout_sec=cfg.adapter_timeout_sec,
+        max_fallback_depth=2,
+    )
+    agent = backend.agents.create(
+        name="deep-agent",
+        role="assistant",
+        adapter_type="claude_local",
+        adapter_config={},
+        fallback_chain=[
+            {"adapter_type": "hermes"},
+            {"adapter_type": "process"},
+            {"adapter_type": "hermes"},  # duplicate — skipped by cycle detection
+            {"adapter_type": "remote_cli"},
+            {"adapter_type": "remote_process"},
+        ],
+    )
+    router_limited = Router(backend=backend, config=cfg_limited)
+    fail = _fail_result()
+
+    hermes_mock = AsyncMock(return_value=fail)
+    process_mock = AsyncMock(return_value=fail)
+    remote_cli_mock = AsyncMock(return_value=fail)
+    remote_process_mock = AsyncMock(return_value=fail)
+
+    with patch("musu_core.adapters.claude_local.ClaudeLocalAdapter.execute", AsyncMock(return_value=fail)), \
+         patch("musu_core.adapters.hermes.HermesAdapter.execute", hermes_mock), \
+         patch("musu_core.adapters.process.ProcessAdapter.execute", process_mock), \
+         patch("musu_core.adapters.remote_cli.RemoteCLIAdapter.execute", remote_cli_mock), \
+         patch("musu_core.adapters.remote_process.RemoteProcessAdapter.execute", remote_process_mock):
+        result = asyncio.run(router_limited.route(RouteRequest(agent_id=agent.id, prompt="go")))
+
+    assert not result.success
+    # hermes tried (depth=1), process tried (depth=2), duplicate hermes skipped,
+    # remote_cli would be depth=3 but max is 2 → not called
+    hermes_mock.assert_called_once()
+    process_mock.assert_called_once()
+    remote_cli_mock.assert_not_called()
+    remote_process_mock.assert_not_called()
+
+
+def test_fallback_cycle_prevention_skips_duplicate_adapter(backend, cfg):
+    """An adapter type that already appeared in the chain is skipped."""
+    agent = backend.agents.create(
+        name="cycle-agent",
+        role="assistant",
+        adapter_type="claude_local",
+        adapter_config={},
+        fallback_chain=[
+            {"adapter_type": "hermes"},
+            {"adapter_type": "hermes"},   # duplicate — must be skipped
+            {"adapter_type": "process"},
+        ],
+    )
+    router_obj = Router(backend=backend, config=cfg)
+    fail = _fail_result()
+    ok = _ok_result()
+
+    hermes_mock = AsyncMock(return_value=fail)
+    process_mock = AsyncMock(return_value=ok)
+
+    with patch("musu_core.adapters.claude_local.ClaudeLocalAdapter.execute", AsyncMock(return_value=fail)), \
+         patch("musu_core.adapters.hermes.HermesAdapter.execute", hermes_mock), \
+         patch("musu_core.adapters.process.ProcessAdapter.execute", process_mock):
+        result = asyncio.run(router_obj.route(RouteRequest(agent_id=agent.id, prompt="go")))
+
+    assert result.success
+    assert result.summary == "done"
+    # hermes called once (not twice), process called once
+    hermes_mock.assert_called_once()
+    process_mock.assert_called_once()
+
+
+def test_fallback_primary_adapter_not_retried_as_fallback(backend, cfg):
+    """Primary adapter type is treated as already-seen and skipped in fallback chain."""
+    agent = backend.agents.create(
+        name="self-loop-agent",
+        role="assistant",
+        adapter_type="hermes",
+        adapter_config={},
+        fallback_chain=[
+            {"adapter_type": "hermes"},   # same as primary — must be skipped
+            {"adapter_type": "process"},
+        ],
+    )
+    router_obj = Router(backend=backend, config=cfg)
+    fail = _fail_result()
+    ok = _ok_result()
+
+    hermes_mock = AsyncMock(return_value=fail)
+    process_mock = AsyncMock(return_value=ok)
+
+    with patch("musu_core.adapters.hermes.HermesAdapter.execute", hermes_mock), \
+         patch("musu_core.adapters.process.ProcessAdapter.execute", process_mock):
+        result = asyncio.run(router_obj.route(RouteRequest(agent_id=agent.id, prompt="go")))
+
+    assert result.success
+    # hermes called once (primary call only), process called once (fallback)
+    assert hermes_mock.call_count == 1
+    process_mock.assert_called_once()
+
+
+def test_max_fallback_depth_from_config_default():
+    """Default max_fallback_depth is 3."""
+    from musu_core.config import Config
+    cfg = Config(db_path=":memory:")
+    assert cfg.max_fallback_depth == 3

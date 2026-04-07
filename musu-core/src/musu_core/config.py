@@ -25,6 +25,10 @@ class Config:
     adapter_timeout_sec: int = field(
         default_factory=lambda: int(os.environ.get("MUSU_ADAPTER_TIMEOUT", "300"))
     )
+    # Maximum number of fallback adapters to try before giving up (default: 3)
+    max_fallback_depth: int = field(
+        default_factory=lambda: int(os.environ.get("MUSU_MAX_FALLBACK_DEPTH", "3"))
+    )
     # Optional: point at a Paperclip instance
     paperclip_api_url: str | None = field(
         default_factory=lambda: os.environ.get("PAPERCLIP_API_URL")
