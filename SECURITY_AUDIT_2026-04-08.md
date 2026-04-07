@@ -264,6 +264,110 @@ return {"error": "Internal server error", "code": "internal_error"}
 
 ---
 
+## Claude Code에서 배워올 패턴
+
+### 패턴 8: Settings 기반 권한 시스템
+```json
+{
+  "permissions": {
+    "disableBypassPermissionsMode": "disable",
+    "ask": ["Bash"],
+    "deny": ["Exec"]
+  },
+  "allowManagedPermissionRulesOnly": true
+}
+```
+- 도구별 3단계: Allow / Ask(유저 확인) / Deny(차단)
+- `settings.json`(공유) + `settings.local.json`(개인) 분리
+- 바이패스 모드 비활성화 가능
+
+### 패턴 9: PreToolUse Hook으로 위험 패턴 차단
+```json
+{
+  "hooks": {
+    "PreToolUse": [{
+      "hooks": [{"type": "command", "command": "python3 validate.py", "timeout": 10}],
+      "matcher": "Edit|Write|Bash"
+    }]
+  }
+}
+```
+- 도구 실행 **전에** 검증 스크립트 실행
+- exit code 0 = 허용, 2 = 차단
+- 패턴: command injection, XSS, eval(), pickle, os.system()
+- 세션별 상태 추적 (같은 경고 반복 안 함)
+
+### 패턴 10: Hookify — 마크다운 기반 보안 규칙
+```markdown
+---
+name: block-dangerous-rm
+enabled: true
+event: bash
+pattern: rm\s+-rf
+action: block
+---
+⚠️ rm -rf 감지. 위험한 명령입니다.
+```
+- 코딩 불필요 — 마크다운으로 규칙 정의
+- regex 패턴 매칭
+- 즉시 리로드 (재시작 불필요)
+
+### 패턴 11: 플러그인 파일시스템 격리
+- 플러그인별 독립 디렉토리
+- 상위 디렉토리 접근 불가 (`../` 차단)
+- 절대 경로 불가 (상대 경로만)
+- `${PLUGIN_ROOT}` 환경변수로 자기 위치만 참조
+
+### 패턴 12: 네트워크 샌드박스
+```json
+{
+  "sandbox": {
+    "network": {
+      "allowedDomains": ["api.anthropic.com", "api.github.com"],
+      "allowUnixSockets": false,
+      "allowLocalBinding": false
+    }
+  }
+}
+```
+- 허용된 도메인만 접근 가능
+- 에이전트 탈취 시에도 데이터 유출 차단
+
+---
+
+## NanoClaw에서 배워올 패턴
+
+### 패턴 13: 컨테이너 격리 (OS 레벨)
+- 에이전트를 Linux 컨테이너에서 실행
+- 권한 체크가 아닌 **물리적 격리**
+- 크레덴셜은 OneCLI Vault에서 주입 (에이전트가 직접 접근 불가)
+- 그룹별 독립 파일시스템 마운트
+
+### 패턴 14: 크레덴셜 볼트
+- 시크릿을 별도 서비스(Vault)에 저장
+- 에이전트/subprocess에 **절대 전달 안 함**
+- 요청 시점에 주입, 사용 후 폐기
+- 에이전트 탈취되어도 raw 크레덴셜 접근 불가
+
+---
+
+## 전체 레퍼런스 비교
+
+| 보안 영역 | Paperclip | OpenClaw | Claude Code | NanoClaw | MUSU |
+|-----------|-----------|----------|-------------|----------|------|
+| 토큰 검증 | SHA256+timing-safe | 안전 | Settings 기반 | 컨테이너 격리 | ❌ 평문 != |
+| Rate Limit | 쿼터 기반 | 슬라이딩 윈도우 | — | — | ❌ 없음 |
+| 시크릿 마스킹 | 9패턴 redaction | 게이트웨이 | Hook 기반 탐지 | Vault 격리 | ❌ 없음 |
+| 권한 시스템 | RBAC+스코프 | 에이전트별 역할 | Ask/Deny/Allow | 컨테이너 격리 | ❌ all-or-nothing |
+| 입력 검증 | Zod 전수 | 타입 검사 | PreToolUse Hook | — | ⚠️ 부분적 |
+| 실행 격리 | Git worktree | 디바이스별 | 샌드박스+Hook | **컨테이너** | ❌ 없음 |
+| CSRF | Origin/Referer | 있음 | — | — | ❌ 없음 |
+| 플러그인 격리 | — | 확장 디렉토리 | 파일시스템 격리 | 컨테이너 | ❌ 없음 |
+| 네트워크 제한 | — | — | 도메인 allowlist | 컨테이너 | ❌ 없음 |
+| 보안 규칙 | 코드 | 설정 | **마크다운** | — | ❌ 없음 |
+
+---
+
 ## 양호한 부분 ✅
 
 | 항목 | 상태 |
