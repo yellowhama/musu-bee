@@ -53,13 +53,13 @@ async def route_chat(channel: str, sender_id: str, text: str) -> dict[str, Any]:
         )
     except ValueError as exc:
         logger.warning("route_chat: no agent for channel %r — %s", channel, exc)
-        return {"error": str(exc), "response": None}
+        return {"error": "No agent available for this channel.", "response": None}
     except RuntimeError as exc:
         logger.error("route_chat: adapter failure — %s", exc)
-        return {"error": str(exc), "response": None}
+        return {"error": "Agent unavailable. Please try again later.", "response": None}
     except Exception as exc:
         logger.exception("route_chat: unexpected error — %s", exc)
-        return {"error": str(exc), "response": None}
+        return {"error": "Internal error. Please try again.", "response": None}
 
     # Look up agent info
     backend = _get_backend()
@@ -91,7 +91,6 @@ def get_channel_map() -> dict[str, Any]:
             "agent_name": agent_name,
             "agent_id": agent["id"] if agent else None,
             "agent_role": agent["role"] if agent else None,
-            "adapter_type": agent["adapter_type"] if agent else None,
         }
     return result
 

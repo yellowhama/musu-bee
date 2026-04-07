@@ -139,3 +139,31 @@ class TestRunProcessReturncode:
             result = asyncio.run(run_process("echo", ["hi"], cwd=None))
         assert result.exit_code == 1
         assert result.success is False
+
+
+class TestRunProcessEnvFiltering:
+    """env_extra filtering: only MUSU_* vars pass through; dangerous vars are blocked."""
+
+    def test_musu_prefixed_vars_pass_through(self) -> None:
+        result = asyncio.run(
+            run_process("bash", ["-c", "echo $MUSU_TEST_VAR"], cwd=None,
+                        env_extra={"MUSU_TEST_VAR": "musu_value"})
+        )
+        assert result.exit_code == 0
+        assert "musu_value" in result.stdout
+
+    def test_non_musu_vars_are_blocked(self) -> None:
+        result = asyncio.run(
+            run_process("bash", ["-c", "echo ${NON_MUSU_VAR:-not_set}"], cwd=None,
+                        env_extra={"NON_MUSU_VAR": "should_be_blocked"})
+        )
+        assert result.exit_code == 0
+        assert "should_be_blocked" not in result.stdout
+
+    def test_dangerous_var_ld_preload_blocked(self) -> None:
+        result = asyncio.run(
+            run_process("bash", ["-c", "echo ${LD_PRELOAD:-not_set}"], cwd=None,
+                        env_extra={"LD_PRELOAD": "/tmp/evil.so"})
+        )
+        assert result.exit_code == 0
+        assert "/tmp/evil.so" not in result.stdout
