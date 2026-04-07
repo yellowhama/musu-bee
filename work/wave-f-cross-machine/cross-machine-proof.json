@@ -1,0 +1,68 @@
+{
+  "harness": "musu-port->musu-connects-live-harness-v1",
+  "source_routes_path": "/home/hugh51/musu-functions/work/wave-f-cross-machine/4060ti-routes.json",
+  "selected_service": "demo-api",
+  "generated_at": "2026-04-07T04:15:57Z",
+  "trustLevel": "trusted",
+  "discoveryState": "verified",
+  "trustGateReason": "peer-allowed",
+  "importDecisionReason": "clean",
+  "transportEvidenceKind": "runtime-musu-port-http-route-plane-v1",
+  "sessionEvidenceMode": "runtime-peer-authenticated",
+  "sessionRemoteAddrSource": "quic-session-event.remote_addr",
+  "runtimeEvidencePath": "/home/hugh51/musu-functions/work/wave-f-cross-machine/cross-machine-transport-evidence.json",
+  "snapshot": {
+    "peer_id": "5070ti-node",
+    "trust_level": "trusted",
+    "discovery_state": "verified",
+    "trust_gate_reason": "peer-allowed",
+    "import_decision_reason": "clean",
+    "transport_evidence_kind": "runtime-musu-port-http-route-plane-v1",
+    "session_evidence_mode": "runtime-peer-authenticated",
+    "session_remote_addr_source": "quic-session-event.remote_addr",
+    "exported_route": {
+      "route_id": "demo-api",
+      "alias": "demo-api",
+      "protocol": "http",
+      "entrypoint": {
+        "host": "127.0.0.1",
+        "port": 8787
+      },
+      "target_kind": "generic_http",
+      "visibility": "shared",
+      "health": {
+        "status": "healthy",
+        "checked_at": "port-adapter"
+      }
+    },
+    "projected_routes": [
+      {
+        "import_id": "5070ti-node::demo-api",
+        "alias": "demo-api",
+        "protocol": "http",
+        "target_kind": "generic_http",
+        "source_peer_id": "5070ti-node",
+        "import_state": "active",
+        "freshness_state": "fresh",
+        "collision_state": "clean",
+        "available": true
+      }
+    ],
+    "suppressed_routes": [],
+    "stale_routes": [],
+    "quic_session": {
+      "peer_id": "5070ti-node",
+      "session_id": "session-a",
+      "endpoint_addr": "0.0.0.0:4433",
+      "remote_addr": "5070ti-node.mesh.internal:4433",
+      "accepted_at": "2026-04-07T04:15:57Z",
+      "control_stream": {
+        "stream_id": 0,
+        "channel": "control",
+        "descriptor": "bi/0/control"
+      }
+    },
+    "pairing_session_id": "session-a",
+    "pairing_outcome": "paired"
+  }
+}

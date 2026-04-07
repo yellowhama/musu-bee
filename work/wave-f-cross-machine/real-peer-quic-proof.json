@@ -1,0 +1,16 @@
+{
+  "harness": "musu-connects-real-peer-harness-v2",
+  "generated_at": "2026-04-05T00:00:00Z",
+  "server_endpoint_addr": "127.0.0.1:59403",
+  "client_endpoint_addr": "127.0.0.1:57104",
+  "remote_addr": "127.0.0.1:57104",
+  "remote_addr_source": "quic-session-event.remote_addr",
+  "session_id": "real-quic-session-59403",
+  "peer_id": "real-quic-peer-59403",
+  "sessionEvidenceMode": "runtime-peer-authenticated",
+  "pairingOutcome": "paired",
+  "trustLevel": "trusted",
+  "discoveryState": "verified",
+  "pairing_session_id": "real-quic-session-59403",
+  "control_stream_descriptor": "bi/0/control"
+}

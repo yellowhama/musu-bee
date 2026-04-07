@@ -1,0 +1,29 @@
+{
+  "harness": "wave-f-cross-machine-acceptance",
+  "generated_at": "2026-04-07T04:18:11Z",
+  "nodes": {
+    "4060ti": {
+      "tailscale_ip": "100.126.67.88",
+      "musu_portd": "http://0.0.0.0:1355",
+      "routes": ["demo-api:8787", "demo-admin:9797"],
+      "device_id": "hughsecond"
+    },
+    "5070ti": {
+      "tailscale_ip": "100.121.211.106",
+      "musu_portd": "http://0.0.0.0:1355",
+      "routes": ["inference-api:8787", "model-server:18081"],
+      "device_id": "hugh-main-1"
+    }
+  },
+  "proofs": {
+    "forward": "cross-machine-proof.json (4060ti routes → 5070ti peer)",
+    "reverse": "cross-machine-proof-reverse.json (5070ti routes → 4060ti peer)",
+    "quic": "real-peer-quic-proof.json (QUIC handshake loopback)"
+  },
+  "results": {
+    "forward": "trusted/verified, peer-allowed, runtime-peer-authenticated",
+    "reverse": "trusted/verified, peer-allowed, runtime-peer-authenticated",
+    "quic": "paired, trusted/verified, quic-session-event.remote_addr"
+  },
+  "status": "PASS — cross-machine route exchange + QUIC pairing verified"
+}
