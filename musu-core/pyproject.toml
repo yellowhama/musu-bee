@@ -14,11 +14,14 @@ authors = [
 ]
 dependencies = [
   "httpx>=0.25",
+  "fastapi>=0.100",
+  "starlette>=0.27",
 ]
 
 [project.optional-dependencies]
 dev = [
   "pytest>=7.0",
+  "httpx>=0.25",
 ]
 
 [tool.hatch.build.targets.wheel]
