@@ -80,16 +80,27 @@ async def api_list_messages(
     conversation_id: str | None = Query(default=None, description="Alias for session_id"),
     limit: int = Query(default=50, ge=1, le=500, description="Max messages to return"),
     before_id: str | None = Query(default=None, description="Cursor: return messages before this id"),
+    agent_id: str | None = Query(default=None, description="Filter by agent id"),
+    date_from: str | None = Query(default=None, description="Filter: messages at or after this ISO timestamp"),
+    date_to: str | None = Query(default=None, description="Filter: messages at or before this ISO timestamp"),
 ) -> list[dict]:
     """List messages for a session with cursor-based pagination.
 
     Pass either *session_id* or *conversationId*. Use *before_id* for backward
     pagination (returns messages older than the given message id).
+    Optionally filter by *agent_id*, *date_from*, or *date_to* (ISO 8601).
     """
     sid = session_id or conversation_id
     if not sid:
         raise HTTPException(status_code=422, detail="session_id or conversationId query param is required")
-    return list_messages(session_id=sid, limit=limit, before_id=before_id)
+    return list_messages(
+        session_id=sid,
+        limit=limit,
+        before_id=before_id,
+        agent_id=agent_id,
+        date_from=date_from,
+        date_to=date_to,
+    )
 
 
 @app.get("/api/messages/{message_id}", summary="Get a message by id")

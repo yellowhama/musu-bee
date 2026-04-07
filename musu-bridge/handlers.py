@@ -94,3 +94,38 @@ def get_channel_map() -> dict[str, Any]:
             "adapter_type": agent["adapter_type"] if agent else None,
         }
     return result
+
+
+# --- Message history ---
+
+
+def list_messages(
+    session_id: str,
+    limit: int = 50,
+    before_id: str | None = None,
+    agent_id: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+) -> list[dict[str, Any]]:
+    """Return messages for a session with cursor-based pagination and optional filters."""
+    backend = _get_backend()
+    return backend.list_messages(
+        session_id,
+        limit=limit,
+        before_id=before_id,
+        agent_id=agent_id,
+        date_from=date_from,
+        date_to=date_to,
+    )
+
+
+def get_message_by_id(message_id: str) -> dict[str, Any] | None:
+    """Return a single message by id, or None if not found."""
+    backend = _get_backend()
+    return backend.get_message(message_id)
+
+
+def delete_message_by_id(message_id: str) -> bool:
+    """Delete a message by id. Returns True if deleted, False if not found."""
+    backend = _get_backend()
+    return backend.delete_message(message_id)
