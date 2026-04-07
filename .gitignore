@@ -54,3 +54,4 @@ musu-computer-tools/mcp/rootless-computer-control/pydeps/
 # Python venvs
 .venv*/
 *.pyc
+references_AI/
