@@ -30,10 +30,12 @@ import uvicorn
 from fastapi import Depends, FastAPI
 from pydantic import BaseModel, Field
 
+from musu_core.middleware import apply_musu_middlewares
 from musu_worker.auth import require_auth, warn_if_open_mode
 from musu_worker.executors import ExecResult, run_cli, run_process
 
 app = FastAPI(title="musu-worker", version="0.1.0")
+apply_musu_middlewares(app, bearer_token=os.environ.get("MUSU_WORKER_TOKEN"))
 
 
 @app.on_event("startup")

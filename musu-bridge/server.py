@@ -4,25 +4,39 @@ Routes agent messages through musu-core without any external dependencies.
 No Mattermost, no Docker, no PostgreSQL.
 
 Routes:
-  POST /api/route         — Route a message to an agent via musu-core
-  GET  /api/agents        — List registered agents
-  GET  /api/channels      — Channel-to-agent mapping
-  GET  /health            — Liveness check
+  POST /api/route              — Route a message to an agent via musu-core
+  GET  /api/agents             — List registered agents
+  GET  /api/channels           — Channel-to-agent mapping
+  GET  /api/messages           — List messages for a session (cursor-based pagination)
+  GET  /api/messages/{id}      — Get a single message by id
+  DELETE /api/messages/{id}    — Delete a message by id
+  GET  /health                 — Liveness check
 """
 from __future__ import annotations
 
 import logging
+import os
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from musu_core.middleware import apply_musu_middlewares
 from config import get_config
-from handlers import route_chat, get_agents, get_channel_map
+from handlers import (
+    delete_message_by_id,
+    get_agents,
+    get_channel_map,
+    get_message_by_id,
+    list_messages,
+    route_chat,
+)
 
 logger = logging.getLogger(__name__)
 app = FastAPI(title="musu-bridge", version="0.2.0")
+
+apply_musu_middlewares(app, bearer_token=os.getenv("MUSU_BRIDGE_TOKEN"))
 
 app.add_middleware(
     CORSMiddleware,
@@ -31,7 +45,7 @@ app.add_middleware(
         "http://localhost:3001",
         "http://localhost:1355",
     ],
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["Content-Type"],
 )
 
@@ -58,6 +72,42 @@ async def api_agents() -> list[dict]:
 async def api_channels() -> dict:
     """Return channel-to-agent mapping."""
     return get_channel_map()
+
+
+@app.get("/api/messages", summary="List messages for a session")
+async def api_list_messages(
+    session_id: str | None = Query(default=None, description="Session / conversation id"),
+    conversation_id: str | None = Query(default=None, description="Alias for session_id"),
+    limit: int = Query(default=50, ge=1, le=500, description="Max messages to return"),
+    before_id: str | None = Query(default=None, description="Cursor: return messages before this id"),
+) -> list[dict]:
+    """List messages for a session with cursor-based pagination.
+
+    Pass either *session_id* or *conversationId*. Use *before_id* for backward
+    pagination (returns messages older than the given message id).
+    """
+    sid = session_id or conversation_id
+    if not sid:
+        raise HTTPException(status_code=422, detail="session_id or conversationId query param is required")
+    return list_messages(session_id=sid, limit=limit, before_id=before_id)
+
+
+@app.get("/api/messages/{message_id}", summary="Get a message by id")
+async def api_get_message(message_id: str) -> dict:
+    """Return a single message by id."""
+    msg = get_message_by_id(message_id)
+    if msg is None:
+        raise HTTPException(status_code=404, detail="Message not found")
+    return msg
+
+
+@app.delete("/api/messages/{message_id}", summary="Delete a message by id")
+async def api_delete_message(message_id: str) -> dict:
+    """Delete a message. Returns 404 if not found."""
+    deleted = delete_message_by_id(message_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Message not found")
+    return {"deleted": True, "id": message_id}
 
 
 @app.get("/health")
