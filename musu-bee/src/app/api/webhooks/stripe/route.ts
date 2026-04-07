@@ -37,8 +37,8 @@ export async function POST(req: NextRequest) {
       if (session.mode !== "subscription") break;
 
       const tier = (session.metadata?.tier ?? "pro") as PlanTier;
-      const current = getSubscription();
-      saveSubscription({
+      const current = await getSubscription();
+      await saveSubscription({
         ...current,
         plan: tier,
         stripeCustomerId: session.customer as string,
@@ -50,13 +50,13 @@ export async function POST(req: NextRequest) {
 
     case "customer.subscription.updated": {
       const sub = event.data.object as Stripe.Subscription;
-      const current = getSubscription();
+      const current = await getSubscription();
       if (current.stripeSubscriptionId !== sub.id) break;
 
       const status = sub.status === "active" || sub.status === "trialing"
         ? sub.status
         : "cancelled";
-      saveSubscription({
+      await saveSubscription({
         ...current,
         status,
         currentPeriodEnd: new Date(sub.current_period_end * 1000).toISOString(),
@@ -66,10 +66,10 @@ export async function POST(req: NextRequest) {
 
     case "customer.subscription.deleted": {
       const sub = event.data.object as Stripe.Subscription;
-      const current = getSubscription();
+      const current = await getSubscription();
       if (current.stripeSubscriptionId !== sub.id) break;
 
-      saveSubscription({
+      await saveSubscription({
         ...current,
         plan: "free",
         status: "cancelled",
