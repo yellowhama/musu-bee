@@ -295,6 +295,7 @@ class LocalBackend(BackendABC):
             "role": row["role"],
             "content": row["content"],
             "model": row["model"],
+            "agent_id": row["agent_id"],
             "meta": json.loads(row["meta"] or "{}"),
             "created_at": row["created_at"],
         }

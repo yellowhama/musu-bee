@@ -40,8 +40,18 @@ def test_create_message_basic(local):
     assert msg["role"] == "user"
     assert msg["content"] == "hello"
     assert msg["model"] is None
+    assert msg["agent_id"] is None
     assert msg["meta"] == {}
     assert msg["created_at"]
+
+
+def test_create_message_with_agent_id(local):
+    # Insert a real agent row to satisfy FK constraint
+    local._db.execute(
+        "INSERT INTO agents (id, name) VALUES (?, ?)", ("agent-xyz", "Test Agent")
+    )
+    msg = local.create_message("sess-a", "assistant", "hi", agent_id="agent-xyz")
+    assert msg["agent_id"] == "agent-xyz"
 
 
 def test_create_message_with_model_and_meta(local):
@@ -148,6 +158,21 @@ def test_list_messages_before_id_is_first(local):
     local.create_message("s1", "assistant", "second")
     # Nothing before m1
     assert local.list_messages("s1", before_id=m1["id"]) == []
+
+
+def test_list_messages_agent_id_present(local):
+    # Insert a real agent row to satisfy FK constraint
+    local._db.execute(
+        "INSERT INTO agents (id, name) VALUES (?, ?)", ("agent-abc", "Test Agent")
+    )
+    local.create_message("s1", "assistant", "from agent", agent_id="agent-abc")
+    local.create_message("s1", "user", "from user")
+    msgs = local.list_messages("s1")
+    assert len(msgs) == 2
+    agent_msgs = [m for m in msgs if m["agent_id"] == "agent-abc"]
+    user_msgs = [m for m in msgs if m["agent_id"] is None]
+    assert len(agent_msgs) == 1
+    assert len(user_msgs) == 1
 
 
 # ---------------------------------------------------------------------------
