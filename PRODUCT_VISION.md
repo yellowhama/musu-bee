@@ -407,6 +407,151 @@ AI 스튜디오 내부:
 
 ---
 
+## 환경 관리: 도구/설정/MCP를 중앙에서 통제
+
+### 지금의 문제
+
+기기가 3대면 3대 각각에 도구를 깔고, 설정을 맞추고, MCP를 연결해야 한다. 수동으로.
+
+```
+기기 A (4060Ti):                    기기 B (5070Ti):
+  RTK v0.34.3 ✅                      RTK 없음 ❌
+  Claude Code ✅                      Claude Code ✅ (설정 다름 ❌)
+  MCP: Notion, Paperclip ✅           MCP: 없음 ❌
+  Skills: 24개 ✅                     Skills: 0개 ❌
+  Codex CLI ✅                        Codex CLI 없음 ❌
+  hooks: rtk-rewrite ✅               hooks: 없음 ❌
+  ~/.claude/settings.json ✅          ~/.claude/settings.json ❌ 다름
+```
+
+기기 하나 추가할 때마다:
+- 뭐가 깔려야 하는지 기억해야 하고
+- 버전이 맞는지 확인해야 하고
+- 설정 파일 하나하나 복사해야 하고
+- 이름이 같은 다른 패키지 깔릴 수 있고 (RTK ↔ Rust Type Kit)
+- 뭐가 빠졌는지 일일이 뒤져봐야 알고
+- 문제 생기면 "니 쪽 설정 문제" "아니야 내 쪽은 됨" 이러면서 시간 날림
+
+기기가 2대면 참지만, 5대, 10대면? 불가능.
+
+### MUSU의 해결: 환경 매니페스트
+
+회사(또는 프로젝트)마다 **"이 환경에서 일하려면 이것들이 필요하다"**는 매니페스트가 있다.
+
+```yaml
+# AI 스튜디오 환경 매니페스트
+company: AI 스튜디오
+environment:
+  tools:
+    - name: rtk
+      version: ">=0.34.3"
+      install: "npm install -g @anthropics/rtk"
+      verify: "rtk --version"
+
+    - name: claude-code
+      version: ">=1.2.0"
+      config:
+        settings: ./configs/claude-settings.json
+        hooks: ./configs/hooks/
+        skills:
+          - review
+          - investigate
+          - ship
+          - careful
+
+    - name: codex-cli
+      version: ">=2.0.0"
+      verify: "codex --version"
+
+  mcp_servers:
+    - name: notion
+      config: ./configs/mcp/notion.json
+    - name: paperclip
+      config: ./configs/mcp/paperclip.json
+
+  env_vars:
+    MUSU_PORT_MANAGER_HOST: "0.0.0.0"
+    CUDA_VISIBLE_DEVICES: "0"
+```
+
+### 기기 연결 시 자동 프로비저닝
+
+새 기기가 MUSU에 연결되면:
+
+```
+1. 기기 연결
+   "5070Ti가 AI 스튜디오에 합류했습니다"
+
+2. 환경 체크 (자동)
+   파트장: "환경 점검 중..."
+   - RTK: ❌ 미설치 → 설치 필요
+   - Claude Code: ✅ 설치됨, 설정 다름 → 동기화 필요
+   - Codex CLI: ❌ 미설치 → 설치 필요
+   - MCP Notion: ❌ 미연결 → 연결 필요
+   - Skills: 3/24 설치됨 → 21개 추가 필요
+
+3. 유저에게 보고
+   파트장(5070Ti): "AI 스튜디오 환경에 맞추려면:
+   - 도구 2개 설치 (RTK, Codex)
+   - 설정 1개 동기화 (Claude Code)
+   - MCP 1개 연결 (Notion)
+   - 스킬 21개 설치
+
+   자동으로 진행할까요?"
+
+4. 유저: "ㅇㅋ"
+
+5. 파트장: 자동 설치 + 설정 동기화 + 검증
+   "완료. 모든 도구가 AI 스튜디오 표준에 맞춰졌습니다."
+```
+
+### 버전 충돌 방지
+
+```
+파트장(5070Ti): "RTK 설치 중에 문제가 있습니다.
+  이 기기에 'rtk' (Rust Type Kit, reachingforthejack/rtk)가
+  이미 설치되어 있어요. 이건 다른 패키지입니다.
+
+  선택지:
+  1. Rust Type Kit 제거하고 MUSU RTK 설치
+  2. MUSU RTK를 다른 이름(musu-rtk)으로 설치
+  3. 건너뛰기
+
+  어떻게 할까요?"
+```
+
+### 설정 드리프트 감지
+
+기기들의 환경이 시간이 지나면서 서로 달라지는 걸 자동으로 잡는다.
+
+```
+[매일 아침 모닝 리뷰]
+
+파트장들 환경 점검 결과:
+┌─────────────┬──────────┬──────────┬─────────┐
+│ 도구        │ 4060Ti   │ 5070Ti   │ 노트북   │
+├─────────────┼──────────┼──────────┼─────────┤
+│ RTK         │ 0.34.3 ✅│ 0.34.3 ✅│ 0.33.1 ⚠│
+│ Claude Code │ 1.2.3 ✅ │ 1.2.3 ✅ │ 1.2.3 ✅│
+│ MCP Notion  │ 연결 ✅  │ 연결 ✅  │ 끊김 ❌  │
+│ Skills      │ 24/24 ✅ │ 24/24 ✅ │ 20/24 ⚠│
+└─────────────┴──────────┴──────────┴─────────┘
+
+⚠ 노트북: RTK 버전 오래됨 (0.33.1 → 0.34.3 업데이트 필요)
+❌ 노트북: Notion MCP 연결 끊김 (재연결 필요)
+⚠ 노트북: Skills 4개 누락 (canary, benchmark, cso, codex)
+```
+
+### 핵심 원칙
+
+1. **유저는 각 기기에 SSH 들어가서 설정 안 한다.** MUSU가 알아서 한다.
+2. **환경 매니페스트가 SSOT(Single Source of Truth).** 매니페스트 하나 바꾸면 전 기기 반영.
+3. **기기 추가할 때 0-config.** 연결만 하면 자동 프로비저닝.
+4. **드리프트는 자동 감지.** 사람이 일일이 확인 안 해도 됨.
+5. **충돌은 물어봄.** 자동으로 막 지우지 않음.
+
+---
+
 ## 기술 스택 매핑
 
 이미 만들어진 것들이 어떻게 연결되는지:
