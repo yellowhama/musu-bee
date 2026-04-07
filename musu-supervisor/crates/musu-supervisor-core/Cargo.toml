@@ -1,0 +1,17 @@
+[package]
+name = "musu-supervisor-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+thiserror = "1"
+toml = "0.7"
+tokio = { version = "1", features = ["process", "io-util", "rt", "sync", "time"], optional = true }
+
+[features]
+runtime = ["tokio"]
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
+
