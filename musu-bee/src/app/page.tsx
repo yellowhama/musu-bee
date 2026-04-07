@@ -257,7 +257,7 @@ export default function Home() {
   }, []);
 
   const handleSend = useCallback(
-    (text: string) => {
+    async (text: string) => {
       const userMsg: Message = {
         id: makeId(),
         channelId: activeChannel,
@@ -268,20 +268,59 @@ export default function Home() {
       };
       setMessages((prev) => [...prev, userMsg]);
 
-      // Simulate AI response after 800ms
+      // Route general channel messages to the real 파트장 AI via musu-port /chat.
+      if (activeChannel === "general") {
+        try {
+          const res = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: text }),
+          });
+          const data = (await res.json()) as { text?: string; error?: string };
+          const reply = data.text ?? data.error ?? "응답을 받지 못했습니다.";
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: makeId(),
+              channelId: "general" as const,
+              sender: "Musu-A (파트장)",
+              senderKind: "ai" as const,
+              text: reply,
+              timestamp: new Date(),
+            },
+          ]);
+        } catch {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: makeId(),
+              channelId: "general" as const,
+              sender: "시스템",
+              senderKind: "system" as const,
+              text: "AI 응답 오류: musu-port에 연결할 수 없습니다.",
+              timestamp: new Date(),
+            },
+          ]);
+        }
+        return;
+      }
+
+      // Simulated responses for non-general channels.
       setTimeout(() => {
         const responses = AI_RESPONSES[activeChannel];
         const reply = responses[Math.floor(Math.random() * responses.length)];
-        const aiMsg: Message = {
-          id: makeId(),
-          channelId: activeChannel,
-          sender: "Musu-A (4060Ti)",
-          senderKind: "ai",
-          text: reply,
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, aiMsg]);
-      }, 800);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: makeId(),
+            channelId: activeChannel,
+            sender: "Musu-A (4060Ti)",
+            senderKind: "ai" as const,
+            text: reply,
+            timestamp: new Date(),
+          },
+        ]);
+      }, 400);
     },
     [activeChannel]
   );

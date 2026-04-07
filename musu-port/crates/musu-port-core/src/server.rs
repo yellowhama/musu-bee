@@ -314,6 +314,7 @@ pub async fn run_server(config: MusuPortConfig) -> Result<(), String> {
             "/channel/{name}",
             get(handle_channel_ws).post(handle_channel_broadcast),
         )
+        .route("/chat", post(handle_chat))
         .route("/{service}", any(handle_alias_http))
         .route("/{service}/{*rest}", any(handle_alias_with_path_http))
         .with_state(state.clone());
@@ -666,6 +667,85 @@ async fn handle_channel_broadcast(
 
     let count = state.channel_hub.broadcast(&name, text);
     (StatusCode::OK, format!("{count}")).into_response()
+}
+
+// ── Chat ─────────────────────────────────────────────────────────────────────
+
+#[derive(Deserialize)]
+struct ChatRequest {
+    message: String,
+}
+
+#[derive(Serialize)]
+struct ChatResponse {
+    text: String,
+}
+
+/// POST /chat — forward user message to Claude (파트장 AI) and return the response.
+///
+/// Requires `ANTHROPIC_API_KEY` to be set in the environment.
+async fn handle_chat(
+    AxumState(state): AxumState<MusuPortState>,
+    Json(body): Json<ChatRequest>,
+) -> impl IntoResponse {
+    let api_key = match std::env::var("ANTHROPIC_API_KEY") {
+        Ok(k) if !k.is_empty() => k,
+        _ => {
+            return (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(serde_json::json!({"error": "ANTHROPIC_API_KEY not set"})),
+            )
+                .into_response()
+        }
+    };
+
+    let system_prompt = format!(
+        "당신은 {}의 파트장 AI입니다. 이 컴퓨터를 관리하고 사용자를 돕습니다. 한국어로 간결하게 답변하세요.",
+        state.device_id
+    );
+
+    let request_body = serde_json::json!({
+        "model": "claude-haiku-4-5-20251001",
+        "max_tokens": 1024,
+        "system": system_prompt,
+        "messages": [{"role": "user", "content": body.message}]
+    });
+
+    let result = state
+        .http_client
+        .post("https://api.anthropic.com/v1/messages")
+        .header("x-api-key", &api_key)
+        .header("anthropic-version", "2023-06-01")
+        .header("content-type", "application/json")
+        .json(&request_body)
+        .timeout(Duration::from_secs(30))
+        .send()
+        .await;
+
+    match result {
+        Ok(resp) if resp.status().is_success() => {
+            let data: serde_json::Value = resp.json().await.unwrap_or_default();
+            let text = data["content"][0]["text"]
+                .as_str()
+                .unwrap_or("응답을 받지 못했습니다.")
+                .to_string();
+            Json(ChatResponse { text }).into_response()
+        }
+        Ok(resp) => {
+            let status = resp.status().as_u16();
+            let err_body = resp.text().await.unwrap_or_default();
+            (
+                StatusCode::BAD_GATEWAY,
+                Json(serde_json::json!({"error": format!("Anthropic API {}: {}", status, err_body)})),
+            )
+                .into_response()
+        }
+        Err(e) => (
+            StatusCode::BAD_GATEWAY,
+            Json(serde_json::json!({"error": e.to_string()})),
+        )
+            .into_response(),
+    }
 }
 
 async fn handle_alias_http(
