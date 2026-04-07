@@ -20,10 +20,11 @@ import os
 import uvicorn
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from musu_core.middleware import apply_musu_middlewares
 from config import get_config
+from csrf_guard import CSRFOriginGuard
 from handlers import (
     delete_message_by_id,
     get_agents,
@@ -44,6 +45,8 @@ apply_musu_middlewares(
     rate_limit_key_type="ip",
 )
 
+app.add_middleware(CSRFOriginGuard)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -59,7 +62,7 @@ app.add_middleware(
 class RouteRequest(BaseModel):
     channel: str
     sender_id: str
-    text: str
+    text: str = Field(max_length=10000)
 
 
 @app.post("/api/route")
