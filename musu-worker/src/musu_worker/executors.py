@@ -52,7 +52,7 @@ async def run_process(
             success=False,
         )
 
-    rc = proc.returncode or 0
+    rc = proc.returncode if proc.returncode is not None else -1
     return ExecResult(
         stdout=stdout_bytes.decode(errors="replace"),
         stderr=stderr_bytes.decode(errors="replace"),
