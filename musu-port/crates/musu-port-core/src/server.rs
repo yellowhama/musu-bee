@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 use tokio_tungstenite::tungstenite::Message as TungsteniteMessage;
 use tracing::warn;
 
+use crate::channel_hub::ChannelHub;
 use crate::config::MusuPortConfig;
 use crate::control::AuditPolicy;
 use crate::discovery::selected_discovery_provider;
@@ -37,6 +38,7 @@ struct HealthResponse {
     filesystem_context: String,
     binary_kind: String,
     device_id: String,
+    boss_device_id: Option<String>,
     device_profile_path: String,
     device_profile_present: bool,
     device_profile_loaded: bool,
@@ -96,6 +98,17 @@ struct MetadataExportRequest {
     path: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+struct BossConnectRequest {
+    device_id: String,
+}
+
+#[derive(Debug, Serialize)]
+struct BossStatusResponse {
+    boss_device_id: Option<String>,
+    is_this_device: bool,
+}
+
 pub async fn run_server(config: MusuPortConfig) -> Result<(), String> {
     let profile_summary =
         summarize_device_profile(config.device_profile.as_ref(), &config.device_id);
@@ -144,6 +157,8 @@ pub async fn run_server(config: MusuPortConfig) -> Result<(), String> {
         device_profile_path: config.device_profile_path.clone(),
         device_profile: config.device_profile.clone(),
         data_root: config.data_root.clone(),
+        channel_hub: Arc::new(ChannelHub::new()),
+        current_boss: Arc::new(tokio::sync::RwLock::new(None)),
     };
     state.initialize_connect_mode()?;
     state.auto_promote_mcp_candidates().await?;
@@ -212,10 +227,17 @@ pub async fn run_server(config: MusuPortConfig) -> Result<(), String> {
         .route("/promote", post(handle_promote))
         .route("/ignore", post(handle_ignore))
         .route("/unignore", post(handle_unignore))
+        .route("/status", get(handle_device_status))
+        .route("/boss", get(handle_boss_status))
+        .route("/boss/connect", post(handle_boss_connect))
         .route("/metrics", get(handle_metrics))
         .route("/metrics/json", get(handle_metrics_json))
         .route("/ws/{service}", get(handle_alias_ws))
         .route("/ws/{service}/{*rest}", get(handle_alias_with_path_ws))
+        .route(
+            "/channel/{name}",
+            get(handle_channel_ws).post(handle_channel_broadcast),
+        )
         .route("/{service}", any(handle_alias_http))
         .route("/{service}/{*rest}", any(handle_alias_with_path_http))
         .with_state(state.clone());
@@ -230,6 +252,7 @@ async fn handle_health(AxumState(state): AxumState<MusuPortState>) -> impl IntoR
     let route_count = state.collect_routes().await.len();
     let executable_contract = resolve_executable_contract(&state.runtime_context, "musu-portd");
     let device_profile = state.device_profile_summary();
+    let boss_device_id = state.current_boss.read().await.clone();
     Json(HealthResponse {
         status: "ok",
         router_base_url: state.router_base_url,
@@ -238,6 +261,7 @@ async fn handle_health(AxumState(state): AxumState<MusuPortState>) -> impl IntoR
         filesystem_context: state.runtime_context.filesystem_label().to_string(),
         binary_kind: state.runtime_context.binary_kind.label().to_string(),
         device_id: state.device_id.clone(),
+        boss_device_id,
         device_profile_path: display_path_for_runtime(
             &state.device_profile_path,
             &state.runtime_context,
@@ -494,6 +518,72 @@ async fn handle_metrics(AxumState(state): AxumState<MusuPortState>) -> impl Into
 
 async fn handle_metrics_json(AxumState(state): AxumState<MusuPortState>) -> impl IntoResponse {
     Json(state.metrics.snapshot())
+}
+
+/// `GET /channel/{name}` — WebSocket fan-out subscriber.
+///
+/// Each connected client receives every message broadcast to this channel,
+/// whether from another WS client or from `POST /channel/{name}`.
+async fn handle_channel_ws(
+    ws: WebSocketUpgrade,
+    AxumState(state): AxumState<MusuPortState>,
+    Path(name): Path<String>,
+) -> impl IntoResponse {
+    ws.on_upgrade(move |socket| async move {
+        let mut rx = state.channel_hub.subscribe(&name);
+        let (mut tx, mut client_rx) = socket.split();
+
+        // Forward channel broadcasts to the client; also drain client messages
+        // (clients may send messages but we don't fan them out — they use POST
+        // for that, keeping the flow unidirectional per subscriber).
+        loop {
+            tokio::select! {
+                msg = rx.recv() => {
+                    match msg {
+                        Ok(text) => {
+                            if tx.send(AxumWsMessage::Text(text.into())).await.is_err() {
+                                break;
+                            }
+                        }
+                        Err(_) => break, // sender dropped / lagged
+                    }
+                }
+                next = client_rx.next() => {
+                    match next {
+                        Some(Ok(AxumWsMessage::Close(_))) | None => break,
+                        _ => {} // ignore other client messages
+                    }
+                }
+            }
+        }
+
+        state.channel_hub.gc(&name);
+    })
+}
+
+/// `POST /channel/{name}` — HTTP broadcast to all WS subscribers of `name`.
+///
+/// Body: plain text. Returns 200 with the subscriber count.
+async fn handle_channel_broadcast(
+    AxumState(state): AxumState<MusuPortState>,
+    Path(name): Path<String>,
+    body: Body,
+) -> impl IntoResponse {
+    let bytes = match to_bytes(body, 1024 * 1024).await {
+        Ok(b) => b,
+        Err(_) => {
+            return (StatusCode::BAD_REQUEST, "failed to read body".to_string()).into_response()
+        }
+    };
+    let text = match String::from_utf8(bytes.to_vec()) {
+        Ok(s) => s,
+        Err(_) => {
+            return (StatusCode::BAD_REQUEST, "body must be valid UTF-8".to_string()).into_response()
+        }
+    };
+
+    let count = state.channel_hub.broadcast(&name, text);
+    (StatusCode::OK, format!("{count}")).into_response()
 }
 
 async fn handle_alias_http(
@@ -955,4 +1045,68 @@ async fn bind_listener(config: &MusuPortConfig) -> Result<tokio::net::TcpListene
 #[allow(dead_code)]
 fn _metrics_snapshot(metrics: &PortManagerMetrics) -> PortManagerMetricsSnapshot {
     metrics.snapshot()
+}
+
+async fn handle_boss_status(AxumState(state): AxumState<MusuPortState>) -> impl IntoResponse {
+    let boss = state.current_boss.read().await.clone();
+    let is_this_device = boss.as_deref() == Some(state.device_id.as_str());
+    Json(BossStatusResponse {
+        boss_device_id: boss,
+        is_this_device,
+    })
+}
+
+async fn handle_boss_connect(
+    AxumState(state): AxumState<MusuPortState>,
+    Json(req): Json<BossConnectRequest>,
+) -> impl IntoResponse {
+    let mut boss = state.current_boss.write().await;
+    let changed = boss.as_deref() != Some(req.device_id.as_str());
+    *boss = Some(req.device_id.clone());
+    drop(boss);
+
+    if changed {
+        let msg = serde_json::json!({
+            "event": "boss_changed",
+            "boss_device_id": req.device_id,
+        })
+        .to_string();
+        state.channel_hub.broadcast("boss", msg);
+    }
+
+    let is_this_device = req.device_id == state.device_id;
+    Json(BossStatusResponse {
+        boss_device_id: Some(req.device_id),
+        is_this_device,
+    })
+}
+
+#[derive(Debug, Serialize)]
+struct DeviceStatusResponse {
+    cpu: f32,
+    gpu: Option<f32>,
+    ram: f32,
+}
+
+async fn handle_device_status(_state: AxumState<MusuPortState>) -> impl IntoResponse {
+    use sysinfo::System;
+
+    let mut sys = System::new_all();
+    sys.refresh_all();
+
+    let cpu = sys.global_cpu_usage();
+
+    let total_mem = sys.total_memory();
+    let used_mem = sys.used_memory();
+    let ram = if total_mem > 0 {
+        (used_mem as f32 / total_mem as f32) * 100.0
+    } else {
+        0.0
+    };
+
+    Json(DeviceStatusResponse {
+        cpu,
+        gpu: None, // GPU requires platform-specific probing (NVML/ROCm); not in sysinfo
+        ram,
+    })
 }

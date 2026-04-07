@@ -9,6 +9,7 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use tokio::sync::{Mutex, RwLock};
 
+use crate::channel_hub::ChannelHub;
 use crate::control::{
     append_connect_probe_history, append_metadata_export_history, apply_connect_mode_env,
     audit_policy_preset, build_audit_summary, build_metadata_consistency_report,
@@ -51,6 +52,10 @@ pub struct MusuPortState {
     pub device_profile_path: PathBuf,
     pub device_profile: Option<DeviceProfile>,
     pub data_root: PathBuf,
+    pub channel_hub: Arc<ChannelHub>,
+    /// Current boss (사장): the device_id of the last device to connect.
+    /// None until the first device registers.
+    pub current_boss: Arc<RwLock<Option<String>>>,
 }
 
 impl MusuPortState {
