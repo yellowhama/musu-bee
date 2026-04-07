@@ -14,12 +14,16 @@ from __future__ import annotations
 
 import logging
 import time
+import hmac
+from typing import Literal
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp
 
 from musu_core.errors import MusuError, Unauthorized
+from musu_core.rate_limit import SlidingWindowLimiter
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +66,53 @@ class RequestLoggerMiddleware(BaseHTTPMiddleware):
         return response
 
 
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    def __init__(
+        self,
+        app: ASGIApp,
+        limiter: SlidingWindowLimiter,
+        get_client_id: callable,
+    ):
+        super().__init__(app)
+        self.limiter = limiter
+        self.get_client_id = get_client_id
+
+    async def dispatch(self, request: Request, call_next):
+        client_id = self.get_client_id(request)
+        if client_id is None:  # No client_id means no rate limit
+            return await call_next(request)
+
+        if not self.limiter.allow_request(client_id):
+            remaining = self.limiter.get_remaining_requests(client_id)
+            reset = self.limiter.get_reset_time(client_id)
+            response = JSONResponse(
+                status_code=429,
+                content={"detail": "Rate limit exceeded"},
+            )
+            response.headers["X-RateLimit-Limit"] = str(self.limiter.capacity)
+            response.headers["X-RateLimit-Remaining"] = str(remaining)
+            response.headers["X-RateLimit-Reset"] = str(reset)
+            return response
+        
+        response = await call_next(request)
+        remaining = self.limiter.get_remaining_requests(client_id)
+        reset = self.limiter.get_reset_time(client_id)
+        response.headers["X-RateLimit-Limit"] = str(self.limiter.capacity)
+        response.headers["X-RateLimit-Remaining"] = str(remaining)
+        response.headers["X-RateLimit-Reset"] = str(reset)
+        return response
+
+
+def get_ip_client_id(request: Request) -> str | None:
+    return request.client.host if request.client else None
+
+def get_token_client_id(request: Request) -> str | None:
+    auth = request.headers.get("Authorization")
+    if auth and auth.startswith("Bearer "):
+        return auth[len("Bearer "):]
+    return None
+
+
 def require_bearer_token(token: str) -> type:
     """Return a Starlette middleware class that validates a static Bearer token.
 
@@ -74,14 +125,20 @@ def require_bearer_token(token: str) -> type:
             if request.url.path == "/health":
                 return await call_next(request)
             auth = request.headers.get("Authorization", "")
-            if not auth.startswith("Bearer ") or auth[len("Bearer "):] != token:
+            if not auth.startswith("Bearer ") or not hmac.compare_digest(auth[len("Bearer "):], token):
                 raise Unauthorized()
             return await call_next(request)
 
     return AuthMiddleware
 
 
-def apply_musu_middlewares(app: FastAPI, bearer_token: str | None = None) -> None:
+def apply_musu_middlewares(
+    app: FastAPI,
+    bearer_token: str | None = None,
+    rate_limit_capacity: int | None = None,
+    rate_limit_window_seconds: int | None = None,
+    rate_limit_key_type: Literal["ip", "token"] | None = None,
+) -> None:
     """Register ErrorHandler, RequestLogger, and optional auth middleware on *app*.
 
     Starlette executes middleware in reverse insertion order (last added runs
@@ -96,5 +153,16 @@ def apply_musu_middlewares(app: FastAPI, bearer_token: str | None = None) -> Non
     """
     if bearer_token:
         app.add_middleware(require_bearer_token(bearer_token))
+
+    if rate_limit_capacity is not None and rate_limit_window_seconds is not None and rate_limit_key_type is not None:
+        limiter = SlidingWindowLimiter(capacity=rate_limit_capacity, window_seconds=rate_limit_window_seconds)
+        if rate_limit_key_type == "ip":
+            get_client_id_func = get_ip_client_id
+        elif rate_limit_key_type == "token":
+            get_client_id_func = get_token_client_id
+        else:
+            raise ValueError(f"Unknown rate_limit_key_type: {rate_limit_key_type}")
+        app.add_middleware(RateLimitMiddleware, limiter=limiter, get_client_id=get_client_id_func)
+
     app.add_middleware(ErrorHandlerMiddleware)
     app.add_middleware(RequestLoggerMiddleware)

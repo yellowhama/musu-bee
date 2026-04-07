@@ -1,24 +1,19 @@
-"""Tests for MUS-864 security hardening behaviors (musu-worker side).
-
-Covers:
-    1. warn_if_open_mode() logs WARNING when MUSU_WORKER_TOKEN is unset
-    2. warn_if_open_mode() is silent when token is set
-    3. run_process(cwd=non-existent) returns ExecResult(exit_code=1) with 'does not exist' in stderr
-    4. run_process(cwd=file path) returns ExecResult(exit_code=1) with 'not a directory' in stderr
-    5. run_process() with proc.returncode=None yields exit_code=-1/success=False (MUS-863/MUS-867)
-"""
+"""Tests for musu_worker.auth.py and other security hardening behaviors."""
 
 from __future__ import annotations
 
 import asyncio
 import logging
 import os
+import hmac
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.testclient import TestClient
 
-from musu_worker.auth import warn_if_open_mode
+from musu_worker.auth import warn_if_open_mode, get_token, require_auth
 from musu_worker.executors import run_process
 
 
@@ -45,6 +40,48 @@ class TestWarnIfOpenMode:
             else:
                 os.environ["MUSU_WORKER_TOKEN"] = saved
         assert not any(r.name == "musu_worker.auth" for r in caplog.records)
+
+
+class TestRequireAuth:
+    _TEST_TOKEN = "supersecrettoken"
+
+    @pytest.fixture
+    def app_with_auth(self):
+        app = FastAPI()
+
+        @app.get("/protected", dependencies=[Depends(require_auth)])
+        async def protected_route():
+            return {"message": "Access granted"}
+
+        return app
+
+    def test_require_auth_valid_token(self, app_with_auth):
+        with patch("musu_worker.auth.get_token", return_value=self._TEST_TOKEN):
+            client = TestClient(app_with_auth)
+            response = client.get("/protected", headers={"Authorization": f"Bearer {self._TEST_TOKEN}"})
+            assert response.status_code == status.HTTP_200_OK
+            assert response.json() == {"message": "Access granted"}
+
+    def test_require_auth_invalid_token(self, app_with_auth):
+        with patch("musu_worker.auth.get_token", return_value=self._TEST_TOKEN):
+            client = TestClient(app_with_auth)
+            response = client.get("/protected", headers={"Authorization": "Bearer wrongtoken"})
+            assert response.status_code == status.HTTP_401_UNAUTHORIZED
+            assert response.json() == {"detail": "Invalid or missing Bearer token"}
+
+    def test_require_auth_missing_token(self, app_with_auth):
+        with patch("musu_worker.auth.get_token", return_value=self._TEST_TOKEN):
+            client = TestClient(app_with_auth)
+            response = client.get("/protected")
+            assert response.status_code == status.HTTP_401_UNAUTHORIZED
+            assert response.json() == {"detail": "Invalid or missing Bearer token"}
+
+    def test_require_auth_no_configured_token_allows_access(self, app_with_auth):
+        with patch("musu_worker.auth.get_token", return_value=None):
+            client = TestClient(app_with_auth)
+            response = client.get("/protected")
+            assert response.status_code == status.HTTP_200_OK
+            assert response.json() == {"message": "Access granted"}
 
 
 class TestRunProcessCwd:

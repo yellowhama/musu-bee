@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import os
+import hmac
 
 from fastapi import HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -42,7 +43,7 @@ async def require_auth(
     if token is None:
         # No token configured → open mode (dev / Tailscale-trusted network)
         return
-    if credentials is None or credentials.credentials != token:
+    if credentials is None or not hmac.compare_digest(credentials.credentials, token):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or missing Bearer token",

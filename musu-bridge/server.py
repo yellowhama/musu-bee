@@ -36,7 +36,13 @@ from handlers import (
 logger = logging.getLogger(__name__)
 app = FastAPI(title="musu-bridge", version="0.2.0")
 
-apply_musu_middlewares(app, bearer_token=os.getenv("MUSU_BRIDGE_TOKEN"))
+apply_musu_middlewares(
+    app,
+    bearer_token=os.getenv("MUSU_BRIDGE_TOKEN"),
+    rate_limit_capacity=60,
+    rate_limit_window_seconds=60, # 1 minute
+    rate_limit_key_type="ip",
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -126,7 +132,17 @@ async def health() -> dict:
     return {"status": "ok"}
 
 
+
 if __name__ == "__main__":
     cfg = get_config()
+
+    if os.getenv("MUSU_ENV") == "production":
+        token = os.getenv("MUSU_BRIDGE_TOKEN")
+        if not token or len(token) < 32:
+            raise RuntimeError(
+                "MUSU_ENV=production requires MUSU_BRIDGE_TOKEN (min 32 chars). "
+                "Refusing to start."
+            )
+
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     uvicorn.run(app, host=cfg.bridge_host, port=cfg.bridge_port)
