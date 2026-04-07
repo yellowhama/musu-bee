@@ -1,43 +1,49 @@
-# musu-bee/musu-core/src/musu_core/rate_limit.py
-
+from collections import deque
 import time
-from collections import defaultdict, deque
+from typing import Dict
+
 
 class SlidingWindowLimiter:
     def __init__(self, capacity: int, window_seconds: int):
         self.capacity = capacity
         self.window_seconds = window_seconds
-        self.clients = defaultdict(deque)
+        # Store (timestamp, count) for each client
+        self.client_requests: Dict[str, deque[float]] = {}
 
     def allow_request(self, client_id: str) -> bool:
         now = time.time()
-        timestamps = self.clients[client_id]
+        # Clean up old requests
+        self._cleanup_old_requests(client_id, now)
 
-        # Remove requests outside the current window
-        while timestamps and timestamps[0] <= now - self.window_seconds:
-            timestamps.popleft()
+        if client_id not in self.client_requests:
+            self.client_requests[client_id] = deque()
 
-        if len(timestamps) < self.capacity:
-            timestamps.append(now)
+        if len(self.client_requests[client_id]) < self.capacity:
+            self.client_requests[client_id].append(now)
             return True
-        else:
-            return False
+        return False
 
     def get_remaining_requests(self, client_id: str) -> int:
         now = time.time()
-        timestamps = self.clients[client_id]
-
-        # Ensure timestamps are up-to-date
-        while timestamps and timestamps[0] <= now - self.window_seconds:
-            timestamps.popleft()
-
-        return self.capacity - len(timestamps)
+        self._cleanup_old_requests(client_id, now)
+        if client_id not in self.client_requests:
+            return self.capacity
+        return self.capacity - len(self.client_requests[client_id])
 
     def get_reset_time(self, client_id: str) -> int:
         now = time.time()
-        timestamps = self.clients[client_id]
-        if not timestamps:
-            return 0  # No requests yet, so no reset needed
-        
-        # The reset time is when the oldest request in the window will expire
-        return max(0, int(self.window_seconds - (now - timestamps[0]) + 0.999))
+        self._cleanup_old_requests(client_id, now)
+        if client_id not in self.client_requests or not self.client_requests[client_id]:
+            return 0  # No requests made, so no reset needed immediately
+
+        # The reset time is when the oldest request in the window expires
+        oldest_request_time = self.client_requests[client_id][0]
+        return int(oldest_request_time + self.window_seconds - now)
+
+    def _cleanup_old_requests(self, client_id: str, now: float):
+        if client_id in self.client_requests:
+            while (
+                self.client_requests[client_id]
+                and self.client_requests[client_id][0] <= now - self.window_seconds
+            ):
+                self.client_requests[client_id].popleft()
