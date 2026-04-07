@@ -54,9 +54,11 @@ crontab -l
 
 ## 6. 서비스 실행
 
+**중요: 반드시 `0.0.0.0`으로 바인딩해야 다른 머신에서 접근 가능.**
+
 ```bash
-# musu-portd
-~/musu-bee/musu-port/target/release/musu-portd
+# musu-portd (0.0.0.0에 바인딩)
+MUSU_PORT_MANAGER_HOST=0.0.0.0 ~/musu-bee/musu-port/target/release/musu-portd
 
 # musu-connectsd (별도 터미널)
 ~/musu-bee/musu-connects/target/release/musu-connectsd
@@ -65,8 +67,11 @@ crontab -l
 ## 7. 확인
 
 ```bash
-# 포트 확인
-curl -sf http://127.0.0.1:PORT/health || echo "서비스 안 뜸"
+# 로컬 health 확인
+curl -sf http://127.0.0.1:1355/health
+
+# Tailscale IP로 외부 접근 확인 (다른 머신에서)
+# curl -sf http://<이 머신의 tailscale IP>:1355/health
 ```
 
 ---
