@@ -1,0 +1,56 @@
+# Build artifacts
+target/
+node_modules/
+dist/
+
+# DB
+*.db
+*.db-journal
+*.db-wal
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+*.key
+*.pem
+credentials*
+
+# Windows bridge state (runtime)
+.windows-bridge/state/
+.windows-bridge/queue/
+.windows-bridge/results/
+
+# Work artifacts (large, regenerable)
+work/
+
+# Empty marker files
+MUS-*
+in_progress
+
+# Misc
+새 텍스트 문서.txt
+
+# Large reference dirs
+MUSU-AS-MCP/references/
+MUSU-AS-MCP/__pycache__/
+__pycache__/
+
+# Rust build (explicit subdir paths)
+musu-connects/target/
+musu-port/target/
+musu-computer-tools/musu-terminal-engine/target/
+musu-computer-tools/musu-chat-spy-engine/target/
+
+# Large reference repos
+musu-port/references/traefik/
+musu-port/target-run-*/
+
+# Python deps (vendored)
+musu-computer-tools/mcp/rootless-computer-control/pydeps/
+
+# Python venvs
+.venv*/
+*.pyc

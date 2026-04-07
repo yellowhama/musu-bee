@@ -1,0 +1,27 @@
+{
+  "company_id": "test_qa",
+  "preset_id": "delivery_team",
+  "agent_count": 6,
+  "project_count": 1,
+  "memory_roots": {
+    "company": [
+      "policy",
+      "playbook",
+      "decisions",
+      "audit_lessons"
+    ],
+    "project": [
+      "requirements",
+      "decisions",
+      "outputs",
+      "issues",
+      "runbooks"
+    ]
+  },
+  "runtime_lanes": [
+    "planning",
+    "implementation",
+    "verification",
+    "governance"
+  ]
+}

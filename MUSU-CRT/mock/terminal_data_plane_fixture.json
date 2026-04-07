@@ -1,0 +1,30 @@
+{
+  "webrtc_session_id": "crt-session-alpha",
+  "terminal_session_id": "term-4101",
+  "incoming_events": [
+    {
+      "kind": "data_channel_message",
+      "payload_preview": "ls -la /workspace",
+      "bridge_step": "terminal_send",
+      "status": "ok"
+    },
+    {
+      "kind": "data_channel_message",
+      "payload_preview": "cat CURRENT_STATE.md",
+      "bridge_step": "terminal_send",
+      "status": "ok"
+    }
+  ],
+  "outgoing_events": [
+    {
+      "kind": "v4_webrtc_data_send",
+      "payload_preview": "cHJpbnQoImhlbGxvIik=",
+      "status": "ok"
+    }
+  ],
+  "mapping": {
+    "owner": "MUSU-CRT",
+    "bridge": "webrtc_session -> terminal_session",
+    "transport": "data_channel"
+  }
+}

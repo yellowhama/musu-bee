@@ -1,0 +1,8 @@
+{
+  "project_id": "desktop-mcp",
+  "company_id": "test_qa",
+  "display_name": "Desktop MCP",
+  "project_type": "delivery",
+  "workspace_root": "workspace",
+  "status": "seeded"
+}

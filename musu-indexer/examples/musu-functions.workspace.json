@@ -1,0 +1,19 @@
+{
+  "name": "musu-functions",
+  "root": "/home/hugh51/musu-functions",
+  "include_roots": [
+    "musu-computer-tools",
+    "musu-indexer",
+    "musu-port",
+    "references"
+  ],
+  "exclude_roots": [
+    "references_AI"
+  ],
+  "ignore_globs": [
+    "work/**",
+    "**/*.tar.gz",
+    "**/*.tgz",
+    "**/*.zip"
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "preset_id": "research_rd",
+  "company_slug": "research-rd-alpha",
+  "display_name": "Research / R&D Team",
+  "company_type": "research_rd",
+  "default_roles": [
+    "ceo",
+    "research_lead",
+    "builder",
+    "design_partner",
+    "qa"
+  ],
+  "default_project_types": [
+    "research",
+    "prototype"
+  ],
+  "default_memory_categories": {
+    "company": [
+      "policy",
+      "playbook",
+      "decisions",
+      "audit_lessons"
+    ],
+    "project": [
+      "requirements",
+      "decisions",
+      "outputs",
+      "issues",
+      "runbooks"
+    ]
+  },
+  "default_policy_profiles": [
+    "default_safe",
+    "research_flexible"
+  ],
+  "default_indexer_roots": [
+    "memory",
+    "agents",
+    "projects",
+    "runtime"
+  ],
+  "default_runtime_lanes": [
+    "planning",
+    "implementation",
+    "verification",
+    "governance"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "workspace_root": ".",
+  "index_db": ".musu_dev.db",
+  "sync_paths": [
+    "memory",
+    "agents",
+    "projects",
+    "runtime"
+  ],
+  "category_strategy": "path_based_memory_categories"
+}

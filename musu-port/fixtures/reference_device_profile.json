@@ -1,0 +1,72 @@
+{
+  "version": "musu.device-profile.v1",
+  "device_id": "desktop-main",
+  "runtime_kind": "wsl",
+  "filesystem_context": "linux_native",
+  "launch": {
+    "windows_command": "C:\\Tools\\musu-port\\musu-portd.exe",
+    "linux_command": "/opt/musu-port/musu-portd",
+    "wsl_command": "/home/example/musu-functions/musu-port/target/debug/musu-portd"
+  },
+  "health": {
+    "health_path": "/health",
+    "mcp_health_path": "/mcp/health",
+    "probe_timeout_ms": 250,
+    "mcp_probe_mode": "health_then_deep",
+    "mcp_rpc_paths": [
+      "/mcp"
+    ]
+  },
+  "transport": {
+    "preferred_ingress": "http",
+    "supports_connect": true,
+    "supports_quic": true,
+    "auto_promote_mcp": false
+  },
+  "validation": {
+    "on_error": "warn"
+  },
+  "path_hints": {
+    "windows_root": "C:\\Users\\example\\musu-functions",
+    "linux_root": "/home/example/musu-functions",
+    "wsl_unc_root": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\example\\musu-functions"
+  },
+  "report_roots": {
+    "metadata": "/home/example/musu-functions/musu-port/data/reports/port-manager/metadata",
+    "connect": "/home/example/musu-functions/musu-port/data/reports/port-manager/connect"
+  },
+  "guidance": {
+    "translator_hints": [
+      "prefer WSL path bridge when runtime_kind is wsl",
+      "surface connect_url to AI agents instead of raw target port"
+    ],
+    "operator_notes": [
+      "run Windows native shell smoke before shipping binary layout changes"
+    ]
+  },
+  "service_templates": [
+    {
+      "name": "musu desktop mcp",
+      "service_class": "mcp_server",
+      "alias": "musu-desktop-desktop-main",
+      "health_path": "/mcp/health",
+      "rpc_path": "/mcp",
+      "tags": [
+        "mcp",
+        "ai-native"
+      ],
+      "agent_facing": true,
+      "match_process_names": [
+        "musu-desktop",
+        "python3"
+      ],
+      "match_protocols": [
+        "tcp"
+      ],
+      "match_ports": [
+        8793
+      ],
+      "priority": 100
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "agent_id": "reviewer",
+  "role_template_id": "reviewer",
+  "company_id": "minimal_company_alpha",
+  "runtime_mode": "review",
+  "status": "seeded"
+}

@@ -1,0 +1,33 @@
+{
+    "browser":  "edge",
+    "browser_path":  "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+    "candidate_paths":  [
+                            "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+                            "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
+                        ],
+    "remote_debugging_port":  9222,
+    "remote_debugging_address":  "127.0.0.1",
+    "endpoint_base_url":  "http://127.0.0.1:9222",
+    "version_url":  "http://127.0.0.1:9222/json/version",
+    "list_url":  "http://127.0.0.1:9222/json/list",
+    "user_data_dir":  "C:\\Users\\empty\\AppData\\Local\\MUSU\\BrowserCDP\\edge-9222",
+    "launch_arguments":  [
+                             "--remote-debugging-port=9222",
+                             "--remote-debugging-address=127.0.0.1",
+                             "--user-data-dir=C:\\Users\\empty\\AppData\\Local\\MUSU\\BrowserCDP\\edge-9222",
+                             "--no-first-run",
+                             "--no-default-browser-check",
+                             "--new-window",
+                             "about:blank"
+                         ],
+    "initial_url":  "about:blank",
+    "dry_run":  true,
+    "launched":  false,
+    "pid":  null,
+    "probe_reachable":  false,
+    "probe_browser_name":  "",
+    "probe_protocol_version":  "",
+    "probe_websocket_debugger_url":  "",
+    "probe_error":  "",
+    "recommended_next_action":  "Remove -DryRun to launch the browser, then run probe-browser-cdp.sh."
+}

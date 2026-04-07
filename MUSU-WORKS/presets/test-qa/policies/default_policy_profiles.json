@@ -1,0 +1,7 @@
+{
+  "profiles": [
+    "default_safe",
+    "delivery_standard",
+    "approval_guarded"
+  ]
+}

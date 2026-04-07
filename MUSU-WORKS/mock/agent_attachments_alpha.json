@@ -1,0 +1,105 @@
+{
+  "company_id": "company_alpha",
+  "projects": [
+    {
+      "project_id": "project_desktop_mcp",
+      "attachments": [
+        {
+          "attachment_id": "attach_desktop_mgr",
+          "agent_id": "agent_pm_alpha",
+          "display_name": "Project Director",
+          "base_role_id": "engineering_manager",
+          "project_role_label": "delivery lead",
+          "status": "active",
+          "workspace_mount": "/workspace/release/musu-desktop",
+          "session_count": 1
+        },
+        {
+          "attachment_id": "attach_desktop_builder",
+          "agent_id": "agent_builder_alpha",
+          "display_name": "Builder",
+          "base_role_id": "builder",
+          "project_role_label": "desktop mcp implementer",
+          "status": "active",
+          "workspace_mount": "/workspace/release/musu-desktop",
+          "session_count": 2
+        },
+        {
+          "attachment_id": "attach_desktop_qa",
+          "agent_id": "agent_tester_alpha",
+          "display_name": "Tester",
+          "base_role_id": "qa",
+          "project_role_label": "runtime verifier",
+          "status": "idle",
+          "workspace_mount": "/workspace/release/musu-desktop",
+          "session_count": 1
+        }
+      ],
+      "sessions": [
+        {
+          "session_id": "sess_desktop_plan",
+          "attachment_id": "attach_desktop_mgr",
+          "mode": "plan",
+          "channel": "dashboard",
+          "runtime_state": "running",
+          "isolation": "project-scoped workspace",
+          "tool_trace_ref": "trace://desktop/plan/001"
+        },
+        {
+          "session_id": "sess_desktop_build",
+          "attachment_id": "attach_desktop_builder",
+          "mode": "build",
+          "channel": "cli",
+          "runtime_state": "running",
+          "isolation": "workspace-write sandbox",
+          "tool_trace_ref": "trace://desktop/build/014"
+        },
+        {
+          "session_id": "sess_desktop_qa",
+          "attachment_id": "attach_desktop_qa",
+          "mode": "qa",
+          "channel": "mcp",
+          "runtime_state": "waiting_for_approval",
+          "isolation": "read-only runtime probe",
+          "tool_trace_ref": "trace://desktop/qa/009"
+        }
+      ]
+    },
+    {
+      "project_id": "project_company_model",
+      "attachments": [
+        {
+          "attachment_id": "attach_company_ceo",
+          "agent_id": "agent_ceo_alpha",
+          "display_name": "Alpha CEO",
+          "base_role_id": "ceo",
+          "project_role_label": "sponsor",
+          "status": "active",
+          "workspace_mount": "/home/hugh51/musu-functions/MUSU-WORKS",
+          "session_count": 1
+        },
+        {
+          "attachment_id": "attach_company_policy",
+          "agent_id": "agent_policy_alpha",
+          "display_name": "Policy Officer",
+          "base_role_id": "policy_officer",
+          "project_role_label": "governance reviewer",
+          "status": "active",
+          "workspace_mount": "/home/hugh51/musu-functions/MUSU-WORKS",
+          "session_count": 1
+        }
+      ],
+      "sessions": [
+        {
+          "session_id": "sess_company_audit",
+          "attachment_id": "attach_company_policy",
+          "mode": "audit",
+          "channel": "dashboard",
+          "runtime_state": "completed",
+          "isolation": "documentation-only",
+          "tool_trace_ref": "trace://company/audit/003"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+    "request_id":  "wb-20260401T171645-42198-32518",
+    "status":  "success",
+    "exit_code":  0,
+    "started_at":  "2026-04-02T02:16:46.0158248+09:00",
+    "completed_at":  "2026-04-02T03:28:44.1741101+09:00",
+    "duration_ms":  4318158,
+    "log_path_windows":  "\\\\wsl.localhost\\Ubuntu-22.04\\home\\hugh51\\musu-functions\\musu-computer-tools\\.windows-bridge\\logs\\wb-20260401T171645-42198-32518.log",
+    "script_path_windows":  "\\\\wsl.localhost\\Ubuntu-22.04\\home\\hugh51\\musu-functions\\musu-computer-tools\\scripts\\windows-bridge\\restart-helper.ps1",
+    "working_directory_windows":  "\\\\wsl.localhost\\Ubuntu-22.04\\home\\hugh51\\musu-functions\\musu-computer-tools\\scripts\\windows-bridge",
+    "summary":  "{ \"restarted_pid\": 47352, \"launcher_path\": \"\\\\\\\\wsl.localhost\\\\Ubuntu-22.04\\\\home\\\\hugh51\\\\musu-functions\\\\musu-computer-tools\\\\scripts\\\\windows-bridge\\\\start-helper.cmd\", \"timestamp\": \"2026-04-02T03:28:43.8485451+09:00\" }"
+}

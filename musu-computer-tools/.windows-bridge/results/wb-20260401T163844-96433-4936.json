@@ -1,0 +1,12 @@
+{
+    "request_id":  "wb-20260401T163844-96433-4936",
+    "status":  "success",
+    "exit_code":  0,
+    "started_at":  "2026-04-02T01:38:44.6093065+09:00",
+    "completed_at":  "2026-04-02T01:40:38.8891378+09:00",
+    "duration_ms":  114280,
+    "log_path_windows":  "\\\\wsl.localhost\\Ubuntu-22.04\\home\\hugh51\\musu-functions\\musu-computer-tools\\.windows-bridge\\logs\\wb-20260401T163844-96433-4936.log",
+    "script_path_windows":  "\\\\wsl.localhost\\Ubuntu-22.04\\home\\hugh51\\musu-functions\\musu-computer-tools\\scripts\\windows-bridge\\run-musu-port-smoke-helper.cmd",
+    "working_directory_windows":  "\\\\wsl.localhost\\Ubuntu-22.04\\home\\hugh51\\musu-functions\\musu-computer-tools",
+    "summary":  "********************************************************************** ** Visual Studio 2019 Developer PowerShell v16.11.52 ** Copyright (c) 2021 Microsoft Corporation ********************************************************************** C"
+}

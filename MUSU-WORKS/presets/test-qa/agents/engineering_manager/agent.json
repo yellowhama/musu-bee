@@ -1,0 +1,7 @@
+{
+  "agent_id": "engineering_manager",
+  "role_template_id": "engineering_manager",
+  "company_id": "test_qa",
+  "runtime_mode": "coordination",
+  "status": "seeded"
+}

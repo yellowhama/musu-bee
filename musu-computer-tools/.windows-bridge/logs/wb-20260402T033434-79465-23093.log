@@ -1,0 +1,33 @@
+{
+    "browser":  "edge",
+    "browser_path":  "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+    "candidate_paths":  [
+                            "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+                            "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
+                        ],
+    "remote_debugging_port":  9222,
+    "remote_debugging_address":  "127.0.0.1",
+    "endpoint_base_url":  "http://127.0.0.1:9222",
+    "version_url":  "http://127.0.0.1:9222/json/version",
+    "list_url":  "http://127.0.0.1:9222/json/list",
+    "user_data_dir":  "C:\\Users\\empty\\AppData\\Local\\MUSU\\BrowserCDP\\edge-9222",
+    "launch_arguments":  [
+                             "--remote-debugging-port=9222",
+                             "--remote-debugging-address=127.0.0.1",
+                             "--user-data-dir=C:\\Users\\empty\\AppData\\Local\\MUSU\\BrowserCDP\\edge-9222",
+                             "--no-first-run",
+                             "--no-default-browser-check",
+                             "--new-window",
+                             "about:blank"
+                         ],
+    "initial_url":  "about:blank",
+    "dry_run":  false,
+    "launched":  true,
+    "pid":  39644,
+    "probe_reachable":  true,
+    "probe_browser_name":  "Edg/146.0.3856.84",
+    "probe_protocol_version":  "1.3",
+    "probe_websocket_debugger_url":  "ws://127.0.0.1:9222/devtools/browser/3d9b7bbd-9b68-499b-9e24-9ab429b072f7",
+    "probe_error":  "",
+    "recommended_next_action":  "CDP endpoint is reachable; continue with probe-browser-cdp.sh or a CDP consumer."
+}

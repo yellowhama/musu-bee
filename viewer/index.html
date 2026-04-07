@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MUSU Functions Viewer</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <p class="eyebrow">MUSU FUNCTIONS</p>
+          <h1>Company Viewer</h1>
+          <p class="muted">
+            Root-level read-only viewer for the MUSU company/project model.
+          </p>
+        </div>
+
+        <nav class="nav">
+          <a href="#overview">Overview</a>
+          <a href="#org">Org Chart</a>
+          <a href="#roles">Roles</a>
+          <a href="#approvals">Approvals</a>
+          <a href="#projects">Projects</a>
+          <a href="#contract">Contract Notes</a>
+        </nav>
+
+        <div class="sidebar-card">
+          <p class="sidebar-title">Fixture Sources</p>
+          <ul id="data-sources"></ul>
+        </div>
+      </aside>
+
+      <main class="content">
+        <section id="overview" class="hero panel">
+          <div>
+            <p class="eyebrow">Company Overview</p>
+            <h2 id="company-name">Loading...</h2>
+            <p id="company-mission" class="hero-copy"></p>
+          </div>
+          <div id="hero-stats" class="stat-grid"></div>
+        </section>
+
+        <section class="panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Operational Snapshot</p>
+              <h3>Control Plane Summary</h3>
+            </div>
+            <p class="muted">Canonical company, org, approval, and project view.</p>
+          </div>
+          <div id="summary-grid" class="summary-grid"></div>
+        </section>
+
+        <section id="org" class="panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Organization</p>
+              <h3>Org Chart</h3>
+            </div>
+            <p class="muted">Grouped by reporting line from the mock company plane.</p>
+          </div>
+          <div id="org-groups" class="org-groups"></div>
+        </section>
+
+        <section id="roles" class="panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Role Plane</p>
+              <h3>Role Templates</h3>
+            </div>
+            <p class="muted">GStack-style specialist roles owned by the company plane.</p>
+          </div>
+          <div id="role-list" class="role-list"></div>
+        </section>
+
+        <section id="approvals" class="panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Governance</p>
+              <h3>Approval Queue</h3>
+            </div>
+            <p class="muted">Company-level approvals with optional project targets.</p>
+          </div>
+          <div id="approval-list" class="approval-list"></div>
+        </section>
+
+        <section id="projects" class="panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Execution</p>
+              <h3>Projects</h3>
+            </div>
+            <p class="muted">Execution units attached to the company control plane.</p>
+          </div>
+          <div id="project-list" class="project-list"></div>
+        </section>
+
+        <section id="contract" class="panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Contract</p>
+              <h3>MCP and Schema Notes</h3>
+            </div>
+            <p class="muted">Summary-first view backed by MUSU-WORKS canonical docs.</p>
+          </div>
+          <div id="contract-notes" class="contract-notes"></div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+  </html>

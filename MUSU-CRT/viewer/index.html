@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MUSU-CRT Screen Tab Repro</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">MUSU-CRT</p>
+          <h1 id="title">Screen Tab Repro</h1>
+        </div>
+        <div class="mode-switch" id="group-switch"></div>
+      </header>
+
+      <main class="layout">
+        <section class="gallery-panel">
+          <div class="panel-header">
+            <div>
+              <h2>Gallery</h2>
+              <p class="muted">device, project, company grouping repro</p>
+            </div>
+            <button id="refresh-button" class="ghost-button" type="button">Refresh Mock</button>
+          </div>
+          <div id="group-sections" class="sections"></div>
+        </section>
+
+        <aside class="focus-panel">
+          <div class="panel-header">
+            <div>
+              <h2>Focused Stream</h2>
+              <p class="muted" id="focus-subtitle">Read-only stream panel</p>
+            </div>
+          </div>
+
+          <div class="stream-stage">
+            <div class="stage-preview" id="focus-preview"></div>
+            <div class="stage-overlay metrics">
+              <span id="metric-fps">FPS 0</span>
+              <span id="metric-frame">Frame 0 KB</span>
+              <span id="metric-total">Total 0 MB</span>
+            </div>
+            <div class="stage-overlay status">
+              <span class="pill" id="offer-pill">offer</span>
+              <span class="pill" id="ice-pill">add_ice</span>
+              <span class="pill" id="close-pill">close</span>
+            </div>
+          </div>
+
+          <div class="focus-meta" id="focus-meta"></div>
+        </aside>
+      </main>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+  </html>

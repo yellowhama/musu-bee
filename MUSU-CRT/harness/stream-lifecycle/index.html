@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MUSU-CRT Stream Lifecycle Harness</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <p class="eyebrow">MUSU-CRT</p>
+        <h1>Stream Lifecycle Harness</h1>
+        <p class="muted">start, poll, metrics, reconnect, stop</p>
+      </header>
+
+      <section class="layout">
+        <article class="panel">
+          <h2>Timeline</h2>
+          <div id="timeline" class="timeline"></div>
+        </article>
+        <article class="panel">
+          <h2>Metrics</h2>
+          <div id="metrics" class="stats"></div>
+          <pre id="frame-view"></pre>
+        </article>
+      </section>
+    </main>
+    <script type="module" src="./app.js"></script>
+  </body>
+  </html>

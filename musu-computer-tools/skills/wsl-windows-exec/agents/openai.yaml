@@ -1,0 +1,4 @@
+interface:
+  display_name: "WSL Windows Exec"
+  short_description: "Run Windows executables from this Codex WSL snap shell."
+  default_prompt: "Use $wsl-windows-exec to run PowerShell, cmd.exe, or cargo.exe through the host WSL init bridge."

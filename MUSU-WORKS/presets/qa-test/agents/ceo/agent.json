@@ -1,0 +1,7 @@
+{
+  "agent_id": "ceo",
+  "role_template_id": "ceo",
+  "company_id": "qa_test",
+  "runtime_mode": "oversight",
+  "status": "seeded"
+}

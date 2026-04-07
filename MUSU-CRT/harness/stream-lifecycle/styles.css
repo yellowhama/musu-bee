@@ -1,0 +1,16 @@
+body{margin:0;font-family:"Nunito",system-ui,sans-serif;background:#eef2f8;color:#1f2731}
+.shell{padding:24px}
+.eyebrow{margin:0 0 6px;text-transform:uppercase;font-size:11px;letter-spacing:.08em;color:#6d7483}
+.muted{color:#6d7483}
+.layout{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;margin-top:18px}
+.panel{background:#fbfdff;border:2px solid #1f2731;border-radius:18px;padding:16px;box-shadow:5px 5px 0 rgba(31,39,49,.12)}
+.timeline{display:grid;gap:10px}
+.event{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid #ccd5e5;border-radius:12px}
+.badge{padding:4px 8px;border-radius:999px;font-size:11px;text-transform:uppercase}
+.ok{background:#ccead8}
+.warn{background:#f7dfae}
+.idle{background:#e6e9ee}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.card{background:#eaf0fa;border-radius:12px;padding:12px}
+pre{white-space:pre-wrap;word-break:break-word;background:#17202c;color:#eef6ff;padding:12px;border-radius:12px;font-size:12px}
+@media (max-width:900px){.layout{grid-template-columns:1fr}}

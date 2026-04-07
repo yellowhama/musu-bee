@@ -1,0 +1,29 @@
+{
+  "stream_id": "stream-prime-4101",
+  "window_id": 4101,
+  "settings": {
+    "width": 1440,
+    "height": 900,
+    "quality": 75
+  },
+  "timeline": [
+    { "step": "start", "label": "startRealtimeStream", "status": "ok" },
+    { "step": "poll", "label": "getRealtimeFrame", "status": "ok" },
+    { "step": "metrics", "label": "metrics update", "status": "ok" },
+    { "step": "reconnect", "label": "backoff retry", "status": "warn" },
+    { "step": "stop", "label": "stopRealtimeStream", "status": "idle" }
+  ],
+  "metrics": {
+    "fps": 17.8,
+    "frame_kb": 92.3,
+    "total_mb": 58.42,
+    "reconnects": 2
+  },
+  "last_frame": {
+    "status": "ready",
+    "stream_type": "gui",
+    "term_session_id": "term-4101",
+    "width": 1440,
+    "height": 900
+  }
+}

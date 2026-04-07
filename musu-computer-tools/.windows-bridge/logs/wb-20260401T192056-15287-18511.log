@@ -1,0 +1,29 @@
+{
+    "action":  "status",
+    "action_result":  {
+                          "status_only":  true
+                      },
+    "version":  1,
+    "checked_at":  "2026-04-02T04:21:03.9268009+09:00",
+    "host":  "HUGH_SECOND",
+    "state":  "online",
+    "runtime_state":  "online",
+    "install_state":  "startup-folder",
+    "install_state_source":  "startup-folder",
+    "recommended_action":  "none",
+    "pid":  36992,
+    "pid_running":  true,
+    "last_seen":  "2026-04-02T04:20:57.4964143+09:00",
+    "age_seconds":  6,
+    "heartbeat_exists":  true,
+    "heartbeat_path":  "Z:\\home\\hugh51\\musu-functions\\musu-computer-tools\\.windows-bridge\\state\\helper-heartbeat.json",
+    "task_name":  "MUSU Windows Bridge Helper",
+    "task_installed":  false,
+    "task_query_exit_code":  1,
+    "task_query_summary":  "오류: 지정된 파일을 찾을 수 없습니다.",
+    "startup_launcher_path":  "C:\\Users\\empty\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\MUSU Windows Bridge Helper.cmd",
+    "startup_launcher_exists":  true,
+    "service_launcher_path":  "C:\\Users\\empty\\AppData\\Local\\MUSU\\WindowsBridge\\start-helper-service.cmd",
+    "service_launcher_exists":  true,
+    "helper_script_path":  "Z:\\home\\hugh51\\musu-functions\\musu-computer-tools\\scripts\\windows-bridge\\windows-bridge-helper.ps1"
+}

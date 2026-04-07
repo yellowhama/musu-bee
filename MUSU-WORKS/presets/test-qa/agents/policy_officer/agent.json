@@ -1,0 +1,7 @@
+{
+  "agent_id": "policy_officer",
+  "role_template_id": "policy_officer",
+  "company_id": "test_qa",
+  "runtime_mode": "governance",
+  "status": "seeded"
+}

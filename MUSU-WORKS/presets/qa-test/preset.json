@@ -1,0 +1,45 @@
+{
+  "preset_id": "minimal_company",
+  "company_slug": "qa-test",
+  "display_name": "Minimal Company",
+  "company_type": "minimal_company",
+  "default_roles": [
+    "ceo",
+    "builder",
+    "reviewer"
+  ],
+  "default_project_types": [
+    "delivery"
+  ],
+  "default_memory_categories": {
+    "company": [
+      "policy",
+      "playbook",
+      "decisions",
+      "audit_lessons"
+    ],
+    "project": [
+      "requirements",
+      "decisions",
+      "outputs",
+      "issues",
+      "runbooks"
+    ]
+  },
+  "default_policy_profiles": [
+    "default_safe",
+    "delivery_light"
+  ],
+  "default_indexer_roots": [
+    "memory",
+    "agents",
+    "projects",
+    "runtime"
+  ],
+  "default_runtime_lanes": [
+    "planning",
+    "implementation",
+    "verification",
+    "governance"
+  ]
+}

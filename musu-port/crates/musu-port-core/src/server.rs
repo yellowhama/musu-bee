@@ -1,0 +1,958 @@
+use std::sync::atomic::Ordering;
+use std::sync::Arc;
+use std::time::Duration;
+
+use axum::body::{to_bytes, Body};
+use axum::extract::ws::{Message as AxumWsMessage, WebSocket, WebSocketUpgrade};
+use axum::extract::{OriginalUri, Path, Query, State as AxumState};
+use axum::http::header::HeaderName;
+use axum::http::{HeaderMap, Method, StatusCode};
+use axum::response::{IntoResponse, Response};
+use axum::routing::{any, get, post};
+use axum::{Json, Router};
+use futures_util::{SinkExt, StreamExt};
+use serde::{Deserialize, Serialize};
+use tokio_tungstenite::tungstenite::Message as TungsteniteMessage;
+use tracing::warn;
+
+use crate::config::MusuPortConfig;
+use crate::control::AuditPolicy;
+use crate::discovery::selected_discovery_provider;
+use crate::l4::L4Runtime;
+use crate::metrics::{PortManagerMetrics, PortManagerMetricsSnapshot};
+use crate::platform::{
+    device_profile_validation_action, display_path_for_runtime, resolve_executable_contract,
+    summarize_device_profile,
+};
+use crate::route::{new_extra_routes, SeedRouteSource, ServiceRoute};
+use crate::state::MusuPortState;
+use crate::storage::Persistence;
+
+#[derive(Debug, Serialize)]
+struct HealthResponse {
+    status: &'static str,
+    router_base_url: String,
+    route_count: usize,
+    runtime_context: String,
+    filesystem_context: String,
+    binary_kind: String,
+    device_id: String,
+    device_profile_path: String,
+    device_profile_present: bool,
+    device_profile_loaded: bool,
+    device_profile_matches_device_id: bool,
+    device_profile_service_templates: usize,
+    device_profile_mcp_templates: usize,
+    device_profile_guidance_hints: usize,
+    device_profile_validation_action: String,
+    device_profile_warning_count: usize,
+    device_profile_error_count: usize,
+    device_profile_valid: bool,
+    discovery_provider: String,
+    data_root: String,
+    preferred_executable_kind: Option<String>,
+    preferred_executable_path: Option<String>,
+    executable_candidates: Vec<String>,
+    windows_interop_launcher: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct PromoteRequest {
+    signature: String,
+    alias: Option<String>,
+    protocol: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct SignatureRequest {
+    signature: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct AuditPresetRequest {
+    preset: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct ConnectModeRequest {
+    mode: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct ConnectStableProbeRequest {
+    sample_count: Option<usize>,
+    interval_ms: Option<u64>,
+    persist_report: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, Default)]
+struct ConnectDeniedQuery {
+    drain: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MetadataExportRequest {
+    format: String,
+    path: Option<String>,
+}
+
+pub async fn run_server(config: MusuPortConfig) -> Result<(), String> {
+    let profile_summary =
+        summarize_device_profile(config.device_profile.as_ref(), &config.device_id);
+    if config.device_profile.is_some()
+        && profile_summary.error_count > 0
+        && device_profile_validation_action(config.device_profile.as_ref()) == "fail"
+    {
+        return Err(format!(
+            "device profile '{}' is invalid: {} validation error(s), action=fail",
+            config.device_profile_path.display(),
+            profile_summary.error_count
+        ));
+    }
+
+    let seed_routes = if let Some(path) = config.seed_services_path.as_ref() {
+        Arc::new(SeedRouteSource::from_path(path)?)
+    } else {
+        Arc::new(SeedRouteSource::empty())
+    };
+    let persistence = Arc::new(Persistence::new(config.state_db_path.clone())?);
+    let extra_routes = new_extra_routes();
+    {
+        let mut extra = extra_routes.write().await;
+        *extra = persistence.load_promoted_routes()?;
+    }
+    let ignored_signatures = Arc::new(tokio::sync::RwLock::new(
+        persistence.load_ignored_signatures()?,
+    ));
+
+    let listener = bind_listener(&config).await?;
+    let local_addr = listener.local_addr().map_err(|err| err.to_string())?;
+    let router_base_url = format!("http://{}:{}", local_addr.ip(), local_addr.port());
+    std::env::set_var("MUSU_PORT_MANAGER_BASE_URL", &router_base_url);
+
+    let state = MusuPortState {
+        seed_routes,
+        extra_routes,
+        ignored_signatures,
+        l4_runtime: Arc::new(tokio::sync::Mutex::new(L4Runtime::new())),
+        persistence,
+        metrics: Arc::new(PortManagerMetrics::default()),
+        http_client: reqwest::Client::new(),
+        router_base_url,
+        runtime_context: config.runtime_context.clone(),
+        device_id: config.device_id.clone(),
+        device_profile_path: config.device_profile_path.clone(),
+        device_profile: config.device_profile.clone(),
+        data_root: config.data_root.clone(),
+    };
+    state.initialize_connect_mode()?;
+    state.auto_promote_mcp_candidates().await?;
+
+    let reconcile_state = state.clone();
+    tokio::spawn(async move {
+        let mut iteration = 0u64;
+        loop {
+            if let Err(err) = reconcile_state.auto_promote_mcp_candidates().await {
+                tracing::warn!(error = %err, "failed to auto-promote mcp candidates");
+            }
+            let routes = reconcile_state.collect_routes().await;
+            let mut runtime = reconcile_state.l4_runtime.lock().await;
+            runtime.reconcile_routes(&routes).await;
+            runtime.health_check();
+            drop(runtime);
+
+            if iteration % 15 == 14 {
+                if let Err(err) = reconcile_state.evict_dead_extra_routes().await {
+                    tracing::warn!(error = %err, "failed to evict dead promoted routes");
+                }
+            }
+            iteration = iteration.wrapping_add(1);
+            tokio::time::sleep(Duration::from_secs(2)).await;
+        }
+    });
+
+    let app = Router::new()
+        .route("/health", get(handle_health))
+        .route("/routes", get(handle_routes))
+        .route("/coverage", get(handle_coverage))
+        .route("/discovery", get(handle_discovery))
+        .route("/audit/events", get(handle_audit_events))
+        .route("/audit/connect-denied", get(handle_connect_denied))
+        .route(
+            "/audit/policy",
+            get(handle_get_audit_policy).post(handle_set_audit_policy),
+        )
+        .route(
+            "/audit/policy/preset",
+            post(handle_apply_audit_policy_preset),
+        )
+        .route("/audit/summary", get(handle_audit_summary))
+        .route("/l4/runners", get(handle_l4_runners))
+        .route(
+            "/connect/mode",
+            get(handle_get_connect_mode).post(handle_set_connect_mode),
+        )
+        .route("/connect/status", get(handle_connect_status))
+        .route(
+            "/connect/stable-probe",
+            post(handle_run_connect_stable_probe),
+        )
+        .route(
+            "/connect/stable-probe/history",
+            get(handle_connect_probe_history),
+        )
+        .route("/connect/{service}", get(handle_connect_ingress))
+        .route("/quic/probe/summary", get(handle_quic_probe_summary))
+        .route("/metadata/report", get(handle_metadata_report))
+        .route("/metadata/export", post(handle_metadata_export))
+        .route(
+            "/metadata/export/history",
+            get(handle_metadata_export_history),
+        )
+        .route("/promote", post(handle_promote))
+        .route("/ignore", post(handle_ignore))
+        .route("/unignore", post(handle_unignore))
+        .route("/metrics", get(handle_metrics))
+        .route("/metrics/json", get(handle_metrics_json))
+        .route("/ws/{service}", get(handle_alias_ws))
+        .route("/ws/{service}/{*rest}", get(handle_alias_with_path_ws))
+        .route("/{service}", any(handle_alias_http))
+        .route("/{service}/{*rest}", any(handle_alias_with_path_http))
+        .with_state(state.clone());
+
+    tracing::info!(router_base_url = %state.router_base_url, "musu-port server started");
+    axum::serve(listener, app)
+        .await
+        .map_err(|err| format!("server exited with error: {err}"))
+}
+
+async fn handle_health(AxumState(state): AxumState<MusuPortState>) -> impl IntoResponse {
+    let route_count = state.collect_routes().await.len();
+    let executable_contract = resolve_executable_contract(&state.runtime_context, "musu-portd");
+    let device_profile = state.device_profile_summary();
+    Json(HealthResponse {
+        status: "ok",
+        router_base_url: state.router_base_url,
+        route_count,
+        runtime_context: state.runtime_context.label().to_string(),
+        filesystem_context: state.runtime_context.filesystem_label().to_string(),
+        binary_kind: state.runtime_context.binary_kind.label().to_string(),
+        device_id: state.device_id.clone(),
+        device_profile_path: display_path_for_runtime(
+            &state.device_profile_path,
+            &state.runtime_context,
+        ),
+        device_profile_present: state.device_profile_path.exists(),
+        device_profile_loaded: device_profile.loaded,
+        device_profile_matches_device_id: device_profile.matches_device_id,
+        device_profile_service_templates: device_profile.service_template_count,
+        device_profile_mcp_templates: device_profile.mcp_template_count,
+        device_profile_guidance_hints: device_profile.guidance_hint_count,
+        device_profile_validation_action: device_profile.validation_action,
+        device_profile_warning_count: device_profile.warning_count,
+        device_profile_error_count: device_profile.error_count,
+        device_profile_valid: device_profile.valid,
+        discovery_provider: selected_discovery_provider(&state.runtime_context)
+            .label()
+            .to_string(),
+        data_root: display_path_for_runtime(&state.data_root, &state.runtime_context),
+        preferred_executable_kind: executable_contract
+            .preferred
+            .as_ref()
+            .map(|resolved| resolved.kind.label().to_string()),
+        preferred_executable_path: executable_contract
+            .preferred
+            .as_ref()
+            .map(|resolved| display_path_for_runtime(&resolved.path, &state.runtime_context)),
+        executable_candidates: executable_contract
+            .candidates
+            .iter()
+            .map(|candidate| {
+                format!(
+                    "{}:{}",
+                    candidate.kind.label(),
+                    display_path_for_runtime(&candidate.path, &state.runtime_context)
+                )
+            })
+            .collect(),
+        windows_interop_launcher: executable_contract
+            .interop_launcher
+            .as_ref()
+            .map(|path| display_path_for_runtime(path, &state.runtime_context)),
+    })
+}
+
+async fn handle_routes(AxumState(state): AxumState<MusuPortState>) -> impl IntoResponse {
+    Json(state.collect_routes().await)
+}
+
+async fn handle_coverage(AxumState(state): AxumState<MusuPortState>) -> Response<Body> {
+    match state.coverage_report().await {
+        Ok(report) => Json(report).into_response(),
+        Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err).into_response(),
+    }
+}
+
+async fn handle_discovery(AxumState(state): AxumState<MusuPortState>) -> Response<Body> {
+    match state.discover_endpoints().await {
+        Ok(result) => Json(result).into_response(),
+        Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err).into_response(),
+    }
+}
+
+async fn handle_l4_runners(AxumState(state): AxumState<MusuPortState>) -> impl IntoResponse {
+    Json(state.l4_status().await)
+}
+
+async fn handle_audit_events(AxumState(state): AxumState<MusuPortState>) -> Response<Body> {
+    match state.audit_events() {
+        Ok(events) => Json(events).into_response(),
+        Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err).into_response(),
+    }
+}
+
+async fn handle_connect_denied(
+    AxumState(state): AxumState<MusuPortState>,
+    Query(query): Query<ConnectDeniedQuery>,
+) -> Response<Body> {
+    match state.connect_denied_events(query.drain.unwrap_or(false)) {
+        Ok(events) => Json(events).into_response(),
+        Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err).into_response(),
+    }
+}
+
+async fn handle_get_audit_policy(AxumState(state): AxumState<MusuPortState>) -> Response<Body> {
+    match state.audit_policy() {
+        Ok(policy) => Json(policy).into_response(),
+        Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err).into_response(),
+    }
+}
+
+async fn handle_set_audit_policy(
+    AxumState(state): AxumState<MusuPortState>,
+    Json(policy): Json<AuditPolicy>,
+) -> Response<Body> {
+    match state.set_audit_policy(policy) {
+        Ok(saved) => Json(saved).into_response(),
+        Err(err) => (StatusCode::BAD_REQUEST, err).into_response(),
+    }
+}
+
+async fn handle_apply_audit_policy_preset(
+    AxumState(state): AxumState<MusuPortState>,
+    Json(request): Json<AuditPresetRequest>,
+) -> Response<Body> {
+    match state.apply_audit_policy_preset(&request.preset) {
+        Ok(policy) => Json(policy).into_response(),
+        Err(err) => (StatusCode::BAD_REQUEST, err).into_response(),
+    }
+}
+
+async fn handle_audit_summary(AxumState(state): AxumState<MusuPortState>) -> Response<Body> {
+    match state.audit_summary() {
+        Ok(summary) => Json(summary).into_response(),
+        Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err).into_response(),
+    }
+}
+
+async fn handle_promote(
+    AxumState(state): AxumState<MusuPortState>,
+    Json(request): Json<PromoteRequest>,
+) -> Response<Body> {
+    match state
+        .promote_endpoint(request.signature, request.alias, request.protocol)
+        .await
+    {
+        Ok(result) => Json(result).into_response(),
+        Err(err) => (StatusCode::BAD_REQUEST, err).into_response(),
+    }
+}
+
+async fn handle_get_connect_mode(AxumState(state): AxumState<MusuPortState>) -> Response<Body> {
+    match state.connect_mode() {
+        Ok(mode) => Json(mode).into_response(),
+        Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err).into_response(),
+    }
+}
+
+async fn handle_set_connect_mode(
+    AxumState(state): AxumState<MusuPortState>,
+    Json(request): Json<ConnectModeRequest>,
+) -> Response<Body> {
+    match state.set_connect_mode(request.mode).await {
+        Ok(status) => Json(status).into_response(),
+        Err(err) => (StatusCode::BAD_REQUEST, err).into_response(),
+    }
+}
+
+async fn handle_connect_status(AxumState(state): AxumState<MusuPortState>) -> Response<Body> {
+    match state.connect_status().await {
+        Ok(status) => Json(status).into_response(),
+        Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err).into_response(),
+    }
+}
+
+async fn handle_run_connect_stable_probe(
+    AxumState(state): AxumState<MusuPortState>,
+    Json(request): Json<ConnectStableProbeRequest>,
+) -> Response<Body> {
+    match state
+        .run_connect_stable_probe(
+            request.sample_count,
+            request.interval_ms,
+            request.persist_report,
+        )
+        .await
+    {
+        Ok(report) => Json(report).into_response(),
+        Err(err) => (StatusCode::BAD_REQUEST, err).into_response(),
+    }
+}
+
+async fn handle_connect_probe_history(
+    AxumState(state): AxumState<MusuPortState>,
+) -> Response<Body> {
+    match state.connect_probe_history() {
+        Ok(history) => Json(history).into_response(),
+        Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err).into_response(),
+    }
+}
+
+async fn handle_connect_ingress(
+    AxumState(state): AxumState<MusuPortState>,
+    Path(service): Path<String>,
+) -> Response<Body> {
+    match state.connect_ingress(&service).await {
+        Ok(decision) if decision.allowed => Json(decision).into_response(),
+        Ok(decision) => (StatusCode::FORBIDDEN, Json(decision)).into_response(),
+        Err(err) => (StatusCode::NOT_FOUND, err).into_response(),
+    }
+}
+
+async fn handle_quic_probe_summary(AxumState(state): AxumState<MusuPortState>) -> Response<Body> {
+    Json(state.quic_probe_summary()).into_response()
+}
+
+async fn handle_metadata_report(AxumState(state): AxumState<MusuPortState>) -> Response<Body> {
+    match state.metadata_report().await {
+        Ok(report) => Json(report).into_response(),
+        Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err).into_response(),
+    }
+}
+
+async fn handle_metadata_export(
+    AxumState(state): AxumState<MusuPortState>,
+    Json(request): Json<MetadataExportRequest>,
+) -> Response<Body> {
+    match state
+        .export_metadata_report(request.format, request.path)
+        .await
+    {
+        Ok(result) => Json(result).into_response(),
+        Err(err) => (StatusCode::BAD_REQUEST, err).into_response(),
+    }
+}
+
+async fn handle_metadata_export_history(
+    AxumState(state): AxumState<MusuPortState>,
+) -> Response<Body> {
+    match state.metadata_export_history() {
+        Ok(history) => Json(history).into_response(),
+        Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err).into_response(),
+    }
+}
+
+async fn handle_ignore(
+    AxumState(state): AxumState<MusuPortState>,
+    Json(request): Json<SignatureRequest>,
+) -> Response<Body> {
+    match state.ignore_signature(request.signature).await {
+        Ok(()) => StatusCode::NO_CONTENT.into_response(),
+        Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err).into_response(),
+    }
+}
+
+async fn handle_unignore(
+    AxumState(state): AxumState<MusuPortState>,
+    Json(request): Json<SignatureRequest>,
+) -> Response<Body> {
+    match state.unignore_signature(&request.signature).await {
+        Ok(()) => StatusCode::NO_CONTENT.into_response(),
+        Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err).into_response(),
+    }
+}
+
+async fn handle_metrics(AxumState(state): AxumState<MusuPortState>) -> impl IntoResponse {
+    (
+        [(
+            axum::http::header::CONTENT_TYPE,
+            "text/plain; version=0.0.4",
+        )],
+        state.metrics.to_prometheus(),
+    )
+}
+
+async fn handle_metrics_json(AxumState(state): AxumState<MusuPortState>) -> impl IntoResponse {
+    Json(state.metrics.snapshot())
+}
+
+async fn handle_alias_http(
+    AxumState(state): AxumState<MusuPortState>,
+    Path(service): Path<String>,
+    OriginalUri(uri): OriginalUri,
+    method: Method,
+    headers: HeaderMap,
+    body: Body,
+) -> Response<Body> {
+    proxy_alias_http_request(state, method, headers, service, None, uri, body).await
+}
+
+async fn handle_alias_with_path_http(
+    AxumState(state): AxumState<MusuPortState>,
+    Path((service, rest)): Path<(String, String)>,
+    OriginalUri(uri): OriginalUri,
+    method: Method,
+    headers: HeaderMap,
+    body: Body,
+) -> Response<Body> {
+    proxy_alias_http_request(state, method, headers, service, Some(rest), uri, body).await
+}
+
+async fn handle_alias_ws(
+    ws: WebSocketUpgrade,
+    AxumState(state): AxumState<MusuPortState>,
+    Path(service): Path<String>,
+    OriginalUri(uri): OriginalUri,
+) -> impl IntoResponse {
+    proxy_alias_ws_request(state, ws, service, None, uri).await
+}
+
+async fn handle_alias_with_path_ws(
+    ws: WebSocketUpgrade,
+    AxumState(state): AxumState<MusuPortState>,
+    Path((service, rest)): Path<(String, String)>,
+    OriginalUri(uri): OriginalUri,
+) -> impl IntoResponse {
+    proxy_alias_ws_request(state, ws, service, Some(rest), uri).await
+}
+
+async fn proxy_alias_http_request(
+    state: MusuPortState,
+    method: Method,
+    headers: HeaderMap,
+    service: String,
+    rest_path: Option<String>,
+    original_uri: axum::http::Uri,
+    body: Body,
+) -> Response<Body> {
+    let route = match state.resolve_route(&service).await {
+        Ok(route) => route,
+        Err(resp) => return resp,
+    };
+
+    let protocol = route.protocol.to_ascii_lowercase();
+    if protocol == "tcp" || protocol == "quic" {
+        let endpoint = if route.entrypoint_url.is_empty() {
+            "(unknown)".to_string()
+        } else {
+            route.entrypoint_url.clone()
+        };
+        return (
+            StatusCode::BAD_REQUEST,
+            format!("alias '{service}' uses {protocol} ingress; connect via {endpoint}"),
+        )
+            .into_response();
+    }
+
+    let target = match build_target_url(&route, rest_path.as_deref(), original_uri.query()) {
+        Ok(target) => target,
+        Err(resp) => return resp,
+    };
+
+    proxy_http(state, method, headers, body, target).await
+}
+
+async fn proxy_alias_ws_request(
+    state: MusuPortState,
+    ws: WebSocketUpgrade,
+    service: String,
+    rest_path: Option<String>,
+    original_uri: axum::http::Uri,
+) -> Response<Body> {
+    state
+        .metrics
+        .ws_connections_total
+        .fetch_add(1, Ordering::Relaxed);
+
+    let route = match state.resolve_route(&service).await {
+        Ok(route) => route,
+        Err(resp) => return resp,
+    };
+
+    let target = match build_target_url(&route, rest_path.as_deref(), original_uri.query()) {
+        Ok(target) => target,
+        Err(resp) => return resp,
+    };
+
+    proxy_websocket(ws, target, Arc::clone(&state.metrics)).await
+}
+
+fn build_target_url(
+    route: &ServiceRoute,
+    rest_path: Option<&str>,
+    query: Option<&str>,
+) -> Result<String, Response<Body>> {
+    let Some(mut target) = route.target_url.clone() else {
+        return Err((
+            StatusCode::SERVICE_UNAVAILABLE,
+            format!("service has no target url: {}", route.name),
+        )
+            .into_response());
+    };
+
+    if let Some(rest) = rest_path.filter(|path| !path.is_empty()) {
+        target.push('/');
+        target.push_str(rest);
+    }
+
+    if let Some(query) = query {
+        target.push('?');
+        target.push_str(query);
+    }
+
+    Ok(target)
+}
+
+fn env_u64(key: &str, default: u64) -> u64 {
+    std::env::var(key)
+        .ok()
+        .and_then(|raw| raw.trim().parse::<u64>().ok())
+        .filter(|value| *value > 0)
+        .unwrap_or(default)
+}
+
+fn should_retry_http_method(method: &Method) -> bool {
+    matches!(*method, Method::GET | Method::HEAD | Method::OPTIONS)
+}
+
+fn max_http_attempts(method: &Method) -> usize {
+    if !should_retry_http_method(method) {
+        return 1;
+    }
+    let retries = env_u64("MUSU_PORT_MANAGER_HTTP_RETRY_COUNT", 2).min(5);
+    1usize.saturating_add(retries as usize)
+}
+
+fn should_retry_upstream_status(status: StatusCode) -> bool {
+    matches!(
+        status,
+        StatusCode::BAD_GATEWAY | StatusCode::SERVICE_UNAVAILABLE | StatusCode::GATEWAY_TIMEOUT
+    )
+}
+
+fn retry_backoff_delay(retry_index: usize) -> Duration {
+    let base_ms = env_u64("MUSU_PORT_MANAGER_HTTP_RETRY_BASE_MS", 80).min(5_000);
+    let jitter_ms = env_u64("MUSU_PORT_MANAGER_HTTP_RETRY_JITTER_MS", 25).min(500);
+    let exp = 1u64 << retry_index.saturating_sub(1).min(6);
+    let mut delay_ms = base_ms.saturating_mul(exp).min(2_000);
+    if jitter_ms > 0 {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.subsec_nanos() as u64)
+            .unwrap_or(0);
+        delay_ms = delay_ms.saturating_add(nanos % (jitter_ms + 1));
+    }
+    Duration::from_millis(delay_ms)
+}
+
+async fn proxy_http(
+    state: MusuPortState,
+    method: Method,
+    headers: HeaderMap,
+    body: Body,
+    target_url: String,
+) -> Response<Body> {
+    state
+        .metrics
+        .http_requests_total
+        .fetch_add(1, Ordering::Relaxed);
+
+    let body = match to_bytes(body, 10 * 1024 * 1024).await {
+        Ok(bytes) => bytes,
+        Err(err) => {
+            state
+                .metrics
+                .http_errors_total
+                .fetch_add(1, Ordering::Relaxed);
+            return (
+                StatusCode::BAD_REQUEST,
+                format!("failed to read request body: {err}"),
+            )
+                .into_response();
+        }
+    };
+
+    let forwarded_headers = headers
+        .iter()
+        .filter_map(|(name, value)| {
+            if should_forward_request_header(name) {
+                Some((name.clone(), value.clone()))
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+
+    let max_attempts = max_http_attempts(&method);
+    let mut last_error: Option<String> = None;
+
+    for attempt in 1..=max_attempts {
+        let mut request = state
+            .http_client
+            .request(method.clone(), &target_url)
+            .body(body.clone());
+        for (name, value) in &forwarded_headers {
+            request = request.header(name, value);
+        }
+
+        match request.send().await {
+            Ok(upstream) => {
+                let status = upstream.status();
+                if attempt < max_attempts
+                    && should_retry_http_method(&method)
+                    && should_retry_upstream_status(status)
+                {
+                    state
+                        .metrics
+                        .http_retry_total
+                        .fetch_add(1, Ordering::Relaxed);
+                    last_error = Some(format!("upstream responded with transient status {status}"));
+                    tokio::time::sleep(retry_backoff_delay(attempt)).await;
+                    continue;
+                }
+
+                if attempt > 1 && !should_retry_upstream_status(status) {
+                    state
+                        .metrics
+                        .http_retry_success_total
+                        .fetch_add(1, Ordering::Relaxed);
+                }
+
+                let upstream_headers = upstream.headers().clone();
+                let upstream_body = match upstream.bytes().await {
+                    Ok(bytes) => bytes,
+                    Err(err) => {
+                        state
+                            .metrics
+                            .http_errors_total
+                            .fetch_add(1, Ordering::Relaxed);
+                        return (
+                            StatusCode::BAD_GATEWAY,
+                            format!("proxy response read failed: {target_url} ({err})"),
+                        )
+                            .into_response();
+                    }
+                };
+
+                state
+                    .metrics
+                    .http_bytes_sent
+                    .fetch_add(upstream_body.len() as u64, Ordering::Relaxed);
+
+                let mut builder = Response::builder().status(status);
+                for (name, value) in &upstream_headers {
+                    if should_forward_response_header(name) {
+                        builder = builder.header(name, value);
+                    }
+                }
+
+                return builder
+                    .body(Body::from(upstream_body))
+                    .unwrap_or_else(|err| {
+                        (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            format!("failed to build proxy response: {err}"),
+                        )
+                            .into_response()
+                    });
+            }
+            Err(err) => {
+                last_error = Some(err.to_string());
+                if attempt < max_attempts {
+                    state
+                        .metrics
+                        .http_retry_total
+                        .fetch_add(1, Ordering::Relaxed);
+                    tokio::time::sleep(retry_backoff_delay(attempt)).await;
+                    continue;
+                }
+            }
+        }
+    }
+
+    state
+        .metrics
+        .http_errors_total
+        .fetch_add(1, Ordering::Relaxed);
+    (
+        StatusCode::BAD_GATEWAY,
+        format!(
+            "proxy request failed: {target_url} ({})",
+            last_error.unwrap_or_else(|| "unknown upstream error".to_string())
+        ),
+    )
+        .into_response()
+}
+
+async fn proxy_websocket(
+    ws: WebSocketUpgrade,
+    target_url: String,
+    metrics: Arc<PortManagerMetrics>,
+) -> Response<Body> {
+    let target_ws = target_url
+        .strip_prefix("http://")
+        .map(|rest| format!("ws://{rest}"))
+        .or_else(|| {
+            target_url
+                .strip_prefix("https://")
+                .map(|rest| format!("wss://{rest}"))
+        })
+        .unwrap_or_else(|| target_url.clone());
+
+    ws.on_upgrade(move |socket| async move {
+        if let Err(err) = bridge_websocket(socket, &target_ws, Arc::clone(&metrics)).await {
+            warn!(error = %err, target = %target_ws, "websocket bridge failed");
+        }
+    })
+    .into_response()
+}
+
+async fn bridge_websocket(
+    client_socket: WebSocket,
+    target_ws: &str,
+    metrics: Arc<PortManagerMetrics>,
+) -> Result<(), String> {
+    let (upstream_socket, _) = tokio_tungstenite::connect_async(target_ws)
+        .await
+        .map_err(|err| format!("failed to connect upstream websocket: {err}"))?;
+
+    let (mut client_tx, mut client_rx) = client_socket.split();
+    let (mut upstream_tx, mut upstream_rx) = upstream_socket.split();
+
+    let client_to_upstream = async {
+        while let Some(next) = client_rx.next().await {
+            let message = next.map_err(|err| format!("client websocket receive failed: {err}"))?;
+            if let Some(proxy_msg) = map_client_to_upstream(message) {
+                metrics
+                    .ws_messages_forwarded
+                    .fetch_add(1, Ordering::Relaxed);
+                upstream_tx
+                    .send(proxy_msg)
+                    .await
+                    .map_err(|err| format!("upstream websocket send failed: {err}"))?;
+            }
+        }
+        upstream_tx
+            .close()
+            .await
+            .map_err(|err| format!("upstream websocket close failed: {err}"))?;
+        Ok::<(), String>(())
+    };
+
+    let upstream_to_client = async {
+        while let Some(next) = upstream_rx.next().await {
+            let message =
+                next.map_err(|err| format!("upstream websocket receive failed: {err}"))?;
+            if let Some(proxy_msg) = map_upstream_to_client(message) {
+                metrics
+                    .ws_messages_forwarded
+                    .fetch_add(1, Ordering::Relaxed);
+                client_tx
+                    .send(proxy_msg)
+                    .await
+                    .map_err(|err| format!("client websocket send failed: {err}"))?;
+            }
+        }
+        client_tx
+            .close()
+            .await
+            .map_err(|err| format!("client websocket close failed: {err}"))?;
+        Ok::<(), String>(())
+    };
+
+    tokio::select! {
+        result = client_to_upstream => result?,
+        result = upstream_to_client => result?,
+    }
+
+    Ok(())
+}
+
+fn map_client_to_upstream(message: AxumWsMessage) -> Option<TungsteniteMessage> {
+    match message {
+        AxumWsMessage::Text(text) => Some(TungsteniteMessage::Text(text.to_string().into())),
+        AxumWsMessage::Binary(bytes) => Some(TungsteniteMessage::Binary(bytes)),
+        AxumWsMessage::Ping(bytes) => Some(TungsteniteMessage::Ping(bytes)),
+        AxumWsMessage::Pong(bytes) => Some(TungsteniteMessage::Pong(bytes)),
+        AxumWsMessage::Close(_) => Some(TungsteniteMessage::Close(None)),
+    }
+}
+
+fn map_upstream_to_client(message: TungsteniteMessage) -> Option<AxumWsMessage> {
+    match message {
+        TungsteniteMessage::Text(text) => Some(AxumWsMessage::Text(text.to_string().into())),
+        TungsteniteMessage::Binary(bytes) => Some(AxumWsMessage::Binary(bytes)),
+        TungsteniteMessage::Ping(bytes) => Some(AxumWsMessage::Ping(bytes)),
+        TungsteniteMessage::Pong(bytes) => Some(AxumWsMessage::Pong(bytes)),
+        TungsteniteMessage::Close(_) => Some(AxumWsMessage::Close(None)),
+        TungsteniteMessage::Frame(_) => None,
+    }
+}
+
+fn should_forward_request_header(name: &HeaderName) -> bool {
+    let lower = name.as_str().to_ascii_lowercase();
+    !matches!(
+        lower.as_str(),
+        "host"
+            | "connection"
+            | "keep-alive"
+            | "proxy-authenticate"
+            | "proxy-authorization"
+            | "te"
+            | "trailer"
+            | "transfer-encoding"
+            | "upgrade"
+    )
+}
+
+fn should_forward_response_header(name: &HeaderName) -> bool {
+    should_forward_request_header(name)
+}
+
+async fn bind_listener(config: &MusuPortConfig) -> Result<tokio::net::TcpListener, String> {
+    let preferred_addr = std::net::SocketAddr::new(config.host, config.preferred_port);
+    match tokio::net::TcpListener::bind(preferred_addr).await {
+        Ok(listener) => Ok(listener),
+        Err(err) => {
+            if !config.allow_port_fallback {
+                return Err(format!(
+                    "port manager bind failed on {preferred_addr}: {err} (fallback disabled)"
+                ));
+            }
+
+            let fallback_addr = std::net::SocketAddr::new(config.host, 0);
+            tokio::net::TcpListener::bind(fallback_addr)
+                .await
+                .map_err(|fallback_err| {
+                    format!(
+                        "port manager bind failed on {preferred_addr}: {err}; fallback bind failed: {fallback_err}"
+                    )
+                })
+        }
+    }
+}
+
+#[allow(dead_code)]
+fn _metrics_snapshot(metrics: &PortManagerMetrics) -> PortManagerMetricsSnapshot {
+    metrics.snapshot()
+}

@@ -1,0 +1,7 @@
+{
+  "agent_id": "qa",
+  "role_template_id": "qa",
+  "company_id": "test_qa",
+  "runtime_mode": "qa",
+  "status": "seeded"
+}

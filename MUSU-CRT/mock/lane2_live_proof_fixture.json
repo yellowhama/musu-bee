@@ -1,0 +1,67 @@
+{
+  "harness": "musu-port->musu-connects-live-harness-v1",
+  "source_routes_path": "/home/hugh51/musu-functions/work/mus27-live-harness/musu-port-routes.json",
+  "selected_service": "demo-api",
+  "generated_at": "2026-04-03T00:00:00Z",
+  "trustLevel": "trusted",
+  "discoveryState": "verified",
+  "trustGateReason": "peer-allowed",
+  "importDecisionReason": "clean",
+  "transportEvidenceKind": "runtime-musu-port-http-route-plane-v1",
+  "sessionEvidenceMode": "runtime-peer-authenticated",
+  "sessionRemoteAddrSource": "quic-session-event.remote_addr",
+  "snapshot": {
+    "peer_id": "peer-a",
+    "trust_level": "trusted",
+    "discovery_state": "verified",
+    "trust_gate_reason": "peer-allowed",
+    "import_decision_reason": "clean",
+    "transport_evidence_kind": "runtime-musu-port-http-route-plane-v1",
+    "session_evidence_mode": "runtime-peer-authenticated",
+    "session_remote_addr_source": "quic-session-event.remote_addr",
+    "exported_route": {
+      "route_id": "demo-api",
+      "alias": "demo-api",
+      "protocol": "http",
+      "entrypoint": {
+        "host": "127.0.0.1",
+        "port": 8787
+      },
+      "target_kind": "generic_http",
+      "visibility": "shared",
+      "health": {
+        "status": "healthy",
+        "checked_at": "port-adapter"
+      }
+    },
+    "projected_routes": [
+      {
+        "import_id": "peer-a::demo-api",
+        "alias": "demo-api",
+        "protocol": "http",
+        "target_kind": "generic_http",
+        "source_peer_id": "peer-a",
+        "import_state": "active",
+        "freshness_state": "fresh",
+        "collision_state": "clean",
+        "available": true
+      }
+    ],
+    "suppressed_routes": [],
+    "stale_routes": [],
+    "quic_session": {
+      "peer_id": "peer-a",
+      "session_id": "session-a",
+      "endpoint_addr": "0.0.0.0:4433",
+      "remote_addr": "peer-a.mesh.internal:4433",
+      "accepted_at": "2026-04-03T00:00:00Z",
+      "control_stream": {
+        "stream_id": 0,
+        "channel": "control",
+        "descriptor": "bi/0/control"
+      }
+    },
+    "pairing_session_id": "session-a",
+    "pairing_outcome": "paired"
+  }
+}

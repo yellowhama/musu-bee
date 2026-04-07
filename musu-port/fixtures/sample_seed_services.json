@@ -1,0 +1,16 @@
+[
+  {
+    "name": "demo-api",
+    "alias": "demo-api",
+    "enabled": true,
+    "running": true,
+    "port": 8787
+  },
+  {
+    "name": "demo-admin",
+    "alias": "admin",
+    "enabled": true,
+    "running": false,
+    "port": 9797
+  }
+]

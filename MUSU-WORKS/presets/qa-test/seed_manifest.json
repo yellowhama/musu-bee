@@ -1,0 +1,27 @@
+{
+  "company_id": "qa_test",
+  "preset_id": "minimal_company",
+  "agent_count": 3,
+  "project_count": 1,
+  "memory_roots": {
+    "company": [
+      "policy",
+      "playbook",
+      "decisions",
+      "audit_lessons"
+    ],
+    "project": [
+      "requirements",
+      "decisions",
+      "outputs",
+      "issues",
+      "runbooks"
+    ]
+  },
+  "runtime_lanes": [
+    "planning",
+    "implementation",
+    "verification",
+    "governance"
+  ]
+}

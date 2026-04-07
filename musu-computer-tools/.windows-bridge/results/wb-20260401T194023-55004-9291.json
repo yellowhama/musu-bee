@@ -1,0 +1,17 @@
+{
+    "request_id":  "wb-20260401T194023-55004-9291",
+    "request_kind":  "powershell_file",
+    "display_name":  "windows-bridge helper selftest",
+    "execution_surface":  "helper_queue",
+    "resolution_reason":  "helper_forced_or_probe_selected",
+    "entrypoint_type":  "powershell_script",
+    "status":  "success",
+    "exit_code":  0,
+    "started_at":  "2026-04-02T04:40:23.2405747+09:00",
+    "completed_at":  "2026-04-02T04:40:25.9593756+09:00",
+    "duration_ms":  2719,
+    "log_path_windows":  "\\\\wsl.localhost\\Ubuntu-22.04\\home\\hugh51\\musu-functions\\musu-computer-tools\\.windows-bridge\\logs\\wb-20260401T194023-55004-9291.log",
+    "script_path_windows":  "\\\\wsl.localhost\\Ubuntu-22.04\\home\\hugh51\\musu-functions\\musu-computer-tools\\scripts\\windows-bridge\\helper-selftest.ps1",
+    "working_directory_windows":  "\\\\wsl.localhost\\Ubuntu-22.04\\home\\hugh51\\musu-functions\\musu-computer-tools\\scripts\\windows-bridge",
+    "summary":  "{ \"ok\": true, \"label\": \"phase09-post-reinstall\", \"cwd\": \"Microsoft.PowerShell.Core\\\\FileSystem::\\\\\\\\wsl.localhost\\\\Ubuntu-22.04\\\\home\\\\hugh51\\\\musu-functions\\\\musu-computer-tools\\\\scripts\\\\windows-bridge\", \"timestamp\": \"2026-04-02T04:40:25."
+}

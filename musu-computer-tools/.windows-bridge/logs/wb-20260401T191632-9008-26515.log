@@ -1,0 +1,37 @@
+
+
+PSMessageDetails      : 
+Exception             : System.Management.Automation.SessionStateUnauthorizedAccessException: Host 변수는 읽기 전용이거나 상수이므로 덮
+                        어쓸 수 없습니다.
+                           위치: System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext 
+                        funcContext, Exception exception)
+                           위치: System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame fr
+                        ame)
+                           위치: System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(Interpreted
+                        Frame frame)
+                           위치: System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(Interpreted
+                        Frame frame)
+TargetObject          : Host
+CategoryInfo          : WriteError: (Host:String) [], SessionStateUnauthorizedAccessException
+FullyQualifiedErrorId : VariableNotWritable
+ErrorDetails          : 
+InvocationInfo        : System.Management.Automation.InvocationInfo
+ScriptStackTrace      : 위치: Get-HelperRuntimeStatus, \\wsl.localhost\Ubuntu-22.04\home\hugh51\musu-functions\musu-compu
+                        ter-tools\scripts\windows-bridge\helper-lifecycle.ps1: 219번째 줄
+                        위치: Get-CombinedStatus, \\wsl.localhost\Ubuntu-22.04\home\hugh51\musu-functions\musu-computer-t
+                        ools\scripts\windows-bridge\helper-lifecycle.ps1: 320번째 줄
+                        위치: <ScriptBlock>, \\wsl.localhost\Ubuntu-22.04\home\hugh51\musu-functions\musu-computer-tools\
+                        scripts\windows-bridge\helper-lifecycle.ps1: 547번째 줄
+                        위치: <ScriptBlock>, \\wsl.localhost\Ubuntu-22.04\home\hugh51\musu-functions\musu-computer-tools\
+                        scripts\windows-bridge\debug-helper-lifecycle.ps1: 8번째 줄
+                        위치: <ScriptBlock>, <파일 없음>: 1번째 줄
+PipelineIterationInfo : {}
+
+
+
+
+위치: Get-HelperRuntimeStatus, \\wsl.localhost\Ubuntu-22.04\home\hugh51\musu-functions\musu-computer-tools\scripts\windows-bridge\helper-lifecycle.ps1: 219번째 줄
+위치: Get-CombinedStatus, \\wsl.localhost\Ubuntu-22.04\home\hugh51\musu-functions\musu-computer-tools\scripts\windows-bridge\helper-lifecycle.ps1: 320번째 줄
+위치: <ScriptBlock>, \\wsl.localhost\Ubuntu-22.04\home\hugh51\musu-functions\musu-computer-tools\scripts\windows-bridge\helper-lifecycle.ps1: 547번째 줄
+위치: <ScriptBlock>, \\wsl.localhost\Ubuntu-22.04\home\hugh51\musu-functions\musu-computer-tools\scripts\windows-bridge\debug-helper-lifecycle.ps1: 8번째 줄
+위치: <ScriptBlock>, <파일 없음>: 1번째 줄

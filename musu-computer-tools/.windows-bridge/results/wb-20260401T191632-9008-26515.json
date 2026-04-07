@@ -1,0 +1,12 @@
+{
+    "request_id":  "wb-20260401T191632-9008-26515",
+    "status":  "failed",
+    "exit_code":  1,
+    "started_at":  "2026-04-02T04:16:33.3199366+09:00",
+    "completed_at":  "2026-04-02T04:16:35.3240193+09:00",
+    "duration_ms":  2004,
+    "log_path_windows":  "\\\\wsl.localhost\\Ubuntu-22.04\\home\\hugh51\\musu-functions\\musu-computer-tools\\.windows-bridge\\logs\\wb-20260401T191632-9008-26515.log",
+    "script_path_windows":  "\\\\wsl.localhost\\Ubuntu-22.04\\home\\hugh51\\musu-functions\\musu-computer-tools\\scripts\\windows-bridge\\debug-helper-lifecycle.ps1",
+    "working_directory_windows":  "\\\\wsl.localhost\\Ubuntu-22.04\\home\\hugh51\\musu-functions\\musu-computer-tools\\scripts\\windows-bridge",
+    "summary":  "PSMessageDetails : Exception : System.Management.Automation.SessionStateUnauthorizedAccessException: Host 변수는 읽기 전용이거나 상수이므로 덮 어쓸 수 없습니다. 위치: System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContex"
+}

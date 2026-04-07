@@ -1,0 +1,3 @@
+# Workspace
+
+Seed workspace root.

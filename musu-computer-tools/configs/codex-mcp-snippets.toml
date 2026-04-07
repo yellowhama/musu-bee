@@ -1,0 +1,30 @@
+[mcp_servers.filesystem]
+command = "/home/hugh51/.nvm/versions/node/v20.19.5/bin/node"
+args = [
+  "/home/hugh51/.npm-global/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js",
+  "/home/hugh51/projects/football/football",
+  "/mnt/f/Aisaak/Projects/football_game_wsl",
+]
+
+[mcp_servers.desktop-commander]
+command = "/home/hugh51/.nvm/versions/node/v20.19.5/bin/node"
+args = [
+  "/home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@wonderwhy-er/desktop-commander/dist/index.js",
+  "--no-onboarding",
+]
+
+[mcp_servers.computer-control]
+command = "/home/hugh51/.local/share/codex-mcp/rootless-computer-control/launch-computer-control.sh"
+
+[mcp_servers.computer-control.env]
+HOME = "/home/hugh51"
+PATH = "/home/hugh51/.local/bin:/mnt/wslg/distro/usr/bin:/mnt/wslg/distro/bin:/home/hugh51/.nvm/versions/node/v20.19.5/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+LD_LIBRARY_PATH = "/home/hugh51/.local/share/codex-mcp/rootless-computer-control/root/usr/lib/x86_64-linux-gnu:/mnt/wslg/distro/usr/lib/x86_64-linux-gnu:/mnt/wslg/distro/lib/x86_64-linux-gnu:/mnt/wslg/distro/usr/lib:/mnt/wslg/distro/lib"
+DISPLAY = ":0"
+WAYLAND_DISPLAY = "wayland-0"
+COMPUTER_CONTROL_MCP_SCREENSHOT_DIR = "/home/hugh51/.local/share/codex-mcp/computer-control-screenshots"
+
+# Notes:
+# - filesystem server path is the globally installed package path in this environment.
+# - desktop-commander has additional local config in desktop-commander-config.json.
+# - computer-control uses the rootless WSLg wrapper + helper scripts copied in this bundle.

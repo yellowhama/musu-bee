@@ -1,0 +1,7 @@
+{
+  "agent_id": "builder",
+  "role_template_id": "builder",
+  "company_id": "minimal_company_alpha",
+  "runtime_mode": "execution",
+  "status": "seeded"
+}

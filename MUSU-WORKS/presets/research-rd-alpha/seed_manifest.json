@@ -1,0 +1,27 @@
+{
+  "company_id": "research_rd_alpha",
+  "preset_id": "research_rd",
+  "agent_count": 5,
+  "project_count": 1,
+  "memory_roots": {
+    "company": [
+      "policy",
+      "playbook",
+      "decisions",
+      "audit_lessons"
+    ],
+    "project": [
+      "requirements",
+      "decisions",
+      "outputs",
+      "issues",
+      "runbooks"
+    ]
+  },
+  "runtime_lanes": [
+    "planning",
+    "implementation",
+    "verification",
+    "governance"
+  ]
+}

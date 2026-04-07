@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MUSU-WORKS Company Viewer</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <p class="eyebrow">MUSU-WORKS</p>
+          <h1>Company Viewer</h1>
+          <p class="muted">
+            Read-only mock control plane for company, org, approvals, and projects.
+          </p>
+        </div>
+
+        <nav class="nav">
+          <a href="#overview">Overview</a>
+          <a href="#org">Org Chart</a>
+          <a href="#runtime">Runtime</a>
+          <a href="#approvals">Approvals</a>
+          <a href="#projects">Projects</a>
+          <a href="#contract">Contract Notes</a>
+        </nav>
+
+        <div class="sidebar-card">
+          <p class="sidebar-title">Data Sources</p>
+          <ul id="data-sources"></ul>
+        </div>
+      </aside>
+
+      <main class="content">
+        <section id="overview" class="hero panel">
+          <div>
+            <p class="eyebrow">Company Overview</p>
+            <h2 id="company-name">Loading...</h2>
+            <p id="company-mission" class="hero-copy"></p>
+          </div>
+          <div id="hero-stats" class="stat-grid"></div>
+        </section>
+
+        <section class="panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Operational Snapshot</p>
+              <h3>Control Plane Summary</h3>
+            </div>
+            <p class="muted">
+              Company, approvals, and projects shown from canonical mock fixtures.
+            </p>
+          </div>
+          <div id="summary-grid" class="summary-grid"></div>
+        </section>
+
+        <section id="org" class="panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Organization</p>
+              <h3>Org Chart</h3>
+            </div>
+            <p class="muted">
+              Hierarchy grouped by reporting line. Pending hires belong in this plane.
+            </p>
+          </div>
+          <div id="org-groups" class="org-groups"></div>
+        </section>
+
+        <section id="approvals" class="panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Governance</p>
+              <h3>Approval Queue</h3>
+            </div>
+            <p class="muted">
+              Company-level approvals with optional project targets.
+            </p>
+          </div>
+          <div id="approval-list" class="approval-list"></div>
+        </section>
+
+        <section id="runtime" class="panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Autonomous Runtime</p>
+              <h3>Lane and Safety State</h3>
+            </div>
+            <p class="muted">
+              Queue/lane ownership, safety profile, and handoff pressure by lane.
+            </p>
+          </div>
+          <div id="runtime-list" class="project-list"></div>
+        </section>
+
+        <section id="projects" class="panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Execution</p>
+              <h3>Projects</h3>
+            </div>
+            <p class="muted">
+              Execution units attached to the company control plane.
+            </p>
+          </div>
+          <div id="project-list" class="project-list"></div>
+        </section>
+
+        <section id="contract" class="panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Contract</p>
+              <h3>MCP and Schema Notes</h3>
+            </div>
+            <p class="muted">
+              Overview payloads are summaries. Detailed data remains in MCP read surfaces and schema docs.
+            </p>
+          </div>
+          <div id="contract-notes" class="contract-notes"></div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+  </html>

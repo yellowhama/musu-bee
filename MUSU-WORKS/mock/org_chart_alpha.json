@@ -1,0 +1,41 @@
+{
+  "company_id": "company_alpha",
+  "root_agent_id": "agent_ceo_alpha",
+  "nodes": [
+    {
+      "agent_id": "agent_ceo_alpha",
+      "display_name": "Alpha CEO",
+      "role_type": "ceo",
+      "status": "active",
+      "reports_to": null
+    },
+    {
+      "agent_id": "agent_pm_alpha",
+      "display_name": "Project Director",
+      "role_type": "manager",
+      "status": "active",
+      "reports_to": "agent_ceo_alpha"
+    },
+    {
+      "agent_id": "agent_policy_alpha",
+      "display_name": "Policy Officer",
+      "role_type": "specialist",
+      "status": "active",
+      "reports_to": "agent_ceo_alpha"
+    },
+    {
+      "agent_id": "agent_builder_alpha",
+      "display_name": "Builder",
+      "role_type": "worker",
+      "status": "active",
+      "reports_to": "agent_pm_alpha"
+    },
+    {
+      "agent_id": "agent_tester_alpha",
+      "display_name": "Tester",
+      "role_type": "worker",
+      "status": "idle",
+      "reports_to": "agent_pm_alpha"
+    }
+  ]
+}
