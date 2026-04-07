@@ -300,12 +300,16 @@ export default function Home() {
           onDeviceSelect={handleDeviceSelect}
         />
         <ChatArea
+          key={activeChannel}
           channelId={activeChannel}
           messages={displayMessages}
           onSend={handleSend}
           isAgentTyping={isAgentChannel ? chat.isAgentTyping : false}
           isConnected={isAgentChannel ? chat.isConnected : undefined}
           channelDescription={CHANNEL_DESCRIPTIONS[activeChannel]}
+          isLoadingHistory={isAgentChannel ? chat.isLoadingHistory : false}
+          hasMoreHistory={isAgentChannel ? chat.hasMoreHistory : false}
+          loadOlderMessages={isAgentChannel ? chat.loadOlderMessages : undefined}
         />
       </div>
 
