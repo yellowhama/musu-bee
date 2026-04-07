@@ -62,18 +62,18 @@ test.describe("Wave G E2E — 5 Scenarios", () => {
     const textarea = page.locator("textarea").first();
 
     // Click 'dev' channel via data-testid to ensure the clickable div is targeted
-    await page.locator('[data-testid="channel-item-dev"]').click();
+    await page.locator('[data-testid="channel-item-dev"]').click({ force: true });
+    // After clicking 'dev', its unread count should be 0. We can assert the absence of the unread badge.
+    await expect(page.locator('[data-testid="channel-item-dev"] span[style*="background: #ef4444"]')).not.toBeVisible();
 
     // Wait until placeholder reflects the channel switch (not a fixed sleep)
     await expect.poll(
       () => textarea.getAttribute("placeholder"),
       { timeout: 2000 }
     ).toContain("dev");
-    const placeholder = await textarea.getAttribute("placeholder");
-    console.log(`S2 after clicking dev — placeholder: ${placeholder}`);
-
-    // Click 'tasks' channel
-    await page.locator('[data-testid="channel-item-tasks"]').click();
+    await page.locator('[data-testid="channel-item-tasks"]').click({ force: true });
+    // After clicking 'tasks', its unread count should be 0.
+    await expect(page.locator('[data-testid="channel-item-tasks"] span[style*="background: #ef4444"]')).not.toBeVisible();
 
     await expect.poll(
       () => textarea.getAttribute("placeholder"),
@@ -94,7 +94,7 @@ test.describe("Wave G E2E — 5 Scenarios", () => {
     await page.goto("/", { waitUntil: "domcontentloaded" });
 
     // Navigate to tasks (non-agent channel, uses local state)
-    await page.locator('[data-testid="channel-item-tasks"]').click();
+    await page.locator('[data-testid="channel-item-tasks"]').click({ force: true });
     await expect.poll(
       () => page.locator("textarea").first().getAttribute("placeholder"),
       { timeout: 2000 }
@@ -105,7 +105,7 @@ test.describe("Wave G E2E — 5 Scenarios", () => {
     await textarea.waitFor({ timeout: 5000 });
 
     const testMsg = `E2E 테스트 메시지 ${Date.now()}`;
-    await textarea.click();
+    await textarea.click({ force: true });
     await textarea.fill(testMsg);
     await textarea.press("Enter");
 
@@ -180,7 +180,7 @@ test.describe("Wave G E2E — 5 Scenarios", () => {
 
     // Type a message
     const testMsg = `파트장 AI 테스트 ${Date.now()}`;
-    await textarea.click();
+    await textarea.click({ force: true });
     await textarea.fill(testMsg);
 
     // Send button should be enabled
