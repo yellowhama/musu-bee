@@ -1,4 +1,4 @@
-"""Unit tests for adapters — base, claude_local, process, registry, remote."""
+"""Unit tests for adapters — base, claude_local, process, registry, remote, hermes."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ import httpx
 
 from musu_core.adapters.base import AdapterContext, AdapterResult, BaseAdapter, UsageSummary
 from musu_core.adapters.claude_local import ClaudeLocalAdapter, _parse_stream_json
+from musu_core.adapters.hermes import HermesAdapter, _parse_hermes_output
 from musu_core.adapters.process import ProcessAdapter
 from musu_core.adapters.registry import get_adapter, list_adapter_types, register_adapter
 from musu_core.adapters.remote_cli import RemoteCLIAdapter
@@ -602,3 +603,192 @@ def test_dispatch_parallel_captures_exceptions():
     assert len(results) == 1
     assert not results[0].success
     assert "adapter exploded" in results[0].error
+
+
+# ---------------------------------------------------------------------------
+# _parse_hermes_output
+# ---------------------------------------------------------------------------
+
+
+def test_parse_hermes_output_with_session_id():
+    stdout = "Hello from Hermes!\nsession_id: abc-123"
+    response, session_id = _parse_hermes_output(stdout)
+    assert response == "Hello from Hermes!"
+    assert session_id == "abc-123"
+
+
+def test_parse_hermes_output_without_session_id():
+    stdout = "Hello from Hermes!"
+    response, session_id = _parse_hermes_output(stdout)
+    assert response == "Hello from Hermes!"
+    assert session_id is None
+
+
+def test_parse_hermes_output_multiline_response():
+    stdout = "Line one\nLine two\nLine three\nsession_id: xyz-789"
+    response, session_id = _parse_hermes_output(stdout)
+    assert response == "Line one\nLine two\nLine three"
+    assert session_id == "xyz-789"
+
+
+def test_parse_hermes_output_empty():
+    response, session_id = _parse_hermes_output("")
+    assert response == ""
+    assert session_id is None
+
+
+# ---------------------------------------------------------------------------
+# HermesAdapter
+# ---------------------------------------------------------------------------
+
+
+def _mock_hermes_proc(stdout: str, returncode: int = 0):
+    proc = MagicMock()
+    proc.returncode = returncode
+    proc.communicate = AsyncMock(return_value=(stdout.encode(), b""))
+    return proc
+
+
+def test_hermes_adapter_success():
+    adapter = HermesAdapter()
+    ctx = make_ctx(adapter_type="hermes", prompt="What is 2+2?")
+
+    stdout = "The answer is 4.\nsession_id: sess-hermes-1"
+    with patch("asyncio.create_subprocess_exec", return_value=_mock_hermes_proc(stdout)):
+        result = asyncio.run(adapter.execute(ctx))
+
+    assert result.success
+    assert result.summary == "The answer is 4."
+    assert result.session_id == "sess-hermes-1"
+    assert result.error is None
+
+
+def test_hermes_adapter_session_id_forwarded():
+    adapter = HermesAdapter()
+    ctx = make_ctx(adapter_type="hermes", session_id="existing-hermes-sess")
+
+    calls: list[tuple] = []
+
+    async def fake_exec(cmd, *args, stdout, stderr, cwd, env):
+        calls.append(args)
+        return _mock_hermes_proc("ok\nsession_id: existing-hermes-sess")
+
+    with patch("asyncio.create_subprocess_exec", side_effect=fake_exec):
+        asyncio.run(adapter.execute(ctx))
+
+    assert calls
+    assert "--resume" in calls[0]
+    idx = list(calls[0]).index("--resume")
+    assert calls[0][idx + 1] == "existing-hermes-sess"
+
+
+def test_hermes_adapter_model_forwarded():
+    adapter = HermesAdapter()
+    ctx = make_ctx(adapter_type="hermes", config={"model": "llama-3-70b"})
+
+    calls: list[tuple] = []
+
+    async def fake_exec(cmd, *args, stdout, stderr, cwd, env):
+        calls.append(args)
+        return _mock_hermes_proc("ok")
+
+    with patch("asyncio.create_subprocess_exec", side_effect=fake_exec):
+        asyncio.run(adapter.execute(ctx))
+
+    assert calls
+    assert "-m" in calls[0]
+    idx = list(calls[0]).index("-m")
+    assert calls[0][idx + 1] == "llama-3-70b"
+
+
+def test_hermes_adapter_provider_prefixed_to_model():
+    adapter = HermesAdapter()
+    ctx = make_ctx(adapter_type="hermes", config={"model": "llama-3-70b", "provider": "openrouter"})
+
+    calls: list[tuple] = []
+
+    async def fake_exec(cmd, *args, stdout, stderr, cwd, env):
+        calls.append(args)
+        return _mock_hermes_proc("ok")
+
+    with patch("asyncio.create_subprocess_exec", side_effect=fake_exec):
+        asyncio.run(adapter.execute(ctx))
+
+    assert calls
+    assert "-m" in calls[0]
+    idx = list(calls[0]).index("-m")
+    assert calls[0][idx + 1] == "openrouter:llama-3-70b"
+
+
+def test_hermes_adapter_timeout():
+    adapter = HermesAdapter()
+    ctx = make_ctx(adapter_type="hermes", config={"timeout_sec": 1})
+
+    async def fake_exec(*args, stdout, stderr, cwd, env):
+        proc = MagicMock()
+        proc.returncode = -1
+        proc.kill = MagicMock()
+        call_count = 0
+
+        async def slow_communicate(input=None):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise asyncio.TimeoutError
+            return b"", b""
+
+        proc.communicate = slow_communicate
+        return proc
+
+    with patch("asyncio.create_subprocess_exec", side_effect=fake_exec):
+        result = asyncio.run(adapter.execute(ctx))
+
+    assert not result.success
+    assert "Timed out" in (result.error or "")
+
+
+def test_hermes_adapter_nonzero_exit():
+    adapter = HermesAdapter()
+    ctx = make_ctx(adapter_type="hermes")
+
+    with patch("asyncio.create_subprocess_exec", return_value=_mock_hermes_proc("", returncode=1)):
+        result = asyncio.run(adapter.execute(ctx))
+
+    assert not result.success
+    assert "code 1" in (result.error or "")
+
+
+def test_hermes_adapter_empty_response():
+    adapter = HermesAdapter()
+    ctx = make_ctx(adapter_type="hermes")
+
+    with patch("asyncio.create_subprocess_exec", return_value=_mock_hermes_proc("")):
+        result = asyncio.run(adapter.execute(ctx))
+
+    assert not result.success
+    assert result.error == "Empty response from Hermes"
+
+
+def test_hermes_adapter_yolo_and_quiet_flags_default():
+    adapter = HermesAdapter()
+    ctx = make_ctx(adapter_type="hermes")
+
+    calls: list[tuple] = []
+
+    async def fake_exec(cmd, *args, stdout, stderr, cwd, env):
+        calls.append(args)
+        return _mock_hermes_proc("ok")
+
+    with patch("asyncio.create_subprocess_exec", side_effect=fake_exec):
+        asyncio.run(adapter.execute(ctx))
+
+    assert calls
+    args = calls[0]
+    assert "--yolo" in args
+    assert "-Q" in args
+
+
+def test_registry_includes_hermes():
+    assert get_adapter("hermes") is not None
+    assert isinstance(get_adapter("hermes"), HermesAdapter)
+    assert "hermes" in list_adapter_types()
