@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from musu_core.adapters.base import BaseAdapter
 from musu_core.adapters.claude_local import ClaudeLocalAdapter
+from musu_core.adapters.codex_local import CodexLocalAdapter
+from musu_core.adapters.gemini_local import GeminiLocalAdapter
 from musu_core.adapters.hermes import HermesAdapter
 from musu_core.adapters.local_llm import LocalLLMAdapter
 from musu_core.adapters.process import ProcessAdapter
@@ -15,6 +17,8 @@ _registry: dict[str, BaseAdapter] = {}
 
 def _default_registry() -> dict[str, BaseAdapter]:
     claude = ClaudeLocalAdapter()
+    codex = CodexLocalAdapter()
+    gemini = GeminiLocalAdapter()
     hermes = HermesAdapter()
     process = ProcessAdapter()
     local_llm = LocalLLMAdapter()
@@ -22,6 +26,8 @@ def _default_registry() -> dict[str, BaseAdapter]:
     remote_process = RemoteProcessAdapter()
     return {
         claude.adapter_type: claude,
+        codex.adapter_type: codex,
+        gemini.adapter_type: gemini,
         hermes.adapter_type: hermes,
         process.adapter_type: process,
         local_llm.adapter_type: local_llm,
