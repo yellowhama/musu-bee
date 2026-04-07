@@ -640,6 +640,7 @@ async fn handle_channel_ws(
             }
         }
 
+        drop(rx);
         state.channel_hub.gc(&name);
     })
 }
