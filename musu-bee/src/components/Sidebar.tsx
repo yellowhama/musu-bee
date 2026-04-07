@@ -194,6 +194,7 @@ export default function Sidebar({
         {channels.map((ch) => (
           <div
             key={ch.id}
+            data-testid={`channel-item-${ch.id}`}
             onClick={() => onChannelSelect(ch.id)}
             style={{
               display: "flex",
