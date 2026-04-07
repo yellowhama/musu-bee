@@ -1,0 +1,164 @@
+"""musu-worker FastAPI server — listens on :9700.
+
+Endpoints:
+  GET  /health           — liveness + GPU info
+  GET  /capabilities     — available adapters / CLIs
+  POST /execute/cli      — run claude or codex CLI
+  POST /execute/process  — run arbitrary command
+"""
+
+from __future__ import annotations
+
+import os
+import platform
+import shutil
+import subprocess
+from typing import Any
+
+import uvicorn
+from fastapi import Depends, FastAPI
+from pydantic import BaseModel, Field
+
+from musu_worker.auth import require_auth
+from musu_worker.executors import ExecResult, run_cli, run_process
+
+app = FastAPI(title="musu-worker", version="0.1.0")
+
+
+# ---------------------------------------------------------------------------
+# Health
+# ---------------------------------------------------------------------------
+
+
+def _gpu_info() -> str:
+    try:
+        out = subprocess.check_output(
+            ["nvidia-smi", "--query-gpu=name,memory.total,memory.free",
+             "--format=csv,noheader,nounits"],
+            timeout=5,
+        ).decode().strip()
+        return out
+    except Exception:
+        return "N/A"
+
+
+@app.get("/health")
+async def health() -> dict[str, Any]:
+    return {
+        "status": "ok",
+        "hostname": platform.node(),
+        "gpu": _gpu_info(),
+        "python": platform.python_version(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Capabilities
+# ---------------------------------------------------------------------------
+
+
+@app.get("/capabilities")
+async def capabilities(_: None = Depends(require_auth)) -> dict[str, Any]:
+    available_clis = [c for c in ("claude", "codex") if shutil.which(c)]
+    return {
+        "clis": available_clis,
+        "adapters": ["remote_cli", "remote_process"],
+    }
+
+
+# ---------------------------------------------------------------------------
+# Execute CLI
+# ---------------------------------------------------------------------------
+
+
+class CLIRequest(BaseModel):
+    prompt: str
+    cli_type: str = "claude"
+    model: str | None = None
+    session_id: str | None = None
+    cwd: str | None = None
+    timeout_sec: int = Field(default=300, ge=1, le=3600)
+
+
+class CLIResponse(BaseModel):
+    stdout: str
+    stderr: str
+    exit_code: int
+    success: bool
+    session_id: str | None = None
+
+
+@app.post("/execute/cli", response_model=CLIResponse)
+async def execute_cli(
+    req: CLIRequest,
+    _: None = Depends(require_auth),
+) -> CLIResponse:
+    result: ExecResult = await run_cli(
+        cli_type=req.cli_type,
+        prompt=req.prompt,
+        model=req.model,
+        session_id=req.session_id,
+        cwd=req.cwd,
+        timeout_sec=req.timeout_sec,
+    )
+    return CLIResponse(
+        stdout=result.stdout,
+        stderr=result.stderr,
+        exit_code=result.exit_code,
+        success=result.success,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Execute Process
+# ---------------------------------------------------------------------------
+
+
+class ProcessRequest(BaseModel):
+    command: str
+    args: list[str] = Field(default_factory=list)
+    cwd: str | None = None
+    timeout_sec: int = Field(default=600, ge=1, le=7200)
+    env: dict[str, str] = Field(default_factory=dict)
+
+
+class ProcessResponse(BaseModel):
+    stdout: str
+    stderr: str
+    exit_code: int
+    success: bool
+
+
+@app.post("/execute/process", response_model=ProcessResponse)
+async def execute_process(
+    req: ProcessRequest,
+    _: None = Depends(require_auth),
+) -> ProcessResponse:
+    result: ExecResult = await run_process(
+        command=req.command,
+        args=req.args,
+        cwd=req.cwd,
+        timeout_sec=req.timeout_sec,
+        env_extra=req.env or None,
+    )
+    return ProcessResponse(
+        stdout=result.stdout,
+        stderr=result.stderr,
+        exit_code=result.exit_code,
+        success=result.success,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+
+
+def run() -> None:
+    host = os.environ.get("MUSU_WORKER_HOST", "0.0.0.0")
+    port = int(os.environ.get("MUSU_WORKER_PORT", "9700"))
+    uvicorn.run("musu_worker.main:app", host=host, port=port, reload=False)
+
+
+if __name__ == "__main__":
+    run()
