@@ -147,3 +147,93 @@ def test_agent_dataclass_fields():
     field_names = {f.name for f in dataclasses.fields(Agent)}
     expected = {"id", "name", "role", "adapter_type", "adapter_config", "status", "created_at", "updated_at"}
     assert expected.issubset(field_names)
+
+
+# ---------------------------------------------------------------------------
+# fallback_chain tests
+# ---------------------------------------------------------------------------
+
+def test_create_agent_with_fallback_chain(registry):
+    chain = [
+        {"adapter_type": "hermes", "model": "gemma-3-27b"},
+        {"adapter_type": "process", "command": "claude"},
+    ]
+    agent = registry.create(name="fb-agent", fallback_chain=chain)
+    assert agent.fallback_chain == chain
+
+
+def test_fallback_chain_roundtrip(registry):
+    chain = [{"adapter_type": "claude_local", "model": "claude-sonnet-4-6"}]
+    created = registry.create(name="rt-agent", fallback_chain=chain)
+    fetched = registry.get(created.id)
+    assert fetched is not None
+    assert fetched.fallback_chain == chain
+
+
+def test_fallback_chain_none_by_default(registry):
+    agent = registry.create(name="no-chain")
+    assert agent.fallback_chain is None
+
+
+def test_update_fallback_chain(registry):
+    agent = registry.create(name="update-chain")
+    chain = [{"adapter_type": "hermes", "model": "llama"}]
+    updated = registry.update(agent.id, fallback_chain=chain)
+    assert updated is not None
+    assert updated.fallback_chain == chain
+
+
+def test_clear_fallback_chain(registry):
+    chain = [{"adapter_type": "hermes"}]
+    agent = registry.create(name="clear-chain", fallback_chain=chain)
+    updated = registry.update(agent.id, fallback_chain=None)
+    assert updated is not None
+    assert updated.fallback_chain is None
+
+
+def test_update_preserves_fallback_chain_when_not_specified(registry):
+    chain = [{"adapter_type": "hermes"}]
+    agent = registry.create(name="preserve-chain", fallback_chain=chain)
+    updated = registry.update(agent.id, name="preserve-chain-2")
+    assert updated is not None
+    assert updated.fallback_chain == chain
+
+
+# ---------------------------------------------------------------------------
+# validate_fallback_chain tests
+# ---------------------------------------------------------------------------
+
+from musu_core.agents import validate_fallback_chain
+
+
+def test_validate_fallback_chain_valid():
+    validate_fallback_chain([{"adapter_type": "hermes"}, {"adapter_type": "process"}])
+
+
+def test_validate_fallback_chain_empty_list_ok():
+    validate_fallback_chain([])
+
+
+def test_validate_fallback_chain_not_a_list():
+    with pytest.raises(ValueError, match="must be a list"):
+        validate_fallback_chain({"adapter_type": "hermes"})  # type: ignore[arg-type]
+
+
+def test_validate_fallback_chain_entry_not_dict():
+    with pytest.raises(ValueError, match="must be a dict"):
+        validate_fallback_chain(["hermes"])  # type: ignore[arg-type]
+
+
+def test_validate_fallback_chain_missing_adapter_type():
+    with pytest.raises(ValueError, match="missing required key 'adapter_type'"):
+        validate_fallback_chain([{"model": "x"}])
+
+
+def test_validate_fallback_chain_empty_adapter_type():
+    with pytest.raises(ValueError, match="non-empty string"):
+        validate_fallback_chain([{"adapter_type": ""}])
+
+
+def test_create_agent_invalid_fallback_chain_raises(registry):
+    with pytest.raises(ValueError):
+        registry.create(name="bad", fallback_chain=[{"no_type": True}])

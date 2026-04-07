@@ -53,6 +53,33 @@ export interface Message {
   attachment?: string;
 }
 
+// ---------------------------------------------------------------------------
+// Agent types (mirror musu-core Python schema)
+// ---------------------------------------------------------------------------
+
+/** One entry in an agent's fallback adapter chain. */
+export interface FallbackChainEntry {
+  adapter_type: string;
+  [key: string]: unknown;
+}
+
+export type AgentStatus = "active" | "paused" | "retired";
+
+export interface MusuAgent {
+  id: string;
+  name: string;
+  role: string;
+  adapter_type: string;
+  adapter_config: Record<string, unknown>;
+  status: AgentStatus;
+  /** Ordered list of fallback adapters tried on retriable failure. Null if not configured. */
+  fallback_chain: FallbackChainEntry[] | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ---------------------------------------------------------------------------
+
 /** JSON message schema sent/received over the chat WebSocket. */
 export interface ChatWsMessage {
   type: "user_message" | "agent_response" | "system" | "typing";
