@@ -61,9 +61,8 @@ test.describe("Wave G E2E — 5 Scenarios", () => {
     const t0 = Date.now();
     const textarea = page.locator("textarea").first();
 
-    // Click 'dev' channel via data-testid to ensure the clickable div is targeted
-    // dispatchEvent triggers React's synthetic onClick reliably on plain divs in headless Chrome
-    await page.locator('[data-testid="channel-item-dev"]').dispatchEvent('click');
+    // Use evaluate el.click() — native DOM click bubbles through React's event delegation
+    await page.locator('[data-testid="channel-item-dev"]').evaluate(el => (el as HTMLElement).click());
     // After clicking 'dev', its unread count should be 0. We can assert the absence of the unread badge.
     await expect(page.locator('[data-testid="channel-item-dev"] span[style*="background: #ef4444"]')).not.toBeVisible();
 
@@ -72,7 +71,7 @@ test.describe("Wave G E2E — 5 Scenarios", () => {
       () => textarea.getAttribute("placeholder"),
       { timeout: 2000 }
     ).toContain("dev");
-    await page.locator('[data-testid="channel-item-tasks"]').dispatchEvent('click');
+    await page.locator('[data-testid="channel-item-tasks"]').evaluate(el => (el as HTMLElement).click());
     // After clicking 'tasks', its unread count should be 0.
     await expect(page.locator('[data-testid="channel-item-tasks"] span[style*="background: #ef4444"]')).not.toBeVisible();
 
@@ -95,7 +94,7 @@ test.describe("Wave G E2E — 5 Scenarios", () => {
     await page.goto("/", { waitUntil: "domcontentloaded" });
 
     // Navigate to tasks (non-agent channel, uses local state)
-    await page.locator('[data-testid="channel-item-tasks"]').dispatchEvent('click');
+    await page.locator('[data-testid="channel-item-tasks"]').evaluate(el => (el as HTMLElement).click());
     await expect.poll(
       () => page.locator("textarea").first().getAttribute("placeholder"),
       { timeout: 2000 }
