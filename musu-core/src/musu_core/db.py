@@ -22,6 +22,8 @@ CREATE TABLE IF NOT EXISTS agents (
     -- JSON blob: model, command, cwd, instructions_path, etc.
     adapter_config TEXT NOT NULL DEFAULT '{}',
     status      TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'paused', 'retired')),
+    -- JSON array: ordered fallback adapter configs [{adapter_type, ...}, ...]
+    fallback_chain TEXT DEFAULT NULL,
     created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
@@ -64,11 +66,42 @@ CREATE TABLE IF NOT EXISTS execution_log (
     created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
+CREATE TABLE IF NOT EXISTS messages (
+    id          TEXT PRIMARY KEY,
+    session_id  TEXT NOT NULL,
+    role        TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
+    content     TEXT NOT NULL DEFAULT '',
+    model       TEXT,
+    agent_id    TEXT REFERENCES agents(id) ON DELETE SET NULL,
+    -- JSON blob for arbitrary metadata
+    meta        TEXT NOT NULL DEFAULT '{}',
+    created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_tasks_assignee   ON tasks(assignee_agent_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_status     ON tasks(status);
 CREATE INDEX IF NOT EXISTS idx_comments_task    ON comments(task_id);
 CREATE INDEX IF NOT EXISTS idx_execlog_task     ON execution_log(task_id);
 CREATE INDEX IF NOT EXISTS idx_execlog_agent    ON execution_log(agent_id);
+CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id);
+CREATE INDEX IF NOT EXISTS idx_messages_session_created ON messages(session_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_messages_agent ON messages(agent_id);
+
+CREATE TABLE IF NOT EXISTS fallback_metrics (
+    id          TEXT PRIMARY KEY,
+    agent_id    TEXT,
+    run_id      TEXT NOT NULL,
+    -- error_code string or 'unknown'
+    fallback_reason TEXT NOT NULL DEFAULT 'unknown',
+    -- which fallback adapter was attempted (empty = primary failure pre-chain)
+    fallback_adapter TEXT NOT NULL DEFAULT '',
+    -- 1 when every adapter in the chain failed; 0 when a fallback succeeded
+    chain_exhausted INTEGER NOT NULL DEFAULT 0,
+    created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_fallback_metrics_agent   ON fallback_metrics(agent_id);
+CREATE INDEX IF NOT EXISTS idx_fallback_metrics_created ON fallback_metrics(created_at);
 """
 
 
@@ -79,12 +112,9 @@ def _open(db_path: str) -> sqlite3.Connection:
     conn.executescript(_SCHEMA)
     conn.execute("PRAGMA journal_mode = WAL;")
     conn.execute("PRAGMA foreign_keys = ON;")
-    # Migration: add fallback_chain column if it does not exist yet
-    try:
-        conn.execute("ALTER TABLE agents ADD COLUMN fallback_chain TEXT DEFAULT NULL;")
-        conn.commit()
-    except sqlite3.OperationalError:
-        pass  # column already exists
+    # Apply pending schema migrations (idempotent)
+    from musu_core.migrations import apply_pending  # local import avoids circular
+    apply_pending(conn)
     return conn
 
 

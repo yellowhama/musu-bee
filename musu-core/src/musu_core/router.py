@@ -142,12 +142,16 @@ class Router:
                 or (result.error_code is None and result.is_retriable)
             )
         )
+        # Capture the original failure reason before the fallback loop overwrites result.
+        _original_failure_reason = (result.error_code.value if result.error_code else "unknown")
+        _fallback_adapters_tried: list[str] = []
         if _should_fallback:
             for fallback_spec in fallback_chain:
                 fb_adapter_type = fallback_spec.get("adapter_type", "")
                 fb_adapter = get_adapter(fb_adapter_type)
                 if fb_adapter is None:
                     continue
+                _fallback_adapters_tried.append(fb_adapter_type)
                 fb_config: dict[str, Any] = {**adapter_config, **fallback_spec}
                 fb_ctx = replace(ctx, adapter_type=fb_adapter_type, config=fb_config)
                 try:
@@ -166,10 +170,39 @@ class Router:
                 _fb_retriable = (
                     result.error_code is not None and result.error_code in RETRIABLE_ERROR_CODES
                 ) or (result.error_code is None and result.is_retriable)
+
+                # Record per-attempt metric using the reason that triggered this fallback.
+                self._backend.record_fallback_metric(
+                    agent_id=agent.id,
+                    run_id=run_id,
+                    fallback_reason=_original_failure_reason,
+                    fallback_adapter=fb_adapter_type,
+                    chain_exhausted=False,
+                )
+
                 if result.success or not _fb_retriable:
                     if result.success:
                         result.raw["fallback_used"] = fb_adapter_type
                     break
+
+        # Record chain-exhausted metric + escalate when every adapter failed
+        if _fallback_adapters_tried and not result.success:
+            _last_reason = (result.error_code.value if result.error_code else "unknown")
+            self._backend.record_fallback_metric(
+                agent_id=agent.id,
+                run_id=run_id,
+                fallback_reason=_last_reason,
+                fallback_adapter="",
+                chain_exhausted=True,
+            )
+            from musu_core.escalation import escalate_chain_exhausted
+            escalate_chain_exhausted(
+                agent_id=agent.id,
+                agent_name=agent.name,
+                run_id=run_id,
+                error=result.error or "",
+                fallback_adapters_tried=_fallback_adapters_tried,
+            )
 
         # --- 5. Log result ---
         self._backend.log_execution_result(result, task_id=req.task_id)
