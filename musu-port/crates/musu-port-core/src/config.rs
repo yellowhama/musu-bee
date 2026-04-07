@@ -18,6 +18,8 @@ pub struct MusuPortConfig {
     pub data_root: PathBuf,
     pub state_db_path: PathBuf,
     pub runtime_context: RuntimeContext,
+    /// Peer musu-port base URLs loaded from `MUSU_PORT_PEERS` (comma-separated).
+    pub peer_urls: Vec<String>,
 }
 
 impl MusuPortConfig {
@@ -79,6 +81,16 @@ impl MusuPortConfig {
         }
         let state_db_path = state_db_override.unwrap_or_else(|| data_root.join("musu-port.db"));
 
+        let peer_urls = std::env::var("MUSU_PORT_PEERS")
+            .ok()
+            .map(|raw| {
+                raw.split(',')
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
+                    .collect()
+            })
+            .unwrap_or_default();
+
         Ok(Self {
             host,
             preferred_port,
@@ -90,6 +102,7 @@ impl MusuPortConfig {
             data_root,
             state_db_path,
             runtime_context,
+            peer_urls,
         })
     }
 }
@@ -110,5 +123,34 @@ mod tests {
         assert!(!config.device_id.is_empty());
         assert!(!config.device_profile_path.as_os_str().is_empty());
         assert!(!config.data_root.as_os_str().is_empty());
+    }
+
+    /// Serialize MUSU_PORT_PEERS env var tests — env vars are process-global state.
+    static PEERS_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    #[test]
+    fn peer_urls_empty_when_env_unset() {
+        let _guard = PEERS_ENV_LOCK.lock().unwrap();
+        std::env::remove_var("MUSU_PORT_PEERS");
+        let config = MusuPortConfig::from_env().expect("config from env");
+        assert!(config.peer_urls.is_empty());
+    }
+
+    #[test]
+    fn peer_urls_parsed_from_env() {
+        let _guard = PEERS_ENV_LOCK.lock().unwrap();
+        std::env::set_var("MUSU_PORT_PEERS", "http://a:1355, http://b:1355");
+        let config = MusuPortConfig::from_env().expect("config from env");
+        std::env::remove_var("MUSU_PORT_PEERS");
+        assert_eq!(config.peer_urls, vec!["http://a:1355", "http://b:1355"]);
+    }
+
+    #[test]
+    fn peer_urls_empty_string_is_empty_vec() {
+        let _guard = PEERS_ENV_LOCK.lock().unwrap();
+        std::env::set_var("MUSU_PORT_PEERS", "");
+        let config = MusuPortConfig::from_env().expect("config from env");
+        std::env::remove_var("MUSU_PORT_PEERS");
+        assert!(config.peer_urls.is_empty());
     }
 }

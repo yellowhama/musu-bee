@@ -26,7 +26,7 @@ use crate::platform::{
     summarize_device_profile,
 };
 use crate::route::{new_extra_routes, SeedRouteSource, ServiceRoute};
-use crate::state::MusuPortState;
+use crate::state::{unix_now_secs, MusuPortState, PeerSnapshot};
 use crate::storage::Persistence;
 
 #[derive(Debug, Serialize)]
@@ -109,6 +109,13 @@ struct BossStatusResponse {
     is_this_device: bool,
 }
 
+/// Minimal subset of a peer's `/health` response that we care about.
+#[derive(Debug, Deserialize)]
+struct PeerHealthResponse {
+    device_id: Option<String>,
+    route_count: Option<usize>,
+}
+
 pub async fn run_server(config: MusuPortConfig) -> Result<(), String> {
     let profile_summary =
         summarize_device_profile(config.device_profile.as_ref(), &config.device_id);
@@ -159,6 +166,8 @@ pub async fn run_server(config: MusuPortConfig) -> Result<(), String> {
         data_root: config.data_root.clone(),
         channel_hub: Arc::new(ChannelHub::new()),
         current_boss: Arc::new(tokio::sync::RwLock::new(None)),
+        peer_urls: config.peer_urls.clone(),
+        peer_health_cache: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
     };
     state.initialize_connect_mode()?;
     state.auto_promote_mcp_candidates().await?;
@@ -186,8 +195,75 @@ pub async fn run_server(config: MusuPortConfig) -> Result<(), String> {
         }
     });
 
+    if !state.peer_urls.is_empty() {
+        let probe_state = state.clone();
+        tokio::spawn(async move {
+            loop {
+                for url in &probe_state.peer_urls {
+                    let health_url = format!("{}/health", url.trim_end_matches('/'));
+                    let result = probe_state
+                        .http_client
+                        .get(&health_url)
+                        .timeout(Duration::from_secs(2))
+                        .send()
+                        .await;
+
+                    let snapshot = match result {
+                        Ok(resp) if resp.status().is_success() => {
+                            let peer: Option<PeerHealthResponse> =
+                                resp.json().await.ok();
+                            PeerSnapshot {
+                                url: url.clone(),
+                                device_id: peer.as_ref().and_then(|p| p.device_id.clone()),
+                                status: "ok".to_string(),
+                                route_count: peer.as_ref().and_then(|p| p.route_count),
+                                last_ok_secs: Some(unix_now_secs()),
+                            }
+                        }
+                        Ok(_) => {
+                            tracing::warn!(peer_url = %url, "peer returned non-success status");
+                            let prev_ok = {
+                                let cache = probe_state.peer_health_cache.read().await;
+                                cache.get(url).and_then(|s| s.last_ok_secs)
+                            };
+                            PeerSnapshot {
+                                url: url.clone(),
+                                device_id: None,
+                                status: "error".to_string(),
+                                route_count: None,
+                                last_ok_secs: prev_ok,
+                            }
+                        }
+                        Err(_) => {
+                            tracing::debug!(peer_url = %url, "peer unreachable");
+                            let prev_ok = {
+                                let cache = probe_state.peer_health_cache.read().await;
+                                cache.get(url).and_then(|s| s.last_ok_secs)
+                            };
+                            PeerSnapshot {
+                                url: url.clone(),
+                                device_id: None,
+                                status: "unreachable".to_string(),
+                                route_count: None,
+                                last_ok_secs: prev_ok,
+                            }
+                        }
+                    };
+
+                    probe_state
+                        .peer_health_cache
+                        .write()
+                        .await
+                        .insert(url.clone(), snapshot);
+                }
+                tokio::time::sleep(Duration::from_secs(5)).await;
+            }
+        });
+    }
+
     let app = Router::new()
         .route("/health", get(handle_health))
+        .route("/peers", get(handle_peers))
         .route("/routes", get(handle_routes))
         .route("/coverage", get(handle_coverage))
         .route("/discovery", get(handle_discovery))
@@ -304,6 +380,12 @@ async fn handle_health(AxumState(state): AxumState<MusuPortState>) -> impl IntoR
             .as_ref()
             .map(|path| display_path_for_runtime(path, &state.runtime_context)),
     })
+}
+
+async fn handle_peers(AxumState(state): AxumState<MusuPortState>) -> impl IntoResponse {
+    let mut peers: Vec<PeerSnapshot> = state.peer_health_cache.read().await.values().cloned().collect();
+    peers.sort_by(|a, b| a.url.cmp(&b.url));
+    Json(peers)
 }
 
 async fn handle_routes(AxumState(state): AxumState<MusuPortState>) -> impl IntoResponse {

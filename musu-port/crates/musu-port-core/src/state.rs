@@ -1,4 +1,7 @@
 use std::collections::{HashMap, HashSet};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use serde::Serialize;
 use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
@@ -37,6 +40,25 @@ use crate::route::{
 };
 use crate::storage::{audit_event, AuditEvent, Persistence};
 
+/// Snapshot of a peer musu-port instance's health, cached by the background probe task.
+#[derive(Debug, Clone, Serialize)]
+pub struct PeerSnapshot {
+    pub url: String,
+    pub device_id: Option<String>,
+    /// "ok" | "unreachable" | "error"
+    pub status: String,
+    pub route_count: Option<usize>,
+    /// Unix seconds of last successful probe, if any.
+    pub last_ok_secs: Option<u64>,
+}
+
+pub fn unix_now_secs() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0)
+}
+
 #[derive(Clone)]
 pub struct MusuPortState {
     pub seed_routes: Arc<SeedRouteSource>,
@@ -56,6 +78,10 @@ pub struct MusuPortState {
     /// Current boss (사장): the device_id of the last device to connect.
     /// None until the first device registers.
     pub current_boss: Arc<RwLock<Option<String>>>,
+    /// Peer musu-port base URLs from `MUSU_PORT_PEERS`.
+    pub peer_urls: Vec<String>,
+    /// Cached health snapshots for each configured peer, keyed by URL.
+    pub peer_health_cache: Arc<RwLock<HashMap<String, PeerSnapshot>>>,
 }
 
 impl MusuPortState {

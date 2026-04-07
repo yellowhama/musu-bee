@@ -1,3 +1,4 @@
+pub mod channel_hub;
 pub mod config;
 pub mod control;
 pub mod discovery;
