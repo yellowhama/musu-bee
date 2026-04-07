@@ -195,7 +195,10 @@ export default function Sidebar({
           <div
             key={ch.id}
             data-testid={`channel-item-${ch.id}`}
+            role="button"
+            tabIndex={0}
             onClick={() => onChannelSelect(ch.id)}
+            onKeyDown={(e) => e.key === "Enter" && onChannelSelect(ch.id)}
             style={{
               display: "flex",
               alignItems: "center",
