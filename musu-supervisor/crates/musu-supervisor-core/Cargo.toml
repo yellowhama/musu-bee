@@ -8,9 +8,10 @@ serde = { version = "1", features = ["derive"] }
 thiserror = "1"
 toml = "0.7"
 tokio = { version = "1", features = ["process", "io-util", "rt", "sync", "time"], optional = true }
+libc = { version = "0.2", optional = true }
 
 [features]
-runtime = ["tokio"]
+runtime = ["tokio", "libc"]
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
