@@ -221,6 +221,65 @@ async def sync_workspace(scope: str = "all") -> str:
 
 
 @mcp.tool()
+async def search_by_tags(tag: str, limit: int = 20) -> str:
+    """
+    Find files by semantic tag (assigned by Qwen auto-tagger).
+    Tags describe purpose and technology, e.g. 'wayland', 'mcp', 'rust', 'testing'.
+    """
+    workspace = _current_workspace()
+    project_root = workspace.root
+    try:
+        from .core import get_db
+
+        conn = get_db(project_root)
+        rows = conn.execute(
+            "SELECT path, category, tags FROM files WHERE tags LIKE ? LIMIT ?",
+            (f"%{tag}%", limit),
+        ).fetchall()
+        conn.close()
+        if not rows:
+            return f"No files found with tag '{tag}'."
+        output = [f"Found {len(rows)} files with tag '{tag}':"]
+        for r in rows:
+            output.append(f"  [{r['category']}] {r['path']}  tags={r['tags']}")
+        return "\n".join(output)
+    except Exception as e:
+        return f"Error searching tags: {e}"
+
+
+@mcp.tool()
+async def get_tag_stats() -> str:
+    """Show tag distribution across the indexed codebase."""
+    workspace = _current_workspace()
+    project_root = workspace.root
+    try:
+        from .core import get_db
+        from collections import Counter
+
+        conn = get_db(project_root)
+        rows = conn.execute(
+            "SELECT tags FROM files WHERE tags IS NOT NULL AND tags != ''"
+        ).fetchall()
+        conn.close()
+        counter: Counter = Counter()
+        for r in rows:
+            for tag in r["tags"].split(","):
+                tag = tag.strip()
+                if tag:
+                    counter[tag] += 1
+        if not counter:
+            return "No tags found. Run qwen-tagger first."
+        total = sum(counter.values())
+        tagged_files = len(rows)
+        output = [f"Tag stats: {tagged_files} files, {len(counter)} unique tags, {total} total"]
+        for tag, count in counter.most_common(30):
+            output.append(f"  {tag}: {count}")
+        return "\n".join(output)
+    except Exception as e:
+        return f"Error getting tag stats: {e}"
+
+
+@mcp.tool()
 async def search_codebase(
     query: str, limit: int = 15, exclude: list[str] = None, scope: str = "all"
 ) -> str:
