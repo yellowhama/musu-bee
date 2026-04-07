@@ -46,8 +46,7 @@ class LLMInstance:
 
     @property
     def url(self) -> str:
-        """Return <ip>:<port> once registry resolves the node IP."""
-        return ""  # resolved lazily via registry
+        raise NotImplementedError("Use registry.llm_url(instance) to resolve URL")
 
 
 # ---------------------------------------------------------------------------
