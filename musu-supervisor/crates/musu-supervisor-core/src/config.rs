@@ -249,6 +249,27 @@ impl MusuConfig {
             s.command.as_deref().unwrap_or(name)
         })
     }
+
+    /// Returns the default musu state directory (`~/.musu`).
+    pub fn musu_dir() -> std::path::PathBuf {
+        let home = std::env::var("HOME").unwrap_or_else(|_| "/root".to_string());
+        std::path::Path::new(&home).join(".musu")
+    }
+
+    /// Path to the IPC Unix socket (`~/.musu/musu.sock`).
+    pub fn default_socket_path() -> std::path::PathBuf {
+        Self::musu_dir().join("musu.sock")
+    }
+
+    /// Directory where per-service log files are written (`~/.musu/logs/`).
+    pub fn default_log_dir() -> std::path::PathBuf {
+        Self::musu_dir().join("logs")
+    }
+
+    /// Path to the PID file (`~/.musu/musud.pid`).
+    pub fn default_pid_path() -> std::path::PathBuf {
+        Self::musu_dir().join("musud.pid")
+    }
 }
 
 #[cfg(test)]

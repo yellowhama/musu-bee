@@ -208,5 +208,172 @@ class LocalBackend(BackendABC):
     def get_comments(self, task_id: str) -> list[dict[str, Any]]:
         return [_comment_to_dict(c) for c in self.tasks.get_comments(task_id)]
 
+    # --- Messages (chat history) ---
+
+    def create_message(
+        self,
+        session_id: str,
+        role: str,
+        content: str,
+        model: str | None = None,
+        agent_id: str | None = None,
+        meta: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        msg_id = str(uuid.uuid4())
+        self._db.execute(
+            """
+            INSERT INTO messages (id, session_id, role, content, model, agent_id, meta)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (msg_id, session_id, role, content, model, agent_id, json.dumps(meta or {})),
+        )
+        row = self._db.execute("SELECT * FROM messages WHERE id = ?", (msg_id,))
+        return self._msg_row_to_dict(row[0])
+
+    def get_message(self, message_id: str) -> dict[str, Any] | None:
+        rows = self._db.execute("SELECT * FROM messages WHERE id = ?", (message_id,))
+        if not rows:
+            return None
+        return self._msg_row_to_dict(rows[0])
+
+    def list_messages(
+        self,
+        session_id: str,
+        limit: int | None = None,
+        before_id: str | None = None,
+        agent_id: str | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
+    ) -> list[dict[str, Any]]:
+        conditions = ["session_id = ?"]
+        params: list[Any] = [session_id]
+
+        if before_id is not None:
+            anchor = self._db.execute(
+                "SELECT created_at FROM messages WHERE id = ?", (before_id,)
+            )
+            if not anchor:
+                return []
+            conditions.append("created_at < ?")
+            params.append(anchor[0]["created_at"])
+
+        if agent_id is not None:
+            conditions.append("agent_id = ?")
+            params.append(agent_id)
+
+        if date_from is not None:
+            conditions.append("created_at >= ?")
+            params.append(date_from)
+
+        if date_to is not None:
+            conditions.append("created_at <= ?")
+            params.append(date_to)
+
+        where = " AND ".join(conditions)
+        rows = self._db.execute(
+            f"SELECT * FROM messages WHERE {where} ORDER BY created_at ASC",
+            tuple(params),
+        )
+        if limit is not None:
+            rows = rows[-limit:]
+        return [self._msg_row_to_dict(r) for r in rows]
+
+    def delete_message(self, message_id: str) -> bool:
+        rows_before = self._db.execute(
+            "SELECT id FROM messages WHERE id = ?", (message_id,)
+        )
+        if not rows_before:
+            return False
+        self._db.execute("DELETE FROM messages WHERE id = ?", (message_id,))
+        return True
+
+    @staticmethod
+    def _msg_row_to_dict(row: Any) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "session_id": row["session_id"],
+            "role": row["role"],
+            "content": row["content"],
+            "model": row["model"],
+            "meta": json.loads(row["meta"] or "{}"),
+            "created_at": row["created_at"],
+        }
+
+    # --- Fallback metrics ---
+
+    def record_fallback_metric(
+        self,
+        agent_id: str | None,
+        run_id: str,
+        fallback_reason: str,
+        fallback_adapter: str = "",
+        chain_exhausted: bool = False,
+    ) -> None:
+        self._db.execute(
+            """
+            INSERT INTO fallback_metrics
+                (id, agent_id, run_id, fallback_reason, fallback_adapter, chain_exhausted)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                str(uuid.uuid4()),
+                agent_id,
+                run_id,
+                fallback_reason,
+                fallback_adapter,
+                1 if chain_exhausted else 0,
+            ),
+        )
+
+    def get_fallback_metrics(
+        self,
+        agent_id: str | None = None,
+        since_days: int = 30,
+    ) -> list[dict[str, Any]]:
+        """Return fallback metric rows created within *since_days* days.
+
+        Rows are ordered newest-first.  Pass *agent_id* to filter to one agent.
+        """
+        clauses: list[str] = [
+            "created_at >= strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?)"
+        ]
+        params: list[Any] = [f"-{since_days} days"]
+        if agent_id:
+            clauses.append("agent_id = ?")
+            params.append(agent_id)
+        where = "WHERE " + " AND ".join(clauses)
+        rows = self._db.execute(
+            f"SELECT * FROM fallback_metrics {where} ORDER BY created_at DESC",
+            tuple(params),
+        )
+        return [
+            {
+                "id": r["id"],
+                "agent_id": r["agent_id"],
+                "run_id": r["run_id"],
+                "fallback_reason": r["fallback_reason"],
+                "fallback_adapter": r["fallback_adapter"],
+                "chain_exhausted": bool(r["chain_exhausted"]),
+                "created_at": r["created_at"],
+            }
+            for r in rows
+        ]
+
+    def prune_fallback_metrics(self, retain_days: int = 30) -> int:
+        """Delete rows older than *retain_days* days.  Returns deleted count."""
+        rows_before = self._db.execute(
+            "SELECT COUNT(*) AS n FROM fallback_metrics"
+            " WHERE created_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?)",
+            (f"-{retain_days} days",),
+        )
+        count = rows_before[0]["n"] if rows_before else 0
+        if count:
+            self._db.execute(
+                "DELETE FROM fallback_metrics"
+                " WHERE created_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?)",
+                (f"-{retain_days} days",),
+            )
+        return count
+
     def close(self) -> None:
         self._db.close()

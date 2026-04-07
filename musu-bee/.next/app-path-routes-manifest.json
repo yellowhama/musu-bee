@@ -1,0 +1,10 @@
+{
+  "/api/chat/route": "/api/chat",
+  "/api/checkout/route": "/api/checkout",
+  "/api/device-status/route": "/api/device-status",
+  "/api/subscription/route": "/api/subscription",
+  "/api/webhooks/stripe/route": "/api/webhooks/stripe",
+  "/_not-found/page": "/_not-found",
+  "/page": "/",
+  "/pro/page": "/pro"
+}

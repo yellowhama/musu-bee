@@ -20,7 +20,13 @@ async fn main() {
 
     let supervisor = Supervisor::start(&cfg).await;
 
-    // Wait for SIGINT (Ctrl-C) or SIGTERM.
+    // Start the IPC socket server so `musu stop/status` can connect.
+    #[cfg(unix)]
+    let _ipc_task = supervisor.start_ipc_server();
+
+    let shutdown_notify = supervisor.ipc.shutdown_notify.clone();
+
+    // Wait for SIGINT (Ctrl-C), SIGTERM, or an IPC stop-all command.
     #[cfg(unix)]
     {
         use tokio::signal::unix::{signal, SignalKind};
@@ -41,13 +47,23 @@ async fn main() {
             _ = sigterm.recv() => {
                 println!("musud: received SIGTERM");
             }
+            _ = shutdown_notify.notified() => {
+                println!("musud: IPC shutdown requested");
+            }
         }
     }
 
     #[cfg(not(unix))]
-    match tokio::signal::ctrl_c().await {
-        Ok(_) => println!("\nmusud: received shutdown signal"),
-        Err(e) => eprintln!("musud: signal error: {e}"),
+    tokio::select! {
+        result = tokio::signal::ctrl_c() => {
+            match result {
+                Ok(_) => println!("\nmusud: received shutdown signal"),
+                Err(e) => eprintln!("musud: signal error: {e}"),
+            }
+        }
+        _ = shutdown_notify.notified() => {
+            println!("musud: IPC shutdown requested");
+        }
     }
 
     println!(

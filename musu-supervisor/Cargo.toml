@@ -1,0 +1,3 @@
+[workspace]
+members = ["apps/musud", "apps/musu", "crates/musu-supervisor-core"]
+resolver = "2"

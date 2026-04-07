@@ -1,0 +1,12 @@
+[package]
+name = "musud"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "musud"
+path = "src/main.rs"
+
+[dependencies]
+musu-supervisor-core = { path = "../../crates/musu-supervisor-core", features = ["runtime"] }
+tokio = { version = "1", features = ["full"] }

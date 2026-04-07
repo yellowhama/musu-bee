@@ -65,3 +65,43 @@ class BackendABC(ABC):
     @abstractmethod
     def get_comments(self, task_id: str) -> list[dict[str, Any]]:
         """Return all comments for a task, ordered by creation time."""
+
+    # --- Messages (chat history) ---
+
+    @abstractmethod
+    def create_message(
+        self,
+        session_id: str,
+        role: str,
+        content: str,
+        model: str | None = None,
+        agent_id: str | None = None,
+        meta: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Append a message to a session and return the message dict."""
+
+    @abstractmethod
+    def get_message(self, message_id: str) -> dict[str, Any] | None:
+        """Return a message dict by id, or None if not found."""
+
+    @abstractmethod
+    def list_messages(
+        self,
+        session_id: str,
+        limit: int | None = None,
+        before_id: str | None = None,
+        agent_id: str | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return messages for a session ordered by creation time (ascending).
+
+        Filters: *before_id* for cursor pagination, *agent_id* to narrow by
+        originating agent, *date_from*/*date_to* as ISO-8601 timestamps.
+        If *limit* is given, at most that many messages are returned (from the
+        tail of the window).
+        """
+
+    @abstractmethod
+    def delete_message(self, message_id: str) -> bool:
+        """Delete a message by id.  Returns True if a row was deleted."""

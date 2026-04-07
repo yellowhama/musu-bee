@@ -5,9 +5,10 @@ edition = "2021"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 thiserror = "1"
 toml = "0.7"
-tokio = { version = "1", features = ["process", "io-util", "rt", "sync", "time"], optional = true }
+tokio = { version = "1", features = ["process", "io-util", "net", "rt", "sync", "time", "fs"], optional = true }
 libc = { version = "0.2", optional = true }
 
 [features]
@@ -15,4 +16,3 @@ runtime = ["tokio", "libc"]
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
-
