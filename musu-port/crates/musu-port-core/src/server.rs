@@ -168,6 +168,8 @@ pub async fn run_server(config: MusuPortConfig) -> Result<(), String> {
         current_boss: Arc::new(tokio::sync::RwLock::new(None)),
         peer_urls: config.peer_urls.clone(),
         peer_health_cache: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+        bridge_url: std::env::var("MUSU_BRIDGE_URL")
+            .unwrap_or_else(|_| "http://localhost:8070".to_string()),
     };
     state.initialize_connect_mode()?;
     state.auto_promote_mcp_candidates().await?;
@@ -308,6 +310,7 @@ pub async fn run_server(config: MusuPortConfig) -> Result<(), String> {
         .route("/boss/connect", post(handle_boss_connect))
         .route("/metrics", get(handle_metrics))
         .route("/metrics/json", get(handle_metrics_json))
+        .route("/chat/ws/{channel}", get(handle_chat_ws))
         .route("/ws/{service}", get(handle_alias_ws))
         .route("/ws/{service}/{*rest}", get(handle_alias_with_path_ws))
         .route(
@@ -747,6 +750,163 @@ async fn handle_chat(
         )
             .into_response(),
     }
+}
+
+/// `GET /chat/ws/{channel}` — Bidirectional WebSocket chat endpoint.
+///
+/// Clients send JSON messages (`ChatWsMessage`), which are broadcast to all
+/// channel subscribers and routed to the mapped agent via musu-bridge.
+/// Agent responses are broadcast back to all subscribers.
+async fn handle_chat_ws(
+    ws: WebSocketUpgrade,
+    AxumState(state): AxumState<MusuPortState>,
+    Path(channel): Path<String>,
+) -> impl IntoResponse {
+    // Validate channel name: alphanumeric, dash, underscore only
+    if !channel.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '-') {
+        return (StatusCode::BAD_REQUEST, "Invalid channel name").into_response();
+    }
+    let channel_name = format!("chat:{channel}");
+    ws.on_upgrade(move |socket| handle_chat_ws_connection(socket, state, channel, channel_name))
+        .into_response()
+}
+
+async fn handle_chat_ws_connection(
+    socket: WebSocket,
+    state: MusuPortState,
+    channel: String,
+    channel_name: String,
+) {
+    let mut rx = state.channel_hub.subscribe(&channel_name);
+    let (mut ws_tx, mut ws_rx) = socket.split();
+
+    loop {
+        tokio::select! {
+            // Forward channel broadcasts to this client
+            msg = rx.recv() => {
+                match msg {
+                    Ok(text) => {
+                        if ws_tx.send(AxumWsMessage::Text(text.into())).await.is_err() {
+                            break;
+                        }
+                    }
+                    Err(_) => break,
+                }
+            }
+            // Handle client messages
+            next = ws_rx.next() => {
+                match next {
+                    Some(Ok(AxumWsMessage::Text(text))) => {
+                        let text = text.to_string();
+                        // Reject oversized messages (64KB limit)
+                        if text.len() > 65_536 {
+                            tracing::warn!("chat_ws: message too large ({} bytes), dropping", text.len());
+                            continue;
+                        }
+                        // Parse incoming JSON
+                        let msg: serde_json::Value = match serde_json::from_str(&text) {
+                            Ok(v) => v,
+                            Err(_) => continue,
+                        };
+
+                        let msg_type = msg.get("type").and_then(|v| v.as_str()).unwrap_or("");
+                        if msg_type != "user_message" {
+                            continue;
+                        }
+
+                        let user_text = msg.get("text").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                        let sender_id = msg.get("sender_id").and_then(|v| v.as_str()).unwrap_or("anon").to_string();
+                        let sender_name = msg.get("sender_name").and_then(|v| v.as_str()).unwrap_or("User").to_string();
+
+                        if user_text.is_empty() {
+                            continue;
+                        }
+
+                        let now = unix_now_secs();
+
+                        // 1. Echo user message to all channel subscribers
+                        let user_msg = serde_json::json!({
+                            "type": "user_message",
+                            "channel": channel,
+                            "sender_id": sender_id,
+                            "sender_name": sender_name,
+                            "text": user_text,
+                            "timestamp": now,
+                        });
+                        state.channel_hub.broadcast(&channel_name, user_msg.to_string());
+
+                        // 2. Send typing indicator
+                        let typing_msg = serde_json::json!({
+                            "type": "typing",
+                            "channel": channel,
+                            "sender_id": format!("agent-{}", channel),
+                            "sender_name": "",
+                            "text": "",
+                            "timestamp": now,
+                        });
+                        state.channel_hub.broadcast(&channel_name, typing_msg.to_string());
+
+                        // 3. Route to musu-bridge (async, in background)
+                        let bridge_url = state.bridge_url.clone();
+                        let hub = state.channel_hub.clone();
+                        let ch = channel.clone();
+                        let ch_name = channel_name.clone();
+                        let http = state.http_client.clone();
+                        let sid = sender_id.clone();
+                        let utext = user_text.clone();
+
+                        tokio::spawn(async move {
+                            let route_body = serde_json::json!({
+                                "channel": ch,
+                                "sender_id": sid,
+                                "text": utext,
+                            });
+
+                            let result = http
+                                .post(format!("{}/api/route", bridge_url))
+                                .json(&route_body)
+                                .timeout(Duration::from_secs(60))
+                                .send()
+                                .await;
+
+                            let response_text = match result {
+                                Ok(resp) if resp.status().is_success() => {
+                                    let data: serde_json::Value = resp.json().await.unwrap_or_default();
+                                    data.get("response")
+                                        .and_then(|v| v.as_str())
+                                        .unwrap_or("No response from agent.")
+                                        .to_string()
+                                }
+                                Ok(resp) => {
+                                    let status = resp.status().as_u16();
+                                    format!("Bridge error (HTTP {})", status)
+                                }
+                                Err(e) => {
+                                    tracing::warn!(error = %e, "chat_ws: bridge request failed");
+                                    format!("Bridge unavailable: {}", e)
+                                }
+                            };
+
+                            let agent_msg = serde_json::json!({
+                                "type": "agent_response",
+                                "channel": ch,
+                                "sender_id": format!("agent-{}", ch),
+                                "sender_name": ch,
+                                "text": response_text,
+                                "timestamp": unix_now_secs(),
+                            });
+                            hub.broadcast(&ch_name, agent_msg.to_string());
+                        });
+                    }
+                    Some(Ok(AxumWsMessage::Close(_))) | None => break,
+                    _ => {} // ignore binary/ping/pong
+                }
+            }
+        }
+    }
+
+    drop(rx);
+    state.channel_hub.gc(&channel_name);
 }
 
 async fn handle_alias_http(

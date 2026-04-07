@@ -6,18 +6,39 @@ import { useState, useCallback, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import ChatArea from "@/components/ChatArea";
 import OnboardingModal from "@/components/OnboardingModal";
+import { useChat } from "@/lib/useChat";
 import type { Channel, ChannelId, Device, Message } from "@/types";
+import { AGENT_CHANNELS } from "@/types";
 
 let msgCounter = 10;
 function makeId() {
   return `msg-${++msgCounter}-${Date.now()}`;
 }
 
+const CHANNEL_DESCRIPTIONS: Partial<Record<ChannelId, string>> = {
+  general: "모든 대화가 여기서 시작됩니다",
+  dev: "기기 간 내부 대화 (AI 협의)",
+  tasks: "진행 중인 작업 목록",
+  alerts: "기기 상태 변경, 에러, 완료 알림",
+  ceo: "CEO 에이전트",
+  cto: "CTO 에이전트",
+  engineer: "엔지니어 에이전트",
+  cos: "참모 에이전트",
+  qa: "QA 에이전트",
+  worker: "워커 에이전트",
+};
+
 const INITIAL_CHANNELS: Channel[] = [
   { id: "general", name: "general", unread: 0 },
-  { id: "dev", name: "dev", unread: 2 },
-  { id: "tasks", name: "tasks", unread: 1 },
+  { id: "dev", name: "dev", unread: 0 },
+  { id: "tasks", name: "tasks", unread: 0 },
   { id: "alerts", name: "alerts", unread: 0 },
+  { id: "ceo", name: "ceo", unread: 0 },
+  { id: "cto", name: "cto", unread: 0 },
+  { id: "engineer", name: "engineer", unread: 0 },
+  { id: "cos", name: "cos", unread: 0 },
+  { id: "qa", name: "qa", unread: 0 },
+  { id: "worker", name: "worker", unread: 0 },
 ];
 
 const INITIAL_DEVICES: Device[] = [
@@ -37,144 +58,31 @@ const INITIAL_DEVICES: Device[] = [
     stats: { cpu: 72, gpu: 61, ram: 45 },
     isLeader: false,
   },
-  {
-    id: "laptop",
-    name: "노트북",
-    label: "Musu-C",
-    status: "offline",
-    stats: { cpu: 0, gpu: null, ram: 0 },
-    isLeader: false,
-  },
 ];
-
-const now = new Date();
-function ts(minutesAgo: number) {
-  return new Date(now.getTime() - minutesAgo * 60 * 1000);
-}
-
-const INITIAL_MESSAGES: Message[] = [
-  {
-    id: "msg-1",
-    channelId: "general",
-    sender: "Musu-A (4060Ti)",
-    senderKind: "ai",
-    text: "모닝 리포트입니다.\n- 4060Ti: GPU 사용률 23%, 대기 중\n- 5070Ti: 추론 작업 1건 진행 중\n- 노트북: 오프라인",
-    timestamp: ts(10),
-  },
-  {
-    id: "msg-2",
-    channelId: "general",
-    sender: "유저",
-    senderKind: "user",
-    text: "어제 만든 프레젠테이션 PDF로 만들어줘",
-    timestamp: ts(8),
-  },
-  {
-    id: "msg-3",
-    channelId: "general",
-    sender: "Musu-A (사장)",
-    senderKind: "ai",
-    text: "넵, GPU 작업은 아니라 제가 바로 처리하겠습니다.",
-    timestamp: ts(8),
-  },
-  {
-    id: "msg-4",
-    channelId: "general",
-    sender: "Musu-A",
-    senderKind: "ai",
-    text: "완료했습니다.",
-    attachment: "presentation.pdf",
-    timestamp: ts(7),
-  },
-  {
-    id: "msg-5",
-    channelId: "dev",
-    sender: "Musu-A",
-    senderKind: "ai",
-    text: "5070Ti에 추론 작업 분배합니다. 예상 완료 2분.",
-    timestamp: ts(15),
-  },
-  {
-    id: "msg-6",
-    channelId: "dev",
-    sender: "Musu-B",
-    senderKind: "ai",
-    text: "수신. 큐 등록 완료.",
-    timestamp: ts(14),
-  },
-  {
-    id: "msg-7",
-    channelId: "tasks",
-    sender: "Musu-A",
-    senderKind: "ai",
-    text: "📋 현재 작업 목록\n\n[완료] presentation.pdf 변환\n[진행중] 5070Ti 추론 작업 (62%)\n[대기] 로그 분석 요청",
-    timestamp: ts(5),
-  },
-  {
-    id: "msg-8",
-    channelId: "alerts",
-    sender: "시스템",
-    senderKind: "system",
-    text: "노트북(Musu-C)이 오프라인 상태입니다.",
-    timestamp: ts(30),
-  },
-  {
-    id: "msg-9",
-    channelId: "alerts",
-    sender: "시스템",
-    senderKind: "system",
-    text: "5070Ti GPU 사용률 60% 초과 — 정상 범위입니다.",
-    timestamp: ts(3),
-  },
-];
-
-const AI_RESPONSES: Record<ChannelId, string[]> = {
-  general: [
-    "알겠습니다. 바로 처리하겠습니다.",
-    "작업을 받았습니다. GPU 리소스를 확인 중입니다...",
-    "완료했습니다. 결과를 확인해주세요.",
-    "현재 5070Ti가 바쁘니 제가 직접 처리하겠습니다.",
-    "넵. 예상 소요 시간은 약 2분입니다.",
-  ],
-  dev: [
-    "리소스 분배 중...",
-    "작업 큐 업데이트 완료.",
-    "4060Ti ↔ 5070Ti 동기화 완료.",
-  ],
-  tasks: [
-    "📋 작업 목록 업데이트됨.",
-    "새 작업이 큐에 등록되었습니다.",
-    "완료된 작업을 아카이브했습니다.",
-  ],
-  alerts: [
-    "⚠️ 새 알림이 등록되었습니다.",
-    "상태 변경 감지됨.",
-  ],
-};
 
 export default function Home() {
   const [channels, setChannels] = useState<Channel[]>(INITIAL_CHANNELS);
   const [devices, setDevices] = useState<Device[]>(INITIAL_DEVICES);
-  const [activeChannel, setActiveChannel] = useState<ChannelId>("general");
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
-  // Show onboarding when no devices are registered (new user flow).
-  // For demo, default to false since mock devices are present.
-  const [showOnboarding, setShowOnboarding] = useState<boolean>(
-    INITIAL_DEVICES.length === 0
-  );
-  const [deviceLimit, setDeviceLimit] = useState<number>(1);
+  const [activeChannel, setActiveChannel] = useState<ChannelId>("ceo");
+  const [localMessages, setLocalMessages] = useState<Message[]>([]);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [deviceLimit, setDeviceLimit] = useState<number>(3);
 
-  // Fetch subscription state once on mount to get plan-based device limit.
+  // WebSocket chat for agent channels
+  const isAgentChannel = AGENT_CHANNELS.includes(activeChannel);
+  const chat = useChat(activeChannel);
+
+  // Fetch subscription state once on mount.
   useEffect(() => {
     fetch("/api/subscription")
       .then((r) => (r.ok ? r.json() : null))
       .then((data: { deviceLimit?: number } | null) => {
         if (data?.deviceLimit != null) setDeviceLimit(data.deviceLimit);
       })
-      .catch(() => {/* keep default */});
+      .catch(() => {});
   }, []);
 
-  // Poll local musu-port /status every 3 seconds; update first (local) device stats.
+  // Poll device status every 3 seconds.
   useEffect(() => {
     const LOCAL_DEVICE_ID = "desktop-4060";
 
@@ -184,12 +92,18 @@ export default function Home() {
         if (!res.ok) {
           setDevices((prev) =>
             prev.map((d) =>
-              d.id === LOCAL_DEVICE_ID ? { ...d, status: "offline" as const } : d
-            )
+              d.id === LOCAL_DEVICE_ID
+                ? { ...d, status: "offline" as const }
+                : d,
+            ),
           );
           return;
         }
-        const data = (await res.json()) as { cpu: number; gpu: number | null; ram: number };
+        const data = (await res.json()) as {
+          cpu: number;
+          gpu: number | null;
+          ram: number;
+        };
         setDevices((prev) =>
           prev.map((d) =>
             d.id === LOCAL_DEVICE_ID
@@ -202,14 +116,16 @@ export default function Home() {
                     ram: Math.round(data.ram),
                   },
                 }
-              : d
-          )
+              : d,
+          ),
         );
       } catch {
         setDevices((prev) =>
           prev.map((d) =>
-            d.id === LOCAL_DEVICE_ID ? { ...d, status: "offline" as const } : d
-          )
+            d.id === LOCAL_DEVICE_ID
+              ? { ...d, status: "offline" as const }
+              : d,
+          ),
         );
       }
     }
@@ -219,111 +135,62 @@ export default function Home() {
     return () => clearInterval(id);
   }, []);
 
-  const handleOnboardingComplete = useCallback((deviceName: string) => {
-    // Add the newly registered device to the device list
-    const newDevice: Device = {
-      id: `device-${Date.now()}`,
-      name: deviceName,
-      label: `Musu-${String.fromCharCode(65 + devices.length)}`,
-      status: "online",
-      stats: { cpu: 0, gpu: null, ram: 0 },
-      isLeader: devices.length === 0,
-    };
-    setDevices((prev) => [...prev, newDevice]);
-    setShowOnboarding(false);
-  }, [devices.length]);
+  const handleOnboardingComplete = useCallback(
+    (deviceName: string) => {
+      const newDevice: Device = {
+        id: `device-${Date.now()}`,
+        name: deviceName,
+        label: `Musu-${String.fromCharCode(65 + devices.length)}`,
+        status: "online",
+        stats: { cpu: 0, gpu: null, ram: 0 },
+        isLeader: devices.length === 0,
+      };
+      setDevices((prev) => [...prev, newDevice]);
+      setShowOnboarding(false);
+    },
+    [devices.length],
+  );
 
   const handleOnboardingSkip = useCallback(() => {
     setShowOnboarding(false);
   }, []);
 
-  const handleChannelSelect = useCallback(
-    (id: ChannelId) => {
-      setActiveChannel(id);
-      // Clear unread for selected channel
-      setChannels((prev) =>
-        prev.map((ch) => (ch.id === id ? { ...ch, unread: 0 } : ch))
-      );
-    },
-    []
-  );
-
-  const handleDeviceSelect = useCallback((id: string) => {
-    // Switch to general and scroll — for now just switch to general
-    setActiveChannel("general");
+  const handleChannelSelect = useCallback((id: ChannelId) => {
+    setActiveChannel(id);
     setChannels((prev) =>
-      prev.map((ch) => (ch.id === "general" ? { ...ch, unread: 0 } : ch))
+      prev.map((ch) => (ch.id === id ? { ...ch, unread: 0 } : ch)),
     );
   }, []);
 
+  const handleDeviceSelect = useCallback((_id: string) => {
+    setActiveChannel("general");
+  }, []);
+
   const handleSend = useCallback(
-    async (text: string) => {
-      const userMsg: Message = {
-        id: makeId(),
-        channelId: activeChannel,
-        sender: "유저",
-        senderKind: "user",
-        text,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, userMsg]);
-
-      // Route general channel messages to the real 파트장 AI via musu-port /chat.
-      if (activeChannel === "general") {
-        try {
-          const res = await fetch("/api/chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message: text }),
-          });
-          const data = (await res.json()) as { text?: string; error?: string };
-          const reply = data.text ?? data.error ?? "응답을 받지 못했습니다.";
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: makeId(),
-              channelId: "general" as const,
-              sender: "Musu-A (파트장)",
-              senderKind: "ai" as const,
-              text: reply,
-              timestamp: new Date(),
-            },
-          ]);
-        } catch {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: makeId(),
-              channelId: "general" as const,
-              sender: "시스템",
-              senderKind: "system" as const,
-              text: "AI 응답 오류: musu-port에 연결할 수 없습니다.",
-              timestamp: new Date(),
-            },
-          ]);
-        }
-        return;
+    (text: string) => {
+      if (isAgentChannel) {
+        // Send via WebSocket
+        chat.sendMessage(text);
+      } else {
+        // Local message for non-agent channels
+        const userMsg: Message = {
+          id: makeId(),
+          channelId: activeChannel,
+          sender: "유저",
+          senderKind: "user",
+          text,
+          timestamp: new Date(),
+        };
+        setLocalMessages((prev) => [...prev, userMsg]);
       }
-
-      // Simulated responses for non-general channels.
-      setTimeout(() => {
-        const responses = AI_RESPONSES[activeChannel];
-        const reply = responses[Math.floor(Math.random() * responses.length)];
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: makeId(),
-            channelId: activeChannel,
-            sender: "Musu-A (4060Ti)",
-            senderKind: "ai" as const,
-            text: reply,
-            timestamp: new Date(),
-          },
-        ]);
-      }, 400);
     },
-    [activeChannel]
+    [activeChannel, isAgentChannel, chat],
   );
+
+  // Merge local messages with WebSocket messages for the active channel
+  const displayMessages = isAgentChannel
+    ? chat.messages
+    : localMessages.filter((m) => m.channelId === activeChannel);
 
   return (
     <div
@@ -369,7 +236,7 @@ export default function Home() {
         {devices.length >= deviceLimit ? (
           <a
             href="/pro#pricing"
-            title={`현재 플랜은 기기 ${deviceLimit}대까지 지원합니다. 업그레이드하세요.`}
+            title={`현재 플랜은 기기 ${deviceLimit}대까지 지원합니다.`}
             style={{
               fontSize: 12,
               color: "#facc15",
@@ -434,12 +301,14 @@ export default function Home() {
         />
         <ChatArea
           channelId={activeChannel}
-          messages={messages}
+          messages={displayMessages}
           onSend={handleSend}
+          isAgentTyping={isAgentChannel ? chat.isAgentTyping : false}
+          isConnected={isAgentChannel ? chat.isConnected : undefined}
+          channelDescription={CHANNEL_DESCRIPTIONS[activeChannel]}
         />
       </div>
 
-      {/* Onboarding modal */}
       {showOnboarding && (
         <OnboardingModal
           onComplete={handleOnboardingComplete}

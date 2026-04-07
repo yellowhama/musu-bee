@@ -7,6 +7,9 @@ interface ChatAreaProps {
   channelId: ChannelId;
   messages: Message[];
   onSend: (text: string) => void;
+  isAgentTyping?: boolean;
+  isConnected?: boolean;
+  channelDescription?: string;
 }
 
 function MessageBubble({ msg }: { msg: Message }) {
@@ -103,15 +106,19 @@ export default function ChatArea({
   channelId,
   messages,
   onSend,
+  isAgentTyping = false,
+  isConnected,
+  channelDescription,
 }: ChatAreaProps) {
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const channelMessages = messages.filter((m) => m.channelId === channelId);
+  // Messages are already filtered by the parent for agent channels
+  const channelMessages = messages;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [channelMessages.length]);
+  }, [channelMessages.length, isAgentTyping]);
 
   function handleSend() {
     const text = input.trim();
@@ -155,6 +162,19 @@ export default function ChatArea({
         >
           {channelLabel}
         </span>
+        {isConnected !== undefined && (
+          <span
+            style={{
+              display: "inline-block",
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: isConnected ? "#22c55e" : "#ef4444",
+              flexShrink: 0,
+            }}
+            title={isConnected ? "연결됨" : "연결 끊김"}
+          />
+        )}
         <span
           style={{
             fontSize: 13,
@@ -163,10 +183,16 @@ export default function ChatArea({
             paddingLeft: 12,
           }}
         >
-          {channelId === "general" && "모든 대화가 여기서 시작됩니다"}
-          {channelId === "dev" && "기기 간 내부 대화 (AI 협의)"}
-          {channelId === "tasks" && "진행 중인 작업 목록"}
-          {channelId === "alerts" && "기기 상태 변경, 에러, 완료 알림"}
+          {channelDescription ??
+            (channelId === "general"
+              ? "모든 대화가 여기서 시작됩니다"
+              : channelId === "dev"
+                ? "기기 간 내부 대화 (AI 협의)"
+                : channelId === "tasks"
+                  ? "진행 중인 작업 목록"
+                  : channelId === "alerts"
+                    ? "기기 상태 변경, 에러, 완료 알림"
+                    : "")}
         </span>
       </div>
 
@@ -197,6 +223,29 @@ export default function ChatArea({
         {channelMessages.map((msg) => (
           <MessageBubble key={msg.id} msg={msg} />
         ))}
+        {isAgentTyping && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "8px 0",
+            }}
+          >
+            <span style={{ fontSize: 12, color: "#a78bfa", fontWeight: 600 }}>
+              {channelId}
+            </span>
+            <span
+              style={{
+                fontSize: 12,
+                color: "#6b7280",
+                animation: "pulse 1.5s ease-in-out infinite",
+              }}
+            >
+              응답 중...
+            </span>
+          </div>
+        )}
         <div ref={bottomRef} />
       </div>
 

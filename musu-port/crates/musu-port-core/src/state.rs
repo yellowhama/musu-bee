@@ -82,6 +82,8 @@ pub struct MusuPortState {
     pub peer_urls: Vec<String>,
     /// Cached health snapshots for each configured peer, keyed by URL.
     pub peer_health_cache: Arc<RwLock<HashMap<String, PeerSnapshot>>>,
+    /// musu-bridge URL for agent routing (env `MUSU_BRIDGE_URL`, default `http://localhost:8070`).
+    pub bridge_url: String,
 }
 
 impl MusuPortState {
