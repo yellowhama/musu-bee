@@ -12,6 +12,18 @@ function toFiniteNumber(value: unknown, fallback: number): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function offlineFallback(reason: string) {
+  return NextResponse.json({
+    cpu: 0,
+    gpu: null,
+    ram: 0,
+    status: "unreachable",
+    device_id: "unknown-device",
+    source: "offline-fallback",
+    reason,
+  });
+}
+
 export async function GET() {
   try {
     const statusRes = await fetch(`${MUSU_PORT_URL}/status`, {
@@ -41,16 +53,10 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json(
-      {
-        error: `musu-port returned status=${statusRes.status}, health=${healthRes.status}`,
-      },
-      { status: 502 }
+    return offlineFallback(
+      `status=${statusRes.status},health=${healthRes.status}`,
     );
   } catch {
-    return NextResponse.json(
-      { error: "musu-port unreachable" },
-      { status: 503 }
-    );
+    return offlineFallback("fetch_error");
   }
 }
