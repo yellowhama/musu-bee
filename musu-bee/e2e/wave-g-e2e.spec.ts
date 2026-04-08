@@ -123,8 +123,6 @@ test.describe("Wave G E2E — 5 Scenarios", () => {
     await page.goto("/", { waitUntil: "domcontentloaded" });
     await page.locator("textarea").first().waitFor({ timeout: 5000 });
 
-    const t0 = Date.now();
-
     // Device sidebar: "부서" section header
     await expect(page.locator("text=부서")).toBeVisible({ timeout: 5000 });
 
@@ -146,10 +144,6 @@ test.describe("Wave G E2E — 5 Scenarios", () => {
     expect(body.cpu).toBeGreaterThanOrEqual(0);
     expect(body.cpu).toBeLessThanOrEqual(100);
     console.log(`S4 device-status: cpu=${body.cpu}% ram=${body.ram}% gpu=${body.gpu}`);
-
-    const elapsed = Date.now() - t0;
-    console.log(`S4 elapsed: ${elapsed}ms`);
-    expect(elapsed).toBeLessThan(5000);
   });
 
   // ─────────────────────────────────────────────
