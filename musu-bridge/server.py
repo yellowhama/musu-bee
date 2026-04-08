@@ -18,11 +18,12 @@ import logging
 import os
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from musu_core.middleware import apply_musu_middlewares
+import audit
 from config import get_config
 from csrf_guard import CSRFOriginGuard
 from hostname_guard import HostnameGuard
@@ -68,9 +69,18 @@ class RouteRequest(BaseModel):
 
 
 @app.post("/api/route")
-async def api_route(req: RouteRequest) -> dict:
+async def api_route(req: RouteRequest, request: Request) -> dict:
     """Route a message to the agent mapped to the given channel."""
-    return await route_chat(channel=req.channel, sender_id=req.sender_id, text=req.text)
+    result = await route_chat(channel=req.channel, sender_id=req.sender_id, text=req.text)
+    audit.record(
+        actor_ip=request.client.host if request.client else "",
+        method="POST",
+        path="/api/route",
+        status_code=200 if not result.get("error") else 500,
+        agent_id=result.get("agent_id", ""),
+        note=f"channel={req.channel} sender={req.sender_id}",
+    )
+    return result
 
 
 @app.get("/api/agents")
@@ -124,12 +134,28 @@ async def api_get_message(message_id: str) -> dict:
 
 
 @app.delete("/api/messages/{message_id}", summary="Delete a message by id")
-async def api_delete_message(message_id: str) -> dict:
+async def api_delete_message(message_id: str, request: Request) -> dict:
     """Delete a message. Returns 404 if not found."""
     deleted = delete_message_by_id(message_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Message not found")
+    audit.record(
+        actor_ip=request.client.host if request.client else "",
+        method="DELETE",
+        path=f"/api/messages/{message_id}",
+        status_code=200,
+        note=f"message_id={message_id}",
+    )
     return {"deleted": True, "id": message_id}
+
+
+@app.get("/api/audit", summary="Recent audit log entries")
+async def api_audit(
+    limit: int = Query(default=100, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
+) -> list[dict]:
+    """Return recent audit log entries, newest first."""
+    return audit.recent(limit=limit, offset=offset)
 
 
 @app.get("/health")
