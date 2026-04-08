@@ -1,0 +1,9 @@
+{
+  "name": "musu-plugin",
+  "version": "0.1.0",
+  "description": "MUSU operations plugin for Claude Code with Paperclip commands, governance skill, and safety hooks.",
+  "author": {
+    "name": "MUSU Founding Engineering",
+    "email": "yellowhama@users.noreply.github.com"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "musu-control": {
+      "command": "./musu-control/.venv/bin/musu-control"
+    },
+    "musu-indexer": {
+      "command": "./musu-indexer/.venv/bin/musu-indexer",
+      "args": [
+        "mcp"
+      ]
+    }
+  }
+}
