@@ -100,6 +100,33 @@
 - 즉 사용자 시나리오는 "카페 노트북 -> 집 GPU 데스크탑 2대 -> 실시간 화면 공유/작업물 확인/역할 분담 실행"이다.
 - 이 정의에서 핵심 축은 `musu-port + musu-connects + MUSU-CRT + MUSU-WORKS`다.
 
+## 2026-04-09 CEO Operating Model Truth (live)
+
+- source of truth는 live Paperclip API와 루트 문서 3종이다.
+- `CEO` (`5dffee24-ee3f-4b75-89c8-11608fe7e186`)는 현재 `running` 상태다.
+- `adapterConfig.cwd=/home/hugh51/musu-functions`
+- `lastHeartbeatAt`: `2026-04-08T17:00:32.671Z`
+- CEO instructions bundle은 충분히 강하다.
+  - active issue 점검
+  - error-state agent 점검
+  - active issue가 없으면 board를 읽고 새 issue 생성
+- runtime normalization은 완료됐다.
+  - `runtimeConfig.heartbeat.enabled=true`
+  - `runtimeConfig.heartbeat.cooldownSec=10`
+  - `runtimeConfig.heartbeat.intervalSec=3600`
+  - `runtimeConfig.heartbeat.wakeOnDemand=true`
+  - `runtimeConfig.heartbeat.maxConcurrentRuns=1`
+- 현재 root program의 가장 큰 갭은 "무엇을 해야 하는지"가 아니라 "blocked/hard-decision을 증거 패킷으로 바꾸는 방법"이다.
+  - `Paddle credential evidence`
+  - `5070Ti SSH/manual status proof`
+  - `run-linkage repair + QA G2 verification`
+- 현재 org 리스크: `Founding Engineer`가 `error` 상태다 (live dashboard `agents.error=1`).
+
+### 이번 세션에서 추가된 unblock 자산
+
+- blocked/high 7 재패킷팅 문서: `/home/hugh51/musu-functions/plans/70_paperclip_unblock_pack_2026-04-09.md`
+- Paperclip plan 문서 동기화 스크립트: `/home/hugh51/musu-functions/scripts/paperclip_put_unblock_plans_2026-04-09.sh`
+
 ## 남은 작업 리스트
 
 Snapshot: `2026-04-03 21:21 KST` (Paperclip live API + no-drift heartbeat recheck)

@@ -51,13 +51,12 @@
 
 ### 자율운영
 
-- `2026-04-03 21:21 KST` 기준 Paperclip control plane은 살아 있다.
-- `http://127.0.0.1:3100/api/health`는 `status=ok`, `version=2026.325.0`를 반환한다.
-- root aligned active run은 `MUS-146` 중심으로 관측된다 (`9a780f36...`).
-- `MUS-151 backlog + running` mismatch는 run `f47a6af1...` cancel로 정리됐다.
-- lane anomaly는 현재 window에서 `0`이며, `MUS-150`/`MUS-151`은 backlog parked 상태를 유지한다.
-- cross-project orchestration traffic(`MUS-130`, `MUS-161`, `MUS-8`)은 별도 telemetry로 분리 추적한다.
-- 다만 heartbeat-runs projection에서 `issueId` 대신 `contextSnapshot.issueId`를 확인해야 하는 field consistency debt가 남아 있다.
+- Paperclip control plane은 동작 중이다.
+- `http://127.0.0.1:3100/api/health`는 `status=ok`, `version=0.3.1`를 반환한다.
+- 대시보드 snapshot (live):
+  - tasks: `open=37`, `inProgress=9`, `blocked=16`, `done=314`
+  - agents: `active=2`, `running=2`, `paused=0`, `error=1` (`Founding Engineer`)
+- 가장 큰 병목은 “구현 부족”이 아니라 **보드 입력(credential/SSH) → 증거 패킷화 → 재개 순서**다.
 
 ## 현재 판단
 
@@ -67,7 +66,14 @@
 
 - 이전 root closeout tranche는 역사적으로 유효하다.
 - 하지만 그것이 곧 repo completion은 아니다.
-- 따라서 이제부터는 closeout 문서를 유지하되, 새 master plan 아래에서 completion waves를 다시 연다.
+따라서 이제부터는 closeout 문서를 유지하되, 새 master plan 아래에서 completion waves를 다시 연다.
+
+## 2026-04-09 Governance/Unblock Program
+
+목표: **blocked/high 이슈를 “결정 1–2 + 배포/환경변수 체크리스트 + 검증 커맨드”로 표준화**해서, CEO가 직접 실행하지 않아도 누가 맡아도 unblock 가능하게 만든다.
+
+- unblock pack 문서: `plans/70_paperclip_unblock_pack_2026-04-09.md`
+- Paperclip 이슈 plan 문서 일괄 동기화: `scripts/paperclip_put_unblock_plans_2026-04-09.sh`
 
 ## 남은 구현 파동
 
@@ -144,6 +150,18 @@
 - 생성, vision QA/tagging, operator review/control이 하나의 체인으로 증명된다.
 - 남은 리스크는 "아직 안 만든 것"이 아니라 "후속 hardening"만 남는다.
 
+### Wave G. Mesh Worker Remote Exec Closure (2026-04-09)
+
+목표:
+
+- 각 머신(각 MUSU 설치)이 `musu-worker(:9700)`를 띄워서 원격 실행 루프를 닫는다.
+- `musu-core`의 `remote_process` / `remote_cli` 어댑터를 통해 “다른 컴퓨터에서 해야 하는 작업”을 사람 로그인 없이 수행한다.
+- 이로써 `5070Ti` 배포/검증 같은 보드 블로커를 “SSH 필요”가 아니라 “worker health + remote_process evidence”로 바꾼다.
+
+detail plan:
+
+- `plans/66_mesh_worker_remote_exec_closure_2026-04-09.md`
+
 ## 세부 플랜 규칙
 
 - 새 root execution packet을 열기 전 반드시 `plans/NN_<slug>_YYYY-MM-DD.md` 문서를 먼저 만든다.
@@ -155,16 +173,14 @@
 
 ## 즉시 실행 순서
 
-1. `38_ops_run_to_issue_hygiene_after_control_plane_recovery_2026-04-03.md`
-   - run queue cleanup 완료 후 projection debt를 추적하고 close 조건을 고정
-2. `musu-connects` wire-level transport proof detail plan
-   - simulated session evidence를 actual transport evidence로 교체
-3. `MUSU-CRT` integrated operator surface detail plan
-   - remote session health/trust/freshness coherence와 live attach surface closure
-4. `MUSU-WORKS` autonomous workload routing detail plan
-   - issue-bound execution과 blocker/approval contract 연결
-5. end-to-end acceptance detail plan
-   - dual-GPU + cafe laptop 최종 scenario close
+1. `plans/70_paperclip_unblock_pack_2026-04-09.md`
+   - board-action/blocked/high 7을 “결정+체크리스트+검증”으로 통일하고, 증거 제출 형태로 바꾼다.
+2. `plans/66_mesh_worker_remote_exec_closure_2026-04-09.md`
+   - “다른 컴퓨터에서 해야 함”류 블락을 SSH 대신 worker health + remote_process evidence로 전환한다.
+3. run-linkage lane (repair → QA G2)
+   - board-privileged repair 실행 → QA G2 검증 → write-path invariant hardening
+4. 이후 기존 completion waves 재개
+   - Wave B~F는 unblock/remote-exec 루프가 닫히는 즉시 재개한다.
 
 ## 현재 결론
 
