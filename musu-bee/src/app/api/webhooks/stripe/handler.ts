@@ -60,6 +60,25 @@ interface EventResult {
   ignoredReason?: string;
 }
 
+function mismatchClassification(
+  currentSubscriptionId: string | null
+): Pick<EventResult, "retryable" | "ignoredReason"> {
+  if (!currentSubscriptionId) {
+    return {
+      retryable: true,
+      ignoredReason: "subscription_id_mismatch",
+    };
+  }
+  return {
+    retryable: false,
+    ignoredReason: "subscription_id_mismatch_stale",
+  };
+}
+
+function isStripeServerMisconfiguration(err: unknown): err is Error {
+  return err instanceof Error && err.message === "STRIPE_SECRET_KEY is not set";
+}
+
 export function defaultStripeWebhookDeps(): StripeWebhookDeps {
   let stripeClient: ReturnType<typeof getStripe> | null = null;
   const getStripeClient = () => {
@@ -144,8 +163,9 @@ async function applyStripeEvent(
     case "customer.subscription.updated": {
       const sub = event.data.object as Stripe.Subscription;
       if (current.stripeSubscriptionId !== sub.id) {
-        ignoredReason = "subscription_id_mismatch";
-        retryable = true;
+        const mismatch = mismatchClassification(current.stripeSubscriptionId);
+        ignoredReason = mismatch.ignoredReason;
+        retryable = mismatch.retryable;
         break;
       }
 
@@ -175,8 +195,9 @@ async function applyStripeEvent(
     case "customer.subscription.deleted": {
       const sub = event.data.object as Stripe.Subscription;
       if (current.stripeSubscriptionId !== sub.id) {
-        ignoredReason = "subscription_id_mismatch";
-        retryable = true;
+        const mismatch = mismatchClassification(current.stripeSubscriptionId);
+        ignoredReason = mismatch.ignoredReason;
+        retryable = mismatch.retryable;
         break;
       }
 
@@ -231,6 +252,9 @@ export async function handleStripeWebhook(
       deps.webhookSecret
     );
   } catch (err) {
+    if (isStripeServerMisconfiguration(err)) {
+      return { status: 500, body: { error: err.message } };
+    }
     const msg = err instanceof Error ? err.message : "Invalid signature";
     return { status: 400, body: { error: msg } };
   }

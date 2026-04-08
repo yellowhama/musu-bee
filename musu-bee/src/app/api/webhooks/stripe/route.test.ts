@@ -77,6 +77,32 @@ test("invalid signature returns 400 and does not write state", async () => {
   assert.equal(saveCalls, 0);
 });
 
+test("missing STRIPE_SECRET_KEY returns 500 and does not write state", async () => {
+  let saveCalls = 0;
+  let readCalls = 0;
+  const deps = {
+    webhookSecret: "whsec_test",
+    constructEvent: () => {
+      throw new Error("STRIPE_SECRET_KEY is not set");
+    },
+    listLineItemPriceId: async () => "price_pro_test",
+    getSubscription: async () => {
+      readCalls += 1;
+      return makeState();
+    },
+    saveSubscription: async () => {
+      saveCalls += 1;
+    },
+    withSubscriptionStateLock: passthroughLock,
+  };
+
+  const result = await handleStripeWebhook(RAW_BODY, "sig_test", deps);
+  assert.equal(result.status, 500);
+  assert.equal(result.body.error, "STRIPE_SECRET_KEY is not set");
+  assert.equal(readCalls, 0);
+  assert.equal(saveCalls, 0);
+});
+
 test("checkout.session.completed replay is deduped by event id", async () => {
   let state = makeState();
   let saveCalls = 0;
@@ -151,6 +177,92 @@ test("subscription.updated before checkout does not grant entitlement", async ()
   assert.equal(state.plan, "free");
   assert.equal(state.status, "none");
   assert.equal(state._processedStripeEventIds.includes(eventId), false);
+});
+
+test("subscription.updated stale mismatch is terminal and processed", async () => {
+  let state = makeState({
+    plan: "pro",
+    status: "active",
+    stripeCustomerId: "cus_live",
+    stripeSubscriptionId: "sub_live",
+  });
+  const staleEventId = "evt_update_stale";
+  const staleUpdatedEvent = makeEvent(
+    staleEventId,
+    "customer.subscription.updated",
+    {
+      id: "sub_old",
+      status: "active",
+      current_period_end: 1_800_000_000,
+      items: {
+        data: [{ price: { id: "price_team_test" } }],
+      },
+    } as Stripe.Subscription
+  );
+
+  const deps = {
+    webhookSecret: "whsec_test",
+    constructEvent: () => staleUpdatedEvent,
+    listLineItemPriceId: async () => "price_pro_test",
+    getSubscription: async () => state,
+    saveSubscription: async (next: SubscriptionState) => {
+      state = next;
+    },
+    withSubscriptionStateLock: passthroughLock,
+  };
+
+  const first = await handleStripeWebhook(RAW_BODY, "sig_test", deps);
+  assert.equal(first.status, 200);
+  assert.equal(first.body.applied, false);
+  assert.equal(first.body.retryable, false);
+  assert.equal(first.body.ignoredReason, "subscription_id_mismatch_stale");
+  assert.equal(state.plan, "pro");
+  assert.equal(state._processedStripeEventIds.includes(staleEventId), true);
+
+  const second = await handleStripeWebhook(RAW_BODY, "sig_test", deps);
+  assert.equal(second.status, 200);
+  assert.equal(second.body.duplicate, true);
+});
+
+test("subscription.deleted stale mismatch is terminal and processed", async () => {
+  let state = makeState({
+    plan: "pro",
+    status: "active",
+    stripeCustomerId: "cus_live",
+    stripeSubscriptionId: "sub_live",
+  });
+  const staleDeleteEventId = "evt_delete_stale";
+  const staleDeleteEvent = makeEvent(
+    staleDeleteEventId,
+    "customer.subscription.deleted",
+    {
+      id: "sub_old",
+      status: "canceled",
+    } as Stripe.Subscription
+  );
+
+  const deps = {
+    webhookSecret: "whsec_test",
+    constructEvent: () => staleDeleteEvent,
+    listLineItemPriceId: async () => "price_pro_test",
+    getSubscription: async () => state,
+    saveSubscription: async (next: SubscriptionState) => {
+      state = next;
+    },
+    withSubscriptionStateLock: passthroughLock,
+  };
+
+  const first = await handleStripeWebhook(RAW_BODY, "sig_test", deps);
+  assert.equal(first.status, 200);
+  assert.equal(first.body.applied, false);
+  assert.equal(first.body.retryable, false);
+  assert.equal(first.body.ignoredReason, "subscription_id_mismatch_stale");
+  assert.equal(state.plan, "pro");
+  assert.equal(state._processedStripeEventIds.includes(staleDeleteEventId), true);
+
+  const second = await handleStripeWebhook(RAW_BODY, "sig_test", deps);
+  assert.equal(second.status, 200);
+  assert.equal(second.body.duplicate, true);
 });
 
 test("customer.subscription.updated replay is deduped by event id", async () => {
