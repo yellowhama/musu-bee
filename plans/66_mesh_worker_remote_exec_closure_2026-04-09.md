@@ -98,13 +98,17 @@ Machine A (orchestrator)                  Machine B (worker node)
 노드에서 아래를 순서대로 확인한다:
 
 ```bash
-cd ~/musu-bee
+cd /home/hugh51/musu-functions
 git pull origin main
 
-export MUSU_WORKER_TOKEN="$(openssl rand -hex 32 2>/dev/null || python3 - <<'PY'
+# 권장: 토큰 켜고 운영 (두 노드 동일 토큰 권장)
+# start-worker.sh는 기본적으로 ~/.musu/worker_token 을 자동 로드함
+mkdir -p ~/.musu
+umask 077
+test -s ~/.musu/worker_token || (openssl rand -hex 32 2>/dev/null || python3 - <<'PY'
 import secrets; print(secrets.token_hex(32))
 PY
-)"
+) > ~/.musu/worker_token
 
 nohup ./scripts/start-worker.sh >/tmp/musu-worker-9700.log 2>&1 &
 sleep 0.5
