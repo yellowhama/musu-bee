@@ -7,32 +7,32 @@ export const metadata: Metadata = {
     "여러 기기를 하나의 AI 팀으로. 사장 AI가 작업을 알아서 분배하고 처리합니다.",
 };
 
-// Pricing tiers (from MUS-811 pricing decision)
+// Pricing tiers
 const TIERS = [
   {
     name: "Free",
     tier: "free" as const,
     price: "무료",
     period: "",
-    devices: "기기 1대",
-    features: ["기본 AI 채팅", "작업 분배", "상태 모니터링"],
+    devices: "기기 최대 2대",
+    features: ["기본 AI 채팅", "작업 분배", "상태 모니터링", "하루 100개 메시지"],
     cta: "무료로 시작",
     highlight: false,
   },
   {
     name: "Pro",
     tier: "pro" as const,
-    price: "₩12,000",
+    price: "₩29,000",
     period: "/월",
-    devices: "기기 최대 3대",
-    features: ["모든 Free 기능", "우선 처리 큐", "고급 분석 대시보드", "이메일 지원"],
+    devices: "기기 최대 5대",
+    features: ["모든 Free 기능", "무제한 메시지", "우선 처리 큐", "이메일 지원"],
     cta: "Pro 시작하기",
     highlight: true,
   },
   {
     name: "Team",
     tier: "team" as const,
-    price: "₩25,000",
+    price: "₩49,000",
     period: "/월",
     devices: "기기 무제한",
     features: ["모든 Pro 기능", "팀 멤버 공유", "API 접근", "우선 기술 지원"],

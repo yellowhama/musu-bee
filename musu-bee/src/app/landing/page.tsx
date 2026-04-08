@@ -232,10 +232,10 @@ export default function LandingPage() {
             무료로 시작
           </div>
           <div style={{ fontSize: 14, color: "#9ca3af", marginBottom: 20 }}>
-            기기 1대 · AI 채팅 · 하루 100개 메시지
+            기기 2대 · AI 채팅 · 하루 100개 메시지
           </div>
           <div style={{ fontSize: 14, color: "#6b7280", marginBottom: 20 }}>
-            Pro: ₩29,000/월 — 기기 3대 · 무제한 메시지
+            Pro: ₩29,000/월 — 기기 5대 · 무제한 메시지
           </div>
           <Link
             href="/auth/signup"

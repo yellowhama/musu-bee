@@ -19,7 +19,7 @@ export const STRIPE_PRICES: Record<Exclude<PlanTier, "free">, string> = {
 };
 
 export const PLAN_DEVICE_LIMITS: Record<PlanTier, number> = {
-  free: 1,
-  pro: 3,
+  free: 2,
+  pro: 5,
   team: Infinity,
 };
