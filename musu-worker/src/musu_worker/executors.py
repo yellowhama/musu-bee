@@ -46,7 +46,14 @@ async def run_process(
 
     env = os.environ.copy()
     if env_extra:
-        env.update(env_extra)
+        filtered_env_extra = {}
+        blocked_vars = {"LD_PRELOAD", "PYTHONPATH", "PATH", "LD_LIBRARY_PATH"}
+        for k, v in env_extra.items():
+            if k.startswith("MUSU_"):
+                filtered_env_extra[k] = v
+            elif k in blocked_vars:
+                pass # Explicitly skip blocked variables
+        env.update(filtered_env_extra)
 
     proc = await asyncio.create_subprocess_exec(
         command,

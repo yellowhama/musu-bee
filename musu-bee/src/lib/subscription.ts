@@ -18,9 +18,11 @@ export interface SubscriptionState {
   stripeSubscriptionId: string | null;
   status: "active" | "trialing" | "cancelled" | "none";
   currentPeriodEnd: string | null;
+  _processedStripeEventIds: string[];
 }
 
 const KV_KEY = "subscription:state";
+const MAX_PROCESSED_STRIPE_EVENTS = 200;
 
 const DEFAULT_STATE: SubscriptionState = {
   plan: "free",
@@ -28,7 +30,16 @@ const DEFAULT_STATE: SubscriptionState = {
   stripeSubscriptionId: null,
   status: "none",
   currentPeriodEnd: null,
+  _processedStripeEventIds: [],
 };
+
+function normalizeState(state: Partial<SubscriptionState>): SubscriptionState {
+  return {
+    ...DEFAULT_STATE,
+    ...state,
+    _processedStripeEventIds: state._processedStripeEventIds ?? [],
+  };
+}
 
 function useKv(): boolean {
   return Boolean(process.env.KV_REST_API_URL);
@@ -39,7 +50,7 @@ function useKv(): boolean {
 async function kvGet(): Promise<SubscriptionState> {
   const { kv } = await import("@vercel/kv");
   const stored = await kv.get<SubscriptionState>(KV_KEY);
-  return stored ?? { ...DEFAULT_STATE };
+  return stored ? normalizeState(stored) : { ...DEFAULT_STATE };
 }
 
 async function kvSet(state: SubscriptionState): Promise<void> {
@@ -55,7 +66,7 @@ function fileGet(): SubscriptionState {
   const stateFile = path.join(process.cwd(), "data", "subscription.json");
   try {
     const raw = fs.readFileSync(stateFile, "utf-8");
-    return JSON.parse(raw) as SubscriptionState;
+    return normalizeState(JSON.parse(raw) as Partial<SubscriptionState>);
   } catch {
     return { ...DEFAULT_STATE };
   }
@@ -84,6 +95,35 @@ export async function getSubscription(): Promise<SubscriptionState> {
 export async function saveSubscription(state: SubscriptionState): Promise<void> {
   if (useKv()) return kvSet(state);
   fileSet(state);
+}
+
+export function hasProcessedStripeEvent(
+  state: SubscriptionState,
+  eventId: string
+): boolean {
+  return state._processedStripeEventIds.includes(eventId);
+}
+
+export function markStripeEventProcessed(
+  state: SubscriptionState,
+  eventId: string
+): SubscriptionState {
+  if (state._processedStripeEventIds.includes(eventId)) return state;
+
+  const next = [...state._processedStripeEventIds, eventId];
+  if (next.length > MAX_PROCESSED_STRIPE_EVENTS) {
+    next.splice(0, next.length - MAX_PROCESSED_STRIPE_EVENTS);
+  }
+
+  return {
+    ...state,
+    _processedStripeEventIds: next,
+  };
+}
+
+export function toPublicSubscriptionState(state: SubscriptionState): Omit<SubscriptionState, "_processedStripeEventIds"> {
+  const { _processedStripeEventIds: _ignored, ...publicState } = state;
+  return publicState;
 }
 
 export async function getDeviceLimit(): Promise<number> {

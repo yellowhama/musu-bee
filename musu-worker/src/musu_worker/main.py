@@ -96,7 +96,7 @@ async def capabilities(_: None = Depends(require_auth)) -> dict[str, Any]:
 
 
 class CLIRequest(BaseModel):
-    prompt: str
+    prompt: str = Field(max_length=50000)
     cli_type: str = "claude"
     model: str | None = None
     session_id: str | None = None
@@ -139,8 +139,8 @@ async def execute_cli(
 
 
 class ProcessRequest(BaseModel):
-    command: str
-    args: list[str] = Field(default_factory=list)
+    command: str = Field(max_length=1000)
+    args: list[str] = Field(default_factory=list, max_items=100)
     cwd: str | None = None
     timeout_sec: int = Field(default=600, ge=1, le=7200)
     env: dict[str, str] = Field(default_factory=dict)
