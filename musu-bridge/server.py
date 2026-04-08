@@ -25,6 +25,7 @@ from pydantic import BaseModel, Field
 from musu_core.middleware import apply_musu_middlewares
 from config import get_config
 from csrf_guard import CSRFOriginGuard
+from hostname_guard import HostnameGuard
 from handlers import (
     delete_message_by_id,
     get_agents,
@@ -46,6 +47,7 @@ apply_musu_middlewares(
 )
 
 app.add_middleware(CSRFOriginGuard)
+app.add_middleware(HostnameGuard)
 
 app.add_middleware(
     CORSMiddleware,
