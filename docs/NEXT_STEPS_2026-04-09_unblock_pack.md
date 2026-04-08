@@ -48,6 +48,45 @@ python3 scripts/musu_mesh_healthcheck.py
 python3 scripts/musu_remote_process.py --url http://100.121.211.106:9700 -- echo hello
 ```
 
+### Troubleshooting: `Connection refused` (second-pc)
+
+대부분 아래 3가지 중 하나다:
+1) worker가 안 떠있음 2) 9700을 안 듣고 있음(바인딩/실행 실패) 3) 방화벽/ACL로 9700 차단
+
+**second-pc에서 (순서대로 실행)**
+```bash
+cd ~/musu-bee
+git pull origin main
+
+# 권장: 토큰 켜고 운영 (두 노드 동일 토큰 권장)
+export MUSU_WORKER_TOKEN="$(openssl rand -hex 32 2>/dev/null || python3 - <<'PY'
+import secrets; print(secrets.token_hex(32))
+PY
+)"
+
+nohup ./scripts/start-worker.sh >/tmp/musu-worker-9700.log 2>&1 &
+sleep 0.5
+
+curl -sf http://127.0.0.1:9700/health
+tail -n 80 /tmp/musu-worker-9700.log
+ps -ef | (rg -n 'musu_worker|uvicorn|start-worker\\.sh' || grep -E 'musu_worker|uvicorn|start-worker\\.sh')
+ss -ltnp | (rg ':9700' || grep ':9700') || true
+tailscale ip -4
+```
+
+**4060(오케스트레이터)에서**
+```bash
+curl -sf http://<second-pc_tailscale_ip>:9700/health
+
+MUSU_WORKER_TOKEN=<second-pc에서쓴토큰> \
+  python3 /home/hugh51/musu-functions/scripts/musu_remote_process.py \
+  --url http://<second-pc_tailscale_ip>:9700 -- echo hello
+```
+
+로컬(127.0.0.1)에서는 `/health`가 OK인데도 4060에서 계속 refused면:
+- `sudo ufw status` (가능하면)로 9700 차단 여부 확인
+- worker가 `MUSU_WORKER_HOST=0.0.0.0`로 바인딩돼 있는지 확인 (기본값은 스크립트에서 0.0.0.0)
+
 ## Step 3 — Unblock plan 문서 동기화(필요 시 재실행)
 
 ```bash
@@ -68,4 +107,3 @@ python3 /home/hugh51/musu_corp/runtime/scripts/paperclip_run_linkage_repair.py -
 대시보드 `agents.error`가 남아 있으면, 어떤 실행도 점점 느려진다.
 
 - 목표: FE가 heartbeat 한 번이라도 정상 성공해서 `status=running/idle`로 돌아오게 만들기.
-

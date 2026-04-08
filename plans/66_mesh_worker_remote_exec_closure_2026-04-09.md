@@ -88,3 +88,32 @@ Machine A (orchestrator)                  Machine B (worker node)
 - `scripts/musu_mesh_healthcheck.py` 실행 로그 (성공 시 2노드 ok)
 - `scripts/musu_remote_process.py` 실행 로그 (원격 echo proof)
 
+## Troubleshooting: `Connection refused`
+
+대부분 아래 중 하나다:
+- worker가 아직 실행되지 않음
+- 9700 포트가 리슨 중이 아님(실행 실패, 바인딩 실패, 다른 프로세스 점유)
+- 방화벽/ACL이 9700을 차단
+
+노드에서 아래를 순서대로 확인한다:
+
+```bash
+cd ~/musu-bee
+git pull origin main
+
+export MUSU_WORKER_TOKEN="$(openssl rand -hex 32 2>/dev/null || python3 - <<'PY'
+import secrets; print(secrets.token_hex(32))
+PY
+)"
+
+nohup ./scripts/start-worker.sh >/tmp/musu-worker-9700.log 2>&1 &
+sleep 0.5
+
+curl -sf http://127.0.0.1:9700/health
+tail -n 80 /tmp/musu-worker-9700.log
+ss -ltnp | (rg ':9700' || grep ':9700') || true
+tailscale ip -4
+
+# 로컬 OK인데 원격에서 refused면 방화벽 의심
+sudo ufw status || true
+```
