@@ -56,12 +56,7 @@ class CodexLocalAdapter(BaseAdapter):
 
     async def execute(self, ctx: AdapterContext) -> AdapterResult:
         command = ctx.config.get("command", "codex")
-        model = (
-            (ctx.config.get("model", "") or "").strip()
-            or os.environ.get("MUSU_CODEX_MODEL", "").strip()
-            or os.environ.get("CODEX_MODEL", "").strip()
-            or "gpt-5.2"
-        )
+        model = ctx.config.get("model", "")
         cwd = ctx.cwd or ctx.config.get("cwd") or os.getcwd()
         timeout_sec = int(ctx.config.get("timeout_sec", 300))
         full_auto = bool(ctx.config.get("full_auto", True))
@@ -77,7 +72,8 @@ class CodexLocalAdapter(BaseAdapter):
         args: list[str] = []
         if full_auto:
             args.append("--full-auto")
-        args += ["--model", model]
+        if model:
+            args += ["--model", model]
         args += ["--quiet", ctx.prompt]
 
         proc = await asyncio.create_subprocess_exec(

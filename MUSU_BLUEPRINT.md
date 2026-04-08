@@ -48,7 +48,7 @@ Paperclip 없이 독립 동작하는 자체 경량 오케스트레이터.
 | 어댑터 | 설명 | 비고 |
 |--------|------|------|
 | `claude_local` | Claude CLI subprocess (로컬) | Paperclip 패턴 차용 |
-| `codex_local` | Codex CLI subprocess (로컬) | 기본 모델 gpt-5.2 (env `MUSU_CODEX_MODEL`로 변경) |
+| `codex_local` | Codex CLI subprocess (로컬) | VP 폴백용 |
 | `local_llm` | Qwen 9B/14B (OpenAI-compatible API) | role별 라우팅 |
 | `remote_cli` | Machine B에서 Claude/Codex 실행 | MUS-851 |
 | `remote_process` | Machine B에서 빌드/테스트 실행 | MUS-851 |

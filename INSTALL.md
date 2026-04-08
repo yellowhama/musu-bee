@@ -278,12 +278,6 @@ codex --version      # codex_local
 hermes --version     # hermes
 ```
 
-Codex 모델 설정(선택):
-```bash
-# 기본값: gpt-5.2
-export MUSU_CODEX_MODEL=gpt-5.2
-```
-
 ---
 
 ## 트러블슈팅

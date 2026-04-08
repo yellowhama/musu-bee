@@ -141,7 +141,6 @@ export async function testEnvironment(
       });
     } else {
       const model = asString(config.model, "").trim();
-      const resolvedModel = model || (process.env.MUSU_CODEX_MODEL ?? process.env.CODEX_MODEL ?? "").trim() || "gpt-5.2";
       const modelReasoningEffort = asString(
         config.modelReasoningEffort,
         asString(config.reasoningEffort, ""),
@@ -160,7 +159,7 @@ export async function testEnvironment(
       const args = ["exec", "--json"];
       if (search) args.unshift("--search");
       if (bypass) args.push("--dangerously-bypass-approvals-and-sandbox");
-      if (resolvedModel) args.push("--model", resolvedModel);
+      if (model) args.push("--model", model);
       if (modelReasoningEffort) {
         args.push("-c", `model_reasoning_effort=${JSON.stringify(modelReasoningEffort)}`);
       }
