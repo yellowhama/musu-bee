@@ -6,12 +6,15 @@ on:
       - main
     paths:
       - 'musu-bee/**'
+      - 'musu-port/**'
       - '.github/workflows/e2e-musu-bee.yml'
   pull_request:
     branches:
       - main
     paths:
       - 'musu-bee/**'
+      - 'musu-port/**'
+  workflow_dispatch:
 
 jobs:
   e2e:
