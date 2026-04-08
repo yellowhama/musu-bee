@@ -30,6 +30,12 @@ jobs:
       - name: Pull Vercel environment info
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
+      - name: Set Supabase env vars in Vercel (idempotent)
+        run: |
+          vercel env add NEXT_PUBLIC_SUPABASE_URL production --token=${{ secrets.VERCEL_TOKEN }} <<< "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" 2>/dev/null || true
+          vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production --token=${{ secrets.VERCEL_TOKEN }} <<< "${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" 2>/dev/null || true
+          vercel env add NEXT_PUBLIC_APP_URL production --token=${{ secrets.VERCEL_TOKEN }} <<< "https://musu.pro" 2>/dev/null || true
+
       - name: Build project
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
 
@@ -40,6 +46,6 @@ jobs:
           echo "deploy_url=$URL" >> $GITHUB_OUTPUT
           echo "Deployed to: $URL"
 
-      - name: Comment deployment URL
+      - name: Summary
         if: always()
-        run: echo "Production deployment complete → https://musu.pro"
+        run: echo "Production deployment → https://musu.pro"
