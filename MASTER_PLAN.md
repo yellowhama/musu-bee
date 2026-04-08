@@ -75,6 +75,13 @@
 - unblock pack 문서: `plans/70_paperclip_unblock_pack_2026-04-09.md`
 - Paperclip 이슈 plan 문서 일괄 동기화: `scripts/paperclip_put_unblock_plans_2026-04-09.sh`
 
+## 2026-04-09 references_AI Learning Program
+
+목표: `/home/hugh51/references_AI`에서 검증된 패턴을 MUSU에 흡수해 **토큰 경제 + 세션 학습 + 하네스 + 거버넌스**를 닫는다.
+
+- deep research report: `docs/REPORT_2026-04-09_references_AI_deep_research.md`
+- master plan: `plans/71_references_ai_learning_master_plan_2026-04-09.md`
+
 ## 남은 구현 파동
 
 ### Wave A. Scope Reset And Execution Re-entry

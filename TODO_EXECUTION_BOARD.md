@@ -38,6 +38,9 @@ Execution resume order (board-facing):
 - blocked/high 7 unblock pack: `plans/70_paperclip_unblock_pack_2026-04-09.md`
   - purpose: repacket top blocked/high issues into “decision 1–2 + env/deploy checklist + verification commands” and keep delegation doable without CEO execution.
   - sync script (Paperclip issue plan docs): `scripts/paperclip_put_unblock_plans_2026-04-09.sh`
+- references_AI learning program: `plans/71_references_ai_learning_master_plan_2026-04-09.md`
+  - report: `docs/REPORT_2026-04-09_references_AI_deep_research.md`
+  - purpose: absorb proven patterns (rtk learn/parser, CLI-Anything harness, gstack/openclaw governance) into MUSU as executable waves.
 
 Source-of-truth checks:
 - `GET /api/companies/{companyId}/dashboard`
