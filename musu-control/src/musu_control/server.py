@@ -68,11 +68,14 @@ async def pause_agent(agent_id: str, reason: str = "") -> str:
 
 
 @mcp.tool()
-async def resume_agent(agent_id: str) -> str:
+async def resume_agent(agent_id: str, reason: str = "") -> str:
     """Resume a paused agent."""
     try:
         c = _get_client()
-        data = await c.post(f"/agents/{agent_id}/resume")
+        body: dict = {}
+        if reason:
+            body["reason"] = reason
+        data = await c.post(f"/agents/{agent_id}/resume", body)
         return _fmt(data)
     except Exception as e:
         return f"Error resuming agent {agent_id}: {e}"
