@@ -3,10 +3,12 @@
 export const dynamic = "force-dynamic";
 
 import { useState, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import ChatArea from "@/components/ChatArea";
 import OnboardingModal from "@/components/OnboardingModal";
 import { useChat } from "@/lib/useChat";
+import { supabase } from "@/lib/supabase";
 import type { Channel, ChannelId, Device, Message } from "@/types";
 import { AGENT_CHANNELS } from "@/types";
 
@@ -61,12 +63,38 @@ const INITIAL_DEVICES: Device[] = [
 ];
 
 export default function Home() {
+  const router = useRouter();
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [channels, setChannels] = useState<Channel[]>(INITIAL_CHANNELS);
   const [devices, setDevices] = useState<Device[]>(INITIAL_DEVICES);
   const [activeChannel, setActiveChannel] = useState<ChannelId>("ceo");
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [deviceLimit, setDeviceLimit] = useState<number>(3);
+
+  // Auth session — reads Supabase session and updates user email.
+  // When NEXT_PUBLIC_AUTH_ENABLED=true (production), redirects to /auth/login if no session.
+  const authEnabled = process.env.NEXT_PUBLIC_AUTH_ENABLED === "true";
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.user) {
+        setUserEmail(data.session.user.email ?? null);
+      } else if (authEnabled) {
+        router.replace("/auth/login");
+      }
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUserEmail(session.user.email ?? null);
+      } else if (authEnabled) {
+        router.replace("/auth/login");
+      }
+    });
+
+    return () => listener.subscription.unsubscribe();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router]);
 
   // WebSocket chat for agent channels
   const isAgentChannel = AGENT_CHANNELS.includes(activeChannel);
@@ -265,18 +293,43 @@ export default function Home() {
             + 기기 추가
           </button>
         )}
-        <span
+        {userEmail && (
+          <span
+            style={{
+              fontSize: 13,
+              color: "#6b7280",
+              background: "#1a1a1a",
+              border: "1px solid #2d2d2d",
+              borderRadius: 6,
+              padding: "4px 10px",
+              maxWidth: 180,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+            title={userEmail}
+          >
+            {userEmail}
+          </span>
+        )}
+        <button
+          onClick={async () => {
+            await supabase.auth.signOut();
+            router.replace("/auth/login");
+          }}
           style={{
-            fontSize: 13,
+            fontSize: 12,
             color: "#6b7280",
-            background: "#1a1a1a",
+            background: "transparent",
             border: "1px solid #2d2d2d",
             borderRadius: 6,
             padding: "4px 10px",
+            cursor: "pointer",
           }}
+          title="로그아웃"
         >
-          유저
-        </span>
+          로그아웃
+        </button>
       </div>
 
       {/* Body: sidebar + chat */}
