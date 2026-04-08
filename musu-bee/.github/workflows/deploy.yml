@@ -30,15 +30,13 @@ jobs:
       - name: Pull Vercel environment info
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Set Supabase env vars in Vercel (idempotent)
-        run: |
-          vercel env add NEXT_PUBLIC_SUPABASE_URL production --token=${{ secrets.VERCEL_TOKEN }} <<< "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" 2>/dev/null || true
-          vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production --token=${{ secrets.VERCEL_TOKEN }} <<< "${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" 2>/dev/null || true
-          vercel env add NEXT_PUBLIC_APP_URL production --token=${{ secrets.VERCEL_TOKEN }} <<< "https://musu.pro" 2>/dev/null || true
-          vercel env add NEXT_PUBLIC_AUTH_ENABLED production --token=${{ secrets.VERCEL_TOKEN }} <<< "true" 2>/dev/null || true
-
       - name: Build project
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_APP_URL: https://musu.pro
+          NEXT_PUBLIC_AUTH_ENABLED: "true"
 
       - name: Deploy to Vercel
         id: deploy
