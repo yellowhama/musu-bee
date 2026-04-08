@@ -180,16 +180,82 @@ pub fn sanitize_device_id(raw: &str) -> String {
 }
 
 pub fn resolve_device_id() -> String {
+    let hostname_from_proc = std::fs::read_to_string("/proc/sys/kernel/hostname")
+        .ok()
+        .map(|s| s.trim().to_string());
+
     [
         std::env::var("MUSU_DEVICE_ID").ok(),
         std::env::var("COMPUTERNAME").ok(),
         std::env::var("HOSTNAME").ok(),
+        hostname_from_proc,
     ]
     .into_iter()
     .flatten()
     .map(|raw| sanitize_device_id(&raw))
     .find(|raw| !raw.is_empty() && raw != "unknown-device")
     .unwrap_or_else(|| "unknown-device".to_string())
+}
+
+/// Returns the Windows host UUID when running inside WSL, or `None` otherwise.
+/// Uses PowerShell Windows Interoperability to query the SMBIOS UUID.
+/// Falls back to the MachineGuid registry key if the UUID looks generic.
+pub fn resolve_physical_host_id() -> Option<String> {
+    // Only attempt on Linux/WSL — look for WSL interop launcher at /init
+    if !std::path::Path::new("/init").exists() {
+        return None;
+    }
+
+    // Try System UUID (SMBIOS, tied to motherboard)
+    let ps_candidates = [
+        "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe",
+        "powershell.exe",
+    ];
+    for ps in &ps_candidates {
+        let uuid_result = std::process::Command::new(ps)
+            .args([
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+                "(Get-CimInstance -Class Win32_ComputerSystemProduct).UUID",
+            ])
+            .output();
+
+        if let Ok(output) = uuid_result {
+            let raw = String::from_utf8_lossy(&output.stdout)
+                .trim()
+                .replace('\r', "")
+                .to_string();
+            if !raw.is_empty()
+                && !raw.to_uppercase().starts_with("FFFFFFFF")
+                && raw.len() == 36
+            {
+                return Some(raw.to_lowercase());
+            }
+
+            // Fallback: MachineGuid (Windows installation-scoped)
+            let guid_result = std::process::Command::new(ps)
+                .args([
+                    "-NoProfile",
+                    "-NonInteractive",
+                    "-Command",
+                    "(Get-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Cryptography').MachineGuid",
+                ])
+                .output();
+
+            if let Ok(guid_output) = guid_result {
+                let guid = String::from_utf8_lossy(&guid_output.stdout)
+                    .trim()
+                    .replace('\r', "")
+                    .to_string();
+                if !guid.is_empty() && guid.len() >= 32 {
+                    return Some(guid.to_lowercase());
+                }
+            }
+            break;
+        }
+    }
+    None
 }
 
 pub fn resolve_device_profile_path(

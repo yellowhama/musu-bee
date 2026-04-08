@@ -23,7 +23,7 @@ use crate::l4::L4Runtime;
 use crate::metrics::{PortManagerMetrics, PortManagerMetricsSnapshot};
 use crate::platform::{
     device_profile_validation_action, display_path_for_runtime, resolve_executable_contract,
-    summarize_device_profile,
+    resolve_physical_host_id, summarize_device_profile,
 };
 use crate::route::{new_extra_routes, SeedRouteSource, ServiceRoute};
 use crate::state::{unix_now_secs, MusuPortState, PeerSnapshot};
@@ -39,6 +39,9 @@ struct HealthResponse {
     binary_kind: String,
     device_id: String,
     boss_device_id: Option<String>,
+    /// Physical host UUID shared by all musu-portd instances on the same machine
+    /// (e.g., WSL + Windows-native on the same PC). Used for device grouping.
+    physical_host_id: Option<String>,
     device_profile_path: String,
     device_profile_present: bool,
     device_profile_loaded: bool,
@@ -333,6 +336,7 @@ async fn handle_health(AxumState(state): AxumState<MusuPortState>) -> impl IntoR
     let executable_contract = resolve_executable_contract(&state.runtime_context, "musu-portd");
     let device_profile = state.device_profile_summary();
     let boss_device_id = state.current_boss.read().await.clone();
+    let physical_host_id = resolve_physical_host_id();
     Json(HealthResponse {
         status: "ok",
         router_base_url: state.router_base_url,
@@ -342,6 +346,7 @@ async fn handle_health(AxumState(state): AxumState<MusuPortState>) -> impl IntoR
         binary_kind: state.runtime_context.binary_kind.label().to_string(),
         device_id: state.device_id.clone(),
         boss_device_id,
+        physical_host_id,
         device_profile_path: display_path_for_runtime(
             &state.device_profile_path,
             &state.runtime_context,
@@ -1409,9 +1414,14 @@ struct DeviceStatusResponse {
     cpu: f32,
     gpu: Option<f32>,
     ram: f32,
+    /// Logical device identifier for this node.
+    device_id: String,
+    /// Windows host UUID shared by all musu-portd instances on the same physical machine.
+    /// Null on non-WSL systems. Used by the frontend to group Windows + WSL nodes.
+    physical_host_id: Option<String>,
 }
 
-async fn handle_device_status(_state: AxumState<MusuPortState>) -> impl IntoResponse {
+async fn handle_device_status(AxumState(state): AxumState<MusuPortState>) -> impl IntoResponse {
     use sysinfo::System;
 
     let mut sys = System::new_all();
@@ -1427,9 +1437,13 @@ async fn handle_device_status(_state: AxumState<MusuPortState>) -> impl IntoResp
         0.0
     };
 
+    let physical_host_id = resolve_physical_host_id();
+
     Json(DeviceStatusResponse {
         cpu,
         gpu: None, // GPU requires platform-specific probing (NVML/ROCm); not in sysinfo
         ram,
+        device_id: state.device_id.clone(),
+        physical_host_id,
     })
 }
