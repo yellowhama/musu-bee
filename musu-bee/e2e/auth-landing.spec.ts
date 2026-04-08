@@ -63,17 +63,23 @@ function mockSupabaseSignInError(page: Page, message = "Invalid login credential
   });
 }
 
-test("landing renders and CTA routes to signup/login", async ({ page }) => {
+test("landing renders waitlist flow and success message", async ({ page }) => {
   await page.goto("/landing");
 
-  await expect(page.getByText("여러 대 컴퓨터의 AI가")).toBeVisible();
+  await expect(
+    page.getByText("여러 대 내 컴퓨터의 AI들이 팀으로 일한다")
+  ).toBeVisible();
+  await expect(
+    page.getByText("Your AIs, across all your machines, working as one team. You just chat.")
+  ).toBeVisible();
 
-  await page.getByRole("link", { name: "Try MUSU — 무료" }).click();
-  await expect(page).toHaveURL(/\/auth\/signup$/);
+  await page.getByPlaceholder("you@example.com").fill("qa-waitlist@example.com");
+  await page.getByRole("button", { name: "Join Waitlist" }).click();
 
-  await page.goto("/landing");
-  await page.getByRole("link", { name: "로그인" }).click();
-  await expect(page).toHaveURL(/\/auth\/login$/);
+  await expect(page).toHaveURL(/\/landing\?waitlist=ok/);
+  await expect(
+    page.getByText("We will let you know when your access is ready.")
+  ).toBeVisible();
 });
 
 test("signup happy path shows confirmation message", async ({ page }) => {

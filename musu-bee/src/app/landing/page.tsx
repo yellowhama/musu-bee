@@ -1,31 +1,41 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "MUSU — AI가 팀으로 일하는 업무 메신저",
+  title: "MUSU Waitlist — 여러 대 내 컴퓨터의 AI들이 팀으로 일한다",
   description:
-    "여러 대 컴퓨터의 AI가 팀으로 일한다. 채팅창 열고 말만 하면 된다.",
+    "Your AIs, across all your machines, working as one team. You just chat.",
 };
 
 const features = [
   {
-    icon: "💬",
-    title: "말만 하면 된다",
-    desc: "설정 파일 없음. 터미널 없음. 채팅창에 일 시키면 AI가 알아서 한다.",
-  },
-  {
     icon: "🖥",
-    title: "여러 기기가 하나의 팀",
-    desc: "집 PC, 노트북, 서버 — 여러 대가 하나의 AI 팀으로 연결된다.",
+    title: "Multi-machine",
+    desc: "집 PC, 노트북, 서버의 AI를 하나의 팀으로 묶어 작업을 분배한다.",
   },
   {
-    icon: "⚡",
-    title: "파트장 AI가 조율",
-    desc: "일을 시키면 파트장이 작업을 쪼개고 기기에 분배하고 결과를 모아 보고한다.",
+    icon: "💬",
+    title: "One chat",
+    desc: "채팅창에서 지시하면 끝. 복잡한 터미널 조작 없이 결과를 받는다.",
+  },
+  {
+    icon: "🤝",
+    title: "AI team",
+    desc: "파트장 AI가 작업을 쪼개고 각 머신 AI를 조율해 하나로 보고한다.",
   },
 ];
 
-export default function LandingPage() {
+type LandingPageProps = {
+  searchParams: Promise<{
+    waitlist?: string;
+    email?: string;
+  }>;
+};
+
+export default async function LandingPage({ searchParams }: LandingPageProps) {
+  const params = await searchParams;
+  const waitlistStatus = params.waitlist;
+  const submittedEmail = typeof params.email === "string" ? params.email : "";
+
   return (
     <div
       style={{
@@ -37,7 +47,6 @@ export default function LandingPage() {
         flexDirection: "column",
       }}
     >
-      {/* Nav */}
       <nav
         style={{
           display: "flex",
@@ -50,45 +59,19 @@ export default function LandingPage() {
         <span style={{ fontWeight: 800, fontSize: 20, letterSpacing: "-0.02em" }}>
           MUSU
         </span>
-        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-          <Link
-            href="/auth/login"
-            style={{
-              color: "#9ca3af",
-              textDecoration: "none",
-              fontSize: 14,
-              padding: "6px 14px",
-            }}
-          >
-            로그인
-          </Link>
-          <Link
-            href="/auth/signup"
-            style={{
-              background: "#7c3aed",
-              color: "#fff",
-              textDecoration: "none",
-              fontSize: 14,
-              fontWeight: 600,
-              padding: "8px 18px",
-              borderRadius: 8,
-            }}
-          >
-            무료로 시작
-          </Link>
-        </div>
+        <span style={{ fontSize: 12, color: "#9ca3af", letterSpacing: "0.08em" }}>
+          EARLY ACCESS WAITLIST
+        </span>
       </nav>
 
-      {/* Hero */}
       <main
         style={{
           flex: 1,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          justifyContent: "center",
           textAlign: "center",
-          padding: "80px 24px 60px",
+          padding: "72px 24px 56px",
         }}
       >
         <div
@@ -96,99 +79,157 @@ export default function LandingPage() {
             fontSize: 11,
             fontWeight: 700,
             letterSpacing: "0.15em",
-            color: "#7c3aed",
+            color: "#22c55e",
             textTransform: "uppercase",
-            marginBottom: 20,
+            marginBottom: 18,
           }}
         >
-          AI 업무 메신저
+          WAITLIST OPEN
         </div>
 
         <h1
           style={{
-            fontSize: "clamp(32px, 6vw, 64px)",
+            fontSize: "clamp(30px, 6vw, 56px)",
             fontWeight: 800,
-            lineHeight: 1.1,
+            lineHeight: 1.15,
             letterSpacing: "-0.03em",
-            marginBottom: 24,
-            maxWidth: 720,
+            marginBottom: 14,
+            maxWidth: 860,
           }}
         >
-          여러 대 컴퓨터의 AI가<br />팀으로 일한다
+          여러 대 내 컴퓨터의 AI들이 팀으로 일한다 —<br />당신은 채팅창에서 말만 하면 된다.
         </h1>
 
         <p
           style={{
-            fontSize: 18,
-            color: "#9ca3af",
-            lineHeight: 1.6,
-            maxWidth: 480,
-            marginBottom: 40,
+            fontSize: 20,
+            fontWeight: 600,
+            color: "#d1d5db",
+            lineHeight: 1.45,
+            maxWidth: 760,
+            marginBottom: 14,
           }}
         >
-          채팅창 열고 말만 하면 된다.<br />
-          AI들이 알아서 일을 나눠서 처리하고 결과를 가져온다.
+          Your AIs, across all your machines, working as one team. You just chat.
         </p>
 
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
-          <Link
-            href="/auth/signup"
-            style={{
-              background: "#7c3aed",
-              color: "#fff",
-              textDecoration: "none",
-              fontSize: 16,
-              fontWeight: 700,
-              padding: "14px 32px",
-              borderRadius: 10,
-              display: "inline-block",
-            }}
-          >
-            Try MUSU — 무료
-          </Link>
-          <Link
-            href="/"
-            style={{
-              background: "#1a1a1a",
-              color: "#e5e7eb",
-              textDecoration: "none",
-              fontSize: 16,
-              fontWeight: 600,
-              padding: "14px 32px",
-              borderRadius: 10,
-              border: "1px solid #2d2d2d",
-              display: "inline-block",
-            }}
-          >
-            데모 보기
-          </Link>
-        </div>
+        <p
+          style={{
+            fontSize: 15,
+            color: "#9ca3af",
+            lineHeight: 1.7,
+            maxWidth: 720,
+            marginBottom: 28,
+          }}
+        >
+          For developers and creators running 2-3 machines (Mac/Windows/Linux) who want
+          AI orchestration without building it themselves.
+        </p>
 
-        {/* Features */}
+        <form
+          action="/api/waitlist?from=/landing"
+          method="post"
+          style={{
+            width: "100%",
+            maxWidth: 560,
+            background: "#111111",
+            border: "1px solid #1f1f1f",
+            borderRadius: 14,
+            padding: 18,
+            display: "grid",
+            gridTemplateColumns: "1fr auto",
+            gap: 10,
+          }}
+        >
+          <label htmlFor="waitlist-email" style={{ display: "none" }}>
+            Waitlist email
+          </label>
+          <input
+            id="waitlist-email"
+            name="email"
+            type="email"
+            required
+            placeholder="you@example.com"
+            autoComplete="email"
+            style={{
+              width: "100%",
+              background: "#0f0f0f",
+              border: "1px solid #2b2b2b",
+              borderRadius: 10,
+              color: "#f9fafb",
+              fontSize: 15,
+              padding: "12px 14px",
+              outline: "none",
+            }}
+          />
+          <button
+            type="submit"
+            style={{
+              border: "none",
+              borderRadius: 10,
+              background: "#22c55e",
+              color: "#04110a",
+              fontSize: 15,
+              fontWeight: 800,
+              padding: "12px 20px",
+              cursor: "pointer",
+            }}
+          >
+            Join Waitlist
+          </button>
+        </form>
+
+        {waitlistStatus === "ok" ? (
+          <div
+            style={{
+              marginTop: 14,
+              fontSize: 14,
+              color: "#86efac",
+              lineHeight: 1.6,
+            }}
+          >
+            We will let you know when your access is ready.
+            {submittedEmail ? ` (${submittedEmail})` : ""}
+          </div>
+        ) : null}
+
+        {waitlistStatus === "error" ? (
+          <div
+            style={{
+              marginTop: 14,
+              fontSize: 14,
+              color: "#fca5a5",
+              lineHeight: 1.6,
+            }}
+          >
+            이메일 형식이 올바르지 않습니다. 다시 확인해주세요.
+          </div>
+        ) : null}
+
         <div
           style={{
             display: "flex",
             gap: 20,
-            marginTop: 80,
+            marginTop: 64,
             flexWrap: "wrap",
             justifyContent: "center",
-            maxWidth: 900,
+            maxWidth: 980,
           }}
         >
-          {features.map((f) => (
+          {features.map((feature) => (
             <div
-              key={f.title}
+              key={feature.title}
               style={{
                 background: "#111111",
                 border: "1px solid #1f1f1f",
                 borderRadius: 12,
-                padding: "28px 24px",
-                flex: "1 1 240px",
-                maxWidth: 280,
+                padding: "26px 22px",
+                flex: "1 1 250px",
+                maxWidth: 300,
                 textAlign: "left",
               }}
             >
-              <div style={{ fontSize: 28, marginBottom: 12 }}>{f.icon}</div>
+              <div style={{ fontSize: 28, marginBottom: 12 }}>{feature.icon}</div>
               <div
                 style={{
                   fontSize: 16,
@@ -197,66 +238,16 @@ export default function LandingPage() {
                   color: "#f3f4f6",
                 }}
               >
-                {f.title}
+                {feature.title}
               </div>
-              <div style={{ fontSize: 14, color: "#6b7280", lineHeight: 1.6 }}>
-                {f.desc}
+              <div style={{ fontSize: 14, color: "#9ca3af", lineHeight: 1.6 }}>
+                {feature.desc}
               </div>
             </div>
           ))}
         </div>
-
-        {/* Pricing teaser */}
-        <div
-          style={{
-            marginTop: 80,
-            padding: "32px 40px",
-            background: "#111111",
-            border: "1px solid #1f1f1f",
-            borderRadius: 16,
-            maxWidth: 480,
-            width: "100%",
-          }}
-        >
-          <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 8 }}>
-            가격
-          </div>
-          <div
-            style={{
-              fontSize: 32,
-              fontWeight: 800,
-              color: "#f3f4f6",
-              marginBottom: 4,
-            }}
-          >
-            무료로 시작
-          </div>
-          <div style={{ fontSize: 14, color: "#9ca3af", marginBottom: 20 }}>
-            기기 2대 · AI 채팅 · 하루 100개 메시지
-          </div>
-          <div style={{ fontSize: 14, color: "#6b7280", marginBottom: 20 }}>
-            Pro: ₩29,000/월 — 기기 5대 · 무제한 메시지
-          </div>
-          <Link
-            href="/auth/signup"
-            style={{
-              display: "block",
-              background: "#7c3aed",
-              color: "#fff",
-              textDecoration: "none",
-              fontSize: 15,
-              fontWeight: 700,
-              padding: "12px 24px",
-              borderRadius: 8,
-              textAlign: "center",
-            }}
-          >
-            무료로 시작하기
-          </Link>
-        </div>
       </main>
 
-      {/* Footer */}
       <footer
         style={{
           padding: "20px 32px",
