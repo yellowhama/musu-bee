@@ -8,7 +8,7 @@ import Sidebar from "@/components/Sidebar";
 import ChatArea from "@/components/ChatArea";
 import OnboardingModal from "@/components/OnboardingModal";
 import { useChat } from "@/lib/useChat";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 import type { Channel, ChannelId, Device, Message } from "@/types";
 import { AGENT_CHANNELS } from "@/types";
 
@@ -75,8 +75,27 @@ export default function Home() {
   // Auth session — reads Supabase session and updates user email.
   // When NEXT_PUBLIC_AUTH_ENABLED=true (production), redirects to /auth/login if no session.
   const authEnabled = process.env.NEXT_PUBLIC_AUTH_ENABLED === "true";
+  const authConfigured = isSupabaseConfigured();
   useEffect(() => {
+    if (!authEnabled) {
+      setUserEmail(null);
+      return;
+    }
+
+    if (!authConfigured) {
+      setUserEmail(null);
+      router.replace("/auth/login");
+      return;
+    }
+
+    const supabase = getSupabaseClient();
+    let active = true;
+
     supabase.auth.getSession().then(({ data }) => {
+      if (!active) {
+        return;
+      }
+
       if (data.session?.user) {
         setUserEmail(data.session.user.email ?? null);
       } else if (authEnabled) {
@@ -92,9 +111,11 @@ export default function Home() {
       }
     });
 
-    return () => listener.subscription.unsubscribe();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router]);
+    return () => {
+      active = false;
+      listener.subscription.unsubscribe();
+    };
+  }, [authConfigured, authEnabled, router]);
 
   // WebSocket chat for agent channels
   const isAgentChannel = AGENT_CHANNELS.includes(activeChannel);
@@ -293,7 +314,7 @@ export default function Home() {
             + 기기 추가
           </button>
         )}
-        {userEmail && (
+        {authEnabled && authConfigured && userEmail && (
           <span
             style={{
               fontSize: 13,
@@ -312,24 +333,26 @@ export default function Home() {
             {userEmail}
           </span>
         )}
-        <button
-          onClick={async () => {
-            await supabase.auth.signOut();
-            router.replace("/auth/login");
-          }}
-          style={{
-            fontSize: 12,
-            color: "#6b7280",
-            background: "transparent",
-            border: "1px solid #2d2d2d",
-            borderRadius: 6,
-            padding: "4px 10px",
-            cursor: "pointer",
-          }}
-          title="로그아웃"
-        >
-          로그아웃
-        </button>
+        {authEnabled && authConfigured && (
+          <button
+            onClick={async () => {
+              await getSupabaseClient().auth.signOut();
+              router.replace("/auth/login");
+            }}
+            style={{
+              fontSize: 12,
+              color: "#6b7280",
+              background: "transparent",
+              border: "1px solid #2d2d2d",
+              borderRadius: 6,
+              padding: "4px 10px",
+              cursor: "pointer",
+            }}
+            title="로그아웃"
+          >
+            로그아웃
+          </button>
+        )}
       </div>
 
       {/* Body: sidebar + chat */}

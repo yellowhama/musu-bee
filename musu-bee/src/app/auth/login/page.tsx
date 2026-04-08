@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,25 +11,32 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const authConfigured = isSupabaseConfigured();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const supabase = getSupabaseClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    setLoading(false);
+      setLoading(false);
 
-    if (signInError) {
-      setError(signInError.message);
-      return;
+      if (signInError) {
+        setError(signInError.message);
+        return;
+      }
+
+      router.push("/");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "로그인 요청을 처리하지 못했습니다.");
+      setLoading(false);
     }
-
-    router.push("/");
   }
 
   return (
@@ -83,6 +90,22 @@ export default function LoginPage() {
         <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 28 }}>
           계속하려면 로그인하세요
         </p>
+
+        {!authConfigured && (
+          <div
+            style={{
+              background: "#1f2937",
+              border: "1px solid #374151",
+              borderRadius: 8,
+              padding: "10px 14px",
+              fontSize: 13,
+              color: "#cbd5e1",
+              marginBottom: 16,
+            }}
+          >
+            인증 설정이 아직 완료되지 않았습니다. 배포 환경 변수가 준비되면 로그인할 수 있습니다.
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: 16 }}>
