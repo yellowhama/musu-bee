@@ -83,19 +83,15 @@ export default function Home() {
   }, []);
 
   // Poll device status every 3 seconds.
+  // Uses device_id returned by musu-portd /status so hardcoded IDs are not needed.
   useEffect(() => {
-    const LOCAL_DEVICE_ID = "desktop-4060";
-
     async function fetchStatus() {
       try {
         const res = await fetch("/api/device-status");
         if (!res.ok) {
+          // Mark first device offline when portd is unreachable
           setDevices((prev) =>
-            prev.map((d) =>
-              d.id === LOCAL_DEVICE_ID
-                ? { ...d, status: "offline" as const }
-                : d,
-            ),
+            prev.map((d, i) => (i === 0 ? { ...d, status: "offline" as const } : d)),
           );
           return;
         }
@@ -103,10 +99,14 @@ export default function Home() {
           cpu: number;
           gpu: number | null;
           ram: number;
+          device_id?: string;
+          physical_host_id?: string | null;
         };
-        setDevices((prev) =>
-          prev.map((d) =>
-            d.id === LOCAL_DEVICE_ID
+        setDevices((prev) => {
+          // Match by device_id if portd provides it, otherwise fall back to first device
+          const targetId = data.device_id ?? prev[0]?.id;
+          return prev.map((d) =>
+            d.id === targetId
               ? {
                   ...d,
                   status: "online" as const,
@@ -117,15 +117,11 @@ export default function Home() {
                   },
                 }
               : d,
-          ),
-        );
+          );
+        });
       } catch {
         setDevices((prev) =>
-          prev.map((d) =>
-            d.id === LOCAL_DEVICE_ID
-              ? { ...d, status: "offline" as const }
-              : d,
-          ),
+          prev.map((d, i) => (i === 0 ? { ...d, status: "offline" as const } : d)),
         );
       }
     }
