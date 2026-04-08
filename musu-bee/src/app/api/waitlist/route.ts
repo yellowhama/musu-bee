@@ -3,15 +3,18 @@ import { NextRequest, NextResponse } from "next/server";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const WAITLIST_SET_KEY = "musu:waitlist:emails";
 const DEV_WAITLIST_EMAILS = new Set<string>();
+const KV_OVERRIDE_KEY = "__MUSU_WAITLIST_KV_CLIENT__";
 
 type KvClient = {
   sadd(key: string, value: string): Promise<unknown>;
 };
 
-let kvClientOverride: KvClient | null = null;
-
-export function __setKvClientForTest(kv: KvClient | null) {
-  kvClientOverride = kv;
+function getKvClientOverride(): KvClient | null {
+  const value = (globalThis as unknown as Record<string, unknown>)[KV_OVERRIDE_KEY];
+  if (!value) {
+    return null;
+  }
+  return value as KvClient;
 }
 
 function parseEmail(value: unknown): string {
@@ -52,7 +55,7 @@ async function persistWaitlistEmail(email: string) {
     return;
   }
 
-  const kvClient = kvClientOverride ?? (await import("@vercel/kv")).kv;
+  const kvClient = getKvClientOverride() ?? (await import("@vercel/kv")).kv;
   await kvClient.sadd(WAITLIST_SET_KEY, email);
 }
 

@@ -3,7 +3,9 @@ import test from "node:test";
 
 import { NextRequest } from "next/server";
 
-import { POST, __setKvClientForTest } from "@/app/api/waitlist/route";
+import { POST } from "@/app/api/waitlist/route";
+
+const KV_OVERRIDE_KEY = "__MUSU_WAITLIST_KV_CLIENT__";
 
 function makeFormRequest(url: string, email: string, headers?: Record<string, string>) {
   const formData = new FormData();
@@ -31,7 +33,7 @@ function restoreEnv(snapshot: Record<string, string | undefined>) {
 
 test("waitlist invalid email returns json error (accept: application/json)", async () => {
   const env = snapshotEnv(["NODE_ENV", "KV_REST_API_URL", "KV_REST_API_TOKEN"]);
-  __setKvClientForTest(null);
+  delete (globalThis as unknown as Record<string, unknown>)[KV_OVERRIDE_KEY];
 
   try {
     const req = makeFormRequest("http://example.test/api/waitlist?from=/landing", "not-an-email", {
@@ -43,13 +45,13 @@ test("waitlist invalid email returns json error (accept: application/json)", asy
     assert.deepEqual(await res.json(), { error: "invalid_email" });
   } finally {
     restoreEnv(env);
-    __setKvClientForTest(null);
+    delete (globalThis as unknown as Record<string, unknown>)[KV_OVERRIDE_KEY];
   }
 });
 
 test("waitlist invalid email redirects with waitlist=invalid_email (html flow)", async () => {
   const env = snapshotEnv(["NODE_ENV", "KV_REST_API_URL", "KV_REST_API_TOKEN"]);
-  __setKvClientForTest(null);
+  delete (globalThis as unknown as Record<string, unknown>)[KV_OVERRIDE_KEY];
 
   try {
     const req = makeFormRequest("http://example.test/api/waitlist?from=/landing", "not-an-email");
@@ -64,13 +66,13 @@ test("waitlist invalid email redirects with waitlist=invalid_email (html flow)",
     assert.equal(redirectUrl.searchParams.get("waitlist"), "invalid_email");
   } finally {
     restoreEnv(env);
-    __setKvClientForTest(null);
+    delete (globalThis as unknown as Record<string, unknown>)[KV_OVERRIDE_KEY];
   }
 });
 
 test("waitlist redirect normalization blocks open redirects", async () => {
   const env = snapshotEnv(["NODE_ENV", "KV_REST_API_URL", "KV_REST_API_TOKEN"]);
-  __setKvClientForTest(null);
+  delete (globalThis as unknown as Record<string, unknown>)[KV_OVERRIDE_KEY];
 
   try {
     const req = makeFormRequest(
@@ -89,16 +91,16 @@ test("waitlist redirect normalization blocks open redirects", async () => {
     assert.equal(redirectUrl.searchParams.get("waitlist"), "invalid_email");
   } finally {
     restoreEnv(env);
-    __setKvClientForTest(null);
+    delete (globalThis as unknown as Record<string, unknown>)[KV_OVERRIDE_KEY];
   }
 });
 
 test("waitlist persistence fails loudly in production when KV is not configured", async () => {
   const env = snapshotEnv(["NODE_ENV", "KV_REST_API_URL", "KV_REST_API_TOKEN"]);
-  __setKvClientForTest(null);
+  delete (globalThis as unknown as Record<string, unknown>)[KV_OVERRIDE_KEY];
 
   try {
-    process.env.NODE_ENV = "production";
+    (process.env as any).NODE_ENV = "production";
     delete process.env.KV_REST_API_URL;
     delete process.env.KV_REST_API_TOKEN;
 
@@ -111,7 +113,7 @@ test("waitlist persistence fails loudly in production when KV is not configured"
     assert.deepEqual(await res.json(), { error: "waitlist_kv_not_configured" });
   } finally {
     restoreEnv(env);
-    __setKvClientForTest(null);
+    delete (globalThis as unknown as Record<string, unknown>)[KV_OVERRIDE_KEY];
   }
 });
 
@@ -119,15 +121,15 @@ test("waitlist persistence failure surfaces as 503 (KV configured but write fail
   const env = snapshotEnv(["NODE_ENV", "KV_REST_API_URL", "KV_REST_API_TOKEN"]);
 
   try {
-    process.env.NODE_ENV = "production";
+    (process.env as any).NODE_ENV = "production";
     process.env.KV_REST_API_URL = "https://kv.example.invalid";
     process.env.KV_REST_API_TOKEN = "kv-token";
 
-    __setKvClientForTest({
+    (globalThis as unknown as Record<string, unknown>)[KV_OVERRIDE_KEY] = {
       sadd: async () => {
         throw new Error("simulated kv failure");
       },
-    });
+    };
 
     const req = makeFormRequest("http://example.test/api/waitlist?from=/landing", "qa@example.com", {
       accept: "application/json",
@@ -138,13 +140,13 @@ test("waitlist persistence failure surfaces as 503 (KV configured but write fail
     assert.deepEqual(await res.json(), { error: "waitlist_persist_failed" });
   } finally {
     restoreEnv(env);
-    __setKvClientForTest(null);
+    delete (globalThis as unknown as Record<string, unknown>)[KV_OVERRIDE_KEY];
   }
 });
 
 test("waitlist preserves existing from query params", async () => {
   const env = snapshotEnv(["NODE_ENV", "KV_REST_API_URL", "KV_REST_API_TOKEN"]);
-  __setKvClientForTest(null);
+  delete (globalThis as unknown as Record<string, unknown>)[KV_OVERRIDE_KEY];
 
   try {
     const req = makeFormRequest("http://example.test/api/waitlist?from=/landing?x=1", "not-an-email");
@@ -160,16 +162,16 @@ test("waitlist preserves existing from query params", async () => {
     assert.equal(redirectUrl.searchParams.get("waitlist"), "invalid_email");
   } finally {
     restoreEnv(env);
-    __setKvClientForTest(null);
+    delete (globalThis as unknown as Record<string, unknown>)[KV_OVERRIDE_KEY];
   }
 });
 
 test("waitlist succeeds in dev mode without KV configured (local fallback)", async () => {
   const env = snapshotEnv(["NODE_ENV", "KV_REST_API_URL", "KV_REST_API_TOKEN"]);
-  __setKvClientForTest(null);
+  delete (globalThis as unknown as Record<string, unknown>)[KV_OVERRIDE_KEY];
 
   try {
-    process.env.NODE_ENV = "development";
+    (process.env as any).NODE_ENV = "development";
     delete process.env.KV_REST_API_URL;
     delete process.env.KV_REST_API_TOKEN;
 
@@ -182,7 +184,6 @@ test("waitlist succeeds in dev mode without KV configured (local fallback)", asy
     assert.deepEqual(await res.json(), { ok: true, email: "qa@example.com" });
   } finally {
     restoreEnv(env);
-    __setKvClientForTest(null);
+    delete (globalThis as unknown as Record<string, unknown>)[KV_OVERRIDE_KEY];
   }
 });
-
