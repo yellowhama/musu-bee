@@ -8,6 +8,9 @@ Scope: `musu-functions` repo completion reset after previous root closeout tranc
 
 - `MUS-696` (MUS-645): OPS session archiving policy — in progress (Founding Engineer)
 - `MUS-695` (MUS-437): Hardware gap for Wave F — blocked, board decision pending (5070Ti + 4060Ti nodes)
+- `MUS-698` (MUS-646): Wave F Prep — **MOCK_PASS complete** (Local Worker) — awaiting hardware to proceed to real deployment
+  - Evidence: `/home/hugh51/musu-functions/work/mus646-wave-f-prep-20260408T000000Z/chain-proof.json`
+  - Next: Real QUIC transport test once MUS-437 unblocked
 
 ## Next Queue
 
@@ -110,10 +113,10 @@ Scope: `musu-functions` repo completion reset after previous root closeout tranc
 - None active (board hygiene and synchronization)
 
 **Active Issues Synchronized:**
-- `MUS-695` (MUS-437): blocked - hardware gate, board decision required
-- `MUS-696` (MUS-645): in_progress - Founding Engineer
-- `MUS-697` (MUS-151): todo - QA Lead
-- `MUS-698` (MUS-646): todo - Local Worker
+- `MUS-695` (MUS-437): BLOCKED - hardware gate, board decision required
+- `MUS-696` (MUS-645): IN_PROGRESS - Founding Engineer (session archiving policy)
+- `MUS-697` (MUS-151): DONE - QA Lead (final acceptance bundle complete, 2026-04-04)
+- `MUS-698` (MUS-646): MOCK_PASS - Local Worker (schema validated, awaiting real hardware)
 
 **Next Actions:**
 - Monitor MUS-696 (session archiving policy) progress
@@ -132,18 +135,51 @@ Scope: `musu-functions` repo completion reset after previous root closeout tranc
 
 **Completed:**
 - MUS-646 (Wave F prep): Ran 3-machine mock runner, produced chain-proof.json with 3 distinct hosts ✅
-- Evidence stored in `work/mus646-wave-f-prep-20260406T184600Z/`
+- MUS-151 (Wave F replay): Final acceptance bundle complete with all gates ✅
+- Evidence stored in `work/mus646-wave-f-prep-20260408T000000Z/` and `work/mus151-wave-f-replay-20260404T121124Z/`
 - Schema validated, awaiting real hardware for production PASS
 
 **Status:**
 - MUS-695 (MUS-437): BLOCKED (hardware gate) — waiting on board to provision GPU nodes
 - MUS-696 (MUS-645): IN_PROGRESS (Founding Engineer) — session archiving policy
-- MUS-698 (MUS-646): MOCK_PASS (Local Worker) — schema validated, ready for real deployment
+- MUS-697 (MUS-151): DONE (QA Lead) — final acceptance bundle complete (2026-04-04)
+- MUS-698 (MUS-646): MOCK_PASS (Local Worker) — schema validated, awaiting real hardware
 
 **Next:**
-- Monitor MUS-696 completion
+- Monitor MUS-696 (session archiving policy) progress
 - Escalate MUS-695 to CEO 2/board when hardware decision ready
 - Ready to execute real 3-machine chain once MUS-695 unblocks
 - Maintain board hygiene
+- MUS-697 (MUS-151): Already DONE, no action needed
 
 (End of file)
+
+## MUS-1042 Gate Snapshot (2026-04-08)
+
+Source of truth: Paperclip API.
+
+- MUS-1042 (parent): blocked
+- MUS-1045 (CEO gate): done
+- MUS-1062 (CEO payment-provider decision): done (Paddle)
+- MUS-1063 (ENG Paddle integration): in_progress
+- MUS-1064 (QA Paddle verification / G2): blocked
+- MUS-1065 (CTO production gate / GO-NO-GO): blocked
+- MUS-1046 (ENG Stripe packet): blocked (legacy packet, not current provider path)
+- MUS-1047 (QA Stripe packet): cancelled
+- MUS-1048 (CTO Stripe gate): cancelled
+
+Primary unblock owner:
+- Founding Engineer on MUS-1063 G1 fail fix set (retryable status code + shared lock parity).
+
+Confirmed blockers:
+- MUS-1063 has latest CTO authoritative verdict `G1: FAIL` (`2026-04-08T07:46:04.108Z`).
+- Paddle credentials not yet provided (PADDLE_API_KEY / PADDLE_WEBHOOK_SECRET / NEXT_PUBLIC_PADDLE_CLIENT_TOKEN / NEXT_PUBLIC_PADDLE_ENV) [TBD: awaiting real data].
+- Production deployment dependency still blocked on MUS-994 / MUS-1015 Vercel secrets.
+
+Resume order:
+1. ENG fixes MUS-1063 blockers and posts fresh proof bundle on new SHA.
+2. CTO reruns G1 and confirms PASS.
+3. QA executes MUS-1064 with sandbox + webhook replay verification and posts G2 verdict.
+4. CTO executes MUS-1065 and posts GO/NO-GO.
+5. Board/human finalizes Paddle + Vercel credential artifacts.
+6. CoS closes MUS-1042 after MUS-1064/1065 are complete.
