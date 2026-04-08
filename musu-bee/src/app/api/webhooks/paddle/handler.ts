@@ -251,8 +251,9 @@ export async function handlePaddleWebhook(
     const result = await deps.withSubscriptionStateLock(() =>
       applyPaddleEvent(event, deps)
     );
+    const responseStatus = result.retryable ? 503 : 200;
     return {
-      status: 200,
+      status: responseStatus,
       body: {
         received: true,
         eventId: event.event_id,

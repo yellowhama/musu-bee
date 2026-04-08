@@ -49,6 +49,7 @@ function makeEvent(
 }
 
 const RAW_BODY = new TextEncoder().encode("{}").buffer;
+const passthroughLock = async <T>(fn: () => Promise<T>): Promise<T> => fn();
 
 test("invalid signature returns 400 and does not write state", async () => {
   let saveCalls = 0;
@@ -66,6 +67,7 @@ test("invalid signature returns 400 and does not write state", async () => {
     saveSubscription: async () => {
       saveCalls += 1;
     },
+    withSubscriptionStateLock: passthroughLock,
   };
 
   const result = await handleStripeWebhook(RAW_BODY, "sig_test", deps);
@@ -99,6 +101,7 @@ test("checkout.session.completed replay is deduped by event id", async () => {
       saveCalls += 1;
       state = next;
     },
+    withSubscriptionStateLock: passthroughLock,
   };
 
   const first = await handleStripeWebhook(RAW_BODY, "sig_test", deps);
@@ -136,6 +139,7 @@ test("subscription.updated before checkout does not grant entitlement", async ()
     saveSubscription: async (next: SubscriptionState) => {
       state = next;
     },
+    withSubscriptionStateLock: passthroughLock,
   };
 
   const result = await handleStripeWebhook(RAW_BODY, "sig_test", deps);
@@ -173,6 +177,7 @@ test("customer.subscription.updated replay is deduped by event id", async () => 
       saveCalls += 1;
       state = next;
     },
+    withSubscriptionStateLock: passthroughLock,
   };
 
   const first = await handleStripeWebhook(RAW_BODY, "sig_test", deps);
@@ -209,6 +214,7 @@ test("customer.subscription.deleted replay is deduped by event id", async () => 
       saveCalls += 1;
       state = next;
     },
+    withSubscriptionStateLock: passthroughLock,
   };
 
   const first = await handleStripeWebhook(RAW_BODY, "sig_test", deps);
@@ -221,4 +227,37 @@ test("customer.subscription.deleted replay is deduped by event id", async () => 
   assert.equal(saveCalls, 1);
   assert.equal(state.plan, "free");
   assert.equal(state.status, "cancelled");
+});
+
+test("lock timeout returns 503 retryable response", async () => {
+  let saveCalls = 0;
+  const checkoutSession = {
+    id: "cs_lock_timeout",
+    mode: "subscription",
+    customer: "cus_lock",
+    subscription: "sub_lock",
+  } as Stripe.Checkout.Session;
+  const event = makeEvent(
+    "evt_checkout_lock_timeout",
+    "checkout.session.completed",
+    checkoutSession
+  );
+
+  const deps = {
+    webhookSecret: "whsec_test",
+    constructEvent: () => event,
+    listLineItemPriceId: async () => "price_pro_test",
+    getSubscription: async () => makeState(),
+    saveSubscription: async () => {
+      saveCalls += 1;
+    },
+    withSubscriptionStateLock: async () => {
+      throw new Error("subscription_lock_timeout");
+    },
+  };
+
+  const result = await handleStripeWebhook(RAW_BODY, "sig_test", deps);
+  assert.equal(result.status, 503);
+  assert.equal(result.body.retryable, true);
+  assert.equal(saveCalls, 0);
 });

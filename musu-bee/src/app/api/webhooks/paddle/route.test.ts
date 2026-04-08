@@ -144,7 +144,7 @@ test("subscription.updated before activation does not grant entitlement", async 
     deps
   );
 
-  assert.equal(result.status, 200);
+  assert.equal(result.status, 503);
   assert.equal(result.body.applied, false);
   assert.equal(result.body.retryable, true);
   assert.equal(result.body.ignoredReason, "subscription_id_mismatch");
@@ -307,7 +307,7 @@ test("unknown_price_id does not permanently mark event processed", async () => {
     deps
   );
 
-  assert.equal(result.status, 200);
+  assert.equal(result.status, 503);
   assert.equal(result.body.applied, false);
   assert.equal(result.body.retryable, true);
   assert.equal(result.body.ignoredReason, "unknown_price_id");
@@ -344,7 +344,7 @@ test("replay after subscription_id_mismatch can apply later", async () => {
     "ts=1;h1=deadbeef",
     deps
   );
-  assert.equal(firstUpdate.status, 200);
+  assert.equal(firstUpdate.status, 503);
   assert.equal(firstUpdate.body.applied, false);
   assert.equal(firstUpdate.body.retryable, true);
   assert.equal(state._processedPaddleEventIds.includes(updateEventId), false);

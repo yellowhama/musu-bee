@@ -5,6 +5,7 @@ import {
   saveSubscription,
   hasProcessedStripeEvent,
   markStripeEventProcessed,
+  withSubscriptionStateLock,
 } from "@/lib/subscription";
 import type { SubscriptionState } from "@/lib/subscription";
 import type { PlanTier } from "@/lib/stripe";
@@ -49,6 +50,7 @@ export interface StripeWebhookDeps {
   listLineItemPriceId: (sessionId: string) => Promise<string | null>;
   getSubscription: typeof getSubscription;
   saveSubscription: typeof saveSubscription;
+  withSubscriptionStateLock: typeof withSubscriptionStateLock;
 }
 
 interface EventResult {
@@ -71,6 +73,7 @@ export function defaultStripeWebhookDeps(): StripeWebhookDeps {
     },
     getSubscription,
     saveSubscription,
+    withSubscriptionStateLock,
   };
 }
 
@@ -209,15 +212,36 @@ export async function handleStripeWebhook(
     return { status: 400, body: { error: msg } };
   }
 
-  const result = await applyStripeEvent(event, deps);
-  return {
-    status: 200,
-    body: {
-      received: true,
-      applied: result.applied,
-      duplicate: result.duplicate,
-      ignoredReason: result.ignoredReason,
-      eventType: event.type,
-    },
-  };
+  try {
+    const result = await deps.withSubscriptionStateLock(() =>
+      applyStripeEvent(event, deps)
+    );
+    return {
+      status: 200,
+      body: {
+        received: true,
+        applied: result.applied,
+        duplicate: result.duplicate,
+        ignoredReason: result.ignoredReason,
+        eventType: event.type,
+      },
+    };
+  } catch (err) {
+    if (err instanceof Error && err.message === "subscription_lock_timeout") {
+      return {
+        status: 503,
+        body: {
+          error: "Webhook processing lock timeout",
+          retryable: true,
+        },
+      };
+    }
+    return {
+      status: 500,
+      body: {
+        error: "Webhook processing failed",
+        retryable: true,
+      },
+    };
+  }
 }
