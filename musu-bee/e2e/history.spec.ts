@@ -21,7 +21,7 @@ test.beforeEach(async ({ page }) => {
   // Wait for the MUSU header to confirm React has hydrated.
   await expect(page.getByText("MUSU")).toBeVisible();
   // Click the "general" channel to enter a non-agent channel.
-  await page.getByText("general").click();
+  await page.getByTestId("channel-item-general").click();
 });
 
 // ─── Scenario 1: UI loads with expected structure ───────────────────────────
@@ -33,12 +33,12 @@ test("chat UI loads with channel list, device sidebar, and message input", async
 
   // Channel sidebar items
   for (const ch of ["general", "dev", "tasks", "alerts"]) {
-    await expect(page.getByText(ch)).toBeVisible();
+    await expect(page.getByTestId(`channel-item-${ch}`)).toBeVisible();
   }
 
-  // Device sidebar items (Musu-A, Musu-B, Musu-C)
-  await expect(page.getByText("Musu-A")).toBeVisible();
-  await expect(page.getByText("Musu-B")).toBeVisible();
+  // Device sidebar items
+  await expect(page.getByText("4060Ti Desktop")).toBeVisible();
+  await expect(page.getByText("5070Ti Desktop")).toBeVisible();
 
   // Message input
   await expect(page.locator("textarea")).toBeVisible();
@@ -50,13 +50,13 @@ test("clicking a channel updates the active channel header", async ({
   page,
 }) => {
   // Switch to "dev" channel
-  await page.getByText("dev").click();
+  await page.getByTestId("channel-item-dev").click();
   // The textarea placeholder mentions the channel name
   const textarea = page.locator("textarea");
   await expect(textarea).toHaveAttribute("placeholder", /dev/);
 
   // Switch to "tasks" channel
-  await page.getByText("tasks").click();
+  await page.getByTestId("channel-item-tasks").click();
   await expect(textarea).toHaveAttribute("placeholder", /tasks/);
 });
 
@@ -94,7 +94,7 @@ test("message sent in general is not visible in tasks channel", async ({
   await expect(page.getByText(generalMsg)).toBeVisible();
 
   // Switch to tasks channel
-  await page.getByText("tasks").click();
+  await page.getByTestId("channel-item-tasks").click();
 
   // The message should NOT be visible in tasks
   await expect(page.getByText(generalMsg)).not.toBeVisible();
@@ -120,12 +120,12 @@ test("history in general channel is preserved after switching away and back", as
   await expect(page.getByText(msg2)).toBeVisible();
 
   // Navigate away to dev
-  await page.getByText("dev").click();
+  await page.getByTestId("channel-item-dev").click();
   // Confirm messages no longer shown in dev
   await expect(page.getByText(msg1)).not.toBeVisible();
 
   // Return to general
-  await page.getByText("general").click();
+  await page.getByTestId("channel-item-general").click();
 
   // Both messages should still be present
   await expect(page.getByText(msg1)).toBeVisible();
