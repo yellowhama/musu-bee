@@ -41,6 +41,11 @@ jobs:
       - name: Build project
         run: vercel build ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
         working-directory: musu-bee
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_APP_URL: https://musu.pro
+          NEXT_PUBLIC_AUTH_ENABLED: "true"
 
       - name: Deploy to Vercel
         id: deploy
