@@ -37,6 +37,8 @@ function makeEvent(eventId: string, eventType: string, data: Record<string, unkn
   };
 }
 
+const passthroughLock = async <T>(fn: () => Promise<T>): Promise<T> => fn();
+
 test("invalid signature returns 400 and does not write state", async () => {
   let saveCalls = 0;
   let readCalls = 0;
@@ -56,6 +58,7 @@ test("invalid signature returns 400 and does not write state", async () => {
     saveSubscription: async () => {
       saveCalls += 1;
     },
+    withSubscriptionStateLock: passthroughLock,
   };
 
   const result = await handlePaddleWebhook(
@@ -88,6 +91,7 @@ test("subscription.activated replay is deduped by event id", async () => {
       saveCalls += 1;
       state = next;
     },
+    withSubscriptionStateLock: passthroughLock,
   };
 
   const first = await handlePaddleWebhook(
@@ -131,6 +135,7 @@ test("subscription.updated before activation does not grant entitlement", async 
     saveSubscription: async (next: SubscriptionState) => {
       state = next;
     },
+    withSubscriptionStateLock: passthroughLock,
   };
 
   const result = await handlePaddleWebhook(
@@ -141,9 +146,14 @@ test("subscription.updated before activation does not grant entitlement", async 
 
   assert.equal(result.status, 200);
   assert.equal(result.body.applied, false);
+  assert.equal(result.body.retryable, true);
   assert.equal(result.body.ignoredReason, "subscription_id_mismatch");
   assert.equal(state.plan, "free");
   assert.equal(state.status, "none");
+  assert.equal(
+    state._processedPaddleEventIds.includes("evt_update_before_activation"),
+    false
+  );
 });
 
 test("subscription.updated replay is deduped by event id", async () => {
@@ -170,6 +180,7 @@ test("subscription.updated replay is deduped by event id", async () => {
       saveCalls += 1;
       state = next;
     },
+    withSubscriptionStateLock: passthroughLock,
   };
 
   const first = await handlePaddleWebhook(
@@ -212,6 +223,7 @@ test("subscription.cancelled replay is deduped by event id", async () => {
       saveCalls += 1;
       state = next;
     },
+    withSubscriptionStateLock: passthroughLock,
   };
 
   const first = await handlePaddleWebhook(
@@ -254,6 +266,7 @@ test("transaction.completed is recorded without changing entitlement", async () 
     saveSubscription: async (next: SubscriptionState) => {
       state = next;
     },
+    withSubscriptionStateLock: passthroughLock,
   };
 
   const result = await handlePaddleWebhook(
@@ -268,4 +281,120 @@ test("transaction.completed is recorded without changing entitlement", async () 
   assert.equal(state.plan, "pro");
   assert.equal(state.status, "active");
   assert.ok(state._processedPaddleEventIds.includes("evt_tx_1"));
+});
+
+test("unknown_price_id does not permanently mark event processed", async () => {
+  let state = makeState();
+  const event = makeEvent("evt_unknown_price", "subscription.activated", {
+    id: "sub_unknown",
+    customer_id: "cus_unknown",
+    items: [{ price: { id: "pri_unknown" } }],
+  });
+
+  const deps = {
+    webhookSecret: "whsec_test",
+    verifySignature: () => true,
+    getSubscription: async () => state,
+    saveSubscription: async (next: SubscriptionState) => {
+      state = next;
+    },
+    withSubscriptionStateLock: passthroughLock,
+  };
+
+  const result = await handlePaddleWebhook(
+    JSON.stringify(event),
+    "ts=1;h1=deadbeef",
+    deps
+  );
+
+  assert.equal(result.status, 200);
+  assert.equal(result.body.applied, false);
+  assert.equal(result.body.retryable, true);
+  assert.equal(result.body.ignoredReason, "unknown_price_id");
+  assert.equal(state._processedPaddleEventIds.includes("evt_unknown_price"), false);
+});
+
+test("replay after subscription_id_mismatch can apply later", async () => {
+  let state = makeState();
+  const updateEventId = "evt_update_replayable";
+  const updateEvent = makeEvent(updateEventId, "subscription.updated", {
+    id: "sub_replay",
+    status: "active",
+    items: [{ price: { id: "pri_team_test" } }],
+    current_billing_period: { ends_at: "2031-01-01T00:00:00Z" },
+  });
+  const activationEvent = makeEvent("evt_activate_replay", "subscription.activated", {
+    id: "sub_replay",
+    customer_id: "cus_replay",
+    items: [{ price: { id: "pri_pro_test" } }],
+  });
+
+  const deps = {
+    webhookSecret: "whsec_test",
+    verifySignature: () => true,
+    getSubscription: async () => state,
+    saveSubscription: async (next: SubscriptionState) => {
+      state = next;
+    },
+    withSubscriptionStateLock: passthroughLock,
+  };
+
+  const firstUpdate = await handlePaddleWebhook(
+    JSON.stringify(updateEvent),
+    "ts=1;h1=deadbeef",
+    deps
+  );
+  assert.equal(firstUpdate.status, 200);
+  assert.equal(firstUpdate.body.applied, false);
+  assert.equal(firstUpdate.body.retryable, true);
+  assert.equal(state._processedPaddleEventIds.includes(updateEventId), false);
+
+  const activation = await handlePaddleWebhook(
+    JSON.stringify(activationEvent),
+    "ts=1;h1=deadbeef",
+    deps
+  );
+  assert.equal(activation.status, 200);
+  assert.equal(activation.body.applied, true);
+  assert.equal(state.stripeSubscriptionId, "sub_replay");
+
+  const replayedUpdate = await handlePaddleWebhook(
+    JSON.stringify(updateEvent),
+    "ts=1;h1=deadbeef",
+    deps
+  );
+  assert.equal(replayedUpdate.status, 200);
+  assert.equal(replayedUpdate.body.applied, true);
+  assert.equal(replayedUpdate.body.retryable, false);
+  assert.equal(state.plan, "team");
+  assert.equal(state._processedPaddleEventIds.includes(updateEventId), true);
+});
+
+test("lock timeout returns 503 retryable response", async () => {
+  let saveCalls = 0;
+  const event = makeEvent("evt_lock_timeout", "transaction.completed", {
+    id: "txn_lock",
+  });
+
+  const deps = {
+    webhookSecret: "whsec_test",
+    verifySignature: () => true,
+    getSubscription: async () => makeState(),
+    saveSubscription: async () => {
+      saveCalls += 1;
+    },
+    withSubscriptionStateLock: async () => {
+      throw new Error("subscription_lock_timeout");
+    },
+  };
+
+  const result = await handlePaddleWebhook(
+    JSON.stringify(event),
+    "ts=1;h1=deadbeef",
+    deps
+  );
+
+  assert.equal(result.status, 503);
+  assert.equal(result.body.retryable, true);
+  assert.equal(saveCalls, 0);
 });

@@ -25,6 +25,12 @@ export interface SubscriptionState {
 const KV_KEY = "subscription:state";
 const MAX_PROCESSED_STRIPE_EVENTS = 200;
 const MAX_PROCESSED_PADDLE_EVENTS = 200;
+const SUBSCRIPTION_LOCK_KEY = `${KV_KEY}:lock`;
+const SUBSCRIPTION_LOCK_TTL_SECONDS = 10;
+const SUBSCRIPTION_LOCK_WAIT_MS = 1500;
+const SUBSCRIPTION_LOCK_RETRY_MS = 50;
+
+let localLockQueue: Promise<void> = Promise.resolve();
 
 const DEFAULT_STATE: SubscriptionState = {
   plan: "free",
@@ -99,6 +105,68 @@ export async function getSubscription(): Promise<SubscriptionState> {
 export async function saveSubscription(state: SubscriptionState): Promise<void> {
   if (useKv()) return kvSet(state);
   fileSet(state);
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function withLocalSubscriptionLock<T>(fn: () => Promise<T>): Promise<T> {
+  let release: (() => void) | undefined;
+  const previous = localLockQueue;
+  localLockQueue = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  await previous;
+  try {
+    return await fn();
+  } finally {
+    release?.();
+  }
+}
+
+async function withKvSubscriptionLock<T>(fn: () => Promise<T>): Promise<T> {
+  const { kv } = await import("@vercel/kv");
+  const owner = `${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const deadline = Date.now() + SUBSCRIPTION_LOCK_WAIT_MS;
+  let acquired = false;
+
+  while (Date.now() < deadline) {
+    const lockResult = await kv.set(SUBSCRIPTION_LOCK_KEY, owner, {
+      nx: true,
+      ex: SUBSCRIPTION_LOCK_TTL_SECONDS,
+    });
+    if (lockResult === "OK") {
+      acquired = true;
+      break;
+    }
+    await wait(SUBSCRIPTION_LOCK_RETRY_MS);
+  }
+
+  if (!acquired) {
+    throw new Error("subscription_lock_timeout");
+  }
+
+  try {
+    return await fn();
+  } finally {
+    // Atomic compare-and-delete release to avoid deleting another owner's lock.
+    await (kv as any).eval(
+      "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
+      [SUBSCRIPTION_LOCK_KEY],
+      [owner]
+    );
+  }
+}
+
+export async function withSubscriptionStateLock<T>(
+  fn: () => Promise<T>
+): Promise<T> {
+  if (useKv()) {
+    return withKvSubscriptionLock(fn);
+  }
+  return withLocalSubscriptionLock(fn);
 }
 
 export function hasProcessedStripeEvent(

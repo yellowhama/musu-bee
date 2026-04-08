@@ -9,6 +9,7 @@ import {
   saveSubscription,
   hasProcessedPaddleEvent,
   markPaddleEventProcessed,
+  withSubscriptionStateLock,
 } from "@/lib/subscription";
 import type { SubscriptionState } from "@/lib/subscription";
 
@@ -27,11 +28,13 @@ export interface PaddleWebhookDeps {
   ) => boolean;
   getSubscription: typeof getSubscription;
   saveSubscription: typeof saveSubscription;
+  withSubscriptionStateLock: typeof withSubscriptionStateLock;
 }
 
 interface EventResult {
   applied: boolean;
   duplicate: boolean;
+  retryable: boolean;
   ignoredReason?: string;
 }
 
@@ -41,6 +44,7 @@ export function defaultPaddleWebhookDeps(): PaddleWebhookDeps {
     verifySignature: verifyPaddleWebhookSignature,
     getSubscription,
     saveSubscription,
+    withSubscriptionStateLock,
   };
 }
 
@@ -107,11 +111,17 @@ async function applyPaddleEvent(
 ): Promise<EventResult> {
   const current = await deps.getSubscription();
   if (hasProcessedPaddleEvent(current, event.event_id)) {
-    return { applied: false, duplicate: true, ignoredReason: "duplicate_event" };
+    return {
+      applied: false,
+      duplicate: true,
+      retryable: false,
+      ignoredReason: "duplicate_event",
+    };
   }
 
   let next = current;
   let applied = false;
+  let retryable = false;
   let ignoredReason: string | undefined;
   const data = asRecord(event.data);
   const subscriptionId = extractSubscriptionId(data);
@@ -126,6 +136,7 @@ async function applyPaddleEvent(
       }
       if (!tier) {
         ignoredReason = "unknown_price_id";
+        retryable = true;
         break;
       }
 
@@ -148,10 +159,12 @@ async function applyPaddleEvent(
       }
       if (current.stripeSubscriptionId !== subscriptionId) {
         ignoredReason = "subscription_id_mismatch";
+        retryable = true;
         break;
       }
       if (!tier) {
         ignoredReason = "unknown_price_id";
+        retryable = true;
         break;
       }
 
@@ -173,6 +186,7 @@ async function applyPaddleEvent(
       }
       if (current.stripeSubscriptionId !== subscriptionId) {
         ignoredReason = "subscription_id_mismatch";
+        retryable = true;
         break;
       }
 
@@ -197,12 +211,14 @@ async function applyPaddleEvent(
     }
   }
 
-  const finalState = markPaddleEventProcessed(next, event.event_id);
+  const finalState = retryable
+    ? next
+    : markPaddleEventProcessed(next, event.event_id);
   if (!sameSubscriptionState(current, finalState)) {
     await deps.saveSubscription(finalState);
   }
 
-  return { applied, duplicate: false, ignoredReason };
+  return { applied, duplicate: false, retryable, ignoredReason };
 }
 
 export async function handlePaddleWebhook(
@@ -232,7 +248,9 @@ export async function handlePaddleWebhook(
   }
 
   try {
-    const result = await applyPaddleEvent(event, deps);
+    const result = await deps.withSubscriptionStateLock(() =>
+      applyPaddleEvent(event, deps)
+    );
     return {
       status: 200,
       body: {
@@ -241,10 +259,20 @@ export async function handlePaddleWebhook(
         eventType: event.event_type,
         applied: result.applied,
         duplicate: result.duplicate,
+        retryable: result.retryable,
         ignoredReason: result.ignoredReason,
       },
     };
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && err.message === "subscription_lock_timeout") {
+      return {
+        status: 503,
+        body: {
+          error: "Webhook processing lock timeout",
+          retryable: true,
+        },
+      };
+    }
     return {
       status: 500,
       body: {
