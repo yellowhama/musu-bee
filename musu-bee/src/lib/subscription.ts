@@ -19,10 +19,12 @@ export interface SubscriptionState {
   status: "active" | "trialing" | "cancelled" | "none";
   currentPeriodEnd: string | null;
   _processedStripeEventIds: string[];
+  _processedPaddleEventIds: string[];
 }
 
 const KV_KEY = "subscription:state";
 const MAX_PROCESSED_STRIPE_EVENTS = 200;
+const MAX_PROCESSED_PADDLE_EVENTS = 200;
 
 const DEFAULT_STATE: SubscriptionState = {
   plan: "free",
@@ -31,6 +33,7 @@ const DEFAULT_STATE: SubscriptionState = {
   status: "none",
   currentPeriodEnd: null,
   _processedStripeEventIds: [],
+  _processedPaddleEventIds: [],
 };
 
 function normalizeState(state: Partial<SubscriptionState>): SubscriptionState {
@@ -38,6 +41,7 @@ function normalizeState(state: Partial<SubscriptionState>): SubscriptionState {
     ...DEFAULT_STATE,
     ...state,
     _processedStripeEventIds: state._processedStripeEventIds ?? [],
+    _processedPaddleEventIds: state._processedPaddleEventIds ?? [],
   };
 }
 
@@ -121,8 +125,38 @@ export function markStripeEventProcessed(
   };
 }
 
-export function toPublicSubscriptionState(state: SubscriptionState): Omit<SubscriptionState, "_processedStripeEventIds"> {
-  const { _processedStripeEventIds: _ignored, ...publicState } = state;
+export function hasProcessedPaddleEvent(
+  state: SubscriptionState,
+  eventId: string
+): boolean {
+  return state._processedPaddleEventIds.includes(eventId);
+}
+
+export function markPaddleEventProcessed(
+  state: SubscriptionState,
+  eventId: string
+): SubscriptionState {
+  if (state._processedPaddleEventIds.includes(eventId)) return state;
+
+  const next = [...state._processedPaddleEventIds, eventId];
+  if (next.length > MAX_PROCESSED_PADDLE_EVENTS) {
+    next.splice(0, next.length - MAX_PROCESSED_PADDLE_EVENTS);
+  }
+
+  return {
+    ...state,
+    _processedPaddleEventIds: next,
+  };
+}
+
+export function toPublicSubscriptionState(
+  state: SubscriptionState
+): Omit<SubscriptionState, "_processedStripeEventIds" | "_processedPaddleEventIds"> {
+  const {
+    _processedStripeEventIds: _ignoredStripe,
+    _processedPaddleEventIds: _ignoredPaddle,
+    ...publicState
+  } = state;
   return publicState;
 }
 

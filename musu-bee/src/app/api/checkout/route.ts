@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getStripe, STRIPE_PRICES } from "@/lib/stripe";
+import {
+  createPaddleCheckoutSession,
+  PADDLE_PRICE_IDS,
+} from "@/lib/paddle";
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,26 +12,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid tier" }, { status: 400 });
     }
 
-    const priceId = STRIPE_PRICES[tier];
-    if (!priceId) {
+    if (!process.env.PADDLE_API_KEY) {
       return NextResponse.json(
-        { error: `STRIPE_PRICE_${tier.toUpperCase()} env var not set` },
-        { status: 500 }
+        { error: "PADDLE_API_KEY env var not set" },
+        { status: 503 }
+      );
+    }
+
+    if (!PADDLE_PRICE_IDS[tier]) {
+      return NextResponse.json(
+        { error: `PADDLE_PRICE_ID_${tier.toUpperCase()} env var not set` },
+        { status: 503 }
       );
     }
 
     const baseUrl =
       process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3001";
 
-    const session = await getStripe().checkout.sessions.create({
-      mode: "subscription",
-      line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${baseUrl}/pro?success=1&tier=${tier}`,
-      cancel_url: `${baseUrl}/pro?cancelled=1`,
-      metadata: { tier },
+    const session = await createPaddleCheckoutSession({
+      tier,
+      successUrl: `${baseUrl}/pricing?success=1&tier=${tier}`,
+      cancelUrl: `${baseUrl}/pricing?cancelled=1`,
     });
 
-    return NextResponse.json({ url: session.url });
+    return NextResponse.json({
+      provider: "paddle",
+      transactionId: session.transactionId,
+      url: session.checkoutUrl,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });

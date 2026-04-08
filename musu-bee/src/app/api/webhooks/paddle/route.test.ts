@@ -1,0 +1,271 @@
+import assert from "node:assert/strict";
+import { before, test } from "node:test";
+import type { SubscriptionState } from "@/lib/subscription";
+
+let handlePaddleWebhook: (
+  rawBody: string,
+  signature: string | null,
+  deps: any
+) => Promise<{ status: number; body: Record<string, unknown> }>;
+
+before(async () => {
+  process.env.PADDLE_PRICE_ID_PRO = "pri_pro_test";
+  process.env.PADDLE_PRICE_ID_TEAM = "pri_team_test";
+  ({ handlePaddleWebhook } = await import("./handler"));
+});
+
+function makeState(
+  overrides: Partial<SubscriptionState> = {}
+): SubscriptionState {
+  return {
+    plan: "free",
+    stripeCustomerId: null,
+    stripeSubscriptionId: null,
+    status: "none",
+    currentPeriodEnd: null,
+    _processedStripeEventIds: [],
+    _processedPaddleEventIds: [],
+    ...overrides,
+  };
+}
+
+function makeEvent(eventId: string, eventType: string, data: Record<string, unknown>) {
+  return {
+    event_id: eventId,
+    event_type: eventType,
+    data,
+  };
+}
+
+test("invalid signature returns 400 and does not write state", async () => {
+  let saveCalls = 0;
+  let readCalls = 0;
+  const event = makeEvent("evt_invalid_sig", "subscription.activated", {
+    id: "sub_1",
+    customer_id: "cus_1",
+    items: [{ price: { id: "pri_pro_test" } }],
+  });
+
+  const deps = {
+    webhookSecret: "whsec_test",
+    verifySignature: () => false,
+    getSubscription: async () => {
+      readCalls += 1;
+      return makeState();
+    },
+    saveSubscription: async () => {
+      saveCalls += 1;
+    },
+  };
+
+  const result = await handlePaddleWebhook(
+    JSON.stringify(event),
+    "ts=1;h1=deadbeef",
+    deps
+  );
+
+  assert.equal(result.status, 400);
+  assert.equal(result.body.error, "Invalid signature");
+  assert.equal(readCalls, 0);
+  assert.equal(saveCalls, 0);
+});
+
+test("subscription.activated replay is deduped by event id", async () => {
+  let state = makeState();
+  let saveCalls = 0;
+  const event = makeEvent("evt_activate_1", "subscription.activated", {
+    id: "sub_1",
+    customer_id: "cus_1",
+    items: [{ price: { id: "pri_pro_test" } }],
+    current_billing_period: { ends_at: "2030-01-01T00:00:00Z" },
+  });
+
+  const deps = {
+    webhookSecret: "whsec_test",
+    verifySignature: () => true,
+    getSubscription: async () => state,
+    saveSubscription: async (next: SubscriptionState) => {
+      saveCalls += 1;
+      state = next;
+    },
+  };
+
+  const first = await handlePaddleWebhook(
+    JSON.stringify(event),
+    "ts=1;h1=deadbeef",
+    deps
+  );
+  const second = await handlePaddleWebhook(
+    JSON.stringify(event),
+    "ts=1;h1=deadbeef",
+    deps
+  );
+
+  assert.equal(first.status, 200);
+  assert.equal(first.body.applied, true);
+  assert.equal(first.body.duplicate, false);
+
+  assert.equal(second.status, 200);
+  assert.equal(second.body.applied, false);
+  assert.equal(second.body.duplicate, true);
+
+  assert.equal(saveCalls, 1);
+  assert.equal(state.plan, "pro");
+  assert.equal(state.status, "active");
+  assert.equal(state.stripeSubscriptionId, "sub_1");
+});
+
+test("subscription.updated before activation does not grant entitlement", async () => {
+  let state = makeState();
+  const event = makeEvent("evt_update_before_activation", "subscription.updated", {
+    id: "sub_orphan",
+    status: "active",
+    items: [{ price: { id: "pri_team_test" } }],
+    current_billing_period: { ends_at: "2030-01-02T00:00:00Z" },
+  });
+
+  const deps = {
+    webhookSecret: "whsec_test",
+    verifySignature: () => true,
+    getSubscription: async () => state,
+    saveSubscription: async (next: SubscriptionState) => {
+      state = next;
+    },
+  };
+
+  const result = await handlePaddleWebhook(
+    JSON.stringify(event),
+    "ts=1;h1=deadbeef",
+    deps
+  );
+
+  assert.equal(result.status, 200);
+  assert.equal(result.body.applied, false);
+  assert.equal(result.body.ignoredReason, "subscription_id_mismatch");
+  assert.equal(state.plan, "free");
+  assert.equal(state.status, "none");
+});
+
+test("subscription.updated replay is deduped by event id", async () => {
+  let state = makeState({
+    plan: "pro",
+    status: "active",
+    stripeCustomerId: "cus_1",
+    stripeSubscriptionId: "sub_1",
+  });
+  let saveCalls = 0;
+
+  const event = makeEvent("evt_update_1", "subscription.updated", {
+    id: "sub_1",
+    status: "active",
+    items: [{ price: { id: "pri_team_test" } }],
+    current_billing_period: { ends_at: "2030-02-01T00:00:00Z" },
+  });
+
+  const deps = {
+    webhookSecret: "whsec_test",
+    verifySignature: () => true,
+    getSubscription: async () => state,
+    saveSubscription: async (next: SubscriptionState) => {
+      saveCalls += 1;
+      state = next;
+    },
+  };
+
+  const first = await handlePaddleWebhook(
+    JSON.stringify(event),
+    "ts=1;h1=deadbeef",
+    deps
+  );
+  const second = await handlePaddleWebhook(
+    JSON.stringify(event),
+    "ts=1;h1=deadbeef",
+    deps
+  );
+
+  assert.equal(first.status, 200);
+  assert.equal(first.body.applied, true);
+  assert.equal(second.status, 200);
+  assert.equal(second.body.duplicate, true);
+  assert.equal(saveCalls, 1);
+  assert.equal(state.plan, "team");
+});
+
+test("subscription.cancelled replay is deduped by event id", async () => {
+  let state = makeState({
+    plan: "pro",
+    status: "active",
+    stripeCustomerId: "cus_1",
+    stripeSubscriptionId: "sub_1",
+  });
+  let saveCalls = 0;
+  const event = makeEvent("evt_cancel_1", "subscription.cancelled", {
+    id: "sub_1",
+    status: "canceled",
+  });
+
+  const deps = {
+    webhookSecret: "whsec_test",
+    verifySignature: () => true,
+    getSubscription: async () => state,
+    saveSubscription: async (next: SubscriptionState) => {
+      saveCalls += 1;
+      state = next;
+    },
+  };
+
+  const first = await handlePaddleWebhook(
+    JSON.stringify(event),
+    "ts=1;h1=deadbeef",
+    deps
+  );
+  const second = await handlePaddleWebhook(
+    JSON.stringify(event),
+    "ts=1;h1=deadbeef",
+    deps
+  );
+
+  assert.equal(first.status, 200);
+  assert.equal(first.body.applied, true);
+  assert.equal(second.status, 200);
+  assert.equal(second.body.duplicate, true);
+  assert.equal(saveCalls, 1);
+  assert.equal(state.plan, "free");
+  assert.equal(state.status, "cancelled");
+  assert.equal(state.stripeSubscriptionId, null);
+});
+
+test("transaction.completed is recorded without changing entitlement", async () => {
+  let state = makeState({
+    plan: "pro",
+    status: "active",
+    stripeCustomerId: "cus_1",
+    stripeSubscriptionId: "sub_1",
+  });
+
+  const event = makeEvent("evt_tx_1", "transaction.completed", {
+    id: "txn_1",
+  });
+
+  const deps = {
+    webhookSecret: "whsec_test",
+    verifySignature: () => true,
+    getSubscription: async () => state,
+    saveSubscription: async (next: SubscriptionState) => {
+      state = next;
+    },
+  };
+
+  const result = await handlePaddleWebhook(
+    JSON.stringify(event),
+    "ts=1;h1=deadbeef",
+    deps
+  );
+
+  assert.equal(result.status, 200);
+  assert.equal(result.body.applied, false);
+  assert.equal(result.body.ignoredReason, "transaction_recorded");
+  assert.equal(state.plan, "pro");
+  assert.equal(state.status, "active");
+  assert.ok(state._processedPaddleEventIds.includes("evt_tx_1"));
+});

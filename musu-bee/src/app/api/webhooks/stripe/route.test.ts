@@ -12,7 +12,7 @@ let handleStripeWebhook: (
 before(async () => {
   process.env.STRIPE_PRICE_PRO = "price_pro_test";
   process.env.STRIPE_PRICE_TEAM = "price_team_test";
-  ({ handleStripeWebhook } = await import("./route"));
+  ({ handleStripeWebhook } = await import("./handler"));
 });
 
 function makeState(
@@ -25,6 +25,7 @@ function makeState(
     status: "none",
     currentPeriodEnd: null,
     _processedStripeEventIds: [],
+    _processedPaddleEventIds: [],
     ...overrides,
   };
 }
