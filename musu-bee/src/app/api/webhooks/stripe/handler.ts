@@ -56,19 +56,30 @@ export interface StripeWebhookDeps {
 interface EventResult {
   applied: boolean;
   duplicate: boolean;
+  retryable: boolean;
   ignoredReason?: string;
 }
 
 export function defaultStripeWebhookDeps(): StripeWebhookDeps {
-  const stripe = getStripe();
+  let stripeClient: ReturnType<typeof getStripe> | null = null;
+  const getStripeClient = () => {
+    if (!stripeClient) {
+      stripeClient = getStripe();
+    }
+    return stripeClient;
+  };
+
   return {
     webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
     constructEvent: (payload, signature, webhookSecret) =>
-      stripe.webhooks.constructEvent(payload, signature, webhookSecret),
+      getStripeClient().webhooks.constructEvent(payload, signature, webhookSecret),
     listLineItemPriceId: async (sessionId) => {
-      const lineItems = await stripe.checkout.sessions.listLineItems(sessionId, {
-        limit: 1,
-      });
+      const lineItems = await getStripeClient().checkout.sessions.listLineItems(
+        sessionId,
+        {
+          limit: 1,
+        }
+      );
       return lineItems.data[0]?.price?.id ?? null;
     },
     getSubscription,
@@ -86,11 +97,17 @@ async function applyStripeEvent(
 ): Promise<EventResult> {
   const current = await deps.getSubscription();
   if (hasProcessedStripeEvent(current, event.id)) {
-    return { applied: false, duplicate: true, ignoredReason: "duplicate_event" };
+    return {
+      applied: false,
+      duplicate: true,
+      retryable: false,
+      ignoredReason: "duplicate_event",
+    };
   }
 
   let next = current;
   let applied = false;
+  let retryable = false;
   let ignoredReason: string | undefined;
 
   switch (event.type) {
@@ -109,6 +126,7 @@ async function applyStripeEvent(
       const tier = tierFromPriceId(priceId);
       if (!tier) {
         ignoredReason = "unknown_price_id";
+        retryable = true;
         break;
       }
 
@@ -127,6 +145,7 @@ async function applyStripeEvent(
       const sub = event.data.object as Stripe.Subscription;
       if (current.stripeSubscriptionId !== sub.id) {
         ignoredReason = "subscription_id_mismatch";
+        retryable = true;
         break;
       }
 
@@ -134,6 +153,7 @@ async function applyStripeEvent(
       const plan = tierFromPriceId(priceId);
       if (!plan) {
         ignoredReason = "unknown_price_id";
+        retryable = true;
         break;
       }
 
@@ -156,6 +176,7 @@ async function applyStripeEvent(
       const sub = event.data.object as Stripe.Subscription;
       if (current.stripeSubscriptionId !== sub.id) {
         ignoredReason = "subscription_id_mismatch";
+        retryable = true;
         break;
       }
 
@@ -174,12 +195,14 @@ async function applyStripeEvent(
       break;
   }
 
-  const finalState = markStripeEventProcessed(next, event.id);
+  const finalState = retryable
+    ? next
+    : markStripeEventProcessed(next, event.id);
   if (!sameSubscriptionState(current, finalState)) {
     await deps.saveSubscription(finalState);
   }
 
-  return { applied, duplicate: false, ignoredReason };
+  return { applied, duplicate: false, retryable, ignoredReason };
 }
 
 export async function handleStripeWebhook(
@@ -216,12 +239,14 @@ export async function handleStripeWebhook(
     const result = await deps.withSubscriptionStateLock(() =>
       applyStripeEvent(event, deps)
     );
+    const responseStatus = result.retryable ? 503 : 200;
     return {
-      status: 200,
+      status: responseStatus,
       body: {
         received: true,
         applied: result.applied,
         duplicate: result.duplicate,
+        retryable: result.retryable,
         ignoredReason: result.ignoredReason,
         eventType: event.type,
       },

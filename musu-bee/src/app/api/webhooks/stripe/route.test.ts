@@ -122,6 +122,7 @@ test("checkout.session.completed replay is deduped by event id", async () => {
 
 test("subscription.updated before checkout does not grant entitlement", async () => {
   let state = makeState();
+  const eventId = "evt_update_before_checkout";
   const updatedEvent = makeEvent("evt_update_before_checkout", "customer.subscription.updated", {
     id: "sub_orphan",
     status: "active",
@@ -143,11 +144,13 @@ test("subscription.updated before checkout does not grant entitlement", async ()
   };
 
   const result = await handleStripeWebhook(RAW_BODY, "sig_test", deps);
-  assert.equal(result.status, 200);
+  assert.equal(result.status, 503);
   assert.equal(result.body.applied, false);
+  assert.equal(result.body.retryable, true);
   assert.equal(result.body.ignoredReason, "subscription_id_mismatch");
   assert.equal(state.plan, "free");
   assert.equal(state.status, "none");
+  assert.equal(state._processedStripeEventIds.includes(eventId), false);
 });
 
 test("customer.subscription.updated replay is deduped by event id", async () => {
@@ -227,6 +230,102 @@ test("customer.subscription.deleted replay is deduped by event id", async () => 
   assert.equal(saveCalls, 1);
   assert.equal(state.plan, "free");
   assert.equal(state.status, "cancelled");
+});
+
+test("unknown price id stays retryable and unprocessed", async () => {
+  let state = makeState();
+  const checkoutSession = {
+    id: "cs_unknown_price",
+    mode: "subscription",
+    customer: "cus_unknown",
+    subscription: "sub_unknown",
+  } as Stripe.Checkout.Session;
+  const event = makeEvent(
+    "evt_checkout_unknown_price",
+    "checkout.session.completed",
+    checkoutSession
+  );
+
+  const deps = {
+    webhookSecret: "whsec_test",
+    constructEvent: () => event,
+    listLineItemPriceId: async () => "price_unknown",
+    getSubscription: async () => state,
+    saveSubscription: async (next: SubscriptionState) => {
+      state = next;
+    },
+    withSubscriptionStateLock: passthroughLock,
+  };
+
+  const result = await handleStripeWebhook(RAW_BODY, "sig_test", deps);
+  assert.equal(result.status, 503);
+  assert.equal(result.body.applied, false);
+  assert.equal(result.body.retryable, true);
+  assert.equal(result.body.ignoredReason, "unknown_price_id");
+  assert.equal(
+    state._processedStripeEventIds.includes("evt_checkout_unknown_price"),
+    false
+  );
+});
+
+test("replay after subscription mismatch can apply once checkout state exists", async () => {
+  let state = makeState();
+  const updateEventId = "evt_update_replayable";
+  const updateEvent = makeEvent(
+    updateEventId,
+    "customer.subscription.updated",
+    {
+      id: "sub_replay",
+      status: "active",
+      current_period_end: 1_800_000_000,
+      items: {
+        data: [{ price: { id: "price_team_test" } }],
+      },
+    } as Stripe.Subscription
+  );
+
+  const checkoutEvent = makeEvent(
+    "evt_checkout_replay_bootstrap",
+    "checkout.session.completed",
+    {
+      id: "cs_replay",
+      mode: "subscription",
+      customer: "cus_replay",
+      subscription: "sub_replay",
+    } as Stripe.Checkout.Session
+  );
+
+  let currentEvent = updateEvent;
+  const deps = {
+    webhookSecret: "whsec_test",
+    constructEvent: () => currentEvent,
+    listLineItemPriceId: async () => "price_pro_test",
+    getSubscription: async () => state,
+    saveSubscription: async (next: SubscriptionState) => {
+      state = next;
+    },
+    withSubscriptionStateLock: passthroughLock,
+  };
+
+  const firstUpdate = await handleStripeWebhook(RAW_BODY, "sig_test", deps);
+  assert.equal(firstUpdate.status, 503);
+  assert.equal(firstUpdate.body.applied, false);
+  assert.equal(firstUpdate.body.retryable, true);
+  assert.equal(state._processedStripeEventIds.includes(updateEventId), false);
+
+  currentEvent = checkoutEvent;
+  const activation = await handleStripeWebhook(RAW_BODY, "sig_test", deps);
+  assert.equal(activation.status, 200);
+  assert.equal(activation.body.applied, true);
+  assert.equal(state.stripeSubscriptionId, "sub_replay");
+
+  currentEvent = updateEvent;
+  const replayedUpdate = await handleStripeWebhook(RAW_BODY, "sig_test", deps);
+  assert.equal(replayedUpdate.status, 200);
+  assert.equal(replayedUpdate.body.applied, true);
+  assert.equal(replayedUpdate.body.retryable, false);
+  assert.equal(state.plan, "team");
+  assert.equal(state._processedStripeEventIds.includes(updateEventId), true);
 });
 
 test("lock timeout returns 503 retryable response", async () => {
