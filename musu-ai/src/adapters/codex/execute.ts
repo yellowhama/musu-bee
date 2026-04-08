@@ -220,7 +220,12 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     "You are agent {{agent.id}} ({{agent.name}}). Continue your Paperclip work.",
   );
   const command = asString(config.command, "codex");
-  const model = asString(config.model, "");
+  const model = (() => {
+    const configured = asString(config.model, "").trim();
+    if (configured) return configured;
+    const envModel = (process.env.MUSU_CODEX_MODEL ?? process.env.CODEX_MODEL ?? "").trim();
+    return envModel || "gpt-5.2";
+  })();
   const modelReasoningEffort = asString(
     config.modelReasoningEffort,
     asString(config.reasoningEffort, ""),
