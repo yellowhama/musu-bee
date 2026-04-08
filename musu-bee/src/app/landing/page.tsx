@@ -193,7 +193,7 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
           </div>
         ) : null}
 
-        {waitlistStatus === "error" ? (
+        {waitlistStatus === "invalid_email" ? (
           <div
             style={{
               marginTop: 14,
@@ -203,6 +203,19 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
             }}
           >
             이메일 형식이 올바르지 않습니다. 다시 확인해주세요.
+          </div>
+        ) : null}
+
+        {waitlistStatus === "error" ? (
+          <div
+            style={{
+              marginTop: 14,
+              fontSize: 14,
+              color: "#fca5a5",
+              lineHeight: 1.6,
+            }}
+          >
+            지금은 대기자 명단에 등록할 수 없습니다. 잠시 후 다시 시도해주세요.
           </div>
         ) : null}
 
