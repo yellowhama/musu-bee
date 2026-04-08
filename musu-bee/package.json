@@ -11,7 +11,9 @@
     "test:webhooks": "tsx --test src/app/api/webhooks/**/*.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:e2e:headed": "playwright test --headed"
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:auth-landing": "bash ./scripts/run-auth-e2e-lane.sh 3003 false playwright.authlanding.config.ts e2e/auth-landing.spec.ts",
+    "test:e2e:auth-guard": "bash ./scripts/run-auth-e2e-lane.sh 3002 true playwright.authguard.config.ts e2e/auth-landing.spec.ts -g @guard"
   },
   "dependencies": {
     "@paddle/paddle-js": "^1.6.2",
