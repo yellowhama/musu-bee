@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const MUSU_BRIDGE_URL =
-  process.env.MUSU_BRIDGE_URL ?? "http://localhost:8070";
+const MUSU_BRIDGE_URL = (
+  process.env.MUSU_BRIDGE_URL ?? "http://localhost:8070"
+).trim();
 
 export interface HistoryMessage {
   id: string;
