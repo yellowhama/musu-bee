@@ -87,6 +87,8 @@
 목표: 기본은 `localhost` 웹 GUI(운영/control plane), 유료는 `musu.pro` 워크스페이스 + (옵션) WebRTC 화면.
 
 - master plan: `plans/76_local_gui_and_musu_pro_productization_2026-04-09.md`
+- WebRTC OSS survey: `docs/REPORT_2026-04-09_webrtc_remote_desktop_oss_survey.md`
+- WebRTC MVP detail plan: `plans/77_webrtc_remote_viewing_mvp_2026-04-09.md`
 
 ## 남은 구현 파동
 
