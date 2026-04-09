@@ -1,6 +1,6 @@
 # musu-functions TODO Execution Board
 
-Last sync: `2026-04-09 13:51 KST` (source: Paperclip API live reconciliation by Chief of Staff)
+Last sync: 2026-04-09 13:56 KST
 Board reconciled with Paperclip: `2026-04-09 13:51 KST` (issue/agent/dashboard API cross-check)
 
 ## 2026-04-09 CoS Heartbeat Delta (13:29 KST)
@@ -76,6 +76,7 @@ Execution resume order (board-facing):
 
 - MUSU system optimization / guardrails: `plans/78_musu_system_optimization_master_plan_2026-04-09.md`
   - next: `plans/79_worker_concurrency_cap_detail_plan_2026-04-09.md` (add `musu-worker` concurrency cap + policy)
+  - next: `plans/80_systemd_cgroup_guardrails_detail_2026-04-09.md` (enforce low CPU/RAM as a sidecar via systemd)
 - WebRTC remote desktop OSS survey: `docs/REPORT_2026-04-09_webrtc_remote_desktop_oss_survey.md`
   - purpose: pick a realistic reference architecture (Selkies/MeshCentral/noVNC/Guacamole) and lock MVP decisions (view-only + TURN).
 

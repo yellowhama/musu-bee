@@ -96,6 +96,7 @@
 
 - master plan: `plans/78_musu_system_optimization_master_plan_2026-04-09.md`
 - detail plan: `plans/79_worker_concurrency_cap_detail_plan_2026-04-09.md`
+- systemd/cgroup detail: `plans/80_systemd_cgroup_guardrails_detail_2026-04-09.md`
 
 ## 남은 구현 파동
 

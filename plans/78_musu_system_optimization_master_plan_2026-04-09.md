@@ -52,6 +52,7 @@
 - 리소스 제한을 운영 레이어에서 강제:
   - `MemoryMax`, `CPUQuota`, `TasksMax`
   - 재시작 정책/로그 로테이션
+- detail plan: `plans/80_systemd_cgroup_guardrails_detail_2026-04-09.md`
 
 ### Wave 3 — Disk hygiene (1일)
 - `~/.musu/logs`, `~/.musu/run`, 아티팩트 폴더의 TTL/크기 상한
@@ -75,4 +76,3 @@
 - “실수로 커맨드 폭주”를 해도 프로세스 수/메모리 폭주로 OS가 죽지 않는다.
 - 기본값이 보수적이고, 고급 사용자는 env로 확장할 수 있다.
 - 어떤 값이 안전한지 문서/체크리스트가 있다.
-
