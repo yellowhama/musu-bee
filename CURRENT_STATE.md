@@ -75,12 +75,12 @@
 - code index:
   - repo id: `local/musu-functions-35ec71f9`
   - scope: product code 중심 재인덱싱
-  - result: `257 files`, `3049 symbols`
+  - result: `~257 files`, `2816 symbols` (incremental)
   - ignore: `**/references/**`, `**/work/**`, `**/target/**`, `**/.git/**`, `**/node_modules/**`, `**/__pycache__/**`
 - docs index:
   - repo id: `local/musu-functions`
   - scope: Markdown 중심 재인덱싱
-  - result: `443 markdown files`, `3887 sections`
+  - result: `~443 markdown files`, `4310 sections` (incremental)
   - ignore: `**/references/**`, `**/work/**`, `**/target/**`, `**/.git/**`, `**/node_modules/**`, `**/__pycache__/**`, `**/*.json`, `**/*.html`, `**/*.txt`
 
 ## 현재 판단
@@ -126,6 +126,14 @@
 
 - blocked/high 7 재패킷팅 문서: `/home/hugh51/musu-functions/plans/70_paperclip_unblock_pack_2026-04-09.md`
 - Paperclip plan 문서 동기화 스크립트: `/home/hugh51/musu-functions/scripts/paperclip_put_unblock_plans_2026-04-09.sh`
+- MUSU system optimization/guardrails master plan: `/home/hugh51/musu-functions/plans/78_musu_system_optimization_master_plan_2026-04-09.md`
+  - worker concurrency cap: `/home/hugh51/musu-functions/plans/79_worker_concurrency_cap_detail_plan_2026-04-09.md`
+  - systemd/cgroup guardrails: `/home/hugh51/musu-functions/plans/80_systemd_cgroup_guardrails_detail_2026-04-09.md`
+  - disk hygiene cleanup: `/home/hugh51/musu-functions/plans/81_disk_hygiene_cleanup_detail_2026-04-09.md`
+  - implementation:
+    - `musu-worker` rate limit/output caps + concurrency cap(+`GET /stats`): `/home/hugh51/musu-functions/musu-worker/src/musu_worker/main.py`
+    - systemd user service install: `/home/hugh51/musu-functions/scripts/install-musu-worker-user-service.sh`
+    - cleanup command + optional timer: `/home/hugh51/musu-functions/scripts/musu_cleanup.py`, `/home/hugh51/musu-functions/scripts/install-musu-cleanup-user-timer.sh`
 
 ## 남은 작업 리스트
 

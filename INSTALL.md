@@ -229,6 +229,38 @@ cd musu-worker && MUSU_WORKER_HOST=0.0.0.0 python3 -m musu_worker.main  # :9700
 cd musu-port && cargo run -p musu-portd  # :1355
 ```
 
+### (권장) worker를 “보조 프로그램” 리소스로 묶기 (systemd user service)
+
+`musu-worker`는 원격 프로세스 실행을 포함하므로, 실수/폭주 요청이 머신을 프리징시키지 않도록 **OS 레벨 가드레일(CPUQuota/MemoryMax/TasksMax)**로 감싸는 것을 권장합니다.
+
+```bash
+cd /home/hugh51/musu-functions
+./scripts/install-musu-worker-user-service.sh
+
+# 로그
+journalctl --user -u musu-worker -f
+
+# 헬스(로컬)
+curl -sf http://127.0.0.1:9700/health
+curl -sf http://127.0.0.1:9700/stats
+```
+
+튜닝(더 낮게/높게):
+```bash
+systemctl --user edit musu-worker
+systemctl --user restart musu-worker
+```
+
+### (권장) 디스크 hygiene (TTL/size caps) — optional daily cleanup timer
+
+로그/런파일/아티팩트 누적으로 디스크가 꽉 차는 사고를 방지합니다. 기본은 **dry-run**이며, 타이머는 `--apply`로 실행됩니다.
+
+```bash
+cd /home/hugh51/musu-functions
+./scripts/musu_cleanup.py --json           # dry-run report
+./scripts/install-musu-cleanup-user-timer.sh
+```
+
 ### 연결 확인
 
 ```bash

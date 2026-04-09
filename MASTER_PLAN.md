@@ -98,6 +98,8 @@
 - detail plan: `plans/79_worker_concurrency_cap_detail_plan_2026-04-09.md`
 - systemd/cgroup detail: `plans/80_systemd_cgroup_guardrails_detail_2026-04-09.md`
 - disk hygiene detail: `plans/81_disk_hygiene_cleanup_detail_2026-04-09.md`
+- observability minimum: `plans/82_observability_and_profiling_minimum_2026-04-09.md`
+- qualitative eval + code audit: `docs/REPORT_2026-04-09_guardrails_qualitative_eval_and_code_audit.md`
 
 ## 남은 구현 파동
 

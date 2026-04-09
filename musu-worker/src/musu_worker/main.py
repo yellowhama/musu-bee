@@ -74,9 +74,12 @@ _CONCURRENCY_MODE = (os.environ.get("MUSU_WORKER_CONCURRENCY_MODE") or "reject")
 _WAIT_TIMEOUT_SEC = float(os.environ.get("MUSU_WORKER_CONCURRENCY_WAIT_TIMEOUT_SEC") or "2")
 
 _run_semaphore = asyncio.Semaphore(_MAX_CONCURRENT_RUNS)
+_active_runs = 0
+_active_runs_lock = asyncio.Lock()
 
 
 async def concurrency_guard():
+    global _active_runs
     acquired = False
     try:
         if _CONCURRENCY_MODE == "wait":
@@ -91,6 +94,8 @@ async def concurrency_guard():
                     ),
                 ) from exc
             acquired = True
+            async with _active_runs_lock:
+                _active_runs += 1
             yield
             return
 
@@ -103,10 +108,14 @@ async def concurrency_guard():
                 detail=f"Worker is busy (concurrency cap={_MAX_CONCURRENT_RUNS}, mode=reject). Retry later.",
             ) from exc
         acquired = True
+        async with _active_runs_lock:
+            _active_runs += 1
         yield
     finally:
         if acquired:
             _run_semaphore.release()
+            async with _active_runs_lock:
+                _active_runs -= 1
 
 
 # ---------------------------------------------------------------------------
@@ -147,6 +156,22 @@ async def capabilities(_: None = Depends(require_auth)) -> dict[str, Any]:
     return {
         "clis": available_clis,
         "adapters": ["remote_cli", "remote_process"],
+    }
+
+
+@app.get("/stats")
+async def stats(_: None = Depends(require_auth)) -> dict[str, Any]:
+    async with _active_runs_lock:
+        active_runs = _active_runs
+    return {
+        "active_runs": active_runs,
+        "max_concurrent_runs": _MAX_CONCURRENT_RUNS,
+        "concurrency_mode": _CONCURRENCY_MODE,
+        "concurrency_wait_timeout_sec": _WAIT_TIMEOUT_SEC,
+        "output_caps": {
+            "max_stdout_bytes": _get_int_env("MUSU_WORKER_MAX_STDOUT_BYTES", 2_000_000),
+            "max_stderr_bytes": _get_int_env("MUSU_WORKER_MAX_STDERR_BYTES", 2_000_000),
+        },
     }
 
 
