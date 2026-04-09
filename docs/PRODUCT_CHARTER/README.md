@@ -21,6 +21,13 @@
 
 - `USE_CASES_2026-04-09_multi_session_ops.md`
 
+## Product Contracts
+
+- `PRODUCT_MONETIZATION.md`
+- `NETWORK_BOUNDARY_SPEC.md`
+- `PACK_SPEC.md`
+- `CONNECT_ARCHITECTURE.md`
+
 ## Related notes
 
 - “채팅은 코어가 아니라 원격 Web GUI surface”: `docs/NOTE_2026-04-09_chat_is_web_gui_not_core.md`
