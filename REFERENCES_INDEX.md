@@ -3,6 +3,26 @@
 > `references_AI/` → `/home/hugh51/references_AI/` (심링크)
 > 새로 만들지 말고 여기서 먼저 찾는다.
 
+## 내부 SSOT / 차터 문서
+
+외부 레퍼런스를 읽기 전에, 현재 MUSU 제품 정의와 계약은 아래 문서가 기준이다.
+
+- `docs/PRODUCT_CHARTER/README.md` — 제품 차터 인덱스
+- `docs/PRODUCT_CHARTER/SSOT_1PAGE_2026-04-09.md` — 1페이지 SSOT
+- `docs/PRODUCT_CHARTER/PRODUCT_VISION.md`
+- `docs/PRODUCT_CHARTER/PRODUCT_STRATEGY.md`
+- `docs/PRODUCT_CHARTER/PRODUCT_CONTROL_SURFACE_MAP.md`
+- `docs/PRODUCT_CHARTER/MUSU_BLUEPRINT.md`
+- `docs/PRODUCT_CHARTER/PRODUCT_MONETIZATION.md`
+- `docs/PRODUCT_CHARTER/NETWORK_BOUNDARY_SPEC.md`
+- `docs/PRODUCT_CHARTER/PACK_SPEC.md`
+- `docs/PRODUCT_CHARTER/CONNECT_ARCHITECTURE.md`
+- `docs/PRODUCT_CHARTER/USE_CASES_2026-04-09_multi_session_ops.md`
+
+규칙:
+- 외부 레퍼런스는 “참고”다.
+- 제품 정의/경계/수익모델/네트워크 경계는 위 SSOT 문서를 우선한다.
+
 ---
 
 ## 레포 목록 + MUSU 매핑
