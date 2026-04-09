@@ -17,6 +17,10 @@
 
 - `SSOT_1PAGE_2026-04-09.md`
 
+## Use cases
+
+- `USE_CASES_2026-04-09_multi_session_ops.md`
+
 ## Related notes
 
 - “채팅은 코어가 아니라 원격 Web GUI surface”: `docs/NOTE_2026-04-09_chat_is_web_gui_not_core.md`
