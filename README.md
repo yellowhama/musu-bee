@@ -31,6 +31,7 @@
 
 - [DOGFOODING_PRODUCT_MODEL.md](/home/hugh51/musu-functions/DOGFOODING_PRODUCT_MODEL.md)
 - [COMPANY_STRATEGY.md](/home/hugh51/musu-functions/COMPANY_STRATEGY.md)
+- [docs/PRODUCT_CHARTER/README.md](/home/hugh51/musu-functions/docs/PRODUCT_CHARTER/README.md)
 - [PRODUCT_STRATEGY.md](/home/hugh51/musu-functions/PRODUCT_STRATEGY.md)
 - [MARKET_AND_REVENUE_MODEL.md](/home/hugh51/musu-functions/MARKET_AND_REVENUE_MODEL.md)
 - [EXECUTION_STRATEGY.md](/home/hugh51/musu-functions/EXECUTION_STRATEGY.md)
