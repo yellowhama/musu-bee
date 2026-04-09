@@ -6,7 +6,6 @@ import asyncio
 import os
 import pathlib
 import shutil
-import subprocess
 from dataclasses import dataclass
 from typing import Any
 
@@ -17,6 +16,51 @@ class ExecResult:
     stderr: str
     exit_code: int
     success: bool
+
+
+def _get_int_env(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+
+async def _read_stream_limited(
+    stream: asyncio.StreamReader,
+    max_bytes: int,
+    label: str,
+) -> bytes:
+    """Read a stream fully while keeping only up to max_bytes in memory.
+
+    This prevents accidental OOM when a command produces huge output, while still
+    draining the pipe so the child process can't deadlock on a full buffer.
+    """
+    chunks: list[bytes] = []
+    kept = 0
+    truncated = False
+
+    while True:
+        data = await stream.read(65536)
+        if not data:
+            break
+
+        if kept < max_bytes:
+            remaining = max_bytes - kept
+            chunks.append(data[:remaining])
+            kept += min(len(data), remaining)
+            if len(data) > remaining:
+                truncated = True
+        else:
+            truncated = True
+
+    out = b"".join(chunks)
+    if truncated:
+        out += f"\n... [{label} truncated at {max_bytes} bytes]".encode()
+    return out
 
 
 async def run_process(
@@ -63,19 +107,35 @@ async def run_process(
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
+
+    max_stdout_bytes = _get_int_env("MUSU_WORKER_MAX_STDOUT_BYTES", 2_000_000)
+    max_stderr_bytes = _get_int_env("MUSU_WORKER_MAX_STDERR_BYTES", 2_000_000)
+
+    assert proc.stdout is not None
+    assert proc.stderr is not None
+    stdout_task = asyncio.create_task(
+        _read_stream_limited(proc.stdout, max_stdout_bytes, label="stdout")
+    )
+    stderr_task = asyncio.create_task(
+        _read_stream_limited(proc.stderr, max_stderr_bytes, label="stderr")
+    )
+
     try:
-        stdout_bytes, stderr_bytes = await asyncio.wait_for(
-            proc.communicate(), timeout=timeout_sec
-        )
+        await asyncio.wait_for(proc.wait(), timeout=timeout_sec)
     except asyncio.TimeoutError:
         proc.kill()
-        await proc.communicate()
+        await proc.wait()
+        stdout_bytes = await stdout_task
+        stderr_bytes = await stderr_task
         return ExecResult(
-            stdout="",
-            stderr=f"Timed out after {timeout_sec}s",
+            stdout=stdout_bytes.decode(errors="replace"),
+            stderr=(stderr_bytes.decode(errors="replace") + f"\nTimed out after {timeout_sec}s"),
             exit_code=-1,
             success=False,
         )
+
+    stdout_bytes = await stdout_task
+    stderr_bytes = await stderr_task
 
     rc = proc.returncode if proc.returncode is not None else -1
     return ExecResult(

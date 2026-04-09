@@ -35,12 +35,13 @@ from musu_worker.auth import require_auth, warn_if_open_mode
 from musu_worker.executors import ExecResult, run_cli, run_process
 
 app = FastAPI(title="musu-worker", version="0.1.0")
+_bearer_token = os.environ.get("MUSU_WORKER_TOKEN")
 apply_musu_middlewares(
     app,
-    bearer_token=os.environ.get("MUSU_WORKER_TOKEN"),
+    bearer_token=_bearer_token,
     rate_limit_capacity=10,
     rate_limit_window_seconds=60,  # 1 minute
-    rate_limit_key_type="token",
+    rate_limit_key_type="token" if _bearer_token else "ip",
 )
 
 
