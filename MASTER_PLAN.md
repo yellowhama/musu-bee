@@ -82,6 +82,12 @@
 - deep research report: `docs/REPORT_2026-04-09_references_AI_deep_research.md`
 - master plan: `plans/71_references_ai_learning_master_plan_2026-04-09.md`
 
+## 2026-04-09 Local GUI → MUSU Pro (musu.pro) Productization
+
+목표: 기본은 `localhost` 웹 GUI(운영/control plane), 유료는 `musu.pro` 워크스페이스 + (옵션) WebRTC 화면.
+
+- master plan: `plans/76_local_gui_and_musu_pro_productization_2026-04-09.md`
+
 ## 남은 구현 파동
 
 ### Wave A. Scope Reset And Execution Re-entry

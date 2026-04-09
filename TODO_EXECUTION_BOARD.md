@@ -1,7 +1,37 @@
 # musu-functions TODO Execution Board
 
-Last sync: `2026-04-09 01:48 KST` (source: Paperclip API live reconciliation by Chief of Staff)
-Board reconciled with Paperclip: `2026-04-09 01:48 KST` (issue/agent/dashboard API cross-check)
+Last sync: `2026-04-09 13:29 KST` (source: Paperclip API live reconciliation by Chief of Staff)
+Board reconciled with Paperclip: `2026-04-09 13:29 KST` (issue/agent/dashboard API cross-check)
+
+## 2026-04-09 CoS Heartbeat Delta (13:29 KST)
+
+Source-of-truth checks:
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}&limit=200`
+- `GET /api/companies/{companyId}/issues?limit=500`
+- `GET /api/issues/d30c7dd6-afb2-4180-857c-787e7603005e`
+- `GET /api/issues/{issueId}/comments` for `MUS-1138`, `MUS-1140`, `MUS-1141`
+
+Live snapshot (verified):
+- Dashboard tasks: `open=36`, `inProgress=7`, `blocked=16`, `done=323`
+- Agent summary: `active=3`, `running=1`, `paused=0`, `error=1`
+- Agent status buckets: `idle=3`, `running=1`, `error=1`
+- Highest-priority assigned issue remains `MUS-1016` (`critical`, `blocked`)
+
+Critical blocker chain (still unresolved):
+- `MUS-1137` `blocked`
+- `MUS-1140` `blocked` (latest evidence comment `8cdb70cd-653e-4f15-8f50-5345f18dac56`)
+- `MUS-1141` `blocked` (latest evidence comment `f661535a-508d-4e73-8eda-1da7f02598c8`)
+- `MUS-1138` `in_progress` (latest directive/evidence comment `394951d3-b574-46ca-9d8d-79b1fa2f0bef`)
+- Downstream still blocked: `MUS-1064` -> `MUS-1065`, `MUS-1024` -> `MUS-995`
+
+Execution resume order (board-facing):
+1. Finish `MUS-1138` intake bundle.
+2. Close `MUS-1140` with real credential-injection evidence (`[TBD: awaiting real data]`).
+3. Close `MUS-1141` with real SSH/manual machine-status evidence (`[TBD: awaiting real data]`).
+4. QA executes `MUS-1064`, then CTO decides `MUS-1065` GO/NO-GO.
+5. Advance `MUS-1024` -> `MUS-995` after runtime proof is posted.
 
 ## 2026-04-09 CoS Heartbeat Delta (01:48 KST)
 
@@ -41,6 +71,8 @@ Execution resume order (board-facing):
 - references_AI learning program: `plans/71_references_ai_learning_master_plan_2026-04-09.md`
   - report: `docs/REPORT_2026-04-09_references_AI_deep_research.md`
   - purpose: absorb proven patterns (rtk learn/parser, CLI-Anything harness, gstack/openclaw governance) into MUSU as executable waves.
+- local GUI → musu.pro productization: `plans/76_local_gui_and_musu_pro_productization_2026-04-09.md`
+  - purpose: ship localhost control-plane UI first (Free), then cloud workspace (Pro) + WebRTC screen streaming.
 
 Source-of-truth checks:
 - `GET /api/companies/{companyId}/dashboard`
@@ -421,3 +453,27 @@ Current clean unblock order:
 2. QA executes runnable `MUS-1064` and posts binary `G2: PASS/FAIL`.
 3. CTO executes `MUS-1065` and posts explicit `GO/NO-GO`.
 4. Founding Engineer posts concrete 5070Ti host proof on `MUS-1024` to release `MUS-995` (`[TBD: awaiting real data]`).
+
+## CoS Agent Recovery Delta (2026-04-09 KST)
+
+Source of truth checked this pass:
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked,done,in_review`
+- `GET /api/issues/d30c7dd6-afb2-4180-857c-787e7603005e/comments`
+- `GET /api/issues/db3dc509-a6fc-424f-8452-6726f6f62508/comments`
+
+Observed regression:
+- Live agents now show `CEO=error` and `Founding Engineer=error`.
+- Recovery packet `MUS-1188` had been `done`, which diverged from live agent state.
+
+Correction applied:
+- Reopened `MUS-1188` to `blocked`.
+- Evidence comment on `MUS-1188`: `6bb4fb06-8ebe-4e82-95a7-efe347706491`.
+- Umbrella sync comment on `MUS-1016`: `9beab03e-7cc6-40a1-9b8c-6fd33f79a00d`.
+
+Current clean unblock order:
+1. Recover `CEO` + `Founding Engineer` from error with successful heartbeat evidence.
+2. Move `MUS-1158` into active execution.
+3. Complete `MUS-1138`, then run `MUS-1064` G2.
+4. CTO executes `MUS-1065` GO/NO-GO.
+5. FE closes `MUS-1024` proof lane to release `MUS-995` (`[TBD: awaiting real data]`).
