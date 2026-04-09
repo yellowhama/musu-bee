@@ -1,5 +1,7 @@
 # musu-functions Current State
 
+Last updated: `2026-04-09` (KST)
+
 ## 현재 위치
 
 - `musu-functions`는 새 MUSU 제품 코드베이스다.
@@ -120,16 +122,22 @@
   - `Paddle credential evidence`
   - `5070Ti SSH/manual status proof`
   - `run-linkage repair + QA G2 verification`
-- 현재 org 리스크: `Founding Engineer`가 `error` 상태다 (live dashboard `agents.error=1`).
+- 현재 org 리스크: `Founding Engineer`는 현재 `running`으로 관측됨(2026-04-09, Paperclip `/api/companies/{cid}/agents` 기준). “error-state agent”는 계속 감시 대상.
 
 ### 이번 세션에서 추가된 unblock 자산
 
 - blocked/high 7 재패킷팅 문서: `/home/hugh51/musu-functions/plans/70_paperclip_unblock_pack_2026-04-09.md`
 - Paperclip plan 문서 동기화 스크립트: `/home/hugh51/musu-functions/scripts/paperclip_put_unblock_plans_2026-04-09.sh`
+- 제품 SSOT 문서 선반(인덱스): `/home/hugh51/musu-functions/docs/PRODUCT_CHARTER/README.md`
+- “채팅은 코어가 아니라 원격 Web GUI surface” 노트 + SSOT 반영:
+  - note: `/home/hugh51/musu-functions/docs/NOTE_2026-04-09_chat_is_web_gui_not_core.md`
+  - updated SSOT: `/home/hugh51/musu-functions/PRODUCT_VISION.md`, `/home/hugh51/musu-functions/PRODUCT_STRATEGY.md`, `/home/hugh51/musu-functions/PRODUCT_CONTROL_SURFACE_MAP.md`, `/home/hugh51/musu-functions/MUSU_BLUEPRINT.md`
 - MUSU system optimization/guardrails master plan: `/home/hugh51/musu-functions/plans/78_musu_system_optimization_master_plan_2026-04-09.md`
   - worker concurrency cap: `/home/hugh51/musu-functions/plans/79_worker_concurrency_cap_detail_plan_2026-04-09.md`
   - systemd/cgroup guardrails: `/home/hugh51/musu-functions/plans/80_systemd_cgroup_guardrails_detail_2026-04-09.md`
   - disk hygiene cleanup: `/home/hugh51/musu-functions/plans/81_disk_hygiene_cleanup_detail_2026-04-09.md`
+  - observability minimum plan: `/home/hugh51/musu-functions/plans/82_observability_and_profiling_minimum_2026-04-09.md`
+  - qualitative eval + code audit: `/home/hugh51/musu-functions/docs/REPORT_2026-04-09_guardrails_qualitative_eval_and_code_audit.md`
   - implementation:
     - `musu-worker` rate limit/output caps + concurrency cap(+`GET /stats`): `/home/hugh51/musu-functions/musu-worker/src/musu_worker/main.py`
     - systemd user service install: `/home/hugh51/musu-functions/scripts/install-musu-worker-user-service.sh`
@@ -137,7 +145,7 @@
 
 ## 남은 작업 리스트
 
-Snapshot: `2026-04-03 21:21 KST` (Paperclip live API + no-drift heartbeat recheck)
+Snapshot: `2026-04-03 21:21 KST` (historical; “현재”는 아래 Paperclip live snapshot 참고)
 
 1. Closed baseline
    - `MUS-145`(Wave A), `MUS-147`(Wave B), `MUS-148`(Wave C main), `MUS-149`(Wave D), `MUS-157/158/159/163` are `done`.
@@ -169,10 +177,12 @@ Snapshot: `2026-04-03 21:21 KST` (Paperclip live API + no-drift heartbeat rechec
 
 ## 자율운영 상태
 
-- `2026-04-03 21:21 KST` 기준 Paperclip control plane은 살아 있다.
-- `http://127.0.0.1:3100/api/health`는 `status=ok`, `version=2026.325.0`를 반환한다.
-- live issue snapshot 기준 active wave는 `MUS-144/146` in_progress, `MUS-150/151` backlog, `MUS-162/172/173/174` done, `MUS-148/149/157/158/159/163` done이다.
-- live run surface는 현재 `MUS-146` aligned telemetry만 포함한다.
-- root anomaly count는 현재 `0`이며, `MUS-150` comment wake 재발은 cancel + recheck 패턴으로 처리한다.
-- run id는 burst window에서 수분 단위로 회전하므로 status-class 기준으로 운영한다.
-- heartbeat-runs에는 `issueId` 대신 `contextSnapshot.issueId`로 issue linkage가 관측되는 projection debt가 남아 있다.
+- Paperclip control plane health (2026-04-09):
+  - `http://127.0.0.1:3100/api/health` → `status=ok`, `version=0.3.1`, `deploymentMode=local_trusted`, `deploymentExposure=private`
+- Paperclip live counts (2026-04-09, `companyId=f27a9bd2-688a-450b-98b4-f63d24b0ab50`, `limit=500`):
+  - issues total: `344`
+  - issues status: `backlog=2`, `todo=2`, `in_progress=7`, `blocked=13`, `done=299`, `cancelled=21`
+  - agents total: `5` (status: `running=3`, `idle=2`)
+- 운영 원칙:
+  - run id는 burst window에서 수분 단위로 회전하므로 status-class 기준으로 운영한다.
+  - heartbeat-runs에는 `issueId` 대신 `contextSnapshot.issueId`로 issue linkage가 관측되는 projection debt가 남아 있다.
