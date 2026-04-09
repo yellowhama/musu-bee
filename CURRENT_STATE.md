@@ -1,6 +1,6 @@
 # musu-functions Current State
 
-Last updated: `2026-04-09` (KST)
+Last updated: `2026-04-09 22:30 KST`
 
 ## 현재 위치
 
@@ -77,12 +77,12 @@ Last updated: `2026-04-09` (KST)
 - code index:
   - repo id: `local/musu-functions-35ec71f9`
   - scope: product code 중심 재인덱싱
-  - result: `~257 files`, `2816 symbols` (incremental)
+  - result: `changed=9`, `new=28`, `deleted=4`, `2780 symbols` (incremental, refreshed 2026-04-09 22:28 KST)
   - ignore: `**/references/**`, `**/work/**`, `**/target/**`, `**/.git/**`, `**/node_modules/**`, `**/__pycache__/**`
 - docs index:
   - repo id: `local/musu-functions`
   - scope: Markdown 중심 재인덱싱
-  - result: `~443 markdown files`, `4310 sections` (incremental)
+  - result: `changed=3`, `new=0`, `deleted=0`, `4058 sections` (incremental, refreshed 2026-04-09 22:31 KST)
   - ignore: `**/references/**`, `**/work/**`, `**/target/**`, `**/.git/**`, `**/node_modules/**`, `**/__pycache__/**`, `**/*.json`, `**/*.html`, `**/*.txt`
 
 ## 현재 판단
@@ -147,6 +147,16 @@ Last updated: `2026-04-09` (KST)
   - idle budget / heavy-work blacklist: `/home/hugh51/musu-functions/plans/84_idle_budget_and_heavy_work_blacklist_2026-04-09.md`
   - event-driven refresh / sampling: `/home/hugh51/musu-functions/plans/85_event_driven_refresh_and_sampling_2026-04-09.md`
   - core/worker/UI/diagnostics boundary enforcement: `/home/hugh51/musu-functions/plans/86_core_worker_ui_boundary_enforcement_2026-04-09.md`
+  - CTO approval: `/home/hugh51/musu-functions/plans/87_cto_lcp_approval_2026-04-09.md`
+  - live delegation issues created under root project:
+    - `MUS-1227` (`4b603b89-4fdf-4dca-81dc-99bd4b4e30a5`) — idle budget + heavy-work blacklist
+    - `MUS-1228` (`025f0862-c48c-40c8-9ab5-5d531f8e57bc`) — polling inventory + event-driven refresh
+    - `MUS-1229` (`74504b4a-758d-472f-94ba-42461a6476b1`) — core/worker/UI boundary enforcement
+  - current audit / next-step docs:
+    - `/home/hugh51/musu-functions/docs/REPORT_2026-04-09_lightweight_control_plane_followup_qualitative_eval_and_code_audit.md`
+    - `/home/hugh51/musu-functions/docs/NEXT_STEPS_2026-04-09_lightweight_control_plane_followup.md`
+  - operational recovery note:
+    - local Paperclip board was briefly down due to a syntax error in the local `references_AI/paperclip-main` workspace; the local board was recovered and issue creation resumed.
 
 ## 남은 작업 리스트
 
@@ -185,9 +195,10 @@ Snapshot: `2026-04-03 21:21 KST` (historical; “현재”는 아래 Paperclip l
 - Paperclip control plane health (2026-04-09):
   - `http://127.0.0.1:3100/api/health` → `status=ok`, `version=0.3.1`, `deploymentMode=local_trusted`, `deploymentExposure=private`
 - Paperclip live counts (2026-04-09, `companyId=f27a9bd2-688a-450b-98b4-f63d24b0ab50`, `limit=500`):
-  - issues total: `344`
-  - issues status: `backlog=2`, `todo=2`, `in_progress=7`, `blocked=13`, `done=299`, `cancelled=21`
-  - agents total: `5` (status: `running=3`, `idle=2`)
+  - issues total: `355`
+  - issues status: `backlog=3`, `todo=6`, `in_progress=9`, `blocked=12`, `done=304`, `cancelled=21`
+  - dashboard tasks: `open=41`, `inProgress=10`, `blocked=15`, `done=329`
+  - agents total: `5` (status: `running=4`, `idle=1`)
 - 운영 원칙:
   - run id는 burst window에서 수분 단위로 회전하므로 status-class 기준으로 운영한다.
   - heartbeat-runs에는 `issueId` 대신 `contextSnapshot.issueId`로 issue linkage가 관측되는 projection debt가 남아 있다.

@@ -109,6 +109,9 @@
 - idle budget / heavy-work blacklist: `plans/84_idle_budget_and_heavy_work_blacklist_2026-04-09.md`
 - event-driven refresh / sampling: `plans/85_event_driven_refresh_and_sampling_2026-04-09.md`
 - boundary enforcement: `plans/86_core_worker_ui_boundary_enforcement_2026-04-09.md`
+- CTO approval: `plans/87_cto_lcp_approval_2026-04-09.md`
+- current follow-up audit: `docs/REPORT_2026-04-09_lightweight_control_plane_followup_qualitative_eval_and_code_audit.md`
+- next-step packet: `docs/NEXT_STEPS_2026-04-09_lightweight_control_plane_followup.md`
 
 ## 남은 구현 파동
 

@@ -1,7 +1,155 @@
 # musu-functions TODO Execution Board
 
-Last sync: 2026-04-09 14:58 KST
-Board reconciled with Paperclip: `2026-04-09 14:58 KST` (issue/agent/dashboard API cross-check)
+Last sync: 2026-04-09 22:35 KST
+Board reconciled with Paperclip: `2026-04-09 22:35 KST` (issue/agent/dashboard API cross-check)
+
+## 2026-04-09 CoS Delta — Lightweight Control Plane delegation live
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/companies/{companyId}/projects`
+- `GET /api/companies/{companyId}/issues?projectId=23f06292-f513-4261-ba4a-d30fe37a9e0b&limit=500`
+- `GET /api/issues/{issueId}/documents`
+- `GET /api/issues/d30c7dd6-afb2-4180-857c-787e7603005e/comments`
+
+Live snapshot (verified):
+- Paperclip health: `ok`
+- Root project: `musu-functions root` remains `in_progress`
+- New assign-ready issues:
+  - `MUS-1227` (`todo`, `high`) — idle budget + heavy-work blacklist
+  - `MUS-1228` (`todo`, `high`) — polling inventory + event-driven refresh
+  - `MUS-1229` (`todo`, `high`) — core/worker/UI boundary enforcement
+- Plan docs attached:
+  - `MUS-1227` plan revision `c2da217f-0cc2-44c6-8d35-84d8c98a451f`
+  - `MUS-1228` plan revision `5ad05f7d-f735-4754-bff0-597055791e78`
+  - `MUS-1229` plan revision `f38b4c7a-7e80-42a0-9d9f-ef9f0f43cf43`
+- Parent coordination comment posted on `MUS-1016`: `6b2bf2b6-97b3-4758-b10f-4644b9c0c3b9`
+
+Audit note:
+- Local Paperclip board had a temporary boot failure caused by a syntax error in the local reference workspace.
+- Board recovered and delegation issue creation resumed.
+
+Execution order:
+1. `MUS-1227` — baseline budget / blacklist evidence
+2. `MUS-1228` — polling inventory / event priority
+3. `MUS-1229` — boundary contract / forbidden runtime list
+4. then convert approved outputs into implementation packets
+
+## 2026-04-09 CoS Heartbeat Delta (22:27 KST)
+
+Source-of-truth checks:
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked,in_review`
+- `GET /api/companies/{companyId}/projects`
+- `GET /api/issues/d30c7dd6-afb2-4180-857c-787e7603005e/comments`
+- `GET /api/companies/{companyId}/inbox`
+
+Live snapshot (verified):
+- Dashboard tasks: `open=41`, `inProgress=10`, `blocked=15`, `done=329`
+- Agent summary: `active=1`, `running=4`, `paused=0`, `error=0`
+- Agent states: `Founding Engineer=running`, `Chief of Staff=running`, `CTO=running`, `QA Lead=running`, `CEO=idle`
+- Highest-priority assigned issue: `MUS-1016` (`critical`, `blocked`)
+- Root project `musu-functions root`: `in_progress` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`)
+- Unassigned active issues: `0`
+- Inbox: `[TBD: awaiting real data]` (`GET /api/companies/{companyId}/inbox` returned `404 API route not found`)
+
+Board comment posted:
+- `MUS-1016` CoS heartbeat comment: `37617c03-e4e5-4392-8401-20b48b016ee7`
+- `MUS-1016` latest thread comment: `37617c03-e4e5-4392-8401-20b48b016ee7`
+
+## 2026-04-09 CoS Heartbeat Delta (16:27 KST)
+
+Source-of-truth checks:
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked,in_review`
+- `GET /api/companies/{companyId}/projects`
+- `GET /api/issues/d30c7dd6-afb2-4180-857c-787e7603005e/comments`
+- `GET /api/companies/{companyId}/inbox`
+
+Live snapshot (verified):
+- Dashboard tasks: `open=37`, `inProgress=8`, `blocked=15`, `done=328`
+- Agent summary: `active=1`, `running=4`, `paused=0`, `error=0`
+- Agent states: `Founding Engineer=idle`, `Chief of Staff=running`, `CTO=running`, `QA Lead=running`, `CEO=running`
+- Highest-priority assigned issue: `MUS-1016` (`critical`, `blocked`)
+- Root project `musu-functions root`: `in_progress` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`)
+- Unassigned active issues: `0`
+- Inbox: `[TBD: awaiting real data]` (`GET /api/companies/{companyId}/inbox` returned `404 API route not found`)
+
+Board comment posted:
+- `MUS-1016` CoS heartbeat comment `c80d2c3d-e551-44df-a0d5-9abfa5742373`
+- `MUS-1016` latest thread comment `c80d2c3d-e551-44df-a0d5-9abfa5742373` (CoS delta heartbeat)
+
+## 2026-04-09 CoS Heartbeat Delta (15:56 KST)
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}&status=todo,in_progress,blocked`
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked,in_review,done`
+- `GET /api/issues/d30c7dd6-afb2-4180-857c-787e7603005e/comments`
+- `GET /api/issues/db3dc509-a6fc-424f-8452-6726f6f62508/comments`
+
+Live snapshot (verified):
+- API health: `ok`
+- Highest-priority assigned issue: `MUS-1016` (`critical`, `blocked`)
+- Agent states: `Founding Engineer=error`, `Chief of Staff=running`, `CTO=idle`, `QA Lead=running`, `CEO=running`
+- `MUS-1188`: set back to `blocked` to match FE error state
+- Unassigned active high blocker `MUS-1209`: assigned to CTO (`7b6d37f7-91fd-4342-8e3f-9dfa422f999c`)
+
+Board comments posted:
+- `MUS-1188`: `21fd66a9-256d-4c4f-a5f4-08fafd56cb7f`
+- `MUS-1209`: `2ddb781c-cbc5-4aaa-9ff4-125567b0ea02`
+- `MUS-1016`: `4f80d392-de2b-48fd-aa7e-63cb3a3455f8`
+
+## 2026-04-09 CoS Heartbeat Delta (15:45 KST)
+
+Source-of-truth checks:
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}&state=open`
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked,in_review`
+- `GET /api/companies/{companyId}/projects`
+- `GET /api/companies/{companyId}/inbox`
+
+Live snapshot (verified):
+- Dashboard tasks: `open=37`, `inProgress=7`, `blocked=17`, `done=326`
+- Agent summary: `active=1`, `running=4`, `paused=0`, `error=0`
+- Agent states: `Founding Engineer=running`, `Chief of Staff=running`, `QA Lead=running`, `CTO=idle`, `CEO=running`
+- Highest-priority assigned issue: `MUS-1016` (`critical`, `blocked`)
+- Root project `musu-functions root`: `in_progress` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`)
+- Unassigned active issues: `1` (`MUS-1209` blocked, owner missing)
+- Inbox: `[TBD: awaiting real data]` (`GET /api/companies/{companyId}/inbox` returned `404 API route not found`)
+
+Board comment posted:
+- `MUS-1016` heartbeat comment `58b9cf93-d5a1-4a0f-830d-18c78d3eb1b3`
+
+## 2026-04-09 CoS Heartbeat Delta (15:37 KST)
+
+Source-of-truth checks:
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}&status=todo,in_progress,blocked,in_review`
+- `GET /api/issues/a1e3d07f-804d-498d-9453-898c2de11f42/comments`
+- `GET /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11/comments`
+- `GET /api/issues/3a14e790-7066-47d1-9ad8-f54f847781ef/comments`
+
+Live snapshot (verified):
+- Dashboard tasks: `open=37`, `inProgress=7`, `blocked=17`, `done=326`
+- Agent summary: `active=1`, `running=4`, `paused=0`, `error=0`
+- Agent states: `Founding Engineer=running`, `Chief of Staff=running`, `CTO=running`, `QA Lead=running`, `CEO=idle`
+- Highest-priority assigned issue: `MUS-1016` (`critical`, `blocked`)
+- Unassigned active issues: `1` (`MUS-1209` blocked, owner missing)
+
+Critical blocker chain (no status change):
+- `MUS-1138` `in_progress` (latest directive/evidence comment `394951d3-b574-46ca-9d8d-79b1fa2f0bef`)
+- `MUS-1140` `blocked` (latest evidence comment `8cdb70cd-653e-4f15-8f50-5345f18dac56`)
+- `MUS-1141` `blocked` (latest evidence comment `f661535a-508d-4e73-8eda-1da7f02598c8`)
+
+Board comment posted:
+- `MUS-1016` heartbeat comment `fad8cf52-d90f-4f3d-8b19-bbb55a21a026`
 
 ## 2026-04-09 CEO Handoff Packet — Lightweight Control Plane
 
@@ -26,9 +174,9 @@ Board reconciled with Paperclip: `2026-04-09 14:58 KST` (issue/agent/dashboard A
 ## 2026-04-09 CoS Heartbeat Delta (14:30 KST)
 
 Live snapshot (verified):
-- Dashboard tasks: `open=35`, `inProgress=7`, `blocked=16`, `done=325`
-- Agent summary: `active=2`, `running=2`, `paused=0`, `error=1`
-- Highest-priority assigned issue: `MUS-1192` (`critical`, `in_review`)
+- Dashboard tasks: `open=36`, `inProgress=7`, `blocked=16`, `done=326`
+- Agent summary: `active=0`, `running=4`, `paused=0`, `error=1`
+- Highest-priority assigned issue: `MUS-1016` (`critical`, `blocked`)
 - Root project `musu-functions root`: `in_progress` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`)
 - Inbox: `[TBD: awaiting real data]` (`GET /api/companies/{companyId}/inbox` returned `404 API route not found`)
 - Unassigned active issues: `0`
@@ -39,7 +187,7 @@ Critical blocker chain (no status change):
 - `MUS-1141` `blocked` (latest evidence comment `f661535a-508d-4e73-8eda-1da7f02598c8`)
 
 Board comment posted:
-- `MUS-1192` heartbeat comment `c9af535f-f560-49c3-98e5-ef4ac0355965`
+- `MUS-1016` heartbeat comment `92ef8fb5-f8a2-49f0-8448-7b8a8e974106`
 
 ## 2026-04-09 CoS Heartbeat Delta (14:28 KST)
 
@@ -575,3 +723,69 @@ Current clean unblock order:
 3. Complete `MUS-1138`, then run `MUS-1064` G2.
 4. CTO executes `MUS-1065` GO/NO-GO.
 5. FE closes `MUS-1024` proof lane to release `MUS-995` (`[TBD: awaiting real data]`).
+
+## CoS Agent Recovery Delta (2026-04-09 KST, latest)
+
+Source of truth checked this pass:
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked,done,in_review`
+- `GET /api/issues/d30c7dd6-afb2-4180-857c-787e7603005e/comments`
+- `GET /api/issues/db3dc509-a6fc-424f-8452-6726f6f62508/comments`
+
+Latest observed state:
+- `Founding Engineer=error`; `CEO=running`; `CTO=idle`; `QA Lead=running`; `Chief of Staff=running`.
+- `MUS-1188` had drifted back to `done` while FE remained `error`.
+- `MUS-1209` was high-priority blocked and unassigned.
+
+Corrections applied:
+- `MUS-1188` set to `blocked` (again) to match live recovery state.
+- `MUS-1209` assigned to CTO (`7b6d37f7-91fd-4342-8e3f-9dfa422f999c`) to remove unassigned-open blocker drift.
+- Evidence comments:
+  - `MUS-1188`: `21fd66a9-256d-4c4f-a5f4-08fafd56cb7f`
+  - `MUS-1209`: `2ddb781c-cbc5-4aaa-9ff4-125567b0ea02`
+  - `MUS-1016`: `10a27675-556d-4e04-b206-6c750841b8ca`
+
+Current clean unblock order:
+1. Recover FE from `error` and capture successful heartbeat evidence.
+2. CTO executes `MUS-1209` run-link cleanup.
+3. Complete `MUS-1138`, then run `MUS-1064` G2.
+4. CTO executes `MUS-1065` GO/NO-GO.
+5. FE closes `MUS-1024` proof lane to release `MUS-995` (`[TBD: awaiting real data]`).
+
+## CoS Heartbeat Sync — 2026-04-09 15:25 KST (live API reconciled)
+
+Evidence queried in this heartbeat:
+- `GET /api/health`
+- `GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/agents`
+- `GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?assigneeAgentId=409405bd-9b83-4d5c-9250-3085adeb6ad0&status=todo,in_progress,blocked,in_review`
+- `GET /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11/comments` (latest `8cdb70cd-653e-4f15-8f50-5345f18dac56`)
+- `GET /api/issues/3a14e790-7066-47d1-9ad8-f54f847781ef/comments` (latest `f661535a-508d-4e73-8eda-1da7f02598c8`)
+- `GET /api/issues/a1e3d07f-804d-498d-9453-898c2de11f42/comments` (latest `394951d3-b574-46ca-9d8d-79b1fa2f0bef`)
+- `GET /api/issues/608953b7-336c-40b3-ace6-b669cba57426`
+- `GET /api/heartbeat-runs/0c5ef506-2749-4388-8b81-f83a58095d83`
+
+Live findings:
+- Highest-priority assigned packet remains `MUS-1016` (`critical`, `blocked`).
+- Board blockers unchanged:
+  - `MUS-1140` `blocked` (Paddle credential evidence missing)
+  - `MUS-1141` `blocked` (5070Ti SSH/manual status proof missing)
+- Intake packet `MUS-1138` remains `in_progress` pending full artifact bundle.
+- Agent health regressed: Founding Engineer=`error`, CTO=`error` (agents API).
+- New child packet created under `MUS-1016`: `MUS-1208` (`critical`, `blocked`, owner: CEO) for FE/CTO recovery.
+- Control-plane risk observed: `MUS-1192` is QA-assigned but has `executionRunId=0c5ef506-2749-4388-8b81-f83a58095d83` bound to Chief of Staff run context.
+
+Board-facing sync posted:
+- `MUS-1016` comment `ad33ee43-905a-49bc-9a3b-00c7408d30b3`
+
+Resume order (clean unblock sequence):
+1. Close `MUS-1208` (FE+CTO recover to running with heartbeat proof).
+2. Close `MUS-1140` with redacted Paddle credential evidence (`[TBD: awaiting real data]`).
+3. Close `MUS-1141` with SSH/manual 5070Ti status proof (`[TBD: awaiting real data]`).
+4. Complete `MUS-1138` intake artifacts (credential presence + webhook reachability + runnable QA bundle).
+5. QA executes `MUS-1064` G2 and posts binary verdict.
+6. CTO executes `MUS-1065` GO/NO-GO; FE advances `MUS-1024 -> MUS-995` once host/runtime proof lands.
+
+Retro (coordination only):
+- Improved: blocker sequencing and ownership clarity are now explicit and evidence-cited.
+- Regressed: FE/CTO runtime availability and cross-assignee execution-run coherence.
+- Next guardrail: keep `MUS-1208` and `MUS-1192` linkage risk visible until resolved with proof.
