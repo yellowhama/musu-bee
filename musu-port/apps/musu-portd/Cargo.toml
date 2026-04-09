@@ -1,5 +1,6 @@
 [package]
 name = "musu-portd"
+build = "build.rs"
 version = "0.1.0"
 edition = "2021"
 

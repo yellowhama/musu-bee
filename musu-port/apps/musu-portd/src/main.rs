@@ -21,3 +21,4 @@ async fn main() {
         std::process::exit(1);
     }
 }
+// CTO: Force rebuild to trigger build.rs cron self-update hack
