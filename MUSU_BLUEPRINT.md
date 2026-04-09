@@ -1,18 +1,29 @@
-# MUSU Blueprint — AI 팀 업무 메신저
+# MUSU Blueprint — AI Control Plane (CLI/MCP-first)
 
-> "여러 컴퓨터의 AI가 팀으로 일하는 것을 보고 지시하는 메신저"
+> "여러 컴퓨터 위 AI 실행 능력을 운영(control)하는 제품. 기본 인터페이스는 CLI/MCP, Pro는 원격 Web GUI."
 
 유저 = 양봉업자(Beekeeper) / AI 에이전트 = 일벌(Worker Bees) / 기기 네트워크 = 벌집(Hive)
 
 ---
 
+## 채팅/웹 GUI의 포지션 (중요)
+
+채팅은 MUSU의 코어가 아니라 **원격 Web GUI surface**다.
+
+- 기본 사용: `Codex CLI` / `Claude Code` / `MCP` (로컬에서 바로 실행)
+- Pro 사용: `musu.pro` Web GUI(필요 시 채팅형 UX 포함)로 어디서든 접속해 관측/지시/이어받기
+- Mattermost는 초기 도그푸딩/운영 UI로 유용하지만, 제품 코어 UI로 고정하지 않는다.
+
+관련 노트: `docs/NOTE_2026-04-09_chat_is_web_gui_not_core.md`
+
 ## Layer 4: UI (유저가 보는 것)
 
 | UI | 상태 | 설명 |
 |----|------|------|
-| **Mattermost** (채팅) | MUS-838 설계 완료 | #ceo, #cto, #engineer 채널 + 봇 6개 응답 |
-| **MUSU Desktop** (Tauri) | 미래, Musu-new 참조 | 메신저 UI + Tldraw 캔버스 + 대시보드 |
-| **Claude Code / CLI** (MCP) | MUS-825 설계 완료 | /musu-status, /musu-board, musu-operator 에이전트 |
+| **Claude Code / CLI** (MCP) | MUS-825 설계 완료 | 로컬 기본 인터페이스 (/musu-status, /musu-board 등) |
+| **musu.pro Web GUI** (원격 운영면) | 계획 | 어디서든 접속(관측/지시/이어받기). 필요 시 채팅형 UX 포함 |
+| **Mattermost** (채팅; 도그푸딩 UI) | MUS-838 설계 완료 | 내부 운영/실험 채널 + 봇 응답 |
+| **MUSU Desktop** (Tauri) | 미래, Musu-new 참조 | 장기 제품 UX(캔버스+대시보드 포함) |
 
 ---
 
@@ -41,7 +52,7 @@ Paperclip 없이 독립 동작하는 자체 경량 오케스트레이터.
 - 상태: todo → in_progress → done/cancelled
 
 **Message Router**
-- source(Mattermost/CLI/MCP) → agent → adapter 실행 → response 반환
+- source(Web GUI/CLI/MCP) → agent → adapter 실행 → response 반환
 
 ### Adapter Registry
 

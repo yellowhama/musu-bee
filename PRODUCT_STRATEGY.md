@@ -12,6 +12,15 @@ MUSU는 "AI 회사 운영체계 + 실행 capability" 제품이다.
 - self-observation / self-control surface
 - memory / indexing / review loop
 
+## 채팅/웹 GUI의 포지션 (중요)
+
+채팅은 MUSU의 코어가 아니라 **원격 Web GUI surface**다.
+
+- 기본 인터페이스: `Codex CLI` / `Claude Code` / `MCP`
+- Pro 인터페이스: `musu.pro` Web GUI(필요 시 채팅형 UX 포함)로 어디서든 접속해 관측/지시/이어받기
+
+관련 노트: `docs/NOTE_2026-04-09_chat_is_web_gui_not_core.md`
+
 ## 유저에게 주는 가치
 
 ### 개인 개발자 / 소규모 팀

@@ -4,6 +4,15 @@
 
 `musu_corp`에서 도그푸딩된 control surface를 `musu-functions`의 정식 제품 control layer 후보로 고정한다.
 
+## 채팅/웹 GUI의 포지션 (중요)
+
+채팅은 MUSU의 코어가 아니라 **원격 Web GUI surface**다.
+
+- 기본 사용: `Codex CLI` / `Claude Code` / `MCP`
+- Pro 사용: `musu.pro` Web GUI(필요 시 채팅형 UX 포함)로 control surface를 “어디서든” 접근 가능하게 만든다.
+
+관련 노트: `docs/NOTE_2026-04-09_chat_is_web_gui_not_core.md`
+
 ## source surfaces
 
 - `musu_corp_cli.py`
@@ -42,6 +51,16 @@
   - CLI
   - MCP tool surface
   - desktop self-control surface
+  - (Pro) `musu.pro` Web GUI surface (optional chat UI)
+
+## translation layer (필수)
+
+유저의 “요청(자연어/지시)”이 곧바로 control surface 명령으로 실행되는 것이 아니라,
+중간에 반드시 다음 번역이 필요하다.
+
+- 요청(자연어 or CLI 명령) → `Task/Run/Approval/Policy`로 정규화 → queue/lane/watchdog/supervisor 명령군으로 실행
+
+이 번역 계층이 있어야 “웹 GUI(채팅형 가능)”와 “제품 control layer”가 서로 분리된 채로도 일관된 실행이 가능하다.
 
 ## `MUSU-WORKS`와의 관계
 
