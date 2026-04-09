@@ -90,6 +90,13 @@
 - WebRTC OSS survey: `docs/REPORT_2026-04-09_webrtc_remote_desktop_oss_survey.md`
 - WebRTC MVP detail plan: `plans/77_webrtc_remote_viewing_mvp_2026-04-09.md`
 
+## 2026-04-09 MUSU System Optimization / Guardrails
+
+목표: `musu-worker` 중심의 원격 실행 시스템이 “실수/폭주/장기행”에도 머신을 죽이지 않도록 **동시성 캡 + 운영 레벨(cgroup) 제한 + 디스크 hygiene**를 표준화한다.
+
+- master plan: `plans/78_musu_system_optimization_master_plan_2026-04-09.md`
+- detail plan: `plans/79_worker_concurrency_cap_detail_plan_2026-04-09.md`
+
 ## 남은 구현 파동
 
 ### Wave A. Scope Reset And Execution Re-entry

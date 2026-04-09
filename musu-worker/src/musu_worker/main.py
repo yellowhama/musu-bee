@@ -25,9 +25,12 @@ import platform
 import shutil
 import subprocess
 from typing import Any
+import asyncio
 
 import uvicorn
 from fastapi import Depends, FastAPI
+from fastapi import HTTPException
+from starlette import status
 from pydantic import BaseModel, Field
 
 from musu_core.middleware import apply_musu_middlewares
@@ -48,6 +51,62 @@ apply_musu_middlewares(
 @app.on_event("startup")
 async def _startup() -> None:
     warn_if_open_mode()
+
+
+# ---------------------------------------------------------------------------
+# Concurrency guard (prevents process explosion)
+# ---------------------------------------------------------------------------
+
+
+def _get_int_env(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+
+_MAX_CONCURRENT_RUNS = _get_int_env("MUSU_WORKER_MAX_CONCURRENT_RUNS", 2)
+_CONCURRENCY_MODE = (os.environ.get("MUSU_WORKER_CONCURRENCY_MODE") or "reject").strip().lower()
+_WAIT_TIMEOUT_SEC = float(os.environ.get("MUSU_WORKER_CONCURRENCY_WAIT_TIMEOUT_SEC") or "2")
+
+_run_semaphore = asyncio.Semaphore(_MAX_CONCURRENT_RUNS)
+
+
+async def concurrency_guard():
+    acquired = False
+    try:
+        if _CONCURRENCY_MODE == "wait":
+            try:
+                await asyncio.wait_for(_run_semaphore.acquire(), timeout=_WAIT_TIMEOUT_SEC)
+            except asyncio.TimeoutError as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail=(
+                        f"Worker is busy (concurrency cap={_MAX_CONCURRENT_RUNS}, mode=wait, "
+                        f"wait_timeout_sec={_WAIT_TIMEOUT_SEC}). Retry later."
+                    ),
+                ) from exc
+            acquired = True
+            yield
+            return
+
+        # default: reject (near-immediate attempt)
+        try:
+            await asyncio.wait_for(_run_semaphore.acquire(), timeout=0.001)
+        except asyncio.TimeoutError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Worker is busy (concurrency cap={_MAX_CONCURRENT_RUNS}, mode=reject). Retry later.",
+            ) from exc
+        acquired = True
+        yield
+    finally:
+        if acquired:
+            _run_semaphore.release()
 
 
 # ---------------------------------------------------------------------------
@@ -117,6 +176,7 @@ class CLIResponse(BaseModel):
 async def execute_cli(
     req: CLIRequest,
     _: None = Depends(require_auth),
+    __: None = Depends(concurrency_guard),
 ) -> CLIResponse:
     result: ExecResult = await run_cli(
         cli_type=req.cli_type,
@@ -158,6 +218,7 @@ class ProcessResponse(BaseModel):
 async def execute_process(
     req: ProcessRequest,
     _: None = Depends(require_auth),
+    __: None = Depends(concurrency_guard),
 ) -> ProcessResponse:
     result: ExecResult = await run_process(
         command=req.command,
