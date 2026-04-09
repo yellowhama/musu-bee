@@ -187,3 +187,29 @@ test("waitlist succeeds in dev mode without KV configured (local fallback)", asy
     delete (globalThis as unknown as Record<string, unknown>)[KV_OVERRIDE_KEY];
   }
 });
+
+test("waitlist html success redirects without echoing the submitted email in the url", async () => {
+  const env = snapshotEnv(["NODE_ENV", "KV_REST_API_URL", "KV_REST_API_TOKEN"]);
+  delete (globalThis as unknown as Record<string, unknown>)[KV_OVERRIDE_KEY];
+
+  try {
+    (process.env as any).NODE_ENV = "development";
+    delete process.env.KV_REST_API_URL;
+    delete process.env.KV_REST_API_TOKEN;
+
+    const req = makeFormRequest("http://example.test/api/waitlist?from=/landing", "qa@example.com");
+    const res = await POST(req);
+
+    assert.equal(res.status, 303);
+    const location = res.headers.get("location");
+    assert.ok(location);
+
+    const redirectUrl = new URL(location, "http://example.test");
+    assert.equal(redirectUrl.pathname, "/landing");
+    assert.equal(redirectUrl.searchParams.get("waitlist"), "ok");
+    assert.equal(redirectUrl.searchParams.get("email"), null);
+  } finally {
+    restoreEnv(env);
+    delete (globalThis as unknown as Record<string, unknown>)[KV_OVERRIDE_KEY];
+  }
+});

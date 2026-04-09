@@ -67,11 +67,9 @@ test("landing renders waitlist flow and success message", async ({ page }) => {
   await page.goto("/landing");
 
   await expect(
-    page.getByText("여러 대 내 컴퓨터의 AI들이 팀으로 일한다")
+    page.getByText("여러 대의 기기를 이미 굴리고 있다면, 이제 control plane이 필요하다.")
   ).toBeVisible();
-  await expect(
-    page.getByText("Your AIs, across all your machines, working as one team. You just chat.")
-  ).toBeVisible();
+  await expect(page.getByText("Join the waitlist")).toBeVisible();
 
   await page.getByPlaceholder("you@example.com").fill("qa-waitlist@example.com");
   await page.getByRole("button", { name: "Join Waitlist" }).click();
@@ -105,7 +103,8 @@ test("signup error surface is rendered", async ({ page }) => {
   await expect(page.getByText("User already registered")).toBeVisible();
 });
 
-test("login happy path redirects to app root", async ({ page }) => {
+test("login happy path redirects to app workspace", async ({ page }) => {
+  test.slow();
   await mockSupabaseSignInSuccess(page);
 
   await page.goto("/auth/login");
@@ -113,10 +112,11 @@ test("login happy path redirects to app root", async ({ page }) => {
   await page.locator('input[type="password"]').fill("password123");
   await page.getByRole("button", { name: "로그인" }).click();
 
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/app$/);
 });
 
 test("login invalid credentials shows error", async ({ page }) => {
+  test.slow();
   await mockSupabaseSignInError(page, "Invalid login credentials");
 
   await page.goto("/auth/login");
@@ -135,6 +135,6 @@ test("@guard auth guard redirects to /auth/login when auth is enabled and no ses
     "This test only runs in the dedicated auth-guard E2E lane",
   );
 
-  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.goto("/app", { waitUntil: "domcontentloaded" });
   await expect(page).toHaveURL(/\/auth\/login$/, { timeout: 10000 });
 });

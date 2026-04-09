@@ -1,396 +1,577 @@
-"use client";
+import type { Metadata } from "next";
+import Link from "next/link";
+import PublicSiteShell from "@/components/PublicSiteShell";
+import {
+  DIFFERENTIATION,
+  HOME_PROOF_CARDS,
+  HOW_IT_WORKS,
+  ICP_CHIPS,
+  PRIMARY_CTA,
+  SECONDARY_CTA,
+  SITE_POSITIONING,
+  TRUST_POINTS,
+} from "@/lib/publicSiteContent";
 
-export const dynamic = "force-dynamic";
-
-import { useState, useCallback, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Sidebar from "@/components/Sidebar";
-import ChatArea from "@/components/ChatArea";
-import OnboardingModal from "@/components/OnboardingModal";
-import { useChat } from "@/lib/useChat";
-import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
-import type { Channel, ChannelId, Device, Message } from "@/types";
-import { AGENT_CHANNELS } from "@/types";
-
-let msgCounter = 10;
-function makeId() {
-  return `msg-${++msgCounter}-${Date.now()}`;
-}
-
-const CHANNEL_DESCRIPTIONS: Partial<Record<ChannelId, string>> = {
-  general: "모든 대화가 여기서 시작됩니다",
-  dev: "기기 간 내부 대화 (AI 협의)",
-  tasks: "진행 중인 작업 목록",
-  alerts: "기기 상태 변경, 에러, 완료 알림",
-  ceo: "CEO 에이전트",
-  cto: "CTO 에이전트",
-  engineer: "엔지니어 에이전트",
-  cos: "참모 에이전트",
-  qa: "QA 에이전트",
-  worker: "워커 에이전트",
+export const metadata: Metadata = {
+  title: "MUSU | Multi-machine AI control plane",
+  description:
+    "Coordinate AI work across your machines from one chat. Built for developers and operators running more than one machine.",
 };
 
-const INITIAL_CHANNELS: Channel[] = [
-  { id: "general", name: "general", unread: 0 },
-  { id: "dev", name: "dev", unread: 0 },
-  { id: "tasks", name: "tasks", unread: 0 },
-  { id: "alerts", name: "alerts", unread: 0 },
-  { id: "ceo", name: "ceo", unread: 0 },
-  { id: "cto", name: "cto", unread: 0 },
-  { id: "engineer", name: "engineer", unread: 0 },
-  { id: "cos", name: "cos", unread: 0 },
-  { id: "qa", name: "qa", unread: 0 },
-  { id: "worker", name: "worker", unread: 0 },
-];
-
-const INITIAL_DEVICES: Device[] = [
-  {
-    id: "desktop-4060",
-    name: "4060Ti Desktop",
-    label: "Musu-A",
-    status: "online",
-    stats: { cpu: 48, gpu: 23, ram: 62 },
-    isLeader: true,
-  },
-  {
-    id: "desktop-5070",
-    name: "5070Ti Desktop",
-    label: "Musu-B",
-    status: "busy",
-    stats: { cpu: 72, gpu: 61, ram: 45 },
-    isLeader: false,
-  },
-];
-
-export default function Home() {
-  const router = useRouter();
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [channels, setChannels] = useState<Channel[]>(INITIAL_CHANNELS);
-  const [devices, setDevices] = useState<Device[]>(INITIAL_DEVICES);
-  const [activeChannel, setActiveChannel] = useState<ChannelId>("ceo");
-  const [localMessages, setLocalMessages] = useState<Message[]>([]);
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [deviceLimit, setDeviceLimit] = useState<number>(3);
-
-  // Auth session — reads Supabase session and updates user email.
-  // When NEXT_PUBLIC_AUTH_ENABLED=true (production), redirects to /auth/login if no session.
-  const authEnabled = process.env.NEXT_PUBLIC_AUTH_ENABLED === "true";
-  const authConfigured = isSupabaseConfigured();
-  useEffect(() => {
-    if (!authEnabled) {
-      setUserEmail(null);
-      return;
-    }
-
-    if (!authConfigured) {
-      setUserEmail(null);
-      router.replace("/auth/login");
-      return;
-    }
-
-    const supabase = getSupabaseClient();
-    let active = true;
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (!active) {
-        return;
-      }
-
-      if (data.session?.user) {
-        setUserEmail(data.session.user.email ?? null);
-      } else if (authEnabled) {
-        router.replace("/auth/login");
-      }
-    });
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setUserEmail(session.user.email ?? null);
-      } else if (authEnabled) {
-        router.replace("/auth/login");
-      }
-    });
-
-    return () => {
-      active = false;
-      listener.subscription.unsubscribe();
-    };
-  }, [authConfigured, authEnabled, router]);
-
-  // WebSocket chat for agent channels
-  const isAgentChannel = AGENT_CHANNELS.includes(activeChannel);
-  const chat = useChat(activeChannel);
-
-  // Fetch subscription state once on mount.
-  useEffect(() => {
-    fetch("/api/subscription")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: { deviceLimit?: number } | null) => {
-        if (data?.deviceLimit != null) setDeviceLimit(data.deviceLimit);
-      })
-      .catch(() => {});
-  }, []);
-
-  // Poll device status every 3 seconds.
-  // Uses device_id returned by musu-portd /status so hardcoded IDs are not needed.
-  useEffect(() => {
-    async function fetchStatus() {
-      try {
-        const res = await fetch("/api/device-status");
-        if (!res.ok) {
-          // Mark first device offline when portd is unreachable
-          setDevices((prev) =>
-            prev.map((d, i) => (i === 0 ? { ...d, status: "offline" as const } : d)),
-          );
-          return;
-        }
-        const data = (await res.json()) as {
-          cpu: number;
-          gpu: number | null;
-          ram: number;
-          device_id?: string;
-          physical_host_id?: string | null;
-        };
-        setDevices((prev) => {
-          // Match by device_id if portd provides it, otherwise fall back to first device
-          const targetId = data.device_id ?? prev[0]?.id;
-          return prev.map((d) =>
-            d.id === targetId
-              ? {
-                  ...d,
-                  status: "online" as const,
-                  stats: {
-                    cpu: Math.round(data.cpu),
-                    gpu: data.gpu !== null ? Math.round(data.gpu) : null,
-                    ram: Math.round(data.ram),
-                  },
-                }
-              : d,
-          );
-        });
-      } catch {
-        setDevices((prev) =>
-          prev.map((d, i) => (i === 0 ? { ...d, status: "offline" as const } : d)),
-        );
-      }
-    }
-
-    fetchStatus();
-    const id = setInterval(fetchStatus, 3000);
-    return () => clearInterval(id);
-  }, []);
-
-  const handleOnboardingComplete = useCallback(
-    (deviceName: string) => {
-      const newDevice: Device = {
-        id: `device-${Date.now()}`,
-        name: deviceName,
-        label: `Musu-${String.fromCharCode(65 + devices.length)}`,
-        status: "online",
-        stats: { cpu: 0, gpu: null, ram: 0 },
-        isLeader: devices.length === 0,
-      };
-      setDevices((prev) => [...prev, newDevice]);
-      setShowOnboarding(false);
-    },
-    [devices.length],
-  );
-
-  const handleOnboardingSkip = useCallback(() => {
-    setShowOnboarding(false);
-  }, []);
-
-  const handleChannelSelect = useCallback((id: ChannelId) => {
-    setActiveChannel(id);
-    setChannels((prev) =>
-      prev.map((ch) => (ch.id === id ? { ...ch, unread: 0 } : ch)),
-    );
-  }, []);
-
-  const handleDeviceSelect = useCallback((_id: string) => {
-    setActiveChannel("general");
-  }, []);
-
-  const handleSend = useCallback(
-    (text: string) => {
-      if (isAgentChannel) {
-        // Send via WebSocket
-        chat.sendMessage(text);
-      } else {
-        // Local message for non-agent channels
-        const userMsg: Message = {
-          id: makeId(),
-          channelId: activeChannel,
-          sender: "유저",
-          senderKind: "user",
-          text,
-          timestamp: new Date(),
-        };
-        setLocalMessages((prev) => [...prev, userMsg]);
-      }
-    },
-    [activeChannel, isAgentChannel, chat],
-  );
-
-  // Merge local messages with WebSocket messages for the active channel
-  const displayMessages = isAgentChannel
-    ? chat.messages
-    : localMessages.filter((m) => m.channelId === activeChannel);
-
+export default function HomePage() {
   return (
-    <div
-      style={{
-        display: "flex",
-        height: "100vh",
-        width: "100vw",
-        background: "#0d0d0d",
-        fontFamily:
-          "'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif",
-        overflow: "hidden",
-      }}
-    >
-      {/* Top bar */}
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 48,
-          background: "#0d0d0d",
-          borderBottom: "1px solid #1f1f1f",
-          display: "flex",
-          alignItems: "center",
-          padding: "0 20px",
-          zIndex: 10,
-          gap: 12,
-        }}
-      >
-        <span style={{ fontSize: 20 }}>🐝</span>
-        <span
+    <PublicSiteShell>
+      <main>
+        <section
           style={{
-            fontSize: 16,
-            fontWeight: 700,
-            color: "#f3f4f6",
-            letterSpacing: "-0.02em",
+            maxWidth: 1180,
+            margin: "0 auto",
+            padding: "88px 24px 56px",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            gap: 32,
+            alignItems: "center",
           }}
         >
-          MUSU
-        </span>
-        <div style={{ flex: 1 }} />
-        {devices.length >= deviceLimit ? (
-          <a
-            href="/pro#pricing"
-            title={`현재 플랜은 기기 ${deviceLimit}대까지 지원합니다.`}
-            style={{
-              fontSize: 12,
-              color: "#facc15",
-              background: "rgba(250,204,21,0.08)",
-              border: "1px solid rgba(250,204,21,0.25)",
-              borderRadius: 6,
-              padding: "4px 10px",
-              cursor: "pointer",
-              marginRight: 8,
-              textDecoration: "none",
-              fontWeight: 600,
-            }}
-          >
-            기기 한도 도달 — 업그레이드
-          </a>
-        ) : (
-          <button
-            onClick={() => setShowOnboarding(true)}
-            style={{
-              fontSize: 12,
-              color: "#9ca3af",
-              background: "#1a1a1a",
-              border: "1px solid #2d2d2d",
-              borderRadius: 6,
-              padding: "4px 10px",
-              cursor: "pointer",
-              marginRight: 8,
-            }}
-          >
-            + 기기 추가
-          </button>
-        )}
-        {authEnabled && authConfigured && userEmail && (
-          <span
-            style={{
-              fontSize: 13,
-              color: "#6b7280",
-              background: "#1a1a1a",
-              border: "1px solid #2d2d2d",
-              borderRadius: 6,
-              padding: "4px 10px",
-              maxWidth: 180,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-            title={userEmail}
-          >
-            {userEmail}
-          </span>
-        )}
-        {authEnabled && authConfigured && (
-          <button
-            onClick={async () => {
-              await getSupabaseClient().auth.signOut();
-              router.replace("/auth/login");
-            }}
-            style={{
-              fontSize: 12,
-              color: "#6b7280",
-              background: "transparent",
-              border: "1px solid #2d2d2d",
-              borderRadius: 6,
-              padding: "4px 10px",
-              cursor: "pointer",
-            }}
-            title="로그아웃"
-          >
-            로그아웃
-          </button>
-        )}
-      </div>
+          <div>
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 12,
+                fontWeight: 800,
+                letterSpacing: "0.14em",
+                color: "#facc15",
+                textTransform: "uppercase",
+                marginBottom: 18,
+              }}
+            >
+              <span>●</span>
+              <span>{SITE_POSITIONING.eyebrow}</span>
+            </div>
+            <h1
+              style={{
+                fontSize: "clamp(38px, 7vw, 76px)",
+                lineHeight: 1.02,
+                letterSpacing: "-0.05em",
+                fontWeight: 900,
+                margin: "0 0 18px",
+                maxWidth: 680,
+              }}
+            >
+              {SITE_POSITIONING.title}
+            </h1>
+            <p
+              style={{
+                fontSize: 18,
+                color: "#d1d5db",
+                lineHeight: 1.7,
+                maxWidth: 680,
+                margin: "0 0 12px",
+              }}
+            >
+              {SITE_POSITIONING.subtitle}
+            </p>
+            <p
+              style={{
+                fontSize: 14,
+                color: "#9ca3af",
+                lineHeight: 1.7,
+                maxWidth: 640,
+                margin: "0 0 26px",
+              }}
+            >
+              {SITE_POSITIONING.audience}
+            </p>
+            <div
+              style={{
+                display: "flex",
+                gap: 12,
+                flexWrap: "wrap",
+                marginBottom: 20,
+              }}
+            >
+              <Link href={PRIMARY_CTA.href} style={primaryButtonStyle}>
+                {PRIMARY_CTA.label}
+              </Link>
+              <Link href={SECONDARY_CTA.href} style={secondaryButtonStyle}>
+                {SECONDARY_CTA.label}
+              </Link>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                flexWrap: "wrap",
+              }}
+            >
+              {ICP_CHIPS.map((chip) => (
+                <span key={chip} style={chipStyle}>
+                  {chip}
+                </span>
+              ))}
+            </div>
+          </div>
 
-      {/* Body: sidebar + chat */}
-      <div
+          <div
+            style={{
+              background:
+                "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))",
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: 24,
+              padding: 24,
+              boxShadow: "0 30px 80px rgba(0,0,0,0.35)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 18,
+                color: "#9ca3af",
+                fontSize: 13,
+              }}
+            >
+              <span style={{ color: "#22c55e" }}>●</span>
+              <span>live-ish product surface</span>
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gap: 14,
+              }}
+            >
+              <div style={surfaceCardStyle}>
+                <div style={surfaceLabelStyle}>channels</div>
+                <div style={surfaceRowStyle}>
+                  <span style={surfaceActiveStyle}>ceo</span>
+                  <span style={surfaceMutedStyle}>cto</span>
+                  <span style={surfaceMutedStyle}>engineer</span>
+                  <span style={surfaceMutedStyle}>tasks</span>
+                </div>
+              </div>
+              <div style={surfaceCardStyle}>
+                <div style={surfaceLabelStyle}>devices</div>
+                <div style={{ display: "grid", gap: 10 }}>
+                  {[
+                    "Musu-A  CPU 48% · GPU 23% · RAM 62%",
+                    "Musu-B  CPU 72% · GPU 61% · RAM 45%",
+                    "Musu-C  unreachable",
+                  ].map((line) => (
+                    <div key={line} style={surfaceLineStyle}>
+                      {line}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div style={surfaceCardStyle}>
+                <div style={surfaceLabelStyle}>work intent</div>
+                <div style={surfaceLineStyle}>
+                  “Split work across my desktop and GPU box, then report back here.”
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section
+          style={{
+            maxWidth: 1180,
+            margin: "0 auto",
+            padding: "8px 24px 40px",
+          }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: 16,
+            }}
+          >
+            {HOME_PROOF_CARDS.map((card) => (
+              <article key={card.title} style={proofCardStyle}>
+                <h2
+                  style={{
+                    fontSize: 17,
+                    fontWeight: 800,
+                    margin: "0 0 10px",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  {card.title}
+                </h2>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 14,
+                    color: "#9ca3af",
+                    lineHeight: 1.7,
+                  }}
+                >
+                  {card.description}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section
+          id="how-it-works"
+          style={{
+            maxWidth: 1180,
+            margin: "0 auto",
+            padding: "64px 24px",
+          }}
+        >
+          <SectionHeader
+            eyebrow="HOW IT WORKS"
+            title="DIY 오케스트레이션 대신, 한 화면에서 운영한다."
+            description="MUSU의 공개 사이트는 지금 과장보다 흐름 설명이 더 중요하다. 설치하고, 연결하고, 채팅으로 위임하고, 상태와 결과를 한 곳에서 보는 흐름을 먼저 이해시켜야 한다."
+          />
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+              gap: 18,
+            }}
+          >
+            {HOW_IT_WORKS.map((item) => (
+              <article key={item.step} style={stepCardStyle}>
+                <div style={stepNumberStyle}>{item.step}</div>
+                <h3 style={stepTitleStyle}>{item.title}</h3>
+                <p style={stepDescriptionStyle}>{item.description}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section
+          style={{
+            maxWidth: 1180,
+            margin: "0 auto",
+            padding: "24px 24px 64px",
+          }}
+        >
+          <SectionHeader
+            eyebrow="WHY MUSU"
+            title="MUSU는 어디에 서야 하는가"
+            description="이 사이트는 Cursor, Bolt, Lovable, v0, Replit, Relay 같은 익숙한 AI 제품들과 implicitly 비교된다. 그래서 정체성을 분명히 말해야 한다."
+          />
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+              gap: 18,
+            }}
+          >
+            {DIFFERENTIATION.map((item) => (
+              <article key={item.title} style={diffCardStyle}>
+                <h3 style={diffTitleStyle}>{item.title}</h3>
+                <p style={diffDescStyle}>{item.description}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section
+          style={{
+            maxWidth: 1180,
+            margin: "0 auto",
+            padding: "8px 24px 96px",
+          }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1.15fr 0.85fr",
+              gap: 20,
+              alignItems: "stretch",
+            }}
+          >
+            <div style={trustPanelStyle}>
+              <div style={eyebrowStyle}>TRUST AND HONESTY</div>
+              <h2 style={panelTitleStyle}>
+                지금은 과장보다 증빙이 중요하다.
+              </h2>
+              <p style={panelDescStyle}>
+                MUSU는 beta 상태를 숨기지 않고, 현재 보이는 제품 surface와 일치하는 주장만
+                사용해야 한다. 이 원칙이 public site의 신뢰를 만든다.
+              </p>
+              <ul style={trustListStyle}>
+                {TRUST_POINTS.map((point) => (
+                  <li key={point} style={trustListItemStyle}>
+                    {point}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div style={ctaPanelStyle}>
+              <div style={eyebrowStyle}>NEXT STEP</div>
+              <h2 style={panelTitleStyle}>먼저 early access에 합류하라.</h2>
+              <p style={panelDescStyle}>
+                지금 public site의 올바른 CTA는 broad checkout push가 아니라 proof-backed
+                early access다.
+              </p>
+              <div style={{ display: "grid", gap: 12, marginTop: 24 }}>
+                <Link href="/landing" style={primaryButtonStyle}>
+                  Join Early Access
+                </Link>
+                <Link href="/pricing" style={secondaryButtonStyle}>
+                  View Pricing Context
+                </Link>
+                <Link href="/install" style={ghostButtonStyle}>
+                  Install The Port
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </PublicSiteShell>
+  );
+}
+
+function SectionHeader({
+  eyebrow,
+  title,
+  description,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div style={{ maxWidth: 760, marginBottom: 32 }}>
+      <div style={eyebrowStyle}>{eyebrow}</div>
+      <h2
         style={{
-          display: "flex",
-          marginTop: 48,
-          height: "calc(100vh - 48px)",
-          width: "100%",
+          margin: "0 0 12px",
+          fontSize: "clamp(28px, 5vw, 44px)",
+          lineHeight: 1.08,
+          fontWeight: 900,
+          letterSpacing: "-0.04em",
         }}
       >
-        <Sidebar
-          channels={channels}
-          devices={devices}
-          activeChannel={activeChannel}
-          onChannelSelect={handleChannelSelect}
-          onDeviceSelect={handleDeviceSelect}
-        />
-        <ChatArea
-          key={activeChannel}
-          channelId={activeChannel}
-          messages={displayMessages}
-          onSend={handleSend}
-          isAgentTyping={isAgentChannel ? chat.isAgentTyping : false}
-          isConnected={isAgentChannel ? chat.isConnected : undefined}
-          channelDescription={CHANNEL_DESCRIPTIONS[activeChannel]}
-          isLoadingHistory={isAgentChannel ? chat.isLoadingHistory : false}
-          hasMoreHistory={isAgentChannel ? chat.hasMoreHistory : false}
-          loadOlderMessages={isAgentChannel ? chat.loadOlderMessages : undefined}
-        />
-      </div>
-
-      {showOnboarding && (
-        <OnboardingModal
-          onComplete={handleOnboardingComplete}
-          onSkip={handleOnboardingSkip}
-        />
-      )}
+        {title}
+      </h2>
+      <p
+        style={{
+          margin: 0,
+          fontSize: 15,
+          color: "#9ca3af",
+          lineHeight: 1.75,
+        }}
+      >
+        {description}
+      </p>
     </div>
   );
 }
+
+const primaryButtonStyle: React.CSSProperties = {
+  display: "inline-flex",
+  justifyContent: "center",
+  alignItems: "center",
+  background: "#facc15",
+  color: "#0a0a0a",
+  textDecoration: "none",
+  fontWeight: 900,
+  fontSize: 15,
+  padding: "14px 20px",
+  borderRadius: 999,
+};
+
+const secondaryButtonStyle: React.CSSProperties = {
+  display: "inline-flex",
+  justifyContent: "center",
+  alignItems: "center",
+  background: "transparent",
+  color: "#f3f4f6",
+  textDecoration: "none",
+  fontWeight: 700,
+  fontSize: 15,
+  padding: "14px 20px",
+  borderRadius: 999,
+  border: "1px solid rgba(255,255,255,0.12)",
+};
+
+const ghostButtonStyle: React.CSSProperties = {
+  display: "inline-flex",
+  justifyContent: "center",
+  alignItems: "center",
+  background: "rgba(255,255,255,0.04)",
+  color: "#d1d5db",
+  textDecoration: "none",
+  fontWeight: 700,
+  fontSize: 15,
+  padding: "14px 20px",
+  borderRadius: 999,
+  border: "1px solid rgba(255,255,255,0.08)",
+};
+
+const chipStyle: React.CSSProperties = {
+  fontSize: 12,
+  fontWeight: 700,
+  color: "#d1d5db",
+  background: "rgba(255,255,255,0.04)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: 999,
+  padding: "8px 12px",
+};
+
+const surfaceCardStyle: React.CSSProperties = {
+  background: "rgba(255,255,255,0.03)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: 18,
+  padding: 16,
+};
+
+const surfaceLabelStyle: React.CSSProperties = {
+  fontSize: 11,
+  color: "#6b7280",
+  textTransform: "uppercase",
+  letterSpacing: "0.12em",
+  fontWeight: 800,
+  marginBottom: 10,
+};
+
+const surfaceRowStyle: React.CSSProperties = {
+  display: "flex",
+  gap: 10,
+  flexWrap: "wrap",
+};
+
+const surfaceActiveStyle: React.CSSProperties = {
+  padding: "8px 10px",
+  borderRadius: 10,
+  background: "#facc15",
+  color: "#0a0a0a",
+  fontSize: 13,
+  fontWeight: 800,
+};
+
+const surfaceMutedStyle: React.CSSProperties = {
+  padding: "8px 10px",
+  borderRadius: 10,
+  background: "rgba(255,255,255,0.04)",
+  color: "#d1d5db",
+  fontSize: 13,
+  fontWeight: 700,
+};
+
+const surfaceLineStyle: React.CSSProperties = {
+  fontSize: 13,
+  color: "#d1d5db",
+  fontFamily:
+    "'JetBrains Mono', 'SFMono-Regular', 'Roboto Mono', monospace",
+};
+
+const proofCardStyle: React.CSSProperties = {
+  background: "rgba(255,255,255,0.03)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: 18,
+  padding: 20,
+};
+
+const stepCardStyle: React.CSSProperties = {
+  background: "rgba(255,255,255,0.03)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: 20,
+  padding: 22,
+};
+
+const stepNumberStyle: React.CSSProperties = {
+  fontSize: 12,
+  color: "#facc15",
+  fontWeight: 900,
+  letterSpacing: "0.12em",
+  marginBottom: 10,
+};
+
+const stepTitleStyle: React.CSSProperties = {
+  margin: "0 0 10px",
+  fontSize: 18,
+  fontWeight: 800,
+  letterSpacing: "-0.02em",
+};
+
+const stepDescriptionStyle: React.CSSProperties = {
+  margin: 0,
+  fontSize: 14,
+  color: "#9ca3af",
+  lineHeight: 1.7,
+};
+
+const diffCardStyle: React.CSSProperties = {
+  background: "linear-gradient(180deg, rgba(250,204,21,0.06), rgba(255,255,255,0.02))",
+  border: "1px solid rgba(250,204,21,0.14)",
+  borderRadius: 20,
+  padding: 22,
+};
+
+const diffTitleStyle: React.CSSProperties = {
+  margin: "0 0 10px",
+  fontSize: 18,
+  fontWeight: 800,
+  letterSpacing: "-0.02em",
+};
+
+const diffDescStyle: React.CSSProperties = {
+  margin: 0,
+  fontSize: 14,
+  color: "#d1d5db",
+  lineHeight: 1.7,
+};
+
+const eyebrowStyle: React.CSSProperties = {
+  fontSize: 12,
+  color: "#facc15",
+  fontWeight: 900,
+  letterSpacing: "0.14em",
+  textTransform: "uppercase",
+  marginBottom: 10,
+};
+
+const trustPanelStyle: React.CSSProperties = {
+  background: "rgba(255,255,255,0.03)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: 24,
+  padding: 24,
+};
+
+const ctaPanelStyle: React.CSSProperties = {
+  background: "linear-gradient(180deg, rgba(250,204,21,0.12), rgba(255,255,255,0.03))",
+  border: "1px solid rgba(250,204,21,0.18)",
+  borderRadius: 24,
+  padding: 24,
+};
+
+const panelTitleStyle: React.CSSProperties = {
+  margin: "0 0 12px",
+  fontSize: "clamp(24px, 4vw, 34px)",
+  lineHeight: 1.12,
+  fontWeight: 900,
+  letterSpacing: "-0.04em",
+};
+
+const panelDescStyle: React.CSSProperties = {
+  margin: 0,
+  fontSize: 14,
+  color: "#d1d5db",
+  lineHeight: 1.75,
+};
+
+const trustListStyle: React.CSSProperties = {
+  margin: "22px 0 0",
+  paddingLeft: 18,
+  color: "#d1d5db",
+  display: "grid",
+  gap: 10,
+};
+
+const trustListItemStyle: React.CSSProperties = {
+  fontSize: 14,
+  lineHeight: 1.7,
+};

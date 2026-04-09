@@ -13,7 +13,7 @@ export default function CheckoutButton({ tier, label, style }: Props) {
 
   async function handleClick() {
     if (tier === "free") {
-      window.location.href = "/";
+      window.location.href = "/app";
       return;
     }
 

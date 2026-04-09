@@ -61,7 +61,9 @@ async function persistWaitlistEmail(email: string) {
 
 export async function POST(req: NextRequest) {
   const from = normalizeFrom(req.nextUrl.searchParams.get("from"));
-  const wantsJson = req.headers.get("accept")?.includes("application/json") ?? false;
+  const acceptHeader = req.headers.get("accept") ?? "";
+  const wantsHtml = acceptHeader.includes("text/html");
+  const wantsJson = !wantsHtml && acceptHeader.includes("application/json");
 
   const formData = await req.formData();
   const email = parseEmail(formData.get("email"));
@@ -94,7 +96,7 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.redirect(
-    buildRedirectUrl(from, req.url, { waitlist: "ok", email }),
+    buildRedirectUrl(from, req.url, { waitlist: "ok" }),
     303
   );
 }

@@ -161,7 +161,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
             가격
           </a>
           <a
-            href="/"
+            href="/landing"
             style={{
               fontSize: 13,
               color: "#0a0a0a",
@@ -245,7 +245,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
 
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
           <a
-            href="/"
+            href="/faq"
             style={{
               display: "inline-block",
               background: "#facc15",
@@ -579,7 +579,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
           베타 종료 시 50% 할인 쿠폰이 제공됩니다.
         </p>
         <a
-          href="/"
+          href="/landing"
           style={{
             display: "inline-block",
             background: "#facc15",

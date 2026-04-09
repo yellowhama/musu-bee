@@ -35,7 +35,7 @@ export default function SignupPage() {
 
       setDone(true);
       // After email confirmation, user will be redirected to the app
-      setTimeout(() => router.push("/"), 3000);
+      setTimeout(() => router.push("/app"), 3000);
     } catch (error) {
       setError(error instanceof Error ? error.message : "회원가입 요청을 처리하지 못했습니다.");
       setLoading(false);
@@ -66,7 +66,7 @@ export default function SignupPage() {
         }}
       >
         <Link
-          href="/landing"
+          href="/"
           style={{
             fontSize: 20,
             fontWeight: 800,

@@ -32,7 +32,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/");
+      router.push("/app");
     } catch (error) {
       setError(error instanceof Error ? error.message : "로그인 요청을 처리하지 못했습니다.");
       setLoading(false);
@@ -63,7 +63,7 @@ export default function LoginPage() {
         }}
       >
         <Link
-          href="/landing"
+          href="/"
           style={{
             fontSize: 20,
             fontWeight: 800,
