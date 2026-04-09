@@ -142,6 +142,11 @@ Last updated: `2026-04-09` (KST)
     - `musu-worker` rate limit/output caps + concurrency cap(+`GET /stats`): `/home/hugh51/musu-functions/musu-worker/src/musu_worker/main.py`
     - systemd user service install: `/home/hugh51/musu-functions/scripts/install-musu-worker-user-service.sh`
     - cleanup command + optional timer: `/home/hugh51/musu-functions/scripts/musu_cleanup.py`, `/home/hugh51/musu-functions/scripts/install-musu-cleanup-user-timer.sh`
+- lightweight control plane follow-up (CEO handoff only; no implementation in this packet):
+  - master execution packet: `/home/hugh51/musu-functions/plans/83_lightweight_control_plane_execution_master_2026-04-09.md`
+  - idle budget / heavy-work blacklist: `/home/hugh51/musu-functions/plans/84_idle_budget_and_heavy_work_blacklist_2026-04-09.md`
+  - event-driven refresh / sampling: `/home/hugh51/musu-functions/plans/85_event_driven_refresh_and_sampling_2026-04-09.md`
+  - core/worker/UI/diagnostics boundary enforcement: `/home/hugh51/musu-functions/plans/86_core_worker_ui_boundary_enforcement_2026-04-09.md`
 
 ## 남은 작업 리스트
 

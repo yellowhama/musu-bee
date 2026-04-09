@@ -101,6 +101,15 @@
 - observability minimum: `plans/82_observability_and_profiling_minimum_2026-04-09.md`
 - qualitative eval + code audit: `docs/REPORT_2026-04-09_guardrails_qualitative_eval_and_code_audit.md`
 
+## 2026-04-09 MUSU Lightweight Control Plane Discipline
+
+목표: MUSU가 “항상 떠 있지만 거의 안 먹는 보조 운영층”으로 남도록 **idle budget + heavy-work blacklist + event-driven refresh + core/worker/UI boundary**를 CEO 위임용 execution packet으로 고정한다.
+
+- master execution packet: `plans/83_lightweight_control_plane_execution_master_2026-04-09.md`
+- idle budget / heavy-work blacklist: `plans/84_idle_budget_and_heavy_work_blacklist_2026-04-09.md`
+- event-driven refresh / sampling: `plans/85_event_driven_refresh_and_sampling_2026-04-09.md`
+- boundary enforcement: `plans/86_core_worker_ui_boundary_enforcement_2026-04-09.md`
+
 ## 남은 구현 파동
 
 ### Wave A. Scope Reset And Execution Re-entry
