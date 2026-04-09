@@ -57,6 +57,7 @@
 ### Wave 3 — Disk hygiene (1일)
 - `~/.musu/logs`, `~/.musu/run`, 아티팩트 폴더의 TTL/크기 상한
 - “cleanup” 커맨드 추가(주기 실행 가능)
+- detail plan: `plans/81_disk_hygiene_cleanup_detail_2026-04-09.md`
 
 ### Wave 4 — Observability & “safe defaults” docs (1일)
 - 운영 체크리스트/문제해결(runbook) 문서화

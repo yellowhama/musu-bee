@@ -1,0 +1,8 @@
+[Unit]
+Description=MUSU disk hygiene cleanup (dry-run disabled; applies deletions)
+
+[Service]
+Type=oneshot
+# Optional per-user config. Copy from scripts/systemd/cleanup.env.example
+EnvironmentFile=-%h/.musu/cleanup.env
+ExecStart=%h/musu-functions/scripts/musu_cleanup.py --apply --json
