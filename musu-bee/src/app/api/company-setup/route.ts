@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCompanySetup, saveCompanySetup } from "@/lib/companySetup";
 
-export async function GET() {
-  const state = await getCompanySetup();
+function readScope(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  return {
+    workspaceId: searchParams.get("workspaceId"),
+    userKey: searchParams.get("userKey"),
+  };
+}
+
+export async function GET(req: NextRequest) {
+  const state = await getCompanySetup(readScope(req));
   return NextResponse.json(state);
 }
 
@@ -23,6 +31,6 @@ export async function PUT(req: NextRequest) {
   const state = await saveCompanySetup({
     companyName: body.companyName,
     selectedProjects: body.selectedProjects,
-  });
+  }, undefined, readScope(req));
   return NextResponse.json(state);
 }

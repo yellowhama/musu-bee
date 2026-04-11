@@ -1,6 +1,6 @@
 # musu-functions Current State
 
-Last updated: `2026-04-11 05:15 KST`
+Last updated: `2026-04-12 01:40 KST`
 
 ## 현재 위치
 
@@ -14,6 +14,11 @@ Last updated: `2026-04-11 05:15 KST`
   - default company operating template is now extracted into product code as a canonical baseline.
   - API surface now exposes `GET /api/company-template`.
   - the current app shell sidebar renders the default company template summary.
+  - company setup persistence is now scoped by `workspaceId` + `userKey`.
+  - app API now exposes `GET/PUT /api/company-setup` with scoped draft persistence.
+  - app API now exposes `GET/POST /api/company-activation` for applying the current template into a persisted active company record.
+  - the company template modal now supports both `Save company setup` and `Apply template`.
+  - the top bar now exposes Paperclip sync status from the last activation probe.
   - OAuth login/signup buttons are present on public auth screens.
   - current template-wave TypeScript blockers in `chat` route and `auth/callback` were cleared.
 

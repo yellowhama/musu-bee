@@ -3,11 +3,14 @@
 import { useMemo, useState } from "react";
 import type { DefaultCompanyTemplate } from "@/lib/templates/defaultCompanyTemplate";
 import type { CompanySetupState } from "@/lib/companySetup";
+import type { CompanyActivationState } from "@/lib/companyActivation";
 
 interface CompanyTemplateModalProps {
   template: DefaultCompanyTemplate;
   companySetup: CompanySetupState;
+  companyActivation: CompanyActivationState | null;
   onSave: (next: { companyName: string; selectedProjects: string[] }) => Promise<void>;
+  onApply: (next: { companyName: string; selectedProjects: string[] }) => Promise<void>;
   onClose: () => void;
 }
 
@@ -31,7 +34,9 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 export default function CompanyTemplateModal({
   template,
   companySetup,
+  companyActivation,
   onSave,
+  onApply,
   onClose,
 }: CompanyTemplateModalProps) {
   const [copied, setCopied] = useState(false);
@@ -39,6 +44,8 @@ export default function CompanyTemplateModal({
   const [selectedProjects, setSelectedProjects] = useState(companySetup.selectedProjects);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [applyError, setApplyError] = useState<string | null>(null);
   const payload = useMemo(() => JSON.stringify(template, null, 2), [template]);
 
   async function handleCopy() {
@@ -65,6 +72,21 @@ export default function CompanyTemplateModal({
       setSaveError(error instanceof Error ? error.message : "Could not save company setup.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleApply() {
+    setApplyError(null);
+    setApplying(true);
+    try {
+      await onApply({
+        companyName,
+        selectedProjects,
+      });
+    } catch (error) {
+      setApplyError(error instanceof Error ? error.message : "Could not apply company template.");
+    } finally {
+      setApplying(false);
     }
   }
 
@@ -146,6 +168,33 @@ export default function CompanyTemplateModal({
 
         <div
           style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 12,
+            marginBottom: 22,
+          }}
+        >
+          <div style={{ background: "#141414", border: "1px solid #242424", borderRadius: 12, padding: 16 }}>
+            <SectionTitle>Scope</SectionTitle>
+            <div style={{ fontSize: 13, color: "#e5e7eb", marginBottom: 6 }}>
+              Workspace: {companySetup.workspaceId}
+            </div>
+            <div style={{ fontSize: 13, color: "#d1d5db" }}>User: {companySetup.userKey}</div>
+          </div>
+          <div style={{ background: "#141414", border: "1px solid #242424", borderRadius: 12, padding: 16 }}>
+            <SectionTitle>Control Plane Sync</SectionTitle>
+            <div style={{ fontSize: 13, color: "#e5e7eb", marginBottom: 6 }}>
+              {companyActivation?.controlPlaneSync.status ?? "not_configured"}
+            </div>
+            <div style={{ fontSize: 12, color: "#9ca3af", lineHeight: 1.5 }}>
+              {companyActivation?.controlPlaneSync.message ??
+                "Apply the template to capture Paperclip sync status."}
+            </div>
+          </div>
+        </div>
+
+        <div
+          style={{
             background: "#141414",
             border: "1px solid #242424",
             borderRadius: 12,
@@ -205,7 +254,10 @@ export default function CompanyTemplateModal({
             {saveError ? (
               <div style={{ fontSize: 13, color: "#fca5a5" }}>{saveError}</div>
             ) : null}
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            {applyError ? (
+              <div style={{ fontSize: 13, color: "#fca5a5" }}>{applyError}</div>
+            ) : null}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
               <button
                 type="button"
                 onClick={() => void handleSave()}
@@ -226,9 +278,53 @@ export default function CompanyTemplateModal({
               >
                 {saving ? "Saving..." : "Save company setup"}
               </button>
+              <button
+                type="button"
+                onClick={() => void handleApply()}
+                disabled={
+                  applying || companyName.trim().length === 0 || selectedProjects.length === 0
+                }
+                style={{
+                  background: applying ? "#1d4ed8" : "#2563eb",
+                  border: "none",
+                  color: "#ffffff",
+                  borderRadius: 8,
+                  padding: "10px 14px",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor:
+                    applying || companyName.trim().length === 0 || selectedProjects.length === 0
+                      ? "not-allowed"
+                      : "pointer",
+                }}
+              >
+                {applying ? "Applying..." : "Apply template"}
+              </button>
             </div>
           </div>
         </div>
+
+        {companyActivation ? (
+          <div
+            style={{
+              background: "#141414",
+              border: "1px solid #242424",
+              borderRadius: 12,
+              padding: 16,
+              marginBottom: 22,
+            }}
+          >
+            <SectionTitle>Active Company</SectionTitle>
+            <div style={{ fontSize: 13, color: "#e5e7eb", marginBottom: 6 }}>
+              {companyActivation.companyName}
+            </div>
+            <div style={{ fontSize: 12, color: "#9ca3af", lineHeight: 1.6 }}>
+              Company ID: {companyActivation.companyId}
+              <br />
+              Updated: {new Date(companyActivation.updatedAt).toLocaleString()}
+            </div>
+          </div>
+        ) : null}
 
         <div
           style={{

@@ -8,6 +8,7 @@ import Sidebar from "@/components/Sidebar";
 import ChatArea from "@/components/ChatArea";
 import CompanyTemplateModal from "@/components/CompanyTemplateModal";
 import OnboardingModal from "@/components/OnboardingModal";
+import type { CompanyActivationState } from "@/lib/companyActivation";
 import {
   defaultCompanyTemplate,
   type DefaultCompanyTemplate,
@@ -86,10 +87,18 @@ export default function AppShell() {
   const [companySetup, setCompanySetup] = useState<CompanySetupState>(
     getDefaultCompanySetupState(defaultCompanyTemplate)
   );
+  const [companyActivation, setCompanyActivation] = useState<CompanyActivationState | null>(null);
   const [deviceLimit, setDeviceLimit] = useState<number>(3);
 
   const authEnabled = process.env.NEXT_PUBLIC_AUTH_ENABLED === "true";
   const authConfigured = isSupabaseConfigured();
+  const workspaceId = "default-workspace";
+  const userKey = userEmail?.trim().toLowerCase() || "anonymous";
+  const companyScopeQuery = new URLSearchParams({
+    workspaceId,
+    userKey,
+  }).toString();
+
   useEffect(() => {
     if (!authEnabled) {
       setUserEmail(null);
@@ -135,7 +144,7 @@ export default function AppShell() {
   const chat = useChat(activeChannel);
 
   useEffect(() => {
-    fetch("/api/company-setup")
+    fetch(`/api/company-setup?${companyScopeQuery}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data: CompanySetupState | null) => {
         if (data?.templateKey) {
@@ -143,7 +152,7 @@ export default function AppShell() {
         }
       })
       .catch(() => {});
-  }, []);
+  }, [companyScopeQuery]);
 
   useEffect(() => {
     fetch("/api/company-template")
@@ -155,6 +164,17 @@ export default function AppShell() {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    fetch(`/api/company-activation?${companyScopeQuery}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((payload: { activation?: CompanyActivationState | null } | null) => {
+        setCompanyActivation(payload?.activation ?? null);
+      })
+      .catch(() => {
+        setCompanyActivation(null);
+      });
+  }, [companyScopeQuery]);
 
   useEffect(() => {
     fetch("/api/subscription")
@@ -280,7 +300,7 @@ export default function AppShell() {
 
   const handleSaveCompanySetup = useCallback(
     async (next: { companyName: string; selectedProjects: string[] }) => {
-      const res = await fetch("/api/company-setup", {
+      const res = await fetch(`/api/company-setup?${companyScopeQuery}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(next),
@@ -296,9 +316,26 @@ export default function AppShell() {
       }
 
       setCompanySetup(data as CompanySetupState);
+    },
+    [companyScopeQuery]
+  );
+
+  const handleApplyCompanyTemplate = useCallback(
+    async (next: { companyName: string; selectedProjects: string[] }) => {
+      await handleSaveCompanySetup(next);
+      const res = await fetch(`/api/company-activation?${companyScopeQuery}`, {
+        method: "POST",
+      });
+      const payload = (await res.json()) as
+        | { activation?: CompanyActivationState | null; error?: string }
+        | null;
+      if (!res.ok || !payload?.activation) {
+        throw new Error(payload?.error ?? "Could not apply company template.");
+      }
+      setCompanyActivation(payload.activation);
       setShowCompanyTemplate(false);
     },
-    []
+    [companyScopeQuery, handleSaveCompanySetup]
   );
 
   const handleChannelSelect = useCallback((id: ChannelId) => {
@@ -371,6 +408,26 @@ export default function AppShell() {
           }}
         >
           {companySetup.companyName}
+        </span>
+        <span
+          style={{
+            fontSize: 11,
+            color:
+              companyActivation?.controlPlaneSync.status === "ready"
+                ? "#86efac"
+                : companyActivation?.controlPlaneSync.status === "degraded"
+                  ? "#fdba74"
+                  : "#9ca3af",
+            background: "#141414",
+            border: "1px solid #262626",
+            borderRadius: 999,
+            padding: "4px 9px",
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+          title={companyActivation?.controlPlaneSync.message ?? "No control-plane sync yet."}
+        >
+          {companyActivation?.controlPlaneSync.status ?? "draft"}
         </span>
         <div style={{ flex: 1 }} />
         <a
@@ -521,7 +578,9 @@ export default function AppShell() {
         <CompanyTemplateModal
           template={companyTemplate}
           companySetup={companySetup}
+          companyActivation={companyActivation}
           onSave={handleSaveCompanySetup}
+          onApply={handleApplyCompanyTemplate}
           onClose={() => setShowCompanyTemplate(false)}
         />
       )}

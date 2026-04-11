@@ -22,6 +22,13 @@ Last attempted sync: `2026-04-10 06:37 KST` (failed; control-plane API unreachab
 - [x] Add editable company setup flow in `/app`
 - [x] Re-run typecheck and route tests
 
+## 2026-04-12 Execution Wave: Company Creation Activation
+
+- [x] Add workspace/user scoped company setup persistence
+- [x] Add persisted company activation/apply API
+- [x] Expose control-plane sync status in `/app`
+- [x] Re-run route tests and typecheck
+
 ## 2026-04-10 CoS Heartbeat Delta (21:40 KST)
 
 Source-of-truth checks:
