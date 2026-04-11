@@ -1,0 +1,59 @@
+{
+  "templateKey": "default-company-operating-system",
+  "version": "2026-04-12",
+  "summary": "Default company operating template for MUSU. Keeps governance, product delivery, blockers, proof, and reporting separated but connected.",
+  "goals": [
+    "company-operating-model",
+    "product-delivery",
+    "external-blockers"
+  ],
+  "starterProjects": [
+    "musu.pro public surface",
+    "core app shell",
+    "external blockers"
+  ],
+  "defaultAgents": [
+    "CEO",
+    "CTO",
+    "Founding Engineer",
+    "QA Lead",
+    "Chief of Staff",
+    "Local Worker"
+  ],
+  "maintenance": [
+    "paperclip_remediation_normalize",
+    "paperclip_comment_lint",
+    "paperclip_lint_packetize"
+  ],
+  "issueClasses": [
+    "umbrella",
+    "implementation",
+    "verification",
+    "blocker-evidence",
+    "external-dependency"
+  ],
+  "bootstrapChecklist": [
+    "Create one company-level operating goal.",
+    "Create product and blocker projects under the operating goal.",
+    "Enable the six default agent lanes.",
+    "Turn on remediation normalize, comment lint, and lint packetize.",
+    "Require Role, Command, and Artifact in verdict comments.",
+    "Split umbrella tracking from proof-sized execution packets."
+  ],
+  "boardCommentContract": {
+    "requiredFields": [
+      "Role",
+      "Command",
+      "Artifact"
+    ],
+    "conditionalFields": [
+      "Upstream Evidence"
+    ]
+  },
+  "reportingCadence": [
+    "live-state",
+    "qualitative-review",
+    "code-audit",
+    "next-step-plan"
+  ]
+}

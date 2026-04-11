@@ -6,10 +6,19 @@ import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import ChatArea from "@/components/ChatArea";
+import CompanyTemplateModal from "@/components/CompanyTemplateModal";
 import OnboardingModal from "@/components/OnboardingModal";
+import {
+  defaultCompanyTemplate,
+  type DefaultCompanyTemplate,
+} from "@/lib/templates/defaultCompanyTemplate";
+import {
+  getDefaultCompanySetupState,
+  type CompanySetupState,
+} from "@/lib/companySetup";
 import { useChat } from "@/lib/useChat";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
-import type { Channel, ChannelId, Device, Message } from "@/types";
+import type { AgentsSurfaceSnapshot, Channel, ChannelId, Device, Message } from "@/types";
 import { AGENT_CHANNELS } from "@/types";
 
 let msgCounter = 10;
@@ -18,16 +27,16 @@ function makeId() {
 }
 
 const CHANNEL_DESCRIPTIONS: Partial<Record<ChannelId, string>> = {
-  general: "모든 대화가 여기서 시작됩니다",
-  dev: "기기 간 내부 대화 (AI 협의)",
-  tasks: "진행 중인 작업 목록",
-  alerts: "기기 상태 변경, 에러, 완료 알림",
-  ceo: "CEO 에이전트",
-  cto: "CTO 에이전트",
-  engineer: "엔지니어 에이전트",
-  cos: "참모 에이전트",
-  qa: "QA 에이전트",
-  worker: "워커 에이전트",
+  general: "Everything starts here",
+  dev: "Internal device-to-device discussion",
+  tasks: "Work currently in progress",
+  alerts: "Device state changes, errors, and completion alerts",
+  ceo: "CEO agent",
+  cto: "CTO agent",
+  engineer: "Engineer agent",
+  cos: "Chief of staff agent",
+  qa: "QA agent",
+  worker: "Worker agent",
 };
 
 const INITIAL_CHANNELS: Channel[] = [
@@ -67,9 +76,16 @@ export default function AppShell() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [channels, setChannels] = useState<Channel[]>(INITIAL_CHANNELS);
   const [devices, setDevices] = useState<Device[]>(INITIAL_DEVICES);
+  const [agentsSurface, setAgentsSurface] = useState<AgentsSurfaceSnapshot | null>(null);
   const [activeChannel, setActiveChannel] = useState<ChannelId>("ceo");
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showCompanyTemplate, setShowCompanyTemplate] = useState(false);
+  const [companyTemplate, setCompanyTemplate] =
+    useState<DefaultCompanyTemplate>(defaultCompanyTemplate);
+  const [companySetup, setCompanySetup] = useState<CompanySetupState>(
+    getDefaultCompanySetupState(defaultCompanyTemplate)
+  );
   const [deviceLimit, setDeviceLimit] = useState<number>(3);
 
   const authEnabled = process.env.NEXT_PUBLIC_AUTH_ENABLED === "true";
@@ -117,6 +133,28 @@ export default function AppShell() {
 
   const isAgentChannel = AGENT_CHANNELS.includes(activeChannel);
   const chat = useChat(activeChannel);
+
+  useEffect(() => {
+    fetch("/api/company-setup")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: CompanySetupState | null) => {
+        if (data?.templateKey) {
+          setCompanySetup(data);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/company-template")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: DefaultCompanyTemplate | null) => {
+        if (data?.templateKey) {
+          setCompanyTemplate(data);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch("/api/subscription")
@@ -172,6 +210,54 @@ export default function AppShell() {
     return () => clearInterval(id);
   }, []);
 
+  useEffect(() => {
+    async function fetchAgentsSurface() {
+      try {
+        const res = await fetch("/api/agents");
+        if (!res.ok) {
+          setAgentsSurface((prev) => ({
+            fetchedAt: new Date().toISOString(),
+            degraded: true,
+            degradedReason: `agents_route_http_${res.status}`,
+            stale: true,
+            summary: prev?.summary ?? {
+              bossHost: null,
+              lastHandoffTarget: null,
+              handoffReasonCode: null,
+              handoffRecordedAtMs: null,
+              departments: [],
+              statusCounts: {},
+            },
+            snapshot: prev?.snapshot ?? [],
+          }));
+          return;
+        }
+        const payload = (await res.json()) as AgentsSurfaceSnapshot;
+        setAgentsSurface(payload);
+      } catch {
+        setAgentsSurface((prev) => ({
+          fetchedAt: new Date().toISOString(),
+          degraded: true,
+          degradedReason: "agents_route_fetch_error",
+          stale: true,
+          summary: prev?.summary ?? {
+            bossHost: null,
+            lastHandoffTarget: null,
+            handoffReasonCode: null,
+            handoffRecordedAtMs: null,
+            departments: [],
+            statusCounts: {},
+          },
+          snapshot: prev?.snapshot ?? [],
+        }));
+      }
+    }
+
+    fetchAgentsSurface();
+    const id = setInterval(fetchAgentsSurface, 5000);
+    return () => clearInterval(id);
+  }, []);
+
   const handleOnboardingComplete = useCallback(
     (deviceName: string) => {
       const newDevice: Device = {
@@ -192,6 +278,29 @@ export default function AppShell() {
     setShowOnboarding(false);
   }, []);
 
+  const handleSaveCompanySetup = useCallback(
+    async (next: { companyName: string; selectedProjects: string[] }) => {
+      const res = await fetch("/api/company-setup", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(next),
+      });
+
+      const data = (await res.json()) as CompanySetupState | { error?: string };
+      if (!res.ok) {
+        throw new Error(
+          "error" in data && typeof data.error === "string"
+            ? data.error
+            : "Could not save company setup."
+        );
+      }
+
+      setCompanySetup(data as CompanySetupState);
+      setShowCompanyTemplate(false);
+    },
+    []
+  );
+
   const handleChannelSelect = useCallback((id: ChannelId) => {
     setActiveChannel(id);
     setChannels((prev) => prev.map((ch) => (ch.id === id ? { ...ch, unread: 0 } : ch)));
@@ -209,7 +318,7 @@ export default function AppShell() {
         const userMsg: Message = {
           id: makeId(),
           channelId: activeChannel,
-          sender: "유저",
+          sender: "User",
           senderKind: "user",
           text,
           timestamp: new Date(),
@@ -232,7 +341,7 @@ export default function AppShell() {
         width: "100vw",
         background: "#0d0d0d",
         fontFamily:
-          "'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif",
+          "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
         overflow: "hidden",
       }}
     >
@@ -261,7 +370,7 @@ export default function AppShell() {
             letterSpacing: "-0.02em",
           }}
         >
-          MUSU App
+          {companySetup.companyName}
         </span>
         <div style={{ flex: 1 }} />
         <a
@@ -276,12 +385,27 @@ export default function AppShell() {
             textDecoration: "none",
           }}
         >
-          사이트 보기
+          View site
         </a>
+        <button
+          type="button"
+          onClick={() => setShowCompanyTemplate(true)}
+          style={{
+            fontSize: 12,
+            color: "#9ca3af",
+            background: "#1a1a1a",
+            border: "1px solid #2d2d2d",
+            borderRadius: 6,
+            padding: "4px 10px",
+            cursor: "pointer",
+          }}
+        >
+          Company template
+        </button>
         {devices.length >= deviceLimit ? (
           <a
             href="/pricing"
-            title={`현재 플랜은 기기 ${deviceLimit}대까지 지원합니다.`}
+            title={`Your current plan supports up to ${deviceLimit} devices.`}
             style={{
               fontSize: 12,
               color: "#facc15",
@@ -295,7 +419,7 @@ export default function AppShell() {
               fontWeight: 600,
             }}
           >
-            기기 한도 도달 — 업그레이드
+            Device limit reached — upgrade
           </a>
         ) : (
           <button
@@ -311,7 +435,7 @@ export default function AppShell() {
               marginRight: 8,
             }}
           >
-            + 기기 추가
+            + Add device
           </button>
         )}
         {authEnabled && authConfigured && userEmail && (
@@ -348,9 +472,9 @@ export default function AppShell() {
               padding: "4px 10px",
               cursor: "pointer",
             }}
-            title="로그아웃"
+            title="Sign out"
           >
-            로그아웃
+            Sign out
           </button>
         )}
       </div>
@@ -363,11 +487,13 @@ export default function AppShell() {
           width: "100%",
         }}
       >
-        <Sidebar
-          channels={channels}
-          devices={devices}
-          activeChannel={activeChannel}
-          onChannelSelect={handleChannelSelect}
+      <Sidebar
+        channels={channels}
+        devices={devices}
+        companyTemplate={companyTemplate}
+        agentsSurface={agentsSurface}
+        activeChannel={activeChannel}
+        onChannelSelect={handleChannelSelect}
           onDeviceSelect={handleDeviceSelect}
         />
         <ChatArea
@@ -390,7 +516,15 @@ export default function AppShell() {
           onSkip={handleOnboardingSkip}
         />
       )}
+
+      {showCompanyTemplate && (
+        <CompanyTemplateModal
+          template={companyTemplate}
+          companySetup={companySetup}
+          onSave={handleSaveCompanySetup}
+          onClose={() => setShowCompanyTemplate(false)}
+        />
+      )}
     </div>
   );
 }
-

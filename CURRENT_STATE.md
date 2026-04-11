@@ -1,6 +1,6 @@
 # musu-functions Current State
 
-Last updated: `2026-04-09 22:30 KST`
+Last updated: `2026-04-11 05:15 KST`
 
 ## 현재 위치
 
@@ -9,6 +9,13 @@ Last updated: `2026-04-09 22:30 KST`
 - 따라서 현재 단계는 “회사를 더 만든다”가 아니라, “회사에서 검증된 기능을 제품 capability로 환원한다” 쪽으로 넘어가고 있다.
 
 ## 현재 코드 상황
+
+- `musu-bee`
+  - default company operating template is now extracted into product code as a canonical baseline.
+  - API surface now exposes `GET /api/company-template`.
+  - the current app shell sidebar renders the default company template summary.
+  - OAuth login/signup buttons are present on public auth screens.
+  - current template-wave TypeScript blockers in `chat` route and `auth/callback` were cleared.
 
 - `musu-port`
   - local control-plane baseline이 상당 부분 올라와 있다.

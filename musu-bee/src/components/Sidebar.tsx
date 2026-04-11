@@ -1,10 +1,13 @@
 "use client";
 
-import type { Channel, ChannelId, Device } from "@/types";
+import type { DefaultCompanyTemplate } from "@/lib/templates/defaultCompanyTemplate";
+import type { AgentsSurfaceSnapshot, Channel, ChannelId, Device } from "@/types";
 
 interface SidebarProps {
   channels: Channel[];
   devices: Device[];
+  companyTemplate?: DefaultCompanyTemplate | null;
+  agentsSurface?: AgentsSurfaceSnapshot | null;
   activeChannel: ChannelId;
   onChannelSelect: (id: ChannelId) => void;
   onDeviceSelect: (id: string) => void;
@@ -101,7 +104,7 @@ function DeviceItem({
               padding: "1px 5px",
             }}
           >
-            사장
+            Leader
           </span>
         )}
       </div>
@@ -149,20 +152,46 @@ function DeviceItem({
         <div
           style={{ paddingLeft: 14, fontSize: 11, color: "#4b5563" }}
         >
-          오프라인
+          Offline
         </div>
       )}
     </div>
   );
 }
 
+function DepartmentStatusDot({ status }: { status: string }) {
+  const tone = status.toLowerCase();
+  const color =
+    tone === "running" ? "#22c55e" :
+    tone === "idle" ? "#6b7280" :
+    tone === "paused" ? "#f59e0b" :
+    "#ef4444";
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        width: 7,
+        height: 7,
+        borderRadius: "50%",
+        background: color,
+        marginRight: 6,
+        flexShrink: 0,
+      }}
+    />
+  );
+}
+
 export default function Sidebar({
   channels,
   devices,
+  companyTemplate,
+  agentsSurface,
   activeChannel,
   onChannelSelect,
   onDeviceSelect,
 }: SidebarProps) {
+  const summary = agentsSurface?.summary;
+
   return (
     <div
       style={{
@@ -189,7 +218,7 @@ export default function Sidebar({
             marginBottom: 6,
           }}
         >
-          채널
+          Channels
         </div>
         {channels.map((ch) => (
           <div
@@ -245,6 +274,143 @@ export default function Sidebar({
         style={{ borderTop: "1px solid #1f1f1f", margin: "4px 0 12px 0" }}
       />
 
+      {/* Execution status surface */}
+      <div style={{ marginBottom: 12 }}>
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: "#6b7280",
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+            padding: "0 8px",
+            marginBottom: 6,
+          }}
+        >
+          Execution Status (/agents)
+        </div>
+        <div
+          data-testid="agents-parity-surface"
+          style={{
+            margin: "0 4px",
+            padding: "8px 10px",
+            borderRadius: 8,
+            border: "1px solid #242424",
+            background: "#141414",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                color: agentsSurface?.degraded ? "#fca5a5" : "#86efac",
+                background: agentsSurface?.degraded ? "rgba(239,68,68,0.16)" : "rgba(34,197,94,0.16)",
+                border: `1px solid ${agentsSurface?.degraded ? "rgba(239,68,68,0.35)" : "rgba(34,197,94,0.35)"}`,
+                borderRadius: 999,
+                padding: "2px 6px",
+              }}
+            >
+              {agentsSurface?.degraded ? "DEGRADED" : "SYNC"}
+            </span>
+            <span style={{ fontSize: 10, color: "#6b7280" }}>
+              {agentsSurface?.fetchedAt
+                ? new Date(agentsSurface.fetchedAt).toLocaleTimeString("en-US", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                  })
+                : "Loading"}
+            </span>
+          </div>
+          <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 5 }}>
+            boss_host: <span style={{ color: "#e5e7eb" }}>{summary?.bossHost ?? "n/a"}</span>
+          </div>
+          <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 8 }}>
+            handoff target:{" "}
+            <span style={{ color: "#e5e7eb" }}>{summary?.lastHandoffTarget ?? "n/a"}</span>
+          </div>
+          {summary?.departments.length ? (
+            <div style={{ display: "grid", gap: 4 }}>
+              {summary.departments.slice(0, 6).map((department) => (
+                <div
+                  key={department.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    fontSize: 11,
+                    color: "#d1d5db",
+                  }}
+                >
+                  <DepartmentStatusDot status={department.status} />
+                  <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {department.name}
+                  </span>
+                  <span style={{ color: "#9ca3af", textTransform: "lowercase" }}>
+                    {department.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ fontSize: 11, color: "#6b7280" }}>
+              No department status data
+            </div>
+          )}
+          {agentsSurface?.degradedReason && (
+            <div style={{ marginTop: 8, fontSize: 10, color: "#fca5a5" }}>
+              {agentsSurface.degradedReason}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div
+        style={{ borderTop: "1px solid #1f1f1f", margin: "4px 0 12px 0" }}
+      />
+
+      <div style={{ marginBottom: 12 }}>
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: "#6b7280",
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+            padding: "0 8px",
+            marginBottom: 6,
+          }}
+        >
+          Company Template
+        </div>
+        <div
+          style={{
+            margin: "0 4px",
+            padding: "8px 10px",
+            borderRadius: 8,
+            border: "1px solid #242424",
+            background: "#141414",
+          }}
+        >
+          <div style={{ fontSize: 12, color: "#e5e7eb", fontWeight: 600, marginBottom: 6 }}>
+            {companyTemplate?.templateKey ?? "default-company-operating-system"}
+          </div>
+          <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 6 }}>
+            {companyTemplate?.goals.length ?? 0} goals, {companyTemplate?.defaultAgents.length ?? 0} default lanes
+          </div>
+          <div style={{ fontSize: 11, color: "#6b7280", lineHeight: 1.5 }}>
+            Comment contract: {companyTemplate?.boardCommentContract.requiredFields.join(", ") ?? "Role, Command, Artifact"}
+          </div>
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div
+        style={{ borderTop: "1px solid #1f1f1f", margin: "4px 0 12px 0" }}
+      />
+
       {/* Devices */}
       <div>
         <div
@@ -258,7 +424,7 @@ export default function Sidebar({
             marginBottom: 6,
           }}
         >
-          부서
+          Devices
         </div>
         {devices.map((dev) => (
           <DeviceItem
