@@ -5,7 +5,20 @@ import { resolveCompanyScope } from "./companyScope";
 import type { CompanySetupState } from "./companySetup";
 import type { DefaultCompanyTemplate } from "./templates/defaultCompanyTemplate";
 import { defaultCompanyTemplate } from "./templates/defaultCompanyTemplate";
-import { probeControlPlaneSync, type ControlPlaneSyncState } from "./controlPlaneSync";
+import {
+  probeControlPlaneSync,
+  writeCompanyActivationToPaperclip,
+  type ControlPlaneSyncState,
+} from "./controlPlaneSync";
+
+export interface CompanySyncEvent {
+  eventId: string;
+  mode: "apply" | "manual_sync";
+  status: "ready" | "degraded" | "not_configured";
+  message: string;
+  endpoint: string | null;
+  checkedAt: string;
+}
 
 export interface CompanyActivationState {
   companyId: string;
@@ -16,7 +29,17 @@ export interface CompanyActivationState {
   userKey: string;
   createdAt: string;
   updatedAt: string;
+  paperclipIssueId: string | null;
   controlPlaneSync: ControlPlaneSyncState;
+  syncHistory: CompanySyncEvent[];
+}
+
+export interface CompanyRegistryState {
+  workspaceId: string;
+  userKey: string;
+  activeCompanyId: string | null;
+  companies: CompanyActivationState[];
+  updatedAt: string;
 }
 
 function useKv(): boolean {
@@ -24,16 +47,40 @@ function useKv(): boolean {
 }
 
 function getKvKey(scope: CompanyScope) {
-  return `musu:company-activation:${scope.scopeKey}`;
+  return `musu:company-registry:${scope.scopeKey}`;
 }
 
 function getStateFilePath(scope: CompanyScope) {
   return require("path").join(
     process.cwd(),
     "data",
-    "company-activations",
+    "company-registries",
     `${scope.scopeKey}.json`
   ) as string;
+}
+
+function normalizeSyncEvent(value: unknown): CompanySyncEvent | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  if (
+    typeof record.eventId !== "string" ||
+    typeof record.mode !== "string" ||
+    typeof record.message !== "string" ||
+    typeof record.checkedAt !== "string"
+  ) {
+    return null;
+  }
+  return {
+    eventId: record.eventId,
+    mode: record.mode === "manual_sync" ? "manual_sync" : "apply",
+    status:
+      record.status === "ready" || record.status === "degraded" || record.status === "not_configured"
+        ? record.status
+        : "not_configured",
+    message: record.message,
+    endpoint: typeof record.endpoint === "string" ? record.endpoint : null,
+    checkedAt: record.checkedAt,
+  };
 }
 
 function normalizeActivation(
@@ -52,6 +99,11 @@ function normalizeActivation(
   }
 
   const sync = record.controlPlaneSync as Record<string, unknown> | undefined;
+  const syncHistory = Array.isArray(record.syncHistory)
+    ? record.syncHistory
+        .map((entry) => normalizeSyncEvent(entry))
+        .filter((entry): entry is CompanySyncEvent => entry !== null)
+    : [];
 
   return {
     companyId: record.companyId,
@@ -76,6 +128,10 @@ function normalizeActivation(
       typeof record.updatedAt === "string" && record.updatedAt.length > 0
         ? record.updatedAt
         : new Date().toISOString(),
+    paperclipIssueId:
+      typeof record.paperclipIssueId === "string" && record.paperclipIssueId.length > 0
+        ? record.paperclipIssueId
+        : null,
     controlPlaneSync: {
       provider: "paperclip",
       status:
@@ -86,76 +142,251 @@ function normalizeActivation(
       endpoint: typeof sync?.endpoint === "string" ? sync.endpoint : null,
       checkedAt: typeof sync?.checkedAt === "string" ? sync.checkedAt : new Date().toISOString(),
     },
+    syncHistory,
   };
 }
 
-function fileGet(scope: CompanyScope): CompanyActivationState | null {
+function buildEmptyRegistry(scope: CompanyScope): CompanyRegistryState {
+  return {
+    workspaceId: scope.workspaceId,
+    userKey: scope.userKey,
+    activeCompanyId: null,
+    companies: [],
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function normalizeRegistry(value: unknown, scope: CompanyScope): CompanyRegistryState {
+  if (!value || typeof value !== "object") return buildEmptyRegistry(scope);
+  const record = value as Record<string, unknown>;
+  const companies = Array.isArray(record.companies)
+    ? record.companies
+        .map((entry) => normalizeActivation(entry, scope))
+        .filter((entry): entry is CompanyActivationState => entry !== null)
+    : [];
+
+  const activeCompanyId =
+    typeof record.activeCompanyId === "string" &&
+    companies.some((company) => company.companyId === record.activeCompanyId)
+      ? record.activeCompanyId
+      : companies[0]?.companyId ?? null;
+
+  return {
+    workspaceId:
+      typeof record.workspaceId === "string" && record.workspaceId.length > 0
+        ? record.workspaceId
+        : scope.workspaceId,
+    userKey:
+      typeof record.userKey === "string" && record.userKey.length > 0
+        ? record.userKey
+        : scope.userKey,
+    activeCompanyId,
+    companies,
+    updatedAt:
+      typeof record.updatedAt === "string" && record.updatedAt.length > 0
+        ? record.updatedAt
+        : new Date().toISOString(),
+  };
+}
+
+function fileGet(scope: CompanyScope): CompanyRegistryState {
   const fs = require("fs") as typeof import("fs");
   try {
     const raw = fs.readFileSync(getStateFilePath(scope), "utf8");
-    return normalizeActivation(JSON.parse(raw), scope);
+    return normalizeRegistry(JSON.parse(raw), scope);
   } catch {
-    return null;
+    return buildEmptyRegistry(scope);
   }
 }
 
-function fileSet(scope: CompanyScope, state: CompanyActivationState): void {
+function fileSet(scope: CompanyScope, state: CompanyRegistryState): void {
   const fs = require("fs") as typeof import("fs");
   const path = require("path") as typeof import("path");
   const os = require("os") as typeof import("os");
   const stateFile = getStateFilePath(scope);
   const dir = path.dirname(stateFile);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  const tmp = path.join(os.tmpdir(), `company-activation-${process.pid}-${Date.now()}.json`);
+  const tmp = path.join(os.tmpdir(), `company-registry-${process.pid}-${Date.now()}.json`);
   fs.writeFileSync(tmp, JSON.stringify(state, null, 2), "utf8");
   fs.renameSync(tmp, stateFile);
 }
 
-async function kvGet(scope: CompanyScope): Promise<CompanyActivationState | null> {
+async function kvGet(scope: CompanyScope): Promise<CompanyRegistryState> {
   const { kv } = await import("@vercel/kv");
-  const stored = await kv.get<CompanyActivationState>(getKvKey(scope));
-  return normalizeActivation(stored, scope);
+  const stored = await kv.get<CompanyRegistryState>(getKvKey(scope));
+  return normalizeRegistry(stored, scope);
 }
 
-async function kvSet(scope: CompanyScope, state: CompanyActivationState): Promise<void> {
+async function kvSet(scope: CompanyScope, state: CompanyRegistryState): Promise<void> {
   const { kv } = await import("@vercel/kv");
   await kv.set(getKvKey(scope), state);
+}
+
+async function loadRegistry(scope: CompanyScope): Promise<CompanyRegistryState> {
+  if (useKv()) return kvGet(scope);
+  return fileGet(scope);
+}
+
+async function persistRegistry(scope: CompanyScope, state: CompanyRegistryState): Promise<void> {
+  if (useKv()) {
+    await kvSet(scope, state);
+  } else {
+    fileSet(scope, state);
+  }
+}
+
+function appendSyncEvent(
+  company: CompanyActivationState,
+  event: CompanySyncEvent,
+  nextSyncState: ControlPlaneSyncState,
+  paperclipIssueId: string | null = company.paperclipIssueId
+): CompanyActivationState {
+  return {
+    ...company,
+    paperclipIssueId,
+    updatedAt: event.checkedAt,
+    controlPlaneSync: nextSyncState,
+    syncHistory: [event, ...company.syncHistory].slice(0, 12),
+  };
+}
+
+export async function getCompanyRegistry(
+  scopeInput: CompanyScopeInput = {}
+): Promise<CompanyRegistryState> {
+  const scope = resolveCompanyScope(scopeInput);
+  return loadRegistry(scope);
 }
 
 export async function getCompanyActivation(
   scopeInput: CompanyScopeInput = {}
 ): Promise<CompanyActivationState | null> {
-  const scope = resolveCompanyScope(scopeInput);
-  if (useKv()) return kvGet(scope);
-  return fileGet(scope);
+  const registry = await getCompanyRegistry(scopeInput);
+  return registry.companies.find((company) => company.companyId === registry.activeCompanyId) ?? null;
 }
 
 export async function applyCompanyActivation(
   setup: CompanySetupState,
   template: DefaultCompanyTemplate = defaultCompanyTemplate,
   scopeInput: CompanyScopeInput = {}
-): Promise<CompanyActivationState> {
+): Promise<{ registry: CompanyRegistryState; activation: CompanyActivationState }> {
   const scope = resolveCompanyScope(scopeInput);
-  const existing = await getCompanyActivation(scope);
-  const now = new Date().toISOString();
-  const controlPlaneSync = await probeControlPlaneSync();
-  const next: CompanyActivationState = {
-    companyId: existing?.companyId ?? randomUUID(),
+  const registry = await loadRegistry(scope);
+  const syncState = await probeControlPlaneSync();
+  const checkedAt = syncState.checkedAt;
+  const activation: CompanyActivationState = {
+    companyId: randomUUID(),
     companyName: setup.companyName,
     templateKey: template.templateKey,
     selectedProjects: [...setup.selectedProjects],
     workspaceId: scope.workspaceId,
     userKey: scope.userKey,
-    createdAt: existing?.createdAt ?? now,
-    updatedAt: now,
-    controlPlaneSync,
+    createdAt: checkedAt,
+    updatedAt: checkedAt,
+    paperclipIssueId: null,
+    controlPlaneSync: syncState,
+    syncHistory: [
+      {
+        eventId: randomUUID(),
+        mode: "apply",
+        status: syncState.status,
+        message: syncState.message,
+        endpoint: syncState.endpoint,
+        checkedAt,
+      },
+    ],
   };
 
-  if (useKv()) {
-    await kvSet(scope, next);
-  } else {
-    fileSet(scope, next);
+  const nextRegistry: CompanyRegistryState = {
+    ...registry,
+    workspaceId: scope.workspaceId,
+    userKey: scope.userKey,
+    activeCompanyId: activation.companyId,
+    companies: [activation, ...registry.companies],
+    updatedAt: checkedAt,
+  };
+
+  await persistRegistry(scope, nextRegistry);
+  return { registry: nextRegistry, activation };
+}
+
+export async function setActiveCompany(
+  companyId: string,
+  scopeInput: CompanyScopeInput = {}
+): Promise<CompanyRegistryState> {
+  const scope = resolveCompanyScope(scopeInput);
+  const registry = await loadRegistry(scope);
+  if (!registry.companies.some((company) => company.companyId === companyId)) {
+    throw new Error("Company not found.");
+  }
+  const nextRegistry = {
+    ...registry,
+    activeCompanyId: companyId,
+    updatedAt: new Date().toISOString(),
+  };
+  await persistRegistry(scope, nextRegistry);
+  return nextRegistry;
+}
+
+export async function deleteCompany(
+  companyId: string,
+  scopeInput: CompanyScopeInput = {}
+): Promise<CompanyRegistryState> {
+  const scope = resolveCompanyScope(scopeInput);
+  const registry = await loadRegistry(scope);
+  const companies = registry.companies.filter((company) => company.companyId !== companyId);
+  const nextRegistry: CompanyRegistryState = {
+    ...registry,
+    companies,
+    activeCompanyId:
+      registry.activeCompanyId === companyId ? (companies[0]?.companyId ?? null) : registry.activeCompanyId,
+    updatedAt: new Date().toISOString(),
+  };
+  await persistRegistry(scope, nextRegistry);
+  return nextRegistry;
+}
+
+export async function syncCompanyActivation(
+  companyId: string,
+  scopeInput: CompanyScopeInput = {}
+): Promise<{ registry: CompanyRegistryState; activation: CompanyActivationState }> {
+  const scope = resolveCompanyScope(scopeInput);
+  const registry = await loadRegistry(scope);
+  const company = registry.companies.find((entry) => entry.companyId === companyId);
+  if (!company) {
+    throw new Error("Company not found.");
   }
 
-  return next;
+  const syncResult = await writeCompanyActivationToPaperclip(company);
+  const event: CompanySyncEvent = {
+    eventId: randomUUID(),
+    mode: "manual_sync",
+    status: syncResult.status,
+    message: syncResult.message,
+    endpoint: syncResult.endpoint,
+    checkedAt: syncResult.checkedAt,
+  };
+
+  const nextCompany = appendSyncEvent(
+    company,
+    event,
+    {
+      provider: "paperclip",
+      status: syncResult.status,
+      message: syncResult.message,
+      endpoint: syncResult.endpoint,
+      checkedAt: syncResult.checkedAt,
+    },
+    syncResult.paperclipIssueId ?? company.paperclipIssueId
+  );
+
+  const nextRegistry: CompanyRegistryState = {
+    ...registry,
+    companies: registry.companies.map((entry) =>
+      entry.companyId === companyId ? nextCompany : entry
+    ),
+    updatedAt: syncResult.checkedAt,
+  };
+
+  await persistRegistry(scope, nextRegistry);
+  return { registry: nextRegistry, activation: nextCompany };
 }

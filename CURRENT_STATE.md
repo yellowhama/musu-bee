@@ -16,9 +16,17 @@ Last updated: `2026-04-12 01:40 KST`
   - the current app shell sidebar renders the default company template summary.
   - company setup persistence is now scoped by `workspaceId` + `userKey`.
   - app API now exposes `GET/PUT /api/company-setup` with scoped draft persistence.
-  - app API now exposes `GET/POST /api/company-activation` for applying the current template into a persisted active company record.
-  - the company template modal now supports both `Save company setup` and `Apply template`.
-  - the top bar now exposes Paperclip sync status from the last activation probe.
+  - app API now exposes `GET/POST/PATCH/DELETE /api/company-activation` for company registry management.
+  - one scope can now hold multiple companies with one active company.
+  - the company template modal now supports:
+    - `Save company setup`
+    - `Apply template`
+    - `Set active`
+    - `Sync`
+    - `Delete`
+  - the top bar now exposes Paperclip sync status from the current active company.
+  - sync history is persisted per company and Paperclip writeback is attempted when configured.
+  - template contract CI now exists via `.github/workflows/company-template-contract.yml`.
   - OAuth login/signup buttons are present on public auth screens.
   - current template-wave TypeScript blockers in `chat` route and `auth/callback` were cleared.
 

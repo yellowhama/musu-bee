@@ -29,6 +29,13 @@ Last attempted sync: `2026-04-10 06:37 KST` (failed; control-plane API unreachab
 - [x] Expose control-plane sync status in `/app`
 - [x] Re-run route tests and typecheck
 
+## 2026-04-12 Execution Wave: Company Registry + Control-Plane Writeback
+
+- [x] Replace single activation state with a multi-company registry
+- [x] Add explicit Paperclip sync action with persisted sync history
+- [x] Enforce template sync contract in CI
+- [x] Re-run route tests and typecheck
+
 ## 2026-04-10 CoS Heartbeat Delta (21:40 KST)
 
 Source-of-truth checks:

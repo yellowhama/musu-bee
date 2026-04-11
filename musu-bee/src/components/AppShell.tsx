@@ -8,7 +8,7 @@ import Sidebar from "@/components/Sidebar";
 import ChatArea from "@/components/ChatArea";
 import CompanyTemplateModal from "@/components/CompanyTemplateModal";
 import OnboardingModal from "@/components/OnboardingModal";
-import type { CompanyActivationState } from "@/lib/companyActivation";
+import type { CompanyActivationState, CompanyRegistryState } from "@/lib/companyActivation";
 import {
   defaultCompanyTemplate,
   type DefaultCompanyTemplate,
@@ -88,6 +88,7 @@ export default function AppShell() {
     getDefaultCompanySetupState(defaultCompanyTemplate)
   );
   const [companyActivation, setCompanyActivation] = useState<CompanyActivationState | null>(null);
+  const [companyRegistry, setCompanyRegistry] = useState<CompanyRegistryState | null>(null);
   const [deviceLimit, setDeviceLimit] = useState<number>(3);
 
   const authEnabled = process.env.NEXT_PUBLIC_AUTH_ENABLED === "true";
@@ -165,16 +166,27 @@ export default function AppShell() {
       .catch(() => {});
   }, []);
 
-  useEffect(() => {
-    fetch(`/api/company-activation?${companyScopeQuery}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((payload: { activation?: CompanyActivationState | null } | null) => {
-        setCompanyActivation(payload?.activation ?? null);
-      })
-      .catch(() => {
-        setCompanyActivation(null);
-      });
+  const refreshCompanyActivation = useCallback(async () => {
+    const response = await fetch(`/api/company-activation?${companyScopeQuery}`);
+    if (!response.ok) {
+      setCompanyActivation(null);
+      setCompanyRegistry(null);
+      return;
+    }
+    const payload = (await response.json()) as {
+      activation?: CompanyActivationState | null;
+      registry?: CompanyRegistryState | null;
+    };
+    setCompanyActivation(payload.activation ?? null);
+    setCompanyRegistry(payload.registry ?? null);
   }, [companyScopeQuery]);
+
+  useEffect(() => {
+    void refreshCompanyActivation().catch(() => {
+      setCompanyActivation(null);
+      setCompanyRegistry(null);
+    });
+  }, [refreshCompanyActivation]);
 
   useEffect(() => {
     fetch("/api/subscription")
@@ -327,15 +339,74 @@ export default function AppShell() {
         method: "POST",
       });
       const payload = (await res.json()) as
-        | { activation?: CompanyActivationState | null; error?: string }
+        | { activation?: CompanyActivationState | null; registry?: CompanyRegistryState | null; error?: string }
         | null;
       if (!res.ok || !payload?.activation) {
         throw new Error(payload?.error ?? "Could not apply company template.");
       }
       setCompanyActivation(payload.activation);
+      setCompanyRegistry(payload.registry ?? null);
       setShowCompanyTemplate(false);
     },
     [companyScopeQuery, handleSaveCompanySetup]
+  );
+
+  const handleSelectActiveCompany = useCallback(
+    async (companyId: string) => {
+      const res = await fetch(`/api/company-activation?${companyScopeQuery}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "activate", companyId }),
+      });
+      const payload = (await res.json()) as
+        | { activation?: CompanyActivationState | null; registry?: CompanyRegistryState | null; error?: string }
+        | null;
+      if (!res.ok) {
+        throw new Error(payload?.error ?? "Could not set active company.");
+      }
+      setCompanyActivation(payload?.activation ?? null);
+      setCompanyRegistry(payload?.registry ?? null);
+    },
+    [companyScopeQuery]
+  );
+
+  const handleSyncCompany = useCallback(
+    async (companyId: string) => {
+      const res = await fetch(`/api/company-activation?${companyScopeQuery}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "sync", companyId }),
+      });
+      const payload = (await res.json()) as
+        | { activation?: CompanyActivationState | null; registry?: CompanyRegistryState | null; error?: string }
+        | null;
+      if (!res.ok) {
+        throw new Error(payload?.error ?? "Could not sync company.");
+      }
+      setCompanyActivation(payload?.activation ?? null);
+      setCompanyRegistry(payload?.registry ?? null);
+    },
+    [companyScopeQuery]
+  );
+
+  const handleDeleteCompany = useCallback(
+    async (companyId: string) => {
+      const res = await fetch(
+        `/api/company-activation?${companyScopeQuery}&companyId=${encodeURIComponent(companyId)}`,
+        {
+          method: "DELETE",
+        }
+      );
+      const payload = (await res.json()) as
+        | { activation?: CompanyActivationState | null; registry?: CompanyRegistryState | null; error?: string }
+        | null;
+      if (!res.ok) {
+        throw new Error(payload?.error ?? "Could not delete company.");
+      }
+      setCompanyActivation(payload?.activation ?? null);
+      setCompanyRegistry(payload?.registry ?? null);
+    },
+    [companyScopeQuery]
   );
 
   const handleChannelSelect = useCallback((id: ChannelId) => {
@@ -579,8 +650,12 @@ export default function AppShell() {
           template={companyTemplate}
           companySetup={companySetup}
           companyActivation={companyActivation}
+          companyRegistry={companyRegistry}
           onSave={handleSaveCompanySetup}
           onApply={handleApplyCompanyTemplate}
+          onSelectActive={handleSelectActiveCompany}
+          onSync={handleSyncCompany}
+          onDelete={handleDeleteCompany}
           onClose={() => setShowCompanyTemplate(false)}
         />
       )}
