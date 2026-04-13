@@ -1,3 +1,41 @@
+:root {
+  /* MUSU Brand — SSOT */
+  --musu-color-brand-ink: #2D1D19;
+  --musu-color-brand-accent: #FFD166;
+  --musu-color-brand-canvas: #FDFCF0;
+  --musu-color-brand-stroke: #F8F6F1;
+  --musu-color-brand-ink-rgb: 45 29 25;
+  --musu-color-brand-accent-rgb: 255 209 102;
+  --musu-color-brand-canvas-rgb: 253 252 240;
+
+  /* Backward-compat aliases (phase-out target) */
+  --musu-cocoa-brown: var(--musu-color-brand-ink);
+  --musu-yellow: var(--musu-color-brand-accent);
+  --musu-off-white: var(--musu-color-brand-canvas);
+  --musu-brown: var(--musu-color-brand-ink);
+  --musu-stroke: var(--musu-color-brand-stroke);
+
+  /* App Shell — dark UI */
+  --musu-bg: #0d0d0d;
+  --musu-bg-surface: #111827;
+  --musu-bg-raised: #1f2937;
+  --musu-border: #2d2d2d;
+  --musu-border-subtle: #374151;
+  --musu-text: #f3f4f6;
+  --musu-text-muted: #9ca3af;
+  --musu-text-dim: #6b7280;
+
+  /* Semantic status */
+  --musu-status-online: #22c55e;
+  --musu-status-busy: #f59e0b;
+  --musu-status-offline: #4b5563;
+  --musu-status-error: #ef4444;
+
+  /* Spacing / shape */
+  --musu-radius: 8px;
+  --musu-radius-sm: 4px;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -7,8 +45,8 @@
 html, body {
   height: 100%;
   overflow: hidden;
-  background: #0d0d0d;
-  color: #f3f4f6;
+  background: var(--musu-bg);
+  color: var(--musu-text);
 }
 
 ::-webkit-scrollbar {
@@ -33,4 +71,23 @@ html, body {
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
+}
+
+/* Agent status dot animations */
+@keyframes musu-pulse-online {
+  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+  50%       { opacity: 0.85; transform: scale(1.25); box-shadow: 0 0 0 4px rgba(34, 197, 94, 0); }
+}
+
+@keyframes musu-pulse-busy {
+  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5); }
+  50%       { opacity: 0.8; transform: scale(1.3); box-shadow: 0 0 0 5px rgba(245, 158, 11, 0); }
+}
+
+.musu-dot-working {
+  animation: musu-pulse-busy 1.2s ease-in-out infinite;
+}
+
+.musu-dot-active {
+  animation: musu-pulse-online 2.5s ease-in-out infinite;
 }

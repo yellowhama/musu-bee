@@ -16,6 +16,32 @@ import {
 const WS_BASE =
   process.env.NEXT_PUBLIC_MUSU_PORT_WS_URL ?? "ws://localhost:1355";
 
+// ── History localStorage cache ─────────────────────────────────────────────
+// Restores the last 50 messages per channel when musu-bridge is unreachable.
+
+const HISTORY_CACHE_MAX = 50;
+
+function historyCacheKey(ch: ChannelId): string {
+  return `musu:history:${ch}`;
+}
+
+function saveHistoryCache(ch: ChannelId, msgs: Message[]): void {
+  try {
+    localStorage.setItem(historyCacheKey(ch), JSON.stringify(msgs.slice(-HISTORY_CACHE_MAX)));
+  } catch { /* localStorage unavailable (SSR / private mode) */ }
+}
+
+function loadHistoryCache(ch: ChannelId): Message[] {
+  try {
+    const raw = localStorage.getItem(historyCacheKey(ch));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Array<Omit<Message, "timestamp"> & { timestamp: string }>;
+    return parsed.map((m) => ({ ...m, timestamp: new Date(m.timestamp) }));
+  } catch {
+    return [];
+  }
+}
+
 function historyMsgToMessage(hm: HistoryMessage, channel: ChannelId): Message {
   return {
     id: `hist-${hm.id}`,
@@ -98,10 +124,34 @@ export function useChat(channel: ChannelId): UseChatReturn {
 
     fetchHistory().then((msgs) => {
       if (cancelled) return;
-      const converted = msgs.map((m) => historyMsgToMessage(m, channel));
-      setMessages((prev) => [...converted, ...prev]);
-      if (msgs.length > 0) oldestHistoryId.current = msgs[0].id;
-      setHasMoreHistory(msgs.length === 50);
+      if (msgs.length > 0) {
+        const converted = msgs.map((m) => historyMsgToMessage(m, channel));
+        setMessages((prev) => {
+          const next = [...converted, ...prev];
+          saveHistoryCache(channel, next);
+          return next;
+        });
+        oldestHistoryId.current = msgs[0].id;
+        setHasMoreHistory(msgs.length === 50);
+      } else {
+        // Bridge unreachable or no history — restore from localStorage cache
+        const cached = loadHistoryCache(channel);
+        if (cached.length > 0) {
+          setMessages((prev) => [
+            ...cached,
+            {
+              id: `sys-cache-${Date.now()}`,
+              channelId: channel,
+              sender: "System",
+              senderKind: "system" as const,
+              text: "⚠ 브릿지 연결 없음 — 캐시에서 복원됨",
+              timestamp: new Date(),
+            },
+            ...prev,
+          ]);
+        }
+        setHasMoreHistory(false);
+      }
       setIsLoadingHistory(false);
     });
 
@@ -276,6 +326,66 @@ export function useChat(channel: ChannelId): UseChatReturn {
     [channel]
   );
 
+  // ── musu-bridge agent route ────────────────────────────────────────────────
+
+  const sendViaAgentRoute = useCallback(
+    async (text: string) => {
+      setIsAgentTyping(true);
+      try {
+        const res = await fetch("/api/agent-route", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ channel, sender_id: "local-user", text }),
+        });
+
+        const data = (await res.json()) as {
+          response?: string;
+          agent_id?: string;
+          agent_name?: string;
+          chain?: string[];
+          error?: string;
+        };
+
+        if (!res.ok || data.error) {
+          const errMsg =
+            data.error === "agent_timeout"
+              ? "에이전트 응답 시간 초과 (300s)."
+              : data.error === "bridge_unavailable"
+                ? "musu-bridge에 연결할 수 없습니다. `bash scripts/dev-start.sh`로 서비스를 시작하세요."
+                : `에이전트 오류: ${data.error ?? "unknown"}`;
+          appendChatMessage({
+            id: makeId(), channelId: channel,
+            sender: "System", senderKind: "system",
+            text: errMsg, timestamp: new Date(),
+          });
+          return;
+        }
+
+        appendChatMessage({
+          id: makeId(), channelId: channel,
+          sender: data.agent_name ?? channel,
+          senderKind: "ai",
+          text: data.response ?? "",
+          timestamp: new Date(),
+          meta: {
+            agentId: data.agent_id ?? undefined,
+            chain: data.chain ?? undefined,
+          },
+        });
+      } catch (err) {
+        appendChatMessage({
+          id: makeId(), channelId: channel,
+          sender: "System", senderKind: "system",
+          text: `네트워크 오류: ${err instanceof Error ? err.message : String(err)}`,
+          timestamp: new Date(),
+        });
+      } finally {
+        setIsAgentTyping(false);
+      }
+    },
+    [appendChatMessage, channel],
+  );
+
   // ── Command handlers ───────────────────────────────────────────────────────
 
   const ctx = { appendChatMessage, channel, setIsAgentTyping };
@@ -309,18 +419,10 @@ export function useChat(channel: ChannelId): UseChatReturn {
       appendChatMessage({ id: makeId(), channelId: channel, sender: "User", senderKind: "user", text, timestamp: new Date() });
       if (!isAgentChannel) return;
 
-      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-        void sendViaHttpFallback(text);
-        return;
-      }
-
-      const payload: ChatWsMessage = {
-        type: "user_message", channel, sender_id: "local-user", sender_name: "User",
-        text, timestamp: Math.floor(Date.now() / 1000),
-      };
-      wsRef.current.send(JSON.stringify(payload));
+      // Agent channels: route through musu-bridge for real agent execution
+      void sendViaAgentRoute(text);
     },
-    [appendChatMessage, channel, handleApprovalCommand, handleTaskCommand, handleRouteCommand, handleRunCommand, handleWikiCommand, isAgentChannel, sendViaHttpFallback],
+    [appendChatMessage, channel, handleApprovalCommand, handleTaskCommand, handleRouteCommand, handleRunCommand, handleWikiCommand, isAgentChannel, sendViaAgentRoute],
   );
 
   return { messages, sendMessage, isConnected, isAgentTyping, isLoadingHistory, hasMoreHistory, loadOlderMessages };

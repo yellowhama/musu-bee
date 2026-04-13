@@ -216,6 +216,46 @@ function ApprovalCard({ text, onSend }: { text: string; onSend: (t: string) => v
   );
 }
 
+function DelegationChip({ chain }: { chain: string[] }) {
+  if (chain.length < 2) return null;
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 3,
+        marginBottom: 4,
+        fontSize: 11,
+        color: "#4b5563",
+        fontFamily: "monospace",
+      }}
+    >
+      {chain.map((node, i) => (
+        <span key={i} style={{ display: "flex", alignItems: "center", gap: 3 }}>
+          <span
+            style={{
+              background: "#1a1a1a",
+              border: "1px solid #2a2a2a",
+              borderRadius: 4,
+              padding: "1px 5px",
+              color: "#9ca3af",
+              fontSize: 10,
+              fontWeight: 600,
+              letterSpacing: "0.05em",
+              textTransform: "uppercase",
+            }}
+          >
+            {node}
+          </span>
+          {i < chain.length - 1 && (
+            <span style={{ color: "#374151", fontSize: 10 }}>→</span>
+          )}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function MessageBubble({ msg, onSend }: { msg: Message; onSend: (t: string) => void }) {
   const isUser = msg.senderKind === "user";
   const isSystem = msg.senderKind === "system";
@@ -253,6 +293,9 @@ function MessageBubble({ msg, onSend }: { msg: Message; onSend: (t: string) => v
         marginBottom: 12,
       }}
     >
+      {!isUser && msg.meta?.chain && (
+        <DelegationChip chain={msg.meta.chain} />
+      )}
       <div
         style={{
           fontSize: 12,

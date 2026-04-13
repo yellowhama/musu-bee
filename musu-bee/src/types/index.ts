@@ -40,7 +40,14 @@ export interface Device {
   label: string;
   status: DeviceStatus;
   stats: DeviceStats;
-  isLeader: boolean; // current "사장"
+  isLeader: boolean; // current "leader" node
+}
+
+export interface MessageMeta {
+  /** Delegation chain, e.g. ["CEO", "CTO", "Engineer"] */
+  chain?: string[];
+  /** musu-core agent id that produced this message */
+  agentId?: string;
 }
 
 export interface Message {
@@ -51,6 +58,7 @@ export interface Message {
   text: string;
   timestamp: Date;
   attachment?: string;
+  meta?: MessageMeta;
 }
 
 // ---------------------------------------------------------------------------
@@ -89,4 +97,30 @@ export interface ChatWsMessage {
   text: string;
   timestamp: number;
   run_id?: string;
+}
+
+export interface AgentDepartmentSnapshot {
+  id: string;
+  name: string;
+  role: string;
+  status: string;
+  urlKey: string | null;
+  lastHeartbeatAt: string | null;
+}
+
+export interface AgentsSurfaceSummary {
+  bossHost: string | null;
+  lastHandoffTarget: string | null;
+  handoffReasonCode: string | null;
+  handoffRecordedAtMs: number | null;
+  departments: AgentDepartmentSnapshot[];
+  statusCounts: Record<string, number>;
+}
+
+export interface AgentsSurfaceSnapshot {
+  fetchedAt: string;
+  degraded: boolean;
+  degradedReason: string | null;
+  stale: boolean;
+  summary: AgentsSurfaceSummary;
 }

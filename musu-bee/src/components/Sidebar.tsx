@@ -171,8 +171,15 @@ function DepartmentStatusDot({ status }: { status: string }) {
     tone === "retired" || tone === "offline" ? "var(--musu-status-offline)" :
     tone === "error" ? "var(--musu-status-error)" :
     "#6b7280";
+
+  const animClass =
+    tone === "paused" ? "musu-dot-working" :
+    tone === "active" || tone === "running" ? "musu-dot-active" :
+    undefined;
+
   return (
     <span
+      className={animClass}
       style={{
         display: "inline-block",
         width: 7,
