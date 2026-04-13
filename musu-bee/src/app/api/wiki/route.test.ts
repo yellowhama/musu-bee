@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { before, after, test } from "node:test";
-import { DatabaseSync } from "node:sqlite";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { unlinkSync } from "node:fs";
@@ -18,29 +17,9 @@ let DELETE: Module["DELETE"];
 let dbPath: string;
 
 before(async () => {
-  // wiki.ts creates a new connection per call and expects the schema to exist.
-  // Create a temp DB file and initialize the schema before importing the route.
+  // wiki.ts now uses a singleton and initializes the schema itself on first connection.
+  // Just point it at a temp DB file and let it initialize.
   dbPath = join(tmpdir(), `wiki-test-${Date.now()}.db`);
-  const db = new DatabaseSync(dbPath);
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS wiki_pages (
-      id TEXT PRIMARY KEY,
-      scope TEXT NOT NULL,
-      title TEXT NOT NULL,
-      summary TEXT,
-      key_points TEXT,
-      evidence TEXT,
-      related TEXT,
-      open_questions TEXT,
-      source_raw TEXT,
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
-    CREATE INDEX IF NOT EXISTS wiki_scope_idx ON wiki_pages(scope);
-    CREATE VIRTUAL TABLE IF NOT EXISTS wiki_fts USING fts5(id, scope, title, summary, key_points);
-  `);
-  db.close();
-
   process.env.MUSU_WIKI_DB = dbPath;
   process.env.MUSU_LLM_URL = "http://llm.test";
   ({ GET, POST, DELETE } = (await import("./route")) as Module);

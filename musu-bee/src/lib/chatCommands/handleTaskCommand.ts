@@ -61,15 +61,20 @@ export function createTaskHandler(ctx: CommandContext) {
       return true;
     }
 
-    // /tasks → list active tasks
+    // /tasks → list active tasks in the current channel
     if (text === "/tasks") {
       appendChatMessage({ id: makeId(), channelId: channel, sender: "User", senderKind: "user", text, timestamp: new Date() });
       try {
-        const res = await fetch("/api/tasks?scope=global&status=todo,in_progress,review");
+        const params = new URLSearchParams({
+          scope: "global",
+          status: "todo,in_progress,review",
+          channel: String(channel),
+        });
+        const res = await fetch(`/api/tasks?${params.toString()}`);
         const data = (await res.json()) as { tasks?: Array<{ id: string; title: string; status: string }> };
         const tasks = data.tasks ?? [];
         const reply = tasks.length === 0
-          ? "No active tasks."
+          ? "No active tasks in this channel."
           : tasks.map((t) => `\`${t.id.slice(0, 12)}\` **[${t.status}]** ${t.title}`).join("\n");
         appendChatMessage({ id: makeId(), channelId: channel, sender: "System", senderKind: "system", text: reply, timestamp: new Date() });
       } catch {

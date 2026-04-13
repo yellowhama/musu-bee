@@ -4,6 +4,27 @@
 
 ---
 
+## 빠른 시작 (3단계)
+
+```bash
+# 1. 코드 클론
+git clone git@github.com:yellowhama/musu-bee.git musu-functions
+cd musu-functions
+
+# 2. 환경 파일 생성 후 필수값 입력
+cp musu-bee/.env.local.example musu-bee/.env.local
+# → .env.local 열어서 최소한 ANTHROPIC_API_KEY 입력
+
+# 3. 전체 서비스 시작 (Rust 빌드 + Python 설치 + Next.js dev 포함)
+bash scripts/dev-start.sh
+```
+
+브라우저에서 `http://localhost:3001` 접속하면 끝.
+
+> 상세 설치 옵션은 아래 섹션 참조.
+
+---
+
 ## 사전 요구사항
 
 | 도구 | 최소 버전 | 확인 |
@@ -55,11 +76,14 @@ python3 -m venv .venv
 source .venv/bin/activate
 
 pip install -e musu-core[dev]
-pip install -e musu-bridge[dev]
+pip install -e musu-bridge[dev]   # pyproject.toml 포함 — pip install 정상 동작
 pip install -e musu-worker[dev]
 pip install -e musu-control[dev]
 pip install -e musu-indexer[mcp]
 ```
+
+> `musu-core`에 의존하는 서비스들은 반드시 `musu-core`를 먼저 설치해야 합니다.
+> 또는 `PYTHONPATH=$(pwd)/musu-core/src` 환경변수로 직접 경로를 지정할 수 있습니다.
 
 ### 방법 B: 모듈별 venv
 
@@ -105,6 +129,22 @@ pnpm dev      # 개발 서버 (:3001)
 ### .env 파일
 
 ```bash
+# musu-bee 환경 설정 (프론트엔드 + API 라우트)
+cp musu-bee/.env.local.example musu-bee/.env.local
+```
+
+`.env.local`에서 반드시 설정해야 할 항목:
+
+| 변수 | 필수 여부 | 설명 |
+|------|-----------|------|
+| `ANTHROPIC_API_KEY` | **필수** | musu-bridge 에이전트 라우팅에 사용 |
+| `MUSU_AI_CLI` | 선택 | AI CLI 폴백 바이너리 (`claude`, `codex`, `gemini` 등). 미설정 시 CLI 폴백 비활성화 |
+| `MUSU_AI_CLI_ARGS` | 선택 | CLI 인수 (기본: `--print`). Gemini는 `-p`, Codex는 `""` 등 CLI마다 다름 |
+| `NEXT_PUBLIC_SUPABASE_URL` | 인증 사용 시 | Supabase 프로젝트 URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 인증 사용 시 | Supabase anon key |
+
+```bash
+# musu-functions 루트 환경 설정 (bridge/worker 공통)
 cd musu-functions
 cat > .env << 'EOF'
 # Bridge
@@ -119,10 +159,8 @@ MUSU_WORKER_TOKEN=your-worker-token-here
 MUSU_DB_PATH=~/.musu/musu.db
 MUSU_ADAPTER_TIMEOUT_SEC=300
 
-# Paperclip (선택)
-# PAPERCLIP_API_URL=http://127.0.0.1:3100/api
-# PAPERCLIP_API_KEY=your-key
-# PAPERCLIP_COMPANY_ID=your-company-id
+# Claude API (musu-bridge 에이전트 라우팅)
+ANTHROPIC_API_KEY=your-anthropic-api-key-here
 EOF
 ```
 
@@ -285,7 +323,7 @@ Machine A (노트북)              Machine B (데스크탑)
 
 ## 9. AI CLI 도구 설치 (선택)
 
-MUSU 어댑터가 사용하는 CLI 도구들:
+MUSU 채팅 폴백에 사용할 수 있는 CLI 도구들. 여러 개를 설치해도 되고, 하나만 설치해도 됨.
 
 ```bash
 # Claude Code
@@ -302,12 +340,27 @@ npm install -g @openai/codex
 npm install -g hermes-agent
 ```
 
-설치 후 어댑터 확인:
+설치 후 `musu-bee/.env.local`에서 사용할 CLI를 지정:
+
 ```bash
-claude --version     # claude_local
-gemini --version     # gemini_local
-codex --version      # codex_local
-hermes --version     # hermes
+# 예시: Claude Code 사용
+MUSU_AI_CLI=claude
+MUSU_AI_CLI_ARGS=--print
+
+# 예시: Gemini CLI 사용
+MUSU_AI_CLI=gemini
+MUSU_AI_CLI_ARGS=-p
+
+# 예시: Codex CLI 사용
+MUSU_AI_CLI=codex
+MUSU_AI_CLI_ARGS=
+```
+
+설치 확인:
+```bash
+claude --version
+gemini --version
+codex --version
 ```
 
 ---

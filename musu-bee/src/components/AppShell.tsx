@@ -2,24 +2,21 @@
 
 export const dynamic = "force-dynamic";
 
-import { useState, useCallback, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useCallback } from "react";
 import Sidebar from "@/components/Sidebar";
 import ChatArea from "@/components/ChatArea";
 import CompanyTemplateModal from "@/components/CompanyTemplateModal";
 import OnboardingModal from "@/components/OnboardingModal";
-import type { CompanyActivationState, CompanyRegistryState } from "@/lib/companyActivation";
-import {
-  defaultCompanyTemplate,
-  type DefaultCompanyTemplate,
-} from "@/lib/templates/defaultCompanyTemplate";
-import {
-  getDefaultCompanySetupState,
-  type CompanySetupState,
-} from "@/lib/companySetup";
+import { useAuth } from "@/lib/useAuth";
+import { useDeviceDiscovery } from "@/lib/useDeviceDiscovery";
+import { useAgentsSurface } from "@/lib/useAgentsSurface";
+import { useCompanyState } from "@/lib/useCompanyState";
 import { useChat } from "@/lib/useChat";
-import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
-import type { AgentsSurfaceSnapshot, Channel, ChannelId, Device, Message } from "@/types";
+import { useServiceHealth } from "@/lib/useServiceHealth";
+import { useHealthPopover } from "@/lib/useHealthPopover";
+import { getSupabaseClient } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
+import type { Channel, ChannelId, Message } from "@/types";
 import { AGENT_CHANNELS } from "@/types";
 
 let msgCounter = 10;
@@ -53,362 +50,57 @@ const INITIAL_CHANNELS: Channel[] = [
   { id: "worker", name: "worker", unread: 0 },
 ];
 
-const INITIAL_DEVICES: Device[] = [
-  {
-    id: "desktop-4060",
-    name: "4060Ti Desktop",
-    label: "Musu-A",
-    status: "online",
-    stats: { cpu: 48, gpu: 23, ram: 62 },
-    isLeader: true,
-  },
-  {
-    id: "desktop-5070",
-    name: "5070Ti Desktop",
-    label: "Musu-B",
-    status: "busy",
-    stats: { cpu: 72, gpu: 61, ram: 45 },
-    isLeader: false,
-  },
-];
-
 export default function AppShell() {
   const router = useRouter();
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  // ── Hooks ──────────────────────────────────────────────────────────────────
+  const { userIdentity, authEnabled, authConfigured } = useAuth();
+  const { devices, addDevice } = useDeviceDiscovery();
+
+  const handleHandoff = useCallback((newBoss: string) => {
+    const sysMsg: Message = {
+      id: `handoff-${Date.now()}`,
+      channelId: "general",
+      sender: "System",
+      senderKind: "system",
+      text: `🔄 Leader handoff → **${newBoss}**`,
+      timestamp: new Date(),
+    };
+    setLocalMessages((prev) => [...prev, sysMsg]);
+  }, []);
+
+  const { agentsSurface } = useAgentsSurface(handleHandoff);
+  const {
+    companyTemplate,
+    companySetup,
+    companyActivation,
+    companyRegistry,
+    deviceLimit,
+    workspaceId,
+    activeCompany,
+    displayCompanyName,
+    displaySelectedProjects,
+    handleSaveCompanySetup,
+    handleApplyCompanyTemplate,
+    handleSelectActiveCompany,
+    handleSyncCompany,
+    handleDeleteCompany,
+  } = useCompanyState(userIdentity);
+
+  // ── Local UI state ─────────────────────────────────────────────────────────
   const [channels, setChannels] = useState<Channel[]>(INITIAL_CHANNELS);
-  const [devices, setDevices] = useState<Device[]>(INITIAL_DEVICES);
-  const [agentsSurface, setAgentsSurface] = useState<AgentsSurfaceSnapshot | null>(null);
   const [activeChannel, setActiveChannel] = useState<ChannelId>("ceo");
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showCompanyTemplate, setShowCompanyTemplate] = useState(false);
-  const [companyTemplate, setCompanyTemplate] =
-    useState<DefaultCompanyTemplate>(defaultCompanyTemplate);
-  const [companySetup, setCompanySetup] = useState<CompanySetupState>(
-    getDefaultCompanySetupState(defaultCompanyTemplate)
-  );
-  const [companyActivation, setCompanyActivation] = useState<CompanyActivationState | null>(null);
-  const [companyRegistry, setCompanyRegistry] = useState<CompanyRegistryState | null>(null);
-  const [deviceLimit, setDeviceLimit] = useState<number>(3);
 
-  const authEnabled = process.env.NEXT_PUBLIC_AUTH_ENABLED === "true";
-  const authConfigured = isSupabaseConfigured();
-  const workspaceId = "default-workspace";
-  const userKey = userEmail?.trim().toLowerCase() || "anonymous";
-  const companyScopeQuery = new URLSearchParams({
-    workspaceId,
-    userKey,
-  }).toString();
-
-  useEffect(() => {
-    if (!authEnabled) {
-      setUserEmail(null);
-      return;
-    }
-
-    if (!authConfigured) {
-      setUserEmail(null);
-      router.replace("/auth/login");
-      return;
-    }
-
-    const supabase = getSupabaseClient();
-    let active = true;
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (!active) {
-        return;
-      }
-
-      if (data.session?.user) {
-        setUserEmail(data.session.user.email ?? null);
-      } else if (authEnabled) {
-        router.replace("/auth/login");
-      }
-    });
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setUserEmail(session.user.email ?? null);
-      } else if (authEnabled) {
-        router.replace("/auth/login");
-      }
-    });
-
-    return () => {
-      active = false;
-      listener.subscription.unsubscribe();
-    };
-  }, [authConfigured, authEnabled, router]);
+  const { healthPopover, setHealthPopover, popoverRef, handleBadgeClick } = useHealthPopover();
 
   const isAgentChannel = AGENT_CHANNELS.includes(activeChannel);
   const chat = useChat(activeChannel);
+  const serviceHealth = useServiceHealth();
 
-  useEffect(() => {
-    fetch(`/api/company-setup?${companyScopeQuery}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: CompanySetupState | null) => {
-        if (data?.templateKey) {
-          setCompanySetup(data);
-        }
-      })
-      .catch(() => {});
-  }, [companyScopeQuery]);
-
-  useEffect(() => {
-    fetch("/api/company-template")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: DefaultCompanyTemplate | null) => {
-        if (data?.templateKey) {
-          setCompanyTemplate(data);
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  const refreshCompanyActivation = useCallback(async () => {
-    const response = await fetch(`/api/company-activation?${companyScopeQuery}`);
-    if (!response.ok) {
-      setCompanyActivation(null);
-      setCompanyRegistry(null);
-      return;
-    }
-    const payload = (await response.json()) as {
-      activation?: CompanyActivationState | null;
-      registry?: CompanyRegistryState | null;
-    };
-    setCompanyActivation(payload.activation ?? null);
-    setCompanyRegistry(payload.registry ?? null);
-  }, [companyScopeQuery]);
-
-  useEffect(() => {
-    void refreshCompanyActivation().catch(() => {
-      setCompanyActivation(null);
-      setCompanyRegistry(null);
-    });
-  }, [refreshCompanyActivation]);
-
-  useEffect(() => {
-    fetch("/api/subscription")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: { deviceLimit?: number } | null) => {
-        if (data?.deviceLimit != null) setDeviceLimit(data.deviceLimit);
-      })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    async function fetchStatus() {
-      try {
-        const res = await fetch("/api/device-status");
-        if (!res.ok) {
-          setDevices((prev) =>
-            prev.map((d, i) => (i === 0 ? { ...d, status: "offline" as const } : d)),
-          );
-          return;
-        }
-        const data = (await res.json()) as {
-          cpu: number;
-          gpu: number | null;
-          ram: number;
-          device_id?: string;
-          physical_host_id?: string | null;
-        };
-        setDevices((prev) => {
-          const targetId = data.device_id ?? prev[0]?.id;
-          return prev.map((d) =>
-            d.id === targetId
-              ? {
-                  ...d,
-                  status: "online" as const,
-                  stats: {
-                    cpu: Math.round(data.cpu),
-                    gpu: data.gpu !== null ? Math.round(data.gpu) : null,
-                    ram: Math.round(data.ram),
-                  },
-                }
-              : d,
-          );
-        });
-      } catch {
-        setDevices((prev) =>
-          prev.map((d, i) => (i === 0 ? { ...d, status: "offline" as const } : d)),
-        );
-      }
-    }
-
-    fetchStatus();
-    const id = setInterval(fetchStatus, 3000);
-    return () => clearInterval(id);
-  }, []);
-
-  useEffect(() => {
-    async function fetchAgentsSurface() {
-      try {
-        const res = await fetch("/api/agents");
-        if (!res.ok) {
-          setAgentsSurface((prev) => ({
-            fetchedAt: new Date().toISOString(),
-            degraded: true,
-            degradedReason: `agents_route_http_${res.status}`,
-            stale: true,
-            summary: prev?.summary ?? {
-              bossHost: null,
-              lastHandoffTarget: null,
-              handoffReasonCode: null,
-              handoffRecordedAtMs: null,
-              departments: [],
-              statusCounts: {},
-            },
-            snapshot: prev?.snapshot ?? [],
-          }));
-          return;
-        }
-        const payload = (await res.json()) as AgentsSurfaceSnapshot;
-        setAgentsSurface(payload);
-      } catch {
-        setAgentsSurface((prev) => ({
-          fetchedAt: new Date().toISOString(),
-          degraded: true,
-          degradedReason: "agents_route_fetch_error",
-          stale: true,
-          summary: prev?.summary ?? {
-            bossHost: null,
-            lastHandoffTarget: null,
-            handoffReasonCode: null,
-            handoffRecordedAtMs: null,
-            departments: [],
-            statusCounts: {},
-          },
-          snapshot: prev?.snapshot ?? [],
-        }));
-      }
-    }
-
-    fetchAgentsSurface();
-    const id = setInterval(fetchAgentsSurface, 5000);
-    return () => clearInterval(id);
-  }, []);
-
-  const handleOnboardingComplete = useCallback(
-    (deviceName: string) => {
-      const newDevice: Device = {
-        id: `device-${Date.now()}`,
-        name: deviceName,
-        label: `Musu-${String.fromCharCode(65 + devices.length)}`,
-        status: "online",
-        stats: { cpu: 0, gpu: null, ram: 0 },
-        isLeader: devices.length === 0,
-      };
-      setDevices((prev) => [...prev, newDevice]);
-      setShowOnboarding(false);
-    },
-    [devices.length],
-  );
-
-  const handleOnboardingSkip = useCallback(() => {
-    setShowOnboarding(false);
-  }, []);
-
-  const handleSaveCompanySetup = useCallback(
-    async (next: { companyName: string; selectedProjects: string[] }) => {
-      const res = await fetch(`/api/company-setup?${companyScopeQuery}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(next),
-      });
-
-      const data = (await res.json()) as CompanySetupState | { error?: string };
-      if (!res.ok) {
-        throw new Error(
-          "error" in data && typeof data.error === "string"
-            ? data.error
-            : "Could not save company setup."
-        );
-      }
-
-      setCompanySetup(data as CompanySetupState);
-    },
-    [companyScopeQuery]
-  );
-
-  const handleApplyCompanyTemplate = useCallback(
-    async (next: { companyName: string; selectedProjects: string[] }) => {
-      await handleSaveCompanySetup(next);
-      const res = await fetch(`/api/company-activation?${companyScopeQuery}`, {
-        method: "POST",
-      });
-      const payload = (await res.json()) as
-        | { activation?: CompanyActivationState | null; registry?: CompanyRegistryState | null; error?: string }
-        | null;
-      if (!res.ok || !payload?.activation) {
-        throw new Error(payload?.error ?? "Could not apply company template.");
-      }
-      setCompanyActivation(payload.activation);
-      setCompanyRegistry(payload.registry ?? null);
-      setShowCompanyTemplate(false);
-    },
-    [companyScopeQuery, handleSaveCompanySetup]
-  );
-
-  const handleSelectActiveCompany = useCallback(
-    async (companyId: string) => {
-      const res = await fetch(`/api/company-activation?${companyScopeQuery}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "activate", companyId }),
-      });
-      const payload = (await res.json()) as
-        | { activation?: CompanyActivationState | null; registry?: CompanyRegistryState | null; error?: string }
-        | null;
-      if (!res.ok) {
-        throw new Error(payload?.error ?? "Could not set active company.");
-      }
-      setCompanyActivation(payload?.activation ?? null);
-      setCompanyRegistry(payload?.registry ?? null);
-    },
-    [companyScopeQuery]
-  );
-
-  const handleSyncCompany = useCallback(
-    async (companyId: string) => {
-      const res = await fetch(`/api/company-activation?${companyScopeQuery}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "sync", companyId }),
-      });
-      const payload = (await res.json()) as
-        | { activation?: CompanyActivationState | null; registry?: CompanyRegistryState | null; error?: string }
-        | null;
-      if (!res.ok) {
-        throw new Error(payload?.error ?? "Could not sync company.");
-      }
-      setCompanyActivation(payload?.activation ?? null);
-      setCompanyRegistry(payload?.registry ?? null);
-    },
-    [companyScopeQuery]
-  );
-
-  const handleDeleteCompany = useCallback(
-    async (companyId: string) => {
-      const res = await fetch(
-        `/api/company-activation?${companyScopeQuery}&companyId=${encodeURIComponent(companyId)}`,
-        {
-          method: "DELETE",
-        }
-      );
-      const payload = (await res.json()) as
-        | { activation?: CompanyActivationState | null; registry?: CompanyRegistryState | null; error?: string }
-        | null;
-      if (!res.ok) {
-        throw new Error(payload?.error ?? "Could not delete company.");
-      }
-      setCompanyActivation(payload?.activation ?? null);
-      setCompanyRegistry(payload?.registry ?? null);
-    },
-    [companyScopeQuery]
-  );
-
+  // ── Handlers ───────────────────────────────────────────────────────────────
   const handleChannelSelect = useCallback((id: ChannelId) => {
     setActiveChannel(id);
     setChannels((prev) => prev.map((ch) => (ch.id === id ? { ...ch, unread: 0 } : ch)));
@@ -416,6 +108,18 @@ export default function AppShell() {
 
   const handleDeviceSelect = useCallback((_id: string) => {
     setActiveChannel("general");
+  }, []);
+
+  const handleOnboardingComplete = useCallback(
+    (deviceName: string) => {
+      addDevice(deviceName);
+      setShowOnboarding(false);
+    },
+    [addDevice],
+  );
+
+  const handleOnboardingSkip = useCallback(() => {
+    setShowOnboarding(false);
   }, []);
 
   const handleSend = useCallback(
@@ -441,6 +145,7 @@ export default function AppShell() {
     ? chat.messages
     : localMessages.filter((m) => m.channelId === activeChannel);
 
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div
       style={{
@@ -448,11 +153,11 @@ export default function AppShell() {
         height: "100vh",
         width: "100vw",
         background: "#0d0d0d",
-        fontFamily:
-          "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
         overflow: "hidden",
       }}
     >
+      {/* Top header bar */}
       <div
         style={{
           position: "fixed",
@@ -478,7 +183,21 @@ export default function AppShell() {
             letterSpacing: "-0.02em",
           }}
         >
-          {companySetup.companyName}
+          {displayCompanyName}
+        </span>
+        <span
+          style={{
+            fontSize: 11,
+            color: "#9ca3af",
+            background: "#141414",
+            border: "1px solid #262626",
+            borderRadius: 999,
+            padding: "4px 9px",
+            letterSpacing: "0.04em",
+          }}
+          title={`Workspace scope: ${workspaceId}`}
+        >
+          {workspaceId}
         </span>
         <span
           style={{
@@ -501,6 +220,79 @@ export default function AppShell() {
           {companyActivation?.controlPlaneSync.status ?? "draft"}
         </span>
         <div style={{ flex: 1 }} />
+        {/* Service health badges — click to see version + latency popover */}
+        {(["port", "bridge", "worker"] as const).map((svc) => {
+          const status = serviceHealth[svc];
+          const color =
+            status === "up" ? "#86efac" :
+            status === "down" ? "#f87171" :
+            "#6b7280";
+          const labels: Record<string, string> = { port: "PORT", bridge: "BRIDGE", worker: "WORKER" };
+          return (
+            <button
+              key={svc}
+              onClick={(e) => void handleBadgeClick(svc, e)}
+              title={`musu-${svc}: ${status} — click for details`}
+              style={{
+                fontSize: 10,
+                color,
+                background: "#141414",
+                border: `1px solid ${color}44`,
+                borderRadius: 999,
+                padding: "3px 8px",
+                letterSpacing: "0.06em",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+              }}
+            >
+              <span style={{ fontSize: 8 }}>●</span>
+              {labels[svc]}
+            </button>
+          );
+        })}
+        {/* Health detail popover */}
+        {healthPopover && (
+          <div
+            ref={popoverRef}
+            style={{
+              position: "fixed",
+              top: healthPopover.anchor.y,
+              left: healthPopover.anchor.x,
+              background: "#1e1e1e",
+              border: "1px solid #374151",
+              borderRadius: 8,
+              padding: "12px 16px",
+              zIndex: 1000,
+              minWidth: 170,
+              boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+              fontSize: 12,
+            }}
+          >
+            <div style={{ fontWeight: 600, color: "#e5e7eb", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              musu-{healthPopover.svc}
+            </div>
+            {healthPopover.loading ? (
+              <div style={{ color: "#6b7280" }}>Loading…</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, color: "#9ca3af" }}>
+                <div>
+                  Status:{" "}
+                  <span style={{ color: healthPopover.data?.status === "up" ? "#86efac" : "#f87171", fontWeight: 500 }}>
+                    {healthPopover.data?.status ?? "unknown"}
+                  </span>
+                </div>
+                {healthPopover.data?.latency_ms !== undefined && (
+                  <div>Latency: <span style={{ color: "#e5e7eb" }}>{healthPopover.data.latency_ms}ms</span></div>
+                )}
+                {healthPopover.data?.version && (
+                  <div>Version: <span style={{ color: "#e5e7eb" }}>{healthPopover.data.version}</span></div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
         <a
           href="/"
           style={{
@@ -536,7 +328,7 @@ export default function AppShell() {
             title={`Your current plan supports up to ${deviceLimit} devices.`}
             style={{
               fontSize: 12,
-              color: "#facc15",
+              color: "var(--musu-color-brand-accent)",
               background: "rgba(250,204,21,0.08)",
               border: "1px solid rgba(250,204,21,0.25)",
               borderRadius: 6,
@@ -566,7 +358,7 @@ export default function AppShell() {
             + Add device
           </button>
         )}
-        {authEnabled && authConfigured && userEmail && (
+        {authEnabled && authConfigured && userIdentity.email && (
           <span
             style={{
               fontSize: 13,
@@ -580,9 +372,9 @@ export default function AppShell() {
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
             }}
-            title={userEmail}
+            title={userIdentity.email}
           >
-            {userEmail}
+            {userIdentity.email}
           </span>
         )}
         {authEnabled && authConfigured && (
@@ -607,6 +399,7 @@ export default function AppShell() {
         )}
       </div>
 
+      {/* Main content */}
       <div
         style={{
           display: "flex",
@@ -615,13 +408,15 @@ export default function AppShell() {
           width: "100%",
         }}
       >
-      <Sidebar
-        channels={channels}
-        devices={devices}
-        companyTemplate={companyTemplate}
-        agentsSurface={agentsSurface}
-        activeChannel={activeChannel}
-        onChannelSelect={handleChannelSelect}
+        <Sidebar
+          channels={channels}
+          devices={devices}
+          companyTemplate={companyTemplate}
+          activeCompany={activeCompany}
+          workspaceId={workspaceId}
+          agentsSurface={agentsSurface}
+          activeChannel={activeChannel}
+          onChannelSelect={handleChannelSelect}
           onDeviceSelect={handleDeviceSelect}
         />
         <ChatArea
@@ -632,19 +427,22 @@ export default function AppShell() {
           isAgentTyping={isAgentChannel ? chat.isAgentTyping : false}
           isConnected={isAgentChannel ? chat.isConnected : undefined}
           channelDescription={CHANNEL_DESCRIPTIONS[activeChannel]}
+          activeCompanyName={displayCompanyName}
+          workspaceId={workspaceId}
+          selectedProjects={displaySelectedProjects}
           isLoadingHistory={isAgentChannel ? chat.isLoadingHistory : false}
           hasMoreHistory={isAgentChannel ? chat.hasMoreHistory : false}
           loadOlderMessages={isAgentChannel ? chat.loadOlderMessages : undefined}
         />
       </div>
 
+      {/* Modals */}
       {showOnboarding && (
         <OnboardingModal
           onComplete={handleOnboardingComplete}
           onSkip={handleOnboardingSkip}
         />
       )}
-
       {showCompanyTemplate && (
         <CompanyTemplateModal
           template={companyTemplate}

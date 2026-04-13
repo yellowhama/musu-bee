@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "musu-bridge"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+dev = ["httpx", "pytest", "pytest-asyncio"]
+
+[project.scripts]
+musu-bridge = "server:main"
+
+[tool.hatch.build.targets.wheel]
+sources = ["."]
+include = [
+    "server.py",
+    "config.py",
+    "handlers.py",
+    "audit.py",
+    "csrf_guard.py",
+    "hostname_guard.py",
+    "ws_guard.py",
+]

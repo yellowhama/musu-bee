@@ -3,9 +3,15 @@ import { spawn } from "child_process";
 import { checkChatRateLimit } from "@/lib/chatRateLimit";
 import { queryWiki } from "@/lib/wiki";
 
-const CLAUDE_CLI_PATH =
-  process.env.CLAUDE_CLI_PATH ?? "/home/hugh51/.local/bin/claude";
-const CLAUDE_CLI_TIMEOUT_MS = 120_000;
+// Set MUSU_AI_CLI to your AI CLI binary (claude, codex, gemini, etc.)
+// Leave unset to disable the CLI fallback entirely.
+const MUSU_AI_CLI = process.env.MUSU_AI_CLI ?? process.env.CLAUDE_CLI_PATH;
+// Args passed before the prompt. Defaults to --print (Claude Code style).
+// Override with MUSU_AI_CLI_ARGS for other CLIs, e.g. "-p" for Gemini.
+const MUSU_AI_CLI_ARGS = (process.env.MUSU_AI_CLI_ARGS ?? "--print")
+  .split(" ")
+  .filter(Boolean);
+const MUSU_AI_CLI_TIMEOUT_MS = 120_000;
 
 const MUSU_SYSTEM_PROMPT = `You are the MUSU AI assistant — the interface to a multi-machine AI control plane.
 MUSU coordinates AI work across the user's devices. Users talk to you to route tasks, check device status, and orchestrate work across their machines.
@@ -91,13 +97,19 @@ export async function GET(req: NextRequest) {
         }
       }
 
+      if (!MUSU_AI_CLI) {
+        enqueue({ error: "AI CLI not configured (set MUSU_AI_CLI)" });
+        finish();
+        return;
+      }
+
       const timer = setTimeout(() => {
         child.kill();
-        enqueue({ error: "claude CLI timeout" });
+        enqueue({ error: "AI CLI timeout" });
         finish();
-      }, CLAUDE_CLI_TIMEOUT_MS);
+      }, MUSU_AI_CLI_TIMEOUT_MS);
 
-      const child = spawn(CLAUDE_CLI_PATH, ["--print", fullMessage], {
+      const child = spawn(MUSU_AI_CLI, [...MUSU_AI_CLI_ARGS, fullMessage], {
         env: { ...process.env },
       });
 
@@ -108,13 +120,13 @@ export async function GET(req: NextRequest) {
 
       child.on("close", (code) => {
         if (code !== 0) {
-          enqueue({ error: `claude CLI exited ${code}` });
+          enqueue({ error: `AI CLI exited ${code}` });
         }
         finish();
       });
 
       child.on("error", (err) => {
-        enqueue({ error: `claude CLI spawn error: ${err.message}` });
+        enqueue({ error: `AI CLI spawn error: ${err.message}` });
         finish();
       });
     },

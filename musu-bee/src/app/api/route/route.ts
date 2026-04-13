@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
 const MUSU_PORT_URL = (process.env.MUSU_PORT_URL ?? "http://127.0.0.1:1355").replace(/\/+$/, "");
 
-type HandoffRoutingDecision = {
-  selected_host?: string;
-  reason_code?: string;
-  ingress_host?: string;
-  resource_requirement?: string;
-};
+const HandoffRoutingDecisionSchema = z.object({
+  selected_host: z.string().optional(),
+  reason_code: z.string().optional(),
+  ingress_host: z.string().optional(),
+  resource_requirement: z.string().optional(),
+}).passthrough();
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,8 +38,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const decision = (await res.json()) as HandoffRoutingDecision;
-    return NextResponse.json(decision);
+    const parsed = HandoffRoutingDecisionSchema.safeParse(await res.json());
+    if (!parsed.success) {
+      return NextResponse.json({ selected_host: "local", reason_code: "invalid_route_response" });
+    }
+    return NextResponse.json(parsed.data);
   } catch {
     return NextResponse.json(
       { selected_host: "local", reason_code: "musu_port_unreachable" },
