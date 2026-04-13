@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import type { ChannelId, Message, ChatWsMessage } from "@/types";
 import { AGENT_CHANNELS } from "@/types";
 import type { HistoryMessage } from "@/app/api/history/route";
+import type { MessagePlan, PlanStep } from "@/types";
 import {
   makeId,
   createTaskHandler,
@@ -12,6 +13,26 @@ import {
   createWikiHandler,
   createRunHandler,
 } from "./chatCommands";
+
+// ── Plan parser ────────────────────────────────────────────────────────────
+// Detects numbered execution plans in agent responses.
+// Triggers when: ≥2 numbered list items AND at least one action keyword.
+
+const ACTION_KEYWORDS = /execut|run|deploy|commit|apply|실행|배포|커밋|적용|수행/i;
+
+function parsePlan(msgId: string, text: string): MessagePlan | null {
+  const lines = text.split("\n");
+  const steps: PlanStep[] = [];
+  for (const line of lines) {
+    const m = /^\s*(\d+)[.)]\s+(.{8,})/.exec(line);
+    if (m) {
+      steps.push({ id: `step-${msgId}-${steps.length}`, text: m[2].trim() });
+    }
+  }
+  if (steps.length < 2) return null;
+  if (!ACTION_KEYWORDS.test(text)) return null;
+  return { steps, status: "pending" };
+}
 
 const WS_BASE =
   process.env.NEXT_PUBLIC_MUSU_PORT_WS_URL ?? "ws://localhost:1355";
@@ -62,6 +83,8 @@ function historyMsgToMessage(hm: HistoryMessage, channel: ChannelId): Message {
 export interface UseChatReturn {
   messages: Message[];
   sendMessage: (text: string) => void;
+  approvePlan: (msgId: string) => void;
+  rejectPlan: (msgId: string) => void;
   isConnected: boolean;
   isAgentTyping: boolean;
   isLoadingHistory: boolean;
@@ -294,16 +317,20 @@ export function useChat(channel: ChannelId): UseChatReturn {
           return;
         }
 
+        const msgId = makeId();
+        const responseText = data.response ?? "";
+        const plan = parsePlan(msgId, responseText);
         appendChatMessage({
-          id: makeId(), channelId: channel,
+          id: msgId, channelId: channel,
           sender: data.agent_name ?? channel,
           senderKind: "ai",
-          text: data.response ?? "",
+          text: responseText,
           timestamp: new Date(),
           meta: {
             agentId: data.agent_id ?? undefined,
             chain: data.chain ?? undefined,
           },
+          plan: plan ?? undefined,
         });
       } catch (err) {
         appendChatMessage({
@@ -358,5 +385,35 @@ export function useChat(channel: ChannelId): UseChatReturn {
     [appendChatMessage, channel, handleApprovalCommand, handleTaskCommand, handleRouteCommand, handleRunCommand, handleWikiCommand, isAgentChannel, sendViaAgentRoute],
   );
 
-  return { messages, sendMessage, isConnected, isAgentTyping, isLoadingHistory, hasMoreHistory, loadOlderMessages };
+  // ── Plan gate ──────────────────────────────────────────────────────────────
+
+  const approvePlan = useCallback((msgId: string) => {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === msgId && m.plan
+          ? { ...m, plan: { ...m.plan, status: "approved" as const } }
+          : m,
+      ),
+    );
+    // Notify agent that the plan was approved
+    void sendViaAgentRoute(`/approve ${msgId}`);
+  }, [sendViaAgentRoute]);
+
+  const rejectPlan = useCallback((msgId: string) => {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === msgId && m.plan
+          ? { ...m, plan: { ...m.plan, status: "rejected" as const } }
+          : m,
+      ),
+    );
+    appendChatMessage({
+      id: makeId(), channelId: channel,
+      sender: "System", senderKind: "system",
+      text: "Plan rejected. The agent will not proceed.",
+      timestamp: new Date(),
+    });
+  }, [appendChatMessage, channel]);
+
+  return { messages, sendMessage, approvePlan, rejectPlan, isConnected, isAgentTyping, isLoadingHistory, hasMoreHistory, loadOlderMessages };
 }

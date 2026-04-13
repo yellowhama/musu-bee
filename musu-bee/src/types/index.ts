@@ -53,6 +53,18 @@ export interface MessageMeta {
   agentId?: string;
 }
 
+export interface PlanStep {
+  id: string;
+  text: string;
+}
+
+export type PlanStatus = "pending" | "approved" | "rejected";
+
+export interface MessagePlan {
+  steps: PlanStep[];
+  status: PlanStatus;
+}
+
 export interface Message {
   id: string;
   channelId: ChannelId;
@@ -62,6 +74,7 @@ export interface Message {
   timestamp: Date;
   attachment?: string;
   meta?: MessageMeta;
+  plan?: MessagePlan;
 }
 
 // ---------------------------------------------------------------------------
