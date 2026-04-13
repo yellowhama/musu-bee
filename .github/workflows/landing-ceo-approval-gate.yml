@@ -60,6 +60,13 @@ jobs:
             const hasRequiredLabel = labels.includes(requiredLabel);
             const landingTouched = matchedLandingFiles.length > 0;
 
+            // Mirror summary fields into job logs for API-friendly evidence capture.
+            core.info(`gate.required_label=${requiredLabel}`);
+            core.info(`gate.required_label_present=${hasRequiredLabel}`);
+            core.info(`gate.landing_paths_touched=${landingTouched}`);
+            core.info(`gate.changed_files=${JSON.stringify(changedFiles)}`);
+            core.info(`gate.matched_landing_files=${JSON.stringify(matchedLandingFiles)}`);
+
             const toBulletList = (items) =>
               items.length === 0
                 ? "- (none)"
