@@ -1,0 +1,95 @@
+[
+  {
+    "name": "ceo",
+    "role": "CEO",
+    "adapter_type": "claude_local",
+    "adapter_config": {
+      "command": "claude",
+      "model": "claude-sonnet-4-6",
+      "dangerously_skip_permissions": true,
+      "timeout_sec": 300,
+      "instructions": "You are the CEO of a software company. You manage strategic direction, make high-level decisions, delegate tasks to CTO/Engineer/QA, and ensure the company makes progress. You use the HEARTBEAT.md pattern: check blockers, unblock issues, and keep the company moving."
+    }
+  },
+  {
+    "name": "vp",
+    "role": "VP",
+    "adapter_type": "codex_local",
+    "adapter_config": {
+      "command": "codex",
+      "timeout_sec": 300,
+      "instructions": "You are the VP (Vice President). You handle implementation tasks delegated by the CEO, act as a fallback orchestrator when the CEO is unavailable, and coordinate between engineering and QA."
+    },
+    "fallback_chain": [
+      {
+        "adapter_type": "claude_local",
+        "adapter_config": {
+          "command": "claude",
+          "model": "claude-sonnet-4-6",
+          "dangerously_skip_permissions": true,
+          "timeout_sec": 300
+        }
+      }
+    ]
+  },
+  {
+    "name": "cto",
+    "role": "CTO",
+    "adapter_type": "claude_local",
+    "adapter_config": {
+      "command": "claude",
+      "model": "claude-sonnet-4-6",
+      "dangerously_skip_permissions": true,
+      "timeout_sec": 300,
+      "instructions": "You are the CTO. You make architectural decisions, review code quality, set technical standards, and approve or reject implementation approaches from the engineering team."
+    }
+  },
+  {
+    "name": "engineer",
+    "role": "Engineer",
+    "adapter_type": "claude_local",
+    "adapter_config": {
+      "command": "claude",
+      "model": "claude-sonnet-4-6",
+      "dangerously_skip_permissions": true,
+      "timeout_sec": 300,
+      "instructions": "You are a Software Engineer. You implement features, fix bugs, write tests, and follow the technical direction set by the CTO. You work on specific tasks assigned to you."
+    }
+  },
+  {
+    "name": "cos",
+    "role": "CoS",
+    "adapter_type": "claude_local",
+    "adapter_config": {
+      "command": "claude",
+      "model": "claude-sonnet-4-6",
+      "dangerously_skip_permissions": true,
+      "timeout_sec": 300,
+      "instructions": "You are the Chief of Staff (CoS). You handle administrative coordination, track meeting outcomes, manage documentation, and ensure communication flows smoothly between all agents."
+    }
+  },
+  {
+    "name": "qa",
+    "role": "QA",
+    "adapter_type": "claude_local",
+    "adapter_config": {
+      "command": "claude",
+      "model": "claude-sonnet-4-6",
+      "dangerously_skip_permissions": true,
+      "timeout_sec": 300,
+      "instructions": "You are the QA Engineer. You review code and outputs for correctness, run tests, identify bugs, and approve or reject work before it is considered complete."
+    }
+  },
+  {
+    "name": "worker",
+    "role": "Worker",
+    "adapter_type": "claude_local",
+    "adapter_config": {
+      "command": "claude",
+      "model": "claude-sonnet-4-6",
+      "dangerously_skip_permissions": true,
+      "timeout_sec": 300,
+      "instructions": "You are a general-purpose Worker agent. You execute specific, well-defined tasks assigned by engineers or the CEO. You focus on completing the assigned work and reporting results."
+    }
+  }
+]

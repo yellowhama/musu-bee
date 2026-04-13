@@ -25,6 +25,40 @@ bash scripts/dev-start.sh
 
 ---
 
+## Company OS (LocalBackend 모드) — 새 컴터 퀵스타트
+
+Paperclip 없이 **LocalBackend만으로** CEO/VP/CTO 등 7 에이전트를 등록하고 전체 시스템을 구동하는 경로.
+
+```bash
+# 1. 코드 클론 + env 파일 생성
+git clone git@github.com:yellowhama/musu-bee.git musu-functions
+cd musu-functions
+cp musu-bee/.env.local.example musu-bee/.env.local
+# → .env.local 열어서 ANTHROPIC_API_KEY 입력
+
+# 2. 에이전트 등록 (처음 한 번만)
+bash scripts/setup-company-os.sh
+
+# 3. 전체 서비스 시작
+bash scripts/dev-start.sh
+```
+
+브라우저에서 `http://localhost:3001` 접속 → `/task '첫 번째 작업'` 입력 → CEO에게 작업 지시.
+
+### 동작 방식
+
+- `setup-company-os.sh` — musu-core LocalBackend(`~/.musu/musu.db`)에 7 에이전트(CEO/VP/CTO/Engineer/CoS/QA/Worker) 등록. 이미 등록된 에이전트는 스킵(멱등).
+- `dev-start.sh` — Paperclip(:3100) 감지 → 있으면 PaperclipBackend 연결, 없으면 LocalBackend 모드로 동작.
+- 에이전트 DB 경로: `~/.musu/musu.db` (변경: `MUSU_DB_PATH` 환경변수)
+
+### Paperclip (선택적 고급 백엔드)
+
+Paperclip은 `references_AI/paperclip-main && pnpm dev`로 실행하는 별도 Next.js 앱입니다. 같은 머신에 설치돼 있고 `:3100`에서 동작 중이면 `dev-start.sh`가 자동 감지합니다.
+
+LocalBackend로도 전체 도그푸딩이 가능합니다. Paperclip은 "팀 공유 오케스트레이션"이 필요한 경우에만 추가합니다.
+
+---
+
 ## 사전 요구사항
 
 | 도구 | 최소 버전 | 확인 |

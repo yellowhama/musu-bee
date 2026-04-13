@@ -36,31 +36,54 @@ wait_for_port() {
 # ── musu-port (Rust) ─────────────────────────────────────────────────────────
 
 start_musu_port() {
-  if curl -sf --max-time 1 "http://127.0.0.1:1355/health" >/dev/null 2>&1; then
-    log "musu-port already running on :1355"
-    return
-  fi
-
   local port_dir="${ROOT}/musu-port"
+  local seed_file="${port_dir}/data/seed-services.json"
+
   if [[ ! -d "$port_dir" ]]; then
     warn "musu-port directory not found at ${port_dir} — skipping"
     return
   fi
 
+  # seed 변경 감지: 실행 중이면 checksum 비교 후 재시작 여부 결정
+  if curl -sf --max-time 1 "http://127.0.0.1:1355/health" >/dev/null 2>&1; then
+    local seed_sum_file="${LOG_DIR}/.musu-port-seed.md5"
+    local current_sum=""
+    local prev_sum=""
+    [[ -f "$seed_file" ]] && current_sum=$(md5sum "$seed_file" 2>/dev/null | cut -d' ' -f1)
+    [[ -f "$seed_sum_file" ]] && prev_sum=$(cat "$seed_sum_file")
+
+    if [[ -n "$current_sum" && "$current_sum" != "$prev_sum" ]]; then
+      warn "musu-port seed 변경 감지 — 재시작..."
+      pkill -f "musu-portd" 2>/dev/null || true
+      sleep 1
+      echo "$current_sum" > "$seed_sum_file"
+    else
+      log "musu-port already running on :1355"
+      return
+    fi
+  fi
+
   log "Starting musu-port..."
   (
     cd "$port_dir"
+    local seed_args=""
+    [[ -f "$seed_file" ]] && seed_args="--seed-services ${seed_file}"
     if [[ -f "target/release/musu-portd" ]]; then
-      ./target/release/musu-portd >> "${LOG_DIR}/musu-port.log" 2>&1 &
+      # shellcheck disable=SC2086
+      MUSU_PORT_SEED_SERVICES="${seed_file}" \
+        ./target/release/musu-portd >> "${LOG_DIR}/musu-port.log" 2>&1 &
     else
       log "musu-portd binary not found — building (this will take ~2 min)..."
       if ! cargo build --release >> "${LOG_DIR}/musu-port.log" 2>&1; then
         err "musu-portd build failed — check ${LOG_DIR}/musu-port.log"
         return 1
       fi
-      ./target/release/musu-portd >> "${LOG_DIR}/musu-port.log" 2>&1 &
+      MUSU_PORT_SEED_SERVICES="${seed_file}" \
+        ./target/release/musu-portd >> "${LOG_DIR}/musu-port.log" 2>&1 &
     fi
   )
+  # checksum 저장
+  [[ -f "$seed_file" ]] && md5sum "$seed_file" 2>/dev/null | cut -d' ' -f1 > "${LOG_DIR}/.musu-port-seed.md5"
   wait_for_port "musu-port" 1355 15 || true
 }
 
@@ -102,6 +125,22 @@ start_musu_worker() {
   wait_for_port "musu-worker" 9700 10 || true
 }
 
+# ── Paperclip 감지 (선택적 고급 백엔드) ─────────────────────────────────────
+
+detect_paperclip() {
+  local url="${PAPERCLIP_API_URL:-http://127.0.0.1:3100}"
+  if curl -sf --max-time 2 "${url}/api/health" >/dev/null 2>&1; then
+    log "Paperclip 감지됨 (${url}) — PaperclipBackend 모드"
+    export PAPERCLIP_API_URL="${url}"
+    # PAPERCLIP_API_KEY, PAPERCLIP_COMPANY_ID 는 .env.local 또는 쉘 환경에서 설정
+    if [[ -z "${PAPERCLIP_API_KEY:-}" ]]; then
+      warn "PAPERCLIP_API_KEY 미설정 — musu-bridge가 API 키 없이 Paperclip에 연결을 시도합니다"
+    fi
+  else
+    log "Paperclip 없음 — LocalBackend 모드로 동작 (기본값)"
+  fi
+}
+
 # ── musu-bee (Next.js) ───────────────────────────────────────────────────────
 
 start_musu_bee() {
@@ -115,6 +154,7 @@ start_musu_bee() {
 log "=== MUSU Dev Stack Starting ==="
 log "Logs: ${LOG_DIR}/"
 
+detect_paperclip
 start_musu_port
 start_musu_bridge
 start_musu_worker
