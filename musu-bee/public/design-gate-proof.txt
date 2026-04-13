@@ -1,0 +1,1 @@
+proof file for MUS-1802 design-gate workflow validation
