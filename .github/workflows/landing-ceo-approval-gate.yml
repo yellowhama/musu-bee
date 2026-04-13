@@ -1,0 +1,83 @@
+name: Landing CEO Approval Gate
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - labeled
+      - unlabeled
+      - ready_for_review
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  landing-ceo-approval-gate:
+    name: landing-ceo-approval-gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate landing-route changes and CEO approval label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const requiredLabel = "ceo-approved";
+            const landingExactPaths = new Set([
+              "musu-bee/src/app/page.tsx",
+              "musu-bee/src/components/PublicSiteShell.tsx",
+              "musu-bee/src/lib/publicSiteContent.ts",
+            ]);
+            const landingPathPrefixes = [
+              "musu-bee/src/app/landing/",
+              "musu-bee/src/app/landing-exp/",
+              "musu-bee/src/app/(marketing)/",
+            ];
+
+            const pr = context.payload.pull_request;
+            if (!pr) {
+              core.setFailed("This gate only supports pull_request events.");
+              return;
+            }
+
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              per_page: 100,
+            });
+
+            const changedFiles = files.map((f) => f.filename);
+            const matchedLandingFiles = changedFiles.filter((file) => {
+              if (landingExactPaths.has(file)) return true;
+              return landingPathPrefixes.some((prefix) => file.startsWith(prefix));
+            });
+
+            const labels = (pr.labels ?? []).map((label) => label.name);
+            const hasRequiredLabel = labels.includes(requiredLabel);
+            const landingTouched = matchedLandingFiles.length > 0;
+
+            const toBulletList = (items) =>
+              items.length === 0
+                ? "- (none)"
+                : items.map((item) => `- \`${item}\``).join("\n");
+
+            await core.summary
+              .addHeading("Landing CEO Approval Gate")
+              .addRaw(`Required label: \`${requiredLabel}\`\n\n`)
+              .addRaw(`Landing paths touched: **${landingTouched ? "yes" : "no"}**\n\n`)
+              .addRaw(`Required label present: **${hasRequiredLabel ? "yes" : "no"}**\n\n`)
+              .addRaw("Changed files:\n")
+              .addRaw(`${toBulletList(changedFiles)}\n\n`)
+              .addRaw("Matched landing files:\n")
+              .addRaw(`${toBulletList(matchedLandingFiles)}\n`)
+              .write();
+
+            if (landingTouched && !hasRequiredLabel) {
+              core.setFailed(
+                `Landing-route changes require the \`${requiredLabel}\` label before merge.`
+              );
+            }
