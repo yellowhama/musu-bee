@@ -55,7 +55,7 @@ export default function AppShell() {
 
   // ── Hooks ──────────────────────────────────────────────────────────────────
   const { userIdentity, authEnabled, authConfigured } = useAuth();
-  const { devices, addDevice } = useDeviceDiscovery();
+  const { devices } = useDeviceDiscovery();
 
   const handleHandoff = useCallback((newBoss: string) => {
     const sysMsg: Message = {
@@ -111,11 +111,11 @@ export default function AppShell() {
   }, []);
 
   const handleOnboardingComplete = useCallback(
-    (deviceName: string) => {
-      addDevice(deviceName);
+    (_deviceName: string) => {
+      // musu-port discovers devices automatically — no manual registration needed
       setShowOnboarding(false);
     },
-    [addDevice],
+    [],
   );
 
   const handleOnboardingSkip = useCallback(() => {

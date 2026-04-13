@@ -41,6 +41,9 @@ export interface Device {
   status: DeviceStatus;
   stats: DeviceStats;
   isLeader: boolean; // current "leader" node
+  isRemote?: boolean; // true for peer machines
+  peerUrl?: string; // musu-port URL for remote peers
+  lastSeenMs?: number; // unix ms of last successful probe
 }
 
 export interface MessageMeta {

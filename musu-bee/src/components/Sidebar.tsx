@@ -468,6 +468,7 @@ export default function Sidebar({
 
       {/* Devices */}
       <div>
+        {/* Local machines */}
         <div
           style={{
             fontSize: 11,
@@ -479,15 +480,44 @@ export default function Sidebar({
             marginBottom: 6,
           }}
         >
-          Devices
+          This Machine
         </div>
-        {devices.map((dev) => (
+        {devices.filter((d) => !d.isRemote).map((dev) => (
           <DeviceItem
             key={dev.id}
             device={dev}
             onClick={() => onDeviceSelect(dev.id)}
           />
         ))}
+
+        {/* Remote machines — only shown when peers are discovered */}
+        {devices.some((d) => d.isRemote) && (
+          <>
+            <div
+              style={{ borderTop: "1px solid #1f1f1f", margin: "8px 0" }}
+            />
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: "#6b7280",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                padding: "0 8px",
+                marginBottom: 6,
+              }}
+            >
+              Remote Machines
+            </div>
+            {devices.filter((d) => d.isRemote).map((dev) => (
+              <DeviceItem
+                key={dev.id}
+                device={dev}
+                onClick={() => onDeviceSelect(dev.id)}
+              />
+            ))}
+          </>
+        )}
       </div>
     </div>
   );
