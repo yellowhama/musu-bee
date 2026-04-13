@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useCallback, Fragment } from "react";
 import type { ChannelId, Message } from "@/types";
 
 interface ChatAreaProps {
@@ -10,16 +10,173 @@ interface ChatAreaProps {
   isAgentTyping?: boolean;
   isConnected?: boolean;
   channelDescription?: string;
+  activeCompanyName?: string | null;
+  workspaceId?: string | null;
+  selectedProjects?: string[];
   isLoadingHistory?: boolean;
   hasMoreHistory?: boolean;
   loadOlderMessages?: () => void;
 }
 
-function MessageBubble({ msg }: { msg: Message }) {
+// ── Inline markdown renderer ──────────────────────────────────────────────────
+// Supports: ```fenced code```, `inline code`, **bold**
+// No external dependencies — purely JSX.
+
+function renderInline(text: string): React.ReactNode[] {
+  const tokens = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
+  return tokens.map((token, j) => {
+    if (token.startsWith("`") && token.endsWith("`") && token.length > 2) {
+      return (
+        <code
+          key={j}
+          style={{
+            background: "#111827",
+            border: "1px solid #374151",
+            borderRadius: 3,
+            padding: "1px 5px",
+            fontSize: 12,
+            fontFamily: "monospace",
+            color: "#a78bfa",
+          }}
+        >
+          {token.slice(1, -1)}
+        </code>
+      );
+    }
+    if (token.startsWith("**") && token.endsWith("**") && token.length > 4) {
+      return <strong key={j}>{token.slice(2, -2)}</strong>;
+    }
+    return <Fragment key={j}>{token}</Fragment>;
+  });
+}
+
+function renderMarkdown(text: string): React.ReactNode {
+  // Split on fenced code blocks first
+  const parts = text.split(/(```[\s\S]*?```)/g);
+  return (
+    <Fragment>
+      {parts.map((part, i) => {
+        if (part.startsWith("```") && part.endsWith("```")) {
+          const inner = part.slice(3, -3);
+          // Strip optional language hint on the first line (e.g. ```bash)
+          const nl = inner.indexOf("\n");
+          const code = nl !== -1 ? inner.slice(nl + 1) : inner;
+          return (
+            <pre
+              key={i}
+              style={{
+                background: "#111827",
+                border: "1px solid #374151",
+                borderRadius: 6,
+                padding: "10px 14px",
+                overflowX: "auto",
+                fontSize: 13,
+                color: "#e5e7eb",
+                margin: "6px 0",
+                fontFamily: "monospace",
+                whiteSpace: "pre",
+              }}
+            >
+              <code>{code.replace(/\n$/, "")}</code>
+            </pre>
+          );
+        }
+        return <Fragment key={i}>{renderInline(part)}</Fragment>;
+      })}
+    </Fragment>
+  );
+}
+
+// Approval card rendered when system message contains "⚠ **승인 필요**"
+function ApprovalCard({ text, onSend }: { text: string; onSend: (t: string) => void }) {
+  // Parse task_id from text — looks for a backtick-wrapped id like `task-xxx`
+  const idMatch = /`(task-[a-z0-9-]+)`/.exec(text);
+  const taskId = idMatch ? idMatch[1] : null;
+
+  // Extract action description between "⚠ **승인 필요**: " and the next newline
+  const actionMatch = /⚠ \*\*승인 필요\*\*: ([^\n]+)/.exec(text);
+  const action = actionMatch ? actionMatch[1] : text;
+
+  const handleApprove = useCallback(() => {
+    if (taskId) onSend(`/approve ${taskId}`);
+  }, [taskId, onSend]);
+
+  const handleReject = useCallback(() => {
+    if (taskId) onSend(`/reject ${taskId}`);
+  }, [taskId, onSend]);
+
+  return (
+    <div
+      style={{
+        margin: "8px auto",
+        maxWidth: 420,
+        background: "#1a1a1a",
+        border: "1px solid #f59e0b44",
+        borderRadius: 10,
+        padding: "12px 16px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+      }}
+    >
+      <div style={{ fontSize: 13, fontWeight: 600, color: "#fbbf24" }}>
+        ⚠ 승인 필요
+      </div>
+      <div style={{ fontSize: 13, color: "#d1d5db", lineHeight: 1.4 }}>
+        {action}
+      </div>
+      {taskId && (
+        <div style={{ fontSize: 11, color: "#6b7280", fontFamily: "monospace" }}>
+          {taskId}
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+        <button
+          onClick={handleApprove}
+          style={{
+            flex: 1,
+            padding: "6px 0",
+            background: "#14532d",
+            border: "1px solid #16a34a",
+            borderRadius: 6,
+            color: "#86efac",
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          ✅ 승인
+        </button>
+        <button
+          onClick={handleReject}
+          style={{
+            flex: 1,
+            padding: "6px 0",
+            background: "#450a0a",
+            border: "1px solid #dc2626",
+            borderRadius: 6,
+            color: "#fca5a5",
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          ❌ 거부
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function MessageBubble({ msg, onSend }: { msg: Message; onSend: (t: string) => void }) {
   const isUser = msg.senderKind === "user";
   const isSystem = msg.senderKind === "system";
 
   if (isSystem) {
+    // Render approval card for APPROVAL_REQUIRED messages
+    if (msg.text.includes("⚠ **승인 필요**")) {
+      return <ApprovalCard text={msg.text} onSend={onSend} />;
+    }
     return (
       <div
         style={{
@@ -34,7 +191,7 @@ function MessageBubble({ msg }: { msg: Message }) {
     );
   }
 
-  const time = msg.timestamp.toLocaleTimeString("ko-KR", {
+  const time = msg.timestamp.toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -83,7 +240,7 @@ function MessageBubble({ msg }: { msg: Message }) {
           wordBreak: "break-word",
         }}
       >
-        {msg.text}
+        {isUser ? msg.text : renderMarkdown(msg.text)}
         {msg.attachment && (
           <div
             style={{
@@ -112,6 +269,9 @@ export default function ChatArea({
   isAgentTyping = false,
   isConnected,
   channelDescription,
+  activeCompanyName,
+  workspaceId,
+  selectedProjects = [],
   isLoadingHistory = false,
   hasMoreHistory = false,
   loadOlderMessages,
@@ -212,31 +372,55 @@ export default function ChatArea({
               width: 8,
               height: 8,
               borderRadius: "50%",
-              background: isConnected ? "#22c55e" : "#ef4444",
+              background: isConnected ? "var(--musu-status-online)" : "var(--musu-status-error)",
               flexShrink: 0,
             }}
-            title={isConnected ? "연결됨" : "연결 끊김"}
+            title={isConnected ? "Connected" : "Disconnected"}
           />
         )}
-        <span
+        <div
           style={{
-            fontSize: 13,
-            color: "#4b5563",
             borderLeft: "1px solid #2d2d2d",
             paddingLeft: 12,
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+            minWidth: 0,
           }}
         >
-          {channelDescription ??
-            (channelId === "general"
-              ? "모든 대화가 여기서 시작됩니다"
-              : channelId === "dev"
-                ? "기기 간 내부 대화 (AI 협의)"
-                : channelId === "tasks"
-                  ? "진행 중인 작업 목록"
-                  : channelId === "alerts"
-                    ? "기기 상태 변경, 에러, 완료 알림"
-                    : "")}
-        </span>
+          <span
+            style={{
+              fontSize: 13,
+              color: "#4b5563",
+            }}
+          >
+            {channelDescription ??
+              (channelId === "general"
+                ? "Everything starts here"
+                : channelId === "dev"
+                  ? "Internal device-to-device discussion"
+                  : channelId === "tasks"
+                    ? "Work currently in progress"
+                    : channelId === "alerts"
+                      ? "Device state changes, errors, and completion alerts"
+                      : "")}
+          </span>
+          {(activeCompanyName || workspaceId) ? (
+            <span
+              style={{
+                fontSize: 11,
+                color: "#9ca3af",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {activeCompanyName ?? "Draft company"}
+              {workspaceId ? ` · workspace ${workspaceId}` : ""}
+              {selectedProjects.length > 0 ? ` · ${selectedProjects.length} projects` : ""}
+            </span>
+          ) : null}
+        </div>
       </div>
 
       {/* Message list */}
@@ -281,7 +465,7 @@ export default function ChatArea({
                   animation: "spin 0.8s linear infinite",
                 }}
               />
-              이전 메시지 불러오는 중...
+              Loading earlier messages...
             </span>
           </div>
         )}
@@ -296,11 +480,11 @@ export default function ChatArea({
               fontSize: 14,
             }}
           >
-            메시지가 없습니다. 첫 메시지를 보내보세요.
+            No messages yet. Send the first one.
           </div>
         )}
         {channelMessages.map((msg) => (
-          <MessageBubble key={msg.id} msg={msg} />
+          <MessageBubble key={msg.id} msg={msg} onSend={onSend} />
         ))}
         {isAgentTyping && (
           <div
@@ -321,7 +505,7 @@ export default function ChatArea({
                 animation: "pulse 1.5s ease-in-out infinite",
               }}
             >
-              응답 중...
+              Responding...
             </span>
           </div>
         )}
@@ -344,7 +528,7 @@ export default function ChatArea({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={`${channelLabel} 채널에 메시지 입력... (Enter 전송, Shift+Enter 줄바꿈)`}
+          placeholder={`${activeCompanyName ? `Message ${activeCompanyName}` : `Message ${channelLabel}`}... (Enter to send, Shift+Enter for a new line)`}
           rows={1}
           style={{
             flex: 1,
@@ -384,7 +568,7 @@ export default function ChatArea({
             height: 42,
           }}
         >
-          전송
+          Send
         </button>
       </div>
     </div>

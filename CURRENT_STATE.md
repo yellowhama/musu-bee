@@ -1,6 +1,6 @@
 # musu-functions Current State
 
-Last updated: `2026-04-12 01:40 KST`
+Last updated: `2026-04-13 KST (Wave 4)`
 
 ## 현재 위치
 
@@ -11,6 +11,41 @@ Last updated: `2026-04-12 01:40 KST`
 ## 현재 코드 상황
 
 - `musu-bee`
+  - **Wave 2 (2026-04-13) — 전부 구현 완료, tsc + next build 클린:**
+    - `src/lib/tasks.ts` + `GET/POST/PATCH/DELETE /api/tasks` — SQLite task queue (node:sqlite DatabaseSync)
+    - `src/lib/useChat.ts` — `/task`, `/tasks`, `/done`, `/block`, `/approve`, `/reject`, `@route`, `/learn`, `@wiki` 커맨드
+    - `src/app/api/chat/stream/route.ts` — Claude CLI SSE 스트리밍 (`GET /api/chat/stream?message=...`)
+    - `src/lib/useAgentsSurface.ts` — bossHost 변경 감지 → `onHandoff(newBoss)` 콜백
+    - `src/app/page.tsx` — 7섹션 랜딩 (Hero/Pain/Features/How/Trust/Pricing/CTA), CSS vars 100%
+    - `src/app/api/mcp/route.ts` + `public/.well-known/mcp.json` — JSON-RPC 2.0 MCP Layer B (6 tools)
+    - `src/app/api/route/route.ts` — musu-port `/handoff/route` 프록시
+    - `src/app/api/device-status/route.ts` — `recommended_for` 힌트 추가
+  - **Wave 4 (2026-04-13) — 서비스 기동 + 코드 품질 + 마크다운 렌더링:**
+    - `scripts/dev-start.sh` — `musu-portd` 사전 빌드 바이너리 직접 실행 (`cargo run` → `./target/release/musu-portd`)
+    - `src/lib/chatCommands/` (신규 디렉터리, 7개 파일) — useChat.ts에서 커맨드 핸들러 분리
+      - `types.ts` — `CommandContext` 인터페이스
+      - `utils.ts` — `makeId()` 공유 유틸
+      - `handleTaskCommand.ts` — `/task /tasks /done /block`
+      - `handleApprovalCommand.ts` — `/approve /reject`
+      - `handleRouteCommand.ts` — `@route`
+      - `handleWikiCommand.ts` — `/learn @wiki` (setIsAgentTyping deps 버그 픽스)
+      - `handleRunCommand.ts` — `/run --device` (setIsAgentTyping deps 버그 픽스)
+      - `index.ts` — 전체 export
+    - `src/lib/useChat.ts` — 832줄 → 327줄 (핸들러 오케스트레이터만 유지, tsc + next build 클린)
+    - `src/components/ChatArea.tsx` — 인라인 마크다운 렌더러 추가 (라이브러리 0개)
+      - ` ``` ` 코드블록 → `<pre><code>` (어두운 배경)
+      - `` ` `` 인라인 코드 → `<code>` (보라색 monospace)
+      - `**bold**` → `<strong>`
+      - AI/worker 메시지에만 적용, 유저 메시지는 plain text 유지
+  - **Wave 3 (2026-04-13) — 실서비스 연결:**
+    - `musu_send_message` 수정 — musu-bridge `/api/route` 경유 (이전: musu-port `/chat/send` 404)
+    - `/run <command>` 커맨드 — musu-worker `/execute/cli` 호출, stdout 코드블록 출력
+    - `/task` 생성 시 `/api/route` 자동 호출 → `assigned_device` SQLite 저장
+    - `scripts/dev-start.sh` + `scripts/check-services.sh` — 전체 스택 통합 시작 스크립트
+    - `src/lib/useServiceHealth.ts` + `/api/service-health` — 5초마다 PORT/BRIDGE/WORKER 상태 폴링
+    - `src/components/AppShell.tsx` — 헤더에 서비스 상태 뱃지 (● PORT ● BRIDGE ● WORKER)
+    - `src/components/ChatArea.tsx` — `[APPROVAL_REQUIRED]` 메시지 → 승인/거부 버튼 카드 UI
+    - `.env.local.example` — Wave 2~3 신규 env vars 추가 (MUSU_BRIDGE_URL, MUSU_WORKER_URL, CLAUDE_CLI_PATH 등)
   - default company operating template is now extracted into product code as a canonical baseline.
   - API surface now exposes `GET /api/company-template`.
   - the current app shell sidebar renders the default company template summary.
@@ -104,6 +139,26 @@ Last updated: `2026-04-12 01:40 KST`
   - scope: Markdown 중심 재인덱싱
   - result: `changed=3`, `new=0`, `deleted=0`, `4058 sections` (incremental, refreshed 2026-04-09 22:31 KST)
   - ignore: `**/references/**`, `**/work/**`, `**/target/**`, `**/.git/**`, `**/node_modules/**`, `**/__pycache__/**`, `**/*.json`, `**/*.html`, `**/*.txt`
+
+## 2026-04-12 Company Scope + Sync Hardening
+
+- `AppShell` no longer hardcodes `default-workspace` as the primary company scope.
+- company scope is now derived from:
+  - URL query hints (`workspace`, `workspaceId`)
+  - future route workspace slug support (`/workspaces/:slug`)
+  - authenticated user identity fallback
+- active company context now propagates through:
+  - top bar identity + workspace badge
+  - sidebar active-company summary
+  - chat header/product context
+- company registry delete is now a confirm step instead of a single destructive click.
+- Paperclip sync contract is now MUSU-specific and stores:
+  - Paperclip issue id
+  - Paperclip comment id
+  - product sync metadata for `/app` company-registry activation
+- validation passed with direct local binaries:
+  - `node node_modules/tsx/dist/cli.mjs --test src/lib/companyScope.test.ts src/lib/controlPlaneSync.test.ts src/app/api/company-template/route.test.ts src/app/api/company-setup/route.test.ts src/app/api/company-activation/route.test.ts src/app/api/chat/route.test.ts`
+  - `node node_modules/typescript/bin/tsc -p tsconfig.json --noEmit --pretty false`
 
 ## 현재 판단
 
