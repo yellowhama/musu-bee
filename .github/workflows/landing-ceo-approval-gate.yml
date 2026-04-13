@@ -59,6 +59,11 @@ jobs:
             const labels = (pr.labels ?? []).map((label) => label.name);
             const hasRequiredLabel = labels.includes(requiredLabel);
             const landingTouched = matchedLandingFiles.length > 0;
+            core.info(`Changed files: ${JSON.stringify(changedFiles)}`);
+            core.info(`Matched landing files: ${JSON.stringify(matchedLandingFiles)}`);
+            core.info(
+              `Gate evaluation: landingTouched=${landingTouched} hasRequiredLabel=${hasRequiredLabel}`
+            );
 
             const toBulletList = (items) =>
               items.length === 0
