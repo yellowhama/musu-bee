@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, useCallback, Fragment } from "react";
-import type { ChannelId, Message } from "@/types";
+import type { ChannelId, Message, AgentsSurfaceSnapshot } from "@/types";
 
 interface ChatAreaProps {
   channelId: ChannelId;
@@ -16,14 +16,15 @@ interface ChatAreaProps {
   isLoadingHistory?: boolean;
   hasMoreHistory?: boolean;
   loadOlderMessages?: () => void;
+  agentsSurface?: AgentsSurfaceSnapshot | null;
 }
 
 // ── Inline markdown renderer ──────────────────────────────────────────────────
-// Supports: ```fenced code```, `inline code`, **bold**
+// Supports: ```fenced code```, `inline code`, **bold**, _italic_, - list items
 // No external dependencies — purely JSX.
 
 function renderInline(text: string): React.ReactNode[] {
-  const tokens = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
+  const tokens = text.split(/(`[^`]+`|\*\*[^*]+\*\*|_[^_\n]+_)/g);
   return tokens.map((token, j) => {
     if (token.startsWith("`") && token.endsWith("`") && token.length > 2) {
       return (
@@ -46,8 +47,55 @@ function renderInline(text: string): React.ReactNode[] {
     if (token.startsWith("**") && token.endsWith("**") && token.length > 4) {
       return <strong key={j}>{token.slice(2, -2)}</strong>;
     }
+    if (token.startsWith("_") && token.endsWith("_") && token.length > 2) {
+      return <em key={j}>{token.slice(1, -1)}</em>;
+    }
     return <Fragment key={j}>{token}</Fragment>;
   });
+}
+
+/** Render a text block that may contain list items and inline markdown. */
+function renderTextBlock(text: string, keyPrefix: string): React.ReactNode {
+  const lines = text.split("\n");
+  const nodes: React.ReactNode[] = [];
+  let listItems: React.ReactNode[] = [];
+
+  const flushList = () => {
+    if (listItems.length === 0) return;
+    nodes.push(
+      <ul
+        key={`${keyPrefix}-ul-${nodes.length}`}
+        style={{ margin: "4px 0", paddingLeft: 18, listStyleType: "disc" }}
+      >
+        {listItems}
+      </ul>
+    );
+    listItems = [];
+  };
+
+  lines.forEach((line, li) => {
+    const listMatch = /^[-*]\s+(.*)/.exec(line);
+    if (listMatch) {
+      listItems.push(
+        <li key={li} style={{ marginBottom: 2 }}>
+          {renderInline(listMatch[1])}
+        </li>
+      );
+    } else {
+      flushList();
+      if (line.trim()) {
+        nodes.push(
+          <Fragment key={`${keyPrefix}-l-${li}`}>
+            {renderInline(line)}
+          </Fragment>
+        );
+      } else if (li > 0) {
+        nodes.push(<br key={`${keyPrefix}-br-${li}`} />);
+      }
+    }
+  });
+  flushList();
+  return nodes;
 }
 
 function renderMarkdown(text: string): React.ReactNode {
@@ -81,7 +129,7 @@ function renderMarkdown(text: string): React.ReactNode {
             </pre>
           );
         }
-        return <Fragment key={i}>{renderInline(part)}</Fragment>;
+        return <Fragment key={i}>{renderTextBlock(part, String(i))}</Fragment>;
       })}
     </Fragment>
   );
@@ -275,6 +323,7 @@ export default function ChatArea({
   isLoadingHistory = false,
   hasMoreHistory = false,
   loadOlderMessages,
+  agentsSurface,
 }: ChatAreaProps) {
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -338,6 +387,14 @@ export default function ChatArea({
   }
 
   const channelLabel = `#${channelId}`;
+  const onlineAgents = agentsSurface?.summary?.departments.filter(
+    (dept) => {
+      const status = dept.status.toLowerCase();
+      // Online: anything except paused, retired, error, offline
+      return !["paused", "retired", "error", "offline", "unknown"].includes(status);
+    }
+  ) ?? [];
+  const totalAgents = agentsSurface?.summary?.departments.length ?? 0;
 
   return (
     <div
@@ -377,6 +434,34 @@ export default function ChatArea({
             }}
             title={isConnected ? "Connected" : "Disconnected"}
           />
+        )}
+        {totalAgents > 0 && (
+          <span
+            style={{
+              fontSize: 11,
+              color: onlineAgents.length > 0 ? "#86efac" : "#6b7280",
+              background: onlineAgents.length > 0 ? "rgba(34,197,94,0.12)" : "#1a1a1a",
+              border: `1px solid ${onlineAgents.length > 0 ? "rgba(34,197,94,0.3)" : "#2d2d2d"}`,
+              borderRadius: 12,
+              padding: "2px 8px",
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+            }}
+            title={`${onlineAgents.length} of ${totalAgents} agents online`}
+          >
+            <span
+              style={{
+                display: "inline-block",
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: onlineAgents.length > 0 ? "var(--musu-status-online)" : "#6b7280",
+              }}
+            />
+            {onlineAgents.length}/{totalAgents} agents
+          </span>
         )}
         <div
           style={{

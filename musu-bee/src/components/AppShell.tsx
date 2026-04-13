@@ -433,6 +433,7 @@ export default function AppShell() {
           isLoadingHistory={isAgentChannel ? chat.isLoadingHistory : false}
           hasMoreHistory={isAgentChannel ? chat.hasMoreHistory : false}
           loadOlderMessages={isAgentChannel ? chat.loadOlderMessages : undefined}
+          agentsSurface={agentsSurface}
         />
       </div>
 

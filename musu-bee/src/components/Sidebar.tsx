@@ -1,5 +1,6 @@
 "use client";
 
+import type { CompanyActivationState } from "@/lib/companyActivation";
 import type { DefaultCompanyTemplate } from "@/lib/templates/defaultCompanyTemplate";
 import type { AgentsSurfaceSnapshot, Channel, ChannelId, Device } from "@/types";
 
@@ -7,6 +8,8 @@ interface SidebarProps {
   channels: Channel[];
   devices: Device[];
   companyTemplate?: DefaultCompanyTemplate | null;
+  activeCompany?: CompanyActivationState | null;
+  workspaceId: string;
   agentsSurface?: AgentsSurfaceSnapshot | null;
   activeChannel: ChannelId;
   onChannelSelect: (id: ChannelId) => void;
@@ -15,9 +18,9 @@ interface SidebarProps {
 
 function StatusDot({ status }: { status: Device["status"] }) {
   const colors: Record<Device["status"], string> = {
-    online: "#22c55e",
-    offline: "#6b7280",
-    busy: "#f59e0b",
+    online: "var(--musu-status-online)",
+    offline: "var(--musu-status-offline)",
+    busy: "var(--musu-status-busy)",
   };
   return (
     <span
@@ -141,7 +144,7 @@ function DeviceItem({
             <span style={{ fontSize: 10, color: "#9ca3af", width: 30 }}>
               RAM
             </span>
-            <ProgressBar value={device.stats.ram} color="#10b981" />
+            <ProgressBar value={device.stats.ram} color="var(--musu-status-online)" />
             <span style={{ fontSize: 10, color: "#9ca3af", width: 28, textAlign: "right" }}>
               {device.stats.ram}%
             </span>
@@ -162,10 +165,12 @@ function DeviceItem({
 function DepartmentStatusDot({ status }: { status: string }) {
   const tone = status.toLowerCase();
   const color =
-    tone === "running" ? "#22c55e" :
+    tone === "active" || tone === "running" ? "var(--musu-status-online)" :
     tone === "idle" ? "#6b7280" :
-    tone === "paused" ? "#f59e0b" :
-    "#ef4444";
+    tone === "paused" ? "var(--musu-status-busy)" :
+    tone === "retired" || tone === "offline" ? "var(--musu-status-offline)" :
+    tone === "error" ? "var(--musu-status-error)" :
+    "#6b7280";
   return (
     <span
       style={{
@@ -185,6 +190,8 @@ export default function Sidebar({
   channels,
   devices,
   companyTemplate,
+  activeCompany,
+  workspaceId,
   agentsSurface,
   activeChannel,
   onChannelSelect,
@@ -254,7 +261,7 @@ export default function Sidebar({
             {ch.unread > 0 && (
               <span
                 style={{
-                  background: "#ef4444",
+                  background: "var(--musu-status-error)",
                   color: "#fff",
                   borderRadius: 10,
                   padding: "1px 6px",
@@ -367,6 +374,47 @@ export default function Sidebar({
       </div>
 
       {/* Divider */}
+      <div
+        style={{ borderTop: "1px solid #1f1f1f", margin: "4px 0 12px 0" }}
+      />
+
+      <div style={{ marginBottom: 12 }}>
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: "#6b7280",
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+            padding: "0 8px",
+            marginBottom: 6,
+          }}
+        >
+          Active Company
+        </div>
+        <div
+          style={{
+            margin: "0 4px",
+            padding: "8px 10px",
+            borderRadius: 8,
+            border: "1px solid #242424",
+            background: "#141414",
+          }}
+        >
+          <div style={{ fontSize: 12, color: "#e5e7eb", fontWeight: 600, marginBottom: 6 }}>
+            {activeCompany?.companyName ?? "Draft company"}
+          </div>
+          <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 6 }}>
+            workspace: {workspaceId}
+          </div>
+          <div style={{ fontSize: 11, color: "#6b7280", lineHeight: 1.5 }}>
+            {activeCompany
+              ? `${activeCompany.selectedProjects.length} starter projects · ${activeCompany.templateKey}`
+              : "Apply the template to create an active company record."}
+          </div>
+        </div>
+      </div>
+
       <div
         style={{ borderTop: "1px solid #1f1f1f", margin: "4px 0 12px 0" }}
       />
