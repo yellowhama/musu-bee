@@ -1,0 +1,1 @@
+MUS-1701 tamper-negative probe: similar path outside protected prefixes.
