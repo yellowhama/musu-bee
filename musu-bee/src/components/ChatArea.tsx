@@ -17,6 +17,8 @@ interface ChatAreaProps {
   hasMoreHistory?: boolean;
   loadOlderMessages?: () => void;
   agentsSurface?: AgentsSurfaceSnapshot | null;
+  onApprovePlan?: (msgId: string) => void;
+  onRejectPlan?: (msgId: string) => void;
 }
 
 // ── Inline markdown renderer ──────────────────────────────────────────────────
@@ -216,6 +218,120 @@ function ApprovalCard({ text, onSend }: { text: string; onSend: (t: string) => v
   );
 }
 
+// Plan card rendered when msg.plan is present (numbered execution plan)
+function PlanCard({ msg, onApprove, onReject }: { msg: Message; onApprove?: (msgId: string) => void; onReject?: (msgId: string) => void }) {
+  const plan = msg.plan;
+  if (!plan) return null;
+
+  const handleApprove = useCallback(() => {
+    if (onApprove) onApprove(msg.id);
+  }, [msg.id, onApprove]);
+
+  const handleReject = useCallback(() => {
+    if (onReject) onReject(msg.id);
+  }, [msg.id, onReject]);
+
+  return (
+    <div
+      style={{
+        border: "1px solid #2d2d2d",
+        borderRadius: 8,
+        padding: 12,
+        marginTop: 8,
+        background: "#0d0d0d",
+      }}
+    >
+      <div style={{ fontSize: 12, fontWeight: 600, color: "#9ca3af", marginBottom: 8 }}>
+        📋 Execution Plan · {plan.steps.length} steps
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+        {plan.steps.map((step, idx) => (
+          <div
+            key={step.id}
+            style={{
+              background: "#1a1a1a",
+              borderLeft: "3px solid #a78bfa",
+              borderRadius: 4,
+              padding: "6px 10px",
+              fontSize: 13,
+              color: "#e5e7eb",
+              display: "flex",
+              gap: 8,
+            }}
+          >
+            <span style={{ color: "#6b7280", fontWeight: 600, minWidth: 20 }}>{idx + 1}.</span>
+            <span>{step.text}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        {plan.status === "pending" ? (
+          <>
+            <button
+              onClick={handleApprove}
+              style={{
+                flex: 1,
+                padding: "8px 0",
+                background: "#14532d",
+                border: "1px solid #16a34a",
+                borderRadius: 6,
+                color: "#86efac",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              ✓ Approve & Run
+            </button>
+            <button
+              onClick={handleReject}
+              style={{
+                flex: 1,
+                padding: "8px 0",
+                background: "#450a0a",
+                border: "1px solid #dc2626",
+                borderRadius: 6,
+                color: "#fca5a5",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              ✗ Reject
+            </button>
+          </>
+        ) : plan.status === "approved" ? (
+          <div
+            style={{
+              flex: 1,
+              textAlign: "center",
+              padding: "8px 0",
+              color: "#86efac",
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            Approved ✓
+          </div>
+        ) : (
+          <div
+            style={{
+              flex: 1,
+              textAlign: "center",
+              padding: "8px 0",
+              color: "#fca5a5",
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            Rejected ✗
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function DelegationChip({ chain }: { chain: string[] }) {
   if (chain.length < 2) return null;
   return (
@@ -256,7 +372,7 @@ function DelegationChip({ chain }: { chain: string[] }) {
   );
 }
 
-function MessageBubble({ msg, onSend }: { msg: Message; onSend: (t: string) => void }) {
+function MessageBubble({ msg, onSend, onApprovePlan, onRejectPlan }: { msg: Message; onSend: (t: string) => void; onApprovePlan?: (msgId: string) => void; onRejectPlan?: (msgId: string) => void }) {
   const isUser = msg.senderKind === "user";
   const isSystem = msg.senderKind === "system";
 
@@ -349,6 +465,9 @@ function MessageBubble({ msg, onSend }: { msg: Message; onSend: (t: string) => v
           </div>
         )}
       </div>
+      {!isUser && msg.plan && (
+        <PlanCard msg={msg} onApprove={onApprovePlan} onReject={onRejectPlan} />
+      )}
     </div>
   );
 }
@@ -367,6 +486,8 @@ export default function ChatArea({
   hasMoreHistory = false,
   loadOlderMessages,
   agentsSurface,
+  onApprovePlan,
+  onRejectPlan,
 }: ChatAreaProps) {
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -612,7 +733,7 @@ export default function ChatArea({
           </div>
         )}
         {channelMessages.map((msg) => (
-          <MessageBubble key={msg.id} msg={msg} onSend={onSend} />
+          <MessageBubble key={msg.id} msg={msg} onSend={onSend} onApprovePlan={onApprovePlan} onRejectPlan={onRejectPlan} />
         ))}
         {isAgentTyping && (
           <div

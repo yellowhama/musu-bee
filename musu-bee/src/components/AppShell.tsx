@@ -434,6 +434,8 @@ export default function AppShell() {
           hasMoreHistory={isAgentChannel ? chat.hasMoreHistory : false}
           loadOlderMessages={isAgentChannel ? chat.loadOlderMessages : undefined}
           agentsSurface={agentsSurface}
+          onApprovePlan={isAgentChannel ? chat.approvePlan : undefined}
+          onRejectPlan={isAgentChannel ? chat.rejectPlan : undefined}
         />
       </div>
 
