@@ -50,15 +50,38 @@ jobs:
               per_page: 100,
             });
 
-            const changedFiles = files.map((f) => f.filename);
-            const matchedLandingFiles = changedFiles.filter((file) => {
+            const changedFiles = files.map((f) =>
+              f.status === "renamed" && f.previous_filename
+                ? `${f.filename} (renamed from ${f.previous_filename})`
+                : f.filename
+            );
+
+            const normalizedChangedPaths = files.flatMap((f) =>
+              f.status === "renamed" && f.previous_filename
+                ? [f.filename, f.previous_filename]
+                : [f.filename]
+            );
+
+            const isLandingPath = (file) => {
               if (landingExactPaths.has(file)) return true;
               return landingPathPrefixes.some((prefix) => file.startsWith(prefix));
-            });
+            };
+
+            const matchedLandingFiles = [...new Set(normalizedChangedPaths.filter(isLandingPath))];
 
             const labels = (pr.labels ?? []).map((label) => label.name);
             const hasRequiredLabel = labels.includes(requiredLabel);
             const landingTouched = matchedLandingFiles.length > 0;
+
+            core.info(
+              `landing_gate_eval=${JSON.stringify({
+                requiredLabel,
+                hasRequiredLabel,
+                landingTouched,
+                changedFiles,
+                matchedLandingFiles,
+              })}`
+            );
 
             const toBulletList = (items) =>
               items.length === 0
