@@ -8,21 +8,34 @@ function parseDelegationChain(
   sourceChannel: string,
   responseText: string,
 ): string[] | null {
-  const upper = responseText.toLowerCase();
+  const lower = responseText.toLowerCase();
   const knownAgents = ["cto", "engineer", "qa", "cos", "worker", "vp"];
 
-  const delegationKeywords = [
+  // ASCII patterns run on lowercased text
+  const asciiPatterns = [
     /→\s*(\w+)/g,
     /delegat(?:e|ing|ed)\s+to\s+(\w+)/gi,
     /assign(?:ing|ed)?\s+to\s+(\w+)/gi,
-    /(\w+)에게\s+(?:위임|할당)/g,
-    /(\w+)(?:가|이)\s+담당/g,
+  ];
+  // Korean patterns use named capture on original text (Korean chars aren't in \w)
+  const koreanPatterns = [
+    /(cto|engineer|qa|cos|worker|vp)에게\s+(?:위임|할당)/gi,
+    /(cto|engineer|qa|cos|worker|vp)(?:가|이)\s+담당/gi,
   ];
 
   const found: string[] = [];
-  for (const pattern of delegationKeywords) {
+  for (const pattern of asciiPatterns) {
     let match: RegExpExecArray | null;
-    while ((match = pattern.exec(upper)) !== null) {
+    while ((match = pattern.exec(lower)) !== null) {
+      const name = match[1]?.toLowerCase();
+      if (name && knownAgents.includes(name) && !found.includes(name)) {
+        found.push(name);
+      }
+    }
+  }
+  for (const pattern of koreanPatterns) {
+    let match: RegExpExecArray | null;
+    while ((match = pattern.exec(responseText)) !== null) {
       const name = match[1]?.toLowerCase();
       if (name && knownAgents.includes(name) && !found.includes(name)) {
         found.push(name);
