@@ -9,23 +9,31 @@
  * the file fallback is safe. Do NOT use the file path on stateless serverless runtimes
  * (Vercel, Lambda) without KV_REST_API_URL configured.
  */
-import type { PlanTier } from "./stripe";
-import { PLAN_DEVICE_LIMITS } from "./stripe";
+import type { PlanTier } from "./billing-types";
+import { PLAN_DEVICE_LIMITS } from "./billing-types";
+
+export type { PlanTier };
+export { PLAN_DEVICE_LIMITS };
 
 export interface SubscriptionState {
   plan: PlanTier;
-  stripeCustomerId: string | null;
-  stripeSubscriptionId: string | null;
+  customerId: string | null;
+  subscriptionId: string | null;
+  provider: "stripe" | "paddle" | "none";
   status: "active" | "trialing" | "cancelled" | "none";
   currentPeriodEnd: string | null;
-  _processedStripeEventIds: string[];
-  _processedPaddleEventIds: string[];
+  _processedEventIds: string[];
 }
 
 const KV_KEY = "subscription:state";
-const MAX_PROCESSED_STRIPE_EVENTS = 200;
-const MAX_PROCESSED_PADDLE_EVENTS = 200;
+const MAX_PROCESSED_EVENTS = 200;
 const SUBSCRIPTION_LOCK_KEY = `${KV_KEY}:lock`;
+
+// @vercel/kv doesn't expose .eval() in its TypeScript types but ioredis (the
+// underlying client) supports raw Lua evaluation at runtime.
+interface KvWithEval {
+  eval(script: string, keys: string[], args: string[]): Promise<unknown>;
+}
 const SUBSCRIPTION_LOCK_TTL_SECONDS = 10;
 const SUBSCRIPTION_LOCK_WAIT_MS = 1500;
 const SUBSCRIPTION_LOCK_RETRY_MS = 50;
@@ -34,20 +42,48 @@ let localLockQueue: Promise<void> = Promise.resolve();
 
 const DEFAULT_STATE: SubscriptionState = {
   plan: "free",
-  stripeCustomerId: null,
-  stripeSubscriptionId: null,
+  customerId: null,
+  subscriptionId: null,
+  provider: "none",
   status: "none",
   currentPeriodEnd: null,
-  _processedStripeEventIds: [],
-  _processedPaddleEventIds: [],
+  _processedEventIds: [],
 };
 
-function normalizeState(state: Partial<SubscriptionState>): SubscriptionState {
+function normalizeState(state: any): SubscriptionState {
+  if (!state || typeof state !== "object") return { ...DEFAULT_STATE };
+
+  // Migration from Stripe fields
+  const customerId = state.customerId ?? state.stripeCustomerId ?? null;
+  const subscriptionId =
+    state.subscriptionId ?? state.stripeSubscriptionId ?? null;
+
+  let provider = state.provider ?? "none";
+  if (
+    provider === "none" &&
+    (state.stripeCustomerId || state.stripeSubscriptionId)
+  ) {
+    provider = "stripe";
+  }
+
+  const toStringArray = (value: unknown): string[] =>
+    Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
+
+  const _processedEventIds = Array.from(
+    new Set([
+      ...toStringArray(state._processedEventIds),
+      ...toStringArray(state._processedPaddleEventIds),
+      ...toStringArray(state._processedStripeEventIds),
+    ])
+  ).slice(-MAX_PROCESSED_EVENTS);
+
   return {
     ...DEFAULT_STATE,
     ...state,
-    _processedStripeEventIds: state._processedStripeEventIds ?? [],
-    _processedPaddleEventIds: state._processedPaddleEventIds ?? [],
+    customerId,
+    subscriptionId,
+    provider: provider as SubscriptionState["provider"],
+    _processedEventIds,
   };
 }
 
@@ -152,7 +188,7 @@ async function withKvSubscriptionLock<T>(fn: () => Promise<T>): Promise<T> {
     return await fn();
   } finally {
     // Atomic compare-and-delete release to avoid deleting another owner's lock.
-    await (kv as any).eval(
+    await (kv as unknown as KvWithEval).eval(
       "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
       [SUBSCRIPTION_LOCK_KEY],
       [owner]
@@ -169,60 +205,35 @@ export async function withSubscriptionStateLock<T>(
   return withLocalSubscriptionLock(fn);
 }
 
-export function hasProcessedStripeEvent(
+export function hasProcessedEvent(
   state: SubscriptionState,
   eventId: string
 ): boolean {
-  return state._processedStripeEventIds.includes(eventId);
+  return state._processedEventIds.includes(eventId);
 }
 
-export function markStripeEventProcessed(
+export function markEventProcessed(
   state: SubscriptionState,
   eventId: string
 ): SubscriptionState {
-  if (state._processedStripeEventIds.includes(eventId)) return state;
+  if (state._processedEventIds.includes(eventId)) return state;
 
-  const next = [...state._processedStripeEventIds, eventId];
-  if (next.length > MAX_PROCESSED_STRIPE_EVENTS) {
-    next.splice(0, next.length - MAX_PROCESSED_STRIPE_EVENTS);
+  const next = [...state._processedEventIds, eventId];
+  if (next.length > MAX_PROCESSED_EVENTS) {
+    next.splice(0, next.length - MAX_PROCESSED_EVENTS);
   }
 
   return {
     ...state,
-    _processedStripeEventIds: next,
-  };
-}
-
-export function hasProcessedPaddleEvent(
-  state: SubscriptionState,
-  eventId: string
-): boolean {
-  return state._processedPaddleEventIds.includes(eventId);
-}
-
-export function markPaddleEventProcessed(
-  state: SubscriptionState,
-  eventId: string
-): SubscriptionState {
-  if (state._processedPaddleEventIds.includes(eventId)) return state;
-
-  const next = [...state._processedPaddleEventIds, eventId];
-  if (next.length > MAX_PROCESSED_PADDLE_EVENTS) {
-    next.splice(0, next.length - MAX_PROCESSED_PADDLE_EVENTS);
-  }
-
-  return {
-    ...state,
-    _processedPaddleEventIds: next,
+    _processedEventIds: next,
   };
 }
 
 export function toPublicSubscriptionState(
   state: SubscriptionState
-): Omit<SubscriptionState, "_processedStripeEventIds" | "_processedPaddleEventIds"> {
+): Omit<SubscriptionState, "_processedEventIds"> {
   const {
-    _processedStripeEventIds: _ignoredStripe,
-    _processedPaddleEventIds: _ignoredPaddle,
+    _processedEventIds: _ignored,
     ...publicState
   } = state;
   return publicState;
