@@ -1,0 +1,37 @@
+name: Company Template Contract
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "musu-bee/src/lib/templates/defaultCompanyTemplate.json"
+      - "scripts/sync-default-company-template.mjs"
+      - ".github/workflows/company-template-contract.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "musu-bee/src/lib/templates/defaultCompanyTemplate.json"
+      - "scripts/sync-default-company-template.mjs"
+      - ".github/workflows/company-template-contract.yml"
+
+jobs:
+  verify-template-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: musu-functions
+
+      - name: Checkout musu_corp sibling repo
+        uses: actions/checkout@v4
+        with:
+          repository: yellowhama/musu_corp
+          path: musu_corp
+
+      - name: Verify template sync contract
+        working-directory: musu-functions
+        env:
+          MUSU_CORP_ROOT: ${{ github.workspace }}/musu_corp
+        run: node scripts/sync-default-company-template.mjs --check
