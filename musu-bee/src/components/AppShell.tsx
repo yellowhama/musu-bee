@@ -140,7 +140,11 @@ export default function AppShell() {
   const handleSend = useCallback(
     (text: string) => {
       if (isAgentChannel) {
-        chat.sendMessage(text, chat.activeNode);
+        const companyCtx =
+          displayCompanyName || workspaceId
+            ? { company: displayCompanyName ?? undefined, workspace: workspaceId ?? undefined }
+            : undefined;
+        chat.sendMessage(text, chat.activeNode, companyCtx);
       } else {
         const userMsg: Message = {
           id: makeId(),

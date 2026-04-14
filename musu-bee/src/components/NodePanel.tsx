@@ -7,6 +7,7 @@ interface NodeInfo {
   url: string;
   status: "online" | "offline" | "self" | "error" | "unknown";
   is_self: boolean;
+  agents?: string[];
 }
 
 interface RegistryNode {
@@ -287,34 +288,57 @@ export default function NodePanel() {
               key={node.name}
               style={{
                 display: "flex",
-                alignItems: "center",
+                flexDirection: "column",
                 padding: "7px 10px",
                 borderBottom: "1px solid #1f1f1f",
-                gap: 6,
+                gap: 4,
               }}
             >
-              {statusDot(node.status)}
-              <span style={{ fontSize: 12, color: "#e5e7eb", flex: 1 }}>
-                {node.name}
-              </span>
-              <span style={{ fontSize: 11, color: "#4b5563" }}>
-                {node.status === "self" ? "this machine" : node.status}
-              </span>
-              {!node.is_self && (
-                <button
-                  onClick={() => void handleDisconnect(node.name)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#4b5563",
-                    fontSize: 11,
-                    cursor: "pointer",
-                    padding: "1px 4px",
-                  }}
-                  title="연결 해제"
-                >
-                  ✕
-                </button>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                {statusDot(node.status)}
+                <span style={{ fontSize: 12, color: "#e5e7eb", flex: 1 }}>
+                  {node.name}
+                </span>
+                <span style={{ fontSize: 11, color: "#4b5563" }}>
+                  {node.status === "self" ? "this machine" : node.status}
+                </span>
+                {!node.is_self && (
+                  <button
+                    onClick={() => void handleDisconnect(node.name)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#4b5563",
+                      fontSize: 11,
+                      cursor: "pointer",
+                      padding: "1px 4px",
+                    }}
+                    title="연결 해제"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              {!node.is_self && node.agents && node.agents.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 3, paddingLeft: 13 }}>
+                  {node.agents.map((agent) => (
+                    <span
+                      key={agent}
+                      style={{
+                        fontSize: 9,
+                        color: "#6b7280",
+                        background: "#1a1a1a",
+                        border: "1px solid #2a2a2a",
+                        borderRadius: 3,
+                        padding: "1px 5px",
+                        fontFamily: "monospace",
+                        textTransform: "lowercase",
+                      }}
+                    >
+                      {agent}
+                    </span>
+                  ))}
+                </div>
               )}
             </div>
           ))

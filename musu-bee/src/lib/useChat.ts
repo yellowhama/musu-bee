@@ -83,9 +83,14 @@ function historyMsgToMessage(hm: HistoryMessage, channel: ChannelId): Message {
   };
 }
 
+export interface CompanyContext {
+  company?: string;
+  workspace?: string;
+}
+
 export interface UseChatReturn {
   messages: Message[];
-  sendMessage: (text: string, node?: string) => void;
+  sendMessage: (text: string, node?: string, companyCtx?: CompanyContext) => void;
   approvePlan: (msgId: string) => void;
   rejectPlan: (msgId: string) => void;
   isConnected: boolean;
@@ -303,13 +308,21 @@ export function useChat(channel: ChannelId): UseChatReturn {
   // ── musu-bridge agent route ────────────────────────────────────────────────
 
   const sendViaAgentRoute = useCallback(
-    async (text: string, node?: string) => {
+    async (text: string, node?: string, companyCtx?: CompanyContext) => {
       setIsAgentTyping(true);
+      // Build context prefix — prepended to the request body only, not shown in UI
+      let bodyText = text;
+      if (companyCtx?.company || companyCtx?.workspace) {
+        const parts: string[] = [];
+        if (companyCtx.company) parts.push(`Company: ${companyCtx.company}`);
+        if (companyCtx.workspace) parts.push(`Workspace: ${companyCtx.workspace}`);
+        bodyText = `[${parts.join(" | ")}]\n\n${text}`;
+      }
       try {
         const res = await fetch("/api/agent-route", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ channel, sender_id: "local-user", text, node }),
+          body: JSON.stringify({ channel, sender_id: "local-user", text: bodyText, node }),
         });
 
         const data = (await res.json()) as {
@@ -377,7 +390,7 @@ export function useChat(channel: ChannelId): UseChatReturn {
   // ── sendMessage ────────────────────────────────────────────────────────────
 
   const sendMessage = useCallback(
-    (text: string, node?: string) => {
+    (text: string, node?: string, companyCtx?: CompanyContext) => {
       if (text.startsWith("/task ") || text === "/tasks" || text.startsWith("/done ") || text.startsWith("/block ")) {
         void handleTaskCommand(text); return;
       }
@@ -398,7 +411,7 @@ export function useChat(channel: ChannelId): UseChatReturn {
       if (!isAgentChannel) return;
 
       // Agent channels: route through musu-bridge for real agent execution
-      void sendViaAgentRoute(text, node);
+      void sendViaAgentRoute(text, node, companyCtx);
     },
     [appendChatMessage, channel, handleApprovalCommand, handleTaskCommand, handleRouteCommand, handleRunCommand, handleWikiCommand, isAgentChannel, sendViaAgentRoute],
   );

@@ -273,6 +273,9 @@ async def pair_with_node(ip: str, port: int) -> dict[str, Any]:
     if not _is_safe_pair_ip(ip):
         return {"success": False, "error": f"IP {ip!r} is not a routable address"}
 
+    if not (1 <= port <= 65535):
+        return {"success": False, "error": f"Port {port} out of range (1-65535)"}
+
     remote_base = f"http://{ip}:{port}"
 
     # 1. Fetch remote node info
@@ -301,9 +304,12 @@ async def pair_with_node(ip: str, port: int) -> dict[str, Any]:
     except (httpx.ConnectError, httpx.TimeoutException) as exc:
         return {"success": False, "error": f"pair/accept failed: {exc}"}
 
-    # 3. Update local nodes.toml
+    # 3. Update local nodes.toml (store remote agents for NodePanel display)
     mesh = get_mesh_router()
-    mesh.add_node(remote_name, remote_url)
+    remote_agents = remote_info.get("agents", [])
+    if isinstance(remote_agents, list):
+        remote_agents = [str(a) for a in remote_agents]
+    mesh.add_node(remote_name, remote_url, agents=remote_agents)
     mesh.reload()
 
     return {"success": True, "node_name": remote_name, "node_url": remote_url}
@@ -315,10 +321,13 @@ def accept_pair(node_info: dict[str, Any]) -> dict[str, Any]:
     url = node_info.get("url", "")
     if not name or not url:
         return {"success": False, "error": "Missing name or url"}
+    agents = node_info.get("agents", [])
+    if isinstance(agents, list):
+        agents = [str(a) for a in agents]
     mesh = get_mesh_router()
-    mesh.add_node(name, url)
+    mesh.add_node(name, url, agents=agents)
     mesh.reload()
-    logger.info("accept_pair: added node %r url=%r", name, url)
+    logger.info("accept_pair: added node %r url=%r agents=%s", name, url, agents)
     return {"success": True, "node_name": name}
 
 
@@ -342,6 +351,7 @@ async def list_nodes() -> list[dict[str, Any]]:
             "url": node_url,
             "status": status,
             "is_self": is_self,
+            "agents": mesh._node_agents.get(node_name, []),
         })
     return nodes
 

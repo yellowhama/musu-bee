@@ -22,6 +22,7 @@ class MeshRouter:
         self._path = Path(config_path) if config_path else _DEFAULT_CONFIG_PATH
         self._self_name: str = ""
         self._node_urls: dict[str, str] = {}       # node_name → musu-bridge URL
+        self._node_agents: dict[str, list[str]] = {}  # node_name → agent list
         self._agent_nodes: dict[str, str] = {}     # agent_name (lowercase) → node_name
         self._loaded = False
         self._load()
@@ -43,6 +44,9 @@ class MeshRouter:
                 url = node.get("url", "")
                 if name and url:
                     self._node_urls[name] = url
+                    agents = node.get("agents", [])
+                    if isinstance(agents, list):
+                        self._node_agents[name] = [str(a) for a in agents]
 
             for assign in mesh.get("agent_assignments", []):
                 agent = assign.get("agent", "").lower()
@@ -81,11 +85,13 @@ class MeshRouter:
 
     # ── Node management ────────────────────────────────────────────────────────
 
-    def add_node(self, name: str, url: str) -> None:
+    def add_node(self, name: str, url: str, agents: list[str] | None = None) -> None:
         """Add a node to the in-memory map and persist to nodes.toml."""
         self._node_urls[name] = url
+        if agents is not None:
+            self._node_agents[name] = agents
         self._write_toml()
-        logger.info("mesh_router: added node %r url=%r", name, url)
+        logger.info("mesh_router: added node %r url=%r agents=%s", name, url, agents)
 
     def remove_node(self, name: str) -> bool:
         """Remove a node from the in-memory map and persist to nodes.toml."""
@@ -102,6 +108,7 @@ class MeshRouter:
         """Re-read nodes.toml without restarting the server."""
         self._self_name = ""
         self._node_urls = {}
+        self._node_agents = {}
         self._agent_nodes = {}
         self._loaded = False
         self._load()
@@ -142,10 +149,16 @@ class MeshRouter:
         existing_nodes: list[dict] = mesh.get("nodes", [])
         existing_by_name = {n["name"]: n for n in existing_nodes if "name" in n}
         for node_name, node_url in self._node_urls.items():
+            agents = self._node_agents.get(node_name, [])
             if node_name in existing_by_name:
                 existing_by_name[node_name]["url"] = node_url
+                if agents:
+                    existing_by_name[node_name]["agents"] = agents
             else:
-                existing_by_name[node_name] = {"name": node_name, "url": node_url}
+                entry: dict = {"name": node_name, "url": node_url}
+                if agents:
+                    entry["agents"] = agents
+                existing_by_name[node_name] = entry
         # Remove nodes that are no longer in _node_urls
         new_nodes = [v for k, v in existing_by_name.items() if k in self._node_urls]
         mesh["nodes"] = new_nodes
