@@ -410,12 +410,34 @@ class LocalBackend(BackendABC):
         )
 
     def list_pending_route_executions(self) -> list[dict[str, Any]]:
-        """Return all route executions with status='pending' or 'running'."""
+        """Return pending/running executions with retry_count < 3."""
         rows = self._db.execute(
-            "SELECT * FROM route_executions WHERE status IN ('pending', 'running')"
+            "SELECT * FROM route_executions"
+            " WHERE status IN ('pending', 'running') AND retry_count < 3"
             " ORDER BY created_at ASC"
         )
         return [dict(r) for r in rows]
+
+    def increment_retry_count(self, exec_id: str) -> None:
+        """Increment retry_count for a route execution (called before each re-dispatch)."""
+        self._db.execute(
+            "UPDATE route_executions"
+            " SET retry_count = retry_count + 1,"
+            " updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')"
+            " WHERE id = ?",
+            (exec_id,),
+        )
+
+    def fail_stale_route_executions(self, max_retries: int = 3) -> None:
+        """Mark pending/running executions that hit the retry ceiling as failed."""
+        self._db.execute(
+            "UPDATE route_executions"
+            " SET status = 'failed',"
+            " error = 'max retries exceeded',"
+            " updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')"
+            " WHERE status IN ('pending', 'running') AND retry_count >= ?",
+            (max_retries,),
+        )
 
     # --- Company helpers ---
 

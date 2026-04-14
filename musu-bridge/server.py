@@ -62,7 +62,7 @@ async def lifespan(app: FastAPI):
     from sync_engine import get_sync_engine
     from handlers import _get_backend
     from registry import heartbeat_loop
-    from discovery import get_discovery
+    from discovery import get_discovery, get_tailscale_ip
 
     router = get_mesh_router()
     if router.enabled:
@@ -88,12 +88,16 @@ async def lifespan(app: FastAPI):
     else:
         logger.info("registry: MUSU_TOKEN not set — cloud registry disabled")
 
-    # Re-dispatch any pending/running route executions from before last restart
+    # Re-dispatch any pending/running route executions from before last restart.
+    # retry_count caps at 3 — executions that repeatedly crash are marked failed.
     try:
-        pending = _get_backend().list_pending_route_executions()
+        backend = _get_backend()
+        backend.fail_stale_route_executions(max_retries=3)
+        pending = backend.list_pending_route_executions()  # retry_count < 3 only
         if pending:
             logger.info("durability: re-dispatching %d pending route executions", len(pending))
             for rec in pending:
+                backend.increment_retry_count(rec["id"])
                 asyncio.create_task(route_chat(
                     channel=rec["channel"],
                     sender_id=rec["sender_id"],
@@ -103,13 +107,25 @@ async def lifespan(app: FastAPI):
         logger.warning("durability: failed to re-dispatch pending executions")
 
     # mDNS zero-config discovery (optional — graceful if zeroconf not installed)
-    discovery = get_discovery()
     try:
-        tailscale_ip = os.getenv("MUSU_TAILSCALE_IP") or socket.gethostbyname(socket.gethostname())
-        discovery.advertise(cfg.node_name, tailscale_ip, cfg.bridge_port)
-        discovery.start_browser()
-    except Exception:
-        logger.warning("discovery: mDNS init failed — zero-config discovery disabled")
+        import zeroconf as _zc  # noqa: F401 — presence check only
+    except ImportError:
+        logger.warning("discovery: 'zeroconf' not installed — mDNS disabled. Run: pip install zeroconf")
+
+    discovery = get_discovery()
+    tailscale_ip = get_tailscale_ip()
+    if tailscale_ip:
+        try:
+            discovery.advertise(cfg.node_name, tailscale_ip, cfg.bridge_port)
+            discovery.start_browser()
+            logger.info("discovery: mDNS active on %s", tailscale_ip)
+        except Exception:
+            logger.warning("discovery: mDNS init failed — zero-config discovery disabled")
+    else:
+        logger.warning(
+            "discovery: Tailscale IP not detected — mDNS disabled. "
+            "Connect Tailscale or set MUSU_TAILSCALE_IP env."
+        )
 
     yield
 

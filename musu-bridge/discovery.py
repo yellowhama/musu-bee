@@ -162,6 +162,42 @@ async def enrich_with_agent_card(peer: dict) -> dict:
     return result
 
 
+# ── Tailscale IP detection ────────────────────────────────────────────────────
+
+def get_tailscale_ip() -> str | None:
+    """Detect this machine's Tailscale IP (100.x.x.x CGNAT range).
+
+    Priority:
+    1. MUSU_TAILSCALE_IP environment variable (explicit override)
+    2. Route-based: UDP connect to 100.100.100.100 (Tailscale DNS) —
+       OS selects the correct source IP without sending any packet
+    3. hostname resolution fallback — only used if result is 100.x.x.x
+    4. Returns None if Tailscale not detected
+    """
+    import os
+
+    if env_ip := os.getenv("MUSU_TAILSCALE_IP"):
+        return env_ip
+
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("100.100.100.100", 80))
+            ip = s.getsockname()[0]
+            if ip.startswith("100."):
+                return ip
+    except Exception:
+        pass
+
+    try:
+        hostname_ip = socket.gethostbyname(socket.gethostname())
+        if hostname_ip.startswith("100."):
+            return hostname_ip
+    except Exception:
+        pass
+
+    return None
+
+
 # ── Module-level singleton ────────────────────────────────────────────────────
 
 _discovery: MusuDiscovery | None = None

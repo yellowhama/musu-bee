@@ -189,6 +189,34 @@ def _v4_down(conn: sqlite3.Connection) -> None:
 
 
 # ---------------------------------------------------------------------------
+# v5: add retry_count to route_executions
+# ---------------------------------------------------------------------------
+
+
+def _v5_up(conn: sqlite3.Connection) -> None:
+    """Add retry_count INTEGER column to route_executions (if it exists)."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='route_executions'"
+    ).fetchone()
+    if row is None:
+        return  # Table doesn't exist yet; _SCHEMA will create it with the column.
+    if not _column_exists(conn, "route_executions", "retry_count"):
+        conn.execute(
+            "ALTER TABLE route_executions "
+            "ADD COLUMN retry_count INTEGER NOT NULL DEFAULT 0;"
+        )
+        conn.commit()
+
+
+def _v5_down(conn: sqlite3.Connection) -> None:  # noqa: ARG001
+    try:
+        conn.execute("ALTER TABLE route_executions DROP COLUMN retry_count;")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
@@ -198,6 +226,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v2_messages_agent_id", _v2_up, _v2_down),
     ("v3_fallback_metrics_drop_fk", _v3_up, _v3_down),
     ("v4_company_layer", _v4_up, _v4_down),
+    ("v5_route_executions_retry_count", _v5_up, _v5_down),
 ]
 
 
