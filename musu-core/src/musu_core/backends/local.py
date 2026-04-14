@@ -417,6 +417,35 @@ class LocalBackend(BackendABC):
         )
         return dict(rows[0]) if rows else None
 
+    def list_route_executions(
+        self,
+        status: str | None = None,
+        limit: int = 50,
+        before_id: str | None = None,
+        channel: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """List route executions with optional filters and cursor pagination."""
+        clauses: list[str] = []
+        params: list = []
+        if status:
+            clauses.append("status = ?")
+            params.append(status)
+        if channel:
+            clauses.append("channel = ?")
+            params.append(channel)
+        if before_id:
+            clauses.append(
+                "created_at < (SELECT created_at FROM route_executions WHERE id = ?)"
+            )
+            params.append(before_id)
+        where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
+        params.append(limit)
+        rows = self._db.execute(
+            f"SELECT * FROM route_executions {where} ORDER BY created_at DESC LIMIT ?",
+            tuple(params),
+        )
+        return [dict(r) for r in rows]
+
     def list_pending_route_executions(self) -> list[dict[str, Any]]:
         """Return pending/running executions with retry_count < 3."""
         rows = self._db.execute(

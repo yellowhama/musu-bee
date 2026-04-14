@@ -165,6 +165,43 @@ def _make_summary(output: str | None) -> str:
     return text[:_SUMMARY_MAX_CHARS] + f"\n...[truncated, {len(text)} chars total]"
 
 
+def list_task_records(
+    status: str | None = None,
+    limit: int = 50,
+    before_id: str | None = None,
+    channel: str | None = None,
+) -> list[dict[str, Any]]:
+    """List route executions with summary field for each record."""
+    backend = _get_backend()
+    records = backend.list_route_executions(
+        status=status, limit=limit, before_id=before_id, channel=channel
+    )
+    return [
+        {
+            "task_id": r["id"],
+            "status": r["status"],
+            "channel": r["channel"],
+            "sender_id": r["sender_id"],
+            "summary": _make_summary(r.get("output")),
+            "error": r.get("error"),
+            "retry_count": r.get("retry_count", 0),
+            "created_at": r.get("created_at"),
+            "updated_at": r.get("updated_at"),
+        }
+        for r in records
+    ]
+
+
+def cancel_task_record(task_id: str) -> bool:
+    """Mark a task as failed/cancelled in the DB. Returns False if not found."""
+    backend = _get_backend()
+    rec = backend.get_route_execution(task_id)
+    if rec is None:
+        return False
+    backend.update_route_execution(task_id, "failed", error="cancelled")
+    return True
+
+
 def get_task_record(task_id: str) -> dict[str, Any] | None:
     """Fetch a route_execution record by id and return it with a summary field."""
     backend = _get_backend()

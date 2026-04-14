@@ -112,7 +112,66 @@ self = "{node_name}"
         print("  public_url = (not set — set MUSU_BRIDGE_PUBLIC_URL or connect Tailscale)")
 
     if args.seed:
-        return cmd_seed(args)
+        rc = cmd_seed(args)
+        if rc != 0:
+            return rc
+    if getattr(args, "service", False):
+        return cmd_generate_service(node_name, public_url, user_mode=getattr(args, "user", False))
+    return 0
+
+
+def cmd_generate_service(node_name: str, public_url: str, user_mode: bool = False) -> int:
+    """Generate a systemd service file for musu-bridge."""
+    import shutil
+
+    python_path = shutil.which("python3") or sys.executable
+    bridge_dir = str(Path(__file__).parent.resolve())
+    wanted_by = "default.target" if user_mode else "multi-user.target"
+    env_lines = f"Environment=MUSU_NODE_NAME={node_name}\n"
+    if public_url:
+        env_lines += f"Environment=MUSU_BRIDGE_PUBLIC_URL={public_url}\n"
+
+    service_content = (
+        f"[Unit]\n"
+        f"Description=musu-bridge agent routing server ({node_name})\n"
+        f"After=network.target\n"
+        f"\n"
+        f"[Service]\n"
+        f"Type=simple\n"
+        f"WorkingDirectory={bridge_dir}\n"
+        f"ExecStart={python_path} {bridge_dir}/server.py\n"
+        f"Restart=always\n"
+        f"RestartSec=5\n"
+        f"{env_lines}"
+        f"StandardOutput=journal\n"
+        f"StandardError=journal\n"
+        f"\n"
+        f"[Install]\n"
+        f"WantedBy={wanted_by}\n"
+    )
+
+    if user_mode:
+        service_dir = Path.home() / ".config" / "systemd" / "user"
+        service_dir.mkdir(parents=True, exist_ok=True)
+        out_path = service_dir / "musu-bridge.service"
+    else:
+        out_path = Path("/etc/systemd/system/musu-bridge.service")
+
+    try:
+        out_path.write_text(service_content)
+    except PermissionError:
+        print(f"ERROR: cannot write to {out_path} — run with sudo or use --user", file=sys.stderr)
+        return 1
+
+    print(f"Created: {out_path}")
+    if user_mode:
+        print("  Run: systemctl --user daemon-reload")
+        print("  Run: systemctl --user enable musu-bridge")
+        print("  Run: systemctl --user start musu-bridge")
+    else:
+        print("  Run: sudo systemctl daemon-reload")
+        print("  Run: sudo systemctl enable musu-bridge")
+        print("  Run: sudo systemctl start musu-bridge")
     return 0
 
 
@@ -178,14 +237,28 @@ def main() -> None:
 
     p_init = sub.add_parser("init", help="Initialize nodes.toml for this machine")
     p_init.add_argument("--seed", action="store_true", help="Also seed 6 default agents")
+    p_init.add_argument("--service", action="store_true", help="Also generate systemd service file")
+    p_init.add_argument("--user", action="store_true", help="Generate user-level service (~/.config/systemd/user/)")
 
     sub.add_parser("seed", help="Seed 6 default agents into the database")
+
+    p_svc = sub.add_parser("service", help="Generate systemd service file only")
+    p_svc.add_argument("--user", action="store_true", help="Generate user-level service (~/.config/systemd/user/)")
 
     args = parser.parse_args()
     if args.command == "init":
         sys.exit(cmd_init(args))
     elif args.command == "seed":
         sys.exit(cmd_seed(args))
+    elif args.command == "service":
+        node_name = _sanitize_toml_value(os.getenv("MUSU_NODE_NAME") or __import__("socket").gethostname())
+        tailscale_ip = _get_tailscale_ip()
+        bridge_port = int(os.getenv("BRIDGE_PORT", "8070"))
+        public_url = _sanitize_toml_value(
+            os.getenv("MUSU_BRIDGE_PUBLIC_URL")
+            or (f"http://{tailscale_ip}:{bridge_port}" if tailscale_ip else "")
+        )
+        sys.exit(cmd_generate_service(node_name, public_url, user_mode=args.user))
 
 
 if __name__ == "__main__":

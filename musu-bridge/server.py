@@ -20,7 +20,7 @@ import os
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import FastAPI, HTTPException, Path, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -31,6 +31,7 @@ from csrf_guard import CSRFOriginGuard
 from hostname_guard import HostnameGuard
 from handlers import (
     accept_pair,
+    cancel_task_record,
     create_company,
     delete_company,
     delete_message_by_id,
@@ -44,6 +45,7 @@ from handlers import (
     list_companies,
     list_messages,
     list_nodes,
+    list_task_records,
     pair_with_node,
     receive_companies,
     receive_messages,
@@ -54,6 +56,10 @@ from handlers import (
 )
 
 logger = logging.getLogger(__name__)
+
+# In-memory tracking of live asyncio tasks for cancellation support.
+# Populated by api_delegate_task; cleaned up via done_callback.
+_active_tasks: dict[str, asyncio.Task] = {}
 
 
 @asynccontextmanager
@@ -205,15 +211,21 @@ async def api_route(req: RouteRequest, request: Request) -> dict:
     return result
 
 
-@app.post("/api/tasks/delegate", summary="Delegate a task asynchronously")
+@app.post("/api/tasks/delegate", status_code=202, summary="Delegate a task asynchronously")
 async def api_delegate_task(req: DelegateRequest) -> dict:
     """Submit a task to an agent and return immediately with a task_id.
 
     The agent runs in the background. Poll GET /api/tasks/{task_id} for status.
     This is the preferred endpoint for AI orchestrators — avoids long blocking calls.
+    Returns 202 Accepted. Returns 400 if channel is unknown.
     """
     import uuid
     from handlers import _get_backend
+
+    # W2/W5: Validate channel exists before touching DB
+    channel_map = get_channel_map()
+    if req.channel not in channel_map:
+        raise HTTPException(status_code=400, detail=f"Unknown channel: {req.channel!r}")
 
     task_id = str(uuid.uuid4())
     backend = _get_backend()
@@ -225,17 +237,32 @@ async def api_delegate_task(req: DelegateRequest) -> dict:
         raise HTTPException(status_code=500, detail="Failed to record task — try again")
 
     # Pass task_id so route_chat reuses this record instead of creating a new one
-    asyncio.create_task(route_chat(
+    task = asyncio.create_task(route_chat(
         channel=req.channel,
         sender_id=req.sender_id,
         text=req.text,
         exec_id=task_id,
     ))
+    _active_tasks[task_id] = task
+    task.add_done_callback(lambda _: _active_tasks.pop(task_id, None))
     return {"task_id": task_id, "status": "running", "channel": req.channel}
 
 
+@app.get("/api/tasks", summary="List delegated tasks")
+async def api_list_tasks(
+    status: str | None = Query(default=None, description="Filter: pending|running|done|failed"),
+    limit: int = Query(default=50, ge=1, le=500),
+    before_id: str | None = Query(default=None, description="Cursor: return tasks older than this id"),
+    channel: str | None = Query(default=None, description="Filter by channel/agent name"),
+) -> list[dict]:
+    """List delegated tasks, newest first. Supports status/channel filters and cursor pagination."""
+    return list_task_records(status=status, limit=limit, before_id=before_id, channel=channel)
+
+
 @app.get("/api/tasks/{task_id}", summary="Get async task status")
-async def api_get_task(task_id: str) -> dict:
+async def api_get_task(
+    task_id: str = Path(min_length=36, max_length=36, pattern=r"^[0-9a-f\-]{36}$"),
+) -> dict:
     """Poll the status of a delegated task.
 
     Returns status, a short summary (≤500 chars) for orchestrators,
@@ -245,6 +272,26 @@ async def api_get_task(task_id: str) -> dict:
     if record is None:
         raise HTTPException(status_code=404, detail="Task not found")
     return record
+
+
+@app.delete("/api/tasks/{task_id}", summary="Cancel a running task")
+async def api_cancel_task(
+    task_id: str = Path(min_length=36, max_length=36, pattern=r"^[0-9a-f\-]{36}$"),
+) -> dict:
+    """Cancel a delegated task.
+
+    Cancels the live asyncio task if still running and marks the record as failed/cancelled.
+    Returns 404 if task_id is not found.
+    """
+    record = get_task_record(task_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    # Cancel live asyncio task if it exists
+    live_task = _active_tasks.pop(task_id, None)
+    if live_task and not live_task.done():
+        live_task.cancel()
+    cancel_task_record(task_id)
+    return {"cancelled": task_id}
 
 
 @app.get("/api/agents")
