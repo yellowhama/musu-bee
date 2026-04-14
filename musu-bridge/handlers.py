@@ -235,9 +235,11 @@ def get_node_info() -> dict[str, Any]:
     cfg = get_bridge_config()
     backend = _get_backend()
     agents = [a["name"] for a in backend.list_agents()]
+    # Prefer explicit MUSU_BRIDGE_PUBLIC_URL, fall back to nodes.toml self entry
+    self_url = cfg.public_url or mesh.url_for_node(mesh._self_name) or ""
     return {
         "name": mesh._self_name,
-        "url": mesh.url_for_node(mesh._self_name) or "",
+        "url": self_url,
         "agents": agents,
         "version": "0.2.0",
     }
