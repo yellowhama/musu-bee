@@ -7,16 +7,15 @@ Requires: pip install zeroconf
 """
 from __future__ import annotations
 
-import asyncio
 import logging
 import socket
+import threading
 import time
 from typing import Any
 
 logger = logging.getLogger(__name__)
 
 SERVICE_TYPE = "_musu-bridge._tcp.local."
-_SCAN_INTERVAL = 30.0  # seconds between peer scans
 
 
 class MusuDiscovery:
@@ -27,6 +26,7 @@ class MusuDiscovery:
         self._service_info: Any = None
         self._browser: Any = None
         self._discovered: dict[str, dict] = {}  # name → {name, ip, port, url}
+        self._discovered_lock = threading.Lock()
         self._self_name: str = ""
 
     # ── Advertise ─────────────────────────────────────────────────────────────
@@ -100,28 +100,29 @@ class MusuDiscovery:
                 if node_name == self._self_name:
                     return  # skip self
                 url = f"http://{ip}:{port}"
-                self._discovered[node_name] = {
-                    "name": node_name,
-                    "ip": ip,
-                    "port": port,
-                    "url": url,
-                    "discovered_at": time.time(),
-                }
+                with self._discovered_lock:
+                    self._discovered[node_name] = {
+                        "name": node_name,
+                        "ip": ip,
+                        "port": port,
+                        "url": url,
+                        "discovered_at": time.time(),
+                    }
                 logger.info("discovery: found peer %r at %s:%d", node_name, ip, port)
             except Exception:
                 logger.exception("discovery: error processing service %r", name)
         elif state_change is ServiceStateChange.Removed:
             node_name = name.split(".")[0]
-            self._discovered.pop(node_name, None)
+            with self._discovered_lock:
+                self._discovered.pop(node_name, None)
             logger.info("discovery: peer removed %r", node_name)
 
     def get_discovered(self) -> list[dict]:
         """Return list of discovered peers (excluding stale entries > 5 min)."""
         cutoff = time.time() - 300
-        return [
-            peer for peer in self._discovered.values()
-            if peer.get("discovered_at", 0) > cutoff
-        ]
+        with self._discovered_lock:
+            snapshot = list(self._discovered.values())
+        return [p for p in snapshot if p.get("discovered_at", 0) > cutoff]
 
     # ── Cleanup ───────────────────────────────────────────────────────────────
 
