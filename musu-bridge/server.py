@@ -17,7 +17,9 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import sys
 from contextlib import asynccontextmanager
+from typing import Annotated, List
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Path, Query, Request, Response
@@ -60,6 +62,14 @@ logger = logging.getLogger(__name__)
 # In-memory tracking of live asyncio tasks for cancellation support.
 # Populated by api_delegate_task; cleaned up via done_callback.
 _active_tasks: dict[str, asyncio.Task] = {}
+
+
+_token = os.environ.get("MUSU_BRIDGE_TOKEN", "")
+if not _token:
+    print("FATAL: MUSU_BRIDGE_TOKEN is not set. Refusing to start without auth.", file=sys.stderr)
+    sys.exit(1)
+
+_MAX_CONCURRENT_TASKS = int(os.environ.get("MUSU_MAX_CONCURRENT_TASKS", "20"))
 
 
 @asynccontextmanager
@@ -226,6 +236,9 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
     channel_map = get_channel_map()
     if req.channel not in channel_map:
         raise HTTPException(status_code=400, detail=f"Unknown channel: {req.channel!r}")
+
+    if len(_active_tasks) >= _MAX_CONCURRENT_TASKS:
+        raise HTTPException(status_code=429, detail=f"Too many concurrent tasks (max {_MAX_CONCURRENT_TASKS})")
 
     task_id = str(uuid.uuid4())
     backend = _get_backend()
@@ -544,8 +557,8 @@ async def api_sync_messages(
 
 
 class SyncPushRequest(BaseModel):
-    companies: list[dict] = []
-    messages: list[dict] = []
+    companies: Annotated[List[dict], Field(max_length=2000)] = []
+    messages: Annotated[List[dict], Field(max_length=2000)] = []
 
 
 @app.post("/api/sync/push", summary="Receive sync data from a peer")

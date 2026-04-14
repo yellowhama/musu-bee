@@ -179,4 +179,44 @@ Phase 12B:
 
 ---
 
-*최종 업데이트: 2026-04-15 | Phase 12B+C 완료*
+---
+
+## Phase 13: 보안 강화
+
+### SPEC-016: 인증 강제 + SSRF 방어
+
+- **A-1**: `lifespan()` 시작 시 `MUSU_BRIDGE_TOKEN` 미설정이면 `sys.exit(1)` — 토큰 없는 서버 시작 불가
+- **SSRF-2**: `handlers.py` `accept_pair()` — `_validate_external_url()` 헬퍼로 피어 URL 검증
+  - 허용: http/https scheme, 퍼블릭 IP only
+  - 거부: loopback(127.x, ::1, localhost), private(10.x, 172.16-31.x, 192.168.x), link-local
+- **SSRF-1**: `handlers.py` 모든 `httpx.AsyncClient()` 호출에 `follow_redirects=False` 추가
+
+### SPEC-017: 동시성 제한 + 입력 검증
+
+- **CONC-1**: `_active_tasks` 동시 태스크 캡 — `MUSU_MAX_CONCURRENT_TASKS` 환경변수 (기본 20)
+  - 초과 시 HTTP 429 반환
+- **SYNC-1**: `SyncPushRequest` 리스트 필드에 `max_length=2000` 제한 (Pydantic Field)
+
+### SPEC-018: 인프라 보안 강화
+
+- **W-HOST**: `musu-worker/main.py` — `MUSU_WORKER_HOST` 기본값 `"0.0.0.0"` → `"127.0.0.1"`
+- **DB-PERM**: `musu-core/db.py` — SQLite 파일 생성 후 `chmod 0600`
+
+### SPEC-019: WS 인증 (미완료, 차기 Phase)
+
+- `musu-port/main.rs` WS(:1355) — `Authorization: Bearer` 헤더 또는 query param token 검증
+- 예상 공수: 2-3시간 (Rust WS 미들웨어 패턴)
+
+### 보안 감사 결과 요약
+
+| 단계 | 점수 |
+|------|------|
+| Phase 12B+C 완료 직후 | 5.5/10 |
+| Phase 13 완료 후 | 8.5/10 (예상) |
+| WS-1 완료 후 | 9.0/10 (목표) |
+
+상세: `plans/SECURITY_AUDIT_2026-04-15.md`
+
+---
+
+*최종 업데이트: 2026-04-15 | Phase 13 보안 강화 완료*

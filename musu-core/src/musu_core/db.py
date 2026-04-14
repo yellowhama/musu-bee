@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import os
 import sqlite3
+import stat
 import threading
 from contextlib import contextmanager
 from pathlib import Path
@@ -173,6 +175,8 @@ CREATE INDEX IF NOT EXISTS idx_approvals_status ON company_approvals_queue(statu
 def _open(db_path: str) -> sqlite3.Connection:
     Path(db_path).parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path, check_same_thread=False)
+    if os.path.exists(db_path):
+        os.chmod(db_path, stat.S_IRUSR | stat.S_IWUSR)  # 0600
     conn.row_factory = sqlite3.Row
     conn.executescript(_SCHEMA)
     conn.execute("PRAGMA journal_mode = WAL;")

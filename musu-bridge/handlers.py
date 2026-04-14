@@ -1,6 +1,7 @@
 """musu-bridge handlers — route messages through musu-core."""
 from __future__ import annotations
 
+import ipaddress
 import logging
 import sys
 import uuid
@@ -364,6 +365,25 @@ def get_node_info() -> dict[str, Any]:
     }
 
 
+def _validate_external_url(url: str) -> None:
+    """Raise HTTPException 400 if url is private/loopback (SSRF guard)."""
+    from urllib.parse import urlparse
+    from fastapi import HTTPException
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise HTTPException(status_code=400, detail="Invalid URL scheme")
+    host = parsed.hostname or ""
+    # Reject localhost aliases
+    if host in ("localhost", "localhost.localdomain"):
+        raise HTTPException(status_code=400, detail="URL must not target loopback")
+    try:
+        addr = ipaddress.ip_address(host)
+        if addr.is_private or addr.is_loopback or addr.is_link_local:
+            raise HTTPException(status_code=400, detail="URL must not target private network")
+    except ValueError:
+        pass  # hostname — DNS not resolved here, basic check only
+
+
 def _is_safe_pair_ip(ip: str) -> bool:
     """Return True if the IP is safe to pair with.
 
@@ -399,7 +419,7 @@ async def pair_with_node(ip: str, port: int) -> dict[str, Any]:
 
     # 1. Fetch remote node info
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
             resp = await client.get(f"{remote_base}/api/admin/node-info")
             if resp.status_code != 200:
                 return {"success": False, "error": f"Remote returned {resp.status_code}"}
@@ -413,7 +433,7 @@ async def pair_with_node(ip: str, port: int) -> dict[str, Any]:
     # 2. Send local node info to remote so it can add us
     local_info = get_node_info()
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
             resp = await client.post(
                 f"{remote_base}/api/admin/pair/accept",
                 json=local_info,
@@ -433,7 +453,7 @@ async def pair_with_node(ip: str, port: int) -> dict[str, Any]:
     # 4. Fetch remote Agent Card and auto-assign unassigned agents
     assigned_agents: list[str] = []
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
+        async with httpx.AsyncClient(timeout=5.0, follow_redirects=False) as client:
             card_resp = await client.get(f"{remote_base}/.well-known/agent.json")
             if card_resp.status_code == 200:
                 card = card_resp.json()
@@ -469,6 +489,7 @@ def accept_pair(node_info: dict[str, Any]) -> dict[str, Any]:
     url = node_info.get("url", "")
     if not name or not url:
         return {"success": False, "error": "Missing name or url"}
+    _validate_external_url(url)
     agents = node_info.get("agents", [])
     if isinstance(agents, list):
         agents = [str(a) for a in agents]
@@ -489,7 +510,7 @@ async def list_nodes() -> list[dict[str, Any]]:
         status = "self" if is_self else "unknown"
         if not is_self:
             try:
-                async with httpx.AsyncClient(timeout=3.0) as client:
+                async with httpx.AsyncClient(timeout=3.0, follow_redirects=False) as client:
                     resp = await client.get(f"{node_url.rstrip('/')}/health")
                     status = "online" if resp.status_code == 200 else "error"
             except Exception:
