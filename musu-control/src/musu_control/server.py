@@ -1,10 +1,13 @@
-"""musu-control: Paperclip control plane MCP server — 23 tools via FastMCP."""
+"""musu-control: Paperclip control plane MCP server — 24 tools via FastMCP."""
 
 import json
 import logging
+import os
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
+
+import httpx
 
 try:
     from mcp.server.fastmcp import FastMCP
@@ -20,8 +23,12 @@ _client: PaperclipClient | None = None
 logger = logging.getLogger(__name__)
 
 _ACTIVE_RUN_STATUSES = {"queued", "running"}
+_TERMINAL_RUN_STATUSES = {"succeeded", "failed", "cancelled"}
 _CHECKOUT_EXPECTED_STATUSES = ["todo", "backlog", "blocked", "in_progress", "in_review"]
 _EXECUTION_LOCK_MAX_AGE_SECONDS = 60 * 60
+_WATCHDOG_STALE_THRESHOLD_SECONDS = 30 * 60
+_WATCHDOG_ISSUE_STATUS_FILTER = "todo,in_progress,blocked,in_review"
+_WATCHDOG_PERMISSION_HINTS = ("board access required", "permission", "forbidden")
 _GATE_HEADLINE_RE = re.compile(r"\bG[123]\s*:\s*(PASS|FAIL)\b", re.IGNORECASE)
 _EVIDENCE_LINK_RE = re.compile(
     r"(https?://\S+|/api/heartbeat-runs/[0-9a-f-]+|runtime/generated/|work/reports/|/home/)",
@@ -92,7 +99,11 @@ async def _resolve_active_run(c: Any, issue: dict[str, Any]) -> tuple[dict[str, 
         return None, "heartbeat_run_lookup_error"
     if not isinstance(run, dict) or not run:
         return None, "heartbeat_run_fallback_empty"
-    return {"id": run.get("id"), "status": run.get("status")}, "heartbeat_run_fallback"
+    return {
+        "id": run.get("id"),
+        "status": run.get("status"),
+        "issueId": run.get("issueId"),
+    }, "heartbeat_run_fallback"
 
 
 def _agent_pause_invariant_ok(agent: dict[str, Any], expected_status: str) -> bool:
@@ -145,6 +156,21 @@ def _issue_lock_policy(
             "recommended_owner_action": f"POST /api/heartbeat-runs/{execution_run_id}/cancel",
         }
 
+    active_run_issue_id = resolved_active_run.get("issueId")
+    issue_id = issue.get("id")
+    if active_run_issue_id != issue_id:
+        return {
+            "ok": False,
+            "reason": "run_issue_link_mismatch",
+            "details": {
+                "issueId": issue_id,
+                "runId": active_run_id,
+                "runIssueId": active_run_issue_id,
+                "activeRunSource": active_run_source,
+            },
+            "recommended_owner_action": f"POST /api/heartbeat-runs/{execution_run_id}/cancel",
+        }
+
     active_status = _status(resolved_active_run.get("status"))
     if active_status not in _ACTIVE_RUN_STATUSES:
         return {
@@ -190,6 +216,133 @@ def _issue_lock_policy(
             "maxAgeSeconds": _EXECUTION_LOCK_MAX_AGE_SECONDS,
         },
     }
+
+
+def _run_age_seconds(run: dict[str, Any], now: datetime) -> tuple[int | None, str]:
+    started_at = _parse_iso(run.get("startedAt"))
+    if started_at is not None:
+        return int((now - started_at).total_seconds()), "startedAt"
+    created_at = _parse_iso(run.get("createdAt"))
+    if created_at is not None:
+        return int((now - created_at).total_seconds()), "createdAt"
+    return None, "missing"
+
+
+def _watchdog_error_details(exc: Exception) -> dict[str, Any]:
+    status_code: int | None = None
+    message = str(exc)
+    if isinstance(exc, httpx.HTTPStatusError):
+        response = exc.response
+        status_code = response.status_code
+        try:
+            payload = response.json()
+            if isinstance(payload, dict):
+                message = str(payload.get("error") or payload.get("message") or message)
+            else:
+                message = str(payload)
+        except ValueError:
+            text = response.text.strip()
+            if text:
+                message = text
+    return {
+        "statusCode": status_code,
+        "message": message,
+    }
+
+
+def _is_watchdog_permission_boundary(err: dict[str, Any]) -> bool:
+    status_code = err.get("statusCode")
+    if status_code in {401, 403}:
+        return True
+    message = str(err.get("message") or "").lower()
+    return any(hint in message for hint in _WATCHDOG_PERMISSION_HINTS)
+
+
+def _classify_watchdog_run(
+    issue: dict[str, Any],
+    run: dict[str, Any],
+    now: datetime,
+    stale_threshold_seconds: int,
+) -> dict[str, Any]:
+    run_id = str(run.get("id") or issue.get("executionRunId") or "")
+    issue_id = str(issue.get("id") or "")
+    run_status = _status(run.get("status"))
+    issue_status = _status(issue.get("status"))
+    row: dict[str, Any] = {
+        "runId": run_id or None,
+        "issueId": issue_id or None,
+        "status": run_status or "unknown",
+        "issueStatus": issue_status or "unknown",
+        "action": "none",
+        "result": "observed",
+        "reasonCode": "unclassified",
+    }
+    if not run_id:
+        row["result"] = "fail_closed_no_action"
+        row["reasonCode"] = "missing_run_id"
+        return row
+    if run_status in _TERMINAL_RUN_STATUSES:
+        row["result"] = "terminal_no_action"
+        row["reasonCode"] = "terminal_run_status"
+        return row
+    if run_status not in _ACTIVE_RUN_STATUSES:
+        row["result"] = "fail_closed_no_action"
+        row["reasonCode"] = "unknown_run_status"
+        return row
+
+    age_seconds, age_source = _run_age_seconds(run, now)
+    row["ageSeconds"] = age_seconds
+    row["ageSource"] = age_source
+    row["staleThresholdSeconds"] = stale_threshold_seconds
+    if age_seconds is None:
+        row["result"] = "fail_closed_no_action"
+        row["reasonCode"] = "missing_run_timestamp"
+        return row
+    if age_seconds > stale_threshold_seconds:
+        row["action"] = "cancel_run"
+        row["result"] = "pending_action"
+        row["reasonCode"] = f"stale_{run_status}_over_threshold"
+        return row
+
+    row["result"] = "healthy_no_action"
+    row["reasonCode"] = "active_within_threshold"
+    return row
+
+
+def _error_state_recurrence_rows(
+    agents: list[dict[str, Any]],
+    issues: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    issues_by_agent: dict[str, list[dict[str, Any]]] = {}
+    for issue in issues:
+        agent_id = str(issue.get("assigneeAgentId") or "")
+        if not agent_id:
+            continue
+        issues_by_agent.setdefault(agent_id, []).append(issue)
+
+    for agent in agents:
+        if _status(agent.get("status")) != "error":
+            continue
+        agent_id = str(agent.get("id") or "")
+        assigned_issues = issues_by_agent.get(agent_id, [])
+        if not assigned_issues:
+            continue
+        for issue in assigned_issues:
+            rows.append(
+                {
+                    "runId": issue.get("executionRunId"),
+                    "issueId": issue.get("id"),
+                    "status": "error",
+                    "issueStatus": _status(issue.get("status")) or "unknown",
+                    "action": "request_owner_reset_agent",
+                    "result": "detected",
+                    "reasonCode": "agent_error_state_recurrence",
+                    "agentId": agent_id,
+                    "agentName": agent.get("name"),
+                }
+            )
+    return rows
 
 
 # ──────────────────────────────────────────────
@@ -411,6 +564,34 @@ async def update_issue(
     """Update an issue's fields. Only provided (non-empty) fields are sent."""
     try:
         c = _get_client()
+        issue_before = await c.get(f"/issues/{issue_id}")
+        if isinstance(issue_before, dict):
+            resolved_before, resolved_before_source = await _resolve_active_run(c, issue_before)
+            lock_policy = _issue_lock_policy(issue_before, resolved_before, resolved_before_source)
+        else:
+            lock_policy = {"ok": True, "reason": "unavailable_issue_snapshot"}
+
+        if not lock_policy.get("ok", False):
+            return _fmt(
+                {
+                    "error": "Policy blocked update: execution lock coherence preflight failed.",
+                    "policy": {
+                        "invariant": "locked_issue_requires_active_run_truth",
+                        "enforced": False,
+                        "owner": "board",
+                        "reason": lock_policy.get("reason"),
+                        "details": lock_policy.get("details"),
+                        "suggested_action": lock_policy.get("recommended_owner_action"),
+                    },
+                    "issue": {
+                        "id": issue_before.get("id"),
+                        "identifier": issue_before.get("identifier"),
+                        "status": issue_before.get("status"),
+                        "executionRunId": issue_before.get("executionRunId"),
+                    },
+                }
+            )
+
         body: dict = {}
         if status:
             body["status"] = status
@@ -575,6 +756,117 @@ async def list_runs(agent_id: str = "", limit: int = 20) -> str:
 
 
 @mcp.tool()
+async def watchdog_detect_and_remediate(
+    stale_threshold_seconds: int = _WATCHDOG_STALE_THRESHOLD_SECONDS,
+    dry_run: bool = False,
+) -> str:
+    """Detect stale queued/running heartbeat runs and emit deterministic remediation evidence."""
+    try:
+        if stale_threshold_seconds <= 0:
+            return _fmt({"error": "stale_threshold_seconds must be > 0"})
+
+        c = _get_client()
+        agents_data = await c.get(f"/companies/{c.company_id}/agents")
+        issues_data = await c.get(
+            f"/companies/{c.company_id}/issues",
+            status=_WATCHDOG_ISSUE_STATUS_FILTER,
+            limit=500,
+        )
+        agents = agents_data if isinstance(agents_data, list) else []
+        issues = issues_data if isinstance(issues_data, list) else []
+        now = datetime.now(timezone.utc)
+        rows: list[dict[str, Any]] = []
+        unresolved: list[str] = []
+        run_cache: dict[str, dict[str, Any]] = {}
+
+        for issue in issues:
+            run_id = str(issue.get("executionRunId") or "")
+            if not run_id:
+                continue
+            run = run_cache.get(run_id)
+            if run is None:
+                try:
+                    run_payload = await c.get(f"/heartbeat-runs/{run_id}")
+                    run = run_payload if isinstance(run_payload, dict) else {"id": run_id, "status": "unknown"}
+                except Exception as exc:
+                    run = {
+                        "id": run_id,
+                        "status": "unknown",
+                        "_lookupError": _watchdog_error_details(exc),
+                    }
+                run_cache[run_id] = run
+
+            row = _classify_watchdog_run(issue, run, now, stale_threshold_seconds)
+            lookup_error = run.get("_lookupError")
+            if isinstance(lookup_error, dict):
+                row["reasonCode"] = "heartbeat_run_lookup_failed"
+                row["result"] = "fail_closed_no_action"
+                row["lookupError"] = lookup_error
+                rows.append(row)
+                continue
+
+            if row.get("action") == "cancel_run":
+                if dry_run:
+                    row["result"] = "dry_run_cancel_skipped"
+                else:
+                    try:
+                        cancel_data = await c.post(f"/heartbeat-runs/{run_id}/cancel")
+                        row["result"] = "cancel_requested"
+                        row["cancelResponseStatus"] = _status(
+                            cancel_data.get("status") if isinstance(cancel_data, dict) else None
+                        ) or "unknown"
+                    except Exception as exc:
+                        err = _watchdog_error_details(exc)
+                        row["cancelError"] = err
+                        if _is_watchdog_permission_boundary(err):
+                            eta = (now + timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
+                            unresolved_line = (
+                                f"[TBD: awaiting real data] action=board_cancel_run runId={run_id} "
+                                f"owner=CEO/board eta={eta}"
+                            )
+                            row["action"] = "board_cancel_run"
+                            row["result"] = "permission_boundary_blocked"
+                            row["unresolved"] = unresolved_line
+                            unresolved.append(unresolved_line)
+                        else:
+                            row["result"] = "cancel_failed"
+            rows.append(row)
+
+        rows.extend(_error_state_recurrence_rows(agents, issues))
+        rows.sort(
+            key=lambda r: (
+                str(r.get("issueId") or ""),
+                str(r.get("runId") or ""),
+                str(r.get("reasonCode") or ""),
+            )
+        )
+        stale_rows = [r for r in rows if str(r.get("reasonCode") or "").startswith("stale_")]
+        report = {
+            "generatedAt": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "staleThresholdSeconds": stale_threshold_seconds,
+            "dryRun": dry_run,
+            "summary": {
+                "issuesScanned": len(issues),
+                "agentsScanned": len(agents),
+                "rows": len(rows),
+                "staleDetected": len(stale_rows),
+                "cancelRequested": sum(1 for r in rows if r.get("result") == "cancel_requested"),
+                "permissionBoundaryBlocked": sum(
+                    1 for r in rows if r.get("result") == "permission_boundary_blocked"
+                ),
+                "errorStateRecurrenceDetected": sum(
+                    1 for r in rows if r.get("reasonCode") == "agent_error_state_recurrence"
+                ),
+            },
+            "rows": rows,
+            "unresolved": unresolved,
+        }
+        return _fmt(report)
+    except Exception:
+        return _tool_error("Error running watchdog detector/remediator.")
+
+
+@mcp.tool()
 async def get_activity(limit: int = 50) -> str:
     """Get recent company activity feed."""
     try:
@@ -676,6 +968,73 @@ async def resolve_approval(approval_id: str, decision: str, note: str = "") -> s
         return _fmt(data)
     except Exception:
         return _tool_error(f"Error resolving approval {approval_id}.")
+
+
+# ──────────────────────────────────────────────
+# Async task delegation (musu-bridge direct)
+# ──────────────────────────────────────────────
+
+_MUSU_BRIDGE_URL = os.environ.get("MUSU_BRIDGE_URL", "http://127.0.0.1:8070")
+
+
+@mcp.tool()
+async def delegate_task(
+    channel: str,
+    instruction: str,
+    sender_id: str = "orchestrator",
+) -> str:
+    """Delegate a task to an agent asynchronously via musu-bridge.
+
+    Returns a task_id immediately — the agent runs in the background.
+    Use get_task_status(task_id) to poll for completion.
+
+    Args:
+        channel: Agent channel name (e.g. "engineer", "ceo", "qa")
+        instruction: The task instruction / message for the agent
+        sender_id: Identifier for the requester (default: "orchestrator")
+    """
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(
+                f"{_MUSU_BRIDGE_URL}/api/tasks/delegate",
+                json={"channel": channel, "sender_id": sender_id, "text": instruction},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+        return _fmt({"task_id": data["task_id"], "status": data.get("status", "running"), "channel": channel})
+    except Exception:
+        return _tool_error(f"Error delegating task to channel={channel!r}.")
+
+
+@mcp.tool()
+async def get_task_status(task_id: str) -> str:
+    """Poll the status of a delegated task.
+
+    Returns status and a short summary (≤500 chars) — not the full agent output.
+    Status values: pending | running | done | failed
+
+    Args:
+        task_id: The task_id returned by delegate_task
+    """
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(f"{_MUSU_BRIDGE_URL}/api/tasks/{task_id}")
+            if resp.status_code == 404:
+                return f"Task {task_id!r} not found."
+            resp.raise_for_status()
+            data = resp.json()
+        # Return only orchestrator-relevant fields (not full output)
+        return _fmt({
+            "task_id": task_id,
+            "status": data.get("status"),
+            "summary": data.get("summary"),
+            "error": data.get("error"),
+            "channel": data.get("channel"),
+            "created_at": data.get("created_at"),
+            "updated_at": data.get("updated_at"),
+        })
+    except Exception:
+        return _tool_error(f"Error fetching task status for {task_id!r}.")
 
 
 # ──────────────────────────────────────────────

@@ -409,6 +409,14 @@ class LocalBackend(BackendABC):
             (status, output, error, node, exec_id),
         )
 
+    def get_route_execution(self, exec_id: str) -> dict[str, Any] | None:
+        """Return a single route execution by id, or None if not found."""
+        rows = self._db.execute(
+            "SELECT * FROM route_executions WHERE id = ?",
+            (exec_id,),
+        )
+        return dict(rows[0]) if rows else None
+
     def list_pending_route_executions(self) -> list[dict[str, Any]]:
         """Return pending/running executions with retry_count < 3."""
         rows = self._db.execute(

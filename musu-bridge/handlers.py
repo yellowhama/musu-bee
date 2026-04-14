@@ -140,6 +140,41 @@ def get_channel_map() -> dict[str, Any]:
     return result
 
 
+# --- Async task delegation ---
+
+_SUMMARY_MAX_CHARS = 500
+
+
+def _make_summary(output: str | None) -> str:
+    """Produce a short summary from agent output for orchestrator consumption."""
+    if not output:
+        return "(no output)"
+    text = output.strip()
+    if len(text) <= _SUMMARY_MAX_CHARS:
+        return text
+    return text[:_SUMMARY_MAX_CHARS] + f"\n...[truncated, {len(text)} chars total]"
+
+
+def get_task_record(task_id: str) -> dict[str, Any] | None:
+    """Fetch a route_execution record by id and return it with a summary field."""
+    backend = _get_backend()
+    rec = backend.get_route_execution(task_id)
+    if rec is None:
+        return None
+    return {
+        "task_id": rec["id"],
+        "status": rec["status"],
+        "channel": rec["channel"],
+        "sender_id": rec["sender_id"],
+        "summary": _make_summary(rec.get("output")),
+        "output": rec.get("output"),
+        "error": rec.get("error"),
+        "retry_count": rec.get("retry_count", 0),
+        "created_at": rec.get("created_at"),
+        "updated_at": rec.get("updated_at"),
+    }
+
+
 # --- Message history ---
 
 

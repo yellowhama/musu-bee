@@ -40,6 +40,7 @@ from handlers import (
     get_company,
     get_message_by_id,
     get_node_info,
+    get_task_record,
     list_companies,
     list_messages,
     list_nodes,
@@ -169,6 +170,12 @@ class RouteRequest(BaseModel):
     text: str = Field(max_length=10000)
 
 
+class DelegateRequest(BaseModel):
+    channel: str
+    sender_id: str = "orchestrator"
+    text: str = Field(max_length=10000)
+
+
 class CompanyCreateRequest(BaseModel):
     name: str
     template_key: str = "default"
@@ -196,6 +203,46 @@ async def api_route(req: RouteRequest, request: Request) -> dict:
         note=f"channel={req.channel} sender={req.sender_id}",
     )
     return result
+
+
+@app.post("/api/tasks/delegate", summary="Delegate a task asynchronously")
+async def api_delegate_task(req: DelegateRequest) -> dict:
+    """Submit a task to an agent and return immediately with a task_id.
+
+    The agent runs in the background. Poll GET /api/tasks/{task_id} for status.
+    This is the preferred endpoint for AI orchestrators — avoids long blocking calls.
+    """
+    import uuid
+    from handlers import _get_backend
+
+    task_id = str(uuid.uuid4())
+    backend = _get_backend()
+    try:
+        backend.create_route_execution(task_id, req.channel, req.sender_id, req.text)
+        backend.update_route_execution(task_id, "running")
+    except Exception:
+        logger.warning("delegate_task: failed to create durability record")
+
+    async def _run() -> None:
+        result = await route_chat(channel=req.channel, sender_id=req.sender_id, text=req.text)
+        # route_chat already updates the execution record via _finish()
+        _ = result  # result stored in DB by route_chat
+
+    asyncio.create_task(_run())
+    return {"task_id": task_id, "status": "running", "channel": req.channel}
+
+
+@app.get("/api/tasks/{task_id}", summary="Get async task status")
+async def api_get_task(task_id: str) -> dict:
+    """Poll the status of a delegated task.
+
+    Returns status, a short summary (≤500 chars) for orchestrators,
+    and the full output for human consumption.
+    """
+    record = get_task_record(task_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return record
 
 
 @app.get("/api/agents")

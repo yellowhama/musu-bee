@@ -11,13 +11,15 @@ dependencies = [
     "uvicorn[standard]>=0.29",
     "pydantic>=2.0",
     "zeroconf>=0.128",
+    "httpx>=0.27",
 ]
 
 [project.optional-dependencies]
-dev = ["httpx", "pytest", "pytest-asyncio"]
+dev = ["pytest", "pytest-asyncio"]
 
 [project.scripts]
 musu-bridge = "server:main"
+musu-bridge-init = "cli:main"
 
 [tool.hatch.build.targets.wheel]
 sources = ["."]
@@ -29,4 +31,6 @@ include = [
     "csrf_guard.py",
     "hostname_guard.py",
     "ws_guard.py",
+    "cli.py",
+    "__main__.py",
 ]
