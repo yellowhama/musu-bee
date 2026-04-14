@@ -30,6 +30,9 @@ export default function NodePanel() {
   const [tokenConfigured, setTokenConfigured] = useState(false);
   const [cloudPairing, setCloudPairing] = useState<string | null>(null);
 
+  // mDNS discovered state
+  const [discoveredNodes, setDiscoveredNodes] = useState<{ name: string; url: string; agents: string[] }[]>([]);
+
   const fetchNodes = useCallback(async () => {
     try {
       const res = await fetch("/api/nodes");
@@ -52,15 +55,29 @@ export default function NodePanel() {
     }
   }, []);
 
+  const fetchDiscovered = useCallback(async () => {
+    try {
+      const res = await fetch("/api/nodes/discovered");
+      if (res.ok) {
+        const data = await res.json();
+        setDiscoveredNodes(Array.isArray(data) ? data : []);
+      }
+    } catch {
+      // bridge unavailable
+    }
+  }, []);
+
   useEffect(() => {
     void fetchNodes();
     void fetchRegistry();
+    void fetchDiscovered();
     const interval = setInterval(() => {
       void fetchNodes();
       void fetchRegistry();
+      void fetchDiscovered();
     }, 15000);
     return () => clearInterval(interval);
-  }, [fetchNodes, fetchRegistry]);
+  }, [fetchNodes, fetchRegistry, fetchDiscovered]);
 
   const handlePair = async () => {
     if (!ip.trim()) return;
@@ -276,6 +293,80 @@ export default function NodePanel() {
                 );
               })
             )}
+          </div>
+        </div>
+      )}
+
+      {/* mDNS discovered nodes */}
+      {discoveredNodes.length > 0 && (
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ fontSize: 10, color: "#4b5563", padding: "2px 6px 4px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            Discovered (network)
+          </div>
+          <div
+            style={{
+              background: "#141414",
+              border: "1px solid #242424",
+              borderRadius: 8,
+              overflow: "hidden",
+            }}
+          >
+            {discoveredNodes.map((dn) => {
+              const alreadyPaired = pairedUrls.has(dn.url);
+              const isPairing = cloudPairing === dn.name;
+              return (
+                <div
+                  key={dn.name}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    padding: "7px 10px",
+                    borderBottom: "1px solid #1f1f1f",
+                    gap: 6,
+                  }}
+                >
+                  <span
+                    style={{
+                      display: "inline-block",
+                      width: 7,
+                      height: 7,
+                      borderRadius: "50%",
+                      background: "#22c55e",
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span style={{ fontSize: 12, color: "#e5e7eb", flex: 1 }}>
+                    {dn.name}
+                  </span>
+                  {alreadyPaired ? (
+                    <span style={{ fontSize: 10, color: "#22c55e" }}>Connected</span>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        try {
+                          const u = new URL(dn.url);
+                          void handleCloudPair({ node_name: dn.name, public_url: dn.url, last_seen: new Date().toISOString() });
+                        } catch {
+                          // ignore
+                        }
+                      }}
+                      disabled={isPairing}
+                      style={{
+                        background: "none",
+                        border: "1px solid #374151",
+                        borderRadius: 4,
+                        color: isPairing ? "#4b5563" : "#9ca3af",
+                        fontSize: 10,
+                        padding: "2px 6px",
+                        cursor: isPairing ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      {isPairing ? "..." : "Pair"}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

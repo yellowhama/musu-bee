@@ -62,6 +62,7 @@ async def lifespan(app: FastAPI):
     from sync_engine import get_sync_engine
     from handlers import _get_backend
     from registry import heartbeat_loop
+    from discovery import get_discovery
 
     router = get_mesh_router()
     if router.enabled:
@@ -87,8 +88,18 @@ async def lifespan(app: FastAPI):
     else:
         logger.info("registry: MUSU_TOKEN not set — cloud registry disabled")
 
+    # mDNS zero-config discovery (optional — graceful if zeroconf not installed)
+    discovery = get_discovery()
+    try:
+        tailscale_ip = os.getenv("MUSU_TAILSCALE_IP") or socket.gethostbyname(socket.gethostname())
+        discovery.advertise(cfg.node_name, tailscale_ip, cfg.bridge_port)
+        discovery.start_browser()
+    except Exception:
+        logger.warning("discovery: mDNS init failed — zero-config discovery disabled")
+
     yield
 
+    discovery.close()
     if registry_task:
         registry_task.cancel()
     if task:
@@ -348,6 +359,20 @@ async def api_disconnect_node(node_name: str) -> dict:
     if not ok:
         raise HTTPException(status_code=404, detail=f"Node {node_name!r} not found")
     return {"disconnected": node_name}
+
+
+@app.get("/api/admin/discovered", summary="Nodes discovered via mDNS")
+async def api_discovered_nodes() -> list[dict]:
+    """Return musu-bridge nodes found on the local network via mDNS.
+
+    Each entry includes name, url, and agents (fetched from Agent Card).
+    """
+    from discovery import get_discovery, enrich_with_agent_card
+
+    discovery = get_discovery()
+    peers = discovery.get_discovered()
+    enriched = await asyncio.gather(*[enrich_with_agent_card(p) for p in peers])
+    return list(enriched)
 
 
 @app.get("/api/sync/companies", summary="Pull companies for sync")
