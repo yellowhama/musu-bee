@@ -186,3 +186,41 @@ def delete_company(company_id: str) -> bool:
     """Delete a company by id. Returns True if deleted, False if not found."""
     backend = _get_backend()
     return backend.delete_company(company_id)
+
+
+# --- Sync pull (for peer nodes to pull from this node) ---
+
+
+def sync_companies(since: str, limit: int = 500) -> list[dict]:
+    """Return companies updated at or after *since* (ISO 8601), up to *limit*."""
+    backend = _get_backend()
+    rows = backend._db.execute(
+        "SELECT * FROM companies WHERE updated_at >= ? ORDER BY updated_at ASC LIMIT ?",
+        (since, limit),
+    )
+    return [dict(r) for r in rows]
+
+
+def sync_messages(since: str, limit: int = 500) -> list[dict]:
+    """Return messages created at or after *since* (ISO 8601), up to *limit*."""
+    backend = _get_backend()
+    rows = backend._db.execute(
+        "SELECT * FROM messages WHERE created_at >= ? ORDER BY created_at ASC LIMIT ?",
+        (since, limit),
+    )
+    return [backend._msg_row_to_dict(r) for r in rows]
+
+
+# --- Sync receive (for accepting incoming data from peer nodes) ---
+
+
+def receive_companies(companies: list[dict]) -> int:
+    """Bulk-upsert companies received from a peer. Returns count written."""
+    backend = _get_backend()
+    return backend.bulk_upsert_companies(companies)
+
+
+def receive_messages(messages: list[dict]) -> int:
+    """Bulk-insert messages received from a peer. Returns count written."""
+    backend = _get_backend()
+    return backend.bulk_insert_messages(messages)

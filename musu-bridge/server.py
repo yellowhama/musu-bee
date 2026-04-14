@@ -14,8 +14,10 @@ Routes:
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
+from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Query, Request
@@ -37,12 +39,38 @@ from handlers import (
     get_message_by_id,
     list_companies,
     list_messages,
+    receive_companies,
+    receive_messages,
     route_chat,
+    sync_companies,
+    sync_messages,
     update_company,
 )
 
 logger = logging.getLogger(__name__)
-app = FastAPI(title="musu-bridge", version="0.2.0")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    from mesh_router import get_mesh_router
+    from sync_engine import get_sync_engine
+    from handlers import _get_backend
+
+    router = get_mesh_router()
+    if router.enabled:
+        backend = _get_backend()
+        engine = get_sync_engine(router, backend)
+        task = asyncio.create_task(engine.run())
+        logger.info("sync_engine: started as background task")
+    else:
+        task = None
+        logger.info("sync_engine: mesh disabled, skipping sync")
+    yield
+    if task:
+        task.cancel()
+
+
+app = FastAPI(title="musu-bridge", version="0.2.0", lifespan=lifespan)
 
 apply_musu_middlewares(
     app,
@@ -224,6 +252,37 @@ async def api_delete_company(company_id: str) -> dict:
     if not ok:
         raise HTTPException(status_code=404, detail="Company not found")
     return {"deleted": company_id}
+
+
+@app.get("/api/sync/companies", summary="Pull companies for sync")
+async def api_sync_companies(
+    since: str = Query(default="1970-01-01T00:00:00Z", description="ISO 8601 lower bound (updated_at >=)"),
+    limit: int = Query(default=500, ge=1, le=2000),
+) -> list[dict]:
+    """Return companies updated at or after *since*. Used by peer sync engines."""
+    return sync_companies(since=since, limit=limit)
+
+
+@app.get("/api/sync/messages", summary="Pull messages for sync")
+async def api_sync_messages(
+    since: str = Query(default="1970-01-01T00:00:00Z", description="ISO 8601 lower bound (created_at >=)"),
+    limit: int = Query(default=500, ge=1, le=2000),
+) -> list[dict]:
+    """Return messages created at or after *since*. Used by peer sync engines."""
+    return sync_messages(since=since, limit=limit)
+
+
+class SyncPushRequest(BaseModel):
+    companies: list[dict] = []
+    messages: list[dict] = []
+
+
+@app.post("/api/sync/push", summary="Receive sync data from a peer")
+async def api_sync_push(req: SyncPushRequest) -> dict:
+    """Accept bulk company and message data from a peer node."""
+    c_written = receive_companies(req.companies) if req.companies else 0
+    m_written = receive_messages(req.messages) if req.messages else 0
+    return {"companies_written": c_written, "messages_written": m_written}
 
 
 @app.get("/health")

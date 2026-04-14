@@ -427,5 +427,92 @@ class LocalBackend(BackendABC):
         rows = self._db.execute("DELETE FROM companies WHERE id = ? RETURNING id", (company_id,))
         return len(rows) > 0
 
+    def bulk_upsert_companies(self, companies: list[dict[str, Any]]) -> int:
+        """Upsert a batch of company records using last-write-wins on updated_at.
+
+        Only replaces a local record if the incoming updated_at is strictly newer.
+        Returns the number of records actually written.
+        """
+        if not companies:
+            return 0
+        ids = [c["id"] for c in companies if c.get("id")]
+        if not ids:
+            return 0
+        placeholders = ",".join("?" * len(ids))
+        existing_rows = self._db.execute(
+            f"SELECT id, updated_at FROM companies WHERE id IN ({placeholders})",
+            tuple(ids),
+        )
+        local_ts: dict[str, str] = {r["id"]: r["updated_at"] for r in existing_rows}
+
+        written = 0
+        for c in companies:
+            cid = c.get("id")
+            if not cid:
+                continue
+            remote_ts = c.get("updated_at", "")
+            # Skip if local record is same age or newer
+            if cid in local_ts and local_ts[cid] >= remote_ts:
+                continue
+            meta = c.get("meta", {})
+            meta_json = json.dumps(meta) if isinstance(meta, dict) else (meta or "{}")
+            self._db.execute(
+                """
+                INSERT INTO companies (id, name, template_key, workspace_id, meta, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    name         = excluded.name,
+                    template_key = excluded.template_key,
+                    workspace_id = excluded.workspace_id,
+                    meta         = excluded.meta,
+                    updated_at   = excluded.updated_at
+                """,
+                (
+                    cid,
+                    c.get("name", ""),
+                    c.get("template_key", "default"),
+                    c.get("workspace_id", ""),
+                    meta_json,
+                    c.get("created_at", ""),
+                    remote_ts,
+                ),
+            )
+            written += 1
+        return written
+
+    def bulk_insert_messages(self, messages: list[dict[str, Any]]) -> int:
+        """Insert a batch of messages, ignoring duplicates (append-only, dedup by id).
+
+        Returns the number of new records inserted.
+        """
+        if not messages:
+            return 0
+        written = 0
+        for m in messages:
+            mid = m.get("id")
+            if not mid:
+                continue
+            meta = m.get("meta", {})
+            meta_json = json.dumps(meta) if isinstance(meta, dict) else (meta or "{}")
+            self._db.execute(
+                """
+                INSERT OR IGNORE INTO messages
+                    (id, session_id, role, content, model, agent_id, meta, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    mid,
+                    m.get("session_id", ""),
+                    m.get("role", "user"),
+                    m.get("content", ""),
+                    m.get("model"),
+                    m.get("agent_id"),
+                    meta_json,
+                    m.get("created_at", ""),
+                ),
+            )
+            written += 1
+        return written
+
     def close(self) -> None:
         self._db.close()
