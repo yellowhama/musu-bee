@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 import tomllib
 from pathlib import Path
 from typing import Any
@@ -13,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 _DEFAULT_CONFIG_PATH = Path.home() / ".musu" / "nodes.toml"
 _TOML_WRITE_LOCK = threading.Lock()
+_HEALTH_CACHE_TTL = 10.0  # seconds
 
 
 class MeshRouter:
@@ -24,6 +26,7 @@ class MeshRouter:
         self._node_urls: dict[str, str] = {}       # node_name → musu-bridge URL
         self._node_agents: dict[str, list[str]] = {}  # node_name → agent list
         self._agent_nodes: dict[str, str] = {}     # agent_name (lowercase) → node_name
+        self._health_cache: dict[str, tuple[bool, float]] = {}  # node → (alive, checked_at)
         self._loaded = False
         self._load()
 
@@ -82,6 +85,28 @@ class MeshRouter:
     def url_for_node(self, node_name: str) -> str | None:
         """Return the musu-bridge URL for a node name."""
         return self._node_urls.get(node_name)
+
+    async def is_node_healthy(self, node_name: str) -> bool:
+        """Return True if the node's /health endpoint responds 200.
+
+        Results are cached for _HEALTH_CACHE_TTL seconds to avoid
+        hammering the remote on every message.
+        """
+        cached = self._health_cache.get(node_name)
+        if cached is not None and time.time() - cached[1] < _HEALTH_CACHE_TTL:
+            return cached[0]
+        url = self.url_for_node(node_name)
+        if not url:
+            self._health_cache[node_name] = (False, time.time())
+            return False
+        try:
+            async with httpx.AsyncClient(timeout=3.0) as client:
+                resp = await client.get(f"{url.rstrip('/')}/health")
+                alive = resp.status_code == 200
+        except Exception:
+            alive = False
+        self._health_cache[node_name] = (alive, time.time())
+        return alive
 
     # ── Node management ────────────────────────────────────────────────────────
 

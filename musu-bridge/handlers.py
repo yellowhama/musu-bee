@@ -49,9 +49,17 @@ async def route_chat(channel: str, sender_id: str, text: str) -> dict[str, Any]:
         node = mesh.node_for_agent(channel)
         url = mesh.url_for_node(node)  # type: ignore[arg-type]
         if url:
-            logger.info("mesh_router: forwarding channel=%r to node=%r url=%r", channel, node, url)
-            return await mesh.forward(url, channel, sender_id, text)
-        logger.warning("mesh_router: no URL for node=%r, falling through to local", node)
+            if not await mesh.is_node_healthy(node):  # type: ignore[arg-type]
+                logger.warning(
+                    "mesh_router: node=%r unhealthy — falling back to local for channel=%r",
+                    node, channel,
+                )
+                # Fall through to local handler below
+            else:
+                logger.info("mesh_router: forwarding channel=%r to node=%r url=%r", channel, node, url)
+                return await mesh.forward(url, channel, sender_id, text)
+        else:
+            logger.warning("mesh_router: no URL for node=%r, falling through to local", node)
 
     # ── Local handling ─────────────────────────────────────────────────────────
     cfg = get_bridge_config()
