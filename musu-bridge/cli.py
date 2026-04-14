@@ -43,13 +43,19 @@ def _get_tailscale_ip() -> str | None:
     return None
 
 
+def _sanitize_toml_value(value: str) -> str:
+    """Strip characters that would break a TOML bare string literal."""
+    # Remove newlines, carriage returns, quotes, and backslashes to prevent injection
+    return value.replace("\n", "").replace("\r", "").replace('"', "").replace("\\", "").strip()
+
+
 def cmd_init(args: argparse.Namespace) -> int:
     """Write (or update) ~/.musu/nodes.toml with [mesh] self + public_url."""
-    node_name = os.getenv("MUSU_NODE_NAME") or socket.gethostname()
+    node_name = _sanitize_toml_value(os.getenv("MUSU_NODE_NAME") or socket.gethostname())
     bridge_port = int(os.getenv("BRIDGE_PORT", "8070"))
 
     tailscale_ip = _get_tailscale_ip()
-    public_url = (
+    public_url = _sanitize_toml_value(
         os.getenv("MUSU_BRIDGE_PUBLIC_URL")
         or (f"http://{tailscale_ip}:{bridge_port}" if tailscale_ip else "")
     )

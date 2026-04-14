@@ -171,8 +171,8 @@ class RouteRequest(BaseModel):
 
 
 class DelegateRequest(BaseModel):
-    channel: str
-    sender_id: str = "orchestrator"
+    channel: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9_-]+$")
+    sender_id: str = Field(default="orchestrator", min_length=1, max_length=128)
     text: str = Field(max_length=10000)
 
 
@@ -220,15 +220,17 @@ async def api_delegate_task(req: DelegateRequest) -> dict:
     try:
         backend.create_route_execution(task_id, req.channel, req.sender_id, req.text)
         backend.update_route_execution(task_id, "running")
-    except Exception:
-        logger.warning("delegate_task: failed to create durability record")
+    except Exception as exc:
+        logger.error("delegate_task: failed to create durability record — %s", exc)
+        raise HTTPException(status_code=500, detail="Failed to record task — try again")
 
-    async def _run() -> None:
-        result = await route_chat(channel=req.channel, sender_id=req.sender_id, text=req.text)
-        # route_chat already updates the execution record via _finish()
-        _ = result  # result stored in DB by route_chat
-
-    asyncio.create_task(_run())
+    # Pass task_id so route_chat reuses this record instead of creating a new one
+    asyncio.create_task(route_chat(
+        channel=req.channel,
+        sender_id=req.sender_id,
+        text=req.text,
+        exec_id=task_id,
+    ))
     return {"task_id": task_id, "status": "running", "channel": req.channel}
 
 

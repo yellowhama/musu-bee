@@ -32,7 +32,12 @@ def _get_backend() -> LocalBackend:
     return _backend
 
 
-async def route_chat(channel: str, sender_id: str, text: str) -> dict[str, Any]:
+async def route_chat(
+    channel: str,
+    sender_id: str,
+    text: str,
+    exec_id: str | None = None,
+) -> dict[str, Any]:
     """Route a message to the agent mapped to the given channel.
 
     If the agent is assigned to a remote node in nodes.toml, the request is
@@ -40,19 +45,24 @@ async def route_chat(channel: str, sender_id: str, text: str) -> dict[str, Any]:
 
     Returns a dict with response, agent_id, agent_name on success,
     or error on failure.
+
+    exec_id: if provided, reuse an existing route_execution record (e.g. from
+    /api/tasks/delegate) instead of creating a new one.
     """
     if not text.strip():
         return {"error": "Empty message", "response": None}
 
     # ── Durable execution record ───────────────────────────────────────────────
-    exec_id = str(uuid.uuid4())
     backend = _get_backend()
-    try:
-        backend.create_route_execution(exec_id, channel, sender_id, text)
-        backend.update_route_execution(exec_id, "running")
-    except Exception:
-        logger.warning("route_chat: failed to create durability record — continuing")
-        exec_id = ""  # Non-fatal: proceed without durability
+    if exec_id is None:
+        exec_id = str(uuid.uuid4())
+        try:
+            backend.create_route_execution(exec_id, channel, sender_id, text)
+            backend.update_route_execution(exec_id, "running")
+        except Exception:
+            logger.warning("route_chat: failed to create durability record — continuing")
+            exec_id = ""  # Non-fatal: proceed without durability
+    # else: record already created by caller (e.g. delegate endpoint)
 
     def _finish(result: dict[str, Any], node: str | None = None) -> dict[str, Any]:
         """Mark execution done/failed and return result."""
