@@ -44,32 +44,42 @@ export default function TasksPanel() {
   const [error, setError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState<Set<string>>(new Set());
 
-  const fetchTasks = useCallback(async () => {
-    try {
-      const res = await fetch("/api/bridge-tasks?limit=50");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setTasks(Array.isArray(data) ? data : []);
-      setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load tasks");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Initial load + 3s polling
+  // Initial load + 3s polling with unmount guard
   useEffect(() => {
-    void fetchTasks();
-    const interval = setInterval(() => void fetchTasks(), 3000);
-    return () => clearInterval(interval);
-  }, [fetchTasks]);
+    let mounted = true;
+    const doFetch = async () => {
+      try {
+        const res = await fetch("/api/bridge-tasks?limit=50");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (mounted) {
+          setTasks(Array.isArray(data) ? data : []);
+          setError(null);
+        }
+      } catch (e) {
+        if (mounted) setError(e instanceof Error ? e.message : "Failed to load tasks");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    void doFetch();
+    const interval = setInterval(() => void doFetch(), 3000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, []); // empty deps — stable, interval never restarts
 
   const handleCancel = useCallback(async (taskId: string) => {
     setCancelling((prev) => new Set(prev).add(taskId));
     try {
       await fetch(`/api/bridge-tasks/${taskId}`, { method: "DELETE" });
-      await fetchTasks();
+      // Re-fetch inline after cancel
+      const res = await fetch("/api/bridge-tasks?limit=50");
+      if (res.ok) {
+        const data = await res.json();
+        setTasks(Array.isArray(data) ? data : []);
+      }
     } finally {
       setCancelling((prev) => {
         const next = new Set(prev);
@@ -77,7 +87,7 @@ export default function TasksPanel() {
         return next;
       });
     }
-  }, [fetchTasks]);
+  }, []); // stable — no deps
 
   return (
     <div

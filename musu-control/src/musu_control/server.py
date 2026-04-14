@@ -1002,8 +1002,8 @@ async def delegate_task(
             resp.raise_for_status()
             data = resp.json()
         return _fmt({"task_id": data["task_id"], "status": data.get("status", "running"), "channel": channel})
-    except Exception:
-        return _tool_error(f"Error delegating task to channel={channel!r}.")
+    except (httpx.ConnectError, httpx.TimeoutException, httpx.HTTPStatusError) as exc:
+        return _tool_error(f"Error delegating task to channel={channel!r}: {exc}")
 
 
 @mcp.tool()
@@ -1033,8 +1033,8 @@ async def get_task_status(task_id: str) -> str:
             "created_at": data.get("created_at"),
             "updated_at": data.get("updated_at"),
         })
-    except Exception:
-        return _tool_error(f"Error fetching task status for {task_id!r}.")
+    except (httpx.ConnectError, httpx.TimeoutException, httpx.HTTPStatusError) as exc:
+        return _tool_error(f"Error fetching task status for {task_id!r}: {exc}")
 
 
 @mcp.tool()
@@ -1067,8 +1067,8 @@ async def list_tasks(
             resp.raise_for_status()
             tasks = resp.json()
         return _fmt({"count": len(tasks), "tasks": tasks})
-    except Exception:
-        return _tool_error("Error listing tasks.")
+    except (httpx.ConnectError, httpx.TimeoutException, httpx.HTTPStatusError) as exc:
+        return _tool_error(f"Error listing tasks: {exc}")
 
 
 @mcp.tool()
@@ -1088,8 +1088,8 @@ async def cancel_task(task_id: str) -> str:
                 return f"Task {task_id!r} not found."
             resp.raise_for_status()
             return _fmt(resp.json())
-    except Exception:
-        return _tool_error(f"Error cancelling task {task_id!r}.")
+    except (httpx.ConnectError, httpx.TimeoutException, httpx.HTTPStatusError) as exc:
+        return _tool_error(f"Error cancelling task {task_id!r}: {exc}")
 
 
 # ──────────────────────────────────────────────

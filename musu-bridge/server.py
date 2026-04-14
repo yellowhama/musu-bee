@@ -20,7 +20,7 @@ import os
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Path, Query, Request
+from fastapi import FastAPI, HTTPException, Path, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -212,7 +212,7 @@ async def api_route(req: RouteRequest, request: Request) -> dict:
 
 
 @app.post("/api/tasks/delegate", status_code=202, summary="Delegate a task asynchronously")
-async def api_delegate_task(req: DelegateRequest) -> dict:
+async def api_delegate_task(req: DelegateRequest, request: Request, response: Response) -> dict:
     """Submit a task to an agent and return immediately with a task_id.
 
     The agent runs in the background. Poll GET /api/tasks/{task_id} for status.
@@ -256,6 +256,15 @@ async def api_delegate_task(req: DelegateRequest) -> dict:
     task = asyncio.create_task(_run_with_timeout())
     _active_tasks[task_id] = task
     task.add_done_callback(lambda _: _active_tasks.pop(task_id, None))
+    response.headers["Location"] = f"/api/tasks/{task_id}"
+    audit.record(
+        actor_ip=request.client.host if request.client else "",
+        method="POST",
+        path="/api/tasks/delegate",
+        status_code=202,
+        agent_id="",
+        note=f"task_id={task_id} channel={req.channel} sender={req.sender_id}",
+    )
     return {"task_id": task_id, "status": "running", "channel": req.channel}
 
 
