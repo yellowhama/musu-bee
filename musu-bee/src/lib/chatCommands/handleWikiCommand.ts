@@ -33,25 +33,47 @@ export function createWikiHandler(ctx: CommandContext) {
       return true;
     }
 
-    // @wiki <query> → search wiki and show results
+    // @wiki <query> → search wiki AND code index
     if (text.startsWith("@wiki ")) {
       const query = text.slice(6).trim();
       if (!query) return false;
       appendChatMessage({ id: makeId(), channelId: channel, sender: "User", senderKind: "user", text, timestamp: new Date() });
       setIsAgentTyping(true);
       try {
-        const res = await fetch(`/api/wiki?q=${encodeURIComponent(query)}&scope=global`);
-        const data = (await res.json()) as { pages?: Array<{ title?: string; summary?: string; key_points?: string[] }> };
-        const pages = data.pages ?? [];
-        const reply =
-          pages.length === 0
-            ? `No wiki results for "${query}".`
-            : pages
-                .map((p, i) => {
-                  const kps = (p.key_points ?? []).slice(0, 3).map((kp) => `  • ${kp}`).join("\n");
-                  return `**${i + 1}. ${p.title ?? "—"}**\n${p.summary ?? ""}\n${kps}`;
-                })
-                .join("\n\n");
+        const [wikiRes, codeRes] = await Promise.all([
+          fetch(`/api/wiki?q=${encodeURIComponent(query)}&scope=global`),
+          fetch(`/api/index-search?q=${encodeURIComponent(query)}&limit=3`),
+        ]);
+        const wikiData = (await wikiRes.json()) as { pages?: Array<{ title?: string; summary?: string; key_points?: string[] }> };
+        const codeData = (await codeRes.json()) as { results?: Array<{ path: string; title: string; type: string; snippet: string }> };
+
+        const sections: string[] = [];
+
+        // Wiki knowledge results
+        if (wikiData.pages?.length) {
+          sections.push(
+            "**📚 Knowledge Base**\n" +
+            wikiData.pages.slice(0, 3).map((p, i) => {
+              const kps = (p.key_points ?? []).slice(0, 2).map(kp => `  • ${kp}`).join("\n");
+              return `**${i + 1}. ${p.title ?? "—"}**\n${p.summary ?? ""}\n${kps}`;
+            }).join("\n\n")
+          );
+        }
+
+        // Code index results
+        if (codeData.results?.length) {
+          sections.push(
+            "**🔍 Code Index**\n" +
+            codeData.results.map(r =>
+              `\`${r.path}\` [${r.type}]\n  ${r.title}\n  ...${r.snippet}...`
+            ).join("\n\n")
+          );
+        }
+
+        const reply = sections.length > 0
+          ? sections.join("\n\n---\n\n")
+          : `No results for "${query}".`;
+
         appendChatMessage({ id: makeId(), channelId: channel, sender: "Wiki", senderKind: "ai", text: reply, timestamp: new Date() });
       } catch {
         appendChatMessage({ id: makeId(), channelId: channel, sender: "System", senderKind: "system", text: "Wiki query failed: network error", timestamp: new Date() });

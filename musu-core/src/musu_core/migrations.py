@@ -126,6 +126,69 @@ def _v3_down(conn: sqlite3.Connection) -> None:  # noqa: ARG001
 
 
 # ---------------------------------------------------------------------------
+# v4: add company layer tables
+# ---------------------------------------------------------------------------
+
+
+def _v4_up(conn: sqlite3.Connection) -> None:
+    """Add company layer tables: companies, role_templates, project_index, approvals_queue."""
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS companies (
+            id          TEXT PRIMARY KEY,
+            name        TEXT NOT NULL,
+            template_key TEXT NOT NULL DEFAULT 'default',
+            workspace_id TEXT NOT NULL DEFAULT '',
+            meta        TEXT NOT NULL DEFAULT '{}',
+            created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+            updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+        );
+        CREATE TABLE IF NOT EXISTS company_role_templates (
+            id          TEXT PRIMARY KEY,
+            company_id  TEXT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+            role        TEXT NOT NULL,
+            instructions TEXT NOT NULL DEFAULT '',
+            created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+        );
+        CREATE TABLE IF NOT EXISTS company_project_index (
+            id          TEXT PRIMARY KEY,
+            company_id  TEXT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+            project_name TEXT NOT NULL,
+            status      TEXT NOT NULL DEFAULT 'active'
+                            CHECK (status IN ('active', 'paused', 'archived')),
+            assigned_to TEXT REFERENCES agents(id) ON DELETE SET NULL,
+            created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+            updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+        );
+        CREATE TABLE IF NOT EXISTS company_approvals_queue (
+            id          TEXT PRIMARY KEY,
+            company_id  TEXT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+            task_id     TEXT REFERENCES tasks(id) ON DELETE SET NULL,
+            status      TEXT NOT NULL DEFAULT 'pending'
+                            CHECK (status IN ('pending', 'approved', 'rejected')),
+            requested_by TEXT NOT NULL DEFAULT '',
+            reason      TEXT NOT NULL DEFAULT '',
+            created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+            updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_companies_workspace ON companies(workspace_id);
+        CREATE INDEX IF NOT EXISTS idx_role_templates_company ON company_role_templates(company_id);
+        CREATE INDEX IF NOT EXISTS idx_project_index_company ON company_project_index(company_id);
+        CREATE INDEX IF NOT EXISTS idx_approvals_company ON company_approvals_queue(company_id);
+        CREATE INDEX IF NOT EXISTS idx_approvals_status ON company_approvals_queue(status);
+    """)
+
+
+def _v4_down(conn: sqlite3.Connection) -> None:
+    """Drop company layer tables."""
+    conn.executescript("""
+        DROP TABLE IF EXISTS company_approvals_queue;
+        DROP TABLE IF EXISTS company_project_index;
+        DROP TABLE IF EXISTS company_role_templates;
+        DROP TABLE IF EXISTS companies;
+    """)
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
@@ -134,6 +197,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v1_fallback_chain", _v1_up, _v1_down),
     ("v2_messages_agent_id", _v2_up, _v2_down),
     ("v3_fallback_metrics_drop_fk", _v3_up, _v3_down),
+    ("v4_company_layer", _v4_up, _v4_down),
 ]
 
 

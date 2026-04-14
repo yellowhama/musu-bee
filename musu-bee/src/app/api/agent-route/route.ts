@@ -51,17 +51,19 @@ const MUSU_BRIDGE_URL = (
   process.env.MUSU_BRIDGE_URL ?? "http://localhost:8070"
 ).replace(/\/+$/, "");
 
+const MUSU_BRIDGE_REMOTE_URL = process.env.MUSU_BRIDGE_REMOTE_URL ?? null;
+
 const AGENT_ROUTE_TIMEOUT_MS = 300_000; // 5 min — matches claude_local default
 
 export async function POST(req: NextRequest) {
-  let body: { channel?: string; sender_id?: string; text?: string };
+  let body: { channel?: string; sender_id?: string; text?: string; node?: string };
   try {
     body = (await req.json()) as typeof body;
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  const { channel, sender_id = "local-user", text } = body;
+  const { channel, sender_id = "local-user", text, node } = body;
 
   if (!channel || !text?.trim()) {
     return NextResponse.json(
@@ -73,8 +75,14 @@ export async function POST(req: NextRequest) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), AGENT_ROUTE_TIMEOUT_MS);
 
+  // Use remote URL when node === 'remote' and MUSU_BRIDGE_REMOTE_URL is set
+  const targetUrl =
+    node === "remote" && MUSU_BRIDGE_REMOTE_URL
+      ? MUSU_BRIDGE_REMOTE_URL
+      : MUSU_BRIDGE_URL;
+
   try {
-    const upstream = await fetch(`${MUSU_BRIDGE_URL}/api/route`, {
+    const upstream = await fetch(`${targetUrl}/api/route`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ channel, sender_id, text: text.trim() }),

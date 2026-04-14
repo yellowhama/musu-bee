@@ -50,6 +50,13 @@ Freeze a canonical operator-machine acceptance packet for `musu-port` ingress/co
   - Build+smoke log: `/home/hugh51/musu-functions/work/mus147-operator-ingress/run-windows-smoke.log`
 - Status: `DONE` for Wave B acceptance packet.
 
+## L4 Parity Fix (2026-04-14)
+
+- `standalone_runtime_matches_parity_baseline`: PASS (2026-04-14)
+- Fix: `state.rs` L974-979 — promote 후 즉시 `reconcile_routes()` 호출
+- 결과: 6/6 parity tests pass (WSL runtime)
+- 기존 45 unit tests 영향 없음 (전체 통과)
+
 ## Handoff
 
 - Next packet: `musu-connects` wire-level transport closure (Wave C), consuming this acceptance bundle as upstream ingress truth.

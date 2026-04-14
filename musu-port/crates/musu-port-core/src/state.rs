@@ -48,6 +48,8 @@ pub struct PeerSnapshot {
     /// "ok" | "unreachable" | "error"
     pub status: String,
     pub route_count: Option<usize>,
+    /// Unix milliseconds of the latest successful probe, if any.
+    pub last_ok_ms: Option<u64>,
     /// Unix seconds of last successful probe, if any.
     pub last_ok_secs: Option<u64>,
 }
@@ -57,6 +59,31 @@ pub fn unix_now_secs() -> u64 {
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs())
         .unwrap_or(0)
+}
+
+pub fn unix_now_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct HandoffRoutingDecision {
+    pub ingress_host: String,
+    pub boss_host: String,
+    pub selected_target: String,
+    pub decision_reason_code: String,
+    pub metrics_age_ms: u64,
+    pub resource_requirement: String,
+    pub fallback_applied: bool,
+    pub attempted_remote_target: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct HandoffRoutingSnapshot {
+    pub recorded_at_ms: u64,
+    pub decision: HandoffRoutingDecision,
 }
 
 #[derive(Clone)]
@@ -82,6 +109,8 @@ pub struct MusuPortState {
     pub peer_urls: Vec<String>,
     /// Cached health snapshots for each configured peer, keyed by URL.
     pub peer_health_cache: Arc<RwLock<HashMap<String, PeerSnapshot>>>,
+    /// Latest immutable handoff routing decision captured when `/handoff/route` runs.
+    pub last_handoff_snapshot: Arc<RwLock<Option<HandoffRoutingSnapshot>>>,
     /// musu-bridge URL for agent routing (env `MUSU_BRIDGE_URL`, default `http://localhost:8070`).
     pub bridge_url: String,
 }
@@ -336,6 +365,157 @@ impl MusuPortState {
         }
 
         Ok(decision)
+    }
+
+    pub async fn resolve_handoff_route(
+        &self,
+        ingress_host: String,
+        resource_requirement: String,
+        metrics_max_age_ms: u64,
+    ) -> Result<HandoffRoutingDecision, String> {
+        let ingress = ingress_host.trim().to_string();
+        if ingress.is_empty() {
+            return Err("ingress_host is required".to_string());
+        }
+
+        let requirement = resource_requirement.trim().to_ascii_lowercase();
+        if requirement.is_empty() {
+            return Err("resource_requirement is required".to_string());
+        }
+
+        {
+            let mut boss = self.current_boss.write().await;
+            *boss = Some(ingress.clone());
+        }
+
+        let local_target = self.device_id.clone();
+        let boss_host = ingress;
+        let requires_remote = requirement_requires_remote(&requirement);
+        if !requires_remote {
+            let decision = HandoffRoutingDecision {
+                ingress_host: boss_host.clone(),
+                boss_host,
+                selected_target: local_target,
+                decision_reason_code: "local_resource_rule".to_string(),
+                metrics_age_ms: 0,
+                resource_requirement: requirement,
+                fallback_applied: false,
+                attempted_remote_target: None,
+            };
+            return Ok(self.record_handoff_decision(decision).await);
+        }
+
+        let now_ms = unix_now_ms();
+        let peers = self.peer_health_cache.read().await;
+        let mut snapshots = peers.values().cloned().collect::<Vec<_>>();
+        snapshots.sort_by(|a, b| peer_identity(a).cmp(&peer_identity(b)));
+        drop(peers);
+
+        let mut fresh_candidate: Option<(String, u64)> = None;
+        let mut stale_candidate: Option<(String, u64)> = None;
+        let mut unreachable_candidate: Option<String> = None;
+
+        for snapshot in snapshots {
+            let target = peer_identity(&snapshot);
+            if target == local_target || target == boss_host {
+                continue;
+            }
+
+            if snapshot.status != "ok" {
+                if unreachable_candidate.is_none() {
+                    unreachable_candidate = Some(target);
+                }
+                continue;
+            }
+
+            let last_ok_ms = snapshot
+                .last_ok_ms
+                .or_else(|| {
+                    snapshot
+                        .last_ok_secs
+                        .map(|value| value.saturating_mul(1000))
+                })
+                .unwrap_or(0);
+            let age_ms = now_ms.saturating_sub(last_ok_ms);
+            if age_ms <= metrics_max_age_ms {
+                fresh_candidate = Some((target, age_ms));
+                break;
+            }
+            if stale_candidate.is_none() {
+                stale_candidate = Some((target, age_ms));
+            }
+        }
+
+        if let Some((target, age_ms)) = fresh_candidate {
+            let decision = HandoffRoutingDecision {
+                ingress_host: boss_host.clone(),
+                boss_host,
+                selected_target: target,
+                decision_reason_code: "resource_rule_remote_selected".to_string(),
+                metrics_age_ms: age_ms,
+                resource_requirement: requirement,
+                fallback_applied: false,
+                attempted_remote_target: None,
+            };
+            return Ok(self.record_handoff_decision(decision).await);
+        }
+
+        if let Some((target, age_ms)) = stale_candidate {
+            let decision = HandoffRoutingDecision {
+                ingress_host: boss_host.clone(),
+                boss_host,
+                selected_target: local_target,
+                decision_reason_code: "stale_metrics_local_fallback".to_string(),
+                metrics_age_ms: age_ms,
+                resource_requirement: requirement,
+                fallback_applied: true,
+                attempted_remote_target: Some(target),
+            };
+            return Ok(self.record_handoff_decision(decision).await);
+        }
+
+        if let Some(target) = unreachable_candidate {
+            let decision = HandoffRoutingDecision {
+                ingress_host: boss_host.clone(),
+                boss_host,
+                selected_target: local_target,
+                decision_reason_code: "remote_unreachable_local_fallback".to_string(),
+                metrics_age_ms: 0,
+                resource_requirement: requirement,
+                fallback_applied: true,
+                attempted_remote_target: Some(target),
+            };
+            return Ok(self.record_handoff_decision(decision).await);
+        }
+
+        let decision = HandoffRoutingDecision {
+            ingress_host: boss_host.clone(),
+            boss_host,
+            selected_target: local_target,
+            decision_reason_code: "no_remote_candidate_local_fallback".to_string(),
+            metrics_age_ms: 0,
+            resource_requirement: requirement,
+            fallback_applied: true,
+            attempted_remote_target: None,
+        };
+
+        Ok(self.record_handoff_decision(decision).await)
+    }
+
+    pub async fn latest_handoff_snapshot(&self) -> Option<HandoffRoutingSnapshot> {
+        self.last_handoff_snapshot.read().await.clone()
+    }
+
+    async fn record_handoff_decision(
+        &self,
+        decision: HandoffRoutingDecision,
+    ) -> HandoffRoutingDecision {
+        let snapshot = HandoffRoutingSnapshot {
+            recorded_at_ms: unix_now_ms(),
+            decision: decision.clone(),
+        };
+        *self.last_handoff_snapshot.write().await = Some(snapshot);
+        decision
     }
 
     pub async fn auto_promote_mcp_candidates(&self) -> Result<Vec<String>, String> {
@@ -799,6 +979,13 @@ impl MusuPortState {
             ),
             Some(selected_alias.clone()),
         )?;
+
+        // Immediately reconcile L4 runtime for tcp/quic routes
+        if protocol == "tcp" || protocol == "quic" {
+            let routes = self.collect_routes().await;
+            let mut runtime = self.l4_runtime.lock().await;
+            runtime.reconcile_routes(&routes).await;
+        }
 
         Ok(PromoteResult {
             alias: selected_alias,
@@ -1296,6 +1483,20 @@ impl MusuPortState {
         payload.get("jsonrpc").and_then(serde_json::Value::as_str) == Some("2.0")
             && (payload.get("result").is_some() || payload.get("error").is_some())
     }
+}
+
+fn requirement_requires_remote(raw: &str) -> bool {
+    matches!(
+        raw,
+        "gpu" | "memory" | "latency" | "high-memory" | "high_memory"
+    )
+}
+
+fn peer_identity(snapshot: &PeerSnapshot) -> String {
+    snapshot
+        .device_id
+        .clone()
+        .unwrap_or_else(|| snapshot.url.clone())
 }
 
 fn collect_managed_ports(routes: &[ServiceRoute]) -> HashSet<u16> {

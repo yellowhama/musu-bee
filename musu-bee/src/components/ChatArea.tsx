@@ -19,6 +19,10 @@ interface ChatAreaProps {
   agentsSurface?: AgentsSurfaceSnapshot | null;
   onApprovePlan?: (msgId: string) => void;
   onRejectPlan?: (msgId: string) => void;
+  externalInput?: string;
+  onExternalInputConsumed?: () => void;
+  onNodeChange?: (node: string) => void;
+  activeNode?: string;
 }
 
 // ── Inline markdown renderer ──────────────────────────────────────────────────
@@ -488,10 +492,15 @@ export default function ChatArea({
   agentsSurface,
   onApprovePlan,
   onRejectPlan,
+  externalInput,
+  onExternalInputConsumed,
+  onNodeChange,
+  activeNode = "local",
 }: ChatAreaProps) {
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   // Whether the user is near the bottom of the message list
   const isNearBottomRef = useRef(true);
   // Scroll height saved just before history prepend, for restoration
@@ -527,6 +536,15 @@ export default function ChatArea({
     }
   }, [channelMessages.length, isAgentTyping, isLoadingHistory]);
 
+  // Handle external text injection from CommandPalette
+  useEffect(() => {
+    if (externalInput) {
+      setInput(externalInput);
+      textareaRef.current?.focus();
+      onExternalInputConsumed?.();
+    }
+  }, [externalInput, onExternalInputConsumed]);
+
   function handleScroll(e: React.UIEvent<HTMLDivElement>) {
     const el = e.currentTarget;
     isNearBottomRef.current =
@@ -559,6 +577,7 @@ export default function ChatArea({
     }
   ) ?? [];
   const totalAgents = agentsSurface?.summary?.departments.length ?? 0;
+  const isAgentChannel = ["ceo", "cto", "engineer", "qa", "cos", "worker"].includes(channelId);
 
   return (
     <div
@@ -626,6 +645,51 @@ export default function ChatArea({
             />
             {onlineAgents.length}/{totalAgents} agents
           </span>
+        )}
+        {isAgentChannel && onNodeChange && (
+          <div
+            style={{
+              display: "flex",
+              gap: 4,
+              background: "#1a1a1a",
+              border: "1px solid #2d2d2d",
+              borderRadius: 6,
+              padding: 2,
+            }}
+          >
+            <button
+              onClick={() => onNodeChange("local")}
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                padding: "4px 10px",
+                borderRadius: 4,
+                border: "none",
+                cursor: "pointer",
+                background: activeNode === "local" ? "#374151" : "transparent",
+                color: activeNode === "local" ? "#e5e7eb" : "#6b7280",
+                transition: "all 0.15s",
+              }}
+            >
+              LOCAL
+            </button>
+            <button
+              onClick={() => onNodeChange("remote")}
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                padding: "4px 10px",
+                borderRadius: 4,
+                border: "none",
+                cursor: "pointer",
+                background: activeNode === "remote" ? "#7c3aed" : "transparent",
+                color: activeNode === "remote" ? "#e9d5ff" : "#6b7280",
+                transition: "all 0.15s",
+              }}
+            >
+              REMOTE
+            </button>
+          </div>
         )}
         <div
           style={{
@@ -774,6 +838,7 @@ export default function ChatArea({
         }}
       >
         <textarea
+          ref={textareaRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}

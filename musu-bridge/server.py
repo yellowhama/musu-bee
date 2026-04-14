@@ -28,10 +28,14 @@ from config import get_config
 from csrf_guard import CSRFOriginGuard
 from hostname_guard import HostnameGuard
 from handlers import (
+    create_company,
+    delete_company,
     delete_message_by_id,
     get_agents,
     get_channel_map,
+    get_company,
     get_message_by_id,
+    list_companies,
     list_messages,
     route_chat,
 )
@@ -66,6 +70,13 @@ class RouteRequest(BaseModel):
     channel: str
     sender_id: str
     text: str = Field(max_length=10000)
+
+
+class CompanyCreateRequest(BaseModel):
+    name: str
+    template_key: str = "default"
+    workspace_id: str = ""
+    meta: dict = {}
 
 
 @app.post("/api/route")
@@ -156,6 +167,41 @@ async def api_audit(
 ) -> list[dict]:
     """Return recent audit log entries, newest first."""
     return audit.recent(limit=limit, offset=offset)
+
+
+@app.get("/api/companies", summary="List companies")
+async def api_list_companies(workspace_id: str | None = None) -> list[dict]:
+    """List all companies, optionally filtered by workspace_id."""
+    return list_companies(workspace_id=workspace_id)
+
+
+@app.post("/api/companies", summary="Create a company")
+async def api_create_company(req: CompanyCreateRequest) -> dict:
+    """Create a new company."""
+    return create_company(
+        name=req.name,
+        template_key=req.template_key,
+        workspace_id=req.workspace_id,
+        meta=req.meta,
+    )
+
+
+@app.get("/api/companies/{company_id}", summary="Get a company")
+async def api_get_company(company_id: str) -> dict:
+    """Get a company by id."""
+    company = get_company(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return company
+
+
+@app.delete("/api/companies/{company_id}", summary="Delete a company")
+async def api_delete_company(company_id: str) -> dict:
+    """Delete a company by id."""
+    ok = delete_company(company_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return {"deleted": company_id}
 
 
 @app.get("/health")

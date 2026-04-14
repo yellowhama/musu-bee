@@ -50,3 +50,7 @@ include = [
   "/src",
   "/indexer_src",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

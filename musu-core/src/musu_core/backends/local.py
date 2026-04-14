@@ -376,5 +376,56 @@ class LocalBackend(BackendABC):
             )
         return count
 
+    # --- Company helpers ---
+
+    def create_company(
+        self,
+        name: str,
+        template_key: str = "default",
+        workspace_id: str = "",
+        meta: dict | None = None,
+    ) -> dict[str, Any]:
+        company_id = str(uuid.uuid4())
+        meta_json = json.dumps(meta or {})
+        self._db.execute(
+            "INSERT INTO companies (id, name, template_key, workspace_id, meta) VALUES (?, ?, ?, ?, ?)",
+            (company_id, name, template_key, workspace_id, meta_json),
+        )
+        row = self._db.execute("SELECT * FROM companies WHERE id = ?", (company_id,))
+        return dict(row[0])
+
+    def list_companies(self, workspace_id: str | None = None) -> list[dict[str, Any]]:
+        if workspace_id:
+            rows = self._db.execute(
+                "SELECT * FROM companies WHERE workspace_id = ? ORDER BY created_at DESC",
+                (workspace_id,),
+            )
+        else:
+            rows = self._db.execute("SELECT * FROM companies ORDER BY created_at DESC")
+        return [dict(r) for r in rows]
+
+    def get_company(self, company_id: str) -> dict[str, Any] | None:
+        rows = self._db.execute("SELECT * FROM companies WHERE id = ?", (company_id,))
+        return dict(rows[0]) if rows else None
+
+    def update_company(self, company_id: str, **kwargs: Any) -> dict[str, Any] | None:
+        allowed = {"name", "template_key", "workspace_id", "meta"}
+        updates = {k: v for k, v in kwargs.items() if k in allowed}
+        if not updates:
+            return self.get_company(company_id)
+        if "meta" in updates and isinstance(updates["meta"], dict):
+            updates["meta"] = json.dumps(updates["meta"])
+        set_clause = ", ".join(f"{k} = ?" for k in updates)
+        set_clause += ", updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')"
+        self._db.execute(
+            f"UPDATE companies SET {set_clause} WHERE id = ?",
+            (*updates.values(), company_id),
+        )
+        return self.get_company(company_id)
+
+    def delete_company(self, company_id: str) -> bool:
+        rows = self._db.execute("DELETE FROM companies WHERE id = ? RETURNING id", (company_id,))
+        return len(rows) > 0
+
     def close(self) -> None:
         self._db.close()

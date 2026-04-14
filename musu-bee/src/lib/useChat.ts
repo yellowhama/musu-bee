@@ -82,7 +82,7 @@ function historyMsgToMessage(hm: HistoryMessage, channel: ChannelId): Message {
 
 export interface UseChatReturn {
   messages: Message[];
-  sendMessage: (text: string) => void;
+  sendMessage: (text: string, node?: string) => void;
   approvePlan: (msgId: string) => void;
   rejectPlan: (msgId: string) => void;
   isConnected: boolean;
@@ -90,6 +90,8 @@ export interface UseChatReturn {
   isLoadingHistory: boolean;
   hasMoreHistory: boolean;
   loadOlderMessages: () => void;
+  activeNode: string;
+  setActiveNode: (node: string) => void;
 }
 
 type ChatApiResponse = { text?: string; error?: string };
@@ -100,6 +102,7 @@ export function useChat(channel: ChannelId): UseChatReturn {
   const [isAgentTyping, setIsAgentTyping] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [hasMoreHistory, setHasMoreHistory] = useState(false);
+  const [activeNode, setActiveNode] = useState<string>("local");
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -285,13 +288,13 @@ export function useChat(channel: ChannelId): UseChatReturn {
   // ── musu-bridge agent route ────────────────────────────────────────────────
 
   const sendViaAgentRoute = useCallback(
-    async (text: string) => {
+    async (text: string, node?: string) => {
       setIsAgentTyping(true);
       try {
         const res = await fetch("/api/agent-route", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ channel, sender_id: "local-user", text }),
+          body: JSON.stringify({ channel, sender_id: "local-user", text, node }),
         });
 
         const data = (await res.json()) as {
@@ -359,7 +362,7 @@ export function useChat(channel: ChannelId): UseChatReturn {
   // ── sendMessage ────────────────────────────────────────────────────────────
 
   const sendMessage = useCallback(
-    (text: string) => {
+    (text: string, node?: string) => {
       if (text.startsWith("/task ") || text === "/tasks" || text.startsWith("/done ") || text.startsWith("/block ")) {
         void handleTaskCommand(text); return;
       }
@@ -380,7 +383,7 @@ export function useChat(channel: ChannelId): UseChatReturn {
       if (!isAgentChannel) return;
 
       // Agent channels: route through musu-bridge for real agent execution
-      void sendViaAgentRoute(text);
+      void sendViaAgentRoute(text, node);
     },
     [appendChatMessage, channel, handleApprovalCommand, handleTaskCommand, handleRouteCommand, handleRunCommand, handleWikiCommand, isAgentChannel, sendViaAgentRoute],
   );
@@ -415,5 +418,5 @@ export function useChat(channel: ChannelId): UseChatReturn {
     });
   }, [appendChatMessage, channel]);
 
-  return { messages, sendMessage, approvePlan, rejectPlan, isConnected, isAgentTyping, isLoadingHistory, hasMoreHistory, loadOlderMessages };
+  return { messages, sendMessage, approvePlan, rejectPlan, isConnected, isAgentTyping, isLoadingHistory, hasMoreHistory, loadOlderMessages, activeNode, setActiveNode };
 }

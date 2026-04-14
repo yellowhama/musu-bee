@@ -2,11 +2,12 @@
 
 export const dynamic = "force-dynamic";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import ChatArea from "@/components/ChatArea";
 import CompanyTemplateModal from "@/components/CompanyTemplateModal";
 import OnboardingModal from "@/components/OnboardingModal";
+import CommandPalette from "@/components/CommandPalette";
 import { useAuth } from "@/lib/useAuth";
 import { useDeviceDiscovery } from "@/lib/useDeviceDiscovery";
 import { useAgentsSurface } from "@/lib/useAgentsSurface";
@@ -93,12 +94,26 @@ export default function AppShell() {
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showCompanyTemplate, setShowCompanyTemplate] = useState(false);
+  const [showPalette, setShowPalette] = useState(false);
+  const [paletteInjection, setPaletteInjection] = useState("");
 
   const { healthPopover, setHealthPopover, popoverRef, handleBadgeClick } = useHealthPopover();
 
   const isAgentChannel = AGENT_CHANNELS.includes(activeChannel);
   const chat = useChat(activeChannel);
   const serviceHealth = useServiceHealth();
+
+  // ── Command palette keyboard shortcut ──────────────────────────────────────
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setShowPalette((prev) => !prev);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleChannelSelect = useCallback((id: ChannelId) => {
@@ -125,7 +140,7 @@ export default function AppShell() {
   const handleSend = useCallback(
     (text: string) => {
       if (isAgentChannel) {
-        chat.sendMessage(text);
+        chat.sendMessage(text, chat.activeNode);
       } else {
         const userMsg: Message = {
           id: makeId(),
@@ -436,8 +451,26 @@ export default function AppShell() {
           agentsSurface={agentsSurface}
           onApprovePlan={isAgentChannel ? chat.approvePlan : undefined}
           onRejectPlan={isAgentChannel ? chat.rejectPlan : undefined}
+          externalInput={paletteInjection}
+          onExternalInputConsumed={() => setPaletteInjection("")}
+          onNodeChange={isAgentChannel ? chat.setActiveNode : undefined}
+          activeNode={isAgentChannel ? chat.activeNode : undefined}
         />
       </div>
+
+      {/* Command Palette */}
+      <CommandPalette
+        open={showPalette}
+        onClose={() => setShowPalette(false)}
+        onChannelSelect={(id) => {
+          handleChannelSelect(id);
+          setShowPalette(false);
+        }}
+        onInjectText={(text) => {
+          setPaletteInjection(text);
+          setShowPalette(false);
+        }}
+      />
 
       {/* Modals */}
       {showOnboarding && (
