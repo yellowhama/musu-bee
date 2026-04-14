@@ -310,9 +310,38 @@ async def pair_with_node(ip: str, port: int) -> dict[str, Any]:
     if isinstance(remote_agents, list):
         remote_agents = [str(a) for a in remote_agents]
     mesh.add_node(remote_name, remote_url, agents=remote_agents)
+
+    # 4. Fetch remote Agent Card and auto-assign unassigned agents
+    assigned_agents: list[str] = []
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            card_resp = await client.get(f"{remote_base}/.well-known/agent.json")
+            if card_resp.status_code == 200:
+                card = card_resp.json()
+                card_agents = [
+                    a["id"]
+                    for a in card.get("capabilities", {}).get("agents", [])
+                    if isinstance(a, dict) and a.get("id")
+                ]
+                if card_agents:
+                    assigned_agents = mesh.auto_assign_agents(remote_name, card_agents)
+                else:
+                    # Fallback: use agents from node-info
+                    assigned_agents = mesh.auto_assign_agents(remote_name, remote_agents)
+            else:
+                assigned_agents = mesh.auto_assign_agents(remote_name, remote_agents)
+    except Exception:
+        # Agent Card fetch failed — fall back to node-info agents list
+        assigned_agents = mesh.auto_assign_agents(remote_name, remote_agents)
+
     mesh.reload()
 
-    return {"success": True, "node_name": remote_name, "node_url": remote_url}
+    return {
+        "success": True,
+        "node_name": remote_name,
+        "node_url": remote_url,
+        "assigned_agents": assigned_agents,
+    }
 
 
 def accept_pair(node_info: dict[str, Any]) -> dict[str, Any]:

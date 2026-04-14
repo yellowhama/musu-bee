@@ -85,6 +85,26 @@ class MeshRouter:
 
     # ── Node management ────────────────────────────────────────────────────────
 
+    def auto_assign_agents(self, node_name: str, remote_agents: list[str]) -> list[str]:
+        """Assign remote agents to node_name if not already assigned anywhere.
+
+        Existing assignments are preserved (first-write wins).
+        Persists the updated agent_assignments to nodes.toml.
+        Returns the list of newly assigned agent names.
+        """
+        newly_assigned: list[str] = []
+        for agent in remote_agents:
+            key = agent.lower()
+            if key not in self._agent_nodes:
+                self._agent_nodes[key] = node_name
+                newly_assigned.append(agent)
+        if newly_assigned:
+            self._write_toml()
+            logger.info(
+                "mesh_router: auto-assigned %s → node=%r", newly_assigned, node_name
+            )
+        return newly_assigned
+
     def add_node(self, name: str, url: str, agents: list[str] | None = None) -> None:
         """Add a node to the in-memory map and persist to nodes.toml."""
         self._node_urls[name] = url
@@ -162,6 +182,13 @@ class MeshRouter:
         # Remove nodes that are no longer in _node_urls
         new_nodes = [v for k, v in existing_by_name.items() if k in self._node_urls]
         mesh["nodes"] = new_nodes
+
+        # Rebuild agent_assignments from _agent_nodes
+        mesh["agent_assignments"] = [
+            {"agent": agent, "node": node}
+            for agent, node in self._agent_nodes.items()
+        ]
+
         data["mesh"] = mesh
 
         # Serialize to TOML manually (tomllib is read-only, use simple writer)

@@ -291,6 +291,26 @@ class PairAcceptRequest(BaseModel):
     version: str = ""
 
 
+@app.get("/.well-known/agent.json", summary="A2A Agent Card", include_in_schema=False)
+async def agent_card() -> dict:
+    """A2A-compatible agent card advertising this node's capabilities."""
+    info = get_node_info()
+    return {
+        "name": info["name"],
+        "description": "MUSU Bridge Node",
+        "url": info["url"],
+        "version": info["version"],
+        "capabilities": {
+            "agents": [
+                {"id": a, "description": f"{a} agent"}
+                for a in info.get("agents", [])
+            ],
+            "sync": True,
+            "protocol": "musu-bridge/0.2",
+        },
+    }
+
+
 @app.get("/api/admin/node-info", summary="This node's identity info")
 async def api_node_info() -> dict:
     """Return this node's name, URL, and agent list for peer exchange."""

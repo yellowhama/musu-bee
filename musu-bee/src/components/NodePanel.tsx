@@ -23,6 +23,7 @@ export default function NodePanel() {
   const [port, setPort] = useState("8070");
   const [pairing, setPairing] = useState(false);
   const [pairMsg, setPairMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [assignBanner, setAssignBanner] = useState<string | null>(null);
 
   // Cloud registry state
   const [registryNodes, setRegistryNodes] = useState<RegistryNode[]>([]);
@@ -74,6 +75,11 @@ export default function NodePanel() {
       const data = await res.json();
       if (res.ok && data.success) {
         setPairMsg({ ok: true, text: `${data.node_name} 연결됨` });
+        if (data.assigned_agents?.length > 0) {
+          const agents = (data.assigned_agents as string[]).join(", ");
+          setAssignBanner(`${agents} → ${data.node_name} 자동 배치됨`);
+          setTimeout(() => setAssignBanner(null), 5000);
+        }
         setIp("");
         setShowForm(false);
         await fetchNodes();
@@ -109,6 +115,11 @@ export default function NodePanel() {
       const data = await res.json();
       if (res.ok && data.success) {
         setPairMsg({ ok: true, text: `${data.node_name} 연결됨` });
+        if (data.assigned_agents?.length > 0) {
+          const agents = (data.assigned_agents as string[]).join(", ");
+          setAssignBanner(`${agents} → ${data.node_name} 자동 배치됨`);
+          setTimeout(() => setAssignBanner(null), 5000);
+        }
         await fetchNodes();
       } else {
         setPairMsg({ ok: false, text: data.error ?? "연결 실패" });
@@ -344,6 +355,23 @@ export default function NodePanel() {
           ))
         )}
       </div>
+
+      {/* Auto-assignment banner */}
+      {assignBanner && (
+        <div
+          style={{
+            marginTop: 6,
+            padding: "5px 10px",
+            background: "#0a1f0a",
+            border: "1px solid #14532d",
+            borderRadius: 6,
+            fontSize: 11,
+            color: "#22c55e",
+          }}
+        >
+          ✓ {assignBanner}
+        </div>
+      )}
 
       {/* Manual IP connect form */}
       {showForm && (
