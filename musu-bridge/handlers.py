@@ -16,6 +16,7 @@ from musu_core.config import get_config as get_core_config
 from musu_core.router import route_message
 
 from config import get_config as get_bridge_config
+from mesh_router import get_mesh_router
 
 logger = logging.getLogger(__name__)
 
@@ -33,16 +34,30 @@ def _get_backend() -> LocalBackend:
 async def route_chat(channel: str, sender_id: str, text: str) -> dict[str, Any]:
     """Route a message to the agent mapped to the given channel.
 
+    If the agent is assigned to a remote node in nodes.toml, the request is
+    forwarded to that node's musu-bridge. Otherwise handled locally.
+
     Returns a dict with response, agent_id, agent_name on success,
     or error on failure.
     """
+    if not text.strip():
+        return {"error": "Empty message", "response": None}
+
+    # ── Mesh routing: forward to remote node if assigned ──────────────────────
+    mesh = get_mesh_router()
+    if mesh.enabled and mesh.is_remote(channel):
+        node = mesh.node_for_agent(channel)
+        url = mesh.url_for_node(node)  # type: ignore[arg-type]
+        if url:
+            logger.info("mesh_router: forwarding channel=%r to node=%r url=%r", channel, node, url)
+            return await mesh.forward(url, channel, sender_id, text)
+        logger.warning("mesh_router: no URL for node=%r, falling through to local", node)
+
+    # ── Local handling ─────────────────────────────────────────────────────────
     cfg = get_bridge_config()
 
     if channel not in cfg.channel_agent_map:
         return {"error": f"No agent mapped to channel: {channel!r}", "response": None}
-
-    if not text.strip():
-        return {"error": "Empty message", "response": None}
 
     try:
         response = await route_message(

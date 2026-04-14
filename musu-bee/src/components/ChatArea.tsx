@@ -646,7 +646,8 @@ export default function ChatArea({
             {onlineAgents.length}/{totalAgents} agents
           </span>
         )}
-        {isAgentChannel && onNodeChange && (
+        {/* LOCAL/REMOTE toggle hidden — auto-routing via mesh_router (nodes.toml) */}
+        {false && isAgentChannel && onNodeChange && (
           <div
             style={{
               display: "flex",
