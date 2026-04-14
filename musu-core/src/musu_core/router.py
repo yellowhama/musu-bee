@@ -301,9 +301,11 @@ async def route_message(
         # Mesh fallback: forward to remote node if agent is assigned there
         from musu_core.mesh import get_registry
         registry = get_registry()
-        bridge_url = registry.bridge_url_for_agent(source)
-        if bridge_url and not registry.is_local(registry.node_for_agent(source) or ""):
-            return await _forward_to_bridge(bridge_url, source, source_ref, message)
+        node = registry.node_for_agent(source)
+        if node is not None and not registry.is_local(node):
+            bridge_url = registry.bridge_url_for_node(node)
+            if bridge_url:
+                return await _forward_to_bridge(bridge_url, source, source_ref, message)
         raise ValueError(f"No agent found for source: {source!r}")
 
     agent_id: str = agent_dict["id"]

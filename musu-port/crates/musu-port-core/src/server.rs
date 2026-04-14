@@ -315,19 +315,28 @@ pub async fn run_server(config: MusuPortConfig) -> Result<(), String> {
                                 if let Ok(routes) =
                                     resp.json::<Vec<AdvertisedRoute>>().await
                                 {
-                                    probe_state
-                                        .imported_routes
-                                        .write()
-                                        .await
-                                        .insert(
-                                            url.clone(),
-                                            ImportedPeerRoutes {
-                                                peer_url: url.clone(),
-                                                peer_device_id,
-                                                routes,
-                                                fetched_at: unix_now_secs(),
-                                            },
+                                    // DoS guard: ignore suspiciously large payloads
+                                    if routes.len() <= 1000 {
+                                        probe_state
+                                            .imported_routes
+                                            .write()
+                                            .await
+                                            .insert(
+                                                url.clone(),
+                                                ImportedPeerRoutes {
+                                                    peer_url: url.clone(),
+                                                    peer_device_id,
+                                                    routes,
+                                                    fetched_at: unix_now_secs(),
+                                                },
+                                            );
+                                    } else {
+                                        tracing::warn!(
+                                            peer_url = %url,
+                                            count = routes.len(),
+                                            "advertised-routes response too large, ignoring"
                                         );
+                                    }
                                 }
                             }
                         }
