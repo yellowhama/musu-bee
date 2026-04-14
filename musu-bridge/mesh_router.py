@@ -111,8 +111,15 @@ class MeshRouter:
         Reads the existing file to preserve unknown fields (llm_instances, etc.),
         then rewrites the [[mesh.nodes]] section with the current node map.
         """
+        # Create file with minimal structure if it doesn't exist yet
         if not self._path.exists():
-            return
+            self._path.parent.mkdir(parents=True, exist_ok=True)
+            data: dict = {"mesh": {"self": self._self_name, "nodes": []}}
+            try:
+                self._path.write_text(_dict_to_toml(data))
+            except Exception:
+                logger.exception("mesh_router: failed to create %s", self._path)
+                return
         try:
             with open(self._path, "rb") as f:
                 import tomllib as _tomllib
