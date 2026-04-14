@@ -113,6 +113,8 @@ pub struct MusuPortState {
     pub last_handoff_snapshot: Arc<RwLock<Option<HandoffRoutingSnapshot>>>,
     /// musu-bridge URL for agent routing (env `MUSU_BRIDGE_URL`, default `http://localhost:8070`).
     pub bridge_url: String,
+    /// Routes imported from peers via periodic `/advertised-routes` polling, keyed by peer URL.
+    pub imported_routes: Arc<RwLock<HashMap<String, crate::mesh_routes::ImportedPeerRoutes>>>,
 }
 
 impl MusuPortState {

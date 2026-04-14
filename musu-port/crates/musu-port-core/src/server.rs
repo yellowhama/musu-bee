@@ -25,9 +25,13 @@ use crate::platform::{
     device_profile_validation_action, display_path_for_runtime, resolve_executable_contract,
     resolve_physical_host_id, summarize_device_profile,
 };
+use crate::mesh_routes::{service_route_to_advertised, AdvertisedRoute, ImportedPeerRoutes};
 use crate::route::{new_extra_routes, SeedRouteSource, ServiceRoute};
-use crate::state::{unix_now_secs, MusuPortState, PeerSnapshot};
+use crate::state::{
+    unix_now_ms, unix_now_secs, HandoffRoutingDecision, MusuPortState, PeerSnapshot,
+};
 use crate::storage::Persistence;
+use crate::telemetry::read_runtime_telemetry;
 
 #[derive(Debug, Serialize)]
 struct HealthResponse {
@@ -59,6 +63,13 @@ struct HealthResponse {
     preferred_executable_path: Option<String>,
     executable_candidates: Vec<String>,
     windows_interop_launcher: Option<String>,
+    cpu_pct: f32,
+    ram_used: u64,
+    ram_total: u64,
+    gpu_util: Option<f32>,
+    gpu_mem_used: Option<u64>,
+    gpu_mem_total: Option<u64>,
+    queue_depth: usize,
 }
 
 #[derive(Debug, Deserialize)]
@@ -88,6 +99,20 @@ struct ConnectStableProbeRequest {
     sample_count: Option<usize>,
     interval_ms: Option<u64>,
     persist_report: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+struct HandoffRouteRequest {
+    ingress_host: String,
+    resource_requirement: String,
+    metrics_max_age_ms: Option<u64>,
+}
+
+#[derive(Debug, Serialize)]
+struct HandoffLatestResponse {
+    available: bool,
+    recorded_at_ms: Option<u64>,
+    decision: Option<HandoffRoutingDecision>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -171,8 +196,10 @@ pub async fn run_server(config: MusuPortConfig) -> Result<(), String> {
         current_boss: Arc::new(tokio::sync::RwLock::new(None)),
         peer_urls: config.peer_urls.clone(),
         peer_health_cache: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+        last_handoff_snapshot: Arc::new(tokio::sync::RwLock::new(None)),
         bridge_url: std::env::var("MUSU_BRIDGE_URL")
             .unwrap_or_else(|_| "http://localhost:8070".to_string()),
+        imported_routes: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
     };
     state.initialize_connect_mode()?;
     state.auto_promote_mcp_candidates().await?;
@@ -215,51 +242,96 @@ pub async fn run_server(config: MusuPortConfig) -> Result<(), String> {
 
                     let snapshot = match result {
                         Ok(resp) if resp.status().is_success() => {
-                            let peer: Option<PeerHealthResponse> =
-                                resp.json().await.ok();
+                            let peer: Option<PeerHealthResponse> = resp.json().await.ok();
                             PeerSnapshot {
                                 url: url.clone(),
                                 device_id: peer.as_ref().and_then(|p| p.device_id.clone()),
                                 status: "ok".to_string(),
                                 route_count: peer.as_ref().and_then(|p| p.route_count),
+                                last_ok_ms: Some(unix_now_ms()),
                                 last_ok_secs: Some(unix_now_secs()),
                             }
                         }
                         Ok(_) => {
                             tracing::warn!(peer_url = %url, "peer returned non-success status");
-                            let prev_ok = {
+                            let (prev_ok_ms, prev_ok_secs) = {
                                 let cache = probe_state.peer_health_cache.read().await;
-                                cache.get(url).and_then(|s| s.last_ok_secs)
+                                (
+                                    cache.get(url).and_then(|s| s.last_ok_ms),
+                                    cache.get(url).and_then(|s| s.last_ok_secs),
+                                )
                             };
                             PeerSnapshot {
                                 url: url.clone(),
                                 device_id: None,
                                 status: "error".to_string(),
                                 route_count: None,
-                                last_ok_secs: prev_ok,
+                                last_ok_ms: prev_ok_ms,
+                                last_ok_secs: prev_ok_secs,
                             }
                         }
                         Err(_) => {
                             tracing::debug!(peer_url = %url, "peer unreachable");
-                            let prev_ok = {
+                            let (prev_ok_ms, prev_ok_secs) = {
                                 let cache = probe_state.peer_health_cache.read().await;
-                                cache.get(url).and_then(|s| s.last_ok_secs)
+                                (
+                                    cache.get(url).and_then(|s| s.last_ok_ms),
+                                    cache.get(url).and_then(|s| s.last_ok_secs),
+                                )
                             };
                             PeerSnapshot {
                                 url: url.clone(),
                                 device_id: None,
                                 status: "unreachable".to_string(),
                                 route_count: None,
-                                last_ok_secs: prev_ok,
+                                last_ok_ms: prev_ok_ms,
+                                last_ok_secs: prev_ok_secs,
                             }
                         }
                     };
 
+                    let is_ok = snapshot.status == "ok";
+                    let peer_device_id = snapshot.device_id.clone();
                     probe_state
                         .peer_health_cache
                         .write()
                         .await
                         .insert(url.clone(), snapshot);
+
+                    // Also fetch advertised routes from healthy peers
+                    if is_ok {
+                        let routes_url = format!(
+                            "{}/advertised-routes",
+                            url.trim_end_matches('/')
+                        );
+                        if let Ok(resp) = probe_state
+                            .http_client
+                            .get(&routes_url)
+                            .timeout(Duration::from_secs(3))
+                            .send()
+                            .await
+                        {
+                            if resp.status().is_success() {
+                                if let Ok(routes) =
+                                    resp.json::<Vec<AdvertisedRoute>>().await
+                                {
+                                    probe_state
+                                        .imported_routes
+                                        .write()
+                                        .await
+                                        .insert(
+                                            url.clone(),
+                                            ImportedPeerRoutes {
+                                                peer_url: url.clone(),
+                                                peer_device_id,
+                                                routes,
+                                                fetched_at: unix_now_secs(),
+                                            },
+                                        );
+                                }
+                            }
+                        }
+                    }
                 }
                 tokio::time::sleep(Duration::from_secs(5)).await;
             }
@@ -270,6 +342,8 @@ pub async fn run_server(config: MusuPortConfig) -> Result<(), String> {
         .route("/health", get(handle_health))
         .route("/peers", get(handle_peers))
         .route("/routes", get(handle_routes))
+        .route("/advertised-routes", get(handle_advertised_routes))
+        .route("/mesh-routes", get(handle_mesh_routes))
         .route("/coverage", get(handle_coverage))
         .route("/discovery", get(handle_discovery))
         .route("/audit/events", get(handle_audit_events))
@@ -298,6 +372,8 @@ pub async fn run_server(config: MusuPortConfig) -> Result<(), String> {
             get(handle_connect_probe_history),
         )
         .route("/connect/{service}", get(handle_connect_ingress))
+        .route("/handoff/route", post(handle_handoff_route))
+        .route("/handoff/latest", get(handle_handoff_latest))
         .route("/quic/probe/summary", get(handle_quic_probe_summary))
         .route("/metadata/report", get(handle_metadata_report))
         .route("/metadata/export", post(handle_metadata_export))
@@ -337,6 +413,8 @@ async fn handle_health(AxumState(state): AxumState<MusuPortState>) -> impl IntoR
     let device_profile = state.device_profile_summary();
     let boss_device_id = state.current_boss.read().await.clone();
     let physical_host_id = resolve_physical_host_id();
+    let telemetry = read_runtime_telemetry();
+    let queue_depth = state.channel_hub.queue_depth();
     Json(HealthResponse {
         status: "ok",
         router_base_url: state.router_base_url,
@@ -388,17 +466,59 @@ async fn handle_health(AxumState(state): AxumState<MusuPortState>) -> impl IntoR
             .interop_launcher
             .as_ref()
             .map(|path| display_path_for_runtime(path, &state.runtime_context)),
+        cpu_pct: telemetry.cpu_pct,
+        ram_used: telemetry.ram_used,
+        ram_total: telemetry.ram_total,
+        gpu_util: telemetry.gpu_util,
+        gpu_mem_used: telemetry.gpu_mem_used,
+        gpu_mem_total: telemetry.gpu_mem_total,
+        queue_depth,
     })
 }
 
 async fn handle_peers(AxumState(state): AxumState<MusuPortState>) -> impl IntoResponse {
-    let mut peers: Vec<PeerSnapshot> = state.peer_health_cache.read().await.values().cloned().collect();
+    let mut peers: Vec<PeerSnapshot> = state
+        .peer_health_cache
+        .read()
+        .await
+        .values()
+        .cloned()
+        .collect();
     peers.sort_by(|a, b| a.url.cmp(&b.url));
     Json(peers)
 }
 
 async fn handle_routes(AxumState(state): AxumState<MusuPortState>) -> impl IntoResponse {
     Json(state.collect_routes().await)
+}
+
+/// GET /advertised-routes — local enabled services in AdvertisedRoute format for peers.
+async fn handle_advertised_routes(
+    AxumState(state): AxumState<MusuPortState>,
+) -> impl IntoResponse {
+    let routes = state.collect_routes().await;
+    let advertised: Vec<AdvertisedRoute> = routes
+        .iter()
+        .filter(|r| r.enabled)
+        .map(|r| service_route_to_advertised(r, &state.device_id))
+        .collect();
+    Json(advertised)
+}
+
+/// GET /mesh-routes — unified view: local routes + routes imported from all peers.
+async fn handle_mesh_routes(AxumState(state): AxumState<MusuPortState>) -> impl IntoResponse {
+    let local = state.collect_routes().await;
+    let imported: Vec<ImportedPeerRoutes> = state
+        .imported_routes
+        .read()
+        .await
+        .values()
+        .cloned()
+        .collect();
+    Json(serde_json::json!({
+        "local": local,
+        "imported": imported,
+    }))
 }
 
 async fn handle_coverage(AxumState(state): AxumState<MusuPortState>) -> Response<Body> {
@@ -544,6 +664,42 @@ async fn handle_connect_ingress(
     }
 }
 
+async fn handle_handoff_route(
+    AxumState(state): AxumState<MusuPortState>,
+    Json(request): Json<HandoffRouteRequest>,
+) -> Response<Body> {
+    let metrics_max_age_ms = request.metrics_max_age_ms.unwrap_or(10_000);
+    match state
+        .resolve_handoff_route(
+            request.ingress_host,
+            request.resource_requirement,
+            metrics_max_age_ms,
+        )
+        .await
+    {
+        Ok(decision) => Json(decision).into_response(),
+        Err(err) => (StatusCode::BAD_REQUEST, err).into_response(),
+    }
+}
+
+async fn handle_handoff_latest(AxumState(state): AxumState<MusuPortState>) -> Response<Body> {
+    let snapshot = state.latest_handoff_snapshot().await;
+    match snapshot {
+        Some(snapshot) => Json(HandoffLatestResponse {
+            available: true,
+            recorded_at_ms: Some(snapshot.recorded_at_ms),
+            decision: Some(snapshot.decision),
+        })
+        .into_response(),
+        None => Json(HandoffLatestResponse {
+            available: false,
+            recorded_at_ms: None,
+            decision: None,
+        })
+        .into_response(),
+    }
+}
+
 async fn handle_quic_probe_summary(AxumState(state): AxumState<MusuPortState>) -> Response<Body> {
     Json(state.quic_probe_summary()).into_response()
 }
@@ -670,7 +826,11 @@ async fn handle_channel_broadcast(
     let text = match String::from_utf8(bytes.to_vec()) {
         Ok(s) => s,
         Err(_) => {
-            return (StatusCode::BAD_REQUEST, "body must be valid UTF-8".to_string()).into_response()
+            return (
+                StatusCode::BAD_REQUEST,
+                "body must be valid UTF-8".to_string(),
+            )
+                .into_response()
         }
     };
 
@@ -745,7 +905,9 @@ async fn handle_chat(
             let err_body = resp.text().await.unwrap_or_default();
             (
                 StatusCode::BAD_GATEWAY,
-                Json(serde_json::json!({"error": format!("Anthropic API {}: {}", status, err_body)})),
+                Json(
+                    serde_json::json!({"error": format!("Anthropic API {}: {}", status, err_body)}),
+                ),
             )
                 .into_response()
         }
@@ -768,7 +930,10 @@ async fn handle_chat_ws(
     Path(channel): Path<String>,
 ) -> impl IntoResponse {
     // Validate channel name: alphanumeric, dash, underscore only
-    if !channel.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '-') {
+    if !channel
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
+    {
         return (StatusCode::BAD_REQUEST, "Invalid channel name").into_response();
     }
     let channel_name = format!("chat:{channel}");
