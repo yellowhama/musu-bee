@@ -151,6 +151,23 @@ class LocalBackend(BackendABC):
 
     # --- BackendABC implementation ---
 
+    def create_agent(
+        self,
+        agent_id: str | None = None,
+        name: str = "",
+        role: str = "",
+        adapter_type: str = "process",
+        adapter_config: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        agent = self.agents.create(
+            name=name,
+            role=role,
+            adapter_type=adapter_type,
+            adapter_config=adapter_config or {},
+            agent_id=agent_id,
+        )
+        return _agent_to_dict(agent)
+
     def get_agent(self, agent_id: str) -> dict[str, Any] | None:
         agent = self.agents.get(agent_id)
         return _agent_to_dict(agent) if agent else None

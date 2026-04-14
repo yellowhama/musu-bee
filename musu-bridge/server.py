@@ -236,13 +236,24 @@ async def api_delegate_task(req: DelegateRequest) -> dict:
         logger.error("delegate_task: failed to create durability record — %s", exc)
         raise HTTPException(status_code=500, detail="Failed to record task — try again")
 
-    # Pass task_id so route_chat reuses this record instead of creating a new one
-    task = asyncio.create_task(route_chat(
-        channel=req.channel,
-        sender_id=req.sender_id,
-        text=req.text,
-        exec_id=task_id,
-    ))
+    # Pass task_id so route_chat reuses this record instead of creating a new one.
+    # Wrap with 300s timeout — auto-fails the DB record if the agent hangs.
+    async def _run_with_timeout() -> None:
+        try:
+            await asyncio.wait_for(
+                route_chat(
+                    channel=req.channel,
+                    sender_id=req.sender_id,
+                    text=req.text,
+                    exec_id=task_id,
+                ),
+                timeout=300,
+            )
+        except asyncio.TimeoutError:
+            logger.warning("delegate_task: task %s timed out after 300s", task_id)
+            cancel_task_record(task_id, error="timeout after 300s")
+
+    task = asyncio.create_task(_run_with_timeout())
     _active_tasks[task_id] = task
     task.add_done_callback(lambda _: _active_tasks.pop(task_id, None))
     return {"task_id": task_id, "status": "running", "channel": req.channel}
@@ -256,6 +267,10 @@ async def api_list_tasks(
     channel: str | None = Query(default=None, description="Filter by channel/agent name"),
 ) -> list[dict]:
     """List delegated tasks, newest first. Supports status/channel filters and cursor pagination."""
+    if channel is not None:
+        channel_map = get_channel_map()
+        if channel not in channel_map:
+            raise HTTPException(status_code=400, detail=f"Unknown channel: {channel!r}")
     return list_task_records(status=status, limit=limit, before_id=before_id, channel=channel)
 
 

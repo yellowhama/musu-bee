@@ -8,6 +8,7 @@ import ChatArea from "@/components/ChatArea";
 import CompanyTemplateModal from "@/components/CompanyTemplateModal";
 import OnboardingModal from "@/components/OnboardingModal";
 import CommandPalette from "@/components/CommandPalette";
+import TasksPanel from "@/components/TasksPanel";
 import { useAuth } from "@/lib/useAuth";
 import { useDeviceDiscovery } from "@/lib/useDeviceDiscovery";
 import { useAgentsSurface } from "@/lib/useAgentsSurface";
@@ -438,28 +439,32 @@ export default function AppShell() {
           onChannelSelect={handleChannelSelect}
           onDeviceSelect={handleDeviceSelect}
         />
-        <ChatArea
-          key={activeChannel}
-          channelId={activeChannel}
-          messages={displayMessages}
-          onSend={handleSend}
-          isAgentTyping={isAgentChannel ? chat.isAgentTyping : false}
-          isConnected={isAgentChannel ? chat.isConnected : undefined}
-          channelDescription={CHANNEL_DESCRIPTIONS[activeChannel]}
-          activeCompanyName={displayCompanyName}
-          workspaceId={workspaceId}
-          selectedProjects={displaySelectedProjects}
-          isLoadingHistory={isAgentChannel ? chat.isLoadingHistory : false}
-          hasMoreHistory={isAgentChannel ? chat.hasMoreHistory : false}
-          loadOlderMessages={isAgentChannel ? chat.loadOlderMessages : undefined}
-          agentsSurface={agentsSurface}
-          onApprovePlan={isAgentChannel ? chat.approvePlan : undefined}
-          onRejectPlan={isAgentChannel ? chat.rejectPlan : undefined}
-          externalInput={paletteInjection}
-          onExternalInputConsumed={() => setPaletteInjection("")}
-          onNodeChange={isAgentChannel ? chat.setActiveNode : undefined}
-          activeNode={isAgentChannel ? chat.activeNode : undefined}
-        />
+        {activeChannel === "tasks" ? (
+          <TasksPanel />
+        ) : (
+          <ChatArea
+            key={activeChannel}
+            channelId={activeChannel}
+            messages={displayMessages}
+            onSend={handleSend}
+            isAgentTyping={isAgentChannel ? chat.isAgentTyping : false}
+            isConnected={isAgentChannel ? chat.isConnected : undefined}
+            channelDescription={CHANNEL_DESCRIPTIONS[activeChannel]}
+            activeCompanyName={displayCompanyName}
+            workspaceId={workspaceId}
+            selectedProjects={displaySelectedProjects}
+            isLoadingHistory={isAgentChannel ? chat.isLoadingHistory : false}
+            hasMoreHistory={isAgentChannel ? chat.hasMoreHistory : false}
+            loadOlderMessages={isAgentChannel ? chat.loadOlderMessages : undefined}
+            agentsSurface={agentsSurface}
+            onApprovePlan={isAgentChannel ? chat.approvePlan : undefined}
+            onRejectPlan={isAgentChannel ? chat.rejectPlan : undefined}
+            externalInput={paletteInjection}
+            onExternalInputConsumed={() => setPaletteInjection("")}
+            onNodeChange={isAgentChannel ? chat.setActiveNode : undefined}
+            activeNode={isAgentChannel ? chat.activeNode : undefined}
+          />
+        )}
       </div>
 
       {/* Command Palette */}

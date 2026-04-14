@@ -122,6 +122,15 @@ self = "{node_name}"
 
 def cmd_generate_service(node_name: str, public_url: str, user_mode: bool = False) -> int:
     """Generate a systemd service file for musu-bridge."""
+    import sys as _sys
+    if _sys.platform != "linux":
+        print(
+            f"WARNING: systemd is Linux-only (current platform: {_sys.platform}).",
+            file=_sys.stderr,
+        )
+        print("  For macOS, configure a launchd plist manually.", file=_sys.stderr)
+        return 1
+
     import shutil
 
     python_path = shutil.which("python3") or sys.executable

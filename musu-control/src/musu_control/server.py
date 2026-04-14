@@ -1037,6 +1037,61 @@ async def get_task_status(task_id: str) -> str:
         return _tool_error(f"Error fetching task status for {task_id!r}.")
 
 
+@mcp.tool()
+async def list_tasks(
+    status: str | None = None,
+    channel: str | None = None,
+    limit: int = 20,
+    before_id: str | None = None,
+) -> str:
+    """List delegated tasks, newest first.
+
+    Args:
+        status: Filter by status — pending | running | done | failed (omit for all)
+        channel: Filter by agent channel name (e.g. "engineer")
+        limit: Max results to return (default: 20, max: 500)
+        before_id: Cursor pagination — return tasks older than this task_id
+    """
+    try:
+        params: dict[str, str | int] = {"limit": limit}
+        if status:
+            params["status"] = status
+        if channel:
+            params["channel"] = channel
+        if before_id:
+            params["before_id"] = before_id
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(f"{_MUSU_BRIDGE_URL}/api/tasks", params=params)
+            if resp.status_code == 400:
+                return _tool_error(resp.json().get("detail", "Bad request"))
+            resp.raise_for_status()
+            tasks = resp.json()
+        return _fmt({"count": len(tasks), "tasks": tasks})
+    except Exception:
+        return _tool_error("Error listing tasks.")
+
+
+@mcp.tool()
+async def cancel_task(task_id: str) -> str:
+    """Cancel a running delegated task.
+
+    Cancels the asyncio task if still running and marks it failed/cancelled in DB.
+    No-ops if task is already done or failed (returns the current status).
+
+    Args:
+        task_id: The task_id returned by delegate_task
+    """
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.delete(f"{_MUSU_BRIDGE_URL}/api/tasks/{task_id}")
+            if resp.status_code == 404:
+                return f"Task {task_id!r} not found."
+            resp.raise_for_status()
+            return _fmt(resp.json())
+    except Exception:
+        return _tool_error(f"Error cancelling task {task_id!r}.")
+
+
 # ──────────────────────────────────────────────
 # Entry point
 # ──────────────────────────────────────────────
