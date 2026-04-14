@@ -12,6 +12,13 @@ class BridgeConfig:
     # Public URL advertised to peers during pairing. Set this to the Tailscale IP.
     # e.g. MUSU_BRIDGE_PUBLIC_URL=http://100.121.211.106:8070
     public_url: str = field(default_factory=lambda: os.getenv("MUSU_BRIDGE_PUBLIC_URL", ""))
+    # musu.pro cloud node registry token (from musu.pro/account → Node Tokens).
+    # When set, musu-bridge registers itself every 30s.
+    musu_token: str = field(default_factory=lambda: os.getenv("MUSU_TOKEN", ""))
+    # Human-readable name for this node in the registry. Defaults to hostname.
+    node_name: str = field(
+        default_factory=lambda: os.getenv("MUSU_NODE_NAME", "") or __import__("socket").gethostname()
+    )
 
     # Channel name → agent name mapping
     # Channel "engineer" maps to agent named "engineer" in musu-core

@@ -57,9 +57,11 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    import socket
     from mesh_router import get_mesh_router
     from sync_engine import get_sync_engine
     from handlers import _get_backend
+    from registry import heartbeat_loop
 
     router = get_mesh_router()
     if router.enabled:
@@ -70,7 +72,25 @@ async def lifespan(app: FastAPI):
     else:
         task = None
         logger.info("sync_engine: mesh disabled, skipping sync")
+
+    # Cloud registry heartbeat (optional — only when MUSU_TOKEN is set)
+    registry_task = None
+    cfg = get_config()
+    musu_token = cfg.musu_token
+    if musu_token:
+        public_url = cfg.public_url or f"http://{socket.gethostname()}:{cfg.bridge_port}"
+        node_name = cfg.node_name
+        registry_task = asyncio.create_task(
+            heartbeat_loop(token=musu_token, node_name=node_name, public_url=public_url)
+        )
+        logger.info("registry: heartbeat task started for node=%r", node_name)
+    else:
+        logger.info("registry: MUSU_TOKEN not set — cloud registry disabled")
+
     yield
+
+    if registry_task:
+        registry_task.cancel()
     if task:
         task.cancel()
 

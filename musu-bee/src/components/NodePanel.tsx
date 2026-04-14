@@ -9,6 +9,12 @@ interface NodeInfo {
   is_self: boolean;
 }
 
+interface RegistryNode {
+  node_name: string;
+  public_url: string;
+  last_seen: string;
+}
+
 export default function NodePanel() {
   const [nodes, setNodes] = useState<NodeInfo[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -16,6 +22,11 @@ export default function NodePanel() {
   const [port, setPort] = useState("8070");
   const [pairing, setPairing] = useState(false);
   const [pairMsg, setPairMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  // Cloud registry state
+  const [registryNodes, setRegistryNodes] = useState<RegistryNode[]>([]);
+  const [tokenConfigured, setTokenConfigured] = useState(false);
+  const [cloudPairing, setCloudPairing] = useState<string | null>(null);
 
   const fetchNodes = useCallback(async () => {
     try {
@@ -26,11 +37,28 @@ export default function NodePanel() {
     }
   }, []);
 
+  const fetchRegistry = useCallback(async () => {
+    try {
+      const res = await fetch("/api/registry");
+      if (res.ok) {
+        const data = await res.json();
+        setTokenConfigured(data.token_configured ?? false);
+        setRegistryNodes(data.nodes ?? []);
+      }
+    } catch {
+      // registry unavailable — graceful degradation
+    }
+  }, []);
+
   useEffect(() => {
     void fetchNodes();
-    const interval = setInterval(() => void fetchNodes(), 15000);
+    void fetchRegistry();
+    const interval = setInterval(() => {
+      void fetchNodes();
+      void fetchRegistry();
+    }, 15000);
     return () => clearInterval(interval);
-  }, [fetchNodes]);
+  }, [fetchNodes, fetchRegistry]);
 
   const handlePair = async () => {
     if (!ip.trim()) return;
@@ -55,6 +83,39 @@ export default function NodePanel() {
       setPairMsg({ ok: false, text: "bridge 연결 불가" });
     } finally {
       setPairing(false);
+    }
+  };
+
+  const handleCloudPair = async (registryNode: RegistryNode) => {
+    let parsedIp: string;
+    let parsedPort: number;
+    try {
+      const u = new URL(registryNode.public_url);
+      parsedIp = u.hostname;
+      parsedPort = parseInt(u.port) || 8070;
+    } catch {
+      setPairMsg({ ok: false, text: "Invalid node URL from registry" });
+      return;
+    }
+    setCloudPairing(registryNode.node_name);
+    setPairMsg(null);
+    try {
+      const res = await fetch("/api/nodes/pair", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ip: parsedIp, port: parsedPort }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPairMsg({ ok: true, text: `${data.node_name} 연결됨` });
+        await fetchNodes();
+      } else {
+        setPairMsg({ ok: false, text: data.error ?? "연결 실패" });
+      }
+    } catch {
+      setPairMsg({ ok: false, text: "bridge 연결 불가" });
+    } finally {
+      setCloudPairing(null);
     }
   };
 
@@ -88,6 +149,11 @@ export default function NodePanel() {
       />
     );
   };
+
+  // Check if a registry node is already paired (by URL match)
+  const pairedUrls = new Set(nodes.map((n) => n.url));
+  const isStale = (lastSeen: string) =>
+    Date.now() - new Date(lastSeen).getTime() > 90_000;
 
   return (
     <div style={{ padding: "0 4px" }}>
@@ -124,11 +190,85 @@ export default function NodePanel() {
             cursor: "pointer",
           }}
         >
-          + 연결
+          {tokenConfigured ? "+ Manual IP" : "+ 연결"}
         </button>
       </div>
 
-      {/* Node list */}
+      {/* Cloud registry — "My Nodes" (only when MUSU_TOKEN configured) */}
+      {tokenConfigured && (
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ fontSize: 10, color: "#4b5563", padding: "2px 6px 4px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            My Nodes (musu.pro)
+          </div>
+          <div
+            style={{
+              background: "#141414",
+              border: "1px solid #242424",
+              borderRadius: 8,
+              overflow: "hidden",
+            }}
+          >
+            {registryNodes.length === 0 ? (
+              <div style={{ padding: "10px 12px", fontSize: 11, color: "#4b5563" }}>
+                No registered nodes yet
+              </div>
+            ) : (
+              registryNodes.map((rn) => {
+                const stale = isStale(rn.last_seen);
+                const paired = pairedUrls.has(rn.public_url);
+                const isPairing = cloudPairing === rn.node_name;
+                return (
+                  <div
+                    key={rn.node_name}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      padding: "7px 10px",
+                      borderBottom: "1px solid #1f1f1f",
+                      gap: 6,
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: "inline-block",
+                        width: 7,
+                        height: 7,
+                        borderRadius: "50%",
+                        background: stale ? "#4b5563" : "#22c55e",
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span style={{ fontSize: 12, color: "#e5e7eb", flex: 1 }}>
+                      {rn.node_name}
+                    </span>
+                    {paired ? (
+                      <span style={{ fontSize: 10, color: "#22c55e" }}>Connected</span>
+                    ) : (
+                      <button
+                        onClick={() => void handleCloudPair(rn)}
+                        disabled={isPairing}
+                        style={{
+                          background: "none",
+                          border: "1px solid #374151",
+                          borderRadius: 4,
+                          color: isPairing ? "#4b5563" : "#9ca3af",
+                          fontSize: 10,
+                          padding: "2px 6px",
+                          cursor: isPairing ? "not-allowed" : "pointer",
+                        }}
+                      >
+                        {isPairing ? "..." : "Pair"}
+                      </button>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Local bridge node list */}
       <div
         style={{
           background: "#141414",
@@ -181,7 +321,7 @@ export default function NodePanel() {
         )}
       </div>
 
-      {/* Connect form */}
+      {/* Manual IP connect form */}
       {showForm && (
         <div
           style={{
@@ -193,7 +333,7 @@ export default function NodePanel() {
           }}
         >
           <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 6 }}>
-            IP 주소 입력
+            {tokenConfigured ? "Manual IP 연결" : "IP 주소 입력"}
           </div>
           <div style={{ display: "flex", gap: 4 }}>
             <input
@@ -255,6 +395,20 @@ export default function NodePanel() {
               {pairMsg.text}
             </div>
           )}
+        </div>
+      )}
+
+      {/* pairMsg when form is hidden (from cloud pair) */}
+      {!showForm && pairMsg && (
+        <div
+          style={{
+            marginTop: 6,
+            fontSize: 11,
+            color: pairMsg.ok ? "#22c55e" : "#ef4444",
+            padding: "0 4px",
+          }}
+        >
+          {pairMsg.text}
         </div>
       )}
     </div>
