@@ -33,6 +33,7 @@ class NodeInfo:
     tailscale_ip: str
     roles: list[str] = field(default_factory=list)
     gpu: str = ""
+    bridge_url: str = ""  # musu-bridge HTTP URL e.g. http://100.x.x.x:8070
 
 
 @dataclass
@@ -101,6 +102,7 @@ class MeshRegistry:
                 tailscale_ip=tailscale_ip,
                 roles=node_dict.get("roles", []),
                 gpu=node_dict.get("gpu", ""),
+                bridge_url=node_dict.get("url", ""),
             )
             self._nodes[n.name] = n
 
@@ -163,6 +165,20 @@ class MeshRegistry:
             if aa.agent == agent:
                 return aa.node
         return None
+
+    def bridge_url_for_node(self, node_name: str) -> str | None:
+        """Return the musu-bridge HTTP URL for the named node, or None."""
+        node = self._nodes.get(node_name)
+        if node is None:
+            return None
+        return node.bridge_url or None
+
+    def bridge_url_for_agent(self, agent: str) -> str | None:
+        """Return the musu-bridge HTTP URL for the node that runs *agent*."""
+        node = self.node_for_agent(agent)
+        if node is None:
+            return None
+        return self.bridge_url_for_node(node)
 
     def all_nodes(self) -> list[NodeInfo]:
         return list(self._nodes.values())

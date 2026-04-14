@@ -242,6 +242,31 @@ def make_router(db_path: str | None = None, config: Config | None = None) -> Rou
     return Router(backend=backend, config=cfg)
 
 
+async def _forward_to_bridge(bridge_url: str, channel: str, sender_id: str, message: str) -> str:
+    """Forward a message to a remote musu-bridge node and return the response text."""
+    import logging
+    import httpx
+
+    logger = logging.getLogger(__name__)
+    target = f"{bridge_url.rstrip('/')}/api/route"
+    payload = {"channel": channel, "sender_id": sender_id, "text": message}
+    try:
+        async with httpx.AsyncClient(timeout=300.0) as client:
+            resp = await client.post(target, json=payload)
+            if resp.status_code != 200:
+                raise RuntimeError(f"Remote bridge returned HTTP {resp.status_code}")
+            data = resp.json()
+            if data.get("error"):
+                raise RuntimeError(f"Remote bridge error: {data['error']}")
+            return data.get("response") or ""
+    except httpx.ConnectError as exc:
+        logger.warning("mesh forward: cannot connect to %s — %s", target, exc)
+        raise RuntimeError(f"Remote node unreachable: {bridge_url}") from exc
+    except httpx.TimeoutException as exc:
+        logger.warning("mesh forward: timeout waiting for %s", target)
+        raise RuntimeError("Remote agent timed out") from exc
+
+
 async def route_message(
     source: str,
     source_ref: str,
@@ -273,6 +298,12 @@ async def route_message(
     # 1. Find agent by source name
     agent_dict = backend.get_agent_by_name(source)
     if agent_dict is None:
+        # Mesh fallback: forward to remote node if agent is assigned there
+        from musu_core.mesh import get_registry
+        registry = get_registry()
+        bridge_url = registry.bridge_url_for_agent(source)
+        if bridge_url and not registry.is_local(registry.node_for_agent(source) or ""):
+            return await _forward_to_bridge(bridge_url, source, source_ref, message)
         raise ValueError(f"No agent found for source: {source!r}")
 
     agent_id: str = agent_dict["id"]
