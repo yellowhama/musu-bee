@@ -4,6 +4,7 @@ import type { CompanyActivationState } from "@/lib/companyActivation";
 import type { DefaultCompanyTemplate } from "@/lib/templates/defaultCompanyTemplate";
 import type { AgentsSurfaceSnapshot, Channel, ChannelId, Device } from "@/types";
 import CompanyPanel from "@/components/CompanyPanel";
+import NodePanel from "@/components/NodePanel";
 
 interface SidebarProps {
   channels: Channel[];
@@ -470,6 +471,16 @@ export default function Sidebar({
       {/* Companies (musu-bridge SSOT) */}
       <div style={{ marginBottom: 12 }}>
         <CompanyPanel />
+      </div>
+
+      {/* Divider */}
+      <div
+        style={{ borderTop: "1px solid #1f1f1f", margin: "4px 0 12px 0" }}
+      />
+
+      {/* Nodes */}
+      <div style={{ marginBottom: 12 }}>
+        <NodePanel />
       </div>
 
       {/* Divider */}

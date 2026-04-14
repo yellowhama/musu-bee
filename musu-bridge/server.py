@@ -30,15 +30,20 @@ from config import get_config
 from csrf_guard import CSRFOriginGuard
 from hostname_guard import HostnameGuard
 from handlers import (
+    accept_pair,
     create_company,
     delete_company,
     delete_message_by_id,
+    disconnect_node,
     get_agents,
     get_channel_map,
     get_company,
     get_message_by_id,
+    get_node_info,
     list_companies,
     list_messages,
+    list_nodes,
+    pair_with_node,
     receive_companies,
     receive_messages,
     route_chat,
@@ -252,6 +257,57 @@ async def api_delete_company(company_id: str) -> dict:
     if not ok:
         raise HTTPException(status_code=404, detail="Company not found")
     return {"deleted": company_id}
+
+
+class PairRequest(BaseModel):
+    ip: str
+    port: int = 8070
+
+
+class PairAcceptRequest(BaseModel):
+    name: str
+    url: str
+    agents: list[str] = []
+    version: str = ""
+
+
+@app.get("/api/admin/node-info", summary="This node's identity info")
+async def api_node_info() -> dict:
+    """Return this node's name, URL, and agent list for peer exchange."""
+    return get_node_info()
+
+
+@app.post("/api/admin/pair", summary="Pair with a remote node")
+async def api_pair(req: PairRequest) -> dict:
+    """Initiate pairing with remote node at {ip}:{port}. Updates nodes.toml on both sides."""
+    result = await pair_with_node(ip=req.ip, port=req.port)
+    if not result.get("success"):
+        raise HTTPException(status_code=502, detail=result.get("error", "Pairing failed"))
+    return result
+
+
+@app.post("/api/admin/pair/accept", summary="Accept a pairing request from a peer")
+async def api_pair_accept(req: PairAcceptRequest) -> dict:
+    """Called by remote node during pairing — adds them to local nodes.toml."""
+    result = accept_pair({"name": req.name, "url": req.url, "agents": req.agents})
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("error", "Accept failed"))
+    return result
+
+
+@app.get("/api/admin/nodes", summary="List connected nodes with status")
+async def api_list_nodes() -> list[dict]:
+    """Return all configured nodes with online/offline status."""
+    return await list_nodes()
+
+
+@app.delete("/api/admin/nodes/{node_name}", summary="Disconnect a node")
+async def api_disconnect_node(node_name: str) -> dict:
+    """Remove a node from nodes.toml."""
+    ok = disconnect_node(node_name)
+    if not ok:
+        raise HTTPException(status_code=404, detail=f"Node {node_name!r} not found")
+    return {"disconnected": node_name}
 
 
 @app.get("/api/sync/companies", summary="Pull companies for sync")

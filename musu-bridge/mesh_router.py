@@ -77,6 +77,73 @@ class MeshRouter:
         """Return the musu-bridge URL for a node name."""
         return self._node_urls.get(node_name)
 
+    # ── Node management ────────────────────────────────────────────────────────
+
+    def add_node(self, name: str, url: str) -> None:
+        """Add a node to the in-memory map and persist to nodes.toml."""
+        self._node_urls[name] = url
+        self._write_toml()
+        logger.info("mesh_router: added node %r url=%r", name, url)
+
+    def remove_node(self, name: str) -> bool:
+        """Remove a node from the in-memory map and persist to nodes.toml."""
+        if name not in self._node_urls:
+            return False
+        del self._node_urls[name]
+        # Also remove agent assignments pointing to this node
+        self._agent_nodes = {a: n for a, n in self._agent_nodes.items() if n != name}
+        self._write_toml()
+        logger.info("mesh_router: removed node %r", name)
+        return True
+
+    def reload(self) -> None:
+        """Re-read nodes.toml without restarting the server."""
+        self._self_name = ""
+        self._node_urls = {}
+        self._agent_nodes = {}
+        self._loaded = False
+        self._load()
+        logger.info("mesh_router: reloaded")
+
+    def _write_toml(self) -> None:
+        """Persist current node state back to nodes.toml.
+
+        Reads the existing file to preserve unknown fields (llm_instances, etc.),
+        then rewrites the [[mesh.nodes]] section with the current node map.
+        """
+        if not self._path.exists():
+            return
+        try:
+            with open(self._path, "rb") as f:
+                import tomllib as _tomllib
+                data = _tomllib.load(f)
+        except Exception:
+            logger.exception("mesh_router: failed to read %s for write", self._path)
+            return
+
+        mesh = data.get("mesh", {})
+
+        # Rebuild nodes list: keep existing metadata, upsert new nodes
+        existing_nodes: list[dict] = mesh.get("nodes", [])
+        existing_by_name = {n["name"]: n for n in existing_nodes if "name" in n}
+        for node_name, node_url in self._node_urls.items():
+            if node_name in existing_by_name:
+                existing_by_name[node_name]["url"] = node_url
+            else:
+                existing_by_name[node_name] = {"name": node_name, "url": node_url}
+        # Remove nodes that are no longer in _node_urls
+        new_nodes = [v for k, v in existing_by_name.items() if k in self._node_urls]
+        mesh["nodes"] = new_nodes
+        data["mesh"] = mesh
+
+        # Serialize to TOML manually (tomllib is read-only, use simple writer)
+        try:
+            toml_str = _dict_to_toml(data)
+            self._path.write_text(toml_str)
+            logger.info("mesh_router: nodes.toml updated (%d nodes)", len(new_nodes))
+        except Exception:
+            logger.exception("mesh_router: failed to write %s", self._path)
+
     async def forward(
         self,
         node_url: str,
@@ -105,6 +172,53 @@ class MeshRouter:
         except Exception:
             logger.exception("mesh_router: unexpected error forwarding to %s", target)
             return {"error": "remote_error", "response": None}
+
+
+# ── TOML writer (tomllib is read-only) ────────────────────────────────────────
+
+def _toml_value(v: object) -> str:
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    if isinstance(v, int):
+        return str(v)
+    if isinstance(v, float):
+        return str(v)
+    if isinstance(v, str):
+        escaped = v.replace("\\", "\\\\").replace('"', '\\"')
+        return f'"{escaped}"'
+    if isinstance(v, list):
+        items = ", ".join(_toml_value(i) for i in v)
+        return f"[{items}]"
+    return f'"{v}"'
+
+
+def _dict_to_toml(data: dict) -> str:
+    """Minimal TOML serializer sufficient for nodes.toml structure."""
+    lines: list[str] = []
+    array_of_tables: list[tuple[str, list[dict]]] = []
+
+    # Top-level scalar + inline table keys first
+    for key, val in data.items():
+        if isinstance(val, dict):
+            lines.append(f"\n[{key}]")
+            for k2, v2 in val.items():
+                if isinstance(v2, list) and v2 and isinstance(v2[0], dict):
+                    # array of tables — defer to end
+                    array_of_tables.append((f"{key}.{k2}", v2))
+                elif isinstance(v2, dict):
+                    pass  # nested tables not needed for nodes.toml
+                else:
+                    lines.append(f"{k2} = {_toml_value(v2)}")
+        else:
+            lines.append(f"{key} = {_toml_value(val)}")
+
+    for table_key, items in array_of_tables:
+        for item in items:
+            lines.append(f"\n[[{table_key}]]")
+            for k, v in item.items():
+                lines.append(f"{k} = {_toml_value(v)}")
+
+    return "\n".join(lines) + "\n"
 
 
 # ── Module-level singleton ─────────────────────────────────────────────────────

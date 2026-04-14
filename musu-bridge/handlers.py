@@ -224,3 +224,110 @@ def receive_messages(messages: list[dict]) -> int:
     """Bulk-insert messages received from a peer. Returns count written."""
     backend = _get_backend()
     return backend.bulk_insert_messages(messages)
+
+
+# --- Node management ---
+
+
+def get_node_info() -> dict[str, Any]:
+    """Return this node's identity info for peer exchange."""
+    mesh = get_mesh_router()
+    cfg = get_bridge_config()
+    backend = _get_backend()
+    agents = [a["name"] for a in backend.list_agents()]
+    return {
+        "name": mesh._self_name,
+        "url": mesh.url_for_node(mesh._self_name) or "",
+        "agents": agents,
+        "version": "0.2.0",
+    }
+
+
+async def pair_with_node(ip: str, port: int) -> dict[str, Any]:
+    """Initiate HTTP pairing with a remote node.
+
+    1. GET remote /api/admin/node-info
+    2. POST remote /api/admin/pair/accept with local node info
+    3. Update local nodes.toml + reload MeshRouter
+    """
+    import httpx
+    remote_base = f"http://{ip}:{port}"
+
+    # 1. Fetch remote node info
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(f"{remote_base}/api/admin/node-info")
+            if resp.status_code != 200:
+                return {"success": False, "error": f"Remote returned {resp.status_code}"}
+            remote_info = resp.json()
+    except (httpx.ConnectError, httpx.TimeoutException) as exc:
+        return {"success": False, "error": f"Cannot reach {remote_base}: {exc}"}
+
+    remote_name = remote_info.get("name", "")
+    remote_url = remote_info.get("url", "") or remote_base
+
+    # 2. Send local node info to remote so it can add us
+    local_info = get_node_info()
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(
+                f"{remote_base}/api/admin/pair/accept",
+                json=local_info,
+            )
+            if resp.status_code != 200:
+                return {"success": False, "error": f"Remote pair/accept returned {resp.status_code}"}
+    except (httpx.ConnectError, httpx.TimeoutException) as exc:
+        return {"success": False, "error": f"pair/accept failed: {exc}"}
+
+    # 3. Update local nodes.toml
+    mesh = get_mesh_router()
+    mesh.add_node(remote_name, remote_url)
+    mesh.reload()
+
+    return {"success": True, "node_name": remote_name, "node_url": remote_url}
+
+
+def accept_pair(node_info: dict[str, Any]) -> dict[str, Any]:
+    """Accept a pairing request from a remote node — update local nodes.toml."""
+    name = node_info.get("name", "")
+    url = node_info.get("url", "")
+    if not name or not url:
+        return {"success": False, "error": "Missing name or url"}
+    mesh = get_mesh_router()
+    mesh.add_node(name, url)
+    mesh.reload()
+    logger.info("accept_pair: added node %r url=%r", name, url)
+    return {"success": True, "node_name": name}
+
+
+async def list_nodes() -> list[dict[str, Any]]:
+    """List all configured nodes with online/offline status."""
+    import httpx
+    mesh = get_mesh_router()
+    nodes = []
+    for node_name, node_url in mesh._node_urls.items():
+        is_self = node_name == mesh._self_name
+        status = "self" if is_self else "unknown"
+        if not is_self:
+            try:
+                async with httpx.AsyncClient(timeout=3.0) as client:
+                    resp = await client.get(f"{node_url.rstrip('/')}/health")
+                    status = "online" if resp.status_code == 200 else "error"
+            except Exception:
+                status = "offline"
+        nodes.append({
+            "name": node_name,
+            "url": node_url,
+            "status": status,
+            "is_self": is_self,
+        })
+    return nodes
+
+
+def disconnect_node(name: str) -> bool:
+    """Remove a node from nodes.toml."""
+    mesh = get_mesh_router()
+    ok = mesh.remove_node(name)
+    if ok:
+        mesh.reload()
+    return ok
