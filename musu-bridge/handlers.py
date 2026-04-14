@@ -245,6 +245,22 @@ def get_node_info() -> dict[str, Any]:
     }
 
 
+def _is_safe_pair_ip(ip: str) -> bool:
+    """Return True if the IP is safe to pair with.
+
+    Blocks loopback and link-local ranges to prevent SSRF against local
+    services (e.g. AWS metadata at 169.254.169.254). Private LAN and
+    Tailscale ranges (100.x.x.x, 192.168.x.x, 10.x.x.x) are allowed
+    because pairing over LAN/VPN is the primary use case.
+    """
+    import ipaddress
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return False  # reject hostnames — only bare IPs allowed
+    return not addr.is_loopback and not addr.is_link_local and not addr.is_unspecified
+
+
 async def pair_with_node(ip: str, port: int) -> dict[str, Any]:
     """Initiate HTTP pairing with a remote node.
 
@@ -253,6 +269,10 @@ async def pair_with_node(ip: str, port: int) -> dict[str, Any]:
     3. Update local nodes.toml + reload MeshRouter
     """
     import httpx
+
+    if not _is_safe_pair_ip(ip):
+        return {"success": False, "error": f"IP {ip!r} is not a routable address"}
+
     remote_base = f"http://{ip}:{port}"
 
     # 1. Fetch remote node info

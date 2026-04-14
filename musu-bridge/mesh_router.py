@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 import tomllib
 from pathlib import Path
 from typing import Any
@@ -11,6 +12,7 @@ import httpx
 logger = logging.getLogger(__name__)
 
 _DEFAULT_CONFIG_PATH = Path.home() / ".musu" / "nodes.toml"
+_TOML_WRITE_LOCK = threading.Lock()
 
 
 class MeshRouter:
@@ -110,7 +112,13 @@ class MeshRouter:
 
         Reads the existing file to preserve unknown fields (llm_instances, etc.),
         then rewrites the [[mesh.nodes]] section with the current node map.
+        Thread-safe via module-level lock.
         """
+        with _TOML_WRITE_LOCK:
+            self._write_toml_locked()
+
+    def _write_toml_locked(self) -> None:
+        """Internal — must be called under _TOML_WRITE_LOCK."""
         # Create file with minimal structure if it doesn't exist yet
         if not self._path.exists():
             self._path.parent.mkdir(parents=True, exist_ok=True)
@@ -191,7 +199,13 @@ def _toml_value(v: object) -> str:
     if isinstance(v, float):
         return str(v)
     if isinstance(v, str):
-        escaped = v.replace("\\", "\\\\").replace('"', '\\"')
+        escaped = (
+            v.replace("\\", "\\\\")
+            .replace('"', '\\"')
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+            .replace("\t", "\\t")
+        )
         return f'"{escaped}"'
     if isinstance(v, list):
         items = ", ".join(_toml_value(i) for i in v)
