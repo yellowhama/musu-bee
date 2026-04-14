@@ -233,7 +233,7 @@ export function useChat(channel: ChannelId): UseChatReturn {
           setIsAgentTyping(false);
           const approvalMatch = /\[APPROVAL_REQUIRED:\s*([^\]]+)\]/i.exec(data.text ?? "");
           if (approvalMatch) {
-            const action = approvalMatch[1].trim();
+            const action = approvalMatch[1].trim().slice(0, 200).replace(/[<>]/g, "");
             setMessages((prev) => [
               ...prev.slice(-(499)),
               {

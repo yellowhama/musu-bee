@@ -21,8 +21,9 @@ export async function GET(req: NextRequest) {
 
   if (!q) return NextResponse.json({ results: [] });
 
+  let db: InstanceType<typeof DatabaseSync> | null = null;
   try {
-    const db = new DatabaseSync(INDEX_DB_PATH);
+    db = new DatabaseSync(INDEX_DB_PATH);
     const rows = db
       .prepare(
         `SELECT path, title, type,
@@ -34,10 +35,12 @@ export async function GET(req: NextRequest) {
          LIMIT ?`
       )
       .all(q, limit) as unknown as SearchRow[];
-    db.close();
     return NextResponse.json({ results: rows });
   } catch (err) {
     // DB not found or FTS error — return empty gracefully
-    return NextResponse.json({ results: [], error: String(err) });
+    console.error("[index-search] query error:", err);
+    return NextResponse.json({ results: [] });
+  } finally {
+    db?.close();
   }
 }

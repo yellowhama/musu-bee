@@ -51,7 +51,20 @@ const MUSU_BRIDGE_URL = (
   process.env.MUSU_BRIDGE_URL ?? "http://localhost:8070"
 ).replace(/\/+$/, "");
 
-const MUSU_BRIDGE_REMOTE_URL = process.env.MUSU_BRIDGE_REMOTE_URL ?? null;
+/** Validate that a URL is an allowed musu-bridge endpoint (http/https, no path traversal). */
+function validateBridgeUrl(raw: string): string | null {
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+    return u.origin; // strip any path/query — only origin is used
+  } catch {
+    return null;
+  }
+}
+
+const MUSU_BRIDGE_REMOTE_URL = process.env.MUSU_BRIDGE_REMOTE_URL
+  ? validateBridgeUrl(process.env.MUSU_BRIDGE_REMOTE_URL)
+  : null;
 
 const AGENT_ROUTE_TIMEOUT_MS = 300_000; // 5 min — matches claude_local default
 
@@ -92,9 +105,9 @@ export async function POST(req: NextRequest) {
     clearTimeout(timer);
 
     if (!upstream.ok) {
-      const errText = await upstream.text().catch(() => "");
+      await upstream.text().catch(() => ""); // drain body
       return NextResponse.json(
-        { error: "bridge_error", detail: errText },
+        { error: "bridge_error" },
         { status: upstream.status },
       );
     }
@@ -124,8 +137,9 @@ export async function POST(req: NextRequest) {
     if (err instanceof Error && err.name === "AbortError") {
       return NextResponse.json({ error: "agent_timeout" }, { status: 504 });
     }
+    console.error("[agent-route] bridge unavailable:", err);
     return NextResponse.json(
-      { error: "bridge_unavailable", detail: String(err) },
+      { error: "bridge_unavailable" },
       { status: 503 },
     );
   }
