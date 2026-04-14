@@ -3,6 +3,7 @@
 import type { CompanyActivationState } from "@/lib/companyActivation";
 import type { DefaultCompanyTemplate } from "@/lib/templates/defaultCompanyTemplate";
 import type { AgentsSurfaceSnapshot, Channel, ChannelId, Device } from "@/types";
+import CompanyPanel from "@/components/CompanyPanel";
 
 interface SidebarProps {
   channels: Channel[];
@@ -459,6 +460,16 @@ export default function Sidebar({
             Comment contract: {companyTemplate?.boardCommentContract.requiredFields.join(", ") ?? "Role, Command, Artifact"}
           </div>
         </div>
+      </div>
+
+      {/* Divider */}
+      <div
+        style={{ borderTop: "1px solid #1f1f1f", margin: "4px 0 12px 0" }}
+      />
+
+      {/* Companies (musu-bridge SSOT) */}
+      <div style={{ marginBottom: 12 }}>
+        <CompanyPanel />
       </div>
 
       {/* Divider */}

@@ -128,3 +128,46 @@ def delete_message_by_id(message_id: str) -> bool:
     """Delete a message by id. Returns True if deleted, False if not found."""
     backend = _get_backend()
     return backend.delete_message(message_id)
+
+
+# --- Company management ---
+
+
+def list_companies(workspace_id: str | None = None) -> list[dict[str, Any]]:
+    """List all companies, optionally filtered by workspace_id."""
+    backend = _get_backend()
+    return backend.list_companies(workspace_id=workspace_id)
+
+
+def create_company(
+    name: str,
+    template_key: str = "default",
+    workspace_id: str = "",
+    meta: dict | None = None,
+) -> dict[str, Any]:
+    """Create a new company."""
+    backend = _get_backend()
+    return backend.create_company(
+        name=name,
+        template_key=template_key,
+        workspace_id=workspace_id,
+        meta=meta,
+    )
+
+
+def get_company(company_id: str) -> dict[str, Any] | None:
+    """Get a company by id, or None if not found."""
+    backend = _get_backend()
+    return backend.get_company(company_id)
+
+
+def update_company(company_id: str, **kwargs: Any) -> dict[str, Any] | None:
+    """Update a company's fields. Returns updated company or None if not found."""
+    backend = _get_backend()
+    return backend.update_company(company_id, **kwargs)
+
+
+def delete_company(company_id: str) -> bool:
+    """Delete a company by id. Returns True if deleted, False if not found."""
+    backend = _get_backend()
+    return backend.delete_company(company_id)

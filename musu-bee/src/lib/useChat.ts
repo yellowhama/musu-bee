@@ -37,6 +37,9 @@ function parsePlan(msgId: string, text: string): MessagePlan | null {
 const WS_BASE =
   process.env.NEXT_PUBLIC_MUSU_PORT_WS_URL ?? "ws://localhost:1355";
 
+const WS_REMOTE_BASE =
+  process.env.NEXT_PUBLIC_MUSU_PORT_WS_REMOTE_URL ?? null;
+
 // ── History localStorage cache ─────────────────────────────────────────────
 // Restores the last 50 messages per channel when musu-bridge is unreachable.
 
@@ -203,7 +206,8 @@ export function useChat(channel: ChannelId): UseChatReturn {
     if (!isAgentChannel) return;
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
-    const ws = new WebSocket(`${WS_BASE}/chat/ws/${channel}`);
+    const wsBase = activeNode === "remote" && WS_REMOTE_BASE ? WS_REMOTE_BASE : WS_BASE;
+    const ws = new WebSocket(`${wsBase}/chat/ws/${channel}`);
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -284,6 +288,17 @@ export function useChat(channel: ChannelId): UseChatReturn {
       wsRef.current = null;
     };
   }, [connect, isAgentChannel]);
+
+  // Reconnect WS when activeNode changes (LOCAL ↔ REMOTE)
+  useEffect(() => {
+    if (!isAgentChannel) return;
+    clearTimeout(reconnectTimer.current);
+    wsRef.current?.close();
+    wsRef.current = null;
+    reconnectDelay.current = 1000;
+    connect();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeNode]);
 
   // ── musu-bridge agent route ────────────────────────────────────────────────
 

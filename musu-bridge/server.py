@@ -38,6 +38,7 @@ from handlers import (
     list_companies,
     list_messages,
     route_chat,
+    update_company,
 )
 
 logger = logging.getLogger(__name__)
@@ -54,14 +55,16 @@ apply_musu_middlewares(
 app.add_middleware(CSRFOriginGuard)
 app.add_middleware(HostnameGuard)
 
+_default_origins = "http://localhost:3000,http://localhost:3001,http://localhost:1355"
+_allowed_origins = [
+    o.strip()
+    for o in os.getenv("MUSU_BRIDGE_ALLOWED_ORIGINS", _default_origins).split(",")
+    if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://localhost:1355",
-    ],
-    allow_methods=["GET", "POST", "DELETE"],
+    allow_origins=_allowed_origins,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["Content-Type"],
 )
 
@@ -77,6 +80,13 @@ class CompanyCreateRequest(BaseModel):
     template_key: str = "default"
     workspace_id: str = ""
     meta: dict = {}
+
+
+class CompanyUpdateRequest(BaseModel):
+    name: str | None = None
+    template_key: str | None = None
+    workspace_id: str | None = None
+    meta: dict | None = None
 
 
 @app.post("/api/route")
@@ -193,6 +203,18 @@ async def api_get_company(company_id: str) -> dict:
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
     return company
+
+
+@app.put("/api/companies/{company_id}", summary="Update a company")
+async def api_update_company(company_id: str, req: CompanyUpdateRequest) -> dict:
+    """Update a company's fields."""
+    updates = {k: v for k, v in req.model_dump().items() if v is not None}
+    if not updates:
+        raise HTTPException(status_code=422, detail="No fields to update")
+    updated = update_company(company_id, **updates)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return updated
 
 
 @app.delete("/api/companies/{company_id}", summary="Delete a company")
