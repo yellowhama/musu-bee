@@ -217,6 +217,28 @@ def _v5_down(conn: sqlite3.Connection) -> None:  # noqa: ARG001
 
 
 # ---------------------------------------------------------------------------
+# v6: add created_at index to route_executions for list pagination
+# ---------------------------------------------------------------------------
+
+
+def _v6_up(conn: sqlite3.Connection) -> None:
+    """Add created_at index to route_executions (used by list_route_executions ORDER BY)."""
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_route_executions_created"
+        " ON route_executions(created_at);"
+    )
+    conn.commit()
+
+
+def _v6_down(conn: sqlite3.Connection) -> None:
+    try:
+        conn.execute("DROP INDEX IF EXISTS idx_route_executions_created;")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
@@ -227,6 +249,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v3_fallback_metrics_drop_fk", _v3_up, _v3_down),
     ("v4_company_layer", _v4_up, _v4_down),
     ("v5_route_executions_retry_count", _v5_up, _v5_down),
+    ("v6_route_executions_created_index", _v6_up, _v6_down),
 ]
 
 

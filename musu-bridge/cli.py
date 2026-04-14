@@ -131,6 +131,7 @@ def cmd_generate_service(node_name: str, public_url: str, user_mode: bool = Fals
     if public_url:
         env_lines += f"Environment=MUSU_BRIDGE_PUBLIC_URL={public_url}\n"
 
+    # Quote paths to handle spaces in directory names
     service_content = (
         f"[Unit]\n"
         f"Description=musu-bridge agent routing server ({node_name})\n"
@@ -138,8 +139,8 @@ def cmd_generate_service(node_name: str, public_url: str, user_mode: bool = Fals
         f"\n"
         f"[Service]\n"
         f"Type=simple\n"
-        f"WorkingDirectory={bridge_dir}\n"
-        f"ExecStart={python_path} {bridge_dir}/server.py\n"
+        f'WorkingDirectory="{bridge_dir}"\n'
+        f'ExecStart={python_path} "{bridge_dir}/server.py"\n'
         f"Restart=always\n"
         f"RestartSec=5\n"
         f"{env_lines}"

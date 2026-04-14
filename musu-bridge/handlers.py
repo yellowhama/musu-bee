@@ -193,11 +193,18 @@ def list_task_records(
 
 
 def cancel_task_record(task_id: str) -> bool:
-    """Mark a task as failed/cancelled in the DB. Returns False if not found."""
+    """Mark a task as failed/cancelled in the DB.
+
+    Returns False if not found. No-ops if task is already in a terminal
+    state (done/failed) to preserve the accurate final status.
+    """
     backend = _get_backend()
     rec = backend.get_route_execution(task_id)
     if rec is None:
         return False
+    if rec.get("status") in ("done", "failed"):
+        # Already terminal — don't overwrite the real final status
+        return True
     backend.update_route_execution(task_id, "failed", error="cancelled")
     return True
 

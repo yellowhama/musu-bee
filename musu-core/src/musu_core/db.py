@@ -160,6 +160,7 @@ CREATE TABLE IF NOT EXISTS route_executions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_route_executions_status ON route_executions(status);
+CREATE INDEX IF NOT EXISTS idx_route_executions_created ON route_executions(created_at);
 
 CREATE INDEX IF NOT EXISTS idx_companies_workspace ON companies(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_role_templates_company ON company_role_templates(company_id);
