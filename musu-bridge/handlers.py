@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import sys
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -43,6 +44,28 @@ async def route_chat(channel: str, sender_id: str, text: str) -> dict[str, Any]:
     if not text.strip():
         return {"error": "Empty message", "response": None}
 
+    # ── Durable execution record ───────────────────────────────────────────────
+    exec_id = str(uuid.uuid4())
+    backend = _get_backend()
+    try:
+        backend.create_route_execution(exec_id, channel, sender_id, text)
+        backend.update_route_execution(exec_id, "running")
+    except Exception:
+        logger.warning("route_chat: failed to create durability record — continuing")
+        exec_id = ""  # Non-fatal: proceed without durability
+
+    def _finish(result: dict[str, Any], node: str | None = None) -> dict[str, Any]:
+        """Mark execution done/failed and return result."""
+        if exec_id:
+            try:
+                if result.get("error"):
+                    backend.update_route_execution(exec_id, "failed", error=result["error"], node=node)
+                else:
+                    backend.update_route_execution(exec_id, "done", output=result.get("response"), node=node)
+            except Exception:
+                pass
+        return result
+
     # ── Mesh routing: forward to remote node if assigned ──────────────────────
     mesh = get_mesh_router()
     if mesh.enabled and mesh.is_remote(channel):
@@ -57,7 +80,7 @@ async def route_chat(channel: str, sender_id: str, text: str) -> dict[str, Any]:
                 # Fall through to local handler below
             else:
                 logger.info("mesh_router: forwarding channel=%r to node=%r url=%r", channel, node, url)
-                return await mesh.forward(url, channel, sender_id, text)
+                return _finish(await mesh.forward(url, channel, sender_id, text), node=node)
         else:
             logger.warning("mesh_router: no URL for node=%r, falling through to local", node)
 
@@ -65,7 +88,7 @@ async def route_chat(channel: str, sender_id: str, text: str) -> dict[str, Any]:
     cfg = get_bridge_config()
 
     if channel not in cfg.channel_agent_map:
-        return {"error": f"No agent mapped to channel: {channel!r}", "response": None}
+        return _finish({"error": f"No agent mapped to channel: {channel!r}", "response": None})
 
     try:
         response = await route_message(
@@ -76,25 +99,24 @@ async def route_chat(channel: str, sender_id: str, text: str) -> dict[str, Any]:
         )
     except ValueError as exc:
         logger.warning("route_chat: no agent for channel %r — %s", channel, exc)
-        return {"error": "No agent available for this channel.", "response": None}
+        return _finish({"error": "No agent available for this channel.", "response": None})
     except RuntimeError as exc:
         logger.error("route_chat: adapter failure — %s", exc)
-        return {"error": "Agent unavailable. Please try again later.", "response": None}
+        return _finish({"error": "Agent unavailable. Please try again later.", "response": None})
     except Exception as exc:
         logger.exception("route_chat: unexpected error — %s", exc)
-        return {"error": "Internal error. Please try again.", "response": None}
+        return _finish({"error": "Internal error. Please try again.", "response": None})
 
     # Look up agent info
-    backend = _get_backend()
     agent = backend.get_agent_by_name(channel)
     agent_id = agent["id"] if agent else None
     agent_name = agent["role"] if agent else channel
 
-    return {
+    return _finish({
         "response": response,
         "agent_id": agent_id,
         "agent_name": agent_name,
-    }
+    })
 
 
 def get_agents() -> list[dict[str, Any]]:

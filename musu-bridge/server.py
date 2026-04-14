@@ -88,6 +88,20 @@ async def lifespan(app: FastAPI):
     else:
         logger.info("registry: MUSU_TOKEN not set — cloud registry disabled")
 
+    # Re-dispatch any pending/running route executions from before last restart
+    try:
+        pending = _get_backend().list_pending_route_executions()
+        if pending:
+            logger.info("durability: re-dispatching %d pending route executions", len(pending))
+            for rec in pending:
+                asyncio.create_task(route_chat(
+                    channel=rec["channel"],
+                    sender_id=rec["sender_id"],
+                    text=rec["input"],
+                ))
+    except Exception:
+        logger.warning("durability: failed to re-dispatch pending executions")
+
     # mDNS zero-config discovery (optional — graceful if zeroconf not installed)
     discovery = get_discovery()
     try:

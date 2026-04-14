@@ -376,6 +376,47 @@ class LocalBackend(BackendABC):
             )
         return count
 
+    # --- Route execution durability ---
+
+    def create_route_execution(
+        self, exec_id: str, channel: str, sender_id: str, input_text: str
+    ) -> None:
+        """Insert a new route execution record with status='pending'."""
+        self._db.execute(
+            """
+            INSERT INTO route_executions (id, channel, sender_id, input, status)
+            VALUES (?, ?, ?, ?, 'pending')
+            """,
+            (exec_id, channel, sender_id, input_text),
+        )
+
+    def update_route_execution(
+        self,
+        exec_id: str,
+        status: str,
+        output: str | None = None,
+        error: str | None = None,
+        node: str | None = None,
+    ) -> None:
+        """Update status (and optional output/error/node) for a route execution."""
+        self._db.execute(
+            """
+            UPDATE route_executions
+            SET status = ?, output = ?, error = ?, node = ?,
+                updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+            WHERE id = ?
+            """,
+            (status, output, error, node, exec_id),
+        )
+
+    def list_pending_route_executions(self) -> list[dict[str, Any]]:
+        """Return all route executions with status='pending' or 'running'."""
+        rows = self._db.execute(
+            "SELECT * FROM route_executions WHERE status IN ('pending', 'running')"
+            " ORDER BY created_at ASC"
+        )
+        return [dict(r) for r in rows]
+
     # --- Company helpers ---
 
     def create_company(
