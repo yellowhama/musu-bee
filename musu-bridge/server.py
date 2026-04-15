@@ -31,6 +31,7 @@ from pydantic import BaseModel, Field
 from musu_core.middleware import apply_musu_middlewares
 import audit
 from config import get_config
+from system_stats import collect_stats_async
 from csrf_guard import CSRFOriginGuard
 from hostname_guard import HostnameGuard
 from handlers import (
@@ -708,6 +709,12 @@ async def api_task_events(request: Request) -> StreamingResponse:
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@app.get("/api/system/stats", summary="System resource usage (CPU, RAM, disk, GPU)")
+async def api_system_stats() -> dict:
+    """Return current CPU, RAM, disk, and GPU stats for this node."""
+    return await collect_stats_async()
 
 
 @app.get("/health")
