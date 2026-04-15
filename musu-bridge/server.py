@@ -94,7 +94,7 @@ async def lifespan(app: FastAPI):
     from mesh_router import get_mesh_router
     from sync_engine import get_sync_engine
     from handlers import _get_backend
-    from registry import heartbeat_loop
+    from registry import heartbeat_loop, peer_discovery_loop
     from discovery import get_discovery, get_tailscale_ip
 
     router = get_mesh_router()
@@ -107,8 +107,9 @@ async def lifespan(app: FastAPI):
         task = None
         logger.info("sync_engine: mesh disabled, skipping sync")
 
-    # Cloud registry heartbeat (optional — only when MUSU_TOKEN is set)
+    # Cloud registry heartbeat + peer discovery (optional — only when MUSU_TOKEN is set)
     registry_task = None
+    peer_discovery_task = None
     cfg = get_config()
     musu_token = cfg.musu_token
     if musu_token:
@@ -118,6 +119,29 @@ async def lifespan(app: FastAPI):
             heartbeat_loop(token=musu_token, node_name=node_name, public_url=public_url)
         )
         logger.info("registry: heartbeat task started for node=%r", node_name)
+
+        # Bootstrap peers from local cache (fast path — no network call)
+        from peer_cache import get_peer_cache
+        peer_cache = get_peer_cache()
+        cached = peer_cache.all()
+        for p in cached:
+            try:
+                router.add_node(p.node_name, p.public_url, agents=[])
+            except Exception:
+                pass
+        if cached:
+            logger.info("peer_cache: pre-loaded %d peer(s) from disk", len(cached))
+
+        # Start peer discovery loop (fetches musu.pro, updates cache + router)
+        peer_discovery_task = asyncio.create_task(
+            peer_discovery_loop(
+                token=musu_token,
+                self_node_name=node_name,
+                cache=peer_cache,
+                router=router,
+            )
+        )
+        logger.info("registry: peer discovery task started")
     else:
         logger.info("registry: MUSU_TOKEN not set — cloud registry disabled")
 
@@ -183,6 +207,8 @@ async def lifespan(app: FastAPI):
     discovery.close()
     if registry_task:
         registry_task.cancel()
+    if peer_discovery_task:
+        peer_discovery_task.cancel()
     if task:
         task.cancel()
 

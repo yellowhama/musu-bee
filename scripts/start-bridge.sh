@@ -33,6 +33,43 @@ if command -v ss &>/dev/null; then
     fi
 fi
 
+# ── musu-connectsd bridge-proxy (QUIC sidecar) ────────────────
+CONNECTSD_BIN="${ROOT}/musu-connects/target/release/musu-connectsd"
+QUIC_PID=""
+
+if [[ -f "$CONNECTSD_BIN" ]]; then
+    QUIC_PORT="${MUSU_QUIC_PORT:-4433}"
+    HTTP_PROXY_PORT="${MUSU_HTTP_PROXY_PORT:-9443}"
+    LOCAL_BRIDGE_URL="${MUSU_BRIDGE_URL:-http://127.0.0.1:${BRIDGE_PORT}}"
+
+    mkdir -p "${ROOT}/logs"
+    "$CONNECTSD_BIN" bridge-proxy \
+        --quic-port "$QUIC_PORT" \
+        --http-port "$HTTP_PROXY_PORT" \
+        --bridge-url "$LOCAL_BRIDGE_URL" \
+        >> "${ROOT}/logs/musu-connectsd.log" 2>&1 &
+    QUIC_PID=$!
+
+    sleep 1
+    if kill -0 "$QUIC_PID" 2>/dev/null; then
+        echo "[start-bridge] musu-connectsd bridge-proxy started (PID $QUIC_PID, QUIC :${QUIC_PORT}, HTTP :${HTTP_PROXY_PORT})" >&2
+        export MUSU_QUIC_PROXY_URL="http://127.0.0.1:${HTTP_PROXY_PORT}"
+    else
+        echo "[start-bridge] WARN: musu-connectsd exited immediately — QUIC disabled. Check logs/musu-connectsd.log" >&2
+        QUIC_PID=""
+        export MUSU_QUIC_PROXY_URL=""
+    fi
+else
+    echo "[start-bridge] musu-connectsd not found — QUIC disabled (HTTP-only mode)" >&2
+    echo "  Build: cd musu-connects && cargo build --release -p musu-connectsd" >&2
+    export MUSU_QUIC_PROXY_URL=""
+fi
+
+# Cleanup: kill QUIC sidecar on exit
+if [[ -n "$QUIC_PID" ]]; then
+    trap "kill $QUIC_PID 2>/dev/null || true" EXIT INT TERM
+fi
+
 # ── PYTHONPATH 설정 + 실행 ────────────────────────────────────
 export PYTHONPATH="${ROOT}/musu-core/src:${ROOT}/musu-bridge:${PYTHONPATH:-}"
 

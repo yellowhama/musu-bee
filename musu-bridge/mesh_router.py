@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import threading
 import time
 try:
@@ -14,6 +15,10 @@ from typing import Any
 import httpx
 
 logger = logging.getLogger(__name__)
+
+# QUIC proxy sidecar URL (musu-connectsd bridge-proxy).
+# Set to "" to disable QUIC and always use HTTP.
+_QUIC_PROXY_URL = os.getenv("MUSU_QUIC_PROXY_URL", "http://127.0.0.1:9443")
 
 _DEFAULT_CONFIG_PATH = Path.home() / ".musu" / "nodes.toml"
 _TOML_WRITE_LOCK = threading.Lock()
@@ -233,9 +238,53 @@ class MeshRouter:
         sender_id: str,
         text: str,
     ) -> dict[str, Any]:
-        """HTTP POST to remote musu-bridge /api/route and return the response dict."""
+        """Forward a message to a remote musu-bridge node.
+
+        Tries QUIC sidecar first (musu-connectsd bridge-proxy), falls back to HTTP.
+        """
+        if _QUIC_PROXY_URL:
+            try:
+                return await self._forward_quic(node_url, channel, sender_id, text)
+            except Exception as exc:
+                logger.warning(
+                    "mesh_router: QUIC proxy failed (%s) — falling back to HTTP", exc
+                )
+        return await self._forward_http(node_url, channel, sender_id, text)
+
+    async def _forward_quic(
+        self,
+        node_url: str,
+        channel: str,
+        sender_id: str,
+        text: str,
+    ) -> dict[str, Any]:
+        """Forward via local musu-connectsd bridge-proxy (QUIC tunnel)."""
+        proxy_target = f"{_QUIC_PROXY_URL.rstrip('/')}/forward"
+        payload = {
+            "peer_url": node_url,
+            "channel": channel,
+            "sender_id": sender_id,
+            "text": text,
+        }
+        logger.info(
+            "mesh_router: QUIC forward channel=%r → peer=%s", channel, node_url
+        )
+        async with httpx.AsyncClient(timeout=305.0) as client:
+            resp = await client.post(proxy_target, json=payload)
+            resp.raise_for_status()
+            return resp.json()
+
+    async def _forward_http(
+        self,
+        node_url: str,
+        channel: str,
+        sender_id: str,
+        text: str,
+    ) -> dict[str, Any]:
+        """HTTP POST to remote musu-bridge /api/route (fallback)."""
         target = f"{node_url.rstrip('/')}/api/route"
         payload = {"channel": channel, "sender_id": sender_id, "text": text}
+        logger.info("mesh_router: HTTP forward channel=%r → %s", channel, target)
         try:
             async with httpx.AsyncClient(timeout=300.0) as client:
                 resp = await client.post(target, json=payload)

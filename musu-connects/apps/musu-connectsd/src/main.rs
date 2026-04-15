@@ -1,3 +1,5 @@
+mod bridge_proxy;
+
 use std::collections::HashSet;
 use std::fs;
 use std::net::SocketAddr;
@@ -17,12 +19,14 @@ use serde::Serialize;
 const USAGE: &str = "\
 Usage:
   musu-connectsd
+  musu-connectsd bridge-proxy [--quic-port <port>] [--http-port <port>] [--bridge-url <url>]
   musu-connectsd live-harness --routes-json <path> --proof-json <path> [--service <name-or-alias>] [--now <iso8601>] [--peer-id <id>] [--device-id <id>] [--device-label <label>] [--host-platform <platform>] [--runtime-profile <profile>] [--discovered-via <method>] [--trust-level <blocked|known|trusted|shared-org>] [--discovery-state <seeded|discovered|handshaking|verified|connected|degraded|blocked|forgotten>] [--runtime-evidence-path <path>]
   musu-connectsd real-peer-harness --proof-json <path>
   musu-connectsd tailscale-quic-server --bind <ip:port> --proof-json <path> [--max-pings <count>] [--idle-timeout-ms <ms>]
   musu-connectsd tailscale-quic-client --bind <ip:port> --server <ip:port> --proof-json <path> [--count <samples>] [--payload-bytes <bytes>] [--idle-timeout-ms <ms>]
 
 Commands:
+  bridge-proxy       QUIC tunnel sidecar for musu-bridge (HTTP↔QUIC proxy)
   live-harness       Run a cross-repo route import proof from musu-port /routes JSON and write a proof artifact
   real-peer-harness  Run a 2-endpoint loopback QUIC session proof with OS-observed ephemeral remote_addr
   tailscale-quic-server  Run QUIC server for cross-host ping/pong evidence on a Tailscale/LAN address
@@ -102,6 +106,12 @@ fn main() {
         Some("tailscale-quic-client") => {
             if let Err(err) = run_tailscale_quic_client(&args[1..]) {
                 eprintln!("tailscale-quic-client failed: {err}");
+                std::process::exit(1);
+            }
+        }
+        Some("bridge-proxy") => {
+            if let Err(err) = run_bridge_proxy_cmd(&args[1..]) {
+                eprintln!("bridge-proxy failed: {err}");
                 std::process::exit(1);
             }
         }
@@ -1134,6 +1144,66 @@ fn select_route(
         }
     })
 }
+
+// ── bridge-proxy CLI command ──────────────────────────────────────────────────
+
+fn run_bridge_proxy_cmd(raw_args: &[String]) -> Result<(), String> {
+    let mut quic_port: u16 = 4433;
+    let mut http_port: u16 = 9443;
+    let mut bridge_url = "http://127.0.0.1:8070".to_string();
+
+    let mut i = 0;
+    while i < raw_args.len() {
+        match raw_args[i].as_str() {
+            "--quic-port" => {
+                i += 1;
+                quic_port = raw_args.get(i)
+                    .ok_or("--quic-port requires a value")?
+                    .parse::<u16>()
+                    .map_err(|e| format!("--quic-port: {e}"))?;
+            }
+            "--http-port" => {
+                i += 1;
+                http_port = raw_args.get(i)
+                    .ok_or("--http-port requires a value")?
+                    .parse::<u16>()
+                    .map_err(|e| format!("--http-port: {e}"))?;
+            }
+            "--bridge-url" => {
+                i += 1;
+                bridge_url = raw_args.get(i)
+                    .ok_or("--bridge-url requires a value")?
+                    .clone();
+            }
+            other => return Err(format!("unknown flag: {other}")),
+        }
+        i += 1;
+    }
+
+    // Also accept env vars as fallback
+    if let Ok(v) = std::env::var("MUSU_QUIC_PORT") {
+        if let Ok(p) = v.parse::<u16>() { quic_port = p; }
+    }
+    if let Ok(v) = std::env::var("MUSU_HTTP_PROXY_PORT") {
+        if let Ok(p) = v.parse::<u16>() { http_port = p; }
+    }
+    if let Ok(v) = std::env::var("MUSU_BRIDGE_URL") {
+        bridge_url = v;
+    }
+
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .map_err(|e| format!("tokio runtime error: {e}"))?;
+
+    rt.block_on(async move {
+        bridge_proxy::run_bridge_proxy(quic_port, http_port, bridge_url)
+            .await
+            .map_err(|e| e.to_string())
+    })
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {
