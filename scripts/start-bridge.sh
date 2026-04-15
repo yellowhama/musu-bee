@@ -18,6 +18,13 @@ if [[ -z "${MUSU_BRIDGE_TOKEN:-}" && "${MUSU_DEV:-}" == "1" ]]; then
     echo "[WARN] MUSU_BRIDGE_TOKEN auto-generated for dev mode. NOT for production." >&2
 fi
 
+# ── MUSU_TOKEN (musu.pro peer discovery) 해결 ────────────────
+MUSU_TOKEN_FILE="${HOME}/.musu/musu_token"
+if [[ -z "${MUSU_TOKEN:-}" && -f "$MUSU_TOKEN_FILE" ]]; then
+    export MUSU_TOKEN="$(tr -d '\n' < "$MUSU_TOKEN_FILE")"
+    echo "[start-bridge] MUSU_TOKEN loaded from file — peer discovery enabled" >&2
+fi
+
 # ── 포트 충돌 감지 ────────────────────────────────────────────
 BRIDGE_PORT="${BRIDGE_PORT:-8070}"
 if command -v ss &>/dev/null; then
@@ -34,7 +41,12 @@ if command -v ss &>/dev/null; then
 fi
 
 # ── musu-connectsd bridge-proxy (QUIC sidecar) ────────────────
-CONNECTSD_BIN="${ROOT}/musu-connects/target/release/musu-connectsd"
+# bin/ 우선 (pre-built), 없으면 target/release/ 폴백
+if [[ -f "${ROOT}/bin/musu-connectsd" ]]; then
+    CONNECTSD_BIN="${ROOT}/bin/musu-connectsd"
+else
+    CONNECTSD_BIN="${ROOT}/musu-connects/target/release/musu-connectsd"
+fi
 QUIC_PID=""
 
 if [[ -f "$CONNECTSD_BIN" ]]; then

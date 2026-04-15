@@ -11,9 +11,12 @@
 /// Message flow (inbound):
 ///   Remote QUIC client → QUIC server → POST http://127.0.0.1:8070/api/route → response
 use std::net::SocketAddr;
+use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use axum::{Json, Router, extract::State, http::StatusCode, routing::get, routing::post};
+use dashmap::DashMap;
 use quinn::{ClientConfig, Endpoint, ServerConfig};
 use quinn::crypto::rustls::{QuicClientConfig, QuicServerConfig};
 use rcgen::generate_simple_self_signed;
@@ -50,6 +53,12 @@ struct QuicFrame {
 
 fn default_version() -> u8 { 1 }
 
+// ── Connection pool ───────────────────────────────────────────────────────────
+
+type ConnPool = Arc<DashMap<SocketAddr, (quinn::Connection, Instant)>>;
+
+const CONN_IDLE_TIMEOUT: Duration = Duration::from_secs(60);
+
 // ── Proxy state ───────────────────────────────────────────────────────────────
 
 #[derive(Clone)]
@@ -58,6 +67,8 @@ struct ProxyState {
     quic_port: u16,
     /// Shared QUIC client endpoint (reuses the same UDP socket)
     client_endpoint: Arc<Endpoint>,
+    /// Connection pool: reuse open QUIC connections per remote addr
+    conn_pool: ConnPool,
 }
 
 // ── TLS: no-verify client (Phase 2 — encryption only, no peer auth) ──────────
@@ -117,6 +128,51 @@ fn gen_self_signed_cert() -> Result<(CertificateDer<'static>, PrivateKeyDer<'sta
     Ok((cert_der, key_der))
 }
 
+/// Load cert/key from ~/.musu/, or generate a new self-signed cert and save it.
+/// Stable across restarts — same fingerprint unless files are deleted.
+fn load_or_gen_cert() -> Result<(CertificateDer<'static>, PrivateKeyDer<'static>), Box<dyn std::error::Error>> {
+    let musu_dir: PathBuf = dirs::home_dir()
+        .ok_or("cannot determine home directory")?
+        .join(".musu");
+    std::fs::create_dir_all(&musu_dir)?;
+    let cert_path = musu_dir.join("quic_cert.der");
+    let key_path  = musu_dir.join("quic_key.der");
+
+    if cert_path.exists() && key_path.exists() {
+        let cert_bytes = std::fs::read(&cert_path)?;
+        let key_bytes  = std::fs::read(&key_path)?;
+        let cert = CertificateDer::from(cert_bytes);
+        let key  = PrivateKeyDer::try_from(key_bytes)
+            .map_err(|e| format!("key load error: {e}"))?;
+        eprintln!("[bridge-proxy] loaded TLS cert from {}", cert_path.display());
+        return Ok((cert, key));
+    }
+
+    // Generate fresh cert and persist
+    let (cert, key) = gen_self_signed_cert()?;
+    std::fs::write(&cert_path, cert.as_ref())?;
+    let key_bytes = match &key {
+        PrivateKeyDer::Pkcs8(k) => k.secret_pkcs8_der().to_vec(),
+        PrivateKeyDer::Sec1(k)  => k.secret_sec1_der().to_vec(),
+        PrivateKeyDer::Pkcs1(k) => k.secret_pkcs1_der().to_vec(),
+        _ => return Err("unsupported private key type".into()),
+    };
+    std::fs::write(&key_path, key_bytes)?;
+    eprintln!("[bridge-proxy] generated new TLS cert → {}", cert_path.display());
+    Ok((cert, key))
+}
+
+/// Compute SHA-256 fingerprint of a DER certificate (hex, colon-separated).
+fn cert_fingerprint(cert: &CertificateDer<'_>) -> String {
+    use ring::digest::{digest, SHA256};
+    digest(&SHA256, cert.as_ref())
+        .as_ref()
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect::<Vec<_>>()
+        .join(":")
+}
+
 fn make_server_config(cert_der: CertificateDer<'static>, key_der: PrivateKeyDer<'static>) -> Result<ServerConfig, Box<dyn std::error::Error>> {
     let mut tls = rustls::ServerConfig::builder()
         .with_no_client_auth()
@@ -141,6 +197,71 @@ fn make_client_endpoint() -> Result<Endpoint, Box<dyn std::error::Error>> {
     let mut endpoint = Endpoint::client("0.0.0.0:0".parse()?)?;
     endpoint.set_default_client_config(client_cfg);
     Ok(endpoint)
+}
+
+// ── QUIC send helpers ─────────────────────────────────────────────────────────
+
+/// Send frame on an existing QUIC connection's new bidirectional stream.
+async fn try_send_on_conn(
+    conn: &quinn::Connection,
+    frame: &QuicFrame,
+) -> Result<serde_json::Value, String> {
+    let (mut send, mut recv) = conn
+        .open_bi()
+        .await
+        .map_err(|e| format!("open_bi failed: {e}"))?;
+    let payload = serde_json::to_vec(frame).map_err(|e| e.to_string())?;
+    send.write_all(&payload).await.map_err(|e| format!("write failed: {e}"))?;
+    send.finish().map_err(|e| format!("finish failed: {e}"))?;
+    let data = recv
+        .read_to_end(4 * 1024 * 1024)
+        .await
+        .map_err(|e| format!("read failed: {e}"))?;
+    serde_json::from_slice(&data).map_err(|e| format!("json parse: {e}"))
+}
+
+/// Send a QUIC frame, reusing an existing pooled connection when available.
+/// Falls back to a new connection on pool miss or stale connection.
+async fn quic_send_pooled(
+    endpoint: &Endpoint,
+    pool: &DashMap<SocketAddr, (quinn::Connection, Instant)>,
+    remote_addr: SocketAddr,
+    frame: &QuicFrame,
+) -> Result<serde_json::Value, String> {
+    // Try pooled connection first
+    if let Some(entry) = pool.get(&remote_addr) {
+        let (conn, last_used) = entry.value();
+        let is_alive = conn.close_reason().is_none()
+            && last_used.elapsed() < CONN_IDLE_TIMEOUT;
+        if is_alive {
+            match try_send_on_conn(conn, frame).await {
+                Ok(val) => {
+                    drop(entry);
+                    if let Some(mut e) = pool.get_mut(&remote_addr) {
+                        e.value_mut().1 = Instant::now();
+                    }
+                    eprintln!("[quic-proxy] reusing connection to {}", remote_addr);
+                    return Ok(val);
+                }
+                Err(_) => {
+                    // Stale connection — fall through to reconnect
+                }
+            }
+        }
+    }
+    pool.remove(&remote_addr);
+
+    // Open a new connection and cache it
+    eprintln!("[quic-proxy] new connection to {}", remote_addr);
+    let conn = endpoint
+        .connect(remote_addr, "musu-peer")
+        .map_err(|e| format!("connect error: {e}"))?
+        .await
+        .map_err(|e| format!("connection failed: {e}"))?;
+
+    let val = try_send_on_conn(&conn, frame).await?;
+    pool.insert(remote_addr, (conn, Instant::now()));
+    Ok(val)
 }
 
 // ── QUIC inbound (remote peer → local bridge) ─────────────────────────────────
@@ -255,41 +376,12 @@ async fn handle_forward(
         version: 1,
     };
 
-    let response = quic_send_simple(&state.client_endpoint, remote_addr, &frame)
+    let response = quic_send_pooled(&state.client_endpoint, &state.conn_pool, remote_addr, &frame)
         .await
         .map_err(|e| (StatusCode::BAD_GATEWAY, format!("quic error: {e}")))?;
 
     eprintln!("[quic-proxy] response received from {}", remote_addr);
     Ok(Json(response))
-}
-
-/// Simpler quic_send that doesn't double-read
-async fn quic_send_simple(
-    endpoint: &Endpoint,
-    remote_addr: SocketAddr,
-    frame: &QuicFrame,
-) -> Result<serde_json::Value, String> {
-    let conn = endpoint
-        .connect(remote_addr, "musu-peer")
-        .map_err(|e| format!("connect error: {e}"))?
-        .await
-        .map_err(|e| format!("connection failed: {e}"))?;
-
-    let (mut send, mut recv) = conn
-        .open_bi()
-        .await
-        .map_err(|e| format!("open_bi failed: {e}"))?;
-
-    let payload = serde_json::to_vec(frame).map_err(|e| e.to_string())?;
-    send.write_all(&payload).await.map_err(|e| format!("write failed: {e}"))?;
-    send.finish().map_err(|e| format!("finish failed: {e}"))?;
-
-    let data = recv
-        .read_to_end(4 * 1024 * 1024)
-        .await
-        .map_err(|e| format!("read failed: {e}"))?;
-
-    serde_json::from_slice(&data).map_err(|e| format!("json parse: {e}"))
 }
 
 fn extract_host(url: &str) -> Option<String> {
@@ -316,25 +408,33 @@ pub async fn run_bridge_proxy(
     http_port: u16,
     bridge_url: String,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    // 1. Generate self-signed TLS cert
-    let (cert_der, key_der) = gen_self_signed_cert()?;
+    // 1. Load or generate persistent TLS cert (stable fingerprint across restarts)
+    let (cert_der, key_der) = load_or_gen_cert()?;
 
-    // 2. QUIC server
+    // 2. Compute and publish fingerprint
+    let fingerprint = cert_fingerprint(&cert_der);
+    eprintln!("[bridge-proxy] cert fingerprint (SHA-256): {}", fingerprint);
+    // Export for Python musu-bridge to include in heartbeat
+    std::env::set_var("MUSU_QUIC_FINGERPRINT", &fingerprint);
+
+    // 3. QUIC server — needs its own copy of cert/key (ServerConfig takes ownership)
+    let (server_cert, server_key) = load_or_gen_cert()?;
     let quic_addr: SocketAddr = format!("0.0.0.0:{quic_port}").parse()?;
-    let server_cfg = make_server_config(cert_der, key_der)?;
+    let server_cfg = make_server_config(server_cert, server_key)?;
     let server_endpoint = Endpoint::server(server_cfg, quic_addr)?;
     eprintln!("[bridge-proxy] QUIC server listening on UDP {quic_addr}");
 
-    // 3. QUIC client endpoint (shared, reuses one UDP socket)
+    // 4. QUIC client endpoint (shared, reuses one UDP socket)
     let client_endpoint = make_client_endpoint()?;
 
-    // 4. Shared state
+    // 5. Shared state (includes connection pool)
     let state = ProxyState {
         quic_port,
         client_endpoint: Arc::new(client_endpoint),
+        conn_pool: Arc::new(DashMap::new()),
     };
 
-    // 5. HTTP server
+    // 6. HTTP server
     let http_addr: SocketAddr = format!("127.0.0.1:{http_port}").parse()?;
     let app = Router::new()
         .route("/forward", post(handle_forward))
@@ -344,7 +444,7 @@ pub async fn run_bridge_proxy(
     eprintln!("[bridge-proxy] HTTP proxy listening on http://{http_addr}");
     eprintln!("[bridge-proxy] bridge-url = {bridge_url}");
 
-    // 6. Run QUIC server accept loop + HTTP server concurrently.
+    // 7. Run QUIC server accept loop + HTTP server concurrently.
     // tokio::select! cancels the other branch when one completes, so both exit together.
     let bridge_url_arc = Arc::new(bridge_url);
     tokio::select! {

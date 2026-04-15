@@ -40,9 +40,13 @@ async def heartbeat_loop(
     while True:
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
+                payload: dict = {"node_name": node_name, "public_url": public_url}
+                fingerprint = os.getenv("MUSU_QUIC_FINGERPRINT", "")
+                if fingerprint:
+                    payload["cert_fingerprint"] = fingerprint
                 resp = await client.post(
                     _REGISTRY_URL,
-                    json={"node_name": node_name, "public_url": public_url},
+                    json=payload,
                     headers={
                         "Authorization": f"Bearer {token}",
                         "Content-Type": "application/json",
