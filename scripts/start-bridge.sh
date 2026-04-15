@@ -85,5 +85,11 @@ fi
 # ── PYTHONPATH 설정 + 실행 ────────────────────────────────────
 export PYTHONPATH="${ROOT}/musu-core/src:${ROOT}/musu-bridge:${PYTHONPATH:-}"
 
+# venv python 우선 사용 (musu-bridge/.venv/bin/python3)
+PYTHON="${ROOT}/musu-bridge/.venv/bin/python3"
+if [[ ! -x "$PYTHON" ]]; then
+    PYTHON="python3"
+fi
+
 cd "${ROOT}/musu-bridge"
-exec python3 server.py "$@"
+exec "$PYTHON" server.py "$@"

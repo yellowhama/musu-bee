@@ -31,13 +31,19 @@ class MusuDiscovery:
 
     # ── Advertise ─────────────────────────────────────────────────────────────
 
-    def advertise(self, node_name: str, ip: str, port: int) -> None:
-        """Announce this node on the local network via mDNS."""
+    async def advertise_async(self, node_name: str, ip: str, port: int) -> None:
+        """Announce this node on the local network via mDNS (async-safe).
+
+        Uses AsyncZeroconf so registration doesn't block the uvicorn event loop.
+        Falls back gracefully if zeroconf is not installed.
+        """
         try:
-            from zeroconf import ServiceInfo, Zeroconf
+            from zeroconf import ServiceInfo
+            from zeroconf.asyncio import AsyncZeroconf
 
             self._self_name = node_name
-            self._zeroconf = Zeroconf()
+            azc = AsyncZeroconf()
+            self._zeroconf = azc.zeroconf  # expose sync handle for ServiceBrowser
 
             self._service_info = ServiceInfo(
                 SERVICE_TYPE,
@@ -49,7 +55,7 @@ class MusuDiscovery:
                     b"node": node_name.encode(),
                 },
             )
-            self._zeroconf.register_service(self._service_info)
+            await azc.async_register_service(self._service_info)
             logger.info("discovery: advertising %r at %s:%d", node_name, ip, port)
         except ImportError:
             logger.warning("discovery: zeroconf not installed — mDNS disabled (pip install zeroconf)")

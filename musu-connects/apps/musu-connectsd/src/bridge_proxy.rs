@@ -378,26 +378,34 @@ async fn quic_send_pooled(
     remote_addr: SocketAddr,
     frame: &QuicFrame,
 ) -> Result<serde_json::Value, String> {
-    // Try pooled connection first
-    if let Some(entry) = pool.get(&remote_addr) {
+    // Try pooled connection first.
+    // Clone conn before dropping the DashMap entry so we don't hold the shard
+    // lock across the async send (which can take 30-120s waiting for LLM).
+    let pooled = if let Some(entry) = pool.get(&remote_addr) {
         let (conn, last_used) = entry.value();
         let is_alive = conn.close_reason().is_none()
             && last_used.elapsed() < CONN_IDLE_TIMEOUT;
         if is_alive {
-            match try_send_on_conn(conn, frame).await {
-                Ok(val) => {
-                    drop(entry);
-                    // Atomic timestamp update — no TOCTOU race
-                    pool.alter(&remote_addr, |_, mut item| {
-                        item.1 = Instant::now();
-                        item
-                    });
-                    eprintln!("[quic-proxy] reusing connection to {}", remote_addr);
-                    return Ok(val);
-                }
-                Err(_) => {
-                    // Stale connection — fall through to reconnect
-                }
+            Some(conn.clone()) // clone Arc — cheap, releases shard lock immediately
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    if let Some(conn) = pooled {
+        match try_send_on_conn(&conn, frame).await {
+            Ok(val) => {
+                pool.alter(&remote_addr, |_, mut item| {
+                    item.1 = Instant::now();
+                    item
+                });
+                eprintln!("[quic-proxy] reusing connection to {}", remote_addr);
+                return Ok(val);
+            }
+            Err(_) => {
+                // Stale connection — fall through to reconnect
             }
         }
     }

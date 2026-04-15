@@ -190,11 +190,27 @@ async def lifespan(app: FastAPI):
 
     discovery = get_discovery()
     tailscale_ip = get_tailscale_ip()
+    mdns_task = None
     if tailscale_ip:
         try:
-            discovery.advertise(cfg.node_name, tailscale_ip, cfg.bridge_port)
+            await discovery.advertise_async(cfg.node_name, tailscale_ip, cfg.bridge_port)
             discovery.start_browser()
             logger.info("discovery: mDNS active on %s", tailscale_ip)
+
+            async def _mdns_register_loop() -> None:
+                """Periodically push mDNS-discovered peers into mesh_router."""
+                while True:
+                    await asyncio.sleep(15)
+                    for peer in discovery.get_discovered():
+                        name = peer["name"]
+                        url = peer["url"]
+                        if name not in router._node_urls:
+                            router.add_node(name, url)
+                            logger.info(
+                                "discovery: auto-registered mDNS peer %r → %s", name, url
+                            )
+
+            mdns_task = asyncio.create_task(_mdns_register_loop())
         except Exception:
             logger.warning("discovery: mDNS init failed — zero-config discovery disabled")
     else:
@@ -206,6 +222,8 @@ async def lifespan(app: FastAPI):
     yield
 
     discovery.close()
+    if mdns_task:
+        mdns_task.cancel()
     if registry_task:
         registry_task.cancel()
     if peer_discovery_task:
