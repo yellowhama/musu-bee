@@ -1,0 +1,91 @@
+[META] started_at=2026-04-12T22:51:55Z
+[META] issue=eaa1f802-a99c-4266-a4b5-4d845aef7e7a
+[META] artifact_dir=/home/hugh51/musu-functions/artifacts/mus-1742/proof-20260412T225152Z
+
+== baseline snapshot (t0) ==
+{
+  "capturedAt": "1776034329.805616",
+  "fe": {
+    "queued": 2,
+    "running": 10,
+    "finished": 52
+  },
+  "cto": {
+    "queued": 4,
+    "running": 10,
+    "finished": 65
+  }
+}
+
+== runtime before ==
+{
+  "id": "7a87bcf2-6b89-498e-b295-d80d53710bd0",
+  "name": "Founding Engineer",
+  "runtimeConfig": {
+    "heartbeat": {
+      "enabled": true,
+      "cooldownSec": 10,
+      "intervalSec": 3600,
+      "wakeOnDemand": true,
+      "maxConcurrentRuns": 12
+    }
+  }
+}
+{
+  "id": "7b6d37f7-91fd-4342-8e3f-9dfa422f999c",
+  "name": "CTO",
+  "runtimeConfig": {
+    "heartbeat": {
+      "enabled": true,
+      "cooldownSec": 10,
+      "intervalSec": 3600,
+      "wakeOnDemand": true,
+      "maxConcurrentRuns": 12
+    }
+  }
+}
+
+== apply runtime remediation (maxConcurrentRuns +2) ==
+{
+  "id": "7a87bcf2-6b89-498e-b295-d80d53710bd0",
+  "name": "Founding Engineer",
+  "runtimeConfig": {
+    "heartbeat": {
+      "enabled": true,
+      "cooldownSec": 10,
+      "intervalSec": 3600,
+      "wakeOnDemand": true,
+      "maxConcurrentRuns": 14
+    }
+  }
+}
+{
+  "id": "7b6d37f7-91fd-4342-8e3f-9dfa422f999c",
+  "name": "CTO",
+  "runtimeConfig": {
+    "heartbeat": {
+      "enabled": true,
+      "cooldownSec": 10,
+      "intervalSec": 3600,
+      "wakeOnDemand": true,
+      "maxConcurrentRuns": 14
+    }
+  }
+}
+{"field":"runtimeConfig.heartbeat.maxConcurrentRuns","fe":{"agentId":"7a87bcf2-6b89-498e-b295-d80d53710bd0","old":12,"new":14,"rollback":"curl -sS -X PATCH http://127.0.0.1:3100/api/agents/7a87bcf2-6b89-498e-b295-d80d53710bd0 -H 'content-type: application/json' --data '{\"runtimeConfig\":{\"heartbeat\":{\"enabled\":true,\"cooldownSec\":10,\"intervalSec\":3600,\"wakeOnDemand\":true,\"maxConcurrentRuns\":12}}}'"},"cto":{"agentId":"7b6d37f7-91fd-4342-8e3f-9dfa422f999c","old":12,"new":14,"rollback":"curl -sS -X PATCH http://127.0.0.1:3100/api/agents/7b6d37f7-91fd-4342-8e3f-9dfa422f999c -H 'content-type: application/json' --data '{\"runtimeConfig\":{\"heartbeat\":{\"enabled\":true,\"cooldownSec\":10,\"intervalSec\":3600,\"wakeOnDemand\":true,\"maxConcurrentRuns\":12}}}'"}}
+
+== trust-boundary negative control ==
+cross_invoke_http=403
+{"error":"Agent can only invoke itself"}
+== create temporary CTO key (board context) ==
+cto_key_http=201
+{"id":"a00b6d61-1599-4e06-b934-2f5309995bf6","name":"mus1742-proof-temp-key","token":"pcp_b99bfff9cfebfa47c9f5f5ade74056ae682b0279a8a49699","createdAt":"2026-04-12T22:52:15.730Z"}
+== replay cycle 1 ==
+fe_invoke_http=202
+{"id":"08d101e9-c88b-4ef7-a595-b5438ed8e026","companyId":"f27a9bd2-688a-450b-98b4-f63d24b0ab50","agentId":"7a87bcf2-6b89-498e-b295-d80d53710bd0","invocationSource":"on_demand","triggerDetail":"manual","status":"running","startedAt":"2026-04-12T22:50:05.938Z","finishedAt":null,"error":null,"wakeupRequestId":"980ba9c5-f7ac-4cc4-bd63-21cfb467d701","exitCode":null,"signal":null,"usageJson":null,"resultJson":null,"sessionIdBefore":"019d8392-fae2-7642-a027-c026d87f651c","sessionIdAfter":null,"logStore":"local_file","logRef":"f27a9bd2-688a-450b-98b4-f63d24b0ab50/7a87bcf2-6b89-498e-b295-d80d53710bd0/08d101e9-c88b-4ef7-a595-b5438ed8e026.ndjson","logBytes":null,"logSha256":null,"logCompressed":false,"stdoutExcerpt":null,"stderrExcerpt":null,"errorCode":null,"externalRunId":null,"processPid":8841,"processStartedAt":"2026-04-12T22:50:06.529Z","retryOfRunId":null,"processLossRetryCount":0,"contextSnapshot":{"taskId":"eaa1f802-a99c-4266-a4b5-4d845aef7e7a","actorId":"7a87bcf2-6b89-498e-b295-d80d53710bd0","issueId":"eaa1f802-a99c-4266-a4b5-4d845aef7e7a","taskKey":"issue:eaa1f802-a99c-4266-a4b5-4d845aef7e7a:cycle:1:fe","projectId":"23f06292-f513-4261-ba4a-d30fe37a9e0b","wakeReason":"mus1742_cycle_1_fe","wakeSource":"on_demand","triggeredBy":"agent","forceFreshSession":false,"wakeTriggerDetail":"manual","paperclipWorkspace":{"cwd":"/home/hugh51/musu-functions","mode":"shared_workspace","source":"project_primary","repoRef":null,"repoUrl":null,"strategy":"project_primary","agentHome":"/home/hugh51/.paperclip/instances/default/workspaces/7a87bcf2-6b89-498e-b295-d80d53710bd0","projectId":"23f06292-f513-4261-ba4a-d30fe37a9e0b","branchName":null,"workspaceId":"58df7810-9107-4e9b-856a-c04aba242dee","worktreePath":null},"paperclipWorkspaces":[{"cwd":"/home/hugh51/musu-functions","repoRef":null,"repoUrl":null,"workspaceId":"58df7810-9107-4e9b-856a-c04aba242dee"}],"executionWorkspaceId":"e9502ead-7875-4800-bec5-a8f5cd138a16"},"createdAt":"2026-04-12T22:49:36.703Z","updatedAt":"2026-04-12T22:52:15.979Z"}cto_invoke_http=202
+{"status":"skipped","reason":"issue_execution_deferred","message":"Wakeup was deferred because this issue is already being executed by Founding Engineer.","issueId":"eaa1f802-a99c-4266-a4b5-4d845aef7e7a","executionRunId":"08d101e9-c88b-4ef7-a595-b5438ed8e026","executionAgentId":"7a87bcf2-6b89-498e-b295-d80d53710bd0","executionAgentName":"Founding Engineer"}
+== replay cycle 2 ==
+fe_invoke_http=202
+{"id":"08d101e9-c88b-4ef7-a595-b5438ed8e026","companyId":"f27a9bd2-688a-450b-98b4-f63d24b0ab50","agentId":"7a87bcf2-6b89-498e-b295-d80d53710bd0","invocationSource":"on_demand","triggerDetail":"manual","status":"running","startedAt":"2026-04-12T22:50:05.938Z","finishedAt":null,"error":null,"wakeupRequestId":"980ba9c5-f7ac-4cc4-bd63-21cfb467d701","exitCode":null,"signal":null,"usageJson":null,"resultJson":null,"sessionIdBefore":"019d8392-fae2-7642-a027-c026d87f651c","sessionIdAfter":null,"logStore":"local_file","logRef":"f27a9bd2-688a-450b-98b4-f63d24b0ab50/7a87bcf2-6b89-498e-b295-d80d53710bd0/08d101e9-c88b-4ef7-a595-b5438ed8e026.ndjson","logBytes":null,"logSha256":null,"logCompressed":false,"stdoutExcerpt":null,"stderrExcerpt":null,"errorCode":null,"externalRunId":null,"processPid":8841,"processStartedAt":"2026-04-12T22:50:06.529Z","retryOfRunId":null,"processLossRetryCount":0,"contextSnapshot":{"taskId":"eaa1f802-a99c-4266-a4b5-4d845aef7e7a","actorId":"7a87bcf2-6b89-498e-b295-d80d53710bd0","issueId":"eaa1f802-a99c-4266-a4b5-4d845aef7e7a","taskKey":"issue:eaa1f802-a99c-4266-a4b5-4d845aef7e7a:cycle:2:fe","projectId":"23f06292-f513-4261-ba4a-d30fe37a9e0b","wakeReason":"mus1742_cycle_2_fe","wakeSource":"on_demand","triggeredBy":"agent","forceFreshSession":false,"wakeTriggerDetail":"manual","paperclipWorkspace":{"cwd":"/home/hugh51/musu-functions","mode":"shared_workspace","source":"project_primary","repoRef":null,"repoUrl":null,"strategy":"project_primary","agentHome":"/home/hugh51/.paperclip/instances/default/workspaces/7a87bcf2-6b89-498e-b295-d80d53710bd0","projectId":"23f06292-f513-4261-ba4a-d30fe37a9e0b","branchName":null,"workspaceId":"58df7810-9107-4e9b-856a-c04aba242dee","worktreePath":null},"paperclipWorkspaces":[{"cwd":"/home/hugh51/musu-functions","repoRef":null,"repoUrl":null,"workspaceId":"58df7810-9107-4e9b-856a-c04aba242dee"}],"executionWorkspaceId":"e9502ead-7875-4800-bec5-a8f5cd138a16"},"createdAt":"2026-04-12T22:49:36.703Z","updatedAt":"2026-04-12T22:52:16.518Z"}cto_invoke_http=202
+{"status":"skipped","reason":"issue_execution_deferred","message":"Wakeup was deferred because this issue is already being executed by Founding Engineer.","issueId":"eaa1f802-a99c-4266-a4b5-4d845aef7e7a","executionRunId":"08d101e9-c88b-4ef7-a595-b5438ed8e026","executionAgentId":"7a87bcf2-6b89-498e-b295-d80d53710bd0","executionAgentName":"Founding Engineer"}
+== wait 10 minutes for stability snapshot ==

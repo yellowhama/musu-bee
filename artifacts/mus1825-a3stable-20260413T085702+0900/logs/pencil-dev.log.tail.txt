@@ -1,0 +1,75 @@
+08:57:16.139 › App ready. IS_DEV: false, NODE_ENV: production
+08:57:16.238 › APPIMAGE env is not defined, current application is not an AppImage
+08:57:16.243 › loadFile /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen zoomToFit: true
+08:57:17.559 › Initializing IPC server
+08:57:17.559 › Registering notification handler for 'open-file'
+08:57:17.560 › Registering notification handler for 'add-to-chat'
+08:57:17.560 › Registering handler for 'get-fullscreen'
+08:57:17.561 › Registering notification handler for 'load-file'
+08:57:17.561 › Registering handler for 'get-recent-files'
+08:57:17.561 › Registering notification handler for 'clear-recent-files'
+08:57:17.562 › Registering notification handler for 'toggle-theme'
+08:57:17.562 › Registering notification handler for 'desktop-open-terminal'
+08:57:17.562 › Registering notification handler for 'check-agent-status'
+08:57:17.562 › Registering notification handler for 'claude-connect'
+08:57:17.562 › Registering notification handler for 'claude-disconnect'
+08:57:17.562 › Registering notification handler for 'codex-connect'
+08:57:17.563 › Registering notification handler for 'codex-disconnect'
+08:57:17.563 › Registering notification handler for 'toggle-mcp-integration'
+08:57:17.563 › Registering notification handler for 'add-extension-to-ide'
+08:57:17.564 › addResource: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+08:57:17.564 › Registering handler for 'get-license'
+08:57:17.564 › Registering notification handler for 'set-license'
+08:57:17.564 › Registering handler for 'get-device-id'
+08:57:17.564 › Registering handler for 'read-file'
+08:57:17.564 › Registering handler for 'save-generated-image'
+08:57:17.565 › Registering notification handler for 'initialized'
+08:57:17.565 › Registering notification handler for 'file-changed'
+08:57:17.565 › Registering handler for 'import-file'
+08:57:17.565 › Registering handler for 'import-uri'
+08:57:17.565 › Registering notification handler for 'send-prompt'
+08:57:17.565 › Registering handler for 'agent-stop'
+08:57:17.565 › Registering notification handler for 'open-document'
+08:57:17.566 › Registering notification handler for 'submit-prompt'
+08:57:17.566 › Registering notification handler for 'toggle-design-mode'
+08:57:17.566 › Registering notification handler for 'set-left-sidebar-visible'
+08:57:17.566 › Registering notification handler for 'sign-out'
+08:57:17.566 › Registering notification handler for 'chat-question-response'
+08:57:17.643 › [DesktopResourceDevice] loadURL() | fileToLoad: 
+08:57:17.840 › WebSocket server listening on port 46463
+08:57:18.278 › Removed MCP allow rules from claudeCodeCLI
+08:57:18.278 › Uninstalled up MCP server for claudeCodeCLI
+08:57:18.329 › Uninstalled up MCP server for codexCLI
+08:57:18.355 › Uninstalled up MCP server for geminiCLI
+08:57:18.359 › Uninstalled up MCP server for openCodeCLI
+08:57:18.388 › Uninstalled up MCP server for kiroCLI
+08:57:18.390 › Successfully set up MCP server for claudeCodeCLI
+08:57:18.391 › Successfully set up MCP server for codexCLI
+08:57:18.391 › Successfully set up MCP server for geminiCLI
+08:57:18.392 › Successfully set up MCP server for openCodeCLI
+08:57:18.408 › Successfully set up MCP server for kiroCLI
+08:57:22.760 › Sending notification 'active-integrations'
+08:57:22.760 › Sending notification: active-integrations { id: 'ext-1-1776038242760', hasPayload: true }
+08:57:22.761 › Checking for Claude Code status
+08:57:22.819 › Checking for Codex status
+08:57:22.851 › Registering notification handler for 'desktop-update-install'
+08:57:23.392 › Received request: get-fullscreen { id: 'ext-1-1776038243391', hasPayload: false }
+08:57:23.393 › Sending response: get-fullscreen { id: 'ext-1-1776038243391', hasPayload: false }
+08:57:23.395 › Received request: get-recent-files { id: 'ext-2-1776038243392', hasPayload: false }
+08:57:23.396 › Sending response: get-recent-files { id: 'ext-2-1776038243392', hasPayload: true }
+[75883:0413/085723.907842:ERROR:gpu/command_buffer/service/gl_utils.cc:389] [.WebGL-0x356c0017ec00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[75883:0413/085725.475924:ERROR:gpu/command_buffer/service/gl_utils.cc:389] [.WebGL-0x356c03c99800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[75883:0413/085725.879963:ERROR:gpu/command_buffer/service/gl_utils.cc:389] [.WebGL-0x356c0017ec00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+08:57:26.239 › Received notification: initialized { id: 'ext-3-1776038246235', hasPayload: false }
+[75883:0413/085726.266918:ERROR:gpu/command_buffer/service/gl_utils.cc:389] [.WebGL-0x356c03c99800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+08:57:26.267 › Handling notification 'initialized' with 1 handlers
+08:57:26.268 › [IPC] initialized: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+08:57:26.269 › Sending notification 'file-update'
+08:57:26.269 › Sending notification: file-update { id: 'ext-2-1776038246269', hasPayload: true }
+08:57:26.276 › Sending notification 'color-theme-changed'
+08:57:26.277 › Sending notification: color-theme-changed { id: 'ext-3-1776038246277', hasPayload: true }
+08:57:26.438 › Received request: get-license { id: 'ext-4-1776038246436', hasPayload: false }
+08:57:26.439 › [IPC] get-license
+08:57:26.441 › Sending response: get-license { id: 'ext-4-1776038246436', hasPayload: true }
+08:57:27.580 › Received request: get-recent-files { id: 'ext-5-1776038247579', hasPayload: false }
+08:57:27.580 › Sending response: get-recent-files { id: 'ext-5-1776038247579', hasPayload: true }

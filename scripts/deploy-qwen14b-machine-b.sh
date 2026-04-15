@@ -42,29 +42,29 @@ else
 fi
 
 echo "=== Step 3: Write systemd service ==="
-cat > /etc/systemd/system/${SERVICE_NAME}.service << EOF
-[Unit]
-Description=llama.cpp Qwen 14B inference server (Machine B 5070Ti)
-After=network.target
-
-[Service]
-Type=simple
-ExecStart=${LLAMACPP_DIR}/llama-server \
-  --model ${MODEL_FILE} \
-  --port ${PORT} \
-  --host 0.0.0.0 \
-  --n-gpu-layers 40 \
-  --ctx-size 8192 \
-  --threads 8 \
-  --parallel 4
-Restart=on-failure
-RestartSec=5
-StandardOutput=journal
-StandardError=journal
-
-[Install]
-WantedBy=multi-user.target
-EOF
+{
+  printf '%s\n' '[Unit]'
+  printf '%s\n' 'Description=llama.cpp Qwen 14B inference server (Machine B 5070Ti)'
+  printf '%s\n' 'After=network.target'
+  printf '\n'
+  printf '%s\n' '[Service]'
+  printf '%s\n' 'Type=simple'
+  printf '%s\n' "ExecStart=${LLAMACPP_DIR}/llama-server \\"
+  printf '%s\n' "  --model ${MODEL_FILE} \\"
+  printf '%s\n' "  --port ${PORT} \\"
+  printf '%s\n' '  --host 0.0.0.0 \'
+  printf '%s\n' '  --n-gpu-layers 40 \'
+  printf '%s\n' '  --ctx-size 8192 \'
+  printf '%s\n' '  --threads 8 \'
+  printf '%s\n' '  --parallel 4'
+  printf '%s\n' 'Restart=on-failure'
+  printf '%s\n' 'RestartSec=5'
+  printf '%s\n' 'StandardOutput=journal'
+  printf '%s\n' 'StandardError=journal'
+  printf '\n'
+  printf '%s\n' '[Install]'
+  printf '%s\n' 'WantedBy=multi-user.target'
+} >"/etc/systemd/system/${SERVICE_NAME}.service"
 
 echo "=== Step 4: Enable and start service ==="
 systemctl daemon-reload

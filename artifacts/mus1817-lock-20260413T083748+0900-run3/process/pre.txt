@@ -1,0 +1,15 @@
+phase=before
+timestamp=2026-04-12T23:37:48Z
+target_pen=/home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+profile_dir=/home/hugh51/musu-functions/artifacts/mus1817-lock-20260413T083748+0900-run3/profile
+pid_file=/tmp/pencil-dev.pid
+main_log=/home/hugh51/musu-functions/artifacts/mus1817-lock-20260413T083748+0900-run3/profile/logs/main.log
+runtime_log=/tmp/pencil-dev.log
+window_lines=5000
+policy=force_clean
+
+[all_main_processes]
+
+scoped_main_count=0
+scoped_runtime_count=0
+

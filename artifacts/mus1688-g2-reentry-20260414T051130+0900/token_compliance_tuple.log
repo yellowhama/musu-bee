@@ -1,0 +1,6 @@
+CMD: rg -n --glob '!**/*.test.*' --glob '!src/app/globals.css' '#2D1D19|#FFD166|#FDFCF0' src/app src/components src/pages
+EXIT_CODE: 1
+STDOUT_BEGIN
+STDOUT_END
+STDERR_BEGIN
+STDERR_END

@@ -23,3 +23,14 @@ export function getSupabaseClient(): SupabaseClient {
   cachedSupabaseClient = createClient(supabaseUrl, supabaseAnonKey);
   return cachedSupabaseClient;
 }
+
+export function getPublicAppUrl(): string {
+  return process.env.NEXT_PUBLIC_APP_URL?.trim() || "http://localhost:3001";
+}
+
+export function getOAuthRedirectUrl(next = "/app"): string {
+  const base = getPublicAppUrl().replace(/\/+$/, "");
+  const url = new URL("/auth/callback", base);
+  url.searchParams.set("next", next);
+  return url.toString();
+}

@@ -1,8 +1,8 @@
 export const SITE_POSITIONING = {
   eyebrow: "MULTI-MACHINE AI CONTROL PLANE",
-  title: "여러 기기의 AI 작업을 하나의 팀처럼 운영한다.",
+  title: "Run AI work across your machines like one coordinated team.",
   subtitle:
-    "MUSU는 2-3대 이상의 머신을 쓰는 개발자와 운영자를 위한 AI control plane이다. 직접 오케스트레이션을 짜지 않고도 한 채팅에서 기기와 작업을 조율한다.",
+    "MUSU is an AI control plane for developers and operators running two or more machines. Coordinate devices and work from one conversation instead of building your own orchestration layer.",
   audience:
     "For builders running a desktop, laptop, or GPU box who want one place to coordinate AI work.",
 };
@@ -101,9 +101,9 @@ export const PRICING_TIERS = [
   {
     name: "Pro",
     price: "₩29,000",
-    period: "/월",
+    period: "/mo",
     audience: "personal workstation + laptop + GPU box",
-    devices: "기기 최대 5대",
+    devices: "up to 5 devices",
     bullets: [
       "single-user multi-machine control",
       "priority beta access",
@@ -113,9 +113,9 @@ export const PRICING_TIERS = [
   {
     name: "Team",
     price: "₩49,000",
-    period: "/월",
+    period: "/mo",
     audience: "small AI-native team sharing a machine fleet",
-    devices: "기기 무제한",
+    devices: "unlimited devices",
     bullets: [
       "shared machine topology",
       "team-oriented access framing",
@@ -150,28 +150,28 @@ export const INSTALL_COMMANDS = [
 
 export const FAQ_ITEMS = [
   {
-    question: "MUSU는 누구를 위한 제품인가?",
+    question: "Who is MUSU for?",
     answer:
-      "지금의 primary ICP는 여러 대의 머신을 직접 운영하는 개발자와 기술 운영자다. 일반적인 단일 노트북 사용자보다, 이미 여러 기기를 굴리는 사람이 더 잘 맞는다.",
+      "The current primary ICP is developers and technical operators who already run multiple machines. MUSU fits people managing a desktop, laptop, or GPU box better than a casual single-laptop user.",
   },
   {
-    question: "여러 대의 기기가 꼭 필요한가?",
+    question: "Do I need multiple machines?",
     answer:
-      "핵심 가치는 여러 머신을 하나의 control plane으로 보는 데 있다. 한 대만으로도 써볼 수 있지만, MUSU의 차별점은 다중 기기 운영에서 더 분명하다.",
+      "The core value comes from treating multiple machines as one control plane. You can try MUSU with a single machine, but the differentiation becomes much clearer once you are coordinating more than one.",
   },
   {
-    question: "Windows, Linux, macOS를 지원하나?",
+    question: "Does MUSU support Windows, Linux, and macOS?",
     answer:
-      "현재 제품의 설치 흐름과 온보딩 카피는 세 플랫폼을 모두 전제로 구성돼 있다.",
+      "The current install flow and onboarding shape are designed around all three platforms.",
   },
   {
-    question: "지금 바로 결제해서 쓸 수 있나?",
+    question: "Can I pay and use it right now?",
     answer:
-      "현재 public site는 early-access와 waitlist를 중심으로 안내하는 것이 정직하다. pricing surface는 존재하지만 접근 상태와 billing readiness는 beta framing과 함께 설명되어야 한다.",
+      "The honest public path right now is early access and waitlist-first. Pricing exists, but access state and billing readiness still need beta framing.",
   },
   {
-    question: "MUSU는 보안/프라이버시를 강하게 약속하나?",
+    question: "Does MUSU make strong security or privacy claims yet?",
     answer:
-      "강한 security/privacy claim은 명시적 증빙이 더 생길 때까지 제한적으로 말해야 한다. 현재는 honest beta and product-truth framing이 우선이다.",
+      "Strong security and privacy claims should stay limited until explicit proof exists. Honest beta framing and product-truth messaging come first.",
   },
 ] as const;

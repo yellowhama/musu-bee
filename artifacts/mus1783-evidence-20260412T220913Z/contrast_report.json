@@ -1,0 +1,99 @@
+{
+  "generatedAtUtc": "2026-04-12T22:09:16.441Z",
+  "artifactPath": "artifacts/mus1783-work-hub-remediation.pen",
+  "focusFailingSet": [
+    "GMd2P",
+    "qkE48",
+    "ncr9O",
+    "agJ90"
+  ],
+  "rows": [
+    {
+      "id": "GMd2P",
+      "text": "대기",
+      "fill": "#2D1D19",
+      "nearestBg": "#FFFFFF",
+      "ratio": 16.14,
+      "baselineRatio": 1.44,
+      "threshold": 4.5,
+      "pass": true
+    },
+    {
+      "id": "qkE48",
+      "text": "Alpha",
+      "fill": "#2D1D19",
+      "nearestBg": "#F8F7E8",
+      "ratio": 14.95,
+      "baselineRatio": 1.34,
+      "threshold": 4.5,
+      "pass": true
+    },
+    {
+      "id": "ncr9O",
+      "text": "Beta",
+      "fill": "#2D1D19",
+      "nearestBg": "#F8F7E8",
+      "ratio": 14.95,
+      "baselineRatio": 1.34,
+      "threshold": 4.5,
+      "pass": true
+    },
+    {
+      "id": "agJ90",
+      "text": "Home",
+      "fill": "#2D1D19",
+      "nearestBg": "#F8F7E8",
+      "ratio": 14.95,
+      "baselineRatio": 1.34,
+      "threshold": 4.5,
+      "pass": true
+    },
+    {
+      "id": "JuHfC",
+      "text": "General",
+      "fill": "#FFD166",
+      "nearestBg": "#FFD1661F",
+      "ratio": 1.34,
+      "baselineRatio": null,
+      "threshold": null,
+      "pass": null
+    },
+    {
+      "id": "FuLbj",
+      "text": "zsh",
+      "fill": "#FFD166",
+      "nearestBg": "#FFD16633",
+      "ratio": 1.3,
+      "baselineRatio": null,
+      "threshold": null,
+      "pass": null
+    },
+    {
+      "id": "yTvgd",
+      "text": "!",
+      "fill": "#FFD166",
+      "nearestBg": "#2D1D19",
+      "ratio": 11.19,
+      "baselineRatio": null,
+      "threshold": null,
+      "pass": null
+    },
+    {
+      "id": "i3gJy",
+      "text": "~/Projects/musu $ █",
+      "fill": "#FFD166",
+      "nearestBg": "#1A1612",
+      "ratio": 12.48,
+      "baselineRatio": null,
+      "threshold": null,
+      "pass": null
+    }
+  ],
+  "globalPairs": {
+    "#2D1D19 vs #FDFCF0": 15.64,
+    "#2D1D19 vs #F8F7E8": 14.95,
+    "#FFD166 vs #FDFCF0": 1.4,
+    "#FFD166 vs #F8F7E8": 1.34,
+    "#FFD166 vs #FFFFFF": 1.44
+  }
+}

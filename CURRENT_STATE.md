@@ -1,6 +1,6 @@
 # musu-functions Current State
 
-Last updated: `2026-04-13 KST (Wave 4)`
+Last updated: `2026-04-15 KST (Wave 5 — Phase 17R 이후)`
 
 ## 현재 위치
 
@@ -9,6 +9,22 @@ Last updated: `2026-04-13 KST (Wave 4)`
 - 따라서 현재 단계는 “회사를 더 만든다”가 아니라, “회사에서 검증된 기능을 제품 capability로 환원한다” 쪽으로 넘어가고 있다.
 
 ## 현재 코드 상황
+
+- **Wave 5 (2026-04-15) — Phase 17R 이후 미커밋 변경사항 (66 tracked files, +7211/-1692):**
+  - `musu-bee`: Stripe → Paddle 완전 마이그레이션 완료 (stripe.ts 삭제, webhooks/stripe/ 삭제, paddle handler 강화)
+  - `musu-bee`: chatRateLimit.ts 보안 강화 — IP 정규화, 신뢰/비신뢰 버킷 분리, malformed 입력 차단
+  - `musu-bee`: auth 영어화 완료 (login/signup/callback), OAuthButtons 추가, divider "or use email"
+  - `musu-bee`: OnboardingModal 전체 영어화 — UI 언어 Korean → English 진행 완료
+  - `musu-bee`: companyScope.ts 신규 (스코프 분리), companySetup.ts 간결화
+  - `musu-connects`: tailscale-quic-server / tailscale-quic-client 명령 추가 (+608 lines)
+    - Tailscale 네트워크 QUIC ping/pong latency proof (p50/p95 측정)
+    - 하드코딩 테스트 인증서 (HARNESS_CERT_PEM/KEY) — localhost SAN, 테스트 전용
+  - `musu-control`: run-issue link mismatch 정책 테스트 2개 신규, issueId 전파 수정
+  - `musu-port`: channel_hub queue_depth() 추가, health 필드 검증 강화 (cpu/ram/gpu), peer_urls 초기화
+  - `musu-indexer`: core.py +18 lines 개선
+  - `musu-worker`: test_security_hardening 보강
+  - 인덱싱: musu-indexer sync 완료 (scanned 70221, changed 5051, duration 2833s)
+  - 감사: `CODE_AUDIT_2026-04-15.md` 작성 — 전 모듈 Pass, 주의사항 2개 (테스트 인증서, 임시 파일)
 
 - `musu-bee`
   - **Wave 2 (2026-04-13) — 전부 구현 완료, tsc + next build 클린:**

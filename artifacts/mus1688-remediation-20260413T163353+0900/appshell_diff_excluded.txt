@@ -1,0 +1,319 @@
+diff --git a/musu-bee/src/components/AppShell.tsx b/musu-bee/src/components/AppShell.tsx
+index 66f420cf..b348c906 100644
+--- a/musu-bee/src/components/AppShell.tsx
++++ b/musu-bee/src/components/AppShell.tsx
+@@ -2,8 +2,8 @@
+ 
+ export const dynamic = "force-dynamic";
+ 
+-import { useState, useCallback, useEffect } from "react";
+-import { useRouter } from "next/navigation";
++import { useState, useCallback, useEffect, useMemo } from "react";
++import { usePathname, useRouter, useSearchParams } from "next/navigation";
+ import Sidebar from "@/components/Sidebar";
+ import ChatArea from "@/components/ChatArea";
+ import CompanyTemplateModal from "@/components/CompanyTemplateModal";
+@@ -16,7 +16,8 @@ import {
+ import {
+   getDefaultCompanySetupState,
+   type CompanySetupState,
+-} from "@/lib/companySetup";
++} from "@/lib/companySetup.shared";
++import { resolveCompanyScopeFromClientContext } from "@/lib/companyScope";
+ import { useChat } from "@/lib/useChat";
+ import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
+ import type { AgentsSurfaceSnapshot, Channel, ChannelId, Device, Message } from "@/types";
+@@ -74,7 +75,12 @@ const INITIAL_DEVICES: Device[] = [
+ 
+ export default function AppShell() {
+   const router = useRouter();
+-  const [userEmail, setUserEmail] = useState<string | null>(null);
++  const pathname = usePathname();
++  const searchParams = useSearchParams();
++  const [userIdentity, setUserIdentity] = useState<{ email: string | null; id: string | null }>({
++    email: null,
++    id: null,
++  });
+   const [channels, setChannels] = useState<Channel[]>(INITIAL_CHANNELS);
+   const [devices, setDevices] = useState<Device[]>(INITIAL_DEVICES);
+   const [agentsSurface, setAgentsSurface] = useState<AgentsSurfaceSnapshot | null>(null);
+@@ -93,21 +99,40 @@ export default function AppShell() {
+ 
+   const authEnabled = process.env.NEXT_PUBLIC_AUTH_ENABLED === "true";
+   const authConfigured = isSupabaseConfigured();
+-  const workspaceId = "default-workspace";
+-  const userKey = userEmail?.trim().toLowerCase() || "anonymous";
+-  const companyScopeQuery = new URLSearchParams({
+-    workspaceId,
+-    userKey,
+-  }).toString();
++  const safeSearchParams = searchParams ?? new URLSearchParams();
++  const currentPathname = pathname ?? "/app";
++  const workspaceHint =
++    safeSearchParams.get("workspace") ?? safeSearchParams.get("workspaceId");
++  const requestedCompanyId = safeSearchParams.get("company");
++  const resolvedCompanyScope = useMemo(
++    () =>
++      resolveCompanyScopeFromClientContext({
++        workspaceHint,
++        pathname,
++        userEmail: userIdentity.email,
++        userId: userIdentity.id,
++      }),
++    [pathname, userIdentity.email, userIdentity.id, workspaceHint]
++  );
++  const workspaceId = resolvedCompanyScope.workspaceId;
++  const userKey = resolvedCompanyScope.userKey;
++  const companyScopeQuery = useMemo(
++    () =>
++      new URLSearchParams({
++        workspaceId,
++        userKey,
++      }).toString(),
++    [userKey, workspaceId]
++  );
+ 
+   useEffect(() => {
+     if (!authEnabled) {
+-      setUserEmail(null);
++      setUserIdentity({ email: null, id: null });
+       return;
+     }
+ 
+     if (!authConfigured) {
+-      setUserEmail(null);
++      setUserIdentity({ email: null, id: null });
+       router.replace("/auth/login");
+       return;
+     }
+@@ -121,7 +146,10 @@ export default function AppShell() {
+       }
+ 
+       if (data.session?.user) {
+-        setUserEmail(data.session.user.email ?? null);
++        setUserIdentity({
++          email: data.session.user.email ?? null,
++          id: data.session.user.id ?? null,
++        });
+       } else if (authEnabled) {
+         router.replace("/auth/login");
+       }
+@@ -129,7 +157,10 @@ export default function AppShell() {
+ 
+     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+       if (session?.user) {
+-        setUserEmail(session.user.email ?? null);
++        setUserIdentity({
++          email: session.user.email ?? null,
++          id: session.user.id ?? null,
++        });
+       } else if (authEnabled) {
+         router.replace("/auth/login");
+       }
+@@ -141,6 +172,28 @@ export default function AppShell() {
+     };
+   }, [authConfigured, authEnabled, router]);
+ 
++  const syncRouteScope = useCallback(
++    (next: { workspaceId?: string | null; companyId?: string | null }) => {
++      const params = new URLSearchParams(safeSearchParams.toString());
++      if (next.workspaceId) {
++        params.set("workspace", next.workspaceId);
++      } else {
++        params.delete("workspace");
++      }
++      params.delete("workspaceId");
++
++      if (next.companyId) {
++        params.set("company", next.companyId);
++      } else {
++        params.delete("company");
++      }
++
++      const nextQuery = params.toString();
++      router.replace(nextQuery ? `${currentPathname}?${nextQuery}` : currentPathname, { scroll: false });
++    },
++    [currentPathname, router, safeSearchParams]
++  );
++
+   const isAgentChannel = AGENT_CHANNELS.includes(activeChannel);
+   const chat = useChat(activeChannel);
+ 
+@@ -260,7 +313,6 @@ export default function AppShell() {
+               departments: [],
+               statusCounts: {},
+             },
+-            snapshot: prev?.snapshot ?? [],
+           }));
+           return;
+         }
+@@ -280,7 +332,6 @@ export default function AppShell() {
+             departments: [],
+             statusCounts: {},
+           },
+-          snapshot: prev?.snapshot ?? [],
+         }));
+       }
+     }
+@@ -346,9 +397,13 @@ export default function AppShell() {
+       }
+       setCompanyActivation(payload.activation);
+       setCompanyRegistry(payload.registry ?? null);
++      syncRouteScope({
++        workspaceId,
++        companyId: payload.activation.companyId,
++      });
+       setShowCompanyTemplate(false);
+     },
+-    [companyScopeQuery, handleSaveCompanySetup]
++    [companyScopeQuery, handleSaveCompanySetup, syncRouteScope, workspaceId]
+   );
+ 
+   const handleSelectActiveCompany = useCallback(
+@@ -366,8 +421,12 @@ export default function AppShell() {
+       }
+       setCompanyActivation(payload?.activation ?? null);
+       setCompanyRegistry(payload?.registry ?? null);
++      syncRouteScope({
++        workspaceId,
++        companyId: payload?.activation?.companyId ?? payload?.registry?.activeCompanyId ?? null,
++      });
+     },
+-    [companyScopeQuery]
++    [companyScopeQuery, syncRouteScope, workspaceId]
+   );
+ 
+   const handleSyncCompany = useCallback(
+@@ -405,10 +464,46 @@ export default function AppShell() {
+       }
+       setCompanyActivation(payload?.activation ?? null);
+       setCompanyRegistry(payload?.registry ?? null);
++      syncRouteScope({
++        workspaceId,
++        companyId: payload?.registry?.activeCompanyId ?? null,
++      });
+     },
+-    [companyScopeQuery]
++    [companyScopeQuery, syncRouteScope, workspaceId]
+   );
+ 
++  useEffect(() => {
++    if (!companyRegistry?.companies.length) {
++      return;
++    }
++
++    if (requestedCompanyId) {
++      if (companyRegistry.activeCompanyId === requestedCompanyId) {
++        return;
++      }
++      if (companyRegistry.companies.some((company) => company.companyId === requestedCompanyId)) {
++        void handleSelectActiveCompany(requestedCompanyId).catch(() => {});
++      } else {
++        syncRouteScope({
++          workspaceId,
++          companyId: companyRegistry.activeCompanyId,
++        });
++      }
++      return;
++    }
++
++    syncRouteScope({
++      workspaceId,
++      companyId: companyRegistry.activeCompanyId,
++    });
++  }, [
++    companyRegistry,
++    handleSelectActiveCompany,
++    requestedCompanyId,
++    syncRouteScope,
++    workspaceId,
++  ]);
++
+   const handleChannelSelect = useCallback((id: ChannelId) => {
+     setActiveChannel(id);
+     setChannels((prev) => prev.map((ch) => (ch.id === id ? { ...ch, unread: 0 } : ch)));
+@@ -440,6 +535,12 @@ export default function AppShell() {
+   const displayMessages = isAgentChannel
+     ? chat.messages
+     : localMessages.filter((m) => m.channelId === activeChannel);
++  const activeCompany =
++    companyActivation ??
++    companyRegistry?.companies.find((company) => company.companyId === companyRegistry.activeCompanyId) ??
++    null;
++  const displayCompanyName = activeCompany?.companyName ?? companySetup.companyName;
++  const displaySelectedProjects = activeCompany?.selectedProjects ?? companySetup.selectedProjects;
+ 
+   return (
+     <div
+@@ -478,7 +579,21 @@ export default function AppShell() {
+             letterSpacing: "-0.02em",
+           }}
+         >
+-          {companySetup.companyName}
++          {displayCompanyName}
++        </span>
++        <span
++          style={{
++            fontSize: 11,
++            color: "#9ca3af",
++            background: "#141414",
++            border: "1px solid #262626",
++            borderRadius: 999,
++            padding: "4px 9px",
++            letterSpacing: "0.04em",
++          }}
++          title={`Workspace scope: ${workspaceId}`}
++        >
++          {workspaceId}
+         </span>
+         <span
+           style={{
+@@ -536,7 +651,7 @@ export default function AppShell() {
+             title={`Your current plan supports up to ${deviceLimit} devices.`}
+             style={{
+               fontSize: 12,
+-              color: "#facc15",
++              color: "var(--musu-color-brand-accent)",
+               background: "rgba(250,204,21,0.08)",
+               border: "1px solid rgba(250,204,21,0.25)",
+               borderRadius: 6,
+@@ -566,7 +681,7 @@ export default function AppShell() {
+             + Add device
+           </button>
+         )}
+-        {authEnabled && authConfigured && userEmail && (
++        {authEnabled && authConfigured && userIdentity.email && (
+           <span
+             style={{
+               fontSize: 13,
+@@ -580,9 +695,9 @@ export default function AppShell() {
+               textOverflow: "ellipsis",
+               whiteSpace: "nowrap",
+             }}
+-            title={userEmail}
++            title={userIdentity.email}
+           >
+-            {userEmail}
++            {userIdentity.email}
+           </span>
+         )}
+         {authEnabled && authConfigured && (
+@@ -619,6 +734,8 @@ export default function AppShell() {
+         channels={channels}
+         devices={devices}
+         companyTemplate={companyTemplate}
++        activeCompany={activeCompany}
++        workspaceId={workspaceId}
+         agentsSurface={agentsSurface}
+         activeChannel={activeChannel}
+         onChannelSelect={handleChannelSelect}
+@@ -632,6 +749,9 @@ export default function AppShell() {
+           isAgentTyping={isAgentChannel ? chat.isAgentTyping : false}
+           isConnected={isAgentChannel ? chat.isConnected : undefined}
+           channelDescription={CHANNEL_DESCRIPTIONS[activeChannel]}
++          activeCompanyName={displayCompanyName}
++          workspaceId={workspaceId}
++          selectedProjects={displaySelectedProjects}
+           isLoadingHistory={isAgentChannel ? chat.isLoadingHistory : false}
+           hasMoreHistory={isAgentChannel ? chat.hasMoreHistory : false}
+           loadOlderMessages={isAgentChannel ? chat.loadOlderMessages : undefined}

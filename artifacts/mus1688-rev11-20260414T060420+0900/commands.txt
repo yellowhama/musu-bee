@@ -1,0 +1,14 @@
+# Phase A
+npm install
+NODE_ENV=production npm run build
+npm run typecheck
+
+# Phase B
+npx --yes tsx --test src/app/brand-tokens.test.ts src/app/landing-exp/page.module.test.ts src/app/landing-exp/page.contract.test.ts
+rg -n --glob '!**/*.test.*' --glob '!src/app/globals.css' '#facc15|#ffd166|#2d1d19|#fdfcf0|#f8f6f1' src/app src/components src/pages
+npm run start -- --hostname 127.0.0.1 --port 4174
+curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:4174/landing
+curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:4174/pricing
+curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:4174/pro
+curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:4174/faq
+curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:4174/install

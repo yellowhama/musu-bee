@@ -1,0 +1,17 @@
+bundle=artifacts/mus1582-linkage-20260412T194500Z
+review_at=2026-04-12T20:22:10Z
+
+## manifest_contract
+manifest_contract_ok=1
+
+## url_and_timestamp_presence
+70369027375	https://github.com/yellowhama/musu-bee/actions/runs/24119051061/job/70369027375	2026-04-12T19:39:16Z
+70369027337	https://github.com/yellowhama/musu-bee/actions/runs/24119051063/job/70369027337	2026-04-12T19:39:16Z
+70369014478	https://github.com/yellowhama/musu-bee/actions/runs/24119046550/job/70369014478	2026-04-12T19:39:16Z
+70369014446	https://github.com/yellowhama/musu-bee/actions/runs/24119046549/job/70369014446	2026-04-12T19:39:16Z
+
+## trace_vs_meta_ids
+trace_meta_id_match=1
+
+## placeholder_hygiene
+placeholder_clean=1

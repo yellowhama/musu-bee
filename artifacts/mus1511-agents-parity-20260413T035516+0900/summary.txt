@@ -1,0 +1,17 @@
+timestamp_utc=2026-04-12T18:55:16Z
+timestamp_kst=2026-04-13T03:55:16+0900
+port_api=3301
+port_paperclip=33100
+port_handoff=33155
+out_dir=/home/hugh51/musu-functions/musu-bee/../artifacts/mus1511-agents-parity-20260413T035516+0900
+start_mock_paperclip=begin
+start_mock_handoff=begin
+start_next_dev=begin
+next_ready_after_s=2
+read_1=parity_ok
+read_2=parity_ok
+metadata_leak_check=PASS
+teardown_cmd_1=kill 47906
+teardown_cmd_2=kill 47903
+teardown_cmd_3=kill 47900
+overall=parity_ok

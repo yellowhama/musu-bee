@@ -1,0 +1,22 @@
+timestamp=20260413T060807+0900
+--- before ---
+pencil
+  enabled: true
+  transport: stdio
+  command: /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64
+  args: --app desktop
+  cwd: -
+  env: -
+  remove: codex mcp remove pencil
+--- reconfigure codexCLI ---
+Removed global MCP server 'pencil'.
+Added global MCP server 'pencil'.
+--- after ---
+pencil
+  enabled: true
+  transport: stdio
+  command: /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64
+  args: --app codexCLI
+  cwd: -
+  env: -
+  remove: codex mcp remove pencil

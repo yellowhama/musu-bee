@@ -1,0 +1,1 @@
+[RUN] npx --yes tsx --test src/app/brand-tokens.test.ts

@@ -1,20 +1,22 @@
+import "server-only";
+
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
 import { defaultCompanyTemplate, type DefaultCompanyTemplate } from "./templates/defaultCompanyTemplate";
 import {
   resolveCompanyScope,
   type CompanyScope,
   type CompanyScopeInput,
 } from "./companyScope";
+import {
+  buildDefaultCompanySetupState,
+  normalizeCompanySetupState,
+  type CompanySetupState,
+} from "./companySetup.shared";
 
-export interface CompanySetupState {
-  companyName: string;
-  templateKey: string;
-  selectedProjects: string[];
-  workspaceId: string;
-  userKey: string;
-  updatedAt: string;
-}
-
-const DEFAULT_COMPANY_NAME = "MUSU Workspace";
+export type { CompanySetupState } from "./companySetup.shared";
 
 function useKv(): boolean {
   return Boolean(process.env.KV_REST_API_URL);
@@ -25,7 +27,7 @@ function getKvKey(scope: CompanyScope) {
 }
 
 function getStateFilePath(scope: CompanyScope) {
-  return require("path").join(
+  return path.join(
     process.cwd(),
     "data",
     "company-setups",
@@ -33,79 +35,16 @@ function getStateFilePath(scope: CompanyScope) {
   ) as string;
 }
 
-function buildDefaultState(
-  scope: CompanyScope = resolveCompanyScope(),
-  template: DefaultCompanyTemplate = defaultCompanyTemplate
-): CompanySetupState {
-  return {
-    companyName: DEFAULT_COMPANY_NAME,
-    templateKey: template.templateKey,
-    selectedProjects: [...template.starterProjects],
-    workspaceId: scope.workspaceId,
-    userKey: scope.userKey,
-    updatedAt: new Date().toISOString(),
-  };
-}
-
-function normalizeState(
-  value: unknown,
-  scope: CompanyScope = resolveCompanyScope(),
-  template: DefaultCompanyTemplate = defaultCompanyTemplate
-): CompanySetupState {
-  const fallback = buildDefaultState(scope, template);
-  if (!value || typeof value !== "object") return fallback;
-  const record = value as Record<string, unknown>;
-
-  const companyName =
-    typeof record.companyName === "string" && record.companyName.trim().length > 0
-      ? record.companyName.trim()
-      : fallback.companyName;
-
-  const templateKey =
-    typeof record.templateKey === "string" && record.templateKey.trim().length > 0
-      ? record.templateKey.trim()
-      : fallback.templateKey;
-
-  const selectedProjects = Array.isArray(record.selectedProjects)
-    ? record.selectedProjects.filter(
-        (entry): entry is string =>
-          typeof entry === "string" && template.starterProjects.includes(entry)
-      )
-    : fallback.selectedProjects;
-
-  return {
-    companyName,
-    templateKey,
-    selectedProjects: selectedProjects.length > 0 ? selectedProjects : fallback.selectedProjects,
-    workspaceId:
-      typeof record.workspaceId === "string" && record.workspaceId.trim().length > 0
-        ? record.workspaceId
-        : fallback.workspaceId,
-    userKey:
-      typeof record.userKey === "string" && record.userKey.trim().length > 0
-        ? record.userKey
-        : fallback.userKey,
-    updatedAt:
-      typeof record.updatedAt === "string" && record.updatedAt.trim().length > 0
-        ? record.updatedAt
-        : fallback.updatedAt,
-  };
-}
-
 function fileGet(scope: CompanyScope): CompanySetupState {
-  const fs = require("fs") as typeof import("fs");
   try {
     const raw = fs.readFileSync(getStateFilePath(scope), "utf8");
-    return normalizeState(JSON.parse(raw), scope);
+    return normalizeCompanySetupState(JSON.parse(raw), scope);
   } catch {
-    return buildDefaultState(scope);
+    return buildDefaultCompanySetupState(scope);
   }
 }
 
 function fileSet(scope: CompanyScope, state: CompanySetupState): void {
-  const fs = require("fs") as typeof import("fs");
-  const path = require("path") as typeof import("path");
-  const os = require("os") as typeof import("os");
   const stateFile = getStateFilePath(scope);
   const dir = path.dirname(stateFile);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -117,7 +56,9 @@ function fileSet(scope: CompanyScope, state: CompanySetupState): void {
 async function kvGet(scope: CompanyScope): Promise<CompanySetupState> {
   const { kv } = await import("@vercel/kv");
   const stored = await kv.get<CompanySetupState>(getKvKey(scope));
-  return stored ? normalizeState(stored, scope) : buildDefaultState(scope);
+  return stored
+    ? normalizeCompanySetupState(stored, scope)
+    : buildDefaultCompanySetupState(scope);
 }
 
 async function kvSet(scope: CompanyScope, state: CompanySetupState): Promise<void> {
@@ -138,7 +79,7 @@ export async function saveCompanySetup(
 ): Promise<CompanySetupState> {
   const scope = resolveCompanyScope(scopeInput);
   const current = await getCompanySetup(scope);
-  const next = normalizeState(
+  const next = normalizeCompanySetupState(
     {
       ...current,
       ...input,
@@ -162,5 +103,5 @@ export function getDefaultCompanySetupState(
   template: DefaultCompanyTemplate = defaultCompanyTemplate,
   scopeInput: CompanyScopeInput = {}
 ): CompanySetupState {
-  return buildDefaultState(resolveCompanyScope(scopeInput), template);
+  return buildDefaultCompanySetupState(resolveCompanyScope(scopeInput), template);
 }

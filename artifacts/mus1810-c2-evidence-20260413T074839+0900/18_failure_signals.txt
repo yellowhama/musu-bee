@@ -1,0 +1,44 @@
+--- 03_check.log
+6:[CHECK] process-running: 1
+8:[CHECK] loadFile: 0
+9:[CHECK] addResource: 0
+10:[CHECK] initialized: 0
+11:[CHECK] latest-loadFile-is-target: 0
+12:[CHECK] latest-addResource-is-target: 0
+13:[CHECK] latest-initialized-is-target: 0
+14:[CHECK] claude-status: 0
+15:[CHECK] codex-status: 0
+20:  loadFile: missing
+21:  addResource: missing
+22:  initialized: missing
+23:  last loadFile(any): missing
+24:  last addResource(any): missing
+25:  last initialized(any): missing
+26:  claude-status: missing
+27:  codex-status: missing
+29:[WARN] One or more connection markers are missing.
+30:[MCP] Connection or startup is incomplete.
+
+--- 09_check_appimage.log
+6:[CHECK] process-running: 1
+8:[CHECK] loadFile: 0
+9:[CHECK] addResource: 0
+10:[CHECK] initialized: 0
+11:[CHECK] latest-loadFile-is-target: 0
+12:[CHECK] latest-addResource-is-target: 0
+13:[CHECK] latest-initialized-is-target: 0
+14:[CHECK] claude-status: 0
+15:[CHECK] codex-status: 0
+20:  loadFile: missing
+21:  addResource: missing
+22:  initialized: missing
+23:  last loadFile(any): missing
+24:  last addResource(any): missing
+25:  last initialized(any): missing
+26:  claude-status: missing
+27:  codex-status: missing
+29:[WARN] One or more connection markers are missing.
+30:[MCP] Connection or startup is incomplete.
+
+--- 14_headless_interactive.log
+[ERROR] Authentication required. Run "pencil login" or set PENCIL_CLI_KEY environment variable.

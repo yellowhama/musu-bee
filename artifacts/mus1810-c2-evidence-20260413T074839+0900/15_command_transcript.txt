@@ -1,0 +1,14 @@
+1) sync_pencil_mcp.sh rc=0
+   logs: 01_sync.log / 01_sync.exit
+2) reload_pencil_dev.sh <artifact> rc=2
+   logs: 02_reload.log / 02_reload.exit
+3) check_pencil_connection.sh <artifact> rc=2
+   logs: 03_check.log / 03_check.exit
+4) stop_pencil_dev.sh rc=0; start_pencil_dev.sh (force) rc=0; check_pencil_connection.sh rc=2
+   logs: 04_stop.log, 05_start_force.log, 06_check_after_force.log
+5) stop_pencil_dev.sh rc=0; start_pencil_dev.sh (AppImage) rc=0; check_pencil_connection.sh rc=2
+   logs: 07_stop_before_appimage.log, 08_start_appimage.log, 09_check_appimage.log
+6) codex mcp remove/add/get (app=codexCLI) rc=0/0/0
+   logs: 10_mcp_remove.log, 11_mcp_add_codexcli.log, 12_mcp_get_after_codexcli.log
+7) pencil interactive/headless + pencil export CLI probes rc=1 (auth required)
+   logs: 13_headless_smoke.log, 14_cli_export_smoke.log

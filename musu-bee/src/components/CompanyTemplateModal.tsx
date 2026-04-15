@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { DefaultCompanyTemplate } from "@/lib/templates/defaultCompanyTemplate";
-import type { CompanySetupState } from "@/lib/companySetup";
+import type { CompanySetupState } from "@/lib/companySetup.shared";
 import type { CompanyActivationState, CompanyRegistryState } from "@/lib/companyActivation";
 
 interface CompanyTemplateModalProps {
@@ -56,6 +56,7 @@ export default function CompanyTemplateModal({
   const [applyError, setApplyError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [activeCompanyActionId, setActiveCompanyActionId] = useState<string | null>(null);
+  const [pendingDeleteCompanyId, setPendingDeleteCompanyId] = useState<string | null>(null);
   const payload = useMemo(() => JSON.stringify(template, null, 2), [template]);
 
   async function handleCopy() {
@@ -105,6 +106,9 @@ export default function CompanyTemplateModal({
     action: "activate" | "sync" | "delete"
   ) {
     setActionError(null);
+    if (action !== "delete") {
+      setPendingDeleteCompanyId(null);
+    }
     setActiveCompanyActionId(companyId);
     try {
       if (action === "activate") {
@@ -113,6 +117,7 @@ export default function CompanyTemplateModal({
         await onSync(companyId);
       } else {
         await onDelete(companyId);
+        setPendingDeleteCompanyId(null);
       }
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Company action failed.");
@@ -165,7 +170,7 @@ export default function CompanyTemplateModal({
               onClick={() => void handleCopy()}
               style={{
                 background: copied ? "#14532d" : "#1a1a1a",
-                border: `1px solid ${copied ? "#22c55e" : "#2d2d2d"}`,
+                border: `1px solid ${copied ? "var(--musu-status-online)" : "#2d2d2d"}`,
                 color: copied ? "#86efac" : "#e5e7eb",
                 borderRadius: 8,
                 padding: "8px 12px",
@@ -427,29 +432,73 @@ export default function CompanyTemplateModal({
                         >
                           {isBusy ? "Working..." : "Sync"}
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => void runCompanyAction(company.companyId, "delete")}
-                          disabled={isBusy}
-                          style={{
-                            background: "transparent",
-                            border: "1px solid #3f1d1d",
-                            color: "#fca5a5",
-                            borderRadius: 8,
-                            padding: "6px 10px",
-                            fontSize: 12,
-                            cursor: isBusy ? "not-allowed" : "pointer",
-                          }}
-                        >
-                          Delete
-                        </button>
+                        {pendingDeleteCompanyId === company.companyId ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => void runCompanyAction(company.companyId, "delete")}
+                              disabled={isBusy}
+                              style={{
+                                background: "#7f1d1d",
+                                border: "1px solid #991b1b",
+                                color: "#fee2e2",
+                                borderRadius: 8,
+                                padding: "6px 10px",
+                                fontSize: 12,
+                                cursor: isBusy ? "not-allowed" : "pointer",
+                              }}
+                            >
+                              {isBusy ? "Deleting..." : "Confirm delete"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setPendingDeleteCompanyId(null)}
+                              disabled={isBusy}
+                              style={{
+                                background: "transparent",
+                                border: "1px solid #2d2d2d",
+                                color: "#9ca3af",
+                                borderRadius: 8,
+                                padding: "6px 10px",
+                                fontSize: 12,
+                                cursor: isBusy ? "not-allowed" : "pointer",
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setPendingDeleteCompanyId(company.companyId)}
+                            disabled={isBusy}
+                            style={{
+                              background: "transparent",
+                              border: "1px solid #3f1d1d",
+                              color: "#fca5a5",
+                              borderRadius: 8,
+                              padding: "6px 10px",
+                              fontSize: 12,
+                              cursor: isBusy ? "not-allowed" : "pointer",
+                            }}
+                          >
+                            Delete
+                          </button>
+                        )}
                       </div>
                     </div>
                     <div style={{ fontSize: 12, color: "#9ca3af", lineHeight: 1.6, marginTop: 6 }}>
                       Template: {company.templateKey}
                       <br />
                       Projects: {company.selectedProjects.join(", ")}
+                      <br />
+                      Workspace: {company.workspaceId}
                     </div>
+                    {pendingDeleteCompanyId === company.companyId ? (
+                      <div style={{ fontSize: 12, color: "#fca5a5", marginTop: 8 }}>
+                        Confirm delete to remove this company from the local registry.
+                      </div>
+                    ) : null}
                     {company.syncHistory.length > 0 ? (
                       <div style={{ marginTop: 10 }}>
                         <SectionTitle>Recent Sync</SectionTitle>
@@ -458,6 +507,14 @@ export default function CompanyTemplateModal({
                             {event.mode} · {event.status} · {new Date(event.checkedAt).toLocaleString()}
                             <br />
                             <span style={{ color: "#9ca3af" }}>{event.message}</span>
+                            {event.paperclipIssueId || event.paperclipCommentId ? (
+                              <>
+                                <br />
+                                <span style={{ color: "#6b7280" }}>
+                                  issue={event.paperclipIssueId ?? "n/a"} · comment={event.paperclipCommentId ?? "n/a"}
+                                </span>
+                              </>
+                            ) : null}
                           </div>
                         ))}
                       </div>

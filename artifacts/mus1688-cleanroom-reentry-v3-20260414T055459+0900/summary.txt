@@ -1,0 +1,5 @@
+npm_ci_exit=1
+targeted_tests_exit=999
+typecheck_exit=999
+build_exit=999
+token_scan_exit=999

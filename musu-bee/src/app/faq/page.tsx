@@ -32,7 +32,7 @@ export default function FaqPage() {
 
 const eyebrowStyle: React.CSSProperties = {
   fontSize: 12,
-  color: "#facc15",
+  color: "var(--musu-color-brand-accent)",
   fontWeight: 900,
   letterSpacing: "0.14em",
   textTransform: "uppercase",

@@ -1,0 +1,9 @@
+npm warn Unknown env config "auto-install-peers". This will stop working in the next major version of npm.
+npm warn Unknown env config "recursive". This will stop working in the next major version of npm.
+
+> musu-bee@0.1.0 typecheck
+> tsc --noEmit
+
+.next/types/app/api/webhooks/stripe/route.ts(2,24): error TS2307: Cannot find module '../../../../../../src/app/api/webhooks/stripe/route.js' or its corresponding type declarations.
+.next/types/app/api/webhooks/stripe/route.ts(5,29): error TS2307: Cannot find module '../../../../../../src/app/api/webhooks/stripe/route.js' or its corresponding type declarations.
+.next/types/validator.ts(314,39): error TS2307: Cannot find module '../../src/app/api/webhooks/stripe/route.js' or its corresponding type declarations.

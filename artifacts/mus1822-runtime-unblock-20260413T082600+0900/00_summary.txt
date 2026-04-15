@@ -1,0 +1,8 @@
+Evidence dir: /home/hugh51/musu-functions/artifacts/mus1822-runtime-unblock-20260413T082600+0900
+01_sync exit=0
+02_reload exit=2
+03_check exit=2
+04_start exit=0
+05_pencil_env_probe: /home/hugh51/musu-functions/artifacts/mus1822-runtime-unblock-20260413T082600+0900/05_pencil_env_probe.log
+06_codex_mcp_pencil: /home/hugh51/musu-functions/artifacts/mus1822-runtime-unblock-20260413T082600+0900/06_codex_mcp_pencil.log
+07_process_snapshot: /home/hugh51/musu-functions/artifacts/mus1822-runtime-unblock-20260413T082600+0900/07_process_snapshot.log

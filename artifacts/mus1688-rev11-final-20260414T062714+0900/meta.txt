@@ -1,0 +1,4 @@
+worktree=/tmp/mus1688-cleanroom-20260414T055346+0900
+branch=mus1688-rev11-20260414062655
+head_sha=abb3c57ba56389319b77084a77cef90e760a2dff
+started_at=2026-04-14T06:30:11+09:00

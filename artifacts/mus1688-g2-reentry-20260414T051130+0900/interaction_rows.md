@@ -1,0 +1,10 @@
+| 2026-04-13T20:18:33.034Z | /landing | interaction_nav | Pricing | clicked | http://127.0.0.1:3001/landing | `/home/hugh51/musu-functions/artifacts/mus1688-g2-reentry-20260414T051130+0900/interaction_nav_landing.png` |
+| 2026-04-13T20:18:33.034Z | /landing | interaction_cta | Join Waitlist | clicked | http://127.0.0.1:3001/landing | `/home/hugh51/musu-functions/artifacts/mus1688-g2-reentry-20260414T051130+0900/interaction_cta_landing.png` |
+| 2026-04-13T20:18:46.977Z | /pricing | interaction_nav | Pricing | clicked | http://127.0.0.1:3001/pricing | `/home/hugh51/musu-functions/artifacts/mus1688-g2-reentry-20260414T051130+0900/interaction_nav_pricing.png` |
+| 2026-04-13T20:18:46.977Z | /pricing | interaction_cta | Pro access | clicked | http://127.0.0.1:3001/pricing | `/home/hugh51/musu-functions/artifacts/mus1688-g2-reentry-20260414T051130+0900/interaction_cta_pricing.png` |
+| 2026-04-13T20:18:49.802Z | /pro | interaction_nav | [none] | no_target | http://127.0.0.1:3001/pro | `/home/hugh51/musu-functions/artifacts/mus1688-g2-reentry-20260414T051130+0900/interaction_nav_pro.png` |
+| 2026-04-13T20:18:49.802Z | /pro | interaction_cta | Pro 시작하기 | clicked | http://127.0.0.1:3001/pro | `/home/hugh51/musu-functions/artifacts/mus1688-g2-reentry-20260414T051130+0900/interaction_cta_pro.png` |
+| 2026-04-13T20:18:52.871Z | /faq | interaction_nav | Pricing | clicked | http://127.0.0.1:3001/pricing | `/home/hugh51/musu-functions/artifacts/mus1688-g2-reentry-20260414T051130+0900/interaction_nav_faq.png` |
+| 2026-04-13T20:18:52.871Z | /faq | interaction_cta | Install | clicked | http://127.0.0.1:3001/install | `/home/hugh51/musu-functions/artifacts/mus1688-g2-reentry-20260414T051130+0900/interaction_cta_faq.png` |
+| 2026-04-13T20:18:57.777Z | /install | interaction_nav | Pricing | clicked | http://127.0.0.1:3001/pricing | `/home/hugh51/musu-functions/artifacts/mus1688-g2-reentry-20260414T051130+0900/interaction_nav_install.png` |
+| 2026-04-13T20:18:57.777Z | /install | interaction_cta | Install | clicked | http://127.0.0.1:3001/install | `/home/hugh51/musu-functions/artifacts/mus1688-g2-reentry-20260414T051130+0900/interaction_cta_install.png` |

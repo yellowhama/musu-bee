@@ -1,0 +1,24 @@
+
+> musu-bee@0.1.0 dev
+> next dev -p 3001
+
+   ▲ Next.js 15.5.14
+   - Local:        http://localhost:3001
+   - Network:      http://10.255.255.254:3001
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 2.5s
+ ○ Compiling /landing ...
+ ✓ Compiled /landing in 10.9s (600 modules)
+ GET /landing 200 in 11560ms
+ ○ Compiling /pricing ...
+ ✓ Compiled /pricing in 2.2s (600 modules)
+ GET /pricing 200 in 2772ms
+ ✓ Compiled /pro in 449ms (605 modules)
+ GET /pro 200 in 905ms
+ ✓ Compiled /faq in 491ms (610 modules)
+ GET /faq 200 in 701ms
+ ○ Compiling /install ...
+ ✓ Compiled /install in 524ms (612 modules)
+ GET /install 200 in 761ms

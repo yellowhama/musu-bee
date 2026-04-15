@@ -1,0 +1,72 @@
+[
+  {
+    "route": "/landing",
+    "variant": "desktop",
+    "status": 200,
+    "screenshot": "/home/hugh51/musu-functions/artifacts/mus1688-evidence-only-20260414T051432+0900/visual/landing-desktop.png",
+    "error": null
+  },
+  {
+    "route": "/pricing",
+    "variant": "desktop",
+    "status": 200,
+    "screenshot": "/home/hugh51/musu-functions/artifacts/mus1688-evidence-only-20260414T051432+0900/visual/pricing-desktop.png",
+    "error": null
+  },
+  {
+    "route": "/pro",
+    "variant": "desktop",
+    "status": 200,
+    "screenshot": "/home/hugh51/musu-functions/artifacts/mus1688-evidence-only-20260414T051432+0900/visual/pro-desktop.png",
+    "error": null
+  },
+  {
+    "route": "/faq",
+    "variant": "desktop",
+    "status": 200,
+    "screenshot": "/home/hugh51/musu-functions/artifacts/mus1688-evidence-only-20260414T051432+0900/visual/faq-desktop.png",
+    "error": null
+  },
+  {
+    "route": "/install",
+    "variant": "desktop",
+    "status": 200,
+    "screenshot": "/home/hugh51/musu-functions/artifacts/mus1688-evidence-only-20260414T051432+0900/visual/install-desktop.png",
+    "error": null
+  },
+  {
+    "route": "/landing",
+    "variant": "mobile",
+    "status": 200,
+    "screenshot": "/home/hugh51/musu-functions/artifacts/mus1688-evidence-only-20260414T051432+0900/visual/landing-mobile.png",
+    "error": null
+  },
+  {
+    "route": "/pricing",
+    "variant": "mobile",
+    "status": 200,
+    "screenshot": "/home/hugh51/musu-functions/artifacts/mus1688-evidence-only-20260414T051432+0900/visual/pricing-mobile.png",
+    "error": null
+  },
+  {
+    "route": "/pro",
+    "variant": "mobile",
+    "status": 200,
+    "screenshot": "/home/hugh51/musu-functions/artifacts/mus1688-evidence-only-20260414T051432+0900/visual/pro-mobile.png",
+    "error": null
+  },
+  {
+    "route": "/faq",
+    "variant": "mobile",
+    "status": 200,
+    "screenshot": "/home/hugh51/musu-functions/artifacts/mus1688-evidence-only-20260414T051432+0900/visual/faq-mobile.png",
+    "error": null
+  },
+  {
+    "route": "/install",
+    "variant": "mobile",
+    "status": 200,
+    "screenshot": "/home/hugh51/musu-functions/artifacts/mus1688-evidence-only-20260414T051432+0900/visual/install-mobile.png",
+    "error": null
+  }
+]

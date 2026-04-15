@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   createPaddleCheckoutSession,
-  PADDLE_PRICE_IDS,
 } from "@/lib/paddle";
 
 export async function POST(req: NextRequest) {
@@ -19,9 +18,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!PADDLE_PRICE_IDS[tier]) {
+    const priceEnvKey = `PADDLE_PRICE_ID_${tier.toUpperCase()}`;
+    if (!process.env[priceEnvKey]?.trim()) {
       return NextResponse.json(
-        { error: `PADDLE_PRICE_ID_${tier.toUpperCase()} env var not set` },
+        { error: `${priceEnvKey} env var not set` },
         { status: 503 }
       );
     }

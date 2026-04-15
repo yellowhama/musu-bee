@@ -423,6 +423,24 @@ def init_db(project_root: Path):
         """CREATE VIRTUAL TABLE IF NOT EXISTS search_index
         USING fts5(path, title, content, type, tokenize='unicode61')"""
     )
+    cursor.execute(
+        """CREATE TABLE IF NOT EXISTS wiki_pages (
+        id TEXT PRIMARY KEY,
+        scope TEXT NOT NULL,
+        title TEXT NOT NULL,
+        summary TEXT,
+        key_points TEXT,
+        evidence TEXT,
+        related TEXT,
+        open_questions TEXT,
+        source_raw TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )"""
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS wiki_scope_idx ON wiki_pages(scope)"
+    )
     conn.commit()
     conn.close()
 

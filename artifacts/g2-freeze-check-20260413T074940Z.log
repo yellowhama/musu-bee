@@ -1,0 +1,11 @@
+timestamp_utc=20260413T074940Z
+=== landing_lane_status ===
+MUS-1663	in_progress	2026-04-13T07:32:57.270Z
+MUS-1685	in_progress	2026-04-13T07:48:47.405Z
+MUS-1765	in_progress	2026-04-13T07:01:29.738Z
+MUS-1816	in_progress	2026-04-13T07:35:39.650Z
+=== g1_counts ===
+MUS-1663	0
+MUS-1765	0
+MUS-1816	0
+MUS-1685	1

@@ -1,5 +1,6 @@
 "use client";
 
+import { initializePaddle } from "@paddle/paddle-js";
 import { useState } from "react";
 
 interface Props {
@@ -8,8 +9,22 @@ interface Props {
   style?: React.CSSProperties;
 }
 
+declare global {
+  interface Window {
+    __MUSU_CHECKOUT_TEST_HOOKS__?: {
+      initializePaddle?: typeof initializePaddle;
+    };
+  }
+}
+
 export default function CheckoutButton({ tier, label, style }: Props) {
   const [loading, setLoading] = useState(false);
+  const paddleEnvironment =
+    process.env.NEXT_PUBLIC_PADDLE_ENV === "production"
+      ? "production"
+      : "sandbox";
+  const paddleClientToken =
+    process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN?.trim() ?? "";
 
   async function handleClick() {
     if (tier === "free") {
@@ -24,15 +39,38 @@ export default function CheckoutButton({ tier, label, style }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tier }),
       });
-      const data = (await res.json()) as { url?: string; error?: string };
+      const data = (await res.json()) as {
+        transactionId?: string;
+        url?: string;
+        error?: string;
+      };
+
+      if (paddleClientToken && data.transactionId) {
+        try {
+          const initializePaddleForEnv =
+            window.__MUSU_CHECKOUT_TEST_HOOKS__?.initializePaddle ?? initializePaddle;
+          const paddle = await initializePaddleForEnv({
+            environment: paddleEnvironment,
+            token: paddleClientToken,
+          });
+          if (paddle) {
+            paddle.Checkout.open({ transactionId: data.transactionId });
+            setLoading(false);
+            return;
+          }
+        } catch {
+          // Fall through to hosted checkout redirect when Paddle.js init fails.
+        }
+      }
+
       if (data.url) {
         window.location.href = data.url;
       } else {
-        alert(data.error ?? "결제 오류가 발생했습니다.");
+        alert(data.error ?? "A checkout error occurred.");
         setLoading(false);
       }
     } catch {
-      alert("네트워크 오류가 발생했습니다.");
+      alert("A network error occurred.");
       setLoading(false);
     }
   }
@@ -57,7 +95,7 @@ export default function CheckoutButton({ tier, label, style }: Props) {
         ...style,
       }}
     >
-      {loading ? "처리 중…" : label}
+      {loading ? "Processing..." : label}
     </button>
   );
 }

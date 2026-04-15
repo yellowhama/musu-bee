@@ -1,0 +1,10 @@
+[INFO] artifact_dir=/home/hugh51/musu-functions/artifacts/mus1817-postfix-20260413T084418+0900
+[INFO] commands=/home/hugh51/musu-functions/artifacts/mus1817-postfix-20260413T084418+0900/commands.txt
+[INFO] checks_dir=/home/hugh51/musu-functions/artifacts/mus1817-postfix-20260413T084418+0900/checks
+[INFO] process_dir=/home/hugh51/musu-functions/artifacts/mus1817-postfix-20260413T084418+0900/process
+[INFO] mcp_dir=/home/hugh51/musu-functions/artifacts/mus1817-postfix-20260413T084418+0900/mcp
+[INFO] logs_dir=/home/hugh51/musu-functions/artifacts/mus1817-postfix-20260413T084418+0900/logs
+[INFO] exit_codes=/home/hugh51/musu-functions/artifacts/mus1817-postfix-20260413T084418+0900/checks/exit_codes.txt
+[MCP] Pencil workflow ready.
+[MCP] Use sequence: batch_get -> get_screenshot(before) -> batch_design -> snapshot_layout -> get_screenshot(after)
+[MCP] Playbook: /home/hugh51/musu-functions/skills/pencil-dev-design-workflow/scripts/../references/pencil-mcp-tool-calling-playbook.md

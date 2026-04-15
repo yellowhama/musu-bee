@@ -1,0 +1,1 @@
+# scoped trust-boundary scan (risky scope-routing identifiers only)

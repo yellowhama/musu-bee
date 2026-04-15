@@ -1,0 +1,1094 @@
+diff --git a/musu-bee/src/app/faq/page.tsx b/musu-bee/src/app/faq/page.tsx
+index 7b3d2fc9..68607d4a 100644
+--- a/musu-bee/src/app/faq/page.tsx
++++ b/musu-bee/src/app/faq/page.tsx
+@@ -12,10 +12,10 @@ export default function FaqPage() {
+     <PublicSiteShell>
+       <main style={{ maxWidth: 960, margin: "0 auto", padding: "80px 24px 96px" }}>
+         <div style={eyebrowStyle}>FAQ</div>
+-        <h1 style={titleStyle}>무엇을 약속하고, 무엇은 아직 early access인가</h1>
++        <h1 style={titleStyle}>What is real today, and what is still early access?</h1>
+         <p style={descStyle}>
+-          FAQ는 objection handling과 honest framing을 맡는다. 강한 주장을 늘리는 곳이 아니라,
+-          실제 제품 상태와 기대치를 맞추는 곳이다.
++          FAQ should handle objections and keep the framing honest. It is where product reality and
++          user expectations get aligned, not where claims get inflated.
+         </p>
+         <div style={{ display: "grid", gap: 16, marginTop: 32 }}>
+           {FAQ_ITEMS.map((item) => (
+@@ -32,7 +32,7 @@ export default function FaqPage() {
+ 
+ const eyebrowStyle: React.CSSProperties = {
+   fontSize: 12,
+-  color: "#facc15",
++  color: "var(--musu-color-brand-accent)",
+   fontWeight: 900,
+   letterSpacing: "0.14em",
+   textTransform: "uppercase",
+diff --git a/musu-bee/src/app/globals.css b/musu-bee/src/app/globals.css
+index 5efd3ee3..3c4d8d6d 100644
+--- a/musu-bee/src/app/globals.css
++++ b/musu-bee/src/app/globals.css
+@@ -1,3 +1,41 @@
++:root {
++  /* MUSU Brand — SSOT */
++  --musu-color-brand-ink: #2D1D19;
++  --musu-color-brand-accent: #FFD166;
++  --musu-color-brand-canvas: #FDFCF0;
++  --musu-color-brand-stroke: #F8F6F1;
++  --musu-color-brand-ink-rgb: 45 29 25;
++  --musu-color-brand-accent-rgb: 255 209 102;
++  --musu-color-brand-canvas-rgb: 253 252 240;
++
++  /* Backward-compat aliases (phase-out target) */
++  --musu-cocoa-brown: var(--musu-color-brand-ink);
++  --musu-yellow: var(--musu-color-brand-accent);
++  --musu-off-white: var(--musu-color-brand-canvas);
++  --musu-brown: var(--musu-color-brand-ink);
++  --musu-stroke: var(--musu-color-brand-stroke);
++
++  /* App Shell — dark UI */
++  --musu-bg: #0d0d0d;
++  --musu-bg-surface: #111827;
++  --musu-bg-raised: #1f2937;
++  --musu-border: #2d2d2d;
++  --musu-border-subtle: #374151;
++  --musu-text: #f3f4f6;
++  --musu-text-muted: #9ca3af;
++  --musu-text-dim: #6b7280;
++
++  /* Semantic status */
++  --musu-status-online: #22c55e;
++  --musu-status-busy: #f59e0b;
++  --musu-status-offline: #4b5563;
++  --musu-status-error: #ef4444;
++
++  /* Spacing / shape */
++  --musu-radius: 8px;
++  --musu-radius-sm: 4px;
++}
++
+ *, *::before, *::after {
+   box-sizing: border-box;
+   margin: 0;
+@@ -7,8 +45,8 @@
+ html, body {
+   height: 100%;
+   overflow: hidden;
+-  background: #0d0d0d;
+-  color: #f3f4f6;
++  background: var(--musu-bg);
++  color: var(--musu-text);
+ }
+ 
+ ::-webkit-scrollbar {
+diff --git a/musu-bee/src/app/install/page.tsx b/musu-bee/src/app/install/page.tsx
+index 605285f9..246d6d89 100644
+--- a/musu-bee/src/app/install/page.tsx
++++ b/musu-bee/src/app/install/page.tsx
+@@ -12,16 +12,16 @@ export default function InstallPage() {
+     <PublicSiteShell>
+       <main style={{ maxWidth: 960, margin: "0 auto", padding: "80px 24px 96px" }}>
+         <div style={eyebrowStyle}>INSTALL</div>
+-        <h1 style={titleStyle}>기기를 MUSU에 연결하는 가장 빠른 방법</h1>
++        <h1 style={titleStyle}>The fastest way to connect a machine to MUSU</h1>
+         <p style={descStyle}>
+-          현재 제품 공개면에서 가장 설득력 있는 install story는 단순해야 한다. 기기에 port를
+-          설치하고, 상태를 올리고, control plane에서 그 기기를 보는 흐름이다.
++          The most credible install story on the public site should stay simple: install the port,
++          bring the machine online, and surface it in the control plane.
+         </p>
+ 
+         <div style={{ display: "grid", gap: 18, marginTop: 32 }}>
+           {INSTALL_COMMANDS.map((item) => (
+             <article key={item.platform} style={cardStyle}>
+-              <div style={{ fontSize: 12, color: "#facc15", fontWeight: 800, marginBottom: 8 }}>
++              <div style={{ fontSize: 12, color: "var(--musu-color-brand-accent)", fontWeight: 800, marginBottom: 8 }}>
+                 {item.platform}
+               </div>
+               <h2 style={{ margin: "0 0 8px", fontSize: 20, fontWeight: 800 }}>{item.label}</h2>
+@@ -39,7 +39,7 @@ export default function InstallPage() {
+ 
+ const eyebrowStyle: React.CSSProperties = {
+   fontSize: 12,
+-  color: "#facc15",
++  color: "var(--musu-color-brand-accent)",
+   fontWeight: 900,
+   letterSpacing: "0.14em",
+   textTransform: "uppercase",
+diff --git a/musu-bee/src/app/landing/page.tsx b/musu-bee/src/app/landing/page.tsx
+index d909f7f4..b062704b 100644
+--- a/musu-bee/src/app/landing/page.tsx
++++ b/musu-bee/src/app/landing/page.tsx
+@@ -169,7 +169,7 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
+ 
+ const eyebrowStyle: React.CSSProperties = {
+   fontSize: 12,
+-  color: "#facc15",
++  color: "var(--musu-color-brand-accent)",
+   fontWeight: 900,
+   letterSpacing: "0.14em",
+   textTransform: "uppercase",
+@@ -211,7 +211,7 @@ const formPanelStyle: React.CSSProperties = {
+ 
+ const panelEyebrowStyle: React.CSSProperties = {
+   fontSize: 11,
+-  color: "#facc15",
++  color: "var(--musu-color-brand-accent)",
+   fontWeight: 900,
+   letterSpacing: "0.12em",
+   marginBottom: 8,
+@@ -251,7 +251,7 @@ const inputStyle: React.CSSProperties = {
+ const submitStyle: React.CSSProperties = {
+   border: "none",
+   borderRadius: 12,
+-  background: "#facc15",
++  background: "var(--musu-color-brand-accent)",
+   color: "#0a0a0a",
+   fontSize: 15,
+   fontWeight: 900,
+@@ -292,7 +292,7 @@ const sectionCardStyle: React.CSSProperties = {
+ 
+ const cardEyebrowStyle: React.CSSProperties = {
+   fontSize: 11,
+-  color: "#facc15",
++  color: "var(--musu-color-brand-accent)",
+   fontWeight: 900,
+   letterSpacing: "0.12em",
+   textTransform: "uppercase",
+@@ -353,7 +353,7 @@ const installCardStyle: React.CSSProperties = {
+ 
+ const installPlatformStyle: React.CSSProperties = {
+   fontSize: 12,
+-  color: "#facc15",
++  color: "var(--musu-color-brand-accent)",
+   fontWeight: 900,
+ };
+ 
+@@ -387,7 +387,7 @@ const linkButtonStyle: React.CSSProperties = {
+   alignItems: "center",
+   justifyContent: "center",
+   color: "#0a0a0a",
+-  background: "#facc15",
++  background: "var(--musu-color-brand-accent)",
+   textDecoration: "none",
+   fontWeight: 900,
+   padding: "12px 16px",
+diff --git a/musu-bee/src/app/page.tsx b/musu-bee/src/app/page.tsx
+index 6480c81e..b87f2dbc 100644
+--- a/musu-bee/src/app/page.tsx
++++ b/musu-bee/src/app/page.tsx
+@@ -42,7 +42,7 @@ export default function HomePage() {
+                 fontSize: 12,
+                 fontWeight: 800,
+                 letterSpacing: "0.14em",
+-                color: "#facc15",
++                color: "var(--musu-color-brand-accent)",
+                 textTransform: "uppercase",
+                 marginBottom: 18,
+               }}
+@@ -134,7 +134,7 @@ export default function HomePage() {
+                 fontSize: 13,
+               }}
+             >
+-              <span style={{ color: "#22c55e" }}>●</span>
++              <span style={{ color: "var(--musu-status-online)" }}>●</span>
+               <span>live-ish product surface</span>
+             </div>
+             <div
+@@ -227,8 +227,8 @@ export default function HomePage() {
+         >
+           <SectionHeader
+             eyebrow="HOW IT WORKS"
+-            title="DIY 오케스트레이션 대신, 한 화면에서 운영한다."
+-            description="MUSU의 공개 사이트는 지금 과장보다 흐름 설명이 더 중요하다. 설치하고, 연결하고, 채팅으로 위임하고, 상태와 결과를 한 곳에서 보는 흐름을 먼저 이해시켜야 한다."
++            title="Operate from one surface instead of DIY orchestration."
++            description="The public site should explain the product flow before it reaches for bigger promises. Install the port, connect machines, delegate through chat, and view device state and outcomes in one place."
+           />
+           <div
+             style={{
+@@ -256,8 +256,8 @@ export default function HomePage() {
+         >
+           <SectionHeader
+             eyebrow="WHY MUSU"
+-            title="MUSU는 어디에 서야 하는가"
+-            description="이 사이트는 Cursor, Bolt, Lovable, v0, Replit, Relay 같은 익숙한 AI 제품들과 implicitly 비교된다. 그래서 정체성을 분명히 말해야 한다."
++            title="Where MUSU should stand"
++            description="This site will be implicitly compared with products like Cursor, Bolt, Lovable, v0, Replit, and Relay. That means the positioning has to stay explicit."
+           />
+           <div
+             style={{
+@@ -292,12 +292,10 @@ export default function HomePage() {
+           >
+             <div style={trustPanelStyle}>
+               <div style={eyebrowStyle}>TRUST AND HONESTY</div>
+-              <h2 style={panelTitleStyle}>
+-                지금은 과장보다 증빙이 중요하다.
+-              </h2>
++              <h2 style={panelTitleStyle}>Evidence matters more than hype right now.</h2>
+               <p style={panelDescStyle}>
+-                MUSU는 beta 상태를 숨기지 않고, 현재 보이는 제품 surface와 일치하는 주장만
+-                사용해야 한다. 이 원칙이 public site의 신뢰를 만든다.
++                MUSU should not hide its beta state, and it should only make claims that match the
++                visible product surface. That is what makes the public site trustworthy.
+               </p>
+               <ul style={trustListStyle}>
+                 {TRUST_POINTS.map((point) => (
+@@ -309,10 +307,10 @@ export default function HomePage() {
+             </div>
+             <div style={ctaPanelStyle}>
+               <div style={eyebrowStyle}>NEXT STEP</div>
+-              <h2 style={panelTitleStyle}>먼저 early access에 합류하라.</h2>
++              <h2 style={panelTitleStyle}>Start with early access.</h2>
+               <p style={panelDescStyle}>
+-                지금 public site의 올바른 CTA는 broad checkout push가 아니라 proof-backed
+-                early access다.
++                The right CTA for the current public site is proof-backed early access, not a broad
++                checkout push.
+               </p>
+               <div style={{ display: "grid", gap: 12, marginTop: 24 }}>
+                 <Link href="/landing" style={primaryButtonStyle}>
+@@ -374,7 +372,7 @@ const primaryButtonStyle: React.CSSProperties = {
+   display: "inline-flex",
+   justifyContent: "center",
+   alignItems: "center",
+-  background: "#facc15",
++  background: "var(--musu-color-brand-accent)",
+   color: "#0a0a0a",
+   textDecoration: "none",
+   fontWeight: 900,
+@@ -446,7 +444,7 @@ const surfaceRowStyle: React.CSSProperties = {
+ const surfaceActiveStyle: React.CSSProperties = {
+   padding: "8px 10px",
+   borderRadius: 10,
+-  background: "#facc15",
++  background: "var(--musu-color-brand-accent)",
+   color: "#0a0a0a",
+   fontSize: 13,
+   fontWeight: 800,
+@@ -484,7 +482,7 @@ const stepCardStyle: React.CSSProperties = {
+ 
+ const stepNumberStyle: React.CSSProperties = {
+   fontSize: 12,
+-  color: "#facc15",
++  color: "var(--musu-color-brand-accent)",
+   fontWeight: 900,
+   letterSpacing: "0.12em",
+   marginBottom: 10,
+@@ -527,7 +525,7 @@ const diffDescStyle: React.CSSProperties = {
+ 
+ const eyebrowStyle: React.CSSProperties = {
+   fontSize: 12,
+-  color: "#facc15",
++  color: "var(--musu-color-brand-accent)",
+   fontWeight: 900,
+   letterSpacing: "0.14em",
+   textTransform: "uppercase",
+diff --git a/musu-bee/src/app/pricing/page.tsx b/musu-bee/src/app/pricing/page.tsx
+index 6ca3f8dc..4114ff42 100644
+--- a/musu-bee/src/app/pricing/page.tsx
++++ b/musu-bee/src/app/pricing/page.tsx
+@@ -23,32 +23,30 @@ export default async function PricingPage({ searchParams }: PageProps) {
+     <PublicSiteShell>
+       <main style={{ maxWidth: 1080, margin: "0 auto", padding: "80px 24px 96px" }}>
+         <div style={eyebrowStyle}>PRICING AND ACCESS</div>
+-        <h1 style={titleStyle}>가격보다 먼저, 어떤 운영 문제를 푸는지 설명해야 한다.</h1>
++        <h1 style={titleStyle}>Explain the operating problem first, then the price.</h1>
+         <p style={descStyle}>
+-          MUSU pricing page는 단순히 결제 버튼을 보여주는 곳이 아니라, 누가 어떤 상태에서 어떤
+-          접근 경로를 선택해야 하는지 설명하는 곳이어야 한다.
++          The MUSU pricing page should not just show checkout buttons. It should explain which
++          users fit which access path and why.
+         </p>
+ 
+         {isSuccess && (
+           <div style={successBannerStyle}>
+-            결제가 완료되었습니다. MUSU {params.tier?.toUpperCase() ?? "PRO"} 플랜이
+-            활성화되었습니다.
++            Payment completed. Your MUSU {params.tier?.toUpperCase() ?? "PRO"} plan is now active.
+           </div>
+         )}
+         {isCancelled && (
+           <div style={errorBannerStyle}>
+-            결제가 취소되었습니다. 접근이 준비되면 언제든 다시 시도할 수 있습니다.
++            Payment was cancelled. You can try again whenever access is ready.
+           </div>
+         )}
+ 
+         <section style={{ marginTop: 32, display: "grid", gap: 18 }}>
+           <div style={contextCardStyle}>
+             <div style={cardEyebrowStyle}>HONEST STATE</div>
+-            <h2 style={sectionTitleStyle}>현재 public site의 기본 경로는 waitlist 중심이 맞다.</h2>
++            <h2 style={sectionTitleStyle}>The honest default path is still waitlist-first.</h2>
+             <p style={sectionDescStyle}>
+-              현재 pricing은 존재하지만 broad paid acquisition보다 early access와 beta
+-              honesty가 더 중요하다. 따라서 pricing 페이지는 “지금 결제하라”보다 “어떤 사용자가
+-              어떤 플랜에 맞는지”를 먼저 설명해야 한다.
++              Pricing exists today, but early access and beta honesty still matter more than broad
++              paid acquisition. This page should explain plan fit before it pushes payment.
+             </p>
+             <div style={{ marginTop: 18, display: "flex", gap: 12, flexWrap: "wrap" }}>
+               <Link href="/landing" style={primaryButtonStyle}>
+@@ -106,24 +104,23 @@ export default async function PricingPage({ searchParams }: PageProps) {
+           <div style={gridStyle}>
+             <article style={infoCardStyle}>
+               <div style={cardEyebrowStyle}>WHO IS PRO FOR</div>
+-              <h3 style={infoTitleStyle}>개인 개발기 + GPU 박스를 운영하는 사람</h3>
++              <h3 style={infoTitleStyle}>A solo builder running a workstation and a GPU box</h3>
+               <p style={infoDescStyle}>
+-                개인 환경이지만 이미 여러 머신을 운영 중이라면 Pro가 기본 프레임이다.
++                If you already operate multiple machines in a personal setup, Pro is the default framing.
+               </p>
+             </article>
+             <article style={infoCardStyle}>
+               <div style={cardEyebrowStyle}>WHO IS TEAM FOR</div>
+-              <h3 style={infoTitleStyle}>작은 팀이 여러 머신을 같이 쓰는 경우</h3>
++              <h3 style={infoTitleStyle}>A small team sharing a machine fleet</h3>
+               <p style={infoDescStyle}>
+-                팀 멤버와 기기 fleet을 공유해야 할 때 Team framing이 맞다.
++                Team is the right framing once multiple people need to share the same machine topology.
+               </p>
+             </article>
+             <article style={infoCardStyle}>
+               <div style={cardEyebrowStyle}>WHAT NOT TO DO</div>
+-              <h3 style={infoTitleStyle}>과장된 enterprise promise</h3>
++              <h3 style={infoTitleStyle}>Overstated enterprise promises</h3>
+               <p style={infoDescStyle}>
+-                명시적 security/privacy proof가 생기기 전까지 enterprise-grade promise는 세게
+-                밀지 않는 것이 정직하다.
++                Until explicit security and privacy proof exists, it is more honest not to push enterprise-grade claims too hard.
+               </p>
+             </article>
+           </div>
+@@ -135,7 +132,7 @@ export default async function PricingPage({ searchParams }: PageProps) {
+ 
+ const eyebrowStyle: React.CSSProperties = {
+   fontSize: 12,
+-  color: "#facc15",
++  color: "var(--musu-color-brand-accent)",
+   fontWeight: 900,
+   letterSpacing: "0.14em",
+   textTransform: "uppercase",
+@@ -188,7 +185,7 @@ const contextCardStyle: React.CSSProperties = {
+ 
+ const cardEyebrowStyle: React.CSSProperties = {
+   fontSize: 11,
+-  color: "#facc15",
++  color: "var(--musu-color-brand-accent)",
+   fontWeight: 900,
+   letterSpacing: "0.12em",
+   textTransform: "uppercase",
+@@ -215,7 +212,7 @@ const primaryButtonStyle: React.CSSProperties = {
+   display: "inline-flex",
+   justifyContent: "center",
+   alignItems: "center",
+-  background: "#facc15",
++  background: "var(--musu-color-brand-accent)",
+   color: "#0a0a0a",
+   textDecoration: "none",
+   fontWeight: 900,
+@@ -305,7 +302,7 @@ const bulletStyle: React.CSSProperties = {
+ 
+ const checkoutPrimaryStyle: React.CSSProperties = {
+   background: "#0a0a0a",
+-  color: "#facc15",
++  color: "var(--musu-color-brand-accent)",
+ };
+ 
+ const checkoutSecondaryStyle: React.CSSProperties = {
+diff --git a/musu-bee/src/app/pro/page.tsx b/musu-bee/src/app/pro/page.tsx
+index ff13aff9..6fbe402d 100644
+--- a/musu-bee/src/app/pro/page.tsx
++++ b/musu-bee/src/app/pro/page.tsx
+@@ -2,9 +2,9 @@ import type { Metadata } from "next";
+ import CheckoutButton from "@/components/CheckoutButton";
+ 
+ export const metadata: Metadata = {
+-  title: "MUSU — AI가 운영하는 나만의 팀",
++  title: "MUSU — Your AI-operated machine team",
+   description:
+-    "여러 기기를 하나의 AI 팀으로. 사장 AI가 작업을 알아서 분배하고 처리합니다.",
++    "Turn multiple machines into one AI team. The lead agent routes work and brings results back.",
+ };
+ 
+ // Pricing tiers
+@@ -12,31 +12,31 @@ const TIERS = [
+   {
+     name: "Free",
+     tier: "free" as const,
+-    price: "무료",
++    price: "Free",
+     period: "",
+-    devices: "기기 최대 2대",
+-    features: ["기본 AI 채팅", "작업 분배", "상태 모니터링", "하루 100개 메시지"],
+-    cta: "무료로 시작",
++    devices: "up to 2 devices",
++    features: ["basic AI chat", "work routing", "status monitoring", "100 messages per day"],
++    cta: "Start free",
+     highlight: false,
+   },
+   {
+     name: "Pro",
+     tier: "pro" as const,
+     price: "₩29,000",
+-    period: "/월",
+-    devices: "기기 최대 5대",
+-    features: ["모든 Free 기능", "무제한 메시지", "우선 처리 큐", "이메일 지원"],
+-    cta: "Pro 시작하기",
++    period: "/mo",
++    devices: "up to 5 devices",
++    features: ["everything in Free", "unlimited messages", "priority queue", "email support"],
++    cta: "Start Pro",
+     highlight: true,
+   },
+   {
+     name: "Team",
+     tier: "team" as const,
+     price: "₩49,000",
+-    period: "/월",
+-    devices: "기기 무제한",
+-    features: ["모든 Pro 기능", "팀 멤버 공유", "API 접근", "우선 기술 지원"],
+-    cta: "Team 시작하기",
++    period: "/mo",
++    devices: "unlimited devices",
++    features: ["everything in Pro", "shared team members", "API access", "priority technical support"],
++    cta: "Start Team",
+     highlight: false,
+   },
+ ] as const;
+@@ -44,18 +44,18 @@ const TIERS = [
+ const VALUE_PROPS = [
+   {
+     icon: "⚡",
+-    title: "자동 작업 분배",
+-    desc: "CPU·GPU 여유 기기로 자동 분배. 사장 AI가 최적 기기를 골라 처리합니다.",
++    title: "Automatic work routing",
++    desc: "Route jobs to the machines with available CPU and GPU capacity. The lead agent picks the best target.",
+   },
+   {
+     icon: "📊",
+-    title: "실시간 모니터링",
+-    desc: "모든 기기의 CPU·GPU·RAM 상태를 한 화면에서 확인하세요.",
++    title: "Real-time monitoring",
++    desc: "View CPU, GPU, and RAM status for every machine from one surface.",
+   },
+   {
+     icon: "💬",
+-    title: "AI 팀 채팅",
+-    desc: "말만 하세요. 사장 AI가 기기 팀에 지시하고 결과를 가져옵니다.",
++    title: "AI team chat",
++    desc: "Describe the outcome you want. The lead agent directs the machine team and brings back the result.",
+   },
+ ] as const;
+ 
+@@ -92,7 +92,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
+             fontWeight: 600,
+           }}
+         >
+-          결제가 완료되었습니다! MUSU {params.tier?.toUpperCase() ?? "Pro"} 플랜이 활성화되었습니다.
++          Payment completed. Your MUSU {params.tier?.toUpperCase() ?? "Pro"} plan is now active.
+         </div>
+       )}
+       {isCancelled && (
+@@ -106,7 +106,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
+             fontSize: 14,
+           }}
+         >
+-          결제가 취소되었습니다. 언제든지 다시 시도할 수 있습니다.
++          Payment was cancelled. You can try again any time.
+         </div>
+       )}
+ 
+@@ -135,7 +135,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
+             style={{
+               fontSize: 11,
+               fontWeight: 600,
+-              color: "#facc15",
++              color: "var(--musu-color-brand-accent)",
+               background: "rgba(250,204,21,0.12)",
+               border: "1px solid rgba(250,204,21,0.3)",
+               borderRadius: 4,
+@@ -158,21 +158,21 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
+               transition: "color 0.15s",
+             }}
+           >
+-            가격
++            Pricing
+           </a>
+           <a
+             href="/landing"
+             style={{
+               fontSize: 13,
+               color: "#0a0a0a",
+-              background: "#facc15",
++              background: "var(--musu-color-brand-accent)",
+               textDecoration: "none",
+               padding: "6px 16px",
+               borderRadius: 8,
+               fontWeight: 600,
+             }}
+           >
+-            앱 열기
++            Open app
+           </a>
+         </div>
+       </nav>
+@@ -197,14 +197,14 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
+             borderRadius: 20,
+             padding: "4px 14px",
+             fontSize: 12,
+-            color: "#facc15",
++            color: "var(--musu-color-brand-accent)",
+             fontWeight: 600,
+             marginBottom: 32,
+             letterSpacing: "0.03em",
+           }}
+         >
+           <span>✦</span>
+-          <span>베타 오픈 — 첫 10명 무료 이용</span>
++          <span>Beta open — free for the first 10 users</span>
+         </div>
+ 
+         <h1
+@@ -216,16 +216,16 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
+             margin: "0 0 24px",
+           }}
+         >
+-          AI가 운영하는
++          AI-operated
+           <br />
+           <span
+             style={{
+-              background: "linear-gradient(135deg, #facc15 0%, #f97316 100%)",
++              background: "linear-gradient(135deg, var(--musu-color-brand-accent) 0%, #f97316 100%)",
+               WebkitBackgroundClip: "text",
+               WebkitTextFillColor: "transparent",
+             }}
+           >
+-            나만의 기기 팀
++            machine team
+           </span>
+         </h1>
+ 
+@@ -238,9 +238,9 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
+             margin: "0 auto 48px",
+           }}
+         >
+-          여러 컴퓨터를 하나의 팀으로 묶으세요.
++          Turn multiple computers into one team.
+           <br />
+-          사장 AI가 작업을 알아서 분배하고, 결과를 가져옵니다.
++          The lead agent routes work automatically and brings back the result.
+         </p>
+ 
+         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+@@ -248,7 +248,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
+             href="/faq"
+             style={{
+               display: "inline-block",
+-              background: "#facc15",
++              background: "var(--musu-color-brand-accent)",
+               color: "#0a0a0a",
+               fontWeight: 700,
+               fontSize: 15,
+@@ -258,7 +258,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
+               letterSpacing: "-0.01em",
+             }}
+           >
+-            무료로 시작하기 →
++            Start free →
+           </a>
+           <a
+             href="/"
+@@ -275,7 +275,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
+               letterSpacing: "-0.01em",
+             }}
+           >
+-            데모 보기
++            View demo
+           </a>
+         </div>
+ 
+@@ -303,15 +303,15 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
+               borderBottom: "1px solid #1f1f1f",
+             }}
+           >
+-            <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#22c55e", display: "inline-block" }} />
+-            <span style={{ color: "#f3f4f6", fontWeight: 600, fontSize: 13 }}>MUSU 팀 상태</span>
+-            <span style={{ marginLeft: "auto", color: "#374151" }}>2대 활성</span>
++            <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--musu-status-online)", display: "inline-block" }} />
++            <span style={{ color: "#f3f4f6", fontWeight: 600, fontSize: 13 }}>MUSU team status</span>
++            <span style={{ marginLeft: "auto", color: "#374151" }}>2 active</span>
+           </div>
+           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+             {[
+-              { label: "Musu-A (사장)", note: "4060Ti Desktop", cpu: 48, gpu: 23, ram: 62, status: "online" },
++              { label: "Musu-A (Lead)", note: "4060Ti Desktop", cpu: 48, gpu: 23, ram: 62, status: "online" },
+               { label: "Musu-B", note: "5070Ti Desktop", cpu: 72, gpu: 61, ram: 45, status: "busy" },
+-              { label: "Musu-C", note: "노트북", cpu: 0, gpu: null, ram: 0, status: "offline" },
++              { label: "Musu-C", note: "Laptop", cpu: 0, gpu: null, ram: 0, status: "offline" },
+             ].map((d) => (
+               <div
+                 key={d.label}
+@@ -322,7 +322,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
+                     width: 7,
+                     height: 7,
+                     borderRadius: "50%",
+-                    background: d.status === "online" ? "#22c55e" : d.status === "busy" ? "#facc15" : "#374151",
++                    background: d.status === "online" ? "var(--musu-status-online)" : d.status === "busy" ? "var(--musu-color-brand-accent)" : "#374151",
+                     display: "inline-block",
+                     flexShrink: 0,
+                   }}
+@@ -334,7 +334,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
+                     CPU {d.cpu}% · GPU {d.gpu ?? "—"}% · RAM {d.ram}%
+                   </span>
+                 ) : (
+-                  <span style={{ color: "#374151", fontSize: 11 }}>오프라인</span>
++                  <span style={{ color: "#374151", fontSize: 11 }}>Offline</span>
+                 )}
+               </div>
+             ))}
+@@ -359,7 +359,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
+             marginBottom: 56,
+           }}
+         >
+-          모든 기기를 하나의 팀으로
++          Turn every machine into one team
+         </h2>
+         <div
+           style={{
+@@ -416,7 +416,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
+             marginBottom: 12,
+           }}
+         >
+-          심플한 가격
++          Simple pricing
+         </h2>
+         <p
+           style={{
+@@ -426,7 +426,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
+             marginBottom: 48,
+           }}
+         >
+-          베타 기간 중 첫 10명은 무료. 베타 종료 시 50% 할인 쿠폰 제공.
++          The first 10 beta users get free access. After beta, they receive a 50% discount coupon.
+         </p>
+         <div
+           style={{
+@@ -440,7 +440,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
+             <div
+               key={tier.name}
+               style={{
+-                background: tier.highlight ? "#facc15" : "#111",
++                background: tier.highlight ? "var(--musu-color-brand-accent)" : "#111",
+                 border: tier.highlight ? "none" : "1px solid #1f1f1f",
+                 borderRadius: 20,
+                 padding: "32px 28px",
+@@ -455,7 +455,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
+                     top: -12,
+                     left: "50%",
+                     transform: "translateX(-50%)",
+-                    background: "#f97316",
++                    background: "#e85d04",
+                     color: "#fff",
+                     fontSize: 11,
+                     fontWeight: 700,
+@@ -465,7 +465,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
+                     whiteSpace: "nowrap",
+                   }}
+                 >
+-                  가장 인기
++                  Most popular
+                 </div>
+               )}
+               <div
+@@ -535,7 +535,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
+                 label={tier.cta}
+                 style={{
+                   background: tier.highlight ? "#0a0a0a" : "#1a1a1a",
+-                  color: tier.highlight ? "#facc15" : "#f3f4f6",
++                  color: tier.highlight ? "var(--musu-color-brand-accent)" : "#f3f4f6",
+                   border: tier.highlight ? "none" : "1px solid #2d2d2d",
+                 }}
+               />
+@@ -562,9 +562,9 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
+             lineHeight: 1.15,
+           }}
+         >
+-          지금 시작하면
++          Start now and get
+           <br />
+-          <span style={{ color: "#facc15" }}>베타 무료</span>
++          <span style={{ color: "var(--musu-color-brand-accent)" }}>free beta access</span>
+         </h2>
+         <p
+           style={{
+@@ -574,15 +574,15 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
+             lineHeight: 1.6,
+           }}
+         >
+-          첫 10명 베타 유저는 무료로 이용할 수 있습니다.
++          The first 10 beta users can use MUSU for free.
+           <br />
+-          베타 종료 시 50% 할인 쿠폰이 제공됩니다.
++          When beta ends, they receive a 50% discount coupon.
+         </p>
+         <a
+           href="/landing"
+           style={{
+             display: "inline-block",
+-            background: "#facc15",
++            background: "var(--musu-color-brand-accent)",
+             color: "#0a0a0a",
+             fontWeight: 800,
+             fontSize: 16,
+@@ -592,7 +592,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
+             letterSpacing: "-0.02em",
+           }}
+         >
+-          무료로 시작하기 →
++          Start free →
+         </a>
+       </section>
+ 
+@@ -610,7 +610,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
+           <span style={{ fontSize: 16 }}>🐝</span>
+           <span style={{ fontWeight: 700, color: "#4b5563" }}>MUSU</span>
+         </div>
+-        <p style={{ margin: 0 }}>© 2026 MUSU. 모든 기기를 하나의 팀으로.</p>
++        <p style={{ margin: 0 }}>© 2026 MUSU. Turn every machine into one team.</p>
+       </footer>
+     </div>
+   );
+diff --git a/musu-bee/src/components/AppShell.tsx b/musu-bee/src/components/AppShell.tsx
+index 66f420cf..b348c906 100644
+--- a/musu-bee/src/components/AppShell.tsx
++++ b/musu-bee/src/components/AppShell.tsx
+@@ -2,8 +2,8 @@
+ 
+ export const dynamic = "force-dynamic";
+ 
+-import { useState, useCallback, useEffect } from "react";
+-import { useRouter } from "next/navigation";
++import { useState, useCallback, useEffect, useMemo } from "react";
++import { usePathname, useRouter, useSearchParams } from "next/navigation";
+ import Sidebar from "@/components/Sidebar";
+ import ChatArea from "@/components/ChatArea";
+ import CompanyTemplateModal from "@/components/CompanyTemplateModal";
+@@ -16,7 +16,8 @@ import {
+ import {
+   getDefaultCompanySetupState,
+   type CompanySetupState,
+-} from "@/lib/companySetup";
++} from "@/lib/companySetup.shared";
++import { resolveCompanyScopeFromClientContext } from "@/lib/companyScope";
+ import { useChat } from "@/lib/useChat";
+ import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
+ import type { AgentsSurfaceSnapshot, Channel, ChannelId, Device, Message } from "@/types";
+@@ -74,7 +75,12 @@ const INITIAL_DEVICES: Device[] = [
+ 
+ export default function AppShell() {
+   const router = useRouter();
+-  const [userEmail, setUserEmail] = useState<string | null>(null);
++  const pathname = usePathname();
++  const searchParams = useSearchParams();
++  const [userIdentity, setUserIdentity] = useState<{ email: string | null; id: string | null }>({
++    email: null,
++    id: null,
++  });
+   const [channels, setChannels] = useState<Channel[]>(INITIAL_CHANNELS);
+   const [devices, setDevices] = useState<Device[]>(INITIAL_DEVICES);
+   const [agentsSurface, setAgentsSurface] = useState<AgentsSurfaceSnapshot | null>(null);
+@@ -93,21 +99,40 @@ export default function AppShell() {
+ 
+   const authEnabled = process.env.NEXT_PUBLIC_AUTH_ENABLED === "true";
+   const authConfigured = isSupabaseConfigured();
+-  const workspaceId = "default-workspace";
+-  const userKey = userEmail?.trim().toLowerCase() || "anonymous";
+-  const companyScopeQuery = new URLSearchParams({
+-    workspaceId,
+-    userKey,
+-  }).toString();
++  const safeSearchParams = searchParams ?? new URLSearchParams();
++  const currentPathname = pathname ?? "/app";
++  const workspaceHint =
++    safeSearchParams.get("workspace") ?? safeSearchParams.get("workspaceId");
++  const requestedCompanyId = safeSearchParams.get("company");
++  const resolvedCompanyScope = useMemo(
++    () =>
++      resolveCompanyScopeFromClientContext({
++        workspaceHint,
++        pathname,
++        userEmail: userIdentity.email,
++        userId: userIdentity.id,
++      }),
++    [pathname, userIdentity.email, userIdentity.id, workspaceHint]
++  );
++  const workspaceId = resolvedCompanyScope.workspaceId;
++  const userKey = resolvedCompanyScope.userKey;
++  const companyScopeQuery = useMemo(
++    () =>
++      new URLSearchParams({
++        workspaceId,
++        userKey,
++      }).toString(),
++    [userKey, workspaceId]
++  );
+ 
+   useEffect(() => {
+     if (!authEnabled) {
+-      setUserEmail(null);
++      setUserIdentity({ email: null, id: null });
+       return;
+     }
+ 
+     if (!authConfigured) {
+-      setUserEmail(null);
++      setUserIdentity({ email: null, id: null });
+       router.replace("/auth/login");
+       return;
+     }
+@@ -121,7 +146,10 @@ export default function AppShell() {
+       }
+ 
+       if (data.session?.user) {
+-        setUserEmail(data.session.user.email ?? null);
++        setUserIdentity({
++          email: data.session.user.email ?? null,
++          id: data.session.user.id ?? null,
++        });
+       } else if (authEnabled) {
+         router.replace("/auth/login");
+       }
+@@ -129,7 +157,10 @@ export default function AppShell() {
+ 
+     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+       if (session?.user) {
+-        setUserEmail(session.user.email ?? null);
++        setUserIdentity({
++          email: session.user.email ?? null,
++          id: session.user.id ?? null,
++        });
+       } else if (authEnabled) {
+         router.replace("/auth/login");
+       }
+@@ -141,6 +172,28 @@ export default function AppShell() {
+     };
+   }, [authConfigured, authEnabled, router]);
+ 
++  const syncRouteScope = useCallback(
++    (next: { workspaceId?: string | null; companyId?: string | null }) => {
++      const params = new URLSearchParams(safeSearchParams.toString());
++      if (next.workspaceId) {
++        params.set("workspace", next.workspaceId);
++      } else {
++        params.delete("workspace");
++      }
++      params.delete("workspaceId");
++
++      if (next.companyId) {
++        params.set("company", next.companyId);
++      } else {
++        params.delete("company");
++      }
++
++      const nextQuery = params.toString();
++      router.replace(nextQuery ? `${currentPathname}?${nextQuery}` : currentPathname, { scroll: false });
++    },
++    [currentPathname, router, safeSearchParams]
++  );
++
+   const isAgentChannel = AGENT_CHANNELS.includes(activeChannel);
+   const chat = useChat(activeChannel);
+ 
+@@ -260,7 +313,6 @@ export default function AppShell() {
+               departments: [],
+               statusCounts: {},
+             },
+-            snapshot: prev?.snapshot ?? [],
+           }));
+           return;
+         }
+@@ -280,7 +332,6 @@ export default function AppShell() {
+             departments: [],
+             statusCounts: {},
+           },
+-          snapshot: prev?.snapshot ?? [],
+         }));
+       }
+     }
+@@ -346,9 +397,13 @@ export default function AppShell() {
+       }
+       setCompanyActivation(payload.activation);
+       setCompanyRegistry(payload.registry ?? null);
++      syncRouteScope({
++        workspaceId,
++        companyId: payload.activation.companyId,
++      });
+       setShowCompanyTemplate(false);
+     },
+-    [companyScopeQuery, handleSaveCompanySetup]
++    [companyScopeQuery, handleSaveCompanySetup, syncRouteScope, workspaceId]
+   );
+ 
+   const handleSelectActiveCompany = useCallback(
+@@ -366,8 +421,12 @@ export default function AppShell() {
+       }
+       setCompanyActivation(payload?.activation ?? null);
+       setCompanyRegistry(payload?.registry ?? null);
++      syncRouteScope({
++        workspaceId,
++        companyId: payload?.activation?.companyId ?? payload?.registry?.activeCompanyId ?? null,
++      });
+     },
+-    [companyScopeQuery]
++    [companyScopeQuery, syncRouteScope, workspaceId]
+   );
+ 
+   const handleSyncCompany = useCallback(
+@@ -405,10 +464,46 @@ export default function AppShell() {
+       }
+       setCompanyActivation(payload?.activation ?? null);
+       setCompanyRegistry(payload?.registry ?? null);
++      syncRouteScope({
++        workspaceId,
++        companyId: payload?.registry?.activeCompanyId ?? null,
++      });
+     },
+-    [companyScopeQuery]
++    [companyScopeQuery, syncRouteScope, workspaceId]
+   );
+ 
++  useEffect(() => {
++    if (!companyRegistry?.companies.length) {
++      return;
++    }
++
++    if (requestedCompanyId) {
++      if (companyRegistry.activeCompanyId === requestedCompanyId) {
++        return;
++      }
++      if (companyRegistry.companies.some((company) => company.companyId === requestedCompanyId)) {
++        void handleSelectActiveCompany(requestedCompanyId).catch(() => {});
++      } else {
++        syncRouteScope({
++          workspaceId,
++          companyId: companyRegistry.activeCompanyId,
++        });
++      }
++      return;
++    }
++
++    syncRouteScope({
++      workspaceId,
++      companyId: companyRegistry.activeCompanyId,
++    });
++  }, [
++    companyRegistry,
++    handleSelectActiveCompany,
++    requestedCompanyId,
++    syncRouteScope,
++    workspaceId,
++  ]);
++
+   const handleChannelSelect = useCallback((id: ChannelId) => {
+     setActiveChannel(id);
+     setChannels((prev) => prev.map((ch) => (ch.id === id ? { ...ch, unread: 0 } : ch)));
+@@ -440,6 +535,12 @@ export default function AppShell() {
+   const displayMessages = isAgentChannel
+     ? chat.messages
+     : localMessages.filter((m) => m.channelId === activeChannel);
++  const activeCompany =
++    companyActivation ??
++    companyRegistry?.companies.find((company) => company.companyId === companyRegistry.activeCompanyId) ??
++    null;
++  const displayCompanyName = activeCompany?.companyName ?? companySetup.companyName;
++  const displaySelectedProjects = activeCompany?.selectedProjects ?? companySetup.selectedProjects;
+ 
+   return (
+     <div
+@@ -478,7 +579,21 @@ export default function AppShell() {
+             letterSpacing: "-0.02em",
+           }}
+         >
+-          {companySetup.companyName}
++          {displayCompanyName}
++        </span>
++        <span
++          style={{
++            fontSize: 11,
++            color: "#9ca3af",
++            background: "#141414",
++            border: "1px solid #262626",
++            borderRadius: 999,
++            padding: "4px 9px",
++            letterSpacing: "0.04em",
++          }}
++          title={`Workspace scope: ${workspaceId}`}
++        >
++          {workspaceId}
+         </span>
+         <span
+           style={{
+@@ -536,7 +651,7 @@ export default function AppShell() {
+             title={`Your current plan supports up to ${deviceLimit} devices.`}
+             style={{
+               fontSize: 12,
+-              color: "#facc15",
++              color: "var(--musu-color-brand-accent)",
+               background: "rgba(250,204,21,0.08)",
+               border: "1px solid rgba(250,204,21,0.25)",
+               borderRadius: 6,
+@@ -566,7 +681,7 @@ export default function AppShell() {
+             + Add device
+           </button>
+         )}
+-        {authEnabled && authConfigured && userEmail && (
++        {authEnabled && authConfigured && userIdentity.email && (
+           <span
+             style={{
+               fontSize: 13,
+@@ -580,9 +695,9 @@ export default function AppShell() {
+               textOverflow: "ellipsis",
+               whiteSpace: "nowrap",
+             }}
+-            title={userEmail}
++            title={userIdentity.email}
+           >
+-            {userEmail}
++            {userIdentity.email}
+           </span>
+         )}
+         {authEnabled && authConfigured && (
+@@ -619,6 +734,8 @@ export default function AppShell() {
+         channels={channels}
+         devices={devices}
+         companyTemplate={companyTemplate}
++        activeCompany={activeCompany}
++        workspaceId={workspaceId}
+         agentsSurface={agentsSurface}
+         activeChannel={activeChannel}
+         onChannelSelect={handleChannelSelect}
+@@ -632,6 +749,9 @@ export default function AppShell() {
+           isAgentTyping={isAgentChannel ? chat.isAgentTyping : false}
+           isConnected={isAgentChannel ? chat.isConnected : undefined}
+           channelDescription={CHANNEL_DESCRIPTIONS[activeChannel]}
++          activeCompanyName={displayCompanyName}
++          workspaceId={workspaceId}
++          selectedProjects={displaySelectedProjects}
+           isLoadingHistory={isAgentChannel ? chat.isLoadingHistory : false}
+           hasMoreHistory={isAgentChannel ? chat.hasMoreHistory : false}
+           loadOlderMessages={isAgentChannel ? chat.loadOlderMessages : undefined}
+diff --git a/musu-bee/src/components/PublicSiteShell.tsx b/musu-bee/src/components/PublicSiteShell.tsx
+index 01ea0333..2a1314ef 100644
+--- a/musu-bee/src/components/PublicSiteShell.tsx
++++ b/musu-bee/src/components/PublicSiteShell.tsx
+@@ -99,7 +99,7 @@ const navLinkStyle: React.CSSProperties = {
+ 
+ const appButtonStyle: React.CSSProperties = {
+   color: "#0a0a0a",
+-  background: "#facc15",
++  background: "var(--musu-color-brand-accent)",
+   textDecoration: "none",
+   fontSize: 13,
+   fontWeight: 800,

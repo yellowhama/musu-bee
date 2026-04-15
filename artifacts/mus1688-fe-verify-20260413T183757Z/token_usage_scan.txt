@@ -1,0 +1,95 @@
+src/app/page.tsx:5:    <div style={{ background: "var(--musu-color-brand-canvas)", color: "var(--musu-color-brand-ink)", fontFamily: "'Inter', -apple-system, sans-serif", overflowX: "hidden" }}>
+src/app/page.tsx:8:      <nav style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 40px", borderBottom: `1px solid var(--musu-color-brand-stroke)`, position: "sticky", top: 0, background: "var(--musu-color-brand-canvas)", zIndex: 100 }}>
+src/app/page.tsx:11:          <a href="#features" style={{ fontSize: 14, color: "var(--musu-color-brand-ink)", opacity: 0.6, textDecoration: "none" }}>기능</a>
+src/app/page.tsx:12:          <a href="#pricing" style={{ fontSize: 14, color: "var(--musu-color-brand-ink)", opacity: 0.6, textDecoration: "none" }}>요금</a>
+src/app/page.tsx:13:          <Link href="/app" style={{ fontSize: 14, fontWeight: 700, background: "var(--musu-color-brand-ink)", color: "var(--musu-color-brand-canvas)", padding: "8px 18px", borderRadius: 8, textDecoration: "none" }}>
+src/app/page.tsx:21:        <div style={{ display: "inline-block", background: "var(--musu-color-brand-accent)", color: "var(--musu-color-brand-ink)", fontWeight: 700, fontSize: 12, letterSpacing: "0.1em", textTransform: "uppercase", padding: "4px 12px", borderRadius: 999, marginBottom: 24 }}>
+src/app/page.tsx:32:          <Link href="/app" style={{ display: "inline-block", background: "var(--musu-color-brand-ink)", color: "var(--musu-color-brand-canvas)", fontWeight: 700, fontSize: 16, padding: "14px 32px", borderRadius: 10, textDecoration: "none" }}>
+src/app/page.tsx:35:          <a href="#features" style={{ display: "inline-block", border: `2px solid var(--musu-color-brand-ink)`, color: "var(--musu-color-brand-ink)", fontWeight: 600, fontSize: 16, padding: "14px 32px", borderRadius: 10, textDecoration: "none", opacity: 0.7 }}>
+src/app/page.tsx:49:      <section style={{ background: "var(--musu-color-brand-ink)", color: "var(--musu-color-brand-canvas)", padding: "80px 40px" }}>
+src/app/page.tsx:86:                <div style={{ fontSize: 11, fontWeight: 800, color: "var(--musu-color-brand-canvas)", background: "var(--musu-color-brand-ink)", borderRadius: 6, padding: "2px 8px", display: "inline-block", marginBottom: 16, letterSpacing: "0.05em" }}>
+src/app/page.tsx:114:              <div key={step.t} style={{ display: "flex", gap: 20, padding: "24px 0", borderBottom: i < 2 ? `1px solid var(--musu-color-brand-ink)20` : "none" }}>
+src/app/page.tsx:115:                <div style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--musu-color-brand-ink)", color: "var(--musu-color-brand-accent)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, flexShrink: 0 }}>
+src/app/page.tsx:153:      <section id="pricing" style={{ background: "var(--musu-color-brand-ink)", color: "var(--musu-color-brand-canvas)", padding: "80px 40px" }}>
+src/app/page.tsx:166:            <div style={{ border: `2px solid var(--musu-color-brand-accent)`, borderRadius: 16, padding: "28px", position: "relative", textAlign: "left" }}>
+src/app/page.tsx:167:              <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: "var(--musu-color-brand-accent)", color: "var(--musu-color-brand-ink)", fontSize: 11, fontWeight: 800, padding: "3px 10px", borderRadius: 999, whiteSpace: "nowrap" }}>추천</div>
+src/app/page.tsx:169:              <div style={{ fontSize: 36, fontWeight: 900, marginBottom: 4, color: "var(--musu-color-brand-accent)" }}>₩19,000</div>
+src/app/page.tsx:188:          <Link href="/app" style={{ display: "inline-block", background: "var(--musu-color-brand-ink)", color: "var(--musu-color-brand-canvas)", fontWeight: 800, fontSize: 18, padding: "16px 40px", borderRadius: 12, textDecoration: "none" }}>
+src/app/landing-exp/page.module.css:2:  --musu-brown: var(--musu-color-brand-ink);
+src/app/landing-exp/page.module.css:4:  --musu-yellow: var(--musu-color-brand-accent);
+src/app/landing-exp/page.module.css:6:  --musu-offwhite: var(--musu-color-brand-canvas);
+src/app/landing-exp/page.module.css:9:  --musu-line: rgb(var(--musu-color-brand-ink-rgb) / 18%);
+src/app/landing-exp/page.module.css:14:    radial-gradient(circle at 14% -8%, rgb(var(--musu-color-brand-accent-rgb) / 38%), transparent 42%),
+src/app/landing-exp/page.module.css:15:    radial-gradient(circle at 86% 0%, rgb(var(--musu-color-brand-ink-rgb) / 15%), transparent 38%),
+src/app/landing-exp/page.module.css:16:    linear-gradient(180deg, var(--musu-color-brand-canvas) 0%, #f7f0dc 46%, var(--musu-color-brand-canvas) 100%);
+src/app/landing-exp/page.module.css:31:  background: rgb(var(--musu-color-brand-canvas-rgb) / 86%);
+src/app/landing-exp/page.module.css:37:  color: var(--musu-color-brand-ink);
+src/app/landing-exp/page.module.css:62:  color: var(--musu-color-brand-ink);
+src/app/landing-exp/page.module.css:63:  background: rgb(var(--musu-color-brand-ink-rgb) / 8%);
+src/app/landing-exp/page.module.css:68:  background: var(--musu-color-brand-accent);
+src/app/landing-exp/page.module.css:74:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 26%);
+src/app/landing-exp/page.module.css:109:  color: var(--musu-color-brand-ink);
+src/app/landing-exp/page.module.css:137:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 20%);
+src/app/landing-exp/page.module.css:138:  background: rgb(var(--musu-color-brand-canvas-rgb) / 80%);
+src/app/landing-exp/page.module.css:165:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 22%);
+src/app/landing-exp/page.module.css:166:  background: rgb(var(--musu-color-brand-canvas-rgb) / 98%);
+src/app/landing-exp/page.module.css:175:  border-color: rgb(var(--musu-color-brand-ink-rgb) / 58%);
+src/app/landing-exp/page.module.css:176:  box-shadow: 0 0 0 3px rgb(var(--musu-color-brand-accent-rgb) / 28%);
+src/app/landing-exp/page.module.css:181:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 24%);
+src/app/landing-exp/page.module.css:182:  background: var(--musu-color-brand-accent);
+src/app/landing-exp/page.module.css:196:  box-shadow: 0 10px 22px rgb(var(--musu-color-brand-ink-rgb) / 16%);
+src/app/landing-exp/page.module.css:207:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 18%);
+src/app/landing-exp/page.module.css:208:  background: rgb(var(--musu-color-brand-canvas-rgb) / 72%);
+src/app/landing-exp/page.module.css:219:  border-color: rgb(var(--musu-color-brand-ink-rgb) / 30%);
+src/app/landing-exp/page.module.css:247:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 14%);
+src/app/landing-exp/page.module.css:262:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 20%);
+src/app/landing-exp/page.module.css:265:    linear-gradient(160deg, rgb(var(--musu-color-brand-canvas-rgb) / 96%), rgba(255, 242, 209, 0.72)),
+src/app/landing-exp/page.module.css:278:    rgb(var(--musu-color-brand-accent-rgb) / 16%) 36%,
+src/app/landing-exp/page.module.css:318:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 12%);
+src/app/landing-exp/page.module.css:357:  background: rgb(var(--musu-color-brand-accent-rgb) / 30%);
+src/app/landing-exp/page.module.css:365:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 18%);
+src/app/landing-exp/page.module.css:366:  background: var(--musu-color-brand-ink);
+src/app/landing-exp/page.module.css:367:  color: var(--musu-color-brand-canvas);
+src/app/landing-exp/page.module.css:376:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 16%);
+src/app/landing-exp/page.module.css:410:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 16%);
+src/app/landing-exp/page.module.css:430:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 20%);
+src/app/landing-exp/page.module.css:475:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 16%);
+src/app/landing-exp/page.module.css:513:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 16%);
+src/app/landing-exp/page.module.css:516:    linear-gradient(130deg, rgb(var(--musu-color-brand-ink-rgb) / 6%), rgb(var(--musu-color-brand-accent-rgb) / 14%)),
+src/app/landing-exp/page.module.css:534:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 15%);
+src/app/landing-exp/page.module.css:536:  background: rgb(var(--musu-color-brand-canvas-rgb) / 76%);
+src/app/landing-exp/page.module.css:543:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 18%);
+src/app/landing-exp/page.module.css:545:  background: var(--musu-color-brand-ink);
+src/app/landing-exp/page.module.css:546:  color: var(--musu-color-brand-canvas);
+src/app/landing-exp/page.module.css:565:  color: var(--musu-color-brand-canvas);
+src/app/landing/page.tsx:172:  color: "var(--musu-color-brand-accent)",
+src/app/landing/page.tsx:214:  color: "var(--musu-color-brand-accent)",
+src/app/landing/page.tsx:254:  background: "var(--musu-color-brand-accent)",
+src/app/landing/page.tsx:295:  color: "var(--musu-color-brand-accent)",
+src/app/landing/page.tsx:356:  color: "var(--musu-color-brand-accent)",
+src/app/landing/page.tsx:390:  background: "var(--musu-color-brand-accent)",
+src/components/AppShell.tsx:331:              color: "var(--musu-color-brand-accent)",
+src/app/globals.css:12:  --musu-cocoa-brown: var(--musu-color-brand-ink);
+src/app/globals.css:13:  --musu-yellow: var(--musu-color-brand-accent);
+src/app/globals.css:14:  --musu-off-white: var(--musu-color-brand-canvas);
+src/app/globals.css:15:  --musu-brown: var(--musu-color-brand-ink);
+src/app/globals.css:29:  --musu-status-online: #22c55e;
+src/components/PublicSiteShell.tsx:102:  background: "var(--musu-color-brand-accent)",
+src/app/faq/page.tsx:35:  color: "var(--musu-color-brand-accent)",
+src/app/install/page.tsx:24:              <div style={{ fontSize: 12, color: "var(--musu-color-brand-accent)", fontWeight: 800, marginBottom: 8 }}>
+src/app/install/page.tsx:42:  color: "var(--musu-color-brand-accent)",
+src/app/pro/page.tsx:138:              color: "var(--musu-color-brand-accent)",
+src/app/pro/page.tsx:168:              background: "var(--musu-color-brand-accent)",
+src/app/pro/page.tsx:200:            color: "var(--musu-color-brand-accent)",
+src/app/pro/page.tsx:223:              background: "linear-gradient(135deg, var(--musu-color-brand-accent) 0%, #f97316 100%)",
+src/app/pro/page.tsx:251:              background: "var(--musu-color-brand-accent)",
+src/app/pro/page.tsx:306:            <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--musu-status-online)", display: "inline-block" }} />
+src/app/pro/page.tsx:325:                    background: d.status === "online" ? "var(--musu-status-online)" : d.status === "busy" ? "var(--musu-color-brand-accent)" : "#374151",
+src/app/pro/page.tsx:443:                background: tier.highlight ? "var(--musu-color-brand-accent)" : "#111",
+src/app/pro/page.tsx:538:                  color: tier.highlight ? "var(--musu-color-brand-accent)" : "#f3f4f6",
+src/app/pro/page.tsx:567:          <span style={{ color: "var(--musu-color-brand-accent)" }}>free beta access</span>
+src/app/pro/page.tsx:585:            background: "var(--musu-color-brand-accent)",
+src/app/pricing/page.tsx:135:  color: "var(--musu-color-brand-accent)",
+src/app/pricing/page.tsx:188:  color: "var(--musu-color-brand-accent)",
+src/app/pricing/page.tsx:215:  background: "var(--musu-color-brand-accent)",
+src/app/pricing/page.tsx:305:  color: "var(--musu-color-brand-accent)",

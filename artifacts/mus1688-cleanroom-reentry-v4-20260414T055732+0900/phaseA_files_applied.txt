@@ -1,0 +1,15 @@
+COPY src/components/AppShell.tsx
+COPY src/app/api/mcp/handlers/tasks.ts
+COPY src/lib/useAuth.ts
+COPY src/lib/useAgentsSurface.ts
+COPY src/lib/useCompanyState.ts
+COPY src/lib/useServiceHealth.ts
+COPY src/lib/tasks.ts
+COPY src/lib/billing-types.ts
+COPY src/lib/subscription.ts
+COPY src/types/node-sqlite.d.ts
+COPY tsconfig.json
+DELETE src/app/api/webhooks/stripe/handler.ts
+DELETE src/app/api/webhooks/stripe/route.ts
+DELETE src/app/api/webhooks/stripe/route.test.ts
+DELETE src/lib/stripe.ts

@@ -1,0 +1,5 @@
+evidence_dir=/home/hugh51/musu-functions/artifacts/mus1688-scope-corrected-20260413T160553+0900
+test_exit_code=0
+typecheck_exit_code=0
+build_exit_code=0
+IMMUTABLE=YES

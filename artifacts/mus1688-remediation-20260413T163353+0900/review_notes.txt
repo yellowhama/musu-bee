@@ -1,0 +1,5 @@
+/review (scope-limited, pre-landing)
+- Reviewed `token_scope_diff.patch` for the 5 declared packet files only.
+- Confirmed no runtime routing/auth/scope-sync logic changes in this packet scope.
+- Confirmed canonical brand token definitions exist in `globals.css` and consumers use vars.
+- Residual risk: broad dirty workspace still contains unrelated deltas, intentionally excluded by packet scope contract.

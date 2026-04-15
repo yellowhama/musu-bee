@@ -135,7 +135,7 @@ export default async function PricingPage({ searchParams }: PageProps) {
 
 const eyebrowStyle: React.CSSProperties = {
   fontSize: 12,
-  color: "#facc15",
+  color: "var(--musu-color-brand-accent)",
   fontWeight: 900,
   letterSpacing: "0.14em",
   textTransform: "uppercase",
@@ -188,7 +188,7 @@ const contextCardStyle: React.CSSProperties = {
 
 const cardEyebrowStyle: React.CSSProperties = {
   fontSize: 11,
-  color: "#facc15",
+  color: "var(--musu-color-brand-accent)",
   fontWeight: 900,
   letterSpacing: "0.12em",
   textTransform: "uppercase",
@@ -215,7 +215,7 @@ const primaryButtonStyle: React.CSSProperties = {
   display: "inline-flex",
   justifyContent: "center",
   alignItems: "center",
-  background: "#facc15",
+  background: "var(--musu-color-brand-accent)",
   color: "#0a0a0a",
   textDecoration: "none",
   fontWeight: 900,
@@ -305,7 +305,7 @@ const bulletStyle: React.CSSProperties = {
 
 const checkoutPrimaryStyle: React.CSSProperties = {
   background: "#0a0a0a",
-  color: "#facc15",
+  color: "var(--musu-color-brand-accent)",
 };
 
 const checkoutSecondaryStyle: React.CSSProperties = {

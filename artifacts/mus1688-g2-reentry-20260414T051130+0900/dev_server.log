@@ -1,0 +1,16 @@
+npm warn Unknown env config "auto-install-peers". This will stop working in the next major version of npm.
+npm warn Unknown env config "recursive". This will stop working in the next major version of npm.
+
+> musu-bee@0.1.0 dev
+> next dev -p 3001
+
+   ▲ Next.js 15.5.14
+   - Local:        http://localhost:3001
+   - Network:      http://10.255.255.254:3001
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 3.1s
+ ○ Compiling /landing ...
+ ✓ Compiled /landing in 8.9s (600 modules)
+ GET /landing 200 in 9739ms

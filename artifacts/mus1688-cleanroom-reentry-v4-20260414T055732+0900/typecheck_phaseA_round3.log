@@ -1,0 +1,17 @@
+npm warn Unknown env config "auto-install-peers". This will stop working in the next major version of npm.
+npm warn Unknown env config "recursive". This will stop working in the next major version of npm.
+
+> musu-bee@0.1.0 typecheck
+> tsc --noEmit
+
+src/components/ChatArea.tsx(223,20): error TS2339: Property 'plan' does not exist on type 'Message'.
+src/components/ChatArea.tsx(248,26): error TS7006: Parameter 'step' implicitly has an 'any' type.
+src/components/ChatArea.tsx(248,32): error TS7006: Parameter 'idx' implicitly has an 'any' type.
+src/components/ChatArea.tsx(468,23): error TS2339: Property 'plan' does not exist on type 'Message'.
+src/lib/useChat.ts(7,15): error TS2305: Module '"@/types"' has no exported member 'MessagePlan'.
+src/lib/useChat.ts(7,28): error TS2305: Module '"@/types"' has no exported member 'PlanStep'.
+src/lib/useChat.ts(333,11): error TS2353: Object literal may only specify known properties, and 'plan' does not exist in type 'Message'.
+src/lib/useChat.ts(393,29): error TS2339: Property 'plan' does not exist on type 'Message'.
+src/lib/useChat.ts(394,34): error TS2339: Property 'plan' does not exist on type 'Message'.
+src/lib/useChat.ts(405,29): error TS2339: Property 'plan' does not exist on type 'Message'.
+src/lib/useChat.ts(406,34): error TS2339: Property 'plan' does not exist on type 'Message'.

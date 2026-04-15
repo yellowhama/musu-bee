@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pencil Dev Design Workflow"
+  short_description: "Run Pencil Dev and WSLg design workflow"
+  default_prompt: "Pencil MCP로 대상 .pen 연결을 먼저 확인하고, desktop-level 검증이 필요하면 computer-control smoke test도 같이 해줘. 디자인 변경은 batch_get → get_screenshot(before) → batch_design(소배치) → snapshot_layout → get_screenshot(after) 순서로 진행해줘."

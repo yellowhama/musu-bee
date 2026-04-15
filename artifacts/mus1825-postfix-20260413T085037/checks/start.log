@@ -1,0 +1,110 @@
+[INFO] Starting Pencil:
+  bin: /home/hugh51/Pencil-linux-x86_64.AppImage
+  pen: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+  log: /home/hugh51/musu-functions/artifacts/mus1825-postfix-20260413T085037/runtime/pencil-dev.log
+  user-data-dir: /home/hugh51/musu-functions/artifacts/mus1825-postfix-20260413T085037/profile
+  flags: --no-sandbox --enable-unsafe-swiftshader --user-data-dir=/home/hugh51/musu-functions/artifacts/mus1825-postfix-20260413T085037/profile --disable-gpu
+  env: ELECTRON_OZONE_PLATFORM_HINT=x11 GDK_BACKEND=x11
+[INFO] Preseeded Pencil startup target in config: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+/home/hugh51/musu-functions/skills/pencil-dev-design-workflow/scripts/start_pencil_dev.sh: line 285: 81055 Killed                  nohup env "${env_kv[@]}" "$PENCIL_BIN" "${args[@]}" "$PEN_FILE" > "$LOG_FILE" 2>&1
+[WARN] Pencil exited before stability window (6s/10s).
+[INFO] Last log lines:
+08:50:46.626 › App ready. IS_DEV: true, NODE_ENV: development
+08:50:46.633 › Skipping protocol handler registration (dev mode)
+08:50:46.680 › loadFile /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen zoomToFit: true
+08:50:46.692 › WebSocket server listening on port 45247
+08:50:46.716 › Removed MCP allow rules from claudeCodeCLI
+08:50:46.717 › Uninstalled MCP server for claudeCodeCLI
+08:50:46.724 › Uninstalled MCP server for codexCLI
+08:50:46.725 › Uninstalled MCP server for geminiCLI
+08:50:46.727 › Uninstalled MCP server for openCodeCLI
+08:50:46.729 › Uninstalled MCP server for kiroCLI
+08:50:46.730 › Uninstalled MCP server for claudeDesktop
+08:50:46.732 › Successfully set up MCP server for claudeCodeCLI
+08:50:46.734 › Successfully set up MCP server for codexCLI
+08:50:46.735 › Successfully set up MCP server for geminiCLI
+08:50:46.736 › Successfully set up MCP server for openCodeCLI
+08:50:46.736 › Successfully set up MCP server for kiroCLI
+08:50:46.737 › Successfully set up MCP server for claudeDesktop
+08:50:46.937 › Initializing IPC server
+08:50:46.937 › Registering notification handler for 'add-to-chat'
+08:50:46.938 › Registering handler for 'get-fullscreen'
+08:50:46.938 › Registering handler for 'get-active-integrations'
+08:50:46.938 › Registering handler for 'get-mcp-config'
+08:50:46.938 › Registering notification handler for 'change-workspace-folder'
+08:50:46.938 › Registering notification handler for 'toggle-theme'
+08:50:46.938 › Registering notification handler for 'set-native-theme'
+08:50:46.938 › Registering notification handler for 'desktop-open-terminal'
+08:50:46.939 › Registering notification handler for 'check-agent-status'
+08:50:46.939 › Registering notification handler for 'claude-connect'
+08:50:46.939 › Registering notification handler for 'claude-disconnect'
+08:50:46.939 › Registering notification handler for 'codex-connect'
+08:50:46.939 › Registering notification handler for 'codex-disconnect'
+08:50:46.939 › Registering notification handler for 'toggle-mcp-integration'
+08:50:46.940 › Registering notification handler for 'show-about'
+08:50:46.940 › Registering notification handler for 'initialized'
+08:50:46.943 › Registering notification handler for 'add-extension-to-ide'
+08:50:46.944 › addResource: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+08:50:46.944 › Registering handler for 'get-session'
+08:50:46.944 › Registering notification handler for 'set-session'
+08:50:46.944 › Registering handler for 'get-last-online-at'
+08:50:46.944 › Registering notification handler for 'set-last-online-at'
+08:50:46.944 › Registering handler for 'get-device-id'
+08:50:46.945 › Registering handler for 'read-file'
+08:50:46.945 › Registering handler for 'save-generated-image'
+08:50:46.945 › Registering handler for 'save-temp-file'
+08:50:46.945 › Registering notification handler for 'cleanup-temp-files'
+08:50:46.945 › Registering notification handler for 'initialized'
+08:50:46.945 › Registering notification handler for 'file-changed'
+08:50:46.945 › Registering handler for 'import-file'
+08:50:46.946 › Registering handler for 'import-files'
+08:50:46.946 › Registering handler for 'import-uri'
+08:50:46.946 › Registering notification handler for 'send-prompt'
+08:50:46.946 › Registering handler for 'agent-stop'
+08:50:46.946 › Registering notification handler for 'open-document'
+08:50:46.946 › Registering notification handler for 'submit-prompt'
+08:50:46.947 › Registering notification handler for 'toggle-design-mode'
+08:50:46.947 › Registering notification handler for 'set-left-sidebar-visible'
+08:50:46.947 › Registering notification handler for 'sign-out'
+08:50:46.947 › Registering notification handler for 'open-external-url'
+08:50:46.948 › Registering notification handler for 'chat-question-response'
+08:50:46.949 › Registering notification handler for 'load-file'
+08:50:46.952 › Registering handler for 'find-libraries'
+08:50:46.952 › Registering notification handler for 'turn-into-library'
+08:50:46.952 › Registering handler for 'browse-libraries'
+08:50:46.966 › [DesktopResourceDevice] loadURL() | fileToLoad: 
+08:50:48.300 › New MCP client connected with ID: 2af52f23-91ce-4885-b997-a8e1a42ab894
+(node:81055) UnhandledPromiseRejectionWarning: Error: ERR_FAILED (-2) loading 'http://localhost:3000/#/editor/'
+    at rejectAndCleanup (node:electron/js2c/browser_init:2:79766)
+    at finishListener (node:electron/js2c/browser_init:2:79928)
+    at WebContents.stopLoadingListener (node:electron/js2c/browser_init:2:80315)
+    at WebContents.emit (node:events:531:35)
+(Use `pencil --trace-warnings ...` to show where the warning was created)
+(node:81055) UnhandledPromiseRejectionWarning: Unhandled promise rejection. This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). To terminate the node process on unhandled promise rejection, use the CLI flag `--unhandled-rejections=strict` (see https://nodejs.org/api/cli.html#cli_unhandled_rejections_mode). (rejection id: 1)
+[INFO] Retrying once without --disable-gpu for Linux compatibility...
+[INFO] Starting Pencil:
+  bin: /home/hugh51/Pencil-linux-x86_64.AppImage
+  pen: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+  log: /home/hugh51/musu-functions/artifacts/mus1825-postfix-20260413T085037/runtime/pencil-dev.log
+  user-data-dir: /home/hugh51/musu-functions/artifacts/mus1825-postfix-20260413T085037/profile
+  flags: --no-sandbox --enable-unsafe-swiftshader --user-data-dir=/home/hugh51/musu-functions/artifacts/mus1825-postfix-20260413T085037/profile
+  env: ELECTRON_OZONE_PLATFORM_HINT=x11 GDK_BACKEND=x11
+[INFO] Preseeded Pencil startup target in config: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+[OK] Pencil running (pid=86554)
+[OK] PID file: /home/hugh51/musu-functions/artifacts/mus1825-postfix-20260413T085037/runtime/pencil-dev.pid
+[OK] Runtime log: /home/hugh51/musu-functions/artifacts/mus1825-postfix-20260413T085037/runtime/pencil-dev.log
+[OK] pencil MCP already points to stable binary with expected args
+pencil
+  enabled: true
+  transport: stdio
+  command: /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64
+  args: --app desktop
+  cwd: -
+  env: -
+  remove: codex mcp remove pencil
+[MCP] Pencil workflow ready.
+[MCP] Use sequence: batch_get -> get_screenshot(before) -> batch_design -> snapshot_layout -> get_screenshot(after)
+[MCP] Playbook: /home/hugh51/musu-functions/skills/pencil-dev-design-workflow/scripts/../references/pencil-mcp-tool-calling-playbook.md
+[MCP] Pencil workflow ready.
+[MCP] Use sequence: batch_get -> get_screenshot(before) -> batch_design -> snapshot_layout -> get_screenshot(after)
+[MCP] Playbook: /home/hugh51/musu-functions/skills/pencil-dev-design-workflow/scripts/../references/pencil-mcp-tool-calling-playbook.md

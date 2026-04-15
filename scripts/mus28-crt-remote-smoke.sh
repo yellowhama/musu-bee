@@ -48,17 +48,20 @@ node "$ROOT_DIR/MUSU-CRT/tools/mus28_crt_remote_read_proof.mjs" \
   --summary-json "$SUMMARY_JSON" \
   --operator-view-json "$OPERATOR_VIEW_JSON"
 
-cat >"$MANIFEST_JSON" <<JSON
-{
-  "harness": "mus28-crt-remote-smoke",
-  "generated_at": "$NOW",
-  "artifacts": {
-    "lane2_proof": "$LANE2_PROOF",
-    "summary": "$SUMMARY_JSON",
-    "operator_view": "$OPERATOR_VIEW_JSON"
-  }
-}
-JSON
+jq -n \
+  --arg now "$NOW" \
+  --arg lane2Proof "$LANE2_PROOF" \
+  --arg summary "$SUMMARY_JSON" \
+  --arg operatorView "$OPERATOR_VIEW_JSON" \
+  '{
+    harness: "mus28-crt-remote-smoke",
+    generated_at: $now,
+    artifacts: {
+      lane2_proof: $lane2Proof,
+      summary: $summary,
+      operator_view: $operatorView
+    }
+  }' >"$MANIFEST_JSON"
 
 echo "[OK] MUS-28 CRT remote smoke artifacts generated"
 echo "  - lane2 proof:    $LANE2_PROOF"

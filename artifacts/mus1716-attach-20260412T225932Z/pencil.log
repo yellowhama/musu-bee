@@ -1,0 +1,2 @@
+[2026-04-13 08:00:18.786] [info]  App ready. IS_DEV: true, NODE_ENV: development
+[2026-04-13 08:00:18.812] [debug] Skipping protocol handler registration (dev mode)

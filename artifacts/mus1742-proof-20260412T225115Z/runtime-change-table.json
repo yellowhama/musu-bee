@@ -1,0 +1,19 @@
+{
+  "changedAt": "2026-04-12T22:52:14Z",
+  "rows": [
+    {
+      "agentId": "7a87bcf2-6b89-498e-b295-d80d53710bd0",
+      "field": "runtimeConfig.heartbeat.maxConcurrentRuns",
+      "old": 12,
+      "new": 16,
+      "rollbackCommand": "curl -sS -X PATCH http://127.0.0.1:3100/api/agents/7a87bcf2-6b89-498e-b295-d80d53710bd0 -H 'Content-Type: application/json' --data '{\"runtimeConfig\":{\"heartbeat\":{\"enabled\":true,\"cooldownSec\":10,\"intervalSec\":3600,\"wakeOnDemand\":true,\"maxConcurrentRuns\":12}}}'"
+    },
+    {
+      "agentId": "7b6d37f7-91fd-4342-8e3f-9dfa422f999c",
+      "field": "runtimeConfig.heartbeat.maxConcurrentRuns",
+      "old": 12,
+      "new": 16,
+      "rollbackCommand": "curl -sS -X PATCH http://127.0.0.1:3100/api/agents/7b6d37f7-91fd-4342-8e3f-9dfa422f999c -H 'Content-Type: application/json' --data '{\"runtimeConfig\":{\"heartbeat\":{\"enabled\":true,\"cooldownSec\":10,\"intervalSec\":3600,\"wakeOnDemand\":true,\"maxConcurrentRuns\":12}}}'"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+commit=1cfdfa758826673795bf6931063c057f43260e33
+1cfdfa758826673795bf6931063c057f43260e33 feat(landing-exp): enforce MUSU brand CSS var contract (MUS-1688)
+A	musu-bee/src/app/brand-tokens.test.ts
+A	musu-bee/src/app/landing-exp/page.contract.test.ts
+A	musu-bee/src/app/landing-exp/page.module.css
+A	musu-bee/src/app/landing-exp/page.module.test.ts
+A	musu-bee/src/app/landing-exp/page.tsx

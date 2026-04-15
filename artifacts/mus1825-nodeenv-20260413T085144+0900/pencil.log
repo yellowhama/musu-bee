@@ -1,0 +1,92 @@
+08:51:48.697 › App ready. IS_DEV: false, NODE_ENV: production
+08:51:48.733 › APPIMAGE env is not defined, current application is not an AppImage
+08:51:48.741 › loadFile /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen zoomToFit: true
+08:51:48.823 › Initializing IPC server
+08:51:48.824 › Registering notification handler for 'open-file'
+08:51:48.824 › Registering notification handler for 'add-to-chat'
+08:51:48.824 › Registering handler for 'get-fullscreen'
+08:51:48.825 › Registering notification handler for 'load-file'
+08:51:48.825 › Registering handler for 'get-recent-files'
+08:51:48.825 › Registering notification handler for 'clear-recent-files'
+08:51:48.825 › Registering notification handler for 'toggle-theme'
+08:51:48.826 › Registering notification handler for 'desktop-open-terminal'
+08:51:48.826 › Registering notification handler for 'check-agent-status'
+08:51:48.826 › Registering notification handler for 'claude-connect'
+08:51:48.826 › Registering notification handler for 'claude-disconnect'
+08:51:48.827 › Registering notification handler for 'codex-connect'
+08:51:48.827 › Registering notification handler for 'codex-disconnect'
+08:51:48.827 › Registering notification handler for 'toggle-mcp-integration'
+08:51:48.827 › Registering notification handler for 'add-extension-to-ide'
+08:51:48.827 › addResource: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+08:51:48.827 › Registering handler for 'get-license'
+08:51:48.828 › Registering notification handler for 'set-license'
+08:51:48.828 › Registering handler for 'get-device-id'
+08:51:48.828 › Registering handler for 'read-file'
+08:51:48.828 › Registering handler for 'save-generated-image'
+08:51:48.828 › Registering notification handler for 'initialized'
+08:51:48.828 › Registering notification handler for 'file-changed'
+08:51:48.828 › Registering handler for 'import-file'
+08:51:48.828 › Registering handler for 'import-uri'
+08:51:48.828 › Registering notification handler for 'send-prompt'
+08:51:48.828 › Registering handler for 'agent-stop'
+08:51:48.829 › Registering notification handler for 'open-document'
+08:51:48.829 › Registering notification handler for 'submit-prompt'
+08:51:48.829 › Registering notification handler for 'toggle-design-mode'
+08:51:48.829 › Registering notification handler for 'set-left-sidebar-visible'
+08:51:48.829 › Registering notification handler for 'sign-out'
+08:51:48.829 › Registering notification handler for 'chat-question-response'
+08:51:48.833 › [DesktopResourceDevice] loadURL() | fileToLoad: 
+08:51:48.853 › WebSocket server listening on port 46019
+08:51:48.920 › Removed MCP allow rules from claudeCodeCLI
+08:51:48.920 › Uninstalled up MCP server for claudeCodeCLI
+08:51:48.925 › Uninstalled up MCP server for codexCLI
+08:51:48.926 › Uninstalled up MCP server for geminiCLI
+08:51:48.927 › Uninstalled up MCP server for openCodeCLI
+08:51:48.928 › Uninstalled up MCP server for kiroCLI
+08:51:48.930 › Successfully set up MCP server for claudeCodeCLI
+08:51:48.931 › Successfully set up MCP server for codexCLI
+08:51:48.932 › Successfully set up MCP server for geminiCLI
+08:51:48.932 › Successfully set up MCP server for openCodeCLI
+08:51:48.933 › Successfully set up MCP server for kiroCLI
+08:51:50.001 › Sending notification 'active-integrations'
+08:51:50.002 › Sending notification: active-integrations { id: 'ext-1-1776037910002', hasPayload: true }
+08:51:50.003 › Checking for Claude Code status
+08:51:50.021 › Checking for Codex status
+08:51:50.028 › Registering notification handler for 'desktop-update-install'
+08:51:50.221 › Received request: get-fullscreen { id: 'ext-1-1776037910217', hasPayload: false }
+08:51:50.222 › Sending response: get-fullscreen { id: 'ext-1-1776037910217', hasPayload: false }
+08:51:50.224 › Received request: get-recent-files { id: 'ext-2-1776037910218', hasPayload: false }
+08:51:50.225 › Sending response: get-recent-files { id: 'ext-2-1776037910218', hasPayload: true }
+[7025:0413/085150.722237:ERROR:gpu/command_buffer/service/gl_utils.cc:389] [.WebGL-0x3a6c00184a00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[7025:0413/085151.217193:ERROR:gpu/command_buffer/service/gl_utils.cc:389] [.WebGL-0x3a6c00186800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+08:51:51.364 › {
+  type: 'thread.started',
+  thread_id: '019d841b-daff-7881-940a-005b29182422'
+}
+08:51:51.382 › New MCP client connected with ID: e627a0ff-b1b1-4a42-893a-c7eb9c4c1b76
+08:51:51.385 › { type: 'turn.started' }
+[7025:0413/085151.421794:ERROR:gpu/command_buffer/service/gl_utils.cc:389] [.WebGL-0x3a6c00184a00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+08:51:51.651 › Received notification: initialized { id: 'ext-3-1776037911637', hasPayload: false }
+08:51:51.653 › Handling notification 'initialized' with 1 handlers
+08:51:51.653 › [IPC] initialized: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+08:51:51.653 › Sending notification 'file-update'
+08:51:51.654 › Sending notification: file-update { id: 'ext-2-1776037911654', hasPayload: true }
+08:51:51.682 › Sending notification 'color-theme-changed'
+08:51:51.682 › Sending notification: color-theme-changed { id: 'ext-3-1776037911682', hasPayload: true }
+[7025:0413/085151.720711:ERROR:gpu/command_buffer/service/gl_utils.cc:389] [.WebGL-0x3a6c00186800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+08:51:51.929 › Received request: get-license { id: 'ext-4-1776037911926', hasPayload: false }
+08:51:51.932 › [IPC] get-license
+08:51:51.937 › Sending response: get-license { id: 'ext-4-1776037911926', hasPayload: true }
+08:51:52.200 › Received request: get-recent-files { id: 'ext-5-1776037912195', hasPayload: false }
+08:51:52.204 › Sending response: get-recent-files { id: 'ext-5-1776037912195', hasPayload: true }
+08:51:53.469 › {
+  type: 'error',
+  message: "You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at 9:32 AM."
+}
+08:51:53.472 › Sending notification 'codex-status'
+08:51:53.472 › Sending notification: codex-status { id: 'ext-4-1776037913472', hasPayload: true }
+08:51:53.472 › Checked for Codex status
+08:51:53.505 › MCP client disconnected: e627a0ff-b1b1-4a42-893a-c7eb9c4c1b76
+08:51:54.344 › Sending notification 'claude-status'
+08:51:54.344 › Sending notification: claude-status { id: 'ext-5-1776037914344', hasPayload: true }
+08:51:54.345 › Checked for Claude Code status

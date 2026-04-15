@@ -1,0 +1,14 @@
+{
+  "capturedFrom": "/tmp/mus1742_runs_post_change_now.json",
+  "capturedAt": "2026-04-12T21:36:05Z",
+  "fe": {
+    "total": 71,
+    "queued": 5,
+    "running": 8
+  },
+  "cto": {
+    "total": 48,
+    "queued": 0,
+    "running": 5
+  }
+}

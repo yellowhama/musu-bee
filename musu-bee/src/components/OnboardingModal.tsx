@@ -16,19 +16,19 @@ const PLATFORM_ICONS: Record<Platform, string> = {
 const INSTALL_COMMANDS: Record<Platform, { label: string; cmd: string }[]> = {
   windows: [
     {
-      label: "PowerShell (관리자 권한)",
+      label: "PowerShell (Administrator)",
       cmd: `irm https://get.musu.pro/port | iex`,
     },
   ],
   linux: [
     {
-      label: "터미널",
+      label: "Terminal",
       cmd: `curl -fsSL https://get.musu.pro/port | sh`,
     },
   ],
   mac: [
     {
-      label: "터미널",
+      label: "Terminal",
       cmd: `curl -fsSL https://get.musu.pro/port | sh`,
     },
   ],
@@ -59,8 +59,8 @@ function CopyButton({ text }: { text: string }) {
       onClick={handleCopy}
       style={{
         background: copied ? "#166534" : "#1e1e1e",
-        border: `1px solid ${copied ? "#22c55e" : "#2d2d2d"}`,
-        color: copied ? "#22c55e" : "#9ca3af",
+        border: `1px solid ${copied ? "var(--musu-status-online)" : "#2d2d2d"}`,
+        color: copied ? "var(--musu-status-online)" : "#9ca3af",
         borderRadius: 6,
         padding: "4px 10px",
         fontSize: 12,
@@ -69,7 +69,7 @@ function CopyButton({ text }: { text: string }) {
         flexShrink: 0,
       }}
     >
-      {copied ? "복사됨 ✓" : "복사"}
+      {copied ? "Copied ✓" : "Copy"}
     </button>
   );
 }
@@ -184,7 +184,7 @@ export default function OnboardingModal({
       if (res.ok) {
         const data = await res.json().catch(() => ({}));
         const name: string =
-          data?.hostname ?? data?.device_name ?? data?.name ?? "내 기기";
+          data?.hostname ?? data?.device_name ?? data?.name ?? "My device";
         setDetectedName(name);
         setVerifyStatus("ok");
       } else {
@@ -196,7 +196,7 @@ export default function OnboardingModal({
   }, []);
 
   const handleComplete = useCallback(() => {
-    onComplete(detectedName || "내 기기");
+    onComplete(detectedName || "My device");
   }, [onComplete, detectedName]);
 
   return (
@@ -241,7 +241,7 @@ export default function OnboardingModal({
               letterSpacing: "-0.02em",
             }}
           >
-            MUSU 설정
+            Set up MUSU
           </span>
           <button
             onClick={onSkip}
@@ -256,7 +256,7 @@ export default function OnboardingModal({
               borderRadius: 6,
             }}
           >
-            나중에
+            Later
           </button>
         </div>
 
@@ -276,7 +276,7 @@ export default function OnboardingModal({
                 lineHeight: 1.3,
               }}
             >
-              첫 기기를 연결해 보세요
+              Connect your first device
             </h2>
             <p
               style={{
@@ -286,10 +286,9 @@ export default function OnboardingModal({
                 marginBottom: 28,
               }}
             >
-              MUSU는 여러 대 컴퓨터의 AI가 팀으로 일합니다.
+              MUSU lets AI across multiple computers work as one team.
               <br />
-              시작하려면 이 기기에 <strong style={{ color: "#e5e7eb" }}>musu-port</strong>를
-              설치하세요.
+              To get started, install <strong style={{ color: "#e5e7eb" }}>musu-port</strong> on this device.
             </p>
             <div
               style={{
@@ -301,9 +300,9 @@ export default function OnboardingModal({
               }}
             >
               {[
-                { icon: "📦", text: "musu-port 설치 (1분)" },
-                { icon: "▶️", text: "백그라운드 실행" },
-                { icon: "✅", text: "연결 확인 후 시작" },
+                { icon: "📦", text: "Install musu-port (1 min)" },
+                { icon: "▶️", text: "Run it in the background" },
+                { icon: "✅", text: "Verify the connection and start" },
               ].map(({ icon, text }) => (
                 <div
                   key={text}
@@ -335,7 +334,7 @@ export default function OnboardingModal({
                 cursor: "pointer",
               }}
             >
-              시작하기 →
+              Get started →
             </button>
           </div>
         )}
@@ -351,7 +350,7 @@ export default function OnboardingModal({
                 marginBottom: 6,
               }}
             >
-              musu-port 설치
+              Install musu-port
             </h2>
             <p
               style={{
@@ -360,7 +359,7 @@ export default function OnboardingModal({
                 marginBottom: 20,
               }}
             >
-              운영체제를 선택하고 명령어를 실행하세요.
+              Pick your operating system and run the command.
             </p>
 
             {/* Platform selector */}
@@ -417,7 +416,7 @@ export default function OnboardingModal({
                   cursor: "pointer",
                 }}
               >
-                ← 이전
+                ← Back
               </button>
               <button
                 onClick={() => setStep("run")}
@@ -433,7 +432,7 @@ export default function OnboardingModal({
                   cursor: "pointer",
                 }}
               >
-                설치 완료 →
+                Installed →
               </button>
             </div>
           </div>
@@ -450,7 +449,7 @@ export default function OnboardingModal({
                 marginBottom: 6,
               }}
             >
-              musu-port 실행
+              Run musu-port
             </h2>
             <p
               style={{
@@ -459,11 +458,11 @@ export default function OnboardingModal({
                 marginBottom: 20,
               }}
             >
-              설치 후 아래 명령어로 실행하세요. 백그라운드에서 계속 실행됩니다.
+              After installation, run the command below. It will keep running in the background.
             </p>
 
             <CodeBlock
-              label="실행 명령어"
+              label="Run command"
               cmd={RUN_COMMANDS[platform]}
             />
 
@@ -485,7 +484,7 @@ export default function OnboardingModal({
                   fontWeight: 600,
                 }}
               >
-                실행 확인 화면 예시
+                Example output
               </div>
               <pre
                 style={{
@@ -516,7 +515,7 @@ Ready ✓`}
                   cursor: "pointer",
                 }}
               >
-                ← 이전
+                ← Back
               </button>
               <button
                 onClick={() => {
@@ -535,7 +534,7 @@ Ready ✓`}
                   cursor: "pointer",
                 }}
               >
-                실행 중입니다 →
+                It is running →
               </button>
             </div>
           </div>
@@ -552,7 +551,7 @@ Ready ✓`}
                 marginBottom: 6,
               }}
             >
-              연결 확인
+              Verify connection
             </h2>
             <p
               style={{
@@ -561,7 +560,7 @@ Ready ✓`}
                 marginBottom: 24,
               }}
             >
-              musu-port가 정상적으로 실행 중인지 확인합니다.
+              Check whether musu-port is running correctly.
             </p>
 
             <div
@@ -578,7 +577,7 @@ Ready ✓`}
                 <>
                   <div style={{ fontSize: 36, marginBottom: 10 }}>🔍</div>
                   <div style={{ fontSize: 14, color: "#9ca3af" }}>
-                    연결 확인 버튼을 눌러주세요
+                    Click verify connection
                   </div>
                 </>
               )}
@@ -597,7 +596,7 @@ Ready ✓`}
                   />
                   <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
                   <div style={{ fontSize: 14, color: "#9ca3af" }}>
-                    localhost:24682 확인 중...
+                    Checking localhost:24682...
                   </div>
                 </>
               )}
@@ -608,14 +607,14 @@ Ready ✓`}
                     style={{
                       fontSize: 15,
                       fontWeight: 600,
-                      color: "#22c55e",
+                      color: "var(--musu-status-online)",
                       marginBottom: 4,
                     }}
                   >
-                    연결됨!
+                    Connected!
                   </div>
                   <div style={{ fontSize: 13, color: "#6b7280" }}>
-                    기기 이름:{" "}
+                    Device name:{" "}
                     <strong style={{ color: "#e5e7eb" }}>
                       {detectedName}
                     </strong>
@@ -629,11 +628,11 @@ Ready ✓`}
                     style={{
                       fontSize: 14,
                       fontWeight: 600,
-                      color: "#ef4444",
+                      color: "var(--musu-status-error)",
                       marginBottom: 6,
                     }}
                   >
-                    연결 실패
+                    Connection failed
                   </div>
                   <div
                     style={{
@@ -642,9 +641,9 @@ Ready ✓`}
                       lineHeight: 1.5,
                     }}
                   >
-                    musu-port가 실행 중인지 확인해 주세요.
+                    Make sure musu-port is running.
                     <br />
-                    포트 24682가 열려있어야 합니다.
+                    Port 24682 must be open.
                   </div>
                 </>
               )}
@@ -670,10 +669,10 @@ Ready ✓`}
                 }}
               >
                 {verifyStatus === "checking"
-                  ? "확인 중..."
+                  ? "Checking..."
                   : verifyStatus === "fail"
-                  ? "다시 시도"
-                  : "연결 확인"}
+                  ? "Try again"
+                  : "Verify connection"}
               </button>
             )}
 
@@ -684,7 +683,7 @@ Ready ✓`}
                   width: "100%",
                   background: "#166534",
                   color: "#fff",
-                  border: "1px solid #22c55e",
+                  border: "1px solid var(--musu-status-online)",
                   borderRadius: 10,
                   padding: "12px",
                   fontSize: 14,
@@ -693,7 +692,7 @@ Ready ✓`}
                   marginBottom: 10,
                 }}
               >
-                MUSU 시작하기 →
+                Start MUSU →
               </button>
             )}
 
@@ -711,7 +710,7 @@ Ready ✓`}
                   cursor: "pointer",
                 }}
               >
-                ← 이전
+                ← Back
               </button>
               {verifyStatus !== "ok" && (
                 <button
@@ -727,7 +726,7 @@ Ready ✓`}
                     cursor: "pointer",
                   }}
                 >
-                  나중에 연결
+                  Connect later
                 </button>
               )}
             </div>

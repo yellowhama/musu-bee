@@ -1,0 +1,7 @@
+/qa (targeted user-facing verification for landing token path)
+- Automated regression tests:
+  - `npx --yes tsx --test src/app/brand-tokens.test.ts src/app/landing-exp/page.module.test.ts` (pass 4 / fail 0)
+- Integration gate checks:
+  - `npm run typecheck` (tsc --noEmit) exit 0
+  - `npm run build` (Next production build) exit 0, includes `/landing-exp` route in output table
+- Not run in this packet: full Playwright E2E matrix (deferred to QA G2 after CTO G1 PASS)

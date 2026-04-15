@@ -1,0 +1,48 @@
+[INFO] Log: /home/hugh51/.config/Pencil/logs/main.log
+[INFO] Window lines: 5000
+[INFO] PID file: /tmp/pencil-dev.pid
+[INFO] Target pen: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+
+[CHECK] process-running: 1
+[CHECK] process-pid: 52914
+[CHECK] loadFile: 0
+[CHECK] addResource: 0
+[CHECK] initialized: 0
+[CHECK] latest-loadFile-is-target: 0
+[CHECK] latest-addResource-is-target: 0
+[CHECK] latest-initialized-is-target: 0
+[CHECK] claude-status: 0
+[CHECK] codex-status: 0
+
+[INFO] Recent matching lines:
+3:[2026-04-13 08:13:45.117] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1745-workspace-chat-v1.pen zoomToFit: true
+20:[2026-04-13 08:13:45.574] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1745-workspace-chat-v1.pen
+53:[2026-04-13 08:22:48.494] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen zoomToFit: true
+70:[2026-04-13 08:22:49.577] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen
+103:[2026-04-13 08:23:14.884] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen zoomToFit: true
+120:[2026-04-13 08:23:14.937] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen
+153:[2026-04-13 08:24:57.963] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen zoomToFit: true
+185:[2026-04-13 08:25:03.416] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen
+217:[2026-04-13 08:25:58.677] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen zoomToFit: true
+249:[2026-04-13 08:25:59.804] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen
+281:[2026-04-13 08:26:50.651] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen zoomToFit: true
+297:[2026-04-13 08:30:04.342] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen zoomToFit: true
+314:[2026-04-13 08:30:06.449] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen
+356:[2026-04-13 08:30:56.211] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen zoomToFit: false
+357:[2026-04-13 08:30:59.576] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen zoomToFit: false
+362:[2026-04-13 08:31:15.371] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen zoomToFit: false
+
+[INFO] Last marker positions:
+  loadFile: missing
+  addResource: missing
+  initialized: missing
+  last loadFile(any): 362:[2026-04-13 08:31:15.371] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen zoomToFit: false
+  last addResource(any): 314:[2026-04-13 08:30:06.449] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen
+  last initialized(any): missing
+  claude-status: missing
+  codex-status: missing
+
+[WARN] One or more connection markers are missing.
+[MCP] Connection or startup is incomplete.
+[MCP] Verify active .pen and retry the standard MCP sequence.
+[MCP] Playbook: /home/hugh51/musu-functions/skills/pencil-dev-design-workflow/scripts/../references/pencil-mcp-tool-calling-playbook.md

@@ -1,0 +1,17 @@
+timestamp_utc=20260413T074308Z
+=== health ===
+ok	0.3.1	ready
+=== active_qa_queue_with_g1_pass_count ===
+MUS-1152	blocked	0	2026-04-12T23:50:55.578Z	WAVE-I-STATE-QA: Post-repair run-linkage coherence verification (G2)
+MUS-1171	blocked	0	2026-04-12T23:50:36.904Z	G2 QA: verify mesh worker remote exec closure (MUS-1162)
+MUS-1456	blocked	0	2026-04-13T06:27:17.793Z	MVP 1449-C (QA): cross-device handoff verification + evidence bundle
+MUS-1582	in_progress	1	2026-04-13T07:42:49.164Z	QA Verification Packet: post-CTO run-linkage consistency check
+MUS-1652	blocked	0	2026-04-13T06:45:56.063Z	MUS-1644 Packet B (QA): Visual acceptance + responsive audit + evidence bundle
+MUS-1663	in_progress	0	2026-04-13T07:32:57.270Z	QA G2 — Visual Fidelity: Landing v1
+MUS-1685	in_progress	1	2026-04-13T07:30:10.296Z	Remediation Packet: MUS-1582 design-artifact to PR-check linkage evidence
+MUS-1747	in_progress	0	2026-04-13T07:38:34.885Z	QA — Visual fidelity pass for Workspace Chat
+MUS-1765	in_progress	0	2026-04-13T07:01:29.738Z	G2: DESIGN REVIEW gate — Landing v1 visual acceptance
+MUS-1791	in_progress	0	2026-04-13T07:34:16.254Z	MUS-1648 Packet E: QA Visual Fidelity + Interaction Validation
+MUS-1797	todo	0	2026-04-13T06:16:52.024Z	QA: Define visual/design gate checks and evidence format
+MUS-1803	in_progress	0	2026-04-13T07:42:49.276Z	QA: Define visual/design gate checks and evidence format
+MUS-1816	in_progress	0	2026-04-13T07:35:39.650Z	MUS-1647 Packet C (QA): G2 visual + interaction verification (post-G1 PASS)

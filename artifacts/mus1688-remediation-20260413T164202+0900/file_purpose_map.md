@@ -1,0 +1,5 @@
+- `musu-bee/src/app/globals.css`: brand token variable source-of-truth definitions.
+- `musu-bee/src/app/landing-exp/page.tsx`: token consumption wiring in landing-exp page.
+- `musu-bee/src/app/landing-exp/page.module.css`: token-based style rules replacing inline hex consumption.
+- `musu-bee/src/app/landing-exp/page.module.test.ts`: regression checks for module token path.
+- `musu-bee/src/app/brand-tokens.test.ts`: token literal/contract checks.

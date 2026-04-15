@@ -1,0 +1,43 @@
+npm warn Unknown env config "auto-install-peers". This will stop working in the next major version of npm.
+npm warn Unknown env config "recursive". This will stop working in the next major version of npm.
+
+> musu-bee@0.1.0 dev
+> next dev -p 3001 --hostname 127.0.0.1 --port 3312
+
+   ▲ Next.js 15.5.14
+   - Local:        http://127.0.0.1:3312
+   - Network:      http://127.0.0.1:3312
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 2.4s
+ ○ Compiling /landing ...
+ ✓ Compiled /landing in 6s (600 modules)
+ GET /landing 200 in 6571ms
+ GET /landing 200 in 313ms
+ ○ Compiling /pricing ...
+ ✓ Compiled /pricing in 1921ms (600 modules)
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /pricing 200 in 2372ms
+ ○ Compiling /pro ...
+ ✓ Compiled /pro in 526ms (605 modules)
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /pro 200 in 1004ms
+ ✓ Compiled /faq in 420ms (610 modules)
+ GET /faq 200 in 801ms
+ ✓ Compiled /install in 466ms (612 modules)
+ GET /install 200 in 694ms
+ GET /landing 200 in 285ms
+ GET /pricing 200 in 157ms
+ GET /pro 200 in 289ms
+ GET /faq 200 in 387ms
+ GET /install 200 in 99ms
+ GET /landing 200 in 90ms
+ GET /pricing 200 in 178ms
+ GET /pricing 200 in 127ms
+ GET /install 200 in 302ms
+ GET /pro 200 in 139ms
+ GET /faq 200 in 71ms
+ GET /faq 200 in 149ms
+ GET /install 200 in 214ms
+ GET /landing 200 in 223ms

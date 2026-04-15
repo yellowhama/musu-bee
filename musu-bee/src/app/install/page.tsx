@@ -21,7 +21,7 @@ export default function InstallPage() {
         <div style={{ display: "grid", gap: 18, marginTop: 32 }}>
           {INSTALL_COMMANDS.map((item) => (
             <article key={item.platform} style={cardStyle}>
-              <div style={{ fontSize: 12, color: "#facc15", fontWeight: 800, marginBottom: 8 }}>
+              <div style={{ fontSize: 12, color: "var(--musu-color-brand-accent)", fontWeight: 800, marginBottom: 8 }}>
                 {item.platform}
               </div>
               <h2 style={{ margin: "0 0 8px", fontSize: 20, fontWeight: 800 }}>{item.label}</h2>
@@ -39,7 +39,7 @@ export default function InstallPage() {
 
 const eyebrowStyle: React.CSSProperties = {
   fontSize: 12,
-  color: "#facc15",
+  color: "var(--musu-color-brand-accent)",
   fontWeight: 900,
   letterSpacing: "0.14em",
   textTransform: "uppercase",

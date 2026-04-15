@@ -1,0 +1,22 @@
+[client] bind=100.126.67.88:0 server=100.126.67.88:9443 proof=artifacts/mus-1482-local/client-proof.json count=20 payload_bytes=32
+    Blocking waiting for file lock on build directory
+   Compiling rustls v0.23.37
+   Compiling rustls-platform-verifier v0.6.2
+   Compiling quinn-proto v0.11.14
+   Compiling quinn v0.11.9
+   Compiling musu-connects-core v0.1.0 (/home/hugh51/musu-functions/musu-connects/crates/musu-connects-core)
+   Compiling musu-connectsd v0.1.0 (/home/hugh51/musu-functions/musu-connects/apps/musu-connectsd)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 28.11s
+     Running `target/debug/musu-connectsd tailscale-quic-client --bind '100.126.67.88:0' --server '100.126.67.88:9443' --proof-json artifacts/mus-1482-local/client-proof.json --count 20 --payload-bytes 32`
+proof written: artifacts/mus-1482-local/client-proof.json
+samples: 20
+latency_p50_ms: 1.441
+latency_p95_ms: 3.982
+p95<=200ms: true
+[client] latency summary
+{
+  "sample_count": 20,
+  "latencyP50Ms": 1.440804,
+  "latencyP95Ms": 3.98191,
+  "p95Le200ms": true
+}

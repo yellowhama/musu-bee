@@ -14,7 +14,7 @@ export default function NotFound() {
       }}
     >
       <span style={{ fontSize: 40 }}>🐝</span>
-      <p style={{ fontSize: 16 }}>페이지를 찾을 수 없습니다.</p>
+      <p style={{ fontSize: 16 }}>Page not found.</p>
     </div>
   );
 }

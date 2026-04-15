@@ -1,0 +1,34 @@
+{
+  "fe": {
+    "before": {
+      "enabled": true,
+      "cooldownSec": 10,
+      "intervalSec": 3600,
+      "wakeOnDemand": true,
+      "maxConcurrentRuns": 6
+    },
+    "after": {
+      "enabled": true,
+      "cooldownSec": 10,
+      "intervalSec": 3600,
+      "wakeOnDemand": true,
+      "maxConcurrentRuns": 8
+    }
+  },
+  "cto": {
+    "before": {
+      "enabled": true,
+      "cooldownSec": 10,
+      "intervalSec": 3600,
+      "wakeOnDemand": true,
+      "maxConcurrentRuns": 6
+    },
+    "after": {
+      "enabled": true,
+      "cooldownSec": 10,
+      "intervalSec": 3600,
+      "wakeOnDemand": true,
+      "maxConcurrentRuns": 8
+    }
+  }
+}

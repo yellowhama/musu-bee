@@ -1,0 +1,39 @@
+ M musu-bee/src/app/api/checkout/route.ts
+ M musu-bee/src/app/api/tasks/route.ts
+ M musu-bee/src/app/api/webhooks/paddle/handler.ts
+ M musu-bee/src/app/api/webhooks/paddle/route.test.ts
+ D musu-bee/src/app/api/webhooks/stripe/handler.ts
+ D musu-bee/src/app/api/webhooks/stripe/route.test.ts
+ D musu-bee/src/app/api/webhooks/stripe/route.ts
+ M musu-bee/src/app/app/page.tsx
+ M musu-bee/src/app/auth/callback/page.tsx
+ M musu-bee/src/app/auth/login/page.tsx
+ M musu-bee/src/app/auth/signup/page.tsx
+ M musu-bee/src/app/faq/page.tsx
+ M musu-bee/src/app/install/page.tsx
+ M musu-bee/src/app/landing/page.tsx
+ M musu-bee/src/app/layout.tsx
+ M musu-bee/src/app/not-found.tsx
+ M musu-bee/src/app/pricing/page.tsx
+ M musu-bee/src/app/pro/page.tsx
+ M musu-bee/src/components/AppShell.tsx
+ M musu-bee/src/components/ChatArea.tsx
+ M musu-bee/src/components/PublicSiteShell.tsx
+ M musu-bee/src/lib/companyScope.ts
+ M musu-bee/src/lib/controlPlaneSync.ts
+ M musu-bee/src/lib/paddle.ts
+ M musu-bee/src/lib/publicSiteContent.ts
+ D musu-bee/src/lib/stripe.ts
+ M musu-bee/src/lib/supabase.ts
+ M musu-bee/src/lib/useChat.ts
+ M musu-bee/src/types/index.ts
+?? musu-bee/src/components/OAuthButtons.tsx
+?? musu-bee/src/lib/billing-types.ts
+?? musu-bee/src/lib/companySetup.shared.ts
+?? musu-bee/src/lib/subscriptionSync.ts
+?? musu-bee/src/lib/tasks.ts
+?? musu-bee/src/lib/useAgentsSurface.ts
+?? musu-bee/src/lib/useAuth.ts
+?? musu-bee/src/lib/useCompanyState.ts
+?? musu-bee/src/lib/useServiceHealth.ts
+?? musu-bee/src/types/node-sqlite.d.ts

@@ -1,0 +1,4 @@
+
+> musu-bee@0.1.0 typecheck /home/hugh51/musu-functions/musu-bee
+> tsc --noEmit
+

@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import type { PlanTier } from "./stripe";
+import type { PlanTier } from "./subscription";
 
 export const PADDLE_PRICE_IDS: Record<Exclude<PlanTier, "free">, string> = {
   pro: process.env.PADDLE_PRICE_ID_PRO ?? "",

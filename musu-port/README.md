@@ -240,6 +240,31 @@ axum route 표면:
 - `/ws/{service}`
 - `/ws/{service}/{*rest}`
 
+### `/health` v0.2 telemetry
+
+`GET /health` now includes host and queue telemetry fields:
+
+- `cpu_pct`: global CPU usage percent from `sysinfo`
+- `ram_used`: used RAM (bytes as reported by `sysinfo`)
+- `ram_total`: total RAM (bytes as reported by `sysinfo`)
+- `gpu_util`: GPU utilization percent from `nvidia-smi` (nullable)
+- `gpu_mem_used`: GPU memory used (MiB from `nvidia-smi`, nullable)
+- `gpu_mem_total`: GPU memory total (MiB from `nvidia-smi`, nullable)
+- `queue_depth`: current broadcast backlog across channel hub queues
+
+Quick check:
+
+```bash
+curl -fsS http://127.0.0.1:24680/health | jq '{cpu_pct,ram_used,ram_total,gpu_util,gpu_mem_used,gpu_mem_total,queue_depth}'
+```
+
+Verifier script:
+
+```bash
+./scripts/port_health_verify.sh http://127.0.0.1:24680/health
+./scripts/port_health_verify.sh http://127.0.0.1:24680/health artifacts/health/local-health.json
+```
+
 ### 4. 관리 명령 계층
 
 `commands/port_manager.rs`는 Tauri command layer다.

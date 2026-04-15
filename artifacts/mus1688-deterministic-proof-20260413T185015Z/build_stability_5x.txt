@@ -1,0 +1,75 @@
+run_1=1
+
+   ▲ Next.js 15.5.14
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+
+
+Retrying 1/3...
+ ✓ Compiled successfully in 15.1s
+   Skipping linting
+   Checking validity of types ...
+   Collecting page data ...
+(node:35129) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:35130) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:35176) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:35143) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+   Generating static pages (0/31) ...
+   Generating static pages (7/31) 
+   Generating static pages (15/31) 
+(node:35477) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+   Generating static pages (23/31) 
+(node:35479) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ Generating static pages (31/31)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+
+> Build error occurred
+[Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/server/edge-runtime-webpack.js'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/server/edge-runtime-webpack.js'
+}
+run_2=1
+npm warn Unknown env config "auto-install-peers". This will stop working in the next major version of npm.
+npm warn Unknown env config "recursive". This will stop working in the next major version of npm.
+
+> musu-bee@0.1.0 build
+> NODE_ENV=production next build
+
+   ▲ Next.js 15.5.14
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+
+
+Retrying 1/3...
+ ✓ Compiled successfully in 24.2s
+   Skipping linting
+   Checking validity of types ...
+   Collecting page data ...
+(node:47769) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:47784) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:47816) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+> Build optimization failed: found pages without a React Component as default export in 
+pages/500
+pages/404
+
+See https://nextjs.org/docs/messages/page-without-valid-component for more info.
+
+run_3=0
+run_4=0
+run_5=0

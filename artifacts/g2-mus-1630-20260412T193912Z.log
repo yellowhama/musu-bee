@@ -1,0 +1,44 @@
+== G2 MUS-1630 replay ==
+timestamp_utc=2026-04-12T19:39:12Z
+
+## curl localhost:23880/status
+* Host localhost:23880 was resolved.
+* IPv6: ::1
+* IPv4: 127.0.0.1
+*   Trying [::1]:23880...
+* connect to ::1 port 23880 from ::1 port 45602 failed: Connection refused
+*   Trying 127.0.0.1:23880...
+* Connection timed out after 7001 milliseconds
+* Closing connection
+curl_exit_code=0
+curl_body_begin
+curl_body_end
+
+## systemctl status musu-portd
+Unit musu-portd.service could not be found.
+
+## listener probe on 23880
+1:State  Recv-Q Send-Q               Local Address:Port  Peer Address:PortProcess                                     
+2:LISTEN 0      511                      127.0.0.1:3102       0.0.0.0:*    users:(("MainThread",pid=26075,fd=45))     
+3:LISTEN 0      511                      127.0.0.1:3100       0.0.0.0:*    users:(("MainThread",pid=34927,fd=47))     
+4:LISTEN 0      4096                     127.0.0.1:11434      0.0.0.0:*                                               
+5:LISTEN 0      4096                 127.0.0.53%lo:53         0.0.0.0:*                                               
+6:LISTEN 0      2048                       0.0.0.0:9700       0.0.0.0:*    users:(("python",pid=623,fd=13))           
+7:LISTEN 0      4096                     127.0.0.1:6443       0.0.0.0:*                                               
+8:LISTEN 0      1000                10.255.255.254:53         0.0.0.0:*                                               
+9:LISTEN 0      200                      127.0.0.1:54329      0.0.0.0:*    users:(("postgres",pid=82784,fd=8))        
+10:LISTEN 0      4096                 100.126.67.88:55624      0.0.0.0:*                                               
+11:LISTEN 0      512                      127.0.0.1:18081      0.0.0.0:*    users:(("llama-server",pid=16117,fd=10))   
+12:LISTEN 0      200                      127.0.0.1:45237      0.0.0.0:*    users:(("postgres",pid=26604,fd=8))        
+13:LISTEN 0      511                      127.0.0.1:13102      0.0.0.0:*    users:(("MainThread",pid=26075,fd=48))     
+14:LISTEN 0      511                      127.0.0.1:13100      0.0.0.0:*    users:(("MainThread",pid=34927,fd=48))     
+15:LISTEN 0      200                      127.0.0.1:45763      0.0.0.0:*    users:(("postgres",pid=9805,fd=8))         
+16:LISTEN 0      511                      127.0.0.1:45737      0.0.0.0:*    users:(("MainThread",pid=48586,fd=21))     
+17:LISTEN 0      4096                    127.0.0.54:53         0.0.0.0:*                                               
+18:LISTEN 0      4096                             *:22000            *:*    users:(("syncthing",pid=433,fd=12))        
+19:LISTEN 0      4096                             *:8384             *:*    users:(("syncthing",pid=433,fd=17))        
+20:LISTEN 0      511                              *:3001             *:*    users:(("next-server (v1",pid=52606,fd=22))
+21:LISTEN 0      4096   [fd7a:115c:a1e0::8e01:439d]:49178         [::]:*                                               
+
+## journalctl -u musu-portd
+-- No entries --

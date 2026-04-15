@@ -1,0 +1,5 @@
+/investigate summary
+- Symptom: CTO G1 FAIL required canonical replay and behavior coverage.
+- Root cause: prior evidence patch format had reproducibility issues and lacked behavior tests for waitlist branches/action contract.
+- Fix: regenerated repo-relative apply-checkable patch and added `page.contract.test.ts` covering waitlist status branches + action contract.
+- Verification: `git_apply_check.txt` EXIT=0 and proof commands all exit 0 in this same window.

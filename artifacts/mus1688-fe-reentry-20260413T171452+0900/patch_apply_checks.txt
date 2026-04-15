@@ -1,0 +1,12 @@
+CMD: git apply --check artifacts/mus1688-fe-reentry-20260413T171452+0900/reconstructable_scope.patch
+error: 패치 실패: musu-bee/src/app/globals.css:1
+error: musu-bee/src/app/globals.css: 패치를 적용하지 않습니다
+error: musu-bee/src/app/landing-exp/page.tsx: 이미 작업 디렉터리에 있습니다
+error: musu-bee/src/app/landing-exp/page.module.css: 이미 작업 디렉터리에 있습니다
+error: musu-bee/src/app/landing-exp/page.module.test.ts: 이미 작업 디렉터리에 있습니다
+error: musu-bee/src/app/landing-exp/page.contract.test.ts: 이미 작업 디렉터리에 있습니다
+error: musu-bee/src/app/brand-tokens.test.ts: 이미 작업 디렉터리에 있습니다
+EXIT:1
+
+CMD: git apply --reverse --check artifacts/mus1688-fe-reentry-20260413T171452+0900/reconstructable_scope.patch
+EXIT:0

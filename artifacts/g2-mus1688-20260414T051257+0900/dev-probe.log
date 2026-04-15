@@ -1,0 +1,1293 @@
+npm warn Unknown env config "auto-install-peers". This will stop working in the next major version of npm.
+npm warn Unknown env config "recursive". This will stop working in the next major version of npm.
+
+> musu-bee@0.1.0 dev
+> next dev -p 3001 --hostname 127.0.0.1 --port 3312
+
+   ▲ Next.js 15.5.14
+   - Local:        http://127.0.0.1:3312
+   - Network:      http://127.0.0.1:3312
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 2.1s
+ ○ Compiling /landing ...
+ ✓ Compiled /landing in 4.7s (600 modules)
+ ✓ Compiled /_not-found in 319ms (587 modules)
+ ⨯ [Error: Cannot find module '/home/hugh51/musu-functions/musu-bee/.next/server/middleware-manifest.json'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/next-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/dev/next-dev-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/next.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js] {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array]
+}
+ ○ Compiling /_error ...
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, stat '/home/hugh51/musu-functions/musu-bee/.next/cache/webpack/client-development/3.pack.gz'
+ ✓ Compiled /_error in 4.3s (933 modules)
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+[Error: Cannot find module '/home/hugh51/musu-functions/musu-bee/.next/server/middleware-manifest.json'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/next-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/dev/next-dev-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/next.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js] {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array]
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+ GET /landing 500 in 15780ms
+ GET /landing 500 in 340ms
+ ⨯ [Error: Cannot find module '/home/hugh51/musu-functions/musu-bee/.next/server/middleware-manifest.json'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/next-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/dev/next-dev-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/next.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js] {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array]
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+[Error: Cannot find module '/home/hugh51/musu-functions/musu-bee/.next/server/middleware-manifest.json'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/next-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/dev/next-dev-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/next.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js] {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array]
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+ GET /landing 500 in 733ms
+ GET /landing 500 in 297ms
+ ⨯ [Error: Cannot find module '/home/hugh51/musu-functions/musu-bee/.next/server/middleware-manifest.json'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/next-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/dev/next-dev-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/next.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js] {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array]
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+[Error: Cannot find module '/home/hugh51/musu-functions/musu-bee/.next/server/middleware-manifest.json'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/next-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/dev/next-dev-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/next.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js] {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array]
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+ GET /landing 500 in 672ms
+ GET /landing 500 in 308ms
+ ⨯ [Error: Cannot find module '/home/hugh51/musu-functions/musu-bee/.next/server/middleware-manifest.json'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/next-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/dev/next-dev-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/next.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js] {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array]
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+[Error: Cannot find module '/home/hugh51/musu-functions/musu-bee/.next/server/middleware-manifest.json'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/next-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/dev/next-dev-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/next.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js] {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array]
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+ GET /landing 500 in 736ms
+ GET /landing 500 in 362ms
+ ⨯ Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+ GET /landing 500 in 824ms
+ GET /landing 500 in 401ms
+ ⨯ Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+ GET /landing 500 in 671ms
+ GET /landing 500 in 304ms
+ ⨯ Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+ GET /landing 500 in 676ms
+ GET /landing 500 in 318ms
+ ⨯ Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+ GET /landing 500 in 646ms
+ GET /landing 500 in 269ms
+ ⨯ Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+ GET /landing 500 in 756ms
+ GET /landing 500 in 412ms
+ ⨯ Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+ GET /landing 500 in 253ms
+ GET /landing 500 in 139ms
+ ⨯ Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+ GET /landing 500 in 441ms
+ GET /landing 500 in 241ms
+ ⨯ Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+ GET /landing 500 in 371ms
+ GET /landing 500 in 134ms
+ ⨯ Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+ GET /landing 500 in 235ms
+ GET /landing 500 in 91ms
+ ⨯ Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+ GET /landing 500 in 211ms
+ GET /landing 500 in 101ms
+ ⨯ Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+ GET /landing 500 in 296ms
+ GET /landing 500 in 134ms
+ ⨯ Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+ GET /landing 500 in 227ms
+ GET /landing 500 in 119ms
+ ⨯ Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+ GET /landing 500 in 415ms
+ GET /landing 500 in 203ms
+ ⨯ Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/prerender-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/prerender-manifest.json'
+}
+Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/prerender-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/prerender-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/prerender-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/prerender-manifest.json'
+}
+ GET /landing 500 in 312ms
+ GET /landing 500 in 135ms
+ ⨯ Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/prerender-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/prerender-manifest.json'
+}
+Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/prerender-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/prerender-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/prerender-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/prerender-manifest.json'
+}
+ GET /landing 500 in 309ms
+ GET /landing 500 in 148ms
+ ⨯ Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/prerender-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/prerender-manifest.json'
+}
+Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/prerender-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/prerender-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/prerender-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/prerender-manifest.json'
+}
+ GET /landing 500 in 250ms
+ GET /landing 500 in 123ms
+ ⨯ Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/prerender-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/prerender-manifest.json'
+}
+Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/prerender-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/prerender-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/prerender-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/prerender-manifest.json'
+}
+ GET /landing 500 in 262ms
+ GET /landing 500 in 140ms
+ ⨯ Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ GET /landing 500 in 206ms
+ ⨯ Error: Cannot find module './421.js'
+Require stack:
+- /home/hugh51/musu-functions/musu-bee/.next/server/webpack-runtime.js
+- /home/hugh51/musu-functions/musu-bee/.next/server/pages/_document.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/require.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/load-components.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/utils.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/options.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/swc/index.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/parse-module.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/build/analysis/get-page-static-info.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/router-server.js
+- /home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/server/lib/start-server.js
+    at <unknown> (.next/server/app/landing/page.js:2:11412)
+    at Object.<anonymous> (.next/server/app/landing/page.js:2:11466) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/landing'
+}
+ GET /landing 500 in 131ms
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/server/app-paths-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/server/app-paths-manifest.json',
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/server/pages-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/server/pages-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/server/app-paths-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/server/app-paths-manifest.json',
+  page: '/landing'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/server/pages-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/server/pages-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/hugh51/musu-functions/musu-bee/.next/routes-manifest.json'
+}
+ GET /landing 500 in 215ms
+ GET /landing 500 in 69ms
+ GET /landing 404 in 234ms
+ GET /landing 404 in 249ms
+ GET /landing 404 in 488ms
+ GET /landing 404 in 274ms
+ GET /landing 404 in 283ms
+ GET /landing 404 in 255ms
+ GET /landing 404 in 221ms
+ GET /landing 404 in 255ms
+ ⨯ [Error [InvariantError]: Invariant: Expected clientReferenceManifest to be defined. This is a bug in Next.js.]
+ ⨯ [Error [InvariantError]: Invariant: Expected clientReferenceManifest to be defined. This is a bug in Next.js.] {
+  page: '/landing'
+}
+ GET /landing 500 in 1982ms
+ ⨯ [Error [InvariantError]: Invariant: Expected clientReferenceManifest to be defined. This is a bug in Next.js.]
+ ⨯ [Error [InvariantError]: Invariant: Expected clientReferenceManifest to be defined. This is a bug in Next.js.] {
+  page: '/landing'
+}
+ GET /landing 500 in 756ms
+ GET /landing 200 in 353ms
+ GET /landing 200 in 96ms
+ GET /landing 200 in 117ms
+ ○ Compiling /pricing ...
+ ✓ Compiled /pricing in 1210ms (947 modules)
+ GET /pricing 200 in 1956ms
+ GET /pricing 200 in 113ms
+[?25h

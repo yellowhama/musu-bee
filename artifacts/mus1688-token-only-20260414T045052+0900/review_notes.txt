@@ -1,0 +1,3 @@
+Review focus: token-only diff safety
+- verified no copy/localization rewrites remain in scoped patch
+- scoped changes are literal->CSS var replacements plus guard test

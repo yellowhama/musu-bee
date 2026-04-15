@@ -156,19 +156,24 @@ run_phase() {
 rm -rf "$OUT_DIR"
 mkdir -p "$OUT_DIR"
 
-cat >"$INVOCATION_JSON" <<JSON
-{
-  "artifactKind": "mus71-dual-gpu-chain-invocation-v1",
-  "requestedAt": "$NOW",
-  "requestedChainId": "$CHAIN_ID",
-  "scenarios": {
-    "canonical_success": "$SUCCESS_SCENARIO",
-    "failure": "$FAILURE_SCENARIO",
-    "retry": "$RETRY_SCENARIO"
-  },
-  "outDir": "$OUT_DIR"
-}
-JSON
+jq -n \
+  --arg requestedAt "$NOW" \
+  --arg requestedChainId "$CHAIN_ID" \
+  --arg canonicalSuccess "$SUCCESS_SCENARIO" \
+  --arg failure "$FAILURE_SCENARIO" \
+  --arg retry "$RETRY_SCENARIO" \
+  --arg outDir "$OUT_DIR" \
+  '{
+    artifactKind: "mus71-dual-gpu-chain-invocation-v1",
+    requestedAt: $requestedAt,
+    requestedChainId: $requestedChainId,
+    scenarios: {
+      canonical_success: $canonicalSuccess,
+      failure: $failure,
+      retry: $retry
+    },
+    outDir: $outDir
+  }' >"$INVOCATION_JSON"
 
 run_phase "canonical-success" 1 "$SUCCESS_SCENARIO" "$CANON_LANE2_DIR" "$CANON_SUMMARY" "$CANON_OPERATOR_VIEW" "$CANON_STAGES_DIR"
 run_phase "failure" 1 "$FAILURE_SCENARIO" "$FAIL_LANE2_DIR" "$FAIL_SUMMARY" "$FAIL_OPERATOR_VIEW" "$FAIL_STAGES_DIR"
@@ -216,59 +221,85 @@ if [[ "$RETRY_SCENARIO" == "verified-peer" && "$RETRY_OPERATOR_STATUS" != "ready
   exit 1
 fi
 
-cat >"$ASSERTIONS_JSON" <<JSON
-{
-  "artifactKind": "mus71-dual-gpu-chain-assertions-v1",
-  "generatedAt": "$NOW",
-  "chainContextId": "$CHAIN_ID",
-  "checks": {
-    "chainContextContinuity": true,
-    "canonicalOperatorStatus": "$CANON_OPERATOR_STATUS",
-    "failureOperatorStatus": "$FAIL_OPERATOR_STATUS",
-    "retryOperatorStatus": "$RETRY_OPERATOR_STATUS"
-  }
-}
-JSON
+jq -n \
+  --arg generatedAt "$NOW" \
+  --arg chainContextId "$CHAIN_ID" \
+  --arg canonicalOperatorStatus "$CANON_OPERATOR_STATUS" \
+  --arg failureOperatorStatus "$FAIL_OPERATOR_STATUS" \
+  --arg retryOperatorStatus "$RETRY_OPERATOR_STATUS" \
+  '{
+    artifactKind: "mus71-dual-gpu-chain-assertions-v1",
+    generatedAt: $generatedAt,
+    chainContextId: $chainContextId,
+    checks: {
+      chainContextContinuity: true,
+      canonicalOperatorStatus: $canonicalOperatorStatus,
+      failureOperatorStatus: $failureOperatorStatus,
+      retryOperatorStatus: $retryOperatorStatus
+    }
+  }' >"$ASSERTIONS_JSON"
 
-cat >"$MANIFEST_JSON" <<JSON
-{
-  "harness": "mus71-dual-gpu-chain-harness",
-  "generated_at": "$NOW",
-  "chain_context_id": "$CHAIN_ID",
-  "scenarios": {
-    "canonical_success": "$SUCCESS_SCENARIO",
-    "failure": "$FAILURE_SCENARIO",
-    "retry": "$RETRY_SCENARIO"
-  },
-  "artifacts": {
-    "canonical_generation": "$CANON_GENERATION",
-    "canonical_qa_tagging": "$CANON_QA",
-    "canonical_operator_review": "$CANON_OPERATOR",
-    "failure_generation": "$FAIL_GENERATION",
-    "failure_qa_tagging": "$FAIL_QA",
-    "failure_operator_review": "$FAIL_OPERATOR",
-    "retry_generation": "$RETRY_GENERATION",
-    "retry_qa_tagging": "$RETRY_QA",
-    "retry_operator_review": "$RETRY_OPERATOR",
-    "assertions": "$ASSERTIONS_JSON"
-  }
-}
-JSON
+jq -n \
+  --arg generatedAt "$NOW" \
+  --arg chainContextId "$CHAIN_ID" \
+  --arg canonicalSuccess "$SUCCESS_SCENARIO" \
+  --arg failure "$FAILURE_SCENARIO" \
+  --arg retry "$RETRY_SCENARIO" \
+  --arg canonicalGeneration "$CANON_GENERATION" \
+  --arg canonicalQaTagging "$CANON_QA" \
+  --arg canonicalOperatorReview "$CANON_OPERATOR" \
+  --arg failureGeneration "$FAIL_GENERATION" \
+  --arg failureQaTagging "$FAIL_QA" \
+  --arg failureOperatorReview "$FAIL_OPERATOR" \
+  --arg retryGeneration "$RETRY_GENERATION" \
+  --arg retryQaTagging "$RETRY_QA" \
+  --arg retryOperatorReview "$RETRY_OPERATOR" \
+  --arg assertions "$ASSERTIONS_JSON" \
+  '{
+    harness: "mus71-dual-gpu-chain-harness",
+    generated_at: $generatedAt,
+    chain_context_id: $chainContextId,
+    scenarios: {
+      canonical_success: $canonicalSuccess,
+      failure: $failure,
+      retry: $retry
+    },
+    artifacts: {
+      canonical_generation: $canonicalGeneration,
+      canonical_qa_tagging: $canonicalQaTagging,
+      canonical_operator_review: $canonicalOperatorReview,
+      failure_generation: $failureGeneration,
+      failure_qa_tagging: $failureQaTagging,
+      failure_operator_review: $failureOperatorReview,
+      retry_generation: $retryGeneration,
+      retry_qa_tagging: $retryQaTagging,
+      retry_operator_review: $retryOperatorReview,
+      assertions: $assertions
+    }
+  }' >"$MANIFEST_JSON"
 
 if ! jq -re --arg expected "$CHAIN_ID" '.chain_context_id == $expected' "$MANIFEST_JSON" >/dev/null; then
   echo "[FAIL] manifest chain_context_id mismatch (expected $CHAIN_ID)" >&2
   exit 1
 fi
 
-cat >"$REPLAY_TABLE_MD" <<MD
-# MUS-71 Replay Table
-
-| Command | Expected Exit | Actual Exit | Assertion Checks | Artifact Paths |
-|---|---|---|---|---|
-| \`cd $ROOT_DIR && ./scripts/mus71-dual-gpu-chain-harness.sh --chain-id $CHAIN_ID\` | \`0\` | \`0\` | Harness run succeeds and emits canonical/failure/retry artifacts | \`$MANIFEST_JSON\`, \`$ASSERTIONS_JSON\` |
-| \`jq -sre --arg expected "$CHAIN_ID" 'map(.chainContextId) as \$ids | (\$ids|length)==9 and (\$ids|all(.==\$expected)) and ((\$ids|unique|length)==1)' $CANON_GENERATION $CANON_QA $CANON_OPERATOR $FAIL_GENERATION $FAIL_QA $FAIL_OPERATOR $RETRY_GENERATION $RETRY_QA $RETRY_OPERATOR >/dev/null && jq -re --arg expected "$CHAIN_ID" '.chain_context_id == \$expected' $MANIFEST_JSON >/dev/null\` | \`0\` | \`0\` | Fails if any stage artifact or manifest chain id diverges from \`$CHAIN_ID\` | stage artifacts listed in manifest + \`$MANIFEST_JSON\` |
-| \`jq -r '.status' $FAIL_OPERATOR $RETRY_OPERATOR\` | \`0\` | \`0\` | first line \`blocked\`, second line \`ready\` (default scenarios) | \`$FAIL_OPERATOR\`, \`$RETRY_OPERATOR\` |
-MD
+{
+  printf '# MUS-71 Replay Table\n\n'
+  printf '| Command | Expected Exit | Actual Exit | Assertion Checks | Artifact Paths |\n'
+  printf '|---|---|---|---|---|\n'
+  printf '| `%s` | `0` | `0` | Harness run succeeds and emits canonical/failure/retry artifacts | `%s`, `%s` |\n' \
+    "cd $ROOT_DIR && ./scripts/mus71-dual-gpu-chain-harness.sh --chain-id $CHAIN_ID" \
+    "$MANIFEST_JSON" \
+    "$ASSERTIONS_JSON"
+  printf '| `%s` | `0` | `0` | Fails if any stage artifact or manifest chain id diverges from `%s` | stage artifacts listed in manifest + `%s` |\n' \
+    "jq -sre --arg expected \"$CHAIN_ID\" 'map(.chainContextId) as \$ids | (\$ids|length)==9 and (\$ids|all(.==\$expected)) and ((\$ids|unique|length)==1)' $CANON_GENERATION $CANON_QA $CANON_OPERATOR $FAIL_GENERATION $FAIL_QA $FAIL_OPERATOR $RETRY_GENERATION $RETRY_QA $RETRY_OPERATOR >/dev/null && jq -re --arg expected \"$CHAIN_ID\" '.chain_context_id == \$expected' $MANIFEST_JSON >/dev/null" \
+    "$CHAIN_ID" \
+    "$MANIFEST_JSON"
+  printf '| `%s` | `0` | `0` | first line `blocked`, second line `ready` (default scenarios) | `%s`, `%s` |\n' \
+    "jq -r '.status' $FAIL_OPERATOR $RETRY_OPERATOR" \
+    "$FAIL_OPERATOR" \
+    "$RETRY_OPERATOR"
+} >"$REPLAY_TABLE_MD"
 
 echo "[OK] MUS-71 dual GPU chain harness artifacts generated"
 echo "  - chain context id: $CHAIN_ID"

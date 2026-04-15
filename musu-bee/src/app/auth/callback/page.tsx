@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 
-export default function AuthCallbackPage() {
+function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const authConfigured = isSupabaseConfigured();
@@ -72,6 +72,10 @@ export default function AuthCallbackPage() {
     };
   }, [authConfigured, nextPath, router, searchParams]);
 
+  return <AuthCallbackView error={error} />;
+}
+
+function AuthCallbackView({ error }: { error: string | null }) {
   return (
     <div
       style={{
@@ -139,5 +143,13 @@ export default function AuthCallbackPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={<AuthCallbackView error={null} />}>
+      <AuthCallbackContent />
+    </Suspense>
   );
 }

@@ -1,0 +1,4 @@
+base_sha=3bd0c078545d636aaea10718f7b43a6bf10f5d11
+patch_file=/home/hugh51/musu-functions/artifacts/mus1688-cleanroom-reentry-v3-20260414T055638+0900/mus1688_brandvars.patch
+worktree=/tmp/mus1688-cleanroom-v3-20260414T055638+0900
+node_modules_symlink=/home/hugh51/musu-functions/musu-bee/node_modules

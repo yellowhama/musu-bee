@@ -1,0 +1,6 @@
+MUS1688_REMediation_summary
+artifact=/home/hugh51/musu-functions/artifacts/mus1688-remediation-20260413T163348+0900
+test_exit=0
+typecheck_exit=0
+build_exit=0
+immutable=YES

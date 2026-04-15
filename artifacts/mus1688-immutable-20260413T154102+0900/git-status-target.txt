@@ -1,0 +1,13 @@
+ M src/app/faq/page.tsx
+ M src/app/globals.css
+ M src/app/install/page.tsx
+ M src/app/landing/page.tsx
+ M src/app/page.tsx
+ M src/app/pricing/page.tsx
+ M src/app/pro/page.tsx
+ M src/components/AppShell.tsx
+ M src/components/PublicSiteShell.tsx
+?? src/app/brand-tokens.test.ts
+?? src/app/landing-exp/page.module.css
+?? src/app/landing-exp/page.module.test.ts
+?? src/app/landing-exp/page.tsx

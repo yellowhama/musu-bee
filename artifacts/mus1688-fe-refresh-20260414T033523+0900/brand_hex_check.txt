@@ -1,0 +1,4 @@
+# brand hex check in target scope
+musu-bee/src/app/globals.css:3:  --musu-color-brand-ink: #2D1D19;
+musu-bee/src/app/globals.css:4:  --musu-color-brand-accent: #FFD166;
+musu-bee/src/app/globals.css:5:  --musu-color-brand-canvas: #FDFCF0;

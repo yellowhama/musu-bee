@@ -1,0 +1,10 @@
+phase=before
+timestamp=2026-04-12T23:24:52Z
+target_pen=/home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen
+
+phase=after
+timestamp=2026-04-12T23:25:11Z
+target_pen=/home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen
+pid=54253 pen=/home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen args=/tmp/.mount_PencilDBBlrC/pencil --no-sandbox --enable-unsafe-swiftshader --disable-gpu /home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen
+pid=54263 pen=/home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen args=/home/hugh51/Pencil-linux-x86_64.AppImage --no-sandbox --enable-unsafe-swiftshader --disable-gpu /home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen
+

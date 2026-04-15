@@ -1,0 +1,7 @@
+COPY src/app/auth/callback/page.tsx
+COPY src/app/faq/page.tsx
+COPY src/app/install/page.tsx
+COPY src/app/landing/page.tsx
+COPY src/app/pricing/page.tsx
+COPY src/app/pro/page.tsx
+COPY src/components/PublicSiteShell.tsx

@@ -1,0 +1,16 @@
+elapsed_seconds=8
+POST /api/chat request
+{"message":"MUS-1527 live API smoke (2026-04-13): reply with one short sentence mentioning MUS1527."}
+
+Response headers:
+HTTP/1.1 200 OK
+vary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch
+content-type: application/json
+Date: Sun, 12 Apr 2026 15:31:28 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Transfer-Encoding: chunked
+
+
+Response body:
+{"text":"The MUS-1527 live API smoke test for 2026-04-13 is complete."}

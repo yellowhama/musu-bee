@@ -1,0 +1,4 @@
+typecheck=0
+build=0
+targeted_tests=137
+token_scan_full=1

@@ -1,0 +1,66 @@
+[INFO] Log: /home/hugh51/.config/Pencil/logs/main.log
+[INFO] Window lines: 3000
+[INFO] PID file: /tmp/pencil-dev.pid
+[INFO] Target pen: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+
+[CHECK] process-running: 1
+[CHECK] process-pid: 43772
+[CHECK] loadFile: 0
+[CHECK] addResource: 0
+[CHECK] initialized: 0
+[CHECK] claude-status: 1
+[CHECK] codex-status: 1
+
+[INFO] Recent matching lines:
+1611:[2026-04-10 14:57:28.037] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen
+1646:[2026-04-10 14:57:29.494] [debug] Sending notification: claude-status { id: 'ext-2-1775800649494', hasPayload: true }
+1649:[2026-04-10 14:57:29.495] [debug] Sending notification: codex-status { id: 'ext-3-1775800649495', hasPayload: true }
+1657:[2026-04-10 14:57:30.664] [info]  [IPC] initialized: /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen
+1669:[2026-04-10 14:58:09.716] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen zoomToFit: true
+1686:[2026-04-10 14:58:09.781] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen
+1722:[2026-04-10 14:58:11.592] [debug] Sending notification: claude-status { id: 'ext-2-1775800691592', hasPayload: true }
+1725:[2026-04-10 14:58:11.601] [debug] Sending notification: codex-status { id: 'ext-3-1775800691601', hasPayload: true }
+1733:[2026-04-10 14:58:13.941] [info]  [IPC] initialized: /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen
+1753:[2026-04-10 14:58:54.494] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen zoomToFit: false
+1775:[2026-04-10 15:09:14.311] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen zoomToFit: true
+1792:[2026-04-10 15:09:14.634] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen
+1827:[2026-04-10 15:09:16.799] [debug] Sending notification: claude-status { id: 'ext-2-1775801356799', hasPayload: true }
+1830:[2026-04-10 15:09:16.800] [debug] Sending notification: codex-status { id: 'ext-3-1775801356800', hasPayload: true }
+1838:[2026-04-10 15:09:18.845] [info]  [IPC] initialized: /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen
+1866:[2026-04-10 19:16:56.747] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen zoomToFit: true
+1886:[2026-04-10 19:16:56.934] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen
+2054:[2026-04-10 19:17:03.225] [debug] Sending notification: claude-status { id: 'ext-1-1775816223225', hasPayload: true }
+2057:[2026-04-10 19:17:03.234] [debug] Sending notification: codex-status { id: 'ext-2-1775816223234', hasPayload: true }
+2058:[2026-04-10 19:17:03.234] [info]  [IPC] initialized: /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen
+2215:[2026-04-10 20:03:31.387] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen zoomToFit: false
+2277:[2026-04-10 20:04:24.969] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen zoomToFit: false
+2299:[2026-04-10 20:05:52.793] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen zoomToFit: false
+2447:[2026-04-10 21:52:59.166] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen zoomToFit: false
+2529:[2026-04-13 01:35:17.822] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen zoomToFit: true
+2562:[2026-04-13 01:35:18.074] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen
+2593:[2026-04-13 03:09:42.732] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen zoomToFit: true
+2626:[2026-04-13 03:09:43.061] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen
+2657:[2026-04-13 03:10:18.464] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen zoomToFit: true
+2674:[2026-04-13 03:10:18.556] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen
+2709:[2026-04-13 03:11:01.819] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen zoomToFit: true
+2726:[2026-04-13 03:11:01.864] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen
+2760:[2026-04-13 04:40:39.104] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen zoomToFit: true
+2793:[2026-04-13 04:40:39.407] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen
+2825:[2026-04-13 04:48:30.189] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen zoomToFit: true
+2858:[2026-04-13 04:48:30.407] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen
+2889:[2026-04-13 04:49:20.329] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen zoomToFit: true
+2906:[2026-04-13 04:49:20.395] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen
+2939:[2026-04-13 04:57:31.411] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen zoomToFit: true
+2972:[2026-04-13 04:57:31.609] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen
+
+[INFO] Last marker positions:
+  loadFile: missing
+  addResource: missing
+  initialized: missing
+  claude-status: 2054:[2026-04-10 19:17:03.225] [debug] Sending notification: claude-status { id: 'ext-1-1775816223225', hasPayload: true }
+  codex-status: 2057:[2026-04-10 19:17:03.234] [debug] Sending notification: codex-status { id: 'ext-2-1775816223234', hasPayload: true }
+
+[WARN] One or more connection markers are missing.
+[MCP] Connection or startup is incomplete.
+[MCP] Verify active .pen and retry the standard MCP sequence.
+[MCP] Playbook: /home/hugh51/.agents/skills/pencil-dev-design-workflow/scripts/../references/pencil-mcp-tool-calling-playbook.md

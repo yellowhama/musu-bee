@@ -1,0 +1,17 @@
+phase=post_launch
+timestamp=2026-04-12T23:39:42Z
+target_pen=/home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+profile_dir=/home/hugh51/musu-functions/artifacts/mus1817-investigate-baseline-20260413T083915+0900/profile
+pid_file=/tmp/pencil-dev.pid
+main_log=/home/hugh51/musu-functions/artifacts/mus1817-investigate-baseline-20260413T083915+0900/profile/logs/main.log
+runtime_log=/tmp/pencil-dev.log
+window_lines=5000
+policy=force_clean
+
+[all_main_processes]
+pid=7228 args=/tmp/.mount_PencilzQ35Vs/pencil --no-sandbox --enable-unsafe-swiftshader --user-data-dir=/home/hugh51/musu-functions/artifacts/mus1817-investigate-baseline-20260413T083915+0900/profile --disable-gpu /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+pid=7268 args=/home/hugh51/Pencil-linux-x86_64.AppImage --no-sandbox --enable-unsafe-swiftshader --user-data-dir=/home/hugh51/musu-functions/artifacts/mus1817-investigate-baseline-20260413T083915+0900/profile --disable-gpu /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+
+scoped_main_count=2
+scoped_runtime_count=1
+

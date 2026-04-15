@@ -1,0 +1,56 @@
+timestamp_utc=2026-04-13T06:38:36Z
+repo=/home/hugh51/musu-functions/musu-bee
+cmd1=pnpm test:webhooks
+
+> musu-bee@0.1.0 test:webhooks /home/hugh51/musu-functions/musu-bee
+> tsx --test src/app/api/webhooks/**/*.test.ts
+
+✔ invalid signature returns 400 and does not write state (2.37459ms)
+✔ subscription.activated replay is deduped by event id (12.342765ms)
+✔ subscription.updated before activation does not grant entitlement (0.915311ms)
+✔ subscription.updated replay is deduped by event id (0.878584ms)
+✔ subscription.cancelled replay is deduped by event id (0.616105ms)
+✔ transaction.completed is recorded without changing entitlement (0.836679ms)
+✔ unknown_price_id does not permanently mark event processed (8.613304ms)
+✔ replay after subscription_id_mismatch can apply later (1.07283ms)
+✔ applied entitlement change syncs Supabase once and skips duplicate replay (35.814041ms)
+✔ Supabase sync failure returns 503 and does not persist state (0.831512ms)
+✔ lock timeout returns 503 retryable response (0.415946ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4091.205846
+cmd2=npx --yes tsx --test src/app/api/checkout/**/*.test.ts
+✔ checkout route rejects invalid tier (165.878919ms)
+✔ checkout route fails loudly when Paddle API key is missing (79.908567ms)
+✔ checkout route fails loudly when requested tier price id is missing (59.773321ms)
+✔ checkout route returns Paddle redirect payload on success (43.569787ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5734.872411
+cmd3=npx --yes tsx --test src/app/api/agents/route.test.ts
+✔ agents route returns parity summary without leaking upstream runtime metadata (878.406567ms)
+✔ agents route reports degraded without fabricating department state when /agents fails (32.146527ms)
+✔ agents route marks stale snapshots as degraded (26.383792ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3519.269267
+cmd4=npm run typecheck
+
+> musu-bee@0.1.0 typecheck
+> tsc --noEmit
+

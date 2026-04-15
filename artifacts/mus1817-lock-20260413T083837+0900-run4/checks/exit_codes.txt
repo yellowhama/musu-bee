@@ -1,0 +1,15 @@
+started_at=2026-04-12T23:38:37Z
+artifact_dir=/home/hugh51/musu-functions/artifacts/mus1817-lock-20260413T083837+0900-run4
+policy=force_clean
+target_pen=/home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+profile_dir=/home/hugh51/musu-functions/artifacts/mus1817-lock-20260413T083837+0900-run4/profile
+main_log=/home/hugh51/musu-functions/artifacts/mus1817-lock-20260413T083837+0900-run4/profile/logs/main.log
+global_main_log=/home/hugh51/.config/Pencil/logs/main.log
+runtime_log=/tmp/pencil-dev.log
+window_lines=5000
+warmup_max_seconds=20
+stop=0
+start=0
+main_log_selected=/home/hugh51/musu-functions/artifacts/mus1817-lock-20260413T083837+0900-run4/profile/logs/main.log
+scoped_main_count=0
+a1_exactly_one_scoped_main=1

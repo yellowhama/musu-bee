@@ -1,0 +1,50 @@
+[2026-04-13 07:30:12.665] [info]  App ready. IS_DEV: true, NODE_ENV: development
+[2026-04-13 07:30:12.688] [debug] Skipping protocol handler registration (dev mode)
+[2026-04-13 07:30:12.821] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen zoomToFit: true
+[2026-04-13 07:30:13.409] [info]  Initializing IPC server
+[2026-04-13 07:30:13.416] [debug] Registering notification handler for 'open-file'
+[2026-04-13 07:30:13.421] [debug] Registering notification handler for 'add-to-chat'
+[2026-04-13 07:30:13.421] [debug] Registering handler for 'get-fullscreen'
+[2026-04-13 07:30:13.422] [debug] Registering notification handler for 'load-file'
+[2026-04-13 07:30:13.422] [debug] Registering handler for 'get-recent-files'
+[2026-04-13 07:30:13.458] [debug] Registering notification handler for 'clear-recent-files'
+[2026-04-13 07:30:13.458] [debug] Registering notification handler for 'toggle-theme'
+[2026-04-13 07:30:13.459] [debug] Registering notification handler for 'desktop-open-terminal'
+[2026-04-13 07:30:13.459] [debug] Registering notification handler for 'check-agent-status'
+[2026-04-13 07:30:13.459] [debug] Registering notification handler for 'claude-connect'
+[2026-04-13 07:30:13.459] [debug] Registering notification handler for 'claude-disconnect'
+[2026-04-13 07:30:13.459] [debug] Registering notification handler for 'codex-connect'
+[2026-04-13 07:30:13.459] [debug] Registering notification handler for 'codex-disconnect'
+[2026-04-13 07:30:13.460] [debug] Registering notification handler for 'toggle-mcp-integration'
+[2026-04-13 07:30:13.460] [debug] Registering notification handler for 'add-extension-to-ide'
+[2026-04-13 07:30:13.471] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+[2026-04-13 07:30:13.472] [debug] Registering handler for 'get-license'
+[2026-04-13 07:30:13.472] [debug] Registering notification handler for 'set-license'
+[2026-04-13 07:30:13.472] [debug] Registering handler for 'get-device-id'
+[2026-04-13 07:30:13.472] [debug] Registering handler for 'read-file'
+[2026-04-13 07:30:13.472] [debug] Registering handler for 'save-generated-image'
+[2026-04-13 07:30:13.486] [debug] Registering notification handler for 'initialized'
+[2026-04-13 07:30:13.487] [debug] Registering notification handler for 'file-changed'
+[2026-04-13 07:30:13.487] [debug] Registering handler for 'import-file'
+[2026-04-13 07:30:13.488] [debug] Registering handler for 'import-uri'
+[2026-04-13 07:30:13.488] [debug] Registering notification handler for 'send-prompt'
+[2026-04-13 07:30:13.488] [debug] Registering handler for 'agent-stop'
+[2026-04-13 07:30:13.488] [debug] Registering notification handler for 'open-document'
+[2026-04-13 07:30:13.488] [debug] Registering notification handler for 'submit-prompt'
+[2026-04-13 07:30:13.488] [debug] Registering notification handler for 'toggle-design-mode'
+[2026-04-13 07:30:13.488] [debug] Registering notification handler for 'set-left-sidebar-visible'
+[2026-04-13 07:30:13.488] [debug] Registering notification handler for 'sign-out'
+[2026-04-13 07:30:13.489] [debug] Registering notification handler for 'chat-question-response'
+[2026-04-13 07:30:13.500] [info]  [DesktopResourceDevice] loadURL() | fileToLoad: 
+[2026-04-13 07:30:13.567] [info]  WebSocket server listening on port 45619
+[2026-04-13 07:30:13.666] [info]  Removed MCP allow rules from claudeCodeCLI
+[2026-04-13 07:30:13.667] [info]  Uninstalled up MCP server for claudeCodeCLI
+[2026-04-13 07:30:13.689] [info]  Uninstalled up MCP server for codexCLI
+[2026-04-13 07:30:13.698] [info]  Uninstalled up MCP server for geminiCLI
+[2026-04-13 07:30:13.703] [info]  Uninstalled up MCP server for openCodeCLI
+[2026-04-13 07:30:13.705] [info]  Uninstalled up MCP server for kiroCLI
+[2026-04-13 07:30:13.709] [info]  Successfully set up MCP server for claudeCodeCLI
+[2026-04-13 07:30:13.710] [info]  Successfully set up MCP server for codexCLI
+[2026-04-13 07:30:13.711] [info]  Successfully set up MCP server for geminiCLI
+[2026-04-13 07:30:13.712] [info]  Successfully set up MCP server for openCodeCLI
+[2026-04-13 07:30:13.712] [info]  Successfully set up MCP server for kiroCLI

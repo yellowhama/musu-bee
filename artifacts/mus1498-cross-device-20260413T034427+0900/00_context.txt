@@ -1,0 +1,6 @@
+timestamp_utc=2026-04-12T18:44:27Z
+timestamp_kst=2026-04-13T03:44:27+0900
+source_hostname=hughsecond
+source_user=hugh51
+target_endpoint=100.121.211.106:1355
+request_id=mus1498-20260413T034427+0900

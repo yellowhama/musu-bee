@@ -1,0 +1,6 @@
+/investigate summary (root-cause first)
+- Symptom: prior G1 fail reported non-reconstructable patch + missing risk_notes artifact.
+- Root cause 1: prior patch payload used non-repo-relative path prefixes (`a/home/hugh51/...`) causing `git apply --check` failure.
+- Root cause 2: `risk_notes.md` was referenced in narrative but absent in evidence directory.
+- Fix: regenerated repo-relative authoritative patch and added concrete `risk_notes.md` file in the same immutable evidence window.
+- Verification: `git_apply_check.txt` shows apply-check success on clean HEAD snapshot.

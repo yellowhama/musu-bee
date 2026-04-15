@@ -103,10 +103,18 @@ class TestRunProcessCwd:
 class TestRunProcessReturncode:
     """MUS-863/MUS-867: proc.returncode None must not be masked as 0."""
 
-    def _make_proc_mock(self, returncode: int | None) -> MagicMock:
-        proc = MagicMock()
+    def _make_proc_mock(self, returncode: int | None) -> AsyncMock:
+        proc = AsyncMock()
         proc.returncode = returncode
-        proc.communicate = AsyncMock(return_value=(b"hello", b""))
+        # wait() must be awaitable; return value is ignored — returncode is read directly
+        proc.wait = AsyncMock(return_value=None)
+        # stdout/stderr are async streams; return b"" immediately to signal EOF
+        stdout_mock = AsyncMock()
+        stdout_mock.read = AsyncMock(return_value=b"")
+        stderr_mock = AsyncMock()
+        stderr_mock.read = AsyncMock(return_value=b"")
+        proc.stdout = stdout_mock
+        proc.stderr = stderr_mock
         return proc
 
     def test_none_returncode_yields_exit_code_minus_one(self) -> None:

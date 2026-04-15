@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import OAuthButtons from "@/components/OAuthButtons";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 
 export default function LoginPage() {
@@ -34,7 +35,7 @@ export default function LoginPage() {
 
       router.push("/app");
     } catch (error) {
-      setError(error instanceof Error ? error.message : "로그인 요청을 처리하지 못했습니다.");
+      setError(error instanceof Error ? error.message : "We could not process the sign-in request.");
       setLoading(false);
     }
   }
@@ -85,10 +86,10 @@ export default function LoginPage() {
             letterSpacing: "-0.02em",
           }}
         >
-          로그인
+          Sign in
         </h1>
         <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 28 }}>
-          계속하려면 로그인하세요
+          Sign in to continue
         </p>
 
         {!authConfigured && (
@@ -103,9 +104,28 @@ export default function LoginPage() {
               marginBottom: 16,
             }}
           >
-            인증 설정이 아직 완료되지 않았습니다. 배포 환경 변수가 준비되면 로그인할 수 있습니다.
+            Authentication is not configured yet. Sign-in will work once the deployment environment variables are ready.
           </div>
         )}
+
+        <OAuthButtons next="/app" />
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            margin: "0 0 18px",
+            color: "#4b5563",
+            fontSize: 12,
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+          }}
+        >
+          <div style={{ height: 1, flex: 1, background: "#1f1f1f" }} />
+          <span>or use email</span>
+          <div style={{ height: 1, flex: 1, background: "#1f1f1f" }} />
+        </div>
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: 16 }}>
@@ -117,7 +137,7 @@ export default function LoginPage() {
                 marginBottom: 6,
               }}
             >
-              이메일
+              Email
             </label>
             <input
               type="email"
@@ -148,7 +168,7 @@ export default function LoginPage() {
                 marginBottom: 6,
               }}
             >
-              비밀번호
+              Password
             </label>
             <input
               type="password"
@@ -201,7 +221,7 @@ export default function LoginPage() {
               cursor: loading ? "not-allowed" : "pointer",
             }}
           >
-            {loading ? "로그인 중..." : "로그인"}
+            {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
 
@@ -213,12 +233,12 @@ export default function LoginPage() {
             color: "#6b7280",
           }}
         >
-          계정이 없으신가요?{" "}
+          Need an account?{" "}
           <Link
             href="/auth/signup"
             style={{ color: "#7c3aed", textDecoration: "none" }}
           >
-            무료로 시작
+            Start free
           </Link>
         </div>
       </div>

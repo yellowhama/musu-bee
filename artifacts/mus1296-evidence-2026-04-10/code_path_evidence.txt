@@ -1,0 +1,22 @@
+# env_var_read_paths
+/home/hugh51/musu-functions/musu-bee/src/components/CheckoutButton.tsx:23:    process.env.NEXT_PUBLIC_PADDLE_ENV === "production"
+/home/hugh51/musu-functions/musu-bee/src/components/CheckoutButton.tsx:27:    process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN?.trim() ?? "";
+/home/hugh51/musu-functions/musu-bee/src/lib/paddle.ts:12:  return process.env.NEXT_PUBLIC_PADDLE_ENV === "production"
+/home/hugh51/musu-functions/musu-bee/src/lib/paddle.ts:34:  const apiKey = process.env.PADDLE_API_KEY;
+/home/hugh51/musu-functions/musu-bee/src/lib/paddle.ts:35:  if (!apiKey) throw new Error("PADDLE_API_KEY is not set");
+/home/hugh51/musu-functions/musu-bee/src/app/api/checkout/route.test.ts:41:  "PADDLE_API_KEY",
+/home/hugh51/musu-functions/musu-bee/src/app/api/checkout/route.test.ts:46:  "NEXT_PUBLIC_PADDLE_ENV",
+/home/hugh51/musu-functions/musu-bee/src/app/api/checkout/route.test.ts:53:    process.env.PADDLE_API_KEY = "pdl_test_key";
+/home/hugh51/musu-functions/musu-bee/src/app/api/checkout/route.test.ts:71:    delete process.env.PADDLE_API_KEY;
+/home/hugh51/musu-functions/musu-bee/src/app/api/checkout/route.test.ts:79:    assert.deepEqual(await res.json(), { error: "PADDLE_API_KEY env var not set" });
+/home/hugh51/musu-functions/musu-bee/src/app/api/checkout/route.test.ts:89:    process.env.PADDLE_API_KEY = "pdl_test_key";
+/home/hugh51/musu-functions/musu-bee/src/app/api/checkout/route.test.ts:111:    process.env.PADDLE_API_KEY = "pdl_test_key";
+/home/hugh51/musu-functions/musu-bee/src/app/api/checkout/route.ts:14:    if (!process.env.PADDLE_API_KEY) {
+/home/hugh51/musu-functions/musu-bee/src/app/api/checkout/route.ts:16:        { error: "PADDLE_API_KEY env var not set" },
+/home/hugh51/musu-functions/musu-bee/src/app/api/webhooks/paddle/handler.ts:44:    webhookSecret: process.env.PADDLE_WEBHOOK_SECRET,
+/home/hugh51/musu-functions/musu-bee/src/app/api/webhooks/paddle/handler.ts:242:    return { status: 500, body: { error: "PADDLE_WEBHOOK_SECRET not set" } };
+
+# signature_verification_paths
+/home/hugh51/musu-functions/musu-bee/src/app/api/webhooks/paddle/handler.ts:12:  verifyPaddleWebhookSignature,
+/home/hugh51/musu-functions/musu-bee/src/app/api/webhooks/paddle/handler.ts:45:    verifySignature: verifyPaddleWebhookSignature,
+/home/hugh51/musu-functions/musu-bee/src/app/api/webhooks/paddle/handler.ts:247:  if (!deps.verifySignature(rawBody, signature, deps.webhookSecret)) {

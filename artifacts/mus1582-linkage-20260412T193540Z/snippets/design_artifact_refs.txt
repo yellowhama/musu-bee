@@ -1,0 +1,9 @@
+MUS-1582 design/log artifact anchors
+- comment_id=631adaa5-0fea-49fe-80d5-52926bf7e616 (2026-04-12T18:38:54.785Z)
+  artifact=.qa-artifacts/g2-mus1582-design-pr-check-20260412T183811Z.log
+- comment_id=e79ffc11-9c58-4941-bb11-bfb0ccd1909f (2026-04-12T18:57:32.299Z)
+  artifact=.qa-artifacts/g2-mus1582-recheck-body-20260412T185657Z.log
+- comment_id=0c8e5cb9-8f7d-49ab-994a-95086d390c18 (2026-04-12T18:52:05.791Z)
+  artifact=.qa-artifacts/mus1582_replay_20260413T0352KST.log
+- comment_id=ed2a7a08-01fa-4ecf-ae9d-7e6ce1db6b9b (2026-04-12T18:50:15.513Z)
+  artifact=.qa-artifacts/g2-run-linkage-replay-20260412T184920Z.log

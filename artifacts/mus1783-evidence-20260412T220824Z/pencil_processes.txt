@@ -1,0 +1,20 @@
+ 4754 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+29926 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+30048 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+58891 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+63715 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+66212 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+77017 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+79541 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+83757 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+85547 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+90549 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+91094 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+92976 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+93759 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+93768 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+94623 bash            /bin/bash -lc set -euo pipefail cd /home/hugh51/musu-functions EVID_DIR='artifacts/mus1783-evidence-20260412T220824Z' PEN='/home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen' MAIN_LOG='/home/hugh51/.config/Pencil/logs/main.log' set +e ./skills/pencil-dev-design-workflow/scripts/check_pencil_connection.sh "$PEN" "$MAIN_LOG" > "$EVID_DIR/pencil_connection_check.log" 2>&1 RC=$? set -e printf '%s\n' "$RC" > "$EVID_DIR/pencil_connection_check.exit" ps -eo pid=,comm=,args= | rg -i 'pencil|mcp-server-linux-x64' > "$EVID_DIR/pencil_processes.txt" || true sha256sum artifacts/mus1783-work-hub-remediation.pen > "$EVID_DIR/artifact_sha256.txt" wc -c artifacts/mus1783-work-hub-remediation.pen > "$EVID_DIR/artifact_size.txt" printf 'check_exit=%s\n' "$RC"
+96068 rg              rg -i pencil|mcp-server-linux-x64
+96997 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+97001 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+99071 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI

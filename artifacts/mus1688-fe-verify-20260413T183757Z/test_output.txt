@@ -1,0 +1,16 @@
+npm warn Unknown env config "auto-install-peers". This will stop working in the next major version of npm.
+npm warn Unknown env config "recursive". This will stop working in the next major version of npm.
+✔ globals.css defines canonical MUSU brand tokens (2.342464ms)
+✔ brand hex literals are not used outside globals.css (11.751404ms)
+✔ deprecated brand aliases are not consumed directly (8.007228ms)
+✔ landing-exp waitlist form posts to canonical action contract (18.790374ms)
+✔ landing-exp explicitly handles all supported waitlist statuses (5.486047ms)
+✔ landing-exp module uses brand css vars instead of hardcoded brand palette (15.585633ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 551.927908

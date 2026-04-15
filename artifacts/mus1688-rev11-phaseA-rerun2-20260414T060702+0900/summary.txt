@@ -1,0 +1,3 @@
+npm_install_exit=0
+typecheck_exit=0
+build_exit=1

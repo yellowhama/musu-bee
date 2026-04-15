@@ -1,0 +1,3 @@
+MANIFEST_ERROR_OBSERVED: YES
+/home/hugh51/musu-functions/artifacts/mus1688-g2-reentry-20260414T051130+0900/build_context.stderr.log:22:[Error: ENOENT: no such file or directory, open '/home/hugh51/musu-functions/musu-bee/.next/server/app/_not-found/page.js.nft.json'] {
+/home/hugh51/musu-functions/artifacts/mus1688-g2-reentry-20260414T051130+0900/build_context.stderr.log:24:  code: 'ENOENT',

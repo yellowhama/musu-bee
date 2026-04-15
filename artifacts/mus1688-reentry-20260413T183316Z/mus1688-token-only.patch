@@ -1,0 +1,211 @@
+diff --git a/musu-bee/src/app/globals.css b/musu-bee/src/app/globals.css
+index 5efd3ee3..3c4d8d6d 100644
+--- a/musu-bee/src/app/globals.css
++++ b/musu-bee/src/app/globals.css
+@@ -1,3 +1,41 @@
++:root {
++  /* MUSU Brand — SSOT */
++  --musu-color-brand-ink: #2D1D19;
++  --musu-color-brand-accent: #FFD166;
++  --musu-color-brand-canvas: #FDFCF0;
++  --musu-color-brand-stroke: #F8F6F1;
++  --musu-color-brand-ink-rgb: 45 29 25;
++  --musu-color-brand-accent-rgb: 255 209 102;
++  --musu-color-brand-canvas-rgb: 253 252 240;
++
++  /* Backward-compat aliases (phase-out target) */
++  --musu-cocoa-brown: var(--musu-color-brand-ink);
++  --musu-yellow: var(--musu-color-brand-accent);
++  --musu-off-white: var(--musu-color-brand-canvas);
++  --musu-brown: var(--musu-color-brand-ink);
++  --musu-stroke: var(--musu-color-brand-stroke);
++
++  /* App Shell — dark UI */
++  --musu-bg: #0d0d0d;
++  --musu-bg-surface: #111827;
++  --musu-bg-raised: #1f2937;
++  --musu-border: #2d2d2d;
++  --musu-border-subtle: #374151;
++  --musu-text: #f3f4f6;
++  --musu-text-muted: #9ca3af;
++  --musu-text-dim: #6b7280;
++
++  /* Semantic status */
++  --musu-status-online: #22c55e;
++  --musu-status-busy: #f59e0b;
++  --musu-status-offline: #4b5563;
++  --musu-status-error: #ef4444;
++
++  /* Spacing / shape */
++  --musu-radius: 8px;
++  --musu-radius-sm: 4px;
++}
++
+ *, *::before, *::after {
+   box-sizing: border-box;
+   margin: 0;
+@@ -7,8 +45,8 @@
+ html, body {
+   height: 100%;
+   overflow: hidden;
+-  background: #0d0d0d;
+-  color: #f3f4f6;
++  background: var(--musu-bg);
++  color: var(--musu-text);
+ }
+ 
+ ::-webkit-scrollbar {
+diff --git a/musu-bee/src/app/landing/page.tsx b/musu-bee/src/app/landing/page.tsx
+index d909f7f4..b062704b 100644
+--- a/musu-bee/src/app/landing/page.tsx
++++ b/musu-bee/src/app/landing/page.tsx
+@@ -169,7 +169,7 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
+ 
+ const eyebrowStyle: React.CSSProperties = {
+   fontSize: 12,
+-  color: "#facc15",
++  color: "var(--musu-color-brand-accent)",
+   fontWeight: 900,
+   letterSpacing: "0.14em",
+   textTransform: "uppercase",
+@@ -211,7 +211,7 @@ const formPanelStyle: React.CSSProperties = {
+ 
+ const panelEyebrowStyle: React.CSSProperties = {
+   fontSize: 11,
+-  color: "#facc15",
++  color: "var(--musu-color-brand-accent)",
+   fontWeight: 900,
+   letterSpacing: "0.12em",
+   marginBottom: 8,
+@@ -251,7 +251,7 @@ const inputStyle: React.CSSProperties = {
+ const submitStyle: React.CSSProperties = {
+   border: "none",
+   borderRadius: 12,
+-  background: "#facc15",
++  background: "var(--musu-color-brand-accent)",
+   color: "#0a0a0a",
+   fontSize: 15,
+   fontWeight: 900,
+@@ -292,7 +292,7 @@ const sectionCardStyle: React.CSSProperties = {
+ 
+ const cardEyebrowStyle: React.CSSProperties = {
+   fontSize: 11,
+-  color: "#facc15",
++  color: "var(--musu-color-brand-accent)",
+   fontWeight: 900,
+   letterSpacing: "0.12em",
+   textTransform: "uppercase",
+@@ -353,7 +353,7 @@ const installCardStyle: React.CSSProperties = {
+ 
+ const installPlatformStyle: React.CSSProperties = {
+   fontSize: 12,
+-  color: "#facc15",
++  color: "var(--musu-color-brand-accent)",
+   fontWeight: 900,
+ };
+ 
+@@ -387,7 +387,7 @@ const linkButtonStyle: React.CSSProperties = {
+   alignItems: "center",
+   justifyContent: "center",
+   color: "#0a0a0a",
+-  background: "#facc15",
++  background: "var(--musu-color-brand-accent)",
+   textDecoration: "none",
+   fontWeight: 900,
+   padding: "12px 16px",
+diff --git a/musu-bee/src/app/brand-tokens.test.ts b/musu-bee/src/app/brand-tokens.test.ts
+new file mode 100644
+index 00000000..d3d2c140
+--- /dev/null
++++ b/musu-bee/src/app/brand-tokens.test.ts
+@@ -0,0 +1,90 @@
++import assert from "node:assert/strict";
++import { readdirSync, readFileSync, statSync } from "node:fs";
++import path from "node:path";
++import { fileURLToPath } from "node:url";
++import { test } from "node:test";
++
++const thisFile = fileURLToPath(import.meta.url);
++const appDir = path.dirname(thisFile);
++const srcDir = path.resolve(appDir, "..");
++const globalsPath = path.join(appDir, "globals.css");
++
++const brandHexPatterns = [
++  /#facc15/i,
++  /#ffd166/i,
++  /#2d1d19/i,
++  /#fdfcf0/i,
++  /#f8f6f1/i,
++];
++
++const deprecatedBrandVars = [
++  "var(--musu-yellow)",
++  "var(--musu-brown)",
++  "var(--musu-off-white)",
++  "var(--musu-stroke)",
++];
++
++function walkFiles(dir: string, out: string[] = []): string[] {
++  const entries = readdirSync(dir);
++  for (const entry of entries) {
++    const fullPath = path.join(dir, entry);
++    const stats = statSync(fullPath);
++    if (stats.isDirectory()) {
++      walkFiles(fullPath, out);
++      continue;
++    }
++    if (/\.(css|ts|tsx)$/.test(entry)) {
++      out.push(fullPath);
++    }
++  }
++  return out;
++}
++
++function isTestFile(filePath: string): boolean {
++  return /\.test\.(ts|tsx)$/.test(filePath) || /\.spec\.(ts|tsx)$/.test(filePath);
++}
++
++test("globals.css defines canonical MUSU brand tokens", () => {
++  const globals = readFileSync(globalsPath, "utf8");
++  assert.match(globals, /--musu-color-brand-accent:\s*#FFD166;/);
++  assert.match(globals, /--musu-color-brand-ink:\s*#2D1D19;/);
++  assert.match(globals, /--musu-color-brand-canvas:\s*#FDFCF0;/);
++  assert.match(globals, /--musu-color-brand-stroke:\s*#F8F6F1;/);
++  assert.match(globals, /--musu-yellow:\s*var\(--musu-color-brand-accent\);/);
++  assert.match(globals, /--musu-cocoa-brown:\s*var\(--musu-color-brand-ink\);/);
++  assert.match(globals, /--musu-off-white:\s*var\(--musu-color-brand-canvas\);/);
++});
++
++test("brand hex literals are not used outside globals.css", () => {
++  const offenders: string[] = [];
++  for (const filePath of walkFiles(srcDir)) {
++    if (filePath === globalsPath || isTestFile(filePath)) continue;
++    const content = readFileSync(filePath, "utf8");
++    if (brandHexPatterns.some((pattern) => pattern.test(content))) {
++      offenders.push(path.relative(srcDir, filePath));
++    }
++  }
++
++  assert.deepEqual(
++    offenders,
++    [],
++    `Found raw brand hex literals outside globals.css: ${offenders.join(", ")}`,
++  );
++});
++
++test("deprecated brand aliases are not consumed directly", () => {
++  const offenders: string[] = [];
++  for (const filePath of walkFiles(srcDir)) {
++    if (filePath === globalsPath || isTestFile(filePath)) continue;
++    const content = readFileSync(filePath, "utf8");
++    if (deprecatedBrandVars.some((legacyVar) => content.includes(legacyVar))) {
++      offenders.push(path.relative(srcDir, filePath));
++    }
++  }
++
++  assert.deepEqual(
++    offenders,
++    [],
++    `Found deprecated brand variable consumption: ${offenders.join(", ")}`,
++  );
++});

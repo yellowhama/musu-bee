@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import type { CompanyScope, CompanyScopeInput } from "./companyScope";
 import { resolveCompanyScope } from "./companyScope";
-import type { CompanySetupState } from "./companySetup";
+import type { CompanySetupState } from "./companySetup.shared";
 import type { DefaultCompanyTemplate } from "./templates/defaultCompanyTemplate";
 import { defaultCompanyTemplate } from "./templates/defaultCompanyTemplate";
 import {
@@ -18,6 +18,8 @@ export interface CompanySyncEvent {
   message: string;
   endpoint: string | null;
   checkedAt: string;
+  paperclipIssueId: string | null;
+  paperclipCommentId: string | null;
 }
 
 export interface CompanyActivationState {
@@ -80,6 +82,10 @@ function normalizeSyncEvent(value: unknown): CompanySyncEvent | null {
     message: record.message,
     endpoint: typeof record.endpoint === "string" ? record.endpoint : null,
     checkedAt: record.checkedAt,
+    paperclipIssueId:
+      typeof record.paperclipIssueId === "string" ? record.paperclipIssueId : null,
+    paperclipCommentId:
+      typeof record.paperclipCommentId === "string" ? record.paperclipCommentId : null,
   };
 }
 
@@ -292,6 +298,8 @@ export async function applyCompanyActivation(
         message: syncState.message,
         endpoint: syncState.endpoint,
         checkedAt,
+        paperclipIssueId: null,
+        paperclipCommentId: null,
       },
     ],
   };
@@ -364,6 +372,8 @@ export async function syncCompanyActivation(
     message: syncResult.message,
     endpoint: syncResult.endpoint,
     checkedAt: syncResult.checkedAt,
+    paperclipIssueId: syncResult.paperclipIssueId,
+    paperclipCommentId: syncResult.paperclipCommentId,
   };
 
   const nextCompany = appendSyncEvent(

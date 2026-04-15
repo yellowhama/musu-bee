@@ -1,0 +1,40 @@
+npm warn Unknown env config "auto-install-peers". This will stop working in the next major version of npm.
+npm warn Unknown env config "recursive". This will stop working in the next major version of npm.
+
+> musu-bee@0.1.0 build
+> NODE_ENV=production next build
+
+   ▲ Next.js 15.5.14
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 25.7s
+   Skipping linting
+   Checking validity of types ...
+   Collecting page data ...
+(node:98982) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:98934) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:98927) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+   Generating static pages (0/31) ...
+(node:99751) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+   Generating static pages (7/31) 
+   Generating static pages (15/31) 
+(node:99746) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ⨯ useSearchParams() should be wrapped in a suspense boundary at page "/app". Read more: https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
+    at g (/tmp/mus1688-rev11-20260414T061443+0900/musu-bee/.next/server/chunks/906.js:1:83096)
+    at m (/tmp/mus1688-rev11-20260414T061443+0900/musu-bee/.next/server/chunks/906.js:9:13006)
+    at /tmp/mus1688-rev11-20260414T061443+0900/musu-bee/.next/server/app/app/page.js:4:6860
+    at P (/tmp/mus1688-rev11-20260414T061443+0900/musu-bee/.next/server/app/app/page.js:4:10489)
+    at n3 (/tmp/mus1688-rev11-20260414T061443+0900/musu-bee/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:2:82831)
+    at n6 (/tmp/mus1688-rev11-20260414T061443+0900/musu-bee/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:2:84601)
+    at n6 (/tmp/mus1688-rev11-20260414T061443+0900/musu-bee/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:2:101560)
+    at n5 (/tmp/mus1688-rev11-20260414T061443+0900/musu-bee/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:2:104801)
+    at n7 (/tmp/mus1688-rev11-20260414T061443+0900/musu-bee/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:2:102219)
+    at ia (/tmp/mus1688-rev11-20260414T061443+0900/musu-bee/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:2:108211)
+Error occurred prerendering page "/app". Read more: https://nextjs.org/docs/messages/prerender-error
+Export encountered an error on /app/page: /app, exiting the build.
+ ⨯ Next.js build worker exited with code: 1 and signal: null

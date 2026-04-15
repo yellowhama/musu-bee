@@ -1,17 +1,17 @@
-import type { PlanTier } from "@/lib/stripe";
+import {
+  getSubscription,
+  saveSubscription,
+  hasProcessedEvent,
+  markEventProcessed,
+  withSubscriptionStateLock,
+} from "@/lib/subscription";
+import type { SubscriptionState, PlanTier } from "@/lib/subscription";
 import {
   extractPaddlePriceId,
   PADDLE_PRICE_IDS,
   verifyPaddleWebhookSignature,
 } from "@/lib/paddle";
-import {
-  getSubscription,
-  saveSubscription,
-  hasProcessedPaddleEvent,
-  markPaddleEventProcessed,
-  withSubscriptionStateLock,
-} from "@/lib/subscription";
-import type { SubscriptionState } from "@/lib/subscription";
+import { syncSubscriptionToSupabase } from "@/lib/subscriptionSync";
 
 interface PaddleWebhookEvent {
   event_id: string;
@@ -29,6 +29,7 @@ export interface PaddleWebhookDeps {
   getSubscription: typeof getSubscription;
   saveSubscription: typeof saveSubscription;
   withSubscriptionStateLock: typeof withSubscriptionStateLock;
+  syncSubscriptionToSupabase?: typeof syncSubscriptionToSupabase;
 }
 
 interface EventResult {
@@ -45,6 +46,7 @@ export function defaultPaddleWebhookDeps(): PaddleWebhookDeps {
     getSubscription,
     saveSubscription,
     withSubscriptionStateLock,
+    syncSubscriptionToSupabase,
   };
 }
 
@@ -58,18 +60,19 @@ function tierFromPriceId(priceId: string | null | undefined): PlanTier | null {
 function sameSubscriptionState(a: SubscriptionState, b: SubscriptionState): boolean {
   if (
     a.plan !== b.plan ||
-    a.stripeCustomerId !== b.stripeCustomerId ||
-    a.stripeSubscriptionId !== b.stripeSubscriptionId ||
+    a.customerId !== b.customerId ||
+    a.subscriptionId !== b.subscriptionId ||
     a.status !== b.status ||
-    a.currentPeriodEnd !== b.currentPeriodEnd
+    a.currentPeriodEnd !== b.currentPeriodEnd ||
+    a.provider !== b.provider
   ) {
     return false;
   }
-  if (a._processedPaddleEventIds.length !== b._processedPaddleEventIds.length) {
+  if (a._processedEventIds.length !== b._processedEventIds.length) {
     return false;
   }
-  return a._processedPaddleEventIds.every(
-    (value, index) => value === b._processedPaddleEventIds[index]
+  return a._processedEventIds.every(
+    (value, index) => value === b._processedEventIds[index]
   );
 }
 
@@ -107,10 +110,13 @@ function normalizeStatus(value: unknown): SubscriptionState["status"] {
 
 async function applyPaddleEvent(
   event: PaddleWebhookEvent,
-  deps: Pick<PaddleWebhookDeps, "getSubscription" | "saveSubscription">
+  deps: Pick<
+    PaddleWebhookDeps,
+    "getSubscription" | "saveSubscription" | "syncSubscriptionToSupabase"
+  >
 ): Promise<EventResult> {
   const current = await deps.getSubscription();
-  if (hasProcessedPaddleEvent(current, event.event_id)) {
+  if (hasProcessedEvent(current, event.event_id)) {
     return {
       applied: false,
       duplicate: true,
@@ -144,8 +150,9 @@ async function applyPaddleEvent(
         ...current,
         plan: tier,
         status: "active",
-        stripeSubscriptionId: subscriptionId,
-        stripeCustomerId: customerId ?? current.stripeCustomerId,
+        subscriptionId: subscriptionId,
+        customerId: customerId ?? current.customerId,
+        provider: "paddle",
         currentPeriodEnd: extractCurrentPeriodEnd(data),
       };
       applied = !sameSubscriptionState(current, next);
@@ -157,7 +164,7 @@ async function applyPaddleEvent(
         ignoredReason = "missing_subscription_id";
         break;
       }
-      if (current.stripeSubscriptionId !== subscriptionId) {
+      if (current.subscriptionId !== subscriptionId) {
         ignoredReason = "subscription_id_mismatch";
         retryable = true;
         break;
@@ -184,7 +191,7 @@ async function applyPaddleEvent(
         ignoredReason = "missing_subscription_id";
         break;
       }
-      if (current.stripeSubscriptionId !== subscriptionId) {
+      if (current.subscriptionId !== subscriptionId) {
         ignoredReason = "subscription_id_mismatch";
         retryable = true;
         break;
@@ -194,7 +201,7 @@ async function applyPaddleEvent(
         ...current,
         plan: "free",
         status: "cancelled",
-        stripeSubscriptionId: null,
+        subscriptionId: null,
       };
       applied = !sameSubscriptionState(current, next);
       break;
@@ -211,9 +218,14 @@ async function applyPaddleEvent(
     }
   }
 
-  const finalState = retryable
-    ? next
-    : markPaddleEventProcessed(next, event.event_id);
+  if (applied && !retryable && deps.syncSubscriptionToSupabase) {
+    await deps.syncSubscriptionToSupabase(next, {
+      eventId: event.event_id,
+      eventType: event.event_type,
+    });
+  }
+
+  const finalState = retryable ? next : markEventProcessed(next, event.event_id);
   if (!sameSubscriptionState(current, finalState)) {
     await deps.saveSubscription(finalState);
   }
@@ -270,6 +282,19 @@ export async function handlePaddleWebhook(
         status: 503,
         body: {
           error: "Webhook processing lock timeout",
+          retryable: true,
+        },
+      };
+    }
+    if (
+      err instanceof Error &&
+      (err.message === "supabase_sync_not_configured" ||
+        err.message.startsWith("supabase_sync_failed:"))
+    ) {
+      return {
+        status: 503,
+        body: {
+          error: "Supabase subscription sync failed",
           retryable: true,
         },
       };

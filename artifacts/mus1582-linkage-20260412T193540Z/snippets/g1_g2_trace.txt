@@ -1,0 +1,5 @@
+MUS-1582 propagation trace
+- stage=G1 comment_id=b64c1871-86c0-4295-b722-23a48e8ebbad timestamp=2026-04-12T13:18:12.666Z
+- stage=G2 comment_id=631adaa5-0fea-49fe-80d5-52926bf7e616 timestamp=2026-04-12T18:38:54.785Z verdict=FAIL
+- stage=G2 comment_id=ed2a7a08-01fa-4ecf-ae9d-7e6ce1db6b9b timestamp=2026-04-12T18:50:15.513Z verdict=PASS
+- stage=G2 comment_id=0c8e5cb9-8f7d-49ab-994a-95086d390c18 timestamp=2026-04-12T18:52:05.791Z verdict=PASS

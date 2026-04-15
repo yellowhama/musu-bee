@@ -135,7 +135,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
             style={{
               fontSize: 11,
               fontWeight: 600,
-              color: "#facc15",
+              color: "var(--musu-color-brand-accent)",
               background: "rgba(250,204,21,0.12)",
               border: "1px solid rgba(250,204,21,0.3)",
               borderRadius: 4,
@@ -165,7 +165,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
             style={{
               fontSize: 13,
               color: "#0a0a0a",
-              background: "#facc15",
+              background: "var(--musu-color-brand-accent)",
               textDecoration: "none",
               padding: "6px 16px",
               borderRadius: 8,
@@ -197,7 +197,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
             borderRadius: 20,
             padding: "4px 14px",
             fontSize: 12,
-            color: "#facc15",
+            color: "var(--musu-color-brand-accent)",
             fontWeight: 600,
             marginBottom: 32,
             letterSpacing: "0.03em",
@@ -220,7 +220,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
           <br />
           <span
             style={{
-              background: "linear-gradient(135deg, #facc15 0%, #f97316 100%)",
+              background: "linear-gradient(135deg, var(--musu-color-brand-accent) 0%, #f97316 100%)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
             }}
@@ -248,7 +248,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
             href="/faq"
             style={{
               display: "inline-block",
-              background: "#facc15",
+              background: "var(--musu-color-brand-accent)",
               color: "#0a0a0a",
               fontWeight: 700,
               fontSize: 15,
@@ -322,7 +322,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
                     width: 7,
                     height: 7,
                     borderRadius: "50%",
-                    background: d.status === "online" ? "#22c55e" : d.status === "busy" ? "#facc15" : "#374151",
+                    background: d.status === "online" ? "#22c55e" : d.status === "busy" ? "var(--musu-color-brand-accent)" : "#374151",
                     display: "inline-block",
                     flexShrink: 0,
                   }}
@@ -440,7 +440,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
             <div
               key={tier.name}
               style={{
-                background: tier.highlight ? "#facc15" : "#111",
+                background: tier.highlight ? "var(--musu-color-brand-accent)" : "#111",
                 border: tier.highlight ? "none" : "1px solid #1f1f1f",
                 borderRadius: 20,
                 padding: "32px 28px",
@@ -535,7 +535,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
                 label={tier.cta}
                 style={{
                   background: tier.highlight ? "#0a0a0a" : "#1a1a1a",
-                  color: tier.highlight ? "#facc15" : "#f3f4f6",
+                  color: tier.highlight ? "var(--musu-color-brand-accent)" : "#f3f4f6",
                   border: tier.highlight ? "none" : "1px solid #2d2d2d",
                 }}
               />
@@ -564,7 +564,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
         >
           지금 시작하면
           <br />
-          <span style={{ color: "#facc15" }}>베타 무료</span>
+          <span style={{ color: "var(--musu-color-brand-accent)" }}>베타 무료</span>
         </h2>
         <p
           style={{
@@ -582,7 +582,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
           href="/landing"
           style={{
             display: "inline-block",
-            background: "#facc15",
+            background: "var(--musu-color-brand-accent)",
             color: "#0a0a0a",
             fontWeight: 800,
             fontSize: 16,

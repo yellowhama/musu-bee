@@ -1,0 +1,114 @@
+[2026-04-13 08:58:05.962] [info]  App ready. IS_DEV: false, NODE_ENV: production
+[2026-04-13 08:58:05.987] [info]  Checking for update
+[2026-04-13 08:58:06.002] [info]  WebSocket server listening on port 45175
+[2026-04-13 08:58:06.037] [info]  Removed MCP allow rules from claudeCodeCLI
+[2026-04-13 08:58:06.038] [info]  Uninstalled MCP server for claudeCodeCLI
+[2026-04-13 08:58:06.055] [info]  Uninstalled MCP server for codexCLI
+[2026-04-13 08:58:06.057] [info]  Uninstalled MCP server for geminiCLI
+[2026-04-13 08:58:06.059] [info]  Uninstalled MCP server for openCodeCLI
+[2026-04-13 08:58:06.060] [info]  Uninstalled MCP server for kiroCLI
+[2026-04-13 08:58:06.061] [info]  Uninstalled MCP server for claudeDesktop
+[2026-04-13 08:58:06.064] [info]  Successfully set up MCP server for claudeCodeCLI
+[2026-04-13 08:58:06.065] [info]  Successfully set up MCP server for codexCLI
+[2026-04-13 08:58:06.066] [info]  Successfully set up MCP server for geminiCLI
+[2026-04-13 08:58:06.066] [info]  Successfully set up MCP server for openCodeCLI
+[2026-04-13 08:58:06.066] [info]  Successfully set up MCP server for kiroCLI
+[2026-04-13 08:58:06.067] [info]  Successfully set up MCP server for claudeDesktop
+[2026-04-13 08:58:06.114] [info]  Generated new staging user ID: 12d5ae8a-cda8-5feb-9018-e0d57277bed4
+[2026-04-13 08:58:07.182] [info]  Found version 1.1.48 (url: Pencil-1.1.48-linux-x86_64.AppImage)
+[2026-04-13 08:58:07.183] [info]  Downloading update from Pencil-1.1.48-linux-x86_64.AppImage
+[2026-04-13 08:58:07.184] [debug] updater cache dir: /home/hugh51/.cache/pencil-updater
+[2026-04-13 08:58:07.190] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen zoomToFit: true
+[2026-04-13 08:58:07.425] [info]  Initializing IPC server
+[2026-04-13 08:58:07.425] [debug] Registering notification handler for 'add-to-chat'
+[2026-04-13 08:58:07.426] [debug] Registering handler for 'get-fullscreen'
+[2026-04-13 08:58:07.426] [debug] Registering handler for 'get-active-integrations'
+[2026-04-13 08:58:07.426] [debug] Registering handler for 'get-mcp-config'
+[2026-04-13 08:58:07.426] [debug] Registering notification handler for 'change-workspace-folder'
+[2026-04-13 08:58:07.426] [debug] Registering notification handler for 'toggle-theme'
+[2026-04-13 08:58:07.427] [debug] Registering notification handler for 'set-native-theme'
+[2026-04-13 08:58:07.428] [debug] Registering notification handler for 'desktop-open-terminal'
+[2026-04-13 08:58:07.428] [debug] Registering notification handler for 'check-agent-status'
+[2026-04-13 08:58:07.428] [debug] Registering notification handler for 'claude-connect'
+[2026-04-13 08:58:07.428] [debug] Registering notification handler for 'claude-disconnect'
+[2026-04-13 08:58:07.428] [debug] Registering notification handler for 'codex-connect'
+[2026-04-13 08:58:07.428] [debug] Registering notification handler for 'codex-disconnect'
+[2026-04-13 08:58:07.429] [debug] Registering notification handler for 'toggle-mcp-integration'
+[2026-04-13 08:58:07.429] [debug] Registering notification handler for 'show-about'
+[2026-04-13 08:58:07.429] [debug] Registering notification handler for 'initialized'
+[2026-04-13 08:58:07.430] [debug] Registering notification handler for 'add-extension-to-ide'
+[2026-04-13 08:58:07.432] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+[2026-04-13 08:58:07.432] [debug] Registering handler for 'get-session'
+[2026-04-13 08:58:07.433] [debug] Registering notification handler for 'set-session'
+[2026-04-13 08:58:07.433] [debug] Registering handler for 'get-last-online-at'
+[2026-04-13 08:58:07.433] [debug] Registering notification handler for 'set-last-online-at'
+[2026-04-13 08:58:07.433] [debug] Registering handler for 'get-device-id'
+[2026-04-13 08:58:07.434] [debug] Registering handler for 'read-file'
+[2026-04-13 08:58:07.434] [debug] Registering handler for 'save-generated-image'
+[2026-04-13 08:58:07.434] [debug] Registering handler for 'save-temp-file'
+[2026-04-13 08:58:07.434] [debug] Registering notification handler for 'cleanup-temp-files'
+[2026-04-13 08:58:07.435] [debug] Registering notification handler for 'initialized'
+[2026-04-13 08:58:07.436] [debug] Registering notification handler for 'file-changed'
+[2026-04-13 08:58:07.436] [debug] Registering handler for 'import-file'
+[2026-04-13 08:58:07.436] [debug] Registering handler for 'import-files'
+[2026-04-13 08:58:07.436] [debug] Registering handler for 'import-uri'
+[2026-04-13 08:58:07.436] [debug] Registering notification handler for 'send-prompt'
+[2026-04-13 08:58:07.436] [debug] Registering handler for 'agent-stop'
+[2026-04-13 08:58:07.437] [debug] Registering notification handler for 'open-document'
+[2026-04-13 08:58:07.437] [debug] Registering notification handler for 'submit-prompt'
+[2026-04-13 08:58:07.437] [debug] Registering notification handler for 'toggle-design-mode'
+[2026-04-13 08:58:07.437] [debug] Registering notification handler for 'set-left-sidebar-visible'
+[2026-04-13 08:58:07.437] [debug] Registering notification handler for 'sign-out'
+[2026-04-13 08:58:07.437] [debug] Registering notification handler for 'open-external-url'
+[2026-04-13 08:58:07.437] [debug] Registering notification handler for 'chat-question-response'
+[2026-04-13 08:58:07.438] [debug] Registering notification handler for 'load-file'
+[2026-04-13 08:58:07.438] [debug] Registering handler for 'find-libraries'
+[2026-04-13 08:58:07.438] [debug] Registering notification handler for 'turn-into-library'
+[2026-04-13 08:58:07.438] [debug] Registering handler for 'browse-libraries'
+[2026-04-13 08:58:07.449] [info]  [DesktopResourceDevice] loadURL() | fileToLoad: 
+[2026-04-13 08:58:09.063] [debug] Registering notification handler for 'desktop-update-install'
+[2026-04-13 08:58:09.063] [debug] Registering notification handler for 'set-install-on-app-quit'
+[2026-04-13 08:58:15.409] [debug] Received request: get-fullscreen { id: 'ext-1-1776038295407', hasPayload: false }
+[2026-04-13 08:58:15.411] [debug] Sending response: get-fullscreen { id: 'ext-1-1776038295407', hasPayload: false }
+[2026-04-13 08:58:15.412] [debug] Received request: get-last-online-at { id: 'ext-2-1776038295408', hasPayload: false }
+[2026-04-13 08:58:15.424] [debug] Sending response: get-last-online-at { id: 'ext-2-1776038295408', hasPayload: true }
+[2026-04-13 08:58:15.427] [debug] Received notification: set-native-theme { id: 'ext-3-1776038295409', hasPayload: true }
+[2026-04-13 08:58:15.428] [debug] Handling notification 'set-native-theme' with 1 handlers
+[2026-04-13 08:58:15.463] [debug] Received request: get-active-integrations { id: 'ext-4-1776038295411', hasPayload: false }
+[2026-04-13 08:58:15.464] [debug] Sending response: get-active-integrations { id: 'ext-4-1776038295411', hasPayload: true }
+[2026-04-13 08:58:15.465] [debug] Received request: get-mcp-config { id: 'ext-5-1776038295411', hasPayload: false }
+[2026-04-13 08:58:15.465] [debug] Sending response: get-mcp-config { id: 'ext-5-1776038295411', hasPayload: true }
+[2026-04-13 08:58:15.560] [info]  Update has already been downloaded to /home/hugh51/.cache/pencil-updater/pending/Pencil-1.1.48-linux-x86_64.AppImage).
+[2026-04-13 08:58:15.568] [debug] Sending notification 'desktop-update-ready'
+[2026-04-13 08:58:15.569] [debug] Sending notification: desktop-update-ready { id: 'ext-1-1776038295569', hasPayload: true }
+[2026-04-13 08:58:15.893] [debug] Received notification: set-last-online-at { id: 'ext-6-1776038295892', hasPayload: true }
+[2026-04-13 08:58:15.894] [debug] Handling notification 'set-last-online-at' with 1 handlers
+[2026-04-13 08:58:17.464] [debug] Received notification: initialized { id: 'ext-7-1776038297459', hasPayload: false }
+[2026-04-13 08:58:17.465] [debug] Handling notification 'initialized' with 2 handlers
+[2026-04-13 08:58:17.465] [debug] Checking for Claude Code status
+[2026-04-13 08:58:17.490] [debug] Checking for Codex status
+[2026-04-13 08:58:17.510] [info]  [IPC] initialized: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+[2026-04-13 08:58:17.511] [debug] Sending notification 'file-update'
+[2026-04-13 08:58:17.511] [debug] Sending notification: file-update { id: 'ext-2-1776038297511', hasPayload: true }
+[2026-04-13 08:58:17.516] [debug] Sending notification 'color-theme-changed'
+[2026-04-13 08:58:17.518] [debug] Sending notification: color-theme-changed { id: 'ext-3-1776038297518', hasPayload: true }
+[2026-04-13 08:58:17.652] [debug] Received notification: set-native-theme { id: 'ext-8-1776038297650', hasPayload: true }
+[2026-04-13 08:58:17.653] [debug] Handling notification 'set-native-theme' with 1 handlers
+[2026-04-13 08:58:17.654] [debug] Received request: get-session { id: 'ext-9-1776038297650', hasPayload: false }
+[2026-04-13 08:58:17.655] [info]  [IPC] get-session
+[2026-04-13 08:58:17.655] [debug] Sending response: get-session { id: 'ext-9-1776038297650', hasPayload: true }
+[2026-04-13 08:58:18.877] [debug] Received request: read-file { id: 'ext-10-1776038298876', hasPayload: true }
+[2026-04-13 08:58:18.878] [info]  [IPC] read-file /mnt/f/Aisaak/Projects/Musu-new/branding/logos/exports/v11/variations/var-hero-120-64.png
+[2026-04-13 08:58:18.882] [debug] Sending response: read-file { id: 'ext-10-1776038298876', hasPayload: false }
+[2026-04-13 08:58:18.918] [debug] Received request: read-file { id: 'ext-11-1776038298917', hasPayload: true }
+[2026-04-13 08:58:18.919] [info]  [IPC] read-file /mnt/f/Aisaak/Projects/Musu-new/branding/logos/exports/v11/badges/badge-32px.png
+[2026-04-13 08:58:18.920] [debug] Sending response: read-file { id: 'ext-11-1776038298917', hasPayload: false }
+[2026-04-13 08:58:20.743] [debug] Received request: get-device-id { id: 'ext-12-1776038300740', hasPayload: false }
+[2026-04-13 08:58:20.743] [info]  [IPC] get-device-id
+[2026-04-13 08:58:20.744] [debug] Sending response: get-device-id { id: 'ext-12-1776038300740', hasPayload: true }
+[2026-04-13 08:58:20.228] [info]  New MCP client connected with ID: fac72ce4-9d0a-4d5e-979e-56702550a408
+[2026-04-13 08:58:20.292] [info]  {
+  type: 'thread.started',
+  thread_id: '019d8421-cf1f-7c23-a69e-435236708ef6'
+}
+[2026-04-13 08:58:20.298] [info]  { type: 'turn.started' }

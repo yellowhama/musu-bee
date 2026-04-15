@@ -1,0 +1,56 @@
+[2026-04-13 08:45:49.857] [info]  App ready. IS_DEV: true, NODE_ENV: development
+[2026-04-13 08:45:49.865] [debug] Skipping protocol handler registration (dev mode)
+[2026-04-13 08:45:49.890] [info]  loadFile pencil-welcome-desktop.pen zoomToFit: true
+[2026-04-13 08:45:50.019] [info]  Initializing IPC server
+[2026-04-13 08:45:50.020] [debug] Registering notification handler for 'open-file'
+[2026-04-13 08:45:50.020] [debug] Registering notification handler for 'add-to-chat'
+[2026-04-13 08:45:50.021] [debug] Registering handler for 'get-fullscreen'
+[2026-04-13 08:45:50.021] [debug] Registering notification handler for 'load-file'
+[2026-04-13 08:45:50.021] [debug] Registering handler for 'get-recent-files'
+[2026-04-13 08:45:50.022] [debug] Registering notification handler for 'clear-recent-files'
+[2026-04-13 08:45:50.023] [debug] Registering notification handler for 'toggle-theme'
+[2026-04-13 08:45:50.023] [debug] Registering notification handler for 'desktop-open-terminal'
+[2026-04-13 08:45:50.023] [debug] Registering notification handler for 'check-agent-status'
+[2026-04-13 08:45:50.023] [debug] Registering notification handler for 'claude-connect'
+[2026-04-13 08:45:50.023] [debug] Registering notification handler for 'claude-disconnect'
+[2026-04-13 08:45:50.023] [debug] Registering notification handler for 'codex-connect'
+[2026-04-13 08:45:50.024] [debug] Registering notification handler for 'codex-disconnect'
+[2026-04-13 08:45:50.024] [debug] Registering notification handler for 'toggle-mcp-integration'
+[2026-04-13 08:45:50.024] [debug] Registering notification handler for 'add-extension-to-ide'
+[2026-04-13 08:45:50.025] [info]  addResource: pencil-welcome-desktop.pen
+[2026-04-13 08:45:50.025] [debug] Registering handler for 'get-license'
+[2026-04-13 08:45:50.025] [debug] Registering notification handler for 'set-license'
+[2026-04-13 08:45:50.025] [debug] Registering handler for 'get-device-id'
+[2026-04-13 08:45:50.025] [debug] Registering handler for 'read-file'
+[2026-04-13 08:45:50.025] [debug] Registering handler for 'save-generated-image'
+[2026-04-13 08:45:50.026] [debug] Registering notification handler for 'initialized'
+[2026-04-13 08:45:50.026] [debug] Registering notification handler for 'file-changed'
+[2026-04-13 08:45:50.026] [debug] Registering handler for 'import-file'
+[2026-04-13 08:45:50.026] [debug] Registering handler for 'import-uri'
+[2026-04-13 08:45:50.026] [debug] Registering notification handler for 'send-prompt'
+[2026-04-13 08:45:50.026] [debug] Registering handler for 'agent-stop'
+[2026-04-13 08:45:50.027] [debug] Registering notification handler for 'open-document'
+[2026-04-13 08:45:50.027] [debug] Registering notification handler for 'submit-prompt'
+[2026-04-13 08:45:50.027] [debug] Registering notification handler for 'toggle-design-mode'
+[2026-04-13 08:45:50.027] [debug] Registering notification handler for 'set-left-sidebar-visible'
+[2026-04-13 08:45:50.027] [debug] Registering notification handler for 'sign-out'
+[2026-04-13 08:45:50.027] [debug] Registering notification handler for 'chat-question-response'
+[2026-04-13 08:45:50.028] [info]  [DesktopResourceDevice] loadURL() | fileToLoad: pencil-welcome-desktop.pen
+[2026-04-13 08:45:50.060] [info]  WebSocket server listening on port 46523
+[2026-04-13 08:45:50.126] [info]  Removed MCP allow rules from claudeCodeCLI
+[2026-04-13 08:45:50.127] [info]  Uninstalled up MCP server for claudeCodeCLI
+[2026-04-13 08:45:50.137] [info]  Uninstalled up MCP server for codexCLI
+[2026-04-13 08:45:50.190] [info]  Uninstalled up MCP server for geminiCLI
+[2026-04-13 08:45:50.194] [info]  Uninstalled up MCP server for openCodeCLI
+[2026-04-13 08:45:50.197] [info]  Uninstalled up MCP server for kiroCLI
+[2026-04-13 08:45:50.199] [info]  Successfully set up MCP server for claudeCodeCLI
+[2026-04-13 08:45:50.201] [info]  Successfully set up MCP server for codexCLI
+[2026-04-13 08:45:50.201] [info]  Successfully set up MCP server for geminiCLI
+[2026-04-13 08:45:50.201] [info]  Successfully set up MCP server for openCodeCLI
+[2026-04-13 08:45:50.202] [info]  Successfully set up MCP server for kiroCLI
+[2026-04-13 08:45:53.673] [info]  New MCP client connected with ID: 06977130-129a-411c-a6ef-94232d4567c6
+[2026-04-13 08:46:00.517] [info]  MCP client disconnected: 06977130-129a-411c-a6ef-94232d4567c6
+[2026-04-13 08:46:01.619] [info]  New MCP client connected with ID: 3ecb43d2-1962-4f75-a4b9-fef760661694
+[2026-04-13 08:46:08.208] [info]  New MCP client connected with ID: 657ba1c7-b9a4-4e88-8696-192dadd34008
+[2026-04-13 08:46:08.567] [info]  MCP client disconnected: 3ecb43d2-1962-4f75-a4b9-fef760661694
+[2026-04-13 08:46:11.392] [info]  New MCP client connected with ID: 359e5979-57db-4feb-ab9d-47c7c57ff7d6

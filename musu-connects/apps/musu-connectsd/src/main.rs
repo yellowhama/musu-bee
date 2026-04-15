@@ -1,13 +1,17 @@
 use std::collections::HashSet;
 use std::fs;
+use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use musu_connects_core::{
     bootstrap::bootstrap_banner, DeviceIdentity, DiscoveryState, FirstProductDemoService,
-    FirstProductDemoSnapshot, MusuPortServiceRoute, PeerRecord, QuicEndpointConfig,
-    QuicProvider, TrustLevel, QuicBindTarget,
+    FirstProductDemoSnapshot, MusuPortServiceRoute, PeerRecord, QuicBindTarget, QuicEndpointConfig,
+    QuicProvider, TrustLevel,
 };
+use rustls::pki_types::pem::PemObject;
+use rustls::pki_types::{CertificateDer, PrivateKeyDer};
 use serde::Serialize;
 
 const USAGE: &str = "\
@@ -15,11 +19,67 @@ Usage:
   musu-connectsd
   musu-connectsd live-harness --routes-json <path> --proof-json <path> [--service <name-or-alias>] [--now <iso8601>] [--peer-id <id>] [--device-id <id>] [--device-label <label>] [--host-platform <platform>] [--runtime-profile <profile>] [--discovered-via <method>] [--trust-level <blocked|known|trusted|shared-org>] [--discovery-state <seeded|discovered|handshaking|verified|connected|degraded|blocked|forgotten>] [--runtime-evidence-path <path>]
   musu-connectsd real-peer-harness --proof-json <path>
+  musu-connectsd tailscale-quic-server --bind <ip:port> --proof-json <path> [--max-pings <count>] [--idle-timeout-ms <ms>]
+  musu-connectsd tailscale-quic-client --bind <ip:port> --server <ip:port> --proof-json <path> [--count <samples>] [--payload-bytes <bytes>] [--idle-timeout-ms <ms>]
 
 Commands:
   live-harness       Run a cross-repo route import proof from musu-port /routes JSON and write a proof artifact
   real-peer-harness  Run a 2-endpoint loopback QUIC session proof with OS-observed ephemeral remote_addr
+  tailscale-quic-server  Run QUIC server for cross-host ping/pong evidence on a Tailscale/LAN address
+  tailscale-quic-client  Run QUIC client ping/pong sampler and emit p50/p95 latency proof
 ";
+
+const HARNESS_CERT_PEM: &str = r#"-----BEGIN CERTIFICATE-----
+MIIDXzCCAkegAwIBAgIUVXDupRVPaCxDPjDoHYEls/DIxuIwDQYJKoZIhvcNAQEL
+BQAwFDESMBAGA1UEAwwJbG9jYWxob3N0MB4XDTI2MDQxMjE2MTA0NloXDTM2MDQw
+OTE2MTA0NlowFDESMBAGA1UEAwwJbG9jYWxob3N0MIIBIjANBgkqhkiG9w0BAQEF
+AAOCAQ8AMIIBCgKCAQEAquyW6o1Fb7uWK5VW8qVBfOyiovLWj5Bda0nKHNRrieD2
+Zp7q5XT6YyKpF31drPsB3GjI/447FF1PMXqNqQeSDJOK7vKft9ODhgYJ2OOmIGDz
++6sQDh3OJj4tFBPoeUzKUdowKOKdiTBZOFNXGUeC5bu/s0VwVgzYiPWjQ+YM5WUb
+2haCTbMA7cCBuEkQk7KlQ86wUnDhVE0GgIw9h81eTUWEg2rpfkVju2dS9C4nO1KS
+ztlyLb+gPn5eI+YpXt8icIT503W+hdCoO/x2NWcV+3pNrKdDJu704PgT1zFTFnUM
+P8NpyZ8f7mytz9sRYGeCR1S+HLa2j3TsJ09b41ptvwIDAQABo4GoMIGlMB0GA1Ud
+DgQWBBSP3P6OTHTuGP+Kuux++eEsVNxYLTAfBgNVHSMEGDAWgBSP3P6OTHTuGP+K
+uux++eEsVNxYLTAMBgNVHRMBAf8EAjAAMA4GA1UdDwEB/wQEAwIFoDAdBgNVHSUE
+FjAUBggrBgEFBQcDAQYIKwYBBQUHAwIwJgYDVR0RBB8wHYIJbG9jYWxob3N0hwR/
+AAABhwRkedNqhwRkfkNYMA0GCSqGSIb3DQEBCwUAA4IBAQCE5hnlTQleLDGzjRcI
+aTpdZOdIwsjCRNswdo6tCxJbzKZsb+N6adr08+E5OGmgAMVYwQFTnvVR7EuXagTu
+XtTmVz/lVu4uSdajFnSHGs9LpdWeeZM9JqqsQOn07DhI+SzwvR65SuehM+8In1R2
+Fciuft5W8bosUdrHyqLZPjvkdEVC+QAA9L3WrKzidAh9T/5t9zxczr8WySwCueX8
+Ae1FLVWELCFZLvKAP2gnnnBqff06UbTiDNigMWkDMkVZEHkT7ZUSI+Wqr4ijbs7u
+MVmSEFwBMX0O7eNbE4TdXKJVdP+He4OwhMFREblgoECDX9w0KgUXaj4FcsGUPXE9
+5fy9
+-----END CERTIFICATE-----
+"#;
+const HARNESS_KEY_PEM: &str = r#"-----BEGIN PRIVATE KEY-----
+MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCq7JbqjUVvu5Yr
+lVbypUF87KKi8taPkF1rScoc1GuJ4PZmnurldPpjIqkXfV2s+wHcaMj/jjsUXU8x
+eo2pB5IMk4ru8p+304OGBgnY46YgYPP7qxAOHc4mPi0UE+h5TMpR2jAo4p2JMFk4
+U1cZR4Llu7+zRXBWDNiI9aND5gzlZRvaFoJNswDtwIG4SRCTsqVDzrBScOFUTQaA
+jD2HzV5NRYSDaul+RWO7Z1L0Lic7UpLO2XItv6A+fl4j5ile3yJwhPnTdb6F0Kg7
+/HY1ZxX7ek2sp0Mm7vTg+BPXMVMWdQw/w2nJnx/ubK3P2xFgZ4JHVL4ctraPdOwn
+T1vjWm2/AgMBAAECggEAAsHJMP3xW+GE0eDy45Wqmw2LSNSUHs5/a0Hn8Poa9/QS
+4jBEoRaqpg6CxFG6p2K75dm81qTTkbsFkkpw3lEBPpNJeOkDjk83l/uHjVUl5bzN
+z3mAmBgYx9rvfQG3/+9Ip8EjG+231WT1wEGIrjkBXmirKWsz0JEcrWzefGbJpRBe
+XQssFatWVlHjUgLbRsjMiscVGNelWyOCvhW1ugYx9WZho+lM1VYHINCYlNVB889O
+Qp3eo9eO0VNfQmjFgPilsQ7lPTDBbYLQss0LOP/HRnObQkPA66K3pKbKk6QPGYe/
+YZ0CTdTsA006G7wbLdHtmjtP2jApMQbC5L55z7j5eQKBgQDmyzY0vWZK9wb7ubZ5
+1zqDZqo8QtmgAJvGGOOKFas/s1fvbga3jfGTBVstOmlfmmW+e7Bc6AGKmMFWAhMR
+pHN9VPlBJzIxuc5KGUi5gChXg/m6zinPlYxOidcgay3gVBkbe8CJ4ghg1wQccSRk
+B0qPjqfi5tnJIDcEwsQ9E22cGQKBgQC9l3oNFmKNmqUTCRzZCHHOIF0H5qEQRD/3
+07pHpZbsWg7AC+/YRyfMDRQE1OgdwLuBl+4Zub5P8TOgguEvFmKSjlBwN+z+SWtx
+oGENzQzjE3Dzen6FRfa+Od2xX7PWJjH4Ix1Qy5yYoPoJw07tZXAawxv+LhYJXCuK
+24erB7mTlwKBgFjzm4nKMeHUwdlFY6IkJQY+DIC7VztG4MMCFrjCz0T27351jpsy
+VxhOKS0OZUyWqn43F+tG9EkhxOpMVGMpWeXFWWgWHk9yCKMgiZoNXf8U+6xXB2Bd
+iD1A/SwegwkCAMdJ9BRwjMAePxRjOx5efQtFdUmLpgbRpsLr+kx773QJAoGBALQN
+x7vmJnKVC3Colt0HSA2abr+yKARqzNVwHtksScjtPlTlAUNFUGZZhUmRaV/YSjsp
+Ltb/r938FCu8IF+3wqWswnfQpSJaV8/xoDqbIkIFlJ+nFcE8ULkX+5MYcJJQc+RU
+dOLmfDH3r37WHX8Xdv/zjAI5gnQhNLkLBC1JiNTBAoGBAOVCZWB4ZmF/OQ2BMKRv
+7+AQSYB899O5PS2p+unC4XGZbu2X6+NBfQcSt591qm5qHV2l2iTDuFJUMSeER32c
+Iy5SYPx5So0EtfAkOLyHmUGBEHTJP/xOfu7gAJq68mP/ImCFIAP3NBNClwp/nwDK
+eHd7M6RwattUN1Uc7TxXqR7I
+-----END PRIVATE KEY-----
+"#;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct LiveHarnessArgs {
@@ -58,7 +118,10 @@ struct LiveHarnessProof {
     session_evidence_mode: String,
     #[serde(rename = "sessionRemoteAddrSource")]
     session_remote_addr_source: String,
-    #[serde(rename = "runtimeEvidencePath", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "runtimeEvidencePath",
+        skip_serializing_if = "Option::is_none"
+    )]
     runtime_evidence_path: Option<String>,
     snapshot: FirstProductDemoSnapshot,
 }
@@ -76,6 +139,18 @@ fn main() {
         Some("real-peer-harness") => {
             if let Err(err) = run_real_peer_harness(&args[1..]) {
                 eprintln!("real-peer-harness failed: {err}");
+                std::process::exit(1);
+            }
+        }
+        Some("tailscale-quic-server") => {
+            if let Err(err) = run_tailscale_quic_server(&args[1..]) {
+                eprintln!("tailscale-quic-server failed: {err}");
+                std::process::exit(1);
+            }
+        }
+        Some("tailscale-quic-client") => {
+            if let Err(err) = run_tailscale_quic_client(&args[1..]) {
+                eprintln!("tailscale-quic-client failed: {err}");
                 std::process::exit(1);
             }
         }
@@ -168,7 +243,8 @@ fn run_live_harness(raw_args: &[String]) -> Result<(), String> {
     println!("session remote addr source: {}", session_remote_addr_source);
     println!(
         "pairing session: {}",
-        proof.snapshot
+        proof
+            .snapshot
             .pairing_session_id
             .as_deref()
             .unwrap_or("<none>")
@@ -226,7 +302,8 @@ fn parse_live_harness_args(raw_args: &[String]) -> Result<LiveHarnessArgs, Strin
                 index += 1;
             }
             "--device-label" => {
-                device_label = value.ok_or_else(|| "--device-label requires a value".to_string())?;
+                device_label =
+                    value.ok_or_else(|| "--device-label requires a value".to_string())?;
                 index += 1;
             }
             "--host-platform" => {
@@ -255,8 +332,9 @@ fn parse_live_harness_args(raw_args: &[String]) -> Result<LiveHarnessArgs, Strin
                 index += 1;
             }
             "--runtime-evidence-path" => {
-                runtime_evidence_path =
-                    Some(value.ok_or_else(|| "--runtime-evidence-path requires a value".to_string())?);
+                runtime_evidence_path = Some(
+                    value.ok_or_else(|| "--runtime-evidence-path requires a value".to_string())?,
+                );
                 index += 1;
             }
             "-h" | "--help" | "help" => return Err(USAGE.to_string()),
@@ -406,9 +484,8 @@ async fn run_real_quic_harness(proof_path: PathBuf) -> Result<(), String> {
         .map_err(|err| format!("failed to generate self-signed cert: {err}"))?;
 
     let cert_der = CertificateDer::from(cert_pair.cert.der().to_vec());
-    let key_der = PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(
-        cert_pair.key_pair.serialize_der(),
-    ));
+    let key_der =
+        PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(cert_pair.key_pair.serialize_der()));
 
     // Build the server TLS config with our self-signed cert.
     let server_tls = rustls::ServerConfig::builder()
@@ -447,9 +524,8 @@ async fn run_real_quic_harness(proof_path: PathBuf) -> Result<(), String> {
     ));
 
     // Bind the client endpoint to 127.0.0.1:0 — a distinct OS-assigned ephemeral port.
-    let mut client_endpoint =
-        Endpoint::client("127.0.0.1:0".parse().unwrap())
-            .map_err(|err| format!("failed to bind client QUIC endpoint: {err}"))?;
+    let mut client_endpoint = Endpoint::client("127.0.0.1:0".parse().unwrap())
+        .map_err(|err| format!("failed to bind client QUIC endpoint: {err}"))?;
     client_endpoint.set_default_client_config(client_config);
     let client_local_addr = client_endpoint
         .local_addr()
@@ -463,9 +539,12 @@ async fn run_real_quic_harness(proof_path: PathBuf) -> Result<(), String> {
     // `connection.remote_address()` — this is the QUIC-protocol-observed address of
     // the client, emitted by the quinn stack after the QUIC handshake, NOT a parameter.
     let server_accept_task = tokio::spawn(async move {
-        let incoming = server_endpoint.accept().await
+        let incoming = server_endpoint
+            .accept()
+            .await
             .ok_or_else(|| "server endpoint closed before accepting a connection".to_string())?;
-        let connection = incoming.await
+        let connection = incoming
+            .await
             .map_err(|err| format!("QUIC server accept handshake failed: {err}"))?;
         // remote_address() is observed from the QUIC connection event — it is the
         // UDP source address that the OS network stack reported for this connection.
@@ -524,7 +603,7 @@ async fn run_real_quic_harness(proof_path: PathBuf) -> Result<(), String> {
         .accept(&peer_id, &session_id, &remote_addr, now)
         .map_err(|err| format!("QuicProvider::accept failed: {err:?}"))?;
 
-    use musu_connects_core::{PairingService, PairRequestPayload, PairSuccessPayload};
+    use musu_connects_core::{PairRequestPayload, PairSuccessPayload, PairingService};
     let peer = PeerRecord {
         peer_id: peer_id.clone(),
         device: DeviceIdentity {
@@ -604,11 +683,477 @@ async fn run_real_quic_harness(proof_path: PathBuf) -> Result<(), String> {
     Ok(())
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct TailscaleServerArgs {
+    bind: SocketAddr,
+    proof_json: PathBuf,
+    max_pings: usize,
+    idle_timeout_ms: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct TailscaleClientArgs {
+    bind: SocketAddr,
+    server: SocketAddr,
+    proof_json: PathBuf,
+    count: usize,
+    payload_bytes: usize,
+    idle_timeout_ms: u64,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct TailscaleServerProof {
+    harness: &'static str,
+    generated_at_unix_ms: u128,
+    bind_addr: String,
+    observed_remote_addr: String,
+    #[serde(rename = "remoteAddrSource")]
+    remote_addr_source: &'static str,
+    #[serde(rename = "sessionEvidenceMode")]
+    session_evidence_mode: &'static str,
+    #[serde(rename = "servedPingCount")]
+    served_ping_count: usize,
+    session_id: String,
+    peer_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct TailscaleClientProof {
+    harness: &'static str,
+    generated_at_unix_ms: u128,
+    client_bind_addr: String,
+    server_addr: String,
+    sample_count: usize,
+    payload_bytes: usize,
+    #[serde(rename = "latencyMs")]
+    latency_ms: Vec<f64>,
+    #[serde(rename = "latencyP50Ms")]
+    latency_p50_ms: f64,
+    #[serde(rename = "latencyP95Ms")]
+    latency_p95_ms: f64,
+    #[serde(rename = "p95Le200ms")]
+    p95_le_200ms: bool,
+    #[serde(rename = "remoteAddr")]
+    remote_addr: String,
+    #[serde(rename = "remoteAddrSource")]
+    remote_addr_source: &'static str,
+    session_id: String,
+    peer_id: String,
+}
+
+fn run_tailscale_quic_server(raw_args: &[String]) -> Result<(), String> {
+    let args = parse_tailscale_quic_server_args(raw_args)?;
+    let rt = tokio::runtime::Runtime::new()
+        .map_err(|err| format!("failed to create tokio runtime: {err}"))?;
+    rt.block_on(run_tailscale_quic_server_async(args))
+}
+
+fn run_tailscale_quic_client(raw_args: &[String]) -> Result<(), String> {
+    let args = parse_tailscale_quic_client_args(raw_args)?;
+    let rt = tokio::runtime::Runtime::new()
+        .map_err(|err| format!("failed to create tokio runtime: {err}"))?;
+    rt.block_on(run_tailscale_quic_client_async(args))
+}
+
+fn parse_tailscale_quic_server_args(raw_args: &[String]) -> Result<TailscaleServerArgs, String> {
+    let mut bind = None;
+    let mut proof_json = None;
+    let mut max_pings = 20usize;
+    let mut idle_timeout_ms = 30_000u64;
+
+    let mut index = 0usize;
+    while index < raw_args.len() {
+        let flag = &raw_args[index];
+        index += 1;
+        let value = raw_args.get(index).cloned();
+        match flag.as_str() {
+            "--bind" => {
+                let raw = value.ok_or_else(|| "--bind requires a value".to_string())?;
+                bind = Some(parse_socket_addr("--bind", &raw)?);
+                index += 1;
+            }
+            "--proof-json" => {
+                let raw = value.ok_or_else(|| "--proof-json requires a value".to_string())?;
+                proof_json = Some(PathBuf::from(raw));
+                index += 1;
+            }
+            "--max-pings" => {
+                let raw = value.ok_or_else(|| "--max-pings requires a value".to_string())?;
+                max_pings = parse_positive_usize("--max-pings", &raw)?;
+                index += 1;
+            }
+            "--idle-timeout-ms" => {
+                let raw = value.ok_or_else(|| "--idle-timeout-ms requires a value".to_string())?;
+                idle_timeout_ms = parse_positive_u64("--idle-timeout-ms", &raw)?;
+                index += 1;
+            }
+            "-h" | "--help" | "help" => return Err(USAGE.to_string()),
+            other => return Err(format!("unknown tailscale-quic-server argument: {other}")),
+        }
+    }
+
+    Ok(TailscaleServerArgs {
+        bind: bind.ok_or_else(|| "--bind is required".to_string())?,
+        proof_json: proof_json.ok_or_else(|| "--proof-json is required".to_string())?,
+        max_pings,
+        idle_timeout_ms,
+    })
+}
+
+fn parse_tailscale_quic_client_args(raw_args: &[String]) -> Result<TailscaleClientArgs, String> {
+    let mut bind = None;
+    let mut server = None;
+    let mut proof_json = None;
+    let mut count = 20usize;
+    let mut payload_bytes = 32usize;
+    let mut idle_timeout_ms = 30_000u64;
+
+    let mut index = 0usize;
+    while index < raw_args.len() {
+        let flag = &raw_args[index];
+        index += 1;
+        let value = raw_args.get(index).cloned();
+        match flag.as_str() {
+            "--bind" => {
+                let raw = value.ok_or_else(|| "--bind requires a value".to_string())?;
+                bind = Some(parse_socket_addr("--bind", &raw)?);
+                index += 1;
+            }
+            "--server" => {
+                let raw = value.ok_or_else(|| "--server requires a value".to_string())?;
+                server = Some(parse_socket_addr("--server", &raw)?);
+                index += 1;
+            }
+            "--proof-json" => {
+                let raw = value.ok_or_else(|| "--proof-json requires a value".to_string())?;
+                proof_json = Some(PathBuf::from(raw));
+                index += 1;
+            }
+            "--count" => {
+                let raw = value.ok_or_else(|| "--count requires a value".to_string())?;
+                count = parse_positive_usize("--count", &raw)?;
+                index += 1;
+            }
+            "--payload-bytes" => {
+                let raw = value.ok_or_else(|| "--payload-bytes requires a value".to_string())?;
+                payload_bytes = parse_positive_usize("--payload-bytes", &raw)?;
+                index += 1;
+            }
+            "--idle-timeout-ms" => {
+                let raw = value.ok_or_else(|| "--idle-timeout-ms requires a value".to_string())?;
+                idle_timeout_ms = parse_positive_u64("--idle-timeout-ms", &raw)?;
+                index += 1;
+            }
+            "-h" | "--help" | "help" => return Err(USAGE.to_string()),
+            other => return Err(format!("unknown tailscale-quic-client argument: {other}")),
+        }
+    }
+
+    Ok(TailscaleClientArgs {
+        bind: bind.ok_or_else(|| "--bind is required".to_string())?,
+        server: server.ok_or_else(|| "--server is required".to_string())?,
+        proof_json: proof_json.ok_or_else(|| "--proof-json is required".to_string())?,
+        count,
+        payload_bytes,
+        idle_timeout_ms,
+    })
+}
+
+async fn run_tailscale_quic_server_async(args: TailscaleServerArgs) -> Result<(), String> {
+    let server_config = build_harness_server_config(args.idle_timeout_ms)?;
+    let endpoint = quinn::Endpoint::server(server_config, args.bind).map_err(|err| {
+        format!(
+            "failed to bind QUIC server endpoint on {}: {err}",
+            args.bind
+        )
+    })?;
+    let local_addr = endpoint
+        .local_addr()
+        .map_err(|err| format!("failed to read local server address: {err}"))?;
+    println!("server listening: {local_addr}");
+
+    let incoming = endpoint
+        .accept()
+        .await
+        .ok_or_else(|| "server endpoint closed before a client connected".to_string())?;
+    let connection = incoming
+        .await
+        .map_err(|err| format!("server handshake failed: {err}"))?;
+    let observed_remote_addr = connection.remote_address().to_string();
+    println!("accepted connection from: {observed_remote_addr}");
+
+    let session_id = format!("tailscale-quic-session-{}", local_addr.port());
+    let peer_id = format!("tailscale-quic-peer-{}", local_addr.port());
+    let now = now_unix_ms().to_string();
+    let mut provider = QuicProvider::new(QuicEndpointConfig {
+        bind_target: QuicBindTarget::SocketAddr(local_addr.to_string()),
+        alpn: "musu-connects/1".to_string(),
+        idle_timeout_ms: args.idle_timeout_ms,
+    });
+    provider.open_listener();
+    provider
+        .accept(&peer_id, &session_id, &observed_remote_addr, &now)
+        .map_err(|err| format!("QuicProvider::accept failed: {err:?}"))?;
+
+    let mut served = 0usize;
+    while served < args.max_pings {
+        let (mut send, mut recv) = connection
+            .accept_bi()
+            .await
+            .map_err(|err| format!("accept_bi failed after {served} exchanges: {err}"))?;
+        let payload = recv
+            .read_to_end(64 * 1024)
+            .await
+            .map_err(|err| format!("failed to read ping payload: {err}"))?;
+        send.write_all(&payload)
+            .await
+            .map_err(|err| format!("failed to write pong payload: {err}"))?;
+        send.finish()
+            .map_err(|err| format!("failed to finish pong stream: {err}"))?;
+        served += 1;
+    }
+    // Hold the server process briefly so the client can close the connection
+    // cleanly after consuming the final pong stream.
+    let _ = tokio::time::timeout(std::time::Duration::from_secs(2), connection.closed()).await;
+
+    let proof = TailscaleServerProof {
+        harness: "musu-connects-tailscale-quic-server-v1",
+        generated_at_unix_ms: now_unix_ms(),
+        bind_addr: local_addr.to_string(),
+        observed_remote_addr,
+        remote_addr_source: "quic-session-event.remote_addr",
+        session_evidence_mode: "runtime-peer-authenticated",
+        served_ping_count: served,
+        session_id,
+        peer_id,
+    };
+    write_json_file(&args.proof_json, &proof)?;
+    println!("proof written: {}", args.proof_json.display());
+    println!("served_ping_count: {served}");
+    Ok(())
+}
+
+async fn run_tailscale_quic_client_async(args: TailscaleClientArgs) -> Result<(), String> {
+    let mut endpoint = quinn::Endpoint::client(args.bind).map_err(|err| {
+        format!(
+            "failed to bind QUIC client endpoint on {}: {err}",
+            args.bind
+        )
+    })?;
+    endpoint.set_default_client_config(build_harness_client_config(args.idle_timeout_ms)?);
+
+    let connection = endpoint
+        .connect(args.server, "localhost")
+        .map_err(|err| format!("client connect initiation failed: {err}"))?
+        .await
+        .map_err(|err| format!("client handshake failed: {err}"))?;
+
+    let remote_addr = connection.remote_address().to_string();
+    let mut latencies = Vec::with_capacity(args.count);
+    for idx in 0..args.count {
+        let payload = build_ping_payload(idx as u32, args.payload_bytes);
+        let started = Instant::now();
+        let (mut send, mut recv) = connection
+            .open_bi()
+            .await
+            .map_err(|err| format!("open_bi failed on sample {idx}: {err}"))?;
+        send.write_all(&payload)
+            .await
+            .map_err(|err| format!("write_all failed on sample {idx}: {err}"))?;
+        send.finish()
+            .map_err(|err| format!("finish failed on sample {idx}: {err}"))?;
+        let echoed = recv
+            .read_to_end(64 * 1024)
+            .await
+            .map_err(|err| format!("read_to_end failed on sample {idx}: {err}"))?;
+        if echoed != payload {
+            return Err(format!(
+                "payload mismatch on sample {idx}: sent {} bytes, received {} bytes",
+                payload.len(),
+                echoed.len()
+            ));
+        }
+        latencies.push(started.elapsed().as_secs_f64() * 1000.0);
+    }
+    connection.close(0u32.into(), b"client-complete");
+
+    let p50 = percentile(&latencies, 0.50);
+    let p95 = percentile(&latencies, 0.95);
+    let p95_gate_ok = p95 <= 200.0;
+    let session_id = format!("tailscale-quic-session-{}", args.server.port());
+    let peer_id = format!("tailscale-quic-peer-{}", args.server.port());
+    let proof = TailscaleClientProof {
+        harness: "musu-connects-tailscale-quic-client-v1",
+        generated_at_unix_ms: now_unix_ms(),
+        client_bind_addr: args.bind.to_string(),
+        server_addr: args.server.to_string(),
+        sample_count: args.count,
+        payload_bytes: args.payload_bytes,
+        latency_ms: latencies,
+        latency_p50_ms: p50,
+        latency_p95_ms: p95,
+        p95_le_200ms: p95_gate_ok,
+        remote_addr,
+        remote_addr_source: "quic-session-event.remote_addr",
+        session_id,
+        peer_id,
+    };
+    write_json_file(&args.proof_json, &proof)?;
+    println!("proof written: {}", args.proof_json.display());
+    println!("samples: {}", proof.sample_count);
+    println!("latency_p50_ms: {:.3}", proof.latency_p50_ms);
+    println!("latency_p95_ms: {:.3}", proof.latency_p95_ms);
+    println!("p95<=200ms: {}", proof.p95_le_200ms);
+
+    if !p95_gate_ok {
+        return Err(format!(
+            "latency gate failed: p95 {:.3}ms exceeds 200ms",
+            proof.latency_p95_ms
+        ));
+    }
+
+    Ok(())
+}
+
+fn parse_socket_addr(flag: &str, raw: &str) -> Result<SocketAddr, String> {
+    raw.parse::<SocketAddr>()
+        .map_err(|err| format!("{flag} expects ip:port, got '{raw}': {err}"))
+}
+
+fn parse_positive_usize(flag: &str, raw: &str) -> Result<usize, String> {
+    let parsed = raw
+        .parse::<usize>()
+        .map_err(|err| format!("{flag} expects a positive integer, got '{raw}': {err}"))?;
+    if parsed == 0 {
+        return Err(format!("{flag} expects a value > 0, got 0"));
+    }
+    Ok(parsed)
+}
+
+fn parse_positive_u64(flag: &str, raw: &str) -> Result<u64, String> {
+    let parsed = raw
+        .parse::<u64>()
+        .map_err(|err| format!("{flag} expects a positive integer, got '{raw}': {err}"))?;
+    if parsed == 0 {
+        return Err(format!("{flag} expects a value > 0, got 0"));
+    }
+    Ok(parsed)
+}
+
+fn build_harness_server_config(idle_timeout_ms: u64) -> Result<quinn::ServerConfig, String> {
+    let cert_chain: Vec<CertificateDer<'static>> =
+        CertificateDer::pem_slice_iter(HARNESS_CERT_PEM.as_bytes())
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|err| format!("failed to parse harness certificate PEM: {err}"))?;
+    let private_key = PrivateKeyDer::from_pem_slice(HARNESS_KEY_PEM.as_bytes())
+        .map_err(|err| format!("failed to parse harness private key PEM: {err}"))?;
+
+    let mut server_tls = rustls::ServerConfig::builder()
+        .with_no_client_auth()
+        .with_single_cert(cert_chain, private_key)
+        .map_err(|err| format!("failed to build server TLS config: {err}"))?;
+    server_tls.alpn_protocols = vec![b"musu-connects/1".to_vec()];
+
+    let mut server_config = quinn::ServerConfig::with_crypto(Arc::new(
+        quinn::crypto::rustls::QuicServerConfig::try_from(server_tls)
+            .map_err(|err| format!("failed to build QUIC server config: {err}"))?,
+    ));
+    let mut transport = quinn::TransportConfig::default();
+    transport.max_idle_timeout(Some(
+        std::time::Duration::from_millis(idle_timeout_ms)
+            .try_into()
+            .map_err(|err| format!("failed to convert idle timeout: {err}"))?,
+    ));
+    server_config.transport_config(Arc::new(transport));
+    Ok(server_config)
+}
+
+fn build_harness_client_config(idle_timeout_ms: u64) -> Result<quinn::ClientConfig, String> {
+    let mut roots = rustls::RootCertStore::empty();
+    let cert_chain: Vec<CertificateDer<'static>> =
+        CertificateDer::pem_slice_iter(HARNESS_CERT_PEM.as_bytes())
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|err| format!("failed to parse harness certificate PEM: {err}"))?;
+    for cert in cert_chain {
+        roots
+            .add(cert)
+            .map_err(|err| format!("failed to add root certificate: {err}"))?;
+    }
+
+    let mut client_tls = rustls::ClientConfig::builder()
+        .with_root_certificates(roots)
+        .with_no_client_auth();
+    client_tls.alpn_protocols = vec![b"musu-connects/1".to_vec()];
+    let mut client_config = quinn::ClientConfig::new(Arc::new(
+        quinn::crypto::rustls::QuicClientConfig::try_from(client_tls)
+            .map_err(|err| format!("failed to build QUIC client config: {err}"))?,
+    ));
+
+    let mut transport = quinn::TransportConfig::default();
+    transport.max_idle_timeout(Some(
+        std::time::Duration::from_millis(idle_timeout_ms)
+            .try_into()
+            .map_err(|err| format!("failed to convert idle timeout: {err}"))?,
+    ));
+    client_config.transport_config(Arc::new(transport));
+    Ok(client_config)
+}
+
+fn build_ping_payload(sample_index: u32, payload_bytes: usize) -> Vec<u8> {
+    let size = payload_bytes.max(16);
+    let mut payload = vec![0u8; size];
+    payload[..4].copy_from_slice(&sample_index.to_be_bytes());
+    let now_nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos() as u64;
+    payload[4..12].copy_from_slice(&now_nanos.to_be_bytes());
+    for (idx, byte) in payload[12..].iter_mut().enumerate() {
+        *byte = ((sample_index as usize + idx) % 251) as u8;
+    }
+    payload
+}
+
+fn percentile(samples: &[f64], target: f64) -> f64 {
+    if samples.is_empty() {
+        return 0.0;
+    }
+    let mut sorted = samples.to_vec();
+    sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    let rank = ((sorted.len() - 1) as f64 * target).round() as usize;
+    sorted[rank]
+}
+
+fn now_unix_ms() -> u128 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis()
+}
+
+fn write_json_file<T: Serialize>(path: &Path, payload: &T) -> Result<(), String> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|err| {
+            format!(
+                "failed to create output directory '{}': {err}",
+                parent.display()
+            )
+        })?;
+    }
+    let body = serde_json::to_string_pretty(payload)
+        .map_err(|err| format!("failed to serialize JSON payload: {err}"))?;
+    fs::write(path, body).map_err(|err| format!("failed to write '{}': {err}", path.display()))
+}
+
 fn read_routes(path: &Path) -> Result<Vec<MusuPortServiceRoute>, String> {
-    let payload =
-        fs::read_to_string(path).map_err(|err| format!("failed to read '{}': {err}", path.display()))?;
-    serde_json::from_str::<Vec<MusuPortServiceRoute>>(&payload)
-        .map_err(|err| format!("failed to parse musu-port routes from '{}': {err}", path.display()))
+    let payload = fs::read_to_string(path)
+        .map_err(|err| format!("failed to read '{}': {err}", path.display()))?;
+    serde_json::from_str::<Vec<MusuPortServiceRoute>>(&payload).map_err(|err| {
+        format!(
+            "failed to parse musu-port routes from '{}': {err}",
+            path.display()
+        )
+    })
 }
 
 fn select_route(
@@ -642,7 +1187,8 @@ fn select_route(
 #[cfg(test)]
 mod tests {
     use super::{
-        parse_discovery_state, parse_live_harness_args, parse_trust_level, DiscoveryState,
+        parse_discovery_state, parse_live_harness_args, parse_tailscale_quic_client_args,
+        parse_tailscale_quic_server_args, parse_trust_level, percentile, DiscoveryState,
         TrustLevel,
     };
 
@@ -685,5 +1231,46 @@ mod tests {
         let error =
             parse_discovery_state("invalid").expect_err("invalid discovery state should fail");
         assert!(error.contains("invalid discovery state"));
+    }
+
+    #[test]
+    fn tailscale_server_args_parse_bind_and_limits() {
+        let args = vec![
+            "--bind".to_string(),
+            "100.121.211.106:9443".to_string(),
+            "--proof-json".to_string(),
+            "/tmp/server-proof.json".to_string(),
+            "--max-pings".to_string(),
+            "15".to_string(),
+        ];
+
+        let parsed = parse_tailscale_quic_server_args(&args).expect("args should parse");
+        assert_eq!(parsed.bind.to_string(), "100.121.211.106:9443");
+        assert_eq!(
+            parsed.proof_json.to_string_lossy(),
+            "/tmp/server-proof.json"
+        );
+        assert_eq!(parsed.max_pings, 15);
+    }
+
+    #[test]
+    fn tailscale_client_args_require_server() {
+        let args = vec![
+            "--bind".to_string(),
+            "100.126.67.88:0".to_string(),
+            "--proof-json".to_string(),
+            "/tmp/client-proof.json".to_string(),
+        ];
+
+        let error =
+            parse_tailscale_quic_client_args(&args).expect_err("missing server should fail");
+        assert!(error.contains("--server is required"));
+    }
+
+    #[test]
+    fn percentile_uses_ranked_samples() {
+        let samples = vec![10.0, 15.0, 12.0, 22.0, 18.0];
+        assert_eq!(percentile(&samples, 0.50), 15.0);
+        assert_eq!(percentile(&samples, 0.95), 22.0);
     }
 }

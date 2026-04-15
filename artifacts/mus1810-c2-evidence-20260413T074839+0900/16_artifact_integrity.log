@@ -1,0 +1,6 @@
+cmd: jq -e . /home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen
+exit=0
+cmd: sha256sum /home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen
+a2ea382aeec40230b92e4372df03c12107c2ee07b62c8ba38b802ca7434355f1  /home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen
+cmd: wc -c /home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen
+389279 /home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen

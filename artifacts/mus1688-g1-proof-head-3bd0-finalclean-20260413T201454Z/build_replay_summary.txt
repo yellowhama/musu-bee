@@ -1,0 +1,2 @@
+build_1 exit=1
+build_2 exit=1

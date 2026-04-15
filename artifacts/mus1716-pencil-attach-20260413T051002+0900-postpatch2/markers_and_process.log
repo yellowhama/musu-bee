@@ -1,0 +1,53 @@
+== marker-tail-main.log ==
+15:[2026-04-13 04:48:30.407] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen
+46:[2026-04-13 04:49:20.329] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen zoomToFit: true
+47:[2026-04-13 04:49:20.391] [info]  Initializing IPC server
+63:[2026-04-13 04:49:20.395] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen
+82:[2026-04-13 04:49:20.421] [info]  WebSocket server listening on port 45431
+96:[2026-04-13 04:57:31.411] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen zoomToFit: true
+97:[2026-04-13 04:57:31.422] [info]  WebSocket server listening on port 46363
+111:[2026-04-13 04:57:31.607] [info]  Initializing IPC server
+129:[2026-04-13 04:57:31.609] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen
+160:[2026-04-13 04:59:59.748] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen zoomToFit: true
+161:[2026-04-13 04:59:59.825] [info]  Initializing IPC server
+177:[2026-04-13 04:59:59.828] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen
+196:[2026-04-13 04:59:59.852] [info]  WebSocket server listening on port 45655
+211:[2026-04-13 05:01:32.790] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen zoomToFit: true
+212:[2026-04-13 05:01:32.830] [info]  Initializing IPC server
+228:[2026-04-13 05:01:32.833] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen
+247:[2026-04-13 05:01:32.856] [info]  WebSocket server listening on port 45157
+262:[2026-04-13 05:01:40.495] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen zoomToFit: true
+263:[2026-04-13 05:01:40.533] [info]  Initializing IPC server
+279:[2026-04-13 05:01:40.538] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen
+298:[2026-04-13 05:01:40.560] [info]  WebSocket server listening on port 45467
+314:[2026-04-13 05:05:28.391] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen zoomToFit: true
+315:[2026-04-13 05:05:28.406] [info]  WebSocket server listening on port 45045
+328:[2026-04-13 05:05:28.674] [info]  Initializing IPC server
+346:[2026-04-13 05:05:28.677] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+377:[2026-04-13 05:07:40.555] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen zoomToFit: true
+378:[2026-04-13 05:07:40.565] [info]  WebSocket server listening on port 45141
+391:[2026-04-13 05:07:40.770] [info]  Initializing IPC server
+409:[2026-04-13 05:07:40.774] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+440:[2026-04-13 05:10:16.654] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen zoomToFit: true
+441:[2026-04-13 05:10:16.666] [info]  WebSocket server listening on port 46079
+454:[2026-04-13 05:10:17.539] [info]  Initializing IPC server
+472:[2026-04-13 05:10:17.543] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+
+== marker-tail-/tmp/pencil-dev.log ==
+3:05:10:16.654 › loadFile /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen zoomToFit: true
+4:05:10:16.666 › WebSocket server listening on port 46079
+17:05:10:17.539 › Initializing IPC server
+35:05:10:17.543 › addResource: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+
+== process snapshot ==
+12001 11770     260 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+38252 64624      20 pencil          /tmp/.mount_PencilCR7NQH/pencil --no-sandbox --enable-unsafe-swiftshader --disable-gpu /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+38264 64624      20 Pencil-linux-x8 /home/hugh51/Pencil-linux-x86_64.AppImage --no-sandbox --enable-unsafe-swiftshader --disable-gpu /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+38590 38252      17 pencil          /tmp/.mount_PencilCR7NQH/pencil --type=zygote --no-zygote-sandbox --no-sandbox
+38591 38252      17 pencil          /tmp/.mount_PencilCR7NQH/pencil --type=zygote --no-sandbox
+39632 38590       7 pencil          /tmp/.mount_PencilCR7NQH/pencil --type=zygote --no-zygote-sandbox --no-sandbox
+39718 38252       6 pencil          /proc/self/exe --type=utility --utility-sub-type=network.mojom.NetworkService --lang=ko --service-sandbox-type=none --no-sandbox --enable-crash-reporter=0cfef81b-996c-4cc0-9dd0-9cfdee9010ab,no_channel --user-data-dir=/home/hugh51/.config/Pencil --standard-schemes=pencil --secure-schemes=pencil,sentry-ipc --bypasscsp-schemes=sentry-ipc --cors-schemes=pencil,sentry-ipc --fetch-schemes=pencil,sentry-ipc --shared-files=v8_context_snapshot_data:100 --field-trial-handle=3,i,11993745677338304805,12988436983549105027,262144 --enable-features=PdfUseShowSaveFilePicker --disable-features=LocalNetworkAccessChecks,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708989122997041
+39865 38591       5 pencil          /tmp/.mount_PencilCR7NQH/pencil --type=zygote --no-sandbox
+40539 38050       0 tee             tee /home/hugh51/musu-functions/artifacts/mus1716-pencil-attach-20260413T051002+0900-postpatch2/markers_and_process.log
+67220 67070     646 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+89327 89106    1266 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop

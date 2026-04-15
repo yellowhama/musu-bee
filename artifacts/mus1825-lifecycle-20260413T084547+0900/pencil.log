@@ -1,0 +1,56 @@
+08:45:49.857 › App ready. IS_DEV: true, NODE_ENV: development
+08:45:49.865 › Skipping protocol handler registration (dev mode)
+08:45:49.890 › loadFile pencil-welcome-desktop.pen zoomToFit: true
+08:45:50.019 › Initializing IPC server
+08:45:50.020 › Registering notification handler for 'open-file'
+08:45:50.020 › Registering notification handler for 'add-to-chat'
+08:45:50.021 › Registering handler for 'get-fullscreen'
+08:45:50.021 › Registering notification handler for 'load-file'
+08:45:50.021 › Registering handler for 'get-recent-files'
+08:45:50.022 › Registering notification handler for 'clear-recent-files'
+08:45:50.023 › Registering notification handler for 'toggle-theme'
+08:45:50.023 › Registering notification handler for 'desktop-open-terminal'
+08:45:50.023 › Registering notification handler for 'check-agent-status'
+08:45:50.023 › Registering notification handler for 'claude-connect'
+08:45:50.023 › Registering notification handler for 'claude-disconnect'
+08:45:50.023 › Registering notification handler for 'codex-connect'
+08:45:50.024 › Registering notification handler for 'codex-disconnect'
+08:45:50.024 › Registering notification handler for 'toggle-mcp-integration'
+08:45:50.024 › Registering notification handler for 'add-extension-to-ide'
+08:45:50.025 › addResource: pencil-welcome-desktop.pen
+08:45:50.025 › Registering handler for 'get-license'
+08:45:50.025 › Registering notification handler for 'set-license'
+08:45:50.025 › Registering handler for 'get-device-id'
+08:45:50.025 › Registering handler for 'read-file'
+08:45:50.025 › Registering handler for 'save-generated-image'
+08:45:50.026 › Registering notification handler for 'initialized'
+08:45:50.026 › Registering notification handler for 'file-changed'
+08:45:50.026 › Registering handler for 'import-file'
+08:45:50.026 › Registering handler for 'import-uri'
+08:45:50.026 › Registering notification handler for 'send-prompt'
+08:45:50.026 › Registering handler for 'agent-stop'
+08:45:50.027 › Registering notification handler for 'open-document'
+08:45:50.027 › Registering notification handler for 'submit-prompt'
+08:45:50.027 › Registering notification handler for 'toggle-design-mode'
+08:45:50.027 › Registering notification handler for 'set-left-sidebar-visible'
+08:45:50.027 › Registering notification handler for 'sign-out'
+08:45:50.027 › Registering notification handler for 'chat-question-response'
+08:45:50.028 › [DesktopResourceDevice] loadURL() | fileToLoad: pencil-welcome-desktop.pen
+08:45:50.060 › WebSocket server listening on port 46523
+08:45:50.126 › Removed MCP allow rules from claudeCodeCLI
+08:45:50.127 › Uninstalled up MCP server for claudeCodeCLI
+08:45:50.137 › Uninstalled up MCP server for codexCLI
+08:45:50.190 › Uninstalled up MCP server for geminiCLI
+08:45:50.194 › Uninstalled up MCP server for openCodeCLI
+08:45:50.197 › Uninstalled up MCP server for kiroCLI
+08:45:50.199 › Successfully set up MCP server for claudeCodeCLI
+08:45:50.201 › Successfully set up MCP server for codexCLI
+08:45:50.201 › Successfully set up MCP server for geminiCLI
+08:45:50.201 › Successfully set up MCP server for openCodeCLI
+08:45:50.202 › Successfully set up MCP server for kiroCLI
+08:45:53.673 › New MCP client connected with ID: 06977130-129a-411c-a6ef-94232d4567c6
+08:46:00.517 › MCP client disconnected: 06977130-129a-411c-a6ef-94232d4567c6
+08:46:01.619 › New MCP client connected with ID: 3ecb43d2-1962-4f75-a4b9-fef760661694
+08:46:08.208 › New MCP client connected with ID: 657ba1c7-b9a4-4e88-8696-192dadd34008
+08:46:08.567 › MCP client disconnected: 3ecb43d2-1962-4f75-a4b9-fef760661694
+08:46:11.392 › New MCP client connected with ID: 359e5979-57db-4feb-ab9d-47c7c57ff7d6

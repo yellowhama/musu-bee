@@ -1,0 +1,14 @@
+{
+	"windowBounds": {
+		"width": 1200,
+		"height": 800
+	},
+	"recentFiles": [],
+	"enabledIntegrations": [
+		"claudeCodeCLI",
+		"codexCLI",
+		"geminiCLI",
+		"openCodeCLI",
+		"kiroCLI"
+	]
+}

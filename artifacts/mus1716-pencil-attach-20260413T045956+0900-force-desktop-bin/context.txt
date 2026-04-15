@@ -1,0 +1,3 @@
+timestamp=2026-04-12T19:59:56Z
+target_pen=/home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+PENCIL_BIN=/home/hugh51/tools/Pencil-1.1.24-linux-x64/pencil

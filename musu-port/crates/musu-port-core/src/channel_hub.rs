@@ -59,6 +59,11 @@ impl ChannelHub {
             self.channels.remove(name);
         }
     }
+
+    /// Aggregate pending broadcast backlog across all channels.
+    pub fn queue_depth(&self) -> usize {
+        self.channels.iter().map(|entry| entry.value().len()).sum()
+    }
 }
 
 impl Default for ChannelHub {

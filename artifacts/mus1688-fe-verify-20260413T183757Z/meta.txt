@@ -1,0 +1,2 @@
+artifact_dir=/home/hugh51/musu-functions/artifacts/mus1688-fe-verify-20260413T183757Z
+timestamp_utc=20260413T183757Z

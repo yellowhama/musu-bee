@@ -1,0 +1,5 @@
+/ review (scope-only packet)
+- Checked full_patch.diff includes only token scope files + additions from /dev/null.
+- No AppShell/public-page runtime path included in patch unit.
+- No query-driven scope routing symbols detected in patch_routing_keyword_scan.
+- Residual risk: repo working tree includes unrelated modified files outside packet; excluded explicitly.

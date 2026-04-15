@@ -1,0 +1,25 @@
+[INFO] Starting Pencil:
+  bin: /home/hugh51/tools/Pencil-1.1.24-linux-x64/pencil
+  pen: /home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen
+  log: /tmp/pencil-dev.log
+  flags: --no-sandbox --enable-unsafe-swiftshader --disable-gpu
+  env: ELECTRON_OZONE_PLATFORM_HINT=x11 GDK_BACKEND=x11
+[INFO] Preseeded Pencil startup target in config: /home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen
+[OK] Pencil running (pid=2603)
+[OK] PID file: /tmp/pencil-dev.pid
+[OK] Runtime log: /tmp/pencil-dev.log
+[OK] pencil MCP already points to stable binary
+pencil
+  enabled: true
+  transport: stdio
+  command: /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64
+  args: --app desktop
+  cwd: -
+  env: -
+  remove: codex mcp remove pencil
+[MCP] Pencil workflow ready.
+[MCP] Use sequence: batch_get -> get_screenshot(before) -> batch_design -> snapshot_layout -> get_screenshot(after)
+[MCP] Playbook: /home/hugh51/.agents/skills/pencil-dev-design-workflow/scripts/../references/pencil-mcp-tool-calling-playbook.md
+[MCP] Pencil workflow ready.
+[MCP] Use sequence: batch_get -> get_screenshot(before) -> batch_design -> snapshot_layout -> get_screenshot(after)
+[MCP] Playbook: /home/hugh51/.agents/skills/pencil-dev-design-workflow/scripts/../references/pencil-mcp-tool-calling-playbook.md

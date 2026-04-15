@@ -1,0 +1,4 @@
+TEST_CMD: npx --yes tsx --test src/app/brand-tokens.test.ts src/app/landing-exp/page.module.test.ts
+TEST_EXIT_CODE: 0
+TYPECHECK_CMD: npm run typecheck
+TYPECHECK_EXIT_CODE: 0

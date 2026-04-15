@@ -1,0 +1,65 @@
+[2026-04-13 08:37:55.825] [info]  App ready. IS_DEV: true, NODE_ENV: development
+[2026-04-13 08:37:55.832] [debug] Skipping protocol handler registration (dev mode)
+[2026-04-13 08:37:55.851] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen zoomToFit: true
+[2026-04-13 08:37:55.863] [info]  WebSocket server listening on port 46015
+[2026-04-13 08:37:55.884] [info]  Removed MCP allow rules from claudeCodeCLI
+[2026-04-13 08:37:55.886] [info]  Uninstalled MCP server for claudeCodeCLI
+[2026-04-13 08:37:55.893] [info]  Uninstalled MCP server for codexCLI
+[2026-04-13 08:37:55.895] [info]  Uninstalled MCP server for geminiCLI
+[2026-04-13 08:37:55.896] [info]  Uninstalled MCP server for openCodeCLI
+[2026-04-13 08:37:55.897] [info]  Uninstalled MCP server for kiroCLI
+[2026-04-13 08:37:55.899] [info]  Uninstalled MCP server for claudeDesktop
+[2026-04-13 08:37:55.901] [info]  Successfully set up MCP server for claudeCodeCLI
+[2026-04-13 08:37:55.902] [info]  Successfully set up MCP server for codexCLI
+[2026-04-13 08:37:55.903] [info]  Successfully set up MCP server for geminiCLI
+[2026-04-13 08:37:55.903] [info]  Successfully set up MCP server for openCodeCLI
+[2026-04-13 08:37:55.904] [info]  Successfully set up MCP server for kiroCLI
+[2026-04-13 08:37:55.904] [info]  Successfully set up MCP server for claudeDesktop
+[2026-04-13 08:37:56.128] [info]  Initializing IPC server
+[2026-04-13 08:37:56.128] [debug] Registering notification handler for 'add-to-chat'
+[2026-04-13 08:37:56.128] [debug] Registering handler for 'get-fullscreen'
+[2026-04-13 08:37:56.129] [debug] Registering handler for 'get-active-integrations'
+[2026-04-13 08:37:56.129] [debug] Registering handler for 'get-mcp-config'
+[2026-04-13 08:37:56.129] [debug] Registering notification handler for 'change-workspace-folder'
+[2026-04-13 08:37:56.129] [debug] Registering notification handler for 'toggle-theme'
+[2026-04-13 08:37:56.129] [debug] Registering notification handler for 'set-native-theme'
+[2026-04-13 08:37:56.129] [debug] Registering notification handler for 'desktop-open-terminal'
+[2026-04-13 08:37:56.129] [debug] Registering notification handler for 'check-agent-status'
+[2026-04-13 08:37:56.129] [debug] Registering notification handler for 'claude-connect'
+[2026-04-13 08:37:56.130] [debug] Registering notification handler for 'claude-disconnect'
+[2026-04-13 08:37:56.130] [debug] Registering notification handler for 'codex-connect'
+[2026-04-13 08:37:56.130] [debug] Registering notification handler for 'codex-disconnect'
+[2026-04-13 08:37:56.130] [debug] Registering notification handler for 'toggle-mcp-integration'
+[2026-04-13 08:37:56.130] [debug] Registering notification handler for 'show-about'
+[2026-04-13 08:37:56.130] [debug] Registering notification handler for 'initialized'
+[2026-04-13 08:37:56.130] [debug] Registering notification handler for 'add-extension-to-ide'
+[2026-04-13 08:37:56.131] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+[2026-04-13 08:37:56.131] [debug] Registering handler for 'get-session'
+[2026-04-13 08:37:56.131] [debug] Registering notification handler for 'set-session'
+[2026-04-13 08:37:56.131] [debug] Registering handler for 'get-last-online-at'
+[2026-04-13 08:37:56.132] [debug] Registering notification handler for 'set-last-online-at'
+[2026-04-13 08:37:56.132] [debug] Registering handler for 'get-device-id'
+[2026-04-13 08:37:56.132] [debug] Registering handler for 'read-file'
+[2026-04-13 08:37:56.132] [debug] Registering handler for 'save-generated-image'
+[2026-04-13 08:37:56.132] [debug] Registering handler for 'save-temp-file'
+[2026-04-13 08:37:56.132] [debug] Registering notification handler for 'cleanup-temp-files'
+[2026-04-13 08:37:56.132] [debug] Registering notification handler for 'initialized'
+[2026-04-13 08:37:56.132] [debug] Registering notification handler for 'file-changed'
+[2026-04-13 08:37:56.132] [debug] Registering handler for 'import-file'
+[2026-04-13 08:37:56.133] [debug] Registering handler for 'import-files'
+[2026-04-13 08:37:56.133] [debug] Registering handler for 'import-uri'
+[2026-04-13 08:37:56.133] [debug] Registering notification handler for 'send-prompt'
+[2026-04-13 08:37:56.133] [debug] Registering handler for 'agent-stop'
+[2026-04-13 08:37:56.133] [debug] Registering notification handler for 'open-document'
+[2026-04-13 08:37:56.133] [debug] Registering notification handler for 'submit-prompt'
+[2026-04-13 08:37:56.133] [debug] Registering notification handler for 'toggle-design-mode'
+[2026-04-13 08:37:56.134] [debug] Registering notification handler for 'set-left-sidebar-visible'
+[2026-04-13 08:37:56.134] [debug] Registering notification handler for 'sign-out'
+[2026-04-13 08:37:56.134] [debug] Registering notification handler for 'open-external-url'
+[2026-04-13 08:37:56.134] [debug] Registering notification handler for 'chat-question-response'
+[2026-04-13 08:37:56.134] [debug] Registering notification handler for 'load-file'
+[2026-04-13 08:37:56.134] [debug] Registering handler for 'find-libraries'
+[2026-04-13 08:37:56.134] [debug] Registering notification handler for 'turn-into-library'
+[2026-04-13 08:37:56.134] [debug] Registering handler for 'browse-libraries'
+[2026-04-13 08:37:56.142] [info]  [DesktopResourceDevice] loadURL() | fileToLoad: 
+[2026-04-13 08:38:02.991] [info]  New MCP client connected with ID: 58c7b685-c53c-41d9-9ab4-4e44fa491ba5

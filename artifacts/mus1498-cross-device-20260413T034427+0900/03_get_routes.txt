@@ -1,0 +1,7 @@
+CMD: curl -siS --max-time 8 http://100.121.211.106:1355/routes
+HTTP/1.1 200 OK
+content-type: application/json
+content-length: 480
+date: Sun, 12 Apr 2026 18:44:27 GMT
+
+[{"name":"inference-api","alias":"inference","protocol":"http","service_class":"generic_http","agent_facing":false,"enabled":true,"running":true,"port":8787,"target_url":"http://127.0.0.1:8787","entrypoint_url":"http://0.0.0.0:1355/inference"},{"name":"model-server","alias":"model","protocol":"http","service_class":"generic_http","agent_facing":false,"enabled":true,"running":true,"port":18081,"target_url":"http://127.0.0.1:18081","entrypoint_url":"http://0.0.0.0:1355/model"}][exit=0]

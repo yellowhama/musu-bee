@@ -1,0 +1,43 @@
+npm warn Unknown env config "auto-install-peers". This will stop working in the next major version of npm.
+npm warn Unknown env config "recursive". This will stop working in the next major version of npm.
+
+> musu-bee@0.1.0 build
+> NODE_ENV=production next build
+
+   ▲ Next.js 15.5.14
+
+   Creating an optimized production build ...
+ ⚠ Compiled with warnings in 10.1s
+
+./src/components/OAuthButtons.tsx
+Attempted import error: 'getOAuthRedirectUrl' is not exported from '@/lib/supabase' (imported as 'getOAuthRedirectUrl').
+
+Import trace for requested module:
+./src/components/OAuthButtons.tsx
+./src/app/auth/login/page.tsx
+
+ ⚠ Compiled with warnings in 5.2s
+
+./src/components/OAuthButtons.tsx
+Attempted import error: 'getOAuthRedirectUrl' is not exported from '@/lib/supabase' (imported as 'getOAuthRedirectUrl').
+
+Import trace for requested module:
+./src/components/OAuthButtons.tsx
+./src/app/auth/signup/page.tsx
+
+ ✓ Compiled successfully in 16.7s
+   Skipping linting
+   Checking validity of types ...
+Failed to compile.
+
+./src/components/OAuthButtons.tsx:5:3
+Type error: Module '"@/lib/supabase"' has no exported member 'getOAuthRedirectUrl'.
+
+[0m [90m 3 |[39m [36mimport[39m { useState } [36mfrom[39m [32m"react"[39m[33m;[39m
+ [90m 4 |[39m [36mimport[39m {
+[31m[1m>[22m[39m[90m 5 |[39m   getOAuthRedirectUrl[33m,[39m
+ [90m   |[39m   [31m[1m^[22m[39m
+ [90m 6 |[39m   getSupabaseClient[33m,[39m
+ [90m 7 |[39m   isSupabaseConfigured[33m,[39m
+ [90m 8 |[39m } [36mfrom[39m [32m"@/lib/supabase"[39m[33m;[39m[0m
+Next.js build worker exited with code: 1 and signal: null

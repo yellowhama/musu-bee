@@ -71,6 +71,22 @@ async fn standalone_runtime_matches_parity_baseline() {
             .unwrap_or_default(),
         0
     );
+    assert!(health.get("cpu_pct").and_then(Value::as_f64).is_some());
+    assert!(health.get("ram_used").and_then(Value::as_u64).is_some());
+    assert!(health.get("ram_total").and_then(Value::as_u64).is_some());
+    assert!(health.get("queue_depth").and_then(Value::as_u64).is_some());
+    assert!(matches!(
+        health.get("gpu_util"),
+        Some(value) if value.is_null() || value.as_f64().is_some()
+    ));
+    assert!(matches!(
+        health.get("gpu_mem_used"),
+        Some(value) if value.is_null() || value.as_u64().is_some()
+    ));
+    assert!(matches!(
+        health.get("gpu_mem_total"),
+        Some(value) if value.is_null() || value.as_u64().is_some()
+    ));
 
     let connect_disabled =
         get_json_with_status(&client, &format!("{base_url_a}/connect/demo-api")).await;
@@ -446,17 +462,13 @@ async fn mcp_candidates_can_auto_promote_from_device_profile_policy() {
         auto_promoted.get("agent_facing").and_then(Value::as_bool),
         Some(true)
     );
-    assert!(
-        routes
-            .as_array()
-            .expect("routes array")
-            .iter()
-            .all(|row| row.get("alias").and_then(Value::as_str) != Some("mcp-auto-promote-device-python3"))
-    );
-    assert_eq!(
-        routes.as_array().expect("routes array").len(),
-        1
-    );
+    assert!(routes
+        .as_array()
+        .expect("routes array")
+        .iter()
+        .all(|row| row.get("alias").and_then(Value::as_str)
+            != Some("mcp-auto-promote-device-python3")));
+    assert_eq!(routes.as_array().expect("routes array").len(), 1);
 
     server.abort();
     let _ = server.await;
@@ -659,6 +671,7 @@ async fn invalid_device_profile_can_fail_startup_in_strict_mode() {
         preferred_port: pm_port,
         allow_port_fallback: false,
         seed_services_path: Some(seed_path.to_path_buf()),
+        peer_urls: Vec::new(),
         device_id: device_id.to_string(),
         device_profile_path: device_profile_path.clone(),
         device_profile,
@@ -706,6 +719,7 @@ fn spawn_port_manager(
         preferred_port: port,
         allow_port_fallback: false,
         seed_services_path: Some(seed_path.to_path_buf()),
+        peer_urls: Vec::new(),
         device_id: device_id.to_string(),
         device_profile_path,
         device_profile,
@@ -917,10 +931,7 @@ async fn assert_route_alias_absent(client: &reqwest::Client, base_url: &str, ali
             .expect("routes array")
             .iter()
             .any(|row| row.get("alias").and_then(Value::as_str) == Some(alias));
-        assert!(
-            !found,
-            "route alias unexpectedly appeared: {alias}"
-        );
+        assert!(!found, "route alias unexpectedly appeared: {alias}");
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
 }

@@ -1,0 +1,13 @@
+/home/hugh51/musu-functions/musu-bee/src/app/globals.css
+/home/hugh51/musu-functions/musu-bee/src/app/landing/page.tsx
+/home/hugh51/musu-functions/musu-bee/src/app/page.tsx
+/home/hugh51/musu-functions/musu-bee/src/app/pricing/page.tsx
+/home/hugh51/musu-functions/musu-bee/src/app/pro/page.tsx
+/home/hugh51/musu-functions/musu-bee/src/app/install/page.tsx
+/home/hugh51/musu-functions/musu-bee/src/app/faq/page.tsx
+/home/hugh51/musu-functions/musu-bee/src/components/PublicSiteShell.tsx
+/home/hugh51/musu-functions/musu-bee/src/components/AppShell.tsx
+/home/hugh51/musu-functions/musu-bee/src/app/brand-tokens.test.ts
+/home/hugh51/musu-functions/musu-bee/src/app/landing-exp/page.tsx
+/home/hugh51/musu-functions/musu-bee/src/app/landing-exp/page.module.css
+/home/hugh51/musu-functions/musu-bee/src/app/landing-exp/page.module.test.ts

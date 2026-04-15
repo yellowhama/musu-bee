@@ -1,0 +1,51 @@
+05:01:40.457 › App ready. IS_DEV: true, NODE_ENV: development
+05:01:40.463 › Skipping protocol handler registration (dev mode)
+05:01:40.495 › loadFile /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen zoomToFit: true
+05:01:40.533 › Initializing IPC server
+05:01:40.534 › Registering notification handler for 'open-file'
+05:01:40.534 › Registering notification handler for 'add-to-chat'
+05:01:40.534 › Registering handler for 'get-fullscreen'
+05:01:40.535 › Registering notification handler for 'load-file'
+05:01:40.535 › Registering handler for 'get-recent-files'
+05:01:40.535 › Registering notification handler for 'clear-recent-files'
+05:01:40.536 › Registering notification handler for 'toggle-theme'
+05:01:40.536 › Registering notification handler for 'desktop-open-terminal'
+05:01:40.536 › Registering notification handler for 'check-agent-status'
+05:01:40.536 › Registering notification handler for 'claude-connect'
+05:01:40.537 › Registering notification handler for 'claude-disconnect'
+05:01:40.537 › Registering notification handler for 'codex-connect'
+05:01:40.537 › Registering notification handler for 'codex-disconnect'
+05:01:40.537 › Registering notification handler for 'toggle-mcp-integration'
+05:01:40.537 › Registering notification handler for 'add-extension-to-ide'
+05:01:40.538 › addResource: /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen
+05:01:40.538 › Registering handler for 'get-license'
+05:01:40.538 › Registering notification handler for 'set-license'
+05:01:40.538 › Registering handler for 'get-device-id'
+05:01:40.539 › Registering handler for 'read-file'
+05:01:40.539 › Registering handler for 'save-generated-image'
+05:01:40.539 › Registering notification handler for 'initialized'
+05:01:40.539 › Registering notification handler for 'file-changed'
+05:01:40.540 › Registering handler for 'import-file'
+05:01:40.540 › Registering handler for 'import-uri'
+05:01:40.540 › Registering notification handler for 'send-prompt'
+05:01:40.540 › Registering handler for 'agent-stop'
+05:01:40.541 › Registering notification handler for 'open-document'
+05:01:40.541 › Registering notification handler for 'submit-prompt'
+05:01:40.541 › Registering notification handler for 'toggle-design-mode'
+05:01:40.541 › Registering notification handler for 'set-left-sidebar-visible'
+05:01:40.542 › Registering notification handler for 'sign-out'
+05:01:40.542 › Registering notification handler for 'chat-question-response'
+05:01:40.548 › [DesktopResourceDevice] loadURL() | fileToLoad: 
+05:01:40.560 › WebSocket server listening on port 45467
+05:01:40.574 › Removed MCP allow rules from claudeCodeCLI
+05:01:40.574 › Uninstalled up MCP server for claudeCodeCLI
+05:01:40.577 › Uninstalled up MCP server for codexCLI
+05:01:40.578 › Uninstalled up MCP server for geminiCLI
+05:01:40.578 › Uninstalled up MCP server for openCodeCLI
+05:01:40.578 › Uninstalled up MCP server for kiroCLI
+05:01:40.580 › Successfully set up MCP server for claudeCodeCLI
+05:01:40.580 › Successfully set up MCP server for codexCLI
+05:01:40.581 › Successfully set up MCP server for geminiCLI
+05:01:40.581 › Successfully set up MCP server for openCodeCLI
+05:01:40.581 › Successfully set up MCP server for kiroCLI
+05:01:42.714 › New MCP client connected with ID: 53eb70d5-987e-47a1-b775-7224c84d23f1

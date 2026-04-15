@@ -48,9 +48,7 @@ pub(crate) fn collect_listener_snapshot_windows(
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         for line in stdout.lines() {
-            if let Some(parsed) =
-                parse_netstat_listener_line(line, protocol, &process_cache)
-            {
+            if let Some(parsed) = parse_netstat_listener_line(line, protocol, &process_cache) {
                 out.push(parsed);
             }
         }
@@ -178,10 +176,17 @@ fn parse_tasklist_process_metadata_map(stdout: &str) -> HashMap<u32, WindowsProc
         }
 
         let fields = parse_windows_csv_line(trimmed);
-        let Some(name) = fields.first().map(|value| value.trim()).filter(|value| !value.is_empty()) else {
+        let Some(name) = fields
+            .first()
+            .map(|value| value.trim())
+            .filter(|value| !value.is_empty())
+        else {
             continue;
         };
-        let Some(pid) = fields.get(1).and_then(|value| value.trim().parse::<u32>().ok()) else {
+        let Some(pid) = fields
+            .get(1)
+            .and_then(|value| value.trim().parse::<u32>().ok())
+        else {
             continue;
         };
         let user = fields

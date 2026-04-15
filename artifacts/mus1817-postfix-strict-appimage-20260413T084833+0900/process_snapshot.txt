@@ -1,0 +1,62 @@
+=== process/pre.txt ===
+phase=before
+timestamp=2026-04-12T23:48:34Z
+target_pen=/home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+profile_dir=/home/hugh51/musu-functions/artifacts/mus1817-postfix-strict-appimage-20260413T084833+0900/profile
+pid_file=/tmp/pencil-dev.pid
+main_log=/home/hugh51/musu-functions/artifacts/mus1817-postfix-strict-appimage-20260413T084833+0900/profile/logs/main.log
+runtime_log=/tmp/pencil-dev.log
+window_lines=5000
+policy=force_clean
+
+[all_main_processes]
+pid=96930 active_pen=/home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen args=/home/hugh51/tools/Pencil-1.1.24-linux-x64/pencil --no-sandbox --enable-unsafe-swiftshader --user-data-dir=/home/hugh51/musu-functions/artifacts/mus1825-20260413T084721/profile /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+
+scoped_main_count=0
+main_total_count=1
+target_main_count=1
+non_target_main_count=0
+unknown_target_main_count=0
+
+
+=== process/post_kill.txt ===
+phase=post_kill
+timestamp=2026-04-12T23:48:47Z
+target_pen=/home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+profile_dir=/home/hugh51/musu-functions/artifacts/mus1817-postfix-strict-appimage-20260413T084833+0900/profile
+pid_file=/tmp/pencil-dev.pid
+main_log=/home/hugh51/musu-functions/artifacts/mus1817-postfix-strict-appimage-20260413T084833+0900/profile/logs/main.log
+runtime_log=/tmp/pencil-dev.log
+window_lines=5000
+policy=force_clean
+
+[all_main_processes]
+
+scoped_main_count=0
+main_total_count=0
+target_main_count=0
+non_target_main_count=0
+unknown_target_main_count=0
+
+
+=== process/post_launch.txt ===
+phase=post_launch
+timestamp=2026-04-12T23:49:30Z
+target_pen=/home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+profile_dir=/home/hugh51/musu-functions/artifacts/mus1817-postfix-strict-appimage-20260413T084833+0900/profile
+pid_file=/tmp/pencil-dev.pid
+main_log=/home/hugh51/musu-functions/artifacts/mus1817-postfix-strict-appimage-20260413T084833+0900/profile/logs/main.log
+runtime_log=/tmp/pencil-dev.log
+window_lines=5000
+policy=force_clean
+
+[all_main_processes]
+pid=25731 active_pen=/home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen args=/tmp/.mount_PencilcGfE6R/pencil --no-sandbox --enable-unsafe-swiftshader --user-data-dir=/home/hugh51/musu-functions/artifacts/mus1817-postfix-strict-appimage-20260413T084833+0900/profile --disable-gpu /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+pid=25914 active_pen=/home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen args=/home/hugh51/Pencil-linux-x86_64.AppImage --no-sandbox --enable-unsafe-swiftshader --user-data-dir=/home/hugh51/musu-functions/artifacts/mus1817-postfix-strict-appimage-20260413T084833+0900/profile --disable-gpu /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+
+scoped_main_count=2
+main_total_count=2
+target_main_count=2
+non_target_main_count=0
+unknown_target_main_count=0
+

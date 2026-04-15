@@ -1,0 +1,64 @@
+04:57:31.366 › App ready. IS_DEV: true, NODE_ENV: development
+04:57:31.370 › Skipping protocol handler registration (dev mode)
+04:57:31.411 › loadFile /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen zoomToFit: true
+04:57:31.422 › WebSocket server listening on port 46363
+04:57:31.446 › Backup is /home/hugh51/.pencil/backup/577a4349301af45a5b3fe941290c84d971d956ba newer (Fri Apr 10 2026 20:06:12 GMT+0900 (한국 표준시)) than file /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen (Fri Apr 10 2026 13:24:17 GMT+0900 (한국 표준시)), loading it.
+04:57:31.467 › Removed MCP allow rules from claudeCodeCLI
+04:57:31.467 › Uninstalled MCP server for claudeCodeCLI
+04:57:31.471 › Uninstalled MCP server for codexCLI
+04:57:31.472 › Uninstalled MCP server for geminiCLI
+04:57:31.473 › Uninstalled MCP server for openCodeCLI
+04:57:31.474 › Uninstalled MCP server for kiroCLI
+04:57:31.474 › Uninstalled MCP server for claudeDesktop
+04:57:31.476 › Successfully set up MCP server for claudeCodeCLI
+04:57:31.477 › Successfully set up MCP server for codexCLI
+04:57:31.478 › Successfully set up MCP server for geminiCLI
+04:57:31.478 › Successfully set up MCP server for openCodeCLI
+04:57:31.479 › Successfully set up MCP server for kiroCLI
+04:57:31.607 › Initializing IPC server
+04:57:31.607 › Registering notification handler for 'add-to-chat'
+04:57:31.607 › Registering handler for 'get-fullscreen'
+04:57:31.607 › Registering handler for 'get-active-integrations'
+04:57:31.607 › Registering handler for 'get-mcp-config'
+04:57:31.608 › Registering notification handler for 'change-workspace-folder'
+04:57:31.608 › Registering notification handler for 'toggle-theme'
+04:57:31.608 › Registering notification handler for 'set-native-theme'
+04:57:31.608 › Registering notification handler for 'desktop-open-terminal'
+04:57:31.608 › Registering notification handler for 'check-agent-status'
+04:57:31.608 › Registering notification handler for 'claude-connect'
+04:57:31.608 › Registering notification handler for 'claude-disconnect'
+04:57:31.608 › Registering notification handler for 'codex-connect'
+04:57:31.608 › Registering notification handler for 'codex-disconnect'
+04:57:31.609 › Registering notification handler for 'toggle-mcp-integration'
+04:57:31.609 › Registering notification handler for 'show-about'
+04:57:31.609 › Registering notification handler for 'initialized'
+04:57:31.609 › Registering notification handler for 'add-extension-to-ide'
+04:57:31.609 › addResource: /home/hugh51/musu-functions/artifacts/mus1346-desktop-shell.pen
+04:57:31.610 › Registering handler for 'get-session'
+04:57:31.610 › Registering notification handler for 'set-session'
+04:57:31.610 › Registering handler for 'get-last-online-at'
+04:57:31.610 › Registering notification handler for 'set-last-online-at'
+04:57:31.610 › Registering handler for 'get-device-id'
+04:57:31.610 › Registering handler for 'read-file'
+04:57:31.610 › Registering handler for 'save-generated-image'
+04:57:31.610 › Registering handler for 'save-temp-file'
+04:57:31.610 › Registering notification handler for 'cleanup-temp-files'
+04:57:31.610 › Registering notification handler for 'initialized'
+04:57:31.611 › Registering notification handler for 'file-changed'
+04:57:31.611 › Registering handler for 'import-file'
+04:57:31.611 › Registering handler for 'import-files'
+04:57:31.611 › Registering handler for 'import-uri'
+04:57:31.611 › Registering notification handler for 'send-prompt'
+04:57:31.611 › Registering handler for 'agent-stop'
+04:57:31.611 › Registering notification handler for 'open-document'
+04:57:31.611 › Registering notification handler for 'submit-prompt'
+04:57:31.611 › Registering notification handler for 'toggle-design-mode'
+04:57:31.611 › Registering notification handler for 'set-left-sidebar-visible'
+04:57:31.611 › Registering notification handler for 'sign-out'
+04:57:31.612 › Registering notification handler for 'open-external-url'
+04:57:31.612 › Registering notification handler for 'chat-question-response'
+04:57:31.612 › Registering notification handler for 'load-file'
+04:57:31.612 › Registering handler for 'find-libraries'
+04:57:31.612 › Registering notification handler for 'turn-into-library'
+04:57:31.612 › Registering handler for 'browse-libraries'
+04:57:31.628 › [DesktopResourceDevice] loadURL() | fileToLoad: 

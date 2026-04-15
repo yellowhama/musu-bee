@@ -1,0 +1,7 @@
+EVID_DIR=/home/hugh51/musu-functions/artifacts/mus1688-remediation-20260413T163417+0900
+CHECKOUT_PAYLOAD_CALL=completed
+PATCH_FILE=full_patch.diff
+TEST_EXIT=0
+TYPECHECK_EXIT=0
+BUILD_EXIT=0
+IMMUTABLE=YES

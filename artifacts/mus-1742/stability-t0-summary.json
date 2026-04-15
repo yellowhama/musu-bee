@@ -1,0 +1,22 @@
+{
+  "source": "post-remediation t0",
+  "sampledAt": "2026-04-12T21:35:09Z",
+  "fe": {
+    "total": 68,
+    "queued": 0,
+    "running": 8,
+    "cancelled": 57,
+    "failed": 1,
+    "succeeded": 2,
+    "timed_out": 0
+  },
+  "cto": {
+    "total": 49,
+    "queued": 0,
+    "running": 6,
+    "cancelled": 28,
+    "failed": 10,
+    "succeeded": 5,
+    "timed_out": 0
+  }
+}

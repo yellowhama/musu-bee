@@ -1,0 +1,28 @@
+== before ==
+ 4754 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+ 7277 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+13762 pencil          /home/hugh51/tools/Pencil-1.1.24-linux-x64/pencil --no-sandbox --enable-unsafe-swiftshader --disable-gpu /home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen
+13955 pencil          /home/hugh51/tools/Pencil-1.1.24-linux-x64/pencil --type=zygote --no-zygote-sandbox --no-sandbox
+13957 pencil          /home/hugh51/tools/Pencil-1.1.24-linux-x64/pencil --type=zygote --no-sandbox
+15424 pencil          /home/hugh51/tools/Pencil-1.1.24-linux-x64/pencil --type=zygote --no-zygote-sandbox --no-sandbox
+15556 pencil          /proc/self/exe --type=utility --utility-sub-type=network.mojom.NetworkService --lang=en-US --service-sandbox-type=none --no-sandbox --crashpad-handler-pid=15059 --enable-crash-reporter=0cfef81b-996c-4cc0-9dd0-9cfdee9010ab,no_channel --user-data-dir=/home/hugh51/.config/Pencil --standard-schemes=pencil --secure-schemes=pencil,sentry-ipc --bypasscsp-schemes=sentry-ipc --cors-schemes=pencil,sentry-ipc --fetch-schemes=pencil,sentry-ipc --shared-files=v8_context_snapshot_data:100 --field-trial-handle=3,i,9125031913449160260,4959747527320984581,262144 --enable-features=DocumentPolicyIncludeJSCallStacksInCrashReports,PdfUseShowSaveFilePicker --disable-features=LocalNetworkAccessChecks,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708989122997041
+15889 pencil          /home/hugh51/tools/Pencil-1.1.24-linux-x64/pencil --type=zygote --no-sandbox
+17998 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+18579 pencil          /tmp/.mount_PencilKF1ULC/pencil --version
+23433 pencil          /tmp/.mount_PencilKF1ULC/pencil --type=zygote --no-zygote-sandbox
+23638 pencil          /tmp/.mount_PencilKF1ULC/pencil --type=zygote
+25848 pencil          /tmp/.mount_PencilKF1ULC/pencil --type=zygote
+26769 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+32325 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+37977 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+42112 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+46980 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+52114 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+66212 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+77017 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+83757 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+91094 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+93759 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+97001 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+98823 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+99071 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI

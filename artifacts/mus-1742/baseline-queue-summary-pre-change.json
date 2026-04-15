@@ -1,0 +1,14 @@
+{
+  "capturedFrom": "/tmp/mus1742_runs_baseline.json",
+  "capturedAt": "2026-04-12T21:35:52Z",
+  "fe": {
+    "total": 63,
+    "queued": 8,
+    "running": 6
+  },
+  "cto": {
+    "total": 45,
+    "queued": 0,
+    "running": 3
+  }
+}

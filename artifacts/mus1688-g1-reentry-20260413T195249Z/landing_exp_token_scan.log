@@ -1,0 +1,47 @@
+2:  --musu-brown: var(--musu-color-brand-ink);
+4:  --musu-yellow: var(--musu-color-brand-accent);
+6:  --musu-offwhite: var(--musu-color-brand-canvas);
+9:  --musu-line: rgb(var(--musu-color-brand-ink-rgb) / 18%);
+14:    radial-gradient(circle at 14% -8%, rgb(var(--musu-color-brand-accent-rgb) / 38%), transparent 42%),
+15:    radial-gradient(circle at 86% 0%, rgb(var(--musu-color-brand-ink-rgb) / 15%), transparent 38%),
+16:    linear-gradient(180deg, var(--musu-color-brand-canvas) 0%, #f7f0dc 46%, var(--musu-color-brand-canvas) 100%);
+31:  background: rgb(var(--musu-color-brand-canvas-rgb) / 86%);
+37:  color: var(--musu-color-brand-ink);
+62:  color: var(--musu-color-brand-ink);
+63:  background: rgb(var(--musu-color-brand-ink-rgb) / 8%);
+68:  background: var(--musu-color-brand-accent);
+74:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 26%);
+109:  color: var(--musu-color-brand-ink);
+137:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 20%);
+138:  background: rgb(var(--musu-color-brand-canvas-rgb) / 80%);
+165:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 22%);
+166:  background: rgb(var(--musu-color-brand-canvas-rgb) / 98%);
+175:  border-color: rgb(var(--musu-color-brand-ink-rgb) / 58%);
+176:  box-shadow: 0 0 0 3px rgb(var(--musu-color-brand-accent-rgb) / 28%);
+181:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 24%);
+182:  background: var(--musu-color-brand-accent);
+196:  box-shadow: 0 10px 22px rgb(var(--musu-color-brand-ink-rgb) / 16%);
+207:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 18%);
+208:  background: rgb(var(--musu-color-brand-canvas-rgb) / 72%);
+219:  border-color: rgb(var(--musu-color-brand-ink-rgb) / 30%);
+247:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 14%);
+262:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 20%);
+265:    linear-gradient(160deg, rgb(var(--musu-color-brand-canvas-rgb) / 96%), rgba(255, 242, 209, 0.72)),
+278:    rgb(var(--musu-color-brand-accent-rgb) / 16%) 36%,
+318:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 12%);
+357:  background: rgb(var(--musu-color-brand-accent-rgb) / 30%);
+365:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 18%);
+366:  background: var(--musu-color-brand-ink);
+367:  color: var(--musu-color-brand-canvas);
+376:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 16%);
+410:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 16%);
+430:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 20%);
+475:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 16%);
+513:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 16%);
+516:    linear-gradient(130deg, rgb(var(--musu-color-brand-ink-rgb) / 6%), rgb(var(--musu-color-brand-accent-rgb) / 14%)),
+534:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 15%);
+536:  background: rgb(var(--musu-color-brand-canvas-rgb) / 76%);
+543:  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 18%);
+545:  background: var(--musu-color-brand-ink);
+546:  color: var(--musu-color-brand-canvas);
+565:  color: var(--musu-color-brand-canvas);

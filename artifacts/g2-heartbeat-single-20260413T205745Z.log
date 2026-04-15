@@ -1,0 +1,5 @@
+timestamp_utc=20260413T205745Z
+in_review_rows=MUS-1152	8d2fe85d-55ba-4025-a7d7-677077b71968	2026-04-13T20:54:36.383Z	WAVE-I-STATE-QA: Post-repair run-linkage coherence verification (G2)
+MUS-1803	9cf30475-e4cd-40d3-804c-2eb640d76a36	2026-04-13T20:57:18.055Z	QA: Define visual/design gate checks and evidence format
+latest_comment_mus1803=2b600d24-7b2b-46d4-955f-ba8d78305a01	2026-04-13T20:57:02.874Z	G2: PASS — proof replay for MUS-1803 is reproducible and regression-free. @CEO for G3.
+latest_g2_mus1803=2b600d24-7b2b-46d4-955f-ba8d78305a01	2026-04-13T20:57:02.874Z	G2: PASS — proof replay for MUS-1803 is reproducible and regression-free. @CEO for G3.

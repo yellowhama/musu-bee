@@ -1,0 +1,4 @@
+05a480cfa23e94c9591477e885d1ed981b3d68ad0a7da146e7aad8b7625431ae  /home/hugh51/musu-functions/artifacts/mus1716-attach-20260412T224630Z/commands.txt
+20f0189a836d21f9238fa3f60a2f7bbae0e4ff11de056d26b95c574246f15771  /home/hugh51/musu-functions/artifacts/mus1716-attach-20260412T224630Z/pencil.log
+97710b0cbba3760b142eaf5f4a8a522ee283539db61c3be4c54b103fb9a8c19c  /home/hugh51/musu-functions/artifacts/mus1716-attach-20260412T224630Z/mcp.log
+646d1635ef11c4d5397c301a7336bd1a01d3071f47fca151438850d5cf75a700  /home/hugh51/musu-functions/artifacts/mus1716-attach-20260412T224630Z/evidence.md

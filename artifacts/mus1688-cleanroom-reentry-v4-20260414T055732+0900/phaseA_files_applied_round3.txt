@@ -1,0 +1,4 @@
+COPY src/lib/subscriptionSync.ts
+COPY src/lib/useChat.ts
+COPY src/lib/controlPlaneSync.ts
+COPY src/types/index.ts

@@ -1,0 +1,9 @@
+ 1076 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+ 2035 pencil          /tmp/.mount_PencilK5xaaO/pencil --type=zygote --no-zygote-sandbox --no-sandbox
+ 2548 pencil          /tmp/.mount_PencilK5xaaO/pencil --type=zygote --no-sandbox
+ 7170 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+ 7893 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+73382 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+75712 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+82574 mcp-server-linu /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+99906 pencil          /tmp/.mount_PencilK5xaaO/pencil --no-sandbox --enable-unsafe-swiftshader --disable-gpu /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen

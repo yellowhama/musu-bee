@@ -1,0 +1,78 @@
+npm warn Unknown env config "auto-install-peers". This will stop working in the next major version of npm.
+npm warn Unknown env config "recursive". This will stop working in the next major version of npm.
+
+> musu-bee@0.1.0 build
+> NODE_ENV=production next build
+
+   ▲ Next.js 15.5.14
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 4.4s
+   Skipping linting
+   Checking validity of types ...
+   Collecting page data ...
+(node:98038) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:98033) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:98035) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+   Generating static pages (0/31) ...
+   Generating static pages (7/31) 
+(node:98436) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+   Generating static pages (15/31) 
+   Generating static pages (23/31) 
+ ✓ Generating static pages (31/31)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                  Size  First Load JS
+┌ ○ /                                       167 B         106 kB
+├ ○ /_not-found                             167 B         102 kB
+├ ƒ /api/agents                             167 B         102 kB
+├ ƒ /api/chat                               167 B         102 kB
+├ ƒ /api/chat/stream                        167 B         102 kB
+├ ƒ /api/checkout                           167 B         102 kB
+├ ƒ /api/company-activation                 167 B         102 kB
+├ ƒ /api/company-setup                      167 B         102 kB
+├ ƒ /api/company-template                   167 B         102 kB
+├ ƒ /api/device-status                      167 B         102 kB
+├ ƒ /api/history                            167 B         102 kB
+├ ƒ /api/mcp                                167 B         102 kB
+├ ƒ /api/route                                0 B            0 B
+├ ƒ /api/service-health                     167 B         102 kB
+├ ƒ /api/subscription                       167 B         102 kB
+├ ƒ /api/tasks                              167 B         102 kB
+├ ƒ /api/waitlist                           167 B         102 kB
+├ ƒ /api/webhooks/paddle                    167 B         102 kB
+├ ƒ /api/wiki                               167 B         102 kB
+├ ○ /app                                  18.5 kB         178 kB
+├ ○ /auth/callback                        1.68 kB         165 kB
+├ ○ /auth/login                           2.29 kB         165 kB
+├ ○ /auth/signup                          2.47 kB         166 kB
+├ ○ /faq                                    167 B         106 kB
+├ ○ /install                                167 B         106 kB
+├ ƒ /landing                                160 B         106 kB
+├ ƒ /landing-exp                           1.3 kB         107 kB
+├ ƒ /pricing                                917 B         111 kB
+└ ƒ /pro                                    902 B         108 kB
++ First Load JS shared by all              102 kB
+  ├ chunks/529-1ab94b75cf428a5f.js        46.1 kB
+  ├ chunks/debe8953-0bd1ba602797935e.js   54.2 kB
+  └ other shared chunks (total)           1.93 kB
+
+Route (pages)                                Size  First Load JS
+┌ ○ /404                                    390 B          99 kB
+└ ○ /500                                    389 B          99 kB
++ First Load JS shared by all             98.6 kB
+  ├ chunks/framework-684556981d1fa02c.js  59.8 kB
+  ├ chunks/main-a193b894fc122d5e.js         37 kB
+  └ other shared chunks (total)           1.89 kB
+
+ƒ Middleware                              33.8 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

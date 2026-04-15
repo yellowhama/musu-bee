@@ -1,0 +1,12 @@
+# Phase A
+npm ci
+rm -rf .next
+npm run typecheck
+rm -rf .next
+NODE_ENV=production npm run build
+
+# Phase B
+node --max-old-space-size=1024 ./node_modules/tsx/dist/cli.mjs --test src/app/brand-tokens.test.ts src/app/landing-exp/page.module.test.ts src/app/landing-exp/page.contract.test.ts
+rg -n --glob '!**/*.test.*' --glob '!src/app/globals.css' '#facc15|#ffd166|#2d1d19|#fdfcf0|#f8f6f1' src/app src/components src/pages
+NODE_ENV=production npm run start
+curl --max-time 5 http://127.0.0.1:3001/{landing,pricing,pro,faq,install}

@@ -1,0 +1,5 @@
+timestamp_utc=2026-04-10T12:50:28Z
+source_path=/mnt/f/Aisaak/Projects/yellow.txt
+source_exists=true
+source_size_bytes=1550
+source_mtime=2026-04-08 21:21:28.945364900 +0900

@@ -1,0 +1,5 @@
+1) POST /api/issues/cd8e6a49-3d2b-494b-9be1-2537c4f42657/checkout (payload agentId+expectedStatuses)
+2) npx --yes tsx --test src/app/brand-tokens.test.ts src/app/landing-exp/page.module.test.ts
+3) npm run typecheck
+4) npm run build
+5) rg scans for brand hex and routing keywords

@@ -1,7 +1,13 @@
 #!/bin/bash
 # MUSU Auto-Indexer (Qwen-independent, Go scanner)
-# musu-functions 전체를 주기적으로 리인덱싱
+# musu-functions 전체를 리인덱싱
 # cron: 0 * * * * (매시간)
+# flock으로 중복 실행 방지 + 300s 타임아웃
+
+LOCK="/tmp/musu-auto-index.lock"
+# 이미 실행 중이면 즉시 종료 (중복 방지)
+exec 9>"$LOCK"
+flock -n 9 || exit 0
 
 ROOT="/home/hugh51/musu-functions"
 DB="$ROOT/.musu_dev.db"
@@ -36,8 +42,8 @@ find . -type f \
 
 COUNT=$(wc -l < "$FILELIST")
 
-# 인덱싱 실행
-"$SCANNER" index "$DB" "$ROOT" "$FILELIST" > /dev/null 2>&1
+# 인덱싱 실행 — 300초 타임아웃, nice 19 (낮은 우선순위)
+timeout 300 nice -n 19 "$SCANNER" index "$DB" "$ROOT" "$FILELIST" > /dev/null 2>&1
 EXIT=$?
 
 rm -f "$FILELIST"
@@ -45,4 +51,8 @@ rm -f "$FILELIST"
 FILES=$(sqlite3 "$DB" "SELECT COUNT(*) FROM files;" 2>/dev/null)
 SYMBOLS=$(sqlite3 "$DB" "SELECT COUNT(*) FROM code_symbols;" 2>/dev/null)
 
-echo "$TS OK scanned=$COUNT files=$FILES symbols=$SYMBOLS exit=$EXIT" >> "$LOG"
+if [ "$EXIT" -eq 124 ]; then
+    echo "$TS WARN timeout after 300s scanned=$COUNT files=$FILES symbols=$SYMBOLS" >> "$LOG"
+else
+    echo "$TS OK scanned=$COUNT files=$FILES symbols=$SYMBOLS exit=$EXIT" >> "$LOG"
+fi

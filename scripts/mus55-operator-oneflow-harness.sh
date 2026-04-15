@@ -126,25 +126,36 @@ node "$ROOT_DIR/MUSU-CRT/tools/mus55_operator_context_compose.mjs" \
   --lane3-operator-view "$FAILURE_OPERATOR_VIEW" \
   --out-json "$FAILURE_CONTEXT_JSON"
 
-cat >"$MANIFEST_JSON" <<JSON
-{
-  "harness": "mus55-operator-oneflow-harness",
-  "generated_at": "$NOW",
-  "context_id": "$CONTEXT_ID",
-  "success_scenario": "$SUCCESS_SCENARIO",
-  "failure_scenario": "$FAILURE_SCENARIO",
-  "artifacts": {
-    "success_lane2_proof": "$SUCCESS_LANE2_DIR/musu-connects-live-proof.json",
-    "success_summary": "$SUCCESS_SUMMARY",
-    "success_operator_view": "$SUCCESS_OPERATOR_VIEW",
-    "success_context": "$SUCCESS_CONTEXT_JSON",
-    "failure_lane2_proof": "$FAILURE_LANE2_DIR/musu-connects-live-proof.json",
-    "failure_summary": "$FAILURE_SUMMARY",
-    "failure_operator_view": "$FAILURE_OPERATOR_VIEW",
-    "failure_context": "$FAILURE_CONTEXT_JSON"
-  }
-}
-JSON
+jq -n \
+  --arg generatedAt "$NOW" \
+  --arg contextId "$CONTEXT_ID" \
+  --arg successScenario "$SUCCESS_SCENARIO" \
+  --arg failureScenario "$FAILURE_SCENARIO" \
+  --arg successLane2Proof "$SUCCESS_LANE2_DIR/musu-connects-live-proof.json" \
+  --arg successSummary "$SUCCESS_SUMMARY" \
+  --arg successOperatorView "$SUCCESS_OPERATOR_VIEW" \
+  --arg successContext "$SUCCESS_CONTEXT_JSON" \
+  --arg failureLane2Proof "$FAILURE_LANE2_DIR/musu-connects-live-proof.json" \
+  --arg failureSummary "$FAILURE_SUMMARY" \
+  --arg failureOperatorView "$FAILURE_OPERATOR_VIEW" \
+  --arg failureContext "$FAILURE_CONTEXT_JSON" \
+  '{
+    harness: "mus55-operator-oneflow-harness",
+    generated_at: $generatedAt,
+    context_id: $contextId,
+    success_scenario: $successScenario,
+    failure_scenario: $failureScenario,
+    artifacts: {
+      success_lane2_proof: $successLane2Proof,
+      success_summary: $successSummary,
+      success_operator_view: $successOperatorView,
+      success_context: $successContext,
+      failure_lane2_proof: $failureLane2Proof,
+      failure_summary: $failureSummary,
+      failure_operator_view: $failureOperatorView,
+      failure_context: $failureContext
+    }
+  }' >"$MANIFEST_JSON"
 
 echo "[OK] MUS-55 operator one-flow harness artifacts generated"
 echo "  - context id:       $CONTEXT_ID"

@@ -1,0 +1,22 @@
+2026/04/13 07:09:28 [MCP] Starting server in stdio mode
+2026/04/13 07:09:28 [MCP] WebSocket disconnected, attempting to reconnect (attempt 1/3)
+2026/04/13 07:09:29 [MCP] WebSocket disconnected, attempting to reconnect (attempt 2/3)
+2026/04/13 07:09:30 [MCP] WebSocket disconnected, attempting to reconnect (attempt 3/3)
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "error": {
+    "code": -32603,
+    "message": "failed to connect to running Pencil app: desktop after 3 retries: WebSocket not connected to app: desktop"
+  }
+}
+Traceback (most recent call last):
+  File "/home/hugh51/musu_corp/runtime/scripts/pencil_mcp_direct.py", line 142, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/home/hugh51/musu_corp/runtime/scripts/pencil_mcp_direct.py", line 136, in main
+    return args.func(client, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/hugh51/musu_corp/runtime/scripts/pencil_mcp_direct.py", line 102, in cmd_screenshot
+    raise RuntimeError("No image payload returned from get_screenshot")
+RuntimeError: No image payload returned from get_screenshot

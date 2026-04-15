@@ -1,0 +1,4 @@
+worktree=/tmp/mus1688-rev11-20260414T061443+0900
+app=/tmp/mus1688-rev11-20260414T061443+0900/musu-bee
+target_sha=3bd0c078545d636aaea10718f7b43a6bf10f5d11
+started_at=2026-04-14T06:14:56+09:00

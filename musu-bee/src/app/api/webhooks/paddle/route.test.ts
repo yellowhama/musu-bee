@@ -19,12 +19,12 @@ function makeState(
 ): SubscriptionState {
   return {
     plan: "free",
-    stripeCustomerId: null,
-    stripeSubscriptionId: null,
+    customerId: null,
+    subscriptionId: null,
+    provider: "none",
     status: "none",
     currentPeriodEnd: null,
-    _processedStripeEventIds: [],
-    _processedPaddleEventIds: [],
+    _processedEventIds: [],
     ...overrides,
   };
 }
@@ -38,6 +38,7 @@ function makeEvent(eventId: string, eventType: string, data: Record<string, unkn
 }
 
 const passthroughLock = async <T>(fn: () => Promise<T>): Promise<T> => fn();
+const noopSync = async () => {};
 
 test("invalid signature returns 400 and does not write state", async () => {
   let saveCalls = 0;
@@ -59,6 +60,7 @@ test("invalid signature returns 400 and does not write state", async () => {
       saveCalls += 1;
     },
     withSubscriptionStateLock: passthroughLock,
+    syncSubscriptionToSupabase: noopSync,
   };
 
   const result = await handlePaddleWebhook(
@@ -92,6 +94,7 @@ test("subscription.activated replay is deduped by event id", async () => {
       state = next;
     },
     withSubscriptionStateLock: passthroughLock,
+    syncSubscriptionToSupabase: noopSync,
   };
 
   const first = await handlePaddleWebhook(
@@ -116,12 +119,13 @@ test("subscription.activated replay is deduped by event id", async () => {
   assert.equal(saveCalls, 1);
   assert.equal(state.plan, "pro");
   assert.equal(state.status, "active");
-  assert.equal(state.stripeSubscriptionId, "sub_1");
+  assert.equal(state.subscriptionId, "sub_1");
 });
 
 test("subscription.updated before activation does not grant entitlement", async () => {
   let state = makeState();
-  const event = makeEvent("evt_update_before_activation", "subscription.updated", {
+  const eventId = "evt_update_before_activation";
+  const event = makeEvent(eventId, "subscription.updated", {
     id: "sub_orphan",
     status: "active",
     items: [{ price: { id: "pri_team_test" } }],
@@ -136,6 +140,7 @@ test("subscription.updated before activation does not grant entitlement", async 
       state = next;
     },
     withSubscriptionStateLock: passthroughLock,
+    syncSubscriptionToSupabase: noopSync,
   };
 
   const result = await handlePaddleWebhook(
@@ -151,7 +156,7 @@ test("subscription.updated before activation does not grant entitlement", async 
   assert.equal(state.plan, "free");
   assert.equal(state.status, "none");
   assert.equal(
-    state._processedPaddleEventIds.includes("evt_update_before_activation"),
+    state._processedEventIds.includes(eventId),
     false
   );
 });
@@ -160,8 +165,9 @@ test("subscription.updated replay is deduped by event id", async () => {
   let state = makeState({
     plan: "pro",
     status: "active",
-    stripeCustomerId: "cus_1",
-    stripeSubscriptionId: "sub_1",
+    customerId: "cus_1",
+    subscriptionId: "sub_1",
+    provider: "paddle",
   });
   let saveCalls = 0;
 
@@ -181,6 +187,7 @@ test("subscription.updated replay is deduped by event id", async () => {
       state = next;
     },
     withSubscriptionStateLock: passthroughLock,
+    syncSubscriptionToSupabase: noopSync,
   };
 
   const first = await handlePaddleWebhook(
@@ -206,8 +213,9 @@ test("subscription.cancelled replay is deduped by event id", async () => {
   let state = makeState({
     plan: "pro",
     status: "active",
-    stripeCustomerId: "cus_1",
-    stripeSubscriptionId: "sub_1",
+    customerId: "cus_1",
+    subscriptionId: "sub_1",
+    provider: "paddle",
   });
   let saveCalls = 0;
   const event = makeEvent("evt_cancel_1", "subscription.cancelled", {
@@ -224,6 +232,7 @@ test("subscription.cancelled replay is deduped by event id", async () => {
       state = next;
     },
     withSubscriptionStateLock: passthroughLock,
+    syncSubscriptionToSupabase: noopSync,
   };
 
   const first = await handlePaddleWebhook(
@@ -244,18 +253,20 @@ test("subscription.cancelled replay is deduped by event id", async () => {
   assert.equal(saveCalls, 1);
   assert.equal(state.plan, "free");
   assert.equal(state.status, "cancelled");
-  assert.equal(state.stripeSubscriptionId, null);
+  assert.equal(state.subscriptionId, null);
 });
 
 test("transaction.completed is recorded without changing entitlement", async () => {
   let state = makeState({
     plan: "pro",
     status: "active",
-    stripeCustomerId: "cus_1",
-    stripeSubscriptionId: "sub_1",
+    customerId: "cus_1",
+    subscriptionId: "sub_1",
+    provider: "paddle",
   });
 
-  const event = makeEvent("evt_tx_1", "transaction.completed", {
+  const eventId = "evt_tx_1";
+  const event = makeEvent(eventId, "transaction.completed", {
     id: "txn_1",
   });
 
@@ -267,6 +278,7 @@ test("transaction.completed is recorded without changing entitlement", async () 
       state = next;
     },
     withSubscriptionStateLock: passthroughLock,
+    syncSubscriptionToSupabase: noopSync,
   };
 
   const result = await handlePaddleWebhook(
@@ -280,12 +292,13 @@ test("transaction.completed is recorded without changing entitlement", async () 
   assert.equal(result.body.ignoredReason, "transaction_recorded");
   assert.equal(state.plan, "pro");
   assert.equal(state.status, "active");
-  assert.ok(state._processedPaddleEventIds.includes("evt_tx_1"));
+  assert.ok(state._processedEventIds.includes(eventId));
 });
 
 test("unknown_price_id does not permanently mark event processed", async () => {
   let state = makeState();
-  const event = makeEvent("evt_unknown_price", "subscription.activated", {
+  const eventId = "evt_unknown_price";
+  const event = makeEvent(eventId, "subscription.activated", {
     id: "sub_unknown",
     customer_id: "cus_unknown",
     items: [{ price: { id: "pri_unknown" } }],
@@ -299,6 +312,7 @@ test("unknown_price_id does not permanently mark event processed", async () => {
       state = next;
     },
     withSubscriptionStateLock: passthroughLock,
+    syncSubscriptionToSupabase: noopSync,
   };
 
   const result = await handlePaddleWebhook(
@@ -311,7 +325,7 @@ test("unknown_price_id does not permanently mark event processed", async () => {
   assert.equal(result.body.applied, false);
   assert.equal(result.body.retryable, true);
   assert.equal(result.body.ignoredReason, "unknown_price_id");
-  assert.equal(state._processedPaddleEventIds.includes("evt_unknown_price"), false);
+  assert.equal(state._processedEventIds.includes(eventId), false);
 });
 
 test("replay after subscription_id_mismatch can apply later", async () => {
@@ -337,6 +351,7 @@ test("replay after subscription_id_mismatch can apply later", async () => {
       state = next;
     },
     withSubscriptionStateLock: passthroughLock,
+    syncSubscriptionToSupabase: noopSync,
   };
 
   const firstUpdate = await handlePaddleWebhook(
@@ -347,7 +362,7 @@ test("replay after subscription_id_mismatch can apply later", async () => {
   assert.equal(firstUpdate.status, 503);
   assert.equal(firstUpdate.body.applied, false);
   assert.equal(firstUpdate.body.retryable, true);
-  assert.equal(state._processedPaddleEventIds.includes(updateEventId), false);
+  assert.equal(state._processedEventIds.includes(updateEventId), false);
 
   const activation = await handlePaddleWebhook(
     JSON.stringify(activationEvent),
@@ -356,7 +371,7 @@ test("replay after subscription_id_mismatch can apply later", async () => {
   );
   assert.equal(activation.status, 200);
   assert.equal(activation.body.applied, true);
-  assert.equal(state.stripeSubscriptionId, "sub_replay");
+  assert.equal(state.subscriptionId, "sub_replay");
 
   const replayedUpdate = await handlePaddleWebhook(
     JSON.stringify(updateEvent),
@@ -367,7 +382,99 @@ test("replay after subscription_id_mismatch can apply later", async () => {
   assert.equal(replayedUpdate.body.applied, true);
   assert.equal(replayedUpdate.body.retryable, false);
   assert.equal(state.plan, "team");
-  assert.equal(state._processedPaddleEventIds.includes(updateEventId), true);
+  assert.equal(state._processedEventIds.includes(updateEventId), true);
+});
+
+test("applied entitlement change syncs Supabase once and skips duplicate replay", async () => {
+  let state = makeState();
+  const syncCalls: Array<{
+    eventId: string;
+    eventType: string;
+    plan: SubscriptionState["plan"];
+  }> = [];
+  const event = makeEvent("evt_sync_once", "subscription.activated", {
+    id: "sub_sync_1",
+    customer_id: "cus_sync_1",
+    items: [{ price: { id: "pri_pro_test" } }],
+  });
+
+  const deps = {
+    webhookSecret: "whsec_test",
+    verifySignature: () => true,
+    getSubscription: async () => state,
+    saveSubscription: async (next: SubscriptionState) => {
+      state = next;
+    },
+    withSubscriptionStateLock: passthroughLock,
+    syncSubscriptionToSupabase: async (
+      next: SubscriptionState,
+      metadata: { eventId: string; eventType: string }
+    ) => {
+      syncCalls.push({
+        eventId: metadata.eventId,
+        eventType: metadata.eventType,
+        plan: next.plan,
+      });
+    },
+  };
+
+  const first = await handlePaddleWebhook(
+    JSON.stringify(event),
+    "ts=1;h1=deadbeef",
+    deps
+  );
+  const replay = await handlePaddleWebhook(
+    JSON.stringify(event),
+    "ts=1;h1=deadbeef",
+    deps
+  );
+
+  assert.equal(first.status, 200);
+  assert.equal(replay.status, 200);
+  assert.equal(syncCalls.length, 1);
+  assert.deepEqual(syncCalls[0], {
+    eventId: "evt_sync_once",
+    eventType: "subscription.activated",
+    plan: "pro",
+  });
+});
+
+test("Supabase sync failure returns 503 and does not persist state", async () => {
+  let state = makeState();
+  let saveCalls = 0;
+  const eventId = "evt_sync_fail";
+  const event = makeEvent(eventId, "subscription.activated", {
+    id: "sub_sync_fail",
+    customer_id: "cus_sync_fail",
+    items: [{ price: { id: "pri_pro_test" } }],
+  });
+
+  const deps = {
+    webhookSecret: "whsec_test",
+    verifySignature: () => true,
+    getSubscription: async () => state,
+    saveSubscription: async (next: SubscriptionState) => {
+      saveCalls += 1;
+      state = next;
+    },
+    withSubscriptionStateLock: passthroughLock,
+    syncSubscriptionToSupabase: async () => {
+      throw new Error("supabase_sync_failed:simulated_failure");
+    },
+  };
+
+  const result = await handlePaddleWebhook(
+    JSON.stringify(event),
+    "ts=1;h1=deadbeef",
+    deps
+  );
+
+  assert.equal(result.status, 503);
+  assert.equal(result.body.retryable, true);
+  assert.equal(result.body.error, "Supabase subscription sync failed");
+  assert.equal(saveCalls, 0);
+  assert.equal(state.plan, "free");
+  assert.equal(state._processedEventIds.includes(eventId), false);
 });
 
 test("lock timeout returns 503 retryable response", async () => {
@@ -386,6 +493,7 @@ test("lock timeout returns 503 retryable response", async () => {
     withSubscriptionStateLock: async () => {
       throw new Error("subscription_lock_timeout");
     },
+    syncSubscriptionToSupabase: noopSync,
   };
 
   const result = await handlePaddleWebhook(

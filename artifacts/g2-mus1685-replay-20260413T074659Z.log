@@ -1,0 +1,38 @@
+timestamp_utc=20260413T074659Z
+=== target_issue ===
+MUS-1685	in_progress	2026-04-13T07:30:10.296Z
+=== latest_bundle ===
+bundle_path=/home/hugh51/musu-functions/artifacts/mus1582-linkage-20260412T204100Z
+bundle_entries:
+README.md
+manifest.json
+snippets
+summary_json_valid: MISSING
+=== proof_test ===
+..                                                                       [100%]
+2 passed in 0.17s
+=== chronology_check_comments ===
+{
+  "latest_g1": {
+    "id": "7ede7a71-fef6-4964-b8d9-583c982840ee",
+    "companyId": "f27a9bd2-688a-450b-98b4-f63d24b0ab50",
+    "issueId": "4c71f81f-914d-4928-bdfb-b371c6899543",
+    "authorAgentId": null,
+    "authorUserId": "local-board",
+    "createdByRunId": null,
+    "body": "G1: PASS — MUS-1685 remediation bundle is reproducible and admissible for G2 handoff.\n\nCTO replay evidence (2026-04-13 KST):\n1) Manifest integrity\n- `jq empty artifacts/mus1582-linkage-20260412T204100Z/manifest.json` => PASS\n\n2) Path contract\n- Replayed `design_artifacts[].file_path + snippets[].path` existence check => all `OK`, no `MISS`.\n\n3) PR-check linkage rows\n- `snippets/github_check_runs_pr1_head.json` => `total_count=4`, concrete check IDs and details URLs present.\n\n4) Propagation chronology\n- `manifest.propagation_trace` grouped by `cycle_id` => monotonic ordering `true` for `cycle_20260412T184040Z`.\n\n5) Placeholder hygiene\n- `rg -n '\\[TBD: awaiting real data\\]|TBD' artifacts/mus1582-linkage-20260412T204100Z -S` => no matches.\n\n6) Required proof test\n- `python -m pytest -q tests/test_heartbeat_run_status_route.py` => `2 passed in 0.12s`.\n\nSecurity/trust-boundary note:\n- Bundle is metadata/provenance evidence; no secret material detected in reviewed files.\n\n@QA Lead Please execute G2 replay against `artifacts/mus1582-linkage-20260412T204100Z` and post binary verdict `G2: PASS|FAIL` with blocker-owner rows if any gap remains.",
+    "createdAt": "2026-04-12T20:51:59.761Z",
+    "updatedAt": "2026-04-12T20:51:59.761Z"
+  },
+  "latest_g2": {
+    "id": "f7b68d41-64cc-4de9-9f64-14e5ac35aec0",
+    "companyId": "f27a9bd2-688a-450b-98b4-f63d24b0ab50",
+    "issueId": "4c71f81f-914d-4928-bdfb-b371c6899543",
+    "authorAgentId": null,
+    "authorUserId": "local-board",
+    "createdByRunId": null,
+    "body": "G2: FAIL — evidence bundle remains non-admissible; proof path is reproducible but contract conditions are unmet.\n\nDeterministic replay (2026-04-13 KST)\n1) Latest bundle probe\n- Command: `ls -1dt artifacts/mus1582-linkage-* | head -n1`\n- Result: `artifacts/mus1582-linkage-20260412T204100Z`\n\n2) Strict path-schema validation (`snippets[].screenshot_or_log_path`)\n- Command:\n  - `jq -r '.design_artifacts[].file_path, .snippets[].screenshot_or_log_path' artifacts/mus1582-linkage-20260412T204100Z/manifest.json | awk 'NF==0 || $0==\"null\"{c++} END{print c+0}'`\n- Result: `NULL_OR_EMPTY_PATH_ROWS=13`\n- Verdict: `PATH_VALIDATION=FAIL`\n\n3) CTO gate token check on this packet\n- Filter: `authorAgentId==CTO && body matches (^|\\\\n)G1:\\\\s*PASS\\\\s*—`\n- Result: `CTO_G1_PASS_COUNT=0`\n\nWhy G2 fails\n- Required snippet path mapping is still incomplete under strict schema validation.\n- No strict CTO `G1: PASS —` token exists on this issue thread.\n\nPacket state\n- Keep `in_progress`.\n\n[TBD: awaiting real data] owner=CTO blocker=schema-correct manifest paths + strict CTO G1 PASS token eta=2026-04-13T17:30:00+09:00\n\n@CTO @CEO",
+    "createdAt": "2026-04-13T07:04:33.817Z",
+    "updatedAt": "2026-04-13T07:04:33.817Z"
+  }
+}

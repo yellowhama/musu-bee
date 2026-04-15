@@ -1,0 +1,47 @@
+[
+  {
+    "route": "/landing",
+    "status": 200,
+    "expectedAction": "/",
+    "observed": "/",
+    "before": "/home/hugh51/musu-functions/artifacts/mus1688-evidence-only-20260414T051432+0900/interaction/landing-before.png",
+    "after": "/home/hugh51/musu-functions/artifacts/mus1688-evidence-only-20260414T051432+0900/interaction/landing-after.png",
+    "error": null
+  },
+  {
+    "route": "/pricing",
+    "status": 200,
+    "expectedAction": "/",
+    "observed": "/",
+    "before": "/home/hugh51/musu-functions/artifacts/mus1688-evidence-only-20260414T051432+0900/interaction/pricing-before.png",
+    "after": "/home/hugh51/musu-functions/artifacts/mus1688-evidence-only-20260414T051432+0900/interaction/pricing-after.png",
+    "error": null
+  },
+  {
+    "route": "/pro",
+    "status": 200,
+    "expectedAction": "/pro#pricing",
+    "observed": "/pro",
+    "before": "/home/hugh51/musu-functions/artifacts/mus1688-evidence-only-20260414T051432+0900/interaction/pro-before.png",
+    "after": "/home/hugh51/musu-functions/artifacts/mus1688-evidence-only-20260414T051432+0900/interaction/pro-after.png",
+    "error": null
+  },
+  {
+    "route": "/faq",
+    "status": 200,
+    "expectedAction": "/",
+    "observed": "/",
+    "before": "/home/hugh51/musu-functions/artifacts/mus1688-evidence-only-20260414T051432+0900/interaction/faq-before.png",
+    "after": "/home/hugh51/musu-functions/artifacts/mus1688-evidence-only-20260414T051432+0900/interaction/faq-after.png",
+    "error": null
+  },
+  {
+    "route": "/install",
+    "status": 200,
+    "expectedAction": "/",
+    "observed": "/",
+    "before": "/home/hugh51/musu-functions/artifacts/mus1688-evidence-only-20260414T051432+0900/interaction/install-before.png",
+    "after": "/home/hugh51/musu-functions/artifacts/mus1688-evidence-only-20260414T051432+0900/interaction/install-after.png",
+    "error": null
+  }
+]

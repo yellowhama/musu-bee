@@ -1,0 +1,59 @@
+npm warn Unknown env config "auto-install-peers". This will stop working in the next major version of npm.
+npm warn Unknown env config "recursive". This will stop working in the next major version of npm.
+
+> musu-bee@0.1.0 dev
+> next dev -p 3001 --hostname 127.0.0.1 --port 3312
+
+   ▲ Next.js 15.5.14
+   - Local:        http://127.0.0.1:3312
+   - Network:      http://127.0.0.1:3312
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 2.5s
+ ○ Compiling /pricing ...
+ ✓ Compiled /pricing in 7s (609 modules)
+ GET /pricing 200 in 7809ms
+ ⨯ Error: Could not find the module "/home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/next-devtools/userspace/app/segment-explorer-node.js#SegmentViewNode" in the React Client Manifest. This is probably a bug in the React Server Components bundler.
+    at stringify (<anonymous>) {
+  digest: '4172001337'
+}
+ ⨯ Error: Could not find the module "/home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/next-devtools/userspace/app/segment-explorer-node.js#SegmentViewNode" in the React Client Manifest. This is probably a bug in the React Server Components bundler.
+    at stringify (<anonymous>)
+    at stringify (<anonymous>) {
+  digest: '1952594872'
+}
+ ⨯ Error: Could not find the module "/home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/next-devtools/userspace/app/segment-explorer-node.js#SegmentViewNode" in the React Client Manifest. This is probably a bug in the React Server Components bundler.
+    at stringify (<anonymous>)
+    at stringify (<anonymous>) {
+  digest: '1952594872'
+}
+ ⨯ Error: Could not find the module "/home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/next-devtools/userspace/app/segment-explorer-node.js#SegmentViewNode" in the React Client Manifest. This is probably a bug in the React Server Components bundler.
+    at stringify (<anonymous>)
+    at stringify (<anonymous>) {
+  digest: '1952594872'
+}
+ ⨯ Error: Could not find the module "/home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/next-devtools/userspace/app/segment-explorer-node.js#SegmentViewNode" in the React Client Manifest. This is probably a bug in the React Server Components bundler.
+    at stringify (<anonymous>) {
+  digest: '4172001337'
+}
+ ⨯ Error: Could not find the module "/home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/next-devtools/userspace/app/segment-explorer-node.js#SegmentViewNode" in the React Client Manifest. This is probably a bug in the React Server Components bundler.
+    at stringify (<anonymous>) {
+  digest: '4172001337'
+}
+ ⨯ [TypeError: __webpack_modules__[moduleId] is not a function] {
+  digest: '622719448'
+}
+ ⨯ Error: Could not find the module "/home/hugh51/musu-functions/musu-bee/node_modules/.pnpm/next@15.5.14_@playwright+test@1.59.1_react-dom@19.2.4_react@19.2.4__react@19.2.4/node_modules/next/dist/next-devtools/userspace/app/segment-explorer-node.js#SegmentViewNode" in the React Client Manifest. This is probably a bug in the React Server Components bundler.
+    at stringify (<anonymous>) {
+  digest: '3097461293'
+}
+[TypeError: __webpack_modules__[moduleId] is not a function]
+ ⨯ [TypeError: __webpack_modules__[moduleId] is not a function]
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 4.8s (946 modules)
+ ⨯ [TypeError: __webpack_modules__[moduleId] is not a function] {
+  page: '/pricing'
+}
+ GET /pricing 500 in 10037ms
+[?25h

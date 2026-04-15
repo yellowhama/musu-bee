@@ -1,0 +1,34 @@
+[INFO] Log: /home/hugh51/.config/Pencil/logs/main.log
+[INFO] Window lines: 5000
+[INFO] PID file: /tmp/pencil-dev.pid
+[INFO] Target pen: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+
+[CHECK] process-running: 1
+[CHECK] process-pid: 7228
+[CHECK] loadFile: 1
+[CHECK] addResource: 0
+[CHECK] initialized: 0
+[CHECK] latest-loadFile-is-target: 1
+[CHECK] latest-addResource-is-target: 0
+[CHECK] latest-initialized-is-target: 0
+[CHECK] claude-status: 0
+[CHECK] codex-status: 0
+
+[INFO] Recent matching lines:
+1:[2026-04-13 08:37:03.669] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen zoomToFit: true
+12:[2026-04-13 08:38:10.349] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen zoomToFit: false
+
+[INFO] Last marker positions:
+  loadFile: 12:[2026-04-13 08:38:10.349] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen zoomToFit: false
+  addResource: missing
+  initialized: missing
+  last loadFile(any): 12:[2026-04-13 08:38:10.349] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen zoomToFit: false
+  last addResource(any): missing
+  last initialized(any): missing
+  claude-status: missing
+  codex-status: missing
+
+[WARN] Target markers exist, but latest runtime markers point to a different .pen file.
+[MCP] Connection or startup is incomplete.
+[MCP] Verify active .pen and retry the standard MCP sequence.
+[MCP] Playbook: /home/hugh51/musu-functions/skills/pencil-dev-design-workflow/scripts/../references/pencil-mcp-tool-calling-playbook.md

@@ -1,0 +1,11 @@
+timestamp_utc=20260413T061956Z
+=== issue_status ===
+MUS-1765	in_progress	2026-04-13T06:16:16.683Z
+MUS-1771	blocked	2026-04-13T06:13:02.173Z
+MUS-1660	blocked	2026-04-12T23:50:13.805Z
+=== g1_pass_count_on_MUS-1771 ===
+0
+=== artifact_mentions_MUS-1765_comments ===
+6
+=== latest_MUS-1771_comment_excerpt ===
+2026-04-13T04:22:21.473Z	G1 contract tightened (CTO, 2026-04-13 KST).  I rejected the previous weak checklist and updated the plan doc to a fail-closed gate with mandatory upstream tokens and reproducible evidence.  New non-negotiables for G1 PASS: - upstream tokens present: `MUS1708_

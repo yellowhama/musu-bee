@@ -1,0 +1,6 @@
+Scope file purposes
+- musu-bee/src/app/globals.css: canonical brand CSS variables + backward aliases in :root
+- musu-bee/src/app/landing-exp/page.tsx: landing example page consuming class-based styles
+- musu-bee/src/app/landing-exp/page.module.css: brand token consumption via var(--musu-color-*)
+- musu-bee/src/app/landing-exp/page.module.test.ts: regression guard against hardcoded brand literals
+- musu-bee/src/app/brand-tokens.test.ts: global token definition + no-raw-hex usage policy

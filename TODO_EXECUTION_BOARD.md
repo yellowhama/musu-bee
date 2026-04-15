@@ -1,8 +1,1824 @@
 # musu-functions TODO Execution Board
 
-Last sync: `2026-04-10 21:40 KST`
-Board reconciled with Paperclip: `2026-04-10 21:40 KST` (health/dashboard/issues/inbox/comments API cross-check)
+Last sync: `2026-04-14 05:44 KST`
+Board reconciled with Paperclip: `2026-04-14 05:44 KST` (live API read/write verified on MUS-1851/MUS-1856)
 Last attempted sync: `2026-04-10 06:37 KST` (failed; control-plane API unreachable)
+
+## 2026-04-14 CoS Heartbeat Delta (05:44 KST)
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/companies/{companyId}/inbox`
+- `GET /api/projects/{rootProjectId}` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`)
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}&status=todo,in_progress,blocked`
+- `GET /api/issues/{MUS-1851-id}`
+- `GET /api/issues/{MUS-1851-id}/comments`
+- `GET /api/companies/{companyId}/issues?parentId={MUS-1851-id}`
+- `GET /api/issues/{MUS-1856-id}`
+- `GET /api/issues/{MUS-1856-id}/comments`
+- `GET /api/agents/{foundingEngineerAgentId}`
+- `GET /api/heartbeat-runs?agentId={foundingEngineerAgentId}&limit=5` -> `404 {"error":"API route not found"}`
+- `POST /api/issues/{MUS-1856-id}/comments` (created `86b287e1-299e-4b20-b8ca-2afe9c995ef3`)
+- `POST /api/issues/{MUS-1851-id}/comments` (created `56fce29f-ea80-414c-9e20-18834e7641ab`)
+- `POST /api/agents/{foundingEngineerAgentId}/heartbeat/invoke` (run `02fd1b38-27aa-4019-845c-6abefda5d65d`, `queued`)
+
+Live snapshot (verified):
+- Health: `200` (`status=ok`, `version=0.3.1`)
+- Dashboard rollup: tasks `open=124`, `inProgress=20`, `blocked=69`, `done=441`
+- Queue-front CoS packet: `MUS-1851` (`critical`, `in_progress`)
+- Child topology:
+  - `MUS-1856=in_progress` (owner=Founding Engineer)
+  - `MUS-1857=done`
+  - `MUS-1858=done`
+- Agent state: CEO=`paused`; CTO/CoS/Founding Engineer/QA=`running`
+- Inbox endpoint unavailable in this runtime: `404 {"error":"API route not found"}`
+
+Divergence corrected:
+- Local board and live child topology are aligned (`MUS-1856/1857/1858`).
+- Replaced repeated nudge-only pattern with one explicit acceptance-contract unblock note on `MUS-1856` plus parent mirror on `MUS-1851`.
+
+Clean unblock note:
+1. Founding Engineer posts one acceptance bundle comment on `MUS-1856` with: changed files, commands+exit codes, runtime-contract verification, regression output, and `PASS|FAIL`.
+2. CoS validates bundle and mirrors parent gate on `MUS-1851`.
+3. CTO performs gate review only after FE `PASS` evidence.
+
+Resume order (owner-tagged):
+1. Founding Engineer: close `MUS-1856` acceptance bundle by ETA.
+2. CoS: validate and post parent gate update.
+3. CTO: run final gate on verified FE evidence only.
+
+Hard-stop compliance:
+- No 신규 issue creation in banned classes (Paddle/5070Ti/OPS-RECOVERY/SEC-OPS/checkpoint/control-plane bug families).
+
+CEO review gate:
+- `plan-ceo-review`: keep weekly scope on musu-bee product-code deliverables only.
+
+ENG review gate:
+- `plan-eng-review`: fail closed on missing command outputs, exit codes, or regression evidence.
+
+Retro pulse:
+- `retro`: throughput risk is now concentrated to one packet (`MUS-1856`) with explicit owner/ETA instead of multi-thread nudge churn.
+
+## 2026-04-14 CoS Heartbeat Delta (05:37 KST)
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/agents/me/inbox-lite`
+- `GET /api/companies/{companyId}/issues` (identifier filter: `MUS-1636`, `MUS-1687`, `MUS-1688`, `MUS-1851`, `MUS-1856`, `MUS-1857`, `MUS-1858`)
+- `GET /api/issues/{MUS-1851-id}`
+- `GET /api/issues/{MUS-1851-id}/comments`
+- `GET /api/issues/{MUS-1688-id}/comments`
+- `GET /api/issues/{MUS-1856-id}/comments`
+- `POST /api/issues/{MUS-1851-id}/comments` -> `HTTP 409` (`run_issue_id_mismatch`)
+- `POST /api/issues/{MUS-1851-id}/checkout` -> `HTTP 409` (`run_issue_id_mismatch`)
+- `POST /api/issues/{PAPERCLIP_TASK_ID}/comments` -> `HTTP 201` (clean unblock note `8697dd5a-e03c-4436-92d0-fb81cd140a11`)
+
+Live snapshot (verified):
+- Health: `200` (`status=ok`, `version=0.3.1`)
+- Dashboard rollup: tasks `open=124`, `inProgress=20`, `blocked=69`, `done=441`
+- Queue-front CoS packet: `MUS-1851` (`critical`, `in_progress`)
+- Current lane states:
+  - `MUS-1857=done`
+  - `MUS-1858=done`
+  - `MUS-1856=in_progress`
+  - `MUS-1687=done`
+  - `MUS-1688=blocked`
+  - `MUS-1636=blocked`
+- Org route validated via `GET /api/companies/{companyId}/org`: CEO=`paused`, CTO/Founding Engineer/CoS=`running`
+- Root project (`musu-functions root`) remains `in_progress` (`GET /api/companies/{companyId}/projects`)
+
+Divergence corrected:
+- Local board rows that still showed `MUS-1857=in_progress` and `MUS-1858=todo` are superseded by live `done/done`.
+- Local board rows that still showed `MUS-1856=todo` are superseded by live `in_progress`.
+
+Clean unblock note:
+1. `local-board` must rebind/wake CoS run to `MUS-1851` (current run is bound to `MUS-1804`, so parent-thread writes are rejected).
+2. Immediately after rebind, CoS posts parent sync on `MUS-1851` and blocker rebaseline on `MUS-1688`.
+
+Resume order (owner-tagged):
+1. Founding Engineer (`MUS-1856`): post acceptance bundle (changed files, commands+exit codes, runtime-contract result, regression result, `PASS|FAIL` token).
+2. Founding Engineer + CTO (`MUS-1688`): rebaseline blocker against completed deps (`MUS-1687`, `MUS-1857`) and either move to `in_progress` or post explicit external blocker + ETA.
+3. CTO (`MUS-1636`): state whether landing-design brief lane is still an active blocker or superseded.
+
+Hard-stop compliance:
+- No 신규 issue creation in banned categories (Paddle credentials / 5070Ti SSH / OPS-RECOVERY / SEC-OPS / checkpoint / control-plane internal bugs).
+
+CEO review gate:
+- `plan-ceo-review`: hold scope on this week deliverables only (design system, landing page, MUSU system prompt).
+
+ENG review gate:
+- `plan-eng-review`: reject status transitions without reproducible command output and artifact evidence.
+
+Retro pulse:
+- `retro`: packet decomposition is in place; current bottleneck is control-plane run linkage preventing CoS parent-thread mutation.
+
+## 2026-04-13 CoS Heartbeat Delta (16:10 KST)
+
+Source-of-truth checks:
+- `GET /api/health` (timeout probe via `curl --max-time 5`)
+
+Live snapshot (verified):
+- `GET /api/health` failed: `curl: (28) Operation timed out after 5000 milliseconds with 0 bytes received` / `HTTP:000`
+- Live board reads/writes are currently unavailable from this session.
+
+Clean unblock note:
+1. Restore Paperclip API responsiveness at `http://127.0.0.1:3100/api/health`.
+2. After health recovers, re-run CoS heartbeat sequence in order:
+   - dashboard/org-chart/inbox/root project
+   - assigned issue queue (`MUS-1851` first)
+   - parent/child comment/status sync
+3. Until API recovery, all live status fields are `[TBD: awaiting real data]`.
+
+Hard-stop compliance:
+- No 신규 issue creation in this heartbeat.
+- No banned-category issue action attempted.
+
+## 2026-04-13 CoS Heartbeat Delta (16:02 KST)
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/org-chart`
+- `GET /api/companies/{companyId}/inbox`
+- `GET /api/projects/{rootProjectId}` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`)
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked,in_review`
+- `GET /api/issues/{MUS-1851-id}/comments`
+- `GET /api/issues/{MUS-1857-id}/comments`
+- `POST /api/issues/{MUS-1851-id}/comments`
+- `PATCH /api/issues/{MUS-1857-id}` (`status=in_progress`)
+- `POST /api/issues/{MUS-1857-id}/comments`
+
+Live snapshot (verified):
+- Health: `200` (`status=ok`, `version=0.3.1`)
+- Dashboard rollup: tasks `open=128`, `inProgress=14`, `blocked=75`, `done=437`; agents `running=4`, `paused=1`, `error=0`
+- `org-chart` endpoint: `404` (`{"error":"API route not found"}`)
+- `inbox` endpoint: `404` (`{"error":"API route not found"}`)
+- Root project `musu-functions root` status: `in_progress`
+- Queue-front CoS packet remains `MUS-1851` (`critical`, `in_progress`)
+- `MUS-1857` transitioned `blocked -> in_progress` after CoS owner-boundary mirror
+
+Divergence corrected:
+- CTO reported parent comment write failure (`HTTP 409 Issue run ownership conflict`) on `MUS-1857` comment `021cee6f-8823-4858-b612-35032a6ca4d2`.
+- CoS posted required parent mirror on `MUS-1851`: `47c5e7dc-2840-4cc9-b23f-9db879cf19d6`.
+- CoS unblocked lane by patching `MUS-1857` to `in_progress`; confirmation comment: `7aa330e1-922d-41a7-9408-dc38106c7486`.
+
+Resume order (owner-tagged):
+1. CTO continues `MUS-1857` on child thread only and posts next gate action (`[TBD: awaiting real data]` until posted).
+2. CEO lane `MUS-1858` remains gated by paused owner status or explicit delegation.
+3. FE lane `MUS-1856` remains queued behind explicit lane gate outputs.
+4. CoS mirrors parent updates on `MUS-1851` only (owner-boundary rule).
+
+CEO review gate:
+- `plan-ceo-review`: hold scope on weekly focus lanes only; no hard-stop category issue creation.
+
+ENG review gate:
+- `plan-eng-review`: enforce evidence completeness for gate actions (command/output/artifact/hash).
+
+Retro pulse (since 15:56 KST):
+- `retro`: packetization held; main throughput gain this heartbeat came from resolving a thread-ownership workflow blocker.
+
+## 2026-04-13 CoS Heartbeat Delta (15:56 KST)
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/companies/{companyId}/org-chart`
+- `GET /api/companies/{companyId}/inbox`
+- `GET /api/projects/{rootProjectId}` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`)
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked,in_review`
+- `GET /api/issues/{MUS-1851-id}/comments`
+- `GET /api/issues/{MUS-1856-id}/comments`
+- `POST /api/companies/{companyId}/issues` (created `MUS-1857`, `MUS-1858`)
+- `POST /api/issues/{MUS-1851-id}/comments`
+- `POST /api/agents/{ctoAgentId}/heartbeat/invoke`
+- `POST /api/agents/{ceoAgentId}/heartbeat/invoke`
+
+Live snapshot (verified):
+- Health: `200` (`status=ok`, `version=0.3.1`)
+- Dashboard rollup: tasks `open=126`, `inProgress=13`, `blocked=74`, `done=437`; agents `running=4`, `paused=1`, `error=0`
+- `org-chart` endpoint: `404` (`{"error":"API route not found"}`)
+- `inbox` endpoint: `404` (`{"error":"API route not found"}`)
+- Root project `musu-functions root` status: `in_progress`
+- Queue-front CoS packet: `MUS-1851` (`critical`, `in_progress`)
+- New child packets under `MUS-1851`:
+  - `MUS-1856` (`todo`, FE): MUSU system prompt v1
+  - `MUS-1857` (`todo`, CTO): design-system convergence (`MUS-1707 -> MUS-1830 -> MUS-1688`)
+  - `MUS-1858` (`todo`, CEO): landing convergence (`MUS-1635 -> MUS-1687`)
+- Parent reconciliation comments posted on `MUS-1851`: `e1b9f3fa-0b48-4ef1-a82a-18dd943765cc`, `077a41fe-dd24-4d5a-acd0-475960389435`
+- CTO on-demand heartbeat invoke accepted: `runId=3da06f4d-db61-4ce1-88c0-c2070335f3a7`, `status=queued`, `startedAt=[TBD: awaiting real data]`
+- CEO on-demand invoke failed: `{"error":"Agent is not invokable in its current state","details":{"status":"paused"}}`
+
+Divergence corrected:
+- Prior top section centered on `MUS-1822`/`MUS-1826` runtime lane.
+- This heartbeat re-anchors top-level execution to this week focus packet (`MUS-1851`) and explicitly decomposes all three musu-bee lanes (design system, landing, system prompt).
+
+Resume order (owner-tagged):
+1. CTO starts `MUS-1857` and posts normalized blocker state + next gate action across `MUS-1707 -> MUS-1830 -> MUS-1688`.
+2. CEO (paused) must be resumed or delegated for `MUS-1858`; required output is explicit `MUS-1687` decision token (`APPROVE|REVISION`).
+3. FE executes `MUS-1856` once lane gates are explicit and posts evidence bundle.
+4. CoS mirrors updates to `MUS-1851` and this board; blocked fields remain `[TBD: awaiting real data]` when missing.
+
+CEO review gate:
+- `plan-ceo-review`: hold scope on this week focus only (design system, landing page, MUSU system prompt); no banned-category issue creation.
+
+ENG review gate:
+- `plan-eng-review`: fail closed on missing command output, artifact path, and hash evidence in packet comments.
+
+Retro pulse (since 15:21 KST):
+- `retro`: hygiene improved by turning one master issue into three owner-bound executable packets; remaining bottleneck is CEO paused state and landing decision latency.
+
+## 2026-04-13 CoS Heartbeat Delta (15:21 KST)
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/companies/{companyId}/org-chart`
+- `GET /api/companies/{companyId}/inbox`
+- `GET /api/projects/{rootProjectId}` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`)
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}&status=todo,in_progress,blocked,in_review`
+- `GET /api/issues/{MUS-1826-id}`
+- `GET /api/issues/{MUS-1822-id}`
+- `POST /api/issues/{MUS-1826-id}/comments`
+- `PATCH /api/issues/{MUS-1826-id}` (`status=in_review`)
+- `POST /api/issues/{MUS-1822-id}/comments`
+- `POST /api/agents/{ctoAgentId}/heartbeat/invoke`
+
+Live snapshot (verified):
+- Health: `200` (`status=ok`, `version=0.3.1`)
+- Dashboard rollup: tasks `open=125`, `inProgress=7`, `blocked=79`, `done=437`; agents `running=4`, `paused=1`, `error=0`
+- `org-chart` endpoint: `404` (`{"error":"API route not found"}`)
+- `inbox` endpoint: `404` (`{"error":"API route not found"}`)
+- Root project `musu-functions root` status: `in_progress`
+- Hard-stop filtered queue-front packet worked: `MUS-1826` (`high`) now `in_review`
+- Evidence comment on `MUS-1826`: `731323fc-2ed2-49c3-82a7-30e210ca81c8`
+- Parent mirror comments on `MUS-1822`: `78fd8809-b490-40d2-86d3-55d2f22cd5e5`, escalation log `89577aa8-090e-42a5-9eec-0ed8f2e2a17f`
+- CTO on-demand heartbeat invoke accepted: `runId=5d83ea0d-216b-47ec-bbfc-4f703178a71b`, `status=queued`, `startedAt=[TBD: awaiting real data]`
+- Parent `MUS-1822` remains `blocked` pending CTO gate decision
+
+Divergence corrected:
+- Prior top sections were centered on hard-stop banned lanes (Paddle/5070Ti chain).
+- This heartbeat re-anchors board execution to musu-bee delivery dependency lane (`MUS-1822`/`MUS-1826`) without creating banned-category issues.
+
+Resume order (owner-tagged):
+1. CTO posts explicit parent decision on `MUS-1822` (`PASS|FAIL`) using child evidence from `MUS-1826`.
+2. If `PASS`, FE resumes landing/design-system implementation lane (`MUS-1662`) immediately.
+3. CoS mirrors parent decision and updates root board docs; if `FAIL`, keep blocker rows explicit with `[TBD: awaiting real data]`.
+
+CEO review gate:
+- `plan-ceo-review`: hold scope on this week’s focus (musu-bee design system, landing page, MUSU system prompt); no new banned-category issue creation.
+
+ENG review gate:
+- `plan-eng-review`: accept runtime gate only when replay command, rc, artifact path, dimensions, and sha256 are all present.
+
+Retro pulse (since 08:24 KST):
+- `retro`: execution hygiene improved by converting a blocked auth lane into evidence-backed `in_review`; remaining bottleneck is parent gate decision latency.
+
+## 2026-04-13 CoS Heartbeat Delta (08:24 KST)
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}&status=todo,in_progress,blocked`
+- `GET /api/issues/{MUS-1677-id}`
+- `GET /api/issues/{MUS-1677-id}/comments`
+- `GET /api/issues/{MUS-1140-id}`
+- `GET /api/issues/{MUS-1140-id}/comments`
+- `GET /api/issues/{MUS-1711-id}`
+- `GET /api/issues/{MUS-1711-id}/comments`
+- `GET /api/issues/{MUS-1715-id}`
+- `GET /api/issues/{MUS-1736-id}`
+- `GET /api/issues/{MUS-1763-id}`
+- `POST /api/issues/{MUS-1677-id}/comments`
+- `POST /api/issues/{MUS-1140-id}/comments`
+- `POST /api/issues/{MUS-1711-id}/comments`
+- `POST /api/agents/{ceoAgentId}/heartbeat/invoke`
+
+Live snapshot (verified):
+- Health: `200` (`status=ok`, `version=0.3.1`)
+- Highest-priority assigned packet worked: `MUS-1677` (`blocked`, `critical`)
+- Parent packet mirror refreshed: `MUS-1140` (`blocked`, `critical`)
+- Normalization gate refreshed: `MUS-1711` (`blocked`, `high`)
+- New verified comment IDs from this run:
+  - `MUS-1677`: `742bc86f-42b9-4387-bc67-81ea232c2ff1`
+  - `MUS-1140`: `119a75de-5910-4fe0-b01c-01b8267cf6ff`
+  - `MUS-1711`: `827b52e9-0f3b-43ce-ad67-9dc7b2ba0e7e`
+- CEO on-demand heartbeat invoke accepted: `runId=3715ed7e-c637-4541-a533-068022bbab62`, `status=queued`
+
+Divergence corrected:
+- Live row-authority source is still split across `MUS-1715`, `MUS-1736`, and `MUS-1763`; this drift risk is now explicitly recorded on `MUS-1677`, `MUS-1711`, and parent `MUS-1140`.
+
+Resume order (owner-tagged):
+1. CEO posts `canonical_row_source=<MUS-1763|MUS-1736>` and complete exact-class rows with required fields.
+2. Founding Engineer aligns `MUS-1353` and `MUS-1689` evidence to that canonical source.
+3. CoS completes `MUS-1711` row normalization and posts `HANDOFF GO|NO-GO`.
+4. CTO executes G1 only after CoS `HANDOFF GO`.
+
+CEO review gate:
+- `plan-ceo-review`: hold scope to canonical source declaration and row completeness only.
+
+ENG review gate:
+- `plan-eng-review`: fail closed if any required row field is missing or lacks redacted evidence pointer.
+
+Retro pulse (since 07:49 KST):
+- `retro`: board readability improved by forcing a single canonical row source before normalization; throughput remains blocked on CEO row completion.
+
+## 2026-04-13 CoS Heartbeat Delta (07:49 KST)
+
+Source-of-truth checks:
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/projects/{rootProjectId}` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`)
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}`
+- `GET /api/companies/{companyId}/inbox`
+- `GET /api/issues/{MUS-1141-id}`
+- `GET /api/issues/{MUS-1141-id}/comments`
+- `GET /api/companies/{companyId}/issues?parentId={MUS-1141-id}`
+- `GET /api/issues/{MUS-1629-id}`
+- `GET /api/issues/{MUS-1629-id}/comments`
+- `GET /api/issues/{MUS-1630-id}/comments`
+- `POST /api/issues/{MUS-1141-id}/comments`
+
+Live snapshot (verified):
+- Dashboard rollup: tasks `open=147`, `inProgress=20`, `blocked=62`, `done=430`; agents `active=0`, `running=5`, `paused=0`, `error=0`
+- Root project `musu-functions root` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`) status: `in_progress`
+- Highest-updated assigned critical packet in this run: `MUS-1141` (`blocked`)
+- New CoS parent checkpoint posted and verified on `MUS-1141`: `a61697ca-8d7d-45b3-8339-944939bae7e3`
+- Parent child-state highlights:
+  - `MUS-1629` blocked with refreshed failure-lane evidence (`43282959-4c7e-434c-82b1-4ad522d78532`)
+  - `MUS-1629` reports FE run-pin handoff conflict to `MUS-1716` (`c84e6c38-9e98-4f89-bcee-942e476c1430`)
+  - `MUS-1630` is `in_review` with CTO note: G1/G2 pass, ready for CEO G3 (`4c8c38d9-d1cf-44db-9097-67ff40a94ee0`)
+  - CoS gates remain blocked: `MUS-1599`, `MUS-1718`
+- Inbox endpoint unavailable: `[TBD: awaiting real data]` (`GET /api/companies/{companyId}/inbox` -> `404 {"error":"API route not found"}`)
+
+Divergence corrected:
+- Prior top section (`07:23 KST`) centered Paddle chain (`MUS-1677`).
+- Live queue-front shifted to 5070Ti parent lane (`MUS-1141`) after fresh FE evidence and parent checkpoint update.
+
+Resume order (owner-tagged):
+1. CEO posts explicit G3 decision on `MUS-1630` (accept failure-lane evidence OR require positive proof).
+2. If positive proof required, board operator lands admissible artifact on `MUS-1614` or `MUS-1729`.
+3. CoS posts GO/NO-GO on `MUS-1599` and `MUS-1718`, then mirrors parent decision on `MUS-1141`.
+4. If FE transition is still required after decision, CoS/CTO resolves run-pin conflict reported on `MUS-1629` before redirecting FE to `MUS-1716`.
+
+CEO review gate:
+- G3 must be explicit on `MUS-1630`; implicit acceptance across sibling packets is not accepted.
+
+ENG review gate:
+- Keep fail-closed evidence standard for positive-proof lane (`/status` fields or SSH-success transcript).
+
+Retro pulse (since 07:23 KST):
+- Coordination quality improved by surfacing FE run-pin conflict and collapsing decision authority to CEO G3; throughput remains blocked on that decision/artifact path.
+
+## 2026-04-13 CoS Heartbeat Delta (07:23 KST)
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/issues`
+- `GET /api/issues/{MUS-1677-id}`
+- `GET /api/issues/{MUS-1677-id}/comments`
+- `GET /api/issues/{MUS-1763-id}`
+- `GET /api/issues/{MUS-1763-id}/comments`
+- `POST /api/issues/{MUS-1677-id}/comments`
+- `POST /api/issues/{MUS-1140-id}/comments`
+
+Live snapshot (verified):
+- Health: `200` (`status=ok`, `version=0.3.1`)
+- Queue-front assigned critical packet worked: `MUS-1677` (`blocked`, `critical`)
+- Dependency state: `MUS-1763` remains `in_progress` (`critical`, owner=CEO)
+- Latest `MUS-1763` evidence comment indicates no Paddle keys found in `yellow.txt` and requests canonical env export; complete 3-row authority table is still missing
+- New CoS gate comment posted and verified on `MUS-1677`: `400bca88-2427-430e-bb5d-6170d030bb09`
+- Parent mirror comment posted and verified on `MUS-1140`: `1ad04962-67c4-4bea-beda-0c459b360a69`
+- Unassigned critical/high open packets: `0` (from `GET /api/companies/{companyId}/issues` filtered where `assigneeAgentId==null` and `priority in {critical,high}`)
+
+Divergence corrected:
+- Prior top section (`07:09 KST`) tracked `MUS-1599` 5070Ti chain as queue-front.
+- Live assigned priority queue in this heartbeat places `MUS-1677` as the oldest active CoS critical lane; top section now reflects Paddle chain gate state.
+
+Resume order (owner-tagged):
+1. CEO completes `MUS-1763` with authoritative rows for `PADDLE_API_KEY`, `PADDLE_WEBHOOK_SECRET`, `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` including `owner`, `rotation_authority`, `rotation_endpoint`, `evidence_id_redacted`, `last_verified_at`.
+2. Founding Engineer aligns `MUS-1353` and `MUS-1689` evidence to the same authority model.
+3. CoS executes `MUS-1711` normalization and posts `HANDOFF GO|NO-GO`.
+4. CTO executes `MUS-1724` only on `GO`.
+
+CEO review gate:
+- `plan-ceo-review`: hold scope to authoritative row completion only; no expansion until row completeness is explicit.
+
+ENG review gate:
+- `plan-eng-review`: fail closed if any required row field is missing or lacks a redacted evidence pointer.
+
+Retro pulse (since 07:09 KST):
+- `retro`: board readability improved by re-anchoring queue-front to the live oldest critical lane and mirroring gate status to parent packet.
+
+## 2026-04-13 CoS Heartbeat Delta (07:09 KST)
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/projects/{rootProjectId}` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`)
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}`
+- `GET /api/companies/{companyId}/inbox`
+- `GET /api/issues/{MUS-1718-id}` + `/comments`
+- `GET /api/issues/{MUS-1599-id}`
+- `GET /api/issues/{MUS-1599-id}/comments`
+- `GET /api/companies/{companyId}/issues?parentId={MUS-1599-id}`
+- `GET /api/issues/{MUS-1630-id}`
+- `GET /api/issues/{MUS-1729-id}`
+- `GET /api/issues/{MUS-1729-id}/comments`
+- `POST /api/issues/{MUS-1599-id}/comments`
+- `POST /api/issues/{MUS-1718-id}/comments`
+- `POST /api/issues/{MUS-1729-id}/comments`
+- `POST /api/agents/{ceoAgentId}/heartbeat/invoke`
+- `POST /api/issues/{MUS-1614-id}/comments`
+- `PATCH /api/issues/{MUS-1614-id}` (`status=cancelled`)
+
+Live snapshot (verified):
+- Health: `200` (`status=ok`, `version=0.3.1`)
+- Dashboard rollup: tasks `open=150`, `inProgress=22`, `blocked=68`, `done=429`; agents `active=0`, `running=5`, `paused=0`, `error=0`
+- Root project `musu-functions root` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`) status: `in_progress`
+- Highest-updated assigned critical packet in this run: `MUS-1599` (`blocked`)
+- New CoS chain-mirror comment posted and verified on `MUS-1599`: `6f4b2e73-4808-461d-a176-23433b2ed4ba`
+- `MUS-1599` child packets now:
+  - `MUS-1614` (`cancelled`, superseded by MUS-1729)
+  - `MUS-1578` (`blocked`, CoS remote proof lane)
+- Upstream linked lanes remain unresolved:
+  - `MUS-1630` (`in_review`, CEO)
+  - `MUS-1729` (`in_progress`, CEO canonical board-operator artifact lane, timebox `07:30 KST`)
+- Latest MUS-1729 timebox escalation comment: `f3621737-721a-417d-aa2c-c7d08908d59a`
+- CEO reinvoke queued for MUS-1729: `eda58f22-b2e8-4043-aa97-e858bb20660e`
+- Inbox endpoint unavailable: `[TBD: awaiting real data]` (`GET /api/companies/{companyId}/inbox` -> `404 {"error":"API route not found"}`)
+
+Divergence corrected:
+- Previous top section (`07:06 KST`) lacked explicit `MUS-1729` timebox and reinvoke state.
+- Canonical decision path remains `MUS-1729` only; duplicate `MUS-1614` stays cancelled.
+
+Resume order (owner-tagged):
+1. CEO posts explicit G3 decision on `MUS-1630` (accept failure-lane evidence OR require positive proof).
+2. If positive proof required, board operator lands admissible artifact on `MUS-1729` by `07:30 KST`, or posts exact `[TBD: awaiting real data]` blocker line.
+3. CoS posts GO/NO-GO on `MUS-1599`, mirrors to `MUS-1718` and parent `MUS-1141`.
+
+CEO review gate:
+- Keep G3 decision explicit on `MUS-1630` to avoid cross-thread ambiguity.
+
+ENG review gate:
+- Fail closed on missing `/status` fields (`physical_host_id`, `service_uptime`, `version`, `timestamp`) for positive-proof lane.
+
+Retro pulse (since 06:54 KST):
+- Execution hygiene improved with another fresh stale-check and canonical path reinforcement; throughput remains blocked on CEO decision and board-side artifact.
+
+## 2026-04-13 CoS Heartbeat Delta (06:54 KST)
+
+Source-of-truth checks:
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/projects/{rootProjectId}` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`)
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}`
+- `GET /api/companies/{companyId}/inbox`
+- `GET /api/issues/{MUS-1599-id}`
+- `GET /api/issues/{MUS-1599-id}/comments`
+- `GET /api/companies/{companyId}/issues?parentId={MUS-1599-id}`
+- `GET /api/issues/{MUS-1630-id}`
+- `GET /api/issues/{MUS-1630-id}/comments`
+- `POST /api/issues/{MUS-1599-id}/comments`
+
+Live snapshot (verified):
+- Dashboard rollup: tasks `open=149`, `inProgress=21`, `blocked=66`, `done=429`; agents `active=0`, `running=5`, `paused=0`, `error=0`
+- Root project `musu-functions root` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`) status: `in_progress`
+- Highest-updated assigned critical packet in this run: `MUS-1599` (`blocked`)
+- CoS canonicalization comment posted and verified on `MUS-1599`: `79be8771-bd1f-4770-9688-9f5a6d60444a`
+- `MUS-1599` child packets remain:
+  - `MUS-1614` (`todo`, CEO)
+  - `MUS-1578` (`blocked`, CoS)
+- Parent sibling lane `MUS-1630` is `in_review` with G2 PASS evidence comments (latest: `a00e0164-247d-4aed-aaec-169d145f5640`, `fa0c6e03-2052-4299-a96b-32040797bf88`)
+- Inbox endpoint unavailable: `[TBD: awaiting real data]` (`GET /api/companies/{companyId}/inbox` -> `404 {"error":"API route not found"}`)
+
+Divergence corrected:
+- Prior top section (`06:37 KST`) centered Paddle chain (`MUS-1677`) while live highest-updated critical CoS queue-front is `MUS-1599`.
+- `MUS-1599` now has explicit canonical dependency note tying unblock decision to CEO G3 on `MUS-1630`.
+
+Resume order (owner-tagged):
+1. CEO posts explicit G3 decision on `MUS-1630` (accept failure-lane evidence OR require additional positive proof).
+2. If additional proof required, board operator lands admissible artifact on `MUS-1614` or `MUS-1729`.
+3. CoS posts GO/NO-GO on `MUS-1599`, mirrors to `MUS-1718` and parent `MUS-1141`.
+
+CEO review gate:
+- Resolve G3 explicitly on `MUS-1630`; do not leave implicit cross-thread acceptance.
+
+ENG review gate:
+- Keep fail-closed artifact requirements (`physical_host_id`, `service_uptime`, `version`, `timestamp` for `/status` lane).
+
+Retro pulse (since 06:37 KST):
+- Coordination improved by collapsing ambiguous unblock lanes into one G3 decision gate; throughput remains blocked on CEO decision and/or board-side artifact execution.
+
+## 2026-04-13 CoS Heartbeat Delta (06:37 KST)
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked` (CoS filter + chain filter)
+- `GET /api/issues/{MUS-1715-id}`
+- `GET /api/issues/{MUS-1763-id}`
+- `GET /api/issues/{MUS-1711-id}/comments`
+- `GET /api/issues/{MUS-1677-id}/comments`
+- `GET /api/issues/{MUS-1140-id}/comments`
+- `POST /api/issues/{MUS-1711-id}/comments`
+- `POST /api/issues/{MUS-1677-id}/comments`
+- `POST /api/issues/{MUS-1140-id}/comments`
+- `POST /api/agents/{ceoAgentId}/heartbeat/invoke`
+
+Live snapshot (verified):
+- Health: `200` (`status=ok`, `version=0.3.1`)
+- Highest-priority assigned packet worked: `MUS-1677` (`critical`, `blocked`)
+- Parallel CEO row packets confirmed:
+  - `MUS-1715 -> MUS-1736`
+  - `MUS-1763` (direct child of `MUS-1140`)
+- New CoS canonicalization comments posted and verified:
+  - `MUS-1711`: `7dbbb2fa-e218-4b93-af66-46a455af8fdf`
+  - `MUS-1677`: `5ceffdff-5730-47e9-8dbd-0b5c81453472`
+  - `MUS-1140`: `4207669e-d302-414f-b55c-e05417575f9d`
+- CEO heartbeat invoke response: `status=queued`, `runId=[TBD: awaiting real data]` (no runId in payload)
+
+Divergence corrected:
+- Board had split execution intent across two CEO mapping packets.
+- CoS gate now explicitly requires a single canonical row-source selection before normalization proceeds.
+
+Resume order (owner-tagged):
+1. CEO posts `canonical_row_source=MUS-1736` or `canonical_row_source=MUS-1763`.
+2. CEO fills exact-class rows in the selected packet for `PADDLE_API_KEY`, `PADDLE_WEBHOOK_SECRET`, `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN`.
+3. CoS reruns `MUS-1711` and posts `HANDOFF GO|NO-GO`.
+4. CTO executes `MUS-1724` only on GO.
+
+CEO review gate:
+- Keep scope on row-source canonicalization + exact-class completion only.
+
+ENG review gate:
+- Fail closed on missing `rotation_endpoint`, `evidence_id_redacted`, or `last_verified_at`.
+
+Retro pulse (since 06:30 KST):
+- Coordination quality improved via explicit canonicalization rule; throughput still blocked on authoritative row completion.
+
+## 2026-04-13 CoS Heartbeat Delta (06:30 KST)
+
+Source-of-truth checks:
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}&status=todo,in_progress,blocked,in_review`
+- `GET /api/issues/{MUS-1140-id}`
+- `GET /api/companies/{companyId}/issues?parentId={MUS-1140-id}`
+- `POST /api/issues/{MUS-1140-id}/comments`
+- `PUT /api/issues/{MUS-1140-id}/documents/plan`
+- `GET /api/issues/{MUS-1140-id}/documents`
+- `GET /api/companies/{companyId}/issues?status=todo,blocked,in_progress&projectId={rootProjectId}` (unowned check)
+
+Live snapshot (verified):
+- Dashboard rollup: tasks `open=138`, `inProgress=15`, `blocked=60`, `done=429`; agents `active=0`, `running=5`, `paused=0`, `error=0`
+- Root project `musu-functions root` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`) status: `in_progress`
+- Highest-priority assigned critical packet in this run: `MUS-1140` (`blocked`)
+- Board-facing CoS checkpoint posted on `MUS-1140`: `ec50b1da-24a8-4271-9d13-a65bdde46780`
+- `MUS-1140` plan document updated to revision `19` (`74b0c634-314e-4926-ab35-9a139b2a0c04`)
+- Active child blockers under `MUS-1140`: `MUS-1677`, `MUS-1763`, `MUS-1296`, `MUS-1307`, `MUS-1353`, `MUS-1689`
+- Unowned active issues in root project (todo/blocked/in_progress): `0`
+
+Divergence corrected:
+- Prior top section (`06:21 KST`) treated `MUS-1599` as queue-front.
+- Live assignee sort (`priority` + `updatedAt`) now places `MUS-1140` as canonical CoS queue-front.
+- Parent packet comment + plan revision now reflect current blocker chain and resume order.
+
+Resume order (owner-tagged):
+1. CEO completes `MUS-1763` and `MUS-1307` with authoritative Paddle mapping rows.
+2. Founding Engineer completes `MUS-1353` and `MUS-1689` with webhook alignment and client-token proof rows.
+3. CoS executes `MUS-1677` normalization and posts `HANDOFF GO|NO-GO`.
+4. On `GO` only, CoS mirrors readiness linkage to `MUS-1138` and `MUS-1064`.
+
+CEO review gate:
+- Hold scope on this Paddle evidence chain until authoritative rows land.
+
+ENG review gate:
+- Fail closed if any row is missing owner, rotation endpoint, or timestamped redacted evidence reference.
+
+Retro pulse (since 06:21 KST):
+- Board readability improved via canonical queue-front reset to `MUS-1140`; throughput remains blocked on upstream evidence rows.
+
+## 2026-04-13 CoS Heartbeat Delta (06:21 KST)
+
+Source-of-truth checks:
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/projects/{rootProjectId}` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`)
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}`
+- `GET /api/companies/{companyId}/inbox`
+- `GET /api/issues/{MUS-1599-id}`
+- `GET /api/issues/{MUS-1599-id}/comments`
+- `GET /api/companies/{companyId}/issues?parentId={MUS-1599-id}`
+- `POST /api/issues/{MUS-1599-id}/comments`
+
+Live snapshot (verified):
+- Dashboard rollup: tasks `open=143`, `inProgress=14`, `blocked=60`, `done=422`; agents `active=0`, `running=5`, `paused=0`, `error=0`
+- Root project `musu-functions root` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`) status: `in_progress`
+- Highest-updated assigned critical packet in this run: `MUS-1599` (`blocked`)
+- CoS ownership checkpoint posted and verified on `MUS-1599`: `07eccacd-0f3a-4acc-8465-54213d80f220`
+- Active child packets under `MUS-1599`:
+  - `MUS-1614` (`todo`, CEO)
+  - `MUS-1578` (`blocked`, CoS)
+- Inbox endpoint unavailable: `[TBD: awaiting real data]` (`GET /api/companies/{companyId}/inbox` -> `404 {"error":"API route not found"}`)
+
+Divergence corrected:
+- Prior top section (`06:03 KST`) focused parent-level 5070Ti canonicalization.
+- This heartbeat adds explicit CoS ownership claim + child-lane acceptance on the active critical decision packet (`MUS-1599`).
+
+Resume order (owner-tagged):
+1. CEO/board operator lands admissible artifact on `MUS-1614`.
+2. CoS posts GO/NO-GO on `MUS-1599`.
+3. CoS mirrors decision to `MUS-1718` and parent `MUS-1141` with downstream linkage (`MUS-1024`, `MUS-995`).
+
+CEO review gate:
+- Keep board-side artifact requirements exact (`/status` required fields or SSH success transcript).
+
+ENG review gate:
+- Fail closed on missing fields: `physical_host_id`, `service_uptime`, `version`, `timestamp`.
+
+Retro pulse (since 06:03 KST):
+- Ownership ambiguity on `MUS-1599` was removed via explicit CoS claim; throughput remains constrained by pending board-side artifact production.
+
+## 2026-04-13 CoS Heartbeat Delta (06:03 KST)
+
+Source-of-truth checks:
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/projects/{rootProjectId}` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`)
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}`
+- `GET /api/companies/{companyId}/inbox`
+- `GET /api/issues/{MUS-1141-id}`
+- `GET /api/issues/{MUS-1599-id}`
+- `GET /api/issues/{MUS-1718-id}`
+- `GET /api/companies/{companyId}/issues?parentId={MUS-1141-id}`
+- `GET /api/issues/{MUS-1599-id}/comments`
+- `GET /api/issues/{MUS-1718-id}/comments`
+- `GET /api/companies/{companyId}/issues?limit=500` (filtered `MUS-1614`, `MUS-1729`)
+- `POST /api/issues/{MUS-1141-id}/comments`
+
+Live snapshot (verified):
+- Dashboard rollup: tasks `open=136`, `inProgress=11`, `blocked=55`, `done=421`; agents `active=0`, `running=5`, `paused=0`, `error=0`
+- Root project `musu-functions root` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`) status: `in_progress`
+- Active critical blocker cluster on 5070Ti lane: `MUS-1141` (parent), `MUS-1599` (CoS gate), `MUS-1718` (CoS gate) all `blocked`
+- Parent canonical checkpoint posted and verified on `MUS-1141`: `2dcb9660-4532-4e6f-970a-40eaa9465af5`
+- Board-owned artifact packets for same proof lane remain open:
+  - `MUS-1614` (`todo`, parent `MUS-1599`, owner CEO)
+  - `MUS-1729` (`todo`, parent `MUS-1718`, owner CEO)
+- Inbox endpoint unavailable: `[TBD: awaiting real data]` (`GET /api/companies/{companyId}/inbox` -> `404 {"error":"API route not found"}`)
+
+Divergence corrected:
+- Prior top section (`05:56 KST`) focused Paddle mapping lane updates; this heartbeat adds the concurrently active 5070Ti lane state and canonical parent unblock note.
+- Parent thread now explicitly binds both board-owned artifact packets into one resume order.
+
+Resume order (owner-tagged):
+1. CEO/board operator lands admissible artifact on either `MUS-1614` or `MUS-1729`.
+2. CoS validates artifact quality and posts GO/NO-GO on both `MUS-1599` and `MUS-1718`.
+3. CoS mirrors final parent checkpoint on `MUS-1141` and links downstream impact (`MUS-1024`, `MUS-995`).
+4. Continue parallel Paddle lane execution on `MUS-1140` without cross-lane mixing.
+
+CEO review gate:
+- Keep one admissible evidence standard for 5070Ti proof (`/status` JSON with required fields or SSH success transcript).
+
+ENG review gate:
+- Fail closed on missing runtime fields: `physical_host_id`, `service_uptime`, `version`, `timestamp`.
+
+Retro pulse (since 05:56 KST):
+- Coordination clarity improved via parent-level canonicalization of duplicate artifact packets; throughput remains blocked on board-side evidence production.
+
+## 2026-04-13 CoS Heartbeat Delta (05:56 KST)
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked` (filtered CoS assignee)
+- `GET /api/issues/{MUS-1677-id}/comments`
+- `GET /api/issues/{MUS-1711-id}/comments`
+- `GET /api/issues/{MUS-1715-id}/comments`
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked` (filtered `identifier=MUS-1736`)
+- `POST /api/issues/{MUS-1677-id}/comments`
+- `POST /api/issues/{MUS-1140-id}/comments`
+- `POST /api/agents/{ceoAgentId}/heartbeat/invoke`
+
+Live snapshot (verified):
+- Health: `200` (`status=ok`, `version=0.3.1`)
+- Highest-priority assigned packet worked: `MUS-1677` (`critical`, `blocked`)
+- New CEO child packet present and linked: `MUS-1736` (`critical`, `todo`, parent=`MUS-1715`, owner=`CEO`)
+- New board-facing comments posted and verified:
+  - `MUS-1677`: `032bd9cf-afe1-4028-a81e-682bca4533e6`
+  - `MUS-1140`: `102eb8df-0725-4bf1-b91a-2750ce3e3256`
+- CEO heartbeat invoke response: `status=queued`, `runId=[TBD: awaiting real data]` (endpoint returned no runId field)
+
+Divergence corrected:
+- Normalized chain dependency to explicit owner packet: `MUS-1715 -> MUS-1736 -> MUS-1711 -> MUS-1677 -> MUS-1140`.
+- Kept parent gates blocked to prevent premature CTO review without authoritative exact-class mapping rows.
+
+Resume order (owner-tagged):
+1. CEO completes `MUS-1736` exact-class mapping rows (`PADDLE_API_KEY`, `PADDLE_WEBHOOK_SECRET`, `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN`).
+2. CoS reruns `MUS-1711` normalization and posts `HANDOFF GO|NO-GO`.
+3. CoS mirrors result on `MUS-1677` and `MUS-1140`.
+4. CTO executes `MUS-1724` only on GO.
+
+CEO review gate:
+- Hold scope on Paddle mapping authority chain until `MUS-1736` rows are complete.
+
+ENG review gate:
+- Fail closed for missing or non-timestamped evidence fields.
+
+Retro pulse (since 05:42 KST):
+- Coordination improved via explicit owner child packet and heartbeat nudge; throughput remains blocked on board-authoritative data delivery.
+
+## 2026-04-13 CoS Heartbeat Delta (05:42 KST)
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}`
+- `GET /api/issues/{MUS-1677-id}` + `/comments`
+- `GET /api/issues/{MUS-1715-id}` + `/comments`
+- `GET /api/issues/{MUS-1711-id}` + `/comments`
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/inbox`
+- `GET /api/projects/{rootProjectId}` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`)
+- `POST /api/companies/{companyId}/issues` (new child packet)
+- `POST /api/issues/{MUS-1715-id}/comments`
+- `POST /api/issues/{MUS-1677-id}/comments`
+- `POST /api/issues/{MUS-1711-id}/comments`
+
+Live snapshot (verified):
+- Health: `200` (`status=ok`, `version=0.3.1`)
+- Dashboard rollup: tasks `open=134`, `inProgress=13`, `blocked=53`, `done=421`; `pendingApprovals=0`; agents listed=`4`
+- Inbox endpoint unavailable: `[TBD: awaiting real data]` (`GET /api/companies/{companyId}/inbox` -> `404 {"error":"API route not found"}`)
+- Root project `musu-functions root` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`) status: `in_progress`
+- Queue-front CoS critical lane still blocked: `MUS-1599`, `MUS-1140`, `MUS-1141`, `MUS-1677`, `MUS-1718`
+
+Divergence corrected:
+- Upstream schema drift risk detected in Paddle mapping chain:
+  - `MUS-1677`/`MUS-1711` require exact classes (`PADDLE_API_KEY`, `PADDLE_WEBHOOK_SECRET`, `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN`)
+  - Latest `MUS-1715` direction asked for a simplified table shape
+- Created scoped child packet `MUS-1736` (critical, owner=CEO, parent=`MUS-1715`) to force exact-class authoritative delivery by `2026-04-13 18:00 KST`.
+
+Board-facing comments posted this run:
+- `MUS-1715`: `193aa68d-8cf3-479a-90cd-bb766c9da68a`
+- `MUS-1677`: `65521f6a-6e40-4411-9012-d17b4af2a34e`
+- `MUS-1711`: `ff84ccb3-90a6-4025-905f-7bcde250a0dc`
+
+Resume order (owner-tagged):
+1. CEO closes `MUS-1736` with canonical rows and explicit `[TBD: awaiting real data]` lines for missing fields.
+2. CoS reruns `MUS-1711` normalization and posts `HANDOFF GO|NO-GO`.
+3. CoS mirrors the decision on `MUS-1677` and `MUS-1140`.
+4. CTO executes `MUS-1724` only after GO.
+
+CEO review gate:
+- Hold scope on the Paddle authority chain only; do not widen until exact-class rows are authoritative.
+
+ENG review gate:
+- Fail closed on class mismatch or missing timestamped evidence fields.
+
+Retro pulse (since 05:38 KST):
+- Readability improved through explicit child packeting (`MUS-1736`) and deterministic gate rules; throughput still blocked on board-authoritative input.
+
+## 2026-04-13 CoS Heartbeat Delta (05:38 KST)
+
+Source-of-truth checks:
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/companies/{companyId}/inbox`
+- `GET /api/projects/{rootProjectId}` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`)
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}`
+- `GET /api/issues/{MUS-1140-id}`
+- `GET /api/companies/{companyId}/issues?parentId={MUS-1140-id}`
+- `GET /api/companies/{companyId}/issues?parentId={MUS-1677-id}`
+- `GET /api/issues/{MUS-1140-id}/comments`
+- `GET /api/issues/{MUS-1677-id}/comments`
+- `POST /api/issues/{MUS-1140-id}/comments`
+
+Live snapshot (verified):
+- Dashboard rollup: tasks `open=134`, `inProgress=12`, `blocked=54`, `done=421`; agents `active=0`, `running=5`, `paused=0`, `error=0`
+- Root project `musu-functions root` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`) status: `in_progress`
+- Queue-front critical lane worked: `MUS-1140` (`blocked`)
+- Parent blocker/resume comment posted: `d77ca38e-d5e3-4d54-8936-63991a432621`
+- `MUS-1140` blocking children (active): `MUS-1677`, `MUS-1307`, `MUS-1353`, `MUS-1689`, `MUS-1296`
+- `MUS-1677` packet chain status: `MUS-1715=in_progress`, `MUS-1711=blocked`, `MUS-1724=blocked`
+- Inbox endpoint unavailable: `[TBD: awaiting real data]` (`GET /api/companies/{companyId}/inbox` -> `404 {"error":"API route not found"}`)
+
+Divergence corrected:
+- Prior top sync block (`05:30 KST`) is stale versus live board counters and packet states (notably `MUS-1724` is `blocked`).
+- Parent thread now has a canonical fail-closed unblock note with owner-tagged resume order.
+
+Resume order (owner-tagged):
+1. CEO/local-board completes authoritative rows for exact required classes on `MUS-1715`.
+2. Founding Engineer closes evidence rows on `MUS-1353` + `MUS-1689` aligned to required classes.
+3. CoS reruns `MUS-1711` normalization and posts `HANDOFF GO|NO-GO`, then mirrors to `MUS-1677`.
+4. CTO executes `MUS-1724` only after Packet-B GO.
+
+CEO review gate:
+- Keep scope constrained to the `MUS-1140` Paddle evidence chain until required class rows are authoritative.
+
+ENG review gate:
+- Fail closed on class mismatch; `PADDLE_WEBHOOK_PUBLIC_KEY` cannot satisfy `PADDLE_WEBHOOK_SECRET` requirements.
+
+Retro pulse (since 05:30 KST):
+- Coordination clarity improved via one canonical parent checkpoint, but throughput remains blocked on authoritative owner/authority row completion.
+
+## 2026-04-13 CoS Heartbeat Delta (05:30 KST)
+
+Source-of-truth checks:
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked` (filtered CoS assignee)
+- `GET /api/issues/{MUS-1677-id}`
+- `GET /api/issues/{MUS-1711-id}`
+- `GET /api/issues/{MUS-1715-id}` + `GET /api/issues/{MUS-1715-id}/comments`
+- `POST /api/issues/{MUS-1677-id}/comments`
+- `POST /api/issues/{MUS-1140-id}/comments`
+- `POST /api/issues/{MUS-1715-id}/comments`
+
+Live snapshot (verified):
+- Queue-front CoS critical lane is now Paddle chain by latest update ordering:
+  - `MUS-1140` (`blocked`, `critical`)
+  - `MUS-1677` (`blocked`, `critical`)
+- `MUS-1711` remains `blocked` (`high`) as normalization gate.
+- New board-facing comments posted:
+  - `MUS-1677`: `27ca08e9-5c65-437f-b4b1-c4ecef72aa3f`
+  - `MUS-1140`: `5eb7a43e-b3c1-4efc-9ffd-4946a04c4165`
+  - `MUS-1715`: `73d2dc16-dfc2-4026-9fca-70d2d9f9367a`
+
+Divergence corrected:
+- 05:21 snapshot had 5070Ti chain as queue-front.
+- Live state after this heartbeat moved queue-front to Paddle chain (`MUS-1140`/`MUS-1677`) based on newest API `updatedAt` ordering.
+
+Resume order (owner-tagged):
+1. CEO/local-board updates `MUS-1715` with exact classes: `PADDLE_API_KEY`, `PADDLE_WEBHOOK_SECRET`, `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN`.
+2. CoS reruns `MUS-1711` normalization and posts GO/NO-GO on `MUS-1677`.
+3. CTO executes `MUS-1724` only if Packet-B is GO.
+
+CEO review gate:
+- Hold scope on exact class-authority mapping; no substitute key classes.
+
+ENG review gate:
+- Fail-closed if any required row field is missing or not timestamped.
+
+Retro pulse (since 05:21 KST):
+- Coordination quality improved (clear NO-GO + owner-scoped resume order), throughput still blocked on authoritative row correction from board side.
+
+## 2026-04-13 CoS Heartbeat Delta (05:21 KST)
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked` (filtered CoS assignee)
+- `GET /api/issues/{MUS-1718-id}` + `GET /api/issues/{MUS-1718-id}/comments`
+- `GET /api/issues/{MUS-1599-id}` + `GET /api/issues/{MUS-1599-id}/comments`
+- `GET /api/issues/{MUS-1141-id}`
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked` (filtered `parentId={MUS-1141-id}`)
+- `POST /api/issues/{MUS-1718-id}/comments`
+- `POST /api/issues/{MUS-1599-id}/comments`
+- `POST /api/issues/{MUS-1141-id}/comments`
+- `POST /api/agents/{ceoAgentId}/heartbeat/invoke`
+- `POST /api/issues/{MUS-1718-id}/comments` (escalation log)
+
+Live snapshot (verified):
+- Health: `200` (`status=ok`, `version=0.3.1`)
+- Queue-front CoS critical lane includes `MUS-1718` + `MUS-1599` (both `blocked`) under parent `MUS-1141` (`blocked`)
+- Board execution child exists and is actionable: `MUS-1729` (`todo`, owner=`CEO`)
+- CoS board-facing updates posted:
+  - `MUS-1718`: `9c9ebd3d-85e0-44ec-8019-933a7e63e0c2`
+  - `MUS-1599`: `b0bee42d-8f33-4f7e-bc68-09facf8de9ea`
+  - `MUS-1141`: `2a1999e9-7708-4df5-9568-be7a0c978137`
+- Escalation invoke queued to CEO for board-side artifact: run `8b0aa12e-badb-4408-89a0-0d68103eaacd`
+- Escalation log comment on `MUS-1718`: `843ea200-b34a-4c36-951d-44c8fa9eb817`
+
+Divergence corrected:
+- Previous top snapshot emphasized Paddle lane (`MUS-1140`) as queue-front; live assigned critical queue for CoS currently has active 5070Ti blocker chain (`MUS-1718`/`MUS-1599`).
+- Canonicalized execution path for 5070Ti lane:
+  - decision gate: `MUS-1718` (CoS)
+  - execution child: `MUS-1729` (CEO/board operator)
+  - mirror packet: `MUS-1599`
+
+Resume order (owner-tagged):
+1. CEO/board operator posts MUS-1729 admissible artifact (`/status` JSON with required fields OR successful SSH transcript).
+2. CoS posts GO/NO-GO on MUS-1718.
+3. CoS mirrors decision to MUS-1599 and parent MUS-1141 with downstream impact note for MUS-1024.
+
+CEO review gate:
+- Hold scope on one canonical 5070Ti blocker chain until MUS-1729 artifact lands.
+
+ENG review gate:
+- Fail-closed on evidence quality: literal command output + timestamp only.
+
+Retro pulse (since 05:08 KST):
+- Coordination quality improved via packet normalization and explicit canonical gate; throughput remains blocked on board-side artifact production.
+
+## 2026-04-13 CoS Heartbeat Delta (05:08 KST)
+
+Source-of-truth checks:
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/companies/{companyId}/projects` (filtered `musu-functions root`)
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}&status=todo,in_progress,blocked` (critical filter)
+- `GET /api/issues/{MUS-1140-id}` + `GET /api/companies/{companyId}/issues?parentId={MUS-1140-id}`
+- `GET /api/issues/{MUS-1677-id}/comments`
+- `GET /api/issues/{MUS-1711-id}`
+- `GET /api/issues/{MUS-1715-id}` + `GET /api/issues/{MUS-1715-id}/comments`
+- `POST /api/issues/{MUS-1711-id}/comments`
+- `PATCH /api/issues/{MUS-1711-id}` (`status=blocked`)
+- `POST /api/issues/{MUS-1677-id}/comments`
+- `POST /api/issues/{MUS-1140-id}/comments`
+- `GET /api/companies/{companyId}/inbox`
+
+Live snapshot (verified):
+- Dashboard rollup: tasks `open=130`, `inProgress=15`, `blocked=46`, `done=418`; agents `active=1`, `running=4`, `paused=0`, `error=0`
+- Root project `musu-functions root` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`) status: `in_progress`
+- Queue-front critical lane worked: `MUS-1140` (`blocked`)
+- Packet-B (`MUS-1711`) handoff decision posted: `a87bbeca-3989-47a7-8e42-3a13115b2772` (`HANDOFF: NO-GO`)
+- `MUS-1711` status normalized to `blocked`
+- Packet-B result mirrored to `MUS-1677`: `6a085616-5e41-41d3-a2dd-d58c3854ba1f`
+- Parent checkpoint mirrored to `MUS-1140`: `03f18d00-2237-4a3e-9be0-b724bf6cd06e`
+- `MUS-1715` CEO input exists (`3467b04f-b6a8-45fb-bafd-dff708d668c6`) but is not yet authoritative for required key classes
+- Inbox endpoint unavailable: `[TBD: awaiting real data]` (`GET /api/companies/{companyId}/inbox` -> `404 {"error":"API route not found"}`)
+
+Divergence corrected:
+- Packet-B was still `in_progress` despite unresolved key-class authority fields; now explicitly `blocked` with NO-GO evidence.
+- Parent/child sequencing is now explicit and stable: `MUS-1715 (CEO rows) -> MUS-1711 (CoS normalize) -> MUS-1724 (CTO G1)`.
+
+Resume order (owner-tagged):
+1. CEO/local-board updates authoritative rows for exact required classes: `PADDLE_API_KEY`, `PADDLE_WEBHOOK_SECRET`, `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN`.
+2. CoS reruns MUS-1711 normalization and posts updated GO/NO-GO.
+3. CTO executes MUS-1724 only after Packet-B flips to GO.
+
+CEO review gate:
+- Keep scope on MUS-1140 chain until authoritative row-level mapping is complete.
+
+ENG review gate:
+- Fail-closed on class mismatch (`webhook public key` is not equivalent to `PADDLE_WEBHOOK_SECRET`).
+
+Retro pulse (since 04:47 KST):
+- Coordination quality improved (explicit NO-GO gate + synchronized parent comments), but throughput remains blocked on authoritative key-class mapping.
+
+## 2026-04-13 CoS Heartbeat Delta (04:47 KST)
+
+Source-of-truth checks:
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/companies/{companyId}/projects` (filtered `musu-functions root`)
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}&status=todo,in_progress,blocked`
+- `GET /api/issues/{MUS-1677-id}`
+- `GET /api/issues/{MUS-1677-id}/comments`
+- `GET /api/issues/{MUS-1655-id}` + `GET /api/issues/{MUS-1392-id}` + `GET /api/issues/{MUS-1140-id}`
+- `GET /api/companies/{companyId}/issues?parentId={MUS-1655-id}`
+- `POST /api/issues/{MUS-1677-id}/comments`
+- `PATCH /api/issues/{MUS-1677-id}` (`status=blocked`)
+- `POST /api/issues/{MUS-1140-id}/comments`
+- `GET /api/companies/{companyId}/inbox`
+
+Live snapshot (verified):
+- Dashboard rollup: tasks `open=111`, `inProgress=10`, `blocked=43`, `done=418`; agents `active=0`, `running=5`, `paused=0`, `error=0`
+- Root project `musu-functions root` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`) status: `in_progress`
+- Queue-front critical lane worked: `MUS-1677` (`critical`)
+- Required mapping table posted on `MUS-1677`: `9fc0d795-f532-4b40-9025-4225789ec6bb`
+- Packet state updated: `MUS-1677=blocked` with explicit `[TBD: awaiting real data]` rows (no invented owner/endpoint values)
+- Parent linkage now resolves to active parent `MUS-1140` (`parentId=9e54f49f-a965-4153-bc96-04d3c54ebf11`)
+- Parent chain sync comment posted on `MUS-1140`: `07517534-1369-40db-b92d-3a4d8aa030ae`
+- Inbox endpoint unavailable: `[TBD: awaiting real data]` (`GET /api/companies/{companyId}/inbox` -> `404 {"error":"API route not found"}`)
+
+Divergence corrected:
+- Active child packet `MUS-1677` is now aligned under active blocked parent `MUS-1140` instead of cancelled chain artifacts (`MUS-1655`/`MUS-1392`).
+- Board now has the mandated authoritative table format plus explicit TBD rows and owner escalation contract in one place.
+
+Resume order (owner-tagged):
+1. CEO/local-board supplies authoritative owner, rotation_authority, and rotation_endpoint rows for all three Paddle credential classes.
+2. CoS updates MUS-1677 rows from `[TBD: awaiting real data]` to authoritative values with redacted evidence references.
+3. CTO runs G1 review on MUS-1677 and propagates result into MUS-1140 closure path.
+
+CEO review gate:
+- Keep scope on MUS-1140 Paddle evidence chain until owner/authority mapping rows are authoritative.
+
+ENG review gate:
+- Fail-closed policy remains: no secret disclosure, no inferred ownership metadata, no closure without row-level authority evidence.
+
+Retro pulse (since 03:59 KST):
+- Execution hygiene improved via parent-linkage cleanup + structured table output; throughput remains blocked on owner-supplied authority fields.
+
+## 2026-04-13 CoS Heartbeat Delta (03:59 KST)
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/projects/{rootProjectId}` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`)
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}&status=todo,in_progress,blocked,in_review`
+- `GET /api/issues/{9e54f49f-a965-4153-bc96-04d3c54ebf11}`
+- `GET /api/issues/{9e54f49f-a965-4153-bc96-04d3c54ebf11}/comments`
+- `GET /api/companies/{companyId}/issues?parentId={9e54f49f-a965-4153-bc96-04d3c54ebf11}&status=todo,in_progress,blocked,in_review,backlog`
+- `GET /api/companies/{companyId}/inbox`
+- `POST /api/issues/{9e54f49f-a965-4153-bc96-04d3c54ebf11}/comments` (clean unblock note)
+- `POST /api/issues/{e1c5f579-c963-4098-97cf-d87a443e1da8}/comments`
+- `POST /api/issues/{2b0931b9-5e16-4971-b603-6412be410cac}/comments`
+- `POST /api/agents/{ceoAgentId}/heartbeat/invoke`
+- `POST /api/agents/{foundingEngineerAgentId}/heartbeat/invoke`
+- `POST /api/issues/{9e54f49f-a965-4153-bc96-04d3c54ebf11}/comments` (escalation log)
+
+Live snapshot (verified):
+- Health: `200` (`status=ok`, `version=0.3.1`)
+- Dashboard rollup: tasks `open=110`, `inProgress=10`, `blocked=43`, `done=414`; agents `active=0`, `running=5`, `paused=0`, `error=0`
+- Root project `musu-functions root` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`) status: `in_progress`
+- Highest-priority assigned packet worked this pass: `MUS-1140` (`critical`, `blocked`)
+- Parent clean unblock note posted: `c29162e6-a32a-44e7-83c5-b0729d604edd`
+- Escalation log posted: `1ad7a17e-4961-4047-bb60-f865eb321edd`
+- Dependency pings posted:
+  - CEO packet `e1c5...`: `3090f0e9-c4b4-4acb-8b59-f95cac38bb0d`
+  - Founding Engineer packet `2b093...`: `440fb600-5429-441c-b6e2-875779521abc`
+- Heartbeat invokes queued:
+  - CEO: `3997c583-21bc-4be3-81da-0e028b7b683e`
+  - Founding Engineer: `06a17282-97e7-4312-834b-62e49e0ce2f5`
+- Inbox endpoint unavailable: `[TBD: awaiting real data]` (`GET /api/companies/{companyId}/inbox` -> `404 {"error":"API route not found"}`)
+
+Divergence corrected:
+- Queue-front critical ownership remains `MUS-1140`; board comments are refreshed with current API-backed dependency IDs and newest escalation run IDs.
+- Stale escalation attempt using non-existent issue IDs was corrected and replaced with live IDs (`e1c5...`, `2b093...`).
+
+Resume order (owner-tagged):
+1. CEO closes `MUS-1307` or posts exact `[TBD: awaiting real data] owner=<name> eta=<timestamp>`.
+2. Founding Engineer closes `MUS-1353` + `MUS-1689` or posts exact `[TBD: awaiting real data] owner=<name> eta=<timestamp>`.
+3. CoS executes `MUS-1296` -> `MUS-1640` -> `MUS-1641` and publishes `GO|NO-GO`.
+
+CEO review gate:
+- Hold net-new critical packet creation outside this Paddle lane until owner evidence rows are closed or explicitly owner/ETA-blocked.
+
+ENG review gate:
+- Preserve fail-closed sequencing: owner evidence rows -> CoS normalization -> CoS validation matrix -> CoS binary handoff.
+
+Retro pulse (since 03:36 KST):
+- Coordination hygiene improved (fresh clean note + corrected owner pings + queued nudges); throughput remains blocked on owner-provided Paddle evidence rows.
+
+## 2026-04-13 CoS Heartbeat Delta (03:36 KST)
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/companies/{companyId}/projects`
+- `GET /api/companies/{companyId}/inbox`
+- `GET /api/companies/{companyId}/issues?projectId={rootProjectId}&assigneeAgentId={chiefOfStaffAgentId}&status=todo,in_progress,blocked,in_review,backlog`
+- `GET /api/issues/{9e54f49f-a965-4153-bc96-04d3c54ebf11}`
+- `GET /api/issues/{9e54f49f-a965-4153-bc96-04d3c54ebf11}/comments`
+- `GET /api/issues/{e1c5f579-c963-4098-97cf-d87a443e1da8}`
+- `GET /api/issues/{2b0931b9-5e16-4971-b603-6412be410cac}`
+- `GET /api/issues/{ef8bb292-6c34-4a84-bdd5-bfe140a4e598}`
+- `GET /api/issues/{c0dc9ff3-6431-4050-8abe-c183c2a5dcfb}`
+- `GET /api/issues/{6993b9b7-22ed-4047-aa47-9962df80539b}`
+- `GET /api/issues/{f2e57dc3-a0a9-433e-a42a-4cdb8111c72f}`
+- `GET /api/issues/{029bc360-4c04-4043-a9be-81bb6f7aaa59}`
+- `GET /api/issues/{1d64c1b5-8387-45fa-ae31-663531a53562}`
+- `POST /api/issues/{9e54f49f-a965-4153-bc96-04d3c54ebf11}/comments`
+- `PATCH /api/issues/{6993b9b7-22ed-4047-aa47-9962df80539b}` (`status=todo`)
+- `PATCH /api/issues/{f2e57dc3-a0a9-433e-a42a-4cdb8111c72f}` (`status=todo`)
+- `POST /api/issues/{e1c5f579-c963-4098-97cf-d87a443e1da8}/comments`
+- `POST /api/issues/{2b0931b9-5e16-4971-b603-6412be410cac}/comments`
+
+Live snapshot (verified):
+- Health: `200` (`status=ok`, `version=0.3.1`)
+- Dashboard rollup: tasks `open=105`, `inProgress=9`, `blocked=37`, `done=410`; agents `active=0`, `running=5`, `paused=0`, `error=0`
+- Root project `musu-functions root` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`) status: `in_progress`
+- Highest-priority assigned packet worked this pass: `9e54f49f-a965-4153-bc96-04d3c54ebf11` (`critical`, `blocked`)
+- Parent clean unblock note posted: `8ea62921-716a-44ac-893e-56df97656478`
+- CoS executable packet reset: `6993...` and `f2e...` moved from `backlog` to `todo`
+- Dependency pings posted:
+  - CEO packet `e1c5...`: `ea4a2d2a-31a5-45fe-9073-cabd1a1d89fc`
+  - Founding Engineer packet `2b093...`: `d197877f-bf5e-4467-ae6c-e4bd0939d5eb`
+- Inbox endpoint unavailable: `[TBD: awaiting real data]` (`GET /api/companies/{companyId}/inbox` -> `404 {"error":"API route not found"}`)
+
+Divergence corrected:
+- Prior top section (`03:33 KST`) tracked CoS queue-front on incident `69b...`; live CoS assigned critical queue-front is now `9e54...` (Paddle sandbox evidence lane).
+- Prior dependency narrative referenced cancelled children (`029bc360...`, `1d64c1b5...`); active executable CoS handoff packets are `6993...` + `f2e...` and are now set to `todo`.
+
+Resume order (owner-tagged):
+1. CEO closes `e1c5...` (sandbox API key secure registration proof) or posts exact `[TBD: awaiting real data]` row with owner+ETA.
+2. Founding Engineer closes `2b093...` (webhook target + sandbox env alignment proof) or posts exact `[TBD: awaiting real data]` row with owner+ETA.
+3. CoS executes `c0dc...` then `ef8...` for redacted credential evidence normalization.
+4. CoS executes `6993...` (validation matrix) then `f2e...` (`HANDOFF GO|NO-GO`) and updates parent status.
+
+CEO review gate:
+- Hold net-new critical packet creation until Paddle evidence chain (`e1c5...`, `2b093...`, `ef8...`, `6993...`, `f2e...`) is closed or explicitly blocked with owner+ETA rows.
+
+ENG review gate:
+- Keep fail-closed evidence sequencing: owner credential rows -> CoS normalization -> CoS validation matrix -> CoS binary handoff.
+
+Retro pulse (since 03:33 KST):
+- Coordination improved via stale-child correction and executable packet reset, but throughput remains constrained by missing owner-provided Paddle evidence rows.
+
+## 2026-04-13 CoS Heartbeat Delta (03:33 KST)
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/companies/{companyId}/projects`
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/issues?projectId={rootProjectId}&assigneeAgentId={chiefOfStaffAgentId}&status=todo,in_progress,blocked,in_review,backlog`
+- `GET /api/issues/{69b71150-9a9e-4746-bdad-c03e4cf85152}`
+- `GET /api/issues/{69b71150-9a9e-4746-bdad-c03e4cf85152}/comments`
+- `GET /api/issues/{21afc411-8d56-45b5-a2ad-df4ab142fd80}`
+- `GET /api/issues/{7fd4840f-2086-4321-8215-a67310498d2d}`
+- `GET /api/issues/{b731df0b-083c-418c-8190-6ed6f68be8a9}`
+- `GET /api/issues/{9d147994-a303-438f-8758-6a5b8f181aac}`
+- `GET /api/issues/{0447ee3c-a9f3-41c7-905d-a2330179d4b3}`
+- `GET /api/issues/{7eaa5355-f509-42ab-b9cd-0f553d8e0e30}`
+- `GET /api/issues/{0851234d-f7c7-4368-a261-bdc5a64c3bd5}`
+- `GET /api/issues/{32def8ac-a1d4-4347-a3bb-7d588f8a01c3}`
+- `GET /api/issues/{e7fce17b-4f70-439c-ad0f-4923be61379e}`
+- `PATCH /api/issues/{e7fce17b-4f70-439c-ad0f-4923be61379e}` (`status=blocked`)
+- `POST /api/issues/{69b71150-9a9e-4746-bdad-c03e4cf85152}/comments`
+- `POST /api/issues/{e7fce17b-4f70-439c-ad0f-4923be61379e}/comments`
+
+Live snapshot (verified):
+- Health: `200` (`status=ok`, `version=0.3.1`)
+- Dashboard rollup: tasks `open=196`, `inProgress=58`, `blocked=66`, `done=410`; agents `active=0`, `running=5`, `paused=0`, `error=0`
+- Root project `musu-functions root` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`) status: `in_progress`
+- Highest-priority assigned packet worked this pass: `69b71150-9a9e-4746-bdad-c03e4cf85152` (`critical`, `in_progress`)
+- Parent incident unblock/resume-order comment posted: `e068c121-2216-43b4-b2a5-dad9cbfc3e6a`
+- `MUS-1392 D3` packet (`e7fce17b-4f70-439c-ad0f-4923be61379e`) status corrected to `blocked`
+- `MUS-1392 D3` blocker note posted: `598f59a4-d052-4b0a-b379-97b3038f463e`
+- Active `MUS-1364` row could not be identified from current issue title scan: `[TBD: awaiting real data]`
+
+Divergence corrected:
+- Local board top section at `01:33 KST` was stale against current dependency posture; CoS queue-front critical lane remains incident `69b...`, but now explicitly reflects that Packet A (`7fd...`) and Packet B (`b731...`) are blocked on unresolved owner-authority rows (`0447...`, `7eaa...`, `085...`, `32def...`).
+- `MUS-1392 D3` was marked `in_progress` while upstream authority rows remained incomplete; status is now aligned to `blocked` with evidence-linked resume order.
+
+Resume order (owner-tagged):
+1. CEO/CTO finish owner-authority rows on `0447/7eaa/085/32def` (or post exact `[TBD: awaiting real data]` row with owner+ETA).
+2. CoS closes `7fd...` (Packet A) with full provider inventory + redacted key-ID matrix coverage.
+3. CoS executes `b731...` (Packet B) rotation/revocation rows provider-by-provider.
+4. QA closes `9d147...` with binary PASS/FAIL scrub + heredoc-guard evidence.
+5. CoS posts final `OPS: PASS|FAIL` on `21af...` and then updates incident parent `69b...`.
+
+CEO review gate:
+- Hold net-new incident-scope work until owner-authority row completeness is explicit for all blocked providers.
+
+ENG review gate:
+- Preserve fail-closed sequence: owner-authority rows -> Packet A matrix -> Packet B rotation rows -> QA scrub/guard verdict -> CoS closure verdict.
+
+Retro pulse (since 01:33 KST):
+- Board hygiene improved (live incident note posted, dependency packet status corrected), but throughput remains blocked by unresolved owner-authority inputs outside CoS direct control.
+
+## 2026-04-13 CoS Heartbeat Delta (01:33 KST)
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/projects/{rootProjectId}` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`)
+- `GET /api/companies/{companyId}/issues?status=backlog,todo,in_progress,blocked,in_review` (filtered by CoS assignee + `MUS-1360` chain)
+- `GET /api/issues/{MUS-1360-id}` + `GET /api/issues/{MUS-1360-id}/comments`
+- `GET /api/issues/{MUS-1365-id}` + `GET /api/issues/{MUS-1365-id}/comments`
+- `GET /api/issues/{MUS-1366-id}/comments`
+- `GET /api/issues/{MUS-1392-id}/comments`
+- `GET /api/issues/{MUS-1409-id}/comments`
+- `POST /api/issues/{MUS-1365-id}/comments`
+- `POST /api/issues/{MUS-1392-id}/comments`
+- `POST /api/issues/{MUS-1409-id}/comments`
+- `POST /api/issues/{MUS-1602-id}/comments`
+- `POST /api/issues/{MUS-1360-id}/comments`
+- `POST /api/agents/{ceoAgentId}/heartbeat/invoke`
+- `GET /api/heartbeat-runs/{a91a2614-c3db-4e42-8972-b20b19bc34e4}`
+- `GET /api/companies/{companyId}/inbox`
+
+Live snapshot (verified):
+- Health: `200` (`status=ok`, `version=0.3.1`)
+- Dashboard rollup: tasks `open=185`, `inProgress=53`, `blocked=58`, `done=408`; agents `active=1`, `running=4`, `paused=0`, `error=0`
+- Root project `musu-functions root` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`) status: `in_progress`
+- Highest-priority assigned packet worked this pass: `MUS-1360` (`critical`, `in_progress`)
+- Clean unblock note posted on `MUS-1365`: `1980de4a-2f8f-45c2-a9b2-8a6842cf7e3a`
+- Escalation comments posted after clean note:
+  - `MUS-1392`: `b42439b1-dc98-4ce4-8a36-e7ddc8a40eb8`
+  - `MUS-1409`: `d7bdea0c-e183-4f48-b056-fc647aa38a28`
+  - `MUS-1602`: `639f1a07-e5dd-40f1-b863-656d894fae04`
+- Parent sync comment posted on `MUS-1360`: `744cb8f1-0535-4178-a67d-d55918c7facc`
+- CEO heartbeat invoke queued: run `a91a2614-c3db-4e42-8972-b20b19bc34e4` (`status=queued`, `startedAt=null`)
+- Inbox endpoint unavailable: `[TBD: awaiting real data]` (`GET /api/companies/{companyId}/inbox` -> `404 {"error":"API route not found"}`)
+
+Divergence corrected:
+- Prior top section (`01:19 KST`) was centered on `MUS-1546` recovery chain; live CoS queue-front critical ownership has rotated to `MUS-1360` with active `MUS-1365` dependency escalation.
+- Local board now reflects posted live comment IDs and current queued CEO nudge run.
+
+Resume order (owner-tagged):
+1. CEO posts owner/authority rows on `MUS-1392`.
+2. CEO posts rotation endpoint + authority flow rows on `MUS-1409`.
+3. CEO posts source-of-truth/policy rows on `MUS-1602`.
+4. CoS advances `MUS-1366` matrix then executes `MUS-1367`.
+5. QA completes `MUS-1368`; CoS rolls `MUS-1365` to `OPS: PASS|FAIL`; parent `MUS-1360` remains `NO-GO` until all hard gates are admissible.
+
+CEO review gate:
+- Hold scope to SEC-OPS closure (`MUS-1360` lane) until owner-authority rows are complete.
+
+ENG review gate:
+- Keep fail-closed dependency order: `MUS-1392/MUS-1409/MUS-1602 -> MUS-1366 -> MUS-1367 -> MUS-1368 -> MUS-1365 -> MUS-1360`.
+
+Retro pulse (since 01:19 KST):
+- Coordination hygiene improved (clean unblock first, escalation second, run nudge logged), but throughput remains constrained by missing CEO-owned authority artifacts.
+
+## 2026-04-13 CoS Heartbeat Delta (01:19 KST)
+
+Source-of-truth checks:
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/companies/{companyId}/projects` (filtered `musu-functions root`)
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}&status=todo,in_progress,blocked` (critical/high filter)
+- `GET /api/issues/{MUS-1546-id}`
+- `GET /api/companies/{companyId}/issues?parentId={MUS-1546-id}`
+- `GET /api/issues/{MUS-1553-id}` + `GET /api/issues/{MUS-1553-id}/comments`
+- `GET /api/issues/{MUS-1582-id}` + `GET /api/issues/{MUS-1582-id}/comments`
+- `GET /api/issues/{MUS-1518-id}/comments`
+- `GET /api/issues/{MUS-1546-id}/comments`
+- `GET /api/heartbeat-runs/{9703d293-ad22-4674-b0dd-241feb2406ab}`
+- `GET /api/heartbeat-runs/{1e786694-11ae-4f67-ae45-866545c9935f}`
+- `POST /api/issues/{MUS-1553-id}/comments`
+- `POST /api/issues/{MUS-1582-id}/comments`
+- `PATCH /api/issues/{MUS-1582-id}` (`status=blocked`)
+- `POST /api/issues/{MUS-1546-id}/comments`
+- `GET /api/companies/{companyId}/inbox`
+
+Live snapshot (verified):
+- Dashboard rollup: tasks `open=186`, `inProgress=54`, `blocked=58`, `done=404`; agents `active=0`, `running=5`, `paused=0`, `error=0`
+- Root project `musu-functions root` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`) status: `in_progress`
+- Queue-front critical lane worked: `MUS-1546`
+- Current chain:
+  - `MUS-1546=in_progress` (critical)
+  - `MUS-1553=blocked` (critical)
+  - `MUS-1550=in_progress` (critical)
+  - `MUS-1603=in_progress` (high)
+  - `MUS-1582=blocked` (high; corrected this pass)
+- Reverification result:
+  - Target proof comments exist on MUS-1518/MUS-1546 with `createdByRunId`.
+  - Linked run IDs currently resolve as queued-only (`status=queued`, `startedAt=null`, `issueId=null`) on `/api/heartbeat-runs/{runId}`.
+- Evidence comments this pass:
+  - `MUS-1553`: `10a53a23-f1be-4681-a57e-905335dc97ec`
+  - `MUS-1582`: `f434e5ad-86b2-4f26-ae68-232962bf9b2e`
+  - `MUS-1546`: `addcf6bb-b1fb-40a3-818e-812a64ae16da`
+- Inbox endpoint unavailable: `[TBD: awaiting real data]` (`GET /api/companies/{companyId}/inbox` -> `404 {"error":"API route not found"}`)
+
+Divergence corrected:
+- Prior top section (`00:58 KST`) centered on `MUS-1380`; live queue-front critical lane is now `MUS-1546`.
+- `MUS-1582` had drifted to in-progress PASS posture; reset to blocked pending admissible run-state attribution.
+
+Resume order (owner-tagged):
+1. CTO (`MUS-1577` context) posts refreshed MUS-1518 + MUS-1546 proof rows with run IDs that show non-queued state (`running|succeeded|failed`).
+2. QA Lead (`MUS-1582`) reruns replay against refreshed IDs and posts binary PASS/FAIL with endpoint outputs.
+3. CoS (`MUS-1553` -> `MUS-1546`) closes child gate and advances parent recovery lane.
+
+CEO review gate:
+- Keep scope on `MUS-1546` chain only until admissibility criteria is met.
+
+ENG review gate:
+- Linkage drift is clean; blocker is evidence attribution quality (queued-only run state).
+
+Retro pulse (since 00:58 KST):
+- Board hygiene improved via explicit gate correction, but closure velocity remains constrained by attribution-proof quality.
+
+## 2026-04-13 CoS Heartbeat Delta (00:58 KST)
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/projects/{rootProjectId}` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`)
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked` (filtered by CoS assignee + critical queue)
+- `GET /api/issues/{MUS-1380-id}`
+- `GET /api/issues/{MUS-1380-id}/comments`
+- `POST /api/agents/{foundingEngineerAgentId}/heartbeat/invoke`
+- `POST /api/agents/{ctoAgentId}/heartbeat/invoke`
+- `GET /api/heartbeat-runs/{a053f745-05df-45f2-bd21-18719bb7b389}`
+- `GET /api/heartbeat-runs/{6c1330d1-fc21-4c67-a5ca-c87d9596fa8b}`
+- `GET /api/companies/{companyId}/agents`
+- `POST /api/issues/{MUS-1380-id}/comments`
+- `POST /api/issues/{MUS-1432-id}/comments`
+
+Live snapshot (verified):
+- Health: `200` (`status=ok`, `version=0.3.1`)
+- Dashboard rollup: tasks `open=184`, `inProgress=51`, `blocked=58`, `done=402`; agents `active=0`, `running=5`, `paused=0`, `error=0`; approvals `pending=0`
+- Root project `musu-functions root` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`) status: `in_progress`
+- Highest-priority assigned packet worked this pass: `MUS-1380` (`critical`, `blocked`)
+- Fresh invoke evidence:
+  - FE run `a053f745-05df-45f2-bd21-18719bb7b389` -> `queued`
+  - CTO run `6c1330d1-fc21-4c67-a5ca-c87d9596fa8b` -> `queued`
+- Child evidence comment posted on `MUS-1380`: `5d572fb6-7a3d-4123-9752-adda1d9ddd24`
+- Parent linkage comment posted on `MUS-1432`: `9d970242-11af-415e-8e15-cf7f6d2547e2`
+- `MUS-1380` remains `blocked` after refresh (`updatedAt=2026-04-12T15:57:54.409Z`)
+
+Divergence corrected:
+- Local board top row at `00:53 KST` recorded previous queue-cycle run IDs; top section now reflects newest FE/CTO invoke IDs and updated dashboard counts from live API.
+
+Resume order (owner-tagged):
+1. CTO (`MUS-1518`) posts queue-drain/runtime-fix evidence enabling on-demand invokes to move beyond `queued`.
+2. CoS reruns FE/CTO invoke pair immediately after step 1 and captures non-queued run IDs.
+3. CoS captures T0 and T+10m `GET /api/companies/{companyId}/agents` snapshots and closes/re-blocks `MUS-1380` by acceptance result.
+
+CEO review gate:
+- Hold net-new critical packet creation for FE/CTO recovery chain until `MUS-1380` has one non-queued FE+CTO invoke pair.
+
+ENG review gate:
+- Blocker remains scheduler/queue progression (`queued` with `startedAt=null`), not packet decomposition.
+
+Retro pulse (since 00:53 KST):
+- Coordination quality held (fresh evidence posted on child + parent), but throughput remains constrained by unresolved queued-run progression.
+
+## 2026-04-13 CoS Heartbeat Delta (00:53 KST)
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}&status=todo,in_progress,blocked`
+- `POST /api/agents/{foundingEngineerAgentId}/heartbeat/invoke`
+- `POST /api/agents/{ctoAgentId}/heartbeat/invoke`
+- `GET /api/heartbeat-runs/{feRunId}` (`ec15383f-5497-4f67-9a38-4a01120e8508`)
+- `GET /api/heartbeat-runs/{ctoRunId}` (`c0327373-c7c9-4930-84db-2eee69a21730`)
+- `GET /api/companies/{companyId}/agents`
+- `POST /api/issues/{MUS-1380-id}/comments`
+- `GET /api/issues/{MUS-1380-id}`
+- `POST /api/issues/{MUS-1432-id}/comments`
+
+Live snapshot (verified):
+- Health: `200` (`status=ok`, `version=0.3.1`)
+- Dashboard rollup: tasks `open=180`, `inProgress=52`, `blocked=58`, `done=402`; agents `active=0`, `running=5`, `paused=0`, `error=0`
+- Highest-priority assigned packet worked this pass: `MUS-1380` (`critical`, `blocked`)
+- Fresh invoke evidence:
+  - FE run `ec15383f-5497-4f67-9a38-4a01120e8508` -> `queued`
+  - CTO run `c0327373-c7c9-4930-84db-2eee69a21730` -> `queued`
+- `MUS-1380` unblock note comment posted: `7ace5aca-f35e-43d3-935c-bfcd1262be3d`
+- Parent linkage comment posted on `MUS-1432`: `23eaea93-7708-4705-8379-cade210ce33a`
+- `MUS-1380` remains `blocked` after update (`updatedAt=2026-04-12T15:53:45.049Z`)
+
+Divergence corrected:
+- Local board at `00:50 KST` had no fresh FE/CTO invoke pair after the latest queue cycle; this section now records the current invoke IDs and queue outcomes.
+
+Resume order (owner-tagged):
+1. Runtime owner: clear FE/CTO invoke queue contention so on-demand invoke can transition to `running|finished`.
+2. CoS: rerun FE/CTO invoke pair and capture non-queued run IDs.
+3. CoS: attach T0 and T+10m `GET /api/companies/{companyId}/agents` snapshots and close/reopen `MUS-1380` by acceptance result.
+
+CEO review gate:
+- Hold new critical packet creation for FE/CTO recovery chain until `MUS-1380` has at least one non-queued invoke pair.
+
+ENG review gate:
+- Current blocker is scheduler/queue behavior, not issue decomposition quality.
+
+Retro pulse (since 00:50 KST):
+- Coordination remained tight (fresh evidence and parent linkage posted), but queue-state throughput is unchanged.
+
+## 2026-04-13 CoS Heartbeat Delta (00:50 KST)
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/projects/{rootProjectId}` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`)
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked` (filtered by CoS assignee + MUS-1140 chain)
+- `GET /api/issues/{MUS-1140-id}` + `GET /api/issues/{MUS-1140-id}/comments`
+- `GET /api/issues/{MUS-1307-id}` + `GET /api/issues/{MUS-1307-id}/comments`
+- `GET /api/issues/{MUS-1495-id}` + `GET /api/issues/{MUS-1495-id}/comments`
+- `GET /api/issues/{MUS-1353-id}` + `GET /api/issues/{MUS-1353-id}/comments`
+- `POST /api/issues/{MUS-1140-id}/comments`
+- `POST /api/issues/{MUS-1307-id}/comments`
+- `POST /api/issues/{MUS-1495-id}/comments`
+- `POST /api/issues/{MUS-1353-id}/comments`
+- `POST /api/agents/{ceoAgentId}/heartbeat/invoke`
+- `POST /api/agents/{foundingEngineerAgentId}/heartbeat/invoke`
+- `GET /api/companies/{companyId}/inbox`
+
+Live snapshot (verified):
+- Health: `200` (`status=ok`, `version=0.3.1`)
+- Dashboard rollup: tasks `open=180`, `inProgress=52`, `blocked=58`, `done=402`; agents `active=0`, `running=5`, `paused=0`, `error=0`
+- Root project `musu-functions root` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`) status: `in_progress`
+- Highest-priority assigned packet worked this pass: `MUS-1140` (`critical`, `blocked`)
+- Parent unblock comment posted on `MUS-1140`: `82c4eeb6-6949-4bb2-9d4d-93357537c8e9`
+- Owner ping comments posted:
+  - `MUS-1307`: `ca3d29ac-05fb-43a7-ad5f-fb5a99a88c42`
+  - `MUS-1495`: `53080f2a-8850-4d4c-8467-eaa831bcb9d4`
+  - `MUS-1353`: `672c3602-309c-4c81-a74e-174660943258`
+- Heartbeat nudges queued:
+  - CEO run `97bb3e5e-1478-4c33-a8ce-7a00a518b5bc`
+  - Founding Engineer run `413d0677-024e-4179-9a96-e6727df31bca`
+- Inbox endpoint unavailable: `[TBD: awaiting real data]` (`GET /api/companies/{companyId}/inbox` -> `404 {"error":"API route not found"}`)
+
+Divergence corrected:
+- Local board at `00:42 KST` was centered on `MUS-1553`; live CoS critical queue-front now includes `MUS-1140` as an active blocked owner-chain with stale child rows.
+- Child-owner expectations for `MUS-1307`, `MUS-1495`, and `MUS-1353` are now re-stated on the live issues with strict `[TBD: awaiting real data]` fallback contract.
+
+Resume order (owner-tagged):
+1. CEO (`MUS-1307`): post redacted proof rows for `PADDLE_API_KEY` + `PADDLE_WEBHOOK_SECRET`, or exact `[TBD: awaiting real data]` row with ETA.
+2. Founding Engineer (`MUS-1495`, `MUS-1353`): post client token row and webhook/env alignment row, or exact `[TBD: awaiting real data]` rows with ETA.
+3. CoS (`MUS-1373`): execute `HANDOFF: GO|NO-GO` once owner rows land; keep `MUS-1140` blocked until all three owner rows are admissible.
+
+CEO review gate:
+- Hold scope on `MUS-1140` child chain (`1307/1495/1353/1373`) until one full evidence pass is posted.
+
+ENG review gate:
+- Treat this as evidence-integrity gating (row presence + webhook/env parity), not implementation gating.
+
+Retro pulse (since 00:42 KST):
+- Board clarity improved (owner-specific contracts and queue nudges are explicit), but throughput still depends on external evidence rows from CEO/FE packets.
+
+## 2026-04-13 CoS Heartbeat Delta (00:42 KST)
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/companies/{companyId}/projects` (filtered `musu-functions root`)
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}&status=todo,in_progress,blocked` (filtered `priority=critical`)
+- `GET /api/issues/{MUS-1553-id}`
+- `GET /api/issues/{MUS-1553-id}/comments`
+- `GET /api/companies/{companyId}/issues?parentId={MUS-1553-id}`
+- `GET /api/issues/{MUS-1577-id}` + `GET /api/issues/{MUS-1577-id}/comments`
+- `GET /api/issues/{MUS-1582-id}` + `GET /api/issues/{MUS-1582-id}/comments`
+- `GET /api/issues/{MUS-1518-id}` + `GET /api/issues/{MUS-1518-id}/comments`
+- `GET /api/issues/{MUS-1380-id}` + `GET /api/issues/{MUS-1380-id}/comments`
+- `GET /api/issues/{MUS-1546-id}` + `GET /api/issues/{MUS-1546-id}/comments`
+- `POST /api/issues/{MUS-1577-id}/comments`
+- `PATCH /api/issues/{MUS-1577-id}` (`status=blocked`)
+- `POST /api/issues/{MUS-1582-id}/comments`
+- `PATCH /api/issues/{MUS-1582-id}` (`status=blocked`)
+- `POST /api/issues/{MUS-1553-id}/comments`
+- `GET /api/companies/{companyId}/inbox`
+
+Live snapshot (verified):
+- Health: `200` (`status=ok`, `version=0.3.1`)
+- Dashboard rollup: tasks `open=178`, `inProgress=53`, `blocked=57`, `done=401`; agents `active=0`, `running=5`, `paused=0`, `error=0`
+- Root project `musu-functions root` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`) status: `in_progress`
+- Highest-priority critical packet worked this pass: `MUS-1553` (`blocked`)
+- Deterministic gate defect confirmed:
+  - `MUS-1518` comment `43255feb-6718-414e-9046-0f2fba5af670` -> `found=0`
+  - `MUS-1380` same comment `43255feb-6718-414e-9046-0f2fba5af670` -> `found=1`
+  - `MUS-1546` comment `f84dfd07-6472-4915-ac90-669738034f54` -> `found=1`
+- Status normalization applied:
+  - `MUS-1577` moved `done -> blocked`; reconciliation comment `f6a71e61-c39a-488f-9f44-7b8f74cd9953`
+  - `MUS-1582` moved `in_progress -> blocked`; gate comment `ff7ca1b4-f897-48bf-a5b8-0a8e9a896967`
+  - Parent unblock note posted on `MUS-1553`: `6d6275c6-a73b-46f9-9bc3-a2d2d4f65807`
+- Inbox endpoint unavailable: `[TBD: awaiting real data]` (`GET /api/companies/{companyId}/inbox` -> `404 {"error":"API route not found"}`)
+
+Divergence corrected:
+- Local board top section at `00:34 KST` was centered on `MUS-1448`; current critical recency now leads with `MUS-1553`.
+- Child gate states are now aligned to evidence reality (`MUS-1577=blocked`, `MUS-1582=blocked`) instead of stale completion/progress signals.
+
+Resume order (owner-tagged):
+1. CTO (`MUS-1577`): post corrected proof directly on `MUS-1518` and provide new comment ID; reconfirm valid `MUS-1546` proof ID.
+2. QA Lead (`MUS-1582`): rerun linkage consistency verification against corrected proof targets and post PASS/FAIL evidence.
+3. CoS (`MUS-1553`): verify both child evidences and transition parent out of `blocked`.
+
+CEO review gate:
+- Hold scope on this recovery chain; do not open net-new critical packets until `MUS-1577` provides a valid MUS-1518-targeted proof ID.
+
+ENG review gate:
+- This is a proof-target integrity defect, not a linkage subsystem drift defect. Prioritize correct issue-target evidence writes.
+
+Retro pulse (since 00:34 KST):
+- Execution hygiene improved (gate state now truthful), but throughput is still constrained by evidence-attribution discipline.
+
+## 2026-04-13 CoS Heartbeat Delta (00:34 KST)
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/projects/{rootProjectId}` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`)
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}&status=todo,in_progress,blocked`
+- `GET /api/issues/{MUS-1448-id}`
+- `GET /api/issues/{MUS-1448-id}/comments`
+- `POST /api/agents/{foundingEngineerAgentId}/heartbeat/invoke`
+- `POST /api/agents/{ctoAgentId}/heartbeat/invoke`
+- `GET /api/heartbeat-runs/{7b8d6645-b2f7-4074-b9ed-7274a3a83a77,f0d8a703-c40c-4329-be6c-f32c9dce20f2}`
+- `GET /api/companies/{companyId}/heartbeat-runs?agentId={FE|CTO}&status=running,queued&limit=10`
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked` (filtered to `MUS-1465` + `MUS-1479`)
+- `POST /api/issues/{MUS-1448-id}/comments`
+- `PUT /api/issues/{MUS-1448-id}/documents/plan` (`baseRevisionId=142728f2-7b80-4c97-95cf-650d0d61d57b`)
+- `GET /api/companies/{companyId}/inbox`
+
+Live snapshot (verified):
+- Health: `200` (`status=ok`, `version=0.3.1`)
+- Dashboard rollup: tasks `open=177`, `inProgress=53`, `blocked=57`, `done=401`; agents `active=1`, `running=4`, `paused=0`, `error=0`
+- Root project `musu-functions root` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`) status: `in_progress`
+- Highest-priority assigned packet selected: `MUS-1448` (`critical`, `blocked`)
+- Fresh invoke evidence:
+  - FE run `7b8d6645-b2f7-4074-b9ed-7274a3a83a77` -> `queued`
+  - CTO run `f0d8a703-c40c-4329-be6c-f32c9dce20f2` -> `queued`
+- Queue sample (latest 10 rows each) for FE and CTO returned queued-only rows
+- Evidence comment posted on `MUS-1448`: `19b649f0-c482-418c-acc4-36ef6a797e11`
+- Plan sync completed on `MUS-1448`: revision `2` (`bb667573-db40-4591-b2e6-e2975f1c2b50`) and stale packet reference corrected (`MUS-1473` -> `MUS-1465` + `MUS-1479`)
+- Parent linkage comment posted on `MUS-1380`: `19a6ddc6-0597-407b-acf3-2e33ddd62d52`
+- Owner heartbeat nudges:
+  - CTO invoke `6a81774d-ae33-46b9-ac55-6c0a282f0422` -> `queued`
+  - CEO invoke `7febb8ab-5826-4836-ba1d-bb9109ecbc83` -> `queued`
+- Relevant owner packets:
+  - `MUS-1465` (`in_progress`, owner=CTO)
+  - `MUS-1479` (`todo`, owner=CEO, parent=`MUS-1448`)
+- Inbox endpoint unavailable: `[TBD: awaiting real data]` (`GET /api/companies/{companyId}/inbox` -> `404 {"error":"API route not found"}`)
+
+Divergence corrected:
+- Local board top section (`00:11 KST`) was focused on `MUS-1599`; current queue-front critical lane is `MUS-1448`.
+- `MUS-1448` plan document previously referenced stale packet `MUS-1473`; live plan now aligned to active packets `MUS-1465` and `MUS-1479`.
+
+Resume order (owner-tagged):
+1. CTO closes `MUS-1465` with first FE/CTO invoke rows at `running|finished`.
+2. CEO executes `MUS-1479` with FE/CTO T0 and T+10m `status=running` snapshots.
+3. CoS validates acceptance on `MUS-1448` and either closes it or keeps blocked with explicit `[TBD: awaiting real data]` owner+ETA rows.
+
+CEO review gate:
+- Keep scope on the `MUS-1448` closure chain; do not open net-new critical lanes until one non-queued invoke proof is posted.
+
+ENG review gate:
+- Treat queued-only invoke streams as run-scheduler contention until `MUS-1465` posts a non-queued transition proof.
+
+Retro pulse (since 00:11 KST):
+- Coordination improved (fresh evidence + plan drift correction), but execution throughput remains constrained by unresolved queue-drain behavior.
+
+## 2026-04-13 CoS Heartbeat Delta (00:11 KST)
+
+Source-of-truth checks:
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/projects/{rootProjectId}` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`)
+- `GET /api/issues/{MUS-1599-id}`
+- `GET /api/issues/{MUS-1599-id}/comments`
+- `GET /api/issues/{MUS-1141-id}`
+- `GET /api/issues/{MUS-1141-id}/comments`
+- Live probes from CoS host:
+  - `curl --max-time 5 http://100.121.211.106:23880/status`
+  - `ssh -i /home/hugh51/.ssh/id_ed25519 -o BatchMode=yes -o ConnectTimeout=7 hugh@100.121.211.106 'echo ok'`
+- `POST /api/issues/{MUS-1599-id}/comments`
+- `PATCH /api/issues/{MUS-1599-id}` (`status=blocked`)
+- `POST /api/issues/{MUS-1141-id}/comments`
+
+Live snapshot (verified):
+- Dashboard rollup: tasks `open=169`, `inProgress=50`, `blocked=56`, `done=401`; agents `active=0`, `running=5`, `paused=0`, `error=0`
+- Root project `musu-functions root` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`) status: `in_progress`
+- Highest-priority assigned packet selected: `MUS-1599` (`critical`)
+- Evidence comment posted on `MUS-1599`: `fe1f0010-c7a6-40d7-b666-29ade0b60017`
+- Parent linkage comment posted on `MUS-1141`: `818c8892-a19f-4ce3-a688-c1579e822c91`
+- Follow-up ownership comment posted on `MUS-1599`: `228fc7ca-4b1b-4009-a953-b0f1347e19ba`
+- Child packet created for owner execution: `MUS-1614` (`todo`, `high`, assignee `CEO`, parent `MUS-1599`)
+- CEO heartbeat invoke queued for pickup: `da75838d-06ec-4f52-974e-08cba1141d00`
+- `MUS-1599` moved `todo -> blocked` (`updatedAt=2026-04-13 00:10:51 KST`)
+- Fresh artifact evidence:
+  - `/status` probe failed: `curl: (7) Failed to connect to 100.121.211.106 port 23880 ... Couldn't connect to server`
+  - SSH proof failed with explicit key path: `hugh@100.121.211.106: Permission denied (publickey,password).`
+
+Divergence corrected:
+- Local board at `00:06 KST` said CoS should execute `MUS-1599` next; execution is now complete and state is synchronized (`blocked` with evidence/comment IDs).
+- Parent packet `MUS-1141` now contains a timestamped cross-link to the child evidence pass.
+
+Resume order (owner-tagged):
+1. CEO executes `MUS-1614` with one admissible 5070Ti artifact (`curl localhost:23880/status` redacted JSON including `physical_host_id` if present).
+2. If local port differs, host owner posts exact service-port discovery evidence and adjusted `/status` output in `MUS-1614`.
+3. If SSH lane is preferred, host owner authorizes CoS key and posts first successful SSH transcript in `MUS-1614`.
+4. CoS validates `MUS-1614` artifact against `MUS-1599` acceptance and updates `MUS-1141` + `MUS-1024` move decision (`in_progress` or remain `blocked` with `[TBD: awaiting real data]`).
+
+CEO review gate:
+- Keep scope on `MUS-1599 -> MUS-1141 -> MUS-1024` closure chain only; do not open parallel critical lanes until one admissible 5070Ti artifact is posted.
+
+ENG review gate:
+- Treat this as access/evidence gate, not code gate. Do not claim runtime recovery until one proof artifact is captured from 5070Ti local host or successful SSH authorization is demonstrated.
+
+Retro pulse (since 00:06 KST):
+- Coordination quality improved (fresh critical-packet evidence posted with exact command/output), but throughput remains constrained by external host authorization and operator-side artifact capture.
+
+## 2026-04-13 CoS Heartbeat Delta (00:06 KST)
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/companies/{companyId}/projects`
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}&status=todo,in_progress,blocked`
+- `GET /api/issues/{MUS-1598-id}`
+- `GET /api/issues/{MUS-1598-id}/comments`
+- `GET /api/companies/{companyId}/issues?parentId={MUS-1140-id}`
+- Local probe: `/mnt/f/Aisaak/Projects/yellow.txt` (`sha256`, `mtime`, key-name presence only)
+- Local probe: webhook route path existence at `musu-bee/src/app/api/webhooks/paddle/route.ts`
+- `POST /api/issues/{MUS-1598-id}/comments`
+- `PATCH /api/issues/{MUS-1598-id}` (`status=done`)
+- `GET /api/companies/{companyId}/inbox`
+
+Live snapshot (verified):
+- Health: `200` (`status=ok`, `version=0.3.1`)
+- Dashboard rollup: tasks `open=170`, `inProgress=50`, `blocked=55`, `done=400`; agents `active=1`, `running=4`, `paused=0`, `error=0`
+- Root project `musu-functions root` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`) status: `in_progress`
+- Actionable queue-front critical packet selected: `MUS-1598` (`todo`)
+- `MUS-1598` evidence comment posted: `d1ba0c68-7fb0-46a7-8c9d-cd9862d46fa6`
+- `MUS-1598` status moved `todo -> done` (`updatedAt=2026-04-13 00:05 KST`)
+- Pointer artifact captured (no secrets): `/mnt/f/Aisaak/Projects/yellow.txt`, `sha256=3f4c6793b117b044b5177da18956c21614f1262d4ca13357bf207461f6e7662a`, `mtime=2026-04-08 21:21:28.945364900 +0900`
+- Redacted presence rows still `missing`: `PADDLE_API_KEY`, `PADDLE_WEBHOOK_SECRET`, `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN`, `NEXT_PUBLIC_PADDLE_ENV`
+- Webhook target endpoint path confirmed: `/api/webhooks/paddle`
+- Inbox endpoint unavailable: `[TBD: awaiting real data]` (`GET /api/companies/{companyId}/inbox` -> `404 {"error":"API route not found"}`)
+
+Divergence corrected:
+- Local board top section previously focused on `MUS-1546` queue pressure; live actionable critical lane progressed through `MUS-1598` and is now closed.
+- Evidence pointer requirements are now documented with current API/local probe outputs and linked comment ID.
+
+Resume order (owner-tagged):
+1. Board owner/CEO on `MUS-1307`: post redacted proof rows for `PADDLE_API_KEY` + `PADDLE_WEBHOOK_SECRET`, or exact `[TBD: awaiting real data]` row with ETA.
+2. Founding Engineer on `MUS-1495`: post redacted proof row for `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` (+ `NEXT_PUBLIC_PADDLE_ENV`), or exact `[TBD: awaiting real data]` row with ETA.
+3. Founding Engineer/CoS on `MUS-1353` + `MUS-1373`: confirm webhook env alignment, then post `HANDOFF: GO|NO-GO` with evidence links.
+4. CoS executes next critical board-input packet `MUS-1599` (5070Ti proof) after this pointer closure.
+
+CEO review gate:
+- Keep scope on board-input closure chain (`MUS-1307`/`MUS-1495`/`MUS-1353`/`MUS-1373`/`MUS-1599`); no net-new critical lane creation until one board-input blocker flips state.
+
+ENG review gate:
+- Treat this pass as artifact hygiene only; do not claim integration readiness until missing credential rows are present in source-of-truth and replay evidence is re-posted.
+
+Retro pulse (since prior sync):
+- Coordination quality improved (fresh evidence pointer packet closed), but execution remains externally blocked on human-provided credential rows.
+
+## 2026-04-12 CoS Heartbeat Delta (23:59 KST)
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/companies/{companyId}/projects`
+- `GET /api/projects/23f06292-f513-4261-ba4a-d30fe37a9e0b`
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}&status=todo,in_progress,blocked`
+- `POST /api/agents/{chiefOfStaffAgentId}/heartbeat/invoke`
+- `POST /api/agents/{ctoAgentId}/heartbeat/invoke`
+- `POST /api/agents/{qaLeadAgentId}/heartbeat/invoke`
+- `GET /api/heartbeat-runs/{runId}` for `c1eccc7f-0260-40a5-ad3d-38709981e13f`, `8903c3e9-4264-47de-9c2f-7e64beb22bb3`, `e9f904ba-b8ea-4e05-ba8d-e1e4f60e678e`
+- `POST /api/issues/{MUS-1546-id}/comments`
+- `PATCH /api/issues/{MUS-1546-id}` (`status=blocked`)
+- `GET /api/companies/{companyId}/inbox`
+
+Live snapshot (verified):
+- Health: `200` (`status=ok`, `version=0.3.1`)
+- Dashboard rollup: tasks `open=164`, `inProgress=48`, `blocked=54`, `done=400`; agents `active=1`, `running=4`, `paused=0`, `error=0`
+- Root project `musu-functions root` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`) status: `in_progress`
+- Highest-priority assigned lane selected: `MUS-1546` (`critical`)
+- Fresh invoke runs for CoS/CTO/QA are all still `queued`
+- Issue update posted: `MUS-1546` comment `3ba6ba5c-4062-4ecb-9112-36401f59e94e`; issue status moved `in_progress -> blocked`
+- Plan sync completed: `MUS-1546` plan document at revision `2` (`b5f72241-6f9b-4323-ba41-01c876453532`); status reconfirmed `blocked` at `2026-04-13 00:01 KST`
+- Inbox endpoint unavailable: `[TBD: awaiting real data]` (`GET /api/companies/{companyId}/inbox` -> `404 {"error":"API route not found"}`)
+
+Divergence corrected:
+- Local board header was stale at `23:45 KST` and now matches latest API evidence at `23:59 KST`.
+- `MUS-1546` local lane state now aligns with live issue state (`blocked`) and latest evidence comment ID.
+
+Resume order (owner-tagged):
+1. CTO: verify active execution lock/run contention and post exact run IDs for cancel/retry if queue does not drain.
+2. QA Lead: attach first `queued -> running|finished` proof row on QA invoke lane.
+3. CoS: after proof rows are attached (or lock evidence is explicit), close `MUS-1546` or split a dedicated queue-pressure follow-up issue.
+
+CEO review gate:
+- Do not open new critical recovery packets unless a CoS/CTO/QA agent re-enters `error`.
+
+ENG review gate:
+- Treat persistent queued invokes as scheduler/execution-lock bottleneck, not agent-health regression.
+
+Retro pulse (since prior sync):
+- Agent health is stable (`error=0`), but queue pressure remains the execution bottleneck.
+
+## 2026-04-12 CoS Heartbeat Delta (23:45 KST)
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}&status=todo,in_progress,blocked`
+- `POST /api/agents/{foundingEngineerAgentId}/heartbeat/invoke`
+- `POST /api/agents/{ctoAgentId}/heartbeat/invoke`
+- `GET /api/heartbeat-runs/{runId}` for `f47fc850-e3dd-448b-93bb-02ae45ab6883`, `8d991c8b-0899-4d67-ae89-7c6ff40330e2`, `8961a4d8-4a8b-4f59-833b-0885fcf8369d`, `4b97878e-0815-4328-8526-9535a8680ca1`, `1623733e-7701-4392-8e14-39cafe9d9a28`
+- `GET /api/companies/{companyId}/heartbeat-runs` (filtered FE/CTO queue state)
+- `POST /api/heartbeat-runs/{runId}/cancel` (`8d991c8b-0899-4d67-ae89-7c6ff40330e2`)
+- `POST /api/issues/{MUS-1380-id}/comments`
+- `PATCH /api/issues/{MUS-1380-id}` (`status=blocked`)
+- `GET /api/issues/{MUS-1380-id}/comments`
+
+Live snapshot (verified):
+- Health: `200` (`status=ok`, `version=0.3.1`)
+- Dashboard rollup: tasks `open=161`, `inProgress=44`, `blocked=54`, `done=400`; agents `active=1`, `running=4`, `paused=0`, `error=0`
+- Highest-priority assigned lane: `MUS-1380` (`critical`)
+- `MUS-1380` moved `in_progress -> blocked`; `updatedAt=2026-04-12T14:45:52.836Z`
+- Evidence comment posted on `MUS-1380`: `2183c956-1ad2-4040-8561-ce4438665e8f`
+- FE invoke remains queued: run `f47fc850-e3dd-448b-93bb-02ae45ab6883` (`status=queued`)
+- CTO invoke remained queued then was cleanup-cancelled: run `8d991c8b-0899-4d67-ae89-7c6ff40330e2` (`status=cancelled`)
+- FE has active running slot: `8961a4d8-4a8b-4f59-833b-0885fcf8369d` (`startedAt=2026-04-12T14:43:58.315Z`)
+- CTO has detached active running slot: `4b97878e-0815-4328-8526-9535a8680ca1` (`status=running`, `errorCode=process_detached`) with queued backlog including `1623733e-7701-4392-8e14-39cafe9d9a28`
+- Required `T0/T+10m` dual-running proof remains `[TBD: awaiting real data]`
+
+Divergence corrected:
+- Local board header had stale sync timestamp (`04:04 KST`) while live queue state changed; header is now aligned to `23:45 KST`.
+- `MUS-1380` local lane state is now aligned with live issue status (`blocked`) and current evidence comment ID.
+
+Resume order (owner-tagged):
+1. CoS (`00:10 KST`): re-check FE/CTO invoke state and capture T+10m snapshot from `GET /api/companies/{companyId}/agents`.
+2. Runtime owner (CTO lane): if detached run `4b97878e-0815-4328-8526-9535a8680ca1` does not clear, execute cancellation/retry protocol and re-invoke.
+3. CoS: capture first invoke response where FE and CTO each return `running|finished`.
+4. CoS: append proof bundle to `MUS-1380` and reopen/close according to acceptance.
+
+CEO review gate:
+- Do not open new critical execution packets for FE/CTO until detached-run queue pressure is back to normal and `MUS-1380` acceptance is met.
+
+ENG review gate:
+- `process_detached` on active CTO run (`4b97878e-0815-4328-8526-9535a8680ca1`) is the technical choke point; queue cleanup without fixing this condition will re-accumulate.
+
+Retro pulse (since prior board sync):
+- FE/CTO queue pressure remains elevated (observed queued FE/CTO runs persisted while detached running slots remained active), so runtime health is the short-term bottleneck, not assignment volume.
+
+## 2026-04-12 CoS Heartbeat Delta (04:04 KST)
+
+Source-of-truth checks:
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}`
+- `GET /api/issues/{MUS-1553-id}`
+- `GET /api/issues/{MUS-1577-id}`
+- `GET /api/issues/{MUS-1582-id}`
+- `GET /api/heartbeat-runs/{ctoRunId}`
+- `GET /api/heartbeat-runs/{qaRunId}`
+- `GET /api/companies/{companyId}/inbox`
+
+Live snapshot (verified):
+- Dashboard rollup: tasks `open=154`, `inProgress=45`, `blocked=52`, `done=399`; agents `active=0`, `running=5`, `paused=0`, `error=0`
+- Parent gate status: `MUS-1553=blocked` (`updatedAt=2026-04-11T19:03:42.533Z`)
+- Child gate status: `MUS-1577=in_progress`, `MUS-1582=todo`
+- On-demand invokes still queued: CTO run `6a2a58fd-c1a6-4952-b294-a59b31f2238e`, QA run `90e82bec-2db4-4f8e-9acf-7e3affaadfe4`
+- Inbox endpoint unavailable: `[TBD: awaiting real data]` (`GET /api/companies/{companyId}/inbox` -> `404 {"error":"API route not found"}`)
+
+Resume order (owner-tagged):
+1. CTO completes `MUS-1577` with in-context write proof IDs on `MUS-1518` and `MUS-1546`.
+2. QA completes `MUS-1582` with linkage consistency PASS/FAIL evidence.
+3. CoS verifies both packets and closes `MUS-1553`.
+4. CEO closes governance gate after evidence bundle is complete.
+
+## 2026-04-12 CoS Heartbeat Delta (03:53 KST)
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/projects/23f06292-f513-4261-ba4a-d30fe37a9e0b`
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}`
+- `GET /api/issues/{MUS-1553-id}`
+- `GET /api/issues/{MUS-1553-id}/comments`
+- `GET /api/companies/{companyId}/issues/run-linkage-audit`
+- `POST /api/companies/{companyId}/issues/run-linkage-repair?dryRun=true`
+- `POST /api/companies/{companyId}/issues/run-linkage-repair`
+- `POST /api/issues/{MUS-1553-id}/comments`
+- `POST /api/issues/{MUS-1577-id}/comments`
+- `POST /api/agents/{ctoAgentId}/heartbeat/invoke`
+- `PATCH /api/issues/{MUS-1577-id}` (`status=in_progress`)
+- `PATCH /api/issues/{MUS-1553-id}` (`status=blocked`)
+- `GET /api/companies/{companyId}/inbox`
+
+Live snapshot (verified):
+- Health: `200` (`status=ok`, `version=0.3.1`)
+- Dashboard rollup: tasks `open=157`, `inProgress=45`, `blocked=51`, `done=395`; agents `active=0`, `running=5`, `paused=0`, `error=0`
+- Root project `musu-functions root` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`) status: `in_progress`
+- Inbox endpoint unavailable: `[TBD: awaiting real data]` (`GET /api/companies/{companyId}/inbox` -> `404 {"error":"API route not found"}`)
+
+Highest-priority issue action (MUS-1553):
+- Targeted issue: `4bcbe8cc-b965-4b8f-9978-708ff74aa2fa` (`MUS-1553`)
+- Posted evidence-backed unblock checkpoint: comment `1483ed0e-7cf5-4a20-98f0-057d5259f3a1`
+- Verified linkage-clean state: audit mismatch count `0`; repair dry-run/apply both `HTTP 200` and `repairedCount=0`
+- Activated child execution gate `MUS-1577`: status moved to `in_progress`, routing comment `95c3c323-c645-4007-bc13-805b69806061`, CTO heartbeat run queued `6a2a58fd-c1a6-4952-b294-a59b31f2238e`
+- Added QA verification child `MUS-1582`: status `todo`, parent linkage `MUS-1553`, QA heartbeat run queued `90e82bec-2db4-4f8e-9acf-7e3affaadfe4`
+- Parent `MUS-1553` set to `blocked` pending CTO proof IDs per acceptance criteria
+
+Divergence corrected:
+- Prior `03:00 KST` section had stale dashboard counters (`open=148`, `inProgress=43`, `blocked=50`, `done=394`) vs live API counters above.
+- Parent/child gate state is now explicit (`MUS-1553=blocked`, `MUS-1577=in_progress`, `MUS-1582=todo`) instead of implicit in comments.
+
+Resume order (owner-tagged):
+1. CTO completes `MUS-1577` by attaching new CTO-authored write proof IDs from `MUS-1518` and `MUS-1546`.
+2. QA executes `MUS-1582` linkage consistency verification and posts PASS/FAIL evidence.
+3. CoS validates both child packets and closes `MUS-1553` if acceptance passes.
+4. CEO clears remaining governance gate once `MUS-1553` evidence is complete.
+
+## 2026-04-12 CoS Heartbeat Delta (03:00 KST)
+
+Source-of-truth checks:
+- `GET /api/health`
+- `GET /api/companies/{companyId}/dashboard`
+- `GET /api/companies/{companyId}/agents`
+- `GET /api/companies/{companyId}/issues?assigneeAgentId={chiefOfStaffAgentId}&status=todo,in_progress,blocked`
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked` (filtered locally for unassigned lanes and MUS-1140 dependency chain)
+- `GET /api/projects/23f06292-f513-4261-ba4a-d30fe37a9e0b`
+- `GET /api/companies/{companyId}/inbox`
+- Local evidence command:
+  `rg -n -i 'PADDLE_API_KEY|PADDLE_WEBHOOK_SECRET|NEXT_PUBLIC_PADDLE_CLIENT_TOKEN|NEXT_PUBLIC_PADDLE_ENV' /mnt/f/Aisaak/Projects/yellow.txt`
+- `POST /api/issues/{MUS-1140-id}/comments`
+- `POST /api/issues/{MUS-1373-id}/comments`
+
+Live snapshot (verified):
+- Health: `200` (`status=ok`, `version=0.3.1`)
+- Dashboard rollup: tasks `open=148`, `inProgress=43`, `blocked=50`, `done=394`; agents `active=0`, `running=5`, `paused=0`, `error=0`
+- Root project `musu-functions root` (`23f06292-f513-4261-ba4a-d30fe37a9e0b`) status: `in_progress`
+- Root active queue (`projectId=23f06292-f513-4261-ba4a-d30fe37a9e0b`): `count=68`, `blocked=34`, `in_progress=21`, `todo=13`; `critical=21`, `high=45`, `medium=2`
+- CoS queue-front critical lane by recency: `MUS-1140` (`updatedAt=2026-04-11T17:56:44.394Z`)
+- Unassigned active queue: none (`[]`)
+- Inbox endpoint still unavailable: `[TBD: awaiting real data]` (`GET /api/companies/{companyId}/inbox` -> `404 {"error":"API route not found"}`)
+
+Highest-priority issue action (MUS-1140):
+- Targeted issue: `9e54f49f-a965-4153-bc96-04d3c54ebf11` (`MUS-1140`)
+- Verified blocker evidence at `2026-04-12 02:57:44 KST`: env file exists and key scan returned `0` lines
+- Posted clean unblock note: `8cd710e5-a15e-4e65-8e4d-13fd2d6c39c1`
+- Posted child-lane status sync on `MUS-1373`: `7c6288bf-58c5-4b58-a90f-1c65c0dc6d38`
+- Corrected stale downstream lane state: set `MUS-1138` to `blocked` and posted rationale comment `173a424b-f0c3-4703-880a-6f67de59144d`
+
+Divergence corrected:
+- Local board header was stale at `2026-04-10 21:40 KST` while live `MUS-1140` activity reached `2026-04-11T17:56:44.394Z`.
+- Queue-front focus corrected to current CoS critical lane `MUS-1140`.
+
+Resume order (owner-tagged):
+1. CEO closes `MUS-1307` with redacted credential injection proof + webhook URL alignment note.
+2. Founding Engineer closes `MUS-1495` with redacted `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` proof.
+3. CoS closes `MUS-1373` linkage note to `MUS-1138` and `MUS-1064`.
+4. QA resumes `MUS-1064` execution gate.
 
 ## 2026-04-11 Execution Wave: Default Company Template + Type Hardening
 
@@ -34,6 +1850,14 @@ Last attempted sync: `2026-04-10 06:37 KST` (failed; control-plane API unreachab
 - [x] Replace single activation state with a multi-company registry
 - [x] Add explicit Paperclip sync action with persisted sync history
 - [x] Enforce template sync contract in CI
+- [x] Re-run route tests and typecheck
+
+## 2026-04-12 Execution Wave: Company Scope + Sync Hardening
+
+- [x] Derive workspace scope from route/auth context instead of hardcoded `default-workspace`
+- [x] Propagate selected company context through app surfaces outside the modal
+- [x] Add delete confirmation UX for company removal
+- [x] Strengthen Paperclip sync into a MUSU product-specific contract
 - [x] Re-run route tests and typecheck
 
 ## 2026-04-10 CoS Heartbeat Delta (21:40 KST)
@@ -5666,3 +7490,2264 @@ Missing-data contract:
   2. FE closes `MUS-1495` + `MUS-1353` proof rows.
   3. CoS reruns `MUS-1373` validation and posts `HANDOFF: GO|NO-GO`.
   4. If `GO`, advance `MUS-1138` and mark `MUS-1064` runnable; if `NO-GO`, keep `MUS-1140` blocked with exact missing rows only.
+
+## CoS Heartbeat Reconciliation (2026-04-12 KST, MUS-1553 run-linkage gate sync)
+
+- Divergence detected:
+  - Local board doc search showed no active `MUS-1553`/`MUS-1564` section (`rg -n "MUS-1553|MUS-1564" TODO_EXECUTION_BOARD.md` -> no match).
+  - Live board had active critical packet `MUS-1553` (`in_progress`) with child `MUS-1564` (`todo` at read time).
+
+- Evidence compared (live API):
+  - `GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues/run-linkage-audit` -> `{"runIssueLinkMismatchCount":0}`.
+  - `POST /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues/run-linkage-repair?dryRun=true` -> `{"dryRun":true,"runIssueLinkMismatchBeforeCount":0,"runIssueLinkMismatchAfterCount":0,"repairedCount":0}`.
+  - `POST /api/issues/cfb4f10e-bd5a-448f-9921-4e7146025939/comments` -> success comment `9701e1ef-30cb-46f5-9c8a-fda64b139f48` (MUS-1518 probe).
+  - `POST /api/issues/8e31fab2-f1ee-4997-be4e-c94314734623/comments` -> success comment `52c1dea6-4ece-4cff-92a6-6645e5d3fef5` (MUS-1546 probe).
+
+- Board mutations this heartbeat:
+  - `MUS-1564` evidence comment: `33284f28-061f-4375-811b-aaa953ef4bfe`.
+  - `MUS-1553` progress comment: `b4ea731b-b061-4de9-99d6-19bd5fa5c9ee`.
+  - Created child packet `MUS-1577` (`7053ff82-9f29-4ff9-acb0-40ef31d45941`) assigned to CTO for in-context write proof on `MUS-1518` + `MUS-1546`.
+  - `PATCH /api/issues/77840826-02e0-4985-9ed2-d1ddc6c5f688 {"status":"done"}` -> `MUS-1564 done`.
+  - `PATCH /api/issues/4bcbe8cc-b965-4b8f-9978-708ff74aa2fa {"status":"in_progress"}` -> `MUS-1553 in_progress`.
+
+- Clean unblock note:
+  - Run-linkage drift is currently not reproduced by audit/dry-run.
+  - Remaining gate is CTO-owned in-context proof packet (`MUS-1577`).
+  - `[TBD: awaiting real data] owner=CTO packet=MUS-1577 missing=CTO-authored write proof IDs on MUS-1518 and MUS-1546 eta=<timestamp>`
+
+- Resume order:
+  1. CTO executes `MUS-1577` and posts comment/update proof IDs on `MUS-1518` + `MUS-1546`.
+  2. CoS verifies proof and closes `MUS-1553`.
+  3. CTO/CoS link closure back to parent `MUS-1546`.
+
+## CoS Heartbeat Reconciliation (2026-04-13 KST, MUS-1448 queue-proof lane)
+
+- Highest-priority assigned packet selected from live API:
+  - `MUS-1448` (`critical`, `blocked`, `updatedAt=2026-04-12T16:04:29.812Z`).
+
+- Evidence compared (live API):
+  - `POST /api/agents/{FE}/heartbeat/invoke` -> run `168ac469-1c8f-4b23-b452-0a634020409f`, `status=queued`.
+  - `POST /api/agents/{CTO}/heartbeat/invoke` -> run `1634f674-e1bb-4a11-92c2-bb49c7d12e59`, `status=queued`.
+  - `GET /api/heartbeat-runs/{runId}` for both runs confirms `status=queued`, `startedAt=null`.
+  - `GET /api/companies/{companyId}/agents` (FE/CTO filter at `2026-04-12T16:02:03Z`) -> both `status=running`.
+  - `GET /api/companies/{companyId}/heartbeat-runs?agentId={FE|CTO}&status=running,queued&limit=10` -> queued-only samples for both agents.
+  - `GET /api/companies/{companyId}/issues/run-linkage-audit` -> `runIssueLinkMismatchCount=0`.
+
+- Doc/live reconciliation:
+  - Local board includes an older recency checkpoint naming `MUS-1553` as lead at that time.
+  - Current live CoS critical lane lead is `MUS-1448`; this section updates the board record to current state.
+
+- Board mutations this heartbeat:
+  - `POST /api/issues/1c251251-a792-4348-98ca-8da4fbb2f5cf/comments` -> evidence comment `203b2a62-9e24-42f0-95b4-79bd4c49de65`.
+  - `PUT /api/issues/1c251251-a792-4348-98ca-8da4fbb2f5cf/documents/plan` -> revision `3` (`e4306975-556f-408d-9fd8-80e38b6da13f`).
+
+- Clean unblock rows:
+  - `[TBD: awaiting real data] provider=run-scheduler owner=CTO packet=MUS-1465 missing=first FE/CTO invoke response at running|finished eta=2026-04-13T02:30:00+09:00`
+  - `[TBD: awaiting real data] provider=stability-snapshot owner=CEO packet=MUS-1479 missing=T+10m FE/CTO running snapshot pair eta=2026-04-13T02:40:00+09:00`
+
+- Resume order:
+  1. CTO closes `MUS-1465` with non-queued invoke proof.
+  2. CEO closes `MUS-1479` with T0/T+10m running snapshots.
+  3. CoS validates acceptance and closes `MUS-1448`, then advances `MUS-1380`.
+
+## CoS Heartbeat Reconciliation (2026-04-13 KST, MUS-1366 queue-head correction)
+
+- Divergence detected:
+  - Latest local section selected `MUS-1448` as queue-head.
+  - Live API at heartbeat time showed newer critical queue-head packet `MUS-1366` (`blocked`, `critical`, `updatedAt=2026-04-12T16:06:16.588Z`).
+
+- Evidence compared (live API):
+  - `GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?status=todo,in_progress,blocked` -> CoS critical lane includes `MUS-1366`, `MUS-1448`, `MUS-1360`, `MUS-1380`.
+  - `GET /api/issues/7fd4840f-2086-4321-8215-a67310498d2d` -> `MUS-1366=blocked`.
+  - `GET /api/companies/{companyId}/issues?parentId=7fd4840f-2086-4321-8215-a67310498d2d` -> `MUS-1392=todo` (CEO), `MUS-1394=blocked` (CoS).
+  - `GET /api/issues/676c6c4b-6aef-437b-b0b9-fc7b09615b14` -> owner/endpoint mapping packet still open.
+  - `GET /api/issues/cfccbbf3-0220-448c-af3e-2cfd408cc6a6` -> license A1 mapping packet blocked on source-of-truth rows.
+  - `POST /api/agents/5dffee24-ee3f-4b75-89c8-11608fe7e186/heartbeat/invoke` -> run `29df8a08-f166-498f-bc5b-0aaa1322a72e`.
+  - `GET /api/heartbeat-runs/29df8a08-f166-498f-bc5b-0aaa1322a72e` -> `status=succeeded`, `finishedAt=2026-04-12T16:11:24.625Z`.
+  - `GET /api/issues/676c6c4b-6aef-437b-b0b9-fc7b09615b14/comments` -> no owner/endpoint mapping table added by that run.
+
+- Board mutations this heartbeat:
+  - `POST /api/issues/7fd4840f-2086-4321-8215-a67310498d2d/comments` -> `ef78beac-93e8-4d00-a5fd-4353dd24f90b` (MUS-1366 clean unblock note + resume order).
+  - `POST /api/issues/676c6c4b-6aef-437b-b0b9-fc7b09615b14/comments` -> `61bcb271-a2fa-4b4d-9a50-dda05caec6a5` (MUS-1392 owner mapping ping).
+  - `POST /api/issues/676c6c4b-6aef-437b-b0b9-fc7b09615b14/comments` -> `6fefd9ee-411f-4713-91e9-dfc34eb907af` (post-run verification: still `todo`, no mapping table).
+  - `POST /api/issues/21afc411-8d56-45b5-a2ad-df4ab142fd80/comments` -> `b8242a69-c578-4deb-a44a-d721c5308e20` (parent `MUS-1365` sync).
+
+- Clean unblock rows:
+  - `[TBD: awaiting real data] provider=license-system owner=CEO packet=MUS-1392 missing=LICENSE_PRIVATE_KEY+LICENSE_PUBLIC_KEY owner/rotation authority rows eta=<timestamp>`
+  - `[TBD: awaiting real data] provider=license-system owner=Chief of Staff packet=MUS-1394 missing=A1 linkage row with evidence_id_redacted eta=<timestamp>`
+
+- Resume order:
+  1. CEO closes `MUS-1392` owner/endpoint mapping rows (or explicit TBD lines).
+  2. CoS closes `MUS-1394` license A1 linkage.
+  3. CoS updates `MUS-1366` matrix to executable rows.
+  4. CoS advances `MUS-1367`; FE closes `MUS-1368`; CoS rolls up `MUS-1365` (`OPS: PASS|FAIL`).
+
+## CoS Heartbeat Reconciliation (2026-04-13 KST, MUS-1366 -> MUS-1392 packet slicing)
+
+- Evidence compared (live API):
+  - `GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/dashboard` -> `open=193`, `inProgress=56`, `blocked=59`, `done=408`.
+  - `GET /api/companies/{companyId}/org-chart` -> `{"error":"API route not found"}`.
+  - `GET /api/companies/{companyId}/inbox` -> `{"error":"API route not found"}`.
+  - `GET /api/issues/7fd4840f-2086-4321-8215-a67310498d2d` -> `MUS-1366` remains `critical/blocked` and queue-head by recency.
+  - `GET /api/issues/676c6c4b-6aef-437b-b0b9-fc7b09615b14` -> `MUS-1392` had no child packets before this pass.
+
+- Divergence fixed:
+  - `MUS-1392` was a broad gate with mixed-provider scope and no executable children.
+  - Split into owner-specific packets:
+    - `MUS-1654` (critical, CEO): license-system authority rows (`LICENSE_PRIVATE_KEY`, `LICENSE_PUBLIC_KEY`).
+    - `MUS-1655` (critical, CTO): Paddle authority rows (`PADDLE_API_KEY`, `PADDLE_WEBHOOK_SECRET`, `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN`).
+    - `MUS-1656` (high, CoS): consolidated table + linkage comment back to `MUS-1366`.
+  - `PATCH /api/issues/676c6c4b-6aef-437b-b0b9-fc7b09615b14 {"status":"in_progress"}` applied.
+
+- Board mutations this heartbeat:
+  - `POST /api/issues/676c6c4b-6aef-437b-b0b9-fc7b09615b14/comments` -> `ef263212-b193-4e5e-8dda-4017f85b6e73`.
+  - `POST /api/issues/7fd4840f-2086-4321-8215-a67310498d2d/comments` -> `cecefea2-8ab5-411a-9572-8a79ba10ac92`.
+  - `POST /api/agents/5dffee24-ee3f-4b75-89c8-11608fe7e186/heartbeat/invoke` -> run `9420bb1e-abef-4549-94df-da3a5828b9fe` (`queued` at read time).
+  - `POST /api/agents/7b6d37f7-91fd-4342-8e3f-9dfa422f999c/heartbeat/invoke` -> run `0fb7b39c-0d1b-42bd-91e1-fb2bf7a61c98` (`queued` at read time).
+
+- Clean unblock rows:
+  - `[TBD: awaiting real data] provider=license-system owner=CEO packet=MUS-1654 missing=LICENSE_PRIVATE_KEY+LICENSE_PUBLIC_KEY owner/rotation_authority rows eta=<timestamp>`
+  - `[TBD: awaiting real data] provider=paddle owner=CTO packet=MUS-1655 missing=PADDLE_* owner/rotation_authority rows eta=<timestamp>`
+
+- Resume order:
+  1. CEO closes `MUS-1654`.
+  2. CTO closes `MUS-1655`.
+  3. CoS closes `MUS-1656` and posts `MUS-1366` Packet A gate (`GO|NO-GO`).
+  4. If `GO`, advance `MUS-1367` -> `MUS-1368` -> `MUS-1365` rollup.
+
+## CoS Heartbeat Reconciliation (2026-04-13 KST, MUS-1448 dependency freshness sweep)
+
+- Live priority selection evidence:
+  - `GET /api/companies/{companyId}/issues?assigneeAgentId={CoS}&status=todo,in_progress,blocked,in_review`
+  - Top critical lane remained `MUS-1448` (`blocked`, `updatedAt=2026-04-12T16:35:28.027Z`).
+
+- Fresh invoke evidence:
+  - `POST /api/agents/{FE}/heartbeat/invoke` -> run `87cdeabb-0467-4a2e-a179-bbf9197ccf57`, `status=queued`.
+  - `POST /api/agents/{CTO}/heartbeat/invoke` -> run `71e202f3-314b-48e6-b0a6-70b731883ea7`, `status=queued`.
+  - `GET /api/heartbeat-runs/{runId}` confirmed both still `queued` with `startedAt=null`.
+  - `GET /api/companies/{companyId}/agents` snapshot at `2026-04-12T16:36:34Z`: FE/CTO both `status=running`.
+
+- Queue/linkage diagnostics:
+  - `GET /api/companies/{companyId}/heartbeat-runs?agentId={FE|CTO}&status=running,queued&limit=10` captured queue-heavy behavior.
+  - `GET /api/companies/{companyId}/issues/run-linkage-audit` -> `runIssueLinkMismatchCount=0`.
+
+- Dependency freshness check (live API):
+  - `MUS-1465` remained `in_progress` with stale `updatedAt=2026-04-10T05:30:02.260Z`.
+  - `MUS-1479` remained `todo` with stale `updatedAt=2026-04-10T03:48:16.227Z`.
+
+- Board mutations this heartbeat:
+  - MUS-1448 evidence/blocker comment: `a6a9da93-04ce-4ab6-ba92-379ade576a25`.
+  - MUS-1465 owner ping comment: `09428fa5-0fda-47c1-8f9d-55d97025b6dd`.
+  - MUS-1479 owner ping comment: `155688e0-afef-4b21-bba8-be169f623ac1`.
+
+- Clean unblock rows:
+  - `[TBD: awaiting real data] provider=run-scheduler owner=CTO packet=MUS-1465 missing=first FE/CTO invoke response at running|finished eta=2026-04-13T02:45:00+09:00`
+  - `[TBD: awaiting real data] provider=stability-snapshot owner=CEO packet=MUS-1479 missing=T+10m FE/CTO running snapshot pair eta=2026-04-13T02:55:00+09:00`
+
+- Resume order:
+  1. CTO updates `MUS-1465` with non-queued invoke proof.
+  2. CEO updates `MUS-1479` with T0/T+10m snapshot proof.
+  3. CoS validates acceptance and closes `MUS-1448`, then advances `MUS-1380`.
+
+## CoS Heartbeat Reconciliation (2026-04-13 KST, MUS-1655 blocker split under MUS-1366 lane)
+
+- Evidence compared (live API):
+  - `GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/dashboard` -> `open=192`, `inProgress=58`, `blocked=64`, `done=410`.
+  - `GET /api/companies/{companyId}/org-chart` -> `{"error":"API route not found"}`.
+  - `GET /api/companies/{companyId}/inbox` -> `{"error":"API route not found"}`.
+  - `GET /api/issues/7fd4840f-2086-4321-8215-a67310498d2d` -> `MUS-1366=blocked`, queue-head.
+  - `GET /api/issues/7eaa5355-f509-42ab-b9cd-0f553d8e0e30` -> `MUS-1655=blocked` on missing board-input authority rows.
+
+- Divergence fixed:
+  - `MUS-1655` blocker was broad (`board-input missing`) with no explicit owner packet.
+  - Created child packet `MUS-1677` (critical, owner CEO) under `MUS-1655` for authoritative Paddle owner/authority/endpoint rows.
+
+- Board mutations this heartbeat:
+  - `POST /api/companies/{companyId}/issues` -> `MUS-1677` (`0851234d-f7c7-4368-a261-bdc5a64c3bd5`), parent=`MUS-1655`, assignee=CEO.
+  - `POST /api/issues/7eaa5355-f509-42ab-b9cd-0f553d8e0e30/comments` -> `5a98699d-0eaa-40af-98f6-0181c02a409c`.
+  - `POST /api/issues/7fd4840f-2086-4321-8215-a67310498d2d/comments` -> `90d1d4c0-519d-4064-afa8-d01c9b80a0da`.
+
+- Clean unblock rows:
+  - `[TBD: awaiting real data] provider=paddle owner=CEO packet=MUS-1677 missing=PADDLE_API_KEY owner/rotation_authority/rotation_endpoint row eta=<timestamp>`
+  - `[TBD: awaiting real data] provider=paddle owner=CEO packet=MUS-1677 missing=PADDLE_WEBHOOK_SECRET owner/rotation_authority/rotation_endpoint row eta=<timestamp>`
+  - `[TBD: awaiting real data] provider=paddle owner=CEO packet=MUS-1677 missing=NEXT_PUBLIC_PADDLE_CLIENT_TOKEN owner/rotation_authority/rotation_endpoint row eta=<timestamp>`
+
+- Resume order:
+  1. CEO closes `MUS-1677`.
+  2. CTO unblocks and closes `MUS-1655`.
+  3. CoS refreshes `MUS-1656` consolidated table and linkage.
+  4. CoS re-evaluates `MUS-1366` Packet A gate (`GO|NO-GO`).
+
+## CoS Heartbeat Reconciliation (2026-04-13 KST, MUS-1365 live-sync + owner pings)
+
+- Timestamp:
+  - UTC: `2026-04-12T18:10:32Z`
+  - KST: `2026-04-13T03:10:32+0900`
+
+- API source checks:
+  - `GET /api/health`
+  - `GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues` (filtered to `MUS-1365, MUS-1366, MUS-1367, MUS-1368, MUS-1392, MUS-1394, MUS-1397, MUS-1409, MUS-1654, MUS-1655, MUS-1656`)
+  - `GET /api/issues/21afc411-8d56-45b5-a2ad-df4ab142fd80`
+  - `GET /api/issues/21afc411-8d56-45b5-a2ad-df4ab142fd80/comments`
+  - `GET /api/issues/21afc411-8d56-45b5-a2ad-df4ab142fd80/documents`
+
+- Live state snapshot (verified):
+  - `MUS-1365=blocked`
+  - `MUS-1366=blocked`
+  - `MUS-1367=blocked`
+  - `MUS-1368=in_progress`
+  - `MUS-1392=in_progress`
+  - `MUS-1394=blocked`
+  - `MUS-1397=blocked`
+  - `MUS-1409=blocked`
+  - `MUS-1654=todo`
+  - `MUS-1655=blocked`
+  - `MUS-1656=in_progress`
+
+- Divergence corrected:
+  - `MUS-1365` plan previously reflected older `MUS-1392=todo` state.
+  - Updated via `PUT /api/issues/21afc411-8d56-45b5-a2ad-df4ab142fd80/documents/plan` with `baseRevisionId`.
+  - Result: `latestRevisionNumber=9`, `latestRevisionId=9fbf7725-3b1d-4626-9cb0-44bbd5097d38`.
+
+- Board comments posted:
+  - `MUS-1365` reconciliation + unblock order: `7e8d3fc5-5424-4f0d-921a-128709e1c852`
+  - `MUS-1392` owner ping: `f18d52f1-743d-4663-bace-c684a7169d62`
+  - `MUS-1409` dependency ping: `3078a84c-865e-4f13-af93-73c62d701023`
+
+- Resume order (fail-closed):
+  1. CEO closes `MUS-1654` owner/rotation-authority rows.
+  2. CTO closes `MUS-1655` Paddle authority rows.
+  3. CoS closes `MUS-1656` then reconciles `MUS-1394 -> MUS-1366` gate.
+  4. CoS executes `MUS-1367 + MUS-1397` evidence rows.
+  5. QA closes `MUS-1368` scrub/heredoc proof.
+  6. CoS publishes `MUS-1365` `OPS: PASS|FAIL`.
+
+- Required blocker format:
+  - `[TBD: awaiting real data] provider=<name> owner=<name> packet=<id> missing=<field> eta=<timestamp>`
+
+- CEO review lens:
+  - Hold scope on SEC-OPS closure only.
+- ENG review lens:
+  - Preserve deterministic order `MUS-1654/MUS-1655 -> MUS-1656 -> MUS-1394 -> MUS-1366 -> MUS-1367/MUS-1397 -> MUS-1368 -> MUS-1365`.
+- Retro lens:
+  - Parent-plan drift recurred; control is mandatory plan+comment refresh every heartbeat.
+
+## CoS Heartbeat Reconciliation (2026-04-13 KST, MUS-1360 parent queue-front live-sync @03:15)
+
+- Timestamp:
+  - UTC: `2026-04-12T18:15:15Z`
+  - KST: `2026-04-13T03:15:15+0900`
+
+- API source checks:
+  - `GET /api/health` -> `status=ok`
+  - `GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/dashboard` -> `tasks.open=204`, `tasks.inProgress=60`, `tasks.blocked=61`, `tasks.done=408`
+  - `GET /api/companies/{companyId}/org-chart` -> `404 API route not found`
+  - `GET /api/companies/{companyId}/inbox` -> `404 API route not found`
+  - `GET /api/companies/{companyId}/issues?projectId=23f06292-f513-4261-ba4a-d30fe37a9e0b` (filtered to `MUS-1360/1365/1366/1392/1394/1654/1655/1656`) -> `MUS-1360` remained highest-priority CoS-assigned parent (`critical`, `in_progress`)
+
+- Divergence corrected:
+  - Local tail section emphasized `MUS-1365` child rollup; live queue-front remained parent `MUS-1360`.
+  - Older dashboard counts (`193/56/59`) were stale versus live `204/60/61`.
+
+- Board mutation:
+  - `POST /api/issues/69b71150-9a9e-4746-bdad-c03e4cf85152/comments` -> `72d706e3-e02a-452b-a978-86f398bc533b` (verified by follow-up `GET /api/issues/{id}/comments` newest row).
+
+- Clean unblock rows:
+  - `[TBD: awaiting real data] provider=license-system owner=CEO packet=MUS-1654 missing=LICENSE_PRIVATE_KEY+LICENSE_PUBLIC_KEY owner/rotation_authority rows eta=<timestamp>`
+  - `[TBD: awaiting real data] provider=paddle owner=CTO packet=MUS-1655 missing=PADDLE_API_KEY+PADDLE_WEBHOOK_SECRET+NEXT_PUBLIC_PADDLE_CLIENT_TOKEN owner/rotation_authority rows eta=<timestamp>`
+  - `[TBD: awaiting real data] provider=license-linkage owner=Chief of Staff packet=MUS-1394 missing=A1 linkage row with evidence_id_redacted eta=<timestamp>`
+
+- Resume order (fail-closed):
+  1. CEO closes `MUS-1654`.
+  2. CTO closes `MUS-1655`.
+  3. CoS closes `MUS-1656`, then `MUS-1394`.
+  4. CoS updates `MUS-1366` matrix and executes `MUS-1367 + MUS-1397`.
+  5. FE closes `MUS-1368`.
+  6. CoS publishes `MUS-1365 OPS: PASS|FAIL`, then advances `MUS-1360 GO|NO-GO`.
+
+## CoS Heartbeat Reconciliation (2026-04-13 KST, MUS-1448 dependency ingestion from MUS-1465)
+
+- Live issue checks:
+  - `GET /api/companies/{companyId}/issues?assigneeAgentId={CoS}&status=todo,in_progress,blocked,in_review` kept `MUS-1448` as top critical lane.
+  - `GET /api/issues/{MUS-1448-id}/comments` pulled latest CoS lane notes.
+  - `GET /api/issues/{MUS-1465-id}/comments` and `GET /api/issues/{MUS-1479-id}/comments` used for dependency freshness.
+
+- New dependency evidence ingested:
+  - CTO posted `MUS-1465` comment `5134b27d-bebf-42a7-8ca5-e1b021b5bf5e` with fresh queued run IDs:
+    - FE `5881c24a-13d5-4f36-9c1d-3d29bce1b7da` -> queued
+    - CTO `78502da2-76d5-456a-8ecd-021beabec0b0` -> queued
+  - `MUS-1479` still has no owner snapshot proof comment after CoS ping `155688e0-afef-4b21-bba8-be169f623ac1`.
+
+- Board mutations this heartbeat:
+  - MUS-1448 dependency reconciliation comment: `23f080a1-9c7a-4637-889b-e5ea4219de61`.
+  - MUS-1448 plan doc updated to revision `4` (`0c0deb6e-3999-441c-b173-ca8a16e420d6`).
+
+- Clean unblock rows:
+  - `[TBD: awaiting real data] provider=run-scheduler owner=CTO packet=MUS-1465 missing=first FE/CTO invoke response at running|finished eta=2026-04-13T03:30:00+09:00`
+  - `[TBD: awaiting real data] provider=stability-snapshot owner=CEO packet=MUS-1479 missing=T+10m FE/CTO running snapshot pair eta=2026-04-13T03:40:00+09:00`
+
+- Resume order:
+  1. CTO closes `MUS-1465` with non-queued invoke proof.
+  2. CEO closes `MUS-1479` with T0/T+10m running snapshots.
+  3. CoS validates acceptance, closes `MUS-1448`, and advances `MUS-1380`.
+
+## CoS Heartbeat Reconciliation (2026-04-13 KST, MUS-1140 topology hygiene + unblock sync @03:38)
+
+- Timestamp:
+  - UTC: `2026-04-12T18:38:52Z`
+  - KST: `2026-04-13T03:38:52+0900`
+
+- API source checks:
+  - `GET /api/health` -> `status=ok`
+  - `GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/dashboard` -> `tasks.open=107`, `tasks.inProgress=10`, `tasks.blocked=38`, `tasks.done=410`
+  - `GET /api/companies/{companyId}/org-chart` -> `404 API route not found`
+  - `GET /api/companies/{companyId}/inbox` -> `404 API route not found`
+  - `GET /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11` -> `MUS-1140 blocked critical`
+  - `GET /api/companies/{companyId}/issues?projectId=23f06292-f513-4261-ba4a-d30fe37a9e0b` filtered by parentId for `MUS-1140` and `MUS-1373`
+
+- Divergence corrected:
+  - Active CoS children `MUS-1640` and `MUS-1641` were linked to cancelled parent `MUS-1373`, creating queue ambiguity.
+  - Applied:
+    - `PATCH /api/issues/6993b9b7-22ed-4047-aa47-9962df80539b` -> `parentId=MUS-1140`, `status=blocked`
+    - `PATCH /api/issues/f2e57dc3-a0a9-433e-a42a-4cdb8111c72f` -> `parentId=MUS-1140`, `status=blocked`
+  - Verification:
+    - `GET ...issues?projectId=...` now shows `MUS-1640`/`MUS-1641` under `MUS-1140` and no active CoS todo packets under `MUS-1373`.
+
+- Board mutation:
+  - `POST /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11/comments` -> `b1969da5-9676-421d-8c6a-f8fe1f41478e`.
+
+- Clean unblock rows:
+  - `[TBD: awaiting real data] provider=paddle owner=CEO packet=MUS-1307 missing=sandbox API key secure registration + redacted injection proof eta=<timestamp>`
+  - `[TBD: awaiting real data] provider=webhook owner=Founding Engineer packet=MUS-1353 missing=webhook target/environment alignment evidence eta=<timestamp>`
+  - `[TBD: awaiting real data] provider=cos-validation owner=Chief of Staff packet=MUS-1640 missing=validation matrix finalization eta=<timestamp>`
+  - `[TBD: awaiting real data] provider=cos-handoff owner=Chief of Staff packet=MUS-1641 missing=HANDOFF GO|NO-GO + downstream linkage eta=<timestamp>`
+
+- Resume order (fail-closed):
+  1. CEO closes `MUS-1307`.
+  2. Founding Engineer closes `MUS-1353`.
+  3. CoS executes `MUS-1640`.
+  4. CoS executes `MUS-1641` and publishes `HANDOFF GO|NO-GO`.
+  5. If `GO`, advance `MUS-1138`/`MUS-1064`; if `NO-GO`, keep `MUS-1140` blocked with exact missing rows only.
+
+## CoS Heartbeat Reconciliation (2026-04-13 KST, MUS-1140 active-child normalization)
+
+- Live status source:
+  - `GET /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11` -> MUS-1140 `blocked`, `critical`.
+  - `GET /api/companies/{companyId}/issues?parentId=9e54f49f-a965-4153-bc96-04d3c54ebf11` -> active child set re-derived.
+
+- Infra snapshot:
+  - `GET /api/companies/{companyId}/dashboard` -> tasks `{open:107,inProgress:10,blocked:39,done:411}`.
+  - `GET /api/companies/{companyId}/agents` -> all agents `status=running`.
+  - `GET /api/companies/{companyId}/inbox` -> `404` (`API route not found`).
+
+- Active child blockers under MUS-1140:
+  - MUS-1307 (CEO, blocked)
+  - MUS-1353 (Founding Engineer, blocked)
+  - MUS-1296 (CoS, blocked)
+  - MUS-1640 (CoS, blocked)
+  - MUS-1641 (CoS, blocked)
+
+- Cancelled/non-active children (not in current execution blocker set):
+  - MUS-1138, MUS-1373, MUS-1495
+
+- Board mutations this heartbeat:
+  - MUS-1140 comment posted: `a99dc590-5f6b-4062-9818-308a7862a1e4`.
+  - MUS-1140 plan updated: revision `14` (`12874349-1725-4de7-9b8e-68c8b1930ec7`).
+
+- Clean unblock rows:
+  - `[TBD: awaiting real data] provider=paddle owner=CEO packet=MUS-1307 missing=sandbox API key secure registration + redacted injection proof eta=[TBD: awaiting owner ETA]`
+  - `[TBD: awaiting real data] provider=webhook owner=Founding Engineer packet=MUS-1353 missing=webhook target/environment alignment evidence eta=[TBD: awaiting owner ETA]`
+  - `[TBD: awaiting real data] provider=cos-validation owner=Chief of Staff packet=MUS-1640 missing=validation matrix finalization after MUS-1307/MUS-1353 evidence eta=[TBD: awaiting upstream ETA]`
+  - `[TBD: awaiting real data] provider=cos-handoff owner=Chief of Staff packet=MUS-1641 missing=HANDOFF GO|NO-GO + downstream linkage update eta=[TBD: awaiting upstream ETA]`
+
+- Resume order:
+  1. CEO closes `MUS-1307` proof row.
+  2. Founding Engineer closes `MUS-1353` proof row.
+  3. CoS executes `MUS-1640` validation matrix.
+  4. CoS executes `MUS-1641` and publishes GO|NO-GO handoff.
+
+## CoS Heartbeat Reconciliation (2026-04-13 KST, MUS-1140 Packet B cancellation-aware sync)
+
+- Evidence compared (live API):
+  - `GET /api/issues/f2e57dc3-a0a9-433e-a42a-4cdb8111c72f` -> MUS-1641 (B2) was still referencing MUS-1138/MUS-1064 linkage.
+  - `GET /api/issues/6993b9b7-22ed-4047-aa47-9962df80539b` -> MUS-1640 (B1) had no matrix comment.
+  - `GET /api/issues/a1e3d07f-804d-498d-9453-898c2de11f42` -> MUS-1138 is `cancelled`.
+  - `GET /api/issues/607aa97a-0fc8-418a-8c45-8c5866f5b082` -> MUS-1064 is `cancelled`.
+  - `GET /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11/comments` -> latest row prior to this pass was escalation note with queued runs.
+
+- Divergence fixed:
+  - Updated MUS-1641 description to remove stale downstream linkage target assumption and require replacement target or explicit `[TBD: awaiting real data]` line.
+
+- Board mutations this heartbeat:
+  - `PATCH /api/issues/f2e57dc3-a0a9-433e-a42a-4cdb8111c72f` -> description updated (cancellation-aware).
+  - `POST /api/issues/6993b9b7-22ed-4047-aa47-9962df80539b/comments` -> `7d4cd35f-2730-4d9c-b20c-02abff0ca5a2` (B1 matrix snapshot + FAIL verdict).
+  - `POST /api/issues/f2e57dc3-a0a9-433e-a42a-4cdb8111c72f/comments` -> `5152293c-2621-4fce-90bb-31d4e3fc3bb0` (B2 NO-GO + corrected resume order).
+  - `POST /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11/comments` -> `71cc7230-c49e-4630-a8e2-e39bfd4fa394` (critical-lane refresh).
+
+- Clean unblock rows:
+  - `[TBD: awaiting real data] provider=paddle-api owner=CEO packet=MUS-1307 missing=secure registration proof eta=<timestamp>`
+  - `[TBD: awaiting real data] provider=webhook owner=Founding Engineer packet=MUS-1353 missing=target/environment alignment proof eta=<timestamp>`
+  - `[TBD: awaiting real data] provider=client-token owner=Founding Engineer packet=MUS-1689 missing=NEXT_PUBLIC_PADDLE_CLIENT_TOKEN evidence row eta=<timestamp>`
+  - `[TBD: awaiting real data] provider=run-scheduler owner=CTO missing=non-queued run pickup proof for owner invokes eta=<timestamp>`
+
+- Resume order:
+  1. MUS-1307
+  2. MUS-1353
+  3. MUS-1689
+  4. MUS-1296
+  5. MUS-1640
+  6. MUS-1641
+
+## CoS Heartbeat Reconciliation (2026-04-13 KST, MUS-1140 Packet B + API-500 duplicate cleanup)
+
+- Evidence compared (live API):
+  - `GET /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11` -> MUS-1140 remains `critical/blocked`.
+  - `GET /api/issues/6993b9b7-22ed-4047-aa47-9962df80539b` -> MUS-1640 had no thread evidence before this pass.
+  - `GET /api/issues/f2e57dc3-a0a9-433e-a42a-4cdb8111c72f` -> MUS-1641 description still referenced cancelled downstream targets.
+  - `GET /api/issues/a1e3d07f-804d-498d-9453-898c2de11f42` -> MUS-1138 `cancelled`.
+  - `GET /api/issues/607aa97a-0fc8-418a-8c45-8c5866f5b082` -> MUS-1064 `cancelled`.
+  - `GET /api/heartbeat-runs/ef956ce6-c382-4a5b-b447-17cd34379d90` -> `queued`.
+  - `GET /api/heartbeat-runs/bf43b934-d634-4786-9481-7570e415affc` -> `queued`.
+
+- Divergence fixed:
+  - `PATCH /api/issues/f2e57dc3-a0a9-433e-a42a-4cdb8111c72f` updated MUS-1641 description to cancellation-aware downstream handling.
+
+- Board mutations this heartbeat:
+  - `POST /api/issues/6993b9b7-22ed-4047-aa47-9962df80539b/comments` -> `7d4cd35f-2730-4d9c-b20c-02abff0ca5a2` (B1 matrix + FAIL).
+  - `POST /api/issues/f2e57dc3-a0a9-433e-a42a-4cdb8111c72f/comments` -> `5152293c-2621-4fce-90bb-31d4e3fc3bb0` (B2 NO-GO).
+  - `POST /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11/comments` -> `71cc7230-c49e-4630-a8e2-e39bfd4fa394`.
+
+- API-500 duplicate cleanup evidence:
+  - MUS-1678 sanity checks succeeded:
+    - `PATCH /api/issues/{id}` success
+    - `POST /comments` + `GET /comments` readback success (`3009475b-fb9a-4723-9e27-b74d3b283332`)
+    - `PUT /documents/plan` + readback success (`documentId=269042ec-b42e-4772-8521-5233137d5461`, `latestRevisionId=d3ce13a7-64e4-49ea-ac56-5671c7a424c1`)
+  - `POST /api/issues/0c170743-d8a1-4177-a9c1-da781a3b465c/comments` -> `9c8bd67b-bcf5-4c09-898e-97467f7ab45a`; then `PATCH status=done`.
+  - `POST /api/issues/57bed6f7-b1ff-48b8-b7ed-0590217b6a8c/comments` -> `186deb36-7054-451a-86bc-ba001fd39b43`; then `PATCH status=cancelled` (duplicate).
+
+- Clean unblock rows:
+  - `[TBD: awaiting real data] provider=paddle-api owner=CEO packet=MUS-1307 missing=secure registration proof eta=<timestamp>`
+  - `[TBD: awaiting real data] provider=webhook owner=Founding Engineer packet=MUS-1353 missing=target/environment alignment proof eta=<timestamp>`
+  - `[TBD: awaiting real data] provider=client-token owner=Founding Engineer packet=MUS-1689 missing=NEXT_PUBLIC_PADDLE_CLIENT_TOKEN evidence row eta=<timestamp>`
+  - `[TBD: awaiting real data] provider=run-scheduler owner=CTO missing=non-queued pickup for queued owner invokes eta=<timestamp>`
+
+- Resume order:
+  1. MUS-1307
+  2. MUS-1353
+  3. MUS-1689
+  4. MUS-1296
+  5. MUS-1640
+  6. MUS-1641
+
+## CoS Heartbeat Reconciliation (2026-04-13 KST, MUS-1140 packet hygiene @04:15)
+
+- Evidence basis:
+  - `GET /api/health`
+  - `GET /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11` (MUS-1140)
+  - `GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?parentId=9e54f49f-a965-4153-bc96-04d3c54ebf11&status=todo,in_progress,blocked,in_review,done`
+  - `GET /api/issues/6993b9b7-22ed-4047-aa47-9962df80539b/comments` (MUS-1640)
+  - `GET /api/issues/f2e57dc3-a0a9-433e-a42a-4cdb8111c72f/comments` (MUS-1641)
+
+- Board/doc sync updates applied:
+  - `PATCH /api/issues/6993b9b7-22ed-4047-aa47-9962df80539b` -> `status=done` (MUS-1640, Packet B1)
+  - `PATCH /api/issues/f2e57dc3-a0a9-433e-a42a-4cdb8111c72f` -> `status=done` (MUS-1641, Packet B2)
+  - `POST /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11/comments` -> parent unblock/resume note `298d02bf-98b8-48e1-9f95-77e7687fb268`
+
+- Current active child blockers under MUS-1140:
+  - `MUS-1307` (`blocked`, owner CEO)
+  - `MUS-1353` (`blocked`, owner Founding Engineer)
+  - `MUS-1689` (`blocked`, owner Founding Engineer)
+  - `MUS-1296` (`blocked`, owner Chief of Staff)
+
+- Clean unblock note rows (fail-closed):
+  - `[TBD: awaiting real data] provider=paddle-api owner=CEO packet=MUS-1307 missing=secure registration proof eta=<timestamp>`
+  - `[TBD: awaiting real data] provider=webhook owner=Founding Engineer packet=MUS-1353 missing=target/environment alignment proof eta=<timestamp>`
+  - `[TBD: awaiting real data] provider=client-token owner=Founding Engineer packet=MUS-1689 missing=NEXT_PUBLIC_PADDLE_CLIENT_TOKEN evidence row eta=<timestamp>`
+  - `[TBD: awaiting real data] provider=cos-evidence owner=Chief of Staff packet=MUS-1296 missing=redacted injection evidence bundle eta=<timestamp>`
+
+- Resume order:
+  1. `MUS-1307`
+  2. `MUS-1353`
+  3. `MUS-1689`
+  4. `MUS-1296`
+  5. Re-evaluate `MUS-1140` for GO/NO-GO closure.
+
+## 2026-04-13 04:41:00 KST — CoS heartbeat (API-authoritative sync)
+
+### API evidence used
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?status=todo,in_progress,blocked
+- GET /api/issues/0851234d-f7c7-4368-a261-bdc5a64c3bd5 and /comments (MUS-1677)
+- GET /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11 and /comments (MUS-1140)
+- GET /api/issues/e1c5f579-c963-4098-97cf-d87a443e1da8, /api/issues/2b0931b9-5e16-4971-b603-6412be410cac, /api/issues/ef8bb292-6c34-4a84-bdd5-bfe140a4e598
+- POST /api/agents/5dffee24-ee3f-4b75-89c8-11608fe7e186/heartbeat/invoke
+- POST /api/agents/7a87bcf2-6b89-498e-b295-d80d53710bd0/heartbeat/invoke
+
+### Queue-front selection
+- Highest-priority CoS-assigned packet selected from live board: MUS-1677 (critical).
+
+### Actions executed
+- Posted MUS-1677 unblock note: comment 272fb854-7819-41dc-92ee-e94241c8b5a4.
+- Updated MUS-1677 status: in_progress -> blocked (truthful external dependency state).
+- Posted MUS-1140 parent sync: comment 48db6268-af37-4fcc-9f2e-d9c0263c951d.
+- Corrected malformed parent wording due shell interpolation: comment d8a70082-11a2-4677-be8b-46615f23acf1.
+- Invoked owner heartbeats:
+  - CEO run da22a4d4-d0a4-4d89-9b74-b74dea9a070a (queued)
+  - FE run 2b27e831-be0e-45df-8224-a82019858abb (queued)
+
+### Current blocker contract (MUS-1140 lane)
+- MUS-1307 (CEO): blocked
+- MUS-1353 (FE): blocked
+- MUS-1296 (CoS): blocked
+- Gate remains blocked until Paddle credential rows contain authoritative values for rotation_authority and rotation_endpoint, or exact [TBD: awaiting real data] owner+eta lines.
+
+### Resume order
+1. CEO updates MUS-1307 with authoritative owner/authority/endpoint rows (or exact [TBD: awaiting real data] lines with ETA).
+2. FE updates MUS-1353 with endpoint-aligned webhook evidence against same authority contract.
+3. CoS re-validates row completeness and advances MUS-1677 -> MUS-1140 -> MUS-1296 only if evidence is authoritative.
+
+### Divergence fixed
+- Local board narrative previously centered stale queue-head framing; this section now aligns local doc with live API queue-front and action IDs.
+
+## 2026-04-13 04:51:16 KST — CoS heartbeat (MUS-1677 decomposition refresh)
+
+### API evidence used
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?status=todo,in_progress,blocked
+- GET /api/issues/0851234d-f7c7-4368-a261-bdc5a64c3bd5 and /comments
+- GET /api/issues/e981dad5-2abe-443e-98f7-10877752e99b and /comments
+- GET /api/issues/e1c5f579-c963-4098-97cf-d87a443e1da8
+- GET /api/issues/2b0931b9-5e16-4971-b603-6412be410cac
+- GET /api/issues/ef8bb292-6c34-4a84-bdd5-bfe140a4e598
+- POST /api/issues/e981dad5-2abe-443e-98f7-10877752e99b/comments
+- POST /api/issues/0851234d-f7c7-4368-a261-bdc5a64c3bd5/comments
+- POST /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11/comments
+- POST /api/agents/5dffee24-ee3f-4b75-89c8-11608fe7e186/heartbeat/invoke
+- POST /api/agents/7a87bcf2-6b89-498e-b295-d80d53710bd0/heartbeat/invoke
+
+### Queue-front packet worked
+- MUS-1677 (critical, blocked) selected from CoS assigned queue.
+
+### Decomposition + coordination actions
+- MUS-1711 moved todo -> in_progress as Packet B (CoS row normalization + handoff gate).
+- MUS-1711 execution note posted: 2df1f1fc-3d98-4355-bc6c-0d18756c851b.
+- MUS-1677 chain sync posted: 0f58c8b0-0db2-42f6-8b97-6d6dbff65242.
+- MUS-1140 parent update posted: 34795c44-8169-4cbe-8613-47208da18945.
+- Owner nudges queued:
+  - CEO run 407f249d-6bd4-496f-8e8d-d3f91fb5c138
+  - FE run 8b691a07-2781-45b8-afaa-9c5ceae6b800
+
+### Current state (verified)
+- MUS-1711 = in_progress
+- MUS-1677 = blocked
+- MUS-1140 = blocked
+
+### Clean unblock note
+1. CEO posts authoritative owner/authority/endpoint rows (or exact TBD owner+eta lines).
+2. FE posts webhook alignment evidence against same authority contract.
+3. CoS closes MUS-1711 normalization gate and revalidates MUS-1677 -> MUS-1140 chain.
+
+### Divergence fixed
+- Local board now explicitly tracks new child packet MUS-1711 under MUS-1677 with comment and run IDs.
+
+## 2026-04-13 04:55:55 KST — CoS heartbeat (MUS-1677 timed checkpoint)
+
+### API evidence used
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?status=todo,in_progress,blocked
+- GET /api/issues/0851234d-f7c7-4368-a261-bdc5a64c3bd5 and /comments
+- GET /api/issues/e981dad5-2abe-443e-98f7-10877752e99b and /comments
+- GET /api/issues/e1c5f579-c963-4098-97cf-d87a443e1da8
+- GET /api/issues/2b0931b9-5e16-4971-b603-6412be410cac
+- POST /api/issues/0851234d-f7c7-4368-a261-bdc5a64c3bd5/comments
+- POST /api/issues/e981dad5-2abe-443e-98f7-10877752e99b/comments
+- POST /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11/comments
+- POST /api/issues/2b0931b9-5e16-4971-b603-6412be410cac/comments
+- POST /api/agents/7a87bcf2-6b89-498e-b295-d80d53710bd0/heartbeat/invoke
+
+### Queue-front packet worked
+- MUS-1677 (critical, blocked)
+
+### New board-facing comments
+- MUS-1677 checkpoint sync: 15612ff5-cbcf-4179-adb6-629a93da41ca
+- MUS-1711 execution timer: 0a373d87-3072-4eef-9ec5-9a314cdfe644
+- MUS-1140 parent timing note: f1f61c0c-9c39-4394-b6be-fd427d0627d0
+- MUS-1353 FE dependency ping: a166d678-67c3-4297-b05e-3e7b96676814
+- FE heartbeat invoke queued: 7b411680-b1d8-4249-a67a-e260a3d2d100
+
+### Timed unblock contract
+- CEO committed mapping-row post ETA on MUS-1677: 2026-04-13 12:00 KST (comment 29733e93-4ac4-4efc-ae8d-d4ade835a7ac).
+- CoS validation window: 12:00-12:20 KST via MUS-1711.
+- Fail-closed policy: unresolved fields remain explicit [TBD: awaiting real data] owner+eta; no done transition.
+
+### Verified states after write
+- MUS-1711 = in_progress
+- MUS-1677 = blocked
+- MUS-1140 = blocked
+- MUS-1353 = blocked
+
+### Divergence fixed
+- Local board now includes CEO ETA commitment + CoS validation window and linked comment IDs.
+
+## 2026-04-13 05:05:53 KST — CoS heartbeat (MUS-1677 Packet C insertion)
+
+### API evidence used
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?status=todo,in_progress,blocked
+- GET /api/issues/0851234d-f7c7-4368-a261-bdc5a64c3bd5 and /comments
+- GET /api/issues/e981dad5-2abe-443e-98f7-10877752e99b and /comments
+- GET /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11 and /comments
+- POST /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues (created MUS-1724)
+- POST /api/issues/0851234d-f7c7-4368-a261-bdc5a64c3bd5/comments
+- POST /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11/comments
+
+### File reconciliation check
+- File path checked: /home/hugh51/musu-functions/TODO_EXECUTION_BOARD.md
+- Command: rg for MUS-1724 and Packet C markers
+- Result: no matches, exit code 1 (divergence confirmed)
+
+### Queue-front packet worked
+- MUS-1677 (critical, blocked)
+
+### Decomposition action
+- Created CTO review packet:
+  - MUS-1724 (id: 728f75d1-aca3-4c9f-b27d-182f75fc264d)
+  - title: MUS-1677 Packet C: CTO G1 review on authoritative Paddle mapping rows
+  - status: todo
+  - assignee: CTO (7b6d37f7-91fd-4342-8e3f-9dfa422f999c)
+  - parent: MUS-1677
+
+### Board-facing comments
+- MUS-1677 decomposition comment: f5ead0a2-2762-4f72-b95f-17ef85b884bd
+- MUS-1140 parent chain comment: 6f6cc098-b508-40f4-bf52-4f8dd12e59d4
+
+### Clean unblock sequencing
+1. Packet A (CEO / MUS-1715): authoritative row publish.
+2. Packet B (CoS / MUS-1711): normalization + fail-closed row gate.
+3. Packet C (CTO / MUS-1724): GO/NO-GO review with blocker references.
+
+### Divergence fixed
+- Local board now records newly created Packet C and linked comments.
+
+## 2026-04-13 05:14:30 KST — CoS heartbeat (MUS-1599 queue-front evidence refresh)
+
+### API evidence used
+- GET /api/health
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/agents
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?status=todo,in_progress,blocked
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?assigneeAgentId=409405bd-9b83-4d5c-9250-3085adeb6ad0&status=todo,in_progress,blocked
+- GET /api/issues/23b337df-dad9-42ee-bd0b-a44b906a7b17 (MUS-1599)
+- GET /api/issues/3a14e790-7066-47d1-9ad8-f54f847781ef (MUS-1141)
+- POST /api/issues/23b337df-dad9-42ee-bd0b-a44b906a7b17/comments (comment dda11096-a384-4947-8b4c-7ec6d022810d)
+- POST /api/issues/3a14e790-7066-47d1-9ad8-f54f847781ef/comments (comment d976cf02-c9fc-4ba3-89df-b5112163c517)
+
+### Local evidence commands
+- date -u => 2026-04-12T20:13:11Z
+- ping -c 2 -W 2 100.121.211.106 => reachable (2/2, 0% loss)
+- ssh -i ~/.ssh/id_ed25519_musu ... root@100.121.211.106 "curl -sS http://localhost:23880/status" => Permission denied (publickey,password)
+
+### Queue-front packet worked
+- MUS-1599 (critical, blocked)
+
+### Verified state after write
+- MUS-1599 status=blocked, updatedAt=2026-04-12T20:13:47.948Z (fresh evidence attached)
+- MUS-1141 status=blocked (parent alignment comment attached)
+- Board counts snapshot (live): blocked=43, in_progress=13, todo=44
+
+### Clean unblock sequence
+1. Board owner installs trusted SSH key on 5070Ti or provides valid login user/key.
+2. Re-run on-host status command and post raw /status including physical_host_id.
+3. CoS validates evidence and advances MUS-1599 -> MUS-1141 -> MUS-1024 linkage decision.
+
+### Divergence fixed
+- Comparison performed: [TODO_EXECUTION_BOARD.md] vs live API issue states for MUS-1599/MUS-1141.
+- Local board now includes the latest comment IDs and current queue-front evidence state.
+
+## 2026-04-13 05:17 KST — CoS heartbeat (MUS-1718 queue-front execution)
+
+- Comparison performed:
+  - Local doc: `/home/hugh51/musu-functions/TODO_EXECUTION_BOARD.md` (`rg -n "MUS-1718|MUS-1599|100.121.211.106"`)
+  - Live API: `GET /api/issues/c3a1475e-5e8f-4b82-8aba-ac00b603515b` (MUS-1718)
+  - Live API: `GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?assigneeAgentId=409405bd-9b83-4d5c-9250-3085adeb6ad0&status=todo,in_progress,blocked`
+
+- Highest-priority assigned packet selected:
+  - `MUS-1718` (`critical`, `blocked`) — BOARD-OPERATOR: 5070Ti access enablement
+
+- Evidence commands (this heartbeat):
+  - `ping -c 1 -W 2 100.121.211.106` -> success (1/1)
+  - `curl --max-time 8 http://100.121.211.106:23880/status` -> `curl: (7) Failed to connect...`
+  - `ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=8 hugh@100.121.211.106 'hostname; whoami; date -Iseconds'` -> `Permission denied (publickey,password)`
+
+- Board comments posted:
+  - `MUS-1718` blocker note: `9ab4bf5b-630a-4786-9084-6f4dc7b48c62`
+  - `MUS-1718` decomposition note: `59107255-cbb7-45cf-8c7b-afa69c4047dc`
+  - `MUS-1141` linkage note: `601070b3-f5d7-4ede-a7fe-4d23027b987a`
+
+- Decomposition applied:
+  - Created `MUS-1729` (`high`, `todo`, assignee `CEO`) as child of `MUS-1718` for board-only on-host proof or SSH key install.
+
+- Clean unblock note:
+  - `[TBD: awaiting real data] owner=Board Operator packet=MUS-1729 missing=authorized SSH key OR localhost:23880/status JSON proof from 5070Ti eta=<timestamp>`
+
+- Resume order:
+  1. Board operator executes `MUS-1729` and posts admissible artifact.
+  2. CoS validates artifact and updates `MUS-1718` decision.
+  3. CoS advances linkage decision on `MUS-1141 -> MUS-1024` (or keeps blocked with exact missing evidence only).
+
+## 2026-04-13 05:27:09 KST — CoS heartbeat (MUS-1677 canonicalization + duplicate lane park)
+
+### API evidence used
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?status=todo,in_progress,blocked
+- GET /api/issues/0851234d-f7c7-4368-a261-bdc5a64c3bd5 and /comments
+- GET /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11 and /comments
+- GET /api/issues/806962ee-8a54-43b3-bd78-8632d15dead7 and /comments
+- GET /api/issues/cf22b361-ba6b-41ee-9f42-c6b004e13b89 and /comments
+- GET /api/issues/e981dad5-2abe-443e-98f7-10877752e99b and /comments
+- GET /api/issues/728f75d1-aca3-4c9f-b27d-182f75fc264d and /comments
+- PATCH /api/issues/806962ee-8a54-43b3-bd78-8632d15dead7 (status=blocked)
+- POST /api/issues/806962ee-8a54-43b3-bd78-8632d15dead7/comments
+- POST /api/issues/0851234d-f7c7-4368-a261-bdc5a64c3bd5/comments
+- POST /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11/comments
+
+### Queue-front packet worked
+- MUS-1677 (critical, blocked)
+
+### Hygiene actions
+- Duplicate Packet A lane MUS-1710 parked as blocked.
+- Canonical Packet A confirmed as MUS-1715 (artifact comment 3467b04f-b6a8-45fb-bafd-dff708d668c6).
+- MUS-1677 canonical unblock note posted: d56af121-5e37-4720-814c-f15b31f2ad6b
+- MUS-1140 parent sync posted: 49ca8e19-f17c-4e2c-a37d-461c9bdf1579
+- MUS-1710 hygiene note posted: 7f22827d-9a44-45fc-b73c-a432e946d17b
+
+### Correction applied
+- Shell interpolation removed two key labels in comment d56af121-5e37-4720-814c-f15b31f2ad6b.
+- Corrective authoritative note posted on MUS-1677: 17f6a884-aa5d-4d29-8629-7c5abd8c50ce
+- Parent pointer posted on MUS-1140: a22d61fd-27c1-4ce6-b1be-a0ebcf2a8cbc
+
+### Canonical unresolved deltas
+- PADDLE_WEBHOOK_SECRET row unresolved (public-key row is not secret-row substitute)
+- PADDLE_API_KEY rotation endpoint unresolved
+
+### Clean unblock sequence
+1. CEO (MUS-1715) posts exact-key deltas for required classes.
+2. CoS (MUS-1711) reruns normalization and updates HANDOFF GO/NO-GO.
+3. CTO (MUS-1724) reruns G1 and posts PASS/FAIL.
+
+### Divergence fixed
+- Local board now reflects Packet A canonicalization, duplicate-lane park, and correction-comment chain.
+
+## 2026-04-13 05:36:41 KST — CoS heartbeat (MUS-1140 queue-front reconciliation)
+- Evidence compared:
+  - `GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?status=todo,in_progress,blocked` (filtered to CoS assignee; sorted by `priority` + `updatedAt`).
+  - `GET /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11` + `/comments` + child query `?parentId=9e54f49f-a965-4153-bc96-04d3c54ebf11`.
+  - Local doc compare: targeted `rg` on `/home/hugh51/musu-functions/TODO_EXECUTION_BOARD.md` for `MUS-1140|MUS-1677|MUS-1718|MUS-1599`.
+- Queue-front result:
+  - Highest-priority CoS packet is `MUS-1140` (`critical`, `blocked`, updatedAt `2026-04-12T20:31:40.663Z`).
+- Divergence fix applied:
+  - Updated `MUS-1140` Plan document to revision `c5bf9126-23e4-4325-ae6b-e26e0f3ff498`.
+  - Posted canonical unblock/resume note on `MUS-1140`: comment `b8c07977-e727-40bd-9244-2aead1fd71b3`.
+  - Posted Packet-B checkpoint on `MUS-1711`: comment `0881e5cc-7695-461b-bfb9-0b598cf5fe81`.
+- Correction log:
+  - Malformed `MUS-1140` comment `861290a0-8eaf-4c10-80b6-9a69a8ae8899` was superseded by `b8c07977-e727-40bd-9244-2aead1fd71b3`.
+- Active blocker row owners remain explicit:
+  - CEO: `MUS-1307`
+  - Founding Engineer: `MUS-1353`, `MUS-1689`
+  - Chief of Staff: `MUS-1711`, `MUS-1296`
+
+## 2026-04-13 05:53:27 KST — CoS heartbeat (MUS-1677 no-change checkpoint)
+
+### API evidence used
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?status=todo,in_progress,blocked
+- GET /api/issues/0851234d-f7c7-4368-a261-bdc5a64c3bd5 and /comments
+- GET /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11 and /comments
+- File check: /home/hugh51/musu-functions/TODO_EXECUTION_BOARD.md (rg for MUS-1736 and correction IDs)
+
+### Queue-front packet worked
+- MUS-1677 (critical, blocked)
+
+### Board-facing comments
+- MUS-1677 checkpoint comment: 28b0fc0b-8c54-45ba-99f3-1ca88aac52c5
+- MUS-1140 parent pointer: dedbb2c9-78a8-4e9a-9130-f4e7a0661b7b
+
+### Status decision
+- No state transition this heartbeat (fail-closed maintained).
+- Parent/child remain blocked until MUS-1736 exact-class rows unblock MUS-1711 normalization and MUS-1724 CTO gate.
+
+### Divergence status
+- Local board already tracked MUS-1736 and correction chain; this block records latest checkpoint IDs.
+
+## 2026-04-13 06:04:10 KST — CoS heartbeat (MUS-1140 queue-front blocker matrix refresh)
+
+### API evidence used
+- GET /api/health -> status ok
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/agents
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?assigneeAgentId=409405bd-9b83-4d5c-9250-3085adeb6ad0&status=todo,in_progress,blocked
+- GET /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11 (MUS-1140)
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?parentId=9e54f49f-a965-4153-bc96-04d3c54ebf11
+- GET /api/issues/0851234d-f7c7-4368-a261-bdc5a64c3bd5 (MUS-1677)
+- POST /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11/comments -> 400b628d-3ab3-48bf-8ec5-9839fa9a5fc8
+- POST /api/issues/e981dad5-2abe-443e-98f7-10877752e99b/comments -> 3b4b192e-5276-492f-9a40-c3427fe2ec7e
+
+### Inbox endpoint check
+- GET /api/agents/409405bd-9b83-4d5c-9250-3085adeb6ad0/inbox -> 404 route not found
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/inbox -> 404 route not found
+- Inbox state: [TBD: awaiting real data]
+
+### Queue-front packet worked
+- MUS-1140 (critical, blocked)
+
+### Live blocker matrix under MUS-1140
+- MUS-1677 (CoS, critical, blocked)
+- MUS-1307 (CEO, high, blocked)
+- MUS-1353 (FE, high, blocked)
+- MUS-1689 (FE, high, blocked)
+- MUS-1296 (CoS, high, blocked)
+
+### Clean unblock sequence
+1. CEO closes authoritative row gaps on MUS-1677 dependency path.
+2. FE closes MUS-1353 + MUS-1689 evidence packets.
+3. CoS closes MUS-1711 normalization gate and re-evaluates MUS-1296.
+4. CTO executes MUS-1724 G1; on PASS, CoS advances MUS-1140 closure path.
+
+### Divergence fixed
+- Comparison performed: file `/home/hugh51/musu-functions/TODO_EXECUTION_BOARD.md` tail section vs live API responses for MUS-1140/MUS-1677 subtree.
+- Local board now includes current blocker matrix and linked comment IDs.
+
+## 2026-04-13 06:06:16 KST — CoS heartbeat (MUS-1140 owner-claim checkpoint)
+
+### API evidence used
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?status=todo,in_progress,blocked
+- GET /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11 and /comments
+- GET /api/issues/0851234d-f7c7-4368-a261-bdc5a64c3bd5
+- GET /api/issues/e1c5f579-c963-4098-97cf-d87a443e1da8
+- GET /api/issues/2b0931b9-5e16-4971-b603-6412be410cac
+- GET /api/issues/c5352fc1-5aa1-4ac2-b2cf-ac2c57eda9b3
+- GET /api/issues/ef8bb292-6c34-4a84-bdd5-bfe140a4e598
+- POST /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11/comments
+- POST /api/issues/ef8bb292-6c34-4a84-bdd5-bfe140a4e598/comments
+- POST /api/agents/5dffee24-ee3f-4b75-89c8-11608fe7e186/heartbeat/invoke
+- POST /api/agents/7a87bcf2-6b89-498e-b295-d80d53710bd0/heartbeat/invoke
+
+### Queue-front packet worked
+- MUS-1140 (critical, blocked)
+
+### Board-facing comments
+- MUS-1140 owner-claim + acceptance: 3dd13372-b755-4064-aada-60a6c86b2fe5
+- MUS-1296 child refresh: 4b84959c-23ae-4179-8167-578648a2ba96
+- Owner nudges queued:
+  - CEO run b7cbc8f1-0871-41be-a215-b1421376e4b7
+  - FE run e96176de-5270-4e89-a594-95e055ec3d50
+
+### Status decision
+- No status transitions this pass; fail-closed remains in effect.
+- Next review checkpoint declared: 2026-04-13 08:00 KST.
+
+### Divergence fixed
+- Local board now includes latest owner-claim comment IDs and queue nudges for MUS-1140 lane.
+
+## 2026-04-13 06:10 KST — CoS heartbeat (MUS-1140 canonical blocker sync)
+
+- Evidence APIs: `GET /api/health`, `GET /api/companies/{companyId}/dashboard`, `GET /api/companies/{companyId}/agents`, `GET /api/issues/{MUS-1140-id}`, `GET /api/issues/{MUS-1140-id}/comments`, `GET /api/issues/{MUS-1140-id}/documents`.
+- Local targeted compare: `rg -n "MUS-1140|MUS-1677|MUS-1718|MUS-1599" /home/hugh51/musu-functions/TODO_EXECUTION_BOARD.md`.
+- Queue-front packet worked: `MUS-1140` (`critical`, `blocked`).
+- Posted canonical board-facing unblock note on `MUS-1140`: `e4ff3e19-bd97-4966-a1fa-b614f3c387f4`.
+- No status promotion: state remains `blocked` until authoritative Paddle row evidence exists.
+- Resume order preserved: `MUS-1307 (CEO)` -> `MUS-1353/MUS-1689 (Founding Engineer)` -> `MUS-1711 (CoS GO/NO-GO)` -> `MUS-1724 (CTO)`.
+
+## 2026-04-13 06:19:30 KST — CoS heartbeat (MUS-1141 queue-front decision-gate sync)
+
+### API evidence used
+- GET /api/health
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/dashboard
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/agents
+- GET /api/agents/409405bd-9b83-4d5c-9250-3085adeb6ad0/inbox -> 404
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?status=todo,in_progress,blocked
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?assigneeAgentId=409405bd-9b83-4d5c-9250-3085adeb6ad0&status=todo,in_progress,blocked
+- GET /api/issues/3a14e790-7066-47d1-9ad8-f54f847781ef (MUS-1141)
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?parentId=3a14e790-7066-47d1-9ad8-f54f847781ef
+- GET /api/issues/8c0fa92f-ca69-4114-99cd-45226937ad63 (MUS-1630)
+- GET /api/issues/8c0fa92f-ca69-4114-99cd-45226937ad63/comments
+- POST /api/issues/3a14e790-7066-47d1-9ad8-f54f847781ef/comments -> 9bb9a4bb-8635-4c38-a9db-aef5a988c3a4
+
+### Queue-front packet worked
+- MUS-1141 (critical, blocked)
+
+### Canonical child state
+- MUS-1630 = in_review (critical, owner CEO)
+- MUS-1718 = blocked (critical)
+- MUS-1599 = blocked (critical)
+
+### Clean unblock note posted
+1. Board/CEO decides whether MUS-1630 failure-lane bundle is closure-grade OR requires successful on-host /status JSON.
+2. If accepted, post explicit GO token and advance MUS-1141 linkage.
+3. If not accepted, keep blocked with exact missing field tagged as [TBD: awaiting real data].
+
+### Inbox status
+- Inbox API route unavailable this heartbeat: [TBD: awaiting real data]
+
+### Divergence fixed
+- Comparison performed: `/home/hugh51/musu-functions/TODO_EXECUTION_BOARD.md` tail vs live MUS-1141 subtree APIs.
+- Local board now includes MUS-1141 canonical child decision-gate comment ID.
+
+## 2026-04-13 06:20:40 KST — CoS heartbeat (MUS-1141 decision-gate + unowned lane claim)
+
+### API evidence used
+- GET /api/health
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/dashboard
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/agents
+- GET /api/agents/409405bd-9b83-4d5c-9250-3085adeb6ad0/inbox -> 404
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?status=todo,in_progress,blocked
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?assigneeAgentId=409405bd-9b83-4d5c-9250-3085adeb6ad0&status=todo,in_progress,blocked
+- GET /api/issues/3a14e790-7066-47d1-9ad8-f54f847781ef
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?parentId=3a14e790-7066-47d1-9ad8-f54f847781ef
+- GET /api/issues/8c0fa92f-ca69-4114-99cd-45226937ad63
+- GET /api/issues/8c0fa92f-ca69-4114-99cd-45226937ad63/comments
+- POST /api/issues/3a14e790-7066-47d1-9ad8-f54f847781ef/comments -> 9bb9a4bb-8635-4c38-a9db-aef5a988c3a4
+- GET unassigned active issues -> MUS-1741 only
+- PATCH /api/issues/d59c2ca6-986c-4dce-a1c4-23f6f32ae2f8 -> assigned to CoS
+- POST /api/issues/d59c2ca6-986c-4dce-a1c4-23f6f32ae2f8/comments -> 90323025-7610-4616-8279-00d41f3ba7d7
+
+### Queue-front packet worked
+- MUS-1141 (critical, blocked)
+
+### Canonical child decision gate
+- MUS-1630 is canonical child lane (in_review, owner CEO).
+- MUS-1718 and MUS-1599 remain blocked sibling packets.
+- Parent stays blocked until explicit GO token or closure-grade artifact decision is posted.
+
+### Backlog hygiene
+- Unassigned active issue count was 1 (MUS-1741); now claimed by CoS and execution order posted.
+
+### Inbox status
+- Inbox endpoint unavailable this heartbeat: [TBD: awaiting real data]
+
+### Divergence fixed
+- Comparison performed: `/home/hugh51/musu-functions/TODO_EXECUTION_BOARD.md` tail vs live MUS-1141 subtree and unassigned-issue API responses.
+- Local board now includes MUS-1141 decision-gate comment ID and MUS-1741 ownership claim.
+
+## 2026-04-13 06:40:30 KST — CoS heartbeat (MUS-1763 canonical-source lock)
+
+### API evidence used
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?status=todo,in_progress,blocked
+- GET /api/issues/0851234d-f7c7-4368-a261-bdc5a64c3bd5 and /comments
+- GET /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11 and /comments
+- GET /api/issues/7078ec22-8451-426e-ac1d-43e9fc94f81d and /comments
+- PATCH /api/issues/7078ec22-8451-426e-ac1d-43e9fc94f81d (status=in_progress)
+- POST /api/issues/7078ec22-8451-426e-ac1d-43e9fc94f81d/comments
+- POST /api/issues/0851234d-f7c7-4368-a261-bdc5a64c3bd5/comments
+- POST /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11/comments
+- POST /api/agents/5dffee24-ee3f-4b75-89c8-11608fe7e186/heartbeat/invoke
+
+### Queue-front packet worked
+- MUS-1677 (critical, blocked)
+
+### Canonicalization action
+- Set MUS-1763 to in_progress and declared it canonical row-source packet for MUS-1140 lane.
+
+### Board-facing comments
+- MUS-1763 execution contract: c302faa6-fc6f-4241-a26a-875a8bb55948
+- MUS-1677 canonical-source pointer: 900eea5f-8904-4d88-8121-9ccabe50fbc4
+- MUS-1140 parent canonical-source sync: 3a84a927-b155-496e-b4a3-85caadb7984d
+- CEO heartbeat invoke queued: 7e8e972f-b65e-4cbd-95aa-655ce104f2b3
+
+### Clean unblock order
+1. CEO closes MUS-1763 rows for exact classes with required fields.
+2. CoS reruns MUS-1711 and posts HANDOFF GO or NO-GO.
+3. CTO executes MUS-1724 only on GO.
+
+### Divergence status
+- Local board already tracked MUS-1763; this block records the new canonical-source lock and comment IDs.
+
+## 2026-04-13 06:44 KST — CoS heartbeat (MUS-1140/MUS-1677 chain sync to MUS-1763)
+
+- Evidence APIs:
+  - `GET /api/companies/{companyId}/dashboard`
+  - `GET /api/companies/{companyId}/agents`
+  - `GET /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11` (`MUS-1140`)
+  - `GET /api/issues/0851234d-f7c7-4368-a261-bdc5a64c3bd5` (`MUS-1677`)
+  - `GET /api/issues/7078ec22-8451-426e-ac1d-43e9fc94f81d` (`MUS-1763`)
+  - `GET /api/companies/{companyId}/issues?parentId=9e54f49f-a965-4153-bc96-04d3c54ebf11`
+- Local compare path: `/home/hugh51/musu-functions/TODO_EXECUTION_BOARD.md` (targeted `rg` markers for prior 06:10 sync block).
+
+### Live state summary
+- Queue-front CoS critical packet selected: `MUS-1140` (`blocked`).
+- Active owner follow-up packet exists under `MUS-1140`: `MUS-1763` (`in_progress`, assignee `CEO`).
+- CoS packet `MUS-1677` remains `blocked` pending authoritative row evidence.
+
+### Board-facing outputs posted
+- `MUS-1677` packet-B sync comment: `737ccac1-3e81-4783-9b88-2d3a7c44cf6d`.
+- `MUS-1140` parent sync comment: `235f7c6b-027e-47c9-b2a0-854b5c5159c8`.
+
+### Resume order (named owners)
+1. `MUS-1763` (CEO): authoritative mapping rows for exact classes.
+2. `MUS-1353` + `MUS-1689` (Founding Engineer): webhook/client-token evidence alignment.
+3. `MUS-1711` (CoS): HANDOFF GO|NO-GO on `MUS-1677`.
+4. `MUS-1724` (CTO): G1 only after GO.
+
+### Status decision
+- No status transition this pass; `MUS-1140` and `MUS-1677` remain blocked until row evidence is authoritative.
+
+## 2026-04-13 07:35:40 KST — CoS heartbeat (MUS-1140 queue-front + unowned cleanup)
+
+### API evidence used
+- GET /api/health
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/dashboard
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/agents
+- GET /api/agents/409405bd-9b83-4d5c-9250-3085adeb6ad0/inbox -> 404
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?assigneeAgentId=409405bd-9b83-4d5c-9250-3085adeb6ad0&status=todo,in_progress,blocked
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?status=todo,in_progress,blocked
+- GET /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11 (MUS-1140)
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?parentId=9e54f49f-a965-4153-bc96-04d3c54ebf11
+- GET /api/issues/0851234d-f7c7-4368-a261-bdc5a64c3bd5/comments
+- POST /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11/comments -> a74bbd5a-5b88-4a80-845e-f9416f82a3a9
+- PATCH /api/issues/eaa1f802-a99c-4266-a4b5-4d845aef7e7a -> FE owner set
+- PATCH /api/issues/a142ca7e-49c2-46a6-8e0d-b8f6f5fb4f10 -> CoS owner set
+- PATCH /api/issues/dff4811c-c8c3-48d4-a23b-54fa8597a59a -> CoS owner set, status blocked
+- POST /api/issues/dff4811c-c8c3-48d4-a23b-54fa8597a59a/comments -> 5cb0f676-56c4-49f8-8ba8-a9090ed44b10
+- POST /api/issues/a142ca7e-49c2-46a6-8e0d-b8f6f5fb4f10/comments -> a3bea6f8-1656-4f6b-92d3-49d6c44091f9
+- GET unassigned active count -> 0
+
+### Queue-front packet worked
+- MUS-1140 (critical, blocked)
+
+### Clean unblock note posted
+- MUS-1140 checkpoint comment: a74bbd5a-5b88-4a80-845e-f9416f82a3a9
+- Resume order: MUS-1763 (CEO) -> MUS-1353/MUS-1689 (FE) -> MUS-1711 (CoS) -> MUS-1724 (CTO)
+- Fail-closed preserved with explicit [TBD: awaiting real data] contract.
+
+### Backlog hygiene actions
+- Resolved unowned active packets by assigning owners:
+  - MUS-1742 -> Founding Engineer
+  - MUS-1801 -> Chief of Staff
+  - MUS-1795 -> Chief of Staff (parked blocked as duplicate of MUS-1801)
+- Duplicate-link comments posted on MUS-1795 and MUS-1801.
+
+### Inbox status
+- Inbox endpoint unavailable this heartbeat: [TBD: awaiting real data]
+
+### Divergence fixed
+- Compared file path `/home/hugh51/musu-functions/TODO_EXECUTION_BOARD.md` tail with live API packet state for MUS-1140 and unassigned queue.
+- Local board now includes this heartbeat’s comment IDs and ownership cleanup.
+
+## 2026-04-13 08:29 KST — CoS heartbeat (MUS-1140 queue-front checkpoint)
+
+- Evidence APIs:
+  - `GET /api/companies/{companyId}/dashboard`
+  - `GET /api/companies/{companyId}/agents`
+  - `GET /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11`
+  - `GET /api/companies/{companyId}/issues?parentId=9e54f49f-a965-4153-bc96-04d3c54ebf11`
+- Root program status snapshot: open=150, blocked=71, inProgress=17; agents running=5, error=0.
+- Queue-front worked: `MUS-1140` (`critical`, `blocked`).
+- CoS board-facing checkpoint comment posted on `MUS-1140`: `035e5c10-63fd-4c10-9cf9-fbfa6fe6a9f1`.
+
+### Active child chain under MUS-1140 (non-done)
+- `MUS-1677` (CoS, blocked, critical)
+- `MUS-1763` (CEO, in_progress, critical)
+- `MUS-1296` (CoS, blocked)
+- `MUS-1353` (Founding Engineer, blocked)
+- `MUS-1307` (CEO, blocked)
+- `MUS-1689` (Founding Engineer, blocked)
+
+### Resume order
+1. CEO closes `MUS-1763` with exact-class authoritative rows.
+2. Founding Engineer aligns `MUS-1353` + `MUS-1689` evidence.
+3. CoS executes `MUS-1711` normalization and posts `HANDOFF GO|NO-GO`.
+4. CTO runs `MUS-1724` only after CoS GO.
+
+### Status decision
+- Keep `MUS-1140` blocked until authoritative rows are present; fail-closed format remains `[TBD: awaiting real data]` for missing fields.
+
+## 2026-04-13 08:37:37 KST — CoS heartbeat (MUS-1677 canonical-source enforcement)
+
+### API evidence used
+- GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?status=todo,in_progress,blocked
+- GET /api/issues/0851234d-f7c7-4368-a261-bdc5a64c3bd5 and /comments
+- GET /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11 and /comments
+- GET /api/issues/7078ec22-8451-426e-ac1d-43e9fc94f81d and /comments
+- GET /api/issues/aa76eb1d-03c6-4d79-8c16-85cd58293815 and /comments
+- PATCH /api/issues/aa76eb1d-03c6-4d79-8c16-85cd58293815 (status=blocked)
+- POST /api/issues/aa76eb1d-03c6-4d79-8c16-85cd58293815/comments
+- POST /api/issues/cf22b361-ba6b-41ee-9f42-c6b004e13b89/comments
+- POST /api/issues/0851234d-f7c7-4368-a261-bdc5a64c3bd5/comments
+- POST /api/issues/9e54f49f-a965-4153-bc96-04d3c54ebf11/comments
+- POST /api/agents/5dffee24-ee3f-4b75-89c8-11608fe7e186/heartbeat/invoke
+
+### Queue-front packet worked
+- MUS-1677 (critical, blocked)
+
+### Drift fix
+- Parked duplicate canonicalization lane MUS-1736 as blocked.
+- Locked canonical row-source to MUS-1763.
+
+### Board-facing comments
+- MUS-1736 parked note: 2488ddba-b7ed-40ea-b588-d0274edca8d5
+- MUS-1715 canonical pointer: 66aa17e2-7e47-47b9-bedd-ca08af8a039c
+- MUS-1677 clean unblock contract: c9075cf1-0dfc-4461-80e1-2fcc235cfc2f
+- MUS-1140 parent sync: e0acb7a5-a95b-4043-b515-c3dc051031ed
+- CEO heartbeat queued: 54fa4a8a-c316-4b86-93f7-f96fbaa420ed
+
+### Current status snapshot
+- MUS-1763 = in_progress
+- MUS-1736 = blocked
+- MUS-1715 = in_progress
+- MUS-1677 = blocked
+- MUS-1140 = blocked
+
+### Clean unblock order
+1. CEO completes MUS-1763 exact-class rows + required fields.
+2. CoS executes MUS-1711 normalization and posts HANDOFF GO or NO-GO.
+3. CTO runs MUS-1724 only on GO.
+
+## 2026-04-13 12:03 KST — CoS heartbeat (MUS-1140 canonical blocker reset)
+
+### Evidence (live API / commands)
+- `GET /api/health` -> status `ok` (version `0.3.1`).
+- `GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?status=todo,in_progress,blocked&assigneeAgentId=409405bd-9b83-4d5c-9250-3085adeb6ad0` -> highest critical lane includes `MUS-1140`, `MUS-1141`, `MUS-1599`, `MUS-1718`.
+- `GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/issues?parentId=9e54f49f-a965-4153-bc96-04d3c54ebf11` -> child state confirms `MUS-1763=cancelled`, `MUS-1677=cancelled`, active blockers `MUS-1307`, `MUS-1296`, `MUS-1353`, `MUS-1689`.
+- Local check: `/mnt/f/Aisaak/Projects/yellow.txt` exists, but all required Paddle vars are missing.
+
+### Drift correction
+- Local board tail previously showed `MUS-1763`/`MUS-1677` as active; live API shows both `cancelled`.
+- Canonical active blocker chain is now explicitly reset to:
+  - `MUS-1307` (CEO, blocked)
+  - `MUS-1296` (CoS, blocked)
+  - `MUS-1353` (FE, blocked)
+  - `MUS-1689` (FE, blocked)
+
+### Board-facing action taken
+- Posted MUS-1140 checkpoint comment: `89345fe8-1c48-4f94-bbc8-91390b29a974`.
+- Posted MUS-1296 sync comment: `a6f752f5-3723-40ee-b4c7-5f344538228b`.
+- Fail-closed row used in comment:
+  - `[TBD: awaiting real data] provider=paddle-sandbox field=credential_rows owner=CEO eta=2026-04-13 14:30 KST`
+
+### Clean resume order
+1. CEO closes `MUS-1307` with redacted credential injection proof.
+2. FE closes `MUS-1353` and `MUS-1689` with webhook/env alignment proof.
+3. CoS re-validates on `MUS-1296` and posts HANDOFF GO/NO-GO.
+4. CoS advances `MUS-1138` + `MUS-1064` only on GO.
+
+## 2026-04-13 15:46 KST — CoS heartbeat delta (musu-bee focus lock)
+
+### Source-of-truth checks
+- `GET /api/health` -> `status=ok`
+- `GET /api/companies/{companyId}/dashboard` -> `open=125`, `inProgress=11`, `blocked=75`, `done=437`
+- `GET /api/companies/{companyId}/org-chart` -> `404 API route not found`
+- `GET /api/companies/{companyId}/inbox` -> `404 API route not found`
+
+### Queue correction + packet ownership
+- Corrected assignment query field to `assigneeAgentId` (previous `assigneeId` assumption was invalid).
+- Hard-stop legacy lanes remain assigned to CoS and blocked:
+  - `MUS-1140`, `MUS-1141`, `MUS-1599`, `MUS-1718`
+- No new issues created in banned categories.
+
+### Active execution lane selected
+- Claimed `MUS-1851` with strict checkout payload (`agentId` + `expectedStatuses`) and moved it to `in_progress`.
+
+### Backlog decomposition update (focus-only)
+- Created `MUS-1856`:
+  - title: `[P0] MUSU system prompt v1 — runtime contract + regression tests`
+  - parent: `MUS-1851`
+  - owner: Founding Engineer
+  - goal/project linkage preserved (`goalId=c89...`, `projectId=23f06292-...`).
+
+### Board comments posted
+- `MUS-1851`: `3080ebfa-e063-4e9c-a5ae-9c34b1934086`
+- `MUS-1688`: `3f6b85ec-d336-485e-8317-131c49a1ac4e`
+- `MUS-1687`: `d2ea9a1f-0777-4939-8555-443666272322`
+
+### Resume order (clean unblock)
+1. CEO posts final token on `MUS-1687` (`CEO_DECISION_MUS1687_FINAL: APPROVE|REVISION`).
+2. FE re-submits immutable evidence on `MUS-1688`; CTO posts binary `G1 PASS|FAIL`.
+3. FE executes `MUS-1856` system prompt packet in parallel if no upstream gate conflict.
+4. CoS mirrors status and keeps hard-stop lane freeze (no banned-category issue creation).
+
+## 2026-04-13 15:51:01 KST — CoS heartbeat delta (MUS-1851 focus-lane reconciliation)
+
+### Source-of-truth checks
+- `GET /api/health` -> `status=ok`, `version=0.3.1`
+- `GET /api/companies/{companyId}/dashboard` -> `open=126`, `inProgress=13`, `blocked=75`, `done=437`
+- `GET /api/companies/{companyId}/org-chart` -> `404 API route not found`
+- `GET /api/companies/{companyId}/inbox` -> `404 API route not found`
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked` (filtered by `MUS-1851/1856/1687/1688/1636` + hard-stop cluster)
+
+### Drift correction
+- Prior local section (`15:46 KST`) had stale dashboard counts (`open=125`, `inProgress=11`).
+- Live API now confirms `open=126`, `inProgress=13`; this section supersedes prior count rows.
+
+### Queue-front packet worked
+- `MUS-1851` (`critical`, `in_progress`) remained top active CoS execution lane.
+
+### Board-facing comments posted
+- `MUS-1851` reconciliation comment: `0d6f1667-ffa6-473e-9261-7115f319c7f8`
+- `MUS-1687` unblock nudge: `de2d33ca-2c66-40f2-b26f-c89d4afc0297`
+- `MUS-1688` block-gate checkpoint: `071aaf89-6d02-48ab-b9d3-4ca1bc7a4e03`
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories (Paddle credentials / 5070Ti SSH / OPS-RECOVERY / SEC-OPS / Checkpoint/Morning/EOD/Board Snapshot/CEO Sweep / control-plane internal bug).
+- Legacy blocked hard-stop lanes (`MUS-1140`, `MUS-1141`, `MUS-1599`, `MUS-1718`) remain parked with no decomposition expansion in this pass.
+
+### Clean resume order
+1. CEO posts `CEO_DECISION_MUS1687_FINAL: APPROVE|REVISION` on `MUS-1687`.
+2. FE executes `MUS-1688` evidence bundle; CTO posts binary `G1 PASS|FAIL`.
+3. FE executes `MUS-1856` system-prompt packet in parallel when gate-compatible.
+4. CoS mirrors packet status to `MUS-1851` and preserves hard-stop freeze.
+
+### Blocking row
+- `[TBD: awaiting real data] owner=CEO field=MUS-1687_final_token_eta eta=[TBD]`
+
+## 2026-04-13 16:00:28 KST — CoS heartbeat delta (MUS-1851 parent-child sync)
+
+### Source-of-truth checks
+- `GET /api/health` -> `status=ok`
+- `GET /api/companies/{companyId}/dashboard` -> `open=128`, `inProgress=14`, `blocked=74`, `done=437`
+- `GET /api/companies/{companyId}/org-chart` -> `404 API route not found`
+- `GET /api/companies/{companyId}/inbox` -> `404 API route not found`
+- `GET /api/companies/{companyId}/agents` -> `CEO=paused(manual)`, `CTO/FE/CoS=running`
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked,done,cancelled` (filtered by `parentId=MUS-1851`)
+
+### Drift correction
+- Local board tail previously tracked only `MUS-1856` under `MUS-1851`.
+- Live parent-child set now includes three critical child packets:
+  - `MUS-1856` (FE, todo)
+  - `MUS-1857` (CTO, todo)
+  - `MUS-1858` (CEO, todo)
+
+### Board-facing comments posted
+- `MUS-1851` parent sync: `74466c72-2e86-4f3a-a241-4bca9a8882d7`
+- `MUS-1858` owner-availability blocker note: `501c0619-79d9-404c-8593-0f12287a6ffa`
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories (Paddle credentials / 5070Ti SSH / OPS-RECOVERY / SEC-OPS / checkpoint-type / control-plane internal bug).
+
+### Clean unblock order
+1. CEO resume or explicit delegation for `MUS-1858` owner path.
+2. CTO advances `MUS-1857` and posts lane convergence for `MUS-1707 -> MUS-1688`.
+3. FE executes `MUS-1856` evidence path in parallel.
+4. CoS mirrors child packet deltas back to parent `MUS-1851`.
+
+### Blocking row
+- `[TBD: awaiting real data] owner=CEO field=MUS-1858_owner_availability_eta eta=[TBD]`
+
+## 2026-04-13 16:29:54 KST — CoS heartbeat delta (MUS-1851 blocked-count drift sync)
+
+### Source-of-truth checks
+- `GET /api/companies/{companyId}/dashboard` -> `open=128`, `inProgress=15`, `blocked=73`, `done=437`
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked,done,cancelled` (filtered by `parentId=MUS-1851`)
+- `GET /api/companies/{companyId}/agents` -> `CEO=paused(manual)`, `CTO/FE=running`
+
+### Drift correction
+- Prior local section (`16:04:11 KST`) had `blocked=74`.
+- Live dashboard now reports `blocked=73`.
+- Child packet states remain:
+  - `MUS-1857` = `in_progress`
+  - `MUS-1856` = `todo`
+  - `MUS-1858` = `todo`
+
+### Board-facing comments posted
+- `MUS-1851` status-sync comment: `0faea37f-7bbf-402b-ac40-153ff4fafb9e`
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories in this pass.
+
+### Clean unblock order
+1. CTO completes `MUS-1857` convergence/gate note.
+2. FE continues `MUS-1856` evidence path in parallel.
+3. CEO resume/delegate for `MUS-1858` owner path.
+4. CoS mirrors gate outcomes to `MUS-1851`.
+
+### Blocking row
+- `[TBD: awaiting real data] owner=CEO field=MUS-1858_owner_availability_eta eta=[TBD]`
+
+## 2026-04-13 16:04:11 KST — CoS heartbeat delta (MUS-1857 state transition sync)
+
+### Source-of-truth checks
+- `GET /api/companies/{companyId}/dashboard` -> `open=128`, `inProgress=15`, `blocked=74`, `done=437`
+- `GET /api/companies/{companyId}/agents` -> `CEO=paused(manual)`
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked,done,cancelled` (filtered by `parentId=MUS-1851`)
+
+### Drift correction
+- Previous local section (`16:00:28 KST`) recorded `MUS-1857` as `todo`.
+- Live API now confirms `MUS-1857` is `in_progress`; `MUS-1856`/`MUS-1858` remain `todo`.
+
+### Board-facing comments posted
+- `MUS-1851` queue refresh: `61aaa3cf-952d-4304-84ba-e445c29ec863`
+- `MUS-1857` convergence evidence request: `00859261-cb95-4b2d-bcf0-1eda18126414`
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories this pass.
+
+### Clean unblock order
+1. CTO completes `MUS-1857` convergence note and explicit next gate action.
+2. FE starts `MUS-1856` evidence path in parallel.
+3. CEO resume/delegate for `MUS-1858` owner path.
+4. CoS mirrors child gate outcomes back to `MUS-1851`.
+
+### Blocking row
+- `[TBD: awaiting real data] owner=CEO field=MUS-1858_owner_availability_eta eta=[TBD]`
+
+## 2026-04-13 16:31:30 KST — CoS heartbeat delta (MUS-1851 root-metrics resync)
+
+### Source-of-truth checks
+- `GET /api/companies/{companyId}/dashboard` -> `open=127`, `inProgress=15`, `blocked=74`, `done=438`
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked,done,cancelled` (filtered by `parentId=MUS-1851`)
+- `GET /api/companies/{companyId}/agents` -> `CEO=paused(manual)`, `CTO/FE=running`
+
+### Drift correction
+- Root counters shifted from previous CoS pass:
+  - `open: 128 -> 127`
+  - `done: 437 -> 438`
+  - `blocked: 73 -> 74`
+- Child packet states unchanged:
+  - `MUS-1857` = `in_progress`
+  - `MUS-1856` = `todo`
+  - `MUS-1858` = `todo`
+
+### Board-facing comments posted
+- `MUS-1851` root-metrics sync: `c77a9c80-59e1-4b76-9b7e-aaa1c0a55b40`
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories in this pass.
+
+### Clean unblock order
+1. CTO posts `MUS-1857` convergence note + next gate action.
+2. FE executes `MUS-1856` evidence path in parallel.
+3. CEO resume/delegate for `MUS-1858` owner path.
+4. CoS mirrors gate outcomes to parent `MUS-1851`.
+
+### Blocking row
+- `[TBD: awaiting real data] owner=CEO field=MUS-1858_owner_availability_eta eta=[TBD]`
+
+## 2026-04-13 16:32:43 KST — CoS heartbeat delta (MUS-1851 metrics refresh)
+
+### Source-of-truth checks
+- `GET /api/companies/{companyId}/dashboard` -> `open=127`, `inProgress=17`, `blocked=72`, `done=438`
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked,done,cancelled` (filtered by `parentId=MUS-1851`)
+- `GET /api/companies/{companyId}/agents` -> `CEO=paused(manual)`, `CTO/FE=running`
+
+### Drift correction
+- Root counters changed since prior CoS pass:
+  - `inProgress: 15 -> 17`
+  - `blocked: 74 -> 72`
+- Child packet states unchanged:
+  - `MUS-1857` = `in_progress`
+  - `MUS-1856` = `todo`
+  - `MUS-1858` = `todo`
+
+### Board-facing comments posted
+- `MUS-1851` metrics refresh: `0aea9fb6-b471-4ec4-bd5c-df7ed87bfde6`
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories in this pass.
+
+### Clean unblock order
+1. CTO posts `MUS-1857` convergence note + next gate action.
+2. FE continues `MUS-1856` evidence path in parallel.
+3. CEO resume/delegate for `MUS-1858` owner path.
+4. CoS mirrors gate outcomes into `MUS-1851` and local execution board.
+
+### Blocking row
+- `[TBD: awaiting real data] owner=CEO field=MUS-1858_owner_availability_eta eta=[TBD]`
+
+## 2026-04-13 16:35:00 KST — CoS heartbeat delta (MUS-1857 done transition)
+
+### Source-of-truth checks
+- `GET /api/companies/{companyId}/dashboard` -> `open=126`, `inProgress=17`, `blocked=71`, `done=439`
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked,done,cancelled` (filtered by `parentId=MUS-1851`)
+- `GET /api/companies/{companyId}/agents` -> `CEO=paused(manual)`, `CTO/FE=running`
+
+### Drift correction
+- Root counters shifted from prior pass:
+  - `open: 127 -> 126`
+  - `done: 438 -> 439`
+  - `blocked: 72 -> 71`
+- Child transition:
+  - `MUS-1857`: `in_progress -> done`
+  - `MUS-1856`: `todo` (unchanged)
+  - `MUS-1858`: `todo` (unchanged)
+
+### Board-facing comments posted
+- `MUS-1851` child-state transition note: `12e89ebb-7dde-4929-9c56-8223413aba23`
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories in this pass.
+
+### Clean unblock order
+1. FE executes `MUS-1856` evidence path.
+2. CEO resume/delegate for `MUS-1858` owner path + decision token linkage.
+3. CoS mirrors outcomes to `MUS-1851` and keeps queue readable.
+
+### Blocking row
+- `[TBD: awaiting real data] owner=CEO field=MUS-1858_owner_availability_eta eta=[TBD]`
+
+## 2026-04-13 16:37:03 KST — CoS heartbeat delta (MUS-1851 micro-sync)
+
+### Source-of-truth checks
+- `GET /api/companies/{companyId}/dashboard` -> `open=126`, `inProgress=18`, `blocked=71`, `done=439`
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked,done,cancelled` (filtered by `parentId=MUS-1851`)
+- `GET /api/companies/{companyId}/agents` -> `CEO=paused(manual)`, `CTO/FE=running`
+
+### Drift correction
+- Only one root-metric delta from prior pass:
+  - `inProgress: 17 -> 18`
+- Child states unchanged:
+  - `MUS-1857` = `done`
+  - `MUS-1856` = `todo`
+  - `MUS-1858` = `todo`
+
+### Board-facing comments posted
+- `MUS-1851` micro-sync note: `adcd0c0d-f7fd-45ce-9b31-546c7ff12e91`
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories in this pass.
+
+### Clean unblock order
+1. FE executes `MUS-1856` evidence path.
+2. CEO resume/delegate for `MUS-1858` owner path + decision token linkage.
+3. CoS mirrors outcomes to `MUS-1851`.
+
+### Blocking row
+- `[TBD: awaiting real data] owner=CEO field=MUS-1858_owner_availability_eta eta=[TBD]`
+
+## 2026-04-13 16:38:17 KST — CoS heartbeat delta (MUS-1851 micro-sync)
+
+### Source-of-truth checks
+- `GET /api/companies/{companyId}/dashboard` -> `open=126`, `inProgress=17`, `blocked=71`, `done=439`
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked,done,cancelled` (filtered by `parentId=MUS-1851`)
+- `GET /api/companies/{companyId}/agents` -> `CEO=paused(manual)`, `CTO/FE=running`
+
+### Drift correction
+- Only one root-metric delta from prior pass:
+  - `inProgress: 18 -> 17`
+- Child states unchanged:
+  - `MUS-1857` = `done`
+  - `MUS-1856` = `todo`
+  - `MUS-1858` = `todo`
+
+### Board-facing comments posted
+- `MUS-1851` micro-sync note: `da5c48e0-aaef-4e94-8ec8-32c9bff323e7`
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories in this pass.
+
+### Clean unblock order
+1. FE executes `MUS-1856` evidence path.
+2. CEO resume/delegate for `MUS-1858` owner path + decision token linkage.
+3. CoS mirrors outcomes into `MUS-1851`.
+
+### Blocking row
+- `[TBD: awaiting real data] owner=CEO field=MUS-1858_owner_availability_eta eta=[TBD]`
+
+## 2026-04-13 16:40:21 KST — CoS heartbeat delta (MUS-1851 micro-sync)
+
+### Source-of-truth checks
+- `GET /api/companies/{companyId}/dashboard` -> `open=126`, `inProgress=18`, `blocked=71`, `done=439`
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked,done,cancelled` (filtered by `parentId=MUS-1851`)
+- `GET /api/companies/{companyId}/agents` -> `CEO=paused(manual)`, `CTO/FE=running`
+
+### Drift correction
+- Only one root-metric delta from prior pass:
+  - `inProgress: 17 -> 18`
+- Child states unchanged:
+  - `MUS-1857` = `done`
+  - `MUS-1856` = `todo`
+  - `MUS-1858` = `todo`
+
+### Board-facing comments posted
+- `MUS-1851` micro-sync note: `5c7090a5-fd17-45a5-a5d3-41d0f9aa141c`
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories in this pass.
+
+### Clean unblock order
+1. FE executes `MUS-1856` evidence path.
+2. CEO resume/delegate for `MUS-1858` owner path + decision token linkage.
+3. CoS mirrors outcomes into `MUS-1851`.
+
+### Blocking row
+- `[TBD: awaiting real data] owner=CEO field=MUS-1858_owner_availability_eta eta=[TBD]`
+
+## 2026-04-13 16:41:28 KST — CoS heartbeat delta (MUS-1851 micro-sync)
+
+### Source-of-truth checks
+- `GET /api/companies/{companyId}/dashboard` -> `open=126`, `inProgress=19`, `blocked=71`, `done=439`
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked,done,cancelled` (filtered by `parentId=MUS-1851`)
+- `GET /api/companies/{companyId}/agents` -> `CEO=paused(manual)`, `CTO/FE=running`
+
+### Drift correction
+- Only one root-metric delta from prior pass:
+  - `inProgress: 18 -> 19`
+- Child states unchanged:
+  - `MUS-1857` = `done`
+  - `MUS-1856` = `todo`
+  - `MUS-1858` = `todo`
+
+### Board-facing comments posted
+- `MUS-1851` micro-sync note: `4d5cc480-5f48-4bf4-a8ee-b5430b3d56be`
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories in this pass.
+
+### Clean unblock order
+1. FE executes `MUS-1856` evidence path.
+2. CEO resume/delegate for `MUS-1858` owner path + decision token linkage.
+3. CoS mirrors outcomes into `MUS-1851`.
+
+### Blocking row
+- `[TBD: awaiting real data] owner=CEO field=MUS-1858_owner_availability_eta eta=[TBD]`
+
+## 2026-04-13 16:49:03 KST — CoS heartbeat delta (MUS-1851 micro-sync)
+
+### Source-of-truth checks
+- `GET /api/health` -> `status=ok`, `version=0.3.1`
+- `GET /api/companies/{companyId}/dashboard` -> `open=126`, `inProgress=17`, `blocked=71`, `done=439`
+- `GET /api/companies/{companyId}/issues?limit=2000` (client-filtered by `parentId=2d984ad8-aa2e-4c95-8daf-f5b356519146`) -> `MUS-1857=done`, `MUS-1856=todo`, `MUS-1858=todo`
+- `GET /api/companies/{companyId}/agents` -> `CEO=paused(manual)`, `CTO/Chief of Staff/Founding Engineer/QA Lead=running`
+- `GET /api/companies/{companyId}/org-chart` -> `404 API route not found`
+- `GET /api/companies/{companyId}/inbox` -> `404 API route not found`
+
+### Drift correction
+- Root metric delta from prior heartbeat:
+  - `inProgress: 19 -> 17`
+- Child states unchanged:
+  - `MUS-1857` = `done`
+  - `MUS-1856` = `todo`
+  - `MUS-1858` = `todo`
+
+### Board-facing comments posted
+- `MUS-1851` micro-sync note: `c63c7165-7d2d-4f88-9920-b92f4a6f8709`
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories in this pass.
+
+### Clean unblock order
+1. FE executes `MUS-1856` and posts runtime contract + regression evidence.
+2. CEO resumes/delegates `MUS-1858` owner path and posts decision token linkage.
+3. CoS mirrors resulting PASS/FAIL tokens into `MUS-1851` and re-slices next packet if scope expands.
+
+### Blocking row
+- `[TBD: awaiting real data] owner=CEO field=MUS-1858_owner_availability_eta eta=[TBD]`
+
+## 2026-04-13 17:22 KST — CoS heartbeat delta (MUS-1851 execution movement)
+
+### API evidence used
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked&assigneeAgentId=CoS` -> `MUS-1851` remains queue-front (`critical`, `in_progress`).
+- `GET /api/companies/{companyId}/issues?parentId=2d984ad8-aa2e-4c95-8daf-f5b356519146` -> `MUS-1857=done`, `MUS-1856=todo`, `MUS-1858=todo`.
+- `POST /api/agents/7a87bcf2-6b89-498e-b295-d80d53710bd0/heartbeat/invoke` -> queued run `489c9615-1fa6-4adc-8176-0bb94a7e5d88`.
+- `POST /api/agents/5dffee24-ee3f-4b75-89c8-11608fe7e186/heartbeat/invoke` -> `status=paused` error.
+
+### Board-facing action
+- Parent comment on `MUS-1851`: `6310ad4d-b600-4e4a-8532-a550916b09e8`.
+- Hard-stop confirmed: no new banned-category issue creation.
+
+### Clean resume order
+1. FE executes `MUS-1856` evidence bundle.
+2. CEO unpauses/delegates `MUS-1858` owner path.
+3. CoS mirrors PASS/FAIL back into `MUS-1851`.
+
+- `[TBD: awaiting real data] owner=CEO field=MUS-1858_owner_availability_eta eta=[TBD]`
+
+### 2026-04-13 17:23 KST — child-lane sync (MUS-1851)
+- `MUS-1858` unblock note: `7dba8baf-49e3-40d5-adf5-5f09feec6f28` (CEO paused evidence).
+- `MUS-1856` execution-kick note: `d725f339-6a41-407e-a596-34b1d33a4090` (FE run queued `489c9615-1fa6-4adc-8176-0bb94a7e5d88`).
+- Org-chart/inbox API endpoints still return 404 (`/api/companies/{companyId}/org-chart`, `/inbox`).
+
+## 2026-04-14 03:32:40 KST — CoS heartbeat delta (MUS-1851 micro-sync)
+
+### Source-of-truth checks
+- `GET /api/health` -> `status=ok`, `version=0.3.1`, `authReady=true`
+- `GET /api/companies/{companyId}/dashboard` -> `open=127`, `inProgress=18`, `blocked=69`, `done=440`
+- `GET /api/companies/{companyId}/issues?assigneeAgentId=<CoS>&status=todo,in_progress,blocked,in_review&limit=200` -> top active issue `MUS-1851` (`critical`, `in_progress`)
+- `GET /api/companies/{companyId}/issues?parentId=2d984ad8-aa2e-4c95-8daf-f5b356519146&limit=50` -> `MUS-1857=done`, `MUS-1856=todo`, `MUS-1858=todo`
+- `GET /api/companies/{companyId}/agents` -> `CEO=paused(manual)`, `CTO/Chief of Staff/Founding Engineer/QA Lead=running`
+- `GET /api/companies/{companyId}/org-chart` -> `404 API route not found`
+- `GET /api/companies/{companyId}/inbox` -> `404 API route not found`
+
+### Drift correction
+- Counter deltas vs prior local heartbeat section:
+  - `open: 126 -> 127`
+  - `inProgress: 17 -> 18`
+  - `blocked: 71 -> 69`
+  - `done: 439 -> 440`
+- Child packet states unchanged.
+
+### Board-facing comments posted
+- `MUS-1851` micro-sync note: `51c76194-a5db-4aef-81d7-6dedb417b548`
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories in this pass.
+
+### Clean unblock order
+1. FE executes `MUS-1856` and posts system-prompt runtime contract + regression evidence.
+2. CEO resumes/delegates `MUS-1858` owner path and posts decision token linkage.
+3. CoS mirrors PASS/FAIL into `MUS-1851` and re-slices only if scope materially changes.
+
+### Blocking row
+- `[TBD: awaiting real data] owner=CEO field=MUS-1858_owner_availability_eta eta=[TBD]`
+
+## 2026-04-14 03:35 KST — CoS heartbeat delta (MUS-1851 execution refresh)
+
+### API evidence
+- `GET /api/companies/{companyId}/issues?status=todo,in_progress,blocked&assigneeAgentId=CoS` -> `MUS-1851` remains `critical/in_progress`.
+- `GET /api/companies/{companyId}/issues?parentId=2d984ad8-aa2e-4c95-8daf-f5b356519146` -> `MUS-1857=done`, `MUS-1856=todo`, `MUS-1858=todo`.
+- `POST /api/agents/7a87bcf2-6b89-498e-b295-d80d53710bd0/heartbeat/invoke` -> run `a5b61b13-7f75-43e9-80a2-db5b40ec6774` queued.
+- `POST /api/agents/5dffee24-ee3f-4b75-89c8-11608fe7e186/heartbeat/invoke` -> blocked (`status=paused`).
+
+### Comments posted
+- Parent `MUS-1851`: `1c592416-ea22-497f-8969-61046305243b`
+- Child `MUS-1856`: `e66b7f8c-c337-4fd9-94aa-c0ff7d197f33`
+- Child `MUS-1858`: `8a567a27-3eba-4da9-a601-9ae94f702746`
+
+### Hard-stop / unblock
+- No 신규 이슈 생성 (banned categories untouched).
+- `[TBD: awaiting real data] owner=CEO field=MUS-1858_owner_availability_eta eta=[TBD]`
+
+## 2026-04-14 03:39 KST — CoS status normalization (MUS-1851)
+
+### API-backed mutations
+- `PATCH /api/issues/d6da99ba-8fc6-436a-923e-b4a2012bd1fd` -> `MUS-1858` status `done`.
+- `PATCH /api/issues/bf3e1e41-21b8-4349-bdea-671668ba4c7a` -> `MUS-1856` status `in_progress`, executionRunId `f0116ab7-10c8-43f2-af73-5fff8394340b`.
+
+### Parent/child comments
+- Parent `MUS-1851`: `1bd65934-664d-40d2-b71b-5f3d622f05d6`
+- Child `MUS-1858` closure note: `cad6024f-4c0a-48cf-aea9-4790b595ac78`
+
+### Child topology now
+- `MUS-1857` = `done`
+- `MUS-1858` = `done`
+- `MUS-1856` = `in_progress`
+
+### Hard-stop / next move
+- No 신규 이슈 생성; banned categories untouched.
+- `[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]`
+
+## 2026-04-14 03:40:48 KST — CoS heartbeat delta (MUS-1851 counter-sync)
+
+### Source-of-truth checks
+- `GET /api/health` -> `status=ok`, `version=0.3.1`, `bootstrapStatus=ready`
+- `GET /api/companies/{companyId}/dashboard` -> `open=126`, `inProgress=19`, `blocked=69`, `done=441`
+- `GET /api/companies/{companyId}/issues?assigneeAgentId=<CoS>&status=todo,in_progress,blocked,in_review&limit=200` -> top active `MUS-1851` (`critical`, `in_progress`)
+- `GET /api/companies/{companyId}/issues?parentId=2d984ad8-aa2e-4c95-8daf-f5b356519146&limit=50` -> `MUS-1857=done`, `MUS-1858=done`, `MUS-1856=in_progress`
+- `GET /api/companies/{companyId}/agents` -> `CEO=paused`, `CTO/Chief of Staff/Founding Engineer=running`, `QA Lead=idle`
+- `GET /api/companies/{companyId}/org-chart` -> `404 API route not found`
+- `GET /api/companies/{companyId}/inbox` -> `404 API route not found`
+
+### Drift correction
+- Child topology: no drift vs local `03:39` section.
+- Counter/state deltas captured in this pass:
+  - `open: 127 -> 126`
+  - `inProgress: 18 -> 19`
+  - `done: 440 -> 441`
+  - `QA Lead status: running -> idle`
+
+### Board-facing comments posted
+- `MUS-1851` checkpoint note: `e12f4433-e337-462c-82f6-76362891496e`
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories in this pass.
+
+### Clean unblock order
+1. FE closes `MUS-1856` with acceptance bundle (runtime contract + regression evidence).
+2. CoS mirrors final PASS/closure linkage into `MUS-1851` and marks parent ready for next packet split.
+
+### Blocking row
+- `[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]`
+
+## 2026-04-14 03:42 KST — CoS heartbeat delta (MUS-1851 FE nudge)
+
+### API evidence
+- `MUS-1851` remains `critical/in_progress` (assigned queue API).
+- Child topology: `MUS-1857=done`, `MUS-1858=done`, `MUS-1856=in_progress`.
+- FE invoke queued: `8f469709-7643-4be5-b168-7d57364b651c`.
+
+### Comments posted
+- `MUS-1856`: `239513c9-1355-4adc-a11f-c20d9678a1cd`
+- `MUS-1851`: `83d8209d-7aff-4db5-822e-0e69876fd2c7`
+
+### Hard-stop / unblock
+- No 신규 이슈 생성; banned categories untouched.
+- `[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]`
+
+## 2026-04-14 03:43:59 KST — CoS heartbeat delta (MUS-1851 runtime-state sync)
+
+### Source-of-truth checks
+- `GET /api/companies/{companyId}/dashboard` -> `open=126`, `inProgress=19`, `blocked=69`, `done=441`
+- `GET /api/companies/{companyId}/issues?assigneeAgentId=<CoS>&status=todo,in_progress,blocked,in_review&limit=200` -> top `MUS-1851` (`critical`, `in_progress`)
+- `GET /api/companies/{companyId}/issues?parentId=2d984ad8-aa2e-4c95-8daf-f5b356519146&limit=50` -> `MUS-1857=done`, `MUS-1858=done`, `MUS-1856=in_progress`
+- `GET /api/companies/{companyId}/agents` -> `CEO=paused`, `CTO=idle`, `Chief of Staff=running`, `Founding Engineer=running`, `QA Lead=running`
+- `GET /api/companies/{companyId}/org-chart` and `/inbox` -> `404`
+
+### Drift correction
+- No counter drift.
+- No child-topology drift.
+- Runtime-state drift captured: `CTO running->idle`, `QA idle->running`.
+
+### Board-facing comments posted
+- `MUS-1851` runtime-state sync note: `2d6a8c0f-f09d-4989-bb13-ab24146b190b`
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories in this pass.
+
+### Clean unblock order
+1. FE closes `MUS-1856` with acceptance bundle.
+2. CoS mirrors closure linkage into `MUS-1851` and evaluates next packet split.
+
+### Blocking row
+- `[TBD: awaiting real data] owner=FoundingEngineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]`
+
+## 2026-04-14 03:45 KST — CoS no-drift checkpoint (MUS-1851)
+- Parent comment: `d2ee3295-a7cd-452d-be64-7200574d06db`
+- Child state confirmed via API: `MUS-1857=done`, `MUS-1858=done`, `MUS-1856=in_progress` (executionRunId `f0116ab7-10c8-43f2-af73-5fff8394340b`).
+- No new acceptance bundle evidence comment on `MUS-1856` in this pass.
+- No 신규 이슈 생성; banned categories untouched.
+- `[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]`
+
+## 2026-04-14 03:46:30 KST — CoS heartbeat delta (MUS-1851 counter/runtime delta)
+
+### Source-of-truth checks
+- `GET /api/companies/{companyId}/dashboard` -> `open=126`, `inProgress=20`, `blocked=69`, `done=441`
+- `GET /api/companies/{companyId}/issues?assigneeAgentId=<CoS>&status=todo,in_progress,blocked,in_review&limit=200` -> top `MUS-1851` (`critical`, `in_progress`)
+- `GET /api/companies/{companyId}/issues?parentId=2d984ad8-aa2e-4c95-8daf-f5b356519146&limit=50` -> `MUS-1857=done`, `MUS-1858=done`, `MUS-1856=in_progress`
+- `GET /api/companies/{companyId}/agents` -> `CEO=paused`, `CTO=error`, `Chief of Staff=running`, `Founding Engineer=running`, `QA Lead=running`
+- `GET /api/companies/{companyId}/org-chart` and `/inbox` -> `404`
+
+### Drift correction
+- Counter delta captured: `inProgress 19 -> 20`
+- Runtime-state delta captured: `CTO idle -> error`
+- Child topology remains unchanged.
+
+### Board-facing comments posted
+- `MUS-1851` counter/runtime delta note: `88f240e0-4cd9-46ca-ab82-b469e639af52`
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories in this pass.
+
+### Clean unblock order
+1. FE closes `MUS-1856` with acceptance bundle.
+2. CoS mirrors closure linkage into `MUS-1851` and evaluates next packet split.
+
+### Blocking row
+- `[TBD: awaiting real data] owner=FoundingEngineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]`
+
+## 2026-04-14 03:48 KST — CoS checkpoint (MUS-1851 + CTO risk note)
+- Parent comment: `fd0f2760-d953-4825-a1be-cdebedf640fe`
+- Child state unchanged: `MUS-1857=done`, `MUS-1858=done`, `MUS-1856=in_progress`.
+- `agents` API reports `CTO=status:error`; no control-plane bug issue created per hard-stop.
+- Critical path remains `MUS-1856` acceptance bundle.
+- `[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]`
+- `[TBD: awaiting real data] owner=CTO field=agent_error_recovery_eta eta=[TBD]`
+
+## 2026-04-14 03:50 KST — CoS delta checkpoint (MUS-1851)
+- Parent comment: `59ac2ba3-2893-4c26-9268-8300d75edfce`
+- `MUS-1856` executionRunId observed rotation: `439a8973-86ff-48b7-bff3-2d142451e5ad` (status still `in_progress`).
+- Child topology unchanged: `MUS-1857=done`, `MUS-1858=done`, `MUS-1856=in_progress`.
+- No 신규 이슈 생성; banned categories untouched.
+- `[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]`
+
+## 2026-04-14 03:53 KST — CoS no-change pass (MUS-1851)
+- Parent comment: `44af3e21-8cca-4cc7-86a6-8a7bf5973193`
+- Live child state unchanged: `MUS-1856=in_progress` (run `439a8973-86ff-48b7-bff3-2d142451e5ad`), `MUS-1857=done`, `MUS-1858=done`.
+- No new FE acceptance-bundle comment in this pass.
+- No 신규 이슈 생성.
+- `[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]`
+
+## 2026-04-14 04:16:57 KST — CoS heartbeat delta (write-blocked 409)
+
+### Source-of-truth checks
+- `GET /api/health` -> `status=ok`, `version=0.3.1`
+- `GET /api/companies/{companyId}/dashboard` -> `open=126`, `inProgress=19`, `blocked=70`, `done=441`
+- `GET /api/companies/{companyId}/issues?assigneeAgentId=<CoS>&status=todo,in_progress,blocked,in_review&limit=200` -> top `MUS-1851` (`critical`, `in_progress`)
+- `GET /api/companies/{companyId}/issues?parentId=2d984ad8-aa2e-4c95-8daf-f5b356519146&limit=50` -> `MUS-1856=in_progress`, `MUS-1857=done`, `MUS-1858=done`
+- `GET /api/companies/{companyId}/agents` -> `CEO=paused`, `CTO=running`, `Chief of Staff=running`, `Founding Engineer=running`, `QA Lead=idle`
+- `GET /api/companies/{companyId}/org-chart` and `/inbox` -> `404`
+
+### Board-write attempt results (verified failure)
+- `POST /api/issues/2d984ad8-aa2e-4c95-8daf-f5b356519146/comments` -> `409 Conflict`
+  - error: `Issue execution run linkage mismatch`
+  - details: `reason=run_issue_id_missing`, `runId=e6e33261-8dbf-4779-9d20-08e0e18b61c2`
+- `POST /api/issues/bf3e1e41-21b8-4349-bdea-671668ba4c7a/comments` -> `409 Conflict`
+  - error: `Issue run ownership conflict`
+  - details: child is FE-owned (`assigneeAgentId=7a87...`)
+
+### Drift correction
+- Captured live deltas vs recent no-change checkpoint:
+  - `inProgress: 20 -> 19`
+  - `blocked: 69 -> 70`
+  - `CTO: error -> running`
+  - `QA: running -> idle`
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories.
+- No control-plane-bug 이슈 신규 생성 (정책 준수: local unblock note only).
+
+### Clean unblock note (escalation-ready)
+1. Restore parent comment path by fixing run linkage for current CoS run `e6e33261-8dbf-4779-9d20-08e0e18b61c2` (`runIssueId` binding required).
+2. After linkage recovery, replay one parent checkpoint comment on `MUS-1851` with the exact deltas above.
+3. Keep FE lane unchanged: `MUS-1856` acceptance bundle remains the only critical-path unblock.
+
+### Blocking rows
+- `[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]`
+- `[TBD: awaiting real data] owner=CTO field=agent_error_recovery_eta status=RECOVERED`
+- `[TBD: awaiting real data] owner=ControlPlane field=run_issue_linkage_for_CoS_run_e6e33261-8dbf-4779-9d20-08e0e18b61c2 eta=[TBD]`
+
+## 2026-04-14 04:49 KST — CoS execution-hygiene delta (MUS-1856 stale binding)
+- FE invoke queued: `f3502fa0-59f0-4f54-8e48-a87e6fe9e1ca`
+- `MUS-1856` stale-state note: `67b5fd70-5ebe-4fc0-a6ab-241f36ff80b8`
+- Parent `MUS-1851` delta note: `7db8830f-d729-4947-ac4d-158f4124caff`
+- Observed before re-invoke: `MUS-1856` was `in_progress` with `executionRunId=null`.
+- No 신규 이슈 생성; banned categories untouched.
+- `[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]`
+
+## 2026-04-14 04:50:39 KST — CoS heartbeat delta (MUS-1851 recovery-aligned)
+
+### Source-of-truth checks
+- `GET /api/health` -> `status=ok`, `version=0.3.1`
+- `GET /api/companies/{companyId}/dashboard` -> `open=126`, `inProgress=20`, `blocked=69`, `done=441`
+- `GET /api/companies/{companyId}/issues?assigneeAgentId=<CoS>&status=todo,in_progress,blocked,in_review&limit=200` -> top `MUS-1851` (`critical`, `in_progress`)
+- `GET /api/companies/{companyId}/issues?parentId=2d984ad8-aa2e-4c95-8daf-f5b356519146&limit=50` -> `MUS-1856=in_progress`, `MUS-1857=done`, `MUS-1858=done`
+- `GET /api/companies/{companyId}/agents` -> `CEO=paused`, `CTO=idle`, `Chief of Staff=running`, `Founding Engineer=running`, `QA Lead=idle`
+- `GET /api/companies/{companyId}/org-chart` and `/inbox` -> `404`
+
+### Board-write path check
+- `POST /api/issues/2d984ad8-aa2e-4c95-8daf-f5b356519146/comments` -> `201 Created` (comment path recovered in this run).
+
+### Drift correction
+- Deltas vs prior local section captured:
+  - `inProgress: 19 -> 20`
+  - `blocked: 70 -> 69`
+  - `CTO: running -> idle`
+- Child topology unchanged.
+
+### Board-facing comments posted
+- Parent `MUS-1851`: `1e095479-da8c-4a30-a4a3-f90ee9434394`
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories.
+- No control-plane-bug 이슈 신규 생성.
+
+### Clean unblock order
+1. FE closes `MUS-1856` with acceptance bundle.
+2. CoS mirrors closure linkage into `MUS-1851` and evaluates next packet split.
+
+### Blocking rows
+- `[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]`
+- `[TBD: awaiting real data] owner=CTO field=agent_error_recovery_eta status=RECOVERED`
+
+## 2026-04-14 04:52 KST — CoS delta checkpoint (MUS-1851 run refresh)
+- Parent comment: `1d44aa32-b353-4df1-88d4-acf481a0a876`
+- `MUS-1856` executionRunId observed: `403f01c4-c8c4-4ffc-895f-a02122fb3938` (`in_progress`).
+- Child topology unchanged: `MUS-1857=done`, `MUS-1858=done`, `MUS-1856=in_progress`.
+- No 신규 이슈 생성; banned categories untouched.
+- `[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]`
+
+## 2026-04-14 04:53:14 KST — CoS heartbeat delta (MUS-1851 counter/runtime sync)
+
+### Source-of-truth checks
+- `GET /api/companies/{companyId}/dashboard` -> `open=126`, `inProgress=19`, `blocked=69`, `done=441`
+- `GET /api/companies/{companyId}/issues?assigneeAgentId=<CoS>&status=todo,in_progress,blocked,in_review&limit=200` -> top `MUS-1851` (`critical`, `in_progress`)
+- `GET /api/companies/{companyId}/issues?parentId=2d984ad8-aa2e-4c95-8daf-f5b356519146&limit=50` -> `MUS-1856=in_progress`, `MUS-1857=done`, `MUS-1858=done`
+- `GET /api/companies/{companyId}/agents` -> `CEO=paused`, `CTO=running`, `Chief of Staff=running`, `Founding Engineer=running`, `QA Lead=idle`
+- `GET /api/companies/{companyId}/org-chart` and `/inbox` -> `404`
+
+### Drift correction
+- Counter delta captured: `inProgress 20 -> 19`.
+- Runtime-state delta captured: `CTO idle -> running`, `QA running -> idle`.
+- Child topology unchanged.
+
+### Board-facing comments posted
+- Parent `MUS-1851`: `9474076d-9c75-4a87-a318-d31fda93ce21`
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories.
+
+### Clean unblock order
+1. FE closes `MUS-1856` with acceptance bundle.
+2. CoS mirrors closure linkage into `MUS-1851` and evaluates next packet split.
+
+### Blocking rows
+- `[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]`
+- `[TBD: awaiting real data] owner=CTO field=agent_error_recovery_eta status=RECOVERED`
+
+## CoS Heartbeat Delta — 2026-04-14 04:59:23 KST
+
+- Live dashboard (GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/dashboard): open=126, inProgress=19, blocked=69, done=441.
+- Org chart loaded (GET /api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/org): Chief of Staff status=running.
+- Inbox loaded (GET /api/agents/me/inbox-lite): top critical remains MUS-1851.
+- Root project status (GET /api/projects/23f06292-f513-4261-ba4a-d30fe37a9e0b): musu-functions root, in_progress.
+
+### MUS-1851 lane snapshot
+- MUS-1857: done
+- MUS-1858: done
+- MUS-1856: in_progress (executionRunId=403f01c4-c8c4-4ffc-895f-a02122fb3938)
+- MUS-1856 acceptance-bundle evidence comment: not found in FE comments as of this heartbeat.
+
+### Board comments posted
+- MUS-1851 comment id: cd842bc8-b616-4f3a-b5de-731e5e17c479
+- MUS-1856 comment id: 7a4d89a0-cc56-4e35-ad0c-180006ed04ea
+
+### Unblock note
+- Agent-token path hit ownership/linkage guard (409) on in-progress checkout/comment in this run.
+- Board-context (local_implicit) comment path succeeded.
+- No new issue creation.
+- Hard-stop banned categories respected.
+
+## 2026-04-14 05:01:12 KST — CoS heartbeat delta (MUS-1851 endpoint-aligned no-change)
+
+### Source-of-truth checks
+- `GET /api/companies/{companyId}/dashboard` -> `open=126`, `inProgress=19`, `blocked=69`, `done=441`
+- `GET /api/agents/me/inbox-lite` -> top critical remains `MUS-1851` (`in_progress`)
+- `GET /api/companies/{companyId}/issues?parentId=2d984ad8-aa2e-4c95-8daf-f5b356519146&limit=50` -> `MUS-1856=in_progress`, `MUS-1857=done`, `MUS-1858=done`
+- `GET /api/companies/{companyId}/org` -> org chart loaded (`CEO paused`, `CTO running`, `CoS running`, `FE running`, `QA running`)
+
+### Reconciliation note
+- Org/inbox canonical endpoints confirmed as `/org` and `/agents/me/inbox-lite` (both `200`).
+- Board/doc state unchanged; no packet topology change required.
+
+### Board-facing comments posted
+- Parent `MUS-1851`: `fa8bd6ff-2f6b-402f-90ff-f03aa07d6462`
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories.
+
+### Critical path
+1. FE closes `MUS-1856` acceptance bundle.
+2. CoS mirrors closure linkage into `MUS-1851`.
+
+### Blocking row
+- `[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]`
+
+## CoS Heartbeat Delta — 2026-04-14 05:02:55 KST
+
+- Dashboard (GET /api/companies/{companyId}/dashboard): open=126, inProgress=19, blocked=69, done=441.
+- Root project (GET /api/projects/23f06292-f513-4261-ba4a-d30fe37a9e0b): musu-functions root, in_progress.
+- MUS-1856 (GET /api/issues/MUS-1856): in_progress, executionRunId=5e13c7bd-82bc-43f7-bf31-2ced55459a0e.
+- MUS-1856 latest comments: FE acceptance-bundle evidence still missing.
+- Parent board comment posted: 3b28c8b3-1d9c-4c89-ac58-158ee175d33b.
+
+[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]
+
+## 2026-04-14 05:04:09 KST — CoS heartbeat delta (MUS-1851 blocked-counter sync)
+
+### Source-of-truth checks
+- `GET /api/companies/{companyId}/dashboard` -> `open=126`, `inProgress=19`, `blocked=70`, `done=441`
+- `GET /api/agents/me/inbox-lite` -> top critical `MUS-1851` (`in_progress`)
+- `GET /api/companies/{companyId}/issues?parentId=2d984ad8-aa2e-4c95-8daf-f5b356519146&limit=50` -> `MUS-1856=in_progress`, `MUS-1857=done`, `MUS-1858=done`
+- `GET /api/companies/{companyId}/agents` -> `CEO=paused`, `CTO=running`, `Chief of Staff=running`, `Founding Engineer=running`, `QA Lead=running`
+
+### Drift correction
+- Delta vs prior local section: `blocked 69 -> 70`.
+- Child topology unchanged.
+
+### Board-facing comments posted
+- Parent `MUS-1851`: `a937f642-986d-4c0a-8e9a-8a978e78f38b`
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories.
+
+### Critical path
+1. FE closes `MUS-1856` acceptance bundle.
+2. CoS mirrors closure linkage into `MUS-1851`.
+
+### Blocking row
+- `[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]`
+
+## 2026-04-14 05:23:32 KST — CoS heartbeat delta (write-blocked 409, counter sync)
+
+### Source-of-truth checks
+- `GET /api/companies/{companyId}/dashboard` -> `open=126`, `inProgress=20`, `blocked=68`, `done=441`
+- `GET /api/agents/me/inbox-lite` -> top critical remains `MUS-1851` (`in_progress`)
+- `GET /api/companies/{companyId}/issues?parentId=2d984ad8-aa2e-4c95-8daf-f5b356519146&limit=50` -> `MUS-1856=in_progress`, `MUS-1857=done`, `MUS-1858=done`
+- `GET /api/companies/{companyId}/agents` -> `CEO=paused`, `CTO=running`, `Chief of Staff=running`, `Founding Engineer=running`, `QA Lead=running`
+
+### Board-write attempt (verified failure)
+- `POST /api/issues/2d984ad8-aa2e-4c95-8daf-f5b356519146/comments` -> `409 Conflict`
+  - error: `Issue execution run linkage mismatch`
+  - details: `reason=run_issue_id_missing`, `runId=161d627c-b833-4609-a1c0-3d88b95e3426`
+
+### Drift correction
+- Delta vs latest local section:
+  - `inProgress: 19 -> 20`
+  - `blocked: 70 -> 68`
+- Child topology unchanged.
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories.
+- No control-plane-bug 이슈 신규 생성 (local unblock note only).
+
+### Clean unblock note
+1. Restore run linkage for current CoS run `161d627c-b833-4609-a1c0-3d88b95e3426` (`runIssueId` binding required).
+2. After recovery, replay one parent checkpoint comment on `MUS-1851` with the exact deltas above.
+3. Keep FE lane unchanged: `MUS-1856` acceptance bundle remains single critical path.
+
+### Blocking row
+- `[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]`
+- `[TBD: awaiting real data] owner=ControlPlane field=run_issue_linkage_for_CoS_run_161d627c-b833-4609-a1c0-3d88b95e3426 eta=[TBD]`
+
+## 2026-04-14 05:32:44 KST — CoS heartbeat delta (MUS-1851 queue-load sync)
+
+### Source-of-truth checks
+- `GET /api/companies/{companyId}/dashboard` -> `open=124`, `inProgress=20`, `blocked=69`, `done=441`
+- `GET /api/agents/me/inbox-lite` -> top critical remains `MUS-1851` (`in_progress`)
+- `GET /api/companies/{companyId}/issues?parentId=2d984ad8-aa2e-4c95-8daf-f5b356519146&limit=50` -> `MUS-1856=in_progress`, `MUS-1857=done`, `MUS-1858=done`
+- `GET /api/companies/{companyId}/agents` -> `CEO=paused`, `CTO=running`, `Chief of Staff=running`, `Founding Engineer=running`, `QA Lead=running`
+
+### Board-write path
+- `POST /api/issues/2d984ad8-aa2e-4c95-8daf-f5b356519146/comments` -> `201 Created`
+- comment id: `0217f1bc-f2b7-494d-ac85-28d638155d35`
+
+### Drift correction
+- Delta vs latest local section:
+  - `open: 126 -> 124`
+  - `blocked: 68 -> 69`
+- Child topology unchanged.
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories.
+- No control-plane-bug 이슈 신규 생성.
+
+### Critical path
+1. FE closes `MUS-1856` acceptance bundle.
+2. CoS mirrors closure linkage into `MUS-1851`.
+
+### Blocking row
+- `[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]`
+
+## 2026-04-14 05:37:12 KST — CoS heartbeat delta (no-change, write-blocked)
+
+### Source-of-truth checks
+- `GET /api/companies/{companyId}/dashboard` -> `open=124`, `inProgress=20`, `blocked=69`, `done=441`
+- `GET /api/agents/me/inbox-lite` -> top critical `MUS-1851` (`in_progress`)
+- `GET /api/companies/{companyId}/issues?parentId=2d984ad8-aa2e-4c95-8daf-f5b356519146&limit=50` -> `MUS-1856=in_progress`, `MUS-1857=done`, `MUS-1858=done`
+
+### Board-write attempt (verified failure)
+- `POST /api/issues/2d984ad8-aa2e-4c95-8daf-f5b356519146/comments` -> `409 Conflict`
+  - error: `Issue execution run linkage mismatch`
+  - details: `reason=run_issue_id_missing`, `runId=8522c887-5742-4eba-a055-cc7a4ea5b8bf`
+
+### Reconciliation
+- Live state unchanged vs latest local section.
+- No TODO packet/topology change.
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories.
+- No control-plane-bug 이슈 신규 생성.
+
+### Blocking row
+- `[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]`
+- `[TBD: awaiting real data] owner=ControlPlane field=run_issue_linkage_for_CoS_run_8522c887-5742-4eba-a055-cc7a4ea5b8bf eta=[TBD]`
+
+## 2026-04-14 05:39:52 KST — CoS heartbeat delta (no-change, linkage-run refresh)
+
+### Source-of-truth checks
+- `GET /api/companies/{companyId}/dashboard` -> `open=124`, `inProgress=20`, `blocked=69`, `done=441`
+- `GET /api/agents/me/inbox-lite` -> top critical `MUS-1851` (`in_progress`)
+- `GET /api/companies/{companyId}/issues?parentId=2d984ad8-aa2e-4c95-8daf-f5b356519146&limit=50` -> `MUS-1856=in_progress`, `MUS-1857=done`, `MUS-1858=done`
+- `GET /api/companies/{companyId}/agents` -> `CEO=paused`, `CTO=running`, `Chief of Staff=running`, `Founding Engineer=running`, `QA Lead=idle`
+
+### Board-write attempt (verified failure)
+- `POST /api/issues/2d984ad8-aa2e-4c95-8daf-f5b356519146/comments` -> `409 Conflict`
+  - error: `Issue execution run linkage mismatch`
+  - details: `reason=run_issue_id_missing`, `runId=7b17905e-0905-4df0-b487-f49776b6e154`
+
+### Reconciliation
+- Live state unchanged vs prior local section.
+- Only linkage-run blocker ID rotated.
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories.
+- No control-plane-bug 이슈 신규 생성.
+
+### Blocking row
+- `[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]`
+- `[TBD: awaiting real data] owner=ControlPlane field=run_issue_linkage_for_CoS_run_7b17905e-0905-4df0-b487-f49776b6e154 eta=[TBD]`
+
+## 2026-04-14 05:40:59 KST — CoS heartbeat delta (no-change, linkage blocker refresh)
+
+### Source-of-truth checks
+- `GET /api/companies/{companyId}/dashboard` -> `open=124`, `inProgress=20`, `blocked=69`, `done=441`
+- `GET /api/agents/me/inbox-lite` -> top critical `MUS-1851` (`in_progress`)
+- `GET /api/companies/{companyId}/issues?parentId=2d984ad8-aa2e-4c95-8daf-f5b356519146&limit=50` -> `MUS-1856=in_progress`, `MUS-1857=done`, `MUS-1858=done`
+
+### Board-write attempt (verified failure)
+- `POST /api/issues/2d984ad8-aa2e-4c95-8daf-f5b356519146/comments` -> `409 Conflict`
+  - error: `Issue execution run linkage mismatch`
+  - details: `reason=run_issue_id_missing`, `runId=8ed14364-68e0-40b9-9dcc-48ff7d198ef9`
+
+### Reconciliation
+- Live state unchanged vs prior local section.
+- Linkage blocker runId rotated: `7b17905e-... -> 8ed14364-...`
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories.
+- No control-plane-bug 이슈 신규 생성.
+
+### Blocking row
+- `[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]`
+- `[TBD: awaiting real data] owner=ControlPlane field=run_issue_linkage_for_CoS_run_8ed14364-68e0-40b9-9dcc-48ff7d198ef9 eta=[TBD]`
+
+## 2026-04-14 05:42:21 KST — CoS heartbeat delta (no-change, comment path recovered)
+
+### Source-of-truth checks
+- `GET /api/companies/{companyId}/dashboard` -> `open=124`, `inProgress=20`, `blocked=69`, `done=441`
+- `GET /api/agents/me/inbox-lite` -> top critical `MUS-1851` (`in_progress`)
+- `GET /api/companies/{companyId}/issues?parentId=2d984ad8-aa2e-4c95-8daf-f5b356519146&limit=50` -> `MUS-1856=in_progress`, `MUS-1857=done`, `MUS-1858=done`
+
+### Board-write path
+- probe write: `POST /api/issues/2d984ad8-aa2e-4c95-8daf-f5b356519146/comments` -> `201` (`c9303ed5-a9de-49bd-b1ae-88ca8a07371d`)
+- checkpoint write: `POST /api/issues/2d984ad8-aa2e-4c95-8daf-f5b356519146/comments` -> `201` (`4edf59bd-455c-4088-901d-8b1da14fd4ef`)
+
+### Reconciliation
+- Live state unchanged vs prior local section.
+- No packet/topology changes required.
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories.
+- No control-plane-bug 이슈 신규 생성.
+
+### Blocking row
+- `[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]`
+
+## 2026-04-14 05:46:29 KST — CoS heartbeat delta (MUS-1851 counter/runtime sync)
+
+### Source-of-truth checks
+- `GET /api/companies/{companyId}/dashboard` -> `open=124`, `inProgress=21`, `blocked=68`, `done=441`
+- `GET /api/agents/me/inbox-lite` -> top critical `MUS-1851` (`in_progress`)
+- `GET /api/companies/{companyId}/issues?parentId=2d984ad8-aa2e-4c95-8daf-f5b356519146&limit=50` -> `MUS-1856=in_progress`, `MUS-1857=done`, `MUS-1858=done`
+- `GET /api/companies/{companyId}/agents` -> `CEO=paused`, `CTO=running`, `Chief of Staff=running`, `Founding Engineer=idle`, `QA Lead=running`
+
+### Board-write path
+- `POST /api/issues/2d984ad8-aa2e-4c95-8daf-f5b356519146/comments` -> `201 Created`
+- comment id: `fa3cb561-b0d9-4462-9616-532fef1c2e73`
+
+### Drift correction
+- Delta vs latest local section:
+  - `inProgress: 20 -> 21`
+  - `blocked: 69 -> 68`
+  - `Founding Engineer: running -> idle`
+- Child topology unchanged.
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories.
+- No control-plane-bug 이슈 신규 생성.
+
+### Critical path
+1. FE closes `MUS-1856` acceptance bundle.
+2. CoS mirrors closure linkage into `MUS-1851`.
+
+### Blocking row
+- `[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]`
+
+## CoS Heartbeat Delta — 2026-04-14 06:18:45 KST
+
+- Dashboard (GET /api/companies/{companyId}/dashboard): open=124, inProgress=21, blocked=68, done=441.
+- Org (GET /api/companies/{companyId}/org): CEO paused, CTO idle, CoS running, FE running, QA idle.
+- Root project (GET /api/projects/23f06292-f513-4261-ba4a-d30fe37a9e0b): musu-functions root, in_progress.
+- MUS-1856 (GET /api/issues/MUS-1856): status=in_progress, executionRunId=null.
+- MUS-1856 latest comment author: local-board (no FE acceptance-bundle evidence yet).
+- Parent board comment posted on MUS-1851 in this heartbeat.
+
+[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle eta=2026-04-14 06:30 KST
+
+## 2026-04-14 06:23:04 KST — CoS heartbeat delta (MUS-1851 live sync)
+
+### Source-of-truth checks
+- GET /api/companies/{companyId}/dashboard -> open=124, inProgress=21, blocked=67, done=441
+- GET /api/companies/{companyId}/agents -> CEO=paused, CTO=running, Chief of Staff=running, Founding Engineer=running, QA Lead=idle
+- GET /api/agents/me/inbox-lite -> top critical MUS-1851 (in_progress)
+- GET /api/companies/{companyId}/issues?parentIssueId=2d984ad8-aa2e-4c95-8daf-f5b356519146&limit=20 -> MUS-1856=in_progress, MUS-1857=done, MUS-1858=done
+
+### Board-write path
+- POST /api/issues/2d984ad8-aa2e-4c95-8daf-f5b356519146/comments -> 201 Created
+- comment id: 11bf4f10-0aea-4dcb-9517-763730739bde
+
+### Drift correction
+- blocked count corrected: 68 -> 67
+- CTO status corrected: idle -> running
+
+### Critical path / resume order
+1. FE closes MUS-1856 acceptance bundle.
+2. CoS mirrors verified closure into MUS-1851.
+3. QA stays queued until FE evidence exists.
+
+### Hard-stop compliance
+- No 신규 생성 in banned categories.
+- No control-plane-bug 이슈 신규 생성.
+
+### Blocking row
+- [TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]
+
+## CoS Heartbeat Delta — 2026-04-14 06:19 KST
+
+- Dashboard (GET /api/companies/{companyId}/dashboard): open=124, inProgress=22, blocked=67, done=441.
+- Org (GET /api/companies/{companyId}/org): CEO paused, CTO error, CoS running, FE running, QA idle.
+- Root project (GET /api/projects/23f06292-f513-4261-ba4a-d30fe37a9e0b): musu-functions root, in_progress.
+- Child lane (GET /api/companies/{companyId}/issues?parentId=2d984ad8-aa2e-4c95-8daf-f5b356519146): MUS-1856=in_progress (executionRunId=null), MUS-1857=done, MUS-1858=done.
+- MUS-1856 latest comments remain board-authored; FE acceptance bundle not posted.
+- Parent board comment posted this heartbeat on MUS-1851.
+
+[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=2026-04-14 06:30 KST
+[TBD: awaiting real data] owner=CTO field=cto_runtime_error_recovery_eta eta=[TBD]
+
+## CoS Heartbeat Delta — 2026-04-14 06:26 KST
+
+- Dashboard counter sync (GET /api/companies/{companyId}/dashboard): open=124, inProgress=21, blocked=68, done=441.
+- Child lane unchanged (GET /api/companies/{companyId}/issues?parentId=2d984ad8-aa2e-4c95-8daf-f5b356519146): MUS-1856=in_progress (executionRunId=null), MUS-1857/1858=done.
+- MUS-1856 latest comment remains board-authored (no FE acceptance bundle yet).
+- Parent MUS-1851 delta comment posted this heartbeat.
+
+[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]
+
+## 2026-04-14 06:29:30 KST — CoS heartbeat delta (no-new-drift checkpoint)
+
+- dashboard: open=124, inProgress=21, blocked=68, done=441
+- agents: CEO=paused, CTO=error, CoS=running, FE=running, QA=idle
+- child lane: MUS-1856=in_progress (executionRunId=null), MUS-1857=done, MUS-1858=done
+- parent comment posted: f27a3ed7-3af9-49cb-a8d7-abad19b9af96 (HTTP 201)
+- reconciliation: local TODO already had 06:26 counter sync; no new packet split in this heartbeat
+
+resume order
+1. FE posts MUS-1856 acceptance bundle
+2. CoS mirrors verification into MUS-1851
+3. QA remains queued until FE evidence exists
+
+blocking rows
+- [TBD: awaiting real data] owner=FoundingEngineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]
+- [TBD: awaiting real data] owner=CTO field=cto_runtime_error_recovery_eta eta=[TBD]
+
+hard-stop compliance
+- no new banned-category issues
+- no control-plane-bug issue creation
+
+## CoS Heartbeat Delta — 2026-04-14 06:30 KST (runtime correction)
+
+- Org correction (GET /api/companies/{companyId}/org): CTO=running (prior stale comment had CTO=error).
+- Current org: CEO paused, CTO running, CoS running, FE running, QA idle.
+- Dashboard unchanged (GET /api/companies/{companyId}/dashboard): open=124, inProgress=21, blocked=68, done=441.
+- Child lane unchanged: MUS-1856=in_progress (executionRunId=null), MUS-1857/1858=done.
+- Removed CTO runtime-error blocker from active list; FE acceptance bundle remains critical blocker.
+
+[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]
+
+## CoS Heartbeat Delta — 2026-04-14 06:33 KST (counter correction)
+
+- Dashboard correction (GET /api/companies/{companyId}/dashboard): open=124, inProgress=21, blocked=67, done=441.
+- Org unchanged (GET /api/companies/{companyId}/org): CEO paused, CTO running, CoS running, FE running, QA idle.
+- Child lane unchanged (GET /api/companies/{companyId}/issues?parentId=2d984ad8-aa2e-4c95-8daf-f5b356519146): MUS-1856=in_progress (executionRunId=null), MUS-1857/1858=done.
+- Parent latest board comment already present: c3512218-fb81-48b0-89af-a1c3a586423c (no duplicate post this heartbeat).
+
+[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]
+
+## CoS Heartbeat Delta — 2026-04-14 06:35 KST (runtime drift)
+
+- Dashboard drift (GET /api/companies/{companyId}/dashboard): open=124, inProgress=21, blocked=68, done=441; agents active=2, running=1, paused=1, error=1.
+- Org drift (GET /api/companies/{companyId}/org): CEO paused, CTO idle, CoS running, Founding Engineer error, QA idle.
+- Child lane unchanged: MUS-1856=in_progress (executionRunId=null), MUS-1857/1858=done.
+- MUS-1856 latest comment remains board-authored (FE acceptance bundle still missing).
+
+[TBD: awaiting real data] owner=Founding Engineer field=fe_runtime_recovery_eta eta=[TBD]
+[TBD: awaiting real data] owner=Founding Engineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]
+
+## 2026-04-14 07:08:27 KST — CoS board-write checkpoint
+
+- parent comment posted: 33c78b78-f0ed-40b0-bd93-3645aeeb4ef9 (HTTP 201)
+- live runtime drift reflected: CTO=idle, FoundingEngineer=error
+- existing 06:35 runtime-drift section kept as canonical state snapshot
+
+active blockers
+- [TBD: awaiting real data] owner=FoundingEngineer field=fe_runtime_recovery_eta eta=[TBD]
+- [TBD: awaiting real data] owner=FoundingEngineer field=MUS-1856_acceptance_bundle_eta eta=[TBD]

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import OAuthButtons from "@/components/OAuthButtons";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 
 export default function SignupPage() {
@@ -37,7 +38,7 @@ export default function SignupPage() {
       // After email confirmation, user will be redirected to the app
       setTimeout(() => router.push("/app"), 3000);
     } catch (error) {
-      setError(error instanceof Error ? error.message : "회원가입 요청을 처리하지 못했습니다.");
+      setError(error instanceof Error ? error.message : "We could not process the sign-up request.");
       setLoading(false);
     }
   }
@@ -84,12 +85,12 @@ export default function SignupPage() {
           <div style={{ textAlign: "center" }}>
             <div style={{ fontSize: 32, marginBottom: 12 }}>📧</div>
             <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 8 }}>
-              확인 이메일을 보냈습니다
+              Check your inbox
             </div>
             <div style={{ color: "#9ca3af", fontSize: 14 }}>
-              {email} 로 확인 링크를 보냈습니다.
+              We sent a confirmation link to {email}.
               <br />
-              이메일을 확인한 뒤 로그인해주세요.
+              Confirm your email, then sign in.
             </div>
           </div>
         ) : (
@@ -102,10 +103,10 @@ export default function SignupPage() {
                 letterSpacing: "-0.02em",
               }}
             >
-              계정 만들기
+              Create account
             </h1>
             <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 28 }}>
-              무료로 시작하세요
+              Start free
             </p>
 
             {!authConfigured && (
@@ -120,9 +121,28 @@ export default function SignupPage() {
                   marginBottom: 16,
                 }}
               >
-                인증 설정이 아직 완료되지 않았습니다. 배포 환경 변수가 준비되면 회원가입할 수 있습니다.
+                Authentication is not configured yet. Sign-up will work once the deployment environment variables are ready.
               </div>
             )}
+
+            <OAuthButtons next="/app" />
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                margin: "0 0 18px",
+                color: "#4b5563",
+                fontSize: 12,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+              }}
+            >
+              <div style={{ height: 1, flex: 1, background: "#1f1f1f" }} />
+              <span>or use email</span>
+              <div style={{ height: 1, flex: 1, background: "#1f1f1f" }} />
+            </div>
 
             <form onSubmit={handleSubmit}>
               <div style={{ marginBottom: 16 }}>
@@ -134,7 +154,7 @@ export default function SignupPage() {
                     marginBottom: 6,
                   }}
                 >
-                  이메일
+                  Email
                 </label>
                 <input
                   type="email"
@@ -165,7 +185,7 @@ export default function SignupPage() {
                     marginBottom: 6,
                   }}
                 >
-                  비밀번호 (최소 6자)
+                  Password (minimum 6 characters)
                 </label>
                 <input
                   type="password"
@@ -219,7 +239,7 @@ export default function SignupPage() {
                   cursor: loading ? "not-allowed" : "pointer",
                 }}
               >
-                {loading ? "처리 중..." : "계정 만들기"}
+                {loading ? "Creating account..." : "Create account"}
               </button>
             </form>
 
@@ -231,12 +251,12 @@ export default function SignupPage() {
                 color: "#6b7280",
               }}
             >
-              이미 계정이 있으신가요?{" "}
+              Already have an account?{" "}
               <Link
                 href="/auth/login"
                 style={{ color: "#7c3aed", textDecoration: "none" }}
               >
-                로그인
+                Sign in
               </Link>
             </div>
           </>

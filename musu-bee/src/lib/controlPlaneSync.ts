@@ -10,6 +10,7 @@ export type ControlPlaneSyncState = {
 
 export type ControlPlaneWritebackResult = ControlPlaneSyncState & {
   paperclipIssueId: string | null;
+  paperclipCommentId: string | null;
 };
 
 const DEFAULT_PAPERCLIP_API_BASE = "http://127.0.0.1:3100/api";
@@ -113,6 +114,7 @@ export async function writeCompanyActivationToPaperclip(
       endpoint: `${apiBase}/companies/{companyId}/issues`,
       checkedAt,
       paperclipIssueId: null,
+      paperclipCommentId: null,
     };
   }
 
@@ -132,12 +134,17 @@ export async function writeCompanyActivationToPaperclip(
         method: "POST",
         headers,
         body: JSON.stringify({
-          title: `PRODUCT-SYNC: ${company.companyName}`,
+          title: `MUSU PRODUCT SYNC: ${company.companyName} [${company.workspaceId}]`,
           description: [
-            `Product-origin company activation for ${company.companyName}.`,
-            `Template: ${company.templateKey}`,
-            `Projects: ${company.selectedProjects.join(", ")}`,
-            `Scope: ${company.workspaceId}/${company.userKey}`,
+            `MUSU company-registry writeback for ${company.companyName}.`,
+            "",
+            `surface=/app`,
+            `sync_contract=company_registry_activation`,
+            `workspace=${company.workspaceId}`,
+            `user=${company.userKey}`,
+            `template=${company.templateKey}`,
+            `projects=${company.selectedProjects.join(", ")}`,
+            `company_id=${company.companyId}`,
           ].join("\n"),
           status: "todo",
           priority: "medium",
@@ -152,6 +159,7 @@ export async function writeCompanyActivationToPaperclip(
           endpoint: issueEndpoint,
           checkedAt,
           paperclipIssueId: null,
+          paperclipCommentId: null,
         };
       }
 
@@ -165,6 +173,7 @@ export async function writeCompanyActivationToPaperclip(
           endpoint: issueEndpoint,
           checkedAt,
           paperclipIssueId: null,
+          paperclipCommentId: null,
         };
       }
     }
@@ -176,10 +185,14 @@ export async function writeCompanyActivationToPaperclip(
       body: JSON.stringify({
         body: [
           "Role: Product Sync",
-          "Command: company activation writeback",
-          `Artifact: companyId=${company.companyId}`,
+          "Command: musu company registry sync",
+          `Artifact: companyId=${company.companyId} workspace=${company.workspaceId} activeProjects=${company.selectedProjects.length}`,
+          "Product Surface: /app",
+          "Sync Contract: company_registry_activation",
+          `Company: ${company.companyName}`,
           `Workspace: ${company.workspaceId}`,
           `User: ${company.userKey}`,
+          `Template: ${company.templateKey}`,
           `Projects: ${company.selectedProjects.join(", ")}`,
         ].join("\n"),
       }),
@@ -193,8 +206,11 @@ export async function writeCompanyActivationToPaperclip(
         endpoint: commentEndpoint,
         checkedAt,
         paperclipIssueId: issueId,
+        paperclipCommentId: null,
       };
     }
+
+    const comment = (await commentRes.json()) as { id?: string };
 
     return {
       provider: "paperclip",
@@ -203,6 +219,7 @@ export async function writeCompanyActivationToPaperclip(
       endpoint: commentEndpoint,
       checkedAt,
       paperclipIssueId: issueId,
+      paperclipCommentId: typeof comment.id === "string" ? comment.id : null,
     };
   } catch (error) {
     return {
@@ -213,6 +230,7 @@ export async function writeCompanyActivationToPaperclip(
       endpoint: issueEndpoint,
       checkedAt,
       paperclipIssueId: company.paperclipIssueId,
+      paperclipCommentId: null,
     };
   }
 }

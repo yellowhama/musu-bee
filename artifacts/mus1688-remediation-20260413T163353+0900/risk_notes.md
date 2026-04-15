@@ -1,0 +1,3 @@
+- Trust boundary: token packet does not touch URL/query/workspace/company routing code paths; see trust_boundary_no_route_logic.txt.
+- Race risk: CSS variable reads are static at render time in stylesheet/module; no async mutation/state race introduced in this packet scope.
+- Rollback note: revert only token scope files listed in token_scope_files.txt to prior versions to roll back visual-token changes without affecting runtime routing logic.

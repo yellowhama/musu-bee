@@ -1,0 +1,101 @@
+[CTO G1 replay] issue=08e430a2-5077-4c7a-952b-b8e1c0523c29
+utc=2026-04-12T15:59:22Z
+\n$ pnpm exec tsx --test src/app/api/chat/route.test.ts
+[api/chat] backend unavailable {
+  requestTimeoutMs: 30000,
+  remainingBudgetMs: 29999,
+  portError: 'dial tcp 10.0.0.8:11434: connect: connection refused',
+  llmFallbackError: 'Traceback: internal.service:9700 failed; secret-token=abc123'
+}
+✔ chat route falls back to LLM when musu-port is unavailable (20.937511ms)
+✔ chat route returns sanitized 502 when both backends fail (7.869996ms)
+[api/chat] backend unavailable {
+  requestTimeoutMs: 120,
+  remainingBudgetMs: 0,
+  portError: 'musu-port request failed: request deadline exceeded during musu-port /chat',
+  llmFallbackError: 'skipped: request deadline exhausted'
+}
+✔ chat route enforces single hard timeout budget when musu-port hangs (125.968808ms)
+[api/chat] backend unavailable {
+  requestTimeoutMs: 120,
+  remainingBudgetMs: 0,
+  portError: 'backend down',
+  llmFallbackError: 'llm fallback request failed: request deadline exceeded during http://llm.example.test/v1/chat/completions'
+}
+[api/chat] invalid JSON request body {
+  err: SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+      at JSON.parse (<anonymous>)
+      at parseJSONFromBytes (node:internal/deps/undici/undici:4259:19)
+      at successSteps (node:internal/deps/undici/undici:6882:27)
+      at readAllBytes (node:internal/deps/undici/undici:5807:13)
+}
+✔ chat route keeps fallback chain within one hard timeout window (125.154916ms)
+✔ chat route returns stable 400 for invalid JSON body (5.3757ms)
+✔ chat route accepts message exactly at configured max length (3.431319ms)
+✔ chat route rejects oversized message with deterministic contract (3.894142ms)
+✔ chat route ignores spoofed forwarded headers when trust boundary is disabled (5.593602ms)
+✔ chat route enforces per-client rate limit with trusted header identity (4.901661ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 736.479707
+\n$ pnpm run typecheck
+
+> musu-bee@0.1.0 typecheck /home/hugh51/musu-functions/musu-bee
+> tsc --noEmit
+
+\n$ curl -i -X POST http://127.0.0.1:43131/api/chat {message:ping}
+HTTP/1.1 502 Bad Gateway
+vary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch
+content-type: application/json
+Date: Sun, 12 Apr 2026 15:59:35 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Transfer-Encoding: chunked
+
+{"error":"chat backend unavailable","code":"chat_backend_unavailable"}\n$ printf '{bad json' | curl -i -X POST http://127.0.0.1:43131/api/chat
+HTTP/1.1 400 Bad Request
+vary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch
+content-type: application/json
+Date: Sun, 12 Apr 2026 15:59:35 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Transfer-Encoding: chunked
+
+{"error":"invalid request body","code":"invalid_request_body"}\n$ rg -n -i 'traceback|internal|fetch failed|musu-port|127.0.0.1:1|secret-token' <response-bodies>
+NO_MATCH
+\n$ tail -n 30 /tmp/cto-g1-mus1596-dev.log
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1933ms
+ ○ Compiling /api/chat ...
+ ✓ Compiled /api/chat in 1024ms (297 modules)
+[api/chat] backend unavailable {
+  requestTimeoutMs: 30000,
+  remainingBudgetMs: 29995,
+  portError: 'musu-port request failed: fetch failed',
+  llmFallbackError: 'llm fallback request failed: fetch failed'
+}
+ POST /api/chat 502 in 1220ms
+[api/chat] invalid JSON request body {
+  err: SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+      at JSON.parse (<anonymous>)
+}
+ POST /api/chat 400 in 20ms
+[api/chat] backend unavailable {
+  requestTimeoutMs: 30000,
+  remainingBudgetMs: 29999,
+  portError: 'musu-port request failed: fetch failed',
+  llmFallbackError: 'llm fallback request failed: fetch failed'
+}
+ POST /api/chat 502 in 18ms
+[api/chat] invalid JSON request body {
+  err: SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+      at JSON.parse (<anonymous>)
+}
+ POST /api/chat 400 in 17ms

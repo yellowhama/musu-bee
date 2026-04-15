@@ -1,0 +1,9 @@
+100.126.67.88    hughsecond   hugh@  linux    -                      
+100.121.211.106  hugh-main-1  hugh@  linux    idle, tx 6232 rx 5024  
+100.72.246.84    hugh-main    hugh@  windows  -                      
+100.79.44.109    hugh-second  hugh@  windows  -                      
+
+# Health check:
+#     - Tailscale failed to fetch the DNS configuration of your device: exit status 1
+#     - exit status 1
+#     - Tailscale can't reach the configured DNS servers. Internet connectivity may be affected.

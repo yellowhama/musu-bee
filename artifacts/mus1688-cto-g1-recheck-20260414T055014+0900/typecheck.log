@@ -1,0 +1,80 @@
+npm warn Unknown env config "auto-install-peers". This will stop working in the next major version of npm.
+npm warn Unknown env config "recursive". This will stop working in the next major version of npm.
+
+> musu-bee@0.1.0 typecheck
+> tsc --noEmit
+
+src/app/api/mcp/handlers/tasks.ts(1,70): error TS2307: Cannot find module '@/lib/tasks' or its corresponding type declarations.
+src/app/api/mcp/handlers/tasks.ts(2,33): error TS2307: Cannot find module '@/lib/tasks' or its corresponding type declarations.
+src/app/api/mcp/route.test.ts(3,30): error TS2307: Cannot find module 'node:sqlite' or its corresponding type declarations.
+src/app/api/tasks/route.ts(9,8): error TS2307: Cannot find module '@/lib/tasks' or its corresponding type declarations.
+src/app/api/webhooks/paddle/handler.ts(10,3): error TS2724: '"@/lib/subscription"' has no exported member named 'hasProcessedPaddleEvent'. Did you mean 'hasProcessedEvent'?
+src/app/api/webhooks/paddle/handler.ts(11,3): error TS2724: '"@/lib/subscription"' has no exported member named 'markPaddleEventProcessed'. Did you mean 'markEventProcessed'?
+src/app/api/webhooks/paddle/handler.ts(61,7): error TS2339: Property 'stripeCustomerId' does not exist on type 'SubscriptionState'.
+src/app/api/webhooks/paddle/handler.ts(61,30): error TS2339: Property 'stripeCustomerId' does not exist on type 'SubscriptionState'.
+src/app/api/webhooks/paddle/handler.ts(62,7): error TS2551: Property 'stripeSubscriptionId' does not exist on type 'SubscriptionState'. Did you mean 'subscriptionId'?
+src/app/api/webhooks/paddle/handler.ts(62,34): error TS2551: Property 'stripeSubscriptionId' does not exist on type 'SubscriptionState'. Did you mean 'subscriptionId'?
+src/app/api/webhooks/paddle/handler.ts(68,9): error TS2551: Property '_processedPaddleEventIds' does not exist on type 'SubscriptionState'. Did you mean '_processedEventIds'?
+src/app/api/webhooks/paddle/handler.ts(68,47): error TS2551: Property '_processedPaddleEventIds' does not exist on type 'SubscriptionState'. Did you mean '_processedEventIds'?
+src/app/api/webhooks/paddle/handler.ts(71,12): error TS2551: Property '_processedPaddleEventIds' does not exist on type 'SubscriptionState'. Did you mean '_processedEventIds'?
+src/app/api/webhooks/paddle/handler.ts(72,6): error TS7006: Parameter 'value' implicitly has an 'any' type.
+src/app/api/webhooks/paddle/handler.ts(72,13): error TS7006: Parameter 'index' implicitly has an 'any' type.
+src/app/api/webhooks/paddle/handler.ts(72,35): error TS2551: Property '_processedPaddleEventIds' does not exist on type 'SubscriptionState'. Did you mean '_processedEventIds'?
+src/app/api/webhooks/paddle/handler.ts(147,9): error TS2561: Object literal may only specify known properties, but 'stripeSubscriptionId' does not exist in type 'SubscriptionState'. Did you mean to write 'subscriptionId'?
+src/app/api/webhooks/paddle/handler.ts(148,49): error TS2339: Property 'stripeCustomerId' does not exist on type 'SubscriptionState'.
+src/app/api/webhooks/paddle/handler.ts(160,19): error TS2551: Property 'stripeSubscriptionId' does not exist on type 'SubscriptionState'. Did you mean 'subscriptionId'?
+src/app/api/webhooks/paddle/handler.ts(187,19): error TS2551: Property 'stripeSubscriptionId' does not exist on type 'SubscriptionState'. Did you mean 'subscriptionId'?
+src/app/api/webhooks/paddle/handler.ts(197,9): error TS2561: Object literal may only specify known properties, but 'stripeSubscriptionId' does not exist in type 'SubscriptionState'. Did you mean to write 'subscriptionId'?
+src/app/api/webhooks/paddle/route.test.ts(22,5): error TS2353: Object literal may only specify known properties, and 'stripeCustomerId' does not exist in type 'SubscriptionState'.
+src/app/api/webhooks/paddle/route.test.ts(119,22): error TS2551: Property 'stripeSubscriptionId' does not exist on type 'SubscriptionState'. Did you mean 'subscriptionId'?
+src/app/api/webhooks/paddle/route.test.ts(154,11): error TS2551: Property '_processedPaddleEventIds' does not exist on type 'SubscriptionState'. Did you mean '_processedEventIds'?
+src/app/api/webhooks/paddle/route.test.ts(163,5): error TS2353: Object literal may only specify known properties, and 'stripeCustomerId' does not exist in type 'Partial<SubscriptionState>'.
+src/app/api/webhooks/paddle/route.test.ts(209,5): error TS2353: Object literal may only specify known properties, and 'stripeCustomerId' does not exist in type 'Partial<SubscriptionState>'.
+src/app/api/webhooks/paddle/route.test.ts(247,22): error TS2551: Property 'stripeSubscriptionId' does not exist on type 'SubscriptionState'. Did you mean 'subscriptionId'?
+src/app/api/webhooks/paddle/route.test.ts(254,5): error TS2353: Object literal may only specify known properties, and 'stripeCustomerId' does not exist in type 'Partial<SubscriptionState>'.
+src/app/api/webhooks/paddle/route.test.ts(283,19): error TS2551: Property '_processedPaddleEventIds' does not exist on type 'SubscriptionState'. Did you mean '_processedEventIds'?
+src/app/api/webhooks/paddle/route.test.ts(314,22): error TS2551: Property '_processedPaddleEventIds' does not exist on type 'SubscriptionState'. Did you mean '_processedEventIds'?
+src/app/api/webhooks/paddle/route.test.ts(350,22): error TS2551: Property '_processedPaddleEventIds' does not exist on type 'SubscriptionState'. Did you mean '_processedEventIds'?
+src/app/api/webhooks/paddle/route.test.ts(359,22): error TS2551: Property 'stripeSubscriptionId' does not exist on type 'SubscriptionState'. Did you mean 'subscriptionId'?
+src/app/api/webhooks/paddle/route.test.ts(370,22): error TS2551: Property '_processedPaddleEventIds' does not exist on type 'SubscriptionState'. Did you mean '_processedEventIds'?
+src/app/api/webhooks/stripe/handler.ts(1,25): error TS2307: Cannot find module 'stripe' or its corresponding type declarations.
+src/app/api/webhooks/stripe/handler.ts(6,3): error TS2724: '"@/lib/subscription"' has no exported member named 'hasProcessedStripeEvent'. Did you mean 'hasProcessedEvent'?
+src/app/api/webhooks/stripe/handler.ts(7,3): error TS2724: '"@/lib/subscription"' has no exported member named 'markStripeEventProcessed'. Did you mean 'markEventProcessed'?
+src/app/api/webhooks/stripe/handler.ts(28,7): error TS2339: Property 'stripeCustomerId' does not exist on type 'SubscriptionState'.
+src/app/api/webhooks/stripe/handler.ts(28,30): error TS2339: Property 'stripeCustomerId' does not exist on type 'SubscriptionState'.
+src/app/api/webhooks/stripe/handler.ts(29,7): error TS2551: Property 'stripeSubscriptionId' does not exist on type 'SubscriptionState'. Did you mean 'subscriptionId'?
+src/app/api/webhooks/stripe/handler.ts(29,34): error TS2551: Property 'stripeSubscriptionId' does not exist on type 'SubscriptionState'. Did you mean 'subscriptionId'?
+src/app/api/webhooks/stripe/handler.ts(35,9): error TS2551: Property '_processedStripeEventIds' does not exist on type 'SubscriptionState'. Did you mean '_processedEventIds'?
+src/app/api/webhooks/stripe/handler.ts(35,47): error TS2551: Property '_processedStripeEventIds' does not exist on type 'SubscriptionState'. Did you mean '_processedEventIds'?
+src/app/api/webhooks/stripe/handler.ts(38,12): error TS2551: Property '_processedStripeEventIds' does not exist on type 'SubscriptionState'. Did you mean '_processedEventIds'?
+src/app/api/webhooks/stripe/handler.ts(39,6): error TS7006: Parameter 'value' implicitly has an 'any' type.
+src/app/api/webhooks/stripe/handler.ts(39,13): error TS7006: Parameter 'index' implicitly has an 'any' type.
+src/app/api/webhooks/stripe/handler.ts(39,35): error TS2551: Property '_processedStripeEventIds' does not exist on type 'SubscriptionState'. Did you mean '_processedEventIds'?
+src/app/api/webhooks/stripe/handler.ts(155,9): error TS2353: Object literal may only specify known properties, and 'stripeCustomerId' does not exist in type 'SubscriptionState'.
+src/app/api/webhooks/stripe/handler.ts(165,19): error TS2551: Property 'stripeSubscriptionId' does not exist on type 'SubscriptionState'. Did you mean 'subscriptionId'?
+src/app/api/webhooks/stripe/handler.ts(166,57): error TS2551: Property 'stripeSubscriptionId' does not exist on type 'SubscriptionState'. Did you mean 'subscriptionId'?
+src/app/api/webhooks/stripe/handler.ts(197,19): error TS2551: Property 'stripeSubscriptionId' does not exist on type 'SubscriptionState'. Did you mean 'subscriptionId'?
+src/app/api/webhooks/stripe/handler.ts(198,57): error TS2551: Property 'stripeSubscriptionId' does not exist on type 'SubscriptionState'. Did you mean 'subscriptionId'?
+src/app/api/webhooks/stripe/handler.ts(208,9): error TS2561: Object literal may only specify known properties, but 'stripeSubscriptionId' does not exist in type 'SubscriptionState'. Did you mean to write 'subscriptionId'?
+src/app/api/webhooks/stripe/route.test.ts(3,25): error TS2307: Cannot find module 'stripe' or its corresponding type declarations.
+src/app/api/webhooks/stripe/route.test.ts(23,5): error TS2353: Object literal may only specify known properties, and 'stripeCustomerId' does not exist in type 'SubscriptionState'.
+src/app/api/webhooks/stripe/route.test.ts(179,22): error TS2551: Property '_processedStripeEventIds' does not exist on type 'SubscriptionState'. Did you mean '_processedEventIds'?
+src/app/api/webhooks/stripe/route.test.ts(186,5): error TS2353: Object literal may only specify known properties, and 'stripeCustomerId' does not exist in type 'Partial<SubscriptionState>'.
+src/app/api/webhooks/stripe/route.test.ts(220,22): error TS2551: Property '_processedStripeEventIds' does not exist on type 'SubscriptionState'. Did you mean '_processedEventIds'?
+src/app/api/webhooks/stripe/route.test.ts(231,5): error TS2353: Object literal may only specify known properties, and 'stripeCustomerId' does not exist in type 'Partial<SubscriptionState>'.
+src/app/api/webhooks/stripe/route.test.ts(261,22): error TS2551: Property '_processedStripeEventIds' does not exist on type 'SubscriptionState'. Did you mean '_processedEventIds'?
+src/app/api/webhooks/stripe/route.test.ts(272,5): error TS2353: Object literal may only specify known properties, and 'stripeCustomerId' does not exist in type 'Partial<SubscriptionState>'.
+src/app/api/webhooks/stripe/route.test.ts(313,5): error TS2353: Object literal may only specify known properties, and 'stripeCustomerId' does not exist in type 'Partial<SubscriptionState>'.
+src/app/api/webhooks/stripe/route.test.ts(378,11): error TS2551: Property '_processedStripeEventIds' does not exist on type 'SubscriptionState'. Did you mean '_processedEventIds'?
+src/app/api/webhooks/stripe/route.test.ts(426,22): error TS2551: Property '_processedStripeEventIds' does not exist on type 'SubscriptionState'. Did you mean '_processedEventIds'?
+src/app/api/webhooks/stripe/route.test.ts(432,22): error TS2551: Property 'stripeSubscriptionId' does not exist on type 'SubscriptionState'. Did you mean 'subscriptionId'?
+src/app/api/webhooks/stripe/route.test.ts(440,22): error TS2551: Property '_processedStripeEventIds' does not exist on type 'SubscriptionState'. Did you mean '_processedEventIds'?
+src/components/AppShell.tsx(10,25): error TS2307: Cannot find module '@/lib/useAuth' or its corresponding type declarations.
+src/components/AppShell.tsx(11,36): error TS2307: Cannot find module '@/lib/useDeviceDiscovery' or its corresponding type declarations.
+src/components/AppShell.tsx(12,34): error TS2307: Cannot find module '@/lib/useAgentsSurface' or its corresponding type declarations.
+src/components/AppShell.tsx(13,33): error TS2307: Cannot find module '@/lib/useCompanyState' or its corresponding type declarations.
+src/components/AppShell.tsx(15,34): error TS2307: Cannot find module '@/lib/useServiceHealth' or its corresponding type declarations.
+src/lib/stripe.ts(1,20): error TS2307: Cannot find module 'stripe' or its corresponding type declarations.
+src/lib/subscription.ts(12,31): error TS2307: Cannot find module './billing-types' or its corresponding type declarations.
+src/lib/subscription.ts(13,36): error TS2307: Cannot find module './billing-types' or its corresponding type declarations.
+src/lib/wiki.ts(1,30): error TS2307: Cannot find module 'node:sqlite' or its corresponding type declarations.

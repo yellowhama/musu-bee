@@ -1,0 +1,4 @@
+[1] cd musu-bee && npx --yes tsx --test src/app/brand-tokens.test.ts src/app/landing-exp/page.module.test.ts
+[2] cd musu-bee && npm run typecheck
+[3] cd musu-bee && npm run build
+[4] rg scope/boundary checks

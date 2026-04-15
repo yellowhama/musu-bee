@@ -1,0 +1,1 @@
+bash -lc rg -n 'App ready\. IS_DEV|loadFile |addResource: |\[IPC\] initialized: |WebSocket server listening on port|Sending notification: codex-status|Sending notification: claude-status' -S '/home/hugh51/.config/Pencil/logs/main.log' | tail -n 240

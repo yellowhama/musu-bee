@@ -1,0 +1,3 @@
+tool call error: tool call failed for `pencil/get_editor_state`
+Caused by:
+  Mcp error: -32603: failed to connect to running Pencil app: desktop after 3 retries: WebSocket not connected to app: desktop

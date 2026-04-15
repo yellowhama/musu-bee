@@ -1,0 +1,79 @@
+name: Design Gate
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - edited
+      - ready_for_review
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  design-gate:
+    name: design-gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Evaluate UI design evidence requirements
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { evaluateDesignGate } = require(
+              `${process.env.GITHUB_WORKSPACE}/scripts/design-gate/evaluate.cjs`
+            );
+
+            const pr = context.payload.pull_request;
+            if (!pr) {
+              core.setFailed("This gate only supports pull_request events.");
+              return;
+            }
+
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              per_page: 100,
+            });
+
+            const changedFiles = files.map((file) => file.filename);
+            const result = evaluateDesignGate({
+              changedFiles,
+              prBody: pr.body ?? "",
+            });
+
+            const toBulletList = (items) =>
+              items.length === 0
+                ? "- (none)"
+                : items.map((item) => `- \`${item}\``).join("\n");
+
+            await core.summary
+              .addHeading("Design Gate")
+              .addRaw(`UI paths touched: **${result.uiTouched ? "yes" : "no"}**\n\n`)
+              .addRaw(`Gate result: **${result.pass ? "pass" : "fail"}**\n\n`)
+              .addRaw("Changed files:\n")
+              .addRaw(`${toBulletList(changedFiles)}\n\n`)
+              .addRaw("Matched UI files:\n")
+              .addRaw(`${toBulletList(result.matchedUiFiles)}\n\n`)
+              .addRaw("Missing requirements:\n")
+              .addRaw(`${toBulletList(result.missingRequirements)}\n`)
+              .write();
+
+            if (!result.pass) {
+              core.setFailed(
+                [
+                  "Design gate failed for UI changes.",
+                  "PR body must include:",
+                  "- `Design: Approved`",
+                  "- Paperclip brief issue URL",
+                  "- artifact URL ending in `.pen` or `.png`",
+                ].join("\n")
+              );
+            }

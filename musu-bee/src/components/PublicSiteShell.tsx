@@ -99,7 +99,7 @@ const navLinkStyle: React.CSSProperties = {
 
 const appButtonStyle: React.CSSProperties = {
   color: "#0a0a0a",
-  background: "#facc15",
+  background: "var(--musu-color-brand-accent)",
   textDecoration: "none",
   fontSize: 13,
   fontWeight: 800,

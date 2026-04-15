@@ -1,0 +1,1166 @@
+diff --git a/musu-bee/src/app/globals.css b/musu-bee/src/app/globals.css
+index 5efd3ee3..3c4d8d6d 100644
+--- a/musu-bee/src/app/globals.css
++++ b/musu-bee/src/app/globals.css
+@@ -1,3 +1,41 @@
++:root {
++  /* MUSU Brand — SSOT */
++  --musu-color-brand-ink: #2D1D19;
++  --musu-color-brand-accent: #FFD166;
++  --musu-color-brand-canvas: #FDFCF0;
++  --musu-color-brand-stroke: #F8F6F1;
++  --musu-color-brand-ink-rgb: 45 29 25;
++  --musu-color-brand-accent-rgb: 255 209 102;
++  --musu-color-brand-canvas-rgb: 253 252 240;
++
++  /* Backward-compat aliases (phase-out target) */
++  --musu-cocoa-brown: var(--musu-color-brand-ink);
++  --musu-yellow: var(--musu-color-brand-accent);
++  --musu-off-white: var(--musu-color-brand-canvas);
++  --musu-brown: var(--musu-color-brand-ink);
++  --musu-stroke: var(--musu-color-brand-stroke);
++
++  /* App Shell — dark UI */
++  --musu-bg: #0d0d0d;
++  --musu-bg-surface: #111827;
++  --musu-bg-raised: #1f2937;
++  --musu-border: #2d2d2d;
++  --musu-border-subtle: #374151;
++  --musu-text: #f3f4f6;
++  --musu-text-muted: #9ca3af;
++  --musu-text-dim: #6b7280;
++
++  /* Semantic status */
++  --musu-status-online: #22c55e;
++  --musu-status-busy: #f59e0b;
++  --musu-status-offline: #4b5563;
++  --musu-status-error: #ef4444;
++
++  /* Spacing / shape */
++  --musu-radius: 8px;
++  --musu-radius-sm: 4px;
++}
++
+ *, *::before, *::after {
+   box-sizing: border-box;
+   margin: 0;
+@@ -7,8 +45,8 @@
+ html, body {
+   height: 100%;
+   overflow: hidden;
+-  background: #0d0d0d;
+-  color: #f3f4f6;
++  background: var(--musu-bg);
++  color: var(--musu-text);
+ }
+ 
+ ::-webkit-scrollbar {
+diff --git a/home/hugh51/musu-functions/musu-bee/src/app/landing-exp/page.tsx b/home/hugh51/musu-functions/musu-bee/src/app/landing-exp/page.tsx
+new file mode 100644
+index 00000000..3268b87d
+--- /dev/null
++++ b/home/hugh51/musu-functions/musu-bee/src/app/landing-exp/page.tsx
+@@ -0,0 +1,306 @@
++import type { Metadata } from "next";
++import { IBM_Plex_Sans, Sora } from "next/font/google";
++import Link from "next/link";
++import {
++  EARLY_ACCESS_BENEFITS,
++  ICP_CHIPS,
++  INSTALL_COMMANDS,
++} from "@/lib/publicSiteContent";
++import styles from "./page.module.css";
++
++export const metadata: Metadata = {
++  title: "MUSU Early Access",
++  description:
++    "Join MUSU early access to run a coordinated team of AI agents across your own machines.",
++};
++
++type LandingPageProps = {
++  searchParams: Promise<{
++    waitlist?: string;
++  }>;
++};
++
++const bodyFont = IBM_Plex_Sans({
++  subsets: ["latin"],
++  weight: ["400", "500", "600", "700"],
++  variable: "--font-body",
++});
++
++const headingFont = Sora({
++  subsets: ["latin"],
++  weight: ["500", "600", "700", "800"],
++  variable: "--font-heading",
++});
++
++const RUNTIME_ROWS = [
++  {
++    host: "4060Ti Builder Node",
++    state: "ready",
++    duty: "Patch generation + test loops",
++  },
++  {
++    host: "5070Ti Dispatch Node",
++    state: "busy",
++    duty: "Long-context planning + orchestration",
++  },
++  {
++    host: "Laptop Operator Node",
++    state: "ready",
++    duty: "QA replay + release evidence",
++  },
++] as const;
++
++const PAIN_TO_SOLUTION = [
++  {
++    title: "Coordination tax",
++    description:
++      "Stop jumping between terminals, issue boards, and shell sessions to keep one lane moving.",
++  },
++  {
++    title: "Permission drag",
++    description:
++      "Safe defaults keep destructive operations gated while normal execution stays fast.",
++  },
++  {
++    title: "Proof gaps",
++    description:
++      "Every packet keeps owner, acceptance, and evidence in one control surface.",
++  },
++] as const;
++
++const SURFACE_CARDS = [
++  {
++    title: "CLI + MCP is primary",
++    body: "Route work, invoke agents, and read proof artifacts without leaving your operating context.",
++    metric: "Low-latency control",
++  },
++  {
++    title: "Web GUI keeps status visible",
++    body: "Observe queue health, packet ownership, and blockers in real time when you are away from terminal view.",
++    metric: "Executive visibility",
++  },
++] as const;
++
++const SAFETY_POINTS = [
++  "Destructive operations require explicit approval paths.",
++  "Agent packets are rejected when acceptance criteria are weak.",
++  "Proof-first execution: no evidence, no completion.",
++] as const;
++
++const REFERENCE_SIGNALS = ["Slack", "Front", "Missive", "Linear"] as const;
++
++export default async function LandingPage({ searchParams }: LandingPageProps) {
++  const params = await searchParams;
++  const waitlistStatus = params.waitlist;
++
++  return (
++    <div className={`${styles.page} ${bodyFont.variable} ${headingFont.variable}`}>
++      <header className={styles.topBar}>
++        <Link href="/" className={`${styles.brand} ${headingFont.className}`}>
++          MUSU
++        </Link>
++        <nav className={styles.nav} aria-label="Primary">
++          <Link href="/pricing" className={styles.navLink}>
++            Pricing
++          </Link>
++          <Link href="/install" className={styles.navLink}>
++            Install
++          </Link>
++          <Link href="/faq" className={styles.navLink}>
++            FAQ
++          </Link>
++          <Link href="/app" className={styles.navButton}>
++            Open App
++          </Link>
++        </nav>
++      </header>
++
++      <main className={styles.main}>
++        <section className={styles.hero} aria-labelledby="hero-title">
++          <div className={styles.heroCopy}>
++            <p className={styles.eyebrow}>MUSU · THE AGENT RUNTIME FOR VIBE CODERS</p>
++            <h1 id="hero-title" className={`${styles.heroTitle} ${headingFont.className}`}>
++              Run a team of AIs across your own computers.
++            </h1>
++            <p className={styles.heroLead}>
++              One control plane. Chat or CLI. The work gets done without coordination drag.
++            </p>
++
++            <div className={styles.chipRow}>
++              {ICP_CHIPS.map((chip) => (
++                <span key={chip} className={styles.chip}>
++                  {chip}
++                </span>
++              ))}
++            </div>
++
++            <form action="/api/waitlist?from=/landing-exp" method="post" className={styles.waitlistForm}>
++              <label htmlFor="waitlist-email" className={styles.hiddenLabel}>
++                Waitlist email
++              </label>
++              <input
++                id="waitlist-email"
++                name="email"
++                type="email"
++                required
++                placeholder="you@company.com"
++                autoComplete="email"
++                className={styles.waitlistInput}
++              />
++              <button type="submit" className={`${styles.primaryCta} ${headingFont.className}`}>
++                Try MUSU Early Access
++              </button>
++              <Link href="#how-it-works" className={styles.secondaryCta}>
++                Watch 90-sec demo
++              </Link>
++            </form>
++
++            {waitlistStatus === "ok" ? (
++              <p className={styles.okMessage}>You are on the list. We will send your access window soon.</p>
++            ) : null}
++            {waitlistStatus === "invalid_email" ? (
++              <p className={styles.errorMessage}>That email looks invalid. Please check and submit again.</p>
++            ) : null}
++            {waitlistStatus === "error" ? (
++              <p className={styles.errorMessage}>Waitlist is temporarily unavailable. Retry in a minute.</p>
++            ) : null}
++
++            <ul className={styles.benefitList}>
++              {EARLY_ACCESS_BENEFITS.map((benefit) => (
++                <li key={benefit} className={styles.benefitItem}>
++                  {benefit}
++                </li>
++              ))}
++            </ul>
++          </div>
++
++          <div className={styles.heroVisual}>
++            <div className={styles.runtimeBoard}>
++              <div className={styles.runtimeHeader}>
++                <span className={styles.runtimeTitle}>Live Runtime Snapshot</span>
++                <span className={styles.runtimeMeta}>control.musu</span>
++              </div>
++              <ul className={styles.runtimeRows}>
++                {RUNTIME_ROWS.map((row) => (
++                  <li key={row.host} className={styles.runtimeRow}>
++                    <div>
++                      <p className={styles.runtimeHost}>{row.host}</p>
++                      <p className={styles.runtimeDuty}>{row.duty}</p>
++                    </div>
++                    <span className={`${styles.statePill} ${row.state === "busy" ? styles.stateBusy : styles.stateReady}`}>
++                      {row.state}
++                    </span>
++                  </li>
++                ))}
++              </ul>
++              <code className={styles.commandRow}>$ musu route --packet MUS-1636 --target 5070ti</code>
++            </div>
++
++            <div className={styles.heroAside}>
++              <p className={styles.asideLabel}>Meaningful defaults</p>
++              <h2 className={`${styles.asideTitle} ${headingFont.className}`}>Ship over deliberate, never reckless.</h2>
++              <p className={styles.asideBody}>
++                MUSU prioritizes safe autonomy: fast where possible, gated where needed.
++              </p>
++            </div>
++          </div>
++        </section>
++
++        <section className={styles.referenceStrip} aria-label="Reference signals">
++          <span className={styles.referenceLead}>Reference signals analyzed</span>
++          <div className={styles.referenceList}>
++            {REFERENCE_SIGNALS.map((signal) => (
++              <span key={signal} className={styles.referenceChip}>
++                {signal}
++              </span>
++            ))}
++          </div>
++        </section>
++
++        <section className={styles.sectionBlock}>
++          <header className={styles.sectionHeader}>
++            <p className={styles.sectionEyebrow}>Problem to solution</p>
++            <h2 className={`${styles.sectionTitle} ${headingFont.className}`}>
++              Multi-machine operations should feel like one focused team.
++            </h2>
++          </header>
++          <div className={styles.cardGrid}>
++            {PAIN_TO_SOLUTION.map((item) => (
++              <article key={item.title} className={styles.infoCard}>
++                <h3 className={`${styles.infoTitle} ${headingFont.className}`}>{item.title}</h3>
++                <p className={styles.infoBody}>{item.description}</p>
++              </article>
++            ))}
++          </div>
++        </section>
++
++        <section id="how-it-works" className={styles.sectionBlock}>
++          <header className={styles.sectionHeader}>
++            <p className={styles.sectionEyebrow}>How it works</p>
++            <h2 className={`${styles.sectionTitle} ${headingFont.className}`}>
++              Computers as departments. Agents as accountable operators.
++            </h2>
++          </header>
++          <div className={styles.installGrid}>
++            {INSTALL_COMMANDS.map((item) => (
++              <article key={item.platform} className={styles.installCard}>
++                <p className={styles.installPlatform}>{item.platform}</p>
++                <h3 className={`${styles.installTitle} ${headingFont.className}`}>{item.label}</h3>
++                <p className={styles.installStatus}>{item.status}</p>
++                <p className={styles.installBody}>{item.detail}</p>
++              </article>
++            ))}
++          </div>
++        </section>
++
++        <section className={styles.sectionBlock}>
++          <header className={styles.sectionHeader}>
++            <p className={styles.sectionEyebrow}>Core surfaces</p>
++            <h2 className={`${styles.sectionTitle} ${headingFont.className}`}>
++              Operate from CLI when deep, switch to web when coordinating.
++            </h2>
++          </header>
++          <div className={styles.surfaceGrid}>
++            {SURFACE_CARDS.map((card) => (
++              <article key={card.title} className={styles.surfaceCard}>
++                <p className={styles.surfaceMetric}>{card.metric}</p>
++                <h3 className={`${styles.surfaceTitle} ${headingFont.className}`}>{card.title}</h3>
++                <p className={styles.surfaceBody}>{card.body}</p>
++              </article>
++            ))}
++          </div>
++        </section>
++
++        <section className={styles.safetyBlock}>
++          <div>
++            <p className={styles.sectionEyebrow}>Safety and autonomy</p>
++            <h2 className={`${styles.sectionTitle} ${headingFont.className}`}>
++              Autonomy where safe. Deliberation where it matters.
++            </h2>
++          </div>
++          <ul className={styles.safetyList}>
++            {SAFETY_POINTS.map((point) => (
++              <li key={point} className={styles.safetyItem}>
++                {point}
++              </li>
++            ))}
++          </ul>
++        </section>
++
++        <section className={styles.finalCta}>
++          <h2 className={`${styles.finalTitle} ${headingFont.className}`}>
++            Coordinate your AI workforce before scale becomes chaos.
++          </h2>
++          <div className={styles.finalActions}>
++            <Link href="/landing" className={`${styles.primaryCta} ${styles.primaryCtaLink} ${headingFont.className}`}>
++              Join early access
++            </Link>
++            <Link href="/install" className={styles.secondaryCta}>
++              Review install shape
++            </Link>
++          </div>
++        </section>
++      </main>
++    </div>
++  );
++}
+diff --git a/home/hugh51/musu-functions/musu-bee/src/app/landing-exp/page.module.css b/home/hugh51/musu-functions/musu-bee/src/app/landing-exp/page.module.css
+new file mode 100644
+index 00000000..f1ce5aa4
+--- /dev/null
++++ b/home/hugh51/musu-functions/musu-bee/src/app/landing-exp/page.module.css
+@@ -0,0 +1,655 @@
++.page {
++  --musu-brown: var(--musu-color-brand-ink);
++  --musu-brown-deep: #1f1512;
++  --musu-yellow: var(--musu-color-brand-accent);
++  --musu-yellow-strong: #f3b737;
++  --musu-offwhite: var(--musu-color-brand-canvas);
++  --musu-ink: #191312;
++  --musu-muted: #66554f;
++  --musu-line: rgb(var(--musu-color-brand-ink-rgb) / 18%);
++
++  min-height: 100vh;
++  overflow-y: auto;
++  background:
++    radial-gradient(circle at 14% -8%, rgb(var(--musu-color-brand-accent-rgb) / 38%), transparent 42%),
++    radial-gradient(circle at 86% 0%, rgb(var(--musu-color-brand-ink-rgb) / 15%), transparent 38%),
++    linear-gradient(180deg, var(--musu-color-brand-canvas) 0%, #f7f0dc 46%, var(--musu-color-brand-canvas) 100%);
++  color: var(--musu-ink);
++  font-family: var(--font-body), "Pretendard", "Noto Sans KR", sans-serif;
++}
++
++.topBar {
++  position: sticky;
++  top: 0;
++  z-index: 40;
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  gap: 18px;
++  padding: 18px 28px;
++  border-bottom: 1px solid var(--musu-line);
++  background: rgb(var(--musu-color-brand-canvas-rgb) / 86%);
++  backdrop-filter: blur(10px);
++}
++
++.brand {
++  text-decoration: none;
++  color: var(--musu-color-brand-ink);
++  font-size: 1.2rem;
++  letter-spacing: 0.08em;
++  text-transform: uppercase;
++}
++
++.nav {
++  display: flex;
++  align-items: center;
++  gap: 8px;
++  flex-wrap: wrap;
++  justify-content: flex-end;
++}
++
++.navLink {
++  color: var(--musu-muted);
++  text-decoration: none;
++  font-size: 0.87rem;
++  font-weight: 600;
++  padding: 8px 10px;
++  border-radius: 999px;
++  transition: color 180ms ease, background 180ms ease;
++}
++
++.navLink:hover {
++  color: var(--musu-color-brand-ink);
++  background: rgb(var(--musu-color-brand-ink-rgb) / 8%);
++}
++
++.navButton {
++  color: #22150f;
++  background: var(--musu-color-brand-accent);
++  text-decoration: none;
++  font-size: 0.86rem;
++  font-weight: 700;
++  padding: 10px 14px;
++  border-radius: 999px;
++  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 26%);
++  transition: transform 180ms ease, background 180ms ease;
++}
++
++.navButton:hover {
++  transform: translateY(-1px);
++  background: var(--musu-yellow-strong);
++}
++
++.main {
++  max-width: 1160px;
++  margin: 0 auto;
++  padding: 52px 24px 92px;
++  display: grid;
++  gap: 42px;
++}
++
++.hero {
++  display: grid;
++  grid-template-columns: minmax(320px, 1.1fr) minmax(320px, 0.9fr);
++  gap: 30px;
++  align-items: start;
++}
++
++.heroCopy {
++  display: grid;
++  gap: 16px;
++  animation: riseIn 620ms ease both;
++}
++
++.eyebrow {
++  font-size: 0.73rem;
++  font-weight: 700;
++  letter-spacing: 0.14em;
++  text-transform: uppercase;
++  color: var(--musu-color-brand-ink);
++}
++
++.heroTitle {
++  margin: 0;
++  font-family: var(--font-heading), "Pretendard", "Noto Sans KR", sans-serif;
++  font-size: clamp(2.2rem, 5vw, 3.9rem);
++  line-height: 1.04;
++  letter-spacing: -0.03em;
++  color: var(--musu-brown-deep);
++}
++
++.heroLead {
++  margin: 0;
++  max-width: 64ch;
++  font-size: 1.04rem;
++  line-height: 1.7;
++  color: #4b3a33;
++}
++
++.chipRow {
++  display: flex;
++  gap: 8px;
++  flex-wrap: wrap;
++}
++
++.chip {
++  border-radius: 999px;
++  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 20%);
++  background: rgb(var(--musu-color-brand-canvas-rgb) / 80%);
++  color: #4e3d37;
++  padding: 8px 12px;
++  font-size: 0.78rem;
++  font-weight: 600;
++}
++
++.waitlistForm {
++  display: grid;
++  grid-template-columns: minmax(180px, 1fr) auto auto;
++  gap: 10px;
++  align-items: center;
++  margin-top: 6px;
++}
++
++.hiddenLabel {
++  position: absolute;
++  width: 1px;
++  height: 1px;
++  margin: -1px;
++  clip: rect(0, 0, 0, 0);
++  overflow: hidden;
++  white-space: nowrap;
++}
++
++.waitlistInput {
++  width: 100%;
++  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 22%);
++  background: rgb(var(--musu-color-brand-canvas-rgb) / 98%);
++  color: var(--musu-ink);
++  border-radius: 12px;
++  padding: 12px 13px;
++  font-size: 0.95rem;
++  outline: none;
++}
++
++.waitlistInput:focus {
++  border-color: rgb(var(--musu-color-brand-ink-rgb) / 58%);
++  box-shadow: 0 0 0 3px rgb(var(--musu-color-brand-accent-rgb) / 28%);
++}
++
++.primaryCta {
++  border-radius: 12px;
++  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 24%);
++  background: var(--musu-color-brand-accent);
++  color: #20130f;
++  font-size: 0.9rem;
++  font-weight: 700;
++  letter-spacing: 0.02em;
++  padding: 12px 14px;
++  cursor: pointer;
++  text-decoration: none;
++  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
++}
++
++.primaryCta:hover {
++  transform: translateY(-1px);
++  background: var(--musu-yellow-strong);
++  box-shadow: 0 10px 22px rgb(var(--musu-color-brand-ink-rgb) / 16%);
++}
++
++.primaryCtaLink {
++  display: inline-flex;
++  align-items: center;
++  justify-content: center;
++}
++
++.secondaryCta {
++  border-radius: 12px;
++  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 18%);
++  background: rgb(var(--musu-color-brand-canvas-rgb) / 72%);
++  color: #4e3c35;
++  font-size: 0.88rem;
++  font-weight: 600;
++  padding: 12px 14px;
++  text-decoration: none;
++  transition: background 180ms ease, border-color 180ms ease;
++}
++
++.secondaryCta:hover {
++  background: rgba(255, 255, 255, 0.98);
++  border-color: rgb(var(--musu-color-brand-ink-rgb) / 30%);
++}
++
++.okMessage,
++.errorMessage {
++  margin: 0;
++  font-size: 0.87rem;
++  font-weight: 600;
++}
++
++.okMessage {
++  color: #0c7a43;
++}
++
++.errorMessage {
++  color: #b4232e;
++}
++
++.benefitList {
++  list-style: none;
++  display: grid;
++  gap: 8px;
++  margin: 4px 0 0;
++  padding: 0;
++}
++
++.benefitItem {
++  border-radius: 12px;
++  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 14%);
++  background: rgba(255, 255, 255, 0.54);
++  padding: 10px 12px;
++  font-size: 0.87rem;
++  color: #4f3e37;
++}
++
++.heroVisual {
++  display: grid;
++  gap: 14px;
++  animation: riseIn 780ms ease both;
++}
++
++.runtimeBoard {
++  position: relative;
++  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 20%);
++  border-radius: 20px;
++  background:
++    linear-gradient(160deg, rgb(var(--musu-color-brand-canvas-rgb) / 96%), rgba(255, 242, 209, 0.72)),
++    var(--musu-offwhite);
++  padding: 18px;
++  overflow: hidden;
++}
++
++.runtimeBoard::after {
++  content: "";
++  position: absolute;
++  inset: 0;
++  background: linear-gradient(
++    115deg,
++    transparent 14%,
++    rgb(var(--musu-color-brand-accent-rgb) / 16%) 36%,
++    transparent 56%
++  );
++  animation: sweep 3.8s ease-in-out infinite;
++  pointer-events: none;
++}
++
++.runtimeHeader {
++  display: flex;
++  justify-content: space-between;
++  align-items: center;
++  gap: 8px;
++}
++
++.runtimeTitle {
++  font-family: var(--font-heading), "Pretendard", "Noto Sans KR", sans-serif;
++  font-size: 0.93rem;
++  font-weight: 700;
++  color: var(--musu-brown-deep);
++}
++
++.runtimeMeta {
++  font-size: 0.73rem;
++  font-weight: 600;
++  color: #6d5a53;
++}
++
++.runtimeRows {
++  list-style: none;
++  margin: 16px 0 0;
++  padding: 0;
++  display: grid;
++  gap: 10px;
++}
++
++.runtimeRow {
++  display: flex;
++  justify-content: space-between;
++  align-items: center;
++  gap: 10px;
++  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 12%);
++  border-radius: 12px;
++  padding: 10px 12px;
++  background: rgba(255, 255, 255, 0.64);
++}
++
++.runtimeHost {
++  margin: 0;
++  font-size: 0.86rem;
++  font-weight: 700;
++  color: #2b201d;
++}
++
++.runtimeDuty {
++  margin: 2px 0 0;
++  font-size: 0.76rem;
++  color: #5d4b45;
++}
++
++.statePill {
++  display: inline-flex;
++  align-items: center;
++  justify-content: center;
++  min-width: 58px;
++  padding: 7px 10px;
++  border-radius: 999px;
++  font-size: 0.68rem;
++  font-weight: 700;
++  letter-spacing: 0.08em;
++  text-transform: uppercase;
++}
++
++.stateReady {
++  color: #0a7d54;
++  background: rgba(10, 125, 84, 0.12);
++}
++
++.stateBusy {
++  color: #8f5500;
++  background: rgb(var(--musu-color-brand-accent-rgb) / 30%);
++  animation: pulseBusy 1.8s ease-in-out infinite;
++}
++
++.commandRow {
++  display: block;
++  margin-top: 14px;
++  border-radius: 10px;
++  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 18%);
++  background: var(--musu-color-brand-ink);
++  color: var(--musu-color-brand-canvas);
++  padding: 9px 11px;
++  font-family: "JetBrains Mono", "Fira Code", monospace;
++  font-size: 0.75rem;
++  overflow: auto;
++}
++
++.heroAside {
++  border-radius: 18px;
++  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 16%);
++  background: rgba(255, 255, 255, 0.52);
++  padding: 16px;
++}
++
++.asideLabel {
++  margin: 0;
++  font-size: 0.74rem;
++  letter-spacing: 0.08em;
++  text-transform: uppercase;
++  font-weight: 700;
++  color: #6c5952;
++}
++
++.asideTitle {
++  margin: 6px 0 8px;
++  font-size: 1.08rem;
++  line-height: 1.25;
++  color: #2a1d19;
++}
++
++.asideBody {
++  margin: 0;
++  font-size: 0.88rem;
++  line-height: 1.65;
++  color: #4f3d37;
++}
++
++.referenceStrip {
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  gap: 12px;
++  flex-wrap: wrap;
++  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 16%);
++  border-radius: 14px;
++  background: rgba(255, 255, 255, 0.5);
++  padding: 13px 15px;
++}
++
++.referenceLead {
++  font-size: 0.84rem;
++  font-weight: 700;
++  color: #55433d;
++}
++
++.referenceList {
++  display: flex;
++  gap: 8px;
++  flex-wrap: wrap;
++}
++
++.referenceChip {
++  border-radius: 999px;
++  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 20%);
++  padding: 7px 10px;
++  font-size: 0.76rem;
++  font-weight: 700;
++  color: #4e3c35;
++  background: rgba(255, 255, 255, 0.76);
++}
++
++.sectionBlock {
++  display: grid;
++  gap: 16px;
++}
++
++.sectionHeader {
++  display: grid;
++  gap: 6px;
++}
++
++.sectionEyebrow {
++  margin: 0;
++  font-size: 0.72rem;
++  font-weight: 700;
++  letter-spacing: 0.14em;
++  text-transform: uppercase;
++  color: #6f5c55;
++}
++
++.sectionTitle {
++  margin: 0;
++  font-size: clamp(1.5rem, 2.8vw, 2.2rem);
++  line-height: 1.14;
++  color: #2a1d18;
++}
++
++.cardGrid,
++.installGrid,
++.surfaceGrid {
++  display: grid;
++  grid-template-columns: repeat(3, minmax(0, 1fr));
++  gap: 14px;
++}
++
++.infoCard,
++.installCard,
++.surfaceCard {
++  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 16%);
++  border-radius: 16px;
++  background: rgba(255, 255, 255, 0.56);
++  padding: 16px;
++  display: grid;
++  gap: 8px;
++}
++
++.infoTitle,
++.installTitle,
++.surfaceTitle {
++  margin: 0;
++  font-size: 1.04rem;
++  line-height: 1.25;
++  color: #2b1f1a;
++}
++
++.infoBody,
++.installBody,
++.surfaceBody {
++  margin: 0;
++  font-size: 0.88rem;
++  line-height: 1.68;
++  color: #4d3c36;
++}
++
++.installPlatform,
++.installStatus,
++.surfaceMetric {
++  margin: 0;
++  font-size: 0.72rem;
++  letter-spacing: 0.1em;
++  text-transform: uppercase;
++  font-weight: 700;
++  color: #6d5a54;
++}
++
++.safetyBlock {
++  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 16%);
++  border-radius: 20px;
++  background:
++    linear-gradient(130deg, rgb(var(--musu-color-brand-ink-rgb) / 6%), rgb(var(--musu-color-brand-accent-rgb) / 14%)),
++    rgba(255, 255, 255, 0.54);
++  padding: 18px;
++  display: grid;
++  grid-template-columns: 1.1fr 0.9fr;
++  gap: 14px;
++  align-items: start;
++}
++
++.safetyList {
++  list-style: none;
++  margin: 0;
++  padding: 0;
++  display: grid;
++  gap: 8px;
++}
++
++.safetyItem {
++  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 15%);
++  border-radius: 12px;
++  background: rgb(var(--musu-color-brand-canvas-rgb) / 76%);
++  padding: 10px 12px;
++  font-size: 0.87rem;
++  color: #4c3b35;
++}
++
++.finalCta {
++  border: 1px solid rgb(var(--musu-color-brand-ink-rgb) / 18%);
++  border-radius: 20px;
++  background: var(--musu-color-brand-ink);
++  color: var(--musu-color-brand-canvas);
++  padding: 22px;
++  display: grid;
++  gap: 14px;
++}
++
++.finalTitle {
++  margin: 0;
++  font-size: clamp(1.42rem, 3.2vw, 2rem);
++  line-height: 1.2;
++}
++
++.finalActions {
++  display: flex;
++  gap: 10px;
++  flex-wrap: wrap;
++}
++
++.finalCta .secondaryCta {
++  color: var(--musu-color-brand-canvas);
++  background: rgba(255, 255, 255, 0.06);
++  border-color: rgba(255, 255, 255, 0.26);
++}
++
++.finalCta .secondaryCta:hover {
++  background: rgba(255, 255, 255, 0.16);
++}
++
++@keyframes sweep {
++  0% {
++    transform: translateX(-130%);
++  }
++  52% {
++    transform: translateX(118%);
++  }
++  100% {
++    transform: translateX(118%);
++  }
++}
++
++@keyframes riseIn {
++  from {
++    opacity: 0;
++    transform: translateY(16px);
++  }
++  to {
++    opacity: 1;
++    transform: translateY(0);
++  }
++}
++
++@keyframes pulseBusy {
++  0%,
++  100% {
++    opacity: 1;
++  }
++  50% {
++    opacity: 0.6;
++  }
++}
++
++@media (max-width: 1040px) {
++  .hero {
++    grid-template-columns: 1fr;
++  }
++
++  .cardGrid,
++  .installGrid,
++  .surfaceGrid {
++    grid-template-columns: repeat(2, minmax(0, 1fr));
++  }
++
++  .safetyBlock {
++    grid-template-columns: 1fr;
++  }
++}
++
++@media (max-width: 760px) {
++  .topBar {
++    padding: 14px 16px;
++    align-items: flex-start;
++    flex-direction: column;
++  }
++
++  .main {
++    padding: 32px 16px 72px;
++    gap: 32px;
++  }
++
++  .waitlistForm {
++    grid-template-columns: 1fr;
++  }
++
++  .cardGrid,
++  .installGrid,
++  .surfaceGrid {
++    grid-template-columns: 1fr;
++  }
++
++  .finalActions {
++    flex-direction: column;
++    align-items: stretch;
++  }
++
++  .finalActions a,
++  .finalActions button {
++    text-align: center;
++    justify-content: center;
++  }
++}
+diff --git a/home/hugh51/musu-functions/musu-bee/src/app/landing-exp/page.module.test.ts b/home/hugh51/musu-functions/musu-bee/src/app/landing-exp/page.module.test.ts
+new file mode 100644
+index 00000000..0a246b35
+--- /dev/null
++++ b/home/hugh51/musu-functions/musu-bee/src/app/landing-exp/page.module.test.ts
+@@ -0,0 +1,34 @@
++import assert from "node:assert/strict";
++import { readFile } from "node:fs/promises";
++import { resolve } from "node:path";
++import { test } from "node:test";
++
++const PAGE_MODULE_PATH = resolve(process.cwd(), "src/app/landing-exp/page.module.css");
++
++test("landing-exp module uses brand css vars instead of hardcoded brand palette", async () => {
++  const css = await readFile(PAGE_MODULE_PATH, "utf8");
++
++  const forbiddenPatterns = [
++    /#2d1d19/i,
++    /#ffd166/i,
++    /#fdfcf0/i,
++    /rgba\(45,\s*29,\s*25/i,
++    /rgba\(255,\s*209,\s*102/i,
++    /rgba\(253,\s*252,\s*240/i,
++  ];
++
++  for (const pattern of forbiddenPatterns) {
++    assert.equal(
++      pattern.test(css),
++      false,
++      `Forbidden hardcoded brand color matched: ${pattern}`
++    );
++  }
++
++  assert.equal(css.includes("var(--musu-color-brand-ink)"), true);
++  assert.equal(css.includes("var(--musu-color-brand-accent)"), true);
++  assert.equal(css.includes("var(--musu-color-brand-canvas)"), true);
++  assert.equal(css.includes("var(--musu-color-brand-ink-rgb)"), true);
++  assert.equal(css.includes("var(--musu-color-brand-accent-rgb)"), true);
++  assert.equal(css.includes("var(--musu-color-brand-canvas-rgb)"), true);
++});
+diff --git a/home/hugh51/musu-functions/musu-bee/src/app/brand-tokens.test.ts b/home/hugh51/musu-functions/musu-bee/src/app/brand-tokens.test.ts
+new file mode 100644
+index 00000000..d3d2c140
+--- /dev/null
++++ b/home/hugh51/musu-functions/musu-bee/src/app/brand-tokens.test.ts
+@@ -0,0 +1,90 @@
++import assert from "node:assert/strict";
++import { readdirSync, readFileSync, statSync } from "node:fs";
++import path from "node:path";
++import { fileURLToPath } from "node:url";
++import { test } from "node:test";
++
++const thisFile = fileURLToPath(import.meta.url);
++const appDir = path.dirname(thisFile);
++const srcDir = path.resolve(appDir, "..");
++const globalsPath = path.join(appDir, "globals.css");
++
++const brandHexPatterns = [
++  /#facc15/i,
++  /#ffd166/i,
++  /#2d1d19/i,
++  /#fdfcf0/i,
++  /#f8f6f1/i,
++];
++
++const deprecatedBrandVars = [
++  "var(--musu-yellow)",
++  "var(--musu-brown)",
++  "var(--musu-off-white)",
++  "var(--musu-stroke)",
++];
++
++function walkFiles(dir: string, out: string[] = []): string[] {
++  const entries = readdirSync(dir);
++  for (const entry of entries) {
++    const fullPath = path.join(dir, entry);
++    const stats = statSync(fullPath);
++    if (stats.isDirectory()) {
++      walkFiles(fullPath, out);
++      continue;
++    }
++    if (/\.(css|ts|tsx)$/.test(entry)) {
++      out.push(fullPath);
++    }
++  }
++  return out;
++}
++
++function isTestFile(filePath: string): boolean {
++  return /\.test\.(ts|tsx)$/.test(filePath) || /\.spec\.(ts|tsx)$/.test(filePath);
++}
++
++test("globals.css defines canonical MUSU brand tokens", () => {
++  const globals = readFileSync(globalsPath, "utf8");
++  assert.match(globals, /--musu-color-brand-accent:\s*#FFD166;/);
++  assert.match(globals, /--musu-color-brand-ink:\s*#2D1D19;/);
++  assert.match(globals, /--musu-color-brand-canvas:\s*#FDFCF0;/);
++  assert.match(globals, /--musu-color-brand-stroke:\s*#F8F6F1;/);
++  assert.match(globals, /--musu-yellow:\s*var\(--musu-color-brand-accent\);/);
++  assert.match(globals, /--musu-cocoa-brown:\s*var\(--musu-color-brand-ink\);/);
++  assert.match(globals, /--musu-off-white:\s*var\(--musu-color-brand-canvas\);/);
++});
++
++test("brand hex literals are not used outside globals.css", () => {
++  const offenders: string[] = [];
++  for (const filePath of walkFiles(srcDir)) {
++    if (filePath === globalsPath || isTestFile(filePath)) continue;
++    const content = readFileSync(filePath, "utf8");
++    if (brandHexPatterns.some((pattern) => pattern.test(content))) {
++      offenders.push(path.relative(srcDir, filePath));
++    }
++  }
++
++  assert.deepEqual(
++    offenders,
++    [],
++    `Found raw brand hex literals outside globals.css: ${offenders.join(", ")}`,
++  );
++});
++
++test("deprecated brand aliases are not consumed directly", () => {
++  const offenders: string[] = [];
++  for (const filePath of walkFiles(srcDir)) {
++    if (filePath === globalsPath || isTestFile(filePath)) continue;
++    const content = readFileSync(filePath, "utf8");
++    if (deprecatedBrandVars.some((legacyVar) => content.includes(legacyVar))) {
++      offenders.push(path.relative(srcDir, filePath));
++    }
++  }
++
++  assert.deepEqual(
++    offenders,
++    [],
++    `Found deprecated brand variable consumption: ${offenders.join(", ")}`,
++  );
++});

@@ -1,0 +1,161 @@
+[META] started_at=2026-04-13T07:29:31+09:00
+[META] host=hughsecond
+[META] user=hugh51
+[META] target=/home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+[META] scripts=/home/hugh51/musu-functions/skills/pencil-dev-design-workflow/scripts
+[META] artifact_dir=/home/hugh51/musu-functions/artifacts/mus1716-cto-isolation-rerun-20260413T072931+0900
+
+== preflight: process snapshot (before stop) ==
+
+== preflight: strict stop ==
+[INFO] No running Pencil main process found.
+[MCP] Connection or startup is incomplete.
+[MCP] Verify active .pen and retry the standard MCP sequence.
+[MCP] Playbook: /home/hugh51/musu-functions/skills/pencil-dev-design-workflow/scripts/../references/pencil-mcp-tool-calling-playbook.md
+
+== preflight: hard kill any remaining desktop pencil main ==
+
+== preflight: process snapshot (after stop) ==
+
+== preflight: clear logs ==
+[OK] cleared /home/hugh51/.config/Pencil/logs/main.log and /tmp/pencil-dev.log
+
+== launch target only ==
+[INFO] Starting Pencil:
+  bin: /home/hugh51/tools/Pencil-1.1.24-linux-x64/pencil
+  pen: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+  log: /tmp/pencil-dev.log
+  flags: --no-sandbox --enable-unsafe-swiftshader --disable-gpu
+  env: ELECTRON_OZONE_PLATFORM_HINT=x11 GDK_BACKEND=x11
+[INFO] Preseeded Pencil startup target in config: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+[WARN] Pencil exited before stability window (5s/10s).
+[INFO] Last log lines:
+[INFO] Retrying once without --disable-gpu for Linux compatibility...
+[INFO] Starting Pencil:
+  bin: /home/hugh51/tools/Pencil-1.1.24-linux-x64/pencil
+  pen: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+  log: /tmp/pencil-dev.log
+  flags: --no-sandbox --enable-unsafe-swiftshader
+  env: ELECTRON_OZONE_PLATFORM_HINT=x11 GDK_BACKEND=x11
+[INFO] Preseeded Pencil startup target in config: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+[OK] Pencil running (pid=27564)
+[OK] PID file: /tmp/pencil-dev.pid
+[OK] Runtime log: /tmp/pencil-dev.log
+[OK] pencil MCP already points to stable binary with expected args
+pencil
+  enabled: true
+  transport: stdio
+  command: /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64
+  args: --app desktop
+  cwd: -
+  env: -
+  remove: codex mcp remove pencil
+[MCP] Pencil workflow ready.
+[MCP] Use sequence: batch_get -> get_screenshot(before) -> batch_design -> snapshot_layout -> get_screenshot(after)
+[MCP] Playbook: /home/hugh51/musu-functions/skills/pencil-dev-design-workflow/scripts/../references/pencil-mcp-tool-calling-playbook.md
+[MCP] Pencil workflow ready.
+[MCP] Use sequence: batch_get -> get_screenshot(before) -> batch_design -> snapshot_layout -> get_screenshot(after)
+[MCP] Playbook: /home/hugh51/musu-functions/skills/pencil-dev-design-workflow/scripts/../references/pencil-mcp-tool-calling-playbook.md
+
+== check run #1 ==
+[INFO] Log: /home/hugh51/.config/Pencil/logs/main.log
+[INFO] Window lines: 5000
+[INFO] PID file: /tmp/pencil-dev.pid
+[INFO] Target pen: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+
+[CHECK] process-running: 1
+[CHECK] process-pid: 27564
+[CHECK] loadFile: 1
+[CHECK] addResource: 1
+[CHECK] initialized: 0
+[CHECK] latest-loadFile-is-target: 1
+[CHECK] latest-addResource-is-target: 1
+[CHECK] latest-initialized-is-target: 0
+[CHECK] claude-status: 0
+[CHECK] codex-status: 0
+
+[INFO] Recent matching lines:
+3:[2026-04-13 07:30:12.821] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen zoomToFit: true
+20:[2026-04-13 07:30:13.471] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+
+[INFO] Last marker positions:
+  loadFile: 3:[2026-04-13 07:30:12.821] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen zoomToFit: true
+  addResource: 20:[2026-04-13 07:30:13.471] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+  initialized: missing
+  last loadFile(any): 3:[2026-04-13 07:30:12.821] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen zoomToFit: true
+  last addResource(any): 20:[2026-04-13 07:30:13.471] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+  last initialized(any): missing
+  claude-status: missing
+  codex-status: missing
+
+[WARN] Target markers exist, but latest runtime markers point to a different .pen file.
+[MCP] Connection or startup is incomplete.
+[MCP] Verify active .pen and retry the standard MCP sequence.
+[MCP] Playbook: /home/hugh51/musu-functions/skills/pencil-dev-design-workflow/scripts/../references/pencil-mcp-tool-calling-playbook.md
+[RESULT] check1_exit=4
+
+== check run #2 ==
+[INFO] Log: /home/hugh51/.config/Pencil/logs/main.log
+[INFO] Window lines: 5000
+[INFO] PID file: /tmp/pencil-dev.pid
+[INFO] Target pen: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+
+[CHECK] process-running: 1
+[CHECK] process-pid: 27564
+[CHECK] loadFile: 1
+[CHECK] addResource: 1
+[CHECK] initialized: 0
+[CHECK] latest-loadFile-is-target: 1
+[CHECK] latest-addResource-is-target: 1
+[CHECK] latest-initialized-is-target: 0
+[CHECK] claude-status: 0
+[CHECK] codex-status: 0
+
+[INFO] Recent matching lines:
+3:[2026-04-13 07:30:12.821] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen zoomToFit: true
+20:[2026-04-13 07:30:13.471] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+
+[INFO] Last marker positions:
+  loadFile: 3:[2026-04-13 07:30:12.821] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen zoomToFit: true
+  addResource: 20:[2026-04-13 07:30:13.471] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+  initialized: missing
+  last loadFile(any): 3:[2026-04-13 07:30:12.821] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen zoomToFit: true
+  last addResource(any): 20:[2026-04-13 07:30:13.471] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+  last initialized(any): missing
+  claude-status: missing
+  codex-status: missing
+
+[WARN] Target markers exist, but latest runtime markers point to a different .pen file.
+[MCP] Connection or startup is incomplete.
+[MCP] Verify active .pen and retry the standard MCP sequence.
+[MCP] Playbook: /home/hugh51/musu-functions/skills/pencil-dev-design-workflow/scripts/../references/pencil-mcp-tool-calling-playbook.md
+[RESULT] check2_exit=4
+
+== marker extract from main log ==
+3:[2026-04-13 07:30:12.821] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen zoomToFit: true
+4:[2026-04-13 07:30:13.409] [info]  Initializing IPC server
+20:[2026-04-13 07:30:13.471] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+
+== final process snapshot ==
+27564      42 pencil          /home/hugh51/tools/Pencil-1.1.24-linux-x64/pencil --no-sandbox --enable-unsafe-swiftshader /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+27856      40 pencil          /home/hugh51/tools/Pencil-1.1.24-linux-x64/pencil --type=zygote --no-zygote-sandbox --no-sandbox
+27862      40 pencil          /home/hugh51/tools/Pencil-1.1.24-linux-x64/pencil --type=zygote --no-sandbox
+28646      33 pencil          /proc/self/exe --type=utility --utility-sub-type=network.mojom.NetworkService --lang=ko --service-sandbox-type=none --no-sandbox --enable-crash-reporter=0cfef81b-996c-4cc0-9dd0-9cfdee9010ab,no_channel --user-data-dir=/home/hugh51/.config/Pencil --standard-schemes=pencil --secure-schemes=pencil,sentry-ipc --bypasscsp-schemes=sentry-ipc --cors-schemes=pencil,sentry-ipc --fetch-schemes=pencil,sentry-ipc --shared-files=v8_context_snapshot_data:100 --field-trial-handle=3,i,14327424983585091324,5545986209756547432,262144 --enable-features=PdfUseShowSaveFilePicker --disable-features=LocalNetworkAccessChecks,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708989122997041
+28730      32 pencil          /home/hugh51/tools/Pencil-1.1.24-linux-x64/pencil --type=zygote --no-sandbox
+28891      30 pencil          /home/hugh51/tools/Pencil-1.1.24-linux-x64/pencil --type=zygote --no-zygote-sandbox --no-sandbox
+
+== sha256 scripts + logs ==
+71928c8a81506be22e23a514b717a85e19b39ab56f12096fe89a30663464aaac  /home/hugh51/musu-functions/skills/pencil-dev-design-workflow/scripts/start_pencil_dev.sh
+808dc5620ee0ad155e75fda3e37c736407249a3dba6038c7496e6c65d21e082d  /home/hugh51/musu-functions/skills/pencil-dev-design-workflow/scripts/check_pencil_connection.sh
+6021bcce32cfcff15fd0faf8b0f832a7dd4a0bb56e92b134eccf8414a712fea0  /home/hugh51/musu-functions/skills/pencil-dev-design-workflow/scripts/stop_pencil_dev.sh
+f8e662068bc349d04f462a06a6b6c8b63933b380f1a123f6193d08378b434286  /home/hugh51/musu-functions/artifacts/mus1716-cto-isolation-rerun-20260413T072931+0900/isolation_run.log
+ddfd1b943fa63864e48e8f6bd7b868fbbe0681a3a18567066d01326ff1d5018e  /home/hugh51/musu-functions/artifacts/mus1716-cto-isolation-rerun-20260413T072931+0900/check1.log
+ddfd1b943fa63864e48e8f6bd7b868fbbe0681a3a18567066d01326ff1d5018e  /home/hugh51/musu-functions/artifacts/mus1716-cto-isolation-rerun-20260413T072931+0900/check2.log
+a745cafa0cf1d12b668dd4e27948ccb2e2afade71de778629c4cea241386a920  /home/hugh51/musu-functions/artifacts/mus1716-cto-isolation-rerun-20260413T072931+0900/main.log.preclear
+8472690a2067c5413bb7464aea1378dfdff48063fa1c6fc1012a7565dc759af0  /home/hugh51/musu-functions/artifacts/mus1716-cto-isolation-rerun-20260413T072931+0900/main.log.postrun
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /home/hugh51/musu-functions/artifacts/mus1716-cto-isolation-rerun-20260413T072931+0900/pencil-dev.log.preclear
+d0321bb3693904f138e9666d697e4c5c91eec1d6c7e63ee587b24267263ce14d  /home/hugh51/musu-functions/artifacts/mus1716-cto-isolation-rerun-20260413T072931+0900/pencil-dev.log.postrun
+
+[SUMMARY] artifact_dir=/home/hugh51/musu-functions/artifacts/mus1716-cto-isolation-rerun-20260413T072931+0900
+[SUMMARY] check1_exit=4
+[SUMMARY] check2_exit=4

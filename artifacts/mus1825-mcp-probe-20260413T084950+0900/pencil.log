@@ -1,0 +1,71 @@
+08:50:05.473 › App ready. IS_DEV: true, NODE_ENV: development
+08:50:05.482 › Skipping protocol handler registration (dev mode)
+08:50:05.551 › loadFile /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen zoomToFit: true
+08:50:05.824 › Initializing IPC server
+08:50:05.831 › Registering notification handler for 'open-file'
+08:50:05.831 › Registering notification handler for 'add-to-chat'
+08:50:05.832 › Registering handler for 'get-fullscreen'
+08:50:05.832 › Registering notification handler for 'load-file'
+08:50:05.832 › Registering handler for 'get-recent-files'
+08:50:05.840 › Registering notification handler for 'clear-recent-files'
+08:50:05.841 › Registering notification handler for 'toggle-theme'
+08:50:05.841 › Registering notification handler for 'desktop-open-terminal'
+08:50:05.841 › Registering notification handler for 'check-agent-status'
+08:50:05.841 › Registering notification handler for 'claude-connect'
+08:50:05.842 › Registering notification handler for 'claude-disconnect'
+08:50:05.854 › Registering notification handler for 'codex-connect'
+08:50:05.855 › Registering notification handler for 'codex-disconnect'
+08:50:05.856 › Registering notification handler for 'toggle-mcp-integration'
+08:50:05.861 › Registering notification handler for 'add-extension-to-ide'
+08:50:05.867 › addResource: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+08:50:05.867 › Registering handler for 'get-license'
+08:50:05.867 › Registering notification handler for 'set-license'
+08:50:05.868 › Registering handler for 'get-device-id'
+08:50:05.868 › Registering handler for 'read-file'
+08:50:05.868 › Registering handler for 'save-generated-image'
+08:50:05.870 › Registering notification handler for 'initialized'
+08:50:05.870 › Registering notification handler for 'file-changed'
+08:50:05.870 › Registering handler for 'import-file'
+08:50:05.870 › Registering handler for 'import-uri'
+08:50:05.870 › Registering notification handler for 'send-prompt'
+08:50:05.870 › Registering handler for 'agent-stop'
+08:50:05.870 › Registering notification handler for 'open-document'
+08:50:05.871 › Registering notification handler for 'submit-prompt'
+08:50:05.871 › Registering notification handler for 'toggle-design-mode'
+08:50:05.871 › Registering notification handler for 'set-left-sidebar-visible'
+08:50:05.871 › Registering notification handler for 'sign-out'
+08:50:05.871 › Registering notification handler for 'chat-question-response'
+08:50:05.878 › [DesktopResourceDevice] loadURL() | fileToLoad: 
+08:50:05.943 › WebSocket server listening on port 44909
+08:50:05.984 › Removed MCP allow rules from claudeCodeCLI
+08:50:05.985 › Uninstalled up MCP server for claudeCodeCLI
+08:50:05.992 › Uninstalled up MCP server for codexCLI
+08:50:05.994 › Uninstalled up MCP server for geminiCLI
+08:50:05.995 › Uninstalled up MCP server for openCodeCLI
+08:50:05.996 › Uninstalled up MCP server for kiroCLI
+08:50:05.998 › Successfully set up MCP server for claudeCodeCLI
+08:50:05.999 › Successfully set up MCP server for codexCLI
+08:50:06.000 › Successfully set up MCP server for geminiCLI
+08:50:06.000 › Successfully set up MCP server for openCodeCLI
+08:50:06.002 › Successfully set up MCP server for kiroCLI
+08:50:08.258 › New MCP client connected with ID: 11a2484b-9bfd-44cc-b6d5-83f0348c875c
+08:50:21.294 › New MCP client connected with ID: b8e39cae-686d-4ae0-b0bf-88bc63c3e783
+08:50:21.330 › New MCP client connected with ID: e6e3f936-9be0-472d-8735-4ca878ed6186
+08:50:21.341 › New MCP client connected with ID: 6e10e923-8393-4e0c-9857-6d5d2e27d149
+08:50:26.107 › New MCP client connected with ID: 952d56d1-dcca-472e-a39e-431f52254168
+08:50:28.939 › New MCP client connected with ID: deda058c-14e2-4c7d-8006-41d1c0ff582c
+08:50:30.192 › New MCP client connected with ID: 313b4109-2444-4f8e-850d-769cbf1af528
+08:50:31.166 › New MCP client connected with ID: 030d8ab2-5cd6-489d-9a14-dc3f953ccae6
+08:50:35.742 › MCP client disconnected: b8e39cae-686d-4ae0-b0bf-88bc63c3e783
+08:50:36.333 › MCP client disconnected: 6e10e923-8393-4e0c-9857-6d5d2e27d149
+08:50:36.521 › MCP client disconnected: e6e3f936-9be0-472d-8735-4ca878ed6186
+08:50:36.782 › MCP client disconnected: 952d56d1-dcca-472e-a39e-431f52254168
+08:50:37.010 › New MCP client connected with ID: 213ae97d-1f8b-400a-bd8d-da7a41d41d8f
+(node:52744) UnhandledPromiseRejectionWarning: Error: ERR_FAILED (-2) loading 'http://localhost:3000/#/editor/'
+    at rejectAndCleanup (node:electron/js2c/browser_init:2:79766)
+    at finishListener (node:electron/js2c/browser_init:2:79928)
+    at WebContents.stopLoadingListener (node:electron/js2c/browser_init:2:80315)
+    at WebContents.emit (node:events:531:35)
+(Use `pencil --trace-warnings ...` to show where the warning was created)
+(node:52744) UnhandledPromiseRejectionWarning: Unhandled promise rejection. This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). To terminate the node process on unhandled promise rejection, use the CLI flag `--unhandled-rejections=strict` (see https://nodejs.org/api/cli.html#cli_unhandled_rejections_mode). (rejection id: 2)
+08:50:39.018 › removeResource: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen

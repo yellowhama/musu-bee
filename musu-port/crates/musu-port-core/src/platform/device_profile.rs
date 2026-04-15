@@ -226,10 +226,7 @@ pub fn resolve_physical_host_id() -> Option<String> {
                 .trim()
                 .replace('\r', "")
                 .to_string();
-            if !raw.is_empty()
-                && !raw.to_uppercase().starts_with("FFFFFFFF")
-                && raw.len() == 36
-            {
+            if !raw.is_empty() && !raw.to_uppercase().starts_with("FFFFFFFF") && raw.len() == 36 {
                 return Some(raw.to_lowercase());
             }
 

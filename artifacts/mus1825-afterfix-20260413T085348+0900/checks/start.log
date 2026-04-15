@@ -1,0 +1,26 @@
+[INFO] Starting Pencil:
+  bin: /home/hugh51/Pencil-linux-x86_64.AppImage
+  pen: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+  log: /home/hugh51/musu-functions/artifacts/mus1825-afterfix-20260413T085348+0900/runtime/pencil-dev.log
+  user-data-dir: /home/hugh51/musu-functions/artifacts/mus1825-afterfix-20260413T085348+0900/profile
+  flags: --no-sandbox --enable-unsafe-swiftshader --user-data-dir=/home/hugh51/musu-functions/artifacts/mus1825-afterfix-20260413T085348+0900/profile --disable-gpu
+  env: NODE_ENV=development ELECTRON_OZONE_PLATFORM_HINT=x11 GDK_BACKEND=x11
+[INFO] Preseeded Pencil startup target in config: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+[OK] Pencil running (pid=40590)
+[OK] PID file: /home/hugh51/musu-functions/artifacts/mus1825-afterfix-20260413T085348+0900/runtime/pencil-dev.pid
+[OK] Runtime log: /home/hugh51/musu-functions/artifacts/mus1825-afterfix-20260413T085348+0900/runtime/pencil-dev.log
+[OK] pencil MCP already points to stable binary with expected args
+pencil
+  enabled: true
+  transport: stdio
+  command: /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64
+  args: --app desktop
+  cwd: -
+  env: -
+  remove: codex mcp remove pencil
+[MCP] Pencil workflow ready.
+[MCP] Use sequence: batch_get -> get_screenshot(before) -> batch_design -> snapshot_layout -> get_screenshot(after)
+[MCP] Playbook: /home/hugh51/musu-functions/skills/pencil-dev-design-workflow/scripts/../references/pencil-mcp-tool-calling-playbook.md
+[MCP] Pencil workflow ready.
+[MCP] Use sequence: batch_get -> get_screenshot(before) -> batch_design -> snapshot_layout -> get_screenshot(after)
+[MCP] Playbook: /home/hugh51/musu-functions/skills/pencil-dev-design-workflow/scripts/../references/pencil-mcp-tool-calling-playbook.md

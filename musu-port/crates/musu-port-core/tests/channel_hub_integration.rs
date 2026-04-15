@@ -39,7 +39,11 @@ async fn two_clients_receive_channel_broadcast() {
         .send()
         .await
         .expect("post broadcast");
-    assert!(resp.status().is_success(), "broadcast POST failed: {}", resp.status());
+    assert!(
+        resp.status().is_success(),
+        "broadcast POST failed: {}",
+        resp.status()
+    );
 
     // Both clients must receive the message within 2 seconds.
     let msg1 = tokio::time::timeout(Duration::from_secs(2), ws1.next())
@@ -54,8 +58,16 @@ async fn two_clients_receive_channel_broadcast() {
         .expect("ws2 stream ended")
         .expect("ws2 message error");
 
-    assert_eq!(msg1, WsMessage::Text("hello-broadcast".into()), "ws1 wrong message");
-    assert_eq!(msg2, WsMessage::Text("hello-broadcast".into()), "ws2 wrong message");
+    assert_eq!(
+        msg1,
+        WsMessage::Text("hello-broadcast".into()),
+        "ws1 wrong message"
+    );
+    assert_eq!(
+        msg2,
+        WsMessage::Text("hello-broadcast".into()),
+        "ws2 wrong message"
+    );
 
     // Cleanup.
     let _ = ws1.close(None).await;
@@ -117,9 +129,8 @@ fn spawn_port_manager(
     let device_profile_path = data_root
         .join("device-profiles")
         .join(format!("{device_id}.json"));
-    let device_profile =
-        load_device_profile(&device_profile_path, &runtime_context, device_id)
-            .expect("load device profile");
+    let device_profile = load_device_profile(&device_profile_path, &runtime_context, device_id)
+        .expect("load device profile");
     let config = MusuPortConfig {
         host: IpAddr::V4(Ipv4Addr::LOCALHOST),
         preferred_port: port,

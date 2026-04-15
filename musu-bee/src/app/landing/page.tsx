@@ -169,7 +169,7 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
 
 const eyebrowStyle: React.CSSProperties = {
   fontSize: 12,
-  color: "#facc15",
+  color: "var(--musu-color-brand-accent)",
   fontWeight: 900,
   letterSpacing: "0.14em",
   textTransform: "uppercase",
@@ -211,7 +211,7 @@ const formPanelStyle: React.CSSProperties = {
 
 const panelEyebrowStyle: React.CSSProperties = {
   fontSize: 11,
-  color: "#facc15",
+  color: "var(--musu-color-brand-accent)",
   fontWeight: 900,
   letterSpacing: "0.12em",
   marginBottom: 8,
@@ -251,7 +251,7 @@ const inputStyle: React.CSSProperties = {
 const submitStyle: React.CSSProperties = {
   border: "none",
   borderRadius: 12,
-  background: "#facc15",
+  background: "var(--musu-color-brand-accent)",
   color: "#0a0a0a",
   fontSize: 15,
   fontWeight: 900,
@@ -292,7 +292,7 @@ const sectionCardStyle: React.CSSProperties = {
 
 const cardEyebrowStyle: React.CSSProperties = {
   fontSize: 11,
-  color: "#facc15",
+  color: "var(--musu-color-brand-accent)",
   fontWeight: 900,
   letterSpacing: "0.12em",
   textTransform: "uppercase",
@@ -353,7 +353,7 @@ const installCardStyle: React.CSSProperties = {
 
 const installPlatformStyle: React.CSSProperties = {
   fontSize: 12,
-  color: "#facc15",
+  color: "var(--musu-color-brand-accent)",
   fontWeight: 900,
 };
 
@@ -387,7 +387,7 @@ const linkButtonStyle: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   color: "#0a0a0a",
-  background: "#facc15",
+  background: "var(--musu-color-brand-accent)",
   textDecoration: "none",
   fontWeight: 900,
   padding: "12px 16px",

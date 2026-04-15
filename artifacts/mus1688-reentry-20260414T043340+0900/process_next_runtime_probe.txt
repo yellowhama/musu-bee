@@ -1,0 +1,4 @@
+[next-server]
+62505 /bin/bash -c set -euo pipefail ART=/home/hugh51/musu-functions/artifacts/mus1688-reentry-20260414T043340+0900 {   echo '[next-server]'   pgrep -af next-server || true   echo '[next dev bin]'   pgrep -af "next/dist/bin/next dev" || true } > "$ART/process_next_runtime_probe.txt" cat "$ART/process_next_runtime_probe.txt"
+[next dev bin]
+62505 /bin/bash -c set -euo pipefail ART=/home/hugh51/musu-functions/artifacts/mus1688-reentry-20260414T043340+0900 {   echo '[next-server]'   pgrep -af next-server || true   echo '[next dev bin]'   pgrep -af "next/dist/bin/next dev" || true } > "$ART/process_next_runtime_probe.txt" cat "$ART/process_next_runtime_probe.txt"

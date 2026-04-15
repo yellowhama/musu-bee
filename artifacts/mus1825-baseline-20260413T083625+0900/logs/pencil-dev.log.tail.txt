@@ -1,0 +1,66 @@
+08:36:35.854 › App ready. IS_DEV: true, NODE_ENV: development
+08:36:35.860 › Skipping protocol handler registration (dev mode)
+08:36:35.892 › loadFile /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen zoomToFit: true
+08:36:35.905 › WebSocket server listening on port 45679
+08:36:35.943 › Removed MCP allow rules from claudeCodeCLI
+08:36:35.944 › Uninstalled MCP server for claudeCodeCLI
+08:36:35.957 › Uninstalled MCP server for codexCLI
+08:36:35.960 › Uninstalled MCP server for geminiCLI
+08:36:35.962 › Uninstalled MCP server for openCodeCLI
+08:36:35.964 › Uninstalled MCP server for kiroCLI
+08:36:35.965 › Uninstalled MCP server for claudeDesktop
+08:36:35.968 › Successfully set up MCP server for claudeCodeCLI
+08:36:35.969 › Successfully set up MCP server for codexCLI
+08:36:35.970 › Successfully set up MCP server for geminiCLI
+08:36:35.970 › Successfully set up MCP server for openCodeCLI
+08:36:35.971 › Successfully set up MCP server for kiroCLI
+08:36:35.977 › Successfully set up MCP server for claudeDesktop
+08:36:36.499 › Initializing IPC server
+08:36:36.499 › Registering notification handler for 'add-to-chat'
+08:36:36.499 › Registering handler for 'get-fullscreen'
+08:36:36.500 › Registering handler for 'get-active-integrations'
+08:36:36.500 › Registering handler for 'get-mcp-config'
+08:36:36.500 › Registering notification handler for 'change-workspace-folder'
+08:36:36.500 › Registering notification handler for 'toggle-theme'
+08:36:36.500 › Registering notification handler for 'set-native-theme'
+08:36:36.500 › Registering notification handler for 'desktop-open-terminal'
+08:36:36.500 › Registering notification handler for 'check-agent-status'
+08:36:36.501 › Registering notification handler for 'claude-connect'
+08:36:36.501 › Registering notification handler for 'claude-disconnect'
+08:36:36.501 › Registering notification handler for 'codex-connect'
+08:36:36.501 › Registering notification handler for 'codex-disconnect'
+08:36:36.502 › Registering notification handler for 'toggle-mcp-integration'
+08:36:36.502 › Registering notification handler for 'show-about'
+08:36:36.502 › Registering notification handler for 'initialized'
+08:36:36.502 › Registering notification handler for 'add-extension-to-ide'
+08:36:36.503 › addResource: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+08:36:36.503 › Registering handler for 'get-session'
+08:36:36.503 › Registering notification handler for 'set-session'
+08:36:36.504 › Registering handler for 'get-last-online-at'
+08:36:36.504 › Registering notification handler for 'set-last-online-at'
+08:36:36.504 › Registering handler for 'get-device-id'
+08:36:36.504 › Registering handler for 'read-file'
+08:36:36.505 › Registering handler for 'save-generated-image'
+08:36:36.505 › Registering handler for 'save-temp-file'
+08:36:36.505 › Registering notification handler for 'cleanup-temp-files'
+08:36:36.505 › Registering notification handler for 'initialized'
+08:36:36.505 › Registering notification handler for 'file-changed'
+08:36:36.505 › Registering handler for 'import-file'
+08:36:36.505 › Registering handler for 'import-files'
+08:36:36.506 › Registering handler for 'import-uri'
+08:36:36.506 › Registering notification handler for 'send-prompt'
+08:36:36.506 › Registering handler for 'agent-stop'
+08:36:36.506 › Registering notification handler for 'open-document'
+08:36:36.507 › Registering notification handler for 'submit-prompt'
+08:36:36.507 › Registering notification handler for 'toggle-design-mode'
+08:36:36.507 › Registering notification handler for 'set-left-sidebar-visible'
+08:36:36.507 › Registering notification handler for 'sign-out'
+08:36:36.507 › Registering notification handler for 'open-external-url'
+08:36:36.507 › Registering notification handler for 'chat-question-response'
+08:36:36.507 › Registering notification handler for 'load-file'
+08:36:36.507 › Registering handler for 'find-libraries'
+08:36:36.508 › Registering notification handler for 'turn-into-library'
+08:36:36.508 › Registering handler for 'browse-libraries'
+08:36:36.518 › [DesktopResourceDevice] loadURL() | fileToLoad: 
+08:36:40.477 › New MCP client connected with ID: 99abbb16-9d1f-4641-a806-4ceb8e954e57
+08:36:40.486 › New MCP client connected with ID: 55c96641-cb3b-4f2e-88fb-ce98c854e2cb

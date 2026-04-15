@@ -1,0 +1,6 @@
+npm_install_r2: 0
+build_r8: 0
+typecheck_r4: 0
+targeted_tests_r3: 0
+token_scan_r3: 1
+route_probe_r3: 0

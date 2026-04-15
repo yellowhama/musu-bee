@@ -1,0 +1,8 @@
+timestamp_utc=2026-04-13T06:30:34Z
+issue=MUS-1765
+upstream_g1_issue=MUS-1771
+cmd=scan_mus1771_g1_tokens
+{
+  "latest_g1_pass": "NONE",
+  "latest_g1_fail": "2026-04-12T21:41:10.003Z"
+}

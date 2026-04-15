@@ -32,6 +32,7 @@
 - `PEER_IDENTITY_AND_DISCOVERY.md`: peer identity/discovery 모델
 - `ADVERTISEMENT_IMPORT_PLANE.md`: advertisement/import registry 모델
 - `TRANSPORT_AND_HEALTH_MODEL.md`: transport/health 모델
+- `MUS1482_TAILSCALE_QUIC_RUNBOOK.md`: MUS-1482 QUIC handshake + ping/pong 재현 절차 (4060Ti ↔ 5070Ti)
 
 ## 현재 상태
 

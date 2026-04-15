@@ -1,0 +1,7 @@
+musu-bee/src/app/landing/page.tsx — landing public surface brand token usage
+musu-bee/src/app/pricing/page.tsx — pricing public surface brand token usage
+musu-bee/src/app/pro/page.tsx — pro public surface brand token usage
+musu-bee/src/app/faq/page.tsx — faq public surface brand token usage
+musu-bee/src/app/install/page.tsx — install public surface brand token usage
+musu-bee/src/components/PublicSiteShell.tsx — shared public shell brand token usage
+musu-bee/src/app/globals.css — canonical MUSU brand token declarations

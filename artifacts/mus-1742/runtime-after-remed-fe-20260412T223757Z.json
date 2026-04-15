@@ -1,0 +1,11 @@
+{
+  "id": "7a87bcf2-6b89-498e-b295-d80d53710bd0",
+  "name": "Founding Engineer",
+  "runtimeConfig": {
+    "enabled": true,
+    "cooldownSec": 10,
+    "intervalSec": 3600,
+    "wakeOnDemand": true,
+    "maxConcurrentRuns": 12
+  }
+}

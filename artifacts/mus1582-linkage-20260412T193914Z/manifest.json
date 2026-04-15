@@ -1,0 +1,135 @@
+{
+  "generated_at": "2026-04-12T19:39:16Z",
+  "source_packet": "MUS-1685",
+  "parent_packet": "MUS-1582",
+  "design_artifacts": [
+    {
+      "artifact_id": "MUS-1651:yTjpK",
+      "source_issue_identifier": "MUS-1651",
+      "file_path": "artifacts/mus1651-work-hub-v1.pen",
+      "checksum_or_size": "sha256:195e35235e0d6f1cfc14dad2d9af5c4957123422f06d92d00db5bd7f3bb1ef0f",
+      "captured_at": "2026-04-12T19:39:16Z"
+    },
+    {
+      "artifact_id": "MUS-1651:workhub-comfortable",
+      "source_issue_identifier": "MUS-1651",
+      "file_path": "artifacts/mus1651-evidence/workhub-comfortable.png",
+      "checksum_or_size": "sha256:6785de244ac35063061584c2c8418020e086fa68ee80b05d171b95036b7cd026",
+      "captured_at": "2026-04-12T19:39:16Z"
+    },
+    {
+      "artifact_id": "MUS-1651:workhub-compact",
+      "source_issue_identifier": "MUS-1651",
+      "file_path": "artifacts/mus1651-evidence/workhub-compact.png",
+      "checksum_or_size": "sha256:db09568ef2b96a5be9e773f970fc5a6001b6883d839a185c91780a2118a75982",
+      "captured_at": "2026-04-12T19:39:16Z"
+    },
+    {
+      "artifact_id": "MUS-1651:workhub-mobile",
+      "source_issue_identifier": "MUS-1651",
+      "file_path": "artifacts/mus1651-evidence/workhub-mobile.png",
+      "checksum_or_size": "sha256:075039c2367404448360a1ef4ce751b7e62fad77bab592634e76db500e5f900e",
+      "captured_at": "2026-04-12T19:39:16Z"
+    }
+  ],
+  "pr_checks": [
+    {
+      "check_id": "70369027375",
+      "provider": "github-actions",
+      "status": "completed/failure",
+      "url": "https://github.com/yellowhama/musu-bee/actions/runs/24119051061/job/70369027375",
+      "captured_at": "2026-04-12T19:39:16Z",
+      "pr_number": "1",
+      "pr_url": "https://github.com/yellowhama/musu-bee/pull/1"
+    },
+    {
+      "check_id": "70369027337",
+      "provider": "github-actions",
+      "status": "completed/success",
+      "url": "https://github.com/yellowhama/musu-bee/actions/runs/24119051063/job/70369027337",
+      "captured_at": "2026-04-12T19:39:16Z",
+      "pr_number": "1",
+      "pr_url": "https://github.com/yellowhama/musu-bee/pull/1"
+    },
+    {
+      "check_id": "70369014478",
+      "provider": "github-actions",
+      "status": "completed/success",
+      "url": "https://github.com/yellowhama/musu-bee/actions/runs/24119046550/job/70369014478",
+      "captured_at": "2026-04-12T19:39:16Z",
+      "pr_number": "1",
+      "pr_url": "https://github.com/yellowhama/musu-bee/pull/1"
+    },
+    {
+      "check_id": "70369014446",
+      "provider": "github-actions",
+      "status": "completed/failure",
+      "url": "https://github.com/yellowhama/musu-bee/actions/runs/24119046549/job/70369014446",
+      "captured_at": "2026-04-12T19:39:16Z",
+      "pr_number": "1",
+      "pr_url": "https://github.com/yellowhama/musu-bee/pull/1"
+    }
+  ],
+  "propagation_trace": [
+    {
+      "stage": "G1",
+      "issue_identifier": "MUS-1651",
+      "comment_id": "082b1f77-c1c3-4b23-b5c3-19ec68d5abb1",
+      "timestamp": "2026-04-12T18:40:40.265Z"
+    },
+    {
+      "stage": "G2",
+      "issue_identifier": "MUS-1652",
+      "comment_id": "1806fbbc-d519-4c0a-8be9-49ca56d5e967",
+      "timestamp": "2026-04-12T16:53:28.371Z"
+    },
+    {
+      "stage": "G2",
+      "issue_identifier": "MUS-1582",
+      "comment_id": "e79ffc11-9c58-4941-bb11-bfb0ccd1909f",
+      "timestamp": "2026-04-12T18:57:32.299Z"
+    }
+  ],
+  "snippets": [
+    {
+      "path": "artifacts/mus1582-linkage-20260412T193914Z/snippets/comment_mus1582_g2_fail.json",
+      "proves": "parent QA fail requiring design↔check mapping"
+    },
+    {
+      "path": "artifacts/mus1582-linkage-20260412T193914Z/snippets/comment_mus1651_g1_pass.json",
+      "proves": "G1 PASS token and artifact evidence pointer"
+    },
+    {
+      "path": "artifacts/mus1582-linkage-20260412T193914Z/snippets/comment_mus1652_g2_fail.json",
+      "proves": "G2 fail context requiring deterministic linkage"
+    },
+    {
+      "path": "artifacts/mus1582-linkage-20260412T193914Z/snippets/design_artifact_sha256.txt",
+      "proves": "immutable digest capture for MUS-1651 design artifact files"
+    },
+    {
+      "path": "artifacts/mus1582-linkage-20260412T193914Z/snippets/design_artifact_stat.tsv",
+      "proves": "file size and mtime capture for design artifacts"
+    },
+    {
+      "path": "artifacts/mus1582-linkage-20260412T193914Z/snippets/github_check_runs_pr1_head.json",
+      "proves": "check IDs, conclusions, and details URLs for PR head commit"
+    },
+    {
+      "path": "artifacts/mus1582-linkage-20260412T193914Z/snippets/github_pr_list.json",
+      "proves": "implementation PR metadata and statusCheckRollup rows"
+    },
+    {
+      "path": "artifacts/mus1651-evidence/workhub-comfortable.png",
+      "proves": "design screenshot evidence mapped to MUS-1651 artifact set"
+    },
+    {
+      "path": "artifacts/mus1651-evidence/workhub-compact.png",
+      "proves": "design screenshot evidence mapped to MUS-1651 artifact set"
+    },
+    {
+      "path": "artifacts/mus1651-evidence/workhub-mobile.png",
+      "proves": "mobile screenshot evidence mapped to MUS-1651 artifact set"
+    }
+  ]
+}

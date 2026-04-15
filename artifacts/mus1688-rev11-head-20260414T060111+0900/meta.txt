@@ -1,0 +1,6 @@
+timestamp=2026-04-14T06:01:49+09:00
+worktree=/tmp/mus1688-rev11-head-20260414T060111+0900
+app=/tmp/mus1688-rev11-head-20260414T060111+0900/musu-bee
+head=c83eb6bbaa4f72ef8b34fbcedf4ad3a76bc6421b
+node=v24.13.0
+npm=11.6.2

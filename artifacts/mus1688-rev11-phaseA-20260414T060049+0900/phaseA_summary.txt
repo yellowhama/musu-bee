@@ -1,0 +1,3 @@
+npm_ci_exit=1
+typecheck_exit=127
+build_exit=127

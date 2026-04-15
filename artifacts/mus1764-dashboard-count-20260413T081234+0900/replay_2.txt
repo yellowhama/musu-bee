@@ -1,0 +1,5 @@
+# attempt 2
+$ curl -sS "http://127.0.0.1:3101/api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/agents" | jq '[.[] | select(.status=="running")] | length'
+5
+$ curl -sS "http://127.0.0.1:3101/api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/dashboard" | jq '.agents_count'
+5

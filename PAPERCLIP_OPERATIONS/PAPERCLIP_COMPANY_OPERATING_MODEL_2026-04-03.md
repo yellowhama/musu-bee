@@ -57,16 +57,23 @@
 
 - lane 2 / lane 3의 acceptance와 다음 engineer packet을 고정한다.
 - architecture, proof boundary, QA handoff를 담당한다.
+- `Pencil Dev`, `.pen`, desktop shell, MCP-based design artifact가 걸린 packet에서는 아래 skill을 우선 사용한다.
+  - `paperclipai/paperclip/pencil-dev-design-workflow`
+  - `paperclipai/paperclip/pencil-design`
 
 ### Chief of Staff
 
 - 로컬 문서와 live board가 어긋나면 이쪽이 먼저 정렬한다.
 - stale execution run, queued run, owner mismatch를 정리한다.
+- 디자인 evidence packet(`.pen`, screenshot, Pencil MCP`)을 닫을 때는 아래 skill을 공식 경로로 사용한다.
+  - `paperclipai/paperclip/pencil-dev-design-workflow`
+  - `paperclipai/paperclip/pencil-design`
 
 ### Founding Engineer
 
 - 구현, proof command, integration test, honest escalation을 담당한다.
 - unclear architecture는 manager에게 다시 올린다.
+- 디자인 handoff가 코드 구현과 연결될 때는 Pencil skill output을 proof artifact로 재사용한다.
 
 ### QA Lead
 

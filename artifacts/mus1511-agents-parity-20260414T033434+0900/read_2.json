@@ -1,0 +1,39 @@
+{
+  "degraded": false,
+  "degradedReason": null,
+  "fetchedAt": "2026-04-13T18:34:41.247Z",
+  "source": {
+    "agents": "http://127.0.0.1:33100/api/companies/company-test/agents",
+    "handoffLatest": "http://127.0.0.1:33155/handoff/latest"
+  },
+  "stale": false,
+  "staleThresholdMs": 600000,
+  "summary": {
+    "bossHost": "ingress-beta",
+    "departments": [
+      {
+        "id": "agent-1",
+        "lastHeartbeatAt": "2026-04-13T18:34:35.000Z",
+        "name": "CTO",
+        "role": "cto",
+        "status": "running",
+        "urlKey": "cto"
+      },
+      {
+        "id": "agent-2",
+        "lastHeartbeatAt": "2026-04-13T18:34:35.001Z",
+        "name": "QA Lead",
+        "role": "qa",
+        "status": "idle",
+        "urlKey": "qa-lead"
+      }
+    ],
+    "handoffReasonCode": "resource_rule_remote_selected",
+    "handoffRecordedAtMs": 12345,
+    "lastHandoffTarget": "device-b",
+    "statusCounts": {
+      "idle": 1,
+      "running": 1
+    }
+  }
+}

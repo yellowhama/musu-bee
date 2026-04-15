@@ -1,0 +1,13 @@
+src/app/brand-tokens.test.ts:13:  /#facc15/i,
+src/app/brand-tokens.test.ts:14:  /#ffd166/i,
+src/app/brand-tokens.test.ts:15:  /#2d1d19/i,
+src/app/brand-tokens.test.ts:16:  /#fdfcf0/i,
+src/app/brand-tokens.test.ts:17:  /#f8f6f1/i,
+src/app/brand-tokens.test.ts:49:  assert.match(globals, /--musu-color-brand-accent:\s*#FFD166;/);
+src/app/brand-tokens.test.ts:50:  assert.match(globals, /--musu-color-brand-ink:\s*#2D1D19;/);
+src/app/brand-tokens.test.ts:51:  assert.match(globals, /--musu-color-brand-canvas:\s*#FDFCF0;/);
+src/app/brand-tokens.test.ts:52:  assert.match(globals, /--musu-color-brand-stroke:\s*#F8F6F1;/);
+src/app/globals.css:3:  --musu-color-brand-ink: #2D1D19;
+src/app/globals.css:4:  --musu-color-brand-accent: #FFD166;
+src/app/globals.css:5:  --musu-color-brand-canvas: #FDFCF0;
+src/app/globals.css:6:  --musu-color-brand-stroke: #F8F6F1;

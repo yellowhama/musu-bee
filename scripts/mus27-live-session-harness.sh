@@ -238,23 +238,32 @@ with open(out_path, "w", encoding="utf-8") as fh:
     fh.write("\n")
 PY
 
-cat >"$MANIFEST_JSON" <<JSON
-{
-  "harness": "mus27-live-session-harness",
-  "scenario": "$SCENARIO",
-  "generated_at": "$NOW",
-  "service": "$SERVICE",
-  "trustLevel": "$TRUST_LEVEL",
-  "discoveryState": "$DISCOVERY_STATE",
-  "artifacts": {
-    "health": "$HEALTH_JSON",
-    "routes": "$ROUTES_JSON",
-    "proof": "$PROOF_JSON",
-    "runtime_transport_evidence": "$TRANSPORT_EVIDENCE_JSON",
-    "port_log": "$LOG_PATH"
-  }
-}
-JSON
+jq -n \
+  --arg scenario "$SCENARIO" \
+  --arg generatedAt "$NOW" \
+  --arg service "$SERVICE" \
+  --arg trustLevel "$TRUST_LEVEL" \
+  --arg discoveryState "$DISCOVERY_STATE" \
+  --arg health "$HEALTH_JSON" \
+  --arg routes "$ROUTES_JSON" \
+  --arg proof "$PROOF_JSON" \
+  --arg runtimeTransportEvidence "$TRANSPORT_EVIDENCE_JSON" \
+  --arg portLog "$LOG_PATH" \
+  '{
+    harness: "mus27-live-session-harness",
+    scenario: $scenario,
+    generated_at: $generatedAt,
+    service: $service,
+    trustLevel: $trustLevel,
+    discoveryState: $discoveryState,
+    artifacts: {
+      health: $health,
+      routes: $routes,
+      proof: $proof,
+      runtime_transport_evidence: $runtimeTransportEvidence,
+      port_log: $portLog
+    }
+  }' >"$MANIFEST_JSON"
 
 echo "[OK] MUS-27 live harness artifacts generated"
 echo "  - scenario: $SCENARIO"

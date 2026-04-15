@@ -1,0 +1,9 @@
+ ⚠ You are using a non-standard "NODE_ENV" value in your environment. This creates inconsistencies in the project and is strongly advised against. Read more: https://nextjs.org/docs/messages/non-standard-node-env
+   ▲ Next.js 15.5.14
+   - Local:        http://localhost:3311
+   - Network:      http://10.255.255.254:3311
+
+ ✓ Starting...
+ ✓ Ready in 840ms
+(node:5984) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

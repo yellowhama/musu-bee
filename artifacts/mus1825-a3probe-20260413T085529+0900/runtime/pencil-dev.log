@@ -1,0 +1,131 @@
+08:55:41.072 › App ready. IS_DEV: false, NODE_ENV: production
+08:55:41.101 › Checking for update
+08:55:41.123 › WebSocket server listening on port 44987
+08:55:41.172 › Removed MCP allow rules from claudeCodeCLI
+08:55:41.173 › Uninstalled MCP server for claudeCodeCLI
+08:55:41.176 › Uninstalled MCP server for codexCLI
+08:55:41.177 › Uninstalled MCP server for geminiCLI
+08:55:41.178 › Uninstalled MCP server for openCodeCLI
+08:55:41.179 › Uninstalled MCP server for kiroCLI
+08:55:41.180 › Uninstalled MCP server for claudeDesktop
+08:55:41.183 › Successfully set up MCP server for claudeCodeCLI
+08:55:41.185 › Successfully set up MCP server for codexCLI
+08:55:41.186 › Successfully set up MCP server for geminiCLI
+08:55:41.186 › Successfully set up MCP server for openCodeCLI
+08:55:41.187 › Successfully set up MCP server for kiroCLI
+08:55:41.187 › Successfully set up MCP server for claudeDesktop
+[62604:0413/085541.615177:ERROR:components/viz/service/main/viz_main_impl.cc:189] Exiting GPU process due to errors during initialization
+08:55:41.656 › Found version 1.1.48 (url: Pencil-1.1.48-linux-x86_64.AppImage)
+08:55:41.656 › Downloading update from Pencil-1.1.48-linux-x86_64.AppImage
+08:55:41.657 › updater cache dir: /home/hugh51/.cache/pencil-updater
+08:55:41.667 › loadFile /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen zoomToFit: true
+08:55:41.800 › Initializing IPC server
+08:55:41.800 › Registering notification handler for 'add-to-chat'
+08:55:41.800 › Registering handler for 'get-fullscreen'
+08:55:41.801 › Registering handler for 'get-active-integrations'
+08:55:41.801 › Registering handler for 'get-mcp-config'
+08:55:41.801 › Registering notification handler for 'change-workspace-folder'
+08:55:41.801 › Registering notification handler for 'toggle-theme'
+08:55:41.801 › Registering notification handler for 'set-native-theme'
+08:55:41.801 › Registering notification handler for 'desktop-open-terminal'
+08:55:41.801 › Registering notification handler for 'check-agent-status'
+08:55:41.802 › Registering notification handler for 'claude-connect'
+08:55:41.802 › Registering notification handler for 'claude-disconnect'
+08:55:41.802 › Registering notification handler for 'codex-connect'
+08:55:41.802 › Registering notification handler for 'codex-disconnect'
+08:55:41.802 › Registering notification handler for 'toggle-mcp-integration'
+08:55:41.802 › Registering notification handler for 'show-about'
+08:55:41.802 › Registering notification handler for 'initialized'
+08:55:41.803 › Registering notification handler for 'add-extension-to-ide'
+08:55:41.803 › addResource: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+08:55:41.804 › Registering handler for 'get-session'
+08:55:41.804 › Registering notification handler for 'set-session'
+08:55:41.804 › Registering handler for 'get-last-online-at'
+08:55:41.804 › Registering notification handler for 'set-last-online-at'
+08:55:41.804 › Registering handler for 'get-device-id'
+08:55:41.804 › Registering handler for 'read-file'
+08:55:41.804 › Registering handler for 'save-generated-image'
+08:55:41.804 › Registering handler for 'save-temp-file'
+08:55:41.805 › Registering notification handler for 'cleanup-temp-files'
+08:55:41.805 › Registering notification handler for 'initialized'
+08:55:41.805 › Registering notification handler for 'file-changed'
+08:55:41.805 › Registering handler for 'import-file'
+08:55:41.805 › Registering handler for 'import-files'
+08:55:41.806 › Registering handler for 'import-uri'
+08:55:41.806 › Registering notification handler for 'send-prompt'
+08:55:41.806 › Registering handler for 'agent-stop'
+08:55:41.806 › Registering notification handler for 'open-document'
+08:55:41.806 › Registering notification handler for 'submit-prompt'
+08:55:41.806 › Registering notification handler for 'toggle-design-mode'
+08:55:41.806 › Registering notification handler for 'set-left-sidebar-visible'
+08:55:41.806 › Registering notification handler for 'sign-out'
+08:55:41.807 › Registering notification handler for 'open-external-url'
+08:55:41.807 › Registering notification handler for 'chat-question-response'
+08:55:41.807 › Registering notification handler for 'load-file'
+08:55:41.807 › Registering handler for 'find-libraries'
+08:55:41.807 › Registering notification handler for 'turn-into-library'
+08:55:41.807 › Registering handler for 'browse-libraries'
+08:55:41.819 › [DesktopResourceDevice] loadURL() | fileToLoad: 
+08:55:43.502 › Update has already been downloaded to /home/hugh51/.cache/pencil-updater/pending/Pencil-1.1.48-linux-x86_64.AppImage).
+08:55:43.512 › Sending notification 'desktop-update-ready'
+08:55:43.513 › Sending notification: desktop-update-ready { id: 'ext-1-1776038143513', hasPayload: true }
+08:55:43.739 › Registering notification handler for 'desktop-update-install'
+08:55:43.739 › Registering notification handler for 'set-install-on-app-quit'
+08:55:43.854 › Received request: get-fullscreen { id: 'ext-1-1776038143851', hasPayload: false }
+08:55:43.857 › Sending response: get-fullscreen { id: 'ext-1-1776038143851', hasPayload: false }
+08:55:43.858 › Received request: get-last-online-at { id: 'ext-2-1776038143852', hasPayload: false }
+08:55:43.858 › Sending response: get-last-online-at { id: 'ext-2-1776038143852', hasPayload: true }
+08:55:43.859 › Received notification: set-native-theme { id: 'ext-3-1776038143852', hasPayload: true }
+08:55:43.862 › Handling notification 'set-native-theme' with 1 handlers
+08:55:43.900 › Received request: get-active-integrations { id: 'ext-4-1776038143854', hasPayload: false }
+08:55:43.901 › Sending response: get-active-integrations { id: 'ext-4-1776038143854', hasPayload: true }
+08:55:43.902 › Received request: get-mcp-config { id: 'ext-5-1776038143857', hasPayload: false }
+08:55:43.903 › Sending response: get-mcp-config { id: 'ext-5-1776038143857', hasPayload: true }
+[62761:0413/085544.253514:ERROR:gpu/command_buffer/service/gl_utils.cc:389] [.WebGL-0x12c0017c200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+08:55:44.520 › Received notification: set-last-online-at { id: 'ext-6-1776038144515', hasPayload: true }
+08:55:44.521 › Handling notification 'set-last-online-at' with 1 handlers
+[62761:0413/085545.150851:ERROR:gpu/command_buffer/service/gl_utils.cc:389] [.WebGL-0x12c06f55e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[62761:0413/085545.318949:ERROR:gpu/command_buffer/service/gl_utils.cc:389] [.WebGL-0x12c0017c200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+08:55:45.406 › Received notification: initialized { id: 'ext-7-1776038145399', hasPayload: false }
+08:55:45.407 › Handling notification 'initialized' with 2 handlers
+08:55:45.407 › Checking for Claude Code status
+[62761:0413/085545.457143:ERROR:gpu/command_buffer/service/gl_utils.cc:389] [.WebGL-0x12c06f55e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+08:55:45.458 › Checking for Codex status
+08:55:45.474 › [IPC] initialized: /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+08:55:45.475 › Sending notification 'file-update'
+08:55:45.475 › Sending notification: file-update { id: 'ext-2-1776038145475', hasPayload: true }
+08:55:45.482 › Sending notification 'color-theme-changed'
+08:55:45.483 › Sending notification: color-theme-changed { id: 'ext-3-1776038145483', hasPayload: true }
+08:55:45.598 › Received notification: set-native-theme { id: 'ext-8-1776038145597', hasPayload: true }
+08:55:45.599 › Handling notification 'set-native-theme' with 1 handlers
+08:55:45.600 › Received request: get-session { id: 'ext-9-1776038145599', hasPayload: false }
+08:55:45.601 › [IPC] get-session
+08:55:45.601 › Sending response: get-session { id: 'ext-9-1776038145599', hasPayload: true }
+08:55:46.518 › Received request: read-file { id: 'ext-10-1776038146517', hasPayload: true }
+08:55:46.519 › [IPC] read-file /mnt/f/Aisaak/Projects/Musu-new/branding/logos/exports/v11/variations/var-hero-120-64.png
+08:55:46.525 › Sending response: read-file { id: 'ext-10-1776038146517', hasPayload: false }
+08:55:46.605 › Received request: read-file { id: 'ext-11-1776038146601', hasPayload: true }
+08:55:46.605 › [IPC] read-file /mnt/f/Aisaak/Projects/Musu-new/branding/logos/exports/v11/badges/badge-32px.png
+08:55:46.610 › Sending response: read-file { id: 'ext-11-1776038146601', hasPayload: false }
+08:55:48.537 › New MCP client connected with ID: 1043bbe2-ed2d-416b-855e-c5b7f88595fc
+08:55:48.600 › {
+  type: 'thread.started',
+  thread_id: '019d841f-7875-7cf2-9f12-28dbb5df2420'
+}
+08:55:48.630 › { type: 'turn.started' }
+08:55:48.976 › Received request: get-device-id { id: 'ext-12-1776038148963', hasPayload: false }
+08:55:48.977 › [IPC] get-device-id
+08:55:48.977 › Sending response: get-device-id { id: 'ext-12-1776038148963', hasPayload: true }
+08:55:51.871 › Received notification: set-last-online-at { id: 'ext-13-1776038151863', hasPayload: true }
+08:55:51.875 › Handling notification 'set-last-online-at' with 1 handlers
+08:55:54.373 › Sending notification 'claude-status'
+08:55:54.374 › Sending notification: claude-status { id: 'ext-4-1776038154374', hasPayload: true }
+08:55:54.376 › Checked for Claude Code status
+08:55:55.378 › {
+  type: 'error',
+  message: "You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at 9:32 AM."
+}
+08:55:55.429 › Sending notification 'codex-status'
+08:55:55.431 › Sending notification: codex-status { id: 'ext-5-1776038155431', hasPayload: true }
+08:55:55.431 › Checked for Codex status
+08:55:55.482 › MCP client disconnected: 1043bbe2-ed2d-416b-855e-c5b7f88595fc

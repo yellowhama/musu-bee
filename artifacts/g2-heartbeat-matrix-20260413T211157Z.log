@@ -1,0 +1,4 @@
+timestamp_utc=20260413T211157Z
+in_review_count=1
+MUS-1803\t9cf30475-e4cd-40d3-804c-2eb640d76a36\t2026-04-13T21:11:19.609Z\tg1_last=NONE\tg2_last=2026-04-13T21:02:42.969Z\tadmissible=NO\tlatest=ef0b4847-9fb4-4bfb-8675-aa00dac1966f	2026-04-13T21:11:12.809Z	QA Heartbeat Delta (2026-04-14 KST)\ttitle=QA: Define visual/design gate checks and evidence format
+admissible_count=0

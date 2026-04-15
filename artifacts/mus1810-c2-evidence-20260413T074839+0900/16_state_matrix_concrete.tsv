@@ -1,0 +1,6 @@
+state	node_id	type	name	content	text_or_fill
+default	qkE48	text	proj1Text	Alpha	#2D1D19
+selected	agJ90	text	mhTab1Txt	Home	#2D1D19
+disabled	YqN0M	text	mhTab2Txt	Chat	#2d1d1966
+error	1e3K2	frame	Badge/Error		$status-error
+unread-badge	Y7Lzq	frame	recBadge		#A8C99D

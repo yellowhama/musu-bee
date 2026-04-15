@@ -14,12 +14,13 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const scope = searchParams.get("scope") ?? "global";
   const statusParam = searchParams.get("status");
+  const channelParam = searchParams.get("channel") ?? undefined;
 
   try {
     const status = statusParam
       ? (statusParam.split(",").filter((s) => VALID_STATUSES.includes(s as TaskStatus)) as TaskStatus[])
       : undefined;
-    const tasks = listTasks({ scope, status, limit: 100 });
+    const tasks = listTasks({ scope, status, channel: channelParam, limit: 100 });
     return NextResponse.json({ tasks });
   } catch (err) {
     const message = err instanceof Error ? err.message : "unknown error";

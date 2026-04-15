@@ -1,0 +1,5 @@
+[STEP] process snapshot after remediation start
+94414      26 pencil          /tmp/.mount_Pencil7FaGn8/pencil --type=zygote --no-zygote-sandbox --no-sandbox
+94417      26 pencil          /tmp/.mount_Pencil7FaGn8/pencil --type=zygote --no-sandbox
+98707      13 pencil          /tmp/.mount_Pencil7FaGn8/pencil --type=zygote --no-zygote-sandbox --no-sandbox
+[STEP] main log markers after remediation start

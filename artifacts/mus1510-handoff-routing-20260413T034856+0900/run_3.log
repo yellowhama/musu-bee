@@ -1,0 +1,11 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.14s
+     Running tests/handoff_routing.rs (/home/hugh51/musu-functions/musu-port/target/debug/deps/handoff_routing-fc6a8b3334b352d0)
+
+running 4 tests
+test device_switch_updates_boss_deterministically ... ok
+test unreachable_remote_forces_local_fallback_with_reason_code ... ok
+test route_to_remote_when_resource_rule_requires_it ... ok
+test stale_metrics_force_local_fallback ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.93s
+

@@ -1,0 +1,12 @@
+2026/04/13 07:25:14 [MCP] Starting server in stdio mode
+2026/04/13 07:25:14 [MCP] WebSocket disconnected, attempting to reconnect (attempt 1/3)
+2026/04/13 07:25:15 [MCP] WebSocket disconnected, attempting to reconnect (attempt 2/3)
+2026/04/13 07:25:16 [MCP] WebSocket disconnected, attempting to reconnect (attempt 3/3)
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "error": {
+    "code": -32603,
+    "message": "failed to connect to running Pencil app: desktop after 3 retries: WebSocket not connected to app: desktop"
+  }
+}

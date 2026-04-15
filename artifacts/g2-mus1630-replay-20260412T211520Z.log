@@ -1,0 +1,8 @@
+[utc] 2026-04-12T21:15:20Z
+[host] hughsecond
+[pwd] /home/hugh51/musu-functions
+
+### cmd: curl -sS -m 10 -w '\n[curl_exit=%{exitcode} http_code=%{http_code}]\n' http://localhost:23880/status
+curl: (28) Connection timed out after 10000 milliseconds
+
+[curl_exit=28 http_code=000]

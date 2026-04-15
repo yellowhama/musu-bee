@@ -1,0 +1,24 @@
+npm warn Unknown env config "auto-install-peers". This will stop working in the next major version of npm.
+npm warn Unknown env config "recursive". This will stop working in the next major version of npm.
+
+> musu-bee@0.1.0 build
+> NODE_ENV=production next build
+
+   ▲ Next.js 15.5.14
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+
+
+Retrying 1/3...
+ ✓ Compiled successfully in 19.9s
+   Skipping linting
+   Checking validity of types ...
+   Collecting page data ...
+[Error [PageNotFoundError]: Cannot find module for page: /api/route] {
+  code: 'ENOENT'
+}
+unhandledRejection [Error [PageNotFoundError]: Cannot find module for page: /_document] {
+  type: 'PageNotFoundError',
+  code: 'ENOENT'
+}

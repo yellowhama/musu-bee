@@ -1,0 +1,32 @@
+hugh51     314 98613  0 08:26 ?        00:00:00 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+hugh51     345 99617  0 08:26 ?        00:00:00 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+hugh51    6934 43618  0 08:26 ?        00:00:00 /bin/bash -lc set -euo pipefail TS1=$(date +%Y%m%dT%H%M%S%z) ART1="/home/hugh51/musu-functions/artifacts/mus1817-lock-${TS1}-run1" /home/hugh51/musu-functions/skills/pencil-dev-design-workflow/scripts/exclusive_attach_window.sh "/home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen" "$ART1" echo "$ART1"
+hugh51    7000  6934  0 08:26 ?        00:00:00 bash /home/hugh51/musu-functions/skills/pencil-dev-design-workflow/scripts/exclusive_attach_window.sh /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen /home/hugh51/musu-functions/artifacts/mus1817-lock-20260413T082650+0900-run1
+hugh51   13138 64624  1 08:27 ?        00:00:01 /tmp/.mount_PencilCKkTrl/pencil --no-sandbox --enable-unsafe-swiftshader --user-data-dir=/home/hugh51/musu-functions/artifacts/mus1817-lock-20260413T082650+0900-run1/profile /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+hugh51   13179 64624  7 08:27 ?        00:00:05 /home/hugh51/Pencil-linux-x86_64.AppImage --no-sandbox --enable-unsafe-swiftshader --user-data-dir=/home/hugh51/musu-functions/artifacts/mus1817-lock-20260413T082650+0900-run1/profile /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
+hugh51   16659 13138  0 08:27 ?        00:00:00 /tmp/.mount_PencilCKkTrl/pencil --type=zygote --no-zygote-sandbox --no-sandbox
+hugh51   16741 13138  0 08:27 ?        00:00:00 /tmp/.mount_PencilCKkTrl/pencil --type=zygote --no-sandbox
+hugh51   17400 29441  0 08:27 ?        00:00:00 /bin/bash -c /home/hugh51/tools/Pencil-1.1.24-linux-x64/pencil --help | sed -n '1,220p'
+hugh51   17440 17400  4 08:27 ?        00:00:02 /home/hugh51/tools/Pencil-1.1.24-linux-x64/pencil --help
+hugh51   18377 17440  0 08:27 ?        00:00:00 /home/hugh51/tools/Pencil-1.1.24-linux-x64/pencil --type=zygote --no-zygote-sandbox
+hugh51   18406 17440  0 08:27 ?        00:00:00 /home/hugh51/tools/Pencil-1.1.24-linux-x64/pencil --type=zygote
+hugh51   19824 18406  0 08:27 ?        00:00:00 /home/hugh51/tools/Pencil-1.1.24-linux-x64/pencil --type=zygote
+hugh51   21170 18145  0 08:27 ?        00:00:00 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+hugh51   21229 18146  0 08:27 ?        00:00:00 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+hugh51   24246 22765 13 08:28 ?        00:00:00 curl -sS -X POST http://127.0.0.1:3100/api/issues/b7ae61cf-b284-41d4-b2ed-c9dadcdde89b/comments -H Content-Type: application/json -d {"body":"CTO handoff from MUS-1822 runtime-unblock replay: runtime gate remains closed.\n\nReference comment on MUS-1822: ac56b706-685e-48ca-ac18-53ca94bf71b2\n- Desktop MCP path replay failed (start=0/check=4/mcp=0/final=1) with WebSocket attach failure to desktop app.\n- Headless CLI export path failed due auth (pencil status not authenticated; export command returned auth-required).\n\nDecision token:\n- MUS1810_RUNTIME_GATE: FAIL\n\nAction:\n- Keep MUS-1810 blocked until MUS-1822 posts PASS evidence.\n"}
+hugh51   24304  7000  0 08:28 ?        00:00:00 bash /home/hugh51/musu-functions/skills/pencil-dev-design-workflow/scripts/exclusive_attach_window.sh /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen /home/hugh51/musu-functions/artifacts/mus1817-lock-20260413T082650+0900-run1
+hugh51   24370 24304  0 08:28 ?        00:00:00 bash /home/hugh51/musu-functions/skills/pencil-dev-design-workflow/scripts/exclusive_attach_window.sh /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen /home/hugh51/musu-functions/artifacts/mus1817-lock-20260413T082650+0900-run1
+hugh51   29756 29441  0 08:23 ?        00:00:00 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+hugh51   31707 29744  0 08:19 ?        00:00:00 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+hugh51   43788 41236  0 08:19 ?        00:00:00 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+hugh51   44259 39232  0 08:19 ?        00:00:00 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+hugh51   45731 43350  0 08:24 ?        00:00:00 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+hugh51   49718 43618  0 08:20 ?        00:00:00 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+hugh51   53420 49308  0 08:20 ?        00:00:00 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+hugh51   53426 49281  0 08:20 ?        00:00:00 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+hugh51   59358 58319  0 08:20 ?        00:00:00 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+hugh51   61627 60837  0 08:24 ?        00:00:00 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+hugh51   85606 84948  0 08:25 ?        00:00:00 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+hugh51   89384 88648  0 08:25 ?        00:00:00 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+hugh51   89545 88781  0 08:25 ?        00:00:00 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
+hugh51   97261 96681  0 08:22 ?        00:00:00 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop

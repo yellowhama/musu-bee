@@ -1,0 +1,34 @@
+[INFO] Log: /home/hugh51/.config/Pencil/logs/main.log
+[INFO] Window lines: 3000
+[INFO] PID file: /tmp/pencil-dev.pid
+[INFO] Target pen: /home/hugh51/musu-functions/artifacts/mus1745-workspace-chat-v1.pen
+
+[CHECK] process-running: 1
+[CHECK] process-pid: 16195
+[CHECK] loadFile: 1
+[CHECK] addResource: 1
+[CHECK] initialized: 0
+[CHECK] latest-loadFile-is-target: 1
+[CHECK] latest-addResource-is-target: 1
+[CHECK] latest-initialized-is-target: 0
+[CHECK] claude-status: 0
+[CHECK] codex-status: 0
+
+[INFO] Recent matching lines:
+3:[2026-04-13 08:13:45.117] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1745-workspace-chat-v1.pen zoomToFit: true
+20:[2026-04-13 08:13:45.574] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1745-workspace-chat-v1.pen
+
+[INFO] Last marker positions:
+  loadFile: 3:[2026-04-13 08:13:45.117] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1745-workspace-chat-v1.pen zoomToFit: true
+  addResource: 20:[2026-04-13 08:13:45.574] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1745-workspace-chat-v1.pen
+  initialized: missing
+  last loadFile(any): 3:[2026-04-13 08:13:45.117] [info]  loadFile /home/hugh51/musu-functions/artifacts/mus1745-workspace-chat-v1.pen zoomToFit: true
+  last addResource(any): 20:[2026-04-13 08:13:45.574] [info]  addResource: /home/hugh51/musu-functions/artifacts/mus1745-workspace-chat-v1.pen
+  last initialized(any): missing
+  claude-status: missing
+  codex-status: missing
+
+[WARN] One or more connection markers are missing.
+[MCP] Connection or startup is incomplete.
+[MCP] Verify active .pen and retry the standard MCP sequence.
+[MCP] Playbook: /home/hugh51/.agents/skills/pencil-dev-design-workflow/scripts/../references/pencil-mcp-tool-calling-playbook.md

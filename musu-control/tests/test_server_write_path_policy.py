@@ -67,7 +67,7 @@ def test_checkout_issue_blocks_stale_execution_lock_without_active_run() -> None
         }
     ]
     stub.get_sequences["/heartbeat-runs/run-stale-1"] = [
-        {"id": "run-stale-1", "status": "running"},
+        {"id": "run-stale-1", "status": "running", "issueId": "issue-1"},
     ]
 
     payload = _run(server.checkout_issue("issue-1", "agent-1"), stub)
@@ -89,7 +89,7 @@ def test_checkout_issue_blocks_mismatched_execution_and_active_run_ids() -> None
             "status": "in_progress",
             "executionRunId": "run-lock-2",
             "executionLockedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "activeRun": {"id": "run-live-2", "status": "running"},
+            "activeRun": {"id": "run-live-2", "status": "running", "issueId": "issue-2"},
         }
     ]
 
@@ -115,7 +115,7 @@ def test_checkout_issue_blocks_stale_execution_locked_at() -> None:
             "status": "in_progress",
             "executionRunId": "run-lock-3",
             "executionLockedAt": stale,
-            "activeRun": {"id": "run-lock-3", "status": "running"},
+            "activeRun": {"id": "run-lock-3", "status": "running", "issueId": "issue-3"},
         }
     ]
 
@@ -151,13 +151,13 @@ def test_checkout_issue_allows_heartbeat_run_fallback_when_issue_projection_is_n
         },
     ]
     stub.get_sequences["/heartbeat-runs/run-3b"] = [
-        {"id": "run-3b", "status": "queued"},
-        {"id": "run-3b", "status": "queued"},
+        {"id": "run-3b", "status": "queued", "issueId": "issue-3b"},
+        {"id": "run-3b", "status": "queued", "issueId": "issue-3b"},
     ]
 
     payload = _run(server.checkout_issue("issue-3b", "agent-3b"), stub)
 
-    assert payload["ok"] is True
+    assert payload.get("ok") is True
     checkout_call = next(c for c in stub.calls if c[0] == "POST" and c[1] == "/issues/issue-3b/checkout")
     assert checkout_call[2]["agentId"] == "agent-3b"
     fallback_reads = [c for c in stub.calls if c[0] == "GET" and c[1] == "/heartbeat-runs/run-3b"]
@@ -178,7 +178,7 @@ def test_checkout_issue_blocks_terminal_heartbeat_run_fallback() -> None:
         }
     ]
     stub.get_sequences["/heartbeat-runs/run-3c"] = [
-        {"id": "run-3c", "status": "cancelled"},
+        {"id": "run-3c", "status": "cancelled", "issueId": "issue-3c"},
     ]
 
     payload = _run(server.checkout_issue("issue-3c", "agent-3c"), stub)
@@ -202,7 +202,7 @@ def test_checkout_issue_valid_lock_allows_checkout_and_alignment() -> None:
             "status": "in_progress",
             "executionRunId": "run-4",
             "executionLockedAt": fresh,
-            "activeRun": {"id": "run-4", "status": "running"},
+            "activeRun": {"id": "run-4", "status": "running", "issueId": "issue-4"},
         },
         {
             "id": "issue-4",
@@ -211,13 +211,13 @@ def test_checkout_issue_valid_lock_allows_checkout_and_alignment() -> None:
             "checkoutRunId": "run-4",
             "executionRunId": "run-4",
             "executionLockedAt": fresh,
-            "activeRun": {"id": "run-4", "status": "running"},
+            "activeRun": {"id": "run-4", "status": "running", "issueId": "issue-4"},
         },
     ]
 
     payload = _run(server.checkout_issue("issue-4", "agent-4"), stub)
 
-    assert payload["ok"] is True
+    assert payload.get("ok") is True
     checkout_call = next(c for c in stub.calls if c[0] == "POST" and c[1] == "/issues/issue-4/checkout")
     assert checkout_call[2] == {
         "agentId": "agent-4",
@@ -249,3 +249,53 @@ def test_add_comment_allows_gate_verdict_with_evidence_link() -> None:
     assert payload["ok"] is True
     post_call = next(c for c in stub.calls if c[0] == "POST")
     assert post_call[1] == "/issues/issue-4/comments"
+
+
+def test_checkout_issue_blocks_run_issue_link_mismatch() -> None:
+    stub = _StubClient()
+    stub.get_sequences["/issues/issue-5"] = [
+        {
+            "id": "issue-5",
+            "identifier": "MUS-5",
+            "status": "in_progress",
+            "executionRunId": "run-5",
+            "executionLockedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "activeRun": None,
+        }
+    ]
+    stub.get_sequences["/heartbeat-runs/run-5"] = [
+        {"id": "run-5", "status": "running", "issueId": "wrong-issue"},
+    ]
+
+    payload = _run(server.checkout_issue("issue-5", "agent-5"), stub)
+
+    assert "Policy blocked checkout" in payload["error"]
+    assert payload["policy"]["reason"] == "run_issue_link_mismatch"
+    assert payload["policy"]["details"]["runIssueId"] == "wrong-issue"
+    assert payload["policy"]["details"]["issueId"] == "issue-5"
+    assert not any(c for c in stub.calls if c[0] == "POST" and c[1] == "/issues/issue-5/checkout")
+
+
+def test_update_issue_blocks_run_issue_link_mismatch() -> None:
+    stub = _StubClient()
+    stub.get_sequences["/issues/issue-6"] = [
+        {
+            "id": "issue-6",
+            "identifier": "MUS-6",
+            "status": "in_progress",
+            "executionRunId": "run-6",
+            "executionLockedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "activeRun": None,
+        }
+    ]
+    stub.get_sequences["/heartbeat-runs/run-6"] = [
+        {"id": "run-6", "status": "running", "issueId": "wrong-issue"},
+    ]
+
+    payload = _run(server.update_issue("issue-6", status="done"), stub)
+
+    assert "Policy blocked update" in payload["error"]
+    assert payload["policy"]["reason"] == "run_issue_link_mismatch"
+    assert payload["policy"]["details"]["runIssueId"] == "wrong-issue"
+    assert payload["policy"]["details"]["issueId"] == "issue-6"
+    assert not any(c for c in stub.calls if c[0] == "PATCH" and c[1] == "/issues/issue-6")

@@ -1,0 +1,443 @@
+    1 /sbin/init
+    2 /init
+   10 plan9 --control-socket 7 --log-level 4 --server-fd 8 --pipe-fd 10 --log-truncate
+  122 /usr/lib/systemd/systemd-udevd
+  132 snapfuse /var/lib/snapd/snaps/core24_1499.snap /snap/core24/1499 -o ro,nodev,allow_other,suid
+  134 snapfuse /var/lib/snapd/snaps/core24_1587.snap /snap/core24/1587 -o ro,nodev,allow_other,suid
+  139 snapfuse /var/lib/snapd/snaps/snapd_26382.snap /snap/snapd/26382 -o ro,nodev,allow_other,suid
+  270 /usr/lib/systemd/systemd-timesyncd
+  280 /usr/sbin/cron -f -P
+  281 @dbus-daemon --system --address=systemd: --nofork --nopidfile --systemd-activation --syslog-only
+  285 /usr/local/bin/ollama serve
+  295 /usr/bin/syncthing serve --no-browser --no-restart --logflags=0
+  297 /usr/lib/systemd/systemd-logind
+  306 /usr/bin/sleep infinity
+  336 /usr/sbin/rsyslogd -n -iNONE
+  349 /usr/bin/containerd
+  358 /sbin/agetty -o -p -- \u --noclear --keep-baud - 115200,38400,9600 vt220
+  364 /sbin/agetty -o -p -- \u --noclear - linux
+  396 /usr/bin/python3 /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal
+  398 /usr/lib/systemd/systemd --user
+  407 (sd-pam)
+  415 node /home/hugh51/.npm-global/bin/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex resume 019d8345-ca31-75e1-b065-6e9e663134c2 -
+  433 /usr/bin/syncthing serve --no-browser --no-restart --logflags=0
+  477 /home/hugh51/.npm-global/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex resume 019d8345-ca31-75e1-b065-6e9e663134c2 -
+  489 /usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock
+  568 catatonit -P
+  623 /home/hugh51/musu-functions/musu-worker/.venv/bin/python -m musu_worker.main
+  845 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/launch-computer-control.sh
+  846 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@wonderwhy-er/desktop-commander/dist/index.js --no-onboarding
+  855 /home/hugh51/.local/share/pipx/venvs/jcodemunch-mcp/bin/python /home/hugh51/.local/bin/jcodemunch-mcp --log-file /tmp/jcodemunch-mcp.log
+  862 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/scrot-helper.sh
+  863 /mnt/wslg/distro/usr/bin/python3 /home/hugh51/.local/share/codex-mcp/rootless-computer-control/server.py
+  866 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@vibecodetown/mcp-server/build/mcp/index.js
+  868 /home/hugh51/bin/spec-kit-mcp-go
+  869 /home/hugh51/.local/share/pipx/venvs/jdocmunch-mcp/bin/python /home/hugh51/.local/bin/jdocmunch-mcp
+  878 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.npm-global/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js /home/hugh51/projects/football/football /mnt/f/Aisaak/Projects/football_game_wsl
+  881 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+  889 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.local/share/codex-mcp/server-sequential-thinking-2025.12.18/node_modules/@modelcontextprotocol/server-sequential-thinking/dist/index.js
+ 1134 /usr/bin/dbus-daemon --session --address=systemd: --nofork --nopidfile --systemd-activation --syslog-only
+ 1268 /bin/login -f
+ 1354 -bash
+ 2807 /usr/libexec/xdg-desktop-portal
+ 2813 /usr/libexec/xdg-document-portal
+ 2818 /usr/libexec/xdg-permission-store
+ 2825 fusermount3 -o rw,nosuid,nodev,fsname=portal,auto_unmount,subtype=portal -- /run/user/1000/doc
+ 2840 /usr/libexec/at-spi-bus-launcher
+ 2850 /usr/bin/dbus-daemon --config-file=/usr/share/defaults/at-spi2/accessibility.conf --nofork --print-address 11 --address=unix:path=/run/user/1000/at-spi/bus
+ 2855 /usr/libexec/at-spi2-registryd --use-gnome-session
+ 3210 /init
+ 3212 /init
+ 3218 sh
+ 3245 /bin/login -f
+ 3285 /usr/lib/systemd/systemd --user
+ 3287 (sd-pam)
+ 3348 -bash
+ 3409 /usr/lib/systemd/systemd-resolved
+ 3580 /init
+ 3581 /mnt/wsl/docker-desktop/docker-desktop-user-distro proxy --distro-name Ubuntu-22.04 --docker-desktop-root /mnt/wsl/docker-desktop C:\Program Files\Docker\Docker\resources
+ 3649 /usr/sbin/tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/run/tailscale/tailscaled.sock --port=41641
+ 3722 node /home/hugh51/.npm-global/bin/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex resume 019d83bb-f1e8-7da2-a8e4-fc8ee9fe1806 -
+ 3748 /home/hugh51/.npm-global/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex resume 019d83bb-f1e8-7da2-a8e4-fc8ee9fe1806 -
+ 4127 /home/hugh51/.local/share/pipx/venvs/jcodemunch-mcp/bin/python /home/hugh51/.local/bin/jcodemunch-mcp --log-file /tmp/jcodemunch-mcp.log
+ 4129 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.npm-global/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js /home/hugh51/projects/football/football /mnt/f/Aisaak/Projects/football_game_wsl
+ 4145 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@wonderwhy-er/desktop-commander/dist/index.js --no-onboarding
+ 4162 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@vibecodetown/mcp-server/build/mcp/index.js
+ 4177 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+ 4181 /home/hugh51/.local/share/pipx/venvs/jdocmunch-mcp/bin/python /home/hugh51/.local/bin/jdocmunch-mcp
+ 4202 /home/hugh51/bin/spec-kit-mcp-go
+ 4219 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/launch-computer-control.sh
+ 4233 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/scrot-helper.sh
+ 4234 /mnt/wslg/distro/usr/bin/python3 /home/hugh51/.local/share/codex-mcp/rootless-computer-control/server.py
+ 4269 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.local/share/codex-mcp/server-sequential-thinking-2025.12.18/node_modules/@modelcontextprotocol/server-sequential-thinking/dist/index.js
+ 4821 node /home/hugh51/.npm-global/bin/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex resume 019d83bb-f1e8-7da2-a8e4-fc8ee9fe1806 -
+ 5133 /home/hugh51/.npm-global/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex resume 019d83bb-f1e8-7da2-a8e4-fc8ee9fe1806 -
+ 5902 /usr/lib/polkit-1/polkitd --no-debug
+ 9541 /init
+ 9545 /init
+ 9555 -bash
+ 9792 claude
+ 9805 /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/@embedded-postgres+linux-x64@18.1.0-beta.16/node_modules/@embedded-postgres/linux-x64/native/bin/postgres -D /tmp/paperclip-issues-service-p2XL6z -p 45763
+ 9808 postgres: io worker 0
+ 9809 postgres: io worker 1
+ 9810 postgres: io worker 2
+ 9811 postgres: checkpointer 
+ 9812 postgres: background writer 
+ 9814 postgres: walwriter 
+ 9815 postgres: autovacuum launcher 
+ 9816 postgres: logical replication launcher 
+10011 node /home/hugh51/.local/share/pnpm/.tools/pnpm/9.15.4/bin/pnpm --filter @paperclipai/server dev:watch
+10162 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+10177 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.local/share/codex-mcp/server-sequential-thinking-2025.12.18/node_modules/@modelcontextprotocol/server-sequential-thinking/dist/index.js
+10183 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/launch-computer-control.sh
+10185 /home/hugh51/.local/share/pipx/venvs/jdocmunch-mcp/bin/python /home/hugh51/.local/bin/jdocmunch-mcp
+10201 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.npm-global/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js /home/hugh51/projects/football/football /mnt/f/Aisaak/Projects/football_game_wsl
+10203 /home/hugh51/bin/spec-kit-mcp-go
+10207 /home/hugh51/.local/share/pipx/venvs/jcodemunch-mcp/bin/python /home/hugh51/.local/bin/jcodemunch-mcp --log-file /tmp/jcodemunch-mcp.log
+10215 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@vibecodetown/mcp-server/build/mcp/index.js
+10244 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/scrot-helper.sh
+10246 /mnt/wslg/distro/usr/bin/python3 /home/hugh51/.local/share/codex-mcp/rootless-computer-control/server.py
+10327 node /home/hugh51/.local/share/pnpm/.tools/pnpm/9.15.4/bin/pnpm --filter @paperclipai/server dev:watch
+10367 node /home/hugh51/.local/share/pnpm/.tools/pnpm/9.15.4/bin/pnpm --filter @paperclipai/server dev:watch
+10831 sh -c node ../scripts/ensure-workspace-package-links.mjs && cross-env PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+10845 sh -c node ../scripts/ensure-workspace-package-links.mjs && cross-env PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+10911 sh -c node ../scripts/ensure-workspace-package-links.mjs && cross-env PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+10964 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../cross-env/dist/bin/cross-env.js PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+10966 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../cross-env/dist/bin/cross-env.js PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+10967 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../cross-env/dist/bin/cross-env.js PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+11131 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../tsx/dist/cli.mjs ./scripts/dev-watch.ts
+11137 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../tsx/dist/cli.mjs ./scripts/dev-watch.ts
+11140 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../tsx/dist/cli.mjs ./scripts/dev-watch.ts
+11265 /usr/bin/node --require /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/preflight.cjs --import file:///home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/loader.mjs ./scripts/dev-watch.ts
+11269 /usr/bin/node --require /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/preflight.cjs --import file:///home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/loader.mjs ./scripts/dev-watch.ts
+11310 /usr/bin/node --require /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/preflight.cjs --import file:///home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/loader.mjs ./scripts/dev-watch.ts
+11528 node /home/hugh51/.local/share/pnpm/.tools/pnpm/9.15.4/bin/pnpm --filter @paperclipai/server dev:watch
+11644 sh -c node ../scripts/ensure-workspace-package-links.mjs && cross-env PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+11686 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../cross-env/dist/bin/cross-env.js PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+11744 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../tsx/dist/cli.mjs ./scripts/dev-watch.ts
+11762 postgres: paperclip paperclip 127.0.0.1(46014) idle
+11826 /usr/bin/node --require /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/preflight.cjs --import file:///home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/loader.mjs ./scripts/dev-watch.ts
+12000 /usr/bin/node /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/cli.mjs watch --exclude **/{node_modules,bower_components,vendor}/** --exclude **/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite/** --exclude /home/hugh51/references_AI/paperclip-main/ui/dist --exclude /home/hugh51/references_AI/paperclip-main/ui/dist/** src/index.ts
+12368 node /home/hugh51/.local/share/pnpm/.tools/pnpm/9.15.4/bin/pnpm --filter @paperclipai/server dev:watch
+12387 /usr/bin/node /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/cli.mjs watch --exclude **/{node_modules,bower_components,vendor}/** --exclude **/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite/** --exclude /home/hugh51/references_AI/paperclip-main/ui/dist --exclude /home/hugh51/references_AI/paperclip-main/ui/dist/** src/index.ts
+12388 postgres: paperclip paperclip 127.0.0.1(46030) idle
+12389 /usr/bin/node /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/cli.mjs watch --exclude **/{node_modules,bower_components,vendor}/** --exclude **/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite/** --exclude /home/hugh51/references_AI/paperclip-main/ui/dist --exclude /home/hugh51/references_AI/paperclip-main/ui/dist/** src/index.ts
+12408 /usr/bin/node /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/cli.mjs watch --exclude **/{node_modules,bower_components,vendor}/** --exclude **/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite/** --exclude /home/hugh51/references_AI/paperclip-main/ui/dist --exclude /home/hugh51/references_AI/paperclip-main/ui/dist/** src/index.ts
+12738 node /home/hugh51/.local/share/pnpm/.tools/pnpm/9.15.4/bin/pnpm --filter @paperclipai/server dev:watch
+12755 node /home/hugh51/.local/share/pnpm/.tools/pnpm/9.15.4/bin/pnpm --filter @paperclipai/server dev:watch
+12901 sh -c node ../scripts/ensure-workspace-package-links.mjs && cross-env PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+12914 sh -c node ../scripts/ensure-workspace-package-links.mjs && cross-env PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+12968 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../cross-env/dist/bin/cross-env.js PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+12969 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../cross-env/dist/bin/cross-env.js PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+13098 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../tsx/dist/cli.mjs ./scripts/dev-watch.ts
+13117 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../tsx/dist/cli.mjs ./scripts/dev-watch.ts
+13214 /usr/bin/node --require /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/preflight.cjs --import file:///home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/loader.mjs ./scripts/dev-watch.ts
+13284 /usr/bin/node --require /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/preflight.cjs --import file:///home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/loader.mjs ./scripts/dev-watch.ts
+13333 sh -c node ../scripts/ensure-workspace-package-links.mjs && cross-env PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+13428 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../cross-env/dist/bin/cross-env.js PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+13451 /usr/bin/node /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/cli.mjs watch --exclude **/{node_modules,bower_components,vendor}/** --exclude **/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite/** --exclude /home/hugh51/references_AI/paperclip-main/ui/dist --exclude /home/hugh51/references_AI/paperclip-main/ui/dist/** src/index.ts
+13523 node /home/hugh51/.local/share/pnpm/.tools/pnpm/9.15.4/bin/pnpm --filter @paperclipai/server dev:watch
+13541 node /home/hugh51/.local/share/pnpm/.tools/pnpm/9.15.4/bin/pnpm --filter @paperclipai/server dev:watch
+13675 /usr/bin/node /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/cli.mjs watch --exclude **/{node_modules,bower_components,vendor}/** --exclude **/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite/** --exclude /home/hugh51/references_AI/paperclip-main/ui/dist --exclude /home/hugh51/references_AI/paperclip-main/ui/dist/** src/index.ts
+13778 sh -c node ../scripts/ensure-workspace-package-links.mjs && cross-env PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+13825 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../cross-env/dist/bin/cross-env.js PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+13869 sh -c node ../scripts/ensure-workspace-package-links.mjs && cross-env PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+13940 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../tsx/dist/cli.mjs ./scripts/dev-watch.ts
+14040 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../cross-env/dist/bin/cross-env.js PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+14052 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../tsx/dist/cli.mjs ./scripts/dev-watch.ts
+14172 /usr/bin/node --require /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/preflight.cjs --import file:///home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/loader.mjs ./scripts/dev-watch.ts
+14252 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../tsx/dist/cli.mjs ./scripts/dev-watch.ts
+14286 /usr/bin/node --require /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/preflight.cjs --import file:///home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/loader.mjs ./scripts/dev-watch.ts
+14366 /usr/bin/node --require /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/preflight.cjs --import file:///home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/loader.mjs ./scripts/dev-watch.ts
+14526 /usr/lib/systemd/systemd-journald
+14542 /usr/bin/node /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/cli.mjs watch --exclude **/{node_modules,bower_components,vendor}/** --exclude **/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite/** --exclude /home/hugh51/references_AI/paperclip-main/ui/dist --exclude /home/hugh51/references_AI/paperclip-main/ui/dist/** src/index.ts
+14649 /usr/bin/node /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/cli.mjs watch --exclude **/{node_modules,bower_components,vendor}/** --exclude **/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite/** --exclude /home/hugh51/references_AI/paperclip-main/ui/dist --exclude /home/hugh51/references_AI/paperclip-main/ui/dist/** src/index.ts
+15193 postgres: paperclip paperclip 127.0.0.1(45984) idle
+15199 node /home/hugh51/.local/share/pnpm/.tools/pnpm/9.15.4/bin/pnpm --filter @paperclipai/server dev:watch
+15225 node /home/hugh51/.local/share/pnpm/.tools/pnpm/9.15.4/bin/pnpm --filter @paperclipai/server dev:watch
+15399 sh -c node ../scripts/ensure-workspace-package-links.mjs && cross-env PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+15407 sh -c node ../scripts/ensure-workspace-package-links.mjs && cross-env PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+15517 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../cross-env/dist/bin/cross-env.js PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+15534 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../cross-env/dist/bin/cross-env.js PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+15574 /usr/bin/node /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/cli.mjs watch --exclude **/{node_modules,bower_components,vendor}/** --exclude **/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite/** --exclude /home/hugh51/references_AI/paperclip-main/ui/dist --exclude /home/hugh51/references_AI/paperclip-main/ui/dist/** src/index.ts
+15576 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../tsx/dist/cli.mjs ./scripts/dev-watch.ts
+15582 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../tsx/dist/cli.mjs ./scripts/dev-watch.ts
+15689 /usr/bin/node --require /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/preflight.cjs --import file:///home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/loader.mjs ./scripts/dev-watch.ts
+15713 /usr/bin/node --require /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/preflight.cjs --import file:///home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/loader.mjs ./scripts/dev-watch.ts
+15778 /usr/bin/node /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/cli.mjs watch --exclude **/{node_modules,bower_components,vendor}/** --exclude **/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite/** --exclude /home/hugh51/references_AI/paperclip-main/ui/dist --exclude /home/hugh51/references_AI/paperclip-main/ui/dist/** src/index.ts
+15813 /usr/bin/node /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/cli.mjs watch --exclude **/{node_modules,bower_components,vendor}/** --exclude **/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite/** --exclude /home/hugh51/references_AI/paperclip-main/ui/dist --exclude /home/hugh51/references_AI/paperclip-main/ui/dist/** src/index.ts
+16117 /mnt/f/Aisaak/Projects/Musu-new/tools/llama-cpp-latest/build/bin/llama-server -m /home/hugh51/Qwen3.5-9B-Q4_K_M.gguf --port 18081 --host 127.0.0.1 -ngl 99 -c 65536 -np 1 --no-mmap --flash-attn on -ctk q4_0 -ctv q4_0 -b 512 -ub 256 -t 4 --temp 0.1 --jinja --reasoning-budget 0 --chat-template-kwargs {"enable_thinking":false}
+20829 node /home/hugh51/.local/share/pnpm/.tools/pnpm/9.15.4/bin/pnpm --filter @paperclipai/server dev:watch
+21828 sh -c node ../scripts/ensure-workspace-package-links.mjs && cross-env PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+22661 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../cross-env/dist/bin/cross-env.js PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+23285 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../tsx/dist/cli.mjs ./scripts/dev-watch.ts
+23748 /usr/bin/node --require /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/preflight.cjs --import file:///home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/loader.mjs ./scripts/dev-watch.ts
+24975 /usr/bin/node /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/cli.mjs watch --exclude **/{node_modules,bower_components,vendor}/** --exclude **/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite/** --exclude /home/hugh51/references_AI/paperclip-main/ui/dist --exclude /home/hugh51/references_AI/paperclip-main/ui/dist/** src/index.ts
+26458 /snap/snapd/current/usr/lib/snapd/snapd
+26604 /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/@embedded-postgres+linux-x64@18.1.0-beta.16/node_modules/@embedded-postgres/linux-x64/native/bin/postgres -D /tmp/paperclip-issues-checkout-linkage-3X5ioy -p 45237
+26608 postgres: io worker 2
+26609 postgres: io worker 1
+26610 postgres: io worker 0
+26611 postgres: checkpointer 
+26612 postgres: background writer 
+26614 postgres: walwriter 
+26615 postgres: autovacuum launcher 
+26616 postgres: logical replication launcher 
+33332 /bin/bash -lc find /home/hugh51 -path '*/para-memory-files/SKILL.md' 2>/dev/null | head -n 5
+33342 find /home/hugh51 -path */para-memory-files/SKILL.md
+35286 /bin/bash -lc set -euo pipefail API="$PAPERCLIP_API_URL" FE="7a87bcf2-6b89-498e-b295-d80d53710bd0" CTO="7b6d37f7-91fd-4342-8e3f-9dfa422f999c" OUT_DIR="/home/hugh51/musu-functions/artifacts/mus-1742" TS="$(date -u +%Y%m%dT%H%M%SZ)" SUMMARY="$OUT_DIR/replay-cycles-selfkey-$TS.jsonl" POLLS="$OUT_DIR/replay-polls-selfkey-$TS.jsonl"  make_cto_key() {   curl -sS -X POST -H 'Content-Type: application/json' -d '{"name":"mus1742-replay-self-key"}' "$API/api/agents/$CTO/keys" }  poll_nonqueued() {   local run_id="$1" agent="$2" cycle="$3"   local t0 now elapsed payload status created started finished   t0=$(date +%s)   while true; do     now=$(date +%s)     elapsed=$((now-t0))     payload=$(curl -sS "$API/api/heartbeat-runs/$run_id")     status=$(echo "$payload" | jq -r '.status')     created=$(echo "$payload" | jq -r '.createdAt')     started=$(echo "$payload" | jq -r '.startedAt')     finished=$(echo "$payload" | jq -r '.finishedAt')     jq -cn --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg cycle "$cycle" --arg agent "$agent" --arg runId "$run_id" --arg status "$status" --arg createdAt "$created" --arg startedAt "$started" --arg finishedAt "$finished" --argjson elapsedSec "$elapsed" '{ts:$ts,cycle:$cycle,agent:$agent,runId:$runId,status:$status,createdAt:$createdAt,startedAt:$startedAt,finishedAt:$finishedAt,elapsedSec:$elapsedSec}' >> "$POLLS"     if [ "$status" != "queued" ]; then       jq -cn --arg nonQueuedStatus "$status" --arg nonQueuedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --argjson elapsedSec "$elapsed" '{nonQueuedStatus:$nonQueuedStatus,nonQueuedAt:$nonQueuedAt,elapsedSec:$elapsedSec}'       return 0     fi     if [ "$elapsed" -ge 60 ]; then       jq -cn --arg nonQueuedStatus "$status" --arg nonQueuedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --argjson elapsedSec "$elapsed" '{nonQueuedStatus:$nonQueuedStatus,nonQueuedAt:$nonQueuedAt,elapsedSec:$elapsedSec}'       return 0     fi     sleep 2   done }  for C in 1 2; do   KEY_JSON=$(make_cto_key)   CTO_KEY_ID=$(echo "$KEY_JSON" | jq -r '.id')   CTO_TOKEN=$(echo "$KEY_JSON" | jq -r '.token')    FE_INV=$(curl -sS -X POST -H "Authorization: Bearer $PAPERCLIP_API_KEY" "$API/api/agents/$FE/heartbeat/invoke")   CTO_INV=$(curl -sS -X POST -H "Authorization: Bearer $CTO_TOKEN" "$API/api/agents/$CTO/heartbeat/invoke")    FE_RUN=$(echo "$FE_INV" | jq -r '.id')   CTO_RUN=$(echo "$CTO_INV" | jq -r '.id')    FE_PROG=$(poll_nonqueued "$FE_RUN" "FE" "$C")   CTO_PROG=$(poll_nonqueued "$CTO_RUN" "CTO" "$C")    jq -cn --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg cycle "$C" --arg mode "fe_agent_key_cto_agent_key_self" --argjson feInv "$FE_INV" --argjson ctoInv "$CTO_INV" --argjson feProg "$FE_PROG" --argjson ctoProg "$CTO_PROG" '{ts:$ts,cycle:$cycle,mode:$mode,fe:{invoke:$feInv,progress:$feProg},cto:{invoke:$ctoInv,progress:$ctoProg}}' >> "$SUMMARY"    curl -sS -X DELETE "$API/api/agents/$CTO/keys/$CTO_KEY_ID" > /dev/null  done  echo "$SUMMARY" echo "$POLLS" cat "$SUMMARY"
+38837 node /home/hugh51/.npm-global/bin/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex resume 019d8392-fae2-7642-a027-c026d87f651c -
+39625 /home/hugh51/.npm-global/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex resume 019d8392-fae2-7642-a027-c026d87f651c -
+42100 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/launch-computer-control.sh
+42107 /home/hugh51/bin/spec-kit-mcp-go
+42117 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/scrot-helper.sh
+42125 /mnt/wslg/distro/usr/bin/python3 /home/hugh51/.local/share/codex-mcp/rootless-computer-control/server.py
+42136 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.npm-global/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js /home/hugh51/projects/football/football /mnt/f/Aisaak/Projects/football_game_wsl
+42138 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@vibecodetown/mcp-server/build/mcp/index.js
+42144 /home/hugh51/.local/share/pipx/venvs/jdocmunch-mcp/bin/python /home/hugh51/.local/bin/jdocmunch-mcp
+42146 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.local/share/codex-mcp/server-sequential-thinking-2025.12.18/node_modules/@modelcontextprotocol/server-sequential-thinking/dist/index.js
+48586 node -e require('node:http').createServer((req,res)=>res.end('ok')).listen(Number(process.env.PORT), '127.0.0.1')
+51586 node /home/hugh51/.npm-global/bin/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex -
+51637 /home/hugh51/.npm-global/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex -
+51920 /home/hugh51/bin/spec-kit-mcp-go
+51922 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.local/share/codex-mcp/server-sequential-thinking-2025.12.18/node_modules/@modelcontextprotocol/server-sequential-thinking/dist/index.js
+51925 /home/hugh51/.local/share/pipx/venvs/jcodemunch-mcp/bin/python /home/hugh51/.local/bin/jcodemunch-mcp --log-file /tmp/jcodemunch-mcp.log
+51940 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.npm-global/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js /home/hugh51/projects/football/football /mnt/f/Aisaak/Projects/football_game_wsl
+51944 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/launch-computer-control.sh
+51947 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@vibecodetown/mcp-server/build/mcp/index.js
+51948 /home/hugh51/.local/share/pipx/venvs/jdocmunch-mcp/bin/python /home/hugh51/.local/bin/jdocmunch-mcp
+51951 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+51980 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/scrot-helper.sh
+51981 /mnt/wslg/distro/usr/bin/python3 /home/hugh51/.local/share/codex-mcp/rootless-computer-control/server.py
+52264 /bin/bash -c source /home/hugh51/.claude/shell-snapshots/snapshot-bash-1776009014404-unjjwg.sh && shopt -u extglob 2>/dev/null || true && eval 'cd /home/hugh51/musu-functions/musu-bee && node node_modules/next/dist/bin/next dev --port 3001 &>/tmp/musu-bee-dev.log & echo "PID: $!" sleep 5 # Check if it started tail -5 /tmp/musu-bee-dev.log' \< /dev/null && pwd -P >| /tmp/claude-ee49-cwd
+52267 node node_modules/next/dist/bin/next dev --port 3001
+52606 next-server (v15.5.14)
+52765 node /home/hugh51/.npm-global/bin/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex resume 019d83b7-fa70-7963-8aa4-21130f478ae4 -
+52861 /home/hugh51/.npm-global/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex resume 019d83b7-fa70-7963-8aa4-21130f478ae4 -
+53505 node /home/hugh51/.npm-global/bin/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex resume 019d83bc-ad0d-74b0-87ae-39ca6ba91898 -
+53598 /home/hugh51/.npm-global/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex resume 019d83bc-ad0d-74b0-87ae-39ca6ba91898 -
+53839 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/launch-computer-control.sh
+53847 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.local/share/codex-mcp/server-sequential-thinking-2025.12.18/node_modules/@modelcontextprotocol/server-sequential-thinking/dist/index.js
+53848 /home/hugh51/bin/spec-kit-mcp-go
+53849 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@vibecodetown/mcp-server/build/mcp/index.js
+53859 /home/hugh51/.local/share/pipx/venvs/jcodemunch-mcp/bin/python /home/hugh51/.local/bin/jcodemunch-mcp --log-file /tmp/jcodemunch-mcp.log
+53868 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/scrot-helper.sh
+53870 /mnt/wslg/distro/usr/bin/python3 /home/hugh51/.local/share/codex-mcp/rootless-computer-control/server.py
+53884 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+53885 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.npm-global/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js /home/hugh51/projects/football/football /mnt/f/Aisaak/Projects/football_game_wsl
+53891 /home/hugh51/.local/share/pipx/venvs/jdocmunch-mcp/bin/python /home/hugh51/.local/bin/jdocmunch-mcp
+54512 /home/hugh51/.local/share/pipx/venvs/jdocmunch-mcp/bin/python /home/hugh51/.local/bin/jdocmunch-mcp
+54521 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+54532 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@vibecodetown/mcp-server/build/mcp/index.js
+54545 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/launch-computer-control.sh
+54558 /home/hugh51/bin/spec-kit-mcp-go
+54565 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/scrot-helper.sh
+54566 /mnt/wslg/distro/usr/bin/python3 /home/hugh51/.local/share/codex-mcp/rootless-computer-control/server.py
+54576 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.local/share/codex-mcp/server-sequential-thinking-2025.12.18/node_modules/@modelcontextprotocol/server-sequential-thinking/dist/index.js
+54585 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.npm-global/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js /home/hugh51/projects/football/football /mnt/f/Aisaak/Projects/football_game_wsl
+54614 /home/hugh51/.local/share/pipx/venvs/jcodemunch-mcp/bin/python /home/hugh51/.local/bin/jcodemunch-mcp --log-file /tmp/jcodemunch-mcp.log
+55019 node /home/hugh51/.npm-global/bin/pnpm dev
+55047 node /home/hugh51/.local/share/pnpm/.tools/pnpm/9.15.4/bin/pnpm dev
+55074 sh -c pnpm --filter @paperclipai/server exec tsx ../scripts/dev-runner.ts watch
+55075 node /home/hugh51/.local/share/pnpm/.tools/pnpm/9.15.4/bin/pnpm --filter @paperclipai/server exec tsx ../scripts/dev-runner.ts watch
+55100 node ./node_modules/.bin/../tsx/dist/cli.mjs ../scripts/dev-runner.ts watch
+55119 /usr/bin/node --require /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/preflight.cjs --import file:///home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/loader.mjs ../scripts/dev-runner.ts watch
+55162 /bin/bash -lc find /home/hugh51/.paperclip /home/hugh51/references_AI /home/hugh51/.npm/_npx -path '*/para-memory-files/SKILL.md' 2>/dev/null | head -n 10
+55279 find /home/hugh51/.paperclip /home/hugh51/references_AI /home/hugh51/.npm/_npx -path */para-memory-files/SKILL.md
+55280 head -n 10
+56951 node /home/hugh51/.npm-global/bin/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex resume 019d83b1-7a70-75d2-8364-d71ef93d82b1 -
+57475 /home/hugh51/.npm-global/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex resume 019d83b1-7a70-75d2-8364-d71ef93d82b1 -
+58005 node /home/hugh51/.local/share/pnpm/.tools/pnpm/9.15.4/bin/pnpm --filter @paperclipai/server dev:watch
+58503 sh -c node ../scripts/ensure-workspace-package-links.mjs && cross-env PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+58548 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../cross-env/dist/bin/cross-env.js PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+58763 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../tsx/dist/cli.mjs ./scripts/dev-watch.ts
+58826 /usr/bin/node --require /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/preflight.cjs --import file:///home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/loader.mjs ./scripts/dev-watch.ts
+58894 node /home/hugh51/.npm-global/bin/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex resume 019d83b1-7a70-75d2-8364-d71ef93d82b1 -
+58978 /usr/bin/node /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/cli.mjs watch --exclude **/{node_modules,bower_components,vendor}/** --exclude **/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite/** --exclude /home/hugh51/references_AI/paperclip-main/ui/dist --exclude /home/hugh51/references_AI/paperclip-main/ui/dist/** src/index.ts
+59054 /usr/bin/node --require /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/preflight.cjs --import file:///home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/loader.mjs src/index.ts
+59096 node /home/hugh51/.npm-global/bin/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex resume 019d83b1-7a70-75d2-8364-d71ef93d82b1 -
+59264 /bin/bash -lc set -euo pipefail API="$PAPERCLIP_API_URL" FE="7a87bcf2-6b89-498e-b295-d80d53710bd0" CTO="7b6d37f7-91fd-4342-8e3f-9dfa422f999c" OUT_DIR="/home/hugh51/musu-functions/artifacts/mus-1742" TS="$(date -u +%Y%m%dT%H%M%SZ)" SUMMARY="$OUT_DIR/replay-cycles-selfkey-$TS.jsonl" POLLS="$OUT_DIR/replay-polls-selfkey-$TS.jsonl"  make_cto_key() {   curl -sS -X POST -H 'Content-Type: application/json' -d '{"name":"mus1742-replay-self-key"}' "$API/api/agents/$CTO/keys" }  poll_nonqueued() {   local run_id="$1" agent="$2" cycle="$3"   local t0 now elapsed payload status created started finished   t0=$(date +%s)   while true; do     now=$(date +%s)     elapsed=$((now-t0))     payload=$(curl -sS "$API/api/heartbeat-runs/$run_id")     status=$(echo "$payload" | jq -r '.status')     created=$(echo "$payload" | jq -r '.createdAt')     started=$(echo "$payload" | jq -r '.startedAt')     finished=$(echo "$payload" | jq -r '.finishedAt')     jq -cn --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg cycle "$cycle" --arg agent "$agent" --arg runId "$run_id" --arg status "$status" --arg createdAt "$created" --arg startedAt "$started" --arg finishedAt "$finished" --argjson elapsedSec "$elapsed" '{ts:$ts,cycle:$cycle,agent:$agent,runId:$runId,status:$status,createdAt:$createdAt,startedAt:$startedAt,finishedAt:$finishedAt,elapsedSec:$elapsedSec}' >> "$POLLS"     if [ "$status" != "queued" ]; then       jq -cn --arg nonQueuedStatus "$status" --arg nonQueuedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --argjson elapsedSec "$elapsed" '{nonQueuedStatus:$nonQueuedStatus,nonQueuedAt:$nonQueuedAt,elapsedSec:$elapsedSec}'       return 0     fi     if [ "$elapsed" -ge 60 ]; then       jq -cn --arg nonQueuedStatus "$status" --arg nonQueuedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --argjson elapsedSec "$elapsed" '{nonQueuedStatus:$nonQueuedStatus,nonQueuedAt:$nonQueuedAt,elapsedSec:$elapsedSec}'       return 0     fi     sleep 2   done }  for C in 1 2; do   KEY_JSON=$(make_cto_key)   CTO_KEY_ID=$(echo "$KEY_JSON" | jq -r '.id')   CTO_TOKEN=$(echo "$KEY_JSON" | jq -r '.token')    FE_INV=$(curl -sS -X POST -H "Authorization: Bearer $PAPERCLIP_API_KEY" "$API/api/agents/$FE/heartbeat/invoke")   CTO_INV=$(curl -sS -X POST -H "Authorization: Bearer $CTO_TOKEN" "$API/api/agents/$CTO/heartbeat/invoke")    FE_RUN=$(echo "$FE_INV" | jq -r '.id')   CTO_RUN=$(echo "$CTO_INV" | jq -r '.id')    FE_PROG=$(poll_nonqueued "$FE_RUN" "FE" "$C")   CTO_PROG=$(poll_nonqueued "$CTO_RUN" "CTO" "$C")    jq -cn --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg cycle "$C" --arg mode "fe_agent_key_cto_agent_key_self" --argjson feInv "$FE_INV" --argjson ctoInv "$CTO_INV" --argjson feProg "$FE_PROG" --argjson ctoProg "$CTO_PROG" '{ts:$ts,cycle:$cycle,mode:$mode,fe:{invoke:$feInv,progress:$feProg},cto:{invoke:$ctoInv,progress:$ctoProg}}' >> "$SUMMARY"    curl -sS -X DELETE "$API/api/agents/$CTO/keys/$CTO_KEY_ID" > /dev/null  done  echo "$SUMMARY" echo "$POLLS" cat "$SUMMARY"
+59476 /home/hugh51/.npm-global/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex resume 019d83b1-7a70-75d2-8364-d71ef93d82b1 -
+59481 /home/hugh51/.npm-global/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex resume 019d83b1-7a70-75d2-8364-d71ef93d82b1 -
+59992 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+60015 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.local/share/codex-mcp/server-sequential-thinking-2025.12.18/node_modules/@modelcontextprotocol/server-sequential-thinking/dist/index.js
+60041 /home/hugh51/bin/spec-kit-mcp-go
+60052 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.npm-global/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js /home/hugh51/projects/football/football /mnt/f/Aisaak/Projects/football_game_wsl
+60930 /usr/sbin/CRON -f -P
+60941 /bin/sh -c /home/hugh51/musu-functions/scripts/auto-index.sh
+60946 /bin/bash /home/hugh51/musu-functions/scripts/auto-index.sh
+61335 fcitx5 -d --disable=wayland,waylandim
+62452 /home/hugh51/.local/share/pipx/venvs/jdocmunch-mcp/bin/python /home/hugh51/.local/bin/jdocmunch-mcp
+62453 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/launch-computer-control.sh
+62458 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.npm-global/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js /home/hugh51/projects/football/football /mnt/f/Aisaak/Projects/football_game_wsl
+62475 /home/hugh51/bin/spec-kit-mcp-go
+62477 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@wonderwhy-er/desktop-commander/dist/index.js --no-onboarding
+62485 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@wonderwhy-er/desktop-commander/dist/index.js --no-onboarding
+62488 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+62489 /home/hugh51/bin/spec-kit-mcp-go
+62493 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+62494 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/launch-computer-control.sh
+62495 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.local/share/codex-mcp/server-sequential-thinking-2025.12.18/node_modules/@modelcontextprotocol/server-sequential-thinking/dist/index.js
+62501 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@vibecodetown/mcp-server/build/mcp/index.js
+62509 /home/hugh51/.local/share/pipx/venvs/jcodemunch-mcp/bin/python /home/hugh51/.local/bin/jcodemunch-mcp --log-file /tmp/jcodemunch-mcp.log
+62525 /home/hugh51/.local/share/pipx/venvs/jcodemunch-mcp/bin/python /home/hugh51/.local/bin/jcodemunch-mcp --log-file /tmp/jcodemunch-mcp.log
+62526 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.local/share/codex-mcp/server-sequential-thinking-2025.12.18/node_modules/@modelcontextprotocol/server-sequential-thinking/dist/index.js
+62536 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/scrot-helper.sh
+62537 /mnt/wslg/distro/usr/bin/python3 /home/hugh51/.local/share/codex-mcp/rootless-computer-control/server.py
+62542 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@vibecodetown/mcp-server/build/mcp/index.js
+62545 /home/hugh51/.local/share/pipx/venvs/jdocmunch-mcp/bin/python /home/hugh51/.local/bin/jdocmunch-mcp
+62546 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.npm-global/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js /home/hugh51/projects/football/football /mnt/f/Aisaak/Projects/football_game_wsl
+62557 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/scrot-helper.sh
+62558 /mnt/wslg/distro/usr/bin/python3 /home/hugh51/.local/share/codex-mcp/rootless-computer-control/server.py
+62753 /home/hugh51/musu-functions/musu-indexer/musu-scanner index /home/hugh51/musu-functions/.musu_dev.db /home/hugh51/musu-functions /tmp/tmp.cHNGrQ4pqm
+63024 postgres: paperclip paperclip 127.0.0.1(48316) idle
+63309 /bin/bash -lc if [ -z "$BASH_ENV" ] && [ -r "$HOME/.bashrc" ]; then   . "$HOME/.bashrc" fi echo '# Snapshot file' echo '# Unset all aliases to avoid conflicts with functions' unalias -a 2>/dev/null || true echo '# Functions' declare -f echo '' bash_opts=$(set -o | awk '$2=="on"{print $1}') bash_opt_count=$(printf '%s\n' "$bash_opts" | sed '/^$/d' | wc -l | tr -d ' ') echo "# setopts $bash_opt_count" if [ -n "$bash_opts" ]; then   printf 'set -o %s\n' $bash_opts fi echo '' alias_count=$(alias -p | wc -l | tr -d ' ') echo "# aliases $alias_count" alias -p echo '' export_lines=$(   while IFS= read -r name; do     if [[ "$name" =~ ^(PWD|OLDPWD)$ ]]; then       continue     fi     if [[ ! "$name" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then       continue     fi     declare -xp "$name" 2>/dev/null || true   done < <(compgen -e) ) export_count=$(printf '%s\n' "$export_lines" | sed '/^$/d' | wc -l | tr -d ' ') echo "# exports $export_count" if [ -n "$export_lines" ]; then   printf '%s\n' "$export_lines" fi 
+63316 /bin/bash -lc curl -sS http://127.0.0.1:3100/api/issues/59e5f431-490c-486c-a17b-0af8e3c595da/comments | jq -r '.[] | [.createdAt,.id,((.body|split("\n")[0])//"")] | @tsv'
+63377 /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/@esbuild+linux-x64@0.25.12/node_modules/@esbuild/linux-x64/bin/esbuild --service=0.25.12 --ping
+63579 curl -sS http://127.0.0.1:3100/api/issues/59e5f431-490c-486c-a17b-0af8e3c595da/comments
+63580 jq -r .[] | [.createdAt,.id,((.body|split("\n")[0])//"")] | @tsv
+63771 postgres: paperclip paperclip 127.0.0.1(48332) idle
+63773 postgres: paperclip paperclip 127.0.0.1(48330) idle
+63775 postgres: paperclip paperclip 127.0.0.1(48322) idle
+63776 postgres: paperclip paperclip 127.0.0.1(48346) idle
+63870 /bin/bash -lc if [ -z "$BASH_ENV" ] && [ -r "$HOME/.bashrc" ]; then   . "$HOME/.bashrc" fi echo '# Snapshot file' echo '# Unset all aliases to avoid conflicts with functions' unalias -a 2>/dev/null || true echo '# Functions' declare -f echo '' bash_opts=$(set -o | awk '$2=="on"{print $1}') bash_opt_count=$(printf '%s\n' "$bash_opts" | sed '/^$/d' | wc -l | tr -d ' ') echo "# setopts $bash_opt_count" if [ -n "$bash_opts" ]; then   printf 'set -o %s\n' $bash_opts fi echo '' alias_count=$(alias -p | wc -l | tr -d ' ') echo "# aliases $alias_count" alias -p echo '' export_lines=$(   while IFS= read -r name; do     if [[ "$name" =~ ^(PWD|OLDPWD)$ ]]; then       continue     fi     if [[ ! "$name" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then       continue     fi     declare -xp "$name" 2>/dev/null || true   done < <(compgen -e) ) export_count=$(printf '%s\n' "$export_lines" | sed '/^$/d' | wc -l | tr -d ' ') echo "# exports $export_count" if [ -n "$export_lines" ]; then   printf '%s\n' "$export_lines" fi 
+63883 /bin/bash -lc if [ -z "$BASH_ENV" ] && [ -r "$HOME/.bashrc" ]; then   . "$HOME/.bashrc" fi echo '# Snapshot file' echo '# Unset all aliases to avoid conflicts with functions' unalias -a 2>/dev/null || true echo '# Functions' declare -f echo '' bash_opts=$(set -o | awk '$2=="on"{print $1}') bash_opt_count=$(printf '%s\n' "$bash_opts" | sed '/^$/d' | wc -l | tr -d ' ') echo "# setopts $bash_opt_count" if [ -n "$bash_opts" ]; then   printf 'set -o %s\n' $bash_opts fi echo '' alias_count=$(alias -p | wc -l | tr -d ' ') echo "# aliases $alias_count" alias -p echo '' export_lines=$(   while IFS= read -r name; do     if [[ "$name" =~ ^(PWD|OLDPWD)$ ]]; then       continue     fi     if [[ ! "$name" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then       continue     fi     declare -xp "$name" 2>/dev/null || true   done < <(compgen -e) ) export_count=$(printf '%s\n' "$export_lines" | sed '/^$/d' | wc -l | tr -d ' ') echo "# exports $export_count" if [ -n "$export_lines" ]; then   printf '%s\n' "$export_lines" fi 
+63884 tail -1
+64344 /bin/bash -c set -euo pipefail ART="/home/hugh51/musu-functions/artifacts/mus1708-conflict-clean-$(date +%Y%m%dT%H%M%S%z)" mkdir -p "$ART" SELF=$$ PARENT=$PPID ps -eo pid=,args= > "$ART/00_ps_full_before.txt"  awk -v self="$SELF" -v parent="$PARENT" '   /mus1783-work-hub-remediation\.pen|pencil_mcp_direct\.py|\/\.agents\/skills\/pencil-dev-design-workflow\/scripts\/(reload|start)_pencil_dev\.sh/ {     pid=$1     if (pid != self && pid != parent) print pid   } ' "$ART/00_ps_full_before.txt" | sort -u > "$ART/01_target_pids.txt"  if [ -s "$ART/01_target_pids.txt" ]; then   while read -r pid; do     kill "$pid" 2>/dev/null || true   done < "$ART/01_target_pids.txt"   sleep 1   while read -r pid; do     if ps -p "$pid" >/dev/null 2>&1; then kill -9 "$pid" 2>/dev/null || true; fi   done < "$ART/01_target_pids.txt" fi  ps -eo pid=,args= > "$ART/02_ps_full_after.txt" ps -eo pid=,comm=,args= | rg 'mcp-server-linux-x64|pencil' | rg -v 'rg ' > "$ART/03_ps_pencil_after.txt" || true  echo "$ART"
+64482 ps -eo pid=,args=
+64623 /init
+64624 /init
+64627 -bash
+64677 node /home/hugh51/.npm-global/bin/codex resume 019d7288-7af5-7481-9dc0-54e040cda59b
+64684 /home/hugh51/.npm-global/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex/codex resume 019d7288-7af5-7481-9dc0-54e040cda59b
+65032 /home/hugh51/.local/share/pipx/venvs/jcodemunch-mcp/bin/python /home/hugh51/.local/bin/jcodemunch-mcp --log-file /tmp/jcodemunch-mcp.log
+65049 /home/hugh51/bin/spec-kit-mcp-go
+65051 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.local/share/codex-mcp/server-sequential-thinking-2025.12.18/node_modules/@modelcontextprotocol/server-sequential-thinking/dist/index.js
+65052 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/launch-computer-control.sh
+65059 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.npm-global/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js /home/hugh51/projects/football/football /mnt/f/Aisaak/Projects/football_game_wsl
+65066 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/scrot-helper.sh
+65067 /mnt/wslg/distro/usr/bin/python3 /home/hugh51/.local/share/codex-mcp/rootless-computer-control/server.py
+65079 /home/hugh51/.local/share/pipx/venvs/jdocmunch-mcp/bin/python /home/hugh51/.local/bin/jdocmunch-mcp
+65080 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@wonderwhy-er/desktop-commander/dist/index.js --no-onboarding
+65249 node /home/hugh51/.npm-global/bin/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex -
+67166 /home/hugh51/.npm-global/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex -
+68386 postgres: paperclip paperclip 127.0.0.1(46488) idle
+70842 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.npm-global/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js /home/hugh51/projects/football/football /mnt/f/Aisaak/Projects/football_game_wsl
+70867 /home/hugh51/bin/spec-kit-mcp-go
+70871 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.local/share/codex-mcp/server-sequential-thinking-2025.12.18/node_modules/@modelcontextprotocol/server-sequential-thinking/dist/index.js
+70877 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+72928 node /home/hugh51/.local/share/pnpm/.tools/pnpm/9.15.4/bin/pnpm --filter @paperclipai/server dev:watch
+73308 sh -c node ../scripts/ensure-workspace-package-links.mjs && cross-env PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+73340 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../cross-env/dist/bin/cross-env.js PAPERCLIP_MIGRATION_PROMPT=never PAPERCLIP_MIGRATION_AUTO_APPLY=true tsx ./scripts/dev-watch.ts
+73373 node /home/hugh51/references_AI/paperclip-main/server/node_modules/.bin/../tsx/dist/cli.mjs ./scripts/dev-watch.ts
+73434 /usr/bin/node --require /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/preflight.cjs --import file:///home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/loader.mjs ./scripts/dev-watch.ts
+73541 /usr/bin/node /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/cli.mjs watch --exclude **/{node_modules,bower_components,vendor}/** --exclude **/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/** --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp --exclude /home/hugh51/references_AI/paperclip-main/ui/node_modules/.vite-temp/** --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite --exclude /home/hugh51/references_AI/paperclip-main/ui/.vite/** --exclude /home/hugh51/references_AI/paperclip-main/ui/dist --exclude /home/hugh51/references_AI/paperclip-main/ui/dist/** src/index.ts
+76429 node /home/hugh51/.npm-global/bin/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5 -c model_reasoning_effort="high" resume 019d8370-a8c9-7d13-b210-b9e1feb8979d -
+76492 /home/hugh51/.npm-global/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5 -c model_reasoning_effort="high" resume 019d8370-a8c9-7d13-b210-b9e1feb8979d -
+76988 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@vibecodetown/mcp-server/build/mcp/index.js
+76989 /home/hugh51/.local/share/pipx/venvs/jdocmunch-mcp/bin/python /home/hugh51/.local/bin/jdocmunch-mcp
+76999 /home/hugh51/.local/share/pipx/venvs/jcodemunch-mcp/bin/python /home/hugh51/.local/bin/jcodemunch-mcp --log-file /tmp/jcodemunch-mcp.log
+77009 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/launch-computer-control.sh
+77012 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.npm-global/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js /home/hugh51/projects/football/football /mnt/f/Aisaak/Projects/football_game_wsl
+77020 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.local/share/codex-mcp/server-sequential-thinking-2025.12.18/node_modules/@modelcontextprotocol/server-sequential-thinking/dist/index.js
+77030 /home/hugh51/bin/spec-kit-mcp-go
+77047 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/scrot-helper.sh
+77052 /mnt/wslg/distro/usr/bin/python3 /home/hugh51/.local/share/codex-mcp/rootless-computer-control/server.py
+79795 node /home/hugh51/.npm-global/bin/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex -
+80048 /home/hugh51/.npm-global/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex -
+80596 node /home/hugh51/.npm-global/bin/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex -
+80652 /home/hugh51/.npm-global/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex -
+81042 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@wonderwhy-er/desktop-commander/dist/index.js --no-onboarding
+81046 /home/hugh51/.local/share/pipx/venvs/jcodemunch-mcp/bin/python /home/hugh51/.local/bin/jcodemunch-mcp --log-file /tmp/jcodemunch-mcp.log
+81055 /home/hugh51/bin/spec-kit-mcp-go
+81059 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@vibecodetown/mcp-server/build/mcp/index.js
+81062 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+81066 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.npm-global/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js /home/hugh51/projects/football/football /mnt/f/Aisaak/Projects/football_game_wsl
+81068 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.local/share/codex-mcp/server-sequential-thinking-2025.12.18/node_modules/@modelcontextprotocol/server-sequential-thinking/dist/index.js
+81076 /home/hugh51/.local/share/pipx/venvs/jdocmunch-mcp/bin/python /home/hugh51/.local/bin/jdocmunch-mcp
+81087 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/launch-computer-control.sh
+81113 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/scrot-helper.sh
+81114 /mnt/wslg/distro/usr/bin/python3 /home/hugh51/.local/share/codex-mcp/rootless-computer-control/server.py
+81241 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/launch-computer-control.sh
+81256 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/scrot-helper.sh
+81264 /mnt/wslg/distro/usr/bin/python3 /home/hugh51/.local/share/codex-mcp/rootless-computer-control/server.py
+81279 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@vibecodetown/mcp-server/build/mcp/index.js
+81291 /home/hugh51/bin/spec-kit-mcp-go
+81306 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.npm-global/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js /home/hugh51/projects/football/football /mnt/f/Aisaak/Projects/football_game_wsl
+81341 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.local/share/codex-mcp/server-sequential-thinking-2025.12.18/node_modules/@modelcontextprotocol/server-sequential-thinking/dist/index.js
+81342 /home/hugh51/.local/share/pipx/venvs/jcodemunch-mcp/bin/python /home/hugh51/.local/bin/jcodemunch-mcp --log-file /tmp/jcodemunch-mcp.log
+81343 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@wonderwhy-er/desktop-commander/dist/index.js --no-onboarding
+81346 /home/hugh51/.local/share/pipx/venvs/jdocmunch-mcp/bin/python /home/hugh51/.local/bin/jdocmunch-mcp
+81406 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+81430 node /home/hugh51/.npm-global/bin/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex -
+81470 node /home/hugh51/.npm-global/bin/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex resume 019d7daf-63ce-7c43-afad-a80a87096f6e -
+81570 /home/hugh51/.npm-global/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex resume 019d7daf-63ce-7c43-afad-a80a87096f6e -
+81612 /home/hugh51/.npm-global/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex -
+82784 /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/@embedded-postgres+linux-x64@18.1.0-beta.16/node_modules/@embedded-postgres/linux-x64/native/bin/postgres -D /home/hugh51/.paperclip/instances/default/db -p 54329
+82788 postgres: io worker 0
+82789 postgres: io worker 1
+82790 postgres: io worker 2
+82791 postgres: checkpointer 
+82792 postgres: background writer 
+82795 postgres: walwriter 
+82796 postgres: autovacuum launcher 
+82797 postgres: logical replication launcher 
+82978 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.npm-global/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js /home/hugh51/projects/football/football /mnt/f/Aisaak/Projects/football_game_wsl
+82984 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/launch-computer-control.sh
+82986 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.local/share/codex-mcp/server-sequential-thinking-2025.12.18/node_modules/@modelcontextprotocol/server-sequential-thinking/dist/index.js
+82997 /home/hugh51/.local/share/pipx/venvs/jdocmunch-mcp/bin/python /home/hugh51/.local/bin/jdocmunch-mcp
+82998 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@wonderwhy-er/desktop-commander/dist/index.js --no-onboarding
+83022 /home/hugh51/bin/spec-kit-mcp-go
+83047 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/scrot-helper.sh
+83048 /mnt/wslg/distro/usr/bin/python3 /home/hugh51/.local/share/codex-mcp/rootless-computer-control/server.py
+83056 /home/hugh51/.local/share/pipx/venvs/jcodemunch-mcp/bin/python /home/hugh51/.local/bin/jcodemunch-mcp --log-file /tmp/jcodemunch-mcp.log
+83071 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+83147 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@vibecodetown/mcp-server/build/mcp/index.js
+83780 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@wonderwhy-er/desktop-commander/dist/index.js --no-onboarding
+83791 /home/hugh51/bin/spec-kit-mcp-go
+83798 /home/hugh51/.local/share/pipx/venvs/jcodemunch-mcp/bin/python /home/hugh51/.local/bin/jcodemunch-mcp --log-file /tmp/jcodemunch-mcp.log
+83801 /home/hugh51/.local/share/pipx/venvs/jdocmunch-mcp/bin/python /home/hugh51/.local/bin/jdocmunch-mcp
+83809 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+83818 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@vibecodetown/mcp-server/build/mcp/index.js
+83892 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.npm-global/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js /home/hugh51/projects/football/football /mnt/f/Aisaak/Projects/football_game_wsl
+83898 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.local/share/codex-mcp/server-sequential-thinking-2025.12.18/node_modules/@modelcontextprotocol/server-sequential-thinking/dist/index.js
+83916 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/launch-computer-control.sh
+84016 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/scrot-helper.sh
+84018 /mnt/wslg/distro/usr/bin/python3 /home/hugh51/.local/share/codex-mcp/rootless-computer-control/server.py
+85089 /usr/bin/node --require /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/preflight.cjs --import file:///home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/loader.mjs src/index.ts
+87410 /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/@esbuild+linux-x64@0.27.3/node_modules/@esbuild/linux-x64/bin/esbuild --service=0.27.3 --ping
+87937 node /home/hugh51/.npm-global/bin/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex -
+87979 /home/hugh51/.npm-global/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex -
+88356 /home/hugh51/.local/share/pipx/venvs/jcodemunch-mcp/bin/python /home/hugh51/.local/bin/jcodemunch-mcp --log-file /tmp/jcodemunch-mcp.log
+88363 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.local/share/codex-mcp/server-sequential-thinking-2025.12.18/node_modules/@modelcontextprotocol/server-sequential-thinking/dist/index.js
+88368 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+88374 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@wonderwhy-er/desktop-commander/dist/index.js --no-onboarding
+88397 /home/hugh51/.local/share/pipx/venvs/jdocmunch-mcp/bin/python /home/hugh51/.local/bin/jdocmunch-mcp
+88400 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@vibecodetown/mcp-server/build/mcp/index.js
+88401 /home/hugh51/bin/spec-kit-mcp-go
+88407 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/launch-computer-control.sh
+88440 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/scrot-helper.sh
+88441 /mnt/wslg/distro/usr/bin/python3 /home/hugh51/.local/share/codex-mcp/rootless-computer-control/server.py
+88452 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.npm-global/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js /home/hugh51/projects/football/football /mnt/f/Aisaak/Projects/football_game_wsl
+88971 node /home/hugh51/.npm-global/bin/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex -
+89127 /home/hugh51/.npm-global/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex/codex exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-5.3-codex -
+89611 postgres: paperclip paperclip 127.0.0.1(48610) idle
+89772 /home/hugh51/references_AI/paperclip-main/node_modules/.pnpm/@esbuild+linux-x64@0.25.12/node_modules/@esbuild/linux-x64/bin/esbuild --service=0.25.12 --ping
+89868 postgres: paperclip paperclip 127.0.0.1(48696) idle
+89869 postgres: paperclip paperclip 127.0.0.1(48710) idle
+89870 postgres: paperclip paperclip 127.0.0.1(48698) PARSE
+89871 postgres: paperclip paperclip 127.0.0.1(44622) PARSE
+90143 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.local/share/codex-mcp/server-sequential-thinking-2025.12.18/node_modules/@modelcontextprotocol/server-sequential-thinking/dist/index.js
+90144 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@wonderwhy-er/desktop-commander/dist/index.js --no-onboarding
+90147 /home/hugh51/bin/spec-kit-mcp-go
+90163 /home/hugh51/.local/share/pipx/venvs/jdocmunch-mcp/bin/python /home/hugh51/.local/bin/jdocmunch-mcp
+90167 /home/hugh51/.local/share/pipx/venvs/jcodemunch-mcp/bin/python /home/hugh51/.local/bin/jcodemunch-mcp --log-file /tmp/jcodemunch-mcp.log
+90170 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app codexCLI
+90182 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/launch-computer-control.sh
+90185 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.nvm/versions/node/v20.19.5/lib/node_modules/@vibecodetown/mcp-server/build/mcp/index.js
+90190 /home/hugh51/.nvm/versions/node/v20.19.5/bin/node /home/hugh51/.npm-global/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js /home/hugh51/projects/football/football /mnt/f/Aisaak/Projects/football_game_wsl
+90231 /bin/bash /home/hugh51/.local/share/codex-mcp/rootless-computer-control/scrot-helper.sh
+90241 /mnt/wslg/distro/usr/bin/python3 /home/hugh51/.local/share/codex-mcp/rootless-computer-control/server.py
+95376 postgres: paperclip paperclip 127.0.0.1(47682) idle
+98290 postgres: paperclip paperclip 127.0.0.1(45472) idle
+98306 postgres: paperclip paperclip 127.0.0.1(45486) idle

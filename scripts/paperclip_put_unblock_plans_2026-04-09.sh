@@ -24,7 +24,7 @@ put_plan() {
     | jq -r '"OK plan updated: " + (.latestRevisionId // "")'
 }
 
-d30_body="$(cat <<'MD'
+d30_body="$(cat <<'EOF'
 # Unblock Plan — Board Umbrella (MUS-1016)
 
 ## Decisions (pick 1–2)
@@ -55,10 +55,10 @@ curl -sf http://127.0.0.1:1355/health || true
 
 ## Delegation
 - If CEO can’t do this, assign a single operator (CoS) to keep blocker truth synced.
-MD
+EOF
 )"
 
-f2256_body="$(cat <<'MD'
+f2256_body="$(cat <<'EOF'
 # Unblock Plan — Run-linkage integrity hardening
 
 ## Decisions (pick 1–2)
@@ -80,10 +80,10 @@ python3 /home/hugh51/musu_corp/runtime/scripts/paperclip_run_linkage_repair.py -
 - Fail-closed guard prevents persisting mismatched run<->issue links.
 - Deterministic repair report (before/after IDs) exists.
 - Regression coverage exists for the write path that drifted.
-MD
+EOF
 )"
 
-f98_body="$(cat <<'MD'
+f98_body="$(cat <<'EOF'
 # Unblock Plan — Paddle creds + 5070Ti access (delegable board action)
 
 ## Decisions (pick 1–2)
@@ -114,10 +114,10 @@ curl -sS http://localhost:23880/status | head -n 60
 ## Exit Criteria
 - Redacted-but-real credential presence proof is posted.
 - 5070Ti proof is posted and linked to dependent lane.
-MD
+EOF
 )"
 
-cd58_body="$(cat <<'MD'
+cd58_body="$(cat <<'EOF'
 # Unblock Plan — CTO gate: Paddle production-readiness + rollback
 
 ## Decisions (pick 1–2)
@@ -137,10 +137,10 @@ npx vitest run || true
 
 ## Exit Criteria
 - CTO posts `G1: PASS` or `G1: FAIL` with command-backed artifacts + rollback plan.
-MD
+EOF
 )"
 
-f553_body="$(cat <<'MD'
+f553_body="$(cat <<'EOF'
 # Unblock Plan — Board-privileged run-linkage repair execution
 
 ## Decisions (pick 1–2)
@@ -161,10 +161,10 @@ python3 /home/hugh51/musu_corp/runtime/scripts/paperclip_run_linkage_repair.py -
 
 ## Exit Criteria
 - Repair artifact posted; QA gate becomes runnable.
-MD
+EOF
 )"
 
-qa_body="$(cat <<'MD'
+qa_body="$(cat <<'EOF'
 # Unblock Plan — QA G2: Post-repair run-linkage coherence verification
 
 ## Decisions (pick 1–2)
@@ -184,10 +184,10 @@ python3 /home/hugh51/musu_corp/runtime/scripts/paperclip_run_linkage_repair.py -
 
 ## Exit Criteria
 - QA posts `G2: PASS` or `G2: FAIL` with deterministic command/output bundle.
-MD
+EOF
 )"
 
-ssh_body="$(cat <<'MD'
+ssh_body="$(cat <<'EOF'
 # Unblock Plan — 5070Ti SSH authorization OR manual status proof
 
 ## Decisions (pick 1–2)
@@ -211,7 +211,7 @@ curl -sf http://127.0.0.1:1355/health || true
 
 ## Exit Criteria
 - Proof artifact posted and linked to dependent lane (MUS-1024 → MUS-995).
-MD
+EOF
 )"
 
 put_plan d30c7dd6-afb2-4180-857c-787e7603005e "$d30_body"

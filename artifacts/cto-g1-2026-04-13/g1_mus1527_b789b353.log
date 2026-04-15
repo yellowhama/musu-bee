@@ -1,0 +1,75 @@
+[CTO G1 replay] issue=b789b353-6cd0-4264-8038-77893b75e606
+utc=2026-04-12T15:59:35Z
+\n$ pnpm exec tsx --test src/app/api/chat/route.test.ts
+[api/chat] backend unavailable {
+  requestTimeoutMs: 30000,
+  remainingBudgetMs: 29999,
+  portError: 'dial tcp 10.0.0.8:11434: connect: connection refused',
+  llmFallbackError: 'Traceback: internal.service:9700 failed; secret-token=abc123'
+}
+✔ chat route falls back to LLM when musu-port is unavailable (18.699706ms)
+✔ chat route returns sanitized 502 when both backends fail (7.684185ms)
+[api/chat] backend unavailable {
+  requestTimeoutMs: 120,
+  remainingBudgetMs: 0,
+  portError: 'musu-port request failed: request deadline exceeded during musu-port /chat',
+  llmFallbackError: 'skipped: request deadline exhausted'
+}
+✔ chat route enforces single hard timeout budget when musu-port hangs (127.05562ms)
+[api/chat] backend unavailable {
+  requestTimeoutMs: 120,
+  remainingBudgetMs: 0,
+  portError: 'backend down',
+  llmFallbackError: 'llm fallback request failed: request deadline exceeded during http://llm.example.test/v1/chat/completions'
+}
+[api/chat] invalid JSON request body {
+  err: SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+      at JSON.parse (<anonymous>)
+      at parseJSONFromBytes (node:internal/deps/undici/undici:4259:19)
+      at successSteps (node:internal/deps/undici/undici:6882:27)
+      at readAllBytes (node:internal/deps/undici/undici:5807:13)
+}
+✔ chat route keeps fallback chain within one hard timeout window (126.907073ms)
+✔ chat route returns stable 400 for invalid JSON body (5.871243ms)
+✔ chat route accepts message exactly at configured max length (3.740361ms)
+✔ chat route rejects oversized message with deterministic contract (3.247088ms)
+✔ chat route ignores spoofed forwarded headers when trust boundary is disabled (6.132201ms)
+✔ chat route enforces per-client rate limit with trusted header identity (5.512089ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 635.685488
+\n$ pnpm run typecheck
+
+> musu-bee@0.1.0 typecheck /home/hugh51/musu-functions/musu-bee
+> tsc --noEmit
+
+\n$ pnpm run build
+
+> musu-bee@0.1.0 build /home/hugh51/musu-functions/musu-bee
+> NODE_ENV=production next build
+
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /home/hugh51/package-lock.json as the root directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles: 
+   * /home/hugh51/musu-functions/musu-bee/pnpm-lock.yaml
+
+   ▲ Next.js 15.5.14
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 3.9s
+   Skipping linting
+   Checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/24) ...
+   Generating static pages (6/24) 
+   Generating static pages (12/24) 
+   Generating static pages (18/24) 
+ ✓ Generating static pages (24/24)
