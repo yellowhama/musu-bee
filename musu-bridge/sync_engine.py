@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -12,6 +13,8 @@ import httpx
 if TYPE_CHECKING:
     from mesh_router import MeshRouter
     from musu_core.backends.local import LocalBackend
+
+_BRIDGE_TOKEN: str = os.getenv("MUSU_BRIDGE_TOKEN", "")
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +39,8 @@ def _save_state(state: dict) -> None:
         logger.warning("sync_engine: failed to save state — %s", exc)
 
 
+_MAX_CONSECUTIVE_FAILURES = 5  # back-off after this many consecutive 4xx/5xx per peer
+
 class SyncEngine:
     """Periodically pulls company records and message history from peer nodes.
 
@@ -53,6 +58,7 @@ class SyncEngine:
         self._backend = backend
         self._interval = interval_sec
         self._state: dict = _load_state()  # {peer_url: {companies_since, messages_since}}
+        self._failures: dict[str, int] = {}  # consecutive failure count per peer_url
 
     def _since(self, peer_url: str, key: str) -> str:
         return self._state.get(peer_url, {}).get(key, _EPOCH)
@@ -80,15 +86,26 @@ class SyncEngine:
         for node_name, node_url in self._router._node_urls.items():
             if node_name == self._router._self_name:
                 continue
+            failures = self._failures.get(node_url, 0)
+            if failures >= _MAX_CONSECUTIVE_FAILURES:
+                # Back-off: skip every (failures - MAX + 1) cycles, then retry
+                skip_n = min(failures - _MAX_CONSECUTIVE_FAILURES + 1, 10)
+                if (failures % (skip_n + 1)) != 0:
+                    logger.debug("sync_engine: skipping %s (backoff, %d failures)", node_url, failures)
+                    self._failures[node_url] = failures + 1
+                    continue
             try:
                 await self._pull_from(node_url)
+                self._failures[node_url] = 0  # reset on success
             except Exception as exc:
                 logger.warning("sync_engine: pull from %s failed — %s", node_url, exc)
+                self._failures[node_url] = failures + 1
 
     async def _pull_from(self, peer_url: str) -> None:
         """Pull companies and messages from a single peer musu-bridge URL."""
         base = peer_url.rstrip("/")
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        headers = {"Authorization": f"Bearer {_BRIDGE_TOKEN}"} if _BRIDGE_TOKEN else {}
+        async with httpx.AsyncClient(timeout=10.0, headers=headers) as client:
             # --- Companies ---
             c_since = self._since(peer_url, "companies_since")
             try:
@@ -108,6 +125,12 @@ class SyncEngine:
                         newest = max(c.get("updated_at", "") for c in companies)
                         if newest > c_since:
                             self._update_since(peer_url, "companies_since", newest)
+                elif resp.status_code in (401, 403):
+                    logger.warning(
+                        "sync_engine: auth error from %s (%s) — check MUSU_BRIDGE_TOKEN",
+                        peer_url, resp.status_code,
+                    )
+                    raise httpx.HTTPStatusError("auth", request=resp.request, response=resp)
                 else:
                     logger.warning(
                         "sync_engine: /api/sync/companies from %s returned %s",
