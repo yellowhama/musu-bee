@@ -214,3 +214,58 @@ def get_discovery() -> MusuDiscovery:
     if _discovery is None:
         _discovery = MusuDiscovery()
     return _discovery
+
+
+# ── Public IP detection ───────────────────────────────────────────────────────
+
+import ipaddress
+
+_PUBLIC_IP_APIS = [
+    "https://api.ipify.org",
+    "https://api4.ipify.org",
+    "https://checkip.amazonaws.com",
+]
+
+_PRIVATE_NETS = [
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("100.64.0.0/10"),   # CGNAT
+    ipaddress.ip_network("127.0.0.0/8"),
+    ipaddress.ip_network("169.254.0.0/16"),  # link-local
+]
+
+_cached_public_ip: str | None = None
+
+
+async def detect_public_ip(timeout: float = 5.0) -> str | None:
+    """ipify 계열 API로 공인 IPv4 감지. 성공 후 프로세스 캐시.
+
+    사설/CGNAT IP는 거부. 실패 시 None 반환.
+    """
+    global _cached_public_ip
+    if _cached_public_ip:
+        return _cached_public_ip
+    import httpx
+
+    for url in _PUBLIC_IP_APIS:
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                resp = await client.get(url)
+                if resp.status_code == 200:
+                    ip = resp.text.strip()
+                    try:
+                        addr = ipaddress.ip_address(ip)
+                    except ValueError:
+                        continue
+                    if not any(addr in net for net in _PRIVATE_NETS):
+                        logger.info("discovery: public IP → %s (via %s)", ip, url)
+                        _cached_public_ip = ip
+                        return ip
+        except Exception:
+            pass
+
+    logger.warning(
+        "discovery: 공인 IP 감지 실패 — MUSU_BRIDGE_PUBLIC_URL 수동 설정 권장"
+    )
+    return None

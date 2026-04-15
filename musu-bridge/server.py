@@ -96,7 +96,7 @@ async def lifespan(app: FastAPI):
     from sync_engine import get_sync_engine
     from handlers import _get_backend
     from registry import heartbeat_loop, peer_discovery_loop
-    from discovery import get_discovery, get_tailscale_ip
+    from discovery import get_discovery, get_tailscale_ip, detect_public_ip
 
     router = get_mesh_router()
     if router.enabled:
@@ -108,13 +108,27 @@ async def lifespan(app: FastAPI):
         task = None
         logger.info("sync_engine: mesh disabled, skipping sync")
 
+    # Detect network identity early — reused by registry + mDNS blocks
+    cfg = get_config()
+    tailscale_ip = get_tailscale_ip()
+    if not tailscale_ip:
+        _detected_public_ip = await detect_public_ip()
+    else:
+        _detected_public_ip = None
+
     # Cloud registry heartbeat + peer discovery (optional — only when MUSU_TOKEN is set)
     registry_task = None
     peer_discovery_task = None
-    cfg = get_config()
     musu_token = cfg.musu_token
     if musu_token:
-        public_url = cfg.public_url or f"http://{socket.gethostname()}:{cfg.bridge_port}"
+        if cfg.public_url:
+            public_url = cfg.public_url
+        elif tailscale_ip:
+            public_url = f"http://{tailscale_ip}:{cfg.bridge_port}"
+        elif _detected_public_ip:
+            public_url = f"http://{_detected_public_ip}:{cfg.bridge_port}"
+        else:
+            public_url = f"http://{socket.gethostname()}:{cfg.bridge_port}"
         node_name = cfg.node_name
         registry_task = asyncio.create_task(
             heartbeat_loop(token=musu_token, node_name=node_name, public_url=public_url)
@@ -189,7 +203,6 @@ async def lifespan(app: FastAPI):
         logger.warning("discovery: 'zeroconf' not installed — mDNS disabled. Run: pip install zeroconf")
 
     discovery = get_discovery()
-    tailscale_ip = get_tailscale_ip()
     mdns_task = None
     if tailscale_ip:
         try:

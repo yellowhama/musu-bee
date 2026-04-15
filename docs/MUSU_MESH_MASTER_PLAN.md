@@ -1,5 +1,5 @@
 # MUSU Mesh — Master Plan
-> 작성: 2026-04-16 | 업데이트: 2026-04-17 | 상태: Phase 4 완료
+> 작성: 2026-04-16 | 업데이트: 2026-04-17 | 상태: Phase 5 완료
 
 ---
 
@@ -47,8 +47,8 @@ VPN 에 의존하면 서버비 폭발 (relay 경유 트래픽), Tailscale은 고
 ✅ Phase 2 — QUIC Transport
 ✅ Phase 3 — QUIC Hardening (cert pinning + connection pool)
 ✅ Phase 4 — Security Hardening (FingerprintVerifier + SSRF 방어)
-🔜 Phase 5 — LAN Fast Path (mDNS → mesh_router 자동 등록)
-📋 Phase 6 — 공인 IP 자동 감지 (STUN)
+✅ Phase 5 — LAN Fast Path (mDNS → mesh_router 자동 등록 + fingerprint E2E)
+✅ Phase 6 — 공인 IP 자동 감지 (ipify fallback)
 📋 Phase 7 — Wake-on-LAN
 ```
 
@@ -143,30 +143,29 @@ Python mesh_router.forward()
 
 ---
 
-## 🔜 Phase 5 — LAN Fast Path (다음)
+## ✅ Phase 5 — LAN Fast Path + Fingerprint E2E (완료, 2026-04-17)
 
-> **목표:** mDNS로 탐색한 LAN peer를 자동으로 mesh_router에 등록
+> **목표:** mDNS peer → mesh_router 자동 등록 + QUIC fingerprint E2E 검증
 
-**현재:** `discovery.py`가 mDNS peer를 탐색하지만 mesh_router에 반영 안 됨
-**목표:** LAN peer 탐색 → 자동으로 mesh_router에 추가 → QUIC LAN 직접 연결
+### 5A — fingerprint export (`scripts/start-bridge.sh`)
+- Python 시작 전 `~/.musu/quic_cert.der`에서 openssl SHA-256 계산
+- `MUSU_QUIC_FINGERPRINT` export → Python heartbeat에서 읽힘
 
-**변경 파일:**
-- `musu-bridge/discovery.py` — 탐색된 peer를 callback으로 전달
-- `musu-bridge/server.py` — discovery callback → mesh_router.add_node()
-- `musu-bridge/mesh_router.py` — LAN peer에 우선순위 부여 (WAN보다 낮은 latency)
+### 5B — smoke test (`scripts/verify-fingerprint.sh`)
+- 4단계: token 확인 → 로컬 fingerprint → musu.pro 조회 → local==remote 비교
 
-**수락 기준:**
-- 같은 공유기의 두 노드가 musu.pro 없이 자동 연결
-- LAN 연결이 WAN 연결보다 RTT 낮음
+### 5C — mDNS LAN Fast Path (`server.py`)
+- `_mdns_register_loop()` — 15s 주기로 `discovery.get_discovered()` → `router.add_node()`
+- `AsyncZeroconf.async_register_service()` — uvicorn 이벤트 루프 블록 방지
 
 ---
 
-## 📋 Phase 6 — 공인 IP 자동 감지
+## ✅ Phase 6 — 공인 IP 자동 감지 (완료, 2026-04-17)
 
-> **목표:** 동적 IP (ISP 변경) 대응 — 공인 IP를 자동 감지해서 musu.pro에 등록
+> **목표:** Tailscale 없는 환경에서 공인 IP를 자동 감지해서 musu.pro에 등록
 
-- `registry.py` — STUN으로 공인 IP 감지
-- ISP IP 변경 시 5분 이내 musu.pro 갱신
+- `discovery.py` — `detect_public_ip()`: ipify/checkip API, RFC1918+CGNAT 거부, 프로세스 캐시
+- `server.py` — `public_url` 계산: `cfg.public_url` → Tailscale IP → ipify → hostname fallback
 
 ---
 

@@ -82,6 +82,22 @@ if [[ -n "$QUIC_PID" ]]; then
     trap "kill $QUIC_PID 2>/dev/null || true" EXIT INT TERM
 fi
 
+# ── QUIC fingerprint export ────────────────────────────────────
+# Python 시작 전에 cert 파일에서 fingerprint 계산 → os.getenv() 에서 읽힘
+QUIC_CERT="${HOME}/.musu/quic_cert.der"
+if [[ -f "$QUIC_CERT" ]] && command -v openssl &>/dev/null; then
+    if command -v xxd &>/dev/null; then
+        COMPUTED_FP="$(openssl dgst -sha256 -binary "$QUIC_CERT" | xxd -p | tr -d '\n' | sed 's/../&:/g;s/:$//')"
+    else
+        # xxd 없으면 od 사용 (BusyBox 환경 대응)
+        COMPUTED_FP="$(openssl dgst -sha256 -binary "$QUIC_CERT" | od -A n -t x1 | tr -d ' \n' | sed 's/../&:/g;s/:$//')"
+    fi
+    export MUSU_QUIC_FINGERPRINT="$COMPUTED_FP"
+    echo "[start-bridge] QUIC fingerprint: ${COMPUTED_FP:0:23}..." >&2
+else
+    echo "[start-bridge] WARN: quic_cert.der not found — fingerprint not set (start bridge once to generate cert)" >&2
+fi
+
 # ── PYTHONPATH 설정 + 실행 ────────────────────────────────────
 export PYTHONPATH="${ROOT}/musu-core/src:${ROOT}/musu-bridge:${PYTHONPATH:-}"
 
