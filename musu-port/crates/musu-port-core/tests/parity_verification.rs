@@ -678,6 +678,7 @@ async fn invalid_device_profile_can_fail_startup_in_strict_mode() {
         data_root,
         state_db_path: db_path.to_path_buf(),
         runtime_context,
+        auth_token: None,
     };
 
     let err = run_server(config)
@@ -726,6 +727,7 @@ fn spawn_port_manager(
         data_root,
         state_db_path: db_path.to_path_buf(),
         runtime_context,
+        auth_token: None,
     };
     tokio::spawn(async move {
         let _ = run_server(config).await;

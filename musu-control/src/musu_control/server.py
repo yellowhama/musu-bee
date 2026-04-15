@@ -356,7 +356,8 @@ async def list_agents() -> str:
     """List all agents in the company."""
     try:
         c = _get_client()
-        data = await c.get(f"/companies/{c.company_id}/agents")
+        agents_path = f"/companies/{c.company_id}/agents" if c.company_id else "/agents"
+        data = await c.get(agents_path)
         return _fmt(data)
     except Exception:
         return _tool_error("Error listing agents.")
@@ -461,7 +462,8 @@ async def get_org_chart() -> str:
     """Return the company org chart formatted as an indented tree by chain of command."""
     try:
         c = _get_client()
-        agents: list[dict] = await c.get(f"/companies/{c.company_id}/agents")
+        agents_path = f"/companies/{c.company_id}/agents" if c.company_id else "/agents"
+        agents: list[dict] = await c.get(agents_path)
 
         # Build adjacency: managerId -> [agent, ...]
         by_manager: dict[str | None, list[dict]] = {}
@@ -505,7 +507,8 @@ async def list_issues(
             params["assigneeAgentId"] = assignee_agent_id
         if q:
             params["q"] = q
-        data = await c.get(f"/companies/{c.company_id}/issues", **params)
+        issues_path = f"/companies/{c.company_id}/issues" if c.company_id else "/issues"
+        data = await c.get(issues_path, **params)
         return _fmt(data)
     except Exception:
         return _tool_error("Error listing issues.")
@@ -547,7 +550,8 @@ async def create_issue(
             body["goalId"] = goal_id
         if project_id:
             body["projectId"] = project_id
-        data = await c.post(f"/companies/{c.company_id}/issues", body)
+        issues_path = f"/companies/{c.company_id}/issues" if c.company_id else "/issues"
+        data = await c.post(issues_path, body)
         return _fmt(data)
     except Exception:
         return _tool_error("Error creating issue.")
@@ -737,7 +741,8 @@ async def get_dashboard() -> str:
     """Get the company dashboard summary (recent runs, costs, activity)."""
     try:
         c = _get_client()
-        data = await c.get(f"/companies/{c.company_id}/dashboard")
+        dashboard_path = f"/companies/{c.company_id}/dashboard" if c.company_id else "/dashboard"
+        data = await c.get(dashboard_path)
         return _fmt(data)
     except Exception:
         return _tool_error("Error getting dashboard.")
@@ -751,7 +756,8 @@ async def list_runs(agent_id: str = "", limit: int = 20) -> str:
         params: dict = {"limit": limit}
         if agent_id:
             params["agentId"] = agent_id
-        data = await c.get(f"/companies/{c.company_id}/heartbeat-runs", **params)
+        runs_path = f"/companies/{c.company_id}/heartbeat-runs" if c.company_id else "/heartbeat-runs"
+        data = await c.get(runs_path, **params)
         return _fmt(data)
     except Exception:
         return _tool_error("Error listing runs.")
@@ -768,9 +774,9 @@ async def watchdog_detect_and_remediate(
             return _fmt({"error": "stale_threshold_seconds must be > 0"})
 
         c = _get_client()
-        agents_data = await c.get(f"/companies/{c.company_id}/agents")
+        agents_data = await c.get(f"/companies/{c.company_id}/agents" if c.company_id else "/agents")
         issues_data = await c.get(
-            f"/companies/{c.company_id}/issues",
+            f"/companies/{c.company_id}/issues" if c.company_id else "/issues",
             status=_WATCHDOG_ISSUE_STATUS_FILTER,
             limit=500,
         )
@@ -873,7 +879,8 @@ async def get_activity(limit: int = 50) -> str:
     """Get recent company activity feed."""
     try:
         c = _get_client()
-        data = await c.get(f"/companies/{c.company_id}/activity", limit=limit)
+        activity_path = f"/companies/{c.company_id}/activity" if c.company_id else "/audit"
+        data = await c.get(activity_path, limit=limit)
         return _fmt(data)
     except Exception:
         return _tool_error("Activity endpoint unavailable.")
@@ -884,7 +891,8 @@ async def get_costs_summary() -> str:
     """Get total cost summary for the company."""
     try:
         c = _get_client()
-        data = await c.get(f"/companies/{c.company_id}/costs/summary")
+        costs_path = f"/companies/{c.company_id}/costs/summary" if c.company_id else "/costs/summary"
+        data = await c.get(costs_path)
         return _fmt(data)
     except Exception:
         return _tool_error("Costs endpoint unavailable.")
@@ -895,7 +903,8 @@ async def get_costs_by_agent() -> str:
     """Get cost breakdown grouped by agent."""
     try:
         c = _get_client()
-        data = await c.get(f"/companies/{c.company_id}/costs/by-agent")
+        costs_path = f"/companies/{c.company_id}/costs/by-agent" if c.company_id else "/costs/by-agent"
+        data = await c.get(costs_path)
         return _fmt(data)
     except Exception:
         return _tool_error("Costs-by-agent endpoint unavailable.")
@@ -1101,7 +1110,7 @@ async def cancel_task(task_id: str) -> str:
 # ──────────────────────────────────────────────
 
 _VIEWS_DIST = pathlib.Path(__file__).parents[3] / "musu-bee/views/dist"
-_UI_MIME = "text/html;profile=mcp-app"
+_UI_MIME = "text/html"
 
 
 def _read_view_html(view: str) -> str:
@@ -1164,7 +1173,8 @@ async def _fetch_tasks(
 async def _fetch_agents() -> list[dict[str, Any]]:
     try:
         c = _get_client()
-        data = await c.get(f"/companies/{c.company_id}/agents")
+        agents_path = f"/companies/{c.company_id}/agents" if c.company_id else "/agents"
+        data = await c.get(agents_path)
         return data if isinstance(data, list) else []
     except Exception:
         return []
@@ -1172,7 +1182,7 @@ async def _fetch_agents() -> list[dict[str, Any]]:
 
 # ── model-visible view tools ────────────────────
 
-@mcp.tool(meta={"ui": {"resourceUri": "ui://musu-control/tasks"}})
+@mcp.tool()
 async def show_tasks_view(
     status: str | None = None,
     channel: str | None = None,
@@ -1192,7 +1202,7 @@ async def show_tasks_view(
     )
 
 
-@mcp.tool(meta={"ui": {"resourceUri": "ui://musu-control/task-detail"}})
+@mcp.tool()
 async def show_task_detail_view(task_id: str) -> CallToolResult:
     """단일 태스크 상세를 인터랙티브 뷰로 표시.
 
@@ -1213,7 +1223,7 @@ async def show_task_detail_view(task_id: str) -> CallToolResult:
     )
 
 
-@mcp.tool(meta={"ui": {"resourceUri": "ui://musu-control/agents"}})
+@mcp.tool()
 async def show_agents_view() -> CallToolResult:
     """에이전트 목록을 인터랙티브 뷰로 표시."""
     agents = await _fetch_agents()
@@ -1223,7 +1233,7 @@ async def show_agents_view() -> CallToolResult:
     )
 
 
-@mcp.tool(meta={"ui": {"resourceUri": "ui://musu-control/activity"}})
+@mcp.tool()
 async def show_activity_view(limit: int = 30) -> CallToolResult:
     """최근 회사 활동을 인터랙티브 로그 뷰로 표시.
 
@@ -1232,7 +1242,8 @@ async def show_activity_view(limit: int = 30) -> CallToolResult:
     """
     try:
         c = _get_client()
-        data = await c.get(f"/companies/{c.company_id}/activity", limit=limit)
+        activity_path = f"/companies/{c.company_id}/activity" if c.company_id else "/audit"
+        data = await c.get(activity_path, limit=limit)
         entries = data if isinstance(data, list) else data.get("items", [])
     except Exception:
         entries = []
@@ -1243,12 +1254,13 @@ async def show_activity_view(limit: int = 30) -> CallToolResult:
     )
 
 
-@mcp.tool(meta={"ui": {"resourceUri": "ui://musu-control/costs"}})
+@mcp.tool()
 async def show_costs_view() -> CallToolResult:
     """에이전트별 비용을 인터랙티브 차트 뷰로 표시."""
     try:
         c = _get_client()
-        data = await c.get(f"/companies/{c.company_id}/costs/by-agent")
+        costs_path = f"/companies/{c.company_id}/costs/by-agent" if c.company_id else "/costs/by-agent"
+        data = await c.get(costs_path)
         agents_cost = data if isinstance(data, list) else data.get("agents", [])
     except Exception:
         agents_cost = []
@@ -1261,7 +1273,7 @@ async def show_costs_view() -> CallToolResult:
 
 # ── app-only poll tools (visibility: ["app"], 모델 컨텍스트 오염 방지) ──
 
-@mcp.tool(meta={"ui": {"resourceUri": "ui://musu-control/tasks", "visibility": ["app"]}})
+@mcp.tool()
 async def poll_tasks(
     status: str | None = None,
     channel: str | None = None,
@@ -1275,7 +1287,7 @@ async def poll_tasks(
     )
 
 
-@mcp.tool(meta={"ui": {"resourceUri": "ui://musu-control/agents", "visibility": ["app"]}})
+@mcp.tool()
 async def poll_agents() -> CallToolResult:
     """[앱 전용] NodesView 폴링용 — 모델에 노출 안 됨."""
     agents = await _fetch_agents()

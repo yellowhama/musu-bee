@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import CheckoutButton from "@/components/CheckoutButton";
 
 export const metadata: Metadata = {
-  title: "MUSU — AI가 운영하는 나만의 팀",
+  title: "MUSU — Your AI-powered team",
   description:
-    "여러 기기를 하나의 AI 팀으로. 사장 AI가 작업을 알아서 분배하고 처리합니다.",
+    "Multiple machines. One AI team. Work gets done automatically.",
 };
 
 // Pricing tiers
@@ -12,31 +12,31 @@ const TIERS = [
   {
     name: "Free",
     tier: "free" as const,
-    price: "무료",
+    price: "Free",
     period: "",
-    devices: "기기 최대 2대",
-    features: ["기본 AI 채팅", "작업 분배", "상태 모니터링", "하루 100개 메시지"],
-    cta: "무료로 시작",
+    devices: "Up to 2 devices",
+    features: ["Basic AI chat", "Task dispatch", "Status monitoring", "100 messages/day"],
+    cta: "Get started for free",
     highlight: false,
   },
   {
     name: "Pro",
     tier: "pro" as const,
     price: "₩29,000",
-    period: "/월",
-    devices: "기기 최대 5대",
-    features: ["모든 Free 기능", "무제한 메시지", "우선 처리 큐", "이메일 지원"],
-    cta: "Pro 시작하기",
+    period: "/mo",
+    devices: "Up to 5 devices",
+    features: ["All Free features", "Unlimited messages", "Priority queue", "Email support"],
+    cta: "Start Pro",
     highlight: true,
   },
   {
     name: "Team",
     tier: "team" as const,
     price: "₩49,000",
-    period: "/월",
-    devices: "기기 무제한",
-    features: ["모든 Pro 기능", "팀 멤버 공유", "API 접근", "우선 기술 지원"],
-    cta: "Team 시작하기",
+    period: "/mo",
+    devices: "Unlimited devices",
+    features: ["All Pro features", "Team sharing", "API access", "Priority support"],
+    cta: "Start Team",
     highlight: false,
   },
 ] as const;
@@ -44,18 +44,18 @@ const TIERS = [
 const VALUE_PROPS = [
   {
     icon: "⚡",
-    title: "자동 작업 분배",
-    desc: "CPU·GPU 여유 기기로 자동 분배. 사장 AI가 최적 기기를 골라 처리합니다.",
+    title: "Auto task dispatch",
+    desc: "Auto-distribute to machines with free CPU/GPU. The boss AI picks the best device.",
   },
   {
     icon: "📊",
-    title: "실시간 모니터링",
-    desc: "모든 기기의 CPU·GPU·RAM 상태를 한 화면에서 확인하세요.",
+    title: "Real-time monitoring",
+    desc: "Track CPU, GPU, and RAM across all machines from one screen.",
   },
   {
     icon: "💬",
-    title: "AI 팀 채팅",
-    desc: "말만 하세요. 사장 AI가 기기 팀에 지시하고 결과를 가져옵니다.",
+    title: "AI team chat",
+    desc: "Just say it. The boss AI instructs the team and brings back results.",
   },
 ] as const;
 
@@ -92,7 +92,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
             fontWeight: 600,
           }}
         >
-          결제가 완료되었습니다! MUSU {params.tier?.toUpperCase() ?? "Pro"} 플랜이 활성화되었습니다.
+          Payment successful! Your MUSU {params.tier?.toUpperCase() ?? "Pro"} plan is now active.
         </div>
       )}
       {isCancelled && (
@@ -106,7 +106,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
             fontSize: 14,
           }}
         >
-          결제가 취소되었습니다. 언제든지 다시 시도할 수 있습니다.
+          Payment cancelled. You can try again whenever you&apos;re ready.
         </div>
       )}
 
@@ -158,7 +158,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
               transition: "color 0.15s",
             }}
           >
-            가격
+            Pricing
           </a>
           <a
             href="/landing"
@@ -172,7 +172,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
               fontWeight: 600,
             }}
           >
-            앱 열기
+            Open app
           </a>
         </div>
       </nav>
@@ -204,7 +204,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
           }}
         >
           <span>✦</span>
-          <span>베타 오픈 — 첫 10명 무료 이용</span>
+          <span>Beta open — first 10 users free</span>
         </div>
 
         <h1
@@ -216,7 +216,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
             margin: "0 0 24px",
           }}
         >
-          AI가 운영하는
+          Your AI-powered
           <br />
           <span
             style={{
@@ -225,7 +225,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
               WebkitTextFillColor: "transparent",
             }}
           >
-            나만의 기기 팀
+            device team
           </span>
         </h1>
 
@@ -238,9 +238,9 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
             margin: "0 auto 48px",
           }}
         >
-          여러 컴퓨터를 하나의 팀으로 묶으세요.
+          Connect multiple machines as one team.
           <br />
-          사장 AI가 작업을 알아서 분배하고, 결과를 가져옵니다.
+          The boss AI dispatches work automatically and brings back results.
         </p>
 
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
@@ -258,7 +258,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
               letterSpacing: "-0.01em",
             }}
           >
-            무료로 시작하기 →
+            Get started free →
           </a>
           <a
             href="/"
@@ -275,7 +275,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
               letterSpacing: "-0.01em",
             }}
           >
-            데모 보기
+            Watch demo
           </a>
         </div>
 
@@ -304,14 +304,14 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
             }}
           >
             <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#22c55e", display: "inline-block" }} />
-            <span style={{ color: "#f3f4f6", fontWeight: 600, fontSize: 13 }}>MUSU 팀 상태</span>
-            <span style={{ marginLeft: "auto", color: "#374151" }}>2대 활성</span>
+            <span style={{ color: "#f3f4f6", fontWeight: 600, fontSize: 13 }}>MUSU Team Status</span>
+            <span style={{ marginLeft: "auto", color: "#374151" }}>2 active</span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {[
-              { label: "Musu-A (사장)", note: "4060Ti Desktop", cpu: 48, gpu: 23, ram: 62, status: "online" },
+              { label: "Musu-A (Lead)", note: "4060Ti Desktop", cpu: 48, gpu: 23, ram: 62, status: "online" },
               { label: "Musu-B", note: "5070Ti Desktop", cpu: 72, gpu: 61, ram: 45, status: "busy" },
-              { label: "Musu-C", note: "노트북", cpu: 0, gpu: null, ram: 0, status: "offline" },
+              { label: "Musu-C", note: "Laptop", cpu: 0, gpu: null, ram: 0, status: "offline" },
             ].map((d) => (
               <div
                 key={d.label}
@@ -334,7 +334,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
                     CPU {d.cpu}% · GPU {d.gpu ?? "—"}% · RAM {d.ram}%
                   </span>
                 ) : (
-                  <span style={{ color: "#374151", fontSize: 11 }}>오프라인</span>
+                  <span style={{ color: "#374151", fontSize: 11 }}>Offline</span>
                 )}
               </div>
             ))}
@@ -359,7 +359,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
             marginBottom: 56,
           }}
         >
-          모든 기기를 하나의 팀으로
+          All your machines. One team.
         </h2>
         <div
           style={{
@@ -416,7 +416,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
             marginBottom: 12,
           }}
         >
-          심플한 가격
+          Simple pricing
         </h2>
         <p
           style={{
@@ -426,7 +426,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
             marginBottom: 48,
           }}
         >
-          베타 기간 중 첫 10명은 무료. 베타 종료 시 50% 할인 쿠폰 제공.
+          First 10 beta users are free. 50% off coupon when beta ends.
         </p>
         <div
           style={{
@@ -465,7 +465,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
                     whiteSpace: "nowrap",
                   }}
                 >
-                  가장 인기
+                  Most popular
                 </div>
               )}
               <div
@@ -562,9 +562,9 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
             lineHeight: 1.15,
           }}
         >
-          지금 시작하면
+          Start now,
           <br />
-          <span style={{ color: "var(--musu-color-brand-accent)" }}>베타 무료</span>
+          <span style={{ color: "var(--musu-color-brand-accent)" }}>free in beta</span>
         </h2>
         <p
           style={{
@@ -574,9 +574,9 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
             lineHeight: 1.6,
           }}
         >
-          첫 10명 베타 유저는 무료로 이용할 수 있습니다.
+          The first 10 beta users get full access for free.
           <br />
-          베타 종료 시 50% 할인 쿠폰이 제공됩니다.
+          A 50% discount coupon will be issued when beta ends.
         </p>
         <a
           href="/landing"
@@ -592,7 +592,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
             letterSpacing: "-0.02em",
           }}
         >
-          무료로 시작하기 →
+          Get started free →
         </a>
       </section>
 
@@ -610,7 +610,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
           <span style={{ fontSize: 16 }}>🐝</span>
           <span style={{ fontWeight: 700, color: "#4b5563" }}>MUSU</span>
         </div>
-        <p style={{ margin: 0 }}>© 2026 MUSU. 모든 기기를 하나의 팀으로.</p>
+        <p style={{ margin: 0 }}>© 2026 MUSU. All your machines. One team.</p>
       </footer>
     </div>
   );

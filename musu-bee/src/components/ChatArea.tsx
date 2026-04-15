@@ -174,7 +174,7 @@ function ApprovalCard({ text, onSend }: { text: string; onSend: (t: string) => v
       }}
     >
       <div style={{ fontSize: 13, fontWeight: 600, color: "#fbbf24" }}>
-        ⚠ 승인 필요
+        ⚠ Approval Required
       </div>
       <div style={{ fontSize: 13, color: "#d1d5db", lineHeight: 1.4 }}>
         {action}
@@ -199,7 +199,7 @@ function ApprovalCard({ text, onSend }: { text: string; onSend: (t: string) => v
             cursor: "pointer",
           }}
         >
-          ✅ 승인
+          ✅ Approve
         </button>
         <button
           onClick={handleReject}
@@ -215,7 +215,7 @@ function ApprovalCard({ text, onSend }: { text: string; onSend: (t: string) => v
             cursor: "pointer",
           }}
         >
-          ❌ 거부
+          ❌ Reject
         </button>
       </div>
     </div>
@@ -382,7 +382,7 @@ function MessageBubble({ msg, onSend, onApprovePlan, onRejectPlan }: { msg: Mess
 
   if (isSystem) {
     // Render approval card for APPROVAL_REQUIRED messages
-    if (msg.text.includes("⚠ **승인 필요**")) {
+    if (msg.text.includes("⚠ **Approval Required**")) {
       return <ApprovalCard text={msg.text} onSend={onSend} />;
     }
     return (
@@ -659,7 +659,7 @@ export default function ChatArea({
             }}
           >
             <button
-              onClick={() => onNodeChange("local")}
+              onClick={() => onNodeChange?.("local")}
               style={{
                 fontSize: 11,
                 fontWeight: 600,
@@ -675,7 +675,7 @@ export default function ChatArea({
               LOCAL
             </button>
             <button
-              onClick={() => onNodeChange("remote")}
+              onClick={() => onNodeChange?.("remote")}
               style={{
                 fontSize: 11,
                 fontWeight: 600,

@@ -34,6 +34,7 @@ async fn health_v02_reports_telemetry_fields() {
         data_root,
         state_db_path: db_path.clone(),
         runtime_context,
+        auth_token: None,
     };
 
     let server = tokio::spawn(async move {

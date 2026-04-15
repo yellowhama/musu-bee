@@ -37,11 +37,12 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
           <div>
             <div style={eyebrowStyle}>EARLY ACCESS</div>
             <h1 style={titleStyle}>
-              여러 대의 기기를 이미 굴리고 있다면, 이제 control plane이 필요하다.
+              If you&apos;re already running multiple machines, you need a control plane.
             </h1>
             <p style={leadStyle}>
-              MUSU early access는 “AI가 똑똑하다”는 얘기가 아니라, 이미 가진 기기와 AI 작업을
-              한 표면에서 운영하게 해주는 제품에 먼저 들어오는 것이다.
+              MUSU early access isn&apos;t about &quot;AI is smart.&quot; It&apos;s about getting
+              first access to a product that lets you operate your existing machines and AI workloads
+              from a single surface.
             </p>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 18 }}>
               {ICP_CHIPS.map((chip) => (
@@ -56,7 +57,7 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
             <div style={panelEyebrowStyle}>REQUEST ACCESS</div>
             <h2 style={panelTitleStyle}>Join the waitlist</h2>
             <p style={panelDescStyle}>
-              지금 단계의 올바른 CTA는 broad checkout이 아니라 proof-backed early access다.
+              At this stage, the right CTA is proof-backed early access, not a broad checkout.
             </p>
 
             <form action="/api/waitlist?from=/landing" method="post" style={formStyle}>
@@ -82,12 +83,12 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
             ) : null}
 
             {waitlistStatus === "invalid_email" ? (
-              <div style={errorStyle}>이메일 형식이 올바르지 않습니다. 다시 확인해주세요.</div>
+              <div style={errorStyle}>Invalid email format. Please check and try again.</div>
             ) : null}
 
             {waitlistStatus === "error" ? (
               <div style={errorStyle}>
-                지금은 대기자 명단에 등록할 수 없습니다. 잠시 후 다시 시도해주세요.
+                Unable to join the waitlist right now. Please try again in a moment.
               </div>
             ) : null}
 
@@ -104,10 +105,11 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
         <section style={{ marginTop: 56, display: "grid", gap: 18 }}>
           <div style={sectionCardStyle}>
             <div style={cardEyebrowStyle}>WHAT YOU ARE JOINING</div>
-            <h2 style={sectionTitleStyle}>현재 사이트는 약속보다 운영 surface를 먼저 보여줘야 한다.</h2>
+            <h2 style={sectionTitleStyle}>The site should show the operating surface before it makes promises.</h2>
             <p style={sectionDescStyle}>
-              MUSU의 현재 강점은 “무엇이 실시간으로 운영되고 있는지”에 가깝다. 그래서 early
-              access 페이지도 추상적 카피보다 기기, 상태, 설치, 접근 흐름을 먼저 설명해야 한다.
+              MUSU&apos;s current strength is showing &quot;what is running right now.&quot; So the early
+              access page should lead with devices, status, installation, and access flow — not
+              abstract copy.
             </p>
           </div>
 

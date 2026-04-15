@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useApp } from "@modelcontextprotocol/ext-apps/react";
-import { applyDocumentTheme } from "@modelcontextprotocol/ext-apps";
+import { applyDocumentTheme, applyHostStyleVariables } from "@modelcontextprotocol/ext-apps";
 
 interface BridgeTask {
   task_id: string;
@@ -84,7 +84,8 @@ export default function TasksView() {
       };
       // host 테마 적용 (Claude dark/light 자동 반영)
       app.onhostcontextchanged = (ctx) => {
-        if (ctx.styles) applyDocumentTheme(ctx.styles);
+        if (ctx.theme) applyDocumentTheme(ctx.theme);
+        if (ctx.styles?.variables) applyHostStyleVariables(ctx.styles.variables);
       };
     },
   });

@@ -12,10 +12,10 @@ export default function InstallPage() {
     <PublicSiteShell>
       <main style={{ maxWidth: 960, margin: "0 auto", padding: "80px 24px 96px" }}>
         <div style={eyebrowStyle}>INSTALL</div>
-        <h1 style={titleStyle}>기기를 MUSU에 연결하는 가장 빠른 방법</h1>
+        <h1 style={titleStyle}>The fastest way to connect a machine to MUSU</h1>
         <p style={descStyle}>
-          현재 제품 공개면에서 가장 설득력 있는 install story는 단순해야 한다. 기기에 port를
-          설치하고, 상태를 올리고, control plane에서 그 기기를 보는 흐름이다.
+          The most compelling install story on the public site should be simple: install port on the
+          device, bring it online, and see it appear in the control plane.
         </p>
 
         <div style={{ display: "grid", gap: 18, marginTop: 32 }}>

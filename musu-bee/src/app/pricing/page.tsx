@@ -23,32 +23,31 @@ export default async function PricingPage({ searchParams }: PageProps) {
     <PublicSiteShell>
       <main style={{ maxWidth: 1080, margin: "0 auto", padding: "80px 24px 96px" }}>
         <div style={eyebrowStyle}>PRICING AND ACCESS</div>
-        <h1 style={titleStyle}>가격보다 먼저, 어떤 운영 문제를 푸는지 설명해야 한다.</h1>
+        <h1 style={titleStyle}>Before price, explain what operational problem this solves.</h1>
         <p style={descStyle}>
-          MUSU pricing page는 단순히 결제 버튼을 보여주는 곳이 아니라, 누가 어떤 상태에서 어떤
-          접근 경로를 선택해야 하는지 설명하는 곳이어야 한다.
+          The MUSU pricing page is not just a place to show a checkout button — it should explain
+          who should choose which access path, and why.
         </p>
 
         {isSuccess && (
           <div style={successBannerStyle}>
-            결제가 완료되었습니다. MUSU {params.tier?.toUpperCase() ?? "PRO"} 플랜이
-            활성화되었습니다.
+            Payment complete. Your MUSU {params.tier?.toUpperCase() ?? "PRO"} plan is now active.
           </div>
         )}
         {isCancelled && (
           <div style={errorBannerStyle}>
-            결제가 취소되었습니다. 접근이 준비되면 언제든 다시 시도할 수 있습니다.
+            Payment cancelled. You can try again whenever you&apos;re ready.
           </div>
         )}
 
         <section style={{ marginTop: 32, display: "grid", gap: 18 }}>
           <div style={contextCardStyle}>
             <div style={cardEyebrowStyle}>HONEST STATE</div>
-            <h2 style={sectionTitleStyle}>현재 public site의 기본 경로는 waitlist 중심이 맞다.</h2>
+            <h2 style={sectionTitleStyle}>The primary path on the public site should be waitlist-first.</h2>
             <p style={sectionDescStyle}>
-              현재 pricing은 존재하지만 broad paid acquisition보다 early access와 beta
-              honesty가 더 중요하다. 따라서 pricing 페이지는 “지금 결제하라”보다 “어떤 사용자가
-              어떤 플랜에 맞는지”를 먼저 설명해야 한다.
+              Pricing exists, but early access and beta honesty matter more than broad paid
+              acquisition right now. This page should explain &quot;who fits which plan&quot; before
+              it says &quot;pay now.&quot;
             </p>
             <div style={{ marginTop: 18, display: "flex", gap: 12, flexWrap: "wrap" }}>
               <Link href="/landing" style={primaryButtonStyle}>
@@ -106,24 +105,24 @@ export default async function PricingPage({ searchParams }: PageProps) {
           <div style={gridStyle}>
             <article style={infoCardStyle}>
               <div style={cardEyebrowStyle}>WHO IS PRO FOR</div>
-              <h3 style={infoTitleStyle}>개인 개발기 + GPU 박스를 운영하는 사람</h3>
+              <h3 style={infoTitleStyle}>Running a dev machine + GPU box on your own</h3>
               <p style={infoDescStyle}>
-                개인 환경이지만 이미 여러 머신을 운영 중이라면 Pro가 기본 프레임이다.
+                If you already operate multiple machines solo, Pro is the right frame.
               </p>
             </article>
             <article style={infoCardStyle}>
               <div style={cardEyebrowStyle}>WHO IS TEAM FOR</div>
-              <h3 style={infoTitleStyle}>작은 팀이 여러 머신을 같이 쓰는 경우</h3>
+              <h3 style={infoTitleStyle}>A small team sharing a fleet of machines</h3>
               <p style={infoDescStyle}>
-                팀 멤버와 기기 fleet을 공유해야 할 때 Team framing이 맞다.
+                When you need to share devices and workloads with teammates, Team is the right fit.
               </p>
             </article>
             <article style={infoCardStyle}>
               <div style={cardEyebrowStyle}>WHAT NOT TO DO</div>
-              <h3 style={infoTitleStyle}>과장된 enterprise promise</h3>
+              <h3 style={infoTitleStyle}>Overstated enterprise promises</h3>
               <p style={infoDescStyle}>
-                명시적 security/privacy proof가 생기기 전까지 enterprise-grade promise는 세게
-                밀지 않는 것이 정직하다.
+                Until explicit security and privacy proof exists, it&apos;s more honest not to push
+                enterprise-grade claims hard.
               </p>
             </article>
           </div>

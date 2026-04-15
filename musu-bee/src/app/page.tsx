@@ -25,7 +25,7 @@ export default function LandingPage() {
           Your machines.<br />Your AI team.<br />One chat.
         </h1>
         <p style={{ fontSize: 16, opacity: 0.5, letterSpacing: "-0.01em", margin: "0 0 20px" }}>
-          여러 대 컴퓨터의 AI가 팀으로 일하는 업무 메신저
+          A work messenger where AIs across multiple machines work as a team
         </p>
         <p style={{ fontSize: 18, opacity: 0.65, lineHeight: 1.6, maxWidth: 560, margin: "0 auto 40px" }}>
           4060Ti runs Claude. 5070Ti runs Qwen. If one machine goes down, another takes over.

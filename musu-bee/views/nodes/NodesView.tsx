@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useApp } from "@modelcontextprotocol/ext-apps/react";
-import { applyDocumentTheme } from "@modelcontextprotocol/ext-apps";
+import { applyDocumentTheme, applyHostStyleVariables } from "@modelcontextprotocol/ext-apps";
 
 interface MeshNode {
   node_id: string;
@@ -32,7 +32,8 @@ export default function NodesView() {
         }
       };
       app.onhostcontextchanged = (ctx) => {
-        if (ctx.styles) applyDocumentTheme(ctx.styles);
+        if (ctx.theme) applyDocumentTheme(ctx.theme);
+        if (ctx.styles?.variables) applyHostStyleVariables(ctx.styles.variables);
       };
     },
   });

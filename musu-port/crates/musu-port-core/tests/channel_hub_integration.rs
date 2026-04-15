@@ -143,6 +143,7 @@ fn spawn_port_manager(
         state_db_path: db_path.to_path_buf(),
         runtime_context,
         peer_urls: vec![],
+        auth_token: None,
     };
     tokio::spawn(async move {
         let _ = run_server(config).await;

@@ -34,6 +34,44 @@ in_progress
 # Misc
 새 텍스트 문서.txt
 
+# 임시 디버그 스크립트 (루트)
+tmp_*.ts
+fix_*.ts
+check_*.ts
+check_*.py
+patch_*.py
+update_*.ts
+trigger_*.ts
+repair_*.ts
+rebind_*.ts
+audit_linkage.ts
+coherence_report.*
+filter_issue*.py
+ingest-wiki.mjs
+heartbeat.ts.patched
+
+# QA / 로그 아티팩트
+.qa-g2-*.log
+.qa-m*.log
+qa-artifacts/
+.qa-artifacts/
+.mus*_latest_evid
+
+# 세션 로그
+*_stderr.log
+*_stdout.log
+scripts/opencode-session-archive.log
+scripts/qwen-tagger.log
+scripts/auto-index.log
+
+# DB 락 파일
+*.db-shm
+
+# Build caches
+musu-bee/.next_bak_*/
+musu-bee/.tmp/
+musu-bee/.vercel/
+
 # Large reference dirs
 MUSU-AS-MCP/references/
 MUSU-AS-MCP/__pycache__/
