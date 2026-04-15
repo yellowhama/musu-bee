@@ -12,7 +12,7 @@
 ///   Remote QUIC client → QUIC server → POST http://127.0.0.1:8070/api/route → response
 use std::net::SocketAddr;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::time::{Duration, Instant};
 
 use axum::{Json, Router, extract::State, http::StatusCode, routing::get, routing::post};
@@ -56,6 +56,7 @@ fn default_version() -> u8 { 1 }
 // ── Connection pool ───────────────────────────────────────────────────────────
 
 type ConnPool = Arc<DashMap<SocketAddr, (quinn::Connection, Instant)>>;
+type FingerprintCache = Arc<DashMap<SocketAddr, String>>;
 
 const CONN_IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 
@@ -69,9 +70,15 @@ struct ProxyState {
     client_endpoint: Arc<Endpoint>,
     /// Connection pool: reuse open QUIC connections per remote addr
     conn_pool: ConnPool,
+    /// Fingerprint cache: addr → expected SHA-256 fingerprint from musu.pro
+    fingerprint_cache: FingerprintCache,
+    /// musu.pro bearer token (MUSU_TOKEN env — for fetching peer fingerprints)
+    musu_token: Option<String>,
+    /// musu.pro nodes list URL (default: https://musu.pro/api/v1/nodes)
+    nodes_url: String,
 }
 
-// ── TLS: no-verify client (Phase 2 — encryption only, no peer auth) ──────────
+// ── TLS: no-verify client (fallback — used when fingerprint is unknown) ───────
 
 #[derive(Debug)]
 struct NoVerifier;
@@ -116,6 +123,81 @@ impl ServerCertVerifier for NoVerifier {
             SignatureScheme::ED25519,
         ]
     }
+}
+
+// ── TLS: fingerprint verifier (Phase 4 — actual peer authentication) ─────────
+
+/// Verifies the peer's TLS certificate by SHA-256 fingerprint.
+/// Populated from musu.pro /api/v1/nodes response.
+#[derive(Debug)]
+struct FingerprintVerifier {
+    expected: String,  // "ab:cd:ef:..." colon-separated hex
+}
+
+impl ServerCertVerifier for FingerprintVerifier {
+    fn verify_server_cert(
+        &self,
+        end_entity: &CertificateDer<'_>,
+        _intermediates: &[CertificateDer<'_>],
+        _server_name: &ServerName<'_>,
+        _ocsp_response: &[u8],
+        _now: UnixTime,
+    ) -> Result<ServerCertVerified, TlsError> {
+        let actual = cert_fingerprint(end_entity);
+        if actual == self.expected {
+            Ok(ServerCertVerified::assertion())
+        } else {
+            eprintln!(
+                "[bridge-proxy] fingerprint mismatch — expected={} actual={}",
+                self.expected, actual
+            );
+            Err(TlsError::InvalidCertificate(
+                rustls::CertificateError::ApplicationVerificationFailure,
+            ))
+        }
+    }
+
+    fn verify_tls12_signature(
+        &self,
+        _message: &[u8],
+        _cert: &CertificateDer<'_>,
+        _dss: &DigitallySignedStruct,
+    ) -> Result<HandshakeSignatureValid, TlsError> {
+        Ok(HandshakeSignatureValid::assertion())
+    }
+
+    fn verify_tls13_signature(
+        &self,
+        _message: &[u8],
+        _cert: &CertificateDer<'_>,
+        _dss: &DigitallySignedStruct,
+    ) -> Result<HandshakeSignatureValid, TlsError> {
+        Ok(HandshakeSignatureValid::assertion())
+    }
+
+    fn supported_verify_schemes(&self) -> Vec<SignatureScheme> {
+        vec![
+            SignatureScheme::RSA_PKCS1_SHA256,
+            SignatureScheme::RSA_PKCS1_SHA384,
+            SignatureScheme::RSA_PKCS1_SHA512,
+            SignatureScheme::ECDSA_NISTP256_SHA256,
+            SignatureScheme::ECDSA_NISTP384_SHA384,
+            SignatureScheme::ED25519,
+        ]
+    }
+}
+
+// ── Static HTTP client (shared across all bridge calls) ───────────────────────
+
+static HTTP_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+
+fn get_http_client() -> &'static reqwest::Client {
+    HTTP_CLIENT.get_or_init(|| {
+        reqwest::Client::builder()
+            .timeout(Duration::from_secs(300))
+            .build()
+            .expect("failed to build static HTTP client")
+    })
 }
 
 // ── TLS helpers ───────────────────────────────────────────────────────────────
@@ -187,16 +269,81 @@ fn make_server_config(cert_der: CertificateDer<'static>, key_der: PrivateKeyDer<
 }
 
 fn make_client_endpoint() -> Result<Endpoint, Box<dyn std::error::Error>> {
-    let mut tls = rustls::ClientConfig::builder()
-        .dangerous()
-        .with_custom_certificate_verifier(Arc::new(NoVerifier))
-        .with_no_client_auth();
-    tls.alpn_protocols = vec![b"musu/1".to_vec()];
+    let tls = make_noverify_tls()?;
     let quic_cfg = QuicClientConfig::try_from(tls)?;
     let client_cfg = ClientConfig::new(Arc::new(quic_cfg));
     let mut endpoint = Endpoint::client("0.0.0.0:0".parse()?)?;
     endpoint.set_default_client_config(client_cfg);
     Ok(endpoint)
+}
+
+fn make_noverify_tls() -> Result<rustls::ClientConfig, Box<dyn std::error::Error>> {
+    let mut tls = rustls::ClientConfig::builder()
+        .dangerous()
+        .with_custom_certificate_verifier(Arc::new(NoVerifier))
+        .with_no_client_auth();
+    tls.alpn_protocols = vec![b"musu/1".to_vec()];
+    Ok(tls)
+}
+
+fn make_fingerprint_tls(expected_fp: &str) -> Result<rustls::ClientConfig, Box<dyn std::error::Error>> {
+    let mut tls = rustls::ClientConfig::builder()
+        .dangerous()
+        .with_custom_certificate_verifier(Arc::new(FingerprintVerifier {
+            expected: expected_fp.to_string(),
+        }))
+        .with_no_client_auth();
+    tls.alpn_protocols = vec![b"musu/1".to_vec()];
+    Ok(tls)
+}
+
+fn make_client_config_from_tls(tls: rustls::ClientConfig) -> Result<ClientConfig, Box<dyn std::error::Error>> {
+    let quic_cfg = QuicClientConfig::try_from(tls)?;
+    Ok(ClientConfig::new(Arc::new(quic_cfg)))
+}
+
+// ── Fingerprint resolution ────────────────────────────────────────────────────
+
+/// Fetch the expected fingerprint for a remote QUIC addr from musu.pro.
+/// Returns None if token missing, network error, or no matching node.
+async fn fetch_fingerprint(
+    token: &str,
+    nodes_url: &str,
+    target: SocketAddr,
+) -> Option<String> {
+    let client = get_http_client();
+    let resp = client
+        .get(nodes_url)
+        .header("Authorization", format!("Bearer {token}"))
+        .send()
+        .await
+        .ok()?;
+
+    if !resp.status().is_success() {
+        eprintln!("[bridge-proxy] fetch_fingerprint: musu.pro returned {}", resp.status());
+        return None;
+    }
+
+    let json: serde_json::Value = resp.json().await.ok()?;
+    // API may return list or {"nodes": [...]}
+    let nodes = if json.is_array() {
+        json.as_array()?.clone()
+    } else {
+        json.get("nodes")?.as_array()?.clone()
+    };
+
+    let target_ip = target.ip().to_string();
+    for node in &nodes {
+        let public_url = node.get("public_url")?.as_str()?;
+        let node_host = extract_host(public_url)?;
+        if node_host == target_ip {
+            let fp = node.get("cert_fingerprint")?.as_str()?;
+            if !fp.is_empty() {
+                return Some(fp.to_string());
+            }
+        }
+    }
+    None
 }
 
 // ── QUIC send helpers ─────────────────────────────────────────────────────────
@@ -220,11 +367,14 @@ async fn try_send_on_conn(
     serde_json::from_slice(&data).map_err(|e| format!("json parse: {e}"))
 }
 
-/// Send a QUIC frame, reusing an existing pooled connection when available.
-/// Falls back to a new connection on pool miss or stale connection.
+/// Send a QUIC frame, reusing a pooled connection when available.
+/// New connections use fingerprint verification if musu.pro token + fingerprint available.
 async fn quic_send_pooled(
     endpoint: &Endpoint,
     pool: &DashMap<SocketAddr, (quinn::Connection, Instant)>,
+    fingerprint_cache: &DashMap<SocketAddr, String>,
+    musu_token: &Option<String>,
+    nodes_url: &str,
     remote_addr: SocketAddr,
     frame: &QuicFrame,
 ) -> Result<serde_json::Value, String> {
@@ -237,9 +387,11 @@ async fn quic_send_pooled(
             match try_send_on_conn(conn, frame).await {
                 Ok(val) => {
                     drop(entry);
-                    if let Some(mut e) = pool.get_mut(&remote_addr) {
-                        e.value_mut().1 = Instant::now();
-                    }
+                    // Atomic timestamp update — no TOCTOU race
+                    pool.alter(&remote_addr, |_, mut item| {
+                        item.1 = Instant::now();
+                        item
+                    });
                     eprintln!("[quic-proxy] reusing connection to {}", remote_addr);
                     return Ok(val);
                 }
@@ -251,17 +403,92 @@ async fn quic_send_pooled(
     }
     pool.remove(&remote_addr);
 
-    // Open a new connection and cache it
+    // Resolve fingerprint for new connection
     eprintln!("[quic-proxy] new connection to {}", remote_addr);
-    let conn = endpoint
-        .connect(remote_addr, "musu-peer")
-        .map_err(|e| format!("connect error: {e}"))?
-        .await
-        .map_err(|e| format!("connection failed: {e}"))?;
+    let conn = match resolve_peer_config(
+        fingerprint_cache,
+        musu_token,
+        nodes_url,
+        remote_addr,
+        endpoint,
+    )
+    .await
+    {
+        Ok(c) => c,
+        Err(e) => return Err(format!("connection failed: {e}")),
+    };
 
     let val = try_send_on_conn(&conn, frame).await?;
     pool.insert(remote_addr, (conn, Instant::now()));
     Ok(val)
+}
+
+/// Establish a new QUIC connection to remote_addr, using fingerprint if available.
+async fn resolve_peer_config(
+    fingerprint_cache: &DashMap<SocketAddr, String>,
+    musu_token: &Option<String>,
+    nodes_url: &str,
+    remote_addr: SocketAddr,
+    endpoint: &Endpoint,
+) -> Result<quinn::Connection, String> {
+    // 1. Check cache
+    let fp = if let Some(cached) = fingerprint_cache.get(&remote_addr) {
+        Some(cached.value().clone())
+    } else if let Some(token) = musu_token {
+        // 2. Try fetching from musu.pro
+        let fetched = fetch_fingerprint(token, nodes_url, remote_addr).await;
+        if let Some(ref fp) = fetched {
+            fingerprint_cache.insert(remote_addr, fp.clone());
+            eprintln!("[quic-proxy] fingerprint resolved for {} → {}", remote_addr, fp);
+        }
+        fetched
+    } else {
+        None
+    };
+
+    let conn = if let Some(ref expected_fp) = fp {
+        // Use fingerprint verifier
+        let tls = make_fingerprint_tls(expected_fp)
+            .map_err(|e| format!("tls config error: {e}"))?;
+        let cfg = make_client_config_from_tls(tls)
+            .map_err(|e| format!("client config error: {e}"))?;
+        endpoint
+            .connect_with(cfg, remote_addr, "musu-peer")
+            .map_err(|e| format!("connect error: {e}"))?
+            .await
+            .map_err(|e| {
+                eprintln!("[quic-proxy] fingerprint mismatch or connection refused for {}", remote_addr);
+                format!("connection failed: {e}")
+            })?
+    } else {
+        // Fallback: NoVerifier (no token or no fingerprint registered yet)
+        eprintln!("[quic-proxy] WARN: no fingerprint for {} — connecting without peer auth", remote_addr);
+        endpoint
+            .connect(remote_addr, "musu-peer")
+            .map_err(|e| format!("connect error: {e}"))?
+            .await
+            .map_err(|e| format!("connection failed: {e}"))?
+    };
+
+    Ok(conn)
+}
+
+// ── Connection pool cleanup ───────────────────────────────────────────────────
+
+/// Background task: prune stale/closed connections from the pool every 30s.
+async fn cleanup_pool_loop(pool: ConnPool) {
+    let mut interval = tokio::time::interval(Duration::from_secs(30));
+    loop {
+        interval.tick().await;
+        let before = pool.len();
+        pool.retain(|_, (conn, last_used)| {
+            conn.close_reason().is_none() && last_used.elapsed() < CONN_IDLE_TIMEOUT
+        });
+        let removed = before.saturating_sub(pool.len());
+        if removed > 0 {
+            eprintln!("[quic-proxy] pool cleanup: removed {} stale connection(s)", removed);
+        }
+    }
 }
 
 // ── QUIC inbound (remote peer → local bridge) ─────────────────────────────────
@@ -315,20 +542,20 @@ async fn handle_quic_connection(conn: quinn::Connection, bridge_url: Arc<String>
                 }
             };
 
-            let out = serde_json::to_vec(&response_json).unwrap_or_default();
-            let _ = send.write_all(&out).await;
-            let _ = send.finish();
+            let out = serde_json::to_vec(&response_json).unwrap_or_else(|_| b"{}".to_vec());
+            if let Err(e) = send.write_all(&out).await {
+                eprintln!("[quic-server] write error: {e}");
+                return;
+            }
+            if let Err(e) = send.finish() {
+                eprintln!("[quic-server] finish error: {e}");
+            }
         });
     }
 }
 
 async fn call_local_bridge(url: &str, body: serde_json::Value) -> Result<serde_json::Value, String> {
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(300))
-        .build()
-        .map_err(|e| e.to_string())?;
-
-    let resp = client
+    let resp = get_http_client()
         .post(url)
         .json(&body)
         .send()
@@ -376,9 +603,17 @@ async fn handle_forward(
         version: 1,
     };
 
-    let response = quic_send_pooled(&state.client_endpoint, &state.conn_pool, remote_addr, &frame)
-        .await
-        .map_err(|e| (StatusCode::BAD_GATEWAY, format!("quic error: {e}")))?;
+    let response = quic_send_pooled(
+        &state.client_endpoint,
+        &state.conn_pool,
+        &state.fingerprint_cache,
+        &state.musu_token,
+        &state.nodes_url,
+        remote_addr,
+        &frame,
+    )
+    .await
+    .map_err(|e| (StatusCode::BAD_GATEWAY, format!("quic error: {e}")))?;
 
     eprintln!("[quic-proxy] response received from {}", remote_addr);
     Ok(Json(response))
@@ -409,7 +644,7 @@ pub async fn run_bridge_proxy(
     bridge_url: String,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // 1. Load or generate persistent TLS cert (stable fingerprint across restarts)
-    let (cert_der, key_der) = load_or_gen_cert()?;
+    let (cert_der, _key_der) = load_or_gen_cert()?;
 
     // 2. Compute and publish fingerprint
     let fingerprint = cert_fingerprint(&cert_der);
@@ -427,14 +662,28 @@ pub async fn run_bridge_proxy(
     // 4. QUIC client endpoint (shared, reuses one UDP socket)
     let client_endpoint = make_client_endpoint()?;
 
-    // 5. Shared state (includes connection pool)
+    // 5. Read musu.pro token + nodes URL from env
+    let musu_token = std::env::var("MUSU_TOKEN").ok().filter(|t| !t.is_empty());
+    let nodes_url = std::env::var("MUSU_NODES_URL")
+        .unwrap_or_else(|_| "https://musu.pro/api/v1/nodes".to_string());
+    if musu_token.is_some() {
+        eprintln!("[bridge-proxy] MUSU_TOKEN present — fingerprint verification enabled");
+    } else {
+        eprintln!("[bridge-proxy] WARN: MUSU_TOKEN not set — fingerprint verification disabled");
+    }
+
+    // 6. Shared state
+    let conn_pool: ConnPool = Arc::new(DashMap::new());
     let state = ProxyState {
         quic_port,
         client_endpoint: Arc::new(client_endpoint),
-        conn_pool: Arc::new(DashMap::new()),
+        conn_pool: conn_pool.clone(),
+        fingerprint_cache: Arc::new(DashMap::new()),
+        musu_token,
+        nodes_url,
     };
 
-    // 6. HTTP server
+    // 7. HTTP server
     let http_addr: SocketAddr = format!("127.0.0.1:{http_port}").parse()?;
     let app = Router::new()
         .route("/forward", post(handle_forward))
@@ -444,8 +693,10 @@ pub async fn run_bridge_proxy(
     eprintln!("[bridge-proxy] HTTP proxy listening on http://{http_addr}");
     eprintln!("[bridge-proxy] bridge-url = {bridge_url}");
 
-    // 7. Run QUIC server accept loop + HTTP server concurrently.
-    // tokio::select! cancels the other branch when one completes, so both exit together.
+    // 8. Background pool cleanup
+    tokio::spawn(cleanup_pool_loop(conn_pool));
+
+    // 9. Run QUIC server accept loop + HTTP server concurrently.
     let bridge_url_arc = Arc::new(bridge_url);
     tokio::select! {
         _ = run_quic_accept_loop(server_endpoint, bridge_url_arc) => {

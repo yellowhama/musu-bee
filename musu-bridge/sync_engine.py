@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import json
 import logging
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING
+from urllib.parse import urlparse
 
 import httpx
 
@@ -40,6 +42,37 @@ def _save_state(state: dict) -> None:
 
 
 _MAX_CONSECUTIVE_FAILURES = 5  # back-off after this many consecutive 4xx/5xx per peer
+
+# RFC 1918 + link-local ranges — never pull from these as peer URLs
+_PRIVATE_NETWORKS = [
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("127.0.0.0/8"),
+    ipaddress.ip_network("169.254.0.0/16"),
+    ipaddress.ip_network("::1/128"),
+    ipaddress.ip_network("fc00::/7"),
+]
+
+
+def _is_safe_peer_url(url: str) -> bool:
+    """Return True if peer_url is safe to pull from (not a private/loopback address).
+
+    Hostnames are allowed (trusted from nodes.toml / musu.pro registry).
+    IP literals are checked against RFC 1918 and link-local ranges.
+    """
+    try:
+        host = urlparse(url).hostname or ""
+    except Exception:
+        return False
+    if not host:
+        return False
+    try:
+        ip = ipaddress.ip_address(host)
+        return not any(ip in net for net in _PRIVATE_NETWORKS)
+    except ValueError:
+        # Not an IP literal — it's a hostname; trust it
+        return True
 
 class SyncEngine:
     """Periodically pulls company records and message history from peer nodes.
@@ -94,6 +127,9 @@ class SyncEngine:
                     logger.debug("sync_engine: skipping %s (backoff, %d failures)", node_url, failures)
                     self._failures[node_url] = failures + 1
                     continue
+            if not _is_safe_peer_url(node_url):
+                logger.warning("sync_engine: skipping unsafe peer url: %s", node_url)
+                continue
             try:
                 await self._pull_from(node_url)
                 self._failures[node_url] = 0  # reset on success
