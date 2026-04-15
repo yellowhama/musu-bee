@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { useMusuConfig } from "../shared/useMusuConfig";
-import { authHeaders } from "../shared/api";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { useApp } from "@modelcontextprotocol/ext-apps/react";
+import { applyDocumentTheme } from "@modelcontextprotocol/ext-apps";
 
 interface MeshNode {
   node_id: string;
@@ -10,35 +10,60 @@ interface MeshNode {
   agent_count?: number;
 }
 
+const POLL_INTERVAL_MS = 10000;
+
 export default function NodesView() {
-  const config = useMusuConfig();
   const [nodes, setNodes] = useState<MeshNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchNodes = async () => {
-      try {
-        const res = await fetch(`${config.bridgeUrl}/api/admin/nodes`, {
-          headers: authHeaders(config),
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data: unknown = await res.json();
-        const list = Array.isArray(data)
-          ? (data as MeshNode[])
-          : ((data as { nodes?: MeshNode[] }).nodes ?? []);
-        setNodes(list);
+  const mountedRef = useRef(true);
+
+  const { app, isConnected, error: appError } = useApp({
+    appInfo: { name: "MUSU Nodes", version: "1.0.0" },
+    capabilities: {},
+    onAppCreated: (app) => {
+      app.ontoolresult = (result) => {
+        const sc = result.structuredContent as { nodes?: MeshNode[] } | null;
+        if (sc?.nodes && mountedRef.current) {
+          setNodes(sc.nodes);
+          setError(null);
+          setLoading(false);
+        }
+      };
+      app.onhostcontextchanged = (ctx) => {
+        if (ctx.styles) applyDocumentTheme(ctx.styles);
+      };
+    },
+  });
+
+  const pollNodes = useCallback(async () => {
+    if (!app) return;
+    try {
+      const result = await app.callServerTool({ name: "poll_agents", arguments: {} });
+      const sc = result.structuredContent as { nodes?: MeshNode[] } | null;
+      if (sc?.nodes && mountedRef.current) {
+        setNodes(sc.nodes);
         setError(null);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to load nodes");
-      } finally {
         setLoading(false);
       }
+    } catch {
+      if (mountedRef.current) setError("poll failed");
+    }
+  }, [app]);
+
+  useEffect(() => {
+    if (!app || !isConnected) return;
+    mountedRef.current = true;
+    void pollNodes();
+    const id = setInterval(() => void pollNodes(), POLL_INTERVAL_MS);
+    return () => {
+      mountedRef.current = false;
+      clearInterval(id);
     };
-    void fetchNodes();
-    const interval = setInterval(() => void fetchNodes(), 10000);
-    return () => clearInterval(interval);
-  }, [config]);
+  }, [app, isConnected, pollNodes]);
+
+  const showAppError = !isConnected && appError;
 
   return (
     <div
@@ -74,25 +99,40 @@ export default function NodesView() {
         >
           {nodes.length} nodes
         </span>
+        <div style={{ flex: 1 }} />
+        <span
+          style={{
+            fontSize: 11,
+            color: isConnected ? "#22c55e" : "#6b7280",
+          }}
+        >
+          {isConnected ? "● live" : "○ connecting…"}
+        </span>
       </div>
 
       <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
-        {loading && (
+        {showAppError && (
+          <p style={{ color: "#f87171", fontSize: 13, padding: "20px 8px" }}>
+            Connection failed: {appError.message}
+          </p>
+        )}
+        {!showAppError && loading && (
           <p style={{ color: "#6b7280", fontSize: 13, padding: "20px 8px" }}>
             Loading…
           </p>
         )}
-        {!loading && error && (
+        {!showAppError && !loading && error && (
           <p style={{ color: "#f87171", fontSize: 13, padding: "20px 8px" }}>
             {error}
           </p>
         )}
-        {!loading && !error && nodes.length === 0 && (
+        {!showAppError && !loading && !error && nodes.length === 0 && (
           <p style={{ color: "#4b5563", fontSize: 13, padding: "20px 8px" }}>
             No nodes registered.
           </p>
         )}
-        {!loading &&
+        {!showAppError &&
+          !loading &&
           !error &&
           nodes.map((node) => (
             <div
@@ -113,6 +153,7 @@ export default function NodesView() {
                     borderRadius: "50%",
                     background: node.healthy ? "#22c55e" : "#4b5563",
                     flexShrink: 0,
+                    display: "inline-block",
                   }}
                 />
                 <span style={{ fontSize: 13, color: "#f3f4f6", fontWeight: 500 }}>

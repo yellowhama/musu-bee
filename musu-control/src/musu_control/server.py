@@ -1095,70 +1095,57 @@ async def cancel_task(task_id: str) -> str:
 
 
 # ──────────────────────────────────────────────
-# MCP Apps — 인터랙티브 UI 뷰 (Phase 17A)
-# 기존 텍스트 툴과 공존. _view 접미사로 구분.
+# MCP Apps — 인터랙티브 UI 뷰 (Phase 17R, 공식 ext-apps 스펙)
+# SEP-1865 Stable 2026-01-26 기준
+# 기존 텍스트 툴과 공존. _view / poll_ 접미사로 구분.
 # ──────────────────────────────────────────────
 
-_CDN = "https://mcp-views.chukai.io"
 _VIEWS_DIST = pathlib.Path(__file__).parents[3] / "musu-bee/views/dist"
+_UI_MIME = "text/html;profile=mcp-app"
 
 
-async def _cdn_html(view: str) -> str:
-    """CDN HTML 가져오기 (로컬 dist 우선, fallback CDN)."""
-    local = _VIEWS_DIST / f"{view}/index.html"
-    if local.exists():
-        return local.read_text(encoding="utf-8")
-    async with httpx.AsyncClient(timeout=15.0) as c:
-        r = await c.get(f"{_CDN}/{view}/v1")
-        r.raise_for_status()
-        return r.text
+def _read_view_html(view: str) -> str:
+    """로컬 dist에서 standalone HTML 읽기."""
+    html_path = _VIEWS_DIST / f"{view}/index.html"
+    if html_path.exists():
+        return html_path.read_text(encoding="utf-8")
+    return f"<!DOCTYPE html><html><body><p>View not built: run <code>npm run build:{view}</code> in musu-bee/views/</p></body></html>"
 
 
-# ── resources ──────────────────────────────────
+# ── resources (mimeType: text/html;profile=mcp-app) ────────────
 
-@mcp.resource("ui://musu-control/tasks")
+@mcp.resource("ui://musu-control/tasks", mime_type=_UI_MIME)
 async def _res_tasks() -> str:
-    return await _cdn_html("datatable")
+    return _read_view_html("tasks")
 
 
-@mcp.resource("ui://musu-control/task-detail")
+@mcp.resource("ui://musu-control/task-detail", mime_type=_UI_MIME)
 async def _res_task_detail() -> str:
-    return await _cdn_html("status")
+    return _read_view_html("tasks")
 
 
-@mcp.resource("ui://musu-control/agents")
+@mcp.resource("ui://musu-control/agents", mime_type=_UI_MIME)
 async def _res_agents() -> str:
-    return await _cdn_html("datatable")
+    return _read_view_html("nodes")
 
 
-@mcp.resource("ui://musu-control/activity")
+@mcp.resource("ui://musu-control/activity", mime_type=_UI_MIME)
 async def _res_activity() -> str:
-    return await _cdn_html("log")
+    return _read_view_html("tasks")
 
 
-@mcp.resource("ui://musu-control/costs")
+@mcp.resource("ui://musu-control/costs", mime_type=_UI_MIME)
 async def _res_costs() -> str:
-    return await _cdn_html("chart")
+    return _read_view_html("tasks")
 
 
-# ── view tools ─────────────────────────────────
+# ── 공통 데이터 fetch 헬퍼 ───────────────────────
 
-@mcp.tool(meta={"ui": {
-    "resourceUri": "ui://musu-control/tasks",
-    "viewUrl": f"{_CDN}/datatable/v1",
-}})
-async def show_tasks_view(
-    status: str | None = None,
-    channel: str | None = None,
-    limit: int = 20,
-) -> CallToolResult:
-    """위임 태스크를 인터랙티브 테이블로 표시.
-
-    Args:
-        status: 필터 — pending | running | done | failed (생략 시 전체)
-        channel: 에이전트 채널명 필터
-        limit: 최대 표시 개수 (기본 20)
-    """
+async def _fetch_tasks(
+    status: str | None,
+    channel: str | None,
+    limit: int,
+) -> list[dict[str, Any]]:
     try:
         params: dict[str, Any] = {"limit": limit}
         if status:
@@ -1169,41 +1156,45 @@ async def show_tasks_view(
             resp = await c.get(f"{_MUSU_BRIDGE_URL}/api/tasks", params=params)
             resp.raise_for_status()
             raw = resp.json()
-        tasks = raw if isinstance(raw, list) else raw.get("tasks", [])
+        return raw if isinstance(raw, list) else raw.get("tasks", [])
     except Exception:
-        tasks = []
+        return []
 
-    rows = [{
-        "id": str(t.get("task_id", ""))[:8] + "…",
-        "status": t.get("status", ""),
-        "channel": t.get("channel", ""),
-        "summary": str(t.get("summary") or "")[:80],
-        "created": str(t.get("created_at", ""))[:16],
-    } for t in tasks]
 
+async def _fetch_agents() -> list[dict[str, Any]]:
+    try:
+        c = _get_client()
+        data = await c.get(f"/companies/{c.company_id}/agents")
+        return data if isinstance(data, list) else []
+    except Exception:
+        return []
+
+
+# ── model-visible view tools ────────────────────
+
+@mcp.tool(meta={"ui": {"resourceUri": "ui://musu-control/tasks"}})
+async def show_tasks_view(
+    status: str | None = None,
+    channel: str | None = None,
+    limit: int = 20,
+) -> CallToolResult:
+    """위임 태스크를 인터랙티브 뷰로 표시. 필터와 실시간 폴링 지원.
+
+    Args:
+        status: 필터 — pending | running | done | failed (생략 시 전체)
+        channel: 에이전트 채널명 필터
+        limit: 최대 표시 개수 (기본 20)
+    """
+    tasks = await _fetch_tasks(status, channel, limit)
     return CallToolResult(
-        content=[TextContent(type="text", text=f"태스크 {len(rows)}개")],
-        structuredContent={
-            "type": "datatable",
-            "version": "1.0",
-            "columns": [
-                {"field": "id", "header": "ID"},
-                {"field": "status", "header": "Status"},
-                {"field": "channel", "header": "Channel"},
-                {"field": "summary", "header": "Summary"},
-                {"field": "created", "header": "Created"},
-            ],
-            "rows": rows,
-        },
+        content=[TextContent(type="text", text=f"태스크 {len(tasks)}개")],
+        structuredContent={"tasks": tasks, "filters": {"status": status, "channel": channel}},
     )
 
 
-@mcp.tool(meta={"ui": {
-    "resourceUri": "ui://musu-control/task-detail",
-    "viewUrl": f"{_CDN}/status/v1",
-}})
+@mcp.tool(meta={"ui": {"resourceUri": "ui://musu-control/task-detail"}})
 async def show_task_detail_view(task_id: str) -> CallToolResult:
-    """단일 태스크 상태를 인터랙티브 status 패널로 표시.
+    """단일 태스크 상세를 인터랙티브 뷰로 표시.
 
     Args:
         task_id: delegate_task가 반환한 task_id
@@ -1212,71 +1203,27 @@ async def show_task_detail_view(task_id: str) -> CallToolResult:
         async with httpx.AsyncClient(timeout=10.0) as c:
             resp = await c.get(f"{_MUSU_BRIDGE_URL}/api/tasks/{task_id}")
             resp.raise_for_status()
-            t = resp.json()
+            task = resp.json()
     except Exception:
-        t = {}
-
-    status_map = {"done": "good", "running": "warning", "failed": "error", "pending": "neutral"}
-    s = t.get("status", "unknown")
-    indicators = [
-        {"label": "Status", "value": s.upper(), "status": status_map.get(s, "neutral")},
-        {"label": "Channel", "value": t.get("channel", "—"), "status": "neutral"},
-        {"label": "Retry", "value": t.get("retry_count", 0), "status": "neutral"},
-    ]
-    if t.get("error"):
-        indicators.append({"label": "Error", "value": str(t["error"])[:120], "status": "error"})
+        task = {}
 
     return CallToolResult(
-        content=[TextContent(type="text", text=f"Task {task_id[:8]}… — {s}")],
-        structuredContent={
-            "type": "status",
-            "version": "1.0",
-            "title": f"Task {task_id[:8]}…",
-            "indicators": indicators,
-        },
+        content=[TextContent(type="text", text=f"Task {task_id[:8]}… — {task.get('status', 'unknown')}")],
+        structuredContent={"task": task},
     )
 
 
-@mcp.tool(meta={"ui": {
-    "resourceUri": "ui://musu-control/agents",
-    "viewUrl": f"{_CDN}/datatable/v1",
-}})
+@mcp.tool(meta={"ui": {"resourceUri": "ui://musu-control/agents"}})
 async def show_agents_view() -> CallToolResult:
-    """에이전트 목록을 인터랙티브 테이블로 표시."""
-    try:
-        c = _get_client()
-        data = await c.get(f"/companies/{c.company_id}/agents")
-        agents = data if isinstance(data, list) else []
-    except Exception:
-        agents = []
-
-    rows = [{
-        "name": str(a.get("name") or a.get("id", ""))[:40],
-        "status": str(a.get("status", "")),
-        "role": str(a.get("role") or a.get("adapter_type", ""))[:30],
-        "id": str(a.get("id", ""))[:12],
-    } for a in agents]
-
+    """에이전트 목록을 인터랙티브 뷰로 표시."""
+    agents = await _fetch_agents()
     return CallToolResult(
-        content=[TextContent(type="text", text=f"에이전트 {len(rows)}개")],
-        structuredContent={
-            "type": "datatable",
-            "version": "1.0",
-            "columns": [
-                {"field": "name", "header": "Name"},
-                {"field": "status", "header": "Status"},
-                {"field": "role", "header": "Role"},
-                {"field": "id", "header": "ID"},
-            ],
-            "rows": rows,
-        },
+        content=[TextContent(type="text", text=f"에이전트 {len(agents)}개")],
+        structuredContent={"agents": agents},
     )
 
 
-@mcp.tool(meta={"ui": {
-    "resourceUri": "ui://musu-control/activity",
-    "viewUrl": f"{_CDN}/log/v1",
-}})
+@mcp.tool(meta={"ui": {"resourceUri": "ui://musu-control/activity"}})
 async def show_activity_view(limit: int = 30) -> CallToolResult:
     """최근 회사 활동을 인터랙티브 로그 뷰로 표시.
 
@@ -1286,33 +1233,19 @@ async def show_activity_view(limit: int = 30) -> CallToolResult:
     try:
         c = _get_client()
         data = await c.get(f"/companies/{c.company_id}/activity", limit=limit)
-        entries_raw = data if isinstance(data, list) else data.get("items", [])
+        entries = data if isinstance(data, list) else data.get("items", [])
     except Exception:
-        entries_raw = []
-
-    entries = [{
-        "timestamp": str(e.get("createdAt") or e.get("timestamp") or "")[:19],
-        "level": "info",
-        "message": str(e.get("description") or e.get("message") or e.get("action") or "")[:120],
-    } for e in entries_raw]
+        entries = []
 
     return CallToolResult(
         content=[TextContent(type="text", text=f"활동 {len(entries)}개")],
-        structuredContent={
-            "type": "log",
-            "version": "1.0",
-            "title": "Company Activity",
-            "entries": entries,
-        },
+        structuredContent={"entries": entries},
     )
 
 
-@mcp.tool(meta={"ui": {
-    "resourceUri": "ui://musu-control/costs",
-    "viewUrl": f"{_CDN}/chart/v1",
-}})
+@mcp.tool(meta={"ui": {"resourceUri": "ui://musu-control/costs"}})
 async def show_costs_view() -> CallToolResult:
-    """에이전트별 비용을 인터랙티브 차트로 표시."""
+    """에이전트별 비용을 인터랙티브 차트 뷰로 표시."""
     try:
         c = _get_client()
         data = await c.get(f"/companies/{c.company_id}/costs/by-agent")
@@ -1320,23 +1253,35 @@ async def show_costs_view() -> CallToolResult:
     except Exception:
         agents_cost = []
 
-    values = [{
-        "label": str(a.get("agentName") or a.get("name") or a.get("agentId", "unknown"))[:20],
-        "value": float(a.get("totalCost") or a.get("cost") or 0),
-    } for a in agents_cost]
-
     return CallToolResult(
-        content=[TextContent(type="text", text=f"에이전트 비용 {len(values)}개")],
-        structuredContent={
-            "type": "chart",
-            "version": "1.0",
-            "chartType": "bar",
-            "title": "Agent Cost Breakdown",
-            "data": [{
-                "label": "Cost ($)",
-                "values": values,
-            }],
-        },
+        content=[TextContent(type="text", text=f"에이전트 비용 {len(agents_cost)}개")],
+        structuredContent={"agents_cost": agents_cost},
+    )
+
+
+# ── app-only poll tools (visibility: ["app"], 모델 컨텍스트 오염 방지) ──
+
+@mcp.tool(meta={"ui": {"resourceUri": "ui://musu-control/tasks", "visibility": ["app"]}})
+async def poll_tasks(
+    status: str | None = None,
+    channel: str | None = None,
+    limit: int = 20,
+) -> CallToolResult:
+    """[앱 전용] TasksView 폴링용 — 모델에 노출 안 됨."""
+    tasks = await _fetch_tasks(status, channel, limit)
+    return CallToolResult(
+        content=[TextContent(type="text", text=f"태스크 {len(tasks)}개")],
+        structuredContent={"tasks": tasks, "filters": {"status": status, "channel": channel}},
+    )
+
+
+@mcp.tool(meta={"ui": {"resourceUri": "ui://musu-control/agents", "visibility": ["app"]}})
+async def poll_agents() -> CallToolResult:
+    """[앱 전용] NodesView 폴링용 — 모델에 노출 안 됨."""
+    agents = await _fetch_agents()
+    return CallToolResult(
+        content=[TextContent(type="text", text=f"에이전트 {len(agents)}개")],
+        structuredContent={"agents": agents},
     )
 
 
