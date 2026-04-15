@@ -31,6 +31,18 @@
   --musu-status-offline: #4b5563;
   --musu-status-error: #ef4444;
 
+  /* Task status (DESIGN.md §2) */
+  --musu-task-pending: #9ca3af;
+  --musu-task-running: #60a5fa;
+  --musu-task-done: #86efac;
+  --musu-task-failed: #f87171;
+
+  /* Surface layers */
+  --musu-bg-card: #111111;
+  --musu-bg-card-hover: #161616;
+  --musu-bg-inset: #0d0d0d;
+  --musu-border-dim: #1f1f1f;
+
   /* Spacing / shape */
   --musu-radius: 8px;
   --musu-radius-sm: 4px;

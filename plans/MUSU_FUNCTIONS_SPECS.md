@@ -291,3 +291,44 @@ Phase 12B:
 - `_discover_control_tools()` + `_discover_bee_routes()` 헬퍼 구현
 
 *최종 업데이트: 2026-04-15 | Phase 15 완료 — 보안 점수 9.0/10*
+
+---
+
+## Phase 16: 실시간화 + 프로덕션 준비 + UI 개선
+
+### SPEC-027: SSE Push + TasksPanel 실시간화 (16A)
+
+- **문제**: TasksPanel 3초 polling → 서버 부하 + UX 지연
+- **방법**: musu-bridge SSE 엔드포인트 + EventSource 클라이언트
+- `server.py`:
+  - `_task_event_queues: dict[str, asyncio.Queue]` 전역 구독자 맵
+  - `_broadcast_task_event(event)` — 모든 SSE 구독자에게 fan-out
+  - `GET /api/tasks/events` — UUID 키 구독, 30초 keepalive, 연결 해제 시 정리
+  - `_run_with_timeout()` — 성공/실패/타임아웃 모두 broadcast 호출
+- `musu-bee/src/app/api/bridge-tasks/events/route.ts` (신규) — SSE 프록시
+- `TasksPanel.tsx` — `setInterval` → `EventSource` 교체, SSE 오류 시 3s polling 폴백
+- 헤더 레이블: "auto-refresh 3s" → "● live"
+
+### SPEC-028: TasksPanel 기능 개선 (16B)
+
+- **상태 필터**: `all/pending/running/done/failed` 드롭다운 — API `?status=` 파라미터 활용
+- **채널 필터**: 수집된 채널 목록 드롭다운 (`all` 포함)
+- **카드 확장**: 클릭 시 task_id, retry, sender_id, updated_at 상세 보기 + 전문 error 표시
+- **페이지네이션**: `before_id` 커서 기반 "Load more" 버튼 (LIMIT=20)
+- **필터 변경 시**: 목록 리셋 + 재조회
+
+### SPEC-029: 프로덕션 배포 인프라 (16C)
+
+- `scripts/systemd/musu-bridge.service` — `CPUQuota=50%`, `MemoryMax=2048M`, `EnvironmentFile=-%h/.musu/bridge.env`
+- `scripts/systemd/musu-port.service` — `MemoryMax=1024M`, `EnvironmentFile=-%h/.musu/port.env`
+- `scripts/install-musu-bridge-service.sh` — install-musu-worker 패턴, bridge.env 자동 초기화
+- `scripts/systemd/bridge.env.example` — MUSU_BRIDGE_TOKEN(필수) + 선택 항목
+- `.env.example` — `MUSU_PORT_TOKEN`, `MUSU_BRIDGE_ALLOWED_ORIGINS` 항목 추가
+- `docs/PRODUCTION.md` — 환경변수 체크리스트, systemd 설치, nginx 설정, 헬스체크
+
+### SPEC-030: CSS 변수 + DESIGN.md 색상 토큰 (16D)
+
+- `globals.css`: Task 상태 토큰 (`--musu-task-pending/running/done/failed`), 서피스 레이어 토큰 (`--musu-bg-card`, `--musu-bg-card-hover`, `--musu-bg-inset`, `--musu-border-dim`) 추가
+- `TasksPanel.tsx`: 하드코딩 색상값 → CSS 변수 참조로 교체 (`STATUS_COLOR`, 카드 배경, 텍스트, 보더)
+
+*최종 업데이트: 2026-04-15 | Phase 16 완료 — 실시간화 + 배포 준비*

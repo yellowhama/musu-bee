@@ -15,6 +15,7 @@ Routes:
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 import sys
@@ -24,6 +25,7 @@ from typing import Annotated, List
 import uvicorn
 from fastapi import FastAPI, HTTPException, Path, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from musu_core.middleware import apply_musu_middlewares
@@ -63,6 +65,19 @@ logger = logging.getLogger(__name__)
 # In-memory tracking of live asyncio tasks for cancellation support.
 # Populated by api_delegate_task; cleaned up via done_callback.
 _active_tasks: dict[str, asyncio.Task] = {}
+_task_event_queues: dict[str, asyncio.Queue] = {}
+
+
+async def _broadcast_task_event(event: dict) -> None:
+    """SSE 구독자에게 task 이벤트 브로드캐스트."""
+    dead = []
+    for sid, q in _task_event_queues.items():
+        try:
+            q.put_nowait(event)
+        except asyncio.QueueFull:
+            dead.append(sid)
+    for sid in dead:
+        _task_event_queues.pop(sid, None)
 
 
 _token = os.environ.get("MUSU_BRIDGE_TOKEN", "")
@@ -263,9 +278,13 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
                 ),
                 timeout=300,
             )
+            asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
         except asyncio.TimeoutError:
             logger.warning("delegate_task: task %s timed out after 300s", task_id)
             cancel_task_record(task_id, error="timeout after 300s")
+            asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
+        except Exception:
+            asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
 
     task = asyncio.create_task(_run_with_timeout())
     _active_tasks[task_id] = task
@@ -574,6 +593,35 @@ async def api_sync_push(req: SyncPushRequest) -> dict:
 async def api_mcp_tools() -> dict:
     """Return service-grouped list of all MCP tools and REST endpoints in the MUSU stack."""
     return get_mcp_tools_manifest()
+
+
+@app.get("/api/tasks/events")
+async def api_task_events(request: Request) -> StreamingResponse:
+    """Server-Sent Events — task 상태 변경 시 즉시 이벤트 전송."""
+    import uuid as _uuid
+    sid = str(_uuid.uuid4())
+    q: asyncio.Queue = asyncio.Queue(maxsize=100)
+    _task_event_queues[sid] = q
+
+    async def event_stream():
+        try:
+            yield f"data: {json.dumps({'type': 'connected'})}\n\n"
+            while True:
+                if await request.is_disconnected():
+                    break
+                try:
+                    event = await asyncio.wait_for(q.get(), timeout=30)
+                    yield f"data: {json.dumps(event)}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": keepalive\n\n"
+        finally:
+            _task_event_queues.pop(sid, None)
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @app.get("/health")

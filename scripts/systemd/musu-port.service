@@ -1,0 +1,23 @@
+[Unit]
+Description=MUSU Port WebSocket Server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/musu-functions/musu-port
+
+# Load per-user config. Create it from scripts/systemd/bridge.env.example (port section)
+EnvironmentFile=-%h/.musu/port.env
+
+ExecStart=%h/musu-functions/musu-port/target/release/musu-portd
+Restart=on-failure
+RestartSec=5
+
+# Resource guardrails (tune via systemctl --user edit musu-port)
+MemoryMax=1024M
+
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target

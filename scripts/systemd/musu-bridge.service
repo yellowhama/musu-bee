@@ -1,0 +1,24 @@
+[Unit]
+Description=MUSU Bridge API Server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/musu-functions
+
+# Load per-user config. Create it from scripts/systemd/bridge.env.example
+EnvironmentFile=-%h/.musu/bridge.env
+
+ExecStart=%h/musu-functions/scripts/start-bridge.sh
+Restart=on-failure
+RestartSec=5
+
+# Resource guardrails (tune via systemctl --user edit musu-bridge)
+CPUQuota=50%
+MemoryMax=2048M
+
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target
