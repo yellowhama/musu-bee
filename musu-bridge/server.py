@@ -121,6 +121,24 @@ async def lifespan(app: FastAPI):
     else:
         logger.info("registry: MUSU_TOKEN not set — cloud registry disabled")
 
+    # Seed canonical company on startup — ensures MCP config company ID always exists.
+    _CANONICAL_COMPANY_ID = os.environ.get(
+        "PAPERCLIP_COMPANY_ID", "f27a9bd2-688a-450b-98b4-f63d24b0ab50"
+    )
+    try:
+        from handlers import get_company, create_company
+        if not get_company(_CANONICAL_COMPANY_ID):
+            create_company(
+                name="musu_corp",
+                workspace_id="ws-musu",
+                company_id=_CANONICAL_COMPANY_ID,
+            )
+            logger.info("startup: seeded canonical company %s", _CANONICAL_COMPANY_ID)
+        else:
+            logger.info("startup: canonical company %s already exists", _CANONICAL_COMPANY_ID)
+    except Exception as _e:
+        logger.warning("startup: failed to seed canonical company — %s", _e)
+
     # Re-dispatch any pending/running route executions from before last restart.
     # retry_count caps at 3 — executions that repeatedly crash are marked failed.
     try:
@@ -210,6 +228,7 @@ class DelegateRequest(BaseModel):
 
 class CompanyCreateRequest(BaseModel):
     name: str
+    id: str | None = None  # optional: caller can supply a fixed UUID
     template_key: str = "default"
     workspace_id: str = ""
     meta: dict = {}
@@ -440,6 +459,7 @@ async def api_create_company(req: CompanyCreateRequest) -> dict:
         template_key=req.template_key,
         workspace_id=req.workspace_id,
         meta=req.meta,
+        company_id=req.id,
     )
 
 
@@ -471,6 +491,46 @@ async def api_delete_company(company_id: str) -> dict:
     if not ok:
         raise HTTPException(status_code=404, detail="Company not found")
     return {"deleted": company_id}
+
+
+@app.get("/api/companies/{company_id}/agents", summary="List agents for a company")
+async def api_company_agents(company_id: str) -> list[dict]:
+    """List all agents scoped to a company.
+    Since agents are currently global (no company_id column), returns all agents
+    when the company exists.
+    """
+    company = get_company(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return get_agents()
+
+
+@app.get("/api/companies/{company_id}/dashboard", summary="Dashboard summary for a company")
+async def api_company_dashboard(company_id: str) -> dict:
+    """Return a summary dashboard for the company."""
+    company = get_company(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    from handlers import list_task_records as list_tasks
+    agents = get_agents()
+    tasks = list_tasks(limit=100)
+    active_agents = [a for a in agents if a.get("status") == "active"]
+    pending_tasks = [t for t in tasks if t.get("status") == "pending"]
+    running_tasks = [t for t in tasks if t.get("status") == "running"]
+    done_tasks = [t for t in tasks if t.get("status") == "done"]
+    failed_tasks = [t for t in tasks if t.get("status") == "failed"]
+    return {
+        "company_id": company_id,
+        "company_name": company.get("name"),
+        "agents": {"total": len(agents), "active": len(active_agents)},
+        "tasks": {
+            "total": len(tasks),
+            "pending": len(pending_tasks),
+            "running": len(running_tasks),
+            "done": len(done_tasks),
+            "failed": len(failed_tasks),
+        },
+    }
 
 
 class PairRequest(BaseModel):

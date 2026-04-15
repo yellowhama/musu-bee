@@ -501,8 +501,9 @@ class LocalBackend(BackendABC):
         template_key: str = "default",
         workspace_id: str = "",
         meta: dict | None = None,
+        company_id: str | None = None,
     ) -> dict[str, Any]:
-        company_id = str(uuid.uuid4())
+        company_id = company_id or str(uuid.uuid4())
         meta_json = json.dumps(meta or {})
         self._db.execute(
             "INSERT INTO companies (id, name, template_key, workspace_id, meta) VALUES (?, ?, ?, ?, ?)",

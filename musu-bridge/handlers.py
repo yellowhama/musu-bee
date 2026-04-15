@@ -279,14 +279,16 @@ def create_company(
     template_key: str = "default",
     workspace_id: str = "",
     meta: dict | None = None,
+    company_id: str | None = None,
 ) -> dict[str, Any]:
-    """Create a new company."""
+    """Create a new company. Optionally supply a fixed company_id."""
     backend = _get_backend()
     return backend.create_company(
         name=name,
         template_key=template_key,
         workspace_id=workspace_id,
         meta=meta,
+        company_id=company_id,
     )
 
 
