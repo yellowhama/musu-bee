@@ -6,17 +6,21 @@ attacker-controlled pages will have a different origin and be rejected.
 """
 from __future__ import annotations
 
+import os as _os
+
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 _MUTATING_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 
-# Populated at startup from config; default covers dev + prod.
+# Populated from MUSU_BRIDGE_ALLOWED_ORIGINS env var (same as CORSMiddleware).
+# Default covers dev + prod origins.
+_default_csrf_origins = "https://musu.pro,http://localhost:3001,http://localhost:3000"
 ALLOWED_ORIGINS: list[str] = [
-    "https://musu.pro",
-    "http://localhost:3001",
-    "http://localhost:3000",
+    o.strip()
+    for o in _os.getenv("MUSU_BRIDGE_ALLOWED_ORIGINS", _default_csrf_origins).split(",")
+    if o.strip()
 ]
 
 

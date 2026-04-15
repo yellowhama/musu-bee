@@ -167,7 +167,7 @@ apply_musu_middlewares(
 app.add_middleware(CSRFOriginGuard)
 app.add_middleware(HostnameGuard)
 
-_default_origins = "http://localhost:3000,http://localhost:3001,http://localhost:1355"
+_default_origins = "https://musu.pro,http://localhost:3000,http://localhost:3001,http://localhost:1355"
 _allowed_origins = [
     o.strip()
     for o in os.getenv("MUSU_BRIDGE_ALLOWED_ORIGINS", _default_origins).split(",")

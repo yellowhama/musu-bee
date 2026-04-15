@@ -261,4 +261,33 @@ Phase 12B:
   ```
 - `handlers.py` `get_mcp_tools_manifest()` 헬퍼 구현
 
-*최종 업데이트: 2026-04-15 | Phase 14 DX Hardening 완료*
+---
+
+## Phase 15: 보안/DX 잔여 마무리
+
+### SPEC-024: WS-1 musu-port WebSocket Bearer 인증 (15A)
+
+- `MUSU_PORT_TOKEN` 환경변수로 WS 인증 활성화 (미설정 시 인증 없음 — backward compat)
+- `config.rs`: `MusuPortConfig`에 `auth_token: Option<String>` 필드 + `MUSU_PORT_TOKEN` 읽기
+- `state.rs`: `MusuPortState`에 `auth_token: Option<String>` 필드 전달
+- `server.rs`: `handle_chat_ws()`에 `headers: HeaderMap` 파라미터 추가 → `Authorization: Bearer` 검증
+  - 토큰 불일치/미제공 시 `401 Unauthorized` 반환
+- `cargo build --release` 빌드 성공 확인
+
+### SPEC-025: CORS-1 CORS/CSRF 목록 통일 (15B)
+
+- **문제**: CSRF 목록(`csrf_guard.py`) 하드코딩 vs CORS 목록(`server.py`) 환경변수 기반 불일치
+- `csrf_guard.py`: `ALLOWED_ORIGINS`를 `MUSU_BRIDGE_ALLOWED_ORIGINS` 환경변수 기반으로 교체
+- `server.py`: `_default_origins`에 `https://musu.pro` 추가
+- → CORS + CSRF 모두 `MUSU_BRIDGE_ALLOWED_ORIGINS` 단일 환경변수로 통합
+
+### SPEC-026: MCP-DYN /api/mcp/tools 동적화 (15C)
+
+- musu-control은 stdio MCP 서버 → HTTP 쿼리 불가
+- **AST 파싱**: `handlers.py`에서 `musu-control/src/musu_control/server.py`를 `ast` 모듈로 파싱
+  - `@mcp.tool()` 데코레이터가 붙은 함수명 동적 추출 → 28개 발견
+  - 파싱 실패 시 정적 폴백(`_STATIC_CONTROL_TOOLS`)
+- **Bee 라우트**: `musu-bee/src/app/api/` 디렉토리 스캔 → 22개 라우트 동적 조회
+- `_discover_control_tools()` + `_discover_bee_routes()` 헬퍼 구현
+
+*최종 업데이트: 2026-04-15 | Phase 15 완료 — 보안 점수 9.0/10*

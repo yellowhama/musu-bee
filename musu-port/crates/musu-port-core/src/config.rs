@@ -20,6 +20,9 @@ pub struct MusuPortConfig {
     pub runtime_context: RuntimeContext,
     /// Peer musu-port base URLs loaded from `MUSU_PORT_PEERS` (comma-separated).
     pub peer_urls: Vec<String>,
+    /// Optional Bearer token for WebSocket auth. None = no auth required.
+    /// Set via `MUSU_PORT_TOKEN` env var.
+    pub auth_token: Option<String>,
 }
 
 impl MusuPortConfig {
@@ -91,6 +94,11 @@ impl MusuPortConfig {
             })
             .unwrap_or_default();
 
+        let auth_token = std::env::var("MUSU_PORT_TOKEN")
+            .ok()
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty());
+
         Ok(Self {
             host,
             preferred_port,
@@ -103,6 +111,7 @@ impl MusuPortConfig {
             state_db_path,
             runtime_context,
             peer_urls,
+            auth_token,
         })
     }
 }

@@ -534,6 +534,59 @@ def disconnect_node(name: str) -> bool:
     return ok
 
 
+import ast as _ast
+import pathlib as _pathlib
+
+_STATIC_CONTROL_TOOLS = [
+    "list_agents", "get_agent", "pause_agent", "resume_agent",
+    "invoke_heartbeat", "get_org_chart",
+    "list_issues", "get_issue", "create_issue", "update_issue",
+    "checkout_issue", "add_comment", "get_comments",
+    "get_dashboard", "list_runs", "watchdog_detect_and_remediate",
+    "get_activity", "get_costs_summary", "get_costs_by_agent",
+    "list_projects", "get_project", "list_goals",
+    "list_approvals", "resolve_approval",
+    "delegate_task", "get_task_status", "list_tasks", "cancel_task",
+]
+
+
+def _discover_control_tools() -> list[str]:
+    """Parse musu-control/server.py via AST to find @mcp.tool() decorated functions."""
+    here = _pathlib.Path(__file__).parent.parent
+    server_path = here / "musu-control" / "src" / "musu_control" / "server.py"
+    if not server_path.exists():
+        return _STATIC_CONTROL_TOOLS
+    try:
+        tree = _ast.parse(server_path.read_text())
+        tools: list[str] = []
+        for node in _ast.walk(tree):
+            if isinstance(node, _ast.FunctionDef):
+                for deco in node.decorator_list:
+                    is_mcp_tool = (
+                        isinstance(deco, _ast.Call)
+                        and isinstance(deco.func, _ast.Attribute)
+                        and deco.func.attr == "tool"
+                    )
+                    if is_mcp_tool:
+                        tools.append(node.name)
+                        break
+        return tools if tools else _STATIC_CONTROL_TOOLS
+    except Exception:
+        return _STATIC_CONTROL_TOOLS
+
+
+def _discover_bee_routes() -> list[str]:
+    """Scan musu-bee/src/app/api/ for top-level route directories."""
+    here = _pathlib.Path(__file__).parent.parent
+    api_dir = here / "musu-bee" / "src" / "app" / "api"
+    if not api_dir.exists():
+        return ["channels", "agents", "tasks", "nodes", "companies"]
+    return sorted(
+        p.name for p in api_dir.iterdir()
+        if p.is_dir() and not p.name.startswith("[") and not p.name.startswith("_")
+    )
+
+
 def get_mcp_tools_manifest() -> dict[str, Any]:
     """Return a service-grouped manifest of all MCP tools in the MUSU stack."""
     from config import get_config as get_bridge_config
@@ -550,24 +603,11 @@ def get_mcp_tools_manifest() -> dict[str, Any]:
         "companies", "audit", "mcp/tools",
     ]
 
-    # musu-control MCP tools (static list — matches server.py @mcp.tool() definitions)
-    control_tools = [
-        "list_agents", "get_agent", "pause_agent", "resume_agent",
-        "invoke_heartbeat", "get_org_chart",
-        "list_issues", "get_issue", "create_issue", "update_issue",
-        "checkout_issue", "add_comment", "get_comments",
-        "get_dashboard", "list_runs", "watchdog_detect_and_remediate",
-        "get_activity", "get_costs_summary", "get_costs_by_agent",
-        "list_projects", "get_project", "list_goals",
-        "list_approvals", "resolve_approval",
-        "delegate_task", "get_task_status", "list_tasks", "cancel_task",
-    ]
+    # musu-control MCP tools — dynamically discovered via AST parsing
+    control_tools = _discover_control_tools()
 
-    # musu-bee Next.js API routes that act as MCP-style tools
-    bee_tools = [
-        "get_channels", "send_message", "get_messages",
-        "get_nodes", "get_tasks",
-    ]
+    # musu-bee Next.js API routes — dynamically scanned
+    bee_tools = _discover_bee_routes()
 
     services: dict[str, Any] = {
         "musu-bridge": {

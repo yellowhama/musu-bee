@@ -200,6 +200,7 @@ pub async fn run_server(config: MusuPortConfig) -> Result<(), String> {
         bridge_url: std::env::var("MUSU_BRIDGE_URL")
             .unwrap_or_else(|_| "http://localhost:8070".to_string()),
         imported_routes: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+        auth_token: config.auth_token.clone(),
     };
     state.initialize_connect_mode()?;
     state.auto_promote_mcp_candidates().await?;
@@ -937,7 +938,20 @@ async fn handle_chat_ws(
     ws: WebSocketUpgrade,
     AxumState(state): AxumState<MusuPortState>,
     Path(channel): Path<String>,
+    headers: HeaderMap,
 ) -> impl IntoResponse {
+    // Bearer token auth (only enforced when MUSU_PORT_TOKEN is set)
+    if let Some(expected) = &state.auth_token {
+        let authed = headers
+            .get("authorization")
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.strip_prefix("Bearer "))
+            .map(|t| t == expected.as_str())
+            .unwrap_or(false);
+        if !authed {
+            return (StatusCode::UNAUTHORIZED, "WS auth required").into_response();
+        }
+    }
     // Validate channel name: alphanumeric, dash, underscore only
     if !channel
         .chars()
