@@ -219,4 +219,46 @@ Phase 12B:
 
 ---
 
-*최종 업데이트: 2026-04-15 | Phase 13 보안 강화 완료*
+---
+
+## Phase 14: DX Hardening
+
+### SPEC-020: Python 3.10 호환성 (14A)
+
+- **tomllib 폴백**: `musu-core/src/musu_core/mesh.py`, `musu-bridge/mesh_router.py`
+  ```python
+  try:
+      import tomllib
+  except ModuleNotFoundError:  # Python < 3.11
+      import tomli as tomllib  # type: ignore[no-redef]
+  ```
+- `musu-core/pyproject.toml` + `musu-bridge/pyproject.toml` — `"tomli>=2.0; python_version < '3.11'"` 조건부 의존성 추가
+
+### SPEC-021: 원클릭 설치 (14B)
+
+- **`install.sh`** (루트): Python ≥3.10 확인 → `.venv` 생성 → pip install -e 4개 패키지 → pnpm install → `.env.local` 자동 생성 (토큰 자동생성 포함) → `~/.musu/` 초기화
+- **`.env.example`** (루트): `MUSU_BRIDGE_TOKEN`, `MUSU_WORKER_TOKEN`, `MUSU_DB_PATH` 등 전체 환경변수 레퍼런스
+
+### SPEC-022: start-bridge.sh 강화 (14C)
+
+- **토큰 파일 폴백**: `~/.musu/bridge_token` 파일 자동 읽기 (우선순위: 환경변수 > 파일 > dev 자동생성)
+- **Dev 모드 자동 토큰**: `MUSU_DEV=1` 시 `dev-$(openssl rand -hex 16)` 임시 토큰 생성 + 경고 출력
+- **포트 충돌 감지**: `ss -ltn` 체크 → 이미 bridge가 떠 있으면 exit 0, 타 프로세스면 exit 1
+- **dev-start.sh**: `start_musu_bridge()` 내 `export MUSU_DEV="${MUSU_DEV:-1}"` 추가
+
+### SPEC-023: MCP 도구 디스커버리 (14D)
+
+- **`GET /api/mcp/tools`** (musu-bridge): MUSU 스택 전체 MCP 도구 매니페스트 반환
+  ```json
+  {
+    "services": {
+      "musu-bridge":  {"type": "rest", "count": 15, "endpoints": [...]},
+      "musu-control": {"type": "mcp",  "count": 28, "tools": [...]},
+      "musu-bee":     {"type": "rest", "count": 5,  "tools": [...]}
+    },
+    "total_tools": 48
+  }
+  ```
+- `handlers.py` `get_mcp_tools_manifest()` 헬퍼 구현
+
+*최종 업데이트: 2026-04-15 | Phase 14 DX Hardening 완료*

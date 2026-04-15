@@ -532,3 +532,66 @@ def disconnect_node(name: str) -> bool:
     if ok:
         mesh.reload()
     return ok
+
+
+def get_mcp_tools_manifest() -> dict[str, Any]:
+    """Return a service-grouped manifest of all MCP tools in the MUSU stack."""
+    from config import get_config as get_bridge_config
+    cfg = get_bridge_config()
+    bridge_base = f"http://{cfg.bridge_host}:{cfg.bridge_port}"
+    bee_base = "http://localhost:3001"
+    control_base = "http://localhost:8090"  # musu-control default SSE port
+
+    # musu-bridge exposes its own REST endpoints (not MCP tools, but discoverable)
+    bridge_endpoints = [
+        "route", "agents", "channels", "messages",
+        "tasks", "admin/node-info", "admin/pair", "admin/nodes",
+        "admin/discovered", "sync/companies", "sync/messages", "sync/push",
+        "companies", "audit", "mcp/tools",
+    ]
+
+    # musu-control MCP tools (static list — matches server.py @mcp.tool() definitions)
+    control_tools = [
+        "list_agents", "get_agent", "pause_agent", "resume_agent",
+        "invoke_heartbeat", "get_org_chart",
+        "list_issues", "get_issue", "create_issue", "update_issue",
+        "checkout_issue", "add_comment", "get_comments",
+        "get_dashboard", "list_runs", "watchdog_detect_and_remediate",
+        "get_activity", "get_costs_summary", "get_costs_by_agent",
+        "list_projects", "get_project", "list_goals",
+        "list_approvals", "resolve_approval",
+        "delegate_task", "get_task_status", "list_tasks", "cancel_task",
+    ]
+
+    # musu-bee Next.js API routes that act as MCP-style tools
+    bee_tools = [
+        "get_channels", "send_message", "get_messages",
+        "get_nodes", "get_tasks",
+    ]
+
+    services: dict[str, Any] = {
+        "musu-bridge": {
+            "url": bridge_base,
+            "description": "Core routing server — REST API + task delegation",
+            "type": "rest",
+            "endpoints": bridge_endpoints,
+            "count": len(bridge_endpoints),
+        },
+        "musu-control": {
+            "url": control_base,
+            "description": "MCP server — 28 tools for agent management, issues, tasks",
+            "type": "mcp",
+            "tools": control_tools,
+            "count": len(control_tools),
+        },
+        "musu-bee": {
+            "url": bee_base,
+            "description": "Next.js UI — API proxy routes",
+            "type": "rest",
+            "tools": bee_tools,
+            "count": len(bee_tools),
+        },
+    }
+
+    total = sum(s["count"] for s in services.values())
+    return {"services": services, "total_tools": total}

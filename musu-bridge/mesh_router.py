@@ -4,7 +4,10 @@ from __future__ import annotations
 import logging
 import threading
 import time
-import tomllib
+try:
+    import tomllib
+except ModuleNotFoundError:  # Python < 3.11
+    import tomli as tomllib  # type: ignore[no-redef]
 from pathlib import Path
 from typing import Any
 
@@ -182,8 +185,7 @@ class MeshRouter:
                 return
         try:
             with open(self._path, "rb") as f:
-                import tomllib as _tomllib
-                data = _tomllib.load(f)
+                data = tomllib.load(f)
         except Exception:
             logger.exception("mesh_router: failed to read %s for write", self._path)
             return

@@ -13,7 +13,10 @@ from __future__ import annotations
 
 import logging
 import os
-import tomllib
+try:
+    import tomllib
+except ModuleNotFoundError:  # Python < 3.11
+    import tomli as tomllib  # type: ignore[no-redef]
 import warnings
 from dataclasses import dataclass, field
 from pathlib import Path

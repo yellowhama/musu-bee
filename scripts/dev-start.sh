@@ -103,6 +103,7 @@ start_musu_bridge() {
 
   log "Starting musu-bridge..."
   (
+    export MUSU_DEV="${MUSU_DEV:-1}"  # dev-start는 기본적으로 dev 모드
     export PYTHONPATH="${ROOT}/musu-core/src:${bridge_dir}:${PYTHONPATH:-}"
     cd "$bridge_dir"
     local py="python3"

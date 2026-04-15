@@ -16,6 +16,7 @@ dependencies = [
   "httpx>=0.25",
   "fastapi>=0.100",
   "starlette>=0.27",
+  "tomli>=2.0; python_version < '3.11'",
 ]
 
 [project.optional-dependencies]

@@ -41,6 +41,7 @@ from handlers import (
     get_agents,
     get_channel_map,
     get_company,
+    get_mcp_tools_manifest,
     get_message_by_id,
     get_node_info,
     get_task_record,
@@ -567,6 +568,12 @@ async def api_sync_push(req: SyncPushRequest) -> dict:
     c_written = receive_companies(req.companies) if req.companies else 0
     m_written = receive_messages(req.messages) if req.messages else 0
     return {"companies_written": c_written, "messages_written": m_written}
+
+
+@app.get("/api/mcp/tools", summary="MCP tools manifest — all services")
+async def api_mcp_tools() -> dict:
+    """Return service-grouped list of all MCP tools and REST endpoints in the MUSU stack."""
+    return get_mcp_tools_manifest()
 
 
 @app.get("/health")
