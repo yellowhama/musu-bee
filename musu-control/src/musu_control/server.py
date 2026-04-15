@@ -988,6 +988,21 @@ async def resolve_approval(approval_id: str, decision: str, note: str = "") -> s
 _MUSU_BRIDGE_URL = os.environ.get("MUSU_BRIDGE_URL", "http://127.0.0.1:8070")
 
 
+def _bridge_headers() -> dict[str, str]:
+    """Return auth headers for musu-bridge requests."""
+    token = os.environ.get("MUSU_BRIDGE_TOKEN", "")
+    if not token:
+        _tf = os.path.expanduser("~/.musu/bridge_token")
+        try:
+            with open(_tf) as _f:
+                token = _f.read().strip()
+        except OSError:
+            pass
+    if token:
+        return {"Authorization": f"Bearer {token}"}
+    return {}
+
+
 @mcp.tool()
 async def delegate_task(
     channel: str,
@@ -1005,7 +1020,7 @@ async def delegate_task(
         sender_id: Identifier for the requester (default: "orchestrator")
     """
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=10.0, headers=_bridge_headers()) as client:
             resp = await client.post(
                 f"{_MUSU_BRIDGE_URL}/api/tasks/delegate",
                 json={"channel": channel, "sender_id": sender_id, "text": instruction},
@@ -1028,7 +1043,7 @@ async def get_task_status(task_id: str) -> str:
         task_id: The task_id returned by delegate_task
     """
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=10.0, headers=_bridge_headers()) as client:
             resp = await client.get(f"{_MUSU_BRIDGE_URL}/api/tasks/{task_id}")
             if resp.status_code == 404:
                 return f"Task {task_id!r} not found."
@@ -1071,7 +1086,7 @@ async def list_tasks(
             params["channel"] = channel
         if before_id:
             params["before_id"] = before_id
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=10.0, headers=_bridge_headers()) as client:
             resp = await client.get(f"{_MUSU_BRIDGE_URL}/api/tasks", params=params)
             if resp.status_code == 400:
                 return _tool_error(resp.json().get("detail", "Bad request"))
@@ -1093,7 +1108,7 @@ async def cancel_task(task_id: str) -> str:
         task_id: The task_id returned by delegate_task
     """
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=10.0, headers=_bridge_headers()) as client:
             resp = await client.delete(f"{_MUSU_BRIDGE_URL}/api/tasks/{task_id}")
             if resp.status_code == 404:
                 return f"Task {task_id!r} not found."
@@ -1161,7 +1176,7 @@ async def _fetch_tasks(
             params["status"] = status
         if channel:
             params["channel"] = channel
-        async with httpx.AsyncClient(timeout=10.0) as c:
+        async with httpx.AsyncClient(timeout=10.0, headers=_bridge_headers()) as c:
             resp = await c.get(f"{_MUSU_BRIDGE_URL}/api/tasks", params=params)
             resp.raise_for_status()
             raw = resp.json()
@@ -1210,7 +1225,7 @@ async def show_task_detail_view(task_id: str) -> CallToolResult:
         task_id: delegate_task가 반환한 task_id
     """
     try:
-        async with httpx.AsyncClient(timeout=10.0) as c:
+        async with httpx.AsyncClient(timeout=10.0, headers=_bridge_headers()) as c:
             resp = await c.get(f"{_MUSU_BRIDGE_URL}/api/tasks/{task_id}")
             resp.raise_for_status()
             task = resp.json()

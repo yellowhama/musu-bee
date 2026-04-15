@@ -17,8 +17,15 @@ class PaperclipClient:
         if not base.endswith("/api"):
             base = base + "/api"
         self.base_url = base
-        self.company_id = os.environ.get("PAPERCLIP_COMPANY_ID", "")
+        self.company_id = os.environ.get("PAPERCLIP_COMPANY_ID", "f27a9bd2-688a-450b-98b4-f63d24b0ab50")
         api_key = os.environ.get("PAPERCLIP_API_KEY", "")
+        if not api_key:
+            _token_file = os.path.expanduser("~/.musu/bridge_token")
+            try:
+                with open(_token_file) as _f:
+                    api_key = _f.read().strip()
+            except OSError:
+                pass
         headers: dict[str, str] = {}
         if api_key:
             headers["Authorization"] = f"Bearer {api_key}"
