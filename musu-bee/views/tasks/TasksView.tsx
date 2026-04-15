@@ -1,0 +1,499 @@
+import { useEffect, useState, useCallback, useRef } from "react";
+import { useMusuConfig } from "../shared/useMusuConfig";
+import { fetchTasks, cancelTask, openTaskEvents } from "../shared/api";
+
+interface BridgeTask {
+  task_id: string;
+  status: "pending" | "running" | "done" | "failed";
+  channel: string;
+  sender_id: string;
+  summary: string | null;
+  error: string | null;
+  retry_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+const STATUS_COLOR: Record<BridgeTask["status"], string> = {
+  pending: "var(--musu-task-pending)",
+  running: "var(--musu-task-running)",
+  done: "var(--musu-task-done)",
+  failed: "var(--musu-task-failed)",
+};
+
+const STATUS_DOT: Record<BridgeTask["status"], string> = {
+  pending: "○",
+  running: "◐",
+  done: "●",
+  failed: "✕",
+};
+
+const ALL_STATUSES = ["all", "pending", "running", "done", "failed"] as const;
+type StatusFilter = (typeof ALL_STATUSES)[number];
+
+function formatRelative(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  return `${h}h ago`;
+}
+
+const SELECT_STYLE: React.CSSProperties = {
+  fontSize: 11,
+  color: "#9ca3af",
+  background: "#1a1a1a",
+  border: "1px solid #2d2d2d",
+  borderRadius: 6,
+  padding: "3px 8px",
+  cursor: "pointer",
+  outline: "none",
+};
+
+const LIMIT = 20;
+
+export default function TasksView() {
+  const config = useMusuConfig();
+
+  const [tasks, setTasks] = useState<BridgeTask[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState<Set<string>>(new Set());
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [channelFilter, setChannelFilter] = useState<string>("all");
+  const [channels, setChannels] = useState<string[]>([]);
+
+  const [beforeId, setBeforeId] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const mountedRef = useRef(true);
+
+  const buildParams = useCallback(
+    (cursor?: string | null): Record<string, string | number> => {
+      const p: Record<string, string | number> = { limit: LIMIT };
+      if (statusFilter !== "all") p.status = statusFilter;
+      if (channelFilter !== "all") p.channel = channelFilter;
+      if (cursor) p.before_id = cursor;
+      return p;
+    },
+    [statusFilter, channelFilter],
+  );
+
+  const doFetch = useCallback(async () => {
+    try {
+      const list = (await fetchTasks(config, buildParams())) as BridgeTask[];
+      if (mountedRef.current) {
+        setTasks(list);
+        setBeforeId(list.length === LIMIT ? list[list.length - 1].task_id : null);
+        setHasMore(list.length === LIMIT);
+        setError(null);
+        setChannels((prev) => {
+          const all = new Set([...prev, ...list.map((t) => t.channel)]);
+          return Array.from(all).sort();
+        });
+      }
+    } catch (e) {
+      if (mountedRef.current)
+        setError(e instanceof Error ? e.message : "Failed to load tasks");
+    } finally {
+      if (mountedRef.current) setLoading(false);
+    }
+  }, [config, buildParams]);
+
+  const doLoadMore = useCallback(async () => {
+    if (!beforeId || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const list = (await fetchTasks(config, buildParams(beforeId))) as BridgeTask[];
+      if (mountedRef.current) {
+        setTasks((prev) => [...prev, ...list]);
+        setBeforeId(list.length === LIMIT ? list[list.length - 1].task_id : null);
+        setHasMore(list.length === LIMIT);
+        setChannels((prev) => {
+          const all = new Set([...prev, ...list.map((t) => t.channel)]);
+          return Array.from(all).sort();
+        });
+      }
+    } finally {
+      if (mountedRef.current) setLoadingMore(false);
+    }
+  }, [beforeId, buildParams, config, loadingMore]);
+
+  // Re-fetch on filter change
+  useEffect(() => {
+    setLoading(true);
+    setTasks([]);
+    setBeforeId(null);
+    setHasMore(false);
+    void doFetch();
+  }, [statusFilter, channelFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // SSE subscription
+  useEffect(() => {
+    mountedRef.current = true;
+    let fallbackInterval: ReturnType<typeof setInterval> | null = null;
+
+    void doFetch();
+
+    const es = openTaskEvents(
+      config,
+      (event) => {
+        if (mountedRef.current && (event as { type?: string }).type === "task_update") {
+          void doFetch();
+        }
+      },
+      () => {
+        if (mountedRef.current && !fallbackInterval) {
+          fallbackInterval = setInterval(() => {
+            if (mountedRef.current) void doFetch();
+          }, 3000);
+        }
+      },
+    );
+
+    return () => {
+      mountedRef.current = false;
+      es.close();
+      if (fallbackInterval) clearInterval(fallbackInterval);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleCancel = useCallback(
+    async (taskId: string) => {
+      setCancelling((prev) => new Set(prev).add(taskId));
+      try {
+        await cancelTask(config, taskId);
+        const list = (await fetchTasks(config, { limit: LIMIT })) as BridgeTask[];
+        if (mountedRef.current) setTasks(list);
+      } finally {
+        setCancelling((prev) => {
+          const next = new Set(prev);
+          next.delete(taskId);
+          return next;
+        });
+      }
+    },
+    [config],
+  );
+
+  const toggleExpand = (id: string) =>
+    setExpandedId((prev) => (prev === id ? null : id));
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        overflow: "hidden",
+        background: "var(--musu-bg-inset)",
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          padding: "16px 20px 10px",
+          borderBottom: "1px solid var(--musu-border-dim)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ fontSize: 15, fontWeight: 600, color: "#f3f4f6" }}>
+            Delegated Tasks
+          </span>
+          <span
+            style={{
+              fontSize: 11,
+              color: "var(--musu-text-dim)",
+              background: "var(--musu-bg-card)",
+              border: "1px solid var(--musu-border)",
+              borderRadius: 999,
+              padding: "2px 8px",
+            }}
+          >
+            {tasks.filter((t) => t.status === "running").length} running
+          </span>
+          <div style={{ flex: 1 }} />
+          <span style={{ fontSize: 11, color: "#22c55e" }}>● live</span>
+        </div>
+
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+            style={SELECT_STYLE}
+          >
+            {ALL_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {s === "all" ? "All status" : s}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={channelFilter}
+            onChange={(e) => setChannelFilter(e.target.value)}
+            style={SELECT_STYLE}
+          >
+            <option value="all">All channels</option>
+            {channels.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
+        {loading && (
+          <p style={{ color: "#6b7280", fontSize: 13, padding: "20px 8px" }}>
+            Loading…
+          </p>
+        )}
+        {!loading && error && (
+          <p style={{ color: "#f87171", fontSize: 13, padding: "20px 8px" }}>
+            {error === "HTTP 503" ? "musu-bridge unavailable" : error}
+          </p>
+        )}
+        {!loading && !error && tasks.length === 0 && (
+          <p style={{ color: "#4b5563", fontSize: 13, padding: "20px 8px" }}>
+            No delegated tasks yet.
+          </p>
+        )}
+
+        {!loading &&
+          !error &&
+          tasks.map((task) => {
+            const isExpanded = expandedId === task.task_id;
+            return (
+              <div
+                key={task.task_id}
+                onClick={() => toggleExpand(task.task_id)}
+                style={{
+                  background: isExpanded
+                    ? "var(--musu-bg-card-hover)"
+                    : "var(--musu-bg-card)",
+                  border: `1px solid ${isExpanded ? "var(--musu-border)" : "var(--musu-border-dim)"}`,
+                  borderRadius: 8,
+                  padding: "12px 14px",
+                  marginBottom: 8,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
+                  cursor: "pointer",
+                  transition: "border-color 0.15s",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: STATUS_COLOR[task.status],
+                      fontFamily: "monospace",
+                    }}
+                  >
+                    {STATUS_DOT[task.status]}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: STATUS_COLOR[task.status],
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    {task.status}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: "var(--musu-text-muted)",
+                      background: "var(--musu-bg-card)",
+                      border: "1px solid var(--musu-border)",
+                      borderRadius: 999,
+                      padding: "1px 7px",
+                    }}
+                  >
+                    {task.channel}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: "var(--musu-status-offline)",
+                      marginLeft: "auto",
+                    }}
+                  >
+                    {formatRelative(task.created_at)}
+                  </span>
+                  {(task.status === "pending" || task.status === "running") && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleCancel(task.task_id);
+                      }}
+                      disabled={cancelling.has(task.task_id)}
+                      style={{
+                        fontSize: 11,
+                        color: cancelling.has(task.task_id) ? "#4b5563" : "#f87171",
+                        background: "transparent",
+                        border: "1px solid currentColor",
+                        borderRadius: 4,
+                        padding: "2px 8px",
+                        cursor: cancelling.has(task.task_id) ? "default" : "pointer",
+                      }}
+                    >
+                      {cancelling.has(task.task_id) ? "…" : "Cancel"}
+                    </button>
+                  )}
+                </div>
+
+                {task.summary && (
+                  <p
+                    style={{
+                      fontSize: 12,
+                      color: "#d1d5db",
+                      margin: 0,
+                      lineHeight: 1.5,
+                      ...(isExpanded
+                        ? {}
+                        : {
+                            overflow: "hidden",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 3,
+                            WebkitBoxOrient: "vertical",
+                          }),
+                    }}
+                  >
+                    {task.summary}
+                  </p>
+                )}
+
+                {task.error && !isExpanded && (
+                  <p style={{ fontSize: 11, color: "#f87171", margin: 0 }}>
+                    {task.error}
+                  </p>
+                )}
+
+                {isExpanded && (
+                  <div
+                    style={{
+                      marginTop: 4,
+                      padding: "10px 12px",
+                      background: "var(--musu-bg-inset)",
+                      border: "1px solid var(--musu-border-dim)",
+                      borderRadius: 6,
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <p
+                      style={{
+                        fontSize: 10,
+                        color: "#6b7280",
+                        margin: "0 0 6px",
+                        fontFamily: "monospace",
+                        letterSpacing: "0.05em",
+                      }}
+                    >
+                      TASK ID
+                    </p>
+                    <p
+                      style={{
+                        fontSize: 11,
+                        color: "#9ca3af",
+                        margin: "0 0 10px",
+                        fontFamily: "monospace",
+                      }}
+                    >
+                      {task.task_id}
+                    </p>
+                    {task.error && (
+                      <>
+                        <p
+                          style={{
+                            fontSize: 10,
+                            color: "#6b7280",
+                            margin: "0 0 4px",
+                            fontFamily: "monospace",
+                            letterSpacing: "0.05em",
+                          }}
+                        >
+                          ERROR
+                        </p>
+                        <pre
+                          style={{
+                            fontSize: 11,
+                            color: "#f87171",
+                            margin: 0,
+                            fontFamily: "monospace",
+                            whiteSpace: "pre-wrap",
+                            wordBreak: "break-all",
+                          }}
+                        >
+                          {task.error}
+                        </pre>
+                      </>
+                    )}
+                    <p
+                      style={{
+                        fontSize: 10,
+                        color: "#4b5563",
+                        margin: "8px 0 0",
+                        fontFamily: "monospace",
+                      }}
+                    >
+                      retry: {task.retry_count} · sender: {task.sender_id} ·
+                      updated: {new Date(task.updated_at).toLocaleTimeString()}
+                    </p>
+                  </div>
+                )}
+
+                {!isExpanded && (
+                  <p
+                    style={{
+                      fontSize: 10,
+                      color: "#374151",
+                      margin: 0,
+                      fontFamily: "monospace",
+                    }}
+                  >
+                    {task.task_id}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+
+        {hasMore && (
+          <button
+            onClick={() => void doLoadMore()}
+            disabled={loadingMore}
+            style={{
+              width: "100%",
+              marginTop: 4,
+              marginBottom: 16,
+              padding: "8px",
+              fontSize: 12,
+              color: loadingMore ? "#4b5563" : "#9ca3af",
+              background: "transparent",
+              border: "1px solid #2d2d2d",
+              borderRadius: 6,
+              cursor: loadingMore ? "default" : "pointer",
+            }}
+          >
+            {loadingMore ? "Loading…" : "Load more"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -1100,7 +1100,7 @@ async def cancel_task(task_id: str) -> str:
 # ──────────────────────────────────────────────
 
 _CDN = "https://mcp-views.chukai.io"
-_VIEWS_DIST = pathlib.Path(__file__).parents[4] / "musu-bee/views/dist"
+_VIEWS_DIST = pathlib.Path(__file__).parents[3] / "musu-bee/views/dist"
 
 
 async def _cdn_html(view: str) -> str:
