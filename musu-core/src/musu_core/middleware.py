@@ -124,6 +124,9 @@ def require_bearer_token(token: str) -> type:
         async def dispatch(self, request: Request, call_next):
             if request.url.path == "/health":
                 return await call_next(request)
+            # Internal sidecar calls from localhost skip token auth
+            if request.client and request.client.host in ("127.0.0.1", "::1"):
+                return await call_next(request)
             auth = request.headers.get("Authorization", "")
             if not auth.startswith("Bearer ") or not hmac.compare_digest(auth[len("Bearer "):], token):
                 raise Unauthorized()
