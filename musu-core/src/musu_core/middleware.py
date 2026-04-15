@@ -122,7 +122,7 @@ def require_bearer_token(token: str) -> type:
 
     class AuthMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request: Request, call_next):
-            if request.url.path == "/health":
+            if request.url.path in ("/health", "/api/system/stats"):
                 return await call_next(request)
             # Internal sidecar calls from localhost skip token auth
             if request.client and request.client.host in ("127.0.0.1", "::1"):
