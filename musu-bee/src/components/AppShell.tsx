@@ -21,9 +21,8 @@ import { useRouter } from "next/navigation";
 import type { Channel, ChannelId, Message } from "@/types";
 import { AGENT_CHANNELS } from "@/types";
 
-let msgCounter = 10;
 function makeId() {
-  return `msg-${++msgCounter}-${Date.now()}`;
+  return `msg-${crypto.randomUUID()}`;
 }
 
 const CHANNEL_DESCRIPTIONS: Partial<Record<ChannelId, string>> = {
