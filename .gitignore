@@ -64,6 +64,19 @@ scripts/opencode-session-archive.log
 scripts/qwen-tagger.log
 scripts/auto-index.log
 
+# 세션 아티팩트 (Claude/AI 세션 스냅샷, 런타임 산출물)
+.canon.json
+.cto_ping.json
+.design_refs_comment.json
+.design_refs_comment.md
+.paperclip-snapshots/
+.para/
+.vibe/
+.worktrees/
+EVID_DIR_PLACEHOLDER/
+logs/
+musu-bee/S2-*.png
+
 # DB 락 파일
 *.db-shm
 
