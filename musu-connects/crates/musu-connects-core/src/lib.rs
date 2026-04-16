@@ -25,6 +25,9 @@ pub use application::quic_provider::{
 pub use application::reconnect::ReconnectionService;
 pub use application::route_sync::RouteSyncService;
 pub use application::stun_service::StunService;
+pub use application::sync_orchestrator::{
+    PeerRouteState, SyncOrchestrator, SyncOrchestratorConfig,
+};
 pub use domain::peers::{DeviceIdentity, DiscoveryState, PeerRecord, TrustLevel};
 pub use domain::protocol::{
     ConnectsFrame, ConnectsOpCode, ErrorPayload, PairRequestPayload, PairSuccessPayload,

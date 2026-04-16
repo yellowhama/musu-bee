@@ -18,8 +18,21 @@ pub struct ImportedRouteRegistry {
 }
 
 impl AdvertisedRouteRegistry {
+    pub fn new(source_device_id: String, source_peer_id: String) -> Self {
+        Self {
+            source_device_id,
+            source_peer_id,
+            published_at: String::new(),
+            routes: Vec::new(),
+        }
+    }
+
     pub fn route(&self, route_id: &str) -> Option<&AdvertisedRoute> {
         self.routes.iter().find(|route| route.route_id == route_id)
+    }
+
+    pub fn all_routes(&self) -> &[AdvertisedRoute] {
+        &self.routes
     }
 
     pub fn publish(&mut self, route: AdvertisedRoute, published_at: &str) {
@@ -37,6 +50,14 @@ impl AdvertisedRouteRegistry {
 }
 
 impl ImportedRouteRegistry {
+    pub fn new(peer_id: String) -> Self {
+        Self {
+            peer_id,
+            refreshed_at: String::new(),
+            routes: Vec::new(),
+        }
+    }
+
     pub fn route(&self, import_id: &str) -> Option<&ImportedRoute> {
         self.routes
             .iter()
@@ -47,6 +68,14 @@ impl ImportedRouteRegistry {
         self.routes
             .iter_mut()
             .find(|route| route.import_id == import_id)
+    }
+
+    pub fn all_imports(&self) -> &[ImportedRoute] {
+        &self.routes
+    }
+
+    pub fn all_imports_mut(&mut self) -> &mut [ImportedRoute] {
+        &mut self.routes
     }
 
     pub fn merge(&mut self, route: ImportedRoute, refreshed_at: &str) {
