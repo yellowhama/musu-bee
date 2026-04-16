@@ -111,7 +111,8 @@ async def lifespan(app: FastAPI):
     # Detect network identity early — reused by registry + mDNS blocks
     cfg = get_config()
     tailscale_ip = get_tailscale_ip()
-    if not tailscale_ip:
+    # detect_public_ip only when needed: no Tailscale AND cloud registry is configured
+    if not tailscale_ip and cfg.musu_token:
         _detected_public_ip = await detect_public_ip()
     else:
         _detected_public_ip = None
@@ -217,7 +218,7 @@ async def lifespan(app: FastAPI):
                     for peer in discovery.get_discovered():
                         name = peer["name"]
                         url = peer["url"]
-                        if name not in router._node_urls:
+                        if not router.has_node(name):
                             router.add_node(name, url)
                             logger.info(
                                 "discovery: auto-registered mDNS peer %r → %s", name, url

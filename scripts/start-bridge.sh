@@ -20,9 +20,90 @@ fi
 
 # ── MUSU_TOKEN (musu.pro peer discovery) 해결 ────────────────
 MUSU_TOKEN_FILE="${HOME}/.musu/musu_token"
+MUSU_PRO_URL="${MUSU_PRO_URL:-https://musu.pro}"
+DEVICE_API="${MUSU_PRO_URL}/api/v1/auth/device"
+NODE_NAME="${MUSU_NODE_NAME:-$(hostname)}"
+
 if [[ -z "${MUSU_TOKEN:-}" && -f "$MUSU_TOKEN_FILE" ]]; then
     export MUSU_TOKEN="$(tr -d '\n' < "$MUSU_TOKEN_FILE")"
-    echo "[start-bridge] MUSU_TOKEN loaded from file — peer discovery enabled" >&2
+    echo "[start-bridge] MUSU_TOKEN loaded — peer discovery enabled" >&2
+fi
+
+# ── Device auth: 토큰 없으면 musu.pro에서 자동 발급 ──────────
+if [[ -z "${MUSU_TOKEN:-}" && "${MUSU_DEV:-}" != "1" ]] && command -v curl &>/dev/null && command -v jq &>/dev/null; then
+    echo "[start-bridge] MUSU_TOKEN 없음 — musu.pro 자동 인증 시작..." >&2
+
+    RESP=$(curl -sf --max-time 5 \
+        -X POST "${DEVICE_API}" \
+        -H "Content-Type: application/json" \
+        -d "{\"node_name\":\"${NODE_NAME}\"}" 2>/dev/null || echo "")
+
+    if [[ -n "$RESP" ]]; then
+        DEVICE_CODE=$(echo "$RESP" | jq -r '.device_code // empty' 2>/dev/null)
+        USER_CODE=$(echo "$RESP"   | jq -r '.user_code // empty'   2>/dev/null)
+        VERIFY_URI=$(echo "$RESP"  | jq -r '.verification_uri // empty' 2>/dev/null)
+
+        if [[ -n "$DEVICE_CODE" && -n "$VERIFY_URI" ]]; then
+            echo "" >&2
+            echo "  ┌─────────────────────────────────────────────────────┐" >&2
+            echo "  │  🐝  musu-bridge 승인 필요                            │" >&2
+            echo "  │                                                      │" >&2
+            echo "  │  브라우저에서 아래 URL을 열어 '이 머신 승인' 클릭:       │" >&2
+            echo "  │                                                      │" >&2
+            echo "  │  ${VERIFY_URI}" >&2
+            echo "  │                                                      │" >&2
+            echo "  │  15분 내 승인하면 토큰이 자동 저장됩니다.              │" >&2
+            echo "  └─────────────────────────────────────────────────────┘" >&2
+            echo "" >&2
+
+            # 브라우저 자동 오픈 (가능한 경우)
+            if command -v xdg-open &>/dev/null && [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]]; then
+                xdg-open "$VERIFY_URI" 2>/dev/null &
+            elif command -v open &>/dev/null; then  # macOS
+                open "$VERIFY_URI" 2>/dev/null &
+            fi
+
+            # 폴링: 5초 간격, 최대 15분 (180회)
+            POLL_MAX=180
+            POLL_COUNT=0
+            while [[ $POLL_COUNT -lt $POLL_MAX ]]; do
+                sleep 5
+                POLL_COUNT=$((POLL_COUNT + 1))
+
+                POLL_RESP=$(curl -sf --max-time 5 \
+                    "${DEVICE_API}/token?device_code=${DEVICE_CODE}" 2>/dev/null || echo "")
+
+                HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 \
+                    "${DEVICE_API}/token?device_code=${DEVICE_CODE}" 2>/dev/null || echo "000")
+
+                if [[ "$HTTP_STATUS" == "200" ]]; then
+                    TOKEN=$(echo "$POLL_RESP" | jq -r '.token // empty' 2>/dev/null)
+                    if [[ -n "$TOKEN" ]]; then
+                        mkdir -p "${HOME}/.musu" && chmod 700 "${HOME}/.musu"
+                        echo "$TOKEN" > "$MUSU_TOKEN_FILE"
+                        chmod 600 "$MUSU_TOKEN_FILE"
+                        export MUSU_TOKEN="$TOKEN"
+                        echo "[start-bridge] ✅ 토큰 저장 완료 → ${MUSU_TOKEN_FILE}" >&2
+                        echo "[start-bridge] peer discovery 활성화됨" >&2
+                        break
+                    fi
+                elif [[ "$HTTP_STATUS" == "410" ]]; then
+                    echo "[start-bridge] WARN: device code 만료 — peer discovery 없이 시작" >&2
+                    break
+                fi
+                # 202 pending → 계속 폴링
+            done
+
+            if [[ -z "${MUSU_TOKEN:-}" ]]; then
+                echo "[start-bridge] WARN: 승인 대기 시간 초과 — peer discovery 없이 시작" >&2
+                echo "  다시 시작하면 새 코드가 발급됩니다." >&2
+            fi
+        else
+            echo "[start-bridge] WARN: musu.pro 응답 오류 — peer discovery 없이 시작" >&2
+        fi
+    else
+        echo "[start-bridge] WARN: musu.pro 연결 실패 — peer discovery 없이 시작" >&2
+    fi
 fi
 
 # ── 포트 충돌 감지 ────────────────────────────────────────────

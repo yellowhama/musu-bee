@@ -94,6 +94,10 @@ class MeshRouter:
         """Return the musu-bridge URL for a node name."""
         return self._node_urls.get(node_name)
 
+    def has_node(self, name: str) -> bool:
+        """Return True if a node with this name is already registered."""
+        return name in self._node_urls
+
     async def is_node_healthy(self, node_name: str) -> bool:
         """Return True if the node's /health endpoint responds 200.
 
