@@ -749,6 +749,28 @@ async def api_system_stats() -> dict:
     return await collect_stats_async()
 
 
+class WolRequest(BaseModel):
+    mac_address: str
+    broadcast_ip: str = "255.255.255.255"
+    port: int = 9
+
+
+@app.post("/api/wol", summary="Send Wake-on-LAN Magic Packet")
+async def api_wol(req: WolRequest, request: Request) -> dict:
+    """Send a Magic Packet to wake a machine on the local LAN.
+
+    Requires Bearer token auth (same MUSU_BRIDGE_TOKEN as all endpoints).
+    This endpoint is called by musu.pro proxying a user's Wake request through
+    an active node on the same LAN as the sleeping target machine.
+    """
+    from wol import send_magic_packet
+
+    ok = send_magic_packet(req.mac_address, req.broadcast_ip, req.port)
+    if not ok:
+        return {"ok": False, "error": "Invalid MAC address format"}
+    return {"ok": True}
+
+
 @app.get("/health")
 async def health() -> dict:
     return {"status": "ok"}

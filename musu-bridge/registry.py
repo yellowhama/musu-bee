@@ -47,6 +47,12 @@ async def heartbeat_loop(
                 machine_group = os.getenv("MUSU_MACHINE_GROUP", "")
                 if machine_group:
                     payload["machine_group"] = machine_group
+                mac_address = os.getenv("MUSU_MAC_ADDRESS", "")
+                if mac_address:
+                    payload["mac_address"] = mac_address
+                broadcast_ip = os.getenv("MUSU_BROADCAST_IP", "")
+                if broadcast_ip:
+                    payload["broadcast_ip"] = broadcast_ip
                 resp = await client.post(
                     _REGISTRY_URL,
                     json=payload,

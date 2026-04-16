@@ -120,6 +120,24 @@ if [[ -z "${MUSU_MACHINE_GROUP:-}" ]]; then
     fi
 fi
 
+# ── Wake-on-LAN: MAC 주소 자동 감지 ──────────────────────────
+if [[ -z "${MUSU_MAC_ADDRESS:-}" ]]; then
+    if command -v ip &>/dev/null; then
+        _WOL_MAC="$(ip link show 2>/dev/null | grep -A1 'state UP' | grep 'link/ether' | awk '{print $2}' | head -1)"
+        _WOL_BCAST="$(ip route 2>/dev/null | grep 'src' | grep -v '169.254' | awk '/src/{for(i=1;i<=NF;i++) if($i=="src") {print $(i+1)}}' | head -1)"
+        if [[ -n "$_WOL_MAC" ]]; then
+            export MUSU_MAC_ADDRESS="$_WOL_MAC"
+            # Derive broadcast: replace last octet with 255
+            if [[ -n "$_WOL_BCAST" ]]; then
+                export MUSU_BROADCAST_IP="$(echo "$_WOL_BCAST" | sed 's/\.[0-9]*$/.255/')"
+            else
+                export MUSU_BROADCAST_IP="255.255.255.255"
+            fi
+            echo "[start-bridge] WoL MAC: ${MUSU_MAC_ADDRESS} broadcast: ${MUSU_BROADCAST_IP}" >&2
+        fi
+    fi
+fi
+
 # ── 포트 충돌 감지 ────────────────────────────────────────────
 BRIDGE_PORT="${BRIDGE_PORT:-8070}"
 if command -v ss &>/dev/null; then
