@@ -40,12 +40,18 @@ export function createWikiHandler(ctx: CommandContext) {
       appendChatMessage({ id: makeId(), channelId: channel, sender: "User", senderKind: "user", text, timestamp: new Date() });
       setIsAgentTyping(true);
       try {
-        const [wikiRes, codeRes] = await Promise.all([
+        const [wikiSettled, codeSettled] = await Promise.allSettled([
           fetch(`/api/wiki?q=${encodeURIComponent(query)}&scope=global`),
           fetch(`/api/index-search?q=${encodeURIComponent(query)}&limit=3`),
         ]);
-        const wikiData = (await wikiRes.json()) as { pages?: Array<{ title?: string; summary?: string; key_points?: string[] }> };
-        const codeData = (await codeRes.json()) as { results?: Array<{ path: string; title: string; type: string; snippet: string }> };
+        const wikiData: { pages?: Array<{ title?: string; summary?: string; key_points?: string[] }> } =
+          wikiSettled.status === "fulfilled" && wikiSettled.value.ok
+            ? (await wikiSettled.value.json()) as { pages?: Array<{ title?: string; summary?: string; key_points?: string[] }> }
+            : {};
+        const codeData: { results?: Array<{ path: string; title: string; type: string; snippet: string }> } =
+          codeSettled.status === "fulfilled" && codeSettled.value.ok
+            ? (await codeSettled.value.json()) as { results?: Array<{ path: string; title: string; type: string; snippet: string }> }
+            : {};
 
         const sections: string[] = [];
 

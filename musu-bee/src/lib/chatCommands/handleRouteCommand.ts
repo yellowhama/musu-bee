@@ -20,7 +20,7 @@ export function createRouteHandler(ctx: CommandContext) {
           : "general";
 
     try {
-      const [statusRes, routeRes] = await Promise.all([
+      const [statusSettled, routeSettled] = await Promise.allSettled([
         fetch("/api/device-status"),
         fetch("/api/route", {
           method: "POST",
@@ -28,11 +28,13 @@ export function createRouteHandler(ctx: CommandContext) {
           body: JSON.stringify({ resource_requirement: resource }),
         }),
       ]);
+      const statusRes = statusSettled.status === "fulfilled" ? statusSettled.value : null;
+      const routeRes = routeSettled.status === "fulfilled" ? routeSettled.value : null;
 
-      const status = statusRes.ok
+      const status = statusRes?.ok
         ? (await statusRes.json()) as { cpu?: number; gpu?: number | null; ram?: number; device_id?: string; recommended_for?: string[] }
         : null;
-      const routing = routeRes.ok
+      const routing = routeRes?.ok
         ? (await routeRes.json()) as { selected_host?: string; reason_code?: string }
         : null;
 
