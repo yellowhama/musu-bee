@@ -1,4 +1,40 @@
-# NEXT SESSION — 2026-04-18 (P4 완료 이후)
+# NEXT SESSION — 2026-04-18 (Phase 10 완료 이후)
+
+> **업데이트**: Phase 10 Production Hardening 완료. 현재 스코어 99/100.
+
+---
+
+## Phase 10에서 완료된 것 (이번 세션)
+
+| 작업 | 커밋 |
+|------|------|
+| H3: stale route eviction (server.rs) | `1294145d` |
+| pydantic max_length (musu-worker) | `35e64567` |
+| 5D-3: canonical_name_for_agent + agents_on_node | `fb3e31a4` |
+| list_messages LEFT JOIN agent_name | `fb3e31a4` |
+| SQLite check_same_thread 주석 | `d6f9b261` |
+| msgCounter → crypto.randomUUID() | `5c947803` |
+| Promise.allSettled in chat commands | `d98f07a9` |
+| TOCTOU fix: free_local_tcp_port | `3e03aaec` |
+| .env.example 프로덕션 템플릿 | `b675ec40` |
+| musu-bee/DEPLOY.md | `0fb0213b` |
+| Remote machine runbook | `05e263ee` |
+| Workspace index (408 files) | — |
+| LLM wiki 69, SPEC-149~151 | — |
+
+---
+
+## 다음 세션 우선순위
+
+### P0 — FastAPI on_event → lifespan (5분)
+`musu-bridge/server.py` + `musu-worker/src/musu_worker/main.py`의 `@app.on_event("startup")` → lifespan 마이그레이션.
+현재 pytest에서 DeprecationWarning 4개 발생.
+
+### P1 — WoL E2E 검증
+
+---
+
+# NEXT SESSION — 2026-04-18 (P4 완료 이후) [원본]
 
 ## 완료된 것 (2026-04-17 P4 세션)
 
