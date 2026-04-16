@@ -17,22 +17,7 @@
 
 ## 세션 시작 즉시 할 것
 
-### 1. Supabase 마이그레이션 수동 실행 (최우선)
-
-```sql
--- Migration 012: Rate limiting IP tracking
--- Supabase Dashboard → SQL Editor
-ALTER TABLE device_codes ADD COLUMN IF NOT EXISTS created_from_ip TEXT;
-CREATE INDEX IF NOT EXISTS device_codes_ip_created_idx
-  ON device_codes (created_from_ip, created_at)
-  WHERE created_from_ip IS NOT NULL;
-
--- Migration 013: Wake-on-LAN columns
-ALTER TABLE nodes ADD COLUMN IF NOT EXISTS mac_address TEXT;
-ALTER TABLE nodes ADD COLUMN IF NOT EXISTS broadcast_ip TEXT;
-```
-
-### 2. E2E 검증
+### 1. E2E 검증
 
 ```bash
 # Rate limit (migration 012 적용 후)
