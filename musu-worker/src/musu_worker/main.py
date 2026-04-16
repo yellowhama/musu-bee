@@ -264,6 +264,77 @@ async def execute_process(
 
 
 # ---------------------------------------------------------------------------
+# Process management
+# ---------------------------------------------------------------------------
+
+from musu_worker.processes import (
+    ProcessInfo,
+    ProcessStartResult,
+    get_process_status,
+    kill_process,
+    list_processes,
+    start_process,
+)
+
+
+class ProcessStartRequest(BaseModel):
+    command: str = Field(max_length=500)
+    args: list[str] = Field(default_factory=list, max_length=100)
+    cwd: str | None = None
+    env: dict[str, str] = Field(default_factory=dict)
+
+
+@app.get("/processes", response_model=list[ProcessInfo])
+async def get_processes(
+    name: str | None = None,
+    _: None = Depends(require_auth),
+) -> list[ProcessInfo]:
+    """List running processes on this host, optionally filtered by name substring."""
+    return list_processes(name_filter=name)
+
+
+@app.get("/processes/{pid}/status", response_model=ProcessInfo)
+async def get_process(
+    pid: int,
+    _: None = Depends(require_auth),
+) -> ProcessInfo:
+    info = get_process_status(pid)
+    if info is None:
+        raise HTTPException(status_code=404, detail=f"process {pid} not found")
+    return info
+
+
+@app.post("/processes/{pid}/kill")
+async def kill_process_endpoint(
+    pid: int,
+    force: bool = False,
+    _: None = Depends(require_auth),
+) -> dict[str, Any]:
+    """Send SIGTERM (or SIGKILL if force=true) to a process."""
+    ok = kill_process(pid, force=force)
+    if not ok:
+        raise HTTPException(status_code=404, detail=f"process {pid} not found or access denied")
+    return {"ok": True, "pid": pid}
+
+
+@app.post("/processes/start", response_model=ProcessStartResult)
+async def start_process_endpoint(
+    req: ProcessStartRequest,
+    _: None = Depends(require_auth),
+) -> ProcessStartResult:
+    """Spawn a detached background process on this host."""
+    try:
+        return start_process(
+            command=req.command,
+            args=req.args,
+            cwd=req.cwd,
+            env_extra=req.env or None,
+        )
+    except RuntimeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
