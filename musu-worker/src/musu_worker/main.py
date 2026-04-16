@@ -24,6 +24,7 @@ import os
 import platform
 import shutil
 import subprocess
+from contextlib import asynccontextmanager
 from typing import Any
 import asyncio
 
@@ -37,7 +38,14 @@ from musu_core.middleware import apply_musu_middlewares
 from musu_worker.auth import require_auth, warn_if_open_mode
 from musu_worker.executors import ExecResult, run_cli, run_process
 
-app = FastAPI(title="musu-worker", version="0.1.0")
+
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    warn_if_open_mode()
+    yield
+
+
+app = FastAPI(title="musu-worker", version="0.1.0", lifespan=_lifespan)
 _bearer_token = os.environ.get("MUSU_WORKER_TOKEN")
 apply_musu_middlewares(
     app,
@@ -46,11 +54,6 @@ apply_musu_middlewares(
     rate_limit_window_seconds=60,  # 1 minute
     rate_limit_key_type="token" if _bearer_token else "ip",
 )
-
-
-@app.on_event("startup")
-async def _startup() -> None:
-    warn_if_open_mode()
 
 
 # ---------------------------------------------------------------------------
