@@ -456,13 +456,18 @@ pub async fn probe_quic_target_alive(target: SocketAddr, timeout: std::time::Dur
     )
 }
 
-pub fn free_local_tcp_port() -> Result<u16, String> {
+/// Allocates a free local TCP port and returns it together with the bound
+/// `TcpListener`. The caller must keep the listener alive until the actual
+/// server has bound the same port, otherwise the OS may reassign the port
+/// between this call and the server bind (TOCTOU race).
+pub fn free_local_tcp_port() -> Result<(u16, std::net::TcpListener), String> {
     let listener = std::net::TcpListener::bind(("127.0.0.1", 0))
         .map_err(|err| format!("failed to allocate tcp port: {err}"))?;
-    listener
+    let port = listener
         .local_addr()
         .map(|addr| addr.port())
-        .map_err(|err| format!("failed to read allocated tcp port: {err}"))
+        .map_err(|err| format!("failed to read allocated tcp port: {err}"))?;
+    Ok((port, listener))
 }
 
 pub async fn is_route_alive_quick(route: &ServiceRoute) -> bool {

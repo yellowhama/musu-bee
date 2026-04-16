@@ -934,12 +934,12 @@ impl MusuPortState {
         alias_in_use.insert(selected_alias.clone());
 
         let (entrypoint, target_url, bind_port) = if protocol == "tcp" {
-            let bind_port = free_local_tcp_port()?;
+            let (bind_port, _port_guard) = free_local_tcp_port()?;
             let entry = format!("tcp://127.0.0.1:{bind_port}");
             let target = format!("tcp://127.0.0.1:{}", endpoint.port);
             (entry, target, bind_port)
         } else if protocol == "quic" {
-            let bind_port = free_local_tcp_port()?;
+            let (bind_port, _port_guard) = free_local_tcp_port()?;
             let entry = format!("quic://127.0.0.1:{bind_port}");
             let target = format!("quic://127.0.0.1:{}", endpoint.port);
             (entry, target, bind_port)
