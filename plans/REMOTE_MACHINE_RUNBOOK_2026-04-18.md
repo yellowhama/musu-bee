@@ -95,7 +95,7 @@ This populates the `bridge_token` column (required for WoL to work).
 Verify:
 ```bash
 curl -s -X POST https://api.supabase.com/v1/projects/poyclapxmvulvboiebxq/database/query \
-  -H "Authorization: Bearer sbp_17e09dee519f531792828842177d4cd43ca92507" \
+  -H "Authorization: Bearer <YOUR_SUPABASE_MANAGEMENT_PAT>" \
   -H "Content-Type: application/json" \
   -d '{"query":"SELECT node_name, bridge_token IS NOT NULL as has_token, last_seen FROM nodes ORDER BY last_seen DESC LIMIT 5;"}'
 ```

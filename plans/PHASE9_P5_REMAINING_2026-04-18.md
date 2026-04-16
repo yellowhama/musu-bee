@@ -79,7 +79,7 @@ args: list[str] = Field(default_factory=list, max_length=100)
 
 ```bash
 curl -s -X POST https://api.supabase.com/v1/projects/poyclapxmvulvboiebxq/database/query \
-  -H "Authorization: Bearer sbp_17e09dee519f531792828842177d4cd43ca92507" \
+  -H "Authorization: Bearer <YOUR_SUPABASE_MANAGEMENT_PAT>" \
   -H "Content-Type: application/json" \
   -d '{"query":"SELECT id, node_name, bridge_token IS NOT NULL as has_token FROM nodes LIMIT 10;"}'
 ```
