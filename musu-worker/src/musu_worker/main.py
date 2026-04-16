@@ -226,7 +226,7 @@ async def execute_cli(
 
 class ProcessRequest(BaseModel):
     command: str = Field(max_length=1000)
-    args: list[str] = Field(default_factory=list, max_items=100)
+    args: list[str] = Field(default_factory=list, max_length=100)
     cwd: str | None = None
     timeout_sec: int = Field(default=600, ge=1, le=7200)
     env: dict[str, str] = Field(default_factory=dict)
