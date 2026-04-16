@@ -299,7 +299,7 @@ pub async fn run_server(config: MusuPortConfig) -> Result<(), String> {
                         .await
                         .insert(url.clone(), snapshot);
 
-                    // Also fetch advertised routes from healthy peers
+                    // Also fetch advertised routes from healthy peers; evict stale on failure
                     if is_ok {
                         let routes_url = format!(
                             "{}/advertised-routes",
@@ -341,6 +341,9 @@ pub async fn run_server(config: MusuPortConfig) -> Result<(), String> {
                                 }
                             }
                         }
+                    } else {
+                        // Peer unreachable — remove stale imported routes
+                        probe_state.imported_routes.write().await.remove(url.as_str());
                     }
                 }
                 tokio::time::sleep(Duration::from_secs(5)).await;
