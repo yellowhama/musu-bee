@@ -54,7 +54,7 @@ bash <(curl -fsSL https://musu.pro/install.sh)
 
 ---
 
-## P0 — SSRF 패치 (Medium 신규 발견)
+## ✅ SSRF 패치 완료 (커밋 `7b62f5a`)
 
 **파일**: `src/app/api/v1/nodes/[id]/wol/route.ts`
 
@@ -71,7 +71,7 @@ if (blocked.test(proxyHost)) {
 }
 ```
 
-**우선순위**: Medium (인증 후에만 트리거, Vercel 환경 제한)
+**vibecode-town 커밋**: `7b62f5a` — 패치 완료, 다음 세션에서 별도 작업 불필요
 
 ---
 
