@@ -1,6 +1,11 @@
 """
 redact_secrets: Scrub sensitive patterns from log strings before they are written.
+
+Usage:
+    from musu_core.redaction import install_redaction_filter
+    install_redaction_filter()   # call once at server startup
 """
+import logging
 import re
 
 _PATTERNS = [
@@ -28,3 +33,34 @@ def redact_secrets(text: str) -> str:
     for pattern, replacement in _PATTERNS:
         text = pattern.sub(replacement, text)
     return text
+
+
+class _SecretRedactionFilter(logging.Filter):
+    """logging.Filter that scrubs secrets from every log record."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.msg = redact_secrets(str(record.msg))
+        if record.args:
+            if isinstance(record.args, tuple):
+                record.args = tuple(
+                    redact_secrets(a) if isinstance(a, str) else a
+                    for a in record.args
+                )
+            elif isinstance(record.args, dict):
+                record.args = {
+                    k: redact_secrets(v) if isinstance(v, str) else v
+                    for k, v in record.args.items()
+                }
+        return True
+
+
+_filter_installed = False
+
+
+def install_redaction_filter() -> None:
+    """Attach the secret-redaction filter to the root logger (idempotent)."""
+    global _filter_installed
+    if _filter_installed:
+        return
+    logging.getLogger().addFilter(_SecretRedactionFilter())
+    _filter_installed = True

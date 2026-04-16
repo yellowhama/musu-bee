@@ -29,6 +29,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from musu_core.middleware import apply_musu_middlewares
+from musu_core.redaction import install_redaction_filter
 import audit
 from config import get_config
 from system_stats import collect_stats_async
@@ -789,4 +790,5 @@ if __name__ == "__main__":
             )
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    install_redaction_filter()
     uvicorn.run(app, host=cfg.bridge_host, port=cfg.bridge_port)
