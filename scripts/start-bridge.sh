@@ -70,11 +70,10 @@ if [[ -z "${MUSU_TOKEN:-}" && "${MUSU_DEV:-}" != "1" ]] && command -v curl &>/de
                 sleep 5
                 POLL_COUNT=$((POLL_COUNT + 1))
 
-                POLL_RESP=$(curl -sf --max-time 5 \
-                    "${DEVICE_API}/token?device_code=${DEVICE_CODE}" 2>/dev/null || echo "")
-
-                HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 \
-                    "${DEVICE_API}/token?device_code=${DEVICE_CODE}" 2>/dev/null || echo "000")
+                POLL_OUT=$(curl -s -w "\n%{http_code}" --max-time 5 \
+                    "${DEVICE_API}/token?device_code=${DEVICE_CODE}" 2>/dev/null || printf "\n000")
+                HTTP_STATUS=$(printf '%s' "$POLL_OUT" | tail -1)
+                POLL_RESP=$(printf '%s' "$POLL_OUT" | head -n -1)
 
                 if [[ "$HTTP_STATUS" == "200" ]]; then
                     TOKEN=$(echo "$POLL_RESP" | jq -r '.token // empty' 2>/dev/null)
@@ -134,6 +133,8 @@ if [[ -z "${MUSU_MAC_ADDRESS:-}" ]]; then
                 export MUSU_BROADCAST_IP="255.255.255.255"
             fi
             echo "[start-bridge] WoL MAC: ${MUSU_MAC_ADDRESS} broadcast: ${MUSU_BROADCAST_IP}" >&2
+        else
+            echo "[start-bridge] WARN: MAC 주소 감지 실패 — WoL 비활성화. 수동 설정: export MUSU_MAC_ADDRESS=xx:xx:xx:xx:xx:xx" >&2
         fi
     fi
 fi

@@ -236,15 +236,18 @@ _PRIVATE_NETS = [
 ]
 
 _cached_public_ip: str | None = None
+_cached_public_ip_ts: float = 0.0
+_PUBLIC_IP_TTL: float = 3600.0  # 1 hour
 
 
 async def detect_public_ip(timeout: float = 5.0) -> str | None:
-    """ipify 계열 API로 공인 IPv4 감지. 성공 후 프로세스 캐시.
+    """ipify 계열 API로 공인 IPv4 감지. 1시간 TTL 캐시.
 
     사설/CGNAT IP는 거부. 실패 시 None 반환.
     """
-    global _cached_public_ip
-    if _cached_public_ip:
+    global _cached_public_ip, _cached_public_ip_ts
+    now = time.monotonic()
+    if _cached_public_ip and (now - _cached_public_ip_ts) < _PUBLIC_IP_TTL:
         return _cached_public_ip
     import httpx
 
@@ -261,6 +264,7 @@ async def detect_public_ip(timeout: float = 5.0) -> str | None:
                     if not any(addr in net for net in _PRIVATE_NETS):
                         logger.info("discovery: public IP → %s (via %s)", ip, url)
                         _cached_public_ip = ip
+                        _cached_public_ip_ts = now
                         return ip
         except Exception:
             pass
