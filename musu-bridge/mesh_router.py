@@ -98,6 +98,23 @@ class MeshRouter:
         """Return True if a node with this name is already registered."""
         return name in self._node_urls
 
+    def canonical_name_for_agent(self, agent_name: str) -> str:
+        """Return the canonical lowercase name for an agent.
+
+        Strips common suffixes (e.g. node-qualified names like "ceo@main-pc")
+        and normalises to lowercase. Used for cross-node deduplication so that
+        agents with the same role name on different machines are treated as one.
+        """
+        name = agent_name.lower()
+        # Strip @node suffix if present (e.g. "ceo@main-pc" → "ceo")
+        if "@" in name:
+            name = name.split("@", 1)[0]
+        return name
+
+    def agents_on_node(self, node_name: str) -> list[str]:
+        """Return the list of agent names assigned to a specific node."""
+        return list(self._node_agents.get(node_name, []))
+
     async def is_node_healthy(self, node_name: str) -> bool:
         """Return True if the node's /health endpoint responds 200.
 

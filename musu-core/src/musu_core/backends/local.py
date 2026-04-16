@@ -262,7 +262,7 @@ class LocalBackend(BackendABC):
         date_from: str | None = None,
         date_to: str | None = None,
     ) -> list[dict[str, Any]]:
-        conditions = ["session_id = ?"]
+        conditions = ["m.session_id = ?"]
         params: list[Any] = [session_id]
 
         if before_id is not None:
@@ -271,24 +271,26 @@ class LocalBackend(BackendABC):
             )
             if not anchor:
                 return []
-            conditions.append("created_at < ?")
+            conditions.append("m.created_at < ?")
             params.append(anchor[0]["created_at"])
 
         if agent_id is not None:
-            conditions.append("agent_id = ?")
+            conditions.append("m.agent_id = ?")
             params.append(agent_id)
 
         if date_from is not None:
-            conditions.append("created_at >= ?")
+            conditions.append("m.created_at >= ?")
             params.append(date_from)
 
         if date_to is not None:
-            conditions.append("created_at <= ?")
+            conditions.append("m.created_at <= ?")
             params.append(date_to)
 
         where = " AND ".join(conditions)
         rows = self._db.execute(
-            f"SELECT * FROM messages WHERE {where} ORDER BY created_at ASC",
+            f"SELECT m.*, a.name AS agent_name FROM messages m"
+            f" LEFT JOIN agents a ON m.agent_id = a.id"
+            f" WHERE {where} ORDER BY m.created_at ASC",
             tuple(params),
         )
         if limit is not None:
@@ -306,7 +308,7 @@ class LocalBackend(BackendABC):
 
     @staticmethod
     def _msg_row_to_dict(row: Any) -> dict[str, Any]:
-        return {
+        d: dict[str, Any] = {
             "id": row["id"],
             "session_id": row["session_id"],
             "role": row["role"],
@@ -316,6 +318,11 @@ class LocalBackend(BackendABC):
             "meta": json.loads(row["meta"] or "{}"),
             "created_at": row["created_at"],
         }
+        # agent_name is present when list_messages JOINs the agents table
+        agent_name = row["agent_name"] if "agent_name" in row.keys() else None
+        if agent_name is not None:
+            d["agent_name"] = agent_name
+        return d
 
     # --- Fallback metrics ---
 
