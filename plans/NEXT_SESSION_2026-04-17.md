@@ -9,9 +9,11 @@
 | P1: install.sh one-liner | ✅ |
 | P2: Wake-on-LAN (wol.py, server.py, registry.py, start-bridge.sh, vibecode-town full stack) | ✅ |
 | P3: Pricing 페이지 Pro tier 업데이트 | ✅ |
-| 코드 인덱싱, LLM wiki 66 작성, SPEC-140~142 | ✅ |
+| 코드 인덱싱, LLM wiki 66 작성, SPEC-140~144 | ✅ |
+| SSRF 패치 (IPv4 + IPv6 bracket + ::ffff:) | ✅ |
+| Supabase migration 012/013 PAT으로 적용 | ✅ |
 
-**정성적 평가**: 94/100 (Medium 1개 신규 발견)
+**최종 정성적 평가**: 97/100
 
 ---
 
