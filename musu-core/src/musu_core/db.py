@@ -174,6 +174,9 @@ CREATE INDEX IF NOT EXISTS idx_approvals_status ON company_approvals_queue(statu
 
 def _open(db_path: str) -> sqlite3.Connection:
     Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+    # check_same_thread=False is intentional and safe: all DB access is
+    # serialized by Database._lock (threading.Lock), so no concurrent
+    # access from multiple threads ever reaches SQLite directly.
     conn = sqlite3.connect(db_path, check_same_thread=False)
     if os.path.exists(db_path):
         os.chmod(db_path, stat.S_IRUSR | stat.S_IWUSR)  # 0600
