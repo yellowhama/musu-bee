@@ -1,123 +1,88 @@
-# NEXT SESSION — 2026-04-17 (Phase 7 완료 이후)
+# NEXT SESSION — 2026-04-17 (Phase P0~P3 완료 이후)
 
-## 현재 상태
+## 완료된 것 (2026-04-17 세션)
 
-**완료된 것:**
-- Phase 4: FingerprintVerifier, SSRF, DashMap lock fix ✅
-- Phase 5: fingerprint export (bash), verify-fingerprint.sh, mDNS fast path ✅
-- Phase 6: detect_public_ip(), public_url 호이스트, binary rebuild ✅
-- Phase 7A: Device Auth RFC 8628 lite (자동 토큰 저장) ✅
-- Phase 7B: machine_group WSL2 자동 그룹화 ✅
-- musu.pro 랜딩 재설계 (Hero, 뱃지, How It Works, CTA 수정) ✅
-- Account 노드 삭제 + fingerprint 복사 + 빈 상태 ✅
+| 작업 | 상태 |
+|------|------|
+| Phase 4~7: FingerprintVerifier, Device Auth, machine_group, 랜딩 재설계 | ✅ |
+| P0: IP Rate Limiting (device_codes + route.ts) | ✅ |
+| P1: install.sh one-liner | ✅ |
+| P2: Wake-on-LAN (wol.py, server.py, registry.py, start-bridge.sh, vibecode-town full stack) | ✅ |
+| P3: Pricing 페이지 Pro tier 업데이트 | ✅ |
+| 코드 인덱싱, LLM wiki 66 작성, SPEC-140~142 | ✅ |
 
-**정성적 평가**: 93/100 (Medium 1: rate limiting, Low 5)
+**정성적 평가**: 94/100 (Medium 1개 신규 발견)
 
 ---
 
 ## 세션 시작 즉시 할 것
 
-### 1. Device Auth E2E 검증
+### 1. Supabase 마이그레이션 수동 실행 (최우선)
+
+```sql
+-- Migration 012: Rate limiting IP tracking
+-- Supabase Dashboard → SQL Editor
+ALTER TABLE device_codes ADD COLUMN IF NOT EXISTS created_from_ip TEXT;
+CREATE INDEX IF NOT EXISTS device_codes_ip_created_idx
+  ON device_codes (created_from_ip, created_at)
+  WHERE created_from_ip IS NOT NULL;
+
+-- Migration 013: Wake-on-LAN columns
+ALTER TABLE nodes ADD COLUMN IF NOT EXISTS mac_address TEXT;
+ALTER TABLE nodes ADD COLUMN IF NOT EXISTS broadcast_ip TEXT;
+```
+
+### 2. E2E 검증
 
 ```bash
-# bridge 재시작 (MUSU_TOKEN 없이)
-pkill -f "python.*server.py" 2>/dev/null || true
-pkill -f "musu-connectsd" 2>/dev/null || true
-unset MUSU_TOKEN
+# Rate limit (migration 012 적용 후)
+for i in {1..11}; do
+  curl -sf -X POST https://musu.pro/api/v1/auth/device \
+    -H "Content-Type: application/json" -d '{}' | jq .status 2>/dev/null || echo "no json"
+done
+# → 11번째에서 {"error":"Too many requests"} + 429 확인
+
+# Device Auth + WoL
 bash scripts/start-bridge.sh
-# → 터미널에 URL 출력 확인
-# → 브라우저에서 musu.pro/device?code=... 열기
-# → "승인" 클릭
-# → [start-bridge] ✅ 토큰 저장 완료 로그 확인
-# → ~/.musu/musu_token 파일 존재 확인
-```
+# → URL 출력 → 승인 → ~/.musu/musu_token 생성 확인
+# → musu.pro/account → offline 노드에 "Wake" 버튼 표시 확인
 
-### 2. Fingerprint E2E 검증
-
-```bash
-bash scripts/verify-fingerprint.sh
-# → 4 checks 모두 pass ✅
-```
-
-### 3. musu.pro Account 확인
-
-```
-https://musu.pro/account
-→ Connected Nodes 섹션에 노드 표시
-→ 노드 삭제 버튼 동작 확인
-→ cert_fingerprint 복사 버튼 동작 확인
+# install.sh
+bash <(curl -fsSL https://musu.pro/install.sh)
+# → musu-bridge 설치 + 시작
 ```
 
 ---
 
-## P0 — Rate Limiting (Medium 보안)
+## P0 — SSRF 패치 (Medium 신규 발견)
 
-**파일**: `src/app/api/v1/auth/device/route.ts`
-**구현**: 동일 IP 5분 10회 초과 시 429
+**파일**: `src/app/api/v1/nodes/[id]/wol/route.ts`
 
+**문제**: `proxy.public_url + '/api/wol'` fetch 시 URL 검증 없음.
+인증된 사용자가 `public_url = "http://169.254.169.254/"` 등 내부 주소 등록 가능 → Vercel 서버리스에서 SSRF.
+
+**패치**:
 ```typescript
-// 간단한 in-memory 방식 (edge function X, serverless는 공유 안 됨)
-// 또는 Upstash Redis rate limiter (@upstash/ratelimit)
-// 또는 Vercel firewall rule (no-code)
-
-// 단기 해결: Vercel Dashboard → Firewall → Rate limit rule on /api/v1/auth/device POST
+// fetch 전에 추가:
+const proxyHost = new URL(proxy.public_url).hostname;
+const blocked = /^(localhost|127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.|::1|fd)/i;
+if (blocked.test(proxyHost)) {
+  return NextResponse.json({ error: "Invalid proxy URL" }, { status: 422 });
+}
 ```
+
+**우선순위**: Medium (인증 후에만 트리거, Vercel 환경 제한)
 
 ---
 
-## P1 — install.sh 작성
+## 남은 Low 항목
 
-**목표**: `bash <(curl -fsSL https://musu.pro/install.sh)` 실제 동작
-
-**경로**: `musu-functions/scripts/install.sh` → vibecode-town `public/install.sh`로 복사
-
-최소 내용:
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-REPO_URL="${MUSU_REPO_URL:-https://github.com/yellowhama/musu-bee}"
-INSTALL_DIR="${HOME}/.musu"
-mkdir -p "$INSTALL_DIR"
-# git clone 또는 GitHub Releases에서 바이너리 다운로드
-# 이후 scripts/start-bridge.sh 실행
-```
-
----
-
-## P2 — Wake-on-LAN (이전 Phase 7 계획)
-
-**목표**: 노트북에서 원격 데스크탑 깨우기
-
-```
-POST /api/wol/{node_name}
-  → musu.pro에서 {mac_address, broadcast_ip} 조회
-  → Magic Packet (UDP 9/7번 포트 broadcast)
-```
-
-**변경 파일**:
-- `vibecode-town`: nodes 테이블 `mac_address TEXT`, `broadcast_ip TEXT` 컬럼 추가
-- `musu-bridge/wol.py` 신규 — Magic Packet UDP 발송
-- `musu-bridge/server.py` — `POST /api/wol/{node_name}` 엔드포인트
-- `musu-bridge/registry.py` — heartbeat에 mac_address + broadcast_ip 포함
-
----
-
-## P3 — Pricing 페이지 업데이트
-
-**파일**: `src/app/pricing/page.tsx`
-
-현재 Pro tier "Coming Soon" → 실제 기능 반영:
-- Core: 1 machine, HTTP mesh
-- Mesh: 무제한 기기, machine_group, team
-- Pro: QUIC, cert fingerprint, WoL
-
----
-
-## 코드 개선 Low 항목
-
-1. **start-bridge.sh 폴링**: curl 2회 → 1회 (body에서 status code 추출)
-2. **approveDeviceCode TOCTOU**: Supabase transaction으로 묶기 (low priority)
-3. **detect_public_ip() TTL**: `(ip, timestamp)` 튜플로 1h TTL 추가
+| 항목 | 파일 | 설명 |
+|------|------|------|
+| polling 2-curl | `scripts/start-bridge.sh` | curl 2회 → 1회 (`-w "%{http_code}"` + body 동시 파싱) |
+| approveDeviceCode TOCTOU | `device_codes.repo.ts` | select→insert→update 3쿼리 → Supabase transaction |
+| detect_public_ip TTL | `musu-bridge/discovery.py` | 1h TTL `(ip, timestamp)` 캐시 |
+| MAC 감지 edge case | `scripts/start-bridge.sh` | `ip link` 파싱 실패 시 silent 처리 → 로그 추가 |
 
 ---
 
@@ -125,11 +90,15 @@ POST /api/wol/{node_name}
 
 | 항목 | 경로 |
 |------|------|
-| 마스터 플랜 | `docs/MUSU_MESH_MASTER_PLAN.md` |
-| LLM Wiki | `/home/hugh51/llm-wiki/wiki/65_MUSU_MESH_PHASE7_DEVICE_AUTH_LANDING.md` |
-| Specs | `~/.claude/projects/-home-hugh51/memory/musu-specs.md` (SPEC-135~139) |
-| 검증 스크립트 | `scripts/verify-fingerprint.sh` |
-| 시작 스크립트 | `scripts/start-bridge.sh` |
-| 바이너리 | `bin/musu-connectsd` (2026-04-17 05:21, DashMap lock fix) |
-| musu.pro 랜딩 | `vibecode-town/src/app/page.tsx` (커밋 `7eceff1`) |
-| Account 페이지 | `vibecode-town/src/app/account/page.tsx` |
+| LLM Wiki | `/home/hugh51/llm-wiki/wiki/66_MUSU_MESH_PHASE8_P0_P3.md` |
+| Specs | `~/.claude/projects/-home-hugh51/memory/musu-specs.md` (SPEC-140~142) |
+| Rate limiting repo | `vibecode-town/src/lib/db/repositories/device_codes.repo.ts` |
+| Rate limiting route | `vibecode-town/src/app/api/v1/auth/device/route.ts` |
+| WoL API | `vibecode-town/src/app/api/v1/nodes/[id]/wol/route.ts` |
+| WakeButton | `vibecode-town/src/components/WakeButton.tsx` |
+| wol.py | `musu-functions/musu-bridge/wol.py` |
+| install.sh | `musu-functions/scripts/install.sh` = `vibecode-town/public/install.sh` |
+| Migration 012 | `vibecode-town/docs/migrations/012_device_codes_ip.sql` |
+| Migration 013 | `vibecode-town/docs/migrations/013_wol.sql` |
+| vibecode-town 커밋 | `2c78f35` |
+| musu-functions 커밋 | `b1cab0c9` |
