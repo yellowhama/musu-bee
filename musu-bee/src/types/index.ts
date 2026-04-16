@@ -2,6 +2,7 @@ export type ChannelId =
   | "general"
   | "dev"
   | "tasks"
+  | "processes"
   | "alerts"
   | "ceo"
   | "cto"

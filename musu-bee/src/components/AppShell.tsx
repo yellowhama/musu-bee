@@ -9,6 +9,7 @@ import CompanyTemplateModal from "@/components/CompanyTemplateModal";
 import OnboardingModal from "@/components/OnboardingModal";
 import CommandPalette from "@/components/CommandPalette";
 import TasksPanel from "@/components/TasksPanel";
+import ProcessesPanel from "@/components/ProcessesPanel";
 import { useAuth } from "@/lib/useAuth";
 import { useDeviceDiscovery } from "@/lib/useDeviceDiscovery";
 import { useAgentsSurface } from "@/lib/useAgentsSurface";
@@ -42,6 +43,7 @@ const INITIAL_CHANNELS: Channel[] = [
   { id: "general", name: "general", unread: 0 },
   { id: "dev", name: "dev", unread: 0 },
   { id: "tasks", name: "tasks", unread: 0 },
+  { id: "processes", name: "processes", unread: 0 },
   { id: "alerts", name: "alerts", unread: 0 },
   { id: "ceo", name: "ceo", unread: 0 },
   { id: "cto", name: "cto", unread: 0 },
@@ -440,6 +442,8 @@ export default function AppShell() {
         />
         {activeChannel === "tasks" ? (
           <TasksPanel />
+        ) : activeChannel === "processes" ? (
+          <ProcessesPanel />
         ) : (
           <ChatArea
             key={activeChannel}
