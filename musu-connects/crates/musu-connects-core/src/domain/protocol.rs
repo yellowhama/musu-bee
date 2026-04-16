@@ -35,6 +35,12 @@ pub struct PairSuccessPayload {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct HeartbeatPayload {
+    pub sent_at: String,
+    pub sequence: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ErrorPayload {
     pub code: String,
     pub message: String,

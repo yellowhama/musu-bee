@@ -140,10 +140,14 @@ fn run_live_harness(raw_args: &[String]) -> Result<(), String> {
         trust_level: args.trust_level.clone(),
         visibility_scope: "org".into(),
         discovery_state: args.discovery_state.clone(),
+        observed_addr: None,
         last_seen_at: args.now.clone(),
         discovered_via: args.discovered_via.clone(),
     };
-    let snapshot = FirstProductDemoService::run(selected.clone(), HashSet::new(), peer, &args.now)
+    let rt = tokio::runtime::Runtime::new()
+        .map_err(|err| format!("failed to create tokio runtime: {err}"))?;
+    let snapshot = rt
+        .block_on(FirstProductDemoService::run(selected.clone(), HashSet::new(), peer, &args.now))
         .map_err(|err| format!("first product demo failed: {err:?}"))?;
     let trust_gate_reason = snapshot.trust_gate_reason.clone();
     let import_decision_reason = snapshot.import_decision_reason.clone();
@@ -556,12 +560,16 @@ async fn run_real_quic_harness(proof_path: PathBuf) -> Result<(), String> {
         alpn: "musu-connects/1".into(),
         idle_timeout_ms: 30_000,
     });
-    server_provider.open_listener();
+    let (prov_cert, prov_key) = musu_connects_core::application::identity::gen_self_signed_cert()
+        .map_err(|err| format!("failed to generate provider cert: {err}"))?;
+    server_provider.open_listener(prov_cert, prov_key).await
+        .map_err(|err| format!("QuicProvider::open_listener failed: {err:?}"))?;
 
     // accept() records the session in the domain registry. The remote_addr passed here
     // was obtained from connection.remote_address() — the QUIC stack-observed value.
     let session_event = server_provider
         .accept(&peer_id, &session_id, &remote_addr, now)
+        .await
         .map_err(|err| format!("QuicProvider::accept failed: {err:?}"))?;
 
     use musu_connects_core::{PairRequestPayload, PairSuccessPayload, PairingService};
@@ -576,6 +584,7 @@ async fn run_real_quic_harness(proof_path: PathBuf) -> Result<(), String> {
         trust_level: TrustLevel::Trusted,
         visibility_scope: "org".into(),
         discovery_state: DiscoveryState::Verified,
+        observed_addr: None,
         last_seen_at: now.into(),
         discovered_via: "real-quic-peer-harness".into(),
     };
@@ -851,9 +860,13 @@ async fn run_tailscale_quic_server_async(args: TailscaleServerArgs) -> Result<()
         alpn: "musu-connects/1".to_string(),
         idle_timeout_ms: args.idle_timeout_ms,
     });
-    provider.open_listener();
+    let (prov_cert, prov_key) = musu_connects_core::application::identity::gen_self_signed_cert()
+        .map_err(|err| format!("failed to generate provider cert: {err}"))?;
+    provider.open_listener(prov_cert, prov_key).await
+        .map_err(|err| format!("QuicProvider::open_listener failed: {err:?}"))?;
     provider
         .accept(&peer_id, &session_id, &observed_remote_addr, &now)
+        .await
         .map_err(|err| format!("QuicProvider::accept failed: {err:?}"))?;
 
     let mut served = 0usize;

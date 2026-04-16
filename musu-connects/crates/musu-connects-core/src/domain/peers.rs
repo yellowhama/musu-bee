@@ -37,6 +37,7 @@ pub struct PeerRecord {
     pub trust_level: TrustLevel,
     pub visibility_scope: String,
     pub discovery_state: DiscoveryState,
+    pub observed_addr: Option<String>,
     pub last_seen_at: String,
     pub discovered_via: String,
 }

@@ -190,6 +190,7 @@ mod tests {
             trust_level,
             visibility_scope: "org".into(),
             discovery_state,
+            observed_addr: None,
             last_seen_at: "2026-04-03T00:00:00Z".into(),
             discovered_via: "quic".into(),
         }

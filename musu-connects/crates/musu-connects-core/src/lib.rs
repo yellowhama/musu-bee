@@ -3,6 +3,11 @@ pub mod bootstrap;
 pub mod domain;
 
 pub use application::discovery::{DiscoveryProvider, InMemoryDiscoveredPeerRegistry};
+pub use application::heartbeat::HeartbeatService;
+pub use application::identity::{
+    cert_fingerprint, gen_self_signed_cert, load_or_gen_cert, FingerprintVerifier, NoVerifier,
+};
+pub use application::mdns_service::{MdnsService, parse_mdns_peer};
 pub use application::pairing::{PairingError, PairingService};
 pub use application::port_adapter::{
     DefaultLocalRouteMapper, ImportMergeDecision, ImportMergePolicy, ImportedRouteApplyService,
@@ -17,7 +22,9 @@ pub use application::quic_provider::{
     QuicBindTarget, QuicControlBiStream, QuicEndpointConfig, QuicProvider, QuicProviderError,
     QuicSessionEvent,
 };
+pub use application::reconnect::ReconnectionService;
 pub use application::route_sync::RouteSyncService;
+pub use application::stun_service::StunService;
 pub use domain::peers::{DeviceIdentity, DiscoveryState, PeerRecord, TrustLevel};
 pub use domain::protocol::{
     ConnectsFrame, ConnectsOpCode, ErrorPayload, PairRequestPayload, PairSuccessPayload,

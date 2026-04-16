@@ -1,6 +1,11 @@
 pub mod discovery;
+pub mod heartbeat;
+pub mod identity;
+pub mod mdns_service;
 pub mod pairing;
 pub mod port_adapter;
 pub mod product_demo;
 pub mod quic_provider;
+pub mod reconnect;
 pub mod route_sync;
+pub mod stun_service;

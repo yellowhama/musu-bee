@@ -49,7 +49,7 @@ pub enum FirstProductDemoError {
 pub struct FirstProductDemoService;
 
 impl FirstProductDemoService {
-    pub fn run(
+    pub async fn run(
         route: MusuPortServiceRoute,
         local_aliases: HashSet<String>,
         peer: PeerRecord,
@@ -114,12 +114,15 @@ impl FirstProductDemoService {
         ) =
             if trust_gate_reason == "peer-allowed" {
                 let mut provider = QuicProvider::default();
-                provider.open_listener();
+                let (cert, key) = crate::application::identity::gen_self_signed_cert()
+                    .map_err(|e| FirstProductDemoError::Quic(QuicProviderError::TlsConfigError(e.to_string())))?;
+                provider.open_listener(cert, key).await.map_err(FirstProductDemoError::Quic)?;
                 let remote_addr = provider
                     .runtime_remote_addr_for_peer(&peer.peer_id)
                     .map_err(FirstProductDemoError::Quic)?;
                 let quic_session = provider
                     .accept(&peer.peer_id, "session-a", &remote_addr, now)
+                    .await
                     .map_err(FirstProductDemoError::Quic)?;
 
                 let request = PairRequestPayload {
@@ -128,7 +131,7 @@ impl FirstProductDemoService {
                     token: "a".repeat(64),
                     requested_at: now.into(),
                 };
-                let mut pairing = PairingService::default();
+                let pairing = PairingService::default();
                 let pairing_attempt = pairing.pair_peer(&peer, &request, "session-a", now);
                 let (pairing_session_id, pairing_outcome, session_evidence_mode) =
                     match pairing_attempt {
@@ -236,13 +239,14 @@ mod tests {
             trust_level,
             visibility_scope: "org".into(),
             discovery_state,
+            observed_addr: None,
             last_seen_at: "2026-04-03T00:00:00Z".into(),
             discovered_via: "live-harness".into(),
         }
     }
 
-    #[test]
-    fn first_product_demo_service_builds_end_to_end_snapshot() {
+    #[tokio::test]
+    async fn first_product_demo_service_builds_end_to_end_snapshot() {
         let snapshot = FirstProductDemoService::run(
             MusuPortServiceRoute {
                 name: "shell".into(),
@@ -260,6 +264,7 @@ mod tests {
             peer_record(TrustLevel::Trusted, DiscoveryState::Verified),
             "2026-04-03T00:00:00Z",
         )
+        .await
         .expect("demo snapshot should be produced");
 
         assert_eq!(snapshot.peer_id, "peer-a");
@@ -297,8 +302,8 @@ mod tests {
         assert_eq!(snapshot.pairing_outcome, "paired");
     }
 
-    #[test]
-    fn blocked_peer_snapshot_is_suppressed_with_explicit_gate_reason() {
+    #[tokio::test]
+    async fn blocked_peer_snapshot_is_suppressed_with_explicit_gate_reason() {
         let snapshot = FirstProductDemoService::run(
             MusuPortServiceRoute {
                 name: "shell".into(),
@@ -316,6 +321,7 @@ mod tests {
             peer_record(TrustLevel::Blocked, DiscoveryState::Blocked),
             "2026-04-03T00:00:00Z",
         )
+        .await
         .expect("blocked peer should still produce suppression snapshot");
 
         assert!(snapshot.projected_routes.is_empty());
@@ -332,8 +338,8 @@ mod tests {
         assert_eq!(snapshot.pairing_outcome, "trust_gate_suppressed");
     }
 
-    #[test]
-    fn unverified_peer_snapshot_is_suppressed_without_pairing_failure() {
+    #[tokio::test]
+    async fn unverified_peer_snapshot_is_suppressed_without_pairing_failure() {
         let snapshot = FirstProductDemoService::run(
             MusuPortServiceRoute {
                 name: "shell".into(),
@@ -351,6 +357,7 @@ mod tests {
             peer_record(TrustLevel::Known, DiscoveryState::Discovered),
             "2026-04-03T00:00:00Z",
         )
+        .await
         .expect("unverified peer should produce suppression snapshot");
 
         assert!(snapshot.projected_routes.is_empty());
@@ -377,8 +384,8 @@ mod tests {
         assert_eq!(snapshot.exported_route.health.status, HealthStatus::Healthy);
     }
 
-    #[test]
-    fn trusted_peer_alias_conflict_keeps_trust_gate_reason_distinct() {
+    #[tokio::test]
+    async fn trusted_peer_alias_conflict_keeps_trust_gate_reason_distinct() {
         let snapshot = FirstProductDemoService::run(
             MusuPortServiceRoute {
                 name: "shell".into(),
@@ -396,6 +403,7 @@ mod tests {
             peer_record(TrustLevel::Trusted, DiscoveryState::Verified),
             "2026-04-03T00:00:00Z",
         )
+        .await
         .expect("trusted peer with alias conflict should still produce snapshot");
 
         assert!(snapshot.projected_routes.is_empty());

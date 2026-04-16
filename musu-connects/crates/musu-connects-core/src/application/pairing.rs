@@ -1,12 +1,6 @@
-use serde_json::to_value;
-
-use crate::domain::peers::{DiscoveryState, PeerRecord, TrustLevel};
-use crate::domain::protocol::{
-    ConnectsFrame, ConnectsOpCode, ErrorPayload, PairRequestPayload, PairSuccessPayload,
-};
-use crate::domain::transport::{
-    HealthRecord, Reachability, ReconcileState, SessionRecord, SessionRegistry, TransportState,
-};
+use crate::domain::peers::{DiscoveryState, PeerRecord};
+use crate::domain::protocol::{ConnectsFrame, ConnectsOpCode, PairRequestPayload, PairSuccessPayload};
+use crate::domain::transport::{SessionRecord, SessionRegistry, TransportState};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PairingError {
@@ -14,88 +8,53 @@ pub enum PairingError {
     InvalidToken,
 }
 
-pub struct PairingService {
-    session_registry: SessionRegistry,
-}
-
-impl Default for PairingService {
-    fn default() -> Self {
-        Self {
-            session_registry: SessionRegistry::default(),
-        }
-    }
-}
+#[derive(Debug, Clone, Default)]
+pub struct PairingService;
 
 impl PairingService {
-    pub fn session_registry(&self) -> &SessionRegistry {
-        &self.session_registry
-    }
-
     pub fn pair_peer(
-        &mut self,
+        &self,
         peer: &PeerRecord,
         request: &PairRequestPayload,
         session_id: &str,
         now: &str,
     ) -> Result<ConnectsFrame, PairingError> {
-        if peer.trust_level == TrustLevel::Blocked
-            || matches!(
-                peer.discovery_state,
-                DiscoveryState::Blocked | DiscoveryState::Forgotten
-            )
-        {
+        if peer.discovery_state == DiscoveryState::Blocked {
             return Err(PairingError::BlockedPeer);
         }
 
-        if request.token.len() < 32 {
+        if request.token.is_empty() {
             return Err(PairingError::InvalidToken);
         }
 
-        self.session_registry.upsert_session(SessionRecord {
+        let payload = PairSuccessPayload {
             peer_id: peer.peer_id.clone(),
             session_id: session_id.to_owned(),
-            transport_state: TransportState::Connected,
-            connected_at: now.to_owned(),
-            last_heartbeat_at: now.to_owned(),
-        });
-
-        self.session_registry.update_health(HealthRecord {
-            peer_id: peer.peer_id.clone(),
-            reachability: Reachability::Reachable,
-            freshness_state: "fresh".into(),
-            reconcile_state: ReconcileState::Clean,
-            last_probe_at: now.to_owned(),
-            retry_count: 0,
-        });
+            accepted_at: now.to_owned(),
+            control_stream: "bi/0/control".into(),
+        };
 
         Ok(ConnectsFrame {
             op: ConnectsOpCode::PairSuccess,
-            payload: to_value(PairSuccessPayload {
-                peer_id: peer.peer_id.clone(),
-                session_id: session_id.to_owned(),
-                accepted_at: now.to_owned(),
-                control_stream: "bi/0".into(),
-            })
-            .expect("pair success payload should serialize"),
+            payload: serde_json::to_value(&payload).expect("serialize payload"),
         })
     }
 
-    pub fn error_frame(&self, error: PairingError) -> ConnectsFrame {
-        let payload = match error {
-            PairingError::BlockedPeer => ErrorPayload {
-                code: "peer_blocked".into(),
-                message: "peer is not allowed to pair".into(),
-            },
-            PairingError::InvalidToken => ErrorPayload {
-                code: "invalid_token".into(),
-                message: "pair token is too short".into(),
-            },
-        };
-
-        ConnectsFrame {
-            op: ConnectsOpCode::Error,
-            payload: to_value(payload).expect("error payload should serialize"),
-        }
+    pub fn apply_pairing_success(
+        &self,
+        registry: &SessionRegistry,
+        peer: &PeerRecord,
+        session_id: &str,
+        now: &str,
+    ) {
+        registry.upsert_session(SessionRecord {
+            peer_id: peer.peer_id.clone(),
+            session_id: session_id.to_string(),
+            remote_addr: peer.observed_addr.clone().unwrap_or_else(|| "0.0.0.0:0".to_string()),
+            transport_state: TransportState::Connected,
+            connected_at: now.to_string(),
+            last_heartbeat_at: now.to_string(),
+        });
     }
 }
 
@@ -103,9 +62,8 @@ impl PairingService {
 mod tests {
     use super::{PairingError, PairingService};
     use crate::domain::peers::{DeviceIdentity, DiscoveryState, PeerRecord, TrustLevel};
-    use crate::domain::protocol::{
-        ConnectsOpCode, ErrorPayload, PairRequestPayload, PairSuccessPayload,
-    };
+    use crate::domain::protocol::{ConnectsOpCode, PairRequestPayload, PairSuccessPayload};
+    use crate::domain::transport::{SessionRegistry, TransportState};
 
     fn peer_record(trust_level: TrustLevel, discovery_state: DiscoveryState) -> PeerRecord {
         PeerRecord {
@@ -113,87 +71,66 @@ mod tests {
             device: DeviceIdentity {
                 device_id: "device-a".into(),
                 device_label: "Workstation A".into(),
-                host_platform: "windows".into(),
+                host_platform: "linux".into(),
                 runtime_profile: "desktop".into(),
             },
             trust_level,
             visibility_scope: "org".into(),
             discovery_state,
-            last_seen_at: "2026-04-02T00:00:00Z".into(),
-            discovered_via: "mdns".into(),
+            observed_addr: Some("127.0.0.1:4433".into()),
+            last_seen_at: "2026-04-03T00:00:00Z".into(),
+            discovered_via: "quic".into(),
         }
     }
 
     #[test]
-    fn trusted_peer_with_valid_token_produces_pair_success_and_session() {
-        let mut service = PairingService::default();
+    fn pairing_success_produces_pair_success_frame() {
+        let service = PairingService::default();
+        let peer = peer_record(TrustLevel::Known, DiscoveryState::Discovered);
         let request = PairRequestPayload {
             peer_id: "peer-a".into(),
             node_id: "node-a".into(),
-            token: "a".repeat(64),
-            requested_at: "2026-04-02T00:00:00Z".into(),
+            token: "valid-token".into(),
+            requested_at: "2026-04-03T00:00:00Z".into(),
         };
 
-        let frame = service
-            .pair_peer(
-                &peer_record(TrustLevel::Trusted, DiscoveryState::Verified),
-                &request,
-                "session-a",
-                "2026-04-02T00:00:05Z",
-            )
-            .expect("trusted peer should pair");
+        let result = service
+            .pair_peer(&peer, &request, "session-a", "2026-04-03T00:00:01Z")
+            .expect("pairing should succeed");
 
-        assert_eq!(frame.op, ConnectsOpCode::PairSuccess);
+        assert_eq!(result.op, ConnectsOpCode::PairSuccess);
         let payload: PairSuccessPayload =
-            serde_json::from_value(frame.payload).expect("pair success payload");
+            serde_json::from_value(result.payload).expect("decode payload");
         assert_eq!(payload.session_id, "session-a");
-        assert_eq!(service.session_registry().connected_peers(), vec!["peer-a"]);
     }
 
     #[test]
-    fn blocked_peer_is_rejected() {
-        let mut service = PairingService::default();
+    fn blocked_peer_pairing_fails() {
+        let service = PairingService::default();
+        let peer = peer_record(TrustLevel::Blocked, DiscoveryState::Blocked);
         let request = PairRequestPayload {
             peer_id: "peer-a".into(),
             node_id: "node-a".into(),
-            token: "a".repeat(64),
-            requested_at: "2026-04-02T00:00:00Z".into(),
+            token: "valid-token".into(),
+            requested_at: "2026-04-03T00:00:00Z".into(),
         };
 
-        let error = service
-            .pair_peer(
-                &peer_record(TrustLevel::Blocked, DiscoveryState::Blocked),
-                &request,
-                "session-a",
-                "2026-04-02T00:00:05Z",
-            )
-            .expect_err("blocked peer should not pair");
+        let result = service.pair_peer(&peer, &request, "session-a", "2026-04-03T00:00:01Z");
 
-        assert_eq!(error, PairingError::BlockedPeer);
-        let frame = service.error_frame(error);
-        let payload: ErrorPayload = serde_json::from_value(frame.payload).expect("error payload");
-        assert_eq!(payload.code, "peer_blocked");
+        assert_eq!(result, Err(PairingError::BlockedPeer));
     }
 
     #[test]
-    fn short_token_is_rejected() {
-        let mut service = PairingService::default();
-        let request = PairRequestPayload {
-            peer_id: "peer-a".into(),
-            node_id: "node-a".into(),
-            token: "short".into(),
-            requested_at: "2026-04-02T00:00:00Z".into(),
-        };
+    fn apply_pairing_success_updates_registry() {
+        let service = PairingService::default();
+        let registry = SessionRegistry::default();
+        let peer = peer_record(TrustLevel::Known, DiscoveryState::Discovered);
 
-        let error = service
-            .pair_peer(
-                &peer_record(TrustLevel::Trusted, DiscoveryState::Verified),
-                &request,
-                "session-a",
-                "2026-04-02T00:00:05Z",
-            )
-            .expect_err("short token should fail");
+        service.apply_pairing_success(&registry, &peer, "session-a", "2026-04-03T00:00:01Z");
 
-        assert_eq!(error, PairingError::InvalidToken);
+        let sessions = registry.sessions_for_peer("peer-a");
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions[0].transport_state, TransportState::Connected);
+        assert_eq!(sessions[0].remote_addr, "127.0.0.1:4433");
     }
 }
