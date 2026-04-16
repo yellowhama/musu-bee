@@ -106,6 +106,20 @@ if [[ -z "${MUSU_TOKEN:-}" && "${MUSU_DEV:-}" != "1" ]] && command -v curl &>/de
     fi
 fi
 
+# ── machine_group: 같은 물리 머신의 노드를 하나의 그룹으로 묶기 ──
+# 우선순위: 환경변수 > WSL2 자동 감지 > 호스트명
+if [[ -z "${MUSU_MACHINE_GROUP:-}" ]]; then
+    if grep -qi "microsoft" /proc/version 2>/dev/null; then
+        # WSL2 환경: Windows 호스트명을 group ID로 사용 (WSL2 hostname = Windows hostname)
+        WIN_HOSTNAME="$(hostname 2>/dev/null | tr '[:upper:]' '[:lower:]')"
+        export MUSU_MACHINE_GROUP="${WIN_HOSTNAME}"
+        echo "[start-bridge] WSL2 감지 → machine_group: ${WIN_HOSTNAME}" >&2
+    else
+        # 일반 Linux/macOS: 자신의 호스트명을 group ID로 사용
+        export MUSU_MACHINE_GROUP="$(hostname 2>/dev/null | tr '[:upper:]' '[:lower:]')"
+    fi
+fi
+
 # ── 포트 충돌 감지 ────────────────────────────────────────────
 BRIDGE_PORT="${BRIDGE_PORT:-8070}"
 if command -v ss &>/dev/null; then

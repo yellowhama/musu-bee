@@ -44,6 +44,9 @@ async def heartbeat_loop(
                 fingerprint = os.getenv("MUSU_QUIC_FINGERPRINT", "")
                 if fingerprint:
                     payload["cert_fingerprint"] = fingerprint
+                machine_group = os.getenv("MUSU_MACHINE_GROUP", "")
+                if machine_group:
+                    payload["machine_group"] = machine_group
                 resp = await client.post(
                     _REGISTRY_URL,
                     json=payload,
