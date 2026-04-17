@@ -37,8 +37,11 @@ from csrf_guard import CSRFOriginGuard
 from hostname_guard import HostnameGuard
 from handlers import (
     accept_pair,
+    add_issue_comment_record,
     cancel_task_record,
+    checkout_issue_record,
     create_company,
+    create_issue_record,
     delete_company,
     delete_message_by_id,
     disconnect_node,
@@ -46,22 +49,32 @@ from handlers import (
     get_agents,
     get_channel_map,
     get_company,
+    get_costs_by_agent_record,
+    get_costs_summary_record,
+    get_issue_record,
     get_mcp_tools_manifest,
     get_message_by_id,
     get_node_info,
+    get_project_record,
     get_task_record,
+    list_approval_records,
     list_companies,
+    list_issue_comment_records,
+    list_issue_records,
     list_messages,
     list_nodes,
+    list_project_records,
     list_task_records,
     pair_with_node,
     receive_companies,
     receive_messages,
+    resolve_approval_record,
     route_chat,
     set_agent_status,
     sync_companies,
     sync_messages,
     update_company,
+    update_issue_record,
 )
 
 logger = logging.getLogger(__name__)
@@ -844,6 +857,262 @@ async def api_wol(req: WolRequest, request: Request) -> dict:
     if not ok:
         return {"ok": False, "error": "Invalid MAC address format"}
     return {"ok": True}
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Issues
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class IssueCreateRequest(BaseModel):
+    title: str
+    description: str = ""
+    priority: str = "medium"
+    assignee_id: str | None = None
+
+
+class IssueUpdateRequest(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    status: str | None = None
+    priority: str | None = None
+    assignee_id: str | None = None
+
+
+class IssueCommentRequest(BaseModel):
+    body: str
+    author_id: str | None = None
+    author_kind: str = "agent"
+
+
+class IssueCheckoutRequest(BaseModel):
+    agent_id: str
+
+
+@app.get("/api/companies/{company_id}/issues", summary="List issues for a company")
+async def api_list_issues(
+    company_id: str,
+    status: str | None = Query(default=None),
+    assignee_id: str | None = Query(default=None),
+    limit: int = Query(default=100, ge=1, le=500),
+) -> list[dict]:
+    """List issues for a company, optionally filtered by status or assignee."""
+    company = get_company(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return list_issue_records(company_id=company_id, status=status, assignee_id=assignee_id, limit=limit)
+
+
+@app.post("/api/companies/{company_id}/issues", summary="Create an issue", status_code=201)
+async def api_create_issue(company_id: str, req: IssueCreateRequest) -> dict:
+    """Create a new issue for a company."""
+    company = get_company(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return create_issue_record(
+        company_id=company_id,
+        title=req.title,
+        description=req.description,
+        priority=req.priority,
+        assignee_id=req.assignee_id,
+    )
+
+
+@app.get("/api/issues/{issue_id}", summary="Get an issue by id")
+async def api_get_issue(issue_id: str) -> dict:
+    """Return a single issue. Returns 404 if not found."""
+    issue = get_issue_record(issue_id)
+    if not issue:
+        raise HTTPException(status_code=404, detail="Issue not found")
+    return issue
+
+
+@app.patch("/api/issues/{issue_id}", summary="Update an issue")
+async def api_update_issue(issue_id: str, req: IssueUpdateRequest) -> dict:
+    """Update issue fields. Returns 404 if not found."""
+    updates = {k: v for k, v in req.model_dump().items() if v is not None}
+    if not updates:
+        raise HTTPException(status_code=422, detail="No fields to update")
+    updated = update_issue_record(issue_id, **updates)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Issue not found")
+    return updated
+
+
+@app.post("/api/issues/{issue_id}/checkout", summary="Checkout an issue to an agent")
+async def api_checkout_issue(issue_id: str, req: IssueCheckoutRequest) -> dict:
+    """Mark the issue as checked out by the given agent."""
+    updated = checkout_issue_record(issue_id, req.agent_id)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Issue not found")
+    return updated
+
+
+@app.get("/api/issues/{issue_id}/comments", summary="List comments for an issue")
+async def api_list_issue_comments(issue_id: str) -> list[dict]:
+    """List all comments on an issue. Returns 404 if the issue doesn't exist."""
+    issue = get_issue_record(issue_id)
+    if not issue:
+        raise HTTPException(status_code=404, detail="Issue not found")
+    return list_issue_comment_records(issue_id)
+
+
+@app.post("/api/issues/{issue_id}/comments", summary="Add a comment to an issue", status_code=201)
+async def api_add_issue_comment(issue_id: str, req: IssueCommentRequest) -> dict:
+    """Add a comment to an issue."""
+    issue = get_issue_record(issue_id)
+    if not issue:
+        raise HTTPException(status_code=404, detail="Issue not found")
+    return add_issue_comment_record(issue_id, body=req.body, author_id=req.author_id, author_kind=req.author_kind)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Heartbeat-runs (alias over route_executions)
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+@app.get("/api/companies/{company_id}/heartbeat-runs", summary="List heartbeat runs for a company")
+async def api_list_heartbeat_runs(
+    company_id: str,
+    status: str | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=500),
+) -> list[dict]:
+    """List agent run records (route_executions) for a company."""
+    company = get_company(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return list_task_records(status=status, limit=limit)
+
+
+@app.get("/api/heartbeat-runs/{run_id}", summary="Get a heartbeat run by id")
+async def api_get_heartbeat_run(run_id: str) -> dict:
+    """Get a single run record by id."""
+    record = get_task_record(run_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Run not found")
+    return record
+
+
+@app.post("/api/heartbeat-runs/{run_id}/cancel", summary="Cancel a heartbeat run")
+async def api_cancel_heartbeat_run(run_id: str) -> dict:
+    """Cancel a heartbeat run."""
+    record = get_task_record(run_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Run not found")
+    live_task = _active_tasks.pop(run_id, None)
+    if live_task and not live_task.done():
+        live_task.cancel()
+    cancel_task_record(run_id)
+    return {"cancelled": run_id}
+
+
+class HeartbeatInvokeRequest(BaseModel):
+    prompt: str = Field(default="heartbeat", max_length=2000)
+    sender_id: str = Field(default="system", max_length=128)
+
+
+@app.post("/api/agents/{agent_id}/heartbeat/invoke", summary="Invoke a heartbeat run for an agent")
+async def api_invoke_heartbeat(agent_id: str, req: HeartbeatInvokeRequest) -> dict:
+    """Trigger a heartbeat run for the given agent by routing a message to its channel."""
+    agent = get_agent_by_id(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    channel = agent.get("name", agent_id)
+    result = await route_chat(channel=channel, sender_id=req.sender_id, text=req.prompt)
+    return result
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Approvals
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+@app.get("/api/companies/{company_id}/approvals", summary="List approval requests for a company")
+async def api_list_approvals(
+    company_id: str,
+    status: str | None = Query(default=None),
+) -> list[dict]:
+    """List approval requests, optionally filtered by status."""
+    company = get_company(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return list_approval_records(company_id=company_id, status=status)
+
+
+@app.post("/api/approvals/{approval_id}/{decision}", summary="Resolve an approval request")
+async def api_resolve_approval(
+    approval_id: str,
+    decision: str = Path(pattern=r"^(approved|rejected)$"),
+    reason: str = Query(default=""),
+) -> dict:
+    """Approve or reject a pending approval. decision must be 'approved' or 'rejected'."""
+    updated = resolve_approval_record(approval_id, decision=decision, reason=reason)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Approval not found")
+    return updated
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Projects
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+@app.get("/api/companies/{company_id}/projects", summary="List projects for a company")
+async def api_list_projects(
+    company_id: str,
+    status: str | None = Query(default=None),
+) -> list[dict]:
+    """List projects for a company."""
+    company = get_company(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return list_project_records(company_id=company_id, status=status)
+
+
+@app.get("/api/projects/{project_id}", summary="Get a project by id")
+async def api_get_project(project_id: str) -> dict:
+    """Get a project. Returns 404 if not found."""
+    project = get_project_record(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return project
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Goals (stub — no DB table yet)
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+@app.get("/api/companies/{company_id}/goals", summary="List goals for a company (stub)")
+async def api_list_goals(company_id: str) -> list[dict]:
+    """Return goals for a company. Currently a stub — returns empty list."""
+    company = get_company(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return []
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Costs
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+@app.get("/api/companies/{company_id}/costs/summary", summary="Cost summary for a company")
+async def api_costs_summary(company_id: str) -> dict:
+    """Return execution cost summary derived from route_executions."""
+    company = get_company(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return get_costs_summary_record(company_id)
+
+
+@app.get("/api/companies/{company_id}/costs/by-agent", summary="Per-agent costs for a company")
+async def api_costs_by_agent(company_id: str) -> list[dict]:
+    """Return per-agent execution counts derived from route_executions."""
+    company = get_company(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return get_costs_by_agent_record(company_id)
 
 
 @app.get("/health")

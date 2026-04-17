@@ -145,19 +145,123 @@ def get_agent_by_id(agent_id: str) -> dict[str, Any] | None:
 def set_agent_status(agent_id: str, status: str) -> dict[str, Any] | None:
     """Update agent status (e.g. paused/active). Returns updated agent dict or None if not found."""
     backend = _get_backend()
-    agent = backend.agents.update(agent_id, status=status)
-    if agent is None:
-        return None
-    return {
-        "id": agent.id,
-        "name": agent.name,
-        "role": agent.role,
-        "adapter_type": agent.adapter_type,
-        "adapter_config": agent.adapter_config,
-        "status": agent.status,
-        "created_at": agent.created_at,
-        "updated_at": agent.updated_at,
-    }
+    return backend.update_agent(agent_id, status=status)
+
+
+# --- Issues ---
+
+
+def create_issue_record(
+    company_id: str,
+    title: str,
+    description: str = "",
+    priority: str = "medium",
+    assignee_id: str | None = None,
+) -> dict[str, Any]:
+    """Create a new issue for a company."""
+    backend = _get_backend()
+    return backend.create_issue(
+        company_id=company_id,
+        title=title,
+        description=description,
+        priority=priority,
+        assignee_id=assignee_id,
+    )
+
+
+def get_issue_record(issue_id: str) -> dict[str, Any] | None:
+    """Get an issue by id."""
+    backend = _get_backend()
+    return backend.get_issue(issue_id)
+
+
+def list_issue_records(
+    company_id: str,
+    status: str | None = None,
+    assignee_id: str | None = None,
+    limit: int = 100,
+) -> list[dict[str, Any]]:
+    """List issues for a company."""
+    backend = _get_backend()
+    return backend.list_issues(company_id=company_id, status=status, assignee_id=assignee_id, limit=limit)
+
+
+def update_issue_record(issue_id: str, **kwargs: Any) -> dict[str, Any] | None:
+    """Update an issue. Returns updated issue or None if not found."""
+    backend = _get_backend()
+    return backend.update_issue(issue_id, **kwargs)
+
+
+def checkout_issue_record(issue_id: str, agent_id: str) -> dict[str, Any] | None:
+    """Checkout an issue to an agent."""
+    backend = _get_backend()
+    return backend.checkout_issue(issue_id, agent_id)
+
+
+def list_issue_comment_records(issue_id: str) -> list[dict[str, Any]]:
+    """List comments for an issue."""
+    backend = _get_backend()
+    return backend.list_issue_comments(issue_id)
+
+
+def add_issue_comment_record(
+    issue_id: str,
+    body: str,
+    author_id: str | None = None,
+    author_kind: str = "agent",
+) -> dict[str, Any]:
+    """Add a comment to an issue."""
+    backend = _get_backend()
+    return backend.add_issue_comment(issue_id, body=body, author_id=author_id, author_kind=author_kind)
+
+
+# --- Approvals ---
+
+
+def list_approval_records(company_id: str, status: str | None = None) -> list[dict[str, Any]]:
+    """List approval requests for a company."""
+    backend = _get_backend()
+    return backend.list_approvals(company_id=company_id, status=status)
+
+
+def resolve_approval_record(
+    approval_id: str,
+    decision: str,
+    reason: str = "",
+) -> dict[str, Any] | None:
+    """Resolve an approval (approved/rejected)."""
+    backend = _get_backend()
+    return backend.resolve_approval(approval_id, decision=decision, reason=reason)
+
+
+# --- Projects ---
+
+
+def list_project_records(company_id: str, status: str | None = None) -> list[dict[str, Any]]:
+    """List projects for a company."""
+    backend = _get_backend()
+    return backend.list_projects(company_id=company_id, status=status)
+
+
+def get_project_record(project_id: str) -> dict[str, Any] | None:
+    """Get a project by id."""
+    backend = _get_backend()
+    return backend.get_project(project_id)
+
+
+# --- Costs ---
+
+
+def get_costs_summary_record(company_id: str) -> dict[str, Any]:
+    """Get execution cost summary for a company."""
+    backend = _get_backend()
+    return backend.get_costs_summary(company_id)
+
+
+def get_costs_by_agent_record(company_id: str) -> list[dict[str, Any]]:
+    """Get per-agent execution costs for a company."""
+    backend = _get_backend()
+    return backend.get_costs_by_agent(company_id)
 
 
 def get_channel_map() -> dict[str, Any]:
