@@ -42,6 +42,7 @@ from handlers import (
     delete_company,
     delete_message_by_id,
     disconnect_node,
+    get_agent_by_id,
     get_agents,
     get_channel_map,
     get_company,
@@ -57,6 +58,7 @@ from handlers import (
     receive_companies,
     receive_messages,
     route_chat,
+    set_agent_status,
     sync_companies,
     sync_messages,
     update_company,
@@ -436,6 +438,33 @@ async def api_agents() -> list[dict]:
     return get_agents()
 
 
+@app.get("/api/agents/{agent_id}", summary="Get a single agent by ID")
+async def api_get_agent(agent_id: str) -> dict:
+    """Return full agent record. Returns 404 if not found."""
+    agent = get_agent_by_id(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
+    return agent
+
+
+@app.post("/api/agents/{agent_id}/pause", summary="Pause an agent")
+async def api_pause_agent(agent_id: str) -> dict:
+    """Set agent status to 'paused'. Returns 404 if agent not found."""
+    result = set_agent_status(agent_id, "paused")
+    if not result:
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
+    return {"id": agent_id, "status": "paused"}
+
+
+@app.post("/api/agents/{agent_id}/resume", summary="Resume a paused agent")
+async def api_resume_agent(agent_id: str) -> dict:
+    """Set agent status back to 'active'. Returns 404 if agent not found."""
+    result = set_agent_status(agent_id, "active")
+    if not result:
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
+    return {"id": agent_id, "status": "active"}
+
+
 @app.get("/api/channels")
 async def api_channels() -> dict:
     """Return channel-to-agent mapping."""
@@ -565,6 +594,23 @@ async def api_company_agents(company_id: str) -> list[dict]:
     return get_agents()
 
 
+@app.get("/api/companies/{company_id}/activity", summary="Activity feed for a company")
+async def api_company_activity(
+    company_id: str,
+    limit: int = Query(default=50, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+) -> list[dict]:
+    """Return recent activity (audit log entries) scoped to a company.
+
+    Currently maps to the global audit log since audit entries are not
+    yet company-scoped. A 404 is returned if the company doesn't exist.
+    """
+    company = get_company(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return audit.recent(limit=limit, offset=offset)
+
+
 @app.get("/api/companies/{company_id}/dashboard", summary="Dashboard summary for a company")
 async def api_company_dashboard(company_id: str) -> dict:
     """Return a summary dashboard for the company."""
@@ -662,6 +708,34 @@ async def api_disconnect_node(node_name: str) -> dict:
     if not ok:
         raise HTTPException(status_code=404, detail=f"Node {node_name!r} not found")
     return {"disconnected": node_name}
+
+
+@app.get("/api/admin/peer-status", summary="MUSU_TOKEN peer discovery status")
+async def api_peer_status() -> dict:
+    """Return cloud registry and peer discovery state.
+
+    Shows whether MUSU_TOKEN is configured, the node's public identity,
+    and peers currently known from the registry cache.
+    """
+    cfg = get_config()
+    token_set = bool(cfg.musu_token)
+    peers: list[dict] = []
+    try:
+        from peer_cache import get_peer_cache
+        cache = get_peer_cache()
+        peers = [
+            {"node_name": p.node_name, "public_url": p.public_url}
+            for p in cache.all()
+        ]
+    except Exception:
+        pass
+    return {
+        "cloud_registry_enabled": token_set,
+        "node_name": cfg.node_name or "",
+        "public_url": cfg.public_url or "",
+        "peer_count": len(peers),
+        "peers": peers,
+    }
 
 
 @app.get("/api/admin/discovered", summary="Nodes discovered via mDNS")

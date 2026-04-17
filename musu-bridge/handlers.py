@@ -136,6 +136,30 @@ def get_agents() -> list[dict[str, Any]]:
     return backend.list_agents()
 
 
+def get_agent_by_id(agent_id: str) -> dict[str, Any] | None:
+    """Get a single agent by ID."""
+    backend = _get_backend()
+    return backend.get_agent(agent_id)
+
+
+def set_agent_status(agent_id: str, status: str) -> dict[str, Any] | None:
+    """Update agent status (e.g. paused/active). Returns updated agent dict or None if not found."""
+    backend = _get_backend()
+    agent = backend.agents.update(agent_id, status=status)
+    if agent is None:
+        return None
+    return {
+        "id": agent.id,
+        "name": agent.name,
+        "role": agent.role,
+        "adapter_type": agent.adapter_type,
+        "adapter_config": agent.adapter_config,
+        "status": agent.status,
+        "created_at": agent.created_at,
+        "updated_at": agent.updated_at,
+    }
+
+
 def get_channel_map() -> dict[str, Any]:
     """Return channel-to-agent mapping with agent details."""
     cfg = get_bridge_config()
