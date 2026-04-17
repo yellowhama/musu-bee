@@ -656,16 +656,17 @@ class LocalBackend(BackendABC):
         company_id: str,
         title: str,
         description: str = "",
+        status: str = "open",
         priority: str = "medium",
         assignee_id: str | None = None,
     ) -> dict[str, Any]:
         issue_id = str(uuid.uuid4())
         self._db.execute(
             """
-            INSERT INTO issues (id, company_id, title, description, priority, assignee_id)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO issues (id, company_id, title, description, status, priority, assignee_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (issue_id, company_id, title, description, priority, assignee_id),
+            (issue_id, company_id, title, description, status, priority, assignee_id),
         )
         rows = self._db.execute("SELECT * FROM issues WHERE id = ?", (issue_id,))
         return dict(rows[0])
@@ -821,6 +822,40 @@ class LocalBackend(BackendABC):
         )
         return dict(rows[0]) if rows else None
 
+    def create_project(
+        self,
+        project_id: str,
+        company_id: str,
+        project_name: str,
+        status: str = "active",
+        assigned_to: str | None = None,
+    ) -> dict[str, Any]:
+        self._db.execute(
+            "INSERT INTO company_project_index"
+            " (id, company_id, project_name, status, assigned_to)"
+            " VALUES (?, ?, ?, ?, ?)",
+            (project_id, company_id, project_name, status, assigned_to),
+        )
+        return self.get_project(project_id)  # type: ignore[return-value]
+
+    def update_project(self, project_id: str, **kwargs: Any) -> dict[str, Any] | None:
+        allowed = {"project_name", "status", "assigned_to"}
+        fields = {k: v for k, v in kwargs.items() if k in allowed and v is not None}
+        if not fields:
+            return self.get_project(project_id)
+        set_clause = ", ".join(f"{k} = ?" for k in fields)
+        values = list(fields.values()) + [project_id]
+        self._db.execute(
+            f"UPDATE company_project_index SET {set_clause},"
+            " updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?",
+            tuple(values),
+        )
+        return self.get_project(project_id)
+
+    def delete_project(self, project_id: str) -> bool:
+        self._db.execute("DELETE FROM company_project_index WHERE id = ?", (project_id,))
+        return self.get_project(project_id) is None
+
     # --- Costs (derived from route_executions) ---
 
     def get_costs_summary(self, company_id: str) -> dict[str, Any]:
@@ -864,6 +899,64 @@ class LocalBackend(BackendABC):
             }
             for r in rows
         ]
+
+    # --- Goals ---
+
+    def list_goals(
+        self,
+        company_id: str,
+        status: str | None = None,
+    ) -> list[dict[str, Any]]:
+        clauses: list[str] = ["company_id = ?"]
+        params: list[Any] = [company_id]
+        if status:
+            clauses.append("status = ?")
+            params.append(status)
+        where = "WHERE " + " AND ".join(clauses)
+        rows = self._db.execute(
+            f"SELECT * FROM goals {where} ORDER BY created_at DESC",
+            tuple(params),
+        )
+        return [dict(r) for r in rows]
+
+    def create_goal(
+        self,
+        goal_id: str,
+        company_id: str,
+        title: str,
+        description: str = "",
+        status: str = "active",
+        due_date: str | None = None,
+        meta: str = "{}",
+    ) -> dict[str, Any]:
+        self._db.execute(
+            "INSERT INTO goals (id, company_id, title, description, status, due_date, meta)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (goal_id, company_id, title, description, status, due_date, meta),
+        )
+        return self.get_goal(goal_id)  # type: ignore[return-value]
+
+    def get_goal(self, goal_id: str) -> dict[str, Any] | None:
+        rows = self._db.execute("SELECT * FROM goals WHERE id = ?", (goal_id,))
+        return dict(rows[0]) if rows else None
+
+    def update_goal(self, goal_id: str, **kwargs: Any) -> dict[str, Any] | None:
+        allowed = {"title", "description", "status", "due_date", "meta"}
+        fields = {k: v for k, v in kwargs.items() if k in allowed and v is not None}
+        if not fields:
+            return self.get_goal(goal_id)
+        set_clause = ", ".join(f"{k} = ?" for k in fields)
+        values = list(fields.values()) + [goal_id]
+        self._db.execute(
+            f"UPDATE goals SET {set_clause},"
+            " updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?",
+            tuple(values),
+        )
+        return self.get_goal(goal_id)
+
+    def delete_goal(self, goal_id: str) -> bool:
+        self._db.execute("DELETE FROM goals WHERE id = ?", (goal_id,))
+        return self.get_goal(goal_id) is None
 
     def close(self) -> None:
         self._db.close()

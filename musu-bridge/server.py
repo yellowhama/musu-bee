@@ -59,6 +59,13 @@ from handlers import (
     get_task_record,
     list_approval_records,
     list_companies,
+    create_goal_record,
+    create_project_record,
+    delete_goal_record,
+    delete_project_record,
+    get_goal_record,
+    get_project_record,
+    list_goal_records,
     list_issue_comment_records,
     list_issue_records,
     list_messages,
@@ -74,7 +81,9 @@ from handlers import (
     sync_companies,
     sync_messages,
     update_company,
+    update_goal_record,
     update_issue_record,
+    update_project_record,
 )
 
 logger = logging.getLogger(__name__)
@@ -867,8 +876,21 @@ async def api_wol(req: WolRequest, request: Request) -> dict:
 class IssueCreateRequest(BaseModel):
     title: str
     description: str = ""
+    status: str = "open"
     priority: str = "medium"
     assignee_id: str | None = None
+
+
+class ProjectCreateRequest(BaseModel):
+    project_name: str
+    status: str = "active"
+    assigned_to: str | None = None
+
+
+class ProjectUpdateRequest(BaseModel):
+    project_name: str | None = None
+    status: str | None = None
+    assigned_to: str | None = None
 
 
 class IssueUpdateRequest(BaseModel):
@@ -913,6 +935,7 @@ async def api_create_issue(company_id: str, req: IssueCreateRequest) -> dict:
         company_id=company_id,
         title=req.title,
         description=req.description,
+        status=req.status,
         priority=req.priority,
         assignee_id=req.assignee_id,
     )
@@ -1069,6 +1092,20 @@ async def api_list_projects(
     return list_project_records(company_id=company_id, status=status)
 
 
+@app.post("/api/companies/{company_id}/projects", summary="Create a project", status_code=201)
+async def api_create_project(company_id: str, body: "ProjectCreateRequest") -> dict:
+    """Create a new project for a company."""
+    company = get_company(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return create_project_record(
+        company_id=company_id,
+        project_name=body.project_name,
+        status=body.status,
+        assigned_to=body.assigned_to,
+    )
+
+
 @app.get("/api/projects/{project_id}", summary="Get a project by id")
 async def api_get_project(project_id: str) -> dict:
     """Get a project. Returns 404 if not found."""
@@ -1078,18 +1115,99 @@ async def api_get_project(project_id: str) -> dict:
     return project
 
 
+@app.patch("/api/projects/{project_id}", summary="Update a project")
+async def api_update_project(project_id: str, body: "ProjectUpdateRequest") -> dict:
+    """Update a project's fields."""
+    project = get_project_record(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    updated = update_project_record(project_id, **body.model_dump(exclude_none=True))
+    return updated or project
+
+
+@app.delete("/api/projects/{project_id}", summary="Delete a project")
+async def api_delete_project(project_id: str) -> dict:
+    """Delete a project by id."""
+    project = get_project_record(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    delete_project_record(project_id)
+    return {"deleted": True, "id": project_id}
+
+
 # ──────────────────────────────────────────────────────────────────────────────
-# Goals (stub — no DB table yet)
+# Goals
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-@app.get("/api/companies/{company_id}/goals", summary="List goals for a company (stub)")
-async def api_list_goals(company_id: str) -> list[dict]:
-    """Return goals for a company. Currently a stub — returns empty list."""
+class GoalCreateRequest(BaseModel):
+    title: str
+    description: str = ""
+    status: str = "active"
+    due_date: str | None = None
+
+
+class GoalUpdateRequest(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    status: str | None = None
+    due_date: str | None = None
+
+
+@app.get("/api/companies/{company_id}/goals", summary="List goals for a company")
+async def api_list_goals(
+    company_id: str,
+    status: str | None = Query(default=None),
+) -> list[dict]:
+    """Return goals for a company, optionally filtered by status."""
     company = get_company(company_id)
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
-    return []
+    return list_goal_records(company_id, status=status)
+
+
+@app.post("/api/companies/{company_id}/goals", summary="Create a goal", status_code=201)
+async def api_create_goal(company_id: str, body: GoalCreateRequest) -> dict:
+    """Create a new goal for a company."""
+    company = get_company(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return create_goal_record(
+        company_id=company_id,
+        title=body.title,
+        description=body.description,
+        status=body.status,
+        due_date=body.due_date,
+    )
+
+
+@app.get("/api/goals/{goal_id}", summary="Get a goal by id")
+async def api_get_goal(goal_id: str) -> dict:
+    """Return a single goal by id."""
+    goal = get_goal_record(goal_id)
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    return goal
+
+
+@app.patch("/api/goals/{goal_id}", summary="Update a goal")
+async def api_update_goal(goal_id: str, body: GoalUpdateRequest) -> dict:
+    """Update a goal's fields."""
+    goal = get_goal_record(goal_id)
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    updated = update_goal_record(goal_id, **body.model_dump(exclude_none=True))
+    return updated or goal
+
+
+@app.delete("/api/goals/{goal_id}", summary="Delete a goal")
+async def api_delete_goal(goal_id: str) -> dict:
+    """Delete a goal by id."""
+    goal = get_goal_record(goal_id)
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    delete_goal_record(goal_id)
+    return {"deleted": True, "id": goal_id}
 
 
 # ──────────────────────────────────────────────────────────────────────────────

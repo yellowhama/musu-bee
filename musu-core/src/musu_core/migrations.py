@@ -252,11 +252,13 @@ def _v7_up(conn: sqlite3.Connection) -> None:
         return  # Table doesn't exist yet; _SCHEMA will create it with the column.
     if not _column_exists(conn, "route_executions", "company_id"):
         conn.execute("ALTER TABLE route_executions ADD COLUMN company_id TEXT;")
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_route_executions_company"
-            " ON route_executions(company_id);"
-        )
         conn.commit()
+    # Always ensure the index exists (covers fresh DBs where _SCHEMA skips index creation)
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_route_executions_company"
+        " ON route_executions(company_id);"
+    )
+    conn.commit()
 
 
 def _v7_down(conn: sqlite3.Connection) -> None:  # noqa: ARG001
@@ -266,6 +268,44 @@ def _v7_down(conn: sqlite3.Connection) -> None:  # noqa: ARG001
         conn.commit()
     except sqlite3.OperationalError:
         pass
+
+
+# ---------------------------------------------------------------------------
+# v8: add goals table
+# ---------------------------------------------------------------------------
+
+
+def _v8_up(conn: sqlite3.Connection) -> None:
+    """Add goals table for company-scoped goals tracking."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='goals'"
+    ).fetchone()
+    if row is not None:
+        return  # Already exists
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS goals (
+            id          TEXT PRIMARY KEY,
+            company_id  TEXT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+            title       TEXT NOT NULL,
+            description TEXT NOT NULL DEFAULT '',
+            status      TEXT NOT NULL DEFAULT 'active'
+                            CHECK (status IN ('active', 'completed', 'cancelled')),
+            due_date    TEXT,
+            meta        TEXT NOT NULL DEFAULT '{}',
+            created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+            updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_goals_company ON goals(company_id);
+        CREATE INDEX IF NOT EXISTS idx_goals_status  ON goals(status);
+    """)
+
+
+def _v8_down(conn: sqlite3.Connection) -> None:
+    conn.executescript("""
+        DROP INDEX IF EXISTS idx_goals_status;
+        DROP INDEX IF EXISTS idx_goals_company;
+        DROP TABLE IF EXISTS goals;
+    """)
 
 
 # ---------------------------------------------------------------------------
@@ -281,6 +321,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v5_route_executions_retry_count", _v5_up, _v5_down),
     ("v6_route_executions_created_index", _v6_up, _v6_down),
     ("v7_route_executions_company_id", _v7_up, _v7_down),
+    ("v8_goals_table", _v8_up, _v8_down),
 ]
 
 

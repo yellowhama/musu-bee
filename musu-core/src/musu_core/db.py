@@ -164,7 +164,7 @@ CREATE TABLE IF NOT EXISTS route_executions (
 
 CREATE INDEX IF NOT EXISTS idx_route_executions_status ON route_executions(status);
 CREATE INDEX IF NOT EXISTS idx_route_executions_created ON route_executions(created_at);
-CREATE INDEX IF NOT EXISTS idx_route_executions_company ON route_executions(company_id);
+-- idx_route_executions_company is created by migration v7 (column added via ALTER TABLE on existing DBs)
 
 CREATE TABLE IF NOT EXISTS issues (
     id          TEXT PRIMARY KEY,
@@ -194,6 +194,22 @@ CREATE TABLE IF NOT EXISTS issue_comments (
     created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 CREATE INDEX IF NOT EXISTS idx_issue_comments_issue ON issue_comments(issue_id);
+
+CREATE TABLE IF NOT EXISTS goals (
+    id          TEXT PRIMARY KEY,
+    company_id  TEXT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    title       TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    status      TEXT NOT NULL DEFAULT 'active'
+                    CHECK (status IN ('active', 'completed', 'cancelled')),
+    due_date    TEXT,
+    -- JSON blob for arbitrary metadata
+    meta        TEXT NOT NULL DEFAULT '{}',
+    created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_goals_company ON goals(company_id);
+CREATE INDEX IF NOT EXISTS idx_goals_status  ON goals(status);
 
 CREATE INDEX IF NOT EXISTS idx_companies_workspace ON companies(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_role_templates_company ON company_role_templates(company_id);

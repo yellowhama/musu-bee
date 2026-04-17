@@ -1,0 +1,334 @@
+"use client";
+
+import { useEffect, useState, useCallback, useRef } from "react";
+
+interface CostsSummary {
+  total_requests: number;
+  done: number;
+  failed: number;
+  period_days: number;
+}
+
+interface AgentCost {
+  agent_name: string;
+  request_count: number;
+  done_count?: number;
+  failed_count?: number;
+}
+
+interface CostsPanelProps {
+  companyId?: string | null;
+}
+
+export default function CostsPanel({ companyId }: CostsPanelProps) {
+  const [summary, setSummary] = useState<CostsSummary | null>(null);
+  const [byAgent, setByAgent] = useState<AgentCost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const mountedRef = useRef(true);
+
+  const doFetch = useCallback(async () => {
+    if (!companyId) {
+      setLoading(false);
+      return;
+    }
+    try {
+      const [summaryRes, byAgentRes] = await Promise.all([
+        fetch(`/api/bridge/companies/${companyId}/costs/summary`),
+        fetch(`/api/bridge/companies/${companyId}/costs/by-agent`),
+      ]);
+      if (!summaryRes.ok) throw new Error(`summary HTTP ${summaryRes.status}`);
+      if (!byAgentRes.ok) throw new Error(`by-agent HTTP ${byAgentRes.status}`);
+      const [summaryData, byAgentData] = await Promise.all([
+        summaryRes.json() as Promise<CostsSummary>,
+        byAgentRes.json() as Promise<AgentCost[]>,
+      ]);
+      if (mountedRef.current) {
+        setSummary(summaryData);
+        setByAgent(Array.isArray(byAgentData) ? byAgentData : []);
+        setError(null);
+      }
+    } catch (e) {
+      if (mountedRef.current)
+        setError(e instanceof Error ? e.message : "Failed to load costs");
+    } finally {
+      if (mountedRef.current) setLoading(false);
+    }
+  }, [companyId]);
+
+  useEffect(() => {
+    setLoading(true);
+    setSummary(null);
+    setByAgent([]);
+    void doFetch();
+  }, [companyId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    mountedRef.current = true;
+    void doFetch();
+    const interval = setInterval(() => {
+      if (mountedRef.current) void doFetch();
+    }, 30000);
+    return () => {
+      mountedRef.current = false;
+      clearInterval(interval);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const successRate =
+    summary && summary.total_requests > 0
+      ? Math.round((summary.done / summary.total_requests) * 100)
+      : null;
+
+  return (
+    <div
+      style={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        overflow: "hidden",
+        background: "var(--musu-bg-inset)",
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          padding: "16px 20px 10px",
+          borderBottom: "1px solid var(--musu-border-dim)",
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+        }}
+      >
+        <span style={{ fontSize: 15, fontWeight: 600, color: "#f3f4f6" }}>
+          Costs
+        </span>
+        {summary && (
+          <span
+            style={{
+              fontSize: 11,
+              color: "var(--musu-text-dim)",
+              background: "var(--musu-bg-card)",
+              border: "1px solid var(--musu-border)",
+              borderRadius: 999,
+              padding: "2px 8px",
+            }}
+          >
+            {summary.period_days}d window
+          </span>
+        )}
+        <div style={{ flex: 1 }} />
+        <button
+          onClick={() => void doFetch()}
+          style={{
+            fontSize: 11,
+            color: "#9ca3af",
+            background: "transparent",
+            border: "1px solid #2d2d2d",
+            borderRadius: 4,
+            padding: "3px 8px",
+            cursor: "pointer",
+          }}
+        >
+          Refresh
+        </button>
+      </div>
+
+      {/* Content */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
+        {!companyId && (
+          <p style={{ color: "#6b7280", fontSize: 13, padding: "20px 8px" }}>
+            No active company selected.
+          </p>
+        )}
+        {companyId && loading && (
+          <p style={{ color: "#6b7280", fontSize: 13, padding: "20px 8px" }}>
+            Loading…
+          </p>
+        )}
+        {companyId && !loading && error && (
+          <p style={{ color: "#f87171", fontSize: 13, padding: "20px 8px" }}>
+            {error}
+          </p>
+        )}
+
+        {companyId && !loading && !error && summary && (
+          <>
+            {/* Summary card */}
+            <div
+              style={{
+                background: "var(--musu-bg-card)",
+                border: "1px solid var(--musu-border-dim)",
+                borderRadius: 8,
+                padding: "16px",
+                marginBottom: 16,
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 12,
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: 10,
+                    color: "#6b7280",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    marginBottom: 4,
+                  }}
+                >
+                  Total Requests
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: "#e5e7eb" }}>
+                  {summary.total_requests}
+                </div>
+              </div>
+              <div>
+                <div
+                  style={{
+                    fontSize: 10,
+                    color: "#6b7280",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    marginBottom: 4,
+                  }}
+                >
+                  Success Rate
+                </div>
+                <div
+                  style={{
+                    fontSize: 22,
+                    fontWeight: 700,
+                    color: successRate !== null && successRate >= 90
+                      ? "#22c55e"
+                      : successRate !== null && successRate >= 70
+                      ? "#f59e0b"
+                      : "#f87171",
+                  }}
+                >
+                  {successRate !== null ? `${successRate}%` : "—"}
+                </div>
+              </div>
+              <div>
+                <div
+                  style={{
+                    fontSize: 10,
+                    color: "#6b7280",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    marginBottom: 4,
+                  }}
+                >
+                  Done
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: "#22c55e" }}>
+                  {summary.done}
+                </div>
+              </div>
+              <div>
+                <div
+                  style={{
+                    fontSize: 10,
+                    color: "#6b7280",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    marginBottom: 4,
+                  }}
+                >
+                  Failed
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: "#f87171" }}>
+                  {summary.failed}
+                </div>
+              </div>
+            </div>
+
+            {/* By-agent breakdown */}
+            {byAgent.length > 0 && (
+              <>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: "#6b7280",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    marginBottom: 8,
+                  }}
+                >
+                  By Agent
+                </div>
+                {byAgent.map((row) => {
+                  const pct =
+                    summary.total_requests > 0
+                      ? Math.round((row.request_count / summary.total_requests) * 100)
+                      : 0;
+                  return (
+                    <div
+                      key={row.agent_name}
+                      style={{
+                        background: "var(--musu-bg-card)",
+                        border: "1px solid var(--musu-border-dim)",
+                        borderRadius: 6,
+                        padding: "10px 12px",
+                        marginBottom: 6,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          marginBottom: 6,
+                        }}
+                      >
+                        <span
+                          style={{ fontSize: 12, fontWeight: 600, color: "#e5e7eb", flex: 1 }}
+                        >
+                          {row.agent_name}
+                        </span>
+                        <span style={{ fontSize: 12, color: "#9ca3af" }}>
+                          {row.request_count} req
+                        </span>
+                        <span style={{ fontSize: 11, color: "#6b7280" }}>
+                          {pct}%
+                        </span>
+                      </div>
+                      {/* Mini bar */}
+                      <div
+                        style={{
+                          height: 3,
+                          background: "#2d2d2d",
+                          borderRadius: 2,
+                          overflow: "hidden",
+                        }}
+                      >
+                        <div
+                          style={{
+                            height: "100%",
+                            width: `${pct}%`,
+                            background: "#3b82f6",
+                            borderRadius: 2,
+                            transition: "width 0.4s",
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            )}
+
+            {byAgent.length === 0 && (
+              <p style={{ color: "#4b5563", fontSize: 13, padding: "8px 0" }}>
+                No per-agent data yet.
+              </p>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

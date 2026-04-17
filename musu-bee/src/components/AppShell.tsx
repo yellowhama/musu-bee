@@ -10,6 +10,10 @@ import OnboardingModal from "@/components/OnboardingModal";
 import CommandPalette from "@/components/CommandPalette";
 import TasksPanel from "@/components/TasksPanel";
 import ProcessesPanel from "@/components/ProcessesPanel";
+import IssuesPanel from "@/components/IssuesPanel";
+import ApprovalsPanel from "@/components/ApprovalsPanel";
+import ProjectsPanel from "@/components/ProjectsPanel";
+import CostsPanel from "@/components/CostsPanel";
 import { useAuth } from "@/lib/useAuth";
 import { useDeviceDiscovery } from "@/lib/useDeviceDiscovery";
 import { useAgentsSurface } from "@/lib/useAgentsSurface";
@@ -31,6 +35,10 @@ const CHANNEL_DESCRIPTIONS: Partial<Record<ChannelId, string>> = {
   dev: "Internal device-to-device discussion",
   tasks: "Work currently in progress",
   alerts: "Device state changes, errors, and completion alerts",
+  issues: "Company issue tracker",
+  approvals: "Pending approval requests",
+  projects: "Company project index",
+  costs: "Request cost analytics",
   ceo: "CEO agent",
   cto: "CTO agent",
   engineer: "Engineer agent",
@@ -45,6 +53,10 @@ const INITIAL_CHANNELS: Channel[] = [
   { id: "tasks", name: "tasks", unread: 0 },
   { id: "processes", name: "processes", unread: 0 },
   { id: "alerts", name: "alerts", unread: 0 },
+  { id: "issues", name: "issues", unread: 0 },
+  { id: "approvals", name: "approvals", unread: 0 },
+  { id: "projects", name: "projects", unread: 0 },
+  { id: "costs", name: "costs", unread: 0 },
   { id: "ceo", name: "ceo", unread: 0 },
   { id: "cto", name: "cto", unread: 0 },
   { id: "engineer", name: "engineer", unread: 0 },
@@ -444,6 +456,14 @@ export default function AppShell() {
           <TasksPanel />
         ) : activeChannel === "processes" ? (
           <ProcessesPanel />
+        ) : activeChannel === "issues" ? (
+          <IssuesPanel companyId={activeCompany?.companyId} />
+        ) : activeChannel === "approvals" ? (
+          <ApprovalsPanel companyId={activeCompany?.companyId} />
+        ) : activeChannel === "projects" ? (
+          <ProjectsPanel companyId={activeCompany?.companyId} />
+        ) : activeChannel === "costs" ? (
+          <CostsPanel companyId={activeCompany?.companyId} />
         ) : (
           <ChatArea
             key={activeChannel}

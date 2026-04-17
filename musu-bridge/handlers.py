@@ -160,6 +160,7 @@ def create_issue_record(
     company_id: str,
     title: str,
     description: str = "",
+    status: str = "open",
     priority: str = "medium",
     assignee_id: str | None = None,
 ) -> dict[str, Any]:
@@ -169,6 +170,7 @@ def create_issue_record(
         company_id=company_id,
         title=title,
         description=description,
+        status=status,
         priority=priority,
         assignee_id=assignee_id,
     )
@@ -252,6 +254,83 @@ def get_project_record(project_id: str) -> dict[str, Any] | None:
     """Get a project by id."""
     backend = _get_backend()
     return backend.get_project(project_id)
+
+
+def create_project_record(
+    company_id: str,
+    project_name: str,
+    status: str = "active",
+    assigned_to: str | None = None,
+) -> dict[str, Any]:
+    """Create a project for a company."""
+    import uuid
+    backend = _get_backend()
+    return backend.create_project(
+        project_id=str(uuid.uuid4()),
+        company_id=company_id,
+        project_name=project_name,
+        status=status,
+        assigned_to=assigned_to,
+    )
+
+
+def update_project_record(project_id: str, **kwargs: Any) -> dict[str, Any] | None:
+    """Update a project."""
+    backend = _get_backend()
+    return backend.update_project(project_id, **kwargs)
+
+
+def delete_project_record(project_id: str) -> bool:
+    """Delete a project. Returns True if deleted."""
+    backend = _get_backend()
+    return backend.delete_project(project_id)
+
+
+# --- Goals ---
+
+
+def list_goal_records(company_id: str, status: str | None = None) -> list[dict[str, Any]]:
+    """List goals for a company."""
+    backend = _get_backend()
+    return backend.list_goals(company_id=company_id, status=status)
+
+
+def create_goal_record(
+    company_id: str,
+    title: str,
+    description: str = "",
+    status: str = "active",
+    due_date: str | None = None,
+) -> dict[str, Any]:
+    """Create a goal for a company."""
+    import uuid
+    backend = _get_backend()
+    return backend.create_goal(
+        goal_id=str(uuid.uuid4()),
+        company_id=company_id,
+        title=title,
+        description=description,
+        status=status,
+        due_date=due_date,
+    )
+
+
+def get_goal_record(goal_id: str) -> dict[str, Any] | None:
+    """Get a goal by id."""
+    backend = _get_backend()
+    return backend.get_goal(goal_id)
+
+
+def update_goal_record(goal_id: str, **kwargs: Any) -> dict[str, Any] | None:
+    """Update a goal."""
+    backend = _get_backend()
+    return backend.update_goal(goal_id, **kwargs)
+
+
+def delete_goal_record(goal_id: str) -> bool:
+    """Delete a goal. Returns True if deleted."""
+    backend = _get_backend()
+    return backend.delete_goal(goal_id)
 
 
 # --- Costs ---

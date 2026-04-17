@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from server import app  # noqa: E402
 
-client = TestClient(app)
+client = TestClient(app, headers={"Authorization": "Bearer test-token"})
 
 
 @pytest.fixture(autouse=True)

@@ -217,6 +217,43 @@ class TestIssues:
         assert resp.status_code == 200
         assert resp.json() == []
 
+    def test_list_issues_status_filter(self):
+        """Verify ?status= query param is forwarded to list_issue_records."""
+        with patch("server.get_company", return_value=_COMPANY), \
+             patch("server.list_issue_records", return_value=[]) as mock:
+            resp = client.get("/api/companies/company-001/issues?status=open")
+        assert resp.status_code == 200
+        mock.assert_called_once_with(
+            company_id="company-001", status="open", assignee_id=None, limit=100
+        )
+
+    def test_list_issues_assignee_filter(self):
+        """Verify ?assignee_id= query param is forwarded."""
+        with patch("server.get_company", return_value=_COMPANY), \
+             patch("server.list_issue_records", return_value=[_ISSUE]) as mock:
+            resp = client.get("/api/companies/company-001/issues?assignee_id=agent-001")
+        assert resp.status_code == 200
+        mock.assert_called_once_with(
+            company_id="company-001", status=None, assignee_id="agent-001", limit=100
+        )
+
+    def test_create_issue_with_status(self):
+        """Verify status field is accepted in create payload."""
+        with patch("server.get_company", return_value=_COMPANY), \
+             patch("server.create_issue_record", return_value={**_ISSUE, "status": "in_progress"}) as mock:
+            resp = client.post(
+                "/api/companies/company-001/issues",
+                json={"title": "Bug", "status": "in_progress"},
+            )
+        assert resp.status_code == 201
+        assert mock.call_args.kwargs["status"] == "in_progress"
+
+    def test_checkout_issue_404_when_missing(self):
+        """checkout_issue returns None for missing issue → 404."""
+        with patch("server.checkout_issue_record", return_value=None):
+            resp = client.post("/api/issues/nonexistent/checkout", json={"agent_id": "agent-001"})
+        assert resp.status_code == 404
+
 
 # ---------------------------------------------------------------------------
 # Approvals
@@ -266,6 +303,36 @@ class TestProjects:
             resp = client.get("/api/projects/nonexistent")
         assert resp.status_code == 404
 
+    def test_create_project_201(self):
+        with patch("server.get_company", return_value=_COMPANY), \
+             patch("server.create_project_record", return_value=_PROJECT):
+            resp = client.post(
+                "/api/companies/company-001/projects",
+                json={"project_name": "API v2"},
+            )
+        assert resp.status_code == 201
+        assert resp.json()["id"] == "project-001"
+
+    def test_update_project_200(self):
+        updated = {**_PROJECT, "status": "archived"}
+        with patch("server.get_project_record", return_value=_PROJECT), \
+             patch("server.update_project_record", return_value=updated):
+            resp = client.patch("/api/projects/project-001", json={"status": "archived"})
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "archived"
+
+    def test_update_project_404(self):
+        with patch("server.get_project_record", return_value=None):
+            resp = client.patch("/api/projects/nonexistent", json={"status": "archived"})
+        assert resp.status_code == 404
+
+    def test_delete_project_200(self):
+        with patch("server.get_project_record", return_value=_PROJECT), \
+             patch("server.delete_project_record", return_value=True):
+            resp = client.delete("/api/projects/project-001")
+        assert resp.status_code == 200
+        assert resp.json()["deleted"] is True
+
 
 # ---------------------------------------------------------------------------
 # Goals stub
@@ -274,10 +341,78 @@ class TestProjects:
 
 class TestGoals:
     def test_list_goals_returns_empty_list(self):
-        with patch("server.get_company", return_value=_COMPANY):
+        with patch("server.get_company", return_value=_COMPANY), \
+             patch("server.list_goal_records", return_value=[]):
             resp = client.get("/api/companies/company-001/goals")
         assert resp.status_code == 200
         assert resp.json() == []
+
+    def test_list_goals_returns_data(self):
+        goal = {
+            "id": "goal-001",
+            "company_id": "company-001",
+            "title": "Ship Phase 17",
+            "description": "",
+            "status": "active",
+            "due_date": None,
+            "meta": "{}",
+            "created_at": "2026-04-17T00:00:00.000Z",
+            "updated_at": "2026-04-17T00:00:00.000Z",
+        }
+        with patch("server.get_company", return_value=_COMPANY), \
+             patch("server.list_goal_records", return_value=[goal]):
+            resp = client.get("/api/companies/company-001/goals")
+        assert resp.status_code == 200
+        assert resp.json()[0]["title"] == "Ship Phase 17"
+
+    def test_create_goal_201(self):
+        goal = {
+            "id": "goal-002",
+            "company_id": "company-001",
+            "title": "New goal",
+            "description": "",
+            "status": "active",
+            "due_date": None,
+            "meta": "{}",
+            "created_at": "2026-04-17T00:00:00.000Z",
+            "updated_at": "2026-04-17T00:00:00.000Z",
+        }
+        with patch("server.get_company", return_value=_COMPANY), \
+             patch("server.create_goal_record", return_value=goal):
+            resp = client.post(
+                "/api/companies/company-001/goals",
+                json={"title": "New goal"},
+            )
+        assert resp.status_code == 201
+        assert resp.json()["title"] == "New goal"
+
+    def test_get_goal_200(self):
+        goal = {"id": "goal-001", "title": "Ship Phase 17", "status": "active"}
+        with patch("server.get_goal_record", return_value=goal):
+            resp = client.get("/api/goals/goal-001")
+        assert resp.status_code == 200
+        assert resp.json()["id"] == "goal-001"
+
+    def test_get_goal_404(self):
+        with patch("server.get_goal_record", return_value=None):
+            resp = client.get("/api/goals/nonexistent")
+        assert resp.status_code == 404
+
+    def test_update_goal_200(self):
+        updated = {"id": "goal-001", "title": "Ship Phase 17", "status": "completed"}
+        with patch("server.get_goal_record", return_value=updated), \
+             patch("server.update_goal_record", return_value=updated):
+            resp = client.patch("/api/goals/goal-001", json={"status": "completed"})
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "completed"
+
+    def test_delete_goal_200(self):
+        goal = {"id": "goal-001", "title": "Ship Phase 17"}
+        with patch("server.get_goal_record", return_value=goal), \
+             patch("server.delete_goal_record", return_value=True):
+            resp = client.delete("/api/goals/goal-001")
+        assert resp.status_code == 200
+        assert resp.json()["deleted"] is True
 
 
 # ---------------------------------------------------------------------------
