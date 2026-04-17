@@ -157,12 +157,14 @@ CREATE TABLE IF NOT EXISTS route_executions (
     output      TEXT,
     error       TEXT,
     retry_count INTEGER NOT NULL DEFAULT 0,
+    company_id  TEXT,
     created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_route_executions_status ON route_executions(status);
 CREATE INDEX IF NOT EXISTS idx_route_executions_created ON route_executions(created_at);
+CREATE INDEX IF NOT EXISTS idx_route_executions_company ON route_executions(company_id);
 
 CREATE TABLE IF NOT EXISTS issues (
     id          TEXT PRIMARY KEY,

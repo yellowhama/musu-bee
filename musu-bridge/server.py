@@ -613,15 +613,15 @@ async def api_company_activity(
     limit: int = Query(default=50, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
 ) -> list[dict]:
-    """Return recent activity (audit log entries) scoped to a company.
+    """Return recent route_executions scoped to a company.
 
-    Currently maps to the global audit log since audit entries are not
-    yet company-scoped. A 404 is returned if the company doesn't exist.
+    Returns only executions tagged with company_id, not the global audit log.
+    A 404 is returned if the company doesn't exist.
     """
     company = get_company(company_id)
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
-    return audit.recent(limit=limit, offset=offset)
+    return audit.activity_for_company(company_id, limit=limit, offset=offset)
 
 
 @app.get("/api/companies/{company_id}/dashboard", summary="Dashboard summary for a company")

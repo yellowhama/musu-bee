@@ -408,15 +408,20 @@ class LocalBackend(BackendABC):
     # --- Route execution durability ---
 
     def create_route_execution(
-        self, exec_id: str, channel: str, sender_id: str, input_text: str
+        self,
+        exec_id: str,
+        channel: str,
+        sender_id: str,
+        input_text: str,
+        company_id: str | None = None,
     ) -> None:
         """Insert a new route execution record with status='pending'."""
         self._db.execute(
             """
-            INSERT INTO route_executions (id, channel, sender_id, input, status)
-            VALUES (?, ?, ?, ?, 'pending')
+            INSERT INTO route_executions (id, channel, sender_id, input, status, company_id)
+            VALUES (?, ?, ?, ?, 'pending', ?)
             """,
-            (exec_id, channel, sender_id, input_text),
+            (exec_id, channel, sender_id, input_text, company_id),
         )
 
     def update_route_execution(
@@ -707,6 +712,8 @@ class LocalBackend(BackendABC):
 
     def checkout_issue(self, issue_id: str, agent_id: str) -> dict[str, Any] | None:
         """Assign checkout_by + set status=in_progress. Returns updated issue or None."""
+        if self.get_issue(issue_id) is None:
+            return None
         self._db.execute(
             """
             UPDATE issues
@@ -823,7 +830,9 @@ class LocalBackend(BackendABC):
         as a cost proxy. Zero-fills gracefully when no data.
         """
         rows = self._db.execute(
-            "SELECT status, COUNT(*) AS n FROM route_executions GROUP BY status"
+            "SELECT status, COUNT(*) AS n FROM route_executions"
+            " WHERE company_id = ? GROUP BY status",
+            (company_id,),
         )
         by_status = {r["status"]: r["n"] for r in rows}
         total = sum(by_status.values())
@@ -841,7 +850,9 @@ class LocalBackend(BackendABC):
             "SELECT channel, COUNT(*) AS n, "
             "SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) AS done, "
             "SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END) AS failed "
-            "FROM route_executions GROUP BY channel ORDER BY n DESC"
+            "FROM route_executions WHERE company_id = ? "
+            "GROUP BY channel ORDER BY n DESC",
+            (company_id,),
         )
         return [
             {

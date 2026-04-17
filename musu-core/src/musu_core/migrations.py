@@ -239,6 +239,36 @@ def _v6_down(conn: sqlite3.Connection) -> None:
 
 
 # ---------------------------------------------------------------------------
+# v7: add company_id to route_executions for company-scoped cost/activity queries
+# ---------------------------------------------------------------------------
+
+
+def _v7_up(conn: sqlite3.Connection) -> None:
+    """Add company_id TEXT column + index to route_executions."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='route_executions'"
+    ).fetchone()
+    if row is None:
+        return  # Table doesn't exist yet; _SCHEMA will create it with the column.
+    if not _column_exists(conn, "route_executions", "company_id"):
+        conn.execute("ALTER TABLE route_executions ADD COLUMN company_id TEXT;")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_route_executions_company"
+            " ON route_executions(company_id);"
+        )
+        conn.commit()
+
+
+def _v7_down(conn: sqlite3.Connection) -> None:  # noqa: ARG001
+    # SQLite does not support DROP COLUMN in older versions; index drop only.
+    try:
+        conn.execute("DROP INDEX IF EXISTS idx_route_executions_company;")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
@@ -250,6 +280,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v4_company_layer", _v4_up, _v4_down),
     ("v5_route_executions_retry_count", _v5_up, _v5_down),
     ("v6_route_executions_created_index", _v6_up, _v6_down),
+    ("v7_route_executions_company_id", _v7_up, _v7_down),
 ]
 
 

@@ -136,3 +136,19 @@ def recent(limit: int = 100, offset: int = 0) -> list[dict]:
             ]
     except Exception:  # noqa: BLE001
         return []
+
+
+def activity_for_company(company_id: str, limit: int = 50, offset: int = 0) -> list[dict]:
+    """Return route_executions scoped to a company, newest first."""
+    from handlers import _get_backend  # local import avoids circular
+
+    try:
+        backend = _get_backend()
+        rows = backend._db.execute(
+            "SELECT * FROM route_executions WHERE company_id = ?"
+            " ORDER BY created_at DESC LIMIT ? OFFSET ?",
+            (company_id, limit, offset),
+        )
+        return [dict(r) for r in rows]
+    except Exception:  # noqa: BLE001
+        return []

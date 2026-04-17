@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import ipaddress
 import logging
+import os
 import sys
 import uuid
 from pathlib import Path
@@ -21,6 +22,10 @@ from config import get_config as get_bridge_config
 from mesh_router import get_mesh_router
 
 logger = logging.getLogger(__name__)
+
+_CANONICAL_COMPANY_ID = os.environ.get(
+    "PAPERCLIP_COMPANY_ID", "f27a9bd2-688a-450b-98b4-f63d24b0ab50"
+)
 
 _backend: LocalBackend | None = None
 
@@ -58,7 +63,7 @@ async def route_chat(
     if exec_id is None:
         exec_id = str(uuid.uuid4())
         try:
-            backend.create_route_execution(exec_id, channel, sender_id, text)
+            backend.create_route_execution(exec_id, channel, sender_id, text, company_id=_CANONICAL_COMPANY_ID)
             backend.update_route_execution(exec_id, "running")
         except Exception:
             logger.warning("route_chat: failed to create durability record — continuing")
