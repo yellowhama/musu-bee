@@ -1,91 +1,77 @@
-# NEXT SESSION — 2026-04-17 (Phase P0~P3 완료 이후)
+# 다음 세션 TODO — 2026-04-17 세션 후
 
-## 완료된 것 (2026-04-17 세션)
-
-| 작업 | 상태 |
-|------|------|
-| Phase 4~7: FingerprintVerifier, Device Auth, machine_group, 랜딩 재설계 | ✅ |
-| P0: IP Rate Limiting (device_codes + route.ts) | ✅ |
-| P1: install.sh one-liner | ✅ |
-| P2: Wake-on-LAN (wol.py, server.py, registry.py, start-bridge.sh, vibecode-town full stack) | ✅ |
-| P3: Pricing 페이지 Pro tier 업데이트 | ✅ |
-| 코드 인덱싱, LLM wiki 66 작성, SPEC-140~144 | ✅ |
-| SSRF 패치 (IPv4 + IPv6 bracket + ::ffff:) | ✅ |
-| Supabase migration 012/013 PAT으로 적용 | ✅ |
-
-**최종 정성적 평가**: 97/100
+> 작성: 2026-04-17 | Phase 11 (프로세스 관리 + P2P + infra) 완료 기준
 
 ---
 
-## 세션 시작 즉시 할 것
+## 이번 세션에서 완료된 것
 
-### 1. E2E 검증
+| 태스크 | 상태 | 내용 |
+|--------|------|------|
+| W-1 | ✅ | FastAPI lifespan migration |
+| W-2 | ✅ | .env.example 6개 변수 추가 |
+| W-3 | ✅ | musu-connects 미커밋 커밋 |
+| PM-1 | ✅ | musu-worker 프로세스 엔드포인트 (psutil) |
+| PM-2 | ✅ | musu-bridge /api/processes 프록시 |
+| PM-3 | ✅ | musu-bee ProcessesPanel UI |
+| MC-1 | ✅ | musu-connects P2P diff 커밋 |
+| MC-2 | ✅ | SyncOrchestrator 구현 (49 tests pass) |
+| IS-1/2 | ✅ | install.sh macOS + Docker 지원 |
+| SPEC-163~165 | ✅ | 스펙 문서 업데이트 |
 
+---
+
+## 즉시 확인 (다음 세션 시작 5분)
+
+### 1. 프로세스 관리 E2E 검증
 ```bash
-# Rate limit (migration 012 적용 후)
-for i in {1..11}; do
-  curl -sf -X POST https://musu.pro/api/v1/auth/device \
-    -H "Content-Type: application/json" -d '{}' | jq .status 2>/dev/null || echo "no json"
-done
-# → 11번째에서 {"error":"Too many requests"} + 429 확인
+curl http://localhost:9700/processes -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN"
+# musu-bee UI에서 Processes 탭 확인
+```
 
-# Device Auth + WoL
-bash scripts/start-bridge.sh
-# → URL 출력 → 승인 → ~/.musu/musu_token 생성 확인
-# → musu.pro/account → offline 노드에 "Wake" 버튼 표시 확인
+### 2. musu-connects cargo test
+```bash
+cd musu-functions/musu-connects && rtk cargo test
+# → 49 passed
+```
 
-# install.sh
-bash <(curl -fsSL https://musu.pro/install.sh)
-# → musu-bridge 설치 + 시작
+### 3. git push
+```bash
+cd musu-functions && rtk git push
 ```
 
 ---
 
-## ✅ SSRF 패치 완료 (커밋 `7b62f5a`)
+## 남은 작업 (우선순위 순)
 
-**파일**: `src/app/api/v1/nodes/[id]/wol/route.ts`
+### P0: 2026-04-14 NEXT_SESSION 미완료 항목
 
-**문제**: `proxy.public_url + '/api/wol'` fetch 시 URL 검증 없음.
-인증된 사용자가 `public_url = "http://169.254.169.254/"` 등 내부 주소 등록 가능 → Vercel 서버리스에서 SSRF.
+1. **OPERATOR_INGRESS_ACCEPTANCE.md 업데이트**
+   - `musu-port/OPERATOR_INGRESS_ACCEPTANCE.md`
+   - WSL parity 테스트 결과 기록 (state.rs L974-979 픽스)
 
-**패치**:
-```typescript
-// fetch 전에 추가:
-const proxyHost = new URL(proxy.public_url).hostname;
-const blocked = /^(localhost|127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.|::1|fd)/i;
-if (blocked.test(proxyHost)) {
-  return NextResponse.json({ error: "Invalid proxy URL" }, { status: 422 });
-}
+2. **musu-control MCP 검증**
+   - `mcp__musu-control__list_agents` 직접 호출 테스트
+   - musu-bridge LocalBackend `/api/agents` 매핑 확인
+
+3. **원격 에이전트 라우팅 E2E**
+   - musu-bee REMOTE → CEO → 원격 응답 확인
+
+### P1: SyncOrchestrator → musu-connectsd 통합 (P2P 80% → 100%)
+
+SyncOrchestrator를 main.rs에 실제 연결:
+- tokio::spawn으로 올리는 통합 코드 작성
+- Tailscale P2P 전송 레이어 안정화 검증
+
+---
+
+## 체크리스트
+
 ```
-
-**vibecode-town 커밋**: `7b62f5a` — 패치 완료, 다음 세션에서 별도 작업 불필요
-
----
-
-## 남은 Low 항목
-
-| 항목 | 파일 | 설명 |
-|------|------|------|
-| polling 2-curl | `scripts/start-bridge.sh` | curl 2회 → 1회 (`-w "%{http_code}"` + body 동시 파싱) |
-| approveDeviceCode TOCTOU | `device_codes.repo.ts` | select→insert→update 3쿼리 → Supabase transaction |
-| detect_public_ip TTL | `musu-bridge/discovery.py` | 1h TTL `(ip, timestamp)` 캐시 |
-| MAC 감지 edge case | `scripts/start-bridge.sh` | `ip link` 파싱 실패 시 silent 처리 → 로그 추가 |
-
----
-
-## 파일 위치 SSOT
-
-| 항목 | 경로 |
-|------|------|
-| LLM Wiki | `/home/hugh51/llm-wiki/wiki/66_MUSU_MESH_PHASE8_P0_P3.md` |
-| Specs | `~/.claude/projects/-home-hugh51/memory/musu-specs.md` (SPEC-140~142) |
-| Rate limiting repo | `vibecode-town/src/lib/db/repositories/device_codes.repo.ts` |
-| Rate limiting route | `vibecode-town/src/app/api/v1/auth/device/route.ts` |
-| WoL API | `vibecode-town/src/app/api/v1/nodes/[id]/wol/route.ts` |
-| WakeButton | `vibecode-town/src/components/WakeButton.tsx` |
-| wol.py | `musu-functions/musu-bridge/wol.py` |
-| install.sh | `musu-functions/scripts/install.sh` = `vibecode-town/public/install.sh` |
-| Migration 012 | `vibecode-town/docs/migrations/012_device_codes_ip.sql` |
-| Migration 013 | `vibecode-town/docs/migrations/013_wol.sql` |
-| vibecode-town 커밋 | `2c78f35` |
-| musu-functions 커밋 | `b1cab0c9` |
+[ ] musu-worker /processes curl 테스트
+[ ] musu-bee Processes 탭 브라우저 확인
+[ ] musu-connects cargo test → 49 pass
+[ ] OPERATOR_INGRESS_ACCEPTANCE.md 업데이트
+[ ] musu-control MCP list_agents 도구 테스트
+[ ] git push
+```
