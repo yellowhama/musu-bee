@@ -262,7 +262,9 @@ fn make_server_config(cert_der: CertificateDer<'static>, key_der: PrivateKeyDer<
     tls.alpn_protocols = vec![b"musu/1".to_vec()];
     let quic_cfg = QuicServerConfig::try_from(tls)?;
     let mut cfg = ServerConfig::with_crypto(Arc::new(quic_cfg));
-    Arc::get_mut(&mut cfg.transport).unwrap().max_idle_timeout(Some(
+    Arc::get_mut(&mut cfg.transport)
+        .expect("transport Arc should have no other refs at config time")
+        .max_idle_timeout(Some(
         quinn::VarInt::from_u32(30_000).into(),
     ));
     Ok(cfg)

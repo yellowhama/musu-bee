@@ -16,7 +16,10 @@ if TYPE_CHECKING:
     from mesh_router import MeshRouter
     from musu_core.backends.local import LocalBackend
 
-_BRIDGE_TOKEN: str = os.getenv("MUSU_BRIDGE_TOKEN", "")
+def _get_bridge_token() -> str:
+    """Read MUSU_BRIDGE_TOKEN lazily — avoids stale value if env changes post-import."""
+    return os.getenv("MUSU_BRIDGE_TOKEN", "")
+
 
 logger = logging.getLogger(__name__)
 
@@ -140,7 +143,8 @@ class SyncEngine:
     async def _pull_from(self, peer_url: str) -> None:
         """Pull companies and messages from a single peer musu-bridge URL."""
         base = peer_url.rstrip("/")
-        headers = {"Authorization": f"Bearer {_BRIDGE_TOKEN}"} if _BRIDGE_TOKEN else {}
+        _tok = _get_bridge_token()
+        headers = {"Authorization": f"Bearer {_tok}"} if _tok else {}
         async with httpx.AsyncClient(timeout=10.0, headers=headers) as client:
             # --- Companies ---
             c_since = self._since(peer_url, "companies_since")
