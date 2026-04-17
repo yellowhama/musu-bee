@@ -76,6 +76,7 @@ scripts/auto-index.log
 EVID_DIR_PLACEHOLDER/
 logs/
 musu-bee/S2-*.png
+musu-bee/S3-*.png
 
 # DB 락 파일
 *.db-shm
