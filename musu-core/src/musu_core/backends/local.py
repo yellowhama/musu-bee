@@ -179,6 +179,11 @@ class LocalBackend(BackendABC):
     def list_agents(self) -> list[dict[str, Any]]:
         return [_agent_to_dict(a) for a in self.agents.list(status="active")]
 
+    def update_agent(self, agent_id: str, **kwargs: Any) -> dict[str, Any] | None:
+        """Update agent fields. Returns updated agent dict or None if not found."""
+        agent = self.agents.update(agent_id, **kwargs)
+        return _agent_to_dict(agent) if agent else None
+
     def create_task(
         self,
         title: str,
@@ -638,6 +643,216 @@ class LocalBackend(BackendABC):
             )
             written += 1
         return written
+
+    # --- Issues ---
+
+    def create_issue(
+        self,
+        company_id: str,
+        title: str,
+        description: str = "",
+        priority: str = "medium",
+        assignee_id: str | None = None,
+    ) -> dict[str, Any]:
+        issue_id = str(uuid.uuid4())
+        self._db.execute(
+            """
+            INSERT INTO issues (id, company_id, title, description, priority, assignee_id)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (issue_id, company_id, title, description, priority, assignee_id),
+        )
+        rows = self._db.execute("SELECT * FROM issues WHERE id = ?", (issue_id,))
+        return dict(rows[0])
+
+    def get_issue(self, issue_id: str) -> dict[str, Any] | None:
+        rows = self._db.execute("SELECT * FROM issues WHERE id = ?", (issue_id,))
+        return dict(rows[0]) if rows else None
+
+    def list_issues(
+        self,
+        company_id: str,
+        status: str | None = None,
+        assignee_id: str | None = None,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        clauses: list[str] = ["company_id = ?"]
+        params: list[Any] = [company_id]
+        if status:
+            clauses.append("status = ?")
+            params.append(status)
+        if assignee_id:
+            clauses.append("assignee_id = ?")
+            params.append(assignee_id)
+        params.append(limit)
+        where = "WHERE " + " AND ".join(clauses)
+        rows = self._db.execute(
+            f"SELECT * FROM issues {where} ORDER BY created_at DESC LIMIT ?",
+            tuple(params),
+        )
+        return [dict(r) for r in rows]
+
+    def update_issue(self, issue_id: str, **kwargs: Any) -> dict[str, Any] | None:
+        allowed = {"title", "description", "status", "priority", "assignee_id"}
+        updates = {k: v for k, v in kwargs.items() if k in allowed}
+        if not updates:
+            return self.get_issue(issue_id)
+        set_clause = ", ".join(f"{k} = ?" for k in updates)
+        set_clause += ", updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')"
+        self._db.execute(
+            f"UPDATE issues SET {set_clause} WHERE id = ?",
+            (*updates.values(), issue_id),
+        )
+        return self.get_issue(issue_id)
+
+    def checkout_issue(self, issue_id: str, agent_id: str) -> dict[str, Any] | None:
+        """Assign checkout_by + set status=in_progress. Returns updated issue or None."""
+        self._db.execute(
+            """
+            UPDATE issues
+            SET checkout_by = ?, checkout_at = strftime('%Y-%m-%dT%H:%M:%fZ','now'),
+                status = 'in_progress',
+                updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+            WHERE id = ?
+            """,
+            (agent_id, issue_id),
+        )
+        return self.get_issue(issue_id)
+
+    def list_issue_comments(self, issue_id: str) -> list[dict[str, Any]]:
+        rows = self._db.execute(
+            "SELECT * FROM issue_comments WHERE issue_id = ? ORDER BY created_at ASC",
+            (issue_id,),
+        )
+        return [dict(r) for r in rows]
+
+    def add_issue_comment(
+        self,
+        issue_id: str,
+        body: str,
+        author_id: str | None = None,
+        author_kind: str = "agent",
+    ) -> dict[str, Any]:
+        comment_id = str(uuid.uuid4())
+        self._db.execute(
+            """
+            INSERT INTO issue_comments (id, issue_id, author_id, author_kind, body)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (comment_id, issue_id, author_id, author_kind, body),
+        )
+        rows = self._db.execute("SELECT * FROM issue_comments WHERE id = ?", (comment_id,))
+        return dict(rows[0])
+
+    # --- Approvals ---
+
+    def list_approvals(
+        self,
+        company_id: str,
+        status: str | None = None,
+    ) -> list[dict[str, Any]]:
+        clauses: list[str] = ["company_id = ?"]
+        params: list[Any] = [company_id]
+        if status:
+            clauses.append("status = ?")
+            params.append(status)
+        where = "WHERE " + " AND ".join(clauses)
+        rows = self._db.execute(
+            f"SELECT * FROM company_approvals_queue {where} ORDER BY created_at DESC",
+            tuple(params),
+        )
+        return [dict(r) for r in rows]
+
+    def get_approval(self, approval_id: str) -> dict[str, Any] | None:
+        rows = self._db.execute(
+            "SELECT * FROM company_approvals_queue WHERE id = ?", (approval_id,)
+        )
+        return dict(rows[0]) if rows else None
+
+    def resolve_approval(
+        self,
+        approval_id: str,
+        decision: str,
+        reason: str = "",
+    ) -> dict[str, Any] | None:
+        """Set approval status to 'approved' or 'rejected'."""
+        if decision not in ("approved", "rejected"):
+            return None
+        self._db.execute(
+            """
+            UPDATE company_approvals_queue
+            SET status = ?, reason = ?,
+                updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+            WHERE id = ?
+            """,
+            (decision, reason, approval_id),
+        )
+        return self.get_approval(approval_id)
+
+    # --- Projects ---
+
+    def list_projects(
+        self,
+        company_id: str,
+        status: str | None = None,
+    ) -> list[dict[str, Any]]:
+        clauses: list[str] = ["company_id = ?"]
+        params: list[Any] = [company_id]
+        if status:
+            clauses.append("status = ?")
+            params.append(status)
+        where = "WHERE " + " AND ".join(clauses)
+        rows = self._db.execute(
+            f"SELECT * FROM company_project_index {where} ORDER BY created_at DESC",
+            tuple(params),
+        )
+        return [dict(r) for r in rows]
+
+    def get_project(self, project_id: str) -> dict[str, Any] | None:
+        rows = self._db.execute(
+            "SELECT * FROM company_project_index WHERE id = ?", (project_id,)
+        )
+        return dict(rows[0]) if rows else None
+
+    # --- Costs (derived from route_executions) ---
+
+    def get_costs_summary(self, company_id: str) -> dict[str, Any]:
+        """Return request-count-based cost proxy for a company.
+
+        Real cost tracking (token $) not yet wired — returns execution counts
+        as a cost proxy. Zero-fills gracefully when no data.
+        """
+        rows = self._db.execute(
+            "SELECT status, COUNT(*) AS n FROM route_executions GROUP BY status"
+        )
+        by_status = {r["status"]: r["n"] for r in rows}
+        total = sum(by_status.values())
+        return {
+            "company_id": company_id,
+            "period": "all_time",
+            "total_requests": total,
+            "by_status": by_status,
+            "estimated_cost_usd": None,
+        }
+
+    def get_costs_by_agent(self, company_id: str) -> list[dict[str, Any]]:
+        """Return per-channel request counts as an agent-level cost proxy."""
+        rows = self._db.execute(
+            "SELECT channel, COUNT(*) AS n, "
+            "SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) AS done, "
+            "SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END) AS failed "
+            "FROM route_executions GROUP BY channel ORDER BY n DESC"
+        )
+        return [
+            {
+                "agent_name": r["channel"],
+                "total_requests": r["n"],
+                "done": r["done"],
+                "failed": r["failed"],
+                "estimated_cost_usd": None,
+            }
+            for r in rows
+        ]
 
     def close(self) -> None:
         self._db.close()

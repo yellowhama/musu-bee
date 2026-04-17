@@ -164,6 +164,35 @@ CREATE TABLE IF NOT EXISTS route_executions (
 CREATE INDEX IF NOT EXISTS idx_route_executions_status ON route_executions(status);
 CREATE INDEX IF NOT EXISTS idx_route_executions_created ON route_executions(created_at);
 
+CREATE TABLE IF NOT EXISTS issues (
+    id          TEXT PRIMARY KEY,
+    company_id  TEXT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    title       TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    status      TEXT NOT NULL DEFAULT 'open'
+                    CHECK (status IN ('open','in_progress','resolved','closed')),
+    priority    TEXT NOT NULL DEFAULT 'medium'
+                    CHECK (priority IN ('low','medium','high','critical')),
+    assignee_id TEXT REFERENCES agents(id) ON DELETE SET NULL,
+    checkout_by TEXT REFERENCES agents(id) ON DELETE SET NULL,
+    checkout_at TEXT,
+    created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_issues_company  ON issues(company_id);
+CREATE INDEX IF NOT EXISTS idx_issues_status   ON issues(status);
+CREATE INDEX IF NOT EXISTS idx_issues_assignee ON issues(assignee_id);
+
+CREATE TABLE IF NOT EXISTS issue_comments (
+    id          TEXT PRIMARY KEY,
+    issue_id    TEXT NOT NULL REFERENCES issues(id) ON DELETE CASCADE,
+    author_id   TEXT REFERENCES agents(id) ON DELETE SET NULL,
+    author_kind TEXT NOT NULL DEFAULT 'agent',
+    body        TEXT NOT NULL,
+    created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_issue_comments_issue ON issue_comments(issue_id);
+
 CREATE INDEX IF NOT EXISTS idx_companies_workspace ON companies(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_role_templates_company ON company_role_templates(company_id);
 CREATE INDEX IF NOT EXISTS idx_project_index_company ON company_project_index(company_id);
