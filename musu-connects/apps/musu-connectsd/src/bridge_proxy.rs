@@ -15,6 +15,10 @@ use std::path::PathBuf;
 use std::sync::{Arc, OnceLock};
 use std::time::{Duration, Instant};
 
+use musu_connects_core::{
+    QuicBindTarget, QuicEndpointConfig, QuicProvider, SyncOrchestrator, SyncOrchestratorConfig,
+};
+
 use axum::{Json, Router, extract::State, http::StatusCode, routing::get, routing::post};
 use dashmap::DashMap;
 use quinn::{ClientConfig, Endpoint, ServerConfig};
@@ -706,17 +710,35 @@ pub async fn run_bridge_proxy(
     // 8. Background pool cleanup
     tokio::spawn(cleanup_pool_loop(conn_pool));
 
-    // 9. Run QUIC server accept loop + HTTP server concurrently.
+    // 9. SyncOrchestrator — periodic heartbeat + reconnect + route sync across peers
+    let orchestrator = Arc::new(SyncOrchestrator::new(
+        Arc::new(QuicProvider::new(QuicEndpointConfig {
+            bind_target: QuicBindTarget::SocketAddr(quic_addr.to_string()),
+            alpn: "musu-connects/1".into(),
+            idle_timeout_ms: 30_000,
+        })),
+        SyncOrchestratorConfig::default(),
+    ));
+    let orchestrator_handle = {
+        let orch = orchestrator.clone();
+        tokio::spawn(async move { orch.run().await })
+    };
+    eprintln!("[bridge-proxy] SyncOrchestrator started (heartbeat=15s, route-sync=30s)");
+
+    // 10. Run QUIC accept + HTTP server + SyncOrchestrator concurrently.
     let bridge_url_arc = Arc::new(bridge_url);
     tokio::select! {
         _ = run_quic_accept_loop(server_endpoint, bridge_url_arc) => {
-            eprintln!("[bridge-proxy] QUIC accept loop exited — shutting down HTTP proxy");
+            eprintln!("[bridge-proxy] QUIC accept loop exited — shutting down");
         }
         result = axum::serve(listener, app) => {
             match result {
-                Ok(()) => eprintln!("[bridge-proxy] HTTP server stopped — shutting down QUIC server"),
-                Err(e) => eprintln!("[bridge-proxy] HTTP server error: {e} — shutting down QUIC server"),
+                Ok(()) => eprintln!("[bridge-proxy] HTTP server stopped — shutting down"),
+                Err(e) => eprintln!("[bridge-proxy] HTTP server error: {e} — shutting down"),
             }
+        }
+        _ = orchestrator_handle => {
+            eprintln!("[bridge-proxy] SyncOrchestrator exited unexpectedly — shutting down");
         }
     }
 
