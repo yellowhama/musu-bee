@@ -20,7 +20,7 @@ import logging
 import os
 import sys
 from contextlib import asynccontextmanager
-from typing import Annotated, List
+from typing import Annotated, List, Literal
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Path, Query, Request, Response
@@ -883,13 +883,13 @@ class IssueCreateRequest(BaseModel):
 
 class ProjectCreateRequest(BaseModel):
     project_name: str
-    status: str = "active"
+    status: Literal["active", "paused", "archived"] = "active"
     assigned_to: str | None = None
 
 
 class ProjectUpdateRequest(BaseModel):
     project_name: str | None = None
-    status: str | None = None
+    status: Literal["active", "paused", "archived"] | None = None
     assigned_to: str | None = None
 
 
@@ -1143,14 +1143,14 @@ async def api_delete_project(project_id: str) -> dict:
 class GoalCreateRequest(BaseModel):
     title: str
     description: str = ""
-    status: str = "active"
+    status: Literal["active", "completed", "cancelled"] = "active"
     due_date: str | None = None
 
 
 class GoalUpdateRequest(BaseModel):
     title: str | None = None
     description: str | None = None
-    status: str | None = None
+    status: Literal["active", "completed", "cancelled"] | None = None
     due_date: str | None = None
 
 

@@ -3,17 +3,19 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 
 interface CostsSummary {
+  company_id: string;
+  period: string;
   total_requests: number;
-  done: number;
-  failed: number;
-  period_days: number;
+  by_status: Record<string, number>;
+  estimated_cost_usd: number | null;
 }
 
 interface AgentCost {
   agent_name: string;
-  request_count: number;
-  done_count?: number;
-  failed_count?: number;
+  total_requests: number;
+  done: number;
+  failed: number;
+  estimated_cost_usd: number | null;
 }
 
 interface CostsPanelProps {
@@ -76,9 +78,11 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const doneCount = summary?.by_status?.done ?? 0;
+  const failedCount = summary?.by_status?.failed ?? 0;
   const successRate =
     summary && summary.total_requests > 0
-      ? Math.round((summary.done / summary.total_requests) * 100)
+      ? Math.round((doneCount / summary.total_requests) * 100)
       : null;
 
   return (
@@ -116,7 +120,7 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
               padding: "2px 8px",
             }}
           >
-            {summary.period_days}d window
+            {summary.period}
           </span>
         )}
         <div style={{ flex: 1 }} />
@@ -224,7 +228,7 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
                   Done
                 </div>
                 <div style={{ fontSize: 16, fontWeight: 600, color: "#22c55e" }}>
-                  {summary.done}
+                  {doneCount}
                 </div>
               </div>
               <div>
@@ -240,7 +244,7 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
                   Failed
                 </div>
                 <div style={{ fontSize: 16, fontWeight: 600, color: "#f87171" }}>
-                  {summary.failed}
+                  {failedCount}
                 </div>
               </div>
             </div>
@@ -263,7 +267,7 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
                 {byAgent.map((row) => {
                   const pct =
                     summary.total_requests > 0
-                      ? Math.round((row.request_count / summary.total_requests) * 100)
+                      ? Math.round((row.total_requests / summary.total_requests) * 100)
                       : 0;
                   return (
                     <div
@@ -290,7 +294,7 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
                           {row.agent_name}
                         </span>
                         <span style={{ fontSize: 12, color: "#9ca3af" }}>
-                          {row.request_count} req
+                          {row.total_requests} req
                         </span>
                         <span style={{ fontSize: 11, color: "#6b7280" }}>
                           {pct}%

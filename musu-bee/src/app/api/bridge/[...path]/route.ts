@@ -14,8 +14,19 @@ type RouteContext = { params: Promise<{ path: string[] }> };
 async function proxyToBridge(req: NextRequest, ctx: RouteContext): Promise<NextResponse> {
   try {
     const { path } = await ctx.params;
+    // Sanitize each segment: reject any that contain '..' after URL decoding
+    for (const segment of path) {
+      const decoded = decodeURIComponent(segment);
+      if (decoded.includes("..") || decoded.includes("/")) {
+        return NextResponse.json({ error: "invalid path" }, { status: 400 });
+      }
+    }
     const bridgePath = path.join("/");
     const target = new URL(`${BRIDGE_URL}/api/${bridgePath}`);
+    // Guard: ensure final URL stays within the expected API scope
+    if (!target.pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "invalid path" }, { status: 400 });
+    }
 
     // Forward query string
     req.nextUrl.searchParams.forEach((value, key) => {
