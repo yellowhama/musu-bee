@@ -309,6 +309,25 @@ def _v8_down(conn: sqlite3.Connection) -> None:
 
 
 # ---------------------------------------------------------------------------
+# v9: composite index on route_executions(company_id, status)
+# ---------------------------------------------------------------------------
+
+
+def _v9_up(conn: sqlite3.Connection) -> None:
+    """Add composite index for cost aggregation queries."""
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_route_executions_company_status"
+        " ON route_executions(company_id, status);"
+    )
+    conn.commit()
+
+
+def _v9_down(conn: sqlite3.Connection) -> None:  # noqa: ARG001
+    conn.execute("DROP INDEX IF EXISTS idx_route_executions_company_status;")
+    conn.commit()
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
@@ -322,6 +341,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v6_route_executions_created_index", _v6_up, _v6_down),
     ("v7_route_executions_company_id", _v7_up, _v7_down),
     ("v8_goals_table", _v8_up, _v8_down),
+    ("v9_route_executions_composite_idx", _v9_up, _v9_down),
 ]
 
 

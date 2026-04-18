@@ -14,6 +14,8 @@ import IssuesPanel from "@/components/IssuesPanel";
 import ApprovalsPanel from "@/components/ApprovalsPanel";
 import ProjectsPanel from "@/components/ProjectsPanel";
 import CostsPanel from "@/components/CostsPanel";
+import GoalsPanel from "@/components/GoalsPanel";
+import SearchPanel from "@/components/SearchPanel";
 import { useAuth } from "@/lib/useAuth";
 import { useDeviceDiscovery } from "@/lib/useDeviceDiscovery";
 import { useAgentsSurface } from "@/lib/useAgentsSurface";
@@ -38,7 +40,9 @@ const CHANNEL_DESCRIPTIONS: Partial<Record<ChannelId, string>> = {
   issues: "Company issue tracker",
   approvals: "Pending approval requests",
   projects: "Company project index",
+  goals: "Company goals tracker",
   costs: "Request cost analytics",
+  search: "Search the indexed codebase",
   ceo: "CEO agent",
   cto: "CTO agent",
   engineer: "Engineer agent",
@@ -56,7 +60,9 @@ const INITIAL_CHANNELS: Channel[] = [
   { id: "issues", name: "issues", unread: 0 },
   { id: "approvals", name: "approvals", unread: 0 },
   { id: "projects", name: "projects", unread: 0 },
+  { id: "goals", name: "goals", unread: 0 },
   { id: "costs", name: "costs", unread: 0 },
+  { id: "search", name: "search", unread: 0 },
   { id: "ceo", name: "ceo", unread: 0 },
   { id: "cto", name: "cto", unread: 0 },
   { id: "engineer", name: "engineer", unread: 0 },
@@ -462,6 +468,10 @@ export default function AppShell() {
           <ApprovalsPanel companyId={activeCompany?.companyId} />
         ) : activeChannel === "projects" ? (
           <ProjectsPanel companyId={activeCompany?.companyId} />
+        ) : activeChannel === "search" ? (
+          <SearchPanel />
+        ) : activeChannel === "goals" ? (
+          <GoalsPanel companyId={activeCompany?.companyId} />
         ) : activeChannel === "costs" ? (
           <CostsPanel companyId={activeCompany?.companyId} />
         ) : (

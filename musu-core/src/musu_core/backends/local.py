@@ -712,19 +712,19 @@ class LocalBackend(BackendABC):
         return self.get_issue(issue_id)
 
     def checkout_issue(self, issue_id: str, agent_id: str) -> dict[str, Any] | None:
-        """Assign checkout_by + set status=in_progress. Returns updated issue or None."""
-        if self.get_issue(issue_id) is None:
-            return None
-        self._db.execute(
+        """Atomically checkout an issue. Returns updated issue or None if not found / already checked out."""
+        cursor = self._db.execute(
             """
             UPDATE issues
             SET checkout_by = ?, checkout_at = strftime('%Y-%m-%dT%H:%M:%fZ','now'),
                 status = 'in_progress',
                 updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
-            WHERE id = ?
+            WHERE id = ? AND checkout_by IS NULL
             """,
             (agent_id, issue_id),
         )
+        if cursor.rowcount == 0:
+            return None  # not found OR already checked out
         return self.get_issue(issue_id)
 
     def list_issue_comments(self, issue_id: str) -> list[dict[str, Any]]:

@@ -436,3 +436,78 @@ class TestCosts:
             resp = client.get("/api/companies/company-001/costs/by-agent")
         assert resp.status_code == 200
         assert len(resp.json()) == 1
+
+
+# ---------------------------------------------------------------------------
+# Phase 18: additional coverage
+# ---------------------------------------------------------------------------
+
+
+class TestGoalsPhase18:
+    def test_list_goals_status_filter(self):
+        """?status= parameter is forwarded to list_goal_records."""
+        captured: list[dict] = []
+
+        def mock_list(company_id: str, status: str | None = None):
+            captured.append({"company_id": company_id, "status": status})
+            return []
+
+        with patch("server.get_company", return_value=_COMPANY), \
+             patch("server.list_goal_records", side_effect=mock_list):
+            resp = client.get("/api/companies/company-001/goals?status=completed")
+        assert resp.status_code == 200
+        assert captured[0]["status"] == "completed"
+
+    def test_create_goal_with_due_date(self):
+        """due_date field is passed through and returned."""
+        goal_with_due = {
+            "id": "goal-due-001",
+            "company_id": "company-001",
+            "title": "Q2 revenue target",
+            "description": "",
+            "status": "active",
+            "due_date": "2026-06-30",
+            "meta": "{}",
+            "created_at": "2026-04-18T00:00:00.000Z",
+            "updated_at": "2026-04-18T00:00:00.000Z",
+        }
+        with patch("server.get_company", return_value=_COMPANY), \
+             patch("server.create_goal_record", return_value=goal_with_due):
+            resp = client.post(
+                "/api/companies/company-001/goals",
+                json={"title": "Q2 revenue target", "due_date": "2026-06-30"},
+            )
+        assert resp.status_code == 201
+        assert resp.json()["due_date"] == "2026-06-30"
+
+    def test_goal_status_invalid_422(self):
+        """Invalid status value returns 422 before reaching the DB."""
+        with patch("server.get_company", return_value=_COMPANY), \
+             patch("server.create_goal_record", return_value={}):
+            resp = client.post(
+                "/api/companies/company-001/goals",
+                json={"title": "Bad goal", "status": "invalid_status"},
+            )
+        assert resp.status_code == 422
+
+
+class TestCheckoutPhase18:
+    def test_checkout_issue_already_checked_out_404(self):
+        """checkout_issue returns None when already checked out → 404."""
+        with patch("server.checkout_issue_record", return_value=None):
+            resp = client.post(
+                "/api/issues/issue-001/checkout",
+                json={"agent_id": "agent-002"},
+            )
+        assert resp.status_code == 404
+
+    def test_checkout_issue_success_200(self):
+        """checkout_issue returns updated issue → 200."""
+        checked_out = {**_ISSUE, "checkout_by": "agent-002", "status": "in_progress"}
+        with patch("server.checkout_issue_record", return_value=checked_out):
+            resp = client.post(
+                "/api/issues/issue-001/checkout",
+                json={"agent_id": "agent-002"},
+            )
+        assert resp.status_code == 200
+        assert resp.json()["checkout_by"] == "agent-002"

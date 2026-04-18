@@ -56,13 +56,22 @@ def _cursor() -> Generator[sqlite3.Cursor, None, None]:
                     path        TEXT    NOT NULL DEFAULT '',
                     status_code INTEGER NOT NULL DEFAULT 0,
                     agent_id    TEXT    NOT NULL DEFAULT '',
-                    note        TEXT    NOT NULL DEFAULT ''
+                    note        TEXT    NOT NULL DEFAULT '',
+                    company_id  TEXT    NOT NULL DEFAULT ''
                 )
                 """
             )
             _conn.execute(
                 "CREATE INDEX IF NOT EXISTS idx_audit_ts ON audit_log(ts)"
             )
+            _conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_audit_company ON audit_log(company_id)"
+            )
+            # Backfill company_id column for existing DBs created before this version
+            try:
+                _conn.execute("ALTER TABLE audit_log ADD COLUMN company_id TEXT NOT NULL DEFAULT ''")
+            except Exception:
+                pass  # column already exists
             _conn.commit()
         cur = _conn.cursor()
         try:
@@ -81,16 +90,17 @@ def record(
     status_code: int = 0,
     agent_id: str = "",
     note: str = "",
+    company_id: str = "",
 ) -> None:
     """Insert one audit event. Silently ignored on any DB error."""
     try:
         with _cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO audit_log (ts, actor_ip, method, path, status_code, agent_id, note)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO audit_log (ts, actor_ip, method, path, status_code, agent_id, note, company_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (time.time(), actor_ip, method, path, status_code, agent_id, note),
+                (time.time(), actor_ip, method, path, status_code, agent_id, note, company_id),
             )
             # Purge oldest rows when cap is hit
             max_rows = _max_rows()
@@ -113,7 +123,7 @@ def recent(limit: int = 100, offset: int = 0) -> list[dict]:
         with _cursor() as cur:
             cur.execute(
                 """
-                SELECT id, ts, actor_ip, method, path, status_code, agent_id, note
+                SELECT id, ts, actor_ip, method, path, status_code, agent_id, note, company_id
                 FROM audit_log
                 ORDER BY ts DESC
                 LIMIT ? OFFSET ?
@@ -131,6 +141,7 @@ def recent(limit: int = 100, offset: int = 0) -> list[dict]:
                     "status_code": r[5],
                     "agent_id": r[6],
                     "note": r[7],
+                    "company_id": r[8] if len(r) > 8 else "",
                 }
                 for r in rows
             ]

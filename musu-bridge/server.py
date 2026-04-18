@@ -1233,6 +1233,41 @@ async def api_costs_by_agent(company_id: str) -> list[dict]:
     return get_costs_by_agent_record(company_id)
 
 
+@app.get("/api/index-search", summary="Search indexed codebase")
+async def api_index_search(q: str = Query("", max_length=200)) -> list[dict]:
+    """Full-text search on the musu-indexer SQLite database.
+
+    Returns up to 20 matching entries with path, snippet, and type.
+    Falls back to empty list if the indexer DB is not present.
+    """
+    import sqlite3
+
+    db_path = os.environ.get(
+        "MUSU_INDEXER_DB",
+        os.path.join(os.path.dirname(__file__), "..", "musu-indexer", ".musu_dev.db"),
+    )
+    q = q.strip()
+    if not q:
+        return []
+    try:
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            """
+            SELECT path, snippet(search_index, 2, '<b>', '</b>', '…', 20) AS snippet, type
+            FROM search_index
+            WHERE search_index MATCH ?
+            ORDER BY rank
+            LIMIT 20
+            """,
+            (q,),
+        ).fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+    except Exception as exc:  # noqa: BLE001
+        return [{"error": str(exc), "path": "", "snippet": "", "type": "error"}]
+
+
 @app.get("/health")
 async def health() -> dict:
     return {"status": "ok"}

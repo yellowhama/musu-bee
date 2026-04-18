@@ -236,53 +236,91 @@ export default function Sidebar({
         >
           Channels
         </div>
-        {channels.map((ch) => (
-          <div
-            key={ch.id}
-            data-testid={`channel-item-${ch.id}`}
-            role="button"
-            tabIndex={0}
-            onClick={() => onChannelSelect(ch.id)}
-            onKeyDown={(e) => e.key === "Enter" && onChannelSelect(ch.id)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              padding: "6px 10px",
-              borderRadius: 6,
-              cursor: "pointer",
-              background: activeChannel === ch.id ? "#1d1d1d" : "transparent",
-              color: activeChannel === ch.id ? "#f3f4f6" : "#9ca3af",
-              fontSize: 14,
-              marginBottom: 1,
-              fontWeight: activeChannel === ch.id ? 600 : 400,
-            }}
-            onMouseEnter={(e) => {
-              if (activeChannel !== ch.id)
-                (e.currentTarget as HTMLDivElement).style.background = "#181818";
-            }}
-            onMouseLeave={(e) => {
-              if (activeChannel !== ch.id)
-                (e.currentTarget as HTMLDivElement).style.background = "transparent";
-            }}
-          >
-            <span style={{ marginRight: 6, opacity: 0.6 }}>#</span>
-            <span style={{ flex: 1 }}>{ch.name}</span>
-            {ch.unread > 0 && (
-              <span
-                style={{
-                  background: "var(--musu-status-error)",
-                  color: "#fff",
-                  borderRadius: 10,
-                  padding: "1px 6px",
-                  fontSize: 11,
-                  fontWeight: 700,
-                }}
-              >
-                {ch.unread}
-              </span>
-            )}
-          </div>
-        ))}
+        {(() => {
+          const COMPANY_CHANNELS: ChannelId[] = ["issues", "approvals", "projects", "goals", "costs"];
+          const hasCompany = !!activeCompany;
+          let insertedDivider = false;
+          return channels.map((ch) => {
+            const isCompanyChannel = COMPANY_CHANNELS.includes(ch.id);
+            const dimmed = isCompanyChannel && !hasCompany;
+            const showDivider = isCompanyChannel && !insertedDivider;
+            if (showDivider) insertedDivider = true;
+            return (
+              <div key={ch.id}>
+                {showDivider && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "8px 8px 4px",
+                    }}
+                  >
+                    <div style={{ flex: 1, height: 1, background: "#1f1f1f" }} />
+                    <span
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 700,
+                        color: hasCompany ? "#6b7280" : "#374151",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.08em",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      Company
+                    </span>
+                    <div style={{ flex: 1, height: 1, background: "#1f1f1f" }} />
+                  </div>
+                )}
+                <div
+                  data-testid={`channel-item-${ch.id}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onChannelSelect(ch.id)}
+                  onKeyDown={(e) => e.key === "Enter" && onChannelSelect(ch.id)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    padding: "6px 10px",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                    background: activeChannel === ch.id ? "#1d1d1d" : "transparent",
+                    color: activeChannel === ch.id ? "#f3f4f6" : dimmed ? "#374151" : "#9ca3af",
+                    fontSize: 14,
+                    marginBottom: 1,
+                    fontWeight: activeChannel === ch.id ? 600 : 400,
+                    opacity: dimmed ? 0.5 : 1,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (activeChannel !== ch.id)
+                      (e.currentTarget as HTMLDivElement).style.background = "#181818";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (activeChannel !== ch.id)
+                      (e.currentTarget as HTMLDivElement).style.background = "transparent";
+                  }}
+                >
+                  <span style={{ marginRight: 6, opacity: 0.6 }}>#</span>
+                  <span style={{ flex: 1 }}>{ch.name}</span>
+                  {ch.unread > 0 && (
+                    <span
+                      style={{
+                        background: "var(--musu-status-error)",
+                        color: "#fff",
+                        borderRadius: 10,
+                        padding: "1px 6px",
+                        fontSize: 11,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {ch.unread}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          });
+        })()}
       </div>
 
       {/* Divider */}

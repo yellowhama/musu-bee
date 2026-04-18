@@ -9,8 +9,9 @@ use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use musu_connects_core::{
     bootstrap::bootstrap_banner, DeviceIdentity, DiscoveryState, FirstProductDemoService,
-    FirstProductDemoSnapshot, MusuPortServiceRoute, PeerRecord, QuicBindTarget, QuicEndpointConfig,
-    QuicProvider, TrustLevel,
+    FirstProductDemoSnapshot, MdnsService, MusuPortServiceRoute, PeerRecord, QuicBindTarget,
+    QuicEndpointConfig, QuicProvider, StunService, SyncOrchestrator, SyncOrchestratorConfig,
+    TrustLevel, parse_mdns_peer,
 };
 use rustls::pki_types::pem::PemObject;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer};
@@ -19,6 +20,7 @@ use serde::Serialize;
 const USAGE: &str = "\
 Usage:
   musu-connectsd
+  musu-connectsd daemon [--bind <ip:port>] [--bridge-url <url>] [--mdns] [--stun <server>]
   musu-connectsd bridge-proxy [--quic-port <port>] [--http-port <port>] [--bridge-url <url>]
   musu-connectsd live-harness --routes-json <path> --proof-json <path> [--service <name-or-alias>] [--now <iso8601>] [--peer-id <id>] [--device-id <id>] [--device-label <label>] [--host-platform <platform>] [--runtime-profile <profile>] [--discovered-via <method>] [--trust-level <blocked|known|trusted|shared-org>] [--discovery-state <seeded|discovered|handshaking|verified|connected|degraded|blocked|forgotten>] [--runtime-evidence-path <path>]
   musu-connectsd real-peer-harness --proof-json <path>
@@ -26,6 +28,7 @@ Usage:
   musu-connectsd tailscale-quic-client --bind <ip:port> --server <ip:port> --proof-json <path> [--count <samples>] [--payload-bytes <bytes>] [--idle-timeout-ms <ms>]
 
 Commands:
+  daemon             Run the persistent QUIC + SyncOrchestrator daemon (heartbeat + route sync loop)
   bridge-proxy       QUIC tunnel sidecar for musu-bridge (HTTP↔QUIC proxy)
   live-harness       Run a cross-repo route import proof from musu-port /routes JSON and write a proof artifact
   real-peer-harness  Run a 2-endpoint loopback QUIC session proof with OS-observed ephemeral remote_addr
@@ -106,6 +109,12 @@ fn main() {
         Some("tailscale-quic-client") => {
             if let Err(err) = run_tailscale_quic_client(&args[1..]) {
                 eprintln!("tailscale-quic-client failed: {err}");
+                std::process::exit(1);
+            }
+        }
+        Some("daemon") => {
+            if let Err(err) = run_daemon_cmd(&args[1..]) {
+                eprintln!("daemon failed: {err}");
                 std::process::exit(1);
             }
         }
@@ -1156,6 +1165,128 @@ fn select_route(
             "could not select a route from routes payload".to_string()
         }
     })
+}
+
+// ── daemon CLI command ────────────────────────────────────────────────────────
+
+fn run_daemon_cmd(raw_args: &[String]) -> Result<(), String> {
+    let mut bind = "0.0.0.0:4433".to_string();
+    let mut _bridge_url = "http://127.0.0.1:8070".to_string();
+    let mut enable_mdns = false;
+    let mut stun_server: Option<String> = None;
+
+    let mut i = 0;
+    while i < raw_args.len() {
+        match raw_args[i].as_str() {
+            "--bind" => {
+                i += 1;
+                bind = raw_args.get(i).ok_or("--bind requires a value")?.clone();
+            }
+            "--bridge-url" => {
+                i += 1;
+                _bridge_url = raw_args.get(i).ok_or("--bridge-url requires a value")?.clone();
+            }
+            "--mdns" => {
+                enable_mdns = true;
+            }
+            "--stun" => {
+                i += 1;
+                stun_server = Some(raw_args.get(i).ok_or("--stun requires a value")?.clone());
+            }
+            "-h" | "--help" | "help" => return Err(USAGE.to_string()),
+            other => return Err(format!("unknown daemon argument: {other}")),
+        }
+        i += 1;
+    }
+
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .map_err(|e| format!("tokio runtime error: {e}"))?;
+
+    rt.block_on(run_daemon_async(bind, enable_mdns, stun_server))
+}
+
+async fn run_daemon_async(
+    bind: String,
+    enable_mdns: bool,
+    stun_server: Option<String>,
+) -> Result<(), String> {
+    use std::sync::Arc;
+
+    eprintln!("[daemon] starting musu-connectsd daemon");
+    eprintln!("[daemon] bind: {bind}");
+
+    // Initialize QUIC endpoint.
+    let bind_addr: std::net::SocketAddr = bind
+        .parse()
+        .map_err(|e| format!("invalid bind address '{bind}': {e}"))?;
+    let mut qp = QuicProvider::new(QuicEndpointConfig {
+        bind_target: QuicBindTarget::SocketAddr(bind.clone()),
+        alpn: "musu-connects/1".into(),
+        idle_timeout_ms: 30_000,
+    });
+    let (cert, key) = musu_connects_core::application::identity::gen_self_signed_cert()
+        .map_err(|e| format!("failed to generate self-signed cert: {e}"))?;
+    qp.open_listener(cert, key)
+        .await
+        .map_err(|e| format!("QuicProvider::open_listener failed: {e:?}"))?;
+    eprintln!("[daemon] QUIC endpoint listening on {bind}");
+
+    let qp = Arc::new(qp);
+    let orchestrator = Arc::new(SyncOrchestrator::new(qp, SyncOrchestratorConfig::default()));
+
+    // Optional: STUN external IP discovery.
+    let stun_servers = stun_server.map(|s| vec![s]).unwrap_or_default();
+    let stun = StunService::new(stun_servers);
+    let local_port = bind_addr.port();
+    match stun.discover_public_addr(local_port).await {
+        Ok(public_addr) => eprintln!("[daemon] public addr (STUN): {public_addr}"),
+        Err(e) => eprintln!("[daemon] STUN discovery skipped: {e}"),
+    }
+
+    // Optional: mDNS peer discovery loop.
+    if enable_mdns {
+        eprintln!("[daemon] mDNS discovery enabled");
+        let mdns = MdnsService::new()
+            .map_err(|e| format!("MdnsService::new failed: {e}"))?;
+        let receiver = mdns.browse()
+            .map_err(|e| format!("MdnsService::browse failed: {e}"))?;
+        let orch_clone = orchestrator.clone();
+        tokio::spawn(async move {
+            loop {
+                match receiver.recv_async().await {
+                    Ok(event) => {
+                        if let Some((peer, _addr)) = parse_mdns_peer(event) {
+                            eprintln!("[daemon] mDNS discovered peer: {}", peer.peer_id);
+                            orch_clone
+                                .register_peer(
+                                    peer.peer_id.clone(),
+                                    peer.device.device_id.clone(),
+                                    "local-daemon".to_string(),
+                                )
+                                .await;
+                        }
+                    }
+                    Err(_) => break, // channel closed
+                }
+            }
+        });
+    }
+
+    // Spawn the orchestrator loop.
+    let orch_run = orchestrator.clone();
+    tokio::spawn(async move {
+        orch_run.run().await;
+    });
+    eprintln!("[daemon] SyncOrchestrator running (heartbeat + route sync loop)");
+
+    // Wait for SIGINT/SIGTERM.
+    tokio::signal::ctrl_c()
+        .await
+        .map_err(|e| format!("failed to listen for ctrl+c: {e}"))?;
+    eprintln!("[daemon] shutdown signal received — exiting");
+    Ok(())
 }
 
 // ── bridge-proxy CLI command ──────────────────────────────────────────────────
