@@ -147,6 +147,37 @@ async def _agent_heartbeat_scheduler() -> None:
         await asyncio.sleep(interval)
 
 
+async def _node_manager_heartbeat() -> None:
+    """Periodic stats report from the local node manager agent.
+
+    Env:
+        MUSU_NODE_HEARTBEAT_ENABLED  = "true"   — must be set to activate
+        MUSU_NODE_HEARTBEAT_INTERVAL = seconds   — default 300 (5 min)
+    """
+    interval = int(os.environ.get("MUSU_NODE_HEARTBEAT_INTERVAL", "300"))
+    _cfg = get_config()
+    mgr_name = f"mgr-{_cfg.node_name}"
+
+    logger.info(
+        "node_heartbeat: started (interval=%ds, agent=%s)", interval, mgr_name
+    )
+    # Stagger: wait 90s so node manager agent is fully seeded before first ping.
+    await asyncio.sleep(90)
+
+    while True:
+        try:
+            logger.info("node_heartbeat: invoking %s", mgr_name)
+            await route_chat(
+                channel=mgr_name,
+                sender_id="system",
+                text="heartbeat: 현재 기기 상태 보고해줘",
+            )
+            logger.info("node_heartbeat: %s done", mgr_name)
+        except Exception as exc:
+            logger.warning("node_heartbeat: error — %s", exc)
+        await asyncio.sleep(interval)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     import socket
@@ -241,6 +272,33 @@ async def lifespan(app: FastAPI):
         _CANONICAL_COMPANY_ID = ""
         logger.warning("startup: failed to resolve canonical company — %s", _e)
 
+    # Seed node manager agent for this machine.
+    # Each machine auto-creates mgr-{node_name} in DB + assigns it in nodes.toml.
+    try:
+        from handlers import get_agents, _get_backend as _gb2
+        _local_node = cfg.node_name
+        _mgr_name = f"mgr-{_local_node}"
+        _mgr_backend = _gb2()
+        _existing_mgr = _mgr_backend.get_agent_by_name(_mgr_name)
+        if _existing_mgr is None:
+            _mgr_backend.agents.create(
+                name=_mgr_name,
+                role="Node Manager",
+                adapter_type="claude_local",
+                adapter_config={
+                    "model": "claude-sonnet-4-6",
+                    "instructions_path": "musu-bridge/instructions/node_manager.md",
+                    "node_name": _local_node,
+                },
+            )
+            logger.info("startup: seeded node manager agent %r for node=%r", _mgr_name, _local_node)
+        else:
+            logger.info("startup: node manager %r already exists", _mgr_name)
+        # Register in nodes.toml so mesh routing knows this agent lives on this node.
+        router.auto_assign_agents(_local_node, [_mgr_name])
+    except Exception as _e:
+        logger.warning("startup: failed to seed node manager — %s", _e)
+
     # Re-dispatch any pending/running route executions from before last restart.
     # retry_count caps at 3 — executions that repeatedly crash are marked failed.
     try:
@@ -319,9 +377,17 @@ async def lifespan(app: FastAPI):
         heartbeat_task = asyncio.create_task(_agent_heartbeat_scheduler())
         logger.info("heartbeat_scheduler: task started")
 
+    # Node manager heartbeat (optional — only when MUSU_NODE_HEARTBEAT_ENABLED=true)
+    node_heartbeat_task = None
+    if os.environ.get("MUSU_NODE_HEARTBEAT_ENABLED", "").lower() == "true":
+        node_heartbeat_task = asyncio.create_task(_node_manager_heartbeat())
+        logger.info("node_heartbeat: task started")
+
     yield
 
     discovery.close()
+    if node_heartbeat_task:
+        node_heartbeat_task.cancel()
     if heartbeat_task:
         heartbeat_task.cancel()
     if relay_task:
