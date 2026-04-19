@@ -849,3 +849,13 @@ def get_mcp_tools_manifest() -> dict[str, Any]:
 
     total = sum(s["count"] for s in services.values())
     return {"services": services, "total_tools": total}
+
+
+# ── KV store wrappers ────────────────────────────────────────────────────────
+
+def get_kv_record(key: str) -> str | None:
+    return _get_backend().get_kv(key)
+
+
+def set_kv_record(key: str, value: str) -> None:
+    _get_backend().set_kv(key, value)

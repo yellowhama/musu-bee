@@ -84,6 +84,8 @@ from handlers import (
     update_goal_record,
     update_issue_record,
     update_project_record,
+    get_kv_record,
+    set_kv_record,
 )
 
 logger = logging.getLogger(__name__)
@@ -602,6 +604,26 @@ async def api_delete_company(company_id: str) -> dict:
     if not ok:
         raise HTTPException(status_code=404, detail="Company not found")
     return {"deleted": company_id}
+
+
+# ── Workspace ────────────────────────────────────────────────────────────────
+
+class WorkspaceUpdateRequest(BaseModel):
+    active_company_id: str = Field(..., min_length=1)
+
+
+@app.get("/api/workspace", summary="Get workspace state")
+def api_get_workspace() -> dict:
+    """Return current workspace state (active_company_id)."""
+    val = get_kv_record("active_company_id")
+    return {"active_company_id": val}
+
+
+@app.put("/api/workspace", summary="Update workspace state")
+def api_put_workspace(body: WorkspaceUpdateRequest) -> dict:
+    """Persist active company selection to musu-core kvstore."""
+    set_kv_record("active_company_id", body.active_company_id)
+    return {"active_company_id": get_kv_record("active_company_id")}
 
 
 @app.get("/api/companies/{company_id}/agents", summary="List agents for a company")
