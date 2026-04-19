@@ -523,10 +523,17 @@ class LocalBackend(BackendABC):
         company_id = company_id or str(uuid.uuid4())
         meta_json = json.dumps(meta or {})
         self._db.execute(
-            "INSERT INTO companies (id, name, template_key, workspace_id, meta) VALUES (?, ?, ?, ?, ?)",
+            """
+            INSERT INTO companies (id, name, template_key, workspace_id, meta)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(name) DO UPDATE SET
+                template_key = excluded.template_key,
+                workspace_id = excluded.workspace_id,
+                updated_at   = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+            """,
             (company_id, name, template_key, workspace_id, meta_json),
         )
-        row = self._db.execute("SELECT * FROM companies WHERE id = ?", (company_id,))
+        row = self._db.execute("SELECT * FROM companies WHERE name = ?", (name,))
         return dict(row[0])
 
     def list_companies(self, workspace_id: str | None = None) -> list[dict[str, Any]]:

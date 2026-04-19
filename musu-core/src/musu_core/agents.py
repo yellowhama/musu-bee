@@ -92,6 +92,13 @@ class AgentRegistry:
             """
             INSERT INTO agents (id, name, role, adapter_type, adapter_config, fallback_chain)
             VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(name) WHERE status = 'active'
+            DO UPDATE SET
+                role           = excluded.role,
+                adapter_type   = excluded.adapter_type,
+                adapter_config = excluded.adapter_config,
+                fallback_chain = excluded.fallback_chain,
+                updated_at     = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
             RETURNING *
             """,
             (aid, name, role, adapter_type, config_json, chain_json),

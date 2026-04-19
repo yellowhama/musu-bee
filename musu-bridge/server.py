@@ -188,23 +188,27 @@ async def lifespan(app: FastAPI):
     else:
         logger.info("registry: MUSU_TOKEN not set — cloud registry disabled")
 
-    # Seed canonical company on startup — ensures MCP config company ID always exists.
-    _CANONICAL_COMPANY_ID = os.environ.get(
-        "PAPERCLIP_COMPANY_ID", "f27a9bd2-688a-450b-98b4-f63d24b0ab50"
-    )
+    # Seed canonical company on startup.
+    # Priority: PAPERCLIP_COMPANY_ID env → first company in DB → create new.
+    # Never hardcodes a UUID — the DB is the source of truth.
     try:
-        from handlers import get_company, create_company
-        if not get_company(_CANONICAL_COMPANY_ID):
-            create_company(
-                name="musu_corp",
-                workspace_id="ws-musu",
-                company_id=_CANONICAL_COMPANY_ID,
-            )
-            logger.info("startup: seeded canonical company %s", _CANONICAL_COMPANY_ID)
+        from handlers import get_company, create_company, list_companies
+        _env_company_id = os.environ.get("PAPERCLIP_COMPANY_ID", "")
+        if _env_company_id and get_company(_env_company_id):
+            _CANONICAL_COMPANY_ID = _env_company_id
+            logger.info("startup: canonical company %s (from env)", _CANONICAL_COMPANY_ID)
         else:
-            logger.info("startup: canonical company %s already exists", _CANONICAL_COMPANY_ID)
+            _existing = list_companies()
+            if _existing:
+                _CANONICAL_COMPANY_ID = _existing[0]["id"]
+                logger.info("startup: canonical company %s already exists", _CANONICAL_COMPANY_ID)
+            else:
+                _new = create_company(name="musu_corp", workspace_id="ws-musu")
+                _CANONICAL_COMPANY_ID = _new["id"]
+                logger.info("startup: seeded canonical company %s", _CANONICAL_COMPANY_ID)
     except Exception as _e:
-        logger.warning("startup: failed to seed canonical company — %s", _e)
+        _CANONICAL_COMPANY_ID = ""
+        logger.warning("startup: failed to resolve canonical company — %s", _e)
 
     # Re-dispatch any pending/running route executions from before last restart.
     # retry_count caps at 3 — executions that repeatedly crash are marked failed.

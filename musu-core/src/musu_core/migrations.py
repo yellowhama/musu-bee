@@ -351,6 +351,28 @@ def _v10_down(conn: sqlite3.Connection) -> None:  # noqa: ARG001
 # ---------------------------------------------------------------------------
 
 #: Ordered list of (version_label, up_fn, down_fn)
+def _v11_up(conn: sqlite3.Connection) -> None:
+    """Add dedup guards: partial UNIQUE on active agents, UNIQUE on company name."""
+    # Partial unique index: only one active agent per name allowed.
+    # Paused/retired duplicates (from old seeds) are untouched.
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_agents_name_active"
+        " ON agents(name) WHERE status = 'active';"
+    )
+    # Companies must have unique names — no two musu_corp rows ever again.
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_companies_name"
+        " ON companies(name);"
+    )
+    conn.commit()
+
+
+def _v11_down(conn: sqlite3.Connection) -> None:  # noqa: ARG001
+    conn.execute("DROP INDEX IF EXISTS idx_agents_name_active;")
+    conn.execute("DROP INDEX IF EXISTS idx_companies_name;")
+    conn.commit()
+
+
 MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v1_fallback_chain", _v1_up, _v1_down),
     ("v2_messages_agent_id", _v2_up, _v2_down),
@@ -362,6 +384,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v8_goals_table", _v8_up, _v8_down),
     ("v9_route_executions_composite_idx", _v9_up, _v9_down),
     ("v10_kvstore", _v10_up, _v10_down),
+    ("v11_dedup_unique_indexes", _v11_up, _v11_down),
 ]
 
 
