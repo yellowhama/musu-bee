@@ -156,7 +156,10 @@ async def _node_manager_heartbeat() -> None:
     """
     interval = int(os.environ.get("MUSU_NODE_HEARTBEAT_INTERVAL", "300"))
     _cfg = get_config()
-    mgr_name = f"mgr-{_cfg.node_name}"
+    # Use mesh self_name so channel matches nodes.toml topology (not OS hostname)
+    from mesh_router import get_router as _get_router
+    _router = _get_router()
+    mgr_name = f"mgr-{_router._self_name or _cfg.node_name}"
 
     logger.info(
         "node_heartbeat: started (interval=%ds, agent=%s)", interval, mgr_name
@@ -274,9 +277,11 @@ async def lifespan(app: FastAPI):
 
     # Seed node manager agent for this machine.
     # Each machine auto-creates mgr-{node_name} in DB + assigns it in nodes.toml.
+    # Use mesh router's self_name (from nodes.toml [mesh] self) so the agent name
+    # matches the mesh topology — not the OS hostname which may differ (e.g. WSL2).
     try:
         from handlers import get_agents, _get_backend as _gb2
-        _local_node = cfg.node_name
+        _local_node = router._self_name or cfg.node_name
         _mgr_name = f"mgr-{_local_node}"
         _mgr_backend = _gb2()
         _existing_mgr = _mgr_backend.get_agent_by_name(_mgr_name)

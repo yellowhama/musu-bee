@@ -1,0 +1,15 @@
+[Unit]
+Description=MUSU Bee Web UI (Next.js :3001)
+After=network.target musu-bridge.service
+Wants=musu-bridge.service
+
+[Service]
+Type=simple
+WorkingDirectory=%h/musu-functions/musu-bee
+ExecStart=/bin/bash -c 'node_modules/.bin/next start -p 3001'
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=default.target

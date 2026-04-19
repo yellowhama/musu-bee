@@ -111,13 +111,36 @@ else
     info "Step 5: nodes.toml 이미 존재 — 스킵"
 fi
 
-# ── Step 6: systemd 서비스 등록 (--service) ──────────────────
-if [[ "${INSTALL_SERVICE}" == "1" ]]; then
-    info "Step 6: systemd 서비스 등록 중..."
-    bash "${SCRIPT_DIR}/install-musu-bridge-service.sh"
-    ok "systemd 서비스 등록됨"
+# ── Step 6: musu-bee 빌드 확인 ───────────────────────────────
+BEE_DIR="${ROOT}/musu-bee"
+if [[ -d "${BEE_DIR}" && ! -d "${BEE_DIR}/.next" ]]; then
+    info "Step 6: musu-bee 빌드 중 (처음 한 번)..."
+    if command -v node &>/dev/null; then
+        cd "${BEE_DIR}"
+        npm install --silent 2>/dev/null || true
+        npm run build --silent 2>/dev/null && ok "musu-bee 빌드 완료" || warn "musu-bee 빌드 실패 — UI 사용 불가"
+        cd "${ROOT}"
+    else
+        warn "node가 없어 musu-bee 빌드 스킵. UI 사용하려면 Node.js 설치 필요"
+    fi
 else
-    info "Step 6: systemd 등록 스킵 (--service 플래그 없음)"
+    info "Step 6: musu-bee 빌드 이미 존재 — 스킵"
+fi
+
+# ── Step 7: systemd 서비스 등록 (--service) ──────────────────
+if [[ "${INSTALL_SERVICE}" == "1" ]]; then
+    info "Step 7: systemd 서비스 등록 중..."
+    bash "${SCRIPT_DIR}/install-musu-bridge-service.sh"
+
+    # musu-bee 서비스 등록
+    SYSTEMD_USER_DIR="${HOME}/.config/systemd/user"
+    mkdir -p "${SYSTEMD_USER_DIR}"
+    ln -sf "${SCRIPT_DIR}/systemd/musu-bee.service" "${SYSTEMD_USER_DIR}/musu-bee.service"
+    systemctl --user daemon-reload
+    systemctl --user enable musu-bee 2>/dev/null || true
+    ok "systemd 서비스 등록됨 (bridge + bee)"
+else
+    info "Step 7: systemd 등록 스킵 (--service 플래그 없음)"
 fi
 
 # ── 완료 메시지 ───────────────────────────────────────────────
