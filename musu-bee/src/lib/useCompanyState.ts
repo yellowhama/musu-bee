@@ -227,6 +227,12 @@ export function useCompanyState(userIdentity: UserIdentity): UseCompanyStateRetu
         companyId:
           payload?.activation?.companyId ?? payload?.registry?.activeCompanyId ?? null,
       });
+      // Sync active company to musu-bridge workspace (fire-and-forget)
+      void fetch("/api/bridge/workspace", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ active_company_id: companyId }),
+      }).catch(() => {});
     },
     [companyScopeQuery, syncRouteScope, workspaceId],
   );
