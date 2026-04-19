@@ -1,7 +1,11 @@
 """Tests for GET/PUT /api/workspace endpoint."""
+import os
 import sys
 from pathlib import Path
 from unittest.mock import patch
+
+# Must be set before server import (token checked at module level)
+os.environ.setdefault("MUSU_BRIDGE_TOKEN", "test-token")
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 

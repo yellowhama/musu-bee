@@ -1,110 +1,88 @@
-# NEXT SESSION — 2026-04-19 (CSO 감사 + Gemini 보안 모듈 이후)
+# Next Session — 2026-04-19
 
-> **현재 스코어**: 99/100 (F2 Supabase PAT 폐기 완료 시 확정)
-> **최신 커밋**: 이번 세션 (redact_secrets 연결, SPEC-161/162)
-
----
-
-## 이번 세션 완료된 것
-
-| 작업 | 커밋/상태 |
-|------|----------|
-| CSO 전체 감사 (14-phase, /cso 스킬) | `7e604131` |
-| F1: next@15.5.15 CVE 패치 | `7e604131` |
-| F2: Supabase PAT 플레이스홀더 교체 | `7e604131` |
-| **redact_secrets → 로깅 연결** | 이번 세션 |
-| LLM wiki 70 (CSO 감사), 71/72 (Gemini 리포트 확인), 73 (보안 모듈) | ✅ |
-| SPEC-160 (CSO), SPEC-161 (Gemini 모듈), SPEC-162 (redact 연결) | ✅ |
-| 워크스페이스 인덱싱 (4,938 파일 변경) | ✅ |
+> Phase 19 완료 기준 (commits: 0129d284, 82e06d57, 60d5dbf7)
 
 ---
 
-## P0 — Supabase PAT 폐기 확인 (토큰 폐기 후)
+## Phase 19 완료 항목
 
-```bash
-curl -s -w "\nHTTP:%{http_code}" \
-  -H "Authorization: Bearer sbp_17e09dee519f531792828842177d4cd43ca92507" \
-  https://api.supabase.com/v1/profile
-# 기대: HTTP:401 (폐기 완료 확인)
-```
-
----
-
-## P1 — FastAPI on_event → lifespan 마이그레이션
-
-**파일**: `musu-bridge/server.py`, `musu-worker/src/musu_worker/main.py`
-**증상**: pytest DeprecationWarning 4개 (`@app.on_event("startup")` deprecated in FastAPI 0.93+)
-
-```python
-# Before
-@app.on_event("startup")
-async def startup():
-    ...
-
-# After
-from contextlib import asynccontextmanager
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    ...  # startup logic
-    yield
-    ...  # shutdown logic
-
-app = FastAPI(lifespan=lifespan)
-```
+| Track | 내용 | 커밋 | 상태 |
+|-------|------|------|------|
+| A | MCP 35도구 smoke test 35/35 pass | `0129d284` | ✅ |
+| B | MUSU_TOKEN 활성화 → cloud_registry_enabled: true | env 설정 | ✅ |
+| C-1 | musu-core v10 kvstore migration (get_kv/set_kv) | `82e06d57` | ✅ |
+| C-2 | musu-bridge GET/PUT /api/workspace | `60d5dbf7` | ✅ |
+| bonus | musu.pro GenerateTokenForm UX (로딩 + 팝업) | vibecode-town | ✅ |
 
 ---
 
-## P2 — WoL E2E 검증 (원격 머신)
+## 미완료 (다음 세션 P0)
 
-```bash
-# 1. 원격 머신 (100.121.211.106) iptables 확인
-ssh 100.121.211.106 "sudo iptables -L INPUT -n | grep 8070"
+### Track C-3: musu-bee company 선택 → workspace PUT 호출
+파일: `musu-bee/src/hooks/useCompanyState.ts`
 
-# 2. bridge 토큰 설정 확인
-curl -s http://100.121.211.106:8070/health
+현재 handleSelectActiveCompany는 Next.js API /api/company-activation에만 PATCH.
+musu-bridge에 전달 안 함.
 
-# 3. musu.pro에서 Wake 버튼 → {"ok":true} 기대
-```
+작업:
+1. handleSelectActiveCompany 내부에서 PUT http://localhost:8070/api/workspace 추가 호출
+2. 헤더: Authorization: Bearer ${BRIDGE_TOKEN}
+3. Body: {"active_company_id": companyId}
+4. 실패는 fire-and-forget (로컬 상태는 이미 업데이트됨)
 
----
-
-## P3 — musu-connects P2P (60% → 80%)
-
-Gemini RC 리포트 기준 60%. 다음 세션에서 진행:
-- `musu-connects` 자동화 레이어 완성
-- Tailscale P2P 전송 레이어 안정화
+테스트: company 선택 후 GET /api/workspace 응답이 해당 company_id 반환하는지 확인
 
 ---
 
-## P4 — install.sh 범용 환경 (65% → 90%)
+### Track D-1: musu.pro Hero 카피 재작성
+파일: /mnt/f/Aisaak/Projects/vibecode-town/src/app/page.tsx
 
-Gemini RC 리포트 기준 65%. Mac + Docker 지원:
-```bash
-# 현재: Ubuntu/WSL2만 검증됨
-# 목표: macOS + Docker 환경 대응
-```
+필수 선행: branding 파일 읽기 순서
+1. /mnt/f/Aisaak/Projects/vibecode-blog/branding/voice.md
+2. /mnt/f/Aisaak/Projects/vibecode-blog/branding/narrative.md
+3. /mnt/f/Aisaak/Projects/vibecode-blog/branding/examples.md
+4. /mnt/f/Aisaak/Projects/vibecode-blog/branding/platforms.md
 
----
-
-## 코드 오딧 잔여 항목 (INFO)
-
-| 항목 | 비고 |
-|------|------|
-| `SlidingWindowLimiter` 멀티워커 미공유 | 현재 단일 프로세스 → 문제 없음 |
-| `AuthMiddleware` localhost bypass | 의도적 사이드카 모드 |
-| 브릿지 API 감사 로그 없음 | STRIDE Repudiation — 후순위 |
-| `redact_secrets` sbp_* 패턴 미등록 | Bearer 패턴으로 커버됨 → 낮은 우선순위 |
+방향: "컴퓨터 N대, 화면 1개" — 드랍쉬핑/채굴/봇 다중 기기 운영자 타겟
+- HMAC/QUIC/STRIDE 같은 기술 용어 Hero에서 제거
+- 유저 승인 후 푸시
 
 ---
 
-## 파일 위치 SSOT
+### Track D-2: E2E 플로우 확인
+"노트북 → 데스크탑 2대 보임 → 자동화 관리 가능한가?"
 
-| 항목 | 경로 |
-|------|------|
-| redaction.py | `musu-core/src/musu_core/redaction.py` |
-| rate_limit.py | `musu-core/src/musu_core/rate_limit.py` |
-| middleware.py | `musu-core/src/musu_core/middleware.py` |
-| auth.py (worker) | `musu-worker/src/musu_worker/auth.py` |
-| CSO 감사 보고서 | `plans/CSO_AUDIT_2026-04-18.md` |
-| LLM Wiki | `/home/hugh51/llm-wiki/wiki/` (70~73) |
-| Specs | `~/.claude/projects/-home-hugh51/memory/musu-specs.md` (SPEC-160~162) |
+Local path: musu-connectsd daemon 실행 → musu-bee NodePanel 노드 표시 확인
+Cloud path: 두 노드가 GET /api/admin/peer-status에서 서로 보이는지
+
+블로커:
+- hugh-main-1 (100.121.211.106)에도 MUSU_TOKEN 설정 필요
+- musu-bee NodePanel UI 구현 상태 확인 필요
+
+---
+
+## 운영 주의사항
+
+musu-bridge 시작 방법 (env 자동 로드 없음):
+  cd /home/hugh51/musu-functions/musu-bridge
+  export $(grep -v '^#' .env | xargs)
+  .venv/bin/python -m uvicorn server:app --host 0.0.0.0 --port 8070
+
+MUSU_BRIDGE_PUBLIC_URL 설정 권장 (현재 auto-detect):
+  MUSU_BRIDGE_PUBLIC_URL=http://100.126.67.88:8070
+  MUSU_NODE_NAME=second-pc
+
+---
+
+## 코드 감사 결과 (2026-04-19)
+
+P1 | test_workspace.py MUSU_BRIDGE_TOKEN 미설정 → 401  | ✅ 픽스됨
+P2 | musu-bridge .env 자동 로드 없음                   | 문서화
+P2 | MUSU_BRIDGE_PUBLIC_URL 미설정 → auto-detect IP    | 설정 권장
+P3 | v10_down이 no-op                                   | 허용 (dev)
+
+상태:
+- musu-core: 234 tests pass ✅
+- musu-bridge workspace: 3/3 pass ✅
+- MCP smoke: 35/35 ✅
+- cloud registry: enabled ✅
