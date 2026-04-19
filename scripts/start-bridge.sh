@@ -6,28 +6,26 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(dirname "$SCRIPT_DIR")"
 
-# ── Prerequisites 가드 ────────────────────────────────────────
-# 설치가 안 된 상태에서 조용히 죽는 대신 명확한 에러 출력
+# ── Prerequisites guard ───────────────────────────────────────
 if [[ ! -d "${HOME}/.musu" ]]; then
-    echo "[ERROR] ~/.musu 디렉토리가 없습니다." >&2
-    echo "  먼저 설치를 실행하세요: bash ${SCRIPT_DIR}/install.sh" >&2
+    echo "[ERROR] ~/.musu directory not found." >&2
+    echo "  Run setup first: bash ${SCRIPT_DIR}/install.sh" >&2
     exit 1
 fi
 if [[ ! -x "${ROOT}/musu-bridge/.venv/bin/python3" ]]; then
-    echo "[WARN] musu-bridge/.venv 가 없습니다 — system python3 사용 (패키지 없으면 실패)" >&2
-    echo "  설치 권장: bash ${SCRIPT_DIR}/install.sh" >&2
+    echo "[WARN] musu-bridge/.venv not found — falling back to system python3 (may fail)" >&2
+    echo "  Run: bash ${SCRIPT_DIR}/install.sh" >&2
 fi
 
-# ── .env 로딩 (환경변수가 없을 때만 덮어쓰지 않음) ──────────────
+# ── .env loading (existing env vars take priority, .env is defaults) ─────────
 _DOTENV="${ROOT}/musu-bridge/.env"
 if [[ -f "$_DOTENV" ]]; then
-    # set -a: 이후 정의된 변수를 자동 export
-    # 이미 설정된 환경변수는 유지 (env 우선, .env는 기본값)
+    # Load each line; skip blank lines and comments
+    # Existing env vars are NOT overwritten (env > .env)
     while IFS= read -r _line || [[ -n "$_line" ]]; do
-        # 빈 줄, 주석 무시
         [[ -z "$_line" || "$_line" == \#* ]] && continue
         _key="${_line%%=*}"
-        # 이미 설정된 변수는 덮어쓰지 않음
+        # Only export if not already set
         if [[ -z "${!_key+x}" ]]; then
             export "$_line" 2>/dev/null || true
         fi
@@ -35,7 +33,7 @@ if [[ -f "$_DOTENV" ]]; then
     echo "[start-bridge] .env loaded from ${_DOTENV}" >&2
 fi
 
-# ── 토큰 해결 (우선순위: 환경변수 > 파일 > dev 자동생성) ────────
+# ── Bridge token resolution (priority: env > file > dev auto-generate) ────────
 TOKEN_FILE="${MUSU_BRIDGE_TOKEN_FILE:-${HOME}/.musu/bridge_token}"
 
 if [[ -z "${MUSU_BRIDGE_TOKEN:-}" && -f "$TOKEN_FILE" ]]; then
@@ -47,7 +45,7 @@ if [[ -z "${MUSU_BRIDGE_TOKEN:-}" && "${MUSU_DEV:-}" == "1" ]]; then
     echo "[WARN] MUSU_BRIDGE_TOKEN auto-generated for dev mode. NOT for production." >&2
 fi
 
-# ── MUSU_TOKEN (musu.pro peer discovery) 해결 ────────────────
+# ── MUSU_TOKEN resolution (musu.pro peer discovery) ──────────────────────────
 MUSU_TOKEN_FILE="${HOME}/.musu/musu_token"
 MUSU_PRO_URL="${MUSU_PRO_URL:-https://musu.pro}"
 DEVICE_API="${MUSU_PRO_URL}/api/v1/auth/device"
@@ -58,9 +56,9 @@ if [[ -z "${MUSU_TOKEN:-}" && -f "$MUSU_TOKEN_FILE" ]]; then
     echo "[start-bridge] MUSU_TOKEN loaded — peer discovery enabled" >&2
 fi
 
-# ── Device auth: 토큰 없으면 musu.pro에서 자동 발급 ──────────
+# ── Device auth: auto-register with musu.pro if no token ─────────────────────
 if [[ -z "${MUSU_TOKEN:-}" && "${MUSU_DEV:-}" != "1" ]] && command -v curl &>/dev/null && command -v jq &>/dev/null; then
-    echo "[start-bridge] MUSU_TOKEN 없음 — musu.pro 자동 인증 시작..." >&2
+    echo "[start-bridge] MUSU_TOKEN not set — starting musu.pro device auth..." >&2
 
     RESP=$(curl -sf --max-time 5 \
         -X POST "${DEVICE_API}" \
@@ -75,24 +73,24 @@ if [[ -z "${MUSU_TOKEN:-}" && "${MUSU_DEV:-}" != "1" ]] && command -v curl &>/de
         if [[ -n "$DEVICE_CODE" && -n "$VERIFY_URI" ]]; then
             echo "" >&2
             echo "  ┌─────────────────────────────────────────────────────┐" >&2
-            echo "  │  🐝  musu-bridge 승인 필요                            │" >&2
+            echo "  │  🐝  musu-bridge approval required                  │" >&2
             echo "  │                                                      │" >&2
-            echo "  │  브라우저에서 아래 URL을 열어 '이 머신 승인' 클릭:       │" >&2
+            echo "  │  Open this URL in your browser and click Approve:   │" >&2
             echo "  │                                                      │" >&2
             echo "  │  ${VERIFY_URI}" >&2
             echo "  │                                                      │" >&2
-            echo "  │  15분 내 승인하면 토큰이 자동 저장됩니다.              │" >&2
+            echo "  │  Token will be saved automatically within 15 min.   │" >&2
             echo "  └─────────────────────────────────────────────────────┘" >&2
             echo "" >&2
 
-            # 브라우저 자동 오픈 (가능한 경우)
+            # Auto-open browser if display is available
             if command -v xdg-open &>/dev/null && [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]]; then
                 xdg-open "$VERIFY_URI" 2>/dev/null &
             elif command -v open &>/dev/null; then  # macOS
                 open "$VERIFY_URI" 2>/dev/null &
             fi
 
-            # 폴링: 5초 간격, 최대 15분 (180회)
+            # Poll every 5s, up to 15 min (180 attempts)
             POLL_MAX=180
             POLL_COUNT=0
             while [[ $POLL_COUNT -lt $POLL_MAX ]]; do
@@ -111,44 +109,44 @@ if [[ -z "${MUSU_TOKEN:-}" && "${MUSU_DEV:-}" != "1" ]] && command -v curl &>/de
                         echo "$TOKEN" > "$MUSU_TOKEN_FILE"
                         chmod 600 "$MUSU_TOKEN_FILE"
                         export MUSU_TOKEN="$TOKEN"
-                        echo "[start-bridge] ✅ 토큰 저장 완료 → ${MUSU_TOKEN_FILE}" >&2
-                        echo "[start-bridge] peer discovery 활성화됨" >&2
+                        echo "[start-bridge] ✅ token saved → ${MUSU_TOKEN_FILE}" >&2
+                        echo "[start-bridge] peer discovery enabled" >&2
                         break
                     fi
                 elif [[ "$HTTP_STATUS" == "410" ]]; then
-                    echo "[start-bridge] WARN: device code 만료 — peer discovery 없이 시작" >&2
+                    echo "[start-bridge] WARN: device code expired — starting without peer discovery" >&2
                     break
                 fi
-                # 202 pending → 계속 폴링
+                # 202 pending → keep polling
             done
 
             if [[ -z "${MUSU_TOKEN:-}" ]]; then
-                echo "[start-bridge] WARN: 승인 대기 시간 초과 — peer discovery 없이 시작" >&2
-                echo "  다시 시작하면 새 코드가 발급됩니다." >&2
+                echo "[start-bridge] WARN: approval timeout — starting without peer discovery" >&2
+                echo "  Restart to get a new device code." >&2
             fi
         else
-            echo "[start-bridge] WARN: musu.pro 응답 오류 — peer discovery 없이 시작" >&2
+            echo "[start-bridge] WARN: musu.pro response error — starting without peer discovery" >&2
         fi
     else
-        echo "[start-bridge] WARN: musu.pro 연결 실패 — peer discovery 없이 시작" >&2
+        echo "[start-bridge] WARN: musu.pro connection failed — starting without peer discovery" >&2
     fi
 fi
 
-# ── machine_group: 같은 물리 머신의 노드를 하나의 그룹으로 묶기 ──
-# 우선순위: 환경변수 > WSL2 자동 감지 > 호스트명
+# ── machine_group: group nodes on the same physical machine ──────────────────
+# Priority: env var > WSL2 auto-detect > hostname
 if [[ -z "${MUSU_MACHINE_GROUP:-}" ]]; then
     if grep -qi "microsoft" /proc/version 2>/dev/null; then
-        # WSL2 환경: Windows 호스트명을 group ID로 사용 (WSL2 hostname = Windows hostname)
+        # WSL2: use Windows hostname as group ID (WSL2 hostname == Windows hostname)
         WIN_HOSTNAME="$(hostname 2>/dev/null | tr '[:upper:]' '[:lower:]')"
         export MUSU_MACHINE_GROUP="${WIN_HOSTNAME}"
-        echo "[start-bridge] WSL2 감지 → machine_group: ${WIN_HOSTNAME}" >&2
+        echo "[start-bridge] WSL2 detected — machine_group: ${WIN_HOSTNAME}" >&2
     else
-        # 일반 Linux/macOS: 자신의 호스트명을 group ID로 사용
+        # Linux/macOS: use own hostname as group ID
         export MUSU_MACHINE_GROUP="$(hostname 2>/dev/null | tr '[:upper:]' '[:lower:]')"
     fi
 fi
 
-# ── Wake-on-LAN: MAC 주소 자동 감지 ──────────────────────────
+# ── Wake-on-LAN: auto-detect MAC address ─────────────────────────────────────
 if [[ -z "${MUSU_MAC_ADDRESS:-}" ]]; then
     if command -v ip &>/dev/null; then
         _WOL_MAC="$(ip link show 2>/dev/null | grep -A1 'state UP' | grep 'link/ether' | awk '{print $2}' | head -1)"
@@ -163,16 +161,16 @@ if [[ -z "${MUSU_MAC_ADDRESS:-}" ]]; then
             fi
             echo "[start-bridge] WoL MAC: ${MUSU_MAC_ADDRESS} broadcast: ${MUSU_BROADCAST_IP}" >&2
         else
-            echo "[start-bridge] WARN: MAC 주소 감지 실패 — WoL 비활성화. 수동 설정: export MUSU_MAC_ADDRESS=xx:xx:xx:xx:xx:xx" >&2
+            echo "[start-bridge] WARN: MAC address detection failed — WoL disabled. Manual override: export MUSU_MAC_ADDRESS=xx:xx:xx:xx:xx:xx" >&2
         fi
     fi
 fi
 
-# ── 포트 충돌 감지 ────────────────────────────────────────────
+# ── Port conflict detection ───────────────────────────────────────────────────
 BRIDGE_PORT="${BRIDGE_PORT:-8070}"
 if command -v ss &>/dev/null; then
     if ss -ltn 2>/dev/null | grep -q ":${BRIDGE_PORT} "; then
-        # health check 먼저 — 이미 musu-bridge가 뜬 경우 재시작 불필요
+        # Health check first — skip restart if musu-bridge is already up
         if curl -sf --max-time 1 "http://127.0.0.1:${BRIDGE_PORT}/health" >/dev/null 2>&1; then
             echo "[musu-bridge] already running on :${BRIDGE_PORT}" >&2
             exit 0
@@ -183,8 +181,8 @@ if command -v ss &>/dev/null; then
     fi
 fi
 
-# ── musu-connectsd bridge-proxy (QUIC sidecar) ────────────────
-# bin/ 우선 (pre-built), 없으면 target/release/ 폴백
+# ── musu-connectsd bridge-proxy (QUIC sidecar) ────────────────────────────────
+# bin/ first (pre-built), fall back to target/release/
 if [[ -f "${ROOT}/bin/musu-connectsd" ]]; then
     CONNECTSD_BIN="${ROOT}/bin/musu-connectsd"
 else
@@ -225,14 +223,14 @@ if [[ -n "$QUIC_PID" ]]; then
     trap "kill $QUIC_PID 2>/dev/null || true" EXIT INT TERM
 fi
 
-# ── QUIC fingerprint export ────────────────────────────────────
-# Python 시작 전에 cert 파일에서 fingerprint 계산 → os.getenv() 에서 읽힘
+# ── QUIC fingerprint export ───────────────────────────────────────────────────
+# Compute fingerprint from cert before Python starts → read via os.getenv()
 QUIC_CERT="${HOME}/.musu/quic_cert.der"
 if [[ -f "$QUIC_CERT" ]] && command -v openssl &>/dev/null; then
     if command -v xxd &>/dev/null; then
         COMPUTED_FP="$(openssl dgst -sha256 -binary "$QUIC_CERT" | xxd -p | tr -d '\n' | sed 's/../&:/g;s/:$//')"
     else
-        # xxd 없으면 od 사용 (BusyBox 환경 대응)
+        # Fall back to od if xxd is missing (BusyBox environments)
         COMPUTED_FP="$(openssl dgst -sha256 -binary "$QUIC_CERT" | od -A n -t x1 | tr -d ' \n' | sed 's/../&:/g;s/:$//')"
     fi
     export MUSU_QUIC_FINGERPRINT="$COMPUTED_FP"
@@ -241,10 +239,10 @@ else
     echo "[start-bridge] WARN: quic_cert.der not found — fingerprint not set (start bridge once to generate cert)" >&2
 fi
 
-# ── PYTHONPATH 설정 + 실행 ────────────────────────────────────
+# ── Set PYTHONPATH and exec ───────────────────────────────────────────────────
 export PYTHONPATH="${ROOT}/musu-core/src:${ROOT}/musu-bridge:${PYTHONPATH:-}"
 
-# venv python 우선 사용 (musu-bridge/.venv/bin/python3)
+# Prefer venv python (musu-bridge/.venv/bin/python3)
 PYTHON="${ROOT}/musu-bridge/.venv/bin/python3"
 if [[ ! -x "$PYTHON" ]]; then
     PYTHON="python3"
