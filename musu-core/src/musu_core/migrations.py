@@ -328,6 +328,25 @@ def _v9_down(conn: sqlite3.Connection) -> None:  # noqa: ARG001
 
 
 # ---------------------------------------------------------------------------
+# v10: kvstore table for lightweight key-value persistence
+# ---------------------------------------------------------------------------
+
+
+def _v10_up(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS kvstore (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL DEFAULT '',
+            updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        )"""
+    )
+
+
+def _v10_down(conn: sqlite3.Connection) -> None:  # noqa: ARG001
+    pass  # non-destructive — keep the table on rollback
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
@@ -342,6 +361,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v7_route_executions_company_id", _v7_up, _v7_down),
     ("v8_goals_table", _v8_up, _v8_down),
     ("v9_route_executions_composite_idx", _v9_up, _v9_down),
+    ("v10_kvstore", _v10_up, _v10_down),
 ]
 
 

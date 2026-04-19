@@ -959,5 +959,25 @@ class LocalBackend(BackendABC):
         self._db.execute("DELETE FROM goals WHERE id = ?", (goal_id,))
         return self.get_goal(goal_id) is None
 
+    # ── KV store ────────────────────────────────────────────────────────
+
+    def get_kv(self, key: str) -> str | None:
+        """Return value for key, or None if not set."""
+        rows = self._db.execute("SELECT value FROM kvstore WHERE key = ?", (key,))
+        return rows[0]["value"] if rows else None
+
+    def set_kv(self, key: str, value: str) -> None:
+        """Upsert a key-value pair."""
+        with self._db.cursor() as cur:
+            cur.execute(
+                """INSERT INTO kvstore (key, value)
+                   VALUES (?, ?)
+                   ON CONFLICT(key) DO UPDATE SET
+                     value = excluded.value,
+                     updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+                """,
+                (key, value),
+            )
+
     def close(self) -> None:
         self._db.close()
