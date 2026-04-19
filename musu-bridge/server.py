@@ -116,6 +116,37 @@ if not _token:
 _MAX_CONCURRENT_TASKS = int(os.environ.get("MUSU_MAX_CONCURRENT_TASKS", "20"))
 
 
+async def _agent_heartbeat_scheduler() -> None:
+    """Periodic heartbeat for the CEO agent (or any configured agent).
+
+    Env:
+        MUSU_CEO_HEARTBEAT_ENABLED  = "true"   — must be set to activate
+        MUSU_CEO_HEARTBEAT_INTERVAL = seconds   — default 1800 (30 min)
+        MUSU_CEO_AGENT_NAME         = name      — default "ceo"
+    """
+    interval = int(os.environ.get("MUSU_CEO_HEARTBEAT_INTERVAL", "1800"))
+    agent_name = os.environ.get("MUSU_CEO_AGENT_NAME", "ceo")
+
+    logger.info(
+        "heartbeat_scheduler: started (interval=%ds, agent=%s)", interval, agent_name
+    )
+    # Wait 60s after server start before first heartbeat — let everything settle.
+    await asyncio.sleep(60)
+
+    while True:
+        try:
+            logger.info("heartbeat_scheduler: invoking %s", agent_name)
+            await route_chat(
+                channel=agent_name,
+                sender_id="system",
+                text="heartbeat",
+            )
+            logger.info("heartbeat_scheduler: %s done", agent_name)
+        except Exception as exc:
+            logger.warning("heartbeat_scheduler: error — %s", exc)
+        await asyncio.sleep(interval)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     import socket
@@ -282,9 +313,17 @@ async def lifespan(app: FastAPI):
             "relay_client: MUSU_RELAY_ENABLED=true but MUSU_RELAY_URL or MUSU_TOKEN not set — skipping"
         )
 
+    # CEO heartbeat scheduler (optional — only when MUSU_CEO_HEARTBEAT_ENABLED=true)
+    heartbeat_task = None
+    if os.environ.get("MUSU_CEO_HEARTBEAT_ENABLED", "").lower() == "true":
+        heartbeat_task = asyncio.create_task(_agent_heartbeat_scheduler())
+        logger.info("heartbeat_scheduler: task started")
+
     yield
 
     discovery.close()
+    if heartbeat_task:
+        heartbeat_task.cancel()
     if relay_task:
         relay_task.cancel()
     if mdns_task:

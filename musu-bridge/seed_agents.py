@@ -34,8 +34,8 @@ AGENTS = [
         "role": "Chief Executive Officer",
         "adapter_type": "claude_local",
         "adapter_config": {
-            "model": "claude-sonnet-4-5",
-            "instructions_path": "",
+            "model": "claude-sonnet-4-6",
+            "instructions_path": "musu-bridge/instructions/ceo.md",
         },
     },
     {
@@ -43,8 +43,8 @@ AGENTS = [
         "role": "Chief Technology Officer",
         "adapter_type": "claude_local",
         "adapter_config": {
-            "model": "claude-sonnet-4-5",
-            "instructions_path": "",
+            "model": "claude-sonnet-4-6",
+            "instructions_path": "musu-bridge/instructions/cto.md",
         },
     },
     {
@@ -52,8 +52,8 @@ AGENTS = [
         "role": "Software Engineer",
         "adapter_type": "claude_local",
         "adapter_config": {
-            "model": "claude-sonnet-4-5",
-            "instructions_path": "",
+            "model": "claude-sonnet-4-6",
+            "instructions_path": "musu-bridge/instructions/engineer.md",
         },
     },
     {
@@ -61,8 +61,8 @@ AGENTS = [
         "role": "Chief of Staff",
         "adapter_type": "claude_local",
         "adapter_config": {
-            "model": "claude-sonnet-4-5",
-            "instructions_path": "",
+            "model": "claude-sonnet-4-6",
+            "instructions_path": "musu-bridge/instructions/cos.md",
         },
     },
     {
@@ -70,8 +70,8 @@ AGENTS = [
         "role": "QA Engineer",
         "adapter_type": "claude_local",
         "adapter_config": {
-            "model": "claude-sonnet-4-5",
-            "instructions_path": "",
+            "model": "claude-sonnet-4-6",
+            "instructions_path": "musu-bridge/instructions/qa.md",
         },
     },
     {
@@ -79,8 +79,8 @@ AGENTS = [
         "role": "Worker",
         "adapter_type": "claude_local",
         "adapter_config": {
-            "model": "claude-sonnet-4-5",
-            "instructions_path": "",
+            "model": "claude-sonnet-4-6",
+            "instructions_path": "musu-bridge/instructions/worker.md",
         },
     },
 ]
