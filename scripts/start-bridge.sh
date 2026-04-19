@@ -6,6 +6,18 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(dirname "$SCRIPT_DIR")"
 
+# ── Prerequisites 가드 ────────────────────────────────────────
+# 설치가 안 된 상태에서 조용히 죽는 대신 명확한 에러 출력
+if [[ ! -d "${HOME}/.musu" ]]; then
+    echo "[ERROR] ~/.musu 디렉토리가 없습니다." >&2
+    echo "  먼저 설치를 실행하세요: bash ${SCRIPT_DIR}/install.sh" >&2
+    exit 1
+fi
+if [[ ! -x "${ROOT}/musu-bridge/.venv/bin/python3" ]]; then
+    echo "[WARN] musu-bridge/.venv 가 없습니다 — system python3 사용 (패키지 없으면 실패)" >&2
+    echo "  설치 권장: bash ${SCRIPT_DIR}/install.sh" >&2
+fi
+
 # ── .env 로딩 (환경변수가 없을 때만 덮어쓰지 않음) ──────────────
 _DOTENV="${ROOT}/musu-bridge/.env"
 if [[ -f "$_DOTENV" ]]; then
