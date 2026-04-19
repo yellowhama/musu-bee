@@ -260,9 +260,29 @@ async def lifespan(app: FastAPI):
             "Connect Tailscale or set MUSU_TAILSCALE_IP env."
         )
 
+    # Cloud relay tunnel (optional — only when MUSU_RELAY_ENABLED=true)
+    relay_task = None
+    if cfg.relay_enabled and cfg.relay_url and musu_token:
+        from relay_client import relay_loop
+        relay_task = asyncio.create_task(
+            relay_loop(
+                relay_url=cfg.relay_url,
+                musu_token=musu_token,
+                node_name=cfg.node_name,
+                bridge_url=f"http://127.0.0.1:{cfg.bridge_port}",
+            )
+        )
+        logger.info("relay_client: tunnel task started → %s", cfg.relay_url)
+    elif cfg.relay_enabled:
+        logger.warning(
+            "relay_client: MUSU_RELAY_ENABLED=true but MUSU_RELAY_URL or MUSU_TOKEN not set — skipping"
+        )
+
     yield
 
     discovery.close()
+    if relay_task:
+        relay_task.cancel()
     if mdns_task:
         mdns_task.cancel()
     if registry_task:

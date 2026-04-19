@@ -20,6 +20,14 @@ class BridgeConfig:
         default_factory=lambda: os.getenv("MUSU_NODE_NAME", "") or __import__("socket").gethostname()
     )
 
+    # Cloud relay tunnel (musu-relay)
+    # Set MUSU_RELAY_ENABLED=true and MUSU_RELAY_URL=wss://your-relay-host to
+    # allow musu.pro to proxy requests to this node from any device.
+    relay_enabled: bool = field(
+        default_factory=lambda: os.getenv("MUSU_RELAY_ENABLED", "false").lower() == "true"
+    )
+    relay_url: str = field(default_factory=lambda: os.getenv("MUSU_RELAY_URL", ""))
+
     # Channel name → agent name mapping
     # Channel "engineer" maps to agent named "engineer" in musu-core
     channel_agent_map: dict[str, str] = field(default_factory=lambda: {
