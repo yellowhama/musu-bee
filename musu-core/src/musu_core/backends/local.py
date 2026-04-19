@@ -626,12 +626,39 @@ class LocalBackend(BackendABC):
                 )
                 written += 1
             except sqlite3.IntegrityError:
-                # Name UNIQUE constraint: same-named company already exists locally
-                # under a different id — skip the remote record, keep local.
-                logger.debug(
-                    "bulk_upsert_companies: skipping id=%s name=%r (name already exists locally)",
-                    cid, c.get("name", ""),
+                # Name UNIQUE constraint: a company with this name already exists locally
+                # under a different id. Update its metadata if the remote is newer,
+                # but keep the local id (other records may reference it by id).
+                local_row = self._db.execute(
+                    "SELECT id, updated_at FROM companies WHERE name = ?",
+                    (c.get("name", ""),),
                 )
+                local_by_name = local_row[0] if local_row else None
+                if local_by_name and remote_ts > (local_by_name["updated_at"] or ""):
+                    self._db.execute(
+                        """
+                        UPDATE companies
+                        SET template_key = ?, workspace_id = ?, meta = ?, updated_at = ?
+                        WHERE name = ?
+                        """,
+                        (
+                            c.get("template_key", "default"),
+                            c.get("workspace_id", ""),
+                            meta_json,
+                            remote_ts,
+                            c.get("name", ""),
+                        ),
+                    )
+                    written += 1
+                    logger.debug(
+                        "bulk_upsert_companies: updated by name for id=%s name=%r (remote newer)",
+                        cid, c.get("name", ""),
+                    )
+                else:
+                    logger.debug(
+                        "bulk_upsert_companies: skipping id=%s name=%r (local is same age or newer)",
+                        cid, c.get("name", ""),
+                    )
         return written
 
     def bulk_insert_messages(self, messages: list[dict[str, Any]]) -> int:

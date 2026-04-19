@@ -17,21 +17,25 @@ if [[ ! -x "${ROOT}/musu-bridge/.venv/bin/python3" ]]; then
     echo "  Run: bash ${SCRIPT_DIR}/install.sh" >&2
 fi
 
-# ── .env loading (existing env vars take priority, .env is defaults) ─────────
-_DOTENV="${ROOT}/musu-bridge/.env"
-if [[ -f "$_DOTENV" ]]; then
-    # Load each line; skip blank lines and comments
-    # Existing env vars are NOT overwritten (env > .env)
+# ── .env loading: priority order = shell env > ~/.musu/bridge.env > musu-bridge/.env ─────
+_load_dotenv() {
+    local _file="$1"
+    [[ -f "$_file" ]] || return 0
     while IFS= read -r _line || [[ -n "$_line" ]]; do
         [[ -z "$_line" || "$_line" == \#* ]] && continue
         _key="${_line%%=*}"
-        # Only export if not already set
+        # Only export if not already set (earlier sources win)
         if [[ -z "${!_key+x}" ]]; then
             export "$_line" 2>/dev/null || true
         fi
-    done < "$_DOTENV"
-    echo "[start-bridge] .env loaded from ${_DOTENV}" >&2
-fi
+    done < "$_file"
+    echo "[start-bridge] .env loaded from ${_file}" >&2
+}
+
+# 1. User config (highest file priority — overrides project defaults)
+_load_dotenv "${HOME}/.musu/bridge.env"
+# 2. Project defaults (fallback values only)
+_load_dotenv "${ROOT}/musu-bridge/.env"
 
 # ── Bridge token resolution (priority: env > file > dev auto-generate) ────────
 TOKEN_FILE="${MUSU_BRIDGE_TOKEN_FILE:-${HOME}/.musu/bridge_token}"
