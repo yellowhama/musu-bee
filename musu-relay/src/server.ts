@@ -4,7 +4,7 @@ import express from "express";
 import { randomUUID } from "crypto";
 
 const RELAY_SECRET = process.env.MUSU_RELAY_SECRET || "";
-const PORT = parseInt(process.env.MUSU_RELAY_PORT || "9900", 10);
+const PORT = parseInt(process.env.PORT || process.env.MUSU_RELAY_PORT || "9900", 10);
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
