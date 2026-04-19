@@ -6,6 +6,23 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(dirname "$SCRIPT_DIR")"
 
+# ── .env 로딩 (환경변수가 없을 때만 덮어쓰지 않음) ──────────────
+_DOTENV="${ROOT}/musu-bridge/.env"
+if [[ -f "$_DOTENV" ]]; then
+    # set -a: 이후 정의된 변수를 자동 export
+    # 이미 설정된 환경변수는 유지 (env 우선, .env는 기본값)
+    while IFS= read -r _line || [[ -n "$_line" ]]; do
+        # 빈 줄, 주석 무시
+        [[ -z "$_line" || "$_line" == \#* ]] && continue
+        _key="${_line%%=*}"
+        # 이미 설정된 변수는 덮어쓰지 않음
+        if [[ -z "${!_key+x}" ]]; then
+            export "$_line" 2>/dev/null || true
+        fi
+    done < "$_DOTENV"
+    echo "[start-bridge] .env loaded from ${_DOTENV}" >&2
+fi
+
 # ── 토큰 해결 (우선순위: 환경변수 > 파일 > dev 자동생성) ────────
 TOKEN_FILE="${MUSU_BRIDGE_TOKEN_FILE:-${HOME}/.musu/bridge_token}"
 
