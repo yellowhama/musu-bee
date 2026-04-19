@@ -133,17 +133,19 @@ class SyncEngine:
             if not _is_safe_peer_url(node_url):
                 logger.warning("sync_engine: skipping unsafe peer url: %s", node_url)
                 continue
+            # Use per-peer token from nodes.toml if set, else fall back to local bridge token
+            peer_token = self._router.token_for_node(node_name) or _get_bridge_token()
             try:
-                await self._pull_from(node_url)
+                await self._pull_from(node_url, token=peer_token)
                 self._failures[node_url] = 0  # reset on success
             except Exception as exc:
                 logger.warning("sync_engine: pull from %s failed — %s", node_url, exc)
                 self._failures[node_url] = failures + 1
 
-    async def _pull_from(self, peer_url: str) -> None:
+    async def _pull_from(self, peer_url: str, token: str = "") -> None:
         """Pull companies and messages from a single peer musu-bridge URL."""
         base = peer_url.rstrip("/")
-        _tok = _get_bridge_token()
+        _tok = token or _get_bridge_token()
         headers = {"Authorization": f"Bearer {_tok}"} if _tok else {}
         async with httpx.AsyncClient(timeout=10.0, headers=headers) as client:
             # --- Companies ---

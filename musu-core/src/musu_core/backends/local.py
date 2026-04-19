@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import json
+import logging
+import sqlite3
 import uuid
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from musu_core.adapters.base import AdapterResult
 from musu_core.agents import Agent, AgentRegistry
@@ -598,28 +602,36 @@ class LocalBackend(BackendABC):
                 continue
             meta = c.get("meta", {})
             meta_json = json.dumps(meta) if isinstance(meta, dict) else (meta or "{}")
-            self._db.execute(
-                """
-                INSERT INTO companies (id, name, template_key, workspace_id, meta, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(id) DO UPDATE SET
-                    name         = excluded.name,
-                    template_key = excluded.template_key,
-                    workspace_id = excluded.workspace_id,
-                    meta         = excluded.meta,
-                    updated_at   = excluded.updated_at
-                """,
-                (
-                    cid,
-                    c.get("name", ""),
-                    c.get("template_key", "default"),
-                    c.get("workspace_id", ""),
-                    meta_json,
-                    c.get("created_at", ""),
-                    remote_ts,
-                ),
-            )
-            written += 1
+            try:
+                self._db.execute(
+                    """
+                    INSERT INTO companies (id, name, template_key, workspace_id, meta, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                        name         = excluded.name,
+                        template_key = excluded.template_key,
+                        workspace_id = excluded.workspace_id,
+                        meta         = excluded.meta,
+                        updated_at   = excluded.updated_at
+                    """,
+                    (
+                        cid,
+                        c.get("name", ""),
+                        c.get("template_key", "default"),
+                        c.get("workspace_id", ""),
+                        meta_json,
+                        c.get("created_at", ""),
+                        remote_ts,
+                    ),
+                )
+                written += 1
+            except sqlite3.IntegrityError:
+                # Name UNIQUE constraint: same-named company already exists locally
+                # under a different id — skip the remote record, keep local.
+                logger.debug(
+                    "bulk_upsert_companies: skipping id=%s name=%r (name already exists locally)",
+                    cid, c.get("name", ""),
+                )
         return written
 
     def bulk_insert_messages(self, messages: list[dict[str, Any]]) -> int:

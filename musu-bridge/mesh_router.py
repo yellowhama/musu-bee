@@ -34,6 +34,7 @@ class MeshRouter:
         self._node_urls: dict[str, str] = {}       # node_name → musu-bridge URL
         self._node_agents: dict[str, list[str]] = {}  # node_name → agent list
         self._agent_nodes: dict[str, str] = {}     # agent_name (lowercase) → node_name
+        self._node_tokens: dict[str, str] = {}     # node_name → peer bridge token (optional)
         self._health_cache: dict[str, tuple[bool, float]] = {}  # node → (alive, checked_at)
         self._loaded = False
         self._load()
@@ -58,6 +59,9 @@ class MeshRouter:
                     agents = node.get("agents", [])
                     if isinstance(agents, list):
                         self._node_agents[name] = [str(a) for a in agents]
+                    token = node.get("token", "")
+                    if token:
+                        self._node_tokens[name] = token
 
             for assign in mesh.get("agent_assignments", []):
                 agent = assign.get("agent", "").lower()
@@ -93,6 +97,10 @@ class MeshRouter:
     def url_for_node(self, node_name: str) -> str | None:
         """Return the musu-bridge URL for a node name."""
         return self._node_urls.get(node_name)
+
+    def token_for_node(self, node_name: str) -> str:
+        """Return the peer bridge token for a node, or '' if not configured."""
+        return self._node_tokens.get(node_name, "")
 
     def has_node(self, name: str) -> bool:
         """Return True if a node with this name is already registered."""
