@@ -21,6 +21,16 @@ def _get_bridge_token() -> str:
     return os.getenv("MUSU_BRIDGE_TOKEN", "")
 
 
+def _get_sync_token() -> str:
+    """Token to use for outbound peer sync requests.
+
+    Prefer MUSU_TOKEN (account-level, same on all nodes of the same account)
+    so peer nodes accept it via their peer_token middleware slot.
+    Falls back to MUSU_BRIDGE_TOKEN for dev/offline setups.
+    """
+    return os.getenv("MUSU_TOKEN", "") or os.getenv("MUSU_BRIDGE_TOKEN", "")
+
+
 logger = logging.getLogger(__name__)
 
 _SYNC_STATE_PATH = Path.home() / ".musu" / "sync_state.json"
@@ -133,8 +143,8 @@ class SyncEngine:
             if not _is_safe_peer_url(node_url):
                 logger.warning("sync_engine: skipping unsafe peer url: %s", node_url)
                 continue
-            # Use per-peer token from nodes.toml if set, else fall back to local bridge token
-            peer_token = self._router.token_for_node(node_name) or _get_bridge_token()
+            # Per-peer token from nodes.toml takes priority, then account token, then local token
+            peer_token = self._router.token_for_node(node_name) or _get_sync_token()
             try:
                 await self._pull_from(node_url, token=peer_token)
                 self._failures[node_url] = 0  # reset on success

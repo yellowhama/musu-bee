@@ -113,11 +113,16 @@ def get_token_client_id(request: Request) -> str | None:
     return None
 
 
-def require_bearer_token(token: str) -> type:
+def require_bearer_token(token: str, peer_token: str = "") -> type:
     """Return a Starlette middleware class that validates a static Bearer token.
 
-    Requests to /health bypass auth.  All other requests must supply the
-    correct ``Authorization: Bearer <token>`` header or receive 401.
+    Accepts either `token` (local MUSU_BRIDGE_TOKEN) or `peer_token`
+    (account-level MUSU_TOKEN, shared across all nodes in the same account).
+    This allows peer nodes to authenticate for sync without needing the same
+    per-machine bridge token.
+
+    Requests to /health bypass auth.  All other requests must supply a valid
+    ``Authorization: Bearer <token>`` header or receive 401.
     """
 
     class AuthMiddleware(BaseHTTPMiddleware):
@@ -128,9 +133,14 @@ def require_bearer_token(token: str) -> type:
             if request.client and request.client.host in ("127.0.0.1", "::1"):
                 return await call_next(request)
             auth = request.headers.get("Authorization", "")
-            if not auth.startswith("Bearer ") or not hmac.compare_digest(auth[len("Bearer "):], token):
+            if not auth.startswith("Bearer "):
                 raise Unauthorized()
-            return await call_next(request)
+            supplied = auth[len("Bearer "):]
+            if hmac.compare_digest(supplied, token):
+                return await call_next(request)
+            if peer_token and hmac.compare_digest(supplied, peer_token):
+                return await call_next(request)
+            raise Unauthorized()
 
     return AuthMiddleware
 
@@ -138,6 +148,7 @@ def require_bearer_token(token: str) -> type:
 def apply_musu_middlewares(
     app: FastAPI,
     bearer_token: str | None = None,
+    peer_token: str | None = None,
     rate_limit_capacity: int | None = None,
     rate_limit_window_seconds: int | None = None,
     rate_limit_key_type: Literal["ip", "token"] | None = None,
@@ -155,7 +166,7 @@ def apply_musu_middlewares(
         3. RequestLoggerMiddleware (last added = outermost — sees every request)
     """
     if bearer_token:
-        app.add_middleware(require_bearer_token(bearer_token))
+        app.add_middleware(require_bearer_token(bearer_token, peer_token=peer_token or ""))
 
     if rate_limit_capacity is not None and rate_limit_window_seconds is not None and rate_limit_key_type is not None:
         limiter = SlidingWindowLimiter(capacity=rate_limit_capacity, window_seconds=rate_limit_window_seconds)

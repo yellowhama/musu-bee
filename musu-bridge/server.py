@@ -412,6 +412,7 @@ app = FastAPI(title="musu-bridge", version="0.2.0", lifespan=lifespan)
 apply_musu_middlewares(
     app,
     bearer_token=os.getenv("MUSU_BRIDGE_TOKEN"),
+    peer_token=os.getenv("MUSU_TOKEN", ""),   # account-level token; lets peer nodes sync
     rate_limit_capacity=60,
     rate_limit_window_seconds=60, # 1 minute
     rate_limit_key_type="ip",
