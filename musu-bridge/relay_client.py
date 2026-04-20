@@ -227,6 +227,14 @@ async def _handle_request(
     forwarded = {k: v for k, v in headers.items() if k.lower() not in _STRIP}
     body_bytes = base64.b64decode(body_b64) if body_b64 else None
 
+    # Override Authorization with the local bridge token so the bridge auth
+    # middleware accepts relay-proxied requests regardless of what the upstream
+    # caller sent (relay clients send RELAY_SECRET, not MUSU_BRIDGE_TOKEN).
+    import os as _os
+    _bridge_token = _os.environ.get("MUSU_BRIDGE_TOKEN", "")
+    if _bridge_token:
+        forwarded["authorization"] = f"Bearer {_bridge_token}"
+
     try:
         resp = await http.request(
             method,
