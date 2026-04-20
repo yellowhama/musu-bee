@@ -28,13 +28,26 @@ interface PendingRequest {
   reject: (e: Error) => void;
 }
 
+// WS proxy session: browser ↔ relay ↔ node tunnel
+interface WsSession {
+  sessionId: string;
+  clientWs: WebSocket;
+}
+
 // ── State ──────────────────────────────────────────────────────────────────
 
-// nodeId → active tunnel WebSocket
-const tunnels = new Map<string, WebSocket>();
+// nodeId → { ws: active tunnel WebSocket, token: MUSU_TOKEN used to register }
+interface TunnelEntry {
+  ws: WebSocket;
+  token: string;
+}
+const tunnels = new Map<string, TunnelEntry>();
 
-// requestId → pending promise handlers
+// requestId → pending HTTP-over-tunnel promise handlers
 const pending = new Map<string, PendingRequest>();
+
+// sessionId → WsSession (browser-side WebSocket waiting for WS frames from node)
+const wsSessions = new Map<string, WsSession>();
 
 // ── Express app (proxy endpoint) ───────────────────────────────────────────
 
@@ -47,7 +60,6 @@ function requireSecret(
   next: express.NextFunction
 ): void {
   if (!RELAY_SECRET) {
-    // No secret configured — deny all proxy requests
     res.status(500).json({ error: "MUSU_RELAY_SECRET not configured" });
     return;
   }
@@ -64,17 +76,16 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok", tunnels: Array.from(tunnels.keys()) });
 });
 
-// Proxy: forward any HTTP method/path to a registered node tunnel
+// HTTP proxy: forward any HTTP method/path to a registered node tunnel
 // Pattern: /proxy/:nodeId/*
 app.all("/proxy/:nodeId/*", requireSecret, async (req, res) => {
   const { nodeId } = req.params;
-  // Express params[0] captures the wildcard after nodeId
   const rawPath = (req.params as Record<string, string>)["0"] ?? "";
   const qs = req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : "";
   const path = `/${rawPath}${qs}`;
 
-  const ws = tunnels.get(nodeId);
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
+  const entry = tunnels.get(nodeId);
+  if (!entry || entry.ws.readyState !== WebSocket.OPEN) {
     res.status(502).json({ error: `no active tunnel for node: ${nodeId}` });
     return;
   }
@@ -107,7 +118,7 @@ app.all("/proxy/:nodeId/*", requireSecret, async (req, res) => {
         },
       });
 
-      ws.send(JSON.stringify(reqFrame), (err) => {
+      entry.ws.send(JSON.stringify(reqFrame), (err) => {
         if (err) {
           pending.delete(id);
           clearTimeout(timer);
@@ -116,16 +127,9 @@ app.all("/proxy/:nodeId/*", requireSecret, async (req, res) => {
       });
     });
 
-    // Strip hop-by-hop headers before forwarding
     const HOP_BY_HOP = new Set([
-      "transfer-encoding",
-      "connection",
-      "keep-alive",
-      "upgrade",
-      "proxy-authenticate",
-      "proxy-authorization",
-      "te",
-      "trailers",
+      "transfer-encoding", "connection", "keep-alive", "upgrade",
+      "proxy-authenticate", "proxy-authorization", "te", "trailers",
     ]);
     res.status(result.status);
     for (const [k, v] of Object.entries(result.headers ?? {})) {
@@ -139,12 +143,31 @@ app.all("/proxy/:nodeId/*", requireSecret, async (req, res) => {
   }
 });
 
-// ── WebSocket server (tunnel endpoint) ────────────────────────────────────
+// ── WebSocket server (tunnel + ws-proxy endpoints) ────────────────────────
 
 const server = http.createServer(app);
-const wss = new WebSocketServer({ server, path: "/tunnel" });
+const wss = new WebSocketServer({ server, noServer: true });
 
-wss.on("connection", (ws: WebSocket, req: http.IncomingMessage) => {
+// Route upgrade requests to the right handler
+server.on("upgrade", (req, socket, head) => {
+  const url = req.url ?? "";
+
+  if (url.startsWith("/tunnel")) {
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      wss.emit("tunnel-connection", ws, req);
+    });
+  } else if (url.startsWith("/ws-proxy/")) {
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      wss.emit("ws-proxy-connection", ws, req);
+    });
+  } else {
+    socket.destroy();
+  }
+});
+
+// ── Tunnel endpoint (/tunnel) — musu-bridge connects here ─────────────────
+
+wss.on("tunnel-connection", (ws: WebSocket, req: http.IncomingMessage) => {
   const token = (req.headers.authorization ?? "").replace(/^Bearer\s+/, "");
   if (!token) {
     ws.close(4001, "missing Authorization header");
@@ -170,18 +193,17 @@ wss.on("connection", (ws: WebSocket, req: http.IncomingMessage) => {
         return;
       }
       nodeId = id;
-      // Close any existing stale tunnel for same node
       const existing = tunnels.get(nodeId);
-      if (existing && existing !== ws && existing.readyState === WebSocket.OPEN) {
-        existing.close(4003, "replaced by new connection");
+      if (existing && existing.ws !== ws && existing.ws.readyState === WebSocket.OPEN) {
+        existing.ws.close(4003, "replaced by new connection");
       }
-      tunnels.set(nodeId, ws);
+      tunnels.set(nodeId, { ws, token });
       console.log(`[relay] tunnel connected: ${nodeId}`);
       ws.send(JSON.stringify({ type: "hello_ack", node_id: nodeId }));
       return;
     }
 
-    // Response frame from musu-bridge
+    // HTTP response frame from musu-bridge
     const id = msg["id"];
     if (typeof id === "string") {
       const p = pending.get(id);
@@ -190,12 +212,37 @@ wss.on("connection", (ws: WebSocket, req: http.IncomingMessage) => {
         p.resolve(msg as unknown as RelayResponse);
       }
     }
+
+    // WS proxy data frame from musu-bridge: { type: "ws_data", session_id, data_b64 }
+    if (msg["type"] === "ws_data") {
+      const sessionId = msg["session_id"];
+      const dataB64 = msg["data_b64"];
+      if (typeof sessionId === "string" && typeof dataB64 === "string") {
+        const session = wsSessions.get(sessionId);
+        if (session && session.clientWs.readyState === WebSocket.OPEN) {
+          session.clientWs.send(Buffer.from(dataB64, "base64"));
+        }
+      }
+    }
+
+    // WS proxy close from musu-bridge: { type: "ws_close", session_id, code?, reason? }
+    if (msg["type"] === "ws_close") {
+      const sessionId = msg["session_id"];
+      if (typeof sessionId === "string") {
+        const session = wsSessions.get(sessionId);
+        if (session) {
+          const code = typeof msg["code"] === "number" ? msg["code"] : 1000;
+          const reason = typeof msg["reason"] === "string" ? msg["reason"] : "";
+          session.clientWs.close(code, reason);
+          wsSessions.delete(sessionId);
+        }
+      }
+    }
   });
 
   ws.on("close", () => {
     if (nodeId) {
-      // Only remove if this is still the registered tunnel (not replaced)
-      if (tunnels.get(nodeId) === ws) tunnels.delete(nodeId);
+      if (tunnels.get(nodeId)?.ws === ws) tunnels.delete(nodeId);
       console.log(`[relay] tunnel disconnected: ${nodeId}`);
       nodeId = null;
     }
@@ -206,7 +253,88 @@ wss.on("connection", (ws: WebSocket, req: http.IncomingMessage) => {
   });
 });
 
+// ── WS proxy endpoint (/ws-proxy/:nodeId/:path) ───────────────────────────
+//
+// Auth: ?token=<MUSU_TOKEN> must match the token the node used to register its tunnel.
+// This lets browser clients proxy WebSocket connections to musu-port without
+// needing the server-only RELAY_SECRET.
+//
+// Frame protocol (relay ↔ node tunnel):
+//   ws_open:  { type: "ws_open",  session_id, target_path }
+//   ws_data:  { type: "ws_data",  session_id, data_b64 }    (binary base64)
+//   ws_close: { type: "ws_close", session_id, code?, reason? }
+
+wss.on("ws-proxy-connection", (clientWs: WebSocket, req: http.IncomingMessage) => {
+  const url = new URL(req.url ?? "", "ws://localhost");
+  // Path: /ws-proxy/:nodeId/:rest
+  const parts = url.pathname.split("/").filter(Boolean); // ["ws-proxy", nodeId, ...rest]
+  const nodeId = parts[1];
+  const targetPath = "/" + parts.slice(2).join("/") + (url.search ?? "");
+  const token = url.searchParams.get("token") ?? "";
+
+  if (!nodeId) {
+    clientWs.close(4000, "missing nodeId");
+    return;
+  }
+
+  const entry = tunnels.get(nodeId);
+  if (!entry || entry.ws.readyState !== WebSocket.OPEN) {
+    clientWs.close(4004, `no active tunnel for node: ${nodeId}`);
+    return;
+  }
+
+  // Verify the client presents the same MUSU_TOKEN the node registered with.
+  // This ties the connection to the correct account without requiring DB access.
+  if (!token || token !== entry.token) {
+    clientWs.close(4001, "invalid token");
+    return;
+  }
+
+  const sessionId = randomUUID();
+  const session: WsSession = { sessionId, clientWs };
+  wsSessions.set(sessionId, session);
+
+  console.log(`[relay] ws-proxy opened: node=${nodeId} session=${sessionId} path=${targetPath}`);
+
+  // Tell the node to open a local WS to the target path
+  entry.ws.send(JSON.stringify({
+    type: "ws_open",
+    session_id: sessionId,
+    target_path: targetPath,
+  }));
+
+  // Client → node: forward messages as ws_data frames
+  clientWs.on("message", (data: Buffer | string) => {
+    const buf = Buffer.isBuffer(data) ? data : Buffer.from(data);
+    if (entry.ws.readyState === WebSocket.OPEN) {
+      entry.ws.send(JSON.stringify({
+        type: "ws_data",
+        session_id: sessionId,
+        data_b64: buf.toString("base64"),
+      }));
+    }
+  });
+
+  // Client disconnect → tell node to close
+  clientWs.on("close", (code, reason) => {
+    wsSessions.delete(sessionId);
+    if (entry.ws.readyState === WebSocket.OPEN) {
+      entry.ws.send(JSON.stringify({
+        type: "ws_close",
+        session_id: sessionId,
+        code,
+        reason: reason?.toString() ?? "",
+      }));
+    }
+    console.log(`[relay] ws-proxy closed: session=${sessionId}`);
+  });
+
+  clientWs.on("error", (err) => {
+    console.error(`[relay] client ws error (session=${sessionId}):`, err.message);
+  });
+});
+
 server.listen(PORT, () => {
   console.log(`[musu-relay] listening on :${PORT}`);
-  if (!RELAY_SECRET) console.warn("[musu-relay] WARNING: MUSU_RELAY_SECRET not set — proxy endpoint disabled");
+  if (!RELAY_SECRET) console.warn("[musu-relay] WARNING: MUSU_RELAY_SECRET not set — HTTP proxy endpoint disabled");
 });
