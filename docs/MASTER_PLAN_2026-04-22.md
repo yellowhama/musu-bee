@@ -196,9 +196,9 @@ interface Company {
 | Phase | 상태 | 완료일 |
 |-------|------|--------|
 | Phase 41 (VNC) | ✅ 완료 | 2026-04-22 |
-| Phase 42 (VNC 안정화) | 🔄 진행 중 | - |
-| Phase 43 (Company UI) | ⬜ 대기 | - |
-| Phase 44 (보안) | ⬜ 대기 | - |
+| Phase 42 (VNC 안정화) | ✅ 완료 | 2026-04-22 |
+| Phase 43 (Company UI) | ✅ 완료 | 2026-04-22 |
+| Phase 44 (보안) | ✅ 완료 | 2026-04-22 |
 | Phase 45 (Wiki) | ⬜ 대기 | - |
 | Phase 46 (QUIC pinning) | ⬜ 대기 | - |
 | Phase 47 (Paddle) | ⏸ 블로커 | 크레덴셜 대기 |
