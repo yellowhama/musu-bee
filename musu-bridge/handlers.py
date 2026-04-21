@@ -474,6 +474,24 @@ def get_costs_by_agent_record(company_id: str) -> list[dict[str, Any]]:
     return backend.get_costs_by_agent(company_id)
 
 
+def get_runs_recent_global(limit: int = 50) -> list[dict[str, Any]]:
+    """Return the most recent route_executions across all companies."""
+    backend = _get_backend()
+    return backend.get_runs_recent(limit=limit)
+
+
+def get_costs_global() -> dict[str, Any]:
+    """Return execution cost summary across all companies."""
+    backend = _get_backend()
+    return backend.get_costs_global()
+
+
+def get_costs_by_agent_global() -> list[dict[str, Any]]:
+    """Return per-agent execution counts across all companies."""
+    backend = _get_backend()
+    return backend.get_costs_by_agent_global()
+
+
 def get_channel_map() -> dict[str, Any]:
     """Return channel-to-agent mapping with agent details."""
     cfg = get_bridge_config()

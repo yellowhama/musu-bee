@@ -963,6 +963,49 @@ class LocalBackend(BackendABC):
             for r in rows
         ]
 
+    # --- Global runs / costs (no company_id filter) ---
+
+    def get_runs_recent(self, limit: int = 50) -> list[dict[str, Any]]:
+        """Return the most recent route_executions across all companies."""
+        rows = self._db.execute(
+            "SELECT id, channel, sender_id, company_id, status, output, error, created_at"
+            " FROM route_executions ORDER BY created_at DESC LIMIT ?",
+            (limit,),
+        )
+        return [dict(r) for r in rows]
+
+    def get_costs_global(self) -> dict[str, Any]:
+        """Return execution-count-based cost summary across all companies."""
+        rows = self._db.execute(
+            "SELECT status, COUNT(*) AS n FROM route_executions GROUP BY status",
+        )
+        by_status = {r["status"]: r["n"] for r in rows}
+        return {
+            "period": "all_time",
+            "total_requests": sum(by_status.values()),
+            "by_status": by_status,
+            "estimated_cost_usd": None,
+        }
+
+    def get_costs_by_agent_global(self) -> list[dict[str, Any]]:
+        """Return per-channel execution counts across all companies."""
+        rows = self._db.execute(
+            "SELECT channel, COUNT(*) AS n,"
+            " SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) AS done,"
+            " SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END) AS failed"
+            " FROM route_executions GROUP BY channel ORDER BY n DESC",
+        )
+        return [
+            {
+                "agent_name": r["channel"],
+                "total_requests": r["n"],
+                "done": r["done"],
+                "failed": r["failed"],
+                "estimated_cost_usd": None,
+            }
+            for r in rows
+        ]
+
     # --- Goals ---
 
     def list_goals(

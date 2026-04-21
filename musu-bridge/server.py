@@ -54,8 +54,11 @@ from handlers import (
     get_agents,
     get_channel_map,
     get_company,
+    get_costs_by_agent_global,
     get_costs_by_agent_record,
+    get_costs_global,
     get_costs_summary_record,
+    get_runs_recent_global,
     get_issue_record,
     get_mcp_tools_manifest,
     get_message_by_id,
@@ -1477,6 +1480,24 @@ async def api_costs_by_agent(company_id: str) -> list[dict]:
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
     return get_costs_by_agent_record(company_id)
+
+
+@app.get("/api/runs/recent", summary="Recent route executions (all companies)")
+async def api_runs_recent(limit: int = Query(default=50, ge=1, le=500)) -> list[dict]:
+    """Return the most recent route_executions across all companies."""
+    return get_runs_recent_global(limit=limit)
+
+
+@app.get("/api/costs/summary", summary="Global execution cost summary")
+async def api_costs_summary_global() -> dict:
+    """Return execution count summary across all companies."""
+    return get_costs_global()
+
+
+@app.get("/api/costs/by-agent", summary="Global per-agent execution counts")
+async def api_costs_by_agent_global() -> list[dict]:
+    """Return per-agent execution counts across all companies."""
+    return get_costs_by_agent_global()
 
 
 @app.get("/api/index-search", summary="Search indexed codebase")
