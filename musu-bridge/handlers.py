@@ -135,6 +135,81 @@ async def route_chat(
     })
 
 
+async def route_chat_with_qa_loop(
+    task_id: str,
+    text: str,
+    sender_id: str,
+    max_iter: int = 3,
+) -> dict[str, Any]:
+    """Run Engineer → QA evaluation loop and update the route_execution record.
+
+    Uses QALoop to iterate:
+      Engineer implements → QA scores (4 criteria ≥ 7 to pass) → rework if needed.
+    Max iterations: max_iter (default 3). Circuit breaker: same failure 3x → escalate.
+
+    Returns a dict with "response" (summary string) and "qa_loop_result".
+    """
+    from musu_core.qa_loop import QALoop
+    from musu_core.sprint_contract import SprintContract
+    from musu_core.router import Router
+    from musu_core.config import get_config as get_core_config
+
+    backend = _get_backend()
+    cfg = get_core_config()
+    router = Router(backend=backend, config=cfg)
+
+    engineer = backend.get_agent_by_name("engineer")
+    qa_agent = backend.get_agent_by_name("qa")
+    if engineer is None or qa_agent is None:
+        error = "engineer or qa agent not found in DB — register both agents before using use_qa_loop"
+        backend.update_route_execution(task_id, "failed", error=error)
+        return {"error": error}
+
+    # Minimal auto-generated Sprint Contract from the task description.
+    # CTO can supply a richer contract via a dedicated endpoint in a future phase.
+    contract = SprintContract(
+        task=text,
+        task_id=task_id,
+        scope=[text],
+        done_definition="Task implemented and all four QA criteria score ≥ 7",
+    )
+
+    loop = QALoop(
+        router=router,
+        engineer_agent_id=engineer["id"],
+        qa_agent_id=qa_agent["id"],
+        max_iterations=max_iter,
+    )
+
+    result = await loop.run(task_prompt=text, contract=contract, task_id=task_id)
+
+    if result.final_score:
+        score_str = (
+            f"func={result.final_score.functionality} "
+            f"corr={result.final_score.correctness} "
+            f"comp={result.final_score.completeness} "
+            f"qual={result.final_score.code_quality}"
+        )
+    else:
+        score_str = "no score"
+
+    summary = (
+        f"QA loop: {'PASS ✓' if result.passed else 'FAIL ✗'} "
+        f"({result.iterations_used}/{max_iter} iter) | {score_str}"
+    )
+    if result.escalated:
+        summary += f" | ESCALATED: {result.escalation_reason}"
+
+    logger.info("route_chat_with_qa_loop: task=%s %s", task_id, summary)
+
+    if result.passed:
+        backend.update_route_execution(task_id, "done", output=summary)
+    else:
+        backend.update_route_execution(task_id, "failed", error=summary)
+
+    return {"response": summary, "qa_loop_result": result}
+
+
 def get_agents() -> list[dict[str, Any]]:
     """List all active agents."""
     backend = _get_backend()

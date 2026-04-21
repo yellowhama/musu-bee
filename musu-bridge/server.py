@@ -77,6 +77,7 @@ from handlers import (
     receive_messages,
     resolve_approval_record,
     route_chat,
+    route_chat_with_qa_loop,
     set_agent_status,
     sync_companies,
     sync_messages,
@@ -445,6 +446,10 @@ class DelegateRequest(BaseModel):
     channel: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9_-]+$")
     sender_id: str = Field(default="orchestrator", min_length=1, max_length=128)
     text: str = Field(max_length=10000)
+    # When True and channel=="engineer", runs QALoop instead of single-shot route_chat.
+    # Engineer → QA → rework loop (max qa_loop_max_iter iterations, all criteria ≥ 7).
+    use_qa_loop: bool = False
+    qa_loop_max_iter: int = Field(default=3, ge=1, le=5)
 
 
 class CompanyCreateRequest(BaseModel):
@@ -506,22 +511,37 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
         raise HTTPException(status_code=500, detail="Failed to record task — try again")
 
     # Pass task_id so route_chat reuses this record instead of creating a new one.
-    # Wrap with 300s timeout — auto-fails the DB record if the agent hangs.
+    # QA loop path: use_qa_loop=True + channel=="engineer" → QALoop.run() (max 900s).
+    # Standard path: single-shot route_chat with 300s timeout.
+    _use_qa = req.use_qa_loop and req.channel == "engineer"
+    _timeout = 900 if _use_qa else 300
+
     async def _run_with_timeout() -> None:
         try:
-            await asyncio.wait_for(
-                route_chat(
-                    channel=req.channel,
-                    sender_id=req.sender_id,
-                    text=req.text,
-                    exec_id=task_id,
-                ),
-                timeout=300,
-            )
+            if _use_qa:
+                await asyncio.wait_for(
+                    route_chat_with_qa_loop(
+                        task_id=task_id,
+                        text=req.text,
+                        sender_id=req.sender_id,
+                        max_iter=req.qa_loop_max_iter,
+                    ),
+                    timeout=_timeout,
+                )
+            else:
+                await asyncio.wait_for(
+                    route_chat(
+                        channel=req.channel,
+                        sender_id=req.sender_id,
+                        text=req.text,
+                        exec_id=task_id,
+                    ),
+                    timeout=_timeout,
+                )
             asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
         except asyncio.TimeoutError:
-            logger.warning("delegate_task: task %s timed out after 300s", task_id)
-            cancel_task_record(task_id, error="timeout after 300s")
+            logger.warning("delegate_task: task %s timed out after %ds", task_id, _timeout)
+            cancel_task_record(task_id, error=f"timeout after {_timeout}s")
             asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
         except Exception:
             asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
