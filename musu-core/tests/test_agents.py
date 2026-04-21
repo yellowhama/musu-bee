@@ -237,3 +237,12 @@ def test_validate_fallback_chain_empty_adapter_type():
 def test_create_agent_invalid_fallback_chain_raises(registry):
     with pytest.raises(ValueError):
         registry.create(name="bad", fallback_chain=[{"no_type": True}])
+
+
+def test_create_duplicate_agent_raises(registry):
+    """동일 이름 active 에이전트 중복 생성 시 upsert로 처리됨 (UNIQUE constraint + DO UPDATE)."""
+    a1 = registry.create(name="alice", role="engineer")
+    a2 = registry.create(name="alice", role="qa")
+    # upsert: 동일 id, 업데이트된 role
+    assert a1.id == a2.id
+    assert a2.role == "qa"

@@ -62,7 +62,7 @@
         "pytest musu-bridge/tests/ musu-core/tests/ -q 실행 시 0 failures"
       ],
       "files": ["musu-core/tests/"],
-      "passes": false
+      "passes": true
     }
   ]
 }
