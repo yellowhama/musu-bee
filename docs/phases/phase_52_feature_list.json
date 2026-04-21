@@ -1,0 +1,55 @@
+{
+  "phase": "Phase 52",
+  "description": "VNC 세션 max TTL — relay 다운 시 dangling session 방지",
+  "warning": "feature를 삭제하거나 편집하는 것은 절대 허용되지 않는다. passes 필드만 수정 가능.",
+  "features": [
+    {
+      "id": "F52-01",
+      "description": "musu-relay: vncSessions Map에 createdAt 필드 추가",
+      "acceptance": [
+        "vncSessions Map의 value 타입에 createdAt: number 필드 존재",
+        "세션 생성 시 createdAt: Date.now() 설정",
+        "기존 ws/nodeWs 필드 변경 없음"
+      ],
+      "files": ["musu-relay/src/server.ts"],
+      "passes": true
+    },
+    {
+      "id": "F52-02",
+      "description": "musu-relay: 30분 TTL cleanup interval 구현",
+      "acceptance": [
+        "setInterval(30분) 로 vncSessions 순회",
+        "30분 초과 세션: ws.close(1001, 'session TTL exceeded') 호출",
+        "nodeWs 있으면 함께 close",
+        "vncSessions.delete(id) 호출",
+        "logger.info로 만료 세션 ID 기록"
+      ],
+      "files": ["musu-relay/src/server.ts"],
+      "passes": true
+    },
+    {
+      "id": "F52-03",
+      "description": "musu-bridge: relay_client.py WS 세션 TTL 추가",
+      "acceptance": [
+        "_ws_session_queues dict의 value에 created_at: float (monotonic time) 추가",
+        "세션 생성 시 created_at = time.monotonic() 설정",
+        "30분마다 cleanup: 30분 초과 세션 ws.close() + dict.pop()",
+        "cleanup loop는 asyncio.create_task로 lifespan에 등록"
+      ],
+      "files": ["musu-bridge/relay_client.py"],
+      "passes": true
+    },
+    {
+      "id": "F52-04",
+      "description": "동작 검증: 세션이 생성·만료되는 경우 로그에 기록됨",
+      "acceptance": [
+        "musu-relay 시작 후 vncSession 생성 시 로그 확인 가능",
+        "relay_client.py의 cleanup 함수가 단독 실행 가능 (async def 테스트)",
+        "TypeScript 컴파일 오류 없음: rtk tsc 통과",
+        "Python import 오류 없음: python -c 'from relay_client import *' 통과"
+      ],
+      "files": ["musu-relay/src/server.ts", "musu-bridge/relay_client.py"],
+      "passes": true
+    }
+  ]
+}

@@ -393,8 +393,10 @@ async def lifespan(app: FastAPI):
 
     # Cloud relay tunnel (optional — only when MUSU_RELAY_ENABLED=true)
     relay_task = None
+    from relay_client import relay_loop, _session_cleanup_loop
+    session_cleanup_task = asyncio.create_task(_session_cleanup_loop())
+    logger.info("relay_client: session cleanup task started")
     if cfg.relay_enabled and cfg.relay_url and musu_token:
-        from relay_client import relay_loop
         relay_task = asyncio.create_task(
             relay_loop(
                 relay_url=cfg.relay_url,
@@ -427,6 +429,7 @@ async def lifespan(app: FastAPI):
     yield
 
     watchdog_cleanup_task.cancel()
+    session_cleanup_task.cancel()
     discovery.close()
     if node_heartbeat_task:
         node_heartbeat_task.cancel()
