@@ -535,55 +535,70 @@ def get_task_record(task_id: str) -> dict[str, Any] | None:
 
 # --- Sprint Contract + QA Scores ---
 
+import json as _json
+
+from musu_core.config import get_config as _get_core_config
+from musu_core.db import get_db as _get_db
+
+
+def _parse_json_list(val: str | None) -> list:
+    try:
+        return _json.loads(val or "[]")
+    except (_json.JSONDecodeError, TypeError):
+        return []
+
 
 def get_sprint_contract_for_task(task_id: str) -> dict[str, Any] | None:
-    """Return the sprint contract linked to a task_id, or None."""
-    from musu_core.config import get_config as get_core_config
-    from musu_core.db import get_db
-    import json
+    """Return the sprint contract linked to a task_id, or None.
 
-    cfg = get_core_config()
-    db = get_db(cfg.db_path)
-    rows = db.execute(
-        "SELECT * FROM sprint_contracts WHERE task_id = ? ORDER BY created_at DESC LIMIT 1",
-        (task_id,),
-    )
+    Returns None on DB errors (e.g. migration not yet run) so the endpoint
+    can surface a 404 rather than an unhandled 500.
+    """
+    try:
+        cfg = _get_core_config()
+        db = _get_db(cfg.db_path)
+        rows = db.execute(
+            "SELECT * FROM sprint_contracts WHERE task_id = ? ORDER BY created_at DESC LIMIT 1",
+            (task_id,),
+        )
+    except Exception as exc:
+        logger.warning("get_sprint_contract_for_task DB error for %s: %s", task_id, exc)
+        return None
     if not rows:
         return None
     row = rows[0]
-    def _parse(val: str | None) -> list:
-        try:
-            return json.loads(val or "[]")
-        except (json.JSONDecodeError, TypeError):
-            return []
     return {
         "id": row["id"],
         "task_id": row["task_id"],
         "task": row["task"],
-        "scope": _parse(row["scope_json"]),
-        "out_of_scope": _parse(row["out_of_scope_json"]),
-        "acceptance_criteria": _parse(row["acceptance_criteria_json"]),
+        "scope": _parse_json_list(row["scope_json"]),
+        "out_of_scope": _parse_json_list(row["out_of_scope_json"]),
+        "acceptance_criteria": _parse_json_list(row["acceptance_criteria_json"]),
         "done_definition": row["done_definition"] or "",
         "created_at": row["created_at"],
     }
 
 
 def get_qa_scores_for_task(task_id: str) -> list[dict[str, Any]]:
-    """Return QA scores linked to a task_id, ordered by iteration."""
-    from musu_core.config import get_config as get_core_config
-    from musu_core.db import get_db
+    """Return QA scores linked to a task_id, ordered by iteration.
 
-    cfg = get_core_config()
-    db = get_db(cfg.db_path)
-    rows = db.execute(
-        """
-        SELECT qs.* FROM qa_scores qs
-        JOIN sprint_contracts sc ON qs.contract_id = sc.id
-        WHERE sc.task_id = ?
-        ORDER BY qs.iteration ASC
-        """,
-        (task_id,),
-    )
+    Returns empty list on DB errors so the endpoint surfaces [] rather than 500.
+    """
+    try:
+        cfg = _get_core_config()
+        db = _get_db(cfg.db_path)
+        rows = db.execute(
+            """
+            SELECT qs.* FROM qa_scores qs
+            JOIN sprint_contracts sc ON qs.contract_id = sc.id
+            WHERE sc.task_id = ?
+            ORDER BY qs.iteration ASC
+            """,
+            (task_id,),
+        )
+    except Exception as exc:
+        logger.warning("get_qa_scores_for_task DB error for %s: %s", task_id, exc)
+        return []
     return [
         {
             "id": row["id"],

@@ -616,9 +616,11 @@ async def api_cancel_task(
 @app.get("/api/tasks/{task_id}/sprint-contract", summary="Get sprint contract for a task")
 async def api_get_sprint_contract(
     task_id: str = Path(min_length=36, max_length=36, pattern=r"^[0-9a-f\-]{36}$"),
-    _auth=Depends(require_bearer_token),
 ) -> dict:
-    """Return the sprint contract linked to a task, or 404 if none exists."""
+    """Return the sprint contract linked to a task, or 404 if none exists.
+
+    Authentication is enforced globally by apply_musu_middlewares (Bearer token).
+    """
     contract = get_sprint_contract_for_task(task_id)
     if contract is None:
         raise HTTPException(status_code=404, detail="No sprint contract for this task")
@@ -628,9 +630,11 @@ async def api_get_sprint_contract(
 @app.get("/api/tasks/{task_id}/qa-scores", summary="Get QA scores for a task")
 async def api_get_qa_scores(
     task_id: str = Path(min_length=36, max_length=36, pattern=r"^[0-9a-f\-]{36}$"),
-    _auth=Depends(require_bearer_token),
 ) -> list[dict]:
-    """Return QA iteration scores for a task, ordered by iteration."""
+    """Return QA iteration scores for a task, ordered by iteration.
+
+    Authentication is enforced globally by apply_musu_middlewares (Bearer token).
+    """
     return get_qa_scores_for_task(task_id)
 
 
