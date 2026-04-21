@@ -29,3 +29,24 @@ def test_company_status_default_active():
     row = conn.execute("SELECT status, purpose FROM companies WHERE id='c1'").fetchone()
     assert row["status"] == "active"
     assert row["purpose"] == ""
+
+
+from company_templates import get_template, list_template_keys
+
+
+def test_get_dev_team_template():
+    t = get_template("dev-team")
+    assert t is not None
+    agent_names = [a["name"] for a in t["agents"]]
+    assert "engineer" in agent_names
+    assert "qa" in agent_names
+
+
+def test_get_unknown_template_returns_none():
+    assert get_template("nonexistent-template") is None
+
+
+def test_list_template_keys_includes_dev_team():
+    keys = list_template_keys()
+    assert "dev-team" in keys
+    assert "content-team" in keys
