@@ -1,0 +1,68 @@
+{
+  "phase": "Phase 53",
+  "description": "musu-core 테스트 커버리지 — agents, tasks, router 핵심 경로 커버",
+  "warning": "feature를 삭제하거나 편집하는 것은 절대 허용되지 않는다. passes 필드만 수정 가능.",
+  "features": [
+    {
+      "id": "F53-01",
+      "description": "musu-core/tests/ 디렉토리 + conftest.py 설정",
+      "acceptance": [
+        "musu-core/tests/__init__.py 존재",
+        "musu-core/tests/conftest.py 존재",
+        "conftest.py에 in-memory backend fixture: backend = MusuBackend(':memory:')",
+        "pytest 실행 시 import 에러 없음"
+      ],
+      "files": ["musu-core/tests/__init__.py", "musu-core/tests/conftest.py"],
+      "passes": true
+    },
+    {
+      "id": "F53-02",
+      "description": "test_agents.py — agents CRUD 테스트",
+      "acceptance": [
+        "test_create_agent: 에이전트 생성 후 name/status 확인",
+        "test_get_agent_by_name: 이름으로 에이전트 조회",
+        "test_list_agents: 전체 목록 반환 확인",
+        "test_create_duplicate_agent: 중복 이름 처리 확인 (오류 또는 upsert)",
+        "모든 테스트 통과: pytest musu-core/tests/test_agents.py -v"
+      ],
+      "files": ["musu-core/tests/test_agents.py"],
+      "passes": true
+    },
+    {
+      "id": "F53-03",
+      "description": "test_tasks.py — tasks CRUD + 상태 전환 테스트",
+      "acceptance": [
+        "test_create_task: 태스크 생성 후 status='pending', input 확인",
+        "test_task_status_transition: pending→running→done 전환 가능",
+        "test_list_tasks_by_agent: 에이전트별 태스크 필터링",
+        "test_task_not_found: 존재하지 않는 ID 조회 시 None 또는 예외",
+        "모든 테스트 통과: pytest musu-core/tests/test_tasks.py -v"
+      ],
+      "files": ["musu-core/tests/test_tasks.py"],
+      "passes": true
+    },
+    {
+      "id": "F53-04",
+      "description": "test_router.py — route_chat dispatch 테스트",
+      "acceptance": [
+        "test_route_dispatch_to_agent: channel로 에이전트 라우팅 확인",
+        "test_route_unknown_channel: 존재하지 않는 channel 처리 확인",
+        "mock adapter 사용 (실제 LLM 호출 없음)",
+        "모든 테스트 통과: pytest musu-core/tests/test_router.py -v"
+      ],
+      "files": ["musu-core/tests/test_router.py"],
+      "passes": true
+    },
+    {
+      "id": "F53-05",
+      "description": "전체 테스트 스위트 통합 확인",
+      "acceptance": [
+        "기존 musu-bridge/tests/ 112개 테스트 여전히 통과",
+        "신규 musu-core/tests/ 테스트 모두 통과",
+        "pytest musu-bridge/tests/ musu-core/tests/ -q 실행 시 0 failures"
+      ],
+      "files": ["musu-core/tests/"],
+      "passes": false
+    }
+  ]
+}
