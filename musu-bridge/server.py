@@ -1570,6 +1570,64 @@ async def health() -> dict:
     return {"status": "ok"}
 
 
+# ── Screen snapshot ────────────────────────────────────────────────────────────
+
+@app.get("/api/screen/snapshot")
+async def screen_snapshot() -> dict:
+    """Capture a screenshot of this machine and return as base64 JPEG.
+
+    Tries multiple capture tools in order:
+      1. scrot (lightweight, most common on X11 systems)
+      2. import (ImageMagick)
+      3. gnome-screenshot
+    Returns {"snapshot": "data:image/jpeg;base64,...", "ts": <epoch_ms>}
+    """
+    import subprocess as _sp
+    import base64 as _b64
+    import tempfile as _tf
+    import time as _time
+    import os as _os
+
+    with _tf.NamedTemporaryFile(suffix=".jpg", delete=False) as f:
+        tmp = f.name
+
+    captured = False
+    cmds = [
+        ["scrot", "-q", "65", "-o", tmp],
+        ["import", "-window", "root", "-quality", "65", tmp],
+        ["gnome-screenshot", "-f", tmp],
+    ]
+    for cmd in cmds:
+        try:
+            _sp.run(cmd, timeout=10, check=True, capture_output=True)
+            if _os.path.exists(tmp) and _os.path.getsize(tmp) > 0:
+                captured = True
+                break
+        except (FileNotFoundError, _sp.CalledProcessError, _sp.TimeoutExpired):
+            continue
+
+    if not captured:
+        try:
+            _os.unlink(tmp)
+        except OSError:
+            pass
+        raise HTTPException(
+            status_code=503,
+            detail="Screen capture unavailable — install scrot or imagemagick on this node",
+        )
+
+    try:
+        with open(tmp, "rb") as f:
+            data = _b64.b64encode(f.read()).decode()
+    finally:
+        try:
+            _os.unlink(tmp)
+        except OSError:
+            pass
+
+    return {"snapshot": f"data:image/jpeg;base64,{data}", "ts": int(_time.time() * 1000)}
+
+
 # ── Watchdog endpoints (P2P remote bridge control via musu-connectsd) ─────────
 
 _WATCHDOG_ALLOWED = frozenset({"bridge:start", "bridge:stop", "bridge:restart", "agents:cleanup"})
