@@ -1969,11 +1969,28 @@ async def screen_vnc_status() -> dict:
 async def screen_vnc_token() -> dict:
     """Issue a one-time WebSocket token (60s TTL).
 
-    Response: {"token": "...", "launcher_path": "/screen/novnc/launcher.html?token=..."}
-    Open launcher_path in a browser tab against this bridge's public_url to start VNC.
+    Response includes relay_ws_url so the browser can connect via musu-relay
+    instead of directly to the bridge (direct access requires Tailscale/LAN).
     """
     tok = screen_vnc.issue_token()
-    return {"token": tok, "launcher_path": f"/screen/novnc/launcher.html?token={tok}"}
+    # Build relay WebSocket URL: convert http(s) → ws(s) and append ws-proxy path
+    relay_ws_url = ""
+    if cfg.relay_url and cfg.node_name:
+        relay_base = (
+            cfg.relay_url.rstrip("/")
+            .replace("https://", "wss://")
+            .replace("http://", "ws://")
+        )
+        relay_ws_url = (
+            f"{relay_base}/ws-proxy/{cfg.node_name}"
+            f"/api/screen/ws-vnc?token={tok}"
+        )
+    return {
+        "token": tok,
+        "launcher_path": f"/screen/novnc/launcher.html?token={tok}",
+        "relay_ws_url": relay_ws_url,
+        "node_name": cfg.node_name or "",
+    }
 
 
 @app.websocket("/api/screen/ws-vnc")

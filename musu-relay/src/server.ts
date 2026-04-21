@@ -334,18 +334,21 @@ wss.on("ws-proxy-connection", async (clientWs: WebSocket, req: http.IncomingMess
     return;
   }
 
-  // Verify the client presents the same MUSU_TOKEN the node registered with.
-  // This ties the connection to the correct account without requiring DB access.
-  if (!token || token !== entry.token) {
-    clientWs.close(4001, "invalid token");
-    return;
-  }
-
-  // Validate token + node_id pair with musu.pro (cached)
-  const valid = await validateToken(token, nodeId);
-  if (!valid) {
-    clientWs.close(4005, "token validation failed");
-    return;
+  // VNC paths use a one-time token validated by the bridge endpoint itself.
+  // Skip relay-level token check for /api/screen/ws-vnc — the single-use
+  // VNC token (60s TTL) provides sufficient auth downstream.
+  const isVncPath = targetPath.startsWith("/api/screen/ws-vnc");
+  if (!isVncPath) {
+    // Non-VNC ws-proxy: require matching MUSU_TOKEN
+    if (!token || token !== entry.token) {
+      clientWs.close(4001, "invalid token");
+      return;
+    }
+    const valid = await validateToken(token, nodeId);
+    if (!valid) {
+      clientWs.close(4005, "token validation failed");
+      return;
+    }
   }
 
   const sessionId = randomUUID();

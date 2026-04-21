@@ -145,7 +145,11 @@ async def _ws_proxy_session(
     queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
     _ws_session_queues[session_id] = queue
 
-    local_url = _WS_PROXY_TARGET.rstrip("/") + target_path
+    # Route /api/ paths to the local bridge (8070), everything else to musu-port (1355)
+    if target_path.startswith("/api/"):
+        local_url = "ws://localhost:8070" + target_path
+    else:
+        local_url = _WS_PROXY_TARGET.rstrip("/") + target_path
     logger.info("relay_client: ws-proxy session %s → %s", session_id, local_url)
 
     try:
