@@ -1645,7 +1645,7 @@ def _find_display_env() -> dict:
     return env
 
 
-def _capture_mss(tmp_png: str, display_env: dict) -> bool:
+def _capture_mss(tmp_png: str, display_env: dict, monitor_index: int = 1) -> bool:
     """Capture screenshot using python-mss (libX11 direct). Returns True on success."""
     with _mss_lock:
         # mss reads DISPLAY/XAUTHORITY from environment
@@ -1655,7 +1655,8 @@ def _capture_mss(tmp_png: str, display_env: dict) -> bool:
             import mss
             import mss.tools
             with mss.mss() as sct:
-                monitor = sct.monitors[1] if len(sct.monitors) > 1 else sct.monitors[0]
+                idx = monitor_index if 0 < monitor_index < len(sct.monitors) else (1 if len(sct.monitors) > 1 else 0)
+                monitor = sct.monitors[idx]
                 img = sct.grab(monitor)
                 mss.tools.to_png(img.rgb, img.size, output=tmp_png)
             return os.path.exists(tmp_png) and os.path.getsize(tmp_png) > 0
@@ -1737,9 +1738,9 @@ def _capture_scrot(tmp_jpg: str, display_env: dict) -> bool:
         return False
 
 
-def _do_capture_sync(display_env: dict, tmp_png: str, tmp_jpg: str) -> bool:
+def _do_capture_sync(display_env: dict, tmp_png: str, tmp_jpg: str, monitor_index: int = 1) -> bool:
     """Run the mss→ffmpeg→scrot fallback chain synchronously. Returns True on success."""
-    if _capture_mss(tmp_png, display_env) and _png_to_jpeg(tmp_png, tmp_jpg):
+    if _capture_mss(tmp_png, display_env, monitor_index) and _png_to_jpeg(tmp_png, tmp_jpg):
         return True
     if _capture_ffmpeg(tmp_jpg, display_env):
         return True
@@ -1748,8 +1749,44 @@ def _do_capture_sync(display_env: dict, tmp_png: str, tmp_jpg: str) -> bool:
     return False
 
 
+@app.get("/api/screen/monitors")
+async def screen_monitors() -> dict:
+    """List available monitors on this machine.
+
+    Returns {"monitors": [{"index": 1, "width": 1920, "height": 1080, "left": 0, "top": 0}, ...]}
+    Index matches sct.monitors index (1-based for real monitors; 0 = virtual all-in-one).
+    """
+    display_env = _find_display_env()
+    try:
+        import mss
+        old = {k: os.environ.get(k) for k in display_env}
+        try:
+            os.environ.update(display_env)
+            with mss.mss() as sct:
+                result = [
+                    {
+                        "index": i,
+                        "width": m["width"],
+                        "height": m["height"],
+                        "left": m["left"],
+                        "top": m["top"],
+                    }
+                    for i, m in enumerate(sct.monitors)
+                    if i > 0  # skip index 0 (all-in-one virtual)
+                ]
+        finally:
+            for k, v in old.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+        return {"monitors": result}
+    except Exception as exc:
+        raise HTTPException(500, detail=f"monitor list failed: {exc}") from exc
+
+
 @app.get("/api/screen/snapshot")
-async def screen_snapshot() -> dict:
+async def screen_snapshot(monitor: int = 1) -> dict:
     """Capture a screenshot of this machine and return as base64 JPEG.
 
     Tries multiple capture methods in order:
@@ -1772,7 +1809,7 @@ async def screen_snapshot() -> dict:
 
     try:
         loop = asyncio.get_running_loop()
-        captured = await loop.run_in_executor(None, _do_capture_sync, display_env, tmp_png, tmp_jpg)
+        captured = await loop.run_in_executor(None, _do_capture_sync, display_env, tmp_png, tmp_jpg, monitor)
 
         if not captured:
             raise HTTPException(
