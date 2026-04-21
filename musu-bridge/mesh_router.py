@@ -353,7 +353,8 @@ class MeshRouter:
         quic_proxy = _QUIC_PROXY_URL or "http://127.0.0.1:9443"
 
         if command == "status" or node_name == self._self_name:
-            # Local: call connectsd HTTP sidecar directly
+            # "status" always queries local connectsd — the vibecode-town watchdog
+            # route ensures status requests always reach the target's own bridge.
             target = f"{quic_proxy.rstrip('/')}/watchdog/status"
             logger.info("mesh_router: watchdog status (local) → %s", target)
             try:
