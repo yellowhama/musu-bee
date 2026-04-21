@@ -425,6 +425,29 @@ def _v12_down(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+# ---------------------------------------------------------------------------
+# v13: add status + purpose to companies
+# ---------------------------------------------------------------------------
+
+
+def _v13_up(conn: sqlite3.Connection) -> None:
+    """Add status (active/inactive) and purpose to companies table."""
+    if not _column_exists(conn, "companies", "status"):
+        conn.execute(
+            "ALTER TABLE companies ADD COLUMN status TEXT NOT NULL DEFAULT 'active' "
+            "CHECK (status IN ('active', 'inactive'));"
+        )
+    if not _column_exists(conn, "companies", "purpose"):
+        conn.execute(
+            "ALTER TABLE companies ADD COLUMN purpose TEXT NOT NULL DEFAULT '';"
+        )
+    conn.commit()
+
+
+def _v13_down(conn: sqlite3.Connection) -> None:  # noqa: ARG001
+    """SQLite < 3.35 cannot DROP COLUMN — no-op."""
+
+
 MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v1_fallback_chain", _v1_up, _v1_down),
     ("v2_messages_agent_id", _v2_up, _v2_down),
@@ -438,6 +461,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v10_kvstore", _v10_up, _v10_down),
     ("v11_dedup_unique_indexes", _v11_up, _v11_down),
     ("v12_sprint_contracts_qa_scores", _v12_up, _v12_down),
+    ("v13_company_status_purpose", _v13_up, _v13_down),
 ]
 
 
