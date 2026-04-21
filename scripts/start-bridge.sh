@@ -250,9 +250,13 @@ fi
 # ── Set PYTHONPATH and exec ───────────────────────────────────────────────────
 export PYTHONPATH="${ROOT}/musu-core/src:${ROOT}/musu-bridge:${PYTHONPATH:-}"
 
-# Prefer venv python (musu-bridge/.venv/bin/python3)
-PYTHON="${ROOT}/musu-bridge/.venv/bin/python3"
-if [[ ! -x "$PYTHON" ]]; then
+# Prefer root .venv (works when deps installed at repo root, e.g. main-pc).
+# Fall back to bridge-specific .venv, then system python3.
+if [[ -x "${ROOT}/.venv/bin/python3" ]]; then
+    PYTHON="${ROOT}/.venv/bin/python3"
+elif [[ -x "${ROOT}/musu-bridge/.venv/bin/python3" ]]; then
+    PYTHON="${ROOT}/musu-bridge/.venv/bin/python3"
+else
     PYTHON="python3"
 fi
 

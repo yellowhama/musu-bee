@@ -53,8 +53,26 @@ if ! git pull origin main --quiet 2>&1; then
 fi
 log "pulled ${REMOTE:0:8} successfully"
 
-# ── 4. Restart affected services ─────────────────────────────────────────────
+# ── 4. Rebuild connectsd from source if glibc-incompatible ──────────────────
 if [ "$RESTART_CONNECTSD" = "1" ]; then
+    # Quick sanity-check: can the pulled binary even execute on this machine?
+    if ! "${ROOT}/bin/musu-connectsd" --version >/dev/null 2>&1; then
+        log "pulled binary not executable on this machine (glibc mismatch?) — trying source build"
+        if command -v cargo >/dev/null 2>&1 && [ -d "${ROOT}/musu-connects" ]; then
+            log "cargo build --release -p musu-connectsd ..."
+            if cargo build --release \
+                   --manifest-path "${ROOT}/musu-connects/Cargo.toml" \
+                   -p musu-connectsd 2>&1 | tail -5; then
+                cp "${ROOT}/musu-connects/target/release/musu-connectsd" "${ROOT}/bin/musu-connectsd"
+                chmod +x "${ROOT}/bin/musu-connectsd"
+                log "built and installed from source"
+            else
+                log "WARNING: source build failed — connectsd may not start correctly"
+            fi
+        else
+            log "WARNING: cargo not found and binary incompatible — connectsd may not start"
+        fi
+    fi
     log "restarting musu-connectsd (binary updated)"
     systemctl --user restart musu-connectsd.service || log "WARNING: connectsd restart failed"
 fi
