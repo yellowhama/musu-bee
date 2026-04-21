@@ -2,8 +2,8 @@
     "version":  1,
     "helper":  "windows-bridge-helper",
     "host":  "HUGH_SECOND",
-    "pid":  20132,
-    "last_seen":  "2026-04-09T23:00:52.8861034+09:00",
+    "pid":  23160,
+    "last_seen":  "2026-04-19T20:15:22.0103789+09:00",
     "queue_dir":  "\\\\wsl.localhost\\Ubuntu-22.04\\home\\hugh51\\musu-functions\\musu-computer-tools\\.windows-bridge\\queue",
     "repo_root":  "\\\\wsl.localhost\\Ubuntu-22.04\\home\\hugh51\\musu-functions\\musu-computer-tools"
 }
