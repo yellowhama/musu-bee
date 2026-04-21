@@ -27,6 +27,7 @@ class QALoopResult:
     escalation_reason: str = ""
     engineer_results: list[RouteResult] = field(default_factory=list)
     qa_results: list[RouteResult] = field(default_factory=list)
+    all_scores: list[QAScore] = field(default_factory=list)
 
 
 class QALoop:
@@ -72,6 +73,7 @@ class QALoop:
         """
         engineer_results: list[RouteResult] = []
         qa_results: list[RouteResult] = []
+        all_scores: list[QAScore] = []
         final_score: QAScore | None = None
 
         # Session ID is threaded through all Engineer iterations to preserve context.
@@ -139,6 +141,7 @@ class QALoop:
                 )
 
             final_score = score
+            all_scores.append(score)
             logger.info(
                 "Iteration %d scores: func=%d corr=%d comp=%d qual=%d pass=%s",
                 iteration,
@@ -154,6 +157,7 @@ class QALoop:
                     final_score=score,
                     engineer_results=engineer_results,
                     qa_results=qa_results,
+                    all_scores=all_scores,
                 )
 
             # Circuit breaker check
@@ -178,6 +182,7 @@ class QALoop:
                     escalation_reason=reason,
                     engineer_results=engineer_results,
                     qa_results=qa_results,
+                    all_scores=all_scores,
                 )
 
         # Exhausted iterations without passing
@@ -188,6 +193,7 @@ class QALoop:
             escalated=False,
             engineer_results=engineer_results,
             qa_results=qa_results,
+            all_scores=all_scores,
         )
 
     def _build_engineer_prompt(

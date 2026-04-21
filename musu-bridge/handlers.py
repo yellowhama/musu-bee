@@ -172,6 +172,11 @@ async def route_chat_with_qa_loop(
         task=text,
         task_id=task_id,
         scope=[text],
+        acceptance_criteria=[
+            f"Task is fully implemented as described: {text[:120].rstrip()}{'…' if len(text) > 120 else ''}",
+            "All four QA dimensions (functionality, correctness, completeness, code_quality) score ≥ 7",
+            "No regressions introduced — existing behaviour is preserved",
+        ],
         done_definition="Task implemented and all four QA criteria score ≥ 7",
     )
 
@@ -210,13 +215,15 @@ async def route_chat_with_qa_loop(
 
     logger.info("route_chat_with_qa_loop: task=%s %s", task_id, summary)
 
-    # Persist the final QA score so UI can display it.
-    if result.final_score is not None:
+    # Persist all QA scores (one row per iteration) so UI can display history.
+    if result.all_scores:
         try:
             _db = get_db(cfg.db_path)
-            save_qa_score(_db._get_conn(), contract.id, task_id, result.final_score)
+            _conn = _db._get_conn()
+            for _score in result.all_scores:
+                save_qa_score(_conn, contract.id, task_id, _score)
         except Exception as _e:
-            logger.warning("Could not persist QA score: %s", _e)
+            logger.warning("Could not persist QA scores: %s", _e)
 
     if result.passed:
         backend.update_route_execution(task_id, "done", output=summary)
@@ -535,18 +542,6 @@ def get_task_record(task_id: str) -> dict[str, Any] | None:
 
 # --- Sprint Contract + QA Scores ---
 
-import json as _json
-
-from musu_core.config import get_config as _get_core_config
-from musu_core.db import get_db as _get_db
-
-
-def _parse_json_list(val: str | None) -> list:
-    try:
-        return _json.loads(val or "[]")
-    except (_json.JSONDecodeError, TypeError):
-        return []
-
 
 def get_sprint_contract_for_task(task_id: str) -> dict[str, Any] | None:
     """Return the sprint contract linked to a task_id, or None.
@@ -555,28 +550,10 @@ def get_sprint_contract_for_task(task_id: str) -> dict[str, Any] | None:
     can surface a 404 rather than an unhandled 500.
     """
     try:
-        cfg = _get_core_config()
-        db = _get_db(cfg.db_path)
-        rows = db.execute(
-            "SELECT * FROM sprint_contracts WHERE task_id = ? ORDER BY created_at DESC LIMIT 1",
-            (task_id,),
-        )
+        return _get_backend().get_sprint_contract_for_task(task_id)
     except Exception as exc:
         logger.warning("get_sprint_contract_for_task DB error for %s: %s", task_id, exc)
         return None
-    if not rows:
-        return None
-    row = rows[0]
-    return {
-        "id": row["id"],
-        "task_id": row["task_id"],
-        "task": row["task"],
-        "scope": _parse_json_list(row["scope_json"]),
-        "out_of_scope": _parse_json_list(row["out_of_scope_json"]),
-        "acceptance_criteria": _parse_json_list(row["acceptance_criteria_json"]),
-        "done_definition": row["done_definition"] or "",
-        "created_at": row["created_at"],
-    }
 
 
 def get_qa_scores_for_task(task_id: str) -> list[dict[str, Any]]:
@@ -585,35 +562,10 @@ def get_qa_scores_for_task(task_id: str) -> list[dict[str, Any]]:
     Returns empty list on DB errors so the endpoint surfaces [] rather than 500.
     """
     try:
-        cfg = _get_core_config()
-        db = _get_db(cfg.db_path)
-        rows = db.execute(
-            """
-            SELECT qs.* FROM qa_scores qs
-            JOIN sprint_contracts sc ON qs.contract_id = sc.id
-            WHERE sc.task_id = ?
-            ORDER BY qs.iteration ASC
-            """,
-            (task_id,),
-        )
+        return _get_backend().get_qa_scores_for_task(task_id)
     except Exception as exc:
         logger.warning("get_qa_scores_for_task DB error for %s: %s", task_id, exc)
         return []
-    return [
-        {
-            "id": row["id"],
-            "contract_id": row["contract_id"],
-            "iteration": row["iteration"],
-            "functionality": row["functionality"],
-            "correctness": row["correctness"],
-            "completeness": row["completeness"],
-            "code_quality": row["code_quality"],
-            "pass": bool(row["pass"]),
-            "feedback": row["feedback"] or "",
-            "created_at": row["created_at"],
-        }
-        for row in rows
-    ]
 
 
 # --- Message history ---

@@ -1027,3 +1027,61 @@ class LocalBackend(BackendABC):
 
     def close(self) -> None:
         self._db.close()
+
+    # ── Sprint Contract + QA Scores ─────────────────────────────────────
+
+    def get_sprint_contract_for_task(self, task_id: str) -> dict[str, Any] | None:
+        """Return the most recent sprint contract linked to a task_id, or None."""
+        import json
+
+        rows = self._db.execute(
+            "SELECT * FROM sprint_contracts WHERE task_id = ? ORDER BY created_at DESC LIMIT 1",
+            (task_id,),
+        )
+        if not rows:
+            return None
+        row = rows[0]
+
+        def _parse(val: str | None) -> list:
+            try:
+                return json.loads(val or "[]")
+            except (json.JSONDecodeError, TypeError):
+                return []
+
+        return {
+            "id": row["id"],
+            "task_id": row["task_id"],
+            "task": row["task"],
+            "scope": _parse(row["scope_json"]),
+            "out_of_scope": _parse(row["out_of_scope_json"]),
+            "acceptance_criteria": _parse(row["acceptance_criteria_json"]),
+            "done_definition": row["done_definition"] or "",
+            "created_at": row["created_at"],
+        }
+
+    def get_qa_scores_for_task(self, task_id: str) -> list[dict[str, Any]]:
+        """Return QA scores linked to a task_id, ordered by iteration."""
+        rows = self._db.execute(
+            """
+            SELECT qs.* FROM qa_scores qs
+            JOIN sprint_contracts sc ON qs.contract_id = sc.id
+            WHERE sc.task_id = ?
+            ORDER BY qs.iteration ASC
+            """,
+            (task_id,),
+        )
+        return [
+            {
+                "id": row["id"],
+                "contract_id": row["contract_id"],
+                "iteration": row["iteration"],
+                "functionality": row["functionality"],
+                "correctness": row["correctness"],
+                "completeness": row["completeness"],
+                "code_quality": row["code_quality"],
+                "pass": bool(row["pass"]),
+                "feedback": row["feedback"] or "",
+                "created_at": row["created_at"],
+            }
+            for row in rows
+        ]

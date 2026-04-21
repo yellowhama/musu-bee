@@ -10,6 +10,10 @@ Routes:
   GET  /api/messages           — List messages for a session (cursor-based pagination)
   GET  /api/messages/{id}      — Get a single message by id
   DELETE /api/messages/{id}    — Delete a message by id
+  GET  /api/tasks/{id}/sprint-contract — Sprint Contract for a delegated task
+  GET  /api/tasks/{id}/qa-scores       — QA iteration scores for a delegated task
+  POST /api/watchdog/{node}/{command}  — Send watchdog command via QUIC P2P
+  GET  /api/watchdog/{node}/status     — Get watchdog/bridge status from node
   GET  /health                 — Liveness check
 """
 from __future__ import annotations
