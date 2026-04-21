@@ -373,6 +373,58 @@ def _v11_down(conn: sqlite3.Connection) -> None:  # noqa: ARG001
     conn.commit()
 
 
+# ---------------------------------------------------------------------------
+# v12: sprint_contracts + qa_scores tables (Harness B)
+# ---------------------------------------------------------------------------
+
+
+def _v12_up(conn: sqlite3.Connection) -> None:
+    """Add sprint_contracts and qa_scores tables for QA harness loop."""
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS sprint_contracts (
+            id                       TEXT PRIMARY KEY,
+            task_id                  TEXT,
+            task                     TEXT NOT NULL,
+            scope_json               TEXT NOT NULL DEFAULT '[]',
+            out_of_scope_json        TEXT NOT NULL DEFAULT '[]',
+            acceptance_criteria_json TEXT NOT NULL DEFAULT '[]',
+            done_definition          TEXT NOT NULL DEFAULT '',
+            created_at               REAL NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS qa_scores (
+            id           TEXT PRIMARY KEY,
+            contract_id  TEXT REFERENCES sprint_contracts(id),
+            task_id      TEXT,
+            iteration    INTEGER NOT NULL DEFAULT 1,
+            functionality INTEGER NOT NULL,
+            correctness   INTEGER NOT NULL,
+            completeness  INTEGER NOT NULL,
+            code_quality  INTEGER NOT NULL,
+            pass         INTEGER NOT NULL DEFAULT 0,
+            feedback     TEXT NOT NULL DEFAULT '',
+            created_at   REAL NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_qa_scores_contract_id
+            ON qa_scores(contract_id);
+
+        CREATE INDEX IF NOT EXISTS idx_sprint_contracts_task_id
+            ON sprint_contracts(task_id);
+    """)
+    conn.commit()
+
+
+def _v12_down(conn: sqlite3.Connection) -> None:
+    conn.executescript("""
+        DROP INDEX IF EXISTS idx_qa_scores_contract_id;
+        DROP INDEX IF EXISTS idx_sprint_contracts_task_id;
+        DROP TABLE IF EXISTS qa_scores;
+        DROP TABLE IF EXISTS sprint_contracts;
+    """)
+    conn.commit()
+
+
 MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v1_fallback_chain", _v1_up, _v1_down),
     ("v2_messages_agent_id", _v2_up, _v2_down),
@@ -385,6 +437,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v9_route_executions_composite_idx", _v9_up, _v9_down),
     ("v10_kvstore", _v10_up, _v10_down),
     ("v11_dedup_unique_indexes", _v11_up, _v11_down),
+    ("v12_sprint_contracts_qa_scores", _v12_up, _v12_down),
 ]
 
 

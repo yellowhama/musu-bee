@@ -1,4 +1,58 @@
 import { NextRequest, NextResponse } from "next/server";
+import { readFile } from "fs/promises";
+import { join } from "path";
+import { homedir } from "os";
+
+interface NodeConfig {
+  name: string;
+  tailscale_ip: string;
+  url?: string;
+}
+
+interface NodesConfig {
+  mesh: {
+    nodes: NodeConfig[];
+  };
+}
+
+async function readNodesConfig(): Promise<NodesConfig> {
+  try {
+    const configPath = join(homedir(), ".musu", "nodes.toml");
+    const content = await readFile(configPath, "utf-8");
+
+    const config: NodesConfig = { mesh: { nodes: [] } };
+    const lines = content.split("\n");
+    let currentNode: NodeConfig | null = null;
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+
+      if (trimmed.startsWith("[[mesh.nodes]]")) {
+        if (currentNode) config.mesh.nodes.push(currentNode);
+        currentNode = { name: "", tailscale_ip: "" };
+        continue;
+      }
+
+      if (currentNode) {
+        if (trimmed.startsWith("name =")) {
+          const match = trimmed.match(/name\s*=\s*"([^"]+)"/);
+          if (match) currentNode.name = match[1];
+        } else if (trimmed.startsWith("tailscale_ip =")) {
+          const match = trimmed.match(/tailscale_ip\s*=\s*"([^"]+)"/);
+          if (match) currentNode.tailscale_ip = match[1];
+        } else if (trimmed.startsWith("url =")) {
+          const match = trimmed.match(/url\s*=\s*"([^"]+)"/);
+          if (match) currentNode.url = match[1];
+        }
+      }
+    }
+
+    if (currentNode) config.mesh.nodes.push(currentNode);
+    return config;
+  } catch {
+    return { mesh: { nodes: [] } };
+  }
+}
 
 /** Parse delegation chain from agent response text.
  *  Detects patterns like "→ CTO", "CTO에게 위임", "delegating to engineer", etc.
@@ -88,13 +142,25 @@ export async function POST(req: NextRequest) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), AGENT_ROUTE_TIMEOUT_MS);
 
-  // Use remote URL when node === 'remote' and MUSU_BRIDGE_REMOTE_URL is set
-  const targetUrl =
-    node === "remote" && MUSU_BRIDGE_REMOTE_URL
-      ? MUSU_BRIDGE_REMOTE_URL
-      : MUSU_BRIDGE_URL;
+  // Determine target URL based on selected node
+  let targetUrl = MUSU_BRIDGE_URL;
+
+  if (node && node !== "local") {
+    // If a specific node is selected, read nodes.toml and find the node's URL
+    const nodesConfig = await readNodesConfig();
+    const selectedNode = nodesConfig.mesh.nodes.find(n => n.name === node);
+
+    if (selectedNode?.url) {
+      // Use the node's configured URL (e.g., https://musu.pro)
+      targetUrl = selectedNode.url.replace(/\/+$/, "");
+    } else if (node === "remote" && MUSU_BRIDGE_REMOTE_URL) {
+      // Fallback to MUSU_BRIDGE_REMOTE_URL for legacy "remote" node
+      targetUrl = MUSU_BRIDGE_REMOTE_URL;
+    }
+  }
 
   try {
+    // TODO: Pass node parameter to musu-bridge once RouteRequest supports it
     const upstream = await fetch(`${targetUrl}/api/route`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

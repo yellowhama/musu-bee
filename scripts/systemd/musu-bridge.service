@@ -1,6 +1,7 @@
 [Unit]
 Description=MUSU Bridge API Server
-After=network.target
+After=network.target musu-connectsd.service
+Requires=musu-connectsd.service
 
 [Service]
 Type=simple

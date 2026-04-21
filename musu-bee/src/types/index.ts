@@ -10,6 +10,7 @@ export type ChannelId =
   | "goals"
   | "costs"
   | "search"
+  | "nodes"
   | "ceo"
   | "cto"
   | "engineer"
@@ -146,4 +147,19 @@ export interface AgentsSurfaceSnapshot {
   degradedReason: string | null;
   stale: boolean;
   summary: AgentsSurfaceSummary;
+}
+
+// ---------------------------------------------------------------------------
+// Goals (mirror musu-core Python schema)
+// ---------------------------------------------------------------------------
+
+export interface Goal {
+  id: string;
+  company_id: string;
+  title: string;
+  description: string;
+  status: "active" | "completed" | "cancelled";
+  due_date: string | null;
+  created_at: string;
+  updated_at: string;
 }

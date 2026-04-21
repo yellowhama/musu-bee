@@ -104,19 +104,48 @@ export interface UseChatReturn {
 
 type ChatApiResponse = { text?: string; error?: string };
 
-export function useChat(channel: ChannelId): UseChatReturn {
+export function useChat(
+  channel: ChannelId,
+  availableNodes: Array<{ name: string; status: string }> = [],
+  selectedNodeId?: string
+): UseChatReturn {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [isAgentTyping, setIsAgentTyping] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [hasMoreHistory, setHasMoreHistory] = useState(false);
-  const [activeNode, setActiveNode] = useState<string>("local");
+
+  // Initialize activeNode with the first online node, or "local" as fallback
+  const getDefaultNode = useCallback(() => {
+    if (availableNodes.length === 0) return "local";
+    const onlineNode = availableNodes.find(n => n.status === "online");
+    return onlineNode?.name ?? availableNodes[0]?.name ?? "local";
+  }, [availableNodes]);
+
+  const [activeNode, setActiveNode] = useState<string>(selectedNodeId ?? getDefaultNode());
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const reconnectDelay = useRef(1000);
   const oldestHistoryId = useRef<string | null>(null);
   const isAgentChannel = AGENT_CHANNELS.includes(channel);
+
+  // Update activeNode when selectedNodeId changes
+  useEffect(() => {
+    if (selectedNodeId) {
+      setActiveNode(selectedNodeId);
+    }
+  }, [selectedNodeId]);
+
+  // Update activeNode when availableNodes changes (if current node is no longer available)
+  useEffect(() => {
+    if (availableNodes.length === 0) return;
+    const currentNodeExists = availableNodes.some(n => n.name === activeNode);
+    if (!currentNodeExists) {
+      const newNode = selectedNodeId ?? getDefaultNode();
+      setActiveNode(newNode);
+    }
+  }, [availableNodes, activeNode, getDefaultNode, selectedNodeId]);
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 

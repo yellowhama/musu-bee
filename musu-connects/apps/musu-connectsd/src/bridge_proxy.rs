@@ -44,8 +44,10 @@ pub struct ForwardRequest {
 // ── QUIC frame format ─────────────────────────────────────────────────────────
 
 /// Frame sent over QUIC stream (both directions use JSON).
-/// Request: {channel, sender_id, text, version}
+/// Request: {channel, sender_id, text, version, frame_type}
 /// Response: any JSON dict from musu-bridge /api/route
+/// frame_type = "route" (default) | "watchdog"
+/// When frame_type == "watchdog", `text` is the watchdog command string.
 #[derive(Serialize, Deserialize, Debug)]
 struct QuicFrame {
     channel: String,
@@ -53,9 +55,31 @@ struct QuicFrame {
     text: String,
     #[serde(default = "default_version")]
     version: u8,
+    #[serde(default = "default_frame_type")]
+    frame_type: String,
 }
 
 fn default_version() -> u8 { 1 }
+fn default_frame_type() -> String { "route".to_string() }
+
+// ── Watchdog HTTP types ───────────────────────────────────────────────────────
+
+/// POST /watchdog/forward — sent by Python mesh_router to execute remote watchdog command
+#[derive(Deserialize)]
+pub struct WatchdogForwardRequest {
+    /// e.g. "http://1.2.3.4:8070" — we extract the host IP from this
+    pub peer_url: String,
+    /// "bridge:start" | "bridge:stop" | "bridge:restart" | "agents:cleanup"
+    pub command: String,
+}
+
+/// GET /watchdog/status — local bridge health + agent count
+#[derive(Serialize)]
+pub struct WatchdogStatusResponse {
+    pub bridge_running: bool,
+    pub agent_count: Option<u32>,
+    pub connectsd_ok: bool,
+}
 
 // ── Connection pool ───────────────────────────────────────────────────────────
 
@@ -80,6 +104,8 @@ struct ProxyState {
     musu_token: Option<String>,
     /// musu.pro nodes list URL (default: https://musu.pro/api/v1/nodes)
     nodes_url: String,
+    /// Local bridge URL (e.g. "http://127.0.0.1:8070") — for watchdog status check
+    bridge_url: String,
 }
 
 // ── TLS: no-verify client (fallback — used when fingerprint is unknown) ───────
@@ -536,23 +562,31 @@ async fn handle_quic_connection(conn: quinn::Connection, bridge_url: Arc<String>
             };
 
             eprintln!(
-                "[quic-server] recv channel={:?} sender={:?}",
-                frame.channel, frame.sender_id
+                "[quic-server] recv channel={:?} sender={:?} type={:?}",
+                frame.channel, frame.sender_id, frame.frame_type
             );
 
-            // Forward to local musu-bridge
-            let url = format!("{}/api/route", bridge.trim_end_matches('/'));
-            let body = serde_json::json!({
-                "channel": frame.channel,
-                "sender_id": frame.sender_id,
-                "text": frame.text,
-            });
-
-            let response_json = match call_local_bridge(&url, body).await {
-                Ok(v) => v,
-                Err(e) => {
-                    eprintln!("[quic-server] bridge call failed: {e}");
-                    serde_json::json!({"status": "error", "message": e})
+            let response_json = if frame.frame_type == "watchdog" {
+                // Watchdog command — execute locally, do NOT forward to bridge
+                eprintln!("[quic-server] watchdog command: {:?}", frame.text);
+                match execute_watchdog_command(&frame.text).await {
+                    Ok(output) => serde_json::json!({"ok": true, "output": output}),
+                    Err(e) => serde_json::json!({"ok": false, "error": e}),
+                }
+            } else {
+                // Normal route — forward to local musu-bridge
+                let url = format!("{}/api/route", bridge.trim_end_matches('/'));
+                let body = serde_json::json!({
+                    "channel": frame.channel,
+                    "sender_id": frame.sender_id,
+                    "text": frame.text,
+                });
+                match call_local_bridge(&url, body).await {
+                    Ok(v) => v,
+                    Err(e) => {
+                        eprintln!("[quic-server] bridge call failed: {e}");
+                        serde_json::json!({"status": "error", "message": e})
+                    }
                 }
             };
 
@@ -586,10 +620,131 @@ async fn call_local_bridge(url: &str, body: serde_json::Value) -> Result<serde_j
         .map_err(|e| format!("response parse: {e}"))
 }
 
+// ── Watchdog command execution ────────────────────────────────────────────────
+
+/// Execute a watchdog command locally.
+/// Allowed: "bridge:start" | "bridge:stop" | "bridge:restart" | "agents:cleanup"
+async fn execute_watchdog_command(command: &str) -> Result<String, String> {
+    let (program, args): (&str, Vec<&str>) = match command {
+        "bridge:start"   => ("systemctl", vec!["--user", "start",   "musu-bridge.service"]),
+        "bridge:stop"    => ("systemctl", vec!["--user", "stop",    "musu-bridge.service"]),
+        "bridge:restart" => ("systemctl", vec!["--user", "restart", "musu-bridge.service"]),
+        "agents:cleanup" => {
+            // Delete paused agents from local musu.db
+            let db_path = dirs::home_dir()
+                .ok_or("cannot determine home dir")?
+                .join(".musu/musu.db");
+            let db_str = db_path.to_string_lossy().to_string();
+            return run_cmd_with_timeout(
+                "sqlite3",
+                &[db_str.as_str(), "DELETE FROM agents WHERE status='paused'; SELECT changes() || ' rows deleted';"],
+            ).await;
+        }
+        other => return Err(format!("unknown watchdog command: {other}")),
+    };
+
+    run_cmd_with_timeout(program, &args).await
+}
+
+async fn run_cmd_with_timeout(program: &str, args: &[&str]) -> Result<String, String> {
+    use tokio::time::timeout;
+    let mut cmd = tokio::process::Command::new(program);
+    cmd.args(args);
+    cmd.stdout(std::process::Stdio::piped());
+    cmd.stderr(std::process::Stdio::piped());
+
+    let result = timeout(Duration::from_secs(10), cmd.output()).await
+        .map_err(|_| format!("{program} timed out after 10s"))?
+        .map_err(|e| format!("failed to exec {program}: {e}"))?;
+
+    let stdout = String::from_utf8_lossy(&result.stdout).trim().to_string();
+    let stderr = String::from_utf8_lossy(&result.stderr).trim().to_string();
+
+    if result.status.success() {
+        Ok(if stdout.is_empty() { stderr } else { stdout })
+    } else {
+        Err(format!("exit {:?} — {}", result.status.code(), if stderr.is_empty() { &stdout } else { &stderr }))
+    }
+}
+
 // ── HTTP server handlers ──────────────────────────────────────────────────────
 
 async fn handle_health() -> &'static str {
     "ok"
+}
+
+/// POST /watchdog/forward — forward watchdog command to remote connectsd via QUIC
+async fn handle_watchdog_forward(
+    State(state): State<ProxyState>,
+    Json(req): Json<WatchdogForwardRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let allowed = ["bridge:start", "bridge:stop", "bridge:restart", "agents:cleanup"];
+    if !allowed.contains(&req.command.as_str()) {
+        return Err((StatusCode::BAD_REQUEST, format!("unknown command: {}", req.command)));
+    }
+
+    let host = extract_host(&req.peer_url).ok_or_else(|| {
+        (StatusCode::BAD_REQUEST, format!("cannot parse host from peer_url: {}", req.peer_url))
+    })?;
+
+    let remote_addr: SocketAddr = format!("{}:{}", host, state.quic_port)
+        .parse()
+        .map_err(|e| (StatusCode::BAD_REQUEST, format!("bad address: {e}")))?;
+
+    eprintln!("[watchdog] forwarding command={:?} → {}", req.command, remote_addr);
+
+    let frame = QuicFrame {
+        channel: "watchdog".to_string(),
+        sender_id: "connectsd".to_string(),
+        text: req.command.clone(),
+        version: 1,
+        frame_type: "watchdog".to_string(),
+    };
+
+    let response = quic_send_pooled(
+        &state.client_endpoint,
+        &state.conn_pool,
+        &state.fingerprint_cache,
+        &state.musu_token,
+        &state.nodes_url,
+        remote_addr,
+        &frame,
+    )
+    .await
+    .map_err(|e| (StatusCode::BAD_GATEWAY, format!("quic error: {e}")))?;
+
+    eprintln!("[watchdog] response from {}: {:?}", remote_addr, response);
+    Ok(Json(response))
+}
+
+/// GET /watchdog/status — check local bridge health
+async fn handle_watchdog_status(
+    State(state): State<ProxyState>,
+) -> Json<WatchdogStatusResponse> {
+    let bridge_running = get_http_client()
+        .get(format!("{}/health", state.bridge_url.trim_end_matches('/')))
+        .timeout(Duration::from_secs(2))
+        .send()
+        .await
+        .map(|r| r.status().is_success())
+        .unwrap_or(false);
+
+    let agent_count: Option<u32> = if bridge_running {
+        let url = format!("{}/api/agents", state.bridge_url.trim_end_matches('/'));
+        if let Ok(resp) = get_http_client().get(&url).timeout(Duration::from_secs(3)).send().await {
+            if let Ok(json) = resp.json::<serde_json::Value>().await {
+                json.as_array().map(|a| a.len() as u32)
+            } else { None }
+        } else { None }
+    } else {
+        None
+    };
+
+    Json(WatchdogStatusResponse {
+        bridge_running,
+        agent_count,
+        connectsd_ok: true,
+    })
 }
 
 async fn handle_forward(
@@ -695,12 +850,15 @@ pub async fn run_bridge_proxy(
         fingerprint_cache: Arc::new(DashMap::new()),
         musu_token,
         nodes_url,
+        bridge_url: bridge_url.clone(),
     };
 
     // 7. HTTP server
     let http_addr: SocketAddr = format!("127.0.0.1:{http_port}").parse()?;
     let app = Router::new()
         .route("/forward", post(handle_forward))
+        .route("/watchdog/forward", post(handle_watchdog_forward))
+        .route("/watchdog/status", get(handle_watchdog_status))
         .route("/health", get(handle_health))
         .with_state(state);
     let listener = tokio::net::TcpListener::bind(http_addr).await?;

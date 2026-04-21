@@ -252,24 +252,25 @@ export default function Sidebar({
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: 6,
-                      padding: "8px 8px 4px",
+                      gap: 8,
+                      padding: "12px 8px 6px",
+                      marginTop: 4,
                     }}
                   >
-                    <div style={{ flex: 1, height: 1, background: "#1f1f1f" }} />
+                    <div style={{ flex: 1, height: 1, background: hasCompany ? "#2a2a2a" : "#1a1a1a" }} />
                     <span
                       style={{
-                        fontSize: 9,
+                        fontSize: 10,
                         fontWeight: 700,
-                        color: hasCompany ? "#6b7280" : "#374151",
+                        color: hasCompany ? "#8b8b8b" : "#4a4a4a",
                         textTransform: "uppercase",
-                        letterSpacing: "0.08em",
+                        letterSpacing: "0.1em",
                         whiteSpace: "nowrap",
                       }}
                     >
                       Company
                     </span>
-                    <div style={{ flex: 1, height: 1, background: "#1f1f1f" }} />
+                    <div style={{ flex: 1, height: 1, background: hasCompany ? "#2a2a2a" : "#1a1a1a" }} />
                   </div>
                 )}
                 <div

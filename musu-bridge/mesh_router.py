@@ -333,6 +333,53 @@ class MeshRouter:
             logger.exception("mesh_router: unexpected error forwarding to %s", target)
             return {"error": "remote_error", "response": None}
 
+    async def forward_watchdog(
+        self,
+        node_name: str,
+        command: str,
+    ) -> dict[str, Any]:
+        """Send a watchdog command to a node's connectsd via QUIC.
+
+        For the local node: call connectsd HTTP sidecar directly for status.
+        For remote nodes: send watchdog frame via QUIC tunnel.
+
+        Allowed commands: "bridge:start" | "bridge:stop" | "bridge:restart" |
+                          "agents:cleanup" | "status"
+        """
+        allowed = {"bridge:start", "bridge:stop", "bridge:restart", "agents:cleanup", "status"}
+        if command not in allowed:
+            raise ValueError(f"unknown watchdog command: {command!r}")
+
+        quic_proxy = _QUIC_PROXY_URL or "http://127.0.0.1:9443"
+
+        if command == "status" or node_name == self._self_name:
+            # Local: call connectsd HTTP sidecar directly
+            target = f"{quic_proxy.rstrip('/')}/watchdog/status"
+            logger.info("mesh_router: watchdog status (local) → %s", target)
+            try:
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    resp = await client.get(target)
+                    resp.raise_for_status()
+                    return resp.json()
+            except Exception as exc:
+                logger.warning("mesh_router: watchdog status failed: %s", exc)
+                return {"bridge_running": False, "connectsd_ok": False, "error": str(exc)}
+
+        node_url = self._node_urls.get(node_name)
+        if not node_url:
+            raise ValueError(f"unknown node: {node_name!r}")
+
+        target = f"{quic_proxy.rstrip('/')}/watchdog/forward"
+        payload = {"peer_url": node_url, "command": command}
+        logger.info(
+            "mesh_router: watchdog forward command=%r → node=%s (%s)",
+            command, node_name, node_url,
+        )
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(target, json=payload)
+            resp.raise_for_status()
+            return resp.json()
+
 
 # ── TOML writer (tomllib is read-only) ────────────────────────────────────────
 

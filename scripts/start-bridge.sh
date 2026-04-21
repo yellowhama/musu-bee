@@ -6,6 +6,17 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(dirname "$SCRIPT_DIR")"
 
+# ── Early .env loading (Priority 1-C) ────────────────────────────────────────
+# Load musu-bridge/.env FIRST, before any other logic
+# Relay env vars (MUSU_RELAY_ENABLED, MUSU_RELAY_URL) auto-injected
+# Priority: shell env > musu-bridge/.env (shell env wins if already set)
+if [[ -f "${ROOT}/musu-bridge/.env" ]]; then
+    set -a
+    source "${ROOT}/musu-bridge/.env"
+    set +a
+    echo "[start-bridge] ✅ musu-bridge/.env loaded (relay env vars auto-injected)" >&2
+fi
+
 # ── Prerequisites guard ───────────────────────────────────────
 if [[ ! -d "${HOME}/.musu" ]]; then
     echo "[ERROR] ~/.musu directory not found." >&2
@@ -17,25 +28,14 @@ if [[ ! -x "${ROOT}/musu-bridge/.venv/bin/python3" ]]; then
     echo "  Run: bash ${SCRIPT_DIR}/install.sh" >&2
 fi
 
-# ── .env loading: priority order = shell env > ~/.musu/bridge.env > musu-bridge/.env ─────
-_load_dotenv() {
-    local _file="$1"
-    [[ -f "$_file" ]] || return 0
-    while IFS= read -r _line || [[ -n "$_line" ]]; do
-        [[ -z "$_line" || "$_line" == \#* ]] && continue
-        _key="${_line%%=*}"
-        # Only export if not already set (earlier sources win)
-        if [[ -z "${!_key+x}" ]]; then
-            export "$_line" 2>/dev/null || true
-        fi
-    done < "$_file"
-    echo "[start-bridge] .env loaded from ${_file}" >&2
-}
-
-# 1. User config (highest file priority — overrides project defaults)
-_load_dotenv "${HOME}/.musu/bridge.env"
-# 2. Project defaults (fallback values only)
-_load_dotenv "${ROOT}/musu-bridge/.env"
+# ── Optional: User config override (~/.musu/bridge.env) ──────────────────────
+# Load user-specific overrides AFTER project defaults (shell env still wins)
+if [[ -f "${HOME}/.musu/bridge.env" ]]; then
+    set -a
+    source "${HOME}/.musu/bridge.env"
+    set +a
+    echo "[start-bridge] ~/.musu/bridge.env loaded (user overrides)" >&2
+fi
 
 # ── Bridge token resolution (priority: env > file > dev auto-generate) ────────
 TOKEN_FILE="${MUSU_BRIDGE_TOKEN_FILE:-${HOME}/.musu/bridge_token}"
@@ -194,9 +194,13 @@ else
 fi
 QUIC_PID=""
 
-if [[ -f "$CONNECTSD_BIN" ]]; then
+# If musu-connectsd is already managed by systemd, skip manual launch
+HTTP_PROXY_PORT="${MUSU_HTTP_PROXY_PORT:-9443}"
+if systemctl --user is-active musu-connectsd.service &>/dev/null; then
+    echo "[start-bridge] musu-connectsd managed by systemd — skipping manual start" >&2
+    export MUSU_QUIC_PROXY_URL="http://127.0.0.1:${HTTP_PROXY_PORT}"
+elif [[ -f "$CONNECTSD_BIN" ]]; then
     QUIC_PORT="${MUSU_QUIC_PORT:-4433}"
-    HTTP_PROXY_PORT="${MUSU_HTTP_PROXY_PORT:-9443}"
     LOCAL_BRIDGE_URL="${MUSU_BRIDGE_URL:-http://127.0.0.1:${BRIDGE_PORT}}"
 
     mkdir -p "${ROOT}/logs"
@@ -222,7 +226,7 @@ else
     export MUSU_QUIC_PROXY_URL=""
 fi
 
-# Cleanup: kill QUIC sidecar on exit
+# Cleanup: kill QUIC sidecar on exit (only if we launched it manually)
 if [[ -n "$QUIC_PID" ]]; then
     trap "kill $QUIC_PID 2>/dev/null || true" EXIT INT TERM
 fi

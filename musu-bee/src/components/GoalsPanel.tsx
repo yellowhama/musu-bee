@@ -1,17 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-
-interface Goal {
-  id: string;
-  company_id: string;
-  title: string;
-  description: string;
-  status: "active" | "completed" | "cancelled";
-  due_date: string | null;
-  created_at: string;
-  updated_at: string;
-}
+import type { Goal } from "@/types";
 
 const STATUS_COLOR: Record<Goal["status"], string> = {
   active: "#60a5fa",

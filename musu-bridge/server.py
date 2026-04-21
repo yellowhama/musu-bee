@@ -1425,9 +1425,137 @@ async def api_index_search(q: str = Query("", max_length=200)) -> list[dict]:
         return [{"error": str(exc), "path": "", "snippet": "", "type": "error"}]
 
 
+# ──────────────────────────────────────────────────────────────────
+# LLM Wiki — Central Memory System
+# ──────────────────────────────────────────────────────────────────
+
+import re as _re
+from pathlib import Path as _Path
+
+_WIKI_PATH = _Path(os.environ.get("MUSU_WIKI_PATH", str(_Path.home() / "llm-wiki" / "wiki")))
+_WIKI_PATH.mkdir(parents=True, exist_ok=True)  # ensure dir exists for new users
+
+
+def _wiki_title(content: str, fallback: str) -> str:
+    for line in content.split("\n"):
+        if line.startswith("# "):
+            return line[2:].strip()
+    return fallback
+
+
+def _iter_wiki_files():
+    """Yield (file_path, folder_name) for all .md files, top-level and one level deep."""
+    for f in sorted(_WIKI_PATH.glob("*.md")):
+        yield f, ""
+    for d in sorted(p for p in _WIKI_PATH.iterdir() if p.is_dir() and not p.name.startswith(".")):
+        for f in sorted(d.glob("*.md")):
+            yield f, d.name
+
+
+@app.get("/api/wiki/pages", summary="List all wiki pages")
+async def api_wiki_pages() -> list[dict]:
+    """Return list of {id, title, folder} for every page in the LLM wiki.
+    Top-level files have folder=''. Subfolder files have folder=<dirname> and id=<folder>/<stem>.
+    """
+    pages = []
+    for f, folder in _iter_wiki_files():
+        try:
+            content = f.read_text(encoding="utf-8")
+            title = _wiki_title(content, f.stem)
+        except OSError:
+            title = f.stem
+        page_id = f"{folder}/{f.stem}" if folder else f.stem
+        pages.append({"id": page_id, "title": title, "folder": folder})
+    return pages
+
+
+@app.get("/api/wiki/search", summary="Search wiki pages")
+async def api_wiki_search(q: str = Query("", max_length=200)) -> list[dict]:
+    """Full-text search across all wiki pages. Returns up to 20 results."""
+    q_str = q.strip().lower()
+    if not q_str:
+        return []
+    results = []
+    for f, folder in _iter_wiki_files():
+        try:
+            content = f.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        if q_str in content.lower():
+            idx = content.lower().find(q_str)
+            start = max(0, idx - 120)
+            end = min(len(content), idx + 300)
+            snippet = content[start:end].replace("\n", " ").strip()
+            title = _wiki_title(content, f.stem)
+            page_id = f"{folder}/{f.stem}" if folder else f.stem
+            results.append({"id": page_id, "title": title, "folder": folder, "snippet": snippet})
+    return results[:20]
+
+
+@app.get("/api/wiki/page/{page_id:path}", summary="Get a wiki page by ID")
+async def api_wiki_page(page_id: str = Path(..., max_length=200)) -> dict:
+    """Return the full markdown content of a wiki page.
+    Supports both flat IDs (e.g. 'index') and folder IDs (e.g. 'musu/getting-started').
+    """
+    # Sanitize: allow alphanumeric, underscore, hyphen, forward slash only
+    safe_id = _re.sub(r"[^a-zA-Z0-9_\-/]", "", page_id).strip("/").replace("//", "/")
+    parts = safe_id.split("/", 1)
+    if len(parts) == 2:
+        folder, stem = parts
+        path = _WIKI_PATH / folder / f"{stem}.md"
+    else:
+        path = _WIKI_PATH / f"{safe_id}.md"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"Wiki page '{safe_id}' not found.")
+    content = path.read_text(encoding="utf-8")
+    return {"id": safe_id, "title": _wiki_title(content, safe_id.split("/")[-1]), "content": content}
+
+
 @app.get("/health")
 async def health() -> dict:
     return {"status": "ok"}
+
+
+# ── Watchdog endpoints (P2P remote bridge control via musu-connectsd) ─────────
+
+_WATCHDOG_ALLOWED = frozenset({"bridge:start", "bridge:stop", "bridge:restart", "agents:cleanup"})
+
+
+@app.post("/api/watchdog/{node}/{command}")
+async def watchdog_command(node: str, command: str) -> dict:
+    """Send a watchdog command to a node's connectsd via QUIC.
+
+    Routes via local musu-connectsd bridge-proxy — musu.pro is not involved.
+    The remote connectsd executes the command (systemctl, sqlite3, etc.) locally.
+    """
+    if command not in _WATCHDOG_ALLOWED:
+        raise HTTPException(status_code=400, detail=f"Unknown watchdog command: {command!r}")
+    from mesh_router import get_mesh_router
+    router = get_mesh_router()
+    if router is None:
+        raise HTTPException(status_code=503, detail="Mesh router not initialised")
+    try:
+        result = await router.forward_watchdog(node, command)
+        return result
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Watchdog error: {exc}")
+
+
+@app.get("/api/watchdog/{node}/status")
+async def watchdog_status(node: str) -> dict:
+    """Get watchdog + bridge status from a node's connectsd."""
+    from mesh_router import get_mesh_router
+    router = get_mesh_router()
+    if router is None:
+        raise HTTPException(status_code=503, detail="Mesh router not initialised")
+    try:
+        return await router.forward_watchdog(node, "status")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        return {"bridge_running": False, "connectsd_ok": False, "error": str(exc)}
 
 
 

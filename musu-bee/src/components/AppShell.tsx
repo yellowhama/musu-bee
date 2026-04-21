@@ -16,6 +16,7 @@ import ProjectsPanel from "@/components/ProjectsPanel";
 import CostsPanel from "@/components/CostsPanel";
 import GoalsPanel from "@/components/GoalsPanel";
 import SearchPanel from "@/components/SearchPanel";
+import NodesPanel from "@/components/NodesPanel";
 import { useAuth } from "@/lib/useAuth";
 import { useDeviceDiscovery } from "@/lib/useDeviceDiscovery";
 import { useAgentsSurface } from "@/lib/useAgentsSurface";
@@ -23,6 +24,7 @@ import { useCompanyState } from "@/lib/useCompanyState";
 import { useChat } from "@/lib/useChat";
 import { useServiceHealth } from "@/lib/useServiceHealth";
 import { useHealthPopover } from "@/lib/useHealthPopover";
+import { useNodes } from "@/lib/useNodes";
 import { getSupabaseClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import type { Channel, ChannelId, Message } from "@/types";
@@ -43,6 +45,7 @@ const CHANNEL_DESCRIPTIONS: Partial<Record<ChannelId, string>> = {
   goals: "Company goals tracker",
   costs: "Request cost analytics",
   search: "Search the indexed codebase",
+  nodes: "Multi-machine mesh nodes",
   ceo: "CEO agent",
   cto: "CTO agent",
   engineer: "Engineer agent",
@@ -63,6 +66,7 @@ const INITIAL_CHANNELS: Channel[] = [
   { id: "goals", name: "goals", unread: 0 },
   { id: "costs", name: "costs", unread: 0 },
   { id: "search", name: "search", unread: 0 },
+  { id: "nodes", name: "nodes", unread: 0 },
   { id: "ceo", name: "ceo", unread: 0 },
   { id: "cto", name: "cto", unread: 0 },
   { id: "engineer", name: "engineer", unread: 0 },
@@ -77,6 +81,7 @@ export default function AppShell() {
   // ── Hooks ──────────────────────────────────────────────────────────────────
   const { userIdentity, authEnabled, authConfigured } = useAuth();
   const { devices } = useDeviceDiscovery();
+  const { nodes } = useNodes();
 
   const handleHandoff = useCallback((newBoss: string) => {
     const sysMsg: Message = {
@@ -120,7 +125,24 @@ export default function AppShell() {
   const { healthPopover, setHealthPopover, popoverRef, handleBadgeClick } = useHealthPopover();
 
   const isAgentChannel = AGENT_CHANNELS.includes(activeChannel);
-  const chat = useChat(activeChannel);
+
+  // ── Node selection state ───────────────────────────────────────────────────
+  const [selectedNodeId, setSelectedNodeId] = useState<string>(() => {
+    const onlineNode = nodes.find(n => n.status === "online");
+    return onlineNode?.name ?? nodes[0]?.name ?? "local";
+  });
+
+  // Update selectedNodeId when nodes change
+  useEffect(() => {
+    if (nodes.length === 0) return;
+    const currentNodeExists = nodes.some(n => n.name === selectedNodeId);
+    if (!currentNodeExists) {
+      const onlineNode = nodes.find(n => n.status === "online");
+      setSelectedNodeId(onlineNode?.name ?? nodes[0]?.name ?? "local");
+    }
+  }, [nodes, selectedNodeId]);
+
+  const chat = useChat(activeChannel, nodes, selectedNodeId);
   const serviceHealth = useServiceHealth();
 
   // ── Command palette keyboard shortcut ──────────────────────────────────────
@@ -258,6 +280,37 @@ export default function AppShell() {
         >
           {companyActivation?.controlPlaneSync.status ?? "draft"}
         </span>
+        {/* Node selector */}
+        {nodes.length > 0 && (
+          <select
+            value={selectedNodeId}
+            onChange={(e) => setSelectedNodeId(e.target.value)}
+            style={{
+              fontSize: 11,
+              color: "#f3f4f6",
+              background: "#141414",
+              border: "1px solid #374151",
+              borderRadius: 6,
+              padding: "4px 10px",
+              cursor: "pointer",
+              outline: "none",
+            }}
+            title="Select active node"
+          >
+            {nodes.map((node) => {
+              const statusEmoji =
+                node.status === "online" ? "🟢" :
+                node.status === "degraded" ? "🟡" :
+                node.status === "offline" ? "🔴" :
+                "⚪";
+              return (
+                <option key={node.name} value={node.name}>
+                  {statusEmoji} {node.name}
+                </option>
+              );
+            })}
+          </select>
+        )}
         <div style={{ flex: 1 }} />
         {/* Service health badges — click to see version + latency popover */}
         {(["port", "bridge", "worker"] as const).map((svc) => {
@@ -474,6 +527,8 @@ export default function AppShell() {
           <GoalsPanel companyId={activeCompany?.companyId} />
         ) : activeChannel === "costs" ? (
           <CostsPanel companyId={activeCompany?.companyId} />
+        ) : activeChannel === "nodes" ? (
+          <NodesPanel />
         ) : (
           <ChatArea
             key={activeChannel}
@@ -496,6 +551,7 @@ export default function AppShell() {
             onExternalInputConsumed={() => setPaletteInjection("")}
             onNodeChange={isAgentChannel ? chat.setActiveNode : undefined}
             activeNode={isAgentChannel ? chat.activeNode : undefined}
+            availableNodes={nodes}
           />
         )}
       </div>

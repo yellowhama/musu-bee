@@ -761,6 +761,8 @@ _STATIC_CONTROL_TOOLS = [
     "list_projects", "get_project", "list_goals",
     "list_approvals", "resolve_approval",
     "delegate_task", "get_task_status", "list_tasks", "cancel_task",
+    # Wiki / Memory
+    "list_wiki_pages", "search_wiki", "get_wiki_page",
 ]
 
 

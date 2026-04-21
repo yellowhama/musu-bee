@@ -5,6 +5,49 @@ import { randomUUID } from "crypto";
 
 const RELAY_SECRET = process.env.MUSU_RELAY_SECRET || "";
 const PORT = parseInt(process.env.PORT || process.env.MUSU_RELAY_PORT || "9900", 10);
+const VALIDATION_API = process.env.MUSU_VALIDATION_API || "https://musu.pro/api/v1/nodes/validate";
+
+// ── Token Validation Cache ─────────────────────────────────────────────────
+
+interface CacheEntry {
+  valid: boolean;
+  timestamp: number;
+}
+
+const validationCache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 30_000; // 30s
+
+async function validateToken(token: string, nodeId: string): Promise<boolean> {
+  const cacheKey = `${token}:${nodeId}`;
+  const cached = validationCache.get(cacheKey);
+
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    return cached.valid;
+  }
+
+  try {
+    const response = await fetch(VALIDATION_API, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ token, node_id: nodeId }),
+    });
+
+    const valid = response.ok;
+    validationCache.set(cacheKey, { valid, timestamp: Date.now() });
+
+    if (!valid) {
+      console.warn(`[relay] token validation failed for node=${nodeId}: ${response.status}`);
+    }
+
+    return valid;
+  } catch (err) {
+    console.error(`[relay] token validation error for node=${nodeId}:`, err instanceof Error ? err.message : String(err));
+    // Fail open on network errors to prevent service disruption
+    return true;
+  }
+}
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -176,7 +219,7 @@ wss.on("tunnel-connection", (ws: WebSocket, req: http.IncomingMessage) => {
 
   let nodeId: string | null = null;
 
-  ws.on("message", (data: Buffer) => {
+  ws.on("message", async (data: Buffer) => {
     let msg: Record<string, unknown>;
     try {
       msg = JSON.parse(data.toString());
@@ -192,6 +235,14 @@ wss.on("tunnel-connection", (ws: WebSocket, req: http.IncomingMessage) => {
         ws.close(4002, "hello missing node_id");
         return;
       }
+
+      // Validate token + node_id pair with musu.pro
+      const valid = await validateToken(token, id);
+      if (!valid) {
+        ws.close(4005, "token validation failed");
+        return;
+      }
+
       nodeId = id;
       const existing = tunnels.get(nodeId);
       if (existing && existing.ws !== ws && existing.ws.readyState === WebSocket.OPEN) {
@@ -264,7 +315,7 @@ wss.on("tunnel-connection", (ws: WebSocket, req: http.IncomingMessage) => {
 //   ws_data:  { type: "ws_data",  session_id, data_b64 }    (binary base64)
 //   ws_close: { type: "ws_close", session_id, code?, reason? }
 
-wss.on("ws-proxy-connection", (clientWs: WebSocket, req: http.IncomingMessage) => {
+wss.on("ws-proxy-connection", async (clientWs: WebSocket, req: http.IncomingMessage) => {
   const url = new URL(req.url ?? "", "ws://localhost");
   // Path: /ws-proxy/:nodeId/:rest
   const parts = url.pathname.split("/").filter(Boolean); // ["ws-proxy", nodeId, ...rest]
@@ -287,6 +338,13 @@ wss.on("ws-proxy-connection", (clientWs: WebSocket, req: http.IncomingMessage) =
   // This ties the connection to the correct account without requiring DB access.
   if (!token || token !== entry.token) {
     clientWs.close(4001, "invalid token");
+    return;
+  }
+
+  // Validate token + node_id pair with musu.pro (cached)
+  const valid = await validateToken(token, nodeId);
+  if (!valid) {
+    clientWs.close(4005, "token validation failed");
     return;
   }
 

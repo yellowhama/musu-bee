@@ -23,6 +23,7 @@ interface ChatAreaProps {
   onExternalInputConsumed?: () => void;
   onNodeChange?: (node: string) => void;
   activeNode?: string;
+  availableNodes?: Array<{ name: string; status: string }>;
 }
 
 // ── Inline markdown renderer ──────────────────────────────────────────────────
@@ -496,6 +497,7 @@ export default function ChatArea({
   onExternalInputConsumed,
   onNodeChange,
   activeNode = "local",
+  availableNodes = [],
 }: ChatAreaProps) {
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -646,50 +648,42 @@ export default function ChatArea({
             {onlineAgents.length}/{totalAgents} agents
           </span>
         )}
-        {/* LOCAL/REMOTE toggle hidden — auto-routing via mesh_router (nodes.toml) */}
-        {false && isAgentChannel && onNodeChange && (
+        {/* Node selector dropdown */}
+        {isAgentChannel && onNodeChange && availableNodes.length > 0 && (
           <div
             style={{
               display: "flex",
-              gap: 4,
+              alignItems: "center",
+              gap: 6,
               background: "#1a1a1a",
               border: "1px solid #2d2d2d",
               borderRadius: 6,
-              padding: 2,
+              padding: "4px 8px",
             }}
           >
-            <button
-              onClick={() => onNodeChange?.("local")}
+            <span style={{ fontSize: 10, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              Node
+            </span>
+            <select
+              value={activeNode}
+              onChange={(e) => onNodeChange?.(e.target.value)}
               style={{
                 fontSize: 11,
                 fontWeight: 600,
-                padding: "4px 10px",
-                borderRadius: 4,
+                background: "transparent",
                 border: "none",
+                color: "#e5e7eb",
                 cursor: "pointer",
-                background: activeNode === "local" ? "#374151" : "transparent",
-                color: activeNode === "local" ? "#e5e7eb" : "#6b7280",
-                transition: "all 0.15s",
+                outline: "none",
+                padding: "2px 4px",
               }}
             >
-              LOCAL
-            </button>
-            <button
-              onClick={() => onNodeChange?.("remote")}
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                padding: "4px 10px",
-                borderRadius: 4,
-                border: "none",
-                cursor: "pointer",
-                background: activeNode === "remote" ? "#7c3aed" : "transparent",
-                color: activeNode === "remote" ? "#e9d5ff" : "#6b7280",
-                transition: "all 0.15s",
-              }}
-            >
-              REMOTE
-            </button>
+              {availableNodes.map((node) => (
+                <option key={node.name} value={node.name} style={{ background: "#1a1a1a", color: "#e5e7eb" }}>
+                  {node.name} {node.status !== "online" && `(${node.status})`}
+                </option>
+              ))}
+            </select>
           </div>
         )}
         <div

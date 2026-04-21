@@ -5,6 +5,7 @@ import logging
 import os
 import pathlib
 import re
+import tomllib
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -1286,6 +1287,169 @@ async def show_costs_view() -> CallToolResult:
     )
 
 
+# ── Nodes management tools ──
+
+def _read_nodes_toml() -> dict[str, Any]:
+    """Read nodes.toml from ~/.musu/nodes.toml."""
+    nodes_path = pathlib.Path.home() / ".musu" / "nodes.toml"
+    if not nodes_path.exists():
+        return {"mesh": {"nodes": []}}
+    try:
+        with open(nodes_path, "rb") as f:
+            data = tomllib.load(f)
+        return data
+    except Exception as e:
+        logger.error(f"Failed to read nodes.toml: {e}")
+        return {"mesh": {"nodes": []}}
+
+
+async def _fetch_node_health(node: dict[str, Any], worker_port: int) -> dict[str, Any]:
+    """Fetch health and capabilities from a node's musu-worker."""
+    tailscale_ip = node.get("tailscale_ip", "")
+    if not tailscale_ip:
+        return {
+            "name": node.get("name", "unknown"),
+            "status": "error",
+            "error": "No tailscale_ip configured",
+        }
+
+    worker_url = f"http://{tailscale_ip}:{worker_port}"
+    node_info = {
+        "name": node.get("name", "unknown"),
+        "tailscale_ip": tailscale_ip,
+        "worker_url": worker_url,
+        "roles": node.get("roles", []),
+        "gpu": node.get("gpu", ""),
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            # Fetch /health
+            health_resp = await client.get(f"{worker_url}/health")
+            health_data = health_resp.json() if health_resp.status_code == 200 else {}
+
+            # Fetch /capabilities
+            cap_resp = await client.get(f"{worker_url}/capabilities")
+            cap_data = cap_resp.json() if cap_resp.status_code == 200 else {}
+
+            node_info.update({
+                "status": "online" if health_resp.status_code == 200 else "degraded",
+                "health": health_data,
+                "capabilities": cap_data,
+            })
+    except Exception as e:
+        node_info.update({
+            "status": "offline",
+            "error": str(e),
+        })
+
+    return node_info
+
+
+@mcp.tool()
+async def list_nodes() -> CallToolResult:
+    """List all nodes from nodes.toml with their health status."""
+    try:
+        config = _read_nodes_toml()
+        mesh = config.get("mesh", {})
+        nodes = mesh.get("nodes", [])
+        worker_port = int(mesh.get("worker_port", 9700))
+
+        nodes_info = []
+        for node in nodes:
+            node_info = await _fetch_node_health(node, worker_port)
+            nodes_info.append(node_info)
+
+        return CallToolResult(
+            content=[TextContent(type="text", text=f"Found {len(nodes_info)} nodes")],
+            structuredContent={"nodes": nodes_info, "worker_port": worker_port},
+        )
+    except Exception as e:
+        return CallToolResult(
+            content=[TextContent(type="text", text=f"Error listing nodes: {str(e)}")],
+            isError=True,
+        )
+
+
+@mcp.tool()
+async def execute_remote_process(
+    node_name: str,
+    command: str,
+    args: list[str] | None = None,
+    cwd: str | None = None,
+    timeout_sec: int = 30,
+) -> CallToolResult:
+    """Execute a remote process on a specific node via musu-worker."""
+    try:
+        config = _read_nodes_toml()
+        mesh = config.get("mesh", {})
+        nodes = mesh.get("nodes", [])
+        worker_port = int(mesh.get("worker_port", 9700))
+
+        # Find the target node
+        target_node = None
+        for node in nodes:
+            if node.get("name") == node_name:
+                target_node = node
+                break
+
+        if not target_node:
+            return CallToolResult(
+                content=[TextContent(type="text", text=f"Node '{node_name}' not found in nodes.toml")],
+                isError=True,
+            )
+
+        tailscale_ip = target_node.get("tailscale_ip", "")
+        if not tailscale_ip:
+            return CallToolResult(
+                content=[TextContent(type="text", text=f"Node '{node_name}' has no tailscale_ip")],
+                isError=True,
+            )
+
+        worker_url = f"http://{tailscale_ip}:{worker_port}"
+
+        # Prepare payload
+        payload = {
+            "command": command,
+            "args": args or [],
+            "timeout_sec": timeout_sec,
+            "env": {},
+        }
+        if cwd:
+            payload["cwd"] = cwd
+
+        # Execute remote process
+        token = os.environ.get("MUSU_WORKER_TOKEN")
+        headers = {"Content-Type": "application/json"}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+
+        async with httpx.AsyncClient(timeout=timeout_sec + 5.0) as client:
+            resp = await client.post(
+                f"{worker_url}/execute/process",
+                json=payload,
+                headers=headers,
+            )
+
+            if resp.status_code == 200:
+                result = resp.json()
+                return CallToolResult(
+                    content=[TextContent(type="text", text=f"Command executed on {node_name}")],
+                    structuredContent={"node": node_name, "result": result},
+                )
+            else:
+                error_text = resp.text
+                return CallToolResult(
+                    content=[TextContent(type="text", text=f"Remote execution failed: {error_text}")],
+                    isError=True,
+                )
+    except Exception as e:
+        return CallToolResult(
+            content=[TextContent(type="text", text=f"Error executing remote process: {str(e)}")],
+            isError=True,
+        )
+
+
 # ── app-only poll tools (visibility: ["app"], 모델 컨텍스트 오염 방지) ──
 
 @mcp.tool()
@@ -1310,6 +1474,87 @@ async def poll_agents() -> CallToolResult:
         content=[TextContent(type="text", text=f"에이전트 {len(agents)}개")],
         structuredContent={"agents": agents},
     )
+
+
+# ──────────────────────────────────────────────
+# LLM Wiki — Central Memory System
+# ──────────────────────────────────────────────
+
+_WIKI_PATH = pathlib.Path.home() / "llm-wiki" / "wiki"
+_WIKI_PATH.mkdir(parents=True, exist_ok=True)  # ensure dir exists for new users
+
+
+def _wiki_title(content: str, fallback: str) -> str:
+    for line in content.split("\n"):
+        if line.startswith("# "):
+            return line[2:].strip()
+    return fallback
+
+
+@mcp.tool()
+async def list_wiki_pages() -> str:
+    """List all MUSU knowledge wiki pages with their IDs and titles."""
+    try:
+        pages = []
+        for f in sorted(_WIKI_PATH.glob("*.md")):
+            try:
+                content = f.read_text(encoding="utf-8")
+                title = _wiki_title(content, f.stem)
+            except OSError:
+                title = f.stem
+            pages.append({"id": f.stem, "title": title})
+        return _fmt(pages)
+    except Exception:
+        return _tool_error("Error listing wiki pages.")
+
+
+@mcp.tool()
+async def search_wiki(query: str) -> str:
+    """Search the MUSU knowledge wiki. Returns matching pages with snippets.
+
+    Use this to look up project context, architecture decisions, past work,
+    agent specs, and any accumulated knowledge before starting a task.
+    """
+    try:
+        q = query.strip().lower()
+        if not q:
+            return _fmt([])
+        results = []
+        for f in sorted(_WIKI_PATH.glob("*.md")):
+            try:
+                content = f.read_text(encoding="utf-8")
+            except OSError:
+                continue
+            if q in content.lower():
+                idx = content.lower().find(q)
+                start = max(0, idx - 120)
+                end = min(len(content), idx + 300)
+                snippet = content[start:end].replace("\n", " ").strip()
+                title = _wiki_title(content, f.stem)
+                results.append({"id": f.stem, "title": title, "snippet": snippet})
+        return _fmt(results[:20])
+    except Exception:
+        return _tool_error("Error searching wiki.")
+
+
+@mcp.tool()
+async def get_wiki_page(page_id: str) -> str:
+    """Get the full content of a MUSU wiki page by its ID.
+
+    page_id examples: '00_INDEX', '52_MUSU_MASTER_PLAN', '95_MUSU_PHASE26_CEO_WEB_TASK_INTERFACE_2026-04-20'
+    Use list_wiki_pages() first to find the correct ID.
+    """
+    try:
+        safe_id = re.sub(r"[^a-zA-Z0-9_\-]", "", page_id)
+        path = _WIKI_PATH / f"{safe_id}.md"
+        if not path.exists():
+            available = [f.stem for f in sorted(_WIKI_PATH.glob("*.md"))][:20]
+            return _fmt({"error": f"Page '{safe_id}' not found.", "available": available})
+        content = path.read_text(encoding="utf-8")
+        title = _wiki_title(content, safe_id)
+        return _fmt({"id": safe_id, "title": title, "content": content})
+    except Exception:
+        return _tool_error("Error fetching wiki page.")
 
 
 # ──────────────────────────────────────────────
