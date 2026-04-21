@@ -194,7 +194,10 @@ async def route_chat_with_qa_loop(
         max_iterations=max_iter,
     )
 
-    result = await loop.run(task_prompt=text, contract=contract, task_id=task_id)
+    # task_id here is a route_executions.id, NOT a tasks.id — passing it to loop.run()
+    # would cause execution_log (which FK-references tasks.id) to fail.  Pass None so
+    # inner router calls don't try to link execution_log rows to a non-existent tasks row.
+    result = await loop.run(task_prompt=text, contract=contract, task_id=None)
 
     if result.final_score:
         score_str = (

@@ -549,7 +549,9 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
             logger.warning("delegate_task: task %s timed out after %ds", task_id, _timeout)
             cancel_task_record(task_id, error=f"timeout after {_timeout}s")
             asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
-        except Exception:
+        except Exception as _exc:
+            logger.exception("delegate_task: task %s raised unhandled exception: %s", task_id, _exc)
+            cancel_task_record(task_id, error=f"unhandled exception: {_exc}")
             asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
 
     task = asyncio.create_task(_run_with_timeout())
