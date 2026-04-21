@@ -13,6 +13,7 @@ Usage:
 from __future__ import annotations
 
 import logging
+import os
 import time
 import hmac
 from typing import Literal
@@ -168,7 +169,13 @@ def apply_musu_middlewares(
     if bearer_token:
         app.add_middleware(require_bearer_token(bearer_token, peer_token=peer_token or ""))
 
-    if rate_limit_capacity is not None and rate_limit_window_seconds is not None and rate_limit_key_type is not None:
+    _rate_limit_disabled = os.environ.get("MUSU_DISABLE_RATE_LIMIT") == "1"
+    if (
+        not _rate_limit_disabled
+        and rate_limit_capacity is not None
+        and rate_limit_window_seconds is not None
+        and rate_limit_key_type is not None
+    ):
         limiter = SlidingWindowLimiter(capacity=rate_limit_capacity, window_seconds=rate_limit_window_seconds)
         if rate_limit_key_type == "ip":
             get_client_id_func = get_ip_client_id
