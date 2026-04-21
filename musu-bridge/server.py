@@ -1629,6 +1629,54 @@ async def api_wiki_page(page_id: str = Path(..., max_length=200)) -> dict:
     return {"id": safe_id, "title": _wiki_title(content, safe_id.split("/")[-1]), "content": content}
 
 
+class _WikiWriteRequest(_BaseModel):
+    content: str
+    folder: str = ""
+
+
+@app.post("/api/wiki/page/{page_id:path}", summary="Create or update a wiki page")
+async def api_wiki_page_write(
+    page_id: str = Path(..., max_length=200),
+    body: _WikiWriteRequest = _Body(...),
+    _auth=Depends(require_bearer_token),
+) -> dict:
+    """Create or overwrite a wiki page. page_id is the stem (e.g. 'my-page' or 'folder/my-page')."""
+    safe_id = _re.sub(r"[^a-zA-Z0-9_\-/]", "", page_id).strip("/").replace("//", "/")
+    if not safe_id:
+        raise HTTPException(status_code=400, detail="Invalid page ID")
+    parts = safe_id.split("/", 1)
+    if len(parts) == 2:
+        folder, stem = parts
+        dir_path = _WIKI_PATH / folder
+    else:
+        folder, stem = "", safe_id
+        dir_path = _WIKI_PATH
+    dir_path.mkdir(parents=True, exist_ok=True)
+    path = dir_path / f"{stem}.md"
+    path.write_text(body.content, encoding="utf-8")
+    title = _wiki_title(body.content, stem)
+    return {"id": safe_id, "title": title, "folder": folder}
+
+
+@app.delete("/api/wiki/page/{page_id:path}", summary="Delete a wiki page")
+async def api_wiki_page_delete(
+    page_id: str = Path(..., max_length=200),
+    _auth=Depends(require_bearer_token),
+) -> dict:
+    """Delete a wiki page by ID."""
+    safe_id = _re.sub(r"[^a-zA-Z0-9_\-/]", "", page_id).strip("/").replace("//", "/")
+    parts = safe_id.split("/", 1)
+    if len(parts) == 2:
+        folder, stem = parts
+        path = _WIKI_PATH / folder / f"{stem}.md"
+    else:
+        path = _WIKI_PATH / f"{safe_id}.md"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"Wiki page '{safe_id}' not found.")
+    path.unlink()
+    return {"deleted": safe_id}
+
+
 @app.get("/health")
 async def health() -> dict:
     return {"status": "ok"}

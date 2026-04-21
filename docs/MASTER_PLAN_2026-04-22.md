@@ -199,7 +199,7 @@ interface Company {
 | Phase 42 (VNC 안정화) | ✅ 완료 | 2026-04-22 |
 | Phase 43 (Company UI) | ✅ 완료 | 2026-04-22 |
 | Phase 44 (보안) | ✅ 완료 | 2026-04-22 |
-| Phase 45 (Wiki) | ⬜ 대기 | - |
-| Phase 46 (QUIC pinning) | ⬜ 대기 | - |
+| Phase 45 (Wiki) | ✅ 완료 | 2026-04-22 | 편집 UI + ingest 스크립트 |
+| Phase 46 (QUIC pinning) | ✅ 완료 | 2026-04-22 (코드 이미 구현됨) |
 | Phase 47 (Paddle) | ⏸ 블로커 | 크레덴셜 대기 |
 | Phase 48 (런치) | ⏸ 블로커 | Phase 47 후 |
