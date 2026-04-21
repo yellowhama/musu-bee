@@ -1620,7 +1620,7 @@ def _capture_mss(tmp_png: str, display_env: dict) -> bool:
             import mss
             import mss.tools
             with mss.mss() as sct:
-                monitor = sct.monitors[1]  # first real monitor (0 = all monitors combined)
+                monitor = sct.monitors[1] if len(sct.monitors) > 1 else sct.monitors[0]
                 img = sct.grab(monitor)
                 mss.tools.to_png(img.rgb, img.size, output=tmp_png)
             return os.path.exists(tmp_png) and os.path.getsize(tmp_png) > 0
@@ -1736,7 +1736,7 @@ async def screen_snapshot() -> dict:
         tmp_jpg = f.name
 
     try:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         captured = await loop.run_in_executor(None, _do_capture_sync, display_env, tmp_png, tmp_jpg)
 
         if not captured:
