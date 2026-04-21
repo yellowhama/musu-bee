@@ -1591,6 +1591,15 @@ async def screen_snapshot() -> dict:
     with _tf.NamedTemporaryFile(suffix=".jpg", delete=False) as f:
         tmp = f.name
 
+    # Ensure X11 display is available for capture tools
+    env = _os.environ.copy()
+    if not env.get("DISPLAY"):
+        env["DISPLAY"] = ":0"
+    if not env.get("XAUTHORITY"):
+        xauth = _os.path.expanduser("~/.Xauthority")
+        if _os.path.exists(xauth):
+            env["XAUTHORITY"] = xauth
+
     captured = False
     cmds = [
         ["scrot", "-q", "65", "-o", tmp],
@@ -1599,7 +1608,7 @@ async def screen_snapshot() -> dict:
     ]
     for cmd in cmds:
         try:
-            _sp.run(cmd, timeout=10, check=True, capture_output=True)
+            _sp.run(cmd, timeout=10, check=True, capture_output=True, env=env)
             if _os.path.exists(tmp) and _os.path.getsize(tmp) > 0:
                 captured = True
                 break
