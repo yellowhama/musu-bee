@@ -42,7 +42,7 @@ _TEMPLATES: dict[str, dict] = {
                     "Your job: score Engineer output on 4 criteria (1-10 each). "
                     "Pass threshold: all >= 7.\n"
                     "Criteria: functionality, correctness, completeness, code_quality.\n"
-                    'Return JSON: {"pass": bool, "scores": {...}, "feedback": "...", "iteration": N}. '
+                    'Return JSON: {{"pass": bool, "scores": {{...}}, "feedback": "...", "iteration": N}}. '
                     "Run tests: {test_cmd}. Work directory: {work_dir}"
                 ),
             },

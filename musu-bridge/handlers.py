@@ -694,6 +694,73 @@ def delete_company(company_id: str) -> bool:
     return backend.delete_company(company_id)
 
 
+def create_company_from_template(
+    name: str,
+    template_key: str,
+    purpose: str,
+    work_dir: str = "",
+    test_cmd: str = "python -m pytest -q",
+    workspace_id: str = "",
+    backend=None,
+) -> dict[str, Any]:
+    """Create a company and auto-create its agent team from a template.
+
+    Returns {"company": {...}, "agents": [...]}.
+    Raises ValueError for unknown templates.
+    """
+    from company_templates import get_template, render_agent_instructions  # local import to avoid circular
+
+    tmpl = get_template(template_key)
+    if tmpl is None:
+        raise ValueError(f"Unknown template: {template_key!r}")
+
+    b = backend if backend is not None else _get_backend()
+    company = b.create_company(
+        name=name,
+        template_key=template_key,
+        workspace_id=workspace_id,
+        meta={"purpose": purpose},
+    )
+    # store purpose + status in the v13 columns
+    company = b.update_company(company["id"], purpose=purpose, status="active")
+
+    created_agents = []
+    for tmpl_agent in tmpl["agents"]:
+        rendered = render_agent_instructions(
+            tmpl_agent, name, purpose, work_dir=work_dir, test_cmd=test_cmd
+        )
+        agent = b.create_agent(
+            name=rendered["name"],
+            role=rendered["role"],
+            adapter_type=rendered["adapter_type"],
+            adapter_config={
+                "command": "claude",
+                "model": "claude-sonnet-4-6",
+                "dangerously_skip_permissions": True,
+                "timeout_sec": 600,
+                "instructions": rendered["instructions"],
+            },
+        )
+        created_agents.append(agent)
+
+    return {"company": company, "agents": created_agents}
+
+
+def set_company_status(
+    company_id: str,
+    status: str,
+    backend=None,
+) -> dict[str, Any]:
+    """Set company status to 'active' or 'inactive'. Returns updated company."""
+    if status not in ("active", "inactive"):
+        raise ValueError("status must be 'active' or 'inactive'")
+    b = backend if backend is not None else _get_backend()
+    updated = b.update_company(company_id, status=status)
+    if updated is None:
+        raise KeyError(f"Company not found: {company_id}")
+    return updated
+
+
 # --- Sync pull (for peer nodes to pull from this node) ---
 
 

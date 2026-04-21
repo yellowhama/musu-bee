@@ -50,3 +50,55 @@ def test_list_template_keys_includes_dev_team():
     keys = list_template_keys()
     assert "dev-team" in keys
     assert "content-team" in keys
+
+
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+from handlers import create_company_from_template, set_company_status
+from musu_core.backends.local import LocalBackend
+
+
+def _fresh_backend(tmp_path):
+    db_path = str(tmp_path / "test.db")
+    return LocalBackend(db_path)
+
+
+def test_create_company_from_template_dev_team(tmp_path):
+    backend = _fresh_backend(tmp_path)
+    result = create_company_from_template(
+        name="MUSU Dev",
+        template_key="dev-team",
+        purpose="MUSU 소프트웨어 개발",
+        backend=backend,
+    )
+    assert result["company"]["name"] == "MUSU Dev"
+    assert result["company"]["purpose"] == "MUSU 소프트웨어 개발"
+    assert result["company"]["status"] == "active"
+    agent_names = [a["name"] for a in result["agents"]]
+    assert "engineer" in agent_names
+    assert "qa" in agent_names
+    assert "planner" in agent_names
+
+
+def test_create_company_from_template_unknown_raises(tmp_path):
+    backend = _fresh_backend(tmp_path)
+    with pytest.raises(ValueError, match="Unknown template"):
+        create_company_from_template(
+            name="X", template_key="nonexistent", purpose="", backend=backend
+        )
+
+
+def test_set_company_status_inactive(tmp_path):
+    backend = _fresh_backend(tmp_path)
+    company = backend.create_company(name="Test", workspace_id="ws1")
+    cid = company["id"]
+    updated = set_company_status(cid, "inactive", backend=backend)
+    assert updated["status"] == "inactive"
+
+
+def test_set_company_status_invalid_raises(tmp_path):
+    backend = _fresh_backend(tmp_path)
+    company = backend.create_company(name="Test", workspace_id="ws1")
+    with pytest.raises(ValueError, match="status must be"):
+        set_company_status(company["id"], "broken", backend=backend)

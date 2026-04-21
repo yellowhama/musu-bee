@@ -571,7 +571,7 @@ class LocalBackend(BackendABC):
         return dict(rows[0]) if rows else None
 
     def update_company(self, company_id: str, **kwargs: Any) -> dict[str, Any] | None:
-        allowed = {"name", "template_key", "workspace_id", "meta"}
+        allowed = {"name", "template_key", "workspace_id", "meta", "status", "purpose"}
         updates = {k: v for k, v in kwargs.items() if k in allowed}
         if not updates:
             return self.get_company(company_id)
