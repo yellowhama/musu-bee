@@ -86,6 +86,7 @@ from handlers import (
     route_chat,
     route_chat_with_qa_loop,
     set_agent_status,
+    update_agent_fields,
     sync_companies,
     sync_messages,
     update_company,
@@ -694,6 +695,22 @@ async def api_resume_agent(agent_id: str) -> dict:
     if not result:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
     return {"id": agent_id, "status": "active"}
+
+
+class AgentUpdateRequest(BaseModel):
+    role: str | None = Field(default=None, description="New role string")
+    model: str | None = Field(default=None, description="New model name (stored in adapter_config)")
+
+
+@app.patch("/api/agents/{agent_id}", summary="Update agent role or model")
+async def api_update_agent(agent_id: str, body: AgentUpdateRequest) -> dict:
+    """Update editable fields of an agent. Returns 404 if not found, 400 if no fields provided."""
+    if body.role is None and body.model is None:
+        raise HTTPException(status_code=400, detail="Provide at least one of: role, model")
+    result = update_agent_fields(agent_id, role=body.role, model=body.model)
+    if not result:
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
+    return result
 
 
 @app.get("/api/channels")

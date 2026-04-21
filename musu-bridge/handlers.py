@@ -254,6 +254,31 @@ def set_agent_status(agent_id: str, status: str) -> dict[str, Any] | None:
     return backend.update_agent(agent_id, status=status)
 
 
+def update_agent_fields(
+    agent_id: str,
+    *,
+    role: str | None = None,
+    model: str | None = None,
+) -> dict[str, Any] | None:
+    """Update editable agent fields (role, model). Returns updated agent dict or None if not found.
+
+    `model` is stored inside adapter_config — this helper merges the new value
+    without touching any other adapter_config keys.
+    """
+    if role is None and model is None:
+        return None
+    backend = _get_backend()
+    if model is not None:
+        # Read current adapter_config and patch just the model key
+        existing = backend.get_agent(agent_id)
+        if existing is None:
+            return None
+        new_config = dict(existing.get("adapter_config") or {})
+        new_config["model"] = model
+        return backend.update_agent(agent_id, role=role, adapter_config=new_config)
+    return backend.update_agent(agent_id, role=role)
+
+
 # --- Issues ---
 
 
