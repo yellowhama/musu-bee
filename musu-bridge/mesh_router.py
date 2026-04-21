@@ -106,6 +106,11 @@ class MeshRouter:
         """Return True if a node with this name is already registered."""
         return name in self._node_urls
 
+    @property
+    def node_names(self) -> list[str]:
+        """Return a snapshot of all registered node names."""
+        return list(self._node_urls)
+
     def canonical_name_for_agent(self, agent_name: str) -> str:
         """Return the canonical lowercase name for an agent.
 

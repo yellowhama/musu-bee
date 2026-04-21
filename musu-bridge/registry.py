@@ -133,6 +133,20 @@ async def peer_discovery_loop(
                 continue
             if name == self_node_name:
                 continue  # skip self
+            # Skip stale aliases: if the same URL is already registered under a
+            # different canonical name, ignore the duplicate.  This prevents old
+            # node names (e.g. "main-pc", "hugh-main") from re-appearing when the
+            # same machine re-registers under a new canonical name (e.g. "5070").
+            if router.has_node(name):
+                pass  # already known by this name — normal update, allow through
+            else:
+                # New name: check if this URL is already served by another node
+                known_urls = {router.url_for_node(n) for n in router.node_names}
+                if url in known_urls:
+                    logger.debug(
+                        "registry: skipping stale alias %r (url=%r already known)", name, url
+                    )
+                    continue
             entry = PeerEntry(
                 node_name=name,
                 public_url=url,

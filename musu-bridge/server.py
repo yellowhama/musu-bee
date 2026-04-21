@@ -240,13 +240,27 @@ async def lifespan(app: FastAPI):
         from peer_cache import get_peer_cache
         peer_cache = get_peer_cache()
         cached = peer_cache.all()
+        skipped = 0
         for p in cached:
             try:
+                # Skip stale aliases: new name but URL already served by a known node
+                if not router.has_node(p.node_name):
+                    known_urls = {router.url_for_node(n) for n in router.node_names}
+                    if p.public_url in known_urls:
+                        logger.debug(
+                            "peer_cache: skipping stale alias %r (url=%r already known)",
+                            p.node_name, p.public_url,
+                        )
+                        skipped += 1
+                        continue
                 router.add_node(p.node_name, p.public_url, agents=[])
             except Exception:
                 pass
-        if cached:
-            logger.info("peer_cache: pre-loaded %d peer(s) from disk", len(cached))
+        loaded = len(cached) - skipped
+        if loaded:
+            logger.info("peer_cache: pre-loaded %d peer(s) from disk", loaded)
+        if skipped:
+            logger.info("peer_cache: skipped %d stale alias(es) from disk", skipped)
 
         # Start peer discovery loop (fetches musu.pro, updates cache + router)
         peer_discovery_task = asyncio.create_task(
