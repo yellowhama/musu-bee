@@ -134,13 +134,20 @@ def load_contract(conn: sqlite3.Connection, contract_id: str) -> SprintContract 
     ).fetchone()
     if row is None:
         return None
+
+    def _parse(val: str | None, fallback: list) -> list:
+        try:
+            return json.loads(val or "[]")
+        except json.JSONDecodeError:
+            return fallback
+
     return SprintContract(
         id=row["id"],
         task_id=row["task_id"],
         task=row["task"],
-        scope=json.loads(row["scope_json"] or "[]"),
-        out_of_scope=json.loads(row["out_of_scope_json"] or "[]"),
-        acceptance_criteria=json.loads(row["acceptance_criteria_json"] or "[]"),
+        scope=_parse(row["scope_json"], []),
+        out_of_scope=_parse(row["out_of_scope_json"], []),
+        acceptance_criteria=_parse(row["acceptance_criteria_json"], []),
         done_definition=row["done_definition"] or "",
         created_at=float(row["created_at"]),
     )
