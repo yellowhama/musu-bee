@@ -24,11 +24,12 @@ import json
 import logging
 import os
 import sys
+import time
 from contextlib import asynccontextmanager
 from typing import Annotated, List, Literal
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Path, Query, Request, Response, WebSocket
+from fastapi import Body, FastAPI, HTTPException, Path, Query, Request, Response, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -420,8 +421,12 @@ async def lifespan(app: FastAPI):
         node_heartbeat_task = asyncio.create_task(_node_manager_heartbeat())
         logger.info("node_heartbeat: task started")
 
+    # Watchdog rate limit cache cleanup (always on — prevents unbounded memory growth)
+    watchdog_cleanup_task = asyncio.create_task(_watchdog_rate_cleanup_loop())
+
     yield
 
+    watchdog_cleanup_task.cancel()
     discovery.close()
     if node_heartbeat_task:
         node_heartbeat_task.cancel()
@@ -537,6 +542,22 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
 
     if len(_active_tasks) >= _MAX_CONCURRENT_TASKS:
         raise HTTPException(status_code=429, detail=f"Too many concurrent tasks (max {_MAX_CONCURRENT_TASKS})")
+
+    # Free tier gate: 50 task/day (bypass when MUSU_PLAN=pro)
+    _FREE_TASK_LIMIT = 50
+    if os.environ.get("MUSU_PLAN", "free").lower() != "pro":
+        from handlers import _get_backend as _gb_gate
+        _gate_backend = _gb_gate()
+        _today = time.strftime("%Y-%m-%d")
+        _today_count = _gate_backend._db.execute(
+            "SELECT COUNT(*) FROM route_executions WHERE created_at >= ?",
+            (_today,),
+        ).fetchone()[0]
+        if _today_count >= _FREE_TASK_LIMIT:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Daily task limit reached (Free: {_FREE_TASK_LIMIT}/day). Upgrade to Pro for unlimited tasks.",
+            )
 
     task_id = str(uuid.uuid4())
     backend = _get_backend()
@@ -1629,7 +1650,7 @@ async def api_wiki_page(page_id: str = Path(..., max_length=200)) -> dict:
     return {"id": safe_id, "title": _wiki_title(content, safe_id.split("/")[-1]), "content": content}
 
 
-class _WikiWriteRequest(_BaseModel):
+class _WikiWriteRequest(BaseModel):
     content: str
     folder: str = ""
 
@@ -1637,8 +1658,7 @@ class _WikiWriteRequest(_BaseModel):
 @app.post("/api/wiki/page/{page_id:path}", summary="Create or update a wiki page")
 async def api_wiki_page_write(
     page_id: str = Path(..., max_length=200),
-    body: _WikiWriteRequest = _Body(...),
-    _auth=Depends(require_bearer_token),
+    body: _WikiWriteRequest = Body(...),
 ) -> dict:
     """Create or overwrite a wiki page. page_id is the stem (e.g. 'my-page' or 'folder/my-page')."""
     safe_id = _re.sub(r"[^a-zA-Z0-9_\-/]", "", page_id).strip("/").replace("//", "/")
@@ -1661,7 +1681,6 @@ async def api_wiki_page_write(
 @app.delete("/api/wiki/page/{page_id:path}", summary="Delete a wiki page")
 async def api_wiki_page_delete(
     page_id: str = Path(..., max_length=200),
-    _auth=Depends(require_bearer_token),
 ) -> dict:
     """Delete a wiki page by ID."""
     safe_id = _re.sub(r"[^a-zA-Z0-9_\-/]", "", page_id).strip("/").replace("//", "/")
@@ -1931,6 +1950,18 @@ def _watchdog_rate_check(node: str, command: str) -> bool:
     return True
 
 
+async def _watchdog_rate_cleanup_loop() -> None:
+    """Hourly: remove rate limit entries older than 24 hours to prevent unbounded growth."""
+    while True:
+        await asyncio.sleep(3600)
+        cutoff = time.monotonic() - 86400
+        stale = [k for k, v in _watchdog_rate.items() if v < cutoff]
+        for k in stale:
+            _watchdog_rate.pop(k, None)
+        if stale:
+            logger.info("watchdog rate cache: cleared %d stale entries", len(stale))
+
+
 @app.post("/api/watchdog/{node}/{command}")
 async def watchdog_command(node: str, command: str) -> dict:
     """Send a watchdog command to a node's connectsd via QUIC.
@@ -2044,6 +2075,7 @@ async def screen_vnc_token() -> dict:
     tok = screen_vnc.issue_token()
     # Build relay WebSocket URL: convert http(s) → ws(s) and append ws-proxy path
     relay_ws_url = ""
+    cfg = get_config()
     if cfg.relay_url and cfg.node_name:
         relay_base = (
             cfg.relay_url.rstrip("/")
