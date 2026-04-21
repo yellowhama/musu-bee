@@ -770,6 +770,7 @@ async fn handle_forward(
         sender_id: req.sender_id,
         text: req.text,
         version: 1,
+        frame_type: "route".to_string(),
     };
 
     let response = quic_send_pooled(
