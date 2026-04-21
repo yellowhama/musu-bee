@@ -28,6 +28,21 @@ if [[ ! -x "${ROOT}/musu-bridge/.venv/bin/python3" ]]; then
     echo "  Run: bash ${SCRIPT_DIR}/install.sh" >&2
 fi
 
+# ── Optional dependencies: auto-install x11vnc if missing ────────────────────
+if ! command -v x11vnc &>/dev/null; then
+    echo "[start-bridge] x11vnc not found — attempting auto-install..." >&2
+    if command -v apt-get &>/dev/null; then
+        sudo apt-get install -y -q x11vnc >&2 && echo "[start-bridge] ✅ x11vnc installed" >&2 \
+            || echo "[start-bridge] WARN: x11vnc install failed (Screen feature may not work)" >&2
+    elif command -v brew &>/dev/null; then
+        brew install x11vnc >&2 && echo "[start-bridge] ✅ x11vnc installed" >&2 \
+            || echo "[start-bridge] WARN: x11vnc install failed (Screen feature may not work)" >&2
+    else
+        echo "[start-bridge] WARN: x11vnc not found and no package manager available." >&2
+        echo "  Install manually: sudo apt install x11vnc" >&2
+    fi
+fi
+
 # ── Optional: User config override (~/.musu/bridge.env) ──────────────────────
 # Load user-specific overrides AFTER project defaults (shell env still wins)
 if [[ -f "${HOME}/.musu/bridge.env" ]]; then
