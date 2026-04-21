@@ -1572,69 +1572,165 @@ async def health() -> dict:
 
 # ── Screen snapshot ────────────────────────────────────────────────────────────
 
+
+def _find_display_env() -> dict:
+    """Return dict with DISPLAY and XAUTHORITY set, or empty dict if not found."""
+    import glob
+    env: dict = {}
+
+    # DISPLAY: check env, then X11 lock files
+    display = os.environ.get("DISPLAY", "")
+    if not display:
+        locks = glob.glob("/tmp/.X*-lock")
+        if locks:
+            # Extract display number from /tmp/.X1-lock → ":1"
+            num = locks[0].replace("/tmp/.X", "").replace("-lock", "")
+            display = f":{num}"
+        else:
+            display = ":0"
+    env["DISPLAY"] = display
+
+    # XAUTHORITY: check env first, then common paths
+    xauth = os.environ.get("XAUTHORITY", "")
+    if not xauth or not os.path.exists(xauth):
+        candidates = [
+            os.path.expanduser("~/.Xauthority"),
+            f"/run/user/{os.getuid()}/gdm/Xauthority",
+            f"/run/user/{os.getuid()}/xauthority",
+        ] + sorted(glob.glob("/tmp/xauth_*"), reverse=True)  # most recent first
+        for c in candidates:
+            if os.path.exists(c):
+                xauth = c
+                break
+    if xauth:
+        env["XAUTHORITY"] = xauth
+
+    return env
+
+
+def _capture_mss(tmp_png: str, display_env: dict) -> bool:
+    """Capture screenshot using python-mss (libX11 direct). Returns True on success."""
+    # mss reads DISPLAY/XAUTHORITY from environment
+    old = {k: os.environ.get(k) for k in display_env}
+    try:
+        os.environ.update(display_env)
+        import mss
+        import mss.tools
+        with mss.mss() as sct:
+            monitor = sct.monitors[1]  # first real monitor (0 = all monitors combined)
+            img = sct.grab(monitor)
+            mss.tools.to_png(img.rgb, img.size, output=tmp_png)
+        return os.path.exists(tmp_png) and os.path.getsize(tmp_png) > 0
+    except Exception:
+        return False
+    finally:
+        for k, v in old.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+
+def _png_to_jpeg(png_path: str, jpg_path: str, quality: int = 65) -> bool:
+    """Convert PNG to JPEG via Pillow. Returns True on success."""
+    try:
+        from PIL import Image
+        with Image.open(png_path) as im:
+            im.convert("RGB").save(jpg_path, "JPEG", quality=quality, optimize=True)
+        return True
+    except Exception:
+        return False
+
+
+def _capture_ffmpeg(tmp_jpg: str, display_env: dict) -> bool:
+    """Capture screenshot using ffmpeg x11grab. Returns True on success."""
+    import subprocess
+    import shutil
+    if not shutil.which("ffmpeg"):
+        return False
+    display = display_env.get("DISPLAY", ":0")
+    env = os.environ.copy()
+    env.update(display_env)
+    try:
+        subprocess.run(
+            ["ffmpeg", "-y", "-f", "x11grab", "-video_size", "1920x1080",
+             "-i", f"{display}.0", "-vframes", "1", "-q:v", "3", tmp_jpg],
+            env=env, timeout=15, check=True, capture_output=True,
+        )
+        return os.path.exists(tmp_jpg) and os.path.getsize(tmp_jpg) > 0
+    except Exception:
+        return False
+
+
+def _capture_scrot(tmp_jpg: str, display_env: dict) -> bool:
+    """Capture screenshot using scrot. Returns True on success."""
+    import subprocess
+    import shutil
+    if not shutil.which("scrot"):
+        return False
+    env = os.environ.copy()
+    env.update(display_env)
+    try:
+        subprocess.run(
+            ["scrot", "-q", "65", "-o", tmp_jpg],
+            env=env, timeout=10, check=True, capture_output=True,
+        )
+        return os.path.exists(tmp_jpg) and os.path.getsize(tmp_jpg) > 0
+    except Exception:
+        return False
+
+
 @app.get("/api/screen/snapshot")
 async def screen_snapshot() -> dict:
     """Capture a screenshot of this machine and return as base64 JPEG.
 
-    Tries multiple capture tools in order:
-      1. scrot (lightweight, most common on X11 systems)
-      2. import (ImageMagick)
-      3. gnome-screenshot
+    Tries multiple capture methods in order:
+      1. python-mss (libX11 direct) + Pillow PNG→JPEG conversion
+      2. ffmpeg -f x11grab -vframes 1
+      3. scrot
     Returns {"snapshot": "data:image/jpeg;base64,...", "ts": <epoch_ms>}
     """
-    import subprocess as _sp
-    import base64 as _b64
-    import tempfile as _tf
-    import time as _time
-    import os as _os
+    import base64
+    import tempfile
+    import time
 
-    with _tf.NamedTemporaryFile(suffix=".jpg", delete=False) as f:
-        tmp = f.name
+    display_env = _find_display_env()
 
-    # Ensure X11 display is available for capture tools
-    env = _os.environ.copy()
-    if not env.get("DISPLAY"):
-        env["DISPLAY"] = ":0"
-    if not env.get("XAUTHORITY"):
-        xauth = _os.path.expanduser("~/.Xauthority")
-        if _os.path.exists(xauth):
-            env["XAUTHORITY"] = xauth
+    # Try mss first (PNG), convert to JPEG
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
+        tmp_png = f.name
+    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as f:
+        tmp_jpg = f.name
 
     captured = False
-    cmds = [
-        ["scrot", "-q", "65", "-o", tmp],
-        ["import", "-window", "root", "-quality", "65", tmp],
-        ["gnome-screenshot", "-f", tmp],
-    ]
-    for cmd in cmds:
-        try:
-            _sp.run(cmd, timeout=10, check=True, capture_output=True, env=env)
-            if _os.path.exists(tmp) and _os.path.getsize(tmp) > 0:
-                captured = True
-                break
-        except (FileNotFoundError, _sp.CalledProcessError, _sp.TimeoutExpired):
-            continue
-
-    if not captured:
-        try:
-            _os.unlink(tmp)
-        except OSError:
-            pass
-        raise HTTPException(
-            status_code=503,
-            detail="Screen capture unavailable — install scrot or imagemagick on this node",
-        )
-
     try:
-        with open(tmp, "rb") as f:
-            data = _b64.b64encode(f.read()).decode()
-    finally:
-        try:
-            _os.unlink(tmp)
-        except OSError:
-            pass
+        if _capture_mss(tmp_png, display_env) and _png_to_jpeg(tmp_png, tmp_jpg):
+            captured = True
+        elif _capture_ffmpeg(tmp_jpg, display_env):
+            captured = True
+        elif _capture_scrot(tmp_jpg, display_env):
+            captured = True
 
-    return {"snapshot": f"data:image/jpeg;base64,{data}", "ts": int(_time.time() * 1000)}
+        if not captured:
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    f"Screen capture unavailable "
+                    f"(display={display_env.get('DISPLAY', 'none')}, "
+                    f"xauth={'yes' if display_env.get('XAUTHORITY') else 'no'}) "
+                    f"— try: pip install mss pillow"
+                ),
+            )
+
+        with open(tmp_jpg, "rb") as f:
+            data = base64.b64encode(f.read()).decode()
+        return {"snapshot": f"data:image/jpeg;base64,{data}", "ts": int(time.time() * 1000)}
+    finally:
+        for p in (tmp_png, tmp_jpg):
+            try:
+                os.unlink(p)
+            except OSError:
+                pass
 
 
 # ── Watchdog endpoints (P2P remote bridge control via musu-connectsd) ─────────
