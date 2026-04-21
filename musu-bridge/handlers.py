@@ -150,9 +150,10 @@ async def route_chat_with_qa_loop(
     Returns a dict with "response" (summary string) and "qa_loop_result".
     """
     from musu_core.qa_loop import QALoop
-    from musu_core.sprint_contract import SprintContract
+    from musu_core.sprint_contract import SprintContract, save_contract, save_qa_score
     from musu_core.router import Router
     from musu_core.config import get_config as get_core_config
+    from musu_core.db import get_db
 
     backend = _get_backend()
     cfg = get_core_config()
@@ -173,6 +174,13 @@ async def route_chat_with_qa_loop(
         scope=[text],
         done_definition="Task implemented and all four QA criteria score ≥ 7",
     )
+
+    # Persist contract so UI can display it immediately.
+    try:
+        _db = get_db(cfg.db_path)
+        save_contract(_db._get_conn(), contract)
+    except Exception as _e:
+        logger.warning("Could not persist sprint contract: %s", _e)
 
     loop = QALoop(
         router=router,
@@ -201,6 +209,14 @@ async def route_chat_with_qa_loop(
         summary += f" | ESCALATED: {result.escalation_reason}"
 
     logger.info("route_chat_with_qa_loop: task=%s %s", task_id, summary)
+
+    # Persist the final QA score so UI can display it.
+    if result.final_score is not None:
+        try:
+            _db = get_db(cfg.db_path)
+            save_qa_score(_db._get_conn(), contract.id, task_id, result.final_score)
+        except Exception as _e:
+            logger.warning("Could not persist QA score: %s", _e)
 
     if result.passed:
         backend.update_route_execution(task_id, "done", output=summary)
