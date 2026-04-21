@@ -19,7 +19,8 @@ import json
 import logging
 import os
 import random
-from typing import Any
+import time
+from typing import Any, TypedDict
 
 import httpx
 
@@ -57,6 +58,9 @@ async def relay_loop(
     reconnect_attempt = 0
     # session_id → asyncio.Task (WS proxy session)
     ws_sessions: dict[str, asyncio.Task[None]] = {}
+
+    # Start session TTL cleanup loop (runs for the lifetime of relay_loop)
+    cleanup_task = asyncio.create_task(_session_cleanup_loop())
 
     async with httpx.AsyncClient(
         base_url=bridge_url,
@@ -105,7 +109,7 @@ async def relay_loop(
                             session_id = msg.get("session_id", "")
                             q = _ws_session_queues.get(session_id)
                             if q:
-                                await q.put(msg)
+                                await q["queue"].put(msg)
 
                         else:
                             # HTTP response frame (or unknown)
@@ -113,6 +117,7 @@ async def relay_loop(
 
             except asyncio.CancelledError:
                 logger.info("relay_client: cancelled — shutting down")
+                cleanup_task.cancel()
                 for task in ws_sessions.values():
                     task.cancel()
                 return
@@ -127,9 +132,36 @@ async def relay_loop(
                 reconnect_attempt += 1
 
 
-# Per-session message queues: session_id → asyncio.Queue
+# Per-session message queues: session_id → { queue, created_at }
 # Populated by relay_loop, drained by _ws_proxy_session
-_ws_session_queues: dict[str, asyncio.Queue[dict[str, Any]]] = {}
+_SESSION_TTL = 30 * 60  # 30 minutes in seconds
+
+
+class WsSessionEntry(TypedDict):
+    queue: asyncio.Queue[dict[str, Any]]
+    created_at: float
+
+
+_ws_session_queues: dict[str, WsSessionEntry] = {}
+
+
+async def _session_cleanup_loop() -> None:
+    """Periodically close WS sessions that have exceeded the 30-minute TTL."""
+    while True:
+        await asyncio.sleep(_SESSION_TTL)
+        now = time.monotonic()
+        expired = [
+            sid for sid, entry in list(_ws_session_queues.items())
+            if now - entry["created_at"] > _SESSION_TTL
+        ]
+        for sid in expired:
+            logger.info("relay_client: session TTL exceeded — closing session=%s", sid)
+            entry = _ws_session_queues.pop(sid, None)
+            if entry:
+                try:
+                    await entry["queue"].put({"type": "ws_close", "session_id": sid})
+                except Exception:
+                    pass
 
 
 async def _ws_proxy_session(
@@ -144,7 +176,7 @@ async def _ws_proxy_session(
         return
 
     queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
-    _ws_session_queues[session_id] = queue
+    _ws_session_queues[session_id] = {"queue": queue, "created_at": time.monotonic()}
 
     # Route /api/ paths to the local bridge (8070), everything else to musu-port (1355)
     if target_path.startswith("/api/"):

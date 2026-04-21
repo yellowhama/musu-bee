@@ -99,6 +99,8 @@ interface PendingRequest {
 interface WsSession {
   sessionId: string;
   clientWs: WebSocket;
+  createdAt: number;
+  nodeId: string | null; // associated node tunnel (for TTL cleanup notification)
 }
 
 // ── State ──────────────────────────────────────────────────────────────────
@@ -286,7 +288,7 @@ wss.on("tunnel-connection", (ws: WebSocket, req: http.IncomingMessage) => {
         return;
       }
       const sessionId = randomUUID();
-      wsSessions.set(sessionId, { sessionId, clientWs: ws });
+      wsSessions.set(sessionId, { sessionId, clientWs: ws, createdAt: Date.now(), nodeId: reqNodeId });
       vncSessionId = sessionId;
       vncNodeId = reqNodeId;
       isVncBrowser = true;
@@ -463,7 +465,7 @@ wss.on("ws-proxy-connection", async (clientWs: WebSocket, req: http.IncomingMess
   }
 
   const sessionId = randomUUID();
-  const session: WsSession = { sessionId, clientWs };
+  const session: WsSession = { sessionId, clientWs, createdAt: Date.now(), nodeId };
   wsSessions.set(sessionId, session);
 
   console.log(`[relay] ws-proxy opened: node=${nodeId} session=${sessionId} path=${targetPath}`);
@@ -505,6 +507,32 @@ wss.on("ws-proxy-connection", async (clientWs: WebSocket, req: http.IncomingMess
     console.error(`[relay] client ws error (session=${sessionId}):`, err.message);
   });
 });
+
+// ── VNC session TTL cleanup (30 min) ──────────────────────────────────────
+const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, session] of wsSessions) {
+    if (now - session.createdAt > SESSION_TTL_MS) {
+      console.info(`[relay] session TTL exceeded — closing session=${id}`);
+      session.clientWs.close(1001, "session TTL exceeded");
+      // Notify the node tunnel to close the corresponding WS session
+      if (session.nodeId) {
+        const nodeEntry = tunnels.get(session.nodeId);
+        if (nodeEntry && nodeEntry.ws.readyState === WebSocket.OPEN) {
+          nodeEntry.ws.send(JSON.stringify({
+            type: "ws_close",
+            session_id: id,
+            code: 1001,
+            reason: "session TTL exceeded",
+          }));
+        }
+      }
+      wsSessions.delete(id);
+    }
+  }
+}, SESSION_TTL_MS);
 
 server.listen(PORT, () => {
   console.log(`[musu-relay] listening on :${PORT}`);
