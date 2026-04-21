@@ -14,6 +14,7 @@ Routes:
   GET  /api/tasks/{id}/qa-scores       — QA iteration scores for a delegated task
   POST /api/watchdog/{node}/{command}  — Send watchdog command via QUIC P2P
   GET  /api/watchdog/{node}/status     — Get watchdog/bridge status from node
+  POST /api/system/update      — Run auto-update (git pull + restart if changed)
   GET  /health                 — Liveness check
 """
 from __future__ import annotations
@@ -1610,6 +1611,30 @@ async def watchdog_status(node: str) -> dict:
     except Exception as exc:
         return {"bridge_running": False, "connectsd_ok": False, "error": str(exc)}
 
+
+@app.post("/api/system/update", summary="Run auto-update (git pull + restart if changed)")
+async def system_update() -> dict:
+    """Execute scripts/auto-update.sh — git pull and restart services if files changed.
+
+    Authentication is enforced globally by apply_musu_middlewares (Bearer token).
+    Runs the script with a 90-second timeout; returns exit_code + output.
+    """
+    from pathlib import Path
+    script = Path(__file__).parent.parent / "scripts" / "auto-update.sh"
+    if not script.exists():
+        raise HTTPException(status_code=503, detail="auto-update.sh not found")
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            str(script),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+        stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=90)
+        output = stdout.decode(errors="replace").strip()
+        logger.info("system_update: exit=%d output=%s", proc.returncode, output[:200])
+        return {"exit_code": proc.returncode, "output": output}
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="auto-update timed out after 90s")
 
 
 if __name__ == "__main__":

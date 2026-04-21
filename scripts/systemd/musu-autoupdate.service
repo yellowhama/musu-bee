@@ -1,0 +1,10 @@
+[Unit]
+Description=MUSU auto-update (git pull + service restart)
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/musu-functions
+ExecStart=%h/musu-functions/scripts/auto-update.sh
+StandardOutput=journal
+StandardError=journal
