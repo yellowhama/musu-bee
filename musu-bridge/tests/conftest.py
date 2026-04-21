@@ -18,3 +18,4 @@ for p in (_MUSU_CORE, _BRIDGE):
 # Disable rate limiting in tests to prevent 429 errors when running the full suite.
 # The rate limiter's shared state across TestClient instances causes spurious failures.
 os.environ.setdefault("MUSU_DISABLE_RATE_LIMIT", "1")
+os.environ.setdefault("MUSU_BRIDGE_TOKEN", "test-token")

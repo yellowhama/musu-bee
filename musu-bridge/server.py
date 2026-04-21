@@ -28,14 +28,16 @@ from contextlib import asynccontextmanager
 from typing import Annotated, List, Literal
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Path, Query, Request, Response
+from fastapi import FastAPI, HTTPException, Path, Query, Request, Response, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from musu_core.middleware import apply_musu_middlewares
 from musu_core.redaction import install_redaction_filter
 import audit
+import screen_vnc
 from config import get_config
 from system_stats import collect_stats_async
 from csrf_guard import CSRFOriginGuard
@@ -446,6 +448,7 @@ apply_musu_middlewares(
     rate_limit_capacity=60,
     rate_limit_window_seconds=60, # 1 minute
     rate_limit_key_type="ip",
+    bypass_path_prefixes=("/screen/novnc",),  # noVNC static files are public; WS auth via one-time token
 )
 
 app.add_middleware(CSRFOriginGuard)
@@ -463,6 +466,11 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["Content-Type"],
 )
+
+# ── noVNC static files (browser VNC client) ───────────────────────────────────
+_novnc_dir = os.path.join(os.path.dirname(__file__), "static", "novnc")
+if os.path.isdir(_novnc_dir):
+    app.mount("/screen/novnc", StaticFiles(directory=_novnc_dir, html=True), name="novnc")
 
 
 class RouteRequest(BaseModel):
@@ -1919,6 +1927,57 @@ async def system_update() -> dict:
         return {"exit_code": proc.returncode, "output": output}
     except asyncio.TimeoutError:
         raise HTTPException(status_code=504, detail="auto-update timed out after 90s")
+
+
+# ── VNC remote desktop endpoints ──────────────────────────────────────────────
+
+
+@app.post("/api/screen/vnc/start")
+async def screen_vnc_start(display: str = Query(default=":0")) -> dict:
+    """Start x11vnc on localhost:5900 for the given DISPLAY.
+
+    Requires x11vnc installed: sudo apt install x11vnc
+    Authentication enforced globally by apply_musu_middlewares.
+    """
+    try:
+        return await asyncio.get_running_loop().run_in_executor(
+            None, screen_vnc.start_vnc, display
+        )
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@app.post("/api/screen/vnc/stop")
+async def screen_vnc_stop() -> dict:
+    """Stop the x11vnc subprocess if running."""
+    return await asyncio.get_running_loop().run_in_executor(None, screen_vnc.stop_vnc)
+
+
+@app.get("/api/screen/vnc/status")
+async def screen_vnc_status() -> dict:
+    """Return current VNC server status (running, pid, port)."""
+    return screen_vnc.get_vnc_status()
+
+
+@app.get("/api/screen/vnc/token")
+async def screen_vnc_token() -> dict:
+    """Issue a one-time WebSocket token (60s TTL).
+
+    Response: {"token": "...", "launcher_path": "/screen/novnc/launcher.html?token=..."}
+    Open launcher_path in a browser tab against this bridge's public_url to start VNC.
+    """
+    tok = screen_vnc.issue_token()
+    return {"token": tok, "launcher_path": f"/screen/novnc/launcher.html?token={tok}"}
+
+
+@app.websocket("/api/screen/ws-vnc")
+async def ws_vnc(websocket: WebSocket, token: str = Query(...)) -> None:
+    """WebSocket VNC proxy — bridges noVNC RFB to x11vnc TCP:5900.
+
+    Token must be obtained from GET /api/screen/vnc/token (single-use, 60s TTL).
+    Authentication is via the one-time token; no Bearer header needed here.
+    """
+    await screen_vnc.ws_vnc_proxy(websocket, token)
 
 
 if __name__ == "__main__":

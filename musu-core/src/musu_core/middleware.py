@@ -114,7 +114,11 @@ def get_token_client_id(request: Request) -> str | None:
     return None
 
 
-def require_bearer_token(token: str, peer_token: str = "") -> type:
+def require_bearer_token(
+    token: str,
+    peer_token: str = "",
+    bypass_path_prefixes: tuple[str, ...] = (),
+) -> type:
     """Return a Starlette middleware class that validates a static Bearer token.
 
     Accepts either `token` (local MUSU_BRIDGE_TOKEN) or `peer_token`
@@ -122,13 +126,21 @@ def require_bearer_token(token: str, peer_token: str = "") -> type:
     This allows peer nodes to authenticate for sync without needing the same
     per-machine bridge token.
 
-    Requests to /health bypass auth.  All other requests must supply a valid
+    Requests to /health bypass auth.  Paths in `bypass_path_prefixes` also
+    bypass auth (used for public static files like noVNC).
+    All other requests must supply a valid
     ``Authorization: Bearer <token>`` header or receive 401.
     """
+    _bypass_exact = {"/health", "/api/system/stats"}
 
     class AuthMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request: Request, call_next):
-            if request.url.path in ("/health", "/api/system/stats"):
+            path = request.url.path
+            if path in _bypass_exact:
+                return await call_next(request)
+            if bypass_path_prefixes and any(
+                path.startswith(prefix) for prefix in bypass_path_prefixes
+            ):
                 return await call_next(request)
             # Internal sidecar calls from localhost skip token auth
             if request.client and request.client.host in ("127.0.0.1", "::1"):
@@ -153,6 +165,7 @@ def apply_musu_middlewares(
     rate_limit_capacity: int | None = None,
     rate_limit_window_seconds: int | None = None,
     rate_limit_key_type: Literal["ip", "token"] | None = None,
+    bypass_path_prefixes: tuple[str, ...] = (),
 ) -> None:
     """Register ErrorHandler, RequestLogger, and optional auth middleware on *app*.
 
@@ -167,7 +180,13 @@ def apply_musu_middlewares(
         3. RequestLoggerMiddleware (last added = outermost — sees every request)
     """
     if bearer_token:
-        app.add_middleware(require_bearer_token(bearer_token, peer_token=peer_token or ""))
+        app.add_middleware(
+            require_bearer_token(
+                bearer_token,
+                peer_token=peer_token or "",
+                bypass_path_prefixes=bypass_path_prefixes,
+            )
+        )
 
     _rate_limit_disabled = os.environ.get("MUSU_DISABLE_RATE_LIMIT") == "1"
     if (
