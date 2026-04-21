@@ -331,6 +331,10 @@ async def lifespan(app: FastAPI):
     try:
         backend = _get_backend()
         backend.fail_stale_route_executions(max_retries=3)
+        # Purge old failed/done executions (keep last 30 days)
+        purged = backend.purge_old_executions(days=30)
+        if purged:
+            logger.info("startup: purged %d old route_execution(s) (>30 days)", purged)
         pending = backend.list_pending_route_executions()  # retry_count < 3 only
         if pending:
             logger.info("durability: re-dispatching %d pending route executions", len(pending))

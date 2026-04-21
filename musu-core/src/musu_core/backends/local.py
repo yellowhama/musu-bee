@@ -514,6 +514,22 @@ class LocalBackend(BackendABC):
             (max_retries,),
         )
 
+    def purge_old_executions(self, days: int = 30) -> int:
+        """Delete failed/done route_executions older than `days` days.
+
+        Only removes records with status in ('failed', 'done') — never
+        touches pending/running records to avoid disrupting active tasks.
+        Returns the number of rows deleted.
+        """
+        rows = self._db.execute(
+            "DELETE FROM route_executions"
+            " WHERE status IN ('failed', 'done')"
+            " AND created_at < datetime('now', ? || ' days')"
+            " RETURNING id",
+            (f"-{days}",),
+        )
+        return len(rows)
+
     # --- Company helpers ---
 
     def create_company(
