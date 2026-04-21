@@ -549,10 +549,11 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
         from handlers import _get_backend as _gb_gate
         _gate_backend = _gb_gate()
         _today = time.strftime("%Y-%m-%d")
-        _today_count = _gate_backend._db.execute(
+        _rows = _gate_backend._db.execute(
             "SELECT COUNT(*) FROM route_executions WHERE created_at >= ?",
             (_today,),
-        ).fetchone()[0]
+        )
+        _today_count = _rows[0][0] if _rows else 0
         if _today_count >= _FREE_TASK_LIMIT:
             raise HTTPException(
                 status_code=429,
