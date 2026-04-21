@@ -7,7 +7,7 @@ const RELAY_SECRET = process.env.MUSU_RELAY_SECRET || "";
 const PORT = parseInt(process.env.PORT || process.env.MUSU_RELAY_PORT || "9900", 10);
 const VALIDATION_API = process.env.MUSU_VALIDATION_API || "https://musu.pro/api/v1/nodes/validate";
 
-// ── Token Validation Cache ─────────────────────────────────────────────────
+// ── Token Validation Cache + Circuit Breaker ───────────────────────────────
 
 interface CacheEntry {
   valid: boolean;
@@ -17,6 +17,13 @@ interface CacheEntry {
 const validationCache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 30_000; // 30s
 
+// Circuit breaker: if validation API is unreachable, stop accepting new
+// relay_client registrations for CIRCUIT_COOLDOWN_MS to prevent mass token bypass.
+let _circuitFailures = 0;
+let _circuitOpenUntil = 0;
+const CIRCUIT_FAILURE_THRESHOLD = 5;  // open circuit after 5 consecutive errors
+const CIRCUIT_COOLDOWN_MS = 30_000;   // stay open for 30s, then half-open
+
 async function validateToken(token: string, nodeId: string): Promise<boolean> {
   const cacheKey = `${token}:${nodeId}`;
   const cached = validationCache.get(cacheKey);
@@ -25,14 +32,21 @@ async function validateToken(token: string, nodeId: string): Promise<boolean> {
     return cached.valid;
   }
 
+  // Circuit breaker: open circuit → reject new (uncached) validations
+  if (Date.now() < _circuitOpenUntil) {
+    console.warn(`[relay] circuit open — rejecting token validation for node=${nodeId} (API unreachable)`);
+    return false;
+  }
+
   try {
     const response = await fetch(VALIDATION_API, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token, node_id: nodeId }),
     });
+
+    // Successful response (even 401) resets failure counter
+    _circuitFailures = 0;
 
     const valid = response.ok;
     validationCache.set(cacheKey, { valid, timestamp: Date.now() });
@@ -43,8 +57,18 @@ async function validateToken(token: string, nodeId: string): Promise<boolean> {
 
     return valid;
   } catch (err) {
-    console.error(`[relay] token validation error for node=${nodeId}:`, err instanceof Error ? err.message : String(err));
-    // Fail open on network errors to prevent service disruption
+    _circuitFailures++;
+    console.error(
+      `[relay] token validation error for node=${nodeId} (failure ${_circuitFailures}/${CIRCUIT_FAILURE_THRESHOLD}):`,
+      err instanceof Error ? err.message : String(err)
+    );
+    if (_circuitFailures >= CIRCUIT_FAILURE_THRESHOLD) {
+      _circuitOpenUntil = Date.now() + CIRCUIT_COOLDOWN_MS;
+      _circuitFailures = 0;
+      console.error(`[relay] circuit breaker OPEN — validation API unreachable. Rejecting new connections for ${CIRCUIT_COOLDOWN_MS / 1000}s`);
+      return false;
+    }
+    // Below threshold: fail open (prefer availability during transient errors)
     return true;
   }
 }

@@ -29,7 +29,7 @@ _RECONNECT_MAX_DELAY = 60  # maximum reconnect delay in seconds
 _HTTP_TIMEOUT = 25.0  # local bridge call timeout (< relay's 30s)
 
 # Local WS target for proxied WebSocket connections (musu-port chat server)
-_WS_PROXY_TARGET = "ws://localhost:1355"
+_WS_PROXY_TARGET = os.environ.get("MUSU_WS_PROXY_TARGET", "ws://localhost:1355")
 
 
 async def relay_loop(
