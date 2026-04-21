@@ -191,39 +191,55 @@ app.all("/proxy/:nodeId/*", requireSecret, async (req, res) => {
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server, noServer: true });
 
-// Route upgrade requests to the right handler
+// Route upgrade requests to the right handler.
+// Railway only allows WS upgrades on /tunnel (strips query params before forwarding).
+// All connections — relay_client and VNC browser — go to tunnel-connection.
+// Connection type is determined by first message type field.
 server.on("upgrade", (req, socket, head) => {
   const rawUrl = req.url ?? "";
-  const parsedUrl = new URL(rawUrl, "http://localhost");
-  const mode = parsedUrl.searchParams.get("mode") ?? "";
-
-  // Railway only forwards WS upgrades on the /tunnel path.
-  // VNC proxy connections use /tunnel?mode=vnc-proxy&node=X&token=Y
-  if (rawUrl.startsWith("/tunnel") && mode !== "vnc-proxy") {
+  if (rawUrl.startsWith("/tunnel")) {
     wss.handleUpgrade(req, socket, head, (ws) => {
       wss.emit("tunnel-connection", ws, req);
-    });
-  } else if (rawUrl.startsWith("/tunnel") && mode === "vnc-proxy") {
-    wss.handleUpgrade(req, socket, head, (ws) => {
-      wss.emit("ws-proxy-connection", ws, req);
     });
   } else {
     socket.destroy();
   }
 });
 
-// ── Tunnel endpoint (/tunnel) — musu-bridge connects here ─────────────────
+// ── Tunnel endpoint (/tunnel) — musu-bridge and VNC browsers connect here ──
+//
+// Two connection types, distinguished by first message:
+//   relay_client: requires Authorization header, first msg { type: "hello", node_id }
+//   VNC browser:  no auth header,               first msg { type: "vnc-proxy", node, token }
+//
+// Railway only allows WebSocket upgrades on /tunnel (no other paths, no query params).
 
 wss.on("tunnel-connection", (ws: WebSocket, req: http.IncomingMessage) => {
-  const token = (req.headers.authorization ?? "").replace(/^Bearer\s+/, "");
-  if (!token) {
-    ws.close(4001, "missing Authorization header");
-    return;
-  }
+  const authToken = (req.headers.authorization ?? "").replace(/^Bearer\s+/, "");
 
+  // relay_client state
   let nodeId: string | null = null;
 
+  // VNC browser proxy state
+  let isVncBrowser = false;
+  let vncSessionId: string | null = null;
+  let vncNodeId: string | null = null;
+
   ws.on("message", async (data: Buffer) => {
+    // ── VNC browser: relay binary RFB frames after handshake ────────────────
+    if (isVncBrowser && vncSessionId && vncNodeId) {
+      const entry = tunnels.get(vncNodeId);
+      if (entry && entry.ws.readyState === WebSocket.OPEN) {
+        const buf = Buffer.isBuffer(data) ? data : Buffer.from(data as unknown as ArrayBuffer);
+        entry.ws.send(JSON.stringify({
+          type: "ws_data",
+          session_id: vncSessionId,
+          data_b64: buf.toString("base64"),
+        }));
+      }
+      return;
+    }
+
     let msg: Record<string, unknown>;
     try {
       msg = JSON.parse(data.toString());
@@ -232,16 +248,51 @@ wss.on("tunnel-connection", (ws: WebSocket, req: http.IncomingMessage) => {
       return;
     }
 
-    // Handshake: musu-bridge identifies itself
+    // ── VNC browser handshake: { type: "vnc-proxy", node, token } ───────────
+    if (msg["type"] === "vnc-proxy") {
+      const reqNodeId = msg["node"];
+      const vncToken = msg["token"];
+      if (typeof reqNodeId !== "string" || !reqNodeId || typeof vncToken !== "string" || !vncToken) {
+        ws.close(4000, "vnc-proxy missing node or token");
+        return;
+      }
+      const entry = tunnels.get(reqNodeId);
+      if (!entry || entry.ws.readyState !== WebSocket.OPEN) {
+        ws.close(4004, `no active tunnel for node: ${reqNodeId}`);
+        return;
+      }
+      const sessionId = randomUUID();
+      wsSessions.set(sessionId, { sessionId, clientWs: ws });
+      vncSessionId = sessionId;
+      vncNodeId = reqNodeId;
+      isVncBrowser = true;
+
+      console.log(`[relay] vnc-proxy opened: node=${reqNodeId} session=${sessionId}`);
+
+      // Tell the node to open a local WS to the VNC bridge endpoint
+      entry.ws.send(JSON.stringify({
+        type: "ws_open",
+        session_id: sessionId,
+        target_path: `/api/screen/ws-vnc?token=${encodeURIComponent(vncToken)}`,
+      }));
+      // Acknowledge to browser — it will now pass this WS to noVNC RFB
+      ws.send(JSON.stringify({ type: "vnc-ready" }));
+      return;
+    }
+
+    // ── relay_client handshake: { type: "hello", node_id } ──────────────────
     if (msg["type"] === "hello") {
+      if (!authToken) {
+        ws.close(4001, "missing Authorization header");
+        return;
+      }
       const id = msg["node_id"];
       if (typeof id !== "string" || !id) {
         ws.close(4002, "hello missing node_id");
         return;
       }
 
-      // Validate token + node_id pair with musu.pro
-      const valid = await validateToken(token, id);
+      const valid = await validateToken(authToken, id);
       if (!valid) {
         ws.close(4005, "token validation failed");
         return;
@@ -252,13 +303,13 @@ wss.on("tunnel-connection", (ws: WebSocket, req: http.IncomingMessage) => {
       if (existing && existing.ws !== ws && existing.ws.readyState === WebSocket.OPEN) {
         existing.ws.close(4003, "replaced by new connection");
       }
-      tunnels.set(nodeId, { ws, token });
+      tunnels.set(nodeId, { ws, token: authToken });
       console.log(`[relay] tunnel connected: ${nodeId}`);
       ws.send(JSON.stringify({ type: "hello_ack", node_id: nodeId }));
       return;
     }
 
-    // HTTP response frame from musu-bridge
+    // ── HTTP response frame from musu-bridge ────────────────────────────────
     const id = msg["id"];
     if (typeof id === "string") {
       const p = pending.get(id);
@@ -296,7 +347,24 @@ wss.on("tunnel-connection", (ws: WebSocket, req: http.IncomingMessage) => {
   });
 
   ws.on("close", () => {
-    if (nodeId) {
+    if (isVncBrowser) {
+      // VNC browser disconnected — tell node to close the WS session
+      if (vncSessionId) {
+        wsSessions.delete(vncSessionId);
+        if (vncNodeId) {
+          const entry = tunnels.get(vncNodeId);
+          if (entry && entry.ws.readyState === WebSocket.OPEN) {
+            entry.ws.send(JSON.stringify({
+              type: "ws_close",
+              session_id: vncSessionId,
+              code: 1001,
+              reason: "browser disconnected",
+            }));
+          }
+        }
+        console.log(`[relay] vnc-proxy closed: session=${vncSessionId}`);
+      }
+    } else if (nodeId) {
       if (tunnels.get(nodeId)?.ws === ws) tunnels.delete(nodeId);
       console.log(`[relay] tunnel disconnected: ${nodeId}`);
       nodeId = null;
@@ -304,7 +372,7 @@ wss.on("tunnel-connection", (ws: WebSocket, req: http.IncomingMessage) => {
   });
 
   ws.on("error", (err) => {
-    console.error(`[relay] ws error (node=${nodeId ?? "unknown"}):`, err.message);
+    console.error(`[relay] ws error (node=${nodeId ?? vncNodeId ?? "unknown"}):`, err.message);
   });
 });
 

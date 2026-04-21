@@ -1981,11 +1981,9 @@ async def screen_vnc_token() -> dict:
             .replace("https://", "wss://")
             .replace("http://", "ws://")
         )
-        # Use /tunnel?mode=vnc-proxy — Railway only allows WS on /tunnel path
-        relay_ws_url = (
-            f"{relay_base}/tunnel"
-            f"?mode=vnc-proxy&node={cfg.node_name}&token={tok}"
-        )
+        # Railway only allows WS upgrades on /tunnel — no query params needed.
+        # Browser will do first-message handshake: {"type":"vnc-proxy","node":..,"token":..}
+        relay_ws_url = f"{relay_base}/tunnel"
     return {
         "token": tok,
         "launcher_path": f"/screen/novnc/launcher.html?token={tok}",
