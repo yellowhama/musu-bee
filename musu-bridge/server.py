@@ -1933,15 +1933,21 @@ async def system_update() -> dict:
 
 
 @app.post("/api/screen/vnc/start")
-async def screen_vnc_start(display: str = Query(default=":0")) -> dict:
+async def screen_vnc_start(display: str = Query(default="")) -> dict:
     """Start x11vnc on localhost:5900 for the given DISPLAY.
 
+    If display is not specified, auto-detects via _find_display_env() (same
+    logic used by the snapshot endpoint — checks loginctl, /tmp/.X*, etc.)
     Requires x11vnc installed: sudo apt install x11vnc
     Authentication enforced globally by apply_musu_middlewares.
     """
+    display_env = _find_display_env()
+    if not display:
+        display = display_env.get("DISPLAY", ":0")
+    xauthority = display_env.get("XAUTHORITY", "")
     try:
         return await asyncio.get_running_loop().run_in_executor(
-            None, screen_vnc.start_vnc, display
+            None, screen_vnc.start_vnc, display, xauthority
         )
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc

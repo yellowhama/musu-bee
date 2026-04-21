@@ -41,11 +41,12 @@ def get_vnc_status() -> dict:
     return {"running": False, "pid": None, "port": VNC_PORT}
 
 
-def start_vnc(display: str = ":0") -> dict:
+def start_vnc(display: str = ":0", xauthority: str = "") -> dict:
     """Start x11vnc on localhost:VNC_PORT for the given DISPLAY.
 
     Returns status dict. Raises RuntimeError if x11vnc binary not found.
     Waits up to 2 seconds for x11vnc to open its port before returning.
+    xauthority: path to .Xauthority file, forwarded as XAUTHORITY env var.
     """
     global _vnc_proc
     if is_vnc_running():
@@ -54,6 +55,10 @@ def start_vnc(display: str = ":0") -> dict:
         raise RuntimeError(
             "x11vnc not found — install with: sudo apt install x11vnc"
         )
+    env = os.environ.copy()
+    env["DISPLAY"] = display
+    if xauthority:
+        env["XAUTHORITY"] = xauthority
     _vnc_proc = subprocess.Popen(
         [
             "x11vnc",
@@ -69,6 +74,7 @@ def start_vnc(display: str = ":0") -> dict:
         ],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
+        env=env,
     )
     # Wait up to 2s for x11vnc to start listening
     import socket
