@@ -1981,9 +1981,10 @@ async def screen_vnc_token() -> dict:
             .replace("https://", "wss://")
             .replace("http://", "ws://")
         )
+        # Use /tunnel?mode=vnc-proxy — Railway only allows WS on /tunnel path
         relay_ws_url = (
-            f"{relay_base}/ws-proxy/{cfg.node_name}"
-            f"/api/screen/ws-vnc?token={tok}"
+            f"{relay_base}/tunnel"
+            f"?mode=vnc-proxy&node={cfg.node_name}&token={tok}"
         )
     return {
         "token": tok,

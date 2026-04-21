@@ -193,13 +193,17 @@ const wss = new WebSocketServer({ server, noServer: true });
 
 // Route upgrade requests to the right handler
 server.on("upgrade", (req, socket, head) => {
-  const url = req.url ?? "";
+  const rawUrl = req.url ?? "";
+  const parsedUrl = new URL(rawUrl, "http://localhost");
+  const mode = parsedUrl.searchParams.get("mode") ?? "";
 
-  if (url.startsWith("/tunnel")) {
+  // Railway only forwards WS upgrades on the /tunnel path.
+  // VNC proxy connections use /tunnel?mode=vnc-proxy&node=X&token=Y
+  if (rawUrl.startsWith("/tunnel") && mode !== "vnc-proxy") {
     wss.handleUpgrade(req, socket, head, (ws) => {
       wss.emit("tunnel-connection", ws, req);
     });
-  } else if (url.startsWith("/ws-proxy/")) {
+  } else if (rawUrl.startsWith("/tunnel") && mode === "vnc-proxy") {
     wss.handleUpgrade(req, socket, head, (ws) => {
       wss.emit("ws-proxy-connection", ws, req);
     });
@@ -317,11 +321,26 @@ wss.on("tunnel-connection", (ws: WebSocket, req: http.IncomingMessage) => {
 
 wss.on("ws-proxy-connection", async (clientWs: WebSocket, req: http.IncomingMessage) => {
   const url = new URL(req.url ?? "", "ws://localhost");
-  // Path: /ws-proxy/:nodeId/:rest
-  const parts = url.pathname.split("/").filter(Boolean); // ["ws-proxy", nodeId, ...rest]
-  const nodeId = parts[1];
-  const targetPath = "/" + parts.slice(2).join("/") + (url.search ?? "");
+  // Support two URL formats:
+  //   Legacy: /ws-proxy/:nodeId/:rest?token=X
+  //   New:    /tunnel?mode=vnc-proxy&node=X&token=Y  (Railway-compatible)
+  let nodeId: string;
+  let targetPath: string;
   const token = url.searchParams.get("token") ?? "";
+  const mode = url.searchParams.get("mode") ?? "";
+
+  if (mode === "vnc-proxy") {
+    // New format: params in query string
+    nodeId = url.searchParams.get("node") ?? "";
+    targetPath = `/api/screen/ws-vnc?token=${encodeURIComponent(token)}`;
+  } else {
+    // Legacy format: /ws-proxy/:nodeId/:rest
+    const parts = url.pathname.split("/").filter(Boolean); // ["ws-proxy", nodeId, ...rest]
+    nodeId = parts[1] ?? "";
+    const urlWithoutMode = new URL(url.toString());
+    urlWithoutMode.searchParams.delete("mode");
+    targetPath = "/" + parts.slice(2).join("/") + urlWithoutMode.search;
+  }
 
   if (!nodeId) {
     clientWs.close(4000, "missing nodeId");
