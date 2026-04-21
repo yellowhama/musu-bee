@@ -500,6 +500,9 @@ class CompanyCreateRequest(BaseModel):
     template_key: str = "default"
     workspace_id: str = ""
     meta: dict = {}
+    purpose: str = ""
+    work_dir: str = ""
+    test_cmd: str = "python -m pytest -q"
 
 
 class CompanyUpdateRequest(BaseModel):
@@ -821,9 +824,26 @@ async def api_list_companies(workspace_id: str | None = None) -> list[dict]:
     return list_companies(workspace_id=workspace_id)
 
 
-@app.post("/api/companies", summary="Create a company")
+@app.post("/api/companies", summary="Create a company (optionally from template)")
 async def api_create_company(req: CompanyCreateRequest) -> dict:
-    """Create a new company."""
+    """Create a company. Known template → auto-creates agent team.
+
+    Returns {"company": {...}, "agents": [...]} for template-based creation,
+    or a flat company dict for plain creation (backward compat).
+    """
+    from company_templates import get_template
+    from handlers import create_company_from_template
+
+    if get_template(req.template_key):
+        return create_company_from_template(
+            name=req.name,
+            template_key=req.template_key,
+            purpose=req.purpose,
+            work_dir=req.work_dir,
+            test_cmd=req.test_cmd,
+            workspace_id=req.workspace_id,
+        )
+
     return create_company(
         name=req.name,
         template_key=req.template_key,
@@ -861,6 +881,65 @@ async def api_delete_company(company_id: str) -> dict:
     if not ok:
         raise HTTPException(status_code=404, detail="Company not found")
     return {"deleted": company_id}
+
+
+@app.post("/api/companies/{company_id}/activate", summary="Activate a company")
+async def api_activate_company(company_id: str) -> dict:
+    """Set company status to 'active'. Agents in this company can receive tasks."""
+    from handlers import set_company_status
+    try:
+        return set_company_status(company_id, "active")
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Company not found")
+
+
+@app.post("/api/companies/{company_id}/deactivate", summary="Deactivate a company")
+async def api_deactivate_company(company_id: str) -> dict:
+    """Set company status to 'inactive'. Task delegation will be rejected."""
+    from handlers import set_company_status
+    try:
+        return set_company_status(company_id, "inactive")
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Company not found")
+
+
+@app.post("/api/companies/{company_id}/run", summary="Kick CEO to act on company goals")
+async def api_company_run(company_id: str) -> dict:
+    """Delegate a CEO task with full company context (purpose + goals + recent activity).
+
+    The CEO reads the company's purpose and goals, reviews recent task history,
+    and decides what to work on next.
+    """
+    company = get_company(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    if company.get("status") == "inactive":
+        raise HTTPException(status_code=503, detail="Company is inactive")
+
+    from handlers import get_goals, get_recent_tasks
+    goals = get_goals(company_id=company_id)
+    recent = get_recent_tasks(limit=10)
+
+    goals_text = "\n".join(
+        f"- [{g.get('status', 'open')}] {g.get('title', '')}: {g.get('description', '')}"
+        for g in goals
+    ) or "(no goals set)"
+    recent_text = "\n".join(
+        f"- [{t.get('status')}] {t.get('input', '')[:80]}"
+        for t in recent
+    ) or "(no recent tasks)"
+
+    instruction = (
+        f"You are the CEO of {company['name']}.\n"
+        f"Company purpose: {company.get('purpose', '(none)')}\n\n"
+        f"Current goals:\n{goals_text}\n\n"
+        f"Recent task activity (last 10):\n{recent_text}\n\n"
+        "Review the above. Decide the most important next action. "
+        "Delegate tasks to your team as needed. Report what you delegated and why."
+    )
+
+    result = await route_chat(channel="ceo", sender_id="orchestrator", text=instruction)
+    return {"company_id": company_id, "task": result}
 
 
 # ── Workspace ────────────────────────────────────────────────────────────────

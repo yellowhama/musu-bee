@@ -102,3 +102,50 @@ def test_set_company_status_invalid_raises(tmp_path):
     company = backend.create_company(name="Test", workspace_id="ws1")
     with pytest.raises(ValueError, match="status must be"):
         set_company_status(company["id"], "broken", backend=backend)
+
+
+def _api_client():
+    """Return a TestClient using the configured MUSU_BRIDGE_TOKEN."""
+    import sys, os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+    from fastapi.testclient import TestClient
+    from server import app
+    token = os.environ.get("MUSU_BRIDGE_TOKEN", "test-token")
+    return TestClient(app, headers={"Authorization": f"Bearer {token}"})
+
+
+def test_post_companies_with_template():
+    client = _api_client()
+    resp = client.post("/api/companies", json={
+        "name": "MUSU Dev Team",
+        "template_key": "dev-team",
+        "purpose": "MUSU 소프트웨어 개발",
+        "workspace_id": "ws-test",
+    })
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "company" in data
+    assert data["company"]["status"] == "active"
+    assert any(a["name"] == "engineer" for a in data["agents"])
+
+
+def test_post_companies_no_template_returns_plain_company():
+    client = _api_client()
+    resp = client.post("/api/companies", json={"name": "Plain Co", "workspace_id": "ws-test"})
+    assert resp.status_code == 200
+    assert "id" in resp.json()
+
+
+def test_activate_deactivate_company():
+    client = _api_client()
+    create = client.post("/api/companies", json={"name": "Toggle Co", "workspace_id": "ws-test"})
+    assert create.status_code == 200
+    cid = create.json()["id"]
+
+    resp = client.post(f"/api/companies/{cid}/deactivate")
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "inactive"
+
+    resp = client.post(f"/api/companies/{cid}/activate")
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "active"

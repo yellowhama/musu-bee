@@ -1100,3 +1100,20 @@ def get_kv_record(key: str) -> str | None:
 
 def set_kv_record(key: str, value: str) -> None:
     _get_backend().set_kv(key, value)
+
+
+def get_goals(company_id: str | None = None) -> list[dict]:
+    """Return goals for a company (or all goals if no company_id)."""
+    backend = _get_backend()
+    if hasattr(backend, "list_goals"):
+        return backend.list_goals(company_id=company_id)
+    return []
+
+
+def get_recent_tasks(limit: int = 10) -> list[dict]:
+    """Return recent tasks ordered by created_at DESC."""
+    backend = _get_backend()
+    rows = backend._db.execute(
+        "SELECT * FROM tasks ORDER BY created_at DESC LIMIT ?", (limit,)
+    )
+    return [dict(r) for r in rows]
