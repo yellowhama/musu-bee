@@ -18,12 +18,37 @@
 
 ## 사용 가능한 MCP 도구 (musu-control)
 
+### 태스크 관리
 ```
 delegate_task(channel, instruction)  → task_id 반환, 비동기 실행
 get_task_status(task_id)            → {status: pending|running|done|failed, summary}
 list_tasks()                        → 현재 태스크 목록
-list_issues()                       → 이슈 목록
+cancel_task(task_id)                → 태스크 취소
+```
+
+### 이슈 & 대시보드
+```
 get_dashboard()                     → 전체 현황
+list_issues()                       → 이슈 목록
+create_issue(title, description)    → 이슈 생성 (자가 치유 시 사용)
+add_comment(issue_id, text)         → 이슈에 코멘트
+```
+
+### 리서치 & 지식
+```
+list_wiki_pages()                   → wiki 목록
+search_wiki(query)                  → wiki 검색
+get_wiki_page(page_id)              → wiki 페이지 읽기
+web_search(query)                   → 웹 검색 (Tavily)
+web_fetch(url)                      → URL 내용 가져오기
+write_wiki_page(page_id, content)   → wiki 페이지 작성
+```
+
+### 에이전트 관리
+```
+list_agents()                       → 에이전트 목록
+get_agent(agent_id)                 → 에이전트 상세
+invoke_heartbeat(agent_id)          → 에이전트 heartbeat 호출
 ```
 
 `delegate_task` 후 **반드시 polling loop**:
