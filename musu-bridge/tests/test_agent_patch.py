@@ -34,14 +34,21 @@ def test_patch_agent_role(monkeypatch):
     assert resp.status_code == 200
     data = resp.json()
     assert data["role"] == "Chief Executive"
-    mock.assert_called_once_with("agent-001", role="Chief Executive", model=None)
+    mock.assert_called_once_with("agent-001", role="Chief Executive", model=None, adapter_config_patch=None)
 
 
 def test_patch_agent_model(monkeypatch):
     with patch("server.update_agent_fields", return_value=_AGENT_UPDATED) as mock:
         resp = client.patch("/api/agents/agent-001", json={"model": "qwen2.5-14b-instruct"})
     assert resp.status_code == 200
-    mock.assert_called_once_with("agent-001", role=None, model="qwen2.5-14b-instruct")
+    mock.assert_called_once_with("agent-001", role=None, model="qwen2.5-14b-instruct", adapter_config_patch=None)
+
+
+def test_patch_agent_adapter_config_patch(monkeypatch):
+    with patch("server.update_agent_fields", return_value=_AGENT_UPDATED) as mock:
+        resp = client.patch("/api/agents/agent-001", json={"adapter_config_patch": {"timeout_sec": 900}})
+    assert resp.status_code == 200
+    mock.assert_called_once_with("agent-001", role=None, model=None, adapter_config_patch={"timeout_sec": 900})
 
 
 def test_patch_agent_not_found():

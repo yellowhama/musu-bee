@@ -495,6 +495,9 @@ class DelegateRequest(BaseModel):
     # Engineer → QA → rework loop (max qa_loop_max_iter iterations, all criteria ≥ 7).
     use_qa_loop: bool = False
     qa_loop_max_iter: int = Field(default=3, ge=1, le=5)
+    # Optional caller-supplied timeout override (seconds). When None, the agent's
+    # adapter_config.timeout_sec is used. QA loop path always uses 900s regardless.
+    timeout_sec: int | None = Field(default=None, ge=30, le=3600)
 
 
 class CompanyCreateRequest(BaseModel):
@@ -577,9 +580,15 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
 
     # Pass task_id so route_chat reuses this record instead of creating a new one.
     # QA loop path: use_qa_loop=True + channel=="engineer" → QALoop.run() (max 900s).
-    # Standard path: single-shot route_chat with 300s timeout.
+    # Standard path: use agent's adapter_config.timeout_sec (default 300s).
     _use_qa = req.use_qa_loop and req.channel == "engineer"
-    _timeout = 900 if _use_qa else 300
+    if _use_qa:
+        _timeout = 900
+    else:
+        _agent_id = channel_map[req.channel].get("agent_id")
+        _agent_record = get_agent_by_id(_agent_id) if _agent_id else None
+        _agent_timeout = int((_agent_record.get("adapter_config") or {}).get("timeout_sec", 300)) if _agent_record else 300
+        _timeout = max(req.timeout_sec or 0, _agent_timeout) or 300
 
     async def _run_with_timeout() -> None:
         try:
@@ -739,14 +748,16 @@ async def api_resume_agent(agent_id: str) -> dict:
 class AgentUpdateRequest(BaseModel):
     role: str | None = Field(default=None, description="New role string")
     model: str | None = Field(default=None, description="New model name (stored in adapter_config)")
+    # Partial adapter_config patch (shallow merge). Example: {"timeout_sec": 900, "cwd": "/path"}
+    adapter_config_patch: dict | None = Field(default=None, description="Partial adapter_config patch")
 
 
-@app.patch("/api/agents/{agent_id}", summary="Update agent role or model")
+@app.patch("/api/agents/{agent_id}", summary="Update agent role, model, or adapter_config")
 async def api_update_agent(agent_id: str, body: AgentUpdateRequest) -> dict:
     """Update editable fields of an agent. Returns 404 if not found, 400 if no fields provided."""
-    if body.role is None and body.model is None:
-        raise HTTPException(status_code=400, detail="Provide at least one of: role, model")
-    result = update_agent_fields(agent_id, role=body.role, model=body.model)
+    if body.role is None and body.model is None and body.adapter_config_patch is None:
+        raise HTTPException(status_code=400, detail="Provide at least one of: role, model, adapter_config_patch")
+    result = update_agent_fields(agent_id, role=body.role, model=body.model, adapter_config_patch=body.adapter_config_patch)
     if not result:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
     return result
