@@ -153,3 +153,55 @@ def test_activate_deactivate_company():
     resp = client.post(f"/api/companies/{cid}/activate")
     assert resp.status_code == 200
     assert resp.json()["status"] == "active"
+
+
+# ── Phase 64: /run endpoint tests ────────────────────────────────────────────
+
+def test_company_run_not_found():
+    client = _api_client()
+    resp = client.post("/api/companies/nonexistent-id/run")
+    assert resp.status_code == 404
+
+
+def test_company_run_inactive():
+    client = _api_client()
+    create = client.post("/api/companies", json={"name": "Inactive Co", "workspace_id": "ws-test"})
+    assert create.status_code == 200
+    cid = create.json()["id"]
+    client.post(f"/api/companies/{cid}/deactivate")
+
+    resp = client.post(f"/api/companies/{cid}/run")
+    assert resp.status_code == 503
+
+
+def test_company_run_active(monkeypatch):
+    from unittest.mock import AsyncMock
+    import server
+
+    monkeypatch.setattr(server, "route_chat", AsyncMock(return_value={"id": "task-123", "status": "pending"}))
+
+    client = _api_client()
+    create = client.post("/api/companies", json={"name": "Run Co", "workspace_id": "ws-test"})
+    assert create.status_code == 200
+    cid = create.json()["id"]
+
+    resp = client.post(f"/api/companies/{cid}/run")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["company_id"] == cid
+    assert "task" in data
+
+
+# ── Phase 64: get_goals / get_recent_tasks handler unit tests ─────────────────
+
+from handlers import get_goals, get_recent_tasks
+
+
+def test_get_goals_returns_list():
+    result = get_goals()
+    assert isinstance(result, list)
+
+
+def test_get_recent_tasks_returns_list():
+    result = get_recent_tasks(limit=5)
+    assert isinstance(result, list)
