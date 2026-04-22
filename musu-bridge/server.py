@@ -1998,7 +1998,8 @@ async def api_success_rate(days: int = Query(default=7, ge=1, le=90)) -> dict:
     Legacy failures (pre-2026-04-22) are archived in route_executions_archive.
     """
     from datetime import datetime, timedelta, timezone
-    backend = _get_backend()
+    from handlers import _get_backend as _gb_stats
+    backend = _gb_stats()
     cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
     rows = backend._db.execute(
         "SELECT status, COUNT(*) as cnt FROM route_executions "
