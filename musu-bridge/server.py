@@ -350,11 +350,11 @@ async def _heartbeat_iteration(
         prompt_parts.append(
             "자율 CEO 루프 실행:\n"
             "1. read_charter() — 회사 미션/우선순위/제약 확인\n"
-            "2. list_goals(status='active') — 현재 목표 확인\n"
-            "3. 판단: 목표 없으면 생성, 이슈 없으면 분해, 이슈 있으면 실행\n"
-            "4. Sprint Contract → Engineer 위임 → QA → 커밋\n"
-            "5. 완료 후 이슈에 회고 작성\n"
-            "6. 목표 완료 판단\n\n"
+            "2. read_board_messages('ceo-board') — 다른 기기 CEO 메시지 확인\n"
+            "3. list_goals(status='active') — 현재 목표 확인\n"
+            "4. 판단: 목표 없으면 생성, 이슈 없으면 분해, 이슈 있으면 팀장에게 위임\n"
+            "5. delegate_task(channel='{short}-lead', ...) — 팀장에게 위임 (직접 engineer 안 시킴)\n"
+            "6. post_board_message('ceo-board', 진행 상황) — 다른 CEO에게 공유\n\n"
             "## 위임 패턴 (fire-and-check) — 필수\n"
             "delegate_task 후 즉시 종료한다. task_id를 이슈 코멘트에 기록하고 heartbeat 종료.\n"
             "다음 heartbeat에서 get_task_status(task_id)로 완료 여부 확인.\n"
@@ -2359,6 +2359,58 @@ async def api_wiki_page_delete(
         raise HTTPException(status_code=404, detail=f"Wiki page '{safe_id}' not found.")
     path.unlink()
     return {"deleted": safe_id}
+
+
+# ── Group Messages (CEO Board / Team Channels) ───────────────────────────
+
+
+class GroupMessageRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=5000)
+    sender_id: str = Field(default="", max_length=128)
+
+
+@app.post("/api/groups/{group_id}/messages", status_code=201, summary="Post to group channel")
+async def api_post_group_message(group_id: str, req: GroupMessageRequest) -> dict:
+    """Post a message to a group channel (ceo-board, team channels).
+
+    Messages are synced across devices via sync_engine.
+    """
+    import uuid as _uuid
+    from handlers import _get_backend as _gb_grp
+    backend = _gb_grp()
+    sender = req.sender_id or os.environ.get("MUSU_NODE_NAME", "unknown")
+    msg_id = str(_uuid.uuid4())
+    backend._db.execute(
+        "INSERT INTO messages (id, session_id, role, content, group_id, meta) "
+        "VALUES (?, ?, 'system', ?, ?, ?)",
+        (msg_id, f"group-{group_id}", req.text, group_id,
+         json.dumps({"sender_id": sender})),
+    )
+    return {"id": msg_id, "group_id": group_id, "sender_id": sender}
+
+
+@app.get("/api/groups/{group_id}/messages", summary="Read group channel messages")
+async def api_read_group_messages(
+    group_id: str,
+    limit: int = Query(default=20, ge=1, le=100),
+    since: str = Query(default=""),
+) -> list[dict]:
+    """Read messages from a group channel, optionally filtered by timestamp."""
+    from handlers import _get_backend as _gb_grp2
+    backend = _gb_grp2()
+    if since:
+        rows = backend._db.execute(
+            "SELECT id, content, group_id, meta, created_at FROM messages "
+            "WHERE group_id = ? AND created_at > ? ORDER BY created_at DESC LIMIT ?",
+            (group_id, since, limit),
+        )
+    else:
+        rows = backend._db.execute(
+            "SELECT id, content, group_id, meta, created_at FROM messages "
+            "WHERE group_id = ? ORDER BY created_at DESC LIMIT ?",
+            (group_id, limit),
+        )
+    return [dict(r) for r in rows]
 
 
 # ── Success Rate Tracking ─────────────────────────────────────────────────

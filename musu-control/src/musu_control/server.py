@@ -1049,6 +1049,40 @@ async def resolve_approval(approval_id: str, decision: str, note: str = "") -> s
 
 
 # ──────────────────────────────────────────────
+# Group Messages (CEO Board / Team Channels)
+# ──────────────────────────────────────────────
+
+
+@mcp.tool()
+async def post_board_message(group_id: str, text: str) -> str:
+    """Post a message to a group channel (e.g., ceo-board).
+
+    Use for inter-device CEO communication and team coordination.
+    group_id examples: 'ceo-board', '{company_id}-team'
+    """
+    try:
+        c = _get_client()
+        data = await c.post(f"/groups/{group_id}/messages", {"text": text, "sender_id": ""})
+        return _fmt(data)
+    except Exception:
+        return _tool_error("Error posting board message.")
+
+
+@mcp.tool()
+async def read_board_messages(group_id: str, limit: int = 10) -> str:
+    """Read recent messages from a group channel.
+
+    Use to check what other CEOs/team leads have posted.
+    """
+    try:
+        c = _get_client()
+        data = await c.get(f"/groups/{group_id}/messages", limit=limit)
+        return _fmt(data)
+    except Exception:
+        return _tool_error("Error reading board messages.")
+
+
+# ──────────────────────────────────────────────
 # Async task delegation (musu-bridge direct)
 # ──────────────────────────────────────────────
 

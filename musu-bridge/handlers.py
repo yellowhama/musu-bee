@@ -1032,17 +1032,21 @@ def create_company_from_template(
         rendered = render_agent_instructions(
             tmpl_agent, name, purpose, work_dir=work_dir, test_cmd=test_cmd
         )
+        config: dict[str, Any] = {
+            "command": "claude",
+            "model": "claude-sonnet-4-6",
+            "dangerously_skip_permissions": True,
+            "timeout_sec": 600,
+            "instructions": rendered["instructions"],
+        }
+        # Use instructions_path if provided (e.g., team_lead.md)
+        if rendered.get("instructions_path"):
+            config["instructions_path"] = rendered["instructions_path"]
         agent = b.create_agent(
             name=f"{short}-{rendered['name']}",
             role=rendered["role"],
             adapter_type=rendered["adapter_type"],
-            adapter_config={
-                "command": "claude",
-                "model": "claude-sonnet-4-6",
-                "dangerously_skip_permissions": True,
-                "timeout_sec": 600,
-                "instructions": rendered["instructions"],
-            },
+            adapter_config=config,
             company_id=company_id,
         )
         created_agents.append(agent)

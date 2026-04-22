@@ -497,11 +497,31 @@ def _v15_up(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE route_executions ADD COLUMN input_tokens INTEGER;")
     if not _column_exists(conn, "route_executions", "output_tokens"):
         conn.execute("ALTER TABLE route_executions ADD COLUMN output_tokens INTEGER;")
+    if not _column_exists(conn, "route_executions", "duration_sec"):
+        conn.execute("ALTER TABLE route_executions ADD COLUMN duration_sec REAL;")
     conn.commit()
 
 
 def _v15_down(conn: sqlite3.Connection) -> None:  # noqa: ARG001
     pass  # SQLite < 3.35 cannot DROP COLUMN
+
+
+# ---------------------------------------------------------------------------
+# v16: add group_id to messages for inter-device group chat
+# ---------------------------------------------------------------------------
+
+
+def _v16_up(conn: sqlite3.Connection) -> None:
+    """Add group_id to messages for CEO board / team channels."""
+    if not _column_exists(conn, "messages", "group_id"):
+        conn.execute("ALTER TABLE messages ADD COLUMN group_id TEXT;")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_messages_group ON messages(group_id);")
+    conn.commit()
+
+
+def _v16_down(conn: sqlite3.Connection) -> None:
+    conn.execute("DROP INDEX IF EXISTS idx_messages_group;")
+    conn.commit()
 
 
 MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
@@ -520,6 +540,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v13_company_status_purpose", _v13_up, _v13_down),
     ("v14_agents_company_id", _v14_up, _v14_down),
     ("v15_route_executions_cost", _v15_up, _v15_down),
+    ("v16_messages_group_id", _v16_up, _v16_down),
 ]
 
 

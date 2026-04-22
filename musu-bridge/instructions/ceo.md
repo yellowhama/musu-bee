@@ -61,6 +61,13 @@ get_dashboard()                     → 전체 현황
 list_agents()                       → 에이전트 목록
 ```
 
+### 기기 간 소통 (#ceo-board)
+```
+post_board_message(group_id, text)  → 단톡방에 메시지 쓰기
+read_board_messages(group_id, limit)→ 단톡방 메시지 읽기
+```
+group_id: "ceo-board" (사장 회의), "{company_id}-team" (프로젝트 팀)
+
 `delegate_task` 후 **반드시 polling loop**:
 ```
 while True:
@@ -105,32 +112,37 @@ rtk git log --oneline -5
 - `create_issue(title="...", description="접근법: [전문가 근거]. ...", goal_id="...")`
 - 각 이슈는 Engineer가 1회 실행으로 완료 가능한 크기
 
-**C) 이슈 있음** → 다음 이슈 실행
-- 우선순위 높은 미완료 이슈 선택
-- Sprint Contract 작성 (전문가 근거 포함) → Engineer 위임 → QA → 커밋
+**C) 이슈 있음** → **팀장에게 위임**
+- 해당 프로젝트 팀장 채널: `{company_id[:8]}-lead`
+- `delegate_task(channel="{short}-lead", instruction="이슈 [제목] 처리해. 목표: ... 근거: wiki/[id]")`
+- **CEO가 직접 Engineer/QA에게 위임하지 않는다. 팀장이 한다.**
+- 팀장 결과 폴링: `get_task_status(task_id)`
 
-**D) feature_list.json 남아있음** → 목표 없을 때 fallback
-- `docs/phases/` 에 feature_list.json이 있으면 참고
-- passes=false인 feature를 이슈로 변환하여 실행
+**D) feature_list.json 남아있음** → 이슈로 변환 후 팀장 위임
 
-### 4단계: 실행 (Sprint Contract → Engineer → QA)
+### 4단계: 팀장 관리 (직접 코드 안 짬)
 
-**Sprint Contract 작성** (전문가 근거 필수):
+CEO는 **팀장 결과를 폴링하고 관리**한다:
 ```
-## Sprint Contract — [이슈 제목]
-- 목표: ...
-- 근거: wiki/[page_id] — [전문가/출처가 뭐라 했는지 한 줄 요약]
-- 완료 기준:
-  1. [pass/fail 판정 가능한 기준]
-  2. ...
-- 테스트 명령어: python -m pytest musu-bridge/tests/ -v
-- 작업 경로: /home/hugh51/musu-functions/
+task_id = delegate_task(channel="{short}-lead", instruction="...")
+while True:
+    status = get_task_status(task_id)
+    if status.status in ["done", "failed"]: break
+    sleep(30)  # 팀장은 시간이 더 걸림
 ```
 
-**Engineer 위임**: `delegate_task(channel="engineer", instruction=contract)`
-**QA 위임**: `delegate_task(channel="qa", instruction=contract+결과요약)`
+- 팀장 done → 이슈 상태 확인 + 회고 읽기
+- 팀장 failed → 원인 분석 + 재위임 또는 이슈 에스컬레이션
 
-QA 통과 기준: functionality, correctness, completeness, code_quality 모두 7점 이상
+### 5단계: #ceo-board 업데이트 (멀티기기 시)
+
+다른 기기 CEO들에게 진행 상황 공유:
+```
+post_board_message("ceo-board", "팀장 A: MUSU 개발 3/5 이슈 완료. 다음: API 테스트.")
+```
+
+`read_board_messages("ceo-board")` 로 다른 CEO 메시지 확인.
+→ 기기 간 리소스 조율 (예: "Engineer 여유 있으면 보내줘")
 
 ### 5단계: 회고 (매 태스크 완료 후)
 ```

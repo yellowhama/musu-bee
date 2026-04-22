@@ -79,6 +79,8 @@ CREATE TABLE IF NOT EXISTS messages (
     agent_id    TEXT REFERENCES agents(id) ON DELETE SET NULL,
     -- JSON blob for arbitrary metadata
     meta        TEXT NOT NULL DEFAULT '{}',
+    -- Group chat ID (ceo-board, {company}-team, etc.)
+    group_id    TEXT,
     created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 

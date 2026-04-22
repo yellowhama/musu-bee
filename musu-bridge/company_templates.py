@@ -4,8 +4,21 @@ from __future__ import annotations
 
 _TEMPLATES: dict[str, dict] = {
     "dev-team": {
-        "description": "소프트웨어 개발 전담 팀 — 기획/구현/QA 3-agent 루프",
+        "description": "소프트웨어 개발 전담 팀 — 팀장/기획/구현/QA",
         "agents": [
+            {
+                "name": "lead",
+                "role": "Team Lead",
+                "adapter_type": "claude_local",
+                "instructions_path": "musu-bridge/instructions/team_lead.md",
+                "instructions": (
+                    "You are the Team Lead for {company_name}.\n"
+                    "Company purpose: {purpose}\n\n"
+                    "Your job: receive directives from CEO, manage the dev team, "
+                    "delegate tasks to Engineer/QA, report results back to CEO. "
+                    "Work directory: {work_dir}"
+                ),
+            },
             {
                 "name": "planner",
                 "role": "Planner",
@@ -49,8 +62,20 @@ _TEMPLATES: dict[str, dict] = {
         ],
     },
     "content-team": {
-        "description": "콘텐츠 제작 팀 — 리서처/작가/에디터",
+        "description": "콘텐츠 제작 팀 — 팀장/리서처/작가/에디터",
         "agents": [
+            {
+                "name": "lead",
+                "role": "Team Lead",
+                "adapter_type": "claude_local",
+                "instructions_path": "musu-bridge/instructions/team_lead.md",
+                "instructions": (
+                    "You are the Team Lead for {company_name}.\n"
+                    "Company purpose: {purpose}\n\n"
+                    "Your job: manage the content team, assign research/writing/editing tasks, "
+                    "ensure quality and deadlines."
+                ),
+            },
             {
                 "name": "researcher",
                 "role": "Researcher",
@@ -87,8 +112,20 @@ _TEMPLATES: dict[str, dict] = {
         ],
     },
     "research-team": {
-        "description": "리서치 팀 — 분석가/연구원/요약가",
+        "description": "리서치 팀 — 팀장/분석가/연구원/요약가",
         "agents": [
+            {
+                "name": "lead",
+                "role": "Team Lead",
+                "adapter_type": "claude_local",
+                "instructions_path": "musu-bridge/instructions/team_lead.md",
+                "instructions": (
+                    "You are the Team Lead for {company_name}.\n"
+                    "Company purpose: {purpose}\n\n"
+                    "Your job: manage the research team, prioritize research topics, "
+                    "coordinate analysts and summarizers."
+                ),
+            },
             {
                 "name": "analyst",
                 "role": "Analyst",
