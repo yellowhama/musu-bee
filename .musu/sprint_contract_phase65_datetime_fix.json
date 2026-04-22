@@ -1,0 +1,20 @@
+{
+  "task": "Fix datetime.utcnow() deprecation warning in _should_skip_heartbeat()",
+  "scope": [
+    "musu-bridge/server.py line 156: add timezone to local import",
+    "musu-bridge/server.py line 166: replace datetime.utcnow() with datetime.now(timezone.utc)"
+  ],
+  "out_of_scope": [
+    "Any other datetime changes outside _should_skip_heartbeat",
+    "Logic or behavior changes"
+  ],
+  "acceptance_criteria": [
+    "1. datetime.utcnow() no longer appears in _should_skip_heartbeat function",
+    "2. datetime.now(timezone.utc) is used instead",
+    "3. All 6 circuit breaker tests still pass",
+    "4. No new DeprecationWarning about datetime.datetime.utcnow in test output",
+    "5. Full 169-test suite still passes"
+  ],
+  "done_definition": "The deprecation warning is gone, all existing tests pass, and the fix is committed.",
+  "goal_id": "b9f4f49b-6d97-4888-966b-46e9b912748c"
+}

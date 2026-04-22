@@ -1,0 +1,23 @@
+{
+  "task": "Phase 44: 보안 강화 — watchdog 레이트 리밋 user_id 추가 + relay circuit breaker",
+  "scope": [
+    "watchdog 레이트 리밋 키를 (node, command) → (user_id, node, command) 튜플로 변경",
+    "relay 토큰 검증 circuit breaker: 연속 실패 5회 시 60초 차단 (fail-secure)",
+    "테스트: watchdog rate limit user_id isolation, circuit breaker trip/reset"
+  ],
+  "out_of_scope": [
+    "migrations.py 수정",
+    "relay_client.py WS_PROXY_TARGET (이미 환경변수화 완료)",
+    "외부 서비스 연동"
+  ],
+  "acceptance_criteria": [
+    "POST /api/watchdog/{node}/{command} — 동일 user_id+node+command 튜플이 10초 내 2회 호출 시 429 반환",
+    "다른 user_id는 동일 node+command 에 대해 독립적으로 레이트 리밋 적용 (격리)",
+    "user_id 없는 요청(인증 없음)은 기존 동작 유지 또는 anonymous로 처리",
+    "relay circuit breaker: 토큰 검증 연속 5회 실패 시 이후 요청 60초간 503 반환",
+    "relay circuit breaker: 60초 후 half-open 상태로 전환, 1회 성공 시 closed",
+    "기존 테스트 전체 통과 (pytest musu-bridge/tests/ — 리그레션 없음)",
+    "새 테스트: test_watchdog_rate_limit_user_isolation, test_relay_circuit_breaker"
+  ],
+  "done_definition": "watchdog 레이트 리밋이 user_id 단위로 격리되고, relay circuit breaker가 fail-secure 동작하며, 모든 pytest 통과 후 커밋 완료"
+}
