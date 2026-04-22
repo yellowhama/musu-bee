@@ -9,14 +9,18 @@ cd "$ROOT"
 
 log() { echo "[auto-update] $*"; }
 
-# ── 1. Fetch ──────────────────────────────────────────────────────────────────
-if ! git fetch origin main --quiet 2>/dev/null; then
-    log "git fetch failed — no network or no remote. skipping."
-    exit 0
+# ── 1. Fetch (Forgejo first, fallback to origin) ─────────────────────────────
+FETCH_REMOTE="forgejo"
+if ! git fetch forgejo main --quiet 2>/dev/null; then
+    FETCH_REMOTE="origin"
+    if ! git fetch origin main --quiet 2>/dev/null; then
+        log "git fetch failed — no network or no remote. skipping."
+        exit 0
+    fi
 fi
 
 LOCAL=$(git rev-parse HEAD)
-REMOTE=$(git rev-parse origin/main 2>/dev/null || echo "")
+REMOTE=$(git rev-parse ${FETCH_REMOTE}/main 2>/dev/null || echo "")
 
 if [ -z "$REMOTE" ]; then
     log "cannot resolve origin/main — skipping."
@@ -31,7 +35,7 @@ fi
 log "update available: ${LOCAL:0:8} → ${REMOTE:0:8}"
 
 # ── 2. Detect what changed before pulling ────────────────────────────────────
-CHANGED=$(git diff --name-only HEAD origin/main 2>/dev/null || echo "")
+CHANGED=$(git diff --name-only HEAD ${FETCH_REMOTE}/main 2>/dev/null || echo "")
 
 RESTART_BRIDGE=0
 RESTART_CONNECTSD=0
@@ -46,26 +50,12 @@ if echo "$CHANGED" | grep -q "^bin/musu-connectsd$"; then
     RESTART_CONNECTSD=1
 fi
 
-# ── 3. Pull (try Forgejo first, fallback to GitHub) ──────────────────────────
-PULLED=0
-if git remote get-url forgejo >/dev/null 2>&1; then
-    if git pull forgejo main --quiet 2>&1; then
-        log "pulled from Forgejo"
-        PULLED=1
-    fi
+# ── 3. Pull ───────────────────────────────────────────────────────────────────
+if ! git pull ${FETCH_REMOTE} main --quiet 2>&1; then
+    log "git pull failed — leaving services unchanged."
+    exit 1
 fi
-if [ "$PULLED" = "0" ]; then
-    if ! git pull origin main --quiet 2>&1; then
-        log "git pull failed — leaving services unchanged."
-        exit 1
-    fi
-fi
-log "pulled ${REMOTE:0:8} successfully"
-
-# ── 3a. Push to Forgejo (sync back if pulled from origin) ────────────────────
-if git remote get-url forgejo >/dev/null 2>&1; then
-    git push forgejo main --quiet 2>/dev/null || log "Forgejo push skipped (credential or network)"
-fi
+log "pulled ${REMOTE:0:8} successfully from ${FETCH_REMOTE}"
 
 # ── 3b. Apply agent defaults (model distribution + fallback chains) ──────────
 if echo "$CHANGED" | grep -qE "(agent-defaults|apply-agent)"; then
