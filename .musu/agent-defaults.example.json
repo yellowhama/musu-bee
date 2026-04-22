@@ -1,6 +1,6 @@
 {
-  "_comment": "Global agent model distribution. All nodes pull this from Forgejo and apply.",
-  "_updated": "2026-04-23T06:40",
+  "_comment": "Global agent model distribution. Copy to agent-defaults.json and customize.",
+  "_updated": "",
 
   "model_distribution": {
     "claude": {

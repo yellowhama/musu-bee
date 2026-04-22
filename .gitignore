@@ -108,3 +108,19 @@ musu-computer-tools/mcp/rootless-computer-control/pydeps/
 .venv*/
 *.pyc
 references_AI/
+
+# ── User data (NOT product code) ──────────────────────────────
+# These are generated per-user at runtime.
+# Only .example templates should be in the repo.
+.musu/charter.md
+.musu/agent-defaults.json
+.musu/tasks/
+.musu/experience/
+.musu/skills/
+.musu/forgejo/
+.musu/sprint_contract_*.json
+.musu/qa_result_*.json
+.musu/bin/
+llm-wiki/
+~/.musu/
+.git-credentials

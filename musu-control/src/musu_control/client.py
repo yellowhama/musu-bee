@@ -17,7 +17,7 @@ class PaperclipClient:
         if not base.endswith("/api"):
             base = base + "/api"
         self.base_url = base
-        self.company_id = os.environ.get("PAPERCLIP_COMPANY_ID", "f27a9bd2-688a-450b-98b4-f63d24b0ab50")
+        self.company_id = os.environ.get("PAPERCLIP_COMPANY_ID", "")
         api_key = os.environ.get("PAPERCLIP_API_KEY", "")
         if not api_key:
             _token_file = os.path.expanduser("~/.musu/bridge_token")
