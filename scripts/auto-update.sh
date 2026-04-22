@@ -53,6 +53,15 @@ if ! git pull origin main --quiet 2>&1; then
 fi
 log "pulled ${REMOTE:0:8} successfully"
 
+# ── 3b. Apply agent defaults (model distribution + fallback chains) ──────────
+if echo "$CHANGED" | grep -qE "(agent-defaults|apply-agent)"; then
+    if [ -f "${ROOT}/scripts/apply-agent-defaults.py" ]; then
+        log "applying agent-defaults.json..."
+        "${ROOT}/musu-bridge/.venv/bin/python" "${ROOT}/scripts/apply-agent-defaults.py" 2>&1 | tail -3 || \
+            log "WARNING: apply-agent-defaults failed"
+    fi
+fi
+
 # ── 4. Rebuild connectsd from source if glibc-incompatible ──────────────────
 if [ "$RESTART_CONNECTSD" = "1" ]; then
     # Quick sanity-check: can the pulled binary even execute on this machine?
