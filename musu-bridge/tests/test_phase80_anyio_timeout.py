@@ -50,7 +50,7 @@ def reset_channel_cb():
 
 @pytest.mark.asyncio
 async def test_route_chat_timeout_returns_error():
-    """route_message가 타임아웃 초과 시 route_timeout 에러 반환, route_message 결과 없음."""
+    """Router.route가 타임아웃 초과 시 route_timeout 에러 반환, response 없음."""
     import handlers
 
     async def _slow_route(*args, **kwargs):
@@ -58,10 +58,12 @@ async def test_route_chat_timeout_returns_error():
 
     mock_backend = MagicMock()
     mock_backend.get_agent_by_name.return_value = {
-        "id": "a1", "role": "engineer", "adapter_type": "gemini_local"
+        "id": "a1", "role": "engineer", "adapter_type": "gemini_local", "adapter_config": {},
     }
     mock_backend.create_route_execution.return_value = None
     mock_backend.update_route_execution.return_value = None
+    mock_backend.list_tasks.return_value = []
+    mock_backend.create_task.return_value = {"id": "task-1", "meta": {}}
 
     with patch("handlers._get_backend", return_value=mock_backend):
         with patch("handlers._health_probe_enabled", return_value=False):
@@ -69,7 +71,8 @@ async def test_route_chat_timeout_returns_error():
                 mock_cfg.return_value.channel_agent_map = {"engineer": "engineer"}
                 with patch("handlers.get_mesh_router") as mock_mesh:
                     mock_mesh.return_value.enabled = False
-                    with patch("handlers.route_message", side_effect=_slow_route):
+                    mock_mesh.return_value.is_remote.return_value = False
+                    with patch("musu_core.router.Router.route", side_effect=_slow_route):
                         with patch("handlers._route_timeout_sec", return_value=0.05):
                             result = await handlers.route_chat(
                                 channel="engineer",
@@ -92,10 +95,12 @@ async def test_route_chat_timeout_increments_cb():
 
     mock_backend = MagicMock()
     mock_backend.get_agent_by_name.return_value = {
-        "id": "a1", "role": "engineer", "adapter_type": "gemini_local"
+        "id": "a1", "role": "engineer", "adapter_type": "gemini_local", "adapter_config": {},
     }
     mock_backend.create_route_execution.return_value = None
     mock_backend.update_route_execution.return_value = None
+    mock_backend.list_tasks.return_value = []
+    mock_backend.create_task.return_value = {"id": "task-1", "meta": {}}
 
     cb_failures = []
 
@@ -108,7 +113,8 @@ async def test_route_chat_timeout_increments_cb():
                 mock_cfg.return_value.channel_agent_map = {"engineer": "engineer"}
                 with patch("handlers.get_mesh_router") as mock_mesh:
                     mock_mesh.return_value.enabled = False
-                    with patch("handlers.route_message", side_effect=_slow_route):
+                    mock_mesh.return_value.is_remote.return_value = False
+                    with patch("musu_core.router.Router.route", side_effect=_slow_route):
                         with patch("handlers._route_timeout_sec", return_value=0.05):
                             try:
                                 import server
@@ -133,15 +139,27 @@ async def test_route_chat_timeout_increments_cb():
 
 @pytest.mark.asyncio
 async def test_route_chat_fast_response_not_timed_out():
-    """빠른 route_message 응답은 타임아웃 없이 정상 완료."""
+    """빠른 Router.route 응답은 타임아웃 없이 정상 완료."""
     import handlers
+    from musu_core.adapters.base import AdapterResult
+    from musu_core.router import RouteResult
+
+    fake_result = RouteResult(
+        run_id="run-fast",
+        agent_id="a1",
+        success=True,
+        summary="ok response",
+        adapter_result=AdapterResult(run_id="run-fast", success=True, summary="ok response"),
+    )
 
     mock_backend = MagicMock()
     mock_backend.get_agent_by_name.return_value = {
-        "id": "a1", "role": "engineer", "adapter_type": "gemini_local"
+        "id": "a1", "role": "engineer", "adapter_type": "gemini_local", "adapter_config": {},
     }
     mock_backend.create_route_execution.return_value = None
     mock_backend.update_route_execution.return_value = None
+    mock_backend.list_tasks.return_value = []
+    mock_backend.create_task.return_value = {"id": "task-1", "meta": {}}
 
     with patch("handlers._get_backend", return_value=mock_backend):
         with patch("handlers._health_probe_enabled", return_value=False):
@@ -149,7 +167,8 @@ async def test_route_chat_fast_response_not_timed_out():
                 mock_cfg.return_value.channel_agent_map = {"engineer": "engineer"}
                 with patch("handlers.get_mesh_router") as mock_mesh:
                     mock_mesh.return_value.enabled = False
-                    with patch("handlers.route_message", new_callable=AsyncMock, return_value="ok response"):
+                    mock_mesh.return_value.is_remote.return_value = False
+                    with patch("musu_core.router.Router.route", new_callable=AsyncMock, return_value=fake_result):
                         with patch("handlers._route_timeout_sec", return_value=30.0):
                             result = await handlers.route_chat(
                                 channel="engineer",

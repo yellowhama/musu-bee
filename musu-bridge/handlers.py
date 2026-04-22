@@ -53,7 +53,7 @@ if str(_MUSU_CORE) not in sys.path:
 
 from musu_core.backends.local import LocalBackend
 from musu_core.config import get_config as get_core_config
-from musu_core.router import route_message
+from musu_core.router import Router, RouteRequest, route_message
 
 from config import get_config as get_bridge_config
 from mesh_router import get_mesh_router
@@ -304,44 +304,65 @@ async def route_chat(
         _ws = TaskWorkspace(exec_id)
         _ws.create()
 
+    # Look up agent once so we can build the RouteRequest and return agent info.
+    agent = backend.get_agent_by_name(channel, company_id=company_id)
+    agent_id = agent["id"] if agent else None
+    agent_name = agent["role"] if agent else channel
+    adapter_type: str = adapter_override or (agent["adapter_type"] if agent else "") or ""
+
+    if agent_id is None:
+        return _finish({"error": f"No agent mapped to channel: {channel!r}", "response": None})
+
+    # Ensure task exists for source_ref (mirrors route_message task-management logic)
+    active_tasks = backend.list_tasks(status="in_progress", assignee_agent_id=agent_id)
+    task_dict = next(
+        (t for t in active_tasks if t.get("meta", {}).get("source_ref") == sender_id),
+        None,
+    )
+    if task_dict is None:
+        task_dict = backend.create_task(
+            title=f"[{channel}] {text.strip()[:60]}",
+            description=text.strip(),
+            assignee_agent_id=agent_id,
+            meta={"source": channel, "source_ref": sender_id},
+        )
+    task_id: str = task_dict["id"]
+    backend.add_comment(task_id=task_id, body=text.strip(), author_kind="user")
+
+    _router = Router(backend=backend, config=get_core_config())
+
     try:
         import anyio
         with anyio.fail_after(_route_timeout_sec()):
-            response = await route_message(
-                source=channel,
-                source_ref=sender_id,
-                message=text.strip(),
-                backend=_get_backend(),
-                company_id=company_id,
+            route_result = await _router.route(RouteRequest(
+                agent_id=agent_id,
+                prompt=text.strip(),
+                task_id=task_id,
                 adapter_override=adapter_override,
                 cost_optimized=cost_optimized,
-            )
+            ))
     except TimeoutError:
         logger.warning("route_chat: route_timeout — LLM call exceeded %.0fs for channel=%r", _route_timeout_sec(), channel)
         return _finish({"error": f"route_timeout: LLM call exceeded {_route_timeout_sec():.0f}s limit", "response": None})
-    except ValueError as exc:
-        logger.warning("route_chat: no agent for channel %r — %s", channel, exc)
-        return _finish({"error": "No agent available for this channel.", "response": None})
-    except RuntimeError as exc:
-        logger.error("route_chat: adapter failure — %s", exc)
-        return _finish({"error": "Agent unavailable. Please try again later.", "response": None})
     except Exception as exc:
         logger.exception("route_chat: unexpected error — %s", exc)
         return _finish({"error": "Internal error. Please try again.", "response": None})
 
-    # Look up agent info
-    agent = backend.get_agent_by_name(channel, company_id=company_id)
-    agent_id = agent["id"] if agent else None
-    agent_name = agent["role"] if agent else channel
+    if not route_result.success:
+        logger.error("route_chat: adapter failure — %s", route_result.error)
+        return _finish({"error": "Agent unavailable. Please try again later.", "response": None})
 
-    # adapter_override takes priority; fall back to agent's configured adapter_type
-    adapter_type: str = adapter_override or (agent["adapter_type"] if agent else "") or ""
+    backend.add_comment(task_id=task_id, body=route_result.summary, author_agent_id=agent_id, author_kind="agent")
 
+    usage = route_result.adapter_result.usage if route_result.adapter_result else None
     return _finish({
-        "response": response,
+        "response": route_result.summary,
         "agent_id": agent_id,
         "agent_name": agent_name,
         "adapter_type": adapter_type,
+        "input_tokens": usage.input_tokens if usage else None,
+        "output_tokens": usage.output_tokens if usage else None,
+        "cost_usd": route_result.adapter_result.cost_usd if route_result.adapter_result else None,
     })
 
 

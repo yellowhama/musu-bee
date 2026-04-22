@@ -76,6 +76,17 @@ class TestRouteChatAdapterType:
 class TestHandlersRouteChatAdapterType:
     """handlers.route_chat() must include adapter_type in return dict."""
 
+    def _make_route_result(self, summary: str, agent_id: str = "ceo-1"):
+        from musu_core.adapters.base import AdapterResult
+        from musu_core.router import RouteResult
+        return RouteResult(
+            run_id="run-1",
+            agent_id=agent_id,
+            success=True,
+            summary=summary,
+            adapter_result=AdapterResult(run_id="run-1", success=True, summary=summary),
+        )
+
     @pytest.mark.asyncio
     async def test_route_chat_includes_adapter_type(self):
         """route_chat returns dict with adapter_type key."""
@@ -86,16 +97,21 @@ class TestHandlersRouteChatAdapterType:
             "id": "ceo-1",
             "role": "ceo",
             "adapter_type": "claude_local",
+            "adapter_config": {},
         }
         mock_backend.create_route_execution.return_value = "exec-1"
         mock_backend.update_route_execution = MagicMock()
+        mock_backend.list_tasks.return_value = []
+        mock_backend.create_task.return_value = {"id": "task-1", "meta": {}}
 
         with (
             patch("handlers._get_backend", return_value=mock_backend),
-            patch("handlers.route_message", new_callable=AsyncMock, return_value="Agent response text"),
             patch("handlers.get_mesh_router") as mock_mesh,
+            patch("musu_core.router.Router.route", new_callable=AsyncMock,
+                  return_value=self._make_route_result("Agent response text")),
         ):
             mock_mesh.return_value.enabled = False
+            mock_mesh.return_value.is_remote.return_value = False
             result = await handlers.route_chat(
                 channel="ceo",
                 sender_id="user1",
@@ -116,16 +132,21 @@ class TestHandlersRouteChatAdapterType:
             "id": "ceo-1",
             "role": "ceo",
             "adapter_type": "claude_local",
+            "adapter_config": {},
         }
         mock_backend.create_route_execution.return_value = "exec-1"
         mock_backend.update_route_execution = MagicMock()
+        mock_backend.list_tasks.return_value = []
+        mock_backend.create_task.return_value = {"id": "task-1", "meta": {}}
 
         with (
             patch("handlers._get_backend", return_value=mock_backend),
-            patch("handlers.route_message", new_callable=AsyncMock, return_value="Gemini response"),
             patch("handlers.get_mesh_router") as mock_mesh,
+            patch("musu_core.router.Router.route", new_callable=AsyncMock,
+                  return_value=self._make_route_result("Gemini response")),
         ):
             mock_mesh.return_value.enabled = False
+            mock_mesh.return_value.is_remote.return_value = False
             result = await handlers.route_chat(
                 channel="ceo",
                 sender_id="user1",
