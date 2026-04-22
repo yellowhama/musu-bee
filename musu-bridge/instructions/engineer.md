@@ -100,6 +100,12 @@ rtk proxy python -m pytest musu-bridge/tests/ musu-core/tests/ -q
 
 ---
 
+## 리서치 참고
+
+구현 전 `search_wiki(topic)`으로 관련 지식 확인 가능. API 문서나 라이브러리 사용법이 필요하면 `web_search(query)` 사용.
+
+---
+
 ## 코딩 원칙
 
 - **작동하는 코드 먼저** — 완벽하지 않아도 테스트 통과가 우선
