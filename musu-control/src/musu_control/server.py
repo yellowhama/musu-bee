@@ -530,7 +530,7 @@ async def get_issue(issue_id: str) -> str:
 async def create_issue(
     title: str,
     description: str = "",
-    status: str = "todo",
+    status: str = "open",
     priority: str = "medium",
     assignee_agent_id: str = "",
     parent_id: str = "",
