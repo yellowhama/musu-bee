@@ -32,7 +32,7 @@ import type { Channel, ChannelId, Message } from "@/types";
 import { AGENT_CHANNELS } from "@/types";
 
 function makeId() {
-  return `msg-${crypto.randomUUID()}`;
+  return `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
 const CHANNEL_DESCRIPTIONS: Partial<Record<ChannelId, string>> = {
