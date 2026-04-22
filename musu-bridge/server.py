@@ -271,9 +271,13 @@ async def _heartbeat_iteration(
             "3. 판단: 목표 없으면 생성, 이슈 없으면 분해, 이슈 있으면 실행\n"
             "4. Sprint Contract → Engineer 위임 → QA → 커밋\n"
             "5. 완료 후 이슈에 회고 작성\n"
-            "6. 목표 완료 판단"
+            "6. 목표 완료 판단\n\n"
+            "## 위임 패턴 (fire-and-check) — 필수\n"
+            "delegate_task 후 즉시 종료한다. task_id를 이슈 코멘트에 기록하고 heartbeat 종료.\n"
+            "다음 heartbeat에서 get_task_status(task_id)로 완료 여부 확인.\n"
+            "폴링 루프 금지: while True + sleep 루프 절대 실행 금지 — heartbeat timeout 초과 원인."
         )
-        _hb_timeout = int(os.environ.get("MUSU_HEARTBEAT_TIMEOUT_SEC", "300"))
+        _hb_timeout = int(os.environ.get("MUSU_HEARTBEAT_TIMEOUT_SEC", "600"))
         try:
             await asyncio.wait_for(
                 route_chat(
