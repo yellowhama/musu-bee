@@ -1,0 +1,11 @@
+{
+  "pass": true,
+  "scores": {
+    "functionality": 9,
+    "correctness": 9,
+    "completeness": 9,
+    "code_quality": 8
+  },
+  "feedback": "8/8 tests PASSED. Root cause correctly identified and fixed: wiki_client fixture was sending 'Bearer test-token' but middleware was initialized with actual MUSU_BRIDGE_TOKEN env var. Fix reads actual token at fixture setup time.",
+  "iteration": 1
+}
