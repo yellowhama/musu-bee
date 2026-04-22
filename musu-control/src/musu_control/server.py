@@ -1558,6 +1558,88 @@ async def get_wiki_page(page_id: str) -> str:
 
 
 # ──────────────────────────────────────────────
+# Auto-Research Tools
+# ──────────────────────────────────────────────
+
+
+@mcp.tool()
+async def web_search(query: str, max_results: int = 5) -> str:
+    """Search the web for information. Returns structured results.
+
+    Requires MUSU_SEARCH_API_KEY env var (Tavily API key).
+    Use this to research unfamiliar topics before implementation.
+    """
+    api_key = os.environ.get("MUSU_SEARCH_API_KEY", "")
+    if not api_key:
+        return _fmt({"error": "MUSU_SEARCH_API_KEY not configured. Set Tavily API key to enable web search."})
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.post(
+                "https://api.tavily.com/search",
+                json={"api_key": api_key, "query": query, "max_results": max_results, "include_answer": True},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            results = []
+            if data.get("answer"):
+                results.append({"type": "answer", "content": data["answer"]})
+            for r in data.get("results", [])[:max_results]:
+                results.append({"title": r.get("title", ""), "url": r.get("url", ""), "snippet": r.get("content", "")[:300]})
+            return _fmt({"query": query, "results": results})
+    except Exception as exc:
+        return _tool_error(f"Web search failed: {exc}")
+
+
+@mcp.tool()
+async def web_fetch(url: str) -> str:
+    """Fetch a URL and return its text content (max 10KB).
+
+    Use for reading documentation, API references, blog posts, etc.
+    HTML is stripped to plain text.
+    """
+    if not url.startswith(("http://", "https://")):
+        return _tool_error("URL must start with http:// or https://")
+    try:
+        async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
+            resp = await client.get(url, headers={"User-Agent": "MUSU-Research/1.0"})
+            resp.raise_for_status()
+            content_type = resp.headers.get("content-type", "")
+            text = resp.text
+            # Strip HTML tags for readability
+            if "html" in content_type:
+                text = re.sub(r"<script[^>]*>.*?</script>", "", text, flags=re.DOTALL)
+                text = re.sub(r"<style[^>]*>.*?</style>", "", text, flags=re.DOTALL)
+                text = re.sub(r"<[^>]+>", " ", text)
+                text = re.sub(r"\s+", " ", text).strip()
+            # Cap at 10KB
+            if len(text) > 10240:
+                text = text[:10240] + "\n\n... (truncated at 10KB)"
+            return _fmt({"url": url, "content": text, "length": len(text)})
+    except Exception as exc:
+        return _tool_error(f"Fetch failed: {exc}")
+
+
+@mcp.tool()
+async def write_wiki_page(page_id: str, content: str) -> str:
+    """Write a wiki page to the MUSU knowledge base.
+
+    page_id: alphanumeric + underscore + hyphen (e.g., '130_TOPIC_NAME_2026-04-22')
+    content: full Markdown content for the page.
+    Used by CTO/researcher agents to save research findings.
+    """
+    safe_id = re.sub(r"[^a-zA-Z0-9_\-]", "", page_id)
+    if not safe_id:
+        return _tool_error("Invalid page_id: must contain alphanumeric characters")
+    path = _WIKI_PATH / f"{safe_id}.md"
+    try:
+        path.write_text(content, encoding="utf-8")
+        title = _wiki_title(content, safe_id)
+        return _fmt({"written": str(path), "title": title, "page_id": safe_id, "size": len(content)})
+    except Exception as exc:
+        return _tool_error(f"Write failed: {exc}")
+
+
+# ──────────────────────────────────────────────
 # Entry point
 # ──────────────────────────────────────────────
 

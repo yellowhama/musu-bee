@@ -1,0 +1,23 @@
+[Unit]
+Description=MUSU QUIC Sidecar (connectsd bridge-proxy)
+Documentation=https://musu.pro
+After=network.target
+Before=musu-bridge.service
+
+[Service]
+Type=simple
+WorkingDirectory=%h/musu-functions
+
+# Load per-user config (same env file as bridge)
+EnvironmentFile=-%h/.musu/bridge.env
+
+ExecStart=%h/musu-functions/bin/musu-connectsd bridge-proxy
+Restart=always
+RestartSec=3
+MemoryMax=256M
+
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target

@@ -46,6 +46,24 @@ while True:
 3. `rtk git log --oneline -5` — 최근 커밋 확인
 4. passes=false인 feature 목록 파악
 
+### Pre-Implementation Research (자동 리서치)
+
+Sprint Contract 작성 전, 해당 feature에 대한 기존 지식 확인:
+
+1. `search_wiki(topic)` — 관련 wiki 페이지 검색
+2. 지식 부족 시 → CTO에게 리서치 위임:
+   ```
+   delegate_task(
+     channel="cto",
+     instruction="Research: [topic]. web_search와 web_fetch로 조사 후 write_wiki_page로 결과 저장."
+   )
+   ```
+3. CTO 리서치 완료 → wiki 페이지 읽어서 Sprint Contract에 반영
+
+리서치가 필요 없는 단순 feature는 이 단계 건너뛴다.
+
+---
+
 ### Sprint Contract 작성
 
 각 feature 구현 전 Sprint Contract 작성:
