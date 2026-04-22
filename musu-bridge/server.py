@@ -794,6 +794,17 @@ async def lifespan(app: FastAPI):
     # Stuck-task watchdog (always on — auto-cancels tasks running > threshold)
     stuck_watchdog_task = asyncio.create_task(_watchdog_loop())
 
+    # Register with portd (wiki/003 — all services must register)
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=5) as _portd:
+            _port = int(os.environ.get("BRIDGE_PORT", "8070"))
+            _sig = f"tcp|python3|0.0.0.0|{_port}"
+            await _portd.post("http://127.0.0.1:1355/promote", json={"signature": _sig, "alias": "bridge"})
+            logger.info("portd: registered bridge as alias 'bridge'")
+    except Exception as _pe:
+        logger.info("portd: registration skipped (%s)", _pe)
+
     yield
 
     stuck_watchdog_task.cancel()
