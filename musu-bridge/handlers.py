@@ -98,6 +98,15 @@ async def route_chat(
     if not text.strip():
         return {"error": "Empty message", "response": None}
 
+    # ── Per-channel circuit breaker check ─────────────────────────────────────
+    try:
+        from server import _channel_cb
+        if _channel_cb.is_open(channel):
+            logger.warning("channel_cb: rejecting dispatch — circuit open for channel=%r", channel)
+            return {"error": f"channel_cb: circuit open for {channel!r} — too many recent failures", "response": None}
+    except Exception:
+        pass  # Fail-open: if CB import fails, proceed normally
+
     # ── Durable execution record ───────────────────────────────────────────────
     backend = _get_backend()
     import time
@@ -129,6 +138,14 @@ async def route_chat(
                                                    duration_sec=duration)
                     logger.warning("route_chat: failed channel=%r exec_id=%s duration=%.3fs request_id=%s error=%r",
                                    channel, exec_id, duration, rid, result["error"])
+                    # Record failure in per-channel circuit breaker
+                    try:
+                        from server import _channel_cb
+                        _channel_cb.record_failure(channel)
+                        if _channel_cb.is_open(channel):
+                            logger.warning("channel_cb: circuit open for channel=%r", channel)
+                    except Exception:
+                        pass
                 else:
                     backend.update_route_execution(exec_id, "done", output=result.get("response"), node=node,
                                                    cost_usd=cost_usd, input_tokens=input_tokens, output_tokens=output_tokens,
