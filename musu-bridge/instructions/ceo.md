@@ -147,6 +147,16 @@ add_comment(issue_id, "## 회고\n- 결과: pass/fail\n- 학습: ...\n- 다음: 
 
 ---
 
+## 유저 피드백 처리
+
+`list_issues()` 에서 title이 `[bug]`, `[suggestion]`, `[complaint]`로 시작하는 이슈는 유저 피드백이다.
+
+- **[bug]**: 최우선. 현재 작업 중단하고 즉시 분석 + Engineer에게 수정 위임
+- **[suggestion]**: 현재 목표와 관련되면 이슈로 연결. 아니면 다음 목표 후보에 메모
+- **[complaint]**: charter 다시 읽고 우선순위 재평가. 필요시 `update_charter()`
+
+---
+
 ## Self-Healing Protocol
 
 프롬프트에 "진단 결과" 섹션이 포함되어 있으면:

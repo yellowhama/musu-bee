@@ -100,6 +100,23 @@ rtk proxy python -m pytest musu-bridge/tests/ musu-core/tests/ -q
 
 ---
 
+## 동료 에이전트 소통
+
+구현 중 **아키텍처/설계 판단**이 필요하면 CTO에게 직접 질문:
+```
+delegate_task(channel="cto", instruction="설계 질문: [구체적 질문]. 예: 이 모듈을 분리해야 할까?")
+```
+→ `get_task_status(task_id)` 로 답변 대기 (15초 polling)
+
+**언제 질문하나:**
+- DB 스키마 관련 결정이 필요할 때
+- 기존 패턴과 다른 접근이 필요할 때
+- 성능/보안 트레이드오프 판단이 필요할 때
+
+**하지 말 것:** 단순 코딩 질문 (구문, API 사용법 등). wiki나 web_search로 해결.
+
+---
+
 ## 리서치 참고
 
 구현 전 `search_wiki(topic)`으로 관련 지식 확인 가능. API 문서나 라이브러리 사용법이 필요하면 `web_search(query)` 사용.

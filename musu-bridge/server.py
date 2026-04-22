@@ -1881,6 +1881,31 @@ async def api_wiki_page_delete(
     return {"deleted": safe_id}
 
 
+# ── User Feedback ──────────────────────────────────────────────────────────
+
+
+class FeedbackRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    description: str = Field(default="", max_length=5000)
+    type: str = Field(default="suggestion", pattern=r"^(bug|suggestion|complaint)$")
+
+
+@app.post("/api/feedback", summary="Submit user feedback", status_code=201)
+async def api_submit_feedback(req: FeedbackRequest) -> dict:
+    """Convert user feedback into an issue for the CEO to process.
+
+    Feedback types: bug (high priority), suggestion (medium), complaint (medium).
+    CEO picks these up during heartbeat via list_issues().
+    """
+    issue = create_issue_record(
+        company_id=_CANONICAL_COMPANY_ID,
+        title=f"[{req.type}] {req.title}",
+        description=req.description,
+        priority="high" if req.type == "bug" else "medium",
+    )
+    return {"issue_id": issue["id"], "status": "received"}
+
+
 @app.get("/health")
 async def health() -> dict:
     return {"status": "ok"}
