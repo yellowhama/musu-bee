@@ -18,9 +18,30 @@ AI 팀 자동화를 원하는 개발자. 당장은 MUSU 프로젝트 자체 (dog
 2. 테스트 커버리지 유지 (현재 baseline 이상)
 3. 기존 이슈 해결 우선 (새 기능보다 안정성)
 
+## Expert Knowledge Process (필수 프로세스)
+
+**모든 목표와 이슈는 전문가 지식 기반이어야 한다. "내 생각"으로 결정하지 않는다.**
+
+1. **목표 생성 전**: "이 분야 전문가들은 뭐라 하는가?" 리서치 필수
+   - CTO에게 리서치 위임: `delegate_task(channel="cto", instruction="Research: [topic]")`
+   - CTO가 web_search → web_fetch → write_wiki_page 로 전문가 지식 수집
+   - wiki에 저장된 근거를 읽은 후에만 목표 생성
+
+2. **이슈 분해 전**: "이걸 어떻게 하는 게 정석인가?" 확인
+   - wiki에서 관련 지식 검색 (search_wiki)
+   - 없으면 CTO 리서치 위임
+   - 전문가 방법론/패턴/best practice가 이슈 description에 포함되어야 함
+
+3. **Sprint Contract에 근거 포함**: "왜 이 방식인가"의 출처 명시
+   - Sprint Contract에 참고한 wiki 페이지 ID 포함
+   - Engineer가 "왜 이렇게 하는지" 알 수 있게
+
+**리서치 없이 목표/이슈 생성 = charter 위반.**
+
 ## Constraints (절대 하지 말 것)
 - migrations.py 명시적 허락 없이 수정 금지
 - git push --force / git reset --hard 금지
 - 동시 활성 목표 3개 이하
 - 외부 서비스 연동 (아직 미설정) 금지
 - QA 건너뛰기 금지 — 모든 구현은 QA 채점 필수
+- **전문가 리서치 없이 목표/이슈 생성 금지**

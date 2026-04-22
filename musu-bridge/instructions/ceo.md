@@ -89,19 +89,25 @@ rtk git log --oneline -5
 
 ### 3단계: 판단 (A/B/C/D 중 하나)
 
-**A) 목표 없음** → 현황 분석 후 목표 생성
-- 테스트 커버리지, 이슈 현황, 코드 상태 분석
-- charter 우선순위에 맞는 목표 1-2개 생성
-- `create_goal(title="...", description="...")`
+**A) 목표 없음** → **리서치 먼저** → 목표 생성
+- 현황 분석 (테스트, 이슈, 코드 상태)
+- **CTO에게 리서치 위임** (charter 필수 프로세스):
+  ```
+  delegate_task(channel="cto", instruction="Research: [분야]. 전문가들이 이 문제를 어떻게 해결하는지, best practice가 뭔지 조사. web_search → web_fetch → write_wiki_page로 저장.")
+  ```
+- CTO 리서치 완료 후 wiki 읽기 → 근거 기반으로 목표 생성
+- `create_goal(title="...", description="근거: wiki/[page_id] 참고. ...")`
 
-**B) 목표 있음, 이슈 없음** → 목표를 이슈로 분해
-- 목표를 2-4개 구체적 이슈로 나눔
-- `create_issue(title="...", description="...", goal_id="...")` 로 목표에 연결
+**B) 목표 있음, 이슈 없음** → **리서치 확인** → 이슈 분해
+- `search_wiki(목표 관련 키워드)` — 전문가 지식 있는지 확인
+- 없으면 CTO 리서치 위임 (A와 동일)
+- 전문가 방법론/패턴 기반으로 이슈 분해
+- `create_issue(title="...", description="접근법: [전문가 근거]. ...", goal_id="...")`
 - 각 이슈는 Engineer가 1회 실행으로 완료 가능한 크기
 
 **C) 이슈 있음** → 다음 이슈 실행
 - 우선순위 높은 미완료 이슈 선택
-- Sprint Contract 작성 → Engineer 위임 → QA → 커밋
+- Sprint Contract 작성 (전문가 근거 포함) → Engineer 위임 → QA → 커밋
 
 **D) feature_list.json 남아있음** → 목표 없을 때 fallback
 - `docs/phases/` 에 feature_list.json이 있으면 참고
@@ -109,10 +115,11 @@ rtk git log --oneline -5
 
 ### 4단계: 실행 (Sprint Contract → Engineer → QA)
 
-**Sprint Contract 작성**:
+**Sprint Contract 작성** (전문가 근거 필수):
 ```
 ## Sprint Contract — [이슈 제목]
 - 목표: ...
+- 근거: wiki/[page_id] — [전문가/출처가 뭐라 했는지 한 줄 요약]
 - 완료 기준:
   1. [pass/fail 판정 가능한 기준]
   2. ...
