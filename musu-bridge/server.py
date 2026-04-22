@@ -151,17 +151,42 @@ async def _agent_heartbeat_scheduler() -> None:
     # Wait 60s after server start before first heartbeat — let everything settle.
     await asyncio.sleep(60)
 
+    _self_healing = os.environ.get("MUSU_SELF_HEALING_ENABLED", "true").lower() == "true"
+
     while True:
         try:
+            # Phase 60: Pre-heartbeat diagnostic (self-healing)
+            diag_summary = ""
+            if _self_healing:
+                try:
+                    from diagnostics import PreHeartbeatDiagnostic
+                    from handlers import _get_backend as _diag_backend
+                    _ws_root = os.path.join(os.getcwd(), ".musu", "tasks")
+                    report = PreHeartbeatDiagnostic(workspace_root=_ws_root).run(_diag_backend())
+                    if report.needs_attention:
+                        diag_summary = report.summary
+                        logger.info("heartbeat_scheduler: diagnostic found issues:\n%s", diag_summary)
+                    else:
+                        logger.info("heartbeat_scheduler: diagnostic clean")
+                except Exception as diag_exc:
+                    logger.warning("heartbeat_scheduler: diagnostic error — %s", diag_exc)
+
             logger.info("heartbeat_scheduler: invoking %s", agent_name)
+            prompt_parts = []
+            if diag_summary:
+                prompt_parts.append(
+                    f"## 진단 결과 (자동 감지)\n\n{diag_summary}\n\n"
+                    "위 이슈를 확인하고 필요 시 create_issue로 등록한 후, 개발 루프를 진행하라.\n\n---\n\n"
+                )
+            prompt_parts.append(
+                "자율 개발 루프 실행: DEVELOPMENT_PROCESS.md를 읽고, "
+                "미완료 Phase feature list를 확인한 후, "
+                "Sprint Contract 작성 → Engineer 위임 → QA → 커밋 순서로 진행하라."
+            )
             await route_chat(
                 channel=agent_name,
                 sender_id="system",
-                text=(
-                    "자율 개발 루프 실행: DEVELOPMENT_PROCESS.md를 읽고, "
-                    "미완료 Phase feature list를 확인한 후, "
-                    "Sprint Contract 작성 → Engineer 위임 → QA → 커밋 순서로 진행하라."
-                ),
+                text="".join(prompt_parts),
                 company_id=company_id,
             )
             logger.info("heartbeat_scheduler: %s done", agent_name)
