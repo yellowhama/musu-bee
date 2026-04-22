@@ -44,6 +44,7 @@ async def route_chat(
     text: str,
     exec_id: str | None = None,
     company_id: str | None = None,
+    adapter_override: str | None = None,
 ) -> dict[str, Any]:
     """Route a message to the agent mapped to the given channel.
 
@@ -78,6 +79,7 @@ async def route_chat(
                 cost_usd = result.get("cost_usd")
                 input_tokens = result.get("input_tokens")
                 output_tokens = result.get("output_tokens")
+                adapter_type = result.get("adapter_type")
                 if result.get("error"):
                     backend.update_route_execution(exec_id, "failed", error=result["error"], node=node,
                                                    cost_usd=cost_usd, input_tokens=input_tokens, output_tokens=output_tokens)
@@ -102,7 +104,7 @@ async def route_chat(
                 # Fall through to local handler below
             else:
                 logger.info("mesh_router: forwarding channel=%r to node=%r url=%r", channel, node, url)
-                return _finish(await mesh.forward(url, channel, sender_id, text), node=node)
+                return _finish(await mesh.forward(url, channel, sender_id, text, adapter_override=adapter_override), node=node)
         else:
             logger.warning("mesh_router: no URL for node=%r, falling through to local", node)
 
@@ -127,6 +129,7 @@ async def route_chat(
             message=text.strip(),
             backend=_get_backend(),
             company_id=company_id,
+            adapter_override=adapter_override,
         )
     except ValueError as exc:
         logger.warning("route_chat: no agent for channel %r — %s", channel, exc)
@@ -143,10 +146,14 @@ async def route_chat(
     agent_id = agent["id"] if agent else None
     agent_name = agent["role"] if agent else channel
 
+    # adapter_override takes priority; fall back to agent's configured adapter_type
+    adapter_type: str = adapter_override or (agent["adapter_type"] if agent else "") or ""
+
     return _finish({
         "response": response,
         "agent_id": agent_id,
         "agent_name": agent_name,
+        "adapter_type": adapter_type,
     })
 
 

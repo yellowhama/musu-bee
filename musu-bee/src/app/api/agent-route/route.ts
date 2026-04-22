@@ -123,14 +123,20 @@ const MUSU_BRIDGE_REMOTE_URL = process.env.MUSU_BRIDGE_REMOTE_URL
 const AGENT_ROUTE_TIMEOUT_MS = 300_000; // 5 min — matches claude_local default
 
 export async function POST(req: NextRequest) {
-  let body: { channel?: string; sender_id?: string; text?: string; node?: string };
+  let body: {
+    channel?: string;
+    sender_id?: string;
+    text?: string;
+    node?: string;
+    adapter_override?: string;
+  };
   try {
     body = (await req.json()) as typeof body;
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  const { channel, sender_id = "local-user", text, node } = body;
+  const { channel, sender_id = "local-user", text, node, adapter_override } = body;
 
   if (!channel || !text?.trim()) {
     return NextResponse.json(
@@ -164,7 +170,12 @@ export async function POST(req: NextRequest) {
     const upstream = await fetch(`${targetUrl}/api/route`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ channel, sender_id, text: text.trim() }),
+      body: JSON.stringify({
+        channel,
+        sender_id,
+        text: text.trim(),
+        adapter_override,
+      }),
       signal: controller.signal,
     });
 
@@ -182,6 +193,7 @@ export async function POST(req: NextRequest) {
       response?: string;
       agent_id?: string;
       agent_name?: string;
+      adapter_type?: string;
       error?: string;
     };
 
@@ -196,6 +208,7 @@ export async function POST(req: NextRequest) {
       response: responseText,
       agent_id: data.agent_id ?? null,
       agent_name: data.agent_name ?? channel,
+      adapter_type: data.adapter_type ?? "",
       chain,
     });
   } catch (err) {

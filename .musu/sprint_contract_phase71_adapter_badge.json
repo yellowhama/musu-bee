@@ -1,0 +1,28 @@
+{
+  "task": "adapter_type propagation: musu-core RouteResult → handlers.py → Next.js API → useChat.ts",
+  "scope": [
+    "musu-core/src/musu_core/router.py: add adapter_type field to RouteResult dataclass",
+    "musu-core/src/musu_core/router.py: populate adapter_type in route() return",
+    "musu-bridge/handlers.py: include adapter_type in route_chat() response dict",
+    "musu-bee/src/app/api/agent-route/route.ts: type + forward adapter_type in NextResponse",
+    "musu-bee/src/lib/useChat.ts: add adapterType?: string to ChatMessage, read from response"
+  ],
+  "out_of_scope": [
+    "UI badge rendering (CSS/component changes) — data plumbing only",
+    "DB schema changes",
+    "Changing existing response fields",
+    "musu-connects Rust changes"
+  ],
+  "acceptance_criteria": [
+    "RouteResult dataclass has adapter_type: str field (default empty string)",
+    "route() populates RouteResult.adapter_type with the resolved adapter_type string",
+    "route_chat() in handlers.py returns dict includes 'adapter_type' key with non-None string",
+    "GET /api/route response JSON contains 'adapter_type' field",
+    "Next.js /api/agent-route returns adapter_type in JSON response",
+    "ChatMessage type in useChat.ts has optional adapterType field",
+    "useChat.ts reads adapterType from API response and stores on message",
+    "All 202 existing tests still pass",
+    "New test: route_chat response includes adapter_type key"
+  ],
+  "done_definition": "adapter_type flows from router.py through the full stack to ChatMessage.adapterType, all tests pass, new test covers the new field in route_chat response."
+}
