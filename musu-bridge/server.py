@@ -916,7 +916,12 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
     Returns 202 Accepted. Returns 400 if channel is unknown.
     """
     import uuid
-    from handlers import _get_backend
+    from handlers import _get_backend, validate_task_instruction
+
+    # Validate instruction quality before dispatch (wiki/agent-task-reliability §3)
+    _instr_err = validate_task_instruction(req.text)
+    if _instr_err:
+        raise HTTPException(status_code=422, detail=_instr_err)
 
     # Validate company_id if provided
     if req.company_id:

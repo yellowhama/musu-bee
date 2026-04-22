@@ -4,10 +4,39 @@ from __future__ import annotations
 import ipaddress
 import logging
 import os
+import re
 import sys
 import uuid
 from pathlib import Path
 from typing import Any
+
+# ── Task instruction validation ────────────────────────────────────────────────
+# Reference: wiki/agent-task-reliability §3 — CrewAI expected_output pattern.
+# Prevents watchdog kills caused by vague dispatch instructions.
+
+_VAGUE_VERBS = re.compile(r'\b(implement|fix|do|handle|make|update|add)\b', re.I)
+_SPECIFICITY_SIGNALS = re.compile(
+    r'(\.py|\.ts|\.rs|\.json|function|class|endpoint|table|column|test|assert|should|must|pytest|def )',
+    re.I,
+)
+
+
+def validate_task_instruction(instruction: str) -> str | None:
+    """Return an error string if instruction is too vague to dispatch, else None.
+
+    Rules (from wiki/agent-task-reliability §3):
+    1. Must be >= 50 chars (too short = not actionable)
+    2. If it contains a vague verb without a specificity signal, reject.
+    """
+    text = instruction.strip()
+    if len(text) < 50:
+        return f"Instruction too short ({len(text)} chars, minimum 50). Add: what specifically to do, in what file/function."
+    if _VAGUE_VERBS.search(text) and not _SPECIFICITY_SIGNALS.search(text):
+        return (
+            "Instruction uses a general verb (implement/fix/do/handle/make/update/add) "
+            "without a specific target. Add a file path, function name, or test command."
+        )
+    return None
 
 # Lazy import to avoid circular dependency at module load time
 def _get_request_id() -> str | None:

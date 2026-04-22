@@ -40,7 +40,11 @@ def test_delegate_task_creates_execution():
     """delegate_task → route_execution record created."""
     resp = client.post("/api/tasks/delegate", json={
         "channel": "engineer",
-        "text": "Implement feature X",
+        "text": (
+            "Read musu-bridge/handlers.py route_chat function and verify "
+            "that the error handling on line 69 returns the correct dict structure. "
+            "pytest musu-bridge/tests/test_server.py -v should pass after inspection."
+        ),
     })
     assert resp.status_code == 202
     data = resp.json()
@@ -56,7 +60,10 @@ def test_delegate_task_with_company_id():
     """delegate_task with company_id validates company exists."""
     resp = client.post("/api/tasks/delegate", json={
         "channel": "engineer",
-        "text": "Test task",
+        "text": (
+            "Read musu-bridge/server.py and check that the /health endpoint "
+            "returns status 200 with ok=true. pytest musu-bridge/tests/test_server.py should pass."
+        ),
         "company_id": "nonexistent",
     })
     assert resp.status_code == 400

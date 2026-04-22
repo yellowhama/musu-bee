@@ -20,7 +20,11 @@ _client = TestClient(app, raise_server_exceptions=False, headers=_AUTH)
 _DELEGATE_PAYLOAD = {
     "channel": "engineer",
     "sender_id": "user1",
-    "text": "do something",
+    "text": (
+        "Read musu-bridge/handlers.py route_chat function and verify "
+        "the error path returns the correct dict. "
+        "pytest musu-bridge/tests/test_server.py -v should pass after check."
+    ),
 }
 
 _BACKEND_MOCK = MagicMock()
