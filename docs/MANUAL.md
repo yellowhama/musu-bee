@@ -263,6 +263,20 @@ curl -X POST http://localhost:8070/api/wiki/page/my-notes \
 
 ## Troubleshooting
 
+### UI won't load (port 3001)
+
+```bash
+# Check service status
+systemctl --user status musu-bee
+# If "production build not found":
+cd musu-bee && npm run build && systemctl --user restart musu-bee
+# If build fails, service auto-falls back to dev mode
+# Check logs:
+journalctl --user -u musu-bee -n 20 --no-pager
+```
+
+Services auto-start on boot (`loginctl enable-linger`). If a service dies, systemd restarts it in 10 seconds.
+
 ### Bridge won't start
 
 ```bash
