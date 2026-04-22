@@ -3,7 +3,9 @@
 export const dynamic = "force-dynamic";
 
 import { useState, useCallback, useEffect } from "react";
-import Sidebar from "@/components/Sidebar";
+import NavTab from "@/components/NavTab";
+import AIDisplay from "@/components/AIDisplay";
+import type { DisplayContent } from "@/components/AIDisplay";
 import ChatArea from "@/components/ChatArea";
 import CompanyTemplateModal from "@/components/CompanyTemplateModal";
 import OnboardingModal from "@/components/OnboardingModal";
@@ -28,7 +30,7 @@ import { useHealthPopover } from "@/lib/useHealthPopover";
 import { useNodes } from "@/lib/useNodes";
 import { getSupabaseClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import type { Channel, ChannelId, Message } from "@/types";
+import type { Channel, ChannelId, ChatChannelId, PanelId, Message } from "@/types";
 import { AGENT_CHANNELS } from "@/types";
 
 function makeId() {
@@ -119,6 +121,10 @@ export default function AppShell() {
   // ── Local UI state ─────────────────────────────────────────────────────────
   const [channels, setChannels] = useState<Channel[]>(INITIAL_CHANNELS);
   const [activeChannel, setActiveChannel] = useState<ChannelId>("ceo");
+  // 3-panel state: separate panel (center) from chat (right)
+  const [activePanel, setActivePanel] = useState<PanelId>("dashboard");
+  const [activeChat, setActiveChat] = useState<ChatChannelId>("ceo");
+  const [displayOverlay, setDisplayOverlay] = useState<DisplayContent | null>(null);
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showCompanyTemplate, setShowCompanyTemplate] = useState(false);
@@ -494,7 +500,7 @@ export default function AppShell() {
         )}
       </div>
 
-      {/* Main content */}
+      {/* Main content — 3-panel layout */}
       <div
         style={{
           display: "flex",
@@ -503,41 +509,28 @@ export default function AppShell() {
           width: "100%",
         }}
       >
-        <Sidebar
-          channels={channels}
-          devices={devices}
-          companyTemplate={companyTemplate}
-          activeCompany={activeCompany}
-          workspaceId={workspaceId}
-          agentsSurface={agentsSurface}
-          activeChannel={activeChannel}
-          onChannelSelect={handleChannelSelect}
-          onDeviceSelect={handleDeviceSelect}
+        {/* Left: Navigation tabs */}
+        <NavTab
+          activePanel={activePanel}
+          activeChat={activeChat}
+          onPanelSelect={(id) => { setActivePanel(id); setDisplayOverlay(null); }}
+          onChatSelect={(id) => { setActiveChat(id); setActiveChannel(id); }}
+          companyName={displayCompanyName}
         />
-        {activeChannel === "tasks" ? (
-          <TasksPanel />
-        ) : activeChannel === "processes" ? (
-          <ProcessesPanel />
-        ) : activeChannel === "issues" ? (
-          <IssuesPanel companyId={activeCompany?.companyId} />
-        ) : activeChannel === "approvals" ? (
-          <ApprovalsPanel companyId={activeCompany?.companyId} />
-        ) : activeChannel === "projects" ? (
-          <ProjectsPanel companyId={activeCompany?.companyId} />
-        ) : activeChannel === "search" ? (
-          <SearchPanel />
-        ) : activeChannel === "goals" ? (
-          <GoalsPanel companyId={activeCompany?.companyId} />
-        ) : activeChannel === "costs" ? (
-          <CostsPanel companyId={activeCompany?.companyId} />
-        ) : activeChannel === "nodes" ? (
-          <NodesPanel />
-        ) : activeChannel === "wiki" ? (
-          <WikiPanel companyId={activeCompany?.companyId} />
-        ) : (
+
+        {/* Center: AI Display (panels + AI content) */}
+        <AIDisplay
+          activePanel={activePanel}
+          companyId={activeCompany?.companyId}
+          overlay={displayOverlay}
+          onOverlayClose={() => setDisplayOverlay(null)}
+        />
+
+        {/* Right: Chat (always visible) */}
+        <div style={{ width: 420, minWidth: 360, maxWidth: 520, borderLeft: "1px solid var(--border-subtle, rgba(255,255,255,0.06))" }}>
           <ChatArea
-            key={activeChannel}
-            channelId={activeChannel}
+            key={activeChat}
+            channelId={activeChat}
             messages={displayMessages}
             onSend={handleSend}
             isAgentTyping={isAgentChannel ? chat.isAgentTyping : false}
@@ -558,7 +551,7 @@ export default function AppShell() {
             activeNode={isAgentChannel ? chat.activeNode : undefined}
             availableNodes={nodes}
           />
-        )}
+        </div>
       </div>
 
       {/* Command Palette */}

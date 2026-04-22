@@ -1,9 +1,8 @@
-export type ChannelId =
-  | "general"
-  | "dev"
+/** Panel IDs — displayed in the center AI Display area */
+export type PanelId =
+  | "dashboard"
   | "tasks"
   | "processes"
-  | "alerts"
   | "issues"
   | "approvals"
   | "projects"
@@ -11,13 +10,22 @@ export type ChannelId =
   | "costs"
   | "search"
   | "nodes"
-  | "wiki"
+  | "wiki";
+
+/** Chat channel IDs — displayed in the right chat area */
+export type ChatChannelId =
+  | "general"
+  | "dev"
+  | "alerts"
   | "ceo"
   | "cto"
   | "engineer"
   | "cos"
   | "qa"
   | "worker";
+
+/** Combined ID for backwards compatibility */
+export type ChannelId = PanelId | ChatChannelId;
 
 /** Channels that route to a musu-core agent via WebSocket. */
 export const AGENT_CHANNELS: ChannelId[] = [
@@ -27,6 +35,18 @@ export const AGENT_CHANNELS: ChannelId[] = [
   "cos",
   "qa",
   "worker",
+];
+
+/** Panel IDs for the center display */
+export const PANEL_IDS: PanelId[] = [
+  "dashboard", "tasks", "issues", "goals", "projects",
+  "wiki", "costs", "search", "nodes", "approvals", "processes",
+];
+
+/** Chat channel IDs for the right panel */
+export const CHAT_CHANNEL_IDS: ChatChannelId[] = [
+  "general", "dev", "alerts",
+  "ceo", "cto", "engineer", "cos", "qa", "worker",
 ];
 
 export interface Channel {
