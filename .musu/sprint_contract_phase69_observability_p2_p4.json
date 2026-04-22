@@ -1,0 +1,26 @@
+{
+  "task": "Phase 69: Prometheus metrics + circuit-breaker state endpoint",
+  "scope": [
+    "Add GET /metrics endpoint via prometheus-fastapi-instrumentator (HTTP RED metrics)",
+    "Add custom agent task counters: agent_tasks_total, agent_task_duration_seconds, active_tasks_count",
+    "Add GET /api/system/circuit-breakers endpoint exposing heartbeat CB state",
+    "Add prometheus-fastapi-instrumentator and prometheus-client to pyproject.toml",
+    "Write tests for /metrics endpoint and /api/system/circuit-breakers endpoint"
+  ],
+  "out_of_scope": [
+    "OpenTelemetry distributed tracing (Priority 5 — high effort)",
+    "Grafana dashboard setup",
+    "Alert rule configuration",
+    "llm_tokens_used_total metric (requires LLM adapter integration)"
+  ],
+  "acceptance_criteria": [
+    "GET /metrics returns 200 with Content-Type: text/plain; version=0.0.4 and contains http_request_duration_seconds",
+    "GET /metrics contains agent_tasks_total counter (labelled by channel)",
+    "GET /metrics contains active_tasks_count gauge",
+    "GET /api/system/circuit-breakers returns JSON with 'heartbeat' key containing 'state' (open/closed)",
+    "All existing tests still pass (443 total)",
+    "New tests for /metrics and /api/system/circuit-breakers pass",
+    "prometheus-fastapi-instrumentator added to pyproject.toml dependencies"
+  ],
+  "done_definition": "GET /metrics exposes HTTP RED + agent task metrics; GET /api/system/circuit-breakers exposes CB state; all tests pass; committed."
+}

@@ -16,6 +16,9 @@ Routes:
   GET  /api/watchdog/{node}/status     — Get watchdog/bridge status from node
   POST /api/system/update      — Run auto-update (git pull + restart if changed)
   GET  /health                 — Liveness check
+  GET  /health/ready           — Readiness probe (DB connectivity)
+  GET  /metrics                — Prometheus metrics (HTTP RED + agent task counters)
+  GET  /api/system/circuit-breakers — Circuit breaker state (heartbeat CB + active tasks)
 """
 from __future__ import annotations
 
@@ -42,6 +45,13 @@ from musu_core.redaction import install_redaction_filter
 import audit
 import mesh_router as mesh_router
 import screen_vnc
+
+try:
+    from prometheus_fastapi_instrumentator import Instrumentator as _PFI
+    from prometheus_client import Counter as _Counter, Gauge as _Gauge, Histogram as _Histogram
+    _PROMETHEUS_AVAILABLE = True
+except ImportError:
+    _PROMETHEUS_AVAILABLE = False
 from config import get_config
 from system_stats import collect_stats_async
 from csrf_guard import CSRFOriginGuard
@@ -633,6 +643,37 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="musu-bridge", version="0.2.0", lifespan=lifespan)
 
+# ── Prometheus metrics ─────────────────────────────────────────────────────────
+if _PROMETHEUS_AVAILABLE:
+    _pfi = _PFI().instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
+    _agent_tasks_total = _Counter(
+        "agent_tasks_total",
+        "Tasks delegated by channel and outcome",
+        ["channel", "status"],
+    )
+    _agent_task_duration = _Histogram(
+        "agent_task_duration_seconds",
+        "Wall-clock time for agent tasks",
+        ["channel"],
+        buckets=[30, 60, 120, 300, 600, 900, 1800],
+    )
+    _active_tasks_gauge = _Gauge("active_tasks_count", "Currently running async tasks")
+else:
+    _agent_tasks_total = None
+    _agent_task_duration = None
+    _active_tasks_gauge = None
+
+
+def _record_task_metric(channel: str, status: str, duration_s: float | None = None) -> None:
+    """Increment agent task counters. No-op if prometheus unavailable."""
+    if _agent_tasks_total is not None:
+        _agent_tasks_total.labels(channel=channel, status=status).inc()
+    if duration_s is not None and _agent_task_duration is not None:
+        _agent_task_duration.labels(channel=channel).observe(duration_s)
+    if _active_tasks_gauge is not None:
+        _active_tasks_gauge.set(len(_active_tasks))
+
+
 apply_musu_middlewares(
     app,
     bearer_token=os.getenv("MUSU_BRIDGE_TOKEN"),
@@ -813,9 +854,11 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
 
     async def _run_with_retry() -> None:
         max_retries = 1  # 1 automatic retry for transient failures
+        _task_start = time.monotonic()
         for attempt in range(1 + max_retries):
             try:
                 await _run_once()
+                _record_task_metric(req.channel, "completed", time.monotonic() - _task_start)
                 asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
                 return
             except asyncio.TimeoutError:
@@ -825,6 +868,7 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
                     continue
                 logger.warning("delegate_task: task %s timed out after %ds (no more retries)", task_id, _timeout)
                 cancel_task_record(task_id, error=f"timeout after {_timeout}s (retried {max_retries}x)")
+                _record_task_metric(req.channel, "timeout", time.monotonic() - _task_start)
                 asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
             except RuntimeError as _exc:
                 # Adapter crash (exit code != 0) — retry once
@@ -834,10 +878,12 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
                     continue
                 logger.exception("delegate_task: task %s failed: %s", task_id, _exc)
                 cancel_task_record(task_id, error=f"adapter crash: {_exc}")
+                _record_task_metric(req.channel, "failed", time.monotonic() - _task_start)
                 asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
             except Exception as _exc:
                 logger.exception("delegate_task: task %s raised unhandled exception: %s", task_id, _exc)
                 cancel_task_record(task_id, error=f"unhandled exception: {_exc}")
+                _record_task_metric(req.channel, "failed", time.monotonic() - _task_start)
                 asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
                 return  # Don't retry unknown exceptions
 
@@ -2141,6 +2187,31 @@ async def health_ready() -> Response:
             status_code=503,
             media_type="application/json",
         )
+
+
+@app.get("/api/system/circuit-breakers", summary="Circuit breaker state for all internal CBs")
+async def circuit_breakers_status() -> dict:
+    """Expose heartbeat circuit breaker state for observability.
+
+    Returns open/closed state for the heartbeat CB (DB-backed, per channel)
+    and the active task count. Useful for dashboards and oncall debugging.
+    """
+    try:
+        backend = _get_heartbeat_backend()
+        cb_open, reason = _should_skip_heartbeat(backend, "ceo")
+        hb_state = "open" if cb_open else "closed"
+    except Exception as exc:
+        hb_state = "unknown"
+        reason = str(exc)
+
+    return {
+        "heartbeat": {
+            "channel": "ceo",
+            "state": hb_state,
+            "reason": reason if hb_state != "closed" else "",
+        },
+        "active_tasks": len(_active_tasks),
+    }
 
 
 # ── Screen snapshot ────────────────────────────────────────────────────────────

@@ -13,6 +13,8 @@ dependencies = [
     "zeroconf>=0.128",
     "httpx>=0.27",
     "tomli>=2.0; python_version < '3.11'",
+    "prometheus-fastapi-instrumentator>=7.0",
+    "prometheus-client>=0.20",
 ]
 
 [project.optional-dependencies]
