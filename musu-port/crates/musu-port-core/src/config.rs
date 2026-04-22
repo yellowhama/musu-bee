@@ -31,7 +31,7 @@ impl MusuPortConfig {
         let host = std::env::var("MUSU_PORT_MANAGER_HOST")
             .ok()
             .and_then(|raw| raw.trim().parse::<IpAddr>().ok())
-            .unwrap_or(IpAddr::V4(Ipv4Addr::LOCALHOST));
+            .unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED));
 
         let preferred_port = std::env::var("MUSU_PORT_MANAGER_PORT")
             .ok()
