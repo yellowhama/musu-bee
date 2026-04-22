@@ -1,0 +1,25 @@
+{
+  "task": "Task 5: musu_dev_setup.py — MUSU Dev Team company setup script",
+  "scope": [
+    "Create musu-bridge/instructions/musu_dev_setup.py",
+    "Script uses requests to POST /api/companies with template_key=dev-team",
+    "Script prints result for verification",
+    "Commit the file"
+  ],
+  "out_of_scope": [
+    "Running the script against live bridge (bridge not running in this env)",
+    "Modifying server.py or migrations.py",
+    "Any test changes"
+  ],
+  "acceptance_criteria": [
+    "musu-bridge/instructions/musu_dev_setup.py file exists",
+    "Script imports requests and os — no other deps",
+    "BASE defaults to http://localhost:8070",
+    "TOKEN read from MUSU_BRIDGE_TOKEN env var",
+    "POST /api/companies with name='MUSU Dev Team', template_key='dev-team', purpose set, work_dir set, test_cmd set",
+    "Script prints status code and JSON response",
+    "File is syntactically valid Python (python -m py_compile passes)",
+    "All 153 existing tests still pass"
+  ],
+  "done_definition": "musu-bridge/instructions/musu_dev_setup.py exists, passes py_compile, and all 153 tests pass"
+}
