@@ -13,9 +13,9 @@ export function createRouteHandler(ctx: CommandContext) {
 
     const lower = task.toLowerCase();
     const resource =
-      lower.includes("gpu") || lower.includes("model") || lower.includes("llm") || lower.includes("추론")
+      lower.includes("gpu") || lower.includes("model") || lower.includes("llm") || lower.includes("infer") || lower.includes("추론")
         ? "gpu"
-        : lower.includes("cpu") || lower.includes("compute") || lower.includes("빌드")
+        : lower.includes("cpu") || lower.includes("compute") || lower.includes("build") || lower.includes("빌드")
           ? "cpu"
           : "general";
 
@@ -42,9 +42,9 @@ export function createRouteHandler(ctx: CommandContext) {
       const reason = routing?.reason_code ?? "local_default";
       const gpuLine = status?.gpu != null ? ` | GPU ${status.gpu}%` : "";
       const reply =
-        `**라우팅 결정**: \`${resource}\` 작업 → **${host}**\n` +
-        `이유: \`${reason}\`\n` +
-        (status ? `현재 상태: CPU ${status.cpu ?? "?"}%${gpuLine} | RAM ${status.ram ?? "?"}%` : "");
+        `**Routing decision**: \`${resource}\` task → **${host}**\n` +
+        `Reason: \`${reason}\`\n` +
+        (status ? `Status: CPU ${status.cpu ?? "?"}%${gpuLine} | RAM ${status.ram ?? "?"}%` : "");
 
       appendChatMessage({ id: makeId(), channelId: channel, sender: "System", senderKind: "system", text: reply, timestamp: new Date() });
     } catch {
