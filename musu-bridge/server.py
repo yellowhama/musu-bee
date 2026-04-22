@@ -759,13 +759,14 @@ async def _run_watchdog_once() -> int:
     """Scan route_executions for tasks stuck in 'running' state longer than the threshold.
 
     Marks each stuck task as failed and increments the task_stuck_total counter.
+    Also emits early-warning logs for tasks past 50% of the threshold (wiki/agent-task-reliability §4 Gap 2).
     Returns the number of tasks cancelled.
     """
     from datetime import datetime, timedelta, timezone
 
-    cutoff = (
-        datetime.now(timezone.utc) - timedelta(seconds=_WATCHDOG_STUCK_THRESHOLD_SEC)
-    ).isoformat()
+    now = datetime.now(timezone.utc)
+    cutoff = (now - timedelta(seconds=_WATCHDOG_STUCK_THRESHOLD_SEC)).isoformat()
+    warn_cutoff = (now - timedelta(seconds=_WATCHDOG_STUCK_THRESHOLD_SEC // 2)).isoformat()
 
     try:
         backend = _get_watchdog_backend()
@@ -793,6 +794,23 @@ async def _run_watchdog_once() -> int:
             cancelled += 1
         except Exception as exc:
             logger.warning("watchdog: failed to cancel task %s — %s", task_id, exc)
+
+    # Early warning: tasks past 50% of threshold but not yet killed
+    try:
+        warn_rows = backend._db.execute(
+            "SELECT id, channel FROM route_executions "
+            "WHERE status = 'running' AND created_at < ? AND created_at >= ?",
+            (warn_cutoff, cutoff),
+        )
+        for row in warn_rows:
+            task_id = row["id"] if isinstance(row, dict) else row[0]
+            channel = (row["channel"] if isinstance(row, dict) else row[1]) or "unknown"
+            logger.warning(
+                "watchdog: task %s (channel=%s) approaching timeout (%ds threshold)",
+                task_id, channel, _WATCHDOG_STUCK_THRESHOLD_SEC,
+            )
+    except Exception as exc:
+        logger.warning("watchdog: early-warning scan failed — %s", exc)
 
     return cancelled
 

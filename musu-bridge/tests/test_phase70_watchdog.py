@@ -99,3 +99,50 @@ def test_task_stuck_total_counter_exists():
     else:
         # prometheus not installed; attribute should at least exist as None
         assert hasattr(server, "_task_stuck_total")
+
+
+# ---------------------------------------------------------------------------
+# 4. Early warning log at 180s (50% of threshold)
+# Reference: wiki/agent-task-reliability §4 Gap 2
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_watchdog_emits_warning_at_half_threshold():
+    """_run_watchdog_once should emit a WARNING log for tasks approaching timeout (>180s)."""
+    import logging
+    import server
+
+    half_time = (datetime.now(timezone.utc) - timedelta(seconds=200)).isoformat()
+    warn_row = {"id": "warn-task-456", "channel": "engineer", "created_at": half_time}
+
+    def fake_execute(sql, params=()):
+        # Return warn_row only for the early-warning scan (< kill cutoff, > warn cutoff)
+        # Return empty for the kill scan (> kill cutoff)
+        if "status = 'running'" in sql and "created_at" in sql:
+            # Distinguish by params: warn cutoff is ~180s, kill cutoff is ~360s
+            if params:
+                cutoff_str = params[0]
+                cutoff_dt = datetime.fromisoformat(cutoff_str)
+                age_s = (datetime.now(timezone.utc) - cutoff_dt).total_seconds()
+                if 150 < age_s < 250:  # warn window (~180s)
+                    return [warn_row]
+            return []
+        return []
+
+    mock_backend = MagicMock()
+    mock_backend._db.execute.side_effect = fake_execute
+    mock_backend.update_route_execution = MagicMock()
+
+    with (
+        patch("server._get_watchdog_backend", return_value=mock_backend),
+        patch.object(server.logger, "warning") as mock_warn,
+    ):
+        await server._run_watchdog_once()
+
+    # Should emit at least one warning mentioning the task or "approaching"
+    warning_calls = [str(c) for c in mock_warn.call_args_list]
+    assert any("warn-task-456" in c or "approaching" in c for c in warning_calls), (
+        f"Expected early-warning log for warn-task-456, got: {warning_calls}"
+    )
+    # Must NOT have called update_route_execution (task is not killed, only warned)
+    mock_backend.update_route_execution.assert_not_called()
