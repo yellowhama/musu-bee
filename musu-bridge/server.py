@@ -265,13 +265,24 @@ async def _heartbeat_iteration(
             "5. 완료 후 이슈에 회고 작성\n"
             "6. 목표 완료 판단"
         )
-        await route_chat(
-            channel=agent_name,
-            sender_id="system",
-            text="".join(prompt_parts),
-            company_id=company_id,
-        )
-        logger.info("heartbeat_scheduler: %s done", agent_name)
+        _hb_timeout = int(os.environ.get("MUSU_HEARTBEAT_TIMEOUT_SEC", "300"))
+        try:
+            await asyncio.wait_for(
+                route_chat(
+                    channel=agent_name,
+                    sender_id="system",
+                    text="".join(prompt_parts),
+                    company_id=company_id,
+                ),
+                timeout=_hb_timeout,
+            )
+            logger.info("heartbeat_scheduler: %s done", agent_name)
+        except asyncio.TimeoutError:
+            logger.warning(
+                "heartbeat_scheduler: %s timed out after %ds — releasing lock",
+                agent_name, _hb_timeout,
+            )
+            _increment_stuck_counter(agent_name, "heartbeat_timeout")
 
 
 _company_locks: dict[str, asyncio.Lock] = {}
@@ -620,8 +631,12 @@ async def lifespan(app: FastAPI):
     # Watchdog rate limit cache cleanup (always on — prevents unbounded memory growth)
     watchdog_cleanup_task = asyncio.create_task(_watchdog_rate_cleanup_loop())
 
+    # Stuck-task watchdog (always on — auto-cancels tasks running > threshold)
+    stuck_watchdog_task = asyncio.create_task(_watchdog_loop())
+
     yield
 
+    stuck_watchdog_task.cancel()
     watchdog_cleanup_task.cancel()
     session_cleanup_task.cancel()
     discovery.close()
@@ -658,10 +673,16 @@ if _PROMETHEUS_AVAILABLE:
         buckets=[30, 60, 120, 300, 600, 900, 1800],
     )
     _active_tasks_gauge = _Gauge("active_tasks_count", "Currently running async tasks")
+    _task_stuck_total = _Counter(
+        "task_stuck_total",
+        "Tasks detected as stuck (no output / timeout) by channel and detection reason",
+        ["channel", "reason"],
+    )
 else:
     _agent_tasks_total = None
     _agent_task_duration = None
     _active_tasks_gauge = None
+    _task_stuck_total = None
 
 
 def _record_task_metric(channel: str, status: str, duration_s: float | None = None) -> None:
@@ -672,6 +693,78 @@ def _record_task_metric(channel: str, status: str, duration_s: float | None = No
         _agent_task_duration.labels(channel=channel).observe(duration_s)
     if _active_tasks_gauge is not None:
         _active_tasks_gauge.set(len(_active_tasks))
+
+
+def _increment_stuck_counter(channel: str, reason: str) -> None:
+    """Increment task_stuck_total counter. No-op if prometheus unavailable."""
+    if _task_stuck_total is not None:
+        _task_stuck_total.labels(channel=channel, reason=reason).inc()
+
+
+def _get_watchdog_backend():
+    """Return the backend for watchdog stuck-task scanning (thin wrapper for testability)."""
+    from handlers import _get_backend
+    return _get_backend()
+
+
+_WATCHDOG_STUCK_THRESHOLD_SEC = int(os.environ.get("MUSU_WATCHDOG_STUCK_THRESHOLD_SEC", "360"))
+
+
+async def _run_watchdog_once() -> int:
+    """Scan route_executions for tasks stuck in 'running' state longer than the threshold.
+
+    Marks each stuck task as failed and increments the task_stuck_total counter.
+    Returns the number of tasks cancelled.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    cutoff = (
+        datetime.now(timezone.utc) - timedelta(seconds=_WATCHDOG_STUCK_THRESHOLD_SEC)
+    ).isoformat()
+
+    try:
+        backend = _get_watchdog_backend()
+        stuck_rows = backend._db.execute(
+            "SELECT id, channel FROM route_executions "
+            "WHERE status = 'running' AND created_at < ?",
+            (cutoff,),
+        )
+    except Exception as exc:
+        logger.warning("watchdog: DB scan failed — %s", exc)
+        return 0
+
+    cancelled = 0
+    for row in stuck_rows:
+        task_id = row["id"] if isinstance(row, dict) else row[0]
+        channel = (row["channel"] if isinstance(row, dict) else row[1]) or "unknown"
+        try:
+            backend.update_route_execution(
+                task_id,
+                "failed",
+                error=f"auto-cancelled by watchdog: stuck > {_WATCHDOG_STUCK_THRESHOLD_SEC}s",
+            )
+            _increment_stuck_counter(channel, "watchdog_timeout")
+            logger.warning("watchdog: cancelled stuck task %s (channel=%s)", task_id, channel)
+            cancelled += 1
+        except Exception as exc:
+            logger.warning("watchdog: failed to cancel task %s — %s", task_id, exc)
+
+    return cancelled
+
+
+async def _watchdog_loop() -> None:
+    """Background loop: every 60s scan for and cancel stuck tasks."""
+    interval = int(os.environ.get("MUSU_WATCHDOG_INTERVAL_SEC", "60"))
+    logger.info("watchdog: started (interval=%ds, threshold=%ds)", interval, _WATCHDOG_STUCK_THRESHOLD_SEC)
+    await asyncio.sleep(interval)
+    while True:
+        try:
+            n = await _run_watchdog_once()
+            if n:
+                logger.info("watchdog: cancelled %d stuck task(s)", n)
+        except Exception as exc:
+            logger.warning("watchdog: iteration error — %s", exc)
+        await asyncio.sleep(interval)
 
 
 apply_musu_middlewares(
@@ -711,6 +804,7 @@ class RouteRequest(BaseModel):
     channel: str
     sender_id: str
     text: str = Field(max_length=10000)
+    adapter_override: str | None = None
 
 
 class DelegateRequest(BaseModel):
@@ -749,7 +843,12 @@ class CompanyUpdateRequest(BaseModel):
 @app.post("/api/route")
 async def api_route(req: RouteRequest, request: Request) -> dict:
     """Route a message to the agent mapped to the given channel."""
-    result = await route_chat(channel=req.channel, sender_id=req.sender_id, text=req.text)
+    result = await route_chat(
+        channel=req.channel,
+        sender_id=req.sender_id,
+        text=req.text,
+        adapter_override=req.adapter_override,
+    )
     audit.record(
         actor_ip=request.client.host if request.client else "",
         method="POST",

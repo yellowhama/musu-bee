@@ -1,0 +1,27 @@
+{
+  "task": "Phase 70: Agent Stuck Detection & Watchdog",
+  "scope": [
+    "Add asyncio.wait_for(timeout=300) around route_chat in _heartbeat_iteration",
+    "Add task_stuck_total Prometheus counter (labels: channel, reason)",
+    "Add background watchdog task: every 60s scan route_executions for tasks running > 360s, auto-cancel them",
+    "Increment task_stuck_total when heartbeat or watchdog detects stuck task"
+  ],
+  "out_of_scope": [
+    "OpenTelemetry distributed tracing (Phase 72)",
+    "Structured JSON logging (Phase 71)",
+    "AlertManager rules (Phase 73)",
+    "DB schema changes / migrations.py"
+  ],
+  "acceptance_criteria": [
+    "1. _heartbeat_iteration wraps route_chat with asyncio.wait_for(timeout=300) — TimeoutError caught, logs warning, lock released",
+    "2. task_stuck_total Counter exists with labels [channel, reason] — incremented on heartbeat timeout",
+    "3. _watchdog_loop() background task starts in lifespan when MUSU_CEO_HEARTBEAT_ENABLED=true",
+    "4. _watchdog_loop cancels route_executions with status='running' AND age > 360s, sets status='failed'",
+    "5. _watchdog_loop increments task_stuck_total with reason='watchdog_timeout'",
+    "6. All 199 existing pytest tests still pass",
+    "7. New test: heartbeat timeout releases _heartbeat_lock",
+    "8. New test: watchdog cancels stuck route_executions"
+  ],
+  "done_definition": "Heartbeat no longer permanently blocks when route_chat hangs; watchdog auto-cancels tasks stuck >360s; Prometheus counter tracks stuck events; all tests pass.",
+  "reference": "wiki/next-phase-research-2026-04-23"
+}
