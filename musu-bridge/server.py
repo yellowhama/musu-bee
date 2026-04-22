@@ -153,7 +153,7 @@ def _should_skip_heartbeat(backend, channel: str = "ceo") -> tuple[bool, str]:
     Fail-open: DB errors return (False, '') so heartbeat continues rather than
     silently stopping forever.
     """
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
 
     try:
         rows = backend._db.execute(
@@ -163,7 +163,7 @@ def _should_skip_heartbeat(backend, channel: str = "ceo") -> tuple[bool, str]:
         if rows:
             return True, "already running"
 
-        cutoff = (datetime.utcnow() - timedelta(minutes=CIRCUIT_WINDOW_MINUTES)).isoformat()
+        cutoff = (datetime.now(timezone.utc) - timedelta(minutes=CIRCUIT_WINDOW_MINUTES)).isoformat()
         fail_rows = backend._db.execute(
             "SELECT COUNT(*) as cnt FROM route_executions "
             "WHERE channel = ? AND status = 'failed' AND created_at > ?",
