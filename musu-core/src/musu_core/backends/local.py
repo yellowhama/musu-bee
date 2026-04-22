@@ -986,7 +986,8 @@ class LocalBackend(BackendABC):
     def get_runs_recent(self, limit: int = 50) -> list[dict[str, Any]]:
         """Return the most recent route_executions across all companies."""
         rows = self._db.execute(
-            "SELECT id, channel, sender_id, company_id, status, output, error, created_at"
+            "SELECT id, channel, sender_id, company_id, status, output, error,"
+            " input_tokens, output_tokens, cost_usd, duration_sec, created_at"
             " FROM route_executions ORDER BY created_at DESC LIMIT ?",
             (limit,),
         )
