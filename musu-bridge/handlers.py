@@ -75,6 +75,109 @@ def _get_backend() -> LocalBackend:
     return _backend
 
 
+_LOCAL_ADAPTERS = {"gemini_local", "codex_local", "claude_local", "openai_local", ""}
+
+_PROBE_DONE_WINDOW_SEC = 30   # recent done task = healthy signal
+_PROBE_FAIL_THRESHOLD = 3     # fail_count >= this with no done = unhealthy
+
+
+def _health_probe_enabled() -> bool:
+    return os.environ.get("MUSU_HEALTH_PROBE_ENABLED", "false").lower() == "true"
+
+
+def _health_probe_timeout() -> float:
+    return float(os.environ.get("MUSU_HEALTH_PROBE_TIMEOUT_SEC", "5"))
+
+
+def _route_timeout_sec() -> float:
+    return float(os.environ.get("MUSU_ROUTE_TIMEOUT_SEC", "180"))
+
+
+async def _probe_agent_health(
+    channel: str,
+    adapter_type: str = "",
+    health_url: str | None = None,
+    *,
+    enabled: bool | None = None,
+) -> bool:
+    """Check agent health before dispatch. Returns True if healthy (or probe disabled).
+
+    For local CLI adapters (gemini_local etc.): checks DB for recent activity.
+    For HTTP adapters: GET health_url with timeout.
+    Fail-open: any unexpected error returns True to avoid blocking dispatch.
+    """
+    probe_enabled = enabled if enabled is not None else _health_probe_enabled()
+    if not probe_enabled:
+        return True
+
+    try:
+        if adapter_type in _LOCAL_ADAPTERS:
+            return await _probe_local_agent(channel)
+        else:
+            return await _probe_http_agent(health_url, timeout=_health_probe_timeout())
+    except Exception:
+        return True  # Fail-open
+
+
+async def _probe_local_agent(channel: str) -> bool:
+    """DB-based health check for local CLI adapters.
+
+    Healthy if: any done task in last 30s, OR no failure history at all.
+    Unhealthy if: 0 done tasks in 30s AND >= 3 failed in 60s.
+    """
+    from datetime import datetime, timedelta, timezone
+    backend = _get_backend()
+    now = datetime.now(timezone.utc)
+    done_cutoff = (now - timedelta(seconds=_PROBE_DONE_WINDOW_SEC)).isoformat()
+    fail_cutoff = (now - timedelta(seconds=60)).isoformat()
+
+    try:
+        done_rows = backend._db.execute(
+            "SELECT COUNT(*) as cnt FROM route_executions "
+            "WHERE channel = ? AND status = 'done' AND updated_at > ?",
+            (channel, done_cutoff),
+        )
+        done_count = done_rows[0]["cnt"] if done_rows else 0
+        if done_count > 0:
+            return True
+
+        fail_rows = backend._db.execute(
+            "SELECT COUNT(*) as cnt FROM route_executions "
+            "WHERE channel = ? AND status = 'failed' AND updated_at > ?",
+            (channel, fail_cutoff),
+        )
+        fail_count = fail_rows[0]["cnt"] if fail_rows else 0
+        if fail_count >= _PROBE_FAIL_THRESHOLD:
+            return False
+        return True  # No history or few failures → assume healthy
+    except Exception:
+        return True  # Fail-open on DB error
+
+
+async def _probe_http_agent(health_url: str | None, timeout: float = 5.0) -> bool:
+    """HTTP GET health check using stdlib urllib. Returns True if 200, False on timeout or error."""
+    if not health_url:
+        return True
+    import asyncio
+    import urllib.request
+    import urllib.error
+
+    def _sync_get() -> bool:
+        try:
+            req = urllib.request.urlopen(health_url, timeout=timeout)
+            return req.status == 200
+        except Exception:
+            return False
+
+    try:
+        return await asyncio.wait_for(
+            asyncio.get_event_loop().run_in_executor(None, _sync_get),
+            timeout=timeout + 1,
+        )
+    except asyncio.TimeoutError:
+        return False
+
+
 async def route_chat(
     channel: str,
     sender_id: str,
@@ -106,6 +209,18 @@ async def route_chat(
             return {"error": f"channel_cb: circuit open for {channel!r} — too many recent failures", "response": None}
     except Exception:
         pass  # Fail-open: if CB import fails, proceed normally
+
+    # ── Agent health probe (pre-dispatch) ─────────────────────────────────────
+    if _health_probe_enabled():
+        _probe_adapter = adapter_override or ""
+        if not await _probe_agent_health(channel, adapter_type=_probe_adapter):
+            logger.warning("health_probe: agent unhealthy — rejecting dispatch for channel=%r", channel)
+            try:
+                from server import _channel_cb
+                _channel_cb.record_failure(channel)
+            except Exception:
+                pass
+            return {"error": f"health_probe: agent unavailable for channel={channel!r}", "response": None}
 
     # ── Durable execution record ───────────────────────────────────────────────
     backend = _get_backend()
@@ -190,15 +305,20 @@ async def route_chat(
         _ws.create()
 
     try:
-        response = await route_message(
-            source=channel,
-            source_ref=sender_id,
-            message=text.strip(),
-            backend=_get_backend(),
-            company_id=company_id,
-            adapter_override=adapter_override,
-            cost_optimized=cost_optimized,
-        )
+        import anyio
+        with anyio.fail_after(_route_timeout_sec()):
+            response = await route_message(
+                source=channel,
+                source_ref=sender_id,
+                message=text.strip(),
+                backend=_get_backend(),
+                company_id=company_id,
+                adapter_override=adapter_override,
+                cost_optimized=cost_optimized,
+            )
+    except TimeoutError:
+        logger.warning("route_chat: route_timeout — LLM call exceeded %.0fs for channel=%r", _route_timeout_sec(), channel)
+        return _finish({"error": f"route_timeout: LLM call exceeded {_route_timeout_sec():.0f}s limit", "response": None})
     except ValueError as exc:
         logger.warning("route_chat: no agent for channel %r — %s", channel, exc)
         return _finish({"error": "No agent available for this channel.", "response": None})
