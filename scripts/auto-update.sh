@@ -46,12 +46,26 @@ if echo "$CHANGED" | grep -q "^bin/musu-connectsd$"; then
     RESTART_CONNECTSD=1
 fi
 
-# ── 3. Pull ───────────────────────────────────────────────────────────────────
-if ! git pull origin main --quiet 2>&1; then
-    log "git pull failed — leaving services unchanged."
-    exit 1
+# ── 3. Pull (try Forgejo first, fallback to GitHub) ──────────────────────────
+PULLED=0
+if git remote get-url forgejo >/dev/null 2>&1; then
+    if git pull forgejo main --quiet 2>&1; then
+        log "pulled from Forgejo"
+        PULLED=1
+    fi
+fi
+if [ "$PULLED" = "0" ]; then
+    if ! git pull origin main --quiet 2>&1; then
+        log "git pull failed — leaving services unchanged."
+        exit 1
+    fi
 fi
 log "pulled ${REMOTE:0:8} successfully"
+
+# ── 3a. Push to Forgejo (sync back if pulled from origin) ────────────────────
+if git remote get-url forgejo >/dev/null 2>&1; then
+    git push forgejo main --quiet 2>/dev/null || log "Forgejo push skipped (credential or network)"
+fi
 
 # ── 3b. Apply agent defaults (model distribution + fallback chains) ──────────
 if echo "$CHANGED" | grep -qE "(agent-defaults|apply-agent)"; then

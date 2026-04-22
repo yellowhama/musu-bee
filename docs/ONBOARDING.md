@@ -67,6 +67,9 @@ python3 scripts/apply-agent-defaults.py
 
 ```bash
 git remote add forgejo http://100.126.67.88:3000/musu_admin/musu-project.git
+git config --global credential.helper store
+echo "http://musu_admin:musu_admin@100.126.67.88:3000" >> ~/.git-credentials
+chmod 600 ~/.git-credentials
 git fetch forgejo
 ```
 
