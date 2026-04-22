@@ -17,6 +17,7 @@ import CostsPanel from "@/components/CostsPanel";
 import GoalsPanel from "@/components/GoalsPanel";
 import SearchPanel from "@/components/SearchPanel";
 import NodesPanel from "@/components/NodesPanel";
+import WikiPanel from "@/components/WikiPanel";
 import { useAuth } from "@/lib/useAuth";
 import { useDeviceDiscovery } from "@/lib/useDeviceDiscovery";
 import { useAgentsSurface } from "@/lib/useAgentsSurface";
@@ -46,6 +47,7 @@ const CHANNEL_DESCRIPTIONS: Partial<Record<ChannelId, string>> = {
   costs: "Request cost analytics",
   search: "Search the indexed codebase",
   nodes: "Multi-machine mesh nodes",
+  wiki: "Company knowledge base",
   ceo: "CEO agent",
   cto: "CTO agent",
   engineer: "Engineer agent",
@@ -67,6 +69,7 @@ const INITIAL_CHANNELS: Channel[] = [
   { id: "costs", name: "costs", unread: 0 },
   { id: "search", name: "search", unread: 0 },
   { id: "nodes", name: "nodes", unread: 0 },
+  { id: "wiki", name: "wiki", unread: 0 },
   { id: "ceo", name: "ceo", unread: 0 },
   { id: "cto", name: "cto", unread: 0 },
   { id: "engineer", name: "engineer", unread: 0 },
@@ -529,6 +532,8 @@ export default function AppShell() {
           <CostsPanel companyId={activeCompany?.companyId} />
         ) : activeChannel === "nodes" ? (
           <NodesPanel />
+        ) : activeChannel === "wiki" ? (
+          <WikiPanel companyId={activeCompany?.companyId} />
         ) : (
           <ChatArea
             key={activeChannel}

@@ -11,6 +11,7 @@ export type ChannelId =
   | "costs"
   | "search"
   | "nodes"
+  | "wiki"
   | "ceo"
   | "cto"
   | "engineer"
