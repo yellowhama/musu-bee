@@ -129,6 +129,7 @@ export async function POST(req: NextRequest) {
     text?: string;
     node?: string;
     adapter_override?: string;
+    cost_optimized?: boolean;
   };
   try {
     body = (await req.json()) as typeof body;
@@ -136,7 +137,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  const { channel, sender_id = "local-user", text, node, adapter_override } = body;
+  const { channel, sender_id = "local-user", text, node, adapter_override, cost_optimized } = body;
 
   if (!channel || !text?.trim()) {
     return NextResponse.json(
@@ -175,6 +176,7 @@ export async function POST(req: NextRequest) {
         sender_id,
         text: text.trim(),
         adapter_override,
+        cost_optimized,
       }),
       signal: controller.signal,
     });

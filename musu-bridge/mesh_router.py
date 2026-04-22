@@ -24,6 +24,7 @@ class NodeInfo:
     agents: list[str] = field(default_factory=list)
     mac_address: str = ""
     broadcast_ip: str = "255.255.255.255"
+    cert_fingerprint: str | None = None
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,7 @@ class MeshRouter:
         self._node_tokens: dict[str, str] = {}     # node_name → peer bridge token (optional)
         self._node_mac: dict[str, str] = {}         # node_name → MAC address for Wake-on-LAN
         self._node_broadcast: dict[str, str] = {}   # node_name → broadcast IP for Wake-on-LAN
+        self._node_fingerprints: dict[str, str] = {} # node_name → TLS cert fingerprint
         self._health_cache: dict[str, tuple[bool, float]] = {}  # node → (alive, checked_at)
         self._loaded = False
         self._load()
@@ -81,6 +83,9 @@ class MeshRouter:
                     broadcast = node.get("broadcast_ip", "")
                     if broadcast:
                         self._node_broadcast[name] = broadcast
+                    fingerprint = node.get("cert_fingerprint", "")
+                    if fingerprint:
+                        self._node_fingerprints[name] = fingerprint
 
             for assign in mesh.get("agent_assignments", []):
                 agent = assign.get("agent", "").lower()
@@ -129,6 +134,10 @@ class MeshRouter:
         """Return the broadcast IP for Wake-on-LAN, or '255.255.255.255' if not set."""
         return self._node_broadcast.get(node_name, "255.255.255.255")
 
+    def fingerprint_for_node(self, node_name: str) -> str | None:
+        """Return the TLS cert fingerprint for a node, or None if not known."""
+        return self._node_fingerprints.get(node_name)
+
     def node_info(self, node_name: str) -> NodeInfo | None:
         """Return NodeInfo for a node, or None if not found."""
         url = self._node_urls.get(node_name)
@@ -140,6 +149,7 @@ class MeshRouter:
             agents=list(self._node_agents.get(node_name, [])),
             mac_address=self._node_mac.get(node_name, ""),
             broadcast_ip=self._node_broadcast.get(node_name, "255.255.255.255"),
+            cert_fingerprint=self._node_fingerprints.get(node_name),
         )
 
     def has_node(self, name: str) -> bool:
@@ -212,13 +222,15 @@ class MeshRouter:
             )
         return newly_assigned
 
-    def add_node(self, name: str, url: str, agents: list[str] | None = None) -> None:
+    def add_node(self, name: str, url: str, agents: list[str] | None = None, cert_fingerprint: str | None = None) -> None:
         """Add a node to the in-memory map and persist to nodes.toml."""
         self._node_urls[name] = url
         if agents is not None:
             self._node_agents[name] = agents
+        if cert_fingerprint:
+            self._node_fingerprints[name] = cert_fingerprint
         self._write_toml()
-        logger.info("mesh_router: added node %r url=%r agents=%s", name, url, agents)
+        logger.info("mesh_router: added node %r url=%r agents=%s fingerprint=%s", name, url, agents, cert_fingerprint)
 
     def remove_node(self, name: str) -> bool:
         """Remove a node from the in-memory map and persist to nodes.toml."""
@@ -276,14 +288,19 @@ class MeshRouter:
         existing_by_name = {n["name"]: n for n in existing_nodes if "name" in n}
         for node_name, node_url in self._node_urls.items():
             agents = self._node_agents.get(node_name, [])
+            fingerprint = self._node_fingerprints.get(node_name)
             if node_name in existing_by_name:
                 existing_by_name[node_name]["url"] = node_url
                 if agents:
                     existing_by_name[node_name]["agents"] = agents
+                if fingerprint:
+                    existing_by_name[node_name]["cert_fingerprint"] = fingerprint
             else:
                 entry: dict = {"name": node_name, "url": node_url}
                 if agents:
                     entry["agents"] = agents
+                if fingerprint:
+                    entry["cert_fingerprint"] = fingerprint
                 existing_by_name[node_name] = entry
         # Remove nodes that are no longer in _node_urls
         new_nodes = [v for k, v in existing_by_name.items() if k in self._node_urls]
@@ -311,19 +328,23 @@ class MeshRouter:
         channel: str,
         sender_id: str,
         text: str,
+        adapter_override: str | None = None,
     ) -> dict[str, Any]:
         """Forward a message to a remote musu-bridge node.
 
         Tries QUIC sidecar first (musu-connectsd bridge-proxy), falls back to HTTP.
         """
+        node_name = self.node_for_agent(channel)
+        fingerprint = self.fingerprint_for_node(node_name) if node_name else None
+
         if _QUIC_PROXY_URL:
             try:
-                return await self._forward_quic(node_url, channel, sender_id, text)
+                return await self._forward_quic(node_url, channel, sender_id, text, adapter_override, fingerprint)
             except Exception as exc:
                 logger.warning(
                     "mesh_router: QUIC proxy failed (%s) — falling back to HTTP", exc
                 )
-        return await self._forward_http(node_url, channel, sender_id, text)
+        return await self._forward_http(node_url, channel, sender_id, text, adapter_override, fingerprint)
 
     async def _forward_quic(
         self,
@@ -331,6 +352,8 @@ class MeshRouter:
         channel: str,
         sender_id: str,
         text: str,
+        adapter_override: str | None = None,
+        expected_fingerprint: str | None = None,
     ) -> dict[str, Any]:
         """Forward via local musu-connectsd bridge-proxy (QUIC tunnel)."""
         proxy_target = f"{_QUIC_PROXY_URL.rstrip('/')}/forward"
@@ -339,9 +362,11 @@ class MeshRouter:
             "channel": channel,
             "sender_id": sender_id,
             "text": text,
+            "adapter_override": adapter_override,
+            "expected_fingerprint": expected_fingerprint,
         }
         logger.info(
-            "mesh_router: QUIC forward channel=%r → peer=%s", channel, node_url
+            "mesh_router: QUIC forward channel=%r → peer=%s (fp=%s)", channel, node_url, expected_fingerprint
         )
         async with httpx.AsyncClient(timeout=305.0) as client:
             resp = await client.post(proxy_target, json=payload)
@@ -354,10 +379,18 @@ class MeshRouter:
         channel: str,
         sender_id: str,
         text: str,
+        adapter_override: str | None = None,
+        expected_fingerprint: str | None = None,
     ) -> dict[str, Any]:
         """HTTP POST to remote musu-bridge /api/route (fallback)."""
         target = f"{node_url.rstrip('/')}/api/route"
-        payload = {"channel": channel, "sender_id": sender_id, "text": text}
+        # Note: HTTP fallback does NOT verify fingerprint yet (bridge doesn't use cert pinning for incoming HTTP)
+        payload = {
+            "channel": channel,
+            "sender_id": sender_id,
+            "text": text,
+            "adapter_override": adapter_override,
+        }
         logger.info("mesh_router: HTTP forward channel=%r → %s", channel, target)
         try:
             async with httpx.AsyncClient(timeout=300.0) as client:

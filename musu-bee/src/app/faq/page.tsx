@@ -12,10 +12,10 @@ export default function FaqPage() {
     <PublicSiteShell>
       <main style={{ maxWidth: 960, margin: "0 auto", padding: "80px 24px 96px" }}>
         <div style={eyebrowStyle}>FAQ</div>
-        <h1 style={titleStyle}>무엇을 약속하고, 무엇은 아직 early access인가</h1>
+        <h1 style={titleStyle}>What we promise — and what is still early access</h1>
         <p style={descStyle}>
-          FAQ는 objection handling과 honest framing을 맡는다. 강한 주장을 늘리는 곳이 아니라,
-          실제 제품 상태와 기대치를 맞추는 곳이다.
+          This FAQ handles objection handling and honest framing. It is not a place to amplify bold claims,
+          but to align expectations with the actual state of the product.
         </p>
         <div style={{ display: "grid", gap: 16, marginTop: 32 }}>
           {FAQ_ITEMS.map((item) => (

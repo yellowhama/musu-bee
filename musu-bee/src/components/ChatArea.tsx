@@ -142,81 +142,41 @@ function renderMarkdown(text: string): React.ReactNode {
   );
 }
 
-// Approval card rendered when system message contains "⚠ **승인 필요**"
+// Approval card rendered when system message contains "⚠ **Approval required**"
 function ApprovalCard({ text, onSend }: { text: string; onSend: (t: string) => void }) {
-  // Parse task_id from text — looks for a backtick-wrapped id like `task-xxx`
   const idMatch = /`(task-[a-z0-9-]+)`/.exec(text);
   const taskId = idMatch ? idMatch[1] : null;
-
-  // Extract action description between "⚠ **승인 필요**: " and the next newline
-  const actionMatch = /⚠ \*\*승인 필요\*\*: ([^\n]+)/.exec(text);
+  const actionMatch = /⚠ \*\*Approval required\*\*: ([^\n]+)/.exec(text);
   const action = actionMatch ? actionMatch[1] : text;
 
-  const handleApprove = useCallback(() => {
-    if (taskId) onSend(`/approve ${taskId}`);
-  }, [taskId, onSend]);
-
-  const handleReject = useCallback(() => {
-    if (taskId) onSend(`/reject ${taskId}`);
-  }, [taskId, onSend]);
+  const handleApprove = useCallback(() => { if (taskId) onSend(`/approve ${taskId}`); }, [taskId, onSend]);
+  const handleReject = useCallback(() => { if (taskId) onSend(`/reject ${taskId}`); }, [taskId, onSend]);
 
   return (
-    <div
-      style={{
-        margin: "8px auto",
-        maxWidth: 420,
-        background: "#1a1a1a",
-        border: "1px solid #f59e0b44",
-        borderRadius: 10,
-        padding: "12px 16px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-      }}
-    >
-      <div style={{ fontSize: 13, fontWeight: 600, color: "#fbbf24" }}>
-        ⚠ Approval Required
+    <div className="card" style={{ margin: "12px auto", maxWidth: 460, border: "1px solid var(--accent-border)", background: "var(--accent-tint)" }}>
+      <div className="label" style={{ color: "var(--accent)", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+        <span className="dot-working" style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--accent)" }} />
+        Approval Required
       </div>
-      <div style={{ fontSize: 13, color: "#d1d5db", lineHeight: 1.4 }}>
+      <div style={{ fontSize: 13, color: "var(--fg1)", lineHeight: 1.5, marginBottom: 12 }}>
         {action}
       </div>
       {taskId && (
-        <div style={{ fontSize: 11, color: "#6b7280", fontFamily: "monospace" }}>
-          {taskId}
+        <div style={{ marginBottom: 16 }}>
+          <code style={{ background: "var(--bg-base)", border: "1px solid var(--border-default)", borderRadius: "var(--radius-xs)", padding: "2px 6px", fontSize: 11, color: "var(--accent)" }}>
+            {taskId}
+          </code>
         </div>
       )}
-      <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-        <button
-          onClick={handleApprove}
-          style={{
-            flex: 1,
-            padding: "6px 0",
-            background: "#14532d",
-            border: "1px solid #16a34a",
-            borderRadius: 6,
-            color: "#86efac",
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
-        >
-          ✅ Approve
+      <div style={{ display: "flex", gap: 10 }}>
+        <button className="btn btn-primary" onClick={handleApprove} style={{ flex: 1, height: 32, fontSize: 12 }}>
+          Approve
         </button>
-        <button
-          onClick={handleReject}
-          style={{
-            flex: 1,
-            padding: "6px 0",
-            background: "#450a0a",
-            border: "1px solid #dc2626",
-            borderRadius: 6,
-            color: "#fca5a5",
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
-        >
-          ❌ Reject
+        <button className="btn" onClick={handleReject} style={{ flex: 1, height: 32, fontSize: 12, borderColor: "var(--status-error)", color: "var(--status-error)" }}>
+          Reject
+        </button>
+        <button className="btn btn-ghost" style={{ height: 32, fontSize: 12 }}>
+          Show Plan
         </button>
       </div>
     </div>
@@ -377,24 +337,83 @@ function DelegationChip({ chain }: { chain: string[] }) {
   );
 }
 
+function AdapterBadge({ type, duration, cost }: { type: string, duration?: number, cost?: number }) {
+  const short = type.split("_")[0].toUpperCase();
+  const color = short === "CLAUDE" ? "#a78bfa" : short === "GEMINI" ? "#34d399" : "#6b7280";
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+      <span
+        style={{
+          fontSize: 9,
+          fontWeight: 700,
+          padding: "0 4px",
+          borderRadius: 3,
+          background: `${color}22`,
+          color,
+          border: `1px solid ${color}44`,
+          marginLeft: 4,
+          display: "inline-flex",
+          alignItems: "center",
+          height: 14,
+        }}
+      >
+        {short}
+      </span>
+      {duration !== undefined && (
+        <span style={{ fontSize: 9, color: "#6b7280" }}>{duration.toFixed(1)}s</span>
+      )}
+      {cost !== undefined && cost > 0 && (
+        <span style={{ fontSize: 9, color: "#10b981" }}>${cost.toFixed(4)}</span>
+      )}
+    </span>
+  );
+}
+
+function Avatar({ who, role }: { who: string; role?: string }) {
+  const map: Record<string, [string, string]> = {
+    ceo: ["ceo", "CE"],
+    cto: ["cto", "CT"],
+    engineer: ["eng", "EN"],
+    qa: ["qa", "QA"],
+    cos: ["cos", "CO"],
+    worker: ["worker", "WK"],
+    user: ["user", "YOU"],
+    system: ["system", "SY"],
+  };
+  const [cls, txt] = map[who.toLowerCase()] || map[role?.toLowerCase() || ""] || ["eng", "?"];
+
+  return (
+    <div
+      className={`avatar ${cls}`}
+      style={{
+        width: 32,
+        height: 32,
+        borderRadius: "var(--radius-sm)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 12,
+        fontWeight: 800,
+        flexShrink: 0,
+        color: "var(--fg-on-accent)",
+        background: cls === "ceo" ? "#a78bfa" : cls === "cto" ? "#60a5fa" : cls === "eng" ? "#34d399" : cls === "qa" ? "#fb7185" : "var(--accent)",
+      }}
+    >
+      {txt}
+    </div>
+  );
+}
+
 function MessageBubble({ msg, onSend, onApprovePlan, onRejectPlan }: { msg: Message; onSend: (t: string) => void; onApprovePlan?: (msgId: string) => void; onRejectPlan?: (msgId: string) => void }) {
   const isUser = msg.senderKind === "user";
   const isSystem = msg.senderKind === "system";
 
   if (isSystem) {
-    // Render approval card for APPROVAL_REQUIRED messages
-    if (msg.text.includes("⚠ **Approval Required**")) {
+    if (msg.text.includes("⚠ **Approval required**")) {
       return <ApprovalCard text={msg.text} onSend={onSend} />;
     }
     return (
-      <div
-        style={{
-          textAlign: "center",
-          fontSize: 12,
-          color: "#4b5563",
-          padding: "4px 0",
-        }}
-      >
+      <div className="sysline" style={{ textAlign: "center", fontSize: 11, color: "var(--fg3)", padding: "12px 0", textTransform: "uppercase", letterSpacing: "0.05em" }}>
         {msg.text}
       </div>
     );
@@ -406,73 +425,41 @@ function MessageBubble({ msg, onSend, onApprovePlan, onRejectPlan }: { msg: Mess
   });
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: isUser ? "flex-end" : "flex-start",
-        marginBottom: 12,
-      }}
-    >
-      {!isUser && msg.meta?.chain && (
-        <DelegationChip chain={msg.meta.chain} />
-      )}
-      <div
-        style={{
-          fontSize: 12,
-          color: "#6b7280",
-          marginBottom: 3,
-          display: "flex",
-          gap: 6,
-          alignItems: "center",
-        }}
-      >
-        {!isUser && (
-          <span style={{ fontWeight: 600, color: "#a78bfa" }}>
+    <div className="msg" style={{ display: "flex", gap: 12, marginBottom: 24 }}>
+      <Avatar who={isUser ? "user" : msg.channelId} role={msg.meta?.adapterType} />
+      <div className="mbody" style={{ flex: 1, minWidth: 0 }}>
+        <div className="mhead" style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+          <span className={`who ${isUser ? "user" : "ai"}`} style={{ fontWeight: 700, fontSize: 13, color: isUser ? "var(--accent)" : "var(--fg1)" }}>
             {msg.sender}
           </span>
+          {msg.meta?.adapterType && (
+            <AdapterBadge 
+              type={msg.meta.adapterType} 
+              duration={msg.meta.durationSec} 
+              cost={msg.meta.costUsd} 
+            />
+          )}
+          <span className="ts" style={{ fontSize: 11, color: "var(--fg3)", marginLeft: "auto" }}>{time}</span>
+        </div>
+        
+        {!isUser && msg.meta?.chain && (
+          <DelegationChip chain={msg.meta.chain} />
         )}
-        <span>{time}</span>
-        {isUser && (
-          <span style={{ fontWeight: 600, color: "#60a5fa" }}>
-            {msg.sender}
-          </span>
-        )}
-      </div>
-      <div
-        style={{
-          maxWidth: "72%",
-          background: isUser ? "#1d4ed8" : "#1e1e1e",
-          color: "#f3f4f6",
-          borderRadius: isUser ? "16px 4px 16px 16px" : "4px 16px 16px 16px",
-          padding: "10px 14px",
-          fontSize: 14,
-          lineHeight: 1.5,
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-word",
-        }}
-      >
-        {isUser ? msg.text : renderMarkdown(msg.text)}
+
+        <div className="mtext" style={{ fontSize: 14, lineHeight: 1.6, color: "var(--fg1)", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+          {isUser ? msg.text : renderMarkdown(msg.text)}
+        </div>
+
         {msg.attachment && (
-          <div
-            style={{
-              marginTop: 8,
-              padding: "6px 10px",
-              background: "rgba(255,255,255,0.08)",
-              borderRadius: 6,
-              fontSize: 13,
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
+          <div className="card" style={{ marginTop: 8, padding: "8px 12px", display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12 }}>
             📎 {msg.attachment}
           </div>
         )}
+
+        {!isUser && msg.plan && (
+          <PlanCard msg={msg} onApprove={onApprovePlan} onReject={onRejectPlan} />
+        )}
       </div>
-      {!isUser && msg.plan && (
-        <PlanCard msg={msg} onApprove={onApprovePlan} onReject={onRejectPlan} />
-      )}
     </div>
   );
 }
@@ -582,304 +569,219 @@ export default function ChatArea({
   const isAgentChannel = ["ceo", "cto", "engineer", "qa", "cos", "worker"].includes(channelId);
 
   return (
-    <div
+    <main
+      className="main"
       style={{
         flex: 1,
         display: "flex",
         flexDirection: "column",
-        background: "#0d0d0d",
+        background: "var(--bg-surface)",
         overflow: "hidden",
       }}
     >
-      {/* Header */}
+      {/* chead — channel header */}
       <div
+        className="chead"
         style={{
-          padding: "14px 20px",
-          borderBottom: "1px solid #1f1f1f",
+          padding: "16px 20px",
+          borderBottom: "1px solid var(--border-subtle)",
           display: "flex",
           alignItems: "center",
-          gap: 8,
+          gap: 12,
           flexShrink: 0,
         }}
       >
-        <span
-          style={{ fontSize: 18, fontWeight: 700, color: "#f3f4f6" }}
-        >
-          {channelLabel}
-        </span>
+        <div className="title" style={{ fontSize: 18, fontWeight: 800, color: "var(--fg1)", display: "flex", alignItems: "center", gap: 4 }}>
+          <span style={{ color: "var(--accent)", opacity: 0.7 }}>#</span>
+          {channelId}
+        </div>
+        <div className="desc" style={{ fontSize: 12, color: "var(--fg3)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {channelDescription ?? "Everything starts here. Send the first one."}
+        </div>
+
         {isConnected !== undefined && (
           <span
+            className={`pill ${isConnected ? "sync" : "error"}`}
             style={{
-              display: "inline-block",
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              background: isConnected ? "var(--musu-status-online)" : "var(--musu-status-error)",
-              flexShrink: 0,
-            }}
-            title={isConnected ? "Connected" : "Disconnected"}
-          />
-        )}
-        {totalAgents > 0 && (
-          <span
-            style={{
-              fontSize: 11,
-              color: onlineAgents.length > 0 ? "#86efac" : "#6b7280",
-              background: onlineAgents.length > 0 ? "rgba(34,197,94,0.12)" : "#1a1a1a",
-              border: `1px solid ${onlineAgents.length > 0 ? "rgba(34,197,94,0.3)" : "#2d2d2d"}`,
-              borderRadius: 12,
+              fontSize: 10,
+              fontWeight: 700,
               padding: "2px 8px",
-              fontWeight: 600,
+              borderRadius: "var(--radius-pill)",
+              background: isConnected ? "var(--status-online-bg)" : "var(--status-error-bg)",
+              color: isConnected ? "var(--status-online)" : "var(--status-error)",
+              border: `1px solid ${isConnected ? "var(--status-online-br)" : "var(--status-error)"}`,
               display: "flex",
               alignItems: "center",
               gap: 4,
             }}
-            title={`${onlineAgents.length} of ${totalAgents} agents online`}
           >
-            <span
-              style={{
-                display: "inline-block",
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                background: onlineAgents.length > 0 ? "var(--musu-status-online)" : "#6b7280",
-              }}
-            />
-            {onlineAgents.length}/{totalAgents} agents
+            <span className={isConnected ? "dot-active" : ""} style={{ width: 6, height: 6, borderRadius: "50%", background: "currentColor" }} />
+            {isConnected ? "SYNC" : "OFFLINE"}
           </span>
         )}
-        {/* Node selector dropdown */}
+
         {isAgentChannel && onNodeChange && availableNodes.length > 0 && (
           <div
             style={{
               display: "flex",
               alignItems: "center",
               gap: 6,
-              background: "#1a1a1a",
-              border: "1px solid #2d2d2d",
-              borderRadius: 6,
-              padding: "4px 8px",
+              background: "var(--bg-card)",
+              border: "1px solid var(--border-default)",
+              borderRadius: "var(--radius-sm)",
+              padding: "2px 8px",
             }}
           >
-            <span style={{ fontSize: 10, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-              Node
-            </span>
+            <span className="label" style={{ fontSize: 9 }}>Node</span>
             <select
               value={activeNode}
               onChange={(e) => onNodeChange?.(e.target.value)}
               style={{
                 fontSize: 11,
-                fontWeight: 600,
+                fontWeight: 700,
                 background: "transparent",
                 border: "none",
-                color: "#e5e7eb",
+                color: "var(--fg2)",
                 cursor: "pointer",
                 outline: "none",
-                padding: "2px 4px",
               }}
             >
               {availableNodes.map((node) => (
-                <option key={node.name} value={node.name} style={{ background: "#1a1a1a", color: "#e5e7eb" }}>
-                  {node.name} {node.status !== "online" && `(${node.status})`}
+                <option key={node.name} value={node.name} style={{ background: "var(--bg-overlay)", color: "var(--fg1)" }}>
+                  {node.name}
                 </option>
               ))}
             </select>
           </div>
         )}
-        <div
-          style={{
-            borderLeft: "1px solid #2d2d2d",
-            paddingLeft: 12,
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-            minWidth: 0,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 13,
-              color: "#4b5563",
-            }}
-          >
-            {channelDescription ??
-              (channelId === "general"
-                ? "Everything starts here"
-                : channelId === "dev"
-                  ? "Internal device-to-device discussion"
-                  : channelId === "tasks"
-                    ? "Work currently in progress"
-                    : channelId === "alerts"
-                      ? "Device state changes, errors, and completion alerts"
-                      : "")}
-          </span>
-          {(activeCompanyName || workspaceId) ? (
-            <span
-              style={{
-                fontSize: 11,
-                color: "#9ca3af",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              {activeCompanyName ?? "Draft company"}
-              {workspaceId ? ` · workspace ${workspaceId}` : ""}
-              {selectedProjects.length > 0 ? ` · ${selectedProjects.length} projects` : ""}
-            </span>
-          ) : null}
-        </div>
       </div>
 
-      {/* Message list */}
+      {/* msgs — message list */}
       <div
+        className="msgs"
         ref={scrollRef}
         onScroll={handleScroll}
         style={{
           flex: 1,
           overflowY: "auto",
-          padding: "16px 20px",
+          padding: "20px",
           display: "flex",
           flexDirection: "column",
         }}
       >
-        {/* History loading spinner */}
         {isLoadingHistory && (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              padding: "8px 0 4px",
-              flexShrink: 0,
-            }}
-          >
-            <span
-              style={{
-                fontSize: 12,
-                color: "#6b7280",
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-              }}
-            >
-              <span
-                style={{
-                  display: "inline-block",
-                  width: 12,
-                  height: 12,
-                  border: "2px solid #374151",
-                  borderTopColor: "#a78bfa",
-                  borderRadius: "50%",
-                  animation: "spin 0.8s linear infinite",
-                }}
-              />
-              Loading earlier messages...
-            </span>
+          <div className="sysline" style={{ textAlign: "center", padding: "10px", color: "var(--fg3)", fontSize: 11 }}>
+            LOADING EARLIER MESSAGES...
           </div>
         )}
+        
         {channelMessages.length === 0 && !isLoadingHistory && (
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#374151",
-              fontSize: 14,
-            }}
-          >
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--fg4)", fontSize: 14, letterSpacing: "0.02em" }}>
             No messages yet. Send the first one.
           </div>
         )}
+
         {channelMessages.map((msg) => (
           <MessageBubble key={msg.id} msg={msg} onSend={onSend} onApprovePlan={onApprovePlan} onRejectPlan={onRejectPlan} />
         ))}
+
         {isAgentTyping && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "8px 0",
-            }}
-          >
-            <span style={{ fontSize: 12, color: "#a78bfa", fontWeight: 600 }}>
-              {channelId}
-            </span>
-            <span
-              style={{
-                fontSize: 12,
-                color: "#6b7280",
-                animation: "pulse 1.5s ease-in-out infinite",
-              }}
-            >
-              Responding...
-            </span>
+          <div className="msg" style={{ display: "flex", gap: 12, opacity: 0.7 }}>
+            <Avatar who={channelId} />
+            <div className="mbody">
+              <div className="mhead">
+                <span className="who ai" style={{ fontWeight: 700, fontSize: 13 }}>{channelId}</span>
+              </div>
+              <div className="mtext dot-working" style={{ fontSize: 13, color: "var(--fg3)" }}>
+                Responding...
+              </div>
+            </div>
           </div>
         )}
         <div ref={bottomRef} />
       </div>
 
-      {/* Input bar */}
+      {/* composer — input area */}
       <div
+        className="composer"
         style={{
-          padding: "12px 20px",
-          borderTop: "1px solid #1f1f1f",
-          display: "flex",
-          gap: 10,
-          alignItems: "flex-end",
-          flexShrink: 0,
-          background: "#0d0d0d",
+          padding: "0 20px 20px",
+          background: "transparent",
         }}
       >
-        <textarea
-          ref={textareaRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={`${activeCompanyName ? `Message ${activeCompanyName}` : `Message ${channelLabel}`}... (Enter to send, Shift+Enter for a new line)`}
-          rows={1}
+        <div
+          className="box"
           style={{
-            flex: 1,
-            background: "#1a1a1a",
-            border: "1px solid #2d2d2d",
-            borderRadius: 10,
-            color: "#f3f4f6",
-            fontSize: 14,
-            padding: "10px 14px",
-            resize: "none",
-            outline: "none",
-            lineHeight: 1.5,
-            fontFamily: "inherit",
-            maxHeight: 120,
-            overflowY: "auto",
-          }}
-          onInput={(e) => {
-            const el = e.currentTarget;
-            el.style.height = "auto";
-            el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
-          }}
-        />
-        <button
-          onClick={handleSend}
-          disabled={!input.trim()}
-          style={{
-            background: input.trim() ? "#1d4ed8" : "#1f2937",
-            color: input.trim() ? "#fff" : "#4b5563",
-            border: "none",
-            borderRadius: 10,
-            padding: "10px 18px",
-            fontSize: 14,
-            fontWeight: 600,
-            cursor: input.trim() ? "pointer" : "default",
-            transition: "background 0.2s",
-            whiteSpace: "nowrap",
-            height: 42,
+            background: "var(--bg-card)",
+            border: "1px solid var(--border-default)",
+            borderRadius: "var(--radius-md)",
+            padding: "12px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+            boxShadow: "var(--shadow-sm)",
           }}
         >
-          Send
-        </button>
+          <textarea
+            ref={textareaRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={`Message #${channelId}...`}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "var(--fg1)",
+              fontSize: 14,
+              resize: "none",
+              outline: "none",
+              lineHeight: 1.6,
+              fontFamily: "var(--font-ui)",
+              minHeight: 24,
+              maxHeight: 200,
+            }}
+            onInput={(e) => {
+              const el = e.currentTarget;
+              el.style.height = "auto";
+              el.style.height = `${el.scrollHeight}px`;
+            }}
+          />
+          <div
+            className="crow"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              borderTop: "1px solid var(--border-subtle)",
+              paddingTop: 10,
+            }}
+          >
+            <button className="ibtn" title="Attach" style={{ background: "transparent", border: "none", fontSize: 16, cursor: "pointer", opacity: 0.6 }}>📎</button>
+            <button className="ibtn" title="Plan" style={{ background: "transparent", border: "none", fontSize: 16, cursor: "pointer", opacity: 0.6 }}>📋</button>
+            <button className="ibtn" title="Handoff" style={{ background: "transparent", border: "none", fontSize: 16, cursor: "pointer", opacity: 0.6 }}>🔄</button>
+            
+            <span className="hint" style={{ fontSize: 10, color: "var(--fg4)", marginLeft: "auto", textTransform: "uppercase", fontWeight: 600 }}>
+              ENTER send · SHIFT+ENTER newline
+            </span>
+
+            <button
+              className="btn-primary"
+              onClick={handleSend}
+              disabled={!input.trim()}
+              style={{
+                borderRadius: "var(--radius-sm)",
+                padding: "6px 16px",
+                fontSize: 12,
+                fontWeight: 700,
+                opacity: input.trim() ? 1 : 0.4,
+                cursor: input.trim() ? "pointer" : "default",
+              }}
+            >
+              SEND
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
+    </main>
   );
 }

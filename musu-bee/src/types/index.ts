@@ -60,6 +60,12 @@ export interface MessageMeta {
   chain?: string[];
   /** musu-core agent id that produced this message */
   agentId?: string;
+  /** Type of adapter used to generate this message (e.g. 'claude_local', 'gemini_local') */
+  adapterType?: string;
+  /** Latency of the response in seconds */
+  durationSec?: number;
+  /** Cost of the response in USD */
+  costUsd?: number;
 }
 
 export interface PlanStep {

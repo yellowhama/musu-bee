@@ -8,7 +8,7 @@ import os
 import uuid
 from typing import Any
 
-from musu_core.adapters.base import AdapterContext, AdapterResult, BaseAdapter, ErrorCode, UsageSummary
+from musu_core.adapters.base import AdapterContext, AdapterResult, BaseAdapter, ErrorCode, UsageSummary, resolve_instructions
 
 # Env vars that cause "cannot be launched inside another session" errors when
 # Claude Code runs nested inside another Claude Code session.
@@ -107,7 +107,10 @@ class ClaudeLocalAdapter(BaseAdapter):
         model = ctx.config.get("model", "claude-sonnet-4-5")
         cwd = ctx.cwd or ctx.config.get("cwd") or os.getcwd()
         timeout_sec = int(ctx.config.get("timeout_sec", 300))
-        instructions_path = ctx.instructions_path or ctx.config.get("instructions_path")
+        instructions_path = resolve_instructions(
+            ctx.instructions_path or ctx.config.get("instructions_path"),
+            self.adapter_type
+        )
         dangerously_skip_permissions = bool(ctx.config.get("dangerously_skip_permissions", False))
 
         def build_env() -> dict[str, str]:

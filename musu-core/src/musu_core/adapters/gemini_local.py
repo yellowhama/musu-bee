@@ -7,7 +7,7 @@ import json
 import os
 from typing import Any
 
-from musu_core.adapters.base import AdapterContext, AdapterResult, BaseAdapter, ErrorCode, UsageSummary
+from musu_core.adapters.base import AdapterContext, AdapterResult, BaseAdapter, ErrorCode, UsageSummary, resolve_instructions
 
 
 def _parse_stream_json(stdout: str) -> dict[str, Any]:
@@ -87,6 +87,10 @@ class GeminiLocalAdapter(BaseAdapter):
         model = ctx.config.get("model", "gemini-2.5-flash")
         cwd = ctx.cwd or ctx.config.get("cwd") or os.getcwd()
         timeout_sec = int(ctx.config.get("timeout_sec", 300))
+        instructions_path = resolve_instructions(
+            ctx.instructions_path or ctx.config.get("instructions_path"),
+            self.adapter_type
+        )
         yolo = bool(ctx.config.get("yolo", True))
         sandbox = bool(ctx.config.get("sandbox", False))
 
@@ -109,6 +113,8 @@ class GeminiLocalAdapter(BaseAdapter):
                 args.append("--yolo")
             if sandbox:
                 args.append("--sandbox")
+            if instructions_path:
+                args += ["--append-system-prompt-file", instructions_path]
             if ctx.session_id:
                 args += ["--resume", ctx.session_id]
             return args

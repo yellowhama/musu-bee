@@ -805,6 +805,7 @@ class RouteRequest(BaseModel):
     sender_id: str
     text: str = Field(max_length=10000)
     adapter_override: str | None = None
+    cost_optimized: bool = False
 
 
 class DelegateRequest(BaseModel):
@@ -848,6 +849,7 @@ async def api_route(req: RouteRequest, request: Request) -> dict:
         sender_id=req.sender_id,
         text=req.text,
         adapter_override=req.adapter_override,
+        cost_optimized=req.cost_optimized,
     )
     audit.record(
         actor_ip=request.client.host if request.client else "",
@@ -1403,6 +1405,13 @@ async def api_company_dashboard(company_id: str) -> dict:
             "failed": len([t for t in tasks if t.get("status") == "failed"]),
         },
     }
+
+
+@app.get("/api/companies/{company_id}/metrics", summary="Performance and cost metrics for a company")
+async def api_company_metrics(company_id: str) -> dict:
+    """Return aggregated time-series metrics (cost, latency) for the company."""
+    from handlers import get_metrics
+    return await get_metrics(company_id)
 
 
 class PairRequest(BaseModel):

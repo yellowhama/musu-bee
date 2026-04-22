@@ -31,6 +31,10 @@ class RouteRequest:
     instructions_path: str | None = None
     # Override working directory for this call
     cwd: str | None = None
+    # Explicit adapter override for this specific request
+    adapter_override: str | None = None
+    # If True, system may downgrade to a cheaper model for simple tasks
+    cost_optimized: bool = False
     # Arbitrary extra context forwarded to the adapter
     extra: dict[str, Any] = field(default_factory=dict)
 
@@ -74,14 +78,25 @@ class Router:
             )
 
         # --- 2. Resolve adapter ---
-        adapter = get_adapter(agent.adapter_type)
+        adapter_type = req.adapter_override or self._config.force_adapter or agent.adapter_type
+
+        # Cost optimization: downgrade to cheaper model for simple tasks
+        if req.cost_optimized and not req.adapter_override and not self._config.force_adapter:
+            from musu_core.complexity import ComplexityScorer
+            score = ComplexityScorer().score(req.prompt)
+            if score < 0.4:
+                # Simple task: use Gemini Flash if primary is Claude
+                if adapter_type == "claude_local":
+                    adapter_type = "gemini_local"
+
+        adapter = get_adapter(adapter_type)
         if adapter is None:
             return RouteResult(
                 run_id=run_id,
                 agent_id=req.agent_id,
                 success=False,
                 summary="",
-                error=f"Unknown adapter type: {agent.adapter_type}",
+                error=f"Unknown adapter type: {adapter_type}",
             )
 
         # Merge config-level defaults into per-agent config
@@ -98,7 +113,7 @@ class Router:
             agent_id=agent.id,
             agent_name=agent.name,
             agent_role=agent.role,
-            adapter_type=agent.adapter_type,
+            adapter_type=adapter_type,
             config=adapter_config,
             session_id=req.session_id,
             instructions_path=req.instructions_path or adapter_config.get("instructions_path"),
@@ -112,7 +127,7 @@ class Router:
             run_id=run_id,
             agent_id=agent.id,
             task_id=req.task_id,
-            adapter_type=agent.adapter_type,
+            adapter_type=adapter_type,
             prompt_snippet=req.prompt[:300],
         )
 
@@ -274,6 +289,8 @@ async def route_message(
     backend: "BackendABC",
     config: Config | None = None,
     company_id: str | None = None,
+    adapter_override: str | None = None,
+    cost_optimized: bool = False,
 ) -> str:
     """
     High-level routing entry point.
@@ -335,16 +352,30 @@ async def route_message(
     if isinstance(backend, LocalBackend):
         _router = Router(backend=backend, config=cfg)
         route_result = await _router.route(
-            RouteRequest(agent_id=agent_id, prompt=message, task_id=task_id)
+            RouteRequest(
+                agent_id=agent_id,
+                prompt=message,
+                task_id=task_id,
+                adapter_override=adapter_override,
+                cost_optimized=cost_optimized,
+            )
         )
         if not route_result.success:
             raise RuntimeError(f"Adapter returned failure: {route_result.error}")
         response_summary = route_result.summary
     else:
         # Non-local backend (e.g. PaperclipBackend): direct adapter call without fallback chain
-        adapter = get_adapter(agent_dict["adapter_type"])
+        adapter_type = adapter_override or cfg.force_adapter or agent_dict["adapter_type"]
+        
+        if cost_optimized and not adapter_override and not cfg.force_adapter:
+            from musu_core.complexity import ComplexityScorer
+            score = ComplexityScorer().score(message)
+            if score < 0.4 and adapter_type == "claude_local":
+                adapter_type = "gemini_local"
+
+        adapter = get_adapter(adapter_type)
         if adapter is None:
-            raise RuntimeError(f"Unknown adapter type: {agent_dict['adapter_type']!r}")
+            raise RuntimeError(f"Unknown adapter type: {adapter_type!r}")
 
         adapter_config: dict[str, Any] = {
             "model": cfg.default_model,
@@ -360,10 +391,11 @@ async def route_message(
             agent_id=agent_id,
             agent_name=agent_dict["name"],
             agent_role=agent_dict.get("role", ""),
-            adapter_type=agent_dict["adapter_type"],
+            adapter_type=adapter_type,
             config=adapter_config,
             task_id=task_id,
         )
+
 
         try:
             result = await adapter.execute(ctx)

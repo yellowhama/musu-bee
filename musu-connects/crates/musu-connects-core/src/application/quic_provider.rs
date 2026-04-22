@@ -1,4 +1,4 @@
-use crate::application::identity::{FingerprintVerifier, NoVerifier};
+use crate::application::identity::{FingerprintVerifier, FingerprintClientVerifier, NoVerifier};
 use crate::domain::transport::{
     HealthRecord, Reachability, ReconcileState, SessionRecord, SessionRegistry, TransportState,
 };
@@ -66,6 +66,7 @@ pub struct QuicProvider {
     next_stream_id: std::sync::atomic::AtomicU64,
     pub session_registry: SessionRegistry,
     pub connections: Arc<DashMap<String, quinn::Connection>>,
+    pub allowed_fingerprints: Arc<dashmap::DashSet<String>>,
 }
 
 impl QuicProvider {
@@ -76,6 +77,7 @@ impl QuicProvider {
             next_stream_id: std::sync::atomic::AtomicU64::new(0),
             session_registry: SessionRegistry::default(),
             connections: Arc::new(DashMap::new()),
+            allowed_fingerprints: Arc::new(dashmap::DashSet::new()),
         }
     }
 
@@ -102,8 +104,10 @@ impl QuicProvider {
         };
         let socket_addr: SocketAddr = addr_str.parse().map_err(|e| QuicProviderError::BindFailed(format!("{e}")))?;
 
+        let verifier = FingerprintClientVerifier::new(self.allowed_fingerprints.clone());
+
         let mut tls = rustls::ServerConfig::builder()
-            .with_no_client_auth()
+            .with_client_cert_verifier(verifier)
             .with_single_cert(vec![cert], key)
             .map_err(|e| QuicProviderError::TlsConfigError(format!("{e}")))?;
         tls.alpn_protocols = vec![self.endpoint_config.alpn.as_bytes().to_vec()];
@@ -135,13 +139,11 @@ impl QuicProvider {
         let mut tls_config = if let Some(fp) = expected_fingerprint {
             rustls::ClientConfig::builder()
                 .dangerous()
-                .with_custom_certificate_verifier(Arc::new(FingerprintVerifier { expected: fp.to_string() }))
+                .with_custom_certificate_verifier(FingerprintVerifier::new(fp.to_string()))
                 .with_no_client_auth()
         } else {
-            rustls::ClientConfig::builder()
-                .dangerous()
-                .with_custom_certificate_verifier(Arc::new(NoVerifier))
-                .with_no_client_auth()
+            // Secure by default: eliminate NoVerifier fallback
+            return Err(QuicProviderError::TlsConfigError(format!("Missing expected fingerprint for peer {peer_id}")));
         };
 
         tls_config.alpn_protocols = vec![self.endpoint_config.alpn.as_bytes().to_vec()];

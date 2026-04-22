@@ -53,15 +53,28 @@ pub fn cert_fingerprint(cert: &CertificateDer<'_>) -> String {
         .join(":")
 }
 
-/// Fingerprint verifier for rustls
+use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
+use rustls::server::danger::{ClientCertVerified, ClientCertVerifier};
+use rustls::pki_types::{ServerName, UnixTime};
+use rustls::{DigitallySignedStruct, Error as TlsError, SignatureScheme};
+use rustls::crypto::CryptoProvider;
+use std::sync::Arc;
+
+/// Fingerprint verifier for rustls (Client-side)
 #[derive(Debug)]
 pub struct FingerprintVerifier {
     pub expected: String,
+    pub provider: Arc<CryptoProvider>,
 }
 
-use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
-use rustls::pki_types::{ServerName, UnixTime};
-use rustls::{DigitallySignedStruct, Error as TlsError, SignatureScheme};
+impl FingerprintVerifier {
+    pub fn new(expected: String) -> Arc<Self> {
+        Arc::new(Self {
+            expected,
+            provider: Arc::new(rustls::crypto::ring::default_provider()),
+        })
+    }
+}
 
 impl ServerCertVerifier for FingerprintVerifier {
     fn verify_server_cert(
@@ -85,34 +98,94 @@ impl ServerCertVerifier for FingerprintVerifier {
 
     fn verify_tls12_signature(
         &self,
-        _message: &[u8],
-        _cert: &CertificateDer<'_>,
-        _dss: &DigitallySignedStruct,
+        message: &[u8],
+        cert: &CertificateDer<'_>,
+        dss: &DigitallySignedStruct,
     ) -> Result<HandshakeSignatureValid, TlsError> {
-        Ok(HandshakeSignatureValid::assertion())
+        rustls::crypto::verify_tls12_signature(
+            message, cert, dss,
+            &self.provider.signature_verification_algorithms,
+        )
     }
 
     fn verify_tls13_signature(
         &self,
-        _message: &[u8],
-        _cert: &CertificateDer<'_>,
-        _dss: &DigitallySignedStruct,
+        message: &[u8],
+        cert: &CertificateDer<'_>,
+        dss: &DigitallySignedStruct,
     ) -> Result<HandshakeSignatureValid, TlsError> {
-        Ok(HandshakeSignatureValid::assertion())
+        rustls::crypto::verify_tls13_signature(
+            message, cert, dss,
+            &self.provider.signature_verification_algorithms,
+        )
     }
 
     fn supported_verify_schemes(&self) -> Vec<SignatureScheme> {
-        vec![
-            SignatureScheme::ECDSA_NISTP256_SHA256,
-            SignatureScheme::ECDSA_NISTP384_SHA384,
-            SignatureScheme::ED25519,
-            SignatureScheme::RSA_PSS_SHA256,
-            SignatureScheme::RSA_PSS_SHA384,
-            SignatureScheme::RSA_PSS_SHA512,
-            SignatureScheme::RSA_PKCS1_SHA256,
-            SignatureScheme::RSA_PKCS1_SHA384,
-            SignatureScheme::RSA_PKCS1_SHA512,
-        ]
+        self.provider.signature_verification_algorithms.supported_schemes()
+    }
+}
+
+/// Fingerprint verifier for rustls (Server-side mTLS)
+#[derive(Debug)]
+pub struct FingerprintClientVerifier {
+    pub allowed: Arc<dashmap::DashSet<String>>, // set of allowed fingerprints
+    pub provider: Arc<CryptoProvider>,
+}
+
+impl FingerprintClientVerifier {
+    pub fn new(allowed: Arc<dashmap::DashSet<String>>) -> Arc<Self> {
+        Arc::new(Self {
+            allowed,
+            provider: Arc::new(rustls::crypto::ring::default_provider()),
+        })
+    }
+}
+
+impl ClientCertVerifier for FingerprintClientVerifier {
+    fn verify_client_cert(
+        &self,
+        end_entity: &CertificateDer<'_>,
+        _intermediates: &[CertificateDer<'_>],
+        _now: UnixTime,
+    ) -> Result<ClientCertVerified, TlsError> {
+        let fp = cert_fingerprint(end_entity);
+        if self.allowed.contains(&fp) {
+            Ok(ClientCertVerified::assertion())
+        } else {
+            Err(TlsError::General(format!("unknown client fingerprint: {fp}")))
+        }
+    }
+
+    fn verify_tls12_signature(
+        &self,
+        message: &[u8],
+        cert: &CertificateDer<'_>,
+        dss: &DigitallySignedStruct,
+    ) -> Result<HandshakeSignatureValid, TlsError> {
+        rustls::crypto::verify_tls12_signature(
+            message, cert, dss,
+            &self.provider.signature_verification_algorithms,
+        )
+    }
+
+    fn verify_tls13_signature(
+        &self,
+        message: &[u8],
+        cert: &CertificateDer<'_>,
+        dss: &DigitallySignedStruct,
+    ) -> Result<HandshakeSignatureValid, TlsError> {
+        rustls::crypto::verify_tls13_signature(
+            message, cert, dss,
+            &self.provider.signature_verification_algorithms,
+        )
+    }
+
+    fn supported_verify_schemes(&self) -> Vec<SignatureScheme> {
+        self.provider.signature_verification_algorithms.supported_schemes()
+    }
+
+    fn root_hint_subjects(&self) -> &[rustls::pki_types::DistinguishedName] {
+        &[] // No CA roots used
     }
 }
 

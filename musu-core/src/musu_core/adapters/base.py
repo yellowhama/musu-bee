@@ -2,10 +2,41 @@
 
 from __future__ import annotations
 
+import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
+from pathlib import Path
 from typing import Any
+
+
+def resolve_instructions(base_path: str | None, adapter_type: str) -> str | None:
+    """
+    If base_path is 'ceo.md' and adapter_type is 'gemini_local',
+    checks for 'ceo.gemini.md'. Returns it if exists, else base_path.
+    
+    If adapter_type contains '_local', the suffix used is the part before '_local'.
+    Example: 'gemini_local' -> '.gemini.md'
+    """
+    if not base_path:
+        return None
+
+    path = Path(base_path)
+    if not path.exists():
+        return base_path
+
+    # Extract short name from adapter_type (e.g., 'gemini_local' -> 'gemini')
+    short_type = adapter_type.split("_")[0]
+    
+    # Try suffixing before the extension: ceo.md -> ceo.gemini.md
+    stem = path.stem
+    suffix = path.suffix # .md
+    specific_path = path.parent / f"{stem}.{short_type}{suffix}"
+
+    if specific_path.exists():
+        return str(specific_path)
+    
+    return base_path
 
 
 class ErrorCode(str, Enum):

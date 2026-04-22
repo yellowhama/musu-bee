@@ -211,29 +211,19 @@ export default function Sidebar({
   return (
     <div
       style={{
-        width: 220,
-        minWidth: 220,
-        background: "#111111",
-        borderRight: "1px solid #1f1f1f",
+        width: 240,
+        minWidth: 240,
+        background: "var(--bg-base)",
+        borderRight: "1px solid var(--border-subtle)",
         display: "flex",
         flexDirection: "column",
         overflowY: "auto",
-        padding: "12px 8px",
+        padding: "16px 8px",
       }}
     >
       {/* Channels */}
-      <div style={{ marginBottom: 16 }}>
-        <div
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: "#6b7280",
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-            padding: "0 8px",
-            marginBottom: 6,
-          }}
-        >
+      <div style={{ marginBottom: 20 }}>
+        <div className="label" style={{ padding: "0 10px", marginBottom: 10 }}>
           Channels
         </div>
         {(() => {
@@ -253,24 +243,14 @@ export default function Sidebar({
                       display: "flex",
                       alignItems: "center",
                       gap: 8,
-                      padding: "12px 8px 6px",
-                      marginTop: 4,
+                      padding: "16px 10px 8px",
                     }}
                   >
-                    <div style={{ flex: 1, height: 1, background: hasCompany ? "#2a2a2a" : "#1a1a1a" }} />
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        color: hasCompany ? "#8b8b8b" : "#4a4a4a",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.1em",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
+                    <div style={{ flex: 1, height: 1, background: "var(--border-subtle)" }} />
+                    <span className="label" style={{ fontSize: 9, color: "var(--fg4)" }}>
                       Company
                     </span>
-                    <div style={{ flex: 1, height: 1, background: hasCompany ? "#2a2a2a" : "#1a1a1a" }} />
+                    <div style={{ flex: 1, height: 1, background: "var(--border-subtle)" }} />
                   </div>
                 )}
                 <div
@@ -282,36 +262,37 @@ export default function Sidebar({
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    padding: "6px 10px",
-                    borderRadius: 6,
+                    padding: "8px 12px",
+                    borderRadius: "var(--radius-sm)",
                     cursor: "pointer",
-                    background: activeChannel === ch.id ? "#1d1d1d" : "transparent",
-                    color: activeChannel === ch.id ? "#f3f4f6" : dimmed ? "#374151" : "#9ca3af",
-                    fontSize: 14,
-                    marginBottom: 1,
-                    fontWeight: activeChannel === ch.id ? 600 : 400,
-                    opacity: dimmed ? 0.5 : 1,
+                    background: activeChannel === ch.id ? "var(--bg-hover)" : "transparent",
+                    color: activeChannel === ch.id ? "var(--accent)" : dimmed ? "var(--fg4)" : "var(--fg2)",
+                    fontSize: 13,
+                    marginBottom: 2,
+                    fontWeight: activeChannel === ch.id ? 700 : 500,
+                    transition: "all 0.15s ease",
+                    borderLeft: `3px solid ${activeChannel === ch.id ? "var(--accent)" : "transparent"}`,
                   }}
                   onMouseEnter={(e) => {
                     if (activeChannel !== ch.id)
-                      (e.currentTarget as HTMLDivElement).style.background = "#181818";
+                      (e.currentTarget as HTMLDivElement).style.background = "var(--bg-card)";
                   }}
                   onMouseLeave={(e) => {
                     if (activeChannel !== ch.id)
                       (e.currentTarget as HTMLDivElement).style.background = "transparent";
                   }}
                 >
-                  <span style={{ marginRight: 6, opacity: 0.6 }}>#</span>
+                  <span style={{ marginRight: 8, opacity: 0.5, fontSize: 14 }}>#</span>
                   <span style={{ flex: 1 }}>{ch.name}</span>
                   {ch.unread > 0 && (
                     <span
+                      className="pill"
                       style={{
-                        background: "var(--musu-status-error)",
-                        color: "#fff",
-                        borderRadius: 10,
-                        padding: "1px 6px",
-                        fontSize: 11,
-                        fontWeight: 700,
+                        background: "var(--status-error)",
+                        color: "white",
+                        padding: "0 6px",
+                        fontSize: 10,
+                        height: 16,
                       }}
                     >
                       {ch.unread}
@@ -324,261 +305,60 @@ export default function Sidebar({
         })()}
       </div>
 
-      {/* Divider */}
-      <div
-        style={{ borderTop: "1px solid #1f1f1f", margin: "4px 0 12px 0" }}
-      />
-
       {/* Execution status surface */}
-      <div style={{ marginBottom: 12 }}>
-        <div
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: "#6b7280",
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-            padding: "0 8px",
-            marginBottom: 6,
-          }}
-        >
-          Execution Status (/agents)
+      <div style={{ marginBottom: 16 }}>
+        <div className="label" style={{ padding: "0 10px", marginBottom: 10 }}>
+          Execution Status
         </div>
         <div
           data-testid="agents-parity-surface"
-          style={{
-            margin: "0 4px",
-            padding: "8px 10px",
-            borderRadius: 8,
-            border: "1px solid #242424",
-            background: "#141414",
-          }}
+          className="card"
+          style={{ margin: "0 6px", padding: "10px" }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
             <span
+              className="pill"
               style={{
-                fontSize: 10,
-                fontWeight: 700,
-                color: agentsSurface?.degraded ? "#fca5a5" : "#86efac",
-                background: agentsSurface?.degraded ? "rgba(239,68,68,0.16)" : "rgba(34,197,94,0.16)",
-                border: `1px solid ${agentsSurface?.degraded ? "rgba(239,68,68,0.35)" : "rgba(34,197,94,0.35)"}`,
-                borderRadius: 999,
-                padding: "2px 6px",
+                fontSize: 9,
+                background: agentsSurface?.degraded ? "var(--status-error-bg)" : "var(--status-online-bg)",
+                color: agentsSurface?.degraded ? "var(--status-error)" : "var(--status-online)",
+                border: `1px solid ${agentsSurface?.degraded ? "var(--status-error)" : "var(--status-online-br)"}`,
               }}
             >
               {agentsSurface?.degraded ? "DEGRADED" : "SYNC"}
             </span>
-            <span style={{ fontSize: 10, color: "#6b7280" }}>
-              {agentsSurface?.fetchedAt
-                ? new Date(agentsSurface.fetchedAt).toLocaleTimeString("en-US", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit",
-                  })
-                : "Loading"}
+            <span style={{ fontSize: 10, color: "var(--fg3)", marginLeft: "auto" }}>
+              {agentsSurface?.fetchedAt ? new Date(agentsSurface.fetchedAt).toLocaleTimeString() : "..."}
             </span>
           </div>
-          <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 5 }}>
-            boss_host: <span style={{ color: "#e5e7eb" }}>{summary?.bossHost ?? "n/a"}</span>
-          </div>
-          <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 8 }}>
-            handoff target:{" "}
-            <span style={{ color: "#e5e7eb" }}>{summary?.lastHandoffTarget ?? "n/a"}</span>
-          </div>
-          {summary?.departments.length ? (
-            <div style={{ display: "grid", gap: 4 }}>
-              {summary.departments.slice(0, 6).map((department) => (
-                <div
-                  key={department.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                    fontSize: 11,
-                    color: "#d1d5db",
-                  }}
-                >
+          
+          <div style={{ display: "grid", gap: 6 }}>
+              {summary?.departments.slice(0, 5).map((department) => (
+                <div key={department.id} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--fg2)" }}>
                   <DepartmentStatusDot status={department.status} />
-                  <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {department.name}
-                  </span>
-                  <span style={{ color: "#9ca3af", textTransform: "lowercase" }}>
-                    {department.status}
-                  </span>
+                  <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>{department.name}</span>
                 </div>
               ))}
-            </div>
-          ) : (
-            <div style={{ fontSize: 11, color: "#6b7280" }}>
-              No department status data
-            </div>
-          )}
-          {agentsSurface?.degradedReason && (
-            <div style={{ marginTop: 8, fontSize: 10, color: "#fca5a5" }}>
-              {agentsSurface.degradedReason}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Divider */}
-      <div
-        style={{ borderTop: "1px solid #1f1f1f", margin: "4px 0 12px 0" }}
-      />
-
-      <div style={{ marginBottom: 12 }}>
-        <div
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: "#6b7280",
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-            padding: "0 8px",
-            marginBottom: 6,
-          }}
-        >
-          Active Company
-        </div>
-        <div
-          style={{
-            margin: "0 4px",
-            padding: "8px 10px",
-            borderRadius: 8,
-            border: "1px solid #242424",
-            background: "#141414",
-          }}
-        >
-          <div style={{ fontSize: 12, color: "#e5e7eb", fontWeight: 600, marginBottom: 6 }}>
-            {activeCompany?.companyName ?? "Draft company"}
-          </div>
-          <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 6 }}>
-            workspace: {workspaceId}
-          </div>
-          <div style={{ fontSize: 11, color: "#6b7280", lineHeight: 1.5 }}>
-            {activeCompany
-              ? `${activeCompany.selectedProjects.length} starter projects · ${activeCompany.templateKey}`
-              : "Apply the template to create an active company record."}
           </div>
         </div>
       </div>
 
-      <div
-        style={{ borderTop: "1px solid #1f1f1f", margin: "4px 0 12px 0" }}
-      />
-
-      <div style={{ marginBottom: 12 }}>
-        <div
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: "#6b7280",
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-            padding: "0 8px",
-            marginBottom: 6,
-          }}
-        >
-          Company Template
-        </div>
-        <div
-          style={{
-            margin: "0 4px",
-            padding: "8px 10px",
-            borderRadius: 8,
-            border: "1px solid #242424",
-            background: "#141414",
-          }}
-        >
-          <div style={{ fontSize: 12, color: "#e5e7eb", fontWeight: 600, marginBottom: 6 }}>
-            {companyTemplate?.templateKey ?? "default-company-operating-system"}
-          </div>
-          <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 6 }}>
-            {companyTemplate?.goals.length ?? 0} goals, {companyTemplate?.defaultAgents.length ?? 0} default lanes
-          </div>
-          <div style={{ fontSize: 11, color: "#6b7280", lineHeight: 1.5 }}>
-            Comment contract: {companyTemplate?.boardCommentContract.requiredFields.join(", ") ?? "Role, Command, Artifact"}
-          </div>
-        </div>
+      <div style={{ padding: "0 10px", marginBottom: 20 }}>
+          <CompanyPanel />
       </div>
 
-      {/* Divider */}
-      <div
-        style={{ borderTop: "1px solid #1f1f1f", margin: "4px 0 12px 0" }}
-      />
-
-      {/* Companies (musu-bridge SSOT) */}
-      <div style={{ marginBottom: 12 }}>
-        <CompanyPanel />
+      <div style={{ padding: "0 10px", marginBottom: 20 }}>
+          <NodePanel />
       </div>
-
-      {/* Divider */}
-      <div
-        style={{ borderTop: "1px solid #1f1f1f", margin: "4px 0 12px 0" }}
-      />
-
-      {/* Nodes */}
-      <div style={{ marginBottom: 12 }}>
-        <NodePanel />
-      </div>
-
-      {/* Divider */}
-      <div
-        style={{ borderTop: "1px solid #1f1f1f", margin: "4px 0 12px 0" }}
-      />
 
       {/* Devices */}
-      <div>
-        {/* Local machines */}
-        <div
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: "#6b7280",
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-            padding: "0 8px",
-            marginBottom: 6,
-          }}
-        >
+      <div style={{ marginTop: "auto", borderTop: "1px solid var(--border-subtle)", paddingTop: 16 }}>
+        <div className="label" style={{ padding: "0 10px", marginBottom: 10 }}>
           This Machine
         </div>
         {devices.filter((d) => !d.isRemote).map((dev) => (
-          <DeviceItem
-            key={dev.id}
-            device={dev}
-            onClick={() => onDeviceSelect(dev.id)}
-          />
+          <DeviceItem key={dev.id} device={dev} onClick={() => onDeviceSelect(dev.id)} />
         ))}
-
-        {/* Remote machines — only shown when peers are discovered */}
-        {devices.some((d) => d.isRemote) && (
-          <>
-            <div
-              style={{ borderTop: "1px solid #1f1f1f", margin: "8px 0" }}
-            />
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: "#6b7280",
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                padding: "0 8px",
-                marginBottom: 6,
-              }}
-            >
-              Remote Machines
-            </div>
-            {devices.filter((d) => d.isRemote).map((dev) => (
-              <DeviceItem
-                key={dev.id}
-                device={dev}
-                onClick={() => onDeviceSelect(dev.id)}
-              />
-            ))}
-          </>
-        )}
       </div>
     </div>
   );

@@ -91,20 +91,20 @@ export default function NodePanel() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        setPairMsg({ ok: true, text: `${data.node_name} 연결됨` });
+        setPairMsg({ ok: true, text: `${data.node_name} connected` });
         if (data.assigned_agents?.length > 0) {
           const agents = (data.assigned_agents as string[]).join(", ");
-          setAssignBanner(`${agents} → ${data.node_name} 자동 배치됨`);
+          setAssignBanner(`${agents} → ${data.node_name} auto-assigned`);
           setTimeout(() => setAssignBanner(null), 5000);
         }
         setIp("");
         setShowForm(false);
         await fetchNodes();
       } else {
-        setPairMsg({ ok: false, text: data.error ?? data.detail ?? "연결 실패" });
+        setPairMsg({ ok: false, text: data.error ?? data.detail ?? "Connection failed" });
       }
     } catch {
-      setPairMsg({ ok: false, text: "bridge 연결 불가" });
+      setPairMsg({ ok: false, text: "Cannot reach bridge" });
     } finally {
       setPairing(false);
     }
@@ -131,18 +131,18 @@ export default function NodePanel() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        setPairMsg({ ok: true, text: `${data.node_name} 연결됨` });
+        setPairMsg({ ok: true, text: `${data.node_name} connected` });
         if (data.assigned_agents?.length > 0) {
           const agents = (data.assigned_agents as string[]).join(", ");
-          setAssignBanner(`${agents} → ${data.node_name} 자동 배치됨`);
+          setAssignBanner(`${agents} → ${data.node_name} auto-assigned`);
           setTimeout(() => setAssignBanner(null), 5000);
         }
         await fetchNodes();
       } else {
-        setPairMsg({ ok: false, text: data.error ?? "연결 실패" });
+        setPairMsg({ ok: false, text: data.error ?? "Connection failed" });
       }
     } catch {
-      setPairMsg({ ok: false, text: "bridge 연결 불가" });
+      setPairMsg({ ok: false, text: "Cannot reach bridge" });
     } finally {
       setCloudPairing(null);
     }
@@ -219,7 +219,7 @@ export default function NodePanel() {
             cursor: "pointer",
           }}
         >
-          {tokenConfigured ? "+ Manual IP" : "+ 연결"}
+          {tokenConfigured ? "+ Manual IP" : "+ Connect"}
         </button>
       </div>
 
@@ -382,7 +382,7 @@ export default function NodePanel() {
       >
         {nodes.length === 0 ? (
           <div style={{ padding: "10px 12px", fontSize: 12, color: "#4b5563" }}>
-            연결된 노드 없음
+            No connected nodes
           </div>
         ) : (
           nodes.map((node) => (
@@ -415,7 +415,7 @@ export default function NodePanel() {
                       cursor: "pointer",
                       padding: "1px 4px",
                     }}
-                    title="연결 해제"
+                    title="Disconnect"
                   >
                     ✕
                   </button>
@@ -476,7 +476,7 @@ export default function NodePanel() {
           }}
         >
           <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 6 }}>
-            {tokenConfigured ? "Manual IP 연결" : "IP 주소 입력"}
+            {tokenConfigured ? "Connect via Manual IP" : "Enter IP address"}
           </div>
           <div style={{ display: "flex", gap: 4 }}>
             <input
@@ -524,7 +524,7 @@ export default function NodePanel() {
                 cursor: pairing ? "not-allowed" : "pointer",
               }}
             >
-              {pairing ? "..." : "연결"}
+              {pairing ? "..." : "Connect"}
             </button>
           </div>
           {pairMsg && (

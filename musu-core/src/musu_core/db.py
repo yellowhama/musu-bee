@@ -160,6 +160,10 @@ CREATE TABLE IF NOT EXISTS route_executions (
     error       TEXT,
     retry_count INTEGER NOT NULL DEFAULT 0,
     company_id  TEXT,
+    cost_usd    REAL,
+    input_tokens INTEGER,
+    output_tokens INTEGER,
+    duration_sec REAL,
     created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );

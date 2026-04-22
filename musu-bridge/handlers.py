@@ -45,6 +45,7 @@ async def route_chat(
     exec_id: str | None = None,
     company_id: str | None = None,
     adapter_override: str | None = None,
+    cost_optimized: bool = False,
 ) -> dict[str, Any]:
     """Route a message to the agent mapped to the given channel.
 
@@ -62,6 +63,9 @@ async def route_chat(
 
     # ── Durable execution record ───────────────────────────────────────────────
     backend = _get_backend()
+    import time
+    start_time = time.time()
+
     if exec_id is None:
         exec_id = str(uuid.uuid4())
         try:
@@ -74,6 +78,7 @@ async def route_chat(
 
     def _finish(result: dict[str, Any], node: str | None = None) -> dict[str, Any]:
         """Mark execution done/failed and return result (with cost if available)."""
+        duration = time.time() - start_time
         if exec_id:
             try:
                 cost_usd = result.get("cost_usd")
@@ -82,12 +87,15 @@ async def route_chat(
                 adapter_type = result.get("adapter_type")
                 if result.get("error"):
                     backend.update_route_execution(exec_id, "failed", error=result["error"], node=node,
-                                                   cost_usd=cost_usd, input_tokens=input_tokens, output_tokens=output_tokens)
+                                                   cost_usd=cost_usd, input_tokens=input_tokens, output_tokens=output_tokens,
+                                                   duration_sec=duration)
                 else:
                     backend.update_route_execution(exec_id, "done", output=result.get("response"), node=node,
-                                                   cost_usd=cost_usd, input_tokens=input_tokens, output_tokens=output_tokens)
+                                                   cost_usd=cost_usd, input_tokens=input_tokens, output_tokens=output_tokens,
+                                                   duration_sec=duration)
             except Exception:
                 pass
+        result["duration_sec"] = duration
         return result
 
     # ── Mesh routing: forward to remote node if assigned ──────────────────────
@@ -130,6 +138,7 @@ async def route_chat(
             backend=_get_backend(),
             company_id=company_id,
             adapter_override=adapter_override,
+            cost_optimized=cost_optimized,
         )
     except ValueError as exc:
         logger.warning("route_chat: no agent for channel %r — %s", channel, exc)
@@ -155,6 +164,45 @@ async def route_chat(
         "agent_name": agent_name,
         "adapter_type": adapter_type,
     })
+
+
+async def get_metrics(company_id: str) -> dict[str, Any]:
+    """Return aggregated performance metrics for the company."""
+    backend = _get_backend()
+    # Fetch recent route executions for this company
+    # LocalBackend doesn't have a direct filter by company for route_executions yet,
+    # so we'll fetch all and filter for now (optimization candidate).
+    all_runs = backend._db.execute(
+        "SELECT cost_usd, duration_sec, created_at FROM route_executions "
+        "WHERE company_id = ? AND status = 'done' "
+        "ORDER BY created_at DESC LIMIT 100",
+        (company_id,)
+    )
+    
+    total_cost = 0.0
+    latencies = []
+    history = []
+
+    for r in all_runs:
+        cost = r["cost_usd"] or 0.0
+        duration = r["duration_sec"] or 0.0
+        total_cost += cost
+        latencies.append(duration)
+        history.append({
+            "ts": r["created_at"],
+            "cost": cost,
+            "latency": duration
+        })
+
+    avg_latency = sum(latencies) / len(latencies) if latencies else 0.0
+    
+    return {
+        "company_id": company_id,
+        "total_cost_usd": total_cost,
+        "avg_latency_sec": avg_latency,
+        "sample_count": len(latencies),
+        "history": history[::-1] # chronological
+    }
 
 
 async def route_chat_with_qa_loop(

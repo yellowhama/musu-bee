@@ -156,7 +156,8 @@ async def peer_discovery_loop(
             cache.upsert(entry)
             # Register in router; add_node is idempotent
             try:
-                router.add_node(name, url, agents=[])
+                fingerprint = raw.get("cert_fingerprint")
+                router.add_node(name, url, agents=[], cert_fingerprint=fingerprint)
                 added += 1
             except Exception:
                 logger.warning("registry: could not add peer %r to router", name)

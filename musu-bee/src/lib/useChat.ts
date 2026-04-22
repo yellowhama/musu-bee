@@ -12,6 +12,7 @@ import {
   createRouteHandler,
   createWikiHandler,
   createRunHandler,
+  createModelHandler,
 } from "./chatCommands";
 
 // ── Plan parser ────────────────────────────────────────────────────────────
@@ -123,6 +124,7 @@ export function useChat(
   }, [availableNodes]);
 
   const [activeNode, setActiveNode] = useState<string>(selectedNodeId ?? getDefaultNode());
+  const [selectedAdapter, setSelectedAdapter] = useState<string | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -207,7 +209,7 @@ export function useChat(
               channelId: channel,
               sender: "System",
               senderKind: "system" as const,
-              text: "⚠ 브릿지 연결 없음 — 캐시에서 복원됨",
+              text: "⚠ Bridge unavailable — restored from cache",
               timestamp: new Date(),
             },
             ...prev,
@@ -276,7 +278,7 @@ export function useChat(
               ...prev.slice(-(499)),
               {
                 id: makeId(), channelId: channel, sender: "System", senderKind: "system" as const,
-                text: `⚠ **승인 필요**: ${action}\n\`/approve <task_id>\` 또는 \`/reject <task_id>\`로 응답하세요.`,
+                text: `⚠ **Approval required**: ${action}\nRespond with \`/approve <task_id>\` or \`/reject <task_id>\`.`,
                 timestamp: new Date(),
               },
             ]);
@@ -351,13 +353,23 @@ export function useChat(
         const res = await fetch("/api/agent-route", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ channel, sender_id: "local-user", text: bodyText, node }),
+          body: JSON.stringify({
+            channel,
+            sender_id: "local-user",
+            text: bodyText,
+            node,
+            adapter_override: selectedAdapter,
+            cost_optimized: true,
+          }),
         });
 
         const data = (await res.json()) as {
           response?: string;
           agent_id?: string;
           agent_name?: string;
+          adapter_type?: string;
+          duration_sec?: number;
+          cost_usd?: number;
           chain?: string[];
           error?: string;
         };
@@ -365,10 +377,10 @@ export function useChat(
         if (!res.ok || data.error) {
           const errMsg =
             data.error === "agent_timeout"
-              ? "에이전트 응답 시간 초과 (300s)."
+              ? "Agent response timed out (300s)."
               : data.error === "bridge_unavailable"
-                ? "musu-bridge에 연결할 수 없습니다. `bash scripts/dev-start.sh`로 서비스를 시작하세요."
-                : `에이전트 오류: ${data.error ?? "unknown"}`;
+                ? "Cannot connect to musu-bridge. Start the service with `bash scripts/dev-start.sh`."
+                : `Agent error: ${data.error ?? "unknown"}`;
           appendChatMessage({
             id: makeId(), channelId: channel,
             sender: "System", senderKind: "system",
@@ -388,6 +400,9 @@ export function useChat(
           timestamp: new Date(),
           meta: {
             agentId: data.agent_id ?? undefined,
+            adapterType: data.adapter_type ?? undefined,
+            durationSec: data.duration_sec ?? undefined,
+            costUsd: data.cost_usd ?? undefined,
             chain: data.chain ?? undefined,
           },
           plan: plan ?? undefined,
@@ -396,7 +411,7 @@ export function useChat(
         appendChatMessage({
           id: makeId(), channelId: channel,
           sender: "System", senderKind: "system",
-          text: `네트워크 오류: ${err instanceof Error ? err.message : String(err)}`,
+          text: `Network error: ${err instanceof Error ? err.message : String(err)}`,
           timestamp: new Date(),
         });
       } finally {
@@ -415,6 +430,7 @@ export function useChat(
   const handleRouteCommand = useCallback(createRouteHandler(ctx), [appendChatMessage, channel, setIsAgentTyping]);
   const handleWikiCommand = useCallback(createWikiHandler(ctx), [appendChatMessage, channel, setIsAgentTyping]);
   const handleRunCommand = useCallback(createRunHandler(ctx), [appendChatMessage, channel, setIsAgentTyping]);
+  const handleModelCommand = useCallback(createModelHandler(ctx, setSelectedAdapter), [appendChatMessage, channel, setIsAgentTyping]);
 
   // ── sendMessage ────────────────────────────────────────────────────────────
 
@@ -434,6 +450,9 @@ export function useChat(
       }
       if (text.startsWith("/run ")) {
         void handleRunCommand(text); return;
+      }
+      if (text.startsWith("/model ")) {
+        void handleModelCommand(text); return;
       }
 
       appendChatMessage({ id: makeId(), channelId: channel, sender: "User", senderKind: "user", text, timestamp: new Date() });

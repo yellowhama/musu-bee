@@ -441,6 +441,7 @@ class LocalBackend(BackendABC):
         cost_usd: float | None = None,
         input_tokens: int | None = None,
         output_tokens: int | None = None,
+        duration_sec: float | None = None,
     ) -> None:
         """Update status (and optional output/error/node/cost) for a route execution."""
         self._db.execute(
@@ -450,10 +451,11 @@ class LocalBackend(BackendABC):
                 cost_usd = COALESCE(?, cost_usd),
                 input_tokens = COALESCE(?, input_tokens),
                 output_tokens = COALESCE(?, output_tokens),
+                duration_sec = COALESCE(?, duration_sec),
                 updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
             WHERE id = ?
             """,
-            (status, output, error, node, cost_usd, input_tokens, output_tokens, exec_id),
+            (status, output, error, node, cost_usd, input_tokens, output_tokens, duration_sec, exec_id),
         )
 
     def get_route_execution(self, exec_id: str) -> dict[str, Any] | None:

@@ -40,6 +40,11 @@ class Config:
         default_factory=lambda: os.environ.get("PAPERCLIP_COMPANY_ID")
     )
 
+    # Global adapter override: if set, all executions use this adapter type
+    force_adapter: str | None = field(
+        default_factory=lambda: os.environ.get("MUSU_FORCE_ADAPTER")
+    )
+
     def paperclip_available(self) -> bool:
         return bool(
             self.paperclip_api_url
