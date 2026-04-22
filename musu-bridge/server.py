@@ -752,7 +752,13 @@ def _get_watchdog_backend():
     return _get_backend()
 
 
-_WATCHDOG_STUCK_THRESHOLD_SEC = int(os.environ.get("MUSU_WATCHDOG_STUCK_THRESHOLD_SEC", "360"))
+_WATCHDOG_KILL_SEC = int(
+    os.environ.get("MUSU_WATCHDOG_KILL_SEC")
+    or os.environ.get("MUSU_WATCHDOG_STUCK_THRESHOLD_SEC", "240")
+)
+_WATCHDOG_WARN_SEC = int(os.environ.get("MUSU_WATCHDOG_WARN_SEC", "60"))
+# 하위호환 alias
+_WATCHDOG_STUCK_THRESHOLD_SEC = _WATCHDOG_KILL_SEC
 
 
 async def _run_watchdog_once() -> int:
@@ -765,14 +771,14 @@ async def _run_watchdog_once() -> int:
     from datetime import datetime, timedelta, timezone
 
     now = datetime.now(timezone.utc)
-    cutoff = (now - timedelta(seconds=_WATCHDOG_STUCK_THRESHOLD_SEC)).isoformat()
-    warn_cutoff = (now - timedelta(seconds=_WATCHDOG_STUCK_THRESHOLD_SEC // 2)).isoformat()
+    cutoff = (now - timedelta(seconds=_WATCHDOG_KILL_SEC)).isoformat()
+    warn_cutoff = (now - timedelta(seconds=_WATCHDOG_WARN_SEC)).isoformat()
 
     try:
         backend = _get_watchdog_backend()
         stuck_rows = backend._db.execute(
             "SELECT id, channel FROM route_executions "
-            "WHERE status = 'running' AND created_at < ?",
+            "WHERE status = 'running' AND updated_at < ?",
             (cutoff,),
         )
     except Exception as exc:
@@ -787,10 +793,10 @@ async def _run_watchdog_once() -> int:
             backend.update_route_execution(
                 task_id,
                 "failed",
-                error=f"auto-cancelled by watchdog: stuck > {_WATCHDOG_STUCK_THRESHOLD_SEC}s",
+                error=f"auto-cancelled by watchdog: stuck > {_WATCHDOG_KILL_SEC}s (activity-based)",
             )
             _increment_stuck_counter(channel, "watchdog_timeout")
-            logger.warning("watchdog: cancelled stuck task %s (channel=%s)", task_id, channel)
+            logger.warning("watchdog: activity-based cancel of task %s (channel=%s, kill_threshold=%ds)", task_id, channel, _WATCHDOG_KILL_SEC)
             cancelled += 1
         except Exception as exc:
             logger.warning("watchdog: failed to cancel task %s — %s", task_id, exc)
@@ -799,7 +805,7 @@ async def _run_watchdog_once() -> int:
     try:
         warn_rows = backend._db.execute(
             "SELECT id, channel FROM route_executions "
-            "WHERE status = 'running' AND created_at < ? AND created_at >= ?",
+            "WHERE status = 'running' AND updated_at < ? AND updated_at >= ?",
             (warn_cutoff, cutoff),
         )
         for row in warn_rows:
@@ -807,7 +813,7 @@ async def _run_watchdog_once() -> int:
             channel = (row["channel"] if isinstance(row, dict) else row[1]) or "unknown"
             logger.warning(
                 "watchdog: task %s (channel=%s) approaching timeout (%ds threshold)",
-                task_id, channel, _WATCHDOG_STUCK_THRESHOLD_SEC,
+                task_id, channel, _WATCHDOG_KILL_SEC,
             )
     except Exception as exc:
         logger.warning("watchdog: early-warning scan failed — %s", exc)

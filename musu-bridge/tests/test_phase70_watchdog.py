@@ -2,7 +2,7 @@
 
 Tests:
 1. _heartbeat_iteration releases _heartbeat_lock even when route_chat times out
-2. _watchdog_loop cancels stuck route_executions (running + age > 360s)
+2. _watchdog_loop cancels stuck route_executions (running + activity > kill threshold)
 """
 import asyncio
 import time
@@ -47,23 +47,21 @@ async def test_heartbeat_timeout_releases_lock():
 
 
 # ---------------------------------------------------------------------------
-# 2. Watchdog cancels stuck route_executions
+# 2. Watchdog cancels stuck route_executions (activity-based, updated_at)
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
 async def test_watchdog_cancels_stuck_tasks():
-    """_watchdog_loop should detect route_executions stuck in 'running' state
-    for > 360 seconds and mark them as failed."""
+    """_run_watchdog_once should detect route_executions with no activity for
+    > KILL_SEC seconds (updated_at-based) and mark them as failed."""
     import server
 
-    # Simulate a stuck task: created 400s ago, still 'running'
+    # Simulate a stuck task: last updated 400s ago, still 'running'
     old_time = (datetime.now(timezone.utc) - timedelta(seconds=400)).isoformat()
-    stuck_row = {"id": "stuck-task-123", "channel": "engineer", "created_at": old_time}
-
-    call_count = [0]
+    stuck_row = {"id": "stuck-task-123", "channel": "engineer", "updated_at": old_time}
 
     def fake_execute(sql, params=()):
-        if "status = 'running'" in sql and "created_at" in sql:
+        if "status = 'running'" in sql and "updated_at" in sql:
             return [stuck_row]
         return []
 
@@ -74,12 +72,14 @@ async def test_watchdog_cancels_stuck_tasks():
     with patch("server._get_watchdog_backend", return_value=mock_backend):
         await server._run_watchdog_once()
 
-    # The stuck task should have been marked failed
-    mock_backend.update_route_execution.assert_called_once_with(
-        "stuck-task-123",
-        "failed",
-        error=pytest.approx("auto-cancelled by watchdog: stuck > 360s", abs=0),
-    )
+    # The stuck task should have been marked failed with activity-based message
+    mock_backend.update_route_execution.assert_called_once()
+    call_args = mock_backend.update_route_execution.call_args
+    assert call_args[0][0] == "stuck-task-123"
+    assert call_args[0][1] == "failed"
+    error_msg = call_args[1]["error"]
+    assert "activity-based" in error_msg
+    assert "auto-cancelled by watchdog" in error_msg
 
 
 # ---------------------------------------------------------------------------
@@ -102,30 +102,28 @@ def test_task_stuck_total_counter_exists():
 
 
 # ---------------------------------------------------------------------------
-# 4. Early warning log at 180s (50% of threshold)
+# 4. Early warning log at WARN_SEC (approaching timeout)
 # Reference: wiki/agent-task-reliability §4 Gap 2
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
 async def test_watchdog_emits_warning_at_half_threshold():
-    """_run_watchdog_once should emit a WARNING log for tasks approaching timeout (>180s)."""
+    """_run_watchdog_once should emit a WARNING log for tasks approaching timeout."""
     import logging
     import server
 
-    half_time = (datetime.now(timezone.utc) - timedelta(seconds=200)).isoformat()
-    warn_row = {"id": "warn-task-456", "channel": "engineer", "created_at": half_time}
+    # Task last updated WARN_SEC+20s ago — in the warn window
+    warn_sec = server._WATCHDOG_WARN_SEC
+    half_time = (datetime.now(timezone.utc) - timedelta(seconds=warn_sec + 20)).isoformat()
+    warn_row = {"id": "warn-task-456", "channel": "engineer", "updated_at": half_time}
 
     def fake_execute(sql, params=()):
-        # Return warn_row only for the early-warning scan (< kill cutoff, > warn cutoff)
-        # Return empty for the kill scan (> kill cutoff)
-        if "status = 'running'" in sql and "created_at" in sql:
-            # Distinguish by params: warn cutoff is ~180s, kill cutoff is ~360s
-            if params:
-                cutoff_str = params[0]
-                cutoff_dt = datetime.fromisoformat(cutoff_str)
-                age_s = (datetime.now(timezone.utc) - cutoff_dt).total_seconds()
-                if 150 < age_s < 250:  # warn window (~180s)
-                    return [warn_row]
+        # Return warn_row only for the early-warning scan (updated_at-based)
+        if "status = 'running'" in sql and "updated_at" in sql:
+            if params and len(params) == 2:
+                # Two-param query is the warn scan
+                return [warn_row]
+            # One-param query is the kill scan — return empty (task not yet killed)
             return []
         return []
 
