@@ -229,3 +229,4 @@ add_comment(issue_id, "## 회고\n- 결과: pass/fail\n- 학습: ...\n- 다음: 
 - MUSU_BRIDGE_TOKEN / API 키 하드코딩 금지
 - 같은 에러 3회 반복 → 중단 + charter 업데이트 + 이슈 기록
 - 동시 활성 목표 3개 초과 금지
+- **유저 데이터를 제품 코드에 커밋 금지** (wiki/002): charter.md, agent-defaults.json, sprint contracts, QA results, .env 는 git에 올리지 않는다. .example 템플릿만 올린다.
