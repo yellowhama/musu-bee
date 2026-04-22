@@ -131,6 +131,75 @@ if not _token:
 
 _MAX_CONCURRENT_TASKS = int(os.environ.get("MUSU_MAX_CONCURRENT_TASKS", "20"))
 
+# Serializes heartbeat iterations within a single process — prevents concurrent CEO tasks
+# when the interval is shorter than agent response time.
+_heartbeat_lock = asyncio.Lock()
+
+
+def _get_heartbeat_backend():
+    """Return the backend for heartbeat guard checks (thin wrapper for testability)."""
+    from handlers import _get_backend
+    return _get_backend()
+
+
+def _has_running_ceo_task(backend, channel: str = "ceo") -> bool:
+    """Return True if any task for *channel* is currently in 'running' state.
+
+    Checks the persistent DB so the guard survives server restarts — prevents
+    zombie accumulation when multiple processes or rapid restarts fire concurrently.
+    """
+    try:
+        rows = backend._db.execute(
+            "SELECT id FROM route_executions WHERE channel = ? AND status = 'running' LIMIT 1",
+            (channel,),
+        )
+        return bool(rows)
+    except Exception:
+        return False
+
+
+async def _heartbeat_iteration(
+    agent_name: str,
+    company_id: str | None,
+    diag_summary: str,
+) -> None:
+    """Single guarded heartbeat iteration — serialized by _heartbeat_lock."""
+    async with _heartbeat_lock:
+        try:
+            backend = _get_heartbeat_backend()
+        except Exception:
+            backend = None
+
+        if backend is not None and _has_running_ceo_task(backend, channel=agent_name):
+            logger.info(
+                "heartbeat_scheduler: skipping — %s task already running", agent_name
+            )
+            return
+
+        logger.info("heartbeat_scheduler: invoking %s", agent_name)
+        prompt_parts = []
+        if diag_summary:
+            prompt_parts.append(
+                f"## 진단 결과 (자동 감지)\n\n{diag_summary}\n\n"
+                "위 이슈를 확인하고 필요 시 create_issue로 등록한 후, 개발 루프를 진행하라.\n\n---\n\n"
+            )
+        prompt_parts.append(
+            "자율 CEO 루프 실행:\n"
+            "1. read_charter() — 회사 미션/우선순위/제약 확인\n"
+            "2. list_goals(status='active') — 현재 목표 확인\n"
+            "3. 판단: 목표 없으면 생성, 이슈 없으면 분해, 이슈 있으면 실행\n"
+            "4. Sprint Contract → Engineer 위임 → QA → 커밋\n"
+            "5. 완료 후 이슈에 회고 작성\n"
+            "6. 목표 완료 판단"
+        )
+        await route_chat(
+            channel=agent_name,
+            sender_id="system",
+            text="".join(prompt_parts),
+            company_id=company_id,
+        )
+        logger.info("heartbeat_scheduler: %s done", agent_name)
+
 
 async def _agent_heartbeat_scheduler() -> None:
     """Periodic heartbeat for the CEO agent (or any configured agent).
@@ -155,9 +224,9 @@ async def _agent_heartbeat_scheduler() -> None:
     _self_healing = os.environ.get("MUSU_SELF_HEALING_ENABLED", "true").lower() == "true"
 
     while True:
+        diag_summary = ""
         try:
             # Phase 60: Pre-heartbeat diagnostic (self-healing)
-            diag_summary = ""
             if _self_healing:
                 try:
                     from diagnostics import PreHeartbeatDiagnostic
@@ -172,29 +241,11 @@ async def _agent_heartbeat_scheduler() -> None:
                 except Exception as diag_exc:
                     logger.warning("heartbeat_scheduler: diagnostic error — %s", diag_exc)
 
-            logger.info("heartbeat_scheduler: invoking %s", agent_name)
-            prompt_parts = []
-            if diag_summary:
-                prompt_parts.append(
-                    f"## 진단 결과 (자동 감지)\n\n{diag_summary}\n\n"
-                    "위 이슈를 확인하고 필요 시 create_issue로 등록한 후, 개발 루프를 진행하라.\n\n---\n\n"
-                )
-            prompt_parts.append(
-                "자율 CEO 루프 실행:\n"
-                "1. read_charter() — 회사 미션/우선순위/제약 확인\n"
-                "2. list_goals(status='active') — 현재 목표 확인\n"
-                "3. 판단: 목표 없으면 생성, 이슈 없으면 분해, 이슈 있으면 실행\n"
-                "4. Sprint Contract → Engineer 위임 → QA → 커밋\n"
-                "5. 완료 후 이슈에 회고 작성\n"
-                "6. 목표 완료 판단"
-            )
-            await route_chat(
-                channel=agent_name,
-                sender_id="system",
-                text="".join(prompt_parts),
+            await _heartbeat_iteration(
+                agent_name=agent_name,
                 company_id=company_id,
+                diag_summary=diag_summary,
             )
-            logger.info("heartbeat_scheduler: %s done", agent_name)
         except Exception as exc:
             logger.warning("heartbeat_scheduler: error — %s", exc)
         await asyncio.sleep(interval)
