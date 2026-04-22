@@ -702,7 +702,10 @@ def _prom_gauge(name, doc):
 
 
 if _PROMETHEUS_AVAILABLE:
-    _pfi = _PFI().instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
+    try:
+        _pfi = _PFI().instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
+    except ValueError:
+        _pfi = None
     _agent_tasks_total = _prom_counter(
         "agent_tasks_total",
         "Tasks delegated by channel and outcome",
