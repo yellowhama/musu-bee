@@ -1,0 +1,21 @@
+{
+  "task": "[bug] Prometheus CollectorRegistry 중복 등록 수정 — server.py 모듈 재import 안전성",
+  "scope": [
+    "musu-bridge/server.py lines 683-706: 메트릭 초기화 블록을 try/except ValueError 패턴으로 교체",
+    "기존 테스트(test_phase69_metrics.py, test_phase70_watchdog.py) 통과 유지"
+  ],
+  "out_of_scope": [
+    "migrations.py 수정",
+    "새 메트릭 추가",
+    "prometheus_fastapi_instrumentator 관련 수정 (_pfi 라인)"
+  ],
+  "acceptance_criteria": [
+    "pytest musu-bridge/tests/test_phase69_metrics.py -v → 전체 PASSED",
+    "pytest musu-bridge/tests/test_phase70_watchdog.py -v → 전체 PASSED",
+    "pytest musu-bridge/tests/ -v 실행 시 'Duplicated timeseries in CollectorRegistry' 에러 없음",
+    "server.py를 같은 프로세스에서 두 번 import해도 ValueError 발생하지 않음",
+    "기존 _agent_tasks_total, _agent_task_duration, _active_tasks_gauge, _task_stuck_total 변수가 여전히 유효한 객체 반환",
+    "코드 변경은 server.py 메트릭 초기화 블록(10줄 내외)에만 국한"
+  ],
+  "done_definition": "pytest musu-bridge/tests/ 전체 통과, CollectorRegistry 중복 등록 에러 없음, 메트릭 변수 재사용 가능"
+}

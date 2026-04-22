@@ -52,7 +52,7 @@ import screen_vnc
 
 try:
     from prometheus_fastapi_instrumentator import Instrumentator as _PFI
-    from prometheus_client import Counter as _Counter, Gauge as _Gauge, Histogram as _Histogram
+    from prometheus_client import Counter as _Counter, Gauge as _Gauge, Histogram as _Histogram, REGISTRY as _PROM_REGISTRY
     _PROMETHEUS_AVAILABLE = True
 except ImportError:
     _PROMETHEUS_AVAILABLE = False
@@ -680,21 +680,42 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="musu-bridge", version="0.2.0", lifespan=lifespan)
 
 # ── Prometheus metrics ─────────────────────────────────────────────────────────
+def _prom_counter(name, doc, labels):
+    try:
+        return _Counter(name, doc, labels)
+    except ValueError:
+        return _PROM_REGISTRY._names_to_collectors.get(name)
+
+
+def _prom_histogram(name, doc, labels, buckets):
+    try:
+        return _Histogram(name, doc, labels, buckets=buckets)
+    except ValueError:
+        return _PROM_REGISTRY._names_to_collectors.get(name)
+
+
+def _prom_gauge(name, doc):
+    try:
+        return _Gauge(name, doc)
+    except ValueError:
+        return _PROM_REGISTRY._names_to_collectors.get(name)
+
+
 if _PROMETHEUS_AVAILABLE:
     _pfi = _PFI().instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
-    _agent_tasks_total = _Counter(
+    _agent_tasks_total = _prom_counter(
         "agent_tasks_total",
         "Tasks delegated by channel and outcome",
         ["channel", "status"],
     )
-    _agent_task_duration = _Histogram(
+    _agent_task_duration = _prom_histogram(
         "agent_task_duration_seconds",
         "Wall-clock time for agent tasks",
         ["channel"],
         buckets=[30, 60, 120, 300, 600, 900, 1800],
     )
-    _active_tasks_gauge = _Gauge("active_tasks_count", "Currently running async tasks")
-    _task_stuck_total = _Counter(
+    _active_tasks_gauge = _prom_gauge("active_tasks_count", "Currently running async tasks")
+    _task_stuck_total = _prom_counter(
         "task_stuck_total",
         "Tasks detected as stuck (no output / timeout) by channel and detection reason",
         ["channel", "reason"],
