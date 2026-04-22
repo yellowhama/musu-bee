@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import type { PanelId } from "@/types";
+import ProjectBriefing from "@/components/ProjectBriefing";
 import TasksPanel from "@/components/TasksPanel";
 import ProcessesPanel from "@/components/ProcessesPanel";
 import IssuesPanel from "@/components/IssuesPanel";
@@ -33,7 +34,7 @@ interface Tab {
 
 const PINNED_TABS: Tab[] = [
   { id: "__files", label: "Files", icon: "📁", content: { type: "files" }, pinned: true },
-  { id: "__dashboard", label: "Dashboard", icon: "⊞", content: { type: "dashboard" }, pinned: true },
+  { id: "__dashboard", label: "Briefing", icon: "⊞", content: { type: "dashboard" }, pinned: true },
 ];
 
 // ── Props ────────────────────────────────────────────────────────────────────
@@ -176,7 +177,7 @@ export default function AIDisplay({ activePanel, companyId, openRequest, onOpenH
 function TabContent({ content, companyId }: { content: DisplayContent; companyId?: string | null }) {
   switch (content.type) {
     case "dashboard":
-      return <DashboardView companyId={companyId} />;
+      return <ProjectBriefing companyId={companyId} />;
     case "files":
       return <FilesView />;
     case "panel":

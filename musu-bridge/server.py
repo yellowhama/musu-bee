@@ -2431,6 +2431,105 @@ async def api_wiki_page_delete(
     return {"deleted": safe_id}
 
 
+# ── Chairman Briefing (wiki/001) ──────────────────────────────────────────
+
+
+@app.get("/api/companies/{company_id}/briefing", summary="Executive briefing for chairman")
+async def api_company_briefing(company_id: str) -> dict:
+    """Secretary-style briefing: what this company does, how it's going, what needs attention.
+
+    Follows wiki/001 Chairman Principle: results not processes, 3-second overview.
+    """
+    from handlers import _get_backend as _gb_brief
+    backend = _gb_brief()
+    company = get_company(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+
+    # 1. Purpose (from charter or company.purpose)
+    purpose = company.get("purpose", "")
+    import pathlib as _pathlib
+    charter_path = _pathlib.Path(os.getcwd()) / ".musu" / "charter.md"
+    if charter_path.exists():
+        for line in charter_path.read_text(encoding="utf-8").split("\n"):
+            if line.startswith("## Mission"):
+                continue
+            if line.strip() and not line.startswith("#") and not line.startswith(">"):
+                purpose = line.strip()
+                break
+
+    # 2. Goals
+    goals_rows = backend._db.execute(
+        "SELECT title, status FROM goals WHERE company_id = ? ORDER BY created_at DESC LIMIT 10",
+        (company_id,),
+    )
+    active_goals = [r["title"] for r in goals_rows if r["status"] == "active"]
+    completed_goals = [r["title"] for r in goals_rows if r["status"] == "completed"]
+
+    # 3. Issues (blockers = high priority open)
+    issues_rows = backend._db.execute(
+        "SELECT title, status, priority FROM issues "
+        "WHERE company_id = ? AND status NOT IN ('resolved', 'closed') "
+        "ORDER BY CASE priority WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END "
+        "LIMIT 5",
+        (company_id,),
+    )
+    blockers = [{"title": r["title"], "priority": r["priority"]} for r in issues_rows if r["priority"] in ("critical", "high")]
+    open_issues = len([r for r in issues_rows])
+
+    # 4. Recent wins (resolved issues, last 7 days)
+    from datetime import datetime, timedelta, timezone
+    week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    wins_rows = backend._db.execute(
+        "SELECT title FROM issues WHERE company_id = ? AND status IN ('resolved', 'closed') "
+        "AND updated_at > ? ORDER BY updated_at DESC LIMIT 5",
+        (company_id, week_ago),
+    )
+    recent_wins = [r["title"] for r in wins_rows]
+
+    # 5. Agents
+    agents = backend.list_agents(company_id=company_id)
+    global_agents = [a for a in backend.list_agents() if a.get("company_id") is None]
+    all_agents = agents + global_agents
+    active_agents = [a for a in all_agents if a.get("status") == "active"]
+
+    # 6. Status determination
+    status = "healthy"
+    if blockers:
+        status = "needs_attention"
+    if open_issues > 5:
+        status = "busy"
+
+    # 7. Summary (secretary style)
+    parts = []
+    if recent_wins:
+        parts.append(f"Resolved {len(recent_wins)} issue(s) recently.")
+    if active_goals:
+        parts.append(f"Working on: {active_goals[0]}.")
+    if blockers:
+        parts.append(f"Blocked: {blockers[0]['title']}.")
+    elif not active_goals and not recent_wins:
+        parts.append("No active work. Awaiting directives.")
+    summary = " ".join(parts) if parts else "All quiet."
+
+    needs_attention = bool(blockers)
+
+    return {
+        "company_name": company.get("name", ""),
+        "purpose": purpose,
+        "status": status,
+        "summary": summary,
+        "active_goals": [{"title": g} for g in active_goals],
+        "completed_goals_count": len(completed_goals),
+        "blockers": blockers,
+        "open_issues": open_issues,
+        "recent_wins": recent_wins[:3],
+        "agents": {"total": len(all_agents), "active": len(active_agents)},
+        "needs_attention": needs_attention,
+        "attention_item": blockers[0]["title"] if blockers else None,
+    }
+
+
 # ── Group Messages (CEO Board / Team Channels) ───────────────────────────
 
 
