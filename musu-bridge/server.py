@@ -724,41 +724,63 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
         _agent_timeout = int((_agent_record.get("adapter_config") or {}).get("timeout_sec", 300)) if _agent_record else 300
         _timeout = max(req.timeout_sec or 0, _agent_timeout) or 300
 
-    async def _run_with_timeout() -> None:
-        try:
-            if _use_qa:
-                await asyncio.wait_for(
-                    route_chat_with_qa_loop(
-                        task_id=task_id,
-                        text=req.text,
-                        sender_id=req.sender_id,
-                        max_iter=req.qa_loop_max_iter,
-                        company_id=req.company_id,
-                    ),
-                    timeout=_timeout,
-                )
-            else:
-                await asyncio.wait_for(
-                    route_chat(
-                        channel=req.channel,
-                        sender_id=req.sender_id,
-                        text=req.text,
-                        exec_id=task_id,
-                        company_id=req.company_id,
-                    ),
-                    timeout=_timeout,
-                )
-            asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
-        except asyncio.TimeoutError:
-            logger.warning("delegate_task: task %s timed out after %ds", task_id, _timeout)
-            cancel_task_record(task_id, error=f"timeout after {_timeout}s")
-            asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
-        except Exception as _exc:
-            logger.exception("delegate_task: task %s raised unhandled exception: %s", task_id, _exc)
-            cancel_task_record(task_id, error=f"unhandled exception: {_exc}")
-            asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
+    async def _run_once() -> bool:
+        """Run the task once. Returns True if successful."""
+        if _use_qa:
+            await asyncio.wait_for(
+                route_chat_with_qa_loop(
+                    task_id=task_id,
+                    text=req.text,
+                    sender_id=req.sender_id,
+                    max_iter=req.qa_loop_max_iter,
+                    company_id=req.company_id,
+                ),
+                timeout=_timeout,
+            )
+        else:
+            await asyncio.wait_for(
+                route_chat(
+                    channel=req.channel,
+                    sender_id=req.sender_id,
+                    text=req.text,
+                    exec_id=task_id,
+                    company_id=req.company_id,
+                ),
+                timeout=_timeout,
+            )
+        return True
 
-    task = asyncio.create_task(_run_with_timeout())
+    async def _run_with_retry() -> None:
+        max_retries = 1  # 1 automatic retry for transient failures
+        for attempt in range(1 + max_retries):
+            try:
+                await _run_once()
+                asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
+                return
+            except asyncio.TimeoutError:
+                if attempt < max_retries:
+                    logger.warning("delegate_task: task %s timed out (attempt %d), retrying...", task_id, attempt + 1)
+                    backend.update_route_execution(task_id, "running")  # reset status for retry
+                    continue
+                logger.warning("delegate_task: task %s timed out after %ds (no more retries)", task_id, _timeout)
+                cancel_task_record(task_id, error=f"timeout after {_timeout}s (retried {max_retries}x)")
+                asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
+            except RuntimeError as _exc:
+                # Adapter crash (exit code != 0) — retry once
+                if attempt < max_retries and "exited with code" in str(_exc):
+                    logger.warning("delegate_task: task %s crashed (attempt %d): %s, retrying...", task_id, attempt + 1, _exc)
+                    backend.update_route_execution(task_id, "running")
+                    continue
+                logger.exception("delegate_task: task %s failed: %s", task_id, _exc)
+                cancel_task_record(task_id, error=f"adapter crash: {_exc}")
+                asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
+            except Exception as _exc:
+                logger.exception("delegate_task: task %s raised unhandled exception: %s", task_id, _exc)
+                cancel_task_record(task_id, error=f"unhandled exception: {_exc}")
+                asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
+                return  # Don't retry unknown exceptions
+
+    task = asyncio.create_task(_run_with_retry())
     _active_tasks[task_id] = task
     task.add_done_callback(lambda _: _active_tasks.pop(task_id, None))
     response.headers["Location"] = f"/api/tasks/{task_id}"

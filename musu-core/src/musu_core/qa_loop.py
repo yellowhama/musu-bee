@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from musu_core.qa_score import QAScore, MAX_ITERATIONS
 from musu_core.router import Router, RouteRequest, RouteResult
 from musu_core.sprint_contract import SprintContract
+from musu_core.experience import ExperienceStore
 from musu_core.task_workspace import TaskWorkspace
 
 logger = logging.getLogger(__name__)
@@ -185,6 +186,23 @@ class QALoop:
             )
 
             if score.pass_:
+                # Level 2 self-improvement: save successful trajectory
+                try:
+                    exp = ExperienceStore()
+                    exp.save(
+                        channel="engineer",
+                        task_summary=task_prompt[:500],
+                        result_summary=eng_result.summary[:500] if eng_result.summary else "",
+                        scores={
+                            "functionality": score.functionality,
+                            "correctness": score.correctness,
+                            "completeness": score.completeness,
+                            "code_quality": score.code_quality,
+                        },
+                        tags=[contract.task[:50]] if hasattr(contract, "task") else [],
+                    )
+                except Exception:
+                    pass  # non-fatal
                 return QALoopResult(
                     passed=True,
                     iterations_used=iteration,
@@ -239,6 +257,19 @@ class QALoop:
         workspace: TaskWorkspace | None = None,
     ) -> str:
         parts: list[str] = []
+
+        # Level 2: inject similar past experiences as few-shot context
+        if iteration == 1:
+            try:
+                exp = ExperienceStore()
+                similar = exp.find_similar("engineer", task_prompt, limit=2)
+                if similar:
+                    parts.append("## Past Successful Experiences (참고용)\n")
+                    for i, s in enumerate(similar, 1):
+                        parts.append(f"### Example {i}\n**Task**: {s['task'][:200]}\n**Result**: {s['result'][:200]}\n**Scores**: {s.get('scores', {})}\n")
+                    parts.append("위 경험을 참고하되, 현재 태스크에 맞게 적용하라.\n\n---\n")
+            except Exception:
+                pass
 
         parts.append(contract.engineer_prompt_header())
 
