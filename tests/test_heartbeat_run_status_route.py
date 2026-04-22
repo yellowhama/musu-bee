@@ -1,8 +1,11 @@
 import json
 import os
+import socket
 import urllib.error
 import urllib.request
 import uuid
+
+import pytest
 
 
 def _normalize_base_url() -> str:
@@ -12,6 +15,27 @@ def _normalize_base_url() -> str:
 
 BASE_URL = _normalize_base_url()
 AGENT_ID = os.getenv("FE_AGENT_ID", "7a87bcf2-6b89-498e-b295-d80d53710bd0")
+
+
+def _server_reachable() -> bool:
+    raw = os.getenv("PAPERCLIP_API_URL", "http://127.0.0.1:3100")
+    host = raw.split("://")[-1].split("/")[0].split(":")[0]
+    port_str = raw.split("://")[-1].split("/")[0].split(":")[-1] if ":" in raw.split("://")[-1] else "3100"
+    try:
+        port = int(port_str)
+    except ValueError:
+        port = 3100
+    try:
+        with socket.create_connection((host, port), timeout=1):
+            return True
+    except OSError:
+        return False
+
+
+_SKIP_NO_SERVER = pytest.mark.skipif(
+    not _server_reachable(),
+    reason="PAPERCLIP_API_URL server not reachable — integration test skipped",
+)
 
 
 def _request_json(path: str, method: str = "GET", body: dict | None = None):
@@ -34,6 +58,7 @@ def _request_json(path: str, method: str = "GET", body: dict | None = None):
         return exc.code, payload
 
 
+@_SKIP_NO_SERVER
 def test_legacy_runs_route_is_404_but_heartbeat_runs_route_is_supported():
     invoke_status, invoke_payload = _request_json(f"/agents/{AGENT_ID}/heartbeat/invoke", method="POST")
     assert invoke_status in (200, 202)
@@ -50,6 +75,7 @@ def test_legacy_runs_route_is_404_but_heartbeat_runs_route_is_supported():
     assert canonical_payload.get("status") is not None
 
 
+@_SKIP_NO_SERVER
 def test_canonical_route_returns_404_for_unknown_run_id():
     missing_run_id = str(uuid.uuid4())
     status, payload = _request_json(f"/heartbeat-runs/{missing_run_id}")
