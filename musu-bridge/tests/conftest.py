@@ -15,7 +15,8 @@ for p in (_MUSU_CORE, _BRIDGE):
     if s not in sys.path:
         sys.path.insert(0, s)
 
-# Disable rate limiting in tests to prevent 429 errors when running the full suite.
-# The rate limiter's shared state across TestClient instances causes spurious failures.
+# Force test token before server.py is imported so that apply_musu_middlewares
+# always initialises with "test-token" regardless of the caller's environment.
+# This must come before any `from server import app` statement.
+os.environ["MUSU_BRIDGE_TOKEN"] = "test-token"
 os.environ.setdefault("MUSU_DISABLE_RATE_LIMIT", "1")
-os.environ.setdefault("MUSU_BRIDGE_TOKEN", "test-token")
