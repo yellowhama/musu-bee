@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 import json
 import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -93,16 +93,30 @@ def test_adapter_result_error_code_set():
 def _make_proc(returncode: int, stdout: bytes = b"", stderr: bytes = b""):
     proc = MagicMock()
     proc.returncode = returncode
-    proc.communicate = AsyncMock(return_value=(stdout, stderr))
     proc.kill = MagicMock()
+    _result = (stdout, stderr)
+
+    async def _communicate(**kwargs):
+        return _result
+
+    proc.communicate = _communicate
     return proc
+
+
+def _make_wait_for(proc):
+    """Return a fake asyncio.wait_for that awaits the coroutine directly (no timeout)."""
+    async def fake_wait_for(coro, timeout):
+        return await coro
+    return fake_wait_for
 
 
 def test_claude_local_success_has_no_error_code():
     ctx = make_ctx()
     stdout = stream_json_result("done").encode()
-    with patch("asyncio.create_subprocess_exec", return_value=_make_proc(0, stdout)):
-        result = run(ClaudeLocalAdapter().execute(ctx))
+    proc = _make_proc(0, stdout)
+    with patch("asyncio.create_subprocess_exec", return_value=proc):
+        with patch("asyncio.wait_for", side_effect=_make_wait_for(proc)):
+            result = run(ClaudeLocalAdapter().execute(ctx))
     assert result.success
     assert result.error_code is None
 
@@ -111,6 +125,7 @@ def test_claude_local_timeout_sets_error_code():
     ctx = make_ctx(config={"timeout_sec": 1})
 
     async def fake_wait_for(coro, timeout):
+        coro.close()
         raise asyncio.TimeoutError
 
     with patch("asyncio.create_subprocess_exec", return_value=_make_proc(0)):
@@ -124,9 +139,10 @@ def test_claude_local_timeout_sets_error_code():
 
 def test_claude_local_rate_limit_sets_error_code():
     ctx = make_ctx()
-    stderr = b"Error: rate limit exceeded (429)"
-    with patch("asyncio.create_subprocess_exec", return_value=_make_proc(1, b"", stderr)):
-        result = run(ClaudeLocalAdapter().execute(ctx))
+    proc = _make_proc(1, b"", b"Error: rate limit exceeded (429)")
+    with patch("asyncio.create_subprocess_exec", return_value=proc):
+        with patch("asyncio.wait_for", side_effect=_make_wait_for(proc)):
+            result = run(ClaudeLocalAdapter().execute(ctx))
     assert not result.success
     assert result.error_code == ErrorCode.RATE_LIMIT
     assert result.is_retriable is True
@@ -134,9 +150,10 @@ def test_claude_local_rate_limit_sets_error_code():
 
 def test_claude_local_context_exceeded_sets_error_code():
     ctx = make_ctx()
-    stderr = b"Error: context window exceeded, input too long"
-    with patch("asyncio.create_subprocess_exec", return_value=_make_proc(1, b"", stderr)):
-        result = run(ClaudeLocalAdapter().execute(ctx))
+    proc = _make_proc(1, b"", b"Error: context window exceeded, input too long")
+    with patch("asyncio.create_subprocess_exec", return_value=proc):
+        with patch("asyncio.wait_for", side_effect=_make_wait_for(proc)):
+            result = run(ClaudeLocalAdapter().execute(ctx))
     assert not result.success
     assert result.error_code == ErrorCode.CONTEXT_EXCEEDED
     assert result.is_retriable is False
@@ -144,9 +161,10 @@ def test_claude_local_context_exceeded_sets_error_code():
 
 def test_claude_local_model_unavailable_sets_error_code():
     ctx = make_ctx()
-    stderr = b"connection refused: model not available"
-    with patch("asyncio.create_subprocess_exec", return_value=_make_proc(1, b"", stderr)):
-        result = run(ClaudeLocalAdapter().execute(ctx))
+    proc = _make_proc(1, b"", b"connection refused: model not available")
+    with patch("asyncio.create_subprocess_exec", return_value=proc):
+        with patch("asyncio.wait_for", side_effect=_make_wait_for(proc)):
+            result = run(ClaudeLocalAdapter().execute(ctx))
     assert not result.success
     assert result.error_code == ErrorCode.MODEL_UNAVAILABLE
     assert result.is_retriable is True
@@ -154,9 +172,10 @@ def test_claude_local_model_unavailable_sets_error_code():
 
 def test_claude_local_unknown_error_sets_error_code():
     ctx = make_ctx()
-    stderr = b"some unexpected error"
-    with patch("asyncio.create_subprocess_exec", return_value=_make_proc(1, b"", stderr)):
-        result = run(ClaudeLocalAdapter().execute(ctx))
+    proc = _make_proc(1, b"", b"some unexpected error")
+    with patch("asyncio.create_subprocess_exec", return_value=proc):
+        with patch("asyncio.wait_for", side_effect=_make_wait_for(proc)):
+            result = run(ClaudeLocalAdapter().execute(ctx))
     assert not result.success
     assert result.error_code == ErrorCode.UNKNOWN
     assert result.is_retriable is False
@@ -171,6 +190,7 @@ def test_process_timeout_sets_error_code():
     ctx = make_ctx(adapter_type="process", config={"command": "sleep", "timeout_sec": 1})
 
     async def fake_wait_for(coro, timeout):
+        coro.close()
         raise asyncio.TimeoutError
 
     with patch("asyncio.create_subprocess_exec", return_value=_make_proc(0)):
@@ -184,9 +204,10 @@ def test_process_timeout_sets_error_code():
 
 def test_process_rate_limit_sets_error_code():
     ctx = make_ctx(adapter_type="process", config={"command": "echo"})
-    stderr = b"rate limit exceeded 429"
-    with patch("asyncio.create_subprocess_exec", return_value=_make_proc(1, b"", stderr)):
-        result = run(ProcessAdapter().execute(ctx))
+    proc = _make_proc(1, b"", b"rate limit exceeded 429")
+    with patch("asyncio.create_subprocess_exec", return_value=proc):
+        with patch("asyncio.wait_for", side_effect=_make_wait_for(proc)):
+            result = run(ProcessAdapter().execute(ctx))
     assert not result.success
     assert result.error_code == ErrorCode.RATE_LIMIT
     assert result.is_retriable is True
@@ -194,9 +215,10 @@ def test_process_rate_limit_sets_error_code():
 
 def test_process_context_exceeded_sets_error_code():
     ctx = make_ctx(adapter_type="process", config={"command": "echo"})
-    stderr = b"context_length limit exceeded"
-    with patch("asyncio.create_subprocess_exec", return_value=_make_proc(1, b"", stderr)):
-        result = run(ProcessAdapter().execute(ctx))
+    proc = _make_proc(1, b"", b"context_length limit exceeded")
+    with patch("asyncio.create_subprocess_exec", return_value=proc):
+        with patch("asyncio.wait_for", side_effect=_make_wait_for(proc)):
+            result = run(ProcessAdapter().execute(ctx))
     assert not result.success
     assert result.error_code == ErrorCode.CONTEXT_EXCEEDED
     assert result.is_retriable is False
@@ -204,18 +226,20 @@ def test_process_context_exceeded_sets_error_code():
 
 def test_process_unknown_error_sets_error_code():
     ctx = make_ctx(adapter_type="process", config={"command": "echo"})
-    stderr = b"some random failure"
-    with patch("asyncio.create_subprocess_exec", return_value=_make_proc(1, b"", stderr)):
-        result = run(ProcessAdapter().execute(ctx))
+    proc = _make_proc(1, b"", b"some random failure")
+    with patch("asyncio.create_subprocess_exec", return_value=proc):
+        with patch("asyncio.wait_for", side_effect=_make_wait_for(proc)):
+            result = run(ProcessAdapter().execute(ctx))
     assert not result.success
     assert result.error_code == ErrorCode.UNKNOWN
 
 
 def test_process_success_has_no_error_code():
     ctx = make_ctx(adapter_type="process", config={"command": "echo"})
-    stdout = b"hello"
-    with patch("asyncio.create_subprocess_exec", return_value=_make_proc(0, stdout)):
-        result = run(ProcessAdapter().execute(ctx))
+    proc = _make_proc(0, b"hello")
+    with patch("asyncio.create_subprocess_exec", return_value=proc):
+        with patch("asyncio.wait_for", side_effect=_make_wait_for(proc)):
+            result = run(ProcessAdapter().execute(ctx))
     assert result.success
     assert result.error_code is None
 
