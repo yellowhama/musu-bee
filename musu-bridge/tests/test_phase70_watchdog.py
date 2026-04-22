@@ -144,3 +144,61 @@ async def test_watchdog_emits_warning_at_half_threshold():
     )
     # Must NOT have called update_route_execution (task is not killed, only warned)
     mock_backend.update_route_execution.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# 5. Escalate stage: ERROR log between ESCALATE_SEC and KILL_SEC
+# Reference: issue b5c55715 — 3-stage watchdog
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_watchdog_escalate_stage():
+    """_run_watchdog_once must emit logger.error for tasks in the escalate window
+    (ESCALATE_SEC < age < KILL_SEC) and must NOT cancel them yet."""
+    import logging
+    import server
+
+    escalate_sec = server._WATCHDOG_ESCALATE_SEC
+    kill_sec = server._WATCHDOG_KILL_SEC
+
+    # Place task squarely in the escalate window
+    mid = (escalate_sec + kill_sec) // 2
+    esc_time = (datetime.now(timezone.utc) - timedelta(seconds=mid)).isoformat()
+    esc_row = {"id": "esc-task-789", "channel": "engineer", "updated_at": esc_time}
+
+    def fake_execute(sql, params=()):
+        if "status = 'running'" in sql and "updated_at" in sql:
+            if len(params) == 1:
+                # kill scan — not old enough
+                return []
+            if len(params) == 2:
+                # distinguish escalate vs warn by cutoff values
+                p0, p1 = params
+                # escalate query: (escalate_cutoff, kill_cutoff)
+                if p0 < p1:
+                    # p0 is older (escalate window upper bound), p1 is newer (kill_cutoff)
+                    # this branch won't occur with correct ordering
+                    return []
+                # p0 = escalate_cutoff (newer), p1 = kill_cutoff (older)
+                if esc_time < p0 and esc_time >= p1:
+                    return [esc_row]
+                return []
+        return []
+
+    mock_backend = MagicMock()
+    mock_backend._db.execute.side_effect = fake_execute
+    mock_backend.update_route_execution = MagicMock()
+
+    with (
+        patch("server._get_watchdog_backend", return_value=mock_backend),
+        patch.object(server.logger, "error") as mock_error,
+    ):
+        await server._run_watchdog_once()
+
+    # Must emit logger.error mentioning the task and ESCALATE
+    error_calls = [str(c) for c in mock_error.call_args_list]
+    assert any("esc-task-789" in c or "ESCALATE" in c for c in error_calls), (
+        f"Expected escalate ERROR log for esc-task-789, got: {error_calls}"
+    )
+    # Must NOT cancel the task
+    mock_backend.update_route_execution.assert_not_called()

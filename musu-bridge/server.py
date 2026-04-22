@@ -897,22 +897,27 @@ _WATCHDOG_KILL_SEC = int(
     os.environ.get("MUSU_WATCHDOG_KILL_SEC")
     or os.environ.get("MUSU_WATCHDOG_STUCK_THRESHOLD_SEC", "240")
 )
+_WATCHDOG_ESCALATE_SEC = int(os.environ.get("MUSU_WATCHDOG_ESCALATE_SEC", "120"))
 _WATCHDOG_WARN_SEC = int(os.environ.get("MUSU_WATCHDOG_WARN_SEC", "60"))
 # 하위호환 alias
 _WATCHDOG_STUCK_THRESHOLD_SEC = _WATCHDOG_KILL_SEC
 
 
 async def _run_watchdog_once() -> int:
-    """Scan route_executions for tasks stuck in 'running' state longer than the threshold.
+    """Scan route_executions for tasks stuck in 'running' state.
 
-    Marks each stuck task as failed and increments the task_stuck_total counter.
-    Also emits early-warning logs for tasks past 50% of the threshold (wiki/agent-task-reliability §4 Gap 2).
+    3-stage watchdog:
+      warn (WARN_SEC~ESCALATE_SEC): WARNING log — approaching timeout
+      escalate (ESCALATE_SEC~KILL_SEC): ERROR log — critical, needs attention
+      kill (>KILL_SEC): mark failed + increment counter
+
     Returns the number of tasks cancelled.
     """
     from datetime import datetime, timedelta, timezone
 
     now = datetime.now(timezone.utc)
-    cutoff = (now - timedelta(seconds=_WATCHDOG_KILL_SEC)).isoformat()
+    kill_cutoff = (now - timedelta(seconds=_WATCHDOG_KILL_SEC)).isoformat()
+    escalate_cutoff = (now - timedelta(seconds=_WATCHDOG_ESCALATE_SEC)).isoformat()
     warn_cutoff = (now - timedelta(seconds=_WATCHDOG_WARN_SEC)).isoformat()
 
     try:
@@ -920,7 +925,7 @@ async def _run_watchdog_once() -> int:
         stuck_rows = backend._db.execute(
             "SELECT id, channel FROM route_executions "
             "WHERE status = 'running' AND updated_at < ?",
-            (cutoff,),
+            (kill_cutoff,),
         )
     except Exception as exc:
         logger.warning("watchdog: DB scan failed — %s", exc)
@@ -942,12 +947,30 @@ async def _run_watchdog_once() -> int:
         except Exception as exc:
             logger.warning("watchdog: failed to cancel task %s — %s", task_id, exc)
 
-    # Early warning: tasks past 50% of threshold but not yet killed
+    # Escalate stage: tasks in ESCALATE_SEC~KILL_SEC window
+    try:
+        escalate_rows = backend._db.execute(
+            "SELECT id, channel FROM route_executions "
+            "WHERE status = 'running' AND updated_at < ? AND updated_at >= ?",
+            (escalate_cutoff, kill_cutoff),
+        )
+        for row in escalate_rows:
+            task_id = row["id"] if isinstance(row, dict) else row[0]
+            channel = (row["channel"] if isinstance(row, dict) else row[1]) or "unknown"
+            logger.error(
+                "watchdog: ESCALATE task %s (channel=%s) stuck >%ds — kill in %ds",
+                task_id, channel, _WATCHDOG_ESCALATE_SEC,
+                _WATCHDOG_KILL_SEC - _WATCHDOG_ESCALATE_SEC,
+            )
+    except Exception as exc:
+        logger.warning("watchdog: escalate scan failed — %s", exc)
+
+    # Warn stage: tasks in WARN_SEC~ESCALATE_SEC window
     try:
         warn_rows = backend._db.execute(
             "SELECT id, channel FROM route_executions "
             "WHERE status = 'running' AND updated_at < ? AND updated_at >= ?",
-            (warn_cutoff, cutoff),
+            (warn_cutoff, escalate_cutoff),
         )
         for row in warn_rows:
             task_id = row["id"] if isinstance(row, dict) else row[0]
@@ -1576,7 +1599,8 @@ async def api_company_agents(company_id: str) -> list[dict]:
     company = get_company(company_id)
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
-    backend = _get_backend()
+    from handlers import _get_backend as _gb_agents
+    backend = _gb_agents()
     # Company-scoped agents
     scoped = backend.list_agents(company_id=company_id)
     # Global agents (company_id IS NULL) — for backwards compat
@@ -1609,8 +1633,8 @@ async def api_company_dashboard(company_id: str) -> dict:
     company = get_company(company_id)
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
-    from handlers import list_task_records as list_tasks
-    backend = _get_backend()
+    from handlers import list_task_records as list_tasks, _get_backend as _gb_dash
+    backend = _gb_dash()
     # Company-scoped + global agents (same merge logic as /companies/{id}/agents)
     scoped = backend.list_agents(company_id=company_id)
     global_agents = [a for a in backend.list_agents() if a.get("company_id") is None]
@@ -2651,6 +2675,16 @@ async def api_submit_feedback(req: FeedbackRequest) -> dict:
     )
     return {"issue_id": issue["id"], "status": "received"}
 
+
+@app.get("/install.sh", summary="Get node installation script", include_in_schema=False)
+async def api_install_sh() -> Response:
+    """Serve the musu-node installation script."""
+    script_path = os.path.join(os.path.dirname(__file__), "..", "scripts", "install-node.sh")
+    if not os.path.exists(script_path):
+        raise HTTPException(status_code=404, detail="Install script not found")
+    with open(script_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    return Response(content=content, media_type="text/plain")
 
 @app.get("/health")
 async def health() -> dict:
