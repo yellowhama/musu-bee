@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from musu_core.qa_score import QAScore, MAX_ITERATIONS
 from musu_core.router import Router, RouteRequest, RouteResult
 from musu_core.sprint_contract import SprintContract
-from musu_core.experience import ExperienceStore
+from musu_core.experience import ExperienceStore, SkillLibrary
 from musu_core.task_workspace import TaskWorkspace
 
 logger = logging.getLogger(__name__)
@@ -186,7 +186,7 @@ class QALoop:
             )
 
             if score.pass_:
-                # Level 2 self-improvement: save successful trajectory
+                # Level 2: save successful trajectory
                 try:
                     exp = ExperienceStore()
                     exp.save(
@@ -202,7 +202,25 @@ class QALoop:
                         tags=[contract.task[:50]] if hasattr(contract, "task") else [],
                     )
                 except Exception:
-                    pass  # non-fatal
+                    pass
+                # Level 3: extract skill if avg score >= 8
+                try:
+                    avg = (score.functionality + score.correctness + score.completeness + score.code_quality) / 4
+                    if avg >= 8.0 and eng_result.summary:
+                        skills = SkillLibrary()
+                        task_name = (contract.task[:60] if hasattr(contract, "task") else task_prompt[:60]).replace(" ", "-").lower()
+                        skills.save_skill(
+                            channel="engineer",
+                            name=task_name,
+                            description=task_prompt[:200],
+                            pattern=eng_result.summary[:1000],
+                            source_task=task_id or "",
+                            score_avg=round(avg, 1),
+                            tags=[contract.task[:50]] if hasattr(contract, "task") else [],
+                        )
+                        logger.info("skill library: saved skill '%s' (avg=%.1f)", task_name, avg)
+                except Exception:
+                    pass
                 return QALoopResult(
                     passed=True,
                     iterations_used=iteration,
@@ -258,16 +276,28 @@ class QALoop:
     ) -> str:
         parts: list[str] = []
 
-        # Level 2: inject similar past experiences as few-shot context
+        # Level 2+3: inject past experiences and skills as context
         if iteration == 1:
             try:
+                # Level 3: skill library (reusable patterns)
+                skills = SkillLibrary()
+                found_skills = skills.find_skills("engineer", task_prompt, limit=2)
+                if found_skills:
+                    parts.append("## Skill Library (검증된 패턴)\n")
+                    for i, sk in enumerate(found_skills, 1):
+                        parts.append(f"### Skill {i}: {sk['name']}\n{sk['description'][:150]}\n```\n{sk['pattern'][:500]}\n```\n")
+                    parts.append("위 패턴을 참고하되 현재 태스크에 맞게 적용하라.\n\n---\n")
+            except Exception:
+                pass
+            try:
+                # Level 2: experience replay
                 exp = ExperienceStore()
                 similar = exp.find_similar("engineer", task_prompt, limit=2)
                 if similar:
-                    parts.append("## Past Successful Experiences (참고용)\n")
+                    parts.append("## Past Experiences (참고용)\n")
                     for i, s in enumerate(similar, 1):
-                        parts.append(f"### Example {i}\n**Task**: {s['task'][:200]}\n**Result**: {s['result'][:200]}\n**Scores**: {s.get('scores', {})}\n")
-                    parts.append("위 경험을 참고하되, 현재 태스크에 맞게 적용하라.\n\n---\n")
+                        parts.append(f"**Task**: {s['task'][:150]} → **Scores**: {s.get('scores', {})}\n")
+                    parts.append("\n---\n")
             except Exception:
                 pass
 

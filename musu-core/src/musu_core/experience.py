@@ -1,4 +1,4 @@
-"""Experience store for self-improving agents (Learning Level 2).
+"""Experience store (Level 2) and Skill Library (Level 3) for self-improving agents.
 
 Stores successful task trajectories as reusable examples.
 When a similar task comes up, the experience is injected as few-shot context.
@@ -15,6 +15,9 @@ from typing import Any
 
 _DEFAULT_ROOT = os.path.join(
     os.environ.get("MUSU_PROJECT_ROOT", os.getcwd()), ".musu", "experience"
+)
+_DEFAULT_SKILLS_ROOT = os.path.join(
+    os.environ.get("MUSU_PROJECT_ROOT", os.getcwd()), ".musu", "skills"
 )
 
 
@@ -76,6 +79,79 @@ class ExperienceStore:
 
     def count(self, channel: str | None = None) -> int:
         """Count stored experiences, optionally per channel."""
+        if channel:
+            d = self._root / channel
+            return len(list(d.glob("*.json"))) if d.is_dir() else 0
+        total = 0
+        if self._root.is_dir():
+            for d in self._root.iterdir():
+                if d.is_dir():
+                    total += len(list(d.glob("*.json")))
+        return total
+
+
+class SkillLibrary:
+    """Level 3 self-improvement: reusable code patterns extracted from successful tasks.
+
+    When a task passes QA with avg score >= 8, the pattern is extracted and stored.
+    Next time a similar task comes up, the skill is injected as a reference.
+    """
+
+    def __init__(self, root: str | None = None) -> None:
+        self._root = Path(root or os.environ.get("MUSU_SKILLS_ROOT", _DEFAULT_SKILLS_ROOT))
+
+    def save_skill(
+        self,
+        channel: str,
+        name: str,
+        description: str,
+        pattern: str,
+        source_task: str = "",
+        score_avg: float = 0.0,
+        tags: list[str] | None = None,
+    ) -> Path:
+        """Save a reusable skill pattern."""
+        channel_dir = self._root / channel
+        channel_dir.mkdir(parents=True, exist_ok=True)
+
+        h = hashlib.sha256(name.encode()).hexdigest()[:12]
+        skill = {
+            "name": name,
+            "description": description,
+            "pattern": pattern[:2000],
+            "source_task": source_task,
+            "score_avg": score_avg,
+            "tags": tags or [],
+        }
+        path = channel_dir / f"{h}.json"
+        path.write_text(json.dumps(skill, ensure_ascii=False, indent=2), encoding="utf-8")
+        return path
+
+    def find_skills(self, channel: str, query: str, limit: int = 3) -> list[dict[str, Any]]:
+        """Find skills by keyword matching against name, description, tags."""
+        channel_dir = self._root / channel
+        if not channel_dir.is_dir():
+            return []
+
+        query_words = set(query.lower().split())
+        scored: list[tuple[float, dict]] = []
+
+        for f in channel_dir.glob("*.json"):
+            try:
+                skill = json.loads(f.read_text(encoding="utf-8"))
+                words = set(skill.get("name", "").lower().split())
+                words |= set(skill.get("description", "").lower().split())
+                words |= set(t.lower() for t in skill.get("tags", []))
+                overlap = len(query_words & words)
+                if overlap > 0:
+                    scored.append((overlap, skill))
+            except (json.JSONDecodeError, OSError):
+                continue
+
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return [s for _, s in scored[:limit]]
+
+    def count(self, channel: str | None = None) -> int:
         if channel:
             d = self._root / channel
             return len(list(d.glob("*.json"))) if d.is_dir() else 0

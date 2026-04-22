@@ -26,6 +26,7 @@ import os
 import sys
 import time
 from contextlib import asynccontextmanager
+import uuid
 from typing import Annotated, List, Literal
 
 import uvicorn
@@ -34,6 +35,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from musu_core.middleware import apply_musu_middlewares
 from musu_core.redaction import install_redaction_filter
@@ -103,6 +105,33 @@ from handlers import (
     get_kv_record,
     set_kv_record,
 )
+
+class JsonFormatter(logging.Formatter):
+    """Formats log records as single-line JSON objects."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        payload: dict = {
+            "time": self.formatTime(record, "%Y-%m-%dT%H:%M:%S"),
+            "level": record.levelname,
+            "logger": record.name,
+            "msg": record.getMessage(),
+        }
+        if hasattr(record, "request_id"):
+            payload["request_id"] = record.request_id
+        if record.exc_info:
+            payload["exc"] = self.formatException(record.exc_info)
+        return json.dumps(payload, ensure_ascii=False)
+
+
+class RequestIDMiddleware(BaseHTTPMiddleware):
+    """Attaches a trace ID to every request, echoing X-Request-ID if provided."""
+
+    async def dispatch(self, request: Request, call_next):
+        request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
+
 
 logger = logging.getLogger(__name__)
 
@@ -235,53 +264,84 @@ async def _heartbeat_iteration(
         logger.info("heartbeat_scheduler: %s done", agent_name)
 
 
+_company_locks: dict[str, asyncio.Lock] = {}
+
+
+def _get_company_lock(company_id: str) -> asyncio.Lock:
+    """Per-company lock for heartbeat isolation."""
+    if company_id not in _company_locks:
+        _company_locks[company_id] = asyncio.Lock()
+    return _company_locks[company_id]
+
+
 async def _agent_heartbeat_scheduler() -> None:
-    """Periodic heartbeat for the CEO agent (or any configured agent).
+    """Periodic heartbeat for the CEO agent.
+
+    Two modes:
+      - Single company: MUSU_CEO_COMPANY_ID set → only that company
+      - Multi-company: not set → iterate all active companies
 
     Env:
         MUSU_CEO_HEARTBEAT_ENABLED  = "true"   — must be set to activate
         MUSU_CEO_HEARTBEAT_INTERVAL = seconds   — default 1800 (30 min)
         MUSU_CEO_AGENT_NAME         = name      — default "ceo"
-        MUSU_CEO_COMPANY_ID         = id        — optional company scope
+        MUSU_CEO_COMPANY_ID         = id        — single company mode (optional)
     """
     interval = int(os.environ.get("MUSU_CEO_HEARTBEAT_INTERVAL", "1800"))
     agent_name = os.environ.get("MUSU_CEO_AGENT_NAME", "ceo")
-    company_id = os.environ.get("MUSU_CEO_COMPANY_ID") or None
+    single_company_id = os.environ.get("MUSU_CEO_COMPANY_ID") or None
 
+    mode = f"single={single_company_id}" if single_company_id else "multi-company"
     logger.info(
-        "heartbeat_scheduler: started (interval=%ds, agent=%s, company=%s)",
-        interval, agent_name, company_id or "global",
+        "heartbeat_scheduler: started (interval=%ds, agent=%s, mode=%s)",
+        interval, agent_name, mode,
     )
-    # Wait 60s after server start before first heartbeat — let everything settle.
     await asyncio.sleep(60)
 
     _self_healing = os.environ.get("MUSU_SELF_HEALING_ENABLED", "true").lower() == "true"
 
     while True:
-        diag_summary = ""
-        try:
-            # Phase 60: Pre-heartbeat diagnostic (self-healing)
-            if _self_healing:
-                try:
-                    from diagnostics import PreHeartbeatDiagnostic
-                    from handlers import _get_backend as _diag_backend
-                    _ws_root = os.path.join(os.getcwd(), ".musu", "tasks")
-                    report = PreHeartbeatDiagnostic(workspace_root=_ws_root).run(_diag_backend())
-                    if report.needs_attention:
-                        diag_summary = report.summary
-                        logger.info("heartbeat_scheduler: diagnostic found issues:\n%s", diag_summary)
-                    else:
-                        logger.info("heartbeat_scheduler: diagnostic clean")
-                except Exception as diag_exc:
-                    logger.warning("heartbeat_scheduler: diagnostic error — %s", diag_exc)
+        # Determine which companies to heartbeat
+        if single_company_id:
+            company_ids = [single_company_id]
+        else:
+            try:
+                from handlers import list_companies as _list_hb_co
+                company_ids = [c["id"] for c in _list_hb_co() if c.get("status") == "active"]
+            except Exception:
+                company_ids = []
 
-            await _heartbeat_iteration(
-                agent_name=agent_name,
-                company_id=company_id,
-                diag_summary=diag_summary,
-            )
-        except Exception as exc:
-            logger.warning("heartbeat_scheduler: error — %s", exc)
+        if not company_ids:
+            logger.info("heartbeat_scheduler: no active companies, sleeping")
+            await asyncio.sleep(interval)
+            continue
+
+        # Run diagnostic once (not per company)
+        diag_summary = ""
+        if _self_healing:
+            try:
+                from diagnostics import PreHeartbeatDiagnostic
+                from handlers import _get_backend as _diag_backend
+                _ws_root = os.path.join(os.getcwd(), ".musu", "tasks")
+                report = PreHeartbeatDiagnostic(workspace_root=_ws_root).run(_diag_backend())
+                if report.needs_attention:
+                    diag_summary = report.summary
+                    logger.info("heartbeat_scheduler: diagnostic found issues:\n%s", diag_summary)
+            except Exception as diag_exc:
+                logger.warning("heartbeat_scheduler: diagnostic error — %s", diag_exc)
+
+        # Heartbeat each company (sequential with per-company lock)
+        for cid in company_ids:
+            try:
+                logger.info("heartbeat_scheduler: company %s", cid[:8])
+                await _heartbeat_iteration(
+                    agent_name=agent_name,
+                    company_id=cid,
+                    diag_summary=diag_summary,
+                )
+            except Exception as exc:
+                logger.warning("heartbeat_scheduler: company %s error — %s", cid[:8], exc)
+
         await asyncio.sleep(interval)
 
 
@@ -583,6 +643,7 @@ apply_musu_middlewares(
     bypass_path_prefixes=("/screen/novnc",),  # noVNC static files are public; WS auth via one-time token
 )
 
+app.add_middleware(RequestIDMiddleware)
 app.add_middleware(CSRFOriginGuard)
 app.add_middleware(HostnameGuard)
 
@@ -2043,8 +2104,14 @@ async def api_submit_feedback(req: FeedbackRequest) -> dict:
     Feedback types: bug (high priority), suggestion (medium), complaint (medium).
     CEO picks these up during heartbeat via list_issues().
     """
+    # Use canonical company, falling back to first available
+    from handlers import list_companies as _list_co
+    _cid = globals().get("_CANONICAL_COMPANY_ID", "")
+    if not _cid:
+        _cos = _list_co()
+        _cid = _cos[0]["id"] if _cos else ""
     issue = create_issue_record(
-        company_id=_CANONICAL_COMPANY_ID,
+        company_id=_cid,
         title=f"[{req.type}] {req.title}",
         description=req.description,
         priority="high" if req.type == "bug" else "medium",
@@ -2055,6 +2122,25 @@ async def api_submit_feedback(req: FeedbackRequest) -> dict:
 @app.get("/health")
 async def health() -> dict:
     return {"status": "ok"}
+
+
+@app.get("/health/ready")
+async def health_ready() -> Response:
+    """Readiness probe — verifies DB connectivity."""
+    try:
+        backend = _get_heartbeat_backend()
+        backend._db.execute("SELECT 1")
+        return Response(
+            content=json.dumps({"status": "ready", "db": "ok"}),
+            status_code=200,
+            media_type="application/json",
+        )
+    except Exception:
+        return Response(
+            content=json.dumps({"status": "not_ready", "db": "error"}),
+            status_code=503,
+            media_type="application/json",
+        )
 
 
 # ── Screen snapshot ────────────────────────────────────────────────────────────
@@ -2471,6 +2557,10 @@ if __name__ == "__main__":
                 "Refusing to start."
             )
 
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    handler = logging.StreamHandler()
+    handler.setFormatter(JsonFormatter())
+    logging.root.handlers.clear()
+    logging.root.addHandler(handler)
+    logging.root.setLevel(logging.INFO)
     install_redaction_filter()
     uvicorn.run(app, host=cfg.bridge_host, port=cfg.bridge_port)

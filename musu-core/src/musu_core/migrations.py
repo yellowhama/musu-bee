@@ -479,6 +479,31 @@ def _v14_down(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+# ---------------------------------------------------------------------------
+# v15: add cost/token columns to route_executions
+# ---------------------------------------------------------------------------
+
+
+def _v15_up(conn: sqlite3.Connection) -> None:
+    """Add cost_usd, input_tokens, output_tokens to route_executions."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='route_executions'"
+    ).fetchone()
+    if row is None:
+        return
+    if not _column_exists(conn, "route_executions", "cost_usd"):
+        conn.execute("ALTER TABLE route_executions ADD COLUMN cost_usd REAL;")
+    if not _column_exists(conn, "route_executions", "input_tokens"):
+        conn.execute("ALTER TABLE route_executions ADD COLUMN input_tokens INTEGER;")
+    if not _column_exists(conn, "route_executions", "output_tokens"):
+        conn.execute("ALTER TABLE route_executions ADD COLUMN output_tokens INTEGER;")
+    conn.commit()
+
+
+def _v15_down(conn: sqlite3.Connection) -> None:  # noqa: ARG001
+    pass  # SQLite < 3.35 cannot DROP COLUMN
+
+
 MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v1_fallback_chain", _v1_up, _v1_down),
     ("v2_messages_agent_id", _v2_up, _v2_down),
@@ -494,6 +519,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v12_sprint_contracts_qa_scores", _v12_up, _v12_down),
     ("v13_company_status_purpose", _v13_up, _v13_down),
     ("v14_agents_company_id", _v14_up, _v14_down),
+    ("v15_route_executions_cost", _v15_up, _v15_down),
 ]
 
 

@@ -72,13 +72,18 @@ async def route_chat(
     # else: record already created by caller (e.g. delegate endpoint)
 
     def _finish(result: dict[str, Any], node: str | None = None) -> dict[str, Any]:
-        """Mark execution done/failed and return result."""
+        """Mark execution done/failed and return result (with cost if available)."""
         if exec_id:
             try:
+                cost_usd = result.get("cost_usd")
+                input_tokens = result.get("input_tokens")
+                output_tokens = result.get("output_tokens")
                 if result.get("error"):
-                    backend.update_route_execution(exec_id, "failed", error=result["error"], node=node)
+                    backend.update_route_execution(exec_id, "failed", error=result["error"], node=node,
+                                                   cost_usd=cost_usd, input_tokens=input_tokens, output_tokens=output_tokens)
                 else:
-                    backend.update_route_execution(exec_id, "done", output=result.get("response"), node=node)
+                    backend.update_route_execution(exec_id, "done", output=result.get("response"), node=node,
+                                                   cost_usd=cost_usd, input_tokens=input_tokens, output_tokens=output_tokens)
             except Exception:
                 pass
         return result

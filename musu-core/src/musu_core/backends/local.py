@@ -438,16 +438,22 @@ class LocalBackend(BackendABC):
         output: str | None = None,
         error: str | None = None,
         node: str | None = None,
+        cost_usd: float | None = None,
+        input_tokens: int | None = None,
+        output_tokens: int | None = None,
     ) -> None:
-        """Update status (and optional output/error/node) for a route execution."""
+        """Update status (and optional output/error/node/cost) for a route execution."""
         self._db.execute(
             """
             UPDATE route_executions
             SET status = ?, output = ?, error = ?, node = ?,
+                cost_usd = COALESCE(?, cost_usd),
+                input_tokens = COALESCE(?, input_tokens),
+                output_tokens = COALESCE(?, output_tokens),
                 updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
             WHERE id = ?
             """,
-            (status, output, error, node, exec_id),
+            (status, output, error, node, cost_usd, input_tokens, output_tokens, exec_id),
         )
 
     def get_route_execution(self, exec_id: str) -> dict[str, Any] | None:
@@ -925,11 +931,7 @@ class LocalBackend(BackendABC):
     # --- Costs (derived from route_executions) ---
 
     def get_costs_summary(self, company_id: str) -> dict[str, Any]:
-        """Return request-count-based cost proxy for a company.
-
-        Real cost tracking (token $) not yet wired — returns execution counts
-        as a cost proxy. Zero-fills gracefully when no data.
-        """
+        """Return cost summary for a company including real USD when available."""
         rows = self._db.execute(
             "SELECT status, COUNT(*) AS n FROM route_executions"
             " WHERE company_id = ? GROUP BY status",
@@ -937,12 +939,23 @@ class LocalBackend(BackendABC):
         )
         by_status = {r["status"]: r["n"] for r in rows}
         total = sum(by_status.values())
+        # Real USD aggregation from v15 columns
+        cost_row = self._db.execute(
+            "SELECT COALESCE(SUM(cost_usd), 0) AS total_cost, "
+            "COALESCE(SUM(input_tokens), 0) AS total_input, "
+            "COALESCE(SUM(output_tokens), 0) AS total_output "
+            "FROM route_executions WHERE company_id = ?",
+            (company_id,),
+        )
+        cost_data = cost_row[0] if cost_row else {"total_cost": 0, "total_input": 0, "total_output": 0}
         return {
             "company_id": company_id,
             "period": "all_time",
             "total_requests": total,
             "by_status": by_status,
-            "estimated_cost_usd": None,
+            "total_cost_usd": round(float(cost_data["total_cost"]), 4),
+            "total_input_tokens": int(cost_data["total_input"]),
+            "total_output_tokens": int(cost_data["total_output"]),
         }
 
     def get_costs_by_agent(self, company_id: str) -> list[dict[str, Any]]:
