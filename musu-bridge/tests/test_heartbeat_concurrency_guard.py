@@ -60,7 +60,7 @@ class TestHeartbeatConcurrencyGuard:
         monkeypatch.setenv("MUSU_CEO_HEARTBEAT_ENABLED", "true")
         monkeypatch.setenv("MUSU_CEO_HEARTBEAT_INTERVAL", "9999")
 
-        with patch("server._has_running_ceo_task", return_value=True) as mock_check:
+        with patch("server._should_skip_heartbeat", return_value=(True, "already running")) as mock_check:
             with patch("server._get_heartbeat_backend", return_value=mock_backend):
                 # Run one heartbeat iteration (not the full loop)
                 await server._heartbeat_iteration(agent_name="ceo", company_id=None, diag_summary="")
@@ -83,7 +83,7 @@ class TestHeartbeatConcurrencyGuard:
 
         monkeypatch.setattr(server, "route_chat", mock_route_chat)
 
-        with patch("server._has_running_ceo_task", return_value=False):
+        with patch("server._should_skip_heartbeat", return_value=(False, "")):
             await server._heartbeat_iteration(agent_name="ceo", company_id=None, diag_summary="")
 
         assert len(route_chat_calls) == 1
@@ -109,7 +109,7 @@ class TestHeartbeatConcurrencyGuard:
 
         monkeypatch.setattr(server, "route_chat", mock_route_chat)
 
-        with patch("server._has_running_ceo_task", return_value=False):
+        with patch("server._should_skip_heartbeat", return_value=(False, "")):
             # Fire 3 heartbeat iterations concurrently — lock should serialize them
             tasks = [
                 asyncio.create_task(

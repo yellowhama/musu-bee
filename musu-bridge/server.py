@@ -142,20 +142,47 @@ def _get_heartbeat_backend():
     return _get_backend()
 
 
-def _has_running_ceo_task(backend, channel: str = "ceo") -> bool:
-    """Return True if any task for *channel* is currently in 'running' state.
+CIRCUIT_TRIP_THRESHOLD = 3
+CIRCUIT_BACKOFF_BASE_SECONDS = 60
+CIRCUIT_WINDOW_MINUTES = 10
 
-    Checks the persistent DB so the guard survives server restarts — prevents
-    zombie accumulation when multiple processes or rapid restarts fire concurrently.
+
+def _should_skip_heartbeat(backend, channel: str = "ceo") -> tuple[bool, str]:
+    """Circuit breaker for heartbeat. Returns (should_skip, reason).
+
+    Fail-open: DB errors return (False, '') so heartbeat continues rather than
+    silently stopping forever.
     """
+    from datetime import datetime, timedelta
+
     try:
         rows = backend._db.execute(
             "SELECT id FROM route_executions WHERE channel = ? AND status = 'running' LIMIT 1",
             (channel,),
         )
-        return bool(rows)
+        if rows:
+            return True, "already running"
+
+        cutoff = (datetime.utcnow() - timedelta(minutes=CIRCUIT_WINDOW_MINUTES)).isoformat()
+        fail_rows = backend._db.execute(
+            "SELECT COUNT(*) as cnt FROM route_executions "
+            "WHERE channel = ? AND status = 'failed' AND created_at > ?",
+            (channel, cutoff),
+        )
+        fail_count = fail_rows[0]["cnt"] if fail_rows else 0
+
+        if fail_count >= CIRCUIT_TRIP_THRESHOLD:
+            backoff = min(CIRCUIT_BACKOFF_BASE_SECONDS * (2 ** (fail_count - 1)), 1800)
+            return True, f"circuit open ({fail_count} recent failures, backoff={backoff}s)"
+
+        return False, ""
     except Exception:
-        return False
+        return False, ""
+
+
+def _has_running_ceo_task(backend, channel: str = "ceo") -> bool:
+    should_skip, reason = _should_skip_heartbeat(backend, channel=channel)
+    return should_skip and reason == "already running"
 
 
 async def _heartbeat_iteration(
@@ -170,11 +197,18 @@ async def _heartbeat_iteration(
         except Exception:
             backend = None
 
-        if backend is not None and _has_running_ceo_task(backend, channel=agent_name):
-            logger.info(
-                "heartbeat_scheduler: skipping — %s task already running", agent_name
-            )
-            return
+        if backend is not None:
+            should_skip, reason = _should_skip_heartbeat(backend, channel=agent_name)
+            if should_skip:
+                if "circuit open" in reason:
+                    logger.warning(
+                        "heartbeat_scheduler: circuit open — skipping %s (%s)", agent_name, reason
+                    )
+                else:
+                    logger.info(
+                        "heartbeat_scheduler: skipping — %s (%s)", agent_name, reason
+                    )
+                return
 
         logger.info("heartbeat_scheduler: invoking %s", agent_name)
         prompt_parts = []
@@ -1930,6 +1964,44 @@ async def api_wiki_page_delete(
         raise HTTPException(status_code=404, detail=f"Wiki page '{safe_id}' not found.")
     path.unlink()
     return {"deleted": safe_id}
+
+
+# ── Success Rate Tracking ─────────────────────────────────────────────────
+
+
+@app.get("/api/stats/success-rate", summary="Execution success rate")
+async def api_success_rate(days: int = Query(default=7, ge=1, le=90)) -> dict:
+    """Return execution success rate for the last N days.
+
+    Legacy failures (pre-2026-04-22) are archived in route_executions_archive.
+    """
+    from datetime import datetime, timedelta, timezone
+    backend = _get_backend()
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    rows = backend._db.execute(
+        "SELECT status, COUNT(*) as cnt FROM route_executions "
+        "WHERE created_at >= ? GROUP BY status",
+        (cutoff,),
+    )
+    stats = {r["status"]: r["cnt"] for r in rows}
+    total = sum(stats.values())
+    done = stats.get("done", 0)
+    failed = stats.get("failed", 0)
+    rate = round(done / total * 100, 1) if total > 0 else 0
+    archived = 0
+    try:
+        archived = backend._db.execute("SELECT COUNT(*) FROM route_executions_archive")[0][0]
+    except Exception:
+        pass
+    return {
+        "period_days": days,
+        "total": total,
+        "done": done,
+        "failed": failed,
+        "running": stats.get("running", 0),
+        "success_rate_pct": rate,
+        "archived_legacy_failures": archived,
+    }
 
 
 # ── User Feedback ──────────────────────────────────────────────────────────
