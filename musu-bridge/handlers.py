@@ -321,10 +321,12 @@ async def route_chat(
         _ws = TaskWorkspace(exec_id)
         _ws.create()
 
+    # Resolve alias before lookup (e.g. 'team_lead' → 'lead' via channel_agent_map)
+    resolved_channel = cfg.channel_agent_map.get(channel, channel)
     # Look up agent once so we can build the RouteRequest and return agent info.
-    agent = backend.get_agent_by_name(channel, company_id=company_id)
+    agent = backend.get_agent_by_name(resolved_channel, company_id=company_id)
     agent_id = agent["id"] if agent else None
-    agent_name = agent["role"] if agent else channel
+    agent_name = agent["role"] if agent else resolved_channel
     adapter_type: str = adapter_override or (agent["adapter_type"] if agent else "") or ""
 
     if agent_id is None:
