@@ -312,6 +312,10 @@ async def route_chat(
 
     # For company-scoped agents, try direct name lookup before checking static map
     _agent_exists = backend.get_agent_by_name(channel, company_id=company_id) is not None
+    if not _agent_exists:
+        # Fallback: check globally (handles company-scoped agents without explicit company_id)
+        _all = backend.list_agents()
+        _agent_exists = any(a.get("name") == channel for a in _all)
     if not _agent_exists and channel not in cfg.channel_agent_map:
         return _finish({"error": f"No agent mapped to channel: {channel!r}", "response": None})
 
@@ -325,6 +329,10 @@ async def route_chat(
     resolved_channel = cfg.channel_agent_map.get(channel, channel)
     # Look up agent once so we can build the RouteRequest and return agent info.
     agent = backend.get_agent_by_name(resolved_channel, company_id=company_id)
+    # Fallback: if not found with scoped lookup, search globally across all agents
+    if agent is None:
+        all_agents = backend.list_agents()
+        agent = next((a for a in all_agents if a.get("name") == resolved_channel), None)
     agent_id = agent["id"] if agent else None
     agent_name = agent["role"] if agent else resolved_channel
     adapter_type: str = adapter_override or (agent["adapter_type"] if agent else "") or ""
@@ -797,8 +805,14 @@ def get_channel_map(company_id: str | None = None) -> dict[str, Any]:
     backend = _get_backend()
     result = {}
     # Static global map
+    _all_agents_cache: list[dict] | None = None
     for channel, agent_name in cfg.channel_agent_map.items():
         agent = backend.get_agent_by_name(agent_name, company_id=company_id)
+        if agent is None:
+            # Fallback: search globally
+            if _all_agents_cache is None:
+                _all_agents_cache = backend.list_agents()
+            agent = next((a for a in _all_agents_cache if a.get("name") == agent_name), None)
         result[channel] = {
             "agent_name": agent_name,
             "agent_id": agent["id"] if agent else None,
