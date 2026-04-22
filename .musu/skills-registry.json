@@ -1,0 +1,29 @@
+{
+  "_comment": "Central skill registry — shared across all nodes via Forgejo",
+  "skills": [
+    {
+      "id": "musu-control",
+      "path": "musu-control/",
+      "type": "mcp",
+      "description": "50+ tools: task delegation, issues, goals, wiki, web search, group messages"
+    },
+    {
+      "id": "musu-indexer",
+      "path": "musu-indexer/SKILL.md",
+      "type": "mcp",
+      "description": "Code search, session management, workspace sync"
+    },
+    {
+      "id": "pencil-design",
+      "path": "musu-ai/src/skills/pencil-design/SKILL.md",
+      "type": "tool",
+      "description": "Pencil.dev design board integration"
+    },
+    {
+      "id": "cli-anything",
+      "path": "references/CLI_ANYTHING_ANALYSIS.md",
+      "type": "reference",
+      "description": "Framework for making software agent-native via CLI"
+    }
+  ]
+}

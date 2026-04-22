@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "musu-control": {
+      "command": "musu-control",
+      "args": [],
+      "env": {
+        "PAPERCLIP_API_URL": "http://127.0.0.1:8070/api",
+        "PAPERCLIP_COMPANY_ID": ""
+      }
+    },
+    "musu-indexer": {
+      "command": "musu-indexer",
+      "args": ["mcp"],
+      "env": {}
+    }
+  }
+}

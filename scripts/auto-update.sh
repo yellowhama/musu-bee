@@ -9,6 +9,17 @@ cd "$ROOT"
 
 log() { echo "[auto-update] $*"; }
 
+# ── 0. Ensure forgejo remote exists ──────────────────────────────────────────
+if ! git remote get-url forgejo >/dev/null 2>&1; then
+    MAIN_IP="${MUSU_MAIN_IP:-100.126.67.88}"
+    git remote add forgejo "http://${MAIN_IP}:3000/musu_admin/musu-project.git"
+    git config credential."http://${MAIN_IP}:3000".helper store
+    grep -q "${MAIN_IP}:3000" ~/.git-credentials 2>/dev/null || \
+        echo "http://musu_admin:musu_admin@${MAIN_IP}:3000" >> ~/.git-credentials
+    chmod 600 ~/.git-credentials 2>/dev/null || true
+    log "added forgejo remote → http://${MAIN_IP}:3000"
+fi
+
 # ── 1. Fetch (Forgejo first, fallback to origin) ─────────────────────────────
 FETCH_REMOTE="forgejo"
 if ! git fetch forgejo main --quiet 2>/dev/null; then
@@ -97,6 +108,11 @@ fi
 
 if [ "$RESTART_BRIDGE" = "0" ] && [ "$RESTART_CONNECTSD" = "0" ]; then
     log "no service-affecting changes — skipping restarts"
+fi
+
+# ── 5. Register services with portd (wiki/003) ──────────────────────────────
+if [ -x "${ROOT}/scripts/register-portd-services.sh" ]; then
+    "${ROOT}/scripts/register-portd-services.sh" 2>/dev/null || log "portd registration skipped"
 fi
 
 log "done (${REMOTE:0:8})"
