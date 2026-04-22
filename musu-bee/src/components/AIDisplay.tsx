@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import type { PanelId } from "@/types";
 import TasksPanel from "@/components/TasksPanel";
 import ProcessesPanel from "@/components/ProcessesPanel";
@@ -12,95 +13,235 @@ import SearchPanel from "@/components/SearchPanel";
 import NodesPanel from "@/components/NodesPanel";
 import WikiPanel from "@/components/WikiPanel";
 
-/** Content the AI can push to the display */
+// ── Tab types ────────────────────────────────────────────────────────────────
+
 export type DisplayContent =
   | { type: "dashboard" }
+  | { type: "files" }
   | { type: "panel"; panel: PanelId }
   | { type: "document"; title: string; markdown: string }
   | { type: "code"; filename: string; code: string; language?: string }
   | { type: "image"; url: string; alt?: string };
 
+interface Tab {
+  id: string;
+  label: string;
+  icon: string;
+  content: DisplayContent;
+  pinned: boolean;
+}
+
+const PINNED_TABS: Tab[] = [
+  { id: "__files", label: "Files", icon: "📁", content: { type: "files" }, pinned: true },
+  { id: "__dashboard", label: "Dashboard", icon: "⊞", content: { type: "dashboard" }, pinned: true },
+];
+
+// ── Props ────────────────────────────────────────────────────────────────────
+
 interface AIDisplayProps {
   activePanel: PanelId;
   companyId?: string | null;
-  /** AI-pushed content overrides activePanel when set */
-  overlay?: DisplayContent | null;
-  onOverlayClose?: () => void;
+  /** External request to open a tab (from NavTab click or AI push) */
+  openRequest?: DisplayContent | null;
+  onOpenHandled?: () => void;
 }
 
-export default function AIDisplay({ activePanel, companyId, overlay, onOverlayClose }: AIDisplayProps) {
-  // If AI pushed an overlay, show that instead
-  if (overlay && overlay.type !== "dashboard" && overlay.type !== "panel") {
-    return (
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "var(--bg-surface, #111)", overflow: "hidden" }}>
-        <OverlayHeader title={overlayTitle(overlay)} onClose={onOverlayClose} />
-        <div style={{ flex: 1, overflow: "auto", padding: 20 }}>
-          {overlay.type === "document" && <DocumentView title={overlay.title} markdown={overlay.markdown} />}
-          {overlay.type === "code" && <CodeView filename={overlay.filename} code={overlay.code} language={overlay.language} />}
-          {overlay.type === "image" && <ImageView url={overlay.url} alt={overlay.alt} />}
-        </div>
-      </div>
-    );
+// ── Component ────────────────────────────────────────────────────────────────
+
+export default function AIDisplay({ activePanel, companyId, openRequest, onOpenHandled }: AIDisplayProps) {
+  const [tabs, setTabs] = useState<Tab[]>([...PINNED_TABS]);
+  const [activeTabId, setActiveTabId] = useState("__dashboard");
+
+  // Handle external open requests (from NavTab or AI)
+  const openTab = useCallback((content: DisplayContent) => {
+    const id = tabId(content);
+    const existing = tabs.find((t) => t.id === id);
+    if (existing) {
+      setActiveTabId(id);
+      return;
+    }
+    const newTab: Tab = {
+      id,
+      label: tabLabel(content),
+      icon: tabIcon(content),
+      content,
+      pinned: false,
+    };
+    setTabs((prev) => [...prev, newTab]);
+    setActiveTabId(id);
+  }, [tabs]);
+
+  // Handle activePanel changes from NavTab
+  if (activePanel !== "dashboard") {
+    const panelTabId = `panel-${activePanel}`;
+    const exists = tabs.some((t) => t.id === panelTabId);
+    if (!exists || activeTabId !== panelTabId) {
+      // Use setTimeout to avoid setState during render
+      setTimeout(() => openTab({ type: "panel", panel: activePanel }), 0);
+    }
   }
 
-  // Normal panel rendering
-  const panel = overlay?.type === "panel" ? overlay.panel : activePanel;
+  // Handle AI push requests
+  if (openRequest && onOpenHandled) {
+    setTimeout(() => {
+      openTab(openRequest);
+      onOpenHandled();
+    }, 0);
+  }
+
+  const closeTab = useCallback((id: string) => {
+    setTabs((prev) => {
+      const filtered = prev.filter((t) => t.id !== id);
+      if (activeTabId === id) {
+        const idx = prev.findIndex((t) => t.id === id);
+        const next = filtered[Math.min(idx, filtered.length - 1)];
+        if (next) setActiveTabId(next.id);
+      }
+      return filtered;
+    });
+  }, [activeTabId]);
+
+  const activeTab = tabs.find((t) => t.id === activeTabId) || tabs[0];
+
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "var(--bg-surface, #111)", overflow: "hidden" }}>
-      {panel === "dashboard" && <DashboardView companyId={companyId} />}
-      {panel === "tasks" && <TasksPanel />}
-      {panel === "processes" && <ProcessesPanel />}
-      {panel === "issues" && <IssuesPanel companyId={companyId ?? undefined} />}
-      {panel === "approvals" && <ApprovalsPanel companyId={companyId ?? undefined} />}
-      {panel === "projects" && <ProjectsPanel companyId={companyId ?? undefined} />}
-      {panel === "goals" && <GoalsPanel companyId={companyId ?? undefined} />}
-      {panel === "costs" && <CostsPanel companyId={companyId ?? undefined} />}
-      {panel === "search" && <SearchPanel />}
-      {panel === "nodes" && <NodesPanel />}
-      {panel === "wiki" && <WikiPanel companyId={companyId ?? undefined} />}
+      {/* Tab bar */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "stretch",
+          borderBottom: "1px solid var(--border-subtle, rgba(255,255,255,0.06))",
+          background: "var(--bg-base, #0d0d0d)",
+          flexShrink: 0,
+          overflowX: "auto",
+          overflowY: "hidden",
+          height: 36,
+        }}
+      >
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTabId(tab.id)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "0 12px",
+              border: "none",
+              borderBottom: activeTabId === tab.id ? "2px solid var(--musu-yellow, #FFD166)" : "2px solid transparent",
+              background: activeTabId === tab.id ? "var(--bg-surface, #111)" : "transparent",
+              color: activeTabId === tab.id ? "var(--fg1, #F3F4F6)" : "var(--fg3, #6B7280)",
+              fontSize: 12,
+              fontWeight: activeTabId === tab.id ? 600 : 400,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+              fontFamily: "inherit",
+              transition: "background 0.1s, color 0.1s",
+            }}
+          >
+            <span style={{ fontSize: 13 }}>{tab.icon}</span>
+            <span>{tab.label}</span>
+            {!tab.pinned && (
+              <span
+                onClick={(e) => { e.stopPropagation(); closeTab(tab.id); }}
+                style={{
+                  fontSize: 10,
+                  color: "var(--fg4, #374151)",
+                  cursor: "pointer",
+                  marginLeft: 4,
+                  padding: "2px 4px",
+                  borderRadius: 3,
+                }}
+                onMouseEnter={(e) => { (e.target as HTMLElement).style.color = "var(--fg2)"; }}
+                onMouseLeave={(e) => { (e.target as HTMLElement).style.color = "var(--fg4)"; }}
+              >
+                ✕
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        {activeTab && <TabContent content={activeTab.content} companyId={companyId} />}
+      </div>
     </div>
   );
 }
 
-// ── Sub-components ──────────────────────────────────────────────────────────
+// ── Tab Content Renderer ─────────────────────────────────────────────────────
+
+function TabContent({ content, companyId }: { content: DisplayContent; companyId?: string | null }) {
+  switch (content.type) {
+    case "dashboard":
+      return <DashboardView companyId={companyId} />;
+    case "files":
+      return <FilesView />;
+    case "panel":
+      return <PanelView panel={content.panel} companyId={companyId} />;
+    case "document":
+      return <DocumentView title={content.title} markdown={content.markdown} />;
+    case "code":
+      return <CodeView filename={content.filename} code={content.code} language={content.language} />;
+    case "image":
+      return <ImageView url={content.url} alt={content.alt} />;
+    default:
+      return null;
+  }
+}
+
+// ── Panel View (existing panels) ─────────────────────────────────────────────
+
+function PanelView({ panel, companyId }: { panel: PanelId; companyId?: string | null }) {
+  const cid = companyId ?? undefined;
+  switch (panel) {
+    case "tasks": return <TasksPanel />;
+    case "processes": return <ProcessesPanel />;
+    case "issues": return <IssuesPanel companyId={cid} />;
+    case "approvals": return <ApprovalsPanel companyId={cid} />;
+    case "projects": return <ProjectsPanel companyId={cid} />;
+    case "goals": return <GoalsPanel companyId={cid} />;
+    case "costs": return <CostsPanel companyId={cid} />;
+    case "search": return <SearchPanel />;
+    case "nodes": return <NodesPanel />;
+    case "wiki": return <WikiPanel companyId={cid} />;
+    default: return <DashboardView companyId={companyId} />;
+  }
+}
+
+// ── Built-in Views ───────────────────────────────────────────────────────────
 
 function DashboardView({ companyId }: { companyId?: string | null }) {
   return (
     <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
-      <span style={{ fontSize: 48, opacity: 0.15 }}>⊞</span>
+      <span style={{ fontSize: 48, opacity: 0.12 }}>⊞</span>
       <span style={{ fontSize: 13, color: "var(--fg3, #6B7280)" }}>
-        {companyId ? "Select a panel from the left" : "No company selected"}
+        {companyId ? "Company Dashboard" : "No company selected"}
+      </span>
+      <span style={{ fontSize: 11, color: "var(--fg4, #374151)" }}>
+        Select a panel from the left, or wait for AI to show something here
       </span>
     </div>
   );
 }
 
-function OverlayHeader({ title, onClose }: { title: string; onClose?: () => void }) {
+function FilesView() {
   return (
-    <div style={{
-      display: "flex", alignItems: "center", justifyContent: "space-between",
-      padding: "10px 16px", borderBottom: "1px solid var(--border-subtle, rgba(255,255,255,0.06))",
-      flexShrink: 0,
-    }}>
-      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg1, #F3F4F6)" }}>{title}</span>
-      {onClose && (
-        <button
-          onClick={onClose}
-          style={{
-            background: "none", border: "none", color: "var(--fg3, #6B7280)",
-            cursor: "pointer", fontSize: 16, padding: "2px 6px",
-          }}
-        >
-          ✕
-        </button>
-      )}
+    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
+      <span style={{ fontSize: 48, opacity: 0.12 }}>📁</span>
+      <span style={{ fontSize: 13, color: "var(--fg3, #6B7280)" }}>File Explorer</span>
+      <span style={{ fontSize: 11, color: "var(--fg4, #374151)" }}>
+        Browse project files, docs, wiki pages
+      </span>
     </div>
   );
 }
 
 function DocumentView({ title, markdown }: { title: string; markdown: string }) {
   return (
-    <div>
+    <div style={{ padding: 20, overflow: "auto", flex: 1 }}>
       <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--fg1)", marginBottom: 16 }}>{title}</h2>
       <pre style={{ whiteSpace: "pre-wrap", fontSize: 13, color: "var(--fg2, #9CA3AF)", lineHeight: 1.6, fontFamily: "inherit" }}>
         {markdown}
@@ -111,7 +252,7 @@ function DocumentView({ title, markdown }: { title: string; markdown: string }) 
 
 function CodeView({ filename, code, language }: { filename: string; code: string; language?: string }) {
   return (
-    <div>
+    <div style={{ padding: 20, overflow: "auto", flex: 1 }}>
       <div style={{ fontSize: 11, color: "var(--fg3)", marginBottom: 8, fontFamily: "var(--font-jetbrains, monospace)" }}>
         {filename} {language && <span style={{ opacity: 0.5 }}>({language})</span>}
       </div>
@@ -128,18 +269,51 @@ function CodeView({ filename, code, language }: { filename: string; code: string
 
 function ImageView({ url, alt }: { url: string; alt?: string }) {
   return (
-    <div style={{ display: "flex", justifyContent: "center" }}>
+    <div style={{ display: "flex", justifyContent: "center", padding: 20, overflow: "auto", flex: 1 }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={url} alt={alt || ""} style={{ maxWidth: "100%", maxHeight: "80vh", borderRadius: 8 }} />
     </div>
   );
 }
 
-function overlayTitle(content: DisplayContent): string {
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function tabId(content: DisplayContent): string {
   switch (content.type) {
-    case "document": return content.title;
-    case "code": return content.filename;
+    case "dashboard": return "__dashboard";
+    case "files": return "__files";
+    case "panel": return `panel-${content.panel}`;
+    case "document": return `doc-${content.title.slice(0, 20)}`;
+    case "code": return `code-${content.filename}`;
+    case "image": return `img-${content.url.slice(-20)}`;
+  }
+}
+
+function tabLabel(content: DisplayContent): string {
+  switch (content.type) {
+    case "dashboard": return "Dashboard";
+    case "files": return "Files";
+    case "panel": return content.panel.charAt(0).toUpperCase() + content.panel.slice(1);
+    case "document": return content.title.slice(0, 20);
+    case "code": return content.filename.split("/").pop() || content.filename;
     case "image": return content.alt || "Image";
-    default: return "";
+  }
+}
+
+function tabIcon(content: DisplayContent): string {
+  switch (content.type) {
+    case "dashboard": return "⊞";
+    case "files": return "📁";
+    case "panel": {
+      const icons: Record<string, string> = {
+        tasks: "☰", issues: "!", goals: "◎", wiki: "◧",
+        costs: "$", search: "⌕", nodes: "⬡", projects: "▣",
+        approvals: "✓", processes: "⚡",
+      };
+      return icons[content.panel] || "▪";
+    }
+    case "document": return "📄";
+    case "code": return "⟨⟩";
+    case "image": return "🖼";
   }
 }

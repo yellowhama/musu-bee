@@ -518,12 +518,10 @@ export default function AppShell() {
           companyName={displayCompanyName}
         />
 
-        {/* Center: AI Display (panels + AI content) */}
+        {/* Center: AI Display (tabbed panels + AI content) */}
         <AIDisplay
           activePanel={activePanel}
           companyId={activeCompany?.companyId}
-          overlay={displayOverlay}
-          onOverlayClose={() => setDisplayOverlay(null)}
         />
 
         {/* Right: Chat (always visible) */}
