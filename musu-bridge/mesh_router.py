@@ -5,6 +5,7 @@ import logging
 import os
 import threading
 import time
+from dataclasses import dataclass, field
 try:
     import tomllib
 except ModuleNotFoundError:  # Python < 3.11
@@ -13,6 +14,16 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+
+
+@dataclass
+class NodeInfo:
+    """Metadata for a mesh node parsed from nodes.toml."""
+    name: str
+    url: str
+    agents: list[str] = field(default_factory=list)
+    mac_address: str = ""
+    broadcast_ip: str = "255.255.255.255"
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +46,8 @@ class MeshRouter:
         self._node_agents: dict[str, list[str]] = {}  # node_name → agent list
         self._agent_nodes: dict[str, str] = {}     # agent_name (lowercase) → node_name
         self._node_tokens: dict[str, str] = {}     # node_name → peer bridge token (optional)
+        self._node_mac: dict[str, str] = {}         # node_name → MAC address for Wake-on-LAN
+        self._node_broadcast: dict[str, str] = {}   # node_name → broadcast IP for Wake-on-LAN
         self._health_cache: dict[str, tuple[bool, float]] = {}  # node → (alive, checked_at)
         self._loaded = False
         self._load()
@@ -62,6 +75,12 @@ class MeshRouter:
                     token = node.get("token", "")
                     if token:
                         self._node_tokens[name] = token
+                    mac = node.get("mac_address", "")
+                    if mac:
+                        self._node_mac[name] = mac
+                    broadcast = node.get("broadcast_ip", "")
+                    if broadcast:
+                        self._node_broadcast[name] = broadcast
 
             for assign in mesh.get("agent_assignments", []):
                 agent = assign.get("agent", "").lower()
@@ -101,6 +120,27 @@ class MeshRouter:
     def token_for_node(self, node_name: str) -> str:
         """Return the peer bridge token for a node, or '' if not configured."""
         return self._node_tokens.get(node_name, "")
+
+    def mac_for_node(self, node_name: str) -> str:
+        """Return the MAC address for Wake-on-LAN, or '' if not configured."""
+        return self._node_mac.get(node_name, "")
+
+    def broadcast_for_node(self, node_name: str) -> str:
+        """Return the broadcast IP for Wake-on-LAN, or '255.255.255.255' if not set."""
+        return self._node_broadcast.get(node_name, "255.255.255.255")
+
+    def node_info(self, node_name: str) -> NodeInfo | None:
+        """Return NodeInfo for a node, or None if not found."""
+        url = self._node_urls.get(node_name)
+        if url is None:
+            return None
+        return NodeInfo(
+            name=node_name,
+            url=url,
+            agents=list(self._node_agents.get(node_name, [])),
+            mac_address=self._node_mac.get(node_name, ""),
+            broadcast_ip=self._node_broadcast.get(node_name, "255.255.255.255"),
+        )
 
     def has_node(self, name: str) -> bool:
         """Return True if a node with this name is already registered."""
@@ -450,3 +490,8 @@ def get_mesh_router() -> MeshRouter:
     if _router is None:
         _router = MeshRouter()
     return _router
+
+
+def node_info(node_name: str) -> NodeInfo | None:
+    """Module-level shortcut: return NodeInfo for node_name via the singleton router."""
+    return get_mesh_router().node_info(node_name)

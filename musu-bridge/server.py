@@ -38,6 +38,7 @@ from pydantic import BaseModel, Field
 from musu_core.middleware import apply_musu_middlewares
 from musu_core.redaction import install_redaction_filter
 import audit
+import mesh_router as mesh_router
 import screen_vnc
 from config import get_config
 from system_stats import collect_stats_async
@@ -1292,6 +1293,28 @@ async def api_wol(req: WolRequest, request: Request) -> dict:
     if not ok:
         return {"ok": False, "error": "Invalid MAC address format"}
     return {"ok": True}
+
+
+@app.post("/api/wol/node/{node_name}", summary="Wake a node by name via nodes.toml MAC address")
+async def api_wol_node(node_name: str, request: Request) -> dict:
+    """Send a Wake-on-LAN Magic Packet to a node registered in nodes.toml.
+
+    Looks up the node's mac_address and broadcast_ip from the mesh router config.
+    Requires Bearer token auth.
+    """
+    from wol import send_magic_packet
+
+    node = mesh_router.node_info(node_name)
+    if node is None:
+        raise HTTPException(status_code=404, detail="Node not found")
+
+    if not node.mac_address:
+        raise HTTPException(status_code=422, detail="Node has no mac_address configured")
+
+    ok = send_magic_packet(node.mac_address, node.broadcast_ip)
+    if not ok:
+        raise HTTPException(status_code=500, detail="Failed to send magic packet (invalid MAC)")
+    return {"ok": True, "node": node_name, "mac": node.mac_address}
 
 
 # ──────────────────────────────────────────────────────────────────────────────
