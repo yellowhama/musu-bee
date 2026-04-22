@@ -1165,7 +1165,7 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
                 timeout=_timeout,
             )
         else:
-            await asyncio.wait_for(
+            _result = await asyncio.wait_for(
                 route_chat(
                     channel=req.channel,
                     sender_id=req.sender_id,
@@ -1175,6 +1175,8 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
                 ),
                 timeout=_timeout,
             )
+            if isinstance(_result, dict) and "unavailable" in (_result.get("error") or "").lower():
+                raise RuntimeError(f"Agent unavailable: {_result.get('error')}")
         return True
 
     async def _run_with_retry() -> None:
@@ -1197,8 +1199,9 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
                     _record_task_metric(req.channel, "timeout", time.monotonic() - _task_start)
                     asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
                 except RuntimeError as _exc:
-                    # Adapter crash (exit code != 0) — retry once
-                    if attempt < max_retries and "exited with code" in str(_exc):
+                    # Adapter crash or agent unavailable — retry once
+                    _exc_str = str(_exc)
+                    if attempt < max_retries and ("exited with code" in _exc_str or "unavailable" in _exc_str.lower()):
                         logger.warning("delegate_task: task %s crashed (attempt %d): %s, retrying...", task_id, attempt + 1, _exc)
                         backend.update_route_execution(task_id, "running")
                         continue
