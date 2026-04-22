@@ -2118,15 +2118,15 @@ async def screen_snapshot(monitor: int = 1) -> dict:
 
 _WATCHDOG_ALLOWED = frozenset({"bridge:start", "bridge:stop", "bridge:restart", "agents:cleanup"})
 
-# Rate limit: max 1 watchdog command per (node, command) pair per 10s (in-memory, per-process)
+# Rate limit: max 1 watchdog command per (user_id, node, command) tuple per 10s (in-memory, per-process)
 _watchdog_rate: dict[str, float] = {}
 _WATCHDOG_RATE_WINDOW = 10.0  # seconds
 
 
-def _watchdog_rate_check(node: str, command: str) -> bool:
+def _watchdog_rate_check(user_id: str, node: str, command: str) -> bool:
     """Return True if allowed, False if rate-limited. Updates the timestamp on True."""
     import time
-    key = f"{node}:{command}"
+    key = f"{user_id}:{node}:{command}"
     now = time.monotonic()
     last = _watchdog_rate.get(key, 0.0)
     if now - last < _WATCHDOG_RATE_WINDOW:
@@ -2148,7 +2148,7 @@ async def _watchdog_rate_cleanup_loop() -> None:
 
 
 @app.post("/api/watchdog/{node}/{command}")
-async def watchdog_command(node: str, command: str) -> dict:
+async def watchdog_command(node: str, command: str, request: Request) -> dict:
     """Send a watchdog command to a node's connectsd via QUIC.
 
     Routes via local musu-connectsd bridge-proxy — musu.pro is not involved.
@@ -2156,7 +2156,8 @@ async def watchdog_command(node: str, command: str) -> dict:
     """
     if command not in _WATCHDOG_ALLOWED:
         raise HTTPException(status_code=400, detail=f"Unknown watchdog command: {command!r}")
-    if not _watchdog_rate_check(node, command):
+    user_id = request.client.host if request.client else "anonymous"
+    if not _watchdog_rate_check(user_id, node, command):
         raise HTTPException(
             status_code=429,
             detail=f"Rate limited — watchdog {command!r} on {node!r} allowed once per {int(_WATCHDOG_RATE_WINDOW)}s",
