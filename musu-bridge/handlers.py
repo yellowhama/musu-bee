@@ -9,6 +9,14 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+# Lazy import to avoid circular dependency at module load time
+def _get_request_id() -> str | None:
+    try:
+        from server import _request_id_var
+        return _request_id_var.get(None)
+    except ImportError:
+        return None
+
 # Ensure musu-core is importable
 _MUSU_CORE = Path(__file__).parent.parent / "musu-core" / "src"
 if str(_MUSU_CORE) not in sys.path:
@@ -79,6 +87,7 @@ async def route_chat(
     def _finish(result: dict[str, Any], node: str | None = None) -> dict[str, Any]:
         """Mark execution done/failed and return result (with cost if available)."""
         duration = time.time() - start_time
+        rid = _get_request_id()
         if exec_id:
             try:
                 cost_usd = result.get("cost_usd")
@@ -89,10 +98,14 @@ async def route_chat(
                     backend.update_route_execution(exec_id, "failed", error=result["error"], node=node,
                                                    cost_usd=cost_usd, input_tokens=input_tokens, output_tokens=output_tokens,
                                                    duration_sec=duration)
+                    logger.warning("route_chat: failed channel=%r exec_id=%s duration=%.3fs request_id=%s error=%r",
+                                   channel, exec_id, duration, rid, result["error"])
                 else:
                     backend.update_route_execution(exec_id, "done", output=result.get("response"), node=node,
                                                    cost_usd=cost_usd, input_tokens=input_tokens, output_tokens=output_tokens,
                                                    duration_sec=duration)
+                    logger.info("route_chat: done channel=%r exec_id=%s duration=%.3fs request_id=%s adapter=%r",
+                                channel, exec_id, duration, rid, result.get("adapter_type"))
             except Exception:
                 pass
         result["duration_sec"] = duration
