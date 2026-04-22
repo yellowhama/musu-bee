@@ -50,5 +50,10 @@ class PaperclipClient:
         resp.raise_for_status()
         return resp.json()
 
+    async def delete(self, path: str) -> Any:
+        resp = await self._client.delete(path)
+        resp.raise_for_status()
+        return resp.json()
+
     async def aclose(self) -> None:
         await self._client.aclose()

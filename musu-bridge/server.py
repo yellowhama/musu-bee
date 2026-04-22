@@ -180,9 +180,13 @@ async def _agent_heartbeat_scheduler() -> None:
                     "위 이슈를 확인하고 필요 시 create_issue로 등록한 후, 개발 루프를 진행하라.\n\n---\n\n"
                 )
             prompt_parts.append(
-                "자율 개발 루프 실행: DEVELOPMENT_PROCESS.md를 읽고, "
-                "미완료 Phase feature list를 확인한 후, "
-                "Sprint Contract 작성 → Engineer 위임 → QA → 커밋 순서로 진행하라."
+                "자율 CEO 루프 실행:\n"
+                "1. read_charter() — 회사 미션/우선순위/제약 확인\n"
+                "2. list_goals(status='active') — 현재 목표 확인\n"
+                "3. 판단: 목표 없으면 생성, 이슈 없으면 분해, 이슈 있으면 실행\n"
+                "4. Sprint Contract → Engineer 위임 → QA → 커밋\n"
+                "5. 완료 후 이슈에 회고 작성\n"
+                "6. 목표 완료 판단"
             )
             await route_chat(
                 channel=agent_name,

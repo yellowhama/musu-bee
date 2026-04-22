@@ -938,14 +938,80 @@ async def get_project(project_id: str) -> str:
 
 
 @mcp.tool()
-async def list_goals() -> str:
-    """List all goals in the company."""
+async def list_goals(status: str = "") -> str:
+    """List goals. Optionally filter by status (active, completed, cancelled)."""
     try:
         c = _get_client()
-        data = await c.get(f"/companies/{c.company_id}/goals")
+        params: dict = {}
+        if status:
+            params["status"] = status
+        data = await c.get(f"/companies/{c.company_id}/goals", **params)
         return _fmt(data)
     except Exception:
         return _tool_error("Error listing goals.")
+
+
+@mcp.tool()
+async def create_goal(
+    title: str,
+    description: str = "",
+    due_date: str = "",
+) -> str:
+    """Create a new goal for the company.
+
+    Goals represent high-level objectives. Break them into issues for execution.
+    """
+    try:
+        c = _get_client()
+        body: dict = {"title": title, "description": description}
+        if due_date:
+            body["due_date"] = due_date
+        data = await c.post(f"/companies/{c.company_id}/goals", body)
+        return _fmt(data)
+    except Exception:
+        return _tool_error("Error creating goal.")
+
+
+@mcp.tool()
+async def update_goal(
+    goal_id: str,
+    title: str = "",
+    description: str = "",
+    status: str = "",
+    due_date: str = "",
+) -> str:
+    """Update a goal. Only non-empty fields are changed.
+
+    Set status to 'completed' when all linked issues are done.
+    """
+    try:
+        c = _get_client()
+        body: dict = {}
+        if title:
+            body["title"] = title
+        if description:
+            body["description"] = description
+        if status:
+            body["status"] = status
+        if due_date:
+            body["due_date"] = due_date
+        if not body:
+            return "No fields to update."
+        data = await c.patch(f"/goals/{goal_id}", body)
+        return _fmt(data)
+    except Exception:
+        return _tool_error(f"Error updating goal {goal_id}.")
+
+
+@mcp.tool()
+async def delete_goal(goal_id: str) -> str:
+    """Delete a goal by ID."""
+    try:
+        c = _get_client()
+        data = await c.delete(f"/goals/{goal_id}")
+        return _fmt(data)
+    except Exception:
+        return _tool_error(f"Error deleting goal {goal_id}.")
 
 
 # ──────────────────────────────────────────────
@@ -1555,6 +1621,46 @@ async def get_wiki_page(page_id: str) -> str:
         return _fmt({"id": safe_id, "title": title, "content": content})
     except Exception:
         return _tool_error("Error fetching wiki page.")
+
+
+# ──────────────────────────────────────────────
+# Company Charter
+# ──────────────────────────────────────────────
+
+_CHARTER_PATH = pathlib.Path(
+    os.environ.get("MUSU_CHARTER_PATH", "")
+) if os.environ.get("MUSU_CHARTER_PATH") else pathlib.Path(
+    os.environ.get("MUSU_WORKSPACE", "/home/hugh51/musu-functions")
+) / ".musu" / "charter.md"
+
+
+@mcp.tool()
+async def read_charter() -> str:
+    """Read the company charter (mission, priorities, constraints).
+
+    The charter is the CEO's primary strategy document.
+    Read this FIRST on every heartbeat to understand WHY the company exists.
+    """
+    try:
+        if _CHARTER_PATH.exists():
+            return _CHARTER_PATH.read_text(encoding="utf-8")
+        return "(No charter found. Create one with update_charter.)"
+    except Exception:
+        return _tool_error("Error reading charter.")
+
+
+@mcp.tool()
+async def update_charter(content: str) -> str:
+    """Update the company charter. Provide the full markdown content.
+
+    Use this to add learned constraints or update priorities based on experience.
+    """
+    try:
+        _CHARTER_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _CHARTER_PATH.write_text(content, encoding="utf-8")
+        return f"Charter updated ({len(content)} chars)."
+    except Exception:
+        return _tool_error("Error updating charter.")
 
 
 # ──────────────────────────────────────────────
