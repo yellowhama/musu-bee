@@ -7,14 +7,14 @@
       "agents": ["ceo", "cto", "qa"],
       "reason": "Judgment and evaluation — accuracy matters",
       "adapter_type": "claude_local",
-      "config": { "command": "claude", "model": "claude-sonnet-4-6" },
+      "config": { "command": "claude", "model": "claude-sonnet-4-6", "dangerously_skip_permissions": true },
       "fallback": { "adapter_type": "gemini_local", "command": "gemini", "model": "gemini-2.5-pro" }
     },
     "gemini": {
       "agents": ["engineer", "planner", "worker", "*-lead", "*-engineer", "*-planner"],
       "reason": "Implementation — speed and volume",
       "adapter_type": "gemini_local",
-      "config": { "command": "gemini", "model": "gemini-2.5-flash" },
+      "config": { "command": "gemini", "model": "gemini-2.5-flash", "dangerously_skip_permissions": true },
       "fallback": { "adapter_type": "codex_local", "command": "codex" }
     },
     "codex": {
