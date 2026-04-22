@@ -42,8 +42,7 @@ while True:
 
 1. `/home/hugh51/musu-functions/docs/DEVELOPMENT_PROCESS.md` 읽기
 2. 미완료 phase feature list 읽기:
-   - `/home/hugh51/musu-functions/docs/phases/phase_52_feature_list.json`
-   - `/home/hugh51/musu-functions/docs/phases/phase_53_feature_list.json`
+   - `/home/hugh51/musu-functions/docs/phases/phase_56_feature_list.json`
 3. `rtk git log --oneline -5` — 최근 커밋 확인
 4. passes=false인 feature 목록 파악
 
@@ -128,10 +127,10 @@ rtk git push
 **목적**: musu-functions 코드베이스 지속적 개발 및 품질 유지
 
 **현재 대기 중인 Phase**:
-1. **Phase 52**: VNC 세션 max TTL — `musu-relay/src/server.ts` + `musu-bridge/relay_client.py`
-2. **Phase 53**: musu-core 테스트 커버리지 — `musu-core/tests/` 신규 생성
+1. **Phase 56**: Wiki API 테스트 커버리지 — `musu-bridge/tests/test_wiki.py` 신규 생성
 
 각 Phase는 `/home/hugh51/musu-functions/docs/phases/` 의 feature list JSON 참조.
+완료된 Phase: 52 (VNC TTL), 53 (musu-core 테스트), 54A (company template), 55 (delegate timeout)
 
 ---
 

@@ -138,12 +138,15 @@ async def _agent_heartbeat_scheduler() -> None:
         MUSU_CEO_HEARTBEAT_ENABLED  = "true"   — must be set to activate
         MUSU_CEO_HEARTBEAT_INTERVAL = seconds   — default 1800 (30 min)
         MUSU_CEO_AGENT_NAME         = name      — default "ceo"
+        MUSU_CEO_COMPANY_ID         = id        — optional company scope
     """
     interval = int(os.environ.get("MUSU_CEO_HEARTBEAT_INTERVAL", "1800"))
     agent_name = os.environ.get("MUSU_CEO_AGENT_NAME", "ceo")
+    company_id = os.environ.get("MUSU_CEO_COMPANY_ID") or None
 
     logger.info(
-        "heartbeat_scheduler: started (interval=%ds, agent=%s)", interval, agent_name
+        "heartbeat_scheduler: started (interval=%ds, agent=%s, company=%s)",
+        interval, agent_name, company_id or "global",
     )
     # Wait 60s after server start before first heartbeat — let everything settle.
     await asyncio.sleep(60)
@@ -154,7 +157,12 @@ async def _agent_heartbeat_scheduler() -> None:
             await route_chat(
                 channel=agent_name,
                 sender_id="system",
-                text="heartbeat",
+                text=(
+                    "자율 개발 루프 실행: DEVELOPMENT_PROCESS.md를 읽고, "
+                    "미완료 Phase feature list를 확인한 후, "
+                    "Sprint Contract 작성 → Engineer 위임 → QA → 커밋 순서로 진행하라."
+                ),
+                company_id=company_id,
             )
             logger.info("heartbeat_scheduler: %s done", agent_name)
         except Exception as exc:
@@ -185,6 +193,7 @@ async def _node_manager_heartbeat() -> None:
     while True:
         try:
             logger.info("node_heartbeat: invoking %s", mgr_name)
+            # Node managers are always global (per-device, not company-scoped)
             await route_chat(
                 channel=mgr_name,
                 sender_id="system",
@@ -498,6 +507,8 @@ class DelegateRequest(BaseModel):
     # Optional caller-supplied timeout override (seconds). When None, the agent's
     # adapter_config.timeout_sec is used. QA loop path always uses 900s regardless.
     timeout_sec: int | None = Field(default=None, ge=30, le=3600)
+    # Company scope: when set, agent resolution prefers this company's agents.
+    company_id: str | None = None
 
 
 class CompanyCreateRequest(BaseModel):
@@ -599,6 +610,7 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
                         text=req.text,
                         sender_id=req.sender_id,
                         max_iter=req.qa_loop_max_iter,
+                        company_id=req.company_id,
                     ),
                     timeout=_timeout,
                 )
@@ -609,6 +621,7 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
                         sender_id=req.sender_id,
                         text=req.text,
                         exec_id=task_id,
+                        company_id=req.company_id,
                     ),
                     timeout=_timeout,
                 )
@@ -952,7 +965,7 @@ async def api_company_run(company_id: str) -> dict:
         "Delegate tasks to your team as needed. Report what you delegated and why."
     )
 
-    result = await route_chat(channel="ceo", sender_id="orchestrator", text=instruction)
+    result = await route_chat(channel="ceo", sender_id="orchestrator", text=instruction, company_id=company_id)
     return {"company_id": company_id, "task": result}
 
 
@@ -978,14 +991,18 @@ def api_put_workspace(body: WorkspaceUpdateRequest) -> dict:
 
 @app.get("/api/companies/{company_id}/agents", summary="List agents for a company")
 async def api_company_agents(company_id: str) -> list[dict]:
-    """List all agents scoped to a company.
-    Since agents are currently global (no company_id column), returns all agents
-    when the company exists.
-    """
+    """List agents scoped to a company. Returns company-owned agents + global agents."""
     company = get_company(company_id)
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
-    return get_agents()
+    backend = _get_backend()
+    # Company-scoped agents
+    scoped = backend.list_agents(company_id=company_id)
+    # Global agents (company_id IS NULL) — for backwards compat
+    global_agents = [a for a in backend.list_agents() if a.get("company_id") is None]
+    # Merge: scoped first, then globals not shadowed by scoped names
+    scoped_names = {a["name"] for a in scoped}
+    return scoped + [a for a in global_agents if a["name"] not in scoped_names]
 
 
 @app.get("/api/companies/{company_id}/activity", summary="Activity feed for a company")
@@ -1402,7 +1419,14 @@ async def api_cancel_heartbeat_run(run_id: str) -> dict:
 
 
 class HeartbeatInvokeRequest(BaseModel):
-    prompt: str = Field(default="heartbeat", max_length=2000)
+    prompt: str = Field(
+        default=(
+            "자율 개발 루프 실행: DEVELOPMENT_PROCESS.md를 읽고, "
+            "미완료 Phase feature list를 확인한 후, "
+            "Sprint Contract 작성 → Engineer 위임 → QA → 커밋 순서로 진행하라."
+        ),
+        max_length=2000,
+    )
     sender_id: str = Field(default="system", max_length=128)
 
 
@@ -1413,7 +1437,10 @@ async def api_invoke_heartbeat(agent_id: str, req: HeartbeatInvokeRequest) -> di
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     channel = agent.get("name", agent_id)
-    result = await route_chat(channel=channel, sender_id=req.sender_id, text=req.prompt)
+    result = await route_chat(
+        channel=channel, sender_id=req.sender_id, text=req.prompt,
+        company_id=agent.get("company_id"),
+    )
     return result
 
 

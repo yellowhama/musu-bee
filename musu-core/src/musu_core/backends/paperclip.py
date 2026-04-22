@@ -100,14 +100,14 @@ class PaperclipBackend(BackendABC):
                 return None
             raise
 
-    def get_agent_by_name(self, name: str) -> dict[str, Any] | None:
-        agents = self.list_agents()
+    def get_agent_by_name(self, name: str, company_id: str | None = None) -> dict[str, Any] | None:
+        agents = self.list_agents(company_id=company_id)
         for a in agents:
             if a.get("name") == name:
                 return a
         return None
 
-    def list_agents(self) -> list[dict[str, Any]]:
+    def list_agents(self, company_id: str | None = None) -> list[dict[str, Any]]:
         data = self._get(f"/api/companies/{self.company_id}/agents")
         if isinstance(data, list):
             return [_agent_from_pc(a) for a in data]

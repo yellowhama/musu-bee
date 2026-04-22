@@ -76,9 +76,13 @@ def test_create_company_from_template_dev_team(tmp_path):
     assert result["company"]["purpose"] == "MUSU 소프트웨어 개발"
     assert result["company"]["status"] == "active"
     agent_names = [a["name"] for a in result["agents"]]
-    assert "engineer" in agent_names
-    assert "qa" in agent_names
-    assert "planner" in agent_names
+    # Agent names are prefixed with company_id[:8]
+    assert any("engineer" in n for n in agent_names)
+    assert any("qa" in n for n in agent_names)
+    assert any("planner" in n for n in agent_names)
+    # Verify company_id is set on created agents
+    for a in result["agents"]:
+        assert a["company_id"] == result["company"]["id"]
 
 
 def test_create_company_from_template_unknown_raises(tmp_path):
@@ -126,7 +130,7 @@ def test_post_companies_with_template():
     data = resp.json()
     assert "company" in data
     assert data["company"]["status"] == "active"
-    assert any(a["name"] == "engineer" for a in data["agents"])
+    assert any("engineer" in a["name"] for a in data["agents"])
 
 
 def test_post_companies_no_template_returns_plain_company():

@@ -1,0 +1,34 @@
+{
+  "phase": "Phase 57",
+  "task": "Company-Scoped Agents — agents 테이블에 company_id 추가, CRUD 전 레이어에 전파",
+  "scope": [
+    "v14 migration: agents 테이블에 company_id FK + 2개 partial unique index",
+    "AgentRegistry.create/get_by_name/list — company_id 파라미터 지원",
+    "BackendABC 인터페이스 업데이트",
+    "LocalBackend/PaperclipBackend — company_id 전파",
+    "route_message/route_chat/route_chat_with_qa_loop — company_id 파라미터 전파",
+    "server.py DelegateRequest — company_id 필드 추가",
+    "GET /api/companies/{id}/agents — scoped + global 병합 반환",
+    "db.py CREATE TABLE agents에 company_id 컬럼 추가"
+  ],
+  "out_of_scope": [
+    "vibecode-town UI 변경",
+    "Paddle 결제",
+    "musu-relay 변경",
+    "기존 테스트 수정 (하위호환 유지)"
+  ],
+  "acceptance_criteria": [
+    "pytest musu-bridge/tests/ -q — 0 failures (기존 테스트 회귀 없음)",
+    "pytest musu-core/tests/ -q — 0 failures",
+    "v14 migration이 MIGRATIONS 리스트에 등록됨",
+    "AgentRegistry.create(company_id='xxx') 정상 동작",
+    "AgentRegistry.get_by_name('name', company_id='xxx') — scoped 우선, global fallback",
+    "AgentRegistry.list(company_id='xxx') — 해당 company 에이전트만 반환",
+    "LocalBackend.get_agent_by_name/list_agents company_id 파라미터 지원",
+    "PaperclipBackend.get_agent_by_name/list_agents company_id 파라미터 지원 (signature 일치)",
+    "route_message company_id 파라미터 전파",
+    "DelegateRequest.company_id 필드 존재 (선택적)",
+    "GET /api/companies/{id}/agents — scoped + global 병합 (scoped 우선)"
+  ],
+  "done_definition": "모든 기존 테스트 통과 + company_id scoping이 전 레이어에 일관되게 동작"
+}

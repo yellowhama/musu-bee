@@ -1,0 +1,11 @@
+{
+  "pass": true,
+  "scores": {
+    "functionality": 9,
+    "correctness": 8,
+    "completeness": 9,
+    "code_quality": 8
+  },
+  "feedback": "All Sprint Contract criteria met. Fixed one correctness issue: get_by_name fallback was missing 'company_id IS NULL' guard, which could return another company's scoped agent. After fix: all 379 tests pass (bridge 133 + core 246).",
+  "iteration": 1
+}

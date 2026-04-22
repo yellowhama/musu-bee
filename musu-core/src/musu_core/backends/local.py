@@ -27,6 +27,7 @@ def _agent_to_dict(agent: Any) -> dict[str, Any]:
         "status": agent.status,
         "created_at": agent.created_at,
         "updated_at": agent.updated_at,
+        "company_id": getattr(agent, "company_id", None),
     }
 
 
@@ -162,6 +163,7 @@ class LocalBackend(BackendABC):
         role: str = "",
         adapter_type: str = "process",
         adapter_config: dict[str, Any] | None = None,
+        company_id: str | None = None,
     ) -> dict[str, Any]:
         agent = self.agents.create(
             name=name,
@@ -169,6 +171,7 @@ class LocalBackend(BackendABC):
             adapter_type=adapter_type,
             adapter_config=adapter_config or {},
             agent_id=agent_id,
+            company_id=company_id,
         )
         return _agent_to_dict(agent)
 
@@ -176,12 +179,12 @@ class LocalBackend(BackendABC):
         agent = self.agents.get(agent_id)
         return _agent_to_dict(agent) if agent else None
 
-    def get_agent_by_name(self, name: str) -> dict[str, Any] | None:
-        agent = self.agents.get_by_name(name)
+    def get_agent_by_name(self, name: str, company_id: str | None = None) -> dict[str, Any] | None:
+        agent = self.agents.get_by_name(name, company_id=company_id)
         return _agent_to_dict(agent) if agent else None
 
-    def list_agents(self) -> list[dict[str, Any]]:
-        return [_agent_to_dict(a) for a in self.agents.list(status="active")]
+    def list_agents(self, company_id: str | None = None) -> list[dict[str, Any]]:
+        return [_agent_to_dict(a) for a in self.agents.list(status="active", company_id=company_id)]
 
     def update_agent(self, agent_id: str, **kwargs: Any) -> dict[str, Any] | None:
         """Update agent fields. Returns updated agent dict or None if not found."""

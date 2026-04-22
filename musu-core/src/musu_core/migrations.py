@@ -448,6 +448,37 @@ def _v13_down(conn: sqlite3.Connection) -> None:  # noqa: ARG001
     """SQLite < 3.35 cannot DROP COLUMN — no-op."""
 
 
+# ---------------------------------------------------------------------------
+# v14: add company_id to agents (company-scoped agents)
+# ---------------------------------------------------------------------------
+
+
+def _v14_up(conn: sqlite3.Connection) -> None:
+    """Add company_id FK to agents; unique (company_id, name) for active agents."""
+    if not _column_exists(conn, "agents", "company_id"):
+        conn.execute(
+            "ALTER TABLE agents ADD COLUMN company_id TEXT REFERENCES companies(id) ON DELETE SET NULL;"
+        )
+    # Two partial unique indexes to handle NULL company_id (SQLite NULLs are distinct):
+    # 1) Global agents: unique name when company_id IS NULL
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_agents_global_name_active "
+        "ON agents(name) WHERE status = 'active' AND company_id IS NULL;"
+    )
+    # 2) Company-scoped agents: unique (company_id, name) when company_id IS NOT NULL
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_agents_company_name_active "
+        "ON agents(company_id, name) WHERE status = 'active' AND company_id IS NOT NULL;"
+    )
+    conn.commit()
+
+
+def _v14_down(conn: sqlite3.Connection) -> None:
+    conn.execute("DROP INDEX IF EXISTS idx_agents_global_name_active;")
+    conn.execute("DROP INDEX IF EXISTS idx_agents_company_name_active;")
+    conn.commit()
+
+
 MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v1_fallback_chain", _v1_up, _v1_down),
     ("v2_messages_agent_id", _v2_up, _v2_down),
@@ -462,6 +493,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v11_dedup_unique_indexes", _v11_up, _v11_down),
     ("v12_sprint_contracts_qa_scores", _v12_up, _v12_down),
     ("v13_company_status_purpose", _v13_up, _v13_down),
+    ("v14_agents_company_id", _v14_up, _v14_down),
 ]
 
 

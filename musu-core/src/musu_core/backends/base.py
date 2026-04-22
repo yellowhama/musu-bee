@@ -19,12 +19,12 @@ class BackendABC(ABC):
         """Return agent dict by id, or None if not found."""
 
     @abstractmethod
-    def get_agent_by_name(self, name: str) -> dict[str, Any] | None:
-        """Return agent dict by name, or None if not found."""
+    def get_agent_by_name(self, name: str, company_id: str | None = None) -> dict[str, Any] | None:
+        """Return agent dict by name.  If company_id given, prefer scoped agent."""
 
     @abstractmethod
-    def list_agents(self) -> list[dict[str, Any]]:
-        """Return all active agents."""
+    def list_agents(self, company_id: str | None = None) -> list[dict[str, Any]]:
+        """Return active agents.  If company_id given, return only that company's."""
 
     # --- Tasks ---
 

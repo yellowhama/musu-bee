@@ -52,6 +52,8 @@ class Agent:
     # Optional ordered list of fallback adapter configs tried on retriable failure.
     # Each entry: {"adapter_type": "hermes", "model": "...", ...}
     fallback_chain: list[dict[str, Any]] | None = None
+    # NULL = global agent; set for company-scoped agents.
+    company_id: str | None = None
 
     @staticmethod
     def from_row(row: Any) -> "Agent":
@@ -67,6 +69,7 @@ class Agent:
             created_at=row["created_at"],
             updated_at=row["updated_at"],
             fallback_chain=json.loads(raw_chain) if raw_chain else None,
+            company_id=row["company_id"] if "company_id" in keys else None,
         )
 
 
@@ -82,27 +85,46 @@ class AgentRegistry:
         adapter_config: dict[str, Any] | None = None,
         agent_id: str | None = None,
         fallback_chain: list[dict[str, Any]] | None = None,
+        company_id: str | None = None,
     ) -> Agent:
         if fallback_chain is not None:
             validate_fallback_chain(fallback_chain)
         aid = agent_id or str(uuid.uuid4())
         config_json = json.dumps(adapter_config or {})
         chain_json = json.dumps(fallback_chain) if fallback_chain is not None else None
-        rows = self._db.execute(
-            """
-            INSERT INTO agents (id, name, role, adapter_type, adapter_config, fallback_chain)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ON CONFLICT(name) WHERE status = 'active'
-            DO UPDATE SET
-                role           = excluded.role,
-                adapter_type   = excluded.adapter_type,
-                adapter_config = excluded.adapter_config,
-                fallback_chain = excluded.fallback_chain,
-                updated_at     = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
-            RETURNING *
-            """,
-            (aid, name, role, adapter_type, config_json, chain_json),
-        )
+        # Upsert: check if agent already exists for this (company_id, name) pair.
+        # SQLite NULLs are distinct in unique indexes, so we handle global vs scoped:
+        if company_id is not None:
+            existing = self._db.execute(
+                "SELECT id FROM agents WHERE name = ? AND company_id = ? AND status = 'active'",
+                (name, company_id),
+            )
+        else:
+            existing = self._db.execute(
+                "SELECT id FROM agents WHERE name = ? AND company_id IS NULL AND status = 'active'",
+                (name,),
+            )
+        if existing:
+            # Update existing agent
+            rows = self._db.execute(
+                """
+                UPDATE agents
+                SET role = ?, adapter_type = ?, adapter_config = ?, fallback_chain = ?,
+                    updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+                WHERE id = ?
+                RETURNING *
+                """,
+                (role, adapter_type, config_json, chain_json, existing[0]["id"]),
+            )
+        else:
+            rows = self._db.execute(
+                """
+                INSERT INTO agents (id, name, role, adapter_type, adapter_config, fallback_chain, company_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                RETURNING *
+                """,
+                (aid, name, role, adapter_type, config_json, chain_json, company_id),
+            )
         return Agent.from_row(rows[0])
 
     def get(self, agent_id: str) -> Agent | None:
@@ -111,21 +133,34 @@ class AgentRegistry:
         )
         return Agent.from_row(rows[0]) if rows else None
 
-    def get_by_name(self, name: str) -> Agent | None:
+    def get_by_name(self, name: str, company_id: str | None = None) -> Agent | None:
+        if company_id is not None:
+            # Try company-scoped first, fall back to global
+            rows = self._db.execute(
+                "SELECT * FROM agents WHERE name = ? AND company_id = ? LIMIT 1",
+                (name, company_id),
+            )
+            if rows:
+                return Agent.from_row(rows[0])
+        # Fall back to global agents only (company_id IS NULL)
         rows = self._db.execute(
-            "SELECT * FROM agents WHERE name = ? LIMIT 1", (name,)
+            "SELECT * FROM agents WHERE name = ? AND company_id IS NULL LIMIT 1", (name,)
         )
         return Agent.from_row(rows[0]) if rows else None
 
-    def list(self, status: str | None = None) -> list[Agent]:
+    def list(self, status: str | None = None, company_id: str | None = None) -> list[Agent]:
+        clauses: list[str] = []
+        params: list[str] = []
         if status:
-            rows = self._db.execute(
-                "SELECT * FROM agents WHERE status = ? ORDER BY created_at", (status,)
-            )
-        else:
-            rows = self._db.execute(
-                "SELECT * FROM agents ORDER BY created_at"
-            )
+            clauses.append("status = ?")
+            params.append(status)
+        if company_id is not None:
+            clauses.append("company_id = ?")
+            params.append(company_id)
+        where = " WHERE " + " AND ".join(clauses) if clauses else ""
+        rows = self._db.execute(
+            f"SELECT * FROM agents{where} ORDER BY created_at", tuple(params)
+        )
         return [Agent.from_row(r) for r in rows]
 
     def update(

@@ -43,6 +43,7 @@ async def route_chat(
     sender_id: str,
     text: str,
     exec_id: str | None = None,
+    company_id: str | None = None,
 ) -> dict[str, Any]:
     """Route a message to the agent mapped to the given channel.
 
@@ -63,7 +64,7 @@ async def route_chat(
     if exec_id is None:
         exec_id = str(uuid.uuid4())
         try:
-            backend.create_route_execution(exec_id, channel, sender_id, text, company_id=_CANONICAL_COMPANY_ID)
+            backend.create_route_execution(exec_id, channel, sender_id, text, company_id=company_id or _CANONICAL_COMPANY_ID)
             backend.update_route_execution(exec_id, "running")
         except Exception:
             logger.warning("route_chat: failed to create durability record — continuing")
@@ -103,7 +104,9 @@ async def route_chat(
     # ── Local handling ─────────────────────────────────────────────────────────
     cfg = get_bridge_config()
 
-    if channel not in cfg.channel_agent_map:
+    # For company-scoped agents, try direct name lookup before checking static map
+    _agent_exists = backend.get_agent_by_name(channel, company_id=company_id) is not None
+    if not _agent_exists and channel not in cfg.channel_agent_map:
         return _finish({"error": f"No agent mapped to channel: {channel!r}", "response": None})
 
     try:
@@ -112,6 +115,7 @@ async def route_chat(
             source_ref=sender_id,
             message=text.strip(),
             backend=_get_backend(),
+            company_id=company_id,
         )
     except ValueError as exc:
         logger.warning("route_chat: no agent for channel %r — %s", channel, exc)
@@ -124,7 +128,7 @@ async def route_chat(
         return _finish({"error": "Internal error. Please try again.", "response": None})
 
     # Look up agent info
-    agent = backend.get_agent_by_name(channel)
+    agent = backend.get_agent_by_name(channel, company_id=company_id)
     agent_id = agent["id"] if agent else None
     agent_name = agent["role"] if agent else channel
 
@@ -140,6 +144,7 @@ async def route_chat_with_qa_loop(
     text: str,
     sender_id: str,
     max_iter: int = 3,
+    company_id: str | None = None,
 ) -> dict[str, Any]:
     """Run Engineer → QA evaluation loop and update the route_execution record.
 
@@ -159,8 +164,8 @@ async def route_chat_with_qa_loop(
     cfg = get_core_config()
     router = Router(backend=backend, config=cfg)
 
-    engineer = backend.get_agent_by_name("engineer")
-    qa_agent = backend.get_agent_by_name("qa")
+    engineer = backend.get_agent_by_name("engineer", company_id=company_id)
+    qa_agent = backend.get_agent_by_name("qa", company_id=company_id)
     if engineer is None or qa_agent is None:
         error = "engineer or qa agent not found in DB — register both agents before using use_qa_loop"
         backend.update_route_execution(task_id, "failed", error=error)
@@ -497,18 +502,32 @@ def get_costs_by_agent_global() -> list[dict[str, Any]]:
     return backend.get_costs_by_agent_global()
 
 
-def get_channel_map() -> dict[str, Any]:
-    """Return channel-to-agent mapping with agent details."""
+def get_channel_map(company_id: str | None = None) -> dict[str, Any]:
+    """Return channel-to-agent mapping with agent details.
+
+    If company_id is given, includes company-scoped agents alongside global ones.
+    """
     cfg = get_bridge_config()
     backend = _get_backend()
     result = {}
+    # Static global map
     for channel, agent_name in cfg.channel_agent_map.items():
-        agent = backend.get_agent_by_name(agent_name)
+        agent = backend.get_agent_by_name(agent_name, company_id=company_id)
         result[channel] = {
             "agent_name": agent_name,
             "agent_id": agent["id"] if agent else None,
             "agent_role": agent["role"] if agent else None,
         }
+    # Add company-scoped agents not in static map
+    if company_id:
+        for agent in backend.list_agents(company_id=company_id):
+            name = agent["name"]
+            if name not in result:
+                result[name] = {
+                    "agent_name": name,
+                    "agent_id": agent["id"],
+                    "agent_role": agent["role"],
+                }
     return result
 
 
@@ -728,6 +747,10 @@ def create_company_from_template(
     )
     # store purpose + status in the v13 columns
     company = b.update_company(company["id"], purpose=purpose, status="active")
+    company_id = company["id"]
+
+    # Short prefix for agent names: first 8 chars of company_id
+    short = company_id[:8]
 
     created_agents = []
     for tmpl_agent in tmpl["agents"]:
@@ -735,7 +758,7 @@ def create_company_from_template(
             tmpl_agent, name, purpose, work_dir=work_dir, test_cmd=test_cmd
         )
         agent = b.create_agent(
-            name=rendered["name"],
+            name=f"{short}-{rendered['name']}",
             role=rendered["role"],
             adapter_type=rendered["adapter_type"],
             adapter_config={
@@ -745,6 +768,7 @@ def create_company_from_template(
                 "timeout_sec": 600,
                 "instructions": rendered["instructions"],
             },
+            company_id=company_id,
         )
         created_agents.append(agent)
 

@@ -273,6 +273,7 @@ async def route_message(
     message: str,
     backend: "BackendABC",
     config: Config | None = None,
+    company_id: str | None = None,
 ) -> str:
     """
     High-level routing entry point.
@@ -295,8 +296,8 @@ async def route_message(
 
     cfg = config or get_config()
 
-    # 1. Find agent by source name
-    agent_dict = backend.get_agent_by_name(source)
+    # 1. Find agent by source name (company-scoped if given)
+    agent_dict = backend.get_agent_by_name(source, company_id=company_id)
     if agent_dict is None:
         # Mesh fallback: forward to remote node if agent is assigned there
         from musu_core.mesh import get_registry

@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS agents (
     status      TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'paused', 'retired')),
     -- JSON array: ordered fallback adapter configs [{adapter_type, ...}, ...]
     fallback_chain TEXT DEFAULT NULL,
+    -- NULL = global agent; set to company id for company-scoped agents
+    company_id  TEXT REFERENCES companies(id) ON DELETE SET NULL,
     created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
