@@ -89,7 +89,24 @@ def _health_probe_timeout() -> float:
     return float(os.environ.get("MUSU_HEALTH_PROBE_TIMEOUT_SEC", "5"))
 
 
-def _route_timeout_sec() -> float:
+_CHANNEL_TIMEOUT_DEFAULTS: dict[str, float] = {
+    "engineer": 300.0,
+    "ceo": 300.0,
+}
+
+
+def _route_timeout_sec(channel: str = "") -> float:
+    """Return route timeout in seconds for the given channel.
+
+    Priority: MUSU_ROUTE_TIMEOUT_SEC_{CHANNEL} > channel default > MUSU_ROUTE_TIMEOUT_SEC > 180s.
+    """
+    if channel:
+        env_key = f"MUSU_ROUTE_TIMEOUT_SEC_{channel.upper()}"
+        channel_override = os.environ.get(env_key)
+        if channel_override:
+            return float(channel_override)
+        if channel in _CHANNEL_TIMEOUT_DEFAULTS:
+            return _CHANNEL_TIMEOUT_DEFAULTS[channel]
     return float(os.environ.get("MUSU_ROUTE_TIMEOUT_SEC", "180"))
 
 
@@ -333,7 +350,7 @@ async def route_chat(
 
     try:
         import anyio
-        with anyio.fail_after(_route_timeout_sec()):
+        with anyio.fail_after(_route_timeout_sec(channel)):
             route_result = await _router.route(RouteRequest(
                 agent_id=agent_id,
                 prompt=text.strip(),
@@ -342,8 +359,9 @@ async def route_chat(
                 cost_optimized=cost_optimized,
             ))
     except TimeoutError:
-        logger.warning("route_chat: route_timeout — LLM call exceeded %.0fs for channel=%r", _route_timeout_sec(), channel)
-        return _finish({"error": f"route_timeout: LLM call exceeded {_route_timeout_sec():.0f}s limit", "response": None})
+        _timeout = _route_timeout_sec(channel)
+        logger.warning("route_chat: route_timeout — LLM call exceeded %.0fs for channel=%r", _timeout, channel)
+        return _finish({"error": f"route_timeout: LLM call exceeded {_timeout:.0f}s limit", "response": None})
     except Exception as exc:
         logger.exception("route_chat: unexpected error — %s", exc)
         return _finish({"error": "Internal error. Please try again.", "response": None})

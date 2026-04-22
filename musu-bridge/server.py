@@ -319,6 +319,7 @@ async def _heartbeat_iteration(
     agent_name: str,
     company_id: str | None,
     diag_summary: str,
+    role: str = "ceo",
 ) -> None:
     """Single guarded heartbeat iteration — serialized by _heartbeat_lock."""
     async with _heartbeat_lock:
@@ -340,26 +341,37 @@ async def _heartbeat_iteration(
                     )
                 return
 
-        logger.info("heartbeat_scheduler: invoking %s", agent_name)
+        logger.info("heartbeat_scheduler: invoking %s (role: %s)", agent_name, role)
         prompt_parts = []
-        if diag_summary:
+        if diag_summary and role == "ceo":
             prompt_parts.append(
                 f"## 진단 결과 (자동 감지)\n\n{diag_summary}\n\n"
                 "위 이슈를 확인하고 필요 시 create_issue로 등록한 후, 개발 루프를 진행하라.\n\n---\n\n"
             )
-        prompt_parts.append(
-            "자율 CEO 루프 실행:\n"
-            "1. read_charter() — 회사 미션/우선순위/제약 확인\n"
-            "2. read_board_messages('ceo-board') — 다른 기기 CEO 메시지 확인\n"
-            "3. list_goals(status='active') — 현재 목표 확인\n"
-            "4. 판단: 목표 없으면 생성, 이슈 없으면 분해, 이슈 있으면 팀장에게 위임\n"
-            "5. delegate_task(channel='{short}-lead', ...) — 팀장에게 위임 (직접 engineer 안 시킴)\n"
-            "6. post_board_message('ceo-board', 진행 상황) — 다른 CEO에게 공유\n\n"
-            "## 위임 패턴 (fire-and-check) — 필수\n"
-            "delegate_task 후 즉시 종료한다. task_id를 이슈 코멘트에 기록하고 heartbeat 종료.\n"
-            "다음 heartbeat에서 get_task_status(task_id)로 완료 여부 확인.\n"
-            "폴링 루프 금지: while True + sleep 루프 절대 실행 금지 — heartbeat timeout 초과 원인."
-        )
+        
+        if role == "ceo":
+            prompt_parts.append(
+                "자율 CEO 루프 실행:\n"
+                "1. read_charter() — 회사 미션/우선순위/제약 확인\n"
+                "2. read_board_messages('ceo-board') — 다른 기기 CEO 메시지 확인\n"
+                "3. list_goals(status='active') — 현재 목표 확인\n"
+                "4. 판단: 목표 없으면 생성, 이슈 없으면 분해, 이슈 있으면 팀장에게 위임\n"
+                "5. delegate_task(channel='{short}-lead', ...) — 팀장에게 위임 (직접 engineer 안 시킴)\n"
+                "6. post_board_message('ceo-board', 진행 상황) — 다른 CEO에게 공유\n\n"
+                "## 위임 패턴 (fire-and-check) — 필수\n"
+                "delegate_task 후 즉시 종료한다. task_id를 이슈 코멘트에 기록하고 heartbeat 종료.\n"
+                "다음 heartbeat에서 get_task_status(task_id)로 완료 여부 확인.\n"
+                "폴링 루프 금지: while True + sleep 루프 절대 실행 금지 — heartbeat timeout 초과 원인."
+            )
+        elif role == "team_lead":
+            prompt_parts.append(
+                "자율 팀장 루프 실행:\n"
+                "1. get_task_status('assigned') — 본인에게 할당된 이슈/작업 확인\n"
+                "2. 판단: 진행해야 할 작업이 있다면 엔지니어/QA에게 구체적 명세(Sprint Contract)와 함께 delegate_task 실행\n"
+                "3. 진행 상황 확인: 하위 태스크의 상태를 폴링하지 말고, 다음 하트비트에서 확인\n"
+                "4. 완료 보고: 하위 태스크가 완료되면 CEO가 할당한 원본 이슈/태스크에 코멘트로 결과 보고\n"
+            )
+
         _hb_timeout = int(os.environ.get("MUSU_HEARTBEAT_TIMEOUT_SEC", "600"))
         try:
             await asyncio.wait_for(
@@ -457,6 +469,53 @@ async def _agent_heartbeat_scheduler() -> None:
                 )
             except Exception as exc:
                 logger.warning("heartbeat_scheduler: company %s error — %s", cid[:8], exc)
+
+        await asyncio.sleep(interval)
+
+
+async def _team_lead_heartbeat_scheduler() -> None:
+    """Periodic heartbeat for Team Lead agents.
+    
+    Operates similarly to the CEO heartbeat but defaults to a faster cycle.
+    Shares the _heartbeat_lock so it cannot run concurrently with the CEO,
+    preventing SQLite 'database is locked' errors.
+    """
+    interval = int(os.environ.get("MUSU_TEAM_LEAD_HEARTBEAT_INTERVAL", "600"))
+    agent_name = os.environ.get("MUSU_TEAM_LEAD_AGENT_NAME", "team_lead")
+    single_company_id = os.environ.get("MUSU_TEAM_LEAD_COMPANY_ID") or None
+
+    mode = f"single={single_company_id}" if single_company_id else "multi-company"
+    logger.info(
+        "team_lead_scheduler: started (interval=%ds, agent=%s, mode=%s)",
+        interval, agent_name, mode,
+    )
+    await asyncio.sleep(30)
+
+    while True:
+        if single_company_id:
+            company_ids = [single_company_id]
+        else:
+            try:
+                from handlers import list_companies as _list_hb_co
+                company_ids = [c["id"] for c in _list_hb_co() if c.get("status") == "active"]
+            except Exception:
+                company_ids = []
+
+        if not company_ids:
+            await asyncio.sleep(interval)
+            continue
+
+        for cid in company_ids:
+            try:
+                logger.info("team_lead_scheduler: company %s", cid[:8])
+                await _heartbeat_iteration(
+                    agent_name=agent_name,
+                    company_id=cid,
+                    diag_summary="",
+                    role="team_lead",
+                )
+            except Exception as exc:
+                logger.warning("team_lead_scheduler: company %s error — %s", cid[:8], exc)
 
         await asyncio.sleep(interval)
 
@@ -717,6 +776,12 @@ async def lifespan(app: FastAPI):
         heartbeat_task = asyncio.create_task(_agent_heartbeat_scheduler())
         logger.info("heartbeat_scheduler: task started")
 
+    # Team Lead heartbeat scheduler (optional — enabled by default if CEO is on)
+    team_lead_task = None
+    if os.environ.get("MUSU_TEAM_LEAD_HEARTBEAT_ENABLED", os.environ.get("MUSU_CEO_HEARTBEAT_ENABLED", "")).lower() == "true":
+        team_lead_task = asyncio.create_task(_team_lead_heartbeat_scheduler())
+        logger.info("team_lead_scheduler: task started")
+
     # Node manager heartbeat (optional — only when MUSU_NODE_HEARTBEAT_ENABLED=true)
     node_heartbeat_task = None
     if os.environ.get("MUSU_NODE_HEARTBEAT_ENABLED", "").lower() == "true":
@@ -737,6 +802,8 @@ async def lifespan(app: FastAPI):
     discovery.close()
     if node_heartbeat_task:
         node_heartbeat_task.cancel()
+    if team_lead_task:
+        team_lead_task.cancel()
     if heartbeat_task:
         heartbeat_task.cancel()
     if relay_task:

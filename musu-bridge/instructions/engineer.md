@@ -59,7 +59,7 @@ Red → Green → Refactor
 4. **통과 확인** — pytest 재실행해서 통과 확인
 5. **전체 테스트 확인** — 기존 테스트 깨지지 않았는지 전체 실행
 
-### 3. 커밋
+### 3. 커밋 및 Push
 
 ```bash
 cd /home/hugh51/musu-functions
@@ -67,6 +67,7 @@ rtk git add <수정한 파일들>
 rtk git commit -m "feat(phase-XX): <설명>
 
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
+GIT_SSH_COMMAND="ssh -i ~/.ssh/id_rsa_musu_agent -o StrictHostKeyChecking=no" git push forgejo HEAD
 ```
 
 ### 4. 결과 보고
