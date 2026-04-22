@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from musu_core.qa_score import QAScore, MAX_ITERATIONS
 from musu_core.router import Router, RouteRequest, RouteResult
 from musu_core.sprint_contract import SprintContract
+from musu_core.task_workspace import TaskWorkspace
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +77,17 @@ class QALoop:
         all_scores: list[QAScore] = []
         final_score: QAScore | None = None
 
+        # Per-task workspace for file-based agent communication
+        workspace: TaskWorkspace | None = None
+        if task_id:
+            workspace = TaskWorkspace(task_id)
+            workspace.create()
+            workspace.write_contract(contract.to_dict() if hasattr(contract, "to_dict") else {
+                "task": contract.task,
+                "scope": contract.scope,
+                "acceptance_criteria": contract.acceptance_criteria,
+            })
+
         # Session ID is threaded through all Engineer iterations to preserve context.
         # The Engineer remembers what it built; QA feedback is appended each round.
         active_engineer_session: str | None = engineer_session_id
@@ -89,7 +101,7 @@ class QALoop:
 
             # ── Engineer phase ────────────────────────────────────────────
             engineer_prompt = self._build_engineer_prompt(
-                task_prompt, contract, final_score, iteration
+                task_prompt, contract, final_score, iteration, workspace
             )
             eng_req = RouteRequest(
                 agent_id=self._engineer_id,
@@ -117,7 +129,12 @@ class QALoop:
                 )
 
             # ── QA phase ──────────────────────────────────────────────────
-            qa_prompt = self._build_qa_prompt(contract, eng_result.summary)
+            # If engineer wrote workspace file, include it in QA context
+            eng_workspace_data = workspace.read_engineer_output() if workspace else None
+            eng_summary = eng_result.summary
+            if eng_workspace_data:
+                eng_summary += f"\n\n## Structured Engineer Output (from workspace)\n```json\n{__import__('json').dumps(eng_workspace_data, indent=2, ensure_ascii=False)}\n```"
+            qa_prompt = self._build_qa_prompt(contract, eng_summary, workspace)
             qa_req = RouteRequest(
                 agent_id=self._qa_id,
                 prompt=qa_prompt,
@@ -126,9 +143,26 @@ class QALoop:
             qa_result = await self._router.route(qa_req)
             qa_results.append(qa_result)
 
-            # Parse score
-            raw_output = qa_result.summary if qa_result.success else ""
-            score = QAScore.parse_agent_output(raw_output, iteration=iteration)
+            # Parse score — prefer workspace file, fallback to text parsing
+            score: QAScore | None = None
+            qa_ws_data = workspace.read_qa_feedback() if workspace else None
+            if qa_ws_data and "scores" in qa_ws_data:
+                try:
+                    s = qa_ws_data["scores"]
+                    score = QAScore(
+                        functionality=s.get("functionality", 0),
+                        correctness=s.get("correctness", 0),
+                        completeness=s.get("completeness", 0),
+                        code_quality=s.get("code_quality", 0),
+                        feedback=qa_ws_data.get("feedback", ""),
+                        iteration=iteration,
+                        raw_output=qa_result.summary if qa_result.success else "",
+                    )
+                except (KeyError, TypeError):
+                    score = None
+            if score is None:
+                raw_output = qa_result.summary if qa_result.success else ""
+                score = QAScore.parse_agent_output(raw_output, iteration=iteration)
 
             if score is None:
                 logger.warning("QA returned unparseable output on iteration %d", iteration)
@@ -202,10 +236,20 @@ class QALoop:
         contract: SprintContract,
         prev_score: QAScore | None,
         iteration: int,
+        workspace: TaskWorkspace | None = None,
     ) -> str:
         parts: list[str] = []
 
         parts.append(contract.engineer_prompt_header())
+
+        if workspace:
+            parts.append(f"## Task Workspace\n\nPath: `{workspace.path}`")
+            parts.append(
+                "Read `sprint_contract.json` for acceptance criteria. "
+                "Before finishing, write `engineer_output.json` with: "
+                '`{"files_changed": [...], "assumptions": [...], "blockers": [...], '
+                '"test_results": {"passed": N, "failed": N}, "commit_hash": "", "summary": ""}`\n'
+            )
 
         if iteration > 1 and prev_score is not None:
             parts.append("## QA Feedback — Please Fix These Issues\n")
@@ -219,11 +263,22 @@ class QALoop:
         parts.append(f"## Task\n\n{task_prompt}")
         return "\n".join(parts)
 
-    def _build_qa_prompt(self, contract: SprintContract, engineer_summary: str) -> str:
+    def _build_qa_prompt(
+        self, contract: SprintContract, engineer_summary: str, workspace: TaskWorkspace | None = None
+    ) -> str:
         parts: list[str] = [
             contract.qa_prompt_header(),
             "## Engineer Output Summary\n",
             engineer_summary,
-            "",
         ]
+        if workspace:
+            parts.append(f"\n## Task Workspace\n\nPath: `{workspace.path}`")
+            parts.append(
+                "Read `engineer_output.json` for structured output. "
+                "After scoring, write `qa_feedback.json` with: "
+                '`{"pass": bool, "scores": {"functionality": N, "correctness": N, '
+                '"completeness": N, "code_quality": N}, "feedback": "...", '
+                '"failing_criteria": [...], "suggestions": [...], "iteration": N}`\n'
+            )
+        parts.append("")
         return "\n".join(parts)

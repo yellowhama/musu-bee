@@ -16,6 +16,27 @@
 
 ---
 
+## Task Workspace (파일 기반 통신)
+
+환경변수 `$MUSU_TASK_WORKSPACE`가 설정되어 있으면 해당 디렉토리를 사용한다.
+
+**읽기**: `sprint_contract.json` — CEO가 작성한 Sprint Contract (acceptance criteria 포함)
+**쓰기**: 작업 완료 시 `engineer_output.json` 작성:
+```json
+{
+  "files_changed": ["path/to/file.py"],
+  "assumptions": ["assumed X because Y"],
+  "blockers": [],
+  "test_results": {"passed": 10, "failed": 0, "command": "pytest ..."},
+  "commit_hash": "abc1234",
+  "summary": "구현 완료 내용 요약"
+}
+```
+
+이 파일은 QA가 읽어서 평가한다. 반드시 작업 완료 전에 작성할 것.
+
+---
+
 ## Sprint Contract 처리 절차
 
 ### 1. Sprint Contract 읽기

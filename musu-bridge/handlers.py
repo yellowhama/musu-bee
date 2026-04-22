@@ -109,6 +109,12 @@ async def route_chat(
     if not _agent_exists and channel not in cfg.channel_agent_map:
         return _finish({"error": f"No agent mapped to channel: {channel!r}", "response": None})
 
+    # Create per-task workspace for file-based agent communication
+    if exec_id:
+        from musu_core.task_workspace import TaskWorkspace
+        _ws = TaskWorkspace(exec_id)
+        _ws.create()
+
     try:
         response = await route_message(
             source=channel,

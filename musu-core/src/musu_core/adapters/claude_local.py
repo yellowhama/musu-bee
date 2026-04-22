@@ -118,6 +118,11 @@ class ClaudeLocalAdapter(BaseAdapter):
             # Forward task context
             if ctx.task_id:
                 env["MUSU_TASK_ID"] = ctx.task_id
+                # Per-task workspace for file-based agent communication
+                from musu_core.task_workspace import TaskWorkspace
+                ws = TaskWorkspace(ctx.task_id)
+                if ws.exists():
+                    env["MUSU_TASK_WORKSPACE"] = str(ws.path)
             env["MUSU_AGENT_ID"] = ctx.agent_id
             env["MUSU_RUN_ID"] = ctx.run_id
             return env

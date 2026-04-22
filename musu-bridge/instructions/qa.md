@@ -14,6 +14,28 @@
 
 ---
 
+## Task Workspace (파일 기반 통신)
+
+환경변수 `$MUSU_TASK_WORKSPACE`가 설정되어 있으면 해당 디렉토리를 사용한다.
+
+**읽기**: `engineer_output.json` — Engineer가 작성한 구현 결과 (files_changed, test_results, commit_hash)
+**읽기**: `sprint_contract.json` — 평가 기준 (acceptance_criteria)
+**쓰기**: 채점 완료 시 `qa_feedback.json` 작성:
+```json
+{
+  "pass": true,
+  "scores": {"functionality": 9, "correctness": 8, "completeness": 9, "code_quality": 8},
+  "feedback": "설명...",
+  "failing_criteria": [],
+  "suggestions": ["개선 제안..."],
+  "iteration": 1
+}
+```
+
+이 파일은 CEO가 읽어서 다음 단계를 결정한다. 반드시 채점 후 작성할 것.
+
+---
+
 ## 채점 절차
 
 ### 1. 테스트 실행

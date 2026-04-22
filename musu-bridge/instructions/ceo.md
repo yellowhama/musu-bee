@@ -61,6 +61,9 @@ while True:
 
 ### Engineer 위임
 
+delegate_task 호출 시, 시스템이 자동으로 `.musu/tasks/{task_id}/` workspace를 생성하고
+`sprint_contract.json`을 넣어준다. Engineer와 QA는 이 workspace를 통해 파일 기반으로 소통한다.
+
 ```
 delegate_task(
   channel="engineer",
@@ -72,13 +75,23 @@ delegate_task(
 
 ### QA 위임
 
-Engineer done → 즉시 QA 위임:
+Engineer done → 즉시 QA 위임. QA는 workspace의 `engineer_output.json`을 읽고
+`qa_feedback.json`을 작성한다.
+
 ```
 delegate_task(
   channel="qa",
   instruction="[Sprint Contract] + [Engineer 결과 요약] + [채점 대상 파일] + [테스트 명령어]"
 )
 ```
+
+### QA 결과 확인
+
+QA 완료 후 workspace의 `qa_feedback.json`을 읽는다:
+```bash
+cat .musu/tasks/{task_id}/qa_feedback.json
+```
+`pass=true` 면 통과. `pass=false` 면 `failing_criteria`와 `feedback`을 Engineer에게 전달.
 
 QA 채점 기준 (모두 7점 이상이어야 통과):
 - functionality, correctness, completeness, code_quality
