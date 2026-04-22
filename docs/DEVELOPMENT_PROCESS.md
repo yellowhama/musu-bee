@@ -156,3 +156,15 @@ rtk git push
 | Phase 52 (VNC TTL) | ⬜ 대기 | `docs/phases/phase_52_feature_list.json` |
 | Phase 53 (musu-core 테스트) | ⬜ 대기 | `docs/phases/phase_53_feature_list.json` |
 | Phase 54A (Custom AI Company 백엔드) | ✅ 완료 | `docs/phases/phase_54a_feature_list.json` |
+| Phase 57 (Company Scoping) | ✅ 완료 | — |
+
+### Phase 57 요약 (Company Scoping, 2026-04-22)
+
+- agents 테이블에 `company_id` 컬럼 추가 (Migration v14)
+- 에이전트 해석: 회사 스코프 우선 → 글로벌(`company_id IS NULL`) 폴백
+- 교차 회사 접근 차단 (get_by_name 보안 수정)
+- `{short}-{role}` 네이밍: 템플릿에서 회사 에이전트 복제
+- DelegateRequest, route_chat, route_message에 company_id 파라미터 추가
+- heartbeat company_id 전달 수정
+- 378 테스트 통과 (245 core + 133 bridge)
+- 감사 문서: `docs/93_COMPANY_SCOPING_AUDIT_2026-04-22.md`

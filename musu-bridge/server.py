@@ -555,8 +555,16 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
     import uuid
     from handlers import _get_backend
 
-    # W2/W5: Validate channel exists before touching DB
-    channel_map = get_channel_map()
+    # Validate company_id if provided
+    if req.company_id:
+        _company = get_company(req.company_id)
+        if not _company:
+            raise HTTPException(status_code=400, detail=f"Company not found: {req.company_id!r}")
+        if _company.get("status") != "active":
+            raise HTTPException(status_code=400, detail=f"Company is not active: {req.company_id!r}")
+
+    # W2/W5: Validate channel exists (check company-scoped agents too)
+    channel_map = get_channel_map(company_id=req.company_id)
     if req.channel not in channel_map:
         raise HTTPException(status_code=400, detail=f"Unknown channel: {req.channel!r}")
 
@@ -1024,28 +1032,32 @@ async def api_company_activity(
 
 @app.get("/api/companies/{company_id}/dashboard", summary="Dashboard summary for a company")
 async def api_company_dashboard(company_id: str) -> dict:
-    """Return a summary dashboard for the company."""
+    """Return a summary dashboard for the company (scoped agents + global)."""
     company = get_company(company_id)
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
     from handlers import list_task_records as list_tasks
-    agents = get_agents()
-    tasks = list_tasks(limit=100)
+    backend = _get_backend()
+    # Company-scoped + global agents (same merge logic as /companies/{id}/agents)
+    scoped = backend.list_agents(company_id=company_id)
+    global_agents = [a for a in backend.list_agents() if a.get("company_id") is None]
+    scoped_names = {a["name"] for a in scoped}
+    agents = scoped + [a for a in global_agents if a["name"] not in scoped_names]
+    # Filter tasks to those assigned to this company's agents
+    agent_ids = {a["id"] for a in agents}
+    all_tasks = list_tasks(limit=200)
+    tasks = [t for t in all_tasks if t.get("assignee_agent_id") in agent_ids or not t.get("assignee_agent_id")]
     active_agents = [a for a in agents if a.get("status") == "active"]
-    pending_tasks = [t for t in tasks if t.get("status") == "pending"]
-    running_tasks = [t for t in tasks if t.get("status") == "running"]
-    done_tasks = [t for t in tasks if t.get("status") == "done"]
-    failed_tasks = [t for t in tasks if t.get("status") == "failed"]
     return {
         "company_id": company_id,
         "company_name": company.get("name"),
         "agents": {"total": len(agents), "active": len(active_agents)},
         "tasks": {
             "total": len(tasks),
-            "pending": len(pending_tasks),
-            "running": len(running_tasks),
-            "done": len(done_tasks),
-            "failed": len(failed_tasks),
+            "pending": len([t for t in tasks if t.get("status") == "pending"]),
+            "running": len([t for t in tasks if t.get("status") == "running"]),
+            "done": len([t for t in tasks if t.get("status") == "done"]),
+            "failed": len([t for t in tasks if t.get("status") == "failed"]),
         },
     }
 

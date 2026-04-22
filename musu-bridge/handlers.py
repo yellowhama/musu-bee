@@ -713,8 +713,17 @@ def update_company(company_id: str, **kwargs: Any) -> dict[str, Any] | None:
 
 
 def delete_company(company_id: str) -> bool:
-    """Delete a company by id. Returns True if deleted, False if not found."""
+    """Delete a company: retire its scoped agents, then remove the company record.
+
+    Returns True if found/deleted, False if not found.
+    """
     backend = _get_backend()
+    company = backend.get_company(company_id)
+    if not company:
+        return False
+    # Retire company-scoped agents first (prevents orphan globals via ON DELETE SET NULL)
+    for agent in backend.list_agents(company_id=company_id):
+        backend.update_agent(agent["id"], status="retired")
     return backend.delete_company(company_id)
 
 

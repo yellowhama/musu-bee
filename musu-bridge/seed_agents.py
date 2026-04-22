@@ -86,24 +86,31 @@ AGENTS = [
 ]
 
 
-def seed(backend: LocalBackend, adapter_override: str | None = None) -> None:
+def seed(
+    backend: LocalBackend,
+    adapter_override: str | None = None,
+    company_id: str | None = None,
+) -> None:
+    prefix = f"{company_id[:8]}-" if company_id else ""
     for agent_def in AGENTS:
-        name = agent_def["name"]
-        existing = backend.get_agent_by_name(name)
+        agent_name = f"{prefix}{agent_def['name']}"
+        existing = backend.get_agent_by_name(agent_name, company_id=company_id)
         if existing is not None:
-            logger.info("Agent '%s' already exists (id=%s), skipping", name, existing["id"])
+            logger.info("Agent '%s' already exists (id=%s), skipping", agent_name, existing["id"])
             continue
 
         adapter_type = adapter_override or agent_def["adapter_type"]
         adapter_config = agent_def["adapter_config"] if adapter_override is None else {}
 
         agent = backend.agents.create(
-            name=name,
+            name=agent_name,
             role=agent_def["role"],
             adapter_type=adapter_type,
             adapter_config=adapter_config,
+            company_id=company_id,
         )
-        logger.info("Created agent '%s' (id=%s, adapter=%s)", name, agent.id, adapter_type)
+        logger.info("Created agent '%s' (id=%s, adapter=%s, company=%s)",
+                     agent_name, agent.id, adapter_type, company_id or "global")
 
     # Summary
     all_agents = backend.list_agents()
@@ -124,6 +131,11 @@ if __name__ == "__main__":
         default=None,
         help="Override musu-core database path",
     )
+    parser.add_argument(
+        "--company-id",
+        default=None,
+        help="Create company-scoped agents (name prefix: {id[:8]}-{role})",
+    )
     args = parser.parse_args()
 
     cfg = get_config()
@@ -134,6 +146,6 @@ if __name__ == "__main__":
 
     backend = LocalBackend(db_path)
     try:
-        seed(backend, adapter_override=args.adapter)
+        seed(backend, adapter_override=args.adapter, company_id=args.company_id)
     finally:
         backend.close()
