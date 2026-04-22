@@ -1,0 +1,28 @@
+{
+  "_comment": "Global agent model distribution. All nodes pull this from Forgejo and apply.",
+  "_updated": "2026-04-23",
+
+  "model_distribution": {
+    "claude": {
+      "agents": ["ceo", "cto", "qa"],
+      "reason": "Judgment and evaluation — accuracy matters",
+      "adapter_type": "claude_local",
+      "config": { "command": "claude", "model": "claude-sonnet-4-6" },
+      "fallback": { "adapter_type": "gemini_local", "command": "gemini", "model": "gemini-2.5-pro" }
+    },
+    "gemini": {
+      "agents": ["engineer", "planner", "worker", "*-lead", "*-engineer", "*-planner"],
+      "reason": "Implementation — speed and volume",
+      "adapter_type": "gemini_local",
+      "config": { "command": "gemini", "model": "gemini-2.5-flash" },
+      "fallback": { "adapter_type": "codex_local", "command": "codex" }
+    },
+    "codex": {
+      "agents": ["cos", "vp", "mgr-*"],
+      "reason": "Admin and management — simple tasks",
+      "adapter_type": "codex_local",
+      "config": { "command": "codex" },
+      "fallback": { "adapter_type": "gemini_local", "command": "gemini", "model": "gemini-2.5-flash" }
+    }
+  }
+}
