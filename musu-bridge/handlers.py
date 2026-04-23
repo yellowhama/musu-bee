@@ -92,8 +92,8 @@ def _health_probe_timeout() -> float:
 
 _CHANNEL_TIMEOUT_DEFAULTS: dict[str, float] = {
     "engineer": 300.0,
-    "ceo": 300.0,
-    "team_lead": 300.0,
+    "ceo": 120.0,
+    "team_lead": 90.0,
     "4060-CEO": 600.0,
     "lead": 300.0,
 }
@@ -1116,7 +1116,50 @@ def create_company_from_template(
         )
         created_agents.append(agent)
 
+    # ── Auto-setup workspace: create dir + indexer profile ──────────────────
+    if work_dir:
+        _setup_company_workspace(work_dir, name, company_id)
+
     return {"company": company, "agents": created_agents}
+
+
+def _setup_company_workspace(work_dir: str, company_name: str, company_id: str) -> None:
+    """Create work directory if missing and initialize musu-indexer profile."""
+    import pathlib
+    wd = pathlib.Path(work_dir).expanduser()
+    wd.mkdir(parents=True, exist_ok=True)
+
+    profile = wd / ".musu-indexer.json"
+    if not profile.exists():
+        import json
+        config = {
+            "name": f"{company_name.lower().replace(' ', '-')}-{company_id[:8]}",
+            "root": ".",
+            "include_roots": ["."],
+            "exclude_roots": [],
+            "ignore_globs": [
+                "*.png", "*.jpg", "*.jpeg", "*.gif", "*.mp4", "*.wav", "*.mp3",
+                "*.exe", "*.bin", "*.db", "*.db-*", "*.zip", "*.tar.gz",
+                "node_modules/**", ".venv/**", "__pycache__/**", ".git/**",
+            ],
+        }
+        profile.write_text(json.dumps(config, indent=2, ensure_ascii=False), encoding="utf-8")
+        logger.info("workspace: created indexer profile at %s", profile)
+
+    # Run initial index (non-blocking, best-effort)
+    indexer = pathlib.Path.home() / "musu-functions" / "musu-indexer" / ".venv" / "bin" / "musu-indexer"
+    if indexer.exists():
+        import subprocess
+        try:
+            subprocess.Popen(
+                [str(indexer), "sync", "--profile", str(profile)],
+                cwd=str(wd),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            logger.info("workspace: indexer sync started for %s", wd)
+        except Exception as exc:
+            logger.warning("workspace: indexer sync failed: %s", exc)
 
 
 def set_company_status(
