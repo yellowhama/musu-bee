@@ -37,7 +37,8 @@ class BridgeConfig:
         "cos": "cos",
         "qa": "qa",
         "worker": "worker",
-        "team_lead": "lead",
+        "team_lead": "ee9d0bfb-lead",
+        "lead": "ee9d0bfb-lead",
     })
 
 
