@@ -2626,13 +2626,14 @@ async def api_company_briefing(company_id: str) -> dict:
 class GroupMessageRequest(BaseModel):
     text: str = Field(min_length=1, max_length=5000)
     sender_id: str = Field(default="", max_length=128)
+    reply_to: str | None = Field(default=None, max_length=64)
 
 
 @app.post("/api/groups/{group_id}/messages", status_code=201, summary="Post to group channel")
 async def api_post_group_message(group_id: str, req: GroupMessageRequest) -> dict:
-    """Post a message to a group channel (ceo-board, team channels).
+    """Post a message (or reply) to a group channel.
 
-    Messages are synced across devices via sync_engine.
+    If reply_to is set, a notification is created for the original author.
     """
     import uuid as _uuid
     from handlers import _get_backend as _gb_grp
@@ -2640,12 +2641,26 @@ async def api_post_group_message(group_id: str, req: GroupMessageRequest) -> dic
     sender = req.sender_id or os.environ.get("MUSU_NODE_NAME", "unknown")
     msg_id = str(_uuid.uuid4())
     backend._db.execute(
-        "INSERT INTO messages (id, session_id, role, content, group_id, meta) "
-        "VALUES (?, ?, 'system', ?, ?, ?)",
+        "INSERT INTO messages (id, session_id, role, content, group_id, meta, reply_to) "
+        "VALUES (?, ?, 'system', ?, ?, ?, ?)",
         (msg_id, f"group-{group_id}", req.text, group_id,
-         json.dumps({"sender_id": sender})),
+         json.dumps({"sender_id": sender}), req.reply_to),
     )
-    return {"id": msg_id, "group_id": group_id, "sender_id": sender}
+    # Create notification for original author if this is a reply
+    if req.reply_to:
+        original = backend._db.execute(
+            "SELECT meta FROM messages WHERE id = ?", (req.reply_to,)
+        )
+        if original:
+            orig_meta = json.loads(original[0]["meta"] or "{}")
+            orig_sender = orig_meta.get("sender_id", "")
+            if orig_sender and orig_sender != sender:
+                backend._db.execute(
+                    "INSERT INTO notifications (id, recipient_id, message_id, group_id, sender_id, preview) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    (str(_uuid.uuid4()), orig_sender, msg_id, group_id, sender, req.text[:100]),
+                )
+    return {"id": msg_id, "group_id": group_id, "sender_id": sender, "reply_to": req.reply_to}
 
 
 @app.get("/api/groups/{group_id}/messages", summary="Read group channel messages")
@@ -2670,6 +2685,31 @@ async def api_read_group_messages(
             (group_id, limit),
         )
     return [dict(r) for r in rows]
+
+
+@app.get("/api/notifications/{recipient_id}", summary="Get unread notifications")
+async def api_get_notifications(recipient_id: str) -> list[dict]:
+    """Get unread notifications for an agent/user. Agents check this on heartbeat."""
+    from handlers import _get_backend as _gb_notif
+    backend = _gb_notif()
+    rows = backend._db.execute(
+        "SELECT id, message_id, group_id, sender_id, preview, created_at "
+        "FROM notifications WHERE recipient_id = ? AND read = 0 ORDER BY created_at DESC LIMIT 20",
+        (recipient_id,),
+    )
+    return [dict(r) for r in rows]
+
+
+@app.post("/api/notifications/{recipient_id}/read", summary="Mark notifications as read")
+async def api_mark_notifications_read(recipient_id: str) -> dict:
+    """Mark all notifications as read."""
+    from handlers import _get_backend as _gb_notif2
+    backend = _gb_notif2()
+    backend._db.execute(
+        "UPDATE notifications SET read = 1 WHERE recipient_id = ? AND read = 0",
+        (recipient_id,),
+    )
+    return {"marked_read": True, "recipient_id": recipient_id}
 
 
 # ── Success Rate Tracking ─────────────────────────────────────────────────

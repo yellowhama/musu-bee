@@ -1116,6 +1116,34 @@ async def post_board_message(group_id: str, text: str) -> str:
 
 
 @mcp.tool()
+async def reply_board_message(group_id: str, reply_to: str, text: str) -> str:
+    """Reply to a specific message. The original author gets notified.
+
+    reply_to: the message ID you're replying to
+    """
+    try:
+        c = _get_client()
+        data = await c.post(f"/groups/{group_id}/messages", {"text": text, "sender_id": "", "reply_to": reply_to})
+        return _fmt(data)
+    except Exception:
+        return _tool_error("Error replying to message.")
+
+
+@mcp.tool()
+async def check_notifications() -> str:
+    """Check your unread notifications (replies to your messages)."""
+    try:
+        c = _get_client()
+        sender = os.environ.get("MUSU_NODE_NAME", "unknown")
+        data = await c.get(f"/notifications/{sender}")
+        if not data:
+            return "No unread notifications."
+        return _fmt(data)
+    except Exception:
+        return _tool_error("Error checking notifications.")
+
+
+@mcp.tool()
 async def read_board_messages(group_id: str, limit: int = 10) -> str:
     """Read recent messages from a group channel.
 
