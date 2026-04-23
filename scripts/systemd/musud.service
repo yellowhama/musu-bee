@@ -1,0 +1,23 @@
+[Unit]
+Description=MUSU Process Supervisor (musud)
+After=network.target musu-connectsd.service
+
+[Service]
+Type=simple
+WorkingDirectory=%h/musu-functions
+ExecStart=%h/musu-functions/bin/musud
+KillMode=mixed
+TimeoutStopSec=20
+SendSIGKILL=yes
+Restart=on-failure
+RestartSec=5
+
+# Resource guardrails (same as musu-bridge)
+CPUQuota=50%
+MemoryMax=2048M
+
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target
