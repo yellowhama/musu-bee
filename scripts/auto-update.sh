@@ -124,4 +124,9 @@ if [ -x "${ROOT}/scripts/register-portd-services.sh" ]; then
     "${ROOT}/scripts/register-portd-services.sh" 2>/dev/null || log "portd registration skipped"
 fi
 
+# ── 6. Re-index Bloodline Writers workspace (if present) ─────────────────────
+if [ -x "${ROOT}/scripts/setup-indexer-workspace.sh" ]; then
+    "${ROOT}/scripts/setup-indexer-workspace.sh" 2>&1 | tail -3 || log "indexer workspace sync skipped"
+fi
+
 log "done (${REMOTE:0:8})"
