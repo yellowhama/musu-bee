@@ -262,6 +262,18 @@ else
     echo "[start-bridge] WARN: quic_cert.der not found — fingerprint not set (start bridge once to generate cert)" >&2
 fi
 
+# ── Pre-start: mark stale running executions as failed ────────────────────────
+# Prevents durability re-dispatch from spawning claude subprocesses on startup,
+# which can D-state (disk sleep) and block the bridge from binding its port.
+MUSU_DB="${HOME}/.musu/musu.db"
+if [[ -f "$MUSU_DB" ]] && command -v sqlite3 &>/dev/null; then
+    STALE=$(sqlite3 "$MUSU_DB" "SELECT count(*) FROM route_executions WHERE status='running';" 2>/dev/null || echo "0")
+    if [[ "$STALE" -gt 0 ]]; then
+        sqlite3 "$MUSU_DB" "UPDATE route_executions SET status='failed', error='stale: bridge restarted' WHERE status='running';" 2>/dev/null
+        echo "[start-bridge] cleaned $STALE stale running execution(s)" >&2
+    fi
+fi
+
 # ── Set PYTHONPATH and exec ───────────────────────────────────────────────────
 export PYTHONPATH="${ROOT}/musu-core/src:${ROOT}/musu-bridge:${PYTHONPATH:-}"
 
