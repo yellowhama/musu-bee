@@ -93,16 +93,30 @@ curl -X POST http://{REMOTE_IP}:8070/api/system/update \
 # Runs git pull + apply-agent-defaults.py + restart if needed
 ```
 
-### Post to CEO board (group chat)
+### Team channels (wiki/008)
 
-```bash
-curl -X POST http://localhost:8070/api/groups/ceo-board/messages \
-  -H "Authorization: Bearer local-dev-token-change-in-prod" \
-  -H "Content-Type: application/json" \
-  -d '{"text": "All nodes: update to latest", "sender_id": "chairman"}'
+Each company has a team channel. Replies trigger notifications.
+
+```
+Channels: ceo-board, md-team, bw-team
 ```
 
-### Read CEO board messages
+```bash
+# Post
+curl -X POST http://localhost:8070/api/groups/bw-team/messages \
+  -H "Authorization: Bearer {TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Draft ready", "sender_id": "BW-Writer"}'
+
+# Reply (notifies original author)
+curl -X POST http://localhost:8070/api/groups/bw-team/messages \
+  -d '{"text": "Looks good", "sender_id": "BW-Editor", "reply_to": "msg-id"}'
+
+# Check your notifications
+curl http://localhost:8070/api/notifications/BW-Writer
+```
+
+### Read channel messages
 
 ```bash
 curl http://localhost:8070/api/groups/ceo-board/messages?limit=5 \
