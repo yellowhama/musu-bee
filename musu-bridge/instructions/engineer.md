@@ -37,6 +37,16 @@
 
 ---
 
+## Cross-Device Files (wiki/007)
+
+Need a file from another device? Use MCP:
+```
+list_remote_files("http://100.121.211.106:8070", "/home/hugh/project", "*.py")
+read_remote_file("http://100.121.211.106:8070", "/home/hugh/project/file.py")
+```
+
+---
+
 ## Sprint Contract 처리 절차
 
 ### 1. Sprint Contract 읽기
