@@ -119,6 +119,50 @@ curl -X POST http://{NODE_IP}:8070/api/system/update \
   -H "Authorization: Bearer local-dev-token-change-in-prod"
 ```
 
+### Browse files on another device
+
+```bash
+# List files
+curl "http://{NODE_IP}:8070/api/files/list?path=/home/user&pattern=*.md" \
+  -H "Authorization: Bearer {TOKEN}"
+
+# Read a file
+curl "http://{NODE_IP}:8070/api/files/read?path=/home/user/project/chapter1.md" \
+  -H "Authorization: Bearer {TOKEN}"
+```
+
+Security: files restricted to home directory. Auth token required.
+
+### Restart services on another device
+
+```bash
+# Restart all services
+curl -X POST "http://{NODE_IP}:8070/api/system/restart?service=all" \
+  -H "Authorization: Bearer {TOKEN}"
+
+# Restart just bridge
+curl -X POST "http://{NODE_IP}:8070/api/system/restart?service=bridge" \
+  -H "Authorization: Bearer {TOKEN}"
+
+# Check service statuses
+curl "http://{NODE_IP}:8070/api/system/services" \
+  -H "Authorization: Bearer {TOKEN}"
+```
+
+---
+
+## Security (wiki/005)
+
+**IMPORTANT: Change the default token on first setup.**
+
+```bash
+# Generate a real token
+openssl rand -hex 32
+# Put it in musu-bridge/.env as MUSU_BRIDGE_TOKEN
+```
+
+All API calls require `Authorization: Bearer {TOKEN}`. The token protects file access, service restart, agent delegation, and all other operations. See wiki/005 for full security guide.
+
 ---
 
 ## Company (Project) Management
