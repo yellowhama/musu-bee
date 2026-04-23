@@ -2702,23 +2702,31 @@ async def health() -> dict:
     return {"status": "ok"}
 
 
+_AGENT_CHANNELS = ("ceo", "cto", "engineer", "qa", "planner", "cos")
+
+
 @app.get("/health/ready")
 async def health_ready() -> Response:
-    """Readiness probe — verifies DB connectivity."""
+    """Readiness probe — verifies DB connectivity and agent channel circuit breaker state."""
     try:
         backend = _get_heartbeat_backend()
         backend._db.execute("SELECT 1")
-        return Response(
-            content=json.dumps({"status": "ready", "db": "ok"}),
-            status_code=200,
-            media_type="application/json",
-        )
     except Exception:
         return Response(
             content=json.dumps({"status": "not_ready", "db": "error"}),
             status_code=503,
             media_type="application/json",
         )
+
+    agents = {
+        ch: ("degraded" if _channel_cb.is_open(ch) else "ok")
+        for ch in _AGENT_CHANNELS
+    }
+    return Response(
+        content=json.dumps({"status": "ready", "db": "ok", "agents": agents}),
+        status_code=200,
+        media_type="application/json",
+    )
 
 
 @app.get("/api/system/circuit-breakers", summary="Circuit breaker state for all internal CBs")
