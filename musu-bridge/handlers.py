@@ -1,6 +1,7 @@
 """musu-bridge handlers — route messages through musu-core."""
 from __future__ import annotations
 
+import asyncio
 import ipaddress
 import logging
 import os
@@ -92,6 +93,9 @@ def _health_probe_timeout() -> float:
 _CHANNEL_TIMEOUT_DEFAULTS: dict[str, float] = {
     "engineer": 300.0,
     "ceo": 300.0,
+    "team_lead": 300.0,
+    "4060-CEO": 600.0,
+    "lead": 300.0,
 }
 
 
@@ -358,6 +362,26 @@ async def route_chat(
 
     _router = Router(backend=backend, config=get_core_config())
 
+    async def _activity_heartbeat(eid: str, interval: float = 30.0) -> None:
+        """Periodically touch last_activity_at so watchdog won't kill active LLM calls."""
+        try:
+            while True:
+                await asyncio.sleep(interval)
+                try:
+                    backend.touch_route_execution_activity(eid)
+                except Exception:
+                    pass
+        except asyncio.CancelledError:
+            pass
+
+    _heartbeat_task = asyncio.ensure_future(_activity_heartbeat(exec_id)) if exec_id else None
+    # Touch once immediately so last_activity_at is set from the start of the LLM call
+    if exec_id:
+        try:
+            backend.touch_route_execution_activity(exec_id)
+        except Exception:
+            pass
+
     try:
         import anyio
         with anyio.fail_after(_route_timeout_sec(channel)):
@@ -369,12 +393,19 @@ async def route_chat(
                 cost_optimized=cost_optimized,
             ))
     except TimeoutError:
+        if _heartbeat_task:
+            _heartbeat_task.cancel()
         _timeout = _route_timeout_sec(channel)
         logger.warning("route_chat: route_timeout — LLM call exceeded %.0fs for channel=%r", _timeout, channel)
         return _finish({"error": f"route_timeout: LLM call exceeded {_timeout:.0f}s limit", "response": None})
     except Exception as exc:
+        if _heartbeat_task:
+            _heartbeat_task.cancel()
         logger.exception("route_chat: unexpected error — %s", exc)
         return _finish({"error": "Internal error. Please try again.", "response": None})
+    finally:
+        if _heartbeat_task:
+            _heartbeat_task.cancel()
 
     if not route_result.success:
         logger.error("route_chat: adapter failure — %s", route_result.error)

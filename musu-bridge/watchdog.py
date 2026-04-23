@@ -10,6 +10,7 @@ import logging
 import os
 import time
 
+from channel_circuit_breaker import _channel_cb
 from metrics import _increment_stuck_counter
 
 logger = logging.getLogger("musu.watchdog")
@@ -54,9 +55,13 @@ async def _run_watchdog_once() -> int:
 
     try:
         backend = _get_watchdog_backend()
+        # Use last_activity_at for kill scan — tasks actively streaming update this
+        # field every ~30s, so only truly idle tasks cross the threshold.
+        # COALESCE falls back to updated_at for rows predating v17 migration.
         stuck_rows = backend._db.execute(
             "SELECT id, channel FROM route_executions "
-            "WHERE status = 'running' AND updated_at < ?",
+            "WHERE status = 'running' "
+            "AND COALESCE(last_activity_at, updated_at) < ?",
             (kill_cutoff,),
         )
     except Exception as exc:
@@ -71,10 +76,22 @@ async def _run_watchdog_once() -> int:
             backend.update_route_execution(
                 task_id,
                 "failed",
-                error=f"auto-cancelled by watchdog: stuck > {_WATCHDOG_KILL_SEC}s (activity-based)",
+                error=(
+                    f"auto-cancelled by watchdog: zombie — no last_activity_at update "
+                    f"for > {_WATCHDOG_KILL_SEC}s"
+                ),
             )
             _increment_stuck_counter(channel, "watchdog_timeout")
-            logger.warning("watchdog: activity-based cancel of task %s (channel=%s, kill_threshold=%ds)", task_id, channel, _WATCHDOG_KILL_SEC)
+            _channel_cb.record_failure(channel)
+            logger.warning(
+                "watchdog: zombie cancel of task %s (channel=%s, kill_threshold=%ds)",
+                task_id, channel, _WATCHDOG_KILL_SEC,
+            )
+            if _channel_cb.is_open(channel):
+                logger.warning(
+                    "watchdog: circuit breaker OPEN for channel=%r after watchdog kills",
+                    channel,
+                )
             cancelled += 1
         except Exception as exc:
             logger.warning("watchdog: failed to cancel task %s — %s", task_id, exc)
@@ -83,7 +100,9 @@ async def _run_watchdog_once() -> int:
     try:
         escalate_rows = backend._db.execute(
             "SELECT id, channel FROM route_executions "
-            "WHERE status = 'running' AND updated_at < ? AND updated_at >= ?",
+            "WHERE status = 'running' "
+            "AND COALESCE(last_activity_at, updated_at) < ? "
+            "AND COALESCE(last_activity_at, updated_at) >= ?",
             (escalate_cutoff, kill_cutoff),
         )
         for row in escalate_rows:
@@ -101,7 +120,9 @@ async def _run_watchdog_once() -> int:
     try:
         warn_rows = backend._db.execute(
             "SELECT id, channel FROM route_executions "
-            "WHERE status = 'running' AND updated_at < ? AND updated_at >= ?",
+            "WHERE status = 'running' "
+            "AND COALESCE(last_activity_at, updated_at) < ? "
+            "AND COALESCE(last_activity_at, updated_at) >= ?",
             (warn_cutoff, escalate_cutoff),
         )
         for row in warn_rows:

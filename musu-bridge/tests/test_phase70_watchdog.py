@@ -3,6 +3,7 @@
 Tests:
 1. _heartbeat_iteration releases _heartbeat_lock even when route_chat times out
 2. _watchdog_loop cancels stuck route_executions (running + activity > kill threshold)
+3. (Phase 71) last_activity_at-based watchdog: active tasks not killed, dead tasks killed
 """
 import asyncio
 import time
@@ -79,7 +80,7 @@ async def test_watchdog_cancels_stuck_tasks():
     assert call_args[0][0] == "stuck-task-123"
     assert call_args[0][1] == "failed"
     error_msg = call_args[1]["error"]
-    assert "activity-based" in error_msg
+    assert "zombie" in error_msg or "activity" in error_msg
     assert "auto-cancelled by watchdog" in error_msg
 
 
@@ -206,3 +207,333 @@ async def test_watchdog_escalate_stage():
     )
     # Must NOT cancel the task
     mock_backend.update_route_execution.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Phase 71: last_activity_at-based watchdog
+# ---------------------------------------------------------------------------
+
+# 6. Watchdog kill query uses last_activity_at, not updated_at
+@pytest.mark.asyncio
+async def test_watchdog_kill_uses_last_activity_at():
+    """_run_watchdog_once kill scan must query last_activity_at, not updated_at,
+    so actively streaming tasks are never cancelled mid-execution."""
+    import watchdog
+
+    captured_sqls: list[str] = []
+
+    def fake_execute(sql, params=()):
+        captured_sqls.append(sql)
+        return []
+
+    mock_backend = MagicMock()
+    mock_backend._db.execute.side_effect = fake_execute
+
+    with patch("watchdog._get_watchdog_backend", return_value=mock_backend):
+        await watchdog._run_watchdog_once()
+
+    kill_sql = next((s for s in captured_sqls if "status = 'running'" in s and len(s) < 300), None)
+    assert kill_sql is not None, f"No kill-scan SQL found. Captured: {captured_sqls}"
+    assert "last_activity_at" in kill_sql, (
+        f"Kill scan must use last_activity_at, got: {kill_sql!r}"
+    )
+    assert "updated_at" not in kill_sql or "last_activity_at" in kill_sql, (
+        f"Kill scan must not rely on updated_at alone: {kill_sql!r}"
+    )
+
+
+# 7. Active task (recent last_activity_at) is NOT killed by watchdog
+@pytest.mark.asyncio
+async def test_watchdog_spares_active_task():
+    """A task with last_activity_at updated 30s ago must not be cancelled,
+    even if updated_at is old (the LLM has been streaming for > 240s)."""
+    import watchdog
+
+    # updated_at is ancient (400s ago) but last_activity_at is fresh (30s ago)
+    old_updated = (datetime.now(timezone.utc) - timedelta(seconds=400)).isoformat()
+    recent_activity = (datetime.now(timezone.utc) - timedelta(seconds=30)).isoformat()
+    active_row = {
+        "id": "active-task-111",
+        "channel": "engineer",
+        "updated_at": old_updated,
+        "last_activity_at": recent_activity,
+    }
+
+    def fake_execute(sql, params=()):
+        # Kill scan: if it (incorrectly) queries updated_at alone, return the row
+        # If it correctly queries last_activity_at, the 30s-ago task must NOT appear
+        if "last_activity_at" in sql and "status = 'running'" in sql and len(params) >= 1:
+            kill_cutoff = params[0]
+            if recent_activity >= kill_cutoff:
+                # recent_activity is within threshold — don't return it
+                return []
+        return []
+
+    mock_backend = MagicMock()
+    mock_backend._db.execute.side_effect = fake_execute
+
+    with patch("watchdog._get_watchdog_backend", return_value=mock_backend):
+        cancelled = await watchdog._run_watchdog_once()
+
+    assert cancelled == 0, (
+        f"Active task must not be cancelled; got {cancelled} cancellations"
+    )
+    mock_backend.update_route_execution.assert_not_called()
+
+
+# 8. Dead task (old last_activity_at) IS killed by watchdog
+@pytest.mark.asyncio
+async def test_watchdog_kills_dead_task():
+    """A task with last_activity_at older than KILL_SEC must be cancelled
+    and its error reason must contain 'zombie' or 'last_activity_at'."""
+    import watchdog
+
+    dead_time = (datetime.now(timezone.utc) - timedelta(seconds=300)).isoformat()
+    dead_row = {"id": "dead-task-222", "channel": "engineer", "last_activity_at": dead_time}
+
+    def fake_execute(sql, params=()):
+        # Return dead_row only for the kill-scan (last_activity_at-based, 1 param)
+        if "last_activity_at" in sql and "status = 'running'" in sql:
+            if len(params) == 1:
+                return [dead_row]
+        return []
+
+    mock_backend = MagicMock()
+    mock_backend._db.execute.side_effect = fake_execute
+    mock_backend.update_route_execution = MagicMock()
+
+    with patch("watchdog._get_watchdog_backend", return_value=mock_backend):
+        cancelled = await watchdog._run_watchdog_once()
+
+    assert cancelled == 1, f"Expected 1 cancellation, got {cancelled}"
+    mock_backend.update_route_execution.assert_called_once()
+    call_args = mock_backend.update_route_execution.call_args
+    assert call_args[0][0] == "dead-task-222"
+    assert call_args[0][1] == "failed"
+    error_msg = call_args[1]["error"]
+    assert "zombie" in error_msg or "last_activity_at" in error_msg or "activity" in error_msg, (
+        f"Error reason must mention activity/zombie, got: {error_msg!r}"
+    )
+
+
+# 9. touch_route_execution_activity() backend method exists and updates last_activity_at
+def test_backend_touch_activity_method_exists():
+    """LocalBackend must have touch_route_execution_activity(exec_id) method."""
+    import sys
+    from pathlib import Path
+    musu_core = Path(__file__).parent.parent.parent / "musu-core" / "src"
+    if str(musu_core) not in sys.path:
+        sys.path.insert(0, str(musu_core))
+
+    from musu_core.backends.local import LocalBackend
+    assert hasattr(LocalBackend, "touch_route_execution_activity"), (
+        "LocalBackend must have touch_route_execution_activity() method"
+    )
+    import inspect
+    sig = inspect.signature(LocalBackend.touch_route_execution_activity)
+    assert "exec_id" in sig.parameters, "touch_route_execution_activity must accept exec_id"
+
+
+# 10. handlers.py route_chat touches last_activity_at during LLM call
+@pytest.mark.asyncio
+async def test_route_chat_touches_activity_during_llm_call():
+    """route_chat must call touch_route_execution_activity at least once
+    while the LLM adapter is executing, so watchdog won't kill active tasks."""
+    import sys
+    import asyncio
+    from pathlib import Path
+    musu_bridge = Path(__file__).parent.parent
+    if str(musu_bridge) not in sys.path:
+        sys.path.insert(0, str(musu_bridge))
+
+    touch_calls: list[str] = []
+
+    mock_backend = MagicMock()
+    mock_backend.get_agent_by_name.return_value = {
+        "id": "agent-abc",
+        "role": "Engineer",
+        "adapter_type": "gemini_local",
+        "adapter_config": {},
+        "instructions_path": None,
+    }
+    mock_backend.list_tasks.return_value = []
+    mock_backend.create_task.return_value = {"id": "task-xyz"}
+    mock_backend.add_comment.return_value = None
+    mock_backend.list_agents.return_value = []
+    mock_backend.create_route_execution.return_value = None
+    mock_backend.update_route_execution.return_value = None
+
+    def fake_touch(exec_id):
+        touch_calls.append(exec_id)
+
+    mock_backend.touch_route_execution_activity = fake_touch
+
+    # Simulate a slow LLM call (3 ticks of activity heartbeat)
+    async def slow_route(*args, **kwargs):
+        await asyncio.sleep(0.2)
+        from musu_core.router import RouteResult
+        return RouteResult(
+            success=True,
+            summary="done",
+            adapter_result=None,
+        )
+
+    import handlers
+    from unittest.mock import patch as _patch
+
+    with (
+        _patch("handlers._get_backend", return_value=mock_backend),
+        _patch("handlers.get_mesh_router") as mock_mesh,
+        _patch("handlers.Router") as MockRouter,
+    ):
+        mock_mesh.return_value.enabled = False
+        instance = AsyncMock()
+        instance.route = slow_route
+        MockRouter.return_value = instance
+
+        with _patch("handlers.get_bridge_config") as mock_cfg:
+            cfg = MagicMock()
+            cfg.channel_agent_map = {}
+            mock_cfg.return_value = cfg
+            await handlers.route_chat(
+                channel="engineer",
+                sender_id="test-sender",
+                text="test task",
+            )
+
+    assert len(touch_calls) > 0, (
+        "route_chat must call touch_route_execution_activity during LLM execution"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Phase 72: Watchdog-kill feeds circuit breaker + delegation block
+# ---------------------------------------------------------------------------
+
+# 11. Watchdog kill increments per-channel circuit breaker
+@pytest.mark.asyncio
+async def test_watchdog_kill_records_circuit_breaker_failure():
+    """When watchdog kills a task (dead last_activity_at), it must call
+    _channel_cb.record_failure(channel) so the circuit breaker can trip."""
+    import watchdog
+    from channel_circuit_breaker import _ChannelCircuitBreaker
+
+    dead_time = (datetime.now(timezone.utc) - timedelta(seconds=300)).isoformat()
+    dead_row = {"id": "cb-dead-task-001", "channel": "ceo", "last_activity_at": dead_time}
+
+    def fake_execute(sql, params=()):
+        if "last_activity_at" in sql and "status = 'running'" in sql and len(params) == 1:
+            return [dead_row]
+        return []
+
+    mock_backend = MagicMock()
+    mock_backend._db.execute.side_effect = fake_execute
+    mock_backend.update_route_execution = MagicMock()
+
+    cb = _ChannelCircuitBreaker(fail_threshold=3, window_sec=60, block_sec=30)
+    with (
+        patch("watchdog._get_watchdog_backend", return_value=mock_backend),
+        patch("watchdog._channel_cb", cb),
+    ):
+        await watchdog._run_watchdog_once()
+
+    assert len(cb._failures["ceo"]) == 1, (
+        "Watchdog kill must call record_failure on the circuit breaker"
+    )
+
+
+# 12. 3 watchdog kills → circuit breaker opens
+@pytest.mark.asyncio
+async def test_watchdog_three_kills_opens_circuit_breaker():
+    """After 3 watchdog kills on the same channel, the circuit breaker must be open."""
+    import watchdog
+    from channel_circuit_breaker import _ChannelCircuitBreaker
+
+    cb = _ChannelCircuitBreaker(fail_threshold=3, window_sec=60, block_sec=30)
+
+    dead_time = (datetime.now(timezone.utc) - timedelta(seconds=300)).isoformat()
+
+    for i in range(3):
+        row = {"id": f"cb-dead-task-{i}", "channel": "ceo", "last_activity_at": dead_time}
+
+        def fake_execute(sql, params=(), _row=row):
+            if "last_activity_at" in sql and "status = 'running'" in sql and len(params) == 1:
+                return [_row]
+            return []
+
+        mock_backend = MagicMock()
+        mock_backend._db.execute.side_effect = fake_execute
+        mock_backend.update_route_execution = MagicMock()
+
+        with (
+            patch("watchdog._get_watchdog_backend", return_value=mock_backend),
+            patch("watchdog._channel_cb", cb),
+        ):
+            await watchdog._run_watchdog_once()
+
+    assert cb.is_open("ceo"), (
+        "Circuit breaker must be open after 3 watchdog kills on the same channel"
+    )
+
+
+# 13. Circuit breaker open → route_chat returns immediate error
+@pytest.mark.asyncio
+async def test_circuit_breaker_open_blocks_delegation():
+    """When the circuit breaker is open for a channel, route_chat must return
+    an error immediately without calling the LLM adapter."""
+    import handlers
+    from channel_circuit_breaker import _ChannelCircuitBreaker
+
+    cb = _ChannelCircuitBreaker(fail_threshold=1, window_sec=60, block_sec=30)
+    cb.record_failure("ceo")  # trip it immediately (threshold=1)
+    assert cb.is_open("ceo"), "Precondition: CB must be open"
+
+    adapter_called = []
+
+    async def fake_route(*args, **kwargs):
+        adapter_called.append(True)
+        from musu_core.router import RouteResult
+        return RouteResult(success=True, summary="should not reach", adapter_result=None)
+
+    mock_backend = MagicMock()
+    mock_backend.get_agent_by_name.return_value = {
+        "id": "agent-ceo", "role": "CEO",
+        "adapter_type": "gemini_local", "adapter_config": {}, "instructions_path": None,
+    }
+    mock_backend.list_agents.return_value = []
+
+    with (
+        patch("handlers._get_backend", return_value=mock_backend),
+        patch("handlers.get_mesh_router") as mock_mesh,
+        patch("server._channel_cb", cb),
+    ):
+        mock_mesh.return_value.enabled = False
+        result = await handlers.route_chat(
+            channel="ceo",
+            sender_id="test-sender",
+            text="do something specific in ceo_agent.py function handle_task",
+        )
+
+    assert result.get("error"), f"Expected an error when CB is open, got: {result}"
+    assert "circuit" in result["error"].lower() or "cb" in result["error"].lower(), (
+        f"Error must mention circuit breaker, got: {result['error']!r}"
+    )
+    assert not adapter_called, "LLM adapter must NOT be called when circuit breaker is open"
+
+
+# 14. Circuit breaker resets after block_sec
+def test_circuit_breaker_resets_after_block_sec():
+    """Circuit breaker must automatically close after block_sec seconds."""
+    import time
+    from channel_circuit_breaker import _ChannelCircuitBreaker
+
+    cb = _ChannelCircuitBreaker(fail_threshold=1, window_sec=60, block_sec=1)
+    cb.record_failure("team_lead")
+    assert cb.is_open("team_lead"), "Precondition: CB must be open"
+
+    # Simulate time passing past block_sec by back-dating the trip timestamp
+    cb._tripped_at["team_lead"] = time.time() - 2  # 2s ago > block_sec=1
+
+    assert not cb.is_open("team_lead"), (
+        "Circuit breaker must close automatically after block_sec elapses"
+    )

@@ -5,6 +5,24 @@ import os
 from dataclasses import dataclass, field
 
 
+def _default_channel_agent_map() -> dict[str, str]:
+    node = os.getenv("MUSU_NODE_NAME", "") or __import__("socket").gethostname()
+    def _agent(channel: str, default_suffix: str) -> str:
+        env_key = f"MUSU_AGENT_{channel.upper()}"
+        return os.getenv(env_key, f"{node}-{default_suffix}")
+    return {
+        "ceo": _agent("ceo", "CEO"),
+        "cto": _agent("cto", "CTO"),
+        "engineer": _agent("engineer", "Engineer"),
+        "qa": _agent("qa", "QA"),
+        "cos": os.getenv("MUSU_AGENT_COS", "cos"),
+        "worker": os.getenv("MUSU_AGENT_WORKER", "worker"),
+        "team_lead": os.getenv("MUSU_AGENT_TEAM_LEAD", "MD-Lead"),
+        "lead": os.getenv("MUSU_AGENT_LEAD", "MD-Lead"),
+        "bw_lead": os.getenv("MUSU_AGENT_BW_LEAD", "BW-Lead"),
+    }
+
+
 @dataclass
 class BridgeConfig:
     bridge_host: str = field(default_factory=lambda: os.getenv("BRIDGE_HOST", "127.0.0.1"))
@@ -29,18 +47,9 @@ class BridgeConfig:
     relay_url: str = field(default_factory=lambda: os.getenv("MUSU_RELAY_URL", ""))
 
     # Channel name → agent name mapping
-    # Channel "engineer" maps to agent named "engineer" in musu-core
-    channel_agent_map: dict[str, str] = field(default_factory=lambda: {
-        "ceo": "ceo",
-        "cto": "cto",
-        "engineer": "engineer",
-        "cos": "cos",
-        "qa": "qa",
-        "worker": "worker",
-        "team_lead": "MD-Lead",
-        "lead": "MD-Lead",
-        "bw_lead": "BW-Lead",
-    })
+    # Defaults use MUSU_NODE_NAME prefix (e.g. "4060-Engineer") to match actual agent names.
+    # Override individual channels via MUSU_AGENT_<CHANNEL>=<name> env vars.
+    channel_agent_map: dict[str, str] = field(default_factory=lambda: _default_channel_agent_map())
 
 
 _config: BridgeConfig | None = None
