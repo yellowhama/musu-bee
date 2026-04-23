@@ -41,7 +41,15 @@ from fastapi import Body, FastAPI, HTTPException, Path, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from bridge_models import (  # noqa: F401
+    RouteRequest, DelegateRequest, CompanyCreateRequest, CompanyUpdateRequest,
+    AgentUpdateRequest, WorkspaceUpdateRequest,
+    IssueCreateRequest, IssueUpdateRequest, IssueCommentRequest, IssueCheckoutRequest,
+    ProjectCreateRequest, ProjectUpdateRequest,
+    GoalCreateRequest, GoalUpdateRequest,
+    HeartbeatInvokeRequest, GroupMessageRequest, FeedbackRequest,
+)
+from pydantic import BaseModel, Field  # still needed by Annotated usage
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from musu_core.middleware import apply_musu_middlewares
@@ -525,45 +533,8 @@ if os.path.isdir(_novnc_dir):
     app.mount("/screen/novnc", StaticFiles(directory=_novnc_dir, html=True), name="novnc")
 
 
-class RouteRequest(BaseModel):
-    channel: str
-    sender_id: str
-    text: str = Field(max_length=10000)
-    adapter_override: str | None = None
-    cost_optimized: bool = False
-
-
-class DelegateRequest(BaseModel):
-    channel: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9_-]+$")
-    sender_id: str = Field(default="orchestrator", min_length=1, max_length=128)
-    text: str = Field(max_length=10000)
-    # When True and channel=="engineer", runs QALoop instead of single-shot route_chat.
-    # Engineer → QA → rework loop (max qa_loop_max_iter iterations, all criteria ≥ 7).
-    use_qa_loop: bool = False
-    qa_loop_max_iter: int = Field(default=3, ge=1, le=5)
-    # Optional caller-supplied timeout override (seconds). When None, the agent's
-    # adapter_config.timeout_sec is used. QA loop path always uses 900s regardless.
-    timeout_sec: int | None = Field(default=None, ge=30, le=3600)
-    # Company scope: when set, agent resolution prefers this company's agents.
-    company_id: str | None = None
-
-
-class CompanyCreateRequest(BaseModel):
-    name: str
-    id: str | None = None  # optional: caller can supply a fixed UUID
-    template_key: str = "default"
-    workspace_id: str = ""
-    meta: dict = {}
-    purpose: str = ""
-    work_dir: str = ""
-    test_cmd: str = "python -m pytest -q"
-
-
-class CompanyUpdateRequest(BaseModel):
-    name: str | None = None
-    template_key: str | None = None
-    workspace_id: str | None = None
-    meta: dict | None = None
+# Models: RouteRequest, DelegateRequest, CompanyCreateRequest, CompanyUpdateRequest
+# → extracted to bridge_models.py
 
 
 @app.post("/api/route")
@@ -854,11 +825,7 @@ async def api_resume_agent(agent_id: str) -> dict:
     return {"id": agent_id, "status": "active"}
 
 
-class AgentUpdateRequest(BaseModel):
-    role: str | None = Field(default=None, description="New role string")
-    model: str | None = Field(default=None, description="New model name (stored in adapter_config)")
-    # Partial adapter_config patch (shallow merge). Example: {"timeout_sec": 900, "cwd": "/path"}
-    adapter_config_patch: dict | None = Field(default=None, description="Partial adapter_config patch")
+# AgentUpdateRequest → bridge_models.py
 
 
 @app.patch("/api/agents/{agent_id}", summary="Update agent role, model, or adapter_config")
@@ -1069,8 +1036,7 @@ async def api_company_run(company_id: str) -> dict:
 
 # ── Workspace ────────────────────────────────────────────────────────────────
 
-class WorkspaceUpdateRequest(BaseModel):
-    active_company_id: str = Field(..., min_length=1)
+# WorkspaceUpdateRequest → bridge_models.py
 
 
 @app.get("/api/workspace", summary="Get workspace state")
@@ -1199,42 +1165,7 @@ async def api_task_events(request: Request) -> StreamingResponse:
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-class IssueCreateRequest(BaseModel):
-    title: str
-    description: str = ""
-    status: str = "open"
-    priority: str = "medium"
-    assignee_id: str | None = None
-
-
-class ProjectCreateRequest(BaseModel):
-    project_name: str
-    status: Literal["active", "paused", "archived"] = "active"
-    assigned_to: str | None = None
-
-
-class ProjectUpdateRequest(BaseModel):
-    project_name: str | None = None
-    status: Literal["active", "paused", "archived"] | None = None
-    assigned_to: str | None = None
-
-
-class IssueUpdateRequest(BaseModel):
-    title: str | None = None
-    description: str | None = None
-    status: str | None = None
-    priority: str | None = None
-    assignee_id: str | None = None
-
-
-class IssueCommentRequest(BaseModel):
-    body: str
-    author_id: str | None = None
-    author_kind: str = "agent"
-
-
-class IssueCheckoutRequest(BaseModel):
-    agent_id: str
+# Issue/Project models → bridge_models.py
 
 
 @app.get("/api/companies/{company_id}/issues", summary="List issues for a company")
@@ -1355,16 +1286,7 @@ async def api_cancel_heartbeat_run(run_id: str) -> dict:
     return {"cancelled": run_id}
 
 
-class HeartbeatInvokeRequest(BaseModel):
-    prompt: str = Field(
-        default=(
-            "자율 개발 루프 실행: DEVELOPMENT_PROCESS.md를 읽고, "
-            "미완료 Phase feature list를 확인한 후, "
-            "Sprint Contract 작성 → Engineer 위임 → QA → 커밋 순서로 진행하라."
-        ),
-        max_length=2000,
-    )
-    sender_id: str = Field(default="system", max_length=128)
+# HeartbeatInvokeRequest → bridge_models.py
 
 
 @app.post("/api/agents/{agent_id}/heartbeat/invoke", summary="Invoke a heartbeat run for an agent")
@@ -1476,18 +1398,7 @@ async def api_delete_project(project_id: str) -> dict:
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-class GoalCreateRequest(BaseModel):
-    title: str
-    description: str = ""
-    status: Literal["active", "completed", "cancelled"] = "active"
-    due_date: str | None = None
-
-
-class GoalUpdateRequest(BaseModel):
-    title: str | None = None
-    description: str | None = None
-    status: Literal["active", "completed", "cancelled"] | None = None
-    due_date: str | None = None
+# Goal models → bridge_models.py
 
 
 @app.get("/api/companies/{company_id}/goals", summary="List goals for a company")
@@ -1788,10 +1699,7 @@ async def api_company_briefing(company_id: str) -> dict:
 # ── Group Messages (CEO Board / Team Channels) ───────────────────────────
 
 
-class GroupMessageRequest(BaseModel):
-    text: str = Field(min_length=1, max_length=5000)
-    sender_id: str = Field(default="", max_length=128)
-    reply_to: str | None = Field(default=None, max_length=64)
+# GroupMessageRequest → bridge_models.py
 
 
 @app.post("/api/groups/{group_id}/messages", status_code=201, summary="Post to group channel")
@@ -1919,10 +1827,7 @@ async def api_success_rate(days: int = Query(default=7, ge=1, le=90)) -> dict:
 # ── User Feedback ──────────────────────────────────────────────────────────
 
 
-class FeedbackRequest(BaseModel):
-    title: str = Field(min_length=1, max_length=200)
-    description: str = Field(default="", max_length=5000)
-    type: str = Field(default="suggestion", pattern=r"^(bug|suggestion|complaint)$")
+# FeedbackRequest → bridge_models.py
 
 
 @app.post("/api/feedback", summary="Submit user feedback", status_code=201)
