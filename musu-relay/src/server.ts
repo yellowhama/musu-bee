@@ -215,7 +215,7 @@ app.all("/proxy/:nodeId/*", requireSecret, async (req, res) => {
 // ── WebSocket server (tunnel + ws-proxy endpoints) ────────────────────────
 
 const server = http.createServer(app);
-const wss = new WebSocketServer({ server, noServer: true });
+const wss = new WebSocketServer({ noServer: true });
 
 // Route upgrade requests to the right handler.
 // Railway only allows WS upgrades on /tunnel (strips query params before forwarding).
@@ -511,7 +511,7 @@ wss.on("ws-proxy-connection", async (clientWs: WebSocket, req: http.IncomingMess
 // ── VNC session TTL cleanup (30 min) ──────────────────────────────────────
 const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
-setInterval(() => {
+const _sessionCleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [id, session] of wsSessions) {
     if (now - session.createdAt > SESSION_TTL_MS) {
@@ -534,7 +534,22 @@ setInterval(() => {
   }
 }, SESSION_TTL_MS);
 
-server.listen(PORT, () => {
-  console.log(`[musu-relay] listening on :${PORT}`);
-  if (!RELAY_SECRET) console.warn("[musu-relay] WARNING: MUSU_RELAY_SECRET not set — HTTP proxy endpoint disabled");
-});
+// Export for testing
+export { app, server, tunnels, pending, wsSessions, validationCache, validateToken, _sessionCleanupTimer };
+
+/** Reset all mutable state — test-only */
+export function _resetState() {
+  tunnels.clear();
+  pending.clear();
+  wsSessions.clear();
+  validationCache.clear();
+  _circuitFailures = 0;
+  _circuitOpenUntil = 0;
+}
+
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`[musu-relay] listening on :${PORT}`);
+    if (!RELAY_SECRET) console.warn("[musu-relay] WARNING: MUSU_RELAY_SECRET not set — HTTP proxy endpoint disabled");
+  });
+}
