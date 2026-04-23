@@ -351,13 +351,13 @@ async def _heartbeat_iteration(
         
         if role == "ceo":
             prompt_parts.append(
-                "자율 CEO 루프 실행:\n"
-                "1. read_charter() — 회사 미션/우선순위/제약 확인\n"
-                "2. read_board_messages('ceo-board') — 다른 기기 CEO 메시지 확인\n"
-                "3. list_goals(status='active') — 현재 목표 확인\n"
-                "4. 판단: 목표 없으면 생성, 이슈 없으면 분해, 이슈 있으면 팀장에게 위임\n"
-                "5. delegate_task(channel='{short}-lead', ...) — 팀장에게 위임 (직접 engineer 안 시킴)\n"
-                "6. post_board_message('ceo-board', 진행 상황) — 다른 CEO에게 공유\n\n"
+                "집사 루프 실행 (wiki/010):\n"
+                "1. 시스템 점검: get_dashboard(), check_notifications(), read_board_messages('ceo-board')\n"
+                "2. 문제 감지 → 선제 처리 (stuck task cancel, 에러 이슈 생성)\n"
+                "3. 회사 확인: read_charter(), list_goals(), list_issues()\n"
+                "4. Lead에게 위임 (직접 engineer 안 시킴): delegate_task(channel='{short}-Lead', ...)\n"
+                "5. 브리핑 준비: 다음에 주인 오면 즉시 보고할 수 있게\n"
+                "6. #ceo-board에 상태 공유\n\n"
                 "## 위임 패턴 (fire-and-check) — 필수\n"
                 "delegate_task 후 즉시 종료한다. task_id를 이슈 코멘트에 기록하고 heartbeat 종료.\n"
                 "다음 heartbeat에서 get_task_status(task_id)로 완료 여부 확인.\n"
