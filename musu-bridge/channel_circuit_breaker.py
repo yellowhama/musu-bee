@@ -76,7 +76,7 @@ class _ChannelCircuitBreaker:
 # ── Default instance ─────────────────────────────────────────────────────────
 _CB_FAIL_THRESHOLD = int(os.environ.get("MUSU_CB_FAIL_THRESHOLD", "3"))
 _CB_FAIL_WINDOW_SEC = int(os.environ.get("MUSU_CB_FAIL_WINDOW_SEC", "60"))
-_CB_BLOCK_SEC = int(os.environ.get("MUSU_CB_BLOCK_SEC", "30"))
+_CB_BLOCK_SEC = int(os.environ.get("MUSU_CB_BLOCK_SEC", "60"))
 
 _channel_cb = _ChannelCircuitBreaker(
     fail_threshold=_CB_FAIL_THRESHOLD,
