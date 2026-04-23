@@ -130,7 +130,7 @@ async function fetchNodeHealth(
       worker_url: workerUrl,
       roles: node.roles || [],
       gpu: node.gpu || "",
-      status: healthRes.ok ? "online" : "degraded",
+      status: healthRes?.ok ? "online" : "degraded",
       health,
       capabilities,
     };
