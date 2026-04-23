@@ -128,3 +128,4 @@ llm-wiki/
 # Pre-built binaries (download from releases, don't commit)
 bin/
 ~/.musu/secrets/
+_archived/

@@ -30,8 +30,8 @@ async def test_heartbeat_timeout_releases_lock():
         await asyncio.sleep(9999)  # simulate hang
 
     with (
-        patch("server._get_heartbeat_backend", return_value=mock_backend),
-        patch("server._should_skip_heartbeat", return_value=(False, "")),
+        patch("heartbeat_scheduler._get_heartbeat_backend", return_value=mock_backend),
+        patch("heartbeat_scheduler._should_skip_heartbeat", return_value=(False, "")),
         patch("server.route_chat", side_effect=asyncio.TimeoutError()),
     ):
         # Should complete without raising, and lock must be free afterward
@@ -55,6 +55,7 @@ async def test_watchdog_cancels_stuck_tasks():
     """_run_watchdog_once should detect route_executions with no activity for
     > KILL_SEC seconds (updated_at-based) and mark them as failed."""
     import server
+    import watchdog
 
     # Simulate a stuck task: last updated 400s ago, still 'running'
     old_time = (datetime.now(timezone.utc) - timedelta(seconds=400)).isoformat()
@@ -69,7 +70,7 @@ async def test_watchdog_cancels_stuck_tasks():
     mock_backend._db.execute.side_effect = fake_execute
     mock_backend.update_route_execution = MagicMock()
 
-    with patch("server._get_watchdog_backend", return_value=mock_backend):
+    with patch("watchdog._get_watchdog_backend", return_value=mock_backend):
         await server._run_watchdog_once()
 
     # The stuck task should have been marked failed with activity-based message
@@ -89,6 +90,7 @@ async def test_watchdog_cancels_stuck_tasks():
 def test_task_stuck_total_counter_exists():
     """task_stuck_total Prometheus counter must be defined in server module."""
     import server
+    import watchdog
     # If prometheus unavailable, the counter may be None — that's fine.
     # If available, it must be a Counter instance.
     if server._PROMETHEUS_AVAILABLE:
@@ -111,6 +113,7 @@ async def test_watchdog_emits_warning_at_half_threshold():
     """_run_watchdog_once should emit a WARNING log for tasks approaching timeout."""
     import logging
     import server
+    import watchdog
 
     # Task last updated WARN_SEC+20s ago — in the warn window
     warn_sec = server._WATCHDOG_WARN_SEC
@@ -132,8 +135,8 @@ async def test_watchdog_emits_warning_at_half_threshold():
     mock_backend.update_route_execution = MagicMock()
 
     with (
-        patch("server._get_watchdog_backend", return_value=mock_backend),
-        patch.object(server.logger, "warning") as mock_warn,
+        patch("watchdog._get_watchdog_backend", return_value=mock_backend),
+        patch.object(watchdog.logger, "warning") as mock_warn,
     ):
         await server._run_watchdog_once()
 
@@ -157,6 +160,7 @@ async def test_watchdog_escalate_stage():
     (ESCALATE_SEC < age < KILL_SEC) and must NOT cancel them yet."""
     import logging
     import server
+    import watchdog
 
     escalate_sec = server._WATCHDOG_ESCALATE_SEC
     kill_sec = server._WATCHDOG_KILL_SEC
@@ -190,8 +194,8 @@ async def test_watchdog_escalate_stage():
     mock_backend.update_route_execution = MagicMock()
 
     with (
-        patch("server._get_watchdog_backend", return_value=mock_backend),
-        patch.object(server.logger, "error") as mock_error,
+        patch("watchdog._get_watchdog_backend", return_value=mock_backend),
+        patch.object(watchdog.logger, "error") as mock_error,
     ):
         await server._run_watchdog_once()
 

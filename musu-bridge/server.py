@@ -50,12 +50,11 @@ import audit
 import mesh_router as mesh_router
 import screen_vnc
 
-try:
-    from prometheus_fastapi_instrumentator import Instrumentator as _PFI
-    from prometheus_client import Counter as _Counter, Gauge as _Gauge, Histogram as _Histogram, REGISTRY as _PROM_REGISTRY
-    _PROMETHEUS_AVAILABLE = True
-except ImportError:
-    _PROMETHEUS_AVAILABLE = False
+from metrics import (
+    _PROMETHEUS_AVAILABLE, _record_task_metric, _increment_stuck_counter,
+    _agent_tasks_total, _agent_task_duration, _active_tasks_gauge, _task_stuck_total,
+    instrument_app, set_active_tasks_len,
+)
 from config import get_config
 from system_stats import collect_stats_async
 from csrf_guard import CSRFOriginGuard
@@ -187,373 +186,19 @@ def _get_channel_semaphore(channel: str) -> asyncio.Semaphore:
     return _channel_semaphores[channel]
 
 
-# Serializes heartbeat iterations within a single process — prevents concurrent CEO tasks
-# when the interval is shorter than agent response time.
-_heartbeat_lock = asyncio.Lock()
-
-
-def _get_heartbeat_backend():
-    """Return the backend for heartbeat guard checks (thin wrapper for testability)."""
-    from handlers import _get_backend
-    return _get_backend()
-
-
-CIRCUIT_TRIP_THRESHOLD = 3
-CIRCUIT_BACKOFF_BASE_SECONDS = 60
-CIRCUIT_WINDOW_MINUTES = 10
-
-
-class _ChannelCircuitBreaker:
-    """Per-channel circuit breaker (in-memory, sliding window).
-
-    Opens after fail_threshold failures within window_sec seconds.
-    Once open, stays open for block_sec seconds regardless of window,
-    then automatically resets (time-based, no half-open state).
-    """
-
-    def __init__(self, fail_threshold: int = 3, window_sec: int = 60, block_sec: int = 30) -> None:
-        from collections import defaultdict, deque
-        self._fail_threshold = fail_threshold
-        self._window_sec = window_sec
-        self._block_sec = block_sec
-        self._failures: dict[str, deque] = defaultdict(deque)  # channel → deque of timestamps
-        self._tripped_at: dict[str, float] = {}  # channel → time circuit tripped
-
-    def _prune(self, channel: str) -> None:
-        import time
-        cutoff = time.time() - self._window_sec
-        dq = self._failures[channel]
-        while dq and dq[0] < cutoff:
-            dq.popleft()
-
-    def record_failure(self, channel: str) -> None:
-        import time
-        self._prune(channel)
-        self._failures[channel].append(time.time())
-        # Record trip time when threshold first crossed
-        if len(self._failures[channel]) >= self._fail_threshold and channel not in self._tripped_at:
-            self._tripped_at[channel] = time.time()
-
-    def is_open(self, channel: str) -> bool:
-        import time
-        now = time.time()
-        # If tripped, check block_sec timer first
-        tripped = self._tripped_at.get(channel)
-        if tripped is not None:
-            if now - tripped >= self._block_sec:
-                # Block period expired — reset
-                self._tripped_at.pop(channel, None)
-                self._failures[channel].clear()
-                return False
-            return True
-        self._prune(channel)
-        return len(self._failures[channel]) >= self._fail_threshold
-
-    def state(self, channel: str) -> dict:
-        import time
-        open_ = self.is_open(channel)
-        count = len(self._failures.get(channel, []))
-        result: dict = {
-            "state": "open" if open_ else "closed",
-            "fail_count": count,
-            "threshold": self._fail_threshold,
-            "window_sec": self._window_sec,
-            "block_sec": self._block_sec,
-        }
-        tripped = self._tripped_at.get(channel)
-        if tripped:
-            result["block_remaining_sec"] = max(0.0, round(self._block_sec - (time.time() - tripped), 1))
-        return result
-
-
-_CB_FAIL_THRESHOLD = int(os.environ.get("MUSU_CB_FAIL_THRESHOLD", "3"))
-_CB_FAIL_WINDOW_SEC = int(os.environ.get("MUSU_CB_FAIL_WINDOW_SEC", "60"))
-_CB_BLOCK_SEC = int(os.environ.get("MUSU_CB_BLOCK_SEC", "30"))
-
-_channel_cb = _ChannelCircuitBreaker(
-    fail_threshold=_CB_FAIL_THRESHOLD,
-    window_sec=_CB_FAIL_WINDOW_SEC,
-    block_sec=_CB_BLOCK_SEC,
+# ── Channel circuit breaker (extracted to channel_circuit_breaker.py) ─────────
+from channel_circuit_breaker import (  # noqa: F401
+    CIRCUIT_TRIP_THRESHOLD, CIRCUIT_BACKOFF_BASE_SECONDS, CIRCUIT_WINDOW_MINUTES,
+    _ChannelCircuitBreaker, _channel_cb,
 )
 
-
-def _should_skip_heartbeat(backend, channel: str = "ceo") -> tuple[bool, str]:
-    """Circuit breaker for heartbeat. Returns (should_skip, reason).
-
-    Fail-open: DB errors return (False, '') so heartbeat continues rather than
-    silently stopping forever.
-    """
-    from datetime import datetime, timedelta, timezone
-
-    try:
-        rows = backend._db.execute(
-            "SELECT id FROM route_executions WHERE channel = ? AND status = 'running' LIMIT 1",
-            (channel,),
-        )
-        if rows:
-            return True, "already running"
-
-        cutoff = (datetime.now(timezone.utc) - timedelta(minutes=CIRCUIT_WINDOW_MINUTES)).isoformat()
-        fail_rows = backend._db.execute(
-            "SELECT COUNT(*) as cnt FROM route_executions "
-            "WHERE channel = ? AND status = 'failed' AND created_at > ?",
-            (channel, cutoff),
-        )
-        fail_count = fail_rows[0]["cnt"] if fail_rows else 0
-
-        if fail_count >= CIRCUIT_TRIP_THRESHOLD:
-            backoff = min(CIRCUIT_BACKOFF_BASE_SECONDS * (2 ** (fail_count - 1)), 1800)
-            return True, f"circuit open ({fail_count} recent failures, backoff={backoff}s)"
-
-        return False, ""
-    except Exception:
-        return False, ""
-
-
-def _has_running_ceo_task(backend, channel: str = "ceo") -> bool:
-    should_skip, reason = _should_skip_heartbeat(backend, channel=channel)
-    return should_skip and reason == "already running"
-
-
-async def _heartbeat_iteration(
-    agent_name: str,
-    company_id: str | None,
-    diag_summary: str,
-    role: str = "ceo",
-) -> None:
-    """Single guarded heartbeat iteration — serialized by _heartbeat_lock."""
-    async with _heartbeat_lock:
-        try:
-            backend = _get_heartbeat_backend()
-        except Exception:
-            backend = None
-
-        if backend is not None:
-            should_skip, reason = _should_skip_heartbeat(backend, channel=agent_name)
-            if should_skip:
-                if "circuit open" in reason:
-                    logger.warning(
-                        "heartbeat_scheduler: circuit open — skipping %s (%s)", agent_name, reason
-                    )
-                else:
-                    logger.info(
-                        "heartbeat_scheduler: skipping — %s (%s)", agent_name, reason
-                    )
-                return
-
-        logger.info("heartbeat_scheduler: invoking %s (role: %s)", agent_name, role)
-        prompt_parts = []
-        if diag_summary and role == "ceo":
-            prompt_parts.append(
-                f"## 진단 결과 (자동 감지)\n\n{diag_summary}\n\n"
-                "위 이슈를 확인하고 필요 시 create_issue로 등록한 후, 개발 루프를 진행하라.\n\n---\n\n"
-            )
-        
-        if role == "ceo":
-            prompt_parts.append(
-                "집사 루프 실행 (wiki/010):\n"
-                "1. 시스템 점검: get_dashboard(), check_notifications(), read_board_messages('ceo-board')\n"
-                "2. 문제 감지 → 선제 처리 (stuck task cancel, 에러 이슈 생성)\n"
-                "3. 회사 확인: read_charter(), list_goals(), list_issues()\n"
-                "4. Lead에게 위임 (직접 engineer 안 시킴): delegate_task(channel='{short}-Lead', ...)\n"
-                "5. 브리핑 준비: 다음에 주인 오면 즉시 보고할 수 있게\n"
-                "6. #ceo-board에 상태 공유\n\n"
-                "## 위임 패턴 (fire-and-check) — 필수\n"
-                "delegate_task 후 즉시 종료한다. task_id를 이슈 코멘트에 기록하고 heartbeat 종료.\n"
-                "다음 heartbeat에서 get_task_status(task_id)로 완료 여부 확인.\n"
-                "폴링 루프 금지: while True + sleep 루프 절대 실행 금지 — heartbeat timeout 초과 원인."
-            )
-        elif role == "team_lead":
-            prompt_parts.append(
-                "자율 팀장 루프 실행:\n"
-                "1. get_task_status('assigned') — 본인에게 할당된 이슈/작업 확인\n"
-                "2. 판단: 진행해야 할 작업이 있다면 엔지니어/QA에게 구체적 명세(Sprint Contract)와 함께 delegate_task 실행\n"
-                "3. 진행 상황 확인: 하위 태스크의 상태를 폴링하지 말고, 다음 하트비트에서 확인\n"
-                "4. 완료 보고: 하위 태스크가 완료되면 CEO가 할당한 원본 이슈/태스크에 코멘트로 결과 보고\n"
-            )
-
-        _hb_timeout = int(os.environ.get("MUSU_HEARTBEAT_TIMEOUT_SEC", "600"))
-        try:
-            await asyncio.wait_for(
-                route_chat(
-                    channel=agent_name,
-                    sender_id="system",
-                    text="".join(prompt_parts),
-                    company_id=company_id,
-                ),
-                timeout=_hb_timeout,
-            )
-            logger.info("heartbeat_scheduler: %s done", agent_name)
-        except asyncio.TimeoutError:
-            logger.warning(
-                "heartbeat_scheduler: %s timed out after %ds — releasing lock",
-                agent_name, _hb_timeout,
-            )
-            _increment_stuck_counter(agent_name, "heartbeat_timeout")
-
-
-_company_locks: dict[str, asyncio.Lock] = {}
-
-
-def _get_company_lock(company_id: str) -> asyncio.Lock:
-    """Per-company lock for heartbeat isolation."""
-    if company_id not in _company_locks:
-        _company_locks[company_id] = asyncio.Lock()
-    return _company_locks[company_id]
-
-
-async def _agent_heartbeat_scheduler() -> None:
-    """Periodic heartbeat for the CEO agent.
-
-    Two modes:
-      - Single company: MUSU_CEO_COMPANY_ID set → only that company
-      - Multi-company: not set → iterate all active companies
-
-    Env:
-        MUSU_CEO_HEARTBEAT_ENABLED  = "true"   — must be set to activate
-        MUSU_CEO_HEARTBEAT_INTERVAL = seconds   — default 1800 (30 min)
-        MUSU_CEO_AGENT_NAME         = name      — default "ceo"
-        MUSU_CEO_COMPANY_ID         = id        — single company mode (optional)
-    """
-    interval = int(os.environ.get("MUSU_CEO_HEARTBEAT_INTERVAL", "1800"))
-    _node = os.environ.get("MUSU_NODE_NAME", "local")
-    agent_name = os.environ.get("MUSU_CEO_AGENT_NAME", f"{_node}-CEO")
-    single_company_id = os.environ.get("MUSU_CEO_COMPANY_ID") or None
-
-    mode = f"single={single_company_id}" if single_company_id else "multi-company"
-    logger.info(
-        "heartbeat_scheduler: started (interval=%ds, agent=%s, mode=%s)",
-        interval, agent_name, mode,
-    )
-    await asyncio.sleep(60)
-
-    _self_healing = os.environ.get("MUSU_SELF_HEALING_ENABLED", "true").lower() == "true"
-
-    while True:
-        # Determine which companies to heartbeat
-        if single_company_id:
-            company_ids = [single_company_id]
-        else:
-            try:
-                from handlers import list_companies as _list_hb_co
-                company_ids = [c["id"] for c in _list_hb_co() if c.get("status") == "active"]
-            except Exception:
-                company_ids = []
-
-        if not company_ids:
-            logger.info("heartbeat_scheduler: no active companies, sleeping")
-            await asyncio.sleep(interval)
-            continue
-
-        # Run diagnostic once (not per company)
-        diag_summary = ""
-        if _self_healing:
-            try:
-                from diagnostics import PreHeartbeatDiagnostic
-                from handlers import _get_backend as _diag_backend
-                _ws_root = os.path.join(os.getcwd(), ".musu", "tasks")
-                report = PreHeartbeatDiagnostic(workspace_root=_ws_root).run(_diag_backend())
-                if report.needs_attention:
-                    diag_summary = report.summary
-                    logger.info("heartbeat_scheduler: diagnostic found issues:\n%s", diag_summary)
-            except Exception as diag_exc:
-                logger.warning("heartbeat_scheduler: diagnostic error — %s", diag_exc)
-
-        # Heartbeat each company (sequential with per-company lock)
-        for cid in company_ids:
-            try:
-                logger.info("heartbeat_scheduler: company %s", cid[:8])
-                await _heartbeat_iteration(
-                    agent_name=agent_name,
-                    company_id=cid,
-                    diag_summary=diag_summary,
-                )
-            except Exception as exc:
-                logger.warning("heartbeat_scheduler: company %s error — %s", cid[:8], exc)
-
-        await asyncio.sleep(interval)
-
-
-async def _team_lead_heartbeat_scheduler() -> None:
-    """Periodic heartbeat for Team Lead agents.
-    
-    Operates similarly to the CEO heartbeat but defaults to a faster cycle.
-    Shares the _heartbeat_lock so it cannot run concurrently with the CEO,
-    preventing SQLite 'database is locked' errors.
-    """
-    interval = int(os.environ.get("MUSU_TEAM_LEAD_HEARTBEAT_INTERVAL", "600"))
-    agent_name = os.environ.get("MUSU_TEAM_LEAD_AGENT_NAME", "team_lead")
-    single_company_id = os.environ.get("MUSU_TEAM_LEAD_COMPANY_ID") or None
-
-    mode = f"single={single_company_id}" if single_company_id else "multi-company"
-    logger.info(
-        "team_lead_scheduler: started (interval=%ds, agent=%s, mode=%s)",
-        interval, agent_name, mode,
-    )
-    await asyncio.sleep(30)
-
-    while True:
-        if single_company_id:
-            company_ids = [single_company_id]
-        else:
-            try:
-                from handlers import list_companies as _list_hb_co
-                company_ids = [c["id"] for c in _list_hb_co() if c.get("status") == "active"]
-            except Exception:
-                company_ids = []
-
-        if not company_ids:
-            await asyncio.sleep(interval)
-            continue
-
-        for cid in company_ids:
-            try:
-                logger.info("team_lead_scheduler: company %s", cid[:8])
-                await _heartbeat_iteration(
-                    agent_name=agent_name,
-                    company_id=cid,
-                    diag_summary="",
-                    role="team_lead",
-                )
-            except Exception as exc:
-                logger.warning("team_lead_scheduler: company %s error — %s", cid[:8], exc)
-
-        await asyncio.sleep(interval)
-
-
-async def _node_manager_heartbeat() -> None:
-    """Periodic stats report from the local node manager agent.
-
-    Env:
-        MUSU_NODE_HEARTBEAT_ENABLED  = "true"   — must be set to activate
-        MUSU_NODE_HEARTBEAT_INTERVAL = seconds   — default 300 (5 min)
-    """
-    interval = int(os.environ.get("MUSU_NODE_HEARTBEAT_INTERVAL", "300"))
-    _cfg = get_config()
-    # Use mesh self_name so channel matches nodes.toml topology (not OS hostname)
-    from mesh_router import get_router as _get_router
-    _router = _get_router()
-    mgr_name = f"mgr-{_router._self_name or _cfg.node_name}"
-
-    logger.info(
-        "node_heartbeat: started (interval=%ds, agent=%s)", interval, mgr_name
-    )
-    # Stagger: wait 90s so node manager agent is fully seeded before first ping.
-    await asyncio.sleep(90)
-
-    while True:
-        try:
-            logger.info("node_heartbeat: invoking %s", mgr_name)
-            # Node managers are always global (per-device, not company-scoped)
-            await route_chat(
-                channel=mgr_name,
-                sender_id="system",
-                text="heartbeat: 현재 기기 상태 보고해줘",
-            )
-            logger.info("node_heartbeat: %s done", mgr_name)
-        except Exception as exc:
-            logger.warning("node_heartbeat: error — %s", exc)
-        await asyncio.sleep(interval)
+# ── Heartbeat schedulers (extracted to heartbeat_scheduler.py) ────────────────
+from heartbeat_scheduler import (  # noqa: F401
+    _heartbeat_lock, _get_heartbeat_backend, _should_skip_heartbeat,
+    _has_running_ceo_task, _heartbeat_iteration,
+    _agent_heartbeat_scheduler, _team_lead_heartbeat_scheduler,
+    _node_manager_heartbeat, _company_locks, _get_company_lock,
+)
 
 
 @asynccontextmanager
@@ -832,184 +477,19 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="musu-bridge", version="0.2.0", lifespan=lifespan)
 
-# ── Prometheus metrics ─────────────────────────────────────────────────────────
-def _prom_counter(name, doc, labels):
-    try:
-        return _Counter(name, doc, labels)
-    except ValueError:
-        return _PROM_REGISTRY._names_to_collectors.get(name)
+# ── Prometheus metrics (extracted to metrics.py) ─────────────────────────────
+instrument_app(app)
+set_active_tasks_len(lambda: len(_active_tasks))
 
 
-def _prom_histogram(name, doc, labels, buckets):
-    try:
-        return _Histogram(name, doc, labels, buckets=buckets)
-    except ValueError:
-        return _PROM_REGISTRY._names_to_collectors.get(name)
-
-
-def _prom_gauge(name, doc):
-    try:
-        return _Gauge(name, doc)
-    except ValueError:
-        return _PROM_REGISTRY._names_to_collectors.get(name)
-
-
-if _PROMETHEUS_AVAILABLE:
-    try:
-        _pfi = _PFI().instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
-    except ValueError:
-        _pfi = None
-    _agent_tasks_total = _prom_counter(
-        "agent_tasks_total",
-        "Tasks delegated by channel and outcome",
-        ["channel", "status"],
-    )
-    _agent_task_duration = _prom_histogram(
-        "agent_task_duration_seconds",
-        "Wall-clock time for agent tasks",
-        ["channel"],
-        buckets=[30, 60, 120, 300, 600, 900, 1800],
-    )
-    _active_tasks_gauge = _prom_gauge("active_tasks_count", "Currently running async tasks")
-    _task_stuck_total = _prom_counter(
-        "task_stuck_total",
-        "Tasks detected as stuck (no output / timeout) by channel and detection reason",
-        ["channel", "reason"],
-    )
-else:
-    _agent_tasks_total = None
-    _agent_task_duration = None
-    _active_tasks_gauge = None
-    _task_stuck_total = None
-
-
-def _record_task_metric(channel: str, status: str, duration_s: float | None = None) -> None:
-    """Increment agent task counters. No-op if prometheus unavailable."""
-    if _agent_tasks_total is not None:
-        _agent_tasks_total.labels(channel=channel, status=status).inc()
-    if duration_s is not None and _agent_task_duration is not None:
-        _agent_task_duration.labels(channel=channel).observe(duration_s)
-    if _active_tasks_gauge is not None:
-        _active_tasks_gauge.set(len(_active_tasks))
-
-
-def _increment_stuck_counter(channel: str, reason: str) -> None:
-    """Increment task_stuck_total counter. No-op if prometheus unavailable."""
-    if _task_stuck_total is not None:
-        _task_stuck_total.labels(channel=channel, reason=reason).inc()
-
-
-def _get_watchdog_backend():
-    """Return the backend for watchdog stuck-task scanning (thin wrapper for testability)."""
-    from handlers import _get_backend
-    return _get_backend()
-
-
-_WATCHDOG_KILL_SEC = int(
-    os.environ.get("MUSU_WATCHDOG_KILL_SEC")
-    or os.environ.get("MUSU_WATCHDOG_STUCK_THRESHOLD_SEC", "240")
+# ── Watchdog (extracted to watchdog.py) ────────────────────────────────────────
+from watchdog import (  # noqa: F401
+    _get_watchdog_backend, _run_watchdog_once, _watchdog_loop,
+    _watchdog_rate_check, _watchdog_rate_cleanup_loop,
+    _WATCHDOG_ALLOWED, _WATCHDOG_RATE_WINDOW, _watchdog_rate,
+    _WATCHDOG_KILL_SEC, _WATCHDOG_ESCALATE_SEC, _WATCHDOG_WARN_SEC,
+    _WATCHDOG_STUCK_THRESHOLD_SEC,
 )
-_WATCHDOG_ESCALATE_SEC = int(os.environ.get("MUSU_WATCHDOG_ESCALATE_SEC", "120"))
-_WATCHDOG_WARN_SEC = int(os.environ.get("MUSU_WATCHDOG_WARN_SEC", "60"))
-# 하위호환 alias
-_WATCHDOG_STUCK_THRESHOLD_SEC = _WATCHDOG_KILL_SEC
-
-
-async def _run_watchdog_once() -> int:
-    """Scan route_executions for tasks stuck in 'running' state.
-
-    3-stage watchdog:
-      warn (WARN_SEC~ESCALATE_SEC): WARNING log — approaching timeout
-      escalate (ESCALATE_SEC~KILL_SEC): ERROR log — critical, needs attention
-      kill (>KILL_SEC): mark failed + increment counter
-
-    Returns the number of tasks cancelled.
-    """
-    from datetime import datetime, timedelta, timezone
-
-    now = datetime.now(timezone.utc)
-    kill_cutoff = (now - timedelta(seconds=_WATCHDOG_KILL_SEC)).isoformat()
-    escalate_cutoff = (now - timedelta(seconds=_WATCHDOG_ESCALATE_SEC)).isoformat()
-    warn_cutoff = (now - timedelta(seconds=_WATCHDOG_WARN_SEC)).isoformat()
-
-    try:
-        backend = _get_watchdog_backend()
-        stuck_rows = backend._db.execute(
-            "SELECT id, channel FROM route_executions "
-            "WHERE status = 'running' AND updated_at < ?",
-            (kill_cutoff,),
-        )
-    except Exception as exc:
-        logger.warning("watchdog: DB scan failed — %s", exc)
-        return 0
-
-    cancelled = 0
-    for row in stuck_rows:
-        task_id = row["id"] if isinstance(row, dict) else row[0]
-        channel = (row["channel"] if isinstance(row, dict) else row[1]) or "unknown"
-        try:
-            backend.update_route_execution(
-                task_id,
-                "failed",
-                error=f"auto-cancelled by watchdog: stuck > {_WATCHDOG_KILL_SEC}s (activity-based)",
-            )
-            _increment_stuck_counter(channel, "watchdog_timeout")
-            logger.warning("watchdog: activity-based cancel of task %s (channel=%s, kill_threshold=%ds)", task_id, channel, _WATCHDOG_KILL_SEC)
-            cancelled += 1
-        except Exception as exc:
-            logger.warning("watchdog: failed to cancel task %s — %s", task_id, exc)
-
-    # Escalate stage: tasks in ESCALATE_SEC~KILL_SEC window
-    try:
-        escalate_rows = backend._db.execute(
-            "SELECT id, channel FROM route_executions "
-            "WHERE status = 'running' AND updated_at < ? AND updated_at >= ?",
-            (escalate_cutoff, kill_cutoff),
-        )
-        for row in escalate_rows:
-            task_id = row["id"] if isinstance(row, dict) else row[0]
-            channel = (row["channel"] if isinstance(row, dict) else row[1]) or "unknown"
-            logger.error(
-                "watchdog: ESCALATE task %s (channel=%s) stuck >%ds — kill in %ds",
-                task_id, channel, _WATCHDOG_ESCALATE_SEC,
-                _WATCHDOG_KILL_SEC - _WATCHDOG_ESCALATE_SEC,
-            )
-    except Exception as exc:
-        logger.warning("watchdog: escalate scan failed — %s", exc)
-
-    # Warn stage: tasks in WARN_SEC~ESCALATE_SEC window
-    try:
-        warn_rows = backend._db.execute(
-            "SELECT id, channel FROM route_executions "
-            "WHERE status = 'running' AND updated_at < ? AND updated_at >= ?",
-            (warn_cutoff, escalate_cutoff),
-        )
-        for row in warn_rows:
-            task_id = row["id"] if isinstance(row, dict) else row[0]
-            channel = (row["channel"] if isinstance(row, dict) else row[1]) or "unknown"
-            logger.warning(
-                "watchdog: task %s (channel=%s) approaching timeout (%ds threshold)",
-                task_id, channel, _WATCHDOG_KILL_SEC,
-            )
-    except Exception as exc:
-        logger.warning("watchdog: early-warning scan failed — %s", exc)
-
-    return cancelled
-
-
-async def _watchdog_loop() -> None:
-    """Background loop: every 60s scan for and cancel stuck tasks."""
-    interval = int(os.environ.get("MUSU_WATCHDOG_INTERVAL_SEC", "60"))
-    logger.info("watchdog: started (interval=%ds, threshold=%ds)", interval, _WATCHDOG_STUCK_THRESHOLD_SEC)
-    await asyncio.sleep(interval)
-    while True:
-        try:
-            n = await _run_watchdog_once()
-            if n:
-                logger.info("watchdog: cancelled %d stuck task(s)", n)
-        except Exception as exc:
-            logger.warning("watchdog: iteration error — %s", exc)
-        await asyncio.sleep(interval)
 
 
 apply_musu_middlewares(
@@ -1581,7 +1061,9 @@ async def api_company_run(company_id: str) -> dict:
         "Delegate tasks to your team as needed. Report what you delegated and why."
     )
 
-    result = await route_chat(channel="ceo", sender_id="orchestrator", text=instruction, company_id=company_id)
+    _node = os.environ.get("MUSU_NODE_NAME", "local")
+    _ceo_channel = os.environ.get("MUSU_CEO_AGENT_NAME", f"{_node}-CEO")
+    result = await route_chat(channel=_ceo_channel, sender_id="orchestrator", text=instruction, company_id=company_id)
     return {"company_id": company_id, "task": result}
 
 
@@ -2340,131 +1822,9 @@ async def api_index_search(q: str = Query("", max_length=200)) -> list[dict]:
 # ──────────────────────────────────────────────────────────────────
 
 import re as _re
-from pathlib import Path as _Path
-
-_WIKI_PATH = _Path(os.environ.get("MUSU_WIKI_PATH", str(_Path.home() / "llm-wiki" / "wiki")))
-_WIKI_PATH.mkdir(parents=True, exist_ok=True)  # ensure dir exists for new users
-
-
-def _wiki_title(content: str, fallback: str) -> str:
-    for line in content.split("\n"):
-        if line.startswith("# "):
-            return line[2:].strip()
-    return fallback
-
-
-def _iter_wiki_files():
-    """Yield (file_path, folder_name) for all .md files, top-level and one level deep."""
-    for f in sorted(_WIKI_PATH.glob("*.md")):
-        yield f, ""
-    for d in sorted(p for p in _WIKI_PATH.iterdir() if p.is_dir() and not p.name.startswith(".")):
-        for f in sorted(d.glob("*.md")):
-            yield f, d.name
-
-
-@app.get("/api/wiki/pages", summary="List all wiki pages")
-async def api_wiki_pages() -> list[dict]:
-    """Return list of {id, title, folder} for every page in the LLM wiki.
-    Top-level files have folder=''. Subfolder files have folder=<dirname> and id=<folder>/<stem>.
-    """
-    pages = []
-    for f, folder in _iter_wiki_files():
-        try:
-            content = f.read_text(encoding="utf-8")
-            title = _wiki_title(content, f.stem)
-        except OSError:
-            title = f.stem
-        page_id = f"{folder}/{f.stem}" if folder else f.stem
-        pages.append({"id": page_id, "title": title, "folder": folder})
-    return pages
-
-
-@app.get("/api/wiki/search", summary="Search wiki pages")
-async def api_wiki_search(q: str = Query("", max_length=200)) -> list[dict]:
-    """Full-text search across all wiki pages. Returns up to 20 results."""
-    q_str = q.strip().lower()
-    if not q_str:
-        return []
-    results = []
-    for f, folder in _iter_wiki_files():
-        try:
-            content = f.read_text(encoding="utf-8")
-        except OSError:
-            continue
-        if q_str in content.lower():
-            idx = content.lower().find(q_str)
-            start = max(0, idx - 120)
-            end = min(len(content), idx + 300)
-            snippet = content[start:end].replace("\n", " ").strip()
-            title = _wiki_title(content, f.stem)
-            page_id = f"{folder}/{f.stem}" if folder else f.stem
-            results.append({"id": page_id, "title": title, "folder": folder, "snippet": snippet})
-    return results[:20]
-
-
-@app.get("/api/wiki/page/{page_id:path}", summary="Get a wiki page by ID")
-async def api_wiki_page(page_id: str = Path(..., max_length=200)) -> dict:
-    """Return the full markdown content of a wiki page.
-    Supports both flat IDs (e.g. 'index') and folder IDs (e.g. 'musu/getting-started').
-    """
-    # Sanitize: allow alphanumeric, underscore, hyphen, forward slash only
-    safe_id = _re.sub(r"[^a-zA-Z0-9_\-/]", "", page_id).strip("/").replace("//", "/")
-    parts = safe_id.split("/", 1)
-    if len(parts) == 2:
-        folder, stem = parts
-        path = _WIKI_PATH / folder / f"{stem}.md"
-    else:
-        path = _WIKI_PATH / f"{safe_id}.md"
-    if not path.exists():
-        raise HTTPException(status_code=404, detail=f"Wiki page '{safe_id}' not found.")
-    content = path.read_text(encoding="utf-8")
-    return {"id": safe_id, "title": _wiki_title(content, safe_id.split("/")[-1]), "content": content}
-
-
-class _WikiWriteRequest(BaseModel):
-    content: str
-    folder: str = ""
-
-
-@app.post("/api/wiki/page/{page_id:path}", summary="Create or update a wiki page")
-async def api_wiki_page_write(
-    page_id: str = Path(..., max_length=200),
-    body: _WikiWriteRequest = Body(...),
-) -> dict:
-    """Create or overwrite a wiki page. page_id is the stem (e.g. 'my-page' or 'folder/my-page')."""
-    safe_id = _re.sub(r"[^a-zA-Z0-9_\-/]", "", page_id).strip("/").replace("//", "/")
-    if not safe_id:
-        raise HTTPException(status_code=400, detail="Invalid page ID")
-    parts = safe_id.split("/", 1)
-    if len(parts) == 2:
-        folder, stem = parts
-        dir_path = _WIKI_PATH / folder
-    else:
-        folder, stem = "", safe_id
-        dir_path = _WIKI_PATH
-    dir_path.mkdir(parents=True, exist_ok=True)
-    path = dir_path / f"{stem}.md"
-    path.write_text(body.content, encoding="utf-8")
-    title = _wiki_title(body.content, stem)
-    return {"id": safe_id, "title": title, "folder": folder}
-
-
-@app.delete("/api/wiki/page/{page_id:path}", summary="Delete a wiki page")
-async def api_wiki_page_delete(
-    page_id: str = Path(..., max_length=200),
-) -> dict:
-    """Delete a wiki page by ID."""
-    safe_id = _re.sub(r"[^a-zA-Z0-9_\-/]", "", page_id).strip("/").replace("//", "/")
-    parts = safe_id.split("/", 1)
-    if len(parts) == 2:
-        folder, stem = parts
-        path = _WIKI_PATH / folder / f"{stem}.md"
-    else:
-        path = _WIKI_PATH / f"{safe_id}.md"
-    if not path.exists():
-        raise HTTPException(status_code=404, detail=f"Wiki page '{safe_id}' not found.")
-    path.unlink()
-    return {"deleted": safe_id}
+# ── Wiki routes (extracted to wiki_routes.py) ─────────────────────────────────
+from wiki_routes import wiki_router  # noqa: F401
+app.include_router(wiki_router)
 
 
 # ── Remote File Access ─────────────────────────────────────────────────────
@@ -2827,21 +2187,23 @@ async def health_ready() -> Response:
 @app.get("/api/system/circuit-breakers", summary="Circuit breaker state for all internal CBs")
 async def circuit_breakers_status() -> dict:
     """Expose heartbeat and per-channel circuit breaker state for observability."""
+    _node_cb = os.environ.get("MUSU_NODE_NAME", "local")
+    _ceo_cb_channel = os.environ.get("MUSU_CEO_AGENT_NAME", f"{_node_cb}-CEO").lower()
     try:
         backend = _get_heartbeat_backend()
-        cb_open, reason = _should_skip_heartbeat(backend, "ceo")
+        cb_open, reason = _should_skip_heartbeat(backend, _ceo_cb_channel)
         hb_state = "open" if cb_open else "closed"
     except Exception as exc:
         hb_state = "unknown"
         reason = str(exc)
 
     # Per-channel CB state for all tracked channels
-    tracked = set(_channel_cb._failures.keys()) | {"engineer", "cto", "ceo", "qa", "planner", "cos"}
+    tracked = set(_channel_cb._failures.keys()) | {"engineer", "cto", _ceo_cb_channel, "qa", "planner", "cos"}
     channels = {ch: _channel_cb.state(ch) for ch in sorted(tracked)}
 
     return {
         "heartbeat": {
-            "channel": "ceo",
+            "channel": _ceo_cb_channel,
             "state": hb_state,
             "reason": reason if hb_state != "closed" else "",
         },
@@ -2850,266 +2212,12 @@ async def circuit_breakers_status() -> dict:
     }
 
 
-# ── Screen snapshot ────────────────────────────────────────────────────────────
-import threading as _threading
-_mss_lock = _threading.Lock()
-
-
-def _find_display_env() -> dict:
-    """Return dict with DISPLAY and XAUTHORITY set, or empty dict if not found."""
-    import glob
-    env: dict = {}
-
-    # DISPLAY: check env, then X11 lock files
-    display = os.environ.get("DISPLAY", "")
-    if not display:
-        locks = sorted(glob.glob("/tmp/.X*-lock"))
-        if locks:
-            # Extract display number from /tmp/.X1-lock → ":1"
-            num = locks[0].replace("/tmp/.X", "").replace("-lock", "")
-            display = f":{num}"
-        else:
-            display = ":0"
-    env["DISPLAY"] = display
-
-    # XAUTHORITY: check env first, then common paths
-    xauth = os.environ.get("XAUTHORITY", "")
-    if not xauth or not os.path.exists(xauth):
-        candidates = [
-            os.path.expanduser("~/.Xauthority"),
-            f"/run/user/{os.getuid()}/gdm/Xauthority",
-            f"/run/user/{os.getuid()}/xauthority",
-        ] + sorted(glob.glob("/tmp/xauth_*"), reverse=True)  # most recent first
-        for c in candidates:
-            if os.path.exists(c):
-                xauth = c
-                break
-    if xauth:
-        env["XAUTHORITY"] = xauth
-
-    return env
-
-
-def _capture_mss(tmp_png: str, display_env: dict, monitor_index: int = 1) -> bool:
-    """Capture screenshot using python-mss (libX11 direct). Returns True on success."""
-    with _mss_lock:
-        # mss reads DISPLAY/XAUTHORITY from environment
-        old = {k: os.environ.get(k) for k in display_env}
-        try:
-            os.environ.update(display_env)
-            import mss
-            import mss.tools
-            with mss.mss() as sct:
-                idx = monitor_index if 0 < monitor_index < len(sct.monitors) else (1 if len(sct.monitors) > 1 else 0)
-                monitor = sct.monitors[idx]
-                img = sct.grab(monitor)
-                mss.tools.to_png(img.rgb, img.size, output=tmp_png)
-            return os.path.exists(tmp_png) and os.path.getsize(tmp_png) > 0
-        except Exception as _exc:
-            logger.debug("_capture_mss failed: %s", _exc)
-            return False
-        finally:
-            for k, v in old.items():
-                if v is None:
-                    os.environ.pop(k, None)
-                else:
-                    os.environ[k] = v
-
-
-def _png_to_jpeg(png_path: str, jpg_path: str, quality: int = 65) -> bool:
-    """Convert PNG to JPEG via Pillow. Returns True on success."""
-    try:
-        from PIL import Image
-        with Image.open(png_path) as im:
-            im.convert("RGB").save(jpg_path, "JPEG", quality=quality, optimize=True)
-        return True
-    except Exception as _exc:
-        logger.debug("_png_to_jpeg failed: %s", _exc)
-        return False
-
-
-def _capture_ffmpeg(tmp_jpg: str, display_env: dict) -> bool:
-    """Capture screenshot using ffmpeg x11grab. Returns True on success."""
-    import subprocess
-    import shutil as _shutil
-    if not _shutil.which("ffmpeg"):
-        return False
-    display = display_env.get("DISPLAY", ":0")
-    base_display = display.split(".")[0]  # strip any existing ".0" suffix
-    env = os.environ.copy()
-    env.update(display_env)
-    # detect actual resolution
-    res = "1920x1080"  # fallback
-    if _shutil.which("xdpyinfo"):
-        try:
-            import subprocess as _sp2
-            out = _sp2.run(["xdpyinfo", "-display", base_display],
-                           capture_output=True, text=True, timeout=3,
-                           env={**os.environ, **display_env}).stdout
-            for line in out.splitlines():
-                if "dimensions:" in line:
-                    res = line.split()[1]  # e.g. "1920x1080"
-                    break
-        except Exception:
-            pass
-    try:
-        subprocess.run(
-            ["ffmpeg", "-y", "-f", "x11grab", "-video_size", res,
-             "-i", f"{base_display}.0", "-vframes", "1", "-q:v", "3", tmp_jpg],
-            env=env, timeout=15, check=True, capture_output=True,
-        )
-        return os.path.exists(tmp_jpg) and os.path.getsize(tmp_jpg) > 0
-    except Exception as _exc:
-        logger.debug("_capture_ffmpeg failed: %s", _exc)
-        return False
-
-
-def _capture_scrot(tmp_jpg: str, display_env: dict) -> bool:
-    """Capture screenshot using scrot. Returns True on success."""
-    import subprocess
-    import shutil
-    if not shutil.which("scrot"):
-        return False
-    env = os.environ.copy()
-    env.update(display_env)
-    try:
-        subprocess.run(
-            ["scrot", "-q", "65", "-o", tmp_jpg],
-            env=env, timeout=10, check=True, capture_output=True,
-        )
-        return os.path.exists(tmp_jpg) and os.path.getsize(tmp_jpg) > 0
-    except Exception as _exc:
-        logger.debug("_capture_scrot failed: %s", _exc)
-        return False
-
-
-def _do_capture_sync(display_env: dict, tmp_png: str, tmp_jpg: str, monitor_index: int = 1) -> bool:
-    """Run the mss→ffmpeg→scrot fallback chain synchronously. Returns True on success."""
-    if _capture_mss(tmp_png, display_env, monitor_index) and _png_to_jpeg(tmp_png, tmp_jpg):
-        return True
-    if _capture_ffmpeg(tmp_jpg, display_env):
-        return True
-    if _capture_scrot(tmp_jpg, display_env):
-        return True
-    return False
-
-
-@app.get("/api/screen/monitors")
-async def screen_monitors() -> dict:
-    """List available monitors on this machine.
-
-    Returns {"monitors": [{"index": 1, "width": 1920, "height": 1080, "left": 0, "top": 0}, ...]}
-    Index matches sct.monitors index (1-based for real monitors; 0 = virtual all-in-one).
-    """
-    display_env = _find_display_env()
-    try:
-        import mss
-        old = {k: os.environ.get(k) for k in display_env}
-        try:
-            os.environ.update(display_env)
-            with mss.mss() as sct:
-                result = [
-                    {
-                        "index": i,
-                        "width": m["width"],
-                        "height": m["height"],
-                        "left": m["left"],
-                        "top": m["top"],
-                    }
-                    for i, m in enumerate(sct.monitors)
-                    if i > 0  # skip index 0 (all-in-one virtual)
-                ]
-        finally:
-            for k, v in old.items():
-                if v is None:
-                    os.environ.pop(k, None)
-                else:
-                    os.environ[k] = v
-        return {"monitors": result}
-    except Exception as exc:
-        raise HTTPException(500, detail=f"monitor list failed: {exc}") from exc
-
-
-@app.get("/api/screen/snapshot")
-async def screen_snapshot(monitor: int = 1) -> dict:
-    """Capture a screenshot of this machine and return as base64 JPEG.
-
-    Tries multiple capture methods in order:
-      1. python-mss (libX11 direct) + Pillow PNG→JPEG conversion
-      2. ffmpeg -f x11grab -vframes 1
-      3. scrot
-    Returns {"snapshot": "data:image/jpeg;base64,...", "ts": <epoch_ms>}
-    """
-    import base64
-    import tempfile
-    import time
-
-    display_env = _find_display_env()
-
-    # Try mss first (PNG), convert to JPEG
-    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-        tmp_png = f.name
-    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as f:
-        tmp_jpg = f.name
-
-    try:
-        loop = asyncio.get_running_loop()
-        captured = await loop.run_in_executor(None, _do_capture_sync, display_env, tmp_png, tmp_jpg, monitor)
-
-        if not captured:
-            raise HTTPException(
-                status_code=503,
-                detail=(
-                    f"Screen capture unavailable "
-                    f"(display={display_env.get('DISPLAY', 'none')}, "
-                    f"xauth={'yes' if display_env.get('XAUTHORITY') else 'no'}) "
-                    f"— try: pip install mss pillow"
-                ),
-            )
-
-        with open(tmp_jpg, "rb") as f:
-            data = base64.b64encode(f.read()).decode()
-        return {"snapshot": f"data:image/jpeg;base64,{data}", "ts": int(time.time() * 1000)}
-    finally:
-        for p in (tmp_png, tmp_jpg):
-            try:
-                os.unlink(p)
-            except OSError:
-                pass
+# ── Screen routes (extracted to screen_routes.py) ─────────────────────────────
+from screen_routes import screen_router  # noqa: F401
+app.include_router(screen_router)
 
 
 # ── Watchdog endpoints (P2P remote bridge control via musu-connectsd) ─────────
-
-_WATCHDOG_ALLOWED = frozenset({"bridge:start", "bridge:stop", "bridge:restart", "agents:cleanup"})
-
-# Rate limit: max 1 watchdog command per (user_id, node, command) tuple per 10s (in-memory, per-process)
-_watchdog_rate: dict[str, float] = {}
-_WATCHDOG_RATE_WINDOW = 10.0  # seconds
-
-
-def _watchdog_rate_check(user_id: str, node: str, command: str) -> bool:
-    """Return True if allowed, False if rate-limited. Updates the timestamp on True."""
-    import time
-    key = f"{user_id}:{node}:{command}"
-    now = time.monotonic()
-    last = _watchdog_rate.get(key, 0.0)
-    if now - last < _WATCHDOG_RATE_WINDOW:
-        return False
-    _watchdog_rate[key] = now
-    return True
-
-
-async def _watchdog_rate_cleanup_loop() -> None:
-    """Hourly: remove rate limit entries older than 24 hours to prevent unbounded growth."""
-    while True:
-        await asyncio.sleep(3600)
-        cutoff = time.monotonic() - 86400
-        stale = [k for k, v in _watchdog_rate.items() if v < cutoff]
-        for k in stale:
-            _watchdog_rate.pop(k, None)
-        if stale:
-            logger.info("watchdog rate cache: cleared %d stale entries", len(stale))
-
 
 @app.post("/api/watchdog/{node}/{command}")
 async def watchdog_command(node: str, command: str, request: Request) -> dict:
@@ -3233,78 +2341,6 @@ async def system_update() -> dict:
         raise HTTPException(status_code=504, detail="auto-update timed out after 90s")
 
 
-# ── VNC remote desktop endpoints ──────────────────────────────────────────────
-
-
-@app.post("/api/screen/vnc/start")
-async def screen_vnc_start(display: str = Query(default="")) -> dict:
-    """Start x11vnc on localhost:5900 for the given DISPLAY.
-
-    If display is not specified, auto-detects via _find_display_env() (same
-    logic used by the snapshot endpoint — checks loginctl, /tmp/.X*, etc.)
-    Requires x11vnc installed: sudo apt install x11vnc
-    Authentication enforced globally by apply_musu_middlewares.
-    """
-    display_env = _find_display_env()
-    if not display:
-        display = display_env.get("DISPLAY", ":0")
-    xauthority = display_env.get("XAUTHORITY", "")
-    try:
-        return await asyncio.get_running_loop().run_in_executor(
-            None, screen_vnc.start_vnc, display, xauthority
-        )
-    except RuntimeError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-
-
-@app.post("/api/screen/vnc/stop")
-async def screen_vnc_stop() -> dict:
-    """Stop the x11vnc subprocess if running."""
-    return await asyncio.get_running_loop().run_in_executor(None, screen_vnc.stop_vnc)
-
-
-@app.get("/api/screen/vnc/status")
-async def screen_vnc_status() -> dict:
-    """Return current VNC server status (running, pid, port)."""
-    return screen_vnc.get_vnc_status()
-
-
-@app.get("/api/screen/vnc/token")
-async def screen_vnc_token() -> dict:
-    """Issue a one-time WebSocket token (60s TTL).
-
-    Response includes relay_ws_url so the browser can connect via musu-relay
-    instead of directly to the bridge (direct access requires Tailscale/LAN).
-    """
-    tok = screen_vnc.issue_token()
-    # Build relay WebSocket URL: convert http(s) → ws(s) and append ws-proxy path
-    relay_ws_url = ""
-    cfg = get_config()
-    if cfg.relay_url and cfg.node_name:
-        relay_base = (
-            cfg.relay_url.rstrip("/")
-            .replace("https://", "wss://")
-            .replace("http://", "ws://")
-        )
-        # Railway only allows WS upgrades on /tunnel — no query params needed.
-        # Browser will do first-message handshake: {"type":"vnc-proxy","node":..,"token":..}
-        relay_ws_url = f"{relay_base}/tunnel"
-    return {
-        "token": tok,
-        "launcher_path": f"/screen/novnc/launcher.html?token={tok}",
-        "relay_ws_url": relay_ws_url,
-        "node_name": cfg.node_name or "",
-    }
-
-
-@app.websocket("/api/screen/ws-vnc")
-async def ws_vnc(websocket: WebSocket, token: str = Query(...)) -> None:
-    """WebSocket VNC proxy — bridges noVNC RFB to x11vnc TCP:5900.
-
-    Token must be obtained from GET /api/screen/vnc/token (single-use, 60s TTL).
-    Authentication is via the one-time token; no Bearer header needed here.
-    """
-    await screen_vnc.ws_vnc_proxy(websocket, token)
 
 
 if __name__ == "__main__":

@@ -43,9 +43,9 @@ async def test_heartbeat_iteration_uses_600s_timeout():
     mock_backend._db.execute.return_value = []
 
     with (
-        patch("server._get_heartbeat_backend", return_value=mock_backend),
-        patch("server._should_skip_heartbeat", return_value=(False, "")),
-        patch("server.route_chat", new_callable=AsyncMock),
+        patch("heartbeat_scheduler._get_heartbeat_backend", return_value=mock_backend),
+        patch("heartbeat_scheduler._should_skip_heartbeat", return_value=(False, "")),
+        patch("heartbeat_scheduler.route_chat", new_callable=AsyncMock),
         patch("asyncio.wait_for", side_effect=fake_wait_for),
         patch.dict(os.environ, {}, clear=False),
     ):
@@ -80,9 +80,9 @@ async def test_ceo_prompt_contains_fire_and_check_pattern():
     mock_backend._db.execute.return_value = []
 
     with (
-        patch("server._get_heartbeat_backend", return_value=mock_backend),
-        patch("server._should_skip_heartbeat", return_value=(False, "")),
-        patch("server.route_chat", side_effect=fake_route_chat),
+        patch("heartbeat_scheduler._get_heartbeat_backend", return_value=mock_backend),
+        patch("heartbeat_scheduler._should_skip_heartbeat", return_value=(False, "")),
+        patch("heartbeat_scheduler.route_chat", side_effect=fake_route_chat),
         patch.dict(os.environ, {"MUSU_HEARTBEAT_TIMEOUT_SEC": "600"}),
     ):
         await server._heartbeat_iteration(
@@ -115,9 +115,9 @@ async def test_ceo_prompt_forbids_polling_loop():
     mock_backend._db.execute.return_value = []
 
     with (
-        patch("server._get_heartbeat_backend", return_value=mock_backend),
-        patch("server._should_skip_heartbeat", return_value=(False, "")),
-        patch("server.route_chat", side_effect=fake_route_chat),
+        patch("heartbeat_scheduler._get_heartbeat_backend", return_value=mock_backend),
+        patch("heartbeat_scheduler._should_skip_heartbeat", return_value=(False, "")),
+        patch("heartbeat_scheduler.route_chat", side_effect=fake_route_chat),
         patch.dict(os.environ, {"MUSU_HEARTBEAT_TIMEOUT_SEC": "600"}),
     ):
         await server._heartbeat_iteration(

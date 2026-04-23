@@ -25,8 +25,8 @@ def wiki_client(tmp_path, monkeypatch):
 
     monkeypatch.setenv("MUSU_WIKI_PATH", str(wiki_dir))
 
-    import server as srv
-    monkeypatch.setattr(srv, "_WIKI_PATH", wiki_dir)
+    import server as srv; import wiki_routes
+    monkeypatch.setattr(wiki_routes, "_WIKI_PATH", wiki_dir)
 
     token = os.environ.get("MUSU_BRIDGE_TOKEN", "test-token")
     client = TestClient(srv.app, headers={"Authorization": f"Bearer {token}"}, raise_server_exceptions=True)

@@ -1,0 +1,6 @@
+[Unit]
+Description=MUSU SQLite daily backup (7-day rotation)
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c 'DB="%h/.musu/musu.db"; DIR="%h/.musu/backups"; mkdir -p "$DIR" && [ -f "$DB" ] && sqlite3 "$DB" ".backup $DIR/musu-$(date +%%Y%%m%%d).db" && find "$DIR" -name "musu-*.db" -mtime +7 -delete && echo "backup ok: $DIR/musu-$(date +%%Y%%m%%d).db"'
