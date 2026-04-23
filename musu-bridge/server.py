@@ -2466,6 +2466,60 @@ async def api_wiki_page_delete(
     return {"deleted": safe_id}
 
 
+# ── Remote File Access ─────────────────────────────────────────────────────
+
+
+@app.get("/api/files/read", summary="Read a file from this device")
+async def api_files_read(path: str = Query(..., max_length=500)) -> dict:
+    """Read a file from this device. Used for cross-device file access.
+
+    Security: only allows paths under home directory. No traversal above home.
+    """
+    import pathlib as _pl
+    home = _pl.Path.home()
+    target = _pl.Path(path).resolve()
+    if not str(target).startswith(str(home)):
+        raise HTTPException(status_code=403, detail="Access denied: path must be under home directory")
+    if not target.exists():
+        raise HTTPException(status_code=404, detail=f"File not found: {path}")
+    if not target.is_file():
+        raise HTTPException(status_code=400, detail="Not a file")
+    if target.stat().st_size > 10 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="File too large (max 10MB)")
+    try:
+        content = target.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        content = target.read_bytes().decode("utf-8", errors="replace")
+    return {"path": str(target), "size": target.stat().st_size, "content": content}
+
+
+@app.get("/api/files/list", summary="List files in a directory on this device")
+async def api_files_list(
+    path: str = Query(default="~", max_length=500),
+    pattern: str = Query(default="*", max_length=100),
+) -> dict:
+    """List files in a directory. Used for cross-device file browsing.
+
+    Supports glob patterns (e.g., *.txt, *.md).
+    """
+    import pathlib as _pl
+    home = _pl.Path.home()
+    target = _pl.Path(path).expanduser().resolve()
+    if not str(target).startswith(str(home)):
+        raise HTTPException(status_code=403, detail="Access denied: path must be under home directory")
+    if not target.is_dir():
+        raise HTTPException(status_code=404, detail=f"Directory not found: {path}")
+    entries = []
+    for f in sorted(target.glob(pattern))[:200]:
+        entries.append({
+            "name": f.name,
+            "path": str(f),
+            "is_dir": f.is_dir(),
+            "size": f.stat().st_size if f.is_file() else 0,
+        })
+    return {"path": str(target), "entries": entries}
+
+
 # ── Chairman Briefing (wiki/001) ──────────────────────────────────────────
 
 

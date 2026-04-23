@@ -1049,6 +1049,53 @@ async def resolve_approval(approval_id: str, decision: str, note: str = "") -> s
 
 
 # ──────────────────────────────────────────────
+# Remote File Access
+# ──────────────────────────────────────────────
+
+
+@mcp.tool()
+async def read_remote_file(node_url: str, path: str) -> str:
+    """Read a file from a remote device via its bridge API.
+
+    node_url: bridge URL (e.g., "http://100.121.211.106:8070")
+    path: file path on the remote device (must be under home dir)
+    """
+    try:
+        c = _get_client()
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.get(
+                f"{node_url}/api/files/read",
+                params={"path": path},
+                headers={"Authorization": f"Bearer {os.environ.get('PAPERCLIP_API_KEY', '')}"},
+            )
+            resp.raise_for_status()
+            return _fmt(resp.json())
+    except Exception as exc:
+        return _tool_error(f"Failed to read remote file: {exc}")
+
+
+@mcp.tool()
+async def list_remote_files(node_url: str, path: str = "~", pattern: str = "*") -> str:
+    """List files in a directory on a remote device.
+
+    node_url: bridge URL (e.g., "http://100.121.211.106:8070")
+    path: directory path (default: home)
+    pattern: glob pattern (e.g., "*.txt", "*.md")
+    """
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.get(
+                f"{node_url}/api/files/list",
+                params={"path": path, "pattern": pattern},
+                headers={"Authorization": f"Bearer {os.environ.get('PAPERCLIP_API_KEY', '')}"},
+            )
+            resp.raise_for_status()
+            return _fmt(resp.json())
+    except Exception as exc:
+        return _tool_error(f"Failed to list remote files: {exc}")
+
+
+# ──────────────────────────────────────────────
 # Group Messages (CEO Board / Team Channels)
 # ──────────────────────────────────────────────
 
