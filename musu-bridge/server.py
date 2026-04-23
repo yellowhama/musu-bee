@@ -3113,6 +3113,60 @@ async def watchdog_status(node: str) -> dict:
         return {"bridge_running": False, "connectsd_ok": False, "error": str(exc)}
 
 
+@app.post("/api/system/restart", summary="Restart MUSU services on this device")
+async def system_restart(service: str = Query(default="all", pattern=r"^(all|bridge|portd|bee|worker)$")) -> dict:
+    """Restart one or all MUSU services. Callable remotely.
+
+    service: "all" (default), "bridge", "portd", "bee", "worker"
+    """
+    cmds = {
+        "bridge": "systemctl --user restart musu-bridge",
+        "portd": "systemctl --user restart musu-portd 2>/dev/null || (cd ~/musu-functions && nohup bin/musu-portd &)",
+        "bee": "systemctl --user restart musu-bee",
+        "worker": "systemctl --user restart musu-worker",
+    }
+    if service == "all":
+        targets = list(cmds.keys())
+    else:
+        targets = [service]
+
+    results = {}
+    for svc in targets:
+        try:
+            proc = await asyncio.create_subprocess_shell(
+                cmds[svc],
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+            )
+            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=30)
+            results[svc] = {"exit_code": proc.returncode, "output": stdout.decode(errors="replace").strip()}
+        except asyncio.TimeoutError:
+            results[svc] = {"exit_code": -1, "output": "timeout"}
+        except Exception as e:
+            results[svc] = {"exit_code": -1, "output": str(e)}
+
+    return {"restarted": targets, "results": results}
+
+
+@app.get("/api/system/services", summary="List MUSU service statuses on this device")
+async def system_services() -> dict:
+    """Check status of all MUSU services."""
+    services = ["musu-bridge", "musu-bee", "musu-portd", "musu-worker", "musu-connectsd"]
+    result = {}
+    for svc in services:
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "systemctl", "--user", "is-active", f"{svc}.service",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=5)
+            result[svc] = stdout.decode().strip()
+        except Exception:
+            result[svc] = "unknown"
+    return {"node": os.environ.get("MUSU_NODE_NAME", "unknown"), "services": result}
+
+
 @app.post("/api/system/update", summary="Run auto-update (git pull + restart if changed)")
 async def system_update() -> dict:
     """Execute scripts/auto-update.sh — git pull and restart services if files changed.
