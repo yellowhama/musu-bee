@@ -1054,45 +1054,52 @@ async def resolve_approval(approval_id: str, decision: str, note: str = "") -> s
 
 
 @mcp.tool()
-async def read_remote_file(node_url: str, path: str) -> str:
-    """Read a file from a remote device via its bridge API.
+async def read_remote_file(node: str, path: str) -> str:
+    """Read a file from a remote device.
 
-    node_url: bridge URL (e.g., "http://100.121.211.106:8070")
+    node: device name from vault (e.g., "5070", "4060") — auto-resolves IP and auth
     path: file path on the remote device (must be under home dir)
+
+    You never need to provide tokens or URLs. The vault handles authentication.
     """
     try:
-        c = _get_client()
+        url = _get_node_url(node)
+        token = _get_bridge_token()
         async with httpx.AsyncClient(timeout=15) as client:
             resp = await client.get(
-                f"{node_url}/api/files/read",
+                f"{url}/api/files/read",
                 params={"path": path},
-                headers={"Authorization": f"Bearer {os.environ.get('PAPERCLIP_API_KEY', '')}"},
+                headers={"Authorization": f"Bearer {token}"},
             )
             resp.raise_for_status()
             return _fmt(resp.json())
     except Exception as exc:
-        return _tool_error(f"Failed to read remote file: {exc}")
+        return _tool_error(f"Failed to read file on {node}: {exc}")
 
 
 @mcp.tool()
-async def list_remote_files(node_url: str, path: str = "~", pattern: str = "*") -> str:
+async def list_remote_files(node: str, path: str = "~", pattern: str = "*") -> str:
     """List files in a directory on a remote device.
 
-    node_url: bridge URL (e.g., "http://100.121.211.106:8070")
+    node: device name from vault (e.g., "5070", "4060")
     path: directory path (default: home)
     pattern: glob pattern (e.g., "*.txt", "*.md")
+
+    Authentication is automatic from the vault.
     """
     try:
+        url = _get_node_url(node)
+        token = _get_bridge_token()
         async with httpx.AsyncClient(timeout=15) as client:
             resp = await client.get(
-                f"{node_url}/api/files/list",
+                f"{url}/api/files/list",
                 params={"path": path, "pattern": pattern},
-                headers={"Authorization": f"Bearer {os.environ.get('PAPERCLIP_API_KEY', '')}"},
+                headers={"Authorization": f"Bearer {token}"},
             )
             resp.raise_for_status()
             return _fmt(resp.json())
     except Exception as exc:
-        return _tool_error(f"Failed to list remote files: {exc}")
+        return _tool_error(f"Failed to list files on {node}: {exc}")
 
 
 # ──────────────────────────────────────────────
@@ -1129,27 +1136,32 @@ async def reply_board_message(group_id: str, reply_to: str, text: str) -> str:
         return _tool_error("Error replying to message.")
 
 
-@mcp.tool()
-async def get_vault_secret(key: str) -> str:
-    """Read a secret from the vault (~/.musu/secrets/vault.json).
+# ── Internal vault helpers (never exposed to agents) ─────────────────────
 
-    key: dot-separated path (e.g., "bridge.token", "nodes.5070.ip", "forgejo.url")
-    Use this to get auth tokens for cross-device API calls.
-    """
-    import json as _json
+def _read_vault() -> dict:
+    """Read vault.json. Internal only — agents never see raw secrets."""
     vault_path = os.path.expanduser("~/.musu/secrets/vault.json")
     try:
         with open(vault_path) as f:
-            d = _json.load(f)
-        keys = key.split(".")
-        v = d
-        for k in keys:
-            v = v[k]
-        return str(v)
-    except FileNotFoundError:
-        return _tool_error("Vault not found. Run scripts/vault.sh to create.")
-    except KeyError:
-        return _tool_error(f"Key '{key}' not found in vault.")
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def _get_bridge_token() -> str:
+    return _read_vault().get("bridge", {}).get("token", "")
+
+
+def _get_node_url(node: str) -> str:
+    """Resolve node name → bridge URL from vault."""
+    nodes = _read_vault().get("nodes", {})
+    if node in nodes:
+        info = nodes[node]
+        ip = info.get("ip", "")
+        port = info.get("bridge", 8070)
+        return f"http://{ip}:{port}"
+    # Fallback: try as IP directly
+    return f"http://{node}:8070"
 
 
 @mcp.tool()

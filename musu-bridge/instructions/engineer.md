@@ -39,11 +39,12 @@
 
 ## Cross-Device Files (wiki/007)
 
-Need a file from another device? Use MCP:
+Need a file from another device? Use MCP with node name:
 ```
-list_remote_files("http://100.121.211.106:8070", "/home/hugh/project", "*.py")
-read_remote_file("http://100.121.211.106:8070", "/home/hugh/project/file.py")
+list_remote_files(node="5070", path="/home/hugh/project", pattern="*.py")
+read_remote_file(node="5070", path="/home/hugh/project/file.py")
 ```
+Auth is automatic. No tokens or IPs needed.
 
 ---
 

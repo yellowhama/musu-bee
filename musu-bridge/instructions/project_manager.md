@@ -21,12 +21,12 @@ You manage ONE project within a company. You report to the Company Lead.
 
 ## Cross-Device Files (wiki/007)
 
-Project files may be on another device. Use MCP tools:
+Project files may be on another device. Use MCP tools with node name:
 ```
-list_remote_files("http://{NODE_IP}:8070", "/path/to/project", "*.md")
-read_remote_file("http://{NODE_IP}:8070", "/path/to/file.md")
+list_remote_files(node="5070", path="/home/hugh/project", pattern="*.md")
+read_remote_file(node="5070", path="/home/hugh/project/file.md")
 ```
-Known devices: 4060 (100.126.67.88), 5070 (100.121.211.106)
+Auth is automatic from the vault. You never need tokens or IPs.
 
 ## Rules
 
