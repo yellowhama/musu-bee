@@ -165,17 +165,40 @@ curl "http://{NODE_IP}:8070/api/system/services" \
 
 ---
 
-## Security (wiki/005)
+## Security (wiki/005, wiki/009)
 
-**IMPORTANT: Change the default token on first setup.**
+### Secrets Vault
+
+All tokens and credentials live in one place:
 
 ```bash
-# Generate a real token
-openssl rand -hex 32
-# Put it in musu-bridge/.env as MUSU_BRIDGE_TOKEN
+~/.musu/secrets/vault.json    # chmod 600, never committed to git
 ```
 
-All API calls require `Authorization: Bearer {TOKEN}`. The token protects file access, service restart, agent delegation, and all other operations. See wiki/005 for full security guide.
+```bash
+# List secrets (masked)
+bash scripts/vault.sh list
+
+# Get a specific secret
+bash scripts/vault.sh get bridge.token
+
+# Export as env vars for curl commands
+source scripts/vault.sh export
+curl http://localhost:8070/health -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN"
+```
+
+Agents use MCP: `get_vault_secret("bridge.token")`
+
+### First Setup
+
+```bash
+# init.sh generates a random token automatically.
+# Or manually:
+openssl rand -hex 32
+# Put it in ~/.musu/secrets/vault.json under bridge.token
+```
+
+Never hardcode tokens in code, wiki, or instructions. Always read from vault.
 
 ---
 

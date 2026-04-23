@@ -39,15 +39,35 @@ npm install -g @openai/codex                # Codex
 ### 4. Configure
 
 ```bash
-mkdir -p ~/.musu
-cat > musu-bridge/.env << 'EOF'
-MUSU_BRIDGE_TOKEN=local-dev-token-change-in-prod
+# Run init.sh — generates token, copies templates, installs deps
+bash scripts/init.sh
+```
+
+Or manually:
+
+```bash
+mkdir -p ~/.musu/secrets && chmod 700 ~/.musu/secrets
+
+# Generate secure token
+TOKEN=$(openssl rand -hex 32)
+
+# Create vault (wiki/009)
+cat > ~/.musu/secrets/vault.json << EOF
+{
+  "bridge": {"token": "$TOKEN"},
+  "cloud": {"musu_token": ""},
+  "forgejo": {"user": "musu_admin", "pass": "musu_admin", "url": ""},
+  "nodes": {}
+}
+EOF
+chmod 600 ~/.musu/secrets/vault.json
+
+# Create .env from vault token
+cat > musu-bridge/.env << EOF
+MUSU_BRIDGE_TOKEN=$TOKEN
 BRIDGE_HOST=0.0.0.0
 BRIDGE_PORT=8070
 MUSU_NODE_NAME=YOUR_NODE_NAME
-MUSU_TOKEN=e8c464ed3508370bce2bb27298ab6ee16aa92dcf5e25c076
-MUSU_RELAY_ENABLED=true
-MUSU_RELAY_URL=https://musu-relay-production.up.railway.app
 MUSU_CEO_HEARTBEAT_ENABLED=true
 MUSU_CEO_HEARTBEAT_INTERVAL=1800
 MUSU_NODE_HEARTBEAT_ENABLED=true
