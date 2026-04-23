@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import time
 import uuid
 from dataclasses import dataclass, field, replace
+from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 from musu_core.adapters.base import AdapterContext, AdapterResult, RETRIABLE_ERROR_CODES
@@ -13,6 +15,62 @@ from musu_core.config import Config, get_config
 
 if TYPE_CHECKING:
     from musu_core.backends.base import BackendABC
+
+
+class CircuitState(Enum):
+    CLOSED = "closed"
+    OPEN = "open"
+    HALF_OPEN = "half_open"
+
+
+class CircuitBreaker:
+    """
+    Three-state circuit breaker: CLOSED → OPEN → HALF_OPEN → CLOSED.
+
+    Args:
+        failure_threshold: Number of consecutive failures before opening.
+        recovery_timeout:  Seconds to wait in OPEN state before probing (HALF_OPEN).
+    """
+
+    def __init__(self, failure_threshold: int = 5, recovery_timeout: float = 60.0) -> None:
+        self.failure_threshold = failure_threshold
+        self.recovery_timeout = recovery_timeout
+        self._state = CircuitState.CLOSED
+        self._failure_count = 0
+        self._opened_at: float | None = None
+
+    @property
+    def state(self) -> CircuitState:
+        return self._state
+
+    def allow_request(self) -> bool:
+        """Return True if the request should be allowed through."""
+        if self._state == CircuitState.CLOSED:
+            return True
+        if self._state == CircuitState.OPEN:
+            if self._opened_at is not None and time.monotonic() - self._opened_at >= self.recovery_timeout:
+                self._state = CircuitState.HALF_OPEN
+                return True
+            return False
+        # HALF_OPEN: allow the probe
+        return True
+
+    def record_success(self) -> None:
+        """Record a successful call; resets the breaker to CLOSED."""
+        self._failure_count = 0
+        self._opened_at = None
+        self._state = CircuitState.CLOSED
+
+    def record_failure(self) -> None:
+        """Record a failed call; may trip the breaker to OPEN."""
+        if self._state == CircuitState.HALF_OPEN:
+            self._state = CircuitState.OPEN
+            self._opened_at = time.monotonic()
+            return
+        self._failure_count += 1
+        if self._failure_count >= self.failure_threshold:
+            self._state = CircuitState.OPEN
+            self._opened_at = time.monotonic()
 
 
 @dataclass
