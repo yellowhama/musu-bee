@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { toPolylinePoints } from "./costs-panel-chart";
 
 interface CostsSummary {
   company_id: string;
@@ -18,6 +19,19 @@ interface AgentCost {
   estimated_cost_usd: number | null;
 }
 
+interface MetricsPoint {
+  ts: string;
+  cost: number;
+  latency: number;
+}
+
+interface MetricsHistory {
+  history: MetricsPoint[];
+  total_cost_usd: number;
+  avg_latency_sec: number;
+  sample_count: number;
+}
+
 interface CostsPanelProps {
   companyId?: string | null;
 }
@@ -25,6 +39,7 @@ interface CostsPanelProps {
 export default function CostsPanel({ companyId }: CostsPanelProps) {
   const [summary, setSummary] = useState<CostsSummary | null>(null);
   const [byAgent, setByAgent] = useState<AgentCost[]>([]);
+  const [metrics, setMetrics] = useState<MetricsHistory | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,9 +51,10 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
       return;
     }
     try {
-      const [summaryRes, byAgentRes] = await Promise.all([
+      const [summaryRes, byAgentRes, metricsRes] = await Promise.all([
         fetch(`/api/bridge/companies/${companyId}/costs/summary`),
         fetch(`/api/bridge/companies/${companyId}/costs/by-agent`),
+        fetch(`/api/bridge/companies/${companyId}/metrics`),
       ]);
       if (!summaryRes.ok) throw new Error(`summary HTTP ${summaryRes.status}`);
       if (!byAgentRes.ok) throw new Error(`by-agent HTTP ${byAgentRes.status}`);
@@ -46,9 +62,13 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
         summaryRes.json() as Promise<CostsSummary>,
         byAgentRes.json() as Promise<AgentCost[]>,
       ]);
+      const metricsData = metricsRes.ok
+        ? ((await metricsRes.json()) as MetricsHistory)
+        : null;
       if (mountedRef.current) {
         setSummary(summaryData);
         setByAgent(Array.isArray(byAgentData) ? byAgentData : []);
+        setMetrics(metricsData);
         setError(null);
       }
     } catch (e) {
@@ -160,6 +180,98 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
 
         {companyId && !loading && !error && summary && (
           <>
+            {/* Metrics charts */}
+            {metrics && metrics.history.length >= 2 ? (
+              <div
+                style={{
+                  background: "var(--musu-bg-card)",
+                  border: "1px solid var(--musu-border-dim)",
+                  borderRadius: 8,
+                  padding: "12px 16px",
+                  marginBottom: 16,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: "#6b7280",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    marginBottom: 10,
+                  }}
+                >
+                  Trends
+                </div>
+                <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                  {/* Cost trend */}
+                  <div style={{ flex: 1, minWidth: 120 }}>
+                    <div style={{ fontSize: 10, color: "#6b7280", marginBottom: 4 }}>
+                      Cost (USD)
+                    </div>
+                    <svg
+                      viewBox="0 0 300 80"
+                      width="100%"
+                      style={{ display: "block" }}
+                    >
+                      <polyline
+                        fill="none"
+                        stroke="#3b82f6"
+                        strokeWidth="2"
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                        points={toPolylinePoints(
+                          metrics.history.map((p) => p.cost),
+                          300,
+                          80,
+                          6,
+                        )}
+                      />
+                    </svg>
+                  </div>
+                  {/* Latency trend */}
+                  <div style={{ flex: 1, minWidth: 120 }}>
+                    <div style={{ fontSize: 10, color: "#6b7280", marginBottom: 4 }}>
+                      Latency (s)
+                    </div>
+                    <svg
+                      viewBox="0 0 300 80"
+                      width="100%"
+                      style={{ display: "block" }}
+                    >
+                      <polyline
+                        fill="none"
+                        stroke="#f59e0b"
+                        strokeWidth="2"
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                        points={toPolylinePoints(
+                          metrics.history.map((p) => p.latency),
+                          300,
+                          80,
+                          6,
+                        )}
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  background: "var(--musu-bg-card)",
+                  border: "1px solid var(--musu-border-dim)",
+                  borderRadius: 8,
+                  padding: "12px 16px",
+                  marginBottom: 16,
+                  color: "#4b5563",
+                  fontSize: 13,
+                }}
+              >
+                No metrics data yet
+              </div>
+            )}
+
             {/* Summary card */}
             <div
               style={{

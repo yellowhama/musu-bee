@@ -6,9 +6,10 @@ Wants=musu-bridge.service
 [Service]
 Type=simple
 WorkingDirectory=%h/musu-functions/musu-bee
-ExecStart=/bin/bash -c 'node_modules/.bin/next start -p 3001'
-Restart=on-failure
-RestartSec=5
+ExecStartPre=/bin/bash -c 'test -d .next || npm run build || true'
+ExecStart=/bin/bash -c 'if test -d .next; then exec node_modules/.bin/next start -p 3001; else exec node_modules/.bin/next dev -p 3001; fi'
+Restart=always
+RestartSec=10
 Environment=NODE_ENV=production
 
 [Install]

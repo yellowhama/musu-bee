@@ -60,9 +60,13 @@ async function fetchHealth(url: string): Promise<PortHealth | null> {
       next: { revalidate: 0 },
     });
     clearTimeout(timer);
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.error(`fetchHealth ${url} returned status ${res.status}`);
+      return null;
+    }
     return (await res.json()) as PortHealth;
-  } catch {
+  } catch (e: any) {
+    console.error(`fetchHealth ${url} threw error:`, e.message);
     return null;
   }
 }
@@ -91,7 +95,10 @@ export async function GET() {
   const devices: DeviceStatusItem[] = [];
 
   // ── Local machine ─────────────────────────────────────────────────────────
+  console.log("Fetching local health from:", LOCAL_PORT_URL);
   const localHealth = await fetchHealth(LOCAL_PORT_URL);
+  console.log("Local health result:", localHealth);
+  
   if (!localHealth) {
     // Port unreachable — return single offline entry so UI shows something
     devices.push({

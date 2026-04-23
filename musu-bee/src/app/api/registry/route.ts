@@ -22,7 +22,8 @@ export async function GET() {
       );
     }
     const data = await res.json();
-    return NextResponse.json({ nodes: data, token_configured: true });
+    const nodesArray = Array.isArray(data) ? data : (Array.isArray(data.nodes) ? data.nodes : []);
+    return NextResponse.json({ nodes: nodesArray, token_configured: true });
   } catch {
     return NextResponse.json(
       { nodes: [], token_configured: true, error: "registry_unavailable" },
