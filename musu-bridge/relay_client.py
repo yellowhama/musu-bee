@@ -24,11 +24,17 @@ from typing import Any, TypedDict
 
 import httpx
 
+from relay_circuit_breaker import _relay_circuit_breaker
+
 logger = logging.getLogger(__name__)
 
 _RECONNECT_BASE_DELAY = 5  # initial reconnect delay in seconds
 _RECONNECT_MAX_DELAY = 60  # maximum reconnect delay in seconds
 _HTTP_TIMEOUT = 25.0  # local bridge call timeout (< relay's 30s)
+
+# ── Observable relay state ───────────────────────────────────────────────────
+relay_connected: bool = False
+relay_reconnect_count: int = 0
 
 # Local WS target for proxied WebSocket connections (musu-port chat server)
 _WS_PROXY_TARGET = os.environ.get("MUSU_WS_PROXY_TARGET", "ws://localhost:1355")
@@ -78,6 +84,8 @@ async def relay_loop(
                         continue
 
                     logger.info("relay_client: tunnel established (node=%r)", node_name)
+                    global relay_connected, relay_reconnect_count
+                    relay_connected = True
                     reconnect_attempt = 0
 
                     async for raw in ws:
@@ -117,11 +125,17 @@ async def relay_loop(
 
             except asyncio.CancelledError:
                 logger.info("relay_client: cancelled — shutting down")
+                relay_connected = False
                 cleanup_task.cancel()
                 for task in ws_sessions.values():
                     task.cancel()
                 return
             except Exception as exc:
+                relay_connected = False
+                relay_reconnect_count += 1
+                # Drain orphaned WS sessions to prevent memory leak
+                for sid in list(_ws_session_queues):
+                    _ws_session_queues.pop(sid, None)
                 delay = min(_RECONNECT_BASE_DELAY * (2 ** reconnect_attempt), _RECONNECT_MAX_DELAY)
                 delay += random.uniform(0, 1)
                 logger.warning(
@@ -134,7 +148,7 @@ async def relay_loop(
 
 # Per-session message queues: session_id → { queue, created_at }
 # Populated by relay_loop, drained by _ws_proxy_session
-_SESSION_TTL = 30 * 60  # 30 minutes in seconds
+_SESSION_TTL = 5 * 60  # 5 minutes (reduced from 30m to limit memory after disconnect)
 
 
 class WsSessionEntry(TypedDict):
@@ -264,6 +278,22 @@ async def _handle_request(
     forwarded = {k: v for k, v in headers.items() if k.lower() not in _STRIP}
     body_bytes = base64.b64decode(body_b64) if body_b64 else None
 
+    # Circuit breaker: if local bridge is unresponsive, fail fast
+    if _relay_circuit_breaker.is_open():
+        frame: dict[str, Any] = {
+            "id": req_id,
+            "status": 503,
+            "headers": {"content-type": "application/json"},
+            "body": base64.b64encode(
+                json.dumps({"error": "circuit breaker open — local bridge unresponsive"}).encode()
+            ).decode(),
+        }
+        try:
+            await ws.send(json.dumps(frame))
+        except Exception:
+            pass
+        return
+
     # Override Authorization with the local bridge token so the bridge auth
     # middleware accepts relay-proxied requests regardless of what the upstream
     # caller sent (relay clients send RELAY_SECRET, not MUSU_BRIDGE_TOKEN).
@@ -279,14 +309,16 @@ async def _handle_request(
             headers=forwarded,
             content=body_bytes,
         )
+        _relay_circuit_breaker.record_success()
         resp_body_b64 = base64.b64encode(resp.content).decode()
-        frame: dict[str, Any] = {
+        frame = {
             "id": req_id,
             "status": resp.status_code,
             "headers": dict(resp.headers),
             "body": resp_body_b64,
         }
     except Exception as exc:
+        _relay_circuit_breaker.record_failure()
         logger.warning("relay_client: local bridge error for %s %s: %s", method, path, exc)
         frame = {
             "id": req_id,

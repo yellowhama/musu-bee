@@ -473,6 +473,10 @@ async def lifespan(app: FastAPI):
         heartbeat_task.cancel()
     if relay_task:
         relay_task.cancel()
+        try:
+            await asyncio.wait_for(relay_task, timeout=5)
+        except (asyncio.TimeoutError, asyncio.CancelledError):
+            pass
     if mdns_task:
         mdns_task.cancel()
     if registry_task:
@@ -1864,7 +1868,14 @@ async def api_install_sh() -> Response:
 
 @app.get("/health")
 async def health() -> dict:
-    return {"status": "ok"}
+    from relay_client import relay_connected, relay_reconnect_count
+    return {
+        "status": "ok",
+        "relay": {
+            "connected": relay_connected,
+            "reconnect_count": relay_reconnect_count,
+        },
+    }
 
 
 _AGENT_CHANNELS = ("ceo", "cto", "engineer", "qa", "planner", "cos")
