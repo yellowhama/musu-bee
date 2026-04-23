@@ -1130,6 +1130,29 @@ async def reply_board_message(group_id: str, reply_to: str, text: str) -> str:
 
 
 @mcp.tool()
+async def get_vault_secret(key: str) -> str:
+    """Read a secret from the vault (~/.musu/secrets/vault.json).
+
+    key: dot-separated path (e.g., "bridge.token", "nodes.5070.ip", "forgejo.url")
+    Use this to get auth tokens for cross-device API calls.
+    """
+    import json as _json
+    vault_path = os.path.expanduser("~/.musu/secrets/vault.json")
+    try:
+        with open(vault_path) as f:
+            d = _json.load(f)
+        keys = key.split(".")
+        v = d
+        for k in keys:
+            v = v[k]
+        return str(v)
+    except FileNotFoundError:
+        return _tool_error("Vault not found. Run scripts/vault.sh to create.")
+    except KeyError:
+        return _tool_error(f"Key '{key}' not found in vault.")
+
+
+@mcp.tool()
 async def check_notifications() -> str:
     """Check your unread notifications (replies to your messages)."""
     try:
