@@ -38,18 +38,24 @@ async function readNodesConfig(): Promise<NodesConfig> {
     for (const line of lines) {
       const trimmed = line.trim();
 
-      if (trimmed.startsWith("[mesh]")) {
-        continue;
-      }
-
-      if (trimmed.startsWith("[[mesh.nodes]]")) {
-        if (currentNode) {
-          config.mesh.nodes.push(currentNode);
+      if (trimmed.startsWith("[")) {
+        if (trimmed === "[[mesh.nodes]]") {
+          if (currentNode) {
+            config.mesh.nodes.push(currentNode);
+          }
+          currentNode = {
+            name: "",
+            tailscale_ip: "",
+          };
+        } else if (trimmed === "[mesh]") {
+          // ignore
+        } else {
+          // Some other section like [[mesh.agent_assignments]], stop parsing node properties
+          if (currentNode) {
+            config.mesh.nodes.push(currentNode);
+            currentNode = null;
+          }
         }
-        currentNode = {
-          name: "",
-          tailscale_ip: "",
-        };
         continue;
       }
 
@@ -105,15 +111,18 @@ async function fetchNodeHealth(
   workerPort: number
 ): Promise<any> {
   const workerUrl = `http://${node.tailscale_ip}:${workerPort}`;
+  const bridgeUrl = `http://${node.tailscale_ip}:8070`;
 
   try {
-    const [healthRes, capRes] = await Promise.all([
-      fetch(`${workerUrl}/health`, { signal: AbortSignal.timeout(5000) }),
-      fetch(`${workerUrl}/capabilities`, { signal: AbortSignal.timeout(5000) }),
-    ]);
+    // Try portd first, fallback to bridge for health check
+    let healthRes = await fetch(`${workerUrl}/health`, { signal: AbortSignal.timeout(5000) }).catch(() => null);
+    if (!healthRes?.ok) {
+      healthRes = await fetch(`${bridgeUrl}/health`, { signal: AbortSignal.timeout(5000) }).catch(() => null);
+    }
+    const capRes = await fetch(`${workerUrl}/capabilities`, { signal: AbortSignal.timeout(5000) }).catch(() => null);
 
-    const health = healthRes.ok ? await healthRes.json() : {};
-    const capabilities = capRes.ok ? await capRes.json() : {};
+    const health = healthRes?.ok ? await healthRes.json() : {};
+    const capabilities = capRes?.ok ? await capRes.json() : {};
 
     return {
       name: node.name,
@@ -141,7 +150,7 @@ async function fetchNodeHealth(
 export async function GET() {
   try {
     const config = await readNodesConfig();
-    const workerPort = config.mesh.worker_port || 9700;
+    const workerPort = 1355; // Force new musu-portd port, ignore legacy worker_port in nodes.toml
 
     const nodesWithHealth = await Promise.all(
       config.mesh.nodes.map((node) => fetchNodeHealth(node, workerPort))

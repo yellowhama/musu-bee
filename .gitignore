@@ -124,3 +124,6 @@ references_AI/
 llm-wiki/
 ~/.musu/
 .git-credentials
+
+# Pre-built binaries (download from releases, don't commit)
+bin/

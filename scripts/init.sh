@@ -61,6 +61,19 @@ for pkg in musu-bridge musu-core musu-control; do
     fi
 done
 
+# ── 4b. Download portd binary if missing ─────────────────────────────────
+mkdir -p "$ROOT/bin"
+if [ ! -x "$ROOT/bin/musu-portd" ]; then
+    MAIN_IP="${MUSU_MAIN_IP:-100.126.67.88}"
+    log "Downloading musu-portd from main node..."
+    curl -sL "http://${MAIN_IP}:8070/bin/musu-portd" -o "$ROOT/bin/musu-portd" 2>/dev/null && \
+        chmod +x "$ROOT/bin/musu-portd" && \
+        log "portd downloaded" || \
+        log "WARNING: portd download failed — run cargo build manually if needed"
+else
+    log "portd binary exists"
+fi
+
 # ── 5. Seed agents + apply model distribution ───────────────────────────────
 log "Seeding agents..."
 "$ROOT/musu-bridge/.venv/bin/python" "$ROOT/musu-bridge/seed_agents.py" 2>&1 | tail -3
