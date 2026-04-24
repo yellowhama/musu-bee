@@ -308,3 +308,97 @@ async def _node_manager_heartbeat() -> None:
         except Exception as exc:
             logger.warning("node_heartbeat: error — %s", exc)
         await asyncio.sleep(interval)
+
+
+# ── Auto-distribution: CEO agent automatically routes unassigned tasks ────────
+
+_auto_distribute_enabled = True
+
+
+def _load_auto_distribute_config() -> dict:
+    """Load auto-distribution policy from ~/.musu/auto_distribute.toml."""
+    import tomllib
+    from pathlib import Path
+    path = Path.home() / ".musu" / "auto_distribute.toml"
+    if not path.exists():
+        return {"enabled": True, "max_concurrent": 3, "cooldown_minutes": 5}
+    try:
+        with open(path, "rb") as f:
+            data = tomllib.load(f)
+        return data.get("policy", {"enabled": True, "max_concurrent": 3, "cooldown_minutes": 5})
+    except Exception:
+        return {"enabled": True, "max_concurrent": 3, "cooldown_minutes": 5}
+
+
+async def auto_distribute_loop(bridge_url: str = "http://localhost:8070") -> None:
+    """Periodically check for unassigned tasks and route them to optimal nodes.
+
+    Env:
+        MUSU_AUTO_DISTRIBUTE_ENABLED = "true" — must be set to activate
+        MUSU_AUTO_DISTRIBUTE_INTERVAL = seconds — default 300 (5 min)
+    """
+    import httpx
+
+    interval = int(os.environ.get("MUSU_AUTO_DISTRIBUTE_INTERVAL", "300"))
+    logger.info("auto_distribute: started (interval=%ds)", interval)
+    await asyncio.sleep(120)  # Wait for agents to be ready
+
+    async with httpx.AsyncClient(base_url=bridge_url, timeout=30.0) as http:
+        while True:
+            global _auto_distribute_enabled
+            if not _auto_distribute_enabled:
+                await asyncio.sleep(interval)
+                continue
+
+            policy = _load_auto_distribute_config()
+            if not policy.get("enabled", True):
+                await asyncio.sleep(interval)
+                continue
+
+            max_concurrent = policy.get("max_concurrent", 3)
+
+            try:
+                # Check running tasks count
+                backend = _get_heartbeat_backend()
+                running = backend._db.execute(
+                    "SELECT COUNT(*) as cnt FROM route_executions WHERE status = 'running'"
+                )
+                running_count = running[0]["cnt"] if running else 0
+
+                if running_count >= max_concurrent:
+                    logger.debug("auto_distribute: %d tasks running (max %d) — skipping", running_count, max_concurrent)
+                    await asyncio.sleep(interval)
+                    continue
+
+                # Find pending tasks that haven't been assigned
+                pending = backend._db.execute(
+                    "SELECT id, channel, instruction FROM route_executions "
+                    "WHERE status = 'pending' ORDER BY created_at ASC LIMIT ?",
+                    (max_concurrent - running_count,),
+                )
+
+                if not pending:
+                    await asyncio.sleep(interval)
+                    continue
+
+                for task in pending:
+                    try:
+                        resp = await http.post("/api/tasks/route", json={
+                            "channel": task["channel"],
+                            "instruction": task["instruction"],
+                            "strategy": "recommended",
+                            "sender_id": "auto_distribute",
+                        })
+                        if resp.status_code == 200:
+                            logger.info(
+                                "auto_distribute: routed task %s (channel=%s) → %s",
+                                task["id"], task["channel"],
+                                resp.json().get("node", "?"),
+                            )
+                    except Exception as exc:
+                        logger.warning("auto_distribute: failed to route task %s — %s", task["id"], exc)
+
+            except Exception as exc:
+                logger.warning("auto_distribute: error — %s", exc)
+
+            await asyncio.sleep(interval)

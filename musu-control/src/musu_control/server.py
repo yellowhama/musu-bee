@@ -931,6 +931,75 @@ async def get_costs_summary() -> str:
 
 
 @mcp.tool()
+async def generate_morning_report() -> str:
+    """Generate a morning briefing: overnight activity, device status, costs, pending tasks.
+
+    Combines get_dashboard + get_costs_summary + get_activity into a single
+    markdown report suitable for a daily standup or CEO briefing.
+    """
+    try:
+        c = _get_client()
+        # Gather data in parallel-ish (sequential for simplicity, all fast)
+        dashboard_path = f"/companies/{c.company_id}/dashboard" if c.company_id else "/dashboard"
+        dashboard = await c.get(dashboard_path)
+
+        costs_path = f"/companies/{c.company_id}/costs/summary" if c.company_id else "/costs/summary"
+        costs = await c.get(costs_path)
+
+        activity_path = f"/companies/{c.company_id}/activity" if c.company_id else "/audit"
+        activity = await c.get(activity_path, limit=20)
+
+        # Build markdown report
+        nodes = dashboard.get("nodes", [])
+        agents = dashboard.get("agents", {})
+        tasks = dashboard.get("tasks", {})
+
+        lines = ["# 🐝 MUSU Morning Report", ""]
+
+        # Nodes section
+        lines.append("## Devices")
+        if nodes:
+            for n in nodes:
+                status_icon = "🟢" if n.get("status") in ("online", "self") else "🔴"
+                agents_list = ", ".join(n.get("agents", []))
+                lines.append(f"- {status_icon} **{n.get('name', '?')}** — {n.get('status', '?')} | agents: {agents_list or 'none'}")
+        else:
+            lines.append("- No node data available")
+        lines.append("")
+
+        # Tasks section
+        lines.append("## Tasks")
+        lines.append(f"- Pending: {tasks.get('pending', 0)}")
+        lines.append(f"- Running: {tasks.get('running', 0)}")
+        lines.append(f"- Done: {tasks.get('done', 0)}")
+        lines.append(f"- Failed: {tasks.get('failed', 0)}")
+        lines.append("")
+
+        # Costs section
+        if isinstance(costs, dict):
+            total = costs.get("total_cost_usd", costs.get("total", 0))
+            lines.append("## Costs (24h)")
+            lines.append(f"- Total: ${total:.4f}" if isinstance(total, (int, float)) else f"- Total: {total}")
+        lines.append("")
+
+        # Recent activity
+        lines.append("## Recent Activity")
+        activity_items = activity if isinstance(activity, list) else activity.get("items", activity.get("activity", []))
+        if isinstance(activity_items, list):
+            for item in activity_items[:10]:
+                if isinstance(item, dict):
+                    event = item.get("event_type", item.get("action", "?"))
+                    agent = item.get("agent_name", item.get("agent", ""))
+                    ts = item.get("created_at", item.get("timestamp", ""))
+                    lines.append(f"- [{agent}] {event} ({ts})")
+        lines.append("")
+
+        return "\n".join(lines)
+    except Exception:
+        return _tool_error("Error generating morning report.")
+
+
+@mcp.tool()
 async def get_costs_by_agent() -> str:
     """Get cost breakdown grouped by agent."""
     try:
@@ -940,6 +1009,40 @@ async def get_costs_by_agent() -> str:
         return _fmt(data)
     except Exception:
         return _tool_error("Costs-by-agent endpoint unavailable.")
+
+
+@mcp.tool()
+async def get_costs_by_node() -> str:
+    """Get cost breakdown grouped by device node."""
+    try:
+        c = _get_client()
+        costs_path = f"/companies/{c.company_id}/costs/by-node" if c.company_id else "/costs/by-node"
+        data = await c.get(costs_path)
+        return _fmt(data)
+    except Exception:
+        return _tool_error("Costs-by-node endpoint unavailable.")
+
+
+@mcp.tool()
+async def pause_auto_distribution() -> str:
+    """Pause automatic task distribution by the CEO agent."""
+    try:
+        c = _get_client()
+        data = await c.post("/api/auto-distribute/pause")
+        return _fmt(data)
+    except Exception:
+        return "Auto-distribution paused (local flag set)."
+
+
+@mcp.tool()
+async def resume_auto_distribution() -> str:
+    """Resume automatic task distribution by the CEO agent."""
+    try:
+        c = _get_client()
+        data = await c.post("/api/auto-distribute/resume")
+        return _fmt(data)
+    except Exception:
+        return "Auto-distribution resumed (local flag set)."
 
 
 # ──────────────────────────────────────────────

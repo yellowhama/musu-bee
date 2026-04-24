@@ -828,6 +828,29 @@ def get_costs_by_agent_global() -> list[dict[str, Any]]:
     return backend.get_costs_by_agent_global()
 
 
+def get_costs_by_node(company_id: str = "") -> list[dict[str, Any]]:
+    """Return execution costs grouped by node, using mesh_router agent→node mapping."""
+    backend = _get_backend()
+    if company_id:
+        by_agent = backend.get_costs_by_agent(company_id)
+    else:
+        by_agent = backend.get_costs_by_agent_global()
+
+    mesh = get_mesh_router()
+    node_costs: dict[str, dict[str, Any]] = {}
+
+    for entry in by_agent:
+        agent_name = entry.get("agent_name", entry.get("channel", "unknown"))
+        node = mesh._agent_nodes.get(agent_name.lower(), mesh._self_name or "local")
+        if node not in node_costs:
+            node_costs[node] = {"node": node, "total_cost_usd": 0.0, "execution_count": 0, "agents": []}
+        node_costs[node]["total_cost_usd"] += entry.get("total_cost_usd", entry.get("cost_usd", 0.0)) or 0.0
+        node_costs[node]["execution_count"] += entry.get("count", entry.get("execution_count", 0)) or 0
+        node_costs[node]["agents"].append(agent_name)
+
+    return list(node_costs.values())
+
+
 def get_channel_map(company_id: str | None = None) -> dict[str, Any]:
     """Return channel-to-agent mapping with agent details.
 

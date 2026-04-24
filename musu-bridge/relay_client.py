@@ -88,6 +88,16 @@ async def relay_loop(
                     relay_connected = True
                     reconnect_attempt = 0
 
+                    # Log node join event to bridge activity
+                    try:
+                        await http.post("/api/system/event", json={
+                            "event_type": "node_joined",
+                            "node_name": node_name,
+                            "detail": f"Relay tunnel established for {node_name}",
+                        })
+                    except Exception:
+                        pass  # best-effort activity logging
+
                     # Keepalive ping to prevent idle disconnect
                     async def _keepalive():
                         try:

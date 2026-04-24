@@ -1588,6 +1588,23 @@ async def api_costs_by_agent_global() -> list[dict]:
     return get_costs_by_agent_global()
 
 
+@app.get("/api/costs/by-node", summary="Execution costs grouped by node")
+async def api_costs_by_node_global() -> list[dict]:
+    """Return costs grouped by node using mesh_router agent→node mapping."""
+    from handlers import get_costs_by_node
+    return get_costs_by_node()
+
+
+@app.get("/api/companies/{company_id}/costs/by-node", summary="Company costs by node")
+async def api_costs_by_node_company(company_id: str) -> list[dict]:
+    """Return company costs grouped by node."""
+    company = get_company(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    from handlers import get_costs_by_node
+    return get_costs_by_node(company_id)
+
+
 @app.get("/api/index-search", summary="Search indexed codebase")
 async def api_index_search(q: str = Query("", max_length=200)) -> list[dict]:
     """Full-text search on the musu-indexer SQLite database.

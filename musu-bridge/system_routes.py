@@ -312,3 +312,45 @@ async def system_update() -> dict:
         return {"exit_code": proc.returncode, "output": output}
     except asyncio.TimeoutError:
         raise HTTPException(status_code=504, detail="auto-update timed out after 90s")
+
+
+# ── System event logging (for activity timeline) ─────────────────────────────
+
+
+@system_router.post("/api/auto-distribute/pause", summary="Pause auto-distribution")
+async def api_auto_distribute_pause() -> dict:
+    """Pause the CEO agent auto-distribution loop."""
+    from heartbeat_scheduler import _auto_distribute_enabled
+    import heartbeat_scheduler
+    heartbeat_scheduler._auto_distribute_enabled = False
+    return {"auto_distribute": "paused"}
+
+
+@system_router.post("/api/auto-distribute/resume", summary="Resume auto-distribution")
+async def api_auto_distribute_resume() -> dict:
+    """Resume the CEO agent auto-distribution loop."""
+    import heartbeat_scheduler
+    heartbeat_scheduler._auto_distribute_enabled = True
+    return {"auto_distribute": "resumed"}
+
+
+class SystemEvent(BaseModel):
+    event_type: str
+    node_name: str = ""
+    detail: str = ""
+
+
+@system_router.post("/api/system/event", summary="Log a system event for activity timeline")
+async def api_system_event(event: SystemEvent) -> dict:
+    """Record a system event (node join/leave, relay reconnect, etc.) in execution_log."""
+    from handlers import _get_backend
+    backend = _get_backend()
+    try:
+        backend.db.execute(
+            "INSERT INTO execution_log (agent_name, channel, instruction, status) VALUES (?, ?, ?, ?)",
+            (event.node_name or "system", event.event_type, event.detail, "done"),
+        )
+        backend.db.commit()
+    except Exception as exc:
+        logger.warning("system_event: failed to log — %s", exc)
+    return {"logged": True, "event_type": event.event_type}
