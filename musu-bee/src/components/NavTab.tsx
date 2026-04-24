@@ -63,7 +63,7 @@ export default function NavTab({
         width: 64,
         minWidth: 64,
         height: "100%",
-        background: "var(--bg-base, #0d0d0d)",
+        background: "var(--bg-base, var(--bg-base))",
         borderRight: "1px solid var(--border-subtle, rgba(255,255,255,0.06))",
         display: "flex",
         flexDirection: "column",

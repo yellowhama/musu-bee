@@ -45,6 +45,7 @@ class TestHeartbeatConcurrencyGuard:
     async def test_heartbeat_skips_when_ceo_running(self, monkeypatch):
         """Heartbeat scheduler should skip if a CEO task is already running."""
         import server  # type: ignore[import]
+        import heartbeat_scheduler  # type: ignore[import]
 
         route_chat_calls = []
 
@@ -56,12 +57,12 @@ class TestHeartbeatConcurrencyGuard:
         mock_backend = MagicMock()
         mock_backend._db.execute.return_value = [{"id": "existing", "channel": "ceo"}]
 
-        monkeypatch.setattr(server, "route_chat", mock_route_chat)
+        monkeypatch.setattr(heartbeat_scheduler, "route_chat", mock_route_chat)
         monkeypatch.setenv("MUSU_CEO_HEARTBEAT_ENABLED", "true")
         monkeypatch.setenv("MUSU_CEO_HEARTBEAT_INTERVAL", "9999")
 
-        with patch("server._should_skip_heartbeat", return_value=(True, "already running")) as mock_check:
-            with patch("server._get_heartbeat_backend", return_value=mock_backend):
+        with patch("heartbeat_scheduler._should_skip_heartbeat", return_value=(True, "already running")) as mock_check:
+            with patch("heartbeat_scheduler._get_heartbeat_backend", return_value=mock_backend):
                 # Run one heartbeat iteration (not the full loop)
                 await server._heartbeat_iteration(agent_name="ceo", company_id=None, diag_summary="")
 
@@ -74,6 +75,7 @@ class TestHeartbeatConcurrencyGuard:
     async def test_heartbeat_runs_when_no_ceo_running(self, monkeypatch):
         """Heartbeat scheduler should invoke route_chat when no CEO task is running."""
         import server  # type: ignore[import]
+        import heartbeat_scheduler  # type: ignore[import]
 
         route_chat_calls = []
 
@@ -81,9 +83,9 @@ class TestHeartbeatConcurrencyGuard:
             route_chat_calls.append(kwargs)
             return {"output": "done"}
 
-        monkeypatch.setattr(server, "route_chat", mock_route_chat)
+        monkeypatch.setattr(heartbeat_scheduler, "route_chat", mock_route_chat)
 
-        with patch("server._should_skip_heartbeat", return_value=(False, "")):
+        with patch("heartbeat_scheduler._should_skip_heartbeat", return_value=(False, "")):
             await server._heartbeat_iteration(agent_name="ceo", company_id=None, diag_summary="")
 
         assert len(route_chat_calls) == 1
@@ -93,6 +95,7 @@ class TestHeartbeatConcurrencyGuard:
     async def test_heartbeat_asyncio_lock_prevents_concurrency(self, monkeypatch):
         """asyncio.Lock on heartbeat prevents concurrent invocations within same process."""
         import server  # type: ignore[import]
+        import heartbeat_scheduler  # type: ignore[import]
 
         call_count = 0
         concurrent_count = 0
@@ -107,9 +110,9 @@ class TestHeartbeatConcurrencyGuard:
             concurrent_count -= 1
             return {"output": "done"}
 
-        monkeypatch.setattr(server, "route_chat", mock_route_chat)
+        monkeypatch.setattr(heartbeat_scheduler, "route_chat", mock_route_chat)
 
-        with patch("server._should_skip_heartbeat", return_value=(False, "")):
+        with patch("heartbeat_scheduler._should_skip_heartbeat", return_value=(False, "")):
             # Fire 3 heartbeat iterations concurrently — lock should serialize them
             tasks = [
                 asyncio.create_task(

@@ -24,7 +24,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
       style={{
         fontSize: 11,
         fontWeight: 700,
-        color: "#6b7280",
+        color: "var(--fg3)",
         textTransform: "uppercase",
         letterSpacing: "0.08em",
         marginBottom: 10,
@@ -146,12 +146,12 @@ export default function CompanyTemplateModal({
           maxWidth: 860,
           maxHeight: "84vh",
           overflow: "auto",
-          background: "#111111",
+          background: "var(--bg-surface)",
           border: "1px solid #262626",
           borderRadius: 16,
           boxShadow: "0 24px 64px rgba(0,0,0,0.55)",
           padding: 28,
-          color: "#e5e7eb",
+          color: "var(--fg1)",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
@@ -160,7 +160,7 @@ export default function CompanyTemplateModal({
             <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.02em" }}>
               Company setup template
             </div>
-            <div style={{ fontSize: 13, color: "#9ca3af", marginTop: 4 }}>
+            <div style={{ fontSize: 13, color: "var(--fg2)", marginTop: 4 }}>
               {template.templateKey} · version {template.version}
             </div>
           </div>
@@ -169,9 +169,9 @@ export default function CompanyTemplateModal({
               type="button"
               onClick={() => void handleCopy()}
               style={{
-                background: copied ? "#14532d" : "#1a1a1a",
-                border: `1px solid ${copied ? "var(--musu-status-online)" : "#2d2d2d"}`,
-                color: copied ? "#86efac" : "#e5e7eb",
+                background: copied ? "#14532d" : "var(--bg-card)",
+                border: `1px solid ${copied ? "var(--musu-status-online)" : "var(--border-default)"}`,
+                color: copied ? "var(--status-online)" : "var(--fg1)",
                 borderRadius: 8,
                 padding: "8px 12px",
                 fontSize: 13,
@@ -185,8 +185,8 @@ export default function CompanyTemplateModal({
               onClick={onClose}
               style={{
                 background: "transparent",
-                border: "1px solid #2d2d2d",
-                color: "#9ca3af",
+                border: "1px solid var(--border-default)",
+                color: "var(--fg2)",
                 borderRadius: 8,
                 padding: "8px 12px",
                 fontSize: 13,
@@ -210,19 +210,19 @@ export default function CompanyTemplateModal({
             marginBottom: 22,
           }}
         >
-          <div style={{ background: "#141414", border: "1px solid #242424", borderRadius: 12, padding: 16 }}>
+          <div style={{ background: "var(--bg-surface)", border: "1px solid #242424", borderRadius: 12, padding: 16 }}>
             <SectionTitle>Scope</SectionTitle>
-            <div style={{ fontSize: 13, color: "#e5e7eb", marginBottom: 6 }}>
+            <div style={{ fontSize: 13, color: "var(--fg1)", marginBottom: 6 }}>
               Workspace: {companySetup.workspaceId}
             </div>
-            <div style={{ fontSize: 13, color: "#d1d5db" }}>User: {companySetup.userKey}</div>
+            <div style={{ fontSize: 13, color: "var(--fg1)" }}>User: {companySetup.userKey}</div>
           </div>
-          <div style={{ background: "#141414", border: "1px solid #242424", borderRadius: 12, padding: 16 }}>
+          <div style={{ background: "var(--bg-surface)", border: "1px solid #242424", borderRadius: 12, padding: 16 }}>
             <SectionTitle>Control Plane Sync</SectionTitle>
-            <div style={{ fontSize: 13, color: "#e5e7eb", marginBottom: 6 }}>
+            <div style={{ fontSize: 13, color: "var(--fg1)", marginBottom: 6 }}>
               {companyActivation?.controlPlaneSync.status ?? "not_configured"}
             </div>
-            <div style={{ fontSize: 12, color: "#9ca3af", lineHeight: 1.5 }}>
+            <div style={{ fontSize: 12, color: "var(--fg2)", lineHeight: 1.5 }}>
               {companyActivation?.controlPlaneSync.message ??
                 "Apply the template to capture Paperclip sync status."}
             </div>
@@ -231,7 +231,7 @@ export default function CompanyTemplateModal({
 
         <div
           style={{
-            background: "#141414",
+            background: "var(--bg-surface)",
             border: "1px solid #242424",
             borderRadius: 12,
             padding: 16,
@@ -241,24 +241,24 @@ export default function CompanyTemplateModal({
           <SectionTitle>Company Setup</SectionTitle>
           <div style={{ display: "grid", gap: 14 }}>
             <div>
-              <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 6 }}>Company name</div>
+              <div style={{ fontSize: 12, color: "var(--fg2)", marginBottom: 6 }}>Company name</div>
               <input
                 value={companyName}
                 onChange={(event) => setCompanyName(event.target.value)}
                 style={{
                   width: "100%",
-                  background: "#0d0d0d",
-                  border: "1px solid #2d2d2d",
+                  background: "var(--bg-base)",
+                  border: "1px solid var(--border-default)",
                   borderRadius: 8,
                   padding: "10px 12px",
-                  color: "#f3f4f6",
+                  color: "var(--fg1)",
                   fontSize: 14,
                   boxSizing: "border-box",
                 }}
               />
             </div>
             <div>
-              <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 8 }}>
+              <div style={{ fontSize: 12, color: "var(--fg2)", marginBottom: 8 }}>
                 Starter projects
               </div>
               <div style={{ display: "grid", gap: 8 }}>
@@ -272,7 +272,7 @@ export default function CompanyTemplateModal({
                         alignItems: "center",
                         gap: 10,
                         fontSize: 13,
-                        color: "#e5e7eb",
+                        color: "var(--fg1)",
                         cursor: "pointer",
                       }}
                     >
@@ -346,7 +346,7 @@ export default function CompanyTemplateModal({
         {companyActivation ? (
           <div
             style={{
-              background: "#141414",
+              background: "var(--bg-surface)",
               border: "1px solid #242424",
               borderRadius: 12,
               padding: 16,
@@ -354,10 +354,10 @@ export default function CompanyTemplateModal({
             }}
           >
             <SectionTitle>Active Company</SectionTitle>
-            <div style={{ fontSize: 13, color: "#e5e7eb", marginBottom: 6 }}>
+            <div style={{ fontSize: 13, color: "var(--fg1)", marginBottom: 6 }}>
               {companyActivation.companyName}
             </div>
-            <div style={{ fontSize: 12, color: "#9ca3af", lineHeight: 1.6 }}>
+            <div style={{ fontSize: 12, color: "var(--fg2)", lineHeight: 1.6 }}>
               Company ID: {companyActivation.companyId}
               <br />
               Updated: {new Date(companyActivation.updatedAt).toLocaleString()}
@@ -368,7 +368,7 @@ export default function CompanyTemplateModal({
         {companyRegistry && companyRegistry.companies.length > 0 ? (
           <div
             style={{
-              background: "#141414",
+              background: "var(--bg-surface)",
               border: "1px solid #242424",
               borderRadius: 12,
               padding: 16,
@@ -387,11 +387,11 @@ export default function CompanyTemplateModal({
                       border: "1px solid #262626",
                       borderRadius: 10,
                       padding: 12,
-                      background: isActive ? "#101726" : "#111111",
+                      background: isActive ? "#101726" : "var(--bg-surface)",
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: "#f3f4f6" }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--fg1)" }}>
                         {company.companyName}
                       </div>
                       {isActive ? (
@@ -404,9 +404,9 @@ export default function CompanyTemplateModal({
                             onClick={() => void runCompanyAction(company.companyId, "activate")}
                             disabled={isBusy}
                             style={{
-                              background: "#1a1a1a",
-                              border: "1px solid #2d2d2d",
-                              color: "#e5e7eb",
+                              background: "var(--bg-card)",
+                              border: "1px solid var(--border-default)",
+                              color: "var(--fg1)",
                               borderRadius: 8,
                               padding: "6px 10px",
                               fontSize: 12,
@@ -456,8 +456,8 @@ export default function CompanyTemplateModal({
                               disabled={isBusy}
                               style={{
                                 background: "transparent",
-                                border: "1px solid #2d2d2d",
-                                color: "#9ca3af",
+                                border: "1px solid var(--border-default)",
+                                color: "var(--fg2)",
                                 borderRadius: 8,
                                 padding: "6px 10px",
                                 fontSize: 12,
@@ -487,7 +487,7 @@ export default function CompanyTemplateModal({
                         )}
                       </div>
                     </div>
-                    <div style={{ fontSize: 12, color: "#9ca3af", lineHeight: 1.6, marginTop: 6 }}>
+                    <div style={{ fontSize: 12, color: "var(--fg2)", lineHeight: 1.6, marginTop: 6 }}>
                       Template: {company.templateKey}
                       <br />
                       Projects: {company.selectedProjects.join(", ")}
@@ -506,11 +506,11 @@ export default function CompanyTemplateModal({
                           <div key={event.eventId} style={{ fontSize: 12, color: "#cbd5e1", marginBottom: 6 }}>
                             {event.mode} · {event.status} · {new Date(event.checkedAt).toLocaleString()}
                             <br />
-                            <span style={{ color: "#9ca3af" }}>{event.message}</span>
+                            <span style={{ color: "var(--fg2)" }}>{event.message}</span>
                             {event.paperclipIssueId || event.paperclipCommentId ? (
                               <>
                                 <br />
-                                <span style={{ color: "#6b7280" }}>
+                                <span style={{ color: "var(--fg3)" }}>
                                   issue={event.paperclipIssueId ?? "n/a"} · comment={event.paperclipCommentId ?? "n/a"}
                                 </span>
                               </>
@@ -534,26 +534,26 @@ export default function CompanyTemplateModal({
             marginBottom: 22,
           }}
         >
-          <div style={{ background: "#141414", border: "1px solid #242424", borderRadius: 12, padding: 16 }}>
+          <div style={{ background: "var(--bg-surface)", border: "1px solid #242424", borderRadius: 12, padding: 16 }}>
             <SectionTitle>Goals</SectionTitle>
             {template.goals.map((goal) => (
-              <div key={goal} style={{ fontSize: 13, marginBottom: 8, color: "#e5e7eb" }}>
+              <div key={goal} style={{ fontSize: 13, marginBottom: 8, color: "var(--fg1)" }}>
                 {goal}
               </div>
             ))}
           </div>
-          <div style={{ background: "#141414", border: "1px solid #242424", borderRadius: 12, padding: 16 }}>
+          <div style={{ background: "var(--bg-surface)", border: "1px solid #242424", borderRadius: 12, padding: 16 }}>
             <SectionTitle>Starter Projects</SectionTitle>
             {template.starterProjects.map((project) => (
-              <div key={project} style={{ fontSize: 13, marginBottom: 8, color: "#e5e7eb" }}>
+              <div key={project} style={{ fontSize: 13, marginBottom: 8, color: "var(--fg1)" }}>
                 {project}
               </div>
             ))}
           </div>
-          <div style={{ background: "#141414", border: "1px solid #242424", borderRadius: 12, padding: 16 }}>
+          <div style={{ background: "var(--bg-surface)", border: "1px solid #242424", borderRadius: 12, padding: 16 }}>
             <SectionTitle>Default Lanes</SectionTitle>
             {template.defaultAgents.map((agent) => (
-              <div key={agent} style={{ fontSize: 13, marginBottom: 8, color: "#e5e7eb" }}>
+              <div key={agent} style={{ fontSize: 13, marginBottom: 8, color: "var(--fg1)" }}>
                 {agent}
               </div>
             ))}
@@ -568,24 +568,24 @@ export default function CompanyTemplateModal({
             marginBottom: 22,
           }}
         >
-          <div style={{ background: "#141414", border: "1px solid #242424", borderRadius: 12, padding: 16 }}>
+          <div style={{ background: "var(--bg-surface)", border: "1px solid #242424", borderRadius: 12, padding: 16 }}>
             <SectionTitle>Bootstrap Checklist</SectionTitle>
             {template.bootstrapChecklist.map((item, index) => (
-              <div key={item} style={{ fontSize: 13, color: "#d1d5db", marginBottom: 10, lineHeight: 1.5 }}>
+              <div key={item} style={{ fontSize: 13, color: "var(--fg1)", marginBottom: 10, lineHeight: 1.5 }}>
                 {index + 1}. {item}
               </div>
             ))}
           </div>
-          <div style={{ background: "#141414", border: "1px solid #242424", borderRadius: 12, padding: 16 }}>
+          <div style={{ background: "var(--bg-surface)", border: "1px solid #242424", borderRadius: 12, padding: 16 }}>
             <SectionTitle>Maintenance</SectionTitle>
             {template.maintenance.map((item) => (
-              <div key={item} style={{ fontSize: 13, marginBottom: 8, color: "#e5e7eb" }}>
+              <div key={item} style={{ fontSize: 13, marginBottom: 8, color: "var(--fg1)" }}>
                 {item}
               </div>
             ))}
             <div style={{ height: 14 }} />
             <SectionTitle>Comment Contract</SectionTitle>
-            <div style={{ fontSize: 13, color: "#d1d5db", lineHeight: 1.6 }}>
+            <div style={{ fontSize: 13, color: "var(--fg1)", lineHeight: 1.6 }}>
               Required: {template.boardCommentContract.requiredFields.join(", ")}
               <br />
               Conditional: {template.boardCommentContract.conditionalFields.join(", ")}
@@ -593,7 +593,7 @@ export default function CompanyTemplateModal({
           </div>
         </div>
 
-        <div style={{ background: "#0d0d0d", border: "1px solid #242424", borderRadius: 12, padding: 16 }}>
+        <div style={{ background: "var(--bg-base)", border: "1px solid #242424", borderRadius: 12, padding: 16 }}>
           <SectionTitle>Template JSON</SectionTitle>
           <pre
             style={{

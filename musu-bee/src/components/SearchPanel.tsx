@@ -95,7 +95,7 @@ export default function SearchPanel() {
           gap: 8,
         }}
       >
-        <span style={{ fontSize: 15, fontWeight: 600, color: "#f3f4f6" }}>
+        <span style={{ fontSize: 15, fontWeight: 600, color: "var(--fg1)" }}>
           Codebase Search
         </span>
         <input
@@ -109,7 +109,7 @@ export default function SearchPanel() {
             background: "var(--musu-bg-card)",
             border: "1px solid var(--musu-border)",
             borderRadius: 6,
-            color: "#e5e7eb",
+            color: "var(--fg1)",
             fontSize: 13,
             padding: "7px 12px",
             outline: "none",
@@ -122,17 +122,17 @@ export default function SearchPanel() {
       {/* Results */}
       <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
         {loading && (
-          <p style={{ color: "#6b7280", fontSize: 13, padding: "12px 0" }}>
+          <p style={{ color: "var(--fg3)", fontSize: 13, padding: "12px 0" }}>
             Searching…
           </p>
         )}
         {!loading && error && (
-          <p style={{ color: "#f87171", fontSize: 13, padding: "12px 0" }}>
+          <p style={{ color: "var(--status-error)", fontSize: 13, padding: "12px 0" }}>
             {error}
           </p>
         )}
         {!loading && !error && query && results.length === 0 && (
-          <p style={{ color: "#4b5563", fontSize: 13, padding: "12px 0" }}>
+          <p style={{ color: "var(--fg4)", fontSize: 13, padding: "12px 0" }}>
             No results for &ldquo;{query}&rdquo;
           </p>
         )}
@@ -141,7 +141,7 @@ export default function SearchPanel() {
             <div
               style={{
                 fontSize: 11,
-                color: "#6b7280",
+                color: "var(--fg3)",
                 marginBottom: 8,
               }}
             >
@@ -170,11 +170,11 @@ export default function SearchPanel() {
                     style={{
                       fontSize: 10,
                       fontWeight: 700,
-                      color: "#9ca3af",
+                      color: "var(--fg2)",
                       textTransform: "uppercase",
                       letterSpacing: "0.05em",
-                      background: "#1a1a1a",
-                      border: "1px solid #2d2d2d",
+                      background: "var(--bg-card)",
+                      border: "1px solid var(--border-default)",
                       borderRadius: 3,
                       padding: "1px 5px",
                     }}
@@ -185,7 +185,7 @@ export default function SearchPanel() {
                     style={{
                       fontSize: 12,
                       fontWeight: 600,
-                      color: "#e5e7eb",
+                      color: "var(--fg1)",
                       fontFamily: "monospace",
                       flex: 1,
                       overflow: "hidden",
@@ -200,7 +200,7 @@ export default function SearchPanel() {
                   <p
                     style={{
                       fontSize: 12,
-                      color: "#9ca3af",
+                      color: "var(--fg2)",
                       margin: 0,
                       lineHeight: 1.5,
                       overflow: "hidden",
@@ -216,7 +216,7 @@ export default function SearchPanel() {
           </>
         )}
         {!query && (
-          <p style={{ color: "#4b5563", fontSize: 13, padding: "12px 0" }}>
+          <p style={{ color: "var(--fg4)", fontSize: 13, padding: "12px 0" }}>
             Type to search the indexed codebase.
           </p>
         )}

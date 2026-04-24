@@ -39,7 +39,7 @@ function renderInline(text: string): React.ReactNode[] {
           key={j}
           style={{
             background: "#111827",
-            border: "1px solid #374151",
+            border: "1px solid var(--fg4)",
             borderRadius: 3,
             padding: "1px 5px",
             fontSize: 12,
@@ -121,12 +121,12 @@ function renderMarkdown(text: string): React.ReactNode {
               key={i}
               style={{
                 background: "#111827",
-                border: "1px solid #374151",
+                border: "1px solid var(--fg4)",
                 borderRadius: 6,
                 padding: "10px 14px",
                 overflowX: "auto",
                 fontSize: 13,
-                color: "#e5e7eb",
+                color: "var(--fg1)",
                 margin: "6px 0",
                 fontFamily: "monospace",
                 whiteSpace: "pre",
@@ -199,14 +199,14 @@ function PlanCard({ msg, onApprove, onReject }: { msg: Message; onApprove?: (msg
   return (
     <div
       style={{
-        border: "1px solid #2d2d2d",
+        border: "1px solid var(--border-default)",
         borderRadius: 8,
         padding: 12,
         marginTop: 8,
-        background: "#0d0d0d",
+        background: "var(--bg-base)",
       }}
     >
-      <div style={{ fontSize: 12, fontWeight: 600, color: "#9ca3af", marginBottom: 8 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: "var(--fg2)", marginBottom: 8 }}>
         📋 Execution Plan · {plan.steps.length} steps
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
@@ -214,17 +214,17 @@ function PlanCard({ msg, onApprove, onReject }: { msg: Message; onApprove?: (msg
           <div
             key={step.id}
             style={{
-              background: "#1a1a1a",
+              background: "var(--bg-card)",
               borderLeft: "3px solid #a78bfa",
               borderRadius: 4,
               padding: "6px 10px",
               fontSize: 13,
-              color: "#e5e7eb",
+              color: "var(--fg1)",
               display: "flex",
               gap: 8,
             }}
           >
-            <span style={{ color: "#6b7280", fontWeight: 600, minWidth: 20 }}>{idx + 1}.</span>
+            <span style={{ color: "var(--fg3)", fontWeight: 600, minWidth: 20 }}>{idx + 1}.</span>
             <span>{step.text}</span>
           </div>
         ))}
@@ -240,7 +240,7 @@ function PlanCard({ msg, onApprove, onReject }: { msg: Message; onApprove?: (msg
                 background: "#14532d",
                 border: "1px solid #16a34a",
                 borderRadius: 6,
-                color: "#86efac",
+                color: "var(--status-online)",
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: "pointer",
@@ -271,7 +271,7 @@ function PlanCard({ msg, onApprove, onReject }: { msg: Message; onApprove?: (msg
               flex: 1,
               textAlign: "center",
               padding: "8px 0",
-              color: "#86efac",
+              color: "var(--status-online)",
               fontSize: 13,
               fontWeight: 600,
             }}
@@ -307,7 +307,7 @@ function DelegationChip({ chain }: { chain: string[] }) {
         gap: 3,
         marginBottom: 4,
         fontSize: 11,
-        color: "#4b5563",
+        color: "var(--fg4)",
         fontFamily: "monospace",
       }}
     >
@@ -315,11 +315,11 @@ function DelegationChip({ chain }: { chain: string[] }) {
         <span key={i} style={{ display: "flex", alignItems: "center", gap: 3 }}>
           <span
             style={{
-              background: "#1a1a1a",
+              background: "var(--bg-card)",
               border: "1px solid #2a2a2a",
               borderRadius: 4,
               padding: "1px 5px",
-              color: "#9ca3af",
+              color: "var(--fg2)",
               fontSize: 10,
               fontWeight: 600,
               letterSpacing: "0.05em",
@@ -329,7 +329,7 @@ function DelegationChip({ chain }: { chain: string[] }) {
             {node}
           </span>
           {i < chain.length - 1 && (
-            <span style={{ color: "#374151", fontSize: 10 }}>→</span>
+            <span style={{ color: "var(--fg4)", fontSize: 10 }}>→</span>
           )}
         </span>
       ))}
@@ -339,7 +339,7 @@ function DelegationChip({ chain }: { chain: string[] }) {
 
 function AdapterBadge({ type, duration, cost }: { type: string, duration?: number, cost?: number }) {
   const short = type.split("_")[0].toUpperCase();
-  const color = short === "CLAUDE" ? "#a78bfa" : short === "GEMINI" ? "#34d399" : "#6b7280";
+  const color = short === "CLAUDE" ? "#a78bfa" : short === "GEMINI" ? "#34d399" : "var(--fg3)";
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
       <span
@@ -360,7 +360,7 @@ function AdapterBadge({ type, duration, cost }: { type: string, duration?: numbe
         {short}
       </span>
       {duration !== undefined && (
-        <span style={{ fontSize: 9, color: "#6b7280" }}>{duration.toFixed(1)}s</span>
+        <span style={{ fontSize: 9, color: "var(--fg3)" }}>{duration.toFixed(1)}s</span>
       )}
       {cost !== undefined && cost > 0 && (
         <span style={{ fontSize: 9, color: "#10b981" }}>${cost.toFixed(4)}</span>
@@ -396,7 +396,7 @@ function Avatar({ who, role }: { who: string; role?: string }) {
         fontWeight: 800,
         flexShrink: 0,
         color: "var(--fg-on-accent)",
-        background: cls === "ceo" ? "#a78bfa" : cls === "cto" ? "#60a5fa" : cls === "eng" ? "#34d399" : cls === "qa" ? "#fb7185" : "var(--accent)",
+        background: cls === "ceo" ? "#a78bfa" : cls === "cto" ? "var(--status-running)" : cls === "eng" ? "#34d399" : cls === "qa" ? "#fb7185" : "var(--accent)",
       }}
     >
       {txt}

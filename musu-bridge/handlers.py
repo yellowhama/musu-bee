@@ -1,6 +1,7 @@
 """musu-bridge handlers — route messages through musu-core."""
 from __future__ import annotations
 
+import asyncio
 import ipaddress
 import logging
 import os
@@ -91,7 +92,11 @@ def _health_probe_timeout() -> float:
 
 _CHANNEL_TIMEOUT_DEFAULTS: dict[str, float] = {
     "engineer": 300.0,
-    "ceo": 300.0,
+    "cto": 300.0,
+    "ceo": 120.0,
+    "team_lead": 90.0,
+    "4060-CEO": 600.0,
+    "lead": 300.0,
 }
 
 
@@ -358,6 +363,26 @@ async def route_chat(
 
     _router = Router(backend=backend, config=get_core_config())
 
+    async def _activity_heartbeat(eid: str, interval: float = 30.0) -> None:
+        """Periodically touch last_activity_at so watchdog won't kill active LLM calls."""
+        try:
+            while True:
+                await asyncio.sleep(interval)
+                try:
+                    backend.touch_route_execution_activity(eid)
+                except Exception:
+                    pass
+        except asyncio.CancelledError:
+            pass
+
+    _heartbeat_task = asyncio.ensure_future(_activity_heartbeat(exec_id)) if exec_id else None
+    # Touch once immediately so last_activity_at is set from the start of the LLM call
+    if exec_id:
+        try:
+            backend.touch_route_execution_activity(exec_id)
+        except Exception:
+            pass
+
     try:
         import anyio
         with anyio.fail_after(_route_timeout_sec(channel)):
@@ -369,12 +394,19 @@ async def route_chat(
                 cost_optimized=cost_optimized,
             ))
     except TimeoutError:
+        if _heartbeat_task:
+            _heartbeat_task.cancel()
         _timeout = _route_timeout_sec(channel)
         logger.warning("route_chat: route_timeout — LLM call exceeded %.0fs for channel=%r", _timeout, channel)
         return _finish({"error": f"route_timeout: LLM call exceeded {_timeout:.0f}s limit", "response": None})
     except Exception as exc:
+        if _heartbeat_task:
+            _heartbeat_task.cancel()
         logger.exception("route_chat: unexpected error — %s", exc)
         return _finish({"error": "Internal error. Please try again.", "response": None})
+    finally:
+        if _heartbeat_task:
+            _heartbeat_task.cancel()
 
     if not route_result.success:
         logger.error("route_chat: adapter failure — %s", route_result.error)
@@ -796,6 +828,29 @@ def get_costs_by_agent_global() -> list[dict[str, Any]]:
     return backend.get_costs_by_agent_global()
 
 
+def get_costs_by_node(company_id: str = "") -> list[dict[str, Any]]:
+    """Return execution costs grouped by node, using mesh_router agent→node mapping."""
+    backend = _get_backend()
+    if company_id:
+        by_agent = backend.get_costs_by_agent(company_id)
+    else:
+        by_agent = backend.get_costs_by_agent_global()
+
+    mesh = get_mesh_router()
+    node_costs: dict[str, dict[str, Any]] = {}
+
+    for entry in by_agent:
+        agent_name = entry.get("agent_name", entry.get("channel", "unknown"))
+        node = mesh._agent_nodes.get(agent_name.lower(), mesh._self_name or "local")
+        if node not in node_costs:
+            node_costs[node] = {"node": node, "total_cost_usd": 0.0, "execution_count": 0, "agents": []}
+        node_costs[node]["total_cost_usd"] += entry.get("total_cost_usd", entry.get("cost_usd", 0.0)) or 0.0
+        node_costs[node]["execution_count"] += entry.get("count", entry.get("execution_count", 0)) or 0
+        node_costs[node]["agents"].append(agent_name)
+
+    return list(node_costs.values())
+
+
 def get_channel_map(company_id: str | None = None) -> dict[str, Any]:
     """Return channel-to-agent mapping with agent details.
 
@@ -1085,7 +1140,50 @@ def create_company_from_template(
         )
         created_agents.append(agent)
 
+    # ── Auto-setup workspace: create dir + indexer profile ──────────────────
+    if work_dir:
+        _setup_company_workspace(work_dir, name, company_id)
+
     return {"company": company, "agents": created_agents}
+
+
+def _setup_company_workspace(work_dir: str, company_name: str, company_id: str) -> None:
+    """Create work directory if missing and initialize musu-indexer profile."""
+    import pathlib
+    wd = pathlib.Path(work_dir).expanduser()
+    wd.mkdir(parents=True, exist_ok=True)
+
+    profile = wd / ".musu-indexer.json"
+    if not profile.exists():
+        import json
+        config = {
+            "name": f"{company_name.lower().replace(' ', '-')}-{company_id[:8]}",
+            "root": ".",
+            "include_roots": ["."],
+            "exclude_roots": [],
+            "ignore_globs": [
+                "*.png", "*.jpg", "*.jpeg", "*.gif", "*.mp4", "*.wav", "*.mp3",
+                "*.exe", "*.bin", "*.db", "*.db-*", "*.zip", "*.tar.gz",
+                "node_modules/**", ".venv/**", "__pycache__/**", ".git/**",
+            ],
+        }
+        profile.write_text(json.dumps(config, indent=2, ensure_ascii=False), encoding="utf-8")
+        logger.info("workspace: created indexer profile at %s", profile)
+
+    # Run initial index (non-blocking, best-effort)
+    indexer = pathlib.Path.home() / "musu-functions" / "musu-indexer" / ".venv" / "bin" / "musu-indexer"
+    if indexer.exists():
+        import subprocess
+        try:
+            subprocess.Popen(
+                [str(indexer), "sync", "--profile", str(profile)],
+                cwd=str(wd),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            logger.info("workspace: indexer sync started for %s", wd)
+        except Exception as exc:
+            logger.warning("workspace: indexer sync failed: %s", exc)
 
 
 def set_company_status(
@@ -1310,14 +1408,90 @@ async def list_nodes() -> list[dict[str, Any]]:
                     status = "online" if resp.status_code == 200 else "error"
             except Exception:
                 status = "offline"
+        # Merge agents from node config + agent_assignments
+        node_agents = list(mesh._node_agents.get(node_name, []))
+        for agent, assigned_node in mesh._agent_nodes.items():
+            if assigned_node == node_name and agent not in node_agents:
+                node_agents.append(agent)
         nodes.append({
             "name": node_name,
             "url": node_url,
             "status": status,
             "is_self": is_self,
-            "agents": mesh._node_agents.get(node_name, []),
+            "agents": node_agents,
         })
     return nodes
+
+
+def compute_recommended_for(health: dict[str, Any]) -> list[str]:
+    """Compute capability tags for a node based on its health stats."""
+    tags: list[str] = ["general"]
+    gpu = health.get("gpu", {})
+    if isinstance(gpu, dict):
+        util = gpu.get("utilization_pct", gpu.get("util", 100))
+        if util is not None and util < 80:
+            tags.extend(["llm", "compute"])
+    cpu_pct = health.get("cpu_pct", health.get("cpu", 100))
+    if cpu_pct is not None and cpu_pct < 70:
+        tags.append("batch")
+    return tags
+
+
+async def route_task_to_node(
+    channel: str,
+    instruction: str,
+    node_name: str = "",
+    strategy: str = "auto",
+    sender_id: str = "orchestrator",
+) -> dict[str, Any]:
+    """Route a task to a node. Returns {node, task_id, status}.
+
+    strategy:
+      - "explicit": requires node_name, forward directly
+      - "recommended": pick best node based on recommended_for tags
+      - "auto": use mesh_router default agent→node mapping
+    """
+    mesh = get_mesh_router()
+    if not mesh._self_name:
+        return {"error": "Mesh router not initialized (no self_name in nodes.toml)", "status": "error"}
+
+    # Determine target node
+    target_node = node_name
+    if strategy == "explicit":
+        if not target_node or target_node not in mesh._node_urls:
+            return {"error": f"Node '{target_node}' not found", "status": "error"}
+    elif strategy == "recommended":
+        # Gather health from all nodes, pick best match
+        nodes = await list_nodes()
+        best_node = None
+        for n in nodes:
+            if n.get("status") in ("online", "self"):
+                tags = compute_recommended_for(n)
+                # Simple heuristic: prefer nodes with more capability tags
+                if best_node is None or len(tags) > len(best_node[1]):
+                    best_node = (n["name"], tags)
+        target_node = best_node[0] if best_node else mesh._self_name
+    else:
+        # auto: use mesh_router's agent→node mapping
+        agent_node = mesh._agent_nodes.get(channel.lower(), "")
+        target_node = agent_node or mesh._self_name
+
+    # Forward to target
+    is_self = target_node == mesh._self_name
+    if is_self:
+        # Route locally via musu-core
+        result = await route_chat(channel, sender_id, instruction)
+        return {"node": target_node, "status": "routed_local", "result": result}
+    else:
+        # Forward to remote node via mesh_router
+        try:
+            result = await mesh.forward(
+                mesh._node_urls.get(target_node, ""),
+                channel, sender_id, instruction,
+            )
+            return {"node": target_node, "status": "routed_remote", "result": result}
+        except Exception as exc:
+            return {"node": target_node, "status": "error", "error": str(exc)}
 
 
 def disconnect_node(name: str) -> bool:

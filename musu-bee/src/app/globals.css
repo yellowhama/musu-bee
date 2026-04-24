@@ -96,6 +96,17 @@
   --status-busy:    #F59E0B;
 
   --musu-status-online: var(--status-online);
+
+  /* ========== CODE / SYNTAX ========== */
+  --code-purple:   #a78bfa;
+  --code-bg:       #111827;
+  --code-border:   var(--fg4);
+
+  /* ========== MISC ========== */
+  --white:         #ffffff;
+  --black:         #000000;
+  --success-light: #34d399;
+  --error-light:   #fca5a5;
   --musu-status-busy: var(--status-busy);
   --musu-status-offline: var(--status-offline);
   --musu-status-error: var(--status-error);
@@ -126,10 +137,19 @@
   --space-6:  24px;
   --space-8:  32px;
 
+  /* ========== NEOBRUTALIST EFFECTS (from musu.pro) ========== */
+  --neo-border:     3px solid var(--border-default);
+  --neo-shadow:     4px 4px 0px rgba(0, 0, 0, 0.6);
+  --neo-shadow-sm:  2px 2px 0px rgba(0, 0, 0, 0.4);
+  --neo-inset:      inset 0px 2px 6px rgba(255, 255, 255, 0.03);
+  --neo-lift:       translateY(-2px);
+  --neo-press:      translate(2px, 2px);
+  --neo-radius:     16px;
+
   /* ========== TYPE — FAMILIES ========== */
-  --font-ui:   'Inter', -apple-system, BlinkMacSystemFont, 'Pretendard', 'Noto Sans KR', system-ui, sans-serif;
+  --font-ui:   'Nunito', 'Inter', -apple-system, BlinkMacSystemFont, 'Pretendard', 'Noto Sans KR', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'Menlo', monospace;
-  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
 
   /* ========== TYPE — SCALE ========== */
   --text-xs:   10px; /* UPPERCASE section labels, task IDs */
@@ -195,8 +215,12 @@ html, body {
 }
 .btn-primary:hover {
   background: var(--accent-hover);
-  box-shadow: var(--shadow-glow);
-  transform: translateY(-1px);
+  box-shadow: var(--neo-shadow), var(--shadow-glow);
+  transform: var(--neo-lift);
+}
+.btn-primary:active {
+  transform: var(--neo-press);
+  box-shadow: none;
 }
 
 .btn-secondary {
@@ -230,12 +254,17 @@ html, body {
 
 .card {
   background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  border: 2px solid var(--border-default);
+  border-radius: var(--neo-radius);
   padding: 12px 14px;
-  transition: border-color 0.15s ease;
+  box-shadow: var(--neo-shadow-sm), var(--neo-inset);
+  transition: all 0.2s ease;
 }
-.card:hover { border-color: var(--border-default); }
+.card:hover {
+  border-color: var(--border-strong);
+  transform: var(--neo-lift);
+  box-shadow: var(--neo-shadow);
+}
 
 .label, .eyebrow {
   font-size: var(--text-xs);
@@ -281,3 +310,50 @@ code, .mono {
 
 .musu-dot-working, .dot-working { animation: musu-pulse-busy 1.2s ease-in-out infinite; }
 .musu-dot-active, .dot-active { animation: musu-pulse-online 2.5s ease-in-out infinite; }
+
+/* ========== NEOBRUTALIST UTILITIES (from musu.pro) ========== */
+.neo-card {
+  background: var(--bg-card);
+  border: var(--neo-border);
+  border-radius: var(--neo-radius);
+  box-shadow: var(--neo-shadow-sm), var(--neo-inset);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.neo-card:hover {
+  transform: var(--neo-lift);
+  box-shadow: var(--neo-shadow);
+}
+
+.lift-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.lift-hover:hover {
+  transform: var(--neo-lift);
+  box-shadow: var(--neo-shadow);
+}
+.lift-hover:active {
+  transform: var(--neo-press);
+  box-shadow: none;
+}
+
+/* Focus ring (musu.pro style) */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Stagger animation delays */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-in {
+  animation: fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}

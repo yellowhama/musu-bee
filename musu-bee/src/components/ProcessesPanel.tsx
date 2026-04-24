@@ -8,9 +8,9 @@ import { useDeviceDiscovery } from "@/lib/useDeviceDiscovery";
 
 const SELECT_STYLE: React.CSSProperties = {
   fontSize: 11,
-  color: "#9ca3af",
-  background: "#1a1a1a",
-  border: "1px solid #2d2d2d",
+  color: "var(--fg2)",
+  background: "var(--bg-card)",
+  border: "1px solid var(--border-default)",
   borderRadius: 6,
   padding: "3px 8px",
   cursor: "pointer",
@@ -27,11 +27,11 @@ const BTN_BASE: React.CSSProperties = {
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  running: "#22c55e",
-  sleeping: "#6b7280",
-  stopped: "#f59e0b",
-  zombie: "#ef4444",
-  idle: "#6b7280",
+  running: "var(--status-online)",
+  sleeping: "var(--fg3)",
+  stopped: "var(--status-warn)",
+  zombie: "var(--status-error)",
+  idle: "var(--fg3)",
 };
 
 function formatMem(mb: number): string {
@@ -84,11 +84,11 @@ function StartProcessForm({ deviceId, onStart, onCancel }: StartFormProps) {
 
   const inputStyle: React.CSSProperties = {
     fontSize: 12,
-    background: "#1a1a1a",
-    border: "1px solid #2d2d2d",
+    background: "var(--bg-card)",
+    border: "1px solid var(--border-default)",
     borderRadius: 6,
     padding: "4px 8px",
-    color: "#e5e7eb",
+    color: "var(--fg1)",
     width: "100%",
     outline: "none",
   };
@@ -97,14 +97,14 @@ function StartProcessForm({ deviceId, onStart, onCancel }: StartFormProps) {
     <form
       onSubmit={handleSubmit}
       style={{
-        background: "#111",
-        border: "1px solid #2d2d2d",
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border-default)",
         borderRadius: 8,
         padding: 12,
         marginBottom: 12,
       }}
     >
-      <div style={{ marginBottom: 6, fontWeight: 600, fontSize: 12, color: "#e5e7eb" }}>
+      <div style={{ marginBottom: 6, fontWeight: 600, fontSize: 12, color: "var(--fg1)" }}>
         Start Process
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -129,20 +129,20 @@ function StartProcessForm({ deviceId, onStart, onCancel }: StartFormProps) {
         />
       </div>
       {err && (
-        <div style={{ color: "#ef4444", fontSize: 11, marginTop: 6 }}>{err}</div>
+        <div style={{ color: "var(--status-error)", fontSize: 11, marginTop: 6 }}>{err}</div>
       )}
       <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
         <button
           type="submit"
           disabled={submitting || !command.trim()}
-          style={{ ...BTN_BASE, background: "#22c55e", color: "#000" }}
+          style={{ ...BTN_BASE, background: "var(--status-online)", color: "#000" }}
         >
           {submitting ? "Starting…" : "Start"}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          style={{ ...BTN_BASE, background: "#2d2d2d", color: "#9ca3af" }}
+          style={{ ...BTN_BASE, background: "var(--border-default)", color: "var(--fg2)" }}
         >
           Cancel
         </button>
@@ -174,8 +174,8 @@ function KillConfirmDialog({ proc, onConfirm, onCancel }: KillConfirmProps) {
     >
       <div
         style={{
-          background: "#1a1a1a",
-          border: "1px solid #2d2d2d",
+          background: "var(--bg-card)",
+          border: "1px solid var(--border-default)",
           borderRadius: 10,
           padding: 20,
           maxWidth: 380,
@@ -183,27 +183,27 @@ function KillConfirmDialog({ proc, onConfirm, onCancel }: KillConfirmProps) {
         }}
       >
         <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>Kill Process?</div>
-        <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 16 }}>
-          <strong style={{ color: "#e5e7eb" }}>{proc.name}</strong> (PID {proc.pid})
+        <div style={{ fontSize: 12, color: "var(--fg2)", marginBottom: 16 }}>
+          <strong style={{ color: "var(--fg1)" }}>{proc.name}</strong> (PID {proc.pid})
           <br />
           <span style={{ fontFamily: "monospace", fontSize: 11 }}>{proc.cmdline}</span>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button
             onClick={() => onConfirm(false)}
-            style={{ ...BTN_BASE, background: "#f59e0b", color: "#000" }}
+            style={{ ...BTN_BASE, background: "var(--status-warn)", color: "#000" }}
           >
             SIGTERM (graceful)
           </button>
           <button
             onClick={() => onConfirm(true)}
-            style={{ ...BTN_BASE, background: "#ef4444", color: "#fff" }}
+            style={{ ...BTN_BASE, background: "var(--status-error)", color: "#fff" }}
           >
             SIGKILL (force)
           </button>
           <button
             onClick={onCancel}
-            style={{ ...BTN_BASE, background: "#2d2d2d", color: "#9ca3af" }}
+            style={{ ...BTN_BASE, background: "var(--border-default)", color: "var(--fg2)" }}
           >
             Cancel
           </button>
@@ -268,7 +268,7 @@ export default function ProcessesPanel() {
         padding: 16,
         overflowY: "auto",
         fontSize: 12,
-        color: "#e5e7eb",
+        color: "var(--fg1)",
       }}
     >
       {/* Header */}
@@ -304,9 +304,9 @@ export default function ProcessesPanel() {
           onChange={(e) => setNameFilter(e.target.value)}
           style={{
             fontSize: 11,
-            color: "#9ca3af",
-            background: "#1a1a1a",
-            border: "1px solid #2d2d2d",
+            color: "var(--fg2)",
+            background: "var(--bg-card)",
+            border: "1px solid var(--border-default)",
             borderRadius: 6,
             padding: "3px 8px",
             outline: "none",
@@ -317,7 +317,7 @@ export default function ProcessesPanel() {
         {/* Refresh */}
         <button
           onClick={refresh}
-          style={{ ...BTN_BASE, background: "#2d2d2d", color: "#9ca3af", marginLeft: "auto" }}
+          style={{ ...BTN_BASE, background: "var(--border-default)", color: "var(--fg2)", marginLeft: "auto" }}
         >
           ↻ Refresh
         </button>
@@ -325,7 +325,7 @@ export default function ProcessesPanel() {
         {/* Start */}
         <button
           onClick={() => setShowStartForm((v) => !v)}
-          style={{ ...BTN_BASE, background: "#22c55e", color: "#000" }}
+          style={{ ...BTN_BASE, background: "var(--status-online)", color: "#000" }}
         >
           + Start
         </button>
@@ -350,7 +350,7 @@ export default function ProcessesPanel() {
             padding: "6px 10px",
             marginBottom: 8,
             fontSize: 11,
-            color: "#ef4444",
+            color: "var(--status-error)",
           }}
         >
           Kill failed: {killError}
@@ -359,19 +359,19 @@ export default function ProcessesPanel() {
 
       {/* Error state */}
       {error && (
-        <div style={{ color: "#ef4444", fontSize: 12, marginBottom: 8 }}>
+        <div style={{ color: "var(--status-error)", fontSize: 12, marginBottom: 8 }}>
           {error}
         </div>
       )}
 
       {/* Loading */}
       {loading && processes.length === 0 && (
-        <div style={{ color: "#6b7280", fontSize: 12 }}>Loading processes…</div>
+        <div style={{ color: "var(--fg3)", fontSize: 12 }}>Loading processes…</div>
       )}
 
       {/* Empty state */}
       {!loading && !error && processes.length === 0 && (
-        <div style={{ color: "#6b7280", fontSize: 12 }}>
+        <div style={{ color: "var(--fg3)", fontSize: 12 }}>
           No processes found{nameFilter ? ` matching "${nameFilter}"` : ""}.
         </div>
       )}
@@ -387,7 +387,7 @@ export default function ProcessesPanel() {
             }}
           >
             <thead>
-              <tr style={{ color: "#6b7280", borderBottom: "1px solid #2d2d2d" }}>
+              <tr style={{ color: "var(--fg3)", borderBottom: "1px solid var(--border-default)" }}>
                 <th style={{ textAlign: "left", padding: "4px 8px", fontWeight: 500 }}>Name</th>
                 <th style={{ textAlign: "right", padding: "4px 8px", fontWeight: 500 }}>PID</th>
                 <th style={{ textAlign: "right", padding: "4px 8px", fontWeight: 500 }}>CPU%</th>
@@ -401,7 +401,7 @@ export default function ProcessesPanel() {
               {processes.map((proc) => (
                 <tr
                   key={`${proc.device_id}-${proc.pid}`}
-                  style={{ borderBottom: "1px solid #1f1f1f" }}
+                  style={{ borderBottom: "1px solid var(--border-subtle)" }}
                 >
                   <td
                     style={{ padding: "4px 8px", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
@@ -409,7 +409,7 @@ export default function ProcessesPanel() {
                   >
                     {proc.name}
                   </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right", color: "#6b7280" }}>
+                  <td style={{ padding: "4px 8px", textAlign: "right", color: "var(--fg3)" }}>
                     {proc.pid}
                   </td>
                   <td style={{ padding: "4px 8px", textAlign: "right" }}>
@@ -421,20 +421,20 @@ export default function ProcessesPanel() {
                   <td style={{ padding: "4px 8px" }}>
                     <span
                       style={{
-                        color: STATUS_COLOR[proc.status] ?? "#6b7280",
+                        color: STATUS_COLOR[proc.status] ?? "var(--fg3)",
                         fontWeight: 500,
                       }}
                     >
                       {proc.status}
                     </span>
                   </td>
-                  <td style={{ padding: "4px 8px", color: "#6b7280" }}>
+                  <td style={{ padding: "4px 8px", color: "var(--fg3)" }}>
                     {formatDate(proc.started_at)}
                   </td>
                   <td style={{ padding: "4px 8px", textAlign: "right" }}>
                     <button
                       onClick={() => setKillTarget(proc)}
-                      style={{ ...BTN_BASE, background: "#2d1111", color: "#ef4444" }}
+                      style={{ ...BTN_BASE, background: "#2d1111", color: "var(--status-error)" }}
                     >
                       Kill
                     </button>
@@ -443,7 +443,7 @@ export default function ProcessesPanel() {
               ))}
             </tbody>
           </table>
-          <div style={{ color: "#4b5563", fontSize: 10, marginTop: 6, textAlign: "right" }}>
+          <div style={{ color: "var(--fg4)", fontSize: 10, marginTop: 6, textAlign: "right" }}>
             {processes.length} process{processes.length !== 1 ? "es" : ""} · auto-refresh 5s
           </div>
         </div>

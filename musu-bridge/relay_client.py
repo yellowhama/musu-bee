@@ -24,11 +24,17 @@ from typing import Any, TypedDict
 
 import httpx
 
+from relay_circuit_breaker import _relay_circuit_breaker
+
 logger = logging.getLogger(__name__)
 
 _RECONNECT_BASE_DELAY = 5  # initial reconnect delay in seconds
 _RECONNECT_MAX_DELAY = 60  # maximum reconnect delay in seconds
 _HTTP_TIMEOUT = 25.0  # local bridge call timeout (< relay's 30s)
+
+# ── Observable relay state ───────────────────────────────────────────────────
+relay_connected: bool = False
+relay_reconnect_count: int = 0
 
 # Local WS target for proxied WebSocket connections (musu-port chat server)
 _WS_PROXY_TARGET = os.environ.get("MUSU_WS_PROXY_TARGET", "ws://localhost:1355")
@@ -78,50 +84,81 @@ async def relay_loop(
                         continue
 
                     logger.info("relay_client: tunnel established (node=%r)", node_name)
+                    global relay_connected, relay_reconnect_count
+                    relay_connected = True
                     reconnect_attempt = 0
 
-                    async for raw in ws:
-                        msg: dict[str, Any]
+                    # Log node join event to bridge activity
+                    try:
+                        await http.post("/api/system/event", json={
+                            "event_type": "node_joined",
+                            "node_name": node_name,
+                            "detail": f"Relay tunnel established for {node_name}",
+                        })
+                    except Exception:
+                        pass  # best-effort activity logging
+
+                    # Keepalive ping to prevent idle disconnect
+                    async def _keepalive():
                         try:
-                            msg = json.loads(raw)
+                            while True:
+                                await asyncio.sleep(30)
+                                await ws.ping()
                         except Exception:
-                            logger.warning("relay_client: non-JSON frame — ignoring")
-                            continue
+                            pass
+                    ping_task = asyncio.create_task(_keepalive())
 
-                        frame_type = msg.get("type", "")
+                    try:
+                        async for raw in ws:
+                            msg: dict[str, Any]
+                            try:
+                                msg = json.loads(raw)
+                            except Exception:
+                                logger.warning("relay_client: non-JSON frame — ignoring")
+                                continue
 
-                        if frame_type == "ws_open":
-                            # Open a new WS proxy session to the local WS server
-                            session_id: str = msg.get("session_id", "")
-                            target_path: str = msg.get("target_path", "/")
-                            if session_id and session_id not in ws_sessions:
-                                task = asyncio.create_task(
-                                    _ws_proxy_session(ws, session_id, target_path)
-                                )
-                                ws_sessions[session_id] = task
-                                task.add_done_callback(
-                                    lambda t, sid=session_id: ws_sessions.pop(sid, None)
-                                )
+                            frame_type = msg.get("type", "")
 
-                        elif frame_type in ("ws_data", "ws_close"):
-                            # Route to existing session task via a per-session queue
-                            # (The task reads from _ws_session_queues[session_id])
-                            session_id = msg.get("session_id", "")
-                            q = _ws_session_queues.get(session_id)
-                            if q:
-                                await q["queue"].put(msg)
+                            if frame_type == "ws_open":
+                                # Open a new WS proxy session to the local WS server
+                                session_id: str = msg.get("session_id", "")
+                                target_path: str = msg.get("target_path", "/")
+                                if session_id and session_id not in ws_sessions:
+                                    task = asyncio.create_task(
+                                        _ws_proxy_session(ws, session_id, target_path)
+                                    )
+                                    ws_sessions[session_id] = task
+                                    task.add_done_callback(
+                                        lambda t, sid=session_id: ws_sessions.pop(sid, None)
+                                    )
 
-                        else:
-                            # HTTP response frame (or unknown)
-                            asyncio.create_task(_handle_request(ws, http, raw))
+                            elif frame_type in ("ws_data", "ws_close"):
+                                # Route to existing session task via a per-session queue
+                                # (The task reads from _ws_session_queues[session_id])
+                                session_id = msg.get("session_id", "")
+                                q = _ws_session_queues.get(session_id)
+                                if q:
+                                    await q["queue"].put(msg)
+
+                            else:
+                                # HTTP response frame (or unknown)
+                                asyncio.create_task(_handle_request(ws, http, raw))
+                    finally:
+                        ping_task.cancel()
 
             except asyncio.CancelledError:
                 logger.info("relay_client: cancelled — shutting down")
+                relay_connected = False
                 cleanup_task.cancel()
                 for task in ws_sessions.values():
                     task.cancel()
                 return
             except Exception as exc:
+                relay_connected = False
+                relay_reconnect_count += 1
+                # Drain orphaned WS sessions to prevent memory leak
+                for sid in list(_ws_session_queues):
+                    _ws_session_queues.pop(sid, None)
                 delay = min(_RECONNECT_BASE_DELAY * (2 ** reconnect_attempt), _RECONNECT_MAX_DELAY)
                 delay += random.uniform(0, 1)
                 logger.warning(
@@ -134,7 +171,7 @@ async def relay_loop(
 
 # Per-session message queues: session_id → { queue, created_at }
 # Populated by relay_loop, drained by _ws_proxy_session
-_SESSION_TTL = 30 * 60  # 30 minutes in seconds
+_SESSION_TTL = 5 * 60  # 5 minutes (reduced from 30m to limit memory after disconnect)
 
 
 class WsSessionEntry(TypedDict):
@@ -264,6 +301,22 @@ async def _handle_request(
     forwarded = {k: v for k, v in headers.items() if k.lower() not in _STRIP}
     body_bytes = base64.b64decode(body_b64) if body_b64 else None
 
+    # Circuit breaker: if local bridge is unresponsive, fail fast
+    if _relay_circuit_breaker.is_open():
+        frame: dict[str, Any] = {
+            "id": req_id,
+            "status": 503,
+            "headers": {"content-type": "application/json"},
+            "body": base64.b64encode(
+                json.dumps({"error": "circuit breaker open — local bridge unresponsive"}).encode()
+            ).decode(),
+        }
+        try:
+            await ws.send(json.dumps(frame))
+        except Exception:
+            pass
+        return
+
     # Override Authorization with the local bridge token so the bridge auth
     # middleware accepts relay-proxied requests regardless of what the upstream
     # caller sent (relay clients send RELAY_SECRET, not MUSU_BRIDGE_TOKEN).
@@ -279,14 +332,16 @@ async def _handle_request(
             headers=forwarded,
             content=body_bytes,
         )
+        _relay_circuit_breaker.record_success()
         resp_body_b64 = base64.b64encode(resp.content).decode()
-        frame: dict[str, Any] = {
+        frame = {
             "id": req_id,
             "status": resp.status_code,
             "headers": dict(resp.headers),
             "body": resp_body_b64,
         }
     except Exception as exc:
+        _relay_circuit_breaker.record_failure()
         logger.warning("relay_client: local bridge error for %s %s: %s", method, path, exc)
         frame = {
             "id": req_id,

@@ -54,8 +54,26 @@ def test_engineer_default_timeout_300():
     assert result == 300.0, f"Expected 300.0 for engineer, got {result}"
 
 
-def test_ceo_default_timeout_300():
-    """ceo channel must default to 300s to handle multi-tool heartbeat without timeout."""
+def test_cto_default_timeout_300():
+    """cto channel must default to 300s so it completes before watchdog kill (320s)."""
+    import importlib
+    import handlers
+    importlib.reload(handlers)
+
+    clean = {
+        "MUSU_ROUTE_TIMEOUT_SEC": "",
+        "MUSU_ROUTE_TIMEOUT_SEC_CTO": "",
+    }
+    with patch.dict(os.environ, clean):
+        os.environ.pop("MUSU_ROUTE_TIMEOUT_SEC", None)
+        os.environ.pop("MUSU_ROUTE_TIMEOUT_SEC_CTO", None)
+        result = handlers._route_timeout_sec("cto")
+
+    assert result == 300.0, f"Expected 300.0 for cto, got {result}"
+
+
+def test_ceo_default_timeout_120():
+    """ceo channel defaults to 120s (reduced from 300s to stop repeated route_timeout failures)."""
     import importlib
     import handlers
     importlib.reload(handlers)
@@ -69,7 +87,7 @@ def test_ceo_default_timeout_300():
         os.environ.pop("MUSU_ROUTE_TIMEOUT_SEC_CEO", None)
         result = handlers._route_timeout_sec("ceo")
 
-    assert result == 300.0, f"Expected 300.0 for ceo, got {result}"
+    assert result == 120.0, f"Expected 120.0 for ceo, got {result}"
 
 
 def test_unknown_channel_default_timeout_180():

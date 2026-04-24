@@ -1,4 +1,4 @@
-"""musu-control: Paperclip control plane MCP server — 24 tools via FastMCP."""
+"""musu-control: Paperclip control plane MCP server via FastMCP."""
 
 import json
 import logging
@@ -750,6 +750,37 @@ async def get_dashboard() -> str:
 
 
 @mcp.tool()
+async def route_task(
+    channel: str,
+    instruction: str,
+    node_name: str = "",
+    strategy: str = "auto",
+    sender_id: str = "orchestrator",
+) -> str:
+    """Route a task to a specific node or auto-select the best node.
+
+    Args:
+        channel: Agent channel name (e.g. "engineer", "ceo")
+        instruction: The task instruction
+        node_name: Explicit target node (e.g. "5070"). Empty = auto-select.
+        strategy: "explicit" (requires node_name), "recommended" (best fit), "auto" (default mapping)
+        sender_id: Requester identifier
+    """
+    try:
+        c = _get_client()
+        data = await c.post("/tasks/route", json={
+            "channel": channel,
+            "instruction": instruction,
+            "node_name": node_name,
+            "strategy": strategy,
+            "sender_id": sender_id,
+        })
+        return _fmt(data)
+    except Exception:
+        return _tool_error("Error routing task.")
+
+
+@mcp.tool()
 async def list_runs(agent_id: str = "", limit: int = 20) -> str:
     """List recent heartbeat runs. Optionally filter by agent ID."""
     try:
@@ -900,6 +931,75 @@ async def get_costs_summary() -> str:
 
 
 @mcp.tool()
+async def generate_morning_report() -> str:
+    """Generate a morning briefing: overnight activity, device status, costs, pending tasks.
+
+    Combines get_dashboard + get_costs_summary + get_activity into a single
+    markdown report suitable for a daily standup or CEO briefing.
+    """
+    try:
+        c = _get_client()
+        # Gather data in parallel-ish (sequential for simplicity, all fast)
+        dashboard_path = f"/companies/{c.company_id}/dashboard" if c.company_id else "/dashboard"
+        dashboard = await c.get(dashboard_path)
+
+        costs_path = f"/companies/{c.company_id}/costs/summary" if c.company_id else "/costs/summary"
+        costs = await c.get(costs_path)
+
+        activity_path = f"/companies/{c.company_id}/activity" if c.company_id else "/audit"
+        activity = await c.get(activity_path, limit=20)
+
+        # Build markdown report
+        nodes = dashboard.get("nodes", [])
+        agents = dashboard.get("agents", {})
+        tasks = dashboard.get("tasks", {})
+
+        lines = ["# 🐝 MUSU Morning Report", ""]
+
+        # Nodes section
+        lines.append("## Devices")
+        if nodes:
+            for n in nodes:
+                status_icon = "🟢" if n.get("status") in ("online", "self") else "🔴"
+                agents_list = ", ".join(n.get("agents", []))
+                lines.append(f"- {status_icon} **{n.get('name', '?')}** — {n.get('status', '?')} | agents: {agents_list or 'none'}")
+        else:
+            lines.append("- No node data available")
+        lines.append("")
+
+        # Tasks section
+        lines.append("## Tasks")
+        lines.append(f"- Pending: {tasks.get('pending', 0)}")
+        lines.append(f"- Running: {tasks.get('running', 0)}")
+        lines.append(f"- Done: {tasks.get('done', 0)}")
+        lines.append(f"- Failed: {tasks.get('failed', 0)}")
+        lines.append("")
+
+        # Costs section
+        if isinstance(costs, dict):
+            total = costs.get("total_cost_usd", costs.get("total", 0))
+            lines.append("## Costs (24h)")
+            lines.append(f"- Total: ${total:.4f}" if isinstance(total, (int, float)) else f"- Total: {total}")
+        lines.append("")
+
+        # Recent activity
+        lines.append("## Recent Activity")
+        activity_items = activity if isinstance(activity, list) else activity.get("items", activity.get("activity", []))
+        if isinstance(activity_items, list):
+            for item in activity_items[:10]:
+                if isinstance(item, dict):
+                    event = item.get("event_type", item.get("action", "?"))
+                    agent = item.get("agent_name", item.get("agent", ""))
+                    ts = item.get("created_at", item.get("timestamp", ""))
+                    lines.append(f"- [{agent}] {event} ({ts})")
+        lines.append("")
+
+        return "\n".join(lines)
+    except Exception:
+        return _tool_error("Error generating morning report.")
+
+
+@mcp.tool()
 async def get_costs_by_agent() -> str:
     """Get cost breakdown grouped by agent."""
     try:
@@ -909,6 +1009,40 @@ async def get_costs_by_agent() -> str:
         return _fmt(data)
     except Exception:
         return _tool_error("Costs-by-agent endpoint unavailable.")
+
+
+@mcp.tool()
+async def get_costs_by_node() -> str:
+    """Get cost breakdown grouped by device node."""
+    try:
+        c = _get_client()
+        costs_path = f"/companies/{c.company_id}/costs/by-node" if c.company_id else "/costs/by-node"
+        data = await c.get(costs_path)
+        return _fmt(data)
+    except Exception:
+        return _tool_error("Costs-by-node endpoint unavailable.")
+
+
+@mcp.tool()
+async def pause_auto_distribution() -> str:
+    """Pause automatic task distribution by the CEO agent."""
+    try:
+        c = _get_client()
+        data = await c.post("/api/auto-distribute/pause")
+        return _fmt(data)
+    except Exception:
+        return "Auto-distribution paused (local flag set)."
+
+
+@mcp.tool()
+async def resume_auto_distribution() -> str:
+    """Resume automatic task distribution by the CEO agent."""
+    try:
+        c = _get_client()
+        data = await c.post("/api/auto-distribute/resume")
+        return _fmt(data)
+    except Exception:
+        return "Auto-distribution resumed (local flag set)."
 
 
 # ──────────────────────────────────────────────
@@ -1102,6 +1236,275 @@ async def list_remote_files(node: str, path: str = "~", pattern: str = "*") -> s
         return _tool_error(f"Failed to list files on {node}: {exc}")
 
 
+@mcp.tool()
+async def get_vault_secret(secret_path: str) -> str:
+    """Read one secret value from the local MUSU vault.
+
+    Reads a single dotted path such as `bridge.token` or `nodes.5070.ip`.
+    This tool never returns the full vault.
+    """
+    if not secret_path.strip():
+        return _tool_error("Secret path is required.")
+    try:
+        value = _get_vault_secret_value(secret_path.strip())
+        return _fmt({"secret_path": secret_path.strip(), "value": value})
+    except KeyError:
+        return _tool_error("Secret not found.")
+    except Exception:
+        return _tool_error("Error reading vault secret.")
+
+
+@mcp.tool()
+async def list_vault_secret_keys() -> str:
+    """List available dotted secret keys in the local MUSU vault without exposing values."""
+    try:
+        paths = sorted(_list_vault_secret_paths(_read_vault()))
+        return _fmt({"count": len(paths), "keys": paths})
+    except Exception:
+        return _tool_error("Error listing vault secret keys.")
+
+
+@mcp.tool()
+async def create_writer_sprint_bundle(
+    project_name: str,
+    sprint_id: str,
+    title: str = "",
+    artifact_path: str = "",
+    brief: str = "",
+    source_files: str = "",
+    acceptance_criteria: str = "",
+    project_id: str = "",
+) -> str:
+    """Create a standard Bloodline Writers goal + issue bundle for one sprint.
+
+    The bundle creates one goal and five role-mapped issues:
+    BW-Lead, project PM, BW-Researcher, BW-Writer, BW-Editor.
+    """
+    if not project_name.strip() or not sprint_id.strip():
+        return _tool_error("project_name and sprint_id are required.")
+    try:
+        c = _get_client()
+        if not c.company_id:
+            return _tool_error("PAPERCLIP_COMPANY_ID is required for writer sprint bundles.")
+
+        agents = await _list_company_agents(c)
+        projects = await _list_company_projects(c)
+        resolved_project_id = project_id.strip() or _resolve_item_id(projects, project_name.strip())
+
+        role_handles = {
+            "lead": "BW-Lead",
+            "pm": _writer_pm_handle(project_name),
+            "researcher": "BW-Researcher",
+            "writer": "BW-Writer",
+            "editor": "BW-Editor",
+        }
+        resolved_agents = {
+            role: _resolve_item_id(agents, handle)
+            for role, handle in role_handles.items()
+        }
+
+        goal_body: dict[str, Any] = {
+            "title": _writer_goal_title(project_name.strip(), sprint_id.strip(), title.strip()),
+            "description": _writer_issue_description(
+                role="goal",
+                project_name=project_name.strip(),
+                sprint_id=sprint_id.strip(),
+                artifact_path=artifact_path.strip(),
+                brief=brief.strip(),
+                source_files=source_files.strip(),
+                acceptance_criteria=acceptance_criteria.strip(),
+            ),
+            "status": "active",
+        }
+        goal = await c.post(f"/companies/{c.company_id}/goals", goal_body)
+        goal_id = str(goal.get("id") or "")
+
+        issue_specs = [
+            (
+                "lead",
+                f"{sprint_id.strip()} — company direction lock",
+                "Lock cross-project boundaries, success shape, and lesson-extraction target.",
+            ),
+            (
+                "pm",
+                f"{sprint_id.strip()} — project contract and scope",
+                "Freeze project scope, source list, forbidden canon movement, and acceptance criteria.",
+            ),
+            (
+                "researcher",
+                f"{sprint_id.strip()} — evidence and source packet",
+                "Build the source packet, uncertainty notes, and reference constraints for the draft.",
+            ),
+            (
+                "writer",
+                f"{sprint_id.strip()} — draft and revision",
+                "Produce the target draft against the sprint contract and source packet.",
+            ),
+            (
+                "editor",
+                f"{sprint_id.strip()} — review and revision brief",
+                "Score the draft, record blocking issues, and write the revision brief without rewriting the whole draft.",
+            ),
+        ]
+
+        created_issues: list[dict[str, Any]] = []
+        issues_path = f"/companies/{c.company_id}/issues"
+        legacy_fields_detected = False
+        for role, issue_title, role_brief in issue_specs:
+            body: dict[str, Any] = {
+                "title": issue_title,
+                "description": _writer_issue_description(
+                    role=role,
+                    project_name=project_name.strip(),
+                    sprint_id=sprint_id.strip(),
+                    artifact_path=artifact_path.strip(),
+                    brief="\n".join(part for part in [role_brief, brief.strip()] if part),
+                    source_files=source_files.strip(),
+                    acceptance_criteria=acceptance_criteria.strip(),
+                ),
+                "status": "open",
+                "priority": "medium" if role in {"lead", "pm"} else "high",
+                "goalId": goal_id,
+            }
+            if resolved_project_id:
+                body["projectId"] = resolved_project_id
+            assignee = resolved_agents.get(role, "")
+            if assignee:
+                body["assigneeAgentId"] = assignee
+                body["assignee_id"] = assignee
+            issue = await c.post(issues_path, body)
+            issue_assignee_id = _writer_issue_assignee_id(issue) or assignee
+            issue_goal_id = _writer_issue_goal_id(issue)
+            issue_project_id = _writer_issue_project_id(issue)
+            if issue_assignee_id and not issue.get("assigneeAgentId") and issue.get("assignee_id"):
+                legacy_fields_detected = True
+            if (body.get("goalId") and not issue_goal_id) or (body.get("projectId") and not issue_project_id):
+                legacy_fields_detected = True
+            created_issues.append(
+                {
+                    "role": role,
+                    "handle": role_handles[role],
+                    "assigneeAgentId": issue_assignee_id or None,
+                    "id": issue.get("id"),
+                    "identifier": issue.get("identifier"),
+                    "title": issue.get("title"),
+                    "status": issue.get("status"),
+                    "goalId": issue_goal_id or None,
+                    "projectId": issue_project_id or None,
+                }
+            )
+
+        return _fmt(
+            {
+                "goal": {
+                    "id": goal_id or None,
+                    "title": goal.get("title"),
+                    "status": goal.get("status"),
+                    "projectId": resolved_project_id or None,
+                },
+                "roles": role_handles,
+                "issues": created_issues,
+                "unresolvedAgentHandles": [role_handles[role] for role, agent_id in resolved_agents.items() if not agent_id],
+                "compatibilityMode": "legacy_issue_schema" if legacy_fields_detected else "native_goal_linking",
+            }
+        )
+    except Exception:
+        return _tool_error("Error creating writer sprint bundle.")
+
+
+@mcp.tool()
+async def get_writer_sprint_status(
+    goal_id: str = "",
+    sprint_id: str = "",
+    project_name: str = "",
+    limit: int = 200,
+) -> str:
+    """Summarize one Bloodline Writers sprint bundle by goal or title match."""
+    try:
+        c = _get_client()
+        if not c.company_id:
+            return _tool_error("PAPERCLIP_COMPANY_ID is required for writer sprint status.")
+
+        goals = await c.get(f"/companies/{c.company_id}/goals")
+        goal_items = goals if isinstance(goals, list) else []
+        selected_goal: dict[str, Any] | None = None
+
+        if goal_id.strip():
+            selected_goal = next(
+                (goal for goal in goal_items if str(goal.get("id") or "") == goal_id.strip()),
+                None,
+            )
+        else:
+            for goal in goal_items:
+                title_value = str(goal.get("title") or "")
+                if sprint_id.strip() and sprint_id.strip() not in title_value:
+                    continue
+                if project_name.strip() and _norm(project_name) not in _norm(title_value):
+                    continue
+                selected_goal = goal
+                break
+
+        if selected_goal is None:
+            return _tool_error("Writer sprint goal not found.")
+
+        agents = await _list_company_agents(c)
+        agent_labels = {
+            str(agent.get("id") or ""): str(agent.get("name") or agent.get("slug") or agent.get("id") or "")
+            for agent in agents
+        }
+        issues = await c.get(f"/companies/{c.company_id}/issues", limit=limit)
+        issue_items = issues if isinstance(issues, list) else []
+        linked_issues = [
+            issue
+            for issue in issue_items
+            if _writer_issue_goal_id(issue) == str(selected_goal.get("id") or "")
+        ]
+        inferred_sprint_id = sprint_id.strip() or _extract_writer_sprint_id(str(selected_goal.get("title") or ""))
+        matched_issues = linked_issues
+        match_mode = "goal_link"
+        if not matched_issues and inferred_sprint_id:
+            matched_issues = [
+                issue
+                for issue in issue_items
+                if inferred_sprint_id in str(issue.get("title") or "")
+            ]
+            match_mode = "sprint_title"
+
+        summary = []
+        for issue in matched_issues:
+            assignee_id = _writer_issue_assignee_id(issue)
+            summary.append(
+                {
+                    "id": issue.get("id"),
+                    "identifier": issue.get("identifier"),
+                    "title": issue.get("title"),
+                    "status": issue.get("status"),
+                    "priority": issue.get("priority"),
+                    "assigneeAgentId": assignee_id or None,
+                    "assignee": agent_labels.get(assignee_id) or None,
+                    "goalId": _writer_issue_goal_id(issue) or None,
+                    "projectId": _writer_issue_project_id(issue) or None,
+                }
+            )
+
+        return _fmt(
+            {
+                "goal": {
+                    "id": selected_goal.get("id"),
+                    "title": selected_goal.get("title"),
+                    "status": selected_goal.get("status"),
+                    "projectId": selected_goal.get("projectId"),
+                },
+                "matchMode": match_mode,
+                "sprintId": inferred_sprint_id or None,
+                "issueCount": len(summary),
+                "issues": summary,
+            }
+        )
+    except Exception:
+        return _tool_error("Error getting writer sprint status.")
+
+
 # ──────────────────────────────────────────────
 # Group Messages (CEO Board / Team Channels)
 # ──────────────────────────────────────────────
@@ -1162,6 +1565,132 @@ def _get_node_url(node: str) -> str:
         return f"http://{ip}:{port}"
     # Fallback: try as IP directly
     return f"http://{node}:8070"
+
+
+def _get_vault_secret_value(secret_path: str) -> Any:
+    current: Any = _read_vault()
+    for segment in [part for part in secret_path.split(".") if part]:
+        if not isinstance(current, dict) or segment not in current:
+            raise KeyError(secret_path)
+        current = current[segment]
+    return current
+
+
+def _list_vault_secret_paths(value: Any, prefix: str = "") -> list[str]:
+    if isinstance(value, dict):
+        paths: list[str] = []
+        for key, child in value.items():
+            if str(key).startswith("_"):
+                continue
+            child_prefix = f"{prefix}.{key}" if prefix else str(key)
+            paths.extend(_list_vault_secret_paths(child, child_prefix))
+        return paths
+    if prefix:
+        return [prefix]
+    return []
+
+
+def _norm(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", value.lower())
+
+
+def _item_match(value: Any, expected: str) -> bool:
+    if not isinstance(value, str):
+        return False
+    return _norm(value) == _norm(expected)
+
+
+async def _list_company_agents(c: PaperclipClient) -> list[dict[str, Any]]:
+    path = f"/companies/{c.company_id}/agents" if c.company_id else "/agents"
+    data = await c.get(path)
+    return data if isinstance(data, list) else []
+
+
+async def _list_company_projects(c: PaperclipClient) -> list[dict[str, Any]]:
+    if not c.company_id:
+        return []
+    data = await c.get(f"/companies/{c.company_id}/projects")
+    return data if isinstance(data, list) else []
+
+
+def _resolve_item_id(items: list[dict[str, Any]], expected: str) -> str:
+    for item in items:
+        for field in ("name", "slug", "identifier", "title", "projectName", "project_name", "id"):
+            if _item_match(item.get(field), expected):
+                resolved = str(item.get("id") or "")
+                if resolved:
+                    return resolved
+    return ""
+
+
+def _writer_pm_handle(project_name: str) -> str:
+    normalized = _norm(project_name)
+    if normalized in {"bloodline"}:
+        return "BW-PM-Bloodline"
+    return "BW-PM-FalseDane"
+
+
+def _writer_goal_title(project_name: str, sprint_id: str, title: str) -> str:
+    trimmed_title = title.strip()
+    if trimmed_title:
+        return f"{project_name} — {sprint_id} — {trimmed_title}"
+    return f"{project_name} — {sprint_id}"
+
+
+def _writer_issue_description(
+    role: str,
+    project_name: str,
+    sprint_id: str,
+    artifact_path: str,
+    brief: str,
+    source_files: str,
+    acceptance_criteria: str,
+) -> str:
+    lines = [
+        f"Project: {project_name}",
+        f"Sprint: {sprint_id}",
+        f"Role: {role}",
+    ]
+    if artifact_path:
+        lines.append(f"Target artifact: {artifact_path}")
+    if brief:
+        lines.extend(["", "Brief:", brief.strip()])
+    if source_files:
+        lines.extend(["", "Source files:", source_files.strip()])
+    if acceptance_criteria:
+        lines.extend(["", "Acceptance criteria:", acceptance_criteria.strip()])
+    return "\n".join(lines)
+
+
+def _writer_issue_assignee_id(issue: dict[str, Any]) -> str:
+    for field in ("assigneeAgentId", "assignee_id", "assigneeId"):
+        value = str(issue.get(field) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _writer_issue_goal_id(issue: dict[str, Any]) -> str:
+    for field in ("goalId", "goal_id"):
+        value = str(issue.get(field) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _writer_issue_project_id(issue: dict[str, Any]) -> str:
+    for field in ("projectId", "project_id"):
+        value = str(issue.get(field) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _extract_writer_sprint_id(goal_title: str) -> str:
+    parts = [part.strip() for part in str(goal_title or "").split("—")]
+    if len(parts) >= 2:
+        return parts[1]
+    return ""
 
 
 @mcp.tool()
@@ -1234,7 +1763,7 @@ async def delegate_task(
         async with httpx.AsyncClient(timeout=10.0, headers=_bridge_headers()) as client:
             resp = await client.post(
                 f"{_MUSU_BRIDGE_URL}/api/tasks/delegate",
-                json={"channel": channel, "sender_id": sender_id, "text": instruction},
+                json={"channel": channel.lower(), "sender_id": sender_id, "text": instruction},
             )
             resp.raise_for_status()
             data = resp.json()

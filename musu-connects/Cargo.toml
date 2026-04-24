@@ -1,3 +1,0 @@
-[workspace]
-members = ["apps/musu-connectsd", "crates/musu-connects-core"]
-resolver = "2"

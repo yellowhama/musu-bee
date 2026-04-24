@@ -13,9 +13,9 @@ interface Project {
 }
 
 const STATUS_COLOR: Record<Project["status"], string> = {
-  active: "#22c55e",
-  paused: "#f59e0b",
-  archived: "#6b7280",
+  active: "var(--status-online)",
+  paused: "var(--status-warn)",
+  archived: "var(--fg3)",
 };
 
 function formatRelative(iso: string): string {
@@ -30,9 +30,9 @@ function formatRelative(iso: string): string {
 
 const SELECT_STYLE: React.CSSProperties = {
   fontSize: 11,
-  color: "#9ca3af",
-  background: "#1a1a1a",
-  border: "1px solid #2d2d2d",
+  color: "var(--fg2)",
+  background: "var(--bg-card)",
+  border: "1px solid var(--border-default)",
   borderRadius: 6,
   padding: "3px 8px",
   cursor: "pointer",
@@ -143,7 +143,7 @@ export default function ProjectsPanel({ companyId }: ProjectsPanelProps) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 15, fontWeight: 600, color: "#f3f4f6" }}>
+          <span style={{ fontSize: 15, fontWeight: 600, color: "var(--fg1)" }}>
             Projects
           </span>
           <span
@@ -163,9 +163,9 @@ export default function ProjectsPanel({ companyId }: ProjectsPanelProps) {
             onClick={() => void doFetch()}
             style={{
               fontSize: 11,
-              color: "#9ca3af",
+              color: "var(--fg2)",
               background: "transparent",
-              border: "1px solid #2d2d2d",
+              border: "1px solid var(--border-default)",
               borderRadius: 4,
               padding: "3px 8px",
               cursor: "pointer",
@@ -192,22 +192,22 @@ export default function ProjectsPanel({ companyId }: ProjectsPanelProps) {
       {/* Content */}
       <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
         {!companyId && (
-          <p style={{ color: "#6b7280", fontSize: 13, padding: "20px 8px" }}>
+          <p style={{ color: "var(--fg3)", fontSize: 13, padding: "20px 8px" }}>
             No active company selected.
           </p>
         )}
         {companyId && loading && (
-          <p style={{ color: "#6b7280", fontSize: 13, padding: "20px 8px" }}>
+          <p style={{ color: "var(--fg3)", fontSize: 13, padding: "20px 8px" }}>
             Loading…
           </p>
         )}
         {companyId && !loading && error && (
-          <p style={{ color: "#f87171", fontSize: 13, padding: "20px 8px" }}>
+          <p style={{ color: "var(--status-error)", fontSize: 13, padding: "20px 8px" }}>
             {error}
           </p>
         )}
         {companyId && !loading && !error && projects.length === 0 && (
-          <p style={{ color: "#4b5563", fontSize: 13, padding: "20px 8px" }}>
+          <p style={{ color: "var(--fg4)", fontSize: 13, padding: "20px 8px" }}>
             No projects found.
           </p>
         )}
@@ -252,7 +252,7 @@ export default function ProjectsPanel({ companyId }: ProjectsPanelProps) {
                     style={{
                       fontSize: 13,
                       fontWeight: 600,
-                      color: "#e5e7eb",
+                      color: "var(--fg1)",
                       flex: 1,
                     }}
                   >
@@ -272,7 +272,7 @@ export default function ProjectsPanel({ companyId }: ProjectsPanelProps) {
 
                 {/* Assigned to */}
                 {project.assigned_to && (
-                  <p style={{ fontSize: 11, color: "#9ca3af", margin: 0 }}>
+                  <p style={{ fontSize: 11, color: "var(--fg2)", margin: 0 }}>
                     assigned to: {project.assigned_to}
                   </p>
                 )}
@@ -295,14 +295,14 @@ export default function ProjectsPanel({ companyId }: ProjectsPanelProps) {
                     <p
                       style={{
                         fontSize: 10,
-                        color: "#4b5563",
+                        color: "var(--fg4)",
                         margin: 0,
                         fontFamily: "monospace",
                       }}
                     >
                       {project.id}
                     </p>
-                    <p style={{ fontSize: 10, color: "#4b5563", margin: 0 }}>
+                    <p style={{ fontSize: 10, color: "var(--fg4)", margin: 0 }}>
                       updated {formatRelative(project.updated_at)}
                     </p>
                     {project.status !== "archived" && (
@@ -315,7 +315,7 @@ export default function ProjectsPanel({ companyId }: ProjectsPanelProps) {
                             disabled={updating.has(project.id)}
                             style={{
                               fontSize: 11,
-                              color: updating.has(project.id) ? "#4b5563" : "#f59e0b",
+                              color: updating.has(project.id) ? "var(--fg4)" : "var(--status-warn)",
                               background: "transparent",
                               border: "1px solid currentColor",
                               borderRadius: 4,
@@ -334,7 +334,7 @@ export default function ProjectsPanel({ companyId }: ProjectsPanelProps) {
                             disabled={updating.has(project.id)}
                             style={{
                               fontSize: 11,
-                              color: updating.has(project.id) ? "#4b5563" : "#22c55e",
+                              color: updating.has(project.id) ? "var(--fg4)" : "var(--status-online)",
                               background: "transparent",
                               border: "1px solid currentColor",
                               borderRadius: 4,
@@ -352,7 +352,7 @@ export default function ProjectsPanel({ companyId }: ProjectsPanelProps) {
                           disabled={updating.has(project.id)}
                           style={{
                             fontSize: 11,
-                            color: updating.has(project.id) ? "#4b5563" : "#6b7280",
+                            color: updating.has(project.id) ? "var(--fg4)" : "var(--fg3)",
                             background: "transparent",
                             border: "1px solid currentColor",
                             borderRadius: 4,
@@ -371,7 +371,7 @@ export default function ProjectsPanel({ companyId }: ProjectsPanelProps) {
                   <p
                     style={{
                       fontSize: 10,
-                      color: "#374151",
+                      color: "var(--fg4)",
                       margin: 0,
                       fontFamily: "monospace",
                     }}

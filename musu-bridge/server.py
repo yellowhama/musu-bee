@@ -41,7 +41,15 @@ from fastapi import Body, FastAPI, HTTPException, Path, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from bridge_models import (  # noqa: F401
+    RouteRequest, DelegateRequest, CompanyCreateRequest, CompanyUpdateRequest,
+    AgentUpdateRequest, WorkspaceUpdateRequest,
+    IssueCreateRequest, IssueUpdateRequest, IssueCommentRequest, IssueCheckoutRequest,
+    ProjectCreateRequest, ProjectUpdateRequest,
+    GoalCreateRequest, GoalUpdateRequest,
+    HeartbeatInvokeRequest, GroupMessageRequest, FeedbackRequest,
+)
+from pydantic import BaseModel, Field  # still needed by Annotated usage
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from musu_core.middleware import apply_musu_middlewares
@@ -50,12 +58,11 @@ import audit
 import mesh_router as mesh_router
 import screen_vnc
 
-try:
-    from prometheus_fastapi_instrumentator import Instrumentator as _PFI
-    from prometheus_client import Counter as _Counter, Gauge as _Gauge, Histogram as _Histogram, REGISTRY as _PROM_REGISTRY
-    _PROMETHEUS_AVAILABLE = True
-except ImportError:
-    _PROMETHEUS_AVAILABLE = False
+from metrics import (
+    _PROMETHEUS_AVAILABLE, _record_task_metric, _increment_stuck_counter,
+    _agent_tasks_total, _agent_task_duration, _active_tasks_gauge, _task_stuck_total,
+    instrument_app, set_active_tasks_len,
+)
 from config import get_config
 from system_stats import collect_stats_async
 from csrf_guard import CSRFOriginGuard
@@ -187,373 +194,21 @@ def _get_channel_semaphore(channel: str) -> asyncio.Semaphore:
     return _channel_semaphores[channel]
 
 
-# Serializes heartbeat iterations within a single process — prevents concurrent CEO tasks
-# when the interval is shorter than agent response time.
-_heartbeat_lock = asyncio.Lock()
-
-
-def _get_heartbeat_backend():
-    """Return the backend for heartbeat guard checks (thin wrapper for testability)."""
-    from handlers import _get_backend
-    return _get_backend()
-
-
-CIRCUIT_TRIP_THRESHOLD = 3
-CIRCUIT_BACKOFF_BASE_SECONDS = 60
-CIRCUIT_WINDOW_MINUTES = 10
-
-
-class _ChannelCircuitBreaker:
-    """Per-channel circuit breaker (in-memory, sliding window).
-
-    Opens after fail_threshold failures within window_sec seconds.
-    Once open, stays open for block_sec seconds regardless of window,
-    then automatically resets (time-based, no half-open state).
-    """
-
-    def __init__(self, fail_threshold: int = 3, window_sec: int = 60, block_sec: int = 30) -> None:
-        from collections import defaultdict, deque
-        self._fail_threshold = fail_threshold
-        self._window_sec = window_sec
-        self._block_sec = block_sec
-        self._failures: dict[str, deque] = defaultdict(deque)  # channel → deque of timestamps
-        self._tripped_at: dict[str, float] = {}  # channel → time circuit tripped
-
-    def _prune(self, channel: str) -> None:
-        import time
-        cutoff = time.time() - self._window_sec
-        dq = self._failures[channel]
-        while dq and dq[0] < cutoff:
-            dq.popleft()
-
-    def record_failure(self, channel: str) -> None:
-        import time
-        self._prune(channel)
-        self._failures[channel].append(time.time())
-        # Record trip time when threshold first crossed
-        if len(self._failures[channel]) >= self._fail_threshold and channel not in self._tripped_at:
-            self._tripped_at[channel] = time.time()
-
-    def is_open(self, channel: str) -> bool:
-        import time
-        now = time.time()
-        # If tripped, check block_sec timer first
-        tripped = self._tripped_at.get(channel)
-        if tripped is not None:
-            if now - tripped >= self._block_sec:
-                # Block period expired — reset
-                self._tripped_at.pop(channel, None)
-                self._failures[channel].clear()
-                return False
-            return True
-        self._prune(channel)
-        return len(self._failures[channel]) >= self._fail_threshold
-
-    def state(self, channel: str) -> dict:
-        import time
-        open_ = self.is_open(channel)
-        count = len(self._failures.get(channel, []))
-        result: dict = {
-            "state": "open" if open_ else "closed",
-            "fail_count": count,
-            "threshold": self._fail_threshold,
-            "window_sec": self._window_sec,
-            "block_sec": self._block_sec,
-        }
-        tripped = self._tripped_at.get(channel)
-        if tripped:
-            result["block_remaining_sec"] = max(0.0, round(self._block_sec - (time.time() - tripped), 1))
-        return result
-
-
-_CB_FAIL_THRESHOLD = int(os.environ.get("MUSU_CB_FAIL_THRESHOLD", "3"))
-_CB_FAIL_WINDOW_SEC = int(os.environ.get("MUSU_CB_FAIL_WINDOW_SEC", "60"))
-_CB_BLOCK_SEC = int(os.environ.get("MUSU_CB_BLOCK_SEC", "30"))
-
-_channel_cb = _ChannelCircuitBreaker(
-    fail_threshold=_CB_FAIL_THRESHOLD,
-    window_sec=_CB_FAIL_WINDOW_SEC,
-    block_sec=_CB_BLOCK_SEC,
+# ── Channel circuit breaker (extracted to channel_circuit_breaker.py) ─────────
+from channel_circuit_breaker import (  # noqa: F401
+    CIRCUIT_TRIP_THRESHOLD, CIRCUIT_BACKOFF_BASE_SECONDS, CIRCUIT_WINDOW_MINUTES,
+    _ChannelCircuitBreaker, _channel_cb,
 )
 
-
-def _should_skip_heartbeat(backend, channel: str = "ceo") -> tuple[bool, str]:
-    """Circuit breaker for heartbeat. Returns (should_skip, reason).
-
-    Fail-open: DB errors return (False, '') so heartbeat continues rather than
-    silently stopping forever.
-    """
-    from datetime import datetime, timedelta, timezone
-
-    try:
-        rows = backend._db.execute(
-            "SELECT id FROM route_executions WHERE channel = ? AND status = 'running' LIMIT 1",
-            (channel,),
-        )
-        if rows:
-            return True, "already running"
-
-        cutoff = (datetime.now(timezone.utc) - timedelta(minutes=CIRCUIT_WINDOW_MINUTES)).isoformat()
-        fail_rows = backend._db.execute(
-            "SELECT COUNT(*) as cnt FROM route_executions "
-            "WHERE channel = ? AND status = 'failed' AND created_at > ?",
-            (channel, cutoff),
-        )
-        fail_count = fail_rows[0]["cnt"] if fail_rows else 0
-
-        if fail_count >= CIRCUIT_TRIP_THRESHOLD:
-            backoff = min(CIRCUIT_BACKOFF_BASE_SECONDS * (2 ** (fail_count - 1)), 1800)
-            return True, f"circuit open ({fail_count} recent failures, backoff={backoff}s)"
-
-        return False, ""
-    except Exception:
-        return False, ""
-
-
-def _has_running_ceo_task(backend, channel: str = "ceo") -> bool:
-    should_skip, reason = _should_skip_heartbeat(backend, channel=channel)
-    return should_skip and reason == "already running"
-
-
-async def _heartbeat_iteration(
-    agent_name: str,
-    company_id: str | None,
-    diag_summary: str,
-    role: str = "ceo",
-) -> None:
-    """Single guarded heartbeat iteration — serialized by _heartbeat_lock."""
-    async with _heartbeat_lock:
-        try:
-            backend = _get_heartbeat_backend()
-        except Exception:
-            backend = None
-
-        if backend is not None:
-            should_skip, reason = _should_skip_heartbeat(backend, channel=agent_name)
-            if should_skip:
-                if "circuit open" in reason:
-                    logger.warning(
-                        "heartbeat_scheduler: circuit open — skipping %s (%s)", agent_name, reason
-                    )
-                else:
-                    logger.info(
-                        "heartbeat_scheduler: skipping — %s (%s)", agent_name, reason
-                    )
-                return
-
-        logger.info("heartbeat_scheduler: invoking %s (role: %s)", agent_name, role)
-        prompt_parts = []
-        if diag_summary and role == "ceo":
-            prompt_parts.append(
-                f"## 진단 결과 (자동 감지)\n\n{diag_summary}\n\n"
-                "위 이슈를 확인하고 필요 시 create_issue로 등록한 후, 개발 루프를 진행하라.\n\n---\n\n"
-            )
-        
-        if role == "ceo":
-            prompt_parts.append(
-                "집사 루프 실행 (wiki/010):\n"
-                "1. 시스템 점검: get_dashboard(), check_notifications(), read_board_messages('ceo-board')\n"
-                "2. 문제 감지 → 선제 처리 (stuck task cancel, 에러 이슈 생성)\n"
-                "3. 회사 확인: read_charter(), list_goals(), list_issues()\n"
-                "4. Lead에게 위임 (직접 engineer 안 시킴): delegate_task(channel='{short}-Lead', ...)\n"
-                "5. 브리핑 준비: 다음에 주인 오면 즉시 보고할 수 있게\n"
-                "6. #ceo-board에 상태 공유\n\n"
-                "## 위임 패턴 (fire-and-check) — 필수\n"
-                "delegate_task 후 즉시 종료한다. task_id를 이슈 코멘트에 기록하고 heartbeat 종료.\n"
-                "다음 heartbeat에서 get_task_status(task_id)로 완료 여부 확인.\n"
-                "폴링 루프 금지: while True + sleep 루프 절대 실행 금지 — heartbeat timeout 초과 원인."
-            )
-        elif role == "team_lead":
-            prompt_parts.append(
-                "자율 팀장 루프 실행:\n"
-                "1. get_task_status('assigned') — 본인에게 할당된 이슈/작업 확인\n"
-                "2. 판단: 진행해야 할 작업이 있다면 엔지니어/QA에게 구체적 명세(Sprint Contract)와 함께 delegate_task 실행\n"
-                "3. 진행 상황 확인: 하위 태스크의 상태를 폴링하지 말고, 다음 하트비트에서 확인\n"
-                "4. 완료 보고: 하위 태스크가 완료되면 CEO가 할당한 원본 이슈/태스크에 코멘트로 결과 보고\n"
-            )
-
-        _hb_timeout = int(os.environ.get("MUSU_HEARTBEAT_TIMEOUT_SEC", "600"))
-        try:
-            await asyncio.wait_for(
-                route_chat(
-                    channel=agent_name,
-                    sender_id="system",
-                    text="".join(prompt_parts),
-                    company_id=company_id,
-                ),
-                timeout=_hb_timeout,
-            )
-            logger.info("heartbeat_scheduler: %s done", agent_name)
-        except asyncio.TimeoutError:
-            logger.warning(
-                "heartbeat_scheduler: %s timed out after %ds — releasing lock",
-                agent_name, _hb_timeout,
-            )
-            _increment_stuck_counter(agent_name, "heartbeat_timeout")
-
-
-_company_locks: dict[str, asyncio.Lock] = {}
-
-
-def _get_company_lock(company_id: str) -> asyncio.Lock:
-    """Per-company lock for heartbeat isolation."""
-    if company_id not in _company_locks:
-        _company_locks[company_id] = asyncio.Lock()
-    return _company_locks[company_id]
-
-
-async def _agent_heartbeat_scheduler() -> None:
-    """Periodic heartbeat for the CEO agent.
-
-    Two modes:
-      - Single company: MUSU_CEO_COMPANY_ID set → only that company
-      - Multi-company: not set → iterate all active companies
-
-    Env:
-        MUSU_CEO_HEARTBEAT_ENABLED  = "true"   — must be set to activate
-        MUSU_CEO_HEARTBEAT_INTERVAL = seconds   — default 1800 (30 min)
-        MUSU_CEO_AGENT_NAME         = name      — default "ceo"
-        MUSU_CEO_COMPANY_ID         = id        — single company mode (optional)
-    """
-    interval = int(os.environ.get("MUSU_CEO_HEARTBEAT_INTERVAL", "1800"))
-    _node = os.environ.get("MUSU_NODE_NAME", "local")
-    agent_name = os.environ.get("MUSU_CEO_AGENT_NAME", f"{_node}-CEO")
-    single_company_id = os.environ.get("MUSU_CEO_COMPANY_ID") or None
-
-    mode = f"single={single_company_id}" if single_company_id else "multi-company"
-    logger.info(
-        "heartbeat_scheduler: started (interval=%ds, agent=%s, mode=%s)",
-        interval, agent_name, mode,
-    )
-    await asyncio.sleep(60)
-
-    _self_healing = os.environ.get("MUSU_SELF_HEALING_ENABLED", "true").lower() == "true"
-
-    while True:
-        # Determine which companies to heartbeat
-        if single_company_id:
-            company_ids = [single_company_id]
-        else:
-            try:
-                from handlers import list_companies as _list_hb_co
-                company_ids = [c["id"] for c in _list_hb_co() if c.get("status") == "active"]
-            except Exception:
-                company_ids = []
-
-        if not company_ids:
-            logger.info("heartbeat_scheduler: no active companies, sleeping")
-            await asyncio.sleep(interval)
-            continue
-
-        # Run diagnostic once (not per company)
-        diag_summary = ""
-        if _self_healing:
-            try:
-                from diagnostics import PreHeartbeatDiagnostic
-                from handlers import _get_backend as _diag_backend
-                _ws_root = os.path.join(os.getcwd(), ".musu", "tasks")
-                report = PreHeartbeatDiagnostic(workspace_root=_ws_root).run(_diag_backend())
-                if report.needs_attention:
-                    diag_summary = report.summary
-                    logger.info("heartbeat_scheduler: diagnostic found issues:\n%s", diag_summary)
-            except Exception as diag_exc:
-                logger.warning("heartbeat_scheduler: diagnostic error — %s", diag_exc)
-
-        # Heartbeat each company (sequential with per-company lock)
-        for cid in company_ids:
-            try:
-                logger.info("heartbeat_scheduler: company %s", cid[:8])
-                await _heartbeat_iteration(
-                    agent_name=agent_name,
-                    company_id=cid,
-                    diag_summary=diag_summary,
-                )
-            except Exception as exc:
-                logger.warning("heartbeat_scheduler: company %s error — %s", cid[:8], exc)
-
-        await asyncio.sleep(interval)
-
-
-async def _team_lead_heartbeat_scheduler() -> None:
-    """Periodic heartbeat for Team Lead agents.
-    
-    Operates similarly to the CEO heartbeat but defaults to a faster cycle.
-    Shares the _heartbeat_lock so it cannot run concurrently with the CEO,
-    preventing SQLite 'database is locked' errors.
-    """
-    interval = int(os.environ.get("MUSU_TEAM_LEAD_HEARTBEAT_INTERVAL", "600"))
-    agent_name = os.environ.get("MUSU_TEAM_LEAD_AGENT_NAME", "team_lead")
-    single_company_id = os.environ.get("MUSU_TEAM_LEAD_COMPANY_ID") or None
-
-    mode = f"single={single_company_id}" if single_company_id else "multi-company"
-    logger.info(
-        "team_lead_scheduler: started (interval=%ds, agent=%s, mode=%s)",
-        interval, agent_name, mode,
-    )
-    await asyncio.sleep(30)
-
-    while True:
-        if single_company_id:
-            company_ids = [single_company_id]
-        else:
-            try:
-                from handlers import list_companies as _list_hb_co
-                company_ids = [c["id"] for c in _list_hb_co() if c.get("status") == "active"]
-            except Exception:
-                company_ids = []
-
-        if not company_ids:
-            await asyncio.sleep(interval)
-            continue
-
-        for cid in company_ids:
-            try:
-                logger.info("team_lead_scheduler: company %s", cid[:8])
-                await _heartbeat_iteration(
-                    agent_name=agent_name,
-                    company_id=cid,
-                    diag_summary="",
-                    role="team_lead",
-                )
-            except Exception as exc:
-                logger.warning("team_lead_scheduler: company %s error — %s", cid[:8], exc)
-
-        await asyncio.sleep(interval)
-
-
-async def _node_manager_heartbeat() -> None:
-    """Periodic stats report from the local node manager agent.
-
-    Env:
-        MUSU_NODE_HEARTBEAT_ENABLED  = "true"   — must be set to activate
-        MUSU_NODE_HEARTBEAT_INTERVAL = seconds   — default 300 (5 min)
-    """
-    interval = int(os.environ.get("MUSU_NODE_HEARTBEAT_INTERVAL", "300"))
-    _cfg = get_config()
-    # Use mesh self_name so channel matches nodes.toml topology (not OS hostname)
-    from mesh_router import get_router as _get_router
-    _router = _get_router()
-    mgr_name = f"mgr-{_router._self_name or _cfg.node_name}"
-
-    logger.info(
-        "node_heartbeat: started (interval=%ds, agent=%s)", interval, mgr_name
-    )
-    # Stagger: wait 90s so node manager agent is fully seeded before first ping.
-    await asyncio.sleep(90)
-
-    while True:
-        try:
-            logger.info("node_heartbeat: invoking %s", mgr_name)
-            # Node managers are always global (per-device, not company-scoped)
-            await route_chat(
-                channel=mgr_name,
-                sender_id="system",
-                text="heartbeat: 현재 기기 상태 보고해줘",
-            )
-            logger.info("node_heartbeat: %s done", mgr_name)
-        except Exception as exc:
-            logger.warning("node_heartbeat: error — %s", exc)
-        await asyncio.sleep(interval)
+# ── Heartbeat schedulers (extracted to heartbeat_scheduler.py) ────────────────
+from heartbeat_scheduler import (  # noqa: F401
+    _heartbeat_lock, _get_heartbeat_backend, _should_skip_heartbeat,
+    _has_running_ceo_task, _heartbeat_iteration,
+    _agent_heartbeat_scheduler, _team_lead_heartbeat_scheduler,
+    _node_manager_heartbeat, _company_locks, _get_company_lock,
+    auto_distribute_loop,
+    morning_report_cron,
+)
 
 
 @asynccontextmanager
@@ -693,6 +348,63 @@ async def lifespan(app: FastAPI):
     except Exception as _e:
         logger.warning("startup: failed to seed node manager — %s", _e)
 
+    # Restore channel→agent mapping from DB on startup.
+    # channel_agent_map is env-driven (static). Agents must exist in DB for routing to work.
+    # Any missing agents are auto-seeded so routing works immediately after restart without
+    # requiring a manual `python seed_agents.py` run.
+    try:
+        from handlers import _get_backend as _gb_chan
+        from seed_agents import AGENTS as _SEED_AGENTS
+        _chan_backend = _gb_chan()
+        _cfg_chan = get_config()
+        _all_active = {a["name"] for a in _chan_backend.list_agents()}
+        # Build lookup: channel_key (e.g. "ceo") → seed template
+        _seed_by_channel = {a["name"]: a for a in _SEED_AGENTS}
+        _broken: list[str] = []
+        _ok: list[str] = []
+        _seeded: list[str] = []
+        for _ch, _agent_name in _cfg_chan.channel_agent_map.items():
+            if _agent_name in _all_active:
+                _ok.append(_ch)
+            else:
+                # Auto-seed the missing agent using seed_agents template if available
+                _tmpl = _seed_by_channel.get(_ch)
+                if _tmpl:
+                    try:
+                        _chan_backend.create_agent(
+                            name=_agent_name,
+                            role=_tmpl["role"],
+                            adapter_type=_tmpl["adapter_type"],
+                            adapter_config=_tmpl["adapter_config"],
+                        )
+                        _seeded.append(_ch)
+                        _ok.append(_ch)
+                        logger.info(
+                            "startup: auto-seeded missing agent %r for channel=%r",
+                            _agent_name, _ch,
+                        )
+                    except Exception as _seed_err:
+                        _broken.append(f"{_ch}→{_agent_name}")
+                        logger.warning(
+                            "startup: failed to auto-seed agent %r for channel=%r — %s",
+                            _agent_name, _ch, _seed_err,
+                        )
+                else:
+                    _broken.append(f"{_ch}→{_agent_name}")
+        if _seeded:
+            logger.info("startup: auto-seeded %d agent(s): %s", len(_seeded), ", ".join(_seeded))
+        if _ok:
+            logger.info("startup: channel mapping OK for %d channel(s): %s", len(_ok), ", ".join(_ok))
+        if _broken:
+            logger.warning(
+                "startup: %d channel(s) have no active agent in DB — routing will fail: %s",
+                len(_broken), "; ".join(_broken),
+            )
+        else:
+            logger.info("startup: all channel→agent mappings resolved from DB")
+    except Exception as _e:
+        logger.warning("startup: channel mapping check failed — %s", _e)
+
     # Re-dispatch any pending/running route executions from before last restart.
     # retry_count caps at 3 — executions that repeatedly crash are marked failed.
     try:
@@ -789,6 +501,18 @@ async def lifespan(app: FastAPI):
         node_heartbeat_task = asyncio.create_task(_node_manager_heartbeat())
         logger.info("node_heartbeat: task started")
 
+    # Auto-distribution (optional — routes pending tasks to optimal nodes)
+    auto_distribute_task = None
+    if os.environ.get("MUSU_AUTO_DISTRIBUTE_ENABLED", "").lower() == "true":
+        auto_distribute_task = asyncio.create_task(auto_distribute_loop())
+        logger.info("auto_distribute: task started")
+
+    # Morning report cron (optional — posts daily report at 08:00 KST)
+    morning_report_task = None
+    if os.environ.get("MUSU_MORNING_REPORT_ENABLED", "").lower() == "true":
+        morning_report_task = asyncio.create_task(morning_report_cron())
+        logger.info("morning_report_cron: task started")
+
     # Watchdog rate limit cache cleanup (always on — prevents unbounded memory growth)
     watchdog_cleanup_task = asyncio.create_task(_watchdog_rate_cleanup_loop())
 
@@ -812,6 +536,10 @@ async def lifespan(app: FastAPI):
     watchdog_cleanup_task.cancel()
     session_cleanup_task.cancel()
     discovery.close()
+    if morning_report_task:
+        morning_report_task.cancel()
+    if auto_distribute_task:
+        auto_distribute_task.cancel()
     if node_heartbeat_task:
         node_heartbeat_task.cancel()
     if team_lead_task:
@@ -820,6 +548,10 @@ async def lifespan(app: FastAPI):
         heartbeat_task.cancel()
     if relay_task:
         relay_task.cancel()
+        try:
+            await asyncio.wait_for(relay_task, timeout=5)
+        except (asyncio.TimeoutError, asyncio.CancelledError):
+            pass
     if mdns_task:
         mdns_task.cancel()
     if registry_task:
@@ -832,184 +564,19 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="musu-bridge", version="0.2.0", lifespan=lifespan)
 
-# ── Prometheus metrics ─────────────────────────────────────────────────────────
-def _prom_counter(name, doc, labels):
-    try:
-        return _Counter(name, doc, labels)
-    except ValueError:
-        return _PROM_REGISTRY._names_to_collectors.get(name)
+# ── Prometheus metrics (extracted to metrics.py) ─────────────────────────────
+instrument_app(app)
+set_active_tasks_len(lambda: len(_active_tasks))
 
 
-def _prom_histogram(name, doc, labels, buckets):
-    try:
-        return _Histogram(name, doc, labels, buckets=buckets)
-    except ValueError:
-        return _PROM_REGISTRY._names_to_collectors.get(name)
-
-
-def _prom_gauge(name, doc):
-    try:
-        return _Gauge(name, doc)
-    except ValueError:
-        return _PROM_REGISTRY._names_to_collectors.get(name)
-
-
-if _PROMETHEUS_AVAILABLE:
-    try:
-        _pfi = _PFI().instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
-    except ValueError:
-        _pfi = None
-    _agent_tasks_total = _prom_counter(
-        "agent_tasks_total",
-        "Tasks delegated by channel and outcome",
-        ["channel", "status"],
-    )
-    _agent_task_duration = _prom_histogram(
-        "agent_task_duration_seconds",
-        "Wall-clock time for agent tasks",
-        ["channel"],
-        buckets=[30, 60, 120, 300, 600, 900, 1800],
-    )
-    _active_tasks_gauge = _prom_gauge("active_tasks_count", "Currently running async tasks")
-    _task_stuck_total = _prom_counter(
-        "task_stuck_total",
-        "Tasks detected as stuck (no output / timeout) by channel and detection reason",
-        ["channel", "reason"],
-    )
-else:
-    _agent_tasks_total = None
-    _agent_task_duration = None
-    _active_tasks_gauge = None
-    _task_stuck_total = None
-
-
-def _record_task_metric(channel: str, status: str, duration_s: float | None = None) -> None:
-    """Increment agent task counters. No-op if prometheus unavailable."""
-    if _agent_tasks_total is not None:
-        _agent_tasks_total.labels(channel=channel, status=status).inc()
-    if duration_s is not None and _agent_task_duration is not None:
-        _agent_task_duration.labels(channel=channel).observe(duration_s)
-    if _active_tasks_gauge is not None:
-        _active_tasks_gauge.set(len(_active_tasks))
-
-
-def _increment_stuck_counter(channel: str, reason: str) -> None:
-    """Increment task_stuck_total counter. No-op if prometheus unavailable."""
-    if _task_stuck_total is not None:
-        _task_stuck_total.labels(channel=channel, reason=reason).inc()
-
-
-def _get_watchdog_backend():
-    """Return the backend for watchdog stuck-task scanning (thin wrapper for testability)."""
-    from handlers import _get_backend
-    return _get_backend()
-
-
-_WATCHDOG_KILL_SEC = int(
-    os.environ.get("MUSU_WATCHDOG_KILL_SEC")
-    or os.environ.get("MUSU_WATCHDOG_STUCK_THRESHOLD_SEC", "240")
+# ── Watchdog (extracted to watchdog.py) ────────────────────────────────────────
+from watchdog import (  # noqa: F401
+    _get_watchdog_backend, _run_watchdog_once, _watchdog_loop,
+    _watchdog_rate_check, _watchdog_rate_cleanup_loop,
+    _WATCHDOG_ALLOWED, _WATCHDOG_RATE_WINDOW, _watchdog_rate,
+    _WATCHDOG_KILL_SEC, _WATCHDOG_ESCALATE_SEC, _WATCHDOG_WARN_SEC,
+    _WATCHDOG_STUCK_THRESHOLD_SEC,
 )
-_WATCHDOG_ESCALATE_SEC = int(os.environ.get("MUSU_WATCHDOG_ESCALATE_SEC", "120"))
-_WATCHDOG_WARN_SEC = int(os.environ.get("MUSU_WATCHDOG_WARN_SEC", "60"))
-# 하위호환 alias
-_WATCHDOG_STUCK_THRESHOLD_SEC = _WATCHDOG_KILL_SEC
-
-
-async def _run_watchdog_once() -> int:
-    """Scan route_executions for tasks stuck in 'running' state.
-
-    3-stage watchdog:
-      warn (WARN_SEC~ESCALATE_SEC): WARNING log — approaching timeout
-      escalate (ESCALATE_SEC~KILL_SEC): ERROR log — critical, needs attention
-      kill (>KILL_SEC): mark failed + increment counter
-
-    Returns the number of tasks cancelled.
-    """
-    from datetime import datetime, timedelta, timezone
-
-    now = datetime.now(timezone.utc)
-    kill_cutoff = (now - timedelta(seconds=_WATCHDOG_KILL_SEC)).isoformat()
-    escalate_cutoff = (now - timedelta(seconds=_WATCHDOG_ESCALATE_SEC)).isoformat()
-    warn_cutoff = (now - timedelta(seconds=_WATCHDOG_WARN_SEC)).isoformat()
-
-    try:
-        backend = _get_watchdog_backend()
-        stuck_rows = backend._db.execute(
-            "SELECT id, channel FROM route_executions "
-            "WHERE status = 'running' AND updated_at < ?",
-            (kill_cutoff,),
-        )
-    except Exception as exc:
-        logger.warning("watchdog: DB scan failed — %s", exc)
-        return 0
-
-    cancelled = 0
-    for row in stuck_rows:
-        task_id = row["id"] if isinstance(row, dict) else row[0]
-        channel = (row["channel"] if isinstance(row, dict) else row[1]) or "unknown"
-        try:
-            backend.update_route_execution(
-                task_id,
-                "failed",
-                error=f"auto-cancelled by watchdog: stuck > {_WATCHDOG_KILL_SEC}s (activity-based)",
-            )
-            _increment_stuck_counter(channel, "watchdog_timeout")
-            logger.warning("watchdog: activity-based cancel of task %s (channel=%s, kill_threshold=%ds)", task_id, channel, _WATCHDOG_KILL_SEC)
-            cancelled += 1
-        except Exception as exc:
-            logger.warning("watchdog: failed to cancel task %s — %s", task_id, exc)
-
-    # Escalate stage: tasks in ESCALATE_SEC~KILL_SEC window
-    try:
-        escalate_rows = backend._db.execute(
-            "SELECT id, channel FROM route_executions "
-            "WHERE status = 'running' AND updated_at < ? AND updated_at >= ?",
-            (escalate_cutoff, kill_cutoff),
-        )
-        for row in escalate_rows:
-            task_id = row["id"] if isinstance(row, dict) else row[0]
-            channel = (row["channel"] if isinstance(row, dict) else row[1]) or "unknown"
-            logger.error(
-                "watchdog: ESCALATE task %s (channel=%s) stuck >%ds — kill in %ds",
-                task_id, channel, _WATCHDOG_ESCALATE_SEC,
-                _WATCHDOG_KILL_SEC - _WATCHDOG_ESCALATE_SEC,
-            )
-    except Exception as exc:
-        logger.warning("watchdog: escalate scan failed — %s", exc)
-
-    # Warn stage: tasks in WARN_SEC~ESCALATE_SEC window
-    try:
-        warn_rows = backend._db.execute(
-            "SELECT id, channel FROM route_executions "
-            "WHERE status = 'running' AND updated_at < ? AND updated_at >= ?",
-            (warn_cutoff, escalate_cutoff),
-        )
-        for row in warn_rows:
-            task_id = row["id"] if isinstance(row, dict) else row[0]
-            channel = (row["channel"] if isinstance(row, dict) else row[1]) or "unknown"
-            logger.warning(
-                "watchdog: task %s (channel=%s) approaching timeout (%ds threshold)",
-                task_id, channel, _WATCHDOG_KILL_SEC,
-            )
-    except Exception as exc:
-        logger.warning("watchdog: early-warning scan failed — %s", exc)
-
-    return cancelled
-
-
-async def _watchdog_loop() -> None:
-    """Background loop: every 60s scan for and cancel stuck tasks."""
-    interval = int(os.environ.get("MUSU_WATCHDOG_INTERVAL_SEC", "60"))
-    logger.info("watchdog: started (interval=%ds, threshold=%ds)", interval, _WATCHDOG_STUCK_THRESHOLD_SEC)
-    await asyncio.sleep(interval)
-    while True:
-        try:
-            n = await _run_watchdog_once()
-            if n:
-                logger.info("watchdog: cancelled %d stuck task(s)", n)
-        except Exception as exc:
-            logger.warning("watchdog: iteration error — %s", exc)
-        await asyncio.sleep(interval)
 
 
 apply_musu_middlewares(
@@ -1045,45 +612,8 @@ if os.path.isdir(_novnc_dir):
     app.mount("/screen/novnc", StaticFiles(directory=_novnc_dir, html=True), name="novnc")
 
 
-class RouteRequest(BaseModel):
-    channel: str
-    sender_id: str
-    text: str = Field(max_length=10000)
-    adapter_override: str | None = None
-    cost_optimized: bool = False
-
-
-class DelegateRequest(BaseModel):
-    channel: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9_-]+$")
-    sender_id: str = Field(default="orchestrator", min_length=1, max_length=128)
-    text: str = Field(max_length=10000)
-    # When True and channel=="engineer", runs QALoop instead of single-shot route_chat.
-    # Engineer → QA → rework loop (max qa_loop_max_iter iterations, all criteria ≥ 7).
-    use_qa_loop: bool = False
-    qa_loop_max_iter: int = Field(default=3, ge=1, le=5)
-    # Optional caller-supplied timeout override (seconds). When None, the agent's
-    # adapter_config.timeout_sec is used. QA loop path always uses 900s regardless.
-    timeout_sec: int | None = Field(default=None, ge=30, le=3600)
-    # Company scope: when set, agent resolution prefers this company's agents.
-    company_id: str | None = None
-
-
-class CompanyCreateRequest(BaseModel):
-    name: str
-    id: str | None = None  # optional: caller can supply a fixed UUID
-    template_key: str = "default"
-    workspace_id: str = ""
-    meta: dict = {}
-    purpose: str = ""
-    work_dir: str = ""
-    test_cmd: str = "python -m pytest -q"
-
-
-class CompanyUpdateRequest(BaseModel):
-    name: str | None = None
-    template_key: str | None = None
-    workspace_id: str | None = None
-    meta: dict | None = None
+# Models: RouteRequest, DelegateRequest, CompanyCreateRequest, CompanyUpdateRequest
+# → extracted to bridge_models.py
 
 
 @app.post("/api/route")
@@ -1374,11 +904,7 @@ async def api_resume_agent(agent_id: str) -> dict:
     return {"id": agent_id, "status": "active"}
 
 
-class AgentUpdateRequest(BaseModel):
-    role: str | None = Field(default=None, description="New role string")
-    model: str | None = Field(default=None, description="New model name (stored in adapter_config)")
-    # Partial adapter_config patch (shallow merge). Example: {"timeout_sec": 900, "cwd": "/path"}
-    adapter_config_patch: dict | None = Field(default=None, description="Partial adapter_config patch")
+# AgentUpdateRequest → bridge_models.py
 
 
 @app.patch("/api/agents/{agent_id}", summary="Update agent role, model, or adapter_config")
@@ -1581,14 +1107,15 @@ async def api_company_run(company_id: str) -> dict:
         "Delegate tasks to your team as needed. Report what you delegated and why."
     )
 
-    result = await route_chat(channel="ceo", sender_id="orchestrator", text=instruction, company_id=company_id)
+    _node = os.environ.get("MUSU_NODE_NAME", "local")
+    _ceo_channel = os.environ.get("MUSU_CEO_AGENT_NAME", f"{_node}-CEO")
+    result = await route_chat(channel=_ceo_channel, sender_id="orchestrator", text=instruction, company_id=company_id)
     return {"company_id": company_id, "task": result}
 
 
 # ── Workspace ────────────────────────────────────────────────────────────────
 
-class WorkspaceUpdateRequest(BaseModel):
-    active_company_id: str = Field(..., min_length=1)
+# WorkspaceUpdateRequest → bridge_models.py
 
 
 @app.get("/api/workspace", summary="Get workspace state")
@@ -1641,11 +1168,11 @@ async def api_company_activity(
 
 @app.get("/api/companies/{company_id}/dashboard", summary="Dashboard summary for a company")
 async def api_company_dashboard(company_id: str) -> dict:
-    """Return a summary dashboard for the company (scoped agents + global)."""
+    """Return a unified dashboard: agents + tasks + nodes (devices)."""
     company = get_company(company_id)
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
-    from handlers import list_task_records as list_tasks, _get_backend as _gb_dash
+    from handlers import list_task_records as list_tasks, _get_backend as _gb_dash, list_nodes
     backend = _gb_dash()
     # Company-scoped + global agents (same merge logic as /companies/{id}/agents)
     scoped = backend.list_agents(company_id=company_id)
@@ -1657,9 +1184,17 @@ async def api_company_dashboard(company_id: str) -> dict:
     all_tasks = list_tasks(limit=200)
     tasks = [t for t in all_tasks if t.get("assignee_agent_id") in agent_ids or not t.get("assignee_agent_id")]
     active_agents = [a for a in agents if a.get("status") == "active"]
+
+    # Fetch node/device status from mesh_router
+    try:
+        nodes = await list_nodes()
+    except Exception:
+        nodes = []
+
     return {
         "company_id": company_id,
         "company_name": company.get("name"),
+        "nodes": nodes,
         "agents": {"total": len(agents), "active": len(active_agents)},
         "tasks": {
             "total": len(tasks),
@@ -1671,6 +1206,27 @@ async def api_company_dashboard(company_id: str) -> dict:
     }
 
 
+class RouteTaskRequest(BaseModel):
+    channel: str
+    instruction: str
+    node_name: str = ""
+    strategy: str = "auto"  # "explicit" | "recommended" | "auto"
+    sender_id: str = "orchestrator"
+
+
+@app.post("/api/tasks/route", summary="Route a task to a specific node or auto-select")
+async def api_route_task(req: RouteTaskRequest) -> dict:
+    """Route a task to a node. Supports explicit, recommended, or auto strategy."""
+    from handlers import route_task_to_node
+    return await route_task_to_node(
+        channel=req.channel,
+        instruction=req.instruction,
+        node_name=req.node_name,
+        strategy=req.strategy,
+        sender_id=req.sender_id,
+    )
+
+
 @app.get("/api/companies/{company_id}/metrics", summary="Performance and cost metrics for a company")
 async def api_company_metrics(company_id: str) -> dict:
     """Return aggregated time-series metrics (cost, latency) for the company."""
@@ -1678,154 +1234,9 @@ async def api_company_metrics(company_id: str) -> dict:
     return await get_metrics(company_id)
 
 
-class PairRequest(BaseModel):
-    ip: str
-    port: int = 8070
-
-
-class PairAcceptRequest(BaseModel):
-    name: str
-    url: str
-    agents: list[str] = []
-    version: str = ""
-
-
-@app.get("/.well-known/agent.json", summary="A2A Agent Card", include_in_schema=False)
-async def agent_card() -> dict:
-    """A2A-compatible agent card advertising this node's capabilities."""
-    info = get_node_info()
-    return {
-        "name": info["name"],
-        "description": "MUSU Bridge Node",
-        "url": info["url"],
-        "version": info["version"],
-        "capabilities": {
-            "agents": [
-                {"id": a, "description": f"{a} agent"}
-                for a in info.get("agents", [])
-            ],
-            "sync": True,
-            "protocol": "musu-bridge/0.2",
-        },
-    }
-
-
-@app.get("/api/admin/node-info", summary="This node's identity info")
-async def api_node_info() -> dict:
-    """Return this node's name, URL, and agent list for peer exchange."""
-    return get_node_info()
-
-
-@app.post("/api/admin/pair", summary="Pair with a remote node")
-async def api_pair(req: PairRequest) -> dict:
-    """Initiate pairing with remote node at {ip}:{port}. Updates nodes.toml on both sides."""
-    result = await pair_with_node(ip=req.ip, port=req.port)
-    if not result.get("success"):
-        raise HTTPException(status_code=502, detail=result.get("error", "Pairing failed"))
-    return result
-
-
-@app.post("/api/admin/pair/accept", summary="Accept a pairing request from a peer")
-async def api_pair_accept(req: PairAcceptRequest) -> dict:
-    """Called by remote node during pairing — adds them to local nodes.toml."""
-    result = accept_pair({"name": req.name, "url": req.url, "agents": req.agents})
-    if not result.get("success"):
-        raise HTTPException(status_code=400, detail=result.get("error", "Accept failed"))
-    return result
-
-
-@app.get("/api/admin/nodes", summary="List connected nodes with status")
-async def api_list_nodes() -> list[dict]:
-    """Return all configured nodes with online/offline status."""
-    return await list_nodes()
-
-
-@app.delete("/api/admin/nodes/{node_name}", summary="Disconnect a node")
-async def api_disconnect_node(node_name: str) -> dict:
-    """Remove a node from nodes.toml."""
-    ok = disconnect_node(node_name)
-    if not ok:
-        raise HTTPException(status_code=404, detail=f"Node {node_name!r} not found")
-    return {"disconnected": node_name}
-
-
-@app.get("/api/admin/peer-status", summary="MUSU_TOKEN peer discovery status")
-async def api_peer_status() -> dict:
-    """Return cloud registry and peer discovery state.
-
-    Shows whether MUSU_TOKEN is configured, the node's public identity,
-    and peers currently known from the registry cache.
-    """
-    cfg = get_config()
-    token_set = bool(cfg.musu_token)
-    peers: list[dict] = []
-    try:
-        from peer_cache import get_peer_cache
-        cache = get_peer_cache()
-        peers = [
-            {"node_name": p.node_name, "public_url": p.public_url}
-            for p in cache.all()
-        ]
-    except Exception:
-        pass
-    return {
-        "cloud_registry_enabled": token_set,
-        "node_name": cfg.node_name or "",
-        "public_url": cfg.public_url or "",
-        "peer_count": len(peers),
-        "peers": peers,
-    }
-
-
-@app.get("/api/admin/discovered", summary="Nodes discovered via mDNS")
-async def api_discovered_nodes() -> list[dict]:
-    """Return musu-bridge nodes found on the local network via mDNS.
-
-    Each entry includes name, url, and agents (fetched from Agent Card).
-    """
-    from discovery import get_discovery, enrich_with_agent_card
-
-    discovery = get_discovery()
-    peers = discovery.get_discovered()
-    enriched = await asyncio.gather(*[enrich_with_agent_card(p) for p in peers])
-    return list(enriched)
-
-
-@app.get("/api/sync/companies", summary="Pull companies for sync")
-async def api_sync_companies(
-    since: str = Query(default="1970-01-01T00:00:00Z", description="ISO 8601 lower bound (updated_at >=)"),
-    limit: int = Query(default=500, ge=1, le=2000),
-) -> list[dict]:
-    """Return companies updated at or after *since*. Used by peer sync engines."""
-    return sync_companies(since=since, limit=limit)
-
-
-@app.get("/api/sync/messages", summary="Pull messages for sync")
-async def api_sync_messages(
-    since: str = Query(default="1970-01-01T00:00:00Z", description="ISO 8601 lower bound (created_at >=)"),
-    limit: int = Query(default=500, ge=1, le=2000),
-) -> list[dict]:
-    """Return messages created at or after *since*. Used by peer sync engines."""
-    return sync_messages(since=since, limit=limit)
-
-
-class SyncPushRequest(BaseModel):
-    companies: Annotated[List[dict], Field(max_length=2000)] = []
-    messages: Annotated[List[dict], Field(max_length=2000)] = []
-
-
-@app.post("/api/sync/push", summary="Receive sync data from a peer")
-async def api_sync_push(req: SyncPushRequest) -> dict:
-    """Accept bulk company and message data from a peer node."""
-    c_written = receive_companies(req.companies) if req.companies else 0
-    m_written = receive_messages(req.messages) if req.messages else 0
-    return {"companies_written": c_written, "messages_written": m_written}
-
-
-@app.get("/api/mcp/tools", summary="MCP tools manifest — all services")
-async def api_mcp_tools() -> dict:
-    """Return service-grouped list of all MCP tools and REST endpoints in the MUSU stack."""
-    return get_mcp_tools_manifest()
+# ── System/admin/sync/watchdog routes (extracted to system_routes.py) ─────────
+from system_routes import system_router  # noqa: F401
+app.include_router(system_router)
 
 
 @app.get("/api/tasks/events")
@@ -1857,97 +1268,12 @@ async def api_task_events(request: Request) -> StreamingResponse:
     )
 
 
-@app.get("/api/system/stats", summary="System resource usage (CPU, RAM, disk, GPU)")
-async def api_system_stats() -> dict:
-    """Return current CPU, RAM, disk, and GPU stats for this node."""
-    return await collect_stats_async()
-
-
-class WolRequest(BaseModel):
-    mac_address: str
-    broadcast_ip: str = "255.255.255.255"
-    port: int = 9
-
-
-@app.post("/api/wol", summary="Send Wake-on-LAN Magic Packet")
-async def api_wol(req: WolRequest, request: Request) -> dict:
-    """Send a Magic Packet to wake a machine on the local LAN.
-
-    Requires Bearer token auth (same MUSU_BRIDGE_TOKEN as all endpoints).
-    This endpoint is called by musu.pro proxying a user's Wake request through
-    an active node on the same LAN as the sleeping target machine.
-    """
-    from wol import send_magic_packet
-
-    ok = send_magic_packet(req.mac_address, req.broadcast_ip, req.port)
-    if not ok:
-        return {"ok": False, "error": "Invalid MAC address format"}
-    return {"ok": True}
-
-
-@app.post("/api/wol/node/{node_name}", summary="Wake a node by name via nodes.toml MAC address")
-async def api_wol_node(node_name: str, request: Request) -> dict:
-    """Send a Wake-on-LAN Magic Packet to a node registered in nodes.toml.
-
-    Looks up the node's mac_address and broadcast_ip from the mesh router config.
-    Requires Bearer token auth.
-    """
-    from wol import send_magic_packet
-
-    node = mesh_router.node_info(node_name)
-    if node is None:
-        raise HTTPException(status_code=404, detail="Node not found")
-
-    if not node.mac_address:
-        raise HTTPException(status_code=422, detail="Node has no mac_address configured")
-
-    ok = send_magic_packet(node.mac_address, node.broadcast_ip)
-    if not ok:
-        raise HTTPException(status_code=500, detail="Failed to send magic packet (invalid MAC)")
-    return {"ok": True, "node": node_name, "mac": node.mac_address}
-
-
 # ──────────────────────────────────────────────────────────────────────────────
 # Issues
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-class IssueCreateRequest(BaseModel):
-    title: str
-    description: str = ""
-    status: str = "open"
-    priority: str = "medium"
-    assignee_id: str | None = None
-
-
-class ProjectCreateRequest(BaseModel):
-    project_name: str
-    status: Literal["active", "paused", "archived"] = "active"
-    assigned_to: str | None = None
-
-
-class ProjectUpdateRequest(BaseModel):
-    project_name: str | None = None
-    status: Literal["active", "paused", "archived"] | None = None
-    assigned_to: str | None = None
-
-
-class IssueUpdateRequest(BaseModel):
-    title: str | None = None
-    description: str | None = None
-    status: str | None = None
-    priority: str | None = None
-    assignee_id: str | None = None
-
-
-class IssueCommentRequest(BaseModel):
-    body: str
-    author_id: str | None = None
-    author_kind: str = "agent"
-
-
-class IssueCheckoutRequest(BaseModel):
-    agent_id: str
+# Issue/Project models → bridge_models.py
 
 
 @app.get("/api/companies/{company_id}/issues", summary="List issues for a company")
@@ -2068,16 +1394,7 @@ async def api_cancel_heartbeat_run(run_id: str) -> dict:
     return {"cancelled": run_id}
 
 
-class HeartbeatInvokeRequest(BaseModel):
-    prompt: str = Field(
-        default=(
-            "자율 개발 루프 실행: DEVELOPMENT_PROCESS.md를 읽고, "
-            "미완료 Phase feature list를 확인한 후, "
-            "Sprint Contract 작성 → Engineer 위임 → QA → 커밋 순서로 진행하라."
-        ),
-        max_length=2000,
-    )
-    sender_id: str = Field(default="system", max_length=128)
+# HeartbeatInvokeRequest → bridge_models.py
 
 
 @app.post("/api/agents/{agent_id}/heartbeat/invoke", summary="Invoke a heartbeat run for an agent")
@@ -2189,18 +1506,7 @@ async def api_delete_project(project_id: str) -> dict:
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-class GoalCreateRequest(BaseModel):
-    title: str
-    description: str = ""
-    status: Literal["active", "completed", "cancelled"] = "active"
-    due_date: str | None = None
-
-
-class GoalUpdateRequest(BaseModel):
-    title: str | None = None
-    description: str | None = None
-    status: Literal["active", "completed", "cancelled"] | None = None
-    due_date: str | None = None
+# Goal models → bridge_models.py
 
 
 @app.get("/api/companies/{company_id}/goals", summary="List goals for a company")
@@ -2300,6 +1606,23 @@ async def api_costs_by_agent_global() -> list[dict]:
     return get_costs_by_agent_global()
 
 
+@app.get("/api/costs/by-node", summary="Execution costs grouped by node")
+async def api_costs_by_node_global() -> list[dict]:
+    """Return costs grouped by node using mesh_router agent→node mapping."""
+    from handlers import get_costs_by_node
+    return get_costs_by_node()
+
+
+@app.get("/api/companies/{company_id}/costs/by-node", summary="Company costs by node")
+async def api_costs_by_node_company(company_id: str) -> list[dict]:
+    """Return company costs grouped by node."""
+    company = get_company(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    from handlers import get_costs_by_node
+    return get_costs_by_node(company_id)
+
+
 @app.get("/api/index-search", summary="Search indexed codebase")
 async def api_index_search(q: str = Query("", max_length=200)) -> list[dict]:
     """Full-text search on the musu-indexer SQLite database.
@@ -2340,131 +1663,9 @@ async def api_index_search(q: str = Query("", max_length=200)) -> list[dict]:
 # ──────────────────────────────────────────────────────────────────
 
 import re as _re
-from pathlib import Path as _Path
-
-_WIKI_PATH = _Path(os.environ.get("MUSU_WIKI_PATH", str(_Path.home() / "llm-wiki" / "wiki")))
-_WIKI_PATH.mkdir(parents=True, exist_ok=True)  # ensure dir exists for new users
-
-
-def _wiki_title(content: str, fallback: str) -> str:
-    for line in content.split("\n"):
-        if line.startswith("# "):
-            return line[2:].strip()
-    return fallback
-
-
-def _iter_wiki_files():
-    """Yield (file_path, folder_name) for all .md files, top-level and one level deep."""
-    for f in sorted(_WIKI_PATH.glob("*.md")):
-        yield f, ""
-    for d in sorted(p for p in _WIKI_PATH.iterdir() if p.is_dir() and not p.name.startswith(".")):
-        for f in sorted(d.glob("*.md")):
-            yield f, d.name
-
-
-@app.get("/api/wiki/pages", summary="List all wiki pages")
-async def api_wiki_pages() -> list[dict]:
-    """Return list of {id, title, folder} for every page in the LLM wiki.
-    Top-level files have folder=''. Subfolder files have folder=<dirname> and id=<folder>/<stem>.
-    """
-    pages = []
-    for f, folder in _iter_wiki_files():
-        try:
-            content = f.read_text(encoding="utf-8")
-            title = _wiki_title(content, f.stem)
-        except OSError:
-            title = f.stem
-        page_id = f"{folder}/{f.stem}" if folder else f.stem
-        pages.append({"id": page_id, "title": title, "folder": folder})
-    return pages
-
-
-@app.get("/api/wiki/search", summary="Search wiki pages")
-async def api_wiki_search(q: str = Query("", max_length=200)) -> list[dict]:
-    """Full-text search across all wiki pages. Returns up to 20 results."""
-    q_str = q.strip().lower()
-    if not q_str:
-        return []
-    results = []
-    for f, folder in _iter_wiki_files():
-        try:
-            content = f.read_text(encoding="utf-8")
-        except OSError:
-            continue
-        if q_str in content.lower():
-            idx = content.lower().find(q_str)
-            start = max(0, idx - 120)
-            end = min(len(content), idx + 300)
-            snippet = content[start:end].replace("\n", " ").strip()
-            title = _wiki_title(content, f.stem)
-            page_id = f"{folder}/{f.stem}" if folder else f.stem
-            results.append({"id": page_id, "title": title, "folder": folder, "snippet": snippet})
-    return results[:20]
-
-
-@app.get("/api/wiki/page/{page_id:path}", summary="Get a wiki page by ID")
-async def api_wiki_page(page_id: str = Path(..., max_length=200)) -> dict:
-    """Return the full markdown content of a wiki page.
-    Supports both flat IDs (e.g. 'index') and folder IDs (e.g. 'musu/getting-started').
-    """
-    # Sanitize: allow alphanumeric, underscore, hyphen, forward slash only
-    safe_id = _re.sub(r"[^a-zA-Z0-9_\-/]", "", page_id).strip("/").replace("//", "/")
-    parts = safe_id.split("/", 1)
-    if len(parts) == 2:
-        folder, stem = parts
-        path = _WIKI_PATH / folder / f"{stem}.md"
-    else:
-        path = _WIKI_PATH / f"{safe_id}.md"
-    if not path.exists():
-        raise HTTPException(status_code=404, detail=f"Wiki page '{safe_id}' not found.")
-    content = path.read_text(encoding="utf-8")
-    return {"id": safe_id, "title": _wiki_title(content, safe_id.split("/")[-1]), "content": content}
-
-
-class _WikiWriteRequest(BaseModel):
-    content: str
-    folder: str = ""
-
-
-@app.post("/api/wiki/page/{page_id:path}", summary="Create or update a wiki page")
-async def api_wiki_page_write(
-    page_id: str = Path(..., max_length=200),
-    body: _WikiWriteRequest = Body(...),
-) -> dict:
-    """Create or overwrite a wiki page. page_id is the stem (e.g. 'my-page' or 'folder/my-page')."""
-    safe_id = _re.sub(r"[^a-zA-Z0-9_\-/]", "", page_id).strip("/").replace("//", "/")
-    if not safe_id:
-        raise HTTPException(status_code=400, detail="Invalid page ID")
-    parts = safe_id.split("/", 1)
-    if len(parts) == 2:
-        folder, stem = parts
-        dir_path = _WIKI_PATH / folder
-    else:
-        folder, stem = "", safe_id
-        dir_path = _WIKI_PATH
-    dir_path.mkdir(parents=True, exist_ok=True)
-    path = dir_path / f"{stem}.md"
-    path.write_text(body.content, encoding="utf-8")
-    title = _wiki_title(body.content, stem)
-    return {"id": safe_id, "title": title, "folder": folder}
-
-
-@app.delete("/api/wiki/page/{page_id:path}", summary="Delete a wiki page")
-async def api_wiki_page_delete(
-    page_id: str = Path(..., max_length=200),
-) -> dict:
-    """Delete a wiki page by ID."""
-    safe_id = _re.sub(r"[^a-zA-Z0-9_\-/]", "", page_id).strip("/").replace("//", "/")
-    parts = safe_id.split("/", 1)
-    if len(parts) == 2:
-        folder, stem = parts
-        path = _WIKI_PATH / folder / f"{stem}.md"
-    else:
-        path = _WIKI_PATH / f"{safe_id}.md"
-    if not path.exists():
-        raise HTTPException(status_code=404, detail=f"Wiki page '{safe_id}' not found.")
-    path.unlink()
-    return {"deleted": safe_id}
+# ── Wiki routes (extracted to wiki_routes.py) ─────────────────────────────────
+from wiki_routes import wiki_router  # noqa: F401
+app.include_router(wiki_router)
 
 
 # ── Remote File Access ─────────────────────────────────────────────────────
@@ -2623,10 +1824,7 @@ async def api_company_briefing(company_id: str) -> dict:
 # ── Group Messages (CEO Board / Team Channels) ───────────────────────────
 
 
-class GroupMessageRequest(BaseModel):
-    text: str = Field(min_length=1, max_length=5000)
-    sender_id: str = Field(default="", max_length=128)
-    reply_to: str | None = Field(default=None, max_length=64)
+# GroupMessageRequest → bridge_models.py
 
 
 @app.post("/api/groups/{group_id}/messages", status_code=201, summary="Post to group channel")
@@ -2754,10 +1952,7 @@ async def api_success_rate(days: int = Query(default=7, ge=1, le=90)) -> dict:
 # ── User Feedback ──────────────────────────────────────────────────────────
 
 
-class FeedbackRequest(BaseModel):
-    title: str = Field(min_length=1, max_length=200)
-    description: str = Field(default="", max_length=5000)
-    type: str = Field(default="suggestion", pattern=r"^(bug|suggestion|complaint)$")
+# FeedbackRequest → bridge_models.py
 
 
 @app.post("/api/feedback", summary="Submit user feedback", status_code=201)
@@ -2794,7 +1989,14 @@ async def api_install_sh() -> Response:
 
 @app.get("/health")
 async def health() -> dict:
-    return {"status": "ok"}
+    from relay_client import relay_connected, relay_reconnect_count
+    return {
+        "status": "ok",
+        "relay": {
+            "connected": relay_connected,
+            "reconnect_count": relay_reconnect_count,
+        },
+    }
 
 
 _AGENT_CHANNELS = ("ceo", "cto", "engineer", "qa", "planner", "cos")
@@ -2827,21 +2029,23 @@ async def health_ready() -> Response:
 @app.get("/api/system/circuit-breakers", summary="Circuit breaker state for all internal CBs")
 async def circuit_breakers_status() -> dict:
     """Expose heartbeat and per-channel circuit breaker state for observability."""
+    _node_cb = os.environ.get("MUSU_NODE_NAME", "local")
+    _ceo_cb_channel = os.environ.get("MUSU_CEO_AGENT_NAME", f"{_node_cb}-CEO").lower()
     try:
         backend = _get_heartbeat_backend()
-        cb_open, reason = _should_skip_heartbeat(backend, "ceo")
+        cb_open, reason = _should_skip_heartbeat(backend, _ceo_cb_channel)
         hb_state = "open" if cb_open else "closed"
     except Exception as exc:
         hb_state = "unknown"
         reason = str(exc)
 
     # Per-channel CB state for all tracked channels
-    tracked = set(_channel_cb._failures.keys()) | {"engineer", "cto", "ceo", "qa", "planner", "cos"}
+    tracked = set(_channel_cb._failures.keys()) | {"engineer", "cto", _ceo_cb_channel, "qa", "planner", "cos"}
     channels = {ch: _channel_cb.state(ch) for ch in sorted(tracked)}
 
     return {
         "heartbeat": {
-            "channel": "ceo",
+            "channel": _ceo_cb_channel,
             "state": hb_state,
             "reason": reason if hb_state != "closed" else "",
         },
@@ -2850,461 +2054,13 @@ async def circuit_breakers_status() -> dict:
     }
 
 
-# ── Screen snapshot ────────────────────────────────────────────────────────────
-import threading as _threading
-_mss_lock = _threading.Lock()
+# ── Screen routes (extracted to screen_routes.py) ─────────────────────────────
+from screen_routes import screen_router  # noqa: F401
+app.include_router(screen_router)
 
 
-def _find_display_env() -> dict:
-    """Return dict with DISPLAY and XAUTHORITY set, or empty dict if not found."""
-    import glob
-    env: dict = {}
 
-    # DISPLAY: check env, then X11 lock files
-    display = os.environ.get("DISPLAY", "")
-    if not display:
-        locks = sorted(glob.glob("/tmp/.X*-lock"))
-        if locks:
-            # Extract display number from /tmp/.X1-lock → ":1"
-            num = locks[0].replace("/tmp/.X", "").replace("-lock", "")
-            display = f":{num}"
-        else:
-            display = ":0"
-    env["DISPLAY"] = display
 
-    # XAUTHORITY: check env first, then common paths
-    xauth = os.environ.get("XAUTHORITY", "")
-    if not xauth or not os.path.exists(xauth):
-        candidates = [
-            os.path.expanduser("~/.Xauthority"),
-            f"/run/user/{os.getuid()}/gdm/Xauthority",
-            f"/run/user/{os.getuid()}/xauthority",
-        ] + sorted(glob.glob("/tmp/xauth_*"), reverse=True)  # most recent first
-        for c in candidates:
-            if os.path.exists(c):
-                xauth = c
-                break
-    if xauth:
-        env["XAUTHORITY"] = xauth
-
-    return env
-
-
-def _capture_mss(tmp_png: str, display_env: dict, monitor_index: int = 1) -> bool:
-    """Capture screenshot using python-mss (libX11 direct). Returns True on success."""
-    with _mss_lock:
-        # mss reads DISPLAY/XAUTHORITY from environment
-        old = {k: os.environ.get(k) for k in display_env}
-        try:
-            os.environ.update(display_env)
-            import mss
-            import mss.tools
-            with mss.mss() as sct:
-                idx = monitor_index if 0 < monitor_index < len(sct.monitors) else (1 if len(sct.monitors) > 1 else 0)
-                monitor = sct.monitors[idx]
-                img = sct.grab(monitor)
-                mss.tools.to_png(img.rgb, img.size, output=tmp_png)
-            return os.path.exists(tmp_png) and os.path.getsize(tmp_png) > 0
-        except Exception as _exc:
-            logger.debug("_capture_mss failed: %s", _exc)
-            return False
-        finally:
-            for k, v in old.items():
-                if v is None:
-                    os.environ.pop(k, None)
-                else:
-                    os.environ[k] = v
-
-
-def _png_to_jpeg(png_path: str, jpg_path: str, quality: int = 65) -> bool:
-    """Convert PNG to JPEG via Pillow. Returns True on success."""
-    try:
-        from PIL import Image
-        with Image.open(png_path) as im:
-            im.convert("RGB").save(jpg_path, "JPEG", quality=quality, optimize=True)
-        return True
-    except Exception as _exc:
-        logger.debug("_png_to_jpeg failed: %s", _exc)
-        return False
-
-
-def _capture_ffmpeg(tmp_jpg: str, display_env: dict) -> bool:
-    """Capture screenshot using ffmpeg x11grab. Returns True on success."""
-    import subprocess
-    import shutil as _shutil
-    if not _shutil.which("ffmpeg"):
-        return False
-    display = display_env.get("DISPLAY", ":0")
-    base_display = display.split(".")[0]  # strip any existing ".0" suffix
-    env = os.environ.copy()
-    env.update(display_env)
-    # detect actual resolution
-    res = "1920x1080"  # fallback
-    if _shutil.which("xdpyinfo"):
-        try:
-            import subprocess as _sp2
-            out = _sp2.run(["xdpyinfo", "-display", base_display],
-                           capture_output=True, text=True, timeout=3,
-                           env={**os.environ, **display_env}).stdout
-            for line in out.splitlines():
-                if "dimensions:" in line:
-                    res = line.split()[1]  # e.g. "1920x1080"
-                    break
-        except Exception:
-            pass
-    try:
-        subprocess.run(
-            ["ffmpeg", "-y", "-f", "x11grab", "-video_size", res,
-             "-i", f"{base_display}.0", "-vframes", "1", "-q:v", "3", tmp_jpg],
-            env=env, timeout=15, check=True, capture_output=True,
-        )
-        return os.path.exists(tmp_jpg) and os.path.getsize(tmp_jpg) > 0
-    except Exception as _exc:
-        logger.debug("_capture_ffmpeg failed: %s", _exc)
-        return False
-
-
-def _capture_scrot(tmp_jpg: str, display_env: dict) -> bool:
-    """Capture screenshot using scrot. Returns True on success."""
-    import subprocess
-    import shutil
-    if not shutil.which("scrot"):
-        return False
-    env = os.environ.copy()
-    env.update(display_env)
-    try:
-        subprocess.run(
-            ["scrot", "-q", "65", "-o", tmp_jpg],
-            env=env, timeout=10, check=True, capture_output=True,
-        )
-        return os.path.exists(tmp_jpg) and os.path.getsize(tmp_jpg) > 0
-    except Exception as _exc:
-        logger.debug("_capture_scrot failed: %s", _exc)
-        return False
-
-
-def _do_capture_sync(display_env: dict, tmp_png: str, tmp_jpg: str, monitor_index: int = 1) -> bool:
-    """Run the mss→ffmpeg→scrot fallback chain synchronously. Returns True on success."""
-    if _capture_mss(tmp_png, display_env, monitor_index) and _png_to_jpeg(tmp_png, tmp_jpg):
-        return True
-    if _capture_ffmpeg(tmp_jpg, display_env):
-        return True
-    if _capture_scrot(tmp_jpg, display_env):
-        return True
-    return False
-
-
-@app.get("/api/screen/monitors")
-async def screen_monitors() -> dict:
-    """List available monitors on this machine.
-
-    Returns {"monitors": [{"index": 1, "width": 1920, "height": 1080, "left": 0, "top": 0}, ...]}
-    Index matches sct.monitors index (1-based for real monitors; 0 = virtual all-in-one).
-    """
-    display_env = _find_display_env()
-    try:
-        import mss
-        old = {k: os.environ.get(k) for k in display_env}
-        try:
-            os.environ.update(display_env)
-            with mss.mss() as sct:
-                result = [
-                    {
-                        "index": i,
-                        "width": m["width"],
-                        "height": m["height"],
-                        "left": m["left"],
-                        "top": m["top"],
-                    }
-                    for i, m in enumerate(sct.monitors)
-                    if i > 0  # skip index 0 (all-in-one virtual)
-                ]
-        finally:
-            for k, v in old.items():
-                if v is None:
-                    os.environ.pop(k, None)
-                else:
-                    os.environ[k] = v
-        return {"monitors": result}
-    except Exception as exc:
-        raise HTTPException(500, detail=f"monitor list failed: {exc}") from exc
-
-
-@app.get("/api/screen/snapshot")
-async def screen_snapshot(monitor: int = 1) -> dict:
-    """Capture a screenshot of this machine and return as base64 JPEG.
-
-    Tries multiple capture methods in order:
-      1. python-mss (libX11 direct) + Pillow PNG→JPEG conversion
-      2. ffmpeg -f x11grab -vframes 1
-      3. scrot
-    Returns {"snapshot": "data:image/jpeg;base64,...", "ts": <epoch_ms>}
-    """
-    import base64
-    import tempfile
-    import time
-
-    display_env = _find_display_env()
-
-    # Try mss first (PNG), convert to JPEG
-    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-        tmp_png = f.name
-    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as f:
-        tmp_jpg = f.name
-
-    try:
-        loop = asyncio.get_running_loop()
-        captured = await loop.run_in_executor(None, _do_capture_sync, display_env, tmp_png, tmp_jpg, monitor)
-
-        if not captured:
-            raise HTTPException(
-                status_code=503,
-                detail=(
-                    f"Screen capture unavailable "
-                    f"(display={display_env.get('DISPLAY', 'none')}, "
-                    f"xauth={'yes' if display_env.get('XAUTHORITY') else 'no'}) "
-                    f"— try: pip install mss pillow"
-                ),
-            )
-
-        with open(tmp_jpg, "rb") as f:
-            data = base64.b64encode(f.read()).decode()
-        return {"snapshot": f"data:image/jpeg;base64,{data}", "ts": int(time.time() * 1000)}
-    finally:
-        for p in (tmp_png, tmp_jpg):
-            try:
-                os.unlink(p)
-            except OSError:
-                pass
-
-
-# ── Watchdog endpoints (P2P remote bridge control via musu-connectsd) ─────────
-
-_WATCHDOG_ALLOWED = frozenset({"bridge:start", "bridge:stop", "bridge:restart", "agents:cleanup"})
-
-# Rate limit: max 1 watchdog command per (user_id, node, command) tuple per 10s (in-memory, per-process)
-_watchdog_rate: dict[str, float] = {}
-_WATCHDOG_RATE_WINDOW = 10.0  # seconds
-
-
-def _watchdog_rate_check(user_id: str, node: str, command: str) -> bool:
-    """Return True if allowed, False if rate-limited. Updates the timestamp on True."""
-    import time
-    key = f"{user_id}:{node}:{command}"
-    now = time.monotonic()
-    last = _watchdog_rate.get(key, 0.0)
-    if now - last < _WATCHDOG_RATE_WINDOW:
-        return False
-    _watchdog_rate[key] = now
-    return True
-
-
-async def _watchdog_rate_cleanup_loop() -> None:
-    """Hourly: remove rate limit entries older than 24 hours to prevent unbounded growth."""
-    while True:
-        await asyncio.sleep(3600)
-        cutoff = time.monotonic() - 86400
-        stale = [k for k, v in _watchdog_rate.items() if v < cutoff]
-        for k in stale:
-            _watchdog_rate.pop(k, None)
-        if stale:
-            logger.info("watchdog rate cache: cleared %d stale entries", len(stale))
-
-
-@app.post("/api/watchdog/{node}/{command}")
-async def watchdog_command(node: str, command: str, request: Request) -> dict:
-    """Send a watchdog command to a node's connectsd via QUIC.
-
-    Routes via local musu-connectsd bridge-proxy — musu.pro is not involved.
-    The remote connectsd executes the command (systemctl, sqlite3, etc.) locally.
-    """
-    if command not in _WATCHDOG_ALLOWED:
-        raise HTTPException(status_code=400, detail=f"Unknown watchdog command: {command!r}")
-    user_id = request.client.host if request.client else "anonymous"
-    if not _watchdog_rate_check(user_id, node, command):
-        raise HTTPException(
-            status_code=429,
-            detail=f"Rate limited — watchdog {command!r} on {node!r} allowed once per {int(_WATCHDOG_RATE_WINDOW)}s",
-        )
-    from mesh_router import get_mesh_router
-    router = get_mesh_router()
-    if router is None:
-        raise HTTPException(status_code=503, detail="Mesh router not initialised")
-    try:
-        result = await router.forward_watchdog(node, command)
-        return result
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Watchdog error: {exc}")
-
-
-@app.get("/api/watchdog/{node}/status")
-async def watchdog_status(node: str) -> dict:
-    """Get watchdog + bridge status from a node's connectsd."""
-    from mesh_router import get_mesh_router
-    router = get_mesh_router()
-    if router is None:
-        raise HTTPException(status_code=503, detail="Mesh router not initialised")
-    try:
-        return await router.forward_watchdog(node, "status")
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
-        return {"bridge_running": False, "connectsd_ok": False, "error": str(exc)}
-
-
-@app.post("/api/system/restart", summary="Restart MUSU services on this device")
-async def system_restart(service: str = Query(default="all", pattern=r"^(all|bridge|portd|bee|worker)$")) -> dict:
-    """Restart one or all MUSU services. Callable remotely.
-
-    service: "all" (default), "bridge", "portd", "bee", "worker"
-    """
-    cmds = {
-        "bridge": "systemctl --user restart musu-bridge",
-        "portd": "systemctl --user restart musu-portd 2>/dev/null || (cd ~/musu-functions && nohup bin/musu-portd &)",
-        "bee": "systemctl --user restart musu-bee",
-        "worker": "systemctl --user restart musu-worker",
-    }
-    if service == "all":
-        targets = list(cmds.keys())
-    else:
-        targets = [service]
-
-    results = {}
-    for svc in targets:
-        try:
-            proc = await asyncio.create_subprocess_shell(
-                cmds[svc],
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.STDOUT,
-            )
-            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=30)
-            results[svc] = {"exit_code": proc.returncode, "output": stdout.decode(errors="replace").strip()}
-        except asyncio.TimeoutError:
-            results[svc] = {"exit_code": -1, "output": "timeout"}
-        except Exception as e:
-            results[svc] = {"exit_code": -1, "output": str(e)}
-
-    return {"restarted": targets, "results": results}
-
-
-@app.get("/api/system/services", summary="List MUSU service statuses on this device")
-async def system_services() -> dict:
-    """Check status of all MUSU services."""
-    services = ["musu-bridge", "musu-bee", "musu-portd", "musu-worker", "musu-connectsd"]
-    result = {}
-    for svc in services:
-        try:
-            proc = await asyncio.create_subprocess_exec(
-                "systemctl", "--user", "is-active", f"{svc}.service",
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=5)
-            result[svc] = stdout.decode().strip()
-        except Exception:
-            result[svc] = "unknown"
-    return {"node": os.environ.get("MUSU_NODE_NAME", "unknown"), "services": result}
-
-
-@app.post("/api/system/update", summary="Run auto-update (git pull + restart if changed)")
-async def system_update() -> dict:
-    """Execute scripts/auto-update.sh — git pull and restart services if files changed.
-
-    Authentication is enforced globally by apply_musu_middlewares (Bearer token).
-    Runs the script with a 90-second timeout; returns exit_code + output.
-    """
-    from pathlib import Path
-    script = Path(__file__).parent.parent / "scripts" / "auto-update.sh"
-    if not script.exists():
-        raise HTTPException(status_code=503, detail="auto-update.sh not found")
-    try:
-        proc = await asyncio.create_subprocess_exec(
-            str(script),
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
-        )
-        stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=90)
-        output = stdout.decode(errors="replace").strip()
-        logger.info("system_update: exit=%d output=%s", proc.returncode, output[:200])
-        return {"exit_code": proc.returncode, "output": output}
-    except asyncio.TimeoutError:
-        raise HTTPException(status_code=504, detail="auto-update timed out after 90s")
-
-
-# ── VNC remote desktop endpoints ──────────────────────────────────────────────
-
-
-@app.post("/api/screen/vnc/start")
-async def screen_vnc_start(display: str = Query(default="")) -> dict:
-    """Start x11vnc on localhost:5900 for the given DISPLAY.
-
-    If display is not specified, auto-detects via _find_display_env() (same
-    logic used by the snapshot endpoint — checks loginctl, /tmp/.X*, etc.)
-    Requires x11vnc installed: sudo apt install x11vnc
-    Authentication enforced globally by apply_musu_middlewares.
-    """
-    display_env = _find_display_env()
-    if not display:
-        display = display_env.get("DISPLAY", ":0")
-    xauthority = display_env.get("XAUTHORITY", "")
-    try:
-        return await asyncio.get_running_loop().run_in_executor(
-            None, screen_vnc.start_vnc, display, xauthority
-        )
-    except RuntimeError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-
-
-@app.post("/api/screen/vnc/stop")
-async def screen_vnc_stop() -> dict:
-    """Stop the x11vnc subprocess if running."""
-    return await asyncio.get_running_loop().run_in_executor(None, screen_vnc.stop_vnc)
-
-
-@app.get("/api/screen/vnc/status")
-async def screen_vnc_status() -> dict:
-    """Return current VNC server status (running, pid, port)."""
-    return screen_vnc.get_vnc_status()
-
-
-@app.get("/api/screen/vnc/token")
-async def screen_vnc_token() -> dict:
-    """Issue a one-time WebSocket token (60s TTL).
-
-    Response includes relay_ws_url so the browser can connect via musu-relay
-    instead of directly to the bridge (direct access requires Tailscale/LAN).
-    """
-    tok = screen_vnc.issue_token()
-    # Build relay WebSocket URL: convert http(s) → ws(s) and append ws-proxy path
-    relay_ws_url = ""
-    cfg = get_config()
-    if cfg.relay_url and cfg.node_name:
-        relay_base = (
-            cfg.relay_url.rstrip("/")
-            .replace("https://", "wss://")
-            .replace("http://", "ws://")
-        )
-        # Railway only allows WS upgrades on /tunnel — no query params needed.
-        # Browser will do first-message handshake: {"type":"vnc-proxy","node":..,"token":..}
-        relay_ws_url = f"{relay_base}/tunnel"
-    return {
-        "token": tok,
-        "launcher_path": f"/screen/novnc/launcher.html?token={tok}",
-        "relay_ws_url": relay_ws_url,
-        "node_name": cfg.node_name or "",
-    }
-
-
-@app.websocket("/api/screen/ws-vnc")
-async def ws_vnc(websocket: WebSocket, token: str = Query(...)) -> None:
-    """WebSocket VNC proxy — bridges noVNC RFB to x11vnc TCP:5900.
-
-    Token must be obtained from GET /api/screen/vnc/token (single-use, 60s TTL).
-    Authentication is via the one-time token; no Bearer header needed here.
-    """
-    await screen_vnc.ws_vnc_proxy(websocket, token)
 
 
 if __name__ == "__main__":

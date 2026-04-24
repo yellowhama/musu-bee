@@ -142,7 +142,7 @@ def test_api_wol_node_valid(client):
     """노드에 mac_address 있으면 → 200 {ok: true}."""
     node = _make_node_info()
 
-    with patch("server.mesh_router") as mock_mod:
+    with patch("system_routes.mesh_router") as mock_mod:
         mock_mod.node_info.return_value = node
         with patch("wol.send_magic_packet", return_value=True):
             resp = client.post("/api/wol/node/test-node", headers=AUTH)
@@ -155,7 +155,7 @@ def test_api_wol_node_no_mac(client):
     """노드에 mac_address 없으면 → 422."""
     node = _make_node_info(mac="")
 
-    with patch("server.mesh_router") as mock_mod:
+    with patch("system_routes.mesh_router") as mock_mod:
         mock_mod.node_info.return_value = node
         resp = client.post("/api/wol/node/test-node", headers=AUTH)
 
@@ -165,7 +165,7 @@ def test_api_wol_node_no_mac(client):
 
 def test_api_wol_node_not_found(client):
     """노드 이름 없으면 → 404."""
-    with patch("server.mesh_router") as mock_mod:
+    with patch("system_routes.mesh_router") as mock_mod:
         mock_mod.node_info.return_value = None
         resp = client.post("/api/wol/node/nonexistent", headers=AUTH)
 

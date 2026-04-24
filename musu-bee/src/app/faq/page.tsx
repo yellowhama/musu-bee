@@ -50,7 +50,7 @@ const titleStyle: React.CSSProperties = {
 const descStyle: React.CSSProperties = {
   margin: 0,
   fontSize: 16,
-  color: "#9ca3af",
+  color: "var(--fg2)",
   lineHeight: 1.75,
   maxWidth: 760,
 };
@@ -71,7 +71,7 @@ const questionStyle: React.CSSProperties = {
 
 const answerStyle: React.CSSProperties = {
   margin: 0,
-  color: "#9ca3af",
+  color: "var(--fg2)",
   fontSize: 14,
   lineHeight: 1.75,
 };

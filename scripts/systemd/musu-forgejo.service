@@ -1,0 +1,17 @@
+[Unit]
+Description=MUSU Forgejo Local Git Server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/.musu/forgejo
+Environment=GITEA_WORK_DIR=%h/.musu/forgejo
+ExecStart=%h/.musu/bin/forgejo web -c %h/.musu/forgejo/custom/conf/app.ini
+Restart=on-failure
+RestartSec=5
+
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target

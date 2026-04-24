@@ -524,6 +524,39 @@ def _v16_down(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+# ---------------------------------------------------------------------------
+# v17: add last_activity_at to route_executions for activity-based watchdog
+# ---------------------------------------------------------------------------
+
+
+def _v17_up(conn: sqlite3.Connection) -> None:
+    """Add last_activity_at to route_executions for activity-based watchdog."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='route_executions'"
+    ).fetchone()
+    if row is None:
+        return
+    if not _column_exists(conn, "route_executions", "last_activity_at"):
+        conn.execute(
+            "ALTER TABLE route_executions ADD COLUMN last_activity_at TEXT;"
+        )
+        # Backfill: seed with updated_at so existing rows aren't immediately killed
+        conn.execute(
+            "UPDATE route_executions SET last_activity_at = updated_at "
+            "WHERE last_activity_at IS NULL;"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_re_last_activity "
+            "ON route_executions(last_activity_at);"
+        )
+    conn.commit()
+
+
+def _v17_down(conn: sqlite3.Connection) -> None:  # noqa: ARG001
+    conn.execute("DROP INDEX IF EXISTS idx_re_last_activity;")
+    conn.commit()
+
+
 MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v1_fallback_chain", _v1_up, _v1_down),
     ("v2_messages_agent_id", _v2_up, _v2_down),
@@ -541,6 +574,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v14_agents_company_id", _v14_up, _v14_down),
     ("v15_route_executions_cost", _v15_up, _v15_down),
     ("v16_messages_group_id", _v16_up, _v16_down),
+    ("v17_route_executions_last_activity_at", _v17_up, _v17_down),
 ]
 
 

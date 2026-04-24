@@ -1,7 +1,6 @@
 [Unit]
 Description=MUSU Bridge API Server
-After=network.target musu-connectsd.service
-Requires=musu-connectsd.service
+After=network.target
 
 [Service]
 Type=simple
@@ -13,6 +12,13 @@ EnvironmentFile=-%h/.musu/bridge.env
 ExecStart=%h/musu-functions/scripts/start-bridge.sh
 Restart=on-failure
 RestartSec=5
+
+# Kill claude subprocesses aggressively on stop/restart.
+# mixed = SIGTERM to main, SIGKILL to remaining after TimeoutStopSec.
+# Without this, claude CLI ignores SIGTERM and becomes zombie.
+KillMode=mixed
+TimeoutStopSec=15
+SendSIGKILL=yes
 
 # Resource guardrails (tune via systemctl --user edit musu-bridge)
 CPUQuota=50%

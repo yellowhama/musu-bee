@@ -11,7 +11,7 @@ export default function PublicSiteShell({
         minHeight: "100vh",
         background:
           "radial-gradient(circle at top left, rgba(250,204,21,0.10), transparent 28%), radial-gradient(circle at top right, rgba(34,197,94,0.10), transparent 24%), #0a0a0a",
-        color: "#f3f4f6",
+        color: "var(--fg1)",
         fontFamily:
           "'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif",
       }}
@@ -37,7 +37,7 @@ export default function PublicSiteShell({
             display: "inline-flex",
             alignItems: "center",
             gap: 10,
-            color: "#f3f4f6",
+            color: "var(--fg1)",
             textDecoration: "none",
             fontWeight: 800,
             letterSpacing: "-0.03em",
@@ -78,7 +78,7 @@ export default function PublicSiteShell({
         style={{
           padding: "32px 24px 48px",
           borderTop: "1px solid rgba(255,255,255,0.06)",
-          color: "#6b7280",
+          color: "var(--fg3)",
           fontSize: 13,
           textAlign: "center",
         }}
@@ -91,14 +91,14 @@ export default function PublicSiteShell({
 }
 
 const navLinkStyle: React.CSSProperties = {
-  color: "#9ca3af",
+  color: "var(--fg2)",
   textDecoration: "none",
   fontSize: 13,
   fontWeight: 600,
 };
 
 const appButtonStyle: React.CSSProperties = {
-  color: "#0a0a0a",
+  color: "var(--bg-base)",
   background: "var(--musu-color-brand-accent)",
   textDecoration: "none",
   fontSize: 13,

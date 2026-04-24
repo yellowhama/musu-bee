@@ -30,7 +30,8 @@ logger = logging.getLogger(__name__)
 
 # QUIC proxy sidecar URL (musu-connectsd bridge-proxy).
 # Set to "" to disable QUIC and always use HTTP.
-_QUIC_PROXY_URL = os.getenv("MUSU_QUIC_PROXY_URL", "http://127.0.0.1:9443")
+# Default: disabled (P2P mesh archived, relay-only architecture)
+_QUIC_PROXY_URL = os.getenv("MUSU_QUIC_PROXY_URL", "")
 
 _DEFAULT_CONFIG_PATH = Path.home() / ".musu" / "nodes.toml"
 _TOML_WRITE_LOCK = threading.Lock()
@@ -391,10 +392,15 @@ class MeshRouter:
             "text": text,
             "adapter_override": adapter_override,
         }
-        logger.info("mesh_router: HTTP forward channel=%r → %s", channel, target)
+        node_name = self.node_for_agent(channel)
+        peer_token = self.token_for_node(node_name) if node_name else ""
+        headers: dict[str, str] = {}
+        if peer_token:
+            headers["Authorization"] = f"Bearer {peer_token}"
+        logger.info("mesh_router: HTTP forward channel=%r → %s (auth=%s)", channel, target, bool(peer_token))
         try:
             async with httpx.AsyncClient(timeout=300.0) as client:
-                resp = await client.post(target, json=payload)
+                resp = await client.post(target, json=payload, headers=headers)
                 if resp.status_code != 200:
                     logger.warning(
                         "mesh_router: remote %s returned %s", target, resp.status_code

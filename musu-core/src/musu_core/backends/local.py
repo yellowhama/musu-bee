@@ -425,8 +425,9 @@ class LocalBackend(BackendABC):
         """Insert a new route execution record with status='pending'."""
         self._db.execute(
             """
-            INSERT INTO route_executions (id, channel, sender_id, input, status, company_id)
-            VALUES (?, ?, ?, ?, 'pending', ?)
+            INSERT INTO route_executions
+                (id, channel, sender_id, input, status, company_id, last_activity_at)
+            VALUES (?, ?, ?, ?, 'pending', ?, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
             """,
             (exec_id, channel, sender_id, input_text, company_id),
         )
@@ -456,6 +457,14 @@ class LocalBackend(BackendABC):
             WHERE id = ?
             """,
             (status, output, error, node, cost_usd, input_tokens, output_tokens, duration_sec, exec_id),
+        )
+
+    def touch_route_execution_activity(self, exec_id: str) -> None:
+        """Stamp last_activity_at = now for a running execution (activity heartbeat)."""
+        self._db.execute(
+            "UPDATE route_executions SET last_activity_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') "
+            "WHERE id = ?",
+            (exec_id,),
         )
 
     def get_route_execution(self, exec_id: str) -> dict[str, Any] | None:

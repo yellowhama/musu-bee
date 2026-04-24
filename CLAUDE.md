@@ -32,15 +32,15 @@
 |------|----------|------|------|
 | musu-bridge | Python 3.12 + FastAPI | 8070 | API 서버, 에이전트 조율 |
 | musu-core | Python 라이브러리 | — | 에이전트/태스크/DB 추상화 |
-| musu-connects | Rust (Quinn QUIC) | 4433/9443 | P2P 메쉬 transport |
-| musu-bee | Next.js 16 + React 19 | — | 데스크톱 UI (Tauri 2.0) |
+| musu-relay | Node.js (Express+WS) | 9900 | WebSocket relay (기기 간 통신) |
+| musu-bee | Next.js 16 + React 19 | — | 웹 UI (SaaS + 로컬 호스팅) |
 | musu-control | MCP 서버 | — | Claude Code용 제어 인터페이스 |
 | vibecode-town | Next.js 16 (Vercel) | — | musu.pro 웹 대시보드 |
 
 **경계 규칙:**
 - musu-bridge는 musu-core를 라이브러리로 사용. 역방향 의존 금지.
 - vibecode-town은 Vercel Edge 런타임. 서버 전용 Node.js API 사용 불가.
-- musu-connects(Rust) ↔ musu-bridge 통신: HTTP only (127.0.0.1:9443).
+- musu-relay ↔ musu-bridge 통신: WebSocket tunnel (MUSU_TOKEN 인증).
 
 ---
 

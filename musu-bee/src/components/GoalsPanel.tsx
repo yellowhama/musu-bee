@@ -4,16 +4,16 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import type { Goal } from "@/types";
 
 const STATUS_COLOR: Record<Goal["status"], string> = {
-  active: "#60a5fa",
-  completed: "#22c55e",
-  cancelled: "#6b7280",
+  active: "var(--status-running)",
+  completed: "var(--status-online)",
+  cancelled: "var(--fg3)",
 };
 
 const SELECT_STYLE: React.CSSProperties = {
   fontSize: 11,
-  color: "#9ca3af",
-  background: "#1a1a1a",
-  border: "1px solid #2d2d2d",
+  color: "var(--fg2)",
+  background: "var(--bg-card)",
+  border: "1px solid var(--border-default)",
   borderRadius: 6,
   padding: "3px 8px",
   cursor: "pointer",
@@ -147,7 +147,7 @@ export default function GoalsPanel({ companyId }: GoalsPanelProps) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 15, fontWeight: 600, color: "#f3f4f6" }}>
+          <span style={{ fontSize: 15, fontWeight: 600, color: "var(--fg1)" }}>
             Goals
           </span>
           <span
@@ -167,9 +167,9 @@ export default function GoalsPanel({ companyId }: GoalsPanelProps) {
             onClick={() => void doFetch()}
             style={{
               fontSize: 11,
-              color: "#9ca3af",
+              color: "var(--fg2)",
               background: "transparent",
-              border: "1px solid #2d2d2d",
+              border: "1px solid var(--border-default)",
               borderRadius: 4,
               padding: "3px 8px",
               cursor: "pointer",
@@ -196,22 +196,22 @@ export default function GoalsPanel({ companyId }: GoalsPanelProps) {
       {/* Content */}
       <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
         {!companyId && (
-          <p style={{ color: "#6b7280", fontSize: 13, padding: "20px 8px" }}>
+          <p style={{ color: "var(--fg3)", fontSize: 13, padding: "20px 8px" }}>
             No active company selected.
           </p>
         )}
         {companyId && loading && (
-          <p style={{ color: "#6b7280", fontSize: 13, padding: "20px 8px" }}>
+          <p style={{ color: "var(--fg3)", fontSize: 13, padding: "20px 8px" }}>
             Loading…
           </p>
         )}
         {companyId && !loading && error && (
-          <p style={{ color: "#f87171", fontSize: 13, padding: "20px 8px" }}>
+          <p style={{ color: "var(--status-error)", fontSize: 13, padding: "20px 8px" }}>
             {error === "HTTP 503" ? "musu-bridge unavailable" : error}
           </p>
         )}
         {companyId && !loading && !error && goals.length === 0 && (
-          <p style={{ color: "#4b5563", fontSize: 13, padding: "20px 8px" }}>
+          <p style={{ color: "var(--fg4)", fontSize: 13, padding: "20px 8px" }}>
             No goals found.
           </p>
         )}
@@ -262,7 +262,7 @@ export default function GoalsPanel({ companyId }: GoalsPanelProps) {
                     <span
                       style={{
                         fontSize: 10,
-                        color: isOverdue ? "#f87171" : "#9ca3af",
+                        color: isOverdue ? "var(--status-error)" : "var(--fg2)",
                         fontWeight: isOverdue ? 600 : 400,
                       }}
                     >
@@ -285,7 +285,7 @@ export default function GoalsPanel({ companyId }: GoalsPanelProps) {
                   style={{
                     fontSize: 13,
                     fontWeight: 500,
-                    color: "#e5e7eb",
+                    color: "var(--fg1)",
                     lineHeight: 1.4,
                   }}
                 >
@@ -297,7 +297,7 @@ export default function GoalsPanel({ companyId }: GoalsPanelProps) {
                   <p
                     style={{
                       fontSize: 12,
-                      color: "#9ca3af",
+                      color: "var(--fg2)",
                       margin: 0,
                       lineHeight: 1.5,
                       ...(isExpanded
@@ -332,7 +332,7 @@ export default function GoalsPanel({ companyId }: GoalsPanelProps) {
                     <p
                       style={{
                         fontSize: 10,
-                        color: "#4b5563",
+                        color: "var(--fg4)",
                         margin: 0,
                         fontFamily: "monospace",
                       }}
@@ -340,7 +340,7 @@ export default function GoalsPanel({ companyId }: GoalsPanelProps) {
                       {goal.id}
                     </p>
                     {goal.due_date && (
-                      <p style={{ fontSize: 11, color: "#9ca3af", margin: 0 }}>
+                      <p style={{ fontSize: 11, color: "var(--fg2)", margin: 0 }}>
                         due: {goal.due_date}
                       </p>
                     )}
@@ -351,7 +351,7 @@ export default function GoalsPanel({ companyId }: GoalsPanelProps) {
                           disabled={updating.has(goal.id)}
                           style={{
                             fontSize: 11,
-                            color: updating.has(goal.id) ? "#4b5563" : "#22c55e",
+                            color: updating.has(goal.id) ? "var(--fg4)" : "var(--status-online)",
                             background: "transparent",
                             border: "1px solid currentColor",
                             borderRadius: 4,
@@ -366,7 +366,7 @@ export default function GoalsPanel({ companyId }: GoalsPanelProps) {
                           disabled={updating.has(goal.id)}
                           style={{
                             fontSize: 11,
-                            color: updating.has(goal.id) ? "#4b5563" : "#6b7280",
+                            color: updating.has(goal.id) ? "var(--fg4)" : "var(--fg3)",
                             background: "transparent",
                             border: "1px solid currentColor",
                             borderRadius: 4,
@@ -386,7 +386,7 @@ export default function GoalsPanel({ companyId }: GoalsPanelProps) {
                   <p
                     style={{
                       fontSize: 10,
-                      color: "#374151",
+                      color: "var(--fg4)",
                       margin: 0,
                       fontFamily: "monospace",
                     }}

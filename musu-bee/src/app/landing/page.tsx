@@ -197,7 +197,7 @@ const leadStyle: React.CSSProperties = {
 const chipStyle: React.CSSProperties = {
   fontSize: 12,
   fontWeight: 700,
-  color: "#d1d5db",
+  color: "var(--fg1)",
   background: "rgba(255,255,255,0.04)",
   border: "1px solid rgba(255,255,255,0.08)",
   borderRadius: 999,
@@ -228,7 +228,7 @@ const panelTitleStyle: React.CSSProperties = {
 
 const panelDescStyle: React.CSSProperties = {
   margin: "0 0 18px",
-  color: "#d1d5db",
+  color: "var(--fg1)",
   fontSize: 14,
   lineHeight: 1.75,
 };
@@ -254,7 +254,7 @@ const submitStyle: React.CSSProperties = {
   border: "none",
   borderRadius: 12,
   background: "var(--musu-color-brand-accent)",
-  color: "#0a0a0a",
+  color: "var(--bg-base)",
   fontSize: 15,
   fontWeight: 900,
   padding: "12px 20px",
@@ -264,7 +264,7 @@ const submitStyle: React.CSSProperties = {
 const okStyle: React.CSSProperties = {
   marginTop: 14,
   fontSize: 14,
-  color: "#86efac",
+  color: "var(--status-online)",
   lineHeight: 1.6,
 };
 
@@ -277,7 +277,7 @@ const errorStyle: React.CSSProperties = {
 
 const benefitStyle: React.CSSProperties = {
   fontSize: 13,
-  color: "#d1d5db",
+  color: "var(--fg1)",
   lineHeight: 1.7,
   padding: "10px 12px",
   borderRadius: 14,
@@ -311,7 +311,7 @@ const sectionTitleStyle: React.CSSProperties = {
 
 const sectionDescStyle: React.CSSProperties = {
   margin: 0,
-  color: "#9ca3af",
+  color: "var(--fg2)",
   fontSize: 14,
   lineHeight: 1.75,
   maxWidth: 760,
@@ -340,7 +340,7 @@ const infoTitleStyle: React.CSSProperties = {
 const infoDescStyle: React.CSSProperties = {
   margin: 0,
   fontSize: 14,
-  color: "#9ca3af",
+  color: "var(--fg2)",
   lineHeight: 1.75,
 };
 
@@ -388,7 +388,7 @@ const linkButtonStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  color: "#0a0a0a",
+  color: "var(--bg-base)",
   background: "var(--musu-color-brand-accent)",
   textDecoration: "none",
   fontWeight: 900,

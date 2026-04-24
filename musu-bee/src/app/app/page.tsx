@@ -17,8 +17,8 @@ export default async function AppPage() {
       <div
         style={{
           minHeight: "100vh",
-          background: "#0a0a0a",
-          color: "#f3f4f6",
+          background: "var(--bg-base)",
+          color: "var(--fg1)",
           fontFamily: "'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif",
           display: "flex",
           alignItems: "center",
@@ -29,8 +29,8 @@ export default async function AppPage() {
         <div
           style={{
             maxWidth: 560,
-            background: "#111",
-            border: "1px solid #1f1f1f",
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-subtle)",
             borderRadius: 20,
             padding: "48px 40px",
             textAlign: "center",
@@ -43,7 +43,7 @@ export default async function AppPage() {
               fontWeight: 800,
               letterSpacing: "-0.03em",
               marginBottom: 16,
-              color: "#f3f4f6",
+              color: "var(--fg1)",
             }}
           >
             Dashboard is Local-Only
@@ -51,7 +51,7 @@ export default async function AppPage() {
           <p
             style={{
               fontSize: 15,
-              color: "#9ca3af",
+              color: "var(--fg2)",
               lineHeight: 1.7,
               marginBottom: 32,
             }}
@@ -66,7 +66,7 @@ export default async function AppPage() {
               style={{
                 display: "inline-block",
                 background: "var(--musu-color-brand-accent)",
-                color: "#0a0a0a",
+                color: "var(--bg-base)",
                 fontWeight: 700,
                 fontSize: 15,
                 padding: "14px 32px",
@@ -82,13 +82,13 @@ export default async function AppPage() {
               style={{
                 display: "inline-block",
                 background: "transparent",
-                color: "#6b7280",
+                color: "var(--fg3)",
                 fontWeight: 600,
                 fontSize: 14,
                 padding: "12px 32px",
                 borderRadius: 12,
                 textDecoration: "none",
-                border: "1px solid #2d2d2d",
+                border: "1px solid var(--border-default)",
                 letterSpacing: "-0.01em",
               }}
             >
@@ -99,18 +99,18 @@ export default async function AppPage() {
             style={{
               marginTop: 40,
               paddingTop: 32,
-              borderTop: "1px solid #1f1f1f",
+              borderTop: "1px solid var(--border-subtle)",
               fontSize: 13,
-              color: "#6b7280",
+              color: "var(--fg3)",
               lineHeight: 1.6,
             }}
           >
-            <strong style={{ color: "#9ca3af", display: "block", marginBottom: 8 }}>
+            <strong style={{ color: "var(--fg2)", display: "block", marginBottom: 8 }}>
               How to Use the Local Dashboard
             </strong>
-            Run <code style={{ background: "#1a1a1a", padding: "2px 8px", borderRadius: 4, color: "var(--musu-color-brand-accent)" }}>musu start</code> in your terminal, then
+            Run <code style={{ background: "var(--bg-card)", padding: "2px 8px", borderRadius: 4, color: "var(--musu-color-brand-accent)" }}>musu start</code> in your terminal, then
             <br />
-            visit <code style={{ background: "#1a1a1a", padding: "2px 8px", borderRadius: 4, color: "var(--musu-color-brand-accent)" }}>http://localhost:3001/app</code>
+            visit <code style={{ background: "var(--bg-card)", padding: "2px 8px", borderRadius: 4, color: "var(--musu-color-brand-accent)" }}>http://localhost:3001/app</code>
           </div>
         </div>
       </div>

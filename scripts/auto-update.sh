@@ -102,8 +102,17 @@ if [ "$RESTART_CONNECTSD" = "1" ]; then
 fi
 
 if [ "$RESTART_BRIDGE" = "1" ]; then
-    log "restarting musu-bridge (bridge/core files updated)"
-    systemctl --user restart musu-bridge.service || log "WARNING: bridge restart failed"
+    # Skip restart if CEO heartbeat is actively running (claude subprocess).
+    # Restarting during heartbeat leaves zombie processes that block future starts.
+    BRIDGE_PORT="${BRIDGE_PORT:-8070}"
+    HB_RUNNING=$(curl -sf --max-time 3 "http://127.0.0.1:${BRIDGE_PORT}/api/tasks?status=running" 2>/dev/null \
+        | python3 -c "import sys,json; print(len([t for t in json.load(sys.stdin) if 'CEO' in t.get('channel','').upper() or 'heartbeat' in t.get('channel','')]))" 2>/dev/null || echo "0")
+    if [ "$HB_RUNNING" != "0" ]; then
+        log "SKIPPING restart — $HB_RUNNING heartbeat task(s) running. Will retry next cycle."
+    else
+        log "restarting musu-bridge (bridge/core files updated)"
+        systemctl --user restart musu-bridge.service || log "WARNING: bridge restart failed"
+    fi
 fi
 
 if [ "$RESTART_BRIDGE" = "0" ] && [ "$RESTART_CONNECTSD" = "0" ]; then
@@ -113,6 +122,11 @@ fi
 # ── 5. Register services with portd (wiki/003) ──────────────────────────────
 if [ -x "${ROOT}/scripts/register-portd-services.sh" ]; then
     "${ROOT}/scripts/register-portd-services.sh" 2>/dev/null || log "portd registration skipped"
+fi
+
+# ── 6. Re-index Bloodline Writers workspace (if present) ─────────────────────
+if [ -x "${ROOT}/scripts/setup-indexer-workspace.sh" ]; then
+    "${ROOT}/scripts/setup-indexer-workspace.sh" 2>&1 | tail -3 || log "indexer workspace sync skipped"
 fi
 
 log "done (${REMOTE:0:8})"

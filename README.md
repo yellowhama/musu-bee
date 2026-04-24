@@ -18,14 +18,27 @@
 - `musu-functions`는 그 회사가 실제로 만드는 제품 프로젝트다.
 - 따라서 `musu_corp`에 지금 많이 들어가 있는 회사 기능은, 장기적으로 다시 `musu-functions`의 bounded context로 환원돼야 한다.
 
-현재 새 `MUSU`를 이루는 주요 프로젝트:
+현재 MUSU 아키텍처 (2026-04-25):
 
-- `musu-port`: 로컬 ingress/control-plane
-- `musu-connects`: peer 간 secure transport/network plane
-- `musu-computer-tools`: 컴퓨터 제어 / MCP 보조 도구 모음
-- `MUSU-CRT`: WebRTC / realtime stream / remote terminal viewer 작업 공간
-- `MUSU-AS-MCP`: MUSU Desktop self-MCP / native-app MCP 재현 작업 공간
-- `MUSU-WORKS`: 회사 -> 프로젝트 운영/실행 모델 재현 작업 공간
+| 모듈 | 역할 | 포트 |
+|------|------|------|
+| `musu-bridge` | FastAPI 서버, 에이전트 조율, 태스크 라우팅 | 8070 |
+| `musu-core` | 에이전트/태스크/DB 추상화 (Python lib) | — |
+| `musu-relay` | WebSocket relay, 기기 간 통신 (Railway) | 9900 |
+| `musu-bee` | Next.js 웹 UI (로컬 앱, 채팅/태스크/비용) | 3001 |
+| `musu-control` | MCP 서버 (Claude Code 통합) | — |
+| `musu-port` | 로컬 ingress/control-plane | 1355 |
+| `musu-worker` | 원격 명령 실행 | 9700 |
+
+폐기/아카이브:
+- `musu-connects` → `_archived/` (P2P QUIC mesh, relay로 대체)
+- `musu-computer-tools` → `_archived/` (Windows bridge)
+- Tauri 데스크톱 앱 → 폐기 (웹 기반으로 전환)
+
+배포 구조:
+- `musu.pro` (Vercel) = 랜딩, 로그인, 결제, 계정 관리
+- `musu-bee` (localhost) = 실제 앱 (relay 통해 원격 접근 가능)
+- `musu-relay` (Railway) = 기기 간 WebSocket tunnel
 
 도그푸딩 기준 상위 문서:
 

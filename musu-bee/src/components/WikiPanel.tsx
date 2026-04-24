@@ -74,8 +74,8 @@ export default function WikiPanel({ companyId }: WikiPanelProps) {
         height: "100%",
         fontFamily: "var(--font-mono, monospace)",
         fontSize: 13,
-        color: "#e5e7eb",
-        background: "#111",
+        color: "var(--fg1)",
+        background: "var(--bg-surface)",
         overflow: "hidden",
       }}
     >
@@ -83,14 +83,14 @@ export default function WikiPanel({ companyId }: WikiPanelProps) {
       <div
         style={{
           width: 280,
-          borderRight: "1px solid #2d2d2d",
+          borderRight: "1px solid var(--border-default)",
           display: "flex",
           flexDirection: "column",
           flexShrink: 0,
         }}
       >
-        <div style={{ padding: "12px 14px 8px", borderBottom: "1px solid #2d2d2d" }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "#e5e7eb", marginBottom: 8 }}>
+        <div style={{ padding: "12px 14px 8px", borderBottom: "1px solid var(--border-default)" }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--fg1)", marginBottom: 8 }}>
             Wiki
           </div>
           <input
@@ -100,11 +100,11 @@ export default function WikiPanel({ companyId }: WikiPanelProps) {
             onChange={(e) => setQuery(e.target.value)}
             style={{
               width: "100%",
-              background: "#1a1a1a",
-              border: "1px solid #2d2d2d",
+              background: "var(--bg-card)",
+              border: "1px solid var(--border-default)",
               borderRadius: 6,
               padding: "5px 10px",
-              color: "#e5e7eb",
+              color: "var(--fg1)",
               fontSize: 12,
               outline: "none",
               boxSizing: "border-box",
@@ -114,9 +114,9 @@ export default function WikiPanel({ companyId }: WikiPanelProps) {
 
         <div style={{ flex: 1, overflowY: "auto", padding: "6px 8px" }}>
           {loading ? (
-            <div style={{ color: "#6b7280", padding: "12px 6px", fontSize: 12 }}>Loading…</div>
+            <div style={{ color: "var(--fg3)", padding: "12px 6px", fontSize: 12 }}>Loading…</div>
           ) : pages.length === 0 ? (
-            <div style={{ color: "#6b7280", padding: "12px 6px", fontSize: 12 }}>
+            <div style={{ color: "var(--fg3)", padding: "12px 6px", fontSize: 12 }}>
               {query ? "No results" : "No wiki pages yet"}
             </div>
           ) : (
@@ -129,7 +129,7 @@ export default function WikiPanel({ companyId }: WikiPanelProps) {
                   borderRadius: 6,
                   cursor: "pointer",
                   marginBottom: 2,
-                  background: selected?.id === page.id ? "#1e1e1e" : "transparent",
+                  background: selected?.id === page.id ? "var(--bg-overlay)" : "transparent",
                   borderLeft: selected?.id === page.id ? "2px solid #60a5fa" : "2px solid transparent",
                   transition: "background 0.15s",
                 }}
@@ -138,7 +138,7 @@ export default function WikiPanel({ companyId }: WikiPanelProps) {
                   style={{
                     fontSize: 12,
                     fontWeight: 500,
-                    color: "#e5e7eb",
+                    color: "var(--fg1)",
                     marginBottom: 2,
                     whiteSpace: "nowrap",
                     overflow: "hidden",
@@ -151,7 +151,7 @@ export default function WikiPanel({ companyId }: WikiPanelProps) {
                   <div
                     style={{
                       fontSize: 11,
-                      color: "#6b7280",
+                      color: "var(--fg3)",
                       whiteSpace: "nowrap",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
@@ -160,7 +160,7 @@ export default function WikiPanel({ companyId }: WikiPanelProps) {
                     {page.summary}
                   </div>
                 )}
-                <div style={{ fontSize: 10, color: "#4b5563", marginTop: 2 }}>
+                <div style={{ fontSize: 10, color: "var(--fg4)", marginTop: 2 }}>
                   {formatRelative(page.updated_at)}
                 </div>
               </div>
@@ -180,7 +180,7 @@ export default function WikiPanel({ companyId }: WikiPanelProps) {
               alignItems: "center",
               justifyContent: "center",
               height: "100%",
-              color: "#4b5563",
+              color: "var(--fg4)",
               fontSize: 12,
             }}
           >
@@ -206,19 +206,19 @@ function WikiDetail({ page }: { page: WikiPage }) {
       >
         {page.title}
       </h2>
-      <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 14 }}>
+      <div style={{ fontSize: 11, color: "var(--fg3)", marginBottom: 14 }}>
         Updated {formatRelative(page.updated_at)} · scope: {page.scope}
       </div>
 
       {page.summary && (
         <Section title="Summary">
-          <p style={{ margin: 0, lineHeight: 1.6, color: "#d1d5db" }}>{page.summary}</p>
+          <p style={{ margin: 0, lineHeight: 1.6, color: "var(--fg1)" }}>{page.summary}</p>
         </Section>
       )}
 
       {page.key_points && page.key_points.length > 0 && (
         <Section title="Key Points">
-          <ul style={{ margin: 0, paddingLeft: 18, color: "#d1d5db", lineHeight: 1.6 }}>
+          <ul style={{ margin: 0, paddingLeft: 18, color: "var(--fg1)", lineHeight: 1.6 }}>
             {page.key_points.map((pt, i) => (
               <li key={i}>{pt}</li>
             ))}
@@ -228,7 +228,7 @@ function WikiDetail({ page }: { page: WikiPage }) {
 
       {page.evidence && page.evidence.length > 0 && (
         <Section title="Evidence">
-          <ul style={{ margin: 0, paddingLeft: 18, color: "#9ca3af", lineHeight: 1.6 }}>
+          <ul style={{ margin: 0, paddingLeft: 18, color: "var(--fg2)", lineHeight: 1.6 }}>
             {page.evidence.map((e, i) => (
               <li key={i} style={{ fontStyle: "italic" }}>{e}</li>
             ))}
@@ -259,7 +259,7 @@ function WikiDetail({ page }: { page: WikiPage }) {
 
       {page.open_questions && page.open_questions.length > 0 && (
         <Section title="Open Questions">
-          <ul style={{ margin: 0, paddingLeft: 18, color: "#9ca3af", lineHeight: 1.6 }}>
+          <ul style={{ margin: 0, paddingLeft: 18, color: "var(--fg2)", lineHeight: 1.6 }}>
             {page.open_questions.map((q, i) => (
               <li key={i}>{q}</li>
             ))}
@@ -273,10 +273,10 @@ function WikiDetail({ page }: { page: WikiPage }) {
             style={{
               margin: 0,
               padding: "10px 12px",
-              background: "#1a1a1a",
+              background: "var(--bg-card)",
               borderRadius: 6,
               fontSize: 11,
-              color: "#9ca3af",
+              color: "var(--fg2)",
               whiteSpace: "pre-wrap",
               wordBreak: "break-word",
               maxHeight: 300,
@@ -298,7 +298,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
         style={{
           fontSize: 11,
           fontWeight: 600,
-          color: "#6b7280",
+          color: "var(--fg3)",
           textTransform: "uppercase",
           letterSpacing: "0.05em",
           marginBottom: 6,

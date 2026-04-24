@@ -58,9 +58,9 @@ function CopyButton({ text }: { text: string }) {
     <button
       onClick={handleCopy}
       style={{
-        background: copied ? "#166534" : "#1e1e1e",
-        border: `1px solid ${copied ? "var(--musu-status-online)" : "#2d2d2d"}`,
-        color: copied ? "var(--musu-status-online)" : "#9ca3af",
+        background: copied ? "#166534" : "var(--bg-overlay)",
+        border: `1px solid ${copied ? "var(--musu-status-online)" : "var(--border-default)"}`,
+        color: copied ? "var(--musu-status-online)" : "var(--fg2)",
         borderRadius: 6,
         padding: "4px 10px",
         fontSize: 12,
@@ -78,7 +78,7 @@ function CodeBlock({ label, cmd }: { label: string; cmd: string }) {
   return (
     <div style={{ marginBottom: 12 }}>
       <div
-        style={{ fontSize: 11, color: "#6b7280", marginBottom: 4 }}
+        style={{ fontSize: 11, color: "var(--fg3)", marginBottom: 4 }}
       >
         {label}
       </div>
@@ -87,8 +87,8 @@ function CodeBlock({ label, cmd }: { label: string; cmd: string }) {
           display: "flex",
           alignItems: "center",
           gap: 8,
-          background: "#0a0a0a",
-          border: "1px solid #2d2d2d",
+          background: "var(--bg-base)",
+          border: "1px solid var(--border-default)",
           borderRadius: 8,
           padding: "10px 14px",
         }}
@@ -138,7 +138,7 @@ function StepIndicator({
                 ? "#7c3aed"
                 : i === current
                 ? "#a855f7"
-                : "#1f1f1f",
+                : "var(--border-subtle)",
             transition: "background 0.3s",
           }}
         />
@@ -214,8 +214,8 @@ export default function OnboardingModal({
     >
       <div
         style={{
-          background: "#111111",
-          border: "1px solid #2d2d2d",
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border-default)",
           borderRadius: 16,
           padding: "36px 40px",
           width: "100%",
@@ -237,7 +237,7 @@ export default function OnboardingModal({
             style={{
               fontSize: 18,
               fontWeight: 700,
-              color: "#f3f4f6",
+              color: "var(--fg1)",
               letterSpacing: "-0.02em",
             }}
           >
@@ -249,7 +249,7 @@ export default function OnboardingModal({
               marginLeft: "auto",
               background: "transparent",
               border: "none",
-              color: "#6b7280",
+              color: "var(--fg3)",
               fontSize: 13,
               cursor: "pointer",
               padding: "4px 8px",
@@ -271,7 +271,7 @@ export default function OnboardingModal({
               style={{
                 fontSize: 22,
                 fontWeight: 700,
-                color: "#f3f4f6",
+                color: "var(--fg1)",
                 marginBottom: 12,
                 lineHeight: 1.3,
               }}
@@ -281,19 +281,19 @@ export default function OnboardingModal({
             <p
               style={{
                 fontSize: 14,
-                color: "#9ca3af",
+                color: "var(--fg2)",
                 lineHeight: 1.6,
                 marginBottom: 28,
               }}
             >
               MUSU lets AI across multiple computers work as one team.
               <br />
-              To get started, install <strong style={{ color: "#e5e7eb" }}>musu-port</strong> on this device.
+              To get started, install <strong style={{ color: "var(--fg1)" }}>musu-port</strong> on this device.
             </p>
             <div
               style={{
-                background: "#0d0d0d",
-                border: "1px solid #1f1f1f",
+                background: "var(--bg-base)",
+                border: "1px solid var(--border-subtle)",
                 borderRadius: 10,
                 padding: "16px 18px",
                 marginBottom: 28,
@@ -312,7 +312,7 @@ export default function OnboardingModal({
                     gap: 10,
                     marginBottom: 10,
                     fontSize: 14,
-                    color: "#d1d5db",
+                    color: "var(--fg1)",
                   }}
                 >
                   <span style={{ fontSize: 16 }}>{icon}</span>
@@ -346,7 +346,7 @@ export default function OnboardingModal({
               style={{
                 fontSize: 20,
                 fontWeight: 700,
-                color: "#f3f4f6",
+                color: "var(--fg1)",
                 marginBottom: 6,
               }}
             >
@@ -355,7 +355,7 @@ export default function OnboardingModal({
             <p
               style={{
                 fontSize: 13,
-                color: "#6b7280",
+                color: "var(--fg3)",
                 marginBottom: 20,
               }}
             >
@@ -376,9 +376,9 @@ export default function OnboardingModal({
                   onClick={() => setPlatform(p)}
                   style={{
                     flex: 1,
-                    background: platform === p ? "#1e1b4b" : "#1a1a1a",
-                    border: `1px solid ${platform === p ? "#7c3aed" : "#2d2d2d"}`,
-                    color: platform === p ? "#a78bfa" : "#6b7280",
+                    background: platform === p ? "#1e1b4b" : "var(--bg-card)",
+                    border: `1px solid ${platform === p ? "#7c3aed" : "var(--border-default)"}`,
+                    color: platform === p ? "#a78bfa" : "var(--fg3)",
                     borderRadius: 8,
                     padding: "8px 4px",
                     fontSize: 13,
@@ -408,8 +408,8 @@ export default function OnboardingModal({
                 style={{
                   flex: 1,
                   background: "transparent",
-                  border: "1px solid #2d2d2d",
-                  color: "#6b7280",
+                  border: "1px solid var(--border-default)",
+                  color: "var(--fg3)",
                   borderRadius: 10,
                   padding: "11px",
                   fontSize: 14,
@@ -445,7 +445,7 @@ export default function OnboardingModal({
               style={{
                 fontSize: 20,
                 fontWeight: 700,
-                color: "#f3f4f6",
+                color: "var(--fg1)",
                 marginBottom: 6,
               }}
             >
@@ -454,7 +454,7 @@ export default function OnboardingModal({
             <p
               style={{
                 fontSize: 13,
-                color: "#6b7280",
+                color: "var(--fg3)",
                 marginBottom: 20,
               }}
             >
@@ -468,8 +468,8 @@ export default function OnboardingModal({
 
             <div
               style={{
-                background: "#0a0a0a",
-                border: "1px solid #1f1f1f",
+                background: "var(--bg-base)",
+                border: "1px solid var(--border-subtle)",
                 borderRadius: 8,
                 padding: "12px 14px",
                 marginTop: 8,
@@ -479,7 +479,7 @@ export default function OnboardingModal({
               <div
                 style={{
                   fontSize: 12,
-                  color: "#6b7280",
+                  color: "var(--fg3)",
                   marginBottom: 6,
                   fontWeight: 600,
                 }}
@@ -507,8 +507,8 @@ Ready ✓`}
                 style={{
                   flex: 1,
                   background: "transparent",
-                  border: "1px solid #2d2d2d",
-                  color: "#6b7280",
+                  border: "1px solid var(--border-default)",
+                  color: "var(--fg3)",
                   borderRadius: 10,
                   padding: "11px",
                   fontSize: 14,
@@ -547,7 +547,7 @@ Ready ✓`}
               style={{
                 fontSize: 20,
                 fontWeight: 700,
-                color: "#f3f4f6",
+                color: "var(--fg1)",
                 marginBottom: 6,
               }}
             >
@@ -556,7 +556,7 @@ Ready ✓`}
             <p
               style={{
                 fontSize: 13,
-                color: "#6b7280",
+                color: "var(--fg3)",
                 marginBottom: 24,
               }}
             >
@@ -565,18 +565,18 @@ Ready ✓`}
 
             <div
               style={{
-                border: "1px solid #2d2d2d",
+                border: "1px solid var(--border-default)",
                 borderRadius: 12,
                 padding: "20px",
                 textAlign: "center",
                 marginBottom: 20,
-                background: "#0d0d0d",
+                background: "var(--bg-base)",
               }}
             >
               {verifyStatus === "idle" && (
                 <>
                   <div style={{ fontSize: 36, marginBottom: 10 }}>🔍</div>
-                  <div style={{ fontSize: 14, color: "#9ca3af" }}>
+                  <div style={{ fontSize: 14, color: "var(--fg2)" }}>
                     Click verify connection
                   </div>
                 </>
@@ -588,14 +588,14 @@ Ready ✓`}
                       width: 32,
                       height: 32,
                       borderRadius: "50%",
-                      border: "3px solid #2d2d2d",
+                      border: "3px solid var(--border-default)",
                       borderTopColor: "#7c3aed",
                       margin: "0 auto 12px",
                       animation: "spin 0.8s linear infinite",
                     }}
                   />
                   <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-                  <div style={{ fontSize: 14, color: "#9ca3af" }}>
+                  <div style={{ fontSize: 14, color: "var(--fg2)" }}>
                     Checking localhost:24682...
                   </div>
                 </>
@@ -613,9 +613,9 @@ Ready ✓`}
                   >
                     Connected!
                   </div>
-                  <div style={{ fontSize: 13, color: "#6b7280" }}>
+                  <div style={{ fontSize: 13, color: "var(--fg3)" }}>
                     Device name:{" "}
-                    <strong style={{ color: "#e5e7eb" }}>
+                    <strong style={{ color: "var(--fg1)" }}>
                       {detectedName}
                     </strong>
                   </div>
@@ -637,7 +637,7 @@ Ready ✓`}
                   <div
                     style={{
                       fontSize: 12,
-                      color: "#6b7280",
+                      color: "var(--fg3)",
                       lineHeight: 1.5,
                     }}
                   >
@@ -656,8 +656,8 @@ Ready ✓`}
                 style={{
                   width: "100%",
                   background:
-                    verifyStatus === "checking" ? "#1e1e1e" : "#7c3aed",
-                  color: verifyStatus === "checking" ? "#6b7280" : "#fff",
+                    verifyStatus === "checking" ? "var(--bg-overlay)" : "#7c3aed",
+                  color: verifyStatus === "checking" ? "var(--fg3)" : "#fff",
                   border: "none",
                   borderRadius: 10,
                   padding: "12px",
@@ -702,8 +702,8 @@ Ready ✓`}
                 style={{
                   flex: 1,
                   background: "transparent",
-                  border: "1px solid #2d2d2d",
-                  color: "#6b7280",
+                  border: "1px solid var(--border-default)",
+                  color: "var(--fg3)",
                   borderRadius: 10,
                   padding: "10px",
                   fontSize: 13,
@@ -718,8 +718,8 @@ Ready ✓`}
                   style={{
                     flex: 1,
                     background: "transparent",
-                    border: "1px solid #2d2d2d",
-                    color: "#6b7280",
+                    border: "1px solid var(--border-default)",
+                    color: "var(--fg3)",
                     borderRadius: 10,
                     padding: "10px",
                     fontSize: 13,
