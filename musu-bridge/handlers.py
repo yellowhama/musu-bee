@@ -1408,12 +1408,17 @@ async def list_nodes() -> list[dict[str, Any]]:
                     status = "online" if resp.status_code == 200 else "error"
             except Exception:
                 status = "offline"
+        # Merge agents from node config + agent_assignments
+        node_agents = list(mesh._node_agents.get(node_name, []))
+        for agent, assigned_node in mesh._agent_nodes.items():
+            if assigned_node == node_name and agent not in node_agents:
+                node_agents.append(agent)
         nodes.append({
             "name": node_name,
             "url": node_url,
             "status": status,
             "is_self": is_self,
-            "agents": mesh._node_agents.get(node_name, []),
+            "agents": node_agents,
         })
     return nodes
 
