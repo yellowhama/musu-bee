@@ -346,11 +346,10 @@ async def api_system_event(event: SystemEvent) -> dict:
     from handlers import _get_backend
     backend = _get_backend()
     try:
-        backend.db.execute(
+        backend._db.execute(
             "INSERT INTO execution_log (agent_name, channel, instruction, status) VALUES (?, ?, ?, ?)",
             (event.node_name or "system", event.event_type, event.detail, "done"),
         )
-        backend.db.commit()
     except Exception as exc:
         logger.warning("system_event: failed to log — %s", exc)
     return {"logged": True, "event_type": event.event_type}
