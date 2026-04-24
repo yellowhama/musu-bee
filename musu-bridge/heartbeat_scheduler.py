@@ -74,7 +74,8 @@ async def _heartbeat_iteration(
     diag_summary: str,
     role: str = "ceo",
 ) -> None:
-    """Single guarded heartbeat iteration — serialized by _heartbeat_lock."""
+    """Single guarded heartbeat iteration. Lock held only for guard check, not LLM call."""
+    # Guard check under lock — prevents concurrent starts for same channel
     async with _heartbeat_lock:
         try:
             backend = _get_heartbeat_backend()
@@ -93,8 +94,8 @@ async def _heartbeat_iteration(
                         "heartbeat_scheduler: skipping — %s (%s)", agent_name, reason
                     )
                 return
-
-        logger.info("heartbeat_scheduler: invoking %s (role: %s)", agent_name, role)
+    # Lock released — LLM call runs without blocking other schedulers
+    logger.info("heartbeat_scheduler: invoking %s (role: %s)", agent_name, role)
         prompt_parts = []
         if diag_summary and role == "ceo":
             prompt_parts.append(
@@ -383,6 +384,11 @@ async def auto_distribute_loop(bridge_url: str = "http://localhost:8070") -> Non
 
                 for task in pending:
                     try:
+                        # Mark as dispatching to prevent duplicate dispatch on next iteration
+                        backend._db.execute(
+                            "UPDATE route_executions SET status = 'running' WHERE id = ? AND status = 'pending'",
+                            (task["id"],),
+                        )
                         resp = await http.post("/api/tasks/route", json={
                             "channel": task["channel"],
                             "instruction": task["instruction"],

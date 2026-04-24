@@ -1452,6 +1452,8 @@ async def route_task_to_node(
       - "auto": use mesh_router default agent→node mapping
     """
     mesh = get_mesh_router()
+    if not mesh._self_name:
+        return {"error": "Mesh router not initialized (no self_name in nodes.toml)", "status": "error"}
 
     # Determine target node
     target_node = node_name
