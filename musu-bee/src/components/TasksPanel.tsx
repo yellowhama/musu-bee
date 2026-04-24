@@ -43,9 +43,9 @@ function formatRelative(iso: string): string {
 
 const SELECT_STYLE: React.CSSProperties = {
   fontSize: 11,
-  color: "#9ca3af",
-  background: "#1a1a1a",
-  border: "1px solid #2d2d2d",
+  color: "var(--fg2)",
+  background: "var(--bg-card)",
+  border: "1px solid var(--border-default)",
   borderRadius: 6,
   padding: "3px 8px",
   cursor: "pointer",
@@ -218,7 +218,7 @@ export default function TasksPanel() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 15, fontWeight: 600, color: "#f3f4f6" }}>
+          <span style={{ fontSize: 15, fontWeight: 600, color: "var(--fg1)" }}>
             Delegated Tasks
           </span>
           <span
@@ -234,7 +234,7 @@ export default function TasksPanel() {
             {tasks.filter((t) => t.status === "running").length} running
           </span>
           <div style={{ flex: 1 }} />
-          <span style={{ fontSize: 11, color: "#22c55e" }}>● live</span>
+          <span style={{ fontSize: 11, color: "var(--status-online)" }}>● live</span>
         </div>
 
         {/* Filters */}
@@ -269,17 +269,17 @@ export default function TasksPanel() {
       {/* Content */}
       <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
         {loading && (
-          <p style={{ color: "#6b7280", fontSize: 13, padding: "20px 8px" }}>
+          <p style={{ color: "var(--fg3)", fontSize: 13, padding: "20px 8px" }}>
             Loading…
           </p>
         )}
         {!loading && error && (
-          <p style={{ color: "#f87171", fontSize: 13, padding: "20px 8px" }}>
+          <p style={{ color: "var(--status-error)", fontSize: 13, padding: "20px 8px" }}>
             {error === "HTTP 503" ? "musu-bridge unavailable" : error}
           </p>
         )}
         {!loading && !error && tasks.length === 0 && (
-          <p style={{ color: "#4b5563", fontSize: 13, padding: "20px 8px" }}>
+          <p style={{ color: "var(--fg4)", fontSize: 13, padding: "20px 8px" }}>
             No delegated tasks yet.
           </p>
         )}
@@ -354,8 +354,8 @@ export default function TasksPanel() {
                       style={{
                         fontSize: 11,
                         color: cancelling.has(task.task_id)
-                          ? "#4b5563"
-                          : "#f87171",
+                          ? "var(--fg4)"
+                          : "var(--status-error)",
                         background: "transparent",
                         border: "1px solid currentColor",
                         borderRadius: 4,
@@ -375,7 +375,7 @@ export default function TasksPanel() {
                   <p
                     style={{
                       fontSize: 12,
-                      color: "#d1d5db",
+                      color: "var(--fg1)",
                       margin: 0,
                       lineHeight: 1.5,
                       ...(isExpanded
@@ -394,7 +394,7 @@ export default function TasksPanel() {
 
                 {/* Row 3: error */}
                 {task.error && (
-                  <p style={{ fontSize: 11, color: "#f87171", margin: 0 }}>
+                  <p style={{ fontSize: 11, color: "var(--status-error)", margin: 0 }}>
                     {task.error}
                   </p>
                 )}
@@ -414,7 +414,7 @@ export default function TasksPanel() {
                     <p
                       style={{
                         fontSize: 10,
-                        color: "#6b7280",
+                        color: "var(--fg3)",
                         margin: "0 0 6px",
                         fontFamily: "monospace",
                         letterSpacing: "0.05em",
@@ -425,7 +425,7 @@ export default function TasksPanel() {
                     <p
                       style={{
                         fontSize: 11,
-                        color: "#9ca3af",
+                        color: "var(--fg2)",
                         margin: "0 0 10px",
                         fontFamily: "monospace",
                       }}
@@ -437,7 +437,7 @@ export default function TasksPanel() {
                         <p
                           style={{
                             fontSize: 10,
-                            color: "#6b7280",
+                            color: "var(--fg3)",
                             margin: "0 0 4px",
                             fontFamily: "monospace",
                             letterSpacing: "0.05em",
@@ -448,7 +448,7 @@ export default function TasksPanel() {
                         <pre
                           style={{
                             fontSize: 11,
-                            color: "#f87171",
+                            color: "var(--status-error)",
                             margin: 0,
                             fontFamily: "monospace",
                             whiteSpace: "pre-wrap",
@@ -462,7 +462,7 @@ export default function TasksPanel() {
                     <p
                       style={{
                         fontSize: 10,
-                        color: "#4b5563",
+                        color: "var(--fg4)",
                         margin: "8px 0 0",
                         fontFamily: "monospace",
                       }}
@@ -478,7 +478,7 @@ export default function TasksPanel() {
                   <p
                     style={{
                       fontSize: 10,
-                      color: "#374151",
+                      color: "var(--fg4)",
                       margin: 0,
                       fontFamily: "monospace",
                     }}
@@ -501,9 +501,9 @@ export default function TasksPanel() {
               marginBottom: 16,
               padding: "8px",
               fontSize: 12,
-              color: loadingMore ? "#4b5563" : "#9ca3af",
+              color: loadingMore ? "var(--fg4)" : "var(--fg2)",
               background: "transparent",
-              border: "1px solid #2d2d2d",
+              border: "1px solid var(--border-default)",
               borderRadius: 6,
               cursor: loadingMore ? "default" : "pointer",
             }}

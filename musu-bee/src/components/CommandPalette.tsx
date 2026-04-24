@@ -134,7 +134,7 @@ export default function CommandPalette({
           left: "50%",
           transform: "translateX(-50%)",
           width: "min(560px, 90vw)",
-          background: "#141414",
+          background: "var(--bg-surface)",
           border: "1px solid #2a2a2a",
           borderRadius: 12,
           boxShadow: "0 24px 80px rgba(0,0,0,0.7)",
@@ -154,7 +154,7 @@ export default function CommandPalette({
             background: "transparent",
             border: "none",
             borderBottom: "1px solid #2a2a2a",
-            color: "#e5e7eb",
+            color: "var(--fg1)",
             fontSize: 15,
             padding: "14px 16px",
             outline: "none",
@@ -173,7 +173,7 @@ export default function CommandPalette({
               style={{
                 padding: "12px 16px",
                 fontSize: 13,
-                color: "#6b7280",
+                color: "var(--fg3)",
                 textAlign: "center",
               }}
             >
@@ -188,8 +188,8 @@ export default function CommandPalette({
                 style={{
                   padding: "10px 16px",
                   cursor: "pointer",
-                  background: idx === selectedIdx ? "#1e1e1e" : "transparent",
-                  color: idx === selectedIdx ? "#f3f4f6" : "#9ca3af",
+                  background: idx === selectedIdx ? "var(--bg-overlay)" : "transparent",
+                  color: idx === selectedIdx ? "var(--fg1)" : "var(--fg2)",
                   fontSize: 14,
                   display: "flex",
                   alignItems: "center",

@@ -44,8 +44,8 @@ export default function LoginPage() {
     <div
       style={{
         minHeight: "100vh",
-        background: "#0a0a0a",
-        color: "#e5e7eb",
+        background: "var(--bg-base)",
+        color: "var(--fg1)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -55,8 +55,8 @@ export default function LoginPage() {
     >
       <div
         style={{
-          background: "#111111",
-          border: "1px solid #1f1f1f",
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border-subtle)",
           borderRadius: 16,
           padding: "40px 36px",
           width: "100%",
@@ -68,7 +68,7 @@ export default function LoginPage() {
           style={{
             fontSize: 20,
             fontWeight: 800,
-            color: "#f3f4f6",
+            color: "var(--fg1)",
             textDecoration: "none",
             display: "block",
             marginBottom: 32,
@@ -88,7 +88,7 @@ export default function LoginPage() {
         >
           Sign in
         </h1>
-        <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 28 }}>
+        <p style={{ fontSize: 14, color: "var(--fg3)", marginBottom: 28 }}>
           Sign in to continue
         </p>
 
@@ -96,7 +96,7 @@ export default function LoginPage() {
           <div
             style={{
               background: "#1f2937",
-              border: "1px solid #374151",
+              border: "1px solid var(--fg4)",
               borderRadius: 8,
               padding: "10px 14px",
               fontSize: 13,
@@ -116,15 +116,15 @@ export default function LoginPage() {
             alignItems: "center",
             gap: 10,
             margin: "0 0 18px",
-            color: "#4b5563",
+            color: "var(--fg4)",
             fontSize: 12,
             textTransform: "uppercase",
             letterSpacing: "0.08em",
           }}
         >
-          <div style={{ height: 1, flex: 1, background: "#1f1f1f" }} />
+          <div style={{ height: 1, flex: 1, background: "var(--border-subtle)" }} />
           <span>or use email</span>
-          <div style={{ height: 1, flex: 1, background: "#1f1f1f" }} />
+          <div style={{ height: 1, flex: 1, background: "var(--border-subtle)" }} />
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -133,7 +133,7 @@ export default function LoginPage() {
               style={{
                 display: "block",
                 fontSize: 13,
-                color: "#9ca3af",
+                color: "var(--fg2)",
                 marginBottom: 6,
               }}
             >
@@ -147,11 +147,11 @@ export default function LoginPage() {
               placeholder="you@example.com"
               style={{
                 width: "100%",
-                background: "#1a1a1a",
-                border: "1px solid #2d2d2d",
+                background: "var(--bg-card)",
+                border: "1px solid var(--border-default)",
                 borderRadius: 8,
                 padding: "10px 14px",
-                color: "#f3f4f6",
+                color: "var(--fg1)",
                 fontSize: 14,
                 outline: "none",
                 boxSizing: "border-box",
@@ -164,7 +164,7 @@ export default function LoginPage() {
               style={{
                 display: "block",
                 fontSize: 13,
-                color: "#9ca3af",
+                color: "var(--fg2)",
                 marginBottom: 6,
               }}
             >
@@ -178,11 +178,11 @@ export default function LoginPage() {
               placeholder="••••••••"
               style={{
                 width: "100%",
-                background: "#1a1a1a",
-                border: "1px solid #2d2d2d",
+                background: "var(--bg-card)",
+                border: "1px solid var(--border-default)",
                 borderRadius: 8,
                 padding: "10px 14px",
-                color: "#f3f4f6",
+                color: "var(--fg1)",
                 fontSize: 14,
                 outline: "none",
                 boxSizing: "border-box",
@@ -230,7 +230,7 @@ export default function LoginPage() {
             marginTop: 24,
             textAlign: "center",
             fontSize: 14,
-            color: "#6b7280",
+            color: "var(--fg3)",
           }}
         >
           Need an account?{" "}

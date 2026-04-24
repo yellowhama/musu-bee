@@ -62,8 +62,8 @@ export default function OAuthButtons({ next = "/app" }: OAuthButtonsProps) {
             style={{
               width: "100%",
               background: "#171717",
-              color: "#f3f4f6",
-              border: "1px solid #2d2d2d",
+              color: "var(--fg1)",
+              border: "1px solid var(--border-default)",
               borderRadius: 8,
               padding: "12px 16px",
               fontSize: 14,

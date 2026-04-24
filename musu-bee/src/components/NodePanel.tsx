@@ -160,10 +160,10 @@ export default function NodePanel() {
   const statusDot = (status: NodeInfo["status"]) => {
     const color =
       status === "online" || status === "self"
-        ? "#22c55e"
+        ? "var(--status-online)"
         : status === "offline"
-        ? "#6b7280"
-        : "#ef4444";
+        ? "var(--fg3)"
+        : "var(--status-error)";
     return (
       <span
         style={{
@@ -200,7 +200,7 @@ export default function NodePanel() {
           style={{
             fontSize: 11,
             fontWeight: 700,
-            color: "#6b7280",
+            color: "var(--fg3)",
             textTransform: "uppercase",
             letterSpacing: "0.08em",
           }}
@@ -211,9 +211,9 @@ export default function NodePanel() {
           onClick={() => { setShowForm(!showForm); setPairMsg(null); }}
           style={{
             background: "none",
-            border: "1px solid #2d2d2d",
+            border: "1px solid var(--border-default)",
             borderRadius: 4,
-            color: "#9ca3af",
+            color: "var(--fg2)",
             fontSize: 11,
             padding: "2px 7px",
             cursor: "pointer",
@@ -226,19 +226,19 @@ export default function NodePanel() {
       {/* Cloud registry — "My Nodes" (only when MUSU_TOKEN configured) */}
       {tokenConfigured && (
         <div style={{ marginBottom: 8 }}>
-          <div style={{ fontSize: 10, color: "#4b5563", padding: "2px 6px 4px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          <div style={{ fontSize: 10, color: "var(--fg4)", padding: "2px 6px 4px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
             My Nodes (musu.pro)
           </div>
           <div
             style={{
-              background: "#141414",
+              background: "var(--bg-surface)",
               border: "1px solid #242424",
               borderRadius: 8,
               overflow: "hidden",
             }}
           >
             {registryNodes.length === 0 ? (
-              <div style={{ padding: "10px 12px", fontSize: 11, color: "#4b5563" }}>
+              <div style={{ padding: "10px 12px", fontSize: 11, color: "var(--fg4)" }}>
                 No registered nodes yet
               </div>
             ) : (
@@ -253,7 +253,7 @@ export default function NodePanel() {
                       display: "flex",
                       alignItems: "center",
                       padding: "7px 10px",
-                      borderBottom: "1px solid #1f1f1f",
+                      borderBottom: "1px solid var(--border-subtle)",
                       gap: 6,
                     }}
                   >
@@ -263,24 +263,24 @@ export default function NodePanel() {
                         width: 7,
                         height: 7,
                         borderRadius: "50%",
-                        background: stale ? "#4b5563" : "#22c55e",
+                        background: stale ? "var(--fg4)" : "var(--status-online)",
                         flexShrink: 0,
                       }}
                     />
-                    <span style={{ fontSize: 12, color: "#e5e7eb", flex: 1 }}>
+                    <span style={{ fontSize: 12, color: "var(--fg1)", flex: 1 }}>
                       {rn.node_name}
                     </span>
                     {paired ? (
-                      <span style={{ fontSize: 10, color: "#22c55e" }}>Connected</span>
+                      <span style={{ fontSize: 10, color: "var(--status-online)" }}>Connected</span>
                     ) : (
                       <button
                         onClick={() => void handleCloudPair(rn)}
                         disabled={isPairing}
                         style={{
                           background: "none",
-                          border: "1px solid #374151",
+                          border: "1px solid var(--fg4)",
                           borderRadius: 4,
-                          color: isPairing ? "#4b5563" : "#9ca3af",
+                          color: isPairing ? "var(--fg4)" : "var(--fg2)",
                           fontSize: 10,
                           padding: "2px 6px",
                           cursor: isPairing ? "not-allowed" : "pointer",
@@ -300,12 +300,12 @@ export default function NodePanel() {
       {/* mDNS discovered nodes */}
       {discoveredNodes.length > 0 && (
         <div style={{ marginBottom: 8 }}>
-          <div style={{ fontSize: 10, color: "#4b5563", padding: "2px 6px 4px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          <div style={{ fontSize: 10, color: "var(--fg4)", padding: "2px 6px 4px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
             Discovered (network)
           </div>
           <div
             style={{
-              background: "#141414",
+              background: "var(--bg-surface)",
               border: "1px solid #242424",
               borderRadius: 8,
               overflow: "hidden",
@@ -321,7 +321,7 @@ export default function NodePanel() {
                     display: "flex",
                     alignItems: "center",
                     padding: "7px 10px",
-                    borderBottom: "1px solid #1f1f1f",
+                    borderBottom: "1px solid var(--border-subtle)",
                     gap: 6,
                   }}
                 >
@@ -331,15 +331,15 @@ export default function NodePanel() {
                       width: 7,
                       height: 7,
                       borderRadius: "50%",
-                      background: "#22c55e",
+                      background: "var(--status-online)",
                       flexShrink: 0,
                     }}
                   />
-                  <span style={{ fontSize: 12, color: "#e5e7eb", flex: 1 }}>
+                  <span style={{ fontSize: 12, color: "var(--fg1)", flex: 1 }}>
                     {dn.name}
                   </span>
                   {alreadyPaired ? (
-                    <span style={{ fontSize: 10, color: "#22c55e" }}>Connected</span>
+                    <span style={{ fontSize: 10, color: "var(--status-online)" }}>Connected</span>
                   ) : (
                     <button
                       onClick={() => {
@@ -353,9 +353,9 @@ export default function NodePanel() {
                       disabled={isPairing}
                       style={{
                         background: "none",
-                        border: "1px solid #374151",
+                        border: "1px solid var(--fg4)",
                         borderRadius: 4,
-                        color: isPairing ? "#4b5563" : "#9ca3af",
+                        color: isPairing ? "var(--fg4)" : "var(--fg2)",
                         fontSize: 10,
                         padding: "2px 6px",
                         cursor: isPairing ? "not-allowed" : "pointer",
@@ -374,14 +374,14 @@ export default function NodePanel() {
       {/* Local bridge node list */}
       <div
         style={{
-          background: "#141414",
+          background: "var(--bg-surface)",
           border: "1px solid #242424",
           borderRadius: 8,
           overflow: "hidden",
         }}
       >
         {nodes.length === 0 ? (
-          <div style={{ padding: "10px 12px", fontSize: 12, color: "#4b5563" }}>
+          <div style={{ padding: "10px 12px", fontSize: 12, color: "var(--fg4)" }}>
             No connected nodes
           </div>
         ) : (
@@ -392,16 +392,16 @@ export default function NodePanel() {
                 display: "flex",
                 flexDirection: "column",
                 padding: "7px 10px",
-                borderBottom: "1px solid #1f1f1f",
+                borderBottom: "1px solid var(--border-subtle)",
                 gap: 4,
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 {statusDot(node.status)}
-                <span style={{ fontSize: 12, color: "#e5e7eb", flex: 1 }}>
+                <span style={{ fontSize: 12, color: "var(--fg1)", flex: 1 }}>
                   {node.name}
                 </span>
-                <span style={{ fontSize: 11, color: "#4b5563" }}>
+                <span style={{ fontSize: 11, color: "var(--fg4)" }}>
                   {node.status === "self" ? "this machine" : node.status}
                 </span>
                 {!node.is_self && (
@@ -410,7 +410,7 @@ export default function NodePanel() {
                     style={{
                       background: "none",
                       border: "none",
-                      color: "#4b5563",
+                      color: "var(--fg4)",
                       fontSize: 11,
                       cursor: "pointer",
                       padding: "1px 4px",
@@ -428,8 +428,8 @@ export default function NodePanel() {
                       key={agent}
                       style={{
                         fontSize: 9,
-                        color: "#6b7280",
-                        background: "#1a1a1a",
+                        color: "var(--fg3)",
+                        background: "var(--bg-card)",
                         border: "1px solid #2a2a2a",
                         borderRadius: 3,
                         padding: "1px 5px",
@@ -457,7 +457,7 @@ export default function NodePanel() {
             border: "1px solid #14532d",
             borderRadius: 6,
             fontSize: 11,
-            color: "#22c55e",
+            color: "var(--status-online)",
           }}
         >
           ✓ {assignBanner}
@@ -469,13 +469,13 @@ export default function NodePanel() {
         <div
           style={{
             marginTop: 6,
-            background: "#141414",
+            background: "var(--bg-surface)",
             border: "1px solid #242424",
             borderRadius: 8,
             padding: "10px 10px",
           }}
         >
-          <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 6 }}>
+          <div style={{ fontSize: 11, color: "var(--fg3)", marginBottom: 6 }}>
             {tokenConfigured ? "Connect via Manual IP" : "Enter IP address"}
           </div>
           <div style={{ display: "flex", gap: 4 }}>
@@ -487,10 +487,10 @@ export default function NodePanel() {
               onKeyDown={(e) => e.key === "Enter" && void handlePair()}
               style={{
                 flex: 1,
-                background: "#111",
-                border: "1px solid #2d2d2d",
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border-default)",
                 borderRadius: 5,
-                color: "#e5e7eb",
+                color: "var(--fg1)",
                 fontSize: 12,
                 padding: "5px 8px",
                 outline: "none",
@@ -502,10 +502,10 @@ export default function NodePanel() {
               onChange={(e) => setPort(e.target.value)}
               style={{
                 width: 52,
-                background: "#111",
-                border: "1px solid #2d2d2d",
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border-default)",
                 borderRadius: 5,
-                color: "#9ca3af",
+                color: "var(--fg2)",
                 fontSize: 12,
                 padding: "5px 6px",
                 outline: "none",
@@ -515,10 +515,10 @@ export default function NodePanel() {
               onClick={() => void handlePair()}
               disabled={pairing || !ip.trim()}
               style={{
-                background: pairing ? "#1a1a1a" : "#1f2937",
-                border: "1px solid #374151",
+                background: pairing ? "var(--bg-card)" : "#1f2937",
+                border: "1px solid var(--fg4)",
                 borderRadius: 5,
-                color: "#e5e7eb",
+                color: "var(--fg1)",
                 fontSize: 12,
                 padding: "5px 10px",
                 cursor: pairing ? "not-allowed" : "pointer",
@@ -532,7 +532,7 @@ export default function NodePanel() {
               style={{
                 marginTop: 6,
                 fontSize: 11,
-                color: pairMsg.ok ? "#22c55e" : "#ef4444",
+                color: pairMsg.ok ? "var(--status-online)" : "var(--status-error)",
               }}
             >
               {pairMsg.text}
@@ -547,7 +547,7 @@ export default function NodePanel() {
           style={{
             marginTop: 6,
             fontSize: 11,
-            color: pairMsg.ok ? "#22c55e" : "#ef4444",
+            color: pairMsg.ok ? "var(--status-online)" : "var(--status-error)",
             padding: "0 4px",
           }}
         >

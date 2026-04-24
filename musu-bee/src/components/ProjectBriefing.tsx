@@ -18,9 +18,9 @@ interface Briefing {
 }
 
 const STATUS_INDICATOR: Record<string, { color: string; label: string }> = {
-  healthy: { color: "#22c55e", label: "Running well" },
-  busy: { color: "#f59e0b", label: "Busy" },
-  needs_attention: { color: "#f87171", label: "Needs attention" },
+  healthy: { color: "var(--status-online)", label: "Running well" },
+  busy: { color: "var(--status-warn)", label: "Busy" },
+  needs_attention: { color: "var(--status-error)", label: "Needs attention" },
 };
 
 interface ProjectBriefingProps {
@@ -82,7 +82,7 @@ export default function ProjectBriefing({ companyId, nodeName }: ProjectBriefing
           background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)",
           borderRadius: 8, padding: "10px 14px", marginBottom: 16,
         }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#f87171" }}>Needs your attention</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--status-error)" }}>Needs your attention</span>
           {briefing.blockers.map((b, i) => (
             <p key={i} style={{ fontSize: 13, color: "var(--fg1)", margin: "6px 0 0" }}>{b.title}</p>
           ))}

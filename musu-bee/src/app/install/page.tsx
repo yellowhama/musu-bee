@@ -57,7 +57,7 @@ const titleStyle: React.CSSProperties = {
 const descStyle: React.CSSProperties = {
   margin: 0,
   fontSize: 16,
-  color: "#9ca3af",
+  color: "var(--fg2)",
   lineHeight: 1.75,
   maxWidth: 760,
 };
@@ -88,6 +88,6 @@ const detailBlockStyle: React.CSSProperties = {
   borderRadius: 16,
   background: "#0f0f0f",
   border: "1px solid rgba(255,255,255,0.08)",
-  color: "#d1d5db",
+  color: "var(--fg1)",
   lineHeight: 1.7,
 };

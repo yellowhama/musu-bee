@@ -17,24 +17,24 @@ interface Issue {
 }
 
 const STATUS_COLOR: Record<Issue["status"], string> = {
-  open: "#60a5fa",
-  in_progress: "#f59e0b",
-  resolved: "#22c55e",
-  closed: "#6b7280",
+  open: "var(--status-running)",
+  in_progress: "var(--status-warn)",
+  resolved: "var(--status-online)",
+  closed: "var(--fg3)",
 };
 
 const PRIORITY_COLOR: Record<Issue["priority"], string> = {
-  low: "#6b7280",
-  medium: "#9ca3af",
-  high: "#f59e0b",
-  critical: "#f87171",
+  low: "var(--fg3)",
+  medium: "var(--fg2)",
+  high: "var(--status-warn)",
+  critical: "var(--status-error)",
 };
 
 const SELECT_STYLE: React.CSSProperties = {
   fontSize: 11,
-  color: "#9ca3af",
-  background: "#1a1a1a",
-  border: "1px solid #2d2d2d",
+  color: "var(--fg2)",
+  background: "var(--bg-card)",
+  border: "1px solid var(--border-default)",
   borderRadius: 6,
   padding: "3px 8px",
   cursor: "pointer",
@@ -153,7 +153,7 @@ export default function IssuesPanel({ companyId }: IssuesPanelProps) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 15, fontWeight: 600, color: "#f3f4f6" }}>
+          <span style={{ fontSize: 15, fontWeight: 600, color: "var(--fg1)" }}>
             Issues
           </span>
           <span
@@ -173,9 +173,9 @@ export default function IssuesPanel({ companyId }: IssuesPanelProps) {
             onClick={() => void doFetch()}
             style={{
               fontSize: 11,
-              color: "#9ca3af",
+              color: "var(--fg2)",
               background: "transparent",
-              border: "1px solid #2d2d2d",
+              border: "1px solid var(--border-default)",
               borderRadius: 4,
               padding: "3px 8px",
               cursor: "pointer",
@@ -203,22 +203,22 @@ export default function IssuesPanel({ companyId }: IssuesPanelProps) {
       {/* Content */}
       <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
         {!companyId && (
-          <p style={{ color: "#6b7280", fontSize: 13, padding: "20px 8px" }}>
+          <p style={{ color: "var(--fg3)", fontSize: 13, padding: "20px 8px" }}>
             No active company selected.
           </p>
         )}
         {companyId && loading && (
-          <p style={{ color: "#6b7280", fontSize: 13, padding: "20px 8px" }}>
+          <p style={{ color: "var(--fg3)", fontSize: 13, padding: "20px 8px" }}>
             Loading…
           </p>
         )}
         {companyId && !loading && error && (
-          <p style={{ color: "#f87171", fontSize: 13, padding: "20px 8px" }}>
+          <p style={{ color: "var(--status-error)", fontSize: 13, padding: "20px 8px" }}>
             {error === "HTTP 503" ? "musu-bridge unavailable" : error}
           </p>
         )}
         {companyId && !loading && !error && issues.length === 0 && (
-          <p style={{ color: "#4b5563", fontSize: 13, padding: "20px 8px" }}>
+          <p style={{ color: "var(--fg4)", fontSize: 13, padding: "20px 8px" }}>
             No issues found.
           </p>
         )}
@@ -290,7 +290,7 @@ export default function IssuesPanel({ companyId }: IssuesPanelProps) {
                   style={{
                     fontSize: 13,
                     fontWeight: 500,
-                    color: "#e5e7eb",
+                    color: "var(--fg1)",
                     lineHeight: 1.4,
                   }}
                 >
@@ -302,7 +302,7 @@ export default function IssuesPanel({ companyId }: IssuesPanelProps) {
                   <p
                     style={{
                       fontSize: 12,
-                      color: "#9ca3af",
+                      color: "var(--fg2)",
                       margin: 0,
                       lineHeight: 1.5,
                       ...(isExpanded
@@ -337,7 +337,7 @@ export default function IssuesPanel({ companyId }: IssuesPanelProps) {
                     <p
                       style={{
                         fontSize: 10,
-                        color: "#4b5563",
+                        color: "var(--fg4)",
                         margin: 0,
                         fontFamily: "monospace",
                       }}
@@ -345,12 +345,12 @@ export default function IssuesPanel({ companyId }: IssuesPanelProps) {
                       {issue.id}
                     </p>
                     {issue.assignee_id && (
-                      <p style={{ fontSize: 11, color: "#9ca3af", margin: 0 }}>
+                      <p style={{ fontSize: 11, color: "var(--fg2)", margin: 0 }}>
                         assignee: {issue.assignee_id}
                       </p>
                     )}
                     {issue.checkout_by && (
-                      <p style={{ fontSize: 11, color: "#f59e0b", margin: 0 }}>
+                      <p style={{ fontSize: 11, color: "var(--status-warn)", margin: 0 }}>
                         checked out by: {issue.checkout_by}
                       </p>
                     )}
@@ -361,7 +361,7 @@ export default function IssuesPanel({ companyId }: IssuesPanelProps) {
                         style={{
                           alignSelf: "flex-start",
                           fontSize: 11,
-                          color: checkingOut.has(issue.id) ? "#4b5563" : "#60a5fa",
+                          color: checkingOut.has(issue.id) ? "var(--fg4)" : "var(--status-running)",
                           background: "transparent",
                           border: "1px solid currentColor",
                           borderRadius: 4,
@@ -380,7 +380,7 @@ export default function IssuesPanel({ companyId }: IssuesPanelProps) {
                   <p
                     style={{
                       fontSize: 10,
-                      color: "#374151",
+                      color: "var(--fg4)",
                       margin: 0,
                       fontFamily: "monospace",
                     }}

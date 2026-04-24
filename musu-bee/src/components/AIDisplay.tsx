@@ -112,7 +112,7 @@ export default function AIDisplay({ activePanel, companyId, openRequest, onOpenH
           display: "flex",
           alignItems: "stretch",
           borderBottom: "1px solid var(--border-subtle, rgba(255,255,255,0.06))",
-          background: "var(--bg-base, #0d0d0d)",
+          background: "var(--bg-base, var(--bg-base))",
           flexShrink: 0,
           overflowX: "auto",
           overflowY: "hidden",
@@ -148,7 +148,7 @@ export default function AIDisplay({ activePanel, companyId, openRequest, onOpenH
                 onClick={(e) => { e.stopPropagation(); closeTab(tab.id); }}
                 style={{
                   fontSize: 10,
-                  color: "var(--fg4, #374151)",
+                  color: "var(--fg4, var(--fg4))",
                   cursor: "pointer",
                   marginLeft: 4,
                   padding: "2px 4px",
@@ -221,7 +221,7 @@ function DashboardView({ companyId }: { companyId?: string | null }) {
       <span style={{ fontSize: 13, color: "var(--fg3, #6B7280)" }}>
         {companyId ? "Company Dashboard" : "No company selected"}
       </span>
-      <span style={{ fontSize: 11, color: "var(--fg4, #374151)" }}>
+      <span style={{ fontSize: 11, color: "var(--fg4, var(--fg4))" }}>
         Select a panel from the left, or wait for AI to show something here
       </span>
     </div>
@@ -233,7 +233,7 @@ function FilesView() {
     <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
       <span style={{ fontSize: 48, opacity: 0.12 }}>📁</span>
       <span style={{ fontSize: 13, color: "var(--fg3, #6B7280)" }}>File Explorer</span>
-      <span style={{ fontSize: 11, color: "var(--fg4, #374151)" }}>
+      <span style={{ fontSize: 11, color: "var(--fg4, var(--fg4))" }}>
         Browse project files, docs, wiki pages
       </span>
     </div>
@@ -258,7 +258,7 @@ function CodeView({ filename, code, language }: { filename: string; code: string
         {filename} {language && <span style={{ opacity: 0.5 }}>({language})</span>}
       </div>
       <pre style={{
-        background: "var(--bg-card, #1a1a1a)", borderRadius: 8, padding: 16,
+        background: "var(--bg-card, var(--bg-card))", borderRadius: 8, padding: 16,
         fontSize: 12, lineHeight: 1.5, overflowX: "auto",
         fontFamily: "var(--font-jetbrains, monospace)", color: "var(--fg1)",
       }}>

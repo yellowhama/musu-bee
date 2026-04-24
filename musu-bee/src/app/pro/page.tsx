@@ -72,8 +72,8 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
     <div
       style={{
         minHeight: "100vh",
-        background: "#0a0a0a",
-        color: "#f3f4f6",
+        background: "var(--bg-base)",
+        color: "var(--fg1)",
         fontFamily:
           "'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif",
         overflowX: "hidden",
@@ -85,7 +85,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
           style={{
             background: "rgba(34,197,94,0.1)",
             border: "1px solid rgba(34,197,94,0.3)",
-            color: "#86efac",
+            color: "var(--status-online)",
             padding: "12px 24px",
             textAlign: "center",
             fontSize: 14,
@@ -118,7 +118,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
           zIndex: 50,
           background: "rgba(10,10,10,0.85)",
           backdropFilter: "blur(12px)",
-          borderBottom: "1px solid #1f1f1f",
+          borderBottom: "1px solid var(--border-subtle)",
           padding: "0 24px",
           height: 56,
           display: "flex",
@@ -151,7 +151,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
             href="/pro#pricing"
             style={{
               fontSize: 13,
-              color: "#9ca3af",
+              color: "var(--fg2)",
               textDecoration: "none",
               padding: "6px 14px",
               borderRadius: 8,
@@ -164,7 +164,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
             href="/landing"
             style={{
               fontSize: 13,
-              color: "#0a0a0a",
+              color: "var(--bg-base)",
               background: "var(--musu-color-brand-accent)",
               textDecoration: "none",
               padding: "6px 16px",
@@ -232,7 +232,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
         <p
           style={{
             fontSize: "clamp(16px, 2vw, 20px)",
-            color: "#9ca3af",
+            color: "var(--fg2)",
             lineHeight: 1.7,
             maxWidth: 560,
             margin: "0 auto 48px",
@@ -249,7 +249,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
             style={{
               display: "inline-block",
               background: "var(--musu-color-brand-accent)",
-              color: "#0a0a0a",
+              color: "var(--bg-base)",
               fontWeight: 700,
               fontSize: 15,
               padding: "14px 32px",
@@ -265,13 +265,13 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
             style={{
               display: "inline-block",
               background: "transparent",
-              color: "#f3f4f6",
+              color: "var(--fg1)",
               fontWeight: 600,
               fontSize: 15,
               padding: "14px 32px",
               borderRadius: 12,
               textDecoration: "none",
-              border: "1px solid #2d2d2d",
+              border: "1px solid var(--border-default)",
               letterSpacing: "-0.01em",
             }}
           >
@@ -283,13 +283,13 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
         <div
           style={{
             marginTop: 72,
-            background: "#111",
-            border: "1px solid #1f1f1f",
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-subtle)",
             borderRadius: 16,
             padding: "24px 28px",
             textAlign: "left",
             fontSize: 13,
-            color: "#6b7280",
+            color: "var(--fg3)",
             fontFamily: "monospace",
           }}
         >
@@ -300,12 +300,12 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
               gap: 8,
               marginBottom: 16,
               paddingBottom: 12,
-              borderBottom: "1px solid #1f1f1f",
+              borderBottom: "1px solid var(--border-subtle)",
             }}
           >
-            <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#22c55e", display: "inline-block" }} />
-            <span style={{ color: "#f3f4f6", fontWeight: 600, fontSize: 13 }}>MUSU Team Status</span>
-            <span style={{ marginLeft: "auto", color: "#374151" }}>2 active</span>
+            <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--status-online)", display: "inline-block" }} />
+            <span style={{ color: "var(--fg1)", fontWeight: 600, fontSize: 13 }}>MUSU Team Status</span>
+            <span style={{ marginLeft: "auto", color: "var(--fg4)" }}>2 active</span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {[
@@ -322,19 +322,19 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
                     width: 7,
                     height: 7,
                     borderRadius: "50%",
-                    background: d.status === "online" ? "#22c55e" : d.status === "busy" ? "var(--musu-color-brand-accent)" : "#374151",
+                    background: d.status === "online" ? "var(--status-online)" : d.status === "busy" ? "var(--musu-color-brand-accent)" : "var(--fg4)",
                     display: "inline-block",
                     flexShrink: 0,
                   }}
                 />
-                <span style={{ color: "#d1d5db", minWidth: 160 }}>{d.label}</span>
-                <span style={{ color: "#4b5563", fontSize: 11, minWidth: 120 }}>{d.note}</span>
+                <span style={{ color: "var(--fg1)", minWidth: 160 }}>{d.label}</span>
+                <span style={{ color: "var(--fg4)", fontSize: 11, minWidth: 120 }}>{d.note}</span>
                 {d.status !== "offline" ? (
-                  <span style={{ color: "#6b7280", fontSize: 11 }}>
+                  <span style={{ color: "var(--fg3)", fontSize: 11 }}>
                     CPU {d.cpu}% · GPU {d.gpu ?? "—"}% · RAM {d.ram}%
                   </span>
                 ) : (
-                  <span style={{ color: "#374151", fontSize: 11 }}>Offline</span>
+                  <span style={{ color: "var(--fg4)", fontSize: 11 }}>Offline</span>
                 )}
               </div>
             ))}
@@ -372,8 +372,8 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
             <div
               key={vp.title}
               style={{
-                background: "#111",
-                border: "1px solid #1f1f1f",
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border-subtle)",
                 borderRadius: 16,
                 padding: "28px 24px",
               }}
@@ -385,12 +385,12 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
                   fontWeight: 700,
                   letterSpacing: "-0.02em",
                   marginBottom: 10,
-                  color: "#f3f4f6",
+                  color: "var(--fg1)",
                 }}
               >
                 {vp.title}
               </h3>
-              <p style={{ fontSize: 14, color: "#6b7280", lineHeight: 1.65, margin: 0 }}>
+              <p style={{ fontSize: 14, color: "var(--fg3)", lineHeight: 1.65, margin: 0 }}>
                 {vp.desc}
               </p>
             </div>
@@ -421,7 +421,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
         <p
           style={{
             textAlign: "center",
-            color: "#6b7280",
+            color: "var(--fg3)",
             fontSize: 15,
             marginBottom: 48,
           }}
@@ -440,8 +440,8 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
             <div
               key={tier.name}
               style={{
-                background: tier.highlight ? "var(--musu-color-brand-accent)" : "#111",
-                border: tier.highlight ? "none" : "1px solid #1f1f1f",
+                background: tier.highlight ? "var(--musu-color-brand-accent)" : "var(--bg-surface)",
+                border: tier.highlight ? "none" : "1px solid var(--border-subtle)",
                 borderRadius: 20,
                 padding: "32px 28px",
                 position: "relative",
@@ -472,7 +472,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
                 style={{
                   fontSize: 14,
                   fontWeight: 700,
-                  color: tier.highlight ? "#0a0a0a" : "#9ca3af",
+                  color: tier.highlight ? "var(--bg-base)" : "var(--fg2)",
                   letterSpacing: "0.06em",
                   marginBottom: 12,
                 }}
@@ -485,19 +485,19 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
                     fontSize: 40,
                     fontWeight: 900,
                     letterSpacing: "-0.04em",
-                    color: tier.highlight ? "#0a0a0a" : "#f3f4f6",
+                    color: tier.highlight ? "var(--bg-base)" : "var(--fg1)",
                   }}
                 >
                   {tier.price}
                 </span>
-                <span style={{ fontSize: 14, color: tier.highlight ? "#4b3a00" : "#4b5563" }}>
+                <span style={{ fontSize: 14, color: tier.highlight ? "#4b3a00" : "var(--fg4)" }}>
                   {tier.period}
                 </span>
               </div>
               <div
                 style={{
                   fontSize: 13,
-                  color: tier.highlight ? "#4b3a00" : "#6b7280",
+                  color: tier.highlight ? "#4b3a00" : "var(--fg3)",
                   marginBottom: 24,
                   fontWeight: 600,
                 }}
@@ -519,13 +519,13 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
                     key={f}
                     style={{
                       fontSize: 14,
-                      color: tier.highlight ? "#1a1000" : "#9ca3af",
+                      color: tier.highlight ? "#1a1000" : "var(--fg2)",
                       display: "flex",
                       alignItems: "center",
                       gap: 8,
                     }}
                   >
-                    <span style={{ color: tier.highlight ? "#92400e" : "#374151", fontSize: 12 }}>✓</span>
+                    <span style={{ color: tier.highlight ? "#92400e" : "var(--fg4)", fontSize: 12 }}>✓</span>
                     {f}
                   </li>
                 ))}
@@ -534,9 +534,9 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
                 tier={tier.tier}
                 label={tier.cta}
                 style={{
-                  background: tier.highlight ? "#0a0a0a" : "#1a1a1a",
-                  color: tier.highlight ? "var(--musu-color-brand-accent)" : "#f3f4f6",
-                  border: tier.highlight ? "none" : "1px solid #2d2d2d",
+                  background: tier.highlight ? "var(--bg-base)" : "var(--bg-card)",
+                  color: tier.highlight ? "var(--musu-color-brand-accent)" : "var(--fg1)",
+                  border: tier.highlight ? "none" : "1px solid var(--border-default)",
                 }}
               />
             </div>
@@ -568,7 +568,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
         </h2>
         <p
           style={{
-            color: "#6b7280",
+            color: "var(--fg3)",
             fontSize: 15,
             marginBottom: 40,
             lineHeight: 1.6,
@@ -583,7 +583,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
           style={{
             display: "inline-block",
             background: "var(--musu-color-brand-accent)",
-            color: "#0a0a0a",
+            color: "var(--bg-base)",
             fontWeight: 800,
             fontSize: 16,
             padding: "16px 40px",
@@ -599,16 +599,16 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
       {/* ── Footer ── */}
       <footer
         style={{
-          borderTop: "1px solid #1a1a1a",
+          borderTop: "1px solid var(--bg-card)",
           padding: "32px 24px",
           textAlign: "center",
-          color: "#374151",
+          color: "var(--fg4)",
           fontSize: 13,
         }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 8 }}>
           <span style={{ fontSize: 16 }}>🐝</span>
-          <span style={{ fontWeight: 700, color: "#4b5563" }}>MUSU</span>
+          <span style={{ fontWeight: 700, color: "var(--fg4)" }}>MUSU</span>
         </div>
         <p style={{ margin: 0 }}>© 2026 MUSU. All your machines. One team.</p>
       </footer>

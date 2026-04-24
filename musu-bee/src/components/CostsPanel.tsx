@@ -126,7 +126,7 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
           gap: 12,
         }}
       >
-        <span style={{ fontSize: 15, fontWeight: 600, color: "#f3f4f6" }}>
+        <span style={{ fontSize: 15, fontWeight: 600, color: "var(--fg1)" }}>
           Costs
         </span>
         {summary && (
@@ -148,9 +148,9 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
           onClick={() => void doFetch()}
           style={{
             fontSize: 11,
-            color: "#9ca3af",
+            color: "var(--fg2)",
             background: "transparent",
-            border: "1px solid #2d2d2d",
+            border: "1px solid var(--border-default)",
             borderRadius: 4,
             padding: "3px 8px",
             cursor: "pointer",
@@ -163,17 +163,17 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
       {/* Content */}
       <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
         {!companyId && (
-          <p style={{ color: "#6b7280", fontSize: 13, padding: "20px 8px" }}>
+          <p style={{ color: "var(--fg3)", fontSize: 13, padding: "20px 8px" }}>
             No active company selected.
           </p>
         )}
         {companyId && loading && (
-          <p style={{ color: "#6b7280", fontSize: 13, padding: "20px 8px" }}>
+          <p style={{ color: "var(--fg3)", fontSize: 13, padding: "20px 8px" }}>
             Loading…
           </p>
         )}
         {companyId && !loading && error && (
-          <p style={{ color: "#f87171", fontSize: 13, padding: "20px 8px" }}>
+          <p style={{ color: "var(--status-error)", fontSize: 13, padding: "20px 8px" }}>
             {error}
           </p>
         )}
@@ -195,7 +195,7 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
                   style={{
                     fontSize: 11,
                     fontWeight: 700,
-                    color: "#6b7280",
+                    color: "var(--fg3)",
                     textTransform: "uppercase",
                     letterSpacing: "0.08em",
                     marginBottom: 10,
@@ -206,7 +206,7 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
                 <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
                   {/* Cost trend */}
                   <div style={{ flex: 1, minWidth: 120 }}>
-                    <div style={{ fontSize: 10, color: "#6b7280", marginBottom: 4 }}>
+                    <div style={{ fontSize: 10, color: "var(--fg3)", marginBottom: 4 }}>
                       Cost (USD)
                     </div>
                     <svg
@@ -216,7 +216,7 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
                     >
                       <polyline
                         fill="none"
-                        stroke="#3b82f6"
+                        stroke="var(--status-running)"
                         strokeWidth="2"
                         strokeLinejoin="round"
                         strokeLinecap="round"
@@ -231,7 +231,7 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
                   </div>
                   {/* Latency trend */}
                   <div style={{ flex: 1, minWidth: 120 }}>
-                    <div style={{ fontSize: 10, color: "#6b7280", marginBottom: 4 }}>
+                    <div style={{ fontSize: 10, color: "var(--fg3)", marginBottom: 4 }}>
                       Latency (s)
                     </div>
                     <svg
@@ -241,7 +241,7 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
                     >
                       <polyline
                         fill="none"
-                        stroke="#f59e0b"
+                        stroke="var(--status-warn)"
                         strokeWidth="2"
                         strokeLinejoin="round"
                         strokeLinecap="round"
@@ -264,7 +264,7 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
                   borderRadius: 8,
                   padding: "12px 16px",
                   marginBottom: 16,
-                  color: "#4b5563",
+                  color: "var(--fg4)",
                   fontSize: 13,
                 }}
               >
@@ -289,7 +289,7 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
                 <div
                   style={{
                     fontSize: 10,
-                    color: "#6b7280",
+                    color: "var(--fg3)",
                     textTransform: "uppercase",
                     letterSpacing: "0.08em",
                     marginBottom: 4,
@@ -297,7 +297,7 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
                 >
                   Total Requests
                 </div>
-                <div style={{ fontSize: 22, fontWeight: 700, color: "#e5e7eb" }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: "var(--fg1)" }}>
                   {summary.total_requests}
                 </div>
               </div>
@@ -305,7 +305,7 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
                 <div
                   style={{
                     fontSize: 10,
-                    color: "#6b7280",
+                    color: "var(--fg3)",
                     textTransform: "uppercase",
                     letterSpacing: "0.08em",
                     marginBottom: 4,
@@ -318,10 +318,10 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
                     fontSize: 22,
                     fontWeight: 700,
                     color: successRate !== null && successRate >= 90
-                      ? "#22c55e"
+                      ? "var(--status-online)"
                       : successRate !== null && successRate >= 70
-                      ? "#f59e0b"
-                      : "#f87171",
+                      ? "var(--status-warn)"
+                      : "var(--status-error)",
                   }}
                 >
                   {successRate !== null ? `${successRate}%` : "—"}
@@ -331,7 +331,7 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
                 <div
                   style={{
                     fontSize: 10,
-                    color: "#6b7280",
+                    color: "var(--fg3)",
                     textTransform: "uppercase",
                     letterSpacing: "0.08em",
                     marginBottom: 4,
@@ -339,7 +339,7 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
                 >
                   Done
                 </div>
-                <div style={{ fontSize: 16, fontWeight: 600, color: "#22c55e" }}>
+                <div style={{ fontSize: 16, fontWeight: 600, color: "var(--status-online)" }}>
                   {doneCount}
                 </div>
               </div>
@@ -347,7 +347,7 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
                 <div
                   style={{
                     fontSize: 10,
-                    color: "#6b7280",
+                    color: "var(--fg3)",
                     textTransform: "uppercase",
                     letterSpacing: "0.08em",
                     marginBottom: 4,
@@ -355,7 +355,7 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
                 >
                   Failed
                 </div>
-                <div style={{ fontSize: 16, fontWeight: 600, color: "#f87171" }}>
+                <div style={{ fontSize: 16, fontWeight: 600, color: "var(--status-error)" }}>
                   {failedCount}
                 </div>
               </div>
@@ -368,7 +368,7 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
                   style={{
                     fontSize: 11,
                     fontWeight: 700,
-                    color: "#6b7280",
+                    color: "var(--fg3)",
                     textTransform: "uppercase",
                     letterSpacing: "0.08em",
                     marginBottom: 8,
@@ -401,14 +401,14 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
                         }}
                       >
                         <span
-                          style={{ fontSize: 12, fontWeight: 600, color: "#e5e7eb", flex: 1 }}
+                          style={{ fontSize: 12, fontWeight: 600, color: "var(--fg1)", flex: 1 }}
                         >
                           {row.agent_name}
                         </span>
-                        <span style={{ fontSize: 12, color: "#9ca3af" }}>
+                        <span style={{ fontSize: 12, color: "var(--fg2)" }}>
                           {row.total_requests} req
                         </span>
-                        <span style={{ fontSize: 11, color: "#6b7280" }}>
+                        <span style={{ fontSize: 11, color: "var(--fg3)" }}>
                           {pct}%
                         </span>
                       </div>
@@ -416,7 +416,7 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
                       <div
                         style={{
                           height: 3,
-                          background: "#2d2d2d",
+                          background: "var(--border-default)",
                           borderRadius: 2,
                           overflow: "hidden",
                         }}
@@ -425,7 +425,7 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
                           style={{
                             height: "100%",
                             width: `${pct}%`,
-                            background: "#3b82f6",
+                            background: "var(--status-running)",
                             borderRadius: 2,
                             transition: "width 0.4s",
                           }}
@@ -438,7 +438,7 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
             )}
 
             {byAgent.length === 0 && (
-              <p style={{ color: "#4b5563", fontSize: 13, padding: "8px 0" }}>
+              <p style={{ color: "var(--fg4)", fontSize: 13, padding: "8px 0" }}>
                 No per-agent data yet.
               </p>
             )}

@@ -93,7 +93,7 @@ export default function CompanyPanel({
           style={{
             fontSize: 11,
             fontWeight: 700,
-            color: "#6b7280",
+            color: "var(--fg3)",
             textTransform: "uppercase",
             letterSpacing: "0.08em",
           }}
@@ -106,7 +106,7 @@ export default function CompanyPanel({
           style={{
             background: "none",
             border: "none",
-            color: showForm ? "#f59e0b" : "#6b7280",
+            color: showForm ? "var(--status-warn)" : "var(--fg3)",
             cursor: "pointer",
             fontSize: 16,
             lineHeight: 1,
@@ -125,7 +125,7 @@ export default function CompanyPanel({
             padding: "8px 10px",
             borderRadius: 8,
             border: "1px solid #3b3b3b",
-            background: "#1a1a1a",
+            background: "var(--bg-card)",
           }}
         >
           <input
@@ -137,10 +137,10 @@ export default function CompanyPanel({
             autoFocus
             style={{
               width: "100%",
-              background: "#111",
+              background: "var(--bg-surface)",
               border: "1px solid #333",
               borderRadius: 4,
-              color: "#e5e7eb",
+              color: "var(--fg1)",
               fontSize: 12,
               padding: "4px 8px",
               marginBottom: 6,
@@ -153,10 +153,10 @@ export default function CompanyPanel({
             onChange={(e) => setFormTemplate(e.target.value)}
             style={{
               width: "100%",
-              background: "#111",
+              background: "var(--bg-surface)",
               border: "1px solid #333",
               borderRadius: 4,
-              color: "#9ca3af",
+              color: "var(--fg2)",
               fontSize: 11,
               padding: "3px 6px",
               marginBottom: 8,
@@ -172,10 +172,10 @@ export default function CompanyPanel({
             disabled={creating || !formName.trim()}
             style={{
               width: "100%",
-              background: creating || !formName.trim() ? "#222" : "#f59e0b",
+              background: creating || !formName.trim() ? "var(--bg-overlay)" : "var(--status-warn)",
               border: "none",
               borderRadius: 4,
-              color: creating || !formName.trim() ? "#6b7280" : "#111",
+              color: creating || !formName.trim() ? "var(--fg3)" : "var(--bg-surface)",
               fontSize: 11,
               fontWeight: 700,
               padding: "4px 0",
@@ -189,12 +189,12 @@ export default function CompanyPanel({
 
       {/* Company list */}
       {loading && (
-        <div style={{ fontSize: 11, color: "#6b7280", padding: "4px 12px" }}>
+        <div style={{ fontSize: 11, color: "var(--fg3)", padding: "4px 12px" }}>
           Loading...
         </div>
       )}
       {!loading && companies.length === 0 && (
-        <div style={{ fontSize: 11, color: "#4b5563", padding: "4px 12px" }}>
+        <div style={{ fontSize: 11, color: "var(--fg4)", padding: "4px 12px" }}>
           No companies yet
         </div>
       )}
@@ -210,27 +210,27 @@ export default function CompanyPanel({
               padding: "6px 10px",
               borderRadius: 6,
               cursor: "pointer",
-              background: isActive ? "#1d1d1d" : "transparent",
+              background: isActive ? "var(--bg-card)" : "transparent",
               marginBottom: 1,
               gap: 6,
             }}
             onMouseEnter={(e) => {
               if (!isActive)
-                (e.currentTarget as HTMLDivElement).style.background = "#181818";
+                (e.currentTarget as HTMLDivElement).style.background = "var(--bg-card)";
             }}
             onMouseLeave={(e) => {
               if (!isActive)
                 (e.currentTarget as HTMLDivElement).style.background = "transparent";
             }}
           >
-            <span style={{ fontSize: 12, flex: 1, color: isActive ? "#f3f4f6" : "#9ca3af", fontWeight: isActive ? 600 : 400 }}>
+            <span style={{ fontSize: 12, flex: 1, color: isActive ? "var(--fg1)" : "var(--fg2)", fontWeight: isActive ? 600 : 400 }}>
               {co.name}
             </span>
             <span
               style={{
                 fontSize: 9,
-                color: "#4b5563",
-                background: "#1e1e1e",
+                color: "var(--fg4)",
+                background: "var(--bg-overlay)",
                 borderRadius: 3,
                 padding: "1px 4px",
                 flexShrink: 0,
@@ -244,15 +244,15 @@ export default function CompanyPanel({
               style={{
                 background: "none",
                 border: "none",
-                color: "#4b5563",
+                color: "var(--fg4)",
                 cursor: "pointer",
                 fontSize: 12,
                 padding: 0,
                 lineHeight: 1,
                 flexShrink: 0,
               }}
-              onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "#ef4444")}
-              onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "#4b5563")}
+              onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "var(--status-error)")}
+              onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "var(--fg4)")}
             >
               ×
             </button>

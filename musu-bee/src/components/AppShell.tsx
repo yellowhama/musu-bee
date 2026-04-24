@@ -222,7 +222,7 @@ export default function AppShell() {
         display: "flex",
         height: "100vh",
         width: "100vw",
-        background: "#0d0d0d",
+        background: "var(--bg-base)",
         fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
         overflow: "hidden",
       }}
@@ -235,8 +235,8 @@ export default function AppShell() {
           left: 0,
           right: 0,
           height: 48,
-          background: "#0d0d0d",
-          borderBottom: "1px solid #1f1f1f",
+          background: "var(--bg-base)",
+          borderBottom: "1px solid var(--border-subtle)",
           display: "flex",
           alignItems: "center",
           padding: "0 20px",
@@ -249,7 +249,7 @@ export default function AppShell() {
           style={{
             fontSize: 16,
             fontWeight: 700,
-            color: "#f3f4f6",
+            color: "var(--fg1)",
             letterSpacing: "-0.02em",
           }}
         >
@@ -258,8 +258,8 @@ export default function AppShell() {
         <span
           style={{
             fontSize: 11,
-            color: "#9ca3af",
-            background: "#141414",
+            color: "var(--fg2)",
+            background: "var(--bg-surface)",
             border: "1px solid #262626",
             borderRadius: 999,
             padding: "4px 9px",
@@ -274,11 +274,11 @@ export default function AppShell() {
             fontSize: 11,
             color:
               companyActivation?.controlPlaneSync.status === "ready"
-                ? "#86efac"
+                ? "var(--status-online)"
                 : companyActivation?.controlPlaneSync.status === "degraded"
-                  ? "#fdba74"
-                  : "#9ca3af",
-            background: "#141414",
+                  ? "var(--status-warn)"
+                  : "var(--fg2)",
+            background: "var(--bg-surface)",
             border: "1px solid #262626",
             borderRadius: 999,
             padding: "4px 9px",
@@ -296,9 +296,9 @@ export default function AppShell() {
             onChange={(e) => setSelectedNodeId(e.target.value)}
             style={{
               fontSize: 11,
-              color: "#f3f4f6",
-              background: "#141414",
-              border: "1px solid #374151",
+              color: "var(--fg1)",
+              background: "var(--bg-surface)",
+              border: "1px solid var(--fg4)",
               borderRadius: 6,
               padding: "4px 10px",
               cursor: "pointer",
@@ -325,9 +325,9 @@ export default function AppShell() {
         {(["port", "bridge", "worker"] as const).map((svc) => {
           const status = serviceHealth[svc];
           const color =
-            status === "up" ? "#86efac" :
-            status === "down" ? "#f87171" :
-            "#6b7280";
+            status === "up" ? "var(--status-online)" :
+            status === "down" ? "var(--status-error)" :
+            "var(--fg3)";
           const labels: Record<string, string> = { port: "PORT", bridge: "BRIDGE", worker: "WORKER" };
           return (
             <button
@@ -337,7 +337,7 @@ export default function AppShell() {
               style={{
                 fontSize: 10,
                 color,
-                background: "#141414",
+                background: "var(--bg-surface)",
                 border: `1px solid ${color}44`,
                 borderRadius: 999,
                 padding: "3px 8px",
@@ -361,8 +361,8 @@ export default function AppShell() {
               position: "fixed",
               top: healthPopover.anchor.y,
               left: healthPopover.anchor.x,
-              background: "#1e1e1e",
-              border: "1px solid #374151",
+              background: "var(--bg-overlay)",
+              border: "1px solid var(--fg4)",
               borderRadius: 8,
               padding: "12px 16px",
               zIndex: 1000,
@@ -371,24 +371,24 @@ export default function AppShell() {
               fontSize: 12,
             }}
           >
-            <div style={{ fontWeight: 600, color: "#e5e7eb", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            <div style={{ fontWeight: 600, color: "var(--fg1)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em" }}>
               musu-{healthPopover.svc}
             </div>
             {healthPopover.loading ? (
-              <div style={{ color: "#6b7280" }}>Loading…</div>
+              <div style={{ color: "var(--fg3)" }}>Loading…</div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 4, color: "#9ca3af" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, color: "var(--fg2)" }}>
                 <div>
                   Status:{" "}
-                  <span style={{ color: healthPopover.data?.status === "up" ? "#86efac" : "#f87171", fontWeight: 500 }}>
+                  <span style={{ color: healthPopover.data?.status === "up" ? "var(--status-online)" : "var(--status-error)", fontWeight: 500 }}>
                     {healthPopover.data?.status ?? "unknown"}
                   </span>
                 </div>
                 {healthPopover.data?.latency_ms !== undefined && (
-                  <div>Latency: <span style={{ color: "#e5e7eb" }}>{healthPopover.data.latency_ms}ms</span></div>
+                  <div>Latency: <span style={{ color: "var(--fg1)" }}>{healthPopover.data.latency_ms}ms</span></div>
                 )}
                 {healthPopover.data?.version && (
-                  <div>Version: <span style={{ color: "#e5e7eb" }}>{healthPopover.data.version}</span></div>
+                  <div>Version: <span style={{ color: "var(--fg1)" }}>{healthPopover.data.version}</span></div>
                 )}
               </div>
             )}
@@ -398,9 +398,9 @@ export default function AppShell() {
           href="/"
           style={{
             fontSize: 12,
-            color: "#9ca3af",
+            color: "var(--fg2)",
             background: "transparent",
-            border: "1px solid #2d2d2d",
+            border: "1px solid var(--border-default)",
             borderRadius: 6,
             padding: "4px 10px",
             textDecoration: "none",
@@ -413,9 +413,9 @@ export default function AppShell() {
           onClick={() => setShowCompanyTemplate(true)}
           style={{
             fontSize: 12,
-            color: "#9ca3af",
-            background: "#1a1a1a",
-            border: "1px solid #2d2d2d",
+            color: "var(--fg2)",
+            background: "var(--bg-card)",
+            border: "1px solid var(--border-default)",
             borderRadius: 6,
             padding: "4px 10px",
             cursor: "pointer",
@@ -447,9 +447,9 @@ export default function AppShell() {
             onClick={() => setShowOnboarding(true)}
             style={{
               fontSize: 12,
-              color: "#9ca3af",
-              background: "#1a1a1a",
-              border: "1px solid #2d2d2d",
+              color: "var(--fg2)",
+              background: "var(--bg-card)",
+              border: "1px solid var(--border-default)",
               borderRadius: 6,
               padding: "4px 10px",
               cursor: "pointer",
@@ -463,9 +463,9 @@ export default function AppShell() {
           <span
             style={{
               fontSize: 13,
-              color: "#6b7280",
-              background: "#1a1a1a",
-              border: "1px solid #2d2d2d",
+              color: "var(--fg3)",
+              background: "var(--bg-card)",
+              border: "1px solid var(--border-default)",
               borderRadius: 6,
               padding: "4px 10px",
               maxWidth: 180,
@@ -486,9 +486,9 @@ export default function AppShell() {
             }}
             style={{
               fontSize: 12,
-              color: "#6b7280",
+              color: "var(--fg3)",
               background: "transparent",
-              border: "1px solid #2d2d2d",
+              border: "1px solid var(--border-default)",
               borderRadius: 6,
               padding: "4px 10px",
               cursor: "pointer",

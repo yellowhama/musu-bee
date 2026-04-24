@@ -44,7 +44,7 @@ function ProgressBar({ value, color }: { value: number; color: string }) {
     <div
       style={{
         height: 4,
-        background: "#2d2d2d",
+        background: "var(--border-default)",
         borderRadius: 2,
         overflow: "hidden",
         flex: 1,
@@ -80,7 +80,7 @@ function DeviceItem({
         marginBottom: 2,
       }}
       onMouseEnter={(e) =>
-        ((e.currentTarget as HTMLDivElement).style.background = "#1e1e1e")
+        ((e.currentTarget as HTMLDivElement).style.background = "var(--bg-overlay)")
       }
       onMouseLeave={(e) =>
         ((e.currentTarget as HTMLDivElement).style.background = "transparent")
@@ -92,7 +92,7 @@ function DeviceItem({
           alignItems: "center",
           fontSize: 13,
           fontWeight: 600,
-          color: device.status === "offline" ? "#6b7280" : "#e5e7eb",
+          color: device.status === "offline" ? "var(--fg3)" : "var(--fg1)",
           marginBottom: 4,
         }}
       >
@@ -123,31 +123,31 @@ function DeviceItem({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 10, color: "#9ca3af", width: 30 }}>
+            <span style={{ fontSize: 10, color: "var(--fg2)", width: 30 }}>
               CPU
             </span>
-            <ProgressBar value={device.stats.cpu} color="#3b82f6" />
-            <span style={{ fontSize: 10, color: "#9ca3af", width: 28, textAlign: "right" }}>
+            <ProgressBar value={device.stats.cpu} color="var(--status-running)" />
+            <span style={{ fontSize: 10, color: "var(--fg2)", width: 28, textAlign: "right" }}>
               {device.stats.cpu}%
             </span>
           </div>
           {device.stats.gpu !== null && (
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ fontSize: 10, color: "#9ca3af", width: 30 }}>
+              <span style={{ fontSize: 10, color: "var(--fg2)", width: 30 }}>
                 GPU
               </span>
               <ProgressBar value={device.stats.gpu} color="#a855f7" />
-              <span style={{ fontSize: 10, color: "#9ca3af", width: 28, textAlign: "right" }}>
+              <span style={{ fontSize: 10, color: "var(--fg2)", width: 28, textAlign: "right" }}>
                 {device.stats.gpu}%
               </span>
             </div>
           )}
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 10, color: "#9ca3af", width: 30 }}>
+            <span style={{ fontSize: 10, color: "var(--fg2)", width: 30 }}>
               RAM
             </span>
             <ProgressBar value={device.stats.ram} color="var(--musu-status-online)" />
-            <span style={{ fontSize: 10, color: "#9ca3af", width: 28, textAlign: "right" }}>
+            <span style={{ fontSize: 10, color: "var(--fg2)", width: 28, textAlign: "right" }}>
               {device.stats.ram}%
             </span>
           </div>
@@ -155,7 +155,7 @@ function DeviceItem({
       )}
       {device.status === "offline" && (
         <div
-          style={{ paddingLeft: 14, fontSize: 11, color: "#4b5563" }}
+          style={{ paddingLeft: 14, fontSize: 11, color: "var(--fg4)" }}
         >
           Offline
         </div>
@@ -168,11 +168,11 @@ function DepartmentStatusDot({ status }: { status: string }) {
   const tone = status.toLowerCase();
   const color =
     tone === "active" || tone === "running" ? "var(--musu-status-online)" :
-    tone === "idle" ? "#6b7280" :
+    tone === "idle" ? "var(--fg3)" :
     tone === "paused" ? "var(--musu-status-busy)" :
     tone === "retired" || tone === "offline" ? "var(--musu-status-offline)" :
     tone === "error" ? "var(--musu-status-error)" :
-    "#6b7280";
+    "var(--fg3)";
 
   const animClass =
     tone === "paused" ? "musu-dot-working" :

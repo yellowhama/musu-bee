@@ -152,7 +152,7 @@ const titleStyle: React.CSSProperties = {
 const descStyle: React.CSSProperties = {
   margin: 0,
   fontSize: 16,
-  color: "#9ca3af",
+  color: "var(--fg2)",
   lineHeight: 1.75,
   maxWidth: 760,
 };
@@ -162,7 +162,7 @@ const successBannerStyle: React.CSSProperties = {
   background: "rgba(34,197,94,0.10)",
   border: "1px solid rgba(34,197,94,0.25)",
   borderRadius: 16,
-  color: "#86efac",
+  color: "var(--status-online)",
   padding: "14px 16px",
   fontSize: 14,
   fontWeight: 700,
@@ -204,7 +204,7 @@ const sectionTitleStyle: React.CSSProperties = {
 
 const sectionDescStyle: React.CSSProperties = {
   margin: 0,
-  color: "#9ca3af",
+  color: "var(--fg2)",
   fontSize: 14,
   lineHeight: 1.75,
   maxWidth: 760,
@@ -215,7 +215,7 @@ const primaryButtonStyle: React.CSSProperties = {
   justifyContent: "center",
   alignItems: "center",
   background: "var(--musu-color-brand-accent)",
-  color: "#0a0a0a",
+  color: "var(--bg-base)",
   textDecoration: "none",
   fontWeight: 900,
   fontSize: 15,
@@ -228,7 +228,7 @@ const secondaryButtonStyle: React.CSSProperties = {
   justifyContent: "center",
   alignItems: "center",
   background: "transparent",
-  color: "#f3f4f6",
+  color: "var(--fg1)",
   textDecoration: "none",
   fontWeight: 700,
   fontSize: 15,
@@ -271,19 +271,19 @@ const priceStyle: React.CSSProperties = {
 
 const periodStyle: React.CSSProperties = {
   fontSize: 14,
-  color: "#9ca3af",
+  color: "var(--fg2)",
 };
 
 const audienceStyle: React.CSSProperties = {
   fontSize: 14,
-  color: "#d1d5db",
+  color: "var(--fg1)",
   lineHeight: 1.7,
   marginBottom: 8,
 };
 
 const devicesStyle: React.CSSProperties = {
   fontSize: 13,
-  color: "#9ca3af",
+  color: "var(--fg2)",
   fontWeight: 700,
   marginBottom: 16,
 };
@@ -298,19 +298,19 @@ const bulletListStyle: React.CSSProperties = {
 
 const bulletStyle: React.CSSProperties = {
   fontSize: 14,
-  color: "#d1d5db",
+  color: "var(--fg1)",
   lineHeight: 1.7,
 };
 
 const checkoutPrimaryStyle: React.CSSProperties = {
-  background: "#0a0a0a",
+  background: "var(--bg-base)",
   color: "var(--musu-color-brand-accent)",
 };
 
 const checkoutSecondaryStyle: React.CSSProperties = {
-  background: "#1a1a1a",
-  color: "#f3f4f6",
-  border: "1px solid #2d2d2d",
+  background: "var(--bg-card)",
+  color: "var(--fg1)",
+  border: "1px solid var(--border-default)",
 };
 
 const gridStyle: React.CSSProperties = {
@@ -336,6 +336,6 @@ const infoTitleStyle: React.CSSProperties = {
 const infoDescStyle: React.CSSProperties = {
   margin: 0,
   fontSize: 14,
-  color: "#9ca3af",
+  color: "var(--fg2)",
   lineHeight: 1.75,
 };

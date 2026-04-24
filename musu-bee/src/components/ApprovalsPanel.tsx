@@ -14,9 +14,9 @@ interface Approval {
 }
 
 const STATUS_COLOR: Record<Approval["status"], string> = {
-  pending: "#f59e0b",
-  approved: "#22c55e",
-  rejected: "#f87171",
+  pending: "var(--status-warn)",
+  approved: "var(--status-online)",
+  rejected: "var(--status-error)",
 };
 
 function formatRelative(iso: string): string {
@@ -120,7 +120,7 @@ export default function ApprovalsPanel({ companyId }: ApprovalsPanelProps) {
           gap: 12,
         }}
       >
-        <span style={{ fontSize: 15, fontWeight: 600, color: "#f3f4f6" }}>
+        <span style={{ fontSize: 15, fontWeight: 600, color: "var(--fg1)" }}>
           Approvals
         </span>
         <span
@@ -140,9 +140,9 @@ export default function ApprovalsPanel({ companyId }: ApprovalsPanelProps) {
           onClick={() => void doFetch()}
           style={{
             fontSize: 11,
-            color: "#9ca3af",
+            color: "var(--fg2)",
             background: "transparent",
-            border: "1px solid #2d2d2d",
+            border: "1px solid var(--border-default)",
             borderRadius: 4,
             padding: "3px 8px",
             cursor: "pointer",
@@ -155,22 +155,22 @@ export default function ApprovalsPanel({ companyId }: ApprovalsPanelProps) {
       {/* Content */}
       <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
         {!companyId && (
-          <p style={{ color: "#6b7280", fontSize: 13, padding: "20px 8px" }}>
+          <p style={{ color: "var(--fg3)", fontSize: 13, padding: "20px 8px" }}>
             No active company selected.
           </p>
         )}
         {companyId && loading && (
-          <p style={{ color: "#6b7280", fontSize: 13, padding: "20px 8px" }}>
+          <p style={{ color: "var(--fg3)", fontSize: 13, padding: "20px 8px" }}>
             Loading…
           </p>
         )}
         {companyId && !loading && error && (
-          <p style={{ color: "#f87171", fontSize: 13, padding: "20px 8px" }}>
+          <p style={{ color: "var(--status-error)", fontSize: 13, padding: "20px 8px" }}>
             {error}
           </p>
         )}
         {companyId && !loading && !error && approvals.length === 0 && (
-          <p style={{ color: "#4b5563", fontSize: 13, padding: "20px 8px" }}>
+          <p style={{ color: "var(--fg4)", fontSize: 13, padding: "20px 8px" }}>
             No approvals in queue.
           </p>
         )}
@@ -212,9 +212,9 @@ export default function ApprovalsPanel({ companyId }: ApprovalsPanelProps) {
                 >
                   {approval.status}
                 </span>
-                <span style={{ fontSize: 11, color: "#9ca3af" }}>
+                <span style={{ fontSize: 11, color: "var(--fg2)" }}>
                   from{" "}
-                  <span style={{ color: "#e5e7eb" }}>{approval.requested_by}</span>
+                  <span style={{ color: "var(--fg1)" }}>{approval.requested_by}</span>
                 </span>
                 <span style={{ flex: 1 }} />
                 <span style={{ fontSize: 11, color: "var(--musu-status-offline)" }}>
@@ -227,7 +227,7 @@ export default function ApprovalsPanel({ companyId }: ApprovalsPanelProps) {
                 <p
                   style={{
                     fontSize: 12,
-                    color: "#d1d5db",
+                    color: "var(--fg1)",
                     margin: 0,
                     lineHeight: 1.5,
                   }}
@@ -241,7 +241,7 @@ export default function ApprovalsPanel({ companyId }: ApprovalsPanelProps) {
                 <p
                   style={{
                     fontSize: 10,
-                    color: "#4b5563",
+                    color: "var(--fg4)",
                     margin: 0,
                     fontFamily: "monospace",
                   }}
@@ -258,7 +258,7 @@ export default function ApprovalsPanel({ companyId }: ApprovalsPanelProps) {
                     disabled={resolving.has(approval.id)}
                     style={{
                       fontSize: 11,
-                      color: resolving.get(approval.id) === "approved" ? "#4b5563" : "#22c55e",
+                      color: resolving.get(approval.id) === "approved" ? "var(--fg4)" : "var(--status-online)",
                       background: "transparent",
                       border: "1px solid currentColor",
                       borderRadius: 4,
@@ -273,7 +273,7 @@ export default function ApprovalsPanel({ companyId }: ApprovalsPanelProps) {
                     disabled={resolving.has(approval.id)}
                     style={{
                       fontSize: 11,
-                      color: resolving.get(approval.id) === "rejected" ? "#4b5563" : "#f87171",
+                      color: resolving.get(approval.id) === "rejected" ? "var(--fg4)" : "var(--status-error)",
                       background: "transparent",
                       border: "1px solid currentColor",
                       borderRadius: 4,

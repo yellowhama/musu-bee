@@ -80,8 +80,8 @@ function AuthCallbackView({ error }: { error: string | null }) {
     <div
       style={{
         minHeight: "100vh",
-        background: "#0a0a0a",
-        color: "#e5e7eb",
+        background: "var(--bg-base)",
+        color: "var(--fg1)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -91,8 +91,8 @@ function AuthCallbackView({ error }: { error: string | null }) {
     >
       <div
         style={{
-          background: "#111111",
-          border: "1px solid #1f1f1f",
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border-subtle)",
           borderRadius: 16,
           padding: "40px 36px",
           width: "100%",
@@ -105,7 +105,7 @@ function AuthCallbackView({ error }: { error: string | null }) {
           Completing sign-in
         </h1>
         {!error ? (
-          <p style={{ margin: 0, fontSize: 14, color: "#9ca3af", lineHeight: 1.7 }}>
+          <p style={{ margin: 0, fontSize: 14, color: "var(--fg2)", lineHeight: 1.7 }}>
             Finishing your authentication flow and opening your workspace.
           </p>
         ) : (
@@ -117,8 +117,8 @@ function AuthCallbackView({ error }: { error: string | null }) {
               <Link
                 href="/auth/login"
                 style={{
-                  color: "#f3f4f6",
-                  border: "1px solid #2d2d2d",
+                  color: "var(--fg1)",
+                  border: "1px solid var(--border-default)",
                   borderRadius: 8,
                   padding: "10px 14px",
                   textDecoration: "none",
@@ -130,7 +130,7 @@ function AuthCallbackView({ error }: { error: string | null }) {
               <Link
                 href="/"
                 style={{
-                  color: "#9ca3af",
+                  color: "var(--fg2)",
                   textDecoration: "none",
                   fontSize: 14,
                   padding: "10px 14px",

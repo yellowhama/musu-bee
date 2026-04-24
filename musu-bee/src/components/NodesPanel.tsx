@@ -45,10 +45,10 @@ interface ExecuteResult {
 }
 
 const STATUS_COLOR: Record<NodeHealth["status"], string> = {
-  online: "#86efac",
-  offline: "#f87171",
-  degraded: "#fdba74",
-  error: "#6b7280",
+  online: "var(--status-online)",
+  offline: "var(--status-error)",
+  degraded: "var(--status-warn)",
+  error: "var(--fg3)",
 };
 
 const STATUS_DOT: Record<NodeHealth["status"], string> = {
@@ -165,10 +165,10 @@ export default function NodesPanel() {
       <div
         style={{
           flex: 1,
-          background: "#0d0d0d",
+          background: "var(--bg-base)",
           padding: 24,
           overflowY: "auto",
-          color: "#9ca3af",
+          color: "var(--fg2)",
         }}
       >
         Loading nodes...
@@ -181,10 +181,10 @@ export default function NodesPanel() {
       <div
         style={{
           flex: 1,
-          background: "#0d0d0d",
+          background: "var(--bg-base)",
           padding: 24,
           overflowY: "auto",
-          color: "#f87171",
+          color: "var(--status-error)",
         }}
       >
         Error: {error}
@@ -196,7 +196,7 @@ export default function NodesPanel() {
     <div
       style={{
         flex: 1,
-        background: "#0d0d0d",
+        background: "var(--bg-base)",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
@@ -206,7 +206,7 @@ export default function NodesPanel() {
       <div
         style={{
           padding: "16px 24px",
-          borderBottom: "1px solid #1f1f1f",
+          borderBottom: "1px solid var(--border-subtle)",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -218,7 +218,7 @@ export default function NodesPanel() {
             style={{
               fontSize: 18,
               fontWeight: 700,
-              color: "#f3f4f6",
+              color: "var(--fg1)",
               letterSpacing: "-0.02em",
               margin: 0,
             }}
@@ -228,9 +228,9 @@ export default function NodesPanel() {
           <span
             style={{
               fontSize: 11,
-              color: "#6b7280",
-              background: "#1a1a1a",
-              border: "1px solid #2d2d2d",
+              color: "var(--fg3)",
+              background: "var(--bg-card)",
+              border: "1px solid var(--border-default)",
               borderRadius: 999,
               padding: "3px 10px",
             }}
@@ -242,9 +242,9 @@ export default function NodesPanel() {
           onClick={() => void fetchNodes()}
           style={{
             fontSize: 12,
-            color: "#9ca3af",
-            background: "#1a1a1a",
-            border: "1px solid #2d2d2d",
+            color: "var(--fg2)",
+            background: "var(--bg-card)",
+            border: "1px solid var(--border-default)",
             borderRadius: 6,
             padding: "6px 12px",
             cursor: "pointer",
@@ -278,8 +278,8 @@ export default function NodesPanel() {
               <div
                 key={node.name}
                 style={{
-                  background: "#141414",
-                  border: "1px solid #1f1f1f",
+                  background: "var(--bg-surface)",
+                  border: "1px solid var(--border-subtle)",
                   borderRadius: 12,
                   padding: 16,
                   display: "flex",
@@ -308,7 +308,7 @@ export default function NodesPanel() {
                       style={{
                         fontSize: 15,
                         fontWeight: 700,
-                        color: "#f3f4f6",
+                        color: "var(--fg1)",
                         letterSpacing: "-0.01em",
                       }}
                     >
@@ -333,13 +333,13 @@ export default function NodesPanel() {
 
                 {/* Node info */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  <div style={{ fontSize: 12, color: "#9ca3af" }}>
-                    <span style={{ color: "#6b7280" }}>IP:</span>{" "}
+                  <div style={{ fontSize: 12, color: "var(--fg2)" }}>
+                    <span style={{ color: "var(--fg3)" }}>IP:</span>{" "}
                     <span style={{ fontFamily: "monospace" }}>{node.tailscale_ip}</span>
                   </div>
                   {node.gpu && (
-                    <div style={{ fontSize: 12, color: "#9ca3af" }}>
-                      <span style={{ color: "#6b7280" }}>GPU:</span> {node.gpu}
+                    <div style={{ fontSize: 12, color: "var(--fg2)" }}>
+                      <span style={{ color: "var(--fg3)" }}>GPU:</span> {node.gpu}
                     </div>
                   )}
                   {node.roles && node.roles.length > 0 && (
@@ -349,9 +349,9 @@ export default function NodesPanel() {
                           key={role}
                           style={{
                             fontSize: 10,
-                            color: "#9ca3af",
-                            background: "#1a1a1a",
-                            border: "1px solid #2d2d2d",
+                            color: "var(--fg2)",
+                            background: "var(--bg-card)",
+                            border: "1px solid var(--border-default)",
                             borderRadius: 4,
                             padding: "2px 6px",
                           }}
@@ -370,10 +370,10 @@ export default function NodesPanel() {
                     disabled={isExecuting || node.status === "offline"}
                     style={{
                       fontSize: 11,
-                      color: isExecuting ? "#6b7280" : "var(--musu-color-brand-accent)",
-                      background: isExecuting ? "#1a1a1a" : "rgba(250,204,21,0.08)",
+                      color: isExecuting ? "var(--fg3)" : "var(--musu-color-brand-accent)",
+                      background: isExecuting ? "var(--bg-card)" : "rgba(250,204,21,0.08)",
                       border: isExecuting
-                        ? "1px solid #2d2d2d"
+                        ? "1px solid var(--border-default)"
                         : "1px solid rgba(250,204,21,0.25)",
                       borderRadius: 6,
                       padding: "6px 10px",
@@ -389,9 +389,9 @@ export default function NodesPanel() {
                     }
                     style={{
                       fontSize: 11,
-                      color: "#9ca3af",
-                      background: "#1a1a1a",
-                      border: "1px solid #2d2d2d",
+                      color: "var(--fg2)",
+                      background: "var(--bg-card)",
+                      border: "1px solid var(--border-default)",
                       borderRadius: 6,
                       padding: "6px 10px",
                       cursor: "pointer",
@@ -405,8 +405,8 @@ export default function NodesPanel() {
                 {execResult && (
                   <div
                     style={{
-                      background: "#0d0d0d",
-                      border: "1px solid #1f1f1f",
+                      background: "var(--bg-base)",
+                      border: "1px solid var(--border-subtle)",
                       borderRadius: 8,
                       padding: 12,
                       fontSize: 11,
@@ -414,12 +414,12 @@ export default function NodesPanel() {
                     }}
                   >
                     {"error" in execResult ? (
-                      <div style={{ color: "#f87171" }}>
+                      <div style={{ color: "var(--status-error)" }}>
                         Error: {execResult.error}
                       </div>
                     ) : (
                       <div>
-                        <div style={{ color: "#6b7280", marginBottom: 4 }}>
+                        <div style={{ color: "var(--fg3)", marginBottom: 4 }}>
                           Exit code: {execResult.result.exit_code}
                           {execResult.result.duration_ms && (
                             <span style={{ marginLeft: 8 }}>
@@ -428,16 +428,16 @@ export default function NodesPanel() {
                           )}
                         </div>
                         {execResult.result.stdout && (
-                          <div style={{ color: "#86efac", marginBottom: 4 }}>
-                            <div style={{ color: "#6b7280" }}>stdout:</div>
+                          <div style={{ color: "var(--status-online)", marginBottom: 4 }}>
+                            <div style={{ color: "var(--fg3)" }}>stdout:</div>
                             <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>
                               {execResult.result.stdout}
                             </pre>
                           </div>
                         )}
                         {execResult.result.stderr && (
-                          <div style={{ color: "#f87171" }}>
-                            <div style={{ color: "#6b7280" }}>stderr:</div>
+                          <div style={{ color: "var(--status-error)" }}>
+                            <div style={{ color: "var(--fg3)" }}>stderr:</div>
                             <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>
                               {execResult.result.stderr}
                             </pre>
@@ -452,18 +452,18 @@ export default function NodesPanel() {
                 {isExpanded && (
                   <div
                     style={{
-                      background: "#0d0d0d",
-                      border: "1px solid #1f1f1f",
+                      background: "var(--bg-base)",
+                      border: "1px solid var(--border-subtle)",
                       borderRadius: 8,
                       padding: 12,
                       fontSize: 11,
                       fontFamily: "monospace",
-                      color: "#9ca3af",
+                      color: "var(--fg2)",
                     }}
                   >
                     {node.health && (
                       <div style={{ marginBottom: 8 }}>
-                        <div style={{ color: "#6b7280", marginBottom: 4 }}>
+                        <div style={{ color: "var(--fg3)", marginBottom: 4 }}>
                           Health:
                         </div>
                         <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>
@@ -473,7 +473,7 @@ export default function NodesPanel() {
                     )}
                     {node.capabilities && (
                       <div>
-                        <div style={{ color: "#6b7280", marginBottom: 4 }}>
+                        <div style={{ color: "var(--fg3)", marginBottom: 4 }}>
                           Capabilities:
                         </div>
                         <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>
@@ -482,7 +482,7 @@ export default function NodesPanel() {
                       </div>
                     )}
                     {node.error && (
-                      <div style={{ color: "#f87171" }}>
+                      <div style={{ color: "var(--status-error)" }}>
                         Error: {node.error}
                       </div>
                     )}
