@@ -96,54 +96,54 @@ async def _heartbeat_iteration(
                 return
     # Lock released — LLM call runs without blocking other schedulers
     logger.info("heartbeat_scheduler: invoking %s (role: %s)", agent_name, role)
-        prompt_parts = []
-        if diag_summary and role == "ceo":
-            prompt_parts.append(
-                f"## 진단 결과 (자동 감지)\n\n{diag_summary}\n\n"
-                "위 이슈를 확인하고 필요 시 create_issue로 등록한 후, 개발 루프를 진행하라.\n\n---\n\n"
-            )
+    prompt_parts = []
+    if diag_summary and role == "ceo":
+        prompt_parts.append(
+            f"## 진단 결과 (자동 감지)\n\n{diag_summary}\n\n"
+            "위 이슈를 확인하고 필요 시 create_issue로 등록한 후, 개발 루프를 진행하라.\n\n---\n\n"
+        )
 
-        if role == "ceo":
-            prompt_parts.append(
-                "집사 루프 실행 (wiki/010):\n"
-                "1. 시스템 점검: get_dashboard(), check_notifications(), read_board_messages('ceo-board')\n"
-                "2. 문제 감지 → 선제 처리 (stuck task cancel, 에러 이슈 생성)\n"
-                "3. 회사 확인: read_charter(), list_goals(), list_issues()\n"
-                "4. Lead에게 위임 (직접 engineer 안 시킴): delegate_task(channel='{short}-Lead', ...)\n"
-                "5. 브리핑 준비: 다음에 주인 오면 즉시 보고할 수 있게\n"
-                "6. #ceo-board에 상태 공유\n\n"
-                "## 위임 패턴 (fire-and-check) — 필수\n"
-                "delegate_task 후 즉시 종료한다. task_id를 이슈 코멘트에 기록하고 heartbeat 종료.\n"
-                "다음 heartbeat에서 get_task_status(task_id)로 완료 여부 확인.\n"
-                "폴링 루프 금지: while True + sleep 루프 절대 실행 금지 — heartbeat timeout 초과 원인."
-            )
-        elif role == "team_lead":
-            prompt_parts.append(
-                "자율 팀장 루프 실행:\n"
-                "1. get_task_status('assigned') — 본인에게 할당된 이슈/작업 확인\n"
-                "2. 판단: 진행해야 할 작업이 있다면 엔지니어/QA에게 구체적 명세(Sprint Contract)와 함께 delegate_task 실행\n"
-                "3. 진행 상황 확인: 하위 태스크의 상태를 폴링하지 말고, 다음 하트비트에서 확인\n"
-                "4. 완료 보고: 하위 태스크가 완료되면 CEO가 할당한 원본 이슈/태스크에 코멘트로 결과 보고\n"
-            )
+    if role == "ceo":
+        prompt_parts.append(
+            "집사 루프 실행 (wiki/010):\n"
+            "1. 시스템 점검: get_dashboard(), check_notifications(), read_board_messages('ceo-board')\n"
+            "2. 문제 감지 → 선제 처리 (stuck task cancel, 에러 이슈 생성)\n"
+            "3. 회사 확인: read_charter(), list_goals(), list_issues()\n"
+            "4. Lead에게 위임 (직접 engineer 안 시킴): delegate_task(channel='{short}-Lead', ...)\n"
+            "5. 브리핑 준비: 다음에 주인 오면 즉시 보고할 수 있게\n"
+            "6. #ceo-board에 상태 공유\n\n"
+            "## 위임 패턴 (fire-and-check) — 필수\n"
+            "delegate_task 후 즉시 종료한다. task_id를 이슈 코멘트에 기록하고 heartbeat 종료.\n"
+            "다음 heartbeat에서 get_task_status(task_id)로 완료 여부 확인.\n"
+            "폴링 루프 금지: while True + sleep 루프 절대 실행 금지 — heartbeat timeout 초과 원인."
+        )
+    elif role == "team_lead":
+        prompt_parts.append(
+            "자율 팀장 루프 실행:\n"
+            "1. get_task_status('assigned') — 본인에게 할당된 이슈/작업 확인\n"
+            "2. 판단: 진행해야 할 작업이 있다면 엔지니어/QA에게 구체적 명세(Sprint Contract)와 함께 delegate_task 실행\n"
+            "3. 진행 상황 확인: 하위 태스크의 상태를 폴링하지 말고, 다음 하트비트에서 확인\n"
+            "4. 완료 보고: 하위 태스크가 완료되면 CEO가 할당한 원본 이슈/태스크에 코멘트로 결과 보고\n"
+        )
 
-        _hb_timeout = int(os.environ.get("MUSU_HEARTBEAT_TIMEOUT_SEC", "600"))
-        try:
-            await asyncio.wait_for(
-                route_chat(
-                    channel=agent_name,
-                    sender_id="system",
-                    text="".join(prompt_parts),
-                    company_id=company_id,
-                ),
-                timeout=_hb_timeout,
-            )
-            logger.info("heartbeat_scheduler: %s done", agent_name)
-        except asyncio.TimeoutError:
-            logger.warning(
-                "heartbeat_scheduler: %s timed out after %ds — releasing lock",
-                agent_name, _hb_timeout,
-            )
-            _increment_stuck_counter(agent_name, "heartbeat_timeout")
+    _hb_timeout = int(os.environ.get("MUSU_HEARTBEAT_TIMEOUT_SEC", "600"))
+    try:
+        await asyncio.wait_for(
+            route_chat(
+                channel=agent_name,
+                sender_id="system",
+                text="".join(prompt_parts),
+                company_id=company_id,
+            ),
+            timeout=_hb_timeout,
+        )
+        logger.info("heartbeat_scheduler: %s done", agent_name)
+    except asyncio.TimeoutError:
+        logger.warning(
+            "heartbeat_scheduler: %s timed out after %ds",
+            agent_name, _hb_timeout,
+        )
+        _increment_stuck_counter(agent_name, "heartbeat_timeout")
 
 
 _company_locks: dict[str, asyncio.Lock] = {}
