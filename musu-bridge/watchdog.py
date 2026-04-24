@@ -27,7 +27,7 @@ def _get_watchdog_backend():
 
 _WATCHDOG_KILL_SEC = int(
     os.environ.get("MUSU_WATCHDOG_KILL_SEC")
-    or os.environ.get("MUSU_WATCHDOG_STUCK_THRESHOLD_SEC", "240")
+    or os.environ.get("MUSU_WATCHDOG_STUCK_THRESHOLD_SEC", "320")
 )
 _WATCHDOG_ESCALATE_SEC = int(os.environ.get("MUSU_WATCHDOG_ESCALATE_SEC", "120"))
 _WATCHDOG_WARN_SEC = int(os.environ.get("MUSU_WATCHDOG_WARN_SEC", "60"))
