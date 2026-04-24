@@ -1,6 +1,6 @@
 [Unit]
 Description=MUSU Process Supervisor (musud)
-After=network.target musu-connectsd.service
+After=network.target
 
 [Service]
 Type=simple
