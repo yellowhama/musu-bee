@@ -433,8 +433,10 @@ async def morning_report_cron(bridge_url: str = "http://localhost:8070") -> None
             await asyncio.sleep(wait_seconds)
 
             try:
-                # Call dashboard for report data
-                resp = await http.get("/api/companies/default/dashboard")
+                # Call dashboard for report data — use canonical company from env
+                _company_id = os.environ.get("PAPERCLIP_COMPANY_ID", "")
+                _dash_path = f"/api/companies/{_company_id}/dashboard" if _company_id else "/health"
+                resp = await http.get(_dash_path)
                 dashboard = resp.json() if resp.status_code == 200 else {}
 
                 costs_resp = await http.get("/api/costs/summary")
