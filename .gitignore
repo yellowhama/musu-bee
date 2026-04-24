@@ -109,6 +109,13 @@ musu-computer-tools/mcp/rootless-computer-control/pydeps/
 *.pyc
 references_AI/
 
+# 세션 플랜 / 로컬 위키 (regenerable)
+plans/
+docs/wiki/
+docs/superpowers/plans/
+design-handoff/
+linked_projects/
+
 # ── User data (NOT product code) ──────────────────────────────
 # These are generated per-user at runtime.
 # Only .example templates should be in the repo.

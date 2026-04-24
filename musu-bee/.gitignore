@@ -20,3 +20,9 @@ Thumbs.db
 # Editor
 .vscode/
 *.swp
+
+# User data & runtime artifacts
+data/
+test-results/
+public/
+tmp-*.mjs
