@@ -44,10 +44,10 @@ def test_ceo_default_timeout_is_120():
     assert result == 120.0, f"Expected 120.0 for ceo, got {result}"
 
 
-def test_team_lead_default_timeout_is_90():
-    """team_lead channel must default to 90s (was 300s) to cut repeated failures faster."""
+def test_team_lead_default_timeout_is_300():
+    """team_lead channel must default to 300s — 90s caused repeated route_timeout failures."""
     result = _route_timeout("team_lead")
-    assert result == 90.0, f"Expected 90.0 for team_lead, got {result}"
+    assert result == 300.0, f"Expected 300.0 for team_lead, got {result}"
 
 
 def test_ceo_env_override_still_works():
@@ -57,7 +57,7 @@ def test_ceo_env_override_still_works():
 
 
 def test_team_lead_env_override_still_works():
-    """MUSU_ROUTE_TIMEOUT_SEC_TEAM_LEAD env var must override the new 90s default."""
+    """MUSU_ROUTE_TIMEOUT_SEC_TEAM_LEAD env var must override the 300s default."""
     result = _route_timeout("team_lead", {"MUSU_ROUTE_TIMEOUT_SEC_TEAM_LEAD": "45"})
     assert result == 45.0, f"Expected 45.0 from env override, got {result}"
 

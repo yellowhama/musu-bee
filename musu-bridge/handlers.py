@@ -94,7 +94,7 @@ _CHANNEL_TIMEOUT_DEFAULTS: dict[str, float] = {
     "engineer": 300.0,
     "cto": 300.0,
     "ceo": 120.0,
-    "team_lead": 90.0,
+    "team_lead": 300.0,
     "4060-CEO": 600.0,
     "lead": 300.0,
 }
