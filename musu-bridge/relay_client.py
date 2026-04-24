@@ -88,40 +88,53 @@ async def relay_loop(
                     relay_connected = True
                     reconnect_attempt = 0
 
-                    async for raw in ws:
-                        msg: dict[str, Any]
+                    # Keepalive ping to prevent idle disconnect
+                    async def _keepalive():
                         try:
-                            msg = json.loads(raw)
+                            while True:
+                                await asyncio.sleep(30)
+                                await ws.ping()
                         except Exception:
-                            logger.warning("relay_client: non-JSON frame — ignoring")
-                            continue
+                            pass
+                    ping_task = asyncio.create_task(_keepalive())
 
-                        frame_type = msg.get("type", "")
+                    try:
+                        async for raw in ws:
+                            msg: dict[str, Any]
+                            try:
+                                msg = json.loads(raw)
+                            except Exception:
+                                logger.warning("relay_client: non-JSON frame — ignoring")
+                                continue
 
-                        if frame_type == "ws_open":
-                            # Open a new WS proxy session to the local WS server
-                            session_id: str = msg.get("session_id", "")
-                            target_path: str = msg.get("target_path", "/")
-                            if session_id and session_id not in ws_sessions:
-                                task = asyncio.create_task(
-                                    _ws_proxy_session(ws, session_id, target_path)
-                                )
-                                ws_sessions[session_id] = task
-                                task.add_done_callback(
-                                    lambda t, sid=session_id: ws_sessions.pop(sid, None)
-                                )
+                            frame_type = msg.get("type", "")
 
-                        elif frame_type in ("ws_data", "ws_close"):
-                            # Route to existing session task via a per-session queue
-                            # (The task reads from _ws_session_queues[session_id])
-                            session_id = msg.get("session_id", "")
-                            q = _ws_session_queues.get(session_id)
-                            if q:
-                                await q["queue"].put(msg)
+                            if frame_type == "ws_open":
+                                # Open a new WS proxy session to the local WS server
+                                session_id: str = msg.get("session_id", "")
+                                target_path: str = msg.get("target_path", "/")
+                                if session_id and session_id not in ws_sessions:
+                                    task = asyncio.create_task(
+                                        _ws_proxy_session(ws, session_id, target_path)
+                                    )
+                                    ws_sessions[session_id] = task
+                                    task.add_done_callback(
+                                        lambda t, sid=session_id: ws_sessions.pop(sid, None)
+                                    )
 
-                        else:
-                            # HTTP response frame (or unknown)
-                            asyncio.create_task(_handle_request(ws, http, raw))
+                            elif frame_type in ("ws_data", "ws_close"):
+                                # Route to existing session task via a per-session queue
+                                # (The task reads from _ws_session_queues[session_id])
+                                session_id = msg.get("session_id", "")
+                                q = _ws_session_queues.get(session_id)
+                                if q:
+                                    await q["queue"].put(msg)
+
+                            else:
+                                # HTTP response frame (or unknown)
+                                asyncio.create_task(_handle_request(ws, http, raw))
+                    finally:
+                        ping_task.cancel()
 
             except asyncio.CancelledError:
                 logger.info("relay_client: cancelled — shutting down")

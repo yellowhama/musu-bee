@@ -346,6 +346,63 @@ async def lifespan(app: FastAPI):
     except Exception as _e:
         logger.warning("startup: failed to seed node manager — %s", _e)
 
+    # Restore channel→agent mapping from DB on startup.
+    # channel_agent_map is env-driven (static). Agents must exist in DB for routing to work.
+    # Any missing agents are auto-seeded so routing works immediately after restart without
+    # requiring a manual `python seed_agents.py` run.
+    try:
+        from handlers import _get_backend as _gb_chan
+        from seed_agents import AGENTS as _SEED_AGENTS
+        _chan_backend = _gb_chan()
+        _cfg_chan = get_config()
+        _all_active = {a["name"] for a in _chan_backend.list_agents()}
+        # Build lookup: channel_key (e.g. "ceo") → seed template
+        _seed_by_channel = {a["name"]: a for a in _SEED_AGENTS}
+        _broken: list[str] = []
+        _ok: list[str] = []
+        _seeded: list[str] = []
+        for _ch, _agent_name in _cfg_chan.channel_agent_map.items():
+            if _agent_name in _all_active:
+                _ok.append(_ch)
+            else:
+                # Auto-seed the missing agent using seed_agents template if available
+                _tmpl = _seed_by_channel.get(_ch)
+                if _tmpl:
+                    try:
+                        _chan_backend.create_agent(
+                            name=_agent_name,
+                            role=_tmpl["role"],
+                            adapter_type=_tmpl["adapter_type"],
+                            adapter_config=_tmpl["adapter_config"],
+                        )
+                        _seeded.append(_ch)
+                        _ok.append(_ch)
+                        logger.info(
+                            "startup: auto-seeded missing agent %r for channel=%r",
+                            _agent_name, _ch,
+                        )
+                    except Exception as _seed_err:
+                        _broken.append(f"{_ch}→{_agent_name}")
+                        logger.warning(
+                            "startup: failed to auto-seed agent %r for channel=%r — %s",
+                            _agent_name, _ch, _seed_err,
+                        )
+                else:
+                    _broken.append(f"{_ch}→{_agent_name}")
+        if _seeded:
+            logger.info("startup: auto-seeded %d agent(s): %s", len(_seeded), ", ".join(_seeded))
+        if _ok:
+            logger.info("startup: channel mapping OK for %d channel(s): %s", len(_ok), ", ".join(_ok))
+        if _broken:
+            logger.warning(
+                "startup: %d channel(s) have no active agent in DB — routing will fail: %s",
+                len(_broken), "; ".join(_broken),
+            )
+        else:
+            logger.info("startup: all channel→agent mappings resolved from DB")
+    except Exception as _e:
+        logger.warning("startup: channel mapping check failed — %s", _e)
+
     # Re-dispatch any pending/running route executions from before last restart.
     # retry_count caps at 3 — executions that repeatedly crash are marked failed.
     try:
@@ -1093,11 +1150,11 @@ async def api_company_activity(
 
 @app.get("/api/companies/{company_id}/dashboard", summary="Dashboard summary for a company")
 async def api_company_dashboard(company_id: str) -> dict:
-    """Return a summary dashboard for the company (scoped agents + global)."""
+    """Return a unified dashboard: agents + tasks + nodes (devices)."""
     company = get_company(company_id)
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
-    from handlers import list_task_records as list_tasks, _get_backend as _gb_dash
+    from handlers import list_task_records as list_tasks, _get_backend as _gb_dash, list_nodes
     backend = _gb_dash()
     # Company-scoped + global agents (same merge logic as /companies/{id}/agents)
     scoped = backend.list_agents(company_id=company_id)
@@ -1109,9 +1166,17 @@ async def api_company_dashboard(company_id: str) -> dict:
     all_tasks = list_tasks(limit=200)
     tasks = [t for t in all_tasks if t.get("assignee_agent_id") in agent_ids or not t.get("assignee_agent_id")]
     active_agents = [a for a in agents if a.get("status") == "active"]
+
+    # Fetch node/device status from mesh_router
+    try:
+        nodes = await list_nodes()
+    except Exception:
+        nodes = []
+
     return {
         "company_id": company_id,
         "company_name": company.get("name"),
+        "nodes": nodes,
         "agents": {"total": len(agents), "active": len(active_agents)},
         "tasks": {
             "total": len(tasks),
@@ -1121,6 +1186,27 @@ async def api_company_dashboard(company_id: str) -> dict:
             "failed": len([t for t in tasks if t.get("status") == "failed"]),
         },
     }
+
+
+class RouteTaskRequest(BaseModel):
+    channel: str
+    instruction: str
+    node_name: str = ""
+    strategy: str = "auto"  # "explicit" | "recommended" | "auto"
+    sender_id: str = "orchestrator"
+
+
+@app.post("/api/tasks/route", summary="Route a task to a specific node or auto-select")
+async def api_route_task(req: RouteTaskRequest) -> dict:
+    """Route a task to a node. Supports explicit, recommended, or auto strategy."""
+    from handlers import route_task_to_node
+    return await route_task_to_node(
+        channel=req.channel,
+        instruction=req.instruction,
+        node_name=req.node_name,
+        strategy=req.strategy,
+        sender_id=req.sender_id,
+    )
 
 
 @app.get("/api/companies/{company_id}/metrics", summary="Performance and cost metrics for a company")

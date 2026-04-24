@@ -750,6 +750,37 @@ async def get_dashboard() -> str:
 
 
 @mcp.tool()
+async def route_task(
+    channel: str,
+    instruction: str,
+    node_name: str = "",
+    strategy: str = "auto",
+    sender_id: str = "orchestrator",
+) -> str:
+    """Route a task to a specific node or auto-select the best node.
+
+    Args:
+        channel: Agent channel name (e.g. "engineer", "ceo")
+        instruction: The task instruction
+        node_name: Explicit target node (e.g. "5070"). Empty = auto-select.
+        strategy: "explicit" (requires node_name), "recommended" (best fit), "auto" (default mapping)
+        sender_id: Requester identifier
+    """
+    try:
+        c = _get_client()
+        data = await c.post("/tasks/route", json={
+            "channel": channel,
+            "instruction": instruction,
+            "node_name": node_name,
+            "strategy": strategy,
+            "sender_id": sender_id,
+        })
+        return _fmt(data)
+    except Exception:
+        return _tool_error("Error routing task.")
+
+
+@mcp.tool()
 async def list_runs(agent_id: str = "", limit: int = 20) -> str:
     """List recent heartbeat runs. Optionally filter by agent ID."""
     try:

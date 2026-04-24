@@ -1394,6 +1394,75 @@ async def list_nodes() -> list[dict[str, Any]]:
     return nodes
 
 
+def compute_recommended_for(health: dict[str, Any]) -> list[str]:
+    """Compute capability tags for a node based on its health stats."""
+    tags: list[str] = ["general"]
+    gpu = health.get("gpu", {})
+    if isinstance(gpu, dict):
+        util = gpu.get("utilization_pct", gpu.get("util", 100))
+        if util is not None and util < 80:
+            tags.extend(["llm", "compute"])
+    cpu_pct = health.get("cpu_pct", health.get("cpu", 100))
+    if cpu_pct is not None and cpu_pct < 70:
+        tags.append("batch")
+    return tags
+
+
+async def route_task_to_node(
+    channel: str,
+    instruction: str,
+    node_name: str = "",
+    strategy: str = "auto",
+    sender_id: str = "orchestrator",
+) -> dict[str, Any]:
+    """Route a task to a node. Returns {node, task_id, status}.
+
+    strategy:
+      - "explicit": requires node_name, forward directly
+      - "recommended": pick best node based on recommended_for tags
+      - "auto": use mesh_router default agent→node mapping
+    """
+    mesh = get_mesh_router()
+
+    # Determine target node
+    target_node = node_name
+    if strategy == "explicit":
+        if not target_node or target_node not in mesh._node_urls:
+            return {"error": f"Node '{target_node}' not found", "status": "error"}
+    elif strategy == "recommended":
+        # Gather health from all nodes, pick best match
+        nodes = await list_nodes()
+        best_node = None
+        for n in nodes:
+            if n.get("status") in ("online", "self"):
+                tags = compute_recommended_for(n)
+                # Simple heuristic: prefer nodes with more capability tags
+                if best_node is None or len(tags) > len(best_node[1]):
+                    best_node = (n["name"], tags)
+        target_node = best_node[0] if best_node else mesh._self_name
+    else:
+        # auto: use mesh_router's agent→node mapping
+        agent_node = mesh._agent_nodes.get(channel.lower(), "")
+        target_node = agent_node or mesh._self_name
+
+    # Forward to target
+    is_self = target_node == mesh._self_name
+    if is_self:
+        # Route locally via musu-core
+        result = await route_chat(channel, sender_id, instruction)
+        return {"node": target_node, "status": "routed_local", "result": result}
+    else:
+        # Forward to remote node via mesh_router
+        try:
+            result = await mesh.forward(
+                mesh._node_urls.get(target_node, ""),
+                channel, sender_id, instruction,
+            )
+            return {"node": target_node, "status": "routed_remote", "result": result}
+        except Exception as exc:
+            return {"node": target_node, "status": "error", "error": str(exc)}
+
+
 def disconnect_node(name: str) -> bool:
     """Remove a node from nodes.toml."""
     mesh = get_mesh_router()

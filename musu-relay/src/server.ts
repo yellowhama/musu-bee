@@ -145,6 +145,29 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok", tunnels: Array.from(tunnels.keys()) });
 });
 
+// Metrics endpoint (unauthenticated) — observability for relay stability
+let _totalConnections = 0;
+let _totalReconnections = 0;
+let _lastTunnelConnectedAt: string | null = null;
+const _startTime = Date.now();
+
+app.get("/metrics", (_req, res) => {
+  res.json({
+    uptime_seconds: Math.floor((Date.now() - _startTime) / 1000),
+    tunnels_active: tunnels.size,
+    tunnels_connected: Array.from(tunnels.keys()),
+    tunnels_total_connected: _totalConnections,
+    reconnections_total: _totalReconnections,
+    pending_requests: pending.size,
+    ws_sessions_active: wsSessions.size,
+    last_tunnel_connected_at: _lastTunnelConnectedAt,
+    circuit_breaker: {
+      failures: _circuitFailures,
+      open_until: _circuitOpenUntil > Date.now() ? new Date(_circuitOpenUntil).toISOString() : null,
+    },
+  });
+});
+
 // HTTP proxy: forward any HTTP method/path to a registered node tunnel
 // Pattern: /proxy/:nodeId/*
 app.all("/proxy/:nodeId/*", requireSecret, async (req, res) => {
@@ -328,8 +351,11 @@ wss.on("tunnel-connection", (ws: WebSocket, req: http.IncomingMessage) => {
       const existing = tunnels.get(nodeId);
       if (existing && existing.ws !== ws && existing.ws.readyState === WebSocket.OPEN) {
         existing.ws.close(4003, "replaced by new connection");
+        _totalReconnections++;
       }
       tunnels.set(nodeId, { ws, token: authToken });
+      _totalConnections++;
+      _lastTunnelConnectedAt = new Date().toISOString();
       console.log(`[relay] tunnel connected: ${nodeId}`);
       ws.send(JSON.stringify({ type: "hello_ack", node_id: nodeId }));
       return;
@@ -552,4 +578,22 @@ if (require.main === module) {
     console.log(`[musu-relay] listening on :${PORT}`);
     if (!RELAY_SECRET) console.warn("[musu-relay] WARNING: MUSU_RELAY_SECRET not set — HTTP proxy endpoint disabled");
   });
+
+  // Graceful shutdown: close all tunnels so clients reconnect immediately
+  const shutdown = () => {
+    console.log("[musu-relay] shutting down — closing all tunnels");
+    for (const [nodeId, entry] of tunnels) {
+      entry.ws.close(1001, "server shutting down");
+      console.log(`[relay] closed tunnel: ${nodeId}`);
+    }
+    for (const [sessionId, session] of wsSessions) {
+      session.clientWs.close(1001, "server shutting down");
+      wsSessions.delete(sessionId);
+    }
+    clearInterval(_sessionCleanupTimer);
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(1), 5000);
+  };
+  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", shutdown);
 }
