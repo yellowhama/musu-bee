@@ -402,3 +402,71 @@ async def auto_distribute_loop(bridge_url: str = "http://localhost:8070") -> Non
                 logger.warning("auto_distribute: error — %s", exc)
 
             await asyncio.sleep(interval)
+
+
+# ── Morning report cron — daily at 08:00 KST ────────────────────────────────
+
+
+async def morning_report_cron(bridge_url: str = "http://localhost:8070") -> None:
+    """Generate and post a morning report every day at 08:00 KST.
+
+    Env:
+        MUSU_MORNING_REPORT_ENABLED = "true" — must be set to activate
+        MUSU_MORNING_REPORT_HOUR = 8  — hour in KST (default 8)
+    """
+    from datetime import datetime, timezone, timedelta
+    import httpx
+
+    kst = timezone(timedelta(hours=9))
+    target_hour = int(os.environ.get("MUSU_MORNING_REPORT_HOUR", "8"))
+    logger.info("morning_report_cron: started (target=%02d:00 KST)", target_hour)
+
+    async with httpx.AsyncClient(base_url=bridge_url, timeout=30.0) as http:
+        while True:
+            now = datetime.now(kst)
+            # Calculate seconds until next target hour
+            target = now.replace(hour=target_hour, minute=0, second=0, microsecond=0)
+            if now >= target:
+                target += timedelta(days=1)
+            wait_seconds = (target - now).total_seconds()
+            logger.info("morning_report_cron: next report in %.0f seconds (%s)", wait_seconds, target.isoformat())
+            await asyncio.sleep(wait_seconds)
+
+            try:
+                # Call dashboard for report data
+                resp = await http.get("/api/companies/default/dashboard")
+                dashboard = resp.json() if resp.status_code == 200 else {}
+
+                costs_resp = await http.get("/api/costs/summary")
+                costs = costs_resp.json() if costs_resp.status_code == 200 else {}
+
+                nodes = dashboard.get("nodes", [])
+                tasks = dashboard.get("tasks", {})
+
+                # Build report
+                lines = [
+                    f"# 🐝 MUSU Morning Report — {datetime.now(kst).strftime('%Y-%m-%d %H:%M KST')}",
+                    "",
+                    "## Devices",
+                ]
+                for n in nodes:
+                    icon = "🟢" if n.get("status") in ("online", "self") else "🔴"
+                    lines.append(f"- {icon} **{n.get('name')}** — {n.get('status')} | agents: {', '.join(n.get('agents', []))}")
+                lines.extend([
+                    "",
+                    "## Tasks",
+                    f"- Pending: {tasks.get('pending', 0)}, Running: {tasks.get('running', 0)}, Done: {tasks.get('done', 0)}, Failed: {tasks.get('failed', 0)}",
+                    "",
+                    "## Costs",
+                    f"- Total: ${costs.get('total_cost_usd', 0):.4f}" if isinstance(costs.get('total_cost_usd'), (int, float)) else f"- {costs}",
+                ])
+                report = "\n".join(lines)
+
+                # Post as board message
+                await http.post("/api/groups/general/messages", json={
+                    "sender_id": "morning_report",
+                    "text": report,
+                })
+                logger.info("morning_report_cron: report posted")
+            except Exception as exc:
+                logger.warning("morning_report_cron: error — %s", exc)

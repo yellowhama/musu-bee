@@ -206,6 +206,8 @@ from heartbeat_scheduler import (  # noqa: F401
     _has_running_ceo_task, _heartbeat_iteration,
     _agent_heartbeat_scheduler, _team_lead_heartbeat_scheduler,
     _node_manager_heartbeat, _company_locks, _get_company_lock,
+    auto_distribute_loop,
+    morning_report_cron,
 )
 
 
@@ -499,6 +501,18 @@ async def lifespan(app: FastAPI):
         node_heartbeat_task = asyncio.create_task(_node_manager_heartbeat())
         logger.info("node_heartbeat: task started")
 
+    # Auto-distribution (optional — routes pending tasks to optimal nodes)
+    auto_distribute_task = None
+    if os.environ.get("MUSU_AUTO_DISTRIBUTE_ENABLED", "").lower() == "true":
+        auto_distribute_task = asyncio.create_task(auto_distribute_loop())
+        logger.info("auto_distribute: task started")
+
+    # Morning report cron (optional — posts daily report at 08:00 KST)
+    morning_report_task = None
+    if os.environ.get("MUSU_MORNING_REPORT_ENABLED", "").lower() == "true":
+        morning_report_task = asyncio.create_task(morning_report_cron())
+        logger.info("morning_report_cron: task started")
+
     # Watchdog rate limit cache cleanup (always on — prevents unbounded memory growth)
     watchdog_cleanup_task = asyncio.create_task(_watchdog_rate_cleanup_loop())
 
@@ -522,6 +536,10 @@ async def lifespan(app: FastAPI):
     watchdog_cleanup_task.cancel()
     session_cleanup_task.cancel()
     discovery.close()
+    if morning_report_task:
+        morning_report_task.cancel()
+    if auto_distribute_task:
+        auto_distribute_task.cancel()
     if node_heartbeat_task:
         node_heartbeat_task.cancel()
     if team_lead_task:

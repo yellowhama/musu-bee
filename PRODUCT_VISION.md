@@ -642,13 +642,14 @@ environment:
 이미 만들어진 것들이 어떻게 연결되는지:
 
 ```
-유저 화면 (메신저 UI)
+유저 화면
   │
-  └── musu-desktop (Tauri 앱) ← 여기가 프론트엔드
-        │
-        ├── 채팅 UI (React)
-        ├── 기기 상태 패널 (React)
-        └── 작업 보드 (React)
+  ├── musu-bee (로컬 Next.js 웹앱, localhost:3001)  ← 기능 전부
+  │     ├── 채팅 UI (React)
+  │     ├── 기기 상태 패널 (React)
+  │     └── 작업 보드 (React)
+  │
+  └── musu.pro (Vercel, relay 통해 원격 접근)  ← 계정/결제/랜딩
               │
               ▼
         musu-port (각 기기의 로컬 control plane)
@@ -690,12 +691,12 @@ environment:
 
 ### MVP에 필요한 것
 
-- [ ] 채팅 UI (React, Tauri 안에서)
-- [ ] 파트장 AI (각 기기에서 돌아가는 에이전트)
-- [ ] 사장 로테이션 로직
-- [ ] 기기 간 메시지 전달 (musu-connects 위에)
-- [ ] 기기 상태 표시 (musu-port /health 데이터)
-- [ ] 작업 분배 판단 (GPU 필요? RAM 필요? CPU 충분?)
+- [x] 채팅 UI (React, musu-bee 웹앱)
+- [x] 파트장 AI (각 기기에서 돌아가는 에이전트)
+- [x] 사장 로테이션 로직
+- [x] 기기 간 메시지 전달 (musu-relay WebSocket 위에)
+- [x] 기기 상태 표시 (get_dashboard + list_nodes)
+- [x] 작업 분배 판단 (route_task recommended 전략)
 
 ### MVP에 필요 없는 것 (나중에)
 
