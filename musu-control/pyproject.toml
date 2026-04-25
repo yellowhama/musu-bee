@@ -5,13 +5,18 @@ build-backend = "hatchling.build"
 [project]
 name = "musu-control"
 version = "0.1.0"
-description = "Paperclip control plane MCP server — 23 tools via FastMCP"
+description = "MUSU control plane MCP server — 50+ tools for multi-device AI orchestration"
 requires-python = ">=3.10"
 license = { text = "MIT" }
+keywords = ["musu", "mcp", "ai", "multi-device", "orchestration"]
 dependencies = [
   "httpx>=0.27",
   "mcp>=1.9.0",
 ]
+
+[project.urls]
+Homepage = "https://musu.pro"
+Repository = "https://github.com/yellowhama/musu-bee"
 
 [project.scripts]
 musu-control = "musu_control.server:main"
