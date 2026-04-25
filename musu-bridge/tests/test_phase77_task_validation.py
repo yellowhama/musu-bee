@@ -20,7 +20,8 @@ class TestValidateTaskInstructionUnit:
         instruction = (
             "Add error handling to musu-bridge/handlers.py route_chat function "
             "when backend.create_route_execution raises an exception. "
-            "Test: pytest musu-bridge/tests/test_server.py -v should pass."
+            "Test: pytest musu-bridge/tests/test_server.py -v should pass. "
+            "expected_output: pytest musu-bridge/tests/test_server.py -v"
         )
         assert validate_task_instruction(instruction) is None
 
@@ -45,7 +46,8 @@ class TestValidateTaskInstructionUnit:
         instruction = (
             "implement the token refresh logic in musu-bridge/handlers.py "
             "route_chat function so expired tokens return 401. "
-            "pytest musu-bridge/tests/ should pass after change."
+            "pytest musu-bridge/tests/ should pass after change. "
+            "expected_output: pytest musu-bridge/tests/ -v all pass"
         )
         assert validate_task_instruction(instruction) is None
 
@@ -53,7 +55,8 @@ class TestValidateTaskInstructionUnit:
         instruction = (
             "fix the failing test in musu-bridge/tests/test_server.py "
             "test_valid_request_returns_response_and_agent_id — "
-            "the assert on agent_id is wrong, update expected value."
+            "the assert on agent_id is wrong, update expected value. "
+            "expected_output: pytest musu-bridge/tests/test_server.py -v passes"
         )
         assert validate_task_instruction(instruction) is None
 
@@ -63,17 +66,17 @@ class TestValidateTaskInstructionUnit:
         instruction = (
             "Review the current state of the musu-bridge observability dashboard "
             "and write a summary of what metrics are currently being collected, "
-            "what is missing, and what the next priority should be."
+            "what is missing, and what the next priority should be. "
+            "expected_output: written summary document with gap list"
         )
         assert validate_task_instruction(instruction) is None
 
     def test_exactly_50_chars_passes_length(self):
-        # 50 chars exactly, no vague verbs
+        # 50 chars exactly — fails expected_output gate now (no "expected_output" in "a"*50)
         instruction = "a" * 50
-        # No vague verbs, so only length check. Should pass length gate.
         result = validate_task_instruction(instruction)
-        # May still pass (no vague verb triggers)
-        assert result is None or "short" in (result or "").lower()
+        # Must fail either length (if < 50) or expected_output gate
+        assert result is None or "short" in (result or "").lower() or "expected_output" in (result or "")
 
     def test_49_chars_rejected(self):
         instruction = "a" * 49
@@ -106,7 +109,8 @@ class TestDelegateTaskValidation:
         instruction = (
             "Read musu-bridge/handlers.py route_chat function and verify "
             "that the error handling on line 69 returns the correct dict. "
-            "pytest musu-bridge/tests/test_server.py -v should pass."
+            "pytest musu-bridge/tests/test_server.py -v should pass. "
+            "expected_output: pytest musu-bridge/tests/test_server.py -v"
         )
         resp = _client.post(
             "/api/tasks/delegate",

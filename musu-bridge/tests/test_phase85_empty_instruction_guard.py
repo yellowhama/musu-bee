@@ -25,7 +25,8 @@ _client = TestClient(app, raise_server_exceptions=False)
 _VALID_TEXT = (
     "Read musu-bridge/handlers.py route_chat function and verify "
     "the error path returns the correct dict. "
-    "pytest musu-bridge/tests/test_server.py -v should pass after check."
+    "pytest musu-bridge/tests/test_server.py -v should pass after check. "
+    "expected_output: pytest musu-bridge/tests/test_server.py -v"
 )
 
 _CHANNEL_MAP = {

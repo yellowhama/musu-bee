@@ -27,11 +27,17 @@ def validate_task_instruction(instruction: str) -> str | None:
 
     Rules (from wiki/agent-task-reliability §3):
     1. Must be >= 50 chars (too short = not actionable)
-    2. If it contains a vague verb without a specificity signal, reject.
+    2. Must contain 'expected_output' section so success is verifiable.
+    3. If it contains a vague verb without a specificity signal, reject.
     """
     text = instruction.strip()
     if len(text) < 50:
         return f"Instruction too short ({len(text)} chars, minimum 50). Add: what specifically to do, in what file/function."
+    if "expected_output" not in text:
+        return (
+            "Instruction missing 'expected_output'. "
+            "Add a section like: expected_output: <what pytest/command output proves success>."
+        )
     if _VAGUE_VERBS.search(text) and not _SPECIFICITY_SIGNALS.search(text):
         return (
             "Instruction uses a general verb (implement/fix/do/handle/make/update/add) "
