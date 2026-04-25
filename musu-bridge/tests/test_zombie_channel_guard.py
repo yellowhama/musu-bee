@@ -116,6 +116,17 @@ class TestOuterFailureSafetyNet:
 class TestAllEarlyExitPathsCleanUp:
     """Every early-exit within _run_with_retry must call cancel_task_record."""
 
+    def setup_method(self):
+        """Clear running route_execution records for 'engineer' before each test."""
+        from handlers import _get_backend
+        backend = _get_backend()
+        try:
+            backend._db.execute(
+                "UPDATE route_executions SET status='cancelled' WHERE channel='engineer' AND status='running'"
+            )
+        except Exception:
+            pass
+
     def test_unhandled_exception_in_run_once_marks_record_failed(self):
         """An unexpected exception in _run_once must mark the record as failed, not leave it running."""
         with patch("server.route_chat", new_callable=AsyncMock) as mock_chat, \

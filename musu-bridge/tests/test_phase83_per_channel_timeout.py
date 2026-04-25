@@ -1,9 +1,9 @@
 """Phase 83: per-channel route timeout tests.
 
 Tests:
-1. _route_timeout_sec('engineer') returns 300.0 by default
-2. _route_timeout_sec('ceo') returns 300.0 by default
-3. _route_timeout_sec('') returns 180.0 (legacy default)
+1. _route_timeout_sec('engineer') returns 600.0 by default (Phase 90: increased from 300s)
+2. _route_timeout_sec('cto') returns 600.0 by default (Phase 90: increased from 300s)
+3. _route_timeout_sec('') returns 600.0 (Phase 90: increased from 180s)
 4. MUSU_ROUTE_TIMEOUT_SEC_ENGINEER override works
 5. MUSU_ROUTE_TIMEOUT_SEC_CEO override works
 6. MUSU_ROUTE_TIMEOUT_SEC global override applies when no channel-specific var
@@ -37,7 +37,7 @@ def _get_timeout(channel: str = "", env: dict | None = None) -> float:
 
 
 def test_engineer_default_timeout_300():
-    """engineer channel must default to 300s (not 180s) to survive complex coding tasks."""
+    """engineer channel must default to >= 600s to survive complex coding tasks."""
     import importlib
     import handlers
     importlib.reload(handlers)
@@ -51,11 +51,11 @@ def test_engineer_default_timeout_300():
         os.environ.pop("MUSU_ROUTE_TIMEOUT_SEC_ENGINEER", None)
         result = handlers._route_timeout_sec("engineer")
 
-    assert result == 300.0, f"Expected 300.0 for engineer, got {result}"
+    assert result >= 600.0, f"Expected >= 600.0 for engineer, got {result}"
 
 
 def test_cto_default_timeout_300():
-    """cto channel must default to 300s so it completes before watchdog kill (320s)."""
+    """cto channel must default to >= 600s to survive complex coding tasks."""
     import importlib
     import handlers
     importlib.reload(handlers)
@@ -69,7 +69,7 @@ def test_cto_default_timeout_300():
         os.environ.pop("MUSU_ROUTE_TIMEOUT_SEC_CTO", None)
         result = handlers._route_timeout_sec("cto")
 
-    assert result == 300.0, f"Expected 300.0 for cto, got {result}"
+    assert result >= 600.0, f"Expected >= 600.0 for cto, got {result}"
 
 
 def test_ceo_default_timeout_600():
@@ -91,7 +91,7 @@ def test_ceo_default_timeout_600():
 
 
 def test_unknown_channel_default_timeout_180():
-    """Unknown/empty channel must return 180.0 (legacy global default)."""
+    """Unknown/empty channel must return >= 600.0 (Phase 90: increased from 180s)."""
     import importlib
     import handlers
     importlib.reload(handlers)
@@ -101,10 +101,10 @@ def test_unknown_channel_default_timeout_180():
         os.environ.pop("MUSU_ROUTE_TIMEOUT_SEC_ENGINEER", None)
         os.environ.pop("MUSU_ROUTE_TIMEOUT_SEC_CEO", None)
         result_empty = handlers._route_timeout_sec("")
-        result_unknown = handlers._route_timeout_sec("qa")
+        result_unknown = handlers._route_timeout_sec("totally_unknown_xyz")
 
-    assert result_empty == 180.0, f"Expected 180.0 for empty channel, got {result_empty}"
-    assert result_unknown == 180.0, f"Expected 180.0 for qa channel, got {result_unknown}"
+    assert result_empty >= 600.0, f"Expected >= 600.0 for empty channel, got {result_empty}"
+    assert result_unknown >= 600.0, f"Expected >= 600.0 for unknown channel, got {result_unknown}"
 
 
 def test_engineer_channel_specific_override():
@@ -143,6 +143,7 @@ def test_global_override_applies_to_unknown_channel():
     }):
         os.environ.pop("MUSU_ROUTE_TIMEOUT_SEC_ENGINEER", None)
         os.environ.pop("MUSU_ROUTE_TIMEOUT_SEC_CEO", None)
-        result_unknown = handlers._route_timeout_sec("qa")
+        # Use a truly unknown channel (not in _CHANNEL_TIMEOUT_DEFAULTS)
+        result_unknown = handlers._route_timeout_sec("totally_unknown_xyz")
 
     assert result_unknown == 60.0, f"Expected 60.0 from global MUSU_ROUTE_TIMEOUT_SEC, got {result_unknown}"

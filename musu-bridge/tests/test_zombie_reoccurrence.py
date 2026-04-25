@@ -168,8 +168,9 @@ async def test_node_manager_heartbeat_touches_activity_on_create(monkeypatch):
             with patch("mesh_router.get_mesh_router", return_value=mock_router):
                 with patch("asyncio.sleep", side_effect=fake_sleep):
                     with patch("heartbeat_scheduler.cancel_task_record"):
-                        with pytest.raises((asyncio.CancelledError, Exception)):
-                            await heartbeat_scheduler._node_manager_heartbeat()
+                        with patch("heartbeat_scheduler._should_skip_heartbeat", return_value=(False, "")):
+                            with pytest.raises((asyncio.CancelledError, Exception)):
+                                await heartbeat_scheduler._node_manager_heartbeat()
 
     assert len(created_ids) >= 1, "Expected record to be created"
     assert len(touched_ids) >= 1, (
@@ -226,8 +227,9 @@ async def test_node_manager_heartbeat_activity_touch_before_route_chat(monkeypat
             with patch("mesh_router.get_mesh_router", return_value=mock_router):
                 with patch("asyncio.sleep", side_effect=fake_sleep):
                     with patch("heartbeat_scheduler.cancel_task_record"):
-                        with pytest.raises((asyncio.CancelledError, Exception)):
-                            await heartbeat_scheduler._node_manager_heartbeat()
+                        with patch("heartbeat_scheduler._should_skip_heartbeat", return_value=(False, "")):
+                            with pytest.raises((asyncio.CancelledError, Exception)):
+                                await heartbeat_scheduler._node_manager_heartbeat()
 
     assert "touch" in call_order, "touch_route_execution_activity must be called"
     assert "route_chat" in call_order, "route_chat must be called"
