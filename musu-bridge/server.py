@@ -188,12 +188,22 @@ _CHANNEL_MAX_TASKS = int(os.environ.get("MUSU_CHANNEL_MAX_TASKS", "5"))
 
 
 class _ChannelSemaphore:
-    """asyncio.Semaphore wrapper that exposes capacity without internal attribute access."""
+    """asyncio.Semaphore wrapper that exposes capacity without internal attribute access.
+
+    Semaphore is created lazily on first acquire so that constructing this object
+    outside a running event loop (e.g. at module import time) does not raise
+    RuntimeError: no running event loop.
+    """
 
     def __init__(self, capacity: int) -> None:
         self._capacity = capacity
         self._available = capacity
-        self._sem = asyncio.Semaphore(capacity)
+        self._sem: asyncio.Semaphore | None = None
+
+    def _ensure_sem(self) -> asyncio.Semaphore:
+        if self._sem is None:
+            self._sem = asyncio.Semaphore(self._available)
+        return self._sem
 
     @property
     def available(self) -> int:
@@ -215,11 +225,11 @@ class _ChannelSemaphore:
         self._sem = asyncio.Semaphore(v)
 
     async def acquire(self) -> None:
-        await self._sem.acquire()
+        await self._ensure_sem().acquire()
         self._available -= 1
 
     def release(self) -> None:
-        self._sem.release()
+        self._ensure_sem().release()
         self._available += 1
 
     def at_capacity(self) -> bool:
