@@ -24,12 +24,14 @@ let _circuitOpenUntil = 0;
 const CIRCUIT_FAILURE_THRESHOLD = 5;  // open circuit after 5 consecutive errors
 const CIRCUIT_COOLDOWN_MS = 30_000;   // stay open for 30s, then half-open
 
-async function validateToken(token: string, nodeId: string): Promise<boolean> {
+async function validateToken(token: string, nodeId: string, forceRefresh = false): Promise<boolean> {
   const cacheKey = `${token}:${nodeId}`;
-  const cached = validationCache.get(cacheKey);
 
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-    return cached.valid;
+  if (!forceRefresh) {
+    const cached = validationCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      return cached.valid;
+    }
   }
 
   // Circuit breaker: open circuit → reject new (uncached) validations
@@ -166,6 +168,34 @@ app.get("/metrics", (_req, res) => {
       open_until: _circuitOpenUntil > Date.now() ? new Date(_circuitOpenUntil).toISOString() : null,
     },
   });
+});
+
+// Admin: revoke tunnel by token (called by Paddle webhook on subscription cancel)
+app.post("/admin/revoke-tunnel", express.json(), requireSecret, (req, res) => {
+  const { token } = (req.body || {}) as { token?: string };
+  if (!token) {
+    res.status(400).json({ error: "missing token" });
+    return;
+  }
+
+  let revoked = 0;
+  for (const [nodeId, entry] of tunnels) {
+    if (entry.token === token) {
+      entry.ws.close(4005, "subscription revoked");
+      tunnels.delete(nodeId);
+      revoked++;
+      console.log(`[relay] tunnel revoked: node=${nodeId} (subscription cancelled)`);
+    }
+  }
+
+  // Also invalidate cache for this token
+  for (const key of validationCache.keys()) {
+    if (key.startsWith(`${token}:`)) {
+      validationCache.delete(key);
+    }
+  }
+
+  res.json({ revoked, message: revoked > 0 ? "tunnels closed" : "no active tunnels for this token" });
 });
 
 // HTTP proxy: forward any HTTP method/path to a registered node tunnel
@@ -358,6 +388,17 @@ wss.on("tunnel-connection", (ws: WebSocket, req: http.IncomingMessage) => {
       _lastTunnelConnectedAt = new Date().toISOString();
       console.log(`[relay] tunnel connected: ${nodeId}`);
       ws.send(JSON.stringify({ type: "hello_ack", node_id: nodeId }));
+
+      // Periodic re-validation: check subscription every 5 minutes
+      const revalidateTimer = setInterval(async () => {
+        const stillValid = await validateToken(authToken, id, true);
+        if (!stillValid) {
+          console.warn(`[relay] subscription expired for node=${id} — closing tunnel`);
+          ws.close(4005, "subscription expired");
+          clearInterval(revalidateTimer);
+        }
+      }, 5 * 60 * 1000);
+      ws.on("close", () => clearInterval(revalidateTimer));
       return;
     }
 
