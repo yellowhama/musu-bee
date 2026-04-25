@@ -39,13 +39,36 @@ def validate_task_instruction(instruction: str) -> str | None:
         )
     return None
 
-# Lazy import to avoid circular dependency at module load time
+# Lazy imports to avoid circular dependency at module load time
 def _get_request_id() -> str | None:
     try:
         from server import _request_id_var
         return _request_id_var.get(None)
     except ImportError:
         return None
+
+
+def _set_log_context(agent_id: str | None, task_id: str | None) -> tuple:
+    """Set agent_id/task_id ContextVars; return tokens for reset on exit."""
+    try:
+        from server import _agent_id_var, _task_id_var
+        t1 = _agent_id_var.set(agent_id)
+        t2 = _task_id_var.set(task_id)
+        return (t1, t2)
+    except ImportError:
+        return (None, None)
+
+
+def _reset_log_context(tokens: tuple) -> None:
+    t1, t2 = tokens
+    try:
+        from server import _agent_id_var, _task_id_var
+        if t1 is not None:
+            _agent_id_var.reset(t1)
+        if t2 is not None:
+            _task_id_var.reset(t2)
+    except ImportError:
+        pass
 
 # Ensure musu-core is importable
 _MUSU_CORE = Path(__file__).parent.parent / "musu-core" / "src"
@@ -259,6 +282,9 @@ async def route_chat(
             exec_id = ""  # Non-fatal: proceed without durability
     # else: record already created by caller (e.g. delegate endpoint)
 
+    # agent_id/task_id are resolved below after agent lookup; placeholder tokens
+    _ctx_tokens: tuple = (None, None)
+
     def _finish(result: dict[str, Any], node: str | None = None) -> dict[str, Any]:
         """Mark execution done/failed and return result (with cost if available)."""
         duration = time.time() - start_time
@@ -269,12 +295,17 @@ async def route_chat(
                 input_tokens = result.get("input_tokens")
                 output_tokens = result.get("output_tokens")
                 adapter_type = result.get("adapter_type")
+                _aid = result.get("agent_id")
+                _tid = result.get("task_id")
                 if result.get("error"):
                     backend.update_route_execution(exec_id, "failed", error=result["error"], node=node,
                                                    cost_usd=cost_usd, input_tokens=input_tokens, output_tokens=output_tokens,
                                                    duration_sec=duration)
-                    logger.warning("route_chat: failed channel=%r exec_id=%s duration=%.3fs request_id=%s error=%r",
-                                   channel, exec_id, duration, rid, result["error"])
+                    logger.warning(
+                        "route_chat: failed channel=%r exec_id=%s duration=%.3fs request_id=%s error=%r",
+                        channel, exec_id, duration, rid, result["error"],
+                        extra={"agent_id": _aid, "task_id": _tid},
+                    )
                     # Record failure in per-channel circuit breaker
                     try:
                         from server import _channel_cb
@@ -287,8 +318,11 @@ async def route_chat(
                     backend.update_route_execution(exec_id, "done", output=result.get("response"), node=node,
                                                    cost_usd=cost_usd, input_tokens=input_tokens, output_tokens=output_tokens,
                                                    duration_sec=duration)
-                    logger.info("route_chat: done channel=%r exec_id=%s duration=%.3fs request_id=%s adapter=%r",
-                                channel, exec_id, duration, rid, result.get("adapter_type"))
+                    logger.info(
+                        "route_chat: done channel=%r exec_id=%s duration=%.3fs request_id=%s adapter=%r",
+                        channel, exec_id, duration, rid, result.get("adapter_type"),
+                        extra={"agent_id": _aid, "task_id": _tid},
+                    )
             except Exception:
                 pass
         result["duration_sec"] = duration
@@ -366,6 +400,14 @@ async def route_chat(
     task_id: str = task_dict["id"]
     backend.add_comment(task_id=task_id, body=text.strip(), author_kind="user")
 
+    # Set ContextVars so all log records in this call carry agent_id + task_id
+    _ctx_tokens = _set_log_context(agent_id, task_id)
+    logger.info(
+        "route_chat: start channel=%r agent_id=%s task_id=%s",
+        channel, agent_id, task_id,
+        extra={"agent_id": agent_id, "task_id": task_id},
+    )
+
     _router = Router(backend=backend, config=get_core_config())
 
     async def _activity_heartbeat(eid: str, interval: float = 15.0) -> None:
@@ -375,8 +417,12 @@ async def route_chat(
                 await asyncio.sleep(interval)
                 try:
                     backend.touch_route_execution_activity(eid)
-                except Exception:
-                    pass
+                except Exception as _hb_exc:
+                    logger.warning(
+                        "route_chat: heartbeat touch failed exec_id=%s — %s",
+                        eid, _hb_exc,
+                        extra={"agent_id": agent_id, "task_id": task_id},
+                    )
         except asyncio.CancelledError:
             pass
 
@@ -403,19 +449,23 @@ async def route_chat(
             _heartbeat_task.cancel()
         _timeout = _route_timeout_sec(channel)
         logger.warning("route_chat: route_timeout — LLM call exceeded %.0fs for channel=%r", _timeout, channel)
-        return _finish({"error": f"route_timeout: LLM call exceeded {_timeout:.0f}s limit", "response": None})
+        return _finish({"error": f"route_timeout: LLM call exceeded {_timeout:.0f}s limit", "response": None,
+                        "agent_id": agent_id, "task_id": task_id})
     except Exception as exc:
         if _heartbeat_task:
             _heartbeat_task.cancel()
         logger.exception("route_chat: unexpected error — %s", exc)
-        return _finish({"error": "Internal error. Please try again.", "response": None})
+        return _finish({"error": "Internal error. Please try again.", "response": None,
+                        "agent_id": agent_id, "task_id": task_id})
     finally:
         if _heartbeat_task:
             _heartbeat_task.cancel()
+        _reset_log_context(_ctx_tokens)
 
     if not route_result.success:
         logger.error("route_chat: adapter failure — %s", route_result.error)
-        return _finish({"error": "Agent unavailable. Please try again later.", "response": None})
+        return _finish({"error": "Agent unavailable. Please try again later.", "response": None,
+                        "agent_id": agent_id, "task_id": task_id})
 
     backend.add_comment(task_id=task_id, body=route_result.summary, author_agent_id=agent_id, author_kind="agent")
 
@@ -424,6 +474,7 @@ async def route_chat(
         "response": route_result.summary,
         "agent_id": agent_id,
         "agent_name": agent_name,
+        "task_id": task_id,
         "adapter_type": adapter_type,
         "input_tokens": usage.input_tokens if usage else None,
         "output_tokens": usage.output_tokens if usage else None,
@@ -502,6 +553,14 @@ async def route_chat_with_qa_loop(
         backend.update_route_execution(task_id, "failed", error=error)
         return {"error": error}
 
+    engineer_id: str = engineer["id"]
+    _ctx_tokens = _set_log_context(engineer_id, task_id)
+    logger.info(
+        "route_chat_with_qa_loop: start task_id=%s agent_id=%s",
+        task_id, engineer_id,
+        extra={"agent_id": engineer_id, "task_id": task_id},
+    )
+
     # Minimal auto-generated Sprint Contract from the task description.
     # CTO can supply a richer contract via a dedicated endpoint in a future phase.
     contract = SprintContract(
@@ -525,7 +584,7 @@ async def route_chat_with_qa_loop(
 
     loop = QALoop(
         router=router,
-        engineer_agent_id=engineer["id"],
+        engineer_agent_id=engineer_id,
         qa_agent_id=qa_agent["id"],
         max_iterations=max_iter,
     )
@@ -537,8 +596,12 @@ async def route_chat_with_qa_loop(
                 await asyncio.sleep(interval)
                 try:
                     backend.touch_route_execution_activity(eid)
-                except Exception:
-                    pass
+                except Exception as _hb_exc:
+                    logger.warning(
+                        "route_chat_with_qa_loop: heartbeat touch failed exec_id=%s — %s",
+                        eid, _hb_exc,
+                        extra={"agent_id": engineer_id, "task_id": task_id},
+                    )
         except asyncio.CancelledError:
             pass
 
@@ -555,6 +618,7 @@ async def route_chat_with_qa_loop(
         result = await loop.run(task_prompt=text, contract=contract, task_id=None)
     finally:
         _heartbeat_task.cancel()
+        _reset_log_context(_ctx_tokens)
 
     if result.final_score:
         score_str = (
@@ -573,7 +637,11 @@ async def route_chat_with_qa_loop(
     if result.escalated:
         summary += f" | ESCALATED: {result.escalation_reason}"
 
-    logger.info("route_chat_with_qa_loop: task=%s %s", task_id, summary)
+    logger.info(
+        "route_chat_with_qa_loop: done task_id=%s %s",
+        task_id, summary,
+        extra={"agent_id": engineer_id, "task_id": task_id},
+    )
 
     # Persist all QA scores (one row per iteration) so UI can display history.
     if result.all_scores:
@@ -588,7 +656,14 @@ async def route_chat_with_qa_loop(
     if result.passed:
         backend.update_route_execution(task_id, "done", output=summary)
     else:
-        backend.update_route_execution(task_id, "failed", error=summary)
+        backend.update_route_execution(
+            task_id, "failed", error=summary,
+        )
+        logger.warning(
+            "route_chat_with_qa_loop: failed task_id=%s %s",
+            task_id, summary,
+            extra={"agent_id": engineer_id, "task_id": task_id},
+        )
 
     return {"response": summary, "qa_loop_result": result}
 

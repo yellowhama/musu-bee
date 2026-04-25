@@ -35,6 +35,9 @@ from typing import Annotated, List, Literal
 
 # ContextVar for request_id trace propagation — set by RequestIDMiddleware
 _request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)
+# ContextVars for agent/task structured logging — set by handlers before dispatch
+_agent_id_var: ContextVar[str | None] = ContextVar("agent_id", default=None)
+_task_id_var: ContextVar[str | None] = ContextVar("task_id", default=None)
 
 import uvicorn
 from fastapi import Body, FastAPI, HTTPException, Path, Query, Request, Response, WebSocket
@@ -127,6 +130,17 @@ from handlers import (
     set_kv_record,
 )
 
+class LogContextFilter(logging.Filter):
+    """Injects ContextVar values (agent_id, task_id) into every LogRecord."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if not hasattr(record, "agent_id"):
+            record.agent_id = _agent_id_var.get(None)  # type: ignore[attr-defined]
+        if not hasattr(record, "task_id"):
+            record.task_id = _task_id_var.get(None)  # type: ignore[attr-defined]
+        return True
+
+
 class JsonFormatter(logging.Formatter):
     """Formats log records as single-line JSON objects."""
 
@@ -139,6 +153,12 @@ class JsonFormatter(logging.Formatter):
         }
         if hasattr(record, "request_id"):
             payload["request_id"] = record.request_id
+        agent_id = getattr(record, "agent_id", None)
+        if agent_id:
+            payload["agent_id"] = agent_id
+        task_id = getattr(record, "task_id", None)
+        if task_id:
+            payload["task_id"] = task_id
         if record.exc_info:
             payload["exc"] = self.formatException(record.exc_info)
         return json.dumps(payload, ensure_ascii=False)
