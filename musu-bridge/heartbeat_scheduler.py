@@ -79,27 +79,8 @@ async def _heartbeat_iteration(
     role: str = "ceo",
 ) -> None:
     """Single guarded heartbeat iteration. Lock held only for guard check, not LLM call."""
-    # Guard check under lock — prevents concurrent starts for same channel
-    async with _heartbeat_lock:
-        try:
-            backend = _get_heartbeat_backend()
-        except Exception:
-            backend = None
-
-        if backend is not None:
-            should_skip, reason = _should_skip_heartbeat(backend, channel=agent_name)
-            if should_skip:
-                if "circuit open" in reason:
-                    logger.warning(
-                        "heartbeat_scheduler: circuit open — skipping %s (%s)", agent_name, reason
-                    )
-                else:
-                    logger.info(
-                        "heartbeat_scheduler: skipping — %s (%s)", agent_name, reason
-                    )
-                return
-    # Lock released — LLM call runs without blocking other schedulers
-    logger.info("heartbeat_scheduler: invoking %s (role: %s)", agent_name, role)
+    # Guard check + record creation under lock — atomic: no other scheduler can pass
+    # the guard and create a duplicate record between these two operations.
     prompt_parts = []
     if diag_summary and role == "ceo":
         prompt_parts.append(
@@ -132,12 +113,39 @@ async def _heartbeat_iteration(
 
     _hb_timeout = int(os.environ.get("MUSU_HEARTBEAT_TIMEOUT_SEC", "600"))
     _hb_exec_id = str(uuid.uuid4())
-    _hb_backend = _get_heartbeat_backend()
-    try:
-        _hb_backend.create_route_execution(_hb_exec_id, agent_name, "system", "".join(prompt_parts), company_id=company_id)
-        _hb_backend.update_route_execution(_hb_exec_id, "running")
-    except Exception:
-        _hb_exec_id = ""  # Proceed without durability if DB write fails
+
+    async with _heartbeat_lock:
+        try:
+            backend = _get_heartbeat_backend()
+        except Exception:
+            backend = None
+
+        if backend is not None:
+            should_skip, reason = _should_skip_heartbeat(backend, channel=agent_name)
+            if should_skip:
+                if "circuit open" in reason:
+                    logger.warning(
+                        "heartbeat_scheduler: circuit open — skipping %s (%s)", agent_name, reason
+                    )
+                else:
+                    logger.info(
+                        "heartbeat_scheduler: skipping — %s (%s)", agent_name, reason
+                    )
+                return
+
+        # Create the record while still holding the lock so no concurrent scheduler
+        # can pass the guard check above before this record is visible as 'running'.
+        _hb_backend = backend
+        try:
+            _hb_backend.create_route_execution(_hb_exec_id, agent_name, "system", "".join(prompt_parts), company_id=company_id)
+            _hb_backend.update_route_execution(_hb_exec_id, "running")
+            # Initialize last_activity_at immediately so watchdog does not treat this
+            # record as a zombie during the gap before route_chat begins.
+            _hb_backend.touch_route_execution_activity(_hb_exec_id)
+        except Exception:
+            _hb_exec_id = ""  # Proceed without durability if DB write fails
+    # Lock released — LLM call runs without blocking other schedulers
+    logger.info("heartbeat_scheduler: invoking %s (role: %s)", agent_name, role)
 
     try:
         await asyncio.wait_for(

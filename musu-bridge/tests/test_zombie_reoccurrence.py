@@ -3,7 +3,7 @@
 Two root causes fixed:
 1. auto_distribute_loop created orphan route_execution records — it marked a pending
    record as 'running' via raw SQL (no last_activity_at update), then called
-   /api/tasks/route which created a brand-new record. The original stayed running
+   route_task_to_node which created a brand-new record. The original stayed running
    forever with no output.
 2. _node_manager_heartbeat never called touch_route_execution_activity after creating
    its record, so watchdog could kill it as a zombie before route_chat's heartbeat began.
@@ -13,7 +13,7 @@ from __future__ import annotations
 import asyncio
 import sys
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch, call
 
 import pytest
 
@@ -110,6 +110,7 @@ async def test_auto_distribute_uses_update_not_raw_sql(monkeypatch):
 
     # update_route_execution must have been called (not just raw SQL)
     mock_backend.update_route_execution.assert_called()
+    # Verify it was called with "running" to refresh last_activity_at
     update_calls = [c for c in mock_backend.update_route_execution.call_args_list
                     if "running" in str(c)]
     assert update_calls, (
