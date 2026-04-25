@@ -61,7 +61,7 @@ if _PROMETHEUS_AVAILABLE:
         "agent_task_duration_seconds",
         "Wall-clock time for agent tasks",
         ["channel"],
-        buckets=[30, 60, 120, 300, 600, 900, 1800],
+        buckets=[30, 60, 120, 300, 600, 900, 1800, 3600, 7200],
     )
     _active_tasks_gauge = _prom_gauge("active_tasks_count", "Currently running async tasks")
     _task_stuck_total = _prom_counter(

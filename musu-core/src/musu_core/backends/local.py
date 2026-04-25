@@ -422,12 +422,32 @@ class LocalBackend(BackendABC):
         input_text: str,
         company_id: str | None = None,
     ) -> None:
-        """Insert a new route execution record with status='pending'."""
+        """Insert a new route execution record with status='pending' and lease_token=1.
+
+        Raises RuntimeError if an unexpired tombstone exists for (channel, sender_id).
+        """
+        # Check tombstone — block if an unexpired entry exists for this (channel, sender_id)
+        tombstone_rows = self._db.execute(
+            "SELECT tombstone_until FROM route_execution_tombstones"
+            " WHERE channel = ? AND sender_id = ?",
+            (channel, sender_id),
+        )
+        if tombstone_rows:
+            tombstone_until = tombstone_rows[0]["tombstone_until"]
+            # Compare with current UTC time (ISO8601 lexicographic comparison works for same format)
+            from datetime import datetime, timezone
+            now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+            if tombstone_until > now_iso:
+                raise RuntimeError(
+                    f"tombstone: (channel={channel!r}, sender_id={sender_id!r}) is blocked "
+                    f"until {tombstone_until} — zombie prevention"
+                )
+
         self._db.execute(
             """
             INSERT INTO route_executions
-                (id, channel, sender_id, input, status, company_id, last_activity_at)
-            VALUES (?, ?, ?, ?, 'pending', ?, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+                (id, channel, sender_id, input, status, company_id, last_activity_at, lease_token)
+            VALUES (?, ?, ?, ?, 'pending', ?, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 1)
             """,
             (exec_id, channel, sender_id, input_text, company_id),
         )
@@ -443,10 +463,94 @@ class LocalBackend(BackendABC):
         input_tokens: int | None = None,
         output_tokens: int | None = None,
         duration_sec: float | None = None,
+        expected_lease_token: int | None = None,
     ) -> None:
-        """Update status (and optional output/error/node/cost) for a route execution."""
-        # Refresh last_activity_at when transitioning to 'running' so the watchdog
-        # kill cutoff is anchored to the actual start of LLM execution, not INSERT time.
+        """Update status (and optional output/error/node/cost) for a route execution.
+
+        Fencing token semantics (when expected_lease_token is not None):
+        - status='running': atomic UPDATE WHERE id=? AND lease_token=expected,
+          SET lease_token=lease_token+1. rowcount=0 → WARNING (stale token).
+        - status='done'/'failed': atomic UPDATE WHERE id=? AND lease_token=expected.
+          rowcount=0 → WARNING (zombie rejected, tombstone NOT written).
+          rowcount=1 → success, tombstone upsert (tombstone_until=now+7200s).
+
+        If expected_lease_token is None, legacy path (no token check) is used.
+        """
+        from datetime import datetime, timedelta, timezone
+
+        if status == "running" and expected_lease_token is not None:
+            # Atomic increment: only update if lease_token matches
+            refresh_activity = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')"
+            with self._db.cursor() as cur:
+                cur.execute(
+                    f"""
+                    UPDATE route_executions
+                    SET status = ?, output = ?, error = ?, node = ?,
+                        cost_usd = COALESCE(?, cost_usd),
+                        input_tokens = COALESCE(?, input_tokens),
+                        output_tokens = COALESCE(?, output_tokens),
+                        duration_sec = COALESCE(?, duration_sec),
+                        updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                        last_activity_at = {refresh_activity},
+                        lease_token = lease_token + 1
+                    WHERE id = ? AND lease_token = ?
+                    """,
+                    (status, output, error, node, cost_usd, input_tokens, output_tokens,
+                     duration_sec, exec_id, expected_lease_token),
+                )
+                if cur.rowcount == 0:
+                    logger.warning(
+                        "update_route_execution: lease_token fencing conflict"
+                        " exec_id=%s expected_lease_token=%s status=%s — no rows updated",
+                        exec_id, expected_lease_token, status,
+                    )
+            return
+
+        if status in ("done", "failed") and expected_lease_token is not None:
+            # Terminal update: only if lease_token matches
+            with self._db.cursor() as cur:
+                cur.execute(
+                    """
+                    UPDATE route_executions
+                    SET status = ?, output = ?, error = ?, node = ?,
+                        cost_usd = COALESCE(?, cost_usd),
+                        input_tokens = COALESCE(?, input_tokens),
+                        output_tokens = COALESCE(?, output_tokens),
+                        duration_sec = COALESCE(?, duration_sec),
+                        updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+                    WHERE id = ? AND lease_token = ?
+                    """,
+                    (status, output, error, node, cost_usd, input_tokens, output_tokens,
+                     duration_sec, exec_id, expected_lease_token),
+                )
+                if cur.rowcount == 0:
+                    logger.warning(
+                        "update_route_execution: zombie rejected"
+                        " exec_id=%s expected_lease_token=%s status=%s — lease_token mismatch",
+                        exec_id, expected_lease_token, status,
+                    )
+                    return
+            # Success — write tombstone for the (channel, sender_id) pair
+            rows = self._db.execute(
+                "SELECT channel, sender_id FROM route_executions WHERE id = ?", (exec_id,)
+            )
+            if rows:
+                channel = rows[0]["channel"]
+                sender_id = rows[0]["sender_id"]
+                tombstone_until = (
+                    datetime.now(timezone.utc) + timedelta(seconds=7200)
+                ).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+                self._db.execute(
+                    """
+                    INSERT INTO route_execution_tombstones (channel, sender_id, tombstone_until)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT(channel, sender_id) DO UPDATE SET tombstone_until = excluded.tombstone_until
+                    """,
+                    (channel, sender_id, tombstone_until),
+                )
+            return
+
+        # Legacy path: no expected_lease_token — update without token check (backward compat)
         refresh_activity = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')" if status == "running" else "last_activity_at"
         self._db.execute(
             f"""
