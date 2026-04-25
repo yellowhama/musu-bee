@@ -1,0 +1,73 @@
+name: Release — Build & Publish Binaries
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            suffix: linux-x86_64
+          - target: x86_64-unknown-linux-musl
+            suffix: linux-x86_64-static
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install musl tools
+        if: contains(matrix.target, 'musl')
+        run: sudo apt-get install -y musl-tools
+
+      - name: Build musud
+        working-directory: musu-supervisor
+        run: |
+          cargo build --release --target ${{ matrix.target }} -p musud
+          cargo build --release --target ${{ matrix.target }} -p musu
+
+      - name: Package binaries
+        run: |
+          mkdir -p dist
+          cp musu-supervisor/target/${{ matrix.target }}/release/musud dist/musud-${{ matrix.suffix }}
+          cp musu-supervisor/target/${{ matrix.target }}/release/musu dist/musu-${{ matrix.suffix }}
+          chmod +x dist/*
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ matrix.suffix }}
+          path: dist/
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/*
+            install.sh

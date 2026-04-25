@@ -8,7 +8,7 @@ set -euo pipefail
 MUSU_HOME="${MUSU_HOME:-$HOME/.musu}"
 MUSU_ROOT="${MUSU_ROOT:-$HOME/musu-functions}"
 MUSU_REPO="${MUSU_REPO:-https://github.com/yellowhama/musu-bee.git}"
-MUSU_BIN_URL="${MUSU_BIN_URL:-}"  # GitHub Release URL (empty = skip binary download)
+MUSU_BIN_URL="${MUSU_BIN_URL:-https://github.com/yellowhama/musu-bee/releases/latest/download}"
 BRIDGE_PORT="${MUSU_BRIDGE_PORT:-8070}"
 BEE_PORT="${MUSU_BEE_PORT:-3001}"
 
@@ -81,10 +81,14 @@ mkdir -p "$MUSU_HOME/logs"
 # ══════════════════════════════════════════════════════════════
 if [ -n "$MUSU_BIN_URL" ]; then
     info "Downloading musud..."
-    curl -fsSL "${MUSU_BIN_URL}/musud-${OS}-${ARCH}" -o "$MUSU_HOME/bin/musud"
-    curl -fsSL "${MUSU_BIN_URL}/musu-${OS}-${ARCH}" -o "$MUSU_HOME/bin/musu"
-    chmod +x "$MUSU_HOME/bin/musud" "$MUSU_HOME/bin/musu"
-    info "Binaries installed ✓"
+    if curl -fsSL "${MUSU_BIN_URL}/musud-${OS}-${ARCH}" -o "$MUSU_HOME/bin/musud" 2>/dev/null && \
+       curl -fsSL "${MUSU_BIN_URL}/musu-${OS}-${ARCH}" -o "$MUSU_HOME/bin/musu" 2>/dev/null; then
+        chmod +x "$MUSU_HOME/bin/musud" "$MUSU_HOME/bin/musu"
+        info "Binaries downloaded ✓"
+    else
+        warn "Binary download failed (no release yet?). Will use repo binaries if available."
+        rm -f "$MUSU_HOME/bin/musud" "$MUSU_HOME/bin/musu" 2>/dev/null
+    fi
 elif [ -f "$MUSU_ROOT/bin/musud" ]; then
     # Use existing binaries from repo
     cp "$MUSU_ROOT/bin/musud" "$MUSU_HOME/bin/musud" 2>/dev/null || true
