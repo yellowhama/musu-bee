@@ -59,7 +59,8 @@ async def _run_watchdog_once() -> int:
         # field every ~30s, so only truly idle tasks cross the threshold.
         # COALESCE falls back to updated_at for rows predating v17 migration.
         stuck_rows = backend._db.execute(
-            "SELECT id, channel FROM route_executions "
+            "SELECT id, channel, COALESCE(last_activity_at, updated_at) as last_activity_at "
+            "FROM route_executions "
             "WHERE status = 'running' "
             "AND COALESCE(last_activity_at, updated_at) < ?",
             (kill_cutoff,),
@@ -72,6 +73,7 @@ async def _run_watchdog_once() -> int:
     for row in stuck_rows:
         task_id = row["id"] if isinstance(row, dict) else row[0]
         channel = (row["channel"] if isinstance(row, dict) else row[1]) or "unknown"
+        last_activity_at = (row.get("last_activity_at") if isinstance(row, dict) else (row[2] if len(row) > 2 else None))
         try:
             backend.update_route_execution(
                 task_id,
@@ -84,8 +86,9 @@ async def _run_watchdog_once() -> int:
             _increment_stuck_counter(channel, "watchdog_timeout")
             _channel_cb.record_failure(channel)
             logger.warning(
-                "watchdog: zombie cancel of task %s (channel=%s, kill_threshold=%ds)",
-                task_id, channel, _WATCHDOG_KILL_SEC,
+                "watchdog: zombie cancel of task %s (agent_id=%s, last_activity_at=%s, kill_threshold=%ds)",
+                task_id, channel, last_activity_at, _WATCHDOG_KILL_SEC,
+                extra={"agent_id": channel, "task_id": task_id},
             )
             if _channel_cb.is_open(channel):
                 logger.warning(
@@ -99,7 +102,8 @@ async def _run_watchdog_once() -> int:
     # Escalate stage
     try:
         escalate_rows = backend._db.execute(
-            "SELECT id, channel FROM route_executions "
+            "SELECT id, channel, COALESCE(last_activity_at, updated_at) as last_activity_at "
+            "FROM route_executions "
             "WHERE status = 'running' "
             "AND COALESCE(last_activity_at, updated_at) < ? "
             "AND COALESCE(last_activity_at, updated_at) >= ?",
@@ -108,10 +112,12 @@ async def _run_watchdog_once() -> int:
         for row in escalate_rows:
             task_id = row["id"] if isinstance(row, dict) else row[0]
             channel = (row["channel"] if isinstance(row, dict) else row[1]) or "unknown"
+            last_activity_at = (row.get("last_activity_at") if isinstance(row, dict) else (row[2] if len(row) > 2 else None))
             logger.error(
-                "watchdog: ESCALATE task %s (channel=%s) stuck >%ds — kill in %ds",
-                task_id, channel, _WATCHDOG_ESCALATE_SEC,
+                "watchdog: ESCALATE task %s (agent_id=%s, last_activity_at=%s) stuck >%ds — kill in %ds",
+                task_id, channel, last_activity_at, _WATCHDOG_ESCALATE_SEC,
                 _WATCHDOG_KILL_SEC - _WATCHDOG_ESCALATE_SEC,
+                extra={"agent_id": channel, "task_id": task_id},
             )
     except Exception as exc:
         logger.warning("watchdog: escalate scan failed — %s", exc)
@@ -119,7 +125,8 @@ async def _run_watchdog_once() -> int:
     # Warn stage
     try:
         warn_rows = backend._db.execute(
-            "SELECT id, channel FROM route_executions "
+            "SELECT id, channel, COALESCE(last_activity_at, updated_at) as last_activity_at "
+            "FROM route_executions "
             "WHERE status = 'running' "
             "AND COALESCE(last_activity_at, updated_at) < ? "
             "AND COALESCE(last_activity_at, updated_at) >= ?",
@@ -128,9 +135,11 @@ async def _run_watchdog_once() -> int:
         for row in warn_rows:
             task_id = row["id"] if isinstance(row, dict) else row[0]
             channel = (row["channel"] if isinstance(row, dict) else row[1]) or "unknown"
+            last_activity_at = (row.get("last_activity_at") if isinstance(row, dict) else (row[2] if len(row) > 2 else None))
             logger.warning(
-                "watchdog: task %s (channel=%s) approaching timeout (%ds threshold)",
-                task_id, channel, _WATCHDOG_KILL_SEC,
+                "watchdog: task %s (agent_id=%s, last_activity_at=%s) approaching timeout (%ds threshold)",
+                task_id, channel, last_activity_at, _WATCHDOG_KILL_SEC,
+                extra={"agent_id": channel, "task_id": task_id},
             )
     except Exception as exc:
         logger.warning("watchdog: early-warning scan failed — %s", exc)
