@@ -5,6 +5,7 @@ import logging
 import os
 import threading
 import time
+from collections import defaultdict, deque
 from dataclasses import dataclass, field
 try:
     import tomllib
@@ -14,6 +15,53 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+
+
+# ── Per-channel circuit breaker ───────────────────────────────────────────────
+
+class CircuitBreaker:
+    """Per-channel circuit breaker (CLOSED / OPEN / HALF-OPEN).
+
+    CLOSED  → normal operation
+    OPEN    → after failure_threshold failures; skip forwarding for cooldown_seconds
+    HALF-OPEN → after cooldown expires; allow one probe; success → CLOSED, failure → OPEN
+    """
+
+    def __init__(self, failure_threshold: int = 3, cooldown_seconds: int = 60) -> None:
+        self._threshold = failure_threshold
+        self._cooldown = cooldown_seconds
+        self._failures: dict[str, deque] = defaultdict(deque)
+        self._tripped_at: dict[str, float] = {}
+
+    @classmethod
+    def from_env(cls) -> "CircuitBreaker":
+        threshold = int(os.environ.get("MUSU_MESH_CB_FAIL_THRESHOLD", "3"))
+        cooldown = int(os.environ.get("MUSU_MESH_CB_COOLDOWN_SECONDS", "60"))
+        return cls(failure_threshold=threshold, cooldown_seconds=cooldown)
+
+    def is_open(self, channel: str) -> bool:
+        now = time.time()
+        tripped = self._tripped_at.get(channel)
+        if tripped is not None:
+            if now - tripped >= self._cooldown:
+                # Cooldown expired → HALF-OPEN (allow probe)
+                self._tripped_at.pop(channel, None)
+                self._failures[channel].clear()
+                return False
+            return True
+        return False
+
+    def record_failure(self, channel: str) -> None:
+        self._failures[channel].append(time.time())
+        if (
+            len(self._failures[channel]) >= self._threshold
+            and channel not in self._tripped_at
+        ):
+            self._tripped_at[channel] = time.time()
+
+    def record_success(self, channel: str) -> None:
+        self._tripped_at.pop(channel, None)
+        self._failures[channel].clear()
 
 
 @dataclass
@@ -52,6 +100,7 @@ class MeshRouter:
         self._node_broadcast: dict[str, str] = {}   # node_name → broadcast IP for Wake-on-LAN
         self._node_fingerprints: dict[str, str] = {} # node_name → TLS cert fingerprint
         self._health_cache: dict[str, tuple[bool, float]] = {}  # node → (alive, checked_at)
+        self._cb: CircuitBreaker = CircuitBreaker.from_env()
         self._loaded = False
         self._load()
 
@@ -334,18 +383,30 @@ class MeshRouter:
         """Forward a message to a remote musu-bridge node.
 
         Tries QUIC sidecar first (musu-connectsd bridge-proxy), falls back to HTTP.
+        Per-channel circuit breaker blocks forwarding when channel is OPEN.
         """
+        if self._cb.is_open(channel):
+            logger.warning("mesh_router: circuit open for channel=%r — skipping forward", channel)
+            return {"error": f"circuit open for channel {channel!r}", "response": None}
+
         node_name = self.node_for_agent(channel)
         fingerprint = self.fingerprint_for_node(node_name) if node_name else None
 
         if _QUIC_PROXY_URL:
             try:
-                return await self._forward_quic(node_url, channel, sender_id, text, adapter_override, fingerprint)
+                result = await self._forward_quic(node_url, channel, sender_id, text, adapter_override, fingerprint)
+                self._cb.record_success(channel)
+                return result
             except Exception as exc:
                 logger.warning(
                     "mesh_router: QUIC proxy failed (%s) — falling back to HTTP", exc
                 )
-        return await self._forward_http(node_url, channel, sender_id, text, adapter_override, fingerprint)
+        result = await self._forward_http(node_url, channel, sender_id, text, adapter_override, fingerprint)
+        if result.get("error"):
+            self._cb.record_failure(channel)
+        else:
+            self._cb.record_success(channel)
+        return result
 
     async def _forward_quic(
         self,
