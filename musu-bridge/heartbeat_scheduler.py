@@ -323,6 +323,9 @@ async def _node_manager_heartbeat() -> None:
             _nm_backend = _get_heartbeat_backend()
             _nm_backend.create_route_execution(_nm_exec_id, mgr_name, "system", _nm_text)
             _nm_backend.update_route_execution(_nm_exec_id, "running")
+            # Initialize last_activity_at immediately so watchdog does not treat this
+            # record as a zombie during the gap before route_chat's own heartbeat begins.
+            _nm_backend.touch_route_execution_activity(_nm_exec_id)
         except Exception:
             _nm_exec_id = ""
 
@@ -404,7 +407,7 @@ async def auto_distribute_loop(bridge_url: str = "http://localhost:8070") -> Non
 
                 # Find pending tasks that haven't been assigned
                 pending = backend._db.execute(
-                    "SELECT id, channel, input FROM route_executions "
+                    "SELECT id, channel, sender_id, input FROM route_executions "
                     "WHERE status = 'pending' ORDER BY created_at ASC LIMIT ?",
                     (max_concurrent - running_count,),
                 )
@@ -415,23 +418,23 @@ async def auto_distribute_loop(bridge_url: str = "http://localhost:8070") -> Non
 
                 for task in pending:
                     try:
-                        # Mark as dispatching to prevent duplicate dispatch on next iteration
-                        backend._db.execute(
-                            "UPDATE route_executions SET status = 'running' WHERE id = ? AND status = 'pending'",
-                            (task["id"],),
+                        task_id = task["id"]
+                        # Mark running via update_route_execution so last_activity_at is refreshed.
+                        # Raw SQL here would leave last_activity_at stale, causing watchdog zombies.
+                        backend.update_route_execution(task_id, "running")
+                        # Route locally — reuse the existing record by passing exec_id.
+                        # Without exec_id, route_chat creates a second record and the original
+                        # becomes an orphaned zombie (no output, never transitions out of running).
+                        result = await route_chat(
+                            channel=task["channel"],
+                            sender_id=task.get("sender_id") or "auto_distribute",
+                            text=task["input"],
+                            exec_id=task_id,
                         )
-                        resp = await http.post("/api/tasks/route", json={
-                            "channel": task["channel"],
-                            "instruction": task["input"],
-                            "strategy": "recommended",
-                            "sender_id": "auto_distribute",
-                        })
-                        if resp.status_code == 200:
-                            logger.info(
-                                "auto_distribute: routed task %s (channel=%s) → %s",
-                                task["id"], task["channel"],
-                                resp.json().get("node", "?"),
-                            )
+                        logger.info(
+                            "auto_distribute: completed task %s (channel=%s) error=%r",
+                            task_id, task["channel"], result.get("error"),
+                        )
                     except Exception as exc:
                         logger.warning("auto_distribute: failed to route task %s — %s", task["id"], exc)
 
