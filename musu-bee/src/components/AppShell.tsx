@@ -3,7 +3,8 @@
 export const dynamic = "force-dynamic";
 
 import { useState, useCallback, useEffect } from "react";
-import NavTab from "@/components/NavTab";
+import { ConsoleShell } from "@/components/console/ConsoleShell";
+import type { RegistryNode } from "@/lib/types/node";
 import AIDisplay from "@/components/AIDisplay";
 import type { DisplayContent } from "@/components/AIDisplay";
 import ChatArea from "@/components/ChatArea";
@@ -216,44 +217,28 @@ export default function AppShell() {
     : localMessages.filter((m) => m.channelId === activeChannel);
 
   // ── Render ─────────────────────────────────────────────────────────────────
+
+  // Map nodes for ConsoleShell
+  const consoleNodes: RegistryNode[] = nodes.map((n: Record<string, unknown>) => ({
+    node_name: (n.name as string) || "unknown",
+    public_url: (n.url as string) || "",
+    last_seen: new Date().toISOString(),
+    gpu: (n.gpu as string) || undefined,
+    roles: (n.roles as string[]) || undefined,
+  }));
+
+  const consoleUser = {
+    email: userIdentity.email || "user@local",
+    displayName: displayCompanyName,
+    avatarUrl: null as string | null,
+  };
+
   return (
-    <div
-      style={{
-        display: "flex",
-        height: "100vh",
-        width: "100vw",
-        background: "var(--bg-base)",
-        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-        overflow: "hidden",
-      }}
-    >
-      {/* Top header bar — musu.pro ConsoleTopStrip style */}
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 48,
-          background: "var(--console-sidebar-bg)",
-          borderBottom: "1px solid var(--console-sidebar-border)",
-          display: "flex",
-          alignItems: "center",
-          padding: "0 20px",
-          zIndex: 10,
-          gap: 12,
-        }}
-      >
-        <span
-          style={{
-            fontSize: 14,
-            fontWeight: 700,
-            color: "rgba(253, 252, 240, 0.9)",
-            letterSpacing: "-0.02em",
-          }}
-        >
-          {displayCompanyName}
-        </span>
+    <ConsoleShell user={consoleUser} nodes={consoleNodes}>
+      {/* ── LEGACY TOPBAR REMOVED — ConsoleShell provides its own ── */}
+      <div style={{ display: "none" }}>
+        {/* Hidden: kept for reference, will be fully removed later */}
+        <span>{displayCompanyName}</span>
         <span
           style={{
             fontSize: 11,
@@ -499,24 +484,14 @@ export default function AppShell() {
         )}
       </div>
 
-      {/* Main content — 3-panel layout */}
+      {/* Main content — panels + chat (ConsoleShell provides sidebar+topbar) */}
       <div
         style={{
           display: "flex",
-          marginTop: 48,
-          height: "calc(100vh - 48px)",
+          height: "100%",
           width: "100%",
         }}
       >
-        {/* Left: Navigation tabs */}
-        <NavTab
-          activePanel={activePanel}
-          activeChat={activeChat}
-          onPanelSelect={(id) => { setActivePanel(id); setDisplayOverlay(null); }}
-          onChatSelect={(id) => { setActiveChat(id); setActiveChannel(id); }}
-          companyName={displayCompanyName}
-        />
-
         {/* Center: AI Display (tabbed panels + AI content) */}
         <AIDisplay
           activePanel={activePanel}
@@ -586,6 +561,6 @@ export default function AppShell() {
           onClose={() => setShowCompanyTemplate(false)}
         />
       )}
-    </div>
+    </ConsoleShell>
   );
 }
