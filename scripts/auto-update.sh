@@ -115,6 +115,47 @@ if [ "$RESTART_BRIDGE" = "1" ]; then
     fi
 fi
 
+# ── 4b. Re-install Python packages if core/bridge/worker changed ─────────────
+if echo "$CHANGED" | grep -qE "^(musu-core|musu-bridge|musu-worker|musu-control)/"; then
+    VENV="${ROOT}/musu-bridge/.venv"
+    if [ -d "$VENV" ]; then
+        log "Python packages changed — re-installing..."
+        for pkg in musu-core musu-bridge musu-worker musu-control; do
+            if [ -d "${ROOT}/${pkg}" ]; then
+                "${VENV}/bin/pip" install --quiet -e "${ROOT}/${pkg}" 2>/dev/null || \
+                    log "WARNING: ${pkg} reinstall failed"
+            fi
+        done
+        log "Python packages updated"
+    fi
+fi
+
+# ── 4c. Re-install Node deps if musu-bee/package.json changed ────────────────
+if echo "$CHANGED" | grep -q "^musu-bee/package"; then
+    if [ -d "${ROOT}/musu-bee" ]; then
+        log "musu-bee deps changed — reinstalling..."
+        cd "${ROOT}/musu-bee"
+        if command -v pnpm >/dev/null 2>&1; then
+            pnpm install --silent 2>/dev/null || log "WARNING: pnpm install failed"
+        elif command -v npm >/dev/null 2>&1; then
+            npm install --silent 2>/dev/null || log "WARNING: npm install failed"
+        fi
+        cd "${ROOT}"
+        log "musu-bee deps updated"
+    fi
+fi
+
+# ── 4d. Update musud binary if changed ───────────────────────────────────────
+if echo "$CHANGED" | grep -q "^bin/musud$\|^bin/musu$"; then
+    log "musud binary changed — copying to ~/.musu/bin/"
+    cp "${ROOT}/bin/musud" "${HOME}/.musu/bin/musud" 2>/dev/null || true
+    cp "${ROOT}/bin/musu" "${HOME}/.musu/bin/musu" 2>/dev/null || true
+    chmod +x "${HOME}/.musu/bin/musud" "${HOME}/.musu/bin/musu" 2>/dev/null || true
+    # Restart musud itself
+    log "restarting musud (binary updated)"
+    systemctl --user restart musud.service 2>/dev/null || log "WARNING: musud restart failed"
+fi
+
 if [ "$RESTART_BRIDGE" = "0" ] && [ "$RESTART_CONNECTSD" = "0" ]; then
     log "no service-affecting changes — skipping restarts"
 fi
