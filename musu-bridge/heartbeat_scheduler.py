@@ -307,10 +307,12 @@ async def _node_manager_heartbeat() -> None:
     """Periodic stats report from the local node manager agent.
 
     Env:
-        MUSU_NODE_HEARTBEAT_ENABLED  = "true"   — must be set to activate
-        MUSU_NODE_HEARTBEAT_INTERVAL = seconds   — default 300 (5 min)
+        MUSU_NODE_HEARTBEAT_ENABLED    = "true"   — must be set to activate
+        MUSU_NODE_HEARTBEAT_INTERVAL   = seconds   — default 300 (5 min)
+        MUSU_NODE_HEARTBEAT_TIMEOUT_SEC = seconds  — default 180 (matches non-CEO timeout)
     """
     interval = int(os.environ.get("MUSU_NODE_HEARTBEAT_INTERVAL", "300"))
+    _nm_timeout = int(os.environ.get("MUSU_NODE_HEARTBEAT_TIMEOUT_SEC", "180"))
     from config import get_config
     _cfg = get_config()
     # Use mesh self_name so channel matches nodes.toml topology (not OS hostname)
@@ -319,7 +321,8 @@ async def _node_manager_heartbeat() -> None:
     mgr_name = f"mgr-{_router._self_name or _cfg.node_name}"
 
     logger.info(
-        "node_heartbeat: started (interval=%ds, agent=%s)", interval, mgr_name
+        "node_heartbeat: started (interval=%ds, agent=%s, timeout=%ds)",
+        interval, mgr_name, _nm_timeout,
     )
     # Stagger: wait 90s so node manager agent is fully seeded before first ping.
     await asyncio.sleep(90)
@@ -339,13 +342,30 @@ async def _node_manager_heartbeat() -> None:
 
         try:
             logger.info("node_heartbeat: invoking %s", mgr_name)
-            await route_chat(
-                channel=mgr_name,
-                sender_id="system",
-                text=_nm_text,
-                exec_id=_nm_exec_id or None,
+            _nm_result = await asyncio.wait_for(
+                route_chat(
+                    channel=mgr_name,
+                    sender_id="system",
+                    text=_nm_text,
+                    exec_id=_nm_exec_id or None,
+                ),
+                timeout=_nm_timeout,
             )
-            logger.info("node_heartbeat: %s done", mgr_name)
+            # route_chat returns an error dict (not an exception) for missing agents.
+            # Detect and cancel so the record doesn't stay stuck in 'running'.
+            if isinstance(_nm_result, dict) and _nm_result.get("error"):
+                _err = _nm_result["error"]
+                if _nm_exec_id:
+                    cancel_task_record(_nm_exec_id, error=f"node_heartbeat_error: {_err}")
+                logger.warning("node_heartbeat: %s route error — %s", mgr_name, _err)
+            else:
+                logger.info("node_heartbeat: %s done", mgr_name)
+        except asyncio.TimeoutError:
+            if _nm_exec_id:
+                cancel_task_record(_nm_exec_id, error=f"node_heartbeat_timeout after {_nm_timeout}s")
+            logger.warning(
+                "node_heartbeat: %s timed out after %ds", mgr_name, _nm_timeout
+            )
         except Exception as exc:
             if _nm_exec_id:
                 cancel_task_record(_nm_exec_id, error=f"node_heartbeat_error: {exc}")

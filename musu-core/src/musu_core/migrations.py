@@ -581,6 +581,56 @@ def _v18_down(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+# ---------------------------------------------------------------------------
+# v19: add lease_token to route_executions for fencing token anti-zombie
+# ---------------------------------------------------------------------------
+
+
+def _v19_up(conn: sqlite3.Connection) -> None:
+    """Add lease_token INTEGER DEFAULT 0 column to route_executions."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='route_executions'"
+    ).fetchone()
+    if row is None:
+        return  # Table doesn't exist yet; _SCHEMA will create it with the column.
+    if not _column_exists(conn, "route_executions", "lease_token"):
+        conn.execute(
+            "ALTER TABLE route_executions ADD COLUMN lease_token INTEGER DEFAULT 0;"
+        )
+        conn.commit()
+
+
+def _v19_down(conn: sqlite3.Connection) -> None:
+    try:
+        conn.execute("ALTER TABLE route_executions DROP COLUMN lease_token;")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass  # Older SQLite — drop-column not supported
+
+
+# ---------------------------------------------------------------------------
+# v20: route_execution_tombstones table for zombie create prevention
+# ---------------------------------------------------------------------------
+
+
+def _v20_up(conn: sqlite3.Connection) -> None:
+    """Create route_execution_tombstones table (channel, sender_id) PK."""
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS route_execution_tombstones (
+            channel       TEXT NOT NULL,
+            sender_id     TEXT NOT NULL,
+            tombstone_until TEXT NOT NULL,
+            PRIMARY KEY (channel, sender_id)
+        )
+    """)
+    conn.commit()
+
+
+def _v20_down(conn: sqlite3.Connection) -> None:
+    conn.execute("DROP TABLE IF EXISTS route_execution_tombstones;")
+    conn.commit()
+
+
 MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v1_fallback_chain", _v1_up, _v1_down),
     ("v2_messages_agent_id", _v2_up, _v2_down),
@@ -600,6 +650,8 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v16_messages_group_id", _v16_up, _v16_down),
     ("v17_route_executions_last_activity_at", _v17_up, _v17_down),
     ("v18_node_events", _v18_up, _v18_down),
+    ("v19_fencing_token", _v19_up, _v19_down),
+    ("v20_tombstone", _v20_up, _v20_down),
 ]
 
 

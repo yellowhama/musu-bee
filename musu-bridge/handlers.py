@@ -84,6 +84,15 @@ from mesh_router import get_mesh_router
 
 logger = logging.getLogger(__name__)
 
+
+def _record_task_metric(channel: str, status: str, duration_s: float | None = None) -> None:
+    """Module-level wrapper so tests can monkeypatch handlers._record_task_metric."""
+    try:
+        from metrics import _record_task_metric as _m
+        _m(channel, status, duration_s=duration_s)
+    except Exception:
+        pass
+
 _CANONICAL_COMPANY_ID = os.environ.get(
     "PAPERCLIP_COMPANY_ID", "f27a9bd2-688a-450b-98b4-f63d24b0ab50"
 )
@@ -272,11 +281,18 @@ async def route_chat(
     import time
     start_time = time.time()
 
+    # Fencing token: track the current lease token for this execution.
+    # Initialized to 1 after create_route_execution; incremented after each
+    # update_route_execution('running') call.
+    _current_lease_token: int = 1
+
     if exec_id is None:
         exec_id = str(uuid.uuid4())
         try:
             backend.create_route_execution(exec_id, channel, sender_id, text, company_id=company_id or _CANONICAL_COMPANY_ID)
-            backend.update_route_execution(exec_id, "running")
+            # lease_token starts at 1; after 'running' update it becomes 2
+            backend.update_route_execution(exec_id, "running", expected_lease_token=_current_lease_token)
+            _current_lease_token += 1
         except Exception:
             logger.warning("route_chat: failed to create durability record — continuing")
             exec_id = ""  # Non-fatal: proceed without durability
@@ -286,9 +302,11 @@ async def route_chat(
     _ctx_tokens: tuple = (None, None)
 
     def _finish(result: dict[str, Any], node: str | None = None) -> dict[str, Any]:
-        """Mark execution done/failed and return result (with cost if available)."""
+        """Mark execution done/failed, record metric, and return result."""
+        nonlocal _current_lease_token
         duration = time.time() - start_time
         rid = _get_request_id()
+        status_for_metric = "done" if not result.get("error") else "failed"
         if exec_id:
             try:
                 cost_usd = result.get("cost_usd")
@@ -298,9 +316,12 @@ async def route_chat(
                 _aid = result.get("agent_id")
                 _tid = result.get("task_id")
                 if result.get("error"):
-                    backend.update_route_execution(exec_id, "failed", error=result["error"], node=node,
-                                                   cost_usd=cost_usd, input_tokens=input_tokens, output_tokens=output_tokens,
-                                                   duration_sec=duration)
+                    backend.update_route_execution(
+                        exec_id, "failed", error=result["error"], node=node,
+                        cost_usd=cost_usd, input_tokens=input_tokens, output_tokens=output_tokens,
+                        duration_sec=duration,
+                        expected_lease_token=_current_lease_token,
+                    )
                     logger.warning(
                         "route_chat: failed channel=%r exec_id=%s duration=%.3fs request_id=%s error=%r",
                         channel, exec_id, duration, rid, result["error"],
@@ -315,9 +336,12 @@ async def route_chat(
                     except Exception:
                         pass
                 else:
-                    backend.update_route_execution(exec_id, "done", output=result.get("response"), node=node,
-                                                   cost_usd=cost_usd, input_tokens=input_tokens, output_tokens=output_tokens,
-                                                   duration_sec=duration)
+                    backend.update_route_execution(
+                        exec_id, "done", output=result.get("response"), node=node,
+                        cost_usd=cost_usd, input_tokens=input_tokens, output_tokens=output_tokens,
+                        duration_sec=duration,
+                        expected_lease_token=_current_lease_token,
+                    )
                     logger.info(
                         "route_chat: done channel=%r exec_id=%s duration=%.3fs request_id=%s adapter=%r",
                         channel, exec_id, duration, rid, result.get("adapter_type"),
@@ -325,6 +349,8 @@ async def route_chat(
                     )
             except Exception:
                 pass
+        # Always record metric — covers mesh/404/no-agent paths too
+        _record_task_metric(channel, status_for_metric, duration_s=duration)
         result["duration_sec"] = duration
         return result
 
@@ -1011,17 +1037,40 @@ def _make_summary(output: str | None) -> str:
     return text[:_SUMMARY_MAX_CHARS] + f"\n...[truncated, {len(text)} chars total]"
 
 
+def _is_system_noop(r: dict[str, Any]) -> bool:
+    """Return True for system-issued heartbeat records that produced no output.
+
+    These are created when the heartbeat fires but the agent either was not
+    found or returned immediately without any LLM call.  They match:
+      - sender_id == 'system'
+      - no output
+      - created_at == updated_at (never transitioned out of initial state)
+    """
+    if r.get("sender_id") != "system":
+        return False
+    if r.get("output"):
+        return False
+    return (r.get("created_at", "")[:19]) == (r.get("updated_at", "")[:19])
+
+
 def list_task_records(
     status: str | None = None,
     limit: int = 50,
     before_id: str | None = None,
     channel: str | None = None,
+    exclude_system_noop: bool = False,
 ) -> list[dict[str, Any]]:
-    """List route executions with summary field for each record."""
+    """List route executions with summary field for each record.
+
+    exclude_system_noop: when True, omit system-issued heartbeat records that
+    have no output and were created == updated (zombie no-ops).
+    """
     backend = _get_backend()
     records = backend.list_route_executions(
         status=status, limit=limit, before_id=before_id, channel=channel
     )
+    if exclude_system_noop:
+        records = [r for r in records if not _is_system_noop(r)]
     return [
         {
             "task_id": r["id"],

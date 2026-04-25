@@ -1,0 +1,131 @@
+{
+  "uid": "musu-agent-red-v1",
+  "title": "MUSU Agent RED Metrics",
+  "schemaVersion": 36,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "tags": ["musu", "agent", "red"],
+  "templating": {
+    "list": [
+      {
+        "name": "DS_PROMETHEUS",
+        "type": "datasource",
+        "pluginId": "prometheus",
+        "label": "Prometheus",
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Task Rate (per channel)",
+      "type": "timeseries",
+      "datasource": "${DS_PROMETHEUS}",
+      "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+      "targets": [
+        {
+          "datasource": "${DS_PROMETHEUS}",
+          "expr": "rate(agent_tasks_total[5m])",
+          "legendFormat": "{{channel}} / {{status}}",
+          "refId": "A"
+        }
+      ],
+      "description": "Rate of agent tasks delegated per channel and outcome status"
+    },
+    {
+      "id": 2,
+      "title": "Error Rate (per channel)",
+      "type": "timeseries",
+      "datasource": "${DS_PROMETHEUS}",
+      "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+      "targets": [
+        {
+          "datasource": "${DS_PROMETHEUS}",
+          "expr": "rate(agent_tasks_total{status=\"failed\"}[5m])",
+          "legendFormat": "{{channel}} errors",
+          "refId": "A"
+        }
+      ],
+      "description": "Rate of failed agent tasks per channel"
+    },
+    {
+      "id": 3,
+      "title": "P90 Task Duration (per channel)",
+      "type": "timeseries",
+      "datasource": "${DS_PROMETHEUS}",
+      "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+      "targets": [
+        {
+          "datasource": "${DS_PROMETHEUS}",
+          "expr": "histogram_quantile(0.90, rate(agent_task_duration_seconds_bucket[5m]))",
+          "legendFormat": "{{channel}} P90",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      },
+      "description": "P90 task duration in seconds per channel"
+    },
+    {
+      "id": 4,
+      "title": "P99 Task Duration (per channel)",
+      "type": "timeseries",
+      "datasource": "${DS_PROMETHEUS}",
+      "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+      "targets": [
+        {
+          "datasource": "${DS_PROMETHEUS}",
+          "expr": "histogram_quantile(0.99, rate(agent_task_duration_seconds_bucket[5m]))",
+          "legendFormat": "{{channel}} P99",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      },
+      "description": "P99 task duration in seconds per channel (alert threshold: 600s)"
+    },
+    {
+      "id": 5,
+      "title": "Zombie Count",
+      "type": "stat",
+      "datasource": "${DS_PROMETHEUS}",
+      "gridPos": {"x": 0, "y": 16, "w": 12, "h": 6},
+      "targets": [
+        {
+          "datasource": "${DS_PROMETHEUS}",
+          "expr": "rate(task_stuck_total{reason=\"zombie\"}[5m])",
+          "legendFormat": "{{channel}} zombie rate",
+          "refId": "A"
+        }
+      ],
+      "description": "Rate of zombie tasks per channel (alert threshold: 0.1/min)"
+    },
+    {
+      "id": 6,
+      "title": "Active Tasks",
+      "type": "stat",
+      "datasource": "${DS_PROMETHEUS}",
+      "gridPos": {"x": 12, "y": 16, "w": 12, "h": 6},
+      "targets": [
+        {
+          "datasource": "${DS_PROMETHEUS}",
+          "expr": "active_tasks_count",
+          "legendFormat": "Active tasks",
+          "refId": "A"
+        }
+      ],
+      "description": "Currently running async tasks"
+    }
+  ]
+}
