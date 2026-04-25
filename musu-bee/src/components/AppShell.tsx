@@ -227,7 +227,7 @@ export default function AppShell() {
         overflow: "hidden",
       }}
     >
-      {/* Top header bar */}
+      {/* Top header bar — musu.pro ConsoleTopStrip style */}
       <div
         style={{
           position: "fixed",
@@ -235,8 +235,8 @@ export default function AppShell() {
           left: 0,
           right: 0,
           height: 48,
-          background: "var(--bg-base)",
-          borderBottom: "1px solid var(--border-subtle)",
+          background: "var(--console-sidebar-bg)",
+          borderBottom: "1px solid var(--console-sidebar-border)",
           display: "flex",
           alignItems: "center",
           padding: "0 20px",
@@ -244,12 +244,11 @@ export default function AppShell() {
           gap: 12,
         }}
       >
-        <span style={{ fontSize: 20 }}>🐝</span>
         <span
           style={{
-            fontSize: 16,
+            fontSize: 14,
             fontWeight: 700,
-            color: "var(--fg1)",
+            color: "rgba(253, 252, 240, 0.9)",
             letterSpacing: "-0.02em",
           }}
         >
@@ -259,8 +258,8 @@ export default function AppShell() {
           style={{
             fontSize: 11,
             color: "var(--fg2)",
-            background: "var(--bg-surface)",
-            border: "1px solid #262626",
+            background: "rgba(255,255,255,0.06)",
+            border: "1px solid var(--console-sidebar-border)",
             borderRadius: 999,
             padding: "4px 9px",
             letterSpacing: "0.04em",
@@ -278,8 +277,8 @@ export default function AppShell() {
                 : companyActivation?.controlPlaneSync.status === "degraded"
                   ? "var(--status-warn)"
                   : "var(--fg2)",
-            background: "var(--bg-surface)",
-            border: "1px solid #262626",
+            background: "rgba(255,255,255,0.06)",
+            border: "1px solid var(--console-sidebar-border)",
             borderRadius: 999,
             padding: "4px 9px",
             textTransform: "uppercase",
@@ -297,7 +296,7 @@ export default function AppShell() {
             style={{
               fontSize: 11,
               color: "var(--fg1)",
-              background: "var(--bg-surface)",
+              background: "rgba(255,255,255,0.06)",
               border: "1px solid var(--fg4)",
               borderRadius: 6,
               padding: "4px 10px",
@@ -337,7 +336,7 @@ export default function AppShell() {
               style={{
                 fontSize: 10,
                 color,
-                background: "var(--bg-surface)",
+                background: "rgba(255,255,255,0.06)",
                 border: `1px solid ${color}44`,
                 borderRadius: 999,
                 padding: "3px 8px",
@@ -400,7 +399,7 @@ export default function AppShell() {
             fontSize: 12,
             color: "var(--fg2)",
             background: "transparent",
-            border: "1px solid var(--border-default)",
+            border: "1px solid var(--console-sidebar-border)",
             borderRadius: 6,
             padding: "4px 10px",
             textDecoration: "none",
@@ -414,8 +413,8 @@ export default function AppShell() {
           style={{
             fontSize: 12,
             color: "var(--fg2)",
-            background: "var(--bg-card)",
-            border: "1px solid var(--border-default)",
+            background: "rgba(255,255,255,0.06)",
+            border: "1px solid var(--console-sidebar-border)",
             borderRadius: 6,
             padding: "4px 10px",
             cursor: "pointer",
@@ -448,8 +447,8 @@ export default function AppShell() {
             style={{
               fontSize: 12,
               color: "var(--fg2)",
-              background: "var(--bg-card)",
-              border: "1px solid var(--border-default)",
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid var(--console-sidebar-border)",
               borderRadius: 6,
               padding: "4px 10px",
               cursor: "pointer",
@@ -464,8 +463,8 @@ export default function AppShell() {
             style={{
               fontSize: 13,
               color: "var(--fg3)",
-              background: "var(--bg-card)",
-              border: "1px solid var(--border-default)",
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid var(--console-sidebar-border)",
               borderRadius: 6,
               padding: "4px 10px",
               maxWidth: 180,
@@ -488,7 +487,7 @@ export default function AppShell() {
               fontSize: 12,
               color: "var(--fg3)",
               background: "transparent",
-              border: "1px solid var(--border-default)",
+              border: "1px solid var(--console-sidebar-border)",
               borderRadius: 6,
               padding: "4px 10px",
               cursor: "pointer",
