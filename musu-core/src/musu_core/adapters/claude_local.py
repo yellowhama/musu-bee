@@ -158,15 +158,45 @@ class ClaudeLocalAdapter(BaseAdapter):
                 env=build_env(),
             )
             try:
-                stdout_bytes, stderr_bytes = await asyncio.wait_for(
-                    proc.communicate(input=ctx.prompt.encode()),
-                    timeout=timeout_sec,
+                proc.stdin.write(ctx.prompt.encode())
+                await proc.stdin.drain()
+                proc.stdin.close()
+
+                stdout_chunks: list[bytes] = []
+                stderr_chunks: list[bytes] = []
+
+                async def read_stdout() -> None:
+                    while True:
+                        chunk = await proc.stdout.read(4096)
+                        if not chunk:
+                            break
+                        stdout_chunks.append(chunk)
+
+                async def read_stderr() -> None:
+                    while True:
+                        chunk = await proc.stderr.read(4096)
+                        if not chunk:
+                            break
+                        stderr_chunks.append(chunk)
+
+                try:
+                    await asyncio.wait_for(
+                        asyncio.gather(read_stdout(), read_stderr(), proc.wait()),
+                        timeout=timeout_sec,
+                    )
+                except asyncio.TimeoutError:
+                    proc.kill()
+                    await proc.wait()
+                    return -1, b"".join(stdout_chunks).decode(errors="replace"), f"Timed out after {timeout_sec}s"
+
+                return (
+                    proc.returncode or 0,
+                    b"".join(stdout_chunks).decode(errors="replace"),
+                    b"".join(stderr_chunks).decode(errors="replace"),
                 )
-            except asyncio.TimeoutError:
+            except Exception:
                 proc.kill()
-                await proc.communicate()
-                return -1, "", f"Timed out after {timeout_sec}s"
-            return (proc.returncode or 0), stdout_bytes.decode(errors="replace"), stderr_bytes.decode(errors="replace")
+                raise
 
         exit_code, stdout, stderr = await run_attempt(ctx.session_id)
 

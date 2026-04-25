@@ -363,7 +363,7 @@ async def route_chat(
 
     _router = Router(backend=backend, config=get_core_config())
 
-    async def _activity_heartbeat(eid: str, interval: float = 30.0) -> None:
+    async def _activity_heartbeat(eid: str, interval: float = 15.0) -> None:
         """Periodically touch last_activity_at so watchdog won't kill active LLM calls."""
         try:
             while True:

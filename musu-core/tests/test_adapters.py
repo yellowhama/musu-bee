@@ -128,15 +128,10 @@ def test_claude_local_strips_nesting_vars():
     async def fake_exec(*args, stdin, stdout, stderr, cwd, env):
         nonlocal captured_env
         captured_env = env.copy()
-        proc = MagicMock()
-        proc.returncode = 0
-        proc.communicate = AsyncMock(
-            return_value=(
-                json.dumps({"type": "result", "session_id": "s1", "result": "done", "usage": {}}).encode(),
-                b"",
-            )
+        return _mock_claude_proc(
+            [{"type": "result", "session_id": "s1", "result": "done", "usage": {}}],
+            returncode=0,
         )
-        return proc
 
     with patch.dict(
         os.environ,
@@ -156,15 +151,132 @@ def test_claude_local_strips_nesting_vars():
 
 
 # ---------------------------------------------------------------------------
+# ClaudeLocalAdapter — event loop non-blocking (streaming reads)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_claude_local_streaming_does_not_block_event_loop():
+    """run_attempt must read stdout/stderr via streaming (not proc.communicate)
+    so other coroutines (e.g. _activity_heartbeat) can run concurrently.
+
+    Strategy: create a fake proc whose stdout delivers data in chunks with
+    asyncio.sleep(0.05) between them. A concurrent counter task increments
+    every 0.02s. If the event loop is blocked, the counter stays at 0.
+    If streaming is used, the counter increments at least once during the read.
+    """
+    import json as _json
+
+    result_event = {"type": "result", "session_id": "s1", "result": "ok", "usage": {}}
+    stdout_data = (_json.dumps(result_event) + "\n").encode()
+
+    # Chunk the data to force multiple reads
+    chunk1 = stdout_data[:10]
+    chunk2 = stdout_data[10:]
+
+    stdout_chunks_sent = 0
+    stderr_chunks_sent = 0
+
+    class FakeStreamReader:
+        def __init__(self, chunks: list[bytes]):
+            self._chunks = list(chunks)
+
+        async def read(self, n: int) -> bytes:
+            nonlocal stdout_chunks_sent
+            if self._chunks:
+                await asyncio.sleep(0.05)  # yield to event loop between chunks
+                stdout_chunks_sent += 1
+                return self._chunks.pop(0)
+            return b""
+
+    class FakeStderrReader:
+        async def read(self, n: int) -> bytes:
+            return b""
+
+    class FakeStdin:
+        def write(self, data: bytes) -> None:
+            pass
+
+        async def drain(self) -> None:
+            pass
+
+        def close(self) -> None:
+            pass
+
+    proc = MagicMock()
+    proc.returncode = 0
+    proc.stdin = FakeStdin()
+    proc.stdout = FakeStreamReader([chunk1, chunk2])
+    proc.stderr = FakeStderrReader()
+    proc.wait = AsyncMock(return_value=0)
+    # Ensure communicate is NOT used (it would bypass streaming)
+    proc.communicate = AsyncMock(side_effect=AssertionError("proc.communicate must not be called in streaming mode"))
+
+    concurrent_ticks = 0
+
+    async def tick_counter():
+        nonlocal concurrent_ticks
+        for _ in range(20):
+            await asyncio.sleep(0.02)
+            concurrent_ticks += 1
+
+    adapter = ClaudeLocalAdapter()
+    ctx = make_ctx()
+
+    async def run():
+        with patch("asyncio.create_subprocess_exec", return_value=proc):
+            result = await adapter.execute(ctx)
+        return result
+
+    result, _ = await asyncio.gather(run(), tick_counter())
+
+    assert result.success, f"Expected success, got error: {result.error}"
+    assert concurrent_ticks >= 2, (
+        f"Event loop was blocked during subprocess read — concurrent_ticks={concurrent_ticks}. "
+        "Use streaming reads (proc.stdout.read) instead of proc.communicate()."
+    )
+
+
+# ---------------------------------------------------------------------------
 # ClaudeLocalAdapter — successful execution
 # ---------------------------------------------------------------------------
 
 
 def _mock_claude_proc(stdout_events: list[dict], returncode: int = 0):
-    stdout = "\n".join(json.dumps(e) for e in stdout_events).encode()
+    """Return a fake proc compatible with the streaming read interface."""
+    stdout_bytes = "\n".join(json.dumps(e) for e in stdout_events).encode()
+
+    class _FakeStream:
+        def __init__(self, data: bytes):
+            self._data = data
+            self._sent = False
+
+        async def read(self, n: int) -> bytes:
+            if not self._sent:
+                self._sent = True
+                return self._data
+            return b""
+
+    class _FakeEmptyStream:
+        async def read(self, n: int) -> bytes:
+            return b""
+
+    class _FakeStdin:
+        def write(self, data: bytes) -> None:
+            pass
+
+        async def drain(self) -> None:
+            pass
+
+        def close(self) -> None:
+            pass
+
     proc = MagicMock()
     proc.returncode = returncode
-    proc.communicate = AsyncMock(return_value=(stdout, b""))
+    proc.stdin = _FakeStdin()
+    proc.stdout = _FakeStream(stdout_bytes)
+    proc.stderr = _FakeEmptyStream()
+    proc.wait = AsyncMock(return_value=returncode)
     return proc
 
 
@@ -256,22 +368,34 @@ def test_claude_local_timeout():
     ctx = make_ctx(config={"timeout_sec": 1})
 
     async def fake_exec(*args, stdin, stdout, stderr, cwd, env):
+        class _SlowStream:
+            async def read(self, n: int) -> bytes:
+                await asyncio.sleep(9999)  # hang forever → triggers TimeoutError
+                return b""
+
+        class _FakeEmptyStream:
+            async def read(self, n: int) -> bytes:
+                return b""
+
+        class _FakeStdin:
+            def write(self, data: bytes) -> None:
+                pass
+
+            async def drain(self) -> None:
+                pass
+
+            def close(self) -> None:
+                pass
+
         proc = MagicMock()
         proc.returncode = -1
-        proc.kill = MagicMock()
+        proc.stdin = _FakeStdin()
+        proc.stdout = _SlowStream()
+        proc.stderr = _FakeEmptyStream()
+        async def _slow_wait():
+            await asyncio.sleep(9999)
 
-        call_count = 0
-
-        async def slow_communicate(input=None):
-            nonlocal call_count
-            call_count += 1
-            if call_count == 1:
-                # First call (via wait_for) raises TimeoutError
-                raise asyncio.TimeoutError
-            # Second call (cleanup after proc.kill) succeeds
-            return b"", b""
-
-        proc.communicate = slow_communicate
+        proc.wait = _slow_wait
         return proc
 
     with patch("asyncio.create_subprocess_exec", side_effect=fake_exec):
@@ -285,11 +409,7 @@ def test_claude_local_empty_response():
     adapter = ClaudeLocalAdapter()
     ctx = make_ctx()
 
-    proc = MagicMock()
-    proc.returncode = 0
-    proc.communicate = AsyncMock(return_value=(b"", b""))
-
-    with patch("asyncio.create_subprocess_exec", return_value=proc):
+    with patch("asyncio.create_subprocess_exec", return_value=_mock_claude_proc([], returncode=0)):
         result = asyncio.run(adapter.execute(ctx))
 
     assert not result.success

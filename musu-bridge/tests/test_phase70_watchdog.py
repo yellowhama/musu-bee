@@ -537,3 +537,66 @@ def test_circuit_breaker_resets_after_block_sec():
     assert not cb.is_open("team_lead"), (
         "Circuit breaker must close automatically after block_sec elapses"
     )
+
+
+# ---------------------------------------------------------------------------
+# Phase 73: last_activity_at initialized on create + refreshed on running
+# ---------------------------------------------------------------------------
+
+# 15. create_route_execution sets last_activity_at to non-NULL
+def test_create_route_execution_sets_last_activity_at():
+    """create_route_execution must set last_activity_at = now() (not NULL) so the
+    watchdog COALESCE fallback to updated_at cannot cause premature kills."""
+    import sys
+    import uuid
+    from pathlib import Path
+    musu_core = Path(__file__).parent.parent.parent / "musu-core" / "src"
+    if str(musu_core) not in sys.path:
+        sys.path.insert(0, str(musu_core))
+
+    from musu_core.backends.local import LocalBackend
+
+    db = LocalBackend(":memory:")
+    exec_id = str(uuid.uuid4())
+    db.create_route_execution(exec_id, "engineer", "sender-1", "hello")
+
+    row = db.get_route_execution(exec_id)
+    assert row is not None, "Row must exist after create_route_execution"
+    assert row.get("last_activity_at") is not None, (
+        "last_activity_at must be set on INSERT — NULL allows watchdog to use "
+        "updated_at (INSERT time) which can trigger premature kills"
+    )
+
+
+# 16. update_route_execution('running') refreshes last_activity_at
+def test_update_route_execution_running_refreshes_last_activity_at():
+    """update_route_execution('running') must update last_activity_at so the
+    watchdog kill clock starts from when the LLM execution actually began."""
+    import sys
+    import uuid
+    import time
+    from pathlib import Path
+    musu_core = Path(__file__).parent.parent.parent / "musu-core" / "src"
+    if str(musu_core) not in sys.path:
+        sys.path.insert(0, str(musu_core))
+
+    from musu_core.backends.local import LocalBackend
+
+    db = LocalBackend(":memory:")
+    exec_id = str(uuid.uuid4())
+    db.create_route_execution(exec_id, "engineer", "sender-1", "hello")
+
+    row_after_create = db.get_route_execution(exec_id)
+    created_activity = row_after_create["last_activity_at"]
+
+    # Small sleep to ensure clock advances
+    time.sleep(0.05)
+
+    db.update_route_execution(exec_id, "running")
+    row_after_running = db.get_route_execution(exec_id)
+    running_activity = row_after_running["last_activity_at"]
+
+    assert running_activity is not None, "last_activity_at must not be NULL after running update"
+    assert running_activity >= created_activity, (
+        "last_activity_at after 'running' must be >= the INSERT timestamp"
+    )
