@@ -27,6 +27,7 @@ class DelegateRequest(BaseModel):
     qa_loop_max_iter: int = Field(default=3, ge=1, le=5)
     timeout_sec: int | None = Field(default=None, ge=30, le=3600)
     company_id: str | None = None
+    allow_duplicate: bool = False
 
     @field_validator("text")
     @classmethod

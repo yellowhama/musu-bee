@@ -23,6 +23,15 @@ client = TestClient(app, headers={"Authorization": "Bearer test-token"})
 
 
 @pytest.fixture(autouse=True)
+def _clean_running_executions():
+    """Clear any stale 'running' route_executions before each test."""
+    from handlers import _get_backend
+    backend = _get_backend()
+    backend._db.execute("UPDATE route_executions SET status = 'done' WHERE status = 'running'")
+    yield
+
+
+@pytest.fixture(autouse=True)
 def _mock_route_chat():
     with patch("server.route_chat", new_callable=AsyncMock) as mock:
         mock.return_value = {

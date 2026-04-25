@@ -18,6 +18,7 @@ from fastapi.testclient import TestClient
 
 os.environ.setdefault("MUSU_BRIDGE_TOKEN", "test-token")
 os.environ.setdefault("MUSU_DISABLE_RATE_LIMIT", "1")
+os.environ.setdefault("MUSU_PLAN", "pro")  # bypass daily task limit in tests
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from server import app  # noqa: E402
@@ -65,6 +66,17 @@ class TestUnknownChannelReturns400:
 
 class TestOuterFailureSafetyNet:
     """Outer exception in _run_with_retry must mark record as failed, not leave it running."""
+
+    def setup_method(self):
+        """Clear running route_execution records for 'engineer' before each test."""
+        from handlers import _get_backend
+        backend = _get_backend()
+        try:
+            backend._db.execute(
+                "UPDATE route_executions SET status='cancelled' WHERE channel='engineer' AND status='running'"
+            )
+        except Exception:
+            pass
 
     def test_semaphore_crash_marks_record_failed(self):
         """If the semaphore itself raises, the record must be marked failed."""

@@ -27,11 +27,19 @@ _DELEGATE_PAYLOAD = {
     ),
 }
 
+def _make_db_execute_side_effect(*args, **kwargs):
+    sql = args[0] if args else ""
+    # Duplicate-dispatch guard: no running tasks → return empty so 409 is not raised
+    if "status = 'running'" in sql:
+        return []
+    # Free-tier gate: 0 tasks today → return 0 count so daily limit is not hit
+    return [(0,)]
+
+
 _BACKEND_MOCK = MagicMock()
 _BACKEND_MOCK.create_route_execution.return_value = None
 _BACKEND_MOCK.update_route_execution.return_value = None
-# Free-tier gate: simulate 0 tasks today so we never hit the daily limit
-_BACKEND_MOCK._db.execute.return_value = [(0,)]
+_BACKEND_MOCK._db.execute.side_effect = _make_db_execute_side_effect
 
 
 def _make_backend_patch():
