@@ -600,3 +600,122 @@ def test_update_route_execution_running_refreshes_last_activity_at():
     assert running_activity >= created_activity, (
         "last_activity_at after 'running' must be >= the INSERT timestamp"
     )
+
+
+# ---------------------------------------------------------------------------
+# Phase 74: route_chat_with_qa_loop heartbeat + mesh forwarding touch
+# ---------------------------------------------------------------------------
+
+# 17. route_chat_with_qa_loop calls touch_route_execution_activity periodically
+@pytest.mark.asyncio
+async def test_qa_loop_route_touches_activity_during_execution():
+    """route_chat_with_qa_loop must call touch_route_execution_activity at least once
+    during the QA loop so the watchdog (320s kill) does not cancel it mid-run."""
+    import sys
+    import asyncio
+    from pathlib import Path
+    musu_bridge = Path(__file__).parent.parent
+    if str(musu_bridge) not in sys.path:
+        sys.path.insert(0, str(musu_bridge))
+
+    touch_calls: list[str] = []
+    mock_backend = MagicMock()
+
+    engineer_agent = {"id": "eng-id", "role": "Engineer", "adapter_type": "gemini_local",
+                      "adapter_config": {}, "instructions_path": None}
+    qa_agent_dict = {"id": "qa-id", "role": "QA", "adapter_type": "gemini_local",
+                     "adapter_config": {}, "instructions_path": None}
+
+    def fake_get_agent_by_name(name, company_id=None):
+        if name == "engineer":
+            return engineer_agent
+        if name == "qa":
+            return qa_agent_dict
+        return None
+
+    mock_backend.get_agent_by_name.side_effect = fake_get_agent_by_name
+    mock_backend.update_route_execution = MagicMock()
+
+    def fake_touch(exec_id):
+        touch_calls.append(exec_id)
+
+    mock_backend.touch_route_execution_activity = fake_touch
+
+    from musu_core.qa_loop import QALoopResult
+    from musu_core.sprint_contract import SprintContract
+
+    async def slow_loop_run(task_prompt, contract, task_id=None):
+        await asyncio.sleep(0.15)
+        return QALoopResult(passed=True, iterations_used=1, all_scores=[], escalated=False,
+                            escalation_reason=None, final_score=None)
+
+    import handlers
+    from unittest.mock import patch as _patch
+
+    with (
+        _patch("handlers._get_backend", return_value=mock_backend),
+        _patch("musu_core.qa_loop.QALoop.run", side_effect=slow_loop_run),
+        _patch("musu_core.sprint_contract.save_contract"),
+        _patch("musu_core.sprint_contract.save_qa_score"),
+        _patch("musu_core.db.get_db"),
+    ):
+        await handlers.route_chat_with_qa_loop(
+            task_id="exec-001",
+            text="Implement feature X in feature_x.py function handle_x",
+            sender_id="sender-1",
+        )
+
+    assert len(touch_calls) > 0, (
+        "route_chat_with_qa_loop must call touch_route_execution_activity during QA loop execution"
+    )
+
+
+# 18. mesh forwarding path touches last_activity_at before forwarding
+@pytest.mark.asyncio
+async def test_mesh_forward_touches_activity_before_forward():
+    """When route_chat forwards to a remote mesh node, it must call
+    touch_route_execution_activity once before the remote call returns,
+    so a long-running remote task won't be killed by the local watchdog."""
+    import sys
+    from pathlib import Path
+    musu_bridge = Path(__file__).parent.parent
+    if str(musu_bridge) not in sys.path:
+        sys.path.insert(0, str(musu_bridge))
+
+    touch_calls: list[str] = []
+    mock_backend = MagicMock()
+    mock_backend.create_route_execution = MagicMock()
+    mock_backend.update_route_execution = MagicMock()
+
+    def fake_touch(exec_id):
+        touch_calls.append(exec_id)
+
+    mock_backend.touch_route_execution_activity = fake_touch
+
+    import handlers
+    from unittest.mock import patch as _patch, AsyncMock as _AsyncMock
+
+    mock_mesh = MagicMock()
+    mock_mesh.enabled = True
+    mock_mesh.is_remote.return_value = True
+    mock_mesh.node_for_agent.return_value = "remote-node"
+    mock_mesh.url_for_node.return_value = "http://remote-node:8070"
+    mock_mesh.is_node_healthy = _AsyncMock(return_value=True)
+    mock_mesh.forward = _AsyncMock(return_value={"response": "ok from remote"})
+
+    with (
+        _patch("handlers._get_backend", return_value=mock_backend),
+        _patch("handlers.get_mesh_router", return_value=mock_mesh),
+        _patch("server._channel_cb") as mock_cb,
+    ):
+        mock_cb.is_open.return_value = False
+        result = await handlers.route_chat(
+            channel="engineer",
+            sender_id="test-sender",
+            text="do something in engineer.py function run_task",
+        )
+
+    assert len(touch_calls) > 0, (
+        "route_chat mesh forwarding must call touch_route_execution_activity "
+        "before/during the remote forward call"
+    )
