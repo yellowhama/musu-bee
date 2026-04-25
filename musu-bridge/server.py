@@ -745,41 +745,46 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
         return True
 
     async def _run_with_retry() -> None:
-        async with _get_channel_semaphore(req.channel):
-            max_retries = 1  # 1 automatic retry for transient failures
-            _task_start = time.monotonic()
-            for attempt in range(1 + max_retries):
-                try:
-                    await _run_once()
-                    _record_task_metric(req.channel, "completed", time.monotonic() - _task_start)
-                    asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
-                    return
-                except asyncio.TimeoutError:
-                    if attempt < max_retries:
-                        logger.warning("delegate_task: task %s timed out (attempt %d), retrying...", task_id, attempt + 1)
-                        backend.update_route_execution(task_id, "running")  # reset status for retry
-                        continue
-                    logger.warning("delegate_task: task %s timed out after %ds (no more retries)", task_id, _timeout)
-                    cancel_task_record(task_id, error=f"timeout after {_timeout}s (retried {max_retries}x)")
-                    _record_task_metric(req.channel, "timeout", time.monotonic() - _task_start)
-                    asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
-                except RuntimeError as _exc:
-                    # Adapter crash or agent unavailable — retry once
-                    _exc_str = str(_exc)
-                    if attempt < max_retries and ("exited with code" in _exc_str or "unavailable" in _exc_str.lower()):
-                        logger.warning("delegate_task: task %s crashed (attempt %d): %s, retrying...", task_id, attempt + 1, _exc)
-                        backend.update_route_execution(task_id, "running")
-                        continue
-                    logger.exception("delegate_task: task %s failed: %s", task_id, _exc)
-                    cancel_task_record(task_id, error=f"adapter crash: {_exc}")
-                    _record_task_metric(req.channel, "failed", time.monotonic() - _task_start)
-                    asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
-                except Exception as _exc:
-                    logger.exception("delegate_task: task %s raised unhandled exception: %s", task_id, _exc)
-                    cancel_task_record(task_id, error=f"unhandled exception: {_exc}")
-                    _record_task_metric(req.channel, "failed", time.monotonic() - _task_start)
-                    asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
-                    return  # Don't retry unknown exceptions
+        try:
+            async with _get_channel_semaphore(req.channel):
+                max_retries = 1  # 1 automatic retry for transient failures
+                _task_start = time.monotonic()
+                for attempt in range(1 + max_retries):
+                    try:
+                        await _run_once()
+                        _record_task_metric(req.channel, "completed", time.monotonic() - _task_start)
+                        asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
+                        return
+                    except asyncio.TimeoutError:
+                        if attempt < max_retries:
+                            logger.warning("delegate_task: task %s timed out (attempt %d), retrying...", task_id, attempt + 1)
+                            backend.update_route_execution(task_id, "running")  # reset status for retry
+                            continue
+                        logger.warning("delegate_task: task %s timed out after %ds (no more retries)", task_id, _timeout)
+                        cancel_task_record(task_id, error=f"timeout after {_timeout}s (retried {max_retries}x)")
+                        _record_task_metric(req.channel, "timeout", time.monotonic() - _task_start)
+                        asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
+                    except RuntimeError as _exc:
+                        # Adapter crash or agent unavailable — retry once
+                        _exc_str = str(_exc)
+                        if attempt < max_retries and ("exited with code" in _exc_str or "unavailable" in _exc_str.lower()):
+                            logger.warning("delegate_task: task %s crashed (attempt %d): %s, retrying...", task_id, attempt + 1, _exc)
+                            backend.update_route_execution(task_id, "running")
+                            continue
+                        logger.exception("delegate_task: task %s failed: %s", task_id, _exc)
+                        cancel_task_record(task_id, error=f"adapter crash: {_exc}")
+                        _record_task_metric(req.channel, "failed", time.monotonic() - _task_start)
+                        asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
+                    except Exception as _exc:
+                        logger.exception("delegate_task: task %s raised unhandled exception: %s", task_id, _exc)
+                        cancel_task_record(task_id, error=f"unhandled exception: {_exc}")
+                        _record_task_metric(req.channel, "failed", time.monotonic() - _task_start)
+                        asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
+                        return  # Don't retry unknown exceptions
+        except Exception as _outer_exc:
+            # Safety net: semaphore acquisition or other pre-loop failure must not leave a zombie record
+            logger.exception("delegate_task: task %s outer failure: %s", task_id, _outer_exc)
+            cancel_task_record(task_id, error=f"outer failure: {_outer_exc}")
 
     task = asyncio.create_task(_run_with_retry())
     _active_tasks[task_id] = task
