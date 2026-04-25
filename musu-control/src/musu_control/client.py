@@ -1,24 +1,36 @@
-"""Async HTTP client for the Paperclip API."""
+"""Async HTTP client for the MUSU bridge API."""
 
 import os
 from typing import Any
 
 import httpx
 
-_DEFAULT_API_URL = "http://127.0.0.1:3100/api"
+_DEFAULT_API_URL = "http://127.0.0.1:8070/api"
 
 
 class PaperclipClient:
-    """Thin async httpx wrapper around the Paperclip REST API."""
+    """Thin async httpx wrapper around the MUSU bridge REST API.
+
+    Connects to musu-bridge (default: localhost:8070) instead of Paperclip.
+    Environment variables:
+      MUSU_BRIDGE_URL  — bridge base URL (default: http://127.0.0.1:8070)
+      PAPERCLIP_API_URL — legacy alias for MUSU_BRIDGE_URL
+      MUSU_BRIDGE_TOKEN — authentication token
+      PAPERCLIP_API_KEY — legacy alias for MUSU_BRIDGE_TOKEN
+      PAPERCLIP_COMPANY_ID — default company for scoped operations
+    """
 
     def __init__(self) -> None:
-        base = os.environ.get("PAPERCLIP_API_URL", _DEFAULT_API_URL).rstrip("/")
-        # Accept either "http://host/api" or "http://host" — normalise to /api suffix
+        # URL: prefer MUSU_BRIDGE_URL, fallback to PAPERCLIP_API_URL for compat
+        raw_url = os.environ.get("MUSU_BRIDGE_URL") or os.environ.get("PAPERCLIP_API_URL", _DEFAULT_API_URL)
+        base = raw_url.rstrip("/")
         if not base.endswith("/api"):
             base = base + "/api"
         self.base_url = base
         self.company_id = os.environ.get("PAPERCLIP_COMPANY_ID", "")
-        api_key = os.environ.get("PAPERCLIP_API_KEY", "")
+
+        # Token: prefer MUSU_BRIDGE_TOKEN, fallback to PAPERCLIP_API_KEY, then file
+        api_key = os.environ.get("MUSU_BRIDGE_TOKEN") or os.environ.get("PAPERCLIP_API_KEY", "")
         if not api_key:
             _token_file = os.path.expanduser("~/.musu/bridge_token")
             try:
