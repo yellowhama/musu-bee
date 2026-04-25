@@ -93,14 +93,10 @@ async def screen_snapshot(monitor: int = 1) -> dict:
 
 @screen_router.post("/api/screen/vnc/start")
 async def screen_vnc_start(display: str = Query(default="")) -> dict:
-    """Start x11vnc on localhost:5900 for the given DISPLAY."""
-    display_env = _find_display_env()
-    if not display:
-        display = display_env.get("DISPLAY", ":0")
-    xauthority = display_env.get("XAUTHORITY", "")
+    """Start x11vnc on localhost:5900. Auto-detects display (Xvfb fallback for WSL2)."""
     try:
         return await asyncio.get_running_loop().run_in_executor(
-            None, screen_vnc.start_vnc, display, xauthority
+            None, screen_vnc.start_vnc, display
         )
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
