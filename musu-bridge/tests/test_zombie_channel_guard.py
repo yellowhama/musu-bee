@@ -29,7 +29,8 @@ _client = TestClient(app, raise_server_exceptions=False)
 _VALID_TEXT = (
     "Read musu-bridge/handlers.py route_chat function and verify "
     "that the error handling on line 69 returns the correct dict structure. "
-    "pytest musu-bridge/tests/test_server.py -v should pass after inspection."
+    "pytest musu-bridge/tests/test_server.py -v should pass after inspection. "
+    "expected_output: pytest exits 0 with all tests passing."
 )
 
 
