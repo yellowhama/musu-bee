@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import uuid
 
 from channel_circuit_breaker import (
     CIRCUIT_TRIP_THRESHOLD,
@@ -15,7 +16,7 @@ from channel_circuit_breaker import (
     CIRCUIT_WINDOW_MINUTES,
 )
 from metrics import _increment_stuck_counter
-from handlers import route_chat
+from handlers import route_chat, cancel_task_record
 
 logger = logging.getLogger("musu.heartbeat")
 
@@ -48,15 +49,18 @@ def _should_skip_heartbeat(backend, channel: str = "ceo") -> tuple[bool, str]:
 
         cutoff = (datetime.now(timezone.utc) - timedelta(minutes=CIRCUIT_WINDOW_MINUTES)).isoformat()
         fail_rows = backend._db.execute(
-            "SELECT COUNT(*) as cnt FROM route_executions "
-            "WHERE channel = ? AND status = 'failed' AND created_at > ?",
+            "SELECT status, COUNT(*) as cnt FROM route_executions "
+            "WHERE channel = ? AND status IN ('failed', 'cancelled', 'zombie') AND created_at > ? "
+            "GROUP BY status",
             (channel, cutoff),
         )
-        fail_count = fail_rows[0]["cnt"] if fail_rows else 0
+        fail_count = sum(r["cnt"] for r in fail_rows) if fail_rows else 0
 
         if fail_count >= CIRCUIT_TRIP_THRESHOLD:
             backoff = min(CIRCUIT_BACKOFF_BASE_SECONDS * (2 ** (fail_count - 1)), 1800)
-            return True, f"circuit open ({fail_count} recent failures, backoff={backoff}s)"
+            breakdown = ", ".join(f"{r['status']}={r['cnt']}" for r in fail_rows) if fail_rows else ""
+            detail = f"{breakdown}, " if breakdown else ""
+            return True, f"circuit open ({detail}{fail_count} recent failures, backoff={backoff}s)"
 
         return False, ""
     except Exception:
@@ -127,23 +131,39 @@ async def _heartbeat_iteration(
         )
 
     _hb_timeout = int(os.environ.get("MUSU_HEARTBEAT_TIMEOUT_SEC", "600"))
+    _hb_exec_id = str(uuid.uuid4())
+    _hb_backend = _get_heartbeat_backend()
+    try:
+        _hb_backend.create_route_execution(_hb_exec_id, agent_name, "system", "".join(prompt_parts), company_id=company_id)
+        _hb_backend.update_route_execution(_hb_exec_id, "running")
+    except Exception:
+        _hb_exec_id = ""  # Proceed without durability if DB write fails
+
     try:
         await asyncio.wait_for(
             route_chat(
                 channel=agent_name,
                 sender_id="system",
                 text="".join(prompt_parts),
+                exec_id=_hb_exec_id or None,
                 company_id=company_id,
             ),
             timeout=_hb_timeout,
         )
         logger.info("heartbeat_scheduler: %s done", agent_name)
     except asyncio.TimeoutError:
+        if _hb_exec_id:
+            cancel_task_record(_hb_exec_id, error=f"heartbeat_timeout after {_hb_timeout}s")
+        _increment_stuck_counter(agent_name, "heartbeat_timeout")
         logger.warning(
             "heartbeat_scheduler: %s timed out after %ds",
             agent_name, _hb_timeout,
         )
-        _increment_stuck_counter(agent_name, "heartbeat_timeout")
+    except Exception as exc:
+        if _hb_exec_id:
+            cancel_task_record(_hb_exec_id, error=f"heartbeat_error: {exc}")
+        logger.warning("heartbeat_scheduler: %s error — %s", agent_name, exc)
+        raise
 
 
 _company_locks: dict[str, asyncio.Lock] = {}
@@ -286,7 +306,7 @@ async def _node_manager_heartbeat() -> None:
     from config import get_config
     _cfg = get_config()
     # Use mesh self_name so channel matches nodes.toml topology (not OS hostname)
-    from mesh_router import get_router as _get_router
+    from mesh_router import get_mesh_router as _get_router
     _router = _get_router()
     mgr_name = f"mgr-{_router._self_name or _cfg.node_name}"
 
@@ -297,16 +317,27 @@ async def _node_manager_heartbeat() -> None:
     await asyncio.sleep(90)
 
     while True:
+        _nm_exec_id = str(uuid.uuid4())
+        _nm_text = "heartbeat: 현재 기기 상태 보고해줘"
+        try:
+            _nm_backend = _get_heartbeat_backend()
+            _nm_backend.create_route_execution(_nm_exec_id, mgr_name, "system", _nm_text)
+            _nm_backend.update_route_execution(_nm_exec_id, "running")
+        except Exception:
+            _nm_exec_id = ""
+
         try:
             logger.info("node_heartbeat: invoking %s", mgr_name)
-            # Node managers are always global (per-device, not company-scoped)
             await route_chat(
                 channel=mgr_name,
                 sender_id="system",
-                text="heartbeat: 현재 기기 상태 보고해줘",
+                text=_nm_text,
+                exec_id=_nm_exec_id or None,
             )
             logger.info("node_heartbeat: %s done", mgr_name)
         except Exception as exc:
+            if _nm_exec_id:
+                cancel_task_record(_nm_exec_id, error=f"node_heartbeat_error: {exc}")
             logger.warning("node_heartbeat: error — %s", exc)
         await asyncio.sleep(interval)
 
@@ -373,7 +404,7 @@ async def auto_distribute_loop(bridge_url: str = "http://localhost:8070") -> Non
 
                 # Find pending tasks that haven't been assigned
                 pending = backend._db.execute(
-                    "SELECT id, channel, instruction FROM route_executions "
+                    "SELECT id, channel, input FROM route_executions "
                     "WHERE status = 'pending' ORDER BY created_at ASC LIMIT ?",
                     (max_concurrent - running_count,),
                 )
@@ -391,7 +422,7 @@ async def auto_distribute_loop(bridge_url: str = "http://localhost:8070") -> Non
                         )
                         resp = await http.post("/api/tasks/route", json={
                             "channel": task["channel"],
-                            "instruction": task["instruction"],
+                            "instruction": task["input"],
                             "strategy": "recommended",
                             "sender_id": "auto_distribute",
                         })

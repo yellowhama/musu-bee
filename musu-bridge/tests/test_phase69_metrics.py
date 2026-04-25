@@ -78,8 +78,8 @@ class TestCircuitBreakerEndpoint:
     def test_circuit_breakers_open_when_too_many_failures(self):
         mock_backend = MagicMock()
         mock_backend._db.execute.side_effect = [
-            [],           # SELECT running → no running tasks
-            [{"cnt": 5}], # SELECT failed count → 5 > CIRCUIT_TRIP_THRESHOLD=3
+            [],                                   # SELECT running → no running tasks
+            [{"status": "failed", "cnt": 5}],     # GROUP BY status → 5 > CIRCUIT_TRIP_THRESHOLD=3
         ]
 
         with patch("server._get_heartbeat_backend", return_value=mock_backend):

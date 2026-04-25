@@ -308,6 +308,11 @@ async def route_chat(
                 # Fall through to local handler below
             else:
                 logger.info("mesh_router: forwarding channel=%r to node=%r url=%r", channel, node, url)
+                if exec_id:
+                    try:
+                        backend.touch_route_execution_activity(exec_id)
+                    except Exception:
+                        pass
                 return _finish(await mesh.forward(url, channel, sender_id, text, adapter_override=adapter_override), node=node)
         else:
             logger.warning("mesh_router: no URL for node=%r, falling through to local", node)
@@ -525,10 +530,31 @@ async def route_chat_with_qa_loop(
         max_iterations=max_iter,
     )
 
+    async def _qa_heartbeat(eid: str, interval: float = 15.0) -> None:
+        """Periodically touch last_activity_at so watchdog won't kill long QA loops."""
+        try:
+            while True:
+                await asyncio.sleep(interval)
+                try:
+                    backend.touch_route_execution_activity(eid)
+                except Exception:
+                    pass
+        except asyncio.CancelledError:
+            pass
+
+    _heartbeat_task = asyncio.ensure_future(_qa_heartbeat(task_id))
+    try:
+        backend.touch_route_execution_activity(task_id)
+    except Exception:
+        pass
+
     # task_id here is a route_executions.id, NOT a tasks.id — passing it to loop.run()
     # would cause execution_log (which FK-references tasks.id) to fail.  Pass None so
     # inner router calls don't try to link execution_log rows to a non-existent tasks row.
-    result = await loop.run(task_prompt=text, contract=contract, task_id=None)
+    try:
+        result = await loop.run(task_prompt=text, contract=contract, task_id=None)
+    finally:
+        _heartbeat_task.cancel()
 
     if result.final_score:
         score_str = (

@@ -4,9 +4,9 @@ Extracted from server.py to reduce file size.
 """
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 # ── Route / Delegate ─────────────────────────────────────────────────────────
@@ -22,11 +22,18 @@ class RouteRequest(BaseModel):
 class DelegateRequest(BaseModel):
     channel: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9_-]+$")
     sender_id: str = Field(default="orchestrator", min_length=1, max_length=128)
-    text: str = Field(max_length=10000)
+    text: str = Field(min_length=1, max_length=10000)
     use_qa_loop: bool = False
     qa_loop_max_iter: int = Field(default=3, ge=1, le=5)
     timeout_sec: int | None = Field(default=None, ge=30, le=3600)
     company_id: str | None = None
+
+    @field_validator("text")
+    @classmethod
+    def text_not_blank(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("instruction must not be blank or whitespace-only")
+        return v
 
 
 # ── Company ──────────────────────────────────────────────────────────────────

@@ -74,6 +74,7 @@ class TestOuterFailureSafetyNet:
              patch("server._get_channel_semaphore") as mock_sem:
             # Make the semaphore context manager raise on __aenter__
             mock_ctx = MagicMock()
+            mock_ctx.at_capacity.return_value = False
             mock_ctx.__aenter__ = AsyncMock(side_effect=RuntimeError("semaphore boom"))
             mock_ctx.__aexit__ = AsyncMock(return_value=False)
             mock_sem.return_value = mock_ctx
@@ -108,6 +109,7 @@ class TestAllEarlyExitPathsCleanUp:
         with patch("server.route_chat", new_callable=AsyncMock) as mock_chat, \
              patch("server._get_channel_semaphore") as mock_sem:
             mock_ctx = MagicMock()
+            mock_ctx.at_capacity.return_value = False
             mock_ctx.__aenter__ = AsyncMock(return_value=None)
             mock_ctx.__aexit__ = AsyncMock(return_value=False)
             mock_sem.return_value = mock_ctx

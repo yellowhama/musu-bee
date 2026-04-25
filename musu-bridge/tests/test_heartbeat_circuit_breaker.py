@@ -6,17 +6,22 @@ from datetime import datetime, timedelta
 from server import _should_skip_heartbeat, CIRCUIT_TRIP_THRESHOLD
 
 
-def _make_backend(running: bool = False, recent_failures: int = 0):
-    """Build a minimal mock backend for circuit breaker tests."""
+def _make_backend(running: bool = False, recent_failures: int = 0, failure_rows: list | None = None):
+    """Build a minimal mock backend for circuit breaker tests.
+
+    failure_rows: list of {"status": ..., "cnt": ...} dicts for GROUP BY query.
+    If omitted, all failures are treated as 'failed'.
+    """
     backend = MagicMock()
-    call_count = [0]
+
+    if failure_rows is None:
+        failure_rows = [{"status": "failed", "cnt": recent_failures}] if recent_failures else []
 
     def fake_execute(sql, params=()):
-        call_count[0] += 1
         if "status = 'running'" in sql:
             return [{"id": 1}] if running else []
-        if "COUNT(*)" in sql:
-            return [{"cnt": recent_failures}]
+        if "GROUP BY status" in sql:
+            return failure_rows
         return []
 
     backend._db.execute.side_effect = fake_execute
@@ -98,3 +103,66 @@ def test_fail_open_on_db_exception():
     should_skip, reason = _should_skip_heartbeat(backend, channel="ceo")
     assert should_skip is False
     assert reason == ""
+
+
+# ---------------------------------------------------------------------------
+# 7. cancelled 레코드가 임계치 이상 → circuit open
+# ---------------------------------------------------------------------------
+
+def test_skip_when_cancelled_at_threshold():
+    backend = _make_backend(
+        running=False,
+        failure_rows=[{"status": "cancelled", "cnt": CIRCUIT_TRIP_THRESHOLD}],
+    )
+    should_skip, reason = _should_skip_heartbeat(backend, channel="ceo")
+    assert should_skip is True
+    assert "circuit open" in reason
+
+
+# ---------------------------------------------------------------------------
+# 8. zombie 레코드가 임계치 이상 → circuit open
+# ---------------------------------------------------------------------------
+
+def test_skip_when_zombie_at_threshold():
+    backend = _make_backend(
+        running=False,
+        failure_rows=[{"status": "zombie", "cnt": CIRCUIT_TRIP_THRESHOLD}],
+    )
+    should_skip, reason = _should_skip_heartbeat(backend, channel="ceo")
+    assert should_skip is True
+    assert "circuit open" in reason
+
+
+# ---------------------------------------------------------------------------
+# 9. mixed failed+cancelled+zombie 합산 → circuit open
+# ---------------------------------------------------------------------------
+
+def test_skip_when_mixed_failures_reach_threshold():
+    # 1 of each — total 3 == CIRCUIT_TRIP_THRESHOLD (assuming default=3)
+    backend = _make_backend(
+        running=False,
+        failure_rows=[
+            {"status": "failed", "cnt": 1},
+            {"status": "cancelled", "cnt": 1},
+            {"status": "zombie", "cnt": 1},
+        ],
+    )
+    should_skip, reason = _should_skip_heartbeat(backend, channel="ceo")
+    assert should_skip is True
+    assert "circuit open" in reason
+
+
+# ---------------------------------------------------------------------------
+# 10. cancelled+zombie 합산 임계치 미달 → 통과
+# ---------------------------------------------------------------------------
+
+def test_no_skip_when_mixed_below_threshold():
+    backend = _make_backend(
+        running=False,
+        failure_rows=[
+            {"status": "cancelled", "cnt": 1},
+            {"status": "zombie", "cnt": CIRCUIT_TRIP_THRESHOLD - 2},
+        ],
+    )
+    should_skip, _ = _should_skip_heartbeat(backend, channel="ceo")
+    assert should_skip is False

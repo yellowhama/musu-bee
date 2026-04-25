@@ -185,12 +185,60 @@ if not _token:
 
 _MAX_CONCURRENT_TASKS = int(os.environ.get("MUSU_MAX_CONCURRENT_TASKS", "20"))
 _CHANNEL_MAX_TASKS = int(os.environ.get("MUSU_CHANNEL_MAX_TASKS", "5"))
-_channel_semaphores: dict[str, asyncio.Semaphore] = {}
 
 
-def _get_channel_semaphore(channel: str) -> asyncio.Semaphore:
+class _ChannelSemaphore:
+    """asyncio.Semaphore wrapper that exposes capacity without internal attribute access."""
+
+    def __init__(self, capacity: int) -> None:
+        self._capacity = capacity
+        self._available = capacity
+        self._sem = asyncio.Semaphore(capacity)
+
+    @property
+    def available(self) -> int:
+        return self._available
+
+    @property
+    def capacity(self) -> int:
+        return self._capacity
+
+    @property
+    def _value(self) -> int:
+        """Backward-compat shim for tests that read _value directly."""
+        return self._available
+
+    @_value.setter
+    def _value(self, v: int) -> None:
+        """Backward-compat shim for tests that set _value directly."""
+        self._available = v
+        self._sem = asyncio.Semaphore(v)
+
+    async def acquire(self) -> None:
+        await self._sem.acquire()
+        self._available -= 1
+
+    def release(self) -> None:
+        self._sem.release()
+        self._available += 1
+
+    def at_capacity(self) -> bool:
+        return self._available <= 0
+
+    async def __aenter__(self) -> "_ChannelSemaphore":
+        await self.acquire()
+        return self
+
+    async def __aexit__(self, *args: object) -> None:
+        self.release()
+
+
+_channel_semaphores: dict[str, _ChannelSemaphore] = {}
+
+
+def _get_channel_semaphore(channel: str) -> _ChannelSemaphore:
     if channel not in _channel_semaphores:
-        _channel_semaphores[channel] = asyncio.Semaphore(_CHANNEL_MAX_TASKS)
+        _channel_semaphores[channel] = _ChannelSemaphore(_CHANNEL_MAX_TASKS)
     return _channel_semaphores[channel]
 
 
@@ -671,7 +719,7 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
 
     # per-channel 체크 (전역 체크 직후)
     _ch_sem = _get_channel_semaphore(req.channel)
-    if _ch_sem._value == 0:
+    if _ch_sem.at_capacity():
         raise HTTPException(
             status_code=429,
             detail=f"Channel '{req.channel}' at capacity ({_CHANNEL_MAX_TASKS} concurrent tasks)",

@@ -1,5 +1,6 @@
 """musu-control: Paperclip control plane MCP server via FastMCP."""
 
+import asyncio
 import json
 import logging
 import os
@@ -1759,17 +1760,29 @@ async def delegate_task(
         instruction: The task instruction / message for the agent
         sender_id: Identifier for the requester (default: "orchestrator")
     """
-    try:
-        async with httpx.AsyncClient(timeout=10.0, headers=_bridge_headers()) as client:
-            resp = await client.post(
-                f"{_MUSU_BRIDGE_URL}/api/tasks/delegate",
-                json={"channel": channel.lower(), "sender_id": sender_id, "text": instruction},
-            )
-            resp.raise_for_status()
-            data = resp.json()
-        return _fmt({"task_id": data["task_id"], "status": data.get("status", "running"), "channel": channel})
-    except (httpx.ConnectError, httpx.TimeoutException, httpx.HTTPStatusError) as exc:
-        return _tool_error(f"Error delegating task to channel={channel!r}: {exc}")
+    _MAX_RETRIES = 3
+    _BACKOFF_BASE = 1.0
+    last_exc: Exception | None = None
+    for attempt in range(_MAX_RETRIES):
+        try:
+            async with httpx.AsyncClient(timeout=10.0, headers=_bridge_headers()) as client:
+                resp = await client.post(
+                    f"{_MUSU_BRIDGE_URL}/api/tasks/delegate",
+                    json={"channel": channel.lower(), "sender_id": sender_id, "text": instruction},
+                )
+                resp.raise_for_status()
+                data = resp.json()
+            return _fmt({"task_id": data["task_id"], "status": data.get("status", "running"), "channel": channel})
+        except httpx.HTTPStatusError as exc:
+            last_exc = exc
+            if exc.response.status_code in (429, 503) and attempt < _MAX_RETRIES - 1:
+                await asyncio.sleep(_BACKOFF_BASE * (2 ** attempt))
+                continue
+            break
+        except (httpx.ConnectError, httpx.TimeoutException) as exc:
+            last_exc = exc
+            break
+    return _tool_error(f"Error delegating task to channel={channel!r}: {last_exc}")
 
 
 @mcp.tool()
