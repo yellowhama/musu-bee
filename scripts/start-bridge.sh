@@ -288,4 +288,11 @@ else
 fi
 
 cd "${ROOT}/musu-bridge"
-exec "$PYTHON" server.py "$@"
+
+# ── Persistent log file (date-rotated) ───────────────────────────────────────
+LOG_DIR="${ROOT}/logs"
+mkdir -p "${LOG_DIR}"
+LOG_DATE="$(date +%Y%m%d)"
+LOG_FILE="${LOG_DIR}/bridge-${LOG_DATE}.log"
+echo "[start-bridge] logging to ${LOG_FILE}" >&2
+exec "$PYTHON" server.py "$@" >> "${LOG_FILE}" 2>&1

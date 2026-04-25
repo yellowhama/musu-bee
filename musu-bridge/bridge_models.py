@@ -62,6 +62,7 @@ class AgentUpdateRequest(BaseModel):
     role: str | None = Field(default=None, description="New role string")
     model: str | None = Field(default=None, description="New model name (stored in adapter_config)")
     adapter_config_patch: dict | None = Field(default=None, description="Partial adapter_config patch")
+    adapter_type: str | None = Field(default=None, description="New adapter type (e.g. claude_local, codex_local)")
 
 
 # ── Workspace ────────────────────────────────────────────────────────────────

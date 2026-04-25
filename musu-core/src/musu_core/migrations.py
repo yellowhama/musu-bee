@@ -557,6 +557,30 @@ def _v17_down(conn: sqlite3.Connection) -> None:  # noqa: ARG001
     conn.commit()
 
 
+def _v18_up(conn: sqlite3.Connection) -> None:
+    """node_events table for bridge start/stop lifecycle tracking."""
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS node_events (
+            id         TEXT PRIMARY KEY,
+            node       TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            meta       TEXT NOT NULL DEFAULT '{}',
+            created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+        );
+    """)
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_node_events_created "
+        "ON node_events(created_at DESC);"
+    )
+    conn.commit()
+
+
+def _v18_down(conn: sqlite3.Connection) -> None:
+    conn.execute("DROP INDEX IF EXISTS idx_node_events_created;")
+    conn.execute("DROP TABLE IF EXISTS node_events;")
+    conn.commit()
+
+
 MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v1_fallback_chain", _v1_up, _v1_down),
     ("v2_messages_agent_id", _v2_up, _v2_down),
@@ -575,6 +599,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v15_route_executions_cost", _v15_up, _v15_down),
     ("v16_messages_group_id", _v16_up, _v16_down),
     ("v17_route_executions_last_activity_at", _v17_up, _v17_down),
+    ("v18_node_events", _v18_up, _v18_down),
 ]
 
 

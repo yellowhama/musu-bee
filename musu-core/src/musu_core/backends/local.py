@@ -1176,3 +1176,35 @@ class LocalBackend(BackendABC):
             }
             for row in rows
         ]
+
+    # --- Node lifecycle events ---
+
+    def record_node_event(
+        self,
+        node: str,
+        event_type: str,
+        meta: dict | None = None,
+    ) -> str:
+        event_id = str(uuid.uuid4())
+        self._db.execute(
+            "INSERT INTO node_events (id, node, event_type, meta) VALUES (?, ?, ?, ?)",
+            (event_id, node, event_type, json.dumps(meta or {})),
+        )
+        return event_id
+
+    def list_node_events(self, limit: int = 50) -> list[dict[str, Any]]:
+        rows = self._db.execute(
+            "SELECT id, node, event_type, meta, created_at FROM node_events"
+            " ORDER BY created_at DESC LIMIT ?",
+            (limit,),
+        )
+        return [
+            {
+                "id": row["id"],
+                "node": row["node"],
+                "event_type": row["event_type"],
+                "meta": json.loads(row["meta"]),
+                "created_at": row["created_at"],
+            }
+            for row in rows
+        ]

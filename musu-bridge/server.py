@@ -578,7 +578,22 @@ async def lifespan(app: FastAPI):
     except Exception as _pe:
         logger.info("portd: registration skipped (%s)", _pe)
 
+    # Record bridge_started lifecycle event
+    try:
+        _node_name = cfg.node_name
+        _get_backend().record_node_event(_node_name, "bridge_started")
+        logger.info("lifecycle: bridge_started event recorded for node=%r", _node_name)
+    except Exception as _le:
+        logger.warning("lifecycle: failed to record bridge_started — %s", _le)
+
     yield
+
+    # Record bridge_stopped lifecycle event
+    try:
+        _get_backend().record_node_event(cfg.node_name, "bridge_stopped")
+        logger.info("lifecycle: bridge_stopped event recorded for node=%r", cfg.node_name)
+    except Exception as _le:
+        logger.warning("lifecycle: failed to record bridge_stopped — %s", _le)
 
     stuck_watchdog_task.cancel()
     watchdog_cleanup_task.cancel()
@@ -963,9 +978,9 @@ async def api_resume_agent(agent_id: str) -> dict:
 @app.patch("/api/agents/{agent_id}", summary="Update agent role, model, or adapter_config")
 async def api_update_agent(agent_id: str, body: AgentUpdateRequest) -> dict:
     """Update editable fields of an agent. Returns 404 if not found, 400 if no fields provided."""
-    if body.role is None and body.model is None and body.adapter_config_patch is None:
-        raise HTTPException(status_code=400, detail="Provide at least one of: role, model, adapter_config_patch")
-    result = update_agent_fields(agent_id, role=body.role, model=body.model, adapter_config_patch=body.adapter_config_patch)
+    if body.role is None and body.model is None and body.adapter_config_patch is None and body.adapter_type is None:
+        raise HTTPException(status_code=400, detail="Provide at least one of: role, model, adapter_config_patch, adapter_type")
+    result = update_agent_fields(agent_id, role=body.role, model=body.model, adapter_config_patch=body.adapter_config_patch, adapter_type=body.adapter_type)
     if not result:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
     return result
