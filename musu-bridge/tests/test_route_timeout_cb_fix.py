@@ -44,10 +44,10 @@ def test_ceo_default_timeout_is_600():
     assert result == 600.0, f"Expected 600.0 for ceo, got {result}"
 
 
-def test_team_lead_default_timeout_is_300():
-    """team_lead channel must default to 300s — 90s caused repeated route_timeout failures."""
+def test_team_lead_default_timeout_is_600():
+    """team_lead channel must default to 600s — unified with all channels in Phase 89."""
     result = _route_timeout("team_lead")
-    assert result == 300.0, f"Expected 300.0 for team_lead, got {result}"
+    assert result == 600.0, f"Expected 600.0 for team_lead, got {result}"
 
 
 def test_ceo_env_override_still_works():

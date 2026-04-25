@@ -327,11 +327,27 @@ async def _node_manager_heartbeat() -> None:
     # Stagger: wait 90s so node manager agent is fully seeded before first ping.
     await asyncio.sleep(90)
 
+    _nm_timeout = int(os.environ.get("MUSU_NODE_HEARTBEAT_TIMEOUT_SEC", "600"))
+
     while True:
         _nm_exec_id = str(uuid.uuid4())
         _nm_text = "heartbeat: 현재 기기 상태 보고해줘"
         try:
             _nm_backend = _get_heartbeat_backend()
+            # Guard: skip if a node-manager task is already running for this channel.
+            # Prevents zombie accumulation when the agent call exceeds the interval.
+            should_skip, reason = _should_skip_heartbeat(_nm_backend, channel=mgr_name)
+            if should_skip:
+                if "circuit open" in reason:
+                    logger.warning(
+                        "node_heartbeat: circuit open — skipping %s (%s)", mgr_name, reason
+                    )
+                else:
+                    logger.info(
+                        "node_heartbeat: skipping — %s already running", mgr_name
+                    )
+                await asyncio.sleep(interval)
+                continue
             _nm_backend.create_route_execution(_nm_exec_id, mgr_name, "system", _nm_text)
             _nm_backend.update_route_execution(_nm_exec_id, "running")
             # Initialize last_activity_at immediately so watchdog does not treat this
@@ -341,7 +357,7 @@ async def _node_manager_heartbeat() -> None:
             _nm_exec_id = ""
 
         try:
-            logger.info("node_heartbeat: invoking %s", mgr_name)
+            logger.info("node_heartbeat: invoking %s (timeout=%ds)", mgr_name, _nm_timeout)
             _nm_result = await asyncio.wait_for(
                 route_chat(
                     channel=mgr_name,
@@ -363,6 +379,7 @@ async def _node_manager_heartbeat() -> None:
         except asyncio.TimeoutError:
             if _nm_exec_id:
                 cancel_task_record(_nm_exec_id, error=f"node_heartbeat_timeout after {_nm_timeout}s")
+            _increment_stuck_counter(mgr_name, "heartbeat_timeout")
             logger.warning(
                 "node_heartbeat: %s timed out after %ds", mgr_name, _nm_timeout
             )

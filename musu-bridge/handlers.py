@@ -123,19 +123,20 @@ def _health_probe_timeout() -> float:
 
 
 _CHANNEL_TIMEOUT_DEFAULTS: dict[str, float] = {
-    "engineer": 300.0,
-    "cto": 300.0,
+    "engineer": 600.0,
+    "cto": 600.0,
     "ceo": 600.0,
-    "team_lead": 300.0,
+    "team_lead": 600.0,
+    "qa": 600.0,
     "4060-CEO": 600.0,
-    "lead": 300.0,
+    "lead": 600.0,
 }
 
 
 def _route_timeout_sec(channel: str = "") -> float:
     """Return route timeout in seconds for the given channel.
 
-    Priority: MUSU_ROUTE_TIMEOUT_SEC_{CHANNEL} > channel default > MUSU_ROUTE_TIMEOUT_SEC > 180s.
+    Priority: MUSU_ROUTE_TIMEOUT_SEC_{CHANNEL} > channel default > MUSU_ROUTE_TIMEOUT_SEC > 600s.
     """
     if channel:
         env_key = f"MUSU_ROUTE_TIMEOUT_SEC_{channel.upper()}"
@@ -144,7 +145,7 @@ def _route_timeout_sec(channel: str = "") -> float:
             return float(channel_override)
         if channel in _CHANNEL_TIMEOUT_DEFAULTS:
             return _CHANNEL_TIMEOUT_DEFAULTS[channel]
-    return float(os.environ.get("MUSU_ROUTE_TIMEOUT_SEC", "180"))
+    return float(os.environ.get("MUSU_ROUTE_TIMEOUT_SEC", "600"))
 
 
 async def _probe_agent_health(

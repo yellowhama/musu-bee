@@ -253,8 +253,19 @@ class _ChannelSemaphore:
         """
         self._available = max(0, v)
 
-    async def acquire(self) -> None:
-        await self._ensure_sem().acquire()
+    async def acquire(self, timeout: float | None = None) -> None:
+        """Acquire the semaphore slot.
+
+        Args:
+            timeout: If given, raises asyncio.TimeoutError after this many seconds
+                     instead of blocking indefinitely.  Prevents the 'semaphore boom'
+                     symptom where a task cancelled while blocked on acquire leaves the
+                     channel wedged at capacity.
+        """
+        if timeout is not None:
+            await asyncio.wait_for(self._ensure_sem().acquire(), timeout=timeout)
+        else:
+            await self._ensure_sem().acquire()
         self._available -= 1
 
     def release(self) -> None:
@@ -271,7 +282,8 @@ class _ChannelSemaphore:
         return self._available <= 0
 
     async def __aenter__(self) -> "_ChannelSemaphore":
-        await self.acquire()
+        _timeout = float(os.environ.get("MUSU_SEMAPHORE_ACQUIRE_TIMEOUT_SEC", "30"))
+        await self.acquire(timeout=_timeout)
         return self
 
     async def __aexit__(self, *args: object) -> None:
