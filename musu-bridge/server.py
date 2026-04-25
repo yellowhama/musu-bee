@@ -213,6 +213,11 @@ class _ChannelSemaphore:
     Semaphore is created lazily on first acquire so that constructing this object
     outside a running event loop (e.g. at module import time) does not raise
     RuntimeError: no running event loop.
+
+    Uses asyncio.Semaphore (not BoundedSemaphore) deliberately: BoundedSemaphore raises
+    ValueError on over-release, which surfaces as "semaphore boom" in task logs when the
+    _value setter races with in-flight releases. The manual bound check in release() gives
+    the same safety guarantee without the ValueError.
     """
 
     def __init__(self, capacity: int) -> None:
@@ -222,7 +227,8 @@ class _ChannelSemaphore:
 
     def _ensure_sem(self) -> asyncio.Semaphore:
         if self._sem is None:
-            self._sem = asyncio.Semaphore(self._available)
+            safe_value = max(0, min(self._available, self._capacity))
+            self._sem = asyncio.Semaphore(safe_value)
         return self._sem
 
     @property
@@ -240,17 +246,26 @@ class _ChannelSemaphore:
 
     @_value.setter
     def _value(self, v: int) -> None:
-        """Backward-compat shim for tests that set _value directly."""
-        self._available = v
-        self._sem = asyncio.Semaphore(v)
+        """Backward-compat shim for tests that set _value directly.
+
+        Only updates _available — does NOT replace _sem, so in-flight acquire/release
+        operations on the existing semaphore are not invalidated.
+        """
+        self._available = max(0, v)
 
     async def acquire(self) -> None:
         await self._ensure_sem().acquire()
         self._available -= 1
 
     def release(self) -> None:
-        self._ensure_sem().release()
-        self._available += 1
+        if self._sem is None:
+            # acquire() was never called — nothing to release
+            return
+        if self._available >= self._capacity:
+            # Already at full capacity — guard against double-release.
+            return
+        self._sem.release()
+        self._available = min(self._available + 1, self._capacity)
 
     def at_capacity(self) -> bool:
         return self._available <= 0
@@ -501,6 +516,7 @@ async def lifespan(app: FastAPI):
                     channel=rec["channel"],
                     sender_id=rec["sender_id"],
                     text=rec["input"],
+                    exec_id=rec["id"],
                 ))
     except Exception:
         logger.warning("durability: failed to re-dispatch pending executions")
@@ -770,6 +786,27 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
             detail=f"Channel '{req.channel}' at capacity ({_CHANNEL_MAX_TASKS} concurrent tasks)",
             headers={"Retry-After": "30"},
         )
+
+    # Duplicate-dispatch guard: reject if a running task already exists for this
+    # channel and no explicit dedup override is set. Prevents zombie accumulation
+    # when heartbeat or orchestrator fires faster than agents complete tasks.
+    if not req.allow_duplicate:
+        try:
+            _dup_backend = _get_backend()
+            _dup_rows = _dup_backend._db.execute(
+                "SELECT id FROM route_executions WHERE channel = ? AND status = 'running' LIMIT 1",
+                (req.channel,),
+            )
+            if _dup_rows:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Channel '{req.channel}' already has a running task — use allow_duplicate=true to override",
+                    headers={"Retry-After": "60"},
+                )
+        except HTTPException:
+            raise
+        except Exception:
+            pass  # Fail-open: DB error must not block dispatch
 
     # Free tier gate: 50 task/day (bypass when MUSU_PLAN=pro)
     _FREE_TASK_LIMIT = 50
