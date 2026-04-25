@@ -617,14 +617,15 @@ def update_agent_fields(
     role: str | None = None,
     model: str | None = None,
     adapter_config_patch: dict | None = None,
+    adapter_type: str | None = None,
 ) -> dict[str, Any] | None:
-    """Update editable agent fields (role, model, adapter_config). Returns updated agent dict or None if not found.
+    """Update editable agent fields (role, model, adapter_config, adapter_type). Returns updated agent dict or None if not found.
 
     `model` is stored inside adapter_config — this helper merges the new value
     without touching any other adapter_config keys.
     `adapter_config_patch` is shallow-merged into the existing adapter_config.
     """
-    if role is None and model is None and adapter_config_patch is None:
+    if role is None and model is None and adapter_config_patch is None and adapter_type is None:
         return None
     backend = _get_backend()
     if model is not None or adapter_config_patch is not None:
@@ -637,8 +638,16 @@ def update_agent_fields(
             new_config["model"] = model
         if adapter_config_patch is not None:
             new_config.update(adapter_config_patch)
-        return backend.update_agent(agent_id, role=role, adapter_config=new_config)
-    return backend.update_agent(agent_id, role=role)
+        kwargs: dict[str, Any] = dict(role=role, adapter_config=new_config)
+        if adapter_type is not None:
+            kwargs["adapter_type"] = adapter_type
+        return backend.update_agent(agent_id, **kwargs)
+    kwargs = {}
+    if role is not None:
+        kwargs["role"] = role
+    if adapter_type is not None:
+        kwargs["adapter_type"] = adapter_type
+    return backend.update_agent(agent_id, **kwargs)
 
 
 # --- Issues ---

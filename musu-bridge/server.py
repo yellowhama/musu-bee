@@ -188,12 +188,22 @@ _CHANNEL_MAX_TASKS = int(os.environ.get("MUSU_CHANNEL_MAX_TASKS", "5"))
 
 
 class _ChannelSemaphore:
-    """asyncio.Semaphore wrapper that exposes capacity without internal attribute access."""
+    """asyncio.Semaphore wrapper that exposes capacity without internal attribute access.
+
+    Semaphore is created lazily on first acquire so that constructing this object
+    outside a running event loop (e.g. at module import time) does not raise
+    RuntimeError: no running event loop.
+    """
 
     def __init__(self, capacity: int) -> None:
         self._capacity = capacity
         self._available = capacity
-        self._sem = asyncio.Semaphore(capacity)
+        self._sem: asyncio.Semaphore | None = None
+
+    def _ensure_sem(self) -> asyncio.Semaphore:
+        if self._sem is None:
+            self._sem = asyncio.Semaphore(self._available)
+        return self._sem
 
     @property
     def available(self) -> int:
@@ -215,11 +225,11 @@ class _ChannelSemaphore:
         self._sem = asyncio.Semaphore(v)
 
     async def acquire(self) -> None:
-        await self._sem.acquire()
+        await self._ensure_sem().acquire()
         self._available -= 1
 
     def release(self) -> None:
-        self._sem.release()
+        self._ensure_sem().release()
         self._available += 1
 
     def at_capacity(self) -> bool:
@@ -578,7 +588,22 @@ async def lifespan(app: FastAPI):
     except Exception as _pe:
         logger.info("portd: registration skipped (%s)", _pe)
 
+    # Record bridge_started lifecycle event
+    try:
+        _node_name = cfg.node_name
+        _get_backend().record_node_event(_node_name, "bridge_started")
+        logger.info("lifecycle: bridge_started event recorded for node=%r", _node_name)
+    except Exception as _le:
+        logger.warning("lifecycle: failed to record bridge_started — %s", _le)
+
     yield
+
+    # Record bridge_stopped lifecycle event
+    try:
+        _get_backend().record_node_event(cfg.node_name, "bridge_stopped")
+        logger.info("lifecycle: bridge_stopped event recorded for node=%r", cfg.node_name)
+    except Exception as _le:
+        logger.warning("lifecycle: failed to record bridge_stopped — %s", _le)
 
     stuck_watchdog_task.cancel()
     watchdog_cleanup_task.cancel()
@@ -963,9 +988,9 @@ async def api_resume_agent(agent_id: str) -> dict:
 @app.patch("/api/agents/{agent_id}", summary="Update agent role, model, or adapter_config")
 async def api_update_agent(agent_id: str, body: AgentUpdateRequest) -> dict:
     """Update editable fields of an agent. Returns 404 if not found, 400 if no fields provided."""
-    if body.role is None and body.model is None and body.adapter_config_patch is None:
-        raise HTTPException(status_code=400, detail="Provide at least one of: role, model, adapter_config_patch")
-    result = update_agent_fields(agent_id, role=body.role, model=body.model, adapter_config_patch=body.adapter_config_patch)
+    if body.role is None and body.model is None and body.adapter_config_patch is None and body.adapter_type is None:
+        raise HTTPException(status_code=400, detail="Provide at least one of: role, model, adapter_config_patch, adapter_type")
+    result = update_agent_fields(agent_id, role=body.role, model=body.model, adapter_config_patch=body.adapter_config_patch, adapter_type=body.adapter_type)
     if not result:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
     return result

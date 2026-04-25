@@ -41,20 +41,96 @@ def get_vnc_status() -> dict:
     return {"running": False, "pid": None, "port": VNC_PORT}
 
 
-def start_vnc(display: str = ":0", xauthority: str = "") -> dict:
-    """Start x11vnc on localhost:VNC_PORT for the given DISPLAY.
+_xvfb_proc: Optional[subprocess.Popen] = None  # type: ignore[type-arg]
+_vnc_restart_count: int = 0
+_VNC_MAX_RESTARTS: int = 3
 
-    Returns status dict. Raises RuntimeError if x11vnc binary not found.
-    Waits up to 2 seconds for x11vnc to open its port before returning.
-    xauthority: path to .Xauthority file, forwarded as XAUTHORITY env var.
+
+def _detect_display() -> tuple[str, str]:
+    """Detect or create an X11 display. Returns (display, xauthority).
+
+    Priority:
+    1. Existing DISPLAY env var with working X11
+    2. Find X lock files (/tmp/.X*-lock)
+    3. Start Xvfb virtual framebuffer (WSL2/headless)
     """
-    global _vnc_proc
+    import glob
+
+    # Check for Wayland (not supported by x11vnc)
+    if os.environ.get("WAYLAND_DISPLAY") or os.environ.get("XDG_SESSION_TYPE") == "wayland":
+        # Wayland detected — fall through to Xvfb
+        pass
+    else:
+        # Try existing DISPLAY
+        display = os.environ.get("DISPLAY", "")
+        if display:
+            try:
+                subprocess.run(
+                    ["xdpyinfo", "-display", display],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                    timeout=2,
+                )
+                # Find Xauthority
+                for candidate in [
+                    os.path.expanduser("~/.Xauthority"),
+                    f"/run/user/{os.getuid()}/gdm/Xauthority",
+                ]:
+                    if os.path.exists(candidate):
+                        return display, candidate
+                return display, ""
+            except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+                pass
+
+        # Try X lock files
+        locks = sorted(glob.glob("/tmp/.X*-lock"))
+        for lock in locks:
+            num = lock.replace("/tmp/.X", "").replace("-lock", "")
+            d = f":{num}"
+            try:
+                subprocess.run(
+                    ["xdpyinfo", "-display", d],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                    timeout=2,
+                )
+                return d, ""
+            except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+                continue
+
+    # No X11 display found — start Xvfb (virtual framebuffer)
+    global _xvfb_proc
+    if _xvfb_proc is None or _xvfb_proc.poll() is not None:
+        if shutil.which("Xvfb"):
+            _xvfb_proc = subprocess.Popen(
+                ["Xvfb", ":99", "-screen", "0", "1920x1080x24"],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            )
+            time.sleep(1)  # Wait for Xvfb to start
+        else:
+            raise RuntimeError(
+                "No X11 display and Xvfb not found. "
+                "Install with: sudo apt install xvfb"
+            )
+    return ":99", ""
+
+
+def start_vnc(display: str = "", xauthority: str = "") -> dict:
+    """Start x11vnc on localhost:VNC_PORT.
+
+    Auto-detects display (X11 → Xvfb fallback for WSL2/headless).
+    Returns status dict. Raises RuntimeError if x11vnc binary not found.
+    """
+    global _vnc_proc, _vnc_restart_count
     if is_vnc_running():
         return {"ok": True, "already_running": True, **get_vnc_status()}
     if not shutil.which("x11vnc"):
         raise RuntimeError(
             "x11vnc not found — install with: sudo apt install x11vnc"
         )
+
+    # Auto-detect display if not provided
+    if not display:
+        display, xauthority = _detect_display()
+
     env = os.environ.copy()
     env["DISPLAY"] = display
     if xauthority:
@@ -81,10 +157,32 @@ def start_vnc(display: str = ":0", xauthority: str = "") -> dict:
     for _ in range(20):
         try:
             with socket.create_connection(("127.0.0.1", VNC_PORT), timeout=0.1):
+                _vnc_restart_count = 0  # Reset on successful start
                 break
         except OSError:
             time.sleep(0.1)
+
+    # Check if VNC actually started
+    if not is_vnc_running():
+        return {
+            "ok": False,
+            "already_running": False,
+            "running": False,
+            "error": "x11vnc exited immediately. Likely no X11 display available.",
+        }
+
     return {"ok": True, "already_running": False, **get_vnc_status()}
+
+
+def ensure_vnc_running(display: str = "", xauthority: str = "") -> dict:
+    """Health check: restart VNC if crashed (max 3 restarts)."""
+    global _vnc_restart_count
+    if is_vnc_running():
+        return get_vnc_status()
+    if _vnc_restart_count >= _VNC_MAX_RESTARTS:
+        return {"running": False, "error": f"VNC crashed {_vnc_restart_count} times, not restarting"}
+    _vnc_restart_count += 1
+    return start_vnc(display, xauthority)
 
 
 def stop_vnc() -> dict:

@@ -142,6 +142,15 @@ async def api_discovered_nodes() -> list[dict]:
     return list(enriched)
 
 
+@system_router.get("/api/admin/events", summary="Bridge lifecycle events (start/stop)")
+async def api_node_events(
+    limit: int = Query(default=50, ge=1, le=500),
+) -> dict:
+    from handlers import _get_backend
+    events = _get_backend().list_node_events(limit=limit)
+    return {"events": events}
+
+
 # ── Sync ──────────────────────────────────────────────────────────────────────
 
 @system_router.get("/api/sync/companies", summary="Pull companies for sync")
