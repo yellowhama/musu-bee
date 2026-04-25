@@ -9,14 +9,27 @@
     "to": "now"
   },
   "tags": ["musu", "agent", "red"],
+  "templating": {
+    "list": [
+      {
+        "name": "DS_PROMETHEUS",
+        "type": "datasource",
+        "pluginId": "prometheus",
+        "label": "Prometheus",
+        "hide": 0
+      }
+    ]
+  },
   "panels": [
     {
       "id": 1,
       "title": "Task Rate (per channel)",
       "type": "timeseries",
+      "datasource": "${DS_PROMETHEUS}",
       "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
       "targets": [
         {
+          "datasource": "${DS_PROMETHEUS}",
           "expr": "rate(agent_tasks_total[5m])",
           "legendFormat": "{{channel}} / {{status}}",
           "refId": "A"
@@ -28,9 +41,11 @@
       "id": 2,
       "title": "Error Rate (per channel)",
       "type": "timeseries",
+      "datasource": "${DS_PROMETHEUS}",
       "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
       "targets": [
         {
+          "datasource": "${DS_PROMETHEUS}",
           "expr": "rate(agent_tasks_total{status=\"failed\"}[5m])",
           "legendFormat": "{{channel}} errors",
           "refId": "A"
@@ -42,9 +57,11 @@
       "id": 3,
       "title": "P90 Task Duration (per channel)",
       "type": "timeseries",
+      "datasource": "${DS_PROMETHEUS}",
       "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
       "targets": [
         {
+          "datasource": "${DS_PROMETHEUS}",
           "expr": "histogram_quantile(0.90, rate(agent_task_duration_seconds_bucket[5m]))",
           "legendFormat": "{{channel}} P90",
           "refId": "A"
@@ -61,9 +78,11 @@
       "id": 4,
       "title": "P99 Task Duration (per channel)",
       "type": "timeseries",
+      "datasource": "${DS_PROMETHEUS}",
       "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
       "targets": [
         {
+          "datasource": "${DS_PROMETHEUS}",
           "expr": "histogram_quantile(0.99, rate(agent_task_duration_seconds_bucket[5m]))",
           "legendFormat": "{{channel}} P99",
           "refId": "A"
@@ -78,25 +97,29 @@
     },
     {
       "id": 5,
-      "title": "Zombie Rejection Count (per channel)",
+      "title": "Zombie Count",
       "type": "stat",
+      "datasource": "${DS_PROMETHEUS}",
       "gridPos": {"x": 0, "y": 16, "w": 12, "h": 6},
       "targets": [
         {
-          "expr": "rate(agent_tasks_total{status=\"zombie_rejected\"}[5m])",
+          "datasource": "${DS_PROMETHEUS}",
+          "expr": "rate(task_stuck_total{reason=\"zombie\"}[5m])",
           "legendFormat": "{{channel}} zombie rate",
           "refId": "A"
         }
       ],
-      "description": "Rate of zombie-rejected tasks per channel (alert threshold: 0.1/min)"
+      "description": "Rate of zombie tasks per channel (alert threshold: 0.1/min)"
     },
     {
       "id": 6,
-      "title": "Active Tasks Gauge",
+      "title": "Active Tasks",
       "type": "stat",
+      "datasource": "${DS_PROMETHEUS}",
       "gridPos": {"x": 12, "y": 16, "w": 12, "h": 6},
       "targets": [
         {
+          "datasource": "${DS_PROMETHEUS}",
           "expr": "active_tasks_count",
           "legendFormat": "Active tasks",
           "refId": "A"
