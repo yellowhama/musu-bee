@@ -72,8 +72,8 @@ def test_cto_default_timeout_300():
     assert result == 300.0, f"Expected 300.0 for cto, got {result}"
 
 
-def test_ceo_default_timeout_120():
-    """ceo channel defaults to 120s (reduced from 300s to stop repeated route_timeout failures)."""
+def test_ceo_default_timeout_600():
+    """ceo channel defaults to 600s — 120s was too short for heartbeat LLM calls."""
     import importlib
     import handlers
     importlib.reload(handlers)
@@ -87,7 +87,7 @@ def test_ceo_default_timeout_120():
         os.environ.pop("MUSU_ROUTE_TIMEOUT_SEC_CEO", None)
         result = handlers._route_timeout_sec("ceo")
 
-    assert result == 120.0, f"Expected 120.0 for ceo, got {result}"
+    assert result == 600.0, f"Expected 600.0 for ceo, got {result}"
 
 
 def test_unknown_channel_default_timeout_180():

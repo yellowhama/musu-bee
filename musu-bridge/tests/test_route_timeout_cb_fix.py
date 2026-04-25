@@ -38,10 +38,10 @@ def _route_timeout(channel: str, extra_env: dict | None = None) -> float:
 
 # ── timeout tests ─────────────────────────────────────────────────────────────
 
-def test_ceo_default_timeout_is_120():
-    """ceo channel must default to 120s to stop repeated 300s route_timeout failures."""
+def test_ceo_default_timeout_is_600():
+    """ceo channel must default to 600s — 120s caused repeated route_timeout failures."""
     result = _route_timeout("ceo")
-    assert result == 120.0, f"Expected 120.0 for ceo, got {result}"
+    assert result == 600.0, f"Expected 600.0 for ceo, got {result}"
 
 
 def test_team_lead_default_timeout_is_300():
