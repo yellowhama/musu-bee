@@ -1037,17 +1037,40 @@ def _make_summary(output: str | None) -> str:
     return text[:_SUMMARY_MAX_CHARS] + f"\n...[truncated, {len(text)} chars total]"
 
 
+def _is_system_noop(r: dict[str, Any]) -> bool:
+    """Return True for system-issued heartbeat records that produced no output.
+
+    These are created when the heartbeat fires but the agent either was not
+    found or returned immediately without any LLM call.  They match:
+      - sender_id == 'system'
+      - no output
+      - created_at == updated_at (never transitioned out of initial state)
+    """
+    if r.get("sender_id") != "system":
+        return False
+    if r.get("output"):
+        return False
+    return (r.get("created_at", "")[:19]) == (r.get("updated_at", "")[:19])
+
+
 def list_task_records(
     status: str | None = None,
     limit: int = 50,
     before_id: str | None = None,
     channel: str | None = None,
+    exclude_system_noop: bool = False,
 ) -> list[dict[str, Any]]:
-    """List route executions with summary field for each record."""
+    """List route executions with summary field for each record.
+
+    exclude_system_noop: when True, omit system-issued heartbeat records that
+    have no output and were created == updated (zombie no-ops).
+    """
     backend = _get_backend()
     records = backend.list_route_executions(
         status=status, limit=limit, before_id=before_id, channel=channel
     )
+    if exclude_system_noop:
+        records = [r for r in records if not _is_system_noop(r)]
     return [
         {
             "task_id": r["id"],
