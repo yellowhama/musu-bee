@@ -23,6 +23,7 @@ Routes:
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import logging
 import os
@@ -42,7 +43,7 @@ _task_id_var: ContextVar[str | None] = ContextVar("task_id", default=None)
 import uvicorn
 from fastapi import Body, FastAPI, HTTPException, Path, Query, Request, Response, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from bridge_models import (  # noqa: F401
     RouteRequest, DelegateRequest, CompanyCreateRequest, CompanyUpdateRequest,
@@ -205,6 +206,11 @@ if not _token:
 
 _MAX_CONCURRENT_TASKS = int(os.environ.get("MUSU_MAX_CONCURRENT_TASKS", "20"))
 _CHANNEL_MAX_TASKS = int(os.environ.get("MUSU_CHANNEL_MAX_TASKS", "5"))
+
+# In-memory dedup cache for duplicate dispatch prevention.
+# Maps (channel, sha256(text)) → (task_id, monotonic_timestamp).
+_dispatch_hash_cache: dict[tuple[str, str], tuple[str, float]] = {}
+_DISPATCH_HASH_TTL_SEC: float = float(os.environ.get("MUSU_DISPATCH_HASH_TTL_SEC", "120"))
 
 
 class _ChannelSemaphore:
@@ -799,26 +805,24 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
             headers={"Retry-After": "30"},
         )
 
-    # Duplicate-dispatch guard: reject if a running task already exists for this
-    # channel and no explicit dedup override is set. Prevents zombie accumulation
-    # when heartbeat or orchestrator fires faster than agents complete tasks.
+    # Input hash dedup gate: same channel+instruction within TTL → return original task_id.
+    # Instruction-aware: different instructions on the same channel are allowed through.
     if not req.allow_duplicate:
-        try:
-            _dup_backend = _get_backend()
-            _dup_rows = _dup_backend._db.execute(
-                "SELECT id FROM route_executions WHERE channel = ? AND status = 'running' LIMIT 1",
-                (req.channel,),
-            )
-            if _dup_rows:
-                raise HTTPException(
+        _hash_key = (req.channel, hashlib.sha256(req.text.encode()).hexdigest())
+        _now = time.monotonic()
+        _cached = _dispatch_hash_cache.get(_hash_key)
+        if _cached is not None:
+            _orig_task_id, _ts = _cached
+            if _now - _ts < _DISPATCH_HASH_TTL_SEC:
+                return JSONResponse(
                     status_code=409,
-                    detail=f"Channel '{req.channel}' already has a running task — use allow_duplicate=true to override",
-                    headers={"Retry-After": "60"},
+                    content={
+                        "status": "duplicate",
+                        "task_id": _orig_task_id,
+                        "detail": f"Channel '{req.channel}' has a recent task with same instruction — use allow_duplicate=true to override",
+                    },
+                    headers={"Retry-After": str(int(_DISPATCH_HASH_TTL_SEC))},
                 )
-        except HTTPException:
-            raise
-        except Exception:
-            pass  # Fail-open: DB error must not block dispatch
 
     # Free tier gate: 50 task/day (bypass when MUSU_PLAN=pro)
     _FREE_TASK_LIMIT = 50
@@ -845,6 +849,11 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
     except Exception as exc:
         logger.error("delegate_task: failed to create durability record — %s", exc)
         raise HTTPException(status_code=500, detail="Failed to record task — try again")
+
+    # Always store in hash cache so subsequent identical dispatches within TTL return duplicate.
+    # (allow_duplicate=True bypasses the read-check above but still seeds the cache.)
+    _h_key = (req.channel, hashlib.sha256(req.text.encode()).hexdigest())
+    _dispatch_hash_cache[_h_key] = (task_id, time.monotonic())
 
     # Pass task_id so route_chat reuses this record instead of creating a new one.
     # QA loop path: use_qa_loop=True + channel=="engineer" → QALoop.run() (max 900s).
