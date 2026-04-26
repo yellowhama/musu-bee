@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 import json
 import uuid
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -94,12 +94,50 @@ def _make_proc(returncode: int, stdout: bytes = b"", stderr: bytes = b""):
     proc = MagicMock()
     proc.returncode = returncode
     proc.kill = MagicMock()
-    _result = (stdout, stderr)
 
-    async def _communicate(**kwargs):
-        return _result
+    # stdin must support write(), drain() (awaitable), close()
+    stdin_mock = MagicMock()
+    stdin_mock.write = MagicMock()
+    stdin_mock.close = MagicMock()
 
-    proc.communicate = _communicate
+    async def _drain():
+        pass
+
+    stdin_mock.drain = _drain
+    proc.stdin = stdin_mock
+
+    # stdout/stderr must support async read() that returns b"" to signal EOF
+    stdout_mock = MagicMock()
+    _stdout_iter = iter([stdout, b""])
+
+    async def _read_stdout(n):
+        return next(_stdout_iter, b"")
+
+    stdout_mock.read = _read_stdout
+    proc.stdout = stdout_mock
+
+    stderr_mock = MagicMock()
+    _stderr_iter = iter([stderr, b""])
+
+    async def _read_stderr(n):
+        return next(_stderr_iter, b"")
+
+    stderr_mock.read = _read_stderr
+    proc.stderr = stderr_mock
+
+    async def _wait():
+        pass
+
+    proc.wait = _wait
+    return proc
+
+
+def _make_proc_process(returncode: int, stdout: bytes = b"", stderr: bytes = b""):
+    """Build a subprocess mock for ProcessAdapter (uses proc.communicate())."""
+    proc = MagicMock()
+    proc.returncode = returncode
+    proc.kill = MagicMock()
+    proc.communicate = AsyncMock(return_value=(stdout, stderr))
     return proc
 
 
@@ -114,7 +152,7 @@ def test_claude_local_success_has_no_error_code():
     ctx = make_ctx()
     stdout = stream_json_result("done").encode()
     proc = _make_proc(0, stdout)
-    with patch("asyncio.create_subprocess_exec", return_value=proc):
+    with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=proc)):
         with patch("asyncio.wait_for", side_effect=_make_wait_for(proc)):
             result = run(ClaudeLocalAdapter().execute(ctx))
     assert result.success
@@ -125,10 +163,9 @@ def test_claude_local_timeout_sets_error_code():
     ctx = make_ctx(config={"timeout_sec": 1})
 
     async def fake_wait_for(coro, timeout):
-        coro.close()
         raise asyncio.TimeoutError
 
-    with patch("asyncio.create_subprocess_exec", return_value=_make_proc(0)):
+    with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=_make_proc(0))):
         with patch("asyncio.wait_for", side_effect=fake_wait_for):
             result = run(ClaudeLocalAdapter().execute(ctx))
 
@@ -140,7 +177,7 @@ def test_claude_local_timeout_sets_error_code():
 def test_claude_local_rate_limit_sets_error_code():
     ctx = make_ctx()
     proc = _make_proc(1, b"", b"Error: rate limit exceeded (429)")
-    with patch("asyncio.create_subprocess_exec", return_value=proc):
+    with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=proc)):
         with patch("asyncio.wait_for", side_effect=_make_wait_for(proc)):
             result = run(ClaudeLocalAdapter().execute(ctx))
     assert not result.success
@@ -151,7 +188,7 @@ def test_claude_local_rate_limit_sets_error_code():
 def test_claude_local_context_exceeded_sets_error_code():
     ctx = make_ctx()
     proc = _make_proc(1, b"", b"Error: context window exceeded, input too long")
-    with patch("asyncio.create_subprocess_exec", return_value=proc):
+    with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=proc)):
         with patch("asyncio.wait_for", side_effect=_make_wait_for(proc)):
             result = run(ClaudeLocalAdapter().execute(ctx))
     assert not result.success
@@ -162,7 +199,7 @@ def test_claude_local_context_exceeded_sets_error_code():
 def test_claude_local_model_unavailable_sets_error_code():
     ctx = make_ctx()
     proc = _make_proc(1, b"", b"connection refused: model not available")
-    with patch("asyncio.create_subprocess_exec", return_value=proc):
+    with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=proc)):
         with patch("asyncio.wait_for", side_effect=_make_wait_for(proc)):
             result = run(ClaudeLocalAdapter().execute(ctx))
     assert not result.success
@@ -173,7 +210,7 @@ def test_claude_local_model_unavailable_sets_error_code():
 def test_claude_local_unknown_error_sets_error_code():
     ctx = make_ctx()
     proc = _make_proc(1, b"", b"some unexpected error")
-    with patch("asyncio.create_subprocess_exec", return_value=proc):
+    with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=proc)):
         with patch("asyncio.wait_for", side_effect=_make_wait_for(proc)):
             result = run(ClaudeLocalAdapter().execute(ctx))
     assert not result.success
@@ -190,10 +227,9 @@ def test_process_timeout_sets_error_code():
     ctx = make_ctx(adapter_type="process", config={"command": "sleep", "timeout_sec": 1})
 
     async def fake_wait_for(coro, timeout):
-        coro.close()
         raise asyncio.TimeoutError
 
-    with patch("asyncio.create_subprocess_exec", return_value=_make_proc(0)):
+    with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=_make_proc_process(0))):
         with patch("asyncio.wait_for", side_effect=fake_wait_for):
             result = run(ProcessAdapter().execute(ctx))
 
@@ -204,10 +240,9 @@ def test_process_timeout_sets_error_code():
 
 def test_process_rate_limit_sets_error_code():
     ctx = make_ctx(adapter_type="process", config={"command": "echo"})
-    proc = _make_proc(1, b"", b"rate limit exceeded 429")
-    with patch("asyncio.create_subprocess_exec", return_value=proc):
-        with patch("asyncio.wait_for", side_effect=_make_wait_for(proc)):
-            result = run(ProcessAdapter().execute(ctx))
+    proc = _make_proc_process(1, b"", b"rate limit exceeded 429")
+    with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=proc)):
+        result = run(ProcessAdapter().execute(ctx))
     assert not result.success
     assert result.error_code == ErrorCode.RATE_LIMIT
     assert result.is_retriable is True
@@ -215,10 +250,9 @@ def test_process_rate_limit_sets_error_code():
 
 def test_process_context_exceeded_sets_error_code():
     ctx = make_ctx(adapter_type="process", config={"command": "echo"})
-    proc = _make_proc(1, b"", b"context_length limit exceeded")
-    with patch("asyncio.create_subprocess_exec", return_value=proc):
-        with patch("asyncio.wait_for", side_effect=_make_wait_for(proc)):
-            result = run(ProcessAdapter().execute(ctx))
+    proc = _make_proc_process(1, b"", b"context_length limit exceeded")
+    with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=proc)):
+        result = run(ProcessAdapter().execute(ctx))
     assert not result.success
     assert result.error_code == ErrorCode.CONTEXT_EXCEEDED
     assert result.is_retriable is False
@@ -226,20 +260,18 @@ def test_process_context_exceeded_sets_error_code():
 
 def test_process_unknown_error_sets_error_code():
     ctx = make_ctx(adapter_type="process", config={"command": "echo"})
-    proc = _make_proc(1, b"", b"some random failure")
-    with patch("asyncio.create_subprocess_exec", return_value=proc):
-        with patch("asyncio.wait_for", side_effect=_make_wait_for(proc)):
-            result = run(ProcessAdapter().execute(ctx))
+    proc = _make_proc_process(1, b"", b"some random failure")
+    with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=proc)):
+        result = run(ProcessAdapter().execute(ctx))
     assert not result.success
     assert result.error_code == ErrorCode.UNKNOWN
 
 
 def test_process_success_has_no_error_code():
     ctx = make_ctx(adapter_type="process", config={"command": "echo"})
-    proc = _make_proc(0, b"hello")
-    with patch("asyncio.create_subprocess_exec", return_value=proc):
-        with patch("asyncio.wait_for", side_effect=_make_wait_for(proc)):
-            result = run(ProcessAdapter().execute(ctx))
+    proc = _make_proc_process(0, b"hello", b"")
+    with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=proc)):
+        result = run(ProcessAdapter().execute(ctx))
     assert result.success
     assert result.error_code is None
 

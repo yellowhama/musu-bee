@@ -67,6 +67,47 @@ def _mock_adapter_result(run_id: str, success: bool = True, summary: str = "ok")
     return AdapterResult(run_id=run_id, success=success, summary=summary, session_id="sess-1")
 
 
+def _make_proc(returncode: int, stdout: bytes = b"", stderr: bytes = b"") -> MagicMock:
+    """Build a subprocess mock compatible with claude_local.py's stdin/stdout/stderr usage."""
+    proc = MagicMock()
+    proc.returncode = returncode
+    proc.kill = MagicMock()
+
+    stdin_mock = MagicMock()
+    stdin_mock.write = MagicMock()
+    stdin_mock.close = MagicMock()
+
+    async def _drain():
+        pass
+
+    stdin_mock.drain = _drain
+    proc.stdin = stdin_mock
+
+    _stdout_chunks = iter([stdout, b""])
+
+    async def _read_stdout(n):
+        return next(_stdout_chunks, b"")
+
+    stdout_mock = MagicMock()
+    stdout_mock.read = _read_stdout
+    proc.stdout = stdout_mock
+
+    _stderr_chunks = iter([stderr, b""])
+
+    async def _read_stderr(n):
+        return next(_stderr_chunks, b"")
+
+    stderr_mock = MagicMock()
+    stderr_mock.read = _read_stderr
+    proc.stderr = stderr_mock
+
+    async def _wait():
+        pass
+
+    proc.wait = _wait
+    return proc
+
+
 def _good_stream_json(session_id: str = "s1") -> bytes:
     events = [
         json.dumps({"type": "system", "subtype": "init", "session_id": session_id, "model": "m"}),
@@ -97,11 +138,9 @@ def test_route_unknown_adapter_type(backend, cfg, tmp_db):
 
 
 def test_route_success_logs_execution(router, backend, agent_id):
-    proc = MagicMock()
-    proc.returncode = 0
-    proc.communicate = AsyncMock(return_value=(_good_stream_json(), b""))
+    proc = _make_proc(0, _good_stream_json())
 
-    with patch("asyncio.create_subprocess_exec", return_value=proc):
+    with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=proc)):
         result = asyncio.run(router.route(RouteRequest(agent_id=agent_id, prompt="do it")))
 
     assert result.success
@@ -115,11 +154,9 @@ def test_route_success_logs_execution(router, backend, agent_id):
 
 
 def test_route_failure_logged(router, backend, agent_id):
-    proc = MagicMock()
-    proc.returncode = 1
-    proc.communicate = AsyncMock(return_value=(b"", b"something went wrong"))
+    proc = _make_proc(1, b"", b"something went wrong")
 
-    with patch("asyncio.create_subprocess_exec", return_value=proc):
+    with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=proc)):
         result = asyncio.run(router.route(RouteRequest(agent_id=agent_id, prompt="fail")))
 
     assert not result.success
@@ -132,10 +169,7 @@ def test_route_forwards_session_id(router, backend, agent_id):
 
     async def fake_exec(cmd, *args, stdin, stdout, stderr, cwd, env):
         captured_args.extend(args)
-        proc = MagicMock()
-        proc.returncode = 0
-        proc.communicate = AsyncMock(return_value=(_good_stream_json("s-resume"), b""))
-        return proc
+        return _make_proc(0, _good_stream_json("s-resume"))
 
     with patch("asyncio.create_subprocess_exec", side_effect=fake_exec):
         asyncio.run(
@@ -149,11 +183,9 @@ def test_route_forwards_session_id(router, backend, agent_id):
 
 def test_route_links_task_id(router, backend, agent_id):
     task = backend.tasks.create(title="Task A", assignee_agent_id=agent_id)
-    proc = MagicMock()
-    proc.returncode = 0
-    proc.communicate = AsyncMock(return_value=(_good_stream_json(), b""))
+    proc = _make_proc(0, _good_stream_json())
 
-    with patch("asyncio.create_subprocess_exec", return_value=proc):
+    with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=proc)):
         result = asyncio.run(
             router.route(RouteRequest(agent_id=agent_id, prompt="work", task_id=task.id))
         )
