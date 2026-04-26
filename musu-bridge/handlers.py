@@ -768,11 +768,15 @@ def create_issue_record(
     status: str = "open",
     priority: str = "medium",
     assignee_id: str | None = None,
+    goal_id: str | None = None,
+    project_id: str | None = None,
 ) -> dict[str, Any]:
     """Create a new issue for a company."""
     backend = _get_backend()
     return backend.create_issue(
         company_id=company_id,
+        goal_id=goal_id,
+        project_id=project_id,
         title=title,
         description=description,
         status=status,
@@ -791,11 +795,20 @@ def list_issue_records(
     company_id: str,
     status: str | None = None,
     assignee_id: str | None = None,
+    goal_id: str | None = None,
+    project_id: str | None = None,
     limit: int = 100,
 ) -> list[dict[str, Any]]:
     """List issues for a company."""
     backend = _get_backend()
-    return backend.list_issues(company_id=company_id, status=status, assignee_id=assignee_id, limit=limit)
+    return backend.list_issues(
+        company_id=company_id,
+        status=status,
+        assignee_id=assignee_id,
+        goal_id=goal_id,
+        project_id=project_id,
+        limit=limit,
+    )
 
 
 def update_issue_record(issue_id: str, **kwargs: Any) -> dict[str, Any] | None:

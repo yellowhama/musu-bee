@@ -42,11 +42,17 @@ _COMPANY = {
 _ISSUE = {
     "id": "issue-001",
     "company_id": "company-001",
+    "companyId": "company-001",
+    "goal_id": "goal-001",
+    "goalId": "goal-001",
+    "project_id": "project-001",
+    "projectId": "project-001",
     "title": "Test issue",
     "description": "",
     "status": "open",
     "priority": "medium",
     "assignee_id": None,
+    "assigneeAgentId": None,
     "checkout_by": None,
     "checkout_at": None,
     "created_at": "2026-04-17T00:00:00.000Z",
@@ -224,7 +230,7 @@ class TestIssues:
             resp = client.get("/api/companies/company-001/issues?status=open")
         assert resp.status_code == 200
         mock.assert_called_once_with(
-            company_id="company-001", status="open", assignee_id=None, limit=100
+            company_id="company-001", status="open", assignee_id=None, goal_id=None, project_id=None, limit=100
         )
 
     def test_list_issues_assignee_filter(self):
@@ -234,7 +240,22 @@ class TestIssues:
             resp = client.get("/api/companies/company-001/issues?assignee_id=agent-001")
         assert resp.status_code == 200
         mock.assert_called_once_with(
-            company_id="company-001", status=None, assignee_id="agent-001", limit=100
+            company_id="company-001", status=None, assignee_id="agent-001", goal_id=None, project_id=None, limit=100
+        )
+
+    def test_list_issues_camel_case_filters(self):
+        """Verify camelCase query params are normalized."""
+        with patch("server.get_company", return_value=_COMPANY), \
+             patch("server.list_issue_records", return_value=[_ISSUE]) as mock:
+            resp = client.get("/api/companies/company-001/issues?assigneeAgentId=agent-001&goalId=goal-001&projectId=project-001")
+        assert resp.status_code == 200
+        mock.assert_called_once_with(
+            company_id="company-001",
+            status=None,
+            assignee_id="agent-001",
+            goal_id="goal-001",
+            project_id="project-001",
+            limit=100,
         )
 
     def test_create_issue_with_status(self):
@@ -247,6 +268,23 @@ class TestIssues:
             )
         assert resp.status_code == 201
         assert mock.call_args.kwargs["status"] == "in_progress"
+
+    def test_create_issue_accepts_goal_project_and_assignee_aliases(self):
+        with patch("server.get_company", return_value=_COMPANY), \
+             patch("server.create_issue_record", return_value=_ISSUE) as mock:
+            resp = client.post(
+                "/api/companies/company-001/issues",
+                json={
+                    "title": "Linked issue",
+                    "goalId": "goal-001",
+                    "projectId": "project-001",
+                    "assigneeAgentId": "agent-001",
+                },
+            )
+        assert resp.status_code == 201
+        assert mock.call_args.kwargs["goal_id"] == "goal-001"
+        assert mock.call_args.kwargs["project_id"] == "project-001"
+        assert mock.call_args.kwargs["assignee_id"] == "agent-001"
 
     def test_checkout_issue_404_when_missing(self):
         """checkout_issue returns None for missing issue → 404."""

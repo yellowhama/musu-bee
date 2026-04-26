@@ -76,6 +76,9 @@ class _WriterStubClient:
                 "identifier": f"MUS-{self.issue_counter}",
                 "title": payload.get("title"),
                 "status": payload.get("status", "open"),
+                "goalId": payload.get("goalId"),
+                "projectId": payload.get("projectId"),
+                "assigneeAgentId": payload.get("assigneeAgentId") or payload.get("assignee_id"),
             }
         raise RuntimeError(f"unexpected POST {path}")
 
@@ -186,6 +189,7 @@ def test_create_writer_sprint_bundle_creates_goal_and_role_mapped_issues() -> No
 
     assert payload["goal"]["id"] == "goal-new"
     assert payload["goal"]["projectId"] == "project-fd"
+    assert payload["compatibilityMode"] == "native_goal_linking"
     assert [issue["handle"] for issue in payload["issues"]] == [
         "BW-Lead",
         "BW-PM-FalseDane",

@@ -177,6 +177,8 @@ CREATE INDEX IF NOT EXISTS idx_route_executions_created ON route_executions(crea
 CREATE TABLE IF NOT EXISTS issues (
     id          TEXT PRIMARY KEY,
     company_id  TEXT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    goal_id     TEXT REFERENCES goals(id) ON DELETE SET NULL,
+    project_id  TEXT REFERENCES company_project_index(id) ON DELETE SET NULL,
     title       TEXT NOT NULL,
     description TEXT NOT NULL DEFAULT '',
     status      TEXT NOT NULL DEFAULT 'open'

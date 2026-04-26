@@ -631,6 +631,42 @@ def _v20_down(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+# ---------------------------------------------------------------------------
+# v21: add goal_id/project_id linkage to issues
+# ---------------------------------------------------------------------------
+
+
+def _v21_up(conn: sqlite3.Connection) -> None:
+    """Add goal_id/project_id columns + indexes to issues."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='issues'"
+    ).fetchone()
+    if row is None:
+        return
+    if not _column_exists(conn, "issues", "goal_id"):
+        conn.execute("ALTER TABLE issues ADD COLUMN goal_id TEXT REFERENCES goals(id) ON DELETE SET NULL;")
+        conn.commit()
+    if not _column_exists(conn, "issues", "project_id"):
+        conn.execute(
+            "ALTER TABLE issues ADD COLUMN project_id TEXT REFERENCES company_project_index(id) ON DELETE SET NULL;"
+        )
+        conn.commit()
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_issues_goal ON issues(goal_id);")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_issues_project ON issues(project_id);")
+    conn.commit()
+
+
+def _v21_down(conn: sqlite3.Connection) -> None:
+    try:
+        conn.execute("DROP INDEX IF EXISTS idx_issues_goal;")
+        conn.execute("DROP INDEX IF EXISTS idx_issues_project;")
+        conn.execute("ALTER TABLE issues DROP COLUMN goal_id;")
+        conn.execute("ALTER TABLE issues DROP COLUMN project_id;")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
+
 MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v1_fallback_chain", _v1_up, _v1_down),
     ("v2_messages_agent_id", _v2_up, _v2_down),
@@ -652,6 +688,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v18_node_events", _v18_up, _v18_down),
     ("v19_fencing_token", _v19_up, _v19_down),
     ("v20_tombstone", _v20_up, _v20_down),
+    ("v21_issue_goal_project_linkage", _v21_up, _v21_down),
 ]
 
 

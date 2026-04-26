@@ -841,6 +841,15 @@ class LocalBackend(BackendABC):
 
     # --- Issues ---
 
+    @staticmethod
+    def _issue_row_to_dict(row: Any) -> dict[str, Any]:
+        issue = dict(row)
+        issue["companyId"] = issue.get("company_id")
+        issue["goalId"] = issue.get("goal_id")
+        issue["projectId"] = issue.get("project_id")
+        issue["assigneeAgentId"] = issue.get("assignee_id")
+        return issue
+
     def create_issue(
         self,
         company_id: str,
@@ -849,27 +858,32 @@ class LocalBackend(BackendABC):
         status: str = "open",
         priority: str = "medium",
         assignee_id: str | None = None,
+        goal_id: str | None = None,
+        project_id: str | None = None,
     ) -> dict[str, Any]:
         issue_id = str(uuid.uuid4())
         self._db.execute(
             """
-            INSERT INTO issues (id, company_id, title, description, status, priority, assignee_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO issues
+                (id, company_id, goal_id, project_id, title, description, status, priority, assignee_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (issue_id, company_id, title, description, status, priority, assignee_id),
+            (issue_id, company_id, goal_id, project_id, title, description, status, priority, assignee_id),
         )
         rows = self._db.execute("SELECT * FROM issues WHERE id = ?", (issue_id,))
-        return dict(rows[0])
+        return self._issue_row_to_dict(rows[0])
 
     def get_issue(self, issue_id: str) -> dict[str, Any] | None:
         rows = self._db.execute("SELECT * FROM issues WHERE id = ?", (issue_id,))
-        return dict(rows[0]) if rows else None
+        return self._issue_row_to_dict(rows[0]) if rows else None
 
     def list_issues(
         self,
         company_id: str,
         status: str | None = None,
         assignee_id: str | None = None,
+        goal_id: str | None = None,
+        project_id: str | None = None,
         limit: int = 100,
     ) -> list[dict[str, Any]]:
         clauses: list[str] = ["company_id = ?"]
@@ -880,16 +894,22 @@ class LocalBackend(BackendABC):
         if assignee_id:
             clauses.append("assignee_id = ?")
             params.append(assignee_id)
+        if goal_id:
+            clauses.append("goal_id = ?")
+            params.append(goal_id)
+        if project_id:
+            clauses.append("project_id = ?")
+            params.append(project_id)
         params.append(limit)
         where = "WHERE " + " AND ".join(clauses)
         rows = self._db.execute(
             f"SELECT * FROM issues {where} ORDER BY created_at DESC LIMIT ?",
             tuple(params),
         )
-        return [dict(r) for r in rows]
+        return [self._issue_row_to_dict(r) for r in rows]
 
     def update_issue(self, issue_id: str, **kwargs: Any) -> dict[str, Any] | None:
-        allowed = {"title", "description", "status", "priority", "assignee_id"}
+        allowed = {"title", "description", "status", "priority", "assignee_id", "goal_id", "project_id"}
         updates = {k: v for k, v in kwargs.items() if k in allowed}
         if not updates:
             return self.get_issue(issue_id)

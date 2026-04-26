@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
 
 # ── Route / Delegate ─────────────────────────────────────────────────────────
@@ -76,19 +76,43 @@ class WorkspaceUpdateRequest(BaseModel):
 # ── Issues ───────────────────────────────────────────────────────────────────
 
 class IssueCreateRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
     title: str
     description: str = ""
     status: str = "open"
     priority: str = "medium"
-    assignee_id: str | None = None
+    assignee_id: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("assignee_id", "assigneeAgentId", "assigneeId"),
+    )
+    goal_id: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("goal_id", "goalId"),
+    )
+    project_id: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("project_id", "projectId"),
+    )
 
 
 class IssueUpdateRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
     title: str | None = None
     description: str | None = None
     status: str | None = None
     priority: str | None = None
-    assignee_id: str | None = None
+    assignee_id: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("assignee_id", "assigneeAgentId", "assigneeId"),
+    )
+    goal_id: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("goal_id", "goalId"),
+    )
+    project_id: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("project_id", "projectId"),
+    )
 
 
 class IssueCommentRequest(BaseModel):

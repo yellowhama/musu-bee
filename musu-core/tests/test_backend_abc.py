@@ -126,6 +126,56 @@ def test_local_comment_roundtrip(local):
     assert comments[0]["id"] == c["id"]
 
 
+def test_local_issue_roundtrip_with_goal_project_linkage(local):
+    company_id = "company-001"
+    goal_id = "goal-001"
+    project_id = "project-001"
+    local._db.execute(
+        """
+        INSERT INTO companies (id, name, template_key, workspace_id, meta)
+        VALUES (?, 'writers', 'writer-studio', 'ws-writers', '{}')
+        """,
+        (company_id,),
+    )
+    local._db.execute(
+        """
+        INSERT INTO company_project_index (id, company_id, project_name, status)
+        VALUES (?, ?, 'False Dane', 'active')
+        """,
+        (project_id, company_id),
+    )
+    local._db.execute(
+        """
+        INSERT INTO goals (id, company_id, title, description, status, meta)
+        VALUES (?, ?, 'Sprint Goal', '', 'active', '{}')
+        """,
+        (goal_id, company_id),
+    )
+    agent = local.agents.create(name="lead", adapter_type="process", company_id=company_id)
+
+    issue = local.create_issue(
+        company_id=company_id,
+        goal_id=goal_id,
+        project_id=project_id,
+        title="Linked issue",
+        assignee_id=agent.id,
+    )
+
+    assert issue["goal_id"] == goal_id
+    assert issue["goalId"] == goal_id
+    assert issue["project_id"] == project_id
+    assert issue["projectId"] == project_id
+    assert issue["assigneeAgentId"] == agent.id
+
+    listed = local.list_issues(company_id=company_id, goal_id=goal_id, project_id=project_id)
+    assert len(listed) == 1
+    assert listed[0]["id"] == issue["id"]
+
+    updated = local.update_issue(issue["id"], goal_id=goal_id, project_id=project_id)
+    assert updated is not None
+    assert updated["goalId"] == goal_id
+
+
 # ---------------------------------------------------------------------------
 # detect_backend
 # ---------------------------------------------------------------------------

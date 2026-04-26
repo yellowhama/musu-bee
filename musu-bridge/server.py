@@ -1522,13 +1522,28 @@ async def api_list_issues(
     company_id: str,
     status: str | None = Query(default=None),
     assignee_id: str | None = Query(default=None),
+    assignee_agent_id: str | None = Query(default=None, alias="assigneeAgentId"),
+    goal_id: str | None = Query(default=None),
+    goal_id_alias: str | None = Query(default=None, alias="goalId"),
+    project_id: str | None = Query(default=None),
+    project_id_alias: str | None = Query(default=None, alias="projectId"),
     limit: int = Query(default=100, ge=1, le=500),
 ) -> list[dict]:
     """List issues for a company, optionally filtered by status or assignee."""
     company = get_company(company_id)
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
-    return list_issue_records(company_id=company_id, status=status, assignee_id=assignee_id, limit=limit)
+    resolved_assignee_id = assignee_id or assignee_agent_id
+    resolved_goal_id = goal_id or goal_id_alias
+    resolved_project_id = project_id or project_id_alias
+    return list_issue_records(
+        company_id=company_id,
+        status=status,
+        assignee_id=resolved_assignee_id,
+        goal_id=resolved_goal_id,
+        project_id=resolved_project_id,
+        limit=limit,
+    )
 
 
 @app.post("/api/companies/{company_id}/issues", summary="Create an issue", status_code=201)
@@ -1544,6 +1559,8 @@ async def api_create_issue(company_id: str, req: IssueCreateRequest) -> dict:
         status=req.status,
         priority=req.priority,
         assignee_id=req.assignee_id,
+        goal_id=req.goal_id,
+        project_id=req.project_id,
     )
 
 
