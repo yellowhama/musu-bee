@@ -336,7 +336,10 @@ class _ChannelSemaphore:
         # Phase 92: raised from 30s to 60s — Phase 89 set task timeout to 600s,
         # so 30s would abandon tasks blocked at capacity before the channel clears.
         _timeout = float(os.environ.get("MUSU_SEMAPHORE_ACQUIRE_TIMEOUT_SEC", "60"))
-        await self.acquire(timeout=_timeout)
+        try:
+            await self.acquire(timeout=_timeout)
+        except asyncio.TimeoutError:
+            raise RuntimeError("channel_at_capacity") from None
         return self
 
     async def __aexit__(self, *args: object) -> None:
@@ -1014,6 +1017,23 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
                         _record_task_metric(req.channel, "failed", time.monotonic() - _task_start)
                         asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
                         return  # Don't retry unknown exceptions
+        except (RuntimeError, asyncio.TimeoutError) as _outer_exc:
+            _exc_str = str(_outer_exc)
+            if isinstance(_outer_exc, asyncio.TimeoutError) or _exc_str == "channel_at_capacity":
+                # _ChannelSemaphore.__aenter__ converts TimeoutError → RuntimeError("channel_at_capacity").
+                # When mocked, asyncio.TimeoutError may escape directly — treat both as capacity saturation.
+                _sem_timeout = float(os.environ.get("MUSU_SEMAPHORE_ACQUIRE_TIMEOUT_SEC", "60"))
+                logger.warning(
+                    "delegate_task: task %s channel_at_capacity (semaphore acquire >%ds)",
+                    task_id,
+                    int(_sem_timeout),
+                )
+                cancel_task_record(task_id, error="channel_at_capacity")
+                _reregister_failed_hash(req.channel, req.text, task_id)
+            else:
+                logger.exception("delegate_task: task %s outer RuntimeError: %s", task_id, _outer_exc)
+                cancel_task_record(task_id, error=f"outer failure: {_outer_exc}")
+                _reregister_failed_hash(req.channel, req.text, task_id)
         except Exception as _outer_exc:
             # Safety net: semaphore acquisition or other pre-loop failure must not leave a zombie record
             logger.exception("delegate_task: task %s outer failure: %s", task_id, _outer_exc)

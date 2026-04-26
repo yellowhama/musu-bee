@@ -153,3 +153,41 @@ class TestChannelSemaphoreIntegration:
         sem = server._get_channel_semaphore("cto")
         sem._value = 3
         assert not sem.at_capacity()
+
+
+class TestChannelSemaphoreTimeoutHandling:
+    """__aenter__ must convert asyncio.TimeoutError → RuntimeError('channel_at_capacity')."""
+
+    @pytest.mark.asyncio
+    async def test_aenter_timeout_raises_runtime_error_channel_at_capacity(self, monkeypatch):
+        """When acquire() times out, __aenter__ must raise RuntimeError with
+        'channel_at_capacity' — not let asyncio.TimeoutError propagate raw."""
+        sem = _ChannelSemaphore(1)
+        monkeypatch.setenv("MUSU_SEMAPHORE_ACQUIRE_TIMEOUT_SEC", "0.001")
+
+        # Fill the slot so acquire will block
+        await sem.acquire()
+
+        with pytest.raises(RuntimeError, match="channel_at_capacity"):
+            async with sem:
+                pass  # should not reach here
+
+    @pytest.mark.asyncio
+    async def test_aenter_timeout_does_not_release_slot(self, monkeypatch):
+        """After a timeout in __aenter__, available count must be unchanged — no slot
+        was acquired, so release() must not fire."""
+        sem = _ChannelSemaphore(1)
+        monkeypatch.setenv("MUSU_SEMAPHORE_ACQUIRE_TIMEOUT_SEC", "0.001")
+
+        await sem.acquire()  # _available = 0
+        assert sem._available == 0
+
+        try:
+            async with sem:
+                pass
+        except RuntimeError:
+            pass
+
+        assert sem._available == 0, (
+            "Slot was never acquired — available must stay 0, not go negative"
+        )

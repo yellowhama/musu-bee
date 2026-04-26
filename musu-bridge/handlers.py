@@ -476,8 +476,8 @@ async def route_chat(
     except Exception as exc:
         if _heartbeat_task:
             _heartbeat_task.cancel()
-        logger.exception("route_chat: unexpected error — %s", exc)
-        return _finish({"error": "Internal error. Please try again.", "response": None,
+        logger.exception("route_chat error: %s: %s", type(exc).__name__, exc)
+        return _finish({"error": f"Internal error: {type(exc).__name__}: {exc}", "response": None,
                         "agent_id": agent_id, "task_id": task_id})
     finally:
         if _heartbeat_task:

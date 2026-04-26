@@ -60,7 +60,8 @@ class TestSemaphoreAcquireTimeout:
         sem = _ChannelSemaphore(1)
         await sem.acquire()  # fill the slot
 
-        with pytest.raises(asyncio.TimeoutError):
+        # Phase 91: __aenter__ converts asyncio.TimeoutError → RuntimeError("channel_at_capacity")
+        with pytest.raises(RuntimeError, match="channel_at_capacity"):
             async with sem:
                 pass  # should raise before entering
 
