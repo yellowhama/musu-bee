@@ -253,15 +253,16 @@ async def route_chat(
 
     # ── Harness: per-agent budget enforcement ────────────────────────────────
     _budget_backend = _get_backend()
-    _budget_agent_name = cfg.channel_agent_map.get(channel)
+    _budget_agent_name = get_bridge_config().channel_agent_map.get(channel)
     if _budget_agent_name:
         _budget_agent = _budget_backend.get_agent_by_name(_budget_agent_name, company_id=company_id)
-        if _budget_agent and _budget_agent.get("budget_usd_monthly") is not None:
-            if (_budget_agent.get("budget_usd_spent") or 0.0) >= _budget_agent["budget_usd_monthly"]:
+        _bgt_limit = _budget_agent.get("budget_usd_monthly") if isinstance(_budget_agent, dict) else None
+        if _bgt_limit is not None and isinstance(_bgt_limit, (int, float)):
+            if (_budget_agent.get("budget_usd_spent") or 0.0) >= _bgt_limit:
                 return {
                     "error": "budget_exceeded",
-                    "agent": _budget_agent["name"],
-                    "budget_usd_monthly": _budget_agent["budget_usd_monthly"],
+                    "agent": _budget_agent.get("name"),
+                    "budget_usd_monthly": _bgt_limit,
                     "budget_usd_spent": _budget_agent.get("budget_usd_spent", 0.0),
                     "response": None,
                 }

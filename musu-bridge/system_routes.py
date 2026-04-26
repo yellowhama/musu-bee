@@ -323,6 +323,42 @@ async def system_update() -> dict:
         raise HTTPException(status_code=504, detail="auto-update timed out after 90s")
 
 
+# ── Admin shell exec (allowlisted commands only) ─────────────────────────────
+
+_EXEC_ALLOWED_PREFIXES = (
+    "docker ",
+    "docker-compose ",
+)
+
+
+class AdminExecRequest(BaseModel):
+    command: str = Field(..., description="Shell command to run (must start with an allowed prefix)")
+    cwd: str | None = Field(None, description="Working directory")
+    timeout_sec: int = Field(60, ge=1, le=300)
+
+
+@system_router.post("/api/admin/exec", summary="Run an allowlisted shell command")
+async def admin_exec(req: AdminExecRequest) -> dict:
+    cmd = req.command.strip()
+    if not any(cmd.startswith(p) for p in _EXEC_ALLOWED_PREFIXES):
+        raise HTTPException(status_code=403, detail=f"Command not allowed. Permitted prefixes: {_EXEC_ALLOWED_PREFIXES}")
+    try:
+        proc = await asyncio.create_subprocess_shell(
+            cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+            cwd=req.cwd,
+        )
+        stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=req.timeout_sec)
+        output = stdout.decode(errors="replace").strip()
+        logger.info("admin_exec: cmd=%r exit=%d", cmd[:80], proc.returncode)
+        return {"exit_code": proc.returncode, "output": output}
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail=f"Command timed out after {req.timeout_sec}s")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 # ── System event logging (for activity timeline) ─────────────────────────────
 
 
