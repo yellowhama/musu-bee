@@ -22,6 +22,24 @@ from fastapi import WebSocket, WebSocketDisconnect
 # ── Configuration ─────────────────────────────────────────────────────────────
 
 VNC_PORT = int(os.getenv("MUSU_VNC_PORT", "5900"))
+
+
+def _try_apt_install(packages: list[str]) -> None:
+    """Best-effort apt-get install for missing screen/VNC dependencies."""
+    if not shutil.which("apt-get"):
+        return
+    try:
+        subprocess.run(
+            ["sudo", "apt-get", "install", "-y", "-q"] + packages,
+            timeout=120,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+    except (subprocess.TimeoutExpired, OSError):
+        pass
+
+
 TOKEN_TTL = 60  # seconds
 
 # ── x11vnc lifecycle ──────────────────────────────────────────────────────────
@@ -99,6 +117,8 @@ def _detect_display() -> tuple[str, str]:
     # No X11 display found — start Xvfb (virtual framebuffer)
     global _xvfb_proc
     if _xvfb_proc is None or _xvfb_proc.poll() is not None:
+        if not shutil.which("Xvfb"):
+            _try_apt_install(["xvfb", "x11vnc", "x11-utils"])
         if shutil.which("Xvfb"):
             _xvfb_proc = subprocess.Popen(
                 ["Xvfb", ":99", "-screen", "0", "1920x1080x24"],
@@ -122,6 +142,8 @@ def start_vnc(display: str = "", xauthority: str = "") -> dict:
     global _vnc_proc, _vnc_restart_count
     if is_vnc_running():
         return {"ok": True, "already_running": True, **get_vnc_status()}
+    if not shutil.which("x11vnc"):
+        _try_apt_install(["x11vnc", "xvfb", "x11-utils"])
     if not shutil.which("x11vnc"):
         raise RuntimeError(
             "x11vnc not found — install with: sudo apt install x11vnc"
