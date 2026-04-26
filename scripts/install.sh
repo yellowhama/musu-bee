@@ -56,6 +56,25 @@ else
 fi
 mkdir -p "${MUSU_HOME}/db"
 
+# ── Step 2b: Optional system packages (screen / VNC) ─────────────────────────
+# Required for /api/screen/vnc/start on headless nodes (no physical X11 display)
+if command -v apt-get &>/dev/null; then
+    _screen_missing=()
+    command -v x11vnc   &>/dev/null || _screen_missing+=("x11vnc")
+    command -v Xvfb     &>/dev/null || _screen_missing+=("xvfb")
+    command -v xdpyinfo &>/dev/null || _screen_missing+=("x11-utils")
+    if [[ ${#_screen_missing[@]} -gt 0 ]]; then
+        info "Step 2b: installing screen deps (${_screen_missing[*]})..."
+        sudo apt-get install -y -q "${_screen_missing[@]}" >/dev/null \
+            && ok "screen deps installed: ${_screen_missing[*]}" \
+            || warn "screen deps install failed — VNC feature may not work on headless nodes"
+    else
+        info "Step 2b: screen deps already installed (x11vnc, Xvfb, xdpyinfo)"
+    fi
+else
+    info "Step 2b: non-apt system — skipping screen dep auto-install (install x11vnc + xvfb manually)"
+fi
+
 # ── Step 3: Create venv + install deps ───────────────────────────────────────
 if [[ ! -x "${VENV}/bin/python3" ]]; then
     info "Step 3: creating venv..."

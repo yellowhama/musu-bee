@@ -57,6 +57,13 @@ class _WriterStubClient:
                     "assigneeAgentId": "agent-writer",
                 },
             ]
+        if path == "/companies/company-writers/writer-company-health":
+            return {
+                "status": "healthy",
+                "gapCount": 0,
+                "gaps": [],
+                "canonicalAgents": ["BW-Lead", "BW-Writer", "BW-Editor"],
+            }
         raise RuntimeError(f"unexpected GET {path}")
 
     async def post(self, path: str, body: dict | None = None) -> Any:
@@ -281,3 +288,15 @@ def test_create_writer_ops_incident_assigns_bw_lead_and_resolves_project() -> No
     post_issue_calls = [call for call in stub.calls if call[0] == "POST" and call[1] == "/companies/company-writers/issues"]
     assert post_issue_calls[-1][2]["assigneeAgentId"] == "agent-lead"
     assert post_issue_calls[-1][2]["projectId"] == "project-fd"
+
+
+def test_audit_writer_company_health_reads_bridge_audit_surface() -> None:
+    stub = _WriterStubClient()
+    payload = _run(
+        server.audit_writer_company_health(),
+        stub,
+    )
+
+    assert payload["status"] == "healthy"
+    get_calls = [call for call in stub.calls if call[0] == "GET" and call[1] == "/companies/company-writers/writer-company-health"]
+    assert get_calls

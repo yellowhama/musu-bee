@@ -57,6 +57,10 @@ def _comment_to_dict(comment: Any) -> dict[str, Any]:
     }
 
 
+def _csv_status_values(value: str | None) -> list[str]:
+    return [item.strip() for item in str(value or "").split(",") if item.strip()]
+
+
 class LocalBackend(BackendABC):
     """
     Thin facade that wires together AgentRegistry, TaskQueue, and the
@@ -184,7 +188,7 @@ class LocalBackend(BackendABC):
         return _agent_to_dict(agent) if agent else None
 
     def list_agents(self, company_id: str | None = None) -> list[dict[str, Any]]:
-        return [_agent_to_dict(a) for a in self.agents.list(status="active", company_id=company_id)]
+        return [_agent_to_dict(a) for a in self.agents.list(company_id=company_id)]
 
     def update_agent(self, agent_id: str, **kwargs: Any) -> dict[str, Any] | None:
         """Update agent fields. Returns updated agent dict or None if not found."""
@@ -850,6 +854,59 @@ class LocalBackend(BackendABC):
         issue["assigneeAgentId"] = issue.get("assignee_id")
         return issue
 
+    @staticmethod
+    def _project_row_to_dict(row: Any) -> dict[str, Any]:
+        project = dict(row)
+        project["companyId"] = project.get("company_id")
+        project["projectName"] = project.get("project_name")
+        project["assignedTo"] = project.get("assigned_to")
+        return project
+
+    def _goal_row_to_dict(self, row: Any) -> dict[str, Any]:
+        goal = dict(row)
+        goal["companyId"] = goal.get("company_id")
+        meta_raw = goal.get("meta")
+        if isinstance(meta_raw, str):
+            try:
+                goal["meta"] = json.loads(meta_raw or "{}")
+            except json.JSONDecodeError:
+                pass
+
+        linked_projects = self._db.execute(
+            """
+            SELECT DISTINCT p.id, p.project_name
+            FROM issues i
+            JOIN company_project_index p ON p.id = i.project_id
+            WHERE i.goal_id = ?
+            ORDER BY p.project_name ASC
+            """,
+            (goal.get("id"),),
+        )
+        project_links = [
+            {
+                "id": r["id"],
+                "name": r["project_name"],
+                "projectId": r["id"],
+                "projectName": r["project_name"],
+            }
+            for r in linked_projects
+        ]
+        goal["projectLinks"] = project_links
+        goal["projectIds"] = [item["id"] for item in project_links]
+        goal["projectNames"] = [item["name"] for item in project_links]
+        if len(project_links) == 1:
+            goal["projectId"] = project_links[0]["id"]
+            goal["projectName"] = project_links[0]["name"]
+        else:
+            goal["projectId"] = None
+            goal["projectName"] = None
+        linked_issue_count = self._db.execute(
+            "SELECT COUNT(*) AS n FROM issues WHERE goal_id = ?",
+            (goal.get("id"),),
+        )
+        goal["linkedIssueCount"] = int(linked_issue_count[0]["n"]) if linked_issue_count else 0
+        return goal
+
     def create_issue(
         self,
         company_id: str,
@@ -888,9 +945,11 @@ class LocalBackend(BackendABC):
     ) -> list[dict[str, Any]]:
         clauses: list[str] = ["company_id = ?"]
         params: list[Any] = [company_id]
-        if status:
-            clauses.append("status = ?")
-            params.append(status)
+        statuses = _csv_status_values(status)
+        if statuses:
+            placeholders = ", ".join("?" for _ in statuses)
+            clauses.append(f"status IN ({placeholders})")
+            params.extend(statuses)
         if assignee_id:
             clauses.append("assignee_id = ?")
             params.append(assignee_id)
@@ -1017,21 +1076,23 @@ class LocalBackend(BackendABC):
     ) -> list[dict[str, Any]]:
         clauses: list[str] = ["company_id = ?"]
         params: list[Any] = [company_id]
-        if status:
-            clauses.append("status = ?")
-            params.append(status)
+        statuses = _csv_status_values(status)
+        if statuses:
+            placeholders = ", ".join("?" for _ in statuses)
+            clauses.append(f"status IN ({placeholders})")
+            params.extend(statuses)
         where = "WHERE " + " AND ".join(clauses)
         rows = self._db.execute(
             f"SELECT * FROM company_project_index {where} ORDER BY created_at DESC",
             tuple(params),
         )
-        return [dict(r) for r in rows]
+        return [self._project_row_to_dict(r) for r in rows]
 
     def get_project(self, project_id: str) -> dict[str, Any] | None:
         rows = self._db.execute(
             "SELECT * FROM company_project_index WHERE id = ?", (project_id,)
         )
-        return dict(rows[0]) if rows else None
+        return self._project_row_to_dict(rows[0]) if rows else None
 
     def create_project(
         self,
@@ -1171,15 +1232,17 @@ class LocalBackend(BackendABC):
     ) -> list[dict[str, Any]]:
         clauses: list[str] = ["company_id = ?"]
         params: list[Any] = [company_id]
-        if status:
-            clauses.append("status = ?")
-            params.append(status)
+        statuses = _csv_status_values(status)
+        if statuses:
+            placeholders = ", ".join("?" for _ in statuses)
+            clauses.append(f"status IN ({placeholders})")
+            params.extend(statuses)
         where = "WHERE " + " AND ".join(clauses)
         rows = self._db.execute(
             f"SELECT * FROM goals {where} ORDER BY created_at DESC",
             tuple(params),
         )
-        return [dict(r) for r in rows]
+        return [self._goal_row_to_dict(r) for r in rows]
 
     def create_goal(
         self,
@@ -1200,7 +1263,7 @@ class LocalBackend(BackendABC):
 
     def get_goal(self, goal_id: str) -> dict[str, Any] | None:
         rows = self._db.execute("SELECT * FROM goals WHERE id = ?", (goal_id,))
-        return dict(rows[0]) if rows else None
+        return self._goal_row_to_dict(rows[0]) if rows else None
 
     def update_goal(self, goal_id: str, **kwargs: Any) -> dict[str, Any] | None:
         allowed = {"title", "description", "status", "due_date", "meta"}

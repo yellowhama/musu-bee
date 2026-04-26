@@ -60,8 +60,24 @@ def get_vnc_status() -> dict:
 
 
 _xvfb_proc: Optional[subprocess.Popen] = None  # type: ignore[type-arg]
+_xvfb_display: str = ":99"  # tracks the display Xvfb was started on
 _vnc_restart_count: int = 0
 _VNC_MAX_RESTARTS: int = 3
+
+
+def _pick_free_display(start: int = 99) -> int:
+    """Return lowest display number >= start with no running X server."""
+    for num in range(start, start + 10):
+        lock = f"/tmp/.X{num}-lock"
+        if not os.path.exists(lock):
+            return num
+        # Lock exists — check if owner process is still alive
+        try:
+            pid = int(open(lock).read().strip())
+            os.kill(pid, 0)  # raises OSError if pid doesn't exist
+        except (OSError, ValueError):
+            return num  # Stale lock — display is safe to reuse
+    return start  # Fallback: try start and let Xvfb fail with a clear error
 
 
 def _detect_display() -> tuple[str, str]:
@@ -115,22 +131,56 @@ def _detect_display() -> tuple[str, str]:
                 continue
 
     # No X11 display found — start Xvfb (virtual framebuffer)
-    global _xvfb_proc
+    global _xvfb_proc, _xvfb_display
     if _xvfb_proc is None or _xvfb_proc.poll() is not None:
         if not shutil.which("Xvfb"):
             _try_apt_install(["xvfb", "x11vnc", "x11-utils"])
-        if shutil.which("Xvfb"):
-            _xvfb_proc = subprocess.Popen(
-                ["Xvfb", ":99", "-screen", "0", "1920x1080x24"],
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            )
-            time.sleep(1)  # Wait for Xvfb to start
-        else:
+        if not shutil.which("Xvfb"):
             raise RuntimeError(
                 "No X11 display and Xvfb not found. "
                 "Install with: sudo apt install xvfb"
             )
-    return ":99", ""
+        # Pick a free display number, cleaning up stale lock files if needed
+        display_num = _pick_free_display()
+        xvfb_display = f":{display_num}"
+        lock = f"/tmp/.X{display_num}-lock"
+        if os.path.exists(lock):
+            try:
+                os.unlink(lock)
+            except OSError:
+                pass
+        _xvfb_proc = subprocess.Popen(
+            ["Xvfb", xvfb_display, "-screen", "0", "1920x1080x24"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+        # Wait up to 3s for Xvfb to be ready
+        for _ in range(30):
+            time.sleep(0.1)
+            if _xvfb_proc.poll() is not None:
+                raise RuntimeError(
+                    f"Xvfb exited immediately on display {xvfb_display}. "
+                    "Check that no other process owns that display."
+                )
+            try:
+                result = subprocess.run(
+                    ["xdpyinfo", "-display", xvfb_display],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                    timeout=1,
+                )
+                if result.returncode == 0:
+                    break
+            except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+                pass
+        else:
+            _xvfb_proc.kill()
+            _xvfb_proc = None
+            raise RuntimeError(
+                f"Xvfb started but display {xvfb_display} not ready after 3s. "
+                "Install x11-utils for diagnostics: sudo apt install x11-utils"
+            )
+        _xvfb_display = xvfb_display
+        return _xvfb_display, ""
+    return _xvfb_display, ""
 
 
 def start_vnc(display: str = "", xauthority: str = "") -> dict:

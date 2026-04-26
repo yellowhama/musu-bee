@@ -58,6 +58,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from musu_core.middleware import apply_musu_middlewares
 from musu_core.redaction import install_redaction_filter
+from writer_company import WRITER_COMPANY_ID, audit_writer_company_drift, build_writer_company_manifest, normalize_writer_company_manifest
 import audit
 import mesh_router as mesh_router
 import screen_vnc
@@ -1407,6 +1408,27 @@ async def api_company_agents(company_id: str) -> list[dict]:
     # Merge: scoped first, then globals not shadowed by scoped names
     scoped_names = {a["name"] for a in scoped}
     return scoped + [a for a in global_agents if a["name"] not in scoped_names]
+
+
+@app.get("/api/companies/{company_id}/writer-company-health", summary="Audit writer-company drift")
+async def api_writer_company_health(
+    company_id: str,
+    workspace_root: str = Query(default="/home/hugh51/writer"),
+) -> dict:
+    """Compare live writer-company state against the canonical writer-company manifest."""
+    company = get_company(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    if company_id != WRITER_COMPANY_ID:
+        raise HTTPException(status_code=422, detail="Writer-company health audit only supports the canonical writer company.")
+    from handlers import _get_backend as _gb_writer_health
+
+    backend = _gb_writer_health()
+    manifest = normalize_writer_company_manifest(
+        build_writer_company_manifest(workspace_root=workspace_root),
+        workspace_root=workspace_root,
+    )
+    return audit_writer_company_drift(backend, manifest)
 
 
 @app.get("/api/companies/{company_id}/activity", summary="Activity feed for a company")

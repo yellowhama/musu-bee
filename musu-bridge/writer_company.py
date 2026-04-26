@@ -12,6 +12,23 @@ WRITER_COMPANY_ID = "a2699373-3700-4cbc-8477-c70e1d94cf8a"
 WRITER_COMPANY_NAME = "Bloodline Writers"
 
 
+def _agent_name_key(value: str) -> str:
+    return str(value or "").strip().lower()
+
+
+def _reassign_company_issues(backend: LocalBackend, company_id: str, from_agent_id: str, to_agent_id: str) -> None:
+    if not from_agent_id or not to_agent_id or from_agent_id == to_agent_id:
+        return
+    backend._db.execute(  # internal maintenance path for writer-company dedupe
+        """
+        UPDATE issues
+        SET assignee_id = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+        WHERE company_id = ? AND assignee_id = ?
+        """,
+        (to_agent_id, company_id, from_agent_id),
+    )
+
+
 def _normalize_company_row(row: dict[str, Any] | None) -> dict[str, Any] | None:
     if row is None:
         return None
@@ -40,8 +57,8 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
             "status": "active",
             "purpose": (
                 "Shared fiction studio for Bloodline and False Dane. "
-                "Multi-agent planning, writing, editing, continuity review, and reference research "
-                "for long-form serial fiction."
+                "Multi-agent planning, writing, editing, continuity review, reference research, "
+                "and market/trend research for long-form serial fiction with KR/EN bilingual release intent."
             ),
             "meta": {
                 "workspace_root": str(workspace),
@@ -50,7 +67,9 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                 "company_manifest_path": str(manifest_path),
                 "generator_evaluator_split": True,
                 "contract_first": True,
-                "canon_policy": "Project canon stays local. Workflow and craft may be shared.",
+                "canon_policy": "Project canon stays local. Workflow, craft, and market-fit lessons may be shared.",
+                "release_languages": ["ko", "en"],
+                "trend_markets": ["kr", "us", "jp"],
                 "shared_os_page": str(workspace / "llm-wiki" / "wiki" / "51_BLOODLINE_WRITERS_SHARED_OS.md"),
                 "role_contracts_page": str(workspace / "llm-wiki" / "wiki" / "54_AGENT_ROLE_CONTRACTS.md"),
                 "workflow_page": str(workspace / "llm-wiki" / "wiki" / "53_SHARED_NOVEL_WORKFLOW.md"),
@@ -74,17 +93,17 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
             {
                 "name": "Bloodline",
                 "status": "active",
-                "assigned_to": "bw-pm-bloodline",
+                "assigned_to": "BW-PM-Bloodline",
             },
             {
                 "name": "False Dane",
                 "status": "active",
-                "assigned_to": "bw-pm-falsedane",
+                "assigned_to": "BW-PM-FalseDane",
             },
         ],
         "agents": [
             {
-                "name": "bw-lead",
+                "name": "BW-Lead",
                 "role": "Company Lead",
                 "adapter_type": "claude_local",
                 "adapter_config": {
@@ -109,7 +128,7 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                 ],
             },
             {
-                "name": "bw-pm-bloodline",
+                "name": "BW-PM-Bloodline",
                 "role": "Project Manager",
                 "adapter_type": "gemini_local",
                 "adapter_config": {
@@ -131,7 +150,7 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                 ],
             },
             {
-                "name": "bw-pm-falsedane",
+                "name": "BW-PM-FalseDane",
                 "role": "Project Manager",
                 "adapter_type": "gemini_local",
                 "adapter_config": {
@@ -153,7 +172,7 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                 ],
             },
             {
-                "name": "bw-researcher",
+                "name": "BW-Researcher",
                 "role": "Researcher",
                 "adapter_type": "gemini_local",
                 "adapter_config": {
@@ -174,7 +193,30 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                 ],
             },
             {
-                "name": "bw-writer",
+                "name": "BW-TrendResearcher",
+                "role": "Trend Researcher",
+                "adapter_type": "gemini_local",
+                "adapter_config": {
+                    "command": "gemini",
+                    "model": "gemini-2.5-flash",
+                    "dangerously_skip_permissions": True,
+                    "timeout_sec": 600,
+                    "cwd": str(workspace),
+                    "instructions": (
+                        f"You are BW-TrendResearcher for {WRITER_COMPANY_NAME}.\n"
+                        "Own US/JP/KR market and trend reconnaissance for long-form fiction.\n"
+                        f"Primary workspace: {workspace}\n"
+                        "Track genre, platform, packaging, and release-surface shifts across Korea, the United States, and Japan.\n"
+                        "Flag bilingual Korean/English release risks early.\n"
+                        "Produce market-fit memos and trend comparisons. Do not dictate canon."
+                    ),
+                },
+                "fallback_chain": [
+                    {"adapter_type": "claude_local", "command": "claude", "model": "claude-sonnet-4-6"}
+                ],
+            },
+            {
+                "name": "BW-Writer",
                 "role": "Writer",
                 "adapter_type": "claude_local",
                 "adapter_config": {
@@ -187,7 +229,10 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                         f"You are BW-Writer for {WRITER_COMPANY_NAME}.\n"
                         "Own draft production and revision only.\n"
                         f"Primary workspace: {workspace}\n"
-                        "Work from sprint contracts, canon, and research. Do not self-approve."
+                        "Work from sprint contracts, canon, research, and trend memos when present.\n"
+                        "Default False Dane house style must follow the false-dane-writer skill.\n"
+                        "Draft with KR-first prose, but do not ignore EN release viability.\n"
+                        "Do not self-approve."
                     ),
                 },
                 "fallback_chain": [
@@ -195,7 +240,7 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                 ],
             },
             {
-                "name": "bw-editor",
+                "name": "BW-Editor",
                 "role": "Editor",
                 "adapter_type": "claude_local",
                 "adapter_config": {
@@ -208,7 +253,10 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                         f"You are BW-Editor for {WRITER_COMPANY_NAME}.\n"
                         "Own quality review, continuity review, and revision briefs.\n"
                         f"Primary workspace: {workspace}\n"
-                        "Score drafts, block drift, and issue revision direction. Do not silently expand scope."
+                        "Score drafts, block drift, and issue revision direction.\n"
+                        "Default False Dane prose review must follow the false-dane-writer skill.\n"
+                        "Check KR prose quality and EN portability when the project expects bilingual release.\n"
+                        "Do not silently expand scope."
                     ),
                 },
                 "fallback_chain": [
@@ -240,6 +288,174 @@ def normalize_writer_company_manifest(raw: dict[str, Any], workspace_root: str =
     return merged
 
 
+def audit_writer_company_drift(backend: LocalBackend, manifest: dict[str, Any]) -> dict[str, Any]:
+    company_id = str(manifest.get("company", {}).get("id") or WRITER_COMPANY_ID)
+    company = _normalize_company_row(backend.get_company(company_id))
+    if company is None:
+        return {
+            "status": "missing",
+            "companyId": company_id,
+            "gaps": [
+                {
+                    "severity": "blocker",
+                    "code": "missing_company",
+                    "message": "Writer company row is missing.",
+                }
+            ],
+        }
+
+    gaps: list[dict[str, Any]] = []
+    company_meta = company.get("meta") if isinstance(company.get("meta"), dict) else {}
+    manifest_meta = manifest.get("company", {}).get("meta") if isinstance(manifest.get("company", {}).get("meta"), dict) else {}
+    if company.get("template_key") != manifest.get("company", {}).get("template_key"):
+        gaps.append(
+            {
+                "severity": "soft_gap",
+                "code": "template_key_mismatch",
+                "message": "Company template key differs from writer-company manifest.",
+                "expected": manifest.get("company", {}).get("template_key"),
+                "actual": company.get("template_key"),
+            }
+        )
+    if company.get("workspace_id") != manifest.get("company", {}).get("workspace_id"):
+        gaps.append(
+            {
+                "severity": "soft_gap",
+                "code": "workspace_id_mismatch",
+                "message": "Company workspace id differs from writer-company manifest.",
+                "expected": manifest.get("company", {}).get("workspace_id"),
+                "actual": company.get("workspace_id"),
+            }
+        )
+    if company_meta.get("workspace_root") != manifest_meta.get("workspace_root"):
+        gaps.append(
+            {
+                "severity": "soft_gap",
+                "code": "workspace_root_mismatch",
+                "message": "Company workspace_root meta differs from manifest.",
+                "expected": manifest_meta.get("workspace_root"),
+                "actual": company_meta.get("workspace_root"),
+            }
+        )
+
+    all_agents = backend.list_agents(company_id=company_id)
+    active_agents = [agent for agent in all_agents if str(agent.get("status") or "active") == "active"]
+    active_by_key: dict[str, list[dict[str, Any]]] = {}
+    for agent in active_agents:
+        active_by_key.setdefault(_agent_name_key(agent.get("name")), []).append(agent)
+
+    canonical_names = [str(spec.get("name") or "") for spec in manifest.get("agents", [])]
+    manifest_agents = {str(spec.get("name") or ""): spec for spec in manifest.get("agents", [])}
+    for name in canonical_names:
+        key = _agent_name_key(name)
+        matches = active_by_key.get(key, [])
+        if not matches:
+            gaps.append(
+                {
+                    "severity": "blocker",
+                    "code": "missing_agent",
+                    "message": f"Canonical agent {name} is missing from the active roster.",
+                    "agent": name,
+                }
+            )
+            continue
+        exact = next((agent for agent in matches if agent.get("name") == name), None)
+        if exact is None:
+            gaps.append(
+                {
+                    "severity": "blocker",
+                    "code": "canonical_name_missing",
+                    "message": f"Agent {name} exists only as a case-variant, not the canonical handle.",
+                    "agent": name,
+                    "activeNames": [agent.get("name") for agent in matches],
+                }
+            )
+            continue
+        if len(matches) > 1:
+            gaps.append(
+                {
+                    "severity": "soft_gap",
+                    "code": "duplicate_active_aliases",
+                    "message": f"Agent {name} has multiple active aliases.",
+                    "agent": name,
+                    "activeNames": [agent.get("name") for agent in matches],
+                }
+            )
+        expected_cfg = manifest_agents[name].get("adapter_config", {}) if isinstance(manifest_agents[name], dict) else {}
+        actual_cfg = exact.get("adapter_config", {}) if isinstance(exact.get("adapter_config"), dict) else {}
+        for field in ("command", "model", "cwd", "instructions", "instructions_path"):
+            if expected_cfg.get(field) != actual_cfg.get(field):
+                gaps.append(
+                    {
+                        "severity": "soft_gap",
+                        "code": "agent_adapter_drift",
+                        "message": f"Agent {name} field {field} differs from manifest.",
+                        "agent": name,
+                        "field": field,
+                        "expected": expected_cfg.get(field),
+                        "actual": actual_cfg.get(field),
+                    }
+                )
+
+    manifest_projects = {str(project.get("name") or ""): project for project in manifest.get("projects", [])}
+    live_projects = backend.list_projects(company_id=company_id)
+    live_projects_by_name = {str(project.get("projectName") or project.get("project_name") or ""): project for project in live_projects}
+    active_agents_by_id = {str(agent.get("id") or ""): agent for agent in active_agents}
+    for name, spec in manifest_projects.items():
+        live_project = live_projects_by_name.get(name)
+        if live_project is None:
+            gaps.append(
+                {
+                    "severity": "blocker",
+                    "code": "missing_project",
+                    "message": f"Project {name} is missing from the company project index.",
+                    "project": name,
+                }
+            )
+            continue
+        if live_project.get("status") != spec.get("status", "active"):
+            gaps.append(
+                {
+                    "severity": "soft_gap",
+                    "code": "project_status_drift",
+                    "message": f"Project {name} status differs from manifest.",
+                    "project": name,
+                    "expected": spec.get("status", "active"),
+                    "actual": live_project.get("status"),
+                }
+            )
+        expected_assignee = str(spec.get("assigned_to") or "")
+        actual_assignee_id = str(live_project.get("assignedTo") or live_project.get("assigned_to") or "")
+        actual_assignee_name = str(active_agents_by_id.get(actual_assignee_id, {}).get("name") or "")
+        if expected_assignee and actual_assignee_name != expected_assignee:
+            gaps.append(
+                {
+                    "severity": "soft_gap",
+                    "code": "project_assignee_drift",
+                    "message": f"Project {name} assignee differs from manifest.",
+                    "project": name,
+                    "expected": expected_assignee,
+                    "actual": actual_assignee_name or None,
+                }
+            )
+
+    worst = "healthy"
+    if gaps:
+        if any(gap.get("severity") == "blocker" for gap in gaps):
+            worst = "blocker"
+        else:
+            worst = "soft_gap"
+    return {
+        "status": worst if worst != "healthy" else "healthy",
+        "companyId": company_id,
+        "canonicalAgents": canonical_names,
+        "activeAgentNames": [str(agent.get("name") or "") for agent in active_agents],
+        "projectNames": sorted(live_projects_by_name.keys()),
+        "gapCount": len(gaps),
+        "gaps": gaps,
+    }
+
+
 def upsert_writer_company(backend: LocalBackend, manifest: dict[str, Any]) -> dict[str, Any]:
     company = manifest["company"]
     company_row = backend.create_company(
@@ -260,10 +476,24 @@ def upsert_writer_company(backend: LocalBackend, manifest: dict[str, Any]) -> di
     )
     company_row = _normalize_company_row(company_row)
 
+    active_company_agents = backend.list_agents(company_id=company["id"])
+    company_agents_by_key: dict[str, list[dict[str, Any]]] = {}
+    for agent in active_company_agents:
+        company_agents_by_key.setdefault(_agent_name_key(agent["name"]), []).append(agent)
+
     agent_rows: list[dict[str, Any]] = []
     agent_name_to_id: dict[str, str] = {}
+    kept_agent_ids: set[str] = set()
     for spec in manifest.get("agents", []):
-        existing = backend.get_agent_by_name(spec["name"], company_id=company["id"])
+        agent_key = _agent_name_key(spec["name"])
+        candidates = company_agents_by_key.get(agent_key, [])
+        existing = None
+        for candidate in candidates:
+            if candidate["name"] == spec["name"]:
+                existing = candidate
+                break
+        if existing is None and candidates:
+            existing = candidates[0]
         if existing is None:
             row = backend.agents.create(
                 name=spec["name"],
@@ -285,6 +515,7 @@ def upsert_writer_company(backend: LocalBackend, manifest: dict[str, Any]) -> di
         else:
             updated = backend.agents.update(
                 existing["id"],
+                name=spec["name"],
                 role=spec["role"],
                 adapter_type=spec["adapter_type"],
                 adapter_config=spec["adapter_config"],
@@ -301,7 +532,17 @@ def upsert_writer_company(backend: LocalBackend, manifest: dict[str, Any]) -> di
                 "company_id": company["id"],
             }
         agent_rows.append(row_dict)
+        kept_agent_ids.add(row_dict["id"])
         agent_name_to_id[spec["name"]] = row_dict["id"]
+
+    canonical_agent_keys = {_agent_name_key(spec["name"]) for spec in manifest.get("agents", [])}
+    for agent in active_company_agents:
+        agent_key = _agent_name_key(agent["name"])
+        if agent_key in canonical_agent_keys and agent["id"] not in kept_agent_ids:
+            canonical_id = agent_name_to_id.get(next(spec["name"] for spec in manifest.get("agents", []) if _agent_name_key(spec["name"]) == agent_key))
+            if canonical_id:
+                _reassign_company_issues(backend, company["id"], agent["id"], canonical_id)
+            backend.update_agent(agent["id"], status="retired")
 
     existing_projects = {
         project["project_name"]: project

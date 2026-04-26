@@ -28,18 +28,31 @@ if [[ ! -x "${ROOT}/musu-bridge/.venv/bin/python3" ]]; then
     echo "  Run: bash ${SCRIPT_DIR}/install.sh" >&2
 fi
 
-# ── Optional dependencies: auto-install x11vnc if missing ────────────────────
-if ! command -v x11vnc &>/dev/null; then
-    echo "[start-bridge] x11vnc not found — attempting auto-install..." >&2
+# ── Optional dependencies: auto-install screen tools if missing ──────────────
+_apt_install_screen_deps() {
+    local missing=()
+    command -v x11vnc  &>/dev/null || missing+=("x11vnc")
+    command -v Xvfb    &>/dev/null || missing+=("xvfb")
+    command -v xdpyinfo &>/dev/null || missing+=("x11-utils")
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        echo "[start-bridge] installing screen deps: ${missing[*]}" >&2
+        sudo apt-get install -y -q "${missing[@]}" >&2 \
+            && echo "[start-bridge] ✅ screen deps installed: ${missing[*]}" >&2 \
+            || echo "[start-bridge] WARN: screen deps install failed (VNC feature may not work)" >&2
+    fi
+}
+
+if ! command -v x11vnc &>/dev/null || ! command -v Xvfb &>/dev/null; then
     if command -v apt-get &>/dev/null; then
-        sudo apt-get install -y -q x11vnc >&2 && echo "[start-bridge] ✅ x11vnc installed" >&2 \
-            || echo "[start-bridge] WARN: x11vnc install failed (Screen feature may not work)" >&2
+        _apt_install_screen_deps
     elif command -v brew &>/dev/null; then
-        brew install x11vnc >&2 && echo "[start-bridge] ✅ x11vnc installed" >&2 \
+        # macOS: only x11vnc available via brew; Xvfb not applicable
+        command -v x11vnc &>/dev/null || \
+            brew install x11vnc >&2 && echo "[start-bridge] ✅ x11vnc installed" >&2 \
             || echo "[start-bridge] WARN: x11vnc install failed (Screen feature may not work)" >&2
     else
-        echo "[start-bridge] WARN: x11vnc not found and no package manager available." >&2
-        echo "  Install manually: sudo apt install x11vnc" >&2
+        echo "[start-bridge] WARN: x11vnc/Xvfb not found and no package manager available." >&2
+        echo "  Install manually: sudo apt install x11vnc xvfb x11-utils" >&2
     fi
 fi
 

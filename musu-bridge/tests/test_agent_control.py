@@ -233,6 +233,16 @@ class TestIssues:
             company_id="company-001", status="open", assignee_id=None, goal_id=None, project_id=None, limit=100
         )
 
+    def test_list_issues_multi_status_filter(self):
+        """Verify comma-separated status filters are forwarded unchanged."""
+        with patch("server.get_company", return_value=_COMPANY), \
+             patch("server.list_issue_records", return_value=[]) as mock:
+            resp = client.get("/api/companies/company-001/issues?status=open,in_progress")
+        assert resp.status_code == 200
+        mock.assert_called_once_with(
+            company_id="company-001", status="open,in_progress", assignee_id=None, goal_id=None, project_id=None, limit=100
+        )
+
     def test_list_issues_assignee_filter(self):
         """Verify ?assignee_id= query param is forwarded."""
         with patch("server.get_company", return_value=_COMPANY), \
@@ -435,6 +445,18 @@ class TestGoals:
         with patch("server.get_goal_record", return_value=None):
             resp = client.get("/api/goals/nonexistent")
         assert resp.status_code == 404
+
+    def test_writer_company_health_endpoint_returns_audit(self):
+        audit_payload = {"status": "healthy", "gapCount": 0, "gaps": []}
+        with patch("server.get_company", return_value={**_COMPANY, "id": "a2699373-3700-4cbc-8477-c70e1d94cf8a"}), \
+             patch("server.WRITER_COMPANY_ID", "a2699373-3700-4cbc-8477-c70e1d94cf8a"), \
+             patch("server.build_writer_company_manifest", return_value={"company": {"id": "a2699373-3700-4cbc-8477-c70e1d94cf8a"}, "agents": [], "projects": []}), \
+             patch("server.normalize_writer_company_manifest", return_value={"company": {"id": "a2699373-3700-4cbc-8477-c70e1d94cf8a"}, "agents": [], "projects": []}), \
+             patch("server.audit_writer_company_drift", return_value=audit_payload), \
+             patch("handlers._get_backend", return_value=object()):
+            resp = client.get("/api/companies/a2699373-3700-4cbc-8477-c70e1d94cf8a/writer-company-health")
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "healthy"
 
     def test_update_goal_200(self):
         updated = {"id": "goal-001", "title": "Ship Phase 17", "status": "completed"}

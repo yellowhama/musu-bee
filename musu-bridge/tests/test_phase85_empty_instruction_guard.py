@@ -129,7 +129,7 @@ class TestOrchestratorBackoff:
 
         with patch("musu_control.server.httpx.AsyncClient", return_value=mock_client):
             with patch("musu_control.server.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-                result = await ctrl_server.delegate_task("engineer", _VALID_TEXT)
+                result = await ctrl_server.delegate_task("engineer", _VALID_TEXT, "task output")
 
         assert call_count >= 2, "Should retry at least once on 429"
         assert mock_sleep.called, "Should sleep (backoff) between retries"
@@ -171,7 +171,7 @@ class TestOrchestratorBackoff:
 
         with patch("musu_control.server.httpx.AsyncClient", return_value=mock_client):
             with patch("musu_control.server.asyncio.sleep", side_effect=_record_sleep):
-                result = await ctrl_server.delegate_task("engineer", _VALID_TEXT)
+                result = await ctrl_server.delegate_task("engineer", _VALID_TEXT, "task output")
 
         assert len(sleep_calls) >= 2
         assert sleep_calls[1] >= sleep_calls[0], "Second backoff must be >= first"

@@ -1572,6 +1572,22 @@ async def create_writer_ops_incident(
         return _tool_error("Error creating writer ops incident.")
 
 
+@mcp.tool()
+async def audit_writer_company_health(workspace_root: str = "/home/hugh51/writer") -> str:
+    """Audit live Bloodline Writers state against the canonical writer-company manifest."""
+    try:
+        c = _get_client()
+        if not c.company_id:
+            return _tool_error("PAPERCLIP_COMPANY_ID is required for writer-company health.")
+        data = await c.get(
+            f"/companies/{c.company_id}/writer-company-health",
+            workspace_root=workspace_root,
+        )
+        return _fmt(data)
+    except Exception:
+        return _tool_error("Error auditing writer-company health.")
+
+
 # ──────────────────────────────────────────────
 # Group Messages (CEO Board / Team Channels)
 # ──────────────────────────────────────────────
@@ -1814,6 +1830,7 @@ def _bridge_headers() -> dict[str, str]:
 async def delegate_task(
     channel: str,
     instruction: str,
+    expected_output: str | None = None,
     sender_id: str = "orchestrator",
 ) -> str:
     """Delegate a task to an agent asynchronously via musu-bridge.
@@ -1824,17 +1841,21 @@ async def delegate_task(
     Args:
         channel: Agent channel name (e.g. "engineer", "ceo", "qa")
         instruction: The task instruction / message for the agent
+        expected_output: Description of the expected output or success criteria (optional)
         sender_id: Identifier for the requester (default: "orchestrator")
     """
     _MAX_RETRIES = 3
     _BACKOFF_BASE = 1.0
     last_exc: Exception | None = None
+    body: dict = {"channel": channel.lower(), "sender_id": sender_id, "text": instruction}
+    if expected_output is not None:
+        body["expected_output"] = expected_output
     for attempt in range(_MAX_RETRIES):
         try:
             async with httpx.AsyncClient(timeout=10.0, headers=_bridge_headers()) as client:
                 resp = await client.post(
                     f"{_MUSU_BRIDGE_URL}/api/tasks/delegate",
-                    json={"channel": channel.lower(), "sender_id": sender_id, "text": instruction},
+                    json=body,
                 )
                 resp.raise_for_status()
                 data = resp.json()
