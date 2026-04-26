@@ -848,10 +848,8 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
     import uuid
     from handlers import _get_backend, validate_task_instruction
 
-    # Validate instruction quality before dispatch (wiki/agent-task-reliability §3)
-    _instr_err = validate_task_instruction(req.text)
-    if _instr_err:
-        raise HTTPException(status_code=422, detail=_instr_err)
+    # Validate instruction quality before dispatch (Phase 91 gate)
+    validate_task_instruction(req.text, expected_output=req.expected_output)
 
     # Validate company_id if provided
     if req.company_id:
@@ -1450,6 +1448,7 @@ async def api_company_dashboard(company_id: str) -> dict:
 class RouteTaskRequest(BaseModel):
     channel: str
     instruction: str
+    expected_output: str | None = None
     node_name: str = ""
     strategy: str = "auto"  # "explicit" | "recommended" | "auto"
     sender_id: str = "orchestrator"
@@ -1458,7 +1457,8 @@ class RouteTaskRequest(BaseModel):
 @app.post("/api/tasks/route", summary="Route a task to a specific node or auto-select")
 async def api_route_task(req: RouteTaskRequest) -> dict:
     """Route a task to a node. Supports explicit, recommended, or auto strategy."""
-    from handlers import route_task_to_node
+    from handlers import route_task_to_node, validate_task_instruction
+    validate_task_instruction(req.instruction, expected_output=req.expected_output)
     return await route_task_to_node(
         channel=req.channel,
         instruction=req.instruction,

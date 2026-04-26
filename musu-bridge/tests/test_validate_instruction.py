@@ -1,65 +1,51 @@
-"""Unit tests for validate_task_instruction() — Phase 91.
+"""Unit tests for validate_task_instruction() — Phase 91 (updated).
 
-Sprint Contract TC-01 to TC-04:
-  TC-01: valid instruction (>= 50 chars + expected_output) → None (passes)
-  TC-02: 49-char instruction → error string (short)
-  TC-03: missing expected_output field → error string
-  TC-04: empty expected_output not in text → error string
+Tests the two-argument form:
+  validate_task_instruction(instruction: str, expected_output: str | None) → None
+Raises HTTPException(400) on invalid input.
 """
 from __future__ import annotations
 
 import sys
 from pathlib import Path
 
+import pytest
+from fastapi import HTTPException
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from handlers import validate_task_instruction
 
 
+_VALID_INSTRUCTION = (
+    "Add a health-check endpoint at /api/health in server.py "
+    "that returns {status: ok}."
+)
+
+
 class TestValidateTaskInstruction:
     def test_valid_instruction_passes(self):
-        """TC-01: 50+ char instruction with expected_output → None."""
-        instruction = (
-            "Add a health-check endpoint at /api/health in server.py "
-            "that returns {status: ok}. "
-            "expected_output: pytest tests/test_health.py passes with 2 tests green."
-        )
-        assert len(instruction.strip()) >= 50
-        result = validate_task_instruction(instruction)
-        assert result is None
+        """50+ char instruction with non-empty expected_output → no exception."""
+        validate_task_instruction(_VALID_INSTRUCTION, expected_output="pytest tests/test_health.py passes")
 
-    def test_short_instruction_returns_error(self):
-        """TC-02: 49-char instruction → error (too short)."""
-        instruction = "x" * 49  # exactly 49 chars, no expected_output
-        assert len(instruction.strip()) == 49
-        result = validate_task_instruction(instruction)
-        assert result is not None
-        assert "short" in result.lower() or "50" in result
+    def test_short_instruction_raises(self):
+        """49-char instruction → HTTPException 400."""
+        instruction = "x" * 49
+        with pytest.raises(HTTPException) as exc_info:
+            validate_task_instruction(instruction, expected_output="some output")
+        assert exc_info.value.status_code == 400
+        assert "50" in exc_info.value.detail or "short" in exc_info.value.detail.lower()
 
-    def test_missing_expected_output_returns_error(self):
-        """TC-03: >= 50 chars but no 'expected_output' keyword → error."""
-        instruction = (
-            "Add a health-check endpoint at /api/health in server.py "
-            "that returns a JSON status object with 200 OK."
-        )
-        assert len(instruction.strip()) >= 50
-        assert "expected_output" not in instruction
-        result = validate_task_instruction(instruction)
-        assert result is not None
-        assert "expected_output" in result
+    def test_missing_expected_output_raises(self):
+        """50+ chars but expected_output=None → HTTPException 400."""
+        with pytest.raises(HTTPException) as exc_info:
+            validate_task_instruction(_VALID_INSTRUCTION, expected_output=None)
+        assert exc_info.value.status_code == 400
+        assert "expected_output" in exc_info.value.detail.lower()
 
-    def test_empty_expected_output_returns_error(self):
-        """TC-04: instruction contains 'expected_output:' but value is empty/whitespace → error.
-
-        The current implementation checks for the substring 'expected_output' in the text.
-        An instruction that has the keyword but with an empty value still passes the
-        substring check — so we verify the rule as implemented: if the keyword is absent
-        entirely, it fails.  If the keyword is present with an empty value the
-        validate_task_instruction() currently passes it (implementation detail).
-        This test documents the boundary: keyword completely absent → error.
-        """
-        # No 'expected_output' at all — must fail
-        instruction = "A" * 50  # 50 chars, no keyword
-        result = validate_task_instruction(instruction)
-        assert result is not None
-        assert "expected_output" in result
+    def test_empty_expected_output_raises(self):
+        """50+ chars but expected_output='' → HTTPException 400."""
+        with pytest.raises(HTTPException) as exc_info:
+            validate_task_instruction(_VALID_INSTRUCTION, expected_output="")
+        assert exc_info.value.status_code == 400
+        assert "expected_output" in exc_info.value.detail.lower()

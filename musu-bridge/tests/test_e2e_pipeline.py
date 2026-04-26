@@ -53,9 +53,9 @@ def test_delegate_task_creates_execution():
         "text": (
             "Read musu-bridge/handlers.py route_chat function and verify "
             "that the error handling on line 69 returns the correct dict structure. "
-            "pytest musu-bridge/tests/test_server.py -v should pass after inspection. "
-            "expected_output: pytest musu-bridge/tests/test_server.py -v shows all tests passed."
+            "pytest musu-bridge/tests/test_server.py -v should pass after inspection."
         ),
+        "expected_output": "pytest musu-bridge/tests/test_server.py -v shows all tests passed.",
     })
     assert resp.status_code == 202
     data = resp.json()
@@ -73,9 +73,9 @@ def test_delegate_task_with_company_id():
         "channel": "engineer",
         "text": (
             "Read musu-bridge/server.py and check that the /health endpoint "
-            "returns status 200 with ok=true. pytest musu-bridge/tests/test_server.py should pass. "
-            "expected_output: pytest musu-bridge/tests/test_server.py shows all passed."
+            "returns status 200 with ok=true. pytest musu-bridge/tests/test_server.py should pass."
         ),
+        "expected_output": "pytest musu-bridge/tests/test_server.py shows all passed.",
         "company_id": "nonexistent",
     })
     assert resp.status_code == 400

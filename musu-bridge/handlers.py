@@ -22,28 +22,26 @@ _SPECIFICITY_SIGNALS = re.compile(
 )
 
 
-def validate_task_instruction(instruction: str) -> str | None:
-    """Return an error string if instruction is too vague to dispatch, else None.
+def validate_task_instruction(instruction: str, expected_output: str | None = None) -> None:
+    """Raise HTTPException(400) if instruction fails quality gates.
 
-    Rules (from wiki/agent-task-reliability §3):
-    1. Must be >= 50 chars (too short = not actionable)
-    2. Must contain 'expected_output' section so success is verifiable.
-    3. If it contains a vague verb without a specificity signal, reject.
+    Rules (Phase 91):
+    1. instruction must be >= 50 chars after stripping.
+    2. expected_output must be provided and non-empty.
     """
+    from fastapi import HTTPException
+
     text = instruction.strip()
     if len(text) < 50:
-        return f"Instruction too short ({len(text)} chars, minimum 50). Add: what specifically to do, in what file/function."
-    if "expected_output" not in text:
-        return (
-            "Instruction missing 'expected_output'. "
-            "Add a section like: expected_output: <what pytest/command output proves success>."
+        raise HTTPException(
+            status_code=400,
+            detail=f"instruction too short (min 50 chars)",
         )
-    if _VAGUE_VERBS.search(text) and not _SPECIFICITY_SIGNALS.search(text):
-        return (
-            "Instruction uses a general verb (implement/fix/do/handle/make/update/add) "
-            "without a specific target. Add a file path, function name, or test command."
+    if expected_output is None or expected_output.strip() == "":
+        raise HTTPException(
+            status_code=400,
+            detail="expected_output required",
         )
-    return None
 
 # Lazy imports to avoid circular dependency at module load time
 def _get_request_id() -> str | None:

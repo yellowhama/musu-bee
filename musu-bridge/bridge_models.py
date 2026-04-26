@@ -23,6 +23,7 @@ class DelegateRequest(BaseModel):
     channel: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9_-]+$")
     sender_id: str = Field(default="orchestrator", min_length=1, max_length=128)
     text: str = Field(min_length=1, max_length=10000)
+    expected_output: str | None = None
     use_qa_loop: bool = False
     qa_loop_max_iter: int = Field(default=3, ge=1, le=5)
     timeout_sec: int | None = Field(default=None, ge=30, le=3600)
