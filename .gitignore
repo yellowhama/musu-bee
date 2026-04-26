@@ -128,6 +128,9 @@ linked_projects/
 .musu/sprint_contract_*.json
 .musu/qa_result_*.json
 .musu/bin/
+
+# musu-bridge runtime artifacts
+musu-bridge/.musu/
 llm-wiki/
 ~/.musu/
 .git-credentials
