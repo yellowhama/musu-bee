@@ -213,6 +213,44 @@ _dispatch_hash_cache: dict[tuple[str, str], tuple[str, float]] = {}
 _DISPATCH_HASH_TTL_SEC: float = float(os.environ.get("MUSU_DISPATCH_HASH_TTL_SEC", "120"))
 
 
+def _reregister_failed_hash(req_channel: str, req_text: str, task_id: str) -> None:
+    """Refresh the dedup cache entry after a task fails with a 30s TTL window.
+
+    Uses a backdated timestamp so the entry expires 30s from now, preventing
+    rapid re-dispatch of a just-failed instruction without blocking it indefinitely.
+    """
+    _h_key = (req_channel, hashlib.sha256(req_text.encode()).hexdigest())
+    # Backdate so TTL expires in ~30s: apparent age = TTL - 30s → remaining = 30s
+    _dispatch_hash_cache[_h_key] = (task_id, time.monotonic() - (_DISPATCH_HASH_TTL_SEC - 30))
+
+
+def _warmup_dispatch_hash_cache() -> None:
+    """Populate _dispatch_hash_cache from DB on startup to survive bridge restarts.
+
+    Loads running/done route_executions created within the TTL window so that
+    orchestrator re-queued instructions are still deduplicated after a restart.
+    """
+    try:
+        from handlers import _get_backend
+        backend = _get_backend()
+        rows = backend._db.execute(
+            "SELECT id, channel, input_hash FROM route_executions "
+            "WHERE status IN ('running', 'done') "
+            "AND created_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ? || ' seconds')",
+            (f"-{int(_DISPATCH_HASH_TTL_SEC)}",),
+        )
+        loaded = 0
+        for row in rows:
+            rec_id, channel, input_hash = row[0], row[1], row[2]
+            if input_hash:
+                _dispatch_hash_cache[(channel, input_hash)] = (rec_id, time.monotonic())
+                loaded += 1
+        if loaded:
+            logger.info("warmup: loaded %d dedup hash(es) from DB into cache", loaded)
+    except Exception as _e:
+        logger.warning("warmup: failed to warm up dispatch hash cache — %s", _e)
+
+
 class _ChannelSemaphore:
     """asyncio.Semaphore wrapper that exposes capacity without internal attribute access.
 
@@ -650,6 +688,9 @@ async def lifespan(app: FastAPI):
     except Exception as _le:
         logger.warning("lifecycle: failed to record bridge_started — %s", _le)
 
+    # Warm up dedup hash cache from DB so restart doesn't lose dedup state
+    _warmup_dispatch_hash_cache()
+
     yield
 
     # Record bridge_stopped lifecycle event
@@ -854,6 +895,14 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
     # (allow_duplicate=True bypasses the read-check above but still seeds the cache.)
     _h_key = (req.channel, hashlib.sha256(req.text.encode()).hexdigest())
     _dispatch_hash_cache[_h_key] = (task_id, time.monotonic())
+    # Persist input_hash to DB so warmup can reload dedup state after restart.
+    try:
+        backend._db.execute(
+            "UPDATE route_executions SET input_hash = ? WHERE id = ?",
+            (_h_key[1], task_id),
+        )
+    except Exception:
+        pass  # Non-critical: in-memory cache is the authoritative gate
 
     # Pass task_id so route_chat reuses this record instead of creating a new one.
     # QA loop path: use_qa_loop=True + channel=="engineer" → QALoop.run() (max 900s).
@@ -913,6 +962,7 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
                             continue
                         logger.warning("delegate_task: task %s timed out after %ds (no more retries)", task_id, _timeout)
                         cancel_task_record(task_id, error=f"timeout after {_timeout}s (retried {max_retries}x)")
+                        _reregister_failed_hash(req.channel, req.text, task_id)
                         _record_task_metric(req.channel, "timeout", time.monotonic() - _task_start)
                         asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
                     except RuntimeError as _exc:
@@ -924,11 +974,13 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
                             continue
                         logger.exception("delegate_task: task %s failed: %s", task_id, _exc)
                         cancel_task_record(task_id, error=f"adapter crash: {_exc}")
+                        _reregister_failed_hash(req.channel, req.text, task_id)
                         _record_task_metric(req.channel, "failed", time.monotonic() - _task_start)
                         asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
                     except Exception as _exc:
                         logger.exception("delegate_task: task %s raised unhandled exception: %s", task_id, _exc)
                         cancel_task_record(task_id, error=f"unhandled exception: {_exc}")
+                        _reregister_failed_hash(req.channel, req.text, task_id)
                         _record_task_metric(req.channel, "failed", time.monotonic() - _task_start)
                         asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
                         return  # Don't retry unknown exceptions
@@ -936,6 +988,7 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
             # Safety net: semaphore acquisition or other pre-loop failure must not leave a zombie record
             logger.exception("delegate_task: task %s outer failure: %s", task_id, _outer_exc)
             cancel_task_record(task_id, error=f"outer failure: {_outer_exc}")
+            _reregister_failed_hash(req.channel, req.text, task_id)
 
     task = asyncio.create_task(_run_with_retry())
     _active_tasks[task_id] = task
