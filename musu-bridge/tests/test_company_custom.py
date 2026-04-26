@@ -61,6 +61,8 @@ def test_get_writer_studio_template():
     assert "bw-pm-bloodline" in agent_names
     assert "bw-pm-falsedane" in agent_names
     assert "bw-writer" in agent_names
+    assert "bw-researcher" in agent_names
+    assert "bw-editor" in agent_names
 
 
 import sys, os

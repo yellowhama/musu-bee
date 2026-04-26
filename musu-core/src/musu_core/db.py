@@ -194,6 +194,8 @@ CREATE TABLE IF NOT EXISTS issues (
 CREATE INDEX IF NOT EXISTS idx_issues_company  ON issues(company_id);
 CREATE INDEX IF NOT EXISTS idx_issues_status   ON issues(status);
 CREATE INDEX IF NOT EXISTS idx_issues_assignee ON issues(assignee_id);
+CREATE INDEX IF NOT EXISTS idx_issues_goal     ON issues(goal_id);
+CREATE INDEX IF NOT EXISTS idx_issues_project  ON issues(project_id);
 
 CREATE TABLE IF NOT EXISTS issue_comments (
     id          TEXT PRIMARY KEY,

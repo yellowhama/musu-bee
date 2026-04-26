@@ -131,6 +131,7 @@ linked_projects/
 
 # musu-bridge runtime artifacts
 musu-bridge/.musu/
+musu-bridge/server_stderr.log
 llm-wiki/
 ~/.musu/
 .git-credentials

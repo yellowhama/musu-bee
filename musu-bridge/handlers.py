@@ -11,17 +11,6 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-# ── Task instruction validation ────────────────────────────────────────────────
-# Reference: wiki/agent-task-reliability §3 — CrewAI expected_output pattern.
-# Prevents watchdog kills caused by vague dispatch instructions.
-
-_VAGUE_VERBS = re.compile(r'\b(implement|fix|do|handle|make|update|add)\b', re.I)
-_SPECIFICITY_SIGNALS = re.compile(
-    r'(\.py|\.ts|\.rs|\.json|function|class|endpoint|table|column|test|assert|should|must|pytest|def )',
-    re.I,
-)
-
-
 def validate_task_instruction(instruction: str, expected_output: str | None = None) -> None:
     """Raise HTTPException(400) if instruction fails quality gates.
 
