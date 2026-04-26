@@ -256,16 +256,48 @@ async def route_chat(
     _budget_agent_name = get_bridge_config().channel_agent_map.get(channel)
     if _budget_agent_name:
         _budget_agent = _budget_backend.get_agent_by_name(_budget_agent_name, company_id=company_id)
-        _bgt_limit = _budget_agent.get("budget_usd_monthly") if isinstance(_budget_agent, dict) else None
-        if _bgt_limit is not None and isinstance(_bgt_limit, (int, float)):
-            if (_budget_agent.get("budget_usd_spent") or 0.0) >= _bgt_limit:
-                return {
-                    "error": "budget_exceeded",
-                    "agent": _budget_agent.get("name"),
-                    "budget_usd_monthly": _bgt_limit,
-                    "budget_usd_spent": _budget_agent.get("budget_usd_spent", 0.0),
-                    "response": None,
-                }
+        if isinstance(_budget_agent, dict):
+            # ── Phase 94: monthly auto-reset ──────────────────────────────────
+            _reset_at_str = _budget_agent.get("budget_reset_at")
+            if _reset_at_str:
+                from datetime import datetime, timezone as _tz_budget
+                try:
+                    _reset_dt = datetime.fromisoformat(_reset_at_str)
+                    _now_utc = datetime.now(_tz_budget.utc)
+                    if _reset_dt <= _now_utc:
+                        # Compute next reset: 1st of next month (handle December → January)
+                        if _now_utc.month == 12:
+                            _next_reset = datetime(_now_utc.year + 1, 1, 1, tzinfo=_tz_budget.utc)
+                        else:
+                            _next_reset = datetime(_now_utc.year, _now_utc.month + 1, 1, tzinfo=_tz_budget.utc)
+                        _next_reset_str = _next_reset.isoformat()
+                        _updated = _budget_backend.update_agent(
+                            _budget_agent["id"],
+                            budget_usd_spent=0.0,
+                            budget_reset_at=_next_reset_str,
+                        )
+                        logger.info(
+                            "budget_reset: agent=%s reset spent 0→next_reset=%s",
+                            _budget_agent.get("name"), _next_reset_str,
+                        )
+                        # Refresh agent dict with reset values
+                        if isinstance(_updated, dict):
+                            _budget_agent = _updated
+                        else:
+                            _budget_agent = {**_budget_agent, "budget_usd_spent": 0.0, "budget_reset_at": _next_reset_str}
+                except Exception as _rst_exc:
+                    logger.warning("budget_reset: failed to auto-reset agent=%s — %s", _budget_agent.get("name"), _rst_exc)
+            # ─────────────────────────────────────────────────────────────────
+            _bgt_limit = _budget_agent.get("budget_usd_monthly")
+            if _bgt_limit is not None and isinstance(_bgt_limit, (int, float)):
+                if (_budget_agent.get("budget_usd_spent") or 0.0) >= _bgt_limit:
+                    return {
+                        "error": "budget_exceeded",
+                        "agent": _budget_agent.get("name"),
+                        "budget_usd_monthly": _bgt_limit,
+                        "budget_usd_spent": _budget_agent.get("budget_usd_spent", 0.0),
+                        "response": None,
+                    }
 
     # ── Per-channel circuit breaker check ─────────────────────────────────────
     try:
