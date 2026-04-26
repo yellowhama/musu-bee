@@ -140,3 +140,4 @@ llm-wiki/
 bin/
 ~/.musu/secrets/
 _archived/
+tools/rustdesk/data/
