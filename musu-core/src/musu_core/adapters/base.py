@@ -67,6 +67,7 @@ class UsageSummary:
     input_tokens: int = 0
     cached_input_tokens: int = 0
     output_tokens: int = 0
+    cache_creation_input_tokens: int = 0
 
 
 @dataclass

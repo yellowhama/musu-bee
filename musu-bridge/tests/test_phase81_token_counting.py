@@ -29,7 +29,13 @@ if str(_BRIDGE) not in sys.path:
 class TestClaudeLocalParseStreamJson:
     """_parse_stream_json() parses usage from a result event."""
 
-    def _make_stdout(self, input_tokens: int, output_tokens: int, cache_tokens: int = 0) -> str:
+    def _make_stdout(
+        self,
+        input_tokens: int,
+        output_tokens: int,
+        cache_tokens: int = 0,
+        cache_creation_tokens: int = 0,
+    ) -> str:
         events = [
             {"type": "system", "subtype": "init", "session_id": "sess-abc", "model": "claude-sonnet"},
             {"type": "assistant", "session_id": "sess-abc", "message": {"content": [{"type": "text", "text": "Hello"}]}},
@@ -42,6 +48,7 @@ class TestClaudeLocalParseStreamJson:
                     "input_tokens": input_tokens,
                     "output_tokens": output_tokens,
                     "cache_read_input_tokens": cache_tokens,
+                    "cache_creation_input_tokens": cache_creation_tokens,
                 },
             },
         ]
@@ -60,6 +67,15 @@ class TestClaudeLocalParseStreamJson:
         stdout = self._make_stdout(input_tokens=200, output_tokens=80, cache_tokens=150)
         result = _parse_stream_json(stdout)
         assert result["usage"].cached_input_tokens == 150
+
+    def test_cache_creation_tokens_parsed(self):
+        from musu_core.adapters.claude_local import _parse_stream_json
+        stdout = self._make_stdout(
+            input_tokens=39, output_tokens=7953,
+            cache_tokens=1770130, cache_creation_tokens=148386,
+        )
+        result = _parse_stream_json(stdout)
+        assert result["usage"].cache_creation_input_tokens == 148386
 
     def test_no_result_event_returns_none_usage(self):
         from musu_core.adapters.claude_local import _parse_stream_json

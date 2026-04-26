@@ -88,6 +88,37 @@ def test_parse_stream_json_full_result():
     assert parsed["cost_usd"] == pytest.approx(0.001)
 
 
+def test_parse_stream_json_cache_creation_tokens():
+    """cache_creation_input_tokens must be captured in UsageSummary.
+
+    This is the most expensive token category ($3.75/MTok vs $3.00 input,
+    $0.30 cache_read). Omitting it makes cost reconciliation impossible.
+    Previously this field was silently dropped; verify it is now preserved.
+    """
+    lines = stream_json_lines(
+        {"type": "system", "subtype": "init", "session_id": "s", "model": "claude-sonnet-4-6"},
+        {
+            "type": "result",
+            "session_id": "s",
+            "result": "done",
+            "usage": {
+                "input_tokens": 39,
+                "cache_read_input_tokens": 1770130,
+                "cache_creation_input_tokens": 148386,
+                "output_tokens": 7953,
+            },
+            "total_cost_usd": 1.2069,
+        },
+    )
+    parsed = _parse_stream_json(lines)
+    usage = parsed["usage"]
+    assert usage is not None
+    assert usage.input_tokens == 39
+    assert usage.cached_input_tokens == 1770130
+    assert usage.cache_creation_input_tokens == 148386
+    assert usage.output_tokens == 7953
+
+
 def test_parse_stream_json_no_result_falls_back_to_assistant_text():
     lines = stream_json_lines(
         {"type": "system", "subtype": "init", "session_id": "sess-x", "model": "m"},
