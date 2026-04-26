@@ -214,7 +214,7 @@ curl -X POST http://localhost:8070/api/companies \
 # Creates company + team lead + engineer + planner + qa
 ```
 
-Templates: `dev-team`, `content-team`, `research-team`
+Templates: `dev-team`, `content-team`, `research-team`, `writer-studio`
 
 ### Get project briefing (Chairman Principle)
 

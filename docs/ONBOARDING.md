@@ -146,6 +146,20 @@ Your Device
 | `musu-bridge/.env` | Node-specific environment |
 | `musu-bridge/instructions/*.md` | Agent behavior |
 
+## Writer Studio Setup
+
+For the fiction workspace, use the dedicated writer-company provisioning path:
+
+```bash
+python3 scripts/setup-writer-company.py --workspace-root /home/hugh51/writer
+```
+
+This expects:
+
+- `/home/hugh51/writer/.musu/company.json`
+- `/home/hugh51/writer/.musu/charter.md`
+- `/home/hugh51/writer/.musu/agent-defaults.json`
+
 ## Updating
 
 When notified via #ceo-board:

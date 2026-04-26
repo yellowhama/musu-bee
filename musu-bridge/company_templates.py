@@ -111,6 +111,81 @@ _TEMPLATES: dict[str, dict] = {
             },
         ],
     },
+    "writer-studio": {
+        "description": "장기 소설/IP 제작 스튜디오 — lead / 2 PM / researcher / writer / editor",
+        "agents": [
+            {
+                "name": "bw-lead",
+                "role": "Company Lead",
+                "adapter_type": "claude_local",
+                "instructions_path": "musu-bridge/instructions/team_lead.md",
+                "instructions": (
+                    "You are the Company Lead for {company_name}.\n"
+                    "Company purpose: {purpose}\n\n"
+                    "Your job: lock company direction, guard shared studio rules, "
+                    "and coordinate cross-project priorities across Bloodline and False Dane. "
+                    "Work directory: {work_dir}"
+                ),
+            },
+            {
+                "name": "bw-pm-bloodline",
+                "role": "Project Manager",
+                "adapter_type": "gemini_local",
+                "instructions_path": "musu-bridge/instructions/project_manager.md",
+                "instructions": (
+                    "You are the Bloodline project PM for {company_name}.\n"
+                    "Company purpose: {purpose}\n\n"
+                    "Your job: protect Bloodline scope, canon safety, and sprint sequencing. "
+                    "Work directory: {work_dir}"
+                ),
+            },
+            {
+                "name": "bw-pm-falsedane",
+                "role": "Project Manager",
+                "adapter_type": "gemini_local",
+                "instructions_path": "musu-bridge/instructions/project_manager.md",
+                "instructions": (
+                    "You are the False Dane project PM for {company_name}.\n"
+                    "Company purpose: {purpose}\n\n"
+                    "Your job: protect False Dane scope, canon safety, and sprint sequencing. "
+                    "Work directory: {work_dir}"
+                ),
+            },
+            {
+                "name": "bw-researcher",
+                "role": "Researcher",
+                "adapter_type": "gemini_local",
+                "instructions": (
+                    "You are the Researcher for {company_name}.\n"
+                    "Company purpose: {purpose}\n\n"
+                    "Your job: gather evidence, deconstruct references, separate facts from recommendations, "
+                    "and supply structured briefs to Writer and PM."
+                ),
+            },
+            {
+                "name": "bw-writer",
+                "role": "Writer",
+                "adapter_type": "claude_local",
+                "instructions": (
+                    "You are the Writer for {company_name}.\n"
+                    "Company purpose: {purpose}\n\n"
+                    "Your job: draft and revise fiction against the sprint contract. "
+                    "You do not self-approve quality."
+                ),
+            },
+            {
+                "name": "bw-editor",
+                "role": "Editor",
+                "adapter_type": "claude_local",
+                "instructions": (
+                    "You are the Editor for {company_name}.\n"
+                    "Company purpose: {purpose}\n\n"
+                    "Your job: evaluate drafts for quality, continuity, and craft. "
+                    "Return blocking issues and revision direction. Do not silently rewrite scope."
+                ),
+            },
+        ],
+    },
     "research-team": {
         "description": "리서치 팀 — 팀장/분석가/연구원/요약가",
         "agents": [

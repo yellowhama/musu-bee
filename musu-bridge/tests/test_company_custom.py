@@ -50,6 +50,17 @@ def test_list_template_keys_includes_dev_team():
     keys = list_template_keys()
     assert "dev-team" in keys
     assert "content-team" in keys
+    assert "writer-studio" in keys
+
+
+def test_get_writer_studio_template():
+    t = get_template("writer-studio")
+    assert t is not None
+    agent_names = [a["name"] for a in t["agents"]]
+    assert "bw-lead" in agent_names
+    assert "bw-pm-bloodline" in agent_names
+    assert "bw-pm-falsedane" in agent_names
+    assert "bw-writer" in agent_names
 
 
 import sys, os
@@ -176,12 +187,16 @@ def test_company_run_inactive():
 
 def test_company_run_active(monkeypatch):
     from unittest.mock import AsyncMock
+    import uuid
     import server
 
     monkeypatch.setattr(server, "route_chat", AsyncMock(return_value={"id": "task-123", "status": "pending"}))
 
     client = _api_client()
-    create = client.post("/api/companies", json={"name": "Run Co", "workspace_id": "ws-test"})
+    create = client.post(
+        "/api/companies",
+        json={"name": f"Run Co {uuid.uuid4().hex[:8]}", "workspace_id": "ws-test"},
+    )
     assert create.status_code == 200
     cid = create.json()["id"]
 
