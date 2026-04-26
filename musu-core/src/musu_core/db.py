@@ -303,6 +303,8 @@ _db_lock = threading.Lock()
 
 
 def get_db(db_path: str) -> Database:
+    if db_path == ":memory:":
+        return Database(db_path)
     with _db_lock:
         if db_path not in _db_instances:
             _db_instances[db_path] = Database(db_path)
