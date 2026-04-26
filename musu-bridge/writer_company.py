@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import uuid
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -309,11 +310,11 @@ def upsert_writer_company(backend: LocalBackend, manifest: dict[str, Any]) -> di
     project_rows: list[dict[str, Any]] = []
     for spec in manifest.get("projects", []):
         assigned_to_name = spec.get("assigned_to")
-        assigned_to_id = agent_name_to_id.get(assigned_to_name, "") if assigned_to_name else None
+        assigned_to_id = agent_name_to_id.get(assigned_to_name) if assigned_to_name else None
         existing = existing_projects.get(spec["name"])
         if existing is None:
             row = backend.create_project(
-                project_id=spec.get("id") or __import__("uuid").uuid4().hex,
+                project_id=spec.get("id") or str(uuid.uuid4()),
                 company_id=company["id"],
                 project_name=spec["name"],
                 status=spec.get("status", "active"),
