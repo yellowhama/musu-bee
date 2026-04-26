@@ -96,10 +96,11 @@ class MeshRegistry:
             node_name = node_dict.get("name")
             tailscale_ip = node_dict.get("tailscale_ip")
             if not node_name or not tailscale_ip:
-                raise ValueError(
-                    f"nodes.toml: each [[mesh.nodes]] entry must have 'name' and "
-                    f"'tailscale_ip' (got: {node_dict!r})"
+                log.warning(
+                    "nodes.toml: skipping node without 'name'/'tailscale_ip': %r",
+                    node_dict,
                 )
+                continue
             n = NodeInfo(
                 name=node_name,
                 tailscale_ip=tailscale_ip,
