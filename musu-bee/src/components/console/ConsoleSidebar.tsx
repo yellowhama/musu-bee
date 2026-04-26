@@ -4,18 +4,16 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { LayoutDashboard, ListChecks, CircleDot, BookOpen, DollarSign, Network, ScreenShare, ChevronsLeft, ChevronsRight, ExternalLink } from "lucide-react";
+import { Inbox, BookOpen, BarChart3, Settings, ScreenShare, ChevronsLeft, ChevronsRight, GitBranch } from "lucide-react";
 import { SidebarNavItem } from "./SidebarNavItem";
 import { useConsoleShell } from "./ConsoleShellContext";
 
 const NAV_ITEMS = [
-  { id: "dashboard", href: "/app",        icon: LayoutDashboard, label: "Home" },
-  { id: "tasks",     href: "/app",        icon: ListChecks,      label: "Tasks" },
-  { id: "issues",    href: "/app",        icon: CircleDot,       label: "Issues" },
-  { id: "wiki",      href: "/app",        icon: BookOpen,        label: "Wiki" },
-  { id: "costs",     href: "/app",        icon: DollarSign,      label: "Costs" },
-  { id: "nodes",     href: "/app",        icon: Network,         label: "Nodes" },
-  { id: "screen",    href: "/app/screen", icon: ScreenShare,     label: "Screen" },
+  { id: "home",      href: "/home",      icon: Inbox,       label: "Home" },
+  { id: "wiki",      href: "/wiki",      icon: BookOpen,    label: "Wiki" },
+  { id: "dashboard", href: "/dashboard", icon: BarChart3,   label: "Dashboard" },
+  { id: "screen",    href: "/screen",    icon: ScreenShare, label: "Screen" },
+  { id: "account",   href: "/account",   icon: Settings,    label: "Account" },
 ];
 
 interface ConsoleSidebarProps {
@@ -109,14 +107,14 @@ export function ConsoleSidebar({ contextPanel, onNavigate, activePanel }: Consol
           const active = activePanel ? activePanel === id : (pathname === href || (pathname ?? "").startsWith(href + "/"));
           return (
             <SidebarNavItem
-              key={id || href}
+              key={id}
               id={id}
               href={href}
               icon={icon}
               label={label}
               active={active}
               collapsed={collapsed}
-              onClick={onNavigate && id ? () => onNavigate(id) : undefined}
+              onClick={onNavigate ? () => onNavigate(id) : undefined}
             />
           );
         })}
@@ -176,7 +174,7 @@ export function ConsoleSidebar({ contextPanel, onNavigate, activePanel }: Consol
           onMouseEnter={(e) => (e.currentTarget.style.color = "#FDFCF0")}
           onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(253,252,240,0.3)")}
         >
-          <ExternalLink size={14} />
+          <GitBranch size={14} />
           {!collapsed && <span>GitHub</span>}
         </a>
 
