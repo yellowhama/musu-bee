@@ -75,6 +75,15 @@ def _parse_stream_json(stdout: str) -> dict[str, Any]:
     )
     cost_raw = final_result.get("total_cost_usd")
     cost_usd = float(cost_raw) if isinstance(cost_raw, (int, float)) else None
+
+    # Token audit logging
+    import logging as _log
+    _log.getLogger("musu.token_audit").info(
+        "token_audit: in=%d cached=%d out=%d cost=$%.4f model=%s",
+        usage.input_tokens, usage.cached_input_tokens, usage.output_tokens,
+        cost_usd or 0.0, model,
+    )
+
     summary = (final_result.get("result") or "\n\n".join(assistant_texts)).strip()
 
     return {

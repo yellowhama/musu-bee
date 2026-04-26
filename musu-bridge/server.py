@@ -537,6 +537,7 @@ async def lifespan(app: FastAPI):
                             role=_tmpl["role"],
                             adapter_type=_tmpl["adapter_type"],
                             adapter_config=_tmpl["adapter_config"],
+                            company_id=os.environ.get("PAPERCLIP_COMPANY_ID") or None,
                         )
                         _seeded.append(_ch)
                         _ok.append(_ch)

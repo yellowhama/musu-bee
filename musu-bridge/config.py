@@ -6,10 +6,12 @@ from dataclasses import dataclass, field
 
 
 def _default_channel_agent_map() -> dict[str, str]:
-    node = os.getenv("MUSU_NODE_NAME", "") or __import__("socket").gethostname()
+    prefix = os.getenv("MUSU_AGENT_PREFIX", "")
+    if prefix and not prefix.endswith("-"):
+        prefix += "-"
     def _agent(channel: str, default_suffix: str) -> str:
         env_key = f"MUSU_AGENT_{channel.upper()}"
-        return os.getenv(env_key, f"{node}-{default_suffix}")
+        return os.getenv(env_key, f"{prefix}{default_suffix}")
     return {
         "ceo": _agent("ceo", "CEO"),
         "cto": _agent("cto", "CTO"),
