@@ -36,12 +36,12 @@ def test_upsert_writer_company_creates_company_agents_and_projects(tmp_path):
 
     agent_names = sorted(agent["name"] for agent in result["agents"])
     assert agent_names == [
-        "BW-Editor",
-        "BW-Lead",
-        "BW-PM-Bloodline",
-        "BW-PM-FalseDane",
-        "BW-Researcher",
-        "BW-Writer",
+        "bw-editor",
+        "bw-lead",
+        "bw-pm-bloodline",
+        "bw-pm-falsedane",
+        "bw-researcher",
+        "bw-writer",
     ]
 
     projects = {row["project_name"]: row for row in result["projects"]}

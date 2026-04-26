@@ -74,17 +74,17 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
             {
                 "name": "Bloodline",
                 "status": "active",
-                "assigned_to": "BW-PM-Bloodline",
+                "assigned_to": "bw-pm-bloodline",
             },
             {
                 "name": "False Dane",
                 "status": "active",
-                "assigned_to": "BW-PM-FalseDane",
+                "assigned_to": "bw-pm-falsedane",
             },
         ],
         "agents": [
             {
-                "name": "BW-Lead",
+                "name": "bw-lead",
                 "role": "Company Lead",
                 "adapter_type": "claude_local",
                 "adapter_config": {
@@ -109,7 +109,7 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                 ],
             },
             {
-                "name": "BW-PM-Bloodline",
+                "name": "bw-pm-bloodline",
                 "role": "Project Manager",
                 "adapter_type": "gemini_local",
                 "adapter_config": {
@@ -131,7 +131,7 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                 ],
             },
             {
-                "name": "BW-PM-FalseDane",
+                "name": "bw-pm-falsedane",
                 "role": "Project Manager",
                 "adapter_type": "gemini_local",
                 "adapter_config": {
@@ -153,7 +153,7 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                 ],
             },
             {
-                "name": "BW-Researcher",
+                "name": "bw-researcher",
                 "role": "Researcher",
                 "adapter_type": "gemini_local",
                 "adapter_config": {
@@ -174,7 +174,7 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                 ],
             },
             {
-                "name": "BW-Writer",
+                "name": "bw-writer",
                 "role": "Writer",
                 "adapter_type": "claude_local",
                 "adapter_config": {
@@ -195,7 +195,7 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                 ],
             },
             {
-                "name": "BW-Editor",
+                "name": "bw-editor",
                 "role": "Editor",
                 "adapter_type": "claude_local",
                 "adapter_config": {
