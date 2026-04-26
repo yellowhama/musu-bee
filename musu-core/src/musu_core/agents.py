@@ -54,6 +54,9 @@ class Agent:
     fallback_chain: list[dict[str, Any]] | None = None
     # NULL = global agent; set for company-scoped agents.
     company_id: str | None = None
+    budget_usd_monthly: float | None = None
+    budget_usd_spent: float = 0.0
+    budget_reset_at: str | None = None
 
     @staticmethod
     def from_row(row: Any) -> "Agent":
@@ -70,6 +73,9 @@ class Agent:
             updated_at=row["updated_at"],
             fallback_chain=json.loads(raw_chain) if raw_chain else None,
             company_id=row["company_id"] if "company_id" in keys else None,
+            budget_usd_monthly=row["budget_usd_monthly"] if "budget_usd_monthly" in keys else None,
+            budget_usd_spent=row["budget_usd_spent"] if "budget_usd_spent" in keys else 0.0,
+            budget_reset_at=row["budget_reset_at"] if "budget_reset_at" in keys else None,
         )
 
 
@@ -173,6 +179,9 @@ class AgentRegistry:
         adapter_config: dict[str, Any] | None = None,
         status: str | None = None,
         fallback_chain: list[dict[str, Any]] | None | type[_UNSET] = _UNSET,
+        budget_usd_monthly: float | None | type[_UNSET] = _UNSET,
+        budget_usd_spent: float | None = None,
+        budget_reset_at: str | None | type[_UNSET] = _UNSET,
     ) -> Agent | None:
         if fallback_chain is not _UNSET and fallback_chain is not None:
             validate_fallback_chain(fallback_chain)  # type: ignore[arg-type]
@@ -190,16 +199,21 @@ class AgentRegistry:
         else:
             new_chain = fallback_chain  # type: ignore[assignment]
         chain_json = json.dumps(new_chain) if new_chain is not None else None
+        new_budget_monthly = agent.budget_usd_monthly if budget_usd_monthly is _UNSET else budget_usd_monthly
+        new_budget_spent = budget_usd_spent if budget_usd_spent is not None else agent.budget_usd_spent
+        new_budget_reset = agent.budget_reset_at if budget_reset_at is _UNSET else budget_reset_at
         rows = self._db.execute(
             """
             UPDATE agents
             SET name = ?, role = ?, adapter_type = ?, adapter_config = ?,
                 status = ?, fallback_chain = ?,
+                budget_usd_monthly = ?, budget_usd_spent = ?, budget_reset_at = ?,
                 updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
             WHERE id = ?
             RETURNING *
             """,
-            (new_name, new_role, new_adapter_type, new_config, new_status, chain_json, agent_id),
+            (new_name, new_role, new_adapter_type, new_config, new_status, chain_json,
+             new_budget_monthly, new_budget_spent, new_budget_reset, agent_id),
         )
         return Agent.from_row(rows[0]) if rows else None
 

@@ -28,6 +28,9 @@ def _agent_to_dict(agent: Any) -> dict[str, Any]:
         "created_at": agent.created_at,
         "updated_at": agent.updated_at,
         "company_id": getattr(agent, "company_id", None),
+        "budget_usd_monthly": getattr(agent, "budget_usd_monthly", None),
+        "budget_usd_spent": getattr(agent, "budget_usd_spent", 0.0),
+        "budget_reset_at": getattr(agent, "budget_reset_at", None),
     }
 
 
@@ -703,7 +706,7 @@ class LocalBackend(BackendABC):
         return dict(rows[0]) if rows else None
 
     def update_company(self, company_id: str, **kwargs: Any) -> dict[str, Any] | None:
-        allowed = {"name", "template_key", "workspace_id", "meta", "status", "purpose"}
+        allowed = {"name", "template_key", "workspace_id", "meta", "status", "purpose", "governance_config"}
         updates = {k: v for k, v in kwargs.items() if k in allowed}
         if not updates:
             return self.get_company(company_id)

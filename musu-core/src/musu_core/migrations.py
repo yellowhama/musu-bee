@@ -667,6 +667,35 @@ def _v21_down(conn: sqlite3.Connection) -> None:
         pass
 
 
+# ---------------------------------------------------------------------------
+# v22: agent budgets + company governance config (Harness preset)
+# ---------------------------------------------------------------------------
+
+
+def _v22_up(conn: sqlite3.Connection) -> None:
+    """Add budget columns to agents and governance_config to companies."""
+    if not _column_exists(conn, "agents", "budget_usd_monthly"):
+        conn.execute("ALTER TABLE agents ADD COLUMN budget_usd_monthly REAL DEFAULT NULL;")
+    if not _column_exists(conn, "agents", "budget_usd_spent"):
+        conn.execute("ALTER TABLE agents ADD COLUMN budget_usd_spent REAL DEFAULT 0.0;")
+    if not _column_exists(conn, "agents", "budget_reset_at"):
+        conn.execute("ALTER TABLE agents ADD COLUMN budget_reset_at TEXT DEFAULT NULL;")
+    if not _column_exists(conn, "companies", "governance_config"):
+        conn.execute("ALTER TABLE companies ADD COLUMN governance_config TEXT NOT NULL DEFAULT '{}';")
+    conn.commit()
+
+
+def _v22_down(conn: sqlite3.Connection) -> None:
+    try:
+        conn.execute("ALTER TABLE agents DROP COLUMN budget_usd_monthly;")
+        conn.execute("ALTER TABLE agents DROP COLUMN budget_usd_spent;")
+        conn.execute("ALTER TABLE agents DROP COLUMN budget_reset_at;")
+        conn.execute("ALTER TABLE companies DROP COLUMN governance_config;")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
+
 MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v1_fallback_chain", _v1_up, _v1_down),
     ("v2_messages_agent_id", _v2_up, _v2_down),
@@ -689,6 +718,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v19_fencing_token", _v19_up, _v19_down),
     ("v20_tombstone", _v20_up, _v20_down),
     ("v21_issue_goal_project_linkage", _v21_up, _v21_down),
+    ("v22_agent_budget_governance", _v22_up, _v22_down),
 ]
 
 

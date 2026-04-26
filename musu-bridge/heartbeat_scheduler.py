@@ -89,10 +89,25 @@ async def _heartbeat_iteration(
         )
 
     if role == "ceo":
+        # Gather multi-node status for CEO context
+        _node_status_lines = []
+        try:
+            from handlers import list_nodes as _list_nodes
+            _nodes = await _list_nodes()
+            for _n in _nodes:
+                _status = _n.get("status", "unknown")
+                _agents = ", ".join(_n.get("agents", []))
+                _node_status_lines.append(f"- {_n.get('name')}: {_status} | agents: {_agents}")
+        except Exception:
+            _node_status_lines = ["- (노드 상태 조회 실패)"]
+
+        _node_context = "\n".join(_node_status_lines) if _node_status_lines else "- (노드 없음)"
+
         prompt_parts.append(
             "집사 루프 실행 (wiki/010):\n"
-            "1. 시스템 점검: get_dashboard(), check_notifications(), read_board_messages('ceo-board')\n"
-            "2. 문제 감지 → 선제 처리 (stuck task cancel, 에러 이슈 생성)\n"
+            "1. 시스템+노드 점검: get_dashboard(), check_notifications(), read_board_messages('ceo-board'), list_nodes()\n"
+            f"## 현재 노드 상태\n{_node_context}\n\n"
+            "2. 문제 감지 → 선제 처리 (stuck task cancel, 에러 이슈 생성, offline 노드 기록)\n"
             "3. 회사 확인: read_charter(), list_goals(), list_issues()\n"
             "4. Lead에게 위임 (직접 engineer 안 시킴): delegate_task(channel='{short}-Lead', ...)\n"
             "5. 브리핑 준비: 다음에 주인 오면 즉시 보고할 수 있게\n"

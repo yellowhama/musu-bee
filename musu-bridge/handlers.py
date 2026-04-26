@@ -251,6 +251,21 @@ async def route_chat(
     if not text.strip():
         return {"error": "Empty message", "response": None}
 
+    # ── Harness: per-agent budget enforcement ────────────────────────────────
+    _budget_backend = _get_backend()
+    _budget_agent_name = cfg.channel_agent_map.get(channel)
+    if _budget_agent_name:
+        _budget_agent = _budget_backend.get_agent_by_name(_budget_agent_name, company_id=company_id)
+        if _budget_agent and _budget_agent.get("budget_usd_monthly") is not None:
+            if (_budget_agent.get("budget_usd_spent") or 0.0) >= _budget_agent["budget_usd_monthly"]:
+                return {
+                    "error": "budget_exceeded",
+                    "agent": _budget_agent["name"],
+                    "budget_usd_monthly": _budget_agent["budget_usd_monthly"],
+                    "budget_usd_spent": _budget_agent.get("budget_usd_spent", 0.0),
+                    "response": None,
+                }
+
     # ── Per-channel circuit breaker check ─────────────────────────────────────
     try:
         from server import _channel_cb
@@ -343,6 +358,15 @@ async def route_chat(
                         channel, exec_id, duration, rid, result.get("adapter_type"),
                         extra={"agent_id": _aid, "task_id": _tid},
                     )
+                    # ── Harness: accumulate spent budget ─────────��───────
+                    if cost_usd and _aid:
+                        try:
+                            _spent_agent = backend.get_agent(_aid)
+                            if _spent_agent and _spent_agent.get("budget_usd_monthly") is not None:
+                                new_spent = (_spent_agent.get("budget_usd_spent") or 0.0) + cost_usd
+                                backend.update_agent(_aid, budget_usd_spent=new_spent)
+                        except Exception:
+                            logger.debug("budget_track: failed to update spent for agent=%s", _aid)
             except Exception:
                 pass
         # Always record metric — covers mesh/404/no-agent paths too
@@ -1277,9 +1301,25 @@ def create_company_from_template(
         workspace_id=workspace_id,
         meta={"purpose": purpose},
     )
-    # store purpose + status in the v13 columns
-    company = b.update_company(company["id"], purpose=purpose, status="active")
+    # ── Harness: store governance config from template ──────────────────────
+    import json as _json
+    from datetime import datetime, timezone as _tz
+
+    governance = tmpl.get("governance", {})
+    company = b.update_company(
+        company["id"],
+        purpose=purpose,
+        status="active",
+        governance_config=_json.dumps(governance),
+    )
     company_id = company["id"]
+
+    # Budget reset: 1st of next month
+    _now = datetime.now(_tz.utc)
+    if _now.month == 12:
+        reset_at = datetime(_now.year + 1, 1, 1, tzinfo=_tz.utc).isoformat()
+    else:
+        reset_at = datetime(_now.year, _now.month + 1, 1, tzinfo=_tz.utc).isoformat()
 
     # Short prefix for agent names: first 8 chars of company_id
     short = company_id[:8]
@@ -1306,13 +1346,24 @@ def create_company_from_template(
             adapter_config=config,
             company_id=company_id,
         )
+
+        # ── Harness: set per-agent budget from template ──────────────────
+        budget = rendered.get("budget_usd_monthly")
+        if budget is not None:
+            agent = b.update_agent(
+                agent["id"],
+                budget_usd_monthly=budget,
+                budget_usd_spent=0.0,
+                budget_reset_at=reset_at,
+            )
+
         created_agents.append(agent)
 
     # ── Auto-setup workspace: create dir + indexer profile ──────────────────
     if work_dir:
         _setup_company_workspace(work_dir, name, company_id)
 
-    return {"company": company, "agents": created_agents}
+    return {"company": company, "agents": created_agents, "governance": governance}
 
 
 def _setup_company_workspace(work_dir: str, company_name: str, company_id: str) -> None:

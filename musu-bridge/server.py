@@ -528,8 +528,8 @@ async def lifespan(app: FastAPI):
         for _ch, _agent_name in _cfg_chan.channel_agent_map.items():
             if _agent_name in _all_active:
                 _ok.append(_ch)
-            else:
-                # Auto-seed the missing agent using seed_agents template if available
+            elif _is_primary:
+                # Only primary node auto-seeds company-level agents (CEO, CTO, etc)
                 _tmpl = _seed_by_channel.get(_ch)
                 if _tmpl:
                     try:
@@ -554,6 +554,9 @@ async def lifespan(app: FastAPI):
                         )
                 else:
                     _broken.append(f"{_ch}→{_agent_name}")
+            else:
+                # Secondary node: skip seeding company agents
+                pass
         if _seeded:
             logger.info("startup: auto-seeded %d agent(s): %s", len(_seeded), ", ".join(_seeded))
         if _ok:

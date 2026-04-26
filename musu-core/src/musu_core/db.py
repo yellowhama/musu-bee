@@ -28,6 +28,9 @@ CREATE TABLE IF NOT EXISTS agents (
     fallback_chain TEXT DEFAULT NULL,
     -- NULL = global agent; set to company id for company-scoped agents
     company_id  TEXT REFERENCES companies(id) ON DELETE SET NULL,
+    budget_usd_monthly REAL DEFAULT NULL,
+    budget_usd_spent   REAL DEFAULT 0.0,
+    budget_reset_at    TEXT DEFAULT NULL,
     created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
@@ -115,6 +118,7 @@ CREATE TABLE IF NOT EXISTS companies (
     template_key    TEXT NOT NULL DEFAULT 'default',
     workspace_id    TEXT NOT NULL DEFAULT '',
     meta            TEXT NOT NULL DEFAULT '{}',
+    governance_config TEXT NOT NULL DEFAULT '{}',
     created_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     updated_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
