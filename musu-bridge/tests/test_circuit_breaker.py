@@ -75,7 +75,8 @@ class TestCircuitBreakerTransitions:
             cb = CircuitBreaker.from_env()
         cb.record_failure("agent_x")
         assert cb.is_open("agent_x") is True
-        time.sleep(1.1)
+        # Simulate cooldown elapsed by backdating tripped_at (avoids flaky wall-clock sleep)
+        cb._tripped_at["agent_x"] = time.time() - 1.5
         assert cb.is_open("agent_x") is False
 
 
