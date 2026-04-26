@@ -135,10 +135,12 @@ BEE_DIR="${ROOT}/musu-bee"
 if [[ -d "${BEE_DIR}" && ! -d "${BEE_DIR}/.next" ]]; then
     info "Step 6: building musu-bee (first time)..."
     if command -v node &>/dev/null; then
-        cd "${BEE_DIR}"
-        npm install --silent 2>/dev/null || true
-        npm run build --silent 2>/dev/null && ok "musu-bee build complete" || warn "musu-bee build failed — UI unavailable"
-        cd "${ROOT}"
+        (
+            cd "${BEE_DIR}"
+            npm install --silent 2>/dev/null || true
+            npm run build --silent 2>/dev/null || { warn "musu-bee build failed — UI unavailable"; exit 0; }
+            ok "musu-bee build complete"
+        )
     else
         warn "node not found — skipping musu-bee build. Install Node.js to use the UI."
     fi
