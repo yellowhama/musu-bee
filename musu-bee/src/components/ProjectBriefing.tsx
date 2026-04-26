@@ -145,6 +145,8 @@ function Shell({ children }: { children: React.ReactNode }) {
       flex: 1, display: "flex", flexDirection: "column",
       padding: "32px 40px", overflow: "auto",
       maxWidth: 640,
+      fontFamily: "var(--font-ui)",
+      color: "var(--fg1)",
     }}>
       {children}
     </div>

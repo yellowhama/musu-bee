@@ -87,7 +87,7 @@ export function ConsoleShell({ user, nodes, children, contextPanel, onNavigate, 
         style={{
           position: "fixed",
           inset: 0,
-          background: "#2D1D19",
+          background: "var(--console-sidebar-bg, #2D1D19)",
           overflow: "hidden",
         }}
       >

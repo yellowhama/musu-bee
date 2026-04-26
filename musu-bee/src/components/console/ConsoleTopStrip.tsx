@@ -45,8 +45,8 @@ export function ConsoleTopStrip({
         alignItems: "center",
         justifyContent: "space-between",
         padding: "0 16px",
-        borderBottom: "1px solid rgba(255,255,255,0.07)",
-        background: "#2D1D19",
+        borderBottom: "1px solid var(--console-sidebar-border, rgba(255,255,255,0.07))",
+        background: "var(--console-sidebar-bg, #2D1D19)",
         flexShrink: 0,
       }}
     >
@@ -57,7 +57,7 @@ export function ConsoleTopStrip({
         style={{
           background: "none",
           border: "none",
-          color: "rgba(253,252,240,0.4)",
+          color: "var(--console-sidebar-text, rgba(253,252,240,0.7))",
           cursor: "pointer",
           padding: "4px",
           borderRadius: "4px",
@@ -86,16 +86,16 @@ export function ConsoleTopStrip({
             <span
               style={{
                 fontSize: "12px",
-                color: "rgba(253,252,240,0.5)",
+                color: "var(--console-sidebar-text, rgba(253,252,240,0.7))",
                 fontWeight: 600,
-                fontFamily: "var(--font-jetbrains), monospace",
+                fontFamily: "var(--font-mono)",
               }}
             >
               {displayNode!.node_name}
             </span>
           </>
         ) : (
-          <span style={{ fontSize: "12px", color: "rgba(253,252,240,0.3)" }}>
+          <span style={{ fontSize: "12px", color: "var(--console-sidebar-text, rgba(253,252,240,0.7))", opacity: 0.4 }}>
             No nodes connected
           </span>
         )}
@@ -108,12 +108,13 @@ export function ConsoleTopStrip({
           title="Command palette  ⌘K"
           style={{
             background: "none",
-            border: "1px solid rgba(255,255,255,0.1)",
+            border: "1px solid var(--console-sidebar-border, rgba(255,255,255,0.07))",
             borderRadius: "5px",
             padding: "2px 7px",
-            color: "rgba(253,252,240,0.3)",
+            color: "var(--console-sidebar-text, rgba(253,252,240,0.7))",
+            opacity: 0.5,
             fontSize: "11px",
-            fontFamily: "var(--font-jetbrains), monospace",
+            fontFamily: "var(--font-mono)",
             cursor: "pointer",
             lineHeight: "18px",
             letterSpacing: "0.02em",
