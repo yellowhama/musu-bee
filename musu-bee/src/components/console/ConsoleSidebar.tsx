@@ -4,18 +4,18 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Inbox, BookOpen, BarChart3, Settings, ScreenShare, ChevronsLeft, ChevronsRight, ExternalLink } from "lucide-react";
+import { LayoutDashboard, ListChecks, CircleDot, BookOpen, DollarSign, Network, ScreenShare, ChevronsLeft, ChevronsRight, ExternalLink } from "lucide-react";
 import { SidebarNavItem } from "./SidebarNavItem";
 import { useConsoleShell } from "./ConsoleShellContext";
 
 const NAV_ITEMS = [
-  { id: "dashboard", href: "/app", icon: Inbox, label: "Home" },
-  { id: "tasks", href: "/app", icon: BarChart3, label: "Tasks" },
-  { id: "issues", href: "/app", icon: Settings, label: "Issues" },
-  { id: "wiki", href: "/app", icon: BookOpen, label: "Wiki" },
-  { id: "costs", href: "/app", icon: BarChart3, label: "Costs" },
-  { id: "nodes", href: "/app", icon: Settings, label: "Nodes" },
-  { id: "screen", href: "/app/screen", icon: ScreenShare, label: "Screen" },
+  { id: "dashboard", href: "/app",        icon: LayoutDashboard, label: "Home" },
+  { id: "tasks",     href: "/app",        icon: ListChecks,      label: "Tasks" },
+  { id: "issues",    href: "/app",        icon: CircleDot,       label: "Issues" },
+  { id: "wiki",      href: "/app",        icon: BookOpen,        label: "Wiki" },
+  { id: "costs",     href: "/app",        icon: DollarSign,      label: "Costs" },
+  { id: "nodes",     href: "/app",        icon: Network,         label: "Nodes" },
+  { id: "screen",    href: "/app/screen", icon: ScreenShare,     label: "Screen" },
 ];
 
 interface ConsoleSidebarProps {
@@ -49,8 +49,8 @@ export function ConsoleSidebar({ contextPanel, onNavigate, activePanel }: Consol
         top: 0,
         bottom: 0,
         width,
-        background: "#261813",
-        borderRight: "1px solid rgba(255,255,255,0.07)",
+        background: "var(--console-sidebar-bg)",
+        borderRight: "1px solid var(--console-sidebar-border)",
         display: "flex",
         flexDirection: "column",
         transition: "width 200ms ease",
@@ -66,7 +66,7 @@ export function ConsoleSidebar({ contextPanel, onNavigate, activePanel }: Consol
           alignItems: "center",
           padding: collapsed ? "0" : "0 14px",
           justifyContent: collapsed ? "center" : "flex-start",
-          borderBottom: "1px solid rgba(255,255,255,0.07)",
+          borderBottom: "1px solid var(--console-sidebar-border)",
           flexShrink: 0,
         }}
       >
@@ -128,7 +128,7 @@ export function ConsoleSidebar({ contextPanel, onNavigate, activePanel }: Consol
           style={{
             flex: 1,
             overflow: "hidden",
-            borderTop: "1px solid rgba(255,255,255,0.07)",
+            borderTop: "1px solid var(--console-sidebar-border)",
           }}
         >
           {contextPanel}
@@ -142,7 +142,7 @@ export function ConsoleSidebar({ contextPanel, onNavigate, activePanel }: Consol
       <div
         style={{
           padding: "8px 6px",
-          borderTop: "1px solid rgba(255,255,255,0.07)",
+          borderTop: "1px solid var(--console-sidebar-border)",
           flexShrink: 0,
           display: "flex",
           flexDirection: "column",

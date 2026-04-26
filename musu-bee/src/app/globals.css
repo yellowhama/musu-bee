@@ -157,9 +157,9 @@
   --neo-radius:     16px;
 
   /* ========== TYPE — FAMILIES ========== */
-  --font-ui:   'Nunito', 'Inter', -apple-system, BlinkMacSystemFont, 'Pretendard', 'Noto Sans KR', system-ui, sans-serif;
+  --font-ui:   'Inter', 'Nunito', -apple-system, BlinkMacSystemFont, 'Pretendard', 'Noto Sans KR', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'Menlo', monospace;
-  --font-display: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
   /* ========== TYPE — SCALE ========== */
   --text-xs:   10px; /* UPPERCASE section labels, task IDs */
@@ -264,16 +264,17 @@ html, body {
 
 .card {
   background: var(--bg-card);
-  border: 2px solid var(--border-default);
-  border-radius: var(--neo-radius);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   padding: 12px 14px;
-  box-shadow: var(--neo-shadow-sm), var(--neo-inset);
-  transition: all 0.2s ease;
+  transition: border-color 0.15s ease;
 }
 .card:hover {
-  border-color: var(--border-strong);
-  transform: var(--neo-lift);
-  box-shadow: var(--neo-shadow);
+  border-color: var(--border-default);
+}
+.card.is-active {
+  border-color: var(--accent-border);
+  background: var(--accent-tint);
 }
 
 .label, .eyebrow {
@@ -366,4 +367,85 @@ code, .mono {
 }
 .animate-in {
   animation: fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ========== APP GATE (local-only paywall) ========== */
+.app-gate-outer {
+  min-height: 100vh;
+  background: var(--bg-base);
+  color: var(--fg1);
+  font-family: var(--font-ui);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+}
+
+.app-gate-card {
+  max-width: 560px;
+  width: 100%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 48px 40px;
+  text-align: center;
+}
+
+.app-gate-bee {
+  font-size: 56px;
+  line-height: 1;
+  margin-bottom: var(--space-6);
+}
+
+.app-gate-title {
+  font-size: var(--text-xl);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-bottom: var(--space-4);
+  color: var(--fg1);
+}
+
+.app-gate-body {
+  font-size: var(--text-lg);
+  color: var(--fg2);
+  line-height: 1.7;
+  margin-bottom: var(--space-8);
+}
+
+.app-gate-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.app-gate-btn {
+  text-decoration: none;
+  padding: 12px 32px;
+  font-size: var(--text-lg);
+  border-radius: var(--radius-lg);
+  justify-content: center;
+}
+
+.app-gate-footer {
+  margin-top: var(--space-8);
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--border-subtle);
+  font-size: var(--text-md);
+  color: var(--fg3);
+  line-height: 1.6;
+}
+
+.app-gate-footer-label {
+  color: var(--fg2);
+  display: block;
+  margin-bottom: var(--space-2);
+  font-weight: 600;
+}
+
+.app-gate-code {
+  background: var(--bg-card);
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  color: var(--accent);
+  font-size: var(--text-base);
 }
