@@ -9,18 +9,21 @@ import { SidebarNavItem } from "./SidebarNavItem";
 import { useConsoleShell } from "./ConsoleShellContext";
 
 const NAV_ITEMS = [
-  { href: "/home", icon: Inbox, label: "Home" },
-  { href: "/wiki", icon: BookOpen, label: "Wiki" },
-  { href: "/dashboard", icon: BarChart3, label: "Dashboard" },
-  { href: "/screen", icon: ScreenShare, label: "Screen" },
-  { href: "/account", icon: Settings, label: "Account" },
+  { id: "dashboard", href: "/app", icon: Inbox, label: "Home" },
+  { id: "tasks", href: "/app", icon: BarChart3, label: "Tasks" },
+  { id: "issues", href: "/app", icon: Settings, label: "Issues" },
+  { id: "wiki", href: "/app", icon: BookOpen, label: "Wiki" },
+  { id: "costs", href: "/app", icon: BarChart3, label: "Costs" },
+  { id: "nodes", href: "/app", icon: Settings, label: "Nodes" },
+  { id: "screen", href: "/app/screen", icon: ScreenShare, label: "Screen" },
 ];
 
 interface ConsoleSidebarProps {
   contextPanel?: React.ReactNode;
+  onNavigate?: (id: string) => void;
 }
 
-export function ConsoleSidebar({ contextPanel }: ConsoleSidebarProps) {
+export function ConsoleSidebar({ contextPanel, onNavigate }: ConsoleSidebarProps) {
   const { collapsed, setCollapsed } = useConsoleShell();
   const pathname = usePathname();
 
@@ -101,16 +104,18 @@ export function ConsoleSidebar({ contextPanel }: ConsoleSidebarProps) {
           flexShrink: 0,
         }}
       >
-        {NAV_ITEMS.map(({ href, icon, label }) => {
+        {NAV_ITEMS.map(({ id, href, icon, label }) => {
           const active = pathname === href || (pathname ?? "").startsWith(href + "/");
           return (
             <SidebarNavItem
-              key={href}
+              key={id || href}
+              id={id}
               href={href}
               icon={icon}
               label={label}
               active={active}
               collapsed={collapsed}
+              onClick={onNavigate && id ? () => onNavigate(id) : undefined}
             />
           );
         })}

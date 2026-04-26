@@ -234,7 +234,7 @@ export default function AppShell() {
   };
 
   return (
-    <ConsoleShell user={consoleUser} nodes={consoleNodes}>
+    <ConsoleShell user={consoleUser} nodes={consoleNodes} onNavigate={(id) => { setActivePanel(id as any); setDisplayOverlay(null); }}>
       {/* ── LEGACY TOPBAR REMOVED — ConsoleShell provides its own ── */}
       <div style={{ display: "none" }}>
         {/* Hidden: kept for reference, will be fully removed later */}

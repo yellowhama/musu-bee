@@ -188,8 +188,9 @@ async def test_node_manager_heartbeat_exception_cancels_record(monkeypatch):
             with patch("config.get_config", return_value=mock_cfg):
                 with patch("mesh_router.get_mesh_router", return_value=mock_router_inst):
                     with patch("asyncio.sleep", side_effect=fake_sleep):
-                        with pytest.raises(asyncio.CancelledError):
-                            await heartbeat_scheduler._node_manager_heartbeat()
+                        with patch("heartbeat_scheduler._should_skip_heartbeat", return_value=(False, "")):
+                            with pytest.raises(asyncio.CancelledError):
+                                await heartbeat_scheduler._node_manager_heartbeat()
 
     assert len(created_exec_ids) >= 1, "Expected exec record created before route_chat"
     assert len(cancelled_ids) >= 1, "Expected cancel_task_record called on exception"

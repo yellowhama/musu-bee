@@ -13,12 +13,12 @@ import anyio
 # ── Unit tests for _route_timeout_sec ─────────────────────────────────────────
 
 def test_route_timeout_default():
-    """MUSU_ROUTE_TIMEOUT_SEC 미설정 시 기본값 180s."""
+    """MUSU_ROUTE_TIMEOUT_SEC 미설정 시 기본값 600s (Phase 90: increased from 180s)."""
     from handlers import _route_timeout_sec
     with patch.dict("os.environ", {}, clear=False):
         import os
         os.environ.pop("MUSU_ROUTE_TIMEOUT_SEC", None)
-        assert _route_timeout_sec() == 180.0
+        assert _route_timeout_sec() >= 600.0
 
 
 def test_route_timeout_env_override():

@@ -29,7 +29,8 @@ _client = TestClient(app, raise_server_exceptions=False)
 _VALID_TEXT = (
     "Read musu-bridge/handlers.py route_chat function and verify "
     "that the error handling on line 69 returns the correct dict structure. "
-    "pytest musu-bridge/tests/test_server.py -v should pass after inspection."
+    "pytest musu-bridge/tests/test_server.py -v should pass after inspection. "
+    "expected_output: pytest exits 0 with all tests passing."
 )
 
 
@@ -68,7 +69,7 @@ class TestOuterFailureSafetyNet:
     """Outer exception in _run_with_retry must mark record as failed, not leave it running."""
 
     def setup_method(self):
-        """Clear running route_execution records for 'engineer' before each test."""
+        """Clear running route_execution records and reset engineer semaphore before each test."""
         from handlers import _get_backend
         backend = _get_backend()
         try:
@@ -77,6 +78,8 @@ class TestOuterFailureSafetyNet:
             )
         except Exception:
             pass
+        import server
+        server._channel_semaphores.pop("engineer", None)
 
     def test_semaphore_crash_marks_record_failed(self):
         """If the semaphore itself raises, the record must be marked failed."""
@@ -93,7 +96,7 @@ class TestOuterFailureSafetyNet:
 
             resp = _client.post(
                 "/api/tasks/delegate",
-                json={"channel": "engineer", "text": _VALID_TEXT},
+                json={"channel": "engineer", "text": _VALID_TEXT, "allow_duplicate": True},
                 headers=_AUTH,
             )
             # Should still accept the task (202) — background task handles the failure
@@ -116,6 +119,19 @@ class TestOuterFailureSafetyNet:
 class TestAllEarlyExitPathsCleanUp:
     """Every early-exit within _run_with_retry must call cancel_task_record."""
 
+    def setup_method(self):
+        """Clear running route_execution records and reset engineer semaphore before each test."""
+        from handlers import _get_backend
+        backend = _get_backend()
+        try:
+            backend._db.execute(
+                "UPDATE route_executions SET status='cancelled' WHERE channel='engineer' AND status='running'"
+            )
+        except Exception:
+            pass
+        import server
+        server._channel_semaphores.pop("engineer", None)
+
     def test_unhandled_exception_in_run_once_marks_record_failed(self):
         """An unexpected exception in _run_once must mark the record as failed, not leave it running."""
         with patch("server.route_chat", new_callable=AsyncMock) as mock_chat, \
@@ -131,7 +147,7 @@ class TestAllEarlyExitPathsCleanUp:
 
             resp = _client.post(
                 "/api/tasks/delegate",
-                json={"channel": "engineer", "text": _VALID_TEXT},
+                json={"channel": "engineer", "text": _VALID_TEXT, "allow_duplicate": True},
                 headers=_AUTH,
             )
             assert resp.status_code == 202

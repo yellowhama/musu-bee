@@ -131,6 +131,7 @@ class TestNodeManagerErrorDictZombie:
         monkeypatch.setattr(heartbeat_scheduler, "route_chat", error_route_chat)
         monkeypatch.setattr(heartbeat_scheduler, "cancel_task_record", fake_cancel)
         monkeypatch.setattr(heartbeat_scheduler, "_get_heartbeat_backend", lambda: mock_backend)
+        monkeypatch.setattr(heartbeat_scheduler, "_should_skip_heartbeat", lambda *a, **kw: (False, ""))
         monkeypatch.setattr(mesh_router, "get_mesh_router", lambda: mock_router)
         monkeypatch.setattr(config, "get_config", lambda: MagicMock(node_name="4060"))
         monkeypatch.setenv("MUSU_NODE_HEARTBEAT_TIMEOUT_SEC", "5")

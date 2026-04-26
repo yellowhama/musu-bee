@@ -23,7 +23,8 @@ _DELEGATE_PAYLOAD = {
     "text": (
         "Read musu-bridge/handlers.py route_chat function and verify "
         "the error path returns the correct dict. "
-        "pytest musu-bridge/tests/test_server.py -v should pass after check."
+        "pytest musu-bridge/tests/test_server.py -v should pass after check. "
+        "expected_output: pytest exits 0 with all tests passing."
     ),
 }
 
