@@ -14,9 +14,10 @@ interface ConsoleShellProps {
   children: React.ReactNode;
   contextPanel?: React.ReactNode;
   onNavigate?: (id: string) => void;
+  activePanel?: string;
 }
 
-function ConsoleShellInner({ user, nodes, children, contextPanel, onNavigate }: ConsoleShellProps) {
+function ConsoleShellInner({ user, nodes, children, contextPanel, onNavigate, activePanel }: ConsoleShellProps) {
   const { collapsed, setCollapsed, setPaletteOpen } = useConsoleShell();
   const sidebarWidth = collapsed ? 56 : 220;
 
@@ -37,7 +38,7 @@ function ConsoleShellInner({ user, nodes, children, contextPanel, onNavigate }: 
   return (
     <>
       {/* Fixed sidebar */}
-      <ConsoleSidebar contextPanel={contextPanel} onNavigate={onNavigate} />
+      <ConsoleSidebar contextPanel={contextPanel} onNavigate={onNavigate} activePanel={activePanel} />
 
       {/* Main content area — shifts with sidebar */}
       <div
@@ -79,7 +80,7 @@ function ConsoleShellInner({ user, nodes, children, contextPanel, onNavigate }: 
   );
 }
 
-export function ConsoleShell({ user, nodes, children, contextPanel, onNavigate }: ConsoleShellProps) {
+export function ConsoleShell({ user, nodes, children, contextPanel, onNavigate, activePanel }: ConsoleShellProps) {
   return (
     <ConsoleShellProvider>
       <div
@@ -90,7 +91,7 @@ export function ConsoleShell({ user, nodes, children, contextPanel, onNavigate }
           overflow: "hidden",
         }}
       >
-        <ConsoleShellInner user={user} nodes={nodes} contextPanel={contextPanel} onNavigate={onNavigate}>
+        <ConsoleShellInner user={user} nodes={nodes} contextPanel={contextPanel} onNavigate={onNavigate} activePanel={activePanel}>
           {children}
         </ConsoleShellInner>
       </div>

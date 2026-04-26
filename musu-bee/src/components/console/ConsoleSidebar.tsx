@@ -21,9 +21,10 @@ const NAV_ITEMS = [
 interface ConsoleSidebarProps {
   contextPanel?: React.ReactNode;
   onNavigate?: (id: string) => void;
+  activePanel?: string;
 }
 
-export function ConsoleSidebar({ contextPanel, onNavigate }: ConsoleSidebarProps) {
+export function ConsoleSidebar({ contextPanel, onNavigate, activePanel }: ConsoleSidebarProps) {
   const { collapsed, setCollapsed } = useConsoleShell();
   const pathname = usePathname();
 
@@ -105,7 +106,7 @@ export function ConsoleSidebar({ contextPanel, onNavigate }: ConsoleSidebarProps
         }}
       >
         {NAV_ITEMS.map(({ id, href, icon, label }) => {
-          const active = pathname === href || (pathname ?? "").startsWith(href + "/");
+          const active = activePanel ? activePanel === id : (pathname === href || (pathname ?? "").startsWith(href + "/"));
           return (
             <SidebarNavItem
               key={id || href}
