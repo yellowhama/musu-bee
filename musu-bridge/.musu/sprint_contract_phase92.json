@@ -1,0 +1,98 @@
+{
+  "phase": 92,
+  "goal_id": "c4f1e7b2-9a3d-4c88-b015-e8d7f2a60c91",
+  "title": "Orchestrator Reconnect Dedup — Task-ID Guard in Durability Loop + Semaphore Timeout Tuning",
+  "created_at": "2026-04-26",
+  "updated_at": "2026-04-26",
+  "background": "Phase 91 added sha256 input-hash dedup gate (120s TTL, warmup from DB). Two residual blast vectors remain: (1) the startup durability loop (server.py lifespan ~line 573) calls asyncio.create_task(route_chat(...)) directly — bypassing delegate_task's hash gate — so if the same task_id is already live in _active_tasks it spawns a duplicate background coroutine; (2) MUSU_SEMAPHORE_ACQUIRE_TIMEOUT_SEC default is 30s but Phase 89 raised task timeout to 600s, meaning tasks blocked at capacity are abandoned before the channel clears. NOTE: _warmup_dispatch_hash_cache() already seeds failed records with a backdated timestamp (lines 248-250) — this was verified and requires no further code change.",
+  "code_audit_findings": {
+    "warmup_already_handles_failed": {
+      "verdict": "ALREADY FIXED",
+      "file": "musu-bridge/server.py",
+      "lines": "235-258",
+      "detail": "_warmup_dispatch_hash_cache() SQL already includes status IN ('running', 'done', 'failed') and applies backdated timestamp for failed records. No code change needed."
+    },
+    "semaphore_aexit_double_release": {
+      "verdict": "ALREADY SAFE",
+      "detail": "If __aenter__ raises (TimeoutError from acquire()), Python does not call __aexit__, so release() is never invoked for a failed acquire. The capacity guard in release() (line 326-328) additionally prevents double-release in all other paths."
+    },
+    "active_tasks_dedup_gap": {
+      "verdict": "OPEN — needs fix",
+      "file": "musu-bridge/server.py",
+      "lines": "573-596",
+      "detail": "Durability loop checks _dispatch_hash_cache before re-dispatching, but route_chat() is called directly (not via delegate_task), so pending records with a task_id that is already live in _active_tasks will still spawn a duplicate background task."
+    }
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "priority": "P0",
+      "title": "Add _active_tasks guard to durability reconnect loop in lifespan()",
+      "file": "musu-bridge/server.py",
+      "function": "lifespan() — durability re-dispatch block",
+      "lines_to_modify": "577-596",
+      "change": "After the existing _dispatch_hash_cache dedup check (lines 578-589) and before backend.increment_retry_count(rec['id']), add a second guard: if rec['id'] in _active_tasks, log 'durability: skip re-dispatch task_id=<id> — already live in _active_tasks' and continue. This prevents the durability loop from spawning a duplicate coroutine for a task_id that is already executing, which is the primary cause of the 10+ zombie explosions per heartbeat observed post-reconnect. The _active_tasks dict is populated at line 1014 and cleaned up via done_callback at line 1015, so its membership is authoritative for live tasks.",
+      "code_sketch": "if rec['id'] in _active_tasks:\n    logger.info('durability: skip re-dispatch task_id=%s — already live in _active_tasks', rec['id'])\n    continue\nbackend.increment_retry_count(rec['id'])\nasyncio.create_task(route_chat(...))",
+      "test_file": "musu-bridge/tests/test_reconnect_dedup.py",
+      "test_command": "pytest musu-bridge/tests/test_reconnect_dedup.py -v",
+      "test_description": "New test file. Test 1: simulate startup durability loop with a pending record whose task_id is already in _active_tasks — assert asyncio.create_task is NOT called and log contains 'already live in _active_tasks'. Test 2: pending record whose task_id is NOT in _active_tasks — assert asyncio.create_task IS called. Test 3: pending record that passes hash-cache dedup and active-tasks guard → increment_retry_count called once.",
+      "expected_output": "pytest musu-bridge/tests/test_reconnect_dedup.py -v exits 0; all 3 tests pass; second reconnect for an already-running task_id is skipped with log message."
+    },
+    {
+      "id": "T2",
+      "priority": "P1",
+      "title": "Raise MUSU_SEMAPHORE_ACQUIRE_TIMEOUT_SEC default from 30s to 60s in __aenter__",
+      "file": "musu-bridge/server.py",
+      "function": "_ChannelSemaphore.__aenter__",
+      "lines_to_modify": "335-338",
+      "change": "Change the default in `float(os.environ.get('MUSU_SEMAPHORE_ACQUIRE_TIMEOUT_SEC', '30'))` to '60'. Rationale: Phase 89 raised task timeout to 600s; with a 30s acquire timeout, a task queued behind 5 concurrent 600s-tasks would be abandoned after 30s even though the channel is healthy. 60s provides one full task-startup window without risking permanent wedging.",
+      "code_sketch": "_timeout = float(os.environ.get('MUSU_SEMAPHORE_ACQUIRE_TIMEOUT_SEC', '60'))",
+      "test_file": "musu-bridge/tests/test_semaphore_overflow.py",
+      "test_command": "pytest musu-bridge/tests/test_semaphore_overflow.py -v",
+      "test_description": "New test file. Test 1: MUSU_SEMAPHORE_ACQUIRE_TIMEOUT_SEC not set — assert default acquire timeout is 60s (read from __aenter__ logic). Test 2: MUSU_SEMAPHORE_ACQUIRE_TIMEOUT_SEC=120 — assert acquire times out after ~120s (mock asyncio.wait_for and verify timeout arg). Test 3: task cancelled mid-acquire (TimeoutError) — assert semaphore _available count is unchanged (no double-release). Test 4: normal acquire+release cycle — assert _available goes capacity→capacity-1→capacity.",
+      "expected_output": "pytest musu-bridge/tests/test_semaphore_overflow.py -v exits 0; default acquire timeout is 60s; mid-acquire cancellation does not alter _available count."
+    },
+    {
+      "id": "T3",
+      "priority": "P1",
+      "title": "Verify _warmup_dispatch_hash_cache covers failed records — add regression test",
+      "file": "musu-bridge/tests/test_input_hash_dedup.py",
+      "function": "TestCacheWarmupPersistence",
+      "lines_to_modify": "438-509 (extend existing class)",
+      "change": "Existing _warmup_dispatch_hash_cache() already seeds 'failed' records with backdated timestamp (server.py lines 248-250). Add a new test test_warmup_loads_failed_records_with_short_ttl to the existing TestCacheWarmupPersistence class: insert a 'failed' route_execution row with input_hash set, call _warmup_dispatch_hash_cache(), assert (a) the key is present in _dispatch_hash_cache, (b) the remaining TTL is ≤ 30s (i.e. time.monotonic() - ts is between TTL-30 and TTL), (c) a delegate_task POST with same channel+instruction returns status=duplicate within the 30s window. This is a regression guard to prevent accidental removal of the failed-record branch.",
+      "test_file": "musu-bridge/tests/test_input_hash_dedup.py",
+      "test_command": "pytest musu-bridge/tests/test_input_hash_dedup.py -v",
+      "test_description": "Add test_warmup_loads_failed_records_with_short_ttl to TestCacheWarmupPersistence. Insert a fake 'failed' record into route_executions with a known input_hash. Call _warmup_dispatch_hash_cache(). Assert key in _dispatch_hash_cache with remaining TTL ≤ 30s. Assert a second delegate_task call with same instruction returns duplicate within TTL.",
+      "expected_output": "pytest musu-bridge/tests/test_input_hash_dedup.py -v exits 0; all existing tests pass plus new warmup-failed regression test passes."
+    }
+  ],
+  "test_suite_commands": [
+    "pytest musu-bridge/tests/test_reconnect_dedup.py -v",
+    "pytest musu-bridge/tests/test_semaphore_overflow.py -v",
+    "pytest musu-bridge/tests/test_input_hash_dedup.py -v",
+    "pytest musu-bridge/tests/ -v"
+  ],
+  "success_criteria": [
+    "pytest musu-bridge/tests/test_reconnect_dedup.py -v — all tests pass (T1 guard verified)",
+    "pytest musu-bridge/tests/test_semaphore_overflow.py -v — all tests pass (T2 timeout tuning verified)",
+    "pytest musu-bridge/tests/test_input_hash_dedup.py -v — all existing + new warmup-failed test pass",
+    "pytest musu-bridge/tests/ -v — full suite passes with no regressions against Phase 91 baseline",
+    "After bridge restart, pending task_id already in _active_tasks is NOT re-dispatched by durability loop",
+    "Engineer channel semaphore acquire default timeout is 60s (not 30s)"
+  ],
+  "out_of_scope": [
+    "migrations.py — no schema changes without explicit approval",
+    "Phase 91 validate_task_instruction / input_hash_dedup gate — do not modify",
+    "musu-relay, musu-core, musu-bee, vibecode-town — no cross-module changes",
+    "Increasing _DISPATCH_HASH_TTL_SEC beyond 120s",
+    "Orchestrator-side retry logic — bridge-side guard only"
+  ],
+  "constraints": [
+    "git push --force / git reset --hard 금지",
+    "MUSU_BRIDGE_TOKEN / API 키 하드코딩 금지 — 환경변수만 사용",
+    "musu.pro URL 하드코딩 금지 — MUSU_PRO_URL 환경변수 사용",
+    "모든 CLI 명령어에 rtk 접두사 필수",
+    "메인 브랜치 직접 커밋 금지 — 항상 feat/phase92-orchestrator-dedup 브랜치에서 작업"
+  ],
+  "expected_output": "musu-bridge/.musu/sprint_contract_phase92.json 파일 생성 완료 + pytest musu-bridge/tests/ -v 전체 통과"
+}
