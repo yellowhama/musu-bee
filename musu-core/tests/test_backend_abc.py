@@ -208,6 +208,47 @@ def test_detect_backend_paperclip():
 # ---------------------------------------------------------------------------
 
 
+def _make_proc(returncode: int, stdout: bytes = b"", stderr: bytes = b"") -> MagicMock:
+    """Subprocess mock compatible with claude_local.py's stdin/stdout/stderr streaming."""
+    proc = MagicMock()
+    proc.returncode = returncode
+    proc.kill = MagicMock()
+
+    stdin_mock = MagicMock()
+    stdin_mock.write = MagicMock()
+    stdin_mock.close = MagicMock()
+
+    async def _drain():
+        pass
+
+    stdin_mock.drain = _drain
+    proc.stdin = stdin_mock
+
+    _stdout_chunks = iter([stdout, b""])
+
+    async def _read_stdout(n):
+        return next(_stdout_chunks, b"")
+
+    stdout_mock = MagicMock()
+    stdout_mock.read = _read_stdout
+    proc.stdout = stdout_mock
+
+    _stderr_chunks = iter([stderr, b""])
+
+    async def _read_stderr(n):
+        return next(_stderr_chunks, b"")
+
+    stderr_mock = MagicMock()
+    stderr_mock.read = _read_stderr
+    proc.stderr = stderr_mock
+
+    async def _wait():
+        pass
+
+    proc.wait = _wait
+    return proc
+
+
 def _good_stream_bytes(session_id: str = "s1", result_text: str = "Route OK") -> bytes:
     events = [
         json.dumps({"type": "system", "subtype": "init", "session_id": session_id, "model": "m"}),
@@ -227,9 +268,7 @@ def test_route_message_full_flow(tmp_path):
         adapter_config={"model": "claude-test"},
     )
 
-    proc = MagicMock()
-    proc.returncode = 0
-    proc.communicate = AsyncMock(return_value=(_good_stream_bytes(result_text="Hello back!"), b""))
+    proc = _make_proc(0, _good_stream_bytes(result_text="Hello back!"))
 
     with patch("asyncio.create_subprocess_exec", return_value=proc):
         summary = asyncio.run(route_message("ceo", "msg-001", "hello", backend))
@@ -250,17 +289,18 @@ def test_route_message_full_flow(tmp_path):
 
 def test_route_message_unknown_source(tmp_path):
     backend = LocalBackend(str(tmp_path / "test.db"))
-    with pytest.raises(ValueError, match="No agent found"):
-        asyncio.run(route_message("unknown", "ref", "hi", backend))
+    registry_mock = MagicMock()
+    registry_mock.node_for_agent.return_value = None
+    with patch("musu_core.mesh.get_registry", return_value=registry_mock):
+        with pytest.raises(ValueError, match="No agent found"):
+            asyncio.run(route_message("unknown", "ref", "hi", backend))
 
 
 def test_route_message_adapter_failure(tmp_path):
     backend = LocalBackend(str(tmp_path / "test.db"))
     backend.agents.create(name="bot", adapter_type="claude_local")
 
-    proc = MagicMock()
-    proc.returncode = 1
-    proc.communicate = AsyncMock(return_value=(b"", b"boom"))
+    proc = _make_proc(1, b"", b"boom")
 
     with patch("asyncio.create_subprocess_exec", return_value=proc):
         with pytest.raises(RuntimeError, match="failure"):
