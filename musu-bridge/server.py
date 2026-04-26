@@ -227,23 +227,30 @@ def _reregister_failed_hash(req_channel: str, req_text: str, task_id: str) -> No
 def _warmup_dispatch_hash_cache() -> None:
     """Populate _dispatch_hash_cache from DB on startup to survive bridge restarts.
 
-    Loads running/done route_executions created within the TTL window so that
+    Loads running/done/failed route_executions created within the TTL window so that
     orchestrator re-queued instructions are still deduplicated after a restart.
+    Failed tasks are loaded with a backdated timestamp (30s remaining TTL) to
+    prevent rapid re-dispatch without blocking indefinitely.
     """
     try:
         from handlers import _get_backend
         backend = _get_backend()
         rows = backend._db.execute(
-            "SELECT id, channel, input_hash FROM route_executions "
-            "WHERE status IN ('running', 'done') "
+            "SELECT id, channel, input_hash, status FROM route_executions "
+            "WHERE status IN ('running', 'done', 'failed') "
             "AND created_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ? || ' seconds')",
             (f"-{int(_DISPATCH_HASH_TTL_SEC)}",),
         )
         loaded = 0
         for row in rows:
-            rec_id, channel, input_hash = row[0], row[1], row[2]
+            rec_id, channel, input_hash, status = row[0], row[1], row[2], row[3]
             if input_hash:
-                _dispatch_hash_cache[(channel, input_hash)] = (rec_id, time.monotonic())
+                if status == "failed":
+                    # Backdate so only ~30s of TTL remains — mirrors _reregister_failed_hash()
+                    ts = time.monotonic() - (_DISPATCH_HASH_TTL_SEC - 30)
+                else:
+                    ts = time.monotonic()
+                _dispatch_hash_cache[(channel, input_hash)] = (rec_id, ts)
                 loaded += 1
         if loaded:
             logger.info("warmup: loaded %d dedup hash(es) from DB into cache", loaded)
@@ -326,7 +333,9 @@ class _ChannelSemaphore:
         return self._available <= 0
 
     async def __aenter__(self) -> "_ChannelSemaphore":
-        _timeout = float(os.environ.get("MUSU_SEMAPHORE_ACQUIRE_TIMEOUT_SEC", "30"))
+        # Phase 92: raised from 30s to 60s — Phase 89 set task timeout to 600s,
+        # so 30s would abandon tasks blocked at capacity before the channel clears.
+        _timeout = float(os.environ.get("MUSU_SEMAPHORE_ACQUIRE_TIMEOUT_SEC", "60"))
         await self.acquire(timeout=_timeout)
         return self
 
@@ -566,7 +575,30 @@ async def lifespan(app: FastAPI):
         pending = backend.list_pending_route_executions()  # retry_count < 3 only
         if pending:
             logger.info("durability: re-dispatching %d pending route executions", len(pending))
+            _now = time.monotonic()
             for rec in pending:
+                # Dedup gate: skip if an identical instruction was already dispatched within TTL.
+                # Prevents orchestrator re-queue + durability re-dispatch from double-firing.
+                _h_key = (rec["channel"], hashlib.sha256(rec["input"].encode()).hexdigest())
+                _cached = _dispatch_hash_cache.get(_h_key)
+                if _cached is not None:
+                    _orig_id, _ts = _cached
+                    if _now - _ts < _DISPATCH_HASH_TTL_SEC:
+                        logger.info(
+                            "durability: skipping re-dispatch (dedup hit) exec_id=%s orig=%s",
+                            rec["id"], _orig_id,
+                        )
+                        continue
+                # Phase 92: skip if task_id is already live in _active_tasks.
+                # Prevents durability loop from spawning duplicate coroutine for a
+                # task that is already executing (e.g. after orchestrator reconnect
+                # re-sends the same task_id that is still running in-process).
+                if rec["id"] in _active_tasks:
+                    logger.info(
+                        "durability: skip re-dispatch task_id=%s — already live in _active_tasks",
+                        rec["id"],
+                    )
+                    continue
                 backend.increment_retry_count(rec["id"])
                 asyncio.create_task(route_chat(
                     channel=rec["channel"],

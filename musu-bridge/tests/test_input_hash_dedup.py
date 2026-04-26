@@ -507,3 +507,58 @@ class TestCacheWarmupPersistence:
         assert elapsed < server._DISPATCH_HASH_TTL_SEC, (
             f"Seeded hash must not be immediately expired, elapsed={elapsed:.1f}s TTL={server._DISPATCH_HASH_TTL_SEC}s"
         )
+
+    def test_warmup_loads_failed_records_with_short_ttl(self):
+        """Regression guard: _warmup_dispatch_hash_cache must seed failed records with ~30s remaining TTL.
+
+        Phase 92 T3 — verifies the failed-record warmup path is not accidentally removed.
+        """
+        import server
+        import hashlib
+        from handlers import _get_backend
+        from fastapi.testclient import TestClient
+
+        backend = _get_backend()
+        fake_id = "cccccccc-0000-0000-0000-phase92test01"
+        fake_text = (
+            "Read musu-bridge/server.py and verify the warmup function loads failed records. "
+            "expected_output: pytest exits 0 with all warmup tests passing."
+        )
+        fake_hash = hashlib.sha256(fake_text.encode()).hexdigest()
+        try:
+            backend._db.execute(
+                "INSERT OR REPLACE INTO route_executions (id, channel, sender_id, input, status, input_hash) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (fake_id, "engineer", "test", fake_text, "failed", fake_hash),
+            )
+        except Exception as e:
+            pytest.skip(f"DB insert failed: {e}")
+
+        server._dispatch_hash_cache.clear()
+        server._warmup_dispatch_hash_cache()
+
+        key = ("engineer", fake_hash)
+        assert key in server._dispatch_hash_cache, (
+            f"Warmup must load failed record into cache. Keys: {list(server._dispatch_hash_cache.keys())}"
+        )
+
+        # Remaining TTL must be ~30s (backdated timestamp)
+        _, loaded_ts = server._dispatch_hash_cache[key]
+        elapsed = time.monotonic() - loaded_ts
+        remaining = server._DISPATCH_HASH_TTL_SEC - elapsed
+        assert 0 < remaining <= 35, (
+            f"Failed record must have ~30s remaining TTL after warmup, got {remaining:.1f}s. "
+            "This ensures re-dispatch is blocked briefly but not permanently."
+        )
+
+        # Verify re-dispatch is blocked (delegate endpoint returns duplicate)
+        client = TestClient(server.app, raise_server_exceptions=False)
+        resp = client.post(
+            "/api/tasks/delegate",
+            json={"channel": "engineer", "text": fake_text},
+            headers={"Authorization": "Bearer test-token"},
+        )
+        body = resp.json()
+        assert body.get("status") == "duplicate", (
+            f"Failed hash loaded via warmup must block re-dispatch within ~30s window, got: {body}"
+        )
