@@ -97,6 +97,35 @@ def test_start_vnc_raises_if_no_x11vnc(monkeypatch):
         assert "x11vnc not found" in str(exc)
 
 
+def test_try_apt_install_returns_false_when_no_apt(monkeypatch):
+    # Patch shutil.which inside screen_vnc's own module namespace
+    monkeypatch.setattr(screen_vnc.shutil, "which", lambda _cmd: None)
+    result = screen_vnc._try_apt_install(["xvfb"])
+    assert result is False
+
+
+def test_try_apt_install_returns_false_when_no_sudo_and_not_root(monkeypatch):
+    monkeypatch.setattr(screen_vnc.shutil, "which", lambda cmd: "/usr/bin/apt-get" if cmd == "apt-get" else None)
+    monkeypatch.setattr(screen_vnc.os, "getuid", lambda: 1000)  # not root, no sudo
+    result = screen_vnc._try_apt_install(["xvfb"])
+    assert result is False
+
+
+def test_try_apt_install_returns_true_when_apt_succeeds_as_root(monkeypatch):
+    # As root, apt-get runs without sudo and returns 0
+    monkeypatch.setattr(screen_vnc.shutil, "which", lambda cmd: "/usr/bin/apt-get" if cmd == "apt-get" else None)
+    monkeypatch.setattr(screen_vnc.os, "getuid", lambda: 0)
+    calls = []
+    def _fake_run(cmd, **kw):
+        calls.append(cmd)
+        return type("R", (), {"returncode": 0, "stderr": b""})()
+    monkeypatch.setattr(screen_vnc.subprocess, "run", _fake_run)
+    result = screen_vnc._try_apt_install(["xvfb"])
+    assert result is True
+    # Must not have used sudo when running as root
+    assert calls and calls[0][0] == "apt-get"
+
+
 # ── HTTP endpoint smoke tests ─────────────────────────────────────────────────
 
 from fastapi.testclient import TestClient

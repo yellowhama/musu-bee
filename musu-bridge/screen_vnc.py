@@ -24,20 +24,29 @@ from fastapi import WebSocket, WebSocketDisconnect
 VNC_PORT = int(os.getenv("MUSU_VNC_PORT", "5900"))
 
 
-def _try_apt_install(packages: list[str]) -> None:
-    """Best-effort apt-get install for missing screen/VNC dependencies."""
+def _try_apt_install(packages: list[str]) -> bool:
+    """Best-effort apt-get install for missing screen/VNC dependencies.
+
+    Returns True if apt-get ran without error, False otherwise.
+    Tries without sudo when running as root; uses sudo otherwise.
+    """
     if not shutil.which("apt-get"):
-        return
+        return False
+    # Running as root — no sudo needed (and sudo may not exist in containers)
+    cmd_prefix = [] if os.getuid() == 0 else (["sudo"] if shutil.which("sudo") else [])
+    if not cmd_prefix and os.getuid() != 0:
+        return False  # Not root and no sudo available
     try:
-        subprocess.run(
-            ["sudo", "apt-get", "install", "-y", "-q"] + packages,
+        result = subprocess.run(
+            cmd_prefix + ["apt-get", "install", "-y", "-q"] + packages,
             timeout=120,
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
             check=False,
         )
+        return result.returncode == 0
     except (subprocess.TimeoutExpired, OSError):
-        pass
+        return False
 
 
 TOKEN_TTL = 60  # seconds
@@ -133,11 +142,18 @@ def _detect_display() -> tuple[str, str]:
     # No X11 display found — start Xvfb (virtual framebuffer)
     global _xvfb_proc, _xvfb_display
     if _xvfb_proc is None or _xvfb_proc.poll() is not None:
+        install_attempted = False
         if not shutil.which("Xvfb"):
+            install_attempted = True
             _try_apt_install(["xvfb", "x11vnc", "x11-utils"])
         if not shutil.which("Xvfb"):
+            hint = (
+                "Auto-install was attempted but failed (check sudo/apt permissions). "
+                if install_attempted
+                else ""
+            )
             raise RuntimeError(
-                "No X11 display and Xvfb not found. "
+                f"No X11 display and Xvfb not found. {hint}"
                 "Install with: sudo apt install xvfb"
             )
         # Pick a free display number, cleaning up stale lock files if needed
