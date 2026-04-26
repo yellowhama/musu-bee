@@ -257,3 +257,27 @@ def test_get_writer_sprint_status_falls_back_to_sprint_title_for_legacy_schema()
     assert payload["sprintId"] == "CHAPTER_003_SMOKE"
     assert payload["issueCount"] == 2
     assert payload["issues"][0]["assignee"] == "BW-Lead"
+
+
+def test_create_writer_ops_incident_assigns_bw_lead_and_resolves_project() -> None:
+    stub = _WriterStubClient()
+    payload = _run(
+        server.create_writer_ops_incident(
+            title="Shared bridge/schema incident",
+            description="Writer-company issue visibility broke.",
+            reason="One failure can blind both False Dane and Bloodline.",
+            project_name="False Dane",
+            goal_id="goal-1",
+        ),
+        stub,
+    )
+
+    issue = payload["issue"]
+    assert issue["assigneeAgentId"] == "agent-lead"
+    assert issue["goalId"] == "goal-1"
+    assert issue["projectId"] == "project-fd"
+    assert payload["policy"]["defaultOwner"] == "BW-Lead"
+
+    post_issue_calls = [call for call in stub.calls if call[0] == "POST" and call[1] == "/companies/company-writers/issues"]
+    assert post_issue_calls[-1][2]["assigneeAgentId"] == "agent-lead"
+    assert post_issue_calls[-1][2]["projectId"] == "project-fd"

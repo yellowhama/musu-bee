@@ -1506,6 +1506,72 @@ async def get_writer_sprint_status(
         return _tool_error("Error getting writer sprint status.")
 
 
+@mcp.tool()
+async def create_writer_ops_incident(
+    title: str,
+    description: str = "",
+    reason: str = "",
+    project_name: str = "",
+    project_id: str = "",
+    goal_id: str = "",
+    priority: str = "medium",
+) -> str:
+    """Create a shared writer-company ops incident assigned to BW-Lead by default.
+
+    Use this for bridge/schema/provisioning/visibility failures whose blast radius
+    crosses project boundaries or shared writer-company state.
+    """
+    if not title.strip():
+        return _tool_error("title is required.")
+    try:
+        c = _get_client()
+        if not c.company_id:
+            return _tool_error("PAPERCLIP_COMPANY_ID is required for writer ops incidents.")
+
+        agents = await _list_company_agents(c)
+        lead_agent_id = _resolve_item_id(agents, "BW-Lead")
+        if not lead_agent_id:
+            return _tool_error("BW-Lead agent not found.")
+
+        resolved_project_id = project_id.strip()
+        if not resolved_project_id and project_name.strip():
+            projects = await _list_company_projects(c)
+            resolved_project_id = _resolve_item_id(projects, project_name.strip())
+
+        body_description = description.strip()
+        if reason.strip():
+            reason_block = f"BW-Lead ownership reason: {reason.strip()}"
+            body_description = "\n\n".join(part for part in [body_description, reason_block] if part)
+
+        body: dict[str, Any] = {
+            "title": title.strip(),
+            "status": "open",
+            "priority": priority.strip() or "medium",
+            "assigneeAgentId": lead_agent_id,
+            "assignee_id": lead_agent_id,
+        }
+        if body_description:
+            body["description"] = body_description
+        if goal_id.strip():
+            body["goalId"] = goal_id.strip()
+        if resolved_project_id:
+            body["projectId"] = resolved_project_id
+
+        data = await c.post(f"/companies/{c.company_id}/issues", body)
+        return _fmt(
+            {
+                "issue": data,
+                "policy": {
+                    "defaultOwner": "BW-Lead",
+                    "ownerAgentId": lead_agent_id,
+                    "why": reason.strip() or "Shared writer-company incidents start in the BW-Lead lane.",
+                },
+            }
+        )
+    except Exception:
+        return _tool_error("Error creating writer ops incident.")
+
+
 # ──────────────────────────────────────────────
 # Group Messages (CEO Board / Team Channels)
 # ──────────────────────────────────────────────
