@@ -1,11 +1,12 @@
-"""Phase 77: Task instruction validation gate tests.
+"""Phase 77/91: Task instruction validation gate tests.
 
 Tests validate_task_instruction() in handlers.py prevents vague dispatch.
-Reference: wiki/agent-task-reliability §3 — CrewAI expected_output pattern.
+Updated for Phase 91: two-argument form that raises HTTPException(400).
 """
 from __future__ import annotations
 
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from handlers import validate_task_instruction
@@ -23,98 +24,99 @@ class TestValidateTaskInstructionUnit:
             "Test: pytest musu-bridge/tests/test_server.py -v should pass. "
             "expected_output: pytest musu-bridge/tests/test_server.py -v"
         )
-        assert validate_task_instruction(instruction) is None
+        validate_task_instruction(instruction, expected_output="pytest musu-bridge/tests/test_server.py -v")
 
     def test_rejects_too_short(self):
-        err = validate_task_instruction("Fix the bug")
-        assert err is not None
-        assert "short" in err.lower() or "50" in err
+        with pytest.raises(HTTPException) as exc_info:
+            validate_task_instruction("Fix the bug", expected_output="tests pass")
+        assert exc_info.value.status_code == 400
+        assert "short" in exc_info.value.detail.lower() or "50" in exc_info.value.detail
 
     def test_rejects_empty(self):
-        err = validate_task_instruction("")
-        assert err is not None
+        with pytest.raises(HTTPException) as exc_info:
+            validate_task_instruction("", expected_output="tests pass")
+        assert exc_info.value.status_code == 400
 
     def test_rejects_whitespace_only(self):
-        err = validate_task_instruction("   ")
-        assert err is not None
+        with pytest.raises(HTTPException) as exc_info:
+            validate_task_instruction("   ", expected_output="tests pass")
+        assert exc_info.value.status_code == 400
 
     def test_rejects_vague_verb_without_specifics(self):
-        err = validate_task_instruction("implement the authentication feature for the system")
-        assert err is not None
+        with pytest.raises(HTTPException) as exc_info:
+            validate_task_instruction("implement the authentication feature for the system", expected_output=None)
+        assert exc_info.value.status_code == 400
 
     def test_accepts_vague_verb_with_file_path(self):
         instruction = (
             "implement the token refresh logic in musu-bridge/handlers.py "
             "route_chat function so expired tokens return 401. "
-            "pytest musu-bridge/tests/ should pass after change. "
-            "expected_output: pytest musu-bridge/tests/ -v all pass"
+            "pytest musu-bridge/tests/ should pass after change."
         )
-        assert validate_task_instruction(instruction) is None
+        validate_task_instruction(instruction, expected_output="pytest musu-bridge/tests/ -v all pass")
 
     def test_accepts_vague_verb_with_test_reference(self):
         instruction = (
             "fix the failing test in musu-bridge/tests/test_server.py "
             "test_valid_request_returns_response_and_agent_id — "
-            "the assert on agent_id is wrong, update expected value. "
-            "expected_output: pytest musu-bridge/tests/test_server.py -v passes"
+            "the assert on agent_id is wrong, update expected value."
         )
-        assert validate_task_instruction(instruction) is None
+        validate_task_instruction(instruction, expected_output="pytest musu-bridge/tests/test_server.py -v passes")
 
     def test_accepts_long_instruction_without_specifics(self):
-        # A long instruction that's vague but >= 50 chars — only vague-verb check applies
-        # This one has no vague verbs so should pass
         instruction = (
             "Review the current state of the musu-bridge observability dashboard "
             "and write a summary of what metrics are currently being collected, "
-            "what is missing, and what the next priority should be. "
-            "expected_output: written summary document with gap list"
+            "what is missing, and what the next priority should be."
         )
-        assert validate_task_instruction(instruction) is None
+        validate_task_instruction(instruction, expected_output="written summary document with gap list")
 
     def test_exactly_50_chars_passes_length(self):
-        # 50 chars exactly — fails expected_output gate now (no "expected_output" in "a"*50)
         instruction = "a" * 50
-        result = validate_task_instruction(instruction)
-        # Must fail either length (if < 50) or expected_output gate
-        assert result is None or "short" in (result or "").lower() or "expected_output" in (result or "")
+        with pytest.raises(HTTPException) as exc_info:
+            validate_task_instruction(instruction, expected_output=None)
+        assert exc_info.value.status_code == 400
+        assert "expected_output" in exc_info.value.detail.lower()
 
     def test_49_chars_rejected(self):
-        instruction = "a" * 49
-        err = validate_task_instruction(instruction)
-        assert err is not None
+        with pytest.raises(HTTPException) as exc_info:
+            validate_task_instruction("a" * 49, expected_output="tests pass")
+        assert exc_info.value.status_code == 400
+        assert "short" in exc_info.value.detail.lower() or "50" in exc_info.value.detail
 
 
 class TestDelegateTaskValidation:
-    """Integration: api_delegate_task returns 422 on vague instructions."""
+    """Integration: api_delegate_task returns 400 on invalid instructions."""
 
-    def test_vague_instruction_returns_422(self):
+    def test_vague_instruction_returns_400(self):
         resp = _client.post(
             "/api/tasks/delegate",
             json={"channel": "engineer", "text": "implement auth"},
             headers=_AUTH,
         )
-        assert resp.status_code == 422
+        assert resp.status_code == 400
 
-    def test_short_instruction_returns_422(self):
+    def test_short_instruction_returns_400(self):
         resp = _client.post(
             "/api/tasks/delegate",
             json={"channel": "engineer", "text": "fix bug"},
             headers=_AUTH,
         )
-        assert resp.status_code == 422
+        assert resp.status_code == 400
 
-    def test_valid_instruction_not_422(self):
-        # Should return 202 or some other non-422 code (may fail for other reasons
-        # like no running agent, but not 422 validation error)
+    def test_valid_instruction_not_400(self):
         instruction = (
             "Read musu-bridge/handlers.py route_chat function and verify "
             "that the error handling on line 69 returns the correct dict. "
-            "pytest musu-bridge/tests/test_server.py -v should pass. "
-            "expected_output: pytest musu-bridge/tests/test_server.py -v"
+            "pytest musu-bridge/tests/test_server.py -v should pass."
         )
         resp = _client.post(
             "/api/tasks/delegate",
-            json={"channel": "engineer", "text": instruction},
+            json={
+                "channel": "engineer",
+                "text": instruction,
+                "expected_output": "pytest musu-bridge/tests/test_server.py -v passes",
+            },
             headers=_AUTH,
         )
-        assert resp.status_code != 422
+        assert resp.status_code != 400

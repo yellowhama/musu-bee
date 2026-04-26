@@ -27,7 +27,8 @@ def validate_task_instruction(instruction: str, expected_output: str | None = No
 
     Rules (Phase 91):
     1. instruction must be >= 50 chars after stripping.
-    2. expected_output must be provided and non-empty.
+    2. expected_output must be provided — either as a separate field or inlined in
+       the instruction text as "expected_output: <value>" (legacy agent convention).
     """
     from fastapi import HTTPException
 
@@ -35,9 +36,10 @@ def validate_task_instruction(instruction: str, expected_output: str | None = No
     if len(text) < 50:
         raise HTTPException(
             status_code=400,
-            detail=f"instruction too short (min 50 chars)",
+            detail="instruction too short (min 50 chars)",
         )
-    if expected_output is None or expected_output.strip() == "":
+    has_inline = bool(re.search(r'expected_output\s*:', text, re.I))
+    if not has_inline and (expected_output is None or expected_output.strip() == ""):
         raise HTTPException(
             status_code=400,
             detail="expected_output required",
