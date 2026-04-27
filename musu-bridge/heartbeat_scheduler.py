@@ -226,7 +226,7 @@ async def _agent_heartbeat_scheduler() -> None:
     """
     interval = int(os.environ.get("MUSU_CEO_HEARTBEAT_INTERVAL", "1800"))
     _node = os.environ.get("MUSU_NODE_NAME", "local")
-    agent_name = os.environ.get("MUSU_CEO_AGENT_NAME", f"{_node}-CEO")
+    agent_name = os.environ.get("MUSU_CEO_AGENT_NAME", "ceo")
     single_company_id = os.environ.get("MUSU_CEO_COMPANY_ID") or None
 
     mode = f"single={single_company_id}" if single_company_id else "multi-company"
