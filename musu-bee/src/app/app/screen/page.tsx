@@ -3,21 +3,31 @@
 import { useEffect, useState, useCallback } from "react";
 
 const BRIDGE_URL = process.env.NEXT_PUBLIC_MUSU_BRIDGE_URL || "http://localhost:8070";
-const NEKO_PORT = 8080;
 const REFRESH_INTERVAL = 15_000;
 
-interface DeviceScreen {
+interface NodeInfo {
   name: string;
-  status: "online" | "self" | "offline";
+  status: "online" | "self" | "offline" | "unknown" | "error";
   url: string;
   agents: string[];
+  machine: string;
+  os: string;
   gpu: string;
   roles: string[];
-  nekoUrl: string | null;
+  rustdesk_id: string;
+  is_self: boolean;
+}
+
+interface MachineGroup {
+  machine: string;
+  gpu: string;
+  nodes: NodeInfo[];
+  hasOnline: boolean;
+  rustdesk_id: string;
 }
 
 export default function ScreenPage() {
-  const [devices, setDevices] = useState<DeviceScreen[]>([]);
+  const [machines, setMachines] = useState<MachineGroup[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchDevices = useCallback(async () => {
@@ -25,21 +35,40 @@ export default function ScreenPage() {
       const resp = await fetch(`${BRIDGE_URL}/api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/dashboard`);
       if (!resp.ok) return;
       const data = await resp.json();
-      const nodes = data.nodes || [];
+      const nodes: NodeInfo[] = (data.nodes || []).map((n: Record<string, unknown>) => ({
+        name: n.name as string || "",
+        status: (n.status as string) || "unknown",
+        url: n.url as string || "",
+        agents: (n.agents as string[]) || [],
+        machine: (n.machine as string) || (n.name as string) || "",
+        os: (n.os as string) || "linux",
+        gpu: (n.gpu as string) || "",
+        roles: (n.roles as string[]) || [],
+        rustdesk_id: (n.rustdesk_id as string) || "",
+        is_self: n.is_self as boolean || false,
+      }));
 
-      const screens: DeviceScreen[] = nodes.map(
-        (node: { name: string; status: string; url: string; is_self: boolean; agents?: string[]; gpu?: string; roles?: string[] }) => ({
-          name: node.name,
-          status: node.status as DeviceScreen["status"],
-          url: node.url,
-          agents: node.agents || [],
-          gpu: node.gpu || "",
-          roles: node.roles || [],
-          nekoUrl: node.is_self ? `http://localhost:${NEKO_PORT}` : null,
-        })
-      );
+      // Group by physical machine
+      const machineMap = new Map<string, MachineGroup>();
+      for (const node of nodes) {
+        const key = node.machine;
+        if (!machineMap.has(key)) {
+          machineMap.set(key, {
+            machine: key,
+            gpu: node.gpu,
+            nodes: [],
+            hasOnline: false,
+            rustdesk_id: node.rustdesk_id,
+          });
+        }
+        const group = machineMap.get(key)!;
+        group.nodes.push(node);
+        if (node.status === "online" || node.status === "self") group.hasOnline = true;
+        if (!group.gpu && node.gpu) group.gpu = node.gpu;
+        if (!group.rustdesk_id && node.rustdesk_id) group.rustdesk_id = node.rustdesk_id;
+      }
 
-      setDevices(screens);
+      setMachines(Array.from(machineMap.values()));
       setLoading(false);
     } catch {
       setLoading(false);
@@ -52,194 +81,198 @@ export default function ScreenPage() {
     return () => clearInterval(timer);
   }, [fetchDevices]);
 
-  const handleConnect = (device: DeviceScreen) => {
-    if (device.nekoUrl) {
-      // Open Neko in new tab (avoids iframe CSP issues)
-      window.open(device.nekoUrl, `neko-${device.name}`, "noopener");
+  const handleConnect = (rustdesk_id: string) => {
+    if (rustdesk_id) {
+      window.open(`rustdesk://connection/new/${rustdesk_id}`, "_self");
     }
   };
 
-  // Netflix-style grid
+  const osLabel = (os: string) => {
+    switch (os) {
+      case "wsl2": return "WSL2 (Linux)";
+      case "windows": return "Windows";
+      case "linux": return "Linux";
+      case "macos": return "macOS";
+      default: return os;
+    }
+  };
+
+  const osIcon = (os: string) => {
+    switch (os) {
+      case "wsl2": return "🐧";
+      case "windows": return "🪟";
+      case "linux": return "🐧";
+      case "macos": return "🍎";
+      default: return "💻";
+    }
+  };
+
   return (
-    <div style={{
-      padding: "24px",
-      background: "#1a1210",
-      minHeight: "100%",
-    }}>
+    <div style={{ padding: "24px", background: "#1a1210", minHeight: "100%" }}>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 22, fontWeight: 800, color: "#FDFCF0", margin: 0, letterSpacing: "-0.02em" }}>
           Remote Screens
         </h1>
         <p style={{ fontSize: 13, color: "rgba(253,252,240,0.4)", marginTop: 4 }}>
-          {devices.length} device{devices.length !== 1 ? "s" : ""} in mesh
+          {machines.length} machine{machines.length !== 1 ? "s" : ""} in mesh
         </p>
       </div>
 
       {loading && (
-        <div style={{ color: "rgba(253,252,240,0.3)", fontSize: 13, padding: 20 }}>Loading devices...</div>
+        <div style={{ color: "rgba(253,252,240,0.3)", fontSize: 13, padding: 20 }}>Loading machines...</div>
       )}
 
       <div style={{
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-        gap: 16,
+        gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))",
+        gap: 20,
       }}>
-        {devices.map((device) => {
-          const isOnline = device.status !== "offline";
-          const isSelf = device.status === "self";
-
-          return (
-            <div
-              key={device.name}
-              onClick={() => isOnline && handleConnect(device)}
-              style={{
-                position: "relative",
-                background: "#261813",
-                border: `2px solid ${isSelf ? "rgba(255,209,102,0.3)" : "rgba(255,255,255,0.07)"}`,
-                borderRadius: 14,
-                overflow: "hidden",
-                cursor: isOnline && device.nekoUrl ? "pointer" : "default",
-                opacity: isOnline ? 1 : 0.4,
-                transition: "transform 0.2s, box-shadow 0.2s, border-color 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                if (isOnline) {
-                  (e.currentTarget as HTMLElement).style.transform = "translateY(-3px)";
-                  (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 32px rgba(0,0,0,0.5)";
-                  (e.currentTarget as HTMLElement).style.borderColor = "#FFD166";
-                }
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.transform = "";
-                (e.currentTarget as HTMLElement).style.boxShadow = "";
-                (e.currentTarget as HTMLElement).style.borderColor = isSelf ? "rgba(255,209,102,0.3)" : "rgba(255,255,255,0.07)";
-              }}
-            >
-              {/* Screen area — device info visualization */}
-              <div style={{
-                width: "100%",
-                aspectRatio: "16/9",
-                background: "linear-gradient(135deg, #1a1210 0%, #2D1D19 50%, #1a1210 100%)",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: 20,
-                gap: 8,
-              }}>
-                {/* Device icon */}
-                <div style={{ fontSize: 36, opacity: 0.6 }}>
-                  {isSelf ? "🖥" : isOnline ? "💻" : "📴"}
+        {machines.map((machine) => (
+          <div
+            key={machine.machine}
+            style={{
+              background: "#261813",
+              border: `2px solid ${machine.hasOnline ? "rgba(255,209,102,0.2)" : "rgba(255,255,255,0.05)"}`,
+              borderRadius: 16,
+              overflow: "hidden",
+              opacity: machine.hasOnline ? 1 : 0.4,
+              transition: "border-color 0.2s",
+            }}
+          >
+            {/* Machine header */}
+            <div style={{
+              padding: "16px 18px 12px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}>
+              <div>
+                <div style={{ fontSize: 17, fontWeight: 800, color: "#FDFCF0", letterSpacing: "-0.01em" }}>
+                  {machine.machine}
                 </div>
-
-                {/* GPU badge */}
-                {device.gpu && (
+                {machine.gpu && (
                   <div style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: "#FFD166",
-                    background: "rgba(255,209,102,0.1)",
-                    padding: "2px 10px",
-                    borderRadius: 4,
-                    letterSpacing: "0.02em",
+                    fontSize: 11, fontWeight: 700, color: "#FFD166", marginTop: 3,
+                    background: "rgba(255,209,102,0.1)", padding: "1px 8px", borderRadius: 3,
+                    display: "inline-block",
                   }}>
-                    {device.gpu}
-                  </div>
-                )}
-
-                {/* Agent count */}
-                {device.agents.length > 0 && (
-                  <div style={{
-                    fontSize: 10,
-                    color: "rgba(253,252,240,0.4)",
-                    fontFamily: "monospace",
-                  }}>
-                    {device.agents.length} agent{device.agents.length !== 1 ? "s" : ""}: {device.agents.slice(0, 4).join(", ")}{device.agents.length > 4 ? "..." : ""}
-                  </div>
-                )}
-
-                {/* Connect button overlay */}
-                {isOnline && device.nekoUrl && (
-                  <div style={{
-                    marginTop: 8,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: "#2D1D19",
-                    background: "#FFD166",
-                    padding: "6px 16px",
-                    borderRadius: 6,
-                    opacity: 0.8,
-                    transition: "opacity 0.2s",
-                  }}>
-                    Connect Desktop
+                    {machine.gpu}
                   </div>
                 )}
               </div>
-
-              {/* Status badge */}
               <div style={{
-                position: "absolute",
-                top: 10,
-                right: 10,
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-                padding: "3px 8px",
-                borderRadius: 4,
-                background: "rgba(0,0,0,0.7)",
-                backdropFilter: "blur(4px)",
+                display: "flex", alignItems: "center", gap: 5,
+                padding: "3px 10px", borderRadius: 4,
+                background: machine.hasOnline ? "rgba(74,222,128,0.1)" : "rgba(239,68,68,0.1)",
               }}>
                 <div style={{
-                  width: 6, height: 6, borderRadius: "50%",
-                  background: isOnline ? "#4ade80" : "#ef4444",
+                  width: 7, height: 7, borderRadius: "50%",
+                  background: machine.hasOnline ? "#4ade80" : "#ef4444",
                 }} />
-                <span style={{ fontSize: 10, color: "#fff", fontWeight: 600 }}>
-                  {isSelf ? "THIS DEVICE" : device.status.toUpperCase()}
+                <span style={{
+                  fontSize: 11, fontWeight: 600,
+                  color: machine.hasOnline ? "#4ade80" : "#ef4444",
+                }}>
+                  {machine.hasOnline ? "ONLINE" : "OFFLINE"}
                 </span>
               </div>
-
-              {/* Roles badge */}
-              {device.roles.length > 0 && (
-                <div style={{
-                  position: "absolute",
-                  top: 10,
-                  left: 10,
-                  display: "flex",
-                  gap: 4,
-                }}>
-                  {device.roles.map((role) => (
-                    <span key={role} style={{
-                      fontSize: 9,
-                      fontWeight: 700,
-                      color: "rgba(253,252,240,0.6)",
-                      background: "rgba(0,0,0,0.6)",
-                      padding: "2px 6px",
-                      borderRadius: 3,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                    }}>
-                      {role}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Info bar */}
-              <div style={{ padding: "12px 14px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "#FDFCF0" }}>
-                  {device.name}
-                </div>
-                <div style={{ fontSize: 11, color: "rgba(253,252,240,0.35)", marginTop: 2 }}>
-                  {device.nekoUrl ? "WebRTC Desktop Ready" : isOnline ? "Screen view only" : "Offline"}
-                </div>
-              </div>
             </div>
-          );
-        })}
 
-        {devices.length === 0 && !loading && (
+            {/* Nodes inside this machine */}
+            <div style={{
+              display: "flex", gap: 8, padding: "0 18px 14px",
+              flexWrap: "wrap",
+            }}>
+              {machine.nodes.map((node) => (
+                <div
+                  key={node.name}
+                  style={{
+                    flex: "1 1 140px",
+                    background: "rgba(0,0,0,0.2)",
+                    border: "1px solid rgba(255,255,255,0.06)",
+                    borderRadius: 10,
+                    padding: "10px 12px",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                    <span style={{ fontSize: 14 }}>{osIcon(node.os)}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#FDFCF0" }}>
+                      {osLabel(node.os)}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 10, color: "rgba(253,252,240,0.35)", marginBottom: 4 }}>
+                    {node.name}
+                  </div>
+                  {node.agents.length > 0 && (
+                    <div style={{ fontSize: 10, color: "rgba(253,252,240,0.3)" }}>
+                      {node.agents.length} agent{node.agents.length !== 1 ? "s" : ""}
+                    </div>
+                  )}
+                  {node.roles.length > 0 && (
+                    <div style={{ display: "flex", gap: 3, marginTop: 4, flexWrap: "wrap" }}>
+                      {node.roles.map((r) => (
+                        <span key={r} style={{
+                          fontSize: 8, fontWeight: 700, color: "rgba(253,252,240,0.5)",
+                          background: "rgba(255,255,255,0.05)", padding: "1px 5px", borderRadius: 2,
+                          textTransform: "uppercase", letterSpacing: "0.05em",
+                        }}>
+                          {r}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Connect button */}
+            {machine.hasOnline && (
+              <div style={{
+                padding: "0 18px 16px",
+                display: "flex", gap: 8,
+              }}>
+                {machine.rustdesk_id ? (
+                  <button
+                    onClick={() => handleConnect(machine.rustdesk_id)}
+                    style={{
+                      flex: 1,
+                      background: "#FFD166",
+                      color: "#2D1D19",
+                      border: "none",
+                      borderRadius: 8,
+                      padding: "10px 0",
+                      fontWeight: 800,
+                      fontSize: 13,
+                      cursor: "pointer",
+                      transition: "opacity 0.15s",
+                    }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = "0.85"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
+                  >
+                    Connect Desktop (RustDesk)
+                  </button>
+                ) : (
+                  <div style={{
+                    flex: 1,
+                    background: "rgba(255,255,255,0.03)",
+                    border: "1px dashed rgba(255,255,255,0.1)",
+                    borderRadius: 8,
+                    padding: "10px 0",
+                    textAlign: "center",
+                    fontSize: 11,
+                    color: "rgba(253,252,240,0.3)",
+                  }}>
+                    Install RustDesk on this machine to enable remote desktop
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+
+        {machines.length === 0 && !loading && (
           <div style={{ color: "rgba(253,252,240,0.3)", fontSize: 13, padding: 20, gridColumn: "1 / -1" }}>
-            No devices found. Check nodes in ~/.musu/nodes.toml
+            No machines found. Check nodes in ~/.musu/nodes.toml
           </div>
         )}
       </div>

@@ -73,6 +73,10 @@ class NodeInfo:
     mac_address: str = ""
     broadcast_ip: str = "255.255.255.255"
     cert_fingerprint: str | None = None
+    machine: str = ""         # Physical machine group (e.g., "4060-pc")
+    os: str = ""              # "wsl2", "linux", "windows", "macos"
+    gpu: str = ""             # GPU description
+    rustdesk_id: str = ""     # RustDesk peer ID for remote desktop
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +103,7 @@ class MeshRouter:
         self._node_mac: dict[str, str] = {}         # node_name → MAC address for Wake-on-LAN
         self._node_broadcast: dict[str, str] = {}   # node_name → broadcast IP for Wake-on-LAN
         self._node_fingerprints: dict[str, str] = {} # node_name → TLS cert fingerprint
+        self._node_meta: dict[str, dict] = {}       # node_name → {machine, os, gpu, roles, rustdesk_id}
         self._health_cache: dict[str, tuple[bool, float]] = {}  # node → (alive, checked_at)
         self._cb: CircuitBreaker = CircuitBreaker.from_env()
         self._loaded = False
@@ -136,6 +141,15 @@ class MeshRouter:
                     fingerprint = node.get("cert_fingerprint", "")
                     if fingerprint:
                         self._node_fingerprints[name] = fingerprint
+                    # Machine grouping + OS + GPU + RustDesk
+                    self._node_meta[name] = {
+                        "machine": node.get("machine", name),
+                        "os": node.get("os", "linux"),
+                        "gpu": node.get("gpu", ""),
+                        "roles": node.get("roles", []),
+                        "rustdesk_id": node.get("rustdesk_id", ""),
+                        "tailscale_ip": node.get("tailscale_ip", ""),
+                    }
 
             for assign in mesh.get("agent_assignments", []):
                 agent = assign.get("agent", "").lower()
@@ -299,6 +313,7 @@ class MeshRouter:
         self._node_urls = {}
         self._node_agents = {}
         self._agent_nodes = {}
+        self._node_meta: dict[str, dict] = {}
         self._loaded = False
         self._load()
         logger.info("mesh_router: reloaded")

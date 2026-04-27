@@ -1675,12 +1675,18 @@ async def list_nodes() -> list[dict[str, Any]]:
         for agent, assigned_node in mesh._agent_nodes.items():
             if assigned_node == node_name and agent not in node_agents:
                 node_agents.append(agent)
+        meta = mesh._node_meta.get(node_name, {})
         nodes.append({
             "name": node_name,
             "url": node_url,
             "status": status,
             "is_self": is_self,
             "agents": node_agents,
+            "machine": meta.get("machine", node_name),
+            "os": meta.get("os", "linux"),
+            "gpu": meta.get("gpu", ""),
+            "roles": meta.get("roles", []),
+            "rustdesk_id": meta.get("rustdesk_id", ""),
         })
     return nodes
 
