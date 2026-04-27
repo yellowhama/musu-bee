@@ -371,11 +371,14 @@ echo ""
 
 if command -v systemctl >/dev/null 2>&1; then
     info "Starting MUSU..."
-    systemctl --user start musud 2>/dev/null || true
-    sleep 5
-    
+    systemctl --user daemon-reload 2>/dev/null
+    systemctl --user restart musud 2>/dev/null
+    sleep 6
+
     if [ -x "$MUSU_CLI" ]; then
-        "$MUSU_CLI" status 2>/dev/null || true
+        "$MUSU_CLI" status 2>/dev/null || warn "musu status failed — check: journalctl --user -u musud"
+    elif [ -x "$MUSU_HOME/bin/musud" ]; then
+        "$MUSU_HOME/bin/musud" status 2>/dev/null || warn "musud status failed"
     fi
     echo ""
 fi
