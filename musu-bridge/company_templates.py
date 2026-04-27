@@ -1,13 +1,21 @@
 # musu-bridge/company_templates.py
-"""Built-in company team templates."""
+"""Built-in company team templates with harness governance defaults."""
 from __future__ import annotations
+
+# Default governance configs
+_GOV_DEV = {"qa_auto_enabled": True, "qa_pass_threshold": 7, "qa_max_iterations": 3, "budget_enforcement": "hard", "approval_gates": ["deploy"], "escalation_chain": ["lead", "cto", "ceo"]}
+_GOV_CONTENT = {"qa_auto_enabled": True, "qa_pass_threshold": 7, "qa_max_iterations": 3, "budget_enforcement": "hard", "approval_gates": [], "escalation_chain": ["lead", "editor", "ceo"]}
+_GOV_WRITER = {"qa_auto_enabled": True, "qa_pass_threshold": 7, "qa_max_iterations": 3, "budget_enforcement": "hard", "approval_gates": ["publish"], "escalation_chain": ["bw-lead", "bw-editor", "ceo"]}
+_GOV_RESEARCH = {"qa_auto_enabled": False, "qa_pass_threshold": 7, "qa_max_iterations": 3, "budget_enforcement": "hard", "approval_gates": [], "escalation_chain": ["lead", "ceo"]}
 
 _TEMPLATES: dict[str, dict] = {
     "dev-team": {
         "description": "소프트웨어 개발 전담 팀 — 팀장/기획/구현/QA",
+        "governance": _GOV_DEV,
         "agents": [
             {
                 "name": "lead",
+                "budget_usd_monthly": 50.0,
                 "role": "Team Lead",
                 "adapter_type": "claude_local",
                 "instructions_path": "musu-bridge/instructions/team_lead.md",
@@ -23,6 +31,7 @@ _TEMPLATES: dict[str, dict] = {
                 "name": "planner",
                 "role": "Planner",
                 "adapter_type": "claude_local",
+                "budget_usd_monthly": 15.0,
                 "instructions": (
                     "You are the Planner for {company_name}.\n"
                     "Company purpose: {purpose}\n\n"
@@ -36,6 +45,7 @@ _TEMPLATES: dict[str, dict] = {
                 "name": "engineer",
                 "role": "Engineer",
                 "adapter_type": "claude_local",
+                "budget_usd_monthly": 30.0,
                 "instructions": (
                     "You are the Engineer for {company_name}.\n"
                     "Company purpose: {purpose}\n\n"
@@ -49,6 +59,7 @@ _TEMPLATES: dict[str, dict] = {
                 "name": "qa",
                 "role": "QA",
                 "adapter_type": "claude_local",
+                "budget_usd_monthly": 20.0,
                 "instructions": (
                     "You are the QA Lead for {company_name}.\n"
                     "Company purpose: {purpose}\n\n"
@@ -63,6 +74,7 @@ _TEMPLATES: dict[str, dict] = {
     },
     "content-team": {
         "description": "콘텐츠 제작 팀 — 팀장/리서처/작가/에디터",
+        "governance": _GOV_CONTENT,
         "agents": [
             {
                 "name": "lead",
@@ -113,6 +125,7 @@ _TEMPLATES: dict[str, dict] = {
     },
     "writer-studio": {
         "description": "장기 소설/IP 제작 스튜디오 — lead / 2 PM / researcher / writer / editor",
+        "governance": _GOV_WRITER,
         "agents": [
             {
                 "name": "bw-lead",
@@ -188,6 +201,7 @@ _TEMPLATES: dict[str, dict] = {
     },
     "research-team": {
         "description": "리서치 팀 — 팀장/분석가/연구원/요약가",
+        "governance": _GOV_RESEARCH,
         "agents": [
             {
                 "name": "lead",
