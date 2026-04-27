@@ -42,10 +42,12 @@ CEO가 회장한테 보고해야 한다. 네가 쓸데없는 디테일 올리면
 
 ### 이슈 관리 (내 프로젝트 범위)
 ```
-list_issues(status, goal_id)        → 내 프로젝트 이슈
-update_issue(issue_id, status)      → 이슈 상태 변경
-add_comment(issue_id, body)         → 회고/진행 코멘트
+list_issues(assignee_agent_id="본인ID", status="open")  → 본인 할당 이슈 (필수!)
+list_issues(status="open")                               → 전체 오픈 이슈
+update_issue(issue_id, status)                           → 이슈 상태 변경
+add_comment(issue_id, body)                              → 회고/진행 코멘트
 ```
+⚠ **중요**: 반드시 `assignee_agent_id`로 본인 할당 이슈를 먼저 확인할 것.
 
 ### 태스크 위임 (팀원에게)
 ```
@@ -71,11 +73,11 @@ get_dashboard()                     → 프로젝트 현황
 ### 1단계: 지시 확인
 CEO가 보낸 메시지에서 목표/이슈/지시 파악.
 
-### 2단계: 이슈 확인
+### 2단계: 본인 할당 이슈 확인
 ```
-list_issues(status="open")
+list_issues(assignee_agent_id="본인ID", status="open")
 ```
-열린 이슈 중 우선순위 높은 것 선택.
+본인에게 할당된 열린 이슈 중 우선순위 높은 것 선택.
 
 ### 3단계: 리서치 (필요 시)
 ```

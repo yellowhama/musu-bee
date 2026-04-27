@@ -118,10 +118,22 @@ async def _heartbeat_iteration(
             "폴링 루프 금지: while True + sleep 루프 절대 실행 금지 — heartbeat timeout 초과 원인."
         )
     elif role == "team_lead":
+        # Resolve agent_id for assignee filtering
+        _lead_agent_id = ""
+        try:
+            _lead_backend = _get_heartbeat_backend()
+            _lead_agent = _lead_backend.get_agent_by_name(agent_name)
+            if _lead_agent:
+                _lead_agent_id = _lead_agent.get("id", "")
+        except Exception:
+            pass
+
         prompt_parts.append(
             "자율 팀장 루프 실행:\n"
-            "1. get_task_status('assigned') — 본인에게 할당된 이슈/작업 확인\n"
-            "2. 판단: 진행해야 할 작업이 있다면 엔지니어/QA에게 구체적 명세(Sprint Contract)와 함께 delegate_task 실행\n"
+            f"본인 agent_id: {_lead_agent_id}\n\n"
+            f"1. list_issues(assignee_agent_id='{_lead_agent_id}', status='open') — 본인에게 할당된 이슈 확인\n"
+            "   ⚠ 반드시 assignee_agent_id로 필터링할 것. 전체 이슈가 아닌 본인 할당만.\n"
+            "2. 판단: 할당된 이슈가 있다면 엔지니어/QA에게 구체적 명세(Sprint Contract)와 함께 delegate_task 실행\n"
             "3. 진행 상황 확인: 하위 태스크의 상태를 폴링하지 말고, 다음 하트비트에서 확인\n"
             "4. 완료 보고: 하위 태스크가 완료되면 CEO가 할당한 원본 이슈/태스크에 코멘트로 결과 보고\n"
         )
@@ -572,3 +584,99 @@ async def morning_report_cron(bridge_url: str = "http://localhost:8070") -> None
                 logger.info("morning_report_cron: report posted")
             except Exception as exc:
                 logger.warning("morning_report_cron: error — %s", exc)
+
+
+async def qa_auto_evaluate_loop() -> None:
+    """Auto-evaluate completed tasks for companies with qa_auto_enabled governance.
+
+    Env: MUSU_QA_AUTO_ENABLED = "true" to activate.
+    """
+    import json as _json
+
+    if os.environ.get("MUSU_QA_AUTO_ENABLED", "").lower() != "true":
+        logger.info("qa_auto_evaluate_loop: disabled (MUSU_QA_AUTO_ENABLED != true)")
+        return
+
+    logger.info("qa_auto_evaluate_loop: started")
+    interval = int(os.environ.get("MUSU_QA_AUTO_INTERVAL", "60"))
+
+    while True:
+        await asyncio.sleep(interval)
+        try:
+            backend = _get_heartbeat_backend()
+            companies = backend.list_companies()
+
+            for company in companies:
+                gov_raw = company.get("governance_config", "{}")
+                gov = _json.loads(gov_raw) if isinstance(gov_raw, str) else gov_raw
+                if not gov.get("qa_auto_enabled"):
+                    continue
+
+                company_id = company["id"]
+
+                # Find completed executions without QA scores
+                execs = backend.list_route_executions(
+                    status="done", company_id=company_id, limit=10,
+                )
+                for ex in execs:
+                    ex_id = ex.get("id")
+                    existing = backend._db.execute(
+                        "SELECT id FROM qa_scores WHERE task_id = ? LIMIT 1", (ex_id,),
+                    )
+                    if existing:
+                        continue
+
+                    # Find QA agent for this company
+                    agents = backend.list_agents(company_id=company_id)
+                    qa_agent = next((a for a in agents if a.get("role") == "QA"), None)
+                    if not qa_agent:
+                        continue
+
+                    threshold = gov.get("qa_pass_threshold", 7)
+                    qa_prompt = (
+                        f"Evaluate the following completed task output.\n"
+                        f"Score on 4 criteria (1-10): functionality, correctness, completeness, code_quality.\n"
+                        f"Pass threshold: all >= {threshold}.\n\n"
+                        f"Task: {ex.get('input', '')[:500]}\n"
+                        f"Output: {ex.get('output', '')[:1000]}"
+                    )
+                    await route_chat(
+                        channel=qa_agent["name"],
+                        sender_id="qa_auto_evaluate",
+                        text=qa_prompt,
+                        company_id=company_id,
+                    )
+                    logger.info("qa_auto: triggered QA for exec=%s company=%s", ex_id, company_id)
+        except Exception as exc:
+            logger.warning("qa_auto_evaluate_loop: error — %s", exc)
+
+
+async def budget_reset_cron() -> None:
+    """Reset agent budget_usd_spent on the 1st of each month at 00:00 UTC."""
+    from datetime import datetime, timezone
+
+    logger.info("budget_reset_cron: started")
+
+    while True:
+        await asyncio.sleep(3600)  # check hourly
+        try:
+            now = datetime.now(timezone.utc)
+            if now.day != 1 or now.hour != 0:
+                continue
+
+            backend = _get_heartbeat_backend()
+            agents = backend.list_agents()
+            reset_count = 0
+            if now.month == 12:
+                next_reset = datetime(now.year + 1, 1, 1, tzinfo=timezone.utc).isoformat()
+            else:
+                next_reset = datetime(now.year, now.month + 1, 1, tzinfo=timezone.utc).isoformat()
+
+            for agent in agents:
+                if agent.get("budget_usd_monthly") is not None:
+                    backend.update_agent(agent["id"], budget_usd_spent=0.0, budget_reset_at=next_reset)
+                    reset_count += 1
+
+            logger.info("budget_reset_cron: reset %d agents, next=%s", reset_count, next_reset)
+        except Exception as exc:
+            logger.warning("budget_reset_cron: error — %s", exc)

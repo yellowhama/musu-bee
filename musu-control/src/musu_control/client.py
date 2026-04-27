@@ -62,6 +62,11 @@ class PaperclipClient:
         resp.raise_for_status()
         return resp.json()
 
+    async def put(self, path: str, body: dict) -> Any:
+        resp = await self._client.put(path, json=body)
+        resp.raise_for_status()
+        return resp.json()
+
     async def delete(self, path: str) -> Any:
         resp = await self._client.delete(path)
         resp.raise_for_status()

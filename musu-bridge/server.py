@@ -370,6 +370,8 @@ from heartbeat_scheduler import (  # noqa: F401
     _node_manager_heartbeat, _company_locks, _get_company_lock,
     auto_distribute_loop,
     morning_report_cron,
+    qa_auto_evaluate_loop,
+    budget_reset_cron,
 )
 
 
@@ -509,6 +511,10 @@ async def lifespan(app: FastAPI):
         router.auto_assign_agents(_local_node, [_mgr_name])
     except Exception as _e:
         logger.warning("startup: failed to seed node manager — %s", _e)
+
+    # Determine if this is the primary (orchestrator) node.
+    # Only primary seeds company agents. Default: True (single-node = always primary).
+    _is_primary = os.environ.get("MUSU_NODE_ROLE", "primary").lower() == "primary"
 
     # Restore channel→agent mapping from DB on startup.
     # channel_agent_map is env-driven (static). Agents must exist in DB for routing to work.
@@ -703,6 +709,12 @@ async def lifespan(app: FastAPI):
         morning_report_task = asyncio.create_task(morning_report_cron())
         logger.info("morning_report_cron: task started")
 
+    # QA auto-evaluate loop (runs if MUSU_QA_AUTO_ENABLED=true)
+    qa_auto_task = asyncio.create_task(qa_auto_evaluate_loop())
+
+    # Budget monthly reset cron (always on — checks hourly, resets on 1st)
+    budget_reset_task = asyncio.create_task(budget_reset_cron())
+
     # Watchdog rate limit cache cleanup (always on — prevents unbounded memory growth)
     watchdog_cleanup_task = asyncio.create_task(_watchdog_rate_cleanup_loop())
 
@@ -719,6 +731,24 @@ async def lifespan(app: FastAPI):
             logger.info("portd: registered bridge as alias 'bridge'")
     except Exception as _pe:
         logger.info("portd: registration skipped (%s)", _pe)
+
+    # ── Node join: secondary nodes register with primary on startup ────────
+    if not _is_primary:
+        try:
+            import httpx
+            _primary_url = os.environ.get("MUSU_PRIMARY_URL", "")
+            if _primary_url:
+                _self_url = router._node_urls.get(_local_node, f"http://127.0.0.1:{os.environ.get('BRIDGE_PORT', '8070')}")
+                _self_agents = router._node_agents.get(_local_node, [f"mgr-{_local_node}"])
+                async with httpx.AsyncClient(timeout=10) as _join_http:
+                    await _join_http.post(f"{_primary_url}/api/nodes/join", json={
+                        "name": _local_node, "url": _self_url, "agents": _self_agents,
+                    })
+                logger.info("node_join: registered with primary %s", _primary_url)
+            else:
+                logger.info("node_join: secondary but MUSU_PRIMARY_URL not set, skipping")
+        except Exception as _je:
+            logger.warning("node_join: failed — %s", _je)
 
     # Record bridge_started lifecycle event
     try:
@@ -742,6 +772,8 @@ async def lifespan(app: FastAPI):
 
     stuck_watchdog_task.cancel()
     watchdog_cleanup_task.cancel()
+    qa_auto_task.cancel()
+    budget_reset_task.cancel()
     session_cleanup_task.cancel()
     discovery.close()
     if morning_report_task:

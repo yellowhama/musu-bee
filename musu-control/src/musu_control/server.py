@@ -449,6 +449,54 @@ async def resume_agent(agent_id: str, reason: str = "") -> str:
 
 
 @mcp.tool()
+async def get_agent_budget(agent_id: str) -> str:
+    """Get budget status for an agent (monthly limit, spent, remaining, reset date)."""
+    try:
+        c = _get_client()
+        data = await c.get(f"/agents/{agent_id}/budget")
+        return _fmt(data)
+    except Exception:
+        return _tool_error(f"Error getting budget for agent {agent_id}.")
+
+
+@mcp.tool()
+async def get_governance(company_id: str = "") -> str:
+    """Get the governance config for a company (QA auto-eval, budget enforcement, approval gates)."""
+    try:
+        c = _get_client()
+        cid = company_id or c.company_id
+        if not cid:
+            return _tool_error("No company_id provided and none configured.")
+        data = await c.get(f"/companies/{cid}/governance")
+        return _fmt(data)
+    except Exception:
+        return _tool_error("Error getting governance config.")
+
+
+@mcp.tool()
+async def update_governance(company_id: str = "", qa_auto_enabled: bool | None = None, qa_pass_threshold: int | None = None, budget_enforcement: str = "") -> str:
+    """Update governance config for a company. Only provided fields are changed."""
+    try:
+        c = _get_client()
+        cid = company_id or c.company_id
+        if not cid:
+            return _tool_error("No company_id provided and none configured.")
+        body: dict = {}
+        if qa_auto_enabled is not None:
+            body["qa_auto_enabled"] = qa_auto_enabled
+        if qa_pass_threshold is not None:
+            body["qa_pass_threshold"] = qa_pass_threshold
+        if budget_enforcement:
+            body["budget_enforcement"] = budget_enforcement
+        if not body:
+            return _tool_error("No fields to update.")
+        data = await c.put(f"/companies/{cid}/governance", body)
+        return _fmt(data)
+    except Exception:
+        return _tool_error("Error updating governance config.")
+
+
+@mcp.tool()
 async def invoke_heartbeat(agent_id: str) -> str:
     """Manually trigger a heartbeat run for an agent."""
     try:
