@@ -1222,7 +1222,47 @@ async def api_resume_agent(agent_id: str) -> dict:
     return {"id": agent_id, "status": "active"}
 
 
-# AgentUpdateRequest → bridge_models.py
+class AgentUpdateBody(BaseModel):
+    adapter_type: str | None = None
+    model: str | None = None
+    instructions: str | None = None
+    instructions_path: str | None = None
+    timeout_sec: int | None = None
+    budget_usd_monthly: float | None = None
+
+
+@app.put("/api/agents/{agent_id}", summary="Update agent configuration")
+async def api_update_agent(agent_id: str, body: AgentUpdateBody) -> dict:
+    """Update adapter config, model, instructions, or budget for an agent."""
+    from handlers import _get_backend
+    backend = _get_backend()
+    agent = backend.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
+
+    updates: dict = {}
+    config = dict(agent.get("adapter_config", {}))
+
+    if body.adapter_type is not None:
+        updates["adapter_type"] = body.adapter_type
+    if body.model is not None:
+        config["model"] = body.model
+    if body.instructions is not None:
+        config["instructions"] = body.instructions
+    if body.instructions_path is not None:
+        config["instructions_path"] = body.instructions_path
+    if body.timeout_sec is not None:
+        config["timeout_sec"] = body.timeout_sec
+    if config != agent.get("adapter_config", {}):
+        updates["adapter_config"] = config
+    if body.budget_usd_monthly is not None:
+        updates["budget_usd_monthly"] = body.budget_usd_monthly
+
+    if not updates:
+        return agent
+
+    result = backend.update_agent(agent_id, **updates)
+    return result if result else agent
 
 
 @app.patch("/api/agents/{agent_id}", summary="Update agent role, model, or adapter_config")
