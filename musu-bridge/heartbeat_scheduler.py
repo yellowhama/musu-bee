@@ -674,8 +674,17 @@ async def budget_reset_cron() -> None:
 
             for agent in agents:
                 if agent.get("budget_usd_monthly") is not None:
+                    old_spent = agent.get("budget_usd_spent") or 0.0
                     backend.update_agent(agent["id"], budget_usd_spent=0.0, budget_reset_at=next_reset)
                     reset_count += 1
+                    # Audit trail: log reset transaction
+                    try:
+                        backend._db.execute(
+                            "INSERT INTO budget_transactions (id, agent_id, company_id, amount_usd, type, description) VALUES (?, ?, ?, ?, 'reset', ?)",
+                            (str(uuid.uuid4()), agent["id"], agent.get("company_id"), -old_spent, f"monthly reset, was ${old_spent:.4f}"),
+                        )
+                    except Exception:
+                        pass  # table may not exist yet
 
             logger.info("budget_reset_cron: reset %d agents, next=%s", reset_count, next_reset)
         except Exception as exc:

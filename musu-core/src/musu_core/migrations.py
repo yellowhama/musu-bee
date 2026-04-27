@@ -696,6 +696,41 @@ def _v22_down(conn: sqlite3.Connection) -> None:
         pass
 
 
+# ---------------------------------------------------------------------------
+# v23: budget_transactions audit trail
+# ---------------------------------------------------------------------------
+
+
+def _v23_up(conn: sqlite3.Connection) -> None:
+    """Create budget_transactions table for audit trail."""
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS budget_transactions (
+            id          TEXT PRIMARY KEY,
+            agent_id    TEXT NOT NULL REFERENCES agents(id),
+            company_id  TEXT REFERENCES companies(id),
+            amount_usd  REAL NOT NULL,
+            type        TEXT NOT NULL CHECK (type IN ('charge', 'reset', 'adjust')),
+            run_id      TEXT,
+            description TEXT NOT NULL DEFAULT '',
+            created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_budget_tx_agent
+            ON budget_transactions(agent_id);
+        CREATE INDEX IF NOT EXISTS idx_budget_tx_created
+            ON budget_transactions(created_at DESC);
+    """)
+    conn.commit()
+
+
+def _v23_down(conn: sqlite3.Connection) -> None:
+    conn.executescript("""
+        DROP INDEX IF EXISTS idx_budget_tx_created;
+        DROP INDEX IF EXISTS idx_budget_tx_agent;
+        DROP TABLE IF EXISTS budget_transactions;
+    """)
+    conn.commit()
+
+
 MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v1_fallback_chain", _v1_up, _v1_down),
     ("v2_messages_agent_id", _v2_up, _v2_down),
@@ -719,6 +754,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v20_tombstone", _v20_up, _v20_down),
     ("v21_issue_goal_project_linkage", _v21_up, _v21_down),
     ("v22_agent_budget_governance", _v22_up, _v22_down),
+    ("v23_budget_transactions", _v23_up, _v23_down),
 ]
 
 

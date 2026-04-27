@@ -395,9 +395,18 @@ async def route_chat(
                     if cost_usd and _aid:
                         try:
                             _spent_agent = backend.get_agent(_aid)
-                            if _spent_agent and _spent_agent.get("budget_usd_monthly") is not None:
+                            if _spent_agent:
                                 new_spent = (_spent_agent.get("budget_usd_spent") or 0.0) + cost_usd
                                 backend.update_agent(_aid, budget_usd_spent=new_spent)
+                                # Audit trail: log charge transaction
+                                try:
+                                    import uuid as _uuid_bt
+                                    backend._db.execute(
+                                        "INSERT INTO budget_transactions (id, agent_id, company_id, amount_usd, type, run_id, description) VALUES (?, ?, ?, ?, 'charge', ?, ?)",
+                                        (str(_uuid_bt.uuid4()), _aid, company_id, cost_usd, exec_id, f"route_chat channel={channel}"),
+                                    )
+                                except Exception:
+                                    pass  # table may not exist yet (pre-v23)
                         except Exception:
                             logger.debug("budget_track: failed to update spent for agent=%s", _aid)
             except Exception:
