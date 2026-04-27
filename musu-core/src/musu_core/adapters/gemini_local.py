@@ -100,6 +100,8 @@ class GeminiLocalAdapter(BaseAdapter):
                 env["MUSU_TASK_ID"] = ctx.task_id
             env["MUSU_AGENT_ID"] = ctx.agent_id
             env["MUSU_RUN_ID"] = ctx.run_id
+            if ctx.company_id:
+                env["PAPERCLIP_COMPANY_ID"] = ctx.company_id
             return env
 
         def build_args() -> list[str]:

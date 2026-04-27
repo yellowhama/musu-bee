@@ -95,6 +95,8 @@ class RouteRequest:
     cost_optimized: bool = False
     # Arbitrary extra context forwarded to the adapter
     extra: dict[str, Any] = field(default_factory=dict)
+    # Company scope — injected as PAPERCLIP_COMPANY_ID into adapter subprocess env
+    company_id: str | None = None
 
 
 @dataclass
@@ -178,6 +180,7 @@ class Router:
             cwd=req.cwd or adapter_config.get("cwd"),
             task_id=req.task_id,
             extra=req.extra,
+            company_id=req.company_id or getattr(agent, "company_id", None),
         )
 
         # --- 3. Log start ---
@@ -452,6 +455,7 @@ async def route_message(
             adapter_type=adapter_type,
             config=adapter_config,
             task_id=task_id,
+            company_id=agent_dict.get("company_id"),
         )
 
 

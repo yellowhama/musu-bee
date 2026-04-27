@@ -522,6 +522,7 @@ async def route_chat(
                 task_id=task_id,
                 adapter_override=adapter_override,
                 cost_optimized=cost_optimized,
+                company_id=company_id,
             ))
     except TimeoutError:
         if _heartbeat_task:

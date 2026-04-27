@@ -95,6 +95,8 @@ class AdapterContext:
     task_id: str | None = None
     # Arbitrary extra context
     extra: dict[str, Any] = field(default_factory=dict)
+    # Company scope — injected as PAPERCLIP_COMPANY_ID into adapter subprocess env
+    company_id: str | None = None
 
 
 @dataclass

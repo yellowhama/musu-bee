@@ -138,6 +138,8 @@ class ClaudeLocalAdapter(BaseAdapter):
                     env["MUSU_TASK_WORKSPACE"] = str(ws.path)
             env["MUSU_AGENT_ID"] = ctx.agent_id
             env["MUSU_RUN_ID"] = ctx.run_id
+            if ctx.company_id:
+                env["PAPERCLIP_COMPANY_ID"] = ctx.company_id
             return env
 
         def build_args(resume_session_id: str | None) -> list[str]:
