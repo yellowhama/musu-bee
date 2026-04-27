@@ -1491,6 +1491,85 @@ async def api_company_dashboard(company_id: str) -> dict:
     }
 
 
+# ── Node Join Protocol ──────────────────────────────────────────────────────
+
+
+class NodeJoinRequest(BaseModel):
+    name: str
+    url: str
+    roles: list[str] = []
+    gpu: str = ""
+    agents: list[str] = []
+
+
+@app.post("/api/nodes/join", summary="Register a node in the mesh")
+async def api_node_join(req: NodeJoinRequest):
+    """Called by a remote bridge on startup to register itself with the primary."""
+    router = get_mesh_router()
+    existing_agents = router._node_agents.get(req.name, [])
+    all_agents = list(set(existing_agents + req.agents))
+    router.add_node(req.name, req.url, agents=all_agents)
+    for agent_name in req.agents:
+        router._agent_nodes[agent_name.lower()] = req.name
+    router._write_toml()
+    router.reload()
+    logger.info("node_join: %s registered url=%s agents=%s", req.name, req.url, req.agents)
+    return {"status": "joined", "node": req.name, "agents_registered": all_agents}
+
+
+# ── Governance API ──────────────────────────────────────────────────────────
+
+
+@app.get("/api/companies/{company_id}/governance", summary="Get governance config")
+async def api_get_governance(company_id: str):
+    """Return the governance config for a company."""
+    import json as _json
+    company = get_company(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    raw = company.get("governance_config", "{}")
+    return _json.loads(raw) if isinstance(raw, str) else raw
+
+
+@app.put("/api/companies/{company_id}/governance", summary="Update governance config")
+async def api_update_governance(company_id: str, body: dict):
+    """Update the governance config for a company (merges with existing)."""
+    import json as _json
+    company = get_company(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    existing = _json.loads(company.get("governance_config", "{}"))
+    existing.update(body)
+    from handlers import update_company
+    updated = update_company(company_id, governance_config=_json.dumps(existing))
+    return _json.loads(updated.get("governance_config", "{}"))
+
+
+# ── Agent Budget API ────────────────────────────────────────────────────────
+
+
+@app.get("/api/agents/{agent_id}/budget", summary="Get agent budget status")
+async def api_get_agent_budget(agent_id: str):
+    """Return budget info for an agent."""
+    from handlers import _get_backend
+    backend = _get_backend()
+    agent = backend.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    return {
+        "agent_id": agent_id,
+        "name": agent.get("name"),
+        "budget_usd_monthly": agent.get("budget_usd_monthly"),
+        "budget_usd_spent": agent.get("budget_usd_spent", 0.0),
+        "budget_reset_at": agent.get("budget_reset_at"),
+        "remaining": (agent["budget_usd_monthly"] - (agent.get("budget_usd_spent") or 0.0))
+            if agent.get("budget_usd_monthly") is not None else None,
+    }
+
+
+# ── Route Task ──────────────────────────────────────────────────────────────
+
+
 class RouteTaskRequest(BaseModel):
     channel: str
     instruction: str

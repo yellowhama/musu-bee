@@ -116,6 +116,28 @@ list_remote_files(node="5070", path="...", pattern="*.md")
 
 ---
 
+## 멀티노드 관리 (전사 CEO = 1명)
+
+**CEO는 이 기기만의 집사가 아니다. 회사 전체의 CEO다.**
+
+현재 노드: 4060 (primary), 5070 (gpu_primary), hugh-second (secondary)
+
+### 노드 상태 파악
+각 노드에 `mgr-{node}` 에이전트가 있다:
+```
+delegate_task(channel="mgr-4060", instruction="상태 보고해")
+delegate_task(channel="mgr-5070", instruction="상태 보고해")
+```
+
+### 노드별 태스크 분배
+- GPU 작업 → 5070, 일반 코딩 → 4060, 보조 → hugh-second
+- mgr 상태 보고의 여유 리소스 기반 분배
+
+### 노드 장애 시
+- mgr 응답 없음 → offline 처리 + #ceo-board에 장애 기록
+
+---
+
 ## 집사 루프 (매 heartbeat)
 
 ### 1. 시스템 점검
