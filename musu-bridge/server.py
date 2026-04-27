@@ -733,6 +733,27 @@ async def lifespan(app: FastAPI):
         logger.info("portd: registration skipped (%s)", _pe)
 
     # ── Node join: secondary nodes register with primary on startup ────────
+    # Auto-detect node identity (OS, GPU, machine group, etc.)
+    try:
+        from node_identity import detect_node_identity
+        _identity = detect_node_identity()
+    except Exception as _ide:
+        logger.warning("node_identity: detection failed — %s", _ide)
+        _identity = {}
+
+    # Store self identity in mesh_router meta (even for primary)
+    if _identity:
+        router._node_meta[_local_node] = {
+            "machine": _identity.get("machine", _local_node),
+            "os": _identity.get("os", "linux"),
+            "gpu": _identity.get("gpu", ""),
+            "roles": list(router._node_agents.get(_local_node, [])),
+            "machine_id": _identity.get("machine_id", ""),
+            "win_hostname": _identity.get("win_hostname", ""),
+            "tailscale_ip": _identity.get("tailscale_ip", ""),
+            "rustdesk_id": "",
+        }
+
     if not _is_primary:
         try:
             import httpx
@@ -743,6 +764,7 @@ async def lifespan(app: FastAPI):
                 async with httpx.AsyncClient(timeout=10) as _join_http:
                     await _join_http.post(f"{_primary_url}/api/nodes/join", json={
                         "name": _local_node, "url": _self_url, "agents": _self_agents,
+                        **_identity,
                     })
                 logger.info("node_join: registered with primary %s", _primary_url)
             else:
@@ -1532,6 +1554,12 @@ class NodeJoinRequest(BaseModel):
     roles: list[str] = []
     gpu: str = ""
     agents: list[str] = []
+    # Auto-detected identity fields
+    os: str = ""
+    machine: str = ""
+    machine_id: str = ""
+    win_hostname: str = ""
+    tailscale_ip: str = ""
 
 
 @app.post("/api/nodes/join", summary="Register a node in the mesh")
@@ -1543,10 +1571,21 @@ async def api_node_join(req: NodeJoinRequest):
     router.add_node(req.name, req.url, agents=all_agents)
     for agent_name in req.agents:
         router._agent_nodes[agent_name.lower()] = req.name
+    # Store machine metadata from auto-detection
+    router._node_meta[req.name] = {
+        "machine": req.machine or req.name,
+        "os": req.os or "linux",
+        "gpu": req.gpu,
+        "roles": req.roles,
+        "machine_id": req.machine_id,
+        "win_hostname": req.win_hostname,
+        "tailscale_ip": req.tailscale_ip,
+        "rustdesk_id": "",
+    }
     router._write_toml()
     router.reload()
-    logger.info("node_join: %s registered url=%s agents=%s", req.name, req.url, req.agents)
-    return {"status": "joined", "node": req.name, "agents_registered": all_agents}
+    logger.info("node_join: %s registered machine=%s os=%s gpu=%s", req.name, req.machine, req.os, req.gpu)
+    return {"status": "joined", "node": req.name, "machine": req.machine, "agents_registered": all_agents}
 
 
 # ── Governance API ──────────────────────────────────────────────────────────
