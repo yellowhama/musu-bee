@@ -192,11 +192,30 @@ fi
 # ══════════════════════════════════════════════════════════════
 # Step 8: Generate musu.toml
 # ══════════════════════════════════════════════════════════════
+# Always regenerate if missing [services.bridge] (old format detection)
+_NEED_TOML=false
 if [ ! -f "$MUSU_HOME/musu.toml" ]; then
+    _NEED_TOML=true
+elif ! grep -q "\[services\.bridge\]" "$MUSU_HOME/musu.toml" 2>/dev/null; then
+    warn "musu.toml exists but has old format — regenerating..."
+    cp "$MUSU_HOME/musu.toml" "$MUSU_HOME/musu.toml.bak"
+    _NEED_TOML=true
+fi
+
+if [ "$_NEED_TOML" = true ]; then
     info "Generating musu.toml..."
+
+    # Detect if this is a secondary node (primary URL provided via env)
+    _PRIMARY_URL="${MUSU_PRIMARY_URL:-}"
+    _NODE_ROLE="primary"
+    if [ -n "$_PRIMARY_URL" ]; then
+        _NODE_ROLE="secondary"
+    fi
+
     cat > "$MUSU_HOME/musu.toml" << TOML
 grace_period_secs = 15
 
+# ── Bridge: FastAPI agent orchestration server ──────────────
 [services.bridge]
 command = "${MUSU_ROOT}/scripts/start-bridge.sh"
 restart = "on-failure"
@@ -205,15 +224,31 @@ http = "http://127.0.0.1:${BRIDGE_PORT}/health"
 interval_secs = 30
 failure_threshold = 3
 
+# ── Bee: Next.js web UI ─────────────────────────────────────
 [services.bee]
 command = "${MUSU_ROOT}/scripts/start-bee.sh"
 restart = "on-failure"
-enabled = $([ $INSTALL_BEE -eq 1 ] && echo "true" || echo "false")
 [services.bee.health]
 http = "http://127.0.0.1:${BEE_PORT}"
-interval_secs = 30
+interval_secs = 60
+failure_threshold = 5
+
+# ── Connectsd: QUIC P2P daemon (기기 간 직접 통신) ──────────
+[services.connectsd]
+command = "${MUSU_ROOT}/bin/musu-connectsd"
+args = ["daemon", "--bridge-url", "http://127.0.0.1:${BRIDGE_PORT}"]
+restart = "on-failure"
+
+# ── Portd: service discovery + port routing ─────────────────
+[services.portd]
+command = "${MUSU_HOME}/bin/musu-portd"
+restart = "on-failure"
+[services.portd.health]
+http = "http://127.0.0.1:1355/health"
+interval_secs = 60
 failure_threshold = 3
 
+# ── Worker: remote command execution ────────────────────────
 [services.worker]
 command = "${MUSU_ROOT}/musu-worker/.venv/bin/python"
 args = ["-m", "uvicorn", "server:app", "--host", "0.0.0.0", "--port", "9700"]
@@ -223,11 +258,17 @@ enabled = false
 [ports]
 bridge = ${BRIDGE_PORT}
 bee = ${BEE_PORT}
+portd = 1355
 worker = 9700
+
+[env]
+MUSU_NODE_ROLE = "${_NODE_ROLE}"
+MUSU_NODE_HEARTBEAT_ENABLED = "true"
+MUSU_PRIMARY_URL = "${_PRIMARY_URL}"
 TOML
     info "musu.toml created ✓"
 else
-    info "musu.toml already exists — skipping"
+    info "musu.toml OK (services configured)"
 fi
 
 # ══════════════════════════════════════════════════════════════
