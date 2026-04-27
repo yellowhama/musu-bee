@@ -47,11 +47,15 @@ def _detect_os() -> str:
 
 
 def _detect_gpu() -> str:
-    # Try nvidia-smi first
-    gpu = _run(["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"])
-    if gpu:
-        # Take first GPU if multiple
-        return gpu.split("\n")[0].strip()
+    # Try nvidia-smi from multiple known paths
+    for nvidia_smi in [
+        "nvidia-smi",
+        "/usr/lib/wsl/lib/nvidia-smi",   # WSL2
+        "/usr/bin/nvidia-smi",            # native Linux
+    ]:
+        gpu = _run([nvidia_smi, "--query-gpu=name", "--format=csv,noheader"])
+        if gpu:
+            return gpu.split("\n")[0].strip()
     return ""
 
 
