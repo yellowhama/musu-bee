@@ -77,27 +77,50 @@ mkdir -p "$MUSU_HOME/bin"
 mkdir -p "$MUSU_HOME/logs"
 
 # ══════════════════════════════════════════════════════════════
-# Step 4: Download Binaries (if URL provided)
+# Step 4: Install Binaries (musud, musu, musu-connectsd, musu-portd)
 # ══════════════════════════════════════════════════════════════
-if [ -n "$MUSU_BIN_URL" ]; then
-    info "Downloading musud..."
-    if curl -fsSL "${MUSU_BIN_URL}/musud-${OS}-${ARCH}" -o "$MUSU_HOME/bin/musud" 2>/dev/null && \
-       curl -fsSL "${MUSU_BIN_URL}/musu-${OS}-${ARCH}" -o "$MUSU_HOME/bin/musu" 2>/dev/null; then
-        chmod +x "$MUSU_HOME/bin/musud" "$MUSU_HOME/bin/musu"
+_BIN_OK=false
+
+# Strategy 1: Copy from repo bin/ (always available after git clone)
+if [ -f "$MUSU_ROOT/bin/musud" ]; then
+    for _bin in musud musu musu-connectsd musu-portd; do
+        if [ -f "$MUSU_ROOT/bin/$_bin" ]; then
+            cp "$MUSU_ROOT/bin/$_bin" "$MUSU_HOME/bin/$_bin"
+            chmod +x "$MUSU_HOME/bin/$_bin"
+        fi
+    done
+    info "Binaries installed from repo ✓"
+    _BIN_OK=true
+fi
+
+# Strategy 2: Download from release URL (if repo bins missing)
+if [ "$_BIN_OK" = false ] && [ -n "$MUSU_BIN_URL" ]; then
+    info "Downloading binaries..."
+    if curl -fsSL "${MUSU_BIN_URL}/musud-${OS}-${ARCH}" -o "$MUSU_HOME/bin/musud" 2>/dev/null; then
+        curl -fsSL "${MUSU_BIN_URL}/musu-${OS}-${ARCH}" -o "$MUSU_HOME/bin/musu" 2>/dev/null
+        chmod +x "$MUSU_HOME/bin/musud" "$MUSU_HOME/bin/musu" 2>/dev/null
         info "Binaries downloaded ✓"
+        _BIN_OK=true
     else
-        warn "Binary download failed (no release yet?). Will use repo binaries if available."
         rm -f "$MUSU_HOME/bin/musud" "$MUSU_HOME/bin/musu" 2>/dev/null
     fi
-elif [ -f "$MUSU_ROOT/bin/musud" ]; then
-    # Use existing binaries from repo
-    cp "$MUSU_ROOT/bin/musud" "$MUSU_HOME/bin/musud" 2>/dev/null || true
-    cp "$MUSU_ROOT/bin/musu" "$MUSU_HOME/bin/musu" 2>/dev/null || true
-    chmod +x "$MUSU_HOME/bin/musud" "$MUSU_HOME/bin/musu" 2>/dev/null || true
-    info "Using existing binaries ✓"
-else
-    warn "No pre-built binaries. musud will need to be compiled (cargo build --release -p musud)"
 fi
+
+# Verify: musud MUST exist
+if [ ! -x "$MUSU_HOME/bin/musud" ]; then
+    echo -e "${RED}[MUSU]${NC} musud binary not found! Install failed." >&2
+    echo -e "${RED}[MUSU]${NC} Fix: cd $MUSU_ROOT && cargo build --release -p musud && cp target/release/musud bin/" >&2
+    exit 1
+fi
+
+# Symlink to PATH
+mkdir -p "$HOME/.local/bin"
+for _bin in musud musu musu-connectsd musu-portd; do
+    if [ -f "$MUSU_HOME/bin/$_bin" ]; then
+        ln -sf "$MUSU_HOME/bin/$_bin" "$HOME/.local/bin/$_bin" 2>/dev/null || true
+    fi
+done
+info "Binaries in PATH ✓"
 
 # ══════════════════════════════════════════════════════════════
 # Step 5: Clone or Update Repository
