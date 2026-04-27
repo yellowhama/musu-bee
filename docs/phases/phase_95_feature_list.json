@@ -1,0 +1,58 @@
+{
+  "phase": "Phase 95",
+  "description": "MCP delegate_task use_qa_loop 파라미터 지원 — musu-control delegate_task 툴이 use_qa_loop=True + qa_loop_max_iter를 bridge /api/tasks/delegate에 전달",
+  "features": [
+    {
+      "id": "F95-01",
+      "description": "musu-control MCP delegate_task 툴에 use_qa_loop: bool = False, qa_loop_max_iter: int = 3 파라미터 추가",
+      "acceptance": [
+        "delegate_task(channel='engineer', instruction='...', use_qa_loop=True)로 호출 가능",
+        "qa_loop_max_iter는 1~5 범위로 클램핑됨",
+        "use_qa_loop=False(기본)일 때 body에 해당 필드 미포함"
+      ],
+      "files": [
+        "musu-control/src/musu_control/server.py"
+      ],
+      "passes": true
+    },
+    {
+      "id": "F95-02",
+      "description": "channel=='engineer' && use_qa_loop=True 조합 시 /api/tasks/delegate body에 use_qa_loop, qa_loop_max_iter 전달",
+      "acceptance": [
+        "body['use_qa_loop'] = True 포함",
+        "body['qa_loop_max_iter'] 포함",
+        "bridge DelegateRequest가 해당 필드를 수신하여 route_chat_with_qa_loop() 경로로 분기"
+      ],
+      "files": [
+        "musu-control/src/musu_control/server.py",
+        "musu-bridge/bridge_models.py",
+        "musu-bridge/server.py"
+      ],
+      "passes": true
+    },
+    {
+      "id": "F95-03",
+      "description": "pytest 테스트: MCP delegate_task에서 use_qa_loop=True를 보내면 bridge가 route_chat_with_qa_loop를 호출하는지 확인",
+      "acceptance": [
+        "T1: MCP body 구성 로직 검증 (use_qa_loop=True → 필드 포함, False → 미포함)",
+        "T2: DelegateRequest 모델 필드 수락 및 기본값 검증",
+        "T3: _use_qa gate 로직 파라미터화 테스트 (engineer+True → qa path, 기타 조합 → standard path)"
+      ],
+      "files": [
+        "musu-bridge/tests/test_phase95_qa_loop_mcp.py"
+      ],
+      "passes": true
+    },
+    {
+      "id": "F95-04",
+      "description": "Phase 95 feature list 파일 생성",
+      "acceptance": [
+        "docs/phases/phase_95_feature_list.json 존재"
+      ],
+      "files": [
+        "docs/phases/phase_95_feature_list.json"
+      ],
+      "passes": true
+    }
+  ]
+}

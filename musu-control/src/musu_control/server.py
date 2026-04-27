@@ -1832,6 +1832,8 @@ async def delegate_task(
     instruction: str,
     expected_output: str | None = None,
     sender_id: str = "orchestrator",
+    use_qa_loop: bool = False,
+    qa_loop_max_iter: int = 3,
 ) -> str:
     """Delegate a task to an agent asynchronously via musu-bridge.
 
@@ -1843,6 +1845,8 @@ async def delegate_task(
         instruction: The task instruction / message for the agent
         expected_output: Description of the expected output or success criteria (optional)
         sender_id: Identifier for the requester (default: "orchestrator")
+        use_qa_loop: If True and channel=="engineer", run through QA loop before returning (default: False)
+        qa_loop_max_iter: Maximum QA iterations when use_qa_loop=True (1-5, default: 3)
     """
     _MAX_RETRIES = 3
     _BACKOFF_BASE = 1.0
@@ -1855,6 +1859,9 @@ async def delegate_task(
     body: dict = {"channel": channel.lower(), "sender_id": _effective_sender, "text": instruction}
     if expected_output is not None:
         body["expected_output"] = expected_output
+    if use_qa_loop:
+        body["use_qa_loop"] = True
+        body["qa_loop_max_iter"] = max(1, min(5, qa_loop_max_iter))
     for attempt in range(_MAX_RETRIES):
         try:
             async with httpx.AsyncClient(timeout=10.0, headers=_bridge_headers()) as client:
