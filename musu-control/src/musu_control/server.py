@@ -47,6 +47,26 @@ def _get_client() -> PaperclipClient:
     return _client
 
 
+def _company_scoped_path(c: Any, resource: str, company_id: str = "") -> str:
+    effective_company_id = str(company_id or getattr(c, "company_id", "") or "").strip()
+    resource_path = resource.strip("/")
+    if effective_company_id:
+        return f"/companies/{effective_company_id}/{resource_path}"
+    return f"/{resource_path}"
+
+
+async def _resolve_assignee_company_id(c: Any, assignee_agent_id: str) -> str:
+    if not assignee_agent_id or not hasattr(c, "get"):
+        return ""
+    try:
+        agent = await c.get(f"/agents/{assignee_agent_id}")
+    except Exception:
+        return ""
+    if not isinstance(agent, dict):
+        return ""
+    return str(agent.get("companyId") or agent.get("company_id") or "").strip()
+
+
 def _fmt(data: Any) -> str:
     return json.dumps(data, indent=2, ensure_ascii=False)
 
@@ -546,8 +566,9 @@ async def list_issues(
     assignee_agent_id: str = "",
     q: str = "",
     limit: int = 50,
+    company_id: str = "",
 ) -> str:
-    """List issues. Optionally filter by status (comma-separated), assignee agent ID, or search query."""
+    """List issues. Optionally filter by status, assignee agent ID, company ID, or search query."""
     try:
         c = _get_client()
         params: dict = {"limit": limit}
@@ -557,7 +578,8 @@ async def list_issues(
             params["assigneeAgentId"] = assignee_agent_id
         if q:
             params["q"] = q
-        issues_path = f"/companies/{c.company_id}/issues" if c.company_id else "/issues"
+        effective_company_id = company_id or await _resolve_assignee_company_id(c, assignee_agent_id)
+        issues_path = _company_scoped_path(c, "issues", effective_company_id)
         data = await c.get(issues_path, **params)
         return _fmt(data)
     except Exception:
@@ -585,6 +607,7 @@ async def create_issue(
     parent_id: str = "",
     goal_id: str = "",
     project_id: str = "",
+    company_id: str = "",
 ) -> str:
     """Create a new issue in the company."""
     try:
@@ -600,7 +623,8 @@ async def create_issue(
             body["goalId"] = goal_id
         if project_id:
             body["projectId"] = project_id
-        issues_path = f"/companies/{c.company_id}/issues" if c.company_id else "/issues"
+        effective_company_id = company_id or await _resolve_assignee_company_id(c, assignee_agent_id)
+        issues_path = _company_scoped_path(c, "issues", effective_company_id)
         data = await c.post(issues_path, body)
         return _fmt(data)
     except Exception:
@@ -1620,15 +1644,16 @@ async def create_writer_ops_incident(
         return _tool_error("Error creating writer ops incident.")
 
 
+_WRITER_COMPANY_ID = "a2699373-3700-4cbc-8477-c70e1d94cf8a"
+
+
 @mcp.tool()
 async def audit_writer_company_health(workspace_root: str = "/home/hugh51/writer") -> str:
     """Audit live Bloodline Writers state against the canonical writer-company manifest."""
     try:
         c = _get_client()
-        if not c.company_id:
-            return _tool_error("PAPERCLIP_COMPANY_ID is required for writer-company health.")
         data = await c.get(
-            f"/companies/{c.company_id}/writer-company-health",
+            f"/companies/{_WRITER_COMPANY_ID}/writer-company-health",
             workspace_root=workspace_root,
         )
         return _fmt(data)
