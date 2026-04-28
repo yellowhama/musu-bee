@@ -7,10 +7,22 @@ _BEE_PORT="${MUSU_BEE_PORT:-3001}"
 _OLD=$(lsof -ti:${_BEE_PORT} 2>/dev/null | head -1)
 [ -n "$_OLD" ] && kill "$_OLD" 2>/dev/null && sleep 1
 
-# Production: use pre-built .next; fallback to dev if no build
+# Production: use pre-built .next; rebuild if stale (>7 days) or missing
+_BEE_PORT="${MUSU_BEE_PORT:-3001}"
 if [ -f .next/BUILD_ID ]; then
-  exec ./node_modules/.bin/next start -p "${MUSU_BEE_PORT:-3001}"
+  # Check if build is older than 7 days
+  _BUILD_AGE=$(( $(date +%s) - $(stat -c %Y .next/BUILD_ID 2>/dev/null || echo 0) ))
+  if [ "$_BUILD_AGE" -gt 604800 ]; then
+    echo "[start-bee] build older than 7d, rebuilding..."
+    ./node_modules/.bin/next build 2>/dev/null || true
+  fi
+  exec ./node_modules/.bin/next start -p "$_BEE_PORT"
 else
-  echo "[start-bee] no production build, running dev mode"
-  exec ./node_modules/.bin/next dev -p "${MUSU_BEE_PORT:-3001}"
+  echo "[start-bee] no production build, building..."
+  if ./node_modules/.bin/next build 2>/dev/null; then
+    exec ./node_modules/.bin/next start -p "$_BEE_PORT"
+  else
+    echo "[start-bee] build failed, running dev mode"
+    exec ./node_modules/.bin/next dev -p "$_BEE_PORT"
+  fi
 fi
