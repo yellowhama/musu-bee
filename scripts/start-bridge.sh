@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Start musu-bridge with correct PYTHONPATH
 # Supports: token file (~/.musu/bridge_token), MUSU_DEV=1 auto-token, port conflict check
-set -euo pipefail
+set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(dirname "$SCRIPT_DIR")"
@@ -200,19 +200,16 @@ fi
 
 # ── Port conflict detection ───────────────────────────────────────────────────
 BRIDGE_PORT="${BRIDGE_PORT:-8070}"
-if command -v ss &>/dev/null; then
-    if ss -ltn 2>/dev/null | grep -q ":${BRIDGE_PORT} "; then
-        # Port in use — kill the old process so musud can manage the new one
-        _OLD_PID=$(lsof -ti:${BRIDGE_PORT} 2>/dev/null | head -1)
-        if [ -n "$_OLD_PID" ]; then
-            echo "[start-bridge] killing orphan process on :${BRIDGE_PORT} (PID $_OLD_PID)" >&2
-            kill "$_OLD_PID" 2>/dev/null
-            sleep 2
-            # Force kill if still alive
-            kill -9 "$_OLD_PID" 2>/dev/null || true
-            sleep 1
-        fi
-    fi
+_OLD_PID=$(lsof -ti:${BRIDGE_PORT} 2>/dev/null | head -1)
+if [ -n "$_OLD_PID" ]; then
+    echo "[start-bridge] killing orphan on :${BRIDGE_PORT} (PID $_OLD_PID)" >&2
+    kill "$_OLD_PID" 2>/dev/null; sleep 1
+    kill -9 "$_OLD_PID" 2>/dev/null || true
+    # Wait for port to actually free (max 10s)
+    for _i in $(seq 1 10); do
+        lsof -ti:${BRIDGE_PORT} >/dev/null 2>&1 || break
+        sleep 1
+    done
 fi
 
 # ── musu-connectsd bridge-proxy (QUIC sidecar) ────────────────────────────────
