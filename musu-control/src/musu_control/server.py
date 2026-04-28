@@ -2743,6 +2743,36 @@ async def sandbox_bash(
         return _tool_error(f"sandbox_bash failed: {exc}")
 
 
+# ── Research to Wiki ──────────────────────────
+
+
+@mcp.tool()
+async def research_to_wiki(
+    topic: str,
+    max_sources: int = 5,
+) -> str:
+    """Research a topic via web search, synthesize findings, save as LLM Wiki page.
+
+    Chains: web_search → fetch sources → LLM synthesis → wiki page.
+    Results saved to llm-wiki/wiki/ in structured format (Summary, Key Points, Evidence, Related).
+
+    topic: what to research (e.g., "React Server Components architecture")
+    max_sources: how many sources to consult (1-10, default 5)
+    """
+    try:
+        resp = await client.post("/api/research", json={
+            "topic": topic,
+            "max_sources": min(max(max_sources, 1), 10),
+        })
+        data = resp.json()
+        if resp.status_code >= 400:
+            return _tool_error(data.get("detail", f"HTTP {resp.status_code}"))
+        return _fmt({"status": "started", "topic": topic, "max_sources": max_sources,
+                     "note": "Research running in background. Check llm-wiki/wiki/ for results."})
+    except Exception as exc:
+        return _tool_error(f"research_to_wiki failed: {exc}")
+
+
 # ──────────────────────────────────────────────
 # Entry point
 # ──────────────────────────────────────────────

@@ -1682,6 +1682,19 @@ async def api_get_agent_budget(agent_id: str):
 # ── Ralph Loop ──────────────────────────────────────────────────────────────
 
 
+class ResearchRequest(BaseModel):
+    topic: str
+    max_sources: int = 5
+
+
+@app.post("/api/research", summary="Research a topic and save to LLM Wiki")
+async def api_research(req: ResearchRequest, background_tasks: BackgroundTasks):
+    """Research a topic via web search, synthesize with LLM, save as wiki page."""
+    from research import research_and_wiki
+    background_tasks.add_task(research_and_wiki, req.topic, req.max_sources)
+    return {"started": True, "topic": req.topic, "max_sources": req.max_sources}
+
+
 class RalphStartRequest(BaseModel):
     company_id: str
     max_iterations: int = 20
