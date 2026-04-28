@@ -24,6 +24,34 @@ logger = logging.getLogger("musu.ralph")
 # Active loops: company_id → loop state
 _active_loops: dict[str, dict] = {}
 
+_KV_PREFIX = "ralph_state_"
+
+
+def _persist_state(backend: Any, company_id: str, state: dict) -> None:
+    """Save loop state to kv_store for crash recovery."""
+    import json
+    key = f"{_KV_PREFIX}{company_id[:8]}"
+    try:
+        backend._db.execute(
+            "INSERT OR REPLACE INTO kv_store (key, value) VALUES (?, ?)",
+            (key, json.dumps(state)),
+        )
+    except Exception:
+        pass
+
+
+def _restore_state(backend: Any, company_id: str) -> dict | None:
+    """Restore loop state from kv_store after restart."""
+    import json
+    key = f"{_KV_PREFIX}{company_id[:8]}"
+    try:
+        rows = backend._db.execute("SELECT value FROM kv_store WHERE key = ?", (key,))
+        if rows:
+            return json.loads(rows[0]["value"])
+    except Exception:
+        pass
+    return None
+
 
 async def ralph_loop(
     company_id: str,
@@ -141,6 +169,7 @@ async def ralph_loop(
                 consecutive_failures = 0  # non-error result resets counter
 
             state["closed_issues"] = closed_issues
+            _persist_state(backend, company_id, state)
 
             # 7. Cooldown between iterations (prevent resource thrashing)
             await asyncio.sleep(cooldown_sec)
@@ -161,8 +190,16 @@ async def ralph_loop(
 
 
 def get_loop_status(company_id: str) -> dict | None:
-    """Get current Ralph Loop status for a company."""
-    return _active_loops.get(company_id)
+    """Get current Ralph Loop status for a company (memory or DB)."""
+    state = _active_loops.get(company_id)
+    if state:
+        return state
+    # Try DB fallback
+    try:
+        from handlers import _get_backend
+        return _restore_state(_get_backend(), company_id)
+    except Exception:
+        return None
 
 
 def cancel_loop(company_id: str) -> bool:
