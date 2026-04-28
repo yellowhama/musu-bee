@@ -10,6 +10,9 @@ from musu_core.backends.local import LocalBackend
 
 WRITER_COMPANY_ID = "a2699373-3700-4cbc-8477-c70e1d94cf8a"
 WRITER_COMPANY_NAME = "Bloodline Writers"
+GEMINI_PRO_MODEL = "gemini-2.5-pro"
+GEMINI_FLASH_MODEL = "gemini-2.5-flash"
+CODEX_MODEL = "gpt-5.3-codex"
 
 
 def _agent_name_key(value: str) -> str:
@@ -47,6 +50,30 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
     charter_path = workspace / ".musu" / "charter.md"
     defaults_path = workspace / ".musu" / "agent-defaults.json"
     manifest_path = workspace / ".musu" / "company.json"
+    instructions_root = Path(__file__).resolve().parent / "instructions"
+
+    def gemini_config(model: str, instructions_file: str | None = None) -> dict[str, Any]:
+        config: dict[str, Any] = {
+            "command": "gemini",
+            "model": model,
+            "yolo": True,
+            "timeout_sec": 600,
+            "cwd": str(workspace),
+        }
+        if instructions_file:
+            config["instructions_path"] = str(instructions_root / instructions_file)
+        return config
+
+    def codex_fallback() -> list[dict[str, Any]]:
+        return [
+            {
+                "adapter_type": "codex_local",
+                "command": "codex",
+                "model": CODEX_MODEL,
+                "full_auto": True,
+                "timeout_sec": 600,
+            }
+        ]
 
     return {
         "company": {
@@ -70,6 +97,24 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                 "canon_policy": "Project canon stays local. Workflow, craft, and market-fit lessons may be shared.",
                 "release_languages": ["ko", "en"],
                 "trend_markets": ["kr", "us", "jp"],
+                "model_policy": {
+                    "primary": "gemini",
+                    "secondary": "codex",
+                    "disabled": ["claude_local", "claude"],
+                    "reason": "Avoid Claude Code usage limits; Gemini has the largest remaining quota and should carry the Bloodline Writers workload.",
+                    "role_defaults": {
+                        "BW-Lead": GEMINI_PRO_MODEL,
+                        "BW-Writer": GEMINI_PRO_MODEL,
+                        "BW-Editor": GEMINI_PRO_MODEL,
+                        "BW-PM-*": GEMINI_FLASH_MODEL,
+                        "BW-Researcher": GEMINI_FLASH_MODEL,
+                        "BW-TrendResearcher": GEMINI_FLASH_MODEL,
+                    },
+                    "fallback": {
+                        "adapter_type": "codex_local",
+                        "model": CODEX_MODEL,
+                    },
+                },
                 "shared_os_page": str(workspace / "llm-wiki" / "wiki" / "51_BLOODLINE_WRITERS_SHARED_OS.md"),
                 "role_contracts_page": str(workspace / "llm-wiki" / "wiki" / "54_AGENT_ROLE_CONTRACTS.md"),
                 "workflow_page": str(workspace / "llm-wiki" / "wiki" / "53_SHARED_NOVEL_WORKFLOW.md"),
@@ -105,14 +150,9 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
             {
                 "name": "BW-Lead",
                 "role": "Company Lead",
-                "adapter_type": "claude_local",
+                "adapter_type": "gemini_local",
                 "adapter_config": {
-                    "command": "claude",
-                    "model": "claude-sonnet-4-6",
-                    "dangerously_skip_permissions": True,
-                    "timeout_sec": 600,
-                    "cwd": str(workspace),
-                    "instructions_path": "musu-bridge/instructions/team_lead.md",
+                    **gemini_config(GEMINI_PRO_MODEL, "team_lead.md"),
                     "instructions": (
                         f"You are BW-Lead for {WRITER_COMPANY_NAME}.\n"
                         "You own company-level direction, shared studio rules, and cross-project prioritization.\n"
@@ -123,21 +163,14 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                         "Do not write project canon directly. Lock direction and route work."
                     ),
                 },
-                "fallback_chain": [
-                    {"adapter_type": "gemini_local", "command": "gemini", "model": "gemini-2.5-pro"}
-                ],
+                "fallback_chain": codex_fallback(),
             },
             {
                 "name": "BW-PM-Bloodline",
                 "role": "Project Manager",
                 "adapter_type": "gemini_local",
                 "adapter_config": {
-                    "command": "gemini",
-                    "model": "gemini-2.5-flash",
-                    "dangerously_skip_permissions": True,
-                    "timeout_sec": 600,
-                    "cwd": str(workspace),
-                    "instructions_path": "musu-bridge/instructions/project_manager.md",
+                    **gemini_config(GEMINI_FLASH_MODEL, "project_manager.md"),
                     "instructions": (
                         f"You are BW-PM-Bloodline for {WRITER_COMPANY_NAME}.\n"
                         "Own Bloodline scope, canon safety, and sprint sequencing.\n"
@@ -145,21 +178,14 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                         "Never import False Dane canon without explicit approval."
                     ),
                 },
-                "fallback_chain": [
-                    {"adapter_type": "claude_local", "command": "claude", "model": "claude-sonnet-4-6"}
-                ],
+                "fallback_chain": codex_fallback(),
             },
             {
                 "name": "BW-PM-FalseDane",
                 "role": "Project Manager",
                 "adapter_type": "gemini_local",
                 "adapter_config": {
-                    "command": "gemini",
-                    "model": "gemini-2.5-flash",
-                    "dangerously_skip_permissions": True,
-                    "timeout_sec": 600,
-                    "cwd": str(workspace),
-                    "instructions_path": "musu-bridge/instructions/project_manager.md",
+                    **gemini_config(GEMINI_FLASH_MODEL, "project_manager.md"),
                     "instructions": (
                         f"You are BW-PM-FalseDane for {WRITER_COMPANY_NAME}.\n"
                         "Own False Dane scope, canon safety, and sprint sequencing.\n"
@@ -167,20 +193,14 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                         "Never import Bloodline canon without explicit approval."
                     ),
                 },
-                "fallback_chain": [
-                    {"adapter_type": "claude_local", "command": "claude", "model": "claude-sonnet-4-6"}
-                ],
+                "fallback_chain": codex_fallback(),
             },
             {
                 "name": "BW-Researcher",
                 "role": "Researcher",
                 "adapter_type": "gemini_local",
                 "adapter_config": {
-                    "command": "gemini",
-                    "model": "gemini-2.5-flash",
-                    "dangerously_skip_permissions": True,
-                    "timeout_sec": 600,
-                    "cwd": str(workspace),
+                    **gemini_config(GEMINI_FLASH_MODEL),
                     "instructions": (
                         f"You are BW-Researcher for {WRITER_COMPANY_NAME}.\n"
                         "Own evidence gathering, reference deconstruction, and uncertainty tracking.\n"
@@ -188,20 +208,14 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                         "Separate facts, recommendations, and canon candidates."
                     ),
                 },
-                "fallback_chain": [
-                    {"adapter_type": "claude_local", "command": "claude", "model": "claude-sonnet-4-6"}
-                ],
+                "fallback_chain": codex_fallback(),
             },
             {
                 "name": "BW-TrendResearcher",
                 "role": "Trend Researcher",
                 "adapter_type": "gemini_local",
                 "adapter_config": {
-                    "command": "gemini",
-                    "model": "gemini-2.5-flash",
-                    "dangerously_skip_permissions": True,
-                    "timeout_sec": 600,
-                    "cwd": str(workspace),
+                    **gemini_config(GEMINI_FLASH_MODEL),
                     "instructions": (
                         f"You are BW-TrendResearcher for {WRITER_COMPANY_NAME}.\n"
                         "Own US/JP/KR market and trend reconnaissance for long-form fiction.\n"
@@ -211,20 +225,14 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                         "Produce market-fit memos and trend comparisons. Do not dictate canon."
                     ),
                 },
-                "fallback_chain": [
-                    {"adapter_type": "claude_local", "command": "claude", "model": "claude-sonnet-4-6"}
-                ],
+                "fallback_chain": codex_fallback(),
             },
             {
                 "name": "BW-Writer",
                 "role": "Writer",
-                "adapter_type": "claude_local",
+                "adapter_type": "gemini_local",
                 "adapter_config": {
-                    "command": "claude",
-                    "model": "claude-sonnet-4-6",
-                    "dangerously_skip_permissions": True,
-                    "timeout_sec": 600,
-                    "cwd": str(workspace),
+                    **gemini_config(GEMINI_PRO_MODEL),
                     "instructions": (
                         f"You are BW-Writer for {WRITER_COMPANY_NAME}.\n"
                         "Own draft production and revision only.\n"
@@ -235,20 +243,14 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                         "Do not self-approve."
                     ),
                 },
-                "fallback_chain": [
-                    {"adapter_type": "gemini_local", "command": "gemini", "model": "gemini-2.5-pro"}
-                ],
+                "fallback_chain": codex_fallback(),
             },
             {
                 "name": "BW-Editor",
                 "role": "Editor",
-                "adapter_type": "claude_local",
+                "adapter_type": "gemini_local",
                 "adapter_config": {
-                    "command": "claude",
-                    "model": "claude-sonnet-4-6",
-                    "dangerously_skip_permissions": True,
-                    "timeout_sec": 600,
-                    "cwd": str(workspace),
+                    **gemini_config(GEMINI_PRO_MODEL),
                     "instructions": (
                         f"You are BW-Editor for {WRITER_COMPANY_NAME}.\n"
                         "Own quality review, continuity review, and revision briefs.\n"
@@ -259,9 +261,7 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                         "Do not silently expand scope."
                     ),
                 },
-                "fallback_chain": [
-                    {"adapter_type": "gemini_local", "command": "gemini", "model": "gemini-2.5-pro"}
-                ],
+                "fallback_chain": codex_fallback(),
             },
         ],
     }
@@ -282,9 +282,27 @@ def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any
     return merged
 
 
+def _merge_named_specs(default_specs: list[dict[str, Any]], override_specs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    merged_by_name = {str(spec.get("name") or ""): deepcopy(spec) for spec in default_specs}
+    order = [str(spec.get("name") or "") for spec in default_specs]
+    for override in override_specs:
+        name = str(override.get("name") or "")
+        if not name:
+            continue
+        if name not in merged_by_name:
+            order.append(name)
+            merged_by_name[name] = {}
+        merged_by_name[name] = _deep_merge(merged_by_name[name], override)
+    return [merged_by_name[name] for name in order if name in merged_by_name]
+
+
 def normalize_writer_company_manifest(raw: dict[str, Any], workspace_root: str = "/home/hugh51/writer") -> dict[str, Any]:
     default = build_writer_company_manifest(workspace_root=workspace_root)
     merged = _deep_merge(default, raw)
+    if isinstance(raw.get("agents"), list):
+        merged["agents"] = _merge_named_specs(default.get("agents", []), raw.get("agents", []))
+    if isinstance(raw.get("projects"), list):
+        merged["projects"] = _merge_named_specs(default.get("projects", []), raw.get("projects", []))
     return merged
 
 

@@ -57,7 +57,7 @@ class _WriterStubClient:
                     "assigneeAgentId": "agent-writer",
                 },
             ]
-        if path == "/companies/company-writers/writer-company-health":
+        if path == f"/companies/{server._WRITER_COMPANY_ID}/writer-company-health":
             return {
                 "status": "healthy",
                 "gapCount": 0,
@@ -86,6 +86,39 @@ class _WriterStubClient:
                 "goalId": payload.get("goalId"),
                 "projectId": payload.get("projectId"),
                 "assigneeAgentId": payload.get("assigneeAgentId") or payload.get("assignee_id"),
+            }
+        raise RuntimeError(f"unexpected POST {path}")
+
+
+class _CrossCompanyStubClient:
+    def __init__(self) -> None:
+        self.company_id = "company-musu"
+        self.calls: list[tuple[str, str, dict[str, Any] | None]] = []
+
+    async def get(self, path: str, **params: Any) -> Any:
+        self.calls.append(("GET", path, params or None))
+        if path == "/agents/agent-lead":
+            return {"id": "agent-lead", "name": "BW-Lead", "company_id": "company-writers"}
+        if path == "/companies/company-writers/issues":
+            return [
+                {
+                    "id": "issue-lead",
+                    "title": "BW-Lead assigned issue",
+                    "status": "open",
+                    "assigneeAgentId": "agent-lead",
+                }
+            ]
+        raise RuntimeError(f"unexpected GET {path}")
+
+    async def post(self, path: str, body: dict | None = None) -> Any:
+        payload = body or {}
+        self.calls.append(("POST", path, payload))
+        if path == "/companies/company-writers/issues":
+            return {
+                "id": "issue-new",
+                "title": payload.get("title"),
+                "status": payload.get("status", "open"),
+                "assigneeAgentId": payload.get("assigneeAgentId"),
             }
         raise RuntimeError(f"unexpected POST {path}")
 
@@ -290,6 +323,62 @@ def test_create_writer_ops_incident_assigns_bw_lead_and_resolves_project() -> No
     assert post_issue_calls[-1][2]["projectId"] == "project-fd"
 
 
+def test_list_issues_resolves_company_from_assignee_agent_id() -> None:
+    stub = _CrossCompanyStubClient()
+    original_client = server._client
+    server._client = stub
+    try:
+        payload = json.loads(
+            asyncio.run(
+                server.list_issues(
+                    status="open",
+                    assignee_agent_id="agent-lead",
+                )
+            )
+        )
+    finally:
+        server._client = original_client
+
+    assert payload[0]["id"] == "issue-lead"
+    assert ("GET", "/agents/agent-lead", None) in stub.calls
+    assert (
+        "GET",
+        "/companies/company-writers/issues",
+        {"limit": 50, "status": "open", "assigneeAgentId": "agent-lead"},
+    ) in stub.calls
+    assert all(call[1] != "/companies/company-musu/issues" for call in stub.calls)
+
+
+def test_create_issue_resolves_company_from_assignee_agent_id() -> None:
+    stub = _CrossCompanyStubClient()
+    original_client = server._client
+    server._client = stub
+    try:
+        payload = json.loads(
+            asyncio.run(
+                server.create_issue(
+                    title="BW-Lead follow-up",
+                    assignee_agent_id="agent-lead",
+                )
+            )
+        )
+    finally:
+        server._client = original_client
+
+    assert payload["id"] == "issue-new"
+    assert (
+        "POST",
+        "/companies/company-writers/issues",
+        {
+            "title": "BW-Lead follow-up",
+            "status": "open",
+            "priority": "medium",
+            "assigneeAgentId": "agent-lead",
+        },
+    ) in stub.calls
+    assert all(call[1] != "/companies/company-musu/issues" for call in stub.calls)
+
+
 def test_audit_writer_company_health_reads_bridge_audit_surface() -> None:
     stub = _WriterStubClient()
     payload = _run(
@@ -298,5 +387,5 @@ def test_audit_writer_company_health_reads_bridge_audit_surface() -> None:
     )
 
     assert payload["status"] == "healthy"
-    get_calls = [call for call in stub.calls if call[0] == "GET" and call[1] == "/companies/company-writers/writer-company-health"]
+    get_calls = [call for call in stub.calls if call[0] == "GET" and call[1] == f"/companies/{server._WRITER_COMPANY_ID}/writer-company-health"]
     assert get_calls

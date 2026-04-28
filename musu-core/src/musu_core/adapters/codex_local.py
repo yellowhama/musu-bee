@@ -71,12 +71,12 @@ class CodexLocalAdapter(BaseAdapter):
                 env["PAPERCLIP_COMPANY_ID"] = ctx.company_id
             return env
 
-        args: list[str] = []
+        args: list[str] = ["exec"]
         if full_auto:
             args.append("--full-auto")
         if model:
             args += ["--model", model]
-        args += ["--quiet", ctx.prompt]
+        args += [ctx.prompt]
 
         proc = await asyncio.create_subprocess_exec(
             command,

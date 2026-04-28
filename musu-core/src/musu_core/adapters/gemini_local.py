@@ -10,6 +10,30 @@ from typing import Any
 from musu_core.adapters.base import AdapterContext, AdapterResult, BaseAdapter, ErrorCode, UsageSummary, resolve_instructions
 
 
+def _prompt_with_instructions(prompt: str, instructions_path: str | None) -> str:
+    """Gemini CLI 0.35 no longer accepts append-system-prompt-file; inline it."""
+    if not instructions_path:
+        return prompt
+
+    try:
+        with open(instructions_path, "r", encoding="utf-8") as f:
+            instructions = f.read().strip()
+    except OSError:
+        return prompt
+
+    if not instructions:
+        return prompt
+
+    return (
+        "<system_instructions>\n"
+        f"{instructions}\n"
+        "</system_instructions>\n\n"
+        "<user_task>\n"
+        f"{prompt}\n"
+        "</user_task>"
+    )
+
+
 def _parse_stream_json(stdout: str) -> dict[str, Any]:
     """Extract session_id, summary, usage from gemini --output-format stream-json output."""
     session_id: str | None = None
@@ -105,9 +129,10 @@ class GeminiLocalAdapter(BaseAdapter):
             return env
 
         def build_args() -> list[str]:
+            prompt = _prompt_with_instructions(ctx.prompt, instructions_path)
             args = [
                 "--output-format", "stream-json",
-                "--prompt", ctx.prompt,
+                "--prompt", prompt,
             ]
             if model:
                 args += ["--model", model]
@@ -115,8 +140,6 @@ class GeminiLocalAdapter(BaseAdapter):
                 args.append("--yolo")
             if sandbox:
                 args.append("--sandbox")
-            if instructions_path:
-                args += ["--append-system-prompt-file", instructions_path]
             if ctx.session_id:
                 args += ["--resume", ctx.session_id]
             return args
