@@ -315,6 +315,88 @@ else
 fi
 
 # ══════════════════════════════════════════════════════════════
+# Step 9.5: MUSU_TOKEN — musu.pro device registration
+# ══════════════════════════════════════════════════════════════
+MUSU_TOKEN_FILE="$MUSU_HOME/musu_token"
+if [ ! -f "$MUSU_TOKEN_FILE" ]; then
+    info "Registering device with musu.pro..."
+    MUSU_PRO_URL="${MUSU_PRO_URL:-https://musu.pro}"
+    DEVICE_API="${MUSU_PRO_URL}/api/v1/auth/device"
+    _NODE_NAME="${MUSU_AGENT_PREFIX:-$(hostname)}"
+
+    if command -v curl >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+        RESP=$(curl -sf --max-time 5 \
+            -X POST "${DEVICE_API}" \
+            -H "Content-Type: application/json" \
+            -d "{\"node_name\":\"${_NODE_NAME}\"}" 2>/dev/null || echo "")
+
+        if [ -n "$RESP" ]; then
+            DEVICE_CODE=$(echo "$RESP" | jq -r '.device_code // empty' 2>/dev/null)
+            VERIFY_URI=$(echo "$RESP"  | jq -r '.verification_uri // empty' 2>/dev/null)
+
+            if [ -n "$DEVICE_CODE" ] && [ -n "$VERIFY_URI" ]; then
+                echo ""
+                echo "  ┌─────────────────────────────────────────────────────┐"
+                echo "  │  🐝  Device approval required                       │"
+                echo "  │                                                      │"
+                echo "  │  Open this URL in your browser and click Approve:   │"
+                echo "  │  ${VERIFY_URI}"
+                echo "  │                                                      │"
+                echo "  │  Waiting up to 5 minutes...                         │"
+                echo "  └─────────────────────────────────────────────────────┘"
+                echo ""
+
+                # Auto-open browser
+                if command -v xdg-open >/dev/null 2>&1 && [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]; then
+                    xdg-open "$VERIFY_URI" 2>/dev/null &
+                elif command -v open >/dev/null 2>&1; then
+                    open "$VERIFY_URI" 2>/dev/null &
+                fi
+
+                # Poll every 5s, up to 5 min (60 attempts)
+                for _i in $(seq 1 60); do
+                    sleep 5
+                    printf "."
+                    POLL_OUT=$(curl -s -w "\n%{http_code}" --max-time 5 \
+                        "${DEVICE_API}/token?device_code=${DEVICE_CODE}" 2>/dev/null || printf "\n000")
+                    HTTP_STATUS=$(printf '%s' "$POLL_OUT" | tail -1)
+                    POLL_RESP=$(printf '%s' "$POLL_OUT" | head -n -1)
+
+                    if [ "$HTTP_STATUS" = "200" ]; then
+                        _TOKEN=$(echo "$POLL_RESP" | jq -r '.token // empty' 2>/dev/null)
+                        if [ -n "$_TOKEN" ]; then
+                            echo "$_TOKEN" > "$MUSU_TOKEN_FILE"
+                            chmod 600 "$MUSU_TOKEN_FILE"
+                            echo ""
+                            info "Device approved ✓ — token saved"
+                            break
+                        fi
+                    elif [ "$HTTP_STATUS" = "410" ]; then
+                        echo ""
+                        warn "Device code expired. Run install.sh again or restart bridge to retry."
+                        break
+                    fi
+                done
+
+                if [ ! -f "$MUSU_TOKEN_FILE" ]; then
+                    echo ""
+                    warn "Approval timeout — bridge will start without peer discovery"
+                    warn "Restart bridge later to retry: systemctl --user restart musu-bridge"
+                fi
+            else
+                warn "musu.pro returned unexpected response — skipping device auth"
+            fi
+        else
+            warn "Could not reach musu.pro — skipping device auth (bridge works offline)"
+        fi
+    else
+        warn "curl/jq not found — skipping device auth"
+    fi
+else
+    info "MUSU_TOKEN already exists ✓"
+fi
+
+# ══════════════════════════════════════════════════════════════
 # Step 10: Install systemd Service
 # ══════════════════════════════════════════════════════════════
 if command -v systemctl >/dev/null 2>&1; then

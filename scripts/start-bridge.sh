@@ -89,79 +89,75 @@ if [[ -z "${MUSU_TOKEN:-}" && -f "$MUSU_TOKEN_FILE" ]]; then
 fi
 
 # ── Device auth: auto-register with musu.pro if no token ─────────────────────
+# IMPORTANT: runs in BACKGROUND so bridge starts immediately.
+# Token is saved to file; bridge picks it up on next restart.
 if [[ -z "${MUSU_TOKEN:-}" && "${MUSU_DEV:-}" != "1" ]] && command -v curl &>/dev/null && command -v jq &>/dev/null; then
-    echo "[start-bridge] MUSU_TOKEN not set — starting musu.pro device auth..." >&2
+    echo "[start-bridge] MUSU_TOKEN not set — device auth will run in background" >&2
 
-    RESP=$(curl -sf --max-time 5 \
-        -X POST "${DEVICE_API}" \
-        -H "Content-Type: application/json" \
-        -d "{\"node_name\":\"${NODE_NAME}\"}" 2>/dev/null || echo "")
+    # Background subshell: request device code, poll for approval, save token
+    (
+        RESP=$(curl -sf --max-time 5 \
+            -X POST "${DEVICE_API}" \
+            -H "Content-Type: application/json" \
+            -d "{\"node_name\":\"${NODE_NAME}\"}" 2>/dev/null || echo "")
 
-    if [[ -n "$RESP" ]]; then
+        if [[ -z "$RESP" ]]; then
+            echo "[start-bridge/bg] musu.pro connection failed — no peer discovery" >&2
+            exit 0
+        fi
+
         DEVICE_CODE=$(echo "$RESP" | jq -r '.device_code // empty' 2>/dev/null)
-        USER_CODE=$(echo "$RESP"   | jq -r '.user_code // empty'   2>/dev/null)
         VERIFY_URI=$(echo "$RESP"  | jq -r '.verification_uri // empty' 2>/dev/null)
 
-        if [[ -n "$DEVICE_CODE" && -n "$VERIFY_URI" ]]; then
-            echo "" >&2
-            echo "  ┌─────────────────────────────────────────────────────┐" >&2
-            echo "  │  🐝  musu-bridge approval required                  │" >&2
-            echo "  │                                                      │" >&2
-            echo "  │  Open this URL in your browser and click Approve:   │" >&2
-            echo "  │                                                      │" >&2
-            echo "  │  ${VERIFY_URI}" >&2
-            echo "  │                                                      │" >&2
-            echo "  │  Token will be saved automatically within 15 min.   │" >&2
-            echo "  └─────────────────────────────────────────────────────┘" >&2
-            echo "" >&2
-
-            # Auto-open browser if display is available
-            if command -v xdg-open &>/dev/null && [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]]; then
-                xdg-open "$VERIFY_URI" 2>/dev/null &
-            elif command -v open &>/dev/null; then  # macOS
-                open "$VERIFY_URI" 2>/dev/null &
-            fi
-
-            # Poll every 5s, up to 15 min (180 attempts)
-            POLL_MAX=180
-            POLL_COUNT=0
-            while [[ $POLL_COUNT -lt $POLL_MAX ]]; do
-                sleep 5
-                POLL_COUNT=$((POLL_COUNT + 1))
-
-                POLL_OUT=$(curl -s -w "\n%{http_code}" --max-time 5 \
-                    "${DEVICE_API}/token?device_code=${DEVICE_CODE}" 2>/dev/null || printf "\n000")
-                HTTP_STATUS=$(printf '%s' "$POLL_OUT" | tail -1)
-                POLL_RESP=$(printf '%s' "$POLL_OUT" | head -n -1)
-
-                if [[ "$HTTP_STATUS" == "200" ]]; then
-                    TOKEN=$(echo "$POLL_RESP" | jq -r '.token // empty' 2>/dev/null)
-                    if [[ -n "$TOKEN" ]]; then
-                        mkdir -p "${HOME}/.musu" && chmod 700 "${HOME}/.musu"
-                        echo "$TOKEN" > "$MUSU_TOKEN_FILE"
-                        chmod 600 "$MUSU_TOKEN_FILE"
-                        export MUSU_TOKEN="$TOKEN"
-                        echo "[start-bridge] ✅ token saved → ${MUSU_TOKEN_FILE}" >&2
-                        echo "[start-bridge] peer discovery enabled" >&2
-                        break
-                    fi
-                elif [[ "$HTTP_STATUS" == "410" ]]; then
-                    echo "[start-bridge] WARN: device code expired — starting without peer discovery" >&2
-                    break
-                fi
-                # 202 pending → keep polling
-            done
-
-            if [[ -z "${MUSU_TOKEN:-}" ]]; then
-                echo "[start-bridge] WARN: approval timeout — starting without peer discovery" >&2
-                echo "  Restart to get a new device code." >&2
-            fi
-        else
-            echo "[start-bridge] WARN: musu.pro response error — starting without peer discovery" >&2
+        if [[ -z "$DEVICE_CODE" || -z "$VERIFY_URI" ]]; then
+            echo "[start-bridge/bg] musu.pro response error — no peer discovery" >&2
+            exit 0
         fi
-    else
-        echo "[start-bridge] WARN: musu.pro connection failed — starting without peer discovery" >&2
-    fi
+
+        echo "" >&2
+        echo "  ┌─────────────────────────────────────────────────────┐" >&2
+        echo "  │  🐝  musu-bridge: device approval needed            │" >&2
+        echo "  │                                                      │" >&2
+        echo "  │  Open this URL in your browser and click Approve:   │" >&2
+        echo "  │  ${VERIFY_URI}" >&2
+        echo "  │                                                      │" >&2
+        echo "  │  Bridge is running. Token saved on approval.        │" >&2
+        echo "  └─────────────────────────────────────────────────────┘" >&2
+
+        # Auto-open browser if display is available
+        if command -v xdg-open &>/dev/null && [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]]; then
+            xdg-open "$VERIFY_URI" 2>/dev/null &
+        elif command -v open &>/dev/null; then
+            open "$VERIFY_URI" 2>/dev/null &
+        fi
+
+        # Poll every 5s, up to 15 min (180 attempts)
+        for _i in $(seq 1 180); do
+            sleep 5
+            POLL_OUT=$(curl -s -w "\n%{http_code}" --max-time 5 \
+                "${DEVICE_API}/token?device_code=${DEVICE_CODE}" 2>/dev/null || printf "\n000")
+            HTTP_STATUS=$(printf '%s' "$POLL_OUT" | tail -1)
+            POLL_RESP=$(printf '%s' "$POLL_OUT" | head -n -1)
+
+            if [[ "$HTTP_STATUS" == "200" ]]; then
+                TOKEN=$(echo "$POLL_RESP" | jq -r '.token // empty' 2>/dev/null)
+                if [[ -n "$TOKEN" ]]; then
+                    mkdir -p "${HOME}/.musu" && chmod 700 "${HOME}/.musu"
+                    echo "$TOKEN" > "$MUSU_TOKEN_FILE"
+                    chmod 600 "$MUSU_TOKEN_FILE"
+                    echo "[start-bridge/bg] ✅ token saved → ${MUSU_TOKEN_FILE}" >&2
+                    echo "[start-bridge/bg] Restart bridge to enable peer discovery." >&2
+                    exit 0
+                fi
+            elif [[ "$HTTP_STATUS" == "410" ]]; then
+                echo "[start-bridge/bg] device code expired" >&2
+                exit 0
+            fi
+        done
+        echo "[start-bridge/bg] approval timeout — restart to try again" >&2
+    ) &
+    # Background PID — will be cleaned up when bridge process exits
+    echo "[start-bridge] device auth polling in background (PID $!)" >&2
 fi
 
 # ── machine_group: group nodes on the same physical machine ──────────────────
