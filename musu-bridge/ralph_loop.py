@@ -59,6 +59,8 @@ async def ralph_loop(
 
     backend = _get_backend()
     closed_issues: list[str] = []
+    consecutive_failures = 0
+    MAX_CONSECUTIVE_FAILURES = 3
 
     try:
         for i in range(max_iterations):
@@ -124,9 +126,19 @@ async def ralph_loop(
             updated_issue = backend.get_issue(issue_id) if hasattr(backend, 'get_issue') else None
             if updated_issue and updated_issue.get("status") in ("closed", "resolved", "done"):
                 closed_issues.append(issue_id)
+                consecutive_failures = 0
                 logger.info("ralph_loop: issue %s closed by agent", issue_id[:8])
             elif result.get("error"):
-                logger.warning("ralph_loop: iteration %d failed — %s", i + 1, result["error"][:100])
+                consecutive_failures += 1
+                logger.warning("ralph_loop: iteration %d failed (%d/%d) — %s",
+                               i + 1, consecutive_failures, MAX_CONSECUTIVE_FAILURES, result["error"][:100])
+                if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
+                    logger.error("ralph_loop: ABORT — %d consecutive failures", consecutive_failures)
+                    state["status"] = "failed"
+                    return {"status": "failed", "iterations": i + 1, "closed": closed_issues,
+                            "reason": f"{consecutive_failures} consecutive failures"}
+            else:
+                consecutive_failures = 0  # non-error result resets counter
 
             state["closed_issues"] = closed_issues
 
