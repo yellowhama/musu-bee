@@ -156,6 +156,8 @@ class ClaudeLocalAdapter(BaseAdapter):
                 args += ["--model", model]
             if instructions_path:
                 args += ["--append-system-prompt-file", instructions_path]
+            max_tokens = ctx.config.get("max_tokens", 4096)
+            args += ["--max-tokens", str(max_tokens)]
             return args
 
         async def run_attempt(resume_session_id: str | None) -> tuple[int, str, str]:
