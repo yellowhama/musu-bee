@@ -324,9 +324,50 @@ RestartSec=5
 WantedBy=default.target
 SVC
 
+    # Bridge systemd unit (more reliable than musud for long-running services)
+    cat > "$HOME/.config/systemd/user/musu-bridge.service" << BSVC
+[Unit]
+Description=MUSU Bridge API Server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=${MUSU_ROOT}
+ExecStart=${MUSU_ROOT}/scripts/start-bridge.sh
+Environment="PATH=${HOME}/.npm-global/bin:${HOME}/.local/bin:/usr/lib/wsl/lib:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Environment="MUSU_CEO_HEARTBEAT_ENABLED=true"
+Environment="MUSU_TEAM_LEAD_HEARTBEAT_ENABLED=true"
+Environment="MUSU_NODE_HEARTBEAT_ENABLED=true"
+Environment="MUSU_AGENT_PREFIX=$(hostname -s 2>/dev/null || echo local)"
+Restart=on-failure
+RestartSec=10
+KillMode=mixed
+
+[Install]
+WantedBy=default.target
+BSVC
+
+    # Bee systemd unit
+    cat > "$HOME/.config/systemd/user/musu-bee.service" << BEESVC
+[Unit]
+Description=MUSU Bee Web UI (Next.js)
+After=musu-bridge.service
+
+[Service]
+Type=simple
+WorkingDirectory=${MUSU_ROOT}
+ExecStart=${MUSU_ROOT}/scripts/start-bee.sh
+Environment="PATH=${HOME}/.npm-global/bin:${HOME}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target
+BEESVC
+
     systemctl --user daemon-reload
-    systemctl --user enable musud 2>/dev/null
-    info "systemd service registered ✓"
+    systemctl --user enable musud musu-bridge musu-bee 2>/dev/null
+    info "systemd services registered ✓ (musud + bridge + bee)"
 
     # Auto-update timer
     if [ -f "$MUSU_ROOT/scripts/systemd/musu-autoupdate.timer" ]; then
