@@ -57,6 +57,7 @@ async def ralph_loop(
     company_id: str,
     max_iterations: int = 20,
     channel: str = "team_lead",
+    use_worktree: bool = False,
     cooldown_sec: int = 10,
 ) -> dict[str, Any]:
     """Run the Ralph Loop for a company until all issues are done.
