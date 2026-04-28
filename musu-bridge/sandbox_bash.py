@@ -97,6 +97,12 @@ async def execute_bash(
             "duration_ms": round(duration_ms, 1),
         }
     except asyncio.TimeoutError:
+        # Kill orphan process to prevent resource leak
+        try:
+            proc.kill()
+            await proc.wait()
+        except Exception:
+            pass
         duration_ms = (time.monotonic() - start) * 1000
         logger.warning("sandbox_bash: TIMEOUT cmd=%r after %ds", command[:80], timeout)
         return {"error": f"Command timed out after {timeout}s", "duration_ms": round(duration_ms, 1)}
