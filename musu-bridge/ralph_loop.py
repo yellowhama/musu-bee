@@ -116,6 +116,20 @@ async def ralph_loop(
             logger.info("ralph_loop: iteration %d/%d — issue=%s title=%r",
                         i + 1, max_iterations, issue_id[:8], issue_title)
 
+            # 2.5. Worktree isolation (if enabled)
+            _worktree_path = None
+            _worktree_branch = None
+            if use_worktree:
+                import subprocess
+                _worktree_branch = f"ralph-{loop_id}-{i}"
+                _worktree_path = f"/tmp/musu-worktree-{loop_id}-{i}"
+                try:
+                    subprocess.run(["git", "worktree", "add", "-b", _worktree_branch, _worktree_path], capture_output=True, check=True)
+                    logger.info("ralph_loop: worktree created at %s (branch %s)", _worktree_path, _worktree_branch)
+                except Exception as _wt_err:
+                    logger.warning("ralph_loop: worktree creation failed — %s. Using main.", _wt_err)
+                    _worktree_path = None
+
             # 3. Build fresh prompt (no accumulated context — Ralph's core principle)
             prompt = (
                 f"## Ralph Loop Iteration {i + 1}/{max_iterations}\n\n"
@@ -128,6 +142,7 @@ async def ralph_loop(
                 f"3. 완료되면 이슈에 코멘트로 결과 기록\n"
                 f"4. update_issue('{issue_id}', status='closed') 호출\n\n"
                 f"⚠ 이 iteration은 fresh context다. 이전 iteration의 결과는 git과 이슈 코멘트에만 있다."
+                + (f"\n⚠ 작업 디렉토리: {_worktree_path}" if _worktree_path else "")
             )
 
             # 4. Delegate (fresh route_chat = fresh AI instance)
@@ -157,6 +172,14 @@ async def ralph_loop(
                 closed_issues.append(issue_id)
                 consecutive_failures = 0
                 logger.info("ralph_loop: issue %s closed by agent", issue_id[:8])
+                # Merge worktree if isolation was used
+                if _worktree_path and _worktree_branch:
+                    try:
+                        import subprocess
+                        subprocess.run(["git", "merge", _worktree_branch, "--no-edit"], capture_output=True, check=True)
+                        logger.info("ralph_loop: merged branch %s", _worktree_branch)
+                    except Exception as _mg_err:
+                        logger.warning("ralph_loop: merge failed — %s", _mg_err)
             elif result.get("error"):
                 consecutive_failures += 1
                 logger.warning("ralph_loop: iteration %d failed (%d/%d) — %s",
@@ -171,6 +194,16 @@ async def ralph_loop(
 
             state["closed_issues"] = closed_issues
             _persist_state(backend, company_id, state)
+
+            # Cleanup worktree
+            if _worktree_path:
+                try:
+                    import subprocess, shutil
+                    subprocess.run(["git", "worktree", "remove", _worktree_path, "--force"], capture_output=True)
+                    if _worktree_branch:
+                        subprocess.run(["git", "branch", "-D", _worktree_branch], capture_output=True)
+                except Exception:
+                    pass
 
             # 7. Cooldown between iterations (prevent resource thrashing)
             await asyncio.sleep(cooldown_sec)

@@ -193,9 +193,17 @@ class Router:
             prompt_snippet=req.prompt[:300],
         )
 
-        # --- 4. Execute ---
+        # --- 4. Execute (with tracing) ---
+        from musu_core.tracing import trace_span
         try:
-            result = await adapter.execute(ctx)
+            with trace_span("adapter.execute",
+                            agent_id=agent.id, agent_name=agent.name,
+                            adapter_type=adapter_type, channel=req.agent_id,
+                            company_id=ctx.company_id) as _span:
+                result = await adapter.execute(ctx)
+                _span.attributes["success"] = result.success
+                if result.cost_usd:
+                    _span.attributes["cost_usd"] = result.cost_usd
         except Exception as exc:  # noqa: BLE001
             error_msg = f"Adapter raised exception: {exc}"
             from musu_core.adapters.base import AdapterResult as AR  # avoid circular at top
