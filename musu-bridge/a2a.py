@@ -130,6 +130,7 @@ async def handle_jsonrpc(body: dict) -> dict:
         "SendMessage": _handle_send_message,
         "GetTask": _handle_get_task,
         "CancelTask": _handle_cancel_task,
+        "ListTasks": _handle_list_tasks,
     }
 
     handler = dispatch.get(method)
@@ -262,3 +263,32 @@ async def _handle_cancel_task(params: dict) -> dict:
             "status": {"state": "canceled"},
         }
     }
+
+
+async def _handle_list_tasks(params: dict) -> dict:
+    """ListTasks: list recent tasks with optional status filter."""
+    from handlers import _get_backend
+
+    backend = _get_backend()
+    status_filter = params.get("status")
+    limit = min(params.get("limit", 50), 100)
+
+    if status_filter:
+        # Reverse map: A2A state → musu status
+        reverse_map = {v: k for k, v in _STATUS_MAP.items()}
+        musu_status = reverse_map.get(status_filter, status_filter)
+        rows = backend._db.execute(
+            "SELECT id, status, created_at FROM route_executions WHERE status = ? ORDER BY created_at DESC LIMIT ?",
+            (musu_status, limit),
+        )
+    else:
+        rows = backend._db.execute(
+            "SELECT id, status, created_at FROM route_executions ORDER BY created_at DESC LIMIT ?",
+            (limit,),
+        )
+
+    tasks = [
+        {"id": r["id"], "status": {"state": _STATUS_MAP.get(r["status"], "submitted")}}
+        for r in rows
+    ]
+    return {"tasks": tasks}

@@ -42,17 +42,12 @@ jobs:
         working-directory: musu-port
         run: cargo build --release --target ${{ matrix.target }} -p musu-portd
 
-      - name: Build musu-connectsd
-        working-directory: _archived/musu-connects
-        run: cargo build --release --target ${{ matrix.target }} -p musu-connectsd
-
       - name: Package binaries
         run: |
           mkdir -p dist
           cp musu-supervisor/target/${{ matrix.target }}/release/musud dist/musud-${{ matrix.suffix }}
           cp musu-supervisor/target/${{ matrix.target }}/release/musu dist/musu-${{ matrix.suffix }}
           cp musu-port/target/${{ matrix.target }}/release/musu-portd dist/musu-portd-${{ matrix.suffix }}
-          cp _archived/musu-connects/target/${{ matrix.target }}/release/musu-connectsd dist/musu-connectsd-${{ matrix.suffix }}
           chmod +x dist/*
 
       - name: Upload artifacts

@@ -481,7 +481,11 @@ TGTF
     systemctl --user daemon-reload
     systemctl --user enable musu.target 2>/dev/null
     # Enable linger so services start on boot (even without login)
-    loginctl enable-linger "$USER" 2>/dev/null || true
+    if loginctl enable-linger "$USER" 2>/dev/null; then
+        info "enable-linger ✓ (services start on boot)"
+    else
+        warn "enable-linger failed — services won't auto-start on boot. Run: sudo loginctl enable-linger $USER"
+    fi
     info "systemd: musu.target registered ✓ (one command: systemctl --user start musu.target)"
 
     # Auto-update timer

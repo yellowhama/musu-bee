@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 from typing import Any
+
+logger = logging.getLogger("musu.adapter.gemini")
 
 from musu_core.adapters.base import AdapterContext, AdapterResult, BaseAdapter, ErrorCode, UsageSummary, resolve_instructions
 
@@ -19,9 +22,11 @@ def _prompt_with_instructions(prompt: str, instructions_path: str | None) -> str
         with open(instructions_path, "r", encoding="utf-8") as f:
             instructions = f.read().strip()
     except OSError:
+        logger.warning("instructions file not found: %s", instructions_path)
         return prompt
 
     if not instructions:
+        logger.debug("instructions file empty: %s", instructions_path)
         return prompt
 
     return (

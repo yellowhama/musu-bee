@@ -141,3 +141,11 @@ bin/
 ~/.musu/secrets/
 _archived/
 tools/rustdesk/data/
+
+# Editor/AI tool configs (per-user, not project)
+.cursor/
+.clinerules
+.windsurfrules
+.gemini/
+opencode.json
+AGENTS.md

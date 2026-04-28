@@ -943,3 +943,37 @@ def test_registry_includes_hermes():
     assert get_adapter("hermes") is not None
     assert isinstance(get_adapter("hermes"), HermesAdapter)
     assert "hermes" in list_adapter_types()
+
+
+# ---------------------------------------------------------------------------
+# _prompt_with_instructions (gemini_local)
+# ---------------------------------------------------------------------------
+
+
+class TestPromptWithInstructions:
+    def test_with_instructions_file(self, tmp_path):
+        from musu_core.adapters.gemini_local import _prompt_with_instructions
+        f = tmp_path / "instr.md"
+        f.write_text("You are a helpful agent.")
+        result = _prompt_with_instructions("do something", str(f))
+        assert "<system_instructions>" in result
+        assert "You are a helpful agent." in result
+        assert "<user_task>" in result
+        assert "do something" in result
+
+    def test_missing_file(self):
+        from musu_core.adapters.gemini_local import _prompt_with_instructions
+        result = _prompt_with_instructions("hello", "/nonexistent/path.md")
+        assert result == "hello"
+
+    def test_empty_file(self, tmp_path):
+        from musu_core.adapters.gemini_local import _prompt_with_instructions
+        f = tmp_path / "empty.md"
+        f.write_text("")
+        result = _prompt_with_instructions("hello", str(f))
+        assert result == "hello"
+
+    def test_none_path(self):
+        from musu_core.adapters.gemini_local import _prompt_with_instructions
+        result = _prompt_with_instructions("hello", None)
+        assert result == "hello"
