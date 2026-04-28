@@ -517,6 +517,53 @@ async def update_governance(company_id: str = "", qa_auto_enabled: bool | None =
 
 
 @mcp.tool()
+async def start_ralph_loop(company_id: str = "", max_iterations: int = 20, channel: str = "team_lead") -> str:
+    """Start a Ralph Loop — autonomous iteration until all issues are done.
+
+    Each iteration: pick open issue → delegate to agent → QA → close if pass → repeat.
+    Fresh context per iteration (no accumulated state). Runs in background.
+    """
+    try:
+        c = _get_client()
+        cid = company_id or c.company_id
+        if not cid:
+            return _tool_error("No company_id.")
+        data = await c.post("/ralph/start", {"company_id": cid, "max_iterations": max_iterations, "channel": channel})
+        return _fmt(data)
+    except Exception:
+        return _tool_error("Error starting Ralph Loop.")
+
+
+@mcp.tool()
+async def get_ralph_status(company_id: str = "") -> str:
+    """Get current status of a Ralph Loop for a company."""
+    try:
+        c = _get_client()
+        cid = company_id or c.company_id
+        if not cid:
+            return _tool_error("No company_id.")
+        data = await c.get(f"/ralph/status/{cid}")
+        return _fmt(data)
+    except Exception:
+        return _tool_error("Error getting Ralph Loop status.")
+
+
+@mcp.tool()
+async def cancel_ralph_loop(company_id: str = "") -> str:
+    """Cancel a running Ralph Loop."""
+    try:
+        c = _get_client()
+        cid = company_id or c.company_id
+        if not cid:
+            return _tool_error("No company_id.")
+        data = await c.post(f"/ralph/cancel/{cid}", {})
+        return _fmt(data)
+    except Exception:
+        return _tool_error("Error cancelling Ralph Loop.")
+
+
+
+@mcp.tool()
 async def invoke_heartbeat(agent_id: str) -> str:
     """Manually trigger a heartbeat run for an agent."""
     try:

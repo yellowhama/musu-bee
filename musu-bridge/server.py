@@ -41,7 +41,7 @@ _agent_id_var: ContextVar[str | None] = ContextVar("agent_id", default=None)
 _task_id_var: ContextVar[str | None] = ContextVar("task_id", default=None)
 
 import uvicorn
-from fastapi import Body, FastAPI, HTTPException, Path, Query, Request, Response, WebSocket
+from fastapi import BackgroundTasks, Body, FastAPI, HTTPException, Path, Query, Request, Response, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -1676,6 +1676,45 @@ async def api_get_agent_budget(agent_id: str):
         "remaining": (agent["budget_usd_monthly"] - (agent.get("budget_usd_spent") or 0.0))
             if agent.get("budget_usd_monthly") is not None else None,
     }
+
+
+# ── Ralph Loop ──────────────────────────────────────────────────────────────
+
+
+class RalphStartRequest(BaseModel):
+    company_id: str
+    max_iterations: int = 20
+    channel: str = "team_lead"
+
+
+@app.post("/api/ralph/start", summary="Start a Ralph Loop for a company")
+async def api_ralph_start(req: RalphStartRequest, background_tasks: BackgroundTasks):
+    """Start autonomous iteration loop. Returns immediately, runs in background."""
+    from ralph_loop import ralph_loop, get_loop_status
+    existing = get_loop_status(req.company_id)
+    if existing and existing.get("status") == "running":
+        return {"error": "Loop already running", "status": existing}
+
+    background_tasks.add_task(ralph_loop, req.company_id, req.max_iterations, req.channel)
+    return {"started": True, "company_id": req.company_id, "max_iterations": req.max_iterations}
+
+
+@app.get("/api/ralph/status/{company_id}", summary="Get Ralph Loop status")
+async def api_ralph_status(company_id: str):
+    """Get current status of a Ralph Loop."""
+    from ralph_loop import get_loop_status
+    status = get_loop_status(company_id)
+    if not status:
+        return {"status": "not_running"}
+    return status
+
+
+@app.post("/api/ralph/cancel/{company_id}", summary="Cancel a Ralph Loop")
+async def api_ralph_cancel(company_id: str):
+    """Cancel a running Ralph Loop."""
+    from ralph_loop import cancel_loop
+    cancelled = cancel_loop(company_id)
+    return {"cancelled": cancelled}
 
 
 # ── Route Task ──────────────────────────────────────────────────────────────
