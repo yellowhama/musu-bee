@@ -53,10 +53,11 @@ class WolRequest(BaseModel):
     port: int = 9
 
 
-# ── Agent Card ────────────────────────────────────────────────────────────────
+# ── Agent Card (moved to server.py as A2A-compliant /.well-known/agent.json) ──
 
-@system_router.get("/.well-known/agent.json", summary="A2A Agent Card", include_in_schema=False)
-async def agent_card() -> dict:
+@system_router.get("/api/admin/node-card", summary="Node identity card (mesh discovery)")
+async def node_card() -> dict:
+    """Legacy node card for mesh peer discovery. A2A card is at /.well-known/agent.json."""
     info = get_node_info()
     return {
         "name": info["name"],

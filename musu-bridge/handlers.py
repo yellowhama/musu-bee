@@ -1615,7 +1615,7 @@ async def pair_with_node(ip: str, port: int) -> dict[str, Any]:
     assigned_agents: list[str] = []
     try:
         async with httpx.AsyncClient(timeout=5.0, follow_redirects=False) as client:
-            card_resp = await client.get(f"{remote_base}/.well-known/agent.json")
+            card_resp = await client.get(f"{remote_base}/api/admin/node-card")
             if card_resp.status_code == 200:
                 card = card_resp.json()
                 card_agents = [

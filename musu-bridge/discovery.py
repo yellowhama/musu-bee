@@ -145,7 +145,7 @@ class MusuDiscovery:
 
 
 async def enrich_with_agent_card(peer: dict) -> dict:
-    """Fetch /.well-known/agent.json from a discovered peer and attach agents list."""
+    """Fetch node card from a discovered peer and attach agents list."""
     import httpx
 
     url = peer.get("url", "")
@@ -155,7 +155,7 @@ async def enrich_with_agent_card(peer: dict) -> dict:
         return result
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(f"{url.rstrip('/')}/.well-known/agent.json")
+            resp = await client.get(f"{url.rstrip('/')}/api/admin/node-card")
             if resp.status_code == 200:
                 card = resp.json()
                 result["agents"] = [

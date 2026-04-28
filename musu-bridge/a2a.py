@@ -36,6 +36,14 @@ _TASK_NOT_FOUND = -32001
 _TASK_NOT_CANCELABLE = -32002
 
 
+class A2AError(Exception):
+    """Raised by handlers to signal a JSON-RPC error at the top level."""
+    def __init__(self, code: int, message: str):
+        self.code = code
+        self.message = message
+        super().__init__(message)
+
+
 def _jsonrpc_error(id: Any, code: int, message: str, data: Any = None) -> dict:
     err: dict[str, Any] = {"code": code, "message": message}
     if data is not None:
@@ -131,6 +139,8 @@ async def handle_jsonrpc(body: dict) -> dict:
     try:
         result = await handler(params)
         return _jsonrpc_result(req_id, result)
+    except A2AError as exc:
+        return _jsonrpc_error(req_id, exc.code, exc.message)
     except ValueError as exc:
         return _jsonrpc_error(req_id, _INVALID_PARAMS, str(exc))
     except Exception as exc:
@@ -199,7 +209,7 @@ async def _handle_get_task(params: dict) -> dict:
         "SELECT * FROM route_executions WHERE id = ?", (task_id,)
     )
     if not rows:
-        return _jsonrpc_error(None, _TASK_NOT_FOUND, f"Task not found: {task_id}")
+        raise A2AError(_TASK_NOT_FOUND, f"Task not found: {task_id}")
 
     row = dict(rows[0])
     a2a_state = _STATUS_MAP.get(row.get("status", ""), "submitted")
@@ -239,11 +249,11 @@ async def _handle_cancel_task(params: dict) -> dict:
         "SELECT status FROM route_executions WHERE id = ?", (task_id,)
     )
     if not rows:
-        return _jsonrpc_error(None, _TASK_NOT_FOUND, f"Task not found: {task_id}")
+        raise A2AError(_TASK_NOT_FOUND, f"Task not found: {task_id}")
 
     status = rows[0]["status"]
     if status in ("done", "failed"):
-        return _jsonrpc_error(None, _TASK_NOT_CANCELABLE, f"Task already {status}")
+        raise A2AError(_TASK_NOT_CANCELABLE, f"Task already {status}")
 
     backend.update_route_execution(task_id, "failed", error="Cancelled via A2A")
     return {
