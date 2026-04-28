@@ -186,6 +186,9 @@ if [ $INSTALL_BEE -eq 1 ] && [ -d "$MUSU_ROOT/musu-bee" ]; then
     else
         npm install --silent 2>/dev/null && info "musu-bee deps installed (npm) ✓" || warn "npm install failed"
     fi
+    # Pre-build for production (faster cold start)
+    info "Building musu-bee production..."
+    ./node_modules/.bin/next build 2>/dev/null && info "musu-bee built ✓" || warn "musu-bee build failed (will use dev mode)"
     cd "$MUSU_ROOT"
 fi
 
@@ -414,13 +417,26 @@ echo ""
 if command -v systemctl >/dev/null 2>&1; then
     info "Starting MUSU..."
     systemctl --user daemon-reload 2>/dev/null
-    systemctl --user restart musud 2>/dev/null
-    sleep 6
+    systemctl --user restart musud musu-bridge musu-bee 2>/dev/null
+    sleep 8
+
+    # Health check: wait for bridge to be ready (max 30s)
+    _HC_OK=false
+    for _hc in $(seq 1 30); do
+        if curl -sf --max-time 2 http://127.0.0.1:${BRIDGE_PORT}/health >/dev/null 2>&1; then
+            _HC_OK=true
+            break
+        fi
+        sleep 1
+    done
+    if [ "$_HC_OK" = true ]; then
+        info "Bridge health check passed ✓"
+    else
+        warn "Bridge not responding on :${BRIDGE_PORT} after 30s"
+    fi
 
     if [ -x "$MUSU_CLI" ]; then
         "$MUSU_CLI" status 2>/dev/null || warn "musu status failed — check: journalctl --user -u musud"
-    elif [ -x "$MUSU_HOME/bin/musud" ]; then
-        "$MUSU_HOME/bin/musud" status 2>/dev/null || warn "musud status failed"
     fi
     echo ""
 fi
