@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-const authEnabled = process.env.NEXT_PUBLIC_AUTH_ENABLED === "true";
+// Auth is always enabled when Supabase is configured
+const authEnabled = true;
 const supabaseConfigured = Boolean(
   process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
