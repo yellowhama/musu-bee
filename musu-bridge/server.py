@@ -525,14 +525,15 @@ async def lifespan(app: FastAPI):
         from seed_agents import AGENTS as _SEED_AGENTS
         _chan_backend = _gb_chan()
         _cfg_chan = get_config()
-        _all_active = {a["name"] for a in _chan_backend.list_agents()}
+        _all_agents = _chan_backend.list_agents()
+        _all_names = {a["name"] for a in _all_agents}  # includes retired
         # Build lookup: channel_key (e.g. "ceo") → seed template
         _seed_by_channel = {a["name"]: a for a in _SEED_AGENTS}
         _broken: list[str] = []
         _ok: list[str] = []
         _seeded: list[str] = []
         for _ch, _agent_name in _cfg_chan.channel_agent_map.items():
-            if _agent_name in _all_active:
+            if _agent_name in _all_names:
                 _ok.append(_ch)
             elif _is_primary:
                 # Only primary node auto-seeds company-level agents (CEO, CTO, etc)
