@@ -202,14 +202,16 @@ fi
 BRIDGE_PORT="${BRIDGE_PORT:-8070}"
 if command -v ss &>/dev/null; then
     if ss -ltn 2>/dev/null | grep -q ":${BRIDGE_PORT} "; then
-        # Health check first — skip restart if musu-bridge is already up
-        if curl -sf --max-time 1 "http://127.0.0.1:${BRIDGE_PORT}/health" >/dev/null 2>&1; then
-            echo "[musu-bridge] already running on :${BRIDGE_PORT}" >&2
-            exit 0
+        # Port in use — kill the old process so musud can manage the new one
+        _OLD_PID=$(lsof -ti:${BRIDGE_PORT} 2>/dev/null | head -1)
+        if [ -n "$_OLD_PID" ]; then
+            echo "[start-bridge] killing orphan process on :${BRIDGE_PORT} (PID $_OLD_PID)" >&2
+            kill "$_OLD_PID" 2>/dev/null
+            sleep 2
+            # Force kill if still alive
+            kill -9 "$_OLD_PID" 2>/dev/null || true
+            sleep 1
         fi
-        echo "[ERROR] port ${BRIDGE_PORT} is in use by another process." >&2
-        echo "  Stop it or set BRIDGE_PORT to a different port." >&2
-        exit 1
     fi
 fi
 

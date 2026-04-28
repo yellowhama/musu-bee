@@ -17,10 +17,10 @@ def _default_channel_agent_map() -> dict[str, str]:
         "cto": _agent("cto", "CTO"),
         "engineer": _agent("engineer", "Engineer"),
         "qa": _agent("qa", "QA"),
-        "cos": os.getenv("MUSU_AGENT_COS", "cos"),
-        "worker": os.getenv("MUSU_AGENT_WORKER", "worker"),
-        "team_lead": os.getenv("MUSU_AGENT_TEAM_LEAD", "MD-Lead"),
-        "lead": os.getenv("MUSU_AGENT_LEAD", "MD-Lead"),
+        "cos": os.getenv("MUSU_AGENT_COS", f"{prefix}cos"),
+        "worker": os.getenv("MUSU_AGENT_WORKER", f"{prefix}worker"),
+        "team_lead": os.getenv("MUSU_AGENT_TEAM_LEAD", f"{prefix}MD-Lead"),
+        "lead": os.getenv("MUSU_AGENT_LEAD", f"{prefix}MD-Lead"),
         "bw_lead": os.getenv("MUSU_AGENT_BW_LEAD", "BW-Lead"),
     }
 

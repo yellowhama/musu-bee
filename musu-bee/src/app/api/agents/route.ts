@@ -25,7 +25,7 @@ type FetchResult =
   | { ok: true; status: number; data: unknown }
   | { ok: false; status: number; error: string };
 
-const DEFAULT_COMPANY_ID = "f27a9bd2-688a-450b-98b4-f63d24b0ab50";
+const DEFAULT_COMPANY_ID = process.env.PAPERCLIP_COMPANY_ID || "";
 
 const PAPERCLIP_API_BASE = normalizePaperclipApiBase(
   process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3100/api",

@@ -265,6 +265,7 @@ worker = 9700
 MUSU_NODE_ROLE = "${_NODE_ROLE}"
 MUSU_NODE_HEARTBEAT_ENABLED = "true"
 MUSU_PRIMARY_URL = "${_PRIMARY_URL}"
+MUSU_AGENT_PREFIX = "$(hostname -s 2>/dev/null || echo local)"
 TOML
     info "musu.toml created ✓"
 else

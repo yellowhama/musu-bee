@@ -32,7 +32,26 @@ export default function ScreenPage() {
 
   const fetchDevices = useCallback(async () => {
     try {
-      const resp = await fetch(`${BRIDGE_URL}/api/companies/f27a9bd2-688a-450b-98b4-f63d24b0ab50/dashboard`);
+      // Get active company dynamically
+      let companyId = "";
+      try {
+        const wsResp = await fetch(`${BRIDGE_URL}/api/workspace`);
+        if (wsResp.ok) {
+          const ws = await wsResp.json();
+          companyId = ws.active_company_id || "";
+        }
+      } catch { /* */ }
+      if (!companyId) {
+        try {
+          const coResp = await fetch(`${BRIDGE_URL}/api/companies`);
+          if (coResp.ok) {
+            const cos = await coResp.json();
+            if (Array.isArray(cos) && cos.length > 0) companyId = cos[0].id;
+          }
+        } catch { /* */ }
+      }
+      if (!companyId) { setLoading(false); return; }
+      const resp = await fetch(`${BRIDGE_URL}/api/companies/${companyId}/dashboard`);
       if (!resp.ok) return;
       const data = await resp.json();
       const nodes: NodeInfo[] = (data.nodes || []).map((n: Record<string, unknown>) => ({
@@ -82,7 +101,7 @@ export default function ScreenPage() {
   }, [fetchDevices]);
 
   const handleConnect = (rustdesk_id: string) => {
-    if (rustdesk_id) {
+    if (rustdesk_id && rustdesk_id.length >= 6) {
       window.open(`rustdesk://connection/new/${rustdesk_id}`, "_self");
     }
   };
