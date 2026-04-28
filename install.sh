@@ -370,7 +370,9 @@ BEESVC
 
     systemctl --user daemon-reload
     systemctl --user enable musud musu-bridge musu-bee 2>/dev/null
-    info "systemd services registered ✓ (musud + bridge + bee)"
+    # Enable linger so services start on boot (even without login)
+    loginctl enable-linger "$USER" 2>/dev/null || true
+    info "systemd services registered ✓ (musud + bridge + bee + linger)"
 
     # Auto-update timer
     if [ -f "$MUSU_ROOT/scripts/systemd/musu-autoupdate.timer" ]; then
