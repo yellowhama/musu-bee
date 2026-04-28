@@ -3,6 +3,8 @@ import { Suspense } from "react";
 import AppShell from "@/components/AppShell";
 import { getSubscription } from "@/lib/subscription";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "MUSU App",
   description: "Chat-driven control plane for your machines and AI work.",
