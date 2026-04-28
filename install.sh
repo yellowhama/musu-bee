@@ -364,7 +364,7 @@ if [ ! -f "$MUSU_TOKEN_FILE" ]; then
                     sleep 5
                     printf "."
                     POLL_OUT=$(curl -s -w "\n%{http_code}" --max-time 5 \
-                        "${DEVICE_API}/token?device_code=${DEVICE_CODE}" 2>/dev/null || printf "\n000")
+                        "${DEVICE_API}?device_code=${DEVICE_CODE}" 2>/dev/null || printf "\n000")
                     HTTP_STATUS=$(printf '%s' "$POLL_OUT" | tail -1)
                     POLL_RESP=$(printf '%s' "$POLL_OUT" | head -n -1)
 
