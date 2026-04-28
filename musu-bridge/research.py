@@ -42,8 +42,30 @@ async def _web_search(topic: str, max_results: int = 5) -> list[dict]:
         return data.get("results", [])
 
 
+def _is_safe_url(url: str) -> bool:
+    """Block SSRF: only allow http(s) to public hosts."""
+    from urllib.parse import urlparse
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        return False
+    host = (parsed.hostname or "").lower()
+    if not host:
+        return False
+    # Block internal/private networks
+    if host in ("localhost", "127.0.0.1", "0.0.0.0", "[::1]"):
+        return False
+    if host.startswith("169.254.") or host.startswith("10.") or host.startswith("192.168."):
+        return False
+    if host.startswith("172.") and 16 <= int(host.split(".")[1]) <= 31:
+        return False
+    return True
+
+
 async def _web_fetch(url: str, max_bytes: int = 5000) -> str:
     """Fetch a URL and return stripped text content."""
+    if not _is_safe_url(url):
+        logger.warning("research: blocked unsafe URL: %s", url[:100])
+        return ""
     try:
         async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
             resp = await client.get(url, headers={"User-Agent": "MUSU-Research/1.0"})
