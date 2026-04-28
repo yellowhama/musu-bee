@@ -415,6 +415,28 @@ async def route_chat(
                                     pass  # table may not exist yet (pre-v23)
                         except Exception:
                             logger.debug("budget_track: failed to update spent for agent=%s", _aid)
+                    # ── Wiki auto-record (post-dispatch learning) ──────────
+                    _response_text = result.get("response", "")
+                    if (
+                        len(_response_text) >= 200
+                        and channel in ("cto", "engineer", "team_lead")
+                        and company_id
+                    ):
+                        try:
+                            from research import _WIKI_PATH
+                            from datetime import datetime as _dt, timezone as _tz
+                            _wiki_page_id = f"agent_{channel}_{_dt.now(_tz.utc).strftime('%Y%m%d_%H%M')}"
+                            _wiki_content = (
+                                f"# Agent Output: {channel}\n\n"
+                                f"## Task\n{text[:500]}\n\n"
+                                f"## Response\n{_response_text[:3000]}\n\n"
+                                f"## Metadata\n- Channel: {channel}\n- Company: {company_id}\n"
+                                f"- Time: {_dt.now(_tz.utc).isoformat()}\n"
+                            )
+                            (_WIKI_PATH / f"{_wiki_page_id}.md").write_text(_wiki_content, encoding="utf-8")
+                            logger.debug("wiki auto-record: %s", _wiki_page_id)
+                        except Exception:
+                            pass
             except Exception:
                 pass
         # Always record metric — covers mesh/404/no-agent paths too
@@ -528,12 +550,26 @@ async def route_chat(
         except Exception:
             pass
 
+    # ── Wiki context injection (pre-dispatch) ──────────────────────────────────
+    _dispatched_text = text.strip()
+    if len(_dispatched_text) >= 50:
+        try:
+            import httpx as _httpx
+            async with _httpx.AsyncClient(timeout=3.0) as _wc:
+                _wr = await _wc.get("http://127.0.0.1:8070/api/wiki/search", params={"q": _dispatched_text[:100]})
+                if _wr.status_code == 200 and _wr.json():
+                    _snippets = "\n".join(f"- {p['title']}: {p.get('snippet','')[:150]}" for p in _wr.json()[:3])
+                    _dispatched_text = f"## 관련 위키 컨텍스트\n{_snippets}\n\n---\n\n{_dispatched_text}"
+                    logger.debug("wiki context injected (%d results)", len(_wr.json()[:3]))
+        except Exception:
+            pass
+
     try:
         import anyio
         with anyio.fail_after(_route_timeout_sec(channel)):
             route_result = await _router.route(RouteRequest(
                 agent_id=agent_id,
-                prompt=text.strip(),
+                prompt=_dispatched_text,
                 task_id=task_id,
                 adapter_override=adapter_override,
                 cost_optimized=cost_optimized,

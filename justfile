@@ -58,6 +58,10 @@ delegate channel instruction:
 check-5070:
     @curl -sf --max-time 5 http://100.121.211.106:8070/health && echo " ← 5070 UP" || echo "5070 DOWN"
 
+# Sync LLM Wiki across machines (git push/pull)
+wiki-sync:
+    bash scripts/sync-wiki.sh
+
 # Clean stale data
 clean:
     python3 -c "import sqlite3; c=sqlite3.connect('$HOME/.musu/musu.db'); c.execute(\"DELETE FROM route_executions WHERE status='failed' AND created_at < datetime('now', '-7 days')\"); print(f'cleaned {c.total_changes} old failed executions'); c.commit(); c.close()"

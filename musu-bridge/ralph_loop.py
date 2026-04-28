@@ -130,10 +130,22 @@ async def ralph_loop(
                     logger.warning("ralph_loop: worktree creation failed — %s. Using main.", _wt_err)
                     _worktree_path = None
 
+            # 2.7. Wiki context for this issue (pre-dispatch knowledge)
+            _wiki_ctx = ""
+            try:
+                import httpx as _httpx_rl
+                async with _httpx_rl.AsyncClient(timeout=3.0) as _wc:
+                    _wr = await _wc.get("http://127.0.0.1:8070/api/wiki/search", params={"q": issue_title})
+                    if _wr.status_code == 200 and _wr.json():
+                        _wiki_ctx = "\n".join(f"- {p['title']}" for p in _wr.json()[:3])
+            except Exception:
+                pass
+
             # 3. Build fresh prompt (no accumulated context — Ralph's core principle)
             prompt = (
                 f"## Ralph Loop Iteration {i + 1}/{max_iterations}\n\n"
-                f"처리할 이슈: **{issue_title}**\n"
+                + (f"### 관련 위키\n{_wiki_ctx}\n\n" if _wiki_ctx else "")
+                + f"처리할 이슈: **{issue_title}**\n"
                 f"ID: {issue_id}\n"
                 f"설명: {issue.get('description', '(없음)')}\n\n"
                 f"### 지시\n"
@@ -160,9 +172,15 @@ async def ralph_loop(
                 f"- Result: {result.get('response', result.get('error', 'no output'))[:200]}\n"
                 f"- Time: {datetime.now(timezone.utc).isoformat()}\n"
             )
-            # Append to progress wiki (best effort)
+            # Append to progress KV store + wiki (best effort)
             try:
                 _append_progress(backend, company_id, progress_entry)
+            except Exception:
+                pass
+            try:
+                from research import _WIKI_PATH
+                _wiki_file = _WIKI_PATH / f"ralph_{company_id[:8]}_{i:03d}_{issue_id[:8]}.md"
+                _wiki_file.write_text(progress_entry, encoding="utf-8")
             except Exception:
                 pass
 
