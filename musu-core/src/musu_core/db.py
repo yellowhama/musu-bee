@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS agents (
     budget_usd_monthly REAL DEFAULT NULL,
     budget_usd_spent   REAL DEFAULT 0.0,
     budget_reset_at    TEXT DEFAULT NULL,
+    allowed_tools      TEXT DEFAULT NULL,
     created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );

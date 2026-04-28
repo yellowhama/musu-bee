@@ -123,6 +123,17 @@ class ClaudeLocalAdapter(BaseAdapter):
         )
         dangerously_skip_permissions = bool(ctx.config.get("dangerously_skip_permissions", False))
 
+        # Tool access control: prepend restriction to prompt if allowed_tools is set
+        _prompt = ctx.prompt
+        if ctx.allowed_tools:
+            _tools_str = ", ".join(ctx.allowed_tools)
+            _prompt = (
+                f"⚠ TOOL RESTRICTION: You may ONLY use these MCP tools: {_tools_str}. "
+                f"Do NOT call any other tools. If you need a tool not in this list, "
+                f"report that you lack permission and suggest delegating to another agent.\n\n"
+                + _prompt
+            )
+
         def build_env() -> dict[str, str]:
             env = os.environ.copy()
             # Strip nesting vars that prevent nested Claude Code launch
@@ -172,7 +183,7 @@ class ClaudeLocalAdapter(BaseAdapter):
                 env=build_env(),
             )
             try:
-                proc.stdin.write(ctx.prompt.encode())
+                proc.stdin.write(_prompt.encode())
                 await proc.stdin.drain()
                 proc.stdin.close()
 

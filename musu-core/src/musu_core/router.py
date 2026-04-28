@@ -181,6 +181,7 @@ class Router:
             task_id=req.task_id,
             extra=req.extra,
             company_id=req.company_id or getattr(agent, "company_id", None),
+            allowed_tools=getattr(agent, "allowed_tools", None),
         )
 
         # --- 3. Log start ---

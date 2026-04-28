@@ -251,6 +251,12 @@ async def route_chat(
     if not text.strip():
         return {"error": "Empty message", "response": None}
 
+    # ── Harness: input guard (prompt injection detection) ────────────────────
+    from input_guard import check_input, sanitize_for_agent
+    _guard = check_input(text)
+    if _guard.flagged:
+        text = sanitize_for_agent(text, _guard)
+
     # ── Harness: per-agent budget enforcement ────────────────────────────────
     _budget_backend = _get_backend()
     _budget_agent_name = get_bridge_config().channel_agent_map.get(channel)

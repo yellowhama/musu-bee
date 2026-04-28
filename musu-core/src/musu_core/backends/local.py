@@ -31,6 +31,7 @@ def _agent_to_dict(agent: Any) -> dict[str, Any]:
         "budget_usd_monthly": getattr(agent, "budget_usd_monthly", None),
         "budget_usd_spent": getattr(agent, "budget_usd_spent", 0.0),
         "budget_reset_at": getattr(agent, "budget_reset_at", None),
+        "allowed_tools": getattr(agent, "allowed_tools", None),
     }
 
 

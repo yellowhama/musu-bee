@@ -97,6 +97,8 @@ class AdapterContext:
     extra: dict[str, Any] = field(default_factory=dict)
     # Company scope — injected as PAPERCLIP_COMPANY_ID into adapter subprocess env
     company_id: str | None = None
+    # Tool access control: list of allowed MCP tool names. None = all tools.
+    allowed_tools: list[str] | None = None
 
 
 @dataclass

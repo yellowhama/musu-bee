@@ -57,6 +57,8 @@ class Agent:
     budget_usd_monthly: float | None = None
     budget_usd_spent: float = 0.0
     budget_reset_at: str | None = None
+    # Tool access control: JSON list of allowed MCP tool names. None = all tools.
+    allowed_tools: list[str] | None = None
 
     @staticmethod
     def from_row(row: Any) -> "Agent":
@@ -76,6 +78,7 @@ class Agent:
             budget_usd_monthly=row["budget_usd_monthly"] if "budget_usd_monthly" in keys else None,
             budget_usd_spent=row["budget_usd_spent"] if "budget_usd_spent" in keys else 0.0,
             budget_reset_at=row["budget_reset_at"] if "budget_reset_at" in keys else None,
+            allowed_tools=json.loads(row["allowed_tools"]) if "allowed_tools" in keys and row["allowed_tools"] else None,
         )
 
 

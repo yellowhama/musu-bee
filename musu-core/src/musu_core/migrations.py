@@ -731,6 +731,26 @@ def _v23_down(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+# ---------------------------------------------------------------------------
+# v24: allowed_tools per agent (tool access control)
+# ---------------------------------------------------------------------------
+
+
+def _v24_up(conn: sqlite3.Connection) -> None:
+    """Add allowed_tools JSON column to agents (NULL = all tools allowed)."""
+    if not _column_exists(conn, "agents", "allowed_tools"):
+        conn.execute("ALTER TABLE agents ADD COLUMN allowed_tools TEXT DEFAULT NULL;")
+        conn.commit()
+
+
+def _v24_down(conn: sqlite3.Connection) -> None:
+    try:
+        conn.execute("ALTER TABLE agents DROP COLUMN allowed_tools;")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
+
 MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v1_fallback_chain", _v1_up, _v1_down),
     ("v2_messages_agent_id", _v2_up, _v2_down),
@@ -755,6 +775,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v21_issue_goal_project_linkage", _v21_up, _v21_down),
     ("v22_agent_budget_governance", _v22_up, _v22_down),
     ("v23_budget_transactions", _v23_up, _v23_down),
+    ("v24_agent_allowed_tools", _v24_up, _v24_down),
 ]
 
 
