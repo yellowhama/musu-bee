@@ -124,8 +124,10 @@ if [[ -z "${MUSU_TOKEN:-}" && "${MUSU_DEV:-}" != "1" ]] && command -v curl &>/de
         echo "  │  Bridge is running. Token saved on approval.        │" >&2
         echo "  └─────────────────────────────────────────────────────┘" >&2
 
-        # Auto-open browser if display is available
-        if command -v xdg-open &>/dev/null && [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]]; then
+        # Auto-open browser (WSL2 → Windows browser, Linux → xdg-open, macOS → open)
+        if grep -qi "microsoft" /proc/version 2>/dev/null; then
+            cmd.exe /c start "" "$VERIFY_URI" 2>/dev/null &
+        elif command -v xdg-open &>/dev/null && [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]]; then
             xdg-open "$VERIFY_URI" 2>/dev/null &
         elif command -v open &>/dev/null; then
             open "$VERIFY_URI" 2>/dev/null &

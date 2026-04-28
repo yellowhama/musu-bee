@@ -352,7 +352,9 @@ if [ ! -f "$MUSU_TOKEN_FILE" ]; then
                 echo ""
 
                 # Auto-open browser
-                if command -v xdg-open >/dev/null 2>&1 && [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]; then
+                if [ $IS_WSL -eq 1 ]; then
+                    cmd.exe /c start "" "$VERIFY_URI" 2>/dev/null &
+                elif command -v xdg-open >/dev/null 2>&1 && [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]; then
                     xdg-open "$VERIFY_URI" 2>/dev/null &
                 elif command -v open >/dev/null 2>&1; then
                     open "$VERIFY_URI" 2>/dev/null &
