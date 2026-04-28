@@ -346,8 +346,7 @@ if [ ! -f "$MUSU_TOKEN_FILE" ]; then
                 echo "  │  Open this URL in your browser and click Approve:   │"
                 echo "  │  ${VERIFY_URI}"
                 echo "  │                                                      │"
-                echo "  │  Waiting up to 30 seconds...                        │"
-                echo "  │  (Press Ctrl+C to skip — bridge works without it)  │"
+                echo "  │  Waiting for approval...                            │"
                 echo "  └─────────────────────────────────────────────────────┘"
                 echo ""
 
@@ -360,8 +359,8 @@ if [ ! -f "$MUSU_TOKEN_FILE" ]; then
                     open "$VERIFY_URI" 2>/dev/null &
                 fi
 
-                # Poll every 5s, up to 30s (6 attempts)
-                for _i in $(seq 1 6); do
+                # Poll every 5s until approved or expired (max 15 min)
+                while true; do
                     sleep 5
                     printf "."
                     POLL_OUT=$(curl -s -w "\n%{http_code}" --max-time 5 \
@@ -380,15 +379,38 @@ if [ ! -f "$MUSU_TOKEN_FILE" ]; then
                         fi
                     elif [ "$HTTP_STATUS" = "410" ]; then
                         echo ""
-                        warn "Device code expired. Run install.sh again or restart bridge to retry."
-                        break
+                        warn "Device code expired. Requesting new code..."
+                        # Get a new device code and continue
+                        RESP=$(curl -sf --max-time 5 \
+                            -X POST "${DEVICE_API}" \
+                            -H "Content-Type: application/json" \
+                            -d "{\"node_name\":\"${_NODE_NAME}\"}" 2>/dev/null || echo "")
+                        if [ -n "$RESP" ] && echo "$RESP" | jq empty 2>/dev/null; then
+                            DEVICE_CODE=$(echo "$RESP" | jq -r '.device_code // empty' 2>/dev/null)
+                            VERIFY_URI=$(echo "$RESP"  | jq -r '.verification_uri // empty' 2>/dev/null)
+                            if [ -n "$DEVICE_CODE" ] && [ -n "$VERIFY_URI" ]; then
+                                echo ""
+                                echo "  New code: ${VERIFY_URI}"
+                                echo "  Open in browser and approve."
+                                echo ""
+                                if [ $IS_WSL -eq 1 ]; then
+                                    cmd.exe /c start "" "$VERIFY_URI" 2>/dev/null &
+                                elif command -v xdg-open >/dev/null 2>&1 && [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]; then
+                                    xdg-open "$VERIFY_URI" 2>/dev/null &
+                                elif command -v open >/dev/null 2>&1; then
+                                    open "$VERIFY_URI" 2>/dev/null &
+                                fi
+                            else
+                                error "Failed to get new device code from musu.pro"
+                            fi
+                        else
+                            error "Cannot reach musu.pro — check your internet connection"
+                        fi
                     fi
                 done
 
                 if [ ! -f "$MUSU_TOKEN_FILE" ]; then
-                    echo ""
-                    info "Skipped — bridge will start without peer discovery"
-                    info "To register later: systemctl --user restart musu-bridge"
+                    error "Device registration failed. Run install.sh again."
                 fi
             else
                 warn "musu.pro returned unexpected response — skipping device auth"
