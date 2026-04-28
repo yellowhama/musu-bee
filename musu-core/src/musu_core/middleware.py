@@ -142,8 +142,8 @@ def require_bearer_token(
                 path.startswith(prefix) for prefix in bypass_path_prefixes
             ):
                 return await call_next(request)
-            # Internal sidecar calls from localhost skip token auth
-            if request.client and request.client.host in ("127.0.0.1", "::1"):
+            # Internal sidecar calls from localhost skip token auth (unless disabled)
+            if not os.environ.get("MUSU_BRIDGE_LOCALHOST_AUTH") and request.client and request.client.host in ("127.0.0.1", "::1"):
                 return await call_next(request)
             auth = request.headers.get("Authorization", "")
             if not auth.startswith("Bearer "):

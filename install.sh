@@ -186,6 +186,17 @@ if [ $INSTALL_BEE -eq 1 ] && [ -d "$MUSU_ROOT/musu-bee" ]; then
     else
         npm install --silent 2>/dev/null && info "musu-bee deps installed (npm) ✓" || warn "npm install failed"
     fi
+    # Generate .env.local with Supabase config (same project as musu.pro)
+    if [ ! -f .env.local ]; then
+        cat > .env.local << BEEENV
+NEXT_PUBLIC_AUTH_ENABLED=true
+NEXT_PUBLIC_SUPABASE_URL=https://poyclapxmvulvboiebxq.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBveWNsYXB4bXZ1bHZib2llYnhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY1MDY1NTgsImV4cCI6MjA4MjA4MjU1OH0.gidOCIahG8AM4yCEWuH49Xth9gqqMqkYiUgwRcmrAgQ
+MUSU_BRIDGE_TOKEN=$(cat "$MUSU_HOME/bridge_token" 2>/dev/null || openssl rand -hex 32)
+NEXT_PUBLIC_MUSU_BRIDGE_URL=http://localhost:8070
+BEEENV
+        info "musu-bee .env.local created ✓ (auth enabled)"
+    fi
     # Pre-build for production (faster cold start)
     info "Building musu-bee production..."
     ./node_modules/.bin/next build 2>/dev/null && info "musu-bee built ✓" || warn "musu-bee build failed (will use dev mode)"
