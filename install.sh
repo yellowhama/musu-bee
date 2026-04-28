@@ -220,6 +220,7 @@ grace_period_secs = 15
 
 # ── Bridge: FastAPI agent orchestration server ──────────────
 [services.bridge]
+enabled = false
 command = "${MUSU_ROOT}/scripts/start-bridge.sh"
 restart = "on-failure"
 [services.bridge.health]
@@ -229,6 +230,7 @@ failure_threshold = 3
 
 # ── Bee: Next.js web UI ─────────────────────────────────────
 [services.bee]
+enabled = false
 command = "${MUSU_ROOT}/scripts/start-bee.sh"
 restart = "on-failure"
 [services.bee.health]
@@ -272,6 +274,11 @@ MUSU_AGENT_PREFIX = "$(hostname -s 2>/dev/null || echo local)"
 TOML
     info "musu.toml created ✓"
 else
+    # Ensure bridge/bee are disabled in musu.toml (systemd manages them)
+    if grep -q '^\[services\.bridge\]' "$MUSU_HOME/musu.toml" && ! grep -q 'enabled = false' "$MUSU_HOME/musu.toml"; then
+        sed -i '/\[services\.bridge\]/a enabled = false' "$MUSU_HOME/musu.toml"
+        info "musu.toml: bridge disabled (systemd manages it)"
+    fi
     info "musu.toml OK (services configured)"
 fi
 
@@ -368,11 +375,21 @@ RestartSec=10
 WantedBy=default.target
 BEESVC
 
+    # musu.target — one command to start/stop everything
+    cat > "$HOME/.config/systemd/user/musu.target" << TGTF
+[Unit]
+Description=MUSU — All Services
+Wants=musud.service musu-bridge.service musu-bee.service
+
+[Install]
+WantedBy=default.target
+TGTF
+
     systemctl --user daemon-reload
-    systemctl --user enable musud musu-bridge musu-bee 2>/dev/null
+    systemctl --user enable musu.target 2>/dev/null
     # Enable linger so services start on boot (even without login)
     loginctl enable-linger "$USER" 2>/dev/null || true
-    info "systemd services registered ✓ (musud + bridge + bee + linger)"
+    info "systemd: musu.target registered ✓ (one command: systemctl --user start musu.target)"
 
     # Auto-update timer
     if [ -f "$MUSU_ROOT/scripts/systemd/musu-autoupdate.timer" ]; then

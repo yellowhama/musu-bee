@@ -562,6 +562,39 @@ async def cancel_ralph_loop(company_id: str = "") -> str:
         return _tool_error("Error cancelling Ralph Loop.")
 
 
+@mcp.tool()
+async def get_secret(name: str) -> str:
+    """Read a secret from the vault (~/.musu/secrets/). Returns the value or error."""
+    try:
+        c = _get_client()
+        # Vault is local — read directly instead of via bridge API
+        import os
+        from pathlib import Path
+        vault_dir = Path(os.path.expanduser("~/.musu/secrets"))
+        path = vault_dir / name
+        if not path.exists():
+            return _tool_error(f"Secret '{name}' not found. Available: {', '.join(f.name for f in vault_dir.iterdir() if f.is_file()) if vault_dir.exists() else 'none'}")
+        return path.read_text().strip()
+    except Exception:
+        return _tool_error(f"Error reading secret '{name}'.")
+
+
+@mcp.tool()
+async def list_vault_secrets() -> str:
+    """List all secret names in the vault (not values)."""
+    try:
+        import os
+        from pathlib import Path
+        vault_dir = Path(os.path.expanduser("~/.musu/secrets"))
+        if not vault_dir.exists():
+            return "Vault empty (no ~/.musu/secrets/ directory)"
+        names = sorted(f.name for f in vault_dir.iterdir() if f.is_file())
+        return _fmt({"secrets": names, "count": len(names)})
+    except Exception:
+        return _tool_error("Error listing secrets.")
+
+
+
 
 @mcp.tool()
 async def invoke_heartbeat(agent_id: str) -> str:

@@ -1,20 +1,17 @@
 # MUSU — project commands
 # Install: cargo install just || brew install just
 
-# Start all services
+# Start all services (one command)
 start:
-    systemctl --user start musud musu-bridge musu-bee
+    systemctl --user start musu.target
 
 # Stop all services
 stop:
-    systemctl --user stop musu-bridge musu-bee
-    musu stop 2>/dev/null || true
+    systemctl --user stop musu.target
 
 # Restart everything
 restart:
-    just stop
-    sleep 2
-    just start
+    systemctl --user restart musu.target
 
 # Show status
 status:
