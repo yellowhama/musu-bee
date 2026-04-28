@@ -69,7 +69,20 @@ export default function DashboardPage() {
 
   const fetchDashboard = async () => {
     try {
-      const resp = await fetch(`${BRIDGE_URL}/api/companies/default/dashboard`);
+      // Get active company dynamically
+      let _companyId = "";
+      try {
+        const wsResp = await fetch(`${BRIDGE_URL}/api/workspace`);
+        if (wsResp.ok) { const ws = await wsResp.json(); _companyId = ws.active_company_id || ""; }
+      } catch { /* */ }
+      if (!_companyId) {
+        try {
+          const coResp = await fetch(`${BRIDGE_URL}/api/companies`);
+          if (coResp.ok) { const cos = await coResp.json(); if (Array.isArray(cos) && cos.length) _companyId = cos[0].id; }
+        } catch { /* */ }
+      }
+      if (!_companyId) throw new Error("No company found");
+      const resp = await fetch(`${BRIDGE_URL}/api/companies/${_companyId}/dashboard`);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const json = await resp.json();
       setData(json);
