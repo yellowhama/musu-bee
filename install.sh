@@ -333,7 +333,8 @@ if [ ! -f "$MUSU_TOKEN_FILE" ]; then
             -H "Content-Type: application/json" \
             -d "{\"node_name\":\"${_NODE_NAME}\"}" 2>/dev/null || echo "")
 
-        if [ -n "$RESP" ]; then
+        # Verify response is valid JSON before parsing
+        if [ -n "$RESP" ] && echo "$RESP" | jq empty 2>/dev/null; then
             DEVICE_CODE=$(echo "$RESP" | jq -r '.device_code // empty' 2>/dev/null)
             VERIFY_URI=$(echo "$RESP"  | jq -r '.verification_uri // empty' 2>/dev/null)
 
@@ -345,7 +346,8 @@ if [ ! -f "$MUSU_TOKEN_FILE" ]; then
                 echo "  │  Open this URL in your browser and click Approve:   │"
                 echo "  │  ${VERIFY_URI}"
                 echo "  │                                                      │"
-                echo "  │  Waiting up to 5 minutes...                         │"
+                echo "  │  Waiting up to 30 seconds...                        │"
+                echo "  │  (Press Ctrl+C to skip — bridge works without it)  │"
                 echo "  └─────────────────────────────────────────────────────┘"
                 echo ""
 
@@ -356,8 +358,8 @@ if [ ! -f "$MUSU_TOKEN_FILE" ]; then
                     open "$VERIFY_URI" 2>/dev/null &
                 fi
 
-                # Poll every 5s, up to 5 min (60 attempts)
-                for _i in $(seq 1 60); do
+                # Poll every 5s, up to 30s (6 attempts)
+                for _i in $(seq 1 6); do
                     sleep 5
                     printf "."
                     POLL_OUT=$(curl -s -w "\n%{http_code}" --max-time 5 \
@@ -383,8 +385,8 @@ if [ ! -f "$MUSU_TOKEN_FILE" ]; then
 
                 if [ ! -f "$MUSU_TOKEN_FILE" ]; then
                     echo ""
-                    warn "Approval timeout — bridge will start without peer discovery"
-                    warn "Restart bridge later to retry: systemctl --user restart musu-bridge"
+                    info "Skipped — bridge will start without peer discovery"
+                    info "To register later: systemctl --user restart musu-bridge"
                 fi
             else
                 warn "musu.pro returned unexpected response — skipping device auth"
