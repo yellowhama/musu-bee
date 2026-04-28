@@ -2702,6 +2702,47 @@ async def write_wiki_page(page_id: str, content: str) -> str:
         return _tool_error(f"Write failed: {exc}")
 
 
+# ── Sandbox Bash ──────────────────────────────
+
+
+@mcp.tool()
+async def sandbox_bash(
+    command: str,
+    cwd: str | None = None,
+    timeout: int = 30,
+) -> str:
+    """Execute a bash command locally with safety guards.
+
+    Blocks destructive commands (rm -rf /, shutdown, fork bombs, etc.).
+    Max timeout: 120s. Max output: 50KB.
+
+    command: the bash command to run (e.g., 'ls -la', 'git status', 'python3 script.py')
+    cwd: optional working directory (defaults to musu-functions root)
+    timeout: seconds before kill (1-120, default 30)
+    """
+    try:
+        resp = await client.post("/api/admin/bash", json={
+            "command": command,
+            "cwd": cwd,
+            "timeout": min(max(timeout, 1), 120),
+        })
+        data = resp.json()
+        if resp.status_code == 403:
+            return _tool_error(data.get("detail", "Command blocked"))
+        if resp.status_code >= 400:
+            return _tool_error(data.get("detail", f"HTTP {resp.status_code}"))
+
+        parts = []
+        if data.get("stdout"):
+            parts.append(data["stdout"])
+        if data.get("stderr"):
+            parts.append(f"[stderr]\n{data['stderr']}")
+        parts.append(f"exit={data.get('exit_code', '?')} ({data.get('duration_ms', 0):.0f}ms)")
+        return "\n".join(parts)
+    except Exception as exc:
+        return _tool_error(f"sandbox_bash failed: {exc}")
+
+
 # ──────────────────────────────────────────────
 # Entry point
 # ──────────────────────────────────────────────

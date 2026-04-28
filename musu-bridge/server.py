@@ -1718,6 +1718,31 @@ async def api_ralph_cancel(company_id: str):
     return {"cancelled": cancelled}
 
 
+# ── A2A Protocol ────────────────────────────────────────────────────────────
+
+
+@app.get("/.well-known/agent.json", summary="A2A Agent Card discovery")
+async def a2a_agent_card():
+    """Return the A2A Agent Card for this MUSU instance."""
+    from a2a import get_agent_card
+    return get_agent_card()
+
+
+@app.post("/a2a", summary="A2A JSON-RPC 2.0 endpoint")
+async def a2a_endpoint(request: Request):
+    """Handle A2A JSON-RPC requests (SendMessage, GetTask, CancelTask)."""
+    from a2a import handle_jsonrpc
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse(
+            {"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "Parse error"}},
+            status_code=400,
+        )
+    result = await handle_jsonrpc(body)
+    return JSONResponse(result)
+
+
 # ── Route Task ──────────────────────────────────────────────────────────────
 
 

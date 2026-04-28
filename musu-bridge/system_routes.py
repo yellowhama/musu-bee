@@ -359,6 +359,25 @@ async def admin_exec(req: AdminExecRequest) -> dict:
         raise HTTPException(status_code=500, detail=str(exc))
 
 
+# ── Sandbox Bash ─────────────────────────────────────────────────────────────
+
+
+class SandboxBashRequest(BaseModel):
+    command: str = Field(..., description="Bash command to execute")
+    cwd: str | None = Field(None, description="Working directory")
+    timeout: int = Field(30, ge=1, le=120, description="Timeout in seconds")
+
+
+@system_router.post("/api/admin/bash", summary="Execute a bash command with safety guards")
+async def admin_bash(req: SandboxBashRequest) -> dict:
+    """Run a bash command locally with blocked-command safety checks."""
+    from sandbox_bash import execute_bash
+    result = await execute_bash(req.command, cwd=req.cwd, timeout=req.timeout)
+    if "error" in result and "exit_code" not in result:
+        raise HTTPException(status_code=403, detail=result["error"])
+    return result
+
+
 # ── System event logging (for activity timeline) ─────────────────────────────
 
 
