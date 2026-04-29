@@ -71,7 +71,7 @@ export default function ScreenPage() {
       }
       const nodes: NodeInfo[] = ((data.nodes || []) as Record<string, unknown>[]).map((n) => ({
         name: n.name as string || "",
-        status: (n.status as string) || "unknown",
+        status: ((n.status as string) || "unknown") as NodeInfo["status"],
         url: n.url as string || "",
         agents: (n.agents as string[]) || [],
         machine: (n.machine as string) || (n.name as string) || "",
