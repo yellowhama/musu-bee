@@ -1731,6 +1731,30 @@ async def api_ralph_cancel(company_id: str):
     return {"cancelled": cancelled}
 
 
+# ── OpenAI-compatible LLM Proxy ─────────────────────────────────────────────
+
+
+@app.post("/v1/chat/completions", summary="OpenAI-compatible chat completions")
+async def openai_chat_completions(request: Request):
+    """Proxy for Hermes/OpenClaw/any OpenAI-compatible client.
+    Routes through MUSU's existing adapters (claude_local, gemini_local, etc).
+    """
+    from openai_compat import handle_chat_completion
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": {"message": "Invalid JSON"}}, status_code=400)
+    result = await handle_chat_completion(body)
+    return JSONResponse(result)
+
+
+@app.get("/v1/models", summary="List available models (OpenAI-compatible)")
+async def openai_models():
+    """Return MUSU channels as OpenAI model list."""
+    from openai_compat import get_models_list
+    return get_models_list()
+
+
 # ── A2A Protocol ────────────────────────────────────────────────────────────
 
 
