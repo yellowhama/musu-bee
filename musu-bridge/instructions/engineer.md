@@ -50,6 +50,16 @@ Auth is automatic. No tokens or IPs needed.
 
 ## Sprint Contract 처리 절차
 
+### 0. Wiki 확인 (구현 전 필수)
+
+**작업 시작 전 반드시 wiki를 검색한다:**
+```
+search_wiki("이슈 제목 또는 키워드")
+```
+- 이전에 비슷한 작업이 있었는지 확인
+- 관련 아키텍처 결정, 버그 이력, 패턴 참고
+- 중복 작업 방지
+
 ### 1. Sprint Contract 읽기
 
 CEO가 전달한 Sprint Contract에서 다음을 추출한다:
