@@ -2441,8 +2441,15 @@ async def execute_remote_process(
         if cwd:
             payload["cwd"] = cwd
 
-        # Execute remote process
-        token = os.environ.get("MUSU_WORKER_TOKEN")
+        # Execute remote process — use MUSU_TOKEN (account-level, shared across nodes)
+        token = ""
+        try:
+            token_file = os.path.expanduser("~/.musu/musu_token")
+            if os.path.exists(token_file):
+                token = open(token_file).read().strip()
+        except Exception:
+            pass
+        token = token or os.environ.get("MUSU_TOKEN", "") or os.environ.get("MUSU_WORKER_TOKEN", "")
         headers = {"Content-Type": "application/json"}
         if token:
             headers["Authorization"] = f"Bearer {token}"

@@ -32,7 +32,20 @@ def warn_if_open_mode() -> None:
 
 
 def get_token() -> str | None:
-    return os.environ.get("MUSU_WORKER_TOKEN")
+    """Get auth token. Priority: MUSU_WORKER_TOKEN → ~/.musu/musu_token → MUSU_TOKEN."""
+    token = os.environ.get("MUSU_WORKER_TOKEN")
+    if token:
+        return token
+    # Fallback: account-level MUSU_TOKEN (shared across nodes)
+    try:
+        token_file = os.path.expanduser("~/.musu/musu_token")
+        if os.path.exists(token_file):
+            t = open(token_file).read().strip()
+            if t:
+                return t
+    except Exception:
+        pass
+    return os.environ.get("MUSU_TOKEN")
 
 
 async def require_auth(

@@ -272,7 +272,7 @@ failure_threshold = 3
 command = "${MUSU_ROOT}/musu-worker/.venv/bin/python"
 args = ["-m", "uvicorn", "server:app", "--host", "0.0.0.0", "--port", "9700"]
 restart = "on-failure"
-enabled = false
+enabled = true
 
 [ports]
 bridge = ${BRIDGE_PORT}

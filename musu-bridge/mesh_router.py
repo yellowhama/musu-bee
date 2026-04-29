@@ -187,8 +187,21 @@ class MeshRouter:
         return self._node_urls.get(node_name)
 
     def token_for_node(self, node_name: str) -> str:
-        """Return the peer bridge token for a node, or '' if not configured."""
-        return self._node_tokens.get(node_name, "")
+        """Return the peer bridge token for a node.
+
+        Priority: node-specific token → MUSU_TOKEN (account-level, shared) → empty.
+        """
+        node_token = self._node_tokens.get(node_name, "")
+        if node_token and node_token != "local-dev-token-change-in-prod":
+            return node_token
+        # Fallback: account-level MUSU_TOKEN (shared across all nodes)
+        try:
+            token_file = os.path.expanduser("~/.musu/musu_token")
+            if os.path.exists(token_file):
+                return open(token_file).read().strip()
+        except Exception:
+            pass
+        return os.environ.get("MUSU_TOKEN", "")
 
     def mac_for_node(self, node_name: str) -> str:
         """Return the MAC address for Wake-on-LAN, or '' if not configured."""
