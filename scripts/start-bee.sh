@@ -14,6 +14,11 @@ if [ -n "$_OLD" ]; then
   done
 fi
 
+# Tailscale Funnel — expose musu-bee to the internet (background)
+if command -v tailscale &>/dev/null; then
+  sudo tailscale funnel --bg "$_BEE_PORT" &>/dev/null || true
+fi
+
 # Production: use pre-built .next; rebuild if stale (>7 days) or missing
 _BEE_PORT="${MUSU_BEE_PORT:-3001}"
 if [ -f .next/BUILD_ID ]; then
