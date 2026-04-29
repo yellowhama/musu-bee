@@ -423,8 +423,10 @@ async def route_chat(
                         and company_id
                     ):
                         try:
-                            from research import _WIKI_PATH
+                            from wiki_routes import get_wiki_path
                             from datetime import datetime as _dt, timezone as _tz
+                            _wiki_dir = get_wiki_path(company_id)
+                            _wiki_dir.mkdir(parents=True, exist_ok=True)
                             _wiki_page_id = f"agent_{channel}_{_dt.now(_tz.utc).strftime('%Y%m%d_%H%M')}"
                             _wiki_content = (
                                 f"# Agent Output: {channel}\n\n"
@@ -433,7 +435,7 @@ async def route_chat(
                                 f"## Metadata\n- Channel: {channel}\n- Company: {company_id}\n"
                                 f"- Time: {_dt.now(_tz.utc).isoformat()}\n"
                             )
-                            (_WIKI_PATH / f"{_wiki_page_id}.md").write_text(_wiki_content, encoding="utf-8")
+                            (_wiki_dir / f"{_wiki_page_id}.md").write_text(_wiki_content, encoding="utf-8")
                             logger.debug("wiki auto-record: %s", _wiki_page_id)
                         except Exception:
                             pass

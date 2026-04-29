@@ -2503,8 +2503,10 @@ async def poll_agents() -> CallToolResult:
 # LLM Wiki — Central Memory System
 # ──────────────────────────────────────────────
 
-_WIKI_PATH = pathlib.Path.home() / "llm-wiki" / "wiki"
-_WIKI_PATH.mkdir(parents=True, exist_ok=True)  # ensure dir exists for new users
+_WIKI_BASE = pathlib.Path(os.environ.get("MUSU_WIKI_BASE", str(pathlib.Path.home() / "llm-wiki")))
+_WIKI_PATH = _WIKI_BASE / "companies" / os.environ.get("MUSU_AGENT_PREFIX", "global")[:8]
+_WIKI_PATH.mkdir(parents=True, exist_ok=True)
+(_WIKI_BASE / "global").mkdir(parents=True, exist_ok=True)
 
 
 def _wiki_title(content: str, fallback: str) -> str:

@@ -19,13 +19,26 @@ from pydantic import BaseModel
 
 logger = logging.getLogger("musu.wiki")
 
-_WIKI_PATH = _Path(os.environ.get("MUSU_WIKI_PATH", str(_Path.home() / "llm-wiki" / "wiki")))
+_WIKI_BASE = _Path(os.environ.get("MUSU_WIKI_BASE", str(_Path.home() / "llm-wiki")))
+# Legacy compat: old _WIKI_PATH still works as default for global
+_WIKI_PATH = _WIKI_BASE / "companies" / "f27a9bd2"  # musu_corp default
 _WIKI_PATH.mkdir(parents=True, exist_ok=True)
+(_WIKI_BASE / "global").mkdir(parents=True, exist_ok=True)
+
+
+def get_wiki_path(company_id: str | None = None) -> _Path:
+    """Return wiki directory for a company. Falls back to global."""
+    if company_id:
+        company_dir = _WIKI_BASE / "companies" / company_id[:8]
+        if company_dir.exists():
+            return company_dir
+    return _WIKI_BASE / "global"
+
 
 wiki_router = APIRouter(tags=["wiki"])
 
 # ── FTS5 Index ──────────────────────────────────────────────────
-_FTS_DB_PATH = _WIKI_PATH.parent / "wiki_fts.db"
+_FTS_DB_PATH = _WIKI_BASE / "wiki_fts.db"
 _fts_lock = threading.Lock()
 _fts_conn: sqlite3.Connection | None = None
 
@@ -44,26 +57,45 @@ def _get_fts_conn() -> sqlite3.Connection:
     return _fts_conn
 
 
+def _iter_company_wiki_files(wiki_dir: _Path):
+    """Yield (file_path, folder) for .md files in a wiki directory."""
+    if not wiki_dir.exists():
+        return
+    for f in sorted(wiki_dir.glob("*.md")):
+        yield f, ""
+    for d in sorted(p for p in wiki_dir.iterdir() if p.is_dir() and not p.name.startswith(".")):
+        for f in sorted(d.glob("*.md")):
+            yield f, d.name
+
+
 def _rebuild_fts_index():
-    """Rebuild FTS index from wiki files. Called on startup and after writes."""
+    """Rebuild FTS index from all company + global wiki files."""
     with _fts_lock:
         conn = _get_fts_conn()
         conn.execute("DELETE FROM wiki_fts")
         count = 0
-        for f, folder in _iter_wiki_files():
-            try:
-                content = f.read_text(encoding="utf-8")
-                title = _wiki_title(content, f.stem)
-                page_id = f"{folder}/{f.stem}" if folder else f.stem
-                conn.execute(
-                    "INSERT INTO wiki_fts (page_id, title, content, folder) VALUES (?, ?, ?, ?)",
-                    (page_id, title, content, folder),
-                )
-                count += 1
-            except OSError:
-                continue
+        # Index all companies + global
+        dirs_to_index: list[tuple[_Path, str]] = [(_WIKI_BASE / "global", "global")]
+        companies_dir = _WIKI_BASE / "companies"
+        if companies_dir.exists():
+            for d in sorted(companies_dir.iterdir()):
+                if d.is_dir() or d.is_symlink():
+                    dirs_to_index.append((d, d.name))
+        for wiki_dir, scope in dirs_to_index:
+            for f, folder in _iter_company_wiki_files(wiki_dir):
+                try:
+                    content = f.read_text(encoding="utf-8")
+                    title = _wiki_title(content, f.stem)
+                    page_id = f"{folder}/{f.stem}" if folder else f.stem
+                    conn.execute(
+                        "INSERT INTO wiki_fts (page_id, title, content, folder) VALUES (?, ?, ?, ?)",
+                        (f"{scope}:{page_id}", title, content, scope),
+                    )
+                    count += 1
+                except OSError:
+                    continue
         conn.commit()
-        logger.info("wiki_fts: indexed %d pages", count)
+        logger.info("wiki_fts: indexed %d pages across %d scopes", count, len(dirs_to_index))
 
 
 # Build index on import (lazy — first search triggers if needed)
@@ -101,7 +133,7 @@ async def api_wiki_pages() -> list[dict]:
 
 
 @wiki_router.get("/api/wiki/search", summary="Search wiki pages (FTS5)")
-async def api_wiki_search(q: str = Query("", max_length=200)) -> list[dict]:
+async def api_wiki_search(q: str = Query("", max_length=200), company_id: str = Query("", max_length=64)) -> list[dict]:
     q_str = q.strip()
     if not q_str:
         return []

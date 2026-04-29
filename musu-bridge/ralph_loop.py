@@ -178,8 +178,10 @@ async def ralph_loop(
             except Exception:
                 pass
             try:
-                from research import _WIKI_PATH
-                _wiki_file = _WIKI_PATH / f"ralph_{company_id[:8]}_{i:03d}_{issue_id[:8]}.md"
+                from wiki_routes import get_wiki_path
+                _wiki_dir = get_wiki_path(company_id)
+                _wiki_dir.mkdir(parents=True, exist_ok=True)
+                _wiki_file = _wiki_dir / f"ralph_{company_id[:8]}_{i:03d}_{issue_id[:8]}.md"
                 _wiki_file.write_text(progress_entry, encoding="utf-8")
             except Exception:
                 pass
