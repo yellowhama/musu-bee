@@ -1126,13 +1126,17 @@ async def api_list_tasks(
     limit: int = Query(default=50, ge=1, le=500),
     before_id: str | None = Query(default=None, description="Cursor: return tasks older than this id"),
     channel: str | None = Query(default=None, description="Filter by channel/agent name"),
+    company_id: str | None = Query(default=None, description="Filter by company ID"),
 ) -> list[dict]:
-    """List delegated tasks, newest first. Supports status/channel filters and cursor pagination."""
+    """List delegated tasks, newest first. Supports status/channel/company filters and cursor pagination."""
     if channel is not None:
         channel_map = get_channel_map()
         if channel not in channel_map:
             raise HTTPException(status_code=400, detail=f"Unknown channel: {channel!r}")
-    return list_task_records(status=status, limit=limit, before_id=before_id, channel=channel)
+    tasks = list_task_records(status=status, limit=limit, before_id=before_id, channel=channel)
+    if company_id:
+        tasks = [t for t in tasks if t.get("company_id", "") == company_id]
+    return tasks
 
 
 @app.get("/api/tasks/{task_id}", summary="Get async task status")

@@ -50,11 +50,26 @@ export default function ScreenPage() {
           }
         } catch { /* */ }
       }
-      if (!companyId) { setLoading(false); return; }
-      const resp = await fetch(`${BRIDGE_URL}/api/companies/${companyId}/dashboard`);
-      if (!resp.ok) return;
-      const data = await resp.json();
-      const nodes: NodeInfo[] = (data.nodes || []).map((n: Record<string, unknown>) => ({
+      // Try dashboard first, fallback to direct node list
+      let data: Record<string, unknown> = {};
+      if (companyId) {
+        try {
+          const resp = await fetch(`${BRIDGE_URL}/api/companies/${companyId}/dashboard`);
+          if (resp.ok) data = await resp.json();
+        } catch { /* */ }
+      }
+      // Fallback: direct node-info if dashboard didn't return nodes
+      if (!data.nodes || !(data.nodes as unknown[]).length) {
+        try {
+          const nodeResp = await fetch(`${BRIDGE_URL}/api/admin/node-info`);
+          if (nodeResp.ok) {
+            const info = await nodeResp.json();
+            // Wrap single node info as array for compatibility
+            data = { nodes: [info] };
+          }
+        } catch { /* */ }
+      }
+      const nodes: NodeInfo[] = ((data.nodes || []) as Record<string, unknown>[]).map((n) => ({
         name: n.name as string || "",
         status: (n.status as string) || "unknown",
         url: n.url as string || "",

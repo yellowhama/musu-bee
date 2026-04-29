@@ -52,7 +52,11 @@ const SELECT_STYLE: React.CSSProperties = {
   outline: "none",
 };
 
-export default function TasksPanel() {
+interface TasksPanelProps {
+  companyId?: string | null;
+}
+
+export default function TasksPanel({ companyId }: TasksPanelProps = {}) {
   const [tasks, setTasks] = useState<BridgeTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -78,9 +82,10 @@ export default function TasksPanel() {
       if (statusFilter !== "all") params.set("status", statusFilter);
       if (channelFilter !== "all") params.set("channel", channelFilter);
       if (cursor) params.set("before_id", cursor);
+      if (companyId) params.set("company_id", companyId);
       return `/api/bridge-tasks?${params.toString()}`;
     },
-    [statusFilter, channelFilter]
+    [statusFilter, channelFilter, companyId]
   );
 
   const doFetch = useCallback(async () => {

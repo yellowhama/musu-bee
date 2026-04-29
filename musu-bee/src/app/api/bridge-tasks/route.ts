@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 const BRIDGE_URL =
   process.env.MUSU_BRIDGE_URL ?? process.env.NEXT_PUBLIC_BRIDGE_URL ?? "http://localhost:8070";
 
-const ALLOWED_PARAMS = new Set(["status", "limit", "before_id", "channel"]);
+const ALLOWED_PARAMS = new Set(["status", "limit", "before_id", "channel", "company_id"]);
 
 export async function GET(req: NextRequest) {
   try {
