@@ -17,8 +17,12 @@ export interface UseAuthReturn {
 
 export function useAuth(): UseAuthReturn {
   const router = useRouter();
-  const authEnabled = process.env.NEXT_PUBLIC_AUTH_ENABLED === "true";
   const authConfigured = isSupabaseConfigured();
+
+  // Embed mode (iframe from musu.pro) — skip all auth checks
+  const isEmbedded = typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("embed") === "1";
+  const authEnabled = isEmbedded ? false : process.env.NEXT_PUBLIC_AUTH_ENABLED === "true";
 
   const [userIdentity, setUserIdentity] = useState<UserIdentity>({
     email: null,

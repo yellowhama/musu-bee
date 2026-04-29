@@ -10,11 +10,16 @@ export const metadata: Metadata = {
   description: "Chat-driven control plane for your machines and AI work.",
 };
 
-export default async function AppPage() {
+type PageProps = { searchParams: Promise<{ embed?: string }> };
+
+export default async function AppPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const isEmbedded = params.embed === "1";
+
   const subscription = await getSubscription();
   const isPaidTier = subscription.plan !== "free";
 
-  if (!isPaidTier) {
+  if (!isPaidTier && !isEmbedded) {
     return (
       <div className="app-gate-outer">
         <div className="app-gate-card">
