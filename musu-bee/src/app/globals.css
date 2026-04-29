@@ -171,6 +171,28 @@
   --text-2xl:  24px; /* Hero / landing headings (small) */
 }
 
+/* ========== RESPONSIVE BREAKPOINTS ========== */
+
+/* Mobile: no sidebar, bottom tab bar only */
+@media (max-width: 639px) {
+  :root {
+    --console-sidebar-w: 0px;
+    --console-sidebar-w-expanded: 0px;
+    --text-base: 14px;
+    --text-md: 15px;
+  }
+}
+
+/* Tablet: sidebar always collapsed */
+@media (min-width: 640px) and (max-width: 1023px) {
+  :root {
+    --console-sidebar-w: 56px;
+    --console-sidebar-w-expanded: 56px;
+  }
+}
+
+/* Desktop: full sidebar (default values in :root above) */
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;

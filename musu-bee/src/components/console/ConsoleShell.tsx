@@ -1,12 +1,28 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { RegistryNode } from "@/lib/types/node";
 import { ConsoleShellProvider, useConsoleShell } from "./ConsoleShellContext";
 import { ConsoleSidebar } from "./ConsoleSidebar";
 import { ConsoleTopStrip } from "./ConsoleTopStrip";
 import { ConsoleMobileTabBar } from "./ConsoleMobileTabBar";
 import { CommandPalette } from "./CommandPalette";
+
+type ViewMode = "mobile" | "tablet" | "desktop";
+
+function useViewport(): ViewMode {
+  const [mode, setMode] = useState<ViewMode>("desktop");
+  useEffect(() => {
+    function check() {
+      const w = window.innerWidth;
+      setMode(w < 640 ? "mobile" : w < 1024 ? "tablet" : "desktop");
+    }
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+  return mode;
+}
 
 interface ConsoleShellProps {
   user: { email: string; displayName: string | null; avatarUrl: string | null };
@@ -19,7 +35,10 @@ interface ConsoleShellProps {
 
 function ConsoleShellInner({ user, nodes, children, contextPanel, onNavigate, activePanel }: ConsoleShellProps) {
   const { collapsed, setCollapsed, setPaletteOpen } = useConsoleShell();
-  const sidebarWidth = collapsed ? 56 : 220;
+  const viewMode = useViewport();
+  const isMobile = viewMode === "mobile";
+  const isTablet = viewMode === "tablet";
+  const sidebarWidth = isMobile ? 0 : isTablet ? 56 : collapsed ? 56 : 220;
 
   // Cmd+K / Ctrl+K global listener
   useEffect(() => {
@@ -37,8 +56,10 @@ function ConsoleShellInner({ user, nodes, children, contextPanel, onNavigate, ac
 
   return (
     <>
-      {/* Fixed sidebar */}
-      <ConsoleSidebar contextPanel={contextPanel} onNavigate={onNavigate} activePanel={activePanel} />
+      {/* Fixed sidebar — hidden on mobile */}
+      {!isMobile && (
+        <ConsoleSidebar contextPanel={contextPanel} onNavigate={onNavigate} activePanel={activePanel} />
+      )}
 
       {/* Main content area — shifts with sidebar */}
       <div
@@ -65,6 +86,7 @@ function ConsoleShellInner({ user, nodes, children, contextPanel, onNavigate, ac
             flex: 1,
             overflowY: "auto",
             overflowX: "hidden",
+            paddingBottom: isMobile ? 56 : 0,
           }}
         >
           {children}
