@@ -62,6 +62,10 @@ check-5070:
 wiki-sync:
     bash scripts/sync-wiki.sh
 
-# Clean stale data
+# Clean stale data (old failed executions)
 clean:
     python3 -c "import sqlite3; c=sqlite3.connect('$HOME/.musu/musu.db'); c.execute(\"DELETE FROM route_executions WHERE status='failed' AND created_at < datetime('now', '-7 days')\"); print(f'cleaned {c.total_changes} old failed executions'); c.commit(); c.close()"
+
+# Purge retired agents from DB
+purge-retired:
+    python3 -c "import sqlite3; c=sqlite3.connect('$HOME/.musu/musu.db'); c.execute(\"DELETE FROM agents WHERE status='retired'\"); print(f'purged {c.total_changes} retired agents'); c.commit(); c.close()"

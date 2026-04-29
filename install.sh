@@ -540,6 +540,7 @@ fi
 mkdir -p "$HOME/.local/bin"
 ln -sf "$MUSU_CLI" "$HOME/.local/bin/musu" 2>/dev/null || true
 ln -sf "$MUSUD_BIN" "$HOME/.local/bin/musud" 2>/dev/null || true
+ln -sf "$MUSU_ROOT/scripts/musu-delegate.sh" "$HOME/.local/bin/musu-delegate" 2>/dev/null || true
 
 # Add to PATH if not already there
 if ! echo "$PATH" | grep -q "$HOME/.local/bin"; then
