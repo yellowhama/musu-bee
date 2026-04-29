@@ -5,6 +5,15 @@ const nextConfig = {
   // Only use App Router, suppress Pages Router error page generation
   typescript: { ignoreBuildErrors: false },
   eslint: { ignoreDuringBuilds: true },
+  async headers() {
+    return [{
+      source: '/:path*',
+      headers: [{
+        key: 'Content-Security-Policy',
+        value: "frame-ancestors 'self' https://musu.pro https://*.musu.pro",
+      }],
+    }];
+  },
 };
 
 export default nextConfig;
