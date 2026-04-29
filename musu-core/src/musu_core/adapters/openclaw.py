@@ -76,7 +76,7 @@ class OpenClawAdapter(BaseAdapter):
             return env
 
         def build_args() -> list[str]:
-            args = ["agent", "--message", ctx.prompt, "--non-interactive"]
+            args = ["agent", "--message", ctx.prompt, "--local"]
             if use_json:
                 args.append("--json")
             if no_color:
