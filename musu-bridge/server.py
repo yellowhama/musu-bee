@@ -2714,3 +2714,41 @@ if __name__ == "__main__":
     logging.root.setLevel(logging.INFO)
     install_redaction_filter()
     uvicorn.run(app, host=cfg.bridge_host, port=cfg.bridge_port)
+
+
+# ── musu-bee reverse proxy (relay → bridge → bee) ───────────────────────────
+
+_BEE_URL = os.environ.get("MUSU_BEE_URL", "http://localhost:3001")
+
+
+@app.api_route("/bee/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+async def proxy_bee(path: str, request: Request):
+    """Reverse proxy to local musu-bee for relay HTML access.
+
+    musu.pro → relay → bridge /bee/app → localhost:3001/app
+    """
+    import httpx as _hx
+
+    target = f"{_BEE_URL}/{path}"
+    qs = str(request.url.query)
+    if qs:
+        target += f"?{qs}"
+
+    try:
+        body = await request.body()
+        async with _hx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+            resp = await client.request(
+                method=request.method,
+                url=target,
+                headers={
+                    k: v for k, v in request.headers.items()
+                    if k.lower() not in ("host", "authorization", "content-length")
+                },
+                content=body if body else None,
+            )
+            # Forward response
+            excluded = {"content-encoding", "transfer-encoding", "content-length"}
+            headers = {k: v for k, v in resp.headers.items() if k.lower() not in excluded}
+            return Response(content=resp.content, status_code=resp.status_code, headers=headers)
+    except Exception as exc:
+        return JSONResponse({"error": f"Bee proxy failed: {exc}"}, status_code=502)
