@@ -49,10 +49,20 @@ export const CHAT_CHANNEL_IDS: ChatChannelId[] = [
   "ceo", "cto", "engineer", "cos", "qa", "worker",
 ];
 
+export type ChannelCategory = "butler" | "group" | "company" | "agent" | "panel";
+
 export interface Channel {
   id: ChannelId;
   name: string;
   unread: number;
+  category?: ChannelCategory;
+  displayName?: string;
+  avatar?: string;
+  status?: "online" | "offline" | "busy";
+  lastMessage?: {
+    text: string;
+    timestamp: Date;
+  };
 }
 
 export type DeviceStatus = "online" | "offline" | "busy";

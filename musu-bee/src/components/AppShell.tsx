@@ -60,25 +60,30 @@ const CHANNEL_DESCRIPTIONS: Partial<Record<ChannelId, string>> = {
 };
 
 const INITIAL_CHANNELS: Channel[] = [
-  { id: "general", name: "general", unread: 0 },
-  { id: "dev", name: "dev", unread: 0 },
-  { id: "tasks", name: "tasks", unread: 0 },
-  { id: "processes", name: "processes", unread: 0 },
-  { id: "alerts", name: "alerts", unread: 0 },
-  { id: "issues", name: "issues", unread: 0 },
-  { id: "approvals", name: "approvals", unread: 0 },
-  { id: "projects", name: "projects", unread: 0 },
-  { id: "goals", name: "goals", unread: 0 },
-  { id: "costs", name: "costs", unread: 0 },
-  { id: "search", name: "search", unread: 0 },
-  { id: "nodes", name: "nodes", unread: 0 },
-  { id: "wiki", name: "wiki", unread: 0 },
-  { id: "ceo", name: "ceo", unread: 0 },
-  { id: "cto", name: "cto", unread: 0 },
-  { id: "engineer", name: "engineer", unread: 0 },
-  { id: "cos", name: "cos", unread: 0 },
-  { id: "qa", name: "qa", unread: 0 },
-  { id: "worker", name: "worker", unread: 0 },
+  // 집사
+  { id: "ceo", name: "ceo", displayName: "집사 (이 기기)", avatar: "🤵", category: "butler", unread: 0, status: "online" },
+  // 단체방
+  { id: "general", name: "general", displayName: "#ceo-board", avatar: "📢", category: "group", unread: 0 },
+  { id: "dev", name: "dev", displayName: "#dev", avatar: "💻", category: "group", unread: 0 },
+  { id: "alerts", name: "alerts", displayName: "#alerts", avatar: "🔔", category: "group", unread: 0 },
+  // 직접 대화 (에이전트)
+  { id: "cto", name: "cto", displayName: "CTO", avatar: "🔧", category: "agent", unread: 0 },
+  { id: "engineer", name: "engineer", displayName: "Engineer", avatar: "👨‍💻", category: "agent", unread: 0 },
+  { id: "qa", name: "qa", displayName: "QA", avatar: "🔍", category: "agent", unread: 0 },
+  { id: "cos", name: "cos", displayName: "Chief of Staff", avatar: "📋", category: "agent", unread: 0 },
+  { id: "worker", name: "worker", displayName: "Worker", avatar: "⚙️", category: "agent", unread: 0 },
+  // 패널 (회사/관리)
+  { id: "dashboard", name: "dashboard", displayName: "대시보드", avatar: "📊", category: "panel", unread: 0 },
+  { id: "tasks", name: "tasks", displayName: "태스크", avatar: "✅", category: "panel", unread: 0 },
+  { id: "issues", name: "issues", displayName: "이슈", avatar: "🎯", category: "panel", unread: 0 },
+  { id: "wiki", name: "wiki", displayName: "위키", avatar: "📖", category: "panel", unread: 0 },
+  { id: "nodes", name: "nodes", displayName: "기기", avatar: "🖥️", category: "panel", unread: 0 },
+  { id: "processes", name: "processes", displayName: "프로세스", avatar: "⚡", category: "panel", unread: 0 },
+  { id: "approvals", name: "approvals", displayName: "승인", avatar: "✋", category: "panel", unread: 0 },
+  { id: "projects", name: "projects", displayName: "프로젝트", avatar: "📁", category: "panel", unread: 0 },
+  { id: "goals", name: "goals", displayName: "목표", avatar: "🎯", category: "panel", unread: 0 },
+  { id: "costs", name: "costs", displayName: "비용", avatar: "💰", category: "panel", unread: 0 },
+  { id: "search", name: "search", displayName: "검색", avatar: "🔎", category: "panel", unread: 0 },
 ];
 
 export default function AppShell() {
@@ -220,6 +225,20 @@ export default function AppShell() {
   const displayMessages = isAgentChannel
     ? chat.messages
     : localMessages.filter((m) => m.channelId === activeChannel);
+
+  // Update channel lastMessage when messages change
+  useEffect(() => {
+    if (displayMessages.length > 0) {
+      const last = displayMessages[displayMessages.length - 1];
+      setChannels((prev) =>
+        prev.map((ch) =>
+          ch.id === activeChannel
+            ? { ...ch, lastMessage: { text: last.text.slice(0, 60), timestamp: last.timestamp } }
+            : ch
+        )
+      );
+    }
+  }, [displayMessages.length, activeChannel]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
 

@@ -6,6 +6,17 @@ import type { AgentsSurfaceSnapshot, Channel, ChannelId, Device } from "@/types"
 import CompanyPanel from "@/components/CompanyPanel";
 import NodePanel from "@/components/NodePanel";
 
+function _relativeTime(d: Date): string {
+  const sec = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
+  if (sec < 60) return "방금";
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}분`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}시간`;
+  const day = Math.floor(hr / 24);
+  return `${day}일`;
+}
+
 interface SidebarProps {
   channels: Channel[];
   devices: Device[];
@@ -221,39 +232,25 @@ export default function Sidebar({
         padding: "16px 8px",
       }}
     >
-      {/* Channels */}
-      <div style={{ marginBottom: 20 }}>
-        <div className="label" style={{ padding: "0 10px", marginBottom: 10 }}>
-          Channels
-        </div>
-        {(() => {
-          const COMPANY_CHANNELS: ChannelId[] = ["issues", "approvals", "projects", "goals", "costs"];
-          const hasCompany = !!activeCompany;
-          let insertedDivider = false;
-          return channels.map((ch) => {
-            const isCompanyChannel = COMPANY_CHANNELS.includes(ch.id);
-            const dimmed = isCompanyChannel && !hasCompany;
-            const showDivider = isCompanyChannel && !insertedDivider;
-            if (showDivider) insertedDivider = true;
-            return (
-              <div key={ch.id}>
-                {showDivider && (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      padding: "16px 10px 8px",
-                    }}
-                  >
-                    <div style={{ flex: 1, height: 1, background: "var(--border-subtle)" }} />
-                    <span className="label" style={{ fontSize: 9, color: "var(--fg4)" }}>
-                      Company
-                    </span>
-                    <div style={{ flex: 1, height: 1, background: "var(--border-subtle)" }} />
-                  </div>
-                )}
+      {/* Conversation List (Slack/KakaoTalk style) */}
+      {(["butler", "group", "agent", "panel"] as const).map((cat) => {
+        const label = { butler: "📌 집사", group: "💬 단체방", agent: "👤 직접 대화", panel: "📊 관리" }[cat];
+        const items = channels.filter((ch) => (ch.category || "panel") === cat);
+        if (!items.length) return null;
+        return (
+          <div key={cat} style={{ marginBottom: 16 }}>
+            <div className="label" style={{ padding: "0 10px", marginBottom: 6, fontSize: 10 }}>
+              {label}
+            </div>
+            {items.map((ch) => {
+              const isActive = activeChannel === ch.id;
+              const preview = ch.lastMessage?.text || "";
+              const timeStr = ch.lastMessage?.timestamp
+                ? _relativeTime(ch.lastMessage.timestamp)
+                : "";
+              return (
                 <div
+                  key={ch.id}
                   data-testid={`channel-item-${ch.id}`}
                   role="button"
                   tabIndex={0}
@@ -261,49 +258,79 @@ export default function Sidebar({
                   onKeyDown={(e) => e.key === "Enter" && onChannelSelect(ch.id)}
                   style={{
                     display: "flex",
-                    alignItems: "center",
-                    padding: "8px 12px",
+                    alignItems: "flex-start",
+                    gap: 10,
+                    padding: "10px 12px",
                     borderRadius: "var(--radius-sm)",
                     cursor: "pointer",
-                    background: activeChannel === ch.id ? "var(--bg-hover)" : "transparent",
-                    color: activeChannel === ch.id ? "var(--accent)" : dimmed ? "var(--fg4)" : "var(--fg2)",
-                    fontSize: 13,
+                    background: isActive ? "var(--bg-hover)" : "transparent",
+                    borderLeft: `3px solid ${isActive ? "var(--accent)" : "transparent"}`,
                     marginBottom: 2,
-                    fontWeight: activeChannel === ch.id ? 700 : 500,
-                    transition: "all 0.15s ease",
-                    borderLeft: `3px solid ${activeChannel === ch.id ? "var(--accent)" : "transparent"}`,
+                    transition: "background 0.12s ease",
                   }}
                   onMouseEnter={(e) => {
-                    if (activeChannel !== ch.id)
-                      (e.currentTarget as HTMLDivElement).style.background = "var(--bg-card)";
+                    if (!isActive) (e.currentTarget as HTMLDivElement).style.background = "var(--bg-card)";
                   }}
                   onMouseLeave={(e) => {
-                    if (activeChannel !== ch.id)
-                      (e.currentTarget as HTMLDivElement).style.background = "transparent";
+                    if (!isActive) (e.currentTarget as HTMLDivElement).style.background = "transparent";
                   }}
                 >
-                  <span style={{ marginRight: 8, opacity: 0.5, fontSize: 14 }}>#</span>
-                  <span style={{ flex: 1 }}>{ch.name}</span>
+                  {/* Avatar */}
+                  <div style={{
+                    fontSize: 18, width: 32, height: 32, display: "flex",
+                    alignItems: "center", justifyContent: "center", flexShrink: 0,
+                    borderRadius: "50%", background: "var(--bg-card)",
+                    position: "relative",
+                  }}>
+                    {ch.avatar || "#"}
+                    {ch.status === "online" && (
+                      <div style={{
+                        position: "absolute", bottom: 0, right: 0, width: 8, height: 8,
+                        borderRadius: "50%", background: "var(--status-online)",
+                        border: "2px solid var(--bg-base)",
+                      }} />
+                    )}
+                  </div>
+                  {/* Content */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      display: "flex", justifyContent: "space-between", alignItems: "center",
+                    }}>
+                      <span style={{
+                        fontWeight: isActive || ch.unread > 0 ? 700 : 500,
+                        color: isActive ? "var(--accent)" : "var(--fg1)",
+                        fontSize: 13,
+                      }}>
+                        {ch.displayName || ch.name}
+                      </span>
+                      <span style={{ fontSize: 10, color: "var(--fg3)", flexShrink: 0 }}>
+                        {timeStr}
+                      </span>
+                    </div>
+                    {preview && (
+                      <div style={{
+                        fontSize: 11, color: "var(--fg3)", marginTop: 2,
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                      }}>
+                        {preview.slice(0, 60)}
+                      </div>
+                    )}
+                  </div>
+                  {/* Unread badge */}
                   {ch.unread > 0 && (
-                    <span
-                      className="pill"
-                      style={{
-                        background: "var(--status-error)",
-                        color: "white",
-                        padding: "0 6px",
-                        fontSize: 10,
-                        height: 16,
-                      }}
-                    >
+                    <span className="pill" style={{
+                      background: "var(--status-error)", color: "white",
+                      padding: "0 6px", fontSize: 10, height: 16, flexShrink: 0,
+                    }}>
                       {ch.unread}
                     </span>
                   )}
                 </div>
-              </div>
-            );
-          });
-        })()}
-      </div>
+              );
+            })}
+          </div>
+        );
+      })}
 
       {/* Execution status surface */}
       <div style={{ marginBottom: 16 }}>
