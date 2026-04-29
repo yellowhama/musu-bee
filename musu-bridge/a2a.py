@@ -71,7 +71,7 @@ def get_agent_card() -> dict:
             }
         ],
         "capabilities": {
-            "streaming": False,
+            "streaming": True,
             "push_notifications": False,
         },
         "default_input_modes": ["text/plain"],
@@ -292,3 +292,78 @@ async def _handle_list_tasks(params: dict) -> dict:
         for r in rows
     ]
     return {"tasks": tasks}
+
+
+async def stream_send_message(params: dict, req_id: Any = 1):
+    """SendStreamingMessage: SSE stream for long-running tasks.
+
+    Yields JSON-RPC wrapped StreamResponse events:
+    - status_update: task state changes (submitted → working → completed)
+    - message: final agent response
+
+    Usage: POST /a2a/stream with same body as SendMessage.
+    """
+    import asyncio
+
+    message = params.get("message")
+    if not message:
+        yield _sse_event(_jsonrpc_error(req_id, _INVALID_PARAMS, "Missing 'message'"))
+        return
+
+    parts = message.get("parts", [])
+    text_parts = [p.get("text", "") for p in parts if isinstance(p, dict) and "text" in p]
+    text = "\n".join(text_parts).strip()
+    if not text:
+        yield _sse_event(_jsonrpc_error(req_id, _INVALID_PARAMS, "No text content"))
+        return
+
+    channel = params.get("metadata", {}).get("channel", "team_lead")
+    company_id = params.get("metadata", {}).get("company_id")
+    task_id = str(uuid.uuid4())
+
+    # 1. Emit: submitted
+    yield _sse_event(_jsonrpc_result(req_id, {
+        "status_update": {"id": task_id, "status": {"state": "submitted"}},
+    }))
+
+    # 2. Emit: working
+    yield _sse_event(_jsonrpc_result(req_id, {
+        "status_update": {"id": task_id, "status": {"state": "working"}},
+    }))
+
+    # 3. Execute
+    try:
+        from handlers import route_chat
+        result = await route_chat(
+            channel=channel,
+            sender_id=f"a2a-stream-{task_id[:8]}",
+            text=text,
+            company_id=company_id,
+        )
+        response_text = result.get("response", result.get("error", ""))
+        has_error = bool(result.get("error"))
+
+        # 4. Emit: completed/failed + message
+        final_state = "failed" if has_error else "completed"
+        yield _sse_event(_jsonrpc_result(req_id, {
+            "message": {
+                "message_id": str(uuid.uuid4()),
+                "role": "agent",
+                "parts": [{"text": response_text[:5000]}],
+            },
+            "status_update": {"id": task_id, "status": {"state": final_state}},
+        }))
+    except Exception as exc:
+        yield _sse_event(_jsonrpc_result(req_id, {
+            "status_update": {"id": task_id, "status": {"state": "failed"}},
+            "message": {
+                "message_id": str(uuid.uuid4()),
+                "role": "agent",
+                "parts": [{"text": f"Error: {exc}"}],
+            },
+        }))
+
+
+def _sse_event(data: dict) -> str:
+    """Format a dict as an SSE data line."""
+    return f"data: {json.dumps(data, default=str)}\n\n"

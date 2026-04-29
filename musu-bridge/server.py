@@ -1756,6 +1756,34 @@ async def a2a_endpoint(request: Request):
     return JSONResponse(result)
 
 
+@app.post("/a2a/stream", summary="A2A SSE streaming endpoint")
+async def a2a_stream_endpoint(request: Request):
+    """Handle A2A SendStreamingMessage — returns SSE stream."""
+    from a2a import stream_send_message
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse(
+            {"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "Parse error"}},
+            status_code=400,
+        )
+
+    req_id = body.get("id", 1)
+    params = body.get("params", {})
+
+    async def event_stream():
+        async for event in stream_send_message(params, req_id):
+            if await request.is_disconnected():
+                break
+            yield event
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
 # ── Route Task ──────────────────────────────────────────────────────────────
 
 

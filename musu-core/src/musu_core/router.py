@@ -140,14 +140,17 @@ class Router:
         # --- 2. Resolve adapter ---
         adapter_type = req.adapter_override or self._config.force_adapter or agent.adapter_type
 
-        # Cost optimization: downgrade to cheaper model for simple tasks
+        # Cost optimization: smart adapter routing based on task type + complexity
         if req.cost_optimized and not req.adapter_override and not self._config.force_adapter:
             from musu_core.complexity import ComplexityScorer
-            score = ComplexityScorer().score(req.prompt)
-            if score < 0.4:
-                # Simple task: use Gemini Flash if primary is Claude
-                if adapter_type == "claude_local":
-                    adapter_type = "gemini_local"
+            scorer = ComplexityScorer()
+            score = scorer.score(req.prompt)
+            if score < 0.4 and adapter_type == "claude_local":
+                adapter_type = "gemini_local"
+            # Task-type routing: recommend best adapter if available
+            recommended = scorer.recommend_adapter(req.prompt)
+            if recommended and get_adapter(recommended):
+                adapter_type = recommended
 
         adapter = get_adapter(adapter_type)
         if adapter is None:

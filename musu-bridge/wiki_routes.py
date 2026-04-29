@@ -2,20 +2,72 @@
 
 Extracted from server.py. Provides list, search, read, write, delete
 for the LLM wiki at MUSU_WIKI_PATH.
+
+Search uses SQLite FTS5 for ranked full-text search.
 """
 from __future__ import annotations
 
+import logging
 import os
 import re as _re
+import sqlite3
+import threading
 from pathlib import Path as _Path
 
 from fastapi import APIRouter, Body, HTTPException, Path, Query
 from pydantic import BaseModel
 
+logger = logging.getLogger("musu.wiki")
+
 _WIKI_PATH = _Path(os.environ.get("MUSU_WIKI_PATH", str(_Path.home() / "llm-wiki" / "wiki")))
 _WIKI_PATH.mkdir(parents=True, exist_ok=True)
 
 wiki_router = APIRouter(tags=["wiki"])
+
+# ── FTS5 Index ──────────────────────────────────────────────────
+_FTS_DB_PATH = _WIKI_PATH.parent / "wiki_fts.db"
+_fts_lock = threading.Lock()
+_fts_conn: sqlite3.Connection | None = None
+
+
+def _get_fts_conn() -> sqlite3.Connection:
+    global _fts_conn
+    if _fts_conn is None:
+        _fts_conn = sqlite3.connect(str(_FTS_DB_PATH), check_same_thread=False)
+        _fts_conn.row_factory = sqlite3.Row
+        _fts_conn.executescript("""
+            CREATE VIRTUAL TABLE IF NOT EXISTS wiki_fts USING fts5(
+                page_id, title, content, folder,
+                tokenize='unicode61'
+            );
+        """)
+    return _fts_conn
+
+
+def _rebuild_fts_index():
+    """Rebuild FTS index from wiki files. Called on startup and after writes."""
+    with _fts_lock:
+        conn = _get_fts_conn()
+        conn.execute("DELETE FROM wiki_fts")
+        count = 0
+        for f, folder in _iter_wiki_files():
+            try:
+                content = f.read_text(encoding="utf-8")
+                title = _wiki_title(content, f.stem)
+                page_id = f"{folder}/{f.stem}" if folder else f.stem
+                conn.execute(
+                    "INSERT INTO wiki_fts (page_id, title, content, folder) VALUES (?, ?, ?, ?)",
+                    (page_id, title, content, folder),
+                )
+                count += 1
+            except OSError:
+                continue
+        conn.commit()
+        logger.info("wiki_fts: indexed %d pages", count)
+
+
+# Build index on import (lazy — first search triggers if needed)
+_fts_indexed = False
 
 
 def _wiki_title(content: str, fallback: str) -> str:
@@ -48,26 +100,51 @@ async def api_wiki_pages() -> list[dict]:
     return pages
 
 
-@wiki_router.get("/api/wiki/search", summary="Search wiki pages")
+@wiki_router.get("/api/wiki/search", summary="Search wiki pages (FTS5)")
 async def api_wiki_search(q: str = Query("", max_length=200)) -> list[dict]:
-    q_str = q.strip().lower()
+    q_str = q.strip()
     if not q_str:
         return []
+
+    # Lazy FTS index build
+    global _fts_indexed
+    if not _fts_indexed:
+        _rebuild_fts_index()
+        _fts_indexed = True
+
     results = []
-    for f, folder in _iter_wiki_files():
+    with _fts_lock:
+        conn = _get_fts_conn()
         try:
-            content = f.read_text(encoding="utf-8")
-        except OSError:
-            continue
-        if q_str in content.lower():
-            idx = content.lower().find(q_str)
-            start = max(0, idx - 120)
-            end = min(len(content), idx + 300)
-            snippet = content[start:end].replace("\n", " ").strip()
-            title = _wiki_title(content, f.stem)
-            page_id = f"{folder}/{f.stem}" if folder else f.stem
-            results.append({"id": page_id, "title": title, "folder": folder, "snippet": snippet})
-    return results[:20]
+            # FTS5 MATCH query with ranking
+            rows = conn.execute(
+                "SELECT page_id, title, snippet(wiki_fts, 2, '>>>', '<<<', '...', 40) as snippet, folder "
+                "FROM wiki_fts WHERE wiki_fts MATCH ? ORDER BY rank LIMIT 20",
+                (q_str,),
+            ).fetchall()
+            for r in rows:
+                results.append({
+                    "id": r["page_id"],
+                    "title": r["title"],
+                    "folder": r["folder"],
+                    "snippet": r["snippet"].replace(">>>", "").replace("<<<", ""),
+                })
+        except sqlite3.OperationalError:
+            # FTS parse error (e.g., special chars) — fallback to LIKE
+            safe_q = f"%{q_str}%"
+            rows = conn.execute(
+                "SELECT page_id, title, substr(content, 1, 300) as snippet, folder "
+                "FROM wiki_fts WHERE content LIKE ? LIMIT 20",
+                (safe_q,),
+            ).fetchall()
+            for r in rows:
+                results.append({
+                    "id": r["page_id"],
+                    "title": r["title"],
+                    "folder": r["folder"],
+                    "snippet": r["snippet"].replace("\n", " ").strip(),
+                })
+    return results
 
 
 @wiki_router.get("/api/wiki/page/{page_id:path}", summary="Get a wiki page by ID")
@@ -109,6 +186,17 @@ async def api_wiki_page_write(
     path = dir_path / f"{stem}.md"
     path.write_text(body.content, encoding="utf-8")
     title = _wiki_title(body.content, stem)
+    # Update FTS index for this page
+    global _fts_indexed
+    if _fts_indexed:
+        with _fts_lock:
+            conn = _get_fts_conn()
+            conn.execute("DELETE FROM wiki_fts WHERE page_id = ?", (safe_id,))
+            conn.execute(
+                "INSERT INTO wiki_fts (page_id, title, content, folder) VALUES (?, ?, ?, ?)",
+                (safe_id, title, body.content, folder),
+            )
+            conn.commit()
     return {"id": safe_id, "title": title, "folder": folder}
 
 
