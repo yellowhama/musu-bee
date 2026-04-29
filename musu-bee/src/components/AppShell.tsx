@@ -127,7 +127,10 @@ export default function AppShell() {
   const [activeChat, setActiveChat] = useState<ChatChannelId>("ceo");
   const [displayOverlay, setDisplayOverlay] = useState<DisplayContent | null>(null);
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return !localStorage.getItem("musu_onboarded");
+  });
   const [showCompanyTemplate, setShowCompanyTemplate] = useState(false);
   const [showPalette, setShowPalette] = useState(false);
   const [paletteInjection, setPaletteInjection] = useState("");
@@ -180,12 +183,14 @@ export default function AppShell() {
   const handleOnboardingComplete = useCallback(
     (_deviceName: string) => {
       // musu-port discovers devices automatically — no manual registration needed
+      localStorage.setItem("musu_onboarded", "true");
       setShowOnboarding(false);
     },
     [],
   );
 
   const handleOnboardingSkip = useCallback(() => {
+    localStorage.setItem("musu_onboarded", "true");
     setShowOnboarding(false);
   }, []);
 

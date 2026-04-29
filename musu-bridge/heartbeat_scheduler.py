@@ -89,6 +89,28 @@ async def _heartbeat_iteration(
         )
 
     if role == "ceo":
+        # ── CEO 첫 인사 (welcome briefing) ───────────────────────
+        _welcome_key = f"ceo_welcomed_{(company_id or 'global')[:8]}"
+        try:
+            _wb = _get_heartbeat_backend()
+            _welcomed = _wb._db.execute("SELECT value FROM kv_store WHERE key = ?", (_welcome_key,))
+            if not _welcomed:
+                prompt_parts.append(
+                    "## 첫 인사 (최초 1회)\n\n"
+                    "이 기기에 처음 배치되었다. 다음을 수행하라:\n"
+                    "1. get_dashboard()로 시스템 현황 파악\n"
+                    "2. list_agents()로 팀원 확인\n"
+                    "3. #ceo-board에 첫 인사 메시지 작성:\n"
+                    '   "회장님, CEO입니다. 시스템 준비 완료. [에이전트 수]명 대기 중. 명령을 기다리겠습니다."\n'
+                    "4. 일반 집사 루프로 전환\n\n---\n\n"
+                )
+                _wb._db.execute(
+                    "INSERT OR IGNORE INTO kv_store (key, value) VALUES (?, ?)",
+                    (_welcome_key, "done"),
+                )
+        except Exception:
+            pass
+
         prompt_parts.append(
             "집사 루프 실행 (wiki/010):\n"
             "1. 시스템 점검: get_dashboard(), list_nodes()\n"
