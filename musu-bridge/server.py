@@ -372,6 +372,7 @@ from heartbeat_scheduler import (  # noqa: F401
     morning_report_cron,
     qa_auto_evaluate_loop,
     budget_reset_cron,
+    wiki_sync_cron,
 )
 
 
@@ -715,6 +716,10 @@ async def lifespan(app: FastAPI):
 
     # Budget monthly reset cron (always on — checks hourly, resets on 1st)
     budget_reset_task = asyncio.create_task(budget_reset_cron())
+
+    # Wiki auto-sync cron (every 10 min — syncs all company wikis via git)
+    if os.environ.get("MUSU_WIKI_SYNC_ENABLED", "true").lower() != "false":
+        wiki_sync_task = asyncio.create_task(wiki_sync_cron())
 
     # Watchdog rate limit cache cleanup (always on — prevents unbounded memory growth)
     watchdog_cleanup_task = asyncio.create_task(_watchdog_rate_cleanup_loop())

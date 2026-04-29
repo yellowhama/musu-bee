@@ -691,3 +691,63 @@ async def budget_reset_cron() -> None:
             logger.info("budget_reset_cron: reset %d agents, next=%s", reset_count, next_reset)
         except Exception as exc:
             logger.warning("budget_reset_cron: error — %s", exc)
+
+
+async def wiki_sync_cron() -> None:
+    """Sync all company wikis via git every 10 minutes.
+
+    Each company wiki at ~/llm-wiki/companies/{id[:8]}/ is synced independently.
+    Only directories with .git are synced (skip non-git wikis).
+    """
+    import subprocess
+    from wiki_routes import get_wiki_path, _WIKI_BASE
+
+    interval = int(os.environ.get("MUSU_WIKI_SYNC_INTERVAL", "600"))
+    sync_script = os.path.join(
+        os.environ.get("MUSU_ROOT", os.path.expanduser("~/musu-functions")),
+        "scripts", "sync-wiki.sh",
+    )
+
+    logger.info("wiki_sync_cron: started (interval=%ds)", interval)
+    await asyncio.sleep(60)  # wait for bridge to fully boot
+
+    while True:
+        try:
+            backend = _get_heartbeat_backend()
+            companies = backend.list_companies()
+            synced = 0
+
+            for company in companies:
+                cid = company["id"]
+                wiki_path = get_wiki_path(cid)
+                if not (wiki_path / ".git").exists():
+                    continue
+                try:
+                    subprocess.run(
+                        ["bash", sync_script],
+                        env={**os.environ, "MUSU_WIKI_PATH": str(wiki_path)},
+                        capture_output=True, timeout=30,
+                    )
+                    synced += 1
+                except Exception as e:
+                    logger.debug("wiki_sync_cron: %s sync failed — %s", cid[:8], e)
+
+            # Global wiki
+            global_path = _WIKI_BASE / "global"
+            if (global_path / ".git").exists():
+                try:
+                    subprocess.run(
+                        ["bash", sync_script],
+                        env={**os.environ, "MUSU_WIKI_PATH": str(global_path)},
+                        capture_output=True, timeout=30,
+                    )
+                    synced += 1
+                except Exception:
+                    pass
+
+            if synced:
+                logger.info("wiki_sync_cron: synced %d wiki(s)", synced)
+        except Exception as exc:
+            logger.warning("wiki_sync_cron: error — %s", exc)
+
+        await asyncio.sleep(interval)
