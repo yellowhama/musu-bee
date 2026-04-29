@@ -977,3 +977,64 @@ class TestPromptWithInstructions:
         from musu_core.adapters.gemini_local import _prompt_with_instructions
         result = _prompt_with_instructions("hello", None)
         assert result == "hello"
+
+
+class TestOpenClawAdapter:
+    def test_adapter_type(self):
+        from musu_core.adapters.openclaw import OpenClawAdapter
+        adapter = OpenClawAdapter()
+        assert adapter.adapter_type == "openclaw"
+
+    def test_parse_json_output(self):
+        from musu_core.adapters.openclaw import _parse_openclaw_output
+        response, meta = _parse_openclaw_output('{"message": "hello world"}', use_json=True)
+        assert response == "hello world"
+        assert meta.get("message") == "hello world"
+
+    def test_parse_plain_output(self):
+        from musu_core.adapters.openclaw import _parse_openclaw_output
+        response, meta = _parse_openclaw_output("plain text response", use_json=False)
+        assert response == "plain text response"
+        assert meta == {}
+
+    def test_parse_jsonl_output(self):
+        from musu_core.adapters.openclaw import _parse_openclaw_output
+        output = '{"type":"thinking"}\n{"message":"final answer"}\n'
+        response, meta = _parse_openclaw_output(output, use_json=True)
+        assert response == "final answer"
+
+    def test_parse_invalid_json_fallback(self):
+        from musu_core.adapters.openclaw import _parse_openclaw_output
+        response, meta = _parse_openclaw_output("not json at all", use_json=True)
+        assert response == "not json at all"
+
+    def test_registered_in_registry(self):
+        from musu_core.adapters.registry import get_adapter
+        adapter = get_adapter("openclaw")
+        assert adapter is not None
+        assert adapter.adapter_type == "openclaw"
+
+
+class TestHermesAdapter:
+    def test_adapter_type(self):
+        from musu_core.adapters.hermes import HermesAdapter
+        adapter = HermesAdapter()
+        assert adapter.adapter_type == "hermes"
+
+    def test_parse_output_with_session(self):
+        from musu_core.adapters.hermes import _parse_hermes_output
+        response, session_id = _parse_hermes_output("hello world\nsession_id: abc123")
+        assert response == "hello world"
+        assert session_id == "abc123"
+
+    def test_parse_output_without_session(self):
+        from musu_core.adapters.hermes import _parse_hermes_output
+        response, session_id = _parse_hermes_output("just a response")
+        assert response == "just a response"
+        assert session_id is None
+
+    def test_registered_in_registry(self):
+        from musu_core.adapters.registry import get_adapter
+        adapter = get_adapter("hermes")
+        assert adapter is not None
+        assert adapter.adapter_type == "hermes"

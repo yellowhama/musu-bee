@@ -7,6 +7,7 @@ from musu_core.adapters.claude_local import ClaudeLocalAdapter
 from musu_core.adapters.codex_local import CodexLocalAdapter
 from musu_core.adapters.gemini_local import GeminiLocalAdapter
 from musu_core.adapters.hermes import HermesAdapter
+from musu_core.adapters.openclaw import OpenClawAdapter
 from musu_core.adapters.local_llm import LocalLLMAdapter
 from musu_core.adapters.process import ProcessAdapter
 from musu_core.adapters.remote_cli import RemoteCLIAdapter
@@ -20,6 +21,7 @@ def _default_registry() -> dict[str, BaseAdapter]:
     codex = CodexLocalAdapter()
     gemini = GeminiLocalAdapter()
     hermes = HermesAdapter()
+    openclaw = OpenClawAdapter()
     process = ProcessAdapter()
     local_llm = LocalLLMAdapter()
     remote_cli = RemoteCLIAdapter()
@@ -29,6 +31,7 @@ def _default_registry() -> dict[str, BaseAdapter]:
         codex.adapter_type: codex,
         gemini.adapter_type: gemini,
         hermes.adapter_type: hermes,
+        openclaw.adapter_type: openclaw,
         process.adapter_type: process,
         local_llm.adapter_type: local_llm,
         remote_cli.adapter_type: remote_cli,
