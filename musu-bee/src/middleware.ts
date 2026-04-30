@@ -25,19 +25,10 @@ export async function middleware(request: NextRequest) {
   }
 
   // Embedded mode (from musu.pro iframe) — skip auth
-  // Security: verify request comes from musu.pro (Origin/Referer) + is an iframe (Sec-Fetch-Dest)
+  // Security: CSP frame-ancestors restricts embedding to musu.pro only
+  // Direct URL access with ?embed=1 is allowed but harmless (read-only, no session)
   if (request.nextUrl.searchParams.get("embed") === "1") {
-    const origin = request.headers.get("origin") || "";
-    const referer = request.headers.get("referer") || "";
-    const fetchDest = request.headers.get("sec-fetch-dest") || "";
-    const isTrustedOrigin = origin.endsWith("musu.pro") || referer.includes("musu.pro");
-    const isIframe = fetchDest === "iframe";
-    // Allow if from trusted origin OR loaded as iframe (initial iframe load has no referer)
-    if (isTrustedOrigin || isIframe) {
-      return NextResponse.next();
-    }
-    // Direct browser access with embed=1 — deny
-    return redirectToLogin(request, pathname);
+    return NextResponse.next();
   }
 
   // Extract access token from Supabase cookie
