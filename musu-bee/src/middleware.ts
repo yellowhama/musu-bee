@@ -24,6 +24,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Embedded mode (from musu.pro iframe) — skip auth
+  // musu.pro already authenticates the user before rendering the iframe
+  if (request.nextUrl.searchParams.get("embed") === "1") {
+    return NextResponse.next();
+  }
+
   // Extract access token from Supabase cookie
   const cookies = request.cookies;
   const sessionCookie = [...cookies.getAll()].find(
