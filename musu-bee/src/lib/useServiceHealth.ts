@@ -22,13 +22,19 @@ async function pingService(apiPath: string): Promise<ServiceStatus> {
 }
 
 export function useServiceHealth(): ServiceHealth {
+  // In embed mode (iframe from musu.pro), skip health polling — services are on localhost
+  const isEmbedded = typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("embed") === "1";
+
   const [health, setHealth] = useState<ServiceHealth>({
-    port: "checking",
-    bridge: "checking",
-    worker: "checking",
+    port: isEmbedded ? "up" : "checking",
+    bridge: isEmbedded ? "up" : "checking",
+    worker: isEmbedded ? "up" : "checking",
   });
 
   useEffect(() => {
+    if (isEmbedded) return; // Skip polling in embed mode
+
     let cancelled = false;
 
     async function poll() {
@@ -46,7 +52,7 @@ export function useServiceHealth(): ServiceHealth {
       cancelled = true;
       clearInterval(id);
     };
-  }, []);
+  }, [isEmbedded]);
 
   return health;
 }

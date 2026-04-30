@@ -134,6 +134,8 @@ export default function AppShell() {
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const [showOnboarding, setShowOnboarding] = useState(() => {
     if (typeof window === "undefined") return false;
+    // Skip onboarding in embed mode (iframe from musu.pro)
+    if (new URLSearchParams(window.location.search).get("embed") === "1") return false;
     return !localStorage.getItem("musu_onboarded");
   });
   const [showCompanyTemplate, setShowCompanyTemplate] = useState(false);
