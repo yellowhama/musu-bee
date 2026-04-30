@@ -4,14 +4,16 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Inbox, BookOpen, BarChart3, Settings, ScreenShare, ChevronsLeft, ChevronsRight, GitBranch } from "lucide-react";
+import { Inbox, Building2, ListTodo, BookOpen, BarChart3, Settings, ScreenShare, ChevronsLeft, ChevronsRight, ExternalLink } from "lucide-react";
 import { SidebarNavItem } from "./SidebarNavItem";
 import { useConsoleShell } from "./ConsoleShellContext";
 
 const NAV_ITEMS = [
   { id: "home",      href: "/home",      icon: Inbox,       label: "Home" },
-  { id: "wiki",      href: "/wiki",      icon: BookOpen,    label: "Wiki" },
+  { id: "workspace", href: "/workspace", icon: Building2,   label: "Workspace" },
+  { id: "tasks",     href: "/tasks",     icon: ListTodo,    label: "Tasks" },
   { id: "dashboard", href: "/dashboard", icon: BarChart3,   label: "Dashboard" },
+  { id: "wiki",      href: "/wiki",      icon: BookOpen,    label: "Wiki" },
   { id: "screen",    href: "/screen",    icon: ScreenShare, label: "Screen" },
   { id: "account",   href: "/account",   icon: Settings,    label: "Account" },
 ];
@@ -174,7 +176,7 @@ export function ConsoleSidebar({ contextPanel, onNavigate, activePanel }: Consol
           onMouseEnter={(e) => (e.currentTarget.style.color = "#FDFCF0")}
           onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(253,252,240,0.3)")}
         >
-          <GitBranch size={14} />
+          <ExternalLink size={14} />
           {!collapsed && <span>GitHub</span>}
         </a>
 

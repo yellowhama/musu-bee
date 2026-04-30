@@ -1,7 +1,7 @@
 "use client";
 
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import { UserAvatar } from "@/components/layout/UserMenu";
+import { UserMenu } from "@/components/layout/UserMenu";
 import type { RegistryNode } from "@/lib/types/node";
 import { useConsoleShell } from "./ConsoleShellContext";
 
@@ -122,11 +122,10 @@ export function ConsoleTopStrip({
         >
           ⌘K
         </button>
-        <UserAvatar
-          avatarUrl={user.avatarUrl}
-          displayName={user.displayName}
+        <UserMenu
           email={user.email}
-          size={24}
+          displayName={user.displayName}
+          avatarUrl={user.avatarUrl}
         />
       </div>
     </div>
