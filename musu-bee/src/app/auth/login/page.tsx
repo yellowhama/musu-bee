@@ -211,7 +211,7 @@ export default function LoginPage() {
             disabled={loading}
             style={{
               width: "100%",
-              background: loading ? "#5b21b6" : "#7c3aed",
+              background: loading ? "var(--accent-hover)" : "var(--accent)",
               color: "#fff",
               border: "none",
               borderRadius: 8,
@@ -236,7 +236,7 @@ export default function LoginPage() {
           Need an account?{" "}
           <Link
             href="/auth/signup"
-            style={{ color: "#7c3aed", textDecoration: "none" }}
+            style={{ color: "var(--accent)", textDecoration: "none" }}
           >
             Start free
           </Link>

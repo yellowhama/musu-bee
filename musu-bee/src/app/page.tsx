@@ -6,7 +6,7 @@ export default function LandingPage() {
 
       {/* NAV */}
       <nav style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 40px", borderBottom: `1px solid var(--musu-color-brand-stroke)`, position: "sticky", top: 0, background: "var(--musu-color-brand-canvas)", zIndex: 100 }}>
-        <span style={{ fontWeight: 800, fontSize: 20, letterSpacing: "-0.03em" }}>🐝 musu</span>
+        <span style={{ fontWeight: 800, fontSize: 20, letterSpacing: "-0.03em", display: "flex", alignItems: "center", gap: 6 }}><img src="/images/favicon-header.png" alt="MUSU" style={{ height: 20, width: "auto" }} /> musu</span>
         <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
           <a href="#features" style={{ fontSize: 14, color: "var(--musu-color-brand-ink)", opacity: 0.6, textDecoration: "none" }}>Features</a>
           <a href="#pricing" style={{ fontSize: 14, color: "var(--musu-color-brand-ink)", opacity: 0.6, textDecoration: "none" }}>Pricing</a>
@@ -196,7 +196,7 @@ export default function LandingPage() {
 
       {/* FOOTER */}
       <footer style={{ borderTop: `1px solid var(--musu-color-brand-stroke)`, padding: "24px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-        <span style={{ fontWeight: 800, fontSize: 15 }}>🐝 musu</span>
+        <span style={{ fontWeight: 800, fontSize: 15, display: "flex", alignItems: "center", gap: 6 }}><img src="/images/favicon-header.png" alt="MUSU" style={{ height: 15, width: "auto" }} /> musu</span>
         <span style={{ fontSize: 12, opacity: 0.4 }}>© 2026 MUSU. Local AI orchestration.</span>
         <div style={{ display: "flex", gap: 16 }}>
           <Link href="/app" style={{ fontSize: 12, opacity: 0.5, textDecoration: "none" }}>Open app</Link>

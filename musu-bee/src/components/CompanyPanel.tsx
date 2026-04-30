@@ -124,7 +124,7 @@ export default function CompanyPanel({
             margin: "0 4px 8px",
             padding: "8px 10px",
             borderRadius: 8,
-            border: "1px solid #3b3b3b",
+            border: "1px solid var(--border-default)",
             background: "var(--bg-card)",
           }}
         >
@@ -138,7 +138,7 @@ export default function CompanyPanel({
             style={{
               width: "100%",
               background: "var(--bg-surface)",
-              border: "1px solid #333",
+              border: "1px solid var(--border-default)",
               borderRadius: 4,
               color: "var(--fg1)",
               fontSize: 12,
@@ -154,7 +154,7 @@ export default function CompanyPanel({
             style={{
               width: "100%",
               background: "var(--bg-surface)",
-              border: "1px solid #333",
+              border: "1px solid var(--border-default)",
               borderRadius: 4,
               color: "var(--fg2)",
               fontSize: 11,

@@ -113,7 +113,7 @@ export default function DashboardPage() {
     >
       <header style={{ marginBottom: 32 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 32 }}>🐝</span>
+          <img src="/images/favicon-header.png" alt="MUSU" style={{ height: 32, width: "auto" }} />
           <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>MUSU Dashboard</h1>
         </div>
         {lastUpdated && (

@@ -147,7 +147,7 @@ export default function CompanyTemplateModal({
           maxHeight: "84vh",
           overflow: "auto",
           background: "var(--bg-surface)",
-          border: "1px solid #262626",
+          border: "1px solid var(--border-subtle)",
           borderRadius: 16,
           boxShadow: "0 24px 64px rgba(0,0,0,0.55)",
           padding: 28,
@@ -210,14 +210,14 @@ export default function CompanyTemplateModal({
             marginBottom: 22,
           }}
         >
-          <div style={{ background: "var(--bg-surface)", border: "1px solid #242424", borderRadius: 12, padding: 16 }}>
+          <div style={{ background: "var(--bg-surface)", border: "1px solid var(--bg-card)", borderRadius: 12, padding: 16 }}>
             <SectionTitle>Scope</SectionTitle>
             <div style={{ fontSize: 13, color: "var(--fg1)", marginBottom: 6 }}>
               Workspace: {companySetup.workspaceId}
             </div>
             <div style={{ fontSize: 13, color: "var(--fg1)" }}>User: {companySetup.userKey}</div>
           </div>
-          <div style={{ background: "var(--bg-surface)", border: "1px solid #242424", borderRadius: 12, padding: 16 }}>
+          <div style={{ background: "var(--bg-surface)", border: "1px solid var(--bg-card)", borderRadius: 12, padding: 16 }}>
             <SectionTitle>Control Plane Sync</SectionTitle>
             <div style={{ fontSize: 13, color: "var(--fg1)", marginBottom: 6 }}>
               {companyActivation?.controlPlaneSync.status ?? "not_configured"}
@@ -232,7 +232,7 @@ export default function CompanyTemplateModal({
         <div
           style={{
             background: "var(--bg-surface)",
-            border: "1px solid #242424",
+            border: "1px solid var(--bg-card)",
             borderRadius: 12,
             padding: 16,
             marginBottom: 22,
@@ -302,7 +302,7 @@ export default function CompanyTemplateModal({
                 onClick={() => void handleSave()}
                 disabled={saving || companyName.trim().length === 0 || selectedProjects.length === 0}
                 style={{
-                  background: saving ? "#4c1d95" : "#7c3aed",
+                  background: saving ? "var(--accent-hover)" : "var(--accent)",
                   border: "none",
                   color: "#ffffff",
                   borderRadius: 8,
@@ -347,7 +347,7 @@ export default function CompanyTemplateModal({
           <div
             style={{
               background: "var(--bg-surface)",
-              border: "1px solid #242424",
+              border: "1px solid var(--bg-card)",
               borderRadius: 12,
               padding: 16,
               marginBottom: 22,
@@ -369,7 +369,7 @@ export default function CompanyTemplateModal({
           <div
             style={{
               background: "var(--bg-surface)",
-              border: "1px solid #242424",
+              border: "1px solid var(--bg-card)",
               borderRadius: 12,
               padding: 16,
               marginBottom: 22,
@@ -384,7 +384,7 @@ export default function CompanyTemplateModal({
                   <div
                     key={company.companyId}
                     style={{
-                      border: "1px solid #262626",
+                      border: "1px solid var(--border-subtle)",
                       borderRadius: 10,
                       padding: 12,
                       background: isActive ? "#101726" : "var(--bg-surface)",
@@ -534,7 +534,7 @@ export default function CompanyTemplateModal({
             marginBottom: 22,
           }}
         >
-          <div style={{ background: "var(--bg-surface)", border: "1px solid #242424", borderRadius: 12, padding: 16 }}>
+          <div style={{ background: "var(--bg-surface)", border: "1px solid var(--bg-card)", borderRadius: 12, padding: 16 }}>
             <SectionTitle>Goals</SectionTitle>
             {template.goals.map((goal) => (
               <div key={goal} style={{ fontSize: 13, marginBottom: 8, color: "var(--fg1)" }}>
@@ -542,7 +542,7 @@ export default function CompanyTemplateModal({
               </div>
             ))}
           </div>
-          <div style={{ background: "var(--bg-surface)", border: "1px solid #242424", borderRadius: 12, padding: 16 }}>
+          <div style={{ background: "var(--bg-surface)", border: "1px solid var(--bg-card)", borderRadius: 12, padding: 16 }}>
             <SectionTitle>Starter Projects</SectionTitle>
             {template.starterProjects.map((project) => (
               <div key={project} style={{ fontSize: 13, marginBottom: 8, color: "var(--fg1)" }}>
@@ -550,7 +550,7 @@ export default function CompanyTemplateModal({
               </div>
             ))}
           </div>
-          <div style={{ background: "var(--bg-surface)", border: "1px solid #242424", borderRadius: 12, padding: 16 }}>
+          <div style={{ background: "var(--bg-surface)", border: "1px solid var(--bg-card)", borderRadius: 12, padding: 16 }}>
             <SectionTitle>Default Lanes</SectionTitle>
             {template.defaultAgents.map((agent) => (
               <div key={agent} style={{ fontSize: 13, marginBottom: 8, color: "var(--fg1)" }}>
@@ -568,7 +568,7 @@ export default function CompanyTemplateModal({
             marginBottom: 22,
           }}
         >
-          <div style={{ background: "var(--bg-surface)", border: "1px solid #242424", borderRadius: 12, padding: 16 }}>
+          <div style={{ background: "var(--bg-surface)", border: "1px solid var(--bg-card)", borderRadius: 12, padding: 16 }}>
             <SectionTitle>Bootstrap Checklist</SectionTitle>
             {template.bootstrapChecklist.map((item, index) => (
               <div key={item} style={{ fontSize: 13, color: "var(--fg1)", marginBottom: 10, lineHeight: 1.5 }}>
@@ -576,7 +576,7 @@ export default function CompanyTemplateModal({
               </div>
             ))}
           </div>
-          <div style={{ background: "var(--bg-surface)", border: "1px solid #242424", borderRadius: 12, padding: 16 }}>
+          <div style={{ background: "var(--bg-surface)", border: "1px solid var(--bg-card)", borderRadius: 12, padding: 16 }}>
             <SectionTitle>Maintenance</SectionTitle>
             {template.maintenance.map((item) => (
               <div key={item} style={{ fontSize: 13, marginBottom: 8, color: "var(--fg1)" }}>
@@ -593,7 +593,7 @@ export default function CompanyTemplateModal({
           </div>
         </div>
 
-        <div style={{ background: "var(--bg-base)", border: "1px solid #242424", borderRadius: 12, padding: 16 }}>
+        <div style={{ background: "var(--bg-base)", border: "1px solid var(--bg-card)", borderRadius: 12, padding: 16 }}>
           <SectionTitle>Template JSON</SectionTitle>
           <pre
             style={{

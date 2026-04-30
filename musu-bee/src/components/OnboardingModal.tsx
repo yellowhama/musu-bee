@@ -58,7 +58,7 @@ function CopyButton({ text }: { text: string }) {
     <button
       onClick={handleCopy}
       style={{
-        background: copied ? "#166534" : "var(--bg-overlay)",
+        background: copied ? "rgba(34, 197, 94, 0.35)" : "var(--bg-overlay)",
         border: `1px solid ${copied ? "var(--musu-status-online)" : "var(--border-default)"}`,
         color: copied ? "var(--musu-status-online)" : "var(--fg2)",
         borderRadius: 6,
@@ -98,7 +98,7 @@ function CodeBlock({ label, cmd }: { label: string; cmd: string }) {
             flex: 1,
             fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
             fontSize: 13,
-            color: "#e2e8f0",
+            color: "var(--fg1)",
             overflowX: "auto",
             whiteSpace: "nowrap",
           }}
@@ -135,9 +135,9 @@ function StepIndicator({
             borderRadius: 2,
             background:
               i < current
-                ? "#7c3aed"
+                ? "var(--accent)"
                 : i === current
-                ? "#a855f7"
+                ? "var(--accent)"
                 : "var(--border-subtle)",
             transition: "background 0.3s",
           }}
@@ -232,7 +232,7 @@ export default function OnboardingModal({
             marginBottom: 24,
           }}
         >
-          <span style={{ fontSize: 24 }}>🐝</span>
+          <img src="/images/favicon-header.png" alt="MUSU" style={{ height: 24, width: "auto" }} />
           <span
             style={{
               fontSize: 18,
@@ -324,7 +324,7 @@ export default function OnboardingModal({
               onClick={() => setStep("install")}
               style={{
                 width: "100%",
-                background: "#7c3aed",
+                background: "var(--accent)",
                 color: "#fff",
                 border: "none",
                 borderRadius: 10,
@@ -376,9 +376,9 @@ export default function OnboardingModal({
                   onClick={() => setPlatform(p)}
                   style={{
                     flex: 1,
-                    background: platform === p ? "#1e1b4b" : "var(--bg-card)",
-                    border: `1px solid ${platform === p ? "#7c3aed" : "var(--border-default)"}`,
-                    color: platform === p ? "#a78bfa" : "var(--fg3)",
+                    background: platform === p ? "var(--bg-card)" : "var(--bg-card)",
+                    border: `1px solid ${platform === p ? "var(--accent)" : "var(--border-default)"}`,
+                    color: platform === p ? "var(--fg-accent)" : "var(--fg3)",
                     borderRadius: 8,
                     padding: "8px 4px",
                     fontSize: 13,
@@ -422,7 +422,7 @@ export default function OnboardingModal({
                 onClick={() => setStep("run")}
                 style={{
                   flex: 2,
-                  background: "#7c3aed",
+                  background: "var(--accent)",
                   color: "#fff",
                   border: "none",
                   borderRadius: 10,
@@ -491,7 +491,7 @@ export default function OnboardingModal({
                   margin: 0,
                   fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
                   fontSize: 12,
-                  color: "#4ade80",
+                  color: "var(--status-online)",
                   lineHeight: 1.5,
                 }}
               >
@@ -524,7 +524,7 @@ Ready ✓`}
                 }}
                 style={{
                   flex: 2,
-                  background: "#7c3aed",
+                  background: "var(--accent)",
                   color: "#fff",
                   border: "none",
                   borderRadius: 10,
@@ -589,7 +589,7 @@ Ready ✓`}
                       height: 32,
                       borderRadius: "50%",
                       border: "3px solid var(--border-default)",
-                      borderTopColor: "#7c3aed",
+                      borderTopColor: "var(--accent)",
                       margin: "0 auto 12px",
                       animation: "spin 0.8s linear infinite",
                     }}
@@ -656,7 +656,7 @@ Ready ✓`}
                 style={{
                   width: "100%",
                   background:
-                    verifyStatus === "checking" ? "var(--bg-overlay)" : "#7c3aed",
+                    verifyStatus === "checking" ? "var(--bg-overlay)" : "var(--accent)",
                   color: verifyStatus === "checking" ? "var(--fg3)" : "#fff",
                   border: "none",
                   borderRadius: 10,
@@ -681,7 +681,7 @@ Ready ✓`}
                 onClick={handleComplete}
                 style={{
                   width: "100%",
-                  background: "#166534",
+                  background: "rgba(34, 197, 94, 0.35)",
                   color: "#fff",
                   border: "1px solid var(--musu-status-online)",
                   borderRadius: 10,

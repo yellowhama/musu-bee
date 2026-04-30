@@ -108,7 +108,7 @@ export default function NavTab({
           justifyContent: collapsed ? "center" : "flex-start",
         }}
       >
-        <span style={{ fontSize: 20 }}>🐝</span>
+        <img src="/images/favicon-header.png" alt="MUSU" style={{ height: 20, width: "auto" }} />
         {!collapsed && (
           <span
             style={{

@@ -13,7 +13,7 @@ export default function NotFound() {
         gap: 12,
       }}
     >
-      <span style={{ fontSize: 40 }}>🐝</span>
+      <img src="/images/favicon-header.png" alt="MUSU" style={{ height: 40, width: "auto" }} />
       <p style={{ fontSize: 16 }}>Page not found.</p>
     </div>
   );

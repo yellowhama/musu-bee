@@ -38,13 +38,13 @@ function renderInline(text: string): React.ReactNode[] {
         <code
           key={j}
           style={{
-            background: "#111827",
+            background: "var(--code-bg)",
             border: "1px solid var(--fg4)",
             borderRadius: 3,
             padding: "1px 5px",
             fontSize: 12,
             fontFamily: "monospace",
-            color: "#a78bfa",
+            color: "var(--accent)",
           }}
         >
           {token.slice(1, -1)}
@@ -120,7 +120,7 @@ function renderMarkdown(text: string): React.ReactNode {
             <pre
               key={i}
               style={{
-                background: "#111827",
+                background: "var(--code-bg)",
                 border: "1px solid var(--fg4)",
                 borderRadius: 6,
                 padding: "10px 14px",
@@ -215,7 +215,7 @@ function PlanCard({ msg, onApprove, onReject }: { msg: Message; onApprove?: (msg
             key={step.id}
             style={{
               background: "var(--bg-card)",
-              borderLeft: "3px solid #a78bfa",
+              borderLeft: "3px solid var(--accent)",
               borderRadius: 4,
               padding: "6px 10px",
               fontSize: 13,
@@ -316,7 +316,7 @@ function DelegationChip({ chain }: { chain: string[] }) {
           <span
             style={{
               background: "var(--bg-card)",
-              border: "1px solid #2a2a2a",
+              border: "1px solid var(--border-default)",
               borderRadius: 4,
               padding: "1px 5px",
               color: "var(--fg2)",
@@ -339,7 +339,7 @@ function DelegationChip({ chain }: { chain: string[] }) {
 
 function AdapterBadge({ type, duration, cost }: { type: string, duration?: number, cost?: number }) {
   const short = type.split("_")[0].toUpperCase();
-  const color = short === "CLAUDE" ? "#a78bfa" : short === "GEMINI" ? "#34d399" : "var(--fg3)";
+  const color = short === "CLAUDE" ? "var(--accent)" : short === "GEMINI" ? "#34d399" : "var(--fg3)";
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
       <span
@@ -363,7 +363,7 @@ function AdapterBadge({ type, duration, cost }: { type: string, duration?: numbe
         <span style={{ fontSize: 9, color: "var(--fg3)" }}>{duration.toFixed(1)}s</span>
       )}
       {cost !== undefined && cost > 0 && (
-        <span style={{ fontSize: 9, color: "#10b981" }}>${cost.toFixed(4)}</span>
+        <span style={{ fontSize: 9, color: "var(--status-online)" }}>${cost.toFixed(4)}</span>
       )}
     </span>
   );
@@ -396,7 +396,7 @@ function Avatar({ who, role }: { who: string; role?: string }) {
         fontWeight: 800,
         flexShrink: 0,
         color: "var(--fg-on-accent)",
-        background: cls === "ceo" ? "#a78bfa" : cls === "cto" ? "var(--status-running)" : cls === "eng" ? "#34d399" : cls === "qa" ? "#fb7185" : "var(--accent)",
+        background: cls === "ceo" ? "var(--accent)" : cls === "cto" ? "var(--status-running)" : cls === "eng" ? "#34d399" : cls === "qa" ? "#fb7185" : "var(--accent)",
       }}
     >
       {txt}

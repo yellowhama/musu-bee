@@ -127,7 +127,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 22 }}>🐝</span>
+          <img src="/images/favicon-header.png" alt="MUSU" style={{ height: 22, width: "auto" }} />
           <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.03em" }}>
             MUSU
           </span>
@@ -607,7 +607,7 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 8 }}>
-          <span style={{ fontSize: 16 }}>🐝</span>
+          <img src="/images/favicon-header.png" alt="MUSU" style={{ height: 16, width: "auto" }} />
           <span style={{ fontWeight: 700, color: "var(--fg4)" }}>MUSU</span>
         </div>
         <p style={{ margin: 0 }}>© 2026 MUSU. All your machines. One team.</p>

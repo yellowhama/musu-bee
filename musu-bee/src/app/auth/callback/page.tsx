@@ -100,7 +100,7 @@ function AuthCallbackView({ error }: { error: string | null }) {
           textAlign: "center",
         }}
       >
-        <div style={{ fontSize: 32, marginBottom: 14 }}>🐝</div>
+        <div style={{ marginBottom: 14 }}><img src="/images/favicon-header.png" alt="MUSU" style={{ height: 32, width: "auto" }} /></div>
         <h1 style={{ fontSize: 24, fontWeight: 800, margin: "0 0 12px" }}>
           Completing sign-in
         </h1>

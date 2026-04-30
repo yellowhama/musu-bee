@@ -114,7 +114,7 @@ function DeviceItem({
             style={{
               marginLeft: "auto",
               fontSize: 10,
-              background: "#7c3aed",
+              background: "var(--accent)",
               color: "#fff",
               borderRadius: 4,
               padding: "1px 5px",
@@ -147,7 +147,7 @@ function DeviceItem({
               <span style={{ fontSize: 10, color: "var(--fg2)", width: 30 }}>
                 GPU
               </span>
-              <ProgressBar value={device.stats.gpu} color="#a855f7" />
+              <ProgressBar value={device.stats.gpu} color="var(--accent)" />
               <span style={{ fontSize: 10, color: "var(--fg2)", width: 28, textAlign: "right" }}>
                 {device.stats.gpu}%
               </span>

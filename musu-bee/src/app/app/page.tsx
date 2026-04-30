@@ -23,7 +23,7 @@ export default async function AppPage({ searchParams }: PageProps) {
     return (
       <div className="app-gate-outer">
         <div className="app-gate-card">
-          <div className="app-gate-bee">🐝</div>
+          <div className="app-gate-bee"><img src="/images/favicon-header.png" alt="MUSU" style={{ height: 40, width: "auto" }} /></div>
           <h1 className="app-gate-title">Dashboard is Local-Only</h1>
           <p className="app-gate-body">
             The MUSU dashboard is currently only available in local environments.

@@ -48,7 +48,7 @@ export default function ResearchForm({ onComplete }: ResearchFormProps) {
       onSubmit={handleSubmit}
       style={{
         padding: "12px 16px",
-        borderBottom: "1px solid #e5e5e5",
+        borderBottom: "1px solid var(--border-default)",
         display: "flex",
         gap: "8px",
         alignItems: "center",
@@ -63,7 +63,7 @@ export default function ResearchForm({ onComplete }: ResearchFormProps) {
         style={{
           flex: 1,
           padding: "8px 12px",
-          border: "1px solid #ddd",
+          border: "1px solid var(--border-default)",
           borderRadius: "6px",
           fontSize: "14px",
         }}
@@ -84,7 +84,7 @@ export default function ResearchForm({ onComplete }: ResearchFormProps) {
         {loading ? "..." : "리서치"}
       </button>
       {status && (
-        <span style={{ fontSize: "12px", color: "#666" }}>{status}</span>
+        <span style={{ fontSize: "12px", color: "var(--fg3)" }}>{status}</span>
       )}
     </form>
   );

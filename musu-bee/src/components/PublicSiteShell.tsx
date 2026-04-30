@@ -10,7 +10,7 @@ export default function PublicSiteShell({
       style={{
         minHeight: "100vh",
         background:
-          "radial-gradient(circle at top left, rgba(250,204,21,0.10), transparent 28%), radial-gradient(circle at top right, rgba(34,197,94,0.10), transparent 24%), #0a0a0a",
+          "radial-gradient(circle at top left, rgba(250,204,21,0.10), transparent 28%), radial-gradient(circle at top right, rgba(34,197,94,0.10), transparent 24%), #0d0d0d",
         color: "var(--fg1)",
         fontFamily:
           "'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif",
@@ -44,7 +44,7 @@ export default function PublicSiteShell({
             fontSize: 18,
           }}
         >
-          <span style={{ fontSize: 20 }}>🐝</span>
+          <img src="/images/favicon-header.png" alt="MUSU" style={{ height: 22, width: "auto" }} />
           <span>MUSU</span>
         </Link>
         <div

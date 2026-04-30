@@ -157,7 +157,7 @@
   --neo-radius:     16px;
 
   /* ========== TYPE — FAMILIES ========== */
-  --font-ui:   'Inter', 'Nunito', -apple-system, BlinkMacSystemFont, 'Pretendard', 'Noto Sans KR', system-ui, sans-serif;
+  --font-ui:   'Inter', -apple-system, BlinkMacSystemFont, 'Pretendard', 'Noto Sans KR', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'Menlo', monospace;
   --font-display: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
