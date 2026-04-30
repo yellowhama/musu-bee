@@ -18,11 +18,17 @@ export interface UseAuthReturn {
 export function useAuth(): UseAuthReturn {
   const router = useRouter();
   const authConfigured = isSupabaseConfigured();
+  const envAuthEnabled = process.env.NEXT_PUBLIC_AUTH_ENABLED === "true";
 
-  // Embed mode (iframe from musu.pro) — skip all auth checks
-  const isEmbedded = typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("embed") === "1";
-  const authEnabled = isEmbedded ? false : process.env.NEXT_PUBLIC_AUTH_ENABLED === "true";
+  // Embed detection in useEffect to avoid SSR/CSR hydration mismatch
+  const [isEmbedded, setIsEmbedded] = useState(false);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("embed") === "1") {
+      setIsEmbedded(true);
+    }
+  }, []);
+
+  const authEnabled = isEmbedded ? false : envAuthEnabled;
 
   const [userIdentity, setUserIdentity] = useState<UserIdentity>({
     email: null,
