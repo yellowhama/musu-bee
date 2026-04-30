@@ -238,8 +238,12 @@ export function useChat(
 
   // ── WebSocket ──────────────────────────────────────────────────────────────
 
+  const isEmbedded = typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("embed") === "1";
+
   const connect = useCallback(() => {
     if (!isAgentChannel) return;
+    if (isEmbedded) return; // Skip WS in iframe embed mode (localhost unreachable)
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
     const wsBase = activeNode === "remote" && WS_REMOTE_BASE ? WS_REMOTE_BASE : WS_BASE;

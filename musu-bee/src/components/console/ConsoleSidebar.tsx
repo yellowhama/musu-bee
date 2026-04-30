@@ -82,7 +82,7 @@ export function ConsoleSidebar({ contextPanel, onNavigate, activePanel }: Consol
             </span>
           ) : (
             <Image
-              src="/images/logos/favicon-header.png"
+              src="/images/favicon-header.png"
               alt="MUSU"
               width={612}
               height={200}
