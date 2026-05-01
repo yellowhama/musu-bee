@@ -599,7 +599,7 @@ export default function ChatArea({
           {channelDescription ?? "Everything starts here. Send the first one."}
         </div>
 
-        {isConnected !== undefined && (
+        {isConnected !== undefined && !(typeof window !== "undefined" && new URLSearchParams(window.location.search).get("embed") === "1") && (
           <span
             className={`pill ${isConnected ? "sync" : "error"}`}
             style={{

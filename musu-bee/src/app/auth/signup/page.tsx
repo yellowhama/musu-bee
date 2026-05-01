@@ -230,7 +230,7 @@ export default function SignupPage() {
                 style={{
                   width: "100%",
                   background: loading ? "var(--accent-hover)" : "var(--accent)",
-                  color: "#fff",
+                  color: "var(--fg-on-accent, #2D1D19)",
                   border: "none",
                   borderRadius: 8,
                   padding: "12px 24px",

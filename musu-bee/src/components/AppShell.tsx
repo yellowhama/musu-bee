@@ -124,6 +124,17 @@ export default function AppShell() {
     handleDeleteCompany,
   } = useCompanyState(userIdentity);
 
+  // ── Bridge company fallback (when musu-bee company system has no data) ────
+  const [bridgeCompanyId, setBridgeCompanyId] = useState<string | null>(null);
+  useEffect(() => {
+    if (activeCompany?.companyId) return; // Already have company from musu-bee system
+    fetch("/api/bridge/workspace")
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d?.active_company_id) setBridgeCompanyId(d.active_company_id); })
+      .catch(() => {});
+  }, [activeCompany?.companyId]);
+  const effectiveCompanyId = activeCompany?.companyId ?? bridgeCompanyId;
+
   // ── Local UI state ─────────────────────────────────────────────────────────
   const [channels, setChannels] = useState<Channel[]>(INITIAL_CHANNELS);
   const [activeChannel, setActiveChannel] = useState<ChannelId>("ceo");
@@ -273,7 +284,7 @@ export default function AppShell() {
         {/* Center: AI Display (tabbed panels + AI content) */}
         <AIDisplay
           activePanel={activePanel}
-          companyId={activeCompany?.companyId}
+          companyId={effectiveCompanyId}
         />
 
         {/* Right: Chat (always visible) */}
