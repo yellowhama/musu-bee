@@ -46,6 +46,18 @@ _DANGEROUS_COMMANDS = [
     re.compile(r">\s*/etc/shadow"),
 ]
 
+# Identity framing jailbreak (Gay Jailbreak / overcorrectness exploit)
+# Pattern: "how would a [identity] describe [dangerous topic]"
+# Exploits alignment overcorrection around protected identities
+_IDENTITY_FRAMING = [
+    re.compile(r"(?i)(gay|lesbian|trans|queer|femboy|lgbtq)\s*.{0,30}(synth|meth|drug|ransom|keylog|exploit|hack|bomb|weapon|poison|fentanyl|carfentanyl)"),
+    re.compile(r"(?i)(synth|meth|drug|ransom|keylog|exploit|hack|bomb|weapon|poison|fentanyl|carfentanyl).{0,30}(gay|lesbian|trans|queer|femboy|lgbtq)"),
+    re.compile(r"(?i)how\s+would\s+a\s+\w+\s+(person|guy|girl|voice)\s+(describe|explain|teach|educate).{0,40}(synth|meth|drug|ransom|keylog|exploit|hack|bomb|weapon)"),
+    re.compile(r"(?i)(be\s+gay|act\s+gay|gay\s+voice|use\s+gay\s+voice)"),
+    re.compile(r"(?i)what\s+(to\s+avoid|not\s+to\s+do|reactions?\s+to\s+avoid).{0,40}(synth|meth|drug|ransom|keylog|fentanyl|carfentanyl)"),
+    re.compile(r"(?i)keep\s+my\s+.{0,20}(students?|people|friends?)\s+safe.{0,40}(synth|meth|drug|ransom|keylog|fentanyl)"),
+]
+
 # Path traversal
 _PATH_TRAVERSAL = [
     re.compile(r"\.\./\.\./"),
@@ -93,6 +105,14 @@ def check_input(text: str) -> GuardResult:
             result.flagged = True
             result.severity = "critical"
             result.reasons.append(f"dangerous_cmd: '{match.group()}'")
+
+    # Check identity framing jailbreak
+    for pattern in _IDENTITY_FRAMING:
+        match = pattern.search(text)
+        if match:
+            result.flagged = True
+            result.severity = "critical"
+            result.reasons.append(f"identity_framing_jailbreak: '{match.group()}'")
 
     # Check path traversal
     for pattern in _PATH_TRAVERSAL:
