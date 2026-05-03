@@ -2783,6 +2783,75 @@ async def research_to_wiki(
 
 
 # ──────────────────────────────────────────────
+# OSINT Tools
+# ──────────────────────────────────────────────
+
+
+@mcp.tool()
+async def osint_username(username: str, max_sites: int = 500) -> str:
+    """Search for a username across 3000+ websites using maigret OSINT tool.
+
+    Returns found accounts with profile data (name, bio, location, followers, etc).
+    Useful for investigating online presence, verifying identities, or finding
+    connected accounts.
+
+    username: The username/handle to search for.
+    max_sites: Maximum number of sites to check (default 500, max 3000).
+    """
+    import asyncio
+    import subprocess
+    import json
+    import os
+    import tempfile
+
+    max_sites = min(max_sites, 3000)
+    outdir = tempfile.mkdtemp(prefix="maigret_")
+    outfile = os.path.join(outdir, "report.json")
+
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "maigret", username,
+            "--timeout", "10",
+            "--top-sites", str(max_sites),
+            "--json", "simple",
+            "--folderoutput", outdir,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=120)
+
+        # Find the JSON output file
+        json_files = [f for f in os.listdir(outdir) if f.endswith(".json")]
+        if json_files:
+            with open(os.path.join(outdir, json_files[0])) as f:
+                data = json.load(f)
+            found = [site for site in data if isinstance(site, dict) and site.get("status", "").lower() == "claimed"]
+            return _fmt({
+                "username": username,
+                "sites_checked": max_sites,
+                "accounts_found": len(found),
+                "results": found[:50],  # Limit output size
+            })
+
+        # Fallback to stdout parsing
+        return _fmt({
+            "username": username,
+            "sites_checked": max_sites,
+            "raw_output": stdout.decode()[:3000] if stdout else "No output",
+        })
+    except asyncio.TimeoutError:
+        return _tool_error(f"Maigret timed out after 120s for username '{username}'")
+    except FileNotFoundError:
+        return _tool_error("maigret not installed. Run: pip install maigret")
+    except Exception as e:
+        return _tool_error(f"OSINT search failed: {e}")
+    finally:
+        # Cleanup temp dir
+        import shutil
+        shutil.rmtree(outdir, ignore_errors=True)
+
+
+# ──────────────────────────────────────────────
 # Entry point
 # ──────────────────────────────────────────────
 
