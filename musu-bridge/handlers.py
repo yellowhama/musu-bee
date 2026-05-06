@@ -446,28 +446,44 @@ async def route_chat(
         result["duration_sec"] = duration
         return result
 
-    # ── Mesh routing: forward to remote node if assigned ──────────────────────
+    # ── Mesh routing: preference-based with fallback ────────────────────────
     mesh = get_mesh_router()
-    if mesh.enabled and mesh.is_remote(channel):
-        node = mesh.node_for_agent(channel)
-        url = mesh.url_for_node(node)  # type: ignore[arg-type]
-        if url:
-            if not await mesh.is_node_healthy(node):  # type: ignore[arg-type]
-                logger.warning(
-                    "mesh_router: node=%r unhealthy — falling back to local for channel=%r",
-                    node, channel,
-                )
-                # Fall through to local handler below
-            else:
-                logger.info("mesh_router: forwarding channel=%r to node=%r url=%r", channel, node, url)
-                if exec_id:
-                    try:
-                        backend.touch_route_execution_activity(exec_id)
-                    except Exception:
-                        pass
-                return _finish(await mesh.forward(url, channel, sender_id, text, adapter_override=adapter_override), node=node)
-        else:
-            logger.warning("mesh_router: no URL for node=%r, falling through to local", node)
+    if mesh.enabled:
+        # 1. Preferred node: assignment or capability-based recommendation
+        preferred = mesh.node_for_agent(channel) or mesh.recommend_node(channel)
+
+        async def _try_forward(target_node: str) -> dict | None:
+            """Try forwarding to a node. Returns result or None on failure."""
+            if target_node == mesh._self_name:
+                return None  # Local, handled below
+            url = mesh.url_for_node(target_node)
+            if not url:
+                return None
+            if not await mesh.is_node_healthy(target_node):
+                logger.warning("mesh_router: node=%r unhealthy", target_node)
+                return None
+            logger.info("mesh_router: forwarding channel=%r to node=%r", channel, target_node)
+            if exec_id:
+                try:
+                    backend.touch_route_execution_activity(exec_id)
+                except Exception:
+                    pass
+            return _finish(await mesh.forward(url, channel, sender_id, text, adapter_override=adapter_override), node=target_node)
+
+        # Try preferred node first
+        if preferred:
+            result = await _try_forward(preferred)
+            if result is not None:
+                return result
+
+        # Fallback: try other healthy remote nodes
+        for alt_node in await mesh.healthy_remote_nodes(exclude=preferred):
+            result = await _try_forward(alt_node)
+            if result is not None:
+                return result
+
+        # All remote nodes failed → fall through to local
+        logger.info("mesh_router: no healthy remote node for channel=%r, executing locally", channel)
 
     # ── Local handling ─────────────────────────────────────────────────────────
     cfg = get_bridge_config()

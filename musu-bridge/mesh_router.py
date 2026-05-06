@@ -277,6 +277,38 @@ class MeshRouter:
         self._health_cache[node_name] = (alive, time.time())
         return alive
 
+    async def healthy_remote_nodes(self, exclude: str | None = None) -> list[str]:
+        """Return list of healthy remote nodes (excluding self and optionally another)."""
+        result = []
+        for name in list(self._node_urls.keys()):
+            if name == self._self_name or name == exclude:
+                continue
+            if await self.is_node_healthy(name):
+                result.append(name)
+        return result
+
+    def recommend_node(self, channel: str) -> str | None:
+        """Recommend a node for a channel based on agent role + node capabilities.
+
+        GPU-heavy agents prefer nodes with GPU. Otherwise any remote node.
+        Returns None if no suitable remote node found.
+        """
+        gpu_hints = ("engineer", "worker", "researcher", "builder", "inference")
+        needs_gpu = any(h in channel.lower() for h in gpu_hints)
+
+        if needs_gpu:
+            for name, meta in self._node_meta.items():
+                if name == self._self_name:
+                    continue
+                if meta.get("gpu"):
+                    return name
+
+        # Fallback: any remote node
+        for name in self._node_urls:
+            if name != self._self_name:
+                return name
+        return None
+
     # ── Node management ────────────────────────────────────────────────────────
 
     def auto_assign_agents(self, node_name: str, remote_agents: list[str]) -> list[str]:
