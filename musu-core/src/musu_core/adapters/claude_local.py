@@ -261,7 +261,13 @@ class ClaudeLocalAdapter(BaseAdapter):
             elif any(h in combined for h in ("context", "too long", "maximum context", "context window", "context_length")):
                 error_code = ErrorCode.CONTEXT_EXCEEDED
                 is_retriable = False  # same context will fail any adapter
-            elif any(h in combined for h in ("connect error", "connection refused", "model not available", "model_not_found", "no such model")):
+            elif any(h in combined for h in ("overloaded", "529", "overloaded_error")):
+                error_code = ErrorCode.RATE_LIMIT
+                is_retriable = True
+            elif any(h in combined for h in ("500", "502", "503", "server error", "internal server error", "bad gateway", "service unavailable")):
+                error_code = ErrorCode.MODEL_UNAVAILABLE
+                is_retriable = True
+            elif any(h in combined for h in ("connect error", "connection refused", "model not available", "model_not_found", "no such model", "unavailable")):
                 error_code = ErrorCode.MODEL_UNAVAILABLE
                 is_retriable = True
             elif any(h in combined for h in ("timed out", "timeout")):
@@ -269,7 +275,7 @@ class ClaudeLocalAdapter(BaseAdapter):
                 is_retriable = True
             else:
                 error_code = ErrorCode.UNKNOWN
-                is_retriable = False
+                is_retriable = True  # default to retriable — better to try fallback than give up
 
         return AdapterResult(
             run_id=ctx.run_id,

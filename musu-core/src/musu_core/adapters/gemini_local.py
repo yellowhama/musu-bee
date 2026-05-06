@@ -242,6 +242,9 @@ class GeminiLocalAdapter(BaseAdapter):
             elif any(h in combined for h in ("context", "too long", "maximum context")):
                 error_code = ErrorCode.CONTEXT_EXCEEDED
                 is_retriable = False
+            elif any(h in combined for h in ("overloaded", "529", "503", "server error", "service unavailable")):
+                error_code = ErrorCode.MODEL_UNAVAILABLE
+                is_retriable = True
             elif any(h in combined for h in ("auth", "unauthorized", "unauthenticated", "login")):
                 error_code = ErrorCode.MODEL_UNAVAILABLE
                 is_retriable = True
@@ -250,7 +253,7 @@ class GeminiLocalAdapter(BaseAdapter):
                 is_retriable = True
             else:
                 error_code = ErrorCode.UNKNOWN
-                is_retriable = False
+                is_retriable = True  # default to retriable — try fallback
 
         return AdapterResult(
             run_id=ctx.run_id,
