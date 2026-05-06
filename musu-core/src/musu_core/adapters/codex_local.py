@@ -71,6 +71,9 @@ class CodexLocalAdapter(BaseAdapter):
                 env["PAPERCLIP_COMPANY_ID"] = ctx.company_id
             return env
 
+        # MCP control (Codex doesn't have MCP, but honor the flag for consistency)
+        # disable_mcp = bool(ctx.config.get("disable_mcp", False))  # no-op for codex
+
         args: list[str] = ["exec"]
         if full_auto:
             args.append("--full-auto")

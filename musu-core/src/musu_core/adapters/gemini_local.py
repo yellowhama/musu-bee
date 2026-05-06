@@ -133,6 +133,10 @@ class GeminiLocalAdapter(BaseAdapter):
                 env["PAPERCLIP_COMPANY_ID"] = ctx.company_id
             return env
 
+        # MCP control: disable_mcp=true → no MCP tools loaded (saves ~40K tokens/call)
+        disable_mcp = bool(ctx.config.get("disable_mcp", False))
+        allowed_mcp = ctx.config.get("allowed_mcp_servers")  # list of server names or None
+
         def build_args() -> list[str]:
             prompt = _prompt_with_instructions(ctx.prompt, instructions_path)
             args = [
@@ -147,6 +151,12 @@ class GeminiLocalAdapter(BaseAdapter):
                 args.append("--sandbox")
             if ctx.session_id:
                 args += ["--resume", ctx.session_id]
+            # MCP control
+            if disable_mcp:
+                args += ["-e", ""]  # empty extensions list = no MCP servers
+            elif allowed_mcp:
+                for name in allowed_mcp:
+                    args += ["--allowed-mcp-server-names", name]
             return args
 
         args = build_args()
@@ -182,7 +192,26 @@ class GeminiLocalAdapter(BaseAdapter):
         stderr = stderr_bytes.decode(errors="replace")
 
         parsed = _parse_stream_json(stdout)
-        success = exit_code == 0 and bool(parsed.get("summary"))
+        # Gemini CLI may exit 1 due to MCP warnings (e.g. disconnected servers)
+        # but still produce valid output. Accept if summary exists.
+        success = bool(parsed.get("summary"))
+
+        if not success:
+            # Filter stderr noise
+            stderr_meaningful = [
+                l for l in stderr.strip().splitlines()
+                if "keychain" not in l.lower()
+                and "filekeychain" not in l.lower()
+                and "cached credentials" not in l.lower()
+                and "listchanged" not in l.lower()
+                and "notification" not in l.lower()
+            ]
+            stderr_useful = "\n".join(stderr_meaningful[:5])
+            logger.warning(
+                "gemini_local: exit=%d summary_len=%d stdout_len=%d stderr_lines=%s",
+                exit_code, len(parsed.get("summary", "")), len(stdout),
+                repr(stderr_useful[:500]),
+            )
 
         error: str | None = None
         if not success:
