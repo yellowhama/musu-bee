@@ -305,4 +305,5 @@ mkdir -p "${LOG_DIR}"
 LOG_DATE="$(date +%Y%m%d)"
 LOG_FILE="${LOG_DIR}/bridge-${LOG_DATE}.log"
 echo "[start-bridge] logging to ${LOG_FILE}" >&2
-exec "$PYTHON" server.py "$@" >> "${LOG_FILE}" 2>&1
+# Use uvicorn module to ensure all endpoints (including post-uvicorn.run() ones) load
+exec "$PYTHON" -m uvicorn server:app --host "${MUSU_BRIDGE_HOST:-0.0.0.0}" --port "${BRIDGE_PORT:-8070}" "$@" >> "${LOG_FILE}" 2>&1
