@@ -170,6 +170,19 @@ async def api_sync_messages(
     return sync_messages(since=since, limit=limit)
 
 
+@system_router.get("/api/sync/agents", summary="Pull agents for sync")
+async def api_sync_agents(
+    since: str = Query(default="1970-01-01T00:00:00Z"),
+    limit: int = Query(default=500, ge=1, le=2000),
+) -> list[dict]:
+    from handlers import _get_backend
+    backend = _get_backend()
+    agents = backend.list_agents()
+    # Filter by updated_at > since
+    result = [a for a in agents if a.get("updated_at", "") > since]
+    return result[:limit]
+
+
 @system_router.post("/api/sync/push", summary="Receive sync data from a peer")
 async def api_sync_push(req: SyncPushRequest) -> dict:
     c_written = receive_companies(req.companies) if req.companies else 0

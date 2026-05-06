@@ -218,6 +218,34 @@ class SyncEngine:
             except (httpx.ConnectError, httpx.TimeoutException) as exc:
                 logger.warning("sync_engine: cannot reach %s for messages — %s", peer_url, exc)
 
+            # --- Agents (adapter_config sync) ---
+            a_since = self._since(peer_url, "agents_since")
+            try:
+                resp = await client.get(
+                    f"{base}/api/sync/agents",
+                    params={"since": a_since, "limit": 500},
+                )
+                if resp.status_code == 200:
+                    agents = resp.json()
+                    if agents:
+                        written = self._backend.bulk_upsert_agents(agents)
+                        logger.info(
+                            "sync_engine: %s agents pulled from %s, %d written",
+                            len(agents), peer_url, written,
+                        )
+                        newest = max(a.get("updated_at", "") for a in agents)
+                        if newest > a_since:
+                            self._update_since(peer_url, "agents_since", newest)
+                elif resp.status_code == 404:
+                    pass  # peer doesn't support agent sync yet
+                else:
+                    logger.warning(
+                        "sync_engine: /api/sync/agents from %s returned %s",
+                        peer_url, resp.status_code,
+                    )
+            except (httpx.ConnectError, httpx.TimeoutException) as exc:
+                logger.warning("sync_engine: cannot reach %s for agents — %s", peer_url, exc)
+
 
 # ── Module-level singleton ──────────────────────────────────────────────────────
 

@@ -813,6 +813,58 @@ class LocalBackend(BackendABC):
                     )
         return written
 
+    def bulk_upsert_agents(self, agents: list[dict[str, Any]]) -> int:
+        """Upsert agent records from a peer. Last-write-wins on updated_at.
+
+        Syncs adapter_config, fallback_chain, status, role, etc.
+        """
+        if not agents:
+            return 0
+        written = 0
+        for a in agents:
+            aid = a.get("id")
+            if not aid:
+                continue
+            remote_ts = a.get("updated_at", "")
+            # Check local
+            local_rows = self._db.execute("SELECT updated_at FROM agents WHERE id = ?", (aid,))
+            if local_rows and local_rows[0]["updated_at"] >= remote_ts:
+                continue
+            adapter_config = a.get("adapter_config", {})
+            ac_json = json.dumps(adapter_config) if isinstance(adapter_config, dict) else (adapter_config or "{}")
+            fallback = a.get("fallback_chain", [])
+            fb_json = json.dumps(fallback) if isinstance(fallback, list) else (fallback or "[]")
+            try:
+                self._db.execute(
+                    """
+                    INSERT INTO agents (id, name, role, adapter_type, adapter_config, status,
+                                        fallback_chain, company_id, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                        adapter_config = excluded.adapter_config,
+                        fallback_chain = excluded.fallback_chain,
+                        status         = excluded.status,
+                        role           = excluded.role,
+                        updated_at     = excluded.updated_at
+                    """,
+                    (
+                        aid,
+                        a.get("name", ""),
+                        a.get("role", ""),
+                        a.get("adapter_type", "process"),
+                        ac_json,
+                        a.get("status", "active"),
+                        fb_json,
+                        a.get("company_id"),
+                        a.get("created_at", ""),
+                        remote_ts,
+                    ),
+                )
+                written += 1
+            except Exception:
+                logger.debug("bulk_upsert_agents: failed for id=%s", aid)
+        return written
+
     def bulk_insert_messages(self, messages: list[dict[str, Any]]) -> int:
         """Insert a batch of messages, ignoring duplicates (append-only, dedup by id).
 
