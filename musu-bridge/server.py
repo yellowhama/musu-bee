@@ -2752,3 +2752,89 @@ async def proxy_bee(path: str, request: Request):
             return Response(content=resp.content, status_code=resp.status_code, headers=headers)
     except Exception as exc:
         return JSONResponse({"error": f"Bee proxy failed: {exc}"}, status_code=502)
+
+
+# ============================================================
+# X-Ray Report Upload (Phase 1+)
+# ============================================================
+
+_XRAY_STORE_DIR = os.path.expanduser("~/.musu/xray-reports")
+
+
+@app.post("/api/xray/upload", status_code=201, summary="Upload X-Ray scan report")
+async def api_xray_upload(request: Request):
+    """Receive an X-Ray JSON report from `musu xray --sync` and store it."""
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+
+    # Validate minimal fields
+    for field in ("version", "generated_at", "repo", "health_score"):
+        if field not in body:
+            raise HTTPException(status_code=400, detail=f"Missing required field: {field}")
+
+    # Store to filesystem (no DB dependency)
+    os.makedirs(_XRAY_STORE_DIR, exist_ok=True)
+
+    ts = body.get("generated_at", "unknown")[:19].replace(":", "").replace("-", "")
+    repo_name = body.get("repo", {}).get("path", "unknown").split("/")[-1]
+    filename = f"xray-{repo_name}-{ts}.json"
+    filepath = os.path.join(_XRAY_STORE_DIR, filename)
+
+    with open(filepath, "w") as f:
+        json.dump(body, f)
+
+    # Also update latest per repo
+    latest_path = os.path.join(_XRAY_STORE_DIR, f"latest-{repo_name}.json")
+    with open(latest_path, "w") as f:
+        json.dump(body, f, indent=2)
+
+    log.info("X-Ray report stored: %s (score: %s)", filename, body.get("health_score", {}).get("overall"))
+    return {"stored": filename, "path": filepath}
+
+
+@app.get("/api/xray/reports", summary="List stored X-Ray reports")
+async def api_xray_list(repo: str | None = None, limit: int = 20):
+    """List stored X-Ray reports, optionally filtered by repo name."""
+    if not os.path.isdir(_XRAY_STORE_DIR):
+        return {"reports": []}
+
+    files = sorted(os.listdir(_XRAY_STORE_DIR), reverse=True)
+    reports = []
+    for fname in files:
+        if not fname.startswith("xray-") or not fname.endswith(".json"):
+            continue
+        if fname.startswith("latest-"):
+            continue
+        if repo and repo not in fname:
+            continue
+        fpath = os.path.join(_XRAY_STORE_DIR, fname)
+        try:
+            with open(fpath) as f:
+                data = json.load(f)
+            reports.append({
+                "filename": fname,
+                "repo": data.get("repo", {}).get("path", "?"),
+                "score": data.get("health_score", {}).get("overall"),
+                "grade": data.get("health_score", {}).get("grade"),
+                "generated_at": data.get("generated_at"),
+            })
+        except Exception:
+            continue
+        if len(reports) >= limit:
+            break
+
+    return {"reports": reports, "total": len(reports)}
+
+
+@app.get("/api/xray/reports/{filename}", summary="Get a specific X-Ray report")
+async def api_xray_get(filename: str = Path(...)):
+    """Get a specific X-Ray report by filename."""
+    if ".." in filename or "/" in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    fpath = os.path.join(_XRAY_STORE_DIR, filename)
+    if not os.path.isfile(fpath):
+        raise HTTPException(status_code=404, detail="Report not found")
+    with open(fpath) as f:
+        return json.load(f)
