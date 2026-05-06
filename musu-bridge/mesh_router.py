@@ -192,7 +192,7 @@ class MeshRouter:
         Priority: node-specific token → MUSU_TOKEN (account-level, shared) → empty.
         """
         node_token = self._node_tokens.get(node_name, "")
-        if node_token and node_token != "local-dev-token-change-in-prod":
+        if node_token:
             return node_token
         # Fallback: account-level MUSU_TOKEN (shared across all nodes)
         try:
