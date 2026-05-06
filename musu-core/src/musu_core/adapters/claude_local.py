@@ -155,6 +155,8 @@ class ClaudeLocalAdapter(BaseAdapter):
 
         # MCP control: disable_mcp=true → minimal mode (no MCP tools loaded)
         disable_mcp = bool(ctx.config.get("disable_mcp", False))
+        # Budget control: max_budget_usd limits API spend per invocation
+        max_budget_usd = ctx.config.get("max_budget_usd")
 
         def build_args(resume_session_id: str | None) -> list[str]:
             args = [
@@ -170,6 +172,9 @@ class ClaudeLocalAdapter(BaseAdapter):
                 args += ["--model", model]
             if instructions_path:
                 args += ["--append-system-prompt-file", instructions_path]
+            # Budget control
+            if max_budget_usd:
+                args += ["--max-budget-usd", str(max_budget_usd)]
             # MCP control: disable all MCP servers to save tokens
             if disable_mcp:
                 args += ["--mcp-config", "{}"]
