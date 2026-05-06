@@ -305,5 +305,20 @@ mkdir -p "${LOG_DIR}"
 LOG_DATE="$(date +%Y%m%d)"
 LOG_FILE="${LOG_DIR}/bridge-${LOG_DATE}.log"
 echo "[start-bridge] logging to ${LOG_FILE}" >&2
+
+# ── Start worker alongside bridge (single command = everything runs) ──────────
+WORKER_PORT="${MUSU_WORKER_PORT:-9700}"
+WORKER_BIN="${ROOT}/musu-bridge/.venv/bin/musu-worker"
+if [[ -x "$WORKER_BIN" ]]; then
+    echo "[start-bridge] starting musu-worker on port ${WORKER_PORT}" >&2
+    "$WORKER_BIN" --port "${WORKER_PORT}" >> "${LOG_DIR}/musu-worker.log" 2>&1 &
+    WORKER_PID=$!
+    echo "[start-bridge] musu-worker PID=${WORKER_PID}" >&2
+    # Kill worker when bridge exits
+    trap "kill ${WORKER_PID} 2>/dev/null" EXIT
+else
+    echo "[start-bridge] WARN: musu-worker not found at ${WORKER_BIN} — remote exec disabled" >&2
+fi
+
 # Use uvicorn module to ensure all endpoints (including post-uvicorn.run() ones) load
 exec "$PYTHON" -m uvicorn server:app --host "${MUSU_BRIDGE_HOST:-0.0.0.0}" --port "${BRIDGE_PORT:-8070}" "$@" >> "${LOG_FILE}" 2>&1
