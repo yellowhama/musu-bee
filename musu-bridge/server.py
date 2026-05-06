@@ -2790,7 +2790,7 @@ async def api_xray_upload(request: Request):
     with open(latest_path, "w") as f:
         json.dump(body, f, indent=2)
 
-    log.info("X-Ray report stored: %s (score: %s)", filename, body.get("health_score", {}).get("overall"))
+    logger.info("X-Ray report stored: %s (score: %s)", filename, body.get("health_score", {}).get("overall"))
     return {"stored": filename, "path": filepath}
 
 
@@ -2881,7 +2881,7 @@ async def api_nodes_add(req: NodeAddRequest):
     # Health check the new node
     is_healthy = await router.is_node_healthy(req.name)
 
-    log.info("Node added: %s (%s) healthy=%s", req.name, url, is_healthy)
+    logger.info("Node added: %s (%s) healthy=%s", req.name, url, is_healthy)
     return {
         "name": req.name,
         "url": url,
@@ -2904,7 +2904,7 @@ async def api_nodes_remove(node_name: str):
         raise HTTPException(status_code=400, detail="Cannot remove self node")
 
     router.remove_node(node_name)
-    log.info("Node removed: %s", node_name)
+    logger.info("Node removed: %s", node_name)
     return {"removed": node_name}
 
 
@@ -2923,7 +2923,7 @@ async def api_nodes_assign_agent(req: AgentAssignRequest):
         raise HTTPException(status_code=404, detail=f"Node '{req.node_name}' not found")
 
     assigned = router.auto_assign_agents(req.node_name, [req.agent_name])
-    log.info("Agent '%s' assigned to node '%s'", req.agent_name, req.node_name)
+    logger.info("Agent '%s' assigned to node '%s'", req.agent_name, req.node_name)
     return {"agent": req.agent_name, "node": req.node_name, "newly_assigned": assigned}
 
 
