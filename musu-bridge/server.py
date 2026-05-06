@@ -2838,3 +2838,71 @@ async def api_xray_get(filename: str = Path(...)):
         raise HTTPException(status_code=404, detail="Report not found")
     with open(fpath) as f:
         return json.load(f)
+
+
+# ============================================================
+# Node Management (Multi-Machine P0)
+# ============================================================
+
+@app.get("/api/nodes", summary="List connected nodes with health status")
+async def api_nodes_list():
+    """List all mesh nodes with live health check."""
+    from handlers import list_nodes as _list_nodes
+    nodes = await _list_nodes()
+    return {"nodes": nodes, "total": len(nodes)}
+
+
+class NodeAddRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=64)
+    url: str | None = None
+    tailscale_ip: str | None = None
+    agents: list[str] = Field(default_factory=list)
+
+
+@app.post("/api/nodes/add", status_code=201, summary="Add a node to the mesh")
+async def api_nodes_add(req: NodeAddRequest):
+    """Add a node manually. Provide either url or tailscale_ip (url auto-generated)."""
+    router = mesh_router.get_mesh_router()
+    if not router:
+        raise HTTPException(status_code=503, detail="Mesh router not initialized")
+
+    if router.has_node(req.name):
+        raise HTTPException(status_code=409, detail=f"Node '{req.name}' already exists")
+
+    # Build URL from tailscale_ip if not provided
+    url = req.url
+    if not url and req.tailscale_ip:
+        url = f"http://{req.tailscale_ip}:8070"
+    if not url:
+        raise HTTPException(status_code=400, detail="Provide either 'url' or 'tailscale_ip'")
+
+    router.add_node(req.name, url, req.agents)
+
+    # Health check the new node
+    is_healthy = await router.is_node_healthy(req.name)
+
+    log.info("Node added: %s (%s) healthy=%s", req.name, url, is_healthy)
+    return {
+        "name": req.name,
+        "url": url,
+        "agents": req.agents,
+        "healthy": is_healthy,
+    }
+
+
+@app.delete("/api/nodes/{node_name}", summary="Remove a node from the mesh")
+async def api_nodes_remove(node_name: str):
+    """Remove a node and its agent assignments."""
+    router = mesh_router.get_mesh_router()
+    if not router:
+        raise HTTPException(status_code=503, detail="Mesh router not initialized")
+
+    if not router.has_node(node_name):
+        raise HTTPException(status_code=404, detail=f"Node '{node_name}' not found")
+
+    if router._self_name == node_name:
+        raise HTTPException(status_code=400, detail="Cannot remove self node")
+
+    router.remove_node(node_name)
+    log.info("Node removed: %s", node_name)
+    return {"removed": node_name}
