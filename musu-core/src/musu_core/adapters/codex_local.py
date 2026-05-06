@@ -76,7 +76,7 @@ class CodexLocalAdapter(BaseAdapter):
 
         args: list[str] = ["exec"]
         if full_auto:
-            args.append("--full-auto")
+            args.append("--dangerously-bypass-approvals-and-sandbox")
         if model:
             args += ["--model", model]
         args += [ctx.prompt]
