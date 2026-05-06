@@ -2906,3 +2906,44 @@ async def api_nodes_remove(node_name: str):
     router.remove_node(node_name)
     log.info("Node removed: %s", node_name)
     return {"removed": node_name}
+
+
+class AgentAssignRequest(BaseModel):
+    agent_name: str = Field(..., min_length=1)
+    node_name: str = Field(..., min_length=1)
+
+
+@app.post("/api/nodes/assign-agent", summary="Assign an agent to a node")
+async def api_nodes_assign_agent(req: AgentAssignRequest):
+    """Assign an agent to run on a specific node. Updates nodes.toml."""
+    router = mesh_router.get_mesh_router()
+    if not router:
+        raise HTTPException(status_code=503, detail="Mesh router not initialized")
+    if not router.has_node(req.node_name):
+        raise HTTPException(status_code=404, detail=f"Node '{req.node_name}' not found")
+
+    assigned = router.auto_assign_agents(req.node_name, [req.agent_name])
+    log.info("Agent '%s' assigned to node '%s'", req.agent_name, req.node_name)
+    return {"agent": req.agent_name, "node": req.node_name, "newly_assigned": assigned}
+
+
+@app.get("/api/templates", summary="List available company templates")
+async def api_templates_list():
+    """List available templates for company creation."""
+    try:
+        from company_templates import list_template_keys, get_template
+        keys = list_template_keys()
+        templates = []
+        for key in keys:
+            tmpl = get_template(key)
+            if tmpl:
+                agents = [a.get("name", "?") for a in tmpl.get("agents", [])]
+                templates.append({
+                    "key": key,
+                    "description": tmpl.get("description", ""),
+                    "agents": agents,
+                    "agent_count": len(agents),
+                })
+        return {"templates": templates}
+    except ImportError:
+        return {"templates": [], "error": "company_templates module not found"}
