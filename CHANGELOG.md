@@ -2,6 +2,32 @@
 
 All notable changes to MUSU are documented here.
 
+## [1.8.0] - 2026-05-07
+
+### Added
+- **`musu status`**: System dashboard — bridge/worker/agents/nodes/recent tasks at a glance
+- **`musu update`**: One-command mesh-wide code update (git pull + restart all nodes)
+- **CLI Help Overhaul**: Quick start guide, examples section, 13 commands listed
+- **CI Pipeline**: `.github/workflows/test.yml` — Python 3.12 + pytest on push/PR
+- **19 New Tests**: seed_agents (13), system_update (3), token_exchange (3)
+- **docs/MONITORING.md**: Prometheus metrics, alert rules, log patterns
+- **DB Auto-Cleanup**: 30-day route_executions/tombstones deleted on bridge startup
+- **Graceful Shutdown**: SIGTERM waits up to 30s for active tasks (monotonic clock)
+- **Enhanced `/health`**: version, worker status, active_tasks, db_size_mb, disk_free_pct
+
+### Fixed
+- `test_phase84_agent_retry`: assert non-empty instead of hardcoded agent name
+- `test_dashboard_agents`: uuid prefix to avoid UNIQUE constraint
+- `route_execution_tombstones` cleanup: use `tombstone_until` column (not `created_at`)
+- Graceful shutdown: `time.monotonic()` instead of `time.time()` (clock-safe)
+- `system_routes.py`: subprocess import at module level (mockable)
+- `pytest.ini`: `--timeout=30` + `testpaths` for faster discovery
+
+### Changed
+- Rust CLI version: 1.5.1 → 1.8.0
+- CLI error messages: actionable hints (bridge not running → systemctl, musu doctor)
+- Doctor: bridge failure shows specific fix commands
+
 ## [1.7.0] - 2026-05-07
 
 ### Added
