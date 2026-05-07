@@ -24,13 +24,15 @@ def company_with_agents():
     company = create_company(name="Test Corp")
     company_id = company["id"]
 
-    a1 = backend.create_agent(name="ceo", role="ceo", adapter_type="gemini_local", company_id=company_id)
+    import uuid
+    _pfx = uuid.uuid4().hex[:6]
+    a1 = backend.create_agent(name=f"test-ceo-{_pfx}", role="ceo", adapter_type="gemini_local", company_id=company_id)
     # status defaults to "active" on creation; leave as-is
 
-    a2 = backend.create_agent(name="engineer", role="engineer", adapter_type="gemini_local", company_id=company_id)
+    a2 = backend.create_agent(name=f"test-eng-{_pfx}", role="engineer", adapter_type="gemini_local", company_id=company_id)
     backend.update_agent(a2["id"], status="paused")
 
-    backend.create_agent(name="qa", role="qa", adapter_type="gemini_local", company_id=company_id)
+    backend.create_agent(name=f"test-qa-{_pfx}", role="qa", adapter_type="gemini_local", company_id=company_id)
     # status defaults to "active"
 
     yield company_id
