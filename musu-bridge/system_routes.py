@@ -431,3 +431,101 @@ async def api_system_event(event: SystemEvent) -> dict:
     except Exception as exc:
         logger.warning("system_event: failed to log — %s", exc)
     return {"logged": True, "event_type": event.event_type}
+
+
+# ── Self-update endpoint ─────────────────────────────────────────────────────
+
+@system_router.post("/api/system/update", summary="Git pull + restart bridge if code changed")
+async def api_system_update(request: Request) -> dict:
+    """Run git pull in the repo root. If code changed, schedule a bridge restart.
+
+    This allows remote nodes to be updated from any other node without SSH.
+    """
+    import subprocess
+
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    # Get current commit
+    try:
+        before = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=repo_root, text=True
+        ).strip()
+    except Exception:
+        before = ""
+
+    # Git pull
+    try:
+        pull_result = subprocess.check_output(
+            ["git", "pull", "--ff-only"], cwd=repo_root, text=True, stderr=subprocess.STDOUT,
+            timeout=30,
+        ).strip()
+    except subprocess.CalledProcessError as e:
+        return {"updated": False, "error": f"git pull failed: {e.output}"}
+    except subprocess.TimeoutExpired:
+        return {"updated": False, "error": "git pull timed out"}
+
+    # Get new commit
+    try:
+        after = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=repo_root, text=True
+        ).strip()
+    except Exception:
+        after = ""
+
+    changed = before != after
+
+    if changed:
+        logger.info("system/update: code updated %s → %s, scheduling restart", before[:8], after[:8])
+        # Schedule restart after responding (so the caller gets a response)
+        async def _delayed_restart():
+            await asyncio.sleep(2)
+            os.execv("/bin/sh", ["/bin/sh", "-c",
+                "sleep 1 && systemctl --user restart musu-bridge"])
+
+        asyncio.create_task(_delayed_restart())
+
+    return {
+        "updated": changed,
+        "before": before[:8],
+        "after": after[:8],
+        "pull_output": pull_result,
+        "restart_scheduled": changed,
+    }
+
+
+@system_router.post("/api/system/update-all", summary="Update this node + all mesh peers")
+async def api_system_update_all(request: Request) -> dict:
+    """Git pull on this node, then trigger /api/system/update on every peer.
+
+    One command updates the entire mesh. No SSH needed.
+    """
+    import httpx
+
+    # Update self first
+    self_result = await api_system_update(request)
+
+    # Update all peers
+    router = mesh_router.get_router()
+    peer_results = {}
+    for node_name, node_url in router._node_urls.items():
+        if node_name == router._self_name:
+            continue
+        target = f"{node_url.rstrip('/')}/api/system/update"
+        token = router.token_for_node(node_name)
+        headers = {}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                resp = await client.post(target, headers=headers)
+                if resp.status_code == 200:
+                    peer_results[node_name] = resp.json()
+                else:
+                    peer_results[node_name] = {"error": f"HTTP {resp.status_code}"}
+        except Exception as e:
+            peer_results[node_name] = {"error": str(e)}
+
+    return {
+        "self": self_result,
+        "peers": peer_results,
+    }

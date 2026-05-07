@@ -177,7 +177,7 @@ class ClaudeLocalAdapter(BaseAdapter):
                 args += ["--max-budget-usd", str(max_budget_usd)]
             # MCP control: disable all MCP servers to save tokens
             if disable_mcp:
-                args += ["--mcp-config", "{}"]
+                args += ["--mcp-config", '{"mcpServers":{}}']
             return args
 
         async def run_attempt(resume_session_id: str | None) -> tuple[int, str, str]:

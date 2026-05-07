@@ -495,21 +495,53 @@ async def lifespan(app: FastAPI):
         _mgr_backend = _gb2()
         _existing_mgr = _mgr_backend.get_agent_by_name(_mgr_name)
         if _existing_mgr is None:
+            from seed_agents import detect_cli, build_config
+            _det_adapter, _det_cmd = detect_cli()
+            _mgr_config = build_config("node_manager", _det_adapter, _det_cmd, os.getcwd())
+            _mgr_config["node_name"] = _local_node
             _mgr_backend.agents.create(
                 name=_mgr_name,
                 role="Node Manager",
-                adapter_type="claude_local",
-                adapter_config={
-                    "model": "claude-sonnet-4-6",
-                    "instructions_path": "musu-bridge/instructions/node_manager.md",
-                    "node_name": _local_node,
-                },
+                adapter_type=_det_adapter,
+                adapter_config=_mgr_config,
             )
             logger.info("startup: seeded node manager agent %r for node=%r", _mgr_name, _local_node)
         else:
-            logger.info("startup: node manager %r already exists", _mgr_name)
-        # Register in nodes.toml so mesh routing knows this agent lives on this node.
-        router.auto_assign_agents(_local_node, [_mgr_name])
+            # Fix existing mgr if it's missing command
+            _mgr_cfg = _existing_mgr.get("adapter_config", {})
+            if not _mgr_cfg.get("command"):
+                from seed_agents import detect_cli, build_config
+                _det_adapter, _det_cmd = detect_cli()
+                _new_cfg = build_config("node_manager", _det_adapter, _det_cmd, os.getcwd())
+                _new_cfg["node_name"] = _local_node
+                for _k, _v in _new_cfg.items():
+                    if _k not in _mgr_cfg:
+                        _mgr_cfg[_k] = _v
+                _mgr_backend.agents.update(_existing_mgr["id"], adapter_config=_mgr_cfg)
+                logger.info("startup: fixed node manager %r config (added command)", _mgr_name)
+            else:
+                logger.info("startup: node manager %r already exists", _mgr_name)
+        # Register local agents in nodes.toml so mesh routing knows they live here.
+        # Only assign agents that belong to this node:
+        # - Agents without any node prefix (generic: ceo, cto, worker, etc.)
+        # - Agents prefixed with this node's name (e.g. 4060-CEO on node 4060)
+        # - mgr-{this_node}
+        # Skip agents prefixed with other node names (e.g. hugh-main-CEO on node 4060).
+        _other_nodes = {n for n in router._node_urls if n != _local_node}
+        _local_agents = []
+        for _a in _mgr_backend.list_agents():
+            if _a.get("company_id"):
+                continue
+            _aname = _a["name"]
+            # Skip if prefixed with another node's name
+            _skip = False
+            for _on in _other_nodes:
+                if _aname.lower().startswith(f"{_on.lower()}-") or _aname.lower().startswith(f"mgr-{_on.lower()}"):
+                    _skip = True
+                    break
+            if not _skip:
+                _local_agents.append(_aname)
+        router.auto_assign_agents(_local_node, _local_agents)
     except Exception as _e:
         logger.warning("startup: failed to seed node manager — %s", _e)
 

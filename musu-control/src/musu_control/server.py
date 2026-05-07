@@ -2480,6 +2480,60 @@ async def execute_remote_process(
         )
 
 
+# ── Mesh update tool ──────────────────────────────────────────────────────────
+
+@mcp.tool()
+async def update_mesh() -> CallToolResult:
+    """Update all mesh nodes: git pull + restart bridge on every node.
+
+    Calls POST /api/system/update-all on the local bridge, which:
+    1. Runs git pull on this node
+    2. Forwards to all peer nodes
+    3. Each node restarts if code changed
+
+    No SSH needed. One command updates the entire mesh.
+    """
+    try:
+        bridge_url = os.environ.get("MUSU_BRIDGE_URL", "http://127.0.0.1:8070")
+        token = os.environ.get("MUSU_BRIDGE_TOKEN", "")
+        headers = {"Content-Type": "application/json"}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.post(f"{bridge_url}/api/system/update-all", headers=headers)
+            if resp.status_code == 200:
+                result = resp.json()
+                self_info = result.get("self", {})
+                peers = result.get("peers", {})
+                summary_parts = []
+                if self_info.get("updated"):
+                    summary_parts.append(f"Self: updated {self_info['before']}→{self_info['after']}")
+                else:
+                    summary_parts.append("Self: already up to date")
+                for name, info in peers.items():
+                    if isinstance(info, dict) and info.get("updated"):
+                        summary_parts.append(f"{name}: updated {info['before']}→{info['after']}")
+                    elif isinstance(info, dict) and info.get("error"):
+                        summary_parts.append(f"{name}: error — {info['error']}")
+                    else:
+                        summary_parts.append(f"{name}: up to date")
+                return CallToolResult(
+                    content=[TextContent(type="text", text="\n".join(summary_parts))],
+                    structuredContent=result,
+                )
+            else:
+                return CallToolResult(
+                    content=[TextContent(type="text", text=f"Update failed: HTTP {resp.status_code}")],
+                    isError=True,
+                )
+    except Exception as e:
+        return CallToolResult(
+            content=[TextContent(type="text", text=f"Error updating mesh: {str(e)}")],
+            isError=True,
+        )
+
+
 # ── app-only poll tools (visibility: ["app"], 모델 컨텍스트 오염 방지) ──
 
 @mcp.tool()

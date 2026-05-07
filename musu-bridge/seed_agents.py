@@ -3,6 +3,7 @@
 
 Run after musu-core DB is initialized (first LocalBackend instantiation
 creates the schema). Idempotent — skips agents that already exist.
+Also auto-assigns all seeded agents to the local node in nodes.toml.
 
 Usage:
     python seed_agents.py                   # auto-detect CLI + cwd
@@ -15,6 +16,7 @@ import logging
 import os
 import shutil
 import sys
+import tomllib
 from pathlib import Path
 
 # Ensure musu-core is importable
@@ -89,6 +91,65 @@ AGENT_ROLES = [
 ]
 
 
+# ── nodes.toml auto-assignment ───────────────────────────────────────────────
+
+_NODES_TOML = Path(os.path.expanduser("~/.musu/nodes.toml"))
+
+
+def _get_self_node() -> str:
+    """Read self node name from nodes.toml."""
+    if not _NODES_TOML.exists():
+        return ""
+    try:
+        with open(_NODES_TOML, "rb") as f:
+            data = tomllib.load(f)
+        return data.get("mesh", {}).get("self", "")
+    except Exception:
+        return ""
+
+
+def _ensure_assignments(agent_names: list[str], node_name: str) -> int:
+    """Add missing agent_assignments to nodes.toml. Returns count of new assignments."""
+    if not node_name or not _NODES_TOML.exists():
+        return 0
+    try:
+        with open(_NODES_TOML, "rb") as f:
+            data = tomllib.load(f)
+    except Exception:
+        logger.warning("Cannot read nodes.toml for assignment update")
+        return 0
+
+    mesh = data.get("mesh", {})
+    existing = mesh.get("agent_assignments", [])
+    existing_agents = {a.get("agent", "").lower() for a in existing}
+
+    added = 0
+    for name in agent_names:
+        if name.lower() not in existing_agents:
+            existing.append({"agent": name, "node": node_name})
+            added += 1
+
+    if added == 0:
+        return 0
+
+    mesh["agent_assignments"] = existing
+    data["mesh"] = mesh
+
+    # Write back — use mesh_router's _dict_to_toml if available, else simple writer
+    try:
+        sys.path.insert(0, str(Path(__file__).parent))
+        from mesh_router import _dict_to_toml
+        _NODES_TOML.write_text(_dict_to_toml(data))
+    except Exception:
+        # Fallback: append to file directly
+        with open(_NODES_TOML, "a") as f:
+            for name in agent_names:
+                if name.lower() not in existing_agents:
+                    f.write(f'\n[[mesh.agent_assignments]]\nagent = "{name}"\nnode = "{node_name}"\n')
+    logger.info("nodes.toml: assigned %d agents to node '%s'", added, node_name)
+    return added
+
+
 def seed(
     backend: LocalBackend,
     adapter_override: str | None = None,
@@ -97,13 +158,18 @@ def seed(
     # Auto-detect CLI and working directory
     detected_adapter, detected_command = detect_cli()
     cwd = os.getcwd()
+    self_node = _get_self_node()
 
-    logger.info("Auto-detected: adapter=%s, command=%s, cwd=%s",
-                detected_adapter, detected_command, cwd)
+    logger.info("Auto-detected: adapter=%s, command=%s, cwd=%s, node=%s",
+                detected_adapter, detected_command, cwd, self_node or "(none)")
 
     prefix = f"{company_id[:8]}-" if company_id else ""
+    seeded_names: list[str] = []
+
     for role_name, role_desc in AGENT_ROLES:
         agent_name = f"{prefix}{role_name}"
+        seeded_names.append(agent_name)
+
         existing = backend.get_agent_by_name(agent_name, company_id=company_id)
         if existing is not None:
             # Update existing agent's config if command is missing
@@ -156,6 +222,10 @@ def seed(
         logger.info("Created agent '%s' (id=%s, adapter=%s, model=%s, command=%s)",
                      agent_name, agent.id, adapter_type,
                      adapter_config["model"], adapter_config["command"])
+
+    # Auto-assign all seeded agents to local node in nodes.toml
+    if self_node and seeded_names:
+        _ensure_assignments(seeded_names, self_node)
 
     # Summary
     all_agents = backend.list_agents()
