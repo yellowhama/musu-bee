@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import subprocess
 from typing import Annotated, List
 
 from fastapi import APIRouter, HTTPException, Query, Request
@@ -441,8 +442,6 @@ async def api_system_update(request: Request) -> dict:
 
     This allows remote nodes to be updated from any other node without SSH.
     """
-    import subprocess
-
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     # Get current commit

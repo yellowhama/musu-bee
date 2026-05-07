@@ -829,19 +829,18 @@ async def lifespan(app: FastAPI):
             "DELETE FROM route_executions WHERE created_at < datetime('now', '-30 days')"
         ).rowcount
         _deleted_tomb = _cleanup_backend._db.execute(
-            "DELETE FROM route_execution_tombstones WHERE created_at < datetime('now', '-30 days')"
+            "DELETE FROM route_execution_tombstones WHERE tombstone_until < datetime('now', '-30 days')"
         ).rowcount
         if _deleted or _deleted_tomb:
             logger.info("db_cleanup: removed %d executions + %d tombstones (>30 days)", _deleted, _deleted_tomb)
-            _cleanup_backend._db.execute("PRAGMA incremental_vacuum")
     except Exception as _ce:
         logger.warning("db_cleanup: failed — %s", _ce)
 
     yield
 
     # Graceful shutdown: wait for in-progress tasks (max 30s)
-    _shutdown_start = time.time()
-    while len(_active_tasks) > 0 and (time.time() - _shutdown_start) < 30:
+    _shutdown_start = time.monotonic()
+    while len(_active_tasks) > 0 and (time.monotonic() - _shutdown_start) < 30:
         logger.info("graceful_shutdown: %d tasks still running, waiting...", len(_active_tasks))
         await asyncio.sleep(2)
     if len(_active_tasks) > 0:
