@@ -542,26 +542,44 @@ async def api_session_report(hours: int = 24) -> dict:
     from handlers import _get_backend
     from datetime import datetime, timedelta, timezone
     import shutil
+    import sqlite3 as _sqlite3
 
     backend = _get_backend()
     since = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
 
-    # Tasks
-    try:
-        all_tasks = backend.list_tasks(limit=200)
-        recent = [t for t in all_tasks if t.get("created_at", "") >= since]
-        done = sum(1 for t in recent if t.get("status") == "done")
-        failed = sum(1 for t in recent if t.get("status") in ("failed", "error"))
-        running = sum(1 for t in recent if t.get("status") in ("running", "in_progress"))
-    except Exception:
-        recent, done, failed, running = [], 0, 0, 0
+    # Use the actual DB file (backend may use a different path)
+    _db_candidates = [
+        os.path.expanduser("~/.musu/musu.db"),
+        os.path.expanduser("~/.musu/db/musu.db"),
+    ]
+    _report_db_path = None
+    for _p in _db_candidates:
+        if os.path.exists(_p) and os.path.getsize(_p) > 0:
+            _report_db_path = _p
+            break
+    _report_db = _sqlite3.connect(_report_db_path) if _report_db_path else None
 
-    # Costs from route_executions
+    # Tasks + costs from route_executions (single source of truth)
+    _db = _report_db or backend._db
     try:
-        rows = backend._db.execute(
-            "SELECT agent_name, SUM(cost_usd) as total_cost, COUNT(*) as count, "
+        task_rows = _db.execute(
+            "SELECT status, COUNT(*) FROM route_executions WHERE created_at >= ? GROUP BY status",
+            (since,),
+        ).fetchall()
+        task_counts = dict(task_rows)
+        done = task_counts.get("done", 0)
+        failed = task_counts.get("failed", 0)
+        running = task_counts.get("running", 0) + task_counts.get("pending", 0)
+        total_tasks = sum(task_counts.values())
+    except Exception:
+        done, failed, running, total_tasks = 0, 0, 0, 0
+
+    # Costs by channel (agent)
+    try:
+        rows = _db.execute(
+            "SELECT channel, SUM(cost_usd) as total_cost, COUNT(*) as count, "
             "SUM(input_tokens) as input_t, SUM(output_tokens) as output_t "
-            "FROM route_executions WHERE created_at >= ? GROUP BY agent_name ORDER BY total_cost DESC",
+            "FROM route_executions WHERE created_at >= ? GROUP BY channel ORDER BY total_cost DESC",
             (since,),
         ).fetchall()
         costs_by_agent = [
@@ -584,8 +602,7 @@ async def api_session_report(hours: int = 24) -> dict:
         agents, active = [], 0
 
     # System
-    db_path = os.path.expanduser("~/.musu/db/musu.db")
-    db_size_mb = round(os.path.getsize(db_path) / 1024 / 1024, 1) if os.path.exists(db_path) else 0
+    db_size_mb = round(os.path.getsize(_report_db_path) / 1024 / 1024, 1) if _report_db_path else 0
     disk = shutil.disk_usage("/")
     disk_free_pct = round(disk.free / disk.total * 100, 1)
 
@@ -602,7 +619,7 @@ async def api_session_report(hours: int = 24) -> dict:
             "active": active,
         },
         "tasks": {
-            "total": len(recent),
+            "total": total_tasks,
             "done": done,
             "failed": failed,
             "running": running,
