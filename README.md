@@ -1,4 +1,23 @@
-# musu-functions Root Index
+# MUSU — Agent Runtime for Multi-Machine AI Orchestration
+
+> Your machines are your company. MUSU runs it.
+
+## Quick Links
+
+- [Getting Started](docs/GETTING_STARTED.md) — 5-minute setup + first task
+- [API Reference](docs/API.md) — all endpoints
+- [Configuration](docs/CONFIG.md) — environment variables + nodes.toml
+- [Troubleshooting](docs/TROUBLESHOOTING.md) — common errors + fixes
+- [Changelog](CHANGELOG.md) — version history
+- **Live API Docs**: `http://localhost:8070/docs` (Swagger UI)
+- **Version**: see [VERSION](VERSION)
+
+```bash
+# Install + start (one command)
+bash scripts/install.sh --service --start
+```
+
+---
 
 ## 목적
 

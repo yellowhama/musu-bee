@@ -862,7 +862,14 @@ async def lifespan(app: FastAPI):
         task.cancel()
 
 
-app = FastAPI(title="musu-bridge", version="0.2.0", lifespan=lifespan)
+app = FastAPI(
+    title="musu-bridge",
+    version="1.7.0",
+    description="MUSU Agent Orchestration API — delegate tasks to AI agents across machines",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    lifespan=lifespan,
+)
 
 # ── Prometheus metrics (extracted to metrics.py) ─────────────────────────────
 instrument_app(app)

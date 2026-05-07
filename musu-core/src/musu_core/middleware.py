@@ -131,7 +131,7 @@ def require_bearer_token(
     All other requests must supply a valid
     ``Authorization: Bearer <token>`` header or receive 401.
     """
-    _bypass_exact = {"/health", "/api/system/stats", "/metrics"}
+    _bypass_exact = {"/health", "/api/system/stats", "/metrics", "/docs", "/redoc", "/openapi.json"}
 
     class AuthMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request: Request, call_next):
