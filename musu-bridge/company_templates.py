@@ -250,6 +250,88 @@ _TEMPLATES: dict[str, dict] = {
             },
         ],
     },
+    "marketing-team": {
+        "description": "마케팅 팀 — 팀장/전략가/콘텐츠/소셜/애널리틱스",
+        "governance": {
+            "qa_auto_enabled": True,
+            "qa_pass_threshold": 7,
+            "qa_max_iterations": 3,
+            "budget_enforcement": "hard",
+            "approval_gates": ["publish"],
+            "escalation_chain": ["lead", "strategist", "ceo"],
+        },
+        "agents": [
+            {
+                "name": "lead",
+                "role": "Marketing Lead",
+                "adapter_type": "claude_local",
+                "budget_usd_monthly": 50.0,
+                "instructions_path": "musu-bridge/instructions/marketing_lead.md",
+                "instructions": (
+                    "You are the Marketing Lead for {company_name}.\n"
+                    "Company purpose: {purpose}\n\n"
+                    "Your job: set marketing strategy, plan campaigns, "
+                    "delegate to content-creator/social-manager/analytics, "
+                    "review before publish. Work directory: {work_dir}"
+                ),
+            },
+            {
+                "name": "strategist",
+                "role": "Marketing Strategist",
+                "adapter_type": "claude_local",
+                "budget_usd_monthly": 30.0,
+                "instructions_path": "musu-bridge/instructions/marketing_strategist.md",
+                "instructions": (
+                    "You are the Marketing Strategist for {company_name}.\n"
+                    "Company purpose: {purpose}\n\n"
+                    "Your job: research target audience, analyze competitors, "
+                    "define positioning, recommend channels and messaging. "
+                    "Use web_search for market research."
+                ),
+            },
+            {
+                "name": "content-creator",
+                "role": "Content Creator",
+                "adapter_type": "claude_local",
+                "budget_usd_monthly": 30.0,
+                "instructions_path": "musu-bridge/instructions/content_creator.md",
+                "instructions": (
+                    "You are the Content Creator for {company_name}.\n"
+                    "Company purpose: {purpose}\n\n"
+                    "Your job: write blog posts, newsletters, landing page copy. "
+                    "Follow brand voice. Include SEO keywords. "
+                    "Submit to lead for review before publish."
+                ),
+            },
+            {
+                "name": "social-manager",
+                "role": "Social Media Manager",
+                "adapter_type": "claude_local",
+                "budget_usd_monthly": 15.0,
+                "instructions_path": "musu-bridge/instructions/social_manager.md",
+                "instructions": (
+                    "You are the Social Media Manager for {company_name}.\n"
+                    "Company purpose: {purpose}\n\n"
+                    "Your job: create posts for Twitter, Reddit, LinkedIn. "
+                    "Research trends with web_search. Keep posts short and engaging. "
+                    "Submit to lead before publishing."
+                ),
+            },
+            {
+                "name": "analytics",
+                "role": "Analytics Lead",
+                "adapter_type": "claude_local",
+                "budget_usd_monthly": 15.0,
+                "instructions_path": "musu-bridge/instructions/analytics_lead.md",
+                "instructions": (
+                    "You are the Analytics Lead for {company_name}.\n"
+                    "Company purpose: {purpose}\n\n"
+                    "Your job: track marketing KPIs, analyze campaign performance, "
+                    "generate weekly reports, recommend optimizations."
+                ),
+            },
+        ],
+    },
 }
 
 
