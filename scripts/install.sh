@@ -19,10 +19,12 @@ VENV="${ROOT}/musu-bridge/.venv"
 # ── Flag parsing ─────────────────────────────────────────────────────────────
 INSTALL_SERVICE=0
 START_BRIDGE=0
+INSTALL_HTTPS=0
 for arg in "$@"; do
     case "$arg" in
         --service) INSTALL_SERVICE=1 ;;
         --start)   START_BRIDGE=1 ;;
+        --https)   INSTALL_HTTPS=1 ;;
     esac
 done
 
@@ -258,11 +260,32 @@ if [[ "${START_BRIDGE}" == "1" ]]; then
         ok "bridge is running ✓"
         curl -s "http://127.0.0.1:${BRIDGE_PORT}/health"
         echo ""
-        # Check worker too
+        # Check worker
         if curl -sf --max-time 3 "http://127.0.0.1:${WORKER_PORT}/health" >/dev/null 2>&1; then
             ok "worker is running ✓"
         else
             warn "worker health check failed (port ${WORKER_PORT})"
+        fi
+
+        # Verify agents are seeded
+        AGENT_COUNT=$(curl -sf --max-time 5 "http://127.0.0.1:${BRIDGE_PORT}/api/agents" 2>/dev/null \
+            | python3 -c "import sys,json; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "0")
+        if [[ "${AGENT_COUNT}" -gt 0 ]]; then
+            ok "agents ready: ${AGENT_COUNT} agents seeded"
+        else
+            warn "no agents found — run: python musu-bridge/seed_agents.py"
+        fi
+
+        # Verify CLI is available
+        if command -v claude &>/dev/null; then
+            ok "AI CLI: claude $(claude --version 2>/dev/null | head -1)"
+        elif command -v gemini &>/dev/null; then
+            ok "AI CLI: gemini detected"
+        elif command -v codex &>/dev/null; then
+            ok "AI CLI: codex detected"
+        else
+            warn "No AI CLI found (claude/gemini/codex). Agents won't execute."
+            echo "    Install: https://docs.anthropic.com/en/docs/claude-code"
         fi
     else
         warn "health check failed. Logs:"
@@ -270,6 +293,33 @@ if [[ "${START_BRIDGE}" == "1" ]]; then
         [[ "${INSTALL_SERVICE}" == "1" ]] && echo "  journalctl --user -u musu-bridge -n 30"
         exit 1
     fi
+fi
+
+# ── Step 8: HTTPS with Caddy (--https) ────────────────────────────────────────
+if [[ "${INSTALL_HTTPS}" == "1" ]]; then
+    info "Step 8: setting up HTTPS with Caddy..."
+    if command -v caddy &>/dev/null; then
+        ok "Caddy already installed"
+    elif command -v apt-get &>/dev/null; then
+        sudo apt-get install -y -q debian-keyring debian-archive-keyring apt-transport-https curl >/dev/null 2>&1
+        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg 2>/dev/null
+        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list >/dev/null
+        sudo apt-get update -q >/dev/null 2>&1 && sudo apt-get install -y -q caddy >/dev/null 2>&1
+        ok "Caddy installed"
+    else
+        warn "Cannot auto-install Caddy (non-apt system). Install manually: https://caddyserver.com/docs/install"
+    fi
+    if command -v caddy &>/dev/null; then
+        CADDY_FILE="/etc/caddy/Caddyfile"
+        if [[ ! -f "${CADDY_FILE}" ]] || ! grep -q "localhost:8070" "${CADDY_FILE}" 2>/dev/null; then
+            echo "Caddy needs a domain. See docs/PRODUCTION.md for TLS setup."
+            echo "  Example: musu.yourdomain.com { reverse_proxy localhost:8070 }"
+        else
+            ok "Caddy already configured for MUSU"
+        fi
+    fi
+else
+    info "Step 8: HTTPS skipped (no --https flag). See docs/PRODUCTION.md for TLS setup."
 fi
 
 # ── Final summary ────────────────────────────────────────────────────────────

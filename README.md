@@ -2,24 +2,92 @@
 
 > Your machines are your company. MUSU runs it.
 
-## Quick Links
+MUSU turns your idle computers into an automated workforce. Delegate tasks to AI agents (Claude, Gemini, Codex) that run across your machines — one command, zero manual config.
 
-- [Getting Started](docs/GETTING_STARTED.md) — 5-minute setup + first task
-- [API Reference](docs/API.md) — all endpoints
-- [Configuration](docs/CONFIG.md) — environment variables + nodes.toml
-- [Troubleshooting](docs/TROUBLESHOOTING.md) — common errors + fixes
-- [Changelog](CHANGELOG.md) — version history
-- **Live API Docs**: `http://localhost:8070/docs` (Swagger UI)
-- **Version**: see [VERSION](VERSION)
+## Install (one command)
 
 ```bash
-# Install + start (one command)
 bash scripts/install.sh --service --start
 ```
 
+This auto-detects your GPU, OS, Tailscale IP, installs everything, seeds 6 AI agents, and starts the bridge. Done.
+
+## First Task
+
+```bash
+musu do "describe this project"
+```
+
+## What You Can Do
+
+```bash
+musu status                          # Dashboard: agents, nodes, tasks
+musu do "write tests for auth.py"    # Delegate work to AI
+musu do "fix the bug" --channel cto  # Pick a specific agent
+musu nodes add 100.x.x.x            # Add another machine
+musu update                          # Update all machines at once
+musu doctor                          # Diagnose problems
+musu xray ./repo                     # Analyze a codebase
+musu company create my-startup       # Create an automated team
+```
+
+## Architecture
+
+```
+You (CLI/API) → musu-bridge (orchestrator, :8070)
+                    ├── AI Agents (Claude/Gemini/Codex as subprocesses)
+                    ├── musu-worker (remote exec, :9700)
+                    ├── musu-relay (cross-machine WebSocket tunnel)
+                    └── musu-bee (web UI, :3001)
+```
+
+| Module | Role | Port |
+|--------|------|------|
+| `musu-bridge` | FastAPI API server, agent orchestration, task routing | 8070 |
+| `musu-core` | Agent/task/DB abstraction (Python library) | — |
+| `musu-worker` | Remote command execution on nodes | 9700 |
+| `musu-control` | MCP server (Claude Code integration, 78+ tools) | — |
+| `musu-relay` | WebSocket relay for cross-machine communication | 9900 |
+| `musu-bee` | Next.js web UI (chat, tasks, costs) | 3001 |
+| `musu-indexer` | Codebase indexing + semantic search | — |
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed design.
+
+## Documentation
+
+| Doc | Description |
+|-----|-------------|
+| [Getting Started](docs/GETTING_STARTED.md) | 5-minute setup + first task |
+| [CLI Reference](docs/CLI.md) | All commands with examples |
+| [API Reference](docs/API.md) | 119 endpoints (also at `localhost:8070/docs`) |
+| [Configuration](docs/CONFIG.md) | Environment variables + nodes.toml |
+| [Architecture](docs/ARCHITECTURE.md) | System design + data flow |
+| [Monitoring](docs/MONITORING.md) | Prometheus metrics + alerting |
+| [Troubleshooting](docs/TROUBLESHOOTING.md) | Common errors + fixes |
+| [Production](docs/PRODUCTION.md) | Security, backup, TLS, scaling |
+| [Changelog](CHANGELOG.md) | Version history |
+
+## Multi-Machine
+
+Add machines to your mesh with one command:
+
+```bash
+musu nodes add 100.121.211.106 --name gpu-server
+```
+
+MUSU auto-exchanges tokens, syncs agents, and routes tasks to the right machine. Update all nodes at once:
+
+```bash
+musu update
+```
+
+## License
+
+Private. See LICENSE.
+
 ---
 
-## 목적
+## Internal Notes (Development)
 
 이 폴더는 새 `MUSU` 코드베이스이자, 현재 `musu_corp`가 실제로 만들고 있는 제품 프로젝트다.
 
