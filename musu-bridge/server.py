@@ -901,9 +901,18 @@ async def lifespan(app: FastAPI):
         task.cancel()
 
 
+def _read_version() -> str:
+    try:
+        return (Path(__file__).parent.parent / "VERSION").read_text().strip()
+    except Exception:
+        return "0.0.0"
+
+
+_MUSU_VERSION = _read_version()
+
 app = FastAPI(
     title="musu-bridge",
-    version="1.7.0",
+    version=_MUSU_VERSION,
     description="MUSU Agent Orchestration API — delegate tasks to AI agents across machines",
     docs_url="/docs",
     redoc_url="/redoc",
@@ -2726,7 +2735,7 @@ async def health() -> dict:
 
     return {
         "status": "ok",
-        "version": "1.8.0",
+        "version": _MUSU_VERSION,
         "relay": {
             "connected": relay_connected,
             "reconnect_count": relay_reconnect_count,

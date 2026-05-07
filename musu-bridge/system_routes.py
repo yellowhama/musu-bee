@@ -318,25 +318,6 @@ async def system_services() -> dict:
     return {"node": os.environ.get("MUSU_NODE_NAME", "unknown"), "services": result}
 
 
-@system_router.post("/api/system/update", summary="Run auto-update")
-async def system_update() -> dict:
-    from pathlib import Path
-    script = Path(__file__).parent.parent / "scripts" / "auto-update.sh"
-    if not script.exists():
-        raise HTTPException(status_code=503, detail="auto-update.sh not found")
-    try:
-        proc = await asyncio.create_subprocess_exec(
-            str(script),
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
-        )
-        stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=90)
-        output = stdout.decode(errors="replace").strip()
-        logger.info("system_update: exit=%d output=%s", proc.returncode, output[:200])
-        return {"exit_code": proc.returncode, "output": output}
-    except asyncio.TimeoutError:
-        raise HTTPException(status_code=504, detail="auto-update timed out after 90s")
-
 
 # ── Admin shell exec (allowlisted commands only) ─────────────────────────────
 
@@ -354,24 +335,33 @@ class AdminExecRequest(BaseModel):
 
 @system_router.post("/api/admin/exec", summary="Run an allowlisted shell command")
 async def admin_exec(req: AdminExecRequest) -> dict:
+    import shlex
     cmd = req.command.strip()
     if not any(cmd.startswith(p) for p in _EXEC_ALLOWED_PREFIXES):
         raise HTTPException(status_code=403, detail=f"Command not allowed. Permitted prefixes: {_EXEC_ALLOWED_PREFIXES}")
+    # Parse into args to prevent injection (no shell=True)
     try:
-        proc = await asyncio.create_subprocess_shell(
-            cmd,
+        args = shlex.split(cmd)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid command syntax: {e}")
+    # Validate first arg is in allowlist (not just prefix match)
+    if args[0] not in ("docker", "docker-compose"):
+        raise HTTPException(status_code=403, detail=f"Binary '{args[0]}' not allowed")
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *args,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
             cwd=req.cwd,
         )
         stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=req.timeout_sec)
         output = stdout.decode(errors="replace").strip()
-        logger.info("admin_exec: cmd=%r exit=%d", cmd[:80], proc.returncode)
+        logger.info("admin_exec: cmd=%r exit=%d", args[0], proc.returncode)
         return {"exit_code": proc.returncode, "output": output}
     except asyncio.TimeoutError:
         raise HTTPException(status_code=504, detail=f"Command timed out after {req.timeout_sec}s")
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+    except Exception:
+        raise HTTPException(status_code=500, detail="Command execution failed")
 
 
 # ── Sandbox Bash ─────────────────────────────────────────────────────────────
@@ -478,8 +468,10 @@ async def api_system_update(request: Request) -> dict:
         # Schedule restart after responding (so the caller gets a response)
         async def _delayed_restart():
             await asyncio.sleep(2)
-            os.execv("/bin/sh", ["/bin/sh", "-c",
-                "sleep 1 && systemctl --user restart musu-bridge"])
+            subprocess.Popen(
+                ["sh", "-c", "sleep 1 && systemctl --user restart musu-bridge"],
+                start_new_session=True,
+            )
 
         asyncio.create_task(_delayed_restart())
 
@@ -614,7 +606,7 @@ async def api_session_report(hours: int = 24) -> dict:
         "period_hours": hours,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "system": {
-            "version": "1.8.0",
+            "version": os.environ.get("MUSU_VERSION", "1.9.0"),
             "db_size_mb": db_size_mb,
             "disk_free_pct": disk_free_pct,
         },
@@ -707,8 +699,10 @@ async def api_system_config(req: ConfigUpdateRequest, restart: bool = False) -> 
     if restart:
         async def _delayed_restart():
             await asyncio.sleep(2)
-            os.execv("/bin/sh", ["/bin/sh", "-c",
-                "sleep 1 && systemctl --user restart musu-bridge"])
+            subprocess.Popen(
+                ["sh", "-c", "sleep 1 && systemctl --user restart musu-bridge"],
+                start_new_session=True,
+            )
         asyncio.create_task(_delayed_restart())
 
     return {
