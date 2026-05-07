@@ -24,7 +24,7 @@ jobs:
           python -m venv .venv
           .venv/bin/pip install --quiet -e musu-core/
           .venv/bin/pip install --quiet -e musu-bridge/
-          .venv/bin/pip install pytest pytest-asyncio pytest-timeout
+          .venv/bin/pip install pytest pytest-asyncio pytest-timeout pytest-cov
 
       - name: Run musu-core tests
         run: |
@@ -32,8 +32,16 @@ jobs:
         env:
           MUSU_BRIDGE_TOKEN: test-ci-token-for-testing
 
-      - name: Run musu-bridge tests
+      - name: Run musu-bridge tests with coverage
         run: |
-          .venv/bin/pytest musu-bridge/tests/ --timeout=30 -q --tb=short
+          .venv/bin/pytest musu-bridge/tests/ --timeout=30 -q --tb=short \
+            --cov=musu_core --cov-report=term-missing --cov-report=html:coverage-html
         env:
           MUSU_BRIDGE_TOKEN: test-ci-token-for-testing
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage-html/

@@ -62,6 +62,26 @@ def _should_skip_heartbeat(backend, channel: str = "ceo") -> tuple[bool, str]:
             detail = f"{breakdown}, " if breakdown else ""
             return True, f"circuit open ({detail}{fail_count} recent failures, backoff={backoff}s)"
 
+        # Idle skip: if no new work since last successful heartbeat, skip
+        last_done = backend._db.execute(
+            "SELECT MAX(created_at) as ts FROM route_executions WHERE channel = ? AND status = 'done'",
+            (channel,),
+        )
+        last_ts = last_done[0]["ts"] if last_done else None
+        if last_ts:
+            # Check for new issues, pending tasks, or goal changes since last heartbeat
+            new_work = backend._db.execute(
+                "SELECT ("
+                "  (SELECT COUNT(*) FROM issues WHERE status = 'open' AND created_at > ?) + "
+                "  (SELECT COUNT(*) FROM route_executions WHERE status = 'pending' AND created_at > ?) + "
+                "  (SELECT COUNT(*) FROM goals WHERE created_at > ?)"
+                ") as total",
+                (last_ts, last_ts, last_ts),
+            )
+            total_new = new_work[0]["total"] if new_work else 1
+            if total_new == 0:
+                return True, "idle — no new work since last heartbeat"
+
         return False, ""
     except Exception:
         return False, ""

@@ -11,14 +11,22 @@ permissions:
 jobs:
   build:
     name: Build ${{ matrix.target }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
           - target: x86_64-unknown-linux-gnu
             suffix: linux-x86_64
+            os: ubuntu-latest
           - target: x86_64-unknown-linux-musl
             suffix: linux-x86_64-static
+            os: ubuntu-latest
+          - target: aarch64-apple-darwin
+            suffix: macos-arm64
+            os: macos-latest
+          - target: x86_64-pc-windows-msvc
+            suffix: windows-x86_64
+            os: windows-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -42,13 +50,23 @@ jobs:
         working-directory: musu-port
         run: cargo build --release --target ${{ matrix.target }} -p musu-portd
 
-      - name: Package binaries
+      - name: Package binaries (Unix)
+        if: runner.os != 'Windows'
         run: |
           mkdir -p dist
           cp musu-supervisor/target/${{ matrix.target }}/release/musud dist/musud-${{ matrix.suffix }}
           cp musu-supervisor/target/${{ matrix.target }}/release/musu dist/musu-${{ matrix.suffix }}
           cp musu-port/target/${{ matrix.target }}/release/musu-portd dist/musu-portd-${{ matrix.suffix }}
           chmod +x dist/*
+
+      - name: Package binaries (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist
+          Copy-Item "musu-supervisor\target\${{ matrix.target }}\release\musud.exe" "dist\musud-${{ matrix.suffix }}.exe"
+          Copy-Item "musu-supervisor\target\${{ matrix.target }}\release\musu.exe" "dist\musu-${{ matrix.suffix }}.exe"
+          Copy-Item "musu-port\target\${{ matrix.target }}\release\musu-portd.exe" "dist\musu-portd-${{ matrix.suffix }}.exe"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

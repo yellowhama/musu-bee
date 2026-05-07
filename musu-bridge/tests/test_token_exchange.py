@@ -18,11 +18,29 @@ from fastapi.testclient import TestClient
 client = TestClient(app, headers={"Authorization": "Bearer test-token"})
 
 
+_TEST_PEERS = ["test-peer-tx", "new-peer-tx", "anon-peer-tx"]
+
+
+@pytest.fixture(autouse=True)
+def cleanup_test_peers():
+    """Remove test peers from mesh router after each test."""
+    yield
+    try:
+        import mesh_router
+        router = mesh_router.get_mesh_router()
+        for name in _TEST_PEERS:
+            router._node_urls.pop(name, None)
+            router._node_tokens.pop(name, None)
+            router._agent_nodes = {k: v for k, v in router._agent_nodes.items() if v != name}
+    except Exception:
+        pass
+
+
 class TestAcceptPeer:
     def test_accept_peer_returns_our_token(self):
         """accept-peer should return our bridge token."""
         resp = client.post("/api/nodes/accept-peer", json={
-            "name": "test-peer",
+            "name": "test-peer-tx",
             "url": "http://10.0.0.1:8070",
             "token": "peer-secret-token",
         })
@@ -37,7 +55,7 @@ class TestAcceptPeer:
         """accept-peer bypasses auth (first contact, peer has no token yet)."""
         no_auth_client = TestClient(app)  # no Authorization header
         resp = no_auth_client.post("/api/nodes/accept-peer", json={
-            "name": "new-peer",
+            "name": "new-peer-tx",
             "url": "http://10.0.0.2:8070",
             "token": "their-token",
         })
@@ -47,7 +65,7 @@ class TestAcceptPeer:
     def test_accept_peer_empty_token(self):
         """accept-peer works even with empty token (just registers the node)."""
         resp = client.post("/api/nodes/accept-peer", json={
-            "name": "anon-peer",
+            "name": "anon-peer-tx",
             "url": "http://10.0.0.3:8070",
             "token": "",
         })
