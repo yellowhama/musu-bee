@@ -505,7 +505,7 @@ async def api_system_update_all(request: Request) -> dict:
     self_result = await api_system_update(request)
 
     # Update all peers
-    router = mesh_router.get_router()
+    router = mesh_router.get_mesh_router()
     peer_results = {}
     for node_name, node_url in router._node_urls.items():
         if node_name == router._self_name:
