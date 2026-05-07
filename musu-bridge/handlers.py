@@ -472,18 +472,26 @@ async def route_chat(
 
         # Try preferred node first
         if preferred:
-            result = await _try_forward(preferred)
-            if result is not None:
-                return result
-
-        # Fallback: try other healthy remote nodes
-        for alt_node in await mesh.healthy_remote_nodes(exclude=preferred):
-            result = await _try_forward(alt_node)
-            if result is not None:
-                return result
-
-        # All remote nodes failed → fall through to local
-        logger.info("mesh_router: no healthy remote node for channel=%r, executing locally", channel)
+            if preferred == mesh._self_name:
+                # Explicitly assigned to local node — skip fallback, execute locally
+                logger.info("mesh_router: channel=%r assigned to self (%r), executing locally", channel, preferred)
+            else:
+                result = await _try_forward(preferred)
+                if result is not None:
+                    return result
+                # Preferred remote failed — try fallback
+                for alt_node in await mesh.healthy_remote_nodes(exclude=preferred):
+                    result = await _try_forward(alt_node)
+                    if result is not None:
+                        return result
+                logger.info("mesh_router: no healthy remote node for channel=%r, executing locally", channel)
+        else:
+            # No assignment — try any healthy remote node
+            for alt_node in await mesh.healthy_remote_nodes():
+                result = await _try_forward(alt_node)
+                if result is not None:
+                    return result
+            logger.info("mesh_router: no healthy remote node for channel=%r, executing locally", channel)
 
     # ── Local handling ─────────────────────────────────────────────────────────
     cfg = get_bridge_config()

@@ -51,6 +51,38 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
     defaults_path = workspace / ".musu" / "agent-defaults.json"
     manifest_path = workspace / ".musu" / "company.json"
     instructions_root = Path(__file__).resolve().parent / "instructions"
+    workflow_hardening_page = workspace / "llm-wiki" / "wiki" / "183_BLOODLINE_WRITERS_AI_WORKFLOW_HARDENING_2026_04_29.md"
+    production_hardening = {
+        "updated": "2026-04-29",
+        "required_order": [
+            "reader_avatar_check",
+            "curated_context_pack",
+            "character_rows",
+            "scene_file",
+            "primer_accept_or_redo",
+            "beat_list",
+            "failure_beats",
+            "plain_korean_draft",
+            "mouthfeel_pass",
+            "narrow_checks",
+            "limited_revision",
+        ],
+        "role_gates": {
+            "BW-Lead": "Keep the hardened production order mandatory across Bloodline Writers.",
+            "BW-PM-FalseDane": "Before prose work, require reader target, curated context, character rows, scene design, small beats, and failure beats.",
+            "BW-Researcher": "Deliver curated context only. Separate facts, uncertainty, and story-use notes.",
+            "BW-TrendResearcher": "Maintain reader avatar, comparison books, trope promises, and packaging notes.",
+            "BW-Writer": "Draft only from accepted beats. Plain Korean comes before mouthfeel.",
+            "BW-Editor": "Run narrow checks and write an improvement plan before any revision.",
+        },
+        "reference_pages": [
+            str(workflow_hardening_page),
+            str(workspace / "llm-wiki" / "wiki" / "179_FALSE_DANE_CH003_V7_CHARACTER_AUTOMATION_2026_04_29.md"),
+            str(workspace / "llm-wiki" / "wiki" / "180_FALSE_DANE_PROMPTING_TECHNIQUE_WORKFLOW_2026_04_29.md"),
+            str(workspace / "llm-wiki" / "wiki" / "181_FALSE_DANE_AI_BOOK_WORKFLOW_REFERENCE_2026_04_29.md"),
+            str(workspace / "llm-wiki" / "wiki" / "182_FALSE_DANE_READER_AVATAR_MARKET_RESEARCH_2026_04_29.md"),
+        ],
+    }
 
     def gemini_config(model: str, instructions_file: str | None = None) -> dict[str, Any]:
         config: dict[str, Any] = {
@@ -115,9 +147,11 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                         "model": CODEX_MODEL,
                     },
                 },
+                "production_hardening": production_hardening,
                 "shared_os_page": str(workspace / "llm-wiki" / "wiki" / "51_BLOODLINE_WRITERS_SHARED_OS.md"),
                 "role_contracts_page": str(workspace / "llm-wiki" / "wiki" / "54_AGENT_ROLE_CONTRACTS.md"),
                 "workflow_page": str(workspace / "llm-wiki" / "wiki" / "53_SHARED_NOVEL_WORKFLOW.md"),
+                "workflow_hardening_page": str(workflow_hardening_page),
                 "source_paths": {
                     "false_dane": str(workspace),
                     "bloodline_remote": "/home/hugh/bloodline_work",
@@ -159,7 +193,9 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                         f"Primary workspace: {workspace}\n"
                         f"Read first: {workspace}/AGENTS.md, {workspace}/MEMORY.md, "
                         f"{workspace}/llm-wiki/wiki/51_BLOODLINE_WRITERS_SHARED_OS.md, "
-                        f"{workspace}/llm-wiki/wiki/54_AGENT_ROLE_CONTRACTS.md.\n"
+                        f"{workspace}/llm-wiki/wiki/54_AGENT_ROLE_CONTRACTS.md, "
+                        f"{workflow_hardening_page}.\n"
+                        "Enforce the hardened production order before assigning draft work.\n"
                         "Do not write project canon directly. Lock direction and route work."
                     ),
                 },
@@ -190,6 +226,7 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                         f"You are BW-PM-FalseDane for {WRITER_COMPANY_NAME}.\n"
                         "Own False Dane scope, canon safety, and sprint sequencing.\n"
                         f"Primary workspace: {workspace}\n"
+                        "Before prose work, require reader target, curated context, character rows, scene design, small beats, and failure beats.\n"
                         "Never import Bloodline canon without explicit approval."
                     ),
                 },
@@ -205,7 +242,7 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                         f"You are BW-Researcher for {WRITER_COMPANY_NAME}.\n"
                         "Own evidence gathering, reference deconstruction, and uncertainty tracking.\n"
                         f"Primary workspace: {workspace}\n"
-                        "Separate facts, recommendations, and canon candidates."
+                        "Deliver curated context only. Separate facts, uncertainty, recommendations, and canon candidates."
                     ),
                 },
                 "fallback_chain": codex_fallback(),
@@ -222,7 +259,7 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                         f"Primary workspace: {workspace}\n"
                         "Track genre, platform, packaging, and release-surface shifts across Korea, the United States, and Japan.\n"
                         "Flag bilingual Korean/English release risks early.\n"
-                        "Produce market-fit memos and trend comparisons. Do not dictate canon."
+                        "Maintain reader avatar, comparison books, trope promises, packaging notes, market-fit memos, and trend comparisons. Do not dictate canon."
                     ),
                 },
                 "fallback_chain": codex_fallback(),
@@ -238,6 +275,7 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                         "Own draft production and revision only.\n"
                         f"Primary workspace: {workspace}\n"
                         "Work from sprint contracts, canon, research, and trend memos when present.\n"
+                        "Draft only from accepted beats. Plain Korean comes before mouthfeel.\n"
                         "Default False Dane house style must follow the false-dane-writer skill.\n"
                         "Draft with KR-first prose, but do not ignore EN release viability.\n"
                         "Do not self-approve."
@@ -256,6 +294,7 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                         "Own quality review, continuity review, and revision briefs.\n"
                         f"Primary workspace: {workspace}\n"
                         "Score drafts, block drift, and issue revision direction.\n"
+                        "Run narrow checks and write an improvement plan before any revision.\n"
                         "Default False Dane prose review must follow the false-dane-writer skill.\n"
                         "Check KR prose quality and EN portability when the project expects bilingual release.\n"
                         "Do not silently expand scope."

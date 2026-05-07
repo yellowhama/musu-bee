@@ -10,6 +10,42 @@ from typing import Any
 from musu_core.db import Database
 
 # ---------------------------------------------------------------------------
+# Default MCP server allocation by role (token optimization)
+# ---------------------------------------------------------------------------
+
+# Role keywords → MCP servers. Checked in order; first match wins.
+# Empty list [] = disable_mcp (no MCP servers loaded at all).
+_ROLE_MCP_RULES: list[tuple[list[str], list[str]]] = [
+    # Writer company roles
+    (["writer", "draft"], ["musu-writer"]),
+    (["editor", "review"], ["musu-writer", "musu-ai-detector"]),
+    (["researcher"], ["musu-writer"]),
+    (["trend", "market"], ["musu-writer"]),
+    # Technical roles: need code search
+    (["engineer", "cto", "developer"], ["musu-control", "musu-indexer"]),
+    (["qa"], ["musu-control", "musu-indexer"]),
+    # Management roles: issue/task management only
+    (["ceo", "lead", "pm", "planner", "cos", "staff", "chief"], ["musu-control"]),
+    # Utility roles: no MCP needed
+    (["worker", "node manager", "mgr"], []),
+]
+
+
+def _default_mcp_for_role(role: str, name: str = "") -> list[str]:
+    """Return default allowed_mcp_servers based on agent role and name.
+
+    This prevents every agent from loading all MCP servers (~40K tokens).
+    Each agent only gets the servers it actually needs.
+    """
+    combined = f"{role} {name}".lower()
+    for keywords, servers in _ROLE_MCP_RULES:
+        if any(kw in combined for kw in keywords):
+            return servers
+    # Fallback: control only (safest default)
+    return ["musu-control"]
+
+
+# ---------------------------------------------------------------------------
 # fallback_chain schema validation
 # ---------------------------------------------------------------------------
 
@@ -99,7 +135,15 @@ class AgentRegistry:
         if fallback_chain is not None:
             validate_fallback_chain(fallback_chain)
         aid = agent_id or str(uuid.uuid4())
-        config_json = json.dumps(adapter_config or {})
+        # Auto-inject allowed_mcp_servers based on role if not explicitly set
+        config = dict(adapter_config or {})
+        if "allowed_mcp_servers" not in config and "disable_mcp" not in config:
+            servers = _default_mcp_for_role(role, name)
+            if servers:
+                config["allowed_mcp_servers"] = servers
+            else:
+                config["disable_mcp"] = True  # No MCP needed for this role
+        config_json = json.dumps(config)
         chain_json = json.dumps(fallback_chain) if fallback_chain is not None else None
         # Upsert: check if agent already exists for this (company_id, name) pair.
         # SQLite NULLs are distinct in unique indexes, so we handle global vs scoped:

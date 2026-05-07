@@ -29,13 +29,13 @@ _MODEL_CHANNEL_MAP: dict[str, str] = {
     "gemini-flash": "engineer",
     "codex": "engineer",
     # Direct channel names (pass-through)
-    "ceo": "ceo",
+    "ceo": "CEO",
     "cto": "cto",
-    "engineer": "engineer",
+    "engineer": "Founding Engineer",
     "qa": "qa",
-    "team_lead": "team_lead",
+    "team_lead": "MD-Lead",
     "planner": "planner",
-    "cos": "cos",
+    "cos": "Chief of Staff",
 }
 
 

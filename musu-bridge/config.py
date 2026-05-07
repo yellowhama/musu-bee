@@ -19,9 +19,16 @@ def _default_channel_agent_map() -> dict[str, str]:
         "qa": _agent("qa", "QA"),
         "cos": os.getenv("MUSU_AGENT_COS", f"{prefix}cos"),
         "worker": os.getenv("MUSU_AGENT_WORKER", f"{prefix}worker"),
-        "team_lead": os.getenv("MUSU_AGENT_TEAM_LEAD", f"{prefix}MD-Lead"),
+        "team_lead": os.getenv("MUSU_AGENT_TEAM_LEAD", "BW-Lead"),
         "lead": os.getenv("MUSU_AGENT_LEAD", f"{prefix}MD-Lead"),
         "bw_lead": os.getenv("MUSU_AGENT_BW_LEAD", "BW-Lead"),
+        "bw-lead": os.getenv("MUSU_AGENT_BW_LEAD", "BW-Lead"),
+        "bw-pm-fd": os.getenv("MUSU_AGENT_BW_PM_FD", "BW-PM-FalseDane"),
+        "bw-pm-bl": os.getenv("MUSU_AGENT_BW_PM_BL", "BW-PM-Bloodline"),
+        "bw-researcher": os.getenv("MUSU_AGENT_BW_RESEARCHER", "BW-Researcher"),
+        "bw-trend": os.getenv("MUSU_AGENT_BW_TREND", "BW-TrendResearcher"),
+        "bw-writer": os.getenv("MUSU_AGENT_BW_WRITER", "BW-Writer"),
+        "bw-editor": os.getenv("MUSU_AGENT_BW_EDITOR", "BW-Editor"),
     }
 
 

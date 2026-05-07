@@ -34,6 +34,14 @@ def test_upsert_writer_company_creates_company_agents_and_projects(tmp_path):
     assert result["company"]["template_key"] == "writer-studio"
     assert result["company"]["status"] == "active"
     assert result["company"]["purpose"]
+    hardening = result["company"]["meta"]["production_hardening"]
+    assert hardening["updated"] == "2026-04-29"
+    assert hardening["required_order"][0] == "reader_avatar_check"
+    assert hardening["required_order"][-1] == "limited_revision"
+    assert "BW-Editor" in hardening["role_gates"]
+    assert result["company"]["meta"]["workflow_hardening_page"].endswith(
+        "183_BLOODLINE_WRITERS_AI_WORKFLOW_HARDENING_2026_04_29.md"
+    )
 
     agent_names = sorted(agent["name"] for agent in result["agents"])
     assert agent_names == [
@@ -50,6 +58,10 @@ def test_upsert_writer_company_creates_company_agents_and_projects(tmp_path):
     assert set(projects) == {"Bloodline", "False Dane"}
     assert projects["Bloodline"]["assigned_to"]
     assert projects["False Dane"]["assigned_to"]
+    writer = next(agent for agent in result["agents"] if agent["name"] == "BW-Writer")
+    editor = next(agent for agent in result["agents"] if agent["name"] == "BW-Editor")
+    assert "Plain Korean comes before mouthfeel" in writer["adapter_config"]["instructions"]
+    assert "improvement plan before any revision" in editor["adapter_config"]["instructions"]
 
 
 def test_upsert_writer_company_updates_existing_company_and_preserves_fixed_handles(tmp_path):
