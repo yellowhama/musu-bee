@@ -750,3 +750,26 @@ async def api_system_config(req: ConfigUpdateRequest, restart: bool = False) -> 
         "value": req.value,
         "restart_scheduled": restart,
     }
+
+
+# ── Deep Research (crawl4ai) ─────────────────────────────────────────────────
+
+class DeepResearchRequest(BaseModel):
+    query: str = Field(description="Research topic or question")
+    urls: list[str] | None = Field(None, description="Specific URLs to scrape (optional)")
+    max_pages: int = Field(5, ge=1, le=20, description="Max pages to scrape")
+
+
+@system_router.post("/api/research/deep", summary="Deep web research using crawl4ai")
+async def api_deep_research(req: DeepResearchRequest) -> dict:
+    """Scrape web pages and compile research on a topic.
+
+    Uses crawl4ai to extract content from URLs. If no URLs provided,
+    requires manual URL list (web_search integration coming).
+    """
+    from research_agent import handle_research_request
+    return await handle_research_request(
+        query=req.query,
+        urls=req.urls,
+        max_pages=req.max_pages,
+    )

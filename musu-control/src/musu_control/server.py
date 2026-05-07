@@ -3075,6 +3075,69 @@ async def research_to_wiki(
         return _tool_error(f"research_to_wiki failed: {exc}")
 
 
+@mcp.tool()
+async def deep_research(
+    query: str,
+    urls: list[str] | None = None,
+    max_pages: int = 5,
+    save_to_wiki: bool = True,
+) -> CallToolResult:
+    """Deep web research using crawl4ai — scrape pages and compile findings.
+
+    Provide specific URLs to scrape, or let the system find relevant pages.
+    Optionally saves compiled research to wiki.
+
+    Args:
+        query: Research topic (e.g., "developer marketing strategies for open source tools")
+        urls: Specific URLs to scrape (optional). If None, provide URLs manually.
+        max_pages: Max pages to scrape (1-20, default 5)
+        save_to_wiki: Auto-save to wiki (default True)
+    """
+    try:
+        bridge_url = os.environ.get("MUSU_BRIDGE_URL", "http://127.0.0.1:8070")
+        async with httpx.AsyncClient(timeout=120.0) as hc:
+            resp = await hc.post(
+                f"{bridge_url}/api/research/deep",
+                json={"query": query, "urls": urls, "max_pages": max_pages},
+            )
+            if resp.status_code != 200:
+                return CallToolResult(
+                    content=[TextContent(type="text", text=f"Research failed: HTTP {resp.status_code}")],
+                    isError=True,
+                )
+            data = resp.json()
+
+            # Save to wiki if requested
+            wiki_page_id = None
+            if save_to_wiki and data.get("research"):
+                try:
+                    from datetime import datetime, timezone
+                    date_str = datetime.now(timezone.utc).strftime("%Y_%m_%d")
+                    slug = query[:30].replace(" ", "_").replace("/", "_")
+                    wiki_page_id = f"RESEARCH_{slug}_{date_str}"
+                    async with httpx.AsyncClient(timeout=10.0) as wc:
+                        await wc.post(
+                            f"{bridge_url}/api/wiki/page/{wiki_page_id}",
+                            json={"content": data["research"]},
+                        )
+                except Exception:
+                    wiki_page_id = None
+
+            summary = f"Researched: {query}\nSources scraped: {data.get('sources', 0)}"
+            if wiki_page_id:
+                summary += f"\nSaved to wiki: {wiki_page_id}"
+
+            return CallToolResult(
+                content=[TextContent(type="text", text=summary)],
+                structuredContent=data,
+            )
+    except Exception as e:
+        return CallToolResult(
+            content=[TextContent(type="text", text=f"Deep research error: {e}")],
+            isError=True,
+        )
+
+
 # ──────────────────────────────────────────────
 # OSINT Tools
 # ──────────────────────────────────────────────
