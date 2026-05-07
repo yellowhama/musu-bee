@@ -574,25 +574,29 @@ async def api_session_report(hours: int = 24) -> dict:
     except Exception:
         done, failed, running, total_tasks = 0, 0, 0, 0
 
-    # Costs by channel (agent)
+    # Token usage by channel (agent)
     try:
         rows = _db.execute(
-            "SELECT channel, SUM(cost_usd) as total_cost, COUNT(*) as count, "
-            "SUM(input_tokens) as input_t, SUM(output_tokens) as output_t "
-            "FROM route_executions WHERE created_at >= ? GROUP BY channel ORDER BY total_cost DESC",
+            "SELECT channel, COUNT(*) as count, "
+            "SUM(input_tokens) as input_t, SUM(output_tokens) as output_t, "
+            "SUM(duration_sec) as total_dur "
+            "FROM route_executions WHERE created_at >= ? GROUP BY channel "
+            "ORDER BY (COALESCE(SUM(input_tokens),0) + COALESCE(SUM(output_tokens),0)) DESC",
             (since,),
         ).fetchall()
-        costs_by_agent = [
-            {"agent": r[0], "cost_usd": round(r[1] or 0, 6), "tasks": r[2],
-             "input_tokens": r[3] or 0, "output_tokens": r[4] or 0}
+        usage_by_agent = [
+            {"agent": r[0], "tasks": r[1],
+             "input_tokens": r[2] or 0, "output_tokens": r[3] or 0,
+             "total_tokens": (r[2] or 0) + (r[3] or 0),
+             "duration_sec": round(r[4] or 0, 1)}
             for r in rows
         ]
-        total_cost = sum(c["cost_usd"] for c in costs_by_agent)
-        total_input = sum(c["input_tokens"] for c in costs_by_agent)
-        total_output = sum(c["output_tokens"] for c in costs_by_agent)
+        total_input = sum(a["input_tokens"] for a in usage_by_agent)
+        total_output = sum(a["output_tokens"] for a in usage_by_agent)
+        total_duration = sum(a["duration_sec"] for a in usage_by_agent)
     except Exception:
-        costs_by_agent = []
-        total_cost = total_input = total_output = 0
+        usage_by_agent = []
+        total_input = total_output = total_duration = 0
 
     # Agents
     try:
@@ -624,11 +628,11 @@ async def api_session_report(hours: int = 24) -> dict:
             "failed": failed,
             "running": running,
         },
-        "costs": {
-            "total_usd": round(total_cost, 6),
+        "token_usage": {
             "input_tokens": total_input,
             "output_tokens": total_output,
             "total_tokens": total_input + total_output,
-            "by_agent": costs_by_agent[:20],
+            "total_duration_sec": round(total_duration, 1),
+            "by_agent": usage_by_agent[:20],
         },
     }
