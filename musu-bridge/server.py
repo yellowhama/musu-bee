@@ -902,10 +902,18 @@ async def lifespan(app: FastAPI):
 
 
 def _read_version() -> str:
-    try:
-        return (Path(__file__).parent.parent / "VERSION").read_text().strip()
-    except Exception:
-        return "0.0.0"
+    import pathlib
+    for candidate in [
+        pathlib.Path(__file__).resolve().parent.parent / "VERSION",
+        pathlib.Path(os.getcwd()) / "VERSION",
+        pathlib.Path.home() / "musu-functions" / "VERSION",
+    ]:
+        try:
+            if candidate.exists():
+                return candidate.read_text().strip()
+        except Exception:
+            continue
+    return "1.9.0"  # fallback
 
 
 _MUSU_VERSION = _read_version()
