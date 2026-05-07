@@ -1441,16 +1441,30 @@ def create_company_from_template(
         rendered = render_agent_instructions(
             tmpl_agent, name, purpose, work_dir=work_dir, test_cmd=test_cmd
         )
+        # Auto-detect CLI + model based on adapter_type
+        from seed_agents import detect_cli, model_for_role
+        _detected_adapter, _detected_cmd = detect_cli()
+        _adapter = rendered.get("adapter_type", _detected_adapter)
+        _role_name = rendered["name"]
         config: dict[str, Any] = {
-            "command": "claude",
-            "model": "claude-sonnet-4-6",
-            "dangerously_skip_permissions": True,
+            "command": _detected_cmd if _adapter == _detected_adapter else (
+                "gemini" if "gemini" in _adapter else
+                "codex" if "codex" in _adapter else _detected_cmd
+            ),
+            "model": model_for_role(_role_name, _adapter),
+            "dangerously_skip_permissions": os.getenv("MUSU_SKIP_PERMISSIONS", "true").lower() == "true",
             "timeout_sec": 600,
+            "cwd": work_dir or os.getcwd(),
             "instructions": rendered["instructions"],
+            "disable_mcp": _role_name not in ("lead",),
         }
-        # Use instructions_path if provided (e.g., team_lead.md)
+        # Use instructions_path if provided — resolve to absolute path
         if rendered.get("instructions_path"):
-            config["instructions_path"] = rendered["instructions_path"]
+            import pathlib
+            _ipath = pathlib.Path(rendered["instructions_path"])
+            if not _ipath.is_absolute():
+                _ipath = pathlib.Path(os.getcwd()) / _ipath
+            config["instructions_path"] = str(_ipath)
         agent = b.create_agent(
             name=f"{short}-{rendered['name']}",
             role=rendered["role"],
@@ -1470,6 +1484,17 @@ def create_company_from_template(
             )
 
         created_agents.append(agent)
+
+    # ── Auto-assign agents to local node in nodes.toml ──────────────────────
+    try:
+        from mesh_router import get_mesh_router
+        _router = get_mesh_router()
+        if _router.enabled:
+            _agent_names = [a["name"] for a in created_agents]
+            _router.auto_assign_agents(_router._self_name, _agent_names)
+            logger.info("create_company: auto-assigned %d agents to node %s", len(_agent_names), _router._self_name)
+    except Exception as _ae:
+        logger.warning("create_company: auto-assign failed — %s", _ae)
 
     # ── Auto-setup workspace: create dir + indexer profile ──────────────────
     if work_dir:
