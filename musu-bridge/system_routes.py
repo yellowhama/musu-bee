@@ -528,3 +528,90 @@ async def api_system_update_all(request: Request) -> dict:
         "self": self_result,
         "peers": peer_results,
     }
+
+
+# ── Session report endpoint ──────────────────────────────────────────────────
+
+@system_router.get("/api/system/session-report", summary="Generate session report with tasks, costs, token usage")
+async def api_session_report(hours: int = 24) -> dict:
+    """Collect tasks, costs, agent activity, and system health into a single report.
+
+    Args:
+        hours: Look-back period (default: 24h)
+    """
+    from handlers import _get_backend
+    from datetime import datetime, timedelta, timezone
+    import shutil
+
+    backend = _get_backend()
+    since = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
+
+    # Tasks
+    try:
+        all_tasks = backend.list_tasks(limit=200)
+        recent = [t for t in all_tasks if t.get("created_at", "") >= since]
+        done = sum(1 for t in recent if t.get("status") == "done")
+        failed = sum(1 for t in recent if t.get("status") in ("failed", "error"))
+        running = sum(1 for t in recent if t.get("status") in ("running", "in_progress"))
+    except Exception:
+        recent, done, failed, running = [], 0, 0, 0
+
+    # Costs from route_executions
+    try:
+        rows = backend._db.execute(
+            "SELECT agent_name, SUM(cost_usd) as total_cost, COUNT(*) as count, "
+            "SUM(input_tokens) as input_t, SUM(output_tokens) as output_t "
+            "FROM route_executions WHERE created_at >= ? GROUP BY agent_name ORDER BY total_cost DESC",
+            (since,),
+        ).fetchall()
+        costs_by_agent = [
+            {"agent": r[0], "cost_usd": round(r[1] or 0, 6), "tasks": r[2],
+             "input_tokens": r[3] or 0, "output_tokens": r[4] or 0}
+            for r in rows
+        ]
+        total_cost = sum(c["cost_usd"] for c in costs_by_agent)
+        total_input = sum(c["input_tokens"] for c in costs_by_agent)
+        total_output = sum(c["output_tokens"] for c in costs_by_agent)
+    except Exception:
+        costs_by_agent = []
+        total_cost = total_input = total_output = 0
+
+    # Agents
+    try:
+        agents = backend.list_agents()
+        active = sum(1 for a in agents if a.get("status") == "active")
+    except Exception:
+        agents, active = [], 0
+
+    # System
+    db_path = os.path.expanduser("~/.musu/db/musu.db")
+    db_size_mb = round(os.path.getsize(db_path) / 1024 / 1024, 1) if os.path.exists(db_path) else 0
+    disk = shutil.disk_usage("/")
+    disk_free_pct = round(disk.free / disk.total * 100, 1)
+
+    return {
+        "period_hours": hours,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "system": {
+            "version": "1.8.0",
+            "db_size_mb": db_size_mb,
+            "disk_free_pct": disk_free_pct,
+        },
+        "agents": {
+            "total": len(agents),
+            "active": active,
+        },
+        "tasks": {
+            "total": len(recent),
+            "done": done,
+            "failed": failed,
+            "running": running,
+        },
+        "costs": {
+            "total_usd": round(total_cost, 6),
+            "input_tokens": total_input,
+            "output_tokens": total_output,
+            "total_tokens": total_input + total_output,
+            "by_agent": costs_by_agent[:20],
+        },
+    }

@@ -1153,6 +1153,186 @@ async def generate_morning_report() -> str:
 
 
 @mcp.tool()
+async def generate_session_report(
+    hours: int = 24,
+    save_to_wiki: bool = True,
+) -> str:
+    """Generate a session report: tasks, costs, agents, tokens used in the last N hours.
+
+    Collects data from bridge API (tasks, costs, activity, health) and
+    optionally saves to the MUSU wiki as a numbered page.
+
+    Args:
+        hours: Look-back period in hours (default: 24)
+        save_to_wiki: If True, auto-save report to wiki (default: True)
+    """
+    try:
+        c = _get_client()
+        from datetime import datetime, timedelta, timezone
+
+        since = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
+        now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+        date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+        # Health
+        bridge_url = os.environ.get("MUSU_BRIDGE_URL", "http://127.0.0.1:8070")
+        health = {}
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as hc:
+                hr = await hc.get(f"{bridge_url}/health")
+                if hr.status_code == 200:
+                    health = hr.json()
+        except Exception:
+            pass
+
+        # Dashboard
+        dashboard_path = f"/companies/{c.company_id}/dashboard" if c.company_id else "/dashboard"
+        try:
+            dashboard = await c.get(dashboard_path)
+        except Exception:
+            dashboard = {}
+
+        # Costs
+        costs_path = f"/companies/{c.company_id}/costs/summary" if c.company_id else "/costs/summary"
+        try:
+            costs = await c.get(costs_path)
+        except Exception:
+            costs = {}
+
+        # Costs by agent
+        costs_agent_path = f"/companies/{c.company_id}/costs/by-agent" if c.company_id else "/costs/by-agent"
+        try:
+            costs_by_agent = await c.get(costs_agent_path)
+        except Exception:
+            costs_by_agent = []
+
+        # Recent tasks
+        try:
+            tasks_data = await c.get("/tasks", limit=50)
+        except Exception:
+            tasks_data = []
+
+        # Activity
+        activity_path = f"/companies/{c.company_id}/activity" if c.company_id else "/audit"
+        try:
+            activity = await c.get(activity_path, limit=30)
+        except Exception:
+            activity = []
+
+        # Build report
+        lines = [f"# Session Report — {now_str}", ""]
+
+        # System status
+        version = health.get("version", "?")
+        worker = "OK" if health.get("worker") else "DOWN"
+        relay = "connected" if health.get("relay", {}).get("connected") else "disconnected"
+        active = health.get("active_tasks", 0)
+        db_mb = health.get("db_size_mb", "?")
+        disk = health.get("disk_free_pct", "?")
+        lines.append("## System")
+        lines.append(f"- Version: {version}")
+        lines.append(f"- Bridge: OK | Worker: {worker} | Relay: {relay}")
+        lines.append(f"- Active tasks: {active} | DB: {db_mb}MB | Disk free: {disk}%")
+        lines.append("")
+
+        # Nodes
+        nodes = dashboard.get("nodes", [])
+        if nodes:
+            lines.append("## Nodes")
+            for n in nodes:
+                icon = "+" if n.get("status") in ("online", "self") else "-"
+                lines.append(f"- {icon} **{n.get('name', '?')}** ({n.get('status', '?')})")
+            lines.append("")
+
+        # Tasks summary
+        task_stats = dashboard.get("tasks", {})
+        lines.append("## Tasks")
+        lines.append(f"- Done: {task_stats.get('done', 0)}")
+        lines.append(f"- Failed: {task_stats.get('failed', 0)}")
+        lines.append(f"- Running: {task_stats.get('running', 0)}")
+        lines.append(f"- Pending: {task_stats.get('pending', 0)}")
+        lines.append("")
+
+        # Token usage / costs
+        lines.append("## Costs & Token Usage")
+        if isinstance(costs, dict):
+            total = costs.get("total_cost_usd", costs.get("total", 0))
+            lines.append(f"- Total cost: ${total:.4f}" if isinstance(total, (int, float)) else f"- Total: {total}")
+            input_t = costs.get("total_input_tokens", 0)
+            output_t = costs.get("total_output_tokens", 0)
+            if input_t or output_t:
+                lines.append(f"- Input tokens: {input_t:,}")
+                lines.append(f"- Output tokens: {output_t:,}")
+                lines.append(f"- Total tokens: {input_t + output_t:,}")
+        lines.append("")
+
+        # Costs by agent
+        if isinstance(costs_by_agent, list) and costs_by_agent:
+            lines.append("### By Agent")
+            lines.append("| Agent | Cost | Tasks |")
+            lines.append("|-------|------|-------|")
+            for ca in costs_by_agent[:15]:
+                if isinstance(ca, dict):
+                    name = ca.get("agent_name", ca.get("name", "?"))
+                    cost = ca.get("total_cost_usd", ca.get("cost", 0))
+                    count = ca.get("task_count", ca.get("count", 0))
+                    cost_str = f"${cost:.4f}" if isinstance(cost, (int, float)) else str(cost)
+                    lines.append(f"| {name} | {cost_str} | {count} |")
+            lines.append("")
+
+        # Agents summary
+        agents_info = dashboard.get("agents", {})
+        if agents_info:
+            lines.append("## Agents")
+            lines.append(f"- Total: {agents_info.get('total', '?')}")
+            lines.append(f"- Active: {agents_info.get('active', '?')}")
+            lines.append(f"- Paused: {agents_info.get('paused', 0)}")
+            lines.append("")
+
+        # Recent activity
+        lines.append("## Recent Activity")
+        activity_items = activity if isinstance(activity, list) else activity.get("items", activity.get("activity", []))
+        if isinstance(activity_items, list):
+            for item in activity_items[:15]:
+                if isinstance(item, dict):
+                    event = item.get("event_type", item.get("action", "?"))
+                    agent = item.get("agent_name", item.get("agent", ""))
+                    ts = item.get("created_at", item.get("timestamp", ""))
+                    lines.append(f"- [{agent}] {event} ({ts})")
+        lines.append("")
+
+        report = "\n".join(lines)
+
+        # Save to wiki
+        wiki_page_id = None
+        if save_to_wiki:
+            try:
+                # Find next page number
+                wiki_pages = await c.get("/wiki/pages")
+                if isinstance(wiki_pages, list):
+                    max_num = 0
+                    for p in wiki_pages:
+                        pid = p.get("id", "")
+                        parts = pid.split("_")
+                        if parts and parts[0].isdigit():
+                            max_num = max(max_num, int(parts[0]))
+                    next_num = max_num + 1
+                else:
+                    next_num = 999
+                wiki_page_id = f"{next_num}_SESSION_REPORT_{date_str.replace('-', '_')}"
+                await c.post("/wiki/page/" + wiki_page_id, content=report)
+            except Exception:
+                wiki_page_id = None
+
+        if wiki_page_id:
+            return f"{report}\n\n---\nSaved to wiki: {wiki_page_id}"
+        return report
+
+    except Exception as e:
+        return _tool_error(f"Error generating session report: {e}")
+
+
+@mcp.tool()
 async def get_costs_by_agent() -> str:
     """Get cost breakdown grouped by agent."""
     try:
@@ -1983,7 +2163,7 @@ def _bridge_headers() -> dict[str, str]:
 async def delegate_task(
     channel: str,
     instruction: str,
-    expected_output: str | None = None,
+    expected_output: str | None = "Output not specified.",
     sender_id: str = "orchestrator",
     use_qa_loop: bool = False,
     qa_loop_max_iter: int = 3,
