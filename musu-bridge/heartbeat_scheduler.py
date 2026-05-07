@@ -372,7 +372,7 @@ async def _node_manager_heartbeat() -> None:
         MUSU_NODE_HEARTBEAT_TIMEOUT_SEC = seconds  — default 180 (matches non-CEO timeout)
     """
     interval = int(os.environ.get("MUSU_NODE_HEARTBEAT_INTERVAL", "300"))
-    _nm_timeout = int(os.environ.get("MUSU_NODE_HEARTBEAT_TIMEOUT_SEC", "180"))
+    _nm_timeout = int(os.environ.get("MUSU_HEARTBEAT_TIMEOUT_SEC", "600"))
     from config import get_config
     _cfg = get_config()
     # Use mesh self_name so channel matches nodes.toml topology (not OS hostname)
@@ -386,8 +386,6 @@ async def _node_manager_heartbeat() -> None:
     )
     # Stagger: wait 90s so node manager agent is fully seeded before first ping.
     await asyncio.sleep(90)
-
-    _nm_timeout = int(os.environ.get("MUSU_NODE_HEARTBEAT_TIMEOUT_SEC", "600"))
 
     while True:
         _nm_exec_id = str(uuid.uuid4())
@@ -452,7 +450,8 @@ async def _node_manager_heartbeat() -> None:
 
 # ── Auto-distribution: CEO agent automatically routes unassigned tasks ────────
 
-_auto_distribute_enabled = True
+def _is_auto_distribute_enabled() -> bool:
+    return os.environ.get("MUSU_AUTO_DISTRIBUTE_ENABLED", "true").lower() == "true"
 
 
 def _load_auto_distribute_config() -> dict:
@@ -485,8 +484,7 @@ async def auto_distribute_loop(bridge_url: str = "http://localhost:8070") -> Non
 
     async with httpx.AsyncClient(base_url=bridge_url, timeout=30.0) as http:
         while True:
-            global _auto_distribute_enabled
-            if not _auto_distribute_enabled:
+            if not _is_auto_distribute_enabled():
                 await asyncio.sleep(interval)
                 continue
 

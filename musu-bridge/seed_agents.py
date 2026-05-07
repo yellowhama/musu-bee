@@ -70,7 +70,7 @@ def build_config(role: str, adapter_type: str, command: str, cwd: str) -> dict:
     return {
         "command": command,
         "model": model_for_role(role, adapter_type),
-        "dangerously_skip_permissions": True,
+        "dangerously_skip_permissions": os.getenv("MUSU_SKIP_PERMISSIONS", "true").lower() == "true",
         "timeout_sec": 600,
         "cwd": cwd,
         "instructions_path": instructions_path,

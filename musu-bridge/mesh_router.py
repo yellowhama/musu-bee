@@ -202,7 +202,8 @@ class MeshRouter:
         try:
             token_file = os.path.expanduser("~/.musu/musu_token")
             if os.path.exists(token_file):
-                return open(token_file).read().strip()
+                import pathlib
+                return pathlib.Path(token_file).read_text().strip()
         except Exception:
             pass
         return os.environ.get("MUSU_TOKEN", "")
@@ -242,10 +243,6 @@ class MeshRouter:
             broadcast_ip=self._node_broadcast.get(node_name, "255.255.255.255"),
             cert_fingerprint=self._node_fingerprints.get(node_name),
         )
-
-    def has_node(self, name: str) -> bool:
-        """Return True if a node with this name is already registered."""
-        return name in self._node_urls
 
     @property
     def node_names(self) -> list[str]:

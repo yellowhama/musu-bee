@@ -253,7 +253,8 @@ async def watchdog_command(node: str, command: str, request: Request) -> dict:
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Watchdog error: {exc}")
+        logger.error("watchdog: %s", exc)
+        raise HTTPException(status_code=502, detail="Watchdog command failed")
 
 
 @system_router.get("/api/watchdog/{node}/status")
@@ -389,17 +390,14 @@ async def admin_bash(req: SandboxBashRequest) -> dict:
 @system_router.post("/api/auto-distribute/pause", summary="Pause auto-distribution")
 async def api_auto_distribute_pause() -> dict:
     """Pause the CEO agent auto-distribution loop."""
-    from heartbeat_scheduler import _auto_distribute_enabled
-    import heartbeat_scheduler
-    heartbeat_scheduler._auto_distribute_enabled = False
+    os.environ["MUSU_AUTO_DISTRIBUTE_ENABLED"] = "false"
     return {"auto_distribute": "paused"}
 
 
 @system_router.post("/api/auto-distribute/resume", summary="Resume auto-distribution")
 async def api_auto_distribute_resume() -> dict:
     """Resume the CEO agent auto-distribution loop."""
-    import heartbeat_scheduler
-    heartbeat_scheduler._auto_distribute_enabled = True
+    os.environ["MUSU_AUTO_DISTRIBUTE_ENABLED"] = "true"
     return {"auto_distribute": "resumed"}
 
 
@@ -449,7 +447,8 @@ async def api_system_update(request: Request) -> dict:
             timeout=30,
         ).strip()
     except subprocess.CalledProcessError as e:
-        return {"updated": False, "error": f"git pull failed: {e.output}"}
+        logger.warning("system/update: git pull failed — %s", e.output)
+        return {"updated": False, "error": "git pull failed"}
     except subprocess.TimeoutExpired:
         return {"updated": False, "error": "git pull timed out"}
 
@@ -601,6 +600,10 @@ async def api_session_report(hours: int = 24) -> dict:
     db_size_mb = round(os.path.getsize(_report_db_path) / 1024 / 1024, 1) if _report_db_path else 0
     disk = shutil.disk_usage("/")
     disk_free_pct = round(disk.free / disk.total * 100, 1)
+
+    # Close report DB connection
+    if _report_db:
+        _report_db.close()
 
     return {
         "period_hours": hours,
