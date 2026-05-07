@@ -2758,8 +2758,21 @@ def _wiki_title(content: str, fallback: str) -> str:
 
 
 @mcp.tool()
-async def list_wiki_pages() -> str:
+async def list_wiki_pages() -> CallToolResult:
     """List all MUSU knowledge wiki pages with their IDs and titles."""
+    # Try bridge FTS API first (fast, no file I/O)
+    try:
+        bridge_url = os.environ.get("MUSU_BRIDGE_URL", "http://127.0.0.1:8070")
+        async with httpx.AsyncClient(timeout=5.0) as hc:
+            resp = await hc.get(f"{bridge_url}/api/wiki/pages")
+            if resp.status_code == 200:
+                return CallToolResult(
+                    content=[TextContent(type="text", text="Wiki pages loaded via bridge FTS")],
+                    structuredContent=resp.json(),
+                )
+    except Exception:
+        pass
+    # Fallback: local file scan
     try:
         pages = []
         for f in sorted(_WIKI_PATH.glob("*.md")):
@@ -2769,22 +2782,47 @@ async def list_wiki_pages() -> str:
             except OSError:
                 title = f.stem
             pages.append({"id": f.stem, "title": title})
-        return _fmt(pages)
+        return CallToolResult(
+            content=[TextContent(type="text", text=f"Found {len(pages)} wiki pages (local scan)")],
+            structuredContent=pages,
+        )
     except Exception:
-        return _tool_error("Error listing wiki pages.")
+        return CallToolResult(
+            content=[TextContent(type="text", text="Error listing wiki pages.")],
+            isError=True,
+        )
 
 
 @mcp.tool()
-async def search_wiki(query: str) -> str:
+async def search_wiki(query: str) -> CallToolResult:
     """Search the MUSU knowledge wiki. Returns matching pages with snippets.
 
+    Uses bridge FTS5 index for fast ranked search (falls back to linear scan).
     Use this to look up project context, architecture decisions, past work,
     agent specs, and any accumulated knowledge before starting a task.
     """
+    if not query or not query.strip():
+        return CallToolResult(
+            content=[TextContent(type="text", text="Empty query")],
+            structuredContent=[],
+        )
+    # Try bridge FTS5 API first (ranked, fast, no full file I/O)
+    try:
+        bridge_url = os.environ.get("MUSU_BRIDGE_URL", "http://127.0.0.1:8070")
+        async with httpx.AsyncClient(timeout=5.0) as hc:
+            resp = await hc.get(f"{bridge_url}/api/wiki/search", params={"q": query.strip()})
+            if resp.status_code == 200:
+                data = resp.json()
+                results = data if isinstance(data, list) else data.get("results", data.get("pages", []))
+                return CallToolResult(
+                    content=[TextContent(type="text", text=f"Found {len(results)} results via FTS5")],
+                    structuredContent=results,
+                )
+    except Exception:
+        pass
+    # Fallback: linear scan (slow but works without bridge)
     try:
         q = query.strip().lower()
-        if not q:
-            return _fmt([])
         results = []
         for f in sorted(_WIKI_PATH.glob("*.md")):
             try:
@@ -2798,29 +2836,50 @@ async def search_wiki(query: str) -> str:
                 snippet = content[start:end].replace("\n", " ").strip()
                 title = _wiki_title(content, f.stem)
                 results.append({"id": f.stem, "title": title, "snippet": snippet})
-        return _fmt(results[:20])
+        return CallToolResult(
+            content=[TextContent(type="text", text=f"Found {len(results)} results (local fallback)")],
+            structuredContent=results[:20],
+        )
     except Exception:
-        return _tool_error("Error searching wiki.")
+        return CallToolResult(
+            content=[TextContent(type="text", text="Error searching wiki.")],
+            isError=True,
+        )
 
 
 @mcp.tool()
-async def get_wiki_page(page_id: str) -> str:
+async def get_wiki_page(page_id: str, summary: bool = False) -> CallToolResult:
     """Get the full content of a MUSU wiki page by its ID.
 
     page_id examples: '00_INDEX', '52_MUSU_MASTER_PLAN', '95_MUSU_PHASE26_CEO_WEB_TASK_INTERFACE_2026-04-20'
     Use list_wiki_pages() first to find the correct ID.
+
+    Args:
+        page_id: The wiki page ID (alphanumeric + underscore + hyphen)
+        summary: If True, return only first 500 characters (saves tokens)
     """
     try:
         safe_id = re.sub(r"[^a-zA-Z0-9_\-]", "", page_id)
         path = _WIKI_PATH / f"{safe_id}.md"
         if not path.exists():
             available = [f.stem for f in sorted(_WIKI_PATH.glob("*.md"))][:20]
-            return _fmt({"error": f"Page '{safe_id}' not found.", "available": available})
+            return CallToolResult(
+                content=[TextContent(type="text", text=f"Page '{safe_id}' not found.")],
+                structuredContent={"error": f"Page '{safe_id}' not found.", "available": available},
+            )
         content = path.read_text(encoding="utf-8")
         title = _wiki_title(content, safe_id)
-        return _fmt({"id": safe_id, "title": title, "content": content})
+        if summary:
+            content = content[:500] + ("..." if len(content) > 500 else "")
+        return CallToolResult(
+            content=[TextContent(type="text", text=f"Wiki page: {title}" + (" (summary)" if summary else ""))],
+            structuredContent={"id": safe_id, "title": title, "content": content},
+        )
     except Exception:
-        return _tool_error("Error fetching wiki page.")
+        return CallToolResult(
+            content=[TextContent(type="text", text="Error fetching wiki page.")],
+            isError=True,
+        )
 
 
 # ──────────────────────────────────────────────
