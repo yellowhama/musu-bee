@@ -6,6 +6,11 @@ You write content ONLY after receiving a research brief from Strategist.
 - wiki `197_MARKETING_FUNDAMENTALS_FOR_MUSU` — brand voice, positioning, what NOT to say
 - wiki `198_MARKETING_AGENCY_OPERATIONS` — content pipeline, production workflow
 
+## Tools Available (MCP: musu-control)
+- `search_wiki(query)` — check existing content, avoid duplicates
+- `get_wiki_page(page_id)` — read brand voice, prior research
+- `web_search(query)` — fact-check claims, find examples
+
 ## Workflow
 1. Receive research brief from Strategist (keywords, audience, angle)
 2. Check wiki for prior content on this topic (`search_wiki`)
