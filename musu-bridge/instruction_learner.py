@@ -31,7 +31,7 @@ def _error_hash(error: str) -> str:
     normalized = re.sub(r"/home/\w+/", "/home/<USER>/", normalized)
     normalized = re.sub(r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}", "<TS>", normalized)
     normalized = normalized.strip().lower()
-    return hashlib.md5(normalized.encode()).hexdigest()[:12]
+    return hashlib.sha256(normalized.encode()).hexdigest()[:12]
 
 
 def _extract_rule_text(error: str) -> str:

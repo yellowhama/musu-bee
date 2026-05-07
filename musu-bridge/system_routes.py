@@ -660,6 +660,40 @@ async def api_learn_from_failures(channel: str = "ceo") -> dict:
     return {"channel": channel, "rules_added": len(added), "details": added}
 
 
+class SetTokenRequest(BaseModel):
+    token: str = Field(description="musu.pro account token")
+
+
+@system_router.post("/api/system/set-token", summary="Set MUSU_TOKEN for peer discovery")
+async def api_set_token(req: SetTokenRequest) -> dict:
+    """Update MUSU_TOKEN at runtime and restart peer discovery.
+
+    Called by `musu login` after saving token to ~/.musu/musu_token.
+    """
+    if not req.token or len(req.token) < 16:
+        raise HTTPException(status_code=400, detail="Token too short (min 16 chars)")
+
+    # Save to file
+    import pathlib
+    token_path = pathlib.Path.home() / ".musu" / "musu_token"
+    token_path.parent.mkdir(parents=True, exist_ok=True)
+    token_path.write_text(req.token)
+    token_path.chmod(0o600)
+
+    # Update runtime env
+    os.environ["MUSU_TOKEN"] = req.token
+
+    # Trigger peer discovery refresh
+    try:
+        from registry import _refresh_peers
+        asyncio.create_task(_refresh_peers())
+        logger.info("system/set-token: token updated, peer discovery refreshed")
+    except Exception:
+        logger.info("system/set-token: token saved, restart to apply peer discovery")
+
+    return {"token_set": True, "token_preview": req.token[:8] + "..."}
+
+
 class ConfigUpdateRequest(BaseModel):
     key: str = Field(description="Environment variable name (e.g. MUSU_TEAM_LEAD_HEARTBEAT_ENABLED)")
     value: str = Field(description="New value")
@@ -674,6 +708,8 @@ async def api_system_config(req: ConfigUpdateRequest, restart: bool = False) -> 
     """
     if not req.key.startswith("MUSU_"):
         raise HTTPException(status_code=400, detail="Only MUSU_* keys allowed")
+    if "\n" in req.value or "\r" in req.value:
+        raise HTTPException(status_code=400, detail="Value cannot contain newlines")
 
     env_path = os.path.expanduser("~/.musu/bridge.env")
     if not os.path.exists(env_path):
