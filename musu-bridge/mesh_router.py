@@ -189,12 +189,16 @@ class MeshRouter:
     def token_for_node(self, node_name: str) -> str:
         """Return the peer bridge token for a node.
 
-        Priority: node-specific token → MUSU_TOKEN (account-level, shared) → empty.
+        Priority: node-specific token → MUSU_BRIDGE_TOKEN (bridge server auth) → MUSU_TOKEN (account-level) → empty.
         """
         node_token = self._node_tokens.get(node_name, "")
         if node_token:
             return node_token
-        # Fallback: account-level MUSU_TOKEN (shared across all nodes)
+        # Fallback 1: MUSU_BRIDGE_TOKEN (bridge server authentication)
+        bridge_token = os.environ.get("MUSU_BRIDGE_TOKEN", "")
+        if bridge_token:
+            return bridge_token
+        # Fallback 2: account-level MUSU_TOKEN (shared across all nodes)
         try:
             token_file = os.path.expanduser("~/.musu/musu_token")
             if os.path.exists(token_file):
