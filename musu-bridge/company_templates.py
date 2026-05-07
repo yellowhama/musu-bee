@@ -330,6 +330,20 @@ _TEMPLATES: dict[str, dict] = {
                     "generate weekly reports, recommend optimizations."
                 ),
             },
+            {
+                "name": "editor",
+                "role": "Marketing Editor",
+                "adapter_type": "claude_local",
+                "budget_usd_monthly": 20.0,
+                "instructions_path": "musu-bridge/instructions/marketing_editor.md",
+                "instructions": (
+                    "You are the Marketing Editor for {company_name}.\n"
+                    "Company purpose: {purpose}\n\n"
+                    "Your job: review ALL content before publish. "
+                    "Check brand voice, accuracy, engagement, platform fit. "
+                    "Return PASS / REVISE / REJECT with specific feedback."
+                ),
+            },
         ],
     },
 }
