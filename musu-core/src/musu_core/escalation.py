@@ -10,9 +10,27 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any
+from typing import Literal
 
 logger = logging.getLogger(__name__)
+
+
+def _is_truthy(value: str | None) -> bool:
+    return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _is_test_context() -> bool:
+    return "PYTEST_CURRENT_TEST" in os.environ
+
+
+def _comment_post_mode() -> str:
+    """Return one of: off, dry-run, live."""
+    explicit = os.environ.get("MUSU_ESCALATION_COMMENT_MODE", "").strip().lower()
+    if explicit in {"off", "dry-run", "live"}:
+        return explicit
+    if _is_test_context() and not _is_truthy(os.environ.get("MUSU_ESCALATION_ALLOW_TEST_POSTS")):
+        return "off"
+    return "live"
 
 
 def _paperclip_env() -> dict[str, str] | None:
@@ -26,8 +44,24 @@ def _paperclip_env() -> dict[str, str] | None:
     return None
 
 
-def _post_comment(env: dict[str, str], body: str) -> bool:
-    """POST a comment to the current Paperclip task.  Returns True on success."""
+def _post_comment(env: dict[str, str], body: str) -> Literal["posted", "suppressed", "dry-run", "failed"]:
+    """POST a comment to the current Paperclip task."""
+    mode = _comment_post_mode()
+    if mode == "off":
+        logger.info(
+            "escalation: suppressed Paperclip comment (mode=off, task_id=%s, pytest=%s)",
+            env.get("task_id", ""),
+            _is_test_context(),
+        )
+        return "suppressed"
+    if mode == "dry-run":
+        logger.info(
+            "escalation: dry-run, skipping Paperclip POST to issue %s",
+            env.get("task_id", ""),
+        )
+        logger.info("escalation: dry-run comment body follows:\n%s", body)
+        return "dry-run"
+
     try:
         import httpx  # optional dependency — only needed at runtime with Paperclip
 
@@ -42,12 +76,34 @@ def _post_comment(env: dict[str, str], body: str) -> bool:
             timeout=5.0,
         )
         if resp.status_code < 300:
-            return True
+            return "posted"
         logger.warning("escalation: Paperclip comment failed %d: %s", resp.status_code, resp.text[:200])
-        return False
+        return "failed"
     except Exception as exc:  # noqa: BLE001
         logger.warning("escalation: could not post Paperclip comment: %s", exc)
-        return False
+        return "failed"
+
+
+def _build_chain_exhausted_comment(
+    agent_id: str,
+    agent_name: str,
+    run_id: str,
+    error: str,
+    fallback_adapters_tried: list[str],
+    metrics_source: str | None,
+) -> str:
+    adapters_str = ", ".join(fallback_adapters_tried) if fallback_adapters_tried else "none"
+    source = metrics_source or "[TBD: awaiting real data]"
+    return (
+        f"## Fallback chain exhausted — agent `{agent_name}`\n\n"
+        f"All adapters failed for run `{run_id}`.\n\n"
+        f"- **Agent ID:** `{agent_id}`\n"
+        f"- **Adapters tried:** {adapters_str}\n"
+        f"- **Last error:** {error}\n"
+        f"- **Traceability key:** `fallback_metrics.run_id = {run_id}`\n"
+        f"- **Fallback metrics source:** `{source}`\n\n"
+        "Manual intervention may be required."
+    )
 
 
 def escalate_chain_exhausted(
@@ -56,6 +112,7 @@ def escalate_chain_exhausted(
     run_id: str,
     error: str,
     fallback_adapters_tried: list[str],
+    metrics_source: str | None = None,
 ) -> None:
     """Notify operators that all fallback adapters failed for an agent execution.
 
@@ -68,26 +125,29 @@ def escalate_chain_exhausted(
         run_id:                 The execution run_id for traceability.
         error:                  Last error message from the chain.
         fallback_adapters_tried: Ordered list of adapter types that were attempted.
+        metrics_source:         Canonical source location for fallback_metrics rows.
     """
     adapters_str = ", ".join(fallback_adapters_tried) if fallback_adapters_tried else "none"
-    body = (
-        f"## Fallback chain exhausted — agent `{agent_name}`\n\n"
-        f"All adapters failed for run `{run_id}`.\n\n"
-        f"- **Agent ID:** `{agent_id}`\n"
-        f"- **Adapters tried:** {adapters_str}\n"
-        f"- **Last error:** {error}\n\n"
-        "Manual intervention may be required."
+    body = _build_chain_exhausted_comment(
+        agent_id=agent_id,
+        agent_name=agent_name,
+        run_id=run_id,
+        error=error,
+        fallback_adapters_tried=fallback_adapters_tried,
+        metrics_source=metrics_source,
     )
 
     env = _paperclip_env()
     if env:
-        posted = _post_comment(env, body)
-        if posted:
+        post_outcome = _post_comment(env, body)
+        if post_outcome == "posted":
             logger.info(
                 "escalation: posted chain-exhausted comment for agent %s run %s",
                 agent_id,
                 run_id,
             )
+            return
+        if post_outcome in {"suppressed", "dry-run"}:
             return
 
     # Fallback: structured log so operators can alert on it

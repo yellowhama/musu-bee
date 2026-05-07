@@ -351,10 +351,24 @@ class _ChannelSemaphore:
 
 _channel_semaphores: dict[str, _ChannelSemaphore] = {}
 
+# Per-channel concurrency overrides: MUSU_CHANNEL_MAX_TASKS_{CHANNEL} takes priority
+# over the global MUSU_CHANNEL_MAX_TASKS default.
+# engineer tasks run for up to 600s each; the default of 10 fills up fast under burst load.
+# Setting engineer to 3 (via env) prevents channel saturation while keeping global budget intact.
+_CHANNEL_MAX_TASKS_OVERRIDES: dict[str, int] = {}
+for _ch in ("engineer", "cto", "ceo", "qa", "team_lead"):
+    _env_override = os.environ.get(f"MUSU_CHANNEL_MAX_TASKS_{_ch.upper()}")
+    if _env_override:
+        try:
+            _CHANNEL_MAX_TASKS_OVERRIDES[_ch] = int(_env_override)
+        except ValueError:
+            pass
+
 
 def _get_channel_semaphore(channel: str) -> _ChannelSemaphore:
     if channel not in _channel_semaphores:
-        _channel_semaphores[channel] = _ChannelSemaphore(_CHANNEL_MAX_TASKS)
+        capacity = _CHANNEL_MAX_TASKS_OVERRIDES.get(channel, _CHANNEL_MAX_TASKS)
+        _channel_semaphores[channel] = _ChannelSemaphore(capacity)
     return _channel_semaphores[channel]
 
 
@@ -1140,12 +1154,15 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
                         _record_task_metric(req.channel, "failed", time.monotonic() - _task_start)
                         asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
                     except Exception as _exc:
+                        if attempt < max_retries:
+                            logger.warning("delegate_task: task %s unhandled exception (attempt %d): %s, retrying...", task_id, attempt + 1, _exc)
+                            backend.update_route_execution(task_id, "running")
+                            continue
                         logger.exception("delegate_task: task %s raised unhandled exception: %s", task_id, _exc)
                         cancel_task_record(task_id, error=f"unhandled exception: {_exc}")
                         _reregister_failed_hash(req.channel, req.text, task_id)
                         _record_task_metric(req.channel, "failed", time.monotonic() - _task_start)
                         asyncio.create_task(_broadcast_task_event({"type": "task_update", "task_id": task_id}))
-                        return  # Don't retry unknown exceptions
         except (RuntimeError, asyncio.TimeoutError) as _outer_exc:
             _exc_str = str(_outer_exc)
             if isinstance(_outer_exc, asyncio.TimeoutError) or _exc_str == "channel_at_capacity":

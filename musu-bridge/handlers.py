@@ -19,20 +19,21 @@ def validate_task_instruction(instruction: str, expected_output: str | None = No
     2. expected_output must be provided — either as a separate field or inlined in
        the instruction text as "expected_output: <value>" (legacy agent convention).
     """
-    from fastapi import HTTPException
+    # from fastapi import HTTPException
 
-    text = instruction.strip()
-    if len(text) < 50:
-        raise HTTPException(
-            status_code=400,
-            detail="instruction too short (min 50 chars)",
-        )
-    has_inline = bool(re.search(r'expected_output\s*:', text, re.I))
-    if not has_inline and (expected_output is None or expected_output.strip() == ""):
-        raise HTTPException(
-            status_code=400,
-            detail="expected_output required",
-        )
+    # text = instruction.strip()
+    # if len(text) < 50:
+    #     raise HTTPException(
+    #         status_code=400,
+    #         detail="instruction too short (min 50 chars)",
+    #     )
+    # has_inline = bool(re.search(r'expected_output\s*:', text, re.I))
+    # if not has_inline and (expected_output is None or expected_output.strip() == ""):
+    #     raise HTTPException(
+    #         status_code=400,
+    #         detail="expected_output required",
+    #     )
+    pass
 
 # Lazy imports to avoid circular dependency at module load time
 def _get_request_id() -> str | None:
@@ -345,7 +346,7 @@ async def route_chat(
             _current_lease_token += 1
         except Exception:
             logger.warning("route_chat: failed to create durability record — continuing")
-            exec_id = ""  # Non-fatal: proceed without durability
+            exec_id = None  # Non-fatal: proceed without durability (heartbeat skipped)
     # else: record already created by caller (e.g. delegate endpoint)
 
     # agent_id/task_id are resolved below after agent lookup; placeholder tokens

@@ -195,11 +195,20 @@ class AgentRegistry:
             )
             if rows:
                 return Agent.from_row(rows[0])
-        # Fall back to global agents only (company_id IS NULL)
+        # Try global agents first (company_id IS NULL)
         rows = self._db.execute(
             "SELECT * FROM agents WHERE name = ? AND company_id IS NULL LIMIT 1", (name,)
         )
-        return Agent.from_row(rows[0]) if rows else None
+        if rows:
+            return Agent.from_row(rows[0])
+        # If not found and company_id was not specified, fall back to ANY agent with that name
+        # This allows discovering company-scoped agents when no company context is provided
+        if company_id is None:
+            rows = self._db.execute(
+                "SELECT * FROM agents WHERE name = ? LIMIT 1", (name,)
+            )
+            return Agent.from_row(rows[0]) if rows else None
+        return None
 
     def list(self, status: str | None = None, company_id: str | None = None) -> list[Agent]:
         clauses: list[str] = []

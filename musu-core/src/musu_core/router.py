@@ -307,6 +307,7 @@ class Router:
                 run_id=run_id,
                 error=result.error or "",
                 fallback_adapters_tried=_fallback_adapters_tried,
+                metrics_source=self._backend._db.db_path,
             )
 
         # --- 5. Log result ---

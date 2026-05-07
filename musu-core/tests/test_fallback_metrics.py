@@ -176,6 +176,7 @@ def test_router_escalates_on_chain_exhaustion(router, backend, agent_with_fallba
     call_kwargs = mock_esc.call_args
     assert call_kwargs.kwargs["agent_id"] == agent_with_fallback.id
     assert "hermes" in call_kwargs.kwargs["fallback_adapters_tried"]
+    assert call_kwargs.kwargs["metrics_source"].endswith("test.db")
 
 
 def test_router_no_metric_when_no_fallback_chain(router, backend, cfg):
@@ -219,6 +220,7 @@ def test_escalate_posts_comment_when_paperclip_env_set():
         "PAPERCLIP_API_KEY": "test-key",
         "PAPERCLIP_TASK_ID": "task-abc",
         "PAPERCLIP_RUN_ID": "run-123",
+        "MUSU_ESCALATION_ALLOW_TEST_POSTS": "1",
     }
     mock_resp = MagicMock()
     mock_resp.status_code = 201
@@ -239,6 +241,30 @@ def test_escalate_posts_comment_when_paperclip_env_set():
     body_text = call_args.kwargs["json"]["body"]
     assert "my-agent" in body_text
     assert "hermes" in body_text
+    assert "fallback_metrics.run_id = run-1" in body_text
+    assert "Fallback metrics source" in body_text
+
+
+def test_escalate_does_not_post_in_pytest_without_opt_in():
+    env_vars = {
+        "PAPERCLIP_API_URL": "http://localhost:3100",
+        "PAPERCLIP_API_KEY": "test-key",
+        "PAPERCLIP_TASK_ID": "task-abc",
+        "PAPERCLIP_RUN_ID": "run-123",
+        "PYTEST_CURRENT_TEST": "tests/test_fallback_metrics.py::x (call)",
+    }
+
+    with patch.dict("os.environ", env_vars, clear=True), \
+         patch("httpx.post") as mock_post:
+        escalate_chain_exhausted(
+            agent_id="a1",
+            agent_name="my-agent",
+            run_id="run-1",
+            error="rate limit",
+            fallback_adapters_tried=["hermes"],
+        )
+
+    mock_post.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
