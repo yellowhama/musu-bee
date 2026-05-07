@@ -27,10 +27,14 @@ def _get_watchdog_backend():
 
 _WATCHDOG_KILL_SEC = int(
     os.environ.get("MUSU_WATCHDOG_KILL_SEC")
-    or os.environ.get("MUSU_WATCHDOG_STUCK_THRESHOLD_SEC", "720")
+    # Raised from 720 to 900: adapter timeout is 600s, heartbeat is 15s interval.
+    # 720s was too close to 600s adapter timeout — watchdog could race the adapter.
+    # 900s gives a 300s buffer so adapter timeout fires first (clean path),
+    # and watchdog only kills genuinely hung processes (no heartbeat for 15+ min).
+    or os.environ.get("MUSU_WATCHDOG_STUCK_THRESHOLD_SEC", "900")
 )
-_WATCHDOG_ESCALATE_SEC = int(os.environ.get("MUSU_WATCHDOG_ESCALATE_SEC", "300"))
-_WATCHDOG_WARN_SEC = int(os.environ.get("MUSU_WATCHDOG_WARN_SEC", "120"))
+_WATCHDOG_ESCALATE_SEC = int(os.environ.get("MUSU_WATCHDOG_ESCALATE_SEC", "600"))
+_WATCHDOG_WARN_SEC = int(os.environ.get("MUSU_WATCHDOG_WARN_SEC", "300"))
 _WATCHDOG_STUCK_THRESHOLD_SEC = _WATCHDOG_KILL_SEC
 
 

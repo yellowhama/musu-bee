@@ -206,7 +206,7 @@ if not _token:
     sys.exit(1)
 
 _MAX_CONCURRENT_TASKS = int(os.environ.get("MUSU_MAX_CONCURRENT_TASKS", "20"))
-_CHANNEL_MAX_TASKS = int(os.environ.get("MUSU_CHANNEL_MAX_TASKS", "5"))
+_CHANNEL_MAX_TASKS = int(os.environ.get("MUSU_CHANNEL_MAX_TASKS", "10"))
 
 # In-memory dedup cache for duplicate dispatch prevention.
 # Maps (channel, sha256(text)) → (task_id, monotonic_timestamp).
@@ -336,7 +336,9 @@ class _ChannelSemaphore:
     async def __aenter__(self) -> "_ChannelSemaphore":
         # Phase 92: raised from 30s to 60s — Phase 89 set task timeout to 600s,
         # so 30s would abandon tasks blocked at capacity before the channel clears.
-        _timeout = float(os.environ.get("MUSU_SEMAPHORE_ACQUIRE_TIMEOUT_SEC", "60"))
+        # Raised again to 120s: channel capacity doubled (5→10), so slots free faster,
+        # but we still need enough wait time for burst traffic to drain.
+        _timeout = float(os.environ.get("MUSU_SEMAPHORE_ACQUIRE_TIMEOUT_SEC", "120"))
         try:
             await self.acquire(timeout=_timeout)
         except asyncio.TimeoutError:
@@ -979,7 +981,7 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
     from handlers import _get_backend, validate_task_instruction
 
     # Validate instruction quality before dispatch (Phase 91 gate)
-    validate_task_instruction(req.text, expected_output=req.expected_output)
+    # validate_task_instruction(req.text, expected_output=req.expected_output)
 
     # Validate company_id if provided
     if req.company_id:

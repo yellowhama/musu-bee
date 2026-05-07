@@ -94,13 +94,17 @@ class TestSemaphoreAcquireTimeoutDefault:
             f"__aenter__ must not use 30s as default timeout — update to 60s.\nSource:\n{src}"
         )
 
-    def test_aenter_uses_60s_literal_default(self):
-        """__aenter__ source must reference '60' as the default timeout value."""
+    def test_aenter_uses_120s_literal_default(self):
+        """__aenter__ source must reference '120' as the default timeout value.
+
+        Raised from 60s (Phase 92) to 120s: channel capacity doubled 5→10,
+        burst traffic drains faster, but we still need sufficient wait time.
+        """
         import inspect
         import server as _server
         src = inspect.getsource(_server._ChannelSemaphore.__aenter__)
-        assert '"60"' in src or "'60'" in src, (
-            f"__aenter__ must use 60s as default MUSU_SEMAPHORE_ACQUIRE_TIMEOUT_SEC.\nSource:\n{src}"
+        assert '"120"' in src or "'120'" in src, (
+            f"__aenter__ must use 120s as default MUSU_SEMAPHORE_ACQUIRE_TIMEOUT_SEC.\nSource:\n{src}"
         )
 
 
