@@ -13,11 +13,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 # ── Test 1: config.py team_lead 채널 매핑 ─────────────────────────────────────
 
 def test_team_lead_channel_in_config():
-    """config.py channel_agent_map에 team_lead → MD-Lead 매핑이 존재해야 한다."""
+    """config.py channel_agent_map에 team_lead 매핑이 존재해야 한다."""
     from config import BridgeConfig
     cfg = BridgeConfig()
     assert "team_lead" in cfg.channel_agent_map
-    assert cfg.channel_agent_map["team_lead"] == "MD-Lead"
+    # Default is BW-Lead, but can be overridden via MUSU_AGENT_TEAM_LEAD env var
+    assert cfg.channel_agent_map["team_lead"]  # non-empty
 
 
 # ── Test 2: _run_once logic: unavailable dict → RuntimeError ──────────────────

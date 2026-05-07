@@ -821,7 +821,31 @@ async def lifespan(app: FastAPI):
     # Warm up dedup hash cache from DB so restart doesn't lose dedup state
     _warmup_dispatch_hash_cache()
 
+    # DB maintenance: clean old executions (>30 days) on startup
+    try:
+        from handlers import _get_backend as _gb_cleanup
+        _cleanup_backend = _gb_cleanup()
+        _deleted = _cleanup_backend._db.execute(
+            "DELETE FROM route_executions WHERE created_at < datetime('now', '-30 days')"
+        ).rowcount
+        _deleted_tomb = _cleanup_backend._db.execute(
+            "DELETE FROM route_execution_tombstones WHERE created_at < datetime('now', '-30 days')"
+        ).rowcount
+        if _deleted or _deleted_tomb:
+            logger.info("db_cleanup: removed %d executions + %d tombstones (>30 days)", _deleted, _deleted_tomb)
+            _cleanup_backend._db.execute("PRAGMA incremental_vacuum")
+    except Exception as _ce:
+        logger.warning("db_cleanup: failed — %s", _ce)
+
     yield
+
+    # Graceful shutdown: wait for in-progress tasks (max 30s)
+    _shutdown_start = time.time()
+    while len(_active_tasks) > 0 and (time.time() - _shutdown_start) < 30:
+        logger.info("graceful_shutdown: %d tasks still running, waiting...", len(_active_tasks))
+        await asyncio.sleep(2)
+    if len(_active_tasks) > 0:
+        logger.warning("graceful_shutdown: %d tasks still running after 30s, forcing shutdown", len(_active_tasks))
 
     # Record bridge_stopped lifecycle event
     try:
@@ -2662,12 +2686,37 @@ async def api_install_sh() -> Response:
 @app.get("/health")
 async def health() -> dict:
     from relay_client import relay_connected, relay_reconnect_count
+    import shutil
+
+    # Worker health
+    worker_ok = False
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=3.0) as _hc:
+            _wr = await _hc.get("http://localhost:9700/health")
+            worker_ok = _wr.status_code == 200
+    except Exception:
+        pass
+
+    # DB size
+    db_path = os.path.expanduser("~/.musu/db/musu.db")
+    db_size_mb = round(os.path.getsize(db_path) / 1024 / 1024, 1) if os.path.exists(db_path) else 0
+
+    # Disk free
+    disk = shutil.disk_usage("/")
+    disk_free_pct = round(disk.free / disk.total * 100, 1)
+
     return {
         "status": "ok",
+        "version": "1.8.0",
         "relay": {
             "connected": relay_connected,
             "reconnect_count": relay_reconnect_count,
         },
+        "worker": worker_ok,
+        "active_tasks": len(_active_tasks),
+        "db_size_mb": db_size_mb,
+        "disk_free_pct": disk_free_pct,
     }
 
 
