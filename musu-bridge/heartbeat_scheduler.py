@@ -302,6 +302,17 @@ async def _agent_heartbeat_scheduler() -> None:
             except Exception as exc:
                 logger.warning("heartbeat_scheduler: company %s error — %s", cid[:8], exc)
 
+        # Auto-learn from repeated failures (harness engineering)
+        try:
+            from instruction_learner import learn_from_failures
+            from handlers import _get_backend as _learn_backend
+            _ldb = _learn_backend()._db
+            added = learn_from_failures(_ldb, agent_name)
+            if added:
+                logger.info("instruction_learner: %d new rules for %s", len(added), agent_name)
+        except Exception as learn_exc:
+            logger.debug("instruction_learner: %s", learn_exc)
+
         await asyncio.sleep(interval)
 
 

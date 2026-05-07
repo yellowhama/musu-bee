@@ -636,3 +636,84 @@ async def api_session_report(hours: int = 24) -> dict:
             "by_agent": usage_by_agent[:20],
         },
     }
+
+
+# ── Remote config update endpoint ────────────────────────────────────────────
+
+# ── Instruction learner (auto-rules from failures) ───────────────────────────
+
+@system_router.get("/api/system/learned-rules", summary="List auto-learned rules from agent failures")
+async def api_learned_rules() -> dict:
+    """Show all auto-learned rules across all instruction files."""
+    from instruction_learner import INSTRUCTIONS_DIR, get_existing_rules
+    rules = {}
+    for f in INSTRUCTIONS_DIR.glob("*.md"):
+        role = f.stem
+        hashes = get_existing_rules(role)
+        if hashes:
+            rules[role] = list(hashes)
+    return {"rules": rules}
+
+
+@system_router.post("/api/system/learn-from-failures", summary="Detect repeated failures and auto-add rules")
+async def api_learn_from_failures(channel: str = "ceo") -> dict:
+    """Scan route_executions for repeated errors, add rules to instructions."""
+    from handlers import _get_backend
+    from instruction_learner import learn_from_failures
+    backend = _get_backend()
+    added = learn_from_failures(backend._db, channel, role=channel)
+    return {"channel": channel, "rules_added": len(added), "details": added}
+
+
+class ConfigUpdateRequest(BaseModel):
+    key: str = Field(description="Environment variable name (e.g. MUSU_TEAM_LEAD_HEARTBEAT_ENABLED)")
+    value: str = Field(description="New value")
+
+
+@system_router.post("/api/system/config", summary="Update bridge.env config and optionally restart")
+async def api_system_config(req: ConfigUpdateRequest, restart: bool = False) -> dict:
+    """Update a key in ~/.musu/bridge.env. Optionally restart bridge to apply.
+
+    This allows remote nodes to have their config updated without SSH.
+    Only keys starting with MUSU_ are allowed.
+    """
+    if not req.key.startswith("MUSU_"):
+        raise HTTPException(status_code=400, detail="Only MUSU_* keys allowed")
+
+    env_path = os.path.expanduser("~/.musu/bridge.env")
+    if not os.path.exists(env_path):
+        raise HTTPException(status_code=404, detail="bridge.env not found")
+
+    # Read current file
+    lines = open(env_path).readlines()
+
+    # Update or append
+    found = False
+    for i, line in enumerate(lines):
+        if line.strip().startswith(f"{req.key}="):
+            lines[i] = f"{req.key}={req.value}\n"
+            found = True
+            break
+    if not found:
+        lines.append(f"{req.key}={req.value}\n")
+
+    # Write back
+    with open(env_path, "w") as f:
+        f.writelines(lines)
+
+    logger.info("system/config: updated %s=%s in bridge.env", req.key, req.value)
+
+    # Optional restart
+    if restart:
+        async def _delayed_restart():
+            await asyncio.sleep(2)
+            os.execv("/bin/sh", ["/bin/sh", "-c",
+                "sleep 1 && systemctl --user restart musu-bridge"])
+        asyncio.create_task(_delayed_restart())
+
+    return {
+        "updated": True,
+        "key": req.key,
+        "value": req.value,
+        "restart_scheduled": restart,
+    }
