@@ -886,7 +886,7 @@ apply_musu_middlewares(
     rate_limit_capacity=60,
     rate_limit_window_seconds=60, # 1 minute
     rate_limit_key_type="ip",
-    bypass_path_prefixes=("/screen/novnc",),  # noVNC static files are public; WS auth via one-time token
+    bypass_path_prefixes=("/screen/novnc", "/api/nodes/accept-peer"),  # noVNC + peer registration (token exchange is the auth)
 )
 
 app.add_middleware(RequestIDMiddleware)
@@ -2913,12 +2913,72 @@ async def api_nodes_add(req: NodeAddRequest):
     # Health check the new node
     is_healthy = await router.is_node_healthy(req.name)
 
-    logger.info("Node added: %s (%s) healthy=%s", req.name, url, is_healthy)
+    # Token exchange: share our token with the peer so they can call us back
+    token_exchanged = False
+    if is_healthy:
+        try:
+            our_token = _token  # MUSU_BRIDGE_TOKEN
+            our_name = router._self_name
+            our_url = f"http://{router._node_meta.get(our_name, {}).get('tailscale_ip', '127.0.0.1')}:8070"
+            # Tell the peer about us
+            import httpx
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.post(
+                    f"{url.rstrip('/')}/api/nodes/accept-peer",
+                    json={
+                        "name": our_name,
+                        "url": our_url,
+                        "token": our_token,
+                    },
+                )
+                if resp.status_code == 200:
+                    peer_data = resp.json()
+                    peer_token = peer_data.get("token", "")
+                    if peer_token:
+                        router.set_node_token(req.name, peer_token)
+                        token_exchanged = True
+                        logger.info("Token exchanged with peer %s", req.name)
+        except Exception as e:
+            logger.warning("Token exchange with %s failed: %s", req.name, e)
+
+    logger.info("Node added: %s (%s) healthy=%s token_exchanged=%s", req.name, url, is_healthy, token_exchanged)
     return {
         "name": req.name,
         "url": url,
         "agents": req.agents,
         "healthy": is_healthy,
+        "token_exchanged": token_exchanged,
+    }
+
+
+class PeerAcceptRequest(BaseModel):
+    name: str
+    url: str
+    token: str = ""
+
+
+@app.post("/api/nodes/accept-peer", summary="Accept a peer node's registration + exchange tokens")
+async def api_nodes_accept_peer(req: PeerAcceptRequest):
+    """Called by a peer during nodes/add. Registers the peer and returns our token.
+
+    This is the receiving side of token exchange. The caller sends their token,
+    we save it and return ours. After this, both nodes can authenticate to each other.
+    """
+    router = mesh_router.get_mesh_router()
+    if not router:
+        raise HTTPException(status_code=503, detail="Mesh router not initialized")
+
+    # Add or update the peer node
+    if not router.has_node(req.name):
+        router.add_node(req.name, req.url)
+    if req.token:
+        router.set_node_token(req.name, req.token)
+        logger.info("Accepted peer %s, saved their token", req.name)
+
+    return {
+        "accepted": True,
+        "token": _token,  # Our MUSU_BRIDGE_TOKEN
+        "name": router._self_name,
     }
 
 

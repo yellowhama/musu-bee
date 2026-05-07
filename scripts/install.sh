@@ -120,15 +120,70 @@ else
     fi
 fi
 
-# ── Step 5: Init ~/.musu/nodes.toml ──────────────────────────────────────────
+# ── Step 5: Init ~/.musu/nodes.toml (auto-detect GPU, OS, Tailscale) ─────────
 NODES_TOML="${MUSU_HOME}/nodes.toml"
 if [[ ! -f "${NODES_TOML}" ]]; then
-    NODE_NAME="$(hostname)"
-    printf '[mesh]\nself = "%s"\n' "${NODE_NAME}" > "${NODES_TOML}"
-    ok "nodes.toml initialized (self=${NODE_NAME})"
+    info "Step 5: detecting node identity..."
+    # Use node_identity.py for auto-detection
+    NODE_INFO=$("${VENV}/bin/python3" -c "
+import sys; sys.path.insert(0, '${ROOT}/musu-bridge')
+from node_identity import detect_node_identity
+d = detect_node_identity()
+print(d.get('hostname', ''))
+print(d.get('os', 'linux'))
+print(d.get('gpu', ''))
+print(d.get('tailscale_ip', ''))
+print(d.get('machine', ''))
+" 2>/dev/null) || NODE_INFO=""
+
+    NODE_NAME=$(echo "$NODE_INFO" | sed -n '1p')
+    NODE_OS=$(echo "$NODE_INFO" | sed -n '2p')
+    NODE_GPU=$(echo "$NODE_INFO" | sed -n '3p')
+    NODE_TS_IP=$(echo "$NODE_INFO" | sed -n '4p')
+    NODE_MACHINE=$(echo "$NODE_INFO" | sed -n '5p')
+    [[ -z "$NODE_NAME" ]] && NODE_NAME="$(hostname)"
+
+    cat > "${NODES_TOML}" << TOML_EOF
+
+[mesh]
+self = "${NODE_NAME}"
+worker_port = 9700
+health_interval_sec = 30
+
+[[mesh.nodes]]
+name = "${NODE_NAME}"
+machine = "${NODE_MACHINE:-${NODE_NAME}-pc}"
+os = "${NODE_OS:-linux}"
+tailscale_ip = "${NODE_TS_IP}"
+url = "http://${NODE_TS_IP:-127.0.0.1}:8070"
+gpu = "${NODE_GPU}"
+TOML_EOF
+    ok "nodes.toml initialized (self=${NODE_NAME}, gpu=${NODE_GPU:-none}, ts=${NODE_TS_IP:-none})"
 else
     info "Step 5: nodes.toml already exists — skipping"
 fi
+
+# ── Step 5b: Seed agents with auto-detected CLI ─────────────────────────────
+info "Step 5b: seeding agents..."
+"${VENV}/bin/python3" -c "
+import sys, os
+sys.path.insert(0, '${ROOT}/musu-bridge')
+sys.path.insert(0, '${ROOT}/musu-core/src')
+os.chdir('${ROOT}')
+from seed_agents import seed
+from musu_core.backends.local import LocalBackend
+from musu_core.config import get_config
+cfg = get_config()
+db_path = cfg.db_path
+from pathlib import Path
+Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+backend = LocalBackend(db_path)
+try:
+    seed(backend)
+finally:
+    backend.close()
+" 2>&1 | while IFS= read -r line; do echo "        $line"; done
+ok "agents seeded with auto-detected CLI"
 
 # ── Step 6: Build musu-bee ────────────────────────────────────────────────────
 BEE_DIR="${ROOT}/musu-bee"
@@ -198,10 +253,17 @@ if [[ "${START_BRIDGE}" == "1" ]]; then
     fi
 
     BRIDGE_PORT="${BRIDGE_PORT:-8070}"
+    WORKER_PORT="${MUSU_WORKER_PORT:-9700}"
     if curl -sf --max-time 5 "http://127.0.0.1:${BRIDGE_PORT}/health" >/dev/null 2>&1; then
         ok "bridge is running ✓"
         curl -s "http://127.0.0.1:${BRIDGE_PORT}/health"
         echo ""
+        # Check worker too
+        if curl -sf --max-time 3 "http://127.0.0.1:${WORKER_PORT}/health" >/dev/null 2>&1; then
+            ok "worker is running ✓"
+        else
+            warn "worker health check failed (port ${WORKER_PORT})"
+        fi
     else
         warn "health check failed. Logs:"
         echo "  tail -50 ${ROOT}/logs/bridge-install-start.log"
@@ -209,3 +271,14 @@ if [[ "${START_BRIDGE}" == "1" ]]; then
         exit 1
     fi
 fi
+
+# ── Final summary ────────────────────────────────────────────────────────────
+echo ""
+ok "=== MUSU is ready ==="
+echo ""
+echo "  What you can do now:"
+echo "    musu do \"describe this project\"   — run a task on your agents"
+echo "    musu doctor                        — check system health"
+echo "    musu nodes list                    — see connected machines"
+echo "    musu nodes add <ip>                — add another machine"
+echo ""

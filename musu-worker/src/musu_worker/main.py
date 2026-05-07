@@ -340,7 +340,7 @@ async def start_process_endpoint(
 
 
 def run() -> None:
-    host = os.environ.get("MUSU_WORKER_HOST", "127.0.0.1")
+    host = os.environ.get("MUSU_WORKER_HOST", "0.0.0.0")
     port = int(os.environ.get("MUSU_WORKER_PORT", "9700"))
     uvicorn.run("musu_worker.main:app", host=host, port=port, reload=False)
 

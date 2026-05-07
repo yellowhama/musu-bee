@@ -203,6 +203,16 @@ class MeshRouter:
             pass
         return os.environ.get("MUSU_TOKEN", "")
 
+    def set_node_token(self, node_name: str, token: str) -> None:
+        """Set (or update) the peer token for a node and persist to nodes.toml."""
+        self._node_tokens[node_name] = token
+        self._write_toml()
+        logger.info("mesh_router: saved token for node %r", node_name)
+
+    def has_node(self, node_name: str) -> bool:
+        """Check if a node exists in the mesh."""
+        return node_name in self._node_urls
+
     def mac_for_node(self, node_name: str) -> str:
         """Return the MAC address for Wake-on-LAN, or '' if not configured."""
         return self._node_mac.get(node_name, "")
@@ -399,18 +409,23 @@ class MeshRouter:
         for node_name, node_url in self._node_urls.items():
             agents = self._node_agents.get(node_name, [])
             fingerprint = self._node_fingerprints.get(node_name)
+            token = self._node_tokens.get(node_name)
             if node_name in existing_by_name:
                 existing_by_name[node_name]["url"] = node_url
                 if agents:
                     existing_by_name[node_name]["agents"] = agents
                 if fingerprint:
                     existing_by_name[node_name]["cert_fingerprint"] = fingerprint
+                if token:
+                    existing_by_name[node_name]["token"] = token
             else:
                 entry: dict = {"name": node_name, "url": node_url}
                 if agents:
                     entry["agents"] = agents
                 if fingerprint:
                     entry["cert_fingerprint"] = fingerprint
+                if token:
+                    entry["token"] = token
                 existing_by_name[node_name] = entry
         # Remove nodes that are no longer in _node_urls
         new_nodes = [v for k, v in existing_by_name.items() if k in self._node_urls]
