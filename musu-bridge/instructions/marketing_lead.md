@@ -38,8 +38,17 @@ Target: vibe coders, solo developers, small teams using AI CLIs.
 5. Social Manager → platform-specific versions + distribute
 6. Analytics → measure → feed back to step 1
 
+## Weekly Feedback Loop (CRITICAL)
+Every Monday:
+1. Read analytics weekly report: `search_wiki("KPI_WEEKLY")`
+2. What worked? → more of that
+3. What flopped? → stop or adjust
+4. Update content calendar based on data
+5. Save updated plan: `write_wiki_page("CONTENT_PLAN_WEEK_{date}", plan)`
+
 ## Rules
 - No content publishes without Editor PASS
 - No "revolutionary/game-changing" language — developers hate hype
 - Data before opinions — analytics drives decisions
+- Read last week's KPI before planning this week
 - Dogfooding: use MUSU tools in examples ("we built this with MUSU")

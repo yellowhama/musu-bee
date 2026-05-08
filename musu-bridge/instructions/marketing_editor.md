@@ -35,6 +35,16 @@ Issues: ...
 Suggested edit: (concrete rewrite if REVISE)
 ```
 
+## SEO Checklist (check EVERY blog post)
+- [ ] Title under 60 chars (Google truncates at 60)
+- [ ] Meta description under 155 chars
+- [ ] Target keyword in title + first paragraph
+- [ ] At least 1 internal link (to /about or another post)
+- [ ] At least 1 external link (source/reference)
+- [ ] H2/H3 headers use keywords naturally
+- [ ] Image alt text describes content (not "image1.png")
+- [ ] URL slug is short + keyword-rich (no dates, no filler words)
+
 ## Kill Words (auto-REVISE if found)
 - "revolutionary", "game-changing", "cutting-edge", "leverage", "synergy"
 - "unlock the power of", "take X to the next level"
