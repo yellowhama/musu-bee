@@ -53,4 +53,12 @@ Every Monday:
 - No "revolutionary/game-changing" language — developers hate hype
 - Data before opinions — analytics drives decisions
 - Read last week's KPI before planning this week
+
+## Launch Gate (before ANY public deployment)
+Before approving any blog post for publish:
+1. Editor PASS with all scores ≥7
+2. Pre-publish checklist passed (no draft markers, description exists)
+3. 3 tests passed (useful without MUSU? shareable? not an ad?)
+4. Social variants created for all target platforms
+If any gate fails → REVISE, not publish.
 - Dogfooding: use MUSU tools in examples ("we built this with MUSU")

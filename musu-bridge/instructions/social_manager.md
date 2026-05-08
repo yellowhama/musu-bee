@@ -57,3 +57,5 @@ One approved blog post → 1 tweet + 1 reddit + 1 linkedin.
 - "나이키 룰": 제품 안 밀고 사람/문제가 전경
 - Engage with comments — distribution is 2-way
 - Track: impressions, clicks, replies → report to Analytics weekly
+- **Posting order matters**: lead with most shareable (usually how-to), end with launch announcement
+- **Before posting**: verify the linked blog post is actually LIVE (not draft, no errors)

@@ -37,9 +37,15 @@ Issues: ...
 Suggested edit: (concrete rewrite if REVISE)
 ```
 
+## Pre-Publish Checklist (BLOCK publish if any fails)
+- [ ] **No draft markers in body** — search for "DO NOT PUBLISH", "DRAFT", "awaiting review", "TODO"
+- [ ] **frontmatter `draft: false`** — must be explicitly false
+- [ ] **frontmatter `description:` exists** — under 155 chars
+- [ ] **No broken components** — no unconfigured widgets, empty IDs, TODO comments
+
 ## SEO Checklist (check EVERY blog post)
 - [ ] Title under 60 chars (Google truncates at 60)
-- [ ] Meta description under 155 chars
+- [ ] Meta description in frontmatter under 155 chars
 - [ ] Target keyword in title + first paragraph
 - [ ] At least 1 internal link (to /about or another post)
 - [ ] At least 1 external link (source/reference)

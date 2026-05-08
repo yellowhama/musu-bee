@@ -78,3 +78,6 @@ This writes to vibecode-blog + git push + Vercel auto-deploys.
 - Read `get_wiki_page("BRAND_VOICE_GUIDE")` before every draft
 - SEO keywords from Strategist included naturally
 - Every sentence earns its place — no filler
+- **NEVER put draft/status text in content body** ("DO NOT PUBLISH", "DRAFT", "awaiting review") — use frontmatter `draft: true` only
+- **frontmatter `description:` is MANDATORY** — under 155 chars, for SEO/OG previews
+- **Before publish: verify** `draft: false`, description exists, no draft markers in body
