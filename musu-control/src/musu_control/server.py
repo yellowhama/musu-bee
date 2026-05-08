@@ -3004,6 +3004,75 @@ async def write_wiki_page(page_id: str, content: str) -> str:
         return _tool_error(f"Write failed: {exc}")
 
 
+@mcp.tool()
+async def publish_blog_post(
+    slug: str,
+    content: str,
+    auto_push: bool = True,
+) -> CallToolResult:
+    """Publish a blog post to vibecode.town (Astro blog).
+
+    Writes a markdown file to the vibecode-blog repo and optionally
+    git add + commit + push (triggers Vercel auto-deploy).
+
+    Args:
+        slug: URL slug (e.g., "my-new-post"). Will become the filename.
+        content: Full markdown content INCLUDING frontmatter (---)
+        auto_push: If True, git commit + push to deploy (default: True)
+    """
+    import pathlib
+    import subprocess as _sp
+
+    blog_dir = pathlib.Path("/mnt/f/Aisaak/Projects/vibecode-blog/src/data/blog")
+    if not blog_dir.exists():
+        return CallToolResult(
+            content=[TextContent(type="text", text="Blog directory not found")],
+            isError=True,
+        )
+
+    # Sanitize slug
+    safe_slug = re.sub(r"[^a-zA-Z0-9\-]", "", slug)
+    if not safe_slug:
+        return CallToolResult(
+            content=[TextContent(type="text", text="Invalid slug")],
+            isError=True,
+        )
+
+    # Validate frontmatter exists
+    if not content.strip().startswith("---"):
+        return CallToolResult(
+            content=[TextContent(type="text", text="Content must start with frontmatter (---)")],
+            isError=True,
+        )
+
+    # Write file
+    post_path = blog_dir / f"{safe_slug}.md"
+    post_path.write_text(content, encoding="utf-8")
+
+    result_msg = f"Written: {post_path}"
+
+    # Git commit + push
+    if auto_push:
+        repo_dir = str(blog_dir.parent.parent.parent)
+        try:
+            _sp.run(["git", "add", str(post_path)], cwd=repo_dir, check=True, timeout=10)
+            _sp.run(
+                ["git", "commit", "-m", f"post: {safe_slug}\n\nPublished by MUSU Marketing agent"],
+                cwd=repo_dir, check=True, timeout=10,
+            )
+            _sp.run(["git", "push", "origin", "main"], cwd=repo_dir, check=True, timeout=30)
+            result_msg += " → git pushed → Vercel deploying"
+        except _sp.CalledProcessError as e:
+            result_msg += f" (git failed: {e})"
+        except _sp.TimeoutExpired:
+            result_msg += " (git timeout)"
+
+    return CallToolResult(
+        content=[TextContent(type="text", text=result_msg)],
+        structuredContent={"slug": safe_slug, "path": str(post_path), "pushed": auto_push},
+    )
+
+
 # ── Sandbox Bash ──────────────────────────────
 
 

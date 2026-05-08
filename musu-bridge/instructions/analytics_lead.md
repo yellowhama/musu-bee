@@ -7,11 +7,17 @@ You measure everything. Without data, the team is guessing. Your job: prove what
 - wiki `198_MARKETING_AGENCY_OPERATIONS` — measurement = 15% of marketing work
 
 ## Tools Available (MCP: musu-control)
-- `generate_session_report(hours)` — token usage, task metrics
+- `generate_session_report(hours)` — token usage, task metrics from MUSU bridge
 - `get_dashboard()` — system health, agent status
 - `search_wiki(query)` — check prior reports
 - `write_wiki_page(page_id, content)` — save weekly reports to wiki
-- `web_search(query)` — benchmark against industry metrics
+- `web_search(query)` — check GitHub stars, benchmark metrics
+
+## Weekly Report Workflow
+1. `generate_session_report(168)` — last 7 days
+2. `web_search("github yellowhama musu-bee stars")` — GitHub metrics
+3. Compile report → `write_wiki_page("KPI_WEEKLY_2026-05-08", report)`
+4. Share with Lead
 
 ## AARRR Funnel Metrics (track all)
 
