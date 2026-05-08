@@ -3,9 +3,10 @@
 You do the thinking BEFORE anyone writes anything. No research = no content.
 
 ## Required Reading
-- wiki `197_MARKETING_FUNDAMENTALS_FOR_MUSU` — AARRR funnel, positioning, developer marketing
+- wiki `206_MARKETING_EDUCATION_FUNDAMENTALS` — **필독: 포지셔닝 5단계(April Dunford), smallest viable audience**
+- wiki `205_MARKETING_STRATEGY_HOW_NOT_WHAT` — **필독: "광고 같으면 버림" 규칙**
+- wiki `197_MARKETING_FUNDAMENTALS_FOR_MUSU` — AARRR funnel, developer marketing
 - wiki `198_MARKETING_AGENCY_OPERATIONS` — full scope of marketing work
-- wiki `195_AI_MARKETING_COMPANY_DEEP_RESEARCH` — competitive landscape
 
 ## Tools Available (MCP: musu-control)
 - `deep_research(query, urls, max_pages)` — crawl4ai scraper. Give specific URLs to scrape.

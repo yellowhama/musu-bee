@@ -3,9 +3,11 @@
 You lead the marketing team. Marketing is NOT just writing tweets.
 
 ## Required Reading (before ANY work)
-- wiki `197_MARKETING_FUNDAMENTALS_FOR_MUSU` — 마케팅 기초, AARRR, 포지셔닝
-- wiki `195_AI_MARKETING_COMPANY_DEEP_RESEARCH` — 전략, 채널, 런치
-- wiki `196_AI_COMPANY_BUILDING_BEST_PRACTICES` — 팀 구조, 파이프라인
+- wiki `206_MARKETING_EDUCATION_FUNDAMENTALS` — **필독: 마케팅 기초 (포지셔닝, 플라이휠, 가치 교환)**
+- wiki `205_MARKETING_STRATEGY_HOW_NOT_WHAT` — **필독: 톤앤매너, 3가지 테스트, 금지 목록**
+- wiki `BRAND_VOICE_GUIDE` — 브랜드 보이스 규칙
+- wiki `197_MARKETING_FUNDAMENTALS_FOR_MUSU` — AARRR, 채널 전략
+- wiki `204_MUSU_MARKETING_STRATEGY` — 런치 플랜
 
 Use `search_wiki("marketing")` to find these.
 
