@@ -378,9 +378,17 @@ async def list_agents() -> str:
     """List all agents in the company."""
     try:
         c = _get_client()
+        # Proactive Context: Get company info first
+        company_info = ""
+        if c.company_id:
+            try:
+                comp = await c.get(f"/companies/{c.company_id}")
+                company_info = f"[ACTIVE CONTEXT] Company: {comp.get('name')} | Purpose: {comp.get('purpose')}\n"
+            except: pass
+            
         agents_path = f"/companies/{c.company_id}/agents" if c.company_id else "/agents"
         data = await c.get(agents_path)
-        return _fmt(data)
+        return company_info + _fmt(data)
     except Exception:
         return _tool_error("Error listing agents.")
 

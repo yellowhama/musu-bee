@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "musu-writer"
+version = "0.1.0"
+description = "Fiction writing pipeline MCP tools — BYOK, session-managed, 8-skill hybrid"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.0.0"]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+]
+
+[project.scripts]
+musu-writer = "musu_writer.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/musu_writer"]

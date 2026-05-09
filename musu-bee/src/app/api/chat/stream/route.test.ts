@@ -109,6 +109,31 @@ test("정상 메시지 → token events + done:true event", async () => {
   );
 });
 
+test("runtime prompt is injected into CLI payload and stays non-empty", async () => {
+  let capturedPrompt = "";
+
+  await withSpawnMock(
+    (...args: unknown[]) => {
+      const cliArgs = args[1];
+      if (Array.isArray(cliArgs) && typeof cliArgs[cliArgs.length - 1] === "string") {
+        capturedPrompt = cliArgs[cliArgs.length - 1];
+      }
+      return makeFakeProc(["ok"], 0);
+    },
+    async () => {
+      const res = await GET(req("프롬프트 로드 테스트"));
+      assert.equal(res.status, 200);
+      await collectSse(res);
+    }
+  );
+
+  assert.ok(capturedPrompt.trim().length > 0, "CLI prompt payload must be non-empty");
+  assert.match(capturedPrompt, /Role Contract:/);
+  assert.match(capturedPrompt, /Guardrails:/);
+  assert.match(capturedPrompt, /Output Shape Constraints:/);
+  assert.match(capturedPrompt, /User: 프롬프트 로드 테스트/);
+});
+
 test("Claude CLI exit code 1 → error event", async () => {
   await withSpawnMock(
     () => makeFakeProc([], 1),

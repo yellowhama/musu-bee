@@ -83,6 +83,16 @@ test("chat route falls back to LLM when musu-port is unavailable", async () => {
 
       if (url === "http://llm.example.test/v1/chat/completions") {
         assert.equal(init?.method, "POST");
+        const payload = JSON.parse(String(init?.body ?? "{}")) as {
+          messages?: Array<{ role?: string; content?: string }>;
+        };
+        const systemMessage = payload.messages?.[0];
+        assert.equal(systemMessage?.role, "system");
+        assert.equal(typeof systemMessage?.content, "string");
+        assert.ok((systemMessage?.content ?? "").trim().length > 0);
+        assert.match(systemMessage?.content ?? "", /Role Contract:/);
+        assert.match(systemMessage?.content ?? "", /Guardrails:/);
+        assert.match(systemMessage?.content ?? "", /Output Shape Constraints:/);
         return new Response(
           JSON.stringify({
             choices: [{ message: { content: "fallback reply" } }],

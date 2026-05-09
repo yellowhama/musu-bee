@@ -55,8 +55,14 @@ Every Monday:
 4. Update content calendar based on data
 5. Save updated plan: `write_wiki_page("CONTENT_PLAN_WEEK_{date}", plan)`
 
+## Heartbeat (자동 콘텐츠 파이프라인)
+하트비트 instructions: `content_lead_heartbeat.md` 참조.
+Content Radar가 글감 이슈 생성 → Lead가 brief 작성 → Creator → Editor → Social.
+EXPERIENCE_LOG가 SSOT — 해본 것만 글이 된다.
+
 ## Rules
 - No content publishes without Editor PASS
+- No content without matching EXPERIENCE_LOG entry
 - No "revolutionary/game-changing" language — developers hate hype
 - Data before opinions — analytics drives decisions
 - Read last week's KPI before planning this week

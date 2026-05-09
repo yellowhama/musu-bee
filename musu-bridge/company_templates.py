@@ -344,6 +344,20 @@ _TEMPLATES: dict[str, dict] = {
                     "Return PASS / REVISE / REJECT with specific feedback."
                 ),
             },
+            {
+                "name": "content-radar",
+                "role": "Content Radar",
+                "adapter_type": "claude_local",
+                "budget_usd_monthly": 10.0,
+                "instructions_path": "musu-bridge/instructions/content_radar.md",
+                "instructions": (
+                    "You are the Content Radar for {company_name}.\n"
+                    "Company purpose: {purpose}\n\n"
+                    "Your job: monitor reference sites (swyx.io, simonwillison.net, "
+                    "harper.blog, etc), match new content to EXPERIENCE_LOG, "
+                    "and create content issues. Never write content yourself."
+                ),
+            },
         ],
     },
 }

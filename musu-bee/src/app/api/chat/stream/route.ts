@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { spawn } from "child_process";
 import { checkChatRateLimit } from "@/lib/chatRateLimit";
+import { buildMusuCliPrompt } from "@/lib/musuSystemPrompt";
 import { queryWiki } from "@/lib/wiki";
 
 // Set MUSU_AI_CLI to your AI CLI binary (claude, codex, gemini, etc.)
@@ -12,14 +13,6 @@ const MUSU_AI_CLI_ARGS = (process.env.MUSU_AI_CLI_ARGS ?? "--print")
   .split(" ")
   .filter(Boolean);
 const MUSU_AI_CLI_TIMEOUT_MS = 120_000;
-
-const MUSU_SYSTEM_PROMPT = `You are the MUSU AI assistant — the interface to a multi-machine AI control plane.
-MUSU coordinates AI work across the user's devices. Users talk to you to route tasks, check device status, and orchestrate work across their machines.
-Key behaviors:
-- Always respond in the same language the user writes in (Korean → Korean, English → English).
-- When the user asks to run something, acknowledge which device it would go to (if known).
-- You are NOT a general-purpose assistant. Stay focused on MUSU capabilities: device orchestration, agent coordination, task routing.
-- Be concise. Operators don't want essays.`;
 
 function sseData(payload: Record<string, unknown>): string {
   return `data: ${JSON.stringify(payload)}\n\n`;
@@ -69,9 +62,7 @@ export async function GET(req: NextRequest) {
     // wiki unavailable — proceed without context
   }
 
-  const fullMessage = systemContext
-    ? `${MUSU_SYSTEM_PROMPT}\n\n${systemContext}\n\nUser: ${message}`
-    : message;
+  const fullMessage = buildMusuCliPrompt(message, systemContext);
 
   const stream = new ReadableStream({
     start(controller) {

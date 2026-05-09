@@ -1,0 +1,27 @@
+{
+  "name": "musu-marketing-776e0970",
+  "root": ".",
+  "include_roots": [
+    "."
+  ],
+  "exclude_roots": [],
+  "ignore_globs": [
+    "*.png",
+    "*.jpg",
+    "*.jpeg",
+    "*.gif",
+    "*.mp4",
+    "*.wav",
+    "*.mp3",
+    "*.exe",
+    "*.bin",
+    "*.db",
+    "*.db-*",
+    "*.zip",
+    "*.tar.gz",
+    "node_modules/**",
+    ".venv/**",
+    "__pycache__/**",
+    ".git/**"
+  ]
+}

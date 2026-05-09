@@ -21,6 +21,12 @@
 
 ## 남은 작업 전체 목록
 
+### 플랫폼 — 최우선 안정성 과제
+
+| ID | 작업 | 예상 | 우선순위 |
+|----|------|------|---------|
+| S1 | 시스템 안정성 확보 | 4-8h | **P0** |
+
 ### musu-bee (UI) — 실질 구현 블로커 없음 (보드 레거시 blocked lane 정리 필요)
 
 | ID | 작업 | 예상 | 우선순위 |
@@ -28,7 +34,7 @@
 | B3 | Plan/Approve Gate (PlanCard UI) | 3h | P1 |
 | G2 | cmd+K 커맨드 팔레트 | 2h | P2 |
 
-### 플랫폼 — 블로커 없음
+### 플랫폼 — 기능 구현
 
 | ID | 작업 | 예상 | 우선순위 |
 |----|------|------|---------|
@@ -43,6 +49,38 @@
 |----|------|--------|
 | Ph3 | 멀티머신 실 네트워크 테스트 | 5070Ti SSH |
 | Ph4 | Pro/Team 결제 플로우 (Paddle) | Paddle creds |
+
+---
+
+## TASK-S1: 시스템 안정성 확보 (P0)
+
+**왜**: 최근 2시간 내 `engineer` 에이전트의 반복적인 실패(`unhandled exception`, `semaphore boom`, `channel_at_capacity`), `team_lead`의 응답 없음, `musu-bridge`의 재시작(`stale: bridge restarted`) 등 심각한 시스템 불안정성이 관찰됨. 이는 "회사가 자기 제품을 스스로 만들어야 한다"는 회사의 핵심 전략을 직접적으로 위협하는 최우선 해결 과제임. 또한, `5070` 워커 노드가 `offline` 상태로, `Ph3` 멀티머신 테스트가 블로킹된 상태와 연관되었을 가능성이 있음.
+
+### 진단 및 해결 계획
+
+1.  **로그 수집 및 분석**:
+    *   `engineer`, `team_lead`, `musu-bridge` 각 컴포넌트의 상세 로그를 수집하여 `unhandled exception`의 스택 트레이스를 확보한다.
+    *   `semaphore boom` 및 `channel_at_capacity` 발생 시점의 리소스 사용량(메모리, CPU, open files)과 동시 요청 수를 분석한다.
+
+2.  **원인 가설 수립**:
+    *   가설 1: 특정 요청/작업 유형이 `engineer` 에이전트의 리소스 고갈 또는 교착 상태를 유발한다.
+    *   가설 2: `musu-bridge`와 백엔드 에이전트 간의 통신 채널(gRPC/WebSocket)에 누수 또는 타임아웃 문제가 존재한다.
+    *   가설 3: `5070` 노드 오프라인으로 인해 특정 작업(e.g., 분산 처리)이 대기/실패하면서 전체 시스템에 연쇄적인 부하를 유발한다.
+
+3.  **긴급 조치 및 재현**:
+    *   가장 빈번하게 실패를 유발하는 작업을 식별하고, 해당 작업에 대한 격리된 테스트 케이스를 작성하여 문제를 재현한다.
+    *   필요 시, 에이전트 프로세스에 대한 health check를 강화하고 불안정 상태 시 자동 재시작 정책을 임시 적용한다.
+
+4.  **근본 수정**:
+    *   예외 처리 강화: `try...except` 블록을 추가하여 예상치 못한 에러를 처리하고, 더 많은 컨텍스트를 로깅한다.
+    *   리소스 관리 개선: 세마포어, 큐, 스레드 풀 등의 설정을 재검토하고, 리소스 해제를 보장하는 `finally` 또는 `with` 구문을 사용한다.
+    *   `5070` 노드 문제 해결: 노드의 `offline` 원인을 파악하고 온라인으로 복구한다. (SSH 접속 문제 해결 우선)
+
+**검증**:
+*   `S1` 관련 수정 배포 후 24시간 동안 `engineer` 에이전트 실패 및 `musu-bridge` 재시작이 0회 발생해야 한다.
+*   `5070` 노드가 `online` 상태로 전환되고, `Ph3` 테스트를 진행할 수 있는 상태가 되어야 한다.
+
+**위임 대상**: `cto-Lead`, `engineer-Lead`
 
 ---
 
@@ -78,7 +116,8 @@ plan?: MessagePlan;
 **`parsePlan(msgId, text): MessagePlan | null`** (`useChat.ts`):
 ```typescript
 function parsePlan(msgId: string, text: string): MessagePlan | null {
-  const lines = text.split("\n");
+  const lines = text.split("
+");
   const steps: string[] = [];
   for (const line of lines) {
     const m = /^\s*(\d+)[.)]\s+(.{10,})/.exec(line);
@@ -248,7 +287,9 @@ musu.pro 데모 시 Windows 유저가 실패하면 안됨.
 ## 실행 순서 (우선순위)
 
 ```
-지금 → B3 Plan/Approve Gate (~3h)
+지금 → S1 시스템 안정성 확보 (P0)       ← 최우선, 모든 기능의 기반
+              ↓
+         B3 Plan/Approve Gate (~3h)
          G2 cmd+K 팔레트 (~2h)
               ↓
          2D MUSU-WORKS backport (~6h)  ← company layer
@@ -269,7 +310,7 @@ musu.pro 데모 시 Windows 유저가 실패하면 안됨.
 | 단계 | 조건 | 준비도 |
 |------|------|--------|
 | 로컬 데모 | 지금 | ✅ 가능 |
-| musu.pro 올리기 | B3 + G2 완료 | 🔨 ~5h |
+| musu.pro 올리기 | S1 + B3 + G2 완료 | 🔨 ~9-13h |
 | Company OS 완전체 | 2D 완료 | 🔨 ~6h |
 | 멀티머신 실 증명 | 5070Ti SSH + Ph3 | ⏳ 블로커 |
 | 유료 출시 | Ph4 Paddle | ⏳ 블로커 |

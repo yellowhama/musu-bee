@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { spawn } from "child_process";
 import { checkChatRateLimit } from "@/lib/chatRateLimit";
+import { buildMusuCliPrompt, buildMusuSystemPrompt } from "@/lib/musuSystemPrompt";
 import { queryWiki } from "@/lib/wiki";
 
 // Set MUSU_AI_CLI to your AI CLI binary (claude, codex, gemini, etc.)
@@ -24,13 +25,6 @@ const MUSU_LLM_URL = (process.env.MUSU_LLM_URL ?? "http://127.0.0.1:11434").repl
 const MUSU_LLM_MODEL = process.env.MUSU_LLM_MODEL;
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
 const DEFAULT_MAX_MESSAGE_CHARS = 4_000;
-const MUSU_SYSTEM_PROMPT = `You are the MUSU AI assistant — the interface to a multi-machine AI control plane.
-MUSU coordinates AI work across the user's devices. Users talk to you to route tasks, check device status, and orchestrate work across their machines.
-Key behaviors:
-- Always respond in the same language the user writes in (Korean → Korean, English → English).
-- When the user asks to run something, acknowledge which device it would go to (if known).
-- You are NOT a general-purpose assistant. Stay focused on MUSU capabilities: device orchestration, agent coordination, task routing.
-- Be concise. Operators don't want essays.`;
 const CHAT_BACKEND_UNAVAILABLE_RESPONSE = {
   error: "chat backend unavailable",
   code: "chat_backend_unavailable",
@@ -222,9 +216,7 @@ async function tryOpenAiCompatible(
 ): Promise<ChatAttempt> {
   try {
     const model = await discoverModelId(baseUrl, deadlineAt);
-    const systemPrompt = systemContext
-      ? `${MUSU_SYSTEM_PROMPT}\n\n${systemContext}`
-      : MUSU_SYSTEM_PROMPT;
+    const systemPrompt = buildMusuSystemPrompt(systemContext);
     const res = await fetchWithRemainingBudget(
       `${baseUrl}/v1/chat/completions`,
       {
@@ -262,9 +254,7 @@ async function tryOpenAiCompatible(
 async function tryLlmFallback(message: string, deadlineAt: number, systemContext?: string): Promise<ChatAttempt> {
   try {
     const model = await discoverModelId(MUSU_LLM_URL, deadlineAt);
-    const systemPrompt = systemContext
-      ? `${MUSU_SYSTEM_PROMPT}\n\n${systemContext}`
-      : MUSU_SYSTEM_PROMPT;
+    const systemPrompt = buildMusuSystemPrompt(systemContext);
     const res = await fetchWithRemainingBudget(
       `${MUSU_LLM_URL}/v1/chat/completions`,
       {
@@ -310,9 +300,7 @@ async function tryAiCli(
     let stderr = "";
 
     // Prefix wiki context into the message if present
-    const fullMessage = systemContext
-      ? `${MUSU_SYSTEM_PROMPT}\n\n${systemContext}\n\nUser: ${message}`
-      : message;
+    const fullMessage = buildMusuCliPrompt(message, systemContext);
 
     let settled = false;
     function settle(result: ChatAttempt) {

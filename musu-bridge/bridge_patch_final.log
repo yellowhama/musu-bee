@@ -1,0 +1,57 @@
+INFO:     Started server process [765428]
+INFO:     Waiting for application startup.
+{"time": "2026-05-09T16:41:51", "level": "INFO", "logger": "mesh_router", "msg": "mesh_router: loaded — self='4060', nodes=['4060', '5070'], agents=['mgr-4060', 'bw-lead', 'bw-researcher', 'bw-writer', 'bw-editor', '4060-worker', 'hugh-main-worker', '776e0970-lead', '776e0970-strategist', '776e0970-content-creator', '776e0970-social-manager', '776e0970-analytics', '776e0970-editor', 'bw-pm-bloodline', 'bw-pm-falsedane', 'bw-trendresearcher', 'mgr-5070']"}
+{"time": "2026-05-09T16:41:51", "level": "INFO", "logger": "__main__", "msg": "sync_engine: started as background task"}
+{"time": "2026-05-09T16:41:51", "level": "INFO", "logger": "__main__", "msg": "registry: MUSU_TOKEN not set — cloud registry disabled"}
+{"time": "2026-05-09T16:41:51", "level": "INFO", "logger": "__main__", "msg": "startup: canonical company 89a811ad-5b87-4df7-899d-49e5b092ed51 already exists"}
+{"time": "2026-05-09T16:41:51", "level": "INFO", "logger": "__main__", "msg": "startup: node manager 'mgr-4060' already exists"}
+{"time": "2026-05-09T16:41:51", "level": "WARNING", "logger": "__main__", "msg": "startup: channel mapping check failed — cannot import name 'AGENTS' from 'seed_agents' (/home/hugh51/musu-functions/musu-bridge/seed_agents.py)"}
+{"time": "2026-05-09T16:41:51", "level": "INFO", "logger": "sync_engine", "msg": "sync_engine: starting (interval=30s)"}
+{"time": "2026-05-09T16:41:51", "level": "INFO", "logger": "httpx", "msg": "HTTP Request: GET http://100.121.211.106:8070/api/sync/companies?since=2026-05-09T07%3A32%3A29.401Z&limit=500 \"HTTP/1.1 401 Unauthorized\""}
+{"time": "2026-05-09T16:41:51", "level": "WARNING", "logger": "sync_engine", "msg": "sync_engine: auth error from http://100.121.211.106:8070 (401) — check MUSU_BRIDGE_TOKEN"}
+{"time": "2026-05-09T16:41:51", "level": "WARNING", "logger": "sync_engine", "msg": "sync_engine: pull from http://100.121.211.106:8070 failed — auth"}
+{"time": "2026-05-09T16:41:53", "level": "INFO", "logger": "discovery", "msg": "discovery: advertising 'hughsecond' at 100.126.67.88:8070"}
+{"time": "2026-05-09T16:41:53", "level": "INFO", "logger": "discovery", "msg": "discovery: mDNS browser started"}
+{"time": "2026-05-09T16:41:53", "level": "INFO", "logger": "__main__", "msg": "discovery: mDNS active on 100.126.67.88"}
+{"time": "2026-05-09T16:41:53", "level": "INFO", "logger": "__main__", "msg": "relay_client: session cleanup task started"}
+{"time": "2026-05-09T16:41:53", "level": "INFO", "logger": "musu.heartbeat", "msg": "qa_auto_evaluate_loop: disabled (MUSU_QA_AUTO_ENABLED != true)"}
+{"time": "2026-05-09T16:41:53", "level": "INFO", "logger": "musu.heartbeat", "msg": "budget_reset_cron: started"}
+{"time": "2026-05-09T16:41:53", "level": "INFO", "logger": "musu.heartbeat", "msg": "wiki_sync_cron: started (interval=600s)"}
+{"time": "2026-05-09T16:41:53", "level": "INFO", "logger": "musu.watchdog", "msg": "watchdog: started (interval=60s, threshold=900s)"}
+{"time": "2026-05-09T16:41:53", "level": "INFO", "logger": "httpx", "msg": "HTTP Request: POST http://127.0.0.1:1355/promote \"HTTP/1.1 400 Bad Request\""}
+{"time": "2026-05-09T16:41:53", "level": "INFO", "logger": "__main__", "msg": "portd: registered bridge as alias 'bridge'"}
+{"time": "2026-05-09T16:41:53", "level": "INFO", "logger": "node_identity", "msg": "node_identity: os=wsl2 machine=hugh_second-pc win_hostname=hugh_second gpu=NVIDIA GeForce RTX 4060 Ti tailscale=100.126.67.88"}
+{"time": "2026-05-09T16:41:53", "level": "INFO", "logger": "__main__", "msg": "lifecycle: bridge_started event recorded for node='hughsecond'"}
+{"time": "2026-05-09T16:41:53", "level": "WARNING", "logger": "__main__", "msg": "db_cleanup: failed — 'list' object has no attribute 'rowcount'"}
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8070 (Press CTRL+C to quit)
+{"time": "2026-05-09T16:42:21", "level": "INFO", "logger": "httpx", "msg": "HTTP Request: GET http://100.121.211.106:8070/api/sync/companies?since=2026-05-09T07%3A32%3A29.401Z&limit=500 \"HTTP/1.1 401 Unauthorized\""}
+{"time": "2026-05-09T16:42:21", "level": "WARNING", "logger": "sync_engine", "msg": "sync_engine: auth error from http://100.121.211.106:8070 (401) — check MUSU_BRIDGE_TOKEN"}
+{"time": "2026-05-09T16:42:21", "level": "WARNING", "logger": "sync_engine", "msg": "sync_engine: pull from http://100.121.211.106:8070 failed — auth"}
+{"time": "2026-05-09T16:42:50", "level": "INFO", "logger": "httpx", "msg": "HTTP Request: GET http://100.121.211.106:8070/api/sync/companies?since=2026-05-09T07%3A32%3A29.401Z&limit=500 \"HTTP/1.1 401 Unauthorized\""}
+{"time": "2026-05-09T16:42:50", "level": "WARNING", "logger": "sync_engine", "msg": "sync_engine: auth error from http://100.121.211.106:8070 (401) — check MUSU_BRIDGE_TOKEN"}
+{"time": "2026-05-09T16:42:50", "level": "WARNING", "logger": "sync_engine", "msg": "sync_engine: pull from http://100.121.211.106:8070 failed — auth"}
+{"time": "2026-05-09T16:43:19", "level": "INFO", "logger": "httpx", "msg": "HTTP Request: GET http://100.121.211.106:8070/api/sync/companies?since=2026-05-09T07%3A32%3A29.401Z&limit=500 \"HTTP/1.1 401 Unauthorized\""}
+{"time": "2026-05-09T16:43:19", "level": "WARNING", "logger": "sync_engine", "msg": "sync_engine: auth error from http://100.121.211.106:8070 (401) — check MUSU_BRIDGE_TOKEN"}
+{"time": "2026-05-09T16:43:19", "level": "WARNING", "logger": "sync_engine", "msg": "sync_engine: pull from http://100.121.211.106:8070 failed — auth"}
+{"time": "2026-05-09T16:43:49", "level": "INFO", "logger": "httpx", "msg": "HTTP Request: GET http://100.121.211.106:8070/api/sync/companies?since=2026-05-09T07%3A32%3A29.401Z&limit=500 \"HTTP/1.1 401 Unauthorized\""}
+{"time": "2026-05-09T16:43:49", "level": "WARNING", "logger": "sync_engine", "msg": "sync_engine: auth error from http://100.121.211.106:8070 (401) — check MUSU_BRIDGE_TOKEN"}
+{"time": "2026-05-09T16:43:49", "level": "WARNING", "logger": "sync_engine", "msg": "sync_engine: pull from http://100.121.211.106:8070 failed — auth"}
+{"time": "2026-05-09T16:44:47", "level": "INFO", "logger": "httpx", "msg": "HTTP Request: GET http://100.121.211.106:8070/api/sync/companies?since=2026-05-09T07%3A32%3A29.401Z&limit=500 \"HTTP/1.1 401 Unauthorized\""}
+{"time": "2026-05-09T16:44:47", "level": "WARNING", "logger": "sync_engine", "msg": "sync_engine: auth error from http://100.121.211.106:8070 (401) — check MUSU_BRIDGE_TOKEN"}
+{"time": "2026-05-09T16:44:47", "level": "WARNING", "logger": "sync_engine", "msg": "sync_engine: pull from http://100.121.211.106:8070 failed — auth"}
+{"time": "2026-05-09T16:52:32", "level": "INFO", "logger": "httpx", "msg": "HTTP Request: GET http://100.121.211.106:8070/api/sync/companies?since=2026-05-09T07%3A32%3A29.401Z&limit=500 \"HTTP/1.1 401 Unauthorized\""}
+{"time": "2026-05-09T16:52:32", "level": "WARNING", "logger": "sync_engine", "msg": "sync_engine: auth error from http://100.121.211.106:8070 (401) — check MUSU_BRIDGE_TOKEN"}
+{"time": "2026-05-09T16:52:32", "level": "WARNING", "logger": "sync_engine", "msg": "sync_engine: pull from http://100.121.211.106:8070 failed — auth"}
+{"time": "2026-05-09T16:57:52", "level": "INFO", "logger": "httpx", "msg": "HTTP Request: GET http://100.121.211.106:8070/api/sync/companies?since=2026-05-09T07%3A32%3A29.401Z&limit=500 \"HTTP/1.1 401 Unauthorized\""}
+{"time": "2026-05-09T16:57:52", "level": "WARNING", "logger": "sync_engine", "msg": "sync_engine: auth error from http://100.121.211.106:8070 (401) — check MUSU_BRIDGE_TOKEN"}
+{"time": "2026-05-09T16:57:52", "level": "WARNING", "logger": "sync_engine", "msg": "sync_engine: pull from http://100.121.211.106:8070 failed — auth"}
+{"time": "2026-05-09T17:03:11", "level": "INFO", "logger": "httpx", "msg": "HTTP Request: GET http://100.121.211.106:8070/api/sync/companies?since=2026-05-09T07%3A32%3A29.401Z&limit=500 \"HTTP/1.1 401 Unauthorized\""}
+{"time": "2026-05-09T17:03:11", "level": "WARNING", "logger": "sync_engine", "msg": "sync_engine: auth error from http://100.121.211.106:8070 (401) — check MUSU_BRIDGE_TOKEN"}
+{"time": "2026-05-09T17:03:11", "level": "WARNING", "logger": "sync_engine", "msg": "sync_engine: pull from http://100.121.211.106:8070 failed — auth"}
+{"time": "2026-05-09T17:08:31", "level": "INFO", "logger": "httpx", "msg": "HTTP Request: GET http://100.121.211.106:8070/api/sync/companies?since=2026-05-09T07%3A32%3A29.401Z&limit=500 \"HTTP/1.1 401 Unauthorized\""}
+{"time": "2026-05-09T17:08:31", "level": "WARNING", "logger": "sync_engine", "msg": "sync_engine: auth error from http://100.121.211.106:8070 (401) — check MUSU_BRIDGE_TOKEN"}
+{"time": "2026-05-09T17:08:31", "level": "WARNING", "logger": "sync_engine", "msg": "sync_engine: pull from http://100.121.211.106:8070 failed — auth"}
+{"time": "2026-05-09T17:13:50", "level": "INFO", "logger": "httpx", "msg": "HTTP Request: GET http://100.121.211.106:8070/api/sync/companies?since=2026-05-09T07%3A32%3A29.401Z&limit=500 \"HTTP/1.1 401 Unauthorized\""}
+{"time": "2026-05-09T17:13:50", "level": "WARNING", "logger": "sync_engine", "msg": "sync_engine: auth error from http://100.121.211.106:8070 (401) — check MUSU_BRIDGE_TOKEN"}
+{"time": "2026-05-09T17:13:50", "level": "WARNING", "logger": "sync_engine", "msg": "sync_engine: pull from http://100.121.211.106:8070 failed — auth"}

@@ -1025,7 +1025,31 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
     # W2/W5: Validate channel exists (check company-scoped agents too)
     channel_map = get_channel_map(company_id=req.company_id)
     if req.channel not in channel_map:
-        raise HTTPException(status_code=400, detail=f"Unknown channel: {req.channel!r}")
+        # Dogfooding Fix: Try role-based or case-insensitive matching
+        matched_channel = None
+        target = req.channel.lower()
+        
+        # 1. Try lowercase match
+        if target in channel_map:
+            matched_channel = target
+        else:
+            # 2. Try role-based match
+            for ch, info in channel_map.items():
+                role = (info.get("agent_role") or "").lower()
+                if role == target:
+                    matched_channel = ch
+                    break
+        
+        if matched_channel:
+            req.channel = matched_channel
+        else:
+            # Enhanced error message
+            available = ", ".join(sorted(channel_map.keys()))
+            roles = ", ".join(sorted(set(str(info.get("agent_role")) for info in channel_map.values() if info.get("agent_role"))))
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Unknown channel/role: {req.channel!r}. Available channels: [{available}]. Available roles: [{roles}]"
+            )
 
     if len(_active_tasks) >= _MAX_CONCURRENT_TASKS:
         raise HTTPException(status_code=429, detail=f"Too many concurrent tasks (max {_MAX_CONCURRENT_TASKS})")
