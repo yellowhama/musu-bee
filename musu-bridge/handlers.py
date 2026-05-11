@@ -1154,9 +1154,10 @@ def get_channel_map(company_id: str | None = None) -> dict[str, Any]:
             "agent_id": agent["id"] if agent else None,
             "agent_role": agent["role"] if agent else None,
         }
-    # Add company-scoped agents not in static map
-    if company_id:
-        for agent in backend.list_agents(company_id=company_id):
+    # Add global and company-scoped agents
+    target_ids = [company_id, 'global'] if company_id else ['global']
+    for tid in target_ids:
+        for agent in backend.list_agents(company_id=tid):
             name = agent["name"]
             if name not in result:
                 result[name] = {
