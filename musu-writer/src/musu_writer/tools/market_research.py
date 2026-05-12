@@ -1,6 +1,6 @@
 """Market research tool — provides templates + context for trend analysis.
 
-The agent (BW-TrendResearcher) does the actual web searching and analysis.
+A trend-researcher agent does the actual web searching and analysis.
 This tool provides structure, templates, and stores results.
 """
 

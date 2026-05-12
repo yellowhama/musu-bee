@@ -90,7 +90,7 @@ REVIEW_CRITERIA = {
 def get_review_context(review_type: str, project: str) -> dict:
     """Get review criteria and instructions for a planning stage review.
 
-    Returns template for the reviewer (BW-Editor) to fill.
+    Returns template for the reviewer/editor agent to fill.
     """
     spec = REVIEW_CRITERIA.get(review_type)
     if not spec:

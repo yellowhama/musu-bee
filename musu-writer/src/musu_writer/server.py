@@ -508,7 +508,7 @@ async def get_review_context_tool(
 ) -> str:
     """Get review criteria for a planning stage (Generator ≠ Evaluator).
 
-    BW-Editor uses this to critique planning outputs. Cross-context review.
+    An editor/reviewer agent uses this to critique planning outputs (cross-context review).
     Available types: review_direction, review_characters, review_synopsis,
                      review_outline, review_driven, review_world
 
@@ -882,4 +882,36 @@ async def promote_canon_candidate(
     from .tools.promote_canon_candidate import promote
 
     result = promote(project, candidate_file, target_canon_path, mode)
+    return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def capture_lesson(
+    lesson_type: str,
+    statement: str,
+    source_project: str = "",
+    context: str = "",
+) -> str:
+    """Capture a company-level lesson (not project-scoped).
+
+    LLM call: none. Appends to lessons/<type>.md (prepend, newest on top).
+    Use this when the author flags a repeated correction, a failure recovery
+    pattern, or a company-wide operational pattern. The lesson is then
+    auto-referenced by audit tools (audit_tone_drift, audit_canon_drift).
+
+    Categories:
+    - repeated_correction: 작가가 반복 지적한 메타 패턴
+    - failure_recovery: 실패 수습 사례 (어떻게 망쳤고 어떻게 고쳤나)
+    - company_pattern: 회사 일반 패턴 (작품 무관, 운영/도구/워크플로)
+
+    Args:
+        lesson_type: "repeated_correction" | "failure_recovery" | "company_pattern"
+        statement: The lesson, in your own words
+        source_project: Optional — where the lesson came from
+            ("false-dane" | "hunter-reborn" | "both" | "")
+        context: Optional rationale
+    """
+    from .tools.capture_lesson import append_lesson
+
+    result = append_lesson(lesson_type, statement, source_project, context)
     return json.dumps(result, ensure_ascii=False)
