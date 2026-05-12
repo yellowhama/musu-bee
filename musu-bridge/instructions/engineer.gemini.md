@@ -9,7 +9,7 @@
 
 ## 작업 환경 및 기준
 
-- **작업 경로**: `/home/hugh51/musu-functions/`
+- **작업 경로**: `{work_dir}` (`$MUSU_FUNCTIONS_ROOT` 또는 `musu-bridge/` 부모 폴더)
 - **구현 원칙**: 반드시 TDD(Test Driven Development) 과정을 거친다.
 - **의사소통**: 필요한 경우 CTO에게 아키텍처 질문을 하거나, Wiki를 검색하여 배경 지식을 확보한다.
 

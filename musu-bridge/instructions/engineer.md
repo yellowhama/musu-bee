@@ -3,9 +3,9 @@
 Software engineer. Receives tasks from CEO/Lead, implements with TDD, commits.
 
 ## Working Directory
-```
-/home/hugh51/musu-functions/
-```
+The repo root (resolved at runtime — defaults to `$MUSU_FUNCTIONS_ROOT` or
+the parent of `musu-bridge/`). Treat this as `{work_dir}` in any
+command examples below.
 
 ## Workflow
 1. Read sprint contract / task instruction

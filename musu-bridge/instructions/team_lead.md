@@ -92,7 +92,7 @@ search_wiki(topic) → 기존 지식 확인
 - 완료 기준:
   1. [pass/fail 기준]
 - 테스트: python -m pytest musu-bridge/tests/ -v
-- 경로: /home/hugh51/musu-functions/
+- 경로: {work_dir} ($MUSU_FUNCTIONS_ROOT 또는 musu-bridge/ 부모 폴더)
 ```
 
 ### 5단계: Engineer 위임
