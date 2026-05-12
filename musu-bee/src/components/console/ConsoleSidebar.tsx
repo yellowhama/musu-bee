@@ -4,12 +4,15 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Inbox, Building2, ListTodo, BookOpen, BarChart3, Settings, ScreenShare, ChevronsLeft, ChevronsRight, ExternalLink } from "lucide-react";
+import { Inbox, Building2, ListTodo, BookOpen, BarChart3, Settings, ScreenShare, ChevronsLeft, ChevronsRight, ExternalLink, LayoutGrid } from "lucide-react";
 import { SidebarNavItem } from "./SidebarNavItem";
 import { useConsoleShell } from "./ConsoleShellContext";
 
 const NAV_ITEMS = [
   { id: "home",      href: "/home",      icon: Inbox,       label: "Home" },
+  // v13.3 — Canvas is the D1+D3 differentiator surface. It lives inside
+  // /app, so the href just stays on /app and onNavigate switches the panel.
+  { id: "canvas",    href: "/app",       icon: LayoutGrid,  label: "Canvas" },
   { id: "workspace", href: "/workspace", icon: Building2,   label: "Workspace" },
   { id: "tasks",     href: "/tasks",     icon: ListTodo,    label: "Tasks" },
   { id: "dashboard", href: "/dashboard", icon: BarChart3,   label: "Dashboard" },
