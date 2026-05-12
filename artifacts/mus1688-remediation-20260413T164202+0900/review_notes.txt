@@ -1,4 +1,0 @@
-/review (targeted, packet scope only)
-- Checked for trust-boundary expansion in scope files: none found.
-- Checked for accidental functional drift beyond token path in scope files: none found.
-- Residual risk: large unrelated working tree exists; use scope patch as authoritative merge unit.

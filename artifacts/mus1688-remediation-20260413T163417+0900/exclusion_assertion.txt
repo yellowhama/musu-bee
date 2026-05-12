@@ -1,7 +1,0 @@
-Excluded file names present in patch:
-NOT_FOUND musu-bee/src/components/AppShell.tsx
-NOT_FOUND musu-bee/src/app/faq/page.tsx
-NOT_FOUND musu-bee/src/app/install/page.tsx
-NOT_FOUND musu-bee/src/app/pricing/page.tsx
-NOT_FOUND musu-bee/src/app/pro/page.tsx
-NOT_FOUND musu-bee/src/components/PublicSiteShell.tsx

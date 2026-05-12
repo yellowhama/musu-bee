@@ -1,5 +1,0 @@
-get_editor_state({ include_schema: true })
-batch_get({ nodeIds: ["yTjpK", "MtTkh", "KyTms"], readDepth: 1 })
-export_nodes({ nodeIds: ["yTjpK", "MtTkh", "KyTms"], outputDir: "/home/hugh51/musu-functions/artifacts/mus1810-c2-evidence-20260413T074839+0900/exports", format: "png", scale: 2 })
-save()
-exit()

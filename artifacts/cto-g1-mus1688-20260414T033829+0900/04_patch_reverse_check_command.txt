@@ -1,1 +1,0 @@
-[RUN] git apply --reverse --check /home/hugh51/musu-functions/artifacts/mus1688-reentry-20260413T183345Z/mus1688-token-only.patch

@@ -1,3 +1,0 @@
-created_at=2026-04-14T04:00:16+09:00
-run_id=962061c1-72e4-495e-9ac3-fa5460c7ac9d
-task_id=cd8e6a49-3d2b-494b-9be1-2537c4f42657

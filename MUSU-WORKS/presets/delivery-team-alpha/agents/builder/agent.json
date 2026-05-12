@@ -1,7 +1,0 @@
-{
-  "agent_id": "builder",
-  "role_template_id": "builder",
-  "company_id": "delivery_team_alpha",
-  "runtime_mode": "execution",
-  "status": "seeded"
-}

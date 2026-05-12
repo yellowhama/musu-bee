@@ -1,8 +1,0 @@
-COPY src/components/ChatArea.tsx
-COPY src/lib/companySetup.shared.ts
-COPY src/lib/companyScope.ts
-COPY src/lib/paddle.ts
-COPY src/lib/companySetup.ts
-COPY src/lib/companyActivation.ts
-COPY src/app/api/webhooks/paddle/handler.ts
-COPY src/app/api/webhooks/paddle/route.test.ts

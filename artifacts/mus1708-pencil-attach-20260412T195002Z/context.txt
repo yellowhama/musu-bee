@@ -1,2 +1,0 @@
-timestamp_utc=2026-04-12T19:50:02Z
-target_pen=/home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen

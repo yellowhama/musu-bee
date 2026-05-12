@@ -1,5 +1,0 @@
-{
-  "beforeFile": "/home/hugh51/musu-functions/artifacts/mus-1742/runtime-before-remed-fe-20260412T223757Z.json",
-  "afterFile": "/home/hugh51/musu-functions/artifacts/mus-1742/runtime-after-remed-fe-20260412T223757Z.json",
-  "rollbackCommand": "curl -sS -X PATCH http://127.0.0.1:3100/api/agents/7a87bcf2-6b89-498e-b295-d80d53710bd0 -H 'Content-Type: application/json' --data '{\"runtimeConfig\":{\"heartbeat\":{\"enabled\":true,\"cooldownSec\":10,\"intervalSec\":3600,\"wakeOnDemand\":true,\"maxConcurrentRuns\":8}}}'"
-}

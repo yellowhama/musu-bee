@@ -1,7 +1,0 @@
-design_artifact_id,design_artifact_path,linked_pr_number,linked_check_id,link_reason
-631adaa5-0fea-49fe-80d5-52926bf7e616,.qa-artifacts/g2-mus1582-design-pr-check-20260412T183811Z.log,1,70369014446,Deploy check surfaced in PR rollup used for implementation verification
-631adaa5-0fea-49fe-80d5-52926bf7e616,.qa-artifacts/g2-mus1582-design-pr-check-20260412T183811Z.log,1,70369027375,Deploy retry check surfaced in PR rollup used for implementation verification
-e79ffc11-9c58-4941-bb11-bfb0ccd1909f,.qa-artifacts/g2-mus1582-recheck-body-20260412T185657Z.log,1,70369014478,E2E check in PR rollup validates user-facing flow lane
-e79ffc11-9c58-4941-bb11-bfb0ccd1909f,.qa-artifacts/g2-mus1582-recheck-body-20260412T185657Z.log,1,70369027337,E2E retry check in PR rollup validates user-facing flow lane
-0c8e5cb9-8f7d-49ab-994a-95086d390c18,.qa-artifacts/mus1582_replay_20260413T0352KST.log,1,70369014478,G2 pass replay references stable acceptance baseline including E2E check evidence
-ed2a7a08-01fa-4ecf-ae9d-7e6ce1db6b9b,.qa-artifacts/g2-run-linkage-replay-20260412T184920Z.log,1,70369027337,G2 pass replay references stable acceptance baseline including E2E check evidence

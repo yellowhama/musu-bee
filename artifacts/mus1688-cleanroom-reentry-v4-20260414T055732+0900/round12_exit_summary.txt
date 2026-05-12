@@ -1,5 +1,0 @@
-build_round12=0
-typecheck_round12=0
-targeted_tests_round12=0
-token_scan_full_round12=1
-route_probe_file=/home/hugh51/musu-functions/artifacts/mus1688-cleanroom-reentry-v4-20260414T055732+0900/route_probe_round12.tsv

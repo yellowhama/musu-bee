@@ -1,7 +1,0 @@
-npm_ci=0
-npm_install=SKIPPED
-typecheck=0
-build=0
-targeted_tests=0
-token_scan_full=1  # no-match semantics
-route_probe=0

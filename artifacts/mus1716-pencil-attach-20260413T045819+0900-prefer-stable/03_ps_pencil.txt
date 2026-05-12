@@ -1,4 +1,0 @@
-15073 14896     281 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
-30742 30594     169 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
-47927 47768      26 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop
-89327 89106     490 /home/hugh51/tools/Pencil-1.1.24-linux-x64/resources/app.asar.unpacked/out/mcp-server-linux-x64 --app desktop

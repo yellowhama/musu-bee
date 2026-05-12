@@ -1,7 +1,0 @@
-PATCH:/home/hugh51/musu-functions/artifacts/mus1688-fe-reentry-20260413T171452+0900/reconstructable_scope.patch
-WORKTREE:/tmp/mus1688-clean-0MLR5l
-CMD: git worktree add --detach /tmp/mus1688-clean-0MLR5l HEAD
-작업 트리 준비 중 (분리된 HEAD 53e08d42)
-HEAD의 현재 위치는 53e08d42입니다 feat(company): add registry and paperclip sync
-CMD: git -C /tmp/mus1688-clean-0MLR5l apply --check /home/hugh51/musu-functions/artifacts/mus1688-fe-reentry-20260413T171452+0900/reconstructable_scope.patch
-EXIT:0

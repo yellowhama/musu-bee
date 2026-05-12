@@ -1,4 +1,0 @@
-/qa (targeted, user-facing token path)
-- Verified test targets cover token contract and landing-exp module path.
-- Build/typecheck/test rerun attached in this same evidence window.
-- Full interactive visual QA remains gated to post-G1 /design-review flow.

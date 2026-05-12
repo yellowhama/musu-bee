@@ -1,2 +1,0 @@
-server_pid=26312
-ready=1

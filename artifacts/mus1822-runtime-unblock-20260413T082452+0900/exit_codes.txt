@@ -1,9 +1,0 @@
-started_at=2026-04-12T23:24:52Z
-artifact_dir=/home/hugh51/musu-functions/artifacts/mus1822-runtime-unblock-20260413T082452+0900
-policy=force_clean
-target_pen=/home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen
-window_lines=5000
-start=0
-check=4
-mcp=0
-final=1

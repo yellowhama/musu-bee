@@ -1,4 +1,0 @@
-195e35235e0d6f1cfc14dad2d9af5c4957123422f06d92d00db5bd7f3bb1ef0f  /home/hugh51/musu-functions/artifacts/mus1651-work-hub-v1.pen
-6785de244ac35063061584c2c8418020e086fa68ee80b05d171b95036b7cd026  /home/hugh51/musu-functions/artifacts/mus1651-evidence/workhub-comfortable.png
-db09568ef2b96a5be9e773f970fc5a6001b6883d839a185c91780a2118a75982  /home/hugh51/musu-functions/artifacts/mus1651-evidence/workhub-compact.png
-075039c2367404448360a1ef4ce751b7e62fad77bab592634e76db500e5f900e  /home/hugh51/musu-functions/artifacts/mus1651-evidence/workhub-mobile.png

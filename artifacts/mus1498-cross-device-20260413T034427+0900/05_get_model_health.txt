@@ -1,7 +1,0 @@
-CMD: curl -siS --max-time 8 http://100.121.211.106:1355/model/health
-HTTP/1.1 502 Bad Gateway
-content-type: text/plain; charset=utf-8
-content-length: 115
-date: Sun, 12 Apr 2026 18:44:28 GMT
-
-proxy request failed: http://127.0.0.1:18081/health (error sending request for url (http://127.0.0.1:18081/health))[exit=0]

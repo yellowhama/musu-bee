@@ -1,5 +1,0 @@
-[INFO] PID file not found: /tmp/pencil-dev.pid
-[INFO] No running Pencil main process found.
-[MCP] Connection or startup is incomplete.
-[MCP] Verify active .pen and retry the standard MCP sequence.
-[MCP] Playbook: /home/hugh51/musu-functions/skills/pencil-dev-design-workflow/scripts/../references/pencil-mcp-tool-calling-playbook.md

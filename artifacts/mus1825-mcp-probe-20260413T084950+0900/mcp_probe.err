@@ -1,9 +1,0 @@
-STDERR_START
-2026/04/13 08:50:08 [MCP] Starting server in stdio mode
-2026/04/13 08:50:08 [WebSocketClient] server connected to WebSocket server
-2026/04/13 08:50:08 [WebSocketClient] received client ID: 11a2484b-9bfd-44cc-b6d5-83f0348c875c
-2026/04/13 08:50:39 [WebSocketClient] error when reading message: websocket: close 1006 (abnormal closure): unexpected EOF
-2026/04/13 08:50:39 [WebSocketClient] connection closed
-2026/04/13 08:51:09 [MCP] Failed to start stdio server: context canceled
-
-STDERR_END

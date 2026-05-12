@@ -1,4 +1,0 @@
-/review (scope-only)
-- Verified new behavior test checks all expected waitlist statuses (`ok`, `invalid_email`, `error`).
-- Verified form action contract assertion for `/api/waitlist?from=/landing-exp` with POST.
-- No new trust-boundary code path introduced in this packet.

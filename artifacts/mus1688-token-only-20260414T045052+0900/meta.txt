@@ -1,6 +1,0 @@
-run_id=f3502fa0-59f0-4f54-8e48-a87e6fe9e1ca
-timestamp=20260414T045052+0900
-scope_mode=TOKEN_ONLY
-pwd=/home/hugh51/musu-functions/musu-bee
-node=v24.13.0
-npm=11.6.2

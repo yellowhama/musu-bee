@@ -1,4 +1,0 @@
-base_sha=b12280062bbbdfe4705bcce52043144d2e692209
-packet_sha=1cfdfa758826673795bf6931063c057f43260e33
-canonical_candidate_sha=3bd0c078545d636aaea10718f7b43a6bf10f5d11
-project_dir=/tmp/mus1688-cleanroom-20260414T055346+0900/musu-bee

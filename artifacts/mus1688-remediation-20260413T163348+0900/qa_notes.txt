@@ -1,4 +1,0 @@
-/qa (targeted user-facing scope)
-- Regression tests executed for token usage and landing module styles.
-- Typecheck and production build replayed in same immutable window.
-- Full visual G2 remains pending CTO G1 PASS (per gate policy).

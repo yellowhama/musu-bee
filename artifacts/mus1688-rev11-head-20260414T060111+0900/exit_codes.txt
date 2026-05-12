@@ -1,6 +1,0 @@
-npm_ci=1
-npm_install=0
-typecheck=2
-build=1
-targeted_tests=1
-token_scan_full=0

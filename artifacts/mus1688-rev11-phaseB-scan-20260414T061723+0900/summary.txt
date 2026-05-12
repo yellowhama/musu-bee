@@ -1,2 +1,0 @@
-token_scan_required_surface_exit=0
-token_scan_full_exit=0

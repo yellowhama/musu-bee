@@ -1,8 +1,0 @@
-npm ci
-npm run typecheck
-NODE_ENV=production npm run build
-targeted tests
-token scan
-next start on :4110 + route probe
-npm install
-route probe corrected via npx next start -p 4111

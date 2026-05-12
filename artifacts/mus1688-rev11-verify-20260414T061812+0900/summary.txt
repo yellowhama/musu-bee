@@ -1,7 +1,0 @@
-head_sha=e7024c5b05f881b40d16506fb564e217febdf233
-npm_install_exit=0
-build_exit=143
-typecheck_exit=137
-targeted_tests_exit=0
-token_scan_exit=1
-route_probe_exit=1

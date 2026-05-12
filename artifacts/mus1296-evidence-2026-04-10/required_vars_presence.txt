@@ -1,5 +1,0 @@
-# required_vars_presence
-PADDLE_API_KEY=missing
-PADDLE_WEBHOOK_SECRET=missing
-NEXT_PUBLIC_PADDLE_CLIENT_TOKEN=missing
-NEXT_PUBLIC_PADDLE_ENV=missing

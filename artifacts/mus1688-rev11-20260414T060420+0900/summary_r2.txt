@@ -1,5 +1,0 @@
-npm_install_r2_exit=0
-build_r8_exit=0
-typecheck_r4_exit=0
-targeted_tests_r3_exit=0
-token_scan_r3_exit=1

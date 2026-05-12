@@ -1,4 +1,0 @@
-/ qa (targeted, user-facing landing token path)
-- Regression tests: brand token policy + landing-exp module CSS variable enforcement.
-- Typecheck/build executed in same immutable window.
-- No full browser E2E run in this packet evidence window.

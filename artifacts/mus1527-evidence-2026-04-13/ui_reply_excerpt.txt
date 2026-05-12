@@ -1,3 +1,0 @@
-prompt: MUS-1527 UI smoke (2026-04-13): reply with one short sentence mentioning MUS1527.
-reply: The MUS-1527 UI smoke test has been completed.
-uiContainsReply: true

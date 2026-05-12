@@ -1,4 +1,0 @@
-snapshot_started_at=2026-04-13T15:41:02+09:00
-run_id=c5dc57d2-26e0-44af-b471-362fbe072c13
-issue_id=cd8e6a49-3d2b-494b-9be1-2537c4f42657
-snapshot_finished_at=2026-04-13T15:41:39+09:00

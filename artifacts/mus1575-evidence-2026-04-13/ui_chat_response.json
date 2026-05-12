@@ -1,7 +1,0 @@
-{
-  "prompt": "MUS-1575 UI probe: reply in one short sentence mentioning MUS1575.",
-  "apiStatus": 200,
-  "apiRequestBody": "{\"message\":\"MUS-1575 UI probe: reply in one short sentence mentioning MUS1575.\"}",
-  "apiResponseBody": "{\"text\":\"The MUS-1575 UI probe has been successfully initiated.\"}",
-  "reply": "The MUS-1575 UI probe has been successfully initiated."
-}

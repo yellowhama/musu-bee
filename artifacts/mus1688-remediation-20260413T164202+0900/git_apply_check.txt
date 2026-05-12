@@ -1,2 +1,0 @@
-CMD: git apply --check /home/hugh51/musu-functions/artifacts/mus1688-remediation-20260413T164202+0900/reconstructable_scope.patch
-EXIT=0

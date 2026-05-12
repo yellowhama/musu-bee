@@ -1,1 +1,0 @@
-# forbidden brand hex outside globals.css in src/app (tests excluded)

@@ -1,6 +1,0 @@
-/home/hugh51/musu-functions/artifacts/mus1708-proof-20260413T070649+0900
-/home/hugh51/musu-functions/artifacts/mus1708-appimage-20260413T072103+0900
-/home/hugh51/musu-functions/artifacts/mus1708-restart-20260413T071327+0900
-/home/hugh51/musu-functions/artifacts/mus1708-reset-20260413T071254+0900
-/home/hugh51/musu-functions/artifacts/mus1708-mcp-purge-20260413T071946+0900
-/home/hugh51/musu-functions/artifacts/mus1708-conflict-clean-20260413T071921+0900

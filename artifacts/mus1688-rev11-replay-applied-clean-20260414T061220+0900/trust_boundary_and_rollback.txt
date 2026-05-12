@@ -1,3 +1,0 @@
-trust_boundary: no user-provided input is used to construct style token values; only static CSS vars and server-defined class/style literals are used.
-rollback_anchor: c83eb6bbaa4f72ef8b34fbcedf4ad3a76bc6421b
-rollback_method: reset to base anchor commit in clean-room or revert commit a388b5aab6624a901d49c90a1ee1b76c0db43d2e.

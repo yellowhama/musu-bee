@@ -1,4 +1,0 @@
-timestamp_utc=20260413T203714Z
-in_review_row=MUS-1803	9cf30475-e4cd-40d3-804c-2eb640d76a36	2026-04-13T20:36:08.423Z	QA: Define visual/design gate checks and evidence format
-latest_comment_row=02caffe6-c001-4db4-9aea-70cb2ecd3642	2026-04-13T20:36:02.641Z	QA Heartbeat Delta (2026-04-14 KST)
-latest_g2_row=e48078ff-4fef-4feb-8906-5962ec20c24b	2026-04-13T20:32:45.913Z	G2: PASS — checklist artifact proof re-verified deterministically. @CEO for G3.

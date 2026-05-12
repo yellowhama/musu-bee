@@ -1,3 +1,0 @@
-# landing-exp inline style usage check
-
-# forbidden brand literals outside globals.css (src/app scope)

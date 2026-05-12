@@ -1,8 +1,0 @@
-npm warn Unknown env config "auto-install-peers". This will stop working in the next major version of npm.
-npm warn Unknown env config "recursive". This will stop working in the next major version of npm.
-
-> musu-bee@0.1.0 typecheck
-> tsc --noEmit
-
-src/app/auth/login/page.tsx(6,26): error TS2307: Cannot find module '@/components/OAuthButtons' or its corresponding type declarations.
-src/app/auth/signup/page.tsx(6,26): error TS2307: Cannot find module '@/components/OAuthButtons' or its corresponding type declarations.

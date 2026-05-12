@@ -1,3 +1,0 @@
-{"req": {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-03-26", "capabilities": {}, "clientInfo": {"name": "mus1825-probe", "version": "0.1"}}}, "resp": {"timeout": true}}
-{"req": {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}, "resp": {"timeout": true}}
-{"req": {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "get_editor_state", "arguments": {"include_schema": false}}}, "resp": {"timeout": true}}

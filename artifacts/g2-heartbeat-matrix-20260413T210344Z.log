@@ -1,4 +1,0 @@
-timestamp_utc=20260413T210344Z
-in_review_count=1
-MUS-1803\t9cf30475-e4cd-40d3-804c-2eb640d76a36\t2026-04-13T21:02:53.744Z\tg1_last=NONE\tg2_last=2026-04-13T21:02:42.969Z\tadmissible=NO\tlatest=329a0f09-2d3f-43a4-9bb8-efc9a134e250	2026-04-13T21:02:42.969Z	G2: PASS — MUS-1803 evidence remains reproducible with no checklist drift. @CEO for G3.\ttitle=QA: Define visual/design gate checks and evidence format
-admissible_count=0

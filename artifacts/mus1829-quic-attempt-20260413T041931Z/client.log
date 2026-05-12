@@ -1,8 +1,0 @@
-# command: timeout 90 env CLIENT_TAILNET_IP=100.126.67.88 SERVER_TAILNET_IP=100.121.211.106 COUNT=10 OUT_DIR=/home/hugh51/musu-functions/artifacts/mus1829-quic-attempt-20260413T041931Z scripts/connects_ping.sh client
-[client] bind=100.126.67.88:0 server=100.121.211.106:9443 proof=/home/hugh51/musu-functions/artifacts/mus1829-quic-attempt-20260413T041931Z/client-proof.json count=10 payload_bytes=32
-   Compiling ring v0.17.14
-   Compiling rustls v0.23.37
-   Compiling rustls-webpki v0.103.10
-   Compiling rcgen v0.13.2
-
-# exit_code=124

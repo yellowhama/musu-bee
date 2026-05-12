@@ -1,4 +1,0 @@
-timestamp_utc=2026-04-12T19:48:45Z
-hostname=hughsecond
-run_id=5e85d588-f1be-4bc0-bf6b-0f8c26be4e31
-issue_id=c67e6c51-e93b-4a4d-bcaa-7e0f3b8d17c0

@@ -1,4 +1,0 @@
-targeted_tests_exit=1
-typecheck_exit=1
-build_exit=1
-token_scan_full_exit=0

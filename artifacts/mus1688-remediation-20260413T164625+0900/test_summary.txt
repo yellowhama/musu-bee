@@ -1,5 +1,0 @@
-TEST_SUMMARY
-9:ℹ tests 6
-11:ℹ pass 6
-12:ℹ fail 0
-16:ℹ duration_ms 635.620308

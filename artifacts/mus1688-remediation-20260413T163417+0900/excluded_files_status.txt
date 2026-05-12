@@ -1,6 +1,0 @@
- M musu-bee/src/app/faq/page.tsx
- M musu-bee/src/app/install/page.tsx
- M musu-bee/src/app/pricing/page.tsx
- M musu-bee/src/app/pro/page.tsx
- M musu-bee/src/components/AppShell.tsx
- M musu-bee/src/components/PublicSiteShell.tsx

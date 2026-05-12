@@ -1,5 +1,0 @@
-# no route/query/scope terms in token packet files
-musu-bee/src/app/landing-exp/page.tsx:18:  searchParams: Promise<{
-musu-bee/src/app/landing-exp/page.tsx:92:export default async function LandingPage({ searchParams }: LandingPageProps) {
-musu-bee/src/app/landing-exp/page.tsx:93:  const params = await searchParams;
-musu-bee/src/app/landing-exp/page.tsx:146:                placeholder="you@company.com"

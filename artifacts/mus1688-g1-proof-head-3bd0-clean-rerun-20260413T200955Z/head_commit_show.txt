@@ -1,6 +1,0 @@
-3bd0c078 feat(musu-bee): TASK-B2 — multi-machine real device cards
-M	musu-bee/src/app/api/device-status/route.ts
-M	musu-bee/src/components/AppShell.tsx
-M	musu-bee/src/components/Sidebar.tsx
-A	musu-bee/src/lib/useDeviceDiscovery.ts
-M	musu-bee/src/types/index.ts

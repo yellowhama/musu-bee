@@ -1,5 +1,0 @@
-[INFO] Pencil already running for target (pid=86554).
-[INFO] log=/home/hugh51/musu-functions/artifacts/mus1825-nodeenvprod-20260413T085049+0900/runtime/pencil-dev.log
-[MCP] Pencil workflow ready.
-[MCP] Use sequence: batch_get -> get_screenshot(before) -> batch_design -> snapshot_layout -> get_screenshot(after)
-[MCP] Playbook: /home/hugh51/musu-functions/skills/pencil-dev-design-workflow/scripts/../references/pencil-mcp-tool-calling-playbook.md

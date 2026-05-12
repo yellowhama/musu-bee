@@ -1,4 +1,0 @@
-error: 패치 실패: musu-bee/package-lock.json:14
-error: musu-bee/package-lock.json: 패치를 적용하지 않습니다
-error: 패치 실패: musu-bee/tsconfig.tsbuildinfo:1
-error: musu-bee/tsconfig.tsbuildinfo: 패치를 적용하지 않습니다

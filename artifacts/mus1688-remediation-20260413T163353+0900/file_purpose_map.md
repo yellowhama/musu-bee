@@ -1,5 +1,0 @@
-- musu-bee/src/app/globals.css: canonical brand token definitions + compatibility aliases
-- musu-bee/src/app/landing-exp/page.tsx: landing-exp markup class wiring (consumes tokenized CSS module)
-- musu-bee/src/app/landing-exp/page.module.css: replaces hardcoded brand palette usage with canonical CSS vars
-- musu-bee/src/app/landing-exp/page.module.test.ts: regression test asserting no hardcoded brand colors in landing-exp module
-- musu-bee/src/app/brand-tokens.test.ts: regression test asserting canonical token definitions and no deprecated alias consumption

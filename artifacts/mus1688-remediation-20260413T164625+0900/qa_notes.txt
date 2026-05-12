@@ -1,4 +1,0 @@
-/qa (targeted)
-- Added branch-contract test for landing-exp waitlist states and form action endpoint.
-- Re-ran tests/typecheck/build in same evidence window; see exit_codes.txt.
-- Visual QA still gated to post-G1 /design-review.

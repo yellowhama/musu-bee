@@ -1,5 +1,0 @@
-phaseA_npm_install_exit=0
-phaseA_typecheck_exit=0
-phaseA_build_exit=0
-phaseB_targeted_tests_exit=0
-phaseB_token_scan_exit=1

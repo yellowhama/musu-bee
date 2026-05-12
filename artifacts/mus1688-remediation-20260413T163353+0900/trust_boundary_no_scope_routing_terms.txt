@@ -1,2 +1,0 @@
-# focused route-scope trust-boundary scan (workspace/company sync path terms)
-../..//musu-bee/src/app/landing-exp/page.tsx:146:                placeholder="you@company.com"

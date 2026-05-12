@@ -1,3 +1,0 @@
-timestamp=20260413T185015Z
-precondition=no next dev process
-contract=rm -rf .next && npm run build && npm run typecheck && npx --yes tsx --test src/app/brand-tokens.test.ts src/app/landing-exp/page.module.test.ts src/app/landing-exp/page.contract.test.ts

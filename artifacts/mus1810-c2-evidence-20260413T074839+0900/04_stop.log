@@ -1,6 +1,0 @@
-[INFO] Stopping Pencil PID(s): 93671 93682
-[WARN] PID still running, sending SIGKILL: 93671
-[OK] Stopped
-[MCP] Connection or startup is incomplete.
-[MCP] Verify active .pen and retry the standard MCP sequence.
-[MCP] Playbook: /home/hugh51/.agents/skills/pencil-dev-design-workflow/scripts/../references/pencil-mcp-tool-calling-playbook.md

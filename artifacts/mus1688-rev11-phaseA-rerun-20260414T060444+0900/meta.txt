@@ -1,3 +1,0 @@
-worktree=/tmp/mus1688-rev11-20260414T060036
-head_sha=c83eb6bbaa4f72ef8b34fbcedf4ad3a76bc6421b
-started_at=2026-04-14T06:04:44+09:00

@@ -1,4 +1,0 @@
-timestamp_utc=2026-04-10T12:51:24Z
-3f4c6793b117b044b5177da18956c21614f1262d4ca13357bf207461f6e7662a  /mnt/f/Aisaak/Projects/yellow.txt
-size_bytes=1550
-mtime=2026-04-08 21:21:28.945364900 +0900

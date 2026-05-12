@@ -1,5 +1,0 @@
-artifact_dir=/home/hugh51/musu-functions/artifacts/mus1822-runtime-unblock-altbin-20260413T082937+0900
-01_stop.exit=0
-02_start_altbin.exit=0
-03_check_altbin.exit=4
-04_codex_mcp_get.exit=0

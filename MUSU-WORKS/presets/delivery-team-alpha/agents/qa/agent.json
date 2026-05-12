@@ -1,7 +1,0 @@
-{
-  "agent_id": "qa",
-  "role_template_id": "qa",
-  "company_id": "delivery_team_alpha",
-  "runtime_mode": "qa",
-  "status": "seeded"
-}

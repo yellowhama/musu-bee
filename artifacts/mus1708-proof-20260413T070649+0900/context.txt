@@ -1,6 +1,0 @@
-timestamp=20260413T070649+0900
-target_pen=/home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
-main_log=/home/hugh51/.config/Pencil/logs/main.log
-PAPERCLIP_TASK_ID=46f7d5a1-ec58-430e-8e5a-54f0fc6f625f
-PAPERCLIP_RUN_ID=9a9b7e95-0de2-4c53-9c86-fc1d2c899dd2
-PAPERCLIP_AGENT_ID=7a87bcf2-6b89-498e-b295-d80d53710bd0

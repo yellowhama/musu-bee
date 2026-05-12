@@ -1,8 +1,0 @@
-- src/app/faq/page.tsx: 브랜드 컬러 하드코딩 제거, CSS vars 사용으로 치환.
-- src/app/install/page.tsx: 인라인 브랜드 hex 제거, 토큰 기반 색상 사용.
-- src/app/landing/page.tsx: 랜딩 주요 CTA/텍스트 색상 토큰화.
-- src/app/pricing/page.tsx: 요금제 카드/강조 색상 토큰화.
-- src/app/pro/page.tsx: 대시보드/플랜 UI 브랜드 색상 토큰화.
-- src/components/PublicSiteShell.tsx: 공용 외부 사이트 셸의 브랜드 배경/텍스트 토큰화.
-- src/app/landing-exp/page.module.css (+ tests): landing-exp 브랜드 토큰 계약 일관성 유지.
-- src/lib/*, webhooks/*, AppShell.tsx, tasks route 계열: Phase A 타입/빌드 결정론 복구를 위한 compile-surface 정합.

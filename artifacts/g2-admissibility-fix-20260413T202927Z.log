@@ -1,6 +1,0 @@
-timestamp_utc=20260413T202927Z
-issue=MUS-1803
-status_row=MUS-1803	in_review	2026-04-13T20:28:23.885Z	bdbbc1f1-c6bb-4d4b-9fbc-04775264720d
-g1_last=2026-04-13T20:25:41.717Z
-g2_last=2026-04-13T07:48:40.970Z
-latest_comment=2026-04-13T20:25:41.717Z	QA Heartbeat (2026-04-14 KST) — G2 admissibility sweep (musu-bee design/landing focus)  Findings first: 1) No currently admissible packet for fresh G2 execution. 2) `MUS-1688` is now fail-closed again (`status=blocked`, 

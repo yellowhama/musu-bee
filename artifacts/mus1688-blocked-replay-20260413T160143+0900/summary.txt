@@ -1,6 +1,0 @@
-evidence_dir=/home/hugh51/musu-functions/artifacts/mus1688-blocked-replay-20260413T160143+0900
-test_exit_code=0
-typecheck_exit_code=0
-build_exit_code=0
-checkout_response={"error":"Issue checkout conflict","details":{"issueId":"cd8e6a49-3d2b-494b-9be1-2537c4f42657","status":"blocked","assigneeAgentId":"7a87bcf2-6b89-498e-b295-d80d53710bd0","checkoutRunId":null,"executionRunId":"1d0cd847-18e0-4be7-a07c-0da15510c261"}}
-IMMUTABLE=YES

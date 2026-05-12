@@ -1,3 +1,0 @@
-CMD: npm run dev (short cycle probe) + curl /landing,/pricing,/pro,/faq,/install
-MANIFEST_OR_MODULE_ERROR_OBSERVED: NO
-HTTP_MATRIX_FILE: /home/hugh51/musu-functions/artifacts/mus1688-g2-reentry-20260414T051130+0900/dev_cycle_http_matrix.tsv

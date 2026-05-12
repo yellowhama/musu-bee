@@ -1,4 +1,0 @@
-build_round8=1
-typecheck_round8=2
-targeted_tests_round8=0
-token_scan_full_round8=1

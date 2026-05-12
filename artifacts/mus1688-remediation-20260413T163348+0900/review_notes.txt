@@ -1,5 +1,0 @@
-/review (token-only scope)
-- Checked authoritative patch `token_scope_full.patch` for widened runtime logic.
-- No `AppShell` / company-workspace scope-sync logic in this patch unit.
-- No inline style injection sink introduced (`dangerouslySetInnerHTML`, `style={...}`) in scoped files.
-- Residual risk: landing-exp `searchParams.waitlist` controls display text only; no auth scope mutation.

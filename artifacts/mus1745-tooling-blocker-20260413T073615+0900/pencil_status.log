@@ -1,9 +1,0 @@
-$ pencil status
-
-  [1mPencil CLI[22m
-  [2m────────────────────────────────────[22m
-
-  [2mStatus      [22m [31mNot authenticated[39m
-
-[2m  Run "pencil login" or set PENCIL_CLI_KEY to authenticate.[22m
-

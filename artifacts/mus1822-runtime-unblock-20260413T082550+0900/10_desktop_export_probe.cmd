@@ -1,1 +1,0 @@
-timeout 40s pencil -i '/home/hugh51/musu-functions/artifacts/mus1783-work-hub-remediation.pen' -e '/home/hugh51/musu-functions/artifacts/mus1822-runtime-unblock-20260413T082550+0900/export.png' --export-scale 1

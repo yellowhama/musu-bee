@@ -1,7 +1,0 @@
-{
-  "agent_id": "engineering_manager",
-  "role_template_id": "engineering_manager",
-  "company_id": "delivery_team_alpha",
-  "runtime_mode": "coordination",
-  "status": "seeded"
-}

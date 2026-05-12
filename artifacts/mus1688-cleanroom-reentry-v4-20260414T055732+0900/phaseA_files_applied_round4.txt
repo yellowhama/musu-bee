@@ -1,3 +1,0 @@
-COPY src/app/auth/callback/page.tsx
-COPY src/app/auth/login/page.tsx
-COPY src/app/auth/signup/page.tsx

@@ -1,5 +1,0 @@
-manual_checks_started_at=2026-04-12T23:40:55Z
-manual_check_01=3
-manual_check_02=3
-manual_check_03=3
-manual_checks_finished_at=2026-04-12T23:41:01Z

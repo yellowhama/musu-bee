@@ -1,3 +1,0 @@
-get_editor_state({ include_schema: false })
-get_screenshot({ nodeId: "yTjpK" })
-exit()

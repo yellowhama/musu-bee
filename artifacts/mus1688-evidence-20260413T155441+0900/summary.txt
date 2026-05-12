@@ -1,4 +1,0 @@
-evidence_dir=/home/hugh51/musu-functions/artifacts/mus1688-evidence-20260413T155441+0900
-test_exit_code=0
-typecheck_exit_code=0
-build_exit_code=0

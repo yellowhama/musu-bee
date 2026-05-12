@@ -1,7 +1,0 @@
-61180 pencil          /tmp/.mount_PencilUbhiOR/pencil --no-sandbox --enable-unsafe-swiftshader --disable-gpu /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
-61189 Pencil-linux-x8 /home/hugh51/Pencil-linux-x86_64.AppImage --no-sandbox --enable-unsafe-swiftshader --disable-gpu /home/hugh51/musu-functions/artifacts/mus1644-work-hub.pen
-61420 pencil          /tmp/.mount_PencilUbhiOR/pencil --type=zygote --no-zygote-sandbox --no-sandbox
-61422 pencil          /tmp/.mount_PencilUbhiOR/pencil --type=zygote --no-sandbox
-62295 pencil          /tmp/.mount_PencilUbhiOR/pencil --type=zygote --no-zygote-sandbox --no-sandbox
-62439 pencil          /proc/self/exe --type=utility --utility-sub-type=network.mojom.NetworkService --lang=en-US --service-sandbox-type=none --no-sandbox --enable-crash-reporter=0cfef81b-996c-4cc0-9dd0-9cfdee9010ab,no_channel --user-data-dir=/home/hugh51/.config/Pencil --standard-schemes=pencil --secure-schemes=pencil,sentry-ipc --bypasscsp-schemes=sentry-ipc --cors-schemes=pencil,sentry-ipc --fetch-schemes=pencil,sentry-ipc --shared-files=v8_context_snapshot_data:100 --field-trial-handle=3,i,17520725682048266533,1008832132408559051,262144 --enable-features=PdfUseShowSaveFilePicker --disable-features=LocalNetworkAccessChecks,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708989122997041
-62857 pencil          /tmp/.mount_PencilUbhiOR/pencil --type=zygote --no-sandbox

@@ -51,6 +51,36 @@ butler_output.log
 /coherence_report.json
 /issues_full.json
 
+# v11-iso10: operator archives moved to ~/.musu/archive/. Reject
+# re-entry into the product repo.
+/MUSU-CRT/
+/MUSU-WORKS/
+/MUSU-AS-MCP/
+/PAPERCLIP_OPERATIONS/
+/artifacts/
+/docs/PARA/
+/docs/REPORT_*.md
+/docs/NEXT_STEPS_*.md
+/docs/MASTER_PLAN_*.md
+/docs/MAIN_PC_SETUP.md
+/docs/STRATEGIC_REPORT_*.md
+/docs/95_*.md
+/docs/96_*.md
+/docs/97_*.md
+
+# v11-iso10: pre-built binaries + logs + coverage. Binaries ship from
+# releases, not from the repo. Logs are runtime state.
+/bin/musu
+/bin/musu-connectsd
+/bin/musu-portd
+/bin/musud
+/.coverage
+**/.coverage
+/activity.log
+bridge_*.log
+musu-bridge/bridge_*.log
+musu-bridge/server_*.log
+
 # Empty marker files
 MUS-*
 in_progress

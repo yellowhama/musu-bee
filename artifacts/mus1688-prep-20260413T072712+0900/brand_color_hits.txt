@@ -1,9 +1,0 @@
-musu-bee/src/app/landing-exp/page.module.css:2:  --musu-brown: #2d1d19;
-musu-bee/src/app/landing-exp/page.module.css:4:  --musu-yellow: #ffd166;
-musu-bee/src/app/landing-exp/page.module.css:6:  --musu-offwhite: #fdfcf0;
-musu-bee/src/app/landing-exp/page.module.css:16:    linear-gradient(180deg, #fdfcf0 0%, #f7f0dc 46%, #fdfcf0 100%);
-musu-bee/src/app/landing-exp/page.module.css:366:  background: #2d1d19;
-musu-bee/src/app/landing-exp/page.module.css:367:  color: #fdfcf0;
-musu-bee/src/app/landing-exp/page.module.css:545:  background: #2d1d19;
-musu-bee/src/app/landing-exp/page.module.css:546:  color: #fdfcf0;
-musu-bee/src/app/landing-exp/page.module.css:565:  color: #fdfcf0;

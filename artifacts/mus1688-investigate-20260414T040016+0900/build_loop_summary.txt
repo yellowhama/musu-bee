@@ -1,5 +1,0 @@
-loop_1_exit=0
-loop_2_exit=0
-loop_3_exit=0
-loop_4_exit=0
-loop_5_exit=0

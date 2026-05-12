@@ -1,7 +1,0 @@
-PING 100.121.211.106 (100.121.211.106) 56(84) bytes of data.
-64 bytes from 100.121.211.106: icmp_seq=1 ttl=64 time=185 ms
-64 bytes from 100.121.211.106: icmp_seq=2 ttl=64 time=81.6 ms
-
---- 100.121.211.106 ping statistics ---
-2 packets transmitted, 2 received, 0% packet loss, time 1050ms
-rtt min/avg/max/mdev = 81.570/133.123/184.677/51.553 ms

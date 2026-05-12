@@ -1,4 +1,0 @@
-targeted_tests_exit=0
-typecheck_rerun_exit=2
-build_rerun_exit=1
-token_scan_full_exit=

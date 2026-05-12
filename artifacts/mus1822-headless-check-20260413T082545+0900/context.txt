@@ -1,3 +1,0 @@
-timestamp=2026-04-12T23:25:45Z
-which_pencil=/home/hugh51/.npm-global/bin/pencil
-has_PENCIL_CLI_KEY=no

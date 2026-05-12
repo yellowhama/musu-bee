@@ -1,3 +1,0 @@
-npm warn Unknown env config "auto-install-peers". This will stop working in the next major version of npm.
-npm warn Unknown env config "recursive". This will stop working in the next major version of npm.
-Could not find 'src/app/brand-tokens.test.ts, src/app/landing-exp/page.module.test.ts, src/app/landing-exp/page.contract.test.ts'

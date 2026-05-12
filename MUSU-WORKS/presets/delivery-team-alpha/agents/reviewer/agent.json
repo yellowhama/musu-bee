@@ -1,7 +1,0 @@
-{
-  "agent_id": "reviewer",
-  "role_template_id": "reviewer",
-  "company_id": "delivery_team_alpha",
-  "runtime_mode": "review",
-  "status": "seeded"
-}

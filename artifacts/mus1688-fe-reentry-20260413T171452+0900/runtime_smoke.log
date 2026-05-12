@@ -1,7 +1,0 @@
-CMD: npx --yes next start -p 4019
-SERVER_PID:99750
-GET /landing-exp -> HTTP 200
-GET /pricing -> HTTP 200
-GET /install -> HTTP 200
-GET /faq -> HTTP 200
-GET /pro -> HTTP 200

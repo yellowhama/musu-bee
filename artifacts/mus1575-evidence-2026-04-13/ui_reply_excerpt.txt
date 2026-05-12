@@ -1,2 +1,0 @@
-prompt: MUS-1575 UI probe: reply in one short sentence mentioning MUS1575.
-reply: The MUS-1575 UI probe has been successfully initiated.
