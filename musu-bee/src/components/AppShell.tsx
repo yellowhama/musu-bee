@@ -315,6 +315,16 @@ export default function AppShell() {
       setActivePanel("approvals");
     } else if (target.kind === "issues") {
       setActivePanel("issues");
+      // v14.3 — auto-flip the issue to in_progress when the operator jumps
+      // to it. Fire-and-forget; the IssuesPanel's own poll picks up the new
+      // status on the next tick.
+      if (target.issueId) {
+        void fetch(`/api/bridge/issues/${target.issueId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "in_progress" }),
+        }).catch(() => {});
+      }
     } else if (target.kind === "channel") {
       // Company boards land on the general agent channel; specific channel
       // names route directly if they match a known ChatChannelId.

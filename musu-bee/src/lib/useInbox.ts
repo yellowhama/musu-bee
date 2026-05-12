@@ -59,6 +59,8 @@ export interface UseInboxReturn {
   refresh: () => void;
   resolveApproval: (rawId: string, decision: "approved" | "rejected") => Promise<void>;
   markAllNotificationsRead: () => Promise<void>;
+  /** v14.3 — mark a single notification as read. */
+  markNotificationRead: (rawId: string) => Promise<void>;
   /** Company ids that should yellow-ring flash on the canvas. D consumes + clears. */
   flashCompanyIds: string[];
   clearFlash: (companyId: string) => void;
@@ -281,6 +283,24 @@ export function useInbox(
     }
   }, [userId, doFetch]);
 
+  // v14.3 — per-notification mark-read.
+  const markNotificationRead = useCallback(
+    async (rawId: string) => {
+      if (!userId) return;
+      setItems((prev) =>
+        prev.filter((it) => !(it.kind === "notification" && it.rawId === rawId)),
+      );
+      try {
+        await fetch(`/api/bridge/notifications/${userId}/${rawId}/read`, {
+          method: "POST",
+        });
+      } finally {
+        void doFetch();
+      }
+    },
+    [userId, doFetch],
+  );
+
   const clearFlash = useCallback((cid: string) => {
     setFlashCompanyIds((prev) => prev.filter((id) => id !== cid));
   }, []);
@@ -293,6 +313,7 @@ export function useInbox(
     refresh,
     resolveApproval,
     markAllNotificationsRead,
+    markNotificationRead,
     flashCompanyIds,
     clearFlash,
   };

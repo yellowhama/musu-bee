@@ -101,7 +101,10 @@ export default function InboxBell({ inbox, onJump }: InboxBellProps) {
                   onApprove={(id) => void inbox.resolveApproval(id, "approved")}
                   onReject={(id) => void inbox.resolveApproval(id, "rejected")}
                   onJump={(target) => {
-                    if (target.kind === "channel") void inbox.markAllNotificationsRead();
+                    // v14.3 — per-notification mark-read on click (was bulk).
+                    if (target.kind === "channel" && item.kind === "notification") {
+                      void inbox.markNotificationRead(item.rawId);
+                    }
                     handleJump(target);
                   }}
                 />

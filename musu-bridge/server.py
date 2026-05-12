@@ -2706,6 +2706,22 @@ async def api_get_notifications(recipient_id: str) -> list[dict]:
     return [dict(r) for r in rows]
 
 
+@app.post(
+    "/api/notifications/{recipient_id}/{notification_id}/read",
+    summary="Mark a single notification as read (v14.3)",
+)
+async def api_mark_notification_read(recipient_id: str, notification_id: str) -> dict:
+    """Mark one notification as read. Scoped to recipient_id so a user can't
+    flip notifications belonging to someone else."""
+    from handlers import _get_backend as _gb_notif_one
+    backend = _gb_notif_one()
+    backend._db.execute(
+        "UPDATE notifications SET read = 1 WHERE id = ? AND recipient_id = ?",
+        (notification_id, recipient_id),
+    )
+    return {"marked_read": True, "id": notification_id, "recipient_id": recipient_id}
+
+
 @app.post("/api/notifications/{recipient_id}/read", summary="Mark notifications as read")
 async def api_mark_notifications_read(recipient_id: str) -> dict:
     """Mark all notifications as read."""
