@@ -1485,3 +1485,66 @@ code, .mono {
   outline: 3px solid #fff;
   outline-offset: 2px;
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   v15.5 — Mobile responsive (≤768px)
+
+   The desktop layout is panel + chat side-by-side. On phones the
+   horizontal flex collapses and the two panes stack — but rather than
+   shrink both into a 375px column (cramped), the user sees one at a
+   time and switches with a bottom tab (Panel / Chat).
+   Above 768px the switcher is hidden and both panes are visible.
+───────────────────────────────────────────────────────────────────── */
+
+.appshell-mobile-switch {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .appshell-main {
+    flex-direction: column !important;
+    /* leave room for the in-app switcher + the route-level mobile tab bar */
+    padding-bottom: calc(48px + 56px + env(safe-area-inset-bottom));
+  }
+  .appshell-pane {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    border-left: none !important;
+  }
+  /* Only the active mobile pane is rendered. The other still mounts so
+     its state survives the toggle. */
+  .appshell-pane:not(.mobile-active) {
+    display: none !important;
+  }
+  .appshell-mobile-switch {
+    position: fixed;
+    left: 0;
+    right: 0;
+    /* sits just above the route-level ConsoleMobileTabBar */
+    bottom: calc(56px + env(safe-area-inset-bottom));
+    height: 48px;
+    display: flex;
+    background: var(--bg-card, #1e1410);
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    z-index: 90;
+  }
+  .appshell-mobile-switch button {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: rgba(253, 252, 240, 0.55);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 150ms, background 150ms;
+  }
+  .appshell-mobile-switch button.active {
+    color: #FFD166;
+    background: rgba(255, 209, 102, 0.06);
+  }
+  .appshell-mobile-switch button:focus-visible {
+    outline: 2px solid #FFD166;
+    outline-offset: -2px;
+  }
+}

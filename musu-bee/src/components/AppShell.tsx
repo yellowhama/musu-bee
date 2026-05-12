@@ -188,6 +188,10 @@ export default function AppShell() {
   const [showCompanyOnboarding, setShowCompanyOnboarding] = useState(false);
   const [showPalette, setShowPalette] = useState(false);
   const [paletteInjection, setPaletteInjection] = useState("");
+  // v15.5 — mobile (≤768px) collapses panel + chat to a single visible
+  // pane at a time. Default: panel. Above 768px the toggle is hidden
+  // (the layout is back to two-column flex).
+  const [mobileView, setMobileView] = useState<"panel" | "chat">("panel");
 
   const { healthPopover, setHealthPopover, popoverRef, handleBadgeClick } = useHealthPopover();
 
@@ -344,8 +348,11 @@ export default function AppShell() {
       onInboxJump={handleInboxJump}
     >
       {/* Main content below — ConsoleShell provides sidebar + topbar */}
-      {/* Main content — panels + chat (ConsoleShell provides sidebar+topbar) */}
+      {/* Main content — panels + chat (ConsoleShell provides sidebar+topbar).
+          On ≤768px viewports, the layout stacks and a bottom switcher
+          toggles between panel and chat (only one visible at a time). */}
       <div
+        className="appshell-main"
         style={{
           display: "flex",
           height: "100%",
@@ -353,17 +360,25 @@ export default function AppShell() {
         }}
       >
         {/* Center: AI Display (tabbed panels + AI content) */}
-        <AIDisplay
-          activePanel={activePanel}
-          companyId={effectiveCompanyId}
-          onTriggerOnboarding={() => setShowCompanyOnboarding(true)}
-          flashCompanyIds={inbox.flashCompanyIds}
-          onFlashConsumed={inbox.clearFlash}
-          canvasRefreshKey={canvasRefreshKey}
-        />
+        <div
+          className={`appshell-pane appshell-pane-panel${mobileView === "panel" ? " mobile-active" : ""}`}
+          style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}
+        >
+          <AIDisplay
+            activePanel={activePanel}
+            companyId={effectiveCompanyId}
+            onTriggerOnboarding={() => setShowCompanyOnboarding(true)}
+            flashCompanyIds={inbox.flashCompanyIds}
+            onFlashConsumed={inbox.clearFlash}
+            canvasRefreshKey={canvasRefreshKey}
+          />
+        </div>
 
-        {/* Right: Chat (always visible) */}
-        <div style={{ width: 420, minWidth: 360, maxWidth: 520, borderLeft: "1px solid var(--border-subtle, rgba(255,255,255,0.06))" }}>
+        {/* Right: Chat (always visible on desktop, toggled on mobile) */}
+        <div
+          className={`appshell-pane appshell-pane-chat${mobileView === "chat" ? " mobile-active" : ""}`}
+          style={{ width: 420, minWidth: 360, maxWidth: 520, borderLeft: "1px solid var(--border-subtle, rgba(255,255,255,0.06))" }}
+        >
           <ChatArea
             key={activeChat}
             channelId={activeChat}
@@ -393,6 +408,32 @@ export default function AppShell() {
               if (effectiveCompanyId) inbox.clearFlash(effectiveCompanyId);
             }}
           />
+        </div>
+
+        {/* v15.5 — mobile-only pane switcher (≤768px) */}
+        <div
+          className="appshell-mobile-switch"
+          role="tablist"
+          aria-label="Switch between panel and chat"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mobileView === "panel"}
+            onClick={() => setMobileView("panel")}
+            className={mobileView === "panel" ? "active" : ""}
+          >
+            Panel
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mobileView === "chat"}
+            onClick={() => setMobileView("chat")}
+            className={mobileView === "chat" ? "active" : ""}
+          >
+            Chat
+          </button>
         </div>
       </div>
 
