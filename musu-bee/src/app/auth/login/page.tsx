@@ -1,13 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import OAuthButtons from "@/components/OAuthButtons";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 
-export default function LoginPage() {
+function safeReturnPath(value: string | null): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return "/workspace";
+  }
+  return value;
+}
+
+function LoginPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnPath = safeReturnPath(searchParams?.get("next") ?? searchParams?.get("redirect") ?? null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +42,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/app");
+      router.push(returnPath);
     } catch (error) {
       setError(error instanceof Error ? error.message : "We could not process the sign-in request.");
       setLoading(false);
@@ -108,7 +117,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        <OAuthButtons next="/app" />
+        <OAuthButtons next={returnPath} />
 
         <div
           style={{
@@ -243,5 +252,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageContent />
+    </Suspense>
   );
 }

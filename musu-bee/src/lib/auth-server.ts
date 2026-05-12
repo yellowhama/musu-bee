@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { type NextRequest } from "next/server";
 import { createClient, type User } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -53,6 +54,57 @@ export async function getUser(): Promise<User | null> {
     return user;
   } catch (err) {
     console.error("DEBUG: Supabase client error:", err);
+    return null;
+  }
+}
+
+export async function getUserFromRequest(request: NextRequest): Promise<User | null> {
+  const sessionCookie = request.cookies.getAll().find(
+    (c) => c.name.startsWith("sb-") && c.name.endsWith("-auth-token")
+  );
+
+  if (!sessionCookie) {
+    return null;
+  }
+
+  return getUserFromSessionCookie(sessionCookie.value);
+}
+
+async function getUserFromSessionCookie(cookieValue: string): Promise<User | null> {
+  let accessToken: string | null = null;
+  try {
+    const parsed = JSON.parse(cookieValue);
+    if (typeof parsed === "string") {
+      accessToken = parsed;
+    } else if (parsed?.access_token) {
+      accessToken = parsed.access_token;
+    } else if (Array.isArray(parsed) && parsed[0]) {
+      const joined = parsed.join("");
+      const inner = JSON.parse(joined);
+      accessToken = inner?.access_token || null;
+    }
+  } catch {
+    if (cookieValue.split(".").length === 3) {
+      accessToken = cookieValue;
+    }
+  }
+
+  if (!accessToken) {
+    return null;
+  }
+
+  try {
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${accessToken}` } },
+      auth: { persistSession: false },
+    });
+
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error) {
+      return null;
+    }
+    return user;
+  } catch {
     return null;
   }
 }

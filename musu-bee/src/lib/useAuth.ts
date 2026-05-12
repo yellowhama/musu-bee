@@ -36,6 +36,11 @@ export function useAuth(): UseAuthReturn {
   });
 
   useEffect(() => {
+    const redirectToLogin = () => {
+      const path = `${window.location.pathname}${window.location.search}`;
+      router.replace(`/login?redirect=${encodeURIComponent(path)}`);
+    };
+
     if (!authEnabled) {
       setUserIdentity({ email: null, id: null });
       return;
@@ -43,7 +48,7 @@ export function useAuth(): UseAuthReturn {
 
     if (!authConfigured) {
       setUserIdentity({ email: null, id: null });
-      router.replace("/auth/login");
+      redirectToLogin();
       return;
     }
 
@@ -58,7 +63,7 @@ export function useAuth(): UseAuthReturn {
           id: data.session.user.id ?? null,
         });
       } else if (authEnabled) {
-        router.replace("/auth/login");
+        redirectToLogin();
       }
     });
 
@@ -69,7 +74,7 @@ export function useAuth(): UseAuthReturn {
           id: session.user.id ?? null,
         });
       } else if (authEnabled) {
-        router.replace("/auth/login");
+        redirectToLogin();
       }
     });
 

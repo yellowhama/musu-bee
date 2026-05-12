@@ -103,7 +103,7 @@ test("signup error surface is rendered", async ({ page }) => {
   await expect(page.getByText("User already registered")).toBeVisible();
 });
 
-test("login happy path redirects to app workspace", async ({ page }) => {
+test("login happy path redirects to workspace", async ({ page }) => {
   test.slow();
   await mockSupabaseSignInSuccess(page);
 
@@ -112,7 +112,7 @@ test("login happy path redirects to app workspace", async ({ page }) => {
   await page.locator('input[type="password"]').fill("password123");
   await page.getByRole("button", { name: "로그인" }).click();
 
-  await expect(page).toHaveURL(/\/app$/);
+  await expect(page).toHaveURL(/\/workspace$/);
 });
 
 test("login invalid credentials shows error", async ({ page }) => {
@@ -127,7 +127,7 @@ test("login invalid credentials shows error", async ({ page }) => {
   await expect(page.getByText("Invalid login credentials")).toBeVisible();
 });
 
-test("@guard auth guard redirects to /auth/login when auth is enabled and no session", async ({
+test("@guard auth guard redirects to /login when auth is enabled and no session", async ({
   page,
 }) => {
   test.skip(
@@ -136,5 +136,5 @@ test("@guard auth guard redirects to /auth/login when auth is enabled and no ses
   );
 
   await page.goto("/app", { waitUntil: "domcontentloaded" });
-  await expect(page).toHaveURL(/\/auth\/login$/, { timeout: 10000 });
+  await expect(page).toHaveURL(/\/login\?redirect=%2Fapp$/, { timeout: 10000 });
 });

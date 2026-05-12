@@ -12,17 +12,20 @@ interface ConsoleTopStripProps {
   onToggleSidebar: () => void;
 }
 
-function nodeAge(lastSeen: string): "online" | "recent" | "offline" {
+function nodeAge(lastSeen: string | null | undefined): "online" | "stale" | "offline" | "unknown" {
+  if (!lastSeen) return "unknown";
   const diff = Date.now() - new Date(lastSeen).getTime();
+  if (!Number.isFinite(diff)) return "unknown";
   if (diff < 2 * 60 * 1000) return "online";
-  if (diff < 15 * 60 * 1000) return "recent";
+  if (diff < 15 * 60 * 1000) return "stale";
   return "offline";
 }
 
 const NODE_DOT_COLOR: Record<string, string> = {
   online: "#22c55e",
-  recent: "#FFD166",
+  stale: "#FFD166",
   offline: "rgba(253,252,240,0.2)",
+  unknown: "rgba(253,252,240,0.15)",
 };
 
 export function ConsoleTopStrip({
@@ -33,9 +36,10 @@ export function ConsoleTopStrip({
 }: ConsoleTopStripProps) {
   const { setPaletteOpen } = useConsoleShell();
 
-  const onlineNode = nodes.find((n) => nodeAge(n.last_seen) === "online");
+  const onlineNode = nodes.find((n) => (n.health_status ?? nodeAge(n.last_seen)) === "online");
   const displayNode = onlineNode ?? nodes[0] ?? null;
-  const dotColor = displayNode ? NODE_DOT_COLOR[nodeAge(displayNode.last_seen)] : "rgba(253,252,240,0.2)";
+  const displayStatus = displayNode ? (displayNode.health_status ?? nodeAge(displayNode.last_seen)) : "unknown";
+  const dotColor = NODE_DOT_COLOR[displayStatus] ?? "rgba(253,252,240,0.2)";
 
   return (
     <div

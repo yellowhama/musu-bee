@@ -13,7 +13,7 @@ function AuthCallbackContent() {
 
   const nextPath = useMemo(() => {
     const next = searchParams?.get("next");
-    return next && next.startsWith("/") ? next : "/app";
+    return next && next.startsWith("/") && !next.startsWith("//") ? next : "/workspace";
   }, [searchParams]);
 
   useEffect(() => {

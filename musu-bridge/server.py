@@ -1992,7 +1992,7 @@ async def api_task_events(request: Request) -> StreamingResponse:
                 if await request.is_disconnected():
                     break
                 try:
-                    event = await asyncio.wait_for(q.get(), timeout=30)
+                    event = await asyncio.wait_for(q.get(), timeout=120)
                     yield f"data: {json.dumps(event)}\n\n"
                 except asyncio.TimeoutError:
                     yield ": keepalive\n\n"

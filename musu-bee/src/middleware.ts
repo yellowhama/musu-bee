@@ -8,10 +8,10 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 const supabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
 /**
- * Server-side auth gate for /app routes.
+ * Server-side auth gate for operator routes.
  *
  * Validates Supabase JWT from cookies. Expired or invalid tokens
- * get redirected to /auth/login. Cookie presence alone is not enough.
+ * get redirected to /login. Cookie presence alone is not enough.
  */
 export async function middleware(request: NextRequest) {
   if (!authEnabled || !supabaseConfigured) {
@@ -20,7 +20,11 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  if (!pathname.startsWith("/app") && !pathname.startsWith("/dashboard")) {
+  if (
+    !pathname.startsWith("/app") &&
+    !pathname.startsWith("/dashboard") &&
+    !pathname.startsWith("/workspace")
+  ) {
     return NextResponse.next();
   }
 
@@ -87,11 +91,11 @@ export async function middleware(request: NextRequest) {
 
 function redirectToLogin(request: NextRequest, pathname: string): NextResponse {
   const loginUrl = request.nextUrl.clone();
-  loginUrl.pathname = "/auth/login";
-  loginUrl.searchParams.set("next", pathname);
+  loginUrl.pathname = "/login";
+  loginUrl.searchParams.set("redirect", pathname);
   return NextResponse.redirect(loginUrl);
 }
 
 export const config = {
-  matcher: ["/app/:path*", "/dashboard/:path*"],
+  matcher: ["/app/:path*", "/dashboard/:path*", "/workspace/:path*"],
 };

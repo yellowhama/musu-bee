@@ -21,7 +21,7 @@ interface OAuthButtonsProps {
   next?: string;
 }
 
-export default function OAuthButtons({ next = "/app" }: OAuthButtonsProps) {
+export default function OAuthButtons({ next = "/workspace" }: OAuthButtonsProps) {
   const authConfigured = isSupabaseConfigured();
   const [loadingProvider, setLoadingProvider] = useState<OAuthProvider | null>(null);
   const [error, setError] = useState<string | null>(null);

@@ -12,7 +12,7 @@ export default async function DashboardPage() {
     const user = await getUser();
 
     if (!user) {
-      redirect("/auth/login?next=/dashboard");
+      redirect("/login?redirect=/dashboard");
     }
 
     const nodes = await listNodes();

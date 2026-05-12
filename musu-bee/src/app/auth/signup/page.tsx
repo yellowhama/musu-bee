@@ -36,7 +36,7 @@ export default function SignupPage() {
 
       setDone(true);
       // After email confirmation, user will be redirected to the app
-      setTimeout(() => router.push("/app"), 3000);
+      setTimeout(() => router.push("/workspace"), 3000);
     } catch (error) {
       setError(error instanceof Error ? error.message : "We could not process the sign-up request.");
       setLoading(false);
@@ -125,7 +125,7 @@ export default function SignupPage() {
               </div>
             )}
 
-            <OAuthButtons next="/app" />
+            <OAuthButtons next="/workspace" />
 
             <div
               style={{

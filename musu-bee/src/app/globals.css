@@ -1,5 +1,5 @@
 /* ---------- Webfonts ---------- */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
   /* ========== BRAND (SSOT) ========== */
@@ -20,12 +20,12 @@
   --musu-stroke: var(--musu-color-brand-stroke);
 
   /* ========== SURFACES (dark UI) ========== */
-  --bg-base:    #0d0d0d;   /* Page + sidebar */
-  --bg-surface: #111111;   /* Raised panels, main area */
-  --bg-card:    #1a1a1a;   /* Cards, list rows, chat bubbles */
-  --bg-overlay: #222222;   /* Modals, dropdowns */
+  --bg-base:    #1A110C;   /* Page + sidebar */
+  --bg-surface: #261811;   /* Raised panels, main area */
+  --bg-card:    rgba(255, 255, 255, 0.03);   /* Cards, list rows, chat bubbles */
+  --bg-overlay: #2D1D19;   /* Modals, dropdowns */
   --bg-hover:   #2a2a2a;   /* Hover on list rows */
-  --bg-inset:   #0d0d0d;
+  --bg-inset:   #150D0A;
   --bg-brand:   var(--musu-color-brand-ink);
 
   /* Backward compatibility for musu-bee components */
@@ -157,7 +157,7 @@
   --neo-radius:     16px;
 
   /* ========== TYPE — FAMILIES ========== */
-  --font-ui:   'Inter', -apple-system, BlinkMacSystemFont, 'Pretendard', 'Noto Sans KR', system-ui, sans-serif;
+  --font-ui:   'Nunito', 'Inter', -apple-system, BlinkMacSystemFont, 'Pretendard', 'Noto Sans KR', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'Menlo', monospace;
   --font-jetbrains: var(--font-mono);
   --font-display: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
