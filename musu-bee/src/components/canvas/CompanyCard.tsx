@@ -1,6 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
+import { nodeBorderStyle, nodeColor } from "./useNodeColor";
 
 export interface CompanyCardAgent {
   id: string;
@@ -62,10 +63,18 @@ const STATUS_DOT_STYLE: Record<CompanyCardAgent["status"], CSSProperties> = {
  * Border color (C) and edge endpoints (D) come from parent props later.
  */
 export default function CompanyCard({ data, style, onClick }: CompanyCardProps) {
+  const nodeStyle = nodeBorderStyle(data.primaryNode, data.otherNodes);
+  const mergedStyle: CSSProperties = {
+    ...style,
+    borderColor: nodeStyle.borderColor,
+    ...(nodeStyle.background ? { background: nodeStyle.background } : null),
+  };
+  const allNodes = [data.primaryNode, ...data.otherNodes].filter((n): n is string => Boolean(n));
+
   return (
     <div
       className="company-card"
-      style={style}
+      style={mergedStyle}
       data-company-id={data.companyId}
       onClick={() => onClick?.(data.companyId)}
       role="button"
@@ -94,6 +103,15 @@ export default function CompanyCard({ data, style, onClick }: CompanyCardProps) 
           <li className="company-card-agent more">+{data.agents.length - 8}</li>
         ) : null}
       </ul>
+      {allNodes.length > 0 ? (
+        <footer className="company-card-nodes" title={`runs on: ${allNodes.join(", ")}`}>
+          {allNodes.map((n) => (
+            <span key={n} className="company-card-node" style={{ background: nodeColor(n) }}>
+              {n}
+            </span>
+          ))}
+        </footer>
+      ) : null}
     </div>
   );
 }

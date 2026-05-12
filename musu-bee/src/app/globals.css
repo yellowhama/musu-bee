@@ -635,6 +635,29 @@ code, .mono {
   line-height: 1;
 }
 
+/* --- v12-canvas C: node legend chips at card bottom --- */
+.company-card-nodes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-subtle, rgba(0,0,0,0.08));
+}
+.company-card-node {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: var(--font-mono, JetBrains Mono, monospace);
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.4;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
 @keyframes agent-pulse {
   0%   { box-shadow: 0 0 0 0 rgba(16,185,129,0.55); }
   70%  { box-shadow: 0 0 0 6px rgba(16,185,129,0); }
