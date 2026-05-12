@@ -10,6 +10,7 @@ import type { DisplayContent } from "@/components/AIDisplay";
 import ChatArea from "@/components/ChatArea";
 import CompanyTemplateModal from "@/components/CompanyTemplateModal";
 import OnboardingModal from "@/components/OnboardingModal";
+import CompanyOnboardingModal from "@/components/CompanyOnboardingModal";
 import CommandPalette from "@/components/CommandPalette";
 import TasksPanel from "@/components/TasksPanel";
 import ProcessesPanel from "@/components/ProcessesPanel";
@@ -150,6 +151,7 @@ export default function AppShell() {
     return !localStorage.getItem("musu_onboarded");
   });
   const [showCompanyTemplate, setShowCompanyTemplate] = useState(false);
+  const [showCompanyOnboarding, setShowCompanyOnboarding] = useState(false);
   const [showPalette, setShowPalette] = useState(false);
   const [paletteInjection, setPaletteInjection] = useState("");
 
@@ -289,7 +291,7 @@ export default function AppShell() {
         <AIDisplay
           activePanel={activePanel}
           companyId={effectiveCompanyId}
-          onTriggerOnboarding={() => setShowOnboarding(true)}
+          onTriggerOnboarding={() => setShowCompanyOnboarding(true)}
         />
 
         {/* Right: Chat (always visible) */}
@@ -339,6 +341,15 @@ export default function AppShell() {
         <OnboardingModal
           onComplete={handleOnboardingComplete}
           onSkip={handleOnboardingSkip}
+        />
+      )}
+      {showCompanyOnboarding && (
+        <CompanyOnboardingModal
+          availableNodes={nodes.map((n: Record<string, unknown>) => ({
+            name: (n.name as string) ?? "unknown",
+            status: (n.status as string) ?? "offline",
+          }))}
+          onClose={() => setShowCompanyOnboarding(false)}
         />
       )}
       {showCompanyTemplate && (
