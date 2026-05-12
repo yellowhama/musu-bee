@@ -635,6 +635,43 @@ code, .mono {
   line-height: 1;
 }
 
+/* --- v12-canvas E: company-card zoom transitions --- */
+.company-card {
+  transition: transform 0.22s cubic-bezier(0.2, 0.9, 0.2, 1), opacity 0.18s ease, box-shadow 0.18s ease;
+}
+.canvas-card-layer.zoomed::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(2px);
+  pointer-events: none;
+  z-index: 0;
+}
+.canvas-zoom-exit {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 3;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle, rgba(0,0,0,0.1));
+  background: rgba(255,255,255,0.95);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-system, Inter, sans-serif);
+  letter-spacing: 0.02em;
+  color: var(--fg2, #374151);
+  cursor: pointer;
+  pointer-events: auto;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05), 0 4px 12px rgba(0,0,0,0.08);
+}
+.canvas-zoom-exit:hover {
+  background: #fff;
+  color: var(--fg1, #111);
+}
+
 /* --- v12-canvas C: node legend chips at card bottom --- */
 .company-card-nodes {
   display: flex;

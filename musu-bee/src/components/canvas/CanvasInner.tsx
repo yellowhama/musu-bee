@@ -10,8 +10,6 @@ import { useCompanyMessageFlow } from "./useCompanyMessageFlow";
 
 // Card dims used for anchor math. Keep in sync with .company-card CSS.
 const CARD_W = 240;
-// Approximate card height — varies with agent count. Use a fixed value
-// for anchor math; the SVG arrows hit the card center, not its edge.
 const CARD_H = 170;
 
 export interface CanvasInnerProps {
@@ -30,6 +28,7 @@ export default function CanvasInner({
   const { edges } = useCompanyMessageFlow();
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const [viewport, setViewport] = useState({ width: 1, height: 1 });
+  const [zoomedId, setZoomedId] = useState<string | null>(null);
 
   useEffect(() => {
     const el = overlayRef.current;
@@ -40,6 +39,16 @@ export default function CanvasInner({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  // ESC to leave zoom.
+  useEffect(() => {
+    if (!zoomedId) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setZoomedId(null);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [zoomedId]);
 
   const anchors = useMemo(() => {
     const out: Record<string, { x: number; y: number }> = {};
@@ -56,6 +65,10 @@ export default function CanvasInner({
 
   const handleMount = useCallback((editor: Editor) => {
     editor.updateInstanceState({ isReadonly: false, isGridMode: true });
+  }, []);
+
+  const handleCardClick = useCallback((id: string) => {
+    setZoomedId((cur) => (cur === id ? null : id));
   }, []);
 
   return (
@@ -76,19 +89,40 @@ export default function CanvasInner({
           ZoomMenu: null,
         }}
       />
-      <div className="canvas-card-layer" ref={overlayRef}>
+      <div className={`canvas-card-layer${zoomedId ? " zoomed" : ""}`} ref={overlayRef}>
         <FlowEdges edges={edges} anchors={anchors} width={viewport.width} height={viewport.height} />
         {cards.map((c) => {
           const pos = layout[c.companyId];
           if (!pos) return null;
+          const isZoomed = zoomedId === c.companyId;
+          const dimmed = zoomedId !== null && !isZoomed;
           return (
             <CompanyCard
               key={c.companyId}
               data={c}
-              style={{ left: pos.left, top: pos.top }}
+              style={{
+                left: pos.left,
+                top: pos.top,
+                opacity: dimmed ? 0.18 : 1,
+                transform: isZoomed ? "scale(1.6)" : undefined,
+                transformOrigin: "top left",
+                zIndex: isZoomed ? 2 : 1,
+                pointerEvents: dimmed ? "none" : "auto",
+              }}
+              onClick={handleCardClick}
             />
           );
         })}
+        {zoomedId ? (
+          <button
+            type="button"
+            className="canvas-zoom-exit"
+            onClick={() => setZoomedId(null)}
+            aria-label="Exit zoom (ESC)"
+          >
+            ESC ← Back to all companies
+          </button>
+        ) : null}
         {!loading && cards.length === 0 ? (
           <div className="canvas-empty-overlay" role="note">
             <p>{error ? `Canvas offline: ${error}` : "No companies yet"}</p>
