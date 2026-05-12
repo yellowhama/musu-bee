@@ -148,6 +148,8 @@ musu-bee/S3-*.png
 musu-bee/.next_bak_*/
 musu-bee/.tmp/
 musu-bee/.vercel/
+musu-bee/tsconfig.tsbuildinfo
+*.tsbuildinfo
 
 # Large reference dirs
 MUSU-AS-MCP/references/
