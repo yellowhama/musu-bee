@@ -289,6 +289,7 @@ export default function AppShell() {
         <AIDisplay
           activePanel={activePanel}
           companyId={effectiveCompanyId}
+          onTriggerOnboarding={() => setShowOnboarding(true)}
         />
 
         {/* Right: Chat (always visible) */}

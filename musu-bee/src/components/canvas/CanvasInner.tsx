@@ -22,7 +22,6 @@ export default function CanvasInner({
   onTriggerOnboarding,
 }: CanvasInnerProps) {
   void companyId;
-  void onTriggerOnboarding;
 
   const { cards, layout, loading, error } = useCompaniesCanvasData();
   const { edges } = useCompanyMessageFlow();
@@ -124,10 +123,20 @@ export default function CanvasInner({
           </button>
         ) : null}
         {!loading && cards.length === 0 ? (
-          <div className="canvas-empty-overlay" role="note">
-            <p>{error ? `Canvas offline: ${error}` : "No companies yet"}</p>
-            <p className="canvas-empty-hint">v12-canvas F will land the onboarding trigger here.</p>
-          </div>
+          <button
+            type="button"
+            className="canvas-empty-trigger"
+            onClick={() => onTriggerOnboarding?.()}
+            disabled={!onTriggerOnboarding}
+          >
+            <span className="canvas-empty-trigger-icon" aria-hidden>+</span>
+            <span className="canvas-empty-trigger-title">Start your first company</span>
+            <span className="canvas-empty-trigger-hint">
+              {error
+                ? `(canvas offline: ${error})`
+                : "Give it a mission. Your CEO picks a template or designs a new one."}
+            </span>
+          </button>
         ) : null}
       </div>
     </>

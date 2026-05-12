@@ -46,11 +46,13 @@ interface AIDisplayProps {
   /** External request to open a tab (from NavTab click or AI push) */
   openRequest?: DisplayContent | null;
   onOpenHandled?: () => void;
+  /** v12-canvas F — open onboarding from the empty-canvas trigger. */
+  onTriggerOnboarding?: () => void;
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export default function AIDisplay({ activePanel, companyId, openRequest, onOpenHandled }: AIDisplayProps) {
+export default function AIDisplay({ activePanel, companyId, openRequest, onOpenHandled, onTriggerOnboarding }: AIDisplayProps) {
   const [tabs, setTabs] = useState<Tab[]>([...PINNED_TABS]);
   const [activeTabId, setActiveTabId] = useState("__dashboard");
 
@@ -167,7 +169,7 @@ export default function AIDisplay({ activePanel, companyId, openRequest, onOpenH
 
       {/* Tab content */}
       <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-        {activeTab && <TabContent content={activeTab.content} companyId={companyId} />}
+        {activeTab && <TabContent content={activeTab.content} companyId={companyId} onTriggerOnboarding={onTriggerOnboarding} />}
       </div>
     </div>
   );
@@ -175,14 +177,14 @@ export default function AIDisplay({ activePanel, companyId, openRequest, onOpenH
 
 // ── Tab Content Renderer ─────────────────────────────────────────────────────
 
-function TabContent({ content, companyId }: { content: DisplayContent; companyId?: string | null }) {
+function TabContent({ content, companyId, onTriggerOnboarding }: { content: DisplayContent; companyId?: string | null; onTriggerOnboarding?: () => void }) {
   switch (content.type) {
     case "dashboard":
       return <ProjectBriefing companyId={companyId} />;
     case "files":
       return <FilesView />;
     case "panel":
-      return <PanelView panel={content.panel} companyId={companyId} />;
+      return <PanelView panel={content.panel} companyId={companyId} onTriggerOnboarding={onTriggerOnboarding} />;
     case "document":
       return <DocumentView title={content.title} markdown={content.markdown} />;
     case "code":
@@ -196,10 +198,10 @@ function TabContent({ content, companyId }: { content: DisplayContent; companyId
 
 // ── Panel View (existing panels) ─────────────────────────────────────────────
 
-function PanelView({ panel, companyId }: { panel: PanelId; companyId?: string | null }) {
+function PanelView({ panel, companyId, onTriggerOnboarding }: { panel: PanelId; companyId?: string | null; onTriggerOnboarding?: () => void }) {
   const cid = companyId ?? undefined;
   switch (panel) {
-    case "canvas": return <CompanyCanvasPanel companyId={cid ?? null} />;
+    case "canvas": return <CompanyCanvasPanel companyId={cid ?? null} onTriggerOnboarding={onTriggerOnboarding} />;
     case "tasks": return <TasksPanel />;
     case "processes": return <ProcessesPanel />;
     case "issues": return <IssuesPanel companyId={cid} />;
