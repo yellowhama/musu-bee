@@ -386,6 +386,12 @@ export default function AppShell() {
             onNodeChange={isAgentChannel ? chat.setActiveNode : undefined}
             activeNode={isAgentChannel ? chat.activeNode : undefined}
             availableNodes={nodes}
+            flashActive={
+              !!effectiveCompanyId && inbox.flashCompanyIds.includes(effectiveCompanyId)
+            }
+            onFlashConsumed={() => {
+              if (effectiveCompanyId) inbox.clearFlash(effectiveCompanyId);
+            }}
           />
         </div>
       </div>

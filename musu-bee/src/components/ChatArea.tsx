@@ -24,6 +24,16 @@ interface ChatAreaProps {
   onNodeChange?: (node: string) => void;
   activeNode?: string;
   availableNodes?: Array<{ name: string; status: string }>;
+  /** v15.4 — fire a 1.5s yellow-ring flash on the header when this is
+   * true (a new inbox item arrived for the currently-open company).
+   * The parent owns the flash list; on toggle off, the animation
+   * naturally completes. */
+  flashActive?: boolean;
+  /** v15.4 — called once 1.5s after a flash starts. Wired to
+   * useInbox.clearFlash so the chat-side consume mirrors the
+   * canvas-side. Whichever fires first removes the company from the
+   * shared list. */
+  onFlashConsumed?: () => void;
 }
 
 // ── Inline markdown renderer ──────────────────────────────────────────────────
@@ -485,7 +495,18 @@ export default function ChatArea({
   onNodeChange,
   activeNode = "local",
   availableNodes = [],
+  flashActive = false,
+  onFlashConsumed,
 }: ChatAreaProps) {
+  // v15.4 — consume the flash signal after the 1.5s animation completes.
+  useEffect(() => {
+    if (!flashActive || !onFlashConsumed) return;
+    const t = window.setTimeout(() => {
+      onFlashConsumed();
+    }, 1500);
+    return () => window.clearTimeout(t);
+  }, [flashActive, onFlashConsumed]);
+
   const [input, setInput] = useState("");
   // v13.6 — Embed flag drives a conditional render of the connection pill.
   // Reading window directly inside the JSX caused a hydration mismatch (SSR
@@ -592,7 +613,7 @@ export default function ChatArea({
     >
       {/* chead — channel header */}
       <div
-        className="chead"
+        className={`chead${flashActive ? " chat-channel-flash" : ""}`}
         style={{
           padding: "16px 20px",
           borderBottom: "1px solid var(--border-subtle)",

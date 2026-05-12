@@ -1396,6 +1396,13 @@ code, .mono {
   animation: inbox-flash 1.5s ease-out;
 }
 
+/* v15.4: chat-area header flash — propagated from canvas card flash so
+   active-channel users also notice new inbox items without needing to
+   glance at the canvas pane. Reuses the same keyframe. */
+.chat-channel-flash {
+  animation: inbox-flash 1.5s ease-out;
+}
+
 /* v13.2: canvas error card with retry */
 .canvas-error-card {
   position: absolute;
