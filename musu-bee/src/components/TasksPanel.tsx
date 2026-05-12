@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import SprintContractSection from "./SprintContractSection";
 
 interface BridgeTask {
   task_id: string;
@@ -475,6 +476,7 @@ export default function TasksPanel({ companyId }: TasksPanelProps = {}) {
                       retry: {task.retry_count} · sender: {task.sender_id} ·
                       updated: {new Date(task.updated_at).toLocaleTimeString()}
                     </p>
+                    <SprintContractSection taskId={task.task_id} />
                   </div>
                 )}
 
