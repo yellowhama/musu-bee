@@ -1,418 +1,77 @@
-# MUSU 설치 가이드
+# Install
 
-새 컴퓨터에 MUSU를 설치하고 실행하는 방법.
+MUSU runs on Linux / macOS / WSL. Each module installs independently.
 
----
+## Prerequisites
 
-## 빠른 시작 (3단계)
+- Python 3.12+
+- Node.js 20+ (for `musu-bee`, `musu-relay`)
+- Go 1.22+ (only if building `musu-indexer/musu-scanner` from source)
+- Optional: Claude / Codex / Gemini CLI binaries for adapter use
 
-```bash
-# 1. 코드 클론
-git clone git@github.com:yellowhama/musu-bee.git musu-functions
-cd musu-functions
+## Repo layout assumption
 
-# 2. 환경 파일 생성 후 필수값 입력
-cp musu-bee/.env.local.example musu-bee/.env.local
-# → .env.local 열어서 최소한 ANTHROPIC_API_KEY 입력
+Throughout this document, `$MUSU_FUNCTIONS_ROOT` refers to the directory
+where this repo is checked out. Scripts default to
+`$(cd "$(dirname "$0")/.." && pwd)`, so explicit env var only needed
+in cron / systemd / detached contexts.
 
-# 3. 전체 서비스 시작 (Rust 빌드 + Python 설치 + Next.js dev 포함)
-bash scripts/dev-start.sh
-```
+## Module install
 
-브라우저에서 `http://localhost:3001` 접속하면 끝.
-
-> 상세 설치 옵션은 아래 섹션 참조.
-
----
-
-## Company OS (LocalBackend 모드) — 새 컴터 퀵스타트
-
-Paperclip 없이 **LocalBackend만으로** CEO/VP/CTO 등 7 에이전트를 등록하고 전체 시스템을 구동하는 경로.
+### musu-bridge (Python)
 
 ```bash
-# 1. 코드 클론 + env 파일 생성
-git clone git@github.com:yellowhama/musu-bee.git musu-functions
-cd musu-functions
-cp musu-bee/.env.local.example musu-bee/.env.local
-# → .env.local 열어서 ANTHROPIC_API_KEY 입력
-
-# 2. 에이전트 등록 (처음 한 번만)
-bash scripts/setup-company-os.sh
-
-# 3. 전체 서비스 시작
-bash scripts/dev-start.sh
+cd musu-bridge
+python -m venv .venv
+. .venv/bin/activate
+pip install -e .
 ```
 
-브라우저에서 `http://localhost:3001` 접속 → `/task '첫 번째 작업'` 입력 → CEO에게 작업 지시.
+Bridge config: `~/.musu/bridge.env` (token, optional `MUSU_COMPANY_YAML`).
 
-### 동작 방식
+### musu-core / musu-control / musu-writer / musu-indexer
 
-- `setup-company-os.sh` — musu-core LocalBackend(`~/.musu/musu.db`)에 7 에이전트(CEO/VP/CTO/Engineer/CoS/QA/Worker) 등록. 이미 등록된 에이전트는 스킵(멱등).
-- `dev-start.sh` — Paperclip(:3100) 감지 → 있으면 PaperclipBackend 연결, 없으면 LocalBackend 모드로 동작.
-- 에이전트 DB 경로: `~/.musu/musu.db` (변경: `MUSU_DB_PATH` 환경변수)
+Same pattern. Each has a local `pyproject.toml`.
 
-### Paperclip (선택적 고급 백엔드)
-
-Paperclip은 `references_AI/paperclip-main && pnpm dev`로 실행하는 별도 Next.js 앱입니다. 같은 머신에 설치돼 있고 `:3100`에서 동작 중이면 `dev-start.sh`가 자동 감지합니다.
-
-LocalBackend로도 전체 도그푸딩이 가능합니다. Paperclip은 "팀 공유 오케스트레이션"이 필요한 경우에만 추가합니다.
-
----
-
-## 사전 요구사항
-
-| 도구 | 최소 버전 | 확인 |
-|------|-----------|------|
-| Linux (Ubuntu 22.04+ / WSL2) | — | `uname -a` |
-| Python | 3.10+ | `python3 --version` |
-| pip | 최신 | `pip --version` |
-| Node.js | 18+ | `node --version` |
-| pnpm | 9+ | `pnpm --version` |
-| Rust + Cargo | 1.75+ | `cargo --version` |
-| Git | 2.30+ | `git --version` |
-| Tailscale | (멀티 머신 시) | `tailscale status` |
-
-### 빠른 설치 (Ubuntu/WSL2)
-```bash
-# Node.js + pnpm
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-sudo apt install -y nodejs
-npm install -g pnpm
-
-# Rust
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source ~/.cargo/env
-
-# Python (보통 이미 설치됨)
-sudo apt install -y python3 python3-pip python3-venv
-```
-
----
-
-## 1. 코드 클론
-
-```bash
-git clone git@github.com:yellowhama/musu-bee.git musu-functions
-cd musu-functions
-```
-
----
-
-## 2. Python 모듈 설치
-
-각 모듈별로 venv를 만들 수도 있고, 하나의 venv에서 전부 설치할 수도 있습니다.
-
-### 방법 A: 통합 venv (권장)
-
-```bash
-cd musu-functions
-python3 -m venv .venv
-source .venv/bin/activate
-
-pip install -e musu-core[dev]
-pip install -e musu-bridge[dev]   # pyproject.toml 포함 — pip install 정상 동작
-pip install -e musu-worker[dev]
-pip install -e musu-control[dev]
-pip install -e musu-indexer[mcp]
-```
-
-> `musu-core`에 의존하는 서비스들은 반드시 `musu-core`를 먼저 설치해야 합니다.
-> 또는 `PYTHONPATH=$(pwd)/musu-core/src` 환경변수로 직접 경로를 지정할 수 있습니다.
-
-### 방법 B: 모듈별 venv
-
-```bash
-cd musu-core && python3 -m venv .venv && source .venv/bin/activate && pip install -e ".[dev]" && deactivate
-cd ../musu-bridge && python3 -m venv .venv && source .venv/bin/activate && pip install -e ".[dev]" && deactivate
-# ... 동일하게 musu-worker, musu-control, musu-indexer
-```
-
----
-
-## 3. Rust 빌드
-
-```bash
-# musu-port (WebSocket 컨트롤 플레인, :1355)
-cd musu-port && cargo build --release && cd ..
-
-# musu-connects (QUIC P2P)
-cd musu-connects && cargo build --release && cd ..
-
-# musu-supervisor (프로세스 관리자)
-cd musu-supervisor && cargo build --release && cd ..
-```
-
-> Rust 1.75 미만이면 Cargo.lock v4를 못 읽습니다. `rustup update`로 업데이트하세요.
-
----
-
-## 4. 프론트엔드
+### musu-bee (Next.js)
 
 ```bash
 cd musu-bee
 pnpm install
-pnpm build    # 프로덕션 빌드
-# 또는
-pnpm dev      # 개발 서버 (:3001)
+pnpm build
+pnpm start
 ```
 
----
-
-## 5. 환경 설정
-
-### .env 파일
+### musu-relay (Node.js)
 
 ```bash
-# musu-bee 환경 설정 (프론트엔드 + API 라우트)
-cp musu-bee/.env.local.example musu-bee/.env.local
+cd musu-relay
+pnpm install
+node server.js
 ```
 
-`.env.local`에서 반드시 설정해야 할 항목:
+## Operator data
 
-| 변수 | 필수 여부 | 설명 |
-|------|-----------|------|
-| `ANTHROPIC_API_KEY` | **필수** | musu-bridge 에이전트 라우팅에 사용 |
-| `MUSU_AI_CLI` | 선택 | AI CLI 폴백 바이너리 (`claude`, `codex`, `gemini` 등). 미설정 시 CLI 폴백 비활성화 |
-| `MUSU_AI_CLI_ARGS` | 선택 | CLI 인수 (기본: `--print`). Gemini는 `-p`, Codex는 `""` 등 CLI마다 다름 |
-| `NEXT_PUBLIC_SUPABASE_URL` | 인증 사용 시 | Supabase 프로젝트 URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 인증 사용 시 | Supabase anon key |
+Create your operator state directory:
 
 ```bash
-# musu-functions 루트 환경 설정 (bridge/worker 공통)
-cd musu-functions
-cat > .env << 'EOF'
+mkdir -p ~/.musu/companies
+```
+
+Bind an active company by setting `MUSU_COMPANY_YAML` (or
+`MUSU_COMPANY_ID`) in `~/.musu/bridge.env`. See
+[`docs/CONFIG.md`](docs/CONFIG.md) and the operator-only
+`agents.json.example` for the schema.
+
+## Running
+
+```bash
 # Bridge
-BRIDGE_HOST=0.0.0.0
-BRIDGE_PORT=8070
-MUSU_BRIDGE_TOKEN=your-bridge-token-here
+cd musu-bridge && . .venv/bin/activate && python -m server &
 
-# Worker
-MUSU_WORKER_TOKEN=your-worker-token-here
-
-# Core
-MUSU_DB_PATH=~/.musu/musu.db
-MUSU_ADAPTER_TIMEOUT_SEC=300
-
-# Claude API (musu-bridge 에이전트 라우팅)
-ANTHROPIC_API_KEY=your-anthropic-api-key-here
-EOF
+# Web
+cd musu-bee && pnpm start &
 ```
 
-### musu.toml (supervisor용, 선택)
-
-```bash
-mkdir -p ~/.musu
-cat > ~/.musu/musu.toml << 'EOF'
-[core]
-db_path = "~/.musu/musu.db"
-
-[bridge]
-host = "0.0.0.0"
-port = 8070
-
-[adapters]
-primary = "claude_local"
-fallback = "gemini_local"
-EOF
-```
-
----
-
-## 6. 실행
-
-### 편의 스크립트 (권장)
-
-```bash
-# musu-bridge 시작 (PYTHONPATH 자동 설정)
-./scripts/start-bridge.sh
-
-# musu-bee 프론트엔드 시작
-./scripts/start-bee.sh
-```
-
-### 수동 실행
-
-```bash
-# 터미널 1: bridge
-export PYTHONPATH="$(pwd)/musu-core/src:$(pwd)/musu-bridge"
-cd musu-bridge && python3 server.py
-
-# 터미널 2: frontend
-cd musu-bee && pnpm dev --hostname 0.0.0.0
-
-# 터미널 3: port (선택)
-cd musu-port && cargo run -p musu-portd
-
-# 터미널 4: worker (선택, 원격 실행 시)
-export PYTHONPATH="$(pwd)/musu-core/src:$(pwd)/musu-worker"
-cd musu-worker && python3 -m musu_worker.main
-```
-
-> **핵심**: `PYTHONPATH`에 `musu-core/src`를 반드시 포함해야 합니다.
-> 편의 스크립트(`scripts/start-bridge.sh`)를 쓰면 자동으로 설정됩니다.
-
----
-
-## 7. 동작 확인
-
-```bash
-# bridge 헬스 체크
-curl http://localhost:8070/health
-# → {"status": "ok"}
-
-# 에이전트 목록
-curl http://localhost:8070/api/agents
-# → [{"id": "...", "name": "ceo", ...}]
-
-# frontend
-curl -sI http://localhost:3001
-# → HTTP/1.1 200 OK
-
-# 테스트
-cd musu-core && pytest
-cd musu-bridge && pytest
-cd musu-bee && npx playwright test
-```
-
----
-
-## 8. 멀티 머신 (Tailscale)
-
-### 양쪽 머신에 Tailscale 설치
-
-```bash
-curl -fsSL https://tailscale.com/install.sh | sh
-tailscale up
-tailscale ip -4  # IP 확인 (100.x.x.x)
-```
-
-### 머신 A (카페 노트북) — 프론트엔드 + bridge
-
-```bash
-./scripts/start-bridge.sh   # :8070, 0.0.0.0
-./scripts/start-bee.sh       # :3001, 0.0.0.0
-```
-
-### 머신 B (집 데스크탑) — worker + port
-
-```bash
-export PYTHONPATH="$(pwd)/musu-core/src"
-cd musu-worker && MUSU_WORKER_HOST=0.0.0.0 python3 -m musu_worker.main  # :9700
-cd musu-port && cargo run -p musu-portd  # :1355
-```
-
-### (권장) worker를 “보조 프로그램” 리소스로 묶기 (systemd user service)
-
-`musu-worker`는 원격 프로세스 실행을 포함하므로, 실수/폭주 요청이 머신을 프리징시키지 않도록 **OS 레벨 가드레일(CPUQuota/MemoryMax/TasksMax)**로 감싸는 것을 권장합니다.
-
-```bash
-cd /home/hugh51/musu-functions
-./scripts/install-musu-worker-user-service.sh
-
-# 로그
-journalctl --user -u musu-worker -f
-
-# 헬스(로컬)
-curl -sf http://127.0.0.1:9700/health
-curl -sf http://127.0.0.1:9700/stats
-```
-
-튜닝(더 낮게/높게):
-```bash
-systemctl --user edit musu-worker
-systemctl --user restart musu-worker
-```
-
-### (권장) 디스크 hygiene (TTL/size caps) — optional daily cleanup timer
-
-로그/런파일/아티팩트 누적으로 디스크가 꽉 차는 사고를 방지합니다. 기본은 **dry-run**이며, 타이머는 `--apply`로 실행됩니다.
-
-```bash
-cd /home/hugh51/musu-functions
-./scripts/musu_cleanup.py --json           # dry-run report
-./scripts/install-musu-cleanup-user-timer.sh
-```
-
-### 연결 확인
-
-```bash
-# 머신 A에서 머신 B의 worker 확인
-curl http://100.x.x.x:9700/health
-
-# 머신 B에서 머신 A의 bridge 확인
-curl http://100.y.y.y:8070/health
-```
-
-### 아키텍처
-
-```
-Machine A (노트북)              Machine B (데스크탑)
-  musu-bee :3001 ──────────────── musu-worker :9700
-  musu-bridge :8070                musu-portd :1355
-       │                                │
-       └──── Tailscale 100.x.x.x ──────┘
-```
-
----
-
-## 9. AI CLI 도구 설치 (선택)
-
-MUSU 채팅 폴백에 사용할 수 있는 CLI 도구들. 여러 개를 설치해도 되고, 하나만 설치해도 됨.
-
-```bash
-# Claude Code
-npm install -g @anthropic-ai/claude-code
-
-# Gemini CLI
-npm install -g @google/gemini-cli
-gemini  # 첫 실행 시 Google OAuth 로그인
-
-# Codex CLI
-npm install -g @openai/codex
-
-# Hermes Agent
-npm install -g hermes-agent
-```
-
-설치 후 `musu-bee/.env.local`에서 사용할 CLI를 지정:
-
-```bash
-# 예시: Claude Code 사용
-MUSU_AI_CLI=claude
-MUSU_AI_CLI_ARGS=--print
-
-# 예시: Gemini CLI 사용
-MUSU_AI_CLI=gemini
-MUSU_AI_CLI_ARGS=-p
-
-# 예시: Codex CLI 사용
-MUSU_AI_CLI=codex
-MUSU_AI_CLI_ARGS=
-```
-
-설치 확인:
-```bash
-claude --version
-gemini --version
-codex --version
-```
-
----
-
-## 트러블슈팅
-
-### `ModuleNotFoundError: No module named 'musu_core'`
-→ `PYTHONPATH`에 `musu-core/src` 추가. `scripts/start-bridge.sh` 사용 권장.
-
-### Tailscale IP로 접근 불가
-→ 서버가 `127.0.0.1`로 바인딩됐을 수 있음. `BRIDGE_HOST=0.0.0.0` 설정 확인.
-  `config.py`에서 기본값이 `0.0.0.0`이므로 환경변수를 덮어쓰지 않았는지 확인.
-
-### Gemini CLI "Keychain initialization error"
-→ 무시 가능. `FileKeychain fallback`으로 자동 전환됨. 동작에 영향 없음.
-
-### Rust `Cargo.lock` 버전 오류
-→ `rustup update`로 Cargo 1.75+ 업데이트.
-
-### Playwright 테스트 실패 (WSL2)
-→ `npx playwright install --with-deps` 실행하여 브라우저 바이너리 설치.
+For systemd unit files and cron snippets, see
+`scripts/systemd/` and `scripts/auto-update.sh`.

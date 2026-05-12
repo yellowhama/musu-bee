@@ -908,10 +908,52 @@ async def capture_lesson(
         lesson_type: "repeated_correction" | "failure_recovery" | "company_pattern"
         statement: The lesson, in your own words
         source_project: Optional — where the lesson came from
-            ("false-dane" | "hunter-reborn" | "both" | "")
+            (one of your project ids, "both", or "" for cross-project)
         context: Optional rationale
     """
     from .tools.capture_lesson import append_lesson
 
     result = append_lesson(lesson_type, statement, source_project, context)
+    return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def decisions_to_brief(project: str = "") -> str:
+    """Compress decisions/ + canon/ into a brief draft (dryrun).
+
+    LLM call: none. Pure context provider. Author/Claude reads
+    suggested_brief and decides whether to merge into PROJECT_BRIEF.md.
+
+    Motivation: PROJECT_BRIEF.md grows large through round accumulation.
+    This tool returns latest decisions per type + canon titles, plus a
+    compact markdown text the author can use as the new brief baseline.
+
+    Args:
+        project: Project name (required, no default).
+    """
+    from .tools.decisions_to_brief import decisions_to_brief as fn
+
+    result = fn(project)
+    return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def audit_dialogue_tone(project: str = "", chapter: str = "") -> str:
+    """Audit per-character dialogue tone consistency.
+
+    LLM call: none. Pure context provider. Extracts dialogue lines from
+    the latest chapter draft, pairs them with character_core + tone
+    decisions, and returns context for Claude Code to judge.
+
+    Complements audit_tone_drift (whole-chapter tone) with per-character
+    dialogue checks.
+
+    Args:
+        project: Project name (required, no default).
+        chapter: Optional chapter id ("CH01" / "01" / "1"). If empty,
+            uses the highest-versioned draft in drafts/.
+    """
+    from .tools.audit_dialogue_tone import audit_dialogue as fn
+
+    result = fn(project, chapter)
     return json.dumps(result, ensure_ascii=False)

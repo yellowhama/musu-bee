@@ -81,6 +81,15 @@ bridge_*.log
 musu-bridge/bridge_*.log
 musu-bridge/server_*.log
 
+# v11-iso11: pre-built indexer binaries — ship from releases.
+musu-indexer/musu-scanner
+musu-indexer/src/musu_indexer/bin/musu-indexer-linux
+musu-indexer/src/musu_indexer/bin/musu-indexer.exe
+musu-indexer/src/musu_indexer/bin/musu-indexer-darwin
+
+# Heartbeat manual responses (runtime, not docs)
+heartbeat_report_manual_*.md.response
+
 # Empty marker files
 MUS-*
 in_progress

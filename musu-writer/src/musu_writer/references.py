@@ -142,6 +142,38 @@ def get_latest_decision(project: str, decision_type: str) -> str:
     return ""
 
 
+def get_lessons_dir() -> Path:
+    """Company-level lessons/ directory. Not project-scoped.
+
+    Located at PROJECT_ROOT / 'lessons' (i.e. ~/writer/lessons/).
+    Creates if missing.
+    """
+    lessons_dir = PROJECT_ROOT / "lessons"
+    lessons_dir.mkdir(parents=True, exist_ok=True)
+    return lessons_dir
+
+
+def get_latest_lesson(lesson_type: str) -> str:
+    """Return the most recent Statement from lessons/<type>.md, or empty string.
+
+    Mirrors get_latest_decision but operates on company-level lessons
+    (no project parameter — lessons are a company asset, applicable to all
+    projects).
+    """
+    path = get_lessons_dir() / f"{lesson_type}.md"
+    if not path.exists():
+        return ""
+    content = path.read_text(encoding="utf-8")
+    parts = content.split("\n## ", 1)
+    if len(parts) < 2:
+        return ""
+    section = parts[1]
+    for line in section.splitlines():
+        if line.startswith("**Statement**:"):
+            return line.replace("**Statement**:", "").strip()
+    return ""
+
+
 def _draft_patterns(project: str, chapter_num: str) -> list[str]:
     """Return ordered glob patterns to look for a chapter's drafts.
 
@@ -216,6 +248,62 @@ def get_canon_files(project: str) -> dict:
                     out[f"{sub.name}/{f.name}"] = f.read_text(encoding="utf-8")
                 except OSError:
                     continue
+    return out
+
+
+def collect_decisions_summary(project: str) -> dict[str, str]:
+    """Return {decision_type: latest_statement} for all decisions/<type>.md.
+
+    decisions/ is prepend-only — first '## ' section after header is newest.
+    Empty dict if project has no decisions.
+    """
+    if not project:
+        return {}
+    decisions_dir = get_decisions_dir(project)
+    out: dict[str, str] = {}
+    for f in sorted(decisions_dir.glob("*.md")):
+        decision_type = f.stem
+        latest = get_latest_decision(project, decision_type)
+        if latest:
+            out[decision_type] = latest
+    return out
+
+
+def collect_canon_summary(project: str) -> list[dict]:
+    """Return [{file, title}, ...] for canon/*.md (skips _candidates/).
+
+    title = first non-empty line stripped of '# ' / '## ' prefix.
+    """
+    if not project:
+        return []
+    canon_dir = get_project_dir(project) / "canon"
+    if not canon_dir.exists():
+        return []
+    out: list[dict] = []
+    for f in sorted(canon_dir.glob("*.md")):
+        title = ""
+        try:
+            for line in f.read_text(encoding="utf-8").splitlines():
+                stripped = line.strip()
+                if stripped:
+                    title = stripped.lstrip("#").strip()
+                    break
+        except OSError:
+            pass
+        out.append({"file": f.name, "title": title})
+    for sub in sorted(canon_dir.iterdir()):
+        if sub.is_dir() and sub.name != "_candidates":
+            for f in sorted(sub.glob("*.md")):
+                title = ""
+                try:
+                    for line in f.read_text(encoding="utf-8").splitlines():
+                        stripped = line.strip()
+                        if stripped:
+                            title = stripped.lstrip("#").strip()
+                            break
+                except OSError:
+                    pass
+                out.append({"file": f"{sub.name}/{f.name}", "title": title})
     return out
 
 

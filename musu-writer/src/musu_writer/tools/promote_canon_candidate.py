@@ -13,7 +13,13 @@ from ..project_config import get_project_dir
 from ..references import get_canon_candidates_dir
 
 VALID_MODES = {"by_section", "whole_file"}
-APPROVAL_MARKERS = ("Decision: [x] approve", "Decision: [X] approve")
+# Approval markers — tolerate optional markdown bold (**) and case in [x|X].
+APPROVAL_MARKERS = (
+    "Decision: [x] approve",
+    "Decision: [X] approve",
+    "**Decision**: [x] approve",
+    "**Decision**: [X] approve",
+)
 
 
 def _approved_sections(content: str) -> list[str]:

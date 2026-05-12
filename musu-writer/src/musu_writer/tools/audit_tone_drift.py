@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from ..project_config import get_project_dir
-from ..references import get_latest_decision, get_latest_draft
+from ..references import get_latest_decision, get_latest_draft, get_latest_lesson
 
 
 def audit_tone(
@@ -45,6 +45,8 @@ def audit_tone(
         }
 
     draft_content = draft_path.read_text(encoding="utf-8")
+    repeated_correction_lesson = get_latest_lesson("repeated_correction")
+    repeated_correction_display = repeated_correction_lesson or "(no repeated correction captured yet)"
 
     project_dir = get_project_dir(project)
     reviews_dir = project_dir / "reviews"
@@ -65,7 +67,9 @@ def audit_tone(
         f"- Chapter: {chapter_label}\n"
         f"- Draft: {draft_path.name}\n"
         f"- Tone reference (from decisions/tone.md):\n"
-        f"  > {tone_reference}\n\n"
+        f"  > {tone_reference}\n"
+        f"- Company repeated-correction lesson (from lessons/repeated_corrections.md):\n"
+        f"  > {repeated_correction_display}\n\n"
         f"## Findings\n\n"
         f"### Violation 1 — <한 줄 요약>\n"
         f"- **Tone rule violated**: <tone_reference의 어느 부분>\n"
@@ -92,9 +96,12 @@ def audit_tone(
         f"4. If NO violations, write a single line under Summary: "
         f"'No tone drift detected against current tone lock.' "
         f"and set verdict to [x] pass.\n"
-        f"5. Save the result to 'output_path'. Do NOT change the filename.\n"
-        f"6. Write in Korean (project language). Quotes from draft keep original.\n"
-        f"7. This audit is for project '{project}' only. Do not reference the other project.\n"
+        f"5. Cross-check 'repeated_correction_lesson' (company-level pattern the author "
+        f"has flagged repeatedly). If the lesson is relevant to a violation in this draft, "
+        f"note it in 'Why it violates'.\n"
+        f"6. Save the result to 'output_path'. Do NOT change the filename.\n"
+        f"7. Write in Korean (project language). Quotes from draft keep original.\n"
+        f"8. This audit is for project '{project}' only. Do not reference the other project.\n"
     )
 
     return {
@@ -106,5 +113,6 @@ def audit_tone(
         "draft_path": str(draft_path),
         "draft_content": draft_content,
         "tone_reference": tone_reference,
+        "repeated_correction_lesson": repeated_correction_display,
         "template": template,
     }

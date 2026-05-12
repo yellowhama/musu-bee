@@ -9,7 +9,12 @@ from __future__ import annotations
 from datetime import datetime
 
 from ..project_config import get_project_dir
-from ..references import get_canon_files, get_latest_decision, get_latest_draft
+from ..references import (
+    get_canon_files,
+    get_latest_decision,
+    get_latest_draft,
+    get_latest_lesson,
+)
 
 
 def audit_canon(
@@ -40,6 +45,8 @@ def audit_canon(
     canon_files = get_canon_files(project)
     character_core_ref = get_latest_decision(project, "character_core")
     character_display = character_core_ref or "(no character_core decision captured yet)"
+    repeated_correction_lesson = get_latest_lesson("repeated_correction")
+    repeated_correction_display = repeated_correction_lesson or "(no repeated correction captured yet)"
 
     project_dir = get_project_dir(project)
     reviews_dir = project_dir / "reviews"
@@ -67,7 +74,9 @@ def audit_canon(
         f"- Draft: {draft_path.name}\n"
         f"- Canon files compared: {len(canon_files)}\n"
         f"- Character core lock:\n"
-        f"  > {character_display}\n\n"
+        f"  > {character_display}\n"
+        f"- Company repeated-correction lesson (from lessons/repeated_corrections.md):\n"
+        f"  > {repeated_correction_display}\n\n"
         f"## Canon Index\n"
         f"{canon_index_block}\n\n"
         f"## Findings\n\n"
@@ -96,10 +105,12 @@ def audit_canon(
         f"trait in the draft that conflicts with canon or character_core. "
         f"For each conflict, fill all 6 slots: canon source, canon quote, draft quote (line N), "
         f"conflict type, severity, suggested fix.\n"
-        f"5. If NO conflicts, write 'No canon drift detected.' under Summary and set verdict to [x] pass.\n"
-        f"6. Save the result to 'output_path'. Do NOT change the filename.\n"
-        f"7. Write in Korean. Quotes from draft/canon keep original.\n"
-        f"8. This audit is for project '{project}' only. Do not reference the other project's canon.\n"
+        f"5. Cross-check 'repeated_correction_lesson' (company-level pattern the author "
+        f"has flagged repeatedly). If a conflict matches the lesson, note it in 'Severity' or 'Suggested fix'.\n"
+        f"6. If NO conflicts, write 'No canon drift detected.' under Summary and set verdict to [x] pass.\n"
+        f"7. Save the result to 'output_path'. Do NOT change the filename.\n"
+        f"8. Write in Korean. Quotes from draft/canon keep original.\n"
+        f"9. This audit is for project '{project}' only. Do not reference the other project's canon.\n"
     )
 
     return {
@@ -112,5 +123,6 @@ def audit_canon(
         "draft_content": draft_content,
         "canon_files": canon_files,
         "character_core_reference": character_display,
+        "repeated_correction_lesson": repeated_correction_display,
         "template": template,
     }
