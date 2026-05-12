@@ -24,6 +24,8 @@ function useViewport(): ViewMode {
   return mode;
 }
 
+import type { InboxJumpTarget } from "@/components/inbox/InboxBell";
+
 interface ConsoleShellProps {
   user: { email: string; displayName: string | null; avatarUrl: string | null };
   nodes: RegistryNode[];
@@ -31,9 +33,25 @@ interface ConsoleShellProps {
   contextPanel?: React.ReactNode;
   onNavigate?: (id: string) => void;
   activePanel?: string;
+  /** v12-inbox B — active company id for the topbar inbox bell. */
+  companyId?: string | null;
+  /** v12-inbox B — current user id for notification lookups. */
+  userId?: string | null;
+  /** v12-inbox B — handler when a user clicks an inbox row. */
+  onInboxJump?: (target: InboxJumpTarget) => void;
 }
 
-function ConsoleShellInner({ user, nodes, children, contextPanel, onNavigate, activePanel }: ConsoleShellProps) {
+function ConsoleShellInner({
+  user,
+  nodes,
+  children,
+  contextPanel,
+  onNavigate,
+  activePanel,
+  companyId,
+  userId,
+  onInboxJump,
+}: ConsoleShellProps) {
   const { collapsed, setCollapsed, setPaletteOpen } = useConsoleShell();
   const viewMode = useViewport();
   const isMobile = viewMode === "mobile";
@@ -80,6 +98,9 @@ function ConsoleShellInner({ user, nodes, children, contextPanel, onNavigate, ac
           nodes={nodes}
           sidebarCollapsed={collapsed}
           onToggleSidebar={() => setCollapsed(!collapsed)}
+          companyId={companyId ?? null}
+          userId={userId ?? null}
+          onInboxJump={onInboxJump}
         />
         <main
           style={{
@@ -102,7 +123,7 @@ function ConsoleShellInner({ user, nodes, children, contextPanel, onNavigate, ac
   );
 }
 
-export function ConsoleShell({ user, nodes, children, contextPanel, onNavigate, activePanel }: ConsoleShellProps) {
+export function ConsoleShell(props: ConsoleShellProps) {
   return (
     <ConsoleShellProvider>
       <div
@@ -113,9 +134,7 @@ export function ConsoleShell({ user, nodes, children, contextPanel, onNavigate, 
           overflow: "hidden",
         }}
       >
-        <ConsoleShellInner user={user} nodes={nodes} contextPanel={contextPanel} onNavigate={onNavigate} activePanel={activePanel}>
-          {children}
-        </ConsoleShellInner>
+        <ConsoleShellInner {...props}>{props.children}</ConsoleShellInner>
       </div>
     </ConsoleShellProvider>
   );

@@ -4,12 +4,16 @@ import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { UserMenu } from "@/components/layout/UserMenu";
 import type { RegistryNode } from "@/lib/types/node";
 import { useConsoleShell } from "./ConsoleShellContext";
+import InboxBell, { type InboxJumpTarget } from "@/components/inbox/InboxBell";
 
 interface ConsoleTopStripProps {
   user: { email: string; displayName: string | null; avatarUrl: string | null };
   nodes: RegistryNode[];
   sidebarCollapsed: boolean;
   onToggleSidebar: () => void;
+  companyId: string | null;
+  userId: string | null;
+  onInboxJump?: (target: InboxJumpTarget) => void;
 }
 
 function nodeAge(lastSeen: string | null | undefined): "online" | "stale" | "offline" | "unknown" {
@@ -33,6 +37,9 @@ export function ConsoleTopStrip({
   nodes,
   sidebarCollapsed,
   onToggleSidebar,
+  companyId,
+  userId,
+  onInboxJump,
 }: ConsoleTopStripProps) {
   const { setPaletteOpen } = useConsoleShell();
 
@@ -105,8 +112,13 @@ export function ConsoleTopStrip({
         )}
       </div>
 
-      {/* Right: ⌘K badge + user avatar */}
+      {/* Right: inbox bell + ⌘K badge + user avatar */}
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <InboxBell
+          companyId={companyId}
+          userId={userId}
+          onJump={(target) => onInboxJump?.(target)}
+        />
         <button
           onClick={() => setPaletteOpen(true)}
           title="Command palette  ⌘K"

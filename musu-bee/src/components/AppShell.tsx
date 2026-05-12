@@ -11,6 +11,7 @@ import ChatArea from "@/components/ChatArea";
 import CompanyTemplateModal from "@/components/CompanyTemplateModal";
 import OnboardingModal from "@/components/OnboardingModal";
 import CompanyOnboardingModal from "@/components/CompanyOnboardingModal";
+import type { InboxJumpTarget } from "@/components/inbox/InboxBell";
 import CommandPalette from "@/components/CommandPalette";
 import TasksPanel from "@/components/TasksPanel";
 import ProcessesPanel from "@/components/ProcessesPanel";
@@ -276,8 +277,30 @@ export default function AppShell() {
     avatarUrl: null as string | null,
   };
 
+  const handleInboxJump = useCallback((target: InboxJumpTarget) => {
+    if (target.kind === "approvals") {
+      setActivePanel("approvals");
+    } else if (target.kind === "issues") {
+      setActivePanel("issues");
+    } else if (target.kind === "channel") {
+      // Company boards land on the general agent channel; specific channel
+      // names route directly if they match a known ChatChannelId.
+      const known = AGENT_CHANNELS.includes(target.channelId as ChannelId);
+      setActiveChat((known ? target.channelId : "general") as ChatChannelId);
+    }
+    setDisplayOverlay(null);
+  }, []);
+
   return (
-    <ConsoleShell user={consoleUser} nodes={consoleNodes} activePanel={activePanel} onNavigate={(id) => { setActivePanel(id as any); setDisplayOverlay(null); }}>
+    <ConsoleShell
+      user={consoleUser}
+      nodes={consoleNodes}
+      activePanel={activePanel}
+      onNavigate={(id) => { setActivePanel(id as PanelId); setDisplayOverlay(null); }}
+      companyId={effectiveCompanyId}
+      userId={userIdentity.id}
+      onInboxJump={handleInboxJump}
+    >
       {/* Main content below — ConsoleShell provides sidebar + topbar */}
       {/* Main content — panels + chat (ConsoleShell provides sidebar+topbar) */}
       <div

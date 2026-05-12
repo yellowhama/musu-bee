@@ -1172,3 +1172,200 @@ code, .mono {
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* v12-inbox B: Topbar bell + dropdown */
+.inbox-bell-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.inbox-bell-btn {
+  position: relative;
+  background: none;
+  border: 1px solid var(--console-sidebar-border, rgba(255,255,255,0.07));
+  border-radius: 5px;
+  padding: 4px 6px;
+  color: var(--console-sidebar-text, rgba(253,252,240,0.7));
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 120ms, color 120ms;
+}
+.inbox-bell-btn:hover {
+  background: rgba(255,255,255,0.06);
+  color: rgba(253,252,240,0.95);
+}
+.inbox-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  font-family: var(--font-system, Inter, sans-serif);
+}
+.inbox-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 360px;
+  max-height: 480px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg1, #ffffff);
+  color: var(--fg1, #111);
+  border: 1px solid var(--border-subtle, rgba(0,0,0,0.08));
+  border-radius: 12px;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.18);
+  z-index: 60;
+  font-family: var(--font-system, Inter, sans-serif);
+  overflow: hidden;
+}
+.inbox-dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle, rgba(0,0,0,0.08));
+  font-size: 13px;
+  font-weight: 700;
+}
+.inbox-dropdown-count {
+  font-weight: 600;
+  color: var(--fg3, #6b7280);
+}
+.inbox-dropdown-close {
+  background: transparent;
+  border: 0;
+  color: var(--fg3, #6b7280);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  display: inline-flex;
+}
+.inbox-dropdown-close:hover {
+  background: rgba(0,0,0,0.05);
+  color: var(--fg1, #111);
+}
+.inbox-dropdown-body {
+  flex: 1;
+  overflow-y: auto;
+}
+.inbox-empty {
+  padding: 28px 20px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--fg3, #6b7280);
+}
+.inbox-empty-error {
+  color: #ef4444;
+}
+.inbox-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-subtle, rgba(0,0,0,0.06));
+  border-left: 3px solid transparent;
+  transition: background 120ms;
+}
+.inbox-item.clickable {
+  cursor: pointer;
+}
+.inbox-item.clickable:hover {
+  background: rgba(0,0,0,0.03);
+}
+.inbox-item-approval {
+  border-left-color: #FFD166;
+}
+.inbox-item-issue {
+  border-left-color: #ef4444;
+}
+.inbox-item-notification {
+  border-left-color: #3b82f6;
+}
+.inbox-item-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--fg3, #6b7280);
+}
+.inbox-item-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.inbox-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg1, #111);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.inbox-item-subtitle {
+  font-size: 11px;
+  color: var(--fg3, #6b7280);
+}
+.inbox-item-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.inbox-action-btn {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 120ms, border-color 120ms;
+}
+.inbox-action-btn.primary {
+  background: #FFD166;
+  color: #1a1a1a;
+}
+.inbox-action-btn.primary:hover {
+  background: #ffc94d;
+}
+.inbox-action-btn.ghost {
+  background: transparent;
+  color: var(--fg2, #374151);
+  border-color: var(--border-subtle, rgba(0,0,0,0.12));
+}
+.inbox-action-btn.ghost:hover {
+  background: rgba(0,0,0,0.04);
+}
+.inbox-footer {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border-subtle, rgba(0,0,0,0.08));
+  background: var(--bg2, #fafafa);
+}
+.inbox-footer button {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fg2, #374151);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-family: inherit;
+}
+.inbox-footer button:hover {
+  background: rgba(0,0,0,0.04);
+  color: var(--fg1, #111);
+}
