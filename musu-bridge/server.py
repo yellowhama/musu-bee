@@ -1523,10 +1523,41 @@ class TemplateDecisionRequest(BaseModel):
 )
 async def api_template_decision(req: TemplateDecisionRequest) -> dict:
     """Return either a 'found' decision with a template + preview, or 'research'
-    with a placeholder task id. Pure deterministic function — see handlers.
+    with a real task id (research path) the client can poll.
     """
     from handlers import decide_template_for_mission
     return decide_template_for_mission(req.mission, req.company_name)
+
+
+@app.get(
+    "/api/companies/onboarding/research/{task_id}",
+    summary="Poll a research task (v12-onboarding D)",
+)
+async def api_research_get(task_id: str) -> dict:
+    """Return the current state of a research task. status: running → ready.
+    The stub proposal is generated lazily on the first poll past the delay.
+    """
+    from handlers import get_research_task
+    task = get_research_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Research task not found")
+    return task
+
+
+class ApproveTemplateRequest(BaseModel):
+    slug: str = Field(min_length=1, max_length=120)
+    proposal: dict
+
+
+@app.post(
+    "/api/companies/onboarding/approve-template",
+    summary="Save a research proposal as a reusable template (v12-onboarding D)",
+)
+async def api_approve_template(req: ApproveTemplateRequest) -> dict:
+    """Persist the proposal yaml to ~/.musu/companies/_templates/<slug>.yaml."""
+    from handlers import save_proposed_template
+    path = save_proposed_template(req.slug, req.proposal)
+    return {"saved": True, "path": str(path), "slug": req.slug}
 
 
 @app.get("/api/companies/{company_id}", summary="Get a company")

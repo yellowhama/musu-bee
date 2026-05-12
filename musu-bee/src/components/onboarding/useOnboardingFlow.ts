@@ -230,5 +230,69 @@ export function useOnboardingFlow() {
     }
   }, []);
 
-  return { flow, setField, next, back, reset, requestDecision, spawn };
+  /**
+   * v12-onboarding D — Poll the research stub task until it returns a
+   * proposal, then store it on the flow so step 3 can render the
+   * approval card. Polling is cheap (2s) and stops as soon as the
+   * proposal lands.
+   */
+  useEffect(() => {
+    if (flow.decision !== "research") return;
+    if (!flow.researchTaskId) return;
+    if (flow.proposedTemplate) return;
+
+    const tid = flow.researchTaskId;
+    let cancelled = false;
+
+    async function poll() {
+      try {
+        const r = await fetch(`/api/bridge/companies/onboarding/research/${tid}`);
+        if (!r.ok || cancelled) return;
+        const data: { status: string; proposal?: ProposedTemplate } = await r.json();
+        if (data.status === "ready" && data.proposal) {
+          setFlow((prev) => ({ ...prev, proposedTemplate: data.proposal ?? null }));
+        }
+      } catch {
+        // Network blip — try again next tick.
+      }
+    }
+
+    void poll();
+    const handle = window.setInterval(poll, 2000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(handle);
+    };
+  }, [flow.decision, flow.researchTaskId, flow.proposedTemplate]);
+
+  /**
+   * v12-onboarding D — Persist a research proposal as a reusable template
+   * in ~/.musu/companies/_templates/<slug>.yaml. Sets foundTemplate so the
+   * step-3 guard unlocks the [Next →] button.
+   */
+  const approveTemplate = useCallback(async () => {
+    let proposal: ProposedTemplate | null = null;
+    setFlow((prev) => {
+      proposal = prev.proposedTemplate;
+      return prev;
+    });
+    if (!proposal) return;
+    const p: ProposedTemplate = proposal;
+    try {
+      const r = await fetch("/api/bridge/companies/onboarding/approve-template", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug: p.slug, proposal: p }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setFlow((prev) => ({ ...prev, foundTemplate: p.slug }));
+    } catch (e) {
+      setFlow((prev) => ({
+        ...prev,
+        decisionError: e instanceof Error ? e.message : String(e),
+      }));
+    }
+  }, []);
+
+  return { flow, setField, next, back, reset, requestDecision, spawn, approveTemplate };
 }

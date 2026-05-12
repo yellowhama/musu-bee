@@ -2070,10 +2070,91 @@ def decide_template_for_mission(mission: str, company_name: str) -> dict:
             },
         }
 
+    # D: also start the (stub) research task so the same id can be polled.
+    task_id = start_research_task(mission=mission, company_name=company_name)
     return {
         "decision": "research",
-        "research_task_id": f"task-{uuid.uuid4().hex[:8]}",
+        "research_task_id": task_id,
         "estimated_seconds": 30,
-        # company_name kept for downstream context if D wants to thread it through.
         "company_name": company_name,
     }
+
+
+# ── v12-onboarding D — research stub + template persistence ──────────────────
+
+import time as _time  # local alias to keep top-of-file imports stable
+
+# Module-level in-memory store. Wipes on bridge restart — acceptable for MVP.
+_RESEARCH_TASKS: dict[str, dict] = {}
+_RESEARCH_READY_AFTER_SECONDS = 5  # MVP: stub completes after 5s
+_RESEARCH_TIMER_SECONDS = 30  # what we show the user
+
+
+def _slugify(name: str) -> str:
+    s = name.lower().strip()
+    s = re.sub(r"[^a-z0-9]+", "-", s)
+    s = re.sub(r"-+", "-", s).strip("-")
+    return s or "company"
+
+
+def _build_generic_startup_proposal(company_name: str) -> dict:
+    """Return the MVP generic-startup proposal shape.
+
+    Five departments across three phases. v13 will replace this with a real
+    LLM-driven proposal; for now it gives the operator something concrete to
+    approve and save as their first template.
+    """
+    slug = _slugify(company_name) + "-startup"
+    return {
+        "slug": slug,
+        "displayName": f"{company_name} (generic startup)",
+        "departments": [
+            {"name": "CEO Office",  "role": "Lead",       "agentCount": 1, "phase": "day-1"},
+            {"name": "Engineering", "role": "Engineer",   "agentCount": 2, "phase": "day-1"},
+            {"name": "Marketing",   "role": "Marketing",  "agentCount": 1, "phase": "month-1+"},
+            {"name": "Operations",  "role": "Ops",        "agentCount": 1, "phase": "month-1+"},
+            {"name": "Research",    "role": "Researcher", "agentCount": 1, "phase": "month-3+"},
+        ],
+    }
+
+
+def start_research_task(mission: str, company_name: str) -> str:
+    """Start a (stubbed) research task. Returns a task id usable for polling."""
+    task_id = f"task-{uuid.uuid4().hex[:8]}"
+    _RESEARCH_TASKS[task_id] = {
+        "id": task_id,
+        "mission": mission,
+        "company_name": company_name,
+        "started_at": _time.time(),
+        "estimated_seconds": _RESEARCH_TIMER_SECONDS,
+        "status": "running",
+    }
+    return task_id
+
+
+def get_research_task(task_id: str) -> dict | None:
+    """Return current state of the research task, advancing it to 'ready' if
+    the stub delay has elapsed. Returns None when the id is unknown."""
+    task = _RESEARCH_TASKS.get(task_id)
+    if not task:
+        return None
+    if task["status"] == "running":
+        elapsed = _time.time() - task["started_at"]
+        if elapsed >= _RESEARCH_READY_AFTER_SECONDS:
+            task["status"] = "ready"
+            task["proposal"] = _build_generic_startup_proposal(task["company_name"])
+    return task
+
+
+def save_proposed_template(slug: str, proposal: dict) -> Path:
+    """Persist an approved proposal to ~/.musu/companies/_templates/<slug>.yaml.
+
+    Creates parent directories if missing. Overwrites if the file already
+    exists (operator approved a refinement of the same slug).
+    """
+    import yaml  # local import — only used here, keeps top-of-file lean
+    templates_dir = Path.home() / ".musu" / "companies" / "_templates"
+    templates_dir.mkdir(parents=True, exist_ok=True)
+    path = templates_dir / f"{slug}.yaml"
+    path.write_text(yaml.safe_dump(proposal, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    return path

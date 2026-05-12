@@ -30,7 +30,7 @@ export default function CompanyOnboardingModal({
   onClose,
   onSpawned,
 }: CompanyOnboardingModalProps) {
-  const { flow, setField, next, back, reset, requestDecision, spawn } = useOnboardingFlow();
+  const { flow, setField, next, back, reset, requestDecision, spawn, approveTemplate } = useOnboardingFlow();
 
   // Default node selection when entering step 2.
   useEffect(() => {
@@ -105,7 +105,7 @@ export default function CompanyOnboardingModal({
           ) : flow.step === 2 ? (
             <Step2CEO flow={flow} setField={setField} availableNodes={availableNodes} />
           ) : flow.step === 3 ? (
-            <Step3Template flow={flow} setField={setField} />
+            <Step3Template flow={flow} setField={setField} approveTemplate={approveTemplate} />
           ) : (
             <Step4Launch flow={flow} />
           )}
@@ -267,7 +267,15 @@ function Step2CEO({
 
 // ── Step 3 — Template decision ──────────────────────────────────────────────
 
-function Step3Template({ flow, setField }: { flow: FlowSnapshot; setField: SetField }) {
+function Step3Template({
+  flow,
+  setField,
+  approveTemplate,
+}: {
+  flow: FlowSnapshot;
+  setField: SetField;
+  approveTemplate: () => Promise<void>;
+}) {
   if (flow.decision === "pending" || flow.decision === null) {
     return (
       <div className="onboarding-step-body onboarding-decision-pending">
@@ -307,15 +315,40 @@ function Step3Template({ flow, setField }: { flow: FlowSnapshot; setField: SetFi
     );
   }
   if (flow.decision === "research") {
+    if (!flow.proposedTemplate) {
+      return (
+        <div className="onboarding-step-body onboarding-decision-pending">
+          <div className="canvas-loading-spinner" />
+          <p>Your mission is new — your CEO is designing an org structure.</p>
+          <p className="onboarding-found-note">~30s. You can leave this open — your draft is saved.</p>
+        </div>
+      );
+    }
+    const approved = flow.foundTemplate === flow.proposedTemplate.slug;
     return (
       <div className="onboarding-step-body">
-        <h3 className="onboarding-found-title">Your mission is new</h3>
+        <h3 className="onboarding-found-title">{flow.proposedTemplate.displayName}</h3>
         <p className="onboarding-found-subtitle">
-          Your CEO is designing an org structure. ~30s.
+          {flow.proposedTemplate.departments.length} departments across day-1 and later phases.
         </p>
-        <p className="onboarding-found-note">
-          (Proposal card + Approve & save lands in sub-cycle D.)
-        </p>
+        <ul className="onboarding-departments">
+          {flow.proposedTemplate.departments.map((d) => (
+            <li key={d.name}>
+              <strong>{d.name}</strong>
+              <span>{d.role} · {d.agentCount} agent{d.agentCount === 1 ? "" : "s"}</span>
+              <em>{d.phase}</em>
+            </li>
+          ))}
+        </ul>
+        {approved ? (
+          <p className="onboarding-found-note">
+            ✓ Saved to <code>~/.musu/companies/_templates/{flow.proposedTemplate.slug}.yaml</code> — reusable next time.
+          </p>
+        ) : (
+          <button className="onboarding-btn primary" type="button" onClick={() => void approveTemplate()}>
+            Approve & save as template
+          </button>
+        )}
       </div>
     );
   }
