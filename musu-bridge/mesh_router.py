@@ -443,6 +443,8 @@ class MeshRouter:
                 existing_by_agent[agent_name.lower()] = node_name
 
         merged = {**existing_by_agent, **self._agent_nodes}
+        # Drop assignments pointing to nodes that no longer exist (v9-1)
+        merged = {a: n for a, n in merged.items() if n in self._node_urls}
         mesh["agent_assignments"] = [
             {"agent": agent, "node": node}
             for agent, node in merged.items()

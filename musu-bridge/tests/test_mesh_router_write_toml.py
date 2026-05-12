@@ -72,10 +72,35 @@ def test_write_toml_memory_wins_on_conflict(tmp_path: Path) -> None:
     auto_assign_agents / add_node / remove_node).
     """
     nodes_toml = tmp_path / "nodes.toml"
-    _write_nodes_toml(nodes_toml, [("agent_x", "node_A")])
+    # Both target nodes must exist so v9-1 filter doesn't drop them
+    nodes_toml.write_text(
+        "\n".join(
+            [
+                "[mesh]",
+                'self = "4060"',
+                "",
+                "[[mesh.nodes]]",
+                'name = "4060"',
+                'url = "http://127.0.0.1:8070"',
+                "",
+                "[[mesh.nodes]]",
+                'name = "node_A"',
+                'url = "http://a:8070"',
+                "",
+                "[[mesh.nodes]]",
+                'name = "node_B"',
+                'url = "http://b:8070"',
+                "",
+                "[[mesh.agent_assignments]]",
+                'agent = "agent_x"',
+                'node = "node_A"',
+                "",
+            ]
+        )
+    )
 
     router = MeshRouter(config_path=nodes_toml)
-    # Override in memory
+    # Override in memory (node_B is also known via _node_urls)
     router._agent_nodes = {"agent_x": "node_B"}
     router._write_toml()
 
@@ -100,3 +125,49 @@ def test_write_toml_no_regression_writes_memory_agents(tmp_path: Path) -> None:
     assignments = _read_assignments(nodes_toml)
     assert assignments.get("mgr-4060") == "4060"
     assert assignments.get("bw-writer") == "4060"
+
+
+def test_write_toml_drops_assignments_for_removed_nodes(tmp_path: Path) -> None:
+    """remove_node must not leave dangling agent_assignments in nodes.toml.
+
+    v8 merge preserved file entries, which made remove_node effectively a no-op
+    for agent_assignments (audit #1 in wiki/160). v9-1 filters out assignments
+    pointing to nodes that no longer exist.
+    """
+    nodes_toml = tmp_path / "nodes.toml"
+    nodes_toml.write_text(
+        "\n".join(
+            [
+                "[mesh]",
+                'self = "4060"',
+                "",
+                "[[mesh.nodes]]",
+                'name = "4060"',
+                'url = "http://127.0.0.1:8070"',
+                "",
+                "[[mesh.nodes]]",
+                'name = "5070"',
+                'url = "http://remote:8070"',
+                "",
+                "[[mesh.agent_assignments]]",
+                'agent = "mgr-5070"',
+                'node = "5070"',
+                "",
+                "[[mesh.agent_assignments]]",
+                'agent = "external_local"',
+                'node = "4060"',
+                "",
+            ]
+        )
+    )
+
+    router = MeshRouter(config_path=nodes_toml)
+    assert router.remove_node("5070") is True
+
+    assignments = _read_assignments(nodes_toml)
+    assert "mgr-5070" not in assignments, (
+        "mgr-5070 must NOT be resurrected after remove_node('5070') — "
+        "v8 merge left dangling assignments for removed nodes"
+    )
+    # external_local points to 4060 (still alive) — must survive
+    assert assignments.get("external_local") == "4060"
