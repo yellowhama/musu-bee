@@ -1501,6 +1501,12 @@ def create_company_from_template(
     if work_dir:
         _setup_company_workspace(work_dir, name, company_id)
 
+    # ── v12-onboarding E: seed intro messages so canvas lights up fast ─────
+    try:
+        seed_intro_messages(company_id, created_agents, backend=b)
+    except Exception as e:
+        logger.warning("seed_intro_messages failed: %s", e)
+
     return {"company": company, "agents": created_agents, "governance": governance}
 
 
@@ -2144,6 +2150,42 @@ def get_research_task(task_id: str) -> dict | None:
             task["status"] = "ready"
             task["proposal"] = _build_generic_startup_proposal(task["company_name"])
     return task
+
+
+def seed_intro_messages(company_id: str, agents: list[dict], backend=None) -> int:
+    """v12-onboarding E — Seed one stub introduction message per agent.
+
+    Inserts into the `company-{company_id}` group so the canvas can show
+    "life signs" within its next poll cycle, without waiting for a real
+    LLM round-trip. Normal heartbeats take over from here.
+
+    Returns the number of messages seeded.
+    """
+    import json as _json
+    b = backend if backend is not None else _get_backend()
+    group_id = f"company-{company_id}"
+    count = 0
+    for agent in agents:
+        role = agent.get("role") or agent.get("name") or "Agent"
+        name = agent.get("name") or "unknown"
+        text = f"Hi — I'm {role}. Ready to start when you are."
+        msg_id = str(uuid.uuid4())
+        try:
+            b._db.execute(
+                "INSERT INTO messages (id, session_id, role, content, group_id, meta) "
+                "VALUES (?, ?, 'system', ?, ?, ?)",
+                (
+                    msg_id,
+                    f"group-{group_id}",
+                    text,
+                    group_id,
+                    _json.dumps({"sender_id": name, "kind": "intro"}),
+                ),
+            )
+            count += 1
+        except Exception as e:
+            logger.warning("seed_intro_messages: insert failed for %s — %s", name, e)
+    return count
 
 
 def save_proposed_template(slug: str, proposal: dict) -> Path:
