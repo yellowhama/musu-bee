@@ -1512,6 +1512,23 @@ async def api_create_company(req: CompanyCreateRequest) -> dict:
     )
 
 
+class TemplateDecisionRequest(BaseModel):
+    mission: str = Field(min_length=1, max_length=2000)
+    company_name: str = Field(min_length=1, max_length=200)
+
+
+@app.post(
+    "/api/companies/onboarding/template-decision",
+    summary="Decide whether the mission matches a built-in template (v12-onboarding)",
+)
+async def api_template_decision(req: TemplateDecisionRequest) -> dict:
+    """Return either a 'found' decision with a template + preview, or 'research'
+    with a placeholder task id. Pure deterministic function — see handlers.
+    """
+    from handlers import decide_template_for_mission
+    return decide_template_for_mission(req.mission, req.company_name)
+
+
 @app.get("/api/companies/{company_id}", summary="Get a company")
 async def api_get_company(company_id: str) -> dict:
     """Get a company by id."""

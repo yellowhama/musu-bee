@@ -1996,3 +1996,84 @@ def get_recent_tasks(limit: int = 10) -> list[dict]:
         "SELECT * FROM tasks ORDER BY created_at DESC LIMIT ?", (limit,)
     )
     return [dict(r) for r in rows]
+
+
+# ── v12-onboarding B — template decision ─────────────────────────────────────
+
+_DECISION_STOP_WORDS: set[str] = {
+    "a", "an", "the", "of", "for", "to", "and", "or", "in", "on", "at", "with",
+    "by", "that", "this", "these", "those", "is", "are", "be", "will", "would",
+    "want", "need", "want's", "make", "build", "run", "do", "does", "did", "have",
+    "has", "had", "i", "we", "you", "they", "it", "my", "our", "your", "their",
+    "company", "team", "business", "work", "job", "people", "person",
+    # Korean particles aren't tokenized here, but common single-char ASCII noise:
+    "s", "t", "d", "m", "re", "ll", "ve",
+}
+
+_DECISION_SCORE_THRESHOLD = 0.4
+
+
+def _decision_tokens(text: str) -> set[str]:
+    """Lower, strip punct, split, drop stop-words. Returns a set of tokens."""
+    lowered = text.lower()
+    # Keep Korean (BMP CJK) plus ASCII word chars; replace everything else with space.
+    cleaned = re.sub(r"[^0-9a-zㄱ-힝\s]+", " ", lowered)
+    tokens = {t for t in cleaned.split() if t and t not in _DECISION_STOP_WORDS}
+    return tokens
+
+
+def _decision_score(mission_tokens: set[str], template_tokens: set[str]) -> float:
+    """Token overlap normalized by mission size (so longer descriptions don't dominate)."""
+    if not mission_tokens:
+        return 0.0
+    overlap = mission_tokens & template_tokens
+    return len(overlap) / max(len(mission_tokens), 1)
+
+
+def decide_template_for_mission(mission: str, company_name: str) -> dict:
+    """Decide whether a built-in template fits the mission, or research is needed.
+
+    Returns one of:
+      - {"decision": "found", "template": str, "score": float, "preview": {"agents": [...]}}
+      - {"decision": "research", "research_task_id": str, "estimated_seconds": int}
+
+    Pure function — no LLM call, deterministic, no side effects.
+    The research_task_id is a placeholder; sub-cycle D will wire the actual task.
+    """
+    from company_templates import _TEMPLATES  # local import to avoid cycle
+
+    mission_tokens = _decision_tokens(mission)
+
+    best_key: str | None = None
+    best_score = 0.0
+    for key, tmpl in _TEMPLATES.items():
+        description = tmpl.get("description", "")
+        # Combine description + role hints from agents so short descriptions still match.
+        role_text = " ".join(a.get("role", "") for a in tmpl.get("agents", []))
+        template_tokens = _decision_tokens(f"{description} {role_text} {key}")
+        score = _decision_score(mission_tokens, template_tokens)
+        if score > best_score:
+            best_score = score
+            best_key = key
+
+    if best_key and best_score >= _DECISION_SCORE_THRESHOLD:
+        tmpl = _TEMPLATES[best_key]
+        return {
+            "decision": "found",
+            "template": best_key,
+            "score": round(best_score, 3),
+            "preview": {
+                "agents": [
+                    {"name": a.get("name"), "role": a.get("role")}
+                    for a in tmpl.get("agents", [])
+                ],
+            },
+        }
+
+    return {
+        "decision": "research",
+        "research_task_id": f"task-{uuid.uuid4().hex[:8]}",
+        "estimated_seconds": 30,
+        # company_name kept for downstream context if D wants to thread it through.
+        "company_name": company_name,
+    }

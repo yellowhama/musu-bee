@@ -131,17 +131,58 @@ export function useOnboardingFlow() {
     setFlow(INITIAL_FLOW);
   }, []);
 
-  // Stubs — B/C/D fill these in.
+  /**
+   * v12-onboarding B — Ask bridge whether the mission matches a built-in
+   * template, or whether research is needed. The bridge endpoint is
+   * deterministic (token overlap), so this never blocks for long.
+   */
   const requestDecision = useCallback(async () => {
-    setFlow((prev) => ({ ...prev, decision: "pending", decisionError: null }));
-    // A stub: pretend we found a generic template after 600ms so the UI
-    // can be exercised. B replaces with the real call.
-    await new Promise((r) => setTimeout(r, 600));
-    setFlow((prev) => ({
-      ...prev,
-      decision: "found",
-      foundTemplate: "dev-team",
-    }));
+    // Capture current draft inside the updater so the callback can stay
+    // dependency-free (state is owned by setFlow's prev).
+    let mission = "";
+    let companyName = "";
+    setFlow((prev) => {
+      mission = prev.mission;
+      companyName = prev.companyName;
+      return { ...prev, decision: "pending", decisionError: null };
+    });
+    try {
+      const r = await fetch("/api/bridge/companies/onboarding/template-decision", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mission, company_name: companyName }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data: {
+        decision: "found" | "research";
+        template?: string;
+        score?: number;
+        preview?: { agents: Array<{ name: string; role: string }> };
+        research_task_id?: string;
+        estimated_seconds?: number;
+      } = await r.json();
+      if (data.decision === "found" && data.template) {
+        setFlow((prev) => ({
+          ...prev,
+          decision: "found",
+          foundTemplate: data.template ?? null,
+        }));
+      } else if (data.decision === "research" && data.research_task_id) {
+        setFlow((prev) => ({
+          ...prev,
+          decision: "research",
+          researchTaskId: data.research_task_id ?? null,
+        }));
+      } else {
+        throw new Error("Invalid decision response");
+      }
+    } catch (e) {
+      setFlow((prev) => ({
+        ...prev,
+        decision: null,
+        decisionError: e instanceof Error ? e.message : String(e),
+      }));
+    }
   }, []);
 
   const spawn = useCallback(async () => {
