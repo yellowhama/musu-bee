@@ -3,6 +3,8 @@
 import { Tldraw, Editor } from "tldraw";
 import "tldraw/tldraw.css";
 import { useCallback } from "react";
+import CompanyCard from "./CompanyCard";
+import { useCompaniesCanvasData } from "./useCompaniesCanvasData";
 
 export interface CanvasInnerProps {
   companyId: string | null;
@@ -10,10 +12,10 @@ export interface CanvasInnerProps {
 }
 
 /**
- * tldraw mount + initial editor setup.
+ * tldraw mount + company-card overlay.
  *
- * Sub-cycles B (cards), C (node colors), D (edges), E (zoom), F (empty
- * state) will hook into the editor via this component.
+ * Sub-cycles C (node colors), D (edges), E (zoom), F (empty state)
+ * extend the overlay layer.
  */
 export default function CanvasInner({
   companyId,
@@ -22,28 +24,49 @@ export default function CanvasInner({
   void companyId;
   void onTriggerOnboarding;
 
+  const { cards, layout, loading, error } = useCompaniesCanvasData();
+
   const handleMount = useCallback((editor: Editor) => {
-    // Read-only by default until card/edge tools land in sub-cycle E.
     editor.updateInstanceState({ isReadonly: false, isGridMode: true });
   }, []);
 
   return (
-    <Tldraw
-      onMount={handleMount}
-      // Hide non-canvas tools until v12-canvas E lands.
-      components={{
-        ContextMenu: null,
-        ActionsMenu: null,
-        HelpMenu: null,
-        DebugMenu: null,
-        SharePanel: null,
-        StylePanel: null,
-        MainMenu: null,
-        NavigationPanel: null,
-        Toolbar: null,
-        PageMenu: null,
-        ZoomMenu: null,
-      }}
-    />
+    <>
+      <Tldraw
+        onMount={handleMount}
+        components={{
+          ContextMenu: null,
+          ActionsMenu: null,
+          HelpMenu: null,
+          DebugMenu: null,
+          SharePanel: null,
+          StylePanel: null,
+          MainMenu: null,
+          NavigationPanel: null,
+          Toolbar: null,
+          PageMenu: null,
+          ZoomMenu: null,
+        }}
+      />
+      <div className="canvas-card-layer">
+        {cards.map((c) => {
+          const pos = layout[c.companyId];
+          if (!pos) return null;
+          return (
+            <CompanyCard
+              key={c.companyId}
+              data={c}
+              style={{ left: pos.left, top: pos.top }}
+            />
+          );
+        })}
+        {!loading && cards.length === 0 ? (
+          <div className="canvas-empty-overlay" role="note">
+            <p>{error ? `Canvas offline: ${error}` : "No companies yet"}</p>
+            <p className="canvas-empty-hint">v12-canvas F will land the onboarding trigger here.</p>
+          </div>
+        ) : null}
+      </div>
+    </>
   );
 }
