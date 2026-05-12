@@ -22,6 +22,82 @@ except ModuleNotFoundError as exc:
 
 from .client import PaperclipClient
 
+
+def _load_company_yaml() -> dict[str, Any]:
+    """Load active company manifest from MUSU_COMPANY_YAML (v11-iso2).
+
+    Returns {} if env not set or yaml missing. musu-control deliberately keeps
+    its own light loader to avoid a hard dependency on musu-bridge.
+    """
+    path = os.environ.get("MUSU_COMPANY_YAML", "")
+    if not path:
+        company_id = os.environ.get("MUSU_COMPANY_ID", "")
+        if company_id:
+            base = os.environ.get("MUSU_HOME") or str(pathlib.Path.home() / ".musu")
+            path = str(pathlib.Path(base) / "companies" / f"{company_id}.yaml")
+    if not path:
+        return {}
+    p = pathlib.Path(path).expanduser()
+    if not p.exists():
+        return {}
+    try:
+        import yaml as _yaml
+        return _yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+    except Exception:
+        return {}
+
+
+def _company_workspace_root() -> str:
+    """Resolve writer workspace root: yaml > MUSU_WRITER_WORKSPACE > Path.home()/writer."""
+    m = _load_company_yaml()
+    if m and m.get("workspace_root"):
+        return str(m["workspace_root"])
+    env = os.environ.get("MUSU_WRITER_WORKSPACE")
+    if env:
+        return env
+    return str(pathlib.Path.home() / "writer")
+
+
+def _company_role_handle(role_key: str, fallback: str) -> str:
+    """Return an agent name for a logical role from the active manifest.
+
+    Heuristic: look for an agent whose ``role`` field matches the role_key
+    (case-insensitive contains). Falls back to the legacy hardcoded name.
+    """
+    m = _load_company_yaml()
+    if not m:
+        return fallback
+    needle = role_key.lower()
+    for agent in m.get("agents", []):
+        rname = str(agent.get("role", "")).lower()
+        if needle in rname:
+            return str(agent.get("name") or fallback)
+    return fallback
+
+
+def _company_pm_handle(project_name: str, fallback: str) -> str:
+    """Resolve a project's PM agent from manifest.projects[].assigned_to."""
+    m = _load_company_yaml()
+    if not m:
+        return fallback
+    needle = project_name.strip().lower().replace("-", " ").replace("_", " ")
+    for proj in m.get("projects", []):
+        pname = str(proj.get("name", "")).lower().replace("-", " ").replace("_", " ")
+        if needle and (needle == pname or needle in pname or pname in needle):
+            assigned = proj.get("assigned_to")
+            if assigned:
+                return str(assigned)
+    return fallback
+
+
+def _company_id_or_fallback() -> str:
+    """Return active company id from manifest, or legacy default."""
+    m = _load_company_yaml()
+    if m and m.get("id"):
+        return str(m["id"])
+    # Legacy fallback so existing PAPERCLIP_COMPANY_ID flows keep working.
+    return "a2699373-3700-4cbc-8477-c70e1d94cf8a"
+
 mcp = FastMCP("musu-control")
 _client: PaperclipClient | None = None
 logger = logging.getLogger(__name__)
@@ -1619,7 +1695,9 @@ async def create_writer_sprint_bundle(
     """Create a standard Bloodline Writers goal + issue bundle for one sprint.
 
     The bundle creates one goal and five role-mapped issues:
-    BW-Lead, project PM, BW-Researcher, BW-Writer, BW-Editor.
+    Company Lead, project PM, Researcher, Writer, Editor. Role→agent mapping
+    comes from the active company manifest (MUSU_COMPANY_YAML); legacy BW
+    handles are used when no manifest is configured.
     """
     if not project_name.strip() or not sprint_id.strip():
         return _tool_error("project_name and sprint_id are required.")
@@ -1633,11 +1711,11 @@ async def create_writer_sprint_bundle(
         resolved_project_id = project_id.strip() or _resolve_item_id(projects, project_name.strip())
 
         role_handles = {
-            "lead": "BW-Lead",
+            "lead": _company_role_handle("lead", "BW-Lead"),
             "pm": _writer_pm_handle(project_name),
-            "researcher": "BW-Researcher",
-            "writer": "BW-Writer",
-            "editor": "BW-Editor",
+            "researcher": _company_role_handle("researcher", "BW-Researcher"),
+            "writer": _company_role_handle("writer", "BW-Writer"),
+            "editor": _company_role_handle("editor", "BW-Editor"),
         }
         resolved_agents = {
             role: _resolve_item_id(agents, handle)
@@ -1869,9 +1947,10 @@ async def create_writer_ops_incident(
             return _tool_error("PAPERCLIP_COMPANY_ID is required for writer ops incidents.")
 
         agents = await _list_company_agents(c)
-        lead_agent_id = _resolve_item_id(agents, "BW-Lead")
+        lead_handle = _company_role_handle("lead", "BW-Lead")
+        lead_agent_id = _resolve_item_id(agents, lead_handle)
         if not lead_agent_id:
-            return _tool_error("BW-Lead agent not found.")
+            return _tool_error(f"{lead_handle} agent not found.")
 
         resolved_project_id = project_id.strip()
         if not resolved_project_id and project_name.strip():
@@ -1880,7 +1959,7 @@ async def create_writer_ops_incident(
 
         body_description = description.strip()
         if reason.strip():
-            reason_block = f"BW-Lead ownership reason: {reason.strip()}"
+            reason_block = f"{lead_handle} ownership reason: {reason.strip()}"
             body_description = "\n\n".join(part for part in [body_description, reason_block] if part)
 
         body: dict[str, Any] = {
@@ -1902,9 +1981,9 @@ async def create_writer_ops_incident(
             {
                 "issue": data,
                 "policy": {
-                    "defaultOwner": "BW-Lead",
+                    "defaultOwner": lead_handle,
                     "ownerAgentId": lead_agent_id,
-                    "why": reason.strip() or "Shared writer-company incidents start in the BW-Lead lane.",
+                    "why": reason.strip() or f"Shared writer-company incidents start in the {lead_handle} lane.",
                 },
             }
         )
@@ -1912,17 +1991,24 @@ async def create_writer_ops_incident(
         return _tool_error("Error creating writer ops incident.")
 
 
+# v11-iso2: writer company id now resolves from active manifest. The legacy
+# constant remains as a fallback for environments without MUSU_COMPANY_YAML.
 _WRITER_COMPANY_ID = "a2699373-3700-4cbc-8477-c70e1d94cf8a"
 
 
 @mcp.tool()
-async def audit_writer_company_health(workspace_root: str = "/home/hugh51/writer") -> str:
-    """Audit live Bloodline Writers state against the canonical writer-company manifest."""
+async def audit_writer_company_health(workspace_root: str | None = None) -> str:
+    """Audit the active writer-company manifest against live state.
+
+    Resolves the manifest workspace from MUSU_COMPANY_YAML when not provided.
+    """
     try:
+        ws = workspace_root or _company_workspace_root()
+        cid = _company_id_or_fallback()
         c = _get_client()
         data = await c.get(
-            f"/companies/{_WRITER_COMPANY_ID}/writer-company-health",
-            workspace_root=workspace_root,
+            f"/companies/{cid}/writer-company-health",
+            workspace_root=ws,
         )
         return _fmt(data)
     except Exception:
@@ -2048,10 +2134,9 @@ def _resolve_item_id(items: list[dict[str, Any]], expected: str) -> str:
 
 
 def _writer_pm_handle(project_name: str) -> str:
-    normalized = _norm(project_name)
-    if normalized in {"bloodline"}:
-        return "BW-PM-Bloodline"
-    return "BW-PM-FalseDane"
+    # v11-iso2: resolve PM from manifest.projects[].assigned_to first.
+    fallback = "BW-PM-Bloodline" if _norm(project_name) in {"bloodline"} else "BW-PM-FalseDane"
+    return _company_pm_handle(project_name, fallback)
 
 
 def _writer_goal_title(project_name: str, sprint_id: str, title: str) -> str:
@@ -2894,11 +2979,19 @@ async def get_wiki_page(page_id: str, summary: bool = False) -> CallToolResult:
 # Company Charter
 # ──────────────────────────────────────────────
 
+def _default_musu_workspace() -> pathlib.Path:
+    # v11-iso2: detect repo root from this file's location instead of a hardcoded
+    # /home/<user> path. server.py lives at musu-control/src/musu_control/server.py,
+    # so parents[3] is the musu-functions root.
+    env = os.environ.get("MUSU_WORKSPACE")
+    if env:
+        return pathlib.Path(env).expanduser()
+    return pathlib.Path(__file__).resolve().parents[3]
+
+
 _CHARTER_PATH = pathlib.Path(
     os.environ.get("MUSU_CHARTER_PATH", "")
-) if os.environ.get("MUSU_CHARTER_PATH") else pathlib.Path(
-    os.environ.get("MUSU_WORKSPACE", "/home/hugh51/musu-functions")
-) / ".musu" / "charter.md"
+) if os.environ.get("MUSU_CHARTER_PATH") else _default_musu_workspace() / ".musu" / "charter.md"
 
 
 @mcp.tool()
