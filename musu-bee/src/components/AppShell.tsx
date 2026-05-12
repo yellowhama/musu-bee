@@ -139,7 +139,7 @@ export default function AppShell() {
   const [channels, setChannels] = useState<Channel[]>(INITIAL_CHANNELS);
   const [activeChannel, setActiveChannel] = useState<ChannelId>("ceo");
   // 3-panel state: separate panel (center) from chat (right)
-  const [activePanel, setActivePanel] = useState<PanelId>("dashboard");
+  const [activePanel, setActivePanel] = useState<PanelId>("canvas");
   const [activeChat, setActiveChat] = useState<ChatChannelId>("ceo");
   const [displayOverlay, setDisplayOverlay] = useState<DisplayContent | null>(null);
   const [localMessages, setLocalMessages] = useState<Message[]>([]);

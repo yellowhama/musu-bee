@@ -473,3 +473,58 @@ code, .mono {
   color: var(--accent);
   font-size: var(--text-base);
 }
+
+/* ---------- v12-canvas ---------- */
+.canvas-shell {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg-soft, #f8f6f1);
+}
+
+.canvas-shell > * {
+  flex: 1;
+  min-height: 0;
+}
+
+.canvas-loading {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--fg3, #6b7280);
+  font-size: 13px;
+}
+
+.canvas-loading-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--border-subtle, rgba(0,0,0,0.1));
+  border-top-color: var(--accent, #ffd166);
+  border-radius: 50%;
+  animation: canvas-spin 0.9s linear infinite;
+}
+
+@keyframes canvas-spin {
+  to { transform: rotate(360deg); }
+}
+
+.canvas-watermark {
+  position: absolute;
+  bottom: 10px;
+  right: 14px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--fg4, rgba(0,0,0,0.32));
+  pointer-events: none;
+  user-select: none;
+  background: rgba(255,255,255,0.7);
+  padding: 4px 8px;
+  border-radius: 999px;
+  backdrop-filter: blur(4px);
+}

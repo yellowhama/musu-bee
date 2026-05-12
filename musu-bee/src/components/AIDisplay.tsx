@@ -13,6 +13,7 @@ import GoalsPanel from "@/components/GoalsPanel";
 import SearchPanel from "@/components/SearchPanel";
 import NodesPanel from "@/components/NodesPanel";
 import WikiPanel from "@/components/WikiPanel";
+import CompanyCanvasPanel from "@/components/CompanyCanvasPanel";
 
 // ── Tab types ────────────────────────────────────────────────────────────────
 
@@ -198,6 +199,7 @@ function TabContent({ content, companyId }: { content: DisplayContent; companyId
 function PanelView({ panel, companyId }: { panel: PanelId; companyId?: string | null }) {
   const cid = companyId ?? undefined;
   switch (panel) {
+    case "canvas": return <CompanyCanvasPanel companyId={cid ?? null} />;
     case "tasks": return <TasksPanel />;
     case "processes": return <ProcessesPanel />;
     case "issues": return <IssuesPanel companyId={cid} />;

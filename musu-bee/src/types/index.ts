@@ -1,5 +1,6 @@
 /** Panel IDs — displayed in the center AI Display area */
 export type PanelId =
+  | "canvas"
   | "dashboard"
   | "tasks"
   | "processes"
@@ -39,7 +40,7 @@ export const AGENT_CHANNELS: ChannelId[] = [
 
 /** Panel IDs for the center display */
 export const PANEL_IDS: PanelId[] = [
-  "dashboard", "tasks", "issues", "goals", "projects",
+  "canvas", "dashboard", "tasks", "issues", "goals", "projects",
   "wiki", "costs", "search", "nodes", "approvals", "processes",
 ];
 
