@@ -1,4 +1,4 @@
-# musu-bridge installer — Windows native (no WSL)
+﻿# musu-bridge installer — Windows native (no WSL)
 # Equivalent to scripts/install.sh, mapped to PowerShell + Task Scheduler.
 #
 # Usage:
@@ -183,7 +183,16 @@ try:
 finally:
     backend.close()
 "@
+# Windows PowerShell 5.1 treats native stderr as a terminating error under
+# $ErrorActionPreference="Stop". seed_agents logs to stderr by design, so
+# temporarily relax the policy for this one invocation and rely on the
+# exit code as the actual success signal.
+$prevPref = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
 & $venvPython -c $seedCode 2>&1 | ForEach-Object { Write-Host "        $_" }
+$seedExit = $LASTEXITCODE
+$ErrorActionPreference = $prevPref
+if ($seedExit -ne 0) { Write-Err "seed_agents failed (exit $seedExit)" }
 Write-Ok "agents seeded with auto-detected CLI"
 
 # ── Step 6: Build musu-bee ────────────────────────────────────────────────────
@@ -193,19 +202,29 @@ if ((Test-Path $BeeDir) -and (-not (Test-Path (Join-Path $BeeDir ".next")))) {
     $npmCmd  = Get-Command npm  -ErrorAction SilentlyContinue
     if ($pnpmCmd -or $npmCmd) {
         Push-Location $BeeDir
+        $buildExit = 1
         try {
+            # Relax error preference because pnpm/npm write progress to stderr
+            # under PS 5.1, which would otherwise terminate the script.
+            $prevPref = $ErrorActionPreference
+            $ErrorActionPreference = "Continue"
             if ($pnpmCmd) {
-                & pnpm install --silent 2>$null
-                & pnpm build 2>$null
+                & pnpm install --silent 2>&1 | Out-Null
+                & pnpm build 2>&1 | Out-Null
             } else {
-                & npm install --silent 2>$null
-                & npm run build --silent 2>$null
+                & npm install --silent 2>&1 | Out-Null
+                & npm run build --silent 2>&1 | Out-Null
             }
-            Write-Ok "musu-bee build complete"
-        } catch {
-            Write-Warn "musu-bee build failed — UI unavailable. Install Node.js 20+ via: winget install OpenJS.NodeJS"
+            $buildExit = $LASTEXITCODE
+            $ErrorActionPreference = $prevPref
         } finally {
             Pop-Location
+        }
+        # Trust the artifact, not the exit code: .next is the real success signal.
+        if ((Test-Path (Join-Path $BeeDir ".next")) -and ($buildExit -eq 0)) {
+            Write-Ok "musu-bee build complete"
+        } else {
+            Write-Warn "musu-bee build failed — UI unavailable (no .next produced). Install Node.js 20+ via: winget install OpenJS.NodeJS"
         }
     } else {
         Write-Warn "node not found — skipping musu-bee build. Install: winget install OpenJS.NodeJS"
@@ -239,7 +258,12 @@ if (Test-Path `$envFile) {
 }
 Set-Location `$BridgeDir
 & (Join-Path `$Venv "Scripts\python.exe") -m server
-"@ | Set-Content -Path $startScript -Encoding UTF8
+"@ | Out-String | ForEach-Object {
+            # Write with UTF-8 BOM so Windows PowerShell 5.1 reads the
+            # multi-byte characters in this file (em-dash, ✓) as UTF-8
+            # rather than ANSI, which would corrupt parser state.
+            [System.IO.File]::WriteAllText($startScript, $_, [System.Text.UTF8Encoding]::new($true))
+        }
         Write-Ok "created scripts\start-bridge.ps1 (Windows variant)"
     }
 
