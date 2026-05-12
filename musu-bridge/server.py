@@ -1565,6 +1565,22 @@ async def api_approve_template(req: ApproveTemplateRequest) -> dict:
     return {"saved": True, "path": str(path), "slug": req.slug}
 
 
+@app.post(
+    "/api/adapters/{adapter_type}/probe",
+    summary="Quick health probe for an adapter (v15.2 onboarding Step 2)",
+)
+async def api_adapter_probe(adapter_type: str) -> dict:
+    """Run a single 'say ok' round-trip against the live adapter.
+
+    Used by the onboarding modal's Test connection button to give real
+    feedback instead of the v12 stub (600ms setTimeout). Returns
+    {ok, latency_ms?, reason}. Always 200 — error states live in the
+    `ok` flag and `reason` text.
+    """
+    from handlers import probe_adapter
+    return await probe_adapter(adapter_type, timeout_seconds=10.0)
+
+
 @app.get("/api/companies/{company_id}", summary="Get a company")
 async def api_get_company(company_id: str) -> dict:
     """Get a company by id."""

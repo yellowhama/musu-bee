@@ -29,6 +29,10 @@ export interface OnboardingFlow {
   nodeId: string | null;
   budgetCents: number;
   testStatus: "idle" | "checking" | "ok" | "fail";
+  // v15.2 — real adapter probe result. testReason holds the LLM's "ok"
+  // reply on success, or the failure mode (timeout / not installed / error).
+  testReason: string;
+  testLatencyMs: number | null;
 
   // Step 3
   decision: "pending" | "found" | "research" | null;
@@ -53,6 +57,8 @@ const INITIAL_FLOW: OnboardingFlow = {
   nodeId: null,
   budgetCents: 2000,
   testStatus: "idle",
+  testReason: "",
+  testLatencyMs: null,
   decision: null,
   foundTemplate: null,
   decisionPreview: null,
@@ -86,7 +92,14 @@ export function useOnboardingFlow() {
       const raw = window.localStorage.getItem(DRAFT_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        setFlow({ ...INITIAL_FLOW, ...parsed, spawnStatus: "idle", testStatus: "idle" });
+        setFlow({
+          ...INITIAL_FLOW,
+          ...parsed,
+          spawnStatus: "idle",
+          testStatus: "idle",
+          testReason: "",
+          testLatencyMs: null,
+        });
       }
     } catch {
       /* ignore */

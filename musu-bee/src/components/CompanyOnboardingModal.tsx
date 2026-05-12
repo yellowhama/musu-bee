@@ -199,11 +199,23 @@ function Step2CEO({
 }) {
   async function runTest() {
     setField("testStatus", "checking");
-    await new Promise((r) => setTimeout(r, 600));
-    // A stub — real endpoint comes later. Treat as ok unless the user
-    // picked a node that's offline.
-    const node = availableNodes.find((n) => n.name === flow.nodeId);
-    setField("testStatus", node && node.status === "online" ? "ok" : "fail");
+    setField("testReason", "");
+    setField("testLatencyMs", null);
+    try {
+      const r = await fetch(`/api/bridge/adapters/${flow.adapter}/probe`, {
+        method: "POST",
+      });
+      const data: { ok?: boolean; latency_ms?: number; reason?: string } = await r
+        .json()
+        .catch(() => ({}));
+      setField("testStatus", data.ok ? "ok" : "fail");
+      setField("testReason", data.reason ?? "");
+      setField("testLatencyMs", typeof data.latency_ms === "number" ? data.latency_ms : null);
+    } catch (e) {
+      setField("testStatus", "fail");
+      setField("testReason", e instanceof Error ? e.message : String(e));
+      setField("testLatencyMs", null);
+    }
   }
 
   return (
@@ -258,8 +270,18 @@ function Step2CEO({
         <button className="onboarding-btn ghost" type="button" onClick={runTest} disabled={flow.testStatus === "checking"}>
           {flow.testStatus === "checking" ? "Testing…" : "Test connection"}
         </button>
-        {flow.testStatus === "ok" ? <span className="onboarding-test-ok">✓ Adapter responded</span> : null}
-        {flow.testStatus === "fail" ? <span className="onboarding-test-fail">✗ Node offline or adapter unreachable</span> : null}
+        {flow.testStatus === "ok" ? (
+          <span className="onboarding-test-ok">
+            ✓ Adapter responded
+            {flow.testLatencyMs != null ? ` · ${Math.round(flow.testLatencyMs)}ms` : ""}
+            {flow.testReason ? ` · "${flow.testReason}"` : ""}
+          </span>
+        ) : null}
+        {flow.testStatus === "fail" ? (
+          <span className="onboarding-test-fail">
+            ✗ {flow.testReason || "Adapter unreachable"}
+          </span>
+        ) : null}
       </div>
     </div>
   );

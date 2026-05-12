@@ -7,6 +7,7 @@ import logging
 import os
 import re
 import sys
+import time
 import uuid
 from pathlib import Path
 from typing import Any
@@ -2196,6 +2197,52 @@ async def _call_decision_adapter(prompt: str, timeout_seconds: float) -> str | N
     if not result.success:
         return None
     return result.summary or None
+
+
+async def probe_adapter(adapter_type: str, timeout_seconds: float = 10.0) -> dict:
+    """v15.2 — Quick health probe for an adapter. Used by onboarding Step 2.
+
+    Returns {ok: bool, latency_ms: float?, reason: str}. Does a single
+    "say ok" round-trip against the live adapter. Total wall-time is
+    capped by timeout_seconds; a clean timeout produces a structured
+    response rather than an exception.
+    """
+    try:
+        from musu_core.adapters.registry import get_adapter
+        from musu_core.adapters.base import AdapterContext
+    except Exception as e:
+        return {"ok": False, "reason": f"adapter module import failed: {e}"}
+
+    adapter = get_adapter(adapter_type)
+    if adapter is None:
+        return {"ok": False, "reason": f"adapter '{adapter_type}' not installed"}
+
+    ctx = AdapterContext(
+        run_id=f"probe-{uuid.uuid4().hex[:8]}",
+        prompt="Reply with one word: ok",
+        agent_id="onboarding-probe",
+        agent_name="onboarding-probe",
+        agent_role="Probe",
+        adapter_type=adapter_type,
+        config={"timeout_sec": int(timeout_seconds), "disable_mcp": True},
+    )
+    start = time.monotonic()
+    try:
+        result = await asyncio.wait_for(adapter.execute(ctx), timeout=timeout_seconds)
+    except asyncio.TimeoutError:
+        return {
+            "ok": False,
+            "latency_ms": round((time.monotonic() - start) * 1000, 1),
+            "reason": f"timeout ({timeout_seconds:.0f}s)",
+        }
+    except Exception as e:
+        return {"ok": False, "reason": f"{type(e).__name__}: {str(e)[:80]}"}
+
+    latency_ms = round((time.monotonic() - start) * 1000, 1)
+    if not result.success:
+        return {"ok": False, "latency_ms": latency_ms, "reason": (result.error or "adapter returned success=false")[:120]}
+    summary = (result.summary or "").strip()
+    return {"ok": True, "latency_ms": latency_ms, "reason": summary[:60]}
 
 
 async def decide_template_for_mission_with_llm(
