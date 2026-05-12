@@ -358,5 +358,22 @@ def main():
     mcp.run()
 
 
+def run_http(host: str = "127.0.0.1", port: int = 9701) -> None:
+    """Run the MCP server with streamable-http transport on host:port (v10-e').
+
+    Lets multiple Claude Code sessions share a single indexer instance,
+    eliminating the stdio multi-spawn race on the shared .musu_dev.db.
+    """
+    workspace = _current_workspace()
+    find_project_root(
+        start_path=str(Path.cwd()),
+        root_override=str(workspace.root),
+        profile_path=str(workspace.profile_path) if workspace.profile_path else None,
+    )
+    mcp.settings.host = host
+    mcp.settings.port = port
+    mcp.run(transport="streamable-http")
+
+
 if __name__ == "__main__":
     main()

@@ -179,7 +179,20 @@ def main():
     )
     _add_workspace_args(s_cleanup_history)
 
-    mcp_parser = subparsers.add_parser("mcp", help="Run the MCP server (stdio mode)")
+    mcp_parser = subparsers.add_parser(
+        "mcp", help="Run the MCP server (stdio by default; --http for shared singleton)"
+    )
+    mcp_parser.add_argument(
+        "--http",
+        action="store_true",
+        help="Use streamable-http transport instead of stdio (v10-e' singleton mode)",
+    )
+    mcp_parser.add_argument(
+        "--host", type=str, default="127.0.0.1", help="HTTP host (default 127.0.0.1)"
+    )
+    mcp_parser.add_argument(
+        "--port", type=int, default=9701, help="HTTP port (default 9701)"
+    )
     _add_workspace_args(mcp_parser)
 
     watch_parser = subparsers.add_parser("watch", help="Start the Auto-Ingest Daemon")
@@ -252,7 +265,11 @@ def main():
             os.environ["MUSU_INDEXER_PROFILE"] = str(
                 Path(args.profile).expanduser().resolve()
             )
-        _lazy_load_mcp().run()
+        if args.http:
+            from .server import run_http
+            run_http(host=args.host, port=args.port)
+        else:
+            _lazy_load_mcp().run()
         return
 
     workspace = _resolve_cli_workspace(args)
