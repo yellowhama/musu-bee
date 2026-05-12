@@ -12,6 +12,8 @@ export interface InboxItem {
   subtitle: string;
   rawId: string;
   companyId: string | null;
+  /** v13.4 — Display name for the source company (multi-tenant inbox). */
+  companyName: string | null;
   createdAt: string;
   /** B's UI can drill into the kind-specific row when it needs more detail. */
   raw: ApprovalRow | IssueRow | NotificationRow;
@@ -62,7 +64,9 @@ export interface UseInboxReturn {
   clearFlash: (companyId: string) => void;
 }
 
-const POLL_MS = 10_000;
+// v13.4 — All-companies inbox fans out across N companies per poll. 30s
+// strikes a balance between liveness and the bridge's rate limit (60/min/ip).
+const POLL_MS = 30_000;
 
 function formatRelative(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -83,8 +87,17 @@ function formatRelative(iso: string): string {
  * for resolution + a flash signal (`flashCompanyIds`) consumed by D so
  * the canvas card pulses when a new item arrives.
  */
+/**
+ * v13.4 — `companies` is the full list of operator companies whose
+ * approvals/issues should appear in the inbox. Pass `[]` to disable
+ * company-side polling. Notification polling uses `userId` (Supabase id).
+ *
+ * The hook fans out N approvals + N issues + 1 notification fetch per
+ * poll. 30s polling keeps total request rate sane against the bridge's
+ * default 60/min/ip cap.
+ */
 export function useInbox(
-  companyId: string | null,
+  companies: Array<{ id: string; name: string }>,
   userId: string | null,
 ): UseInboxReturn {
   const [items, setItems] = useState<InboxItem[]>([]);
@@ -95,8 +108,12 @@ export function useInbox(
   const mountedRef = useRef(true);
   const lastSeenIdsRef = useRef<Set<string> | null>(null);
 
+  // Stable string of company ids for the effect dependency — the array
+  // reference would otherwise reset polling on every render.
+  const companyIdsKey = companies.map((c) => c.id).join(",");
+
   const doFetch = useCallback(async () => {
-    if (!companyId && !userId) {
+    if (companies.length === 0 && !userId) {
       if (mountedRef.current) {
         setItems([]);
         setLoading(false);
@@ -105,9 +122,12 @@ export function useInbox(
       return;
     }
 
+    const nameById = new Map(companies.map((c) => [c.id, c.name]));
     const tasks: Array<Promise<InboxItem[]>> = [];
 
-    if (companyId) {
+    for (const co of companies) {
+      const companyId = co.id;
+      const companyName = co.name;
       tasks.push(
         fetch(`/api/bridge/companies/${companyId}/approvals`)
           .then((r) => (r.ok ? r.json() : []))
@@ -121,6 +141,7 @@ export function useInbox(
                 subtitle: `${row.requested_by || "unknown"} · ${formatRelative(row.created_at)}`,
                 rawId: row.id,
                 companyId: row.company_id,
+                companyName,
                 createdAt: row.created_at,
                 raw: row,
               })),
@@ -139,6 +160,7 @@ export function useInbox(
               subtitle: `${row.priority} · ${formatRelative(row.created_at)}`,
               rawId: row.id,
               companyId: row.company_id,
+              companyName,
               createdAt: row.created_at,
               raw: row,
             })),
@@ -152,18 +174,22 @@ export function useInbox(
         fetch(`/api/bridge/notifications/${userId}`)
           .then((r) => (r.ok ? r.json() : []))
           .then((rows: NotificationRow[]) =>
-            (Array.isArray(rows) ? rows : []).map<InboxItem>((row) => ({
-              id: `notification-${row.id}`,
-              kind: "notification",
-              title: row.preview || "(no preview)",
-              subtitle: `${row.sender_id || "unknown"} · ${formatRelative(row.created_at)}`,
-              rawId: row.id,
-              companyId: row.group_id?.startsWith("company-")
+            (Array.isArray(rows) ? rows : []).map<InboxItem>((row) => {
+              const cid = row.group_id?.startsWith("company-")
                 ? row.group_id.slice("company-".length)
-                : null,
-              createdAt: row.created_at,
-              raw: row,
-            })),
+                : null;
+              return {
+                id: `notification-${row.id}`,
+                kind: "notification",
+                title: row.preview || "(no preview)",
+                subtitle: `${row.sender_id || "unknown"} · ${formatRelative(row.created_at)}`,
+                rawId: row.id,
+                companyId: cid,
+                companyName: cid ? nameById.get(cid) ?? null : null,
+                createdAt: row.created_at,
+                raw: row,
+              };
+            }),
           )
           .catch(() => [] as InboxItem[]),
       );
@@ -201,7 +227,7 @@ export function useInbox(
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [companyId, userId]);
+  }, [companyIdsKey, userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reset on identity change.
   useEffect(() => {
@@ -209,7 +235,7 @@ export function useInbox(
     setItems([]);
     lastSeenIdsRef.current = null;
     void doFetch();
-  }, [companyId, userId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [companyIdsKey, userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Poll.
   useEffect(() => {

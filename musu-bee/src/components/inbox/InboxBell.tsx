@@ -172,7 +172,12 @@ function InboxRow({ item, onApprove, onReject, onJump }: InboxRowProps) {
       <Icon size={14} className="inbox-item-icon" />
       <div className="inbox-item-text">
         <div className="inbox-item-title">{item.title}</div>
-        <div className="inbox-item-subtitle">{item.subtitle}</div>
+        <div className="inbox-item-subtitle">
+          {item.companyName ? (
+            <span className="inbox-item-company">{item.companyName}</span>
+          ) : null}
+          {item.subtitle}
+        </div>
       </div>
       {item.kind === "approval" ? (
         <div className="inbox-item-actions" onClick={(e) => e.stopPropagation()}>

@@ -1316,6 +1316,22 @@ code, .mono {
   font-size: 11px;
   color: var(--fg3, #6b7280);
 }
+.inbox-item-company {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(255, 209, 102, 0.18);
+  color: var(--fg1, #111);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
 .inbox-item-actions {
   display: flex;
   gap: 4px;

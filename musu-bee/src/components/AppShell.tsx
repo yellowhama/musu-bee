@@ -138,8 +138,32 @@ export default function AppShell() {
   }, [activeCompany?.companyId]);
   const effectiveCompanyId = activeCompany?.companyId ?? bridgeCompanyId;
 
-  // ── v12-inbox: shared attention surface — TopBar bell + canvas flash ──────
-  const inbox = useInbox(effectiveCompanyId, userIdentity.id);
+  // ── v13.4: all-companies inbox — fetch companies for the inbox subscription ─
+  const [allCompanies, setAllCompanies] = useState<Array<{ id: string; name: string }>>([]);
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const r = await fetch("/api/bridge/companies");
+        if (!r.ok) return;
+        const json: Array<{ id: string; name: string; status?: string }> = await r.json();
+        if (cancelled) return;
+        setAllCompanies(
+          (Array.isArray(json) ? json : [])
+            .filter((c) => c.status !== "inactive")
+            .map((c) => ({ id: c.id, name: c.name })),
+        );
+      } catch {
+        /* keep previous list on transient failure */
+      }
+    }
+    void load();
+    const t = setInterval(load, 60_000);
+    return () => { cancelled = true; clearInterval(t); };
+  }, []);
+
+  // ── v12-inbox / v13.4: shared attention surface across all companies ─────
+  const inbox = useInbox(allCompanies, userIdentity.id);
 
   // ── Local UI state ─────────────────────────────────────────────────────────
   const [channels, setChannels] = useState<Channel[]>(INITIAL_CHANNELS);
