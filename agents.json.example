@@ -1,0 +1,28 @@
+[
+  {
+    "id": "00000000-0000-0000-0000-000000000001",
+    "companyId": "00000000-0000-0000-0000-00000000aaaa",
+    "name": "CEO",
+    "role": "ceo",
+    "title": "CEO",
+    "icon": "crown",
+    "status": "idle",
+    "reportsTo": null,
+    "capabilities": "Sets company direction. Delegates work to specialists. Reports to the human board.",
+    "adapterType": "claude_local",
+    "adapterConfig": {},
+    "runtimeConfig": {},
+    "budgetMonthlyCents": 20000,
+    "spentMonthlyCents": 0,
+    "pauseReason": null,
+    "pausedAt": null,
+    "permissions": {
+      "canCreateAgents": true
+    },
+    "lastHeartbeatAt": null,
+    "metadata": null,
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z",
+    "urlKey": "ceo"
+  }
+]

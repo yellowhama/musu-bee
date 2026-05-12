@@ -45,6 +45,12 @@ heartbeat_report_*.md
 ceo_board_report_*.md
 butler_output.log
 
+# v11-iso9: operator state JSON. Examples are committed as
+# `agents.json.example`; the live `agents.json` is user data.
+/agents.json
+/coherence_report.json
+/issues_full.json
+
 # Empty marker files
 MUS-*
 in_progress
