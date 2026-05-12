@@ -20,7 +20,11 @@ export function useAuth(): UseAuthReturn {
   const authConfigured = isSupabaseConfigured();
   const envAuthEnabled = process.env.NEXT_PUBLIC_AUTH_ENABLED === "true";
 
-  // Embed detection in useEffect to avoid SSR/CSR hydration mismatch
+  // v13-visual P0-1 — Read embed flag synchronously on the client. Reading
+  // window during state init (and skipping during SSR) avoids both the race
+  // with the auth-redirect effect AND the hydration mismatch warning
+  // (initial render returns null for embed flag both server-side and
+  // client-side; the effect upgrades it before the auth gate fires).
   const [isEmbedded, setIsEmbedded] = useState(false);
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("embed") === "1") {
@@ -36,6 +40,14 @@ export function useAuth(): UseAuthReturn {
   });
 
   useEffect(() => {
+    // P0-1 — Delay the auth gate decision until after we've checked for
+    // ?embed=1 on the client. Without this, the first effect run sees
+    // `authEnabled = envAuthEnabled = true` while the embed flag is still
+    // false, and redirects to /login before isEmbedded flips.
+    if (typeof window !== "undefined" && !isEmbedded) {
+      const hasEmbed = new URLSearchParams(window.location.search).get("embed") === "1";
+      if (hasEmbed) return; // pending state flip; bail this run
+    }
     const redirectToLogin = () => {
       const path = `${window.location.pathname}${window.location.search}`;
       router.replace(`/login?redirect=${encodeURIComponent(path)}`);
@@ -82,7 +94,7 @@ export function useAuth(): UseAuthReturn {
       active = false;
       listener.subscription.unsubscribe();
     };
-  }, [authConfigured, authEnabled, router]);
+  }, [authConfigured, authEnabled, router, isEmbedded]);
 
   return { userIdentity, authEnabled, authConfigured };
 }

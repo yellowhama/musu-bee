@@ -149,12 +149,14 @@ export default function AppShell() {
   const [activeChat, setActiveChat] = useState<ChatChannelId>("ceo");
   const [displayOverlay, setDisplayOverlay] = useState<DisplayContent | null>(null);
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
-  const [showOnboarding, setShowOnboarding] = useState(() => {
-    if (typeof window === "undefined") return false;
-    // Skip onboarding in embed mode (iframe from musu.pro)
-    if (new URLSearchParams(window.location.search).get("embed") === "1") return false;
-    return !localStorage.getItem("musu_onboarded");
-  });
+  // v13-visual P0-1 — SSR/client divergence (window-only read in useState
+  // initial caused hydration mismatch on /app?embed=1). Start false on both,
+  // then resolve in a client-only effect.
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("embed") === "1") return;
+    if (!localStorage.getItem("musu_onboarded")) setShowOnboarding(true);
+  }, []);
   const [showCompanyTemplate, setShowCompanyTemplate] = useState(false);
   const [showCompanyOnboarding, setShowCompanyOnboarding] = useState(false);
   const [showPalette, setShowPalette] = useState(false);

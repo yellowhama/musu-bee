@@ -76,27 +76,36 @@ const DRAFT_KEY = "musu_company_onboarding_draft";
  * Sub-cycle B fills in `requestDecision()` real logic. C/D fill `spawn()`.
  */
 export function useOnboardingFlow() {
-  const [flow, setFlow] = useState<OnboardingFlow>(() => {
-    if (typeof window === "undefined") return INITIAL_FLOW;
+  const [flow, setFlow] = useState<OnboardingFlow>(INITIAL_FLOW);
+  const [hydrated, setHydrated] = useState(false);
+
+  // v13-visual P0-1 — Load localStorage draft in an effect (was: useState
+  // initial reading window, which caused hydration mismatch).
+  useEffect(() => {
     try {
       const raw = window.localStorage.getItem(DRAFT_KEY);
-      if (!raw) return INITIAL_FLOW;
-      const parsed = JSON.parse(raw);
-      return { ...INITIAL_FLOW, ...parsed, spawnStatus: "idle", testStatus: "idle" };
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        setFlow({ ...INITIAL_FLOW, ...parsed, spawnStatus: "idle", testStatus: "idle" });
+      }
     } catch {
-      return INITIAL_FLOW;
+      /* ignore */
+    } finally {
+      setHydrated(true);
     }
-  });
+  }, []);
 
-  // Persist draft on every change.
+  // Persist draft on every change, but only after we've finished loading the
+  // existing draft from localStorage — otherwise the initial empty INITIAL_FLOW
+  // would overwrite a real saved draft before this hook hydrates.
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (!hydrated) return;
     try {
       window.localStorage.setItem(DRAFT_KEY, JSON.stringify(flow));
     } catch {
-      // localStorage full or unavailable — ignore.
+      /* ignore */
     }
-  }, [flow]);
+  }, [flow, hydrated]);
 
   const setField = useCallback(<K extends keyof OnboardingFlow>(key: K, value: OnboardingFlow[K]) => {
     setFlow((prev) => ({ ...prev, [key]: value }));

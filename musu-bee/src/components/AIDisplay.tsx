@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { PanelId } from "@/types";
 import ProjectBriefing from "@/components/ProjectBriefing";
 import TasksPanel from "@/components/TasksPanel";
@@ -79,23 +79,24 @@ export default function AIDisplay({ activePanel, companyId, openRequest, onOpenH
     setActiveTabId(id);
   }, [tabs]);
 
-  // Handle activePanel changes from NavTab
-  if (activePanel !== "dashboard") {
+  // v13-visual P0-3 — Sync activePanel → tab as an effect (was: setTimeout
+  // inside the render function, which violated React's no-side-effect rule
+  // and caused hydration mismatches + missing canvas surface on /app load).
+  useEffect(() => {
+    if (activePanel === "dashboard") return;
     const panelTabId = `panel-${activePanel}`;
     const exists = tabs.some((t) => t.id === panelTabId);
     if (!exists || activeTabId !== panelTabId) {
-      // Use setTimeout to avoid setState during render
-      setTimeout(() => openTab({ type: "panel", panel: activePanel }), 0);
+      openTab({ type: "panel", panel: activePanel });
     }
-  }
+  }, [activePanel]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Handle AI push requests
-  if (openRequest && onOpenHandled) {
-    setTimeout(() => {
-      openTab(openRequest);
-      onOpenHandled();
-    }, 0);
-  }
+  // v13-visual P0-3 — Same pattern for AI push requests.
+  useEffect(() => {
+    if (!openRequest || !onOpenHandled) return;
+    openTab(openRequest);
+    onOpenHandled();
+  }, [openRequest]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const closeTab = useCallback((id: string) => {
     setTabs((prev) => {
