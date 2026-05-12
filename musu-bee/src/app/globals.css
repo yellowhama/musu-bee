@@ -1004,6 +1004,33 @@ code, .mono {
   color: var(--fg3, #6b7280);
   font-style: italic;
 }
+.onboarding-found-agents {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+.onboarding-found-agents li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-subtle, rgba(0,0,0,0.08));
+  border-radius: 8px;
+  background: var(--bg2, #fafafa);
+}
+.onboarding-found-agents strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg1, #111);
+}
+.onboarding-found-agents span {
+  font-size: 11px;
+  color: var(--fg3, #6b7280);
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+}
 .onboarding-summary-title {
   margin: 0 0 4px;
   font-size: 16px;

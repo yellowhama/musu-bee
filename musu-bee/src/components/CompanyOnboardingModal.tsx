@@ -293,9 +293,16 @@ function Step3Template({ flow, setField }: { flow: FlowSnapshot; setField: SetFi
         <p className="onboarding-found-subtitle">
           Template <code>{flow.foundTemplate}</code> looks right for this mission.
         </p>
-        <p className="onboarding-found-note">
-          (Preview of departments will land in sub-cycle C.)
-        </p>
+        {flow.decisionPreview && flow.decisionPreview.agents.length > 0 ? (
+          <ul className="onboarding-found-agents">
+            {flow.decisionPreview.agents.map((a) => (
+              <li key={a.name}>
+                <strong>{a.role}</strong>
+                <span>{a.name}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
     );
   }

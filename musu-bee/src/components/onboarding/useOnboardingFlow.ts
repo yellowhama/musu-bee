@@ -33,6 +33,8 @@ export interface OnboardingFlow {
   // Step 3
   decision: "pending" | "found" | "research" | null;
   foundTemplate: string | null;
+  /** Optional preview returned by bridge for the found template. */
+  decisionPreview: { agents: Array<{ name: string; role: string }> } | null;
   researchTaskId: string | null;
   proposedTemplate: ProposedTemplate | null;
   decisionError: string | null;
@@ -53,6 +55,7 @@ const INITIAL_FLOW: OnboardingFlow = {
   testStatus: "idle",
   decision: null,
   foundTemplate: null,
+  decisionPreview: null,
   researchTaskId: null,
   proposedTemplate: null,
   decisionError: null,
@@ -166,6 +169,7 @@ export function useOnboardingFlow() {
           ...prev,
           decision: "found",
           foundTemplate: data.template ?? null,
+          decisionPreview: data.preview ?? null,
         }));
       } else if (data.decision === "research" && data.research_task_id) {
         setFlow((prev) => ({
@@ -185,15 +189,45 @@ export function useOnboardingFlow() {
     }
   }, []);
 
+  /**
+   * v12-onboarding C — Spawn the company on the bridge with the chosen
+   * template. The 'default' fallback covers the rare case where step 3
+   * landed but no template was selected (it's a no-op template on the bridge).
+   */
   const spawn = useCallback(async () => {
-    setFlow((prev) => ({ ...prev, spawnStatus: "spawning", spawnError: null }));
-    // A stub. C/D wire the real /api/bridge/companies call.
-    await new Promise((r) => setTimeout(r, 800));
-    setFlow((prev) => ({
-      ...prev,
-      spawnStatus: "ok",
-      spawnedCompanyId: `stub-${Date.now()}`,
-    }));
+    let snapshot: OnboardingFlow | null = null;
+    setFlow((prev) => {
+      snapshot = prev;
+      return { ...prev, spawnStatus: "spawning", spawnError: null };
+    });
+    if (!snapshot) return;
+    const s: OnboardingFlow = snapshot;
+    const templateKey = s.foundTemplate ?? s.proposedTemplate?.slug ?? "default";
+    try {
+      const r = await fetch("/api/bridge/companies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: s.companyName,
+          template_key: templateKey,
+          purpose: s.mission,
+        }),
+      });
+      if (!r.ok) {
+        const body = await r.text().catch(() => "");
+        throw new Error(`HTTP ${r.status}${body ? `: ${body.slice(0, 200)}` : ""}`);
+      }
+      const data: { company?: { id: string }; id?: string } = await r.json();
+      const cid = data.company?.id ?? data.id ?? null;
+      if (!cid) throw new Error("No company id in response");
+      setFlow((prev) => ({ ...prev, spawnStatus: "ok", spawnedCompanyId: cid }));
+    } catch (e) {
+      setFlow((prev) => ({
+        ...prev,
+        spawnStatus: "fail",
+        spawnError: e instanceof Error ? e.message : String(e),
+      }));
+    }
   }, []);
 
   return { flow, setField, next, back, reset, requestDecision, spawn };
