@@ -351,14 +351,81 @@ _TEMPLATES: dict[str, dict] = {
 }
 
 
+def _load_user_templates() -> dict[str, dict]:
+    """v13.5 — Scan ~/.musu/companies/_templates/*.yaml and convert to internal
+    template shape so spawn-from-template works on operator-approved templates.
+
+    Returns {} on missing dir, parse errors, or empty proposals. Built-in
+    `_TEMPLATES` always wins on key collisions.
+    """
+    import os
+    import yaml
+    from pathlib import Path
+
+    out: dict[str, dict] = {}
+    templates_dir = Path(os.path.expanduser("~/.musu/companies/_templates"))
+    if not templates_dir.is_dir():
+        return out
+    for path in templates_dir.glob("*.yaml"):
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if not isinstance(data, dict):
+            continue
+        slug = data.get("slug")
+        if not slug or not isinstance(slug, str):
+            continue
+        out[slug] = _user_template_to_internal(data)
+    return out
+
+
+def _user_template_to_internal(yaml_data: dict) -> dict:
+    """Convert {slug, displayName, departments:[...]} to internal _TEMPLATES shape.
+
+    Each department becomes one agent. Uses _GOV_DEV as a sensible default
+    governance; v14 can let the operator pick during approval.
+    """
+    display_name = yaml_data.get("displayName") or yaml_data.get("slug", "user template")
+    departments = yaml_data.get("departments") or []
+    agents = []
+    for dept in departments:
+        if not isinstance(dept, dict):
+            continue
+        name = (dept.get("name") or dept.get("role") or "agent").lower().replace(" ", "-")
+        role = dept.get("role") or dept.get("name") or "Agent"
+        agents.append({
+            "name": name,
+            "role": role,
+            "adapter_type": "claude_local",
+            "budget_usd_monthly": 15.0,
+            "instructions": (
+                f"You are the {role} for {{company_name}}.\n"
+                f"Company purpose: {{purpose}}\n\n"
+                f"Phase: {dept.get('phase', 'day-1')}. "
+                f"Your job is the {role} function for this company. "
+                f"Work directory: {{work_dir}}"
+            ),
+        })
+    return {
+        "description": display_name,
+        "governance": _GOV_DEV,
+        "agents": agents,
+    }
+
+
 def get_template(template_key: str) -> dict | None:
-    """Return a template dict or None if not found."""
-    return _TEMPLATES.get(template_key)
+    """Return a template dict or None if not found. Built-in templates win
+    over user-saved templates on key collision."""
+    if template_key in _TEMPLATES:
+        return _TEMPLATES[template_key]
+    return _load_user_templates().get(template_key)
 
 
 def list_template_keys() -> list[str]:
-    """Return all available template keys."""
-    return list(_TEMPLATES.keys())
+    """Return all available template keys, including user-saved ones."""
+    keys = set(_TEMPLATES.keys()) | set(_load_user_templates().keys())
+    return sorted(keys)
 
 
 def render_agent_instructions(
