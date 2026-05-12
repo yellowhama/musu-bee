@@ -241,7 +241,7 @@ def test_add_comment_allows_gate_verdict_with_evidence_link() -> None:
     payload = _run(
         server.add_comment(
             "issue-4",
-            "G1: PASS evidence /home/hugh51/musu_corp/runtime/generated/paperclip_state_audit_last_run.json",
+            "G1: PASS evidence runtime/generated/paperclip_state_audit_last_run.json",
         ),
         stub,
     )

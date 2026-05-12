@@ -1642,7 +1642,7 @@ async def api_company_agents(company_id: str) -> list[dict]:
 @app.get("/api/companies/{company_id}/writer-company-health", summary="Audit writer-company drift")
 async def api_writer_company_health(
     company_id: str,
-    workspace_root: str = Query(default="/home/hugh51/writer"),
+    workspace_root: str | None = Query(default=None),
 ) -> dict:
     """Compare live writer-company state against the canonical writer-company manifest."""
     company = get_company(company_id)
