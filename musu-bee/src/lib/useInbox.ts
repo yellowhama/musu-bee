@@ -49,7 +49,7 @@ interface NotificationRow {
   created_at: string;
 }
 
-interface UseInboxReturn {
+export interface UseInboxReturn {
   items: InboxItem[];
   unreadCount: number;
   loading: boolean;

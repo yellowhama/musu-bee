@@ -12,6 +12,7 @@ import CompanyTemplateModal from "@/components/CompanyTemplateModal";
 import OnboardingModal from "@/components/OnboardingModal";
 import CompanyOnboardingModal from "@/components/CompanyOnboardingModal";
 import type { InboxJumpTarget } from "@/components/inbox/InboxBell";
+import { useInbox } from "@/lib/useInbox";
 import CommandPalette from "@/components/CommandPalette";
 import TasksPanel from "@/components/TasksPanel";
 import ProcessesPanel from "@/components/ProcessesPanel";
@@ -136,6 +137,9 @@ export default function AppShell() {
       .catch(() => {});
   }, [activeCompany?.companyId]);
   const effectiveCompanyId = activeCompany?.companyId ?? bridgeCompanyId;
+
+  // ── v12-inbox: shared attention surface — TopBar bell + canvas flash ──────
+  const inbox = useInbox(effectiveCompanyId, userIdentity.id);
 
   // ── Local UI state ─────────────────────────────────────────────────────────
   const [channels, setChannels] = useState<Channel[]>(INITIAL_CHANNELS);
@@ -297,8 +301,7 @@ export default function AppShell() {
       nodes={consoleNodes}
       activePanel={activePanel}
       onNavigate={(id) => { setActivePanel(id as PanelId); setDisplayOverlay(null); }}
-      companyId={effectiveCompanyId}
-      userId={userIdentity.id}
+      inbox={inbox}
       onInboxJump={handleInboxJump}
     >
       {/* Main content below — ConsoleShell provides sidebar + topbar */}
@@ -315,6 +318,8 @@ export default function AppShell() {
           activePanel={activePanel}
           companyId={effectiveCompanyId}
           onTriggerOnboarding={() => setShowCompanyOnboarding(true)}
+          flashCompanyIds={inbox.flashCompanyIds}
+          onFlashConsumed={inbox.clearFlash}
         />
 
         {/* Right: Chat (always visible) */}

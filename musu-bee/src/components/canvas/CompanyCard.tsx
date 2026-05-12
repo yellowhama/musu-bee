@@ -33,6 +33,8 @@ export interface CompanyCardProps {
   style: CSSProperties;
   /** Clicked → AppShell can decide to zoom (v12-canvas E) or switch panel. */
   onClick?: (companyId: string) => void;
+  /** v12-inbox D — when true, render the yellow-ring flash animation. */
+  flash?: boolean;
 }
 
 const STATUS_DOT_STYLE: Record<CompanyCardAgent["status"], CSSProperties> = {
@@ -62,7 +64,7 @@ const STATUS_DOT_STYLE: Record<CompanyCardAgent["status"], CSSProperties> = {
  *
  * Border color (C) and edge endpoints (D) come from parent props later.
  */
-export default function CompanyCard({ data, style, onClick }: CompanyCardProps) {
+export default function CompanyCard({ data, style, onClick, flash }: CompanyCardProps) {
   const nodeStyle = nodeBorderStyle(data.primaryNode, data.otherNodes);
   const mergedStyle: CSSProperties = {
     ...style,
@@ -73,7 +75,7 @@ export default function CompanyCard({ data, style, onClick }: CompanyCardProps) 
 
   return (
     <div
-      className="company-card"
+      className={`company-card${flash ? " company-card-flash" : ""}`}
       style={mergedStyle}
       data-company-id={data.companyId}
       onClick={() => onClick?.(data.companyId)}

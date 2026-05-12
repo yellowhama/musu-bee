@@ -25,6 +25,7 @@ function useViewport(): ViewMode {
 }
 
 import type { InboxJumpTarget } from "@/components/inbox/InboxBell";
+import type { UseInboxReturn } from "@/lib/useInbox";
 
 interface ConsoleShellProps {
   user: { email: string; displayName: string | null; avatarUrl: string | null };
@@ -33,10 +34,8 @@ interface ConsoleShellProps {
   contextPanel?: React.ReactNode;
   onNavigate?: (id: string) => void;
   activePanel?: string;
-  /** v12-inbox B — active company id for the topbar inbox bell. */
-  companyId?: string | null;
-  /** v12-inbox B — current user id for notification lookups. */
-  userId?: string | null;
+  /** v12-inbox B — shared inbox subscription from AppShell. */
+  inbox?: UseInboxReturn;
   /** v12-inbox B — handler when a user clicks an inbox row. */
   onInboxJump?: (target: InboxJumpTarget) => void;
 }
@@ -48,8 +47,7 @@ function ConsoleShellInner({
   contextPanel,
   onNavigate,
   activePanel,
-  companyId,
-  userId,
+  inbox,
   onInboxJump,
 }: ConsoleShellProps) {
   const { collapsed, setCollapsed, setPaletteOpen } = useConsoleShell();
@@ -98,8 +96,7 @@ function ConsoleShellInner({
           nodes={nodes}
           sidebarCollapsed={collapsed}
           onToggleSidebar={() => setCollapsed(!collapsed)}
-          companyId={companyId ?? null}
-          userId={userId ?? null}
+          inbox={inbox}
           onInboxJump={onInboxJump}
         />
         <main

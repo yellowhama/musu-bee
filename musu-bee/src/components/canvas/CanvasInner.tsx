@@ -15,11 +15,17 @@ const CARD_H = 170;
 export interface CanvasInnerProps {
   companyId: string | null;
   onTriggerOnboarding?: () => void;
+  flashCompanyIds?: string[];
+  onFlashConsumed?: (companyId: string) => void;
 }
+
+const FLASH_DURATION_MS = 1500;
 
 export default function CanvasInner({
   companyId,
   onTriggerOnboarding,
+  flashCompanyIds,
+  onFlashConsumed,
 }: CanvasInnerProps) {
   void companyId;
 
@@ -28,6 +34,42 @@ export default function CanvasInner({
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const [viewport, setViewport] = useState({ width: 1, height: 1 });
   const [zoomedId, setZoomedId] = useState<string | null>(null);
+  const [flashing, setFlashing] = useState<Set<string>>(() => new Set());
+  const flashTimers = useRef<Map<string, number>>(new Map());
+
+  // v12-inbox D — pick up new flash signals from the inbox hook.
+  useEffect(() => {
+    if (!flashCompanyIds || flashCompanyIds.length === 0) return;
+    setFlashing((prev) => {
+      const next = new Set(prev);
+      for (const cid of flashCompanyIds) next.add(cid);
+      return next;
+    });
+    for (const cid of flashCompanyIds) {
+      const existing = flashTimers.current.get(cid);
+      if (existing !== undefined) window.clearTimeout(existing);
+      const timer = window.setTimeout(() => {
+        setFlashing((prev) => {
+          if (!prev.has(cid)) return prev;
+          const next = new Set(prev);
+          next.delete(cid);
+          return next;
+        });
+        flashTimers.current.delete(cid);
+        onFlashConsumed?.(cid);
+      }, FLASH_DURATION_MS);
+      flashTimers.current.set(cid, timer);
+    }
+  }, [flashCompanyIds, onFlashConsumed]);
+
+  // Cleanup on unmount.
+  useEffect(() => {
+    const timersRef = flashTimers;
+    return () => {
+      for (const t of timersRef.current.values()) window.clearTimeout(t);
+      timersRef.current.clear();
+    };
+  }, []);
 
   useEffect(() => {
     const el = overlayRef.current;
@@ -109,6 +151,7 @@ export default function CanvasInner({
                 pointerEvents: dimmed ? "none" : "auto",
               }}
               onClick={handleCardClick}
+              flash={flashing.has(c.companyId)}
             />
           );
         })}

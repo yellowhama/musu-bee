@@ -20,6 +20,10 @@ export interface CompanyCanvasPanelProps {
   companyId: string | null;
   /** Open OnboardingModal from AppShell (used when canvas is empty). */
   onTriggerOnboarding?: () => void;
+  /** v12-inbox D — company ids that should yellow-ring flash. */
+  flashCompanyIds?: string[];
+  /** v12-inbox D — called after a flash animation finishes for a company. */
+  onFlashConsumed?: (companyId: string) => void;
 }
 
 /**
@@ -40,6 +44,8 @@ export interface CompanyCanvasPanelProps {
 export default function CompanyCanvasPanel({
   companyId,
   onTriggerOnboarding,
+  flashCompanyIds,
+  onFlashConsumed,
 }: CompanyCanvasPanelProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -62,6 +68,8 @@ export default function CompanyCanvasPanel({
       <CanvasInner
         companyId={companyId}
         onTriggerOnboarding={onTriggerOnboarding}
+        flashCompanyIds={flashCompanyIds}
+        onFlashConsumed={onFlashConsumed}
       />
       <div className="canvas-watermark" aria-hidden>
         Made with tldraw · MUSU

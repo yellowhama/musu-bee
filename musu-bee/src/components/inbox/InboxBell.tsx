@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, CheckCircle2, AlertOctagon, MessageSquare, X } from "lucide-react";
-import { useInbox, type InboxItem } from "@/lib/useInbox";
+import type { InboxItem, UseInboxReturn } from "@/lib/useInbox";
 
 export type InboxJumpTarget =
   | { kind: "approvals" }
@@ -10,20 +10,19 @@ export type InboxJumpTarget =
   | { kind: "channel"; channelId: string };
 
 interface InboxBellProps {
-  companyId: string | null;
-  userId: string | null;
+  /** Shared inbox subscription owned by AppShell. */
+  inbox: UseInboxReturn;
   onJump: (target: InboxJumpTarget) => void;
 }
 
 /**
  * v12-inbox B — Topbar bell that opens an attention dropdown.
  *
- * Owns the `useInbox` subscription. The hook returns `flashCompanyIds`
- * which is read by the canvas (sub-cycle D); this component just renders
- * count + list + inline actions.
+ * Reads from a shared `useInbox` subscription (owned by AppShell so the
+ * canvas can read the same `flashCompanyIds`). Renders the count badge,
+ * list of items, and inline approve/reject buttons.
  */
-export default function InboxBell({ companyId, userId, onJump }: InboxBellProps) {
-  const inbox = useInbox(companyId, userId);
+export default function InboxBell({ inbox, onJump }: InboxBellProps) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
 

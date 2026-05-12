@@ -48,11 +48,15 @@ interface AIDisplayProps {
   onOpenHandled?: () => void;
   /** v12-canvas F — open onboarding from the empty-canvas trigger. */
   onTriggerOnboarding?: () => void;
+  /** v12-inbox D — company ids to yellow-ring flash on the canvas. */
+  flashCompanyIds?: string[];
+  /** v12-inbox D — clear a company's flash once the animation ends. */
+  onFlashConsumed?: (companyId: string) => void;
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export default function AIDisplay({ activePanel, companyId, openRequest, onOpenHandled, onTriggerOnboarding }: AIDisplayProps) {
+export default function AIDisplay({ activePanel, companyId, openRequest, onOpenHandled, onTriggerOnboarding, flashCompanyIds, onFlashConsumed }: AIDisplayProps) {
   const [tabs, setTabs] = useState<Tab[]>([...PINNED_TABS]);
   const [activeTabId, setActiveTabId] = useState("__dashboard");
 
@@ -169,7 +173,15 @@ export default function AIDisplay({ activePanel, companyId, openRequest, onOpenH
 
       {/* Tab content */}
       <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-        {activeTab && <TabContent content={activeTab.content} companyId={companyId} onTriggerOnboarding={onTriggerOnboarding} />}
+        {activeTab && (
+          <TabContent
+            content={activeTab.content}
+            companyId={companyId}
+            onTriggerOnboarding={onTriggerOnboarding}
+            flashCompanyIds={flashCompanyIds}
+            onFlashConsumed={onFlashConsumed}
+          />
+        )}
       </div>
     </div>
   );
@@ -177,14 +189,34 @@ export default function AIDisplay({ activePanel, companyId, openRequest, onOpenH
 
 // ── Tab Content Renderer ─────────────────────────────────────────────────────
 
-function TabContent({ content, companyId, onTriggerOnboarding }: { content: DisplayContent; companyId?: string | null; onTriggerOnboarding?: () => void }) {
+function TabContent({
+  content,
+  companyId,
+  onTriggerOnboarding,
+  flashCompanyIds,
+  onFlashConsumed,
+}: {
+  content: DisplayContent;
+  companyId?: string | null;
+  onTriggerOnboarding?: () => void;
+  flashCompanyIds?: string[];
+  onFlashConsumed?: (companyId: string) => void;
+}) {
   switch (content.type) {
     case "dashboard":
       return <ProjectBriefing companyId={companyId} />;
     case "files":
       return <FilesView />;
     case "panel":
-      return <PanelView panel={content.panel} companyId={companyId} onTriggerOnboarding={onTriggerOnboarding} />;
+      return (
+        <PanelView
+          panel={content.panel}
+          companyId={companyId}
+          onTriggerOnboarding={onTriggerOnboarding}
+          flashCompanyIds={flashCompanyIds}
+          onFlashConsumed={onFlashConsumed}
+        />
+      );
     case "document":
       return <DocumentView title={content.title} markdown={content.markdown} />;
     case "code":
@@ -198,10 +230,30 @@ function TabContent({ content, companyId, onTriggerOnboarding }: { content: Disp
 
 // ── Panel View (existing panels) ─────────────────────────────────────────────
 
-function PanelView({ panel, companyId, onTriggerOnboarding }: { panel: PanelId; companyId?: string | null; onTriggerOnboarding?: () => void }) {
+function PanelView({
+  panel,
+  companyId,
+  onTriggerOnboarding,
+  flashCompanyIds,
+  onFlashConsumed,
+}: {
+  panel: PanelId;
+  companyId?: string | null;
+  onTriggerOnboarding?: () => void;
+  flashCompanyIds?: string[];
+  onFlashConsumed?: (companyId: string) => void;
+}) {
   const cid = companyId ?? undefined;
   switch (panel) {
-    case "canvas": return <CompanyCanvasPanel companyId={cid ?? null} onTriggerOnboarding={onTriggerOnboarding} />;
+    case "canvas":
+      return (
+        <CompanyCanvasPanel
+          companyId={cid ?? null}
+          onTriggerOnboarding={onTriggerOnboarding}
+          flashCompanyIds={flashCompanyIds}
+          onFlashConsumed={onFlashConsumed}
+        />
+      );
     case "tasks": return <TasksPanel />;
     case "processes": return <ProcessesPanel />;
     case "issues": return <IssuesPanel companyId={cid} />;
