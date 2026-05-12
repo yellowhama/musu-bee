@@ -188,6 +188,44 @@ Scripts default to `$(cd "$(dirname "$0")/.." && pwd)`. If you run
 them from a different directory or call them from systemd / cron /
 Task Scheduler, set `MUSU_FUNCTIONS_ROOT` explicitly.
 
+### Windows: install.ps1 fails with "Unexpected token" on PowerShell 5.1
+
+If the very first line of `powershell -File scripts\install.ps1` is
+a parser error like `Unexpected token '}' in expression or statement`,
+the script file lost its UTF-8 BOM somewhere (download, git config,
+manual edit). Windows PowerShell 5.1 reads BOM-less files as ANSI,
+which corrupts the multi-byte characters used in the prompts and
+breaks quote matching.
+
+Workarounds:
+- Run with PowerShell 7 instead: `pwsh -ExecutionPolicy Bypass -File scripts\install.ps1 -Service -Start`.
+- Or re-add the BOM: open the file in VS Code → bottom-right encoding
+  → "Save with Encoding" → "UTF-8 with BOM".
+
+Don't try to "fix" the source — the on-disk file is fine; the encoding
+just needs to be visible to PS 5.1.
+
+### Windows: install.ps1 aborts at "Step 5b: seeding agents..."
+
+If you see `python.exe : INFO Auto-detected: ...` followed by
+`RemoteException`, you're on a fixed-up version older than commit
+`5ce3e7a`. Pull the latest `main` and re-run.
+
+### Windows: "musu-bee build complete" but no UI
+
+If install reports build success but `musu-bee\.next` doesn't exist,
+the Next.js build is failing silently. Common cause: `musu-bee/package.json`
+build script uses Unix-style `NODE_ENV=production next build`, which
+Windows shells reject. Workaround for now:
+
+```powershell
+cd musu-bee
+$env:NODE_ENV = "production"
+npx next build
+```
+
+Tracked as a v16.A.2 follow-up.
+
 ---
 
 ## Operator data
