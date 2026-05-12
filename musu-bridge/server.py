@@ -1526,9 +1526,12 @@ class TemplateDecisionRequest(BaseModel):
 async def api_template_decision(req: TemplateDecisionRequest) -> dict:
     """Return either a 'found' decision with a template + preview, or 'research'
     with a real task id (research path) the client can poll.
+
+    v14.1: LLM-aware decision (gemini_local) with deterministic token-overlap
+    fallback when the adapter is unavailable / slow / malformed.
     """
-    from handlers import decide_template_for_mission
-    return decide_template_for_mission(req.mission, req.company_name)
+    from handlers import decide_template_for_mission_with_llm
+    return await decide_template_for_mission_with_llm(req.mission, req.company_name)
 
 
 @app.get(

@@ -2086,6 +2086,161 @@ def decide_template_for_mission(mission: str, company_name: str) -> dict:
     }
 
 
+# ── v14.1 — LLM-aware decision + research ────────────────────────────────────
+
+_LLM_DECISION_PROMPT = """You are an operator's assistant deciding how to spin up a new company.
+
+Mission:
+{mission}
+
+Company name: {company_name}
+
+Available built-in templates (each is a coherent team of 4-6 agents):
+- dev-team — software development (lead / planner / engineer / qa)
+- content-team — content production (lead / researcher / writer / editor)
+- writer-studio — long-form fiction studio (5 agents incl. PM, researcher)
+- marketing-team — marketing operations (6 agents)
+
+If one of these templates clearly fits the mission, return:
+  {{"decision": "found", "template": "<key>", "reason": "<one short sentence>"}}
+
+If no template fits and the operator should design a custom org structure, return:
+  {{"decision": "research", "reason": "<why no template fits>"}}
+
+Return ONLY the JSON. No prose, no markdown fence."""
+
+_LLM_RESEARCH_PROMPT = """You are designing the org structure for a brand-new company.
+
+Mission:
+{mission}
+
+Company name: {company_name}
+
+Design 5 departments across three phases (day-1, month-1+, month-3+).
+Each department has one role title + an agent count (1-3).
+
+Return ONLY a JSON object in this exact shape:
+{{
+  "slug": "<short-slug-of-company-name>-startup",
+  "displayName": "<company_name> (<one-line mission tag>)",
+  "departments": [
+    {{"name": "<dept name>", "role": "<role title>", "agentCount": <int>, "phase": "day-1"|"month-1+"|"month-3+"}},
+    ... 5 total
+  ]
+}}
+
+No prose, no markdown fence."""
+
+
+def _parse_llm_json(text: str) -> dict | None:
+    """Strip code fences + parse JSON. Returns None on failure."""
+    import json as _json
+    if not text:
+        return None
+    s = text.strip()
+    # Strip ```json ... ``` if present.
+    if s.startswith("```"):
+        s = re.sub(r"^```(?:json)?\s*", "", s)
+        s = re.sub(r"\s*```\s*$", "", s)
+    # Some adapters wrap the JSON in extra prose — pull the first balanced object.
+    start = s.find("{")
+    if start == -1:
+        return None
+    depth = 0
+    end = -1
+    for i in range(start, len(s)):
+        if s[i] == "{":
+            depth += 1
+        elif s[i] == "}":
+            depth -= 1
+            if depth == 0:
+                end = i + 1
+                break
+    if end == -1:
+        return None
+    try:
+        return _json.loads(s[start:end])
+    except Exception:
+        return None
+
+
+async def _call_decision_adapter(prompt: str, timeout_seconds: float) -> str | None:
+    """Run the gemini_local adapter against `prompt`. Returns text on success
+    or None on any failure (caller falls back to deterministic decision)."""
+    try:
+        from musu_core.adapters.registry import get_adapter
+        from musu_core.adapters.base import AdapterContext
+    except Exception as e:
+        logger.debug("LLM decision: adapter import failed — %s", e)
+        return None
+    adapter = get_adapter("gemini_local")
+    if adapter is None:
+        return None
+    ctx = AdapterContext(
+        run_id=f"decision-{uuid.uuid4().hex[:8]}",
+        prompt=prompt,
+        agent_id="onboarding-decision",
+        agent_name="onboarding-decision",
+        agent_role="Decision",
+        adapter_type="gemini_local",
+        config={"model": "gemini-2.5-flash", "timeout_sec": int(timeout_seconds) + 5, "disable_mcp": True},
+    )
+    try:
+        result = await asyncio.wait_for(adapter.execute(ctx), timeout=timeout_seconds)
+    except asyncio.TimeoutError:
+        logger.info("LLM decision: timed out after %ss", timeout_seconds)
+        return None
+    except Exception as e:
+        logger.info("LLM decision: adapter error — %s", e)
+        return None
+    if not result.success:
+        return None
+    return result.summary or None
+
+
+async def decide_template_for_mission_with_llm(
+    mission: str,
+    company_name: str,
+    timeout_seconds: float = 8.0,
+) -> dict:
+    """v14.1 — LLM-driven version of `decide_template_for_mission`.
+
+    Asks gemini for a JSON decision. Falls back to the deterministic
+    token-overlap function on adapter unavailable / timeout / malformed JSON.
+    """
+    prompt = _LLM_DECISION_PROMPT.format(mission=mission, company_name=company_name)
+    text = await _call_decision_adapter(prompt, timeout_seconds)
+    parsed = _parse_llm_json(text) if text else None
+    if parsed and parsed.get("decision") == "found":
+        key = parsed.get("template")
+        from company_templates import _TEMPLATES
+        if isinstance(key, str) and key in _TEMPLATES:
+            tmpl = _TEMPLATES[key]
+            return {
+                "decision": "found",
+                "template": key,
+                "score": 0.95,  # LLM-confident
+                "reason": (parsed.get("reason") or "")[:280],
+                "preview": {
+                    "agents": [
+                        {"name": a.get("name"), "role": a.get("role")}
+                        for a in tmpl.get("agents", [])
+                    ],
+                },
+            }
+    if parsed and parsed.get("decision") == "research":
+        task_id = start_research_task(mission=mission, company_name=company_name)
+        return {
+            "decision": "research",
+            "research_task_id": task_id,
+            "estimated_seconds": 60,
+            "company_name": company_name,
+            "reason": (parsed.get("reason") or "")[:280],
+        }
+    # Fallback — LLM unavailable or response unparseable.
+    return decide_template_for_mission(mission, company_name)
+
+
 # ── v12-onboarding D — research stub + template persistence ──────────────────
 
 import time as _time  # local alias to keep top-of-file imports stable
@@ -2138,15 +2293,62 @@ def start_research_task(mission: str, company_name: str) -> str:
     return task_id
 
 
+# v14.1 — Background LLM-design tasks keyed by research task id.
+_RESEARCH_LLM_TASKS: dict[str, "asyncio.Task[None]"] = {}
+_RESEARCH_LLM_TIMEOUT_SEC = 60
+
+
+async def _run_llm_research(task_id: str, mission: str, company_name: str) -> None:
+    """Ask gemini to design a 5-department org. On any failure, fall back to
+    `_build_generic_startup_proposal` so the operator always sees something."""
+    proposal: dict | None = None
+    try:
+        prompt = _LLM_RESEARCH_PROMPT.format(mission=mission, company_name=company_name)
+        text = await _call_decision_adapter(prompt, timeout_seconds=_RESEARCH_LLM_TIMEOUT_SEC)
+        candidate = _parse_llm_json(text) if text else None
+        if (
+            isinstance(candidate, dict)
+            and isinstance(candidate.get("slug"), str)
+            and isinstance(candidate.get("departments"), list)
+            and len(candidate["departments"]) >= 1
+        ):
+            proposal = candidate
+    except Exception as e:
+        logger.info("LLM research: error — %s", e)
+
+    if proposal is None:
+        proposal = _build_generic_startup_proposal(company_name)
+
+    task = _RESEARCH_TASKS.get(task_id)
+    if task is not None:
+        task["status"] = "ready"
+        task["proposal"] = proposal
+
+
 def get_research_task(task_id: str) -> dict | None:
     """Return current state of the research task, advancing it to 'ready' if
-    the stub delay has elapsed. Returns None when the id is unknown."""
+    the stub delay has elapsed. Returns None when the id is unknown.
+
+    v14.1: on first poll, kick off an async LLM-design task. If the LLM is
+    unavailable, the stub delay still triggers the generic-startup fallback.
+    """
     task = _RESEARCH_TASKS.get(task_id)
     if not task:
         return None
     if task["status"] == "running":
+        # Kick off the LLM design on first observation.
+        if task_id not in _RESEARCH_LLM_TASKS:
+            try:
+                loop = asyncio.get_event_loop()
+                _RESEARCH_LLM_TASKS[task_id] = loop.create_task(
+                    _run_llm_research(task_id, task["mission"], task["company_name"])
+                )
+            except RuntimeError:
+                # No running loop (e.g. unit test from sync context) — stub path only.
+                pass
+        # Stub fallback so the UI gets a result even without an event loop.
         elapsed = _time.time() - task["started_at"]
-        if elapsed >= _RESEARCH_READY_AFTER_SECONDS:
+        if elapsed >= _RESEARCH_READY_AFTER_SECONDS and task["status"] == "running":
             task["status"] = "ready"
             task["proposal"] = _build_generic_startup_proposal(task["company_name"])
     return task
