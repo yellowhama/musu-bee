@@ -22,7 +22,27 @@ where they work. Across all of them — at once.
 
 ## Install
 
-See [`INSTALL.md`](INSTALL.md).
+One command. Pick your OS.
+
+```bash
+# Linux / WSL
+bash scripts/install.sh --service --start
+
+# macOS
+bash scripts/install.sh --service --start
+```
+
+```powershell
+# Windows (native — WSL not required)
+powershell -ExecutionPolicy Bypass -File scripts\install.ps1 -Service -Start
+```
+
+The installer creates `~/.musu/`, sets up the venv, seeds 6 agents,
+auto-detects your GPU + Tailscale IP, and registers a service
+(systemd / launchd / Task Scheduler) so the bridge survives reboots.
+
+See [`INSTALL.md`](INSTALL.md) for details, prerequisites, and
+troubleshooting.
 
 ## Quick start
 

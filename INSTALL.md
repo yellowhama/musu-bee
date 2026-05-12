@@ -1,33 +1,90 @@
 # Install
 
-MUSU runs on Linux / macOS / WSL. Each module installs independently.
+MUSU runs on three platforms: **Linux / WSL**, **macOS**, **Windows**.
+Pick yours. Each path is a single command and leaves the bridge
+running as a system service.
+
+---
+
+## Quickstart by platform
+
+### Linux / WSL (Ubuntu, Debian, Arch, …)
+
+```bash
+bash scripts/install.sh --service --start
+```
+
+This auto-detects your GPU, OS, and Tailscale IP, creates `~/.musu/`,
+seeds the agents, registers a **systemd user service** (`musu-bridge`),
+and starts the bridge on `http://127.0.0.1:8070`.
+
+To enable HTTPS via Caddy: append `--https`.
+
+### macOS
+
+```bash
+bash scripts/install.sh --service --start
+```
+
+Same script — on macOS it registers a **launchd LaunchAgent**
+(`~/Library/LaunchAgents/com.musu.bridge.plist`) instead of systemd.
+The plist template is at `scripts/launchd/com.musu.bridge.plist.example`.
+
+### Windows (native, no WSL)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install.ps1 -Service -Start
+```
+
+Runs the equivalent steps in PowerShell. Registers a user-level
+**Task Scheduler task** (`musu-bridge`) that auto-starts on logon.
+No admin privileges required.
+
+---
 
 ## Prerequisites
 
-- Python 3.12+
-- Node.js 20+ (for `musu-bee`, `musu-relay`)
-- Go 1.22+ (only if building `musu-indexer/musu-scanner` from source)
-- Optional: Claude / Codex / Gemini CLI binaries for adapter use
+| Platform | Required |
+|---|---|
+| Linux / WSL | Python 3.12+, Node.js 20+, `bash`, `openssl` |
+| macOS | Python 3.12+ (Homebrew: `brew install python@3.12`), Node.js 20+ (`brew install node`) |
+| Windows | Python 3.12+ (`winget install Python.Python.3.12`), Node.js 20+ (`winget install OpenJS.NodeJS`), PowerShell 5.1+ (preinstalled) |
 
-## Repo layout assumption
+Optional (any platform): Claude / Codex / Gemini CLI for adapter use.
 
-Throughout this document, `$MUSU_FUNCTIONS_ROOT` refers to the directory
-where this repo is checked out. Scripts default to
-`$(cd "$(dirname "$0")/.." && pwd)`, so explicit env var only needed
-in cron / systemd / detached contexts.
+---
 
-## Module install
+## What the installer does
+
+Whether you ran `install.sh` or `install.ps1`, the same 7 steps run:
+
+1. **Python check** — fails fast if < 3.12.
+2. **Create operator dir** — `~/.musu/` (or `%USERPROFILE%\.musu\` on Windows). Permissions locked to current user.
+3. **Create venv + install deps** — `musu-bridge/.venv` with `musu-core` and `musu-bridge` editable installs.
+4. **Seed `bridge.env`** — `~/.musu/bridge.env` from template, with a fresh `MUSU_BRIDGE_TOKEN` auto-generated.
+5. **Detect node identity** — writes `~/.musu/nodes.toml` with hostname, OS, GPU, Tailscale IP.
+6. **Build `musu-bee`** — `pnpm install && pnpm build` (requires Node.js; skipped with a warning if missing).
+7. **Register service** — systemd (Linux), launchd (macOS), or Task Scheduler (Windows).
+
+If you pass `--start` (`-Start` on Windows), the bridge is launched
+and a health check confirms `http://127.0.0.1:8070/health` returns 200.
+
+---
+
+## Per-module manual install (if you skip the installer)
+
+If you'd rather wire each module yourself:
 
 ### musu-bridge (Python)
 
 ```bash
 cd musu-bridge
 python -m venv .venv
-. .venv/bin/activate
+. .venv/bin/activate          # Windows: .\.venv\Scripts\activate
 pip install -e .
 ```
 
-Bridge config: `~/.musu/bridge.env` (token, optional `MUSU_COMPANY_YAML`).
+Config: `~/.musu/bridge.env` — copy from `scripts/systemd/bridge.env.example`.
 
 ### musu-core / musu-control / musu-writer / musu-indexer
 
@@ -50,28 +107,101 @@ pnpm install
 node server.js
 ```
 
+---
+
+## Service management
+
+### Linux
+
+```bash
+systemctl --user start musu-bridge
+systemctl --user stop musu-bridge
+systemctl --user status musu-bridge
+journalctl --user -u musu-bridge -f
+```
+
+### macOS
+
+```bash
+launchctl load   ~/Library/LaunchAgents/com.musu.bridge.plist
+launchctl unload ~/Library/LaunchAgents/com.musu.bridge.plist
+launchctl list | grep musu
+tail -f ~/.musu/logs/musu-bridge.err.log
+```
+
+### Windows
+
+```powershell
+Start-ScheduledTask    -TaskName musu-bridge
+Stop-ScheduledTask     -TaskName musu-bridge
+Get-ScheduledTaskInfo  -TaskName musu-bridge
+Get-Content "$env:USERPROFILE\musu-functions\logs\bridge-install-start.log" -Tail 50
+```
+
+---
+
+## Adding another machine
+
+Once the bridge is running on one machine, you can add more from the
+CLI:
+
+```bash
+musu nodes add 100.x.x.x      # Tailscale IP of the new node
+```
+
+The new node needs to run the installer too (same one-liner). After
+that, both bridges discover each other over Tailscale and the mesh
+router can spill work between them.
+
+---
+
+## Troubleshooting
+
+### Bridge fails to start
+
+```bash
+# Linux
+journalctl --user -u musu-bridge -n 50
+
+# macOS
+tail -100 ~/.musu/logs/musu-bridge.err.log
+
+# Windows
+Get-Content "$env:USERPROFILE\musu-functions\logs\bridge-install-start.log" -Tail 100
+```
+
+### "No AI CLI found" warning
+
+Agents won't execute without a CLI. Install one:
+
+- **Claude Code**: https://docs.anthropic.com/en/docs/claude-code
+- **Gemini CLI**: https://github.com/google-gemini/gemini-cli
+- **Codex CLI**: bundled with OpenAI Codex.
+
+### Port 8070 already in use
+
+Edit `~/.musu/bridge.env` and set `BRIDGE_PORT=8071` (or another free port).
+
+### Repo layout assumption
+
+Scripts default to `$(cd "$(dirname "$0")/.." && pwd)`. If you run
+them from a different directory or call them from systemd / cron /
+Task Scheduler, set `MUSU_FUNCTIONS_ROOT` explicitly.
+
+---
+
 ## Operator data
 
-Create your operator state directory:
+User-bound data lives under `~/.musu/`:
 
-```bash
-mkdir -p ~/.musu/companies
+```
+~/.musu/
+  bridge.env           # bridge config (TOKEN, RELAY, etc.)
+  nodes.toml           # mesh node list (auto-detected)
+  musu.db              # SQLite — agents, tasks, companies
+  companies/           # operator-owned company manifests
+  instructions/        # operator instructions per agent
+  archive/             # rotated logs and snapshots
 ```
 
-Bind an active company by setting `MUSU_COMPANY_YAML` (or
-`MUSU_COMPANY_ID`) in `~/.musu/bridge.env`. See
-[`docs/CONFIG.md`](docs/CONFIG.md) and the operator-only
-`agents.json.example` for the schema.
-
-## Running
-
-```bash
-# Bridge
-cd musu-bridge && . .venv/bin/activate && python -m server &
-
-# Web
-cd musu-bee && pnpm start &
-```
-
-For systemd unit files and cron snippets, see
-`scripts/systemd/` and `scripts/auto-update.sh`.
+See [`docs/CONFIG.md`](docs/CONFIG.md) for the full env var reference.

@@ -205,20 +205,49 @@ else
     info "Step 6: musu-bee build already exists — skipping"
 fi
 
-# ── Step 7: Register systemd services (--service) ────────────────────────────
+# ── Step 7: Register service (--service) ─────────────────────────────────────
+# Linux → systemd user unit. macOS → launchd LaunchAgent.
 if [[ "${INSTALL_SERVICE}" == "1" ]]; then
-    info "Step 7: registering systemd services..."
-    bash "${SCRIPT_DIR}/install-musu-bridge-service.sh"
+    case "${OSTYPE:-linux-gnu}" in
+        linux*|*-gnu*|msys*|cygwin*)
+            info "Step 7: registering systemd user services..."
+            bash "${SCRIPT_DIR}/install-musu-bridge-service.sh"
 
-    # Register musu-bee service
-    SYSTEMD_USER_DIR="${HOME}/.config/systemd/user"
-    mkdir -p "${SYSTEMD_USER_DIR}"
-    ln -sf "${SCRIPT_DIR}/systemd/musu-bee.service" "${SYSTEMD_USER_DIR}/musu-bee.service"
-    systemctl --user daemon-reload
-    systemctl --user enable musu-bee 2>/dev/null || true
-    ok "systemd services registered (bridge + bee)"
+            SYSTEMD_USER_DIR="${HOME}/.config/systemd/user"
+            mkdir -p "${SYSTEMD_USER_DIR}"
+            ln -sf "${SCRIPT_DIR}/systemd/musu-bee.service" "${SYSTEMD_USER_DIR}/musu-bee.service"
+            systemctl --user daemon-reload
+            systemctl --user enable musu-bee 2>/dev/null || true
+            ok "systemd services registered (bridge + bee)"
+            ;;
+        darwin*)
+            info "Step 7: registering launchd LaunchAgent (macOS)..."
+            LAUNCH_DIR="${HOME}/Library/LaunchAgents"
+            mkdir -p "${LAUNCH_DIR}"
+            mkdir -p "${MUSU_HOME}/logs"
+            PLIST_SRC="${SCRIPT_DIR}/launchd/com.musu.bridge.plist.example"
+            PLIST_DST="${LAUNCH_DIR}/com.musu.bridge.plist"
+
+            # Substitute __MUSU_ROOT__ and __HOME__ in template
+            sed -e "s|__MUSU_ROOT__|${ROOT}|g" \
+                -e "s|__HOME__|${HOME}|g" \
+                "${PLIST_SRC}" > "${PLIST_DST}"
+            chmod 644 "${PLIST_DST}"
+
+            # Reload — unload first in case re-installing
+            launchctl unload "${PLIST_DST}" 2>/dev/null || true
+            launchctl load "${PLIST_DST}"
+            ok "launchd registered: com.musu.bridge"
+            info "       (musu-bee not auto-started — run 'pnpm start' in musu-bee/)"
+            ;;
+        *)
+            warn "Step 7: unknown OSTYPE='${OSTYPE}' — manual service registration required"
+            warn "       Linux: bash ${SCRIPT_DIR}/install-musu-bridge-service.sh"
+            warn "       macOS: see scripts/launchd/com.musu.bridge.plist.example"
+            ;;
+    esac
 else
-    info "Step 7: systemd registration skipped (no --service flag)"
+    info "Step 7: service registration skipped (no --service flag)"
 fi
 
 # ── Done ──────────────────────────────────────────────────────────────────────
@@ -233,7 +262,12 @@ echo ""
 if [[ "${START_BRIDGE}" == "0" ]]; then
     echo "  Start the bridge:"
     echo "    bash ${SCRIPT_DIR}/start-bridge.sh"
-    [[ "${INSTALL_SERVICE}" == "1" ]] && echo "    or:  systemctl --user start musu-bridge"
+    if [[ "${INSTALL_SERVICE}" == "1" ]]; then
+        case "${OSTYPE:-linux-gnu}" in
+            darwin*) echo "    or:  launchctl load ~/Library/LaunchAgents/com.musu.bridge.plist" ;;
+            *)       echo "    or:  systemctl --user start musu-bridge" ;;
+        esac
+    fi
     echo ""
 fi
 
@@ -243,8 +277,17 @@ if [[ "${START_BRIDGE}" == "1" ]]; then
     info "Starting bridge..."
 
     if [[ "${INSTALL_SERVICE}" == "1" ]]; then
-        systemctl --user start musu-bridge
-        sleep 3
+        case "${OSTYPE:-linux-gnu}" in
+            darwin*)
+                # launchd already started bridge via RunAtLoad=true; just wait.
+                info "  (launchd already started bridge via RunAtLoad)"
+                sleep 3
+                ;;
+            *)
+                systemctl --user start musu-bridge
+                sleep 3
+                ;;
+        esac
     else
         mkdir -p "${ROOT}/logs"
         nohup bash "${SCRIPT_DIR}/start-bridge.sh" \
