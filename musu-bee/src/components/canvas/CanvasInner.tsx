@@ -17,6 +17,7 @@ export interface CanvasInnerProps {
   onTriggerOnboarding?: () => void;
   flashCompanyIds?: string[];
   onFlashConsumed?: (companyId: string) => void;
+  refreshKey?: number;
 }
 
 const FLASH_DURATION_MS = 1500;
@@ -26,10 +27,17 @@ export default function CanvasInner({
   onTriggerOnboarding,
   flashCompanyIds,
   onFlashConsumed,
+  refreshKey,
 }: CanvasInnerProps) {
   void companyId;
 
   const { cards, layout, loading, error, refresh } = useCompaniesCanvasData();
+
+  // v14.2 — refetch immediately when AppShell bumps the key (e.g. after spawn).
+  useEffect(() => {
+    if (refreshKey === undefined || refreshKey === 0) return;
+    refresh();
+  }, [refreshKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const { edges } = useCompanyMessageFlow();
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const [viewport, setViewport] = useState({ width: 1, height: 1 });
@@ -177,6 +185,19 @@ export default function CanvasInner({
             <span className="canvas-empty-trigger-hint">
               Give it a mission. Your CEO picks a template or designs a new one.
             </span>
+          </button>
+        ) : null}
+        {!loading && cards.length > 0 && onTriggerOnboarding ? (
+          // v14.2 — floating "+ New" button always available so the operator
+          // can spin up another company without first emptying the canvas.
+          <button
+            type="button"
+            className="canvas-new-trigger"
+            onClick={() => onTriggerOnboarding()}
+            title="Start a new company"
+            aria-label="Start a new company"
+          >
+            +
           </button>
         ) : null}
         {!loading && error ? (

@@ -24,6 +24,8 @@ export interface CompanyCanvasPanelProps {
   flashCompanyIds?: string[];
   /** v12-inbox D — called after a flash animation finishes for a company. */
   onFlashConsumed?: (companyId: string) => void;
+  /** v14.2 — bump to force the canvas hook to refetch. */
+  refreshKey?: number;
 }
 
 /**
@@ -46,6 +48,7 @@ export default function CompanyCanvasPanel({
   onTriggerOnboarding,
   flashCompanyIds,
   onFlashConsumed,
+  refreshKey,
 }: CompanyCanvasPanelProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -70,6 +73,7 @@ export default function CompanyCanvasPanel({
         onTriggerOnboarding={onTriggerOnboarding}
         flashCompanyIds={flashCompanyIds}
         onFlashConsumed={onFlashConsumed}
+        refreshKey={refreshKey}
       />
       <div className="canvas-watermark" aria-hidden>
         Made with tldraw · MUSU

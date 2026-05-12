@@ -91,18 +91,24 @@ test.describe("v12 visual surfaces", () => {
     await gotoApp(page);
 
     const hasCanvas = await page.locator(".canvas-shell").count();
-    const hasEmpty = await page.locator(".canvas-empty-trigger").count();
-
     if (hasCanvas === 0) {
       test.skip(true, "canvas surface not active (P0 — see test 01)");
     }
-    if (hasEmpty === 0) {
-      test.skip(
-        true,
-        "empty-canvas trigger not visible (companies already exist); v13.2 will add a 'Start new company' affordance",
-      );
+
+    // v14.2 — either the empty-trigger (no companies) or the floating "+ New"
+    // button (companies exist) opens the onboarding modal.
+    const empty = page.locator(".canvas-empty-trigger");
+    const floating = page.locator(".canvas-new-trigger");
+    const emptyCount = await empty.count();
+    const floatingCount = await floating.count();
+    if (emptyCount === 0 && floatingCount === 0) {
+      test.skip(true, "neither empty-trigger nor floating + button visible");
     }
-    await page.locator(".canvas-empty-trigger").click();
+    if (emptyCount > 0) {
+      await empty.click();
+    } else {
+      await floating.click();
+    }
 
     await expect(page.locator(".onboarding-modal")).toBeVisible({ timeout: 5_000 });
     await expect(page.locator(".onboarding-step.active")).toContainText("Company");

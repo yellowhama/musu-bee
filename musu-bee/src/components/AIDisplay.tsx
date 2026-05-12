@@ -52,11 +52,13 @@ interface AIDisplayProps {
   flashCompanyIds?: string[];
   /** v12-inbox D — clear a company's flash once the animation ends. */
   onFlashConsumed?: (companyId: string) => void;
+  /** v14.2 — bump to force the canvas to refetch company list (post-spawn). */
+  canvasRefreshKey?: number;
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export default function AIDisplay({ activePanel, companyId, openRequest, onOpenHandled, onTriggerOnboarding, flashCompanyIds, onFlashConsumed }: AIDisplayProps) {
+export default function AIDisplay({ activePanel, companyId, openRequest, onOpenHandled, onTriggerOnboarding, flashCompanyIds, onFlashConsumed, canvasRefreshKey }: AIDisplayProps) {
   const [tabs, setTabs] = useState<Tab[]>([...PINNED_TABS]);
   const [activeTabId, setActiveTabId] = useState("__dashboard");
 
@@ -181,6 +183,7 @@ export default function AIDisplay({ activePanel, companyId, openRequest, onOpenH
             onTriggerOnboarding={onTriggerOnboarding}
             flashCompanyIds={flashCompanyIds}
             onFlashConsumed={onFlashConsumed}
+            canvasRefreshKey={canvasRefreshKey}
           />
         )}
       </div>
@@ -196,12 +199,14 @@ function TabContent({
   onTriggerOnboarding,
   flashCompanyIds,
   onFlashConsumed,
+  canvasRefreshKey,
 }: {
   content: DisplayContent;
   companyId?: string | null;
   onTriggerOnboarding?: () => void;
   flashCompanyIds?: string[];
   onFlashConsumed?: (companyId: string) => void;
+  canvasRefreshKey?: number;
 }) {
   switch (content.type) {
     case "dashboard":
@@ -216,6 +221,7 @@ function TabContent({
           onTriggerOnboarding={onTriggerOnboarding}
           flashCompanyIds={flashCompanyIds}
           onFlashConsumed={onFlashConsumed}
+          canvasRefreshKey={canvasRefreshKey}
         />
       );
     case "document":
@@ -237,12 +243,14 @@ function PanelView({
   onTriggerOnboarding,
   flashCompanyIds,
   onFlashConsumed,
+  canvasRefreshKey,
 }: {
   panel: PanelId;
   companyId?: string | null;
   onTriggerOnboarding?: () => void;
   flashCompanyIds?: string[];
   onFlashConsumed?: (companyId: string) => void;
+  canvasRefreshKey?: number;
 }) {
   const cid = companyId ?? undefined;
   switch (panel) {
@@ -253,6 +261,7 @@ function PanelView({
           onTriggerOnboarding={onTriggerOnboarding}
           flashCompanyIds={flashCompanyIds}
           onFlashConsumed={onFlashConsumed}
+          refreshKey={canvasRefreshKey}
         />
       );
     case "tasks": return <TasksPanel />;

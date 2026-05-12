@@ -165,6 +165,9 @@ export default function AppShell() {
   // ── v12-inbox / v13.4: shared attention surface across all companies ─────
   const inbox = useInbox(allCompanies, userIdentity.id);
 
+  // v14.2 — Bump on company spawn so canvas refetches immediately.
+  const [canvasRefreshKey, setCanvasRefreshKey] = useState(0);
+
   // ── Local UI state ─────────────────────────────────────────────────────────
   const [channels, setChannels] = useState<Channel[]>(INITIAL_CHANNELS);
   const [activeChannel, setActiveChannel] = useState<ChannelId>("ceo");
@@ -346,6 +349,7 @@ export default function AppShell() {
           onTriggerOnboarding={() => setShowCompanyOnboarding(true)}
           flashCompanyIds={inbox.flashCompanyIds}
           onFlashConsumed={inbox.clearFlash}
+          canvasRefreshKey={canvasRefreshKey}
         />
 
         {/* Right: Chat (always visible) */}
@@ -404,6 +408,11 @@ export default function AppShell() {
             status: (n.status as string) ?? "offline",
           }))}
           onClose={() => setShowCompanyOnboarding(false)}
+          onSpawned={(_cid) => {
+            // v14.2 — immediate canvas refetch + jump to canvas surface.
+            setCanvasRefreshKey((n) => n + 1);
+            setActivePanel("canvas");
+          }}
         />
       )}
       {showCompanyTemplate && (

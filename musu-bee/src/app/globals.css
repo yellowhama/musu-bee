@@ -1446,3 +1446,35 @@ code, .mono {
 .canvas-error-retry:hover {
   background: #000;
 }
+
+/* v14.2: floating "+ New" trigger when canvas already has cards */
+.canvas-new-trigger {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--accent, #FFD166);
+  color: var(--fg1, #111);
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.15);
+  pointer-events: auto;
+  z-index: 5;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+.canvas-new-trigger:hover {
+  transform: scale(1.06);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.2);
+}
+.canvas-new-trigger:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
