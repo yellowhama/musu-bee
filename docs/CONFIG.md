@@ -89,15 +89,12 @@ Set variables in `~/.musu/bridge.env` (created by `scripts/install.sh`) or expor
 | `MUSU_AGENT_QA` | `{prefix}QA` | No | Override agent name for the QA channel. |
 | `MUSU_AGENT_COS` | `{prefix}cos` | No | Override agent name for the Chief of Staff channel. |
 | `MUSU_AGENT_WORKER` | `{prefix}worker` | No | Override agent name for the Worker channel. |
-| `MUSU_AGENT_TEAM_LEAD` | `BW-Lead` | No | Override agent name for the Team Lead channel. |
+| `MUSU_AGENT_TEAM_LEAD` | `{prefix}TeamLead` | No | Override agent name for the Team Lead channel. |
 | `MUSU_AGENT_LEAD` | `{prefix}MD-Lead` | No | Override agent name for the Lead channel. |
-| `MUSU_AGENT_BW_LEAD` | `BW-Lead` | No | Bloodline Writers lead agent. |
-| `MUSU_AGENT_BW_PM_FD` | `BW-PM-FalseDane` | No | BW project manager (False Dane). |
-| `MUSU_AGENT_BW_PM_BL` | `BW-PM-Bloodline` | No | BW project manager (Bloodline). |
-| `MUSU_AGENT_BW_RESEARCHER` | `BW-Researcher` | No | BW researcher agent. |
-| `MUSU_AGENT_BW_TREND` | `BW-TrendResearcher` | No | BW trend researcher agent. |
-| `MUSU_AGENT_BW_WRITER` | `BW-Writer` | No | BW writer agent. |
-| `MUSU_AGENT_BW_EDITOR` | `BW-Editor` | No | BW editor agent. |
+| `MUSU_COMPANY_YAML` | *(empty)* | No | Path to the active company manifest. When set, the manifest's `channel_routing` table layers over the generic channel defaults — overriding any of the `MUSU_AGENT_*` channel names per-company. See `~/.musu/companies/` and `company_loader.py`. |
+| `MUSU_COMPANY_ID` | *(empty)* | No | Resolved to `~/.musu/companies/<id>.yaml` when `MUSU_COMPANY_YAML` is not set. |
+| `MUSU_DEFAULT_PROJECT` | *(empty)* | No | Active project name for musu-writer tooling. Empty = generic deployment with no project bound. |
+| `MUSU_HUMAN_AI_PROJECTS` | *(empty)* | No | Comma-separated project ids that bypass the musu-writer planning gate (operator's human-coauthored projects). |
 | `MUSU_DEFAULT_MODEL` | `claude-sonnet-4-5` | No | Default LLM model for adapters. |
 | `MUSU_CLAUDE_COMMAND` | `claude` | No | Path to the Claude CLI binary. |
 | `MUSU_ADAPTER_TIMEOUT` | `300` | No | Default timeout (seconds) for the claude_local adapter. |

@@ -148,17 +148,22 @@ Your Device
 
 ## Writer Studio Setup
 
-For the fiction workspace, use the dedicated writer-company provisioning path:
+For a fiction workspace, use the writer-company provisioning script with
+your own workspace path:
 
 ```bash
-python3 scripts/setup-writer-company.py --workspace-root /home/hugh51/writer
+python3 scripts/setup-writer-company.py --workspace-root ~/writer
 ```
 
-This expects:
+This expects (under `<workspace-root>`):
 
-- `/home/hugh51/writer/.musu/company.json`
-- `/home/hugh51/writer/.musu/charter.md`
-- `/home/hugh51/writer/.musu/agent-defaults.json`
+- `.musu/company.json`
+- `.musu/charter.md`
+- `.musu/agent-defaults.json`
+
+The active company manifest lives at `~/.musu/companies/<id>.yaml`. Set
+`MUSU_COMPANY_YAML=~/.musu/companies/<id>.yaml` (or `MUSU_COMPANY_ID=<id>`)
+to bind the bridge to it.
 
 ## Updating
 

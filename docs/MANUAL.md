@@ -98,22 +98,22 @@ curl -X POST http://{REMOTE_IP}:8070/api/system/update \
 Each company has a team channel. Replies trigger notifications.
 
 ```
-Channels: ceo-board, md-team, bw-team
+Channels: ceo-board, md-team, my-team
 ```
 
 ```bash
 # Post
-curl -X POST http://localhost:8070/api/groups/bw-team/messages \
+curl -X POST http://localhost:8070/api/groups/my-team/messages \
   -H "Authorization: Bearer {TOKEN}" \
   -H "Content-Type: application/json" \
-  -d '{"text": "Draft ready", "sender_id": "BW-Writer"}'
+  -d '{"text": "Draft ready", "sender_id": "writer-1"}'
 
 # Reply (notifies original author)
-curl -X POST http://localhost:8070/api/groups/bw-team/messages \
-  -d '{"text": "Looks good", "sender_id": "BW-Editor", "reply_to": "msg-id"}'
+curl -X POST http://localhost:8070/api/groups/my-team/messages \
+  -d '{"text": "Looks good", "sender_id": "editor-1", "reply_to": "msg-id"}'
 
 # Check your notifications
-curl http://localhost:8070/api/notifications/BW-Writer
+curl http://localhost:8070/api/notifications/writer-1
 ```
 
 ### Read channel messages

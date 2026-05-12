@@ -38,6 +38,13 @@ bloodline-writers.yaml
 # Work artifacts (large, regenerable)
 work/
 
+# Runtime artifacts (v11-iso5) — operational reports moved from repo root
+runtime/
+BUTLER_*.md
+heartbeat_report_*.md
+ceo_board_report_*.md
+butler_output.log
+
 # Empty marker files
 MUS-*
 in_progress

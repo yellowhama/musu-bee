@@ -66,9 +66,9 @@ All notable changes to MUSU are documented here.
 ## [1.6.0] - 2026-05-05
 
 ### Added
-- **Bloodline Writers**: AI content production company (7 agents, 3x fallback)
+- **Writer Studio template**: AI fiction production company template (lead/PM/researcher/writer/editor, 3x adapter fallback)
 - **MCP Tools**: musu-ai-detector (3 tools) + musu-writer (23 tools)
-- **Multi-Project**: config.toml based (false-dane, bloodline, tower-of-trials)
+- **Multi-Project**: config.toml based project bindings (one writer instance, many projects)
 - **Token Optimization**: `_default_mcp_for_role()` policy, ~70% reduction per agent
 
 ## [1.5.0] - 2026-03-05
