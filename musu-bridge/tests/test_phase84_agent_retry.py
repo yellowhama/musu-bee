@@ -17,7 +17,7 @@ def test_team_lead_channel_in_config():
     from config import BridgeConfig
     cfg = BridgeConfig()
     assert "team_lead" in cfg.channel_agent_map
-    # Default is BW-Lead, but can be overridden via MUSU_AGENT_TEAM_LEAD env var
+    # Default is the generic 'team-lead' handle; operators can override via MUSU_AGENT_TEAM_LEAD env var
     assert cfg.channel_agent_map["team_lead"]  # non-empty
 
 

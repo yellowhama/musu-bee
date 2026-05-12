@@ -5,7 +5,7 @@ from __future__ import annotations
 # Default governance configs
 _GOV_DEV = {"qa_auto_enabled": True, "qa_pass_threshold": 7, "qa_max_iterations": 3, "budget_enforcement": "hard", "approval_gates": ["deploy"], "escalation_chain": ["lead", "cto", "ceo"]}
 _GOV_CONTENT = {"qa_auto_enabled": True, "qa_pass_threshold": 7, "qa_max_iterations": 3, "budget_enforcement": "hard", "approval_gates": [], "escalation_chain": ["lead", "editor", "ceo"]}
-_GOV_WRITER = {"qa_auto_enabled": True, "qa_pass_threshold": 7, "qa_max_iterations": 3, "budget_enforcement": "hard", "approval_gates": ["publish"], "escalation_chain": ["bw-lead", "bw-editor", "ceo"]}
+_GOV_WRITER = {"qa_auto_enabled": True, "qa_pass_threshold": 7, "qa_max_iterations": 3, "budget_enforcement": "hard", "approval_gates": ["publish"], "escalation_chain": ["studio-lead", "studio-editor", "ceo"]}
 _GOV_RESEARCH = {"qa_auto_enabled": False, "qa_pass_threshold": 7, "qa_max_iterations": 3, "budget_enforcement": "hard", "approval_gates": [], "escalation_chain": ["lead", "ceo"]}
 
 _TEMPLATES: dict[str, dict] = {
@@ -124,11 +124,11 @@ _TEMPLATES: dict[str, dict] = {
         ],
     },
     "writer-studio": {
-        "description": "장기 소설/IP 제작 스튜디오 — lead / 2 PM / researcher / writer / editor",
+        "description": "Long-form fiction studio — lead / project PM / researcher / writer / editor",
         "governance": _GOV_WRITER,
         "agents": [
             {
-                "name": "bw-lead",
+                "name": "studio-lead",
                 "role": "Company Lead",
                 "adapter_type": "claude_local",
                 "instructions_path": "musu-bridge/instructions/team_lead.md",
@@ -136,36 +136,24 @@ _TEMPLATES: dict[str, dict] = {
                     "You are the Company Lead for {company_name}.\n"
                     "Company purpose: {purpose}\n\n"
                     "Your job: lock company direction, guard shared studio rules, "
-                    "and coordinate cross-project priorities across Bloodline and False Dane. "
+                    "and coordinate cross-project priorities. "
                     "Work directory: {work_dir}"
                 ),
             },
             {
-                "name": "bw-pm-bloodline",
+                "name": "studio-pm",
                 "role": "Project Manager",
                 "adapter_type": "gemini_local",
                 "instructions_path": "musu-bridge/instructions/project_manager.md",
                 "instructions": (
-                    "You are the Bloodline project PM for {company_name}.\n"
+                    "You are the Project Manager for {company_name}.\n"
                     "Company purpose: {purpose}\n\n"
-                    "Your job: protect Bloodline scope, canon safety, and sprint sequencing. "
+                    "Your job: protect project scope, canon safety, and sprint sequencing. "
                     "Work directory: {work_dir}"
                 ),
             },
             {
-                "name": "bw-pm-falsedane",
-                "role": "Project Manager",
-                "adapter_type": "gemini_local",
-                "instructions_path": "musu-bridge/instructions/project_manager.md",
-                "instructions": (
-                    "You are the False Dane project PM for {company_name}.\n"
-                    "Company purpose: {purpose}\n\n"
-                    "Your job: protect False Dane scope, canon safety, and sprint sequencing. "
-                    "Work directory: {work_dir}"
-                ),
-            },
-            {
-                "name": "bw-researcher",
+                "name": "studio-researcher",
                 "role": "Researcher",
                 "adapter_type": "gemini_local",
                 "instructions": (
@@ -176,7 +164,7 @@ _TEMPLATES: dict[str, dict] = {
                 ),
             },
             {
-                "name": "bw-writer",
+                "name": "studio-writer",
                 "role": "Writer",
                 "adapter_type": "claude_local",
                 "instructions": (
@@ -187,7 +175,7 @@ _TEMPLATES: dict[str, dict] = {
                 ),
             },
             {
-                "name": "bw-editor",
+                "name": "studio-editor",
                 "role": "Editor",
                 "adapter_type": "claude_local",
                 "instructions": (
