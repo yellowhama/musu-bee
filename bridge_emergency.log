@@ -1,9 +1,0 @@
-[start-bridge] ✅ musu-bridge/.env loaded (relay env vars auto-injected)
-[start-bridge] ~/.musu/bridge.env loaded (user overrides)
-[start-bridge] WSL2 detected — machine_group: hughsecond
-[start-bridge] WoL MAC: bc:fc:e7:cb:20:c5 broadcast: 172.17.0.255
-[start-bridge] WARN: musu-connectsd exited immediately — QUIC disabled. Check logs/musu-connectsd.log
-[start-bridge] QUIC fingerprint: 41:d6:e1:04:14:e3:fc:c4...
-[start-bridge] logging to /home/hugh51/musu-functions/logs/bridge-20260511.log
-[start-bridge] starting musu-worker on port 9700
-[start-bridge] musu-worker PID=825526
