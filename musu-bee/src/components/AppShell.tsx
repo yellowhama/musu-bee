@@ -257,9 +257,13 @@ export default function AppShell() {
 
   // Map nodes for ConsoleShell
   const consoleNodes: RegistryNode[] = nodes.map((n: Record<string, unknown>) => ({
+    id: (n.id as string) || `node-${n.name}`,
+    user_id: (n.user_id as string) || "local",
     node_name: (n.name as string) || "unknown",
     public_url: (n.url as string) || "",
-    last_seen: new Date().toISOString(),
+    last_seen: n.status === "online" ? new Date().toISOString() : null,
+    health_status: n.status === "online" ? "online" : "offline",
+    meta: (n.meta as Record<string, unknown>) || {},
     gpu: (n.gpu as string) || undefined,
     roles: (n.roles as string[]) || undefined,
   }));
