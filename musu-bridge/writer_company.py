@@ -8,6 +8,11 @@ from typing import Any
 
 from musu_core.backends.local import LocalBackend
 
+# v11-iso1: Company id/name now live in ~/.musu/companies/<id>.yaml. The
+# constants below are *legacy fallback only* and used when MUSU_COMPANY_YAML
+# is not configured (deployment default = no company configured). Production
+# tooling should call company_loader.company_id() / .name() against the
+# resolved manifest.
 WRITER_COMPANY_ID = "a2699373-3700-4cbc-8477-c70e1d94cf8a"
 WRITER_COMPANY_NAME = "Bloodline Writers"
 GEMINI_PRO_MODEL = "gemini-2.5-pro"
@@ -45,7 +50,25 @@ def _normalize_company_row(row: dict[str, Any] | None) -> dict[str, Any] | None:
     return normalized
 
 
-def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -> dict[str, Any]:
+def _resolve_default_workspace_root() -> str:
+    """Resolve workspace_root from active company yaml; fall back to legacy path."""
+    try:
+        from company_loader import load_company_manifest, workspace_root as _wr
+        manifest = load_company_manifest()
+        ws = _wr(manifest)
+        if ws:
+            return ws
+    except Exception:
+        pass
+    # Legacy fallback. v11-iso1 leaves this for the migration window;
+    # remove after all callers pass workspace_root explicitly.
+    import os as _os
+    return _os.environ.get("MUSU_WRITER_WORKSPACE", str(Path.home() / "writer"))
+
+
+def build_writer_company_manifest(workspace_root: str | None = None) -> dict[str, Any]:
+    if workspace_root is None:
+        workspace_root = _resolve_default_workspace_root()
     workspace = Path(workspace_root).resolve()
     charter_path = workspace / ".musu" / "charter.md"
     defaults_path = workspace / ".musu" / "agent-defaults.json"
@@ -358,7 +381,9 @@ def _merge_named_specs(default_specs: list[dict[str, Any]], override_specs: list
     return [merged_by_name[name] for name in order if name in merged_by_name]
 
 
-def normalize_writer_company_manifest(raw: dict[str, Any], workspace_root: str = "/home/hugh51/writer") -> dict[str, Any]:
+def normalize_writer_company_manifest(raw: dict[str, Any], workspace_root: str | None = None) -> dict[str, Any]:
+    if workspace_root is None:
+        workspace_root = _resolve_default_workspace_root()
     default = build_writer_company_manifest(workspace_root=workspace_root)
     merged = _deep_merge(default, raw)
     if isinstance(raw.get("agents"), list):

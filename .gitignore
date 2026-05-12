@@ -19,6 +19,17 @@ Thumbs.db
 *.pem
 credentials*
 
+# v11-iso1: user-owned company manifests must never enter the repo.
+# Active company lives at ~/.musu/companies/<id>.yaml; any in-tree copies are
+# only allowed under examples/ with the .example.yaml suffix.
+*.company.yaml
+company-*.yaml
+bloodline-writers.yaml
+.musu_dev.indexer-http.pid
+.musu_dev.db
+.musu_dev.db-wal
+.musu_dev.db-shm
+
 # Windows bridge state (runtime)
 .windows-bridge/state/
 .windows-bridge/queue/

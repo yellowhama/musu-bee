@@ -6,34 +6,40 @@ from dataclasses import dataclass, field
 
 
 def _default_channel_agent_map() -> dict[str, str]:
+    """Channel→agent map.
+
+    Generic channels (ceo/cto/engineer/qa/cos/worker/lead/team_lead) come from
+    env vars with a prefix fallback. User-specific channel routings (BW PM
+    channels, custom company channels) live in the active company manifest
+    at ``MUSU_COMPANY_YAML``; v11-iso1 moved them out of this file.
+    """
     prefix = os.getenv("MUSU_AGENT_PREFIX", "")
     if prefix and not prefix.endswith("-"):
         prefix += "-"
     def _agent(channel: str, default_suffix: str) -> str:
         env_key = f"MUSU_AGENT_{channel.upper()}"
         return os.getenv(env_key, f"{prefix}{default_suffix}")
-    return {
+    generic: dict[str, str] = {
         "ceo": _agent("ceo", "CEO"),
         "cto": _agent("cto", "CTO"),
         "engineer": _agent("engineer", "Engineer"),
         "qa": _agent("qa", "QA"),
         "cos": os.getenv("MUSU_AGENT_COS", f"{prefix}cos"),
         "worker": os.getenv("MUSU_AGENT_WORKER", f"{prefix}worker"),
-        "team_lead": os.getenv("MUSU_AGENT_TEAM_LEAD", "BW-Lead"),
+        "team_lead": os.getenv("MUSU_AGENT_TEAM_LEAD", f"{prefix}TeamLead"),
         "lead": os.getenv("MUSU_AGENT_LEAD", f"{prefix}MD-Lead"),
-        "bw_lead": os.getenv("MUSU_AGENT_BW_LEAD", "BW-Lead"),
-        "bw-lead": os.getenv("MUSU_AGENT_BW_LEAD", "BW-Lead"),
-        "bw-pm-fd": os.getenv("MUSU_AGENT_BW_PM_FD", "BW-PM-FalseDane"),
-        "bw-pm-bl": os.getenv("MUSU_AGENT_BW_PM_BL", "BW-PM-Bloodline"),
-        "bw-pm-hr": os.getenv("MUSU_AGENT_BW_PM_HR", "BW-PM-Hunter-Reborn"),
-        "pm_false_dane": os.getenv("MUSU_AGENT_PM_FALSE_DANE", "BW-PM-FalseDane"),
-        "pm_bloodline": os.getenv("MUSU_AGENT_PM_BLOODLINE", "BW-PM-Bloodline"),
-        "pm_hunter": os.getenv("MUSU_AGENT_PM_HUNTER", "BW-PM-Hunter-Reborn"),
-        "bw-researcher": os.getenv("MUSU_AGENT_BW_RESEARCHER", "BW-Researcher"),
-        "bw-trend": os.getenv("MUSU_AGENT_BW_TREND", "BW-TrendResearcher"),
-        "bw-writer": os.getenv("MUSU_AGENT_BW_WRITER", "BW-Writer"),
-        "bw-editor": os.getenv("MUSU_AGENT_BW_EDITOR", "BW-Editor"),
     }
+
+    # Layer the active company's channel_routing on top.
+    try:
+        from company_loader import channel_routing, load_company_manifest
+        manifest = load_company_manifest()
+        generic.update(channel_routing(manifest))
+    except Exception:
+        # company_loader missing or yaml malformed — generic map only.
+        pass
+
+    return generic
 
 
 @dataclass
