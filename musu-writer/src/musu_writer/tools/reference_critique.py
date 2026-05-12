@@ -5,7 +5,7 @@ from __future__ import annotations
 from ..references import load_project_ref, load_ref
 
 
-def get_critique_context(chapter: str, draft_path: str = "", project: str = "false-dane") -> dict:
+def get_critique_context(chapter: str, draft_path: str = "", project: str = "") -> dict:
     """Load all context needed for reference-based critique.
 
     Returns comparison framework for ASOIAF (vertical pressure)

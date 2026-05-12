@@ -18,7 +18,7 @@ mcp = FastMCP("Musu Writer")
 @mcp.tool()
 async def start_chapter_session(
     chapter: str,
-    project: str = "false-dane",
+    project: str = "",
 ) -> str:
     """Start a new chapter writing session.
 
@@ -27,16 +27,24 @@ async def start_chapter_session(
 
     Args:
         chapter: Chapter identifier (e.g. "CH01", "CH02")
-        project: Project name (default: "false-dane")
+        project: Project name (empty = active default from MUSU_DEFAULT_PROJECT)
     """
+    import os
+
     from .models import Session
+    from .project_config import default_project
     from .project_session import is_project_ready
     from .references import get_chapter_context
     from .session import get_next_step, load_previous_chapter_state, save_session
 
-    # Gate: AI-native projects must complete planning first
-    # (false-dane and bloodline are human+AI exemptions)
-    human_ai_projects = {"false-dane", "bloodline"}
+    project = project or default_project()
+
+    # Gate: AI-native projects must complete planning first.
+    # MUSU_HUMAN_AI_PROJECTS lists comma-separated project ids that bypass
+    # the planning gate (operator's human-coauthored projects).
+    human_ai_projects = {
+        p.strip() for p in os.environ.get("MUSU_HUMAN_AI_PROJECTS", "").split(",") if p.strip()
+    }
     if project not in human_ai_projects and not is_project_ready(project):
         return json.dumps({
             "error": f"Project '{project}' has not completed planning. "
@@ -178,14 +186,14 @@ async def complete_step(
 @mcp.tool()
 async def audit_continuity(
     chapter: str,
-    project: str = "false-dane",
+    project: str = "",
     session_id: str = "",
 ) -> str:
     """Get continuity audit context — knowledge layers, evidence tracking, forbidden reveals.
 
     Args:
         chapter: Chapter identifier (e.g. "CH01").
-        project: Project name (e.g. "false-dane", "bloodline").
+        project: Project name. Empty falls back to MUSU_DEFAULT_PROJECT.
         session_id: Optional session ID.
     """
     from .tools.continuity import get_continuity_context
@@ -197,7 +205,7 @@ async def audit_continuity(
 @mcp.tool()
 async def design_characters(
     chapter: str,
-    project: str = "false-dane",
+    project: str = "",
     session_id: str = "",
 ) -> str:
     """Get character design context — card templates, voice rules, visibility debt.
@@ -216,7 +224,7 @@ async def design_characters(
 @mcp.tool()
 async def build_world_packet(
     chapter: str,
-    project: str = "false-dane",
+    project: str = "",
     session_id: str = "",
 ) -> str:
     """Get world/ensemble packet context — place, actors, factions, objects, pressure.
@@ -238,7 +246,7 @@ async def build_world_packet(
 @mcp.tool()
 async def get_structure_draft_context(
     chapter: str,
-    project: str = "false-dane",
+    project: str = "",
     session_id: str = "",
 ) -> str:
     """Get structure draft (1안) context — ABC gate, scene engine, user anchors.
@@ -258,7 +266,7 @@ async def get_structure_draft_context(
 async def get_rhythm_draft_context(
     chapter: str,
     draft_path: str = "",
-    project: str = "false-dane",
+    project: str = "",
     session_id: str = "",
 ) -> str:
     """Get rhythm draft (3안) context — scene tempo targets, rhythm patterns.
@@ -279,7 +287,7 @@ async def get_rhythm_draft_context(
 async def get_mouth_draft_context(
     chapter: str,
     draft_path: str = "",
-    project: str = "false-dane",
+    project: str = "",
     session_id: str = "",
 ) -> str:
     """Get mouth draft (2안) context — dialogue, mouthfeel, AI-tell gate, polish.
@@ -300,7 +308,7 @@ async def get_mouth_draft_context(
 async def get_critique_context(
     chapter: str,
     draft_path: str = "",
-    project: str = "false-dane",
+    project: str = "",
     session_id: str = "",
 ) -> str:
     """Get reference critique context for comparing against reference works.
@@ -324,7 +332,7 @@ async def get_critique_context(
 async def get_skill_references(
     skill: str,
     filenames: str = "",
-    project: str = "false-dane",
+    project: str = "",
 ) -> str:
     """Load reference files for a specific writing skill.
 
@@ -360,7 +368,7 @@ async def get_skill_references(
 @mcp.tool()
 async def get_chapter_context_tool(
     chapter: str,
-    project: str = "false-dane",
+    project: str = "",
 ) -> str:
     """Load context files for a chapter (canon, planning, drafts, reviews, wiki).
 
@@ -368,7 +376,7 @@ async def get_chapter_context_tool(
 
     Args:
         chapter: Chapter identifier (e.g. "CH01").
-        project: Project name (e.g. "false-dane", "bloodline").
+        project: Project name. Empty falls back to MUSU_DEFAULT_PROJECT.
     """
     from .references import get_chapter_context
 
@@ -390,7 +398,7 @@ async def start_project_session(
             character-driven → event-driven → worldbuilding
 
     Args:
-        project: Project name (e.g. "hunter-reborn").
+        project: Project name (operator-defined).
     """
     from .models import ProjectSession
     from .project_session import get_next_project_step, save_project_session
@@ -496,7 +504,7 @@ async def complete_project_step(
 @mcp.tool()
 async def get_review_context_tool(
     review_type: str,
-    project: str = "hunter-reborn",
+    project: str = "",
 ) -> str:
     """Get review criteria for a planning stage (Generator ≠ Evaluator).
 
@@ -714,4 +722,164 @@ async def get_crawled_data(
     from .tools.crawler import get_latest_crawl
 
     result = get_latest_crawl(platform)
+    return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def capture_decision(
+    project: str,
+    decision_type: str,
+    statement: str,
+    context: str = "",
+) -> str:
+    """Capture an author decision to decisions/<type>.md (prepend, newest on top).
+
+    LLM call: none. Pure file operation. Part of the AI-augmented authorship
+    system — externalizes the author's directional decisions so AI tools
+    can auto-reference them in later steps (story_to_structure, etc.).
+
+    Use this when the author makes a directional decision like:
+    - tone: "에드릭 = 데드풀 + 한솔로 lock. 하드보일드 금지."
+    - character_core: "현진 = 루피 코어. 다른 레퍼런스 양념으로만."
+    - publish: "CH001~013 v 잠그고 첫 발행 1편 목표."
+    - other: 분류 안 되는 결정
+
+    Args:
+        project: Project name (operator-defined)
+        decision_type: One of "tone" | "character_core" | "publish" | "other"
+        statement: Author's decision in their own words
+        context: Optional rationale or background
+    """
+    from .tools.capture_decision import append_decision
+
+    result = append_decision(project, decision_type, statement, context)
+    return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def story_to_structure(
+    project: str,
+    story_seed: str,
+    chapter_target: int = 1,
+    seed_scope: str = "single_chapter",
+    slug: str = "",
+) -> str:
+    """Convert author's story seed → unified 6-slot scene structure template.
+
+    LLM call: none. Returns instructions + filled template for Claude Code
+    to complete and save. Auto-references the project's latest tone decision
+    (from decisions/tone.md) so the structure stays on-tone.
+
+    Args:
+        project: Project name (operator-defined)
+        story_seed: Free-form author seed (the "큰 줄기")
+        chapter_target: Number of chapters to structure
+        seed_scope: "single_chapter" | "arc" | "season"
+        slug: Optional output filename slug (auto-derived if empty)
+    """
+    from .tools.story_to_structure import generate_structure
+
+    result = generate_structure(
+        project, story_seed, chapter_target, seed_scope, slug
+    )
+    return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def research_to_canon(
+    project: str,
+    research_file: str,
+    canon_category: str = "auto",
+) -> str:
+    """Extract canon candidates from a research report (research/<file>).
+
+    LLM call: none. Returns research content + existing canon index +
+    character_core reference + template/instructions. Claude Code does
+    the extraction and writes the candidate file at output_path. Author
+    then reviews and promotes the candidates manually (canon/_candidates/
+    is the staging area).
+
+    Args:
+        project: Project name (operator-defined)
+        research_file: File path inside research/ (e.g. "ANGLO_SAXON_LEGAL_STAKES.md"
+                       or "references/MAPPING.md")
+        canon_category: "world" | "character" | "system" | "rule" | "auto"
+    """
+    from .tools.research_to_canon import extract_candidates
+
+    result = extract_candidates(project, research_file, canon_category)
+    return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def audit_tone_drift(
+    project: str,
+    chapter: str,
+) -> str:
+    """Audit a chapter draft for tone drift against the project's locked tone.
+
+    LLM call: none. Returns the full draft + tone_reference (from
+    decisions/tone.md) + audit template. Claude Code performs the comparison
+    and writes the audit at output_path.
+
+    Requires:
+    - A captured tone decision (decisions/tone.md). Run capture_decision first if missing.
+    - An existing chapter draft (drafts/*.md, project-specific naming pattern).
+
+    Args:
+        project: Project name (operator-defined)
+        chapter: Chapter id ("CH01" / "01" / "1")
+    """
+    from .tools.audit_tone_drift import audit_tone
+
+    result = audit_tone(project, chapter)
+    return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def audit_canon_drift(
+    project: str,
+    chapter: str,
+) -> str:
+    """Audit a chapter draft for conflicts with the project's canon.
+
+    LLM call: none. Returns the full draft + all canon files (full bodies)
+    + character_core reference (from decisions/character_core.md) + audit
+    template. Claude Code performs the cross-check and writes the audit
+    at output_path.
+
+    Args:
+        project: Project name (operator-defined)
+        chapter: Chapter id ("CH01" / "01" / "1")
+    """
+    from .tools.audit_canon_drift import audit_canon
+
+    result = audit_canon(project, chapter)
+    return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def promote_canon_candidate(
+    project: str,
+    candidate_file: str,
+    target_canon_path: str,
+    mode: str = "by_section",
+) -> str:
+    """Promote approved canon candidates from canon/_candidates/ to canon/.
+
+    LLM call: none. Pure file operation. Filters candidates by
+    'Decision: [x] approve' lines (mode='by_section') or moves the whole
+    file (mode='whole_file'). Appends to target if it exists, creates
+    a new file otherwise. Records a promotion log inside the candidate file.
+
+    Args:
+        project: Project name (operator-defined). Required.
+        candidate_file: Filename inside canon/_candidates/ (e.g.
+            "ANGLO_SAXON_LEGAL_STAKES_canon_candidates.md")
+        target_canon_path: Path inside canon/, relative (e.g. "world/economy.md")
+        mode: "by_section" (default) or "whole_file"
+    """
+    from .tools.promote_canon_candidate import promote
+
+    result = promote(project, candidate_file, target_canon_path, mode)
     return json.dumps(result, ensure_ascii=False)

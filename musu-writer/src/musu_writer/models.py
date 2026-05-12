@@ -188,7 +188,7 @@ class Session:
 
     session_id: str = field(default_factory=lambda: uuid.uuid4().hex[:12])
     chapter: str = ""
-    project: str = "false-dane"
+    project: str = ""
     state: SessionState = SessionState.INIT
     step_results: dict[str, StepResult] = field(default_factory=dict)
     user_anchors: list[dict] = field(default_factory=list)

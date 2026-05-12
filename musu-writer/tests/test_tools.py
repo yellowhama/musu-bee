@@ -9,7 +9,7 @@ from musu_writer.tools.mouth_draft import get_mouth_context
 from musu_writer.tools.reference_critique import get_critique_context
 
 
-# ── False Dane (default project) ─────────────────────────
+# ── Default project (no project arg) ─────────────────────
 
 def test_continuity_context():
     ctx = get_continuity_context("CH01")
@@ -54,22 +54,22 @@ def test_critique_context():
     assert "output_template" in ctx
 
 
-# ── Bloodline project ────────────────────────────────────
+# ── Alternate project (any non-default name) ─────────────
 
-def test_continuity_bloodline():
-    ctx = get_continuity_context("CH01", project="bloodline")
+def test_continuity_alt_project():
+    ctx = get_continuity_context("CH01", project="alt-project")
     assert ctx["skill"] == "continuity"
     assert "template" in ctx
 
 
-def test_structure_bloodline():
-    ctx = get_structure_context("CH01", project="bloodline")
+def test_structure_alt_project():
+    ctx = get_structure_context("CH01", project="alt-project")
     assert ctx["skill"] == "writer_1an"
     assert "abc_gate" in ctx  # Common gate still works
 
 
-def test_character_bloodline():
-    ctx = get_character_context("CH01", project="bloodline")
+def test_character_alt_project():
+    ctx = get_character_context("CH01", project="alt-project")
     assert ctx["skill"] == "character"
     assert "card_template" in ctx
 

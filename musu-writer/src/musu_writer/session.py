@@ -321,7 +321,7 @@ def load_session(session_id: str) -> Session | None:
     session = Session(
         session_id=data["session_id"],
         chapter=data["chapter"],
-        project=data.get("project", "false-dane"),
+        project=data.get("project", ""),
         state=SessionState(data["state"]),
         created_at=data.get("created_at", 0),
         updated_at=data.get("updated_at", 0),

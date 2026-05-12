@@ -46,7 +46,7 @@ def _skill_ref_dir(project: str, skill: str) -> Path | None:
     return None
 
 
-def load_ref(skill: str, filename: str, project: str = "false-dane") -> str | None:
+def load_ref(skill: str, filename: str, project: str = "") -> str | None:
     """Load a skill-local reference file."""
     ref_dir = _skill_ref_dir(project, skill)
     if ref_dir is None:
@@ -57,7 +57,7 @@ def load_ref(skill: str, filename: str, project: str = "false-dane") -> str | No
     return path.read_text(encoding="utf-8")
 
 
-def load_project_ref(relative_path: str, project: str = "false-dane") -> str | None:
+def load_project_ref(relative_path: str, project: str = "") -> str | None:
     """Load a project-level reference file."""
     project_dir = get_project_dir(project)
     path = project_dir / relative_path
@@ -68,7 +68,7 @@ def load_project_ref(relative_path: str, project: str = "false-dane") -> str | N
     return path.read_text(encoding="utf-8")
 
 
-def load_project_ref_by_key(ref_key: str, project: str = "false-dane") -> str | None:
+def load_project_ref_by_key(ref_key: str, project: str = "") -> str | None:
     """Load a project reference by config key (e.g. 'character_table')."""
     rel_path = get_ref_path(project, ref_key)
     if not rel_path:
@@ -76,7 +76,7 @@ def load_project_ref_by_key(ref_key: str, project: str = "false-dane") -> str | 
     return load_project_ref(rel_path, project)
 
 
-def load_wiki(page_prefix: str, project: str = "false-dane") -> str | None:
+def load_wiki(page_prefix: str, project: str = "") -> str | None:
     """Load a wiki page by prefix match."""
     if not WIKI_DIR.exists():
         return None
@@ -86,7 +86,7 @@ def load_wiki(page_prefix: str, project: str = "false-dane") -> str | None:
     return None
 
 
-def load_project_wikis(project: str = "false-dane") -> list[str]:
+def load_project_wikis(project: str = "") -> list[str]:
     """Load all wiki pages matching the project's prefix filters."""
     prefixes = get_wiki_prefixes(project)
     if not prefixes or not WIKI_DIR.exists():
@@ -98,7 +98,7 @@ def load_project_wikis(project: str = "false-dane") -> list[str]:
     return results
 
 
-def list_skill_refs(skill: str, project: str = "false-dane") -> list[str]:
+def list_skill_refs(skill: str, project: str = "") -> list[str]:
     """List available reference files for a skill."""
     ref_dir = _skill_ref_dir(project, skill)
     if ref_dir is None or not ref_dir.exists():
@@ -106,7 +106,120 @@ def list_skill_refs(skill: str, project: str = "false-dane") -> list[str]:
     return [f.name for f in ref_dir.iterdir() if f.is_file()]
 
 
-def get_chapter_context(chapter: str, project: str = "false-dane") -> dict:
+def get_decisions_dir(project: str) -> Path:
+    """Project decisions/ directory. Creates if missing."""
+    project_dir = get_project_dir(project)
+    decisions_dir = project_dir / "decisions"
+    decisions_dir.mkdir(parents=True, exist_ok=True)
+    return decisions_dir
+
+
+def get_canon_candidates_dir(project: str) -> Path:
+    """Project canon/_candidates/ directory. Creates if missing."""
+    project_dir = get_project_dir(project)
+    candidates_dir = project_dir / "canon" / "_candidates"
+    candidates_dir.mkdir(parents=True, exist_ok=True)
+    return candidates_dir
+
+
+def get_latest_decision(project: str, decision_type: str) -> str:
+    """Return the most recent statement from decisions/<type>.md, or empty string.
+
+    Parses the first '## ' header section after the file header
+    (decisions/ files are prepend-only, so first '## ' is newest).
+    """
+    path = get_decisions_dir(project) / f"{decision_type}.md"
+    if not path.exists():
+        return ""
+    content = path.read_text(encoding="utf-8")
+    parts = content.split("\n## ", 1)
+    if len(parts) < 2:
+        return ""
+    section = parts[1]
+    for line in section.splitlines():
+        if line.startswith("**Statement**:"):
+            return line.replace("**Statement**:", "").strip()
+    return ""
+
+
+def _draft_patterns(project: str, chapter_num: str) -> list[str]:
+    """Return ordered glob patterns to look for a chapter's drafts.
+
+    Two patterns supported:
+    - Upper-snake (3-digit): {PROJECT_UPPER}_CHAPTER_001_DRAFT_v*.md
+    - Slug (2-digit): {project}_CH01_v*.md
+    Plus a legacy CHAPTER_001_DRAFT_v*.md fallback.
+    """
+    upper = project.upper().replace("-", "_")
+    return [
+        f"{upper}_CHAPTER_{chapter_num.zfill(3)}_DRAFT_v*.md",
+        f"{project}_CH{chapter_num.zfill(2)}_v*.md",
+        f"CHAPTER_{chapter_num.zfill(3)}_DRAFT_v*.md",  # legacy
+    ]
+
+
+def _version_key(path: Path) -> int:
+    """Extract integer version from filename stem ending with _v<n>."""
+    stem = path.stem
+    if "_v" in stem:
+        try:
+            return int(stem.rsplit("_v", 1)[1])
+        except ValueError:
+            return 0
+    return 0
+
+
+def get_latest_draft(project: str, chapter) -> Path | None:
+    """Return the highest-versioned draft Path for a project+chapter, or None.
+
+    chapter may be int (1), str ("CH01"), str ("1"), str ("001").
+    Per the project hierarchy rule, never silently fall back across projects.
+    """
+    if not project:
+        return None
+    project_dir = get_project_dir(project)
+    drafts_dir = project_dir / "drafts"
+    if not drafts_dir.exists():
+        return None
+
+    chapter_str = str(chapter).replace("CH", "").replace("ch", "")
+    chapter_num = chapter_str.lstrip("0") or "0"
+
+    for pattern in _draft_patterns(project, chapter_num):
+        matches = list(drafts_dir.glob(pattern))
+        if matches:
+            return max(matches, key=_version_key)
+    return None
+
+
+def get_canon_files(project: str) -> dict:
+    """Return {relative_path: full_content} of all canon files for a project.
+
+    Skips canon/_candidates/. Includes one level of subdirectories.
+    Returns empty dict if project has no canon directory yet.
+    """
+    if not project:
+        return {}
+    canon_dir = get_project_dir(project) / "canon"
+    if not canon_dir.exists():
+        return {}
+    out: dict = {}
+    for f in sorted(canon_dir.glob("*.md")):
+        try:
+            out[f.name] = f.read_text(encoding="utf-8")
+        except OSError:
+            continue
+    for sub in sorted(canon_dir.iterdir()):
+        if sub.is_dir() and sub.name != "_candidates":
+            for f in sorted(sub.glob("*.md")):
+                try:
+                    out[f"{sub.name}/{f.name}"] = f.read_text(encoding="utf-8")
+                except OSError:
+                    continue
+    return out
+
+
+def get_chapter_context(chapter: str, project: str = "") -> dict:
     """Load standard context files for a chapter session."""
     ctx = {}
     project_dir = get_project_dir(project)

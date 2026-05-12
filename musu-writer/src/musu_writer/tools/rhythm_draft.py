@@ -5,7 +5,7 @@ from __future__ import annotations
 from ..references import load_project_ref, load_project_ref_by_key, load_ref, load_wiki
 
 
-def get_rhythm_context(chapter: str, draft_path: str = "", project: str = "false-dane") -> dict:
+def get_rhythm_context(chapter: str, draft_path: str = "", project: str = "") -> dict:
     """Load all context needed for a rhythm pass (3안).
 
     Returns scene tempo targets, rhythm patterns, and negative patterns

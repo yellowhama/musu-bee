@@ -69,28 +69,28 @@ def test_project_foundation_template():
 
 
 def test_analytics_chapter():
-    ctx = ingest_metrics_template("false-dane", "CH01")
+    ctx = ingest_metrics_template("demo-project", "CH01")
     assert ctx["skill"] == "analytics"
     assert "metrics_template" in ctx
     assert "kakaopage" in ctx["metrics_template"]["platforms"]
 
 
 def test_analytics_project_wide():
-    ctx = get_feedback_analysis_template("false-dane")
+    ctx = get_feedback_analysis_template("demo-project")
     assert ctx["skill"] == "feedback_analysis"
     assert "analysis_template" in ctx
     assert "improvement_signals" in ctx["analysis_template"]
 
 
 def test_learning_extraction():
-    ctx = get_lesson_extraction_template("false-dane")
+    ctx = get_lesson_extraction_template("demo-project")
     assert ctx["skill"] == "lesson_extraction"
     assert "project_specific_lessons" in ctx["template"]
     assert "shareable_lessons" in ctx["template"]
 
 
 def test_learning_sharing():
-    ctx = share_lesson_template("false-dane", "bloodline")
+    ctx = share_lesson_template("project-a", "project-b")
     assert ctx["skill"] == "lesson_sharing"
-    assert ctx["from_project"] == "false-dane"
-    assert ctx["to_project"] == "bloodline"
+    assert ctx["from_project"] == "project-a"
+    assert ctx["to_project"] == "project-b"

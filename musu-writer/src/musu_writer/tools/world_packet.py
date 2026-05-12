@@ -5,7 +5,7 @@ from __future__ import annotations
 from ..references import load_project_ref_by_key, load_ref
 
 
-def get_world_context(chapter: str, project: str = "false-dane") -> dict:
+def get_world_context(chapter: str, project: str = "") -> dict:
     """Load all context needed for world/ensemble packet creation.
 
     Returns structured packet with:

@@ -1,8 +1,10 @@
 """Project configuration loader.
 
-Each project has a config.toml that declares its references, wiki prefixes,
-style settings, and codex skill overrides. If no config.toml exists,
-falls back to false-dane defaults for backward compatibility.
+Each project owns a ``projects/<name>/config.toml`` under WRITER_PROJECT_ROOT
+declaring references, wiki prefixes, style, and codex skill overrides. The
+deployment image stays empty — projects live under the operator's writer
+workspace, never inside this repo. Project-specific defaults are not embedded
+in this module; consult the operator's config.toml instead.
 """
 
 from __future__ import annotations
@@ -15,6 +17,15 @@ PROJECT_ROOT = Path(os.environ.get(
     "WRITER_PROJECT_ROOT",
     os.path.expanduser("~/writer"),
 ))
+
+
+def default_project() -> str:
+    """The active project name. Empty string when nothing is configured.
+
+    Callers should pass ``project or default_project()`` so generic deployments
+    can run with no project bound.
+    """
+    return os.environ.get("MUSU_DEFAULT_PROJECT", "")
 
 
 def _load_toml(path: Path) -> dict:
@@ -33,65 +44,27 @@ def _load_toml(path: Path) -> dict:
 def get_project_config(project: str) -> dict:
     """Load project config from projects/{project}/config.toml.
 
-    Falls back to hardcoded false-dane defaults if no config found.
+    Returns a minimal stub when no config.toml is found; this lets generic
+    deployments and CI run without an active project.
     """
+    if not project:
+        return {
+            "project": {"name": "", "language": "ko"},
+            "references": {},
+            "wiki": {"prefix_filters": []},
+            "style": {},
+            "codex_skills": {},
+        }
     config_path = PROJECT_ROOT / "projects" / project / "config.toml"
     config = _load_toml(config_path)
-
     if config:
         return config
-
-    # Fallback: false-dane defaults (backward compatibility)
-    if project == "false-dane":
-        return _false_dane_defaults()
-
-    # Unknown project with no config — return minimal defaults
     return {
         "project": {"name": project, "language": "ko"},
         "references": {},
         "wiki": {"prefix_filters": []},
         "style": {},
         "codex_skills": {},
-    }
-
-
-def _false_dane_defaults() -> dict:
-    """Hardcoded defaults for false-dane (backward compatibility)."""
-    return {
-        "project": {
-            "name": "false-dane",
-            "display_name": "거짓 데인",
-            "language": "ko",
-        },
-        "references": {
-            "character_table": "planning/FALSE_DANE_CHARACTER_TABLE.md",
-            "voice_bible": "planning/canon_bibles/FALSE_DANE_CHARACTER_FOUNDATION_AND_VOICE_BIBLE.md",
-            "visual_bible": "planning/FALSE_DANE_CHARACTER_VISUAL_AND_INTRO_BIBLE.md",
-            "act_spine": "planning/ACT_01_REHARDENED_SPINE.md",
-            "cast_lock": "planning/SEASON_01_RECURRING_SUPPORTING_CAST_LOCK.md",
-            "char_story_map": "planning/canon_bibles/FALSE_DANE_CHARACTER_STORY_MAP_2026_05_01.md",
-            "dialogue_research": "planning/FALSE_DANE_DIALOGUE_MOUTHFEEL_RESEARCH.md",
-            "ensemble_spec": "planning/FALSE_DANE_PREPRO_WORLD_ENSEMBLE_AGENT_SPEC.md",
-            "ref_voice_bible": "planning/FALSE_DANE_REFERENCE_BASED_CHARACTER_VOICE_BIBLE.md",
-        },
-        "wiki": {
-            "prefix_filters": ["293_FALSE_DANE", "296_FALSE_DANE"],
-        },
-        "style": {
-            "tone": "picaresque-black-comedy",
-            "protagonist": "에드릭",
-            "reference_works": ["ASOIAF", "장길산"],
-        },
-        "codex_skills": {
-            "writer": "false-dane-writer",
-            "rhythm": "false-dane-rhythm-drafter",
-            "mouth": "false-dane-second-drafter",
-            "worldbuilder": "false-dane-prepro-worldbuilder",
-            "critic": "false-dane-reference-critic",
-            "continuity": "false-dane-continuity-auditor",
-            "character": "false-dane-character-designer",
-            "operator": "false-dane-operator",
-        },
     }
 
 
