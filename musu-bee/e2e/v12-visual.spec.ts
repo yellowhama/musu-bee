@@ -42,6 +42,22 @@ async function gotoApp(page: import("@playwright/test").Page): Promise<void> {
   await page.goto("/app?embed=1", { waitUntil: "domcontentloaded" });
   // Wait for hydration + tldraw dynamic chunk. 60s allows for first-time compile.
   await page.waitForLoadState("networkidle", { timeout: 60_000 }).catch(() => {});
+  // Give React 5s extra to finish hydrating (next-server-compile + tldraw dynamic).
+  await page.waitForTimeout(5_000);
+}
+
+// v13.6 — Surfaces of dev-overlay noise we explicitly ignore in console
+// error assertions. The hot-reload / overlay errors are not v12 regressions.
+const IGNORED_ERROR_PATTERNS = [
+  /Failed to load resource.*4\d\d/,        // 404s + 429s from rate-limited dev fleet
+  /\[Fast Refresh\]/,
+  /Refused to (apply style|execute script)/,
+  /webpack\.cache\.PackFileCacheStrategy/,
+  /Encountered two children with the same key/, // tracked separately
+];
+
+function shouldIgnore(msg: string): boolean {
+  return IGNORED_ERROR_PATTERNS.some((p) => p.test(msg));
 }
 
 test.describe("v12 visual surfaces", () => {
@@ -117,6 +133,26 @@ test.describe("v12 visual surfaces", () => {
     await shot(page, "05-inbox-open");
     await page.keyboard.press("Escape");
     await expect(page.locator(".inbox-dropdown")).toHaveCount(0);
+  });
+
+  test("05 no hydration / pageerror noise", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(`PAGEERROR: ${e.message}`));
+    page.on("console", (m) => {
+      if (m.type() !== "error") return;
+      const text = m.text();
+      if (shouldIgnore(text)) return;
+      errors.push(text);
+    });
+    await gotoApp(page);
+    await page.waitForTimeout(2_000);
+
+    const hydration = errors.filter((e) => /Hydration failed|hydration mismatch/i.test(e));
+    if (hydration.length > 0) {
+      console.log("[hydration errors]");
+      for (const h of hydration) console.log("  -", h.slice(0, 300));
+    }
+    expect(hydration, "hydration errors").toEqual([]);
   });
 
   test("04 canvas card flash on new approval", async ({ page }) => {

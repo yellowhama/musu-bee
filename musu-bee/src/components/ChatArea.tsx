@@ -487,6 +487,17 @@ export default function ChatArea({
   availableNodes = [],
 }: ChatAreaProps) {
   const [input, setInput] = useState("");
+  // v13.6 — Embed flag drives a conditional render of the connection pill.
+  // Reading window directly inside the JSX caused a hydration mismatch (SSR
+  // saw no window → rendered the pill; client saw embed=1 → skipped it).
+  // Resolve in a client-only effect so initial render is identical on both.
+  const [isEmbedded, setIsEmbedded] = useState(false);
+  useEffect(() => {
+    if (typeof window !== "undefined" &&
+        new URLSearchParams(window.location.search).get("embed") === "1") {
+      setIsEmbedded(true);
+    }
+  }, []);
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -599,7 +610,7 @@ export default function ChatArea({
           {channelDescription ?? "Everything starts here. Send the first one."}
         </div>
 
-        {isConnected !== undefined && !(typeof window !== "undefined" && new URLSearchParams(window.location.search).get("embed") === "1") && (
+        {isConnected !== undefined && !isEmbedded && (
           <span
             className={`pill ${isConnected ? "sync" : "error"}`}
             style={{
