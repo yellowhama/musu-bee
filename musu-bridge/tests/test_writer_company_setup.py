@@ -49,15 +49,17 @@ def test_upsert_writer_company_creates_company_agents_and_projects(tmp_path):
         "BW-Lead",
         "BW-PM-Bloodline",
         "BW-PM-FalseDane",
+        "BW-PM-Hunter-Reborn",
         "BW-Researcher",
         "BW-TrendResearcher",
         "BW-Writer",
     ]
 
     projects = {row["project_name"]: row for row in result["projects"]}
-    assert set(projects) == {"Bloodline", "False Dane"}
+    assert set(projects) == {"Bloodline", "False Dane", "Hunter Reborn"}
     assert projects["Bloodline"]["assigned_to"]
     assert projects["False Dane"]["assigned_to"]
+    assert projects["Hunter Reborn"]["assigned_to"]
     writer = next(agent for agent in result["agents"] if agent["name"] == "BW-Writer")
     editor = next(agent for agent in result["agents"] if agent["name"] == "BW-Editor")
     assert "Plain Korean comes before mouthfeel" in writer["adapter_config"]["instructions"]
@@ -79,7 +81,7 @@ def test_upsert_writer_company_updates_existing_company_and_preserves_fixed_hand
 
     assert result["company"]["purpose"] == "updated purpose"
     assert result["company"]["meta"]["contract_first"] is False
-    assert len(backend.list_agents(company_id=WRITER_COMPANY_ID)) == 7
+    assert len(backend.list_agents(company_id=WRITER_COMPANY_ID)) == 8
 
 
 def test_upsert_writer_company_merges_case_variant_agents_and_retires_duplicates(tmp_path):

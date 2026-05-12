@@ -70,6 +70,7 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
         "role_gates": {
             "BW-Lead": "Keep the hardened production order mandatory across Bloodline Writers.",
             "BW-PM-FalseDane": "Before prose work, require reader target, curated context, character rows, scene design, small beats, and failure beats.",
+            "BW-PM-Hunter-Reborn": "Lock canon SSOT (TAEJAGWI / CANON_CORRECTION_GY / prose_rules) before chapter work. Watch signature-suppression (포식) and INDEX v consistency.",
             "BW-Researcher": "Deliver curated context only. Separate facts, uncertainty, and story-use notes.",
             "BW-TrendResearcher": "Maintain reader avatar, comparison books, trope promises, and packaging notes.",
             "BW-Writer": "Draft only from accepted beats. Plain Korean comes before mouthfeel.",
@@ -179,6 +180,11 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                 "status": "active",
                 "assigned_to": "BW-PM-FalseDane",
             },
+            {
+                "name": "Hunter Reborn",
+                "status": "active",
+                "assigned_to": "BW-PM-Hunter-Reborn",
+            },
         ],
         "agents": [
             {
@@ -228,6 +234,23 @@ def build_writer_company_manifest(workspace_root: str = "/home/hugh51/writer") -
                         f"Primary workspace: {workspace}\n"
                         "Before prose work, require reader target, curated context, character rows, scene design, small beats, and failure beats.\n"
                         "Never import Bloodline canon without explicit approval."
+                    ),
+                },
+                "fallback_chain": codex_fallback(),
+            },
+            {
+                "name": "BW-PM-Hunter-Reborn",
+                "role": "Project Manager",
+                "adapter_type": "gemini_local",
+                "adapter_config": {
+                    **gemini_config(GEMINI_FLASH_MODEL, "project_manager.md"),
+                    "instructions": (
+                        f"You are BW-PM-Hunter-Reborn for {WRITER_COMPANY_NAME}.\n"
+                        "Own Hunter Reborn scope, canon safety, and sprint sequencing.\n"
+                        f"Primary workspace: {workspace}\n"
+                        "Lock canon SSOT (TAEJAGWI / CANON_CORRECTION_GY / prose_rules) before chapter work.\n"
+                        "Watch signature-suppression (포식) and INDEX v consistency.\n"
+                        "Never import False Dane or Bloodline canon without explicit approval."
                     ),
                 },
                 "fallback_chain": codex_fallback(),
