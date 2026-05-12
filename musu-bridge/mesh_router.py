@@ -432,10 +432,20 @@ class MeshRouter:
         new_nodes = [v for k, v in existing_by_name.items() if k in self._node_urls]
         mesh["nodes"] = new_nodes
 
-        # Rebuild agent_assignments from _agent_nodes
+        # Rebuild agent_assignments: merge file (preserve external edits) with
+        # memory _agent_nodes (runtime source of truth). Memory wins on conflict.
+        existing_assignments = mesh.get("agent_assignments", [])
+        existing_by_agent: dict[str, str] = {}
+        for a in existing_assignments:
+            agent_name = a.get("agent", "")
+            node_name = a.get("node", "")
+            if agent_name and node_name:
+                existing_by_agent[agent_name.lower()] = node_name
+
+        merged = {**existing_by_agent, **self._agent_nodes}
         mesh["agent_assignments"] = [
             {"agent": agent, "node": node}
-            for agent, node in self._agent_nodes.items()
+            for agent, node in merged.items()
         ]
 
         data["mesh"] = mesh
