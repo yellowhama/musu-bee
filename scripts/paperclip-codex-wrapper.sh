@@ -9,4 +9,4 @@ fi
 
 export PATH="$HOME/.cargo/bin${PATH:+:$PATH}"
 
-exec /home/hugh51/.npm-global/bin/codex "$@"
+exec "${MUSU_CODEX_BIN:-$HOME/.npm-global/bin/codex}" "$@"

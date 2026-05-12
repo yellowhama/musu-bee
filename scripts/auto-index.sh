@@ -9,7 +9,7 @@ LOCK="/tmp/musu-auto-index.lock"
 exec 9>"$LOCK"
 flock -n 9 || exit 0
 
-ROOT="/home/hugh51/musu-functions"
+ROOT="${MUSU_FUNCTIONS_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 DB="$ROOT/.musu_dev.db"
 SCANNER="$ROOT/musu-indexer/musu-scanner"
 LOG="$ROOT/scripts/auto-index.log"

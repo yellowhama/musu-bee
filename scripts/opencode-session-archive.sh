@@ -1,13 +1,14 @@
 #!/bin/bash
 # opencode-session-archive.sh
 # Archives opencode sessions with >20 messages to prevent context overflow.
-# Run via cron: */30 * * * * /home/hugh51/musu-functions/scripts/opencode-session-archive.sh
+# Run via cron: */30 * * * * "$MUSU_FUNCTIONS_ROOT/scripts/opencode-session-archive.sh"
 #
 # Policy: archive sessions with >20 messages (prevents Qwen3.5-9B 131k token overflow)
 # See MUS-645 for context.
 
-DB="/home/hugh51/.local/share/opencode/opencode.db"
-LOG="/home/hugh51/musu-functions/scripts/opencode-session-archive.log"
+ROOT="${MUSU_FUNCTIONS_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
+DB="${MUSU_OPENCODE_DB:-$HOME/.local/share/opencode/opencode.db}"
+LOG="${ROOT}/scripts/opencode-session-archive.log"
 MAX_MESSAGES=20
 
 if [ ! -f "$DB" ]; then

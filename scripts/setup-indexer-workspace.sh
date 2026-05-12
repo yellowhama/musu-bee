@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
-# setup-indexer-workspace.sh — Auto-detect and index Bloodline Writers workspace
-# Run on each device. Detects which folders exist locally and indexes them.
+# setup-indexer-workspace.sh — Auto-detect and index a writer workspace.
+#
+# Reads workspace paths from MUSU_WRITER_WORKSPACES (colon-separated, like
+# PATH) or falls back to operator's default (~/writer). Each path that
+# exists gets indexed; missing paths are skipped silently.
+#
+# Per-workspace indexer profile lives at <workspace>/.musu-indexer.json.
+# If absent, a minimal profile is created.
 set -euo pipefail
 
-INDEXER="${HOME}/musu-functions/musu-indexer/.venv/bin/musu-indexer"
+INDEXER="${MUSU_INDEXER_BIN:-${HOME}/musu-functions/musu-indexer/.venv/bin/musu-indexer}"
 if [[ ! -x "$INDEXER" ]]; then
     echo "[indexer] musu-indexer not found at $INDEXER — skipping"
     exit 0
@@ -11,15 +17,24 @@ fi
 
 log() { echo "[indexer-setup] $*"; }
 
-# ── 4060 workspace: /home/hugh51/writer/ ─────────────────────────────────────
-WRITER_DIR="${HOME}/writer"
-if [[ -d "$WRITER_DIR" ]]; then
-    PROFILE="$WRITER_DIR/.musu-indexer.json"
+# Default workspaces: operator's ~/writer. Override via env var:
+#   MUSU_WRITER_WORKSPACES="$HOME/writer:$HOME/bloodline_work"
+WORKSPACES="${MUSU_WRITER_WORKSPACES:-${HOME}/writer}"
+
+INDEXED_COUNT=0
+IFS=':' read -ra WS_LIST <<< "$WORKSPACES"
+for WS in "${WS_LIST[@]}"; do
+    [[ -z "$WS" ]] && continue
+    if [[ ! -d "$WS" ]]; then
+        continue
+    fi
+    PROFILE="$WS/.musu-indexer.json"
     if [[ ! -f "$PROFILE" ]]; then
-        log "creating profile: $PROFILE"
-        cat > "$PROFILE" << 'JSON'
+        WS_NAME="$(basename "$WS")"
+        log "creating default profile: $PROFILE"
+        cat > "$PROFILE" << JSON
 {
-  "name": "bloodline-writers-4060",
+  "name": "${WS_NAME}",
   "root": ".",
   "include_roots": ["canon", "drafts", "projects", "references", "llm-wiki", "docs", "reviews", "workflows"],
   "exclude_roots": ["tools"],
@@ -27,32 +42,12 @@ if [[ -d "$WRITER_DIR" ]]; then
 }
 JSON
     fi
-    log "syncing $WRITER_DIR ..."
-    cd "$WRITER_DIR" && "$INDEXER" sync --profile "$PROFILE"
-    log "done: $WRITER_DIR"
-fi
+    log "syncing $WS ..."
+    cd "$WS" && "$INDEXER" sync --profile "$PROFILE"
+    log "done: $WS"
+    INDEXED_COUNT=$((INDEXED_COUNT + 1))
+done
 
-# ── 5070 workspace: /home/hugh/bloodline_work/ ───────────────────────────────
-BW_DIR="${HOME}/bloodline_work"
-if [[ -d "$BW_DIR" ]]; then
-    PROFILE="$BW_DIR/.musu-indexer.json"
-    if [[ ! -f "$PROFILE" ]]; then
-        log "creating profile: $PROFILE"
-        cat > "$PROFILE" << 'JSON'
-{
-  "name": "bloodline-writers-5070",
-  "root": ".",
-  "include_roots": ["llm_wiki_vault", "projects", "docs", "TEAM", "claudedocs", "tracking", "workflows", "queue"],
-  "exclude_roots": ["comfyui_workflows", "godot_project", "spum_external_assets", "spum_spriteframes", "unity-to-godot-prefab-animation-converter", "unitypackage_extracted", "models", "tools", "data", "logs", "scripts"],
-  "ignore_globs": ["*.png", "*.jpg", "*.jpeg", "*.gif", "*.tscn", "*.godot", "*.import", "*.tres", "*.unitypackage", "*.fbx", "*.blend", "*.onnx", "*.bin", "*.wav", "*.mp3", "*.ogg"]
-}
-JSON
-    fi
-    log "syncing $BW_DIR ..."
-    cd "$BW_DIR" && "$INDEXER" sync --profile "$PROFILE"
-    log "done: $BW_DIR"
-fi
-
-if [[ ! -d "$WRITER_DIR" && ! -d "$BW_DIR" ]]; then
-    log "no Bloodline Writers workspace found on this device — skipping"
+if [[ "$INDEXED_COUNT" -eq 0 ]]; then
+    log "no writer workspace found (set MUSU_WRITER_WORKSPACES or create ~/writer)"
 fi

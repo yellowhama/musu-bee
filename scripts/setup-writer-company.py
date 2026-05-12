@@ -25,9 +25,9 @@ from writer_company import (
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Provision or refresh the Bloodline Writers company in MUSU local DB.")
+    parser = argparse.ArgumentParser(description="Provision or refresh a writer-studio company in the MUSU local DB.")
     parser.add_argument("--db", default=os.environ.get("MUSU_DB_PATH", str(Path.home() / ".musu" / "musu.db")))
-    parser.add_argument("--workspace-root", default="/home/hugh51/writer")
+    parser.add_argument("--workspace-root", default=os.environ.get("MUSU_WRITER_WORKSPACE", str(Path.home() / "writer")))
     parser.add_argument("--manifest", default="")
     parser.add_argument("--print-manifest", action="store_true")
     args = parser.parse_args()

@@ -23,7 +23,7 @@ set -euo pipefail
 
 PORT="${1:-9701}"
 HOST="127.0.0.1"
-ROOT="/home/hugh51/musu-functions"
+ROOT="${MUSU_FUNCTIONS_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 INDEXER_BIN="${ROOT}/musu-indexer/.venv/bin/musu-indexer"
 DB_PATH="${ROOT}/.musu_dev.db"
 LOG_DIR="${ROOT}/logs"

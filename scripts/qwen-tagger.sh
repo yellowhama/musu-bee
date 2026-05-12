@@ -3,10 +3,10 @@
 # 미태깅 파일에 Qwen으로 의미 기반 태그 부여
 # cron: 0 2 * * * (매일 새벽 2시, Qwen 부하 낮을 때)
 
-DB="/home/hugh51/musu-functions/.musu_dev.db"
-QWEN="http://127.0.0.1:18081"
-ROOT="/home/hugh51/musu-functions"
-LOG="/home/hugh51/musu-functions/scripts/qwen-tagger.log"
+ROOT="${MUSU_FUNCTIONS_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
+DB="${ROOT}/.musu_dev.db"
+QWEN="${MUSU_QWEN_URL:-http://127.0.0.1:18081}"
+LOG="${ROOT}/scripts/qwen-tagger.log"
 BATCH_SIZE=20
 MAX_BATCHES=10  # 1회 실행당 최대 200파일
 TS=$(date +%Y-%m-%dT%H:%M:%S)
