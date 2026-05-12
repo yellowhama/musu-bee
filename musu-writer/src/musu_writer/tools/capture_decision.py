@@ -29,6 +29,9 @@ def append_decision(
     Returns:
         dict with file path, decision count, type, and timestamp.
     """
+    if not project:
+        return {"error": "project is required (no default)"}
+
     if decision_type not in VALID_TYPES:
         return {
             "error": f"Invalid decision_type '{decision_type}'. Must be one of {sorted(VALID_TYPES)}",

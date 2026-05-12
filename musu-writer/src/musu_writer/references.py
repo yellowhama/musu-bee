@@ -7,6 +7,7 @@ All functions take a `project` parameter to support multiple projects.
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 from .project_config import (
@@ -305,6 +306,167 @@ def collect_canon_summary(project: str) -> list[dict]:
                     pass
                 out.append({"file": f"{sub.name}/{f.name}", "title": title})
     return out
+
+
+# --- R5 helpers: reference comparison infra ---
+
+_MNT_E_BASE = Path("/mnt/e/새 폴더")
+
+REFERENCE_KEY_MAP: dict[str, Path] = {
+    # 약사의 혼잣말 (pdftotext 정제본 09~14)
+    "yaksa_09": _MNT_E_BASE / "_md/02_라이트노벨/약사의 혼잣말 1~14/약사의 혼잣말 09.md",
+    "yaksa_10": _MNT_E_BASE / "_md/02_라이트노벨/약사의 혼잣말 1~14/약사의 혼잣말 10.md",
+    "yaksa_11": _MNT_E_BASE / "_md/02_라이트노벨/약사의 혼잣말 1~14/약사의 혼잣말 11.md",
+    "yaksa_12": _MNT_E_BASE / "_md/02_라이트노벨/약사의 혼잣말 1~14/약사의 혼잣말 12.md",
+    "yaksa_13": _MNT_E_BASE / "_md/02_라이트노벨/약사의 혼잣말 1~14/약사의 혼잣말 13.md",
+    "yaksa_14": _MNT_E_BASE / "_md/02_라이트노벨/약사의 혼잣말 1~14/약사의 혼잣말 14.md",
+    # 김용 영웅문 1부 (사조영웅전 sajo1~5)
+    "sajo_1": _MNT_E_BASE / "_md/01_문학_소설/김용_무협/영웅문/영웅문_1부(사조영웅전)/sajo1.md",
+    "sajo_2": _MNT_E_BASE / "_md/01_문학_소설/김용_무협/영웅문/영웅문_1부(사조영웅전)/sajo2.md",
+    "sajo_3": _MNT_E_BASE / "_md/01_문학_소설/김용_무협/영웅문/영웅문_1부(사조영웅전)/sajo3.md",
+    "sajo_4": _MNT_E_BASE / "_md/01_문학_소설/김용_무협/영웅문/영웅문_1부(사조영웅전)/sajo4.md",
+    "sajo_5": _MNT_E_BASE / "_md/01_문학_소설/김용_무협/영웅문/영웅문_1부(사조영웅전)/sajo5.md",
+    # AGOT 영문 원서 (정제본)
+    "agot_en": _MNT_E_BASE / "_md/01_문학_소설/얼음과불의노래/영어원서/[A Song of Ice and Fire] 01. A Game of Thrones.md",
+}
+
+
+def compute_text_stats(content: str) -> dict:
+    """Return basic text statistics — regex only, no LLM call.
+
+    Used by R5 reference comparison tools (audit_reference_density,
+    compare_to_reference). Heuristic: sentence boundaries via .!?。…,
+    dialogue lines via Korean/English quote variants, paragraphs via
+    blank-line splits. ±10% accuracy expected.
+
+    Returns:
+        dict with total_lines, total_chars, sentence_count,
+        avg_sentence_chars, dialogue_line_count, dialogue_line_ratio,
+        paragraph_count, wall_paragraph_count, wall_paragraph_ratio.
+    """
+    if not content:
+        return {
+            "total_lines": 0,
+            "total_chars": 0,
+            "sentence_count": 0,
+            "avg_sentence_chars": 0.0,
+            "dialogue_line_count": 0,
+            "dialogue_line_ratio": 0.0,
+            "paragraph_count": 0,
+            "wall_paragraph_count": 0,
+            "wall_paragraph_ratio": 0.0,
+        }
+
+    total_chars = len(content)
+    lines = content.splitlines()
+    total_lines = len(lines)
+
+    sentences = [s for s in re.split(r"(?<=[.!?。…])\s+", content) if s.strip()]
+    sentence_count = len(sentences)
+    avg_sentence_chars = (
+        sum(len(s) for s in sentences) / sentence_count if sentence_count else 0.0
+    )
+
+    dialogue_pattern = re.compile(r'["“”\'‘’]')
+    dialogue_line_count = sum(1 for line in lines if dialogue_pattern.search(line))
+    dialogue_line_ratio = dialogue_line_count / total_lines if total_lines else 0.0
+
+    paragraphs = [p for p in re.split(r"\n\s*\n", content) if p.strip()]
+    paragraph_count = len(paragraphs)
+    wall_paragraph_count = sum(1 for p in paragraphs if p.count("\n") >= 3)
+    wall_paragraph_ratio = (
+        wall_paragraph_count / paragraph_count if paragraph_count else 0.0
+    )
+
+    return {
+        "total_lines": total_lines,
+        "total_chars": total_chars,
+        "sentence_count": sentence_count,
+        "avg_sentence_chars": round(avg_sentence_chars, 2),
+        "dialogue_line_count": dialogue_line_count,
+        "dialogue_line_ratio": round(dialogue_line_ratio, 3),
+        "paragraph_count": paragraph_count,
+        "wall_paragraph_count": wall_paragraph_count,
+        "wall_paragraph_ratio": round(wall_paragraph_ratio, 3),
+    }
+
+
+def extract_tail_paragraphs(content: str, n: int = 5) -> str:
+    """Return the last N paragraphs joined by blank lines.
+
+    Paragraph boundary = blank-line split (re `\\n\\s*\\n`). Empty
+    paragraphs dropped. n=0 → "". n exceeds count → return all.
+    """
+    if n <= 0 or not content:
+        return ""
+    paragraphs = [p for p in re.split(r"\n\s*\n", content) if p.strip()]
+    if not paragraphs:
+        return ""
+    return "\n\n".join(paragraphs[-n:])
+
+
+def extract_head_paragraphs(content: str, n: int = 3) -> str:
+    """Return the first N paragraphs joined by blank lines.
+
+    Same boundary/edge rules as extract_tail_paragraphs.
+    """
+    if n <= 0 or not content:
+        return ""
+    paragraphs = [p for p in re.split(r"\n\s*\n", content) if p.strip()]
+    if not paragraphs:
+        return ""
+    return "\n\n".join(paragraphs[:n])
+
+
+def load_reference_excerpt(reference_key: str, max_chars: int = 5000) -> dict:
+    """Load a reference text by key from /mnt/e (read-only).
+
+    REFERENCE_KEY_MAP is the source of truth — only curated extracts
+    (HR critique 19번 verified) are registered.
+
+    Returns:
+        dict with reference_key, source_path, total_chars, total_lines,
+        excerpt (first max_chars), found (bool). If not found, contains
+        error string.
+    """
+    path = REFERENCE_KEY_MAP.get(reference_key)
+    if path is None:
+        return {
+            "reference_key": reference_key,
+            "found": False,
+            "error": f"Unknown reference_key. Valid: {sorted(REFERENCE_KEY_MAP.keys())}",
+        }
+
+    if not path.exists():
+        return {
+            "reference_key": reference_key,
+            "source_path": str(path),
+            "found": False,
+            "error": f"File not found at expected path",
+        }
+
+    try:
+        content = path.read_text(encoding="utf-8")
+    except OSError as e:
+        return {
+            "reference_key": reference_key,
+            "source_path": str(path),
+            "found": False,
+            "error": f"Read failed: {e}",
+        }
+
+    total_chars = len(content)
+    total_lines = content.count("\n") + 1 if content else 0
+    excerpt = content[: max(0, max_chars)]
+
+    return {
+        "reference_key": reference_key,
+        "source_path": str(path),
+        "total_chars": total_chars,
+        "total_lines": total_lines,
+        "excerpt": excerpt,
+        "found": True,
+    }
 
 
 def get_chapter_context(chapter: str, project: str = "") -> dict:

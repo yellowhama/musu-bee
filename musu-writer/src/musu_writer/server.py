@@ -957,3 +957,114 @@ async def audit_dialogue_tone(project: str = "", chapter: str = "") -> str:
 
     result = fn(project, chapter)
     return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def audit_reference_density(
+    project: str = "",
+    chapter: str = "",
+    reference_keys: list[str] | None = None,
+) -> str:
+    """Quantitative density audit — compare chapter to reference novels.
+
+    LLM call: none. Pure context provider. Reproduces HR critique 19번
+    정량 표 in one call: chapter stats (sentence_count, avg_sentence_chars,
+    dialogue_line_ratio, wall_paragraph_count) + baseline reference stats
+    from /mnt/e (yaksa / sajo / agot, REFERENCE_KEY_MAP).
+
+    Args:
+        project: Project name (required, no default).
+        chapter: Optional chapter id. If empty, uses the highest-versioned
+            draft in drafts/.
+        reference_keys: Optional list of REFERENCE_KEY_MAP keys. Defaults
+            to ["yaksa_13", "sajo_1", "agot_en"].
+    """
+    from .tools.audit_reference_density import audit_density as fn
+
+    result = fn(project, chapter, reference_keys)
+    return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def compare_to_reference(
+    project: str = "",
+    chapter: str = "",
+    reference_keys: list[str] | None = None,
+    max_chars_per_ref: int = 4000,
+) -> str:
+    """Qualitative reference comparison — 7-axis context provider.
+
+    LLM call: none. Pure context provider. Attaches chapter draft +
+    reference excerpts + project decisions/lessons. Claude Code / the
+    author judges across 7 axes: webfic_hook / character_voice /
+    scene_density / world_pressure / subtext / sentence_rhythm /
+    reader_residue (HR critique 19번 검증).
+
+    Args:
+        project: Project name (required, no default).
+        chapter: Optional chapter id. If empty, uses highest-versioned draft.
+        reference_keys: Optional REFERENCE_KEY_MAP keys. Defaults to
+            ["yaksa_13", "sajo_1", "agot_en"].
+        max_chars_per_ref: Excerpt size per reference (default 4000).
+    """
+    from .tools.compare_to_reference import compare_refs as fn
+
+    result = fn(project, chapter, reference_keys, max_chars_per_ref)
+    return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def audit_cliffhanger(
+    project: str = "",
+    chapter: str = "",
+    tail_paragraphs: int = 5,
+) -> str:
+    """Cliffhanger ending audit — last-N-paragraph 5-form mapping.
+
+    LLM call: none. Pure context provider. Extracts the last N
+    paragraphs and provides 5 cliffhanger types (crisis_imminent /
+    shock_dialogue / unexpected_character / danger_signal /
+    exposure_moment) for Claude Code / the author to map and grade.
+
+    HR critique 19번 + HR CH11 v3 시범 critique 의 회차 결제 동기
+    3중 결합 패턴 도구화.
+
+    Args:
+        project: Project name (required, no default).
+        chapter: Optional chapter id. If empty, uses the highest-versioned
+            draft in drafts/.
+        tail_paragraphs: How many trailing paragraphs to extract (default 5).
+    """
+    from .tools.audit_cliffhanger import audit_cliff as fn
+
+    result = fn(project, chapter, tail_paragraphs)
+    return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def audit_scene_turn(
+    project: str = "",
+    chapter: str = "",
+    head_paragraphs: int = 3,
+    tail_paragraphs: int = 3,
+) -> str:
+    """Scene turn audit — McKee turn test (head vs tail value shift).
+
+    LLM call: none. Pure context provider. Extracts head + tail of the
+    chapter and provides VALUE_AXES (social/physical/psychological/
+    relational) + OUTCOME_CATEGORIES (yes_but/no_and/yes_and/no_but)
+    for Claude Code / the author to judge value-sign transition.
+
+    R4 시범 critique 의 Q1 (가치 부호 전환) + Q2 (Yes-But/No-And) 두
+    작품 강점 확인 후 도구화.
+
+    Args:
+        project: Project name (required, no default).
+        chapter: Optional chapter id. If empty, uses highest-versioned draft.
+        head_paragraphs: How many leading paragraphs (default 3).
+        tail_paragraphs: How many trailing paragraphs (default 3).
+    """
+    from .tools.audit_scene_turn import audit_turn as fn
+
+    result = fn(project, chapter, head_paragraphs, tail_paragraphs)
+    return json.dumps(result, ensure_ascii=False)
