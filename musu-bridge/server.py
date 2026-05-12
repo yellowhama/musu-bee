@@ -946,8 +946,10 @@ apply_musu_middlewares(
     app,
     bearer_token=os.getenv("MUSU_BRIDGE_TOKEN"),
     peer_token=os.getenv("MUSU_TOKEN", ""),   # account-level token; lets peer nodes sync
-    rate_limit_capacity=60,
-    rate_limit_window_seconds=60, # 1 minute
+    # v13.2 — env-configurable so dev fleets with many companies don't hit
+    # 60/60s on first poll. Default keeps production behaviour unchanged.
+    rate_limit_capacity=int(os.getenv("MUSU_BRIDGE_RATE_LIMIT_CAPACITY", "60")),
+    rate_limit_window_seconds=int(os.getenv("MUSU_BRIDGE_RATE_LIMIT_WINDOW", "60")),
     rate_limit_key_type="ip",
     bypass_path_prefixes=("/screen/novnc", "/api/nodes/accept-peer"),  # noVNC + peer registration (token exchange is the auth)
 )

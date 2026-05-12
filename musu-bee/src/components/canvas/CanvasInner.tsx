@@ -29,7 +29,7 @@ export default function CanvasInner({
 }: CanvasInnerProps) {
   void companyId;
 
-  const { cards, layout, loading, error } = useCompaniesCanvasData();
+  const { cards, layout, loading, error, refresh } = useCompaniesCanvasData();
   const { edges } = useCompanyMessageFlow();
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const [viewport, setViewport] = useState({ width: 1, height: 1 });
@@ -165,7 +165,7 @@ export default function CanvasInner({
             ESC ← Back to all companies
           </button>
         ) : null}
-        {!loading && cards.length === 0 ? (
+        {!loading && cards.length === 0 && !error ? (
           <button
             type="button"
             className="canvas-empty-trigger"
@@ -175,11 +175,23 @@ export default function CanvasInner({
             <span className="canvas-empty-trigger-icon" aria-hidden>+</span>
             <span className="canvas-empty-trigger-title">Start your first company</span>
             <span className="canvas-empty-trigger-hint">
-              {error
-                ? `(canvas offline: ${error})`
-                : "Give it a mission. Your CEO picks a template or designs a new one."}
+              Give it a mission. Your CEO picks a template or designs a new one.
             </span>
           </button>
+        ) : null}
+        {!loading && error ? (
+          <div className="canvas-error-card" role="alert">
+            <span className="canvas-error-icon" aria-hidden>⚠</span>
+            <span className="canvas-error-title">Canvas temporarily offline</span>
+            <span className="canvas-error-detail">{error}</span>
+            <button
+              type="button"
+              className="canvas-error-retry"
+              onClick={() => refresh()}
+            >
+              Retry
+            </button>
+          </div>
         ) : null}
       </div>
     </>

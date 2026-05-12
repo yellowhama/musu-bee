@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CompanyCardData, CompanyCardAgent } from "./CompanyCard";
 
 /**
@@ -16,69 +16,71 @@ export function useCompaniesCanvasData() {
   const [cards, setCards] = useState<CompanyCardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const cancelledRef = useRef(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    let timer: ReturnType<typeof setTimeout> | null = null;
+  const load = useCallback(async () => {
+    try {
+      const compResp = await fetch("/api/bridge/companies");
+      if (!compResp.ok) throw new Error(`companies ${compResp.status}`);
+      const compJson = await compResp.json();
+      const list: Array<{ id: string; name: string; purpose?: string; meta?: Record<string, unknown> }> = Array.isArray(compJson) ? compJson : compJson.companies ?? [];
 
-    async function load() {
-      try {
-        const compResp = await fetch("/api/bridge/companies");
-        if (!compResp.ok) throw new Error(`companies ${compResp.status}`);
-        const compJson = await compResp.json();
-        const list: Array<{ id: string; name: string; purpose?: string; meta?: Record<string, unknown> }> = Array.isArray(compJson) ? compJson : compJson.companies ?? [];
+      const next: CompanyCardData[] = await Promise.all(
+        list.map(async (co) => {
+          const agentsResp = await fetch(`/api/bridge/companies/${encodeURIComponent(co.id)}/agents`);
+          const agentsJson: Array<{ id: string; name: string; role?: string; status?: string }> = agentsResp.ok ? await agentsResp.json() : [];
+          const agents: CompanyCardAgent[] = agentsJson.map((a) => ({
+            id: a.id,
+            name: a.name,
+            role: a.role ?? "agent",
+            status: mapStatus(a.status),
+          }));
 
-        const next: CompanyCardData[] = await Promise.all(
-          list.map(async (co) => {
-            const agentsResp = await fetch(`/api/bridge/companies/${encodeURIComponent(co.id)}/agents`);
-            const agentsJson: Array<{ id: string; name: string; role?: string; status?: string }> = agentsResp.ok ? await agentsResp.json() : [];
-            const agents: CompanyCardAgent[] = agentsJson.map((a) => ({
-              id: a.id,
-              name: a.name,
-              role: a.role ?? "agent",
-              status: mapStatus(a.status),
-            }));
+          const meta = co.meta ?? {};
+          const primaryNode = typeof meta.primary_node === "string" ? meta.primary_node : null;
+          const otherNodes = Array.isArray(meta.other_nodes) ? (meta.other_nodes as string[]) : [];
 
-            const meta = co.meta ?? {};
-            const primaryNode = typeof meta.primary_node === "string" ? meta.primary_node : null;
-            const otherNodes = Array.isArray(meta.other_nodes) ? (meta.other_nodes as string[]) : [];
-
-            return {
-              companyId: co.id,
-              companyName: co.name,
-              mission: co.purpose?.split("\n")[0]?.trim() || "—",
-              primaryNode,
-              otherNodes,
-              agents,
-              blockedCount: 0, // wired in C/D
-            };
-          }),
-        );
-        if (!cancelled) {
-          setCards(next);
-          setError(null);
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setError((e as Error).message);
-          setCards([]);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
+          return {
+            companyId: co.id,
+            companyName: co.name,
+            mission: co.purpose?.split("\n")[0]?.trim() || "—",
+            primaryNode,
+            otherNodes,
+            agents,
+            blockedCount: 0,
+          };
+        }),
+      );
+      if (!cancelledRef.current) {
+        setCards(next);
+        setError(null);
       }
+    } catch (e) {
+      if (!cancelledRef.current) {
+        setError((e as Error).message);
+      }
+    } finally {
+      if (!cancelledRef.current) setLoading(false);
     }
-
-    load();
-    timer = setInterval(load, 30_000);
-
-    return () => {
-      cancelled = true;
-      if (timer) clearInterval(timer);
-    };
   }, []);
 
+  useEffect(() => {
+    cancelledRef.current = false;
+    void load();
+    const timer = setInterval(() => void load(), 30_000);
+    return () => {
+      cancelledRef.current = true;
+      clearInterval(timer);
+    };
+  }, [load]);
+
+  const refresh = useCallback(() => {
+    setLoading(true);
+    void load();
+  }, [load]);
+
   const layout = useMemo(() => layoutCards(cards), [cards]);
-  return { cards, layout, loading, error };
+  return { cards, layout, loading, error, refresh };
 }
 
 function mapStatus(s: string | undefined): CompanyCardAgent["status"] {
