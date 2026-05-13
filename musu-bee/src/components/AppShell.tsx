@@ -196,10 +196,18 @@ export default function AppShell() {
   // v16.E-2 — swipe-to-toggle on mobile. Track first touch position;
   // on touchend, fire only if horizontal movement clears the threshold
   // and dominates vertical movement (so vertical scrolling isn't hijacked).
+  // v17.A F13 — also bail when the touch starts inside an interactive
+  // element (textarea, input, contenteditable, canvas). Those have their
+  // own gesture semantics (text selection, drawing) that our swipe must
+  // not hijack.
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
   const handleTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
     if (window.innerWidth > 768) return;
     if (e.touches.length !== 1) return;
+    const target = e.target as HTMLElement | null;
+    if (target?.closest("textarea, input, [contenteditable=\"true\"], canvas")) {
+      return;
+    }
     swipeStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
   }, []);
   const handleTouchEnd = useCallback((e: React.TouchEvent<HTMLDivElement>) => {

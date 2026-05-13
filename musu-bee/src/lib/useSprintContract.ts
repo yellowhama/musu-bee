@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface SprintContract {
   id: string;
@@ -14,6 +14,8 @@ export interface SprintContract {
    * Operator edits are refused (409) while locked. */
   locked: boolean;
   created_at: number;
+  /** v17.A — bumps on every operator edit. created_at stays put. */
+  updated_at: number;
 }
 
 /** v16.C — Fields the operator can edit. `task` is editable too — the
@@ -64,6 +66,15 @@ export function useSprintContract(taskId: string | null): UseSprintContractRetur
   const [status, setStatus] = useState<UseSprintContractReturn["status"]>("idle");
   const [error, setError] = useState<string | null>(null);
 
+  // v17.A F10 — Mirror the latest taskId in a ref so async save() callbacks
+  // can tell whether the operator has navigated to a different task while
+  // a PUT was in flight. Without this guard, a stale response would clobber
+  // the new task's state.
+  const currentTaskIdRef = useRef<string | null>(taskId);
+  useEffect(() => {
+    currentTaskIdRef.current = taskId;
+  }, [taskId]);
+
   useEffect(() => {
     if (!taskId) {
       setContract(null);
@@ -108,8 +119,13 @@ export function useSprintContract(taskId: string | null): UseSprintContractRetur
       if (!taskId) {
         return { ok: false, error: "validation", message: "no task selected" };
       }
+      // F10 — capture the task we're saving for. Any setContract below must
+      // verify the operator hasn't switched away.
+      const startTaskId = taskId;
+      const isStale = () => currentTaskIdRef.current !== startTaskId;
+
       try {
-        const res = await fetch(`/api/bridge/tasks/${taskId}/sprint-contract`, {
+        const res = await fetch(`/api/bridge/tasks/${startTaskId}/sprint-contract`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(edit),
@@ -119,9 +135,9 @@ export function useSprintContract(taskId: string | null): UseSprintContractRetur
           // so the UI flips to read-only and reload the latest version.
           try {
             const fresh = await fetch(
-              `/api/bridge/tasks/${taskId}/sprint-contract`
+              `/api/bridge/tasks/${startTaskId}/sprint-contract`
             );
-            if (fresh.ok) {
+            if (fresh.ok && !isStale()) {
               const data: SprintContract = await fresh.json();
               setContract(data);
             }
@@ -144,7 +160,9 @@ export function useSprintContract(taskId: string | null): UseSprintContractRetur
           };
         }
         const data: SprintContract = await res.json();
-        setContract(data);
+        if (!isStale()) {
+          setContract(data);
+        }
         return { ok: true };
       } catch (e) {
         return {

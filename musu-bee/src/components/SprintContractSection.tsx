@@ -86,7 +86,18 @@ export default function SprintContractSection({ taskId }: SprintContractSectionP
     if (!draft) return;
     setSaving(true);
     setSaveError(null);
-    const result = await save(draft);
+    // v17.A F12 — strip empty list entries before sending. The textarea
+    // keeps trailing-empties so typing feels natural, but the contract
+    // itself shouldn't ship blank scope items (server rejects them anyway
+    // with min_length=1).
+    const clean: SprintContractEdit = {
+      task: draft.task,
+      scope: draft.scope.filter((s) => s.length > 0),
+      out_of_scope: draft.out_of_scope.filter((s) => s.length > 0),
+      acceptance_criteria: draft.acceptance_criteria.filter((s) => s.length > 0),
+      done_definition: draft.done_definition,
+    };
+    const result = await save(clean);
     setSaving(false);
     if (result.ok) {
       setEditing(false);
@@ -312,11 +323,13 @@ function EditList({
       <textarea
         value={text}
         onChange={(e) => {
+          // v17.A F12 — preserve trailing-empty entries while the user is
+          // typing. The previous filter would drop a fresh "\n" the moment
+          // it was inserted, which made the cursor look like it failed to
+          // advance to the next line. Empty entries are trimmed once at
+          // submit time (submitEdit in the parent component).
           const next = e.target.value.split("\n").map((s) => s.trimEnd());
-          // Drop empty trailing lines on save, but allow them while typing.
-          // We pass the raw list — submit handler can rely on the server
-          // to ignore empty entries, but we trim here for cleanliness.
-          onChange(next.filter((s, i) => s.length > 0 || i < next.length - 1));
+          onChange(next);
         }}
         style={{ ...INPUT_STYLE, minHeight: 80 }}
         rows={4}
