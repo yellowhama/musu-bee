@@ -114,6 +114,7 @@ from handlers import (
     list_task_records,
     get_sprint_contract_for_task,
     get_qa_scores_for_task,
+    update_sprint_contract,
     pair_with_node,
     receive_companies,
     receive_messages,
@@ -1310,6 +1311,50 @@ async def api_get_sprint_contract(
     if contract is None:
         raise HTTPException(status_code=404, detail="No sprint contract for this task")
     return contract
+
+
+class SprintContractUpdateRequest(BaseModel):
+    """Body for PUT /api/tasks/{task_id}/sprint-contract.
+
+    All fields are required — partial updates (PATCH semantics) would let
+    the operator silently lose fields they didn't realise existed. The UI
+    posts the full edited contract.
+    """
+
+    task: str = Field(min_length=1, max_length=2000)
+    scope: list[str] = Field(default_factory=list)
+    out_of_scope: list[str] = Field(default_factory=list)
+    acceptance_criteria: list[str] = Field(default_factory=list)
+    done_definition: str = Field(default="", max_length=2000)
+
+
+@app.put("/api/tasks/{task_id}/sprint-contract", summary="Update sprint contract for a task")
+async def api_update_sprint_contract(
+    body: SprintContractUpdateRequest,
+    task_id: str = Path(min_length=36, max_length=36, pattern=r"^[0-9a-f\-]{36}$"),
+) -> dict:
+    """Operator edits the contract before the Engineer accepts it.
+
+    - 404 if no contract exists yet for this task.
+    - 409 if the contract is locked (Engineer has accepted it).
+    - 200 with the refreshed contract otherwise.
+    """
+    try:
+        return update_sprint_contract(
+            task_id,
+            task=body.task,
+            scope=body.scope,
+            out_of_scope=body.out_of_scope,
+            acceptance_criteria=body.acceptance_criteria,
+            done_definition=body.done_definition,
+        )
+    except LookupError:
+        raise HTTPException(status_code=404, detail="No sprint contract for this task")
+    except PermissionError:
+        raise HTTPException(
+            status_code=409,
+            detail="Sprint contract is locked — the Engineer has accepted it",
+        )
 
 
 @app.get("/api/tasks/{task_id}/qa-scores", summary="Get QA scores for a task")

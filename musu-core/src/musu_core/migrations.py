@@ -751,6 +751,32 @@ def _v24_down(conn: sqlite3.Connection) -> None:
         pass
 
 
+# ---------------------------------------------------------------------------
+# v25: sprint_contracts.locked (operator-edit lock once Engineer accepts)
+# ---------------------------------------------------------------------------
+
+
+def _v25_up(conn: sqlite3.Connection) -> None:
+    """Add locked flag to sprint_contracts.
+
+    locked=0: operator may PUT updates to the contract.
+    locked=1: contract is frozen because the Engineer has accepted it;
+              PUT returns 409 Conflict.
+
+    Lock transitions are one-way for now (no unlock endpoint). Future:
+    a "renegotiate" flow could unlock.
+    """
+    if not _column_exists(conn, "sprint_contracts", "locked"):
+        conn.execute(
+            "ALTER TABLE sprint_contracts ADD COLUMN locked INTEGER NOT NULL DEFAULT 0;"
+        )
+        conn.commit()
+
+
+def _v25_down(conn: sqlite3.Connection) -> None:  # noqa: ARG001
+    """SQLite < 3.35 cannot DROP COLUMN — no-op."""
+
+
 MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v1_fallback_chain", _v1_up, _v1_down),
     ("v2_messages_agent_id", _v2_up, _v2_down),
@@ -776,6 +802,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v22_agent_budget_governance", _v22_up, _v22_down),
     ("v23_budget_transactions", _v23_up, _v23_down),
     ("v24_agent_allowed_tools", _v24_up, _v24_down),
+    ("v25_sprint_contracts_locked", _v25_up, _v25_down),
 ]
 
 

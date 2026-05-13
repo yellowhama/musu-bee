@@ -27,6 +27,7 @@ class SprintContract:
 
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     task_id: str | None = None
+    locked: bool = False
     created_at: float = field(default_factory=time.time)
 
     def to_dict(self) -> dict[str, Any]:
@@ -38,6 +39,7 @@ class SprintContract:
             "out_of_scope": self.out_of_scope,
             "acceptance_criteria": self.acceptance_criteria,
             "done_definition": self.done_definition,
+            "locked": self.locked,
             "created_at": self.created_at,
         }
 
@@ -54,6 +56,7 @@ class SprintContract:
             out_of_scope=data.get("out_of_scope", []),
             acceptance_criteria=data.get("acceptance_criteria", []),
             done_definition=data.get("done_definition", ""),
+            locked=bool(data.get("locked", False)),
             created_at=float(data.get("created_at", time.time())),
         )
 
@@ -110,8 +113,8 @@ def save_contract(conn: sqlite3.Connection, contract: SprintContract) -> None:
         """
         INSERT OR REPLACE INTO sprint_contracts
             (id, task_id, task, scope_json, out_of_scope_json,
-             acceptance_criteria_json, done_definition, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+             acceptance_criteria_json, done_definition, locked, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             contract.id,
@@ -121,6 +124,7 @@ def save_contract(conn: sqlite3.Connection, contract: SprintContract) -> None:
             json.dumps(contract.out_of_scope, ensure_ascii=False),
             json.dumps(contract.acceptance_criteria, ensure_ascii=False),
             contract.done_definition,
+            1 if contract.locked else 0,
             contract.created_at,
         ),
     )
@@ -141,6 +145,10 @@ def load_contract(conn: sqlite3.Connection, contract_id: str) -> SprintContract 
         except json.JSONDecodeError:
             return fallback
 
+    try:
+        locked_val = row["locked"]
+    except (KeyError, IndexError):
+        locked_val = 0
     return SprintContract(
         id=row["id"],
         task_id=row["task_id"],
@@ -149,6 +157,7 @@ def load_contract(conn: sqlite3.Connection, contract_id: str) -> SprintContract 
         out_of_scope=_parse(row["out_of_scope_json"], []),
         acceptance_criteria=_parse(row["acceptance_criteria_json"], []),
         done_definition=row["done_definition"] or "",
+        locked=bool(locked_val),
         created_at=float(row["created_at"]),
     )
 

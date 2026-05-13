@@ -1382,6 +1382,13 @@ class LocalBackend(BackendABC):
             except (json.JSONDecodeError, TypeError):
                 return []
 
+        # `locked` was added in migration v25. Existing rows default to 0.
+        # Use sqlite3.Row.keys() defensively in case a caller queries against
+        # an older snapshot before migrations run.
+        try:
+            locked_val = row["locked"]
+        except (KeyError, IndexError):
+            locked_val = 0
         return {
             "id": row["id"],
             "task_id": row["task_id"],
@@ -1390,8 +1397,73 @@ class LocalBackend(BackendABC):
             "out_of_scope": _parse(row["out_of_scope_json"]),
             "acceptance_criteria": _parse(row["acceptance_criteria_json"]),
             "done_definition": row["done_definition"] or "",
+            "locked": bool(locked_val),
             "created_at": row["created_at"],
         }
+
+    def update_sprint_contract(
+        self,
+        task_id: str,
+        *,
+        task: str,
+        scope: list[str],
+        out_of_scope: list[str],
+        acceptance_criteria: list[str],
+        done_definition: str,
+    ) -> dict[str, Any]:
+        """Update the contract linked to a task. Raises if locked or missing.
+
+        - Returns the freshly-stored contract dict (same shape as get).
+        - Raises LookupError when no contract exists for this task.
+        - Raises PermissionError when the contract is locked (Engineer has
+          already accepted it).
+        """
+        import json
+
+        existing = self.get_sprint_contract_for_task(task_id)
+        if existing is None:
+            raise LookupError(f"No sprint contract for task {task_id}")
+        if existing.get("locked"):
+            raise PermissionError(f"Sprint contract for task {task_id} is locked")
+
+        self._db.execute(
+            """
+            UPDATE sprint_contracts
+            SET task = ?,
+                scope_json = ?,
+                out_of_scope_json = ?,
+                acceptance_criteria_json = ?,
+                done_definition = ?
+            WHERE id = ?
+            """,
+            (
+                task,
+                json.dumps(scope, ensure_ascii=False),
+                json.dumps(out_of_scope, ensure_ascii=False),
+                json.dumps(acceptance_criteria, ensure_ascii=False),
+                done_definition,
+                existing["id"],
+            ),
+        )
+        # Return the updated record by re-reading rather than mutating in-place,
+        # so any DB-side coercion (e.g. NOT NULL DEFAULT) is reflected.
+        refreshed = self.get_sprint_contract_for_task(task_id)
+        assert refreshed is not None
+        return refreshed
+
+    def lock_sprint_contract(self, task_id: str) -> bool:
+        """Mark the contract linked to a task as locked. Returns True if a
+        row was updated. Used by the orchestrator once the Engineer
+        accepts the contract — operator edits are refused after this.
+        """
+        existing = self.get_sprint_contract_for_task(task_id)
+        if existing is None:
+            return False
+        self._db.execute(
+            "UPDATE sprint_contracts SET locked = 1 WHERE id = ?",
+            (existing["id"],),
+        )
+        return True
 
     def get_qa_scores_for_task(self, task_id: str) -> list[dict[str, Any]]:
         """Return QA scores linked to a task_id, ordered by iteration."""

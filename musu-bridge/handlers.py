@@ -1299,6 +1299,41 @@ def get_qa_scores_for_task(task_id: str) -> list[dict[str, Any]]:
         return []
 
 
+def update_sprint_contract(
+    task_id: str,
+    *,
+    task: str,
+    scope: list[str],
+    out_of_scope: list[str],
+    acceptance_criteria: list[str],
+    done_definition: str,
+) -> dict[str, Any]:
+    """Operator-side contract edit. Re-raises LookupError / PermissionError
+    so the endpoint can map them to 404 / 409. Any other DB error surfaces
+    as a generic Exception (the endpoint turns it into a 500).
+    """
+    return _get_backend().update_sprint_contract(
+        task_id,
+        task=task,
+        scope=scope,
+        out_of_scope=out_of_scope,
+        acceptance_criteria=acceptance_criteria,
+        done_definition=done_definition,
+    )
+
+
+def lock_sprint_contract(task_id: str) -> bool:
+    """Freeze the contract for a task. Called by the orchestrator when the
+    Engineer agent accepts the contract. Idempotent — locking an already-
+    locked contract is a no-op.
+    """
+    try:
+        return _get_backend().lock_sprint_contract(task_id)
+    except Exception as exc:
+        logger.warning("lock_sprint_contract DB error for %s: %s", task_id, exc)
+        return False
+
+
 # --- Message history ---
 
 
