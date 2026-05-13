@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { ConsoleShell } from "@/components/console/ConsoleShell";
 import type { RegistryNode } from "@/lib/types/node";
 import AIDisplay from "@/components/AIDisplay";
@@ -193,6 +193,38 @@ export default function AppShell() {
   // (the layout is back to two-column flex).
   const [mobileView, setMobileView] = useState<"panel" | "chat">("panel");
 
+  // v16.E-2 — swipe-to-toggle on mobile. Track first touch position;
+  // on touchend, fire only if horizontal movement clears the threshold
+  // and dominates vertical movement (so vertical scrolling isn't hijacked).
+  const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
+  const handleTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    if (window.innerWidth > 768) return;
+    if (e.touches.length !== 1) return;
+    swipeStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  }, []);
+  const handleTouchEnd = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    const start = swipeStartRef.current;
+    swipeStartRef.current = null;
+    if (!start) return;
+    const end = e.changedTouches[0];
+    if (!end) return;
+    const dx = end.clientX - start.x;
+    const dy = end.clientY - start.y;
+    // Threshold: 50px horizontal, vertical movement must be <30px so this
+    // doesn't compete with vertical scroll. Direction maps panel↔chat
+    // intuitively: swipe right reveals what's "to the right" (chat),
+    // swipe left brings you back. Wait — convention from native mobile
+    // is: swipe left moves to the next pane on the right. Use that.
+    if (Math.abs(dx) < 50 || Math.abs(dy) > 30) return;
+    if (dx < 0) {
+      // swipe left → reveal chat (the right-hand pane)
+      setMobileView("chat");
+    } else {
+      // swipe right → back to panel
+      setMobileView("panel");
+    }
+  }, []);
+
   const { healthPopover, setHealthPopover, popoverRef, handleBadgeClick } = useHealthPopover();
 
   const isAgentChannel = AGENT_CHANNELS.includes(activeChannel);
@@ -358,6 +390,8 @@ export default function AppShell() {
           height: "100%",
           width: "100%",
         }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
         {/* Center: AI Display (tabbed panels + AI content) */}
         <div

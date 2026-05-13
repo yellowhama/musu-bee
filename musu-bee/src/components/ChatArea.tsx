@@ -566,6 +566,33 @@ export default function ChatArea({
     }
   }, [externalInput, onExternalInputConsumed]);
 
+  // v16.E-1 — Mobile virtual keyboard handling.
+  // On iOS Safari and Android Chrome, opening the keyboard shrinks the
+  // visual viewport without resizing the layout viewport. The result is
+  // that the textarea slides under the keyboard and the user can't see
+  // what they're typing. visualViewport.resize fires when the keyboard
+  // animates in/out — we use it to keep the bottom of the message list
+  // (and therefore the input) in view.
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+    const vv = window.visualViewport;
+
+    const scrollToBottomIfFocused = () => {
+      // Only react when the chat textarea is the active element — otherwise
+      // a global viewport resize (e.g. dev tools opening) would yank scroll.
+      if (document.activeElement !== textareaRef.current) return;
+      // Use the layout viewport's scrollIntoView; visual viewport changes
+      // don't affect element.scrollIntoView() targets, but the browser
+      // will compose them correctly.
+      bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    };
+
+    vv.addEventListener("resize", scrollToBottomIfFocused);
+    return () => {
+      vv.removeEventListener("resize", scrollToBottomIfFocused);
+    };
+  }, []);
+
   function handleScroll(e: React.UIEvent<HTMLDivElement>) {
     const el = e.currentTarget;
     isNearBottomRef.current =
