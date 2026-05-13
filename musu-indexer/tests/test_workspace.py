@@ -59,5 +59,55 @@ class ScopeTests(unittest.TestCase):
             self.assertTrue(workspace.includes_path(".github/workflows/publish.yml"))
 
 
+class NestedIgnoreTests(unittest.TestCase):
+    # v17.B Phase 1 — Regression coverage for the indexer leak where
+    # .musu_dev.db had 13 109 of 14 030 rows pointing at nested
+    # node_modules. fnmatch("musu-bee/node_modules/x", "node_modules/**")
+    # was False, so the old DEFAULT_IGNORE_GLOBS only caught root-level
+    # dirs. These tests pin the new behavior.
+
+    def _workspace(self, tmp):
+        return resolve_workspace(root_override=Path(tmp))
+
+    def test_root_level_node_modules_still_excluded(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ws = self._workspace(tmp)
+            self.assertFalse(ws.includes_path("node_modules/acorn/index.js"))
+
+    def test_nested_node_modules_now_excluded(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ws = self._workspace(tmp)
+            self.assertFalse(
+                ws.includes_path("musu-bee/node_modules/.bin/acorn.ps1")
+            )
+
+    def test_nested_pycache_excluded(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ws = self._workspace(tmp)
+            self.assertFalse(
+                ws.includes_path("musu-bridge/handlers/__pycache__/x.pyc")
+            )
+
+    def test_nested_venv_excluded(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ws = self._workspace(tmp)
+            self.assertFalse(
+                ws.includes_path("musu-bridge/.venv/Lib/site-packages/x.py")
+            )
+
+    def test_normal_source_paths_still_included(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ws = self._workspace(tmp)
+            self.assertTrue(ws.includes_path("musu-bee/src/app/page.tsx"))
+            self.assertTrue(ws.includes_path("musu-bridge/server.py"))
+            self.assertTrue(ws.includes_path("docs/BOUNDARY.md"))
+
+    def test_file_globs_still_excluded(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ws = self._workspace(tmp)
+            self.assertFalse(ws.includes_path("artifacts/release-v1.tar.gz"))
+            self.assertFalse(ws.includes_path("bundle.zip"))
+
+
 if __name__ == "__main__":
     unittest.main()

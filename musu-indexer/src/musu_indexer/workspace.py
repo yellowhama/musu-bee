@@ -8,7 +8,15 @@ from pathlib import Path, PurePosixPath
 
 PROFILE_FILE_NAME = ".musu-indexer.json"
 
+# v17.B Phase 1 — Both root-level (foo/**) and nested (**/foo/**) variants are
+# listed for every directory we want to prune. fnmatch's ** does not cross
+# path separators the way one would expect from gitignore, so "node_modules/**"
+# alone leaves nested "musu-bee/node_modules/x" exposed. The segment-aware
+# fast prune in includes_path() also catches these, but keeping both globs is
+# cheaper than relying on one mechanism and makes user-supplied profiles
+# more forgiving.
 DEFAULT_IGNORE_GLOBS = (
+    # Root-level
     ".git/**",
     "node_modules/**",
     "target/**",
@@ -17,6 +25,18 @@ DEFAULT_IGNORE_GLOBS = (
     "work/**",
     "__pycache__/**",
     ".venv/**",
+    ".next/**",
+    # Nested (the real fix for v17.A's "13 109 / 14 030 indexed paths
+    # were musu-bee/node_modules/...")
+    "**/.git/**",
+    "**/node_modules/**",
+    "**/target/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/__pycache__/**",
+    "**/.venv/**",
+    "**/.next/**",
+    # File patterns (fnmatch's basename behavior already handles these)
     ".musu_dev.db",
     ".musu_dev.db-*",
     "*.tar",
@@ -25,6 +45,22 @@ DEFAULT_IGNORE_GLOBS = (
     "*.zip",
     "*.7z",
 )
+
+# Directory names that should never be entered, regardless of which path
+# segment they appear at. Cheap segment-name check supplements the glob
+# matching in includes_path(). Kept in sync with the directory patterns in
+# DEFAULT_IGNORE_GLOBS above.
+_ALWAYS_IGNORE_DIR_NAMES = frozenset({
+    ".git",
+    "node_modules",
+    "target",
+    "dist",
+    "build",
+    "work",
+    "__pycache__",
+    ".venv",
+    ".next",
+})
 
 CODE_EXTENSIONS = {
     ".c",
@@ -180,6 +216,15 @@ class WorkspaceProfile:
             return False
 
         if any(_matches_root_prefix(normalized, entry) for entry in self.exclude_roots):
+            return False
+
+        # v17.B Phase 1 — Fast segment-name prune. fnmatch alone cannot tell
+        # that "musu-bee/node_modules/x" lives under a node_modules directory
+        # because ** does not cross path separators. Walking the segments
+        # explicitly catches every depth and is also much cheaper than
+        # running fnmatch against every glob for every path.
+        segments = normalized.split("/")
+        if _ALWAYS_IGNORE_DIR_NAMES.intersection(segments):
             return False
 
         path_obj = PurePosixPath(normalized)
