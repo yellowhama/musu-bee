@@ -746,6 +746,7 @@ async def route_chat_with_qa_loop(
         engineer_agent_id=engineer_id,
         qa_agent_id=qa_agent["id"],
         max_iterations=max_iter,
+        backend=backend,
     )
 
     async def _qa_heartbeat(eid: str, interval: float = 15.0) -> None:

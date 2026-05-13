@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from typing import Any
 
 from musu_core.qa_score import QAScore, MAX_ITERATIONS
 from musu_core.router import Router, RouteRequest, RouteResult
@@ -51,11 +52,16 @@ class QALoop:
         engineer_agent_id: str,
         qa_agent_id: str,
         max_iterations: int = MAX_ITERATIONS,
+        backend: Any = None,
     ) -> None:
         self._router = router
         self._engineer_id = engineer_agent_id
         self._qa_id = qa_agent_id
         self._max = max_iterations
+        # Optional backend handle for side effects that need DB access —
+        # currently only lock_sprint_contract on iteration 1. Kept as a
+        # plain Any to avoid coupling qa_loop to a concrete backend class.
+        self._backend = backend
 
     async def run(
         self,
@@ -96,6 +102,25 @@ class QALoop:
         # Circuit breaker: track failing criteria strings
         _last_failure_key: str | None = None
         _consecutive_same_failure = 0
+
+        # v17.A — Lock the sprint contract before the Engineer reads it.
+        # After this, PUT /api/tasks/{task_id}/sprint-contract returns 409
+        # to the operator. Lock is one-way; calling lock_sprint_contract on
+        # an already-locked contract is a no-op. Best-effort: if the
+        # backend doesn't support locking or the DB write fails, log and
+        # continue — the loop should not abort over an audit-log concern.
+        if (
+            task_id
+            and self._backend is not None
+            and hasattr(self._backend, "lock_sprint_contract")
+        ):
+            try:
+                self._backend.lock_sprint_contract(task_id)
+            except Exception as _lock_exc:
+                logger.warning(
+                    "Could not lock sprint contract for task %s: %s",
+                    task_id, _lock_exc,
+                )
 
         for iteration in range(1, self._max + 1):
             logger.info("QA loop iteration %d/%d", iteration, self._max)
