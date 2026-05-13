@@ -152,7 +152,35 @@ peer node 의 runtimes 도 보일 수 있도록.
 
 ## 5. Status
 
-- [ ] Phase 1 — Schema + detection
-- [ ] Phase 2 — Persistence + API
-- [ ] Phase 3 — Mesh peer detection
-- [ ] Phase 4 — Closure
+- [x] Phase 1 — Schema + detection (commit `807d7b7`, 13 fleet.runtimes pytest)
+- [x] Phase 2 — Persistence + API (commit `49f3517`, v27 migration + 4 route tests + 10 store tests)
+- [x] Phase 3 — Mesh peer fetch (commit `8f53502`, 8 total route tests)
+- [x] Phase 4 — Closure (this commit)
+
+## 6. Cycle result
+
+4 commits on top of `4891772` (v17.B closure):
+
+```
+8f53502  Phase 3: mesh peer fetch + DELETE /api/nodes cleanup
+49f3517  Phase 2: node_runtimes v27 table + bridge API
+807d7b7  Phase 1: runtime capability schema + detectors
+```
+
+Plus Phase 4 closure (this commit) + wiki entry 315 on llm-wiki.
+
+Test counts:
+- musu-core: +23 fleet tests (13 runtimes + 10 store).
+- musu-bridge: +8 runtime_routes tests; sprint_contract regression 14/14 stable.
+
+User-visible result:
+- `GET /api/nodes/{name}/runtimes` returns the capability table for self
+  or any known peer; falls back to local cache (with stale flag) when
+  the peer is unreachable.
+- `POST /api/nodes/{name}/runtimes/probe` re-detects on self or forwards
+  to peer.
+- The bridge populates this on startup, so the dashboard never has to
+  cold-prompt the operator to do "what do I have installed?".
+- Eight runtimes detected today: bridge, claude_cli, codex_cli,
+  gemini_cli, ollama, plus stubs for paperclip/openclaw/hermes (v18.B
+  fills these in).

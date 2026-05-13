@@ -26,22 +26,23 @@ But it does not yet model external runtimes such as Paperclip, OpenClaw, and Her
 
 ## P1 - Runtime Capability Model
 
-- [ ] Define `runtime_capabilities` schema.
-- [ ] Store per-node runtime states:
-  - bridge
-  - paperclip
-  - openclaw
-  - hermes
-  - claude_cli
-  - codex_cli
-  - gemini_cli
-  - ollama
-- [ ] Add tests for runtime detection and serialization.
+- [x] Define `runtime_capabilities` schema. (`musu_core.fleet.RuntimeCapability`, v18.A Phase 1)
+- [x] Store per-node runtime states (v27 `node_runtimes` table, Phase 2):
+  - [x] bridge
+  - [ ] paperclip (stub — v18.B will implement real detector)
+  - [ ] openclaw (stub — v18.B)
+  - [ ] hermes (stub — v18.B)
+  - [x] claude_cli
+  - [x] codex_cli
+  - [x] gemini_cli
+  - [x] ollama
+- [x] Add tests for runtime detection and serialization. (23 musu-core + 8 musu-bridge tests)
 
 ## P2 - Bridge Runtime APIs
 
-- [ ] `GET /api/nodes/{name}/runtimes`
-- [ ] `POST /api/nodes/{name}/runtimes/{runtime}/probe`
+- [x] `GET /api/nodes/{name}/runtimes` (v18.A Phase 2 self / Phase 3 peer-forwarded)
+- [x] `POST /api/nodes/{name}/runtimes/probe` (re-detect; per-runtime variant not yet)
+- [ ] `POST /api/nodes/{name}/runtimes/{runtime}/probe` per-runtime — currently the bulk probe handles every runtime
 - [ ] `POST /api/nodes/{name}/runtimes/{runtime}/install` behind explicit confirmation
 - [ ] `POST /api/nodes/{name}/runtimes/{runtime}/update` behind explicit confirmation
 - [ ] Audit all runtime operations.
