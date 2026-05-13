@@ -21,6 +21,9 @@ $ScriptDir   = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Root        = Split-Path -Parent $ScriptDir
 $MusuHome    = Join-Path $env:USERPROFILE ".musu"
 $Venv        = Join-Path $Root "musu-bridge\.venv"
+$IndexerDir  = Join-Path $Root "musu-indexer"
+$IndexerVenv = Join-Path $IndexerDir ".venv"
+$IndexerBin  = Join-Path $IndexerDir "src\musu_indexer\bin\musu-indexer.exe"
 $BridgeEnv   = Join-Path $MusuHome "bridge.env"
 $EnvExample  = Join-Path $ScriptDir "systemd\bridge.env.example"
 $NodesToml   = Join-Path $MusuHome "nodes.toml"
@@ -77,6 +80,39 @@ if (-not (Test-Path $venvPython)) {
     Write-Ok "musu-bridge installed"
 } else {
     Write-Info "Step 3: venv already exists — skipping deps"
+}
+
+# ── Step 3b: musu-indexer venv + scanner binary check (v17.B Phase 3) ───────
+# The indexer is a separate Python package with its own venv. install.sh
+# never set this up on Windows, so fresh clones had to manually create the
+# venv before `musu-indexer sync` would work. This step makes it just work.
+$indexerVenvPython = Join-Path $IndexerVenv "Scripts\python.exe"
+if (-not (Test-Path $indexerVenvPython)) {
+    Write-Info "Step 3b: creating musu-indexer venv..."
+    & python -m venv $IndexerVenv
+    Write-Ok "musu-indexer venv created: $IndexerVenv"
+
+    Write-Info "       installing musu-indexer (with mcp + watch extras)..."
+    & (Join-Path $IndexerVenv "Scripts\pip.exe") install --quiet --upgrade pip
+    & (Join-Path $IndexerVenv "Scripts\pip.exe") install --quiet -e "$IndexerDir[full]"
+    Write-Ok "musu-indexer installed"
+} else {
+    Write-Info "Step 3b: musu-indexer venv already exists — skipping deps"
+}
+
+# Scanner binary check. The Go scanner ships as a pre-built .exe in
+# musu-indexer/src/musu_indexer/bin/, but .gitignore excludes it because
+# different machines need different builds. Warn loudly but keep going —
+# `musu-indexer search` (which queries the SQLite DB) still works without
+# the scanner; only `musu-indexer sync` would fail.
+if (-not (Test-Path $IndexerBin)) {
+    Write-Warn "musu-indexer.exe scanner binary not found at $IndexerBin"
+    Write-Warn "  `musu-indexer search` will work; `musu-indexer sync` will not."
+    Write-Warn "  Build it locally (needs Go 1.21+):"
+    Write-Warn "    cd $IndexerDir\indexer_src; go build -o ..\src\musu_indexer\bin\musu-indexer.exe ."
+    Write-Warn "  Or download the binary from the musu-indexer GitHub release."
+} else {
+    Write-Ok "musu-indexer scanner binary present"
 }
 
 # ── Step 4: Seed ~/.musu/bridge.env ──────────────────────────────────────────
@@ -315,6 +351,11 @@ if ($Service) {
     Write-Host "    powershell -ExecutionPolicy Bypass -File scripts\restart-bridge.ps1"
     Write-Host ""
 }
+
+Write-Host "  Index your codebase:"
+Write-Host "    musu-indexer\.venv\Scripts\musu-indexer.exe sync"
+Write-Host "    musu-indexer\.venv\Scripts\musu-indexer.exe search ""<query>"" --scope code"
+Write-Host ""
 
 # ── Start bridge immediately (-Start) ────────────────────────────────────────
 if ($Start) {
