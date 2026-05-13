@@ -149,8 +149,30 @@ fresh install 사용자가 indexer 곧바로 사용 가능하게.
 
 ## 4. Status
 
-- [ ] Phase 1 — Scanner ignore flag (TODO C)
-- [ ] Phase 2 — Bridge restart wrapper (TODO D)
-- [ ] Phase 3 — install.ps1 indexer setup (TODO B)
-- [ ] Phase 4 — v17.A closure (wiki 313 + MEMORY)
-- [ ] Phase 5 — v17.B closure (master plan status + wiki 314 + push)
+- [x] Phase 1 — Indexer ignore_globs leak fix (commit `7a72712`, DB 14030 → 906)
+- [x] Phase 2 — Bridge restart wrapper (commit `00cf31c`, no-admin reload)
+- [x] Phase 3 — install.ps1 indexer setup (commit `708ef18`, fresh-clone friendly)
+- [x] Phase 4 — v17.A closure (wiki 313 `4b361d0` pushed; MEMORY 3 entries)
+- [x] Phase 5 — v17.B closure (this commit; push origin/main)
+
+## 5. Cycle result
+
+5 commits on top of `a6f97fb` (workspace migration):
+
+```
+v17.B Phase 5 closure (this commit)
+708ef18  feat(install): set up musu-indexer venv automatically (Phase 3)
+00cf31c  feat(bridge): no-admin restart wrapper (Phase 2)
+7a72712  fix(indexer): prune nested ignored dirs (Phase 1)
+```
+
+Plus on the llm-wiki repo: `4b361d0  wiki: 313 v17.A audit closure + workspace migration`
+pushed to origin/master (with 4 previously-unpushed wiki commits coming along).
+
+User-visible wins:
+1. `musu-indexer sync` produces a 6MB DB instead of 61MB (-90%); search noise is gone.
+2. `scripts\restart-bridge.ps1` reloads bridge without admin or logout.
+3. Fresh clones get indexer venv automatically; `install.ps1` summary advertises both
+   the restart and the indexer commands.
+4. v17.A patterns (TOCTOU, textarea trailing newline, useRef stale-check) saved to
+   MEMORY so the next "I've seen this before" actually surfaces them.
