@@ -5,14 +5,15 @@
 
 ---
 
-## Windows / WSL Boundary (2026-05-13 settled)
+## Workspace Boundary (2026-05-13 settled, 2026-05-13 migrated to F:)
 
 이 머신은 Windows + WSL 양쪽에 같은 logical repo 가 있다. 한 곳만 truth.
 
-- **Source of truth**: `C:\dev\musu-bee` (Windows native). github main 으로 push 하는 곳.
+- **Source of truth**: `F:\workspace\musu-bee` (Windows native). github main 으로 push 하는 곳.
 - **WSL `~/musu-functions/`**: operator 의 scratch / dev tooling host. **코드 변경 source 아니다.** 다른 branch, uncommitted 작업 보유 가능. 함부로 정리하지 말 것.
-- **도구는 `C:\dev\musu-bee` 또는 `/mnt/c/dev/musu-bee` 만 본다.** WSL repo path 는 search 결과 인용 금지.
+- **도구는 `F:\workspace\musu-bee` 또는 `/mnt/f/workspace/musu-bee` 만 본다.** WSL repo path 는 search 결과 인용 금지.
 - **변경이 WSL 에서 나왔으면**: Windows clone 으로 복사 후 commit. push 도 Windows 쪽에서.
+- **이전 위치 `C:\dev\musu-bee` 는 폐기됨** (2026-05-13 마이그레이션). 옛 문서 (`docs/HANDOFF_*`, `docs/plans/`) 에 `C:\dev\musu-bee` 잔존하면 historical record 로 해석.
 
 전체 boundary doc: [`docs/BOUNDARY.md`](docs/BOUNDARY.md).
 이번 사이클 plan: [`docs/plans/BOUNDARY_MASTER_PLAN_2026_05_13.md`](docs/plans/BOUNDARY_MASTER_PLAN_2026_05_13.md).
@@ -139,7 +140,7 @@ QA가 점수 7점 미만 기준 있으면 → Engineer 재작업 (최대 3회)
 ## 파일 위치 SSOT
 
 ```
-musu-functions/
+F:\workspace\musu-bee\
   musu-bridge/server.py       — FastAPI 엔드포인트
   musu-bridge/handlers.py     — 비즈니스 로직
   musu-bridge/mesh_router.py  — P2P 메쉬 라우팅
@@ -151,8 +152,9 @@ musu-functions/
     qa_loop.py                — QA 반복 루프 (Phase 35)
     sprint_contract.py        — Sprint Contract (Phase 35)
   scripts/
-    start-bridge.sh           — 브리지 실행 (connectsd 포함)
-    systemd/                  — systemd unit 파일
+    install.ps1               — Windows installer (Scheduled Task 등록)
+    start-bridge.ps1          — Bridge launcher (auto-generated)
+    start-bridge.sh           — Linux/WSL launcher (legacy)
 ```
 
 ---

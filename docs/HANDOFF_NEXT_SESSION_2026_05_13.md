@@ -1,5 +1,13 @@
 # Handoff — Next Session (2026-05-13 → next)
 
+> **HISTORICAL RECORD (2026-05-13 archived)** — 이 문서는 boundary settlement 사이클
+> 끝의 handoff 였다. v17.A audit cleanup 사이클이 그 다음 세션에서 진행되어 본 문서의
+> "다음 우선순위 작업 후보" 는 대부분 완료됨 (lock wiring, indexer setup 등).
+> 또한 2026-05-13 후반에 `C:\dev\musu-bee` → `F:\workspace\musu-bee` 로 마이그레이션됨.
+> 본문의 모든 `C:\dev\musu-bee\…` 경로는 `F:\workspace\musu-bee\…` 로 읽을 것.
+>
+> 최신 actionable 가이드: [`docs/BOUNDARY.md`](BOUNDARY.md), [`CLAUDE.md`](../CLAUDE.md).
+>
 > 이번 세션이 만든 결과 + 미해결로 남은 것 + 다음 세션이 먼저 할 일.
 > 다음 Claude 세션은 이 문서부터 읽고 작업 시작한다.
 
