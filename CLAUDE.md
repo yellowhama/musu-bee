@@ -5,6 +5,20 @@
 
 ---
 
+## Windows / WSL Boundary (2026-05-13 settled)
+
+이 머신은 Windows + WSL 양쪽에 같은 logical repo 가 있다. 한 곳만 truth.
+
+- **Source of truth**: `C:\dev\musu-bee` (Windows native). github main 으로 push 하는 곳.
+- **WSL `~/musu-functions/`**: operator 의 scratch / dev tooling host. **코드 변경 source 아니다.** 다른 branch, uncommitted 작업 보유 가능. 함부로 정리하지 말 것.
+- **도구는 `C:\dev\musu-bee` 또는 `/mnt/c/dev/musu-bee` 만 본다.** WSL repo path 는 search 결과 인용 금지.
+- **변경이 WSL 에서 나왔으면**: Windows clone 으로 복사 후 commit. push 도 Windows 쪽에서.
+
+전체 boundary doc: [`docs/BOUNDARY.md`](docs/BOUNDARY.md).
+이번 사이클 plan: [`docs/plans/BOUNDARY_MASTER_PLAN_2026_05_13.md`](docs/plans/BOUNDARY_MASTER_PLAN_2026_05_13.md).
+
+---
+
 ## CRITICAL — 절대 금지 (먼저 읽을 것)
 
 ```

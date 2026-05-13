@@ -273,6 +273,14 @@ Set-Location `$BridgeDir
     $action    = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$startScript`""
     $trigger   = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
     $settings  = New-ScheduledTaskSettingsSet -StartWhenAvailable -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+    # LogonType remains Interactive — see PHASE3 plan / wiki entry for
+    # context. We initially tried S4U so that Stop-ScheduledTask could
+    # work without admin elevation, but S4U registration itself requires
+    # the "Replace a process level token" privilege which non-admins do
+    # not hold. The realistic fix is to use Stop-ScheduledTask + Start-
+    # ScheduledTask (which DO work without admin under Interactive), and
+    # accept that direct Stop-Process on the bridge PID still requires
+    # elevation.
     $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive
 
     Register-ScheduledTask -TaskName "musu-bridge" -Action $action -Trigger $trigger -Settings $settings -Principal $principal | Out-Null

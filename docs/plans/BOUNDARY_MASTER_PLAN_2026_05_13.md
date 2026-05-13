@@ -195,8 +195,8 @@ WSL 측 `musu-bridge/uv.lock` 도 untracked 지만 — uv 도구 부산물 / 코
 ## 6. Status
 
 - [x] Phase 0 — WSL fleet 문서 회수 (`9b62fd1` pushed)
-- [ ] Phase 1 — Indexer Windows 이주
-- [ ] Phase 2 — Indexer 충돌 정리
-- [ ] Phase 3 — Scheduled Task S4U
-- [ ] Phase 4 — BOUNDARY doc
-- [ ] Phase 5 — Closure
+- [x] Phase 1 — Indexer Windows 이주 (`5822503` pushed)
+- [x] Phase 2 — Indexer 충돌 정리 (WSL process kill + cron disable, no commit needed)
+- [⚠] Phase 3 — Scheduled Task S4U **DEFERRED** (admin 필요로 판명, 대안 4개 v17 후보)
+- [x] Phase 4 — BOUNDARY.md + CLAUDE.md + HANDOFF_NEXT_SESSION (이 commit 에 포함)
+- [x] Phase 5 — wiki 312 + MEMORY entry + final commit/push (지금)
