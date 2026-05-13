@@ -777,6 +777,33 @@ def _v25_down(conn: sqlite3.Connection) -> None:  # noqa: ARG001
     """SQLite < 3.35 cannot DROP COLUMN — no-op."""
 
 
+# ---------------------------------------------------------------------------
+# v26: sprint_contracts.updated_at (audit log for operator edits)
+# ---------------------------------------------------------------------------
+
+
+def _v26_up(conn: sqlite3.Connection) -> None:
+    """Add updated_at to sprint_contracts.
+
+    created_at is preserved (the contract was authored once). updated_at
+    tracks operator-side edits via PUT /api/tasks/.../sprint-contract.
+    Existing rows backfill updated_at = created_at so the audit log has
+    a sensible baseline.
+    """
+    if not _column_exists(conn, "sprint_contracts", "updated_at"):
+        conn.execute(
+            "ALTER TABLE sprint_contracts ADD COLUMN updated_at REAL NOT NULL DEFAULT 0;"
+        )
+        conn.execute(
+            "UPDATE sprint_contracts SET updated_at = created_at WHERE updated_at = 0;"
+        )
+        conn.commit()
+
+
+def _v26_down(conn: sqlite3.Connection) -> None:  # noqa: ARG001
+    """SQLite < 3.35 cannot DROP COLUMN — no-op."""
+
+
 MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v1_fallback_chain", _v1_up, _v1_down),
     ("v2_messages_agent_id", _v2_up, _v2_down),
@@ -803,6 +830,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v23_budget_transactions", _v23_up, _v23_down),
     ("v24_agent_allowed_tools", _v24_up, _v24_down),
     ("v25_sprint_contracts_locked", _v25_up, _v25_down),
+    ("v26_sprint_contracts_updated_at", _v26_up, _v26_down),
 ]
 
 

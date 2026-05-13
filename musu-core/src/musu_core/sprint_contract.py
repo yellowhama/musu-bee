@@ -29,6 +29,14 @@ class SprintContract:
     task_id: str | None = None
     locked: bool = False
     created_at: float = field(default_factory=time.time)
+    # Sentinel: 0.0 means "use created_at". The two timestamps share the
+    # same value for freshly-authored contracts; operator edits later
+    # advance updated_at via update_sprint_contract.
+    updated_at: float = 0.0
+
+    def __post_init__(self) -> None:
+        if self.updated_at == 0.0:
+            self.updated_at = self.created_at
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -41,6 +49,7 @@ class SprintContract:
             "done_definition": self.done_definition,
             "locked": self.locked,
             "created_at": self.created_at,
+            "updated_at": self.updated_at,
         }
 
     def to_json(self) -> str:
@@ -48,6 +57,7 @@ class SprintContract:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "SprintContract":
+        created_at = float(data.get("created_at", time.time()))
         return cls(
             id=data.get("id", str(uuid.uuid4())),
             task_id=data.get("task_id"),
@@ -57,7 +67,8 @@ class SprintContract:
             acceptance_criteria=data.get("acceptance_criteria", []),
             done_definition=data.get("done_definition", ""),
             locked=bool(data.get("locked", False)),
-            created_at=float(data.get("created_at", time.time())),
+            created_at=created_at,
+            updated_at=float(data.get("updated_at", created_at)),
         )
 
     def engineer_prompt_header(self) -> str:
@@ -113,8 +124,9 @@ def save_contract(conn: sqlite3.Connection, contract: SprintContract) -> None:
         """
         INSERT OR REPLACE INTO sprint_contracts
             (id, task_id, task, scope_json, out_of_scope_json,
-             acceptance_criteria_json, done_definition, locked, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+             acceptance_criteria_json, done_definition, locked,
+             created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             contract.id,
@@ -126,6 +138,7 @@ def save_contract(conn: sqlite3.Connection, contract: SprintContract) -> None:
             contract.done_definition,
             1 if contract.locked else 0,
             contract.created_at,
+            contract.updated_at,
         ),
     )
     conn.commit()
@@ -149,6 +162,11 @@ def load_contract(conn: sqlite3.Connection, contract_id: str) -> SprintContract 
         locked_val = row["locked"]
     except (KeyError, IndexError):
         locked_val = 0
+    created_at = float(row["created_at"])
+    try:
+        updated_at_val = float(row["updated_at"])
+    except (KeyError, IndexError, TypeError):
+        updated_at_val = created_at
     return SprintContract(
         id=row["id"],
         task_id=row["task_id"],
@@ -158,7 +176,8 @@ def load_contract(conn: sqlite3.Connection, contract_id: str) -> SprintContract 
         acceptance_criteria=_parse(row["acceptance_criteria_json"], []),
         done_definition=row["done_definition"] or "",
         locked=bool(locked_val),
-        created_at=float(row["created_at"]),
+        created_at=created_at,
+        updated_at=updated_at_val,
     )
 
 

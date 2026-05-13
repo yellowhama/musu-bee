@@ -53,7 +53,7 @@ from bridge_models import (  # noqa: F401
     GoalCreateRequest, GoalUpdateRequest,
     HeartbeatInvokeRequest, GroupMessageRequest, FeedbackRequest,
 )
-from pydantic import BaseModel, Field  # still needed by Annotated usage
+from pydantic import BaseModel, Field, StringConstraints  # still needed by Annotated usage
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from musu_core.middleware import apply_musu_middlewares
@@ -1313,18 +1313,25 @@ async def api_get_sprint_contract(
     return contract
 
 
+_ContractItem = Annotated[str, StringConstraints(min_length=1, max_length=2000)]
+
+
 class SprintContractUpdateRequest(BaseModel):
     """Body for PUT /api/tasks/{task_id}/sprint-contract.
 
     All fields are required — partial updates (PATCH semantics) would let
     the operator silently lose fields they didn't realise existed. The UI
     posts the full edited contract.
+
+    v17.A — explicit length caps. Each list ≤ 50 entries; each entry
+    1–2000 chars; task and done_definition ≤ 2000 chars. Prevents an
+    accidental megabyte payload from inflating the DB row.
     """
 
     task: str = Field(min_length=1, max_length=2000)
-    scope: list[str] = Field(default_factory=list)
-    out_of_scope: list[str] = Field(default_factory=list)
-    acceptance_criteria: list[str] = Field(default_factory=list)
+    scope: list[_ContractItem] = Field(default_factory=list, max_length=50)
+    out_of_scope: list[_ContractItem] = Field(default_factory=list, max_length=50)
+    acceptance_criteria: list[_ContractItem] = Field(default_factory=list, max_length=50)
     done_definition: str = Field(default="", max_length=2000)
 
 

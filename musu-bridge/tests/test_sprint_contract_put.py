@@ -115,6 +115,35 @@ class TestUpdateSprintContract:
             )
         assert resp.status_code == 200
 
+    def test_rejects_oversized_list(self):
+        """v17.A F7 — list with >50 entries must 422 before reaching the
+        handler. Protects the DB from megabyte JSON columns."""
+        body = {**_VALID_BODY, "scope": [f"item-{i}" for i in range(51)]}
+        resp = client.put(
+            f"/api/tasks/{_VALID_TASK_ID}/sprint-contract",
+            json=body,
+        )
+        assert resp.status_code == 422
+
+    def test_rejects_oversized_item(self):
+        """v17.A F7 — single item >2000 chars must 422."""
+        body = {**_VALID_BODY, "scope": ["x" * 2001]}
+        resp = client.put(
+            f"/api/tasks/{_VALID_TASK_ID}/sprint-contract",
+            json=body,
+        )
+        assert resp.status_code == 422
+
+    def test_rejects_empty_string_item(self):
+        """v17.A F7 — scope/criteria items must have min_length 1.
+        An empty entry is operator error; reject early."""
+        body = {**_VALID_BODY, "scope": ["valid", ""]}
+        resp = client.put(
+            f"/api/tasks/{_VALID_TASK_ID}/sprint-contract",
+            json=body,
+        )
+        assert resp.status_code == 422
+
 
 class TestSprintContractRoundtrip:
     """End-to-end at the backend layer: insert a contract, update it,
@@ -172,5 +201,180 @@ class TestSprintContractRoundtrip:
                     acceptance_criteria=[],
                     done_definition="",
                 )
+        finally:
+            backend.close()
+
+    def test_qa_loop_locks_contract_on_first_iteration(self, tmp_path):
+        """v17.A TODO A — QALoop.run must call backend.lock_sprint_contract
+        before the Engineer iteration starts. We don't run a full loop
+        (RouteResult has many required fields and we don't care about
+        Engineer/QA mechanics here); instead we patch the router so the
+        first route call raises and lets the lock-side-effect be the
+        only observable thing.
+        """
+        import asyncio
+        from unittest.mock import MagicMock, AsyncMock
+        from musu_core.backends.local import LocalBackend
+        from musu_core.qa_loop import QALoop
+        from musu_core.sprint_contract import SprintContract, save_contract
+
+        db = tmp_path / "test.db"
+        backend = LocalBackend(str(db))
+        try:
+            conn = backend._db._get_conn()
+            sc = SprintContract(
+                task="impl thing",
+                scope=["a"],
+                acceptance_criteria=["c1"],
+                task_id=_VALID_TASK_ID,
+            )
+            save_contract(conn, sc)
+            assert backend.get_sprint_contract_for_task(_VALID_TASK_ID)["locked"] is False
+
+            # Router that immediately bails — we only care that lock fires
+            # before the first route call.
+            router = MagicMock()
+            router.route = AsyncMock(side_effect=RuntimeError("stop here"))
+
+            loop = QALoop(
+                router=router,
+                engineer_agent_id="eng",
+                qa_agent_id="qa",
+                max_iterations=2,
+                backend=backend,
+            )
+
+            with pytest.raises(RuntimeError, match="stop here"):
+                asyncio.run(loop.run(
+                    task_prompt="impl thing",
+                    contract=sc,
+                    task_id=_VALID_TASK_ID,
+                ))
+
+            # Lock must have fired before the router call.
+            after = backend.get_sprint_contract_for_task(_VALID_TASK_ID)
+            assert after["locked"] is True
+
+            # And operator update is refused.
+            with pytest.raises(PermissionError):
+                backend.update_sprint_contract(
+                    _VALID_TASK_ID,
+                    task="too late",
+                    scope=[],
+                    out_of_scope=[],
+                    acceptance_criteria=[],
+                    done_definition="",
+                )
+        finally:
+            backend.close()
+
+    def test_qa_loop_no_lock_without_task_id(self, tmp_path):
+        """QALoop.run with task_id=None must NOT touch the backend.
+        Lock requires a task_id to know what contract to lock.
+        """
+        import asyncio
+        from unittest.mock import MagicMock, AsyncMock
+        from musu_core.qa_loop import QALoop
+        from musu_core.sprint_contract import SprintContract
+
+        backend = MagicMock()
+        router = MagicMock()
+        router.route = AsyncMock(side_effect=RuntimeError("stop"))
+
+        loop = QALoop(
+            router=router,
+            engineer_agent_id="eng",
+            qa_agent_id="qa",
+            max_iterations=2,
+            backend=backend,
+        )
+
+        sc = SprintContract(task="x")
+        with pytest.raises(RuntimeError, match="stop"):
+            asyncio.run(loop.run(task_prompt="x", contract=sc, task_id=None))
+
+        backend.lock_sprint_contract.assert_not_called()
+
+    def test_updated_at_advances_on_update(self, tmp_path):
+        """v17.A F5 — updated_at must change when operator edits the
+        contract. created_at stays the same."""
+        import time
+        from musu_core.backends.local import LocalBackend
+        from musu_core.sprint_contract import SprintContract, save_contract
+
+        db = tmp_path / "test.db"
+        backend = LocalBackend(str(db))
+        try:
+            conn = backend._db._get_conn()
+            sc = SprintContract(
+                task="initial", scope=["a"], task_id=_VALID_TASK_ID,
+            )
+            save_contract(conn, sc)
+
+            before = backend.get_sprint_contract_for_task(_VALID_TASK_ID)
+            assert before["created_at"] == before["updated_at"]
+            old_updated = before["updated_at"]
+
+            time.sleep(0.01)  # ensure monotonic clock advances
+            backend.update_sprint_contract(
+                _VALID_TASK_ID,
+                task="edited",
+                scope=["a", "b"],
+                out_of_scope=[],
+                acceptance_criteria=[],
+                done_definition="",
+            )
+
+            after = backend.get_sprint_contract_for_task(_VALID_TASK_ID)
+            assert after["created_at"] == before["created_at"]
+            assert after["updated_at"] > old_updated
+        finally:
+            backend.close()
+
+    def test_toctou_atomic_update(self, tmp_path):
+        """v17.A — F4 regression. Atomic UPDATE must not overwrite a
+        contract that was locked between the operator's intent to edit
+        and the DB write. Simulate by hand-flipping locked=1 just
+        before update_sprint_contract runs — the new code reads locked
+        in the WHERE clause, so 0 rows match and PermissionError fires.
+        """
+        from musu_core.backends.local import LocalBackend
+        from musu_core.sprint_contract import SprintContract, save_contract
+
+        db = tmp_path / "test.db"
+        backend = LocalBackend(str(db))
+        try:
+            conn = backend._db._get_conn()
+            sc = SprintContract(
+                task="initial", scope=["a"], task_id=_VALID_TASK_ID,
+            )
+            save_contract(conn, sc)
+
+            # Concurrent lock (simulated): another caller sets locked=1
+            # directly through the DB before our update fires.
+            with backend._db.cursor() as cur:
+                cur.execute(
+                    "UPDATE sprint_contracts SET locked = 1 WHERE task_id = ?",
+                    (_VALID_TASK_ID,),
+                )
+
+            # The update path must now refuse with PermissionError instead
+            # of silently overwriting (the bug the old read-then-write
+            # implementation had).
+            with pytest.raises(PermissionError):
+                backend.update_sprint_contract(
+                    _VALID_TASK_ID,
+                    task="overwrite attempt",
+                    scope=["x", "y"],
+                    out_of_scope=[],
+                    acceptance_criteria=[],
+                    done_definition="",
+                )
+
+            # And the contract content is unchanged.
+            after = backend.get_sprint_contract_for_task(_VALID_TASK_ID)
+            assert after["task"] == "initial"
+            assert after["scope"] == ["a"]
+            assert after["locked"] is True
         finally:
             backend.close()
