@@ -116,6 +116,35 @@ Set-Content -Path "musu-bee\.env.local" -Value $envLocal -Encoding UTF8
 
 ## 5. Status
 
-- [ ] Phase 1 — public-config route + tests
-- [ ] Phase 2 — install.ps1 fetch + .env.local
-- [ ] Phase 3 — Closure (wiki 316 + master plan + push)
+- [x] Phase 1 — public-config route + tests (commit `50a3bd7`)
+- [x] Phase 2 — install.ps1 fetch + .env.local (commit `b4684ed`)
+- [x] Phase 3 — Closure (wiki 316 + master plan + push)
+
+## 6. 사이클 결과 (2026-05-14)
+
+**HEAD**: `d79c15e` → `b4684ed` (+ Phase 3 closure commit) over 2 functional commits.
+
+**산출물**:
+- `musu-bee/src/app/api/public-config/route.ts` — strict-allowlist GET endpoint.
+  6 cases pass (`node --test src/app/api/public-config/route.test.ts`): happy
+  path, secret-leak negative (defense-in-depth assertion that raw secret strings
+  appear nowhere in response), omit-unset, all-empty → `{}`, Cache-Control
+  `public, max-age=300`, whitespace trim.
+- `scripts/install.ps1` Step 5.5 — `Invoke-RestMethod` fetches public-config
+  (15s timeout), writes UTF-8-no-BOM `.env.local` with 5 public env keys +
+  3 local URL defaults. Three install paths verified end-to-end against a local
+  mock HTTP server: graceful failure (dead port → warn + continue, no
+  `.env.local`), happy path (10-line `.env.local` written), idempotent skip
+  (existing `.env.local` untouched).
+
+**검증된 비스코프**:
+- musu.pro deploy 의 Vercel 자동화 — Phase 1 commit `50a3bd7` push 시 Vercel 이
+  `/api/public-config` 을 deploy. Phase 3 push 후 `curl https://musu.pro/api/public-config`
+  로 응답 200 + 실제 Supabase config 확인.
+
+**다음 사이클 후보**:
+- `.env.local` 의 nondestructive refresh 모드 — install.ps1 에 `-RefreshEnv` flag.
+- musu-bridge 와 musu-worker 의 동일 bootstrap (`.env.local` 도 fetch 로). 현재는
+  install.ps1 의 다른 step 이 직접 채움.
+- public-config endpoint 에 server-side rate-limit (Vercel edge middleware) — 현재
+  Cache-Control 만 보호.
