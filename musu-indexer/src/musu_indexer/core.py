@@ -4,6 +4,7 @@ import os
 import re
 import sqlite3
 import subprocess
+import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from fnmatch import fnmatch
@@ -21,7 +22,14 @@ from .workspace import (
 )
 
 PACKAGE_ROOT = Path(__file__).parent
-LINUX_BIN = str(PACKAGE_ROOT / "bin" / "musu-indexer-linux")
+# Pick the Go scanner binary that matches the host. Both are shipped in
+# bin/ but only one is loadable per platform. Older code referenced
+# LINUX_BIN directly and crashed on Windows; SCANNER_BIN is the
+# platform-aware replacement and LINUX_BIN is kept as an alias to avoid
+# breaking any external imports.
+_SCANNER_NAME = "musu-indexer.exe" if sys.platform == "win32" else "musu-indexer-linux"
+SCANNER_BIN = str(PACKAGE_ROOT / "bin" / _SCANNER_NAME)
+LINUX_BIN = SCANNER_BIN  # backwards-compat alias
 INDEX_VERSION = 2
 
 DOC_BASENAMES = {

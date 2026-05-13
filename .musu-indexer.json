@@ -21,7 +21,14 @@
     "*.tar.gz",
     "node_modules/**",
     ".venv/**",
+    "**/.venv/**",
     "__pycache__/**",
-    ".git/**"
+    "**/__pycache__/**",
+    ".git/**",
+    ".next/**",
+    "**/.next/**",
+    "dist/**",
+    "**/dist/**",
+    "logs/**"
   ]
 }

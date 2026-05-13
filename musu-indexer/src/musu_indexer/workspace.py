@@ -107,9 +107,18 @@ def _resolve_profile_root(base_dir: Path, raw_root: str | None) -> Path:
     return (base_dir / root_path).resolve()
 
 
-def _resolve_rel_roots(root: Path, values: list[str] | None) -> tuple[str, ...]:
+def _resolve_rel_roots(
+    root: Path,
+    values: list[str] | None,
+    *,
+    default_when_empty: tuple[str, ...] = (".",),
+) -> tuple[str, ...]:
+    # Older versions returned (".",) for empty input, which made sense for
+    # include_roots (empty means "everything") but silently turned empty
+    # exclude_roots into "exclude everything" — root scans then produced
+    # zero files. Callers now opt into the default explicitly.
     if not values:
-        return (".",)
+        return default_when_empty
 
     resolved: list[str] = []
     for raw_value in values:
@@ -193,7 +202,11 @@ def load_workspace_profile(
         profile_root = _as_path(root_override) or profile_root
 
     include_roots = _resolve_rel_roots(profile_root, data.get("include_roots"))
-    exclude_roots = _resolve_rel_roots(profile_root, data.get("exclude_roots") or [])
+    exclude_roots = _resolve_rel_roots(
+        profile_root,
+        data.get("exclude_roots") or [],
+        default_when_empty=(),
+    )
     ignore_globs = _normalize_ignore_globs(data.get("ignore_globs"))
 
     return WorkspaceProfile(
