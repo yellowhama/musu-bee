@@ -866,6 +866,151 @@ def _v27_down(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+def _v28_up(conn: sqlite3.Connection) -> None:
+    """v19.A: agent hierarchy (reports_to) + heartbeat run model.
+
+    Four schema changes in one migration:
+
+      1. agents.reports_to (self-FK, NULL = top-level / CEO candidate).
+         ON DELETE SET NULL — losing a manager promotes subordinates to
+         top-level rather than cascading the loss across the company.
+
+      2. heartbeat_runs — Paperclip-style run lifecycle. Each row is one
+         agent execution triggered by a wake event. parent_run_id is a
+         self-FK that records "CEO woke this subordinate", used by the
+         dispatcher's cycle detection (Phase 2/3, not enforced at the
+         schema level).
+
+      3. heartbeat_run_events — append-only event stream per run.
+         event_type is intentionally not CHECK-constrained so new event
+         types (tool_call, approval_request, message_delta, ...) can be
+         added without further migrations. The composite index
+         (run_id, created_at) is what makes "play back this run's
+         timeline" cheap.
+
+      4. agent_sessions — first-class conversation container. The
+         existing messages.session_id (TEXT) is left as-is; only new
+         sessions get a real PK. A future migration can backfill if the
+         lack of FK integrity bites.
+
+    ALTER TABLE ADD COLUMN is gated by PRAGMA table_info() because SQLite
+    < 3.35 lacks ADD COLUMN IF NOT EXISTS and we cannot raise the minimum
+    SQLite version for downstream users.
+    """
+    # 1. agents.reports_to
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(agents)").fetchall()}
+    if "reports_to" not in cols:
+        conn.execute(
+            "ALTER TABLE agents ADD COLUMN reports_to TEXT "
+            "REFERENCES agents(id) ON DELETE SET NULL"
+        )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_agents_reports_to ON agents(reports_to)"
+    )
+
+    # 2. heartbeat_runs
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS heartbeat_runs (
+            id              TEXT PRIMARY KEY,
+            agent_id        TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+            issue_id        TEXT REFERENCES issues(id) ON DELETE SET NULL,
+            parent_run_id   TEXT REFERENCES heartbeat_runs(id) ON DELETE SET NULL,
+            wake_reason     TEXT NOT NULL,
+            wake_payload    TEXT NOT NULL DEFAULT '{}',
+            status          TEXT NOT NULL DEFAULT 'queued'
+                            CHECK (status IN ('queued','running','waiting_approval','completed','failed','cancelled')),
+            summary         TEXT NOT NULL DEFAULT '',
+            error           TEXT NOT NULL DEFAULT '',
+            started_at      TEXT,
+            ended_at        TEXT,
+            created_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        )
+        """
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_heartbeat_runs_agent ON heartbeat_runs(agent_id)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_heartbeat_runs_issue ON heartbeat_runs(issue_id)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_heartbeat_runs_status ON heartbeat_runs(status)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_heartbeat_runs_parent ON heartbeat_runs(parent_run_id)"
+    )
+
+    # 3. heartbeat_run_events
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS heartbeat_run_events (
+            id              TEXT PRIMARY KEY,
+            run_id          TEXT NOT NULL REFERENCES heartbeat_runs(id) ON DELETE CASCADE,
+            event_type      TEXT NOT NULL,
+            payload         TEXT NOT NULL DEFAULT '{}',
+            created_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        )
+        """
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_heartbeat_run_events_run "
+        "ON heartbeat_run_events(run_id, created_at)"
+    )
+
+    # 4. agent_sessions
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS agent_sessions (
+            id              TEXT PRIMARY KEY,
+            agent_id        TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+            user_id         TEXT NOT NULL DEFAULT '',
+            title           TEXT NOT NULL DEFAULT '',
+            meta            TEXT NOT NULL DEFAULT '{}',
+            started_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+            ended_at        TEXT,
+            last_message_at TEXT,
+            message_count   INTEGER NOT NULL DEFAULT 0
+        )
+        """
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_agent_sessions_agent ON agent_sessions(agent_id)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_agent_sessions_user ON agent_sessions(user_id)"
+    )
+
+    conn.commit()
+
+
+def _v28_down(conn: sqlite3.Connection) -> None:
+    """Roll back v28.
+
+    Drops the three new tables and the agents.reports_to index. The
+    column itself is dropped via ALTER TABLE DROP COLUMN, which requires
+    SQLite >= 3.35; on older runtimes the column harmlessly remains
+    (NULL for every row). This matches v25's "graceful older-SQLite"
+    pattern.
+    """
+    conn.execute("DROP INDEX IF EXISTS idx_agent_sessions_user")
+    conn.execute("DROP INDEX IF EXISTS idx_agent_sessions_agent")
+    conn.execute("DROP TABLE IF EXISTS agent_sessions")
+    conn.execute("DROP INDEX IF EXISTS idx_heartbeat_run_events_run")
+    conn.execute("DROP TABLE IF EXISTS heartbeat_run_events")
+    conn.execute("DROP INDEX IF EXISTS idx_heartbeat_runs_parent")
+    conn.execute("DROP INDEX IF EXISTS idx_heartbeat_runs_status")
+    conn.execute("DROP INDEX IF EXISTS idx_heartbeat_runs_issue")
+    conn.execute("DROP INDEX IF EXISTS idx_heartbeat_runs_agent")
+    conn.execute("DROP TABLE IF EXISTS heartbeat_runs")
+    conn.execute("DROP INDEX IF EXISTS idx_agents_reports_to")
+    try:
+        conn.execute("ALTER TABLE agents DROP COLUMN reports_to")
+    except sqlite3.OperationalError:
+        pass
+    conn.commit()
+
+
 MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v1_fallback_chain", _v1_up, _v1_down),
     ("v2_messages_agent_id", _v2_up, _v2_down),
@@ -894,6 +1039,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v25_sprint_contracts_locked", _v25_up, _v25_down),
     ("v26_sprint_contracts_updated_at", _v26_up, _v26_down),
     ("v27_node_runtimes", _v27_up, _v27_down),
+    ("v28_agent_hierarchy_and_runs", _v28_up, _v28_down),
 ]
 
 
