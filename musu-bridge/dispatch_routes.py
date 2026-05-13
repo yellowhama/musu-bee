@@ -24,7 +24,14 @@ from pydantic import BaseModel
 
 from musu_core.config import get_config
 from musu_core.db import get_db
-from musu_core.dispatch import CycleDetected, enqueue_wake, execute_wake
+from musu_core.dispatch import (
+    CycleDetected,
+    delegate_to_subordinate,
+    enqueue_wake,
+    execute_wake,
+    find_ceo,
+    route_user_message_to_ceo,
+)
 from musu_core.router import make_router
 
 logger = logging.getLogger(__name__)
@@ -99,6 +106,72 @@ def get_run(run_id: str) -> dict[str, Any]:
         "run": dict(rows[0]),
         "events": [dict(e) for e in events],
     }
+
+
+class CompanyMessageBody(BaseModel):
+    user_id: str
+    body: str
+
+
+@dispatch_router.post("/company/{company_id}/message")
+async def post_company_message(
+    company_id: str, body: CompanyMessageBody, bg: BackgroundTasks,
+) -> dict[str, Any]:
+    """User → CEO chat entry point.
+
+    Creates an issue + opening comment + queued wake for the company's
+    CEO. Returns the new run_id and the issue/session ids the UI needs
+    to follow up.
+    """
+    cfg = get_config()
+    db = get_db(cfg.db_path)
+    result = route_user_message_to_ceo(db, company_id, body.user_id, body.body)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    router_instance = make_router(db_path=cfg.db_path)
+    bg.add_task(execute_wake, db, router_instance, result["run_id"])
+    return result
+
+
+class DelegateBody(BaseModel):
+    role: str
+    body: str
+
+
+@dispatch_router.post("/runs/{run_id}/delegate")
+async def post_delegate(
+    run_id: str, body: DelegateBody, bg: BackgroundTasks,
+) -> dict[str, Any]:
+    """Agent (typically CEO) delegates a sub-task to a subordinate by role.
+
+    Subordinate is selected as the oldest agent reporting to the parent
+    run's agent, in the same company, with matching role (case-insensitive).
+    409 on cycle/depth overflow, 400 on bad input.
+    """
+    cfg = get_config()
+    db = get_db(cfg.db_path)
+    try:
+        result = delegate_to_subordinate(db, run_id, body.role, body.body)
+    except CycleDetected as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    router_instance = make_router(db_path=cfg.db_path)
+    bg.add_task(execute_wake, db, router_instance, result["run_id"])
+    return result
+
+
+@dispatch_router.get("/company/{company_id}/ceo")
+def get_company_ceo(company_id: str) -> dict[str, str]:
+    """Return the CEO agent id for the given company, or 404."""
+    cfg = get_config()
+    db = get_db(cfg.db_path)
+    ceo_id = find_ceo(db, company_id)
+    if not ceo_id:
+        raise HTTPException(
+            status_code=404, detail=f"company {company_id} has no CEO"
+        )
+    return {"company_id": company_id, "ceo_id": ceo_id}
 
 
 @dispatch_router.get("/runs/{run_id}/events")
