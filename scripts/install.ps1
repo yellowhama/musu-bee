@@ -310,6 +310,12 @@ if (-not $Start) {
     Write-Host ""
 }
 
+if ($Service) {
+    Write-Host "  Reload bridge after a code change (no admin needed):"
+    Write-Host "    powershell -ExecutionPolicy Bypass -File scripts\restart-bridge.ps1"
+    Write-Host ""
+}
+
 # ── Start bridge immediately (-Start) ────────────────────────────────────────
 if ($Start) {
     Write-Host ""

@@ -136,6 +136,9 @@ Start-ScheduledTask    -TaskName musu-bridge
 Stop-ScheduledTask     -TaskName musu-bridge
 Get-ScheduledTaskInfo  -TaskName musu-bridge
 Get-Content "$env:USERPROFILE\musu-functions\logs\bridge-install-start.log" -Tail 50
+
+# Reload bridge after a code change (no admin needed):
+powershell -ExecutionPolicy Bypass -File scripts\restart-bridge.ps1
 ```
 
 ---
