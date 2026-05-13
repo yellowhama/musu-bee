@@ -2,6 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+// Tailwind doesn't generate `ml-*` classes from dynamic strings, so the
+// indent levels are enumerated up to 3 (CEO → role → sub-role → leaf).
+const INDENT_CLASSES = ["", "ml-6", "ml-12", "ml-18"] as const;
+
 type RunEvent = {
   id: string;
   event_type: string;
@@ -43,6 +47,10 @@ export default function CeoChatClient({ companyId, userId, userEmail }: Props) {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [lines, setLines] = useState<ChatLine[]>([]);
+  const [delegateModal, setDelegateModal] = useState<{
+    parentRunId: string;
+    indentLevel: number;
+  } | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -140,6 +148,36 @@ export default function CeoChatClient({ companyId, userId, userEmail }: Props) {
     };
   }, []);
 
+  const handleDelegate = async (
+    parentRunId: string,
+    role: string,
+    body: string,
+    indentLevel: number,
+  ) => {
+    const r = await fetch(`/api/bridge/dispatch/runs/${parentRunId}/delegate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role, body }),
+    });
+    if (!r.ok) {
+      const detail = await r.text();
+      setLines((prev) => [
+        ...prev,
+        {
+          kind: "run",
+          runId: `error-${Date.now()}`,
+          status: "error",
+          events: [],
+          error: `위임 실패 (${r.status}): ${detail}`,
+          indentLevel,
+        },
+      ]);
+      return;
+    }
+    const data = await r.json();
+    subscribeToRun(data.run_id, indentLevel);
+  };
+
   const handleSend = async () => {
     if (!ceoId || sending) return;
     const body = input.trim();
@@ -222,9 +260,34 @@ export default function CeoChatClient({ companyId, userId, userEmail }: Props) {
           </div>
         )}
         {lines.map((line, idx) => (
-          <ChatLineView key={idx} line={line} />
+          <ChatLineView
+            key={idx}
+            line={line}
+            onDelegate={
+              line.kind === "run" && line.status === "streaming"
+                ? undefined
+                : (parentRunId, level) =>
+                    setDelegateModal({ parentRunId, indentLevel: level })
+            }
+          />
         ))}
       </div>
+
+      {delegateModal && (
+        <DelegateModal
+          parentRunId={delegateModal.parentRunId}
+          onClose={() => setDelegateModal(null)}
+          onSubmit={async (role, body) => {
+            await handleDelegate(
+              delegateModal.parentRunId,
+              role,
+              body,
+              delegateModal.indentLevel,
+            );
+            setDelegateModal(null);
+          }}
+        />
+      )}
 
       <footer className="border-t border-zinc-800 p-4">
         <div className="flex gap-2">
@@ -254,7 +317,13 @@ export default function CeoChatClient({ companyId, userId, userEmail }: Props) {
   );
 }
 
-function ChatLineView({ line }: { line: ChatLine }) {
+function ChatLineView({
+  line,
+  onDelegate,
+}: {
+  line: ChatLine;
+  onDelegate?: (parentRunId: string, indentLevel: number) => void;
+}) {
   if (line.kind === "user") {
     return (
       <div className="flex justify-end">
@@ -273,7 +342,7 @@ function ChatLineView({ line }: { line: ChatLine }) {
     error: "border-red-500/40 bg-red-500/5",
   }[line.status];
 
-  const indent = line.indentLevel > 0 ? `ml-${Math.min(line.indentLevel * 8, 24)}` : "";
+  const indent = INDENT_CLASSES[Math.min(line.indentLevel, INDENT_CLASSES.length - 1)];
 
   return (
     <div className={indent}>
@@ -305,6 +374,101 @@ function ChatLineView({ line }: { line: ChatLine }) {
             {line.error}
           </div>
         )}
+        {onDelegate && line.status !== "error" && (
+          <div className="mt-3 pt-2 border-t border-zinc-800">
+            <button
+              onClick={() => onDelegate(line.runId, line.indentLevel + 1)}
+              className="text-xs px-2 py-1 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-300"
+            >
+              👇 직원에게 위임
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DelegateModal({
+  parentRunId,
+  onClose,
+  onSubmit,
+}: {
+  parentRunId: string;
+  onClose: () => void;
+  onSubmit: (role: string, body: string) => Promise<void> | void;
+}) {
+  const [role, setRole] = useState("");
+  const [body, setBody] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const canSubmit = role.trim().length > 0 && body.trim().length > 0 && !submitting;
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-lg p-5 space-y-4"
+      >
+        <div>
+          <h2 className="text-base font-semibold">직원에게 위임</h2>
+          <p className="text-xs text-zinc-500 mt-1">
+            parent run {parentRunId.slice(0, 8)}…
+          </p>
+        </div>
+
+        <div className="space-y-1">
+          <label className="block text-xs text-zinc-400">직원 role</label>
+          <input
+            autoFocus
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            placeholder="engineer, qa, researcher 등"
+            disabled={submitting}
+            className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-zinc-600"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label className="block text-xs text-zinc-400">작업 내용</label>
+          <textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            placeholder="이 직원이 무엇을 해야 하는지..."
+            disabled={submitting}
+            rows={4}
+            className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-zinc-600 resize-none"
+          />
+        </div>
+
+        <div className="flex justify-end gap-2 pt-1">
+          <button
+            onClick={onClose}
+            disabled={submitting}
+            className="px-3 py-1.5 text-sm text-zinc-400 hover:text-zinc-100"
+          >
+            취소
+          </button>
+          <button
+            onClick={async () => {
+              setSubmitting(true);
+              try {
+                await onSubmit(role.trim(), body.trim());
+              } finally {
+                setSubmitting(false);
+              }
+            }}
+            disabled={!canSubmit}
+            className="px-4 py-1.5 bg-amber-500 text-zinc-950 text-sm font-medium rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-amber-400"
+          >
+            위임
+          </button>
+        </div>
       </div>
     </div>
   );
