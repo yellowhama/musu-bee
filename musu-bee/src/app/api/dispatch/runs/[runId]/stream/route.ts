@@ -28,8 +28,10 @@ export async function GET(req: NextRequest, ctx: RouteContext): Promise<Response
 
   const target = `${BRIDGE_URL}/api/dispatch/runs/${runId}/stream`;
   const token = process.env.MUSU_BRIDGE_TOKEN ?? "";
-  const headers = buildBridgeHeaders(token);
-  headers.set("Accept", "text/event-stream");
+  const headers = {
+    ...buildBridgeHeaders(token),
+    Accept: "text/event-stream",
+  };
 
   let upstream: Response;
   try {
