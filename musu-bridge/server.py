@@ -3260,6 +3260,18 @@ async def api_nodes_remove(node_name: str):
 
     router.remove_node(node_name)
     logger.info("Node removed: %s", node_name)
+
+    # v18.A Phase 3 — clean up fleet runtime rows for the removed node so
+    # they don't linger as orphan rows. The dedicated DELETE here is
+    # cheaper and clearer than a cascade FK on the SQLite side.
+    try:
+        from runtime_routes import _store as _rt_store
+        purged = _rt_store().delete_node(node_name)
+        if purged:
+            logger.info("Removed %d node_runtimes rows for %s", purged, node_name)
+    except Exception:
+        logger.exception("Failed to purge node_runtimes for %s", node_name)
+
     return {"removed": node_name}
 
 

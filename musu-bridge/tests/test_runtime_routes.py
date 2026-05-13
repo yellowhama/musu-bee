@@ -97,12 +97,74 @@ def test_probe_self_persists_runtimes():
     assert by_name["ollama"]["status"] == "missing"
 
 
-def test_probe_remote_node_returns_400():
-    """Phase 2 only knows how to probe self; remote names get a clear 400."""
+def test_probe_unknown_node_returns_404():
+    """Probe of a name that's neither self nor a known peer → 404."""
     r = client.post("/api/nodes/some-other-node/runtimes/probe")
-    assert r.status_code == 400
-    assert "not yet supported" in r.json()["detail"].lower()
-    assert "phase 3" in r.json()["detail"].lower()
+    assert r.status_code == 404
+    assert "unknown node" in r.json()["detail"].lower()
+
+
+def test_list_unknown_node_returns_empty_local():
+    """Unknown peer GET → empty list, source=local (cache may be empty too)."""
+    r = client.get("/api/nodes/never-seen-2/runtimes")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["source"] == "local"
+    assert body["stale"] is False
+
+
+def test_list_peer_forwards_to_peer_url(monkeypatch):
+    """Known peer → list_runtimes proxies the peer's response and tags source=peer."""
+    fake_peer_body = {
+        "node_name": "peer-x",
+        "runtimes": [{"name": "claude_cli", "status": "installed"}],
+        "total": 1,
+    }
+
+    async def _fake_forward(method, node_name, suffix):
+        assert method == "GET"
+        assert node_name == "peer-x"
+        return fake_peer_body
+
+    monkeypatch.setattr("runtime_routes._peer_url", lambda n: "http://peer-x:8070")
+    monkeypatch.setattr("runtime_routes._forward_to_peer", _fake_forward)
+
+    r = client.get("/api/nodes/peer-x/runtimes")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["source"] == "peer"
+    assert body["total"] == 1
+    assert body["runtimes"][0]["name"] == "claude_cli"
+
+
+def test_list_peer_falls_back_to_cache_when_unreachable(monkeypatch):
+    """Known peer + offline → source=cache, stale=True, no 5xx."""
+
+    async def _fake_forward_fail(method, node_name, suffix):
+        return None
+
+    monkeypatch.setattr("runtime_routes._peer_url", lambda n: "http://peer-y:8070")
+    monkeypatch.setattr("runtime_routes._forward_to_peer", _fake_forward_fail)
+
+    r = client.get("/api/nodes/peer-y/runtimes")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["source"] == "cache"
+    assert body["stale"] is True
+
+
+def test_probe_peer_502_when_unreachable(monkeypatch):
+    """Probe of an unreachable known peer → 502 (not silent success)."""
+
+    async def _fake_fail(method, node_name, suffix):
+        return None
+
+    monkeypatch.setattr("runtime_routes._peer_url", lambda n: "http://peer-z:8070")
+    monkeypatch.setattr("runtime_routes._forward_to_peer", _fake_fail)
+
+    r = client.post("/api/nodes/peer-z/runtimes/probe")
+    assert r.status_code == 502
+    assert "unreachable" in r.json()["detail"].lower()
 
 
 # ── status_changed_at semantics through the route ────────────────────────────
