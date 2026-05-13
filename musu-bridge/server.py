@@ -853,6 +853,14 @@ async def lifespan(app: FastAPI):
     except Exception as _ce:
         logger.warning("db_cleanup: failed — %s", _ce)
 
+    # v18.A Phase 2 — populate node_runtimes for this node so the API
+    # returns something on first call without waiting for an explicit probe.
+    try:
+        from runtime_routes import probe_self_on_startup
+        await probe_self_on_startup()
+    except Exception as _re:
+        logger.warning("runtime_probe: startup failed — %s", _re)
+
     yield
 
     # Graceful shutdown: wait for in-progress tasks (max 30s)
@@ -2096,6 +2104,9 @@ async def api_company_metrics(company_id: str) -> dict:
 # ── System/admin/sync/watchdog routes (extracted to system_routes.py) ─────────
 from system_routes import system_router  # noqa: F401
 app.include_router(system_router)
+
+from runtime_routes import runtime_router  # noqa: F401  # v18.A Phase 2
+app.include_router(runtime_router)
 
 
 @app.get("/api/tasks/events")

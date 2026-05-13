@@ -17,11 +17,13 @@ from musu_core.fleet.runtimes import (
     RuntimeStatus,
     detect_all_runtimes,
 )
+from musu_core.fleet.store import RuntimeStore
 
 __all__ = [
     "KNOWN_RUNTIMES",
     "RuntimeCapability",
     "RuntimeHealth",
     "RuntimeStatus",
+    "RuntimeStore",
     "detect_all_runtimes",
 ]

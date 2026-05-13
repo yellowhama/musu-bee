@@ -804,6 +804,68 @@ def _v26_down(conn: sqlite3.Connection) -> None:  # noqa: ARG001
     """SQLite < 3.35 cannot DROP COLUMN — no-op."""
 
 
+# ---------------------------------------------------------------------------
+# v27: node_runtimes (fleet capability state per (node, runtime))
+# ---------------------------------------------------------------------------
+
+
+def _v27_up(conn: sqlite3.Connection) -> None:
+    """Create node_runtimes table for fleet capability tracking.
+
+    Schema mirrors musu_core.fleet.runtimes.RuntimeCapability one-for-one.
+    Inspired by Kubernetes NodeCondition + Nomad fingerprints — status
+    (presence) and health (works?) are deliberately separate columns
+    rather than collapsed into one "state" field, so dashboards can tell
+    "binary missing" apart from "binary present but probe failed."
+
+    schema_version is forward-compat insurance because CLAUDE.md treats
+    DB migrations as gated on explicit user approval; better to ship an
+    unused INTEGER column now than to ask again later.
+
+    Three timestamp columns are intentional and not redundant:
+      detected_at           — last successful detection (K8s lastTransitionTime
+                              for the success case)
+      last_probe_attempt_at — last attempt regardless of outcome
+      state_changed_at      — when status or health actually flipped
+    All three are unix-float seconds matching v26's pattern.
+
+    PK (node_name, runtime_name) makes UPSERT natural and prevents the
+    "same node logs two rows for the same runtime" foot-gun.
+    """
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS node_runtimes (
+            node_name             TEXT NOT NULL,
+            runtime_name          TEXT NOT NULL,
+            status                TEXT NOT NULL,
+            health                TEXT NOT NULL DEFAULT 'unknown',
+            reason                TEXT NOT NULL DEFAULT '',
+            version               TEXT NOT NULL DEFAULT '',
+            detection_method      TEXT NOT NULL DEFAULT '',
+            binary_path           TEXT NOT NULL DEFAULT '',
+            notes                 TEXT NOT NULL DEFAULT '',
+            probe_error           TEXT NOT NULL DEFAULT '',
+            detected_at           REAL NOT NULL DEFAULT 0,
+            last_probe_attempt_at REAL NOT NULL DEFAULT 0,
+            state_changed_at      REAL NOT NULL DEFAULT 0,
+            schema_version        INTEGER NOT NULL DEFAULT 1,
+            PRIMARY KEY (node_name, runtime_name)
+        );
+        """
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_node_runtimes_node ON node_runtimes(node_name);"
+    )
+    conn.commit()
+
+
+def _v27_down(conn: sqlite3.Connection) -> None:
+    """Drop the node_runtimes table (only fully reversible v27 contents)."""
+    conn.execute("DROP INDEX IF EXISTS idx_node_runtimes_node;")
+    conn.execute("DROP TABLE IF EXISTS node_runtimes;")
+    conn.commit()
+
+
 MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v1_fallback_chain", _v1_up, _v1_down),
     ("v2_messages_agent_id", _v2_up, _v2_down),
@@ -831,6 +893,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v24_agent_allowed_tools", _v24_up, _v24_down),
     ("v25_sprint_contracts_locked", _v25_up, _v25_down),
     ("v26_sprint_contracts_updated_at", _v26_up, _v26_down),
+    ("v27_node_runtimes", _v27_up, _v27_down),
 ]
 
 
