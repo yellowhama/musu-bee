@@ -1,17 +1,17 @@
-"""SSE latency assertion — v19.D US3 / SC-001.
+"""SSE latency assertion — v19.D US3 / SC-001, rewritten for v19.E US2.
 
-v19.C SC-001: first message_delta visible ≤100ms after backend emits.
-The asyncio.Event wake-up in dispatch_routes.event_stream is the
+v19.C SC-001: first message_delta visible <=100ms after backend emits.
+The asyncio.Event wake-up in dispatch_routes.stream_events is the
 mechanism that's supposed to achieve this. This test pins the
 mechanism so a future refactor of the SSE loop can't silently regress.
 
-We measure record_event(message_delta) → first SSE frame containing
-that event. Threshold = _STREAM_POLL_INTERVAL_SEC / 4 = 250ms today.
+v19.E US2: this test now imports the *production* stream_events
+function directly from dispatch_routes instead of re-implementing it.
+That guarantees any future regression in the production code path
+reaches the perf test, not just a parallel re-impl.
 
-Strategy: call the event_stream async generator directly with a mock
-Request whose is_disconnected() returns False. Fire record_event from
-a concurrent task, await the next yielded frame, measure
-perf_counter() delta.
+We measure record_event(message_delta) -> first SSE frame containing
+that event. Threshold = _STREAM_POLL_INTERVAL_SEC / 4 = 250ms today.
 
 Marked @pytest.mark.perf so the default sweep skips it. Run with:
     pytest -m perf musu-bridge/tests/test_sse_latency.py -v -s
@@ -25,7 +25,6 @@ import os
 import statistics
 import tempfile
 import time
-from typing import Any
 
 import pytest
 
@@ -34,7 +33,8 @@ TRIALS = 5
 
 
 class _FakeRequest:
-    """Minimal stand-in for starlette.Request — event_stream only calls is_disconnected()."""
+    """Minimal stand-in for starlette.Request — stream_events only calls
+    is_disconnected() on it (structural protocol)."""
 
     async def is_disconnected(self) -> bool:
         return False
@@ -42,7 +42,7 @@ class _FakeRequest:
 
 @pytest.fixture
 def app_and_db():
-    fd, db_path = tempfile.mkstemp(suffix=".db", prefix="v19d_sse_latency_")
+    fd, db_path = tempfile.mkstemp(suffix=".db", prefix="v19e_sse_latency_")
     os.close(fd)
     os.environ["MUSU_DB_PATH"] = db_path
     from musu_core import config as _cfg
@@ -69,70 +69,31 @@ def app_and_db():
         pass
 
 
-def _build_event_stream(db, run_id: str):
-    """Re-create the event_stream async generator pattern from dispatch_routes,
-    pointed at the test DB. We re-implement here instead of importing because
-    the production event_stream is a closure inside stream_run() and binds to
-    its enclosing request — not easily extractable.
-    """
-    import asyncio as _asyncio
-    from musu_core.dispatch.wake import (
-        register_stream_event,
-        unregister_stream_event,
-    )
+def _parse_event_type(frame: str) -> str | None:
+    """Extract event_type from an SSE 'data: <json>\\n\\n' frame.
 
-    _STREAM_POLL_INTERVAL_SEC = 1.0
-    request = _FakeRequest()
-
-    async def event_stream():
-        last_seen_ts: str | None = None
-        stream_event = register_stream_event(run_id)
-        try:
-            while True:
-                if await request.is_disconnected():
-                    return
-                if last_seen_ts is None:
-                    rows = db.execute(
-                        "SELECT id, event_type, payload, created_at "
-                        "FROM heartbeat_run_events WHERE run_id=? "
-                        "ORDER BY rowid ASC",
-                        (run_id,),
-                    )
-                else:
-                    rows = db.execute(
-                        "SELECT id, event_type, payload, created_at "
-                        "FROM heartbeat_run_events "
-                        "WHERE run_id=? AND created_at > ? "
-                        "ORDER BY rowid ASC",
-                        (run_id, last_seen_ts),
-                    )
-                for ev in rows:
-                    yield ev["event_type"]
-                    last_seen_ts = ev["created_at"]
-                stream_event.clear()
-                try:
-                    await _asyncio.wait_for(
-                        stream_event.wait(), timeout=_STREAM_POLL_INTERVAL_SEC
-                    )
-                except _asyncio.TimeoutError:
-                    pass
-                except _asyncio.CancelledError:
-                    return
-        finally:
-            unregister_stream_event(run_id)
-
-    return event_stream
+    Returns None for non-event frames (error/done/stream_timeout
+    envelopes have a 'type' field instead of 'event_type')."""
+    if not frame.startswith("data: "):
+        return None
+    body = frame[len("data: "):].rstrip("\n")
+    try:
+        obj = json.loads(body)
+    except json.JSONDecodeError:
+        return None
+    return obj.get("event_type")
 
 
 @pytest.mark.perf
 def test_sse_latency_under_threshold(app_and_db) -> None:
-    """record_event(message_delta) → next event_stream yield median < 250ms."""
+    """record_event(message_delta) -> next stream_events yield median < 250ms."""
     db, _ = app_and_db
     from musu_core.dispatch.wake import record_event
+    from dispatch_routes import stream_events
 
     async def measure() -> list[float]:
         latencies: list[float] = []
-        gen = _build_event_stream(db, "r1")()
+        gen = stream_events(db, "r1", _FakeRequest())
         try:
             for trial in range(TRIALS):
                 await asyncio.sleep(0.05)  # let any previous Event clear
@@ -144,9 +105,9 @@ def test_sse_latency_under_threshold(app_and_db) -> None:
                         record_event, db, "r1", "message_delta", {"text": f"t{trial}"}
                     )
                 )
-                # Pull events until we see our message_delta.
-                async for event_type in gen:
-                    if event_type == "message_delta":
+                # Pull frames until we see our message_delta.
+                async for frame in gen:
+                    if _parse_event_type(frame) == "message_delta":
                         t1 = time.perf_counter()
                         latencies.append(t1 - t0)
                         break

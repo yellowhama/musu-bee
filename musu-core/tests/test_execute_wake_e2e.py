@@ -99,13 +99,11 @@ def _seed(db: Database, run_id: str = "r1") -> None:
 
 
 def _event_types(db: Database, run_id: str) -> list[str]:
-    # SQLite assigns rowid in INSERT order; created_at has only
-    # millisecond resolution and the id column is a uuid hex which
-    # doesn't sort temporally. rowid is the authoritative insertion-
-    # order indicator.
+    # v30 seq column is the authoritative insertion-order indicator
+    # (created_at is ms-only; id is uuid hex, not temporal).
     rows = db.execute(
         "SELECT event_type FROM heartbeat_run_events "
-        "WHERE run_id=? ORDER BY rowid ASC",
+        "WHERE run_id=? ORDER BY seq ASC",
         (run_id,),
     )
     return [r["event_type"] for r in rows]

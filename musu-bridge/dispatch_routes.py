@@ -19,6 +19,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from collections.abc import AsyncGenerator
 from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
@@ -106,7 +107,7 @@ def get_run(run_id: str) -> dict[str, Any]:
     events = db.execute(
         "SELECT id, event_type, payload, created_at "
         "FROM heartbeat_run_events WHERE run_id=? "
-        "ORDER BY created_at ASC, rowid ASC",
+        "ORDER BY seq ASC",
         (run_id,),
     )
     return {
@@ -325,121 +326,142 @@ _STREAM_TIMEOUT_SEC = 30 * 60
 _STREAM_POLL_INTERVAL_SEC = 1.0
 
 
+async def stream_events(
+    db: Any,
+    run_id: str,
+    request: Any,
+    *,
+    poll_interval_sec: float = _STREAM_POLL_INTERVAL_SEC,
+    stream_timeout_sec: float = _STREAM_TIMEOUT_SEC,
+) -> AsyncGenerator[str, None]:
+    """Yield SSE-formatted event strings for run_id.
+
+    `request` is anything with an async `is_disconnected() -> bool` method
+    (structural protocol). Production passes starlette.Request; tests pass
+    a fake object.
+
+    Yields `data: <json>\\n\\n` strings, one per event row, then a terminal
+    `{"type":"done"}` when the run reaches completed/failed/cancelled
+    status, or `{"type":"stream_timeout"}` after stream_timeout_sec.
+
+    Extracted v19.E from stream_run's inner closure so perf tests can
+    exercise the production code path instead of a re-implementation.
+    """
+    # 404 inside the stream so the client gets a clean close instead of
+    # a hung connection; we already returned 200 by the time this
+    # generator runs, so we cannot raise HTTPException here.
+    first_check = db.execute(
+        "SELECT status FROM heartbeat_runs WHERE id=?", (run_id,)
+    )
+    if not first_check:
+        yield f"data: {json.dumps({'type': 'error', 'detail': 'run not found'})}\n\n"
+        return
+
+    last_seen_ts: str | None = None
+    deadline = asyncio.get_event_loop().time() + stream_timeout_sec
+
+    # v19.C: register a wake-up Event so record_event can signal us
+    # the instant new rows land instead of waiting the full poll
+    # interval. unregister in finally so we don't leak the dict slot.
+    stream_event = register_stream_event(run_id)
+    try:
+        while True:
+            if await request.is_disconnected():
+                return
+            if asyncio.get_event_loop().time() > deadline:
+                yield f"data: {json.dumps({'type': 'stream_timeout'})}\n\n"
+                return
+
+            # Fetch new events since the last we flushed.
+            if last_seen_ts is None:
+                rows = db.execute(
+                    "SELECT id, event_type, payload, created_at "
+                    "FROM heartbeat_run_events WHERE run_id=? "
+                    "ORDER BY seq ASC",
+                    (run_id,),
+                )
+            else:
+                rows = db.execute(
+                    "SELECT id, event_type, payload, created_at "
+                    "FROM heartbeat_run_events "
+                    "WHERE run_id=? AND created_at > ? "
+                    "ORDER BY seq ASC",
+                    (run_id, last_seen_ts),
+                )
+
+            for ev in rows:
+                payload = {
+                    "id": ev["id"],
+                    "event_type": ev["event_type"],
+                    "payload": json.loads(ev["payload"] or "{}"),
+                    "created_at": ev["created_at"],
+                }
+                yield f"data: {json.dumps(payload)}\n\n"
+                last_seen_ts = ev["created_at"]
+
+            status_rows = db.execute(
+                "SELECT status, summary, error FROM heartbeat_runs WHERE id=?",
+                (run_id,),
+            )
+            if status_rows and status_rows[0]["status"] in _TERMINAL_STATUSES:
+                # One more flush in case events landed between fetches.
+                if last_seen_ts:
+                    tail = db.execute(
+                        "SELECT id, event_type, payload, created_at "
+                        "FROM heartbeat_run_events "
+                        "WHERE run_id=? AND created_at > ? "
+                        "ORDER BY seq ASC",
+                        (run_id, last_seen_ts),
+                    )
+                    for ev in tail:
+                        payload = {
+                            "id": ev["id"],
+                            "event_type": ev["event_type"],
+                            "payload": json.loads(ev["payload"] or "{}"),
+                            "created_at": ev["created_at"],
+                        }
+                        yield f"data: {json.dumps(payload)}\n\n"
+                final = {
+                    "type": "done",
+                    "status": status_rows[0]["status"],
+                    "summary": status_rows[0]["summary"],
+                    "error": status_rows[0]["error"],
+                }
+                yield f"data: {json.dumps(final)}\n\n"
+                return
+
+            # Wait for either a record_event signal OR the poll
+            # interval, whichever comes first. Clear before waiting so
+            # we don't immediately re-wake on a stale set().
+            stream_event.clear()
+            try:
+                await asyncio.wait_for(
+                    stream_event.wait(), timeout=poll_interval_sec
+                )
+            except asyncio.TimeoutError:
+                pass  # normal poll cadence
+            except asyncio.CancelledError:
+                return
+    finally:
+        unregister_stream_event(run_id)
+
+
 @dispatch_router.get("/runs/{run_id}/stream")
 async def stream_run(run_id: str, request: Request) -> StreamingResponse:
     """SSE — initial event backlog, then new events as they appear.
 
-    The stream emits one SSE message per event. Each message body is the
-    same JSON shape returned by GET /runs/{id}/events. After the run
-    reaches a terminal status (`completed` / `failed` / `cancelled`) we
-    flush any remaining events, send a final `{type:'done', status:...}`,
-    and close. A 30-minute hard cap stops runaway streams; clients that
-    need longer reconnect with `since=<last created_at>`.
+    Thin wrapper over `stream_events`. The stream emits one SSE message
+    per event. Each message body is the same JSON shape returned by
+    GET /runs/{id}/events. After the run reaches a terminal status
+    (`completed` / `failed` / `cancelled`) we flush any remaining events,
+    send a final `{type:'done', status:...}`, and close. A 30-minute hard
+    cap stops runaway streams; clients that need longer reconnect with
+    `since=<last created_at>`.
     """
     cfg = get_config()
     db = get_db(cfg.db_path)
-
-    async def event_stream():
-        # 404 inside the stream so the client gets a clean close instead of
-        # a hung connection; we already returned 200 by the time this
-        # generator runs, so we cannot raise HTTPException here.
-        first_check = db.execute(
-            "SELECT status FROM heartbeat_runs WHERE id=?", (run_id,)
-        )
-        if not first_check:
-            yield f"data: {json.dumps({'type': 'error', 'detail': 'run not found'})}\n\n"
-            return
-
-        last_seen_ts: str | None = None
-        deadline = asyncio.get_event_loop().time() + _STREAM_TIMEOUT_SEC
-
-        # v19.C: register a wake-up Event so record_event can signal us
-        # the instant new rows land instead of waiting the full poll
-        # interval. unregister in finally so we don't leak the dict slot.
-        stream_event = register_stream_event(run_id)
-        try:
-            while True:
-                if await request.is_disconnected():
-                    return
-                if asyncio.get_event_loop().time() > deadline:
-                    yield f"data: {json.dumps({'type': 'stream_timeout'})}\n\n"
-                    return
-
-                # Fetch new events since the last we flushed.
-                if last_seen_ts is None:
-                    rows = db.execute(
-                        "SELECT id, event_type, payload, created_at "
-                        "FROM heartbeat_run_events WHERE run_id=? "
-                        "ORDER BY created_at ASC, rowid ASC",
-                        (run_id,),
-                    )
-                else:
-                    rows = db.execute(
-                        "SELECT id, event_type, payload, created_at "
-                        "FROM heartbeat_run_events "
-                        "WHERE run_id=? AND created_at > ? "
-                        "ORDER BY created_at ASC, rowid ASC",
-                        (run_id, last_seen_ts),
-                    )
-
-                for ev in rows:
-                    payload = {
-                        "id": ev["id"],
-                        "event_type": ev["event_type"],
-                        "payload": json.loads(ev["payload"] or "{}"),
-                        "created_at": ev["created_at"],
-                    }
-                    yield f"data: {json.dumps(payload)}\n\n"
-                    last_seen_ts = ev["created_at"]
-
-                status_rows = db.execute(
-                    "SELECT status, summary, error FROM heartbeat_runs WHERE id=?",
-                    (run_id,),
-                )
-                if status_rows and status_rows[0]["status"] in _TERMINAL_STATUSES:
-                    # One more flush in case events landed between fetches.
-                    if last_seen_ts:
-                        tail = db.execute(
-                            "SELECT id, event_type, payload, created_at "
-                            "FROM heartbeat_run_events "
-                            "WHERE run_id=? AND created_at > ? "
-                            "ORDER BY created_at ASC, rowid ASC",
-                            (run_id, last_seen_ts),
-                        )
-                        for ev in tail:
-                            payload = {
-                                "id": ev["id"],
-                                "event_type": ev["event_type"],
-                                "payload": json.loads(ev["payload"] or "{}"),
-                                "created_at": ev["created_at"],
-                            }
-                            yield f"data: {json.dumps(payload)}\n\n"
-                    final = {
-                        "type": "done",
-                        "status": status_rows[0]["status"],
-                        "summary": status_rows[0]["summary"],
-                        "error": status_rows[0]["error"],
-                    }
-                    yield f"data: {json.dumps(final)}\n\n"
-                    return
-
-                # Wait for either a record_event signal OR the poll
-                # interval, whichever comes first. Clear before waiting so
-                # we don't immediately re-wake on a stale set().
-                stream_event.clear()
-                try:
-                    await asyncio.wait_for(
-                        stream_event.wait(), timeout=_STREAM_POLL_INTERVAL_SEC
-                    )
-                except asyncio.TimeoutError:
-                    pass  # normal poll cadence
-                except asyncio.CancelledError:
-                    return
-        finally:
-            unregister_stream_event(run_id)
-
     return StreamingResponse(
-        event_stream(),
+        stream_events(db, run_id, request),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -464,14 +486,14 @@ def get_run_events(run_id: str, since: str | None = None) -> dict[str, Any]:
             "SELECT id, event_type, payload, created_at "
             "FROM heartbeat_run_events "
             "WHERE run_id=? AND created_at > ? "
-            "ORDER BY created_at ASC, rowid ASC",
+            "ORDER BY seq ASC",
             (run_id, since),
         )
     else:
         events = db.execute(
             "SELECT id, event_type, payload, created_at "
             "FROM heartbeat_run_events WHERE run_id=? "
-            "ORDER BY created_at ASC, rowid ASC",
+            "ORDER BY seq ASC",
             (run_id,),
         )
     return {"run_id": run_id, "events": [dict(e) for e in events]}
