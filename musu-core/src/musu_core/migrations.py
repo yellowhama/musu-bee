@@ -1083,6 +1083,79 @@ def _v29_down(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+# ---------------------------------------------------------------------------
+# v30: explicit monotonic seq on heartbeat_run_events
+# ---------------------------------------------------------------------------
+
+
+def _v30_up(conn: sqlite3.Connection) -> None:
+    """v19.E: explicit monotonic seq column on heartbeat_run_events.
+
+    Problem this fixes: v19.A through v19.D ordered events by
+    (created_at, id) or (created_at, rowid). created_at has only ms
+    resolution; id is uuid hex (alphabetic, non-temporal); rowid is
+    monotonic per INSERT but is a SQLite implementation detail. Same-
+    ms event bursts could reorder non-deterministically.
+
+    Schema additions:
+      - heartbeat_run_events.seq INTEGER NOT NULL DEFAULT 0
+      - UNIQUE INDEX on seq (also speeds the MAX(seq) lookup that
+        record_event runs on every INSERT post-v30)
+
+    Backfill: SET seq = rowid for all existing rows. SQLite rowid is
+    monotonic per INSERT in this connection, so this preserves the
+    v19.D-era ordering exactly — no historical event reorders at the
+    migration moment.
+
+    Forward INSERTs (post-migration): record_event computes
+    `COALESCE(MAX(seq), 0) + 1` before each INSERT. The Database._lock
+    around execute() serializes record_event calls in-process; SQLite
+    WAL handles disk-level durability.
+
+    Why not AUTOINCREMENT: SQLite refuses `ALTER TABLE ADD COLUMN
+    ... AUTOINCREMENT` (`near "AUTOINCREMENT": syntax error`).
+    AUTOINCREMENT works only inside CREATE TABLE and only on INTEGER
+    PRIMARY KEY columns. Computed-in-record_event is the simplest
+    alternative.
+    """
+    cols = {
+        row[1]
+        for row in conn.execute(
+            "PRAGMA table_info(heartbeat_run_events)"
+        ).fetchall()
+    }
+    if "seq" not in cols:
+        conn.execute(
+            "ALTER TABLE heartbeat_run_events "
+            "ADD COLUMN seq INTEGER NOT NULL DEFAULT 0"
+        )
+        conn.execute(
+            "UPDATE heartbeat_run_events SET seq = rowid"
+        )
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS "
+        "idx_heartbeat_run_events_seq ON heartbeat_run_events(seq)"
+    )
+    conn.commit()
+
+
+def _v30_down(conn: sqlite3.Connection) -> None:
+    """Roll back v30 — drop seq index and column.
+
+    On SQLite < 3.35 the column drop is a no-op; the column remains
+    at its DEFAULT (0). This matches v28/v29's graceful-older-SQLite
+    pattern.
+    """
+    conn.execute("DROP INDEX IF EXISTS idx_heartbeat_run_events_seq")
+    try:
+        conn.execute(
+            "ALTER TABLE heartbeat_run_events DROP COLUMN seq"
+        )
+    except sqlite3.OperationalError:
+        pass
+    conn.commit()
+
+
 MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v1_fallback_chain", _v1_up, _v1_down),
     ("v2_messages_agent_id", _v2_up, _v2_down),
@@ -1113,6 +1186,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v27_node_runtimes", _v27_up, _v27_down),
     ("v28_agent_hierarchy_and_runs", _v28_up, _v28_down),
     ("v29_dispatch_hardening", _v29_up, _v29_down),
+    ("v30_event_seq", _v30_up, _v30_down),
 ]
 
 

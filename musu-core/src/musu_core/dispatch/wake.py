@@ -129,6 +129,13 @@ def record_event(
 ) -> str:
     """Append one row to heartbeat_run_events and return its id.
 
+    v19.E: writes a monotonic `seq` value computed as
+    COALESCE(MAX(seq),0)+1 as part of the same INSERT statement. SQLite
+    evaluates the subquery and the INSERT atomically within one
+    statement, so concurrent record_event callers cannot read the same
+    MAX(seq) and race on the UNIQUE INDEX. The UNIQUE INDEX on seq
+    (from v30) rejects any duplicate as a defense-in-depth check.
+
     After the INSERT commits, signal the per-run asyncio.Event so any
     open SSE stream for run_id wakes up immediately instead of waiting
     for its next poll. The signal is best-effort — if no listener is
@@ -136,10 +143,21 @@ def record_event(
     see the row via the bounded poll inside the SSE loop.
     """
     event_id = uuid.uuid4().hex
+    # Single-statement INSERT with the subquery for seq. This eliminates
+    # the SELECT-then-INSERT race that would otherwise let two
+    # concurrent record_event callers compute the same next_seq and
+    # collide on the UNIQUE INDEX.
     db.execute(
-        "INSERT INTO heartbeat_run_events (id, run_id, event_type, payload) "
-        "VALUES (?, ?, ?, ?)",
-        (event_id, run_id, event_type, json.dumps(payload or {})),
+        "INSERT INTO heartbeat_run_events "
+        "(id, run_id, event_type, payload, seq) "
+        "VALUES (?, ?, ?, ?, "
+        "(SELECT COALESCE(MAX(seq), 0) + 1 FROM heartbeat_run_events))",
+        (
+            event_id,
+            run_id,
+            event_type,
+            json.dumps(payload or {}),
+        ),
     )
     _signal_stream_event(run_id)
     return event_id
