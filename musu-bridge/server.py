@@ -874,6 +874,47 @@ async def lifespan(app: FastAPI):
     except Exception as _re:
         logger.warning("runtime_probe: startup failed — %s", _re)
 
+    # v21.E — start the K8s-style ControllerManager. Hosts:
+    #   CEOReconciler        (companies)
+    #   MachineReconciler    (machines)
+    #   SchedulerReconciler  (resource_requests)
+    # Sources auto-poll via KindSource (2s default) and wake on
+    # WatchDispatcher notify (21.B). All controllers share the
+    # same musu-core Database instance.
+    controller_manager = None
+    try:
+        from musu_core.controllers.builder import ControllerBuilder
+        from musu_core.controllers.manager import ControllerManager
+        from musu_core.controllers.ceo_reconciler import CEOReconciler
+        from musu_core.controllers.machine_reconciler import MachineReconciler
+        from musu_core.scheduler.loop import SchedulerReconciler
+
+        _ctrl_backend = _get_backend()
+        controller_manager = ControllerManager(db=_ctrl_backend._db)
+        controller_manager.add(
+            ControllerBuilder(_ctrl_backend._db)
+            .named("CEOReconciler")
+            .for_object("companies")
+            .complete(CEOReconciler(db=_ctrl_backend._db))
+        )
+        controller_manager.add(
+            ControllerBuilder(_ctrl_backend._db)
+            .named("MachineReconciler")
+            .for_object("machines")
+            .complete(MachineReconciler(db=_ctrl_backend._db))
+        )
+        controller_manager.add(
+            ControllerBuilder(_ctrl_backend._db)
+            .named("SchedulerReconciler")
+            .for_object("resource_requests")
+            .complete(SchedulerReconciler(db=_ctrl_backend._db))
+        )
+        await controller_manager.start()
+        logger.info("controllers: ControllerManager started (CEO + Machine + Scheduler)")
+    except Exception as _ce:
+        logger.warning("controllers: failed to start ControllerManager — %s", _ce)
+        controller_manager = None
+
     yield
 
     # Graceful shutdown: wait for in-progress tasks (max 30s)
@@ -890,6 +931,14 @@ async def lifespan(app: FastAPI):
         logger.info("lifecycle: bridge_stopped event recorded for node=%r", cfg.node_name)
     except Exception as _le:
         logger.warning("lifecycle: failed to record bridge_stopped — %s", _le)
+
+    # v21.E — stop the ControllerManager before cancelling other
+    # background tasks. Drains in-flight reconciles cleanly.
+    if controller_manager is not None:
+        try:
+            await controller_manager.stop(timeout=10.0)
+        except Exception as _se:
+            logger.warning("controllers: stop raised — %s", _se)
 
     stuck_watchdog_task.cancel()
     watchdog_cleanup_task.cancel()

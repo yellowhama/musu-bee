@@ -1,8 +1,29 @@
-"""RemoteProcessAdapter — executes a command on a remote musu-worker node.
+"""RemoteProcessAdapter — DEPRECATED in v21.E. Use ScheduledProcessAdapter.
+
+Hardcoded `worker_url` bypasses the scheduler; the adapter sends every
+agent's run to the same machine regardless of capacity, runtime class,
+or current load. ScheduledProcessAdapter (v21.C) replaces this by
+posting a ResourceRequest, letting the scheduler bind to a machine
+based on declared requirements, then dispatching to the bound bridge.
+
+Migration path (no schema change required):
+    1. In agents.adapter_config, replace
+           "adapter_type": "remote_process",
+           "worker_url":   "http://...",
+       with
+           "adapter_type": "scheduled_process",
+           "machine_urls": {"<machine_id>": "http://...", ...},
+           "requires":     {...},
+           "affinity":     {...}   # optional
+    2. Add a row to `machines` for each worker, and let bridges
+       heartbeat `machine_capacity` (21.B/C).
+
+This adapter is kept registered to avoid breaking existing agent
+configs on rolling deployments. A DeprecationWarning fires on
+construction; remove in v22.
 
 Config keys (in agents.adapter_config):
   worker_url   str        Base URL of the target musu-worker  (required)
-                          e.g. "http://100.121.211.106:9700"
   worker_token str        Bearer token for musu-worker auth   (optional)
   command      str        Executable to run on the remote node (required)
   args         list[str]  Arguments list                       []
@@ -13,6 +34,7 @@ Config keys (in agents.adapter_config):
 
 from __future__ import annotations
 
+import warnings
 from typing import Any
 
 import httpx
@@ -21,7 +43,25 @@ from musu_core.adapters.base import AdapterContext, AdapterResult, BaseAdapter
 
 
 class RemoteProcessAdapter(BaseAdapter):
-    """Call musu-worker POST /execute/process over HTTP."""
+    """Call musu-worker POST /execute/process over HTTP.
+
+    .. deprecated:: v21.E (2026-05-15)
+       Use :class:`musu_core.adapters.scheduled_process.ScheduledProcessAdapter`
+       instead. The scheduled variant respects capacity / runtime class
+       / affinity declared in the agent's ``requires`` / ``affinity``
+       blocks instead of hardcoding a single worker URL.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        warnings.warn(
+            "RemoteProcessAdapter is deprecated as of v21.E. Switch to "
+            "ScheduledProcessAdapter (adapter_type='scheduled_process') "
+            "to route work through the v21.C scheduler. "
+            "RemoteProcessAdapter will be removed in v22.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
     @property
     def adapter_type(self) -> str:
