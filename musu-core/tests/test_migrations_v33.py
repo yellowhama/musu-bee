@@ -46,8 +46,10 @@ def test_v33_registered_in_migrations_list() -> None:
     assert labels.index("v33_machines_and_fks") == labels.index(
         "v32_approval_status"
     ) + 1
-    # v33 is the new tail until v34 lands.
-    assert labels[-1] == "v33_machines_and_fks"
+    # v34 (resource_requests) and v35 (machine_capacity) extend v33's lineage.
+    assert labels.index("v34_resource_requests") == labels.index(
+        "v33_machines_and_fks"
+    ) + 1
 
 
 def test_v33_creates_machines_table() -> None:

@@ -43,6 +43,8 @@ _ALLOWED_TABLES: frozenset[str] = frozenset({
     "kvstore", "dispatch_counters",
     # v33 (21.B)
     "machines",
+    # v34+v35 (21.C)
+    "resource_requests", "machine_capacity",
     # test-only
     "contention_test", "controllers_test_rows",
 })

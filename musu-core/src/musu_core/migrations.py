@@ -1314,6 +1314,93 @@ def _v33_down(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+def _v34_up(conn: sqlite3.Connection) -> None:
+    """v21.C: resource_requests — agent run queue for the scheduler.
+
+    CEO controller inserts pending rows; SchedulerReconciler reads
+    pending in (priority DESC, created_at) order, filters/scores
+    machines (using machine_capacity v35), atomically binds via
+    UPDATE WHERE bound_machine_id IS NULL.
+
+    Idempotent: CREATE TABLE IF NOT EXISTS + CREATE INDEX IF NOT EXISTS.
+    """
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS resource_requests (
+            id                TEXT PRIMARY KEY,
+            company_id        TEXT REFERENCES companies(id) ON DELETE CASCADE,
+            agent_id          TEXT REFERENCES agents(id) ON DELETE CASCADE,
+            priority          INTEGER NOT NULL DEFAULT 0,
+            requires_json     TEXT NOT NULL DEFAULT '{}',
+            affinity_json     TEXT NOT NULL DEFAULT '{}',
+            status            TEXT NOT NULL DEFAULT 'pending'
+                              CHECK (status IN ('pending','bound','running','completed','failed','cancelled')),
+            bound_machine_id  TEXT REFERENCES machines(id) ON DELETE SET NULL,
+            bound_at          TEXT,
+            completed_at      TEXT,
+            error             TEXT,
+            created_at        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+            updated_at        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        )
+        """
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_resource_requests_pending "
+        "ON resource_requests(priority DESC, created_at) "
+        "WHERE status='pending'"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_resource_requests_company "
+        "ON resource_requests(company_id)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_resource_requests_machine "
+        "ON resource_requests(bound_machine_id) "
+        "WHERE bound_machine_id IS NOT NULL"
+    )
+    conn.commit()
+
+
+def _v34_down(conn: sqlite3.Connection) -> None:
+    conn.execute("DROP INDEX IF EXISTS idx_resource_requests_pending")
+    conn.execute("DROP INDEX IF EXISTS idx_resource_requests_company")
+    conn.execute("DROP INDEX IF EXISTS idx_resource_requests_machine")
+    conn.execute("DROP TABLE IF EXISTS resource_requests")
+    conn.commit()
+
+
+def _v35_up(conn: sqlite3.Connection) -> None:
+    """v21.C: machine_capacity — per-machine resource availability.
+
+    1:1 with machines (v33), separate table so bridges can heartbeat
+    capacity without bumping machines.updated_at (would otherwise
+    trigger watch storms on every heartbeat).
+    """
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS machine_capacity (
+            machine_id           TEXT PRIMARY KEY REFERENCES machines(id) ON DELETE CASCADE,
+            gpu_models_json      TEXT NOT NULL DEFAULT '[]',
+            gpu_vram_total_gb    REAL NOT NULL DEFAULT 0,
+            gpu_vram_free_gb     REAL NOT NULL DEFAULT 0,
+            cpu_cores            INTEGER NOT NULL DEFAULT 0,
+            cpu_idle_pct         REAL NOT NULL DEFAULT 0,
+            mem_total_gb         REAL NOT NULL DEFAULT 0,
+            mem_free_gb          REAL NOT NULL DEFAULT 0,
+            runtime_classes_json TEXT NOT NULL DEFAULT '[]',
+            last_heartbeat_at    TEXT,
+            updated_at           TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        )
+        """
+    )
+    conn.commit()
+
+
+def _v35_down(conn: sqlite3.Connection) -> None:
+    conn.execute("DROP TABLE IF EXISTS machine_capacity")
+    conn.commit()
+
+
 MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v1_fallback_chain", _v1_up, _v1_down),
     ("v2_messages_agent_id", _v2_up, _v2_down),
@@ -1348,6 +1435,8 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v31_dispatch_counters", _v31_up, _v31_down),
     ("v32_approval_status", _v32_up, _v32_down),
     ("v33_machines_and_fks", _v33_up, _v33_down),
+    ("v34_resource_requests", _v34_up, _v34_down),
+    ("v35_machine_capacity", _v35_up, _v35_down),
 ]
 
 
