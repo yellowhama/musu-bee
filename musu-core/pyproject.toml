@@ -32,6 +32,7 @@ packages = ["src/musu_core"]
 pythonpath = ["src"]
 testpaths = ["tests"]
 addopts = "-m 'not slow'"
+asyncio_mode = "auto"
 markers = [
     "slow: slow multiprocessing/integration tests, run manually with -m slow (v19.F.2)",
 ]
