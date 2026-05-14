@@ -30,6 +30,41 @@ from musu_core.db import Database
 MAX_PARENT_DEPTH = 5
 
 
+# ---------------------------------------------------------------------------
+# Stream wake-up registry (v19.C P1 — token streaming)
+# ---------------------------------------------------------------------------
+#
+# When a wake's SSE stream is open, the bridge registers an asyncio.Event
+# here keyed by run_id. record_event signals the event after every write so
+# the stream loop sees new rows without polling. Cross-process callers
+# (none today) would fall back to the existing time-based poll inside the
+# SSE loop — the Event signal is a best-effort accelerator, not a
+# correctness requirement.
+
+_stream_events: dict[str, asyncio.Event] = {}
+
+
+def register_stream_event(run_id: str) -> asyncio.Event:
+    """Create-or-fetch the asyncio.Event for run_id. Caller must unregister."""
+    ev = _stream_events.get(run_id)
+    if ev is None:
+        ev = asyncio.Event()
+        _stream_events[run_id] = ev
+    return ev
+
+
+def unregister_stream_event(run_id: str) -> None:
+    """Remove the Event for run_id. Safe to call multiple times."""
+    _stream_events.pop(run_id, None)
+
+
+def _signal_stream_event(run_id: str) -> None:
+    """Wake the SSE loop for run_id if anyone is listening."""
+    ev = _stream_events.get(run_id)
+    if ev is not None:
+        ev.set()
+
+
 class CycleDetected(RuntimeError):
     """Raised when a new wake would create a cycle or exceed MAX_PARENT_DEPTH."""
 
@@ -67,13 +102,21 @@ def record_event(
     event_type: str,
     payload: dict[str, Any] | None = None,
 ) -> str:
-    """Append one row to heartbeat_run_events and return its id."""
+    """Append one row to heartbeat_run_events and return its id.
+
+    After the INSERT commits, signal the per-run asyncio.Event so any
+    open SSE stream for run_id wakes up immediately instead of waiting
+    for its next poll. The signal is best-effort — if no listener is
+    registered the call is a no-op, and cross-process listeners still
+    see the row via the bounded poll inside the SSE loop.
+    """
     event_id = uuid.uuid4().hex
     db.execute(
         "INSERT INTO heartbeat_run_events (id, run_id, event_type, payload) "
         "VALUES (?, ?, ?, ?)",
         (event_id, run_id, event_type, json.dumps(payload or {})),
     )
+    _signal_stream_event(run_id)
     return event_id
 
 
@@ -90,6 +133,9 @@ async def execute_wake(db: Database, router: Any, run_id: str) -> None:
     `running`.
     """
     from musu_core.router import RouteRequest  # noqa: PLC0415 — avoid circular
+    from musu_core.dispatch.approval import (  # noqa: PLC0415 — avoid circular
+        make_request_approval_callable,
+    )
 
     # Atomic claim. UPDATE...RETURNING needs SQLite ≥ 3.35; we ship 3.50+.
     claimed = db.execute(
@@ -110,46 +156,133 @@ async def execute_wake(db: Database, router: Any, run_id: str) -> None:
 
     record_event(db, run_id, "wake_started", {"agent_id": agent_id})
 
+    # v19.C P3: if the agent's home_node names a remote mesh peer, forward
+    # the wake there instead of running the adapter locally. Empty/NULL
+    # home_node or self_name keeps the existing single-machine path.
+    home_node = _resolve_home_node(db, agent_id)
+    if home_node and not _is_local_node(home_node):
+        from musu_core.dispatch.forward import forward_wake_to_peer  # noqa: PLC0415
+        await forward_wake_to_peer(
+            db,
+            run_id=run_id,
+            agent_id=agent_id,
+            home_node=home_node,
+            wake_payload={
+                **payload,
+                "issue_id": row["issue_id"],
+                "wake_reason": "forwarded",
+            },
+        )
+        return
+
+    def _on_delta(text: str) -> None:
+        # FR-001: each adapter delta becomes one heartbeat_run_events row.
+        # FR-003 (callback exception safety) is handled inside
+        # BaseAdapter.execute_streaming, not here — we want a record_event
+        # exception (e.g. DB locked) to surface, not get swallowed.
+        if not text:
+            return
+        record_event(db, run_id, "message_delta", {"text": text})
+
+    # v19.C P2: inject the per-run request_approval callable into
+    # ctx.extra. Adapters that don't need approval simply never look it
+    # up; those that do call `await ctx.extra["request_approval"](prompt)`
+    # and the await blocks until submit_approval resolves the pending row.
+    request_approval = make_request_approval_callable(db, run_id)
+
     try:
-        result = await router.route(
+        result = await router.route_streaming(
             RouteRequest(
                 agent_id=agent_id,
                 prompt=prompt,
                 task_id=row["issue_id"],
-            )
+                extra={"request_approval": request_approval},
+            ),
+            _on_delta,
         )
+        # If submit_approval('declined') already set status='cancelled',
+        # don't overwrite it. The adapter still returned a result (likely
+        # a polite-refusal summary) but the run's terminal state is
+        # already decided.
         if result.success:
             db.execute(
                 "UPDATE heartbeat_runs "
                 "SET status='completed', summary=?, "
                 "    ended_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') "
-                "WHERE id=?",
+                "WHERE id=? AND status='running'",
                 (result.summary, run_id),
             )
-            record_event(
-                db, run_id, "completed",
-                {"summary": result.summary[:500]},
+            # Only emit 'completed' if we actually transitioned.
+            check = db.execute(
+                "SELECT status FROM heartbeat_runs WHERE id=?", (run_id,)
             )
+            if check and check[0]["status"] == "completed":
+                record_event(
+                    db, run_id, "completed",
+                    {"summary": result.summary[:500]},
+                )
         else:
             err = result.error or "unknown error"
             db.execute(
                 "UPDATE heartbeat_runs "
                 "SET status='failed', error=?, "
                 "    ended_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') "
-                "WHERE id=?",
+                "WHERE id=? AND status='running'",
                 (err, run_id),
             )
-            record_event(db, run_id, "failed", {"error": err})
+            check = db.execute(
+                "SELECT status FROM heartbeat_runs WHERE id=?", (run_id,)
+            )
+            if check and check[0]["status"] == "failed":
+                record_event(db, run_id, "failed", {"error": err})
     except Exception as exc:  # noqa: BLE001 — final safety net
         err = f"dispatch exception: {exc!r}"
         db.execute(
             "UPDATE heartbeat_runs "
             "SET status='failed', error=?, "
             "    ended_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') "
-            "WHERE id=?",
+            "WHERE id=? AND status='running'",
             (err, run_id),
         )
-        record_event(db, run_id, "failed", {"error": err})
+        check = db.execute(
+            "SELECT status FROM heartbeat_runs WHERE id=?", (run_id,)
+        )
+        if check and check[0]["status"] == "failed":
+            record_event(db, run_id, "failed", {"error": err})
+
+
+def _resolve_home_node(db: Database, agent_id: str) -> str | None:
+    """Return agents.home_node for agent_id, or None if NULL/empty.
+
+    Empty string normalizes to None so a row with home_node='' behaves
+    identically to home_node IS NULL (both mean "run wherever the
+    dispatcher is").
+    """
+    rows = db.execute(
+        "SELECT home_node FROM agents WHERE id=?", (agent_id,)
+    )
+    if not rows:
+        return None
+    val = rows[0]["home_node"]
+    if not val:
+        return None
+    return val
+
+
+def _is_local_node(node_name: str) -> bool:
+    """True iff node_name matches the mesh self_name in nodes.toml.
+
+    If nodes.toml is missing or doesn't declare a self, treat every
+    node as remote — the forward attempt will fail with "unknown
+    home_node" rather than silently no-op. Callers can short-circuit
+    earlier if that turns out to be too strict.
+    """
+    try:
+        from musu_core.mesh import get_registry  # noqa: PLC0415
+        registry = get_registry()
+        return registry.is_local(node_name)
+    except Exception:
+        return False
 
 
 def _assert_no_cycle(

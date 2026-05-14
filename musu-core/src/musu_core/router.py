@@ -6,7 +6,7 @@ import time
 import uuid
 from dataclasses import dataclass, field, replace
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 
 from musu_core.adapters.base import AdapterContext, AdapterResult, RETRIABLE_ERROR_CODES
 from musu_core.adapters.registry import get_adapter
@@ -311,6 +311,110 @@ class Router:
             )
 
         # --- 5. Log result ---
+        self._backend.log_execution_result(result, task_id=req.task_id)
+
+        return RouteResult(
+            run_id=run_id,
+            agent_id=agent.id,
+            success=result.success,
+            summary=result.summary,
+            session_id=result.session_id,
+            error=result.error,
+            adapter_result=result,
+        )
+
+    async def route_streaming(
+        self,
+        req: RouteRequest,
+        on_delta: Callable[[str], None],
+    ) -> RouteResult:
+        """Streaming variant of route(): adapter.execute_streaming + per-delta callback.
+
+        Skips the fallback chain — streaming runs use a single adapter
+        attempt. Adapters that don't natively stream still work via
+        BaseAdapter.execute_streaming's default (one terminal delta).
+        Callback exceptions are swallowed inside execute_streaming per
+        FR-003, so wake-side on_delta can record events without
+        defensive try/except at every call site.
+        """
+        run_id = str(uuid.uuid4())
+
+        agent = self._backend.agents.get(req.agent_id)
+        if agent is None:
+            return RouteResult(
+                run_id=run_id,
+                agent_id=req.agent_id,
+                success=False,
+                summary="",
+                error=f"Agent not found: {req.agent_id}",
+            )
+
+        adapter_type = req.adapter_override or self._config.force_adapter or agent.adapter_type
+        adapter = get_adapter(adapter_type)
+        if adapter is None:
+            return RouteResult(
+                run_id=run_id,
+                agent_id=req.agent_id,
+                success=False,
+                summary="",
+                error=f"Unknown adapter type: {adapter_type}",
+            )
+
+        adapter_config: dict[str, Any] = {
+            "model": self._config.default_model,
+            "command": self._config.claude_command,
+            "timeout_sec": self._config.adapter_timeout_sec,
+        }
+        adapter_config.update(agent.adapter_config)
+
+        ctx = AdapterContext(
+            run_id=run_id,
+            prompt=req.prompt,
+            agent_id=agent.id,
+            agent_name=agent.name,
+            agent_role=agent.role,
+            adapter_type=adapter_type,
+            config=adapter_config,
+            session_id=req.session_id,
+            instructions_path=req.instructions_path or adapter_config.get("instructions_path"),
+            cwd=req.cwd or adapter_config.get("cwd"),
+            task_id=req.task_id,
+            extra=req.extra,
+            company_id=req.company_id or getattr(agent, "company_id", None),
+            allowed_tools=getattr(agent, "allowed_tools", None),
+        )
+
+        self._backend.log_execution_started(
+            run_id=run_id,
+            agent_id=agent.id,
+            task_id=req.task_id,
+            adapter_type=adapter_type,
+            prompt_snippet=req.prompt[:300],
+        )
+
+        from musu_core.tracing import trace_span
+        try:
+            with trace_span(
+                "adapter.execute_streaming",
+                agent_id=agent.id,
+                agent_name=agent.name,
+                adapter_type=adapter_type,
+                channel=req.agent_id,
+                company_id=ctx.company_id,
+            ) as _span:
+                result = await adapter.execute_streaming(ctx, on_delta)
+                _span.attributes["success"] = result.success
+                if result.cost_usd:
+                    _span.attributes["cost_usd"] = result.cost_usd
+        except Exception as exc:  # noqa: BLE001
+            result = AdapterResult(
+                run_id=run_id,
+                success=False,
+                summary="",
+                error=f"Adapter raised exception: {exc}",
+                is_retriable=True,
+            )
+
         self._backend.log_execution_result(result, task_id=req.task_id)
 
         return RouteResult(

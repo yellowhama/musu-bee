@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import ApprovalPromptCard from "./ApprovalPromptCard";
 
 // Tailwind doesn't generate `ml-*` classes from dynamic strings, so the
 // indent levels are enumerated up to 3 (CEO → role → sub-role → leaf).
@@ -344,6 +345,58 @@ function ChatLineView({
 
   const indent = INDENT_CLASSES[Math.min(line.indentLevel, INDENT_CLASSES.length - 1)];
 
+  // v19.C P3: unwrap any forwarded_event rows so the rest of this view
+  // treats them as if they were the inner remote event. Single-level
+  // unwrap; the bridge never re-wraps a forwarded_event.
+  const unwrappedEvents: RunEvent[] = line.events.map((ev) => {
+    if (ev.event_type !== "forwarded_event") return ev;
+    const remoteType = String(ev.payload.remote_type ?? "");
+    const remotePayload =
+      (ev.payload.remote_payload as Record<string, unknown> | undefined) ?? {};
+    if (!remoteType) return ev;
+    return {
+      id: ev.id,
+      event_type: remoteType,
+      payload: remotePayload,
+      created_at: ev.created_at,
+    };
+  });
+
+  // v19.C P1: concatenate message_delta payload.text into a single
+  // streaming text block. Each delta still appears in line.events for
+  // the timeline log; we just render the user-visible stream above it.
+  const streamingText = unwrappedEvents
+    .filter((ev) => ev.event_type === "message_delta")
+    .map((ev) => String(ev.payload.text ?? ""))
+    .join("");
+
+  // v19.C P2: collect approval cards. Each approval_request event spawns
+  // a card; if a matching approval_resolved event arrived later, the card
+  // renders in its read-only "decision" state.
+  const approvalRequests = unwrappedEvents.filter(
+    (ev) => ev.event_type === "approval_request",
+  );
+  const resolvedById = new Map<string, "approved" | "declined">();
+  for (const ev of unwrappedEvents) {
+    if (ev.event_type === "approval_resolved") {
+      const id = String(ev.payload.approval_id ?? "");
+      const decision = String(ev.payload.decision ?? "");
+      if (id && (decision === "approved" || decision === "declined")) {
+        resolvedById.set(id, decision);
+      }
+    }
+  }
+
+  // Non-delta, non-approval events are what we show in the technical log.
+  // (message_delta is folded into streamingText; approval_request and
+  // approval_resolved are folded into the ApprovalPromptCard.)
+  const nonDeltaEvents = unwrappedEvents.filter(
+    (ev) =>
+      ev.event_type !== "message_delta" &&
+      ev.event_type !== "approval_request" &&
+      ev.event_type !== "approval_resolved",
+  );
+
   return (
     <div className={indent}>
       <div className={`rounded-lg border px-4 py-3 ${statusColor}`}>
@@ -359,8 +412,30 @@ function ChatLineView({
             {line.status === "error" && "❌ 오류"}
           </span>
         </div>
+        {streamingText && (
+          <div className="mb-3 text-sm whitespace-pre-wrap leading-relaxed">
+            {streamingText}
+            {line.status === "streaming" && (
+              <span className="inline-block w-2 h-4 ml-0.5 bg-zinc-400 animate-pulse align-middle" />
+            )}
+          </div>
+        )}
+        {approvalRequests.map((ev) => {
+          const approvalId = String(ev.payload.approval_id ?? "");
+          const prompt = String(ev.payload.prompt ?? "");
+          if (!approvalId) return null;
+          return (
+            <ApprovalPromptCard
+              key={`approval-${approvalId}`}
+              approvalId={approvalId}
+              prompt={prompt}
+              runId={line.runId}
+              decision={resolvedById.get(approvalId) ?? null}
+            />
+          );
+        })}
         <div className="space-y-1">
-          {line.events.map((ev) => (
+          {nonDeltaEvents.map((ev) => (
             <EventView key={ev.id} event={ev} />
           ))}
         </div>

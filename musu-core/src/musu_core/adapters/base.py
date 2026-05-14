@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 
 def resolve_instructions(base_path: str | None, adapter_type: str) -> str | None:
@@ -137,3 +137,27 @@ class BaseAdapter(ABC):
     @abstractmethod
     async def execute(self, ctx: AdapterContext) -> AdapterResult:
         """Execute a prompt and return a result."""
+
+    async def execute_streaming(
+        self,
+        ctx: AdapterContext,
+        on_delta: Callable[[str], None],
+    ) -> AdapterResult:
+        """Execute with incremental output via on_delta callbacks.
+
+        Adapters with native streaming (Claude SDK, OpenAI stream, etc.)
+        override this and invoke on_delta(chunk) per token/segment. The
+        final return is the same AdapterResult shape execute() produces.
+
+        The default falls back to execute() and emits one terminal
+        on_delta(summary) on success — keeps every existing adapter
+        working unchanged (FR-002). Callback exceptions are swallowed
+        here so a downstream UI bug cannot fail the run (FR-003).
+        """
+        result = await self.execute(ctx)
+        if result.success and result.summary:
+            try:
+                on_delta(result.summary)
+            except Exception:  # noqa: BLE001 — FR-003
+                pass
+        return result

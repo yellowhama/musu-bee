@@ -35,6 +35,10 @@ from musu_core.dispatch import (
     find_ceo,
     route_user_message_to_ceo,
 )
+from musu_core.dispatch.wake import (
+    register_stream_event,
+    unregister_stream_event,
+)
 from musu_core.router import make_router
 
 logger = logging.getLogger(__name__)
@@ -164,6 +168,99 @@ async def post_delegate(
     return result
 
 
+class ApproveBody(BaseModel):
+    decision: str  # "yes" | "no"
+
+
+@dispatch_router.post("/runs/{run_id}/approve")
+def post_approve(run_id: str, body: ApproveBody) -> dict[str, Any]:
+    """Resolve a pending approval for run_id (v19.C P2).
+
+    Body: {"decision": "yes" | "no"} — normalized to "approved"/"declined".
+    Returns the matrix from contracts/bridge-endpoints.md.
+
+    Idempotent (FR-007): a second call returns the first decision with
+    `already_resolved=true` instead of mutating state.
+
+    The resumed adapter coroutine wakes inside the existing execute_wake
+    task — no new BackgroundTask needed here.
+    """
+    from musu_core.dispatch import (  # local import — avoid circular
+        load_pending_for_run,
+        submit_approval,
+    )
+
+    raw = (body.decision or "").strip().lower()
+    if raw in ("yes", "approved", "y"):
+        decision = "approved"
+    elif raw in ("no", "declined", "n"):
+        decision = "declined"
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="decision must be 'yes' or 'no'",
+        )
+
+    cfg = get_config()
+    db = get_db(cfg.db_path)
+
+    # 404 paths.
+    run_rows = db.execute(
+        "SELECT status FROM heartbeat_runs WHERE id=?", (run_id,)
+    )
+    if not run_rows:
+        raise HTTPException(status_code=404, detail="run not found")
+    pending = load_pending_for_run(db, run_id)
+    if pending is None:
+        # Either the run had no approval, or it was already resolved.
+        # Distinguish by checking if any approval row exists for this run.
+        any_rows = db.execute(
+            "SELECT id, status FROM run_approvals WHERE run_id=? "
+            "ORDER BY requested_at DESC LIMIT 1",
+            (run_id,),
+        )
+        if not any_rows:
+            raise HTTPException(status_code=404, detail="no pending approval")
+        # An approval exists but is already resolved.
+        return {
+            "already_resolved": True,
+            "decision": any_rows[0]["status"],
+        }
+
+    # Pending approval present — but verify run is in waiting_approval.
+    if run_rows[0]["status"] != "waiting_approval":
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"run is in state {run_rows[0]['status']}, "
+                "expected waiting_approval"
+            ),
+        )
+
+    res = submit_approval(db, pending["id"], decision)
+    if "error" in res:
+        # Race: another concurrent caller resolved it between our checks.
+        if res.get("error") == "not found":
+            raise HTTPException(status_code=404, detail="approval not found")
+        raise HTTPException(status_code=409, detail=res["error"])
+    if res.get("already_resolved"):
+        return {
+            "already_resolved": True,
+            "decision": res["decision"],
+        }
+    if res["decision"] == "approved":
+        return {
+            "decision": "approved",
+            "resumed": True,
+            "run_id": run_id,
+        }
+    return {
+        "decision": "declined",
+        "cancelled": True,
+        "run_id": run_id,
+    }
+
+
 @dispatch_router.get("/company/{company_id}/ceo")
 def get_company_ceo(company_id: str) -> dict[str, str]:
     """Return the CEO agent id for the given company, or 404."""
@@ -219,75 +316,90 @@ async def stream_run(run_id: str, request: Request) -> StreamingResponse:
         last_seen_ts: str | None = None
         deadline = asyncio.get_event_loop().time() + _STREAM_TIMEOUT_SEC
 
-        while True:
-            if await request.is_disconnected():
-                return
-            if asyncio.get_event_loop().time() > deadline:
-                yield f"data: {json.dumps({'type': 'stream_timeout'})}\n\n"
-                return
+        # v19.C: register a wake-up Event so record_event can signal us
+        # the instant new rows land instead of waiting the full poll
+        # interval. unregister in finally so we don't leak the dict slot.
+        stream_event = register_stream_event(run_id)
+        try:
+            while True:
+                if await request.is_disconnected():
+                    return
+                if asyncio.get_event_loop().time() > deadline:
+                    yield f"data: {json.dumps({'type': 'stream_timeout'})}\n\n"
+                    return
 
-            # Fetch new events since the last we flushed.
-            if last_seen_ts is None:
-                rows = db.execute(
-                    "SELECT id, event_type, payload, created_at "
-                    "FROM heartbeat_run_events WHERE run_id=? "
-                    "ORDER BY created_at ASC, id ASC",
-                    (run_id,),
-                )
-            else:
-                rows = db.execute(
-                    "SELECT id, event_type, payload, created_at "
-                    "FROM heartbeat_run_events "
-                    "WHERE run_id=? AND created_at > ? "
-                    "ORDER BY created_at ASC, id ASC",
-                    (run_id, last_seen_ts),
-                )
-
-            for ev in rows:
-                payload = {
-                    "id": ev["id"],
-                    "event_type": ev["event_type"],
-                    "payload": json.loads(ev["payload"] or "{}"),
-                    "created_at": ev["created_at"],
-                }
-                yield f"data: {json.dumps(payload)}\n\n"
-                last_seen_ts = ev["created_at"]
-
-            status_rows = db.execute(
-                "SELECT status, summary, error FROM heartbeat_runs WHERE id=?",
-                (run_id,),
-            )
-            if status_rows and status_rows[0]["status"] in _TERMINAL_STATUSES:
-                # One more flush in case events landed between fetches.
-                if last_seen_ts:
-                    tail = db.execute(
+                # Fetch new events since the last we flushed.
+                if last_seen_ts is None:
+                    rows = db.execute(
+                        "SELECT id, event_type, payload, created_at "
+                        "FROM heartbeat_run_events WHERE run_id=? "
+                        "ORDER BY created_at ASC, id ASC",
+                        (run_id,),
+                    )
+                else:
+                    rows = db.execute(
                         "SELECT id, event_type, payload, created_at "
                         "FROM heartbeat_run_events "
                         "WHERE run_id=? AND created_at > ? "
                         "ORDER BY created_at ASC, id ASC",
                         (run_id, last_seen_ts),
                     )
-                    for ev in tail:
-                        payload = {
-                            "id": ev["id"],
-                            "event_type": ev["event_type"],
-                            "payload": json.loads(ev["payload"] or "{}"),
-                            "created_at": ev["created_at"],
-                        }
-                        yield f"data: {json.dumps(payload)}\n\n"
-                final = {
-                    "type": "done",
-                    "status": status_rows[0]["status"],
-                    "summary": status_rows[0]["summary"],
-                    "error": status_rows[0]["error"],
-                }
-                yield f"data: {json.dumps(final)}\n\n"
-                return
 
-            try:
-                await asyncio.sleep(_STREAM_POLL_INTERVAL_SEC)
-            except asyncio.CancelledError:
-                return
+                for ev in rows:
+                    payload = {
+                        "id": ev["id"],
+                        "event_type": ev["event_type"],
+                        "payload": json.loads(ev["payload"] or "{}"),
+                        "created_at": ev["created_at"],
+                    }
+                    yield f"data: {json.dumps(payload)}\n\n"
+                    last_seen_ts = ev["created_at"]
+
+                status_rows = db.execute(
+                    "SELECT status, summary, error FROM heartbeat_runs WHERE id=?",
+                    (run_id,),
+                )
+                if status_rows and status_rows[0]["status"] in _TERMINAL_STATUSES:
+                    # One more flush in case events landed between fetches.
+                    if last_seen_ts:
+                        tail = db.execute(
+                            "SELECT id, event_type, payload, created_at "
+                            "FROM heartbeat_run_events "
+                            "WHERE run_id=? AND created_at > ? "
+                            "ORDER BY created_at ASC, id ASC",
+                            (run_id, last_seen_ts),
+                        )
+                        for ev in tail:
+                            payload = {
+                                "id": ev["id"],
+                                "event_type": ev["event_type"],
+                                "payload": json.loads(ev["payload"] or "{}"),
+                                "created_at": ev["created_at"],
+                            }
+                            yield f"data: {json.dumps(payload)}\n\n"
+                    final = {
+                        "type": "done",
+                        "status": status_rows[0]["status"],
+                        "summary": status_rows[0]["summary"],
+                        "error": status_rows[0]["error"],
+                    }
+                    yield f"data: {json.dumps(final)}\n\n"
+                    return
+
+                # Wait for either a record_event signal OR the poll
+                # interval, whichever comes first. Clear before waiting so
+                # we don't immediately re-wake on a stale set().
+                stream_event.clear()
+                try:
+                    await asyncio.wait_for(
+                        stream_event.wait(), timeout=_STREAM_POLL_INTERVAL_SEC
+                    )
+                except asyncio.TimeoutError:
+                    pass  # normal poll cadence
+                except asyncio.CancelledError:
+                    return
+        finally:
+            unregister_stream_event(run_id)
 
     return StreamingResponse(
         event_stream(),
