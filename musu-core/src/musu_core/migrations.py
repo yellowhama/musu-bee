@@ -1401,6 +1401,48 @@ def _v35_down(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+def _v36_up(conn: sqlite3.Connection) -> None:
+    """v21.D: agents.isolation_profile — JSON sandbox profile per agent.
+
+    Stores an IsolationProfile (allow_read / allow_write / allow_net /
+    cpu_secs / mem_mb / strip_env). The supervisor reads this column
+    before spawning the agent and hands it to the platform-specific
+    Isolation impl.
+
+    NULL = no sandbox (legacy / opt-in rollout). Empty JSON object {}
+    = sandbox with empty allowlists (deny everything).
+
+    Idempotent: PRAGMA table_info gate before ALTER TABLE.
+    """
+    cols = {row[1] for row in conn.execute(
+        "PRAGMA table_info(agents)"
+    ).fetchall()}
+    if "isolation_profile" not in cols:
+        conn.execute(
+            "ALTER TABLE agents ADD COLUMN isolation_profile TEXT"
+        )
+    conn.commit()
+
+
+def _v36_down(conn: sqlite3.Connection) -> None:
+    """Roll back v36 — drop isolation_profile column.
+
+    SQLite ≥ 3.35 supports DROP COLUMN; for older we'd need rebuild.
+    Wrap in a check; on older SQLite this is a no-op + logged.
+    """
+    cols = {row[1] for row in conn.execute(
+        "PRAGMA table_info(agents)"
+    ).fetchall()}
+    if "isolation_profile" in cols:
+        try:
+            conn.execute("ALTER TABLE agents DROP COLUMN isolation_profile")
+        except sqlite3.OperationalError:
+            # SQLite < 3.35 — DROP COLUMN unsupported. Leave the column
+            # in place; it's nullable so re-apply of _v36_up is a no-op.
+            pass
+    conn.commit()
+
+
 MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v1_fallback_chain", _v1_up, _v1_down),
     ("v2_messages_agent_id", _v2_up, _v2_down),
@@ -1437,6 +1479,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v33_machines_and_fks", _v33_up, _v33_down),
     ("v34_resource_requests", _v34_up, _v34_down),
     ("v35_machine_capacity", _v35_up, _v35_down),
+    ("v36_agents_isolation_profile", _v36_up, _v36_down),
 ]
 
 

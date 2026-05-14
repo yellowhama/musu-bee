@@ -1,3 +1,11 @@
 [workspace]
-members = ["apps/musud", "apps/musu", "crates/musu-supervisor-core"]
+members = [
+    "apps/musud",
+    "apps/musu",
+    "crates/musu-supervisor-core",
+    "crates/musu-supervisor-isolation",
+    "crates/musu-supervisor-isolation-linux",
+    "crates/musu-supervisor-isolation-windows",
+    "crates/musu-supervisor-isolation-macos",
+]
 resolver = "2"

@@ -1,0 +1,16 @@
+[package]
+name = "musu-supervisor-isolation-linux"
+version = "0.1.0"
+edition = "2021"
+description = "Linux unprivileged user-namespaces sandbox for musu-supervisor"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[dependencies]
+musu-supervisor-isolation = { path = "../musu-supervisor-isolation" }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# Real impl deps land in 21.D T2 follow-up. Today we ship a stub
+# that returns Unsupported on non-Linux and a TODO on Linux so the
+# trait wiring compiles everywhere.
+libc = "0.2"
