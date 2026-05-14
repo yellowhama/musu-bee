@@ -628,6 +628,19 @@ async def lifespan(app: FastAPI):
     except Exception as _e:
         logger.warning("startup: channel mapping check failed — %s", _e)
 
+    # v19.D P1: log any pending run_approvals at startup. These are by
+    # definition orphans (process just restarted; no asyncio.Event
+    # waiters can have survived). The user resolves them via the
+    # existing approve endpoint; submit_approval's orphan-resume path
+    # spawns a fresh wake on approved.
+    try:
+        from musu_core.dispatch import sweep_orphaned_approvals  # noqa: PLC0415
+        _orphan_count = sweep_orphaned_approvals(
+            _get_backend()._db, logger=logger,
+        )
+    except Exception as _e:  # noqa: BLE001
+        logger.warning("startup: orphan approval sweep failed — %s", _e)
+
     # Re-dispatch any pending/running route executions from before last restart.
     # retry_count caps at 3 — executions that repeatedly crash are marked failed.
     try:

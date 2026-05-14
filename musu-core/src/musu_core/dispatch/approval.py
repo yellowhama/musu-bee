@@ -19,20 +19,28 @@ to `cancelled` and emits the `cancelled` event.
 Idempotency (FR-007): a second submit_approval for the same row returns
 {"already_resolved": True, "decision": <first>} without mutating state.
 
-Restart durability: this module assumes the bridge process stays alive
-for the duration of an approval. If the bridge dies mid-await, the
-pending row remains; recovery is out of scope for v19.C (the user can
-manually retry or cancel via SQL).
+Restart durability (v19.D): if the bridge dies mid-await, the awaiting
+coroutine is gone but the DB rows persist. When the user later submits
+yes/no for that approval, submit_approval detects the absence of the
+waiter Event in _approval_events and:
+  - On approved → calls enqueue_resume_wake to spawn a fresh
+    heartbeat_run with wake_reason='approval_resumed' that re-invokes
+    the adapter with the decision in wake_payload.
+  - On declined → the existing decline path already cancelled the run,
+    no resume needed.
+See contracts/orphan-resume.md (specs/002-dispatch-durability/) for
+the full algorithm.
 """
 
 from __future__ import annotations
 
 import asyncio
+import json
 import uuid
 from typing import Any, Literal
 
 from musu_core.db import Database
-from musu_core.dispatch.wake import record_event
+from musu_core.dispatch.wake import enqueue_wake, record_event
 
 
 # Per-approval wake-up events. Keyed by approval_id; the awaiting
@@ -66,13 +74,20 @@ def request_approval_sync(db: Database, run_id: str, prompt: str) -> str:
         "UPDATE heartbeat_runs SET status='waiting_approval' WHERE id=?",
         (run_id,),
     )
+    # CRITICAL ORDERING: register the in-process Event BEFORE emitting
+    # the approval_request event. The dashboard's SSE stream may flush
+    # the approval_request the instant it lands; if a user POST arrives
+    # before _approval_events.setdefault runs, submit_approval would
+    # mis-classify the run as orphan and enqueue a duplicate resume
+    # wake while the original adapter coroutine hangs forever waiting
+    # for an Event that will never get registered.
+    _approval_events.setdefault(approval_id, asyncio.Event())
     record_event(
         db,
         run_id,
         "approval_request",
         {"approval_id": approval_id, "prompt": prompt},
     )
-    _approval_events.setdefault(approval_id, asyncio.Event())
     return approval_id
 
 
@@ -89,6 +104,73 @@ async def wait_for_decision(approval_id: str) -> Literal["approved", "declined"]
         # Treat as declined to fail safe.
         return "declined"
     return decision
+
+
+def enqueue_resume_wake(
+    db: Database,
+    original_run_id: str,
+    approval_id: str,
+) -> str:
+    """Spawn a new heartbeat_run that resumes the original after orphaned approval.
+
+    Called by submit_approval when the in-process waiter Event is gone
+    (bridge restarted between request_approval_sync and the user's
+    response) AND the decision is "approved". Declined orphans don't
+    resume — the cancelled status set in submit_approval is terminal.
+
+    Reads the original run's wake_payload (for the prompt fallback) and
+    the approval row (for the request prompt text). Builds the four-key
+    wake_payload per contracts/orphan-resume.md and calls enqueue_wake
+    with parent_run_id pointing at the original.
+
+    Returns the new (resume) run_id. Caller dispatches it via
+    BackgroundTasks (same pattern as initial wake creation).
+    """
+    # Fetch the original run's wake_payload for the prompt fallback.
+    orig_rows = db.execute(
+        "SELECT agent_id, wake_payload, issue_id FROM heartbeat_runs WHERE id=?",
+        (original_run_id,),
+    )
+    if not orig_rows:
+        raise ValueError(f"original run {original_run_id} not found")
+    orig = orig_rows[0]
+    try:
+        orig_payload = json.loads(orig["wake_payload"] or "{}")
+    except json.JSONDecodeError:
+        orig_payload = {}
+
+    # Fetch the approval prompt text.
+    appr_rows = db.execute(
+        "SELECT prompt FROM run_approvals WHERE id=?",
+        (approval_id,),
+    )
+    if not appr_rows:
+        raise ValueError(f"approval {approval_id} not found")
+    approval_prompt = appr_rows[0]["prompt"]
+
+    resume_payload = {
+        "prompt": orig_payload.get("prompt", ""),
+        "approval_decision": "approved",
+        "approval_prompt": approval_prompt,
+        "is_approval_resume": True,
+    }
+    # Carry forward issue_id if the original had one so the resume can
+    # link back via the same issue thread.
+    if orig["issue_id"]:
+        # enqueue_wake takes issue_id as a separate kwarg, but keep it in
+        # payload too for adapter introspection consistency.
+        resume_payload.setdefault("issue_id", orig["issue_id"])
+
+    resume_run_id = enqueue_wake(
+        db,
+        agent_id=orig["agent_id"],
+        wake_reason="approval_resumed",
+        issue_id=orig["issue_id"],
+        parent_run_id=original_run_id,
+        wake_payload=resume_payload,
+        skip_cycle_check=True,  # same agent intentionally — see kwarg docstring
+    )
+    return resume_run_id
 
 
 def submit_approval(
@@ -167,16 +249,70 @@ def submit_approval(
             (run_id,),
         )
 
-    # Stash the decision BEFORE setting the Event so the waiter sees it.
-    _approval_decisions[approval_id] = decision
-    # Only signal an existing Event. Do NOT setdefault — that would
-    # create a phantom Event for a late duplicate POST after the waiter
-    # has already popped, and nothing would ever clean it up. The
-    # waiter is the unique creator (via request_approval_sync) and the
-    # unique consumer (via wait_for_decision).
+    # v19.D P1: orphan check. The dict's absence means the awaiting
+    # coroutine inside execute_wake is gone — either bridge restarted
+    # since the request_approval_sync call, or the coroutine was
+    # otherwise destroyed. The DB rows above are already updated; the
+    # remaining question is whether to (a) signal the dead Event (a
+    # no-op masquerading as success) or (b) enqueue a resume wake.
+    # For 'approved' we do (b). For 'declined' we do nothing (the
+    # cancelled status already set above is terminal).
     ev = _approval_events.get(approval_id)
-    if ev is not None:
-        ev.set()
+    is_orphan = ev is None
+
+    if is_orphan and decision == "approved":
+        # Spawn a fresh heartbeat_run that re-invokes the adapter with
+        # the decision in wake_payload. The bridge endpoint that called
+        # us will dispatch the new run via BackgroundTasks.
+        try:
+            resume_run_id = enqueue_resume_wake(db, run_id, approval_id)
+        except Exception as exc:  # noqa: BLE001 — surface any enqueue failure
+            record_event(
+                db,
+                run_id,
+                "approval_resolved",
+                {"approval_id": approval_id, "decision": decision},
+            )
+            return {
+                "resolved": True,
+                "decision": decision,
+                "run_id": run_id,
+                "resume_error": f"failed to enqueue resume wake: {exc!r}",
+            }
+        record_event(
+            db,
+            run_id,
+            "approval_resume_enqueued",
+            {
+                "approval_id": approval_id,
+                "resume_run_id": resume_run_id,
+                "original_run_id": run_id,
+            },
+        )
+        record_event(
+            db,
+            run_id,
+            "approval_resolved",
+            {"approval_id": approval_id, "decision": decision},
+        )
+        return {
+            "resolved": True,
+            "decision": decision,
+            "run_id": run_id,
+            "resumed": True,
+            "resume_run_id": resume_run_id,
+        }
+
+    # Non-orphan path (v19.C behavior) or orphan-declined (no resume).
+    if not is_orphan:
+        # Stash the decision BEFORE setting the Event so the waiter sees it.
+        _approval_decisions[approval_id] = decision
+        # Only signal an existing Event. Do NOT setdefault — that would
+        # create a phantom Event for a late duplicate POST after the
+        # waiter has already popped, and nothing would ever clean it up.
+        # The waiter is the unique creator (via request_approval_sync)
+        # and the unique consumer (via wait_for_decision).
+        ev.set()  # type: ignore[union-attr] — guarded by is_orphan above
 
     record_event(
         db,

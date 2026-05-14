@@ -106,7 +106,7 @@ def get_run(run_id: str) -> dict[str, Any]:
     events = db.execute(
         "SELECT id, event_type, payload, created_at "
         "FROM heartbeat_run_events WHERE run_id=? "
-        "ORDER BY created_at ASC, id ASC",
+        "ORDER BY created_at ASC, rowid ASC",
         (run_id,),
     )
     return {
@@ -173,17 +173,25 @@ class ApproveBody(BaseModel):
 
 
 @dispatch_router.post("/runs/{run_id}/approve")
-def post_approve(run_id: str, body: ApproveBody) -> dict[str, Any]:
-    """Resolve a pending approval for run_id (v19.C P2).
+def post_approve(
+    run_id: str, body: ApproveBody, bg: BackgroundTasks,
+) -> dict[str, Any]:
+    """Resolve a pending approval for run_id (v19.C + v19.D).
 
     Body: {"decision": "yes" | "no"} — normalized to "approved"/"declined".
-    Returns the matrix from contracts/bridge-endpoints.md.
+    Returns the matrix from contracts/bridge-endpoints.md and
+    contracts/orphan-resume.md (v19.D).
 
-    Idempotent (FR-007): a second call returns the first decision with
-    `already_resolved=true` instead of mutating state.
+    Idempotent (v19.C FR-007): a second call returns the first decision
+    with `already_resolved=true` instead of mutating state.
 
-    The resumed adapter coroutine wakes inside the existing execute_wake
-    task — no new BackgroundTask needed here.
+    Two resume paths:
+    - In-process waiter alive (v19.C): submit_approval signals the
+      asyncio.Event, the existing execute_wake coroutine resumes the
+      adapter. No new BackgroundTask needed.
+    - In-process waiter gone (v19.D orphan): submit_approval enqueues a
+      new heartbeat_run with wake_reason='approval_resumed' and returns
+      resume_run_id. We launch execute_wake for it as a BackgroundTask.
     """
     from musu_core.dispatch import (  # local import — avoid circular
         load_pending_for_run,
@@ -249,6 +257,35 @@ def post_approve(run_id: str, body: ApproveBody) -> dict[str, Any]:
             "decision": res["decision"],
         }
     if res["decision"] == "approved":
+        # v19.D orphan-resume failure: submit_approval tried to enqueue
+        # but enqueue_wake raised. The user's vote was recorded but no
+        # adapter will run. Surface as 500 rather than silently
+        # returning "approved" — the user clicked yes and nothing
+        # happened is exactly the v19.C failure mode v19.D fixed.
+        if res.get("resume_error"):
+            raise HTTPException(
+                status_code=500,
+                detail=(
+                    f"approval recorded but resume wake failed: "
+                    f"{res['resume_error']}"
+                ),
+            )
+        # v19.D orphan path: submit_approval enqueued a resume wake,
+        # dispatch it via BackgroundTask. Same pattern as initial wake
+        # creation at post_wake/post_company_message.
+        if res.get("resumed") and res.get("resume_run_id"):
+            resume_run_id = res["resume_run_id"]
+            router_instance = make_router(db_path=cfg.db_path)
+            bg.add_task(execute_wake, db, router_instance, resume_run_id)
+            return {
+                "decision": "approved",
+                "resumed": True,
+                "run_id": run_id,
+                "resume_run_id": resume_run_id,
+            }
+        # v19.C in-process path: the waiting coroutine inside the
+        # existing execute_wake task will resume the adapter. No new
+        # BackgroundTask needed.
         return {
             "decision": "approved",
             "resumed": True,
@@ -333,7 +370,7 @@ async def stream_run(run_id: str, request: Request) -> StreamingResponse:
                     rows = db.execute(
                         "SELECT id, event_type, payload, created_at "
                         "FROM heartbeat_run_events WHERE run_id=? "
-                        "ORDER BY created_at ASC, id ASC",
+                        "ORDER BY created_at ASC, rowid ASC",
                         (run_id,),
                     )
                 else:
@@ -341,7 +378,7 @@ async def stream_run(run_id: str, request: Request) -> StreamingResponse:
                         "SELECT id, event_type, payload, created_at "
                         "FROM heartbeat_run_events "
                         "WHERE run_id=? AND created_at > ? "
-                        "ORDER BY created_at ASC, id ASC",
+                        "ORDER BY created_at ASC, rowid ASC",
                         (run_id, last_seen_ts),
                     )
 
@@ -366,7 +403,7 @@ async def stream_run(run_id: str, request: Request) -> StreamingResponse:
                             "SELECT id, event_type, payload, created_at "
                             "FROM heartbeat_run_events "
                             "WHERE run_id=? AND created_at > ? "
-                            "ORDER BY created_at ASC, id ASC",
+                            "ORDER BY created_at ASC, rowid ASC",
                             (run_id, last_seen_ts),
                         )
                         for ev in tail:
@@ -427,14 +464,14 @@ def get_run_events(run_id: str, since: str | None = None) -> dict[str, Any]:
             "SELECT id, event_type, payload, created_at "
             "FROM heartbeat_run_events "
             "WHERE run_id=? AND created_at > ? "
-            "ORDER BY created_at ASC, id ASC",
+            "ORDER BY created_at ASC, rowid ASC",
             (run_id, since),
         )
     else:
         events = db.execute(
             "SELECT id, event_type, payload, created_at "
             "FROM heartbeat_run_events WHERE run_id=? "
-            "ORDER BY created_at ASC, id ASC",
+            "ORDER BY created_at ASC, rowid ASC",
             (run_id,),
         )
     return {"run_id": run_id, "events": [dict(e) for e in events]}

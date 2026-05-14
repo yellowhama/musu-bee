@@ -80,14 +80,36 @@ def enqueue_wake(
     issue_id: str | None = None,
     parent_run_id: str | None = None,
     wake_payload: dict[str, Any] | None = None,
+    skip_cycle_check: bool = False,
 ) -> str:
     """Insert a queued heartbeat_runs row and return its run_id.
 
     Raises CycleDetected if parent_run_id leads to a chain that already
     contains agent_id, or exceeds MAX_PARENT_DEPTH.
+
+    skip_cycle_check: opt-in bypass for legitimate same-agent resume
+    cases (v19.D approval-resume wake). Even with this set, we still
+    refuse to chain MORE than one resume — if the parent run is itself
+    an `approval_resumed` run, we re-engage full cycle detection. This
+    bounds resume chains to depth 1: original → resumed (allowed), but
+    not original → resumed → resumed-again (blocked).
     """
     if parent_run_id:
-        _assert_no_cycle(db, parent_run_id, agent_id)
+        if skip_cycle_check:
+            # Allow same-agent re-entry once, but block resume-of-resume
+            # chains. Look at the parent's wake_reason: if it's already
+            # a resume, fall back to full cycle detection (which will
+            # refuse because agent_id repeats in the chain).
+            parent_rows = db.execute(
+                "SELECT wake_reason FROM heartbeat_runs WHERE id=?",
+                (parent_run_id,),
+            )
+            if parent_rows and parent_rows[0]["wake_reason"] == "approval_resumed":
+                # Parent is itself a resume — don't allow another layer.
+                _assert_no_cycle(db, parent_run_id, agent_id)
+            # else: parent is the original, same-agent reentry is fine.
+        else:
+            _assert_no_cycle(db, parent_run_id, agent_id)
     run_id = uuid.uuid4().hex
     payload_str = json.dumps(wake_payload or {})
     db.execute(

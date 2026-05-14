@@ -172,3 +172,44 @@ def test_request_approval_callable_returns_decision() -> None:
 
     decision = asyncio.run(runner())
     assert decision == "approved"
+
+
+def test_submit_approved_with_waiter_uses_inprocess_path() -> None:
+    """v19.D FR-002: when an in-process waiter exists, NO resume wake is enqueued.
+
+    Regression guard — v19.D added the orphan path but the v19.C
+    in-process behavior must remain unchanged when a waiter is alive.
+    """
+    from musu_core.dispatch.approval import _approval_events
+    import asyncio as _asyncio
+
+    db = Database(":memory:")
+    _seed_run(db)
+    approval_id = request_approval_sync(db, "r1", "ok?")
+    # request_approval_sync already registered the Event; assert it.
+    assert approval_id in _approval_events
+
+    res = submit_approval(db, approval_id, "approved")
+    assert res["resolved"] is True
+    assert res["decision"] == "approved"
+    # CRITICAL: no resumed marker, no resume_run_id.
+    assert res.get("resumed") is not True
+    assert "resume_run_id" not in res
+
+    # No new heartbeat_run with wake_reason='approval_resumed' exists.
+    rows = db.execute(
+        "SELECT id FROM heartbeat_runs WHERE wake_reason='approval_resumed'"
+    )
+    assert not rows, (
+        "non-orphan approved path must not enqueue a resume wake — "
+        "the existing coroutine resumes via Event.set()"
+    )
+
+    # And the Event was signaled (we don't have a waiter here, but the
+    # decision was stashed so a hypothetical waiter would see it).
+    from musu_core.dispatch.approval import _approval_decisions
+    assert _approval_decisions.get(approval_id) == "approved"
+
+    # Cleanup so subsequent tests start with clean dicts.
+    _approval_events.pop(approval_id, None)
+    _approval_decisions.pop(approval_id, None)
