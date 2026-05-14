@@ -77,6 +77,16 @@ async def forward_wake_to_peer(
         "X-Musu-Forwarded-From": registry.self_name or "unknown",
     }
     if token:
+        # Defense in depth: log every token-bearing forward so an
+        # unexpected destination (e.g. a malicious agents-sync that
+        # rewrites agents.home_node) is visible in the audit trail. The
+        # token is bounded by nodes.toml — only nodes the user
+        # registered there can receive it — but we want an observable
+        # trail when forwarding actually happens.
+        logger.info(
+            "forward_wake: bearer-token forward to home_node=%r url=%r run_id=%r",
+            home_node, peer_url, run_id,
+        )
         headers["Authorization"] = f"Bearer {token}"
 
     wake_body = {

@@ -167,6 +167,17 @@ def submit_approval(
             (run_id,),
         )
 
+    # Stash the decision BEFORE setting the Event so the waiter sees it.
+    _approval_decisions[approval_id] = decision
+    # Only signal an existing Event. Do NOT setdefault — that would
+    # create a phantom Event for a late duplicate POST after the waiter
+    # has already popped, and nothing would ever clean it up. The
+    # waiter is the unique creator (via request_approval_sync) and the
+    # unique consumer (via wait_for_decision).
+    ev = _approval_events.get(approval_id)
+    if ev is not None:
+        ev.set()
+
     record_event(
         db,
         run_id,
@@ -180,11 +191,6 @@ def submit_approval(
             "cancelled",
             {"reason": "approval_declined"},
         )
-
-    # Wake the awaiting request_approval callable.
-    _approval_decisions[approval_id] = decision
-    ev = _approval_events.setdefault(approval_id, asyncio.Event())
-    ev.set()
 
     return {"resolved": True, "decision": decision, "run_id": run_id}
 

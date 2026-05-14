@@ -20,8 +20,11 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import uuid
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from musu_core.db import Database
 
@@ -154,13 +157,20 @@ async def execute_wake(db: Database, router: Any, run_id: str) -> None:
     payload = json.loads(row["wake_payload"] or "{}")
     prompt = payload.get("prompt") or _derive_prompt(db, row["issue_id"])
 
-    record_event(db, run_id, "wake_started", {"agent_id": agent_id})
-
     # v19.C P3: if the agent's home_node names a remote mesh peer, forward
     # the wake there instead of running the adapter locally. Empty/NULL
     # home_node or self_name keeps the existing single-machine path.
+    #
+    # NOTE: emit wake_started AFTER the home_node check so a forwarded
+    # wake doesn't double-emit (the peer emits its own wake_started which
+    # we relay as forwarded_event). Local path emits exactly one; forward
+    # path emits a distinct wake_forwarded so UIs can render either.
     home_node = _resolve_home_node(db, agent_id)
     if home_node and not _is_local_node(home_node):
+        record_event(
+            db, run_id, "wake_forwarded",
+            {"agent_id": agent_id, "home_node": home_node},
+        )
         from musu_core.dispatch.forward import forward_wake_to_peer  # noqa: PLC0415
         await forward_wake_to_peer(
             db,
@@ -174,6 +184,8 @@ async def execute_wake(db: Database, router: Any, run_id: str) -> None:
             },
         )
         return
+
+    record_event(db, run_id, "wake_started", {"agent_id": agent_id})
 
     def _on_delta(text: str) -> None:
         # FR-001: each adapter delta becomes one heartbeat_run_events row.
@@ -281,7 +293,11 @@ def _is_local_node(node_name: str) -> bool:
         from musu_core.mesh import get_registry  # noqa: PLC0415
         registry = get_registry()
         return registry.is_local(node_name)
-    except Exception:
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "mesh registry unavailable while checking is_local(%r): %r",
+            node_name, exc,
+        )
         return False
 
 
