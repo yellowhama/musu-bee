@@ -1187,6 +1187,50 @@ def _v31_down(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+def _v32_up(conn: sqlite3.Connection) -> None:
+    """v19.F.2 Phase C: row-level approval state for multi-process bridge.
+
+    Adds heartbeat_runs.approval_status (NULL / 'pending' / 'approved' /
+    'declined') with a partial index on non-NULL values. The column is
+    a mirror of the existing run_approvals.status atomicity guard; it
+    makes run-level approval state directly observable from
+    heartbeat_runs without a join, and provides defense-in-depth for
+    cross-process bridge deployments.
+
+    Idempotent: PRAGMA table_info gated. Re-running on an upgraded DB
+    is a no-op.
+    """
+    cols = {row[1] for row in conn.execute(
+        "PRAGMA table_info(heartbeat_runs)"
+    ).fetchall()}
+    if "approval_status" not in cols:
+        conn.execute(
+            "ALTER TABLE heartbeat_runs ADD COLUMN approval_status TEXT NULL"
+        )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_approval_status_run "
+        "ON heartbeat_runs(approval_status) "
+        "WHERE approval_status IS NOT NULL"
+    )
+    conn.commit()
+
+
+def _v32_down(conn: sqlite3.Connection) -> None:
+    """Roll back v32 — drop partial index + approval_status column.
+
+    On SQLite < 3.35 the column drop is a no-op; the column stays at
+    NULL. Matches v28/v29/v30 graceful-older-SQLite pattern.
+    """
+    conn.execute("DROP INDEX IF EXISTS idx_approval_status_run")
+    try:
+        conn.execute(
+            "ALTER TABLE heartbeat_runs DROP COLUMN approval_status"
+        )
+    except sqlite3.OperationalError:
+        pass
+    conn.commit()
+
+
 MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v1_fallback_chain", _v1_up, _v1_down),
     ("v2_messages_agent_id", _v2_up, _v2_down),
@@ -1219,6 +1263,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v29_dispatch_hardening", _v29_up, _v29_down),
     ("v30_event_seq", _v30_up, _v30_down),
     ("v31_dispatch_counters", _v31_up, _v31_down),
+    ("v32_approval_status", _v32_up, _v32_down),
 ]
 
 

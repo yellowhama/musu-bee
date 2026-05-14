@@ -31,3 +31,7 @@ packages = ["src/musu_core"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+addopts = "-m 'not slow'"
+markers = [
+    "slow: slow multiprocessing/integration tests, run manually with -m slow (v19.F.2)",
+]

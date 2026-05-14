@@ -76,8 +76,13 @@ def request_approval_sync(db: Database, run_id: str, prompt: str) -> str:
         "INSERT INTO run_approvals (id, run_id, prompt) VALUES (?, ?, ?)",
         (approval_id, run_id, prompt),
     )
+    # v19.F.2 Phase C: also set the row-level approval_status mirror so
+    # cross-process consumers can observe approval state without joining
+    # run_approvals.
     db.execute(
-        "UPDATE heartbeat_runs SET status='waiting_approval' WHERE id=?",
+        "UPDATE heartbeat_runs "
+        "SET status='waiting_approval', approval_status='pending' "
+        "WHERE id=?",
         (run_id,),
     )
     # CRITICAL ORDERING: register the in-process Event BEFORE emitting
@@ -241,8 +246,11 @@ def submit_approval(
     if decision == "approved":
         # Flip run back to running. The waiting coroutine will resume
         # the adapter inside the same execute_wake call.
+        # v19.F.2: mirror approval_status alongside status flip.
         db.execute(
-            "UPDATE heartbeat_runs SET status='running' WHERE id=?",
+            "UPDATE heartbeat_runs "
+            "SET status='running', approval_status='approved' "
+            "WHERE id=?",
             (run_id,),
         )
     else:
@@ -250,6 +258,7 @@ def submit_approval(
         db.execute(
             "UPDATE heartbeat_runs "
             "SET status='cancelled', "
+            "    approval_status='declined', "
             "    ended_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') "
             "WHERE id=?",
             (run_id,),

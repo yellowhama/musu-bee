@@ -317,3 +317,53 @@ def test_submit_approval_orphan_declined_increments_counter() -> None:
         counters_after["approvals_resolved_orphan_resume"]
         == counters_before["approvals_resolved_orphan_resume"]
     )
+
+
+# v19.F.2 Phase C — approval_status column mirror assertions.
+
+def test_request_approval_sets_approval_status_to_pending() -> None:
+    """After request_approval_sync, heartbeat_runs.approval_status='pending'."""
+    db = Database(":memory:")
+    _seed_run(db)
+    request_approval_sync(db, "r1", "ok?")
+
+    rows = db.execute(
+        "SELECT approval_status FROM heartbeat_runs WHERE id='r1'"
+    )
+    assert rows[0]["approval_status"] == "pending"
+
+
+def test_submit_approval_approved_sets_approval_status_to_approved() -> None:
+    """After submit_approval(approved), heartbeat_runs.approval_status='approved'."""
+    from musu_core.dispatch.approval import _approval_events, _approval_decisions
+
+    db = Database(":memory:")
+    _seed_run(db)
+    approval_id = request_approval_sync(db, "r1", "ok?")
+    submit_approval(db, approval_id, "approved")
+
+    rows = db.execute(
+        "SELECT approval_status FROM heartbeat_runs WHERE id='r1'"
+    )
+    assert rows[0]["approval_status"] == "approved"
+
+    _approval_events.pop(approval_id, None)
+    _approval_decisions.pop(approval_id, None)
+
+
+def test_submit_approval_declined_sets_approval_status_to_declined() -> None:
+    """After submit_approval(declined), heartbeat_runs.approval_status='declined'."""
+    from musu_core.dispatch.approval import _approval_events, _approval_decisions
+
+    db = Database(":memory:")
+    _seed_run(db)
+    approval_id = request_approval_sync(db, "r1", "ok?")
+    submit_approval(db, approval_id, "declined")
+
+    rows = db.execute(
+        "SELECT approval_status FROM heartbeat_runs WHERE id='r1'"
+    )
+    assert rows[0]["approval_status"] == "declined"
+
+    _approval_events.pop(approval_id, None)
+    _approval_decisions.pop(approval_id, None)
