@@ -2,6 +2,59 @@
 
 All notable changes to MUSU are documented here.
 
+## [1.9.0] - 2026-05-14 — v19.C Internal Dispatch Hardening
+
+Spec: `llm-wiki/specs/001-internal-dispatch-hardening/` (Spec Kit cycle).
+
+### Added — P1 streaming
+- **`BaseAdapter.execute_streaming(ctx, on_delta)`**: optional override
+  for adapters with native token streaming. Default falls back to
+  `execute()` and emits one terminal `on_delta(summary)` so existing
+  adapters keep working without changes (FR-002).
+- **`Router.route_streaming`**: streaming-aware sibling to `route`. No
+  fallback chain — streaming runs use a single adapter attempt.
+- **`heartbeat_run_events.event_type = 'message_delta'`**: per-token
+  events flowing through the existing SSE stream.
+- **SSE wake-up via `asyncio.Event`**: `record_event` signals the per-
+  run event; SSE loop awaits with the 1s poll as upper bound. Cuts
+  observed delta latency from up-to-1s to milliseconds in-process.
+- **Streaming text rendering in CeoChatClient**: deltas concatenate
+  into a live-filling text block above the technical log.
+
+### Added — P2 approval
+- **`run_approvals` table** (migration v29): per-request user sign-off
+  rows with `pending/approved/declined` state machine.
+- **`request_approval` callable** injected into `AdapterContext.extra`:
+  adapters call `await ctx.extra["request_approval"](prompt)` to pause
+  mid-run and wait for a yes/no decision.
+- **`POST /api/dispatch/runs/{id}/approve`**: bridge endpoint resolving
+  pending approvals. Idempotent (FR-007).
+- **`ApprovalPromptCard` component**: inline yes/no buttons in chat
+  stream. Free-text chat ("yes"/"응") is explicitly NOT interpreted as
+  an approval response — only the buttons count.
+
+### Added — P3 home_node routing
+- **`agents.home_node` column** (migration v29): names which mesh node
+  the agent runs on. NULL/empty preserves current single-machine
+  behavior.
+- **`musu_core.dispatch.forward.forward_wake_to_peer`**: POSTs the wake
+  to the peer's bridge, opens SSE, relays events into the local run's
+  timeline as `forwarded_event` rows. Mesh token auth piggybacks on
+  v18.A (no new auth layer).
+- **CeoChatClient `forwarded_event` unwrap**: single-level normalization
+  so the UI treats forwarded events identically to local ones.
+
+### Schema
+- **Migration v29**: `run_approvals` table + `agents.home_node` column.
+  PRAGMA-gated, idempotent, with `_v29_down` for rollback. Approved per
+  Constitution III at 2026-05-14.
+
+### Tests
+- 5 streaming + 8 approval + 7 v29 migration + 7 approve endpoint
+  + 5 home_node forwarding = **32 new tests**, all green.
+- Regression-adjacent: 16 router tests still pass (`route_streaming`
+  added without disturbing `route`), 5 heartbeat concurrency guard.
+
 ## [1.8.0] - 2026-05-07
 
 ### Added
