@@ -1011,6 +1011,78 @@ def _v28_down(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+# ---------------------------------------------------------------------------
+# v29: dispatch hardening — run_approvals table + agents.home_node column
+# ---------------------------------------------------------------------------
+
+
+def _v29_up(conn: sqlite3.Connection) -> None:
+    """v19.C: run-level user approvals + multi-machine agent routing.
+
+    Two schema additions:
+
+      1. run_approvals — one row per request_approval(prompt) call inside
+         an adapter. The dispatcher transitions the parent heartbeat_run to
+         status='waiting_approval' in the same transaction as inserting the
+         pending row. Partial index on status='pending' speeds the "show
+         unanswered approvals" query without bloating index size for
+         resolved history.
+
+      2. agents.home_node — names which mesh node the agent runs on. NULL
+         or empty keeps the v19.A/B "wherever the dispatcher runs" default.
+         No FK to a nodes table because nodes live in nodes.toml; a bogus
+         value surfaces as "peer unreachable" at wake time.
+
+    ALTER TABLE ADD COLUMN is PRAGMA-gated (matches the v28 idiom for
+    SQLite < 3.35 compatibility on downstream installs).
+    """
+    # 1. run_approvals
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS run_approvals (
+            id           TEXT PRIMARY KEY,
+            run_id       TEXT NOT NULL REFERENCES heartbeat_runs(id) ON DELETE CASCADE,
+            prompt       TEXT NOT NULL,
+            status       TEXT NOT NULL DEFAULT 'pending'
+                         CHECK (status IN ('pending','approved','declined')),
+            requested_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+            responded_at TEXT
+        )
+        """
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_run_approvals_run ON run_approvals(run_id)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_run_approvals_pending "
+        "ON run_approvals(status) WHERE status='pending'"
+    )
+
+    # 2. agents.home_node
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(agents)").fetchall()}
+    if "home_node" not in cols:
+        conn.execute("ALTER TABLE agents ADD COLUMN home_node TEXT DEFAULT NULL")
+
+    conn.commit()
+
+
+def _v29_down(conn: sqlite3.Connection) -> None:
+    """Roll back v29.
+
+    Drops run_approvals + indexes. agents.home_node is dropped where SQLite
+    supports DROP COLUMN (>=3.35); older runtimes leave it as a harmless
+    NULL column — matches the v28_down "graceful older-SQLite" pattern.
+    """
+    conn.execute("DROP INDEX IF EXISTS idx_run_approvals_pending")
+    conn.execute("DROP INDEX IF EXISTS idx_run_approvals_run")
+    conn.execute("DROP TABLE IF EXISTS run_approvals")
+    try:
+        conn.execute("ALTER TABLE agents DROP COLUMN home_node")
+    except sqlite3.OperationalError:
+        pass
+    conn.commit()
+
+
 MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v1_fallback_chain", _v1_up, _v1_down),
     ("v2_messages_agent_id", _v2_up, _v2_down),
@@ -1040,6 +1112,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v26_sprint_contracts_updated_at", _v26_up, _v26_down),
     ("v27_node_runtimes", _v27_up, _v27_down),
     ("v28_agent_hierarchy_and_runs", _v28_up, _v28_down),
+    ("v29_dispatch_hardening", _v29_up, _v29_down),
 ]
 
 
