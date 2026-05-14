@@ -41,6 +41,8 @@ _ALLOWED_TABLES: frozenset[str] = frozenset({
     "heartbeat_runs", "heartbeat_run_events",
     "agent_sessions", "run_approvals",
     "kvstore", "dispatch_counters",
+    # v33 (21.B)
+    "machines",
     # test-only
     "contention_test", "controllers_test_rows",
 })

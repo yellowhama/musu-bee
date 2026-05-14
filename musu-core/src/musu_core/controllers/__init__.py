@@ -34,6 +34,11 @@ from musu_core.controllers.predicates import (
 from musu_core.controllers.sources import KindSource, ChannelSource
 from musu_core.controllers.manager import Controller, ControllerManager
 from musu_core.controllers.builder import ControllerBuilder
+from musu_core.controllers.watch import (
+    WatchDispatcher,
+    WatchEvent,
+    WatchSubscription,
+)
 
 __all__ = [
     "Reconciler",
@@ -51,4 +56,7 @@ __all__ = [
     "Controller",
     "ControllerManager",
     "ControllerBuilder",
+    "WatchDispatcher",
+    "WatchEvent",
+    "WatchSubscription",
 ]

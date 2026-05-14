@@ -1231,6 +1231,89 @@ def _v32_down(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+def _v33_up(conn: sqlite3.Connection) -> None:
+    """v21.B: machines table + machine_id FK columns on agents and
+    heartbeat_runs.
+
+    machines = K8s Node equivalent. One row per user device, registered
+    when the bridge starts. capacity_json carries GPU + CPU + memory
+    inventory (v34 will normalize into separate machine_capacity table).
+
+    Note: wiki/347 §4 21.B originally said "companies + machines + FKs"
+    but `companies` already exists in db.py:_SCHEMA. v33 = machines new
+    + 2 FK columns on existing tables.
+
+    Idempotent: CREATE TABLE IF NOT EXISTS + PRAGMA-gated column adds.
+    Re-running on an upgraded DB is a no-op.
+    """
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS machines (
+            id            TEXT PRIMARY KEY,
+            hostname      TEXT NOT NULL DEFAULT '',
+            os            TEXT NOT NULL DEFAULT '',
+            arch          TEXT NOT NULL DEFAULT '',
+            capacity_json TEXT NOT NULL DEFAULT '{}',
+            status        TEXT NOT NULL DEFAULT 'online'
+                          CHECK (status IN ('online','offline','draining')),
+            last_seen_at  TEXT,
+            created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+            updated_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        )
+        """
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_machines_status ON machines(status)"
+    )
+
+    agent_cols = {row[1] for row in conn.execute(
+        "PRAGMA table_info(agents)"
+    ).fetchall()}
+    if "machine_id" not in agent_cols:
+        conn.execute(
+            "ALTER TABLE agents ADD COLUMN machine_id TEXT "
+            "REFERENCES machines(id) ON DELETE SET NULL"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_agents_machine "
+            "ON agents(machine_id) WHERE machine_id IS NOT NULL"
+        )
+
+    hb_cols = {row[1] for row in conn.execute(
+        "PRAGMA table_info(heartbeat_runs)"
+    ).fetchall()}
+    if "machine_id" not in hb_cols:
+        conn.execute(
+            "ALTER TABLE heartbeat_runs ADD COLUMN machine_id TEXT "
+            "REFERENCES machines(id) ON DELETE SET NULL"
+        )
+    if "resource_class" not in hb_cols:
+        conn.execute(
+            "ALTER TABLE heartbeat_runs ADD COLUMN resource_class TEXT"
+        )
+    conn.commit()
+
+
+def _v33_down(conn: sqlite3.Connection) -> None:
+    """Roll back v33 — drop machine_id columns + machines table.
+
+    On SQLite <3.35 column drops are no-op; matches v28/v29/v32 pattern.
+    """
+    conn.execute("DROP INDEX IF EXISTS idx_agents_machine")
+    for stmt in (
+        "ALTER TABLE agents DROP COLUMN machine_id",
+        "ALTER TABLE heartbeat_runs DROP COLUMN machine_id",
+        "ALTER TABLE heartbeat_runs DROP COLUMN resource_class",
+    ):
+        try:
+            conn.execute(stmt)
+        except sqlite3.OperationalError:
+            pass
+    conn.execute("DROP INDEX IF EXISTS idx_machines_status")
+    conn.execute("DROP TABLE IF EXISTS machines")
+    conn.commit()
+
+
 MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v1_fallback_chain", _v1_up, _v1_down),
     ("v2_messages_agent_id", _v2_up, _v2_down),
@@ -1264,6 +1347,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v30_event_seq", _v30_up, _v30_down),
     ("v31_dispatch_counters", _v31_up, _v31_down),
     ("v32_approval_status", _v32_up, _v32_down),
+    ("v33_machines_and_fks", _v33_up, _v33_down),
 ]
 
 

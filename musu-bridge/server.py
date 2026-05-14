@@ -2124,6 +2124,9 @@ app.include_router(runtime_router)
 from dispatch_routes import dispatch_router  # noqa: F401  # v19.A Phase 2
 app.include_router(dispatch_router)
 
+from watch_routes import watch_router  # noqa: F401  # v21.B
+app.include_router(watch_router)
+
 
 @app.get("/api/tasks/events")
 async def api_task_events(request: Request) -> StreamingResponse:
