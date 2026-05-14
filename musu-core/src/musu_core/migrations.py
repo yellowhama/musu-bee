@@ -1156,6 +1156,37 @@ def _v30_down(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+def _v31_up(conn: sqlite3.Connection) -> None:
+    """v19.F Phase B: operational counters for dispatch.
+
+    Adds dispatch_counters table with 3 seed rows for the orphan-
+    resume observability story. Counter increments come from
+    submit_approval branches via dispatch.counters.increment_counter.
+
+    Idempotent: CREATE TABLE IF NOT EXISTS + INSERT OR IGNORE on seeds.
+    Re-running on an already-upgraded DB is a no-op.
+    """
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS dispatch_counters ("
+        "name  TEXT PRIMARY KEY, "
+        "value INTEGER NOT NULL DEFAULT 0"
+        ")"
+    )
+    conn.execute(
+        "INSERT OR IGNORE INTO dispatch_counters (name, value) VALUES "
+        "('approvals_resolved_in_memory', 0), "
+        "('approvals_resolved_orphan_resume', 0), "
+        "('approvals_declined_orphan', 0)"
+    )
+    conn.commit()
+
+
+def _v31_down(conn: sqlite3.Connection) -> None:
+    """Roll back v31 — drop dispatch_counters table."""
+    conn.execute("DROP TABLE IF EXISTS dispatch_counters")
+    conn.commit()
+
+
 MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v1_fallback_chain", _v1_up, _v1_down),
     ("v2_messages_agent_id", _v2_up, _v2_down),
@@ -1187,6 +1218,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v28_agent_hierarchy_and_runs", _v28_up, _v28_down),
     ("v29_dispatch_hardening", _v29_up, _v29_down),
     ("v30_event_seq", _v30_up, _v30_down),
+    ("v31_dispatch_counters", _v31_up, _v31_down),
 ]
 
 

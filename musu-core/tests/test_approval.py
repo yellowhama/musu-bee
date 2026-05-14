@@ -213,3 +213,107 @@ def test_submit_approved_with_waiter_uses_inprocess_path() -> None:
     # Cleanup so subsequent tests start with clean dicts.
     _approval_events.pop(approval_id, None)
     _approval_decisions.pop(approval_id, None)
+
+
+# v19.F Phase B — counter increment assertions on the 3 branches.
+
+def test_submit_approval_in_memory_path_increments_counter() -> None:
+    """Non-orphan path (in-memory waiter registered) bumps
+    approvals_resolved_in_memory by 1."""
+    from musu_core.dispatch.approval import _approval_events, _approval_decisions
+    from musu_core.dispatch.counters import (
+        COUNTER_APPROVALS_RESOLVED_IN_MEMORY,
+        read_counters,
+    )
+
+    db = Database(":memory:")
+    _seed_run(db)
+    approval_id = request_approval_sync(db, "r1", "ok?")
+    assert approval_id in _approval_events  # waiter registered
+
+    counters_before = read_counters(db)
+    submit_approval(db, approval_id, "approved")
+    counters_after = read_counters(db)
+
+    assert (
+        counters_after[COUNTER_APPROVALS_RESOLVED_IN_MEMORY]
+        == counters_before[COUNTER_APPROVALS_RESOLVED_IN_MEMORY] + 1
+    )
+    # Orphan counters untouched.
+    assert (
+        counters_after["approvals_resolved_orphan_resume"]
+        == counters_before["approvals_resolved_orphan_resume"]
+    )
+    assert (
+        counters_after["approvals_declined_orphan"]
+        == counters_before["approvals_declined_orphan"]
+    )
+
+    _approval_events.pop(approval_id, None)
+    _approval_decisions.pop(approval_id, None)
+
+
+def test_submit_approval_orphan_approved_increments_counter() -> None:
+    """Orphan + approved path bumps approvals_resolved_orphan_resume."""
+    from musu_core.dispatch.approval import _approval_events
+    from musu_core.dispatch.counters import (
+        COUNTER_APPROVALS_RESOLVED_ORPHAN_RESUME,
+        read_counters,
+    )
+
+    db = Database(":memory:")
+    _seed_run(db)
+    approval_id = request_approval_sync(db, "r1", "ok?")
+    # Simulate bridge restart: drop the waiter Event.
+    _approval_events.pop(approval_id, None)
+
+    counters_before = read_counters(db)
+    result = submit_approval(db, approval_id, "approved")
+    assert result.get("resumed") is True  # orphan branch taken
+    counters_after = read_counters(db)
+
+    assert (
+        counters_after[COUNTER_APPROVALS_RESOLVED_ORPHAN_RESUME]
+        == counters_before[COUNTER_APPROVALS_RESOLVED_ORPHAN_RESUME] + 1
+    )
+    assert (
+        counters_after["approvals_resolved_in_memory"]
+        == counters_before["approvals_resolved_in_memory"]
+    )
+    assert (
+        counters_after["approvals_declined_orphan"]
+        == counters_before["approvals_declined_orphan"]
+    )
+
+
+def test_submit_approval_orphan_declined_increments_counter() -> None:
+    """Orphan + declined path bumps approvals_declined_orphan."""
+    from musu_core.dispatch.approval import _approval_events
+    from musu_core.dispatch.counters import (
+        COUNTER_APPROVALS_DECLINED_ORPHAN,
+        read_counters,
+    )
+
+    db = Database(":memory:")
+    _seed_run(db)
+    approval_id = request_approval_sync(db, "r1", "ok?")
+    _approval_events.pop(approval_id, None)  # simulate bridge restart
+
+    counters_before = read_counters(db)
+    result = submit_approval(db, approval_id, "declined")
+    assert result["resolved"] is True
+    assert result.get("resumed") is not True  # declined doesn't resume
+    counters_after = read_counters(db)
+
+    assert (
+        counters_after[COUNTER_APPROVALS_DECLINED_ORPHAN]
+        == counters_before[COUNTER_APPROVALS_DECLINED_ORPHAN] + 1
+    )
+    assert (
+        counters_after["approvals_resolved_in_memory"]
+        == counters_before["approvals_resolved_in_memory"]
+    )
+    assert (
+        counters_after["approvals_resolved_orphan_resume"]
+        == counters_before["approvals_resolved_orphan_resume"]
+    )

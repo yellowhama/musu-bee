@@ -497,3 +497,21 @@ def get_run_events(run_id: str, since: str | None = None) -> dict[str, Any]:
             (run_id,),
         )
     return {"run_id": run_id, "events": [dict(e) for e in events]}
+
+
+@dispatch_router.get("/metrics")
+def get_dispatch_metrics() -> dict[str, Any]:
+    """Operational metrics for the dispatch subsystem (v19.F Phase B).
+
+    Returns the contents of the v31 `dispatch_counters` table, which
+    tracks how approval submissions resolve: via the in-memory waiter
+    (normal path), via orphan-resume re-enqueue (bridge restart path),
+    or as orphan-declined (cancelled mid-flight).
+
+    Useful for answering "how often does orphan resume actually fire?"
+    in production without tailing logs.
+    """
+    cfg = get_config()
+    db = get_db(cfg.db_path)
+    from musu_core.dispatch.counters import read_counters
+    return {"counters": read_counters(db)}

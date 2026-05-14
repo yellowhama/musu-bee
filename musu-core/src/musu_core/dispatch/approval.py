@@ -40,6 +40,12 @@ import uuid
 from typing import Any, Literal
 
 from musu_core.db import Database
+from musu_core.dispatch.counters import (
+    COUNTER_APPROVALS_DECLINED_ORPHAN,
+    COUNTER_APPROVALS_RESOLVED_IN_MEMORY,
+    COUNTER_APPROVALS_RESOLVED_ORPHAN_RESUME,
+    increment_counter,
+)
 from musu_core.dispatch.wake import enqueue_wake, record_event
 
 
@@ -295,6 +301,8 @@ def submit_approval(
             "approval_resolved",
             {"approval_id": approval_id, "decision": decision},
         )
+        # v19.F Phase B: orphan-approved counter increment.
+        increment_counter(db, COUNTER_APPROVALS_RESOLVED_ORPHAN_RESUME)
         return {
             "resolved": True,
             "decision": decision,
@@ -313,6 +321,13 @@ def submit_approval(
         # The waiter is the unique creator (via request_approval_sync)
         # and the unique consumer (via wait_for_decision).
         ev.set()  # type: ignore[union-attr] — guarded by is_orphan above
+        # v19.F Phase B: in-memory waiter resolved counter increment.
+        increment_counter(db, COUNTER_APPROVALS_RESOLVED_IN_MEMORY)
+    elif decision == "declined":
+        # v19.F Phase B: orphan-declined counter increment.
+        # Reached when is_orphan and decision == 'declined' — the cancelled
+        # status was already set above; no resume to enqueue.
+        increment_counter(db, COUNTER_APPROVALS_DECLINED_ORPHAN)
 
     record_event(
         db,
