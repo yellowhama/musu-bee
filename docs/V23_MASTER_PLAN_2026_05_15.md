@@ -1204,8 +1204,101 @@ These deferred to V23.1+ with date / gate:
 ### 9.8 What V23.0 explicitly does NOT include
 
 - No code commits (this is by definition V23.0's promise)
-- No primary-source fact-check of Alpine / wsl --import / K3s claims — that's a V23.1 precondition
+- ~~No primary-source fact-check of Alpine / wsl --import / K3s claims — that's a V23.1 precondition~~ — **DONE in V23.0 iter1** (§0.5 "Primary-source fact-check" subsection)
 - No outreach to closed-beta users yet (V23.5 milestone)
 - No Paddle SKU creation
 - No telemetry server deployed (V23.1 day 1 task)
 - No final decision on which CI provider hosts the tar-build pipeline
+
+---
+
+## 10. V23.1 task list — Phase 1 spike (musu.pro signaling + musu-relay WebRTC)
+
+V23.1 is the **first code week**. Three deliverables, defined as
+concrete sub-tasks to make scope-creep visible. Estimated 3 weeks
+calendar time (solo + Claude Code).
+
+### 10.1 Current musu-relay state (baseline)
+
+Inspected `musu-relay/src/server.ts` 2026-05-15. Current implementation:
+- Cloud-hosted WebSocket broker (Express + ws)
+- Talks to `musu.pro/api/v1/nodes/validate` for token validation
+- Has cache + circuit-breaker for validation API
+- Designed to be deployed on Railway (`railway.json` + `Dockerfile`)
+
+V23.1 **does NOT delete this code** — it splits into two:
+- `musu-relay/src/signaling/` — code that ships **on musu.pro** (cloud)
+- `musu-relay/src/gateway/` — code that ships **on user PC** (local, inside the K3s+WSL2 distro)
+
+The current cloud-broker logic is closer to the signaling half;
+gateway is mostly new code.
+
+### 10.2 Sub-task tree (V23.1, week-by-week)
+
+#### Week 1 — Signaling server skeleton on musu.pro
+
+| # | Task | Acceptance |
+|---|------|-----------|
+| T1.1 | Fork `musu-relay/src/server.ts` into `musu-relay/src/signaling/server.ts` | Compiles, existing tests pass |
+| T1.2 | Strip cloud-broker bidirectional-tunnel logic; keep WS auth + token validation | Test: WS connect with valid token succeeds, invalid fails |
+| T1.3 | Add WebRTC signaling message protocol: `OFFER`, `ANSWER`, `ICE_CANDIDATE`, `BYE` | Unit tests: each message round-trips through server unchanged |
+| T1.4 | Add per-user room model: peer A and peer B with same `<user>` token can find each other | Test: 2 mock peers register, signaling routes between them |
+| T1.5 | Add telemetry POST endpoints from §9.3 schema: `/v1/telemetry/install`, `/v1/telemetry/nat_pierce` | Test: POST schema-valid JSON, see row appear in SQLite |
+| T1.6 | musu.pro SQLite schema migration for telemetry tables | One file `migrations/v40_telemetry.sql`. Const III gate if going to prod |
+| T1.7 | Pick deployment target for signaling server | **Decision: Fly.io free tier** for V23.1 (smallest viable VM, geographic edge). Reassess at V23.5 paid scale |
+
+#### Week 2 — musu-relay-gateway on user PC
+
+| # | Task | Acceptance |
+|---|------|-----------|
+| T1.8 | New crate / Node package `musu-relay-gateway` (likely Node since musu-relay is already TS) | `npm run build` succeeds |
+| T1.9 | WebRTC peer implementation using `@roamhq/wrtc` or `node-datachannel` (native bindings) | Test: gateway opens DataChannel to mock peer in <1s on localhost |
+| T1.10 | Bridge between WebRTC DataChannel and local K3s HTTP API | Test: HTTP request over DataChannel reaches `kubectl proxy` and returns 200 |
+| T1.11 | Hook into musu-bee dev mode: musu-bee web UI can hit gateway via DataChannel and get K3s state | Test: musu-bee shows mock pod count |
+| T1.12 | Telemetry POST hook: gateway emits `nat_pierce` event after each connection attempt | Test: failed attempt emits `fail_cause`, success emits `success` |
+| T1.13 | Decide STUN server set: Google's public STUN + 2 backups | Documented in code constant `STUN_SERVERS`, no TURN per O4-b |
+
+#### Week 3 — End-to-end handshake + V23.2 gate
+
+| # | Task | Acceptance |
+|---|------|-----------|
+| T1.14 | E2E test: browser tab → fly.io signaling → gateway on dev laptop → local K3s "hello" pod → response | Manual + recorded video. This is the V23.1 → V23.2 transition demo |
+| T1.15 | E2E test from a second machine (different network) → same flow | Verify NAT traversal works across networks, not just localhost |
+| T1.16 | E2E test with WiFi/cellular tether for one side to simulate CGNAT | Documents what we learn about TURN need; informs V23.5 decision |
+| T1.17 | Author `docs/V23_1_SPIKE_RESULT_<date>.md` | Records: time per handshake, success rate over 20 attempts, failure causes |
+| T1.18 | User-gate decision for V23.2 entry | "진행해" or "stop here, fix X first" |
+
+### 10.3 Dependencies + blockers
+
+- **T1.7 (Fly.io)** is provisional. If Fly.io is unsuitable (egress
+  costs at scale, geographic latency), Hetzner or Hostinger VPS are
+  the fallbacks. Decision can change at V23.5 without breaking V23.1
+  work — only the deploy target changes
+- **T1.9 (WebRTC native bindings)** — `@roamhq/wrtc` is the
+  community-maintained successor to the deprecated `node-webrtc`.
+  Risk: native build complexity on Windows hosts during gateway dev.
+  Fallback: `node-datachannel` (alternative implementation). Decision
+  in week 2 day 1
+- **T1.16 (CGNAT test)** is the most fragile sub-task — relies on
+  having a CGNAT-style network to test. Mobile-tether is the cheapest
+  simulation; corporate-firewall test requires a willing volunteer
+
+### 10.4 Out of V23.1 scope (explicit)
+
+- Windows installer (.exe / WSL2 auto-install) — that's V23.2
+- musu-bridge Operator (CRD definitions) — that's V23.3
+- React Flow workflow editor — that's V23.4
+- Paddle billing wiring — that's V23.5
+- Auto-update mechanism for `musu-backend.tar` — V23.2 deliverable
+- Argo Workflows integration — V23.3
+
+### 10.5 V23.1 success criteria
+
+V23.1 ends with three things true:
+1. A browser on a phone (CGNAT cellular) can open `https://<test>.musu.pro` and see a K3s pod's stdout from a laptop on home WiFi
+2. The signaling server has logged ≥20 successful + ≥5 failed handshakes with categorized fail_cause
+3. The user has signed off "V23.2 should start" or "halt and fix X"
+
+If criterion 1 fails repeatedly (<50% success on home networks), V23.2
+is *not* started — instead V23.1 extends another week for retry, or
+β fork triggered if structural impossibility found.
