@@ -336,10 +336,34 @@ app.get("/health", (_req, res) => {
 // upstream /validate is v21-era (pre-B2) and falls back to echoing the
 // claim. In that path we want userId="" so the route's Design A check
 // fires and returns 503. The adapter normalizes ""→null for that test.
+//
+// V23.2 B1 dual-audit Auditor A M1 (cache-poisoning closure):
+// forceRefresh=true on this bootstrap path. The validationCache is keyed
+// on the token alone (server.ts:62 + audit HIGH #3 fix) and, on a v21-era
+// upstream, falls back to the HELLO-supplied user_id as the canonical id
+// (server.ts:140-151). Without forceRefresh, an attacker holding ANY valid
+// tunnel_token T could:
+//   1. Open a WS, send HELLO {token: T, user_id: VICTIM_ID} → cache stores
+//      {token: T, canonicalUserId: VICTIM_ID}.
+//   2. Within CACHE_TTL_MS, POST /v1/telemetry/issue_install_key with
+//      tunnel_token=T → cache HIT returns userId=VICTIM_ID → route INSERTs
+//      an HMAC account_key keyed on VICTIM_ID.
+//   3. Victim's legitimate gateway later hits 409 at bootstrap → cannot
+//      authenticate telemetry → signaling is unusable for the victim
+//      until manual ops intervention.
+// forceRefresh forces a fresh upstream call here. On a v21-era /validate
+// the fresh response has no user_id field, the adapter normalizes to null,
+// and the route's Design A check returns 503 (correct: refuse to issue
+// against the v21 fallback). On a B2-deployed upstream the fresh response
+// carries the canonical user_id and issuance proceeds normally.
+//
+// This is a defense-in-depth gate: the WS HELLO path itself also writes
+// HELLO mismatches to the log (server.ts:414-419) but does NOT reject the
+// cache entry, so the bootstrap path must independently bypass it.
 app.use(
   "/v1/telemetry",
   makeTelemetryRouter(async (token) => {
-    const r = await validateToken(token, "");
+    const r = await validateToken(token, "", /* forceRefresh */ true);
     return {
       valid: r.valid,
       userId: r.userId && r.userId.length > 0 ? r.userId : null,
