@@ -22,6 +22,7 @@
 //    room_peers, we initiate OFFER to any peer with role="visitor") →
 //   exchange ICE candidates → DataChannel "open" → handoff to bridge
 
+import { createHmac } from "crypto";
 import WebSocket from "ws";
 
 // ── Protocol types (mirror src/signaling/server.ts) ──────────────────────
@@ -109,8 +110,21 @@ export interface GatewayConfig {
   /** Shared secret for telemetry endpoint auth (V23.2 T2.AUTH.2 interim).
    *  Sent in the `x-musu-telemetry-secret` header. The installer
    *  (Workstream B) configures gateway with this at build time. Server
-   *  validates against its MUSU_TELEMETRY_SHARED_SECRET env var. */
+   *  validates against its MUSU_TELEMETRY_SHARED_SECRET env var.
+   *  Legacy path; superseded by `accountKey` (V23.2 B1, wiki/363 §6.1).
+   *  Both fields may coexist during dual-accept rollout; `accountKey`
+   *  takes precedence when set. Removed in V23.3 once HMAC_ONLY ships. */
   telemetrySharedSecret?: string;
+  /** Per-account HMAC key (64-char lowercase hex, 256-bit) for telemetry
+   *  endpoint auth (V23.2 B1 final, wiki/363 §6.1). When set, gateway
+   *  signs each telemetry POST with HMAC-SHA256(accountKey, t + "." + body)
+   *  and sends `x-musu-user-id` + `x-musu-telemetry-signature` headers
+   *  (NOT `x-musu-telemetry-secret`). When unset and `telemetryBase` is
+   *  set, gateway calls `/issue_install_key` on first connect to acquire
+   *  one (in-memory only; persistence deferred to B4b per Critic HIGH #1).
+   *  Hard-fails on 409 from the issue endpoint — caller must pass an
+   *  existing key explicitly, or wait for rotation (B1.x). */
+  accountKey?: string;
   /** Override the fetch impl (test injection). Defaults to globalThis.fetch. */
   fetchImpl?: typeof fetch;
   /** Hard deadline for a single handshake attempt. After this, the
@@ -136,6 +150,11 @@ export class GatewayClient {
   private welcomeTimer: NodeJS.Timeout | null = null;
   private welcomeInterval: NodeJS.Timeout | null = null;
   private closed = false;
+  /** Bootstrap-acquired HMAC key. Holds the value returned by
+   *  /issue_install_key on first connect, when `cfg.accountKey` was unset.
+   *  Header construction prefers `this.accountKey ?? this.cfg.accountKey`.
+   *  In-memory only — wiped on process exit. Persistence is B4b's job. */
+  private accountKey: string | undefined;
 
   constructor(private readonly cfg: GatewayConfig) {
     this.log = cfg.onLog ?? ((l) => console.log(l));
@@ -195,6 +214,14 @@ export class GatewayClient {
         }
       }, 20);
     });
+
+    // V23.2 B1 commit 5 (wiki/363 §6.3): acquire HMAC key BEFORE any
+    // PEER_JOINED can trigger a handshake that drives recordOutcome().
+    // No-op if accountKey is already configured or telemetry is disabled.
+    // 409 rethrows here (hard-fail per Critic HIGH #1 resolution); other
+    // failure modes (503, 401, network) leave accountKey unset and the
+    // telemetry POST path falls through to legacy shared-secret / no-auth.
+    await this.bootstrapAccountKey();
   }
 
   /** Graceful shutdown. */
@@ -362,6 +389,96 @@ export class GatewayClient {
 
   // ── Telemetry (T1.12) ──────────────────────────────────────────────────
 
+  /** V23.2 B1 commit 5 (wiki/363 §6.3). On first connect, when the caller
+   *  has not provided `accountKey` and telemetry is enabled, fetch one
+   *  from `/issue_install_key`. The acquired key is held in
+   *  `this.accountKey` for the lifetime of the process only — file
+   *  persistence is deferred to B4b (Critic HIGH #1 resolution).
+   *
+   *  Outcomes:
+   *  - `200`: stored, telemetry will use HMAC headers
+   *  - `409`: throws (hard-fail; another install already issued for this
+   *    user. B1.x adds rotation; B4b adds persistence to make this rare.)
+   *  - `503`: musu.pro `/validate` does not yet return canonical user_id
+   *    (Design A pre-B2-deploy state). Telemetry stays disabled; gateway
+   *    proceeds. Caller observes via logs.
+   *  - `401`: bad tunnel_token. Signaling will fail too; we log and continue.
+   *  - Network error / other: log and continue (best-effort). */
+  private async bootstrapAccountKey(): Promise<void> {
+    // Caller already supplied a key — nothing to do.
+    if (this.cfg.accountKey) return;
+    // Telemetry disabled — no key needed.
+    if (!this.cfg.telemetryBase) return;
+    // Without an install id we can't correlate telemetry rows anyway;
+    // server requires it in the request body.
+    if (!this.cfg.musuInstallId) {
+      this.log(
+        `[gateway] bootstrapAccountKey skipped: musuInstallId unset`,
+      );
+      return;
+    }
+    const fetchImpl = this.cfg.fetchImpl ?? globalThis.fetch;
+    let resp: Response;
+    try {
+      resp = await fetchImpl(
+        `${this.cfg.telemetryBase}/issue_install_key`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            tunnel_token: this.cfg.token,
+            musu_install_id: this.cfg.musuInstallId,
+          }),
+        },
+      );
+    } catch (err) {
+      // Network failure. Telemetry stays disabled until next process
+      // start. Do NOT throw — gateway must still serve signaling.
+      this.log(
+        `[gateway] bootstrapAccountKey network error: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return;
+    }
+    if (resp.status === 200) {
+      const body = (await resp.json()) as { account_key?: string };
+      if (typeof body.account_key === "string" && body.account_key.length > 0) {
+        this.accountKey = body.account_key;
+        this.log(`[gateway] bootstrapAccountKey OK: account_key acquired`);
+      } else {
+        this.log(
+          `[gateway] bootstrapAccountKey 200 but body missing account_key`,
+        );
+      }
+      return;
+    }
+    if (resp.status === 409) {
+      // Hard-fail. B1 has no persistence story; the operator must either
+      // (a) wire the existing accountKey explicitly into config, or (b)
+      // wait for the B1.x rotation header. Throwing here forces the
+      // operator to confront the misconfiguration instead of silently
+      // running with no auth.
+      throw new Error(
+        "Account already has a telemetry key. Provide it via accountKey config, " +
+          "or rotate (lands in B1.x). Persistent storage lands in V23.2 B4b.",
+      );
+    }
+    if (resp.status === 503) {
+      // Design A: musu.pro hasn't deployed B2 yet (no canonical user_id).
+      // Telemetry stays disabled for this process. Gateway proceeds.
+      this.log(
+        `[gateway] bootstrapAccountKey 503: musu.pro canonical user_id unavailable; telemetry disabled`,
+      );
+      return;
+    }
+    if (resp.status === 401) {
+      this.log(`[gateway] bootstrapAccountKey 401: bad tunnel_token`);
+      return;
+    }
+    this.log(
+      `[gateway] bootstrapAccountKey unexpected status ${resp.status}`,
+    );
+  }
+
   private telemetryRecords: TelemetryNatPierce[] = [];
 
   /** For tests: read back what we would have POSTed. */
@@ -394,17 +511,35 @@ export class GatewayClient {
       return;
     }
     const fetchImpl = this.cfg.fetchImpl ?? globalThis.fetch;
+    // V23.2 B1 commit 5 (wiki/363 §6.2): ONE rawBody variable, used twice
+    // (HMAC compute AND fetch body). Writing `body: JSON.stringify(record)`
+    // a second time would produce different bytes if any value were
+    // serialized non-deterministically, and the server-side raw-body
+    // signature check (commit 1) would 401. The body-identity test in
+    // telemetry-emit.test.ts guards this invariant.
+    const rawBody = JSON.stringify(record);
     const headers: Record<string, string> = {
       "content-type": "application/json",
     };
-    if (this.cfg.telemetrySharedSecret) {
+    // Prefer the bootstrap-acquired key; fall back to caller-supplied.
+    const effectiveAccountKey = this.accountKey ?? this.cfg.accountKey;
+    if (effectiveAccountKey) {
+      const t = Math.floor(Date.now() / 1000);
+      const signedString = `${t}.${rawBody}`;
+      const v1 = createHmac("sha256", effectiveAccountKey)
+        .update(signedString)
+        .digest("hex");
+      headers["x-musu-user-id"] = this.cfg.userId;
+      headers["x-musu-telemetry-signature"] = `t=${t},v1=${v1}`;
+    } else if (this.cfg.telemetrySharedSecret) {
+      // Legacy path — survives until V23.3 HMAC_ONLY landing.
       headers["x-musu-telemetry-secret"] = this.cfg.telemetrySharedSecret;
     }
     try {
       await fetchImpl(`${this.cfg.telemetryBase}/nat_pierce`, {
         method: "POST",
         headers,
-        body: JSON.stringify(record),
+        body: rawBody, // SAME variable signed above — do not re-stringify.
       });
     } catch (err) {
       // Telemetry is best-effort. A failure must never block signaling.
