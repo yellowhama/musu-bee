@@ -1302,3 +1302,83 @@ V23.1 ends with three things true:
 If criterion 1 fails repeatedly (<50% success on home networks), V23.2
 is *not* started — instead V23.1 extends another week for retry, or
 β fork triggered if structural impossibility found.
+
+---
+
+## 11. V23.0 closure — strategic confirmation week complete
+
+V23.0 deliverables (per §9.5) — final status:
+
+| # | Deliverable | Status |
+|---|-------------|--------|
+| 1 | §0.4 SWOT (α / β / γ + 2 hybrids) authored | ✅ |
+| 2 | §0.5 lightweight WSL2 architecture (Alpine + `wsl --import`) | ✅ |
+| 3 | §0.3 alternatives rejection (Nomad / Rancher / WinNativeContainers / Docker Desktop) | ✅ |
+| 4 | §9.1 stance locked: α-with-β-fallback | ✅ |
+| 5 | §9.2 β fallback transition structure (9-step) + revised probability 10-15% | ✅ |
+| 6 | §9.3 telemetry tool: self-built + schema + privacy contract | ✅ |
+| 7 | §0.5 primary-source fact-check (Alpine 3MB, wsl --import syntax, K3s 2GB min) — caught 1 factual error | ✅ |
+| 8 | §10 V23.1 task list (18 sub-tasks T1.1-T1.18 across 3 weeks) | ✅ |
+| 9 | Const VII push gate — V22 + V23 unified merge to main | ⏳ **pending user "진행해"** |
+
+**8 of 9 V23.0 deliverables complete.** The one outstanding item is
+the Constitution VII gate — user must explicitly authorize the push
+to main before any commits on `v22/gap-analysis` reach origin.
+
+### 11.1 What goes into the main push (if "진행해" given)
+
+The `v22/gap-analysis` branch contains, in commit order:
+
+1. `docs/V22_K8S_GAP_ANALYSIS_2026_05_15.md` — DEPRECATED but preserved with wrong-frame warning at header
+2. `docs/V22_OPTION_SWOT_2026_05_15.md` — 14 sections; the decision context that produced L1-L7 product locks
+3. `docs/PACKAGE_INVENTORY_2026_05_15.md` — as-measured 12-package roster
+4. `docs/V23_MASTER_PLAN_2026_05_15.md` — this active plan (1300+ lines, §0-§11)
+
+No code changes. All commits are documentation. Push surface is 4
+markdown files.
+
+### 11.2 What V23.1 starts with after the push
+
+Per §9.6 + §10:
+- `v23/spike-phase-1` branch cuts from main (immediately after V22+V23 merge)
+- T1.1 begins: fork `musu-relay/src/server.ts` → `signaling/`
+- Telemetry server (Fly.io) provisioned in parallel by user
+- 3-week clock starts on V23.1 success criteria
+
+### 11.3 What V23.0 deliberately did NOT do
+
+- No code commits (per §9.8 promise — kept)
+- No Paddle SKU creation (waits for V23.5)
+- No closed-beta user outreach (waits for V23.5)
+- No telemetry server deployed (V23.1 day 1 task)
+- No final CI provider decision for `musu-backend.tar` build (V23.2 spike start)
+- No branch named `v23/master-plan` yet — strategic decision was to merge V22+V23 to main as one unit per user direction, then cut `v23/spike-phase-1` from main
+
+### 11.4 Honest self-grade on V23.0 process
+
+After V22's wrong-frame disaster, V23.0 was specifically a "no code,
+decide things first" week. Grade against that goal:
+
+- ✅ Strategic forks named explicitly before any code (α / β / γ / hybrids)
+- ✅ External CTO input integrated, including sub-decisions the user didn't directly address (TURN policy, BIOS-virtualization handling, Alpine vs Ubuntu)
+- ✅ Primary-source fact-check caught one factual error (K3s RAM target) before V23.1 commits
+- ✅ §10 V23.1 task list is concrete (18 sub-tasks with acceptance criteria) — not "do Phase 1"
+- ⚠️ Multi-choice question fatigue (user pushback "이런거 그만 물어보고 최선의 답을 먼저 찾고 나서 질문좀 하라고") — recorded as lesson for V23.1+
+- ⚠️ Section §14 was added mid-stream and not fully integrated into earlier sections — some redundancy between §10 / §11 / §14 in V22_OPTION_SWOT remains
+
+V23.0 ends here. Next action is the Const VII gate — user decision.
+
+---
+
+## 12. One-line summary (updated for V23.0 closure)
+
+> **V23 builds the musu product on K3s + Argo + WebRTC + React Flow,
+> with WSL2 hidden via Alpine + `wsl --import`, behind a UI that says
+> "agent" and "company" but never "Pod." musu.pro is a $30/mo
+> signaling-only VM. Free tier = LAN; paid tier ($5/mo) = external
+> reach via `<user>.musu.pro`. Stance is α-with-β-fallback: ship α,
+> measure WSL2 install at V23.2, fork to β only if data demands it.
+> ~21 weeks to closed beta with 18-task V23.1 spike opening the path.**
+
+This replaces §8's earlier one-liner. The pitch is the same; the
+implementation specifics are now locked.
