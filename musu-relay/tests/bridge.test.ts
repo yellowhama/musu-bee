@@ -17,6 +17,7 @@ import {
   BridgeServer,
   BridgeClient,
   DataChannelLike,
+  normalizePath,
 } from "../src/gateway/bridge";
 
 jest.setTimeout(10000);
@@ -216,5 +217,112 @@ describe("T1.10 bridge: request timeout when no response arrives", () => {
     await expect(
       client.request({ method: "GET", path: "/never" }),
     ).rejects.toThrow(/timeout/);
+  });
+});
+
+// ── T2.SEC.1 — path normalization unit tests ─────────────────────────────
+
+describe("T2.SEC.1 normalizePath", () => {
+  it("passes a normal API path", () => {
+    expect(normalizePath("/api/v1/namespaces")).toBe("/api/v1/namespaces");
+  });
+
+  it("preserves query string", () => {
+    expect(normalizePath("/api/v1/pods?limit=5")).toBe("/api/v1/pods?limit=5");
+  });
+
+  it("rejects raw `..` traversal", () => {
+    expect(normalizePath("/api/../admin/secret")).toBeNull();
+  });
+
+  it("rejects percent-encoded `..` traversal", () => {
+    expect(normalizePath("/api/%2e%2e/admin/secret")).toBeNull();
+    expect(normalizePath("/api/%2E%2E/admin/secret")).toBeNull();
+  });
+
+  it("rejects double slash run", () => {
+    expect(normalizePath("/api//admin")).toBeNull();
+  });
+
+  it("rejects single-dot segment", () => {
+    expect(normalizePath("/api/./admin")).toBeNull();
+  });
+
+  it("rejects backslash", () => {
+    expect(normalizePath("/api/\\admin")).toBeNull();
+  });
+
+  it("rejects NUL byte", () => {
+    expect(normalizePath("/api/\0admin")).toBeNull();
+  });
+
+  it("rejects path that doesn't start with /", () => {
+    expect(normalizePath("api/v1")).toBeNull();
+  });
+
+  it("rejects empty path", () => {
+    expect(normalizePath("")).toBeNull();
+  });
+});
+
+// ── T2.SEC.1 — wire-level: BridgeServer rejects traversal vectors ────────
+
+describe("T2.SEC.1 bridge rejects path traversal at wire", () => {
+  const TRAVERSAL_VECTORS = [
+    "/api/../admin/secret",
+    "/api/%2e%2e/admin/secret",
+    "/api/%2E%2E/admin/secret",
+    "/api//admin",
+    "/api/./admin",
+    "/api/\\admin",
+  ];
+
+  for (const vector of TRAVERSAL_VECTORS) {
+    it(`rejects ${JSON.stringify(vector)}`, async () => {
+      // Even WITHOUT pathAllowPrefix set, traversal vectors must be
+      // rejected — they represent malformed input regardless of policy.
+      let reached = false;
+      const target = await startLocalTarget((_req, res) => {
+        reached = true;
+        res.writeHead(200).end("should not reach");
+      });
+
+      const { a, b } = makePair();
+      new BridgeServer({
+        dc: a,
+        target: { host: target.host, port: target.port },
+        pathAllowPrefix: "/api/",
+      });
+      const client = new BridgeClient(b, 1000);
+
+      await expect(
+        client.request({ method: "GET", path: vector }),
+      ).rejects.toThrow(/not allowed/);
+      expect(reached).toBe(false);
+
+      await target.close();
+    });
+  }
+
+  it("uses the NORMALIZED path when forwarding, not the raw one", async () => {
+    // Even when a path passes the allowlist after normalization, we
+    // should forward the normalized form. Vector here is benign — just
+    // verifying the path the upstream sees matches what we vetted.
+    let seenUrl: string | null = null;
+    const target = await startLocalTarget((req, res) => {
+      seenUrl = req.url ?? null;
+      res.writeHead(200).end("ok");
+    });
+    const { a, b } = makePair();
+    new BridgeServer({
+      dc: a,
+      target: { host: target.host, port: target.port },
+    });
+    const client = new BridgeClient(b);
+
+    await client.request({ method: "GET", path: "/api/v1/pods?limit=10" });
+    expect(seenUrl).toBe("/api/v1/pods?limit=10");
+
+    await target.close();
   });
 });

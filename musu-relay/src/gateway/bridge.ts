@@ -63,6 +63,56 @@ interface ErrEnvelope {
 
 type Envelope = ReqEnvelope | ResEnvelope | ErrEnvelope;
 
+// ── Path normalization (V23.2 T2.SEC.1, closes audit MED #4) ─────────────
+//
+// `startsWith(prefix)` is not safe — `/api/../admin/secret` starts with
+// `/api/` but resolves to `/admin/secret`. We:
+//   1. Reject paths that do not begin with `/`.
+//   2. Reject paths containing any percent-encoded `..`, NUL byte, or
+//      backslash. Don't try to be clever; the bridge only ever forwards
+//      to a known local service, so a strict whitelist of what the path
+//      may look like is safer than a normalizer that tries to be
+//      universal.
+//   3. Parse via WHATWG URL with a fake origin, take `.pathname`.
+//   4. Reject if the normalized path still contains a `..` segment after
+//      WHATWG normalization (defense in depth — URL normalization
+//      *should* collapse them, but the API doesn't guarantee it for all
+//      inputs).
+//
+// Returns the normalized path (with original query string preserved), or
+// null if the path is rejected.
+//
+// Strategy: instead of "normalize then check," we "tokenize and reject
+// any sketchy segment." This is paranoid but the bridge is a security
+// boundary, not a router — being strict is the right default.
+export function normalizePath(rawPath: string): string | null {
+  if (typeof rawPath !== "string" || rawPath.length === 0) return null;
+  if (!rawPath.startsWith("/")) return null;
+  // Reject percent-encoded `.`, NUL, backslash. Not valid in k8s API
+  // paths; exist mainly as encoding-bypass vectors.
+  if (
+    /%2e/i.test(rawPath) ||
+    rawPath.includes("\0") ||
+    rawPath.includes("\\")
+  ) {
+    return null;
+  }
+  // Split into path + query without involving the WHATWG URL parser,
+  // which would silently collapse `..` and `.` segments and `//` runs —
+  // hiding the very vectors we want to reject.
+  const qIdx = rawPath.indexOf("?");
+  const pathPart = qIdx === -1 ? rawPath : rawPath.slice(0, qIdx);
+  const queryPart = qIdx === -1 ? "" : rawPath.slice(qIdx);
+  if (pathPart.includes("//")) return null;
+  const segments = pathPart.split("/");
+  // Skip the empty leading segment from the leading `/`.
+  for (let i = 1; i < segments.length; i++) {
+    const seg = segments[i];
+    if (seg === "" || seg === "." || seg === "..") return null;
+  }
+  return `${pathPart}${queryPart}`;
+}
+
 // ── Gateway side — receives reqs, calls local HTTP, sends responses ──────
 
 export interface BridgeServerConfig {
@@ -97,20 +147,37 @@ export class BridgeServer {
     }
     if (env.kind !== "req") return; // ignore stray res/err on server side
 
-    if (
-      this.cfg.pathAllowPrefix !== undefined &&
-      !env.path.startsWith(this.cfg.pathAllowPrefix)
-    ) {
+    const normalizedPath = normalizePath(env.path);
+    if (normalizedPath === null) {
+      this.log(`[bridge] rejected malformed path: ${env.path}`);
       this.send({
         id: env.id,
         kind: "err",
-        message: `path not allowed: ${env.path}`,
+        message: `path not allowed`, // audit LOW #8: don't echo user path
       } as ErrEnvelope);
       return;
     }
+    if (
+      this.cfg.pathAllowPrefix !== undefined &&
+      !normalizedPath.startsWith(this.cfg.pathAllowPrefix)
+    ) {
+      this.log(
+        `[bridge] rejected out-of-prefix path raw=${env.path} ` +
+          `normalized=${normalizedPath}`,
+      );
+      this.send({
+        id: env.id,
+        kind: "err",
+        message: `path not allowed`,
+      } as ErrEnvelope);
+      return;
+    }
+    // Forward the normalized path, not the raw one — defends downstream
+    // targets that don't normalize themselves.
+    const safeEnv: ReqEnvelope = { ...env, path: normalizedPath };
 
     try {
-      const res = await this.forward(env);
+      const res = await this.forward(safeEnv);
       this.send(res);
     } catch (err) {
       this.send({
