@@ -14,7 +14,7 @@
 
 import express from "express";
 import Database from "better-sqlite3";
-import { createHash, randomUUID, timingSafeEqual } from "crypto";
+import { createHash, createHmac, randomUUID, timingSafeEqual } from "crypto";
 import path from "path";
 
 // ── DB bootstrap ──────────────────────────────────────────────────────────
@@ -240,6 +240,133 @@ function requireTelemetrySecret(
   return true;
 }
 
+// ── HMAC auth (V23.2 T2.AUTH.2-final / Workstream B1) ────────────────────
+//
+// Per-account HMAC signature verification on the three write endpoints.
+// Wire format (wiki/363 §2.1):
+//
+//   X-Musu-User-Id:               <canonical user id from /validate>
+//   X-Musu-Telemetry-Signature:   t=<unix_seconds>,v1=<lowercase_hex>
+//
+// where v1 = HMAC_SHA256(account_key, `${t}.` + raw_body_bytes), lookup
+// of account_key is by user_id in telemetry_account_keys (schema v41,
+// commit 2). Raw body bytes come from req.rawBody (commit 1).
+//
+// Dual-accept (wiki/363 §8 + Critic HIGH #2 resolution): until cutover,
+// a request with NEITHER X-Musu-User-Id NOR X-Musu-Telemetry-Signature
+// header falls through to requireTelemetrySecret() — the legacy
+// shared-secret path. Once MUSU_TELEMETRY_HMAC_ONLY=1 is set, the
+// fallthrough is severed and every POST demands HMAC. Weakened
+// invariant: server cannot identify anonymous (no-user-id) callers, so
+// they remain on the shared-secret path until full cutover.
+
+const SIG_HEADER_RE =
+  /^(?:t=(?<t1>\d+),v1=(?<v1a>[0-9a-f]+)|v1=(?<v1b>[0-9a-f]+),t=(?<t2>\d+))$/;
+
+function parseSigHeader(
+  raw: string,
+): { t: number; v1: string } | null {
+  const m = raw.match(SIG_HEADER_RE);
+  if (!m || !m.groups) return null;
+  const tStr = m.groups.t1 ?? m.groups.t2;
+  const v1 = m.groups.v1a ?? m.groups.v1b;
+  if (!tStr || !v1) return null;
+  const t = Number(tStr);
+  if (!Number.isFinite(t) || !Number.isInteger(t)) return null;
+  return { t, v1 };
+}
+
+export function requireInstallHmac(
+  req: express.Request,
+  res: express.Response,
+): boolean {
+  // Dev-assertion: this middleware is meaningful only when the router-level
+  // `express.json({ verify })` captured the raw bytes. A future POST route
+  // mounted without that verify hook would have undefined rawBody and the
+  // HMAC input would be uncomputable. We refuse to fail-open silently.
+  if (!req.rawBody) {
+    res.status(500).json({ error: "raw body not captured" });
+    return false;
+  }
+
+  const userId = req.header("x-musu-user-id");
+  const sigHdr = req.header("x-musu-telemetry-signature");
+  const hmacOnly = process.env.MUSU_TELEMETRY_HMAC_ONLY === "1";
+
+  // Dual-accept fallthrough: no HMAC headers at all → delegate to legacy
+  // shared-secret middleware. Disabled when MUSU_TELEMETRY_HMAC_ONLY=1.
+  if (!hmacOnly && !userId && !sigHdr) {
+    return requireTelemetrySecret(req, res);
+  }
+
+  if (!userId || !sigHdr) {
+    res.status(401).json({ error: "missing signature" });
+    return false;
+  }
+
+  const parsed = parseSigHeader(sigHdr);
+  if (!parsed) {
+    res.status(401).json({ error: "malformed signature" });
+    return false;
+  }
+
+  // Replay window: ±300s (Stripe-aligned). No nonce cache in B1; if
+  // post-B1 audit demands one, lands in B3 or later. No echo of t or
+  // server-now to keep the response oracle-free.
+  const now = Math.floor(Date.now() / 1000);
+  if (Math.abs(now - parsed.t) > 300) {
+    res.status(401).json({ error: "expired or future-dated signature" });
+    return false;
+  }
+
+  const row = openDb()
+    .prepare("SELECT account_key FROM telemetry_account_keys WHERE user_id = ?")
+    .get(userId) as { account_key: string } | undefined;
+
+  if (!row) {
+    if (hmacOnly) {
+      res.status(401).json({ error: "unknown account" });
+      return false;
+    }
+    // Dual-accept: no row for this user_id yet (e.g. legacy gateway that
+    // hasn't migrated). Fall through to shared-secret. Weakened
+    // invariant — see header comment.
+    return requireTelemetrySecret(req, res);
+  }
+
+  // Build signed string from raw body bytes. Restringifying req.body would
+  // reorder keys and break verification; raw bytes are the contract.
+  const signedString = Buffer.concat([
+    Buffer.from(`${parsed.t}.`, "utf8"),
+    req.rawBody,
+  ]);
+  const expectedHmac = createHmac("sha256", row.account_key)
+    .update(signedString)
+    .digest();
+
+  // hex decode is safe — SIG_HEADER_RE already constrained v1 to
+  // lowercase hex. Buffer.from with "hex" silently truncates on odd
+  // length; the length check below catches that case.
+  const suppliedHmac = Buffer.from(parsed.v1, "hex");
+  if (suppliedHmac.length !== expectedHmac.length) {
+    res.status(401).json({ error: "invalid signature" });
+    return false;
+  }
+  if (!timingSafeEqual(suppliedHmac, expectedHmac)) {
+    res.status(401).json({ error: "invalid signature" });
+    return false;
+  }
+
+  // Success: bump last_seen_at for liveness reporting. Stamp in unix ms
+  // to match issued_at/rotated_at columns (schema v41).
+  openDb()
+    .prepare(
+      "UPDATE telemetry_account_keys SET last_seen_at = ? WHERE user_id = ?",
+    )
+    .run(Date.now(), userId);
+  return true;
+}
+
 // Test helper: clear the warned-state. Called from tests so each
 // describe block can re-trigger the one-time warning if needed.
 export function _resetTelemetryAuthState(): void {
@@ -291,7 +418,7 @@ export function makeTelemetryRouter(): express.Router {
 
   // POST /v1/telemetry/install
   router.post("/install", (req, res) => {
-    if (!requireTelemetrySecret(req, res)) return;
+    if (!requireInstallHmac(req, res)) return;
     const b = req.body || {};
     if (!asStr(b.musu_install_id) || !isValidOs(b.os) || !asStr(b.os_version) || !asStr(b.musu_version) || asInt(b.elapsed_ms) === null) {
       res.status(400).json({ error: "missing required fields" });
@@ -324,7 +451,7 @@ export function makeTelemetryRouter(): express.Router {
 
   // POST /v1/telemetry/nat_pierce
   router.post("/nat_pierce", (req, res) => {
-    if (!requireTelemetrySecret(req, res)) return;
+    if (!requireInstallHmac(req, res)) return;
     const b = req.body || {};
     if (!asStr(b.musu_install_id) || !isValidOutcome(b.attempt_outcome) || asInt(b.elapsed_ms) === null) {
       res.status(400).json({ error: "missing required fields" });
@@ -350,7 +477,7 @@ export function makeTelemetryRouter(): express.Router {
 
   // POST /v1/telemetry/agent_spawn (debug-mode optional)
   router.post("/agent_spawn", (req, res) => {
-    if (!requireTelemetrySecret(req, res)) return;
+    if (!requireInstallHmac(req, res)) return;
     const b = req.body || {};
     if (!asStr(b.musu_install_id) || !isValidOutcome(b.spawn_outcome)) {
       res.status(400).json({ error: "missing required fields" });
@@ -423,8 +550,18 @@ export function _resetDb(): void {
   db.exec(
     `DELETE FROM telemetry_install;
      DELETE FROM telemetry_nat_pierce;
-     DELETE FROM telemetry_agent_spawn;`,
+     DELETE FROM telemetry_agent_spawn;
+     DELETE FROM telemetry_account_keys;`,
   );
+}
+
+// Test helper: hand back the singleton DB so HMAC tests can seed
+// telemetry_account_keys rows directly. `:memory:` databases are NOT
+// shared across `new Database(":memory:")` instances, so opening a
+// second one in tests wouldn't see the same data the router uses.
+// Exported for test code only — never call from production code paths.
+export function _getDbForTests(): Database.Database {
+  return openDb();
 }
 
 export function _closeDb(): void {
