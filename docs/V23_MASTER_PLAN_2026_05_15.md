@@ -43,7 +43,7 @@ because they shape implementation.
 | # | Decision | External CTO sub-decision (where applicable) |
 |---|----------|---------------------------------------------|
 | O1 | **Solo frontend (user + Claude Code)** — same person handles musu-bee Next.js + React Flow integration | Phase 4 budget extends to 8–10 weeks instead of CTO-recommended 6 weeks; no outsourcing, no second engineer assumed |
-| O2 | **Windows = WSL2-bundled installer** | **Sub-decision (O2-b)**: V23.2 spike measures install failure rate. Threshold = **30% total failure**, BUT pivot to macOS/Linux-only immediately if the dominant failure cause is "Hard Blocker" (BIOS virtualization disabled — user must enter UEFI/BIOS, which is unfixable in script). Failure quality > raw failure rate. **Sub-decision (O2-c)**: Alternatives to K3s+WSL2 (Nomad, Rancher Desktop, Windows Native Containers) **explicitly rejected** — see §0.3 below |
+| O2 | **Windows = WSL2-bundled installer** | **Sub-decision (O2-b)**: V23.2 spike measures install failure rate. Threshold = **30% total failure**, BUT pivot to macOS/Linux-only immediately if the dominant failure cause is "Hard Blocker" (BIOS virtualization disabled — user must enter UEFI/BIOS, which is unfixable in script). Failure quality > raw failure rate. **Sub-decision (O2-c)**: Alternatives to K3s+WSL2 (Nomad, Rancher Desktop, Windows Native Containers, Docker Desktop + Enable K8s) **explicitly rejected** — see §0.3. **Sub-decision (O2-d)**: WSL2 install is **NOT the Microsoft Store Ubuntu path**. Use **Alpine Linux (5MB base) + K3s, packed as a `musu-backend.tar` and silently injected via `wsl --import`**. Full architecture in §0.5. V23.2 spike goal: "single .exe runs → custom Alpine+K3s lands in background WSL2 in 100% automation, zero terminal window shown to user" |
 | O3 | **Windows first, macOS deferred to V24** | No macOS spike during V23 |
 | O4 | **Build signaling from scratch** — Node + `ws` + simple-peer pattern (~300 lines). LiveKit explicitly rejected (it's an SFU, would relay traffic and violate True P2P). simple-peer-server rejected (limited extensibility for paid-tier auth gates) | **Sub-decision (O4-b)**: **STUN-only MVP**; TURN servers explicitly excluded from initial architecture. Re-evaluate TURN at V23.5 closed-beta based on actual hole-punching failure telemetry. If failure rate justifies it AND business model can absorb the cost, introduce TURN as paid-tier perk with strict traffic caps to prevent egress-cost runaway |
 | O5 | **Target user = AI-agent prosumer** (Zapier / n8n / Make.com user level — can't code, can model workflows) | UI shows agent / company / workflow language; K8s vocabulary 0% exposed; React Flow workflow editor is appropriate complexity |
@@ -74,11 +74,20 @@ Three alternatives were evaluated and rejected:
 | **HashiCorp Nomad** | Native Windows binary, can schedule plain processes (not just containers). **Would solve Windows problem but** forces abandoning entire K8s ecosystem: no kube-scheduler, no CRDs, no Argo Workflows, no `kubectl`, no Operator pattern. Phase 3 (Custom CRD + Argo) and Phase 4 (K8s-language hiding) are built around K8s — Nomad invalidates both. The K8s ecosystem advantages (Argo, Operators, mature tooling) outweigh the Windows portability gain |
 | **Rancher Desktop / Podman Desktop** | These already bundle K3s + WSL2 into one installer. **Would solve UX for K3s install but** ships as a 1–2 GB application, way too heavy to silently bundle inside musu installer. Also: still requires WSL2 or Hyper-V underneath — doesn't actually escape the kernel limitation |
 | **Windows Native Containers** | Microsoft's `windowscontainers` run Windows Server Core / Nano Server images on Windows kernel directly. **Sounds like it solves the problem but** images are GB-scale, the entire AI/Python/Node.js ecosystem doesn't ship Windows-container variants, and the technology is effectively abandoned outside .NET shops. Dead end for AI workloads |
+| **Docker Desktop + "Enable Kubernetes"** | Docker Desktop has a built-in K8s toggle in Settings. **Looks like the answer but is the same problem wrapped uglier**. Three reasons it's worse than direct WSL2: (1) Docker Desktop **uses WSL2 under the hood anyway** — it doesn't escape virtualization, just hides it. (2) Install + idle cost is brutal for prosumer audience: 600MB download + reboot + license-acceptance UI + manual "Enable Kubernetes" toggle, then 2–4 GB RAM consumed *idling*. (3) **Commercial license: Docker Desktop is not free for businesses past a certain size** — Docker Inc. shifted to paid subscription for commercial use. If musu ships with "requires Docker Desktop," users in companies face license compliance issues we never asked them to think about |
+
+**The real lesson from Docker Desktop**: Docker Desktop also bundles
+WSL2 silently behind a polished installer. That's the pattern we need
+to replicate — **musu's own installer hides WSL2 setup** the way
+Docker Desktop hides it, without making the user install Docker
+Desktop itself. The "global-class B2C infrastructure app" answer is
+self-bundled WSL2 automation, not "go install Docker Desktop first."
 
 **Conclusion**: WSL2 is unavoidable for Windows. The engineering work
-is making WSL2 install painless, not finding a way around it. This is
-why §0.2 O2 + O2-b focus on installer quality + telemetry-driven
-pivot criteria rather than on substrate choice.
+is making WSL2 install painless **inside our own installer**, not
+finding a way around it. This is why §0.2 O2 + O2-b focus on installer
+quality + telemetry-driven pivot criteria rather than on substrate
+choice.
 
 ---
 
@@ -216,27 +225,176 @@ explicitly considering **Option β** as an alternative.
 | Time to V23.5 closed beta | ~21 weeks (current plan) | ~28+ weeks (estimate) |
 | Risk of re-encountering v22 wrong-frame | Low | High |
 
-#### Decision framing
+#### Option γ — macOS-first MVP (skip Windows entirely)
+
+> External CTO suggestion (2026-05-15): drop Windows from V23 scope
+> entirely. Ship macOS-only MVP first. Windows joins in V24 or later
+> once macOS market validates the product. Lima or colima handles
+> macOS K3s with mature tooling; mac dev/prosumer audience is
+> homogeneous; install UX gets one OS to perfect.
+
+##### γ — Strengths
+
+| # | Strength | Why |
+|---|----------|-----|
+| γ-S1 | **One OS to ship; one OS to support** | All install UX, all docs, all CS, all telemetry tuned for one platform. Engineering team of 1 (user + Claude Code) can actually finish |
+| γ-S2 | **Lima/colima is mature** | macOS K3s install via brew + Lima is well-trodden. Less novel risk than WSL2 automation |
+| γ-S3 | **Apple Silicon performance is real** | Mac M-series users have GPUs + lots of RAM idle. F1 multi-PC pooling shines if all 3 PCs are M-series |
+| γ-S4 | **Mac users skew prosumer-AI** | Target audience O5 (AI-agent prosumer) overlaps heavily with Mac install base — Figma users, indie SaaS builders, AI tinkerers |
+| γ-S5 | **No BIOS-virtualization gate** | macOS hardware always has virtualization enabled (no UEFI choice) |
+| γ-S6 | **App Store distribution path optional** | Notarized .dmg or Mac App Store reach. Don't have to maintain 3 platform installers |
+| γ-S7 | **Time-to-MVP shortest** | Skip WSL2 automation work entirely. V23.2 simplifies from "Linux + Windows-via-WSL2" to just "Mac + Linux." Realistic ~15 weeks instead of α's ~21 |
+| γ-S8 | **Brand momentum precedent** | Linear, Raycast, Notion all launched Mac-first. Prosumer software ships Mac first by default |
+
+##### γ — Weaknesses
+
+| # | Weakness | Why |
+|---|----------|-----|
+| γ-W1 | **Cuts addressable market by ~70%** | Global desktop OS share: Windows ~70%, macOS ~15%, Linux ~5%. Even AI-prosumer skew doesn't fully compensate |
+| γ-W2 | **Windows users with multi-PC setups (gamers, prosumers) excluded** | The "spare gaming PC as worker node" pitch — gone until V24 |
+| γ-W3 | **v21.D Windows AppContainer is still throwaway** | Same as α: K3s on macOS uses Linux containers via Lima, AppContainer dies anyway. Sunk cost unchanged |
+| γ-W4 | **Mac users tend to have ONE expensive Mac** | Multi-PC fleet (F1 killer feature) is harder to demo if your audience has one $3000 Mac + maybe an old MacBook. Windows users frequently have 2-3 PCs (gaming + work + family) |
+| γ-W5 | **macOS sandbox-exec deprecation timeline still applies** | If α defers macOS to V24 to dodge this, γ pulls it forward |
+| γ-W6 | **Lima/colima can be flaky** | Reports of file-sync slowness on Apple Silicon; resource leaks; less hardened than Docker Desktop's tooling |
+| γ-W7 | **Locks musu into "Mac-only AI tool" perception** | Hard to expand later — Mac-first apps that try to add Windows often feel like ports forever |
+
+##### γ — Opportunities
+
+| # | Opportunity | Why |
+|---|-------------|-----|
+| γ-O1 | **Fastest path to "did anyone pay $5"** | 15 weeks not 21+. Real market data sooner. If MVP flops, less sunk |
+| γ-O2 | **Notarization + Sparkle auto-updater** | Mac update story is solved-best on macOS via Sparkle/SUFeedURL. Faster iteration loop than Windows MSI |
+| γ-O3 | **AI tools target Mac first culturally** | LLMs run faster on M-series unified memory; Apple AI ecosystem is hot. Marketing tailwind |
+| γ-O4 | **Defer the entire α-vs-β WSL2 decision** | If MVP works on Mac, we'll have revenue to fund proper Windows engineering. If it doesn't, Windows was the wrong battle anyway |
+
+##### γ — Threats
+
+| # | Threat | Why |
+|---|--------|-----|
+| γ-T1 | **70% of "fleet" prospects bounce at install** | Windows users see "Mac-only" and leave. F1 killer feature can't even be demoed to them |
+| γ-T2 | **"V24 Windows support" promise becomes a 2-year debt** | Engineering team of 1 — Windows port keeps slipping. Real risk |
+| γ-T3 | **Lima upstream churn** | Smaller community than WSL2; less Microsoft-funded stability |
+| γ-T4 | **Multi-PC fleet metaphor weakens on Mac-only** | Most Mac users don't have 3 Macs. F1 pitch becomes "use your old MacBook as a worker" — true but small audience |
+| γ-T5 | **Mac App Store sandboxing might not allow K3s/Lima** | If MAS distribution is the goal, K3s containers may not pass review. Notarized .dmg outside MAS is fine but reach is lower |
+
+#### Decision framing — three-way
 
 The honest summary:
 
 - **α bets on** WSL2 install automation being achievable + K8s ecosystem leverage outweighing virtualization cost
 - **β bets on** smallest-install + native-process latency outweighing the multi-PC scheduling work we'd inherit
+- **γ bets on** Mac-first market validation outweighing the loss of ~70% of the desktop OS market
 
-α is **faster to MVP**, **larger to install**, **smaller to maintain**.
-β is **slower to MVP**, **smaller to install**, **larger to maintain**.
+| | α — K3s + WSL2 (Win + Linux) | β — Container-less (3 OS) | γ — macOS-first MVP |
+|---|---|---|---|
+| Time to closed beta | ~21 weeks | ~28+ weeks | **~15 weeks** |
+| Install UX risk | High (WSL2) | Low | **Lowest** |
+| Addressable OS share | ~75% (Win + Linux) | ~90% (all 3 if all crates ship) | **~15%** (macOS) |
+| F1 multi-PC story | Strong | Strong | Weak (Mac users rarely own 3 Macs) |
+| Engineering scope | 1 substrate (K3s) + WSL2 installer | 3 isolation crates + scheduler rebuild | 1 substrate (K3s on Lima) |
+| v21.D Windows work fate | Throwaway | Salvaged | Throwaway |
+| v22 §3.x work fate | Mostly redundant | Mostly relevant again | Mostly redundant |
+| Brand narrative | "Hidden K8s for AI" | "Smallest agentic platform" | "Linear / Raycast for agentic AI" |
+| Risk of V24 Windows debt | None | None | High |
+| Match for "prosumer with multi-PC fleet" | Strong | Strong | Weak |
+| Match for "indie AI tinkerer" | OK | OK | **Strongest** |
 
-The two are not equal-effort. α is roughly 21 weeks to closed beta;
-β is roughly 28+ weeks because v22 §3.x distributed-correctness work
-returns and platform isolation has two more crates to ship. β trades
-maintenance debt for install footprint — and musu's product story
-("agentic company on your own PCs") arguably needs *both*.
+#### Two hybrid paths worth naming
 
-A third path nobody has named yet: **α-with-β-fallback** — ship α
-first, telemeter Windows WSL2 install success at V23.2, and only
-fork to β if WSL2 install success is below the 30% threshold from
-O2-b. This converts the SWOT from "α vs β" to "α with measured exit
-ramp." Worth considering as the actual V23 stance.
+**α-with-β-fallback** — ship α first, telemeter Windows WSL2 install
+success at V23.2, fork to β only if WSL2 success rate is below the
+30% threshold from O2-b. SWOT becomes "α with measured exit ramp."
+
+**γ-then-α** (CTO's actual suggestion read carefully) — ship γ first
+to validate market with mac users. Once revenue exists / market is
+confirmed, fund the WSL2 automation work to bring α to Windows in
+V24. SWOT becomes "γ for validation, α for scale."
+
+The two hybrids point at different bets:
+- **α-with-β-fallback** says "we believe Windows install is achievable, but plan our retreat"
+- **γ-then-α** says "we don't know if anyone wants this yet — find out cheaply, then scale to Windows"
+
+The second is more honest if MVP validation is the real concern.
+The first is more honest if F1's multi-PC story is the real
+differentiator we need to protect.
+
+---
+
+### 0.5 Lightweight WSL2 architecture — the actual Option α implementation
+
+User confirmed (2026-05-15) that the path forward is Option α (current
+plan: K3s + WSL2). External CTO provided the **technical spec** for
+how Docker Desktop / Rancher Desktop / etc. actually hide WSL2 from
+end users. This section records that spec; it is the *core engineering
+secret* of how to make α work for non-technical users.
+
+#### The "normal user WSL2" is not what we ship
+
+| | Default user WSL2 path (avoid) | musu's "stealth WSL2" path (ship) |
+|---|---|---|
+| Distro | Ubuntu (or similar) | **Alpine Linux** |
+| Base image size | ~500 MB – 1 GB | **~5 MB** |
+| Install source | Microsoft Store | **`wsl --import`** with our own tarball |
+| Visible to user | "Install Ubuntu" page, terminal, EULA | **Nothing** — happens silently behind musu's GUI |
+| User installs | Many tools they don't need | Only K3s + musu-relay |
+| Window shown | bash terminal | Just musu-bee Next.js UI |
+
+Three concrete techniques:
+
+**(1) Alpine Linux base** instead of Ubuntu.
+Alpine is the smallest viable Linux distro — ~5 MB base, used everywhere in container land for the same reason. We strip it further to the libraries K3s actually needs.
+
+**(2) `wsl --import` for silent injection.**
+Windows ships `wsl --import` as a built-in command. It accepts a `.tar` file and registers it as a WSL distro without ever touching the Microsoft Store. Our installer flow:
+- Bundle a precompiled `musu-backend.tar` (Alpine + K3s + musu-relay) ≈ 50 MB
+- On `musu.exe` first run, execute (no user-visible terminal):
+  ```
+  wsl --import musu-workspace %LOCALAPPDATA%\musu\wsl musu-backend.tar
+  ```
+- 3 seconds later, a WSL2 distro named `musu-workspace` exists containing exactly K3s and nothing else
+- The user has never seen a command prompt, never opened the Microsoft Store, never agreed to a Linux EULA
+
+**(3) Never show a terminal.**
+musu-bee (Windows native window) is the only window the user sees. Every K3s API call goes through musu-relay → musu-bridge → K3s API server. When code paths need to invoke `kubectl` (mostly never; we use K8s Python/Go clients), wrap them in:
+```
+wsl -d musu-workspace -e kubectl apply -f <spec>
+```
+No window, no prompt, no user awareness.
+
+#### What this changes in the plan
+
+- **No Ubuntu, no Microsoft Store dependency** — V23.2 spike scope tightens to "our tar gets imported and K3s starts inside it"
+- **WSL2 base feature must still be present on Windows** (Windows 10 2004+ / Windows 11) — that's the BIOS-virtualization + Windows-version gate from O2-b
+- **`musu-backend.tar` build pipeline** is a new artifact:
+  - Alpine base + apk-installed K3s binary + musu-relay binary + minimal init scripts
+  - CI builds a versioned tarball per release; users get the latest on installer download
+  - Size target: ≤ 80 MB compressed (Alpine ~5 MB + K3s ~50 MB + musu-relay ~5 MB + room)
+- **Auto-update path**: replace `musu-backend.tar` on update; `wsl --unregister musu-workspace && wsl --import …` is fast
+- **No Python on Windows host** — agent code runs inside the K3s pods inside the WSL2 distro. Windows host runs only the small `musu.exe` (Tauri / Electron / native shell) and musu-bee web view
+
+#### V23.2 spike confirmed goal (revised from §0.2 O2-b)
+
+> **"Single `musu.exe` execution causes Alpine + K3s custom WSL2 distro to land silently in the background, with zero terminal window shown to the user, in 100% of supported Windows configurations."**
+
+Measurement plan (V23.2):
+- Test matrix: Win10 21H2 / Win10 22H2 / Win11 23H2 / Win11 24H2, with WSL feature enabled vs disabled at start
+- For each: install succeeds without user intervention? Time to K3s API ready?
+- Telemetry per O2-b: which fail-cause dominates if any do
+- Decision gate stays: if dominant fail-cause is BIOS-virtualization (Hard Blocker), pivot to γ (macOS-first); if it's recoverable scripting issues, iterate the installer
+
+#### What this section does NOT decide
+
+- Whether the Windows shell is Tauri, Electron, or native Win32+WebView2 — that's a V23.4 musu-bee scoping question
+- Whether the `musu-backend.tar` is built per-OS-architecture (x64 vs ARM64) — yes, but downloaded conditionally; not a planning issue
+- Whether to also ship a "Microsoft Store" wrapper for distribution — V24+ concern
+
+#### Cross-references for §0.5
+
+- WSL2 import command: [Microsoft `wsl --import` docs](https://learn.microsoft.com/en-us/windows/wsl/basic-commands#import-a-distribution)
+- Alpine Linux base: [alpinelinux.org](https://alpinelinux.org/)
+- K3s install on Alpine: K3s docs cover "minimal Linux" targets including Alpine
+- Prior art: Docker Desktop + Rancher Desktop both use this `wsl --import` + minimal distro pattern; we're not inventing anything, just owning the choice of distro and contents
+- This pattern is **not yet primary-source-verified by me** for the exact size and install times quoted — must be verified in V23.2 spike
 
 #### What this section does NOT decide
 
