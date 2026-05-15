@@ -61,9 +61,11 @@ export default function SpikeDemoClient({
   const myPeerIdRef = useRef<string | null>(null);
   const gatewayPeerIdRef = useRef<string | null>(null);
   const pendingLocalIceRef = useRef<string[]>([]);
-  const pendingResolveRef = useRef<((env: ResEnv | ErrEnv) => void) | null>(
-    null,
-  );
+  // V23.2 audit HIGH #5: correlate by envelope id, not by slot. Two
+  // rapid Send-request clicks could otherwise cross-resolve.
+  const pendingResolveRef = useRef<
+    Map<string, (env: ResEnv | ErrEnv) => void>
+  >(new Map());
 
   const log = useCallback(
     (level: LogEntry["level"], msg: string) => {
@@ -88,7 +90,7 @@ export default function SpikeDemoClient({
     myPeerIdRef.current = null;
     gatewayPeerIdRef.current = null;
     pendingLocalIceRef.current = [];
-    pendingResolveRef.current = null;
+    pendingResolveRef.current.clear();
   }, []);
 
   useEffect(() => () => cleanup(), [cleanup]);
@@ -160,9 +162,11 @@ export default function SpikeDemoClient({
           return;
         }
         if (env.kind === "res" || env.kind === "err") {
-          const r = pendingResolveRef.current;
-          pendingResolveRef.current = null;
-          r?.(env);
+          const r = pendingResolveRef.current.get(env.id);
+          if (r) {
+            pendingResolveRef.current.delete(env.id);
+            r(env);
+          }
         }
       };
     };
@@ -270,13 +274,13 @@ export default function SpikeDemoClient({
       headers: {},
     };
     const result = await new Promise<ResEnv | ErrEnv>((resolve) => {
-      pendingResolveRef.current = resolve;
+      pendingResolveRef.current.set(id, resolve);
       setPhase("request-sent");
       log("info", `→ GET ${requestPath} (id=${id.slice(0, 8)})`);
       dc.send(JSON.stringify(env));
       setTimeout(() => {
-        if (pendingResolveRef.current === resolve) {
-          pendingResolveRef.current = null;
+        if (pendingResolveRef.current.get(id) === resolve) {
+          pendingResolveRef.current.delete(id);
           resolve({ id, kind: "err", message: "request timeout (10s)" });
         }
       }, 10_000);

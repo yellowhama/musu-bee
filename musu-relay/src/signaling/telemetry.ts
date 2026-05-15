@@ -14,7 +14,7 @@
 
 import express from "express";
 import Database from "better-sqlite3";
-import { randomUUID } from "crypto";
+import { createHash, randomUUID, timingSafeEqual } from "crypto";
 import path from "path";
 
 // ── DB bootstrap ──────────────────────────────────────────────────────────
@@ -165,8 +165,13 @@ function requireTelemetrySecret(
     }
     return true;
   }
-  const supplied = req.header("x-musu-telemetry-secret");
-  if (supplied !== sharedSecret) {
+  const supplied = req.header("x-musu-telemetry-secret") ?? "";
+  // V23.2 audit HIGH #2: constant-time comparison. We SHA-256 both
+  // sides so the length-equality precondition on timingSafeEqual
+  // doesn't itself leak the secret's length.
+  const suppliedHash = createHash("sha256").update(supplied).digest();
+  const secretHash = createHash("sha256").update(sharedSecret).digest();
+  if (!timingSafeEqual(suppliedHash, secretHash)) {
     res.status(401).json({ error: "bad telemetry secret" });
     return false;
   }
@@ -175,8 +180,26 @@ function requireTelemetrySecret(
 
 // Test helper: clear the warned-state. Called from tests so each
 // describe block can re-trigger the one-time warning if needed.
-function _resetTelemetryAuthState(): void {
+export function _resetTelemetryAuthState(): void {
   _warnedNoSharedSecret = false;
+}
+
+// V23.2 audit HIGH #3: refuse to start in production without the secret.
+// Called from server.ts bootstrap. Returns null when configured correctly
+// or in a non-production env; returns an error string when the operator
+// must intervene.
+export function checkTelemetryAuthBootConfig(env: NodeJS.ProcessEnv): string | null {
+  if (env.NODE_ENV !== "production") return null;
+  if (!env.MUSU_TELEMETRY_SHARED_SECRET) {
+    return (
+      "MUSU_TELEMETRY_SHARED_SECRET is required in production. " +
+      "Without it the signaling server accepts anonymous telemetry from " +
+      "anyone on the internet. Set it via `fly secrets set " +
+      "MUSU_TELEMETRY_SHARED_SECRET=$(openssl rand -hex 32)` and bake the " +
+      "same value into installer builds. Refusing to start (audit HIGH #3)."
+    );
+  }
+  return null;
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────

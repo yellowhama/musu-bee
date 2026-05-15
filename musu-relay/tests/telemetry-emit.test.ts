@@ -308,6 +308,86 @@ describe("T1.12 nat_pierce no-telemetry-base", () => {
   });
 });
 
+describe("T2.AUTH.2 interim — telemetry POST carries shared-secret header", () => {
+  // V23.2 audit HIGH #4: a one-line refactor on the gateway side could
+  // silently drop the auth header and every signaling-server POST would
+  // start failing 401 (in prod) or succeeding-anonymously (in dev). Lock
+  // both directions: configured → header present; unset → header absent.
+  it("sends x-musu-telemetry-secret when telemetrySharedSecret is configured", async () => {
+    const { factory, pcs } = makeControlledFactory();
+    const posts: { url: string; headers: Record<string, string> }[] = [];
+    const fetchSpy = jest.fn(async (url: any, init: any) => {
+      posts.push({
+        url: String(url),
+        headers: init.headers as Record<string, string>,
+      });
+      return { ok: true, status: 204 } as Response;
+    }) as unknown as typeof fetch;
+
+    const g = new GatewayClient({
+      signalingUrl: `ws://localhost:${listenPort}/signaling`,
+      token: "t",
+      userId: "u1",
+      stunServers: [],
+      pcFactory: factory,
+      telemetryBase: "http://signaling.test/v1/telemetry",
+      telemetrySharedSecret: "shh-it-is-a-secret",
+      musuInstallId: "install-headers-1",
+      fetchImpl: fetchSpy,
+      handshakeTimeoutMs: 5000,
+    });
+    await g.connect();
+
+    const visitor = await joinVisitor("u1");
+    await waitForCount(() => pcs, 1);
+    pcs[0].fireDcOpen();
+
+    await waitForCount(() => g.recordedTelemetry, 1);
+    expect(posts).toHaveLength(1);
+    expect(posts[0].headers["x-musu-telemetry-secret"]).toBe("shh-it-is-a-secret");
+    expect(posts[0].headers["content-type"]).toBe("application/json");
+
+    g.close();
+    visitor.ws.close();
+    await new Promise((r) => setTimeout(r, 50));
+  });
+
+  it("omits x-musu-telemetry-secret when no secret is configured", async () => {
+    const { factory, pcs } = makeControlledFactory();
+    const posts: { headers: Record<string, string> }[] = [];
+    const fetchSpy = jest.fn(async (_url: any, init: any) => {
+      posts.push({ headers: init.headers as Record<string, string> });
+      return { ok: true, status: 204 } as Response;
+    }) as unknown as typeof fetch;
+
+    const g = new GatewayClient({
+      signalingUrl: `ws://localhost:${listenPort}/signaling`,
+      token: "t",
+      userId: "u1",
+      stunServers: [],
+      pcFactory: factory,
+      telemetryBase: "http://signaling.test/v1/telemetry",
+      // telemetrySharedSecret intentionally unset
+      musuInstallId: "install-headers-2",
+      fetchImpl: fetchSpy,
+      handshakeTimeoutMs: 5000,
+    });
+    await g.connect();
+
+    const visitor = await joinVisitor("u1");
+    await waitForCount(() => pcs, 1);
+    pcs[0].fireDcOpen();
+
+    await waitForCount(() => g.recordedTelemetry, 1);
+    expect(posts).toHaveLength(1);
+    expect(posts[0].headers["x-musu-telemetry-secret"]).toBeUndefined();
+
+    g.close();
+    visitor.ws.close();
+    await new Promise((r) => setTimeout(r, 50));
+  });
+});
+
 describe("T1.12 nat_pierce best-effort POST", () => {
   it("does not throw if the telemetry endpoint rejects", async () => {
     const { factory, pcs } = makeControlledFactory();

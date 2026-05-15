@@ -24,7 +24,7 @@ import http from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import express from "express";
 import { randomUUID } from "crypto";
-import { makeTelemetryRouter } from "./telemetry";
+import { checkTelemetryAuthBootConfig, makeTelemetryRouter } from "./telemetry";
 
 const PORT = parseInt(
   process.env.PORT || process.env.MUSU_SIGNALING_PORT || "9900",
@@ -478,6 +478,15 @@ wss.on("connection", async (ws: WebSocket) => {
 // ── Bootstrap ─────────────────────────────────────────────────────────────
 
 if (require.main === module) {
+  // V23.2 audit HIGH #3: fail fast in production if the telemetry secret
+  // is unset, so the operator sees the misconfig at deploy time rather
+  // than discovering anonymous-telemetry months later.
+  const bootErr = checkTelemetryAuthBootConfig(process.env);
+  if (bootErr) {
+    console.error(`[signaling] FATAL: ${bootErr}`);
+    process.exit(1);
+  }
+
   server.listen(PORT, () => {
     console.log(`[signaling] listening on ${PORT}`);
   });

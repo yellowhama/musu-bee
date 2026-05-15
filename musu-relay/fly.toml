@@ -21,7 +21,8 @@ primary_region = "iad"   # change to closest-to-userbase region before first dep
   internal_port = 9900
   force_https = true
   auto_stop_machines  = "off"   # signaling state is in RAM — never stop mid-handshake
-  auto_start_machines = true
+  # auto_start_machines is meaningless with auto_stop_machines=off + min_machines_running>=1
+  # (machine can never reach a stopped state). Audit LOW #7.
   min_machines_running = 1
   processes = ["app"]
 

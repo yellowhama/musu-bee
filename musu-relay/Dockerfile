@@ -42,9 +42,11 @@ RUN npm prune --omit=dev --omit=optional
 # ── Stage 2: runtime — slim Alpine + only what we need ─────────────────
 FROM node:20-alpine
 
-# Drop privileges. The Fly.io volume gets mounted at /data — own it from
-# inside the container so SQLite writes succeed without root.
-RUN addgroup -g 1001 musu && \
+# su-exec lets the entrypoint chown the Fly volume as root then drop
+# privileges to the unprivileged musu user before exec'ing the app.
+# It is ~25KB and the standard Alpine choice for this pattern.
+RUN apk add --no-cache su-exec && \
+    addgroup -g 1001 musu && \
     adduser -D -u 1001 -G musu musu && \
     mkdir -p /data && chown musu:musu /data
 
@@ -56,7 +58,12 @@ COPY --from=builder --chown=musu:musu /app/dist ./dist
 COPY --from=builder --chown=musu:musu /app/node_modules ./node_modules
 COPY --from=builder --chown=musu:musu /app/package.json ./package.json
 
-USER musu
+COPY --chown=root:root docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Intentionally NO `USER musu` here — the entrypoint runs as root so it
+# can chown the freshly-mounted Fly volume on first boot, then drops to
+# `musu` via su-exec before exec'ing npm start. See V23.2 audit HIGH #1.
 
 ENV NODE_ENV=production \
     PORT=9900 \
@@ -65,6 +72,7 @@ ENV NODE_ENV=production \
 # Document the port; actual binding is in src/signaling/server.ts.
 EXPOSE 9900
 
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 # Use the npm "start" script so package.json's `main` is the source of
 # truth. That's `dist/signaling/server.js` as of V23.2.
 CMD ["npm", "start", "--silent"]

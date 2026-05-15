@@ -15,6 +15,7 @@ import {
   makeTelemetryRouter,
   _resetDb,
   _closeDb,
+  checkTelemetryAuthBootConfig,
 } from "../src/signaling/telemetry";
 
 const app = express();
@@ -100,6 +101,39 @@ describe("T2.AUTH.2 interim — shared-secret required when env set", () => {
   it("GET /summary remains accessible (admin-internal in V23.2)", async () => {
     const res = await supertest(app).get("/v1/telemetry/summary");
     expect(res.status).toBe(200);
+  });
+});
+
+describe("T2.AUTH.2 boot config (audit HIGH #3)", () => {
+  it("returns null in non-production even when secret is unset", () => {
+    expect(
+      checkTelemetryAuthBootConfig({
+        NODE_ENV: "development",
+      } as NodeJS.ProcessEnv),
+    ).toBeNull();
+    expect(
+      checkTelemetryAuthBootConfig({
+        NODE_ENV: "test",
+      } as NodeJS.ProcessEnv),
+    ).toBeNull();
+  });
+
+  it("returns error string in production when secret unset", () => {
+    const err = checkTelemetryAuthBootConfig({
+      NODE_ENV: "production",
+    } as NodeJS.ProcessEnv);
+    expect(err).not.toBeNull();
+    expect(err).toMatch(/MUSU_TELEMETRY_SHARED_SECRET/);
+    expect(err).toMatch(/Refusing to start/);
+  });
+
+  it("returns null in production when secret is set", () => {
+    expect(
+      checkTelemetryAuthBootConfig({
+        NODE_ENV: "production",
+        MUSU_TELEMETRY_SHARED_SECRET: "set-correctly",
+      } as NodeJS.ProcessEnv),
+    ).toBeNull();
   });
 });
 
