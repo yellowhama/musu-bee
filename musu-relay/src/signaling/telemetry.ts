@@ -206,7 +206,25 @@ export function checkTelemetryAuthBootConfig(env: NodeJS.ProcessEnv): string | n
 
 export function makeTelemetryRouter(): express.Router {
   const router = express.Router();
-  router.use(express.json({ limit: "16kb" }));
+  // V23.2 B1 commit 1: capture the raw request body bytes for HMAC signing.
+  // The `verify` callback fires synchronously between the raw-body read and
+  // JSON.parse, so `buf` is the exact payload the client sent — whitespace,
+  // key order, and all. Subsequent middleware/handlers reach this as
+  // `req.rawBody` (type augmented in ./express-augment.d.ts). The HMAC
+  // verifier in commit 3 signs over these bytes; restringifying req.body
+  // would reorder keys and break the signature. See
+  // docs/V23_2_WORKSTREAM_B1_PLAN_2026_05_16.md §2.1.
+  router.use(
+    express.json({
+      limit: "16kb",
+      verify: (req, _res, buf) => {
+        // `verify` is typed against http.IncomingMessage, not Express.Request;
+        // the cast bridges that gap. Consumers see the typed `rawBody` thanks
+        // to the global augmentation in express-augment.d.ts.
+        (req as unknown as express.Request).rawBody = buf;
+      },
+    }),
+  );
   const _db = openDb();
 
   // POST /v1/telemetry/install
