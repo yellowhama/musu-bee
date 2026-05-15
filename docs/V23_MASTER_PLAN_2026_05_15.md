@@ -864,3 +864,189 @@ To be explicit (per V22 §7 self-grade lessons):
 > **V23 builds the musu product by gluing K3s (multi-PC engine), Argo Workflows (DAG runtime), and WebRTC P2P (cloud-evasion) under a Next.js + React Flow UI that never says "Kubernetes." musu.pro is a $30/mo signaling VM. Everything else runs on the user's hardware.**
 
 This is the elevator pitch. The rest of this document is how we get there.
+
+---
+
+## 9. V23.0 strategic confirmation — stance lock (2026-05-15)
+
+V23.0 is **strategic confirmation week**, not an implementation week.
+Code = 0 lines. Deliverables = decisions locked + retreat structure
+defined + telemetry tool chosen + Const VII push gate. User confirmed
+the three decisions below on 2026-05-15; this section records them as
+binding for V23.1+.
+
+### 9.1 Stance locked: **α-with-β-fallback**
+
+Per §0.4 SWOT, three substrate options (α / β / γ) and two hybrids
+(α-with-β-fallback / γ-then-α) were compared. User selected:
+
+> **α-with-β-fallback** — start with Option α (K3s + WSL2 with the
+> stealth Alpine + `wsl --import` architecture from §0.5). At V23.2
+> WSL2 spike, measure install success telemetry. If WSL2 install
+> success rate falls below the O2-b 30% threshold OR if the
+> dominant failure cause is BIOS-virtualization (Hard Blocker),
+> fork the plan to Option β (container-less, native processes per
+> OS, v21.D Windows AppContainer revived).
+
+What this commits to:
+- **V23.1 + V23.2 build α exclusively** (musu.pro signaling + WSL2 installer + K3s integration)
+- **V23.2 spike has a defined exit ramp** — not "we'll figure out what to do if it fails"
+- **F1 (multi-PC fleet) is the protected differentiator** — γ was rejected because Mac users rarely own 3 Macs and F1 weakens
+
+What this does **NOT** commit to:
+- Pre-emptive β code. β remains documented but not implemented unless V23.2 telemetry triggers fork
+- macOS support in V23 — still V24+ per O3
+- Any specific Windows installer technology (NSIS / Wix / Tauri-bundle / Inno Setup) — to be picked at V23.2 spike start
+
+### 9.2 β fallback transition structure
+
+If V23.2 telemetry triggers β fork, the transition is:
+
+| Step | Action | Owner |
+|------|--------|-------|
+| 1 | V23.2 spike completes, telemetry reviewed | user + Claude Code |
+| 2 | If WSL2 install success < 70% (i.e., failure rate ≥ 30% per O2-b) → halt α branch | user gate |
+| 3 | If dominant fail-cause is BIOS-virtualization Hard Blocker → halt α branch regardless of % | user gate |
+| 4 | Branch `v23/master-plan` archives current α state; new branch `v23/beta-plan` cuts | user gate |
+| 5 | β-spec section (§0.4 Option β content) becomes the active plan | Claude Code |
+| 6 | v21.D Windows AppContainer revives + Linux user-ns crate + macOS sandbox-exec restart | Claude Code |
+| 7 | Phase 3 redesigned without Argo (LangGraph wrap or self-built workflow controller — separate decision when β triggers) | user gate |
+| 8 | V23 timeline extends from ~21 wks to ~28+ wks (β estimate) | user + Claude Code |
+| 9 | Communications: closed-beta users informed of substrate change before further onboarding | user |
+
+The "fork to β" is a **strategic redirect**, not an emergency.
+~5 weeks of α work (V23.1 + half of V23.2) carry over (musu.pro
+signaling, telemetry, partial musu-bee UI). The other ~16 weeks
+worth of β-specific work begins from V23.2 fork point.
+
+**β-pivot probability estimate (current opinion)**: 15–25%. WSL2
+install is well-trodden; Docker Desktop and Rancher Desktop both
+ship the same pattern at scale. The main risk is BIOS-virtualization
+on older / corporate PCs, which V23.2 will quantify directly.
+
+### 9.3 Telemetry tool: **self-built**
+
+User selected (over Sentry / PostHog / phased migration):
+
+> **Self-built telemetry** — install / connection / agent-spawn
+> events POSTed from musu-relay to musu.pro. Data stored in
+> musu.pro's own SQLite. Zero third-party server dependency.
+
+Rationale matches L2 (musu.pro stays minimal) and L1 (True P2P) —
+adding Sentry would mean user telemetry traffic goes through Sentry
+servers, partial violation of the cloud-evasion philosophy.
+
+#### Telemetry data model (V23.1 implementation scope)
+
+```json
+// POST musu.pro/v1/telemetry/install
+{
+  "musu_install_id": "uuid",            // ephemeral, never tied to identity
+  "os": "windows|linux|macos",
+  "os_version": "11.24H2",
+  "musu_version": "0.23.1",
+  "wsl2_present_at_start": true|false,
+  "wsl2_feature_enabled": true|false,
+  "bios_virtualization_detected": true|false|"unknown",
+  "step_failed": null|"wsl_feature"|"wsl_import"|"k3s_start"|"musu_relay_start",
+  "step_error_class": null|"hard_blocker_bios"|"timeout"|"permission"|"network"|...,
+  "elapsed_ms": 4523
+}
+
+// POST musu.pro/v1/telemetry/nat_pierce
+{
+  "musu_install_id": "uuid",
+  "attempt_outcome": "success"|"fail",
+  "fail_cause": null|"cgnat_detected"|"symmetric_nat"|"firewall"|"timeout",
+  "ice_candidate_count": 4,
+  "elapsed_ms": 287
+}
+
+// POST musu.pro/v1/telemetry/agent_spawn  (optional, debug-mode only)
+{
+  "musu_install_id": "uuid",
+  "spawn_outcome": "success"|"fail",
+  "cold_start_ms": 521,
+  "node_count_in_cluster": 2
+}
+```
+
+What we explicitly **DO NOT** collect:
+- User identity (email, IP beyond what's already in TCP transport)
+- Workspace contents (agent names, workflow specs, agent outputs)
+- File paths, document contents, code, chat history
+- Any agent-execution data
+
+The contract for users: "musu.pro sees the *plumbing health* of the
+installer + the tunnel, never your work."
+
+Storage: musu.pro's SQLite database. Retention: 90 days for raw
+events, aggregated metrics retained indefinitely. Query via SQL for
+V23.2 spike review + V23.5 NAT-pierce / TURN-decision data.
+
+### 9.4 Const VII push gate — V22 + V23 unified merge to main
+
+User confirmed: **everything on `v22/gap-analysis` branch merges to
+main as one unit**. That includes:
+
+- `docs/V22_K8S_GAP_ANALYSIS_2026_05_15.md` (DEPRECATED but preserved per §0)
+- `docs/V22_OPTION_SWOT_2026_05_15.md` (the decision context)
+- `docs/V23_MASTER_PLAN_2026_05_15.md` (this document — the active plan)
+- `docs/PACKAGE_INVENTORY_2026_05_15.md` (as-measured baseline)
+
+Rationale (user): "v22 내용 포함 전체를 main에 붙이고 V22+V23
+한꺼번에 머지." The honest historical record of v22's wrong-frame
+iteration belongs on main alongside the V23 redirect. Future readers
+get the full reasoning trail, not a sanitized version.
+
+Per Constitution VII, push to main requires explicit "진행해" from
+user. This section records that gate is **pending** at V23.0 sign-off
+time. No push yet.
+
+### 9.5 V23.0 deliverables checklist
+
+- [x] §0.4 SWOT (α / β / γ + 2 hybrids) authored
+- [x] §0.5 lightweight WSL2 architecture (Alpine + `wsl --import`)
+- [x] §0.3 Docker Desktop + Nomad + Rancher Desktop + Windows Native Containers rejection reasons recorded
+- [x] §9.1 stance locked: **α-with-β-fallback**
+- [x] §9.2 β fallback transition structure defined (9-step process)
+- [x] §9.3 telemetry tool: **self-built** + data model defined + privacy contract written
+- [ ] §9.4 Const VII push gate — pending user "진행해"
+- [ ] Branch strategy: continue on `v22/gap-analysis` through final V22+V23 merge
+
+### 9.6 What V23.1 needs as preconditions
+
+Before V23.1 spike begins (the first code week), the following must be true:
+
+1. ✅ Stance locked (§9.1)
+2. ✅ Telemetry tool decided (§9.3)
+3. ⏳ Const VII push of V22+V23 docs to main complete (§9.4)
+4. ⏳ `v23/spike-phase-1` branch cut from main with merged V23 docs as reference
+5. ⏳ V23.1 task list created (musu.pro signaling skeleton, musu-relay WebRTC rewrite, end-to-end "hello world" handshake test)
+6. ⏳ Primary-source fact-check on §0.5 size/timing claims (Alpine ~5MB, K3s import time, wsl --import elapsed) — verify before V23.2 spike depends on them
+7. ⏳ Decide signaling library: stay with self-built simple-peer-pattern (per O4) or 1-week eval bake-off
+
+Once these 7 preconditions are green, V23.1 starts.
+
+### 9.7 Open items deliberately not decided at V23.0
+
+These deferred to V23.1+ with date / gate:
+
+| Open item | Decided at | Gate |
+|-----------|-----------|------|
+| Windows installer technology (NSIS / Wix / Tauri / Inno Setup) | V23.2 spike start | "shall be picked by V23.2 day 3" |
+| musu-backend.tar build pipeline location (GitHub Actions / self-hosted CI) | V23.2 spike start | "shall be picked by V23.2 day 5" |
+| Argo Workflows version pin | V23.3 spike start | "use latest stable at V23.3 start" |
+| React Flow version pin | V23.4 spike start | same |
+| Paddle Hobbyist plan SKU configuration | V23.5 start | user input required |
+| TURN server inclusion (per O4-b) | V23.5 closed beta | data-gated |
+| β fork decision (per §9.2) | V23.2 spike end | data-gated |
+
+### 9.8 What V23.0 explicitly does NOT include
+
+- No code commits (this is by definition V23.0's promise)
+- No primary-source fact-check of Alpine / wsl --import / K3s claims — that's a V23.1 precondition
+- No outreach to closed-beta users yet (V23.5 milestone)
+- No Paddle SKU creation
+- No telemetry server deployed (V23.1 day 1 task)
+- No final decision on which CI provider hosts the tar-build pipeline
