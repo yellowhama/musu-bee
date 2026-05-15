@@ -82,6 +82,171 @@ pivot criteria rather than on substrate choice.
 
 ---
 
+### 0.4 Substrate SWOT — WSL2-K3s vs container-less
+
+User question (2026-05-15): *"Windows에서는 WSL2를 안 쓰면 못 돌리는
+프로그램이다? 이거지?"* — confirmed: under the current V23 plan, yes.
+This section formally records the two paths and SWOT-compares them
+before V23.0 begins. The current plan is **Option α**; user is
+explicitly considering **Option β** as an alternative.
+
+#### Option α — K3s + WSL2 on Windows (current V23 plan)
+
+> Accept virtualization. Containers everywhere. K3s as the substrate.
+> Windows users install WSL2 via the musu installer; agents run as
+> Pods on user's PCs (Linux containers inside WSL2 on Windows; native
+> containers on Linux; macOS deferred to V24).
+
+##### α — Strengths
+
+| # | Strength | Why |
+|---|----------|-----|
+| α-S1 | **Real isolation, upstream-maintained** | containerd + cgroups + namespaces is the most battle-tested process isolation on Linux. CVE response is Red Hat / CNCF, not us |
+| α-S2 | **Multi-PC distribution is K3s's job** | kube-scheduler / kubelet / Node controller all upstream. F1 (multi-PC workspace) implementation cost ≈ 0 — just install K3s on each PC and let it cluster |
+| α-S3 | **Phase 3 architecture flows naturally** | CRDs + Operator + Argo Workflows is K8s-native; no porting required |
+| α-S4 | **OCI image distribution for free** | Agents ship as container images; updates = `docker pull`. Plugin ecosystem path is obvious |
+| α-S5 | **K8s ecosystem leverage** | Helm charts, Argo, Prometheus, dozens of upstream tools "just work" |
+| α-S6 | **Cross-platform unified runtime** | Same Pod spec runs on Linux native, Windows (via WSL2), macOS (via Lima, V24+). One mental model |
+| α-S7 | **v22 critique's distributed-correctness fixes come free** | kine / leases / generation / finalizers all built into K8s |
+
+##### α — Weaknesses
+
+| # | Weakness | Why |
+|---|----------|-----|
+| α-W1 | **WSL2 install UX is the entire Windows experience** | If install fails (BIOS virtualization disabled, Windows version mismatch, corp policy), the user can't use musu at all. v23.2 spike measures this risk |
+| α-W2 | **+1GB install footprint on Windows** | WSL2 base image + K3s + containerd. For a "$5/mo hobbyist" product, install size is a conversion-rate variable |
+| α-W3 | **v21.D Windows AppContainer becomes throwaway** | 1100 lines Rust + 27 tests; replaced by containerd's Linux isolation. Real sunk cost |
+| α-W4 | **Agent cold-start latency higher than native processes** | Container pull + create + start ≈ 500ms-2s vs native process ≈ 50ms. Matters for "spin up agent per query" workflows |
+| α-W5 | **Windows-host UX feels like a Linux app pretending to be Windows** | File paths, shell semantics, network stack — all Linux inside WSL2. Some users notice |
+| α-W6 | **BIOS-virtualization gate is unfixable** | If user's PC has CPU virtualization disabled in UEFI, no script can fix it. User has to reboot, enter BIOS, change setting. ~99% of non-technical users will drop off here |
+| α-W7 | **Phase 4 K8s vocabulary hiding is non-trivial** | Every error path, every status display, every log must be translated. Linting for vocabulary leakage is real work |
+
+##### α — Opportunities
+
+| # | Opportunity | Why |
+|---|-------------|-----|
+| α-O1 | **Open path to enterprise / cloud deployment** | Same agent specs can deploy to managed EKS / GKE / on-prem K8s if a customer asks |
+| α-O2 | **OCI image marketplace** | Third parties ship agents as signed images. `<user>.musu.pro/marketplace` |
+| α-O3 | **SOC2/HIPAA story is easier** | K8s has audit precedent; AppContainer / hand-rolled does not |
+| α-O4 | **Lima/colima path opens macOS in V24+ cheaply** | macOS-via-Lima is the same WSL2 pattern, well-trodden |
+
+##### α — Threats
+
+| # | Threat | Why |
+|---|--------|-----|
+| α-T1 | **WSL2 install success rate below 70% → product dead on Windows** | User churn before they even see the UI. v23.2 spike is the make-or-break gate |
+| α-T2 | **Microsoft changes WSL2 licensing or distribution** | We're a downstream consumer of Microsoft's choices |
+| α-T3 | **K3s upstream incompatibility between versions** | Pin to LTS; test matrix needed |
+| α-T4 | **Container cold-start latency turns out to be a UX dealbreaker** | "Click run → wait 2s before agent starts" feels slow |
+| α-T5 | **Marketing: "you need WSL2" is a complex sentence for prosumer audience** | Versus competitors whose install is "double-click .exe and go" |
+
+#### Option β — Container-less, native processes per OS
+
+> Drop containers entirely. Agents run as **native OS processes** on
+> whichever PC they're scheduled to. v21.D Windows AppContainer
+> revived as the Windows isolation backend. Linux uses user namespaces
+> directly. macOS uses sandbox-exec or Endpoint Security. Multi-PC
+> distribution is **built in-house** (no K3s scheduler upstream).
+
+##### β — Strengths
+
+| # | Strength | Why |
+|---|----------|-----|
+| β-S1 | **No virtualization required on any OS** | Windows runs native processes. macOS runs native processes. Linux runs native processes. No VM, no Hyper-V, no Lima |
+| β-S2 | **Install footprint stays under 50MB** | musu binary + native OS sandboxing only. Best-in-class for "$5/mo install size" metric |
+| β-S3 | **v21.D AppContainer work is salvaged** | 1100 lines Rust + 27 tests stay productive. No sunk cost |
+| β-S4 | **Agent spawn latency ~50ms** | Native CreateProcess / clone is 10–40× faster than container create+start |
+| β-S5 | **Marketing simplicity** | "Double-click installer → done." No "what's WSL2?" questions |
+| β-S6 | **No BIOS-virtualization gate** | Works on every Windows PC made in the last 15 years regardless of UEFI settings |
+| β-S7 | **Differentiated brand** | "Not Docker for AI" — defensible against Coolify/Dify clones |
+| β-S8 | **Edge deployments stay tractable** | Raspberry Pi / NAS / family-PC with 4GB RAM — no spare RAM for a VM |
+
+##### β — Weaknesses
+
+| # | Weakness | Why |
+|---|----------|-----|
+| β-W1 | **Multi-PC scheduling is now ours to build** | F1 needs a real scheduler. v21.C scheduler from the monorepo is a starting point but was scored 6/10 in v22 critique. v22 §3.7 (preemption / affinity / topology) all come back into scope |
+| β-W2 | **Phase 3 architecture must be rebuilt** | Argo Workflows is K8s-only. Either we adopt Nomad (which the CTO rejected earlier because of K8s ecosystem loss — but β puts that decision back on the table), or build a workflow engine ourselves, or wrap LangGraph |
+| β-W3 | **Three OS-specific isolation backends to maintain** | Windows (AppContainer + Job Object), Linux (user-namespace via clone), macOS (sandbox-exec → Endpoint Security migration). v21.D shipped 1 of 3; 2 remain |
+| β-W4 | **No image distribution standard** | Agent packaging is ours to invent. No OCI registry to lean on |
+| β-W5 | **Phase 4 still hides "K8s-style" concepts even though no K8s underneath** | We'd be inventing our own pod/namespace/deployment vocabulary — and have to teach users without an existing analogy |
+| β-W6 | **v22 critique 3.5/10 grade is back in play** | All the distributed-correctness gaps (kine / leases / generation / finalizers) need hand-rolled solutions again. ~14 weeks of v22 §3.x work is suddenly relevant |
+| β-W7 | **Cross-PC process supervision is hard** | "Agent on PC2 died" → who notices? K3s does this for free; β builds it |
+| β-W8 | **macOS sandbox-exec deprecation timeline still applies** | Same problem α has, only now we're maintaining the code ourselves |
+
+##### β — Opportunities
+
+| # | Opportunity | Why |
+|---|-------------|-----|
+| β-O1 | **Smallest-possible-install brand** | "musu installs in 8 seconds and uses 50MB" beats any K8s-based competitor |
+| β-O2 | **True home-PC / NAS / Pi compatibility** | A family Synology NAS with 2GB RAM can be a worker. Not possible under α |
+| β-O3 | **Native OS GUI integration on Windows / macOS** | Agents can use OS notifications, file pickers, native dialogs — hard to do from inside a container |
+| β-O4 | **Independence from CNCF / Microsoft / Red Hat** | musu owns its substrate end-to-end. No upstream surprises |
+
+##### β — Threats
+
+| # | Threat | Why |
+|---|--------|-----|
+| β-T1 | **Re-litigates the v22 wrong-frame** | β resurrects exactly the work v22 spent 6 /loop iterations on — and the 3.5/10 critique that triggered V23 |
+| β-T2 | **3-platform isolation code maintenance burns small team** | v21.D Windows took multiple /loop iterations to ship; Linux + macOS each at least the same. ~6+ months of platform work before parity |
+| β-T3 | **No K8s ecosystem leverage** | Every problem K8s already solved (Service mesh, ingress, secrets, network policy, etc.) is something we build or skip |
+| β-T4 | **Phase 3 (workflow runtime) becomes much harder** | Argo Workflows ruled out; Nomad ruled out earlier; LangGraph wrap is possible but ships less |
+| β-T5 | **"musu is a single-host product that pretends to scale"** | Without K3s, multi-PC clustering is hand-rolled and brittle. Risk of becoming "the v22 wrong-frame project" again |
+
+#### Side-by-side dimension table
+
+| Dimension | Option α (WSL2-K3s) | Option β (container-less) |
+|-----------|--------------------|--------------------------|
+| Install footprint (Windows) | ~1GB | ~50MB |
+| Install footprint (Linux) | ~80MB | ~50MB |
+| Install footprint (macOS) | V24 (Lima ~500MB) | V24 (native) |
+| Virtualization required (Windows) | Yes (WSL2) | No |
+| BIOS gate (Windows) | Yes — unfixable in script | No |
+| Agent cold-start latency | 500–2000ms | ~50ms |
+| Multi-PC distribution | K3s does it | Build ourselves |
+| Container isolation | containerd, upstream | Hand-rolled per OS |
+| Workflow runtime | Argo Workflows (hidden) | Build / wrap LangGraph |
+| Phase 3 plan (CRD + Operator) | Works as written | Must be redesigned |
+| v21.D Windows AppContainer work | Throwaway | Salvaged |
+| v22 §3.x distributed-correctness work | Mostly redundant under K3s | Mostly relevant again |
+| OCI image marketplace path | Natural | Must invent |
+| Brand narrative | "K8s for AI, but hidden" | "Smallest agentic platform" |
+| Enterprise / SOC2 story | Easier | Harder |
+| 3-platform maintenance burden | 0 (K3s upstream) | 3 isolation crates |
+| Time to V23.5 closed beta | ~21 weeks (current plan) | ~28+ weeks (estimate) |
+| Risk of re-encountering v22 wrong-frame | Low | High |
+
+#### Decision framing
+
+The honest summary:
+
+- **α bets on** WSL2 install automation being achievable + K8s ecosystem leverage outweighing virtualization cost
+- **β bets on** smallest-install + native-process latency outweighing the multi-PC scheduling work we'd inherit
+
+α is **faster to MVP**, **larger to install**, **smaller to maintain**.
+β is **slower to MVP**, **smaller to install**, **larger to maintain**.
+
+The two are not equal-effort. α is roughly 21 weeks to closed beta;
+β is roughly 28+ weeks because v22 §3.x distributed-correctness work
+returns and platform isolation has two more crates to ship. β trades
+maintenance debt for install footprint — and musu's product story
+("agentic company on your own PCs") arguably needs *both*.
+
+A third path nobody has named yet: **α-with-β-fallback** — ship α
+first, telemeter Windows WSL2 install success at V23.2, and only
+fork to β if WSL2 install success is below the 30% threshold from
+O2-b. This converts the SWOT from "α vs β" to "α with measured exit
+ramp." Worth considering as the actual V23 stance.
+
+#### What this section does NOT decide
+
+The choice between α / β / hybrid is **strategic**, not engineering.
+This document records the trade-offs honestly; the call is the user's.
+V23.0 strategic-confirmation week is where this gets decided with
+the user.
+
+---
+
 ## 1. Four-phase architecture (per external CTO)
 
 The external CTO answered "이 기획을 어떻게 구현해야 되느냐" with four
