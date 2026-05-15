@@ -126,6 +126,59 @@ function isValidOutcome(v: unknown): v is "success" | "fail" {
   return v === "success" || v === "fail";
 }
 
+// ── Auth (V23.2 T2.AUTH.2 interim) ────────────────────────────────────────
+//
+// Closes V23.1 audit HIGH #2 in the simplest form: shared-secret header
+// on every POST. The installer (Workstream B) will be configured with
+// the same secret at build time, env-injected.
+//
+// This is INTERIM. Workstream B replaces it with per-install HMAC keys:
+// each install registers at /v1/telemetry/install with this shared
+// secret + a fresh client-generated key, server stores the key and
+// thereafter validates HMAC(body, key) on subsequent POSTs. That's a
+// schema-v41 change and lives in V23.2 T2.AUTH.2-final.
+//
+// Behavior:
+//   - If MUSU_TELEMETRY_SHARED_SECRET is set: require an exact match in
+//     the `x-musu-telemetry-secret` header; reject with 401 otherwise.
+//   - If unset: log a one-time warning at first POST and accept anything
+//     (V23.1 / dev / test behavior). Production deploy MUST set the env.
+//   - GET /summary is unaffected — it's admin-internal and lives on a
+//     trusted network in V23.2; T2.AUTH.2-final adds auth there too.
+
+let _warnedNoSharedSecret = false;
+
+function requireTelemetrySecret(
+  req: express.Request,
+  res: express.Response,
+): boolean {
+  const sharedSecret = process.env.MUSU_TELEMETRY_SHARED_SECRET;
+  if (!sharedSecret) {
+    if (!_warnedNoSharedSecret) {
+      _warnedNoSharedSecret = true;
+      console.warn(
+        `[telemetry] WARNING: MUSU_TELEMETRY_SHARED_SECRET not set; ` +
+          `accepting all telemetry POSTs unauthenticated. Set this env ` +
+          `var to the installer-bundled secret before production deploy ` +
+          `(audit HIGH #2).`,
+      );
+    }
+    return true;
+  }
+  const supplied = req.header("x-musu-telemetry-secret");
+  if (supplied !== sharedSecret) {
+    res.status(401).json({ error: "bad telemetry secret" });
+    return false;
+  }
+  return true;
+}
+
+// Test helper: clear the warned-state. Called from tests so each
+// describe block can re-trigger the one-time warning if needed.
+function _resetTelemetryAuthState(): void {
+  _warnedNoSharedSecret = false;
+}
+
 // ── Routes ────────────────────────────────────────────────────────────────
 
 export function makeTelemetryRouter(): express.Router {
@@ -135,6 +188,7 @@ export function makeTelemetryRouter(): express.Router {
 
   // POST /v1/telemetry/install
   router.post("/install", (req, res) => {
+    if (!requireTelemetrySecret(req, res)) return;
     const b = req.body || {};
     if (!asStr(b.musu_install_id) || !isValidOs(b.os) || !asStr(b.os_version) || !asStr(b.musu_version) || asInt(b.elapsed_ms) === null) {
       res.status(400).json({ error: "missing required fields" });
@@ -167,6 +221,7 @@ export function makeTelemetryRouter(): express.Router {
 
   // POST /v1/telemetry/nat_pierce
   router.post("/nat_pierce", (req, res) => {
+    if (!requireTelemetrySecret(req, res)) return;
     const b = req.body || {};
     if (!asStr(b.musu_install_id) || !isValidOutcome(b.attempt_outcome) || asInt(b.elapsed_ms) === null) {
       res.status(400).json({ error: "missing required fields" });
@@ -192,6 +247,7 @@ export function makeTelemetryRouter(): express.Router {
 
   // POST /v1/telemetry/agent_spawn (debug-mode optional)
   router.post("/agent_spawn", (req, res) => {
+    if (!requireTelemetrySecret(req, res)) return;
     const b = req.body || {};
     if (!asStr(b.musu_install_id) || !isValidOutcome(b.spawn_outcome)) {
       res.status(400).json({ error: "missing required fields" });

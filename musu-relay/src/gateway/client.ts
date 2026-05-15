@@ -106,6 +106,11 @@ export interface GatewayConfig {
   /** Identifies this install for telemetry correlation. Required if
    *  telemetryBase is set. */
   musuInstallId?: string;
+  /** Shared secret for telemetry endpoint auth (V23.2 T2.AUTH.2 interim).
+   *  Sent in the `x-musu-telemetry-secret` header. The installer
+   *  (Workstream B) configures gateway with this at build time. Server
+   *  validates against its MUSU_TELEMETRY_SHARED_SECRET env var. */
+  telemetrySharedSecret?: string;
   /** Override the fetch impl (test injection). Defaults to globalThis.fetch. */
   fetchImpl?: typeof fetch;
   /** Hard deadline for a single handshake attempt. After this, the
@@ -389,10 +394,16 @@ export class GatewayClient {
       return;
     }
     const fetchImpl = this.cfg.fetchImpl ?? globalThis.fetch;
+    const headers: Record<string, string> = {
+      "content-type": "application/json",
+    };
+    if (this.cfg.telemetrySharedSecret) {
+      headers["x-musu-telemetry-secret"] = this.cfg.telemetrySharedSecret;
+    }
     try {
       await fetchImpl(`${this.cfg.telemetryBase}/nat_pierce`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers,
         body: JSON.stringify(record),
       });
     } catch (err) {
