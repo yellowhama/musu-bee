@@ -101,7 +101,8 @@ describe("T1.11 VisitorClient end-to-end", () => {
       stunServers: [],
       pcFactory: makeWrtcFactory(),
       onPeerConnected: (_remotePeerId: string, pc: SimplePeerConnection) => {
-        const dc = (pc as any).getDataChannel();
+        const dc = pc.getDataChannel();
+        if (!dc) throw new Error("onPeerConnected fired with null DC");
         new BridgeServer({ dc, target: { host: target.host, port: target.port } });
       },
       handshakeTimeoutMs: 10000,

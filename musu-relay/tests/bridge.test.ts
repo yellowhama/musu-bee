@@ -220,6 +220,36 @@ describe("T1.10 bridge: request timeout when no response arrives", () => {
   });
 });
 
+// ── V23.2 audit LOW #9 — dc.send throw path ──────────────────────────────
+
+describe("T2.LOW.9 bridge: dc.send throws synchronously", () => {
+  it("propagates the throw as a request rejection and clears pending entry", async () => {
+    const { a: _a, b } = makePair();
+    // Replace b.send with a throwing variant *before* constructing the
+    // client, so the very first request rejects.
+    b.send = () => {
+      throw new Error("dc closed");
+    };
+    const client = new BridgeClient(b, 5000);
+
+    await expect(
+      client.request({ method: "GET", path: "/whatever" }),
+    ).rejects.toThrow(/dc closed/);
+
+    // A subsequent request (with a fresh non-throwing send) should not see
+    // the previous entry lingering in BridgeClient's pending map.
+    b.send = () => {
+      /* swallow — we just want this not to throw */
+    };
+    // No server to respond, so this will timeout — but the timeout
+    // error should be from THIS request, not a stale rejection from the
+    // first one.
+    await expect(
+      client.request({ method: "GET", path: "/whatever-2", timeoutMs: 80 }),
+    ).rejects.toThrow(/timeout/);
+  });
+});
+
 // ── T2.SEC.1 — path normalization unit tests ─────────────────────────────
 
 describe("T2.SEC.1 normalizePath", () => {

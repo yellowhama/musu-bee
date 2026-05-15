@@ -109,6 +109,9 @@ function makeStubFactory(): {
         close(): void {
           /* no-op */
         },
+        getDataChannel() {
+          return null;
+        },
         emitLocalIce(c: string): void {
           localIceCb?.(c);
         },

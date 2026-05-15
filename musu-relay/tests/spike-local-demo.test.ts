@@ -104,7 +104,8 @@ async function runOneAttempt(
       stunServers: [],
       pcFactory: makeWrtcFactory(),
       onPeerConnected: (_remotePeerId: string, pc: SimplePeerConnection) => {
-        const dc = (pc as any).getDataChannel();
+        const dc = pc.getDataChannel();
+        if (!dc) throw new Error("onPeerConnected fired with null DC");
         new BridgeServer({ dc, target });
       },
       handshakeTimeoutMs: 10000,

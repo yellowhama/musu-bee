@@ -163,9 +163,12 @@ export class WrtcPeerConnection implements SimplePeerConnection {
     if (this.dc && this.dc.readyState === "open") cb();
   }
 
-  /** Expose the DataChannel for T1.10 bridge code. */
-  getDataChannel(): any {
-    return this.dc;
+  /** Expose the DataChannel for T1.10 bridge code. The runtime object is
+   *  @roamhq/wrtc's RTCDataChannel, which is structurally compatible with
+   *  PcDataChannel. Returned as PcDataChannel | null per the
+   *  SimplePeerConnection interface (audit LOW #12). */
+  getDataChannel(): import("./client").PcDataChannel | null {
+    return this.dc as import("./client").PcDataChannel | null;
   }
 
   close(): void {

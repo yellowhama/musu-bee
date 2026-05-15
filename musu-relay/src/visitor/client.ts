@@ -90,8 +90,12 @@ export function wrapNodeWs(WsCtor: any): WebSocketCtor {
 // helper accessor.
 
 export interface VisitorPeerConnection extends SimplePeerConnection {
-  /** Returns the DC once ondatachannel has fired; null before that. */
-  getDataChannel?(): DataChannelLike | null;
+  /** Returns the DC once ondatachannel has fired; null before that.
+   *  V23.2 audit LOW #12: lifted to required-but-nullable in
+   *  SimplePeerConnection. The DataChannelLike alias here is for
+   *  caller convenience — implementations may return any compatible
+   *  shape. */
+  getDataChannel(): DataChannelLike | null;
 }
 
 export interface VisitorPeerConnectionFactory extends PeerConnectionFactory {

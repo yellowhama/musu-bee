@@ -23,9 +23,27 @@ const DB_PATH =
   process.env.MUSU_TELEMETRY_DB || path.join(process.cwd(), "telemetry.db");
 
 let db: Database.Database;
+let _warnedEphemeralDbPath = false;
 
 function openDb(): Database.Database {
   if (db) return db;
+  // V23.2 audit LOW #11: telemetry.db defaults to cwd. On Fly.io that's
+  // the ephemeral container fs — telemetry vanishes on restart. Warn
+  // loudly in production if MUSU_TELEMETRY_DB isn't pointed at a mounted
+  // volume.
+  if (
+    !_warnedEphemeralDbPath &&
+    process.env.NODE_ENV === "production" &&
+    !process.env.MUSU_TELEMETRY_DB
+  ) {
+    _warnedEphemeralDbPath = true;
+    console.warn(
+      `[telemetry] WARNING: MUSU_TELEMETRY_DB not set in production; ` +
+        `defaulting to ephemeral path ${DB_PATH}. Set it to a mounted ` +
+        `volume path (e.g. /data/telemetry.db) per ` +
+        `docs/V23_T1_7_FLY_IO_DEPLOY_DECISION.md provisioning checklist.`,
+    );
+  }
   db = new Database(DB_PATH);
   db.pragma("journal_mode = WAL");
   applyMigrations(db);

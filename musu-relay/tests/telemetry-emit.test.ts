@@ -94,6 +94,9 @@ function makeControlledFactory(): {
         close(): void {
           /* no-op */
         },
+        getDataChannel() {
+          return null;
+        },
         fireDcOpen(): void {
           dcOpenCb?.();
         },

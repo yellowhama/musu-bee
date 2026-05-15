@@ -120,9 +120,8 @@ describe("T1.10 wrtc + bridge end-to-end", () => {
     });
 
     vPc.onDataChannelOpen(() => {
-      // wrtc-factory's WrtcPeerConnection exposes getDataChannel(); bridge
-      // wraps it for HTTP-over-DC.
-      const dc = (vPc as any).getDataChannel();
+      const dc = vPc.getDataChannel();
+      if (!dc) throw new Error("DC opened but null from getDataChannel");
       bridgeClient = new BridgeClient(dc);
     });
 
@@ -164,7 +163,8 @@ describe("T1.10 wrtc + bridge end-to-end", () => {
       stunServers: [],
       pcFactory: makeWrtcFactory(),
       onPeerConnected: (_remotePeerId: string, pc: SimplePeerConnection) => {
-        const dc = (pc as any).getDataChannel();
+        const dc = pc.getDataChannel();
+        if (!dc) throw new Error("onPeerConnected fired with null DC");
         new BridgeServer({ dc, target: { host: target.host, port: target.port } });
         bridgeServerAttached = true;
       },

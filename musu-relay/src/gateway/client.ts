@@ -56,6 +56,17 @@ type ClientMessage =
 // The factory pattern keeps T1.8 free of native-binding imports so tests
 // can stub it out. Real impl in T1.9 uses `@roamhq/wrtc`'s RTCPeerConnection.
 
+// Minimal DataChannel-shaped interface that all PC implementations must
+// be able to surface once the channel is open. Duplicated from
+// gateway/bridge.ts's DataChannelLike to avoid a circular import — the
+// shape is the W3C DataChannel surface our bridge actually uses.
+export interface PcDataChannel {
+  readyState: "connecting" | "open" | "closing" | "closed";
+  send(data: string): void;
+  onmessage: ((ev: { data: string }) => void) | null;
+  onclose: (() => void) | null;
+}
+
 export interface SimplePeerConnection {
   createOffer(): Promise<string>;
   createAnswer(remoteSdp: string): Promise<string>;
@@ -63,6 +74,12 @@ export interface SimplePeerConnection {
   addRemoteIceCandidate(candidate: string): Promise<void>;
   onLocalIceCandidate(cb: (candidate: string) => void): void;
   onDataChannelOpen(cb: () => void): void;
+  /** Returns the open DataChannel once onDataChannelOpen has fired; null
+   *  before that or if the implementation does not expose the DC
+   *  directly (e.g. relay impls). V23.2 audit LOW #12: lifted to a
+   *  required-but-nullable method so callers stop reaching for
+   *  `(pc as any).getDataChannel()`. */
+  getDataChannel(): PcDataChannel | null;
   close(): void;
 }
 
