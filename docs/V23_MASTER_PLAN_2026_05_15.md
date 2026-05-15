@@ -382,6 +382,126 @@ Measurement plan (V23.2):
 - Telemetry per O2-b: which fail-cause dominates if any do
 - Decision gate stays: if dominant fail-cause is BIOS-virtualization (Hard Blocker), pivot to γ (macOS-first); if it's recoverable scripting issues, iterate the installer
 
+#### 3-tier virtualization handling — what we can and cannot automate
+
+External CTO clarification (2026-05-15): the install pipeline must
+handle three distinct layers of virtualization, two of which are
+automatable and one of which is not.
+
+| Tier | Layer | Automatable from `musu.exe`? | Failure rate baseline |
+|------|-------|-----------------------------|----------------------|
+| T1 | **BIOS/UEFI hardware virtualization** (Intel VT-x / AMD-V) — physical CPU flag | **NO** — locked at the hardware level before Windows boots | Low (~5-10%) — most PCs from last 5-7 years ship with this **enabled by default** |
+| T2 | **Windows OS virtualization features** (WSL + Virtual Machine Platform) — DISM toggles | **YES — 100%** via elevated PowerShell `dism.exe` | Medium — most users have these OFF by default, but it's a script call away |
+| T3 | **WSL2 distro setup** (Alpine + K3s injection via `wsl --import`) — our own backend.tar | **YES — 100%** | Low — fully controlled by us, V23.2 measures the residual |
+
+**Key insight**: the "B급 실패" (BIOS lock) the §0.4 SWOT worried about
+is **statistically rare on modern PCs**. The failure rate we're
+actually fighting is **T2 (Windows OS features off by default)** — and
+that one we can automate completely.
+
+#### Install flow — 3-tier pipeline
+
+```
+musu.exe (double-click)
+   │
+   ▼
+[1] Elevation prompt (one-time, Windows UAC)
+   │
+   ▼
+[2] T2 auto-enable (no user interaction):
+       dism.exe /online /enable-feature \
+            /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
+       dism.exe /online /enable-feature \
+            /featurename:VirtualMachinePlatform /all /norestart
+   │
+   ▼
+[3] Friendly reboot prompt: "musu needs to restart your PC once. OK?"
+       (graceful — no command prompt visible; one button)
+   │
+   ▼ (after reboot)
+[4] musu.exe resumes via Run-Once registry key
+   │
+   ▼
+[5] T1 detection: `systeminfo | findstr Hyper-V` for the "Yes"/"No"
+       on hardware virtualization
+   │
+   ├─ T1 = "Yes" → continue to [6]
+   │
+   └─ T1 = "No" → GRACEFUL DEGRADE (see below)
+   │
+   ▼
+[6] T3 inject: `wsl --import musu-workspace %LOCALAPPDATA%\musu\wsl musu-backend.tar`
+       (3 seconds, no terminal shown — the Alpine + K3s distro from §0.5)
+   │
+   ▼
+[7] Start K3s + musu-relay inside the distro
+       wsl -d musu-workspace -e /usr/local/bin/musu-init
+   │
+   ▼
+[8] musu-bee UI opens → user sees "Welcome to your workspace"
+```
+
+#### T1 graceful degradation (the "B급 실패" 5-10% of users)
+
+If `systeminfo` reports BIOS virtualization is OFF, the user **cannot
+run K3s on this PC**, period. No software can fix it. But we don't
+crash or show terminal errors — instead:
+
+**Tier-1-locked UI flow**:
+
+```
+┌────────────────────────────────────────────────────────┐
+│  🔓 Your PC has more potential than it's using         │
+│                                                        │
+│  This computer's hardware acceleration is currently   │
+│  locked. We can unlock it with a 2-minute setting    │
+│  change (no apps to install).                         │
+│                                                        │
+│  [ Show me how (with my phone) ]                      │
+│      ↑ opens QR code → musu.pro/unlock                │
+│                                                        │
+│  Or, use this PC just as a remote control:           │
+│  [ Continue as remote-only ]                          │
+└────────────────────────────────────────────────────────┘
+```
+
+The two paths:
+
+1. **"Show me how"** — opens a QR pointing at `musu.pro/unlock/<motherboard-brand>` with brand-specific BIOS guides (ASUS / MSI / Gigabyte / Dell / HP / Lenovo / etc.). User scans with phone, follows along, reboots once more, retries musu install. Successful path for users willing to enter BIOS.
+
+2. **"Continue as remote-only"** — graceful product strategy: this PC becomes a **musu.pro paid-tier client only**. It can connect to other PCs in the user's fleet via `<user>.musu.pro` but cannot host agent workloads itself. Users with one BIOS-locked PC and one normal PC still get full F1 multi-PC value; users with only the locked PC are politely informed they need either to unlock BIOS or run musu on another device.
+
+This converts T1 failure from "product death" into "feature
+degradation" — and aligns perfectly with §14's free/paid line: even
+the BIOS-locked user becomes a paid-tier candidate because their only
+way to use musu now is via `<user>.musu.pro` to another device.
+
+#### Revised O2-b "Hard Blocker" definition
+
+The pre-CTO version of O2-b said: *"pivot to γ if dominant fail-cause
+is BIOS-virtualization."* That was correct in spirit but the
+**actual telemetry-driven gate** is now refined:
+
+- **T2 failures** (Windows OS feature toggle didn't take, reboot loop, DISM error) — these are **fixable in the installer**. High count here = iterate the script, not pivot
+- **T3 failures** (`wsl --import` failed, K3s didn't start) — these are **fixable in our backend.tar**. High count = fix the tar
+- **T1 failures** (BIOS locked AND user did not complete the unlock guide) — these are the real Hard Blocker, BUT they have a **graceful degradation path** now (remote-only mode)
+
+The β fork (§9.2) triggers only if **T1 unrecoverable rate AND T1
+graceful-degrade rejection rate combine to leave > 30% of Windows
+installs unable to use musu in any capacity**. Per CTO statistic, this
+is unlikely — modern PCs ship with BIOS virtualization on, and the
+graceful path captures the rest as paid-tier candidates.
+
+#### What §0.5 still does NOT verify by direct measurement
+
+These claims need V23.2 spike empirical data:
+- Exact size of `musu-backend.tar` post-build (target ≤ 80 MB)
+- Time for `wsl --import` to complete on typical SSD (target < 5s)
+- Memory consumed by Alpine + K3s + musu-relay idle (target < 500 MB)
+- BIOS virtualization "ON by default" rate on Win10/11 PCs from last 5 years (CTO baseline: most; we'll quantify)
+
+These are V23.2 deliverables, not V23.0 claims.
+
 #### What this section does NOT decide
 
 - Whether the Windows shell is Tauri, Electron, or native Win32+WebView2 — that's a V23.4 musu-bee scoping question
@@ -919,10 +1039,15 @@ The "fork to β" is a **strategic redirect**, not an emergency.
 signaling, telemetry, partial musu-bee UI). The other ~16 weeks
 worth of β-specific work begins from V23.2 fork point.
 
-**β-pivot probability estimate (current opinion)**: 15–25%. WSL2
-install is well-trodden; Docker Desktop and Rancher Desktop both
-ship the same pattern at scale. The main risk is BIOS-virtualization
-on older / corporate PCs, which V23.2 will quantify directly.
+**β-pivot probability estimate (revised post-CTO 2026-05-15)**: 10–15%.
+The original 15-25% range assumed BIOS-virtualization failures would
+be a binary "product dead" outcome. The §0.5 3-tier handling + graceful
+degradation (T1-locked users become paid-tier remote-only) **converts
+most of the worst-case BIOS-lock failure cohort into a remote-only
+product mode**, not a fork trigger. The β fork now triggers only if
+T2 (OS features) + T3 (our backend.tar) failures combined exceed 30%
+AND graceful T1 degradation rejection rate is high. The actual gate
+condition is in §0.5 "Revised O2-b" subsection.
 
 ### 9.3 Telemetry tool: **self-built**
 
