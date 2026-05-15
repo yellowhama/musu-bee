@@ -89,14 +89,67 @@ export class WrtcPeerConnection implements SimplePeerConnection {
     await this.pc.setRemoteDescription({ type: "answer", sdp: remoteSdp });
   }
 
+  // V23.2 T2.OBS.1 — bound + log + count bad ICE candidates (audit MED #7).
+  private static readonly MAX_ICE_CANDIDATE_BYTES = 4096;
+  private badIceCount = 0;
+  private static readonly BAD_ICE_LOG_THRESHOLD = 10;
+
   async addRemoteIceCandidate(candidateJson: string): Promise<void> {
-    try {
-      const init = JSON.parse(candidateJson);
-      await this.pc.addIceCandidate(init);
-    } catch (err) {
-      // Some implementations send raw candidate strings; tolerate that.
-      await this.pc.addIceCandidate({ candidate: candidateJson });
+    if (typeof candidateJson !== "string") {
+      this.bumpBadIce("non-string");
+      return;
     }
+    if (candidateJson.length > WrtcPeerConnection.MAX_ICE_CANDIDATE_BYTES) {
+      this.bumpBadIce(
+        `oversize (${candidateJson.length}B > ${WrtcPeerConnection.MAX_ICE_CANDIDATE_BYTES}B)`,
+      );
+      return;
+    }
+    let parsed: unknown = null;
+    try {
+      parsed = JSON.parse(candidateJson);
+    } catch {
+      // Some implementations send the raw "candidate:..." SDP-line. Tolerate
+      // that but log it once per session so the cause shows up in telemetry.
+      try {
+        await this.pc.addIceCandidate({ candidate: candidateJson });
+      } catch (innerErr) {
+        this.bumpBadIce(
+          `wrtc rejected raw candidate: ${innerErr instanceof Error ? innerErr.message : String(innerErr)}`,
+        );
+      }
+      return;
+    }
+    try {
+      await this.pc.addIceCandidate(parsed);
+    } catch (err) {
+      this.bumpBadIce(
+        `wrtc rejected parsed candidate: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  private bumpBadIce(reason: string): void {
+    this.badIceCount++;
+    if (this.badIceCount <= WrtcPeerConnection.BAD_ICE_LOG_THRESHOLD) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[wrtc] bad ICE candidate #${this.badIceCount}: ${reason}`,
+      );
+    } else if (this.badIceCount === WrtcPeerConnection.BAD_ICE_LOG_THRESHOLD + 1) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[wrtc] suppressing further bad-ICE logs (threshold ${WrtcPeerConnection.BAD_ICE_LOG_THRESHOLD} reached)`,
+      );
+    }
+  }
+
+  /** Number of malformed/rejected ICE candidates from the remote peer so
+   *  far on this connection. Read by tests and (V23.3+) by the
+   *  GatewayClient's telemetry path to attribute fail_cause when this
+   *  number is high. */
+  getBadIceCount(): number {
+    return this.badIceCount;
   }
 
   onLocalIceCandidate(cb: (candidate: string) => void): void {
