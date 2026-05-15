@@ -21,7 +21,7 @@
 
 import { AddressInfo } from "net";
 import WebSocket from "ws";
-import { app, server, rooms } from "../src/signaling/server";
+import { app, server, rooms, _resetAuthState } from "../src/signaling/server";
 
 jest.setTimeout(15000);
 
@@ -46,6 +46,7 @@ afterAll((done) => {
 
 beforeEach(() => {
   rooms.clear();
+  _resetAuthState();
   global.fetch = jest.fn().mockResolvedValue({
     ok: true,
     status: 200,
@@ -194,16 +195,23 @@ describe("T1.2 token validation", () => {
 
 // ── Helpers for multi-peer tests ─────────────────────────────────────────
 
+// joinAs derives a per-userId token by default. V23.2 T2.AUTH.3 made
+// cache-key = token (not token+userId), so peers claiming different
+// user_ids MUST use different tokens — otherwise they all collapse to
+// the room of whichever userId was cached first (correctly, per the
+// new trust model). Tests that want two peers in the same room pass
+// the same userId; tests that want isolation pass different userIds.
 async function joinAs(
   userId: string,
   role: "gateway" | "visitor",
+  token: string = `tok-for-${userId}`,
 ): Promise<{ ws: WebSocket; peerId: string }> {
   const ws = connect();
   await waitOpen(ws);
   ws.send(
     JSON.stringify({
       type: "HELLO",
-      token: "t",
+      token,
       user_id: userId,
       role,
     }),

@@ -53,6 +53,9 @@ const VALIDATION_API =
 
 interface CacheEntry {
   valid: boolean;
+  // Canonical userId returned by the validation API. Only trusted when
+  // valid=true. Becomes the room key — never the HELLO-supplied user_id.
+  canonicalUserId: string | null;
   timestamp: number;
 }
 
@@ -68,17 +71,43 @@ let _circuitOpenUntil = 0;
 const CIRCUIT_FAILURE_THRESHOLD = 5;
 const CIRCUIT_COOLDOWN_MS = 30_000;
 
+/**
+ * Result of token validation.
+ *
+ * V23.2 T2.AUTH.3 hardening: HELLO's `user_id` field is now untrusted.
+ * The canonical room key is the `userId` field of this result, which is
+ * sourced from the validation API response — never from the client's
+ * HELLO message. This closes the V23.1 audit HIGH #3 user-id squatting
+ * vector where attacker-supplied user_id was used as the cache key /
+ * room key.
+ *
+ * Backward compat: if the validation API does not return a user_id field
+ * in its response body (current v21-era musu.pro behavior — endpoint
+ * just returns 200/!200), we fall back to the HELLO-supplied id and log
+ * a startup warning. Production deploy of V23.2 signaling REQUIRES the
+ * musu.pro API to return `{ user_id }` in its 200 body; see
+ * docs/V23_2_PLAN_2026_05_16.md §2 T2.AUTH.3.
+ */
+export interface ValidationResult {
+  valid: boolean;
+  /** Canonical userId from musu.pro. Null when valid=false or when the
+   *  validation API does not yet return a user_id (backward compat
+   *  fallback uses the claimed id). */
+  userId: string | null;
+}
+
 async function validateToken(
   token: string,
-  userId: string,
+  claimedUserId: string,
   forceRefresh = false,
-): Promise<boolean> {
-  const cacheKey = `${token}:${userId}`;
+): Promise<ValidationResult> {
+  // Cache key is the token alone — V23.2 fix for audit HIGH #3.
+  const cacheKey = token;
 
   if (!forceRefresh) {
     const cached = validationCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-      return cached.valid;
+      return { valid: cached.valid, userId: cached.canonicalUserId };
     }
   }
 
@@ -86,33 +115,58 @@ async function validateToken(
   // degraded-grace path so existing sessions keep working.
   if (Date.now() < _circuitOpenUntil) {
     console.warn(
-      `[signaling] circuit open — using cached grace only for user=${userId}`,
+      `[signaling] circuit open — using cached grace only for token-prefix=${token.slice(0, 6)}`,
     );
-    return degradedGrace(cacheKey, userId);
+    return degradedGrace(cacheKey);
   }
 
   try {
     const response = await fetch(VALIDATION_API, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, user_id: userId }),
+      // V23.2: still send claimed user_id for the validation API to use as
+      // a check (the upstream may bind token→user_id and reject if they
+      // disagree). But we no longer trust the claim on our side.
+      body: JSON.stringify({ token, user_id: claimedUserId }),
     });
 
     _circuitFailures = 0;
     const valid = response.ok;
-    validationCache.set(cacheKey, { valid, timestamp: Date.now() });
+    let canonicalUserId: string | null = null;
+    if (valid) {
+      // Try to read the canonical userId from the validation response. If
+      // the upstream doesn't return one (current v21-era behavior), fall
+      // back to the claimed id with a one-time warning.
+      try {
+        const body = (await response.json()) as { user_id?: unknown };
+        if (typeof body.user_id === "string" && body.user_id.length > 0) {
+          canonicalUserId = body.user_id;
+        } else {
+          warnOnceCanonicalIdMissing();
+          canonicalUserId = claimedUserId;
+        }
+      } catch {
+        warnOnceCanonicalIdMissing();
+        canonicalUserId = claimedUserId;
+      }
+    }
+    validationCache.set(cacheKey, {
+      valid,
+      canonicalUserId,
+      timestamp: Date.now(),
+    });
 
     if (!valid) {
       console.warn(
-        `[signaling] token validation failed for user=${userId}: ${response.status}`,
+        `[signaling] token validation failed for token-prefix=${token.slice(0, 6)}: ${response.status}`,
       );
     }
 
-    return valid;
+    return { valid, userId: canonicalUserId };
   } catch (err) {
     _circuitFailures++;
     console.error(
-      `[signaling] validation error for user=${userId} ` +
+      `[signaling] validation error for token-prefix=${token.slice(0, 6)} ` +
         `(${_circuitFailures}/${CIRCUIT_FAILURE_THRESHOLD}):`,
       err instanceof Error ? err.message : String(err),
     );
@@ -124,40 +178,51 @@ async function validateToken(
           `cached-grace fallback only`,
       );
     }
-    return degradedGrace(cacheKey, userId);
+    return degradedGrace(cacheKey);
   }
 }
 
+let _warnedCanonicalIdMissing = false;
+function warnOnceCanonicalIdMissing(): void {
+  if (_warnedCanonicalIdMissing) return;
+  _warnedCanonicalIdMissing = true;
+  console.warn(
+    `[signaling] validation API did not return user_id in response body; ` +
+      `falling back to HELLO-supplied id. Update musu.pro /validate to ` +
+      `return { user_id } before production deploy (audit HIGH #3).`,
+  );
+}
+
 /**
- * Fallback when the upstream validation API is unreachable. Returns true
- * IFF this exact (token, userId) pair has a successful entry within the
- * degraded-grace window. Never grants access to tokens we have not seen
- * a "valid" answer for from musu.pro previously.
+ * Fallback when the upstream validation API is unreachable. Returns the
+ * cached canonical id if any, IFF the token has a successful cache entry
+ * within the degraded-grace window. Never grants access to tokens we
+ * have not seen a "valid" answer for from musu.pro previously.
  */
-function degradedGrace(cacheKey: string, userId: string): boolean {
+function degradedGrace(cacheKey: string): ValidationResult {
   const cached = validationCache.get(cacheKey);
   if (!cached) {
     console.warn(
-      `[signaling] degraded mode rejected unseen token for user=${userId}`,
+      `[signaling] degraded mode rejected unseen token-prefix=${cacheKey.slice(0, 6)}`,
     );
-    return false;
+    return { valid: false, userId: null };
   }
   if (!cached.valid) {
-    return false;
+    return { valid: false, userId: null };
   }
   const age = Date.now() - cached.timestamp;
   if (age > DEGRADED_GRACE_MS) {
     console.warn(
-      `[signaling] degraded grace expired for user=${userId} ` +
+      `[signaling] degraded grace expired for token-prefix=${cacheKey.slice(0, 6)} ` +
         `(age=${Math.round(age / 1000)}s > ${DEGRADED_GRACE_MS / 1000}s)`,
     );
-    return false;
+    return { valid: false, userId: null };
   }
   console.warn(
-    `[signaling] degraded grace granted for user=${userId} ` +
+    `[signaling] degraded grace granted for token-prefix=${cacheKey.slice(0, 6)} ` +
       `(cache age=${Math.round(age / 1000)}s)`,
   );
-  return true;
+  return { valid: true, userId: cached.canonicalUserId };
 }
 
 // ── Peer model ────────────────────────────────────────────────────────────
@@ -320,15 +385,25 @@ wss.on("connection", async (ws: WebSocket) => {
         ws.close(4001, "protocol violation");
         return;
       }
-      const ok = await validateToken(msg.token, msg.user_id);
-      if (!ok) {
+      const result = await validateToken(msg.token, msg.user_id);
+      if (!result.valid || !result.userId) {
         send(ws, { type: "ERROR", reason: "invalid token" });
         ws.close(4003, "unauthorized");
         return;
       }
+      // Audit HIGH #3: use canonical userId from validation, never the
+      // HELLO-supplied id. If the client claimed a different id, log the
+      // mismatch but do not honor it — the validation API is authoritative.
+      const canonicalUserId = result.userId;
+      if (msg.user_id !== canonicalUserId) {
+        console.warn(
+          `[signaling] HELLO user_id mismatch: claimed=${msg.user_id} ` +
+            `canonical=${canonicalUserId} — using canonical`,
+        );
+      }
       peer = {
         peerId: randomUUID(),
-        userId: msg.user_id,
+        userId: canonicalUserId,
         role: msg.role,
         ws,
         joinedAt: Date.now(),
@@ -412,6 +487,7 @@ function _resetAuthState(): void {
   validationCache.clear();
   _circuitFailures = 0;
   _circuitOpenUntil = 0;
+  _warnedCanonicalIdMissing = false;
 }
 
 export {

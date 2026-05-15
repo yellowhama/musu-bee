@@ -1,17 +1,13 @@
 /**
- * validateToken fail-closed-with-cached-grace tests (V23.2 T2.AUTH.1).
+ * validateToken tests — V23.2 T2.AUTH.1 + T2.AUTH.3 combined.
  *
- * Closes V23.1 audit HIGH #1: previously, on fetch error below the
- * circuit-breaker threshold, validateToken returned true (fail-open),
- * granting up to 5 unauthenticated handshakes per outage window.
+ * T2.AUTH.1 closes V23.1 audit HIGH #1: fail-closed-with-degraded-grace
+ * replaces fail-open below circuit-breaker threshold.
  *
- * New behavior:
- *   - Unknown token + fetch fails → reject (fail-closed).
- *   - Previously-valid token + fetch fails → accept if cache age <
- *     DEGRADED_GRACE_MS (5 min), else reject.
- *   - Previously-invalid token + fetch fails → reject regardless of age.
- *   - Circuit-open path also uses degraded-grace fallback (does NOT
- *     grant unauthenticated access).
+ * T2.AUTH.3 closes V23.1 audit HIGH #3: cache key is now `token` alone
+ * (not `token:userId`), and validateToken returns the canonical userId
+ * from the validation API response. HELLO-supplied user_id is no longer
+ * trusted as the room key.
  */
 
 import { validateToken, _resetAuthState } from "../src/signaling/server";
@@ -34,10 +30,22 @@ beforeEach(() => {
   _resetAuthState();
 });
 
-function mockFetchOk(ok: boolean): void {
+function mockFetchOk(opts: { canonicalUserId?: string } = {}): void {
   global.fetch = jest.fn().mockResolvedValue({
-    ok,
-    status: ok ? 200 : 401,
+    ok: true,
+    status: 200,
+    json: async () =>
+      opts.canonicalUserId
+        ? { user_id: opts.canonicalUserId }
+        : ({} as Record<string, never>),
+  }) as unknown as typeof fetch;
+}
+
+function mockFetch401(): void {
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: false,
+    status: 401,
+    json: async () => ({}),
   }) as unknown as typeof fetch;
 }
 
@@ -45,127 +53,151 @@ function mockFetchThrow(): void {
   global.fetch = jest.fn().mockRejectedValue(new Error("network down")) as unknown as typeof fetch;
 }
 
-describe("V23.2 T2.AUTH.1 — fail-closed for unseen tokens", () => {
+// ── T2.AUTH.1 — fail-closed for unseen tokens ─────────────────────────────
+
+describe("T2.AUTH.1 — fail-closed for unseen tokens", () => {
   it("rejects an unknown token when fetch fails (was fail-open in V23.1)", async () => {
     mockFetchThrow();
-    const ok = await validateToken("never-seen-token", "user-a");
-    expect(ok).toBe(false);
+    const r = await validateToken("never-seen-token", "user-a");
+    expect(r.valid).toBe(false);
+    expect(r.userId).toBeNull();
   });
 
-  it("rejects an unknown token even on the very first attempt of an outage", async () => {
+  it("rejects on the very first attempt of an outage (no 5-attack budget)", async () => {
     mockFetchThrow();
-    // Audit #1: V23.1 would have allowed the first 5 of these. Verify we
-    // now reject from the very first call.
     for (let i = 0; i < 6; i++) {
-      const ok = await validateToken(`fresh-token-${i}`, `user-${i}`);
-      expect(ok).toBe(false);
+      const r = await validateToken(`fresh-token-${i}`, `user-${i}`);
+      expect(r.valid).toBe(false);
     }
   });
 
-  it("rejects unknown tokens with the SAME outcome before and after circuit opens", async () => {
+  it("rejects identically before and after circuit opens", async () => {
     mockFetchThrow();
-    // Five throws → circuit opens. Each call should still return false.
-    const results: boolean[] = [];
+    const results = [];
     for (let i = 0; i < 7; i++) {
       results.push(await validateToken(`t-${i}`, `u-${i}`));
     }
-    expect(results.every((r) => r === false)).toBe(true);
+    expect(results.every((r) => r.valid === false)).toBe(true);
   });
 });
 
-describe("V23.2 T2.AUTH.1 — degraded grace for previously-valid tokens", () => {
-  it("accepts a previously-valid token when fetch fails (within grace window)", async () => {
-    // 1. Successful validation populates the cache.
-    mockFetchOk(true);
-    expect(await validateToken("good-token", "user-a")).toBe(true);
+// ── T2.AUTH.1 — degraded grace for previously-valid tokens ────────────────
 
-    // 2. Cache TTL expires; force a re-validation that hits the network.
-    // We can't easily move wall-clock, so we use forceRefresh.
+describe("T2.AUTH.1 — degraded grace for previously-valid tokens", () => {
+  it("accepts a previously-valid token when fetch fails (within grace)", async () => {
+    mockFetchOk({ canonicalUserId: "canon-a" });
+    expect((await validateToken("good-token", "user-a")).valid).toBe(true);
+
     mockFetchThrow();
-    const ok = await validateToken("good-token", "user-a", true);
-    expect(ok).toBe(true); // grace granted — cache entry is recent
+    const r = await validateToken("good-token", "user-a", true);
+    expect(r.valid).toBe(true);
+    expect(r.userId).toBe("canon-a");
   });
 
   it("rejects a previously-INVALID token even when fetch fails", async () => {
-    // 1. Validation returns 401; cache stores {valid:false}.
-    mockFetchOk(false);
-    expect(await validateToken("bad-token", "user-a")).toBe(false);
+    mockFetch401();
+    expect((await validateToken("bad-token", "user-a")).valid).toBe(false);
 
-    // 2. Outage now. We must NOT silently flip to true.
     mockFetchThrow();
-    expect(await validateToken("bad-token", "user-a", true)).toBe(false);
+    expect((await validateToken("bad-token", "user-a", true)).valid).toBe(false);
   });
 
-  it("rejects a token whose successful cache entry has aged past grace window", async () => {
-    // 1. Successful validation.
-    mockFetchOk(true);
-    expect(await validateToken("aging-token", "user-a")).toBe(true);
+  it("rejects an aged-past-grace successful entry on outage", async () => {
+    mockFetchOk({ canonicalUserId: "canon-a" });
+    expect((await validateToken("aging-token", "user-a")).valid).toBe(true);
 
-    // 2. Manually back-date the cache entry past DEGRADED_GRACE_MS (5 min).
-    // We have to import the cache to mutate it for this test, since we
-    // can't move wall-clock without bigger machinery.
+    // Backdate cache to 6 min ago (> DEGRADED_GRACE_MS=5min).
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { _validationCache } = require("../src/signaling/server");
-    const key = "aging-token:user-a";
-    const entry = _validationCache.get(key);
+    const entry = _validationCache.get("aging-token");
     expect(entry).toBeDefined();
-    entry.timestamp = Date.now() - 6 * 60_000; // 6 min ago > 5 min grace
+    entry.timestamp = Date.now() - 6 * 60_000;
 
-    // 3. Outage now.
     mockFetchThrow();
-    expect(await validateToken("aging-token", "user-a", true)).toBe(false);
+    expect((await validateToken("aging-token", "user-a", true)).valid).toBe(false);
   });
 });
 
-describe("V23.2 T2.AUTH.1 — circuit open does not grant unauthenticated access", () => {
-  it("with circuit open and no cache: rejects", async () => {
-    // Trip the breaker.
+// ── T2.AUTH.1 — circuit open does not grant unauth ────────────────────────
+
+describe("T2.AUTH.1 — circuit open does not grant unauth access", () => {
+  it("with circuit open and no cache: rejects even brand-new tokens", async () => {
     mockFetchThrow();
-    for (let i = 0; i < 5; i++) {
-      await validateToken(`t${i}`, `u${i}`);
-    }
-    // Circuit is now open. Even a brand-new token should be rejected.
-    // Switch fetch to ok=true to make sure the circuit-open path is what
-    // we're testing — if the function called fetch and got true, the test
-    // would pass for the wrong reason.
-    mockFetchOk(true);
-    const ok = await validateToken("brand-new-token", "brand-new-user");
-    expect(ok).toBe(false);
+    for (let i = 0; i < 5; i++) await validateToken(`t${i}`, `u${i}`);
+
+    mockFetchOk({ canonicalUserId: "would-have-been-ok" });
+    const r = await validateToken("brand-new", "u-new");
+    expect(r.valid).toBe(false);
   });
 
-  it("with circuit open and a fresh successful cache: grants grace", async () => {
-    // First, populate cache with a successful entry.
-    mockFetchOk(true);
-    expect(await validateToken("preauth-token", "preauth-user")).toBe(true);
+  it("with circuit open and a pre-authed token: grants grace", async () => {
+    mockFetchOk({ canonicalUserId: "canon-pre" });
+    expect((await validateToken("preauth-token", "preauth-user")).valid).toBe(true);
 
-    // Now trip the breaker with a different token.
     mockFetchThrow();
-    for (let i = 0; i < 5; i++) {
-      await validateToken(`t${i}`, `u${i}`);
-    }
-    // Circuit is open. Pre-authenticated user gets degraded grace.
-    const ok = await validateToken("preauth-token", "preauth-user", true);
-    expect(ok).toBe(true);
+    for (let i = 0; i < 5; i++) await validateToken(`t${i}`, `u${i}`);
+
+    const r = await validateToken("preauth-token", "preauth-user", true);
+    expect(r.valid).toBe(true);
+    expect(r.userId).toBe("canon-pre");
   });
 });
 
-describe("V23.2 T2.AUTH.1 — happy path still works", () => {
-  it("returns true when fetch is ok=true (no change)", async () => {
-    mockFetchOk(true);
-    expect(await validateToken("ok-token", "ok-user")).toBe(true);
+// ── T2.AUTH.3 — canonical userId is sourced from validation API ───────────
+
+describe("T2.AUTH.3 — canonical userId from validation API", () => {
+  it("returns the canonical userId from the response, not the claimed one", async () => {
+    mockFetchOk({ canonicalUserId: "real-user-id" });
+    const r = await validateToken("tok", "claimed-but-fake");
+    expect(r.valid).toBe(true);
+    expect(r.userId).toBe("real-user-id");
+    expect(r.userId).not.toBe("claimed-but-fake");
   });
 
-  it("returns false when fetch is ok=false (no change)", async () => {
-    mockFetchOk(false);
-    expect(await validateToken("bad-token", "bad-user")).toBe(false);
+  it("cache is keyed by token alone — two users claiming the same token resolve identically", async () => {
+    mockFetchOk({ canonicalUserId: "real-owner" });
+    // First call: attacker claims "victim" as the user_id.
+    const a = await validateToken("victim-token", "victim");
+    expect(a.userId).toBe("real-owner");
+
+    // Second call: legitimate owner. Cached.
+    // We deliberately do NOT reset fetch — the cache should serve this
+    // without a new network call.
+    const b = await validateToken("victim-token", "real-owner");
+    expect(b.userId).toBe("real-owner");
+    expect((global.fetch as jest.Mock).mock.calls).toHaveLength(1);
   });
 
-  it("uses the recent-cache fast path on the second call", async () => {
-    const fetchSpy = jest.fn().mockResolvedValue({ ok: true, status: 200 });
+  it("falls back to claimed userId with warning if validation API omits user_id (v21 compat)", async () => {
+    // V21-era /validate just returns 200 with no body — current production.
+    // V23.2 server tolerates this with a one-time warning until musu.pro
+    // upgrades. See V23_2_PLAN §2 T2.AUTH.3.
+    mockFetchOk(); // no canonicalUserId returned
+    const r = await validateToken("legacy-tok", "claimed-id");
+    expect(r.valid).toBe(true);
+    expect(r.userId).toBe("claimed-id");
+  });
+
+  it("invalid token → userId is null", async () => {
+    mockFetch401();
+    const r = await validateToken("bad", "any");
+    expect(r.valid).toBe(false);
+    expect(r.userId).toBeNull();
+  });
+});
+
+// ── Happy path (no behavioral change) ─────────────────────────────────────
+
+describe("validateToken happy path", () => {
+  it("uses cache fast path on second call", async () => {
+    const fetchSpy = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ user_id: "canon" }),
+    });
     global.fetch = fetchSpy as unknown as typeof fetch;
-    expect(await validateToken("cached", "u")).toBe(true);
-    expect(await validateToken("cached", "u")).toBe(true);
-    // Should have hit the network only once.
+    expect((await validateToken("cached", "u")).valid).toBe(true);
+    expect((await validateToken("cached", "u")).valid).toBe(true);
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 });
