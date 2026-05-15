@@ -108,6 +108,10 @@ export class GatewayClient {
   private myPeerId: string | null = null;
   private sessions = new Map<string, PeerSession>(); // remotePeerId → session
   private log: (line: string) => void;
+  // Welcome-poll timers tracked so close() can cancel mid-handshake.
+  private welcomeTimer: NodeJS.Timeout | null = null;
+  private welcomeInterval: NodeJS.Timeout | null = null;
+  private closed = false;
 
   constructor(private readonly cfg: GatewayConfig) {
     this.log = cfg.onLog ?? ((l) => console.log(l));
@@ -140,13 +144,29 @@ export class GatewayClient {
       this.log(`[gateway] ws error: ${e instanceof Error ? e.message : String(e)}`),
     );
 
-    // Wait for WELCOME to learn our peerId.
+    // Wait for WELCOME to learn our peerId. Track timers on the instance so
+    // close() can cancel mid-handshake (audit #5).
     await new Promise<void>((resolve, reject) => {
-      const t = setTimeout(() => reject(new Error("WELCOME timeout")), 5000);
-      const check = setInterval(() => {
+      this.welcomeTimer = setTimeout(() => {
+        if (this.welcomeInterval) clearInterval(this.welcomeInterval);
+        this.welcomeInterval = null;
+        this.welcomeTimer = null;
+        reject(new Error("WELCOME timeout"));
+      }, 5000);
+      this.welcomeInterval = setInterval(() => {
+        if (this.closed) {
+          if (this.welcomeTimer) clearTimeout(this.welcomeTimer);
+          if (this.welcomeInterval) clearInterval(this.welcomeInterval);
+          this.welcomeTimer = null;
+          this.welcomeInterval = null;
+          reject(new Error("closed before WELCOME"));
+          return;
+        }
         if (this.myPeerId !== null) {
-          clearTimeout(t);
-          clearInterval(check);
+          if (this.welcomeTimer) clearTimeout(this.welcomeTimer);
+          if (this.welcomeInterval) clearInterval(this.welcomeInterval);
+          this.welcomeTimer = null;
+          this.welcomeInterval = null;
           resolve();
         }
       }, 20);
@@ -155,6 +175,11 @@ export class GatewayClient {
 
   /** Graceful shutdown. */
   close(): void {
+    this.closed = true;
+    if (this.welcomeTimer) clearTimeout(this.welcomeTimer);
+    if (this.welcomeInterval) clearInterval(this.welcomeInterval);
+    this.welcomeTimer = null;
+    this.welcomeInterval = null;
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.send({ type: "BYE" });
     }
