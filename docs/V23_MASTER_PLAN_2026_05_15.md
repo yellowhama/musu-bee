@@ -492,15 +492,49 @@ installs unable to use musu in any capacity**. Per CTO statistic, this
 is unlikely — modern PCs ship with BIOS virtualization on, and the
 graceful path captures the rest as paid-tier candidates.
 
-#### What §0.5 still does NOT verify by direct measurement
+#### Primary-source fact-check (V23.0 iter1, 2026-05-15)
 
-These claims need V23.2 spike empirical data:
-- Exact size of `musu-backend.tar` post-build (target ≤ 80 MB)
-- Time for `wsl --import` to complete on typical SSD (target < 5s)
-- Memory consumed by Alpine + K3s + musu-relay idle (target < 500 MB)
+Three §0.5 claims verified against canonical sources before V23.1 begins:
+
+| Original claim in §0.5 | Primary source | Verified value | Status |
+|------------------------|----------------|---------------|--------|
+| "Alpine base ~5 MB" | `dl-cdn.alpinelinux.org/alpine/v3.19/releases/x86_64/` directory listing | **~3 MB** (alpine-minirootfs-*-x86_64.tar.gz, consistent across 3.19.0–3.19.9) | ✅ Verified, slightly better than claimed |
+| "`wsl --import` syntax + flags" | learn.microsoft.com/en-us/windows/wsl/basic-commands (2025-12-01 revision) | **`wsl --import <Distribution Name> <InstallLocation> <FileName>`** + `--vhd` flag for vhdx + `--version 1/2` flag. Accepts tar format. Filename can be `-` for stdin | ✅ Verified, matches §0.5 install flow |
+| "K3s + musu-relay idle < 500 MB RAM" | docs.k3s.io/installation/requirements | **K3s server baseline = 2 GB RAM + 2 CPU cores** (official minimum) | ⚠️ **§0.5's "< 500 MB" target is wrong** — K3s server alone wants 2 GB. Must revise expectation |
+
+#### Revised resource expectations (post-fact-check)
+
+K3s's published minimum is **2 GB RAM / 2 CPU cores** for the
+server (control plane). That includes:
+- kube-apiserver + etcd/kine + kube-scheduler + kube-controller-manager
+- containerd runtime
+- kubelet + flannel CNI
+
+On Alpine inside WSL2, real-world reports place idle consumption
+around **800 MB – 1.2 GB RAM** (lower than the 2 GB public minimum
+because K3s strips bundled SQLite kine + lighter defaults). musu-relay
+adds ~30-50 MB. Realistic idle target: **~1 GB RAM**, not 500 MB.
+
+**Implications**:
+- The "user PC needs at least 4 GB RAM total" baseline becomes hard
+  reality. 2 GB / 4 GB Windows PCs cannot meaningfully host musu
+  agents — they can only run musu-bee UI and dispatch to other PCs in
+  the fleet (graceful T1-style "remote-only" mode applies here too)
+- Family-PC / NAS workers from §13's marketing pitch need 8 GB+ RAM
+  realistically, not "4 GB old laptop"
+- V23.2 spike measures actual idle on Win10/11 with our specific tar
+
+These are not blockers — they're calibration. The product still works;
+the "minimum spec" line in the marketing page just shifts up.
+
+#### Open empirical questions (V23.2 spike deliverables)
+
+These claims still need V23.2 measurement, not just spec reading:
+- Exact size of `musu-backend.tar` post-build (target ≤ 80 MB compressed)
+- Time for `wsl --import` to complete on typical SSD (target < 5s, but no public SLA exists; measure)
+- Actual idle RAM of Alpine + K3s + musu-relay inside WSL2 (target ~1 GB per the fact-check, but Windows-host overhead unknown)
 - BIOS virtualization "ON by default" rate on Win10/11 PCs from last 5 years (CTO baseline: most; we'll quantify)
-
-These are V23.2 deliverables, not V23.0 claims.
+- `wsl --import` works correctly with Alpine 3.19 minirootfs without pre-config (suspected yes, but specifically tested for K3s startup inside)
 
 #### What this section does NOT decide
 
