@@ -875,3 +875,254 @@ the 18-week plan.
 - musu-relay role under Option J: redundant if Cloudflare Tunnel covers F3
 - §10/§11 still valuable as background on why other options were considered and rejected against the killer features
 
+---
+
+## 14. Product model lock — P2P default + musu.pro paid SaaS + unified UI
+
+User declared the product model (2026-05-15):
+
+> **"P2P가 기본, 유저의 기기끼리 p2p. 외부에서 자신의 시스템에 접속하고 싶으면 그때 musu.pro(유료) — 이게 SaaS. 내부에서 로컬호스트나 데스크탑 앱의 형태랑 웹 SaaS가 같은 UI/UX."**
+
+**Important relation to §13**: §14 does NOT overturn §13. It is the
+**business / UX spec-out of F3** ("로컬에서 돌아가고, 외부에서 접속해서
+컨트롤이 가능하다") from §13's killer features list. §13 named F1/F2/F3
+as the three product north stars; §14 makes F3 precise:
+
+| §13 killer feature | §14 spec-out |
+|---|---|
+| F1 — 여러 PC를 하나의 워크스페이스로 묶는다 | The mechanism is **P2P between user's own devices**. F1 unchanged |
+| F2 — agentic company 다중 에이전트 자동화 | (§14 doesn't restate; F2 unchanged) |
+| F3 — 로컬에서 돌고, 외부에서 컨트롤 가능 | **Free tier = LAN-only. Paid tier (musu.pro SaaS) = external access. Same UI/UX both paths.** |
+
+In other words: §13 = "what musu does." §14 = "how musu is priced and
+how the UI is structured." Both stand. Re-reading §13 alongside §14
+shows F1/F2/F3 are preserved; §14 adds the free/paid line and the UI
+parity constraint.
+
+This is the **product-model decision** that §10.5 was forking on.
+Resolution 1 (preserve P2P) won, with one critical refinement: **musu.pro is the paid SaaS for external access only**, and **the local UI and the remote SaaS UI must be the same surface**.
+
+### 14.1 What this locks down
+
+| Aspect | Decision |
+|--------|----------|
+| Default deploy | **P2P** — user's devices talk peer-to-peer; data + compute stay on user's machines |
+| Data plane | Never enters musu.pro. relay only mediates control / NAT-pierce |
+| musu.pro role | **Paid SaaS for external access**: NAT-pierce + identity + per-tenant URL + billing |
+| Local UI | Desktop app or `http://localhost:<port>` web UI on user's primary device |
+| Remote UI | `https://<user>.musu.pro` (or equivalent) — **same UI/UX as local** |
+| Free tier | Local-only mode. User runs musu, accesses from her own LAN. No musu.pro account needed |
+| Paid tier | Adds external access via musu.pro. Same UI, just reachable from anywhere |
+| Multi-tenancy on musu.pro | **One tenant = one user's fleet**. Not a multi-tenant cluster; users don't share compute. musu.pro is N parallel single-tenant tunnels |
+
+### 14.2 Architectural consequences
+
+**Local + Remote UI parity** is the load-bearing UX constraint. It rules out architectures where:
+- The local view shows one set of features and the SaaS view shows another (Rancher → musu would diverge UI here)
+- The remote view is a thin admin console and the local view is the "real" app (Tailscale's pattern — won't match musu)
+- Authentication shape differs between local and remote (cookie+session locally vs OIDC remotely → divergent code)
+
+It requires:
+- **One Next.js / web app** that runs identically over `localhost:8070` and `<user>.musu.pro`
+- **Same auth backend** — local uses local-token bypass, remote uses musu.pro identity proxy; the React app doesn't care
+- **Same WebSocket / SSE channel** abstraction — local hits `ws://localhost`, remote hits `wss://<user>.musu.pro/ws` which proxies to the user's bridge
+
+This is **already partially how musu-bee is built** — it talks to musu-bridge via HTTP/SSE. The remote path just needs musu-relay (or Cloudflare Tunnel) to expose the same endpoints under a public URL.
+
+### 14.3 musu.pro = thin relay, NOT a control plane
+
+Critical clarification per the original P2P invariant:
+
+| Thing on musu.pro | Purpose | Stores user data? |
+|-------------------|---------|-------------------|
+| User account / billing | Identity for SaaS subscription | Email + payment token. Not workspace data |
+| Tunnel registration | Maps `<user>.musu.pro` → user's musu-bridge IP via relay | Connection metadata only |
+| musu-relay broker | Forwards encrypted WS frames between user's browser and user's bridge | **Passthrough only**; cannot decrypt |
+| Optional: agent catalog | "Install marketing-agent" templates | Public catalog; no per-user state |
+| Optional: TURN/STUN | NAT-pierce fallback if direct P2P fails | Connection metadata only |
+
+What musu.pro **must NOT** become:
+- A central database of user agent state
+- A central storage of conversation/chat history
+- A control-plane that decides what runs where (the user's bridge does that)
+- A cluster operator that owns the K3s/scheduling layer
+
+If musu.pro starts storing workspace state, it has violated the P2P invariant and become a regular SaaS.
+
+### 14.4 How the killer features (§13) survive this lock
+
+| Feature | How it works under §14 model |
+|---------|------------------------------|
+| **F1 — multi-PC workspace** | User's devices form a P2P mesh (e.g., via Tailscale or direct LAN). One device is the "controller" running musu-bridge + master scheduler. Others join as workers. **musu.pro is not involved in the fleet** — the fleet is the user's own LAN/Tailnet |
+| **F2 — multi-agent automation** | Workflow controller + agent dispatch run on user's controller device. Agents execute on workers per F1. Data + outputs stay on user's machines |
+| **F3 — remote control** | Free: user accesses controller via `http://localhost` on the controller device, or LAN IP from other devices on her network. **Paid (musu.pro)**: same UI accessed via `https://<user>.musu.pro` from anywhere. The browser opens the same SPA in both cases |
+
+Everything user-facing is **identical**. The only difference between free and paid is **whether you can reach it from outside your network**.
+
+### 14.5 How this changes Option J from §13
+
+Option J said "K3s + custom UI + Cloudflare Tunnel/Tailscale + Paddle billing." Under §14's lock, this refines to:
+
+| Layer | Option J generic | Option J under §14 |
+|-------|------------------|-------------------|
+| Fleet | K3s clusters user's PCs | Same — K3s under the hood on user's PCs |
+| Tunnel | Cloudflare Tunnel OR Tailscale | **musu.pro relay** (existing musu-relay, hardened) for paid users; nothing for free users (LAN-only) |
+| UI | Custom musu-bee Agentic Company UI | Same UI accessed via `localhost` (free) or `<user>.musu.pro` (paid) |
+| Auth | OAuth/SSO via Rancher etc | Local token (free) + musu.pro identity (paid). React app branches on env, not on path |
+| Billing | Paddle on musu-bee | **Paddle for musu.pro subscription only**. Local is free forever |
+| Multi-tenancy | Multi-tenant K3s with Rancher | **Per-user single-tenant K3s** on the user's own devices. musu.pro hosts N parallel tunnels, not one shared cluster |
+
+This is a **substantial simplification** of Option J. The K8s multi-tenancy / RBAC / namespace gymnastics from §10 dissolves because **each user has their own private cluster**. musu.pro never needs to do RBAC across user fleets — it only authenticates "is this you, accessing your own fleet?"
+
+### 14.6 Pricing & value-proposition implications
+
+| Tier | Price | What you get | Why it's a fair line |
+|------|-------|--------------|----------------------|
+| **Free (local)** | $0 | Full product. F1 multi-PC fleet, F2 multi-agent automation. Access via LAN only | User runs entirely on her hardware. musu.pro spends nothing on this user |
+| **Paid (musu.pro)** | $X/mo | Same product + external access via `<user>.musu.pro` + identity + (optional: catalog sync, backup, support) | musu.pro carries relay traffic + DNS + SSL + support burden. Real marginal cost per user |
+
+This is **the right product line**. The user pays for what costs musu.pro money (external access infrastructure). The product itself is free because it runs on her hardware and her electricity.
+
+This is also the **right marketing line**: "musu is free forever for your own LAN. Pay only when you want to reach it from outside." That's a story that converts hobbyists into evangelists.
+
+### 14.7 What this means for v22 plan
+
+Re-evaluating v22 §3.x once more under the locked product model:
+
+| §3.x section | Status under §14 |
+|--------------|------------------|
+| §3.1 events / watch | ⚠️ Useful for local SQLite even without K3s — keep IF Option J is delayed. **If Option J ships in v22.1, this is redundant** |
+| §3.2 lease | Same as §3.1 |
+| §3.3 API server consensus | ❌ Not needed — single-tenant per user means single-writer per fleet by definition |
+| §3.4 spec/status | ⚠️ Useful for musu's own workflow controller (above K3s) — keep |
+| §3.5 CEO TOCTOU + generation CAS | ✅ Useful even on top of K3s — workflow controller idempotency |
+| §3.6 finalizers + owner refs | ❌ K8s has these |
+| §3.7 scheduler upgrades | ❌ kube-scheduler has these (priority, affinity, topology) |
+| §3.8 fault injection / soak | ✅ Always useful, applied to workflow controller + musu-bee + relay |
+| §3.9 migration roadmap | Rewrite as "v21 monorepo → Option J K3s + relay" |
+
+**Net**: under §14, v22 contracts to §3.5 + §3.8 (plus §3.4 partial). The other 60% transfers to "K3s does that for us."
+
+### 14.8 musu-relay's revised role
+
+§14 makes musu-relay's role precise:
+
+| Today (v21) | Under §14 |
+|-------------|-----------|
+| Cloud relay broker between bridge and musu.pro | **Identity-aware tunnel terminator on musu.pro** |
+| Generic WS forwarder | **Per-user subdomain router** (`<user>.musu.pro` → user's bridge) |
+| Lives on Railway | Stays on Railway, but with tighter scope — one job: route `<user>.*` to the right user's tunnel |
+| Stateless | Stateless still, but now also authenticates the incoming user before routing |
+
+If Cloudflare Tunnel is adopted instead of/alongside musu-relay, the same role is filled by Cloudflare. Trade-off:
+
+| | musu-relay (own) | Cloudflare Tunnel |
+|--|---|---|
+| Cost per user | Railway bandwidth | Free up to 50 users, then paid |
+| Auth integration | Wire to musu.pro identity ourselves | Cloudflare Access SSO out-of-box |
+| Vendor lock-in | None | Cloudflare |
+| Custom domains | `<user>.musu.pro` natural | Same — Cloudflare supports custom domains |
+| Latency | Single Railway region | Cloudflare's global edge |
+| Maintenance | Our code | Their code |
+
+**Honest call**: at MVP scale, musu-relay (existing code) is fine. At >100 paid users, Cloudflare Tunnel becomes operationally cheaper. Plan to dual-support both; let users opt in.
+
+### 14.9 The "same UI local + SaaS" constraint — engineering reality check
+
+This is the most subtle constraint and easy to violate. Common ways to break it:
+
+| Drift cause | Why it happens | How to prevent |
+|-------------|----------------|----------------|
+| Local has admin features remote shouldn't | "Reset all" button on local; security risk on SaaS | Feature flag by env, but **same UI shell** — the button just doesn't render remotely. Don't ship a separate "admin" build |
+| Auth UX divergence | Local has no login; remote needs login | Local has a **trivial auto-login** ("Welcome back, owner of this device") so the page below the auth shell is identical |
+| URL shape divergence | Local: `/c/[id]`; remote: `/c/[id]?tenant=<user>` | **Same routes**. Tenant context comes from the host (`<user>.musu.pro`), not the path |
+| Real-time channel differs | Local: WebSocket to `ws://localhost:8070/ws`; remote: HTTP-poll because tunnel doesn't support WS | **Make sure tunnel supports WS** (musu-relay does; Cloudflare Tunnel does) |
+| State persistence differs | Local: SQLite on disk; remote: SQLite via tunnel feels slow | The bridge is **always** the source of truth. SaaS only adds a network hop |
+
+To enforce parity, the v22.1+ engineering rule: **musu-bee makes no decision based on whether it's on localhost or saas.musu.pro**. All such decisions live in the bridge.
+
+### 14.10 What changes about the existing monorepo
+
+Comparing the 12 packages from `PACKAGE_INVENTORY_2026_05_15.md` against §14:
+
+| Package | Fate under §14 |
+|---------|----------------|
+| musu-bridge | ✅ Survives — but maybe shrinks once K3s handles scheduling/watch/lease. Becomes the "workflow controller + tenant-of-one API server" |
+| musu-core | ✅ Survives — shared lib still useful |
+| musu-bee | ✅ Survives — becomes the unified UI for local + SaaS. **Most-impacted package** — needs the "Agentic Company" UX rewrite |
+| musu-relay | ✅ Survives with tighter scope — per-user subdomain router + auth proxy |
+| musu-control (MCP) | ✅ Survives — Claude Code → bridge stays |
+| musu-indexer (MCP) | ✅ Survives — orthogonal |
+| musu-ai-detector (MCP) | ✅ Survives — orthogonal |
+| musu-worker | ⚠️ Possibly replaced by K3s worker nodes. Today's `/execute/process` RCE endpoint becomes "K3s job spec" |
+| musu-supervisor | ⚠️ Possibly replaced by K3s + container images. v21.D Windows AppContainer becomes throwaway IF Option J ships |
+| musu-port | ⚠️ K3s services + ingress controller may absorb this. Reevaluate after Option J spike |
+| musu-plugin | ✅ Survives — Claude Code packaging |
+| musu-writer | ✅ Survives — off the critical path |
+
+**Net**: 8 packages survive intact, 3 partially absorbed by K3s, 1 strongly impacted (musu-bee gets a UX rewrite). The v21.D Windows isolation work has the most exposure to becoming throwaway under Option J.
+
+### 14.11 Concrete v22 plan revision under §14
+
+**Strikethrough = deprecated under §14. Bold = newly added.**
+
+```
+v22.0 (4 wks) — "Honest core" (still useful regardless of substrate)
+  ✅ §3.5 CEO TOCTOU + generation CAS
+  ✅ §3.4 (reduced) generation/observed_generation columns
+  ⚠️ §3.1 events table — defer pending Option J decision
+  ⚠️ §3.2 lease — defer pending Option J decision
+
+v22.1 (4 wks) — "Option J spike + product-model implementation"
+  NEW K3s auto-join installer spike (Linux + macOS first; Windows = WSL2)
+  NEW musu-relay rewrite: per-user subdomain routing + auth proxy
+  NEW musu-bee local+SaaS parity audit + URL/auth refactor
+  ⚠️ §3.6 finalizers — defer pending Option J decision (K8s has them)
+
+v22.2 (4 wks) — "Workflow controller + Agentic Company UI"
+  NEW Workflow DAG runtime spike (Dify wrap vs build)
+  NEW musu-bee Agentic Company UI rewrite (catalog + workflow + fleet view)
+  ✅ §3.8 (reduced) — multi-process race tests + fault injection
+                     applied to workflow controller
+
+v22.3 (4 wks) — "Closed beta"
+  NEW musu.pro paid-tier wiring (Paddle extension)
+  NEW External access via musu-relay or Cloudflare Tunnel
+  NEW Onboarding flow: "install desktop app → free local mode → upgrade to paid for remote"
+  ⚠️ §3.3 deferred indefinitely — Option J = K3s answers Road C
+```
+
+**~16 weeks to closed beta**, lighter than original 14-week §3.x plan + downstream work, and the killer features F1/F2/F3 are all served end-to-end.
+
+### 14.12 What §14 settles vs leaves open
+
+**Settled**:
+- ✅ Product model — P2P default, paid SaaS for external access, unified UI
+- ✅ musu.pro is a thin tunnel + identity service, NOT a data hub
+- ✅ Multi-tenancy is "N parallel single-tenant clusters", NOT one shared cluster
+- ✅ §10.5 Resolution 1 (preserve P2P) wins. Resolution 2 (SaaS pivot) rejected
+- ✅ Free vs paid line is "LAN only" vs "external access"
+
+**Still open**:
+- ⚠️ Whether to adopt K3s (Option J) or stay monorepo (Option B). §14 doesn't pick one. §13.10 leans toward J; §14 makes either viable
+- ⚠️ DAG runtime build vs wrap (§13.8)
+- ⚠️ Windows host story under K3s (WSL2 vs alternative)
+- ⚠️ musu-relay vs Cloudflare Tunnel (§14.8 — supports both, defer choice)
+
+Make the open calls one at a time, with data, not in this doc.
+
+### 14.13 Cross-references
+
+- Product model source: user message 2026-05-15 (this section's epigraph)
+- P2P invariant origin: `CLAUDE.md` session memory
+- Existing relay: `musu-relay/README.md`
+- Existing local UI: `musu-bee/` (Next.js)
+- Existing billing: musu-bee's Paddle wiring
+- Conflict resolved: §10.5 Resolution 1 vs 2 — definitively Resolution 1
+
+### 14.14 One-line summary
+
+> **musu = local-first agentic-company OS. musu.pro = paid tunnel + identity for reaching your own OS from outside. Same UI either way. Built on K3s (probably) under the hood; user never sees K8s.**
+
+This is the elevator pitch the rest of this SWOT was searching for.
+
