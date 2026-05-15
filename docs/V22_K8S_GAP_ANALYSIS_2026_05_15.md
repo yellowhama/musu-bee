@@ -1,10 +1,43 @@
 # v22 — K8s-shape Gap Analysis & Remediation Plan
 
-**Status**: DRAFT (in progress via /loop iterations)
+> ## ⚠ WRONG-FRAME WARNING — read this first
+>
+> **This document was written against the wrong deployment model.**
+> It frames musu as a "user runs musu-bridge on her laptop" single-host
+> system, with Three Roads (A/B/C) about *single-host vs multi-node cluster*
+> topology. The actual musu product model — confirmed by the user on
+> 2026-05-15 — is:
+>
+> - **One user owns N devices**, all of them P2P-meshed into a single
+>   workspace
+> - **musu-relay runs locally on the user's PC**, not in the cloud
+> - **musu.pro is a stateless DNS + signaling service**, never a data
+>   relay or control plane
+> - **K3s** (chosen substrate) hides under the UI; users only see
+>   "agents / company / PCs" terminology
+>
+> Most of §3.1–§3.7 (events table, lease, API server consensus,
+> spec/status split, finalizers, scheduler upgrades) is **redundant
+> under K3s** — K8s already provides them. The honest critique in §1,
+> the methodology in §6 (fact-check), the self-assessment in §7, and
+> §3.5 (TOCTOU + generation CAS for workflow controllers) + §3.8
+> (multi-process race + fault injection tests) **remain useful**.
+>
+> The replacement plan is **`docs/V23_MASTER_PLAN_2026_05_15.md`**.
+> Read that, then come back here only for the §1 critique, §6 method,
+> §7 self-grade, and §3.5/§3.8 details.
+>
+> This document is preserved as honest historical record of an
+> iteration that built the wrong thing.
+
+---
+
+**Status**: DEPRECATED — wrong frame, superseded by V23
 **Date**: 2026-05-15
 **Trigger**: independent critique by system-architect subagent against v21 "K8s-shaped on SQLite" claim
 **Verdict**: weighted avg 3.5/10 across 8 categories — calls v21 "controller-runtime의 single-process subset을 SQLite로 재구현한 것"
 **Related**: `docs/PACKAGE_INVENTORY_2026_05_15.md` — as-measured roster of the 12 musu-* packages this analysis applies to
+**Replaced by**: `docs/V23_MASTER_PLAN_2026_05_15.md`
 
 This document is the honest follow-up. v21 shipped a **single-host
 reconcile pattern study**, not a distributed K8s. v22's purpose is to
