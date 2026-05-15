@@ -11,6 +11,12 @@
  *
  * The validateToken function calls musu.pro by default. Tests stub
  * fetch globally to control validation outcome without network.
+ *
+ * Harness note: an earlier queue/waiter pattern (nextMessage + promise
+ * waiters) hit a race where the awaited promise never resolved even
+ * though the inbox received the frame. We replaced it with a passive
+ * collector (every frame is pushed to an array as it arrives) plus a
+ * polling `waitFor(predicate)` helper — no waiter state to lose.
  */
 
 import { AddressInfo } from "net";
@@ -25,7 +31,6 @@ let originalFetch: typeof fetch;
 beforeAll((done) => {
   jest.spyOn(console, "log").mockImplementation(() => {});
   jest.spyOn(console, "warn").mockImplementation(() => {});
-  // keep console.error visible for debugging
   originalFetch = global.fetch;
   server.listen(0, () => {
     listenPort = (server.address() as AddressInfo).port;
@@ -41,69 +46,90 @@ afterAll((done) => {
 
 beforeEach(() => {
   rooms.clear();
-  // Default stub: every token validates. Individual tests override.
   global.fetch = jest.fn().mockResolvedValue({
     ok: true,
     status: 200,
   }) as unknown as typeof fetch;
 });
 
-// Attach inbox directly to ws object as a property — bypasses WeakMap.
-type Inbox = { queue: any[]; waiters: ((m: any) => void)[] };
-function getInbox(ws: WebSocket): Inbox {
-  return (ws as any)._inbox as Inbox;
-}
+// ── Test harness: passive collector + poll ────────────────────────────────
+//
+// The collector pattern. Every ws frame, open, close, and error is recorded
+// onto the collector as it happens. Waiters then poll the recorded state.
+// This avoids any race where the event fires before a waiter has attached
+// (the original bug: `ws.once("close", ...)` attached after the close had
+// already happened, so the promise never resolved).
+
+type Collector = {
+  messages: any[];
+  opened: boolean;
+  closed: boolean;
+  closeCode: number | null;
+};
 
 function connect(): WebSocket {
   const ws = new WebSocket(`ws://localhost:${listenPort}/signaling`);
-  const inbox: Inbox = { queue: [], waiters: [] };
-  (ws as any)._inbox = inbox;
+  const collector: Collector = {
+    messages: [],
+    opened: false,
+    closed: false,
+    closeCode: null,
+  };
+  (ws as any)._collector = collector;
   ws.on("message", (raw) => {
     const m = JSON.parse(raw.toString());
-    const waiter = inbox.waiters.shift();
-    if (waiter) waiter(m);
-    else inbox.queue.push(m);
+    collector.messages.push(m);
+  });
+  ws.on("open", () => {
+    collector.opened = true;
+  });
+  ws.on("close", (code) => {
+    collector.closed = true;
+    collector.closeCode = code;
+  });
+  ws.on("error", () => {
+    // swallow — close handler runs after error and is sufficient
   });
   return ws;
 }
 
-function nextMessage(ws: WebSocket, timeoutMs = 3000): Promise<any> {
-  const inbox = getInbox(ws);
-  if (!inbox) throw new Error("ws not registered via connect()");
-  if (inbox.queue.length > 0) return Promise.resolve(inbox.queue.shift());
-  return new Promise((resolve, reject) => {
-    const t = setTimeout(() => {
-      const idx = inbox.waiters.indexOf(waiter);
-      if (idx >= 0) inbox.waiters.splice(idx, 1);
-      reject(
-        new Error(
-          `nextMessage timeout after ${timeoutMs}ms (queue=${inbox.queue.length}, waiters=${inbox.waiters.length})`,
-        ),
-      );
-    }, timeoutMs);
-    const waiter = (m: any) => {
-      clearTimeout(t);
-      resolve(m);
-    };
-    inbox.waiters.push(waiter);
-  });
+function collectorOf(ws: WebSocket): Collector {
+  return (ws as any)._collector as Collector;
 }
 
-function waitOpen(ws: WebSocket): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (ws.readyState === WebSocket.OPEN) {
-      resolve();
-      return;
-    }
-    ws.once("open", () => resolve());
-    ws.once("error", (err) => reject(err));
-  });
+async function waitFor(
+  ws: WebSocket,
+  predicate: (m: any) => boolean,
+  timeoutMs = 3000,
+): Promise<any> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const found = collectorOf(ws).messages.find(predicate);
+    if (found) return found;
+    await new Promise((r) => setTimeout(r, 20));
+  }
+  const msgs = collectorOf(ws).messages;
+  throw new Error(
+    `waitFor timeout after ${timeoutMs}ms; collected ${msgs.length} msgs: ${msgs.map((m) => m.type).join(",")}`,
+  );
 }
 
-function waitClose(ws: WebSocket): Promise<number> {
-  return new Promise((resolve) => {
-    ws.once("close", (code) => resolve(code));
-  });
+async function waitOpen(ws: WebSocket, timeoutMs = 3000): Promise<void> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (collectorOf(ws).opened) return;
+    await new Promise((r) => setTimeout(r, 10));
+  }
+  throw new Error(`waitOpen timeout after ${timeoutMs}ms`);
+}
+
+async function waitClose(ws: WebSocket, timeoutMs = 3000): Promise<number> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (collectorOf(ws).closed) return collectorOf(ws).closeCode ?? 0;
+    await new Promise((r) => setTimeout(r, 10));
+  }
+  throw new Error(`waitClose timeout after ${timeoutMs}ms`);
 }
 
 // ── T1.2 token validation ─────────────────────────────────────────────────
@@ -114,8 +140,7 @@ describe("T1.2 token validation", () => {
     await waitOpen(ws);
     ws.send(JSON.stringify({ type: "OFFER", to_peer: "x", sdp: "fake" }));
 
-    const msg = await nextMessage(ws);
-    expect(msg.type).toBe("ERROR");
+    const msg = await waitFor(ws, (m) => m.type === "ERROR");
     expect(msg.reason).toMatch(/HELLO/);
 
     const code = await waitClose(ws);
@@ -139,8 +164,7 @@ describe("T1.2 token validation", () => {
       }),
     );
 
-    const msg = await nextMessage(ws);
-    expect(msg.type).toBe("ERROR");
+    const msg = await waitFor(ws, (m) => m.type === "ERROR");
     expect(msg.reason).toMatch(/invalid token/);
 
     const code = await waitClose(ws);
@@ -159,63 +183,58 @@ describe("T1.2 token validation", () => {
       }),
     );
 
-    const msg = await nextMessage(ws);
-    expect(msg.type).toBe("WELCOME");
-    expect(typeof msg.peer_id).toBe("string");
-    expect(msg.peer_id.length).toBeGreaterThan(0);
+    const welcome = await waitFor(ws, (m) => m.type === "WELCOME");
+    expect(typeof welcome.peer_id).toBe("string");
+    expect(welcome.peer_id.length).toBeGreaterThan(0);
 
     ws.close();
     await waitClose(ws);
   });
 });
 
+// ── Helpers for multi-peer tests ─────────────────────────────────────────
+
+async function joinAs(
+  userId: string,
+  role: "gateway" | "visitor",
+): Promise<{ ws: WebSocket; peerId: string }> {
+  const ws = connect();
+  await waitOpen(ws);
+  ws.send(
+    JSON.stringify({
+      type: "HELLO",
+      token: "t",
+      user_id: userId,
+      role,
+    }),
+  );
+  const welcome = await waitFor(ws, (m) => m.type === "WELCOME");
+  return { ws, peerId: welcome.peer_id };
+}
+
 // ── T1.4 per-user room model ──────────────────────────────────────────────
 
 describe("T1.4 per-user room model", () => {
-  // Same known issue as T1.3 — two-peer flows hit a race condition in
-  // the test harness; one-peer cases pass. Re-investigate together with
-  // T1.3 in a follow-up.
-  it.skip("two peers with same user_id see each other in PEER_JOINED [known issue]", async () => {
-    const a = connect();
-    await waitOpen(a);
-    a.send(
-      JSON.stringify({
-        type: "HELLO",
-        token: "t",
-        user_id: "user1",
-        role: "gateway",
-      }),
+  it("two peers with same user_id see each other in PEER_JOINED", async () => {
+    const { ws: a } = await joinAs("user1", "gateway");
+    await waitFor(
+      a,
+      (m) => m.type === "PEER_JOINED" && (m.room_peers?.length ?? 0) === 1,
     );
-    const aWelcome = await readUntil(a, (m) => m.type === "WELCOME");
-    expect(aWelcome.peer_id).toBeTruthy();
 
-    const aRoom1 = await readUntil(a, (m) => m.type === "PEER_JOINED");
-    expect(aRoom1.room_peers).toHaveLength(1);
+    const { ws: b } = await joinAs("user1", "visitor");
 
-    const b = connect();
-    await waitOpen(b);
-    b.send(
-      JSON.stringify({
-        type: "HELLO",
-        token: "t",
-        user_id: "user1",
-        role: "visitor",
-      }),
-    );
-    const bWelcome = await readUntil(b, (m) => m.type === "WELCOME");
-    expect(bWelcome.peer_id).toBeTruthy();
-
-    const aRoom2 = await readUntil(
+    const aRoom2 = await waitFor(
       a,
       (m) => m.type === "PEER_JOINED" && (m.room_peers?.length ?? 0) === 2,
     );
     expect(aRoom2.room_peers).toHaveLength(2);
 
-    const bRoom1 = await readUntil(
+    const bRoom = await waitFor(
       b,
       (m) => m.type === "PEER_JOINED" && (m.room_peers?.length ?? 0) === 2,
     );
-    expect(bRoom1.room_peers).toHaveLength(2);
+    expect(bRoom.room_peers).toHaveLength(2);
 
     a.close();
     b.close();
@@ -223,34 +242,14 @@ describe("T1.4 per-user room model", () => {
     await waitClose(b);
   });
 
-  it.skip("peers in different user rooms do NOT see each other [known issue]", async () => {
-    const a = connect();
-    await waitOpen(a);
-    a.send(
-      JSON.stringify({
-        type: "HELLO",
-        token: "t",
-        user_id: "alice",
-        role: "gateway",
-      }),
-    );
-    await readUntil(a, (m) => m.type === "WELCOME");
-    const aRoom1 = await readUntil(a, (m) => m.type === "PEER_JOINED");
-    expect(aRoom1.room_peers).toHaveLength(1);
+  it("peers in different user rooms do NOT see each other", async () => {
+    const { ws: a } = await joinAs("alice", "gateway");
+    const aRoom = await waitFor(a, (m) => m.type === "PEER_JOINED");
+    expect(aRoom.room_peers).toHaveLength(1);
 
-    const b = connect();
-    await waitOpen(b);
-    b.send(
-      JSON.stringify({
-        type: "HELLO",
-        token: "t",
-        user_id: "bob",
-        role: "visitor",
-      }),
-    );
-    await readUntil(b, (m) => m.type === "WELCOME");
-    const bRoom1 = await readUntil(b, (m) => m.type === "PEER_JOINED");
-    expect(bRoom1.room_peers).toHaveLength(1);
+    const { ws: b } = await joinAs("bob", "visitor");
+    const bRoom = await waitFor(b, (m) => m.type === "PEER_JOINED");
+    expect(bRoom.room_peers).toHaveLength(1);
 
     expect(rooms.get("alice")?.size).toBe(1);
     expect(rooms.get("bob")?.size).toBe(1);
@@ -262,76 +261,27 @@ describe("T1.4 per-user room model", () => {
   });
 });
 
-// Drain helper: read until we get a message matching predicate.
-// Useful when ordering between PEER_JOINED/WELCOME is asynchronous.
-async function readUntil(
-  ws: WebSocket,
-  predicate: (m: any) => boolean,
-  maxDrain = 10,
-): Promise<any> {
-  for (let i = 0; i < maxDrain; i++) {
-    const m = await nextMessage(ws);
-    if (predicate(m)) return m;
-  }
-  throw new Error("readUntil exhausted maxDrain without match");
-}
-
 // ── T1.3 OFFER / ANSWER / ICE_CANDIDATE routing ──────────────────────────
-//
-// SKIPPED in V23.1 iter1 — known issue: ws message arrives at the inbox
-// (verified with logs) but the test's await on nextMessage never resolves.
-// Root cause not yet found; suspected jest+ws timer/microtask interaction.
-// T1.2 (token) and T1.4 (room model) pass; protocol forwarding works at
-// the server level. To be re-investigated in T1.3.fix (separate sub-task).
-describe.skip("T1.3 signaling message routing [known issue]", () => {
+
+describe("T1.3 signaling message routing", () => {
   async function joinTwoPeers(): Promise<{
     a: WebSocket;
     aPeerId: string;
     b: WebSocket;
     bPeerId: string;
   }> {
-    const a = connect();
-    await waitOpen(a);
-    a.send(
-      JSON.stringify({
-        type: "HELLO",
-        token: "t",
-        user_id: "user1",
-        role: "gateway",
-      }),
-    );
-    const aWelcome = await readUntil(a, (m) => m.type === "WELCOME");
-
-    const b = connect();
-    await waitOpen(b);
-    b.send(
-      JSON.stringify({
-        type: "HELLO",
-        token: "t",
-        user_id: "user1",
-        role: "visitor",
-      }),
-    );
-    const bWelcome = await readUntil(b, (m) => m.type === "WELCOME");
-
-    // Drain PEER_JOINED messages on both sides so subsequent calls
-    // to nextMessage receive the OFFER/ANSWER/ICE we're about to send.
-    // Wait for A to see B in the room.
-    await readUntil(
+    const { ws: a, peerId: aPeerId } = await joinAs("user1", "gateway");
+    const { ws: b, peerId: bPeerId } = await joinAs("user1", "visitor");
+    // Wait for both sides to observe the 2-peer room.
+    await waitFor(
       a,
       (m) => m.type === "PEER_JOINED" && (m.room_peers?.length ?? 0) === 2,
     );
-    await readUntil(
+    await waitFor(
       b,
       (m) => m.type === "PEER_JOINED" && (m.room_peers?.length ?? 0) === 2,
     );
-
-    return {
-      a,
-      aPeerId: aWelcome.peer_id,
-      b,
-      bPeerId: bWelcome.peer_id,
-    };
+    return { a, aPeerId, b, bPeerId };
   }
 
   it("forwards OFFER from A to B verbatim", async () => {
@@ -347,8 +297,7 @@ describe.skip("T1.3 signaling message routing [known issue]", () => {
       }),
     );
 
-    const received = await nextMessage(b);
-    expect(received.type).toBe("OFFER");
+    const received = await waitFor(b, (m) => m.type === "OFFER");
     expect(received.from_peer).toBe(aPeerId);
     expect(received.sdp).toBe(sdpPayload);
 
@@ -370,8 +319,7 @@ describe.skip("T1.3 signaling message routing [known issue]", () => {
       }),
     );
 
-    const received = await nextMessage(a);
-    expect(received.type).toBe("ANSWER");
+    const received = await waitFor(a, (m) => m.type === "ANSWER");
     expect(received.from_peer).toBe(bPeerId);
     expect(received.sdp).toBe(answerSdp);
 
@@ -394,8 +342,7 @@ describe.skip("T1.3 signaling message routing [known issue]", () => {
       }),
     );
 
-    const received = await nextMessage(b);
-    expect(received.type).toBe("ICE_CANDIDATE");
+    const received = await waitFor(b, (m) => m.type === "ICE_CANDIDATE");
     expect(received.from_peer).toBe(aPeerId);
     expect(received.candidate).toBe(candidate);
 
@@ -416,8 +363,10 @@ describe.skip("T1.3 signaling message routing [known issue]", () => {
       }),
     );
 
-    const err = await nextMessage(a);
-    expect(err.type).toBe("ERROR");
+    const err = await waitFor(
+      a,
+      (m) => m.type === "ERROR" && /not in room/.test(m.reason ?? ""),
+    );
     expect(err.reason).toMatch(/not in room/);
 
     a.close();
@@ -426,15 +375,14 @@ describe.skip("T1.3 signaling message routing [known issue]", () => {
     await waitClose(b);
   });
 
-  it("BYE closes the connection cleanly", async () => {
+  it("BYE closes the connection cleanly and B sees PEER_LEFT", async () => {
     const { a, b } = await joinTwoPeers();
 
     a.send(JSON.stringify({ type: "BYE" }));
     const code = await waitClose(a);
     expect(code).toBe(1000);
 
-    // B should receive PEER_LEFT
-    const peerLeft = await nextMessage(b);
+    const peerLeft = await waitFor(b, (m) => m.type === "PEER_LEFT");
     expect(peerLeft.type).toBe("PEER_LEFT");
 
     b.close();
@@ -442,21 +390,11 @@ describe.skip("T1.3 signaling message routing [known issue]", () => {
   });
 
   it("ERROR for unknown message type", async () => {
-    const a = connect();
-    await waitOpen(a);
-    a.send(
-      JSON.stringify({
-        type: "HELLO",
-        token: "t",
-        user_id: "user1",
-        role: "gateway",
-      }),
-    );
-    await nextMessage(a); // WELCOME
-    await nextMessage(a); // PEER_JOINED
+    const { ws: a } = await joinAs("user1", "gateway");
+    await waitFor(a, (m) => m.type === "WELCOME");
 
     a.send(JSON.stringify({ type: "WAT", payload: 1 }));
-    const err = await nextMessage(a);
+    const err = await waitFor(a, (m) => m.type === "ERROR");
     expect(err.type).toBe("ERROR");
 
     a.close();
@@ -467,8 +405,7 @@ describe.skip("T1.3 signaling message routing [known issue]", () => {
     const a = connect();
     await waitOpen(a);
     a.send("not json at all");
-    const err = await nextMessage(a);
-    expect(err.type).toBe("ERROR");
+    const err = await waitFor(a, (m) => m.type === "ERROR");
     expect(err.reason).toMatch(/invalid JSON/);
 
     a.close();
@@ -479,35 +416,14 @@ describe.skip("T1.3 signaling message routing [known issue]", () => {
 // ── Disconnect cleanup ────────────────────────────────────────────────────
 
 describe("disconnect cleanup", () => {
-  it.skip("removes peer from room on close, broadcasts PEER_LEFT [known issue]", async () => {
-    const a = connect();
-    await waitOpen(a);
-    a.send(
-      JSON.stringify({
-        type: "HELLO",
-        token: "t",
-        user_id: "user1",
-        role: "gateway",
-      }),
-    );
-    await readUntil(a, (m) => m.type === "WELCOME");
-
-    const b = connect();
-    await waitOpen(b);
-    b.send(
-      JSON.stringify({
-        type: "HELLO",
-        token: "t",
-        user_id: "user1",
-        role: "visitor",
-      }),
-    );
-    await readUntil(b, (m) => m.type === "WELCOME");
-    await readUntil(
+  it("removes peer from room on close, broadcasts PEER_LEFT", async () => {
+    const { ws: a } = await joinAs("user1", "gateway");
+    const { ws: b } = await joinAs("user1", "visitor");
+    await waitFor(
       a,
       (m) => m.type === "PEER_JOINED" && (m.room_peers?.length ?? 0) === 2,
     );
-    await readUntil(
+    await waitFor(
       b,
       (m) => m.type === "PEER_JOINED" && (m.room_peers?.length ?? 0) === 2,
     );
@@ -517,13 +433,13 @@ describe("disconnect cleanup", () => {
     a.close();
     await waitClose(a);
 
-    const peerLeft = await readUntil(b, (m) => m.type === "PEER_LEFT");
+    const peerLeft = await waitFor(b, (m) => m.type === "PEER_LEFT");
     expect(peerLeft.type).toBe("PEER_LEFT");
     expect(rooms.get("user1")?.size).toBe(1);
 
     b.close();
     await waitClose(b);
-    // Empty room should be reaped — give the server a tick to process close
+    // Give the server a tick to reap the empty room on B's close.
     await new Promise((r) => setTimeout(r, 50));
     expect(rooms.has("user1")).toBe(false);
   });
