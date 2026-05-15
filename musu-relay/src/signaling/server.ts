@@ -34,10 +34,22 @@ const VALIDATION_API =
   process.env.MUSU_VALIDATION_API ||
   "https://musu.pro/api/v1/nodes/validate";
 
-// ── Token Validation Cache + Circuit Breaker (preserved from v21) ──────────
+// ── Token Validation Cache + Circuit Breaker (V23.2 T2.AUTH.1) ─────────────
 // Rationale: paid-tier users authenticate via musu.pro identity before
 // signaling messages are routed. Free-tier users never reach this server
 // (LAN-only). Token validation is therefore mandatory at WS handshake.
+//
+// V23.2 changes (audit finding HIGH #1):
+//   - Previously: on fetch error below circuit-breaker threshold, return
+//     true (fail-open). That granted up to 5 unauthenticated handshakes
+//     per outage window.
+//   - Now: fail-closed on network error, EXCEPT for tokens that have a
+//     recent successful cache entry — those are extended in a "degraded
+//     grace" window so users already in mid-session are not kicked out
+//     by a transient musu.pro outage. New tokens get rejected.
+//   - Circuit breaker remains, but its role is logging + skipping the
+//     fetch attempt during a known outage. It does NOT permit unauthed
+//     access.
 
 interface CacheEntry {
   valid: boolean;
@@ -46,6 +58,10 @@ interface CacheEntry {
 
 const validationCache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 30_000;
+// During an upstream outage, previously-valid tokens get this much extra
+// grace before being rejected. Bounds how long a real revocation takes to
+// propagate when musu.pro is also down.
+const DEGRADED_GRACE_MS = 5 * 60_000;
 
 let _circuitFailures = 0;
 let _circuitOpenUntil = 0;
@@ -66,11 +82,13 @@ async function validateToken(
     }
   }
 
+  // Circuit open — skip the network attempt entirely. Fall through to the
+  // degraded-grace path so existing sessions keep working.
   if (Date.now() < _circuitOpenUntil) {
     console.warn(
-      `[signaling] circuit open — rejecting validation for user=${userId}`,
+      `[signaling] circuit open — using cached grace only for user=${userId}`,
     );
-    return false;
+    return degradedGrace(cacheKey, userId);
   }
 
   try {
@@ -102,12 +120,44 @@ async function validateToken(
       _circuitOpenUntil = Date.now() + CIRCUIT_COOLDOWN_MS;
       _circuitFailures = 0;
       console.error(
-        `[signaling] circuit OPEN — rejecting validations for ${CIRCUIT_COOLDOWN_MS / 1000}s`,
+        `[signaling] circuit OPEN — skipping validations for ${CIRCUIT_COOLDOWN_MS / 1000}s; ` +
+          `cached-grace fallback only`,
       );
-      return false;
     }
-    return true; // fail-open below threshold
+    return degradedGrace(cacheKey, userId);
   }
+}
+
+/**
+ * Fallback when the upstream validation API is unreachable. Returns true
+ * IFF this exact (token, userId) pair has a successful entry within the
+ * degraded-grace window. Never grants access to tokens we have not seen
+ * a "valid" answer for from musu.pro previously.
+ */
+function degradedGrace(cacheKey: string, userId: string): boolean {
+  const cached = validationCache.get(cacheKey);
+  if (!cached) {
+    console.warn(
+      `[signaling] degraded mode rejected unseen token for user=${userId}`,
+    );
+    return false;
+  }
+  if (!cached.valid) {
+    return false;
+  }
+  const age = Date.now() - cached.timestamp;
+  if (age > DEGRADED_GRACE_MS) {
+    console.warn(
+      `[signaling] degraded grace expired for user=${userId} ` +
+        `(age=${Math.round(age / 1000)}s > ${DEGRADED_GRACE_MS / 1000}s)`,
+    );
+    return false;
+  }
+  console.warn(
+    `[signaling] degraded grace granted for user=${userId} ` +
+      `(cache age=${Math.round(age / 1000)}s)`,
+  );
+  return true;
 }
 
 // ── Peer model ────────────────────────────────────────────────────────────
@@ -355,4 +405,21 @@ if (require.main === module) {
   });
 }
 
-export { app, server, wss, validateToken, rooms };
+// ── Test helpers ─────────────────────────────────────────────────────────
+
+/** Resets the in-memory validation cache + circuit breaker. Test-only. */
+function _resetAuthState(): void {
+  validationCache.clear();
+  _circuitFailures = 0;
+  _circuitOpenUntil = 0;
+}
+
+export {
+  app,
+  server,
+  wss,
+  validateToken,
+  rooms,
+  _resetAuthState,
+  validationCache as _validationCache,
+};
