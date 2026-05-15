@@ -99,11 +99,73 @@ CREATE TABLE IF NOT EXISTS telemetry_agent_spawn (
 CREATE INDEX IF NOT EXISTS idx_spawn_received ON telemetry_agent_spawn(received_at);
 `;
 
-function applyMigrations(d: Database.Database): void {
+// V23.2 B1 commit 2: schema v41 — per-account HMAC key registry.
+// Sibling constant (NOT inlined into v40) so the v40 baseline stays a
+// pure idempotent CREATE IF NOT EXISTS block and the v41 advance is
+// gated on schema_version, allowing the Const III env-gate below to
+// veto it in production without disturbing v40 boot.
+//
+// Schema rationale (wiki/363 §3.1):
+//   - user_id PRIMARY KEY: canonical musu.pro user id from /validate;
+//     one HMAC key per account (not per install) so re-installs and
+//     multi-machine setups share the key.
+//   - account_key: 32-byte hex secret used as HMAC-SHA256 key by the
+//     install gateway (commit 3 verifier).
+//   - first_install_id: provenance — which install registered the key.
+//   - issued_at / last_seen_at / rotated_at: rotation telemetry, also
+//     drives the idx_account_keys_last_seen for liveness reports.
+const MIGRATION_V41_ACCOUNT_KEYS = `
+CREATE TABLE IF NOT EXISTS telemetry_account_keys (
+  user_id           TEXT PRIMARY KEY,
+  account_key       TEXT NOT NULL,
+  first_install_id  TEXT NOT NULL,
+  issued_at         INTEGER NOT NULL,
+  last_seen_at      INTEGER,
+  rotated_at        INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_account_keys_last_seen
+  ON telemetry_account_keys(last_seen_at);
+`;
+
+export function applyMigrations(d: Database.Database): void {
+  // v40 baseline (already CREATE IF NOT EXISTS, idempotent).
   d.exec(MIGRATION_V40_TELEMETRY);
   d.prepare(
     "INSERT OR IGNORE INTO schema_version(version, applied_at) VALUES (?, ?)",
   ).run(40, Date.now());
+
+  // v41 conditional advance. We read schema_version rather than relying
+  // on CREATE IF NOT EXISTS alone because the env-gate must short-circuit
+  // BEFORE any DDL runs in production without authorization.
+  const current = (
+    d.prepare("SELECT MAX(version) AS v FROM schema_version").get() as {
+      v: number | null;
+    }
+  ).v ?? 0;
+  if (current < 41) {
+    // Const III env-gate (wiki/363 §9). Schema migrations are one-way on
+    // the production telemetry volume; the orchestrator-prompt policy
+    // alone is insufficient if someone runs `fly deploy` directly. This
+    // defensive check enforces a manual `fly secrets set
+    // MUSU_TELEMETRY_V41_AUTHORIZED=1` step gated on operator 진행해
+    // approval, and the server refuses to start otherwise. Test envs
+    // (NODE_ENV !== "production") bypass the gate so unit tests and
+    // local dev are unaffected.
+    if (
+      process.env.NODE_ENV === "production" &&
+      process.env.MUSU_TELEMETRY_V41_AUTHORIZED !== "1"
+    ) {
+      throw new Error(
+        "[telemetry] schema v41 migration blocked: " +
+          "set MUSU_TELEMETRY_V41_AUTHORIZED=1 via `fly secrets set` after " +
+          "obtaining Const III 진행해 from operator. Refusing to start.",
+      );
+    }
+    d.exec(MIGRATION_V41_ACCOUNT_KEYS);
+    d.prepare(
+      "INSERT OR IGNORE INTO schema_version(version, applied_at) VALUES (?, ?)",
+    ).run(41, Date.now());
+  }
 }
 
 // ── Validation helpers ───────────────────────────────────────────────────
