@@ -24,6 +24,7 @@ import http from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import express from "express";
 import { randomUUID } from "crypto";
+import { makeTelemetryRouter } from "./telemetry";
 
 const PORT = parseInt(
   process.env.PORT || process.env.MUSU_SIGNALING_PORT || "9900",
@@ -211,6 +212,9 @@ let _totalRooms = 0;
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
+
+// Telemetry endpoints (V23.1 T1.5)
+app.use("/v1/telemetry", makeTelemetryRouter());
 
 app.get("/metrics", (_req, res) => {
   res.json({
