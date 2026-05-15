@@ -427,4 +427,48 @@ describe("requireInstallHmac — dual-accept fallthrough (HMAC_ONLY unset)", () 
     expect(res.status).toBe(401);
     expect(res.body.error).toBe("missing signature");
   });
+
+  // B1 commit 6 fallthrough-guard (wiki/363 §5, plan §5 dual-accept
+  // rollout). Once a request emits HMAC headers it has opted into the
+  // HMAC path; unknown-account / signature-mismatch errors must NOT
+  // fall back to shared-secret, even when HMAC_ONLY is unset and even
+  // when a valid shared-secret header is also present.
+  it("HMAC headers present + unknown user_id + valid shared-secret header (HMAC_ONLY unset): 401 unknown account (no fallthrough)", async () => {
+    // Do NOT seed a row for TEST_USER. HMAC_ONLY left unset by the
+    // top-level beforeEach. Shared secret matches the env var set at
+    // the top of file (test-secret-hmac) — under the OLD fallthrough
+    // behavior this would have succeeded as a "legacy gateway"; under
+    // the tightened invariant it must 401.
+    const t = Math.floor(Date.now() / 1000);
+    const rawBody = JSON.stringify(validInstallObj);
+    const v1 = signBody(TEST_KEY, rawBody, t);
+    const res = await supertest(app)
+      .post("/v1/telemetry/install")
+      .set("content-type", "application/json")
+      .set("x-musu-user-id", TEST_USER)
+      .set("x-musu-telemetry-signature", `t=${t},v1=${v1}`)
+      .set("x-musu-telemetry-secret", "test-secret-hmac")
+      .send(rawBody);
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe("unknown account");
+  });
+
+  it("HMAC headers present + known user + wrong signature + valid shared-secret header (HMAC_ONLY unset): 401 invalid signature (no fallthrough)", async () => {
+    // Even when the user row exists and the request also carries a
+    // valid shared-secret header, a bad HMAC must 401. The HMAC path
+    // is exclusive once opted into.
+    seedKey(TEST_USER, TEST_KEY);
+    const t = Math.floor(Date.now() / 1000);
+    const rawBody = JSON.stringify(validInstallObj);
+    const v1 = signBody(WRONG_KEY, rawBody, t);
+    const res = await supertest(app)
+      .post("/v1/telemetry/install")
+      .set("content-type", "application/json")
+      .set("x-musu-user-id", TEST_USER)
+      .set("x-musu-telemetry-signature", `t=${t},v1=${v1}`)
+      .set("x-musu-telemetry-secret", "test-secret-hmac")
+      .send(rawBody);
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe("invalid signature");
+  });
 });

@@ -127,11 +127,15 @@ describe("T2.AUTH.2 boot config (audit HIGH #3)", () => {
   });
 
   it("returns error string in production when secret unset", () => {
+    // NODE_ENV=production with NEITHER MUSU_TELEMETRY_SHARED_SECRET nor
+    // MUSU_TELEMETRY_HMAC_ONLY → refuse to start. Error string must
+    // mention both env vars so the operator knows their two options.
     const err = checkTelemetryAuthBootConfig({
       NODE_ENV: "production",
     } as NodeJS.ProcessEnv);
     expect(err).not.toBeNull();
     expect(err).toMatch(/MUSU_TELEMETRY_SHARED_SECRET/);
+    expect(err).toMatch(/MUSU_TELEMETRY_HMAC_ONLY/);
     expect(err).toMatch(/Refusing to start/);
   });
 
@@ -142,6 +146,56 @@ describe("T2.AUTH.2 boot config (audit HIGH #3)", () => {
         MUSU_TELEMETRY_SHARED_SECRET: "set-correctly",
       } as NodeJS.ProcessEnv),
     ).toBeNull();
+  });
+
+  // B1 commit 6 (wiki/363 §7.4, §8 step 4): HMAC-only cutover means
+  // SHARED_SECRET is no longer mandatory in production.
+  it("returns null in production when MUSU_TELEMETRY_HMAC_ONLY=1 even without MUSU_TELEMETRY_SHARED_SECRET", () => {
+    expect(
+      checkTelemetryAuthBootConfig({
+        NODE_ENV: "production",
+        MUSU_TELEMETRY_HMAC_ONLY: "1",
+      } as NodeJS.ProcessEnv),
+    ).toBeNull();
+  });
+
+  it("returns error string in production when both MUSU_TELEMETRY_SHARED_SECRET and MUSU_TELEMETRY_HMAC_ONLY unset", () => {
+    // Explicit re-statement of the failure mode: empty env (modulo
+    // NODE_ENV) is the dangerous state and must refuse to start. The
+    // error must enumerate BOTH legitimate paths so the operator can
+    // choose dual-accept or HMAC-only.
+    const err = checkTelemetryAuthBootConfig({
+      NODE_ENV: "production",
+    } as NodeJS.ProcessEnv);
+    expect(err).not.toBeNull();
+    expect(err).toMatch(/MUSU_TELEMETRY_SHARED_SECRET/);
+    expect(err).toMatch(/MUSU_TELEMETRY_HMAC_ONLY/);
+  });
+
+  it("returns null in production when BOTH MUSU_TELEMETRY_SHARED_SECRET and MUSU_TELEMETRY_HMAC_ONLY=1 are set", () => {
+    // Defensive belt-and-suspenders: during cutover an operator may
+    // set HMAC_ONLY=1 while still keeping the old shared-secret env
+    // around for rollback. Boot must not block on that combination.
+    expect(
+      checkTelemetryAuthBootConfig({
+        NODE_ENV: "production",
+        MUSU_TELEMETRY_SHARED_SECRET: "set-correctly",
+        MUSU_TELEMETRY_HMAC_ONLY: "1",
+      } as NodeJS.ProcessEnv),
+    ).toBeNull();
+  });
+
+  it("returns error string in production when MUSU_TELEMETRY_HMAC_ONLY is set but not '1'", () => {
+    // Truthy-string parsing fork: the env-var contract is the literal
+    // string "1" (matches the runtime check in requireInstallHmac).
+    // "true", "yes", "0" all fail the gate. This guards against an
+    // operator who set HMAC_ONLY=true and assumed it took effect.
+    const err = checkTelemetryAuthBootConfig({
+      NODE_ENV: "production",
+      MUSU_TELEMETRY_HMAC_ONLY: "true",
+    } as NodeJS.ProcessEnv);
+    expect(err).not.toBeNull();
+    expect(err).toMatch(/MUSU_TELEMETRY_HMAC_ONLY/);
   });
 });
 

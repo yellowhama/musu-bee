@@ -256,9 +256,15 @@ function requireTelemetrySecret(
 // a request with NEITHER X-Musu-User-Id NOR X-Musu-Telemetry-Signature
 // header falls through to requireTelemetrySecret() — the legacy
 // shared-secret path. Once MUSU_TELEMETRY_HMAC_ONLY=1 is set, the
-// fallthrough is severed and every POST demands HMAC. Weakened
-// invariant: server cannot identify anonymous (no-user-id) callers, so
-// they remain on the shared-secret path until full cutover.
+// fallthrough is severed and every POST demands HMAC.
+//
+// Commit 6 fallthrough-guard: the dual-accept path is ONLY available
+// when NO HMAC headers are present. The moment a request emits
+// X-Musu-User-Id and X-Musu-Telemetry-Signature it has opted into the
+// HMAC path; unknown-account or signature-mismatch errors are 401s,
+// they do NOT fall back to shared-secret. This closes the attack where
+// a holder of the shared secret would otherwise be able to forge HMAC
+// headers for an unknown user_id and bypass the HMAC verifier.
 
 const SIG_HEADER_RE =
   /^(?:t=(?<t1>\d+),v1=(?<v1a>[0-9a-f]+)|v1=(?<v1b>[0-9a-f]+),t=(?<t2>\d+))$/;
@@ -324,14 +330,19 @@ export function requireInstallHmac(
     .get(userId) as { account_key: string } | undefined;
 
   if (!row) {
-    if (hmacOnly) {
-      res.status(401).json({ error: "unknown account" });
-      return false;
-    }
-    // Dual-accept: no row for this user_id yet (e.g. legacy gateway that
-    // hasn't migrated). Fall through to shared-secret. Weakened
-    // invariant — see header comment.
-    return requireTelemetrySecret(req, res);
+    // Commit 6 fallthrough-guard tightening (wiki/363 §5, plan §5
+    // dual-accept rollout, B1 builder handoff). Once a client emits
+    // HMAC headers it has opted into the HMAC path; falling back to
+    // shared-secret here would let an attacker who knows the shared
+    // secret forge HMAC headers for an unknown user_id and slip past
+    // the HMAC verifier entirely. We therefore reject with 401
+    // "unknown account" regardless of HMAC_ONLY — the dual-accept
+    // path is only available when NO HMAC headers are present (the
+    // top-of-function fallthrough). Legacy gateways that haven't
+    // bootstrapped a key must not emit X-Musu-User-Id /
+    // X-Musu-Telemetry-Signature in the first place.
+    res.status(401).json({ error: "unknown account" });
+    return false;
   }
 
   // Build signed string from raw body bytes. Restringifying req.body would
@@ -373,22 +384,39 @@ export function _resetTelemetryAuthState(): void {
   _warnedNoSharedSecret = false;
 }
 
-// V23.2 audit HIGH #3: refuse to start in production without the secret.
-// Called from server.ts bootstrap. Returns null when configured correctly
-// or in a non-production env; returns an error string when the operator
-// must intervene.
+// V23.2 audit HIGH #3 + B1 commit 6 (wiki/363 §7.4, §8 step 4):
+// refuse to start in production without an auth mechanism.
+//
+// During the B1 dual-accept rollout, EITHER auth mode is a valid
+// production config:
+//   1. Legacy / dual-accept: MUSU_TELEMETRY_SHARED_SECRET set. Requests
+//      without HMAC headers fall through to the shared-secret check.
+//   2. HMAC-only (post-cutover): MUSU_TELEMETRY_HMAC_ONLY=1. Shared
+//      secret may be unset; every POST must carry HMAC headers.
+//
+// The legacy case alone (no HMAC_ONLY, no shared secret) is the
+// dangerous state — every POST would be accepted unauthenticated. That
+// remains a refuse-to-start condition. The error string mentions BOTH
+// env vars so the operator knows their two options.
+//
+// Returns null when configured correctly or in a non-production env;
+// returns an error string when the operator must intervene.
 export function checkTelemetryAuthBootConfig(env: NodeJS.ProcessEnv): string | null {
   if (env.NODE_ENV !== "production") return null;
-  if (!env.MUSU_TELEMETRY_SHARED_SECRET) {
-    return (
-      "MUSU_TELEMETRY_SHARED_SECRET is required in production. " +
-      "Without it the signaling server accepts anonymous telemetry from " +
-      "anyone on the internet. Set it via `fly secrets set " +
-      "MUSU_TELEMETRY_SHARED_SECRET=$(openssl rand -hex 32)` and bake the " +
-      "same value into installer builds. Refusing to start (audit HIGH #3)."
-    );
-  }
-  return null;
+  const hasSharedSecret = !!env.MUSU_TELEMETRY_SHARED_SECRET;
+  const hmacOnly = env.MUSU_TELEMETRY_HMAC_ONLY === "1";
+  if (hasSharedSecret || hmacOnly) return null;
+  return (
+    "Telemetry auth is unconfigured in production. Set EITHER " +
+    "MUSU_TELEMETRY_SHARED_SECRET (legacy / dual-accept) OR " +
+    "MUSU_TELEMETRY_HMAC_ONLY=1 (HMAC-only cutover). Without one, the " +
+    "signaling server accepts anonymous telemetry from anyone on the " +
+    "internet. Set the legacy path via `fly secrets set " +
+    "MUSU_TELEMETRY_SHARED_SECRET=$(openssl rand -hex 32)` and bake the " +
+    "same value into installer builds, OR set " +
+    "MUSU_TELEMETRY_HMAC_ONLY=1 once all installs have completed the " +
+    "B1 HMAC migration. Refusing to start (audit HIGH #3, wiki/363 §8)."
+  );
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────
