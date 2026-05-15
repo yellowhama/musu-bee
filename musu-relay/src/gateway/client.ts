@@ -80,11 +80,27 @@ export interface GatewayConfig {
   /** Fires once per remote peer when its DataChannel opens. T1.10 hooks
    *  the BridgeServer here so each session gets its own HTTP forwarder. */
   onPeerConnected?: (remotePeerId: string, pc: SimplePeerConnection) => void;
+  /** Telemetry endpoint base. If set, gateway POSTs nat_pierce events
+   *  after each handshake attempt (T1.12). Example:
+   *  `https://signaling.musu.pro/v1/telemetry`. Omit to disable. */
+  telemetryBase?: string;
+  /** Identifies this install for telemetry correlation. Required if
+   *  telemetryBase is set. */
+  musuInstallId?: string;
+  /** Override the fetch impl (test injection). Defaults to globalThis.fetch. */
+  fetchImpl?: typeof fetch;
+  /** Hard deadline for a single handshake attempt. After this, the
+   *  pending session is recorded as `fail/timeout`. Default 15s. */
+  handshakeTimeoutMs?: number;
 }
 
 interface PeerSession {
   remotePeerId: string;
   pc: SimplePeerConnection;
+  startedAt: number;
+  iceCount: number;
+  settled: boolean;
+  timeoutTimer: NodeJS.Timeout | null;
 }
 
 export class GatewayClient {
@@ -142,7 +158,10 @@ export class GatewayClient {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.send({ type: "BYE" });
     }
-    for (const s of this.sessions.values()) s.pc.close();
+    for (const s of this.sessions.values()) {
+      if (s.timeoutTimer) clearTimeout(s.timeoutTimer);
+      s.pc.close();
+    }
     this.sessions.clear();
     this.ws?.close();
   }
@@ -221,14 +240,32 @@ export class GatewayClient {
     let s = this.sessions.get(remotePeerId);
     if (s) return s;
     const pc = this.cfg.pcFactory.create(remotePeerId, this.cfg.stunServers);
+    const session: PeerSession = {
+      remotePeerId,
+      pc,
+      startedAt: Date.now(),
+      iceCount: 0,
+      settled: false,
+      timeoutTimer: null,
+    };
     pc.onLocalIceCandidate((candidate) => {
+      session.iceCount++;
       this.send({ type: "ICE_CANDIDATE", to_peer: remotePeerId, candidate });
     });
     pc.onDataChannelOpen(() => {
       this.log(`[gateway] datachannel open to peer=${remotePeerId}`);
+      void this.recordOutcome(session, "success", null);
       this.cfg.onPeerConnected?.(remotePeerId, pc);
     });
-    s = { remotePeerId, pc };
+    // Arm handshake timeout — covers the case where SDP exchange completes
+    // but ICE never finds a path (most common CGNAT failure mode in the wild).
+    const timeoutMs = this.cfg.handshakeTimeoutMs ?? 15000;
+    session.timeoutTimer = setTimeout(() => {
+      if (!session.settled) {
+        void this.recordOutcome(session, "fail", "timeout");
+      }
+    }, timeoutMs);
+    s = session;
     this.sessions.set(remotePeerId, s);
     return s;
   }
@@ -263,6 +300,70 @@ export class GatewayClient {
     }
     await s.pc.addRemoteIceCandidate(candidate);
   }
+
+  // ── Telemetry (T1.12) ──────────────────────────────────────────────────
+
+  private telemetryRecords: TelemetryNatPierce[] = [];
+
+  /** For tests: read back what we would have POSTed. */
+  get recordedTelemetry(): readonly TelemetryNatPierce[] {
+    return this.telemetryRecords;
+  }
+
+  private async recordOutcome(
+    session: PeerSession,
+    outcome: "success" | "fail",
+    failCause: NatPierceFailCause | null,
+  ): Promise<void> {
+    if (session.settled) return;
+    session.settled = true;
+    if (session.timeoutTimer) {
+      clearTimeout(session.timeoutTimer);
+      session.timeoutTimer = null;
+    }
+    const record: TelemetryNatPierce = {
+      musu_install_id: this.cfg.musuInstallId ?? "unknown",
+      attempt_outcome: outcome,
+      fail_cause: failCause,
+      ice_candidate_count: session.iceCount,
+      elapsed_ms: Date.now() - session.startedAt,
+    };
+    this.telemetryRecords.push(record);
+    if (!this.cfg.telemetryBase) return;
+    if (!this.cfg.musuInstallId) {
+      this.log(`[gateway] telemetry skipped: musuInstallId not set`);
+      return;
+    }
+    const fetchImpl = this.cfg.fetchImpl ?? globalThis.fetch;
+    try {
+      await fetchImpl(`${this.cfg.telemetryBase}/nat_pierce`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(record),
+      });
+    } catch (err) {
+      // Telemetry is best-effort. A failure must never block signaling.
+      this.log(
+        `[gateway] telemetry POST failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+}
+
+// ── Telemetry schema (mirrors v40_telemetry.sql, telemetry_nat_pierce) ──
+
+export type NatPierceFailCause =
+  | "cgnat_detected"
+  | "symmetric_nat"
+  | "firewall"
+  | "timeout";
+
+export interface TelemetryNatPierce {
+  musu_install_id: string;
+  attempt_outcome: "success" | "fail";
+  fail_cause: NatPierceFailCause | null;
+  ice_candidate_count: number;
+  elapsed_ms: number;
 }
 
 // ── Default STUN servers (T1.13 final pick) ──────────────────────────────
