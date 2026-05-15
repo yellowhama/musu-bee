@@ -77,6 +77,9 @@ export interface GatewayConfig {
   stunServers: string[];           // T1.13 — default to Google + 2 backups
   pcFactory: PeerConnectionFactory; // T1.9 injects real impl
   onLog?: (line: string) => void;  // optional log sink; defaults to console
+  /** Fires once per remote peer when its DataChannel opens. T1.10 hooks
+   *  the BridgeServer here so each session gets its own HTTP forwarder. */
+  onPeerConnected?: (remotePeerId: string, pc: SimplePeerConnection) => void;
 }
 
 interface PeerSession {
@@ -223,7 +226,7 @@ export class GatewayClient {
     });
     pc.onDataChannelOpen(() => {
       this.log(`[gateway] datachannel open to peer=${remotePeerId}`);
-      // T1.10 wires the bridge to K3s here.
+      this.cfg.onPeerConnected?.(remotePeerId, pc);
     });
     s = { remotePeerId, pc };
     this.sessions.set(remotePeerId, s);
