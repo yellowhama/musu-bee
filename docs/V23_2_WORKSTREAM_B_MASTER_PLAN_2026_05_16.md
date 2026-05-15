@@ -170,7 +170,7 @@ B0 (deploy validation) — MUST be first
   │     ▼
   │   B4b (PowerShell uses HMAC) depends on B1
   │
-  ├─► B2 (musu.pro user_id) — parallel with B1, independent
+  ├─► B2 (musu.pro user_id) — code parallel with B1, but B2 deploy MUST precede `MUSU_TELEMETRY_HMAC_ONLY=1` cutover by ≥ CACHE_TTL_MS + DEGRADED_GRACE_MS (~5min30s) to drain v21-era fallback-provenance cache entries. See wiki/364 §"Operational dependencies & rollout".
   │
   ├─► B3 (summary auth) — parallel with B1, independent
   │
