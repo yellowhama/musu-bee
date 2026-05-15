@@ -4,6 +4,7 @@
 **Date**: 2026-05-15
 **Trigger**: independent critique by system-architect subagent against v21 "K8s-shaped on SQLite" claim
 **Verdict**: weighted avg 3.5/10 across 8 categories — calls v21 "controller-runtime의 single-process subset을 SQLite로 재구현한 것"
+**Related**: `docs/PACKAGE_INVENTORY_2026_05_15.md` — as-measured roster of the 12 musu-* packages this analysis applies to
 
 This document is the honest follow-up. v21 shipped a **single-host
 reconcile pattern study**, not a distributed K8s. v22's purpose is to
