@@ -438,11 +438,20 @@ describe("disconnect cleanup", () => {
 
     expect(rooms.get("user1")?.size).toBe(2);
 
+    // Capture A's peer_id before closing it (T2.PROTO.1 expects this
+    // in the PEER_LEFT broadcast to B).
+    const aWelcome = (a as any)._collector.messages.find(
+      (m: any) => m.type === "WELCOME",
+    );
+    const aPeerId: string = aWelcome.peer_id;
+
     a.close();
     await waitClose(a);
 
     const peerLeft = await waitFor(b, (m) => m.type === "PEER_LEFT");
     expect(peerLeft.type).toBe("PEER_LEFT");
+    // V23.2 T2.PROTO.1: PEER_LEFT must carry peer_id of departed peer.
+    expect(peerLeft.peer_id).toBe(aPeerId);
     expect(rooms.get("user1")?.size).toBe(1);
 
     b.close();

@@ -36,7 +36,9 @@ interface RoomPeer {
 type ServerMessage =
   | { type: "WELCOME"; peer_id: string }
   | { type: "PEER_JOINED"; room_peers: RoomPeer[] }
-  | { type: "PEER_LEFT" }
+  // V23.2 T2.PROTO.1: peer_id is optional for backward compat with v1
+  // signaling servers that don't include it. New servers always send it.
+  | { type: "PEER_LEFT"; peer_id?: string }
   | { type: "OFFER"; from_peer: string; sdp: string }
   | { type: "ANSWER"; from_peer: string; sdp: string }
   | { type: "ICE_CANDIDATE"; from_peer: string; candidate: string }
@@ -236,10 +238,20 @@ export class GatewayClient {
       }
 
       case "PEER_LEFT": {
-        // Server doesn't tell us *which* peer left in V23.1 — close all
-        // sessions whose remote has gone away. T1.x: server-side enhancement
-        // to include peer_id in PEER_LEFT would let us be selective.
-        // For now this is a coarse cleanup that's acceptable for spike.
+        // V23.2 T2.PROTO.1: server now sends peer_id with PEER_LEFT.
+        // Backward compat: v1 servers (V23.1) omitted it — in that case
+        // we no-op (best we can do, audit MED #6 partial).
+        if (!m.peer_id) {
+          this.log(`[gateway] PEER_LEFT without peer_id (v1 server)`);
+          return;
+        }
+        const session = this.sessions.get(m.peer_id);
+        if (session) {
+          if (session.timeoutTimer) clearTimeout(session.timeoutTimer);
+          session.pc.close();
+          this.sessions.delete(m.peer_id);
+          this.log(`[gateway] cleaned up session for departed peer=${m.peer_id}`);
+        }
         return;
       }
 

@@ -454,15 +454,18 @@ wss.on("connection", async (ws: WebSocket) => {
 
   ws.on("close", () => {
     if (peer) {
+      const departedPeerId = peer.peerId;
       leaveRoom(peer);
       const room = rooms.get(peer.userId);
       if (room) {
         for (const p of room) {
-          send(p.ws, { type: "PEER_LEFT" });
+          // V23.2 T2.PROTO.1: include peer_id so the receiver can close
+          // the specific session + native WebRTC handle (audit MED #6).
+          send(p.ws, { type: "PEER_LEFT", peer_id: departedPeerId });
         }
       }
       console.log(
-        `[signaling] peer left: user=${peer.userId} peer=${peer.peerId}`,
+        `[signaling] peer left: user=${peer.userId} peer=${departedPeerId}`,
       );
     }
   });

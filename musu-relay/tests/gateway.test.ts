@@ -290,3 +290,32 @@ describe("T1.8 GatewayClient is binding-agnostic", () => {
     expect(true).toBe(true);
   });
 });
+
+// ── T2.PROTO.1 — gateway cleans up session on PEER_LEFT ──────────────────
+
+describe("T2.PROTO.1 PEER_LEFT session cleanup", () => {
+  it("closes the specific session and removes it from activeRemotePeerIds", async () => {
+    const { factory } = makeStubFactory();
+    const g = makeGateway("u1", factory);
+    await g.connect();
+
+    const visitor = await joinVisitor("u1");
+    // Wait for gateway to spawn a session for the visitor.
+    const start = Date.now();
+    while (g.activeRemotePeerIds.length === 0 && Date.now() - start < 2000) {
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    expect(g.activeRemotePeerIds).toContain(visitor.peerId);
+
+    // Visitor disconnects → server broadcasts PEER_LEFT { peer_id } →
+    // gateway closes the session.
+    visitor.ws.close();
+    await new Promise((r) => setTimeout(r, 200));
+
+    expect(g.activeRemotePeerIds).not.toContain(visitor.peerId);
+    expect(g.activeRemotePeerIds).toHaveLength(0);
+
+    g.close();
+    await new Promise((r) => setTimeout(r, 50));
+  });
+});
