@@ -1,10 +1,11 @@
-# V23.2 Workstream B — Master Plan
+# V23.2 Workstream B — Master Plan (with team execution model)
 
-**Date**: 2026-05-16
-**Status**: Approved via plan-mode ExitPlanMode. Not authorized for B0 deploy step (user-side action required for `fly auth login` + `fly secrets set`). Const III gate on B1 schema v41 is separate.
+**Date**: 2026-05-16 (revised same day, round 2)
+**Status**: Approved via plan-mode ExitPlanMode (×2). B0 closed (wiki/362, `83e86d0`). Not authorized for live Fly.io deploy (user-side `fly auth login`). Const III gate on B1 schema v41 is separate.
 **Branch**: `v22/gap-analysis`
-**Predecessors**: wiki/358 (A2 closure), wiki/359 (A2 qual eval), wiki/360 (B prep — this doc supersedes its B-scope section)
+**Predecessors**: wiki/358 (A2 closure), wiki/359 (A2 qual eval), wiki/360 (B prep — this doc supersedes its B-scope section), wiki/362 (B0 closure)
 **Wiki ID**: `wiki/361`
+**Round 2 revision**: added §"Team execution model" — defines who runs what for B1+ (Researcher / Critic / Builder / Auditor / Scribe subagents, conflict resolution, envelope contract, /loop heartbeat). Technical content (B0–B5 acceptance, files, gates) unchanged.
 
 ## Context
 
@@ -205,6 +206,103 @@ For each of B0 → B5, the process is:
 7. Sub-workstream closure doc (wiki/N)
 8. Push to `v22/gap-analysis`
 9. Mark sub-workstream complete; check whether B0 result is still valid (Fly logs healthy, /spike-demo still works) — if not, regress investigation precedes next sub-workstream
+
+## Team execution model (added round 2)
+
+The 9-step workflow above describes *what* happens. This section describes *who runs each step* and how the main orchestrator operates the team via /loop.
+
+### Role assignment (maps to 9-step)
+
+| Step | Subagent | Role |
+|---|---|---|
+| 0 (pre-step) Research landscape | `deep-research-agent` + `Explore` in parallel | **Researcher** |
+| 1 Detail plan | `Plan` | Planner |
+| 1.5 (new) Plan critique | `system-architect` | **Critic** — between plan and build |
+| 2 TODO list | main orchestrator | — |
+| 3 Implement | `backend-architect` (B1/B2/B3), `devops-architect` (B4a), orchestrator+`Plan` for PowerShell (B4b) | Builder |
+| 4 Tests green | `quality-engineer` (test gate only — separate from audit) | Test gate |
+| 5 Independent audit | `security-engineer` for auth-touching (B1/B3); `quality-engineer` for non-auth (B2/B4b); `root-cause-analyst` for B0 regress | **Auditor** |
+| 5.b For B1 specifically: TWO `security-engineer` instances in parallel (different seeds) per wiki/360 §7 Q1 | | Dual audit |
+| 6 Audit-fix | same Builder type as step 3 | Builder |
+| 7 Closure doc | `technical-writer` | Scribe |
+| 8 Push | orchestrator | — |
+| 9 Regress check | `root-cause-analyst` only if B0 invariants decayed | Investigator |
+
+The three user-named roles map to: **Researcher** = `deep-research-agent`; **Critic** = `system-architect`; **Auditor** = `security-engineer` or `quality-engineer` depending on domain. They are different subagent types because they fire at different times against different artifacts (critic on plan doc, auditor on commits).
+
+### Universal envelope contract
+
+Every subagent prompt starts with this input envelope:
+
+```
+SUB-WORKSTREAM: {B0|B1|B2|B3|B4a|B4b|B4c|B5}
+MASTER PLAN: F:\workspace\musu-bee\docs\V23_2_WORKSTREAM_B_MASTER_PLAN_2026_05_16.md (wiki/361)
+DETAIL PLAN: {path or "not yet written"}
+PRIOR ARTIFACTS: {list of closure docs, critic findings, prior audit reports}
+YOUR ROLE: {researcher|critic|builder|auditor|scribe}
+RETURN FORMAT: see below
+```
+
+And every subagent returns this output envelope:
+
+```
+SUMMARY: 3-5 sentences
+FINDINGS: list of {severity: HIGH|MEDIUM|LOW|INFO, claim, evidence (file:line), recommendation}
+OPEN QUESTIONS: things the orchestrator must resolve
+ARTIFACTS WRITTEN: {paths} (empty for read-only roles)
+HANDOFF NOTES: explicit message to the next role in the chain
+```
+
+State-handoff is via the **plan doc itself**: critic findings get appended as a `## Critic Findings (resolved)` section that the auditor's prompt template references.
+
+### /loop heartbeat decision tree
+
+On each /loop wake, the orchestrator evaluates in order:
+
+1. **block-on-user?** Const III/VI/VII gate or cross-repo deploy (B2) unresolved → emit gate prompt, halt loop body.
+2. **regression?** Did B0 invariants decay (Fly /health, /spike-demo)? → spawn `root-cause-analyst`.
+3. **audit-fix open?** HIGH from last audit unaddressed → mode=build, Builder.
+4. **post-build, no audit?** → mode=audit, Auditor (parallel dual for B1).
+5. **post-plan, critic done, no build?** → mode=build, Builder.
+6. **plan drafted, critic unrun?** → mode=critic, `system-architect`.
+7. **new sub-workstream?** → mode=research first (parallel `deep-research-agent` + `Explore`), then `Plan`.
+
+### Parallel vs sequential
+
+- **Parallel** (one message, multiple Task calls): Researcher × Explore at step 0; B1 dual-audit (2 × `security-engineer`); independent sub-workstreams (B1 ∥ B2 ∥ B3 after B0).
+- **Sequential**: Plan → Critic → Build → Test → Audit → Fix → Closure (within a sub-workstream). B0 before any other. B4a → B4b → B4c. musu-pro deploy before musu-bee fallback removal (B2).
+
+### Conflict resolution
+
+- **Critic HIGH vs Auditor LOW on same issue**: Auditor wins (saw real code). Orchestrator records the downgrade reasoning in closure doc. **Exception**: if Critic HIGH was a Constitution gate, it stays HIGH regardless — gates are policy, not technical.
+- **Critic HIGH, Auditor silent**: stays HIGH. Auditor must explicitly address every prior Critic HIGH in HANDOFF NOTES.
+- **Critic vs Researcher fact disagreement**: spawn `Explore` adjudicator with narrowest read scope. File:line evidence wins; recent commit wins on tie.
+- **Two parallel B1 auditors disagree**: union of HIGHs. Builder addresses every HIGH from either pass. This is the point of dual-audit.
+
+### Failure modes + escalation
+
+- **Builder ships code Critic warned against**: Auditor sees Critic findings in PRIOR ARTIFACTS, will catch it → mandatory audit-fix → closure doc records "Critic was right, Builder missed" delta.
+- **Builder loops twice on same audit finding**: escalate to user. /loop emits block-on-user: "B{X} audit-fix attempt 2 failed on {finding}. Continue / switch builder type / defer?"
+- **B0 regresses mid-workstream**: any /loop iteration's step-2 trigger drops current work, spawns `root-cause-analyst`; no other sub-workstream advances until B0 is green again.
+
+### Worked example: B1 flow under this model
+
+- iter 1 — `mode=research`: parallel `deep-research-agent` (reads telemetry.ts, client.ts:397-414, prior migrations) + `Explore` (greps every `requireTelemetrySecret` call site + every test). Both return into shared notes.
+- iter 2 — `mode=plan`: `Plan` writes `docs/V23_2_WORKSTREAM_B1_PLAN_2026_05_16.md` consuming research notes. Schema v41, /issue_install_key, dual-accept window, rotation doc skeleton.
+- iter 3 — `mode=critic`: `system-architect` reviews. Expected HIGHs: Const III gate location ambiguity, dual-accept window has no expiry, no negative test for timingSafeEqual. Plan edited; critic findings appended.
+- iter 4 — `block-on-user`: Const III gate prompt before any code touches migrations.
+- iter 5+ — `mode=build`: `backend-architect` implements commit-by-commit (schema, route, header swap, tests). Tests stay 107/107 + new HMAC tests.
+- iter K — `mode=audit` parallel: 2 × `security-engineer` (different seed prompts: "key storage" vs "request signing"). Orchestrator unions HIGHs.
+- iter K+1 — `mode=audit-fix`: builder addresses. Re-audit by one of the two.
+- iter K+2 — `mode=closure`: `technical-writer` drafts wiki/363 closure. Orchestrator pushes. B0 invariants re-checked before B4b unblocks.
+
+### Token-budget guardrails
+
+Each subagent invocation costs tokens. Cap per /loop iteration:
+- 1 Builder OR 1 Critic OR 1 Scribe at a time (sequential by definition).
+- ≤ 2 Researcher / Explore in parallel.
+- ≤ 2 Auditor in parallel (only for B1).
+- If a subagent returns no actionable output (silent or off-topic), don't re-spawn the same type — escalate to user.
 
 ## Verification (master-plan level)
 
