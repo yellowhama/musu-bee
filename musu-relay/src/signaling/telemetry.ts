@@ -14,7 +14,7 @@
 
 import express from "express";
 import Database from "better-sqlite3";
-import { createHash, createHmac, randomUUID, timingSafeEqual } from "crypto";
+import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from "crypto";
 import path from "path";
 
 // ── DB bootstrap ──────────────────────────────────────────────────────────
@@ -393,7 +393,32 @@ export function checkTelemetryAuthBootConfig(env: NodeJS.ProcessEnv): string | n
 
 // ── Routes ────────────────────────────────────────────────────────────────
 
-export function makeTelemetryRouter(): express.Router {
+/**
+ * Token-validation function injected into makeTelemetryRouter() for the
+ * /v1/telemetry/issue_install_key route (V23.2 B1 commit 4).
+ *
+ * Dependency-injected (rather than imported from ../signaling/server.ts)
+ * to avoid a circular import: server.ts already imports makeTelemetryRouter
+ * from this file. Injection also makes the route trivially testable —
+ * tests pass a jest stub returning whatever {valid, userId} they need.
+ *
+ * Contract:
+ *   - token: the musu.pro tunnel token from the request body
+ *   - returns {valid:false, userId:null} when the token is rejected
+ *   - returns {valid:true,  userId:<canonical-id>} on a B2-deployed
+ *     musu.pro upstream (Design A happy path)
+ *   - returns {valid:true,  userId:null} when the upstream is v21-era
+ *     and does NOT return a canonical user_id; the route 503s in that
+ *     case per Design A (wiki/363 §1 ordering flip)
+ *   - throws on upstream network/circuit error; the route maps to 502
+ */
+export type TelemetryTokenValidator = (
+  token: string,
+) => Promise<{ valid: boolean; userId: string | null }>;
+
+export function makeTelemetryRouter(
+  validateToken: TelemetryTokenValidator,
+): express.Router {
   const router = express.Router();
   // V23.2 B1 commit 1: capture the raw request body bytes for HMAC signing.
   // The `verify` callback fires synchronously between the raw-body read and
@@ -498,6 +523,115 @@ export function makeTelemetryRouter(): express.Router {
         asInt(b.node_count_in_cluster),
       );
     res.status(204).end();
+  });
+
+  // POST /v1/telemetry/issue_install_key (V23.2 B1 commit 4, wiki/363 §2.4)
+  //
+  // Bootstrap endpoint that creates the per-account HMAC key the install
+  // gateway will use to sign subsequent telemetry POSTs. Lives OUTSIDE
+  // requireInstallHmac() — by definition the caller has no key yet.
+  //
+  // Auth model: the caller proves account ownership by supplying their
+  // musu.pro tunnel token in the body; we validate it via the injected
+  // validateToken() and derive the canonical user_id from the response.
+  //
+  // Design A enforcement (wiki/363 §1): when the upstream /validate
+  // returns valid=true but userId=null (v21-era fallback), we 503
+  // instead of issuing a key keyed on a hash-of-token surrogate. This
+  // forces musu.pro B2 to deploy BEFORE B1 cuts over in production.
+  //
+  // Race fix (Critic HIGH #3, wiki/363 §3.3 FINAL): two parallel POSTs
+  // for the same user_id (double-click installer, concurrent gateways)
+  // both call randomBytes() and try to INSERT. The second one trips the
+  // user_id PRIMARY KEY UNIQUE constraint. We catch
+  // SQLITE_CONSTRAINT_PRIMARYKEY / SQLITE_CONSTRAINT_UNIQUE, re-SELECT
+  // the winner's issued_at, and return 409. The 409 body intentionally
+  // does NOT echo the existing account_key — clients must persist on
+  // first issuance or contact support.
+  //
+  // Rotation (X-Musu-Rotate: 1) is OUT OF SCOPE for B1; extracted to
+  // B1.x per Critic MEDIUM #7. Until rotation lands, a second call from
+  // the same user always 409s.
+  router.post("/issue_install_key", async (req, res) => {
+    const body = req.body ?? {};
+    const tunnelToken = asStr(body.tunnel_token);
+    const installIdHint = asStr(body.musu_install_id);
+    if (!tunnelToken) {
+      res.status(400).json({ error: "missing tunnel_token" });
+      return;
+    }
+
+    let validation: { valid: boolean; userId: string | null };
+    try {
+      validation = await validateToken(tunnelToken);
+    } catch {
+      // Upstream network error / circuit open. We don't leak the
+      // underlying error string — the caller's recovery is the same
+      // either way (retry with backoff).
+      res.status(502).json({ error: "validation upstream error" });
+      return;
+    }
+    if (!validation.valid) {
+      res.status(401).json({ error: "invalid tunnel_token" });
+      return;
+    }
+    if (!validation.userId) {
+      // Design A: refuse to issue against the v21-era fallback. Once
+      // musu.pro B2 deploys, /validate returns the canonical user_id
+      // and this branch goes dormant.
+      res.status(503).json({
+        error:
+          "canonical user_id not available; musu.pro /validate must deploy B2 first",
+      });
+      return;
+    }
+    const userId = validation.userId;
+
+    const fresh = randomBytes(32).toString("hex");
+    const now = Date.now();
+
+    try {
+      _db
+        .prepare(
+          `INSERT INTO telemetry_account_keys
+             (user_id, account_key, first_install_id, issued_at, last_seen_at, rotated_at)
+           VALUES (?, ?, ?, ?, NULL, NULL)`,
+        )
+        .run(userId, fresh, installIdHint ?? "", now);
+    } catch (err) {
+      const code = (err as { code?: string } | null)?.code;
+      // better-sqlite3 reports the error code as either
+      // SQLITE_CONSTRAINT_PRIMARYKEY (newer builds) or the broader
+      // SQLITE_CONSTRAINT_UNIQUE (older). Handle both so the test
+      // matrix isn't pinned to one sqlite version.
+      if (
+        code === "SQLITE_CONSTRAINT_PRIMARYKEY" ||
+        code === "SQLITE_CONSTRAINT_UNIQUE"
+      ) {
+        const winner = _db
+          .prepare(
+            "SELECT issued_at FROM telemetry_account_keys WHERE user_id = ?",
+          )
+          .get(userId) as { issued_at: number } | undefined;
+        res.status(409).json({
+          error: "account_key already issued for this user_id",
+          issued_at: winner?.issued_at ?? null,
+          hint: "persist account_key on first issuance; rotation lands in B1.x",
+        });
+        return;
+      }
+      throw err;
+    }
+
+    // issued_at in the response body is unix SECONDS (Stripe-aligned)
+    // even though the DB column stores milliseconds. Keeping the wire
+    // format stable across the two representations is the simplest
+    // contract for the client.
+    res.status(200).json({
+      account_key: fresh,
+      user_id: userId,
+      issued_at: Math.floor(now / 1000),
+    });
   });
 
   // GET /v1/telemetry/summary — internal admin (no auth in V23.1; add for prod)

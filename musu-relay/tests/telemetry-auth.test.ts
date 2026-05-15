@@ -18,8 +18,16 @@ import {
   checkTelemetryAuthBootConfig,
 } from "../src/signaling/telemetry";
 
+// Stub token validator — these tests don't exercise /issue_install_key,
+// so the stub just needs to exist to satisfy makeTelemetryRouter's signature
+// (V23.2 B1 commit 4 dependency injection).
+const stubValidate = async (_token: string) => ({
+  valid: false,
+  userId: null,
+});
+
 const app = express();
-app.use("/v1/telemetry", makeTelemetryRouter());
+app.use("/v1/telemetry", makeTelemetryRouter(stubValidate));
 
 beforeEach(() => _resetDb());
 afterAll(() => {

@@ -34,7 +34,13 @@ import {
 // req.rawBody (and the parsed body) back to the test. The probe rides on
 // the SAME router instance, so it sees exactly the express.json({ verify })
 // wiring under test — no shadow-router that could drift from production.
-const router = makeTelemetryRouter();
+// Stub token validator — this raw-body test doesn't exercise
+// /issue_install_key. V23.2 B1 commit 4 dependency injection.
+const stubValidate = async (_token: string) => ({
+  valid: false,
+  userId: null,
+});
+const router = makeTelemetryRouter(stubValidate);
 router.post("/_raw_probe", (req, res) => {
   const raw = req.rawBody;
   res.json({

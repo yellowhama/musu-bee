@@ -329,7 +329,23 @@ app.get("/health", (_req, res) => {
 });
 
 // Telemetry endpoints (V23.1 T1.5)
-app.use("/v1/telemetry", makeTelemetryRouter());
+//
+// V23.2 B1 commit 4: inject validateToken so the /issue_install_key route
+// can derive a canonical user_id from the supplied tunnel token. We pass
+// "" as the claimedUserId — validateToken only needs a hint when the
+// upstream /validate is v21-era (pre-B2) and falls back to echoing the
+// claim. In that path we want userId="" so the route's Design A check
+// fires and returns 503. The adapter normalizes ""→null for that test.
+app.use(
+  "/v1/telemetry",
+  makeTelemetryRouter(async (token) => {
+    const r = await validateToken(token, "");
+    return {
+      valid: r.valid,
+      userId: r.userId && r.userId.length > 0 ? r.userId : null,
+    };
+  }),
+);
 
 app.get("/metrics", (_req, res) => {
   res.json({
