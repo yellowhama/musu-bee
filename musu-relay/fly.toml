@@ -1,0 +1,70 @@
+# musu-signaling — Fly.io app config (V23.2).
+#
+# Decision record: docs/V23_T1_7_FLY_IO_DEPLOY_DECISION.md.
+# Reassess at V23.5 launch.
+#
+# Provisioning checklist (one-time):
+#   fly launch --no-deploy --copy-config            # uses this file
+#   fly volumes create musu_telemetry --size 1 --region <your-region>
+#   fly secrets set \
+#       MUSU_VALIDATION_API=https://musu.pro/api/v1/nodes/validate \
+#       MUSU_TELEMETRY_SHARED_SECRET="$(openssl rand -hex 32)"
+#   fly deploy
+#
+# Repeat-deploys after that are just `fly deploy`.
+
+app = "musu-signaling"
+primary_region = "iad"   # change to closest-to-userbase region before first deploy
+
+# ── HTTP / WebSocket service ────────────────────────────────────────────
+[http_service]
+  internal_port = 9900
+  force_https = true
+  auto_stop_machines  = "off"   # signaling state is in RAM — never stop mid-handshake
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  # WebSocket upgrades land on the same HTTP service — Fly's edge proxy
+  # transparently passes them through.
+
+  [http_service.concurrency]
+    type = "connections"
+    soft_limit = 200       # WS connections (signaling is bursty, low CPU)
+    hard_limit = 250
+
+  # Health check — the signaling server exposes /health which returns
+  # {status:"ok"} on a 200. Fly probes this to mark the machine healthy.
+  [[http_service.checks]]
+    grace_period  = "10s"
+    interval      = "30s"
+    method        = "get"
+    timeout       = "5s"
+    path          = "/health"
+    protocol      = "http"
+
+# ── VM size ─────────────────────────────────────────────────────────────
+[[vm]]
+  size = "shared-cpu-1x"   # 256MB. Plenty for signaling + telemetry SQLite.
+  memory = "256mb"
+
+# ── Persistent volume for telemetry DB ──────────────────────────────────
+[[mounts]]
+  source      = "musu_telemetry"
+  destination = "/data"
+  # MUSU_TELEMETRY_DB is set to /data/telemetry.db inside the Dockerfile
+  # (NODE_ENV=production + this volume = persisted across deploys/restarts).
+
+# ── Process group ──────────────────────────────────────────────────────
+[processes]
+  app = "npm start --silent"
+
+# ── Build context ──────────────────────────────────────────────────────
+[build]
+  dockerfile = "Dockerfile"
+
+# ── Environment (non-secret) ───────────────────────────────────────────
+[env]
+  NODE_ENV = "production"
+  PORT = "9900"
+  MUSU_TELEMETRY_DB = "/data/telemetry.db"

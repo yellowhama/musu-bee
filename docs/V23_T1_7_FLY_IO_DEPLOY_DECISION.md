@@ -50,16 +50,25 @@ These are V23.5 concerns, not V23.1 concerns. V23.1 success criteria are *techni
 
 ## Provisioning checklist (when authorized — Const VII gate applies)
 
+The repo now contains `musu-relay/Dockerfile` and `musu-relay/fly.toml`
+committed in V23.2 T1.7.a/b — no manual edits needed before first deploy.
+
 ```
 cd musu-relay
-fly launch --no-deploy            # generates fly.toml; pick app name "musu-signaling"
-fly volumes create musu_telemetry --size 1 --region <chosen>
-# edit fly.toml: add [[mounts]] source = "musu_telemetry", destination = "/data"
-# edit env: MUSU_TELEMETRY_DB=/data/telemetry.db
-fly secrets set MUSU_VALIDATION_API=https://musu.pro/api/v1/nodes/validate
+fly launch --no-deploy --copy-config   # uses the checked-in fly.toml
+fly volumes create musu_telemetry --size 1 --region <your-region>
+fly secrets set \
+    MUSU_VALIDATION_API=https://musu.pro/api/v1/nodes/validate \
+    MUSU_TELEMETRY_SHARED_SECRET="$(openssl rand -hex 32)"
 fly deploy
-fly logs                          # verify "[signaling] listening on …"
+fly logs                               # verify "[signaling] listening on 9900"
 ```
+
+After first deploy: redeploys are just `fly deploy` from this directory.
+
+**Save the shared secret** — the installer (V23.2 Workstream B) bakes
+the same value into gateway builds via `MUSU_TELEMETRY_SHARED_SECRET`.
+Rotating it requires a coordinated installer rebuild + redeploy.
 
 DNS: point `signaling.musu.pro` (CNAME) at the Fly app domain. `<user>.musu.pro` (wildcard) keeps pointing at musu.pro's main web, which knows how to redirect WS upgrade requests to `signaling.musu.pro`.
 
@@ -78,8 +87,20 @@ Until then: **Fly.io free tier, single region (user picks at deploy time), SQLit
 
 ---
 
-## Open items (not blocking T1.7)
+## Open items
 
-- **T1.7.a** — `Dockerfile` for `musu-relay`. Current repo has a Node app but no Dockerfile committed. Need a minimal `node:20-alpine` image, copy + `npm ci` + `npm run build` + `CMD node dist/server.js`. Trivial; tracked as a sub-task at deploy time.
-- **T1.7.b** — `fly.toml` template committed to repo so anyone can redeploy. Defer until first deploy, then check the generated file in.
-- **T1.7.c** — Token validation endpoint (`MUSU_VALIDATION_API`) must exist on musu.pro before the signaling server can validate paid-tier tokens. As long as the production musu.pro keeps the existing `/api/v1/nodes/validate` route (used in v21), no work is needed here. Audit pending.
+- **T1.7.a** — ✅ Closed in V23.2. `musu-relay/Dockerfile` written
+  (multi-stage Alpine, drops to non-root, mounts /data, signaling-only
+  — gateway's `@roamhq/wrtc` excluded via `--omit=optional`).
+- **T1.7.b** — ✅ Closed in V23.2. `musu-relay/fly.toml` checked in with
+  shared-cpu-1x / 256MB / WebSocket-friendly settings, /health probe
+  wired, single-region mount on `musu_telemetry` volume.
+- **T1.7.c** — Token validation endpoint (`MUSU_VALIDATION_API`) must
+  exist on musu.pro before the signaling server can validate paid-tier
+  tokens. The production musu.pro keeps the v21-era `/api/v1/nodes/validate`
+  route. **V23.2 audit HIGH #3 (T2.AUTH.3)** added a requirement: the
+  endpoint should return `{ user_id }` in its 200 body so the signaling
+  server can use the canonical id as the room key instead of trusting
+  HELLO's user_id. Signaling server tolerates the v21 behavior with a
+  one-time warning until musu.pro is upgraded — needed before V23.5
+  launch.

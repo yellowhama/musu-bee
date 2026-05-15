@@ -1,12 +1,13 @@
 {
   "name": "musu-relay",
-  "version": "0.1.0",
-  "description": "Cloud relay tunnel broker for musu-bridge ↔ musu.pro",
-  "main": "dist/server.js",
+  "version": "0.23.2",
+  "description": "musu.pro WebRTC signaling + telemetry (V23.2). Hosts: signaling.musu.pro on Fly.io.",
+  "main": "dist/signaling/server.js",
   "scripts": {
-    "dev": "ts-node src/server.ts",
+    "dev": "ts-node src/signaling/server.ts",
+    "dev:legacy-v21": "ts-node src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js",
+    "start": "node dist/signaling/server.js",
     "test": "jest --forceExit --detectOpenHandles"
   },
   "dependencies": {
