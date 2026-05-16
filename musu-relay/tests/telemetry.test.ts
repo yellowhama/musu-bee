@@ -161,6 +161,16 @@ describe("POST /v1/telemetry/agent_spawn", () => {
   });
 });
 
+// B3 (wiki/367) — Critic HIGH-1 note: the two `supertest(app).get(
+// "/v1/telemetry/summary")` callsites below (at the "returns zero counts"
+// and "aggregates install + nat_pierce counts correctly" tests) do not
+// set an Authorization header. They continue passing post-B3 because
+// NODE_ENV=test + MUSU_TELEMETRY_ADMIN_SECRET unset triggers the
+// requireAdminSecret dev-mode tolerance path (logs a warn-once, returns
+// true). Production posture is tested in
+// `tests/telemetry-summary-auth.test.ts` (env-set + Bearer required) and
+// `tests/telemetry-auth.test.ts` (boot-config refuse-to-start when
+// NODE_ENV=production + MUSU_TELEMETRY_ADMIN_SECRET unset).
 describe("GET /v1/telemetry/summary", () => {
   it("returns zero counts when no events recorded", async () => {
     const res = await supertest(app).get("/v1/telemetry/summary");

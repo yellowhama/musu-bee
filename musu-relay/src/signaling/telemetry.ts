@@ -205,10 +205,12 @@ function isValidOutcome(v: unknown): v is "success" | "fail" {
 //     the `x-musu-telemetry-secret` header; reject with 401 otherwise.
 //   - If unset: log a one-time warning at first POST and accept anything
 //     (V23.1 / dev / test behavior). Production deploy MUST set the env.
-//   - GET /summary is unaffected — it's admin-internal and lives on a
-//     trusted network in V23.2; T2.AUTH.2-final adds auth there too.
+//   - (B3 wiki/367) GET /summary requires
+//     `Authorization: Bearer <MUSU_TELEMETRY_ADMIN_SECRET>` in production;
+//     dev-mode tolerance when env unset + NODE_ENV != production.
 
 let _warnedNoSharedSecret = false;
+let _warnedNoAdminSecret = false;
 
 function requireTelemetrySecret(
   req: express.Request,
@@ -235,6 +237,65 @@ function requireTelemetrySecret(
   const secretHash = createHash("sha256").update(sharedSecret).digest();
   if (!timingSafeEqual(suppliedHash, secretHash)) {
     res.status(401).json({ error: "bad telemetry secret" });
+    return false;
+  }
+  return true;
+}
+
+// ── Admin auth for GET /summary (V23.2 Workstream B3 / wiki/367) ─────────
+//
+// Closes V23.2 audit gap: GET /v1/telemetry/summary was the last
+// unauthenticated administrative surface. B3 adds a bearer-token check
+// using the same constant-time SHA-256 + crypto.timingSafeEqual pattern
+// as requireTelemetrySecret above.
+//
+// Wire format (wiki/367 §2.1):
+//   Authorization: Bearer <MUSU_TELEMETRY_ADMIN_SECRET>
+//
+// RFC 7235 §2.1: auth-scheme tokens are case-insensitive. The regex
+// /^Bearer\s+(.+)$/i accepts "Bearer", "bearer", "BEARER" alike.
+//
+// Behavior:
+//   - If MUSU_TELEMETRY_ADMIN_SECRET is set: require a Bearer header
+//     whose token SHA-256s to the same digest as the env-var SHA-256;
+//     401 with {error:"missing admin auth"} when the header is absent
+//     or malformed (non-Bearer scheme, empty token); 401 with
+//     {error:"bad admin secret"} when the Bearer token mismatches.
+//   - If unset and NODE_ENV !== "production": log a one-time warning
+//     and accept (preserves local-dev ergonomics; backstopped by
+//     checkTelemetryAuthBootConfig refuse-to-start in production).
+function requireAdminSecret(
+  req: express.Request,
+  res: express.Response,
+): boolean {
+  const adminSecret = process.env.MUSU_TELEMETRY_ADMIN_SECRET;
+  if (!adminSecret) {
+    if (!_warnedNoAdminSecret) {
+      _warnedNoAdminSecret = true;
+      console.warn(
+        `[telemetry] WARNING: MUSU_TELEMETRY_ADMIN_SECRET not set; ` +
+          `accepting all GET /v1/telemetry/summary requests ` +
+          `unauthenticated. Set this env var before production deploy ` +
+          `(B3 wiki/367).`,
+      );
+    }
+    return true;
+  }
+  const header = req.header("authorization") || "";
+  const m = header.match(/^Bearer\s+(.+)$/i);
+  if (!m) {
+    res.status(401).json({ error: "missing admin auth" });
+    return false;
+  }
+  const supplied = m[1];
+  // Constant-time compare via SHA-256 on both sides — same defense
+  // as requireTelemetrySecret: digests are always 32 bytes, so the
+  // length-equality precondition on timingSafeEqual cannot leak the
+  // secret's length. NEVER log `supplied` (B1 precedent).
+  const suppliedHash = createHash("sha256").update(supplied).digest();
+  const secretHash = createHash("sha256").update(adminSecret).digest();
+  if (!timingSafeEqual(suppliedHash, secretHash)) {
+    res.status(401).json({ error: "bad admin secret" });
     return false;
   }
   return true;
@@ -380,8 +441,10 @@ export function requireInstallHmac(
 
 // Test helper: clear the warned-state. Called from tests so each
 // describe block can re-trigger the one-time warning if needed.
+// B3 (wiki/367): also resets the admin-secret warn-once flag.
 export function _resetTelemetryAuthState(): void {
   _warnedNoSharedSecret = false;
+  _warnedNoAdminSecret = false;
 }
 
 // V23.2 audit HIGH #3 + B1 commit 6 (wiki/363 §7.4, §8 step 4):
@@ -403,20 +466,37 @@ export function _resetTelemetryAuthState(): void {
 // returns an error string when the operator must intervene.
 export function checkTelemetryAuthBootConfig(env: NodeJS.ProcessEnv): string | null {
   if (env.NODE_ENV !== "production") return null;
+  // Write-endpoint auth (B1): require EITHER shared-secret OR HMAC-only.
   const hasSharedSecret = !!env.MUSU_TELEMETRY_SHARED_SECRET;
   const hmacOnly = env.MUSU_TELEMETRY_HMAC_ONLY === "1";
-  if (hasSharedSecret || hmacOnly) return null;
-  return (
-    "Telemetry auth is unconfigured in production. Set EITHER " +
-    "MUSU_TELEMETRY_SHARED_SECRET (legacy / dual-accept) OR " +
-    "MUSU_TELEMETRY_HMAC_ONLY=1 (HMAC-only cutover). Without one, the " +
-    "signaling server accepts anonymous telemetry from anyone on the " +
-    "internet. Set the legacy path via `fly secrets set " +
-    "MUSU_TELEMETRY_SHARED_SECRET=$(openssl rand -hex 32)` and bake the " +
-    "same value into installer builds, OR set " +
-    "MUSU_TELEMETRY_HMAC_ONLY=1 once all installs have completed the " +
-    "B1 HMAC migration. Refusing to start (audit HIGH #3, wiki/363 §8)."
-  );
+  if (!hasSharedSecret && !hmacOnly) {
+    return (
+      "Telemetry auth is unconfigured in production. Set EITHER " +
+      "MUSU_TELEMETRY_SHARED_SECRET (legacy / dual-accept) OR " +
+      "MUSU_TELEMETRY_HMAC_ONLY=1 (HMAC-only cutover). Without one, the " +
+      "signaling server accepts anonymous telemetry from anyone on the " +
+      "internet. Set the legacy path via `fly secrets set " +
+      "MUSU_TELEMETRY_SHARED_SECRET=$(openssl rand -hex 32)` and bake the " +
+      "same value into installer builds, OR set " +
+      "MUSU_TELEMETRY_HMAC_ONLY=1 once all installs have completed the " +
+      "B1 HMAC migration. Refusing to start (audit HIGH #3, wiki/363 §8)."
+    );
+  }
+  // Admin-endpoint auth (B3 wiki/367): require MUSU_TELEMETRY_ADMIN_SECRET
+  // in production. Independent of write-endpoint auth — different audience,
+  // different surface, different secret. Without it GET /v1/telemetry/summary
+  // would be open to anyone on the internet.
+  if (!env.MUSU_TELEMETRY_ADMIN_SECRET) {
+    return (
+      "Telemetry admin auth is unconfigured in production. Set " +
+      "MUSU_TELEMETRY_ADMIN_SECRET (e.g. `fly secrets set " +
+      "MUSU_TELEMETRY_ADMIN_SECRET=$(openssl rand -hex 32)`). Without it, " +
+      "GET /v1/telemetry/summary exposes aggregate install / NAT-pierce / " +
+      "agent-spawn counts to anyone on the internet. Refusing to start " +
+      "(B3 wiki/367)."
+    );
+  }
+  return null;
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────
@@ -662,8 +742,11 @@ export function makeTelemetryRouter(
     });
   });
 
-  // GET /v1/telemetry/summary — internal admin (no auth in V23.1; add for prod)
-  router.get("/summary", (_req, res) => {
+  // GET /v1/telemetry/summary — admin-authenticated (B3 wiki/367).
+  // Requires Authorization: Bearer <MUSU_TELEMETRY_ADMIN_SECRET> in
+  // production; dev-mode tolerance when env unset + NODE_ENV != production.
+  router.get("/summary", (req, res) => {
+    if (!requireAdminSecret(req, res)) return;
     const installCount = (
       _db.prepare("SELECT COUNT(*) AS n FROM telemetry_install").get() as {
         n: number;

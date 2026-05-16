@@ -15,6 +15,7 @@ import {
   makeTelemetryRouter,
   _resetDb,
   _closeDb,
+  _resetTelemetryAuthState,
   checkTelemetryAuthBootConfig,
 } from "../src/signaling/telemetry";
 
@@ -106,9 +107,38 @@ describe("T2.AUTH.2 interim — shared-secret required when env set", () => {
     expect(res.status).toBe(204);
   });
 
-  it("GET /summary remains accessible (admin-internal in V23.2)", async () => {
-    const res = await supertest(app).get("/v1/telemetry/summary");
-    expect(res.status).toBe(200);
+  it("GET /summary requires admin auth (B3 wiki/367); dev-mode tolerates absent secret", async () => {
+    // B3 (wiki/367) rewrote this test. Post-B3, GET /summary requires
+    // `Authorization: Bearer <MUSU_TELEMETRY_ADMIN_SECRET>` when the env
+    // var is set; when unset and NODE_ENV != "production", dev-mode
+    // tolerance applies. Critic HIGH-1 mandates this test exercise BOTH
+    // assertions in the same commit that adds the middleware.
+    //
+    // Assertion (a): env-set + bearer header → 200.
+    process.env.MUSU_TELEMETRY_ADMIN_SECRET = "test-admin-xyz";
+    _resetTelemetryAuthState();
+    const resA = await supertest(app)
+      .get("/v1/telemetry/summary")
+      .set("Authorization", "Bearer test-admin-xyz");
+    expect(resA.status).toBe(200);
+
+    // Assertion (b): env-unset + NODE_ENV=test → 200 with warn-once
+    // trigger. Reset state so the warn-once flag re-fires; remove the
+    // env var; bare GET; expect 200. The console.warn is a side-effect
+    // we capture-and-restore around the request.
+    delete process.env.MUSU_TELEMETRY_ADMIN_SECRET;
+    _resetTelemetryAuthState();
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const resB = await supertest(app).get("/v1/telemetry/summary");
+      expect(resB.status).toBe(200);
+      // Warn-once must have fired with the wiki/367 reference.
+      const calls = warnSpy.mock.calls.map((c) => String(c[0]));
+      expect(calls.some((m) => /MUSU_TELEMETRY_ADMIN_SECRET/.test(m))).toBe(true);
+      expect(calls.some((m) => /B3 wiki\/367/.test(m))).toBe(true);
+    } finally {
+      warnSpy.mockRestore();
+    }
   });
 });
 
@@ -140,10 +170,16 @@ describe("T2.AUTH.2 boot config (audit HIGH #3)", () => {
   });
 
   it("returns null in production when secret is set", () => {
+    // Post-B3 (wiki/367): production now requires BOTH write-auth and
+    // admin-auth (MUSU_TELEMETRY_ADMIN_SECRET). The original test
+    // exercised the shared-secret-set path; we keep that intent but also
+    // satisfy the admin-auth requirement so the assertion under test is
+    // truly "write-auth via SHARED_SECRET is sufficient on its axis".
     expect(
       checkTelemetryAuthBootConfig({
         NODE_ENV: "production",
         MUSU_TELEMETRY_SHARED_SECRET: "set-correctly",
+        MUSU_TELEMETRY_ADMIN_SECRET: "admin-set-correctly",
       } as NodeJS.ProcessEnv),
     ).toBeNull();
   });
@@ -151,10 +187,12 @@ describe("T2.AUTH.2 boot config (audit HIGH #3)", () => {
   // B1 commit 6 (wiki/363 §7.4, §8 step 4): HMAC-only cutover means
   // SHARED_SECRET is no longer mandatory in production.
   it("returns null in production when MUSU_TELEMETRY_HMAC_ONLY=1 even without MUSU_TELEMETRY_SHARED_SECRET", () => {
+    // Post-B3 (wiki/367): admin-auth must also be configured.
     expect(
       checkTelemetryAuthBootConfig({
         NODE_ENV: "production",
         MUSU_TELEMETRY_HMAC_ONLY: "1",
+        MUSU_TELEMETRY_ADMIN_SECRET: "admin-set-correctly",
       } as NodeJS.ProcessEnv),
     ).toBeNull();
   });
@@ -176,11 +214,13 @@ describe("T2.AUTH.2 boot config (audit HIGH #3)", () => {
     // Defensive belt-and-suspenders: during cutover an operator may
     // set HMAC_ONLY=1 while still keeping the old shared-secret env
     // around for rollback. Boot must not block on that combination.
+    // Post-B3 (wiki/367): admin-auth must also be configured.
     expect(
       checkTelemetryAuthBootConfig({
         NODE_ENV: "production",
         MUSU_TELEMETRY_SHARED_SECRET: "set-correctly",
         MUSU_TELEMETRY_HMAC_ONLY: "1",
+        MUSU_TELEMETRY_ADMIN_SECRET: "admin-set-correctly",
       } as NodeJS.ProcessEnv),
     ).toBeNull();
   });
@@ -196,6 +236,66 @@ describe("T2.AUTH.2 boot config (audit HIGH #3)", () => {
     } as NodeJS.ProcessEnv);
     expect(err).not.toBeNull();
     expect(err).toMatch(/MUSU_TELEMETRY_HMAC_ONLY/);
+  });
+
+  // ── B3 (wiki/367) admin-auth boot-config additions ───────────────────
+  // The new admin-auth axis is independent of the write-auth axis above.
+  // Production must satisfy BOTH: write-auth (shared-secret OR HMAC-only)
+  // AND admin-auth (MUSU_TELEMETRY_ADMIN_SECRET set).
+
+  it("refuses to start when NODE_ENV=production + MUSU_TELEMETRY_ADMIN_SECRET unset (B3)", () => {
+    // Even when write-auth is correctly configured, the function must
+    // return a non-null error string mentioning ADMIN_SECRET when the
+    // admin-auth env var is missing. Verifies the two axes are
+    // independent and both gate production startup.
+    const err = checkTelemetryAuthBootConfig({
+      NODE_ENV: "production",
+      MUSU_TELEMETRY_SHARED_SECRET: "set-correctly",
+    } as NodeJS.ProcessEnv);
+    expect(err).not.toBeNull();
+    expect(err).toMatch(/MUSU_TELEMETRY_ADMIN_SECRET/);
+  });
+
+  it("accepts NODE_ENV=production when BOTH write-auth and admin-auth are configured (B3)", () => {
+    // Happy path post-B3: both axes satisfied → null. This is the
+    // expected production posture after operator runs
+    // `fly secrets set MUSU_TELEMETRY_ADMIN_SECRET=...`.
+    expect(
+      checkTelemetryAuthBootConfig({
+        NODE_ENV: "production",
+        MUSU_TELEMETRY_SHARED_SECRET: "write-set",
+        MUSU_TELEMETRY_ADMIN_SECRET: "admin-set",
+      } as NodeJS.ProcessEnv),
+    ).toBeNull();
+  });
+
+  it("refuses to start when admin-secret set but write-auth unset (B3 / Critic M2)", () => {
+    // Critic M2: admin-auth and write-auth axes are independent. Setting
+    // ADMIN_SECRET alone does NOT satisfy the write-auth gate; boot must
+    // still refuse. Error mentions the unmet write-auth condition (the
+    // SHARED_SECRET / HMAC_ONLY error path).
+    const err = checkTelemetryAuthBootConfig({
+      NODE_ENV: "production",
+      MUSU_TELEMETRY_ADMIN_SECRET: "admin-set",
+    } as NodeJS.ProcessEnv);
+    expect(err).not.toBeNull();
+    expect(err).toMatch(/MUSU_TELEMETRY_SHARED_SECRET|MUSU_TELEMETRY_HMAC_ONLY/);
+  });
+
+  it("non-prod ignores admin-secret check (B3 / Critic M2)", () => {
+    // Critic M2: dev / test environments must remain unaffected by the
+    // admin-auth tightening. Mirrors the existing non-prod-ignores-
+    // write-auth test at the top of this describe block.
+    expect(
+      checkTelemetryAuthBootConfig({
+        NODE_ENV: "development",
+      } as NodeJS.ProcessEnv),
+    ).toBeNull();
+    expect(
+      checkTelemetryAuthBootConfig({
+        NODE_ENV: "test",
+      } as NodeJS.ProcessEnv),
+    ).toBeNull();
   });
 });
 

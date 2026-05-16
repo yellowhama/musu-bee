@@ -27,7 +27,15 @@ Custom header (`X-Musu-Admin-Secret`) was considered for consistency with the wr
 Identical pattern to `requireTelemetrySecret` at `telemetry.ts:230-240`. Specifically:
 
 ```typescript
-const supplied = /* extracted bearer token */;
+// Case-insensitive Bearer scheme parse (Critic M3): RFC 7235 §2.1 says
+// scheme names are case-insensitive. Accept "Bearer", "bearer", "BEARER".
+const header = req.header("authorization") || "";
+const m = header.match(/^Bearer\s+(.+)$/i);
+if (!m) {
+  res.status(401).json({ error: "missing admin auth" });
+  return false;
+}
+const supplied = m[1];
 const suppliedHash = createHash("sha256").update(supplied).digest();
 const secretHash = createHash("sha256").update(adminSecret).digest();
 if (!timingSafeEqual(suppliedHash, secretHash)) {
@@ -51,7 +59,9 @@ Specifically, the existing function returns an error string when production lack
 
 If `MUSU_TELEMETRY_ADMIN_SECRET` is unset AND `NODE_ENV !== "production"`, the middleware returns 200 without authentication — preserving local-dev ergonomics. This matches the v21 dev posture (`requireTelemetrySecret` at `telemetry.ts:218-228` does the same with a warn-once log line).
 
-The boot-config refuse-to-start backstops the dev-mode tolerance: a misconfigured prod env (`NODE_ENV=production`, secret unset) cannot reach a running state, so dev-mode auth-skip never executes in prod. Critic should verify this backstop is tight (see §11 attack #2).
+The boot-config refuse-to-start backstops the dev-mode tolerance: a misconfigured prod env (`NODE_ENV=production`, secret unset) cannot reach a running state, so dev-mode auth-skip never executes in prod.
+
+**Platform-layer backstop (Critic-confirmed)**: `fly.toml:69` sets `NODE_ENV = "production"` in the `[env]` block — Fly machines cannot start without this var unless an operator edits a version-controlled file. Combined with boot-config refuse-to-start, this closes the "NODE_ENV accidentally unset in prod" leak path.
 
 ### 2.5 No new schema, no new DB table, no new wire format outside one header
 
@@ -67,7 +77,7 @@ Zero migration risk. The request body shape is unchanged on the return path; onl
 | `musu-relay/src/signaling/telemetry.ts:666` (wire onto `/summary`) | ~3 lines edited | Insert `if (!requireAdminSecret(_req, res)) return;` as the first line of the `/summary` handler. `_req` becomes `req` since it's now consumed. |
 | `musu-relay/src/signaling/telemetry.ts:208-209` (comment) | 2 lines edited | Update the misleading block comment that says "GET /summary is unaffected — T2.AUTH.2-final adds auth there too" — convert to "(B3 wiki/367) GET /summary requires `Authorization: Bearer <MUSU_TELEMETRY_ADMIN_SECRET>` in production; dev-mode tolerance when env unset + NODE_ENV != production." |
 | `musu-relay/src/signaling/telemetry.ts:404-420` (`checkTelemetryAuthBootConfig`) | ~10 lines added | Extend the existing function to ALSO require `MUSU_TELEMETRY_ADMIN_SECRET` in production. Return a clear error string when missing; combine with the existing write-auth error when both are unconfigured. Order of checks: write-auth first (existing), admin-auth second (new). Both checks must pass for the function to return null in production. |
-| `musu-relay/src/signaling/telemetry.ts` test helper (`_resetTelemetryAuthState`) | ~1 line added | If a warn-once flag is added for admin-secret dev-mode tolerance (matching `_warnedNoSharedSecret` at `:211`), reset it here. |
+| `musu-relay/src/signaling/telemetry.ts` test helper (`_resetTelemetryAuthState`) | ~1 line added | A warn-once flag `_warnedNoAdminSecret` is added (mirrors `_warnedNoSharedSecret` at `:211`; Critic M1 RESOLVED — mandatory not optional). Log text MUST reference "B3 wiki/367". `_resetTelemetryAuthState` resets BOTH flags. |
 | `musu-relay/tests/telemetry-summary-auth.test.ts` (NEW) | ~120 lines | Five test cases (see §5). Mirrors `tests/telemetry-auth.test.ts` shape (supertest + makeTelemetryRouter + stub validator). |
 | `musu-relay/tests/telemetry-auth.test.ts` (extend) | ~30 lines added | Add boot-config cases for the new ADMIN_SECRET-required-in-prod check, alongside the existing SHARED_SECRET / HMAC_ONLY cases. |
 
@@ -95,7 +105,9 @@ Response body shape is unchanged. No new query params. No new response headers (
 Five test cases, mirroring `tests/telemetry-auth.test.ts` shape (supertest + express harness):
 
 1. **`rejects /summary with no Authorization header (401)`** — bare GET request. Expect 401 + `error: /missing|admin/i`.
+1b. **`rejects /summary with empty Bearer token (401)`** (Critic L1) — `Authorization: Bearer ` (trailing space, no token). Expect 401 + `error: /missing|admin/i`. The regex `/^Bearer\s+(.+)$/i` requires at least one char after the scheme; this case verifies the parser rejects edge form.
 2. **`rejects /summary with wrong scheme (401)`** — `Authorization: Basic <base64>`. Expect 401 + `error: /missing|admin/i` (the parser refuses non-Bearer schemes; same outcome as no header).
+2b. **`accepts /summary with lowercase 'bearer' scheme (200)`** (Critic M3) — `Authorization: bearer test-admin-abc` (lowercase scheme). Expect 200 + JSON body. RFC 7235 §2.1 says auth-scheme is case-insensitive; regex `/^Bearer\s+(.+)$/i` honors this.
 3. **`rejects /summary with Bearer token mismatch (401)`** — `Authorization: Bearer wrong-secret`. Expect 401 + `error: /bad admin secret/i`. Verifies the constant-time compare path returns the right error class.
 4. **`accepts /summary with matching Bearer token (200)`** — `Authorization: Bearer test-admin-abc` (the value the test sets via `process.env.MUSU_TELEMETRY_ADMIN_SECRET`). Expect 200 + JSON body with `install` + `nat_pierce` keys (same shape as pre-B3).
 5. **`dev-mode tolerance: env unset + NODE_ENV=test returns 200 without header`** — clears `MUSU_TELEMETRY_ADMIN_SECRET`, sets `NODE_ENV=test` (it already is during jest), bare GET request. Expect 200 + JSON body. Validates the dev-ergonomic locks; signaling.test.ts and friends don't break when they spin up the telemetry router incidentally.
@@ -106,19 +118,28 @@ The existing file has boot-config tests for `checkTelemetryAuthBootConfig` (sear
 
 6. **`refuse-to-start when NODE_ENV=production + MUSU_TELEMETRY_ADMIN_SECRET unset`** — even when write-auth is correctly configured (`MUSU_TELEMETRY_SHARED_SECRET` set), the function should return a non-null error string mentioning `MUSU_TELEMETRY_ADMIN_SECRET`.
 7. **`accept when NODE_ENV=production + both write-auth AND admin-auth configured`** — `MUSU_TELEMETRY_SHARED_SECRET` set + `MUSU_TELEMETRY_ADMIN_SECRET` set → returns null.
+7b. **`refuse-to-start when admin-secret set but write-auth unset`** (Critic M2) — `MUSU_TELEMETRY_ADMIN_SECRET=set, MUSU_TELEMETRY_SHARED_SECRET=unset, MUSU_TELEMETRY_HMAC_ONLY=unset` → error string mentions the unmet write-auth condition (at minimum non-null). Confirms admin-auth and write-auth are independent.
+8. **`non-prod ignores admin-secret check`** (Critic M2) — `NODE_ENV=development + admin-secret unset` → returns null. `NODE_ENV=test + admin-secret unset` → returns null. Mirrors `tests/telemetry-auth.test.ts:116-127` pattern; prevents accidental tightening that would break local dev.
 
-### 5.3 Tests that MUST NOT regress
+### 5.3 Existing tests that MUST be updated in the same B3 commit (Critic HIGH #1 escalated from "may regress")
 
 - `tests/signaling.test.ts` (14 tests) — doesn't hit `/summary`. No fetch mock changes needed beyond what B2 already landed.
 - `tests/telemetry-emit.test.ts` (18 tests) — emits POSTs only; doesn't read `/summary`.
 - `tests/telemetry-hmac.test.ts` (23 tests) — HMAC write-endpoint tests; unaffected.
-- `tests/telemetry.test.ts` (13 tests) — uses `/summary` for assertions IF the existing tests verify count totals. Check during Builder phase — if any test calls `GET /summary` without an Authorization header, it will start failing post-B3. Fix is one-line: set the env var in `beforeAll` of that file (same pattern as `tests/telemetry-auth.test.ts:10`) OR send the Bearer header on the GET. Grep target: `supertest(app).get("/v1/telemetry/summary")` across `tests/`. Initial inspection: not located in the grep at plan time, but Builder must verify.
+- **`tests/telemetry-auth.test.ts:109-112`** — has a test literally named `"GET /summary remains accessible (admin-internal in V23.2)"`. Its assertion (`expect(res.status).toBe(200)`) PASSES under dev-mode tolerance, but the **name is now a lie**. Builder MUST rewrite this test in the B3 commit:
+  - Rename to: `"GET /summary requires admin auth (B3 wiki/367); dev-mode tolerates absent secret"`
+  - SPLIT into TWO assertions: (a) env-set + bearer header → 200; (b) env-unset + NODE_ENV=test → 200 with warn-once trigger
+- **`tests/telemetry.test.ts:164-213`** — contains GETs to `/summary` at `:166, :204` without auth (verifies count totals). These will pass under dev-mode tolerance, but Builder MUST add a comment-block note at the top of the `GET /v1/telemetry/summary` describe block at `:164`: `"passes pre-B3-style without auth because NODE_ENV=test + MUSU_TELEMETRY_ADMIN_SECRET unset triggers dev-mode tolerance. Production posture is tested in tests/telemetry-summary-auth.test.ts and tests/telemetry-auth.test.ts."`
+
+Grep target verified at Critic time: `supertest(app).get("/v1/telemetry/summary")` returns the two `tests/telemetry.test.ts` callsites + the `tests/telemetry-auth.test.ts:109` callsite.
 
 ### 5.4 Manual curl smoke (local dev)
 
+**Pre-condition (Critic M4)**: ensure your shell does NOT have `NODE_ENV=production` exported, OR also set `MUSU_TELEMETRY_SHARED_SECRET=test-write-abc` to satisfy the existing write-auth boot config (otherwise boot refuses to start). Recommended: explicitly run `NODE_ENV=development MUSU_TELEMETRY_ADMIN_SECRET=test-admin-abc npm start`.
+
 ```bash
 # 1. Spin up locally with the env var set
-MUSU_TELEMETRY_ADMIN_SECRET=test-admin-abc npm start
+NODE_ENV=development MUSU_TELEMETRY_ADMIN_SECRET=test-admin-abc npm start
 
 # 2. Without header — expect 401
 curl -i http://localhost:8080/v1/telemetry/summary
@@ -187,7 +208,7 @@ Operator records the three responses in the closure doc (wiki/368) as smoke-test
 - [ ] `grep -n "requireAdminSecret" musu-relay/src/signaling/telemetry.ts` returns exactly two matches: the function definition (~`:213` area) and the one wiring at `/summary` (~`:666` area).
 - [ ] `grep -n "Authorization" musu-relay/src/signaling/telemetry.ts` returns at least one match in the new helper (header read).
 - [ ] `grep -n "MUSU_TELEMETRY_ADMIN_SECRET" musu-relay/src/signaling/telemetry.ts` returns at least two matches: one in `requireAdminSecret`, one in `checkTelemetryAuthBootConfig`.
-- [ ] `npm test` returns 183/183 (or 184-185 with the boot-config additions) green. Specifically `tests/telemetry-summary-auth.test.ts` reports 5/5 passing.
+- [ ] `npm test` returns ≈186 green (7 new in tests/telemetry-summary-auth.test.ts: 1+1b+2+2b+3+4+5, plus 4 boot-config additions in tests/telemetry-auth.test.ts: 6+7+7b+8, plus 1 modified existing test). Specifically `tests/telemetry-summary-auth.test.ts` reports 7/7 passing.
 - [ ] `tsc --noEmit` clean.
 - [ ] Curl smoke (§5.4) returns the expected 401 / 401 / 200 sequence locally with `MUSU_TELEMETRY_ADMIN_SECRET=test-admin-abc npm start`.
 - [ ] Block comment at `telemetry.ts:208-209` updated (no longer claims `/summary` is unaffected by auth).
@@ -281,10 +302,31 @@ g. **Comment-debt cleanup at `telemetry.ts:208-209`**: the existing block commen
 
 ## 13. Critic Findings (resolved)
 
-*Pending* `security-engineer` Critic pass. Findings will be appended here in the wiki/365 §15 table format once the Critic runs:
+`security-engineer` Critic pass complete. Verdict: **GO for Build after 5 inline patches** (all applied to this plan doc).
 
 | # | Severity | Finding (1-line) | Resolution | Where patched |
 |---|---|---|---|---|
-| — | — | (awaiting Critic) | — | — |
+| H1 | **HIGH** | Plan §5.3 said "may regress" but two existing tests (`telemetry-auth.test.ts:109-112` + `telemetry.test.ts:164-213`) directly assert pre-B3 `/summary` behavior; both must be updated IN THE B3 COMMIT, not flagged for later. The name "GET /summary remains accessible" becomes a lie post-B3. | Rewrote §5.3: explicit instructions to rename + split telemetry-auth.test.ts:109 into 2 assertions; add comment-block note at telemetry.test.ts:164 explaining dev-mode tolerance. Updated §8 AC: target ≈186 green tests. | §5.3, §8 |
+| M1 | MEDIUM | `_warnedNoAdminSecret` warn-once flag was "optional" in plan §3 row 5; without it, operator who mis-sets NODE_ENV in non-prod env gets zero log signal that `/summary` is open. | Promoted from "if" to mandatory; log text MUST reference "B3 wiki/367"; `_resetTelemetryAuthState` resets both flags. | §3 row 5 |
+| M2 | MEDIUM | Boot-config tests missing: case 7b (admin-secret set + write-auth unset = error) and case 8 (non-prod ignores admin check). | Added cases 7b and 8 to §5.2. Mirrors tests/telemetry-auth.test.ts:116-127 pattern. | §5.2 |
+| M3 | MEDIUM | Bearer scheme case-handling not specified — RFC 7235 §2.1 requires case-insensitive. If Builder writes `header.startsWith("Bearer ")` lowercase-normalizing clients get 401. | Updated §2.2 code snippet: regex `/^Bearer\s+(.+)$/i` with case-insensitive flag. Added test case 2b ("accepts lowercase 'bearer' scheme"). | §2.2, §5.1 |
+| M4 | MEDIUM | §5.4 manual smoke didn't handle `NODE_ENV=production` exported in operator's shell (boot refuses to start without write-auth secret). | Added pre-condition line + recommended explicit `NODE_ENV=development MUSU_TELEMETRY_ADMIN_SECRET=test-admin-abc npm start`. | §5.4 |
+| L1 | LOW | Empty Bearer token edge case (`Authorization: Bearer ` trailing space, zero-length token) not enumerated. | Added test case 1b ("rejects /summary with empty Bearer token (401)") to §5.1. Regex `/^Bearer\s+(.+)$/i` requires ≥1 char after scheme. | §5.1 |
+| L2 | LOW | No `Cache-Control: no-store` on /summary response — irrelevant unless CDN-fronted. | Deferred; closure-doc note. | None |
+| L3 | LOW | Audit-logging of /summary access out-of-scope but 401s observable in fly logs via express access logger. | Closure-doc note. | None |
+| I1 | INFO | Token logging on 401: B1 precedent at `:236-238` does NOT log supplied bearer. | Builder confirms no `console.log(supplied)` in new code. | None |
+| I2 | INFO | Single-commit choice in §9 is sound. | No change. | None |
+| I3 | INFO | `_req → req` rename at `:666` enforced by tsc unused-var warning. | No change. | None |
+
+**§11 OQ adjudication summary**:
+- (a) Bearer over custom header: ACCEPTED
+- (b) Dev-mode NODE_ENV leak: MITIGATED by `fly.toml:69` platform backstop (now cited in §2.4)
+- (c) WARN vs refuse-to-start: ACCEPTED refuse-to-start; master plan §B3 drift recorded in §2.3
+- (d) Bearer vs HMAC for GET: ACCEPTED Bearer
+- (e) Rate-limit DiD: DEFERRED to follow-on if /summary becomes Prometheus target
+- (f) Single-commit vs split: ACCEPTED single
+- (g) Comment debt: ACCEPTED rewrite to reference wiki/367
+
+**Critic verdict**: Builder may proceed to Phase 3 with this revised plan.
 
 **End of B3 detail plan.**
