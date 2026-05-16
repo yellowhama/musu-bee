@@ -73,20 +73,26 @@ beforeEach(() => {
 
 describe("Auditor A M1 — /issue_install_key bypasses HELLO-poisoned cache", () => {
   it("rejects bootstrap when validationCache was poisoned by HELLO fallback", async () => {
-    // 1. Simulate the v21-era HELLO path having already cached a poisoned
-    //    entry: attacker connected via WS with HELLO {token, user_id: VICTIM_ID}
-    //    while upstream /validate returned 200 with no user_id body.
-    //    server.ts:140-151 fell back to the HELLO-supplied claim and
-    //    cached canonicalUserId=VICTIM_ID against the attacker's token.
+    // 1. Simulate the (PRE-B2) v21-era HELLO path having already cached a
+    //    poisoned entry: attacker connected via WS with HELLO {token,
+    //    user_id: VICTIM_ID} while upstream /validate returned 200 with
+    //    no user_id body. server.ts:140-151 (PRE-B2) fell back to the
+    //    HELLO-supplied claim and cached canonicalUserId=VICTIM_ID
+    //    against the attacker's token. The fallback was removed in B2-bee
+    //    (wiki/365); this test continues to exercise the route-level
+    //    Design A enforcement independent of the fallback's existence,
+    //    by pre-seeding the cache directly to simulate the poisoned
+    //    state any other code path could in principle write.
     _validationCache.set(ATTACKER_TOKEN, {
       valid: true,
       canonicalUserId: VICTIM_ID,
       timestamp: Date.now(),
     });
 
-    // 2. Stub the upstream to return v21-era behavior on any fresh call:
-    //    200 OK but no user_id field in the body. This is current musu.pro
-    //    /validate behavior pre-B2.
+    // 2. Stub the upstream to return 200 OK but no user_id field in the
+    //    body. Pre-B2 this was v21-era musu.pro /validate behavior; post-B2
+    //    (wiki/365) the adapter normalizes any missing/empty user_id to
+    //    null and the route returns 503 (correct).
     const fetchSpy = jest.fn().mockResolvedValue({
       ok: true,
       status: 200,

@@ -54,9 +54,16 @@ afterAll((done) => {
 
 beforeEach(() => {
   rooms.clear();
-  global.fetch = jest.fn().mockResolvedValue({
-    ok: true,
-    status: 204,
+  // Post-B2 (wiki/365): validateToken now requires { user_id } in the
+  // 200 response body. Pass-through mock echoes claimed user_id as
+  // canonical, matching musu.pro /validate post-B2-pro behavior.
+  global.fetch = jest.fn().mockImplementation(async (_url, init) => {
+    const body = init?.body ? JSON.parse(init.body as string) : {};
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ user_id: body.user_id || "default-canonical-id" }),
+    };
   }) as unknown as typeof fetch;
 });
 

@@ -168,14 +168,16 @@ describe("T2.AUTH.3 — canonical userId from validation API", () => {
     expect((global.fetch as jest.Mock).mock.calls).toHaveLength(1);
   });
 
-  it("falls back to claimed userId with warning if validation API omits user_id (v21 compat)", async () => {
-    // V21-era /validate just returns 200 with no body — current production.
-    // V23.2 server tolerates this with a one-time warning until musu.pro
-    // upgrades. See V23_2_PLAN §2 T2.AUTH.3.
+  it("rejects (userId=null) when validation API omits user_id (post-B2)", async () => {
+    // Post-B2 (wiki/365): the v21-era fallback to claimed userId was
+    // removed. If upstream returns 200 without a user_id body field,
+    // canonicalUserId stays null and the HELLO handler rejects the
+    // connection with 4003. Upstream invariant is enforced by musu-pro
+    // /validate post-B2-pro (7397d74) which always returns { user_id }.
     mockFetchOk(); // no canonicalUserId returned
     const r = await validateToken("legacy-tok", "claimed-id");
     expect(r.valid).toBe(true);
-    expect(r.userId).toBe("claimed-id");
+    expect(r.userId).toBeNull();
   });
 
   it("invalid token → userId is null", async () => {

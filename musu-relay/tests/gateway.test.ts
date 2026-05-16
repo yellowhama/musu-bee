@@ -49,9 +49,14 @@ afterAll((done) => {
 
 beforeEach(() => {
   rooms.clear();
-  global.fetch = jest.fn().mockResolvedValue({
-    ok: true,
-    status: 200,
+  // Post-B2 (wiki/365): pass-through mock — see signaling.test.ts:50 for rationale.
+  global.fetch = jest.fn().mockImplementation(async (_url, init) => {
+    const body = init?.body ? JSON.parse(init.body as string) : {};
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ user_id: body.user_id || "default-canonical-id" }),
+    };
   }) as unknown as typeof fetch;
 });
 

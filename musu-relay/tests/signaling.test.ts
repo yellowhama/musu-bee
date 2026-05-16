@@ -47,9 +47,20 @@ afterAll((done) => {
 beforeEach(() => {
   rooms.clear();
   _resetAuthState();
-  global.fetch = jest.fn().mockResolvedValue({
-    ok: true,
-    status: 200,
+  // Post-B2 (wiki/365): the validateToken fallback to claimedUserId was
+  // removed; the upstream MUST now return { user_id } in the 200 body.
+  // This pass-through mock reflects musu.pro /validate post-B2-pro
+  // (7397d74 deployed 2026-05-16): echo the POST body's user_id as the
+  // canonical user_id. Tests that need an explicit canonical id should
+  // override this mock in-test (e.g., signaling.test.ts:151 negative
+  // path uses ok:false; new HELLO-rejection negative uses json:()=>({}}).
+  global.fetch = jest.fn().mockImplementation(async (_url, init) => {
+    const body = init?.body ? JSON.parse(init.body as string) : {};
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ user_id: body.user_id || "default-canonical-id" }),
+    };
   }) as unknown as typeof fetch;
 });
 
@@ -161,6 +172,36 @@ describe("T1.2 token validation", () => {
         type: "HELLO",
         token: "bad",
         user_id: "user1",
+        role: "gateway",
+      }),
+    );
+
+    const msg = await waitFor(ws, (m) => m.type === "ERROR");
+    expect(msg.reason).toMatch(/invalid token/);
+
+    const code = await waitClose(ws);
+    expect(code).toBe(4003);
+  });
+
+  it("HELLO is rejected when upstream returns valid+empty-user_id (post-B2)", async () => {
+    // Post-B2 (wiki/365): the v21-era fallback to claimed userId was
+    // removed. If upstream returns 200 OK but no user_id field, the
+    // validateToken result has valid=true + userId=null, and the HELLO
+    // handler at server.ts:429-432 rejects with 4003. This locks the
+    // post-B2 rejection behavior at the WS integration boundary.
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+    }) as unknown as typeof fetch;
+
+    const ws = connect();
+    await waitOpen(ws);
+    ws.send(
+      JSON.stringify({
+        type: "HELLO",
+        token: "any-token",
+        user_id: "alice",
         role: "gateway",
       }),
     );
