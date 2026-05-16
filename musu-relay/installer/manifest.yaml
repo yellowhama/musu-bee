@@ -1,0 +1,37 @@
+# musu-backend.tar build manifest — V23.2 Workstream B4a (wiki/370)
+#
+# Source of truth for `build-musu-backend.sh`. CLI `--k3s-version` overrides
+# this file's k3s_version; everything else is read directly from here.
+#
+# Flat YAML (key: value) intentionally — build-musu-backend.sh reads with a
+# tiny awk parser, not a full YAML library. Do NOT introduce nested mappings
+# without updating the parser.
+
+alpine_version: "3.19"
+
+# K3s patch pin. Bump when upstream cuts a new 1.30.x; verify checksums
+# (k3s_binary_sha256, k3s_airgap_amd64_sha256) against the GitHub release
+# before merging. CLI --k3s-version on build-musu-backend.sh overrides this.
+k3s_version: "v1.30.4"
+
+# Node version pin — resolved from Alpine 3.19's apk package set. Alpine
+# 3.19 ships nodejs at the 20.x line.
+node_version: "20.x"
+
+# K3s artifact URLs (template variables ${K3S_VER}, ${ARCH} are substituted
+# inside the build script; this file holds them in canonical form for human
+# review).
+k3s_binary_url:   "https://github.com/k3s-io/k3s/releases/download/${K3S_VER}+k3s1/k3s"
+k3s_airgap_url:   "https://github.com/k3s-io/k3s/releases/download/${K3S_VER}+k3s1/k3s-airgap-images-${ARCH}.tar.zst"
+k3s_install_url:  "https://get.k3s.io"
+
+# Pinned checksums (regenerated each K3s release — fill before V23.2 closure).
+# Until populated the build script does NOT enforce checksum verification on
+# the K3s downloads (curl -fsSL only). Closure doc must record the actual
+# sha256 of the K3s binary + airgap-images that shipped, and a follow-on
+# task tightens the build script to enforce these values.
+# TODO(V23.3): enforce these in build-musu-backend.sh step 2.
+k3s_binary_sha256_amd64: "TODO-populate-from-k3s-release"
+k3s_binary_sha256_arm64: "TODO-populate-from-k3s-release"
+k3s_airgap_sha256_amd64: "TODO-populate-from-k3s-release"
+k3s_airgap_sha256_arm64: "TODO-populate-from-k3s-release"

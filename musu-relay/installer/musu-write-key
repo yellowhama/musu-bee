@@ -1,0 +1,114 @@
+#!/bin/sh
+# musu-write-key — B4b ABI seam, persists account_key inside musu-backend
+# Path inside rootfs: /usr/local/bin/musu-write-key
+# V23.2 Workstream B4a (wiki/370 §4)
+#
+# Reads 64-byte lowercase-hex account_key from stdin, validates, writes to
+# /etc/musu/account_key with mode 0600 owner root:root.
+#
+# Invocation contract (B4b will call this from PowerShell):
+#   wsl -d musu -- /usr/local/bin/musu-write-key            # initial install
+#   wsl -d musu -- /usr/local/bin/musu-write-key --force    # B1.x rotation
+#
+# Exit codes (locked in wiki/370 §4 ABI table):
+#   0 — new write OR same-content idempotent
+#   1 — stdin malformed (not exactly 64 chars of [0-9a-f])
+#   2 — filesystem failure (write/chmod/chown)
+#   3 — file exists with different content AND --force NOT given
+#
+# No stdout. All errors to stderr.
+
+set -u
+
+KEY_PATH="/etc/musu/account_key"
+FORCE=0
+
+# ── Parse argv ─────────────────────────────────────────────────────────────
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --force) FORCE=1; shift ;;
+        -h|--help)
+            cat >&2 <<USAGE
+Usage: musu-write-key [--force]
+Reads 64-byte lowercase hex from stdin and writes to $KEY_PATH (0600 root:root).
+Exits 3 if $KEY_PATH already exists with different content unless --force.
+USAGE
+            exit 0
+            ;;
+        *) echo "musu-write-key: unknown argument: $1" >&2; exit 1 ;;
+    esac
+done
+
+# ── Read stdin ─────────────────────────────────────────────────────────────
+# Tolerate a trailing newline (strip a single \n if present) but reject any
+# other whitespace or non-hex characters. The contract is "64 lowercase hex".
+KEY="$(cat)"
+# Strip exactly one trailing newline if present.
+KEY="${KEY%$'\n'}"
+KEY="${KEY%$'\r'}"
+# Also strip CR if input came from a CRLF source (PowerShell-on-Windows often does).
+# Audit-fix M2: B4b's PowerShell pipeline injects CRLF; helper absorbs it.
+
+# ── Validate ───────────────────────────────────────────────────────────────
+KEY_LEN="${#KEY}"
+if [ "$KEY_LEN" -ne 64 ]; then
+    echo "musu-write-key: stdin malformed (length ${KEY_LEN}, expected 64)" >&2
+    exit 1
+fi
+
+# Hex check using POSIX case statement (avoid GNU-specific [[ … ]]).
+case "$KEY" in
+    *[!0-9a-f]*)
+        echo "musu-write-key: stdin malformed (non-hex or uppercase chars)" >&2
+        exit 1
+        ;;
+esac
+
+# ── Conflict check (idempotency + --force) ─────────────────────────────────
+if [ -f "$KEY_PATH" ]; then
+    EXISTING="$(cat "$KEY_PATH" 2>/dev/null || true)"
+    if [ "$EXISTING" = "$KEY" ]; then
+        # Same content → idempotent success.
+        exit 0
+    fi
+    if [ "$FORCE" -ne 1 ]; then
+        echo "musu-write-key: $KEY_PATH already exists with different content; pass --force to overwrite" >&2
+        exit 3
+    fi
+fi
+
+# ── Write ──────────────────────────────────────────────────────────────────
+# Ensure parent dir exists with correct mode (defensive — build script
+# already created it at 0700 root:root, but in case of corruption recover).
+if [ ! -d "$(dirname "$KEY_PATH")" ]; then
+    mkdir -m 0700 -p "$(dirname "$KEY_PATH")" 2>/dev/null || {
+        echo "musu-write-key: cannot create $(dirname "$KEY_PATH")" >&2
+        exit 2
+    }
+fi
+
+# Write atomically via temp file in the same directory (rename is atomic on
+# the same filesystem). Then chmod + chown before the rename consumer reads.
+TMP="${KEY_PATH}.tmp.$$"
+printf '%s' "$KEY" > "$TMP" 2>/dev/null || {
+    echo "musu-write-key: failed to write $TMP" >&2
+    rm -f "$TMP" 2>/dev/null
+    exit 2
+}
+chmod 0600 "$TMP" 2>/dev/null || {
+    echo "musu-write-key: failed to chmod $TMP" >&2
+    rm -f "$TMP" 2>/dev/null
+    exit 2
+}
+chown root:root "$TMP" 2>/dev/null || {
+    echo "musu-write-key: failed to chown $TMP" >&2
+    rm -f "$TMP" 2>/dev/null
+    exit 2
+}
+mv -f "$TMP" "$KEY_PATH" 2>/dev/null || {
+    echo "musu-write-key: failed to rename $TMP -> $KEY_PATH" >&2
+    rm -f "$TMP" 2>/dev/null
+    exit 2
+}
+
+exit 0

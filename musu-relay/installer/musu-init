@@ -1,0 +1,82 @@
+#!/bin/sh
+# musu-init — first-boot orchestrator for musu-backend.tar
+# Path inside rootfs: /usr/local/bin/musu-init
+# V23.2 Workstream B4a (wiki/370 §6.1)
+#
+# Orchestrates K3s → account_key wait → gateway in sequence with explicit
+# readiness gates. Direct OpenRC auto-enabling of k3s + musu-gateway is
+# forbidden (Critic C2 HIGH) because OpenRC's `need k3s` ensures "started"
+# not "API Ready" — leading to gateway crash-loop on first boot.
+#
+# Exit codes:
+#   0 — full stack up (K3s Ready + account_key present + gateway started)
+#   1 — K3s never became Ready within MUSU_K3S_READY_TIMEOUT_SEC (default 180s)
+#   2 — /etc/musu/account_key not present within MUSU_KEY_WAIT_TIMEOUT_SEC
+#       (default 0 == wait forever; B4c sets this to fail-fast)
+#
+# Env overrides:
+#   MUSU_K3S_READY_TIMEOUT_SEC  seconds to wait for K3s API Ready (default 180)
+#   MUSU_KEY_WAIT_TIMEOUT_SEC   seconds to wait for /etc/musu/account_key
+#                               (default 0 == wait forever, WARN every 30s)
+
+set -e
+
+# Idempotent first-boot initialization of OpenRC (no-op on subsequent boots).
+# Critic C11 (LOW) resolution: rc-status > /dev/null first to detect whether
+# OpenRC is already up.
+rc-status >/dev/null 2>&1 || openrc default
+
+# ── 1. Start K3s ───────────────────────────────────────────────────────────
+echo "musu-init: starting K3s"
+rc-service k3s start
+
+# ── 2. Wait for K3s API Ready ──────────────────────────────────────────────
+# Critic C8 (MED) resolution: 180s default (was 60s — too tight for first-boot
+# airgap-image import on locked-down corporate laptops).
+# Critic C12 (LOW) resolution: explicit K3S_READY flag + hard exit 1 on timeout
+# (was a silent fall-through after 30 loop iterations).
+TIMEOUT="${MUSU_K3S_READY_TIMEOUT_SEC:-180}"
+DEADLINE=$(( $(date +%s) + TIMEOUT ))
+K3S_READY=0
+while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+  if kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get nodes 2>/dev/null | grep -q ' Ready '; then
+    K3S_READY=1
+    break
+  fi
+  sleep 2
+done
+
+if [ "$K3S_READY" -eq 0 ]; then
+  echo "musu-init: FATAL K3s never went Ready within ${TIMEOUT}s" >&2
+  exit 1
+fi
+echo "musu-init: K3s Ready"
+
+# ── 3. Wait for /etc/musu/account_key ──────────────────────────────────────
+# Critic C2 (HIGH) resolution: gateway start MUST not race the B4b key write.
+# Default: block forever, WARN every 30s. B4c overrides via env var.
+KEY_PATH="/etc/musu/account_key"
+KEY_TIMEOUT="${MUSU_KEY_WAIT_TIMEOUT_SEC:-0}"
+KEY_START=$(date +%s)
+LAST_WARN=0
+
+while [ ! -f "$KEY_PATH" ]; do
+  NOW=$(date +%s)
+  ELAPSED=$(( NOW - KEY_START ))
+  if [ "$KEY_TIMEOUT" -gt 0 ] && [ "$ELAPSED" -ge "$KEY_TIMEOUT" ]; then
+    echo "musu-init: FATAL $KEY_PATH not present after ${KEY_TIMEOUT}s" >&2
+    exit 2
+  fi
+  if [ $(( NOW - LAST_WARN )) -ge 30 ]; then
+    echo "musu-init: awaiting $KEY_PATH (invoke musu-write-key from Windows side: wsl -d musu -- /usr/local/bin/musu-write-key < key.hex)"
+    LAST_WARN="$NOW"
+  fi
+  sleep 2
+done
+echo "musu-init: account_key present"
+
+# ── 4. Start gateway ───────────────────────────────────────────────────────
+echo "musu-init: starting musu-gateway"
+rc-service musu-gateway start
+
+echo "musu-init: K3s + gateway up"
