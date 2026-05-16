@@ -35,11 +35,18 @@ A reasonable subset:
 
 3. **Wait** for completion. The installer's step 11 waits up to 120s for the gateway to log `[gateway-main] connect() resolved`. If the host_class triggers a reboot (wsl2-off-feature-off), the Scheduled Task resumes installation post-logon.
 
-4. **Capture** the `validation-result.json` produced at `%LOCALAPPDATA%\musu\validation-result.json` (or whatever the install-wsl2.ps1 emits — verify against the implementation). Rename per host:
+4. **Capture** the `validation-result.json`. `validate-import.ps1` writes to CWD (the directory you launched PowerShell from), NOT `%LOCALAPPDATA%`. Rename per host:
+   ```powershell
+   # Run validate-import.ps1 from a known directory:
+   cd C:\musu-b4c
+   .\validate-import.ps1 -TarPath .\musu-backend.tar -ExpectedSha256 (Get-Content .\musu-backend.tar.sha256 -Raw).Trim()
+   # validation-result.json now lives at C:\musu-b4c\validation-result.json
+   Copy-Item .\validation-result.json .\b4c-host-<n>-<class>.json
    ```
-   Copy-Item $env:LOCALAPPDATA\musu\validation-result.json `
-             .\b4c-host-<n>-<class>.json
-   ```
+   (Final security audit wiki/377-audit LOW finding: prior version of this runbook
+   referenced `%LOCALAPPDATA%\musu\validation-result.json` — that is the
+   `install-failure.json` convention, NOT `validation-result.json`. Fixed here;
+   V23.3 may move both to `%LOCALAPPDATA%\musu\` for parity.)
 
 5. **Sanity-check telemetry**: from any host with admin secret + curl:
    ```bash

@@ -1382,3 +1382,41 @@ V23.0 ends here. Next action is the Const VII gate — user decision.
 
 This replaces §8's earlier one-liner. The pitch is the same; the
 implementation specifics are now locked.
+
+---
+
+## 13. V23.2 status (updated 2026-05-17)
+
+V23.2 Workstream B is code-complete on `v22/gap-analysis` (HEAD `c5af3ae`).
+All 7 sub-workstreams (B0+B1+B2+B3+B4a+B4b+B4c+B5) shipped. Tests
+189/189 green throughout; `npx tsc --noEmit` clean. See:
+- wiki/376 (V23.2 Workstream B final closure rollup)
+- wiki/377 (qualitative evaluation)
+- wiki/378 (V23.3 prep — Tier-A/B/C candidates + α/β gate-conditional branches)
+
+What's shipped:
+- Per-install HMAC telemetry auth (B1 — closes V23.1 audit HIGH #2)
+- musu-pro `/validate` returns canonical user_id (B2 cross-repo)
+- Admin-authenticated `/v1/telemetry/summary` (B3)
+- musu-backend.tar build pipeline + manual import validation (B4a)
+- Windows PowerShell installer with 3-tier prereq + α-path bootstrap (B4b)
+- Const VI 30% gate experiment scaffolding (B4c — jq aggregator + α/β template)
+- tsconfig.docker.json signaling-image scope (B5)
+
+What remains (operator-side, gates main-merge):
+1. B4a first tar build on Alpine WSL2 host
+2. B4c 5-host experiment + record α/β `gate_decision` in wiki/375 §5.3
+3. Const VII "진행해" for `v22/gap-analysis` → `main` merge
+
+V23.3 starts the day after B4c records `gate_decision`. Plan candidates
++ α/β conditional branches are pre-staged in wiki/378.
+
+---
+
+## 14. One-line summary (updated for V23.2 closure)
+
+> **V23.2 shipped the install pipeline + the gate that measures whether
+> the α-path (WSL2-on-Windows-first) holds. 7 sub-workstreams, 17K LOC,
+> 12+ Critic HIGHs caught before Builder, 5 Auditor MEDIUMs caught
+> in audit-fix loops, 189/189 tests stable. Awaiting 5-host empirical
+> data to fire α/β decision; V23.3 plan branches accordingly.**
