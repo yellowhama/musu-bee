@@ -135,7 +135,36 @@ for tool in python3 make g++; do
   command -v "$tool" >/dev/null 2>&1 || { echo "FATAL: build host missing '$tool' (needed by node-gyp for better-sqlite3). Run: apk add python3 make g++ linux-headers pkgconf" >&2; exit 1; }
 done
 
-STAGING="$(mktemp -d)"
+# Reproducible-build chain (V23.3 B6 / wiki/392):
+#   - GNU tar required for --sort=name --mtime=@SDE --format=pax flags.
+#     BusyBox tar lacks these; the canonical reproducible-builds.org
+#     recipe needs GNU. Run: apk add tar
+#   - strip + objcopy (binutils) required to scrub gcc-embedded
+#     timestamps/paths/host/user from native ELF binaries
+#     (better_sqlite3.node). Run: apk add binutils
+for tool in strip objcopy; do
+  command -v "$tool" >/dev/null 2>&1 || { echo "FATAL: build host missing '$tool' (V23.3 B6 native-binary scrub). Run: apk add binutils" >&2; exit 1; }
+done
+# Probe that 'tar' is GNU tar, not BusyBox.
+if ! tar --version 2>/dev/null | head -1 | grep -q "GNU tar"; then
+  echo "FATAL: 'tar' is not GNU tar (need GNU for --sort/--format=pax). Run: apk add tar" >&2
+  exit 1
+fi
+
+# ── Reproducibility: SOURCE_DATE_EPOCH + fixed STAGING path ───────────────
+# V23.3 B6 (wiki/392): tie all timestamps inside the build to the HEAD
+# commit's author-time, and make STAGING a constant path so node-gyp
+# embedded build paths are constant across builds. Both required for
+# sha256(tar) byte-identity.
+export SOURCE_DATE_EPOCH="$(git -C "$SCRIPT_DIR/.." log -1 --format=%ct HEAD 2>/dev/null || echo 0)"
+if [ "$SOURCE_DATE_EPOCH" = "0" ]; then
+  echo "WARN: SOURCE_DATE_EPOCH=0 (git log failed). Build will not be reproducible." >&2
+fi
+echo "  source_date_epoch: $SOURCE_DATE_EPOCH"
+
+STAGING="$SCRIPT_DIR/../.build-stage"
+rm -rf "$STAGING"
+mkdir -p "$STAGING"
 trap 'rm -rf "$STAGING"' EXIT
 echo "  staging:        $STAGING"
 
@@ -143,25 +172,70 @@ echo "  staging:        $STAGING"
 # This is the canonical "build a chroot" idiom (NOT a docker-save flow,
 # which would emit an OCI layered tar that wsl --import does not understand).
 echo "[1/10] apk-bootstrap Alpine $ALPINE_VER rootfs into $STAGING"
+# Reproducibility (V23.3 B6 / wiki/392 F4): exact-version pins from
+# manifest.yaml. Falls back to floating versions only if manifest is missing
+# the pin — emits WARN to flag the regression.
+APK_ALPINE_BASE_VER="$(yaml_get apk_alpine_base_version)"
+APK_NODEJS_VER="$(yaml_get apk_nodejs_version)"
+APK_OPENRC_VER="$(yaml_get apk_openrc_version)"
+
+APK_PINS=""
+for p in "alpine-base:${APK_ALPINE_BASE_VER}" "nodejs:${APK_NODEJS_VER}" "openrc:${APK_OPENRC_VER}"; do
+  pkg="${p%%:*}"
+  ver="${p#*:}"
+  if [ -n "$ver" ]; then
+    APK_PINS="$APK_PINS ${pkg}=${ver}"
+  else
+    echo "WARN: manifest.yaml missing pin for '$pkg' — falling back to floating." >&2
+    APK_PINS="$APK_PINS ${pkg}"
+  fi
+done
+
 apk -X "http://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VER}/main" \
     -X "http://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VER}/community" \
     -U --allow-untrusted --root="$STAGING" --initdb \
-    add alpine-base nodejs openrc
+    add $APK_PINS
 
 # ── Step 2: K3s binary + airgap images (vendored — no docker.io on boot) ──
-echo "[2/10] Download K3s v${K3S_VER_NUM} binary + airgap-images-${ARCH}"
+# V23.3 B6 (wiki/392 F5 / Critic C-B6-H3): sha256-enforced downloads; the
+# old upstream-curled k3s-install.sh has been REMOVED (no operator path
+# invokes it and its dynamic content broke intra-hour byte-identity).
+echo "[2/10] Download K3s v${K3S_VER_NUM} binary + airgap-images-${ARCH} (sha256-enforced)"
+K3S_BINARY_SHA="$(yaml_get k3s_binary_sha256_${ARCH})"
+K3S_AIRGAP_SHA="$(yaml_get k3s_airgap_sha256_${ARCH})"
+
+if [ -z "$K3S_BINARY_SHA" ] || [ "$K3S_BINARY_SHA" = "TODO-populate" ] || \
+   [ "$K3S_BINARY_SHA" = "TODO-populate-from-k3s-release" ]; then
+  echo "FATAL: manifest.yaml k3s_binary_sha256_${ARCH} is TODO. V23.3 B6 (wiki/392 §4.1 S2.b) requires this populated." >&2
+  exit 1
+fi
+if [ -z "$K3S_AIRGAP_SHA" ] || [ "$K3S_AIRGAP_SHA" = "TODO-populate" ] || \
+   [ "$K3S_AIRGAP_SHA" = "TODO-populate-from-k3s-release" ]; then
+  echo "FATAL: manifest.yaml k3s_airgap_sha256_${ARCH} is TODO. V23.3 B6 (wiki/392 §4.1 S2.b) requires this populated." >&2
+  exit 1
+fi
+
 mkdir -p "$STAGING/usr/local/bin"
 curl -fsSL "https://github.com/k3s-io/k3s/releases/download/v${K3S_VER_NUM}+k3s1/k3s" \
     -o "$STAGING/usr/local/bin/k3s"
+echo "${K3S_BINARY_SHA}  $STAGING/usr/local/bin/k3s" | sha256sum -c -
 chmod 0755 "$STAGING/usr/local/bin/k3s"
 
 mkdir -p "$STAGING/var/lib/rancher/k3s/agent/images"
 curl -fsSL "https://github.com/k3s-io/k3s/releases/download/v${K3S_VER_NUM}+k3s1/k3s-airgap-images-${ARCH}.tar.zst" \
     -o "$STAGING/var/lib/rancher/k3s/agent/images/k3s-airgap-images-${ARCH}.tar.zst"
+echo "${K3S_AIRGAP_SHA}  $STAGING/var/lib/rancher/k3s/agent/images/k3s-airgap-images-${ARCH}.tar.zst" | sha256sum -c -
 
-# k3s-install.sh is upstream's helper — baked in for operator convenience.
-curl -fsSL "https://get.k3s.io" -o "$STAGING/usr/local/bin/k3s-install.sh"
-chmod 0755 "$STAGING/usr/local/bin/k3s-install.sh"
+# k3s-install.sh REMOVED from the tar (Critic C-B6-H3 resolution).
+#
+# Earlier B4a builds curled `https://get.k3s.io` and baked the result into
+# /usr/local/bin/k3s-install.sh as "operator convenience". Grep on the repo
+# confirms NO path invokes that script — musu-init starts K3s directly via
+# `rc-service k3s start` (openrc-k3s.conf:13 `command="/usr/local/bin/k3s"`)
+# and validate-import.ps1 + validate-musu-backend.md never reference it.
+# Meanwhile the URL serves a live upstream script that may be re-edited
+# between intra-hour builds, breaking §7.1 byte-identity for a file no
+# operator path actually uses. Cheapest fix: drop the download.
 
 # ── Step 3: Build gateway dist + production node_modules ──────────────────
 # CRITIC C1 (HIGH) RESOLUTION: `--omit=dev` ONLY. We KEEP optionalDependencies
@@ -171,7 +245,25 @@ chmod 0755 "$STAGING/usr/local/bin/k3s-install.sh"
 # the ONLY path that uses `--omit=optional` (signaling has no WebRTC use).
 echo "[3/10] Compile gateway TypeScript + install production node_modules"
 pushd "$SCRIPT_DIR/.." >/dev/null
-npm ci
+
+# V23.3 B6 (wiki/392 F3): node-gyp invokes gcc to compile better-sqlite3.
+# gcc embeds the build directory's absolute path into DWARF debug info
+# (.debug_info section) and into __FILE__ macro expansions. -ffile-prefix-map
+# rewrites those at compile time so the resulting .node binary is path-
+# independent. SOURCE_DATE_EPOCH alone does NOT fix this.
+#
+# Critic C-B6-M3: cover all THREE directories npm/node-gyp run in across
+# the build (in order of encounter):
+#   1. $SOURCE = $SCRIPT_DIR/.. (musu-relay source dir) — first npm ci below
+#   2. $STAGE_NM_PARENT (per-build temp under STAGING) — second npm ci below
+#   3. $STAGING = $SCRIPT_DIR/../.build-stage — where .node binaries land
+SOURCE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+STAGE_NM_PARENT_PATH="$STAGING/usr/local/lib/musu-gateway/node_modules-staging"
+PREFIX_MAPS="-ffile-prefix-map=${SOURCE_DIR}=/src -ffile-prefix-map=${STAGE_NM_PARENT_PATH}=/stage -ffile-prefix-map=${STAGING}=/build -fdebug-prefix-map=${SOURCE_DIR}=/src -fdebug-prefix-map=${STAGE_NM_PARENT_PATH}=/stage -fdebug-prefix-map=${STAGING}=/build"
+export CFLAGS="${PREFIX_MAPS} ${CFLAGS:-}"
+export CXXFLAGS="${PREFIX_MAPS} ${CXXFLAGS:-}"
+
+npm ci --prefer-offline --no-audit --no-fund
 npx tsc -p tsconfig.json    # produces dist/gateway/{client.js,bridge.js,wrtc-factory.js}
 
 mkdir -p "$STAGING/usr/local/lib/musu-gateway/dist"
@@ -181,8 +273,40 @@ cp -r dist/gateway "$STAGING/usr/local/lib/musu-gateway/dist/"
 STAGE_NM_PARENT="$STAGING/usr/local/lib/musu-gateway/node_modules-staging"
 mkdir -p "$STAGE_NM_PARENT"
 cp package.json package-lock.json "$STAGE_NM_PARENT/"
-( cd "$STAGE_NM_PARENT" && npm ci --omit=dev )
+( cd "$STAGE_NM_PARENT" && npm ci --omit=dev --prefer-offline --no-audit --no-fund )
 mv "$STAGE_NM_PARENT/node_modules" "$STAGING/usr/local/lib/musu-gateway/node_modules"
+# V23.3 B6 (wiki/392 F3): strip gcc-embedded metadata from compiled .node
+# binaries. -ffile-prefix-map above handles paths inside DWARF; strip + objcopy
+# remove the .comment section (gcc version string) and unneeded symbols
+# (which would otherwise contain absolute paths from the link line).
+echo "[3.b/10] Strip native ELF metadata from compiled .node binaries"
+find "$STAGING/usr/local/lib/musu-gateway/node_modules" -name "*.node" -type f -print0 | \
+  while IFS= read -r -d '' nodebin; do
+    strip --strip-unneeded "$nodebin" || true
+    objcopy --remove-section=.comment --remove-section=.note "$nodebin" || true
+    # Force deterministic mtime; tar will rewrite again but this keeps
+    # intermediate sha audits clean.
+    touch -d "@${SOURCE_DATE_EPOCH}" "$nodebin"
+  done
+
+# V23.3 B6 audit-fix (Builder root-cause from §7.1 Step 1 mismatch
+# 78d2bc... vs d66f14...): node-gyp leaves the entire build/ tree
+# (Makefile, *.o, *.a, obj.target/) alongside the final .node binary.
+# Those intermediate artifacts contain non-deterministic node-gyp output
+# (Python dict-ordered dependency lists in Makefile, build host paths,
+# gcc invocation timestamps). They are NOT needed at runtime — only
+# build/Release/<addon>.node is. Promote the runtime .node up next to
+# the package root and delete the rest of build/.
+echo "[3.c/10] Prune node-gyp build/ intermediates (keep only build/Release/*.node)"
+find "$STAGING/usr/local/lib/musu-gateway/node_modules" -type d -name build -print0 | \
+  while IFS= read -r -d '' builddir; do
+    # Move every compiled addon to build/Release/ (already its home) and
+    # then nuke everything else under build/ (obj.target/, Makefile, deps/).
+    if [ -d "$builddir/Release" ]; then
+      find "$builddir" -mindepth 1 -maxdepth 1 ! -name Release -exec rm -rf {} +
+      find "$builddir/Release" -mindepth 1 -maxdepth 1 ! -name '*.node' -exec rm -rf {} +
+    fi
+  done
 rm -rf "$STAGE_NM_PARENT"
 popd >/dev/null
 
@@ -191,7 +315,11 @@ popd >/dev/null
 # node_modules and we can prove it loads under musl-Alpine before the operator
 # ever wsl --imports. Throwaway docker container — does not touch $STAGING.
 echo "[4/10] musl smoke-import: require('@roamhq/wrtc') inside alpine:${ALPINE_VER}"
-if command -v docker >/dev/null 2>&1; then
+# V23.3 B6: `command -v docker` is not sufficient on Alpine WSL2 because
+# Docker Desktop's Windows-side shim at /mnt/c/Program Files/Docker/... is
+# inherited via PATH, but actually invoking it errors when the per-distro
+# WSL integration is off. Probe both presence AND ability to run a no-op.
+if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
   if ! docker run --rm -v "$STAGING/usr/local/lib/musu-gateway:/g:ro" "alpine:${ALPINE_VER}" \
         sh -c "apk add --no-cache nodejs && node -e \"require('/g/node_modules/@roamhq/wrtc')\"" ; then
     echo "FATAL: @roamhq/wrtc failed to load under musl-Alpine ${ALPINE_VER}." >&2
@@ -202,7 +330,7 @@ if command -v docker >/dev/null 2>&1; then
     exit 1
   fi
 else
-  echo "WARN:  docker not present on build host — skipping musl smoke-import."
+  echo "WARN:  docker not usable on build host — skipping musl smoke-import."
   echo "       The musl behavior of @roamhq/wrtc is then unverified until first boot."
 fi
 
@@ -239,11 +367,23 @@ WSLCONF
 # Read by validate-import.ps1 (writes musu_version_raw into validation-result.json)
 # and by the closure doc for B4c host comparison.
 echo "[6.c/10] Bake /etc/musu-version provenance block"
+# V23.3 B6 (wiki/392): provenance block uses SDE-derived timestamp and
+# git describe (with --dirty) so a dirty working tree is visible in the
+# tar's /etc/musu-version content.
+#
+# Critic C-B6-H1: emit BOTH git_sha (preserved for main.ts:171's
+# /^git_sha=(.+)$/m regex which feeds install_completed.musu_version
+# telemetry) AND git_desc (new, surfaces dirty-tree marker for
+# validate-import.ps1 / B4c host comparison). Additive schema, no
+# TypeScript source touch.
 GIT_SHA="$(git -C "$SCRIPT_DIR/.." rev-parse --short HEAD 2>/dev/null || echo unknown)"
-BUILD_TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+GIT_DESC="$(git -C "$SCRIPT_DIR/.." describe --always --dirty=-dirty 2>/dev/null || echo unknown)"
+BUILD_TS="$(date -u -d "@${SOURCE_DATE_EPOCH}" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)"
 cat > "$STAGING/etc/musu-version" <<VERS
 git_sha=${GIT_SHA}
+git_desc=${GIT_DESC}
 build_iso_ts=${BUILD_TS}
+source_date_epoch=${SOURCE_DATE_EPOCH}
 k3s_version=v${K3S_VER_NUM}
 alpine_version=${ALPINE_VER}
 node_version=${NODE_VER}
@@ -265,7 +405,23 @@ echo "[8/10] Pack tar -cf $OUTPUT -C $STAGING ."
 # Flat rootfs: contents of / at tar root (etc/, usr/, var/, …). NOT compressed
 # — wsl --import handles either, but uncompressed is faster on import and we
 # already pay the size cost of airgap-images regardless.
-tar -cf "$OUTPUT" -C "$STAGING" .
+#
+# V23.3 B6 (wiki/392 F1): reproducible tar. Citations:
+#   - reproducible-builds.org/docs/source-date-epoch/
+#   - reproducible-builds.org/docs/archives/
+# Flags:
+#   --sort=name         deterministic entry order (replaces readdir order)
+#   --mtime=@SDE        every member's mtime = SDE (eliminates wall-clock leakage)
+#   --owner=0/--group=0/--numeric-owner   uid/gid = 0 regardless of build user
+#   --format=pax        portable extended headers (required to fit large mtimes)
+#   --pax-option=...    strip atime/ctime from PaxHeaders and remove the
+#                       random "archive build time" name in exthdr.name=
+tar --sort=name \
+    --mtime="@${SOURCE_DATE_EPOCH}" \
+    --owner=0 --group=0 --numeric-owner \
+    --format=pax \
+    --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime \
+    -cf "$OUTPUT" -C "$STAGING" .
 
 # ── Step 9: SHA-256 sidecar (Critic C4 HIGH) ──────────────────────────────
 # B4c verifies payload identity across 5 hosts using this hash.

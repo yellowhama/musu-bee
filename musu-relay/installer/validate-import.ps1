@@ -186,6 +186,11 @@ if ($freeOutput -match 'Mem:\s+(\d+)\s+(\d+)') {
 # ── 4.b /etc/musu-version provenance (Critic C4 HIGH) ─────────────────────
 $musuVersion = & wsl.exe -d $DistroName -- cat /etc/musu-version 2>$null | Out-String
 $result.musu_version_raw = $musuVersion
+# V23.3 B6 (wiki/392 §4.1 S6c): prefer git_desc (new, surfaces dirty-tree
+# marker), fall back to git_sha (preserved for main.ts:171 telemetry).
+if ($musuVersion -match '(?m)^git_desc=(.+)$') { $result.musu_version_id = $Matches[1].Trim() }
+elseif ($musuVersion -match '(?m)^git_sha=(.+)$') { $result.musu_version_id = $Matches[1].Trim() }
+else { $result.musu_version_id = "unknown" }
 
 # ── 5. Summary (success path) ─────────────────────────────────────────────
 # Result-file write + cleanup happen unconditionally in finally below
