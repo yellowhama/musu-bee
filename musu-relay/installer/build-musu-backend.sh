@@ -44,6 +44,7 @@ ARCH="amd64"
 K3S_VER=""
 OUTPUT=""
 ALLOW_OVERSIZE=""
+ALLOW_IMAGE_OVERSIZE=""
 
 usage() {
   cat <<EOF
@@ -55,7 +56,8 @@ Required:
   --output        Output tar path (will be created/overwritten)
 
 Optional:
-  --allow-oversize  Skip the 500MB hard fail (warns only)
+  --allow-oversize        Skip the outer 500MB tar hard fail (warns only)
+  --allow-image-oversize  Skip the 150MB bridge OCI image hard fail (V23.3 A1.a / wiki/380 H4)
 
 Build host requirement: Alpine WSL2 (apk + coreutils tar + curl + git).
 EOF
@@ -67,6 +69,7 @@ while [ $# -gt 0 ]; do
     --k3s-version)     K3S_VER="$2"; shift 2 ;;
     --output)          OUTPUT="$2"; shift 2 ;;
     --allow-oversize)  ALLOW_OVERSIZE="1"; shift ;;
+    --allow-image-oversize) ALLOW_IMAGE_OVERSIZE="1"; shift ;;
     -h|--help)         usage; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; usage; exit 1 ;;
   esac
@@ -150,6 +153,11 @@ if ! tar --version 2>/dev/null | head -1 | grep -q "GNU tar"; then
   echo "FATAL: 'tar' is not GNU tar (need GNU for --sort/--format=pax). Run: apk add tar" >&2
   exit 1
 fi
+
+# V23.3 A1.a (wiki/380): buildah for OCI image build of musu-bridge.
+# Alpine WSL2 + docker is flaky (B6 C-B6-F14); buildah is rootless + native.
+# Run: apk add buildah
+command -v buildah >/dev/null 2>&1 || { echo "FATAL: build host missing 'buildah' (V23.3 A1.a). Run: apk add buildah" >&2; exit 1; }
 
 # ── Reproducibility: SOURCE_DATE_EPOCH + fixed STAGING path ───────────────
 # V23.3 B6 (wiki/392): tie all timestamps inside the build to the HEAD
@@ -310,6 +318,85 @@ find "$STAGING/usr/local/lib/musu-gateway/node_modules" -type d -name build -pri
 rm -rf "$STAGE_NM_PARENT"
 popd >/dev/null
 
+# ── Step 3.d: Build musu-bridge OCI image (V23.3 A1.a / wiki/380) ─────────
+echo "[3.d/10] Build musu-bridge OCI image (buildah --timestamp=SDE)"
+
+# Critic H5 resolution: split bridge_image_tag into name + version to avoid
+# yaml_get parser fragility on values containing ':' (the awk parser at :87
+# was only ever tested with colonless values).
+BRIDGE_IMAGE_NAME="$(yaml_get bridge_image_name)"
+BRIDGE_IMAGE_VERSION="$(yaml_get bridge_image_version)"
+if [ -z "$BRIDGE_IMAGE_NAME" ] || [ -z "$BRIDGE_IMAGE_VERSION" ]; then
+  echo "FATAL: manifest.yaml missing bridge_image_name or bridge_image_version (V23.3 A1.a / wiki/380 H5)" >&2
+  exit 1
+fi
+BRIDGE_TAG="${BRIDGE_IMAGE_NAME}:${BRIDGE_IMAGE_VERSION}"
+BRIDGE_IMAGE_TAR="$STAGING/var/lib/rancher/k3s/agent/images/${BRIDGE_IMAGE_NAME}-${BRIDGE_IMAGE_VERSION}.tar"
+mkdir -p "$(dirname "$BRIDGE_IMAGE_TAR")"
+
+# buildah needs repo root as context (Dockerfile COPYs both musu-bridge/ and musu-core/).
+BUILD_CONTEXT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# Critic H1 step 1: build into a temporary OCI directory (NOT directly to tar)
+# so we control the tar layout in step 2 below.
+BRIDGE_OCI_DIR="$STAGING/.bridge-oci-tmp"
+rm -rf "$BRIDGE_OCI_DIR"
+mkdir -p "$BRIDGE_OCI_DIR"
+
+buildah build \
+    --timestamp "${SOURCE_DATE_EPOCH}" \
+    --build-arg SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH}" \
+    --build-arg GIT_SHA="${GIT_SHA:-unknown}" \
+    --build-arg GIT_DESC="${GIT_DESC:-unknown}" \
+    --build-arg BUILD_TS="${BUILD_TS:-unknown}" \
+    --build-arg BRIDGE_VERSION="${BRIDGE_IMAGE_VERSION}" \
+    -f "$BUILD_CONTEXT/musu-bridge/Dockerfile" \
+    -t "${BRIDGE_TAG}" \
+    "$BUILD_CONTEXT"
+
+# Push to OCI directory format (uncompressed, layout-preserved).
+buildah push "${BRIDGE_TAG}" "oci:${BRIDGE_OCI_DIR}:${BRIDGE_IMAGE_VERSION}"
+
+# Critic H1 step 2: re-pack the OCI directory with the SAME B6 reproducible
+# tar recipe used by the outer musu-backend.tar. Buildah's native oci-archive
+# output does NOT guarantee --sort=name --format=pax --pax-option=... layout,
+# so we don't trust it -- we re-pack ourselves with the proven recipe.
+tar --sort=name \
+    --mtime="@${SOURCE_DATE_EPOCH}" \
+    --owner=0 --group=0 --numeric-owner \
+    --format=pax \
+    --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime \
+    -cf "$BRIDGE_IMAGE_TAR" -C "$BRIDGE_OCI_DIR" .
+rm -rf "$BRIDGE_OCI_DIR"
+
+# Verify against manifest.yaml-pinned sha256 (or populate-on-first-build).
+EXPECTED_SHA="$(yaml_get bridge_image_oci_archive_sha256_${ARCH})"
+ACTUAL_SHA="$(sha256sum "$BRIDGE_IMAGE_TAR" | awk '{print $1}')"
+if [ -n "$EXPECTED_SHA" ] && [ "$EXPECTED_SHA" != "TODO-populate" ] && [ "$EXPECTED_SHA" != "$ACTUAL_SHA" ]; then
+  echo "FATAL: bridge image sha256 mismatch. expected=$EXPECTED_SHA actual=$ACTUAL_SHA" >&2
+  exit 1
+fi
+echo "       bridge image: $BRIDGE_TAG"
+echo "       oci archive:  $BRIDGE_IMAGE_TAR"
+echo "       sha256:       $ACTUAL_SHA"
+
+# Bake digest into /etc/musu-version (extends step 6.c).
+BRIDGE_IMAGE_OCI_SHA="$ACTUAL_SHA"
+
+# V23.3 A1.a (wiki/380 F8 + Critic H4): image hard-budget 150MB OCI archive.
+# Critic H4: distinct flag --allow-image-oversize (NOT --allow-oversize, which
+# is reserved for the outer 500MB tar). A single flag conflation would let an
+# operator silently bypass both gates.
+BRIDGE_IMG_BYTES="$(stat -c %s "$BRIDGE_IMAGE_TAR" 2>/dev/null || echo 0)"
+BRIDGE_IMG_MB=$((BRIDGE_IMG_BYTES / 1024 / 1024))
+echo "       bridge image size: ${BRIDGE_IMG_MB} MB"
+if [ "$BRIDGE_IMG_MB" -gt 150 ] && [ -z "$ALLOW_IMAGE_OVERSIZE" ]; then
+  echo "FATAL: bridge image > 150MB hard-budget (got ${BRIDGE_IMG_MB} MB). Use --allow-image-oversize to bypass." >&2
+  exit 1
+elif [ "$BRIDGE_IMG_MB" -gt 100 ]; then
+  echo "WARN:  bridge image > 100MB soft-target (${BRIDGE_IMG_MB} MB). Closure should enumerate top contributors." >&2
+fi
+
 # ── Step 4: musl smoke-import of @roamhq/wrtc ──────────────────────────────
 # CRITIC C1 RESOLUTION (cont'd): with optional KEPT, @roamhq/wrtc exists in
 # node_modules and we can prove it loads under musl-Alpine before the operator
@@ -387,6 +474,8 @@ source_date_epoch=${SOURCE_DATE_EPOCH}
 k3s_version=v${K3S_VER_NUM}
 alpine_version=${ALPINE_VER}
 node_version=${NODE_VER}
+bridge_image_tag=${BRIDGE_TAG}
+bridge_image_oci_sha256=${BRIDGE_IMAGE_OCI_SHA}
 arch=${ARCH}
 VERS
 

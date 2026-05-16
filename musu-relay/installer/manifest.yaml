@@ -42,3 +42,17 @@ k3s_airgap_sha256_arm64: "f25cc2f5dcf9c697c7b1a88f8724e7600007e576eea8c6873593fb
 apk_alpine_base_version: "3.19.9-r0"
 apk_nodejs_version: "20.15.1-r0"
 apk_openrc_version: "0.52.1-r2"
+
+# V23.3 A1.a (wiki/380) bridge image pins.
+# Critic H5: name + version are SPLIT (not one bridge_image_tag) because
+# yaml_get's awk parser at build-musu-backend.sh:87 has not been tested
+# against values containing ':' — the existing convention is colonless flat
+# strings. Builder derives BRIDGE_TAG="${bridge_image_name}:${bridge_image_version}"
+# in script. bridge_image_oci_archive_sha256_${ARCH} is verified at build
+# time; bridge_image_digest is the OCI manifest digest used by A1.b's K3s
+# Deployment to pin the image: field.
+bridge_image_name: "musu-bridge"
+bridge_image_version: "v0.1.0"
+bridge_image_oci_archive_sha256_amd64: "7e807ea21e7ff93d77a655681e8d56330a2d280b5f93602aa6429f6fa735ede0"
+bridge_image_oci_archive_sha256_arm64: "TODO-populate"
+bridge_image_digest: "sha256:ad3097cd0966fe34a0872ac9c3c30386d6fc59d59c737e791d53c692aabb4626"

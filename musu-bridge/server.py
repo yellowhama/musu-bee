@@ -205,6 +205,16 @@ _token = os.environ.get("MUSU_BRIDGE_TOKEN", "")
 if not _token:
     print("FATAL: MUSU_BRIDGE_TOKEN is not set. Refusing to start without auth.", file=sys.stderr)
     sys.exit(1)
+# S-A1a-H2 (security audit, wiki/381): the prior production strict-token
+# check lived under `if __name__ == "__main__":` and was bypassed by the
+# container's `python -m uvicorn server:app` CMD path. Lifting to module
+# top-level so import-time evaluation (which uvicorn triggers) enforces.
+if os.environ.get("MUSU_ENV") == "production" and len(_token) < 32:
+    print(
+        "FATAL: MUSU_ENV=production requires MUSU_BRIDGE_TOKEN (min 32 chars).",
+        file=sys.stderr,
+    )
+    sys.exit(1)
 
 _MAX_CONCURRENT_TASKS = int(os.environ.get("MUSU_MAX_CONCURRENT_TASKS", "20"))
 _CHANNEL_MAX_TASKS = int(os.environ.get("MUSU_CHANNEL_MAX_TASKS", "10"))

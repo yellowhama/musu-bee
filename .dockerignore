@@ -1,0 +1,68 @@
+# V23.3 A1.a (wiki/380): repo-root .dockerignore.
+# Buildah/docker only reads .dockerignore at the BUILD CONTEXT root.
+# The bridge image build (musu-relay/installer/build-musu-backend.sh
+# step 3.d) uses repo root as context (Dockerfile lives at
+# musu-bridge/Dockerfile; context must include musu-core/ sibling).
+#
+# Builder note (wiki/380 §12 amendment): the plan placed .dockerignore at
+# musu-bridge/.dockerignore — that file is NOT read by buildah when the
+# context is repo root. Without these rules, host __pycache__/ inside
+# musu-core/src/musu_core/ leaks into the COPY layer, breaking B6
+# byte-identity (Build A vs Build B mismatch on the COPY layer's tar).
+# Rules below are scoped to the directories the bridge Dockerfile actually
+# COPYs from (musu-bridge/ and musu-core/), so other potential users of
+# the repo root as context are not affected by accidental over-exclusion.
+
+# musu-bridge/ exclusions (mirror the original musu-bridge/.dockerignore)
+musu-bridge/.venv/
+musu-bridge/.venv*/
+musu-bridge/__pycache__/
+musu-bridge/**/__pycache__/
+musu-bridge/**/*.pyc
+musu-bridge/**/*.pyo
+musu-bridge/**/*.pyd
+musu-bridge/.pytest_cache/
+musu-bridge/.mypy_cache/
+musu-bridge/nohup.out
+musu-bridge/**/*.log
+musu-bridge/tests/
+musu-bridge/test_*.py
+musu-bridge/*_test.py
+musu-bridge/**/*.bak
+musu-bridge/.git/
+# S-A1a-H1 (security audit, wiki/381): exclude dev/QA/legacy/template
+# artifacts that ship under /app/ as information-disclosure surface
+# (OWASP A05:2021). These are tracked in git so .gitignore does not
+# stop the COPY; only .dockerignore at build-context root does.
+musu-bridge/.musu/
+musu-bridge/_legacy_*/
+musu-bridge/.env
+musu-bridge/.env.*
+musu-bridge/*.example
+musu-bridge/instructions/
+musu-bridge/Dockerfile
+musu-bridge/Dockerfile.*
+# Critic L5 from plan §12 wanted Dockerfile/.dockerignore/requirements-lock.txt
+# excluded so they don't clutter the runtime /app/. The repo-root .dockerignore
+# cannot exclude them: requirements-lock.txt is needed by the explicit
+# `COPY musu-bridge/requirements-lock.txt /tmp/` step, and excluding it would
+# block the entire build. The cost of letting all three ship under /app/ at
+# runtime is ~3 KB; acceptable. To revisit (image-bytes-tight), switch the
+# wholesale `COPY musu-bridge/ /app/` to use BuildKit 1.7 `--exclude` flags
+# on the second COPY rather than dockerignore — that's COPY-scoped, not
+# context-scoped, and resolves the conflict cleanly.
+
+# Static assets are INCLUDED by default (F13). Uncomment to exclude when
+# image-size pressure forces (A1.c bench follow-on).
+# musu-bridge/static/novnc/
+
+# musu-core/ exclusions — only the bridge image COPYs musu_core,
+# so __pycache__ leakage here is what was breaking B6 byte-identity.
+musu-core/**/__pycache__/
+musu-core/**/*.pyc
+musu-core/**/*.pyo
+musu-core/**/*.pyd
+musu-core/.pytest_cache/
+musu-core/.mypy_cache/
+musu-core/tests/
+musu-core/**/*.bak
