@@ -25,13 +25,13 @@
 // MUST NOT crash the gateway. The install is successful (account_key +
 // gateway.env + WS handshake all worked) even if the telemetry POST 5xxs.
 
-import { createHmac } from "crypto";
 import * as fs from "fs";
 import {
   DEFAULT_STUN_SERVERS,
   GatewayClient,
   GatewayConfig,
 } from "./client";
+import { signAndPost } from "./telemetry-hmac";
 import { makeWrtcFactory } from "./wrtc-factory";
 
 /** Parse a simple KEY=VALUE file. Skips blank lines and #-prefixed comments.
@@ -93,37 +93,22 @@ async function emitInstallCompleted(
     step_error_class: null,
     elapsed_ms: installElapsedMs,
   };
-  // ONE rawBody variable — HMAC compute AND fetch body MUST be the same
-  // bytes (client.ts:514-520 body-identity invariant).
+  // V23.3 A3.swap (wiki/379 §2 A3.swap): delegate HMAC sign + body-identity
+  // POST to the shared helper. rawBody is JSON.stringify'd ONCE here;
+  // signAndPost uses the same string for both signing input and fetch body.
   const rawBody = JSON.stringify(record);
-  const t = Math.floor(Date.now() / 1000);
-  const signedString = `${t}.${rawBody}`;
-  const v1 = createHmac("sha256", effectiveAccountKey)
-    .update(signedString)
-    .digest("hex");
-  const headers: Record<string, string> = {
-    "content-type": "application/json",
-    "x-musu-user-id": cfg.userId,
-    "x-musu-telemetry-signature": `t=${t},v1=${v1}`,
-  };
-
-  const fetchImpl = cfg.fetchImpl ?? globalThis.fetch;
-  try {
-    const resp = await fetchImpl(`${cfg.telemetryBase}/install`, {
-      method: "POST",
-      headers,
-      body: rawBody,
-    });
-    log(
-      `[gateway-main] install_completed POST status=${resp.status}`,
-    );
-  } catch (err) {
-    log(
-      `[gateway-main] install_completed POST failed (best-effort, ignored): ${
-        err instanceof Error ? err.message : String(err)
-      }`,
-    );
+  const result = await signAndPost({
+    url: `${cfg.telemetryBase}/install`,
+    rawBody,
+    accountKey: effectiveAccountKey,
+    userId: cfg.userId,
+    fetchImpl: cfg.fetchImpl,
+    log,
+  });
+  if (result.status !== undefined) {
+    log(`[gateway-main] install_completed POST status=${result.status}`);
   }
+  // signAndPost already logs error paths; nothing else to do here.
 }
 
 async function main(): Promise<void> {

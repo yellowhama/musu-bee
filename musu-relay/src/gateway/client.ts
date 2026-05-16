@@ -22,8 +22,9 @@
 //    room_peers, we initiate OFFER to any peer with role="visitor") →
 //   exchange ICE candidates → DataChannel "open" → handoff to bridge
 
-import { createHmac } from "crypto";
 import WebSocket from "ws";
+
+import { signAndPost } from "./telemetry-hmac";
 
 // ── Protocol types (mirror src/signaling/server.ts) ──────────────────────
 
@@ -522,41 +523,50 @@ export class GatewayClient {
       return;
     }
     const fetchImpl = this.cfg.fetchImpl ?? globalThis.fetch;
-    // V23.2 B1 commit 5 (wiki/363 §6.2): ONE rawBody variable, used twice
-    // (HMAC compute AND fetch body). Writing `body: JSON.stringify(record)`
-    // a second time would produce different bytes if any value were
-    // serialized non-deterministically, and the server-side raw-body
-    // signature check (commit 1) would 401. The body-identity test in
-    // telemetry-emit.test.ts guards this invariant.
+    // V23.2 B1 (wiki/363 §6.2) → V23.3 A3 (wiki/379 §2 A3): rawBody is
+    // JSON.stringify'd ONCE here. The signAndPost helper from
+    // telemetry-hmac.ts then uses the SAME string for both HMAC signing
+    // input and fetch body, structurally guaranteeing the body-identity
+    // invariant that V23.2 B1 commit 5 introduced as discipline.
     const rawBody = JSON.stringify(record);
-    const headers: Record<string, string> = {
-      "content-type": "application/json",
-    };
     // Prefer the bootstrap-acquired key; fall back to caller-supplied.
     const effectiveAccountKey = this.bootstrappedAccountKey ?? this.cfg.accountKey;
     if (effectiveAccountKey) {
-      const t = Math.floor(Date.now() / 1000);
-      const signedString = `${t}.${rawBody}`;
-      const v1 = createHmac("sha256", effectiveAccountKey)
-        .update(signedString)
-        .digest("hex");
-      headers["x-musu-user-id"] = this.cfg.userId;
-      headers["x-musu-telemetry-signature"] = `t=${t},v1=${v1}`;
-    } else if (this.cfg.telemetrySharedSecret) {
-      // Legacy path — survives until V23.3 HMAC_ONLY landing.
-      headers["x-musu-telemetry-secret"] = this.cfg.telemetrySharedSecret;
-    }
-    try {
-      await fetchImpl(`${this.cfg.telemetryBase}/nat_pierce`, {
-        method: "POST",
-        headers,
-        body: rawBody, // SAME variable signed above — do not re-stringify.
+      const result = await signAndPost({
+        url: `${this.cfg.telemetryBase}/nat_pierce`,
+        rawBody,
+        accountKey: effectiveAccountKey,
+        userId: this.cfg.userId,
+        fetchImpl,
+        log: (l) => this.log(l),
       });
-    } catch (err) {
-      // Telemetry is best-effort. A failure must never block signaling.
-      this.log(
-        `[gateway] telemetry POST failed: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      if (result.error) {
+        this.log(
+          `[gateway] telemetry POST failed: ${result.error instanceof Error ? result.error.message : String(result.error)}`,
+        );
+      }
+    } else {
+      // Non-HMAC paths: either legacy shared-secret (T2.AUTH.2 interim) or
+      // unauth (server policy decides whether to 401). Both use the same
+      // fetch shape; helper does NOT cover them because shared-secret has
+      // no rawBody/signing relationship and unauth has no auth header.
+      const headers: Record<string, string> = {
+        "content-type": "application/json",
+      };
+      if (this.cfg.telemetrySharedSecret) {
+        headers["x-musu-telemetry-secret"] = this.cfg.telemetrySharedSecret;
+      }
+      try {
+        await fetchImpl(`${this.cfg.telemetryBase}/nat_pierce`, {
+          method: "POST",
+          headers,
+          body: rawBody,
+        });
+      } catch (err) {
+        this.log(
+          `[gateway] telemetry POST failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
     }
   }
 }
