@@ -152,9 +152,10 @@ export class GatewayClient {
   private closed = false;
   /** Bootstrap-acquired HMAC key. Holds the value returned by
    *  /issue_install_key on first connect, when `cfg.accountKey` was unset.
-   *  Header construction prefers `this.accountKey ?? this.cfg.accountKey`.
-   *  In-memory only — wiped on process exit. Persistence is B4b's job. */
-  private accountKey: string | undefined;
+   *  Header construction prefers `this.bootstrappedAccountKey ?? this.cfg.accountKey`.
+   *  In-memory only — wiped on process exit. Persistence is B4b's job.
+   *  Exposed publicly via the `accountKey` getter for B4b main.ts (C14). */
+  private bootstrappedAccountKey: string | undefined;
 
   constructor(private readonly cfg: GatewayConfig) {
     this.log = cfg.onLog ?? ((l) => console.log(l));
@@ -392,7 +393,7 @@ export class GatewayClient {
   /** V23.2 B1 commit 5 (wiki/363 §6.3). On first connect, when the caller
    *  has not provided `accountKey` and telemetry is enabled, fetch one
    *  from `/issue_install_key`. The acquired key is held in
-   *  `this.accountKey` for the lifetime of the process only — file
+   *  `this.bootstrappedAccountKey` for the lifetime of the process only — file
    *  persistence is deferred to B4b (Critic HIGH #1 resolution).
    *
    *  Outcomes:
@@ -442,7 +443,7 @@ export class GatewayClient {
     if (resp.status === 200) {
       const body = (await resp.json()) as { account_key?: string };
       if (typeof body.account_key === "string" && body.account_key.length > 0) {
-        this.accountKey = body.account_key;
+        this.bootstrappedAccountKey = body.account_key;
         this.log(`[gateway] bootstrapAccountKey OK: account_key acquired`);
       } else {
         this.log(
@@ -486,6 +487,16 @@ export class GatewayClient {
     return this.telemetryRecords;
   }
 
+  /** Bootstrap-path C14 gap fix: expose the effective accountKey so main.ts
+   *  can sign install_completed regardless of whether the key came from the
+   *  installer-pre-write path (cfg.accountKey) or the in-memory bootstrap path
+   *  (bootstrappedAccountKey from /issue_install_key). Mirrors the fallback in
+   *  recordOutcome(). Read-only.
+   */
+  get accountKey(): string | undefined {
+    return this.bootstrappedAccountKey ?? this.cfg.accountKey;
+  }
+
   private async recordOutcome(
     session: PeerSession,
     outcome: "success" | "fail",
@@ -522,7 +533,7 @@ export class GatewayClient {
       "content-type": "application/json",
     };
     // Prefer the bootstrap-acquired key; fall back to caller-supplied.
-    const effectiveAccountKey = this.accountKey ?? this.cfg.accountKey;
+    const effectiveAccountKey = this.bootstrappedAccountKey ?? this.cfg.accountKey;
     if (effectiveAccountKey) {
       const t = Math.floor(Date.now() / 1000);
       const signedString = `${t}.${rawBody}`;
