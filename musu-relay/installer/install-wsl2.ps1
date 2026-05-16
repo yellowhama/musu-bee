@@ -500,9 +500,11 @@ try {
     # ── Step 7 — Atomic OpenRC service file replace (C5 MED) ───────────────
 
     Write-MusuInfo "Step 7/12: replace /etc/init.d/musu-gateway"
-    $gwSrc = Join-Path $PSScriptRoot "openrc-musu-gateway-b4b.conf"
+    # V23.3 B7 (wiki/379 §2 B7): sources the canonical openrc-musu-gateway.conf
+    # (b4b drop-in deleted in V23.3 B7; canonical now points at main.js).
+    $gwSrc = Join-Path $PSScriptRoot "openrc-musu-gateway.conf"
     if (-not (Test-Path $gwSrc)) {
-        throw "openrc-musu-gateway-b4b.conf missing at $gwSrc"
+        throw "openrc-musu-gateway.conf missing at $gwSrc"
     }
     # Read with UTF-8, strip CR so the file is LF-only inside the distro.
     $gwContent = (Get-Content $gwSrc -Raw -Encoding UTF8) -replace "`r`n", "`n"
