@@ -32,6 +32,7 @@ import {
   GatewayClient,
   GatewayConfig,
 } from "./client";
+import { makeWrtcFactory } from "./wrtc-factory";
 
 /** Parse a simple KEY=VALUE file. Skips blank lines and #-prefixed comments.
  *  Tolerant of trailing CR (CRLF source from PowerShell).
@@ -208,14 +209,7 @@ async function main(): Promise<void> {
     token,
     userId,
     stunServers: DEFAULT_STUN_SERVERS,
-    pcFactory: {
-      create: () => {
-        // T1.9 (wrtc factory wiring) is master-plan-deferred. B4b ships with
-        // signaling-only — the gateway connects, registers as peer=gateway,
-        // and is ready for OFFERs but cannot complete handshakes until T1.9.
-        throw new Error("TODO T1.9 wrtc factory wiring");
-      },
-    },
+    pcFactory: makeWrtcFactory(),
     telemetryBase,
     musuInstallId,
     accountKey,
