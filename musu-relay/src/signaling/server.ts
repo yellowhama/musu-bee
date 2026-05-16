@@ -81,18 +81,19 @@ const CIRCUIT_COOLDOWN_MS = 30_000;
  * vector where attacker-supplied user_id was used as the cache key /
  * room key.
  *
- * Backward compat: if the validation API does not return a user_id field
- * in its response body (current v21-era musu.pro behavior — endpoint
- * just returns 200/!200), we fall back to the HELLO-supplied id and log
- * a startup warning. Production deploy of V23.2 signaling REQUIRES the
- * musu.pro API to return `{ user_id }` in its 200 body; see
- * docs/V23_2_PLAN_2026_05_16.md §2 T2.AUTH.3.
+ * History: prior to B2 (wiki/365), v21-era musu.pro `/validate` returned
+ * 200/!200 without a `user_id` body field, so this code fell back to the
+ * HELLO-supplied id with a one-time warning. Post-B2-pro (musu-pro
+ * 7397d74 deployed 2026-05-16), `/validate` returns `{ user_id }` in the
+ * 200 body in every case; the fallback was removed in B2-bee (wiki/365).
+ * If the upstream ever returns 200 without `user_id` again, `userId` is
+ * null and the HELLO handler rejects the connection with 4003.
  */
 export interface ValidationResult {
   valid: boolean;
-  /** Canonical userId from musu.pro. Null when valid=false or when the
-   *  validation API does not yet return a user_id (backward compat
-   *  fallback uses the claimed id). */
+  /** Canonical userId from musu.pro. Null when valid=false, or when a
+   *  200 response is missing the `user_id` field (post-B2 strict mode).
+   *  HELLO handler rejects null with 4003. */
   userId: string | null;
 }
 
@@ -134,20 +135,19 @@ async function validateToken(
     const valid = response.ok;
     let canonicalUserId: string | null = null;
     if (valid) {
-      // Try to read the canonical userId from the validation response. If
-      // the upstream doesn't return one (current v21-era behavior), fall
-      // back to the claimed id with a one-time warning.
+      // Read the canonical userId from the validation response. Post-B2
+      // (wiki/365) the upstream is guaranteed to return { user_id } in
+      // every 200 body. If it does not, canonicalUserId stays null and
+      // the HELLO handler rejects the connection with 4003.
       try {
         const body = (await response.json()) as { user_id?: unknown };
         if (typeof body.user_id === "string" && body.user_id.length > 0) {
           canonicalUserId = body.user_id;
         } else {
-          warnOnceCanonicalIdMissing();
-          canonicalUserId = claimedUserId;
+          canonicalUserId = null;
         }
       } catch {
-        warnOnceCanonicalIdMissing();
-        canonicalUserId = claimedUserId;
+        canonicalUserId = null;
       }
     }
     validationCache.set(cacheKey, {
@@ -180,17 +180,6 @@ async function validateToken(
     }
     return degradedGrace(cacheKey);
   }
-}
-
-let _warnedCanonicalIdMissing = false;
-function warnOnceCanonicalIdMissing(): void {
-  if (_warnedCanonicalIdMissing) return;
-  _warnedCanonicalIdMissing = true;
-  console.warn(
-    `[signaling] validation API did not return user_id in response body; ` +
-      `falling back to HELLO-supplied id. Update musu.pro /validate to ` +
-      `return { user_id } before production deploy (audit HIGH #3).`,
-  );
 }
 
 /**
@@ -332,34 +321,31 @@ app.get("/health", (_req, res) => {
 //
 // V23.2 B1 commit 4: inject validateToken so the /issue_install_key route
 // can derive a canonical user_id from the supplied tunnel token. We pass
-// "" as the claimedUserId — validateToken only needs a hint when the
-// upstream /validate is v21-era (pre-B2) and falls back to echoing the
-// claim. In that path we want userId="" so the route's Design A check
-// fires and returns 503. The adapter normalizes ""→null for that test.
+// "" as the claimedUserId — historically (pre-B2) this hint mattered
+// because the v21-era /validate upstream fell back to echoing the claim;
+// post-B2 (wiki/365) the upstream always returns the canonical user_id
+// in the 200 body and the claim is ignored on our side. The adapter
+// normalizes ""→null defensively in case the upstream is ever rolled
+// back to v21-era behavior.
 //
-// V23.2 B1 dual-audit Auditor A M1 (cache-poisoning closure):
-// forceRefresh=true on this bootstrap path. The validationCache is keyed
-// on the token alone (server.ts:62 + audit HIGH #3 fix) and, on a v21-era
-// upstream, falls back to the HELLO-supplied user_id as the canonical id
-// (server.ts:140-151). Without forceRefresh, an attacker holding ANY valid
-// tunnel_token T could:
-//   1. Open a WS, send HELLO {token: T, user_id: VICTIM_ID} → cache stores
-//      {token: T, canonicalUserId: VICTIM_ID}.
-//   2. Within CACHE_TTL_MS, POST /v1/telemetry/issue_install_key with
-//      tunnel_token=T → cache HIT returns userId=VICTIM_ID → route INSERTs
-//      an HMAC account_key keyed on VICTIM_ID.
-//   3. Victim's legitimate gateway later hits 409 at bootstrap → cannot
-//      authenticate telemetry → signaling is unusable for the victim
-//      until manual ops intervention.
-// forceRefresh forces a fresh upstream call here. On a v21-era /validate
-// the fresh response has no user_id field, the adapter normalizes to null,
-// and the route's Design A check returns 503 (correct: refuse to issue
-// against the v21 fallback). On a B2-deployed upstream the fresh response
-// carries the canonical user_id and issuance proceeds normally.
+// forceRefresh=true RETAINED as defense-in-depth (Critic LOW #2 RESOLVED,
+// wiki/365 §15). Rationale:
+//   - The validationCache is keyed on the token alone (server.ts:62 +
+//     audit HIGH #3 fix). Even with the v21 fallback removed in B2-bee
+//     (wiki/365), forceRefresh guarantees the bootstrap path never reads
+//     a stale or attacker-poisoned cache entry written by a concurrent
+//     WS HELLO.
+//   - The HELLO handler at server.ts:429-432 now rejects userId=null
+//     with 4003, but the cache write at server.ts:153-157 still happens
+//     before HELLO sees the result — so a 200-with-empty-user_id from a
+//     misconfigured upstream would land in the cache as
+//     {valid:true, canonicalUserId:null} and the bootstrap path would
+//     also see null and return 503 (correct). forceRefresh just ensures
+//     this path never trusts cache writes it didn't initiate.
 //
-// This is a defense-in-depth gate: the WS HELLO path itself also writes
-// HELLO mismatches to the log (server.ts:414-419) but does NOT reject the
-// cache entry, so the bootstrap path must independently bypass it.
+// This is a defense-in-depth gate: the WS HELLO path itself logs HELLO
+// mismatches (server.ts:434-441) but does NOT reject the cache entry,
+// so the bootstrap path must independently bypass it.
 app.use(
   "/v1/telemetry",
   makeTelemetryRouter(async (token) => {
@@ -539,7 +525,6 @@ function _resetAuthState(): void {
   validationCache.clear();
   _circuitFailures = 0;
   _circuitOpenUntil = 0;
-  _warnedCanonicalIdMissing = false;
 }
 
 export {
