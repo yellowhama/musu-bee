@@ -32,9 +32,12 @@ COPY package*.json ./
 # a large native binding we do not need in the signaling image.
 RUN npm ci --omit=optional
 
-COPY tsconfig.json ./
+COPY tsconfig.json tsconfig.docker.json ./
 COPY src ./src
-RUN npm run build
+# Build with the docker-scoped tsconfig so we only compile src/signaling/**.
+# Gateway and visitor sources are gateway-only / visitor-only and not needed
+# in the signaling image. See V23.2 B5 (wiki/369).
+RUN npx tsc -p tsconfig.docker.json
 
 # Prune dev dependencies so the second-stage copy is lean.
 RUN npm prune --omit=dev --omit=optional
