@@ -166,4 +166,59 @@ From Auditor LOWs and known deferrals:
 
 ---
 
-**End of B4a closure (wiki/371). Awaiting operator first-build + Const VII feature-branch push gate.**
+## 11. First-build appendix (2026-05-17)
+
+The orchestrator-environment B4a tar build executed end-to-end on 2026-05-17 inside Alpine 3.19 WSL2 distro `alpine-musu-build` imported from official `alpine-minirootfs-3.19.9-x86_64.tar.gz`. Two build-host fix-ups were captured permanently in `build-musu-backend.sh` so this never blocks a future builder again.
+
+### 11.1 Build outcome
+
+| Field | Value |
+|---|---|
+| Builder host | Alpine 3.19.9 WSL2 distro `alpine-musu-build` |
+| Source git SHA | `731c86f` |
+| Branch | `v22/gap-analysis` |
+| Build start | 2026-05-17T02:08:01Z |
+| Build end | 2026-05-17T02:23:10Z |
+| Wall-clock | ~15 min |
+| Output | `F:\workspace\musu-archive\builds\2026-05-16_v23.2-b4a\musu-backend.tar` |
+| Size | 348 MB (365,424,640 bytes) |
+| sha256 | `20b62dd03116f1e82ae36014cdb0434830bcdad7c4cac317e46235dd0e85fff3` |
+| 10/10 steps | all passed |
+
+Build log + sidecar live in `F:\workspace\musu-archive\builds\2026-05-16_v23.2-b4a\` with `MANIFEST.md` recording build provenance (git SHA, host, builder uid, archive timestamp). The `F:\workspace\musu-archive\ARCHIVE_INDEX.md` index carries the row.
+
+### 11.2 Fix-ups discovered during first build
+
+**Fix-up #1 — build host needs Python + GCC for better-sqlite3.** `better-sqlite3` (a `dependencies` entry in `musu-relay/package.json`, used by signaling but pulled in for the gateway tar's `npm ci` step) has no Alpine/musl prebuilt binary published to npm. `npm ci` at `[3/10]` falls through to `prebuild-install` → `node-gyp rebuild`, which needs Python 3 + `make` + `g++` + `linux-headers` on the build host. The original `[Build-host sanity checks]` block only verified `apk curl tar sha256sum stat awk install ln mkdir`. First build failed with `gyp ERR! find Python — Could not find any Python installation to use`. **Permanent fix**: sanity-check block now requires `node npm python3 make g++` and prints the exact `apk add` line on failure.
+
+**Fix-up #2 — step 1 header comment contained `` `docker save` `` backticks that bash mis-parsed.** The comment at line 143 (`# This is the canonical "build a chroot" idiom — NOT \`docker save\`, which`) triggered a `bash: line 143: docker: command not found / his: command not found` runtime failure on the second build run after fix-up #1 landed. Even though comments shouldn't evaluate command substitutions, this combination of `set -euo pipefail` + nearby `set -e`-induced trap context surfaced the backtick. **Permanent fix**: the two backtick-wrapped tokens in that header comment were rewritten in prose form (`(NOT a docker-save flow, ...)`) — no functional change, no other backticks in comments outside of safe positions (the file's top-level header at lines 12-13, which the first build proved did not trip).
+
+Both fix-ups land in the same B4a fix-up commit (this update + `build-musu-backend.sh` diff).
+
+### 11.3 Findings carried to V23.3 closure (wiki/371-followup)
+
+- **W1 — tar 348MB > 300MB soft target**: Step 10/10 warned. Top 3 size contributors must be enumerated and a trim proposal recorded in V23.3 B6 (SOURCE_DATE_EPOCH) or a new size-trim sub-WS. Estimated breakdown candidates: K3s airgap-images tar.zst (~200MB after extract; the bulk), gateway `node_modules` (production + `@roamhq/wrtc` native binding), Alpine rootfs base.
+- **W2 — docker not present on B4a build host → musl smoke-import skipped at step 4/10**: builder runs `command -v docker` and skips the `docker run --rm alpine:3.19` cross-check that the gateway's `@roamhq/wrtc` musl binding loads. First operator-side `wsl --import musu` will discover any musl/glibc mismatch. Not a regression of B4a code; documented in build log. V23.4+ could add a separate musl-test runner that does not depend on docker.
+- **W3 — K3s checksums still placeholder per LOW4**: `manifest.yaml:34-37` still carry `TODO-populate-from-k3s-release` for `k3s_binary_sha256_amd64` / `k3s_airgap_sha256_amd64`. The first-build log captures the actual sha256 of the downloaded K3s artifacts (build-logs/b4a-build-20260516T170801Z.log + b4a-build-20260516T171121Z.log). A follow-on can extract these values + populate manifest + flip the build script to enforce. V23.3.
+
+### 11.4 What remains operator-gated
+
+- **B4a self**: now satisfied — tar exists, sha256 verified, archive stored.
+- **B4b validate-import.ps1 run from a real Windows host**: still operator-gated (validate-import requires Windows PowerShell + actual `wsl --import musu <dir> <tar>` on a Windows host with WSL2 enabled — this orchestrator can reach the WSL2 layer for build but the import-and-K3s-ready dance is properly host-coupled).
+- **B4c 5-host experiment**: still operator-gated (genuinely needs 5 Windows host classes).
+- **V23.2 Const VII main-merge**: still operator-typed `"진행해"`.
+
+### 11.5 Build environment notes (reusable)
+
+For future B4a/B6 reproducible builds, the Alpine WSL distro `alpine-musu-build` is at `F:\workspace\musu-bee\.local-build\alpine-wsl\ext4.vhdx` (vhdx — not in git). Packages installed:
+
+- Base: `bash coreutils tar curl git nodejs npm openssl`
+- node-gyp toolchain (per fix-up #1): `python3 make g++ linux-headers pkgconf`
+
+To rebuild from scratch later: `wsl -d alpine-musu-build -- bash /mnt/f/workspace/musu-bee/.local-build/run-b4a.sh` (runner script is tracked outside the repo because it's a developer-environment helper, not product code).
+
+The B6 SOURCE_DATE_EPOCH reproducibility experiment (V23.3 B6) can use this same Alpine distro to drive build #1 vs build #2 with the env var set; two `sha256(musu-backend.tar)` should match exactly.
+
+---
+
+**End of B4a closure (wiki/371). First build done on 2026-05-17; one build-host fix-up commit in flight; operator-gated items (B4b validate, B4c 5-host, V23.2 main-merge) unchanged.**

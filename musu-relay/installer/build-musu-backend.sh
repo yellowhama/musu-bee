@@ -118,8 +118,21 @@ echo "  node_version:   $NODE_VER"
 echo "  output:         $OUTPUT"
 
 # ── Build-host sanity checks ───────────────────────────────────────────────
+# Base host tools.
 for tool in apk curl tar sha256sum stat awk install ln mkdir; do
   command -v "$tool" >/dev/null 2>&1 || { echo "FATAL: build host missing '$tool'. Use Alpine WSL2." >&2; exit 1; }
+done
+# Node + npm for the gateway compile step.
+for tool in node npm; do
+  command -v "$tool" >/dev/null 2>&1 || { echo "FATAL: build host missing '$tool'. Run: apk add nodejs npm" >&2; exit 1; }
+done
+# Native build chain for node-gyp-compiled deps (better-sqlite3 has no
+# Alpine/musl prebuilt; node-gyp falls back to source compile on first
+# install). Without this the npm ci step at [3/10] fails with "Could not
+# find any Python installation to use". Caught by initial B4a run on
+# 2026-05-17 — make permanent.
+for tool in python3 make g++; do
+  command -v "$tool" >/dev/null 2>&1 || { echo "FATAL: build host missing '$tool' (needed by node-gyp for better-sqlite3). Run: apk add python3 make g++ linux-headers pkgconf" >&2; exit 1; }
 done
 
 STAGING="$(mktemp -d)"
@@ -127,8 +140,8 @@ trap 'rm -rf "$STAGING"' EXIT
 echo "  staging:        $STAGING"
 
 # ── Step 1: apk-bootstrap Alpine rootfs ────────────────────────────────────
-# This is the canonical "build a chroot" idiom — NOT `docker save`, which
-# would emit an OCI layered tar that wsl --import does not understand.
+# This is the canonical "build a chroot" idiom (NOT a docker-save flow,
+# which would emit an OCI layered tar that wsl --import does not understand).
 echo "[1/10] apk-bootstrap Alpine $ALPINE_VER rootfs into $STAGING"
 apk -X "http://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VER}/main" \
     -X "http://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VER}/community" \

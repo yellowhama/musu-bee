@@ -4,6 +4,11 @@ node_modules/
 dist/
 .next/
 
+# V23.2 B4a local-build scratch dir — Alpine WSL distro vhdx, minirootfs seed,
+# scratch runner scripts, build logs, and (transitionally) musu-backend.tar
+# before it's archived to F:\workspace\musu-archive\builds\. Never commit.
+.local-build/
+
 # DB
 *.db
 *.db-journal
