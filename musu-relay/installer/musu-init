@@ -52,6 +52,21 @@ if [ "$K3S_READY" -eq 0 ]; then
 fi
 echo "musu-init: K3s Ready"
 
+# ── 3.b. Ensure musu user + state dir on host rootfs (V23.3 A1.b / wiki/382) ─
+# Critic C-A1b-H1 resolution: fsGroup does NOT apply to hostPath volumes, so
+# we must bake ownership of /var/lib/musu/state on the host rootfs ourselves.
+# Pushed to musu-init first-boot (NOT into build-musu-backend.sh step 6) to
+# preserve B6 byte-identity of musu-backend.tar — chroot adduser at build
+# time would touch /etc/shadow with mtime side effects.
+#
+# Idempotent: addgroup/adduser fail closed on re-invocation; 2>/dev/null
+# absorbs the "group/user already exists" stderr. mkdir -m + chown are
+# unconditional but harmless on re-run.
+addgroup -g 1000 musu 2>/dev/null || true
+adduser -D -u 1000 -G musu -H -s /sbin/nologin musu 2>/dev/null || true
+mkdir -m 0770 -p /var/lib/musu/state
+chown 1000:1000 /var/lib/musu/state
+
 # ── 3. Wait for /etc/musu/account_key ──────────────────────────────────────
 # Critic C2 (HIGH) resolution: gateway start MUST not race the B4b key write.
 # Default: block forever, WARN every 30s. B4c overrides via env var.
@@ -74,6 +89,53 @@ while [ ! -f "$KEY_PATH" ]; do
   sleep 2
 done
 echo "musu-init: account_key present"
+
+# ── 3.5. Seed musu-bridge-token Secret + chmod account_key + scale Deployment
+#         (V23.3 A1.b / wiki/382) ─────────────────────────────────────────────
+# Composed of three sub-steps, all gated AFTER the account_key wait above:
+#   (a) chmod /etc/musu/account_key to 0644 root:root so the uid-1000 musu-bridge
+#       Pod can read it via hostPath subPath mount (Critic C-A1b-H4).
+#   (b) Generate Opaque Secret musu-bridge-token if missing (idempotent across
+#       wsl --terminate; regenerates only on full wsl --unregister) using
+#       kernel CSPRNG via /dev/urandom + busybox od (Critic C-A1b-H2 — NO
+#       openssl dependency, NO xxd dependency; both absent from alpine-base).
+#   (c) Scale Deployment musu-bridge from 0 to 1 replicas (Critic C-A1b-H3 —
+#       manifest applies at replicas:0 to avoid CrashLoopBackOff before Secret
+#       + account_key chmod are both in place).
+KUBECTL="kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml"
+
+# (a) account_key chmod. World-readable inside the WSL2 distro filesystem is
+# acceptable for a single-tenant operator appliance; the distro itself is
+# already isolated under the Windows operator's %LOCALAPPDATA%\Packages\....
+if [ -f /etc/musu/account_key ]; then
+  chmod 0644 /etc/musu/account_key
+fi
+
+# (b) Secret seed. Namespace `musu` is created by the K3s manifest controller
+# from musu-bridge.yaml; the namespace `apply` here is idempotent
+# belt-and-suspenders for the race where the Secret is requested before the
+# manifest-controller has fully applied (kubectl reports `namespaces "musu" not
+# found` otherwise).
+echo "musu-init: ensuring musu-bridge-token Secret exists in musu namespace"
+if ! $KUBECTL -n musu get secret musu-bridge-token >/dev/null 2>&1; then
+  # 64 hex chars (32 bytes × 2 hex chars) — satisfies the ≥32-char
+  # MUSU_BRIDGE_TOKEN gate at musu-bridge/server.py:208-217.
+  TOKEN="$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+  $KUBECTL create namespace musu --dry-run=client -o yaml | $KUBECTL apply -f -
+  $KUBECTL -n musu create secret generic musu-bridge-token \
+    --from-literal=MUSU_BRIDGE_TOKEN="$TOKEN" \
+    --dry-run=client -o yaml | $KUBECTL apply -f -
+  echo "musu-init: musu-bridge-token Secret created (64-char token)"
+else
+  echo "musu-init: musu-bridge-token Secret already present (preserved across restart)"
+fi
+
+# (c) Scale Deployment from 0 to 1. `|| true` absorbs the transient race where
+# the Deployment object hasn't been applied yet by the manifest controller —
+# next musu-init invocation (or kubelet poll) will pick it up. Steady state
+# after first successful boot: replicas:1 persists in K3s sqlite datastore.
+echo "musu-init: scaling musu-bridge Deployment to 1 replica"
+$KUBECTL -n musu scale deploy musu-bridge --replicas=1 || true
 
 # ── 4. Start gateway ───────────────────────────────────────────────────────
 echo "musu-init: starting musu-gateway"

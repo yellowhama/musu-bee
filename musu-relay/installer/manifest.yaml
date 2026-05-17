@@ -53,6 +53,6 @@ apk_openrc_version: "0.52.1-r2"
 # Deployment to pin the image: field.
 bridge_image_name: "musu-bridge"
 bridge_image_version: "v0.1.0"
-bridge_image_oci_archive_sha256_amd64: "7e807ea21e7ff93d77a655681e8d56330a2d280b5f93602aa6429f6fa735ede0"
+bridge_image_oci_archive_sha256_amd64: "f0c79d96b0f42261559af08ab58934a70b1a3d00496ff0b5779d803f906b3573"
 bridge_image_oci_archive_sha256_arm64: "TODO-populate"
-bridge_image_digest: "sha256:ad3097cd0966fe34a0872ac9c3c30386d6fc59d59c737e791d53c692aabb4626"
+bridge_image_digest: "sha256:b484bde2814d53893fc41103d21001e1f9842946693cc63d15ada6856640755b"

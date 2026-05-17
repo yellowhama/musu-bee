@@ -397,6 +397,29 @@ elif [ "$BRIDGE_IMG_MB" -gt 100 ]; then
   echo "WARN:  bridge image > 100MB soft-target (${BRIDGE_IMG_MB} MB). Closure should enumerate top contributors." >&2
 fi
 
+# ── Step 3.e: Bake K3s manifest for musu-bridge Pod (V23.3 A1.b / wiki/382) ─
+# K3s's manifest-controller watches /var/lib/rancher/k3s/server/manifests/
+# and applies any *.yaml files found there on startup. Plain YAML files
+# (NOT HelmChart CRDs) are applied directly via kubectl-style apply.
+#
+# The manifest at musu-relay/installer/k3s/musu-bridge.yaml carries:
+#   - Namespace musu
+#   - ConfigMap musu-bridge-config
+#   - Deployment musu-bridge (replicas: 0; musu-init scales to 1 post-Secret)
+#   - Service musu-bridge (ClusterIP only — A1.c owns host-port surface)
+#
+# B6 byte-identity (wiki/392): the outer tar at step 8 normalizes ALL member
+# mtimes to @SOURCE_DATE_EPOCH via --mtime=@${SOURCE_DATE_EPOCH}, so cp -p
+# (preserve mtime) of a fresh file is safe — the tar pack overwrites mtime
+# regardless. The explicit touch -d "@${SOURCE_DATE_EPOCH}" below is
+# belt-and-suspenders + makes intent obvious.
+echo "[3.e/10] Bake K3s manifest at /var/lib/rancher/k3s/server/manifests/"
+MANIFEST_TARGET_DIR="$STAGING/var/lib/rancher/k3s/server/manifests"
+mkdir -p "$MANIFEST_TARGET_DIR"
+cp -p "$SCRIPT_DIR/k3s/musu-bridge.yaml" "$MANIFEST_TARGET_DIR/musu-bridge.yaml"
+touch -d "@${SOURCE_DATE_EPOCH}" "$MANIFEST_TARGET_DIR/musu-bridge.yaml"
+echo "       manifest: $MANIFEST_TARGET_DIR/musu-bridge.yaml"
+
 # ── Step 4: musl smoke-import of @roamhq/wrtc ──────────────────────────────
 # CRITIC C1 RESOLUTION (cont'd): with optional KEPT, @roamhq/wrtc exists in
 # node_modules and we can prove it loads under musl-Alpine before the operator
