@@ -72,10 +72,15 @@ def _v37_up(conn: sqlite3.Connection) -> None:
             retry_count INTEGER NOT NULL DEFAULT 0,
             depends_on_json TEXT NOT NULL DEFAULT '[]',
             started_at INTEGER,
-            finished_at INTEGER
+            finished_at INTEGER,
+            -- Per Auditor A-HIGH-1: KindSource(table=...) defaults timestamp_column='updated_at'
+            -- (controllers/sources.py:74). Without this column, SSE subscribe to workflow_steps
+            -- raises sqlite3.OperationalError. Builder MUST bump updated_at on every UPDATE.
+            updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1)
         );
         CREATE INDEX idx_workflow_steps_dispatch ON workflow_steps(assigned_pc, status);
         CREATE INDEX idx_workflow_steps_workflow ON workflow_steps(workflow_id);
+        CREATE INDEX idx_workflow_steps_updated ON workflow_steps(updated_at);
         COMMIT;
         """
     )
@@ -84,6 +89,7 @@ def _v37_down(conn: sqlite3.Connection) -> None:
     conn.executescript(
         """
         BEGIN;
+        DROP INDEX IF EXISTS idx_workflow_steps_updated;
         DROP INDEX IF EXISTS idx_workflow_steps_workflow;
         DROP INDEX IF EXISTS idx_workflow_steps_dispatch;
         DROP TABLE IF EXISTS workflow_steps;
@@ -443,10 +449,11 @@ def transition_workflow_step(db, step_id: str, new_status: str,
     if new_status == "running":
         if not claiming_pc:
             raise ValueError("claiming_pc required when transitioning to 'running'")
+        # Per Auditor A-HIGH-1: bump updated_at so SSE/poll consumers see the running transition.
         claimed = db.execute(
-            "UPDATE workflow_steps SET status='running', started_at=? "
+            "UPDATE workflow_steps SET status='running', started_at=?, updated_at=? "
             "WHERE id=? AND status='pending' AND assigned_pc=? RETURNING id",
-            (now, step_id, claiming_pc),
+            (now, now, step_id, claiming_pc),
         )
         return bool(claimed)
     elif new_status in ("succeeded", "failed", "timeout"):
@@ -458,10 +465,11 @@ def transition_workflow_step(db, step_id: str, new_status: str,
             if not row:
                 return False
             wf_id = row[0]
+            # Per Auditor A-HIGH-1: bump updated_at on terminal transition too.
             updated = cur.execute(
-                "UPDATE workflow_steps SET status=?, result_json=?, error_json=?, finished_at=? "
+                "UPDATE workflow_steps SET status=?, result_json=?, error_json=?, finished_at=?, updated_at=? "
                 "WHERE id=? AND status='running' RETURNING id",
-                (new_status, result_json, error_json, now, step_id),
+                (new_status, result_json, error_json, now, now, step_id),
             ).fetchall()
             if not updated:
                 return False
@@ -499,10 +507,10 @@ def retry_workflow_handler(db, wf_id: str):
     if row["status"] not in ("failed",):
         return False  # only failed workflows are retryable
     reset = db.execute(
-        "UPDATE workflow_steps SET status='pending', error_json=NULL, started_at=NULL, finished_at=NULL "
+        "UPDATE workflow_steps SET status='pending', error_json=NULL, started_at=NULL, finished_at=NULL, updated_at=? "
         "WHERE workflow_id=? AND status IN ('failed','timeout') AND error_json LIKE '%executor_crash%' "
         "RETURNING id",
-        (wf_id,),
+        (now, wf_id),
     )
     if not reset:
         return False  # nothing crash-recoverable; operator must inspect manually
@@ -613,38 +621,45 @@ async def _crash_recovery(db, this_machine_id: str) -> None:
     Per OQ-CRIT-2 resolution: marks 'running' steps for THIS PC as 'failed' with
     reason='executor_crash' — operator recovers via POST /api/workflows/{id}/retry.
     """
+    now = int(time.time())
     recovered = db.execute(
         "UPDATE workflow_steps "
-        "SET status = 'failed', error_json = ?, finished_at = strftime('%s', 'now') * 1 "
+        "SET status = 'failed', error_json = ?, finished_at = ?, updated_at = ? "
         "WHERE assigned_pc = ? AND status = 'running' RETURNING id",
-        (json.dumps({"reason": "executor_crash"}), this_machine_id),
+        (json.dumps({"reason": "executor_crash"}), now, now, this_machine_id),
     )
     if recovered:
         logger.warning(
             f"[workflow_executor] crash recovery: marked {len(recovered)} stale running steps as failed"
         )
 
+def _peer_crash_sweep_once(db) -> list:
+    """Per Auditor A-MED-3: extracted single-iteration core so T24 can call it
+    synchronously without driving a `while True` loop. Returns list of swept rows.
+    Sweeps stale 'running' steps whose assigned peer PC likely crashed (started_at
+    older than MUSU_WORKFLOW_PEER_TIMEOUT_S, default 7200s).
+    """
+    timeout_floor = int(os.environ.get("MUSU_WORKFLOW_PEER_TIMEOUT_S", "7200"))
+    now = int(time.time())
+    swept = db.execute(
+        "UPDATE workflow_steps "
+        "SET status = 'timeout', error_json = ?, finished_at = ?, updated_at = ? "
+        "WHERE status = 'running' AND started_at IS NOT NULL "
+        "AND started_at < ? - ? RETURNING id, assigned_pc",
+        (json.dumps({"reason": "peer_timeout"}), now, now, now, timeout_floor),
+    )
+    return swept or []
+
 async def _peer_crash_sweeper(db) -> None:
-    """Per Critic L4 + OQ-CRIT-3 resolution: rendezvous-side periodic sweeper that
-    times out steps whose assigned PC (peer) crashed or went offline mid-step.
-    Mirrors _crash_recovery's RETURNING idiom; runs every PEER_SWEEPER_INTERVAL_S.
-    Uses each agent's spec timeoutSeconds (joined from workflows.spec_json) — defaults
-    to 3600s for steps where timeoutSeconds is unset.
+    """Per Critic L4 + OQ-CRIT-3: rendezvous-side periodic wrapper around
+    `_peer_crash_sweep_once`. Skipped on peer PCs (peers recover their own steps
+    at startup via `_crash_recovery`).
     """
     if not _is_primary():
-        return  # peers don't sweep — they recover their own steps at startup
+        return
     while True:
         try:
-            # Conservative wide net: any step in 'running' for > MUSU_WORKFLOW_PEER_TIMEOUT_S
-            # (separate, larger budget than per-step timeout — sweeper is last resort)
-            timeout_floor = int(os.environ.get("MUSU_WORKFLOW_PEER_TIMEOUT_S", "7200"))
-            swept = db.execute(
-                "UPDATE workflow_steps "
-                "SET status = 'timeout', error_json = ?, finished_at = strftime('%s', 'now') * 1 "
-                "WHERE status = 'running' AND started_at IS NOT NULL "
-                "AND started_at < strftime('%s', 'now') * 1 - ? RETURNING id, assigned_pc",
-                (json.dumps({"reason": "peer_timeout"}), timeout_floor),
-            )
+            swept = _peer_crash_sweep_once(db)
             if swept:
                 logger.warning(
                     f"[workflow_executor] peer sweeper: timed out {len(swept)} stale running steps "
@@ -729,18 +744,41 @@ async def _execute_step(db, router, step: dict, timeout_seconds: int) -> None:
 
 async def _report_step_result(db, step: dict, new_status: str,
                                 result_json: str | None = None,
-                                error_json: str | None = None) -> None:
+                                error_json: str | None = None) -> bool:
+    """Per Auditor A-HIGH-2: returns True on confirmed report, False on transport
+    or rendezvous-side failure so caller can preserve local state for retry.
+    Without status checking, a 5xx from rendezvous silently lost step state.
+    """
     if _is_primary():
         from handlers import transition_workflow_step
-        # claiming_pc not needed for terminal transitions (only 'running' uses it)
-        transition_workflow_step(db, step["step_id"], new_status, result_json, error_json)
+        return transition_workflow_step(db, step["step_id"], new_status, result_json, error_json)
     else:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            await client.patch(
-                f"{_primary_url()}/api/workflows/{step['workflow_id']}/steps/{step['step_id']}",
-                json={"status": new_status, "result_json": result_json, "error_json": error_json},
-                headers={"Authorization": f"Bearer {_get_sync_token()}"},
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.patch(
+                    f"{_primary_url()}/api/workflows/{step['workflow_id']}/steps/{step['step_id']}",
+                    json={"status": new_status, "result_json": result_json, "error_json": error_json},
+                    headers={"Authorization": f"Bearer {_get_sync_token()}"},
+                )
+            if resp.status_code == 204:
+                return True
+            if resp.status_code == 404:
+                logger.warning(
+                    f"[workflow_executor] terminal PATCH 404 for step {step['step_id']} "
+                    f"(workflow likely deleted mid-step); dropping local state"
+                )
+                return True  # nothing to retry — workflow is gone
+            logger.warning(
+                f"[workflow_executor] terminal PATCH status={resp.status_code} for step "
+                f"{step['step_id']} (new_status={new_status}); will retry next iteration"
             )
+            return False
+        except (httpx.RequestError, httpx.HTTPError) as e:
+            logger.warning(
+                f"[workflow_executor] terminal PATCH transport error for step {step['step_id']}: {e}; "
+                f"will retry next iteration"
+            )
+            return False
 
 async def _workflow_executor_loop(db, router) -> None:
     """Main loop. Mirrors heartbeat_scheduler.py:236-316 shape."""
@@ -832,9 +870,12 @@ app.include_router(workflow_router)
 | T21 | Stale machine excluded from assignment (Critic M3) | machine A `last_seen_at=now`, machine B `last_seen_at=now-3600` (>300s threshold) → assignment goes to A only; if A also stale → 422 no_eligible_pcs |
 | T22 | Peer-claim TOCTOU race via HTTP (Critic M1) | 2 peers PATCH `{status:'running', assigned_pc:X}` for same step within 50ms → exactly one gets 204, other gets 409 |
 | T23 | Operator retry endpoint (OQ-CRIT-2) | workflow with 1 step `failed/executor_crash` + 1 `succeeded` → POST /retry → 200, step → 'pending', workflow → 'running'. Workflow with genuine `failed` → POST /retry → 409 (no crash-recoverable steps). Non-existent workflow → 404. |
-| T24 | Peer-crash sweeper (Critic L4, OQ-CRIT-3) | rendezvous DB has step `status='running' assigned_pc=PEER_B started_at=now-7300` → `_peer_crash_sweeper` one iteration → step `status='timeout' error_json.reason='peer_timeout'` |
+| T24 | Peer-crash sweeper (Critic L4, OQ-CRIT-3, Auditor A-MED-3) | rendezvous DB has step `status='running' assigned_pc=PEER_B started_at=now-7300` → `_peer_crash_sweep_once(db)` (synchronous helper) → step `status='timeout' error_json.reason='peer_timeout'`; `updated_at` bumped to now |
+| T25 | `_is_primary` env-var binding (Auditor A-LOW-2) | `MUSU_NODE_ROLE=primary` (or unset) → `_is_primary() == True`; `MUSU_NODE_ROLE=peer` with `MUSU_PRIMARY_URL=http://x` → `_is_primary() == False`; pins H1 against regression |
+| T26 | SSE eligibility column check (Auditor A-HIGH-1) | `KindSource(table='workflow_steps').timestamp_column == 'updated_at'`; SELECT `updated_at` from fresh-migrated `workflow_steps` row → returns int (not error); UPDATE bumps `updated_at` strictly > prior value |
+| T27 | Peer-side terminal PATCH error handling (Auditor A-HIGH-2) | mock httpx PATCH → 503 → `_report_step_result` returns `False`, logs warning, step local state NOT advanced; mock → 404 → returns `True` (workflow gone, drop state); mock → 204 → returns `True`; mock raises `httpx.ConnectError` → returns `False` |
 
-Test count delta: existing musu-bridge pytest count baseline + 24. Confirm exact baseline at Builder time.
+Test count delta: existing musu-bridge pytest count baseline + 27. Confirm exact baseline at Builder time.
 
 ---
 
@@ -863,7 +904,7 @@ Test count delta: existing musu-bridge pytest count baseline + 24. Confirm exact
 5. ✅ workflow_executor running in dev: pending → running → succeeded
 6. ✅ Crash recovery: stale 'running' → 'failed' reason=executor_crash
 7. ✅ Cross-PC Pattern A: mock 2-PC fixture passes T12
-8. ✅ `pytest musu-bridge/tests/test_workflow_*.py` all 24 cases green (T1-T24)
+8. ✅ `pytest musu-bridge/tests/test_workflow_*.py` all 27 cases green (T1-T27)
 9. ✅ `pytest` full bridge suite green (no regression)
 10. ✅ `mypy musu-bridge` clean (or matches existing baseline)
 11. ✅ Const III gate: operator runs `apply_pending` on production, verifies tables, "진행해"
@@ -891,7 +932,10 @@ Consolidated mandates from Researcher findings + Critic expected gates:
 - [ ] **PC staleness gate**: `assign_steps_to_pcs` adds `(m.last_seen_at IS NULL OR m.last_seen_at >= strftime('%s','now')*1 - MUSU_WORKFLOW_PC_STALENESS_SECONDS)` (default 300s) to the SELECT WHERE clause. (Critic M3)
 - [ ] **Atomic completion-aggregation**: `transition_workflow_step` for terminal statuses wraps step UPDATE + workflow status SELECT/UPDATE in a single `db.cursor()` block; do NOT call `_check_workflow_completion` post-commit. Distinguish `executor_crash` failures from genuine failures (only the latter mark workflow as 'failed'). (Critic M5)
 - [ ] **Operator retry endpoint**: `POST /api/workflows/{id}/retry` resets `error_json LIKE '%executor_crash%'` steps back to 'pending' + workflow to 'running'; 409 if not retryable. (OQ-CRIT-2)
-- [ ] **Peer-crash sweeper**: separate asyncio task `_peer_crash_sweeper` runs on rendezvous PC only, every 60s; times out steps with `status='running' AND started_at < now - MUSU_WORKFLOW_PEER_TIMEOUT_S` (default 7200s) using RETURNING idiom. (Critic L4, OQ-CRIT-3)
+- [ ] **Peer-crash sweeper**: separate asyncio task `_peer_crash_sweeper` runs on rendezvous PC only, every 60s; calls `_peer_crash_sweep_once(db)` extracted helper (Auditor A-MED-3) so T24 can call it synchronously. Times out steps with `status='running' AND started_at < now - MUSU_WORKFLOW_PEER_TIMEOUT_S` (default 7200s) using RETURNING idiom. (Critic L4, OQ-CRIT-3 + Auditor A-MED-3)
+- [ ] **workflow_steps.updated_at column** (Auditor A-HIGH-1): include `updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now')*1)` + `idx_workflow_steps_updated` in v37 migration. Bump on EVERY UPDATE in `_claim_step_toctou` primary, `transition_workflow_step` (running + terminal), `retry_workflow_handler`, `_crash_recovery`, `_peer_crash_sweep_once`. Required because `KindSource.timestamp_column` defaults to `"updated_at"` (controllers/sources.py:74) and the plan adds `workflow_steps` to `_ALLOWED_TABLES`.
+- [ ] **Peer-side terminal PATCH error handling** (Auditor A-HIGH-2): `_report_step_result` peer branch returns `bool` — `True` on 204 or 404 (workflow gone), `False` on 5xx / transport error / other. Caller in `_workflow_executor_loop` must NOT advance to next step on `False`; preserve local step state so next iteration retries. Add `logger.warning` with step_id + status_code + new_status on every non-204 response.
+- [ ] **Build order** (Auditor A-LOW-1): (1) migration v37 + sources.py allowlist → (2) Pydantic models → (3) handlers.py extensions → (4) workflow_routes.py endpoints → (5) workflow_executor.py → (6) server.py lifespan + router mount → (7) tests T1-T27 → (8) regression pytest.
 - [ ] **Pydantic v2** validators split: `_unique_agent_ids` as `@field_validator`; `_check_edges_reference_existing_agents` + `_check_no_cycles` + `_check_inputs_reference_declared_outputs` as separate `@model_validator(mode='after')` methods. `nodeSelector` keys whitelisted via `@field_validator` to `{"gpu_vram_free_gb_min", "gpu_present", "os"}`. (Critic M4 + L2)
 - [ ] **Typed PATCH body**: `class StepPatchBody(BaseModel)` with `status: Literal[...]`, `result_json`, `error_json`, `assigned_pc` — no untyped dict. (Critic L3)
 - [ ] `enqueue_wake + asyncio.wait_for(execute_wake, timeout=...)` wrapping
@@ -997,3 +1041,29 @@ Phase 1.5 Critic (`system-architect`) returned **5 HIGH, 5 MEDIUM, 4 LOW, 3 INFO
 **Auditor MUST**: In Phase 5 HANDOFF NOTES, explicitly cite each of H1-H5 and verify each in the built code (per MODE_Agent_Team.md "Critic HIGH, Auditor silent → stays HIGH"). Verify M1, M2, M3, M5, L4 via the corresponding new test cases (T20-T24).
 
 **Critic verdict**: APPROVE WITH MANDATORY HIGH FIXES. All HIGH fixes applied in this plan revision. Builder may proceed.
+
+---
+
+## §12 Audit Findings (resolved)
+
+Independent plan-as-spec Auditor (`quality-engineer`, post-Critic) reviewed the §11-resolved plan and verified each Critic HIGH was correctly applied in plan body. Auditor then found **2 NEW HIGH + 3 MED + 4 LOW + 2 INFO** the Critic missed — exactly the Critic-vs-Auditor delta MODE_Agent_Team.md predicts (Critic sees plan as text; Auditor cross-references plan against real codebase invariants).
+
+Per conflict resolution: Auditor's structural findings stand. Orchestrator applied all HIGH + MED + selected LOW to plan §2.1 / §2.4 / §2.5 / §3 / §6.
+
+| ID | Severity | Claim | Resolution in plan | Status |
+|---|---|---|---|---|
+| **A-H1** | **HIGH** | `workflow_steps` schema lacked `updated_at` column but plan adds it to `_ALLOWED_TABLES` → `KindSource` SQL-errors on first SSE subscribe (controllers/sources.py:74 defaults `timestamp_column="updated_at"`). T15 was presence-only check, would not catch. | §2.1 schema: `updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now')*1)` + `idx_workflow_steps_updated` index. §2.4 + §2.5: every UPDATE bumps `updated_at`. §6 mandates this. T26 verifies. | RESOLVED |
+| **A-H2** | **HIGH** | `_report_step_result` peer-side PATCH did not check HTTP status → silent state loss on 5xx/transport errors; step stuck 'running' until 7200s peer-sweeper times it out. | §2.5 `_report_step_result` returns `bool`: True on 204/404, False on 5xx/transport; logs warning with full context; caller preserves local state on False. §6 mandate added. T27 verifies. | RESOLVED |
+| A-M1 | MED | `_claim_step_toctou` primary did not bump `workflows.updated_at` — only relevant for path (a) on A-H1 resolution. | Resolved by A-H1 path (a) — `updated_at` is on `workflow_steps`, not `workflows`. Workflow-level updated_at bumped in completion-aggregation branch (`transition_workflow_step` terminal). | RESOLVED |
+| A-M2 | MED | `retry_workflow_handler` did not document dependency-cascade retry semantics. | Documented inline: retry resets `executor_crash`-marked steps only; non-crash failures untouched; dependent steps follow standard `_are_dependencies_satisfied` ordering. | DOCUMENTED |
+| **A-M3** | **MED** | T24 was unrunnable: `_peer_crash_sweeper` was `while True` with no single-iteration entrypoint. | Extracted `_peer_crash_sweep_once(db) -> list` synchronous helper; `_peer_crash_sweeper` async wrapper calls it. T24 calls helper directly. §6 mandate added. | RESOLVED |
+| A-L1 | LOW | Build order not specified; Builder may stub-out and miss a constraint. | §6 final bullet: explicit 8-step build order (migration → models → handlers → routes → executor → lifespan → tests → regression). | RESOLVED |
+| A-L2 | LOW | H1 had no dedicated test; would regress silently if refactored. | T25 added: pins `_is_primary` to `MUSU_NODE_ROLE` binding. | RESOLVED |
+| A-L3 | LOW | `retry_workflow_handler` LIKE-match on NULL `error_json` — theoretical defense-in-depth gap. | NOT ADDRESSED — verified non-blocking: `_execute_step` always writes non-NULL error_json on fail paths. Builder may add `error_json IS NOT NULL` predicate as belt-and-braces but not required. | DEFERRED |
+| A-L4 | LOW | `_compute_depends` vs `_check_no_cycles` both walk edges. | NOT ADDRESSED — verified consistent (`EdgeSpec.condition: Literal[3]` matches `_are_dependencies_satisfied`). | NOT-A-BUG |
+| A-I1 | INFO | No new external SaaS / paid dep introduced. | Confirmed zero new deps. Aligns with [[feedback-self-contained-product]]. | INFO |
+| A-I2 | INFO | YAGNI check: peer sweeper + retry endpoint justified for 5-user closed beta. | Confirmed. Aligns with [[feedback-no-yagni-architecture]]. | INFO |
+
+**Auditor HANDOFF to Builder**: All 5 Critic HIGH (H1-H5) explicitly verified in plan body, citing exact line numbers in plan. All 2 Auditor HIGH + 1 critical MED applied to plan. Builder may proceed with confidence that plan-as-written will compile and pass T1-T27. Remaining 2 LOW are deferred / not-a-bug.
+
+**Auditor verdict (revised post-fix)**: SHIP-OK for plan stage. Builder cleared for Phase 3 implementation pending operator branch cut (#436 + #437).
