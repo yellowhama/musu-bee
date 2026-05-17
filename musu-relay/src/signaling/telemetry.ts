@@ -282,7 +282,13 @@ const ERROR_CLASS_RE = /^[a-z0-9_]{1,64}$/;
 const BIOS_VT_RE = /^[a-zA-Z0-9._-]{1,128}$/;
 const HOST_CLASS_RE = /^[a-zA-Z0-9._-]{1,64}$/;
 const INSTALLER_VERSION_RE = /^[a-zA-Z0-9._-]{1,32}$/;
-const OS_VERSION_RE = /^[a-zA-Z0-9._\s()-]{1,128}$/;
+// Audit-fix1 (Auditor A NEW-MED-1, wiki/391): `\s` admits \n/\r/\t, which
+// materially undermines C-B2-M1's log-injection prevention intent for the
+// os_version field (string is attacker-controllable from installer host;
+// future admin/log viewers would render the multiline payload verbatim).
+// Replace with literal SP only. Real Windows version strings ("Microsoft
+// Windows 11 Pro (10.0.22631.0)") still pass.
+const OS_VERSION_RE = /^[a-zA-Z0-9. ()_-]{1,128}$/;
 
 // Per-instance in-memory token bucket. Scoped per (install_id, source_ip)
 // tuple. NOT global — fly.toml min_machines_running=1 makes per-instance

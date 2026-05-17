@@ -366,6 +366,35 @@ describe("V23.3 B2 — optional fields + source_ip_hash", () => {
     }
   });
 
+  it("T13b: os_version with embedded newline → 204, DB column NULL (audit-fix1 OS_VERSION_RE log-injection block)", async () => {
+    // Audit-fix1 (Auditor A NEW-MED-1, wiki/391): OS_VERSION_RE previously
+    // used `\s` which admits \n/\r/\t — a log-injection vector when a future
+    // admin/log viewer renders install_attempt.os_version line-by-line.
+    // Tightened to literal-SP-only; embedded newline now fails regex →
+    // optClamp returns null → DB column NULL + console.warn fires.
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const res = await supertest(app)
+        .post("/v1/telemetry/install_attempt")
+        .send(validBody({ os_version: "A\nB" }));
+      expect(res.status).toBe(204);
+      const row = _getDbForTests()
+        .prepare(
+          "SELECT os_version FROM install_attempt ORDER BY id DESC LIMIT 1",
+        )
+        .get() as { os_version: string | null };
+      expect(row.os_version).toBeNull();
+      const calls = warnSpy.mock.calls.map((c) => String(c[0]));
+      expect(
+        calls.some((m) =>
+          /install_attempt: clamped over-length field os_version/.test(m),
+        ),
+      ).toBe(true);
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
   it("T14: source_ip_hash is 8-char lowercase hex prefix", async () => {
     const res = await supertest(app)
       .post("/v1/telemetry/install_attempt")
