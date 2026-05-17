@@ -114,6 +114,12 @@ function _Invoke-MusuInstallAttemptTelemetry {
         if ($script:PrereqResult.probes.PSObject.Properties["bios_vt"]) {
             $tmBiosVt = [string]$script:PrereqResult.probes.bios_vt
         }
+    } elseif ($script:OsVersionResumed -or $script:BiosVtResumed) {
+        # F-B2-2 (wiki/407): resume-path fallback. PrereqResult is $null on
+        # resume (step 2 doesn't re-run). Resumed values come from state-file
+        # restore in the resume block (~:425).
+        $tmOsVer  = [string]$script:OsVersionResumed
+        $tmBiosVt = [string]$script:BiosVtResumed
     }
     Send-MusuInstallAttempt `
         -InstallId $script:InstallId `
@@ -305,6 +311,20 @@ report incorrectly), re-run with -AllowUnknownBiosVt.
                     musu_pro_base     = $MusuProBase
                     saved_at_utc      = (Get-Date).ToUniversalTime().ToString("o")
                     retry_count       = 0
+                    # F-B2-2 (wiki/407): persist probed fields so the resume-path
+                    # telemetry helper can emit them. Two-level PSObject.Properties
+                    # guard mirrors _Invoke-MusuInstallAttemptTelemetry at :109-117
+                    # (Critic C2 — single-level collapse throws under StrictMode 3).
+                    os_version        = if ($script:PrereqResult -and `
+                                            $script:PrereqResult.PSObject.Properties["probes"] -and `
+                                            $script:PrereqResult.probes.PSObject.Properties["os_version"]) {
+                                            [string]$script:PrereqResult.probes.os_version
+                                        } else { "" }
+                    bios_vt           = if ($script:PrereqResult -and `
+                                            $script:PrereqResult.PSObject.Properties["probes"] -and `
+                                            $script:PrereqResult.probes.PSObject.Properties["bios_vt"]) {
+                                            [string]$script:PrereqResult.probes.bios_vt
+                                        } else { "" }
                 }
                 Save-MusuState -State $state -StateFile $StateFile
                 Register-MusuResumeTask -ScriptPath $MyInvocation.MyCommand.Path -StateFile $StateFile
@@ -419,6 +439,17 @@ if ($ResumeAfterReboot) {
     if ($state.tar_path) { $TarPath = $state.tar_path }
     if ($state.signing_base) { $SigningBase = $state.signing_base }
     if ($state.musu_pro_base) { $MusuProBase = $state.musu_pro_base }
+
+    # F-B2-2 (wiki/407): restore probed fields for resume-path telemetry. PrereqResult
+    # is $null on resume (step 2 doesn't re-run); the helper at :109 falls back to
+    # these script-scoped vars via elseif. Guard against old (V23.3) state files
+    # lacking these keys — empty string is helper-falsy and triggers the default path.
+    $script:OsVersionResumed = if ($state.PSObject.Properties["os_version"]) {
+        [string]$state.os_version
+    } else { "" }
+    $script:BiosVtResumed = if ($state.PSObject.Properties["bios_vt"]) {
+        [string]$state.bios_vt
+    } else { "" }
 
     Write-MusuOk "Resumed at retry $($state.retry_count)/3"
 }
