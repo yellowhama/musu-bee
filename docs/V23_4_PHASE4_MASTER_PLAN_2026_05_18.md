@@ -187,7 +187,7 @@ Unchanged from v1 except (e) revised:
 
 | Gate | Prediction | Reasoning + mitigation |
 |---|---|---|
-| **Const III** (schema apply) | **TRIGGERED on T2-A'** | SQLite schema migration v43 adds `workflows` + `workflow_steps` tables. Operator "진행해" required at first production deploy. Lower blast radius than v1's CRD apply — SQLite migration is reversible via standard v22 migrator rollback. |
+| **Const III** (schema apply) | **TRIGGERED on T2-A'** | SQLite schema migration v37 (per T2-A' Phase 0 Researcher 2026-05-18: current max is v36, next free is v37) adds `workflows` + `workflow_steps` tables. Operator "진행해" required at first production deploy. Lower blast radius than v1's CRD apply — SQLite migration is reversible via standard musu-core migrator rollback (`_v37_down` defined alongside `_v37_up`). |
 | **Const VI** (experiment) | **NOT triggered** (was TRIGGERED in v1) | No Argo install. No K3s baseline change. asyncio executor task overhead measured during T2-A' Builder phase via per-test timings, NOT a full A1.c bench rerun. |
 | **Const VII** (push) | **Per-push ACTIVE**; **main-merge gate at Phase 4 close** | Unchanged. Every commit push satisfies per-push. Main-merge bundle at Phase 4 close = single operator "진행해". |
 | **Pre-Phase 4** | Operator main-merge of V23.3 + V23.4 Tier-1 to `main` (gates Phase 4 start) | See §3.4 checklist (a)-(e). |
@@ -207,7 +207,7 @@ v1 §4.1 added Const VI baseline + 30% threshold to gate Argo install regression
 - `musu-bridge/workflow_routes.py` (NEW FastAPI router — POST/GET/DELETE/PATCH /api/workflows + /api/workflows/[id]/status; mounted in server.py beside system_router per T2-A v1 Researcher convention)
 - `musu-bridge/workflow_executor.py` (NEW asyncio task — polls `workflow_steps WHERE status='pending' AND assigned_pc=THIS_PC LIMIT N`; dispatches via existing agent invocation; writes status back; per-step timeout enforced via `asyncio.wait_for`; backoff on transient errors)
 - `musu-bridge/handlers.py` (EXTEND — `create_workflow()`, `assign_steps_to_pcs()` based on agent nodeSelector + machine_capacity, `transition_step_status()`)
-- `musu-bridge/schema/v43_workflows.sql` (NEW migration — `workflows {id, company_id, name, spec_json, status, created_at, updated_at}` + `workflow_steps {id, workflow_id, agent_id, assigned_pc, status, started_at, finished_at, result_json}`)
+- `musu-core/src/musu_core/migrations.py` (EDIT — append `_v37_up` + `_v37_down` to MIGRATIONS list at :1483; **CORRECTED by T2-A' Phase 0 Researcher 2026-05-18**: schema version is **v37** NOT v43 — current max is v36 at migrations.py:1482; AND migrations live in `musu-core/migrations.py` NOT `musu-bridge/schema/` which doesn't exist. New tables: `workflows {id, company_id, name, spec_json, status, created_at, updated_at}` + `workflow_steps {id, workflow_id, agent_id, assigned_pc, status, input_json, result_json, error_json, retry_count, depends_on_json, started_at, finished_at}`. Also update `musu-core/src/musu_core/controllers/sources.py:31-50` `_ALLOWED_TABLES` to include `workflows` + `workflow_steps` for SSE eligibility.)
 - `musu-bridge/tests/test_workflow_routes.py` (NEW — POST validates spec via Pydantic, 409 on duplicate, GET list filtered by company_id, PATCH transitions, DELETE cascades)
 - `musu-bridge/tests/test_workflow_executor.py` (NEW — pending-step pickup, retry/backoff, timeout, idempotency on restart)
 
@@ -245,6 +245,20 @@ Cross-PC: PC-B's executor sees `assigned_pc=PC_B` rows in the SHARED bridge stat
 - DELETE cascade (workflow delete → workflow_steps delete)
 
 **Wiki**: wiki/432 detail + wiki/436 closure.
+
+**T2-A' Phase 0 Researcher findings (2026-05-18, beyond schema-v37 + migration-location corrections above)**:
+- **Agent invocation primitive ALREADY EXISTS**: `enqueue_wake(db, agent_id, wake_reason, wake_payload) → run_id` + `await execute_wake(db, router, run_id)` in `musu-core/src/musu_core/dispatch/wake.py:75-189`. T2-A' executor WRAPS these (does not build new dispatch path). Result via `SELECT status, summary, error FROM heartbeat_runs WHERE id=?` (per `dispatch_routes.py:93-116`). Timeout NOT in execute_wake — T2-A' wraps with `asyncio.wait_for(execute_wake(...), timeout=spec.timeoutSeconds)`.
+- **TOCTOU-safe step claim pattern**: mirror `wake.py:184-189` `UPDATE ... SET status='running' WHERE id=? AND status='pending' RETURNING ...` for the workflow_steps claim. Matches user MEMORY `pattern-toctou-atomic-update`. If rowcount=0, another executor won the race (skip).
+- **Cross-PC R3 DECISION: Pattern A (single-source-on-rendezvous-PC)**. Rationale: existing `sync_engine.py:155-247` replicates only companies/messages/agents (LWW pull-based), not transactional tables; mesh_router.py is forward-only HTTP routing; no existing infrastructure for `workflow_steps` cross-PC sync. Pattern B (replicated state) requires +500 LOC new sync infra outside T2-A' scope. **Pattern A flow**: rendezvous PC owns workflows + workflow_steps SQLite store; PC-B's executor polls `GET https://rendezvous-pc/api/workflows/_pending?assigned_pc=PC_B` via existing `mesh_router._forward_http`; PC-B PATCHes results back via `PATCH /api/workflows/[id]/steps/[step_id]`. Auth via existing `_get_sync_token()` Bearer.
+- **/api/watch/subscribe CANNOT WHERE-filter** (`watch_routes.py:91-120` — only `table` query param, no payload columns). Cross-PC pickup is POLLING, not SSE-filter. RunPanel UI also polls (SSE deferred — broadcast-only, needs client-side filter regardless).
+- **THIS_PC identity**: `MUSU_NODE_NAME` env var (per `heartbeat_scheduler.py:250`) is what executor knows itself as; `machines.id` is opaque DB key. Executor at startup: `SELECT id FROM machines WHERE hostname=? OR id=?` with `MUSU_NODE_NAME` to resolve THIS_MACHINE_ID. Store `machines.id` in `workflow_steps.assigned_pc` with FK `REFERENCES machines(id) ON DELETE SET NULL` (cascade-delete would orphan mid-run; null lets executor treat as "needs reassignment").
+- **Dependency satisfaction**: SQL-based at executor poll time, using new column `workflow_steps.depends_on_json` (pre-computed at POST time via topological sort in Pydantic validator). Stores `[{from_agent_id, condition: 'succeeded'|'failed'|'always'}]` per upstream dependency. Avoids re-parsing `spec_json` every poll. Cycle detection: Kahn's algo in Pydantic `@model_validator(mode='after')`.
+- **Crash recovery (OQ-RES-2 RESOLVED)**: at executor startup, mark all 'running' steps for THIS_PC as 'failed' with `error_json={"reason": "executor_crash"}`. Rationale: explicit failure surfaces operator awareness; user manually retries; no double-invoke risk (mark-pending option could double-dispatch agents). Heartbeat-timestamp policy (most correct) deferred to V23.5.
+- **Pydantic v2 confirmed** (`pyproject.toml:12` `pydantic>=2.0`). Use `@field_validator` + `@model_validator(mode='after')`.
+- **nodeSelector convention (OQ-RES-1 RESOLVED)**: simple key-value match against `machine_capacity` columns: `{"gpu_vram_free_gb_min": "8", "os": "linux", "gpu_present": "true"}`. No new `machines.labels_json` column. Maps to query: `SELECT m.id FROM machines m JOIN machine_capacity mc ON m.id=mc.machine_id WHERE m.status='online' AND mc.gpu_vram_free_gb >= 8 AND m.os='linux' AND mc.gpu_models_json != '[]' ORDER BY mc.gpu_vram_free_gb DESC LIMIT 1`. First-match wins. No PC matches → POST returns 422 `{"error": "no_eligible_pcs", "agent_id": "X", "selector": {...}}`.
+- **PATCH scope (OQ-RES-5 RESOLVED)**: status-only for MVP. Spec mutation = V23.5 (workflow versioning). PATCH body `{"status": "running"|"paused"|"cancelled"}`.
+- **executor_poll_interval (OQ-RES-6 RESOLVED)**: default 1s, env-tunable via `MUSU_WORKFLOW_EXECUTOR_POLL_MS=1000`. Matches F-B2-1 sweeper precedent (wiki/426).
+- **LOC realistic estimate**: ~320 Python (workflow_routes ~120 + workflow_executor ~120 + handlers extensions ~80) + ~30 SQL (v37 migration) + ~80 tests. Total ~430. Master plan §2 said ~300; revised slightly up by +100 for Pattern A polling branch + depends_on_json column.
 
 ### §5.B ~~T2-B Go operator~~ (ELIMINATED per §0)
 
@@ -396,7 +410,7 @@ Unchanged from v1 plus:
 
 ## §9 Acceptance criteria for V23.4 Phase 4 closure (revised per §0.3)
 
-1. ✅ T2-A' SHIP-OK with single quality-engineer audit (wiki/436 closure; `/api/workflows` CRUD live; SQLite v43 migration applied; asyncio executor running)
+1. ✅ T2-A' SHIP-OK with single quality-engineer audit (wiki/436 closure; `/api/workflows` CRUD live; SQLite v37 migration applied; asyncio executor running)
 2. ✅ T2-F SHIP-OK with single quality-engineer audit + smoke test (wiki/437 closure; `musu-relay/Dockerfile` + `fly.toml` deleted from repo; signaling smoke test passes; zero `fly.io` DNS lookups during 2-PC handshake)
 3. ✅ T2-C SHIP-OK with single quality-engineer audit (wiki/438 closure; `/fleet` live; vocabulary lint passing)
 4. ✅ T2-D SHIP-OK with single quality-engineer audit + parity discipline (wiki/439 closure; hostname literal lint passing; `/api/config` runtime resolution working on localhost)
@@ -405,7 +419,7 @@ Unchanged from v1 plus:
 7. ✅ `npx tsc --noEmit` clean across all TS packages
 8. ✅ ~~`go test ./...` + `go vet ./...`~~ — N/A in v2 (no Go)
 9. ✅ **End-to-end gate test**: user creates 3-step DAG in musu-bee `/c/[company]/workflows/new` editor → POSTs JSON spec → musu-bridge T2-A' executor distributes steps across 2 PCs → results visible in RunPanel (V23 master §V23.3 :929-933 Gate semantics)
-10. ✅ Const III gate satisfied for SQLite v43 migration prod apply (operator "진행해")
+10. ✅ Const III gate satisfied for SQLite v37 migration prod apply (operator "진행해")
 11. ✅ ~~Const VI gate~~ — N/A in v2 (no Argo install, no baseline change)
 12. ✅ Const VII main-merge gate satisfied: operator "진행해" + `git merge v23/phase4 → main`
 13. ✅ wiki/447 final closure + wiki/448 qual eval written
