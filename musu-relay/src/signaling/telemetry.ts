@@ -841,28 +841,43 @@ export function makeTelemetryRouter(
       res.status(400).json({ error: "missing required fields" });
       return;
     }
-    _db
-      .prepare(
-        `INSERT INTO telemetry_install
-           (received_at, musu_install_id, os, os_version, musu_version,
-            wsl2_present_at_start, wsl2_feature_enabled,
-            bios_virtualization_detected, step_failed, step_error_class,
-            elapsed_ms)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .run(
-        Date.now(),
-        b.musu_install_id,
-        b.os,
-        b.os_version,
-        b.musu_version,
-        asBool(b.wsl2_present_at_start),
-        asBool(b.wsl2_feature_enabled),
-        asStr(b.bios_virtualization_detected),
-        asStr(b.step_failed),
-        asStr(b.step_error_class),
-        asInt(b.elapsed_ms),
+    // F-B2-3 (wiki/408): wrap _db.prepare(...).run(...) in try/catch so a
+    // DB-write exception returns a structured 500 + json error instead of
+    // bubbling to the Express default error handler (HTML stack trace in
+    // dev / generic 500 in prod). The `return` after res.status(500) is
+    // load-bearing per Critic C11 — without it, control falls through to
+    // res.status(204).end() and Express throws "Cannot set headers after
+    // they are sent".
+    try {
+      _db
+        .prepare(
+          `INSERT INTO telemetry_install
+             (received_at, musu_install_id, os, os_version, musu_version,
+              wsl2_present_at_start, wsl2_feature_enabled,
+              bios_virtualization_detected, step_failed, step_error_class,
+              elapsed_ms)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          Date.now(),
+          b.musu_install_id,
+          b.os,
+          b.os_version,
+          b.musu_version,
+          asBool(b.wsl2_present_at_start),
+          asBool(b.wsl2_feature_enabled),
+          asStr(b.bios_virtualization_detected),
+          asStr(b.step_failed),
+          asStr(b.step_error_class),
+          asInt(b.elapsed_ms),
+        );
+    } catch (err) {
+      console.error(
+        `[telemetry] /install: db write failed: ${err instanceof Error ? err.message : String(err)}`,
       );
+      res.status(500).json({ error: "database write failed" });
+      return;
+    }
     res.status(204).end();
   });
 
@@ -968,27 +983,37 @@ export function makeTelemetryRouter(
       .digest("hex")
       .substring(0, 8);
 
-    _db
-      .prepare(
-        `INSERT INTO install_attempt
-           (received_at, musu_install_id, step, error_class, elapsed_ms,
-            os_version, bios_vt, host_class, installer_version,
-            source_ip_hash, schema_version)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .run(
-        Date.now(),
-        installId,
-        step,
-        errorClass,
-        elapsedMs,
-        osVersion,
-        biosVt,
-        hostClass,
-        installerVersion,
-        sourceIpHash,
-        1, // schema_version (payload-level)
+    // F-B2-3 (wiki/408): wrap DB write in try/catch. See /install handler
+    // above for full rationale + Critic C11 return-is-load-bearing note.
+    try {
+      _db
+        .prepare(
+          `INSERT INTO install_attempt
+             (received_at, musu_install_id, step, error_class, elapsed_ms,
+              os_version, bios_vt, host_class, installer_version,
+              source_ip_hash, schema_version)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          Date.now(),
+          installId,
+          step,
+          errorClass,
+          elapsedMs,
+          osVersion,
+          biosVt,
+          hostClass,
+          installerVersion,
+          sourceIpHash,
+          1, // schema_version (payload-level)
+        );
+    } catch (err) {
+      console.error(
+        `[telemetry] /install_attempt: db write failed: ${err instanceof Error ? err.message : String(err)}`,
       );
+      res.status(500).json({ error: "database write failed" });
+      return;
+    }
     res.status(204).end();
   });
 
@@ -1000,21 +1025,31 @@ export function makeTelemetryRouter(
       res.status(400).json({ error: "missing required fields" });
       return;
     }
-    _db
-      .prepare(
-        `INSERT INTO telemetry_nat_pierce
-           (received_at, musu_install_id, attempt_outcome, fail_cause,
-            ice_candidate_count, elapsed_ms)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-      )
-      .run(
-        Date.now(),
-        b.musu_install_id,
-        b.attempt_outcome,
-        asStr(b.fail_cause),
-        asInt(b.ice_candidate_count),
-        asInt(b.elapsed_ms),
+    // F-B2-3 (wiki/408): wrap DB write in try/catch. See /install handler
+    // above for full rationale + Critic C11 return-is-load-bearing note.
+    try {
+      _db
+        .prepare(
+          `INSERT INTO telemetry_nat_pierce
+             (received_at, musu_install_id, attempt_outcome, fail_cause,
+              ice_candidate_count, elapsed_ms)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          Date.now(),
+          b.musu_install_id,
+          b.attempt_outcome,
+          asStr(b.fail_cause),
+          asInt(b.ice_candidate_count),
+          asInt(b.elapsed_ms),
+        );
+    } catch (err) {
+      console.error(
+        `[telemetry] /nat_pierce: db write failed: ${err instanceof Error ? err.message : String(err)}`,
       );
+      res.status(500).json({ error: "database write failed" });
+      return;
+    }
     res.status(204).end();
   });
 
@@ -1026,20 +1061,30 @@ export function makeTelemetryRouter(
       res.status(400).json({ error: "missing required fields" });
       return;
     }
-    _db
-      .prepare(
-        `INSERT INTO telemetry_agent_spawn
-           (received_at, musu_install_id, spawn_outcome, cold_start_ms,
-            node_count_in_cluster)
-         VALUES (?, ?, ?, ?, ?)`,
-      )
-      .run(
-        Date.now(),
-        b.musu_install_id,
-        b.spawn_outcome,
-        asInt(b.cold_start_ms),
-        asInt(b.node_count_in_cluster),
+    // F-B2-3 (wiki/408): wrap DB write in try/catch. See /install handler
+    // above for full rationale + Critic C11 return-is-load-bearing note.
+    try {
+      _db
+        .prepare(
+          `INSERT INTO telemetry_agent_spawn
+             (received_at, musu_install_id, spawn_outcome, cold_start_ms,
+              node_count_in_cluster)
+           VALUES (?, ?, ?, ?, ?)`,
+        )
+        .run(
+          Date.now(),
+          b.musu_install_id,
+          b.spawn_outcome,
+          asInt(b.cold_start_ms),
+          asInt(b.node_count_in_cluster),
+        );
+    } catch (err) {
+      console.error(
+        `[telemetry] /agent_spawn: db write failed: ${err instanceof Error ? err.message : String(err)}`,
       );
+      res.status(500).json({ error: "database write failed" });
+      return;
+    }
     res.status(204).end();
   });
 
