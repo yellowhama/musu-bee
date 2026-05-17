@@ -910,6 +910,8 @@ No code. Three deliverables:
 
 ### V23.2 — Phase 2 spike (3 weeks)
 
+**Status (2026-05-17): SHIPPED on `v22/gap-analysis`.** Closure: `docs/V23_2_WORKSTREAM_B_FINAL_CLOSURE_2026_05_17.md` (wiki/376). Qualitative evaluation: wiki/377. Workstream A2 (signaling Fly.io deploy) + Workstream B (B0-B5 + cross-cutting) closed. Const VII main-merge gate operator-pending (rolled into V23.3 final-merge bundle).
+
 - K3s zero-config installer for one OS (Linux first; Mac and Windows
   per O2/O3 follow).
 - musu-bridge slim Operator: register `Company` / `Agent` CRDs;
@@ -921,6 +923,8 @@ No code. Three deliverables:
 agent running across them.
 
 ### V23.3 — Phase 3 spike (4 weeks)
+
+**Status (2026-05-17): SHIPPED on `v22/gap-analysis` HEAD `8fb9e70`.** 9 sub-workstreams (A1.a/A1.b/A1.c, A2, A3, B2, B6, B7, B8), dual-audit SHIP-OK across all, 218/218 jest green, cross-cutting final audit SHIP-OK. Closure: `docs/V23_3_FINAL_CLOSURE_2026_05_17.md` (wiki/396). Qual eval: wiki/397. Master plan: wiki/379. **Const VII main-merge gate OPERATOR-PENDING** (gates on A1.c bench EXECUTION + B2 `fly secrets set MUSU_TELEMETRY_V42_AUTHORIZED=1` + fly deploy + curl smoke + "진행해"). V23.4 day-0 must-do: F-B2-1 (wiki/406 reserved, install_attempt 30-day retention sweeper closing cross-route DoS).
 
 - `AgentWorkflow` CRD + Operator translation to Argo Workflows.
 - Argo Workflows installed inside K3s (hidden).
