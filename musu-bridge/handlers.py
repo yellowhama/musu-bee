@@ -2485,3 +2485,456 @@ def save_proposed_template(slug: str, proposal: dict) -> Path:
     path = templates_dir / f"{slug}.yaml"
     path.write_text(yaml.safe_dump(proposal, allow_unicode=True, sort_keys=False), encoding="utf-8")
     return path
+
+
+# ---------------------------------------------------------------------------
+# V23.4 Phase 4 T2-A' — workflow handlers (wiki/432 §2.4)
+# ---------------------------------------------------------------------------
+# Per Critic + Auditor findings (wiki/432 §11 + §12), these handlers are the
+# storage-side of the asyncio + SQLite workflow runner. Routes live in
+# workflow_routes.py and the executor lives in workflow_executor.py.
+#
+# Critic HIGH addressed:
+#   H2  no .rowcount on db.execute(); use RETURNING + truthiness; multi-statement
+#       atomic blocks use `with db.cursor() as cur:`.
+# Critic MED addressed:
+#   M1  transition_workflow_step('running') adds AND status='pending' AND
+#       assigned_pc=? predicates + requires `claiming_pc`.
+#   M3  assign_steps_to_pcs filters stale machines via
+#       MUSU_WORKFLOW_PC_STALENESS_SECONDS.
+#   M5  terminal-transition + workflow status aggregation fold into one
+#       `db.cursor()` block; executor_crash distinguished from genuine failures.
+# Auditor HIGH addressed:
+#   A-H1 every UPDATE bumps workflow_steps.updated_at (required by KindSource).
+
+
+class NoEligiblePCError(Exception):
+    """Raised when no online PC matches an agent's nodeSelector.
+
+    `context` holds the JSON-friendly dict surfaced to the API client as a 422
+    error body: {agent_id, selector}.
+    """
+
+    def __init__(self, agent_id: str, selector: dict[str, Any]) -> None:
+        self.context = {"agent_id": agent_id, "selector": selector}
+        super().__init__(
+            f"no online PC matches selector {selector} for agent {agent_id}"
+        )
+
+
+# Per Critic M3: PC staleness threshold. Default 5 min; tunable so tests can
+# set lower without monkey-patching module state.
+_PC_STALENESS_SECONDS = int(
+    os.environ.get("MUSU_WORKFLOW_PC_STALENESS_SECONDS", "300")
+)
+
+
+def _compute_depends(spec: dict) -> dict[str, list[dict]]:
+    """For each agent, list incoming-edge dependencies.
+
+    Returns {agent_id: [{from_agent_id, condition}]}. Agents with no incoming
+    edges map to []. Mirrored at executor query time by
+    `_are_dependencies_satisfied`.
+    """
+    deps: dict[str, list[dict]] = {a["id"]: [] for a in spec["agents"]}
+    for e in spec.get("edges", []):
+        # WorkflowSpec uses Field(alias="from") so model_dump() emits "from"
+        # at the dict level. Tolerate both shapes for defensive resilience.
+        src = e.get("from") if "from" in e else e.get("from_")
+        dst = e.get("to")
+        cond = e.get("condition", "succeeded")
+        if src is None or dst is None:
+            continue
+        deps[dst].append({"from_agent_id": src, "condition": cond})
+    return deps
+
+
+def assign_steps_to_pcs(db: Any, spec: dict) -> dict[str, str]:
+    """First-match-wins against machine_capacity per Researcher F-R7.1.
+
+    Per Critic M3: excludes machines with stale last_seen_at (default >5 min)
+    to prevent assigning steps to dead PCs that would stick in 'pending'
+    forever. Per Critic L2: nodeSelector keys are already whitelisted at
+    Pydantic time, so the else-branch here is defense-in-depth; the Pydantic
+    validator should reject first.
+
+    Raises NoEligiblePCError if a single agent has no matching online PC; the
+    POST route maps this to 422 with `{error: no_eligible_pcs, agent_id,
+    selector}`.
+    """
+    assignments: dict[str, str] = {}
+    for agent in spec["agents"]:
+        selector = agent.get("nodeSelector", {}) or {}
+        where_clauses = [
+            "m.status = 'online'",
+            "(m.last_seen_at IS NULL OR m.last_seen_at >= strftime('%s', 'now') * 1 - ?)",
+        ]
+        params: list[Any] = [_PC_STALENESS_SECONDS]
+        for key, val in selector.items():
+            if key == "gpu_vram_free_gb_min":
+                where_clauses.append("mc.gpu_vram_free_gb >= ?")
+                params.append(float(val))
+            elif key == "gpu_present":
+                if str(val).lower() == "true":
+                    where_clauses.append("mc.gpu_models_json != '[]'")
+            elif key == "os":
+                where_clauses.append("m.os = ?")
+                params.append(val)
+            else:
+                # Defense-in-depth — Pydantic validator should have caught this
+                raise ValueError(f"unknown nodeSelector key: {key}")
+        sql = (
+            "SELECT m.id FROM machines m "
+            "JOIN machine_capacity mc ON m.id = mc.machine_id "
+            f"WHERE {' AND '.join(where_clauses)} "
+            "ORDER BY mc.gpu_vram_free_gb DESC LIMIT 1"
+        )
+        rows = db.execute(sql, tuple(params))
+        if not rows:
+            raise NoEligiblePCError(agent["id"], selector)
+        assignments[agent["id"]] = rows[0][0]
+    return assignments
+
+
+def create_workflow_handler(db: Any, req: dict) -> dict:
+    """Insert workflow + steps atomically.
+
+    Per Critic H2: use db.cursor() context-manager (auto-commits on exit per
+    db.py:271-282). Do NOT call .rowcount on Database.execute() return value
+    (it's a list); do NOT call db.commit() after db.execute() (auto-commits).
+
+    Order: assign PCs (may raise NoEligiblePCError BEFORE any insert) → atomic
+    insert workflow + steps via cursor context (commits on success, rolls back
+    on exception).
+    """
+    import json as _json
+    import uuid as _uuid
+
+    wf_id = _uuid.uuid4().hex
+    now = int(time.time())
+    spec = req["spec"]
+
+    # 1. Assign each agent to a PC via nodeSelector match (raises BEFORE insert)
+    assignments = assign_steps_to_pcs(db, spec)
+    depends = _compute_depends(spec)
+
+    # 2. Atomic insert workflow + steps via cursor context
+    with db.cursor() as cur:
+        cur.execute(
+            "INSERT INTO workflows "
+            "(id, company_id, name, spec_json, status, created_at, updated_at) "
+            "VALUES (?, ?, ?, ?, 'pending', ?, ?)",
+            (
+                wf_id,
+                req["company_id"],
+                req["name"],
+                _json.dumps(spec),
+                now,
+                now,
+            ),
+        )
+        for agent in spec["agents"]:
+            step_id = _uuid.uuid4().hex
+            cur.execute(
+                "INSERT INTO workflow_steps "
+                "(id, workflow_id, agent_id, assigned_pc, status, "
+                "depends_on_json, updated_at) "
+                "VALUES (?, ?, ?, ?, 'pending', ?, ?)",
+                (
+                    step_id,
+                    wf_id,
+                    agent["id"],
+                    assignments[agent["id"]],
+                    _json.dumps(depends[agent["id"]]),
+                    now,
+                ),
+            )
+    return {
+        "id": wf_id,
+        "company_id": req["company_id"],
+        "name": req["name"],
+        "status": "pending",
+        "created_at": now,
+    }
+
+
+def list_workflows_handler(db: Any, company_id: str) -> list[dict]:
+    """Return workflows for a company, ordered by created_at descending."""
+    rows = db.execute(
+        "SELECT id, company_id, name, status, created_at FROM workflows "
+        "WHERE company_id = ? ORDER BY created_at DESC",
+        (company_id,),
+    )
+    return [
+        {
+            "id": r["id"],
+            "company_id": r["company_id"],
+            "name": r["name"],
+            "status": r["status"],
+            "created_at": r["created_at"],
+        }
+        for r in rows
+    ]
+
+
+def get_workflow_status_handler(db: Any, wf_id: str) -> dict | None:
+    """Return workflow + per-step status, or None if workflow missing."""
+    wf = db.execute(
+        "SELECT id, status FROM workflows WHERE id = ?", (wf_id,)
+    )
+    if not wf:
+        return None
+    step_rows = db.execute(
+        "SELECT id, agent_id, assigned_pc, status, started_at, finished_at, "
+        "retry_count, error_json "
+        "FROM workflow_steps WHERE workflow_id = ? ORDER BY agent_id",
+        (wf_id,),
+    )
+    return {
+        "id": wf[0]["id"],
+        "status": wf[0]["status"],
+        "steps": [
+            {
+                "id": s["id"],
+                "agent_id": s["agent_id"],
+                "assigned_pc": s["assigned_pc"],
+                "status": s["status"],
+                "started_at": s["started_at"],
+                "finished_at": s["finished_at"],
+                "retry_count": s["retry_count"],
+                "error_json": s["error_json"],
+            }
+            for s in step_rows
+        ],
+    }
+
+
+def patch_workflow_status_handler(
+    db: Any, wf_id: str, new_status: str
+) -> dict | None:
+    """PATCH workflow.status. Returns updated WorkflowResponse dict or None.
+
+    Per Critic H2: RETURNING + truthiness check (no .rowcount on
+    db.execute()). Bumps updated_at.
+    """
+    now = int(time.time())
+    updated = db.execute(
+        "UPDATE workflows SET status = ?, updated_at = ? WHERE id = ? "
+        "RETURNING id, company_id, name, status, created_at",
+        (new_status, now, wf_id),
+    )
+    if not updated:
+        return None
+    r = updated[0]
+    return {
+        "id": r["id"],
+        "company_id": r["company_id"],
+        "name": r["name"],
+        "status": r["status"],
+        "created_at": r["created_at"],
+    }
+
+
+def delete_workflow_handler(db: Any, wf_id: str) -> bool:
+    """DELETE workflow; FK cascade removes workflow_steps. Returns True if a row was removed.
+
+    Per Critic H2: RETURNING + truthiness.
+    """
+    deleted = db.execute(
+        "DELETE FROM workflows WHERE id = ? RETURNING id",
+        (wf_id,),
+    )
+    return bool(deleted)
+
+
+def transition_workflow_step(
+    db: Any,
+    step_id: str,
+    new_status: str,
+    result_json: str | None = None,
+    error_json: str | None = None,
+    claiming_pc: str | None = None,
+) -> bool:
+    """TOCTOU-safe step status transition.
+
+    Per Critic H2 + M1: uses RETURNING + truthiness (mirrors wake.py:184-194).
+    For new_status='running', adds `AND status='pending' AND assigned_pc=?`
+    predicates so a peer-side claim race resolves identically to the
+    primary-side claim — only one PATCH wins, the loser sees rowcount=0 → 409
+    at the route layer.
+
+    Per Critic M5: terminal-transition (succeeded/failed/timeout) folds step
+    UPDATE + workflow status aggregation into a single `db.cursor()` block to
+    close the race where two near-simultaneous terminals observe inconsistent
+    aggregate state.
+
+    Per Auditor A-HIGH-1: every UPDATE bumps workflow_steps.updated_at +
+    workflows.updated_at so SSE/poll consumers see the change.
+    """
+    import json as _json
+
+    now = int(time.time())
+    if new_status == "running":
+        if not claiming_pc:
+            raise ValueError(
+                "claiming_pc required when transitioning to 'running'"
+            )
+        claimed = db.execute(
+            "UPDATE workflow_steps "
+            "SET status = 'running', started_at = ?, updated_at = ? "
+            "WHERE id = ? AND status = 'pending' AND assigned_pc = ? "
+            "RETURNING id",
+            (now, now, step_id, claiming_pc),
+        )
+        return bool(claimed)
+    if new_status in ("succeeded", "failed", "timeout"):
+        with db.cursor() as cur:
+            row = cur.execute(
+                "SELECT workflow_id FROM workflow_steps WHERE id = ?",
+                (step_id,),
+            ).fetchone()
+            if not row:
+                return False
+            wf_id = row[0]
+            updated = cur.execute(
+                "UPDATE workflow_steps "
+                "SET status = ?, result_json = ?, error_json = ?, "
+                "    finished_at = ?, updated_at = ? "
+                "WHERE id = ? AND status = 'running' RETURNING id",
+                (new_status, result_json, error_json, now, now, step_id),
+            ).fetchall()
+            if not updated:
+                return False
+            counts = cur.execute(
+                "SELECT status, COUNT(*) FROM workflow_steps "
+                "WHERE workflow_id = ? GROUP BY status",
+                (wf_id,),
+            ).fetchall()
+            by_status = {r[0]: r[1] for r in counts}
+            if (
+                by_status.get("pending", 0) == 0
+                and by_status.get("running", 0) == 0
+            ):
+                # Distinguish executor-crash failures (recoverable via /retry)
+                # from genuine failures.
+                has_genuine_fail = cur.execute(
+                    "SELECT 1 FROM workflow_steps WHERE workflow_id = ? "
+                    "AND status IN ('failed', 'timeout') "
+                    "AND (error_json IS NULL "
+                    "     OR error_json NOT LIKE '%executor_crash%') LIMIT 1",
+                    (wf_id,),
+                ).fetchone()
+                final = "failed" if has_genuine_fail else "succeeded"
+                cur.execute(
+                    "UPDATE workflows SET status = ?, updated_at = ? "
+                    "WHERE id = ?",
+                    (final, now, wf_id),
+                )
+        return True
+    raise ValueError(f"invalid status transition target: {new_status}")
+
+
+def retry_workflow_handler(db: Any, wf_id: str):
+    """Reset executor_crash-marked steps + re-run the workflow.
+
+    Per OQ-CRIT-2 resolution: explicit operator retry path for crash-failed
+    workflows. Returns dict on success, None on not-found, False on
+    not-retryable. Resets workflow_steps with error_json containing
+    'executor_crash' back to 'pending' and the parent workflow back to
+    'running'. Genuine failures are NOT touched.
+    """
+    now = int(time.time())
+    wf = db.execute(
+        "SELECT id, company_id, name, status FROM workflows WHERE id = ?",
+        (wf_id,),
+    )
+    if not wf:
+        return None
+    row = wf[0]
+    if row["status"] not in ("failed",):
+        return False  # only failed workflows are retryable
+    reset = db.execute(
+        "UPDATE workflow_steps SET status = 'pending', error_json = NULL, "
+        "started_at = NULL, finished_at = NULL, updated_at = ? "
+        "WHERE workflow_id = ? AND status IN ('failed', 'timeout') "
+        "AND error_json LIKE '%executor_crash%' RETURNING id",
+        (now, wf_id),
+    )
+    if not reset:
+        return False  # nothing crash-recoverable
+    db.execute(
+        "UPDATE workflows SET status = 'running', updated_at = ? WHERE id = ?",
+        (now, wf_id),
+    )
+    return {
+        "id": wf_id,
+        "company_id": row["company_id"],
+        "name": row["name"],
+        "status": "running",
+        "reset_step_count": len(reset),
+    }
+
+
+def _are_dependencies_satisfied(
+    db: Any, wf_id: str, deps: list[dict]
+) -> bool:
+    """Return True iff every dependency in `deps` is in its required terminal state."""
+    if not deps:
+        return True
+    for dep in deps:
+        rows = db.execute(
+            "SELECT status FROM workflow_steps "
+            "WHERE workflow_id = ? AND agent_id = ?",
+            (wf_id, dep["from_agent_id"]),
+        )
+        if not rows:
+            return False
+        status = rows[0]["status"]
+        expected = dep.get("condition", "succeeded")
+        if expected == "always":
+            if status in ("pending", "running"):
+                return False  # not yet terminal
+        elif expected == "succeeded":
+            if status != "succeeded":
+                return False
+        elif expected == "failed":
+            if status != "failed":
+                return False
+    return True
+
+
+def get_pending_steps_for_pc(
+    db: Any, assigned_pc: str, limit: int
+) -> list[dict]:
+    """Return pending steps for a PC whose dependencies are satisfied.
+
+    Used by Pattern A polling endpoint and by the local-primary fast path.
+    Loads candidate pending steps then filters by `_are_dependencies_satisfied`
+    against the parent workflow's current step statuses.
+    """
+    import json as _json
+
+    rows = db.execute(
+        "SELECT id, workflow_id, agent_id, depends_on_json, input_json "
+        "FROM workflow_steps "
+        "WHERE assigned_pc = ? AND status = 'pending' "
+        "ORDER BY workflow_id, agent_id LIMIT ?",
+        (assigned_pc, limit),
+    )
+    eligible: list[dict] = []
+    for r in rows:
+        deps_raw = r["depends_on_json"] or "[]"
+        try:
+            deps = _json.loads(deps_raw)
+        except (TypeError, ValueError):
+            deps = []
+        if _are_dependencies_satisfied(db, r["workflow_id"], deps):
+            eligible.append(
+                {
+                    "step_id": r["id"],
+                    "workflow_id": r["workflow_id"],
+                    "agent_id": r["agent_id"],
+                    "input_json": r["input_json"],
+                }
+            )
+    return eligible

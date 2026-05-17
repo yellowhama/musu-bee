@@ -81,10 +81,9 @@ def test_v34_down_drops_table():
 
 def test_v35_registered_after_v34():
     labels = [m[0] for m in MIGRATIONS]
-    assert labels.index("v35_machine_capacity") == labels.index(
-        "v34_resource_requests"
-    ) + 1
-    assert labels[-1] == "v35_machine_capacity"
+    v35_idx = labels.index("v35_machine_capacity")
+    assert v35_idx == labels.index("v34_resource_requests") + 1
+    assert labels[v35_idx + 1] == "v36_agents_isolation_profile"
 
 
 def test_v35_creates_machine_capacity():

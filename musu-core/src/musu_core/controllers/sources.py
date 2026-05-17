@@ -45,6 +45,8 @@ _ALLOWED_TABLES: frozenset[str] = frozenset({
     "machines",
     # v34+v35 (21.C)
     "resource_requests", "machine_capacity",
+    # v37 (V23.4 Phase 4 T2-A' — wiki/432 §2.7)
+    "workflows", "workflow_steps",
     # test-only
     "contention_test", "controllers_test_rows",
 })

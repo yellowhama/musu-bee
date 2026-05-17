@@ -799,6 +799,23 @@ async def lifespan(app: FastAPI):
     # Stuck-task watchdog (always on — auto-cancels tasks running > threshold)
     stuck_watchdog_task = asyncio.create_task(_watchdog_loop())
 
+    # V23.4 Phase 4 T2-A' — workflow executor + peer crash sweeper (wiki/432 §2.6)
+    # Always-on. Executor honours MUSU_WORKFLOW_EXECUTOR_ENABLED internally;
+    # sweeper is a no-op on peer nodes (rendezvous-only per Critic L4 + OQ-CRIT-3).
+    try:
+        from workflow_executor import _workflow_executor_loop, _peer_crash_sweeper
+        workflow_task = asyncio.create_task(
+            _workflow_executor_loop(_get_backend()._db, router)
+        )
+        peer_sweeper_task = asyncio.create_task(
+            _peer_crash_sweeper(_get_backend()._db)
+        )
+        logger.info("workflow_executor: tasks started (executor + peer sweeper)")
+    except Exception as _we:
+        logger.warning("workflow_executor: failed to start — %s", _we)
+        workflow_task = None
+        peer_sweeper_task = None
+
     # Register with portd (wiki/003 — all services must register)
     try:
         import httpx
@@ -966,6 +983,14 @@ async def lifespan(app: FastAPI):
         team_lead_task.cancel()
     if heartbeat_task:
         heartbeat_task.cancel()
+    # V23.4 Phase 4 T2-A' — cancel workflow tasks (wiki/432 §2.6)
+    for _wf_task in (workflow_task, peer_sweeper_task):
+        if _wf_task:
+            _wf_task.cancel()
+            try:
+                await asyncio.wait_for(_wf_task, timeout=5)
+            except (asyncio.TimeoutError, asyncio.CancelledError):
+                pass
     if relay_task:
         relay_task.cancel()
         try:
@@ -2188,6 +2213,9 @@ app.include_router(watch_router)
 
 from axis_routes import axis_router  # noqa: F401  # v21.F
 app.include_router(axis_router)
+
+from workflow_routes import workflow_router  # noqa: F401  # V23.4 Phase 4 T2-A' (wiki/432)
+app.include_router(workflow_router)
 
 
 @app.get("/api/tasks/events")

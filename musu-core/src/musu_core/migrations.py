@@ -1443,6 +1443,86 @@ def _v36_down(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+def _v37_up(conn: sqlite3.Connection) -> None:
+    """v37: workflows + workflow_steps tables for T2-A' asyncio executor.
+
+    Per wiki/432 §2.1. Idempotent + atomic — single executescript with
+    BEGIN/COMMIT. Mirrors _v3_up at :99 and _v4_up at :135 idiom.
+
+    `assigned_pc REFERENCES machines(id) ON DELETE SET NULL`: per
+    Researcher F-R7.1 — cascade would orphan steps mid-run; SET NULL
+    lets executor treat as "needs reassignment" without deleting
+    workflow state.
+
+    `workflow_steps.updated_at`: per Auditor A-HIGH-1 (wiki/432 §12).
+    `KindSource.timestamp_column` defaults to `"updated_at"`
+    (controllers/sources.py:74). Without this column, SSE subscribe to
+    workflow_steps raises sqlite3.OperationalError. All UPDATEs in
+    handlers + executor MUST bump updated_at.
+    """
+    cur = conn.cursor()
+    row = cur.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='workflows'"
+    ).fetchone()
+    if row:
+        return
+    conn.executescript(
+        """
+        BEGIN;
+        CREATE TABLE workflows (
+            id TEXT PRIMARY KEY,
+            company_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            spec_json TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending'
+                CHECK (status IN ('pending', 'running', 'paused', 'succeeded', 'failed', 'cancelled')),
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+        );
+        CREATE INDEX idx_workflows_company ON workflows(company_id);
+        CREATE INDEX idx_workflows_status ON workflows(status);
+
+        CREATE TABLE workflow_steps (
+            id TEXT PRIMARY KEY,
+            workflow_id TEXT NOT NULL REFERENCES workflows(id) ON DELETE CASCADE,
+            agent_id TEXT NOT NULL,
+            assigned_pc TEXT REFERENCES machines(id) ON DELETE SET NULL,
+            status TEXT NOT NULL DEFAULT 'pending'
+                CHECK (status IN ('pending', 'running', 'succeeded', 'failed', 'timeout', 'skipped')),
+            input_json TEXT,
+            result_json TEXT,
+            error_json TEXT,
+            retry_count INTEGER NOT NULL DEFAULT 0,
+            depends_on_json TEXT NOT NULL DEFAULT '[]',
+            started_at INTEGER,
+            finished_at INTEGER,
+            updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1)
+        );
+        CREATE INDEX idx_workflow_steps_dispatch ON workflow_steps(assigned_pc, status);
+        CREATE INDEX idx_workflow_steps_workflow ON workflow_steps(workflow_id);
+        CREATE INDEX idx_workflow_steps_updated ON workflow_steps(updated_at);
+        COMMIT;
+        """
+    )
+
+
+def _v37_down(conn: sqlite3.Connection) -> None:
+    """Roll back v37 — drop workflow_steps + workflows tables."""
+    conn.executescript(
+        """
+        BEGIN;
+        DROP INDEX IF EXISTS idx_workflow_steps_updated;
+        DROP INDEX IF EXISTS idx_workflow_steps_workflow;
+        DROP INDEX IF EXISTS idx_workflow_steps_dispatch;
+        DROP TABLE IF EXISTS workflow_steps;
+        DROP INDEX IF EXISTS idx_workflows_status;
+        DROP INDEX IF EXISTS idx_workflows_company;
+        DROP TABLE IF EXISTS workflows;
+        COMMIT;
+        """
+    )
+
+
 MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v1_fallback_chain", _v1_up, _v1_down),
     ("v2_messages_agent_id", _v2_up, _v2_down),
@@ -1480,6 +1560,7 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
     ("v34_resource_requests", _v34_up, _v34_down),
     ("v35_machine_capacity", _v35_up, _v35_down),
     ("v36_agents_isolation_profile", _v36_up, _v36_down),
+    ("v37_workflows", _v37_up, _v37_down),
 ]
 
 

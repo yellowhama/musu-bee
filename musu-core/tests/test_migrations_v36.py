@@ -14,10 +14,15 @@ def _columns(conn, table: str) -> set[str]:
 
 
 def test_v36_registered_last() -> None:
+    """v36 was the tail when added. Now v37 (V23.4 Phase 4 T2-A' wiki/432) is
+    the new tail; v36 must remain registered and ordered immediately before
+    v37 to keep the migration chain stable.
+    """
     labels = [m[0] for m in MIGRATIONS]
     assert "v36_agents_isolation_profile" in labels
-    # New tail.
-    assert labels[-1] == "v36_agents_isolation_profile"
+    v36_idx = labels.index("v36_agents_isolation_profile")
+    # v37 is the new tail; v36 is its immediate predecessor.
+    assert labels[v36_idx + 1] == "v37_workflows"
 
 
 def test_v36_adds_isolation_profile_column() -> None:
