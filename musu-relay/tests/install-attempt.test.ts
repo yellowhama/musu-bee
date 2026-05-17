@@ -619,6 +619,47 @@ describe("V23.4 F-B2-1 — install_attempt retention sweeper (wiki/406)", () => 
     expect(remaining.n).toBe(0);
   });
 
+  it("T22b: LIMIT 1000 boundary — sweeper deletes exactly 1000 per tick", () => {
+    // Per Auditor B (wiki/425 §11.2 #3): verify LIMIT 1000 actually bounds
+    // the delete. T22 only inserts 1 stale row; without this test, a future
+    // regression replacing the bound with MAX_SAFE_INTEGER or removing the
+    // LIMIT clause would silently ship green.
+    const db = _getDbForTests();
+    const staleCutoff = Date.now() - 31 * 24 * 60 * 60 * 1000; // 31 days ago
+    // Bulk-insert 1001 stale rows in a transaction for speed.
+    const insert = db.prepare(
+      `INSERT INTO install_attempt
+         (received_at, musu_install_id, step, error_class, elapsed_ms, source_ip_hash, schema_version)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    );
+    const txn = db.transaction(() => {
+      for (let i = 0; i < 1001; i++) {
+        // Hex-pad i to 32 chars to satisfy install_id regex (matches Musu-Common.psm1
+        // [Guid]::NewGuid().ToString("N") format).
+        const id = i.toString(16).padStart(32, "0");
+        insert.run(staleCutoff - i, id, "k3s_start", "permission", 0, "deadbeef", 1);
+      }
+    });
+    txn();
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM install_attempt").get() as { c: number }).c,
+    ).toBe(1001);
+
+    // First tick: should delete exactly 1000 rows.
+    const firstChanges = _runInstallAttemptSweeperOnce();
+    expect(firstChanges).toBe(1000);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM install_attempt").get() as { c: number }).c,
+    ).toBe(1);
+
+    // Second tick: should delete the remaining 1.
+    const secondChanges = _runInstallAttemptSweeperOnce();
+    expect(secondChanges).toBe(1);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM install_attempt").get() as { c: number }).c,
+    ).toBe(0);
+  });
+
   it("T23: sweeper preserves rows younger than 30 days", () => {
     const fresh = Date.now() - 29 * DAY_MS;
     insertAttempt(fresh, SWEEPER_INSTALL_ID);
