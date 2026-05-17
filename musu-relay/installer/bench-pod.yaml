@@ -52,7 +52,10 @@ spec:
           valueFrom:
             secretKeyRef:
               name: musu-bridge-token
-              key: token
+              # Key name MUST match musu-init:126 `--from-literal=MUSU_BRIDGE_TOKEN=…`.
+              # Auditor A (V23.3 A1.c) caught this — production Secret schema uses
+              # MUSU_BRIDGE_TOKEN as key name, not "token".
+              key: MUSU_BRIDGE_TOKEN
       securityContext:
         allowPrivilegeEscalation: false
         readOnlyRootFilesystem: true
