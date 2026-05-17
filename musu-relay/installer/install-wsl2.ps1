@@ -50,7 +50,15 @@ param(
     [string]$TarPath = "",
     [string]$SigningBase = "https://signaling.musu.pro",
     [string]$MusuProBase = "https://musu.pro",
-    [switch]$ForceReinstall
+    [switch]$ForceReinstall,
+    # V23.3 B2 (wiki/390 / Critic C-B2-M4): caller-side opt-out for the
+    # unauth install_attempt telemetry POST. When set, all 10 trigger
+    # sites short-circuit before calling Send-MusuInstallAttempt. The
+    # env-var MUSU_INSTALL_ATTEMPT_DISABLED=1 is the equivalent ops
+    # hatch inside Send-MusuInstallAttempt itself; either suffices. The
+    # local Save-MusuFailureDump write remains unconditional in both
+    # modes (durable record stays local).
+    [switch]$NoTelemetry
 )
 
 Set-StrictMode -Version 2.0
@@ -77,6 +85,47 @@ $script:UserId = ""
 $script:HostClass = ""
 $script:InstallId = ""
 $script:PrereqResult = $null
+
+# ── V23.3 B2 (wiki/390) — telemetry call helper ────────────────────────────
+#
+# Wraps Send-MusuInstallAttempt with two safeguards used at every trigger
+# site:
+#   - Respects -NoTelemetry (Critic C-B2-M4 ship-with-switch).
+#   - Defensively probes $script:PrereqResult.probes.{os_version,bios_vt}
+#     before passing them along — they may be absent on early-fail paths
+#     (e.g. site 1 fires inside step 3 where probes ran, but other sites
+#     fire after a state-file resume where PrereqResult is still $null).
+# Per wiki/390 §7.3, all sites should follow this exact shape; centralizing
+# avoids drift between sites.
+function _Invoke-MusuInstallAttemptTelemetry {
+    param(
+        [Parameter(Mandatory = $true)][string]$Step,
+        [Parameter(Mandatory = $true)][string]$ErrorClass,
+        [Parameter(Mandatory = $true)][int]$ElapsedMs
+    )
+    if ($NoTelemetry) { return }
+    $tmOsVer = ""
+    $tmBiosVt = ""
+    if ($script:PrereqResult -and
+        $script:PrereqResult.PSObject.Properties["probes"]) {
+        if ($script:PrereqResult.probes.PSObject.Properties["os_version"]) {
+            $tmOsVer = [string]$script:PrereqResult.probes.os_version
+        }
+        if ($script:PrereqResult.probes.PSObject.Properties["bios_vt"]) {
+            $tmBiosVt = [string]$script:PrereqResult.probes.bios_vt
+        }
+    }
+    Send-MusuInstallAttempt `
+        -InstallId $script:InstallId `
+        -Step $Step `
+        -ErrorClass $ErrorClass `
+        -ElapsedMs $ElapsedMs `
+        -OsVersion $tmOsVer `
+        -BiosVt $tmBiosVt `
+        -HostClass $script:HostClass `
+        -InstallerVersion $InstallerVersion `
+        -SigningBase $SigningBase
+}
 
 # Default TarPath
 if (-not $TarPath) {
@@ -189,6 +238,7 @@ To enable BIOS-VT:
 If you're certain BIOS-VT is on but probing says 'unknown' (some OEM laptops
 report incorrectly), re-run with -AllowUnknownBiosVt.
 "@
+            $elapsed = [int]((Get-Date) - $script:StartTime).TotalMilliseconds
             Save-MusuFailureDump `
                 -Step "bios_vt_off" -ErrorClass "hard_blocker_bios" `
                 -InstallId $script:InstallId `
@@ -196,7 +246,11 @@ report incorrectly), re-run with -AllowUnknownBiosVt.
                     bios_vt = $script:PrereqResult.probes.bios_vt
                     host_class = $script:HostClass
                 } `
-                -ElapsedMs ([int]((Get-Date) - $script:StartTime).TotalMilliseconds)
+                -ElapsedMs $elapsed
+            # V23.3 B2 (wiki/390 §7.2 site #1 — bios_vt_off).
+            _Invoke-MusuInstallAttemptTelemetry `
+                -Step "bios_vt_off" -ErrorClass "hard_blocker_bios" `
+                -ElapsedMs $elapsed
             exit 1
         }
 
@@ -208,19 +262,31 @@ report incorrectly), re-run with -AllowUnknownBiosVt.
                 & dism.exe /online /enable-feature `
                     /featurename:VirtualMachinePlatform /all /norestart
                 if ($LASTEXITCODE -ne 0) {
+                    $elapsed = [int]((Get-Date) - $script:StartTime).TotalMilliseconds
                     Save-MusuFailureDump `
                         -Step "wsl_feature" -ErrorClass "permission" `
                         -InstallId $script:InstallId `
-                        -ElapsedMs ([int]((Get-Date) - $script:StartTime).TotalMilliseconds)
+                        -ElapsedMs $elapsed
+                    # V23.3 B2 (wiki/390 §7.2 site #2 — wsl_feature DISM
+                    # VirtualMachinePlatform fail).
+                    _Invoke-MusuInstallAttemptTelemetry `
+                        -Step "wsl_feature" -ErrorClass "permission" `
+                        -ElapsedMs $elapsed
                     throw "dism enable VirtualMachinePlatform failed: exit $LASTEXITCODE"
                 }
                 & dism.exe /online /enable-feature `
                     /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
                 if ($LASTEXITCODE -ne 0) {
+                    $elapsed = [int]((Get-Date) - $script:StartTime).TotalMilliseconds
                     Save-MusuFailureDump `
                         -Step "wsl_feature" -ErrorClass "permission" `
                         -InstallId $script:InstallId `
-                        -ElapsedMs ([int]((Get-Date) - $script:StartTime).TotalMilliseconds)
+                        -ElapsedMs $elapsed
+                    # V23.3 B2 (wiki/390 §7.2 site #3 — wsl_feature DISM
+                    # WSL feature fail).
+                    _Invoke-MusuInstallAttemptTelemetry `
+                        -Step "wsl_feature" -ErrorClass "permission" `
+                        -ElapsedMs $elapsed
                     throw "dism enable WSL failed: exit $LASTEXITCODE"
                 }
                 Write-MusuOk "WSL features enabled (pending reboot)"
@@ -253,10 +319,16 @@ report incorrectly), re-run with -AllowUnknownBiosVt.
             Write-MusuInfo "Step 3/12: wsl --install --no-distribution --no-launch"
             & wsl.exe --install --no-distribution --no-launch
             if ($LASTEXITCODE -ne 0) {
+                $elapsed = [int]((Get-Date) - $script:StartTime).TotalMilliseconds
                 Save-MusuFailureDump `
                     -Step "wsl_feature" -ErrorClass "permission" `
                     -InstallId $script:InstallId `
-                    -ElapsedMs ([int]((Get-Date) - $script:StartTime).TotalMilliseconds)
+                    -ElapsedMs $elapsed
+                # V23.3 B2 (wiki/390 §7.2 site #4 — wsl_feature
+                # `wsl --install` fail).
+                _Invoke-MusuInstallAttemptTelemetry `
+                    -Step "wsl_feature" -ErrorClass "permission" `
+                    -ElapsedMs $elapsed
                 throw "wsl --install failed: exit $LASTEXITCODE"
             }
             Write-MusuOk "wsl --install succeeded"
@@ -316,6 +388,22 @@ if ($ResumeAfterReboot) {
             -Step "resume_retry_exhausted" -ErrorClass "timeout" `
             -InstallId $state.install_id `
             -ElapsedMs 0
+        # V23.3 B2 (wiki/390 §7.2 site #10 — resume_retry_exhausted /
+        # MANDATORY per Critic C-B2-M3). PrereqResult is NOT loaded on
+        # resume paths (no step-2 re-run); the helper's defensive
+        # PrereqResult check handles the $null case and just omits
+        # os_version / bios_vt. We pass $state.install_id explicitly
+        # because $script:InstallId is not yet set at this point in the
+        # resume flow.
+        if (-not $NoTelemetry) {
+            Send-MusuInstallAttempt `
+                -InstallId $state.install_id `
+                -Step "resume_retry_exhausted" -ErrorClass "timeout" `
+                -ElapsedMs 0 `
+                -HostClass ([string]$state.host_class) `
+                -InstallerVersion $InstallerVersion `
+                -SigningBase $SigningBase
+        }
         Unregister-MusuResumeTask
         if (Test-Path $StateFile) { Remove-Item -Force $StateFile }
         exit 1
@@ -339,9 +427,14 @@ if ($ResumeAfterReboot) {
 
 Write-MusuInfo "Step 4/12: tar SHA-256 verify"
 if (-not (Test-Path $TarPath)) {
+    $elapsed = [int]((Get-Date) - $script:StartTime).TotalMilliseconds
     Save-MusuFailureDump `
         -Step "tar_hash_mismatch" -ErrorClass "tampered_artifact" `
         -InstallId $script:InstallId
+    # V23.3 B2 (wiki/390 §7.2 site #5a — tar_hash_mismatch / missing tar).
+    _Invoke-MusuInstallAttemptTelemetry `
+        -Step "tar_hash_mismatch" -ErrorClass "tampered_artifact" `
+        -ElapsedMs $elapsed
     throw "TarPath not found: $TarPath"
 }
 $actualHash = (Get-FileHash -Path $TarPath -Algorithm SHA256).Hash.ToLower()
@@ -357,11 +450,17 @@ tar SHA-256 verification cannot proceed.
             emits a .sha256 sidecar), OR pin a release-time hash by editing
             this script's `$ExpectedTarHash` constant.
 "@
+        $elapsed = [int]((Get-Date) - $script:StartTime).TotalMilliseconds
         Save-MusuFailureDump `
             -Step "tar_hash_mismatch" -ErrorClass "tampered_artifact" `
             -InstallId $script:InstallId `
-            -ElapsedMs ([int]((Get-Date) - $script:StartTime).TotalMilliseconds) `
+            -ElapsedMs $elapsed `
             -TarHashSource "missing"
+        # V23.3 B2 (wiki/390 §7.2 site #5b — tar_hash_mismatch / missing
+        # sidecar).
+        _Invoke-MusuInstallAttemptTelemetry `
+            -Step "tar_hash_mismatch" -ErrorClass "tampered_artifact" `
+            -ElapsedMs $elapsed
         throw $msg
     }
     $expected = (Get-Content $sidecar -Raw).Trim().ToLower()
@@ -384,11 +483,17 @@ Recovery: verify you downloaded the matching tar+installer pair. If this is
 a dev build, regenerate musu-backend.tar.sha256 by running
 `(Get-FileHash $TarPath -Algorithm SHA256).Hash.ToLower() | Set-Content $TarPath.sha256`.
 "@
+    $elapsed = [int]((Get-Date) - $script:StartTime).TotalMilliseconds
     Save-MusuFailureDump `
         -Step "tar_hash_mismatch" -ErrorClass "tampered_artifact" `
         -InstallId $script:InstallId `
-        -ElapsedMs ([int]((Get-Date) - $script:StartTime).TotalMilliseconds) `
+        -ElapsedMs $elapsed `
         -TarHashSource $script:TarHashSource
+    # V23.3 B2 (wiki/390 §7.2 site #5c — tar_hash_mismatch / hash
+    # mismatch).
+    _Invoke-MusuInstallAttemptTelemetry `
+        -Step "tar_hash_mismatch" -ErrorClass "tampered_artifact" `
+        -ElapsedMs $elapsed
     throw $msg
 }
 Write-MusuOk "tar SHA-256 verified (source: $script:TarHashSource)"
@@ -432,25 +537,41 @@ try {
         -Method POST -ContentType "application/json" -Body $validateBody `
         -UseBasicParsing -TimeoutSec 30
 } catch {
+    $elapsed = [int]((Get-Date) - $script:StartTime).TotalMilliseconds
     Save-MusuFailureDump `
         -Step "validate_token" -ErrorClass "network" `
         -InstallId $script:InstallId `
-        -ElapsedMs ([int]((Get-Date) - $script:StartTime).TotalMilliseconds)
+        -ElapsedMs $elapsed
+    # V23.3 B2 (wiki/390 §7.2 site #6a — validate_token / network).
+    _Invoke-MusuInstallAttemptTelemetry `
+        -Step "validate_token" -ErrorClass "network" `
+        -ElapsedMs $elapsed
     throw "musu.pro /validate POST failed: $($_.Exception.Message)"
 }
 
 if (-not $resp.valid) {
+    $elapsed = [int]((Get-Date) - $script:StartTime).TotalMilliseconds
     Save-MusuFailureDump `
         -Step "validate_token" -ErrorClass "invalid_token" `
         -InstallId $script:InstallId `
-        -ElapsedMs ([int]((Get-Date) - $script:StartTime).TotalMilliseconds)
+        -ElapsedMs $elapsed
+    # V23.3 B2 (wiki/390 §7.2 site #6b — validate_token / invalid_token).
+    _Invoke-MusuInstallAttemptTelemetry `
+        -Step "validate_token" -ErrorClass "invalid_token" `
+        -ElapsedMs $elapsed
     throw "musu.pro /validate refused tunnel_token"
 }
 if (-not $resp.user_id) {
+    $elapsed = [int]((Get-Date) - $script:StartTime).TotalMilliseconds
     Save-MusuFailureDump `
         -Step "validate_token" -ErrorClass "musu_pro_b2_not_deployed" `
         -InstallId $script:InstallId `
-        -ElapsedMs ([int]((Get-Date) - $script:StartTime).TotalMilliseconds)
+        -ElapsedMs $elapsed
+    # V23.3 B2 (wiki/390 §7.2 site #6c — validate_token /
+    # musu_pro_b2_not_deployed).
+    _Invoke-MusuInstallAttemptTelemetry `
+        -Step "validate_token" -ErrorClass "musu_pro_b2_not_deployed" `
+        -ElapsedMs $elapsed
     throw "musu.pro /validate did not return user_id (B2 not deployed?)"
 }
 $script:UserId = $resp.user_id
@@ -470,10 +591,15 @@ icacls $ImportDir /inheritance:r `
 # Pre-check: refuse if 'musu' distro already exists, unless -ForceReinstall (C2)
 $existing = & wsl.exe -l --quiet 2>$null | ForEach-Object { $_.Trim() } | Where-Object { $_ -eq "musu" }
 if ($existing -and -not $ForceReinstall) {
+    $elapsed = [int]((Get-Date) - $script:StartTime).TotalMilliseconds
     Save-MusuFailureDump `
         -Step "wsl_import" -ErrorClass "v21_collision" `
         -InstallId $script:InstallId `
-        -ElapsedMs ([int]((Get-Date) - $script:StartTime).TotalMilliseconds)
+        -ElapsedMs $elapsed
+    # V23.3 B2 (wiki/390 §7.2 site #7a — wsl_import / v21_collision).
+    _Invoke-MusuInstallAttemptTelemetry `
+        -Step "wsl_import" -ErrorClass "v21_collision" `
+        -ElapsedMs $elapsed
     throw "A 'musu' WSL distro already exists. Run uninstall.ps1 first, or re-run install-wsl2.ps1 with -ForceReinstall to overwrite (destroys K8s state inside)."
 }
 if ($existing -and $ForceReinstall) {
@@ -483,10 +609,15 @@ if ($existing -and $ForceReinstall) {
 
 & wsl.exe --import musu $ImportDir $TarPath --version 2
 if ($LASTEXITCODE -ne 0) {
+    $elapsed = [int]((Get-Date) - $script:StartTime).TotalMilliseconds
     Save-MusuFailureDump `
         -Step "wsl_import" -ErrorClass "import_failed" `
         -InstallId $script:InstallId `
-        -ElapsedMs ([int]((Get-Date) - $script:StartTime).TotalMilliseconds)
+        -ElapsedMs $elapsed
+    # V23.3 B2 (wiki/390 §7.2 site #7b — wsl_import / import_failed).
+    _Invoke-MusuInstallAttemptTelemetry `
+        -Step "wsl_import" -ErrorClass "import_failed" `
+        -ElapsedMs $elapsed
     throw "wsl --import failed: exit $LASTEXITCODE"
 }
 Write-MusuOk "wsl --import musu succeeded"
@@ -610,10 +741,18 @@ MUSU_INSTALL_STARTED_AT_UTC=$($script:StartTime.ToUniversalTime().ToString("o"))
     Write-MusuErr "Install failed during steps 7-9: $($_.Exception.Message)"
     Write-MusuWarn "Unregistering 'musu' distro to clean orphan state"
     & wsl.exe --unregister musu 2>$null | Out-Null
+    $elapsed = [int]((Get-Date) - $script:StartTime).TotalMilliseconds
     Save-MusuFailureDump `
         -Step "alpha_bootstrap" -ErrorClass "rolled_back" `
         -InstallId $script:InstallId `
-        -ElapsedMs ([int]((Get-Date) - $script:StartTime).TotalMilliseconds)
+        -ElapsedMs $elapsed
+    # V23.3 B2 (wiki/390 §7.2 site #8 — alpha_bootstrap / rolled_back).
+    # Single emit covers all 7-9 sub-failures (the catch block is the
+    # collective failure boundary; sub-site granularity already in the
+    # exception message preserved for local Save-MusuFailureDump).
+    _Invoke-MusuInstallAttemptTelemetry `
+        -Step "alpha_bootstrap" -ErrorClass "rolled_back" `
+        -ElapsedMs $elapsed
     throw
 }
 
@@ -625,10 +764,15 @@ Write-MusuInfo "Step 10/12: openrc default (starts musu-init → K3s → gateway
 # account_key (already present from step 9), then starts musu-gateway.
 & wsl.exe -d musu -- sh -c 'openrc default && echo MUSU_INIT_KICK_OK' | Out-String
 if ($LASTEXITCODE -ne 0) {
+    $elapsed = [int]((Get-Date) - $script:StartTime).TotalMilliseconds
     Save-MusuFailureDump `
         -Step "k3s_start" -ErrorClass "permission" `
         -InstallId $script:InstallId `
-        -ElapsedMs ([int]((Get-Date) - $script:StartTime).TotalMilliseconds)
+        -ElapsedMs $elapsed
+    # V23.3 B2 (wiki/390 §7.2 site #9a — k3s_start / permission).
+    _Invoke-MusuInstallAttemptTelemetry `
+        -Step "k3s_start" -ErrorClass "permission" `
+        -ElapsedMs $elapsed
     throw "openrc default failed: exit $LASTEXITCODE"
 }
 
@@ -649,10 +793,16 @@ while ((Get-Date) -lt $readyDeadline) {
     Start-Sleep -Seconds 2
 }
 if (-not $ready) {
+    $elapsed = [int]((Get-Date) - $script:StartTime).TotalMilliseconds
     Save-MusuFailureDump `
         -Step "musu_relay_start" -ErrorClass "gateway_timeout" `
         -InstallId $script:InstallId `
-        -ElapsedMs ([int]((Get-Date) - $script:StartTime).TotalMilliseconds)
+        -ElapsedMs $elapsed
+    # V23.3 B2 (wiki/390 §7.2 site #9b — musu_relay_start /
+    # gateway_timeout).
+    _Invoke-MusuInstallAttemptTelemetry `
+        -Step "musu_relay_start" -ErrorClass "gateway_timeout" `
+        -ElapsedMs $elapsed
     throw "musu-gateway did not connect to signaling within 120s"
 }
 Write-MusuOk "musu-gateway connected to signaling"

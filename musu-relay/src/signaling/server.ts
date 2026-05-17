@@ -309,6 +309,20 @@ function findPeerInRoom(userId: string, peerId: string): Peer | null {
 
 const app = express();
 
+// V23.3 B2 (wiki/390 §3.4 + Critic C-B2-H1): Fly proxy is a single hop;
+// trust exactly one hop so req.ip consumes the right-most X-Forwarded-For
+// entry (the actual client IP), not the Fly proxy socket peer. Without
+// this, the new /v1/telemetry/install_attempt rate-limit dimension
+// "(install_id, source_ip)" would collapse to "(install_id, fly-proxy-ip)"
+// — i.e. functionally per-install_id-only — and an attacker rotating
+// install_id (a free [Guid]::NewGuid()) would get unlimited 20-token
+// buckets.
+//
+// Side effect (intentional, positive defensive change): /install,
+// /nat_pierce, /agent_spawn now also see real client IPs if any future
+// code path reads req.ip. None do today.
+app.set("trust proxy", 1);
+
 const _startTime = Date.now();
 let _totalPeers = 0;
 let _totalRooms = 0;

@@ -127,6 +127,50 @@ CREATE INDEX IF NOT EXISTS idx_account_keys_last_seen
   ON telemetry_account_keys(last_seen_at);
 `;
 
+// V23.3 B2 (wiki/390 §2): schema v42 — pre-bootstrap install_attempt
+// telemetry. Unauth POST endpoint accepts failure-step metadata from
+// hosts that never reach a working musu install (so the existing HMAC-
+// authed /install route is unreachable to them). Sibling constant
+// (NOT inlined into v40 or v41) for the same defensive reason called
+// out above the V41 constant: the v42 advance is gated on
+// schema_version so the Const III env-gate can veto it in production
+// without disturbing v40/v41 boot.
+//
+// Schema rationale (wiki/390 §2.1):
+//   - INTEGER PRIMARY KEY AUTOINCREMENT + received_at + musu_install_id
+//     mirror v40 telemetry_install for prepared-statement parity.
+//   - step / error_class: free-form at write time (forward-compat for
+//     future installer versions); char-class regex enforced at the route
+//     layer per Critic C-B2-M1.
+//   - elapsed_ms: bigint-safe via asInt(); range-checked 0..24h at route
+//     layer per Critic C-B2-M2.
+//   - optional context columns (os_version, bios_vt, host_class,
+//     installer_version) match what install-wsl2.ps1 collects in
+//     PrereqResult.
+//   - source_ip_hash: sha256(req.ip).substring(0,8) — 32-bit prefix,
+//     collision-tolerant for analytics, raw IP never persisted (privacy).
+//   - schema_version: payload-schema version, allows additive evolution
+//     without a v43 migration.
+const MIGRATION_V42_INSTALL_ATTEMPT = `
+CREATE TABLE IF NOT EXISTS install_attempt (
+  id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+  received_at         INTEGER NOT NULL,
+  musu_install_id     TEXT NOT NULL,
+  step                TEXT NOT NULL,
+  error_class         TEXT NOT NULL,
+  elapsed_ms          INTEGER NOT NULL,
+  os_version          TEXT,
+  bios_vt             TEXT,
+  host_class          TEXT,
+  installer_version   TEXT,
+  source_ip_hash      TEXT,
+  schema_version      INTEGER NOT NULL DEFAULT 1
+);
+CREATE INDEX IF NOT EXISTS idx_install_attempt_received ON install_attempt(received_at);
+CREATE INDEX IF NOT EXISTS idx_install_attempt_step ON install_attempt(step);
+CREATE INDEX IF NOT EXISTS idx_install_attempt_install ON install_attempt(musu_install_id);
+`;
+
 export function applyMigrations(d: Database.Database): void {
   // v40 baseline (already CREATE IF NOT EXISTS, idempotent).
   d.exec(MIGRATION_V40_TELEMETRY);
@@ -166,6 +210,40 @@ export function applyMigrations(d: Database.Database): void {
       "INSERT OR IGNORE INTO schema_version(version, applied_at) VALUES (?, ?)",
     ).run(41, Date.now());
   }
+
+  // v42 conditional advance (V23.3 B2 / wiki/390 §2.2). Mirrors the v41
+  // pattern above verbatim, swapping 41 → 42 and V41_AUTHORIZED →
+  // V42_AUTHORIZED. We re-read schema_version after the v41 block so the
+  // gate sees the freshest state (v40-only DBs that just advanced to v41
+  // should now also advance to v42 in the same boot).
+  const currentAfterV41 = (
+    d.prepare("SELECT MAX(version) AS v FROM schema_version").get() as {
+      v: number | null;
+    }
+  ).v ?? 0;
+  if (currentAfterV41 < 42) {
+    // Const III env-gate (wiki/363 §9 precedent applied to v42). Schema
+    // migrations are one-way on the production telemetry volume; the
+    // orchestrator-prompt policy alone is insufficient if someone runs
+    // `fly deploy` directly. Operator must `fly secrets set
+    // MUSU_TELEMETRY_V42_AUTHORIZED=1` after obtaining Const III 진행해
+    // approval; the server refuses to start otherwise. Tests
+    // (NODE_ENV !== "production") bypass the gate.
+    if (
+      process.env.NODE_ENV === "production" &&
+      process.env.MUSU_TELEMETRY_V42_AUTHORIZED !== "1"
+    ) {
+      throw new Error(
+        "[telemetry] schema v42 migration blocked: " +
+          "set MUSU_TELEMETRY_V42_AUTHORIZED=1 via `fly secrets set` after " +
+          "obtaining Const III 진행해 from operator. Refusing to start.",
+      );
+    }
+    d.exec(MIGRATION_V42_INSTALL_ATTEMPT);
+    d.prepare(
+      "INSERT OR IGNORE INTO schema_version(version, applied_at) VALUES (?, ?)",
+    ).run(42, Date.now());
+  }
 }
 
 // ── Validation helpers ───────────────────────────────────────────────────
@@ -186,6 +264,134 @@ function isValidOs(v: unknown): v is "windows" | "linux" | "macos" {
 }
 function isValidOutcome(v: unknown): v is "success" | "fail" {
   return v === "success" || v === "fail";
+}
+
+// ── V23.3 B2 (wiki/390) — install_attempt validators + rate limiter ──────
+//
+// Per Critic C-B2-M1 (resolved in wiki/390 §4.6): free-form strings on
+// the unauth /install_attempt route MUST pass char-class regexes at write
+// time. Length-cap alone admits log-injection / future-stored-XSS payloads
+// when paired with H1 (which would otherwise let an attacker rotate
+// install_id and persist thousands of `<script>` / newline-injection
+// payloads). The regex caps below also implement Critic L1's tightenings
+// (installer_version ≤ 32, host_class ≤ 64) so the real fingerprint
+// surface stays narrow.
+const INSTALL_ID_RE = /^[0-9a-f]{32}$/;
+const STEP_RE = /^[a-z0-9_]{1,64}$/;
+const ERROR_CLASS_RE = /^[a-z0-9_]{1,64}$/;
+const BIOS_VT_RE = /^[a-zA-Z0-9._-]{1,128}$/;
+const HOST_CLASS_RE = /^[a-zA-Z0-9._-]{1,64}$/;
+const INSTALLER_VERSION_RE = /^[a-zA-Z0-9._-]{1,32}$/;
+const OS_VERSION_RE = /^[a-zA-Z0-9._\s()-]{1,128}$/;
+
+// Per-instance in-memory token bucket. Scoped per (install_id, source_ip)
+// tuple. NOT global — fly.toml min_machines_running=1 makes per-instance
+// approximately global at steady state; auto-scale hops are a V23.4
+// follow-on (wiki/390 §3.1 trade-off).
+//
+// Memory bound: a Map<string, BucketState> with RL_MAP_HARD_CAP active
+// entries. Each entry ~80 bytes (key ~50 bytes + state ~30 bytes); ~800KB
+// worst case. Reaper sweeps entries older than RL_REAPER_MAX_AGE_MS every
+// RL_REAPER_INTERVAL_MS. Test isolation via _resetInstallAttemptLimiter().
+//
+// Per Critic C-B2-M5 (resolved in wiki/390 §4.6):
+//   - RL_REAPER_MAX_AGE_MS: 1h → 10min (tighten reaper window so
+//     adversarial-install_id-rotation DoS-of-legitimate-callers releases
+//     map slots faster).
+//   - RL_REAPER_INTERVAL_MS: 5min → 1min (run reaper more often).
+//   - LRU eviction at cap: when at hard cap and a NEW key arrives, evict
+//     the single oldest entry (min lastRefillMs) before insert — converts
+//     cap-hit failure mode from "deny legitimate for 60min" to "evict
+//     oldest attacker entry, admit legitimate caller" (asymmetric in the
+//     right direction).
+interface BucketState {
+  tokens: number;       // float, refilled lazily on hit
+  lastRefillMs: number; // Date.now() of last refill
+}
+
+const RL_CAPACITY = 20;            // max burst per tuple
+const RL_TOKENS_PER_HOUR = 20;     // refill 20/hour ≈ one every 3min
+const RL_REFILL_PER_MS = RL_TOKENS_PER_HOUR / (60 * 60 * 1000);
+const RL_REAPER_INTERVAL_MS = 60_000;        // C-B2-M5: 5min → 1min
+const RL_REAPER_MAX_AGE_MS = 10 * 60_000;    // C-B2-M5: 1h → 10min
+const RL_MAP_HARD_CAP = 10_000;
+
+const _installAttemptBuckets = new Map<string, BucketState>();
+let _lastReaperRunMs = 0;
+
+// Exported for tests (T20/T21 assert LRU bound at scale; calling this
+// directly avoids the supertest+express+sqlite round-trip cost of
+// hammering the route 10k+ times). Production callers use it via the
+// /install_attempt route handler. The leading-underscore name follows
+// the same convention as _resetDb / _getDbForTests in this module.
+export function _consumeInstallAttemptToken(
+  installId: string,
+  sourceIp: string,
+): { allowed: boolean; retryAfterSec: number } {
+  const now = Date.now();
+  // Opportunistic reaper — runs at most once per RL_REAPER_INTERVAL_MS
+  // on the hot path; bounded work per call.
+  if (now - _lastReaperRunMs > RL_REAPER_INTERVAL_MS) {
+    _lastReaperRunMs = now;
+    for (const [k, v] of _installAttemptBuckets) {
+      if (now - v.lastRefillMs > RL_REAPER_MAX_AGE_MS) {
+        _installAttemptBuckets.delete(k);
+      }
+    }
+  }
+  const key = `${installId}|${sourceIp}`;
+  let st = _installAttemptBuckets.get(key);
+  if (!st) {
+    // C-B2-M5: LRU eviction at cap (NOT refuse). If the map is at the
+    // hard cap and the key is new, evict the single oldest entry (min
+    // lastRefillMs) before insert. Bounded scan (O(N) once per cap-hit,
+    // where N ≤ RL_MAP_HARD_CAP) — acceptable for the failure mode it
+    // mitigates.
+    if (_installAttemptBuckets.size >= RL_MAP_HARD_CAP) {
+      let oldestKey: string | null = null;
+      let oldestMs = Infinity;
+      for (const [k, v] of _installAttemptBuckets) {
+        if (v.lastRefillMs < oldestMs) {
+          oldestMs = v.lastRefillMs;
+          oldestKey = k;
+        }
+      }
+      if (oldestKey !== null) {
+        _installAttemptBuckets.delete(oldestKey);
+      }
+    }
+    st = { tokens: RL_CAPACITY, lastRefillMs: now };
+    _installAttemptBuckets.set(key, st);
+  } else {
+    // Lazy refill: add (elapsed_ms * refill_per_ms) tokens, clamp to capacity.
+    const elapsed = now - st.lastRefillMs;
+    st.tokens = Math.min(RL_CAPACITY, st.tokens + elapsed * RL_REFILL_PER_MS);
+    st.lastRefillMs = now;
+  }
+  if (st.tokens < 1) {
+    const deficit = 1 - st.tokens;
+    // RL_REFILL_PER_MS is tokens-per-ms, so deficit/RL_REFILL_PER_MS is
+    // ms-until-1-token. Convert to whole seconds for the Retry-After
+    // header (RFC 7231 §7.1.3 — integer seconds).
+    return {
+      allowed: false,
+      retryAfterSec: Math.max(1, Math.ceil(deficit / RL_REFILL_PER_MS / 1000)),
+    };
+  }
+  st.tokens -= 1;
+  return { allowed: true, retryAfterSec: 0 };
+}
+
+// Test isolation — call from beforeEach() in install-attempt.test.ts.
+export function _resetInstallAttemptLimiter(): void {
+  _installAttemptBuckets.clear();
+  _lastReaperRunMs = 0;
+}
+
+// Test-only window into the limiter state so T20/T21 can assert size
+// bounds without exporting the Map directly.
+export function _getInstallAttemptLimiterSize(): number {
+  return _installAttemptBuckets.size;
 }
 
 // ── Auth (V23.2 T2.AUTH.2 interim) ────────────────────────────────────────
@@ -582,6 +788,132 @@ export function makeTelemetryRouter(
     res.status(204).end();
   });
 
+  // POST /v1/telemetry/install_attempt — UNAUTH (V23.3 B2 / wiki/390)
+  //
+  // Pre-bootstrap failure telemetry. Hosts that never reach a working
+  // install have no account_key, so /install (HMAC-authed) is unreachable.
+  // This endpoint accepts an unauth POST per failure step from
+  // install-wsl2.ps1, rate-limited per (musu_install_id, source_ip).
+  //
+  // Auth: deliberately none. See wiki/390 §1.2 + §3.5 privacy posture.
+  // Validation: char-class regex (Critic C-B2-M1) + elapsed_ms range
+  //   (Critic C-B2-M2).
+  // Rate-limit: 20 tokens/hr per (install_id, source_ip) tuple; 429 +
+  //   Retry-After on exhaustion (Critic C-B2-M5 LRU eviction at map cap).
+  // Schema: install_attempt table (v42), see wiki/390 §2.
+  //
+  // Source IP derivation depends on `app.set("trust proxy", 1)` in
+  // server.ts so req.ip is the real client IP (right-most XFF entry), not
+  // the Fly edge proxy socket peer (Critic C-B2-H1).
+  router.post("/install_attempt", (req, res) => {
+    // No requireInstallHmac() / requireTelemetrySecret() — UNAUTH by design.
+    const b = req.body || {};
+
+    // Required: musu_install_id (exact regex, generic message — defense-
+    // in-depth: don't disclose regex shape in the 400 body).
+    const installId = asStr(b.musu_install_id);
+    if (!installId || !INSTALL_ID_RE.test(installId)) {
+      res.status(400).json({ error: "missing or malformed musu_install_id" });
+      return;
+    }
+
+    // Required: step (char-class regex per C-B2-M1).
+    const step = asStr(b.step);
+    if (!step || !STEP_RE.test(step)) {
+      res.status(400).json({ error: "missing or malformed step" });
+      return;
+    }
+
+    // Required: error_class (char-class regex per C-B2-M1).
+    const errorClass = asStr(b.error_class);
+    if (!errorClass || !ERROR_CLASS_RE.test(errorClass)) {
+      res.status(400).json({ error: "missing or malformed error_class" });
+      return;
+    }
+
+    // Required: elapsed_ms (range check 0..24h per C-B2-M2).
+    const elapsedMs = asInt(b.elapsed_ms);
+    if (
+      elapsedMs === null ||
+      elapsedMs < 0 ||
+      elapsedMs > 24 * 60 * 60 * 1000
+    ) {
+      res.status(400).json({ error: "elapsed_ms out of range" });
+      return;
+    }
+
+    // Optional context fields — accept-and-clamp-to-NULL.
+    // Per C-B2-M1: optional fields that fail char-class regex → NULL
+    // (clamp), not 400 (keeps installer non-blocking on data shape edge
+    // cases — Save-MusuFailureDump still writes the durable record).
+    // Per C-B2-L2: over-length values log a warn so operator misconfig
+    // surfaces in Fly logs.
+    const optClamp = (
+      v: string | null,
+      regex: RegExp,
+      fieldName: string,
+    ): string | null => {
+      if (v === null) return null;
+      if (regex.test(v)) return v;
+      // Distinguish "too long" (operator misconfig — warn) from "wrong
+      // shape" (silent NULL). The cap inside each regex is the upper
+      // bound, so length-exceed is regex-fail.
+      console.warn(
+        `[telemetry] install_attempt: clamped over-length field ${fieldName} (len=${v.length})`,
+      );
+      return null;
+    };
+    const osVersion = optClamp(asStr(b.os_version), OS_VERSION_RE, "os_version");
+    const biosVt = optClamp(asStr(b.bios_vt), BIOS_VT_RE, "bios_vt");
+    const hostClass = optClamp(asStr(b.host_class), HOST_CLASS_RE, "host_class");
+    const installerVersion = optClamp(
+      asStr(b.installer_version),
+      INSTALLER_VERSION_RE,
+      "installer_version",
+    );
+
+    // Rate-limit per (install_id, source_ip). req.ip is now the real
+    // client IP (right-most XFF entry) thanks to app.set("trust proxy",1)
+    // in server.ts — see C-B2-H1.
+    const sourceIp = req.ip || "0.0.0.0";
+    const rl = _consumeInstallAttemptToken(installId, sourceIp);
+    if (!rl.allowed) {
+      res.setHeader("Retry-After", String(rl.retryAfterSec));
+      res.status(429).json({ error: "rate limit exceeded" });
+      return;
+    }
+
+    // Privacy posture (§3.5): only the 8-char hash lands in the DB; raw
+    // IP stays in Fly proxy logs only.
+    const sourceIpHash = createHash("sha256")
+      .update(sourceIp)
+      .digest("hex")
+      .substring(0, 8);
+
+    _db
+      .prepare(
+        `INSERT INTO install_attempt
+           (received_at, musu_install_id, step, error_class, elapsed_ms,
+            os_version, bios_vt, host_class, installer_version,
+            source_ip_hash, schema_version)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        Date.now(),
+        installId,
+        step,
+        errorClass,
+        elapsedMs,
+        osVersion,
+        biosVt,
+        hostClass,
+        installerVersion,
+        sourceIpHash,
+        1, // schema_version (payload-level)
+      );
+    res.status(204).end();
+  });
+
   // POST /v1/telemetry/nat_pierce
   router.post("/nat_pierce", (req, res) => {
     if (!requireInstallHmac(req, res)) return;
@@ -796,7 +1128,8 @@ export function _resetDb(): void {
     `DELETE FROM telemetry_install;
      DELETE FROM telemetry_nat_pierce;
      DELETE FROM telemetry_agent_spawn;
-     DELETE FROM telemetry_account_keys;`,
+     DELETE FROM telemetry_account_keys;
+     DELETE FROM install_attempt;`,
   );
 }
 

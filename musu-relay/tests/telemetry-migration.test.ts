@@ -37,14 +37,26 @@ import { applyMigrations } from "../src/signaling/telemetry";
 // Tests below mutate NODE_ENV and MUSU_TELEMETRY_V41_AUTHORIZED. Capture
 // and restore so other test files (and the harness's own NODE_ENV=test
 // default) see the world they expect.
+//
+// V23.3 B2 (wiki/390): a v42 install_attempt migration now also lands in
+// applyMigrations. Tests that exercise the v41 gate-open path now see
+// versions = [40, 41, 42] (v42 has the same NODE_ENV=production +
+// MUSU_TELEMETRY_V42_AUTHORIZED=1 gate as v41 and the same test-env
+// bypass). Tests that exercise the v41 gate-closed path still see
+// versions = [40] because the v41 throw aborts before v42 runs. We also
+// scrub MUSU_TELEMETRY_V42_AUTHORIZED so cross-file env leakage doesn't
+// flip the v42 gate behavior under us.
 const _origNodeEnv = process.env.NODE_ENV;
 const _origAuthorized = process.env.MUSU_TELEMETRY_V41_AUTHORIZED;
+const _origAuthorizedV42 = process.env.MUSU_TELEMETRY_V42_AUTHORIZED;
 
 afterEach(() => {
   if (_origNodeEnv === undefined) delete process.env.NODE_ENV;
   else process.env.NODE_ENV = _origNodeEnv;
   if (_origAuthorized === undefined) delete process.env.MUSU_TELEMETRY_V41_AUTHORIZED;
   else process.env.MUSU_TELEMETRY_V41_AUTHORIZED = _origAuthorized;
+  if (_origAuthorizedV42 === undefined) delete process.env.MUSU_TELEMETRY_V42_AUTHORIZED;
+  else process.env.MUSU_TELEMETRY_V42_AUTHORIZED = _origAuthorizedV42;
 });
 
 function freshDb(): Database.Database {
@@ -65,11 +77,14 @@ describe("V23.2 B1 commit 2 — schema v41 telemetry_account_keys", () => {
   describe("fresh DB", () => {
     it("applies v40 + v41 and records both in schema_version", () => {
       // Ensure gate is open for this fresh-DB suite (default test env).
+      // V23.3 B2 (wiki/390): v42 also lands by default in test env (gate
+      // is production-only). v41-specific assertions continue to hold;
+      // we widen the expected array to include 42.
       delete process.env.NODE_ENV;
       delete process.env.MUSU_TELEMETRY_V41_AUTHORIZED;
       const d = freshDb();
       applyMigrations(d);
-      expect(versions(d)).toEqual([40, 41]);
+      expect(versions(d)).toEqual([40, 41, 42]);
       d.close();
     });
 
@@ -205,8 +220,9 @@ describe("V23.2 B1 commit 2 — schema v41 telemetry_account_keys", () => {
       // Run the migration.
       applyMigrations(d);
 
-      // Both versions now present.
-      expect(versions(d)).toEqual([40, 41]);
+      // V23.3 B2 (wiki/390): v42 also advances here in test env (gate
+      // is production-only and this test does not set NODE_ENV).
+      expect(versions(d)).toEqual([40, 41, 42]);
 
       // The original v40 row's applied_at must NOT have been overwritten:
       // INSERT OR IGNORE protects it. This protects audit history.
@@ -263,29 +279,42 @@ describe("V23.2 B1 commit 2 — schema v41 telemetry_account_keys", () => {
     });
 
     it("succeeds when NODE_ENV=production and MUSU_TELEMETRY_V41_AUTHORIZED=1", () => {
+      // V23.3 B2 (wiki/390): v42 has its own production gate. To exercise
+      // the v41 happy-path under production, the v42 gate must also be
+      // open — otherwise applyMigrations throws at the v42 step instead
+      // of returning cleanly after v41. This test was written before v42
+      // existed; widening it to set BOTH env vars keeps the v41 invariant
+      // under test (the assertion "v41 succeeds when authorized") without
+      // requiring v42 to also be deauthorized.
       process.env.NODE_ENV = "production";
       process.env.MUSU_TELEMETRY_V41_AUTHORIZED = "1";
+      process.env.MUSU_TELEMETRY_V42_AUTHORIZED = "1";
       const d = freshDb();
       expect(() => applyMigrations(d)).not.toThrow();
-      expect(versions(d)).toEqual([40, 41]);
+      expect(versions(d)).toEqual([40, 41, 42]);
       d.close();
     });
 
     it("succeeds when NODE_ENV=test and the authorization var is unset (gate is production-only)", () => {
       process.env.NODE_ENV = "test";
       delete process.env.MUSU_TELEMETRY_V41_AUTHORIZED;
+      delete process.env.MUSU_TELEMETRY_V42_AUTHORIZED;
       const d = freshDb();
       expect(() => applyMigrations(d)).not.toThrow();
-      expect(versions(d)).toEqual([40, 41]);
+      // V23.3 B2 (wiki/390): v42 also lands in test env (gate is
+      // production-only).
+      expect(versions(d)).toEqual([40, 41, 42]);
       d.close();
     });
 
     it("succeeds when NODE_ENV is unset entirely (dev-without-env-set path)", () => {
       delete process.env.NODE_ENV;
       delete process.env.MUSU_TELEMETRY_V41_AUTHORIZED;
+      delete process.env.MUSU_TELEMETRY_V42_AUTHORIZED;
       const d = freshDb();
       expect(() => applyMigrations(d)).not.toThrow();
-      expect(versions(d)).toEqual([40, 41]);
+      // V23.3 B2 (wiki/390): v42 also lands without NODE_ENV set.
+      expect(versions(d)).toEqual([40, 41, 42]);
       d.close();
     });
   });

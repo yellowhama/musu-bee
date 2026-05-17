@@ -192,6 +192,118 @@ function Save-MusuFailureDump {
     }
 }
 
+# ── V23.3 B2 (wiki/390) — install_attempt telemetry helper ─────────────────
+
+function Send-MusuInstallAttempt {
+    <#
+    .SYNOPSIS
+    Best-effort POST to musu-relay's unauthenticated
+    /v1/telemetry/install_attempt endpoint. NEVER throws; NEVER logs the
+    response body. Designed to wrap Save-MusuFailureDump call sites
+    without changing their throw semantics.
+
+    .DESCRIPTION
+    Unauth POST per V23.3 B2 (wiki/390). Pre-bootstrap installer
+    failure telemetry — runs even when the host has no account_key.
+    Rate-limited server-side (20 POSTs/hr per install_id + source_ip).
+
+    Two opt-out paths exist (Critic C-B2-M4 resolution):
+      1. -NoTelemetry switch on install-wsl2.ps1 (caller-side; wraps the
+         call sites in `if (-not $NoTelemetry) { ... }`).
+      2. MUSU_INSTALL_ATTEMPT_DISABLED=1 env-var honored as the FIRST
+         line of this helper (silent no-op return). The env-var is the
+         "ops disable without code change" hatch.
+
+    The local Save-MusuFailureDump write at Musu-Common.psm1:133-193
+    remains unconditionally — the durable record stays local in both
+    modes.
+
+    .PARAMETER InstallId
+    The 32-hex musu_install_id from New-MusuInstallId.
+
+    .PARAMETER Step
+    Failure step name (matches Save-MusuFailureDump -Step values).
+
+    .PARAMETER ErrorClass
+    Failure class (matches Save-MusuFailureDump -ErrorClass values).
+
+    .PARAMETER ElapsedMs
+    Milliseconds elapsed before failure.
+
+    .PARAMETER OsVersion
+    Optional Windows OS version string.
+
+    .PARAMETER BiosVt
+    Optional 'yes'|'no'|'unknown'.
+
+    .PARAMETER HostClass
+    Optional host_class string.
+
+    .PARAMETER InstallerVersion
+    Optional installer version string (from $InstallerVersion constant).
+
+    .PARAMETER SigningBase
+    The signaling URL base (required). Pass install-wsl2.ps1's
+    $SigningBase parameter so dev/test against a local musu-relay works.
+
+    .OUTPUTS
+    None. Best-effort fire-and-forget.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$InstallId,
+        [Parameter(Mandatory = $true)][string]$Step,
+        [Parameter(Mandatory = $true)][string]$ErrorClass,
+        [Parameter(Mandatory = $true)][int]$ElapsedMs,
+        [string]$OsVersion = "",
+        [string]$BiosVt = "",
+        [string]$HostClass = "",
+        [string]$InstallerVersion = "",
+        [Parameter(Mandatory = $true)][string]$SigningBase
+    )
+
+    # C-B2-M4 opt-out hatch — silent no-op when env-var is set. MUST be
+    # the FIRST line of the function body so it bypasses ALL downstream
+    # logic (network, validation, ConvertTo-Json) — the operator's
+    # intent is "no POST under any circumstance".
+    if ($env:MUSU_INSTALL_ATTEMPT_DISABLED -eq "1") {
+        return
+    }
+
+    # Validate install_id shape locally; if malformed, do NOT POST
+    # (server will 400 anyway and a malformed id usually means we
+    # haven't loaded New-MusuInstallId yet — emitting would be a bug).
+    if ($InstallId -notmatch '^[0-9a-f]{32}$') {
+        return
+    }
+
+    $body = [ordered]@{
+        musu_install_id = $InstallId
+        step            = $Step
+        error_class     = $ErrorClass
+        elapsed_ms      = $ElapsedMs
+    }
+    if ($OsVersion)        { $body['os_version']        = $OsVersion }
+    if ($BiosVt)           { $body['bios_vt']           = $BiosVt }
+    if ($HostClass)        { $body['host_class']        = $HostClass }
+    if ($InstallerVersion) { $body['installer_version'] = $InstallerVersion }
+
+    $json = $body | ConvertTo-Json -Compress
+    try {
+        Invoke-RestMethod `
+            -Uri "$SigningBase/v1/telemetry/install_attempt" `
+            -Method Post `
+            -ContentType "application/json" `
+            -Body $json `
+            -UseBasicParsing `
+            -TimeoutSec 10 `
+            -ErrorAction Stop | Out-Null
+    } catch {
+        # Best-effort. Network down, server 4xx/5xx, DNS fail, cert
+        # error — all swallowed. Failure dump on local disk
+        # (Save-MusuFailureDump) is the durable record.
+    }
+}
+
 # ── Hash helper (for tunnel_token_hash in state file — NOT raw token) ──────
 
 function Get-MusuStringHash {
@@ -323,6 +435,7 @@ Export-ModuleMember -Function @(
     "Test-MusuElevation",
     "Invoke-WslExec",
     "Save-MusuFailureDump",
+    "Send-MusuInstallAttempt",
     "Get-MusuStringHash",
     "Save-MusuState",
     "Read-MusuState",
