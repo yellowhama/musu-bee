@@ -36,6 +36,14 @@ KUBECTL="kubectl --kubeconfig ${KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}"
 CRICTL="${CRICTL:-crictl --runtime-endpoint unix:///run/k3s/containerd/containerd.sock}"
 RUNS="${1:-3}"
 
+# Auditor B-M5: §4.1 verdict logic (PASS/FAIL/AMBIGUOUS) presumes 3-run sample.
+# Off-protocol RUNS values break median-of-3 jq indexing at line 110 and produce
+# silently-overstated p99. Hard-gate to RUNS=3 until V23.4 widens verdict spec.
+if [ "$RUNS" != "3" ]; then
+  echo "[bridge-bench] FAIL: §4.1 verdict logic requires RUNS=3 (got '$RUNS')" >&2
+  exit 1
+fi
+
 echo "[bridge-bench] preflight: python:3.11-slim present in airgap image cache?" >&2
 if ! $CRICTL images 2>/dev/null | grep -E '(^|/)python\s+3\.11-slim' >/dev/null \
    && ! $CRICTL images 2>/dev/null | grep -E 'docker\.io/library/python.*3\.11-slim' >/dev/null; then
@@ -95,17 +103,25 @@ for run in $(seq 1 "$RUNS"); do
 done
 
 # Aggregate JSON: V23_1_SPIKE_RESULT_TEMPLATE §2 schema + A1.c extensions.
+# Auditor B-H2: emit success_rate_pct + gate_eligible so §4.1 verdict logic can
+# precondition on §5.5 (must be ≥99.5% to count). Auditor B-H1: schema is
+# minimal-by-design for A1.c per Option (b); RSS + cold-start + metadata
+# enrichment is V23.4 forward-pointer F-A1c-9 (operator stitches into wiki/385).
 echo "${ALL_RESULTS}" | jq '{
   schema: "musu-bridge-bench-v1",
   wiki_id: 385,
   sub_ws: "v23.3-a1c",
   runs: .,
-  aggregate: {
-    n_attempts: (map(.runs[0].n) | add),
-    success: (map(.runs[0].success) | add),
-    fail: (map(.runs[0].fail) | add),
-    p50_ms_median: (map(.runs[0].p50_ms) | sort | .[(length/2|floor)]),
-    p95_ms_median: (map(.runs[0].p95_ms) | sort | .[(length/2|floor)]),
-    p99_ms_median: (map(.runs[0].p99_ms) | sort | .[(length/2|floor)])
-  }
+  aggregate: ((map(.runs[0].n) | add) as $n_total
+    | (map(.runs[0].success) | add) as $succ_total
+    | {
+        n_attempts: $n_total,
+        success: $succ_total,
+        fail: (map(.runs[0].fail) | add),
+        success_rate_pct: ($succ_total / $n_total * 100),
+        gate_eligible: (($succ_total / $n_total * 100) >= 99.5),
+        p50_ms_median: (map(.runs[0].p50_ms) | sort | .[(length/2|floor)]),
+        p95_ms_median: (map(.runs[0].p95_ms) | sort | .[(length/2|floor)]),
+        p99_ms_median: (map(.runs[0].p99_ms) | sort | .[(length/2|floor)])
+      })
 }'
