@@ -58,7 +58,7 @@ Total: ~4400 LOC across 5 sub-WS over ~6-8 weeks.
 - **Go operator deployment topology**: musu-operator runs as a SEPARATE K3s Deployment, NOT a sidecar in musu-bridge Pod. Reason: independent restart/rollback; separate ServiceAccount/RBAC; smaller blast radius if operator crashes. (T2-B detail plan locks Pod spec.)
 - **CRD API group**: `musu.pro/v1` (matches V23 master §V23.4 :806 "AgentWorkflow CRD").
 - **CRD schema location**: `musu-bridge/crds/agentworkflow_v1.yaml` is the source of truth; Go operator generates Go types FROM this YAML via `controller-gen` (NOT the other way around — keeps Python and Go in sync from a single artifact).
-- **Argo Workflows version**: pin specific release; T2-A Researcher locks version after 4-criteria check (no Critical/High CVE, K3s compat, ≥6mo upstream support, v3.6 upgrade path). Master plan working assumption: `v3.5.13` (verify at T2-A Phase 0).
+- **Argo Workflows version**: **`v3.7.14`** (locked by T2-A Phase 0 Researcher 2026-05-18). v3.5.13 working assumption REJECTED — v3.5 line EOL'd 2025-07-23 per endoflife.date, unpatched against 5+ 2026 High-severity CVEs (GHSA-jcc8-g2q4-9fxq DoS CVSS 8.2; GHSA-3775-99mw-8rp4 strict-mode bypass 8.1; GHSA-3wf5-g532-rcrr podSpecPatch bypass 8.9). v3.7.14 patches all known 2026 advisories. v4.0.5 also viable but requires `--server-side` apply changes to airgap installer; deferred to Q3 2026 backlog upgrade. Criterion (c) 6-month support: borderline — Argo's "2 most recent minors" policy means a v4.1 cut in late 2026 could EOL v3.7; document as RISK and plan v4.0 upgrade workstream.
 - **musu-bee routing**: `/` → `/fleet` (default), `/c/[company]/workflows` (list), `/c/[company]/workflows/[id]` (edit). `/dashboard` 301-REDIRECT to `/fleet` for 1 release cycle (per OQ-CRIT-4). `/c/[id]` + `/m/[id]` KEPT (V21.F two-axis views remain for power-user drill-down). nested `/dashboard/company/[id]/chat` MIGRATES to `/c/[id]/chat`.
 - **Validation responsibility (OQ-CRIT-3)**: T2-A ships AdmissionWebhook (Python — stays in musu-bridge process). Webhook validates AgentWorkflow spec on `CREATE`/`UPDATE` admission. T2-B operator assumes valid spec; NO defensive validation duty in reconcile loop.
 - **musu-pro coordination**: NOT in Phase 4 scope. musu-pro stays at current state for V23.4. V23.5 will add Paddle + `<user>.musu.pro` provisioning.
@@ -141,7 +141,8 @@ V23.3 wiki/396 / wiki/385 documented the A1.c bench harness but **did not captur
 - `musu-bridge/workflow_routes.py` (NEW FastAPI module — POST/GET/DELETE /api/workflows; uses `kubernetes` Python client to create AgentWorkflow CRDs)
 - `musu-bridge/server.py` (1-line `app.include_router(workflow_routes.router)`)
 - `musu-bridge/tests/test_workflow_routes.py` (NEW — 6-10 cases: create / list / get / 404 / invalid spec / RBAC fail)
-- `musu-bridge/requirements.txt` (add `kubernetes>=29.0.0`)
+- `musu-bridge/pyproject.toml` (add `kubernetes-asyncio>=32.0.0` — async client, NOT sync `kubernetes` which would block FastAPI event loop; T2-A Researcher 2026-05-18 verified musu-bridge has no kubernetes lib today)
+- `musu-bridge/workflow_routes.py` + lifespan integration in `server.py` (CustomObjectsApi initialized once at startup, reused per-request — per Researcher R3b pattern)
 
 **Argo Workflows version**: pin **v3.5.13** (latest stable at 2026-05-18). Detail plan re-verifies at Builder time.
 
@@ -275,6 +276,15 @@ spec:
 
 **Wiki**: wiki/432 detail + wiki/436 closure.
 
+**Phase 0 Researcher findings carried into T2-A detail plan (2026-05-18)**:
+- Argo `v3.7.14` PIN (NOT v3.5.13 per master plan §2.1 update). 5+ 2026-High CVEs unpatched in v3.5; v3.7.14 patches all. v4.0.5 viable but requires `--server-side` apply rework — deferred.
+- `kubernetes-asyncio>=32.0.0` (NOT sync `kubernetes`) — bridge is FastAPI async, sync client blocks event loop. CustomObjectsApi initialized in lifespan, reused.
+- **CRD YAML = source of truth**; T2-B Go types mirror via `controller-gen` markers; `make verify-crd` CI guard catches drift. T2-A Builder MUST run `kubectl apply --dry-run=server -f crd.yaml` against real K3s before commit.
+- **AdmissionWebhook TLS**: `kube-webhook-certgen` one-shot Job (NOT cert-manager — adds ~200MB to airgap). Dual-port uvicorn: 8070 HTTP (existing, Bearer-auth) + 8443 HTTPS (webhook only, mTLS from kube-apiserver). `/admit/agentworkflows` added to `bypass_path_prefixes` at `server.py:1035` (mTLS is the auth, NOT Bearer).
+- `failurePolicy: Fail` (block CRD apply if webhook is down — safer; documented in runbook).
+- Route convention: `/api/workflows` (NOT `/api/admin/workflows` — workflows are user-facing not admin-only).
+- CRD schema gotchas avoided in Researcher's R3a draft: no `default` on `required` fields, no root-level `additionalProperties: false` (blocks kubectl labels), `enum` only on simple scalars, `subresources.status: {}` declared for finalizer-aware status updates.
+
 ### §5.B T2-B: Go operator (AgentWorkflow → Argo translation)
 
 **New package**: `musu-operator/` at repo root (NEW Go module).
@@ -376,14 +386,14 @@ Error handling:
 **Files** (revised per OQ-CRIT-4 — retire dashboard with 301 redirect, NOT delete):
 - `musu-bee/src/app/fleet/page.tsx` (NEW — Next.js page, SSR shell)
 - `musu-bee/src/app/fleet/FleetClient.tsx` (NEW — client component, useEffect + SSE)
-- `musu-bee/src/app/fleet/AddPcWizard.tsx` (NEW — modal wizard, calls existing pair endpoint per T2-C Researcher confirmation)
+- `musu-bee/src/app/fleet/AddPcWizard.tsx` (NEW — modal wizard, calls `POST /api/admin/pair/accept` via musu-bee `/api/bridge/[...path]` proxy; T2-A Researcher confirmed actual mounted URL at `musu-bridge/system_routes.py:94` — NOT `/api/nodes/pair` as master plan originally said. Request body: `{name, url, agents, version}`; response: `{success, node_name}`)
 - `musu-bee/src/app/fleet/PcCapacityCard.tsx` (NEW — per-PC card with capacity heat-map)
 - `musu-bee/src/app/page.tsx` (EDIT — redirect `/` → `/fleet`)
 - `musu-bee/src/middleware.ts` (EDIT — add `/dashboard*` → `/fleet*` 301 redirect rule; preserves deep-link mapping `/dashboard/company/[id]/chat` → `/c/[id]/chat`)
 - `musu-bee/src/app/dashboard/` (KEEP for 1 release cycle as 301 stub — Next.js automatically 308s via middleware; actual page.tsx becomes `redirect("/fleet")`)
 - `musu-bee/src/app/app/dashboard/` (SAME treatment — second dashboard tree)
 - **10-file reference audit** (per C-04 evidence): update `middleware.ts`, `DashboardClient.tsx`, `ConsoleSidebar.tsx`, `CommandPalette.tsx`, `dashboard/company/[id]/chat/page.tsx`, + 5 other importers (T2-C Researcher enumerates in wiki/434 §"Dashboard reference audit"). Sidebar nav swap (Dashboard → Fleet); CommandPalette entry swap; deep-link migration.
-- `musu-bridge/axis_routes.py` or wherever `accept_pair` is mounted (EDIT only if endpoint URL differs from wizard's call — T2-C Researcher confirms first; recommend NO new endpoint, reuse existing)
+- `musu-bridge/system_routes.py:94` (existing `accept_pair` mount at `POST /api/admin/pair/accept` — NO change needed; wizard reuses existing endpoint)
 - `musu-bee/src/lib/vocabulary-audit.ts` (NEW — CI lint: grep user-facing strings for `Pod|Deployment|Namespace|kubectl|ClusterRole|Helm`; CI fails on match)
 - `musu-bee/__tests__/vocabulary-audit.test.ts` (NEW — Jest test that fails if banned vocabulary appears in `app/` strings)
 
