@@ -166,12 +166,16 @@ spec:
           # archive (manifest.yaml:58). Containerd resolver may not match a
           # bare `musu-bridge@sha256:…` against the airgap-loaded image keyed
           # under `docker.io/library/...`.
-          image: docker.io/library/musu-bridge@sha256:b484bde2814d53893fc41103d21001e1f9842946693cc63d15ada6856640755b
+          image: docker.io/library/musu-bridge@sha256:e740ddd8f5e50bf0932282f78f9f69c96632231e4d84eb63342add180fd992d6
           # Never pull from remote — image is airgap-loaded at first import.
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 8070
+              hostPort: 8070       # A1.c / wiki/384: WSL2 distro eth0 surface so Windows
+                                    # operator's localhost:8070 reaches the Pod via WSL2
+                                    # automatic port-forward. Track A only; safe because
+                                    # WSL2 hosts have no host-side bridge listener.
               protocol: TCP
           envFrom:
             - configMapRef:
