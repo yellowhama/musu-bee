@@ -6,8 +6,12 @@
 //   - Stores in musu.pro's own SQLite (no Sentry, no PostHog)
 //   - NEVER stores user identity, workspace contents, agent outputs,
 //     file paths, code, chat history. Plumbing health ONLY
-//   - Retention: 90 days raw; aggregated metrics retained indefinitely
-//     (TODO V23.5: separate aggregation job)
+//   - Retention (per-table):
+//      - telemetry_install / telemetry_nat_pierce / telemetry_agent_spawn (v40):
+//        90 days raw (V23.5 sweeper TODO; currently no policy enforced)
+//      - install_attempt (v42): 30 days raw (F-B2-1 / wiki/406 sweeper enforced
+//        via _runInstallAttemptSweeperOnce, 1-hour cadence, batch=1000)
+//      - aggregated metrics: retained indefinitely
 //
 // Schema (T1.6) defined in v40_telemetry.sql; this module applies it
 // on startup and exposes Express routers for the three event types.
@@ -400,6 +404,68 @@ export function _getInstallAttemptLimiterSize(): number {
   return _installAttemptBuckets.size;
 }
 
+// ── install_attempt 30-day retention sweeper (F-B2-1 / wiki/406) ─────────
+//
+// Closes V23.3 Auditor A wiki/391 §4 NEW-MED-2 (cross-route DoS): without
+// retention, a single-IP attacker rotating musu_install_id fills the shared
+// /data/telemetry.db Fly volume (1GB) in <1 day, which breaks the HMAC-
+// authed /install, /nat_pierce, /agent_spawn writes as well (shared volume).
+//
+// Cadence: 1-hour setInterval; per-tick bound 1000 rows (Critic C9 —
+// SQLite DELETE...LIMIT requires a compile-flag we don't enable, so we use
+// IN-SELECT-LIMIT). 30-day cutoff via received_at, which is indexed
+// (idx_install_attempt_received per v42 DDL, telemetry.ts:148-173).
+//
+// Operator safety hatch (Critic C12): MUSU_INSTALL_ATTEMPT_SWEEPER_DISABLED=1
+// short-circuits registration entirely, so an operator can pre-snapshot the
+// DB before the first sweep when migrating an existing /data volume.
+//
+// Test-env exempt: jest hangs on dangling intervals, so we skip
+// registration unless NODE_ENV === "production". Tests exercise the SQL
+// directly via _runInstallAttemptSweeperOnce().
+const INSTALL_ATTEMPT_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+const INSTALL_ATTEMPT_SWEEPER_INTERVAL_MS = 60 * 60 * 1000;
+const INSTALL_ATTEMPT_SWEEPER_BATCH = 1000;
+
+let _installAttemptSweeperTimer: ReturnType<typeof setInterval> | null = null;
+
+export function _runInstallAttemptSweeperOnce(): number {
+  const cutoff = Date.now() - INSTALL_ATTEMPT_RETENTION_MS;
+  // C9 per-tick LIMIT — SQLite DELETE...LIMIT requires a compile-flag we
+  // don't enable; use IN-SELECT-LIMIT so the delete is bounded.
+  const info = openDb()
+    .prepare(
+      `DELETE FROM install_attempt
+       WHERE id IN (
+         SELECT id FROM install_attempt WHERE received_at < ? LIMIT ?
+       )`,
+    )
+    .run(cutoff, INSTALL_ATTEMPT_SWEEPER_BATCH);
+  return Number(info.changes);
+}
+
+export function _maybeStartInstallAttemptSweeper(): void {
+  // C12 safety hatch — checked FIRST so it overrides everything else.
+  if (process.env.MUSU_INSTALL_ATTEMPT_SWEEPER_DISABLED === "1") return;
+  // Test-env exempt: jest hangs on dangling intervals.
+  if (process.env.NODE_ENV !== "production") return;
+  // Re-entrancy guard: makeTelemetryRouter() may be called more than once
+  // in test/dev surfaces; we only want a single interval registered per
+  // process.
+  if (_installAttemptSweeperTimer) return;
+  _installAttemptSweeperTimer = setInterval(
+    _runInstallAttemptSweeperOnce,
+    INSTALL_ATTEMPT_SWEEPER_INTERVAL_MS,
+  );
+}
+
+export function _stopInstallAttemptSweeper(): void {
+  if (_installAttemptSweeperTimer) {
+    clearInterval(_installAttemptSweeperTimer);
+    _installAttemptSweeperTimer = null;
+  }
+}
+
 // ── Auth (V23.2 T2.AUTH.2 interim) ────────────────────────────────────────
 //
 // Closes V23.1 audit HIGH #2 in the simplest form: shared-secret header
@@ -760,6 +826,12 @@ export function makeTelemetryRouter(
     }),
   );
   const _db = openDb();
+
+  // F-B2-1 (wiki/406): start the install_attempt 30-day retention sweeper
+  // once per process. Re-entrancy + test-env + safety-hatch guards are
+  // inside _maybeStartInstallAttemptSweeper(); safe to call on every
+  // router build.
+  _maybeStartInstallAttemptSweeper();
 
   // POST /v1/telemetry/install
   router.post("/install", (req, res) => {

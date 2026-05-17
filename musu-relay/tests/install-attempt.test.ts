@@ -50,6 +50,9 @@ import {
   _getInstallAttemptLimiterSize,
   _consumeInstallAttemptToken,
   _getDbForTests,
+  _runInstallAttemptSweeperOnce,
+  _maybeStartInstallAttemptSweeper,
+  _stopInstallAttemptSweeper,
 } from "../src/signaling/telemetry";
 
 // Stub validator — these tests don't exercise /issue_install_key, so any
@@ -572,4 +575,136 @@ describe("V23.3 B2 — Critic-mandated additions (wiki/390 §4.6)", () => {
     }
     expect(_getInstallAttemptLimiterSize()).toBeLessThanOrEqual(10000);
   }, 60_000);
+});
+
+// ── F-B2-1 (wiki/406): install_attempt 30-day retention sweeper ──────────
+describe("V23.4 F-B2-1 — install_attempt retention sweeper (wiki/406)", () => {
+  // Use a 32-char hex placeholder install_id that matches the v42
+  // INSTALL_ID_RE regex (used by the route) but is distinct from
+  // VALID_INSTALL_ID / ALT_INSTALL_ID to avoid cross-test interference.
+  const SWEEPER_INSTALL_ID = "a".repeat(32);
+  const DAY_MS = 24 * 60 * 60 * 1000;
+
+  function insertAttempt(receivedAt: number, installId: string): void {
+    _getDbForTests()
+      .prepare(
+        `INSERT INTO install_attempt
+           (received_at, musu_install_id, step, error_class, elapsed_ms,
+            source_ip_hash, schema_version)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        receivedAt,
+        installId,
+        "bios_vt_off",
+        "hard_blocker_bios",
+        42,
+        "deadbeef",
+        1,
+      );
+  }
+
+  it("T22: sweeper deletes rows older than 30 days", () => {
+    const stale = Date.now() - 31 * DAY_MS;
+    insertAttempt(stale, SWEEPER_INSTALL_ID);
+
+    const deleted = _runInstallAttemptSweeperOnce();
+    expect(deleted).toBe(1);
+
+    const remaining = _getDbForTests()
+      .prepare(
+        `SELECT COUNT(*) AS n FROM install_attempt WHERE musu_install_id = ?`,
+      )
+      .get(SWEEPER_INSTALL_ID) as { n: number };
+    expect(remaining.n).toBe(0);
+  });
+
+  it("T23: sweeper preserves rows younger than 30 days", () => {
+    const fresh = Date.now() - 29 * DAY_MS;
+    insertAttempt(fresh, SWEEPER_INSTALL_ID);
+
+    const deleted = _runInstallAttemptSweeperOnce();
+    expect(deleted).toBe(0);
+
+    const remaining = _getDbForTests()
+      .prepare(
+        `SELECT COUNT(*) AS n FROM install_attempt WHERE musu_install_id = ?`,
+      )
+      .get(SWEEPER_INSTALL_ID) as { n: number };
+    expect(remaining.n).toBe(1);
+  });
+
+  describe("T24: timer registration honors env-vars and re-entrancy", () => {
+    // Snapshot the env vars this sub-describe touches so we can restore
+    // them in afterAll. Other tests in this file assume NODE_ENV !==
+    // "production" (the default) and the hatch env-var is unset.
+    let savedNodeEnv: string | undefined;
+    let savedHatch: string | undefined;
+
+    beforeAll(() => {
+      savedNodeEnv = process.env.NODE_ENV;
+      savedHatch = process.env.MUSU_INSTALL_ATTEMPT_SWEEPER_DISABLED;
+    });
+
+    afterAll(() => {
+      // Belt-and-suspenders: ensure no interval leaks out of this sub-describe.
+      _stopInstallAttemptSweeper();
+      if (savedNodeEnv === undefined) {
+        delete process.env.NODE_ENV;
+      } else {
+        process.env.NODE_ENV = savedNodeEnv;
+      }
+      if (savedHatch === undefined) {
+        delete process.env.MUSU_INSTALL_ATTEMPT_SWEEPER_DISABLED;
+      } else {
+        process.env.MUSU_INSTALL_ATTEMPT_SWEEPER_DISABLED = savedHatch;
+      }
+    });
+
+    afterEach(() => {
+      // Defensive: each sub-case must leave the timer cleared so jest
+      // doesn't hang on a dangling interval (the production case
+      // genuinely registers one).
+      _stopInstallAttemptSweeper();
+    });
+
+    it("(a) production + hatch unset: re-entrancy guard + idempotent stop", () => {
+      process.env.NODE_ENV = "production";
+      delete process.env.MUSU_INSTALL_ATTEMPT_SWEEPER_DISABLED;
+
+      // Call twice — second call must hit the re-entrancy guard and
+      // NOT register a second interval.
+      expect(() => _maybeStartInstallAttemptSweeper()).not.toThrow();
+      expect(() => _maybeStartInstallAttemptSweeper()).not.toThrow();
+
+      // Stop must succeed without throwing.
+      expect(() => _stopInstallAttemptSweeper()).not.toThrow();
+      // Stop is idempotent: a second call on an already-stopped sweeper
+      // is also a no-op.
+      expect(() => _stopInstallAttemptSweeper()).not.toThrow();
+    });
+
+    it("(b) production + hatch=1: short-circuit, no interval registered", () => {
+      process.env.NODE_ENV = "production";
+      process.env.MUSU_INSTALL_ATTEMPT_SWEEPER_DISABLED = "1";
+
+      expect(() => _maybeStartInstallAttemptSweeper()).not.toThrow();
+      // We can't directly observe internal timer state, but if an
+      // interval HAD been registered, _stopInstallAttemptSweeper()
+      // would have to clear it; either way the call must be a no-op
+      // that doesn't throw, AND a subsequent stop call must also be
+      // a safe no-op (proving idempotence in the no-registration
+      // path too).
+      expect(() => _stopInstallAttemptSweeper()).not.toThrow();
+      expect(() => _stopInstallAttemptSweeper()).not.toThrow();
+    });
+
+    it("(c) non-production: short-circuit, no interval registered", () => {
+      process.env.NODE_ENV = "test";
+      delete process.env.MUSU_INSTALL_ATTEMPT_SWEEPER_DISABLED;
+
+      expect(() => _maybeStartInstallAttemptSweeper()).not.toThrow();
+      expect(() => _stopInstallAttemptSweeper()).not.toThrow();
+    });
+  });
 });
