@@ -936,6 +936,8 @@ agent running across them.
 
 ### V23.4 — Phase 4 rewrite (6 weeks)
 
+**Status (2026-05-17): Tier-1 SHIPPED on `v22/gap-analysis` HEAD `199595b`.** 3 sub-workstreams (F-B2-1 dual-audit + F-B2-3 single-audit + F-B2-2 one-page closure), 228/228 jest green, tsc clean, pwsh AST clean. Closes all 3 V23.3 Auditor MEDIUMs accepted as V23.4 carry (wiki/391 §4 NEW-MED-1/2/3 → wiki/406/407/408 detail + wiki/426/427/428 closure). Final closure: wiki/429. Qual eval: wiki/430. Master plan: wiki/425. **Const VII main-merge gate OPERATOR-PENDING** (rolls into V23.3 bundle, or V23.4 separate merge — operator's call). Tier-2+ (React Flow workflow editor + Fleet view + 17 remaining wiki/396 §5 forward-pointers) DEFERRED — Tier-2 master plan to be opened when scoping decision is made.
+
 - musu-bee Fleet view (React, K8s vocabulary fully hidden).
 - musu-bee React Flow workflow editor that emits `AgentWorkflow`
   CRD via musu-bridge API.

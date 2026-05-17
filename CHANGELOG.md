@@ -2,6 +2,103 @@
 
 All notable changes to MUSU are documented here.
 
+## [1.11.0] - 2026-05-17 — V23.4 Tier-1: install_attempt retention sweeper + uniform DB-write error handling + installer state-file enrichment
+
+Branch: `v22/gap-analysis` (HEAD `199595b`). Const VII main-merge gate
+OPERATOR-PENDING (rolls into V23.3 main-merge bundle, or V23.4 separate
+merge — operator decides at merge time). Closure: `docs/V23_4_TIER1_FINAL_CLOSURE_2026_05_17.md`
+(wiki/429); qualitative evaluation: `docs/V23_4_TIER1_QUAL_EVAL_2026_05_17.md`
+(wiki/430). 3 sub-workstreams (F-B2-1 dual-audit + F-B2-3 single-audit +
+F-B2-2 one-page closure), 228/228 jest green, tsc clean, pwsh AST clean.
+
+Closes all 3 V23.3 Auditor MEDIUMs accepted as V23.4 carry (wiki/391 §4
+NEW-MED-1/2/3); remaining 17 wiki/396 §5 forward-pointers deferred to
+V23.4 Tier-2+ or V23.5.
+
+### Added — F-B2-1 install_attempt 30-day retention sweeper (wiki/406)
+- **30-day retention** on `install_attempt` table via dedicated
+  `setInterval`-based sweeper (1-hour cadence, **per-tick LIMIT 1000** to
+  bound event-loop block). Closes cross-route DoS where unbounded
+  install_attempt growth on shared `/data/telemetry.db` Fly volume
+  exhausts disk and breaks HMAC-authed `/install`, `/nat_pierce`,
+  `/agent_spawn` writes (single-IP attacker fills 1GB in <1 day).
+- New exports in `musu-relay/src/signaling/telemetry.ts`:
+  `_runInstallAttemptSweeperOnce()` (manual trigger, returns rows
+  deleted), `_maybeStartInstallAttemptSweeper()` (production-only
+  registration, idempotent), `_stopInstallAttemptSweeper()` (test
+  cleanup).
+- Safety hatch: `MUSU_INSTALL_ATTEMPT_SWEEPER_DISABLED=1` short-circuits
+  registration. Test-env exempt (`NODE_ENV !== "production"`) to avoid
+  jest hangs on dangling intervals.
+- 2-class retention documented at `telemetry.ts:9` header (90-day v40
+  tables vs 30-day install_attempt v42).
+- Tests: T22 (>30-day deleted), T22b (LIMIT 1000 boundary with 1001
+  rows — audit-fix1 commit `99e9c92`), T23 (<30-day preserved), T24a/b/c
+  (timer registration paths).
+- **Dual-audit SHIP-OK**: quality-engineer (deletion-correctness seed)
+  + security-engineer (data-retention semantics + concurrent-write
+  isolation seed). Different findings per auditor justified the dual
+  treatment.
+
+### Added — F-B2-3 uniform DB-write try/catch on 4 telemetry routes (wiki/408)
+- `POST /install`, `/install_attempt`, `/nat_pierce`, `/agent_spawn` all
+  wrap `_db.prepare(...).run(...)` in `try { ... } catch (err) { ... ; return; }`
+  emitting `{error: "database write failed"}` JSON 500 + structured
+  `console.error('[telemetry] /<route>: db write failed: ...')` log
+  (Fly log aggregation grep-able).
+- Load-bearing `return;` after each 500 prevents Express
+  "Cannot set headers after they are sent" on the fallthrough to the
+  204 success path.
+- New test file `musu-relay/tests/telemetry-db-failure.test.ts` with 4
+  cases (TDF-1..TDF-4) using selective-INSERT mock
+  (`jest.spyOn(_db, "prepare").mockImplementation(sql => sql.includes("INSERT") ? throw : original(sql))`)
+  + shared-secret auth fallthrough for HMAC routes.
+- Single quality-engineer Auditor SHIP-OK first pass; no audit-fix
+  needed. Regression scan returned 0 matches (no test relied on
+  Express-default-handler HTML shape).
+- Installer retry verified contract-change-invisible: zero status-code
+  branching at installer/Musu-Common.psm1, src/gateway/client.ts,
+  src/gateway/main.ts — 500 / 502 / network-error all retried
+  identically.
+
+### Added — F-B2-2 installer state file enrichment (wiki/407)
+- `installer/install-wsl2.ps1` fresh-install `Save-MusuState` hashtable
+  now persists `os_version` + `bios_vt` (probed at step 2 by
+  `check-prereqs.ps1`) so the resume-path can recover them after the
+  WSL-feature-enable reboot.
+- Resume block restores into new `$script:OsVersionResumed` /
+  `$script:BiosVtResumed` script-scoped vars; `_Invoke-MusuInstallAttemptTelemetry`
+  helper relaxed with `elseif` fallback when `$script:PrereqResult` is
+  null (PrereqResult not re-loaded on resume).
+- All 3 sites use **two-level `PSObject.Properties` guard chain** to
+  avoid `PropertyNotFoundException` under `Set-StrictMode -Version 3`
+  (mirrors helper precedent at `install-wsl2.ps1:109-117`).
+- Back-compat verified: V23.3-shape state files (no `os_version` /
+  `bios_vt` keys) resume cleanly with empty strings under StrictMode 3.
+- Acceptance: AST parse clean + 6-step synthetic state-file dry-run
+  (V23.3-shape back-compat + V23.4-shape restore + Site C elseif
+  fallback + PrereqResult precedence).
+
+### Operator-pending (gates Const VII main-merge)
+- (Inherited from V23.3) A1.c bench EXECUTION on Windows host.
+- (Inherited from V23.3) B2 `fly secrets set MUSU_TELEMETRY_V42_AUTHORIZED=1`
+  BEFORE `fly deploy`.
+- (Inherited from V23.3) Fly deploy + curl smoke 204/400/429.
+- Const VII main-merge gate (operator "진행해") — bundle scope
+  (V23.3-only or V23.3+V23.4-Tier-1) is operator's call. F-B2-3
+  contract change (HTML 500 → JSON 500) flagged in wiki/425 §4 C13;
+  operator may opt to surface explicitly at merge time.
+
+### V23.4 Tier-2+ deferred (forward-pointers)
+- F-B2-4 conditional per-IP rate-limit (if Tier-1 retention isn't
+  enough alone).
+- F-A1c-1..10 bench tooling extensions.
+- FO-A1a-1/4/5 image labels + airgap trim.
+- F-B2-1-FOLLOW-1 (NEW-LOW): hatch observability for
+  `MUSU_INSTALL_ATTEMPT_SWEEPER_DISABLED=1` — no log line / metric on
+  short-circuit.
+- 14 other wiki/396 §5 forward-pointers, all LOW or V23.5-horizon.
+
 ## [1.10.0] - 2026-05-17 — V23.3 K3s-pod bridge + reproducibility + cross-host telemetry
 
 Branch: `v22/gap-analysis` (HEAD `8fb9e70`). Const VII main-merge gate
