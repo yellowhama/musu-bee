@@ -249,7 +249,7 @@ export default function CeoChatClient({ companyId, userId, userEmail }: Props) {
             회사 {companyId} · CEO {ceoId} · 사용자 {userEmail}
           </p>
         </div>
-        <a href="/dashboard" className="text-xs text-zinc-400 hover:text-zinc-100">
+        <a href="/fleet" className="text-xs text-zinc-400 hover:text-zinc-100">
           ← Dashboard
         </a>
       </header>

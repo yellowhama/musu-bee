@@ -8,6 +8,7 @@
     "start": "next start -p 3001",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "test:vocab": "tsx --test src/lib/vocabulary-audit.test.ts",
     "test:webhooks": "tsx --test src/app/api/webhooks/**/*.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",

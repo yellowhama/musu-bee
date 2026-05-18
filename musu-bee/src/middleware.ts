@@ -20,9 +20,28 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // V23.4 T2-C — /dashboard → /fleet 301 redirect, with chat carve-out.
+  // Per wiki/434 §2.7 Edit 1 (Critic C-T2C-8 insertion point).
+  // OQ3: keep /dashboard/company/{id}/chat/* on /dashboard path (interactive
+  //      ops surface; fleet is read-only browse).
+  // Auditor A-11: word-boundary `\b` so /dashboards (plural) won't match.
+  if (
+    pathname.match(/^\/dashboard\b/) &&
+    !pathname.match(/^\/dashboard\/company\/[^/]+\/chat/)
+  ) {
+    return NextResponse.redirect(
+      new URL(pathname.replace(/^\/dashboard/, "/fleet"), request.url),
+      301,
+    );
+  }
+
+  // V23.4 T2-C — /dashboard dropped from auth-guard negation list per
+  // wiki/434 §2.7 Edit 2 (Auditor OQ-A2). The redirect block above already
+  // returns for /dashboard paths, so this clause never sees them. Matcher
+  // at the bottom of this file (§2.7 Edit 3) MUST keep /dashboard so the
+  // middleware fires and the redirect block runs.
   if (
     !pathname.startsWith("/app") &&
-    !pathname.startsWith("/dashboard") &&
     !pathname.startsWith("/workspace")
   ) {
     return NextResponse.next();

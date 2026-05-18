@@ -7,7 +7,7 @@ import { Inbox, BookOpen, BarChart3, Settings, ScreenShare } from "lucide-react"
 const TABS = [
   { href: "/home", icon: Inbox, label: "Home" },
   { href: "/wiki", icon: BookOpen, label: "Wiki" },
-  { href: "/dashboard", icon: BarChart3, label: "Dashboard" },
+  { href: "/fleet", icon: BarChart3, label: "Dashboard" },
   { href: "/screen", icon: ScreenShare, label: "Screen" },
   { href: "/account", icon: Settings, label: "Account" },
 ];

@@ -15,7 +15,7 @@ const NAV_ITEMS = [
   { id: "canvas",    href: "/app",       icon: LayoutGrid,  label: "Canvas" },
   { id: "workspace", href: "/workspace", icon: Building2,   label: "Workspace" },
   { id: "tasks",     href: "/tasks",     icon: ListTodo,    label: "Tasks" },
-  { id: "dashboard", href: "/dashboard", icon: BarChart3,   label: "Dashboard" },
+  { id: "dashboard", href: "/fleet",     icon: BarChart3,   label: "Dashboard" },
   { id: "wiki",      href: "/wiki",      icon: BookOpen,    label: "Wiki" },
   { id: "screen",    href: "/screen",    icon: ScreenShare, label: "Screen" },
   { id: "account",   href: "/account",   icon: Settings,    label: "Account" },

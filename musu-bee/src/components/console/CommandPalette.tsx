@@ -71,9 +71,9 @@ export function CommandPalette({ nodes }: CommandPaletteProps) {
     {
       id: "nav-dashboard",
       label: "Go to Dashboard",
-      hint: "/dashboard",
+      hint: "/fleet",
       icon: <BarChart3 size={14} />,
-      action: () => { router.push("/dashboard"); close(); },
+      action: () => { router.push("/fleet"); close(); },
     },
     {
       id: "nav-account",
@@ -92,7 +92,7 @@ export function CommandPalette({ nodes }: CommandPaletteProps) {
     icon: <Server size={14} />,
     action: () => {
       setActiveNode(n.node_name);
-      router.push(`/dashboard?node=${encodeURIComponent(n.node_name)}`);
+      router.push(`/fleet?node=${encodeURIComponent(n.node_name)}`);
       close();
     },
   }));
