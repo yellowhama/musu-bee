@@ -420,6 +420,84 @@ cp -p "$SCRIPT_DIR/k3s/musu-bridge.yaml" "$MANIFEST_TARGET_DIR/musu-bridge.yaml"
 touch -d "@${SOURCE_DATE_EPOCH}" "$MANIFEST_TARGET_DIR/musu-bridge.yaml"
 echo "       manifest: $MANIFEST_TARGET_DIR/musu-bridge.yaml"
 
+# ── Step 3.f: Build signaling user-server dist + minimal node_modules ────
+# V23.4 T2-F audit-fix (Auditor F12 HIGH, wiki/433 §6 line 537):
+# openrc-musu-signaling.conf:18 references
+# /usr/local/lib/musu-signaling/dist/signaling/user-server.js. The plan
+# explicitly listed this checklist item but it was never honored in the
+# build pipeline. Without this step, install-wsl2.ps1 Step 7.5 installs the
+# OpenRC service that references a missing path, and musu-init swallows
+# the rc-service failure under `|| echo` (line 158, tightened to log
+# diagnostics in the companion fix). End result: silent broken install on
+# rendezvous PC.
+#
+# What this step does:
+#   1. Compile tsconfig.user-server.json (which includes ONLY
+#      src/signaling/{shared.ts,user-server.ts} per HARD INVARIANT
+#      C-T2F-H1: NO telemetry → NO better-sqlite3 transitive pull).
+#   2. Stage dist/signaling/{shared.js,user-server.js} under
+#      /usr/local/lib/musu-signaling/dist/signaling/ in the rootfs.
+#   3. Build a MINIMAL production node_modules under
+#      /usr/local/lib/musu-signaling/node_modules/ containing ONLY ws +
+#      express + transitive deps. We do NOT reuse the gateway's
+#      node_modules (which carries @roamhq/wrtc + better-sqlite3 + every
+#      gateway dep) — minimizing surface honors the same "no telemetry
+#      transitive pull" invariant.
+#
+# Build pattern matches Step 3 (gateway): scratch dir under STAGING for
+# `npm install` (no lockfile since deps list is minimal), then `mv` the
+# node_modules into final position.
+echo "[3.f/10] Compile signaling user-server + stage minimal node_modules"
+pushd "$SCRIPT_DIR/.." >/dev/null
+
+# (1) Compile via tsconfig.user-server.json. Output goes to ./dist (the
+# tsconfig sets outDir=dist; with include=[shared.ts, user-server.ts] and
+# rootDir=src (inherited), tsc emits dist/signaling/{shared.js,user-server.js}).
+# Use --outDir to redirect to a scratch path so we don't clobber the gateway
+# dist already staged at Step 3.
+SIGNALING_DIST_TMP="$STAGING/.signaling-dist-tmp"
+rm -rf "$SIGNALING_DIST_TMP"
+npx tsc -p tsconfig.user-server.json --outDir "$SIGNALING_DIST_TMP"
+
+# (2) Stage compiled JS under /usr/local/lib/musu-signaling/dist/signaling/.
+# Matches the path referenced at openrc-musu-signaling.conf:18.
+mkdir -p "$STAGING/usr/local/lib/musu-signaling/dist/signaling"
+cp -p "$SIGNALING_DIST_TMP/signaling/shared.js" \
+      "$STAGING/usr/local/lib/musu-signaling/dist/signaling/shared.js"
+cp -p "$SIGNALING_DIST_TMP/signaling/user-server.js" \
+      "$STAGING/usr/local/lib/musu-signaling/dist/signaling/user-server.js"
+rm -rf "$SIGNALING_DIST_TMP"
+
+# (3) Minimal production node_modules — only ws + express + transitive deps.
+# Scratch dir pattern (no lockfile): write a minimal package.json, run
+# `npm install --omit=dev --omit=optional`, then mv node_modules into place.
+SIG_NM_PARENT="$STAGING/usr/local/lib/musu-signaling/node_modules-staging"
+mkdir -p "$SIG_NM_PARENT"
+
+# Pin ws + express to the same versions as musu-relay/package.json
+# dependencies block (read via jq if available, fall back to grep). This
+# keeps the signaling deps in lockstep with the gateway's tested versions.
+SIG_WS_VER="$(node -p "require('./package.json').dependencies.ws" 2>/dev/null || echo '^8.18.0')"
+SIG_EXPRESS_VER="$(node -p "require('./package.json').dependencies.express" 2>/dev/null || echo '^4.19.2')"
+
+cat > "$SIG_NM_PARENT/package.json" <<SIGPKG
+{
+  "name": "musu-signaling-deps",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "ws": "${SIG_WS_VER}",
+    "express": "${SIG_EXPRESS_VER}"
+  }
+}
+SIGPKG
+
+( cd "$SIG_NM_PARENT" && npm install --omit=dev --omit=optional --no-audit --no-fund --no-package-lock )
+mv "$SIG_NM_PARENT/node_modules" "$STAGING/usr/local/lib/musu-signaling/node_modules"
+rm -rf "$SIG_NM_PARENT"
+
+popd >/dev/null
+
 # ── Step 4: musl smoke-import of @roamhq/wrtc ──────────────────────────────
 # CRITIC C1 RESOLUTION (cont'd): with optional KEPT, @roamhq/wrtc exists in
 # node_modules and we can prove it loads under musl-Alpine before the operator
@@ -450,6 +528,14 @@ mkdir -p "$STAGING/etc/init.d"
 install -m 0755 "$SCRIPT_DIR/openrc-musu-init.conf"    "$STAGING/etc/init.d/musu-init"
 install -m 0755 "$SCRIPT_DIR/openrc-k3s.conf"          "$STAGING/etc/init.d/k3s"
 install -m 0755 "$SCRIPT_DIR/openrc-musu-gateway.conf" "$STAGING/etc/init.d/musu-gateway"
+# V23.4 T2-F audit-fix (Auditor F12 HIGH): musu-signaling OpenRC service.
+# NOT auto-enabled at runlevel default (per OQ-CRIT-4 boot model); musu-init
+# `rc-service musu-signaling start`s it conditionally when
+# MUSU_IS_RENDEZVOUS=true is set in /etc/musu/gateway.env. Service file MUST
+# be installed on EVERY PC's musu-backend.tar so that role-flipping the
+# rendezvous PC (V23.5 work) does not require re-tarring; the role gate is
+# the env var, not the service file's presence.
+install -m 0755 "$SCRIPT_DIR/openrc-musu-signaling.conf" "$STAGING/etc/init.d/musu-signaling"
 install -m 0755 "$SCRIPT_DIR/musu-init"                "$STAGING/usr/local/bin/musu-init"
 install -m 0755 "$SCRIPT_DIR/musu-write-key"           "$STAGING/usr/local/bin/musu-write-key"
 

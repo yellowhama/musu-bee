@@ -155,7 +155,18 @@ if [ -f /etc/musu/gateway.env ]; then
 fi
 if [ "${MUSU_IS_RENDEZVOUS:-false}" = "true" ]; then
     echo "musu-init: starting musu-signaling (rendezvous role)"
-    rc-service musu-signaling start || echo "musu-init: WARNING musu-signaling failed; gateway still up"
+    # V23.4 T2-F audit-fix (Auditor F12 HIGH companion): emit diagnostic
+    # output on failure so a broken install (e.g. missing
+    # /usr/local/lib/musu-signaling/dist/signaling/user-server.js or absent
+    # node_modules/{ws,express}) surfaces the failing path in the log
+    # instead of silently skipping. Intent unchanged — gateway stays up;
+    # failure no longer silent.
+    rc-service musu-signaling start 2>&1 || {
+        echo "musu-init: WARNING musu-signaling failed to start; gateway still up"
+        rc-service musu-signaling status 2>&1 || true
+        ls -la /usr/local/lib/musu-signaling/dist/signaling/ 2>&1 || true
+        ls -la /usr/local/lib/musu-signaling/node_modules/ 2>&1 | head -20 || true
+    }
 fi
 
 echo "musu-init: K3s + gateway up"

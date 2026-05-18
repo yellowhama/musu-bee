@@ -122,6 +122,15 @@ export let _circuitOpenUntil = 0;
 export let _totalPeers = 0;
 export let _totalRooms = 0;
 
+// V23.4 T2-F audit-fix (OQ3): explicit getter so cloud server.ts /metrics can
+// read live values without relying on TS `export let` re-export semantics
+// (which under CommonJS compile to property access on shared_1._totalPeers
+// and SHOULD be live, but the getter makes intent unambiguous and is trivial
+// to verify in a unit test). See server.ts:117-128.
+export function getMetricsTotals(): { peers: number; rooms: number } {
+  return { peers: _totalPeers, rooms: _totalRooms };
+}
+
 // ── Token validation (lifted verbatim from server.ts:100-215) ─────────────
 // Behavior unchanged: cache hit → cache result; circuit open → degraded
 // grace; otherwise fetch + record + fail-closed-with-grace.

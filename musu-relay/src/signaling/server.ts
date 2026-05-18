@@ -41,6 +41,7 @@ import {
   _wssConnectionHandler,
   _circuitFailures,
   _circuitOpenUntil,
+  getMetricsTotals,
 } from "./shared";
 
 const PORT = parseInt(
@@ -114,6 +115,10 @@ app.use(
 );
 
 app.get("/metrics", (_req, res) => {
+  // V23.4 T2-F audit-fix (OQ3): read live lifetime counters from shared.ts
+  // via getMetricsTotals() getter. Pre-fix returned hard-coded 0/0 which
+  // silently regressed cloud observable surface vs pre-refactor server.ts.
+  const totals = getMetricsTotals();
   res.json({
     uptime_seconds: Math.floor((Date.now() - _startTime) / 1000),
     rooms_active: rooms.size,
@@ -121,11 +126,8 @@ app.get("/metrics", (_req, res) => {
       (n, r) => n + r.size,
       0,
     ),
-    // _totalPeers / _totalRooms now live in shared.ts but are not currently
-    // surfaced via getters; cloud /metrics keeps the lifetime counters at 0
-    // post-refactor (acceptable; signaling.test.ts does not assert on these).
-    peers_total: 0,
-    rooms_total: 0,
+    peers_total: totals.peers,
+    rooms_total: totals.rooms,
     circuit_breaker: {
       failures: _circuitFailures,
       open_until:
