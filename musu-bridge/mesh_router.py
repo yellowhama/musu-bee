@@ -17,6 +17,27 @@ from typing import Any
 import httpx
 
 
+# ── Request-ID propagation helper (V23.5 H-4a) ────────────────────────────────
+#
+# Reads request_id ContextVar set by RequestIDMiddleware in server.py. Lazy
+# import avoids a circular dependency at module load time (server.py imports
+# mesh_router). Returns "" when the ContextVar is unset (worker threads, tests,
+# server context not initialised yet) so callers can short-circuit on falsy.
+
+def _get_request_id() -> str:
+    """Return the current request_id from server's ContextVar, or "" if unset.
+
+    Lazy-imports `server._request_id_var` to avoid a circular import at module
+    load time. Returns an empty string on any failure (ImportError, LookupError,
+    None default) — callers MUST treat empty as "do not propagate".
+    """
+    try:
+        from server import _request_id_var  # type: ignore[import-not-found]
+        return _request_id_var.get(None) or ""
+    except Exception:
+        return ""
+
+
 # ── Per-channel circuit breaker ───────────────────────────────────────────────
 
 class CircuitBreaker:
@@ -546,6 +567,12 @@ class MeshRouter:
         headers: dict[str, str] = {}
         if peer_token:
             headers["Authorization"] = f"Bearer {peer_token}"
+        # V23.5 H-4a: X-Request-ID HTTP mesh propagation behind feature flag (default OFF).
+        # Flag unset/!="1" → zero behavioural change. Empty request_id → header omitted.
+        if os.environ.get("MUSU_X_REQUEST_ID_PROPAGATION_ENABLED") == "1":
+            rid = _get_request_id()
+            if rid:
+                headers["X-Request-ID"] = rid
         logger.info("mesh_router: HTTP forward channel=%r → %s (auth=%s)", channel, target, bool(peer_token))
         try:
             async with httpx.AsyncClient(timeout=300.0) as client:
