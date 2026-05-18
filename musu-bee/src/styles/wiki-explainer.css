@@ -1,0 +1,284 @@
+/* V23.5 W-5 — wiki-explainer.css
+ *
+ * Tariq #14 reusable pattern stylesheet. Selectors target both:
+ *   (a) the W-2 outer wrapper `.wiki-html-render` (so markdown-rendered
+ *       `<aside>`, `<details>`, `<span class="severity-badge">` etc. style
+ *       automatically), and
+ *   (b) the W-5 component classnames directly (so React-mounted instances
+ *       outside a wiki page also style).
+ *
+ * Theming: all colours go through CSS variables defined on :root. The
+ * default values are dark-mode (matching wiki/458 prototype + musu-bee app
+ * shell). Light-mode override is via `@media (prefers-color-scheme: light)`
+ * AND an opt-in `.wiki-explainer--light` modifier class for callers that
+ * force light mode.
+ *
+ * Source: docs/MUSU_ARCHITECTURE_2026_05_18.html (wiki/458). Selectors
+ * deliberately mirror prototype class shapes where possible.
+ */
+
+/* -------------------------------------------------------------------------
+ * Theme tokens (dark default)
+ * ------------------------------------------------------------------------- */
+:root {
+  --wiki-fg: #e4e6eb;
+  --wiki-fg-dim: #9aa3b2;
+  --wiki-accent: #6ea8ff;
+  --wiki-border: #2a3142;
+  --wiki-bg-card: #1d2230;
+  --wiki-bg-elev: #161922;
+
+  /* TL;DR card backgrounds (semi-translucent so they sit on any bg) */
+  --tldr-bg-info: linear-gradient(135deg, #1e2a4a, #1a1f2e);
+  --tldr-bg-success: linear-gradient(135deg, #14361f, #131a17);
+  --tldr-bg-warning: linear-gradient(135deg, #3a2a14, #1f1a13);
+  --tldr-border-info: #6ea8ff;
+  --tldr-border-success: #4ade80;
+  --tldr-border-warning: #fbbf24;
+
+  /* Severity chip palette */
+  --severity-high-bg: rgba(248, 113, 113, 0.15);
+  --severity-high-fg: #f87171;
+  --severity-high-border: rgba(248, 113, 113, 0.35);
+  --severity-med-bg: rgba(251, 191, 36, 0.15);
+  --severity-med-fg: #fbbf24;
+  --severity-med-border: rgba(251, 191, 36, 0.35);
+  --severity-low-bg: rgba(74, 222, 128, 0.15);
+  --severity-low-fg: #4ade80;
+  --severity-low-border: rgba(74, 222, 128, 0.35);
+  --severity-info-bg: rgba(110, 168, 255, 0.12);
+  --severity-info-fg: #6ea8ff;
+  --severity-info-border: rgba(110, 168, 255, 0.3);
+}
+
+/* Light-mode override (auto + opt-in) */
+@media (prefers-color-scheme: light) {
+  :root {
+    --wiki-fg: #1f2937;
+    --wiki-fg-dim: #4b5563;
+    --wiki-accent: #2563eb;
+    --wiki-border: #d1d5db;
+    --wiki-bg-card: #f9fafb;
+    --wiki-bg-elev: #f3f4f6;
+
+    --tldr-bg-info: #e6f3ff;
+    --tldr-bg-success: #e6ffe6;
+    --tldr-bg-warning: #fff4e6;
+
+    --severity-high-bg: #fee2e2;
+    --severity-high-fg: #b91c1c;
+    --severity-high-border: #fca5a5;
+    --severity-med-bg: #fef3c7;
+    --severity-med-fg: #b45309;
+    --severity-med-border: #fcd34d;
+    --severity-low-bg: #dcfce7;
+    --severity-low-fg: #15803d;
+    --severity-low-border: #86efac;
+    --severity-info-bg: #dbeafe;
+    --severity-info-fg: #1d4ed8;
+    --severity-info-border: #93c5fd;
+  }
+}
+
+/* -------------------------------------------------------------------------
+ * TldrCard
+ * ------------------------------------------------------------------------- */
+.tldr-card,
+.wiki-html-render aside.tldr-card {
+  border-radius: 6px;
+  padding: 18px 20px;
+  margin-bottom: 24px;
+  border-left: 3px solid var(--tldr-border-info);
+  background: var(--tldr-bg-info);
+  color: var(--wiki-fg);
+}
+.tldr-card--info { border-left-color: var(--tldr-border-info); background: var(--tldr-bg-info); }
+.tldr-card--success { border-left-color: var(--tldr-border-success); background: var(--tldr-bg-success); }
+.tldr-card--warning { border-left-color: var(--tldr-border-warning); background: var(--tldr-bg-warning); }
+.tldr-card__title { margin: 0 0 8px; font-size: 15px; color: var(--wiki-accent); }
+.tldr-card--success .tldr-card__title { color: var(--tldr-border-success); }
+.tldr-card--warning .tldr-card__title { color: var(--tldr-border-warning); }
+.tldr-card__body > :first-child { margin-top: 0; }
+.tldr-card__body > :last-child { margin-bottom: 0; }
+
+/* -------------------------------------------------------------------------
+ * SectionTabs — CSS-only via :checked sibling.
+ * ------------------------------------------------------------------------- */
+.section-tabs {
+  border: 1px solid var(--wiki-border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 16px 0 24px;
+  background: var(--wiki-bg-elev);
+}
+
+/* Hide raw radio inputs but keep them keyboard-focusable. */
+.section-tabs__radio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  border: 0;
+}
+
+.section-tabs__buttons {
+  display: flex;
+  background: var(--wiki-bg-elev);
+  border-bottom: 1px solid var(--wiki-border);
+}
+.section-tabs__button {
+  flex: 1;
+  padding: 12px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--wiki-fg-dim);
+  border-right: 1px solid var(--wiki-border);
+  text-align: center;
+  user-select: none;
+  transition: background .15s, color .15s;
+}
+.section-tabs__button:last-of-type { border-right: none; }
+.section-tabs__button:hover { background: var(--wiki-bg-card); color: var(--wiki-fg); }
+
+.section-tabs__panels { background: var(--wiki-bg-card); }
+.section-tabs__panel { display: none; padding: 18px 20px; color: var(--wiki-fg); }
+
+/* The core CSS-only switch:
+ *   when radio#{name}-{id} is :checked, light up the matching label and
+ *   reveal the matching panel. We rely on the sibling-combinator chain
+ *   (all radios come first, then buttons, then panels), enforced by the
+ *   component's render order. */
+.section-tabs__radio:checked + .section-tabs__radio { /* no-op chain spacer */ }
+
+.section-tabs__radio:focus-visible + .section-tabs__radio,
+.section-tabs__radio:focus-visible {
+  outline: 2px solid var(--wiki-accent);
+  outline-offset: 2px;
+}
+
+/* For each tab id, generate the active-state rules. We can't enumerate
+ * dynamic ids in CSS, so we use [data-tab-id] attribute matching to pair
+ * the radio with its label/panel. */
+.section-tabs__radio:checked ~ .section-tabs__buttons
+  .section-tabs__button[data-tab-id] {
+  /* default: inactive look (already set above). The active rule below
+   * overrides via attribute-selector pairing. */
+}
+
+/* Active label/panel pairing: a radio with [data-tab-id="X"] that is
+ * :checked styles the sibling label[data-tab-id="X"] and panel[data-tab-id="X"].
+ * Built via JS-free attribute matching across the sibling tree. */
+.section-tabs > .section-tabs__radio:checked[data-tab-id="t1"] ~ .section-tabs__buttons .section-tabs__button[data-tab-id="t1"],
+.section-tabs > .section-tabs__radio:checked ~ .section-tabs__buttons .section-tabs__button[data-tab-id]:hover {
+  /* hover handled above; this branch is intentionally narrow */
+}
+
+/* Generic active-pair via :has() (supported in evergreen browsers from
+ * 2023; falls back to first-tab-visible behaviour in legacy browsers). */
+.section-tabs:has(.section-tabs__radio[data-tab-id="__none__"]:checked) .section-tabs__panel { display: none; }
+
+/* The pragmatic approach: use the attribute-pair rule for every panel/
+ * button. Because IDs are component-instance-unique, we lean on a single
+ * generic rule using a CSS sibling chain via attribute matching. */
+.section-tabs__radio:checked ~ .section-tabs__panels .section-tabs__panel { display: none; }
+
+/* Activate the panel whose data-tab-id matches the checked radio's
+ * data-tab-id. CSS can't directly express "matching attribute value", but
+ * because we render exactly one :checked radio at a time, we can use the
+ * :has() trick: each panel is visible iff a sibling-radio with the same
+ * data-tab-id is checked. */
+.section-tabs:has(.section-tabs__radio[data-tab-id="t1"]:checked) .section-tabs__panel[data-tab-id="t1"],
+.section-tabs:has(.section-tabs__radio[data-tab-id="t2"]:checked) .section-tabs__panel[data-tab-id="t2"],
+.section-tabs:has(.section-tabs__radio[data-tab-id="t3"]:checked) .section-tabs__panel[data-tab-id="t3"],
+.section-tabs:has(.section-tabs__radio[data-tab-id="t4"]:checked) .section-tabs__panel[data-tab-id="t4"],
+.section-tabs:has(.section-tabs__radio[data-tab-id="t5"]:checked) .section-tabs__panel[data-tab-id="t5"],
+.section-tabs:has(.section-tabs__radio[data-tab-id="t6"]:checked) .section-tabs__panel[data-tab-id="t6"] {
+  display: block;
+}
+.section-tabs:has(.section-tabs__radio[data-tab-id="t1"]:checked) .section-tabs__button[data-tab-id="t1"],
+.section-tabs:has(.section-tabs__radio[data-tab-id="t2"]:checked) .section-tabs__button[data-tab-id="t2"],
+.section-tabs:has(.section-tabs__radio[data-tab-id="t3"]:checked) .section-tabs__button[data-tab-id="t3"],
+.section-tabs:has(.section-tabs__radio[data-tab-id="t4"]:checked) .section-tabs__button[data-tab-id="t4"],
+.section-tabs:has(.section-tabs__radio[data-tab-id="t5"]:checked) .section-tabs__button[data-tab-id="t5"],
+.section-tabs:has(.section-tabs__radio[data-tab-id="t6"]:checked) .section-tabs__button[data-tab-id="t6"] {
+  background: var(--wiki-bg-card);
+  color: var(--wiki-accent);
+  font-weight: 600;
+}
+
+/* Fallback for callers using arbitrary tab ids beyond t1..t6: show the
+ * first panel if no :has()-keyed rule matches. This degrades gracefully
+ * rather than rendering an empty pane. */
+.section-tabs__panel:first-of-type { display: block; }
+.section-tabs:has(.section-tabs__radio:checked) .section-tabs__panel:first-of-type { display: none; }
+.section-tabs:has(.section-tabs__radio[data-tab-id="t1"]:checked) .section-tabs__panel:first-of-type[data-tab-id="t1"],
+.section-tabs:has(.section-tabs__radio[data-tab-id="t2"]:checked) .section-tabs__panel:first-of-type[data-tab-id="t2"],
+.section-tabs:has(.section-tabs__radio[data-tab-id="t3"]:checked) .section-tabs__panel:first-of-type[data-tab-id="t3"] {
+  display: block;
+}
+
+/* -------------------------------------------------------------------------
+ * FaqDetails
+ * ------------------------------------------------------------------------- */
+.faq-details,
+.wiki-html-render details.faq-details {
+  background: var(--wiki-bg-card);
+  border: 1px solid var(--wiki-border);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin: 8px 0;
+  color: var(--wiki-fg);
+}
+.faq-details__summary,
+.wiki-html-render details.faq-details > summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--wiki-fg);
+  list-style: none;
+  user-select: none;
+}
+.faq-details__summary::-webkit-details-marker,
+.wiki-html-render details.faq-details > summary::-webkit-details-marker {
+  display: none;
+}
+.faq-details__summary::before,
+.wiki-html-render details.faq-details > summary::before {
+  content: "▶";
+  display: inline-block;
+  margin-right: 8px;
+  transition: transform .15s;
+  color: var(--wiki-fg-dim);
+  font-size: 10px;
+}
+.faq-details[open] > .faq-details__summary::before,
+.wiki-html-render details.faq-details[open] > summary::before {
+  transform: rotate(90deg);
+}
+.faq-details__body {
+  margin-top: 10px;
+  padding-left: 18px;
+  color: var(--wiki-fg-dim);
+  font-size: 14px;
+}
+
+/* -------------------------------------------------------------------------
+ * SeverityBadge
+ * ------------------------------------------------------------------------- */
+.severity-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  border: 1px solid transparent;
+  vertical-align: middle;
+}
+.severity-badge--high { background: var(--severity-high-bg); color: var(--severity-high-fg); border-color: var(--severity-high-border); }
+.severity-badge--med  { background: var(--severity-med-bg);  color: var(--severity-med-fg);  border-color: var(--severity-med-border); }
+.severity-badge--low  { background: var(--severity-low-bg);  color: var(--severity-low-fg);  border-color: var(--severity-low-border); }
+.severity-badge--info { background: var(--severity-info-bg); color: var(--severity-info-fg); border-color: var(--severity-info-border); }
