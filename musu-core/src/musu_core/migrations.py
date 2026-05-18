@@ -1564,12 +1564,43 @@ MIGRATIONS: list[tuple[str, MigrationFn, MigrationFn]] = [
 ]
 
 
+def get_user_version(conn: sqlite3.Connection) -> int:
+    """Return the current SQLite PRAGMA user_version (schema watermark).
+
+    Set by ``apply_pending`` after all migrations succeed; readiness probes
+    (e.g. /health/ready) compare against ``len(MIGRATIONS)`` to detect a
+    partially-applied or stale schema before serving traffic.
+    """
+    cur = conn.execute("PRAGMA user_version")
+    row = cur.fetchone()
+    return int(row[0]) if row is not None else 0
+
+
 def apply_pending(conn: sqlite3.Connection) -> list[str]:
-    """Apply all pending migrations and return labels of those that ran."""
+    """Apply all pending migrations and return labels of those that ran.
+
+    After every up_fn returns successfully, writes ``PRAGMA user_version =
+    len(MIGRATIONS)`` so readiness probes can assert schema completeness.
+    The write is reached only when every migration succeeded — if any
+    up_fn raises, control never reaches the PRAGMA write and the
+    watermark stays at its prior value (or 0 on a fresh DB), so partial
+    application is observable to /health/ready as schema_below_min.
+
+    Note on transactionality: individual _v*_up implementations wrap their
+    DDL in their own BEGIN/COMMIT via executescript, so each migration is
+    already durable when this loop advances. The post-loop PRAGMA write
+    therefore acts as a final "all green" watermark rather than a single
+    atomic envelope around every DDL statement — which matches SQLite's
+    semantics for PRAGMA user_version (auto-commits, not bound to the
+    enclosing transaction in all builds).
+    """
     applied: list[str] = []
     for label, up_fn, _ in MIGRATIONS:
         up_fn(conn)
         applied.append(label)
+    # Watermark: only written when every migration above succeeded.
+    conn.execute(f"PRAGMA user_version = {len(MIGRATIONS)}")
+    conn.commit()
     return applied
 
 

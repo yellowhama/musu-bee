@@ -3038,10 +3038,16 @@ async def health() -> dict:
 
 _AGENT_CHANNELS = ("ceo", "cto", "engineer", "qa", "planner", "cos")
 
+# Schema watermark — readiness fails closed below this value. Bumped when a
+# new migration lands in musu_core.migrations.MIGRATIONS. V23.5 H-3: gates
+# rollouts where the binary is ahead of the on-disk schema (e.g. blue/green
+# where a stale pod boots against an un-migrated DB).
+MIGRATIONS_MIN_VERSION = 37
+
 
 @app.get("/health/ready")
 async def health_ready() -> Response:
-    """Readiness probe — verifies DB connectivity and agent channel circuit breaker state."""
+    """Readiness probe — DB connectivity + schema watermark + channel CB state."""
     try:
         backend = _get_heartbeat_backend()
         backend._db.execute("SELECT 1")
@@ -3052,12 +3058,48 @@ async def health_ready() -> Response:
             media_type="application/json",
         )
 
+    # Schema watermark — apply_pending writes PRAGMA user_version =
+    # len(MIGRATIONS) only after every migration succeeded, so any value
+    # below MIGRATIONS_MIN_VERSION means the DB is partially-applied or
+    # stale relative to this binary. Fail closed.
+    try:
+        rows = backend._db.execute("PRAGMA user_version")
+        user_version = int(rows[0][0]) if rows else 0
+    except Exception:
+        return Response(
+            content=json.dumps({
+                "status": "not_ready",
+                "db": "ok",
+                "reason": "user_version_unreadable",
+            }),
+            status_code=503,
+            media_type="application/json",
+        )
+
+    if user_version < MIGRATIONS_MIN_VERSION:
+        return Response(
+            content=json.dumps({
+                "status": "not_ready",
+                "db": "ok",
+                "reason": "schema_below_min",
+                "user_version": user_version,
+                "min": MIGRATIONS_MIN_VERSION,
+            }),
+            status_code=503,
+            media_type="application/json",
+        )
+
     agents = {
         ch: ("degraded" if _channel_cb.is_open(ch) else "ok")
         for ch in _AGENT_CHANNELS
     }
     return Response(
-        content=json.dumps({"status": "ready", "db": "ok", "agents": agents}),
+        content=json.dumps({
+            "status": "ready",
+            "db": "ok",
+            "user_version": user_version,
+            "agents": agents,
+        }),
         status_code=200,
         media_type="application/json",
     )
