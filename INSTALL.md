@@ -1,12 +1,21 @@
 # Install
 
 MUSU runs on three platforms: **Linux / WSL**, **macOS**, **Windows**.
-Pick yours. Each path is a single command and leaves the bridge
-running as a system service.
+
+> **Status note (2026-05-18, V23.4 Phase 4)**: the convenience installer
+> scripts described in §"Quickstart by platform" (`scripts/install.sh`,
+> `scripts/install.ps1`, the launchd plist template, systemd env example,
+> and `restart-bridge.ps1`) are **not yet checked in to this repo**. They
+> describe the intended one-command path. Until that sub-WS lands, use
+> §"Per-module manual install" further down — that path is real and
+> currently working. The WSL2-based installer for `musu-backend.tar`
+> (used by the rendezvous role and gateway PCs) lives at
+> `musu-relay/installer/install-wsl2.ps1` and IS checked in; see
+> `docs/V23_4_F_T2F_CLOSURE_2026_05_18.md` for that flow.
 
 ---
 
-## Quickstart by platform
+## Quickstart by platform *(planned, scripts not yet checked in)*
 
 ### Linux / WSL (Ubuntu, Debian, Arch, …)
 
@@ -28,7 +37,7 @@ bash scripts/install.sh --service --start
 
 Same script — on macOS it registers a **launchd LaunchAgent**
 (`~/Library/LaunchAgents/com.musu.bridge.plist`) instead of systemd.
-The plist template is at `scripts/launchd/com.musu.bridge.plist.example`.
+The plist template is intended to ship at `scripts/launchd/com.musu.bridge.plist.example`.
 
 ### Windows (native, no WSL)
 
