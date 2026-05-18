@@ -2709,6 +2709,40 @@ def get_workflow_status_handler(db: Any, wf_id: str) -> dict | None:
     }
 
 
+def get_workflow_detail_handler(db: Any, wf_id: str) -> dict | None:
+    """Return workflow row + decoded spec, or None if missing.
+
+    Per V23.4 audit-fix A1 (wiki/435 v2): editor at `/c/{id}/workflows/{wfId}/edit`
+    needs full spec to repopulate the form. Reuses the single `spec_json`
+    column stored by create_workflow_handler — no schema change (Const III safe).
+    """
+    import json as _json  # noqa: PLC0415
+
+    rows = db.execute(
+        "SELECT id, company_id, name, status, spec_json, created_at "
+        "FROM workflows WHERE id = ?",
+        (wf_id,),
+    )
+    if not rows:
+        return None
+    r = rows[0]
+    try:
+        spec = _json.loads(r["spec_json"]) if r["spec_json"] else {
+            "agents": [],
+            "edges": [],
+        }
+    except (TypeError, ValueError):
+        spec = {"agents": [], "edges": []}
+    return {
+        "id": r["id"],
+        "company_id": r["company_id"],
+        "name": r["name"],
+        "status": r["status"],
+        "spec": spec,
+        "created_at": r["created_at"],
+    }
+
+
 def patch_workflow_status_handler(
     db: Any, wf_id: str, new_status: str
 ) -> dict | None:

@@ -381,6 +381,54 @@ def test_t14_patch_status_only(client: TestClient) -> None:
 
 
 # ---------------------------------------------------------------------------
+# T14b — GET /workflows/{id} returns full spec (V23.4 audit-fix A1, wiki/435 v2)
+# ---------------------------------------------------------------------------
+
+
+def test_t14b_get_workflow_detail_returns_spec(client: TestClient) -> None:
+    """Editor needs full spec to repopulate the form on existing-workflow edit.
+
+    Per V23.4 audit-fix A1: previously the editor fetched a non-existent
+    endpoint and silently rendered an empty form. This test pins the
+    round-trip contract so the regression cannot recur.
+    """
+    body = {
+        "company_id": "co-a",
+        "name": "ws14b",
+        "spec": {
+            "agents": [
+                {"id": "writer", "image": "alpine", "nodeSelector": {"os": "linux"}, "command": ["summarize"]},
+                {"id": "reviewer", "image": "alpine", "nodeSelector": {"os": "linux"}, "command": ["review"]},
+            ],
+            "edges": [{"from": "writer", "to": "reviewer", "condition": "succeeded"}],
+        },
+    }
+    wf_id = client.post("/api/workflows", json=body).json()["id"]
+
+    r = client.get(f"/api/workflows/{wf_id}")
+    assert r.status_code == 200, r.text
+    data = r.json()
+    assert data["id"] == wf_id
+    assert data["company_id"] == "co-a"
+    assert data["name"] == "ws14b"
+    assert data["status"] == "pending"
+    # Spec round-trip: edges use alias-form keys (from/to), agents preserve ids.
+    assert {a["id"] for a in data["spec"]["agents"]} == {"writer", "reviewer"}
+    assert data["spec"]["edges"] == [
+        {"from": "writer", "to": "reviewer", "condition": "succeeded"}
+    ]
+
+    # 404 for missing
+    r = client.get("/api/workflows/ghost-id")
+    assert r.status_code == 404
+
+    # _pending shadow-check: literal-path route still wins over wf_id pattern.
+    r = client.get("/api/workflows/_pending", params={"assigned_pc": "pc-x"})
+    assert r.status_code == 200
+    assert isinstance(r.json(), list)
+
+
+# ---------------------------------------------------------------------------
 # T15 — SSE eligibility (_ALLOWED_TABLES)
 # ---------------------------------------------------------------------------
 

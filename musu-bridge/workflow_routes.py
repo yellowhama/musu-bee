@@ -184,6 +184,24 @@ class WorkflowResponse(BaseModel):
     created_at: int
 
 
+class WorkflowDetailResponse(BaseModel):
+    """Full workflow record + decoded spec (V23.4 audit-fix A1, wiki/435 v2).
+
+    Editor needs the spec to repopulate the form when re-opening an existing
+    workflow. The `spec` field is the raw decoded JSON dict (keys `agents` +
+    `edges`, with edges using alias-form keys `from` / `to`) — matches the
+    shape `frontend/src/lib/workflow-spec.ts:decodeWorkflow` consumes. We keep
+    it as `dict[str, Any]` rather than `WorkflowSpec` so FastAPI serialization
+    preserves the alias-form keys without an explicit `by_alias=True` dance.
+    """
+    id: str
+    company_id: str
+    name: str
+    status: str
+    spec: dict[str, Any]
+    created_at: int
+
+
 class StepStatusResponse(BaseModel):
     id: str
     agent_id: str
@@ -323,6 +341,23 @@ async def get_pending_steps(
     from handlers import get_pending_steps_for_pc  # noqa: PLC0415
 
     return get_pending_steps_for_pc(_get_db(), assigned_pc, limit)
+
+
+@workflow_router.get(
+    "/workflows/{wf_id}", response_model=WorkflowDetailResponse
+)
+async def get_workflow_detail(wf_id: str) -> dict:
+    """Per V23.4 audit-fix A1 (wiki/435 v2): editor needs full spec.
+
+    Registered AFTER /workflows/_pending so `wf_id="_pending"` cannot shadow
+    the literal-path endpoint (FastAPI matches routes in registration order).
+    """
+    from handlers import get_workflow_detail_handler  # noqa: PLC0415
+
+    result = get_workflow_detail_handler(_get_db(), wf_id)
+    if not result:
+        raise HTTPException(status_code=404)
+    return result
 
 
 @workflow_router.patch(
