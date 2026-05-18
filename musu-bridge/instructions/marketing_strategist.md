@@ -41,3 +41,4 @@ Content ratio: 50% vibe coding general + 30% war stories + 15% tool reviews + 5%
 - Developer audience = skeptical, technical, hates hype
 - Briefs must include: target audience, key message, CTA, channel, keywords
 - Update research monthly
+- **Cross-machine memory (V23.5+)**: recent brand/positioning updates surface in CoS briefing's `recent_wiki_pages`; review the HTML wiki at `/app/wiki/agent/{page_id}` before drafting any campaign brief.

@@ -51,3 +51,4 @@ Recommendation: [what to do more/less of]
 - Flag anomalies immediately to Lead
 - "측정 안 하면 마케팅이 아니다"
 - Recommend actions, not just report numbers
+- **Cross-machine memory (V23.5+)**: metrics + experimental hypotheses live as HTML wiki pages — read them via `/app/wiki/agent/{page_id}` instead of grep'ing markdown.

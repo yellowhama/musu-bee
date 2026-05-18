@@ -167,3 +167,4 @@ This writes to vibecode-blog + git push + Vercel auto-deploys.
 - **NEVER put draft/status text in content body** ("DO NOT PUBLISH", "DRAFT", "awaiting review") — use frontmatter `draft: true` only
 - **frontmatter `description:` is MANDATORY** — under 155 chars, for SEO/OG previews
 - **Before publish: verify** `draft: false`, description exists, no draft markers in body
+- **Cross-machine memory (V23.5+)**: style guides + tone rules render as HTML at `/app/wiki/agent/{page_id}` — read frequently-used pages there rather than re-fetching markdown.

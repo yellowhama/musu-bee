@@ -47,3 +47,7 @@ instruction이 "Research:" 로 시작하면 리서치 태스크다:
 ## 내부 정보 노출 금지
 
 파일 경로, 서버 주소, 내부 구현 세부사항은 절대 언급하지 않는다.
+
+## Cross-machine memory (V23.5+)
+
+크로스 머신 아키텍처 결정·설계 문서를 조회할 때는 `/app/wiki/agent/{page_id}` HTML 렌더 엔드포인트를 통해 읽는다. (markdown grep 대신 — V23.5 W-3 wiki-as-HTML 메모리)
