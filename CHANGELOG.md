@@ -2,23 +2,117 @@
 
 All notable changes to MUSU are documented here.
 
-## [1.13.0-dev] - 2026-05-19 — V23.5 (in progress): HTML wiki memory + bridge hardening + CoS aggregation
+## [1.13.0] - 2026-05-19 — V23.5: HTML wiki memory + bridge hardening + CoS aggregation
 
-Branch: `v23/phase4` (continues from Phase 4; new `v23/phase5` cut deferred
-until operator main-merge gate #436 clears). Implementation plan: wiki/460
-(`docs/V23_5_IMPL_PLAN_2026_05_19.md`). Master plan: wiki/459 v4
-(`docs/V23_5_MASTER_PLAN_2026_05_19.md`).
+Branch: `v23/phase4` (HEAD `c1a87b4`). Const VII main-merge gate
+OPERATOR-PENDING (#436 — bundles V23.3 + V23.4 Tier-1 + V23.4 Phase 4 +
+V23.5 → main in one operator action). Final closure: wiki/470
+(`docs/V23_5_FINAL_CLOSURE_2026_05_19.html`); qualitative evaluation:
+wiki/471 (`docs/V23_5_QUAL_EVAL_2026_05_19.md`). 18/18 sub-WS shipped,
+~1900 LOC production code, ~217 new tests across jest / node:test /
+pytest / Playwright. Master plan: wiki/459 v4
+(`docs/V23_5_MASTER_PLAN_2026_05_19.md`); implementation plan: wiki/460
+(`docs/V23_5_IMPL_PLAN_2026_05_19.md`).
 
-Scope: 18 sub-WS, ~1540 LOC across 9 waves. Autonomous /loop with one
-operator-gated point (Phase −1 mini-gate for C-3 LLM opt-in path).
+Master plan v1 was rejected at Phase −1 strategic gate on Option Y
+(LLM-default) thesis; reshape to Option Z hybrid (algorithmic CoS as
+default, LLM synthesis as opt-in only) shipped per board panel SWOT
+verdict 3Z+1X+0Y. 7th validation of `[[feedback-strategic-critic-gate]]`.
+Plan-as-spec Auditor returned 4 NEW HIGH zero overlap with Critic's 9
+HIGH on the v3 master plan body — 7th–8th validation of
+`[[feedback-plan-stage-auditor]]` zero-overlap principle. Compressed
+chain (Critic + Builder, no separate Auditor) used on 11 of 13
+risk-bearing sub-WS; 2 inline audit-fix cycles (W-2, H-2); 16 of 18
+sub-WS SHIP-OK first pass.
 
-- **S-1** SSOT_1PAGE 3-layer → 4-layer (CoS = Layer 0) — IN PROGRESS
-- **W-1..W-8** Agent-facing HTML wiki render (Tariq #14 pattern) — pending
-- **H-1..H-5** musu-bridge hardening (handler error opacity, uniform DB
-  try/catch, /health/ready PRAGMA, X-Request-ID, error classification) — pending
-- **C-1..C-4** CoS briefing aggregation (algorithmic default + LLM opt-in) — pending
+### Added — S (SSOT 4-layer)
+- **S-1** (`21fe2b9`): SSOT_1PAGE 3-layer → 4-layer (Layer 0 = CoS above
+  Layer 1 = machines) + VERSION 1.9.0 → 1.13.0-dev + CHANGELOG stub.
 
-Entries below populated as sub-WS ship.
+### Added — W (HTML wiki memory, agent-facing)
+- **W-1** (`35951e9`): react-markdown + dompurify + rehype-sanitize
+  dependency add + 12-vector XSS unit test. 14/14 cases green.
+- **W-2** (`0c48117`): `WikiHtmlRender.tsx` — react-markdown + GFM +
+  DOMPurify + `transformLinkUri` allowlist. XSS contract locked. 23/23
+  cases green (+14 W-1 regression carry-forward).
+- **W-3** (`3c52d50`): musu-bridge `GET /api/wiki/page/{id}/html` —
+  server-side GFM render + scope-aware (`global` | `companies/{id}`) +
+  503 fallback. 9/9 cases green.
+- **W-4** (`46553cb`): musu-bee `/app/wiki/agent/{page_id}` page route +
+  `agentWikiClient` + proxy (consumes W-2 / W-3 / W-5). 7/7 cases green.
+- **W-5** (`cf4624e`): Tariq #14 reusable components — `TldrCard`,
+  `SectionTabs`, `FaqDetails`, `SeverityBadge` + `wiki-explainer.css`
+  shared stylesheet. 13/13 cases green.
+- **W-6** (`1b617ac`): Tier-1 12-doc ingest script + filesystem
+  precondition test. 5/5 cases green. Doc count expanded 4 → 12 per
+  Phase −1 F2 finding ("wedge demonstration").
+- **W-7** (`7452fc1`): Playwright e2e — 10 doc render + 5 XSS contract +
+  404 + 503 fallback. 17 cases green.
+- **W-8** (`c1a87b4`): V23.6 scope firewall (10 items) + 4 agent
+  instruction tweaks (`cto.md`, `marketing_strategist.md`,
+  `analytics_lead.md`, `content_creator.md`) + W-8 closure HTML
+  (wiki/469).
+
+### Added — H (musu-bridge hardening)
+- **H-1** (`605395c`): handler error opacity — 4 fail-open sites add
+  structured `logger.error` calls. Critic C12 fail-open invariant
+  preserved. 15/15 cases green.
+- **H-2** (`b0af954`): uniform DB-write try/catch (4 sites) + agent-route
+  client fallback patch + kill-switch. Auditor A1 `bridge_error`
+  preserve. 21/21 cases green.
+- **H-3** (`7144453`): `/health/ready` PRAGMA `user_version` check +
+  `apply_pending` atomic write. Critic C4 fix (no new schema column —
+  PRAGMA is built-in). 19/19 cases green.
+- **H-4a** (`edc7b61`): X-Request-ID HTTP mesh propagation (feature flag
+  default OFF; ~95% of mesh traffic). QUIC propagation split to H-4b
+  deferred V23.6 (wiki/483 reserved). 6/6 cases green.
+- **H-5** (`16d869a`): error classification structured logs (5 sites).
+  H-1 fail-open invariant preserved. 27/27 cases green.
+
+### Added — C (CoS briefing aggregation)
+- **C-1** (`9d32bc5`): `api_company_briefing` `recent_wiki_pages` field
+  — filesystem scan (24h window, 5-entry cap, mtime-sorted). No new DB
+  table per `[[feedback-no-yagni-architecture]]`. 11/11 cases green.
+- **C-2** (`2a9b578`): `ProjectBriefing` UI section + "📝 Get AI
+  synthesis" stub button (disabled unless `MUSU_USER_LLM_API_KEY`
+  configured). 8/8 cases green.
+- **C-3** (`822b236`): LLM CoS synthesis opt-in path Y — 4 hard
+  constraints enforced in code: (a) graceful degrade to algorithmic
+  default on LLM failure, (b) explicit `MUSU_USER_LLM_API_KEY` env var
+  required, (c) per-session cost-preview confirmation hook, (d) no
+  phone-home telemetry (local `cos_synthesis_ok` / `cos_synthesis_failed`
+  structured logs only). Phase −1 mini-gate PASS. 12/12 cases green.
+- **C-4** (`f63269d`): Y-path failure-mode tests (10 cases) + C-2 wiring
+  + V23.7 promotion criterion doc (wiki/479; ≥40% click rate over 60-day
+  rolling window). 10/10 cases green.
+
+### Changed
+- `VERSION`: 1.9.0 → 1.13.0
+- `SSOT_1PAGE.md`: 3-layer → 4-layer (Layer 0 = CoS briefing aggregation
+  layer above Layer 1 = machines).
+- Four agent instruction files (`cto.md`, `marketing_strategist.md`,
+  `analytics_lead.md`, `content_creator.md`) now point to
+  `/app/wiki/agent/{page_id}` as cross-machine memory channel.
+
+### Constitution gates
+- **Const III** (schema apply): **NOT triggered** — H-3 uses SQLite
+  built-in `PRAGMA user_version`; no new column, no migration.
+- **Const VI** (experiment / SLA): **NOT triggered** — no new performance
+  SLA; C-1 filesystem scan bounded; C-3 LLM latency owned by user's API
+  provider.
+- **Const VII** (push): **per-push satisfied** — 18 commits pushed under
+  autonomous `/loop` per `[[feedback-autonomous-loop]]`. Main-merge
+  bundle gate (#436) operator-pending (bundles V23.3 + V23.4 Tier-1 +
+  V23.4 Phase 4 + V23.5).
+
+### Deferred to V23.6+
+- 10 V23.6 firewall items pinned at wiki/469 §2: HTML wiki page editing
+  UI, RAG auto-retrieval, agent session memory persistence, multi-tenant
+  scope expansion, H-4b QUIC propagation, T2-D-visual React Flow editor,
+  C-3 Y-path default-on promotion, Paperclip / OpenClaw observer
+  integration, wiki page editing API, server-side render mode promotion.
+- V23.7 LLM-default promotion gate: wiki/479 (≥40% click rate over 60d
+  rolling window from local structured logs).
 
 ---
 
