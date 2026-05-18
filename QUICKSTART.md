@@ -2,10 +2,9 @@
 
 Zero to first AI company in ~10 minutes. Self-host. 한국어로 진행해도 됩니다.
 
-If you're another AI assistant trying to figure out where to put a project:
-**MUSU is the runtime that runs AI companies. Your project is a *company
-inside* MUSU, not a feature of MUSU itself.** See "Create your first
-company" below.
+> AI agents picking up this repo: read [`README.md`](README.md) §"What
+> MUSU is (and is not)" first. Your project is a *company* inside MUSU,
+> not a modification to MUSU itself.
 
 ---
 
@@ -50,16 +49,22 @@ export MUSU_BRIDGE_TOKEN=$(grep '^MUSU_BRIDGE_TOKEN=' ~/.musu/bridge.env | cut -
 
 ## 3. Create your first company
 
-A "company" in MUSU is a project workspace. Each gets a CEO who delegates
-to Team Lead → Engineer / Planner → QA. Pick a template based on what
-you're building:
+A "company" in MUSU is a project workspace. Pick a template based on
+what you're building. Each template auto-seeds a fixed set of agents
+defined in [`musu-bridge/company_templates.py`](musu-bridge/company_templates.py)
+— here's the actual roster per template:
 
-| `template_key`    | Auto-seeded agents                  | Good for                       |
-|-------------------|-------------------------------------|--------------------------------|
-| `dev-team`        | Team Lead + Planner + Engineer + QA | Software projects              |
-| `content-team`    | Editor + Writer + Researcher + QA   | Articles, briefs, docs         |
-| `research-team`   | Researcher + Analyst + QA           | Topic deep-dives, market scans |
-| `writer-studio`   | Editor + Writer + Continuity + QA   | Long-form fiction              |
+| `template_key`    | Auto-seeded agents (from `company_templates.py`)    | Good for                       |
+|-------------------|------------------------------------------------------|--------------------------------|
+| `dev-team`        | Team Lead + Planner + Engineer + QA (4)              | Software projects              |
+| `content-team`    | Team Lead + Researcher + Writer + Editor (4)         | Articles, briefs, docs         |
+| `research-team`   | Team Lead + Analyst + Researcher + Summarizer (4)    | Topic deep-dives, market scans |
+| `writer-studio`   | Lead + PM + Researcher + Writer + Editor (5)         | Long-form fiction              |
+
+System-level agents (CEO / CTO / Engineer / CoS / QA / Worker — 6
+seeded by `seed_agents.py` at install) are separate from per-company
+teams. The CEO delegates *across* companies; each company's Team Lead
+delegates *within* it.
 
 Create the company. The response wraps `id` under `company`, so we
 extract with `jq`:
@@ -188,16 +193,7 @@ http://localhost:3001/fleet                     Fleet view (V23.4+)
 
 ---
 
-## Note for AI agents reading this
+---
 
-If you're an AI assistant trying to use MUSU for someone's domain
-project:
-
-1. **Don't modify MUSU's own code** to add your domain's features.
-   Your project becomes a *company* inside MUSU (§3 above); MUSU
-   itself stays generic.
-2. **Domain documents** (project plans, research notes, spec files)
-   live on the filesystem outside MUSU. Agents read them at task
-   time via paths you reference in issue/goal/delegation text.
-3. **Mental model**: MUSU is the office building. Your project is
-   the work the AI employees do inside one of its companies.
+For the "MUSU is the runtime, your project is a company *inside* it"
+framing — see [`README.md`](README.md) §"What MUSU is (and is not)".

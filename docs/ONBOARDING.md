@@ -63,10 +63,12 @@ cat > ~/.musu/secrets/vault.json << EOF
 {
   "bridge": {"token": "$TOKEN"},
   "cloud": {"musu_token": ""},
-  "forgejo": {"user": "musu_admin", "pass": "musu_admin", "url": ""},
+  "forgejo": {"user": "", "pass": "", "url": ""},
   "nodes": {}
 }
 EOF
+# If you operate a shared Forgejo, fill the forgejo block AFTER this with your
+# OWN credentials — never paste another operator's user/pass/url.
 chmod 600 ~/.musu/secrets/vault.json
 
 # Create .env from vault token

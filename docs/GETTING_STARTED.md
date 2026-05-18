@@ -35,7 +35,7 @@ What this does:
 - Creates `~/.musu/` (config, DB, tokens)
 - Installs `musu-core` and `musu-bridge` into a local venv
 - Auto-detects your GPU and network identity
-- Seeds a default agent team (CEO, CTO, Engineer, QA)
+- Seeds the system-level 6-agent team (CEO, CTO, Engineer, CoS, QA, Worker — see `seed_agents.py`)
 - Registers and starts `musu-bridge` as a systemd user service
 
 ---
@@ -46,10 +46,18 @@ What this does:
 curl http://localhost:8070/health
 ```
 
-Expected response:
+Expected response (per `server.py` /health):
 
 ```json
-{"status":"ok","bridge":"running","version":"..."}
+{
+  "status": "ok",
+  "version": "...",
+  "relay": {"connected": false, "reconnect_count": 0},
+  "worker": false,
+  "active_tasks": 0,
+  "db_size_mb": 0.1,
+  "disk_free_pct": 42.0
+}
 ```
 
 If it fails, check logs:
@@ -161,8 +169,10 @@ BRIDGE_HOST=127.0.0.1                 # default; set 0.0.0.0 for LAN
 BRIDGE_PORT=8070                       # default
 ```
 
-For LAN access also set `MUSU_BRIDGE_LOCALHOST_AUTH=1` so the LAN
-traffic still requires the bearer token. Full env var reference:
+LAN clients ALWAYS require the bearer token. The default auth bypass
+applies only to `127.0.0.1`/`::1`. If this is a shared machine and
+you want even localhost requests to require the token, set
+`MUSU_BRIDGE_LOCALHOST_AUTH=1`. Full env var reference:
 [CONFIG.md](CONFIG.md).
 
 ---

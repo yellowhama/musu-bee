@@ -26,11 +26,16 @@ if [ ! -f "$ROOT/.musu/agent-defaults.json" ]; then
 fi
 
 # ── 3. Generate bridge token if not set ──────────────────────────────────────
-if [ ! -f "$ROOT/musu-bridge/.env" ]; then
+# Canonical bridge env file path is ~/.musu/bridge.env (matches systemd
+# unit's EnvironmentFile=-%h/.musu/bridge.env and install.sh's behavior).
+# BRIDGE_HOST default is 127.0.0.1 (localhost only). Set to 0.0.0.0 explicitly
+# if this node must be reachable from mesh peers — the bearer token is then
+# the only auth, so don't expose it without setting MUSU_BRIDGE_TOKEN.
+if [ ! -f "$HOME/.musu/bridge.env" ]; then
     TOKEN=$(openssl rand -hex 32)
-    cat > "$ROOT/musu-bridge/.env" << EOF
+    cat > "$HOME/.musu/bridge.env" << EOF
 MUSU_BRIDGE_TOKEN=${TOKEN}
-BRIDGE_HOST=0.0.0.0
+BRIDGE_HOST=127.0.0.1
 BRIDGE_PORT=8070
 MUSU_NODE_NAME=$(hostname)
 MUSU_CEO_HEARTBEAT_ENABLED=true
@@ -38,9 +43,10 @@ MUSU_CEO_HEARTBEAT_INTERVAL=1800
 MUSU_NODE_HEARTBEAT_ENABLED=true
 MUSU_SELF_HEALING_ENABLED=true
 EOF
-    log "Generated .env with token: ${TOKEN:0:8}..."
+    chmod 600 "$HOME/.musu/bridge.env"
+    log "Generated ~/.musu/bridge.env with token: ${TOKEN:0:8}..."
 else
-    log ".env already exists — skipping"
+    log "~/.musu/bridge.env already exists — skipping"
 fi
 
 # ── 4. Install Python dependencies ──────────────────────────────────────────
@@ -62,14 +68,20 @@ for pkg in musu-bridge musu-core musu-control; do
 done
 
 # ── 4b. Download portd binary if missing ─────────────────────────────────
+# Only attempts if MUSU_MAIN_IP is explicitly set (no hardcoded operator IP).
+# Single-machine installs can skip this entirely — portd is only needed when
+# joining a mesh that has a primary node serving the binary.
 mkdir -p "$ROOT/bin"
 if [ ! -x "$ROOT/bin/musu-portd" ]; then
-    MAIN_IP="${MUSU_MAIN_IP:-100.126.67.88}"
-    log "Downloading musu-portd from main node..."
-    curl -sL "http://${MAIN_IP}:8070/bin/musu-portd" -o "$ROOT/bin/musu-portd" 2>/dev/null && \
-        chmod +x "$ROOT/bin/musu-portd" && \
-        log "portd downloaded" || \
-        log "WARNING: portd download failed — run cargo build manually if needed"
+    if [ -n "${MUSU_MAIN_IP:-}" ]; then
+        log "Downloading musu-portd from \$MUSU_MAIN_IP ($MUSU_MAIN_IP)..."
+        curl -sL "http://${MUSU_MAIN_IP}:8070/bin/musu-portd" -o "$ROOT/bin/musu-portd" 2>/dev/null && \
+            chmod +x "$ROOT/bin/musu-portd" && \
+            log "portd downloaded" || \
+            log "WARNING: portd download failed — run cargo build manually if needed"
+    else
+        log "portd binary not present; set MUSU_MAIN_IP=<primary-tailscale-ip> to fetch, or skip if single-machine"
+    fi
 else
     log "portd binary exists"
 fi

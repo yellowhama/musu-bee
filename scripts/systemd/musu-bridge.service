@@ -4,12 +4,14 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=%h/musu-functions
+# Placeholders __MUSU_ROOT__ are substituted by install-musu-bridge-service.sh
+# when the file is copied into ~/.config/systemd/user/. Do NOT symlink — copy.
+WorkingDirectory=__MUSU_ROOT__
 
 # Load per-user config. Create it from scripts/systemd/bridge.env.example
 EnvironmentFile=-%h/.musu/bridge.env
 
-ExecStart=%h/musu-functions/scripts/start-bridge.sh
+ExecStart=__MUSU_ROOT__/scripts/start-bridge.sh
 Restart=on-failure
 RestartSec=5
 

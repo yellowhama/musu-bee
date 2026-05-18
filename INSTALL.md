@@ -63,7 +63,7 @@ Whether you ran `install.sh` or `install.ps1`, the same 7 steps run:
 3. **Create venv + install deps** — `musu-bridge/.venv` with `musu-core` and `musu-bridge` editable installs.
 4. **Seed `bridge.env`** — `~/.musu/bridge.env` from template, with a fresh `MUSU_BRIDGE_TOKEN` auto-generated.
 5. **Detect node identity** — writes `~/.musu/nodes.toml` with hostname, OS, GPU, Tailscale IP.
-6. **Build `musu-bee`** — `pnpm install && pnpm build` (requires Node.js; skipped with a warning if missing).
+6. **Build `musu-bee`** — `npm install && npm run build` (matches `scripts/install.sh`'s actual invocation; requires Node.js, skipped with a warning if missing). `pnpm` works equivalently if you prefer it — see the per-module manual install below.
 7. **Register service** — systemd (Linux), launchd (macOS), or Task Scheduler (Windows).
 
 If you pass `--start` (`-Start` on Windows), the bridge is launched

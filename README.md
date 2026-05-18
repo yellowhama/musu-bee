@@ -93,13 +93,27 @@ Templates: `dev-team` (most common), `content-team`, `research-team`,
 work through them — see [`docs/MANUAL.md`](docs/MANUAL.md) for the
 full surface area (delegation, briefings, wiki, mesh, vault).
 
-## Quick start
+## Documentation map
 
-[`QUICKSTART.md`](QUICKSTART.md) walks you from `~/.musu/` empty to a
-first agent task in under 10 minutes (한국어 OK). Read
-[`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md) for a longer
-per-API walkthrough and [`docs/MANUAL.md`](docs/MANUAL.md) for the
-full feature reference.
+Three primary docs cover all audiences:
+
+- **[`QUICKSTART.md`](QUICKSTART.md)** — 10-minute path from fresh
+  install to a running first company. 한국어 OK. Start here as a
+  new human user OR as an AI assistant picking up the repo.
+- **[`INSTALL.md`](INSTALL.md)** — per-OS install reference,
+  prerequisites, per-module manual install, service management,
+  troubleshooting. Read this when QUICKSTART's one-command path
+  fails or you want fine-grained control.
+- **[`docs/MANUAL.md`](docs/MANUAL.md)** — full API + concept
+  reference. Company management, agent management, task delegation,
+  channels, vault, wiki, mesh, the Chairman Principle. Read this
+  once the bridge is running and you need a feature.
+
+Secondary docs (read when needed, not on first pass):
+[`docs/CONFIG.md`](docs/CONFIG.md) (env vars),
+[`docs/ONBOARDING.md`](docs/ONBOARDING.md) (adding a node to an
+existing mesh), [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md)
+(longer per-API walkthrough — overlaps with QUICKSTART).
 
 ## Operator data
 

@@ -110,16 +110,19 @@ Channels: ceo-board, md-team, my-team
 ```bash
 # Post
 curl -X POST http://localhost:8070/api/groups/my-team/messages \
-  -H "Authorization: Bearer {TOKEN}" \
+  -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"text": "Draft ready", "sender_id": "writer-1"}'
 
 # Reply (notifies original author)
 curl -X POST http://localhost:8070/api/groups/my-team/messages \
+  -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN" \
+  -H "Content-Type: application/json" \
   -d '{"text": "Looks good", "sender_id": "editor-1", "reply_to": "msg-id"}'
 
 # Check your notifications
-curl http://localhost:8070/api/notifications/writer-1
+curl http://localhost:8070/api/notifications/writer-1 \
+  -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN"
 ```
 
 ### Read channel messages
@@ -144,11 +147,11 @@ curl -X POST http://{NODE_IP}:8070/api/system/update \
 ```bash
 # List files
 curl "http://{NODE_IP}:8070/api/files/list?path=/home/user&pattern=*.md" \
-  -H "Authorization: Bearer {TOKEN}"
+  -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN"
 
 # Read a file
 curl "http://{NODE_IP}:8070/api/files/read?path=/home/user/project/chapter1.md" \
-  -H "Authorization: Bearer {TOKEN}"
+  -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN"
 ```
 
 Security: files restricted to home directory. Auth token required.
@@ -158,15 +161,15 @@ Security: files restricted to home directory. Auth token required.
 ```bash
 # Restart all services
 curl -X POST "http://{NODE_IP}:8070/api/system/restart?service=all" \
-  -H "Authorization: Bearer {TOKEN}"
+  -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN"
 
 # Restart just bridge
 curl -X POST "http://{NODE_IP}:8070/api/system/restart?service=bridge" \
-  -H "Authorization: Bearer {TOKEN}"
+  -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN"
 
 # Check service statuses
 curl "http://{NODE_IP}:8070/api/system/services" \
-  -H "Authorization: Bearer {TOKEN}"
+  -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN"
 ```
 
 ---
@@ -425,7 +428,8 @@ sqlite3 ~/.musu/musu.db "DELETE FROM route_executions WHERE status='failed' AND 
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | MUSU_BRIDGE_TOKEN | (required) | API authentication |
-| BRIDGE_HOST | 127.0.0.1 | Bind address (set `0.0.0.0` for LAN; also set `MUSU_BRIDGE_LOCALHOST_AUTH=1` so LAN traffic still needs the token) |
+| BRIDGE_HOST | 127.0.0.1 | Bind address. Set `0.0.0.0` to listen on LAN/Tailscale. LAN clients ALWAYS need the bearer token; only `127.0.0.1`/`::1` bypasses auth by default. |
+| MUSU_BRIDGE_LOCALHOST_AUTH | (unset) | If set to any value, also requires the bearer token for `127.0.0.1`/`::1` requests (removes the localhost auth bypass per `musu-core/middleware.py:146`). Recommended for shared-machine setups. |
 | BRIDGE_PORT | 8070 | HTTP port |
 | MUSU_NODE_NAME | hostname | Device identifier |
 | MUSU_TOKEN | | Cloud registry token |

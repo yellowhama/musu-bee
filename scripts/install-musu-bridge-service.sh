@@ -2,6 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MUSU_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SERVICE_NAME="musu-bridge"
 SERVICE_FILE="$SCRIPT_DIR/systemd/musu-bridge.service"
 SYSTEMD_USER_DIR="$HOME/.config/systemd/user"
@@ -27,8 +28,12 @@ fi
 # systemd user 디렉토리 생성
 mkdir -p "$SYSTEMD_USER_DIR"
 
-# 서비스 파일 링크
-ln -sf "$SERVICE_FILE" "$SYSTEMD_USER_DIR/$SERVICE_NAME.service"
+# 서비스 파일 substitute + copy (symlink 안 함 — placeholder를 치환해야 함)
+# Old behavior was symlink, which hardcoded `%h/musu-functions` (broken when
+# the repo is cloned to ~/musu-bee or any other path). Now we substitute
+# __MUSU_ROOT__ with the actual repo path resolved from this script's location.
+sed "s|__MUSU_ROOT__|$MUSU_ROOT|g" "$SERVICE_FILE" \
+    > "$SYSTEMD_USER_DIR/$SERVICE_NAME.service"
 
 # systemd 리로드 + 활성화
 systemctl --user daemon-reload
