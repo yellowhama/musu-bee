@@ -28,7 +28,8 @@
 param(
     [int]$Runs = 30,
     [string]$OutFile,
-    [int]$Port = 9900
+    [int]$Port = 9900,
+    [switch]$SmokeTest
 )
 
 $ErrorActionPreference = "Stop"
@@ -43,11 +44,16 @@ function Get-WslIp {
 }
 
 function Measure-TcpConnectMs {
-    param([string]$Host, [int]$Port, [int]$TimeoutMs = 2000)
+    # V23.4 T2-Z audit-fix HIGH #1: parameter was named $Host, which shadows
+    # PowerShell's read-only automatic $Host variable and throws
+    # SessionStateUnauthorizedAccessException at every invocation, silently
+    # killing Bench 1 (vEthernet) and Bench 2 (portmap DNAT). Renamed to
+    # $TargetHost. Call sites at the bench loops below were updated to match.
+    param([string]$TargetHost, [int]$Port, [int]$TimeoutMs = 2000)
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $client = [System.Net.Sockets.TcpClient]::new()
     try {
-        $task = $client.ConnectAsync($Host, $Port)
+        $task = $client.ConnectAsync($TargetHost, $Port)
         if (-not $task.Wait($TimeoutMs)) {
             $sw.Stop()
             return @{ ok = $false; ms = -1; err = "timeout" }
@@ -70,6 +76,42 @@ function Get-Percentile {
     return $sorted[$idx]
 }
 
+# ── Smoke-test mode (V23.4 T2-Z audit-fix HIGH #1) ───────────────────────
+# When -SmokeTest is supplied, exercise each Measure-* function once against
+# 127.0.0.1 with Runs=1 to assert that no exception leaks from the
+# $TargetHost rename. Bypasses preflight (no WSL distro required). Emits a
+# single PASS/FAIL line and exits. The connect attempt itself may legitimately
+# fail (nothing listens on 127.0.0.1:$Port in a clean env) — what we're
+# guarding against is the read-only-$Host throw that would surface as an
+# UNCAUGHT exception, NOT as the {ok=$false; err=...} hashtable return.
+if ($SmokeTest) {
+    $smokeOk = $true
+    $smokeMsg = ""
+    try {
+        $r1 = Measure-TcpConnectMs -TargetHost "127.0.0.1" -Port $Port -TimeoutMs 250
+        if ($null -eq $r1 -or -not $r1.ContainsKey('ok')) {
+            $smokeOk = $false
+            $smokeMsg = "Measure-TcpConnectMs returned malformed result"
+        }
+        # Get-Percentile smoke
+        $p = Get-Percentile -Samples @(1, 2, 3, 4, 5) -P 0.5
+        if ($null -eq $p) {
+            $smokeOk = $false
+            $smokeMsg = "Get-Percentile returned null for non-empty input"
+        }
+    } catch {
+        $smokeOk = $false
+        $smokeMsg = $_.Exception.Message
+    }
+    if ($smokeOk) {
+        Write-Host "bench-windows.ps1 smoke-test: PASS"
+        exit 0
+    } else {
+        Write-Host "bench-windows.ps1 smoke-test: FAIL — $smokeMsg"
+        exit 1
+    }
+}
+
 # ── Preflight ────────────────────────────────────────────────────────────
 $wslIp = Get-WslIp
 if (-not $wslIp) {
@@ -83,7 +125,7 @@ $portproxyPresent = $portproxyOut -match "\b${Port}\b"
 # ── Bench 1: vEthernet adapter latency (WSL IP direct) ───────────────────
 $vethSamples = @()
 for ($i = 0; $i -lt $Runs; $i++) {
-    $r = Measure-TcpConnectMs -Host $wslIp -Port $Port
+    $r = Measure-TcpConnectMs -TargetHost $wslIp -Port $Port
     if ($r.ok) { $vethSamples += $r.ms }
 }
 
@@ -91,7 +133,7 @@ for ($i = 0; $i -lt $Runs; $i++) {
 $portmapSamples = @()
 if ($portproxyPresent) {
     for ($i = 0; $i -lt $Runs; $i++) {
-        $r = Measure-TcpConnectMs -Host "127.0.0.1" -Port $Port
+        $r = Measure-TcpConnectMs -TargetHost "127.0.0.1" -Port $Port
         if ($r.ok) { $portmapSamples += $r.ms }
     }
 }

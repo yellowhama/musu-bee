@@ -447,14 +447,24 @@ export function _runInstallAttemptSweeperOnce(): number {
 // V23.4 T2-Z / F-B2-1-FOLLOW-1 (wiki/440): observable hatch.
 // Captured at module init (the env var is evaluated once at process start;
 // it is not a hot toggle) so /health can surface the sweeper-disabled state
-// without re-reading process.env on every request.
+// without re-reading process.env on every request. This boot-time snapshot
+// is preserved for the /health observability surface; see note inside
+// _maybeStartInstallAttemptSweeper for why the function body re-reads env.
 export const _installAttemptSweeperDisabled =
   process.env.MUSU_INSTALL_ATTEMPT_SWEEPER_DISABLED === "1";
 let _warnedSweeperDisabled = false;
 
 export function _maybeStartInstallAttemptSweeper(): void {
+  // V23.4 T2-Z audit-fix MED #3: re-read env here instead of relying on the
+  // module-level const. Rationale: the const captures at import time, so
+  // tests that mutate process.env post-import (install-attempt.test.ts case
+  // (b)) would exercise the wrong path under the function's named behavior
+  // and silently lose test signal. The const stays as the boot-time snapshot
+  // that /health surfaces; the function body decides on current state.
   // C12 safety hatch — checked FIRST so it overrides everything else.
-  if (_installAttemptSweeperDisabled) {
+  const disabledNow =
+    process.env.MUSU_INSTALL_ATTEMPT_SWEEPER_DISABLED === "1";
+  if (disabledNow) {
     // F-B2-1-FOLLOW-1: surface the silent hatch once at startup so operators
     // discover it from the relay log without grepping for the env var.
     if (!_warnedSweeperDisabled) {

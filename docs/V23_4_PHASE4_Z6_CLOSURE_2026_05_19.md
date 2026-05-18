@@ -91,8 +91,11 @@ regardless of hatch state.
 ## Verification
 
 - `bash -n musu-relay/installer/build-musu-backend.sh` clean after airgap-trim insertion.
-- Allowlist regex `(^|/)(pause|coredns|traefik|local-path-provisioner)(:|@|$)` tested against representative K3s 1.30.x image-ref names: matches `pause:3.6`, `docker.io/library/pause:3.6`, `rancher/local-path-provisioner:v0.0.24`, and excludes `metrics-server:0.6.1`, `helm-controller:v1.13.0`.
-- The trim step is opt-out (`MUSU_KEEP_FULL_AIRGAP=1`), preserving the operator-debug path.
+- **Allowlist regex** `(mirrored-pause|mirrored-coredns-coredns|mirrored-library-traefik|local-path-provisioner)` (case-insensitive) tested against 11 representative K3s 1.30.x airgap manifest refs (4 core to keep + 7 non-core to drop). Audit-fix HIGH #2 — the prior regex `(^|/)(pause|coredns|traefik|local-path-provisioner)(:|@|$)` did NOT match K3s upstream `rancher/mirrored-*` prefixes for pause/coredns/traefik; only `local-path-provisioner` matched, leaving K3s unable to boot. Corrected test fixture:
+  - **KEEP** (4): `docker.io/rancher/mirrored-pause:3.6`, `docker.io/rancher/mirrored-coredns-coredns:1.10.1`, `docker.io/rancher/mirrored-library-traefik:3.0.0`, `docker.io/rancher/local-path-provisioner:v0.0.24`
+  - **DROP** (7): `mirrored-metrics-server:v0.7.0`, `mirrored-klipper-helm:v0.8.2-build20230815`, `mirrored-klipper-lb:v0.4.4`, `mirrored-coreos-etcd:v3.5.9`, `mirrored-flannelcni-flannel:v0.22.0`, `helm-controller:v0.15.4`, `klipper-helm:v0.8.0`
+  - Result: 4 kept / 7 dropped exactly as expected. Test PASS.
+- The trim step is opt-out (`MUSU_KEEP_FULL_AIRGAP=1`), preserving the operator-debug path (polarity unchanged; the corrected regex now safely defaults to trim).
 
 ## References
 

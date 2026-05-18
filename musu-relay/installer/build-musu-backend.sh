@@ -252,8 +252,20 @@ if [ "${MUSU_KEEP_FULL_AIRGAP:-0}" != "1" ]; then
   zstd -dc "$AIRGAP_DST" | tar -xf - -C "$AIRGAP_TRIM_DIR"
   # K3s airgap layout: index.json + manifests/blobs. We use crane/skopeo if
   # available; otherwise prune by image-tag refs in index.json.
+  #
+  # V23.4 T2-Z audit-fix HIGH #2: K3s upstream airgap refs use the
+  # `rancher/mirrored-*` prefix convention (e.g.
+  # `docker.io/rancher/mirrored-pause:3.6`,
+  # `docker.io/rancher/mirrored-coredns-coredns:1.x`,
+  # `docker.io/rancher/mirrored-library-traefik:3.x`,
+  # `docker.io/rancher/local-path-provisioner:v0.0.x`).
+  # The previous regex `(^|/)(pause|coredns|...)(:|@|$)` only matched
+  # local-path-provisioner; the other three core refs were silently dropped,
+  # leaving K3s unable to boot. Replaced with substring alternation that
+  # matches the four real mirrored-* / non-mirrored refs and rejects all
+  # `mirrored-metrics-server`, `mirrored-klipper-helm`, etc.
   if [ -f "$AIRGAP_TRIM_DIR/index.json" ]; then
-    KEEP_RE='(^|/)(pause|coredns|traefik|local-path-provisioner)(:|@|$)'
+    KEEP_RE='(mirrored-pause|mirrored-coredns-coredns|mirrored-library-traefik|local-path-provisioner)'
     # Rewrite index.json keeping only matching annotations.org.opencontainers.image.ref.name
     jq --arg re "$KEEP_RE" \
        '.manifests |= map(select((.annotations["org.opencontainers.image.ref.name"] // "") | test($re; "i")))' \
