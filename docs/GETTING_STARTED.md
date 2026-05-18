@@ -24,15 +24,10 @@ claude --version     # or: gemini --version / codex --version
 Clone and run the installer. One command does everything: creates a virtualenv, generates auth tokens, seeds agents, and registers a systemd service.
 
 ```bash
-git clone https://github.com/yellowhama/musu-bee.git
-cd musu-bee
+git clone https://github.com/yellowhama/musu-functions.git
+cd musu-functions
 bash scripts/install.sh --service --start
 ```
-
-> **Status note (2026-05-18)**: `scripts/install.sh` is not yet checked
-> in (V23.5 Tooling sub-WS). Until it lands, follow the per-module
-> manual install in [`../INSTALL.md`](../INSTALL.md) §"Per-module
-> manual install".
 
 What this does:
 - Creates `~/.musu/` (config, DB, tokens)

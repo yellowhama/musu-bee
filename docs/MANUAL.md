@@ -32,10 +32,10 @@ Connected to:
 See [ONBOARDING.md](ONBOARDING.md) for full setup.
 
 ```bash
-git clone https://github.com/yellowhama/musu-bee.git ~/musu-bee
-cd ~/musu-bee
+git clone https://github.com/yellowhama/musu-bee.git ~/musu-functions
+cd ~/musu-functions
 # Install deps, configure .env, seed agents, start bridge
-# Details in ONBOARDING.md and ../QUICKSTART.md
+# Details in ONBOARDING.md
 ```
 
 ---
