@@ -41,7 +41,7 @@ Phase -1 Strategic Gate (per MODE_Agent_Team.md) invoked retroactively on wiki/4
 | **T2-A'** asyncio + SQLite workflow runner | (didn't exist) | **NEW: ~300 LOC Python in musu-bridge** | +300 |
 | **T2-B** Go operator | KEEP ~1300 | **ELIMINATE entire concept** | -1300 |
 | **T2-C** Fleet view | KEEP ~1000 | **KEEP unchanged** | 0 |
-| **T2-D** React Flow editor | KEEP ~1500 | **KEEP, simplified** (workflow-crd.ts → workflow-spec.ts; CRD encode/decode → JSON encode/decode) | -100 |
+| **T2-D** React Flow editor | KEEP ~1500 | **RESHAPED 2026-05-19 → T2-D-mini form-based ~400 LOC** (visual React Flow editor deferred V23.6; closed beta §9 #9 acceptance still satisfied via form-based DAG manipulation; ~1100 LOC saved; rationale at §5.D) | -1100 |
 | **T2-Z** Residual cleanup | KEEP ~300 | **KEEP unchanged** | 0 |
 | **T2-F** fly.io retirement | (didn't exist) | **NEW: ~400 LOC, signaling rendezvous on user's first PC + STUN/TURN fallback; delete musu-relay/Dockerfile + fly.toml** | +400 |
 | **Total** | ~4400 | **~3400** | **-1000 (-23%)** |
@@ -283,30 +283,37 @@ v1 §5.B specified 1300 LOC Go controller-runtime operator. All 4 Phase -1 frame
 
 **Wiki**: wiki/434 detail + wiki/438 closure.
 
-### §5.D T2-D React Flow workflow editor (simplified per §0.3)
+### §5.D T2-D-mini form-based workflow builder (RESHAPED 2026-05-19 — visual React Flow editor deferred to V23.6)
 
-**Files** (revised — workflow-crd.ts → workflow-spec.ts; CRD encode/decode → JSON encode/decode):
+**Decision rationale**: T2-D-keep (React Flow drag-connect, ~1400 LOC, 2 iter) vs T2-D-mini (form-based step list, ~300 LOC, 1 iter) — user opted for T2-D-mini after grilling Q3 review:
+- closed beta acceptance §9 #9 satisfied (user can author DAG; form-based step list is DAG manipulation)
+- ~1100 LOC + 1 iter saved → V23.5 W (HTML wiki) can ship faster without cognitive load of two simultaneous musu-bee page introductions
+- [[feedback-no-yagni-architecture]]: visual graph editor value validated AFTER closed beta users actually try form UI (V23.6 decision gated on user feedback)
+- `workflow-spec.ts` encode/decode logic carries forward unchanged when V23.6 promotes to React Flow visual — no code throwaway
 
-- `musu-bee/package.json` (EDIT — add `@xyflow/react ^12.x`)
-- `musu-bee/src/app/c/[company]/workflows/page.tsx` (NEW — list of user's workflows for this company)
-- `musu-bee/src/app/c/[company]/workflows/[id]/page.tsx` (NEW — editor SSR shell)
-- `musu-bee/src/app/c/[company]/workflows/[id]/EditorClient.tsx` (NEW — React Flow canvas)
-- `musu-bee/src/app/c/[company]/workflows/[id]/NodePalette.tsx` (NEW — left sidebar with agent templates)
-- `musu-bee/src/app/c/[company]/workflows/[id]/AgentNode.tsx` (NEW — custom React Flow node component)
-- `musu-bee/src/app/c/[company]/workflows/[id]/RunPanel.tsx` (NEW — right sidebar with Run/Pause/Logs; polls `/api/workflows/[id]/status`)
-- `musu-bee/src/lib/workflow-spec.ts` (NEW — encode React Flow graph → JSON spec; decode JSON spec → graph; **NO Kubernetes OpenAPI constraint surface**)
-- `musu-bee/src/app/api/workflows/route.ts` (NEW — proxy to musu-bridge `/api/workflows`)
-- `musu-bee/__tests__/workflow-spec.test.ts` (NEW — encode/decode round-trip)
-- `musu-bee/__tests__/workflows-editor.spec.ts` (NEW — Playwright: drag node, connect edge, save, run)
+**Files** (form-based mini, no React Flow dep):
 
-**Run flow** (revised — no Argo polling):
-1. User clicks "Save" → frontend encodes React Flow graph to JSON spec → POST `/api/workflows` → musu-bridge creates rows in `workflows` + `workflow_steps` tables → T2-A' executor picks up pending steps assigned to each PC
-2. User clicks "Run" → frontend POSTs `/api/workflows/[id]/run` (PATCH workflows.status='running') → executor transitions step statuses
-3. RunPanel polls `/api/workflows/[id]/status` every 2s (or SSE) → updates node colors (pending=gray, running=blue, success=green, failed=red)
+- `musu-bee/src/app/c/[company]/workflows/page.tsx` (NEW ~40 LOC — list of user's workflows for this company)
+- `musu-bee/src/app/c/[company]/workflows/[id]/page.tsx` (NEW ~50 LOC — editor SSR shell + WorkflowFormClient mount)
+- `musu-bee/src/app/c/[company]/workflows/[id]/WorkflowFormClient.tsx` (NEW ~120 LOC — form-based step list: array of `{step_id, agent_role, prompt, depends_on[]}`. Add/Remove/Reorder buttons. `depends_on` is multi-select dropdown showing prior step_ids.)
+- `musu-bee/src/app/c/[company]/workflows/[id]/RunPanel.tsx` (NEW ~50 LOC — Run button + step-status list (text-based, not visual nodes); polls `/api/workflows/[id]/status` every 2s)
+- `musu-bee/src/lib/workflow-spec.ts` (NEW ~40 LOC — encode form step list → JSON spec; decode JSON spec → form rows; **same data model as future React Flow port, encode functions reused unchanged**)
+- `musu-bee/src/app/api/workflows/route.ts` (NEW ~30 LOC — proxy to musu-bridge `/api/workflows`)
+- `musu-bee/__tests__/workflow-spec.test.ts` (NEW ~30 LOC — encode/decode round-trip)
+- `musu-bee/__tests__/workflows-form.spec.ts` (NEW ~40 LOC — Playwright: add 3 steps, set dependencies, save, run, observe status updates)
 
-**Parity verification** (revised per §0.4 + C-15): same SPA bundle deploys on localhost:8070. `<user>.musu.pro` parity deferred to V23.5 (Paddle + provisioning). T2-D acceptance includes parity smoke as DISCIPLINE GATE (CI lint forbids hostname literals; runtime config via `/api/config` endpoint) but NOT phase-blocking since SaaS target doesn't exist yet.
+**Total**: ~400 LOC (was ~1400). NO `@xyflow/react` dependency added.
 
-**Wiki**: wiki/435 detail + wiki/439 closure.
+**Run flow** (unchanged from T2-D-keep — backend integration identical):
+1. User fills form → "Save" → frontend encodes step rows to JSON spec → POST `/api/workflows` → musu-bridge creates rows in `workflows` + `workflow_steps` tables → T2-A' executor picks up pending steps
+2. User clicks "Run" → POST `/api/workflows/[id]/run` → executor transitions step statuses
+3. RunPanel polls `/api/workflows/[id]/status` every 2s → updates step row badges (pending=gray, running=blue, success=green, failed=red)
+
+**Parity verification**: same SPA bundle deploys on localhost:8070. `<user>.musu.pro` parity deferred to V23.5 (Paddle + provisioning). T2-D-mini acceptance includes parity smoke as DISCIPLINE GATE (CI lint forbids hostname literals; runtime config via `/api/config` endpoint).
+
+**V23.6 forward-pointer**: T2-D-visual (React Flow graph editor ~1100 LOC) becomes V23.6 sub-WS if/when closed beta users explicitly request visual graph over form (gated on dogfood feedback signal). `workflow-spec.ts` encode/decode logic carries forward; only EditorClient/NodePalette/AgentNode visual layer is new.
+
+**Wiki**: wiki/435 detail + wiki/439 closure (scope reshape noted in closure doc §0).
 
 ### §5.F T2-F fly.io retirement (NEW per §0.3)
 
@@ -413,12 +420,12 @@ Unchanged from v1 plus:
 1. ✅ T2-A' SHIP-OK with single quality-engineer audit (wiki/436 closure; `/api/workflows` CRUD live; SQLite v37 migration applied; asyncio executor running)
 2. ✅ T2-F SHIP-OK with single quality-engineer audit + smoke test (wiki/437 closure; `musu-relay/Dockerfile` + `fly.toml` deleted from repo; signaling smoke test passes; zero `fly.io` DNS lookups during 2-PC handshake)
 3. ✅ T2-C SHIP-OK with single quality-engineer audit (wiki/438 closure; `/fleet` live; vocabulary lint passing)
-4. ✅ T2-D SHIP-OK with single quality-engineer audit + parity discipline (wiki/439 closure; hostname literal lint passing; `/api/config` runtime resolution working on localhost)
+4. ✅ **T2-D-mini** SHIP-OK with single quality-engineer audit + parity discipline (wiki/439 closure; form-based step list, no React Flow dep; hostname literal lint passing; `/api/config` runtime resolution working on localhost). T2-D-visual (React Flow graph editor ~1100 LOC) deferred to V23.6 per 2026-05-19 scope reshape (rationale at §5.D).
 5. ✅ T2-Z Z1-Z6 all SHIP-OK (wiki/440-445 closures exist)
 6. ✅ `npx jest` green in musu-bee + `pytest` green in musu-bridge
 7. ✅ `npx tsc --noEmit` clean across all TS packages
 8. ✅ ~~`go test ./...` + `go vet ./...`~~ — N/A in v2 (no Go)
-9. ✅ **End-to-end gate test**: user creates 3-step DAG in musu-bee `/c/[company]/workflows/new` editor → POSTs JSON spec → musu-bridge T2-A' executor distributes steps across 2 PCs → results visible in RunPanel (V23 master §V23.3 :929-933 Gate semantics)
+9. ✅ **End-to-end gate test**: user creates 3-step DAG in musu-bee `/c/[company]/workflows/[id]` form (step list with `depends_on` multi-select) → POSTs JSON spec → musu-bridge T2-A' executor distributes steps across 2 PCs → results visible in RunPanel (step-status list, not visual nodes; V23 master §V23.3 :929-933 Gate semantics satisfied by form-based DAG manipulation per 2026-05-19 reshape)
 10. ✅ Const III gate satisfied for SQLite v37 migration prod apply (operator "진행해")
 11. ✅ ~~Const VI gate~~ — N/A in v2 (no Argo install, no baseline change)
 12. ✅ Const VII main-merge gate satisfied: operator "진행해" + `git merge v23/phase4 → main`
