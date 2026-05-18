@@ -478,8 +478,24 @@ class MeshRouter:
             toml_str = _dict_to_toml(data)
             self._path.write_text(toml_str)
             logger.info("mesh_router: nodes.toml updated (%d nodes)", len(new_nodes))
-        except Exception:
-            logger.exception("mesh_router: failed to write %s", self._path)
+        except Exception as exc:
+            # V23.5 H-5: NEW fail-open site — TOML serialization or disk-write failure
+            # was silently swallowed (logger.exception only). Now emits structured
+            # extra={error_class, error_msg, site, error_category} so operators can
+            # classify (db_error / network_error / client_error / unknown) without
+            # reading the traceback. Fail-open invariant: caller continues; mesh
+            # state stays in-memory until next successful write.
+            from handlers import _classify_error as _h5_classify
+            logger.error(
+                "fail-open at mesh_router_toml_write",
+                extra={
+                    "error_class": exc.__class__.__name__,
+                    "error_msg": str(exc)[:200],
+                    "site": "mesh_router_toml_write",
+                    "error_category": _h5_classify(exc),
+                },
+                exc_info=True,  # preserve traceback (parity with prior logger.exception)
+            )
 
     async def forward(
         self,

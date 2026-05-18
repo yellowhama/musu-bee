@@ -697,12 +697,15 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         # V23.5 H-1: structured logging at fail-open boundary (Critic C12 — control flow preserved;
         # startup continues even if durability re-dispatch fails).
+        # V23.5 H-5: add error_category for actionable taxonomy (H-1 contract preserved — no key change).
+        from handlers import _classify_error as _h5_classify
         logger.error(
             "fail-open at startup_durability_redispatch",
             extra={
                 "error_class": exc.__class__.__name__,
                 "error_msg": str(exc)[:200],
                 "site": "startup_durability_redispatch",
+                "error_category": _h5_classify(exc),  # H-5: actionable taxonomy
             },
         )
 
@@ -737,12 +740,15 @@ async def lifespan(app: FastAPI):
         except Exception as exc:
             # V23.5 H-1: structured logging at fail-open boundary (Critic C12 — control flow preserved;
             # startup continues with mDNS disabled).
+            # V23.5 H-5: add error_category for actionable taxonomy (H-1 contract preserved — no key change).
+            from handlers import _classify_error as _h5_classify
             logger.error(
                 "fail-open at startup_mdns_init",
                 extra={
                     "error_class": exc.__class__.__name__,
                     "error_msg": str(exc)[:200],
                     "site": "startup_mdns_init",
+                    "error_category": _h5_classify(exc),  # H-5: actionable taxonomy
                 },
             )
     else:

@@ -82,6 +82,52 @@ from mesh_router import get_mesh_router
 logger = logging.getLogger(__name__)
 
 
+# ── V23.5 H-5: error classification taxonomy ──────────────────────────────────
+#
+# Stable contract for structured logger.error extra={"error_category": ...} at
+# fail-open / exception-swallow sites. Operators grep on these 5 string values:
+#
+#   db_error      — sqlite3.{OperationalError, DatabaseError, IntegrityError},
+#                   sqlite3.Error (parent), or anything with module == 'sqlite3'.
+#   timeout       — asyncio.TimeoutError, builtins.TimeoutError.
+#   network_error — ConnectionError + subclasses, socket.error, OSError NOT
+#                   already classified above (catch-all for I/O failures).
+#   client_error  — ValueError, TypeError, KeyError, AttributeError, LookupError
+#                   (programmer / call-site errors, NOT actionable at infra level).
+#   unknown       — anything else (review-worthy; should shrink over time).
+#
+# H-1 contract is preserved: callers MUST keep existing keys (error_class,
+# error_msg, site) byte-identical. H-5 only ADDS error_category.
+# Fail-open invariant (Critic C12) preserved: callers MUST keep control flow
+# unchanged (return True / pass / fall-through).
+
+import sqlite3 as _sqlite3  # noqa: E402 — kept local; module-level rebinding avoided
+
+
+def _classify_error(exc: BaseException) -> str:
+    """Map an exception to the V23.5 H-5 stable taxonomy.
+
+    Returns one of: 'db_error' | 'timeout' | 'network_error' | 'client_error' |
+    'unknown'. Order matters — first match wins. Never raises.
+    """
+    try:
+        if isinstance(exc, _sqlite3.Error):
+            return "db_error"
+        if isinstance(exc, (asyncio.TimeoutError, TimeoutError)):
+            return "timeout"
+        if isinstance(exc, ConnectionError):
+            return "network_error"
+        if isinstance(exc, (ValueError, TypeError, KeyError, AttributeError, LookupError)):
+            return "client_error"
+        if isinstance(exc, OSError):
+            # OSError covers socket.gaierror, BrokenPipeError, etc. Place AFTER
+            # ConnectionError (subclass) so the more specific category wins.
+            return "network_error"
+        return "unknown"
+    except Exception:
+        return "unknown"
+
+
 def _record_task_metric(channel: str, status: str, duration_s: float | None = None) -> None:
     """Module-level wrapper so tests can monkeypatch handlers._record_task_metric."""
     try:
@@ -169,12 +215,14 @@ async def _probe_agent_health(
             return await _probe_http_agent(health_url, timeout=_health_probe_timeout())
     except Exception as exc:
         # V23.5 H-1: structured logging at fail-open boundary (Critic C12 — control flow preserved).
+        # V23.5 H-5: add error_category for actionable taxonomy (H-1 contract preserved — no key change).
         logger.error(
             "fail-open at probe_agent_health_outer",
             extra={
                 "error_class": exc.__class__.__name__,
                 "error_msg": str(exc)[:200],
                 "site": "probe_agent_health_outer",
+                "error_category": _classify_error(exc),  # H-5: actionable taxonomy
             },
         )
         return True  # Fail-open (invariant preserved)
@@ -211,8 +259,20 @@ async def _probe_local_agent(channel: str) -> bool:
         if fail_count >= _PROBE_FAIL_THRESHOLD:
             return False
         return True  # No history or few failures → assume healthy
-    except Exception:
-        return True  # Fail-open on DB error
+    except Exception as exc:
+        # V23.5 H-5: NEW fail-open site (not touched by H-1). Inner DB failure inside
+        # _probe_local_agent — classify + emit structured error_category, then
+        # preserve fail-open invariant (return True). Operators grep on error_category.
+        logger.error(
+            "fail-open at probe_local_agent_db_error",
+            extra={
+                "error_class": exc.__class__.__name__,
+                "error_msg": str(exc)[:200],
+                "site": "probe_local_agent_db_error",
+                "error_category": _classify_error(exc),
+            },
+        )
+        return True  # Fail-open on DB error (invariant preserved)
 
 
 async def _probe_http_agent(health_url: str | None, timeout: float = 5.0) -> bool:
