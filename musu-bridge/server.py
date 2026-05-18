@@ -694,8 +694,17 @@ async def lifespan(app: FastAPI):
                     text=rec["input"],
                     exec_id=rec["id"],
                 ))
-    except Exception:
-        logger.warning("durability: failed to re-dispatch pending executions")
+    except Exception as exc:
+        # V23.5 H-1: structured logging at fail-open boundary (Critic C12 — control flow preserved;
+        # startup continues even if durability re-dispatch fails).
+        logger.error(
+            "fail-open at startup_durability_redispatch",
+            extra={
+                "error_class": exc.__class__.__name__,
+                "error_msg": str(exc)[:200],
+                "site": "startup_durability_redispatch",
+            },
+        )
 
     # mDNS zero-config discovery (optional — graceful if zeroconf not installed)
     try:
@@ -725,8 +734,17 @@ async def lifespan(app: FastAPI):
                             )
 
             mdns_task = asyncio.create_task(_mdns_register_loop())
-        except Exception:
-            logger.warning("discovery: mDNS init failed — zero-config discovery disabled")
+        except Exception as exc:
+            # V23.5 H-1: structured logging at fail-open boundary (Critic C12 — control flow preserved;
+            # startup continues with mDNS disabled).
+            logger.error(
+                "fail-open at startup_mdns_init",
+                extra={
+                    "error_class": exc.__class__.__name__,
+                    "error_msg": str(exc)[:200],
+                    "site": "startup_mdns_init",
+                },
+            )
     else:
         logger.warning(
             "discovery: Tailscale IP not detected — mDNS disabled. "

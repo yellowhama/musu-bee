@@ -167,8 +167,17 @@ async def _probe_agent_health(
             return await _probe_local_agent(channel)
         else:
             return await _probe_http_agent(health_url, timeout=_health_probe_timeout())
-    except Exception:
-        return True  # Fail-open
+    except Exception as exc:
+        # V23.5 H-1: structured logging at fail-open boundary (Critic C12 — control flow preserved).
+        logger.error(
+            "fail-open at probe_agent_health_outer",
+            extra={
+                "error_class": exc.__class__.__name__,
+                "error_msg": str(exc)[:200],
+                "site": "probe_agent_health_outer",
+            },
+        )
+        return True  # Fail-open (invariant preserved)
 
 
 async def _probe_local_agent(channel: str) -> bool:
@@ -313,8 +322,17 @@ async def route_chat(
         if _channel_cb.is_open(channel):
             logger.warning("channel_cb: rejecting dispatch — circuit open for channel=%r", channel)
             return {"error": f"channel_cb: circuit open for {channel!r} — too many recent failures", "response": None}
-    except Exception:
-        pass  # Fail-open: if CB import fails, proceed normally
+    except Exception as exc:
+        # V23.5 H-1: structured logging at fail-open boundary (Critic C12 — control flow preserved).
+        logger.error(
+            "fail-open at route_chat_cb_import",
+            extra={
+                "error_class": exc.__class__.__name__,
+                "error_msg": str(exc)[:200],
+                "site": "route_chat_cb_import",
+            },
+        )
+        pass  # Fail-open: if CB import fails, proceed normally (invariant preserved)
 
     # ── Agent health probe (pre-dispatch) ─────────────────────────────────────
     if _health_probe_enabled():
