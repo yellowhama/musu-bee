@@ -23,7 +23,7 @@ from collections.abc import AsyncGenerator
 from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
 from musu_core.config import get_config
@@ -61,12 +61,17 @@ class WakeResponse(BaseModel):
 
 
 @dispatch_router.post("/wake", response_model=WakeResponse)
-async def post_wake(body: WakeBody, bg: BackgroundTasks) -> WakeResponse:
+async def post_wake(
+    body: WakeBody, bg: BackgroundTasks,
+) -> WakeResponse | JSONResponse:
     """Enqueue a wake and schedule its execution.
 
     Returns 202-style {run_id, status:'queued'} immediately. The adapter
     call runs in the background; clients poll GET /runs/{id} for status.
     """
+    # V23.5 H-2: lazy import to avoid bridge↔handlers cycle at module load.
+    from handlers import _uniform_db_error_handling_enabled
+
     cfg = get_config()
     db = get_db(cfg.db_path)
     try:
@@ -79,10 +84,31 @@ async def post_wake(body: WakeBody, bg: BackgroundTasks) -> WakeResponse:
             wake_payload=body.wake_payload,
         )
     except CycleDetected as exc:
+        # Domain-level validation — stays 409 regardless of kill-switch.
         raise HTTPException(status_code=409, detail=str(exc))
     except Exception as exc:
-        # FK violations and similar — surface as 400 with the underlying
-        # message so the caller knows which input was bad.
+        # V23.5 H-2: uniform DB-write error handling (mirrors H-1 logger schema).
+        # Pre-H-2 behavior: HTTPException(400, "enqueue failed: <msg>") — surfaced
+        # FK violations to caller. New default: structured 500 + bridge_error envelope.
+        # Kill-switch MUSU_UNIFORM_DB_ERROR_HANDLING_ENABLED=0 restores 400 fallback.
+        logger.error(
+            "db write failed",
+            extra={
+                "error_class": exc.__class__.__name__,
+                "error_msg": str(exc)[:200],
+                "site": "dispatch_wake_db_write",
+            },
+        )
+        if _uniform_db_error_handling_enabled():
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "error": "bridge_error",
+                    "detail": "database write failed",
+                    "site": "dispatch_wake_db_write",
+                },
+            )
+        # Kill-switch OFF: preserve legacy HTTPException(400) control flow.
         raise HTTPException(status_code=400, detail=f"enqueue failed: {exc}")
 
     router_instance = make_router(db_path=cfg.db_path)

@@ -1237,7 +1237,29 @@ async def api_delegate_task(req: DelegateRequest, request: Request, response: Re
         backend.create_route_execution(task_id, req.channel, req.sender_id, req.text)
         backend.update_route_execution(task_id, "running")
     except Exception as exc:
-        logger.error("delegate_task: failed to create durability record — %s", exc)
+        # V23.5 H-2: uniform DB-write error handling (mirrors H-1 logger schema).
+        # Kill-switch: when MUSU_UNIFORM_DB_ERROR_HANDLING_ENABLED=0, fall back to
+        # legacy HTTPException(500) behavior. Default (unset/ON) → JSONResponse
+        # bridge_error envelope with site identifier for client diagnosis.
+        from handlers import _uniform_db_error_handling_enabled
+        logger.error(
+            "db write failed",
+            extra={
+                "error_class": exc.__class__.__name__,
+                "error_msg": str(exc)[:200],
+                "site": "delegate_db_write",
+            },
+        )
+        if _uniform_db_error_handling_enabled():
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "error": "bridge_error",
+                    "detail": "database write failed",
+                    "site": "delegate_db_write",
+                },
+            )
+        # Kill-switch OFF: preserve legacy HTTPException(500) control flow.
         raise HTTPException(status_code=500, detail="Failed to record task — try again")
 
     # Always store in hash cache so subsequent identical dispatches within TTL return duplicate.
@@ -1666,33 +1688,62 @@ async def api_list_companies(workspace_id: str | None = None) -> list[dict]:
     return list_companies(workspace_id=workspace_id)
 
 
-@app.post("/api/companies", summary="Create a company (optionally from template)")
-async def api_create_company(req: CompanyCreateRequest) -> dict:
+@app.post("/api/companies", summary="Create a company (optionally from template)", response_model=None)
+async def api_create_company(req: CompanyCreateRequest) -> dict | JSONResponse:
     """Create a company. Known template → auto-creates agent team.
 
     Returns {"company": {...}, "agents": [...]} for template-based creation,
     or a flat company dict for plain creation (backward compat).
     """
     from company_templates import get_template
-    from handlers import create_company_from_template
+    from handlers import _uniform_db_error_handling_enabled, create_company_from_template
 
-    if get_template(req.template_key):
-        return create_company_from_template(
+    # V23.5 H-2: uniform DB-write try/catch around create_company / template path.
+    # Mirrors H-1 logger schema (extra={error_class, error_msg, site}). Kill-switch
+    # MUSU_UNIFORM_DB_ERROR_HANDLING_ENABLED=0 restores legacy behavior (FastAPI
+    # bubbles the exception to its default 500 handler with no structured body).
+    try:
+        if get_template(req.template_key):
+            return create_company_from_template(
+                name=req.name,
+                template_key=req.template_key,
+                purpose=req.purpose,
+                work_dir=req.work_dir,
+                test_cmd=req.test_cmd,
+                workspace_id=req.workspace_id,
+            )
+
+        return create_company(
             name=req.name,
             template_key=req.template_key,
-            purpose=req.purpose,
-            work_dir=req.work_dir,
-            test_cmd=req.test_cmd,
             workspace_id=req.workspace_id,
+            meta=req.meta,
+            company_id=req.id,
         )
-
-    return create_company(
-        name=req.name,
-        template_key=req.template_key,
-        workspace_id=req.workspace_id,
-        meta=req.meta,
-        company_id=req.id,
-    )
+    except HTTPException:
+        # FastAPI HTTPException intentionally raised by upstream code (e.g. validation).
+        # Re-raise unchanged so FastAPI's normal status_code + detail handling applies.
+        raise
+    except Exception as exc:
+        logger.error(
+            "db write failed",
+            extra={
+                "error_class": exc.__class__.__name__,
+                "error_msg": str(exc)[:200],
+                "site": "create_company_db_write",
+            },
+        )
+        if _uniform_db_error_handling_enabled():
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "error": "bridge_error",
+                    "detail": "database write failed",
+                    "site": "create_company_db_write",
+                },
+            )
+        # Kill-switch OFF: preserve legacy behavior (exception bubbles to FastAPI default 500).
+        raise
 
 
 class TemplateDecisionRequest(BaseModel):

@@ -165,6 +165,16 @@ def _health_probe_timeout() -> float:
     return float(os.environ.get("MUSU_HEALTH_PROBE_TIMEOUT_SEC", "5"))
 
 
+# V23.5 H-2: uniform DB-write error handling kill-switch.
+# Default ON (unset=enabled per task contract). Set
+# MUSU_UNIFORM_DB_ERROR_HANDLING_ENABLED=0 to disable and use legacy behavior
+# (preserves pre-H-2 control flow at each site).
+def _uniform_db_error_handling_enabled() -> bool:
+    """V23.5 H-2 kill-switch. Default ON (unset=enabled per task contract).
+    Set MUSU_UNIFORM_DB_ERROR_HANDLING_ENABLED=0 to disable and use legacy behavior."""
+    return os.environ.get("MUSU_UNIFORM_DB_ERROR_HANDLING_ENABLED", "1") != "0"
+
+
 _CHANNEL_TIMEOUT_DEFAULTS: dict[str, float] = {
     "engineer": 600.0,
     "cto": 600.0,
@@ -423,8 +433,18 @@ async def route_chat(
             # lease_token starts at 1; after 'running' update it becomes 2
             backend.update_route_execution(exec_id, "running", expected_lease_token=_current_lease_token)
             _current_lease_token += 1
-        except Exception:
-            logger.warning("route_chat: failed to create durability record — continuing")
+        except Exception as exc:
+            # V23.5 H-2: uniform DB-write structured logging (mirrors H-1 logger schema).
+            # Control flow preserved (fall through with exec_id=None) — route_chat
+            # historically degrades to in-memory dispatch when durability fails.
+            logger.error(
+                "db write failed",
+                extra={
+                    "error_class": exc.__class__.__name__,
+                    "error_msg": str(exc)[:200],
+                    "site": "route_chat_db_write",
+                },
+            )
             exec_id = None  # Non-fatal: proceed without durability (heartbeat skipped)
     # else: record already created by caller (e.g. delegate endpoint)
 

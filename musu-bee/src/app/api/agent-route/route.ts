@@ -184,11 +184,38 @@ export async function POST(req: NextRequest) {
     clearTimeout(timer);
 
     if (!upstream.ok) {
-      await upstream.text().catch(() => ""); // drain body
-      return NextResponse.json(
-        { error: "bridge_error" },
-        { status: upstream.status },
-      );
+      // V23.5 H-2: parse JSON error envelope from bridge if available
+      // (uniform DB-write errors surface {error, detail, site}); preserve
+      // "bridge_error" string as fallback for non-JSON / legacy responses.
+      // Auditor A1 (master plan §5 R4): existing consumers that match
+      // data.error === "bridge_error" keep working because the bridge sends
+      // exactly that string from V23.5 H-2 onward; opaque upstream errors
+      // still degrade to the same literal.
+      let errorPayload: {
+        error: string;
+        detail?: string;
+        site?: string;
+      } = { error: "bridge_error" };
+      try {
+        const data = (await upstream.json()) as {
+          error?: unknown;
+          detail?: unknown;
+          site?: unknown;
+        };
+        if (typeof data?.error === "string" && data.error.length > 0) {
+          errorPayload = { error: data.error };
+          if (typeof data.detail === "string") {
+            errorPayload.detail = data.detail;
+          }
+          if (typeof data.site === "string") {
+            errorPayload.site = data.site;
+          }
+        }
+      } catch {
+        // Bridge returned non-JSON (e.g. proxy error, gateway timeout HTML).
+        // Keep the bridge_error fallback so consumer matchers stay stable.
+      }
+      return NextResponse.json(errorPayload, { status: upstream.status });
     }
 
     const data = (await upstream.json()) as {
