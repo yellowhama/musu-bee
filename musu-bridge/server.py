@@ -2876,6 +2876,9 @@ async def api_company_briefing(company_id: str) -> dict:
 
     needs_attention = bool(blockers)
 
+    # 8. Recent wiki pages — filesystem scan, last 24h, cap 5 (V23.5 C-1)
+    recent_wiki_pages = _scan_recent_wiki_pages(company_id, max_entries=5, hours=24)
+
     return {
         "company_name": company.get("name", ""),
         "purpose": purpose,
@@ -2889,7 +2892,93 @@ async def api_company_briefing(company_id: str) -> dict:
         "agents": {"total": len(all_agents), "active": len(active_agents)},
         "needs_attention": needs_attention,
         "attention_item": blockers[0]["title"] if blockers else None,
+        "recent_wiki_pages": recent_wiki_pages,
     }
+
+
+def _iso_from_mtime(mtime: float) -> str:
+    """Convert filesystem mtime to ISO 8601 UTC timestamp."""
+    import datetime as _dt
+    return _dt.datetime.fromtimestamp(mtime, tz=_dt.timezone.utc).isoformat()
+
+
+def _scan_recent_wiki_pages(
+    company_id: str,
+    max_entries: int = 5,
+    hours: int = 24,
+) -> list[dict]:
+    """Scan ~/llm-wiki/global/ + ~/llm-wiki/companies/<id[:8]>/ for *.md files
+    modified within `hours` hours; return up to `max_entries` newest with
+    {page_id, title, scope, updated_at, summary_excerpt}.
+
+    Filesystem-only (no DB). Lazy — only fires when api_company_briefing is hit.
+    Returns [] gracefully on any IO error so the briefing endpoint never fails
+    due to wiki scan issues. Respects MUSU_WIKI_BASE env var for testability.
+    """
+    import pathlib as _pl
+    import time as _time
+
+    base = _pl.Path(os.environ.get("MUSU_WIKI_BASE", str(_pl.Path.home() / "llm-wiki")))
+    cutoff = _time.time() - (hours * 3600)
+    entries: list[tuple[float, dict]] = []
+
+    # Scope paths: global + company-specific (using [:8] prefix per wiki_routes convention)
+    cid8 = company_id[:8] if company_id else ""
+    paths = [
+        ("global", base / "global"),
+        (f"company:{cid8}", base / "companies" / cid8) if cid8 else None,
+    ]
+    paths = [p for p in paths if p is not None]
+
+    for scope_label, scope_dir in paths:
+        try:
+            if not scope_dir.is_dir():
+                continue
+        except OSError:
+            continue
+        try:
+            md_iter = scope_dir.rglob("*.md")
+        except OSError:
+            continue
+        for md in md_iter:
+            try:
+                st = md.stat()
+            except OSError:
+                continue
+            if st.st_mtime < cutoff:
+                continue
+            page_id = md.stem
+            title = page_id
+            summary = ""
+            try:
+                with open(md, "r", encoding="utf-8", errors="replace") as f:
+                    for line_no, line in enumerate(f):
+                        if line_no > 50:
+                            break  # cap reading
+                        stripped = line.strip()
+                        if title == page_id and stripped.startswith("# "):
+                            title = stripped[2:].strip() or page_id
+                            continue
+                        if not summary and stripped and not stripped.startswith("#"):
+                            summary = stripped[:200]
+                        if title != page_id and summary:
+                            break
+            except (OSError, UnicodeDecodeError):
+                pass
+            entries.append((
+                st.st_mtime,
+                {
+                    "page_id": page_id,
+                    "title": title,
+                    "scope": scope_label,
+                    "updated_at": _iso_from_mtime(st.st_mtime),
+                    "summary_excerpt": summary,
+                },
+            ))
+
+    # newest first, cap to max_entries
+    entries.sort(key=lambda x: x[0], reverse=True)
+    return [e[1] for e in entries[:max_entries]]
 
 
 # ── Group Messages (CEO Board / Team Channels) ───────────────────────────
