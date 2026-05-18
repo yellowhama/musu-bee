@@ -2981,6 +2981,96 @@ def _scan_recent_wiki_pages(
     return [e[1] for e in entries[:max_entries]]
 
 
+# ── CoS Briefing Synthesis (V23.5 C-3, opt-in path Y) ─────────────────────
+#
+# Two endpoints back the LLM-based synthesis of recent wiki updates:
+#
+#   GET  /api/cos-synthesis/status                            — UI gate
+#   POST /api/companies/{company_id}/cos-briefing-synthesize  — actual call
+#
+# Both honour the 4 hard constraints from the V23.5 Phase -1 mini-gate (see
+# docs/V23_5_IMPL_PLAN_2026_05_19.md §4):
+#   (a) graceful degrade to C-1 — any LLM failure returns 200 + degraded=true
+#   (b) explicit user API key   — 503 + api_key_not_configured when unset
+#   (c) UI cost preview         — frontend onClick + sessionStorage ack
+#   (d) local-only telemetry    — structured logger.info / logger.error only
+
+
+@app.get(
+    "/api/cos-synthesis/status",
+    summary="V23.5 C-3 — synthesis enablement status (no LLM call)",
+)
+async def api_cos_synthesis_status() -> dict:
+    """Cheap predicate for the C-2 frontend to enable/disable the synthesis
+    button. Never calls the LLM provider — only inspects the env var.
+
+    Returns ``{enabled: bool, estimated_cost_usd: float}``. The cost figure
+    backs constraint (c)'s confirmation dialog wording.
+    """
+    from cos_briefing_agent import is_synthesis_enabled
+
+    return {
+        "enabled": is_synthesis_enabled(),
+        "estimated_cost_usd": 0.20,
+    }
+
+
+@app.post(
+    "/api/companies/{company_id}/cos-briefing-synthesize",
+    summary="V23.5 C-3 — LLM synthesis of recent wiki updates (opt-in)",
+)
+async def api_cos_briefing_synthesize(company_id: str):
+    """Synthesize the last-24h wiki updates for ``company_id`` into 2-3
+    actionable bullets via the user-supplied LLM key.
+
+    Response shape (all branches):
+        ``{synthesis: str | null, source_pages: [...], degraded: bool,
+        degrade_reason?: str, duration_ms?: int}``
+
+    Status codes:
+        * 200 — happy path OR graceful-degrade path (degraded=true).
+        * 404 — unknown company_id (matches /api/companies/{id}/briefing).
+        * 503 — ``api_key_not_configured`` (constraint b: no LLM call
+                ever made without an explicit user key).
+    """
+    from cos_briefing_agent import is_synthesis_enabled, synthesize_briefing
+
+    # (b) Explicit API key gate — 503 BEFORE we look at the company so
+    # the UI gets a stable signal even for nonexistent companies.
+    if not is_synthesis_enabled():
+        return JSONResponse(
+            status_code=503,
+            content={
+                "detail": "api_key_not_configured",
+                "synthesis": None,
+                "source_pages": [],
+                "degraded": True,
+                "degrade_reason": "api_key_not_configured",
+            },
+        )
+
+    company = get_company(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+
+    # Reuse C-1's filesystem scanner (single source of truth for the
+    # 24h/5-cap window). Empty list still goes through synthesize_briefing
+    # so the degrade_reason path is exercised consistently.
+    recent_pages = _scan_recent_wiki_pages(company_id, max_entries=5, hours=24)
+
+    result = synthesize_briefing(recent_pages, company_id)
+
+    # (a) Always 200 here — frontend reads `degraded` to decide whether to
+    # render the synthesis text or fall back to the C-1 card list.
+    return {
+        "synthesis": result.synthesis,
+        "source_pages": recent_pages,
+        "degraded": result.degraded,
+        "degrade_reason": result.degrade_reason,
+        "duration_ms": result.duration_ms,
+    }
+
+
 # ── Group Messages (CEO Board / Team Channels) ───────────────────────────
 
 
