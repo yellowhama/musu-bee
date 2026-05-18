@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MUSU Architecture — wiki/458</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --bg-elev: #161922;
+    --bg-card: #1d2230;
+    --border: #2a3142;
+    --text: #e4e6eb;
+    --text-dim: #9aa3b2;
+    --accent: #6ea8ff;
+    --green: #4ade80;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --gray: #64748b;
+    --code-bg: #0a0d13;
+    --link: #93c5fd;
+    --shadow: 0 1px 3px rgba(0,0,0,.4);
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    margin: 0;
+    padding: 0;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+  header { border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 32px; }
+  header h1 { font-size: 28px; margin: 0 0 8px; letter-spacing: -.5px; }
+  .meta { color: var(--text-dim); font-size: 13px; }
+  .meta span { margin-right: 16px; }
+  .meta a { color: var(--link); text-decoration: none; }
+  .meta a:hover { text-decoration: underline; }
+
+  h2 {
+    font-size: 20px;
+    margin: 40px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    letter-spacing: -.3px;
+  }
+  h3 { font-size: 16px; margin: 24px 0 12px; color: var(--accent); }
+  p, ul, ol { margin: 0 0 12px; }
+  ul, ol { padding-left: 24px; }
+  li { margin-bottom: 4px; }
+  code {
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: "JetBrains Mono", Consolas, Monaco, monospace;
+    font-size: 13px;
+    color: #fcd34d;
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 14px 16px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    border: 1px solid var(--border);
+  }
+  pre code { background: none; padding: 0; color: var(--text); }
+
+  /* TL;DR card */
+  .tldr {
+    background: linear-gradient(135deg, #1e2a4a, #1a1f2e);
+    border-left: 3px solid var(--accent);
+    padding: 18px 20px;
+    border-radius: 6px;
+    margin-bottom: 32px;
+  }
+  .tldr h3 { margin-top: 0; color: var(--accent); }
+  .tldr ol { margin: 0; padding-left: 22px; }
+
+  /* Module table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 20px;
+    font-size: 14px;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th {
+    background: var(--bg-elev);
+    color: var(--text-dim);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+  tbody tr:hover { background: var(--bg-elev); }
+
+  /* Status badges */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+  }
+  .badge.active { background: rgba(74,222,128,.15); color: var(--green); border: 1px solid rgba(74,222,128,.3); }
+  .badge.planned { background: rgba(251,191,36,.12); color: var(--yellow); border: 1px solid rgba(251,191,36,.3); }
+  .badge.partial { background: rgba(110,168,255,.12); color: var(--accent); border: 1px solid rgba(110,168,255,.3); }
+  .badge.deferred { background: rgba(100,116,139,.15); color: var(--gray); border: 1px solid rgba(100,116,139,.3); }
+  .badge.external { background: rgba(248,113,113,.1); color: var(--red); border: 1px solid rgba(248,113,113,.3); }
+
+  /* Severity badges */
+  .sev-strong { color: var(--green); font-weight: 600; }
+  .sev-ok { color: var(--accent); font-weight: 600; }
+  .sev-weak { color: var(--yellow); font-weight: 600; }
+  .sev-gap { color: var(--red); font-weight: 600; }
+
+  /* Cards grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px;
+    margin: 16px 0;
+  }
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: var(--shadow);
+  }
+  .card h4 { margin: 0 0 8px; font-size: 14px; color: var(--accent); }
+  .card p { font-size: 13px; color: var(--text-dim); margin: 0; }
+
+  /* Diagram */
+  .diagram {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    margin: 20px 0;
+    text-align: center;
+    overflow-x: auto;
+  }
+  .diagram svg { max-width: 100%; height: auto; }
+
+  /* Tabs */
+  .tabs {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 16px 0 24px;
+  }
+  .tab-buttons {
+    display: flex;
+    background: var(--bg-elev);
+    border-bottom: 1px solid var(--border);
+  }
+  .tab-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    padding: 12px 16px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+    border-right: 1px solid var(--border);
+    transition: background .15s, color .15s;
+  }
+  .tab-btn:last-child { border-right: none; }
+  .tab-btn:hover { background: var(--bg-card); color: var(--text); }
+  .tab-btn.active { background: var(--bg-card); color: var(--accent); }
+  .tab-content { display: none; padding: 18px 20px; }
+  .tab-content.active { display: block; }
+
+  /* Collapsible */
+  details {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin: 8px 0;
+  }
+  details > summary {
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--text);
+    list-style: none;
+    user-select: none;
+  }
+  details > summary::-webkit-details-marker { display: none; }
+  details > summary::before {
+    content: "▶";
+    display: inline-block;
+    margin-right: 8px;
+    transition: transform .15s;
+    color: var(--text-dim);
+    font-size: 10px;
+  }
+  details[open] > summary::before { transform: rotate(90deg); }
+  details > div, details > p { margin-top: 10px; padding-left: 18px; color: var(--text-dim); font-size: 14px; }
+
+  /* FAQ */
+  .faq details { margin-bottom: 10px; }
+
+  /* Quotes */
+  blockquote {
+    border-left: 3px solid var(--gray);
+    padding: 4px 14px;
+    margin: 12px 0;
+    color: var(--text-dim);
+    font-style: italic;
+  }
+
+  /* Footer */
+  footer {
+    margin-top: 60px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 12px;
+  }
+  footer a { color: var(--link); text-decoration: none; }
+
+  /* Small helpers */
+  .muted { color: var(--text-dim); }
+  .center { text-align: center; }
+  .small { font-size: 12px; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>MUSU Architecture Overview</h1>
+  <div class="meta">
+    <span><strong>wiki/458</strong></span>
+    <span>2026-05-18</span>
+    <span><span class="badge active">Active</span></span>
+    <span>Companion: <a href="BRAINSTORM_PAPERCLIP_OBSERVER_2026_05_18.md">wiki/457</a> · <a href="RESEARCH_3LAYER_AND_HTML_WIKI_MEMORY_2026_05_18.md">wiki/456</a> · <a href="RESEARCH_HTML_OVER_MARKDOWN_2026_05_18.md">wiki/455</a></span>
+  </div>
+</header>
+
+<!-- TL;DR -->
+<div class="tldr">
+  <h3>TL;DR — musu가 무엇이고 어떻게 구성되어 있나</h3>
+  <ol>
+    <li><strong>musu = 여러 기계에서 AI 회사를 운영하는 multi-machine runtime</strong>. 한 PC가 아닌 여러 PC/laptop/server에서 동시에 agent 회사들이 일함.</li>
+    <li><strong>4-layer 구조</strong>: ① musu-bridge 집사 (CoS) · ② 기계 (machines) · ③ 회사 (companies — musu native OR Paperclip observed) · ④ 일꾼 (agents — Claude/Gemini/Codex/Hermes adapters).</li>
+    <li><strong>12개 musu-* modules</strong>가 active, 시스템 레벨에 6개 agent (CEO/CTO/Engineer/<strong>CoS=집사</strong>/QA/Worker)가 install 시 자동 시드, 5개 회사 template 제공.</li>
+    <li><strong>V23.5 계획</strong>: Paperclip external runtime observer 추가 (read-only, 30s poll) + LLM wiki를 HTML로 격상해 영구 기억 장치 완성.</li>
+  </ol>
+</div>
+
+<!-- §1 Layer model diagram -->
+<h2 id="layer-model">§1 — 4-Layer 구조</h2>
+
+<p>사용자가 직접 musu와 대화하는 진입점은 <strong>CoS (Chief of Staff = 참모장 = 집사)</strong>. CoS가 그 아래 layer들을 다 종합해서 briefing을 줌 ("Chairman Principle").</p>
+
+<div class="diagram">
+<svg viewBox="0 0 900 540" xmlns="http://www.w3.org/2000/svg" aria-label="MUSU 4-layer architecture diagram">
+  <defs>
+    <linearGradient id="layer0grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3b82f6" stop-opacity=".25"/>
+      <stop offset="100%" stop-color="#1e3a8a" stop-opacity=".1"/>
+    </linearGradient>
+    <linearGradient id="layer1grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#10b981" stop-opacity=".25"/>
+      <stop offset="100%" stop-color="#065f46" stop-opacity=".1"/>
+    </linearGradient>
+    <linearGradient id="layer2grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity=".25"/>
+      <stop offset="100%" stop-color="#92400e" stop-opacity=".1"/>
+    </linearGradient>
+    <linearGradient id="layer3grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a855f7" stop-opacity=".25"/>
+      <stop offset="100%" stop-color="#581c87" stop-opacity=".1"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9aa3b2"/>
+    </marker>
+  </defs>
+
+  <!-- Layer 0 (top) -->
+  <rect x="40" y="30" width="820" height="90" rx="8" fill="url(#layer0grad)" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="60" y="56" fill="#93c5fd" font-size="13" font-weight="600">Layer 0 — musu-bridge 집사 (bridge-level steward)</text>
+  <text x="60" y="78" fill="#e4e6eb" font-size="15" font-weight="600">CoS — Chief of Staff (참모장)</text>
+  <text x="60" y="100" fill="#9aa3b2" font-size="12">사용자가 직접 대화하는 entry point. 모든 layer 종합 briefing.</text>
+  <text x="780" y="80" fill="#93c5fd" font-size="12" font-weight="600" text-anchor="end">seed_agents.py:88</text>
+
+  <!-- Arrow 0→1 -->
+  <line x1="450" y1="125" x2="450" y2="145" stroke="#9aa3b2" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Layer 1 -->
+  <rect x="40" y="150" width="820" height="90" rx="8" fill="url(#layer1grad)" stroke="#10b981" stroke-width="1.5"/>
+  <text x="60" y="176" fill="#6ee7b7" font-size="13" font-weight="600">Layer 1 — 기계 (machines)</text>
+  <text x="60" y="198" fill="#e4e6eb" font-size="15" font-weight="600">musu (multi-machine mesh + persistent memory)</text>
+  <text x="60" y="220" fill="#9aa3b2" font-size="12">12 musu-* modules · WebRTC mesh · SQLite DB · FastAPI bridge · Next.js UI</text>
+
+  <!-- Arrow 1→2 -->
+  <line x1="450" y1="245" x2="450" y2="265" stroke="#9aa3b2" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Layer 2 -->
+  <rect x="40" y="270" width="820" height="120" rx="8" fill="url(#layer2grad)" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="60" y="296" fill="#fcd34d" font-size="13" font-weight="600">Layer 2 — 회사 (목적/목표/일감)</text>
+  <text x="60" y="320" fill="#e4e6eb" font-size="14" font-weight="600">musu native companies (default)</text>
+  <text x="60" y="340" fill="#9aa3b2" font-size="12">5 templates: dev-team · content-team · writer-studio · research-team · marketing-team</text>
+  <line x1="40" y1="350" x2="860" y2="350" stroke="#2a3142" stroke-dasharray="3,3"/>
+  <text x="60" y="368" fill="#fbbf24" font-size="13" font-weight="600">Paperclip companies <tspan font-size="11" fill="#9aa3b2">(V23.5 — observed read-only)</tspan></text>
+  <text x="60" y="384" fill="#9aa3b2" font-size="12">~/.musu/runtimes.toml에 등록 시 30s polling으로 status 인식 (복사 안 함, 인식만)</text>
+
+  <!-- Arrow 2→3 -->
+  <line x1="450" y1="395" x2="450" y2="415" stroke="#9aa3b2" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Layer 3 -->
+  <rect x="40" y="420" width="820" height="100" rx="8" fill="url(#layer3grad)" stroke="#a855f7" stroke-width="1.5"/>
+  <text x="60" y="446" fill="#d8b4fe" font-size="13" font-weight="600">Layer 3 — 일꾼 (agents)</text>
+  <text x="60" y="468" fill="#e4e6eb" font-size="14" font-weight="600">Adapters: Claude · Gemini · Codex · Hermes (musu-core)</text>
+  <text x="60" y="488" fill="#9aa3b2" font-size="12">Paperclip 안에서는 추가로 OpenClaw · Cursor 등 — paperclip이 알아서 관리</text>
+  <text x="60" y="508" fill="#9aa3b2" font-size="11" font-style="italic">CoS prompt: "사용자가 회사 현황 물으면 native + paperclip companies 모두 종합 briefing"</text>
+</svg>
+</div>
+
+<!-- §2 Modules -->
+<h2 id="modules">§2 — 12개 Modules</h2>
+
+<p>각 module은 독립 폴더 + 자체 dependencies. musu install은 12개를 같이 설치하지만, 각각 분리 가능.</p>
+
+<table>
+  <thead>
+    <tr><th>Module</th><th>Language</th><th>Purpose</th><th>Status</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>musu-bridge</code></td><td>Python (FastAPI)</td><td>HTTP server, agent dispatch, API layer (117 async routes)</td><td><span class="badge active">Active</span></td></tr>
+    <tr><td><code>musu-core</code></td><td>Python</td><td>DB layer (SQLite, 14 tables, WAL), router, agent adapters</td><td><span class="badge active">Active</span></td></tr>
+    <tr><td><code>musu-bee</code></td><td>TypeScript (Next.js 15)</td><td>Web UI + Tauri desktop · Paddle billing · chat surface</td><td><span class="badge active">Active</span></td></tr>
+    <tr><td><code>musu-control</code></td><td>Python</td><td>MCP server (50+ tools for agents — wiki/task/code/governance)</td><td><span class="badge active">Active</span></td></tr>
+    <tr><td><code>musu-indexer</code></td><td>Python + Go</td><td>Codebase indexer (FTS5) + MCP — code search, recent, watch</td><td><span class="badge active">Active</span></td></tr>
+    <tr><td><code>musu-plugin</code></td><td>Python</td><td>Claude Code plugin · commands · skills · paperclip_guard hook</td><td><span class="badge active">Active</span></td></tr>
+    <tr><td><code>musu-port</code></td><td>Rust</td><td>Port manager · service ingress · QUIC/WebSocket channel broker</td><td><span class="badge active">Active</span></td></tr>
+    <tr><td><code>musu-relay</code></td><td>Node.js</td><td>WebRTC signaling rendezvous (V23.4 — replaced legacy WS relay)</td><td><span class="badge active">Active</span></td></tr>
+    <tr><td><code>musu-supervisor</code></td><td>Rust</td><td>Process supervisor · systemd integration · SIGTERM handling</td><td><span class="badge active">Active</span></td></tr>
+    <tr><td><code>musu-worker</code></td><td>Python/Rust</td><td>Subprocess task executor · process isolation · cgroup limits</td><td><span class="badge active">Active</span></td></tr>
+    <tr><td><code>musu-writer</code></td><td>Python</td><td>Long-form fiction writing tooling (operator-shaped) · MCP</td><td><span class="badge active">Active</span></td></tr>
+    <tr><td><code>musu-ai-detector</code></td><td>Python</td><td>AI-generated text detection · MCP · used by writer-studio editor</td><td><span class="badge active">Active</span></td></tr>
+  </tbody>
+</table>
+
+<!-- §3 System-level agents -->
+<h2 id="agents">§3 — System-level 6 Agents (install 시 자동 시드)</h2>
+
+<p>musu install 후 <code>seed_agents.py</code>가 자동으로 6개 agent를 musu DB에 시드. 이건 <em>musu 자체</em>의 agents (개별 company 안의 agents가 아님). 사용자가 직접 대화하는 대상은 <strong>CoS (집사)</strong>.</p>
+
+<div class="grid">
+  <div class="card">
+    <h4>CEO — Chief Executive Officer</h4>
+    <p>musu 차원 전략 결정. Frontier model (Claude Sonnet 4.6 / Gemini 2.5 Pro). $5 budget per task.</p>
+  </div>
+  <div class="card">
+    <h4>CTO — Chief Technology Officer</h4>
+    <p>musu 차원 기술 결정. Frontier model. $5 budget.</p>
+  </div>
+  <div class="card" style="border-color: var(--accent); background: linear-gradient(135deg, #1e2a4a, #1d2230);">
+    <h4>CoS — Chief of Staff (참모장 = 집사) ⭐</h4>
+    <p><strong>사용자가 직접 대화하는 대상.</strong> 회사들 진행 상황 종합 briefing. 한국어 기본 (instructions/cos.md). budget model ($0.5).</p>
+  </div>
+  <div class="card">
+    <h4>Engineer</h4>
+    <p>Software engineering task 처리. Frontier model. $2 budget.</p>
+  </div>
+  <div class="card">
+    <h4>QA</h4>
+    <p>Quality assurance · 테스트 · 검증. Frontier model. $2 budget.</p>
+  </div>
+  <div class="card">
+    <h4>Worker</h4>
+    <p>단순 task · 빠른 처리. Budget model (Claude Haiku / Gemini Flash). $0.5 budget.</p>
+  </div>
+</div>
+
+<h3>CoS instruction 핵심 (한국어)</h3>
+<blockquote>
+당신은 MUSU의 참모장 에이전트입니다. MUSU는 여러 대의 컴퓨터에서 AI 팀이 협력하는 업무 메신저입니다. 팀 조율, 일정 관리, 진행 상황 추적을 담당합니다.
+<br><br>
+역할: 작업 우선순위 정리 · 팀 내 커뮤니케이션 조율 · 진행 중인 작업 상태 추적 및 보고 · 병목 지점 파악 및 에스컬레이션.
+<br><br>
+원칙: 명확한 정리 · 선제적 파악 · 중립적 조율 · <strong>한국어로 소통한다</strong>.
+</blockquote>
+
+<!-- §4 Company templates (tabs) -->
+<h2 id="templates">§4 — 5개 회사 Templates</h2>
+
+<p><code>POST /api/companies</code>에 <code>template_key</code>를 넘기면 자동으로 agent roster가 시드됨. 각 template은 다른 도메인용:</p>
+
+<div class="tabs">
+  <div class="tab-buttons">
+    <button class="tab-btn active" data-tab="t1">dev-team</button>
+    <button class="tab-btn" data-tab="t2">content-team</button>
+    <button class="tab-btn" data-tab="t3">writer-studio</button>
+    <button class="tab-btn" data-tab="t4">research-team</button>
+    <button class="tab-btn" data-tab="t5">marketing-team</button>
+  </div>
+
+  <div id="t1" class="tab-content active">
+    <strong>dev-team — 소프트웨어 프로젝트</strong> (4 agents)
+    <ul>
+      <li><strong>Team Lead</strong> — 회사 안 일감 우선순위 + 위임</li>
+      <li><strong>Planner</strong> — 작업 분해 + 일정</li>
+      <li><strong>Engineer</strong> — 실구현</li>
+      <li><strong>QA</strong> — 검증</li>
+    </ul>
+    <p class="small muted">가장 일반적인 template. M0 백엔드 + auth 같은 소프트웨어 build 작업에 적합.</p>
+  </div>
+  <div id="t2" class="tab-content">
+    <strong>content-team — 문서/아티클</strong> (4 agents)
+    <ul>
+      <li><strong>Team Lead</strong></li>
+      <li><strong>Researcher</strong> — 소스 조사</li>
+      <li><strong>Writer</strong> — 초안 작성</li>
+      <li><strong>Editor</strong> — 편집/검수</li>
+    </ul>
+  </div>
+  <div id="t3" class="tab-content">
+    <strong>writer-studio — 장편 픽션</strong> (5 agents)
+    <ul>
+      <li><strong>Studio Lead</strong></li>
+      <li><strong>Project Manager</strong></li>
+      <li><strong>Researcher</strong></li>
+      <li><strong>Writer</strong></li>
+      <li><strong>Editor</strong></li>
+    </ul>
+  </div>
+  <div id="t4" class="tab-content">
+    <strong>research-team — 심층 조사</strong> (4 agents)
+    <ul>
+      <li><strong>Team Lead</strong></li>
+      <li><strong>Analyst</strong></li>
+      <li><strong>Researcher</strong></li>
+      <li><strong>Summarizer</strong></li>
+    </ul>
+  </div>
+  <div id="t5" class="tab-content">
+    <strong>marketing-team — 마케팅 운영</strong> (7 agents)
+    <ul>
+      <li><strong>Marketing Lead</strong></li>
+      <li><strong>Strategist</strong></li>
+      <li><strong>Content Creator</strong></li>
+      <li><strong>Social Manager</strong></li>
+      <li><strong>Analytics Lead</strong></li>
+      <li><strong>Marketing Editor</strong></li>
+      <li><strong>Content Radar</strong></li>
+    </ul>
+  </div>
+</div>
+
+<!-- §5 External runtime observer -->
+<h2 id="observer">§5 — External Runtime Observer (V23.5 — Paperclip first)</h2>
+
+<p>사용자가 Paperclip(또는 다른 외부 OSS agent orchestrator)을 이미 쓰고 있다면, musu가 그 회사들을 <strong>read-only로 인식</strong>해서 멀티 기기에서 통합 조회 가능. <strong>복사 안 함, 인식만</strong>.</p>
+
+<table>
+  <thead>
+    <tr><th>외부 OSS</th><th>Layer</th><th>현재 status</th><th>musu integration plan</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Paperclip (paperclipai/paperclip)</td>
+      <td>회사 운영 (Layer 2)</td>
+      <td><span class="badge external">External OSS</span> 66.3k stars, MIT, localhost:3100</td>
+      <td><span class="badge planned">V23.5</span> Pull polling (30s), read-only</td>
+    </tr>
+    <tr>
+      <td>Hermes Agent CLI</td>
+      <td>Agent 운영 (Layer 3)</td>
+      <td><span class="badge active">Adapter 존재</span> musu-core/adapters/hermes.py</td>
+      <td><span class="badge active">이미 동작</span> 추가 작업 불필요</td>
+    </tr>
+    <tr>
+      <td>OpenClaw</td>
+      <td>Agent 운영 (Layer 3)</td>
+      <td><span class="badge external">External (paperclip 안에서 사용)</span></td>
+      <td><span class="badge deferred">V24+</span> Paperclip 통해 간접 인식 우선</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>설정 방법 (V23.5)</h3>
+<pre><code># ~/.musu/runtimes.toml
+[[runtime]]
+type = "paperclip"
+url = "http://localhost:3100"
+token = ""                       # optional
+poll_interval_seconds = 30
+</code></pre>
+
+<p>또는 musu-bee UI의 <code>/app/runtimes</code> 페이지에서 form으로 같은 row 추가. <strong>자동 스캔 안 함</strong> — 사용자 명시 등록만.</p>
+
+<h3>UI 통합</h3>
+<p>musu-bee 메인 페이지의 회사 목록이 두 섹션으로 분리됨:</p>
+<div class="grid">
+  <div class="card">
+    <h4>Musu native companies</h4>
+    <p>사용자가 musu에서 직접 만든 회사들. CEO/Team Lead 통한 직접 운영.</p>
+  </div>
+  <div class="card">
+    <h4>Paperclip companies (via localhost:3100)</h4>
+    <p>외부 paperclip이 운영 중인 회사들. status / progress만 표시. 편집은 paperclip UI에서.</p>
+  </div>
+</div>
+
+<!-- §6 Backend strength -->
+<h2 id="backend">§6 — Backend 견고성 (감사 결과 7.2/10)</h2>
+
+<p>wiki/456 deep research 결과:</p>
+
+<table>
+  <thead>
+    <tr><th>영역</th><th>Rating</th><th>핵심 근거</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>HTTP API surface</td><td class="sev-strong">STRONG</td><td>117 async routes · router pattern · modular</td></tr>
+    <tr><td>Schema / DB layer</td><td class="sev-strong">STRONG</td><td>14 tables · WAL · FK ON · 7 migration tests (v29-v36)</td></tr>
+    <tr><td>Test coverage</td><td class="sev-strong">STRONG</td><td>93 bridge + 54 core test files · 17K+ LOC</td></tr>
+    <tr><td>Auth + security</td><td class="sev-strong">STRONG</td><td>HMAC compare_digest · dual-token · CSRF · rate limit</td></tr>
+    <tr><td>Concurrency</td><td class="sev-strong">STRONG</td><td>async-first · channel semaphores · 120s acquire timeout</td></tr>
+    <tr><td>Error handling</td><td class="sev-ok">OK</td><td>878 try/except · 일부 silent swallow at handlers.py:165-170</td></tr>
+    <tr><td>Observability</td><td class="sev-ok">OK</td><td>JSON logs + Prometheus · mesh-wide tracing 부재</td></tr>
+    <tr><td>V23.4 hardening</td><td class="sev-weak">WEAK</td><td>musu-relay에만 적용 · musu-bridge 미적용</td></tr>
+    <tr><td>Dead code</td><td class="sev-ok">OK</td><td>_legacy_mattermost/ 격리 · 명확한 orphan 없음</td></tr>
+  </tbody>
+</table>
+
+<h3>다음 우선순위 (V23.5)</h3>
+<ol>
+  <li>musu-bridge에 V23.4 패턴 적용 (uniform DB-write try/catch, error classification)</li>
+  <li><code>/health/ready</code>에 migration 상태 + circuit breaker 추가</li>
+  <li>X-Request-ID propagation through mesh (distributed tracing)</li>
+</ol>
+
+<!-- §7 HTML wiki memory -->
+<h2 id="wiki-memory">§7 — HTML Wiki = 영구 기억 장치 (60% 완성)</h2>
+
+<p>사용자 vision: <strong>"LLM wiki를 html로 만들어서 이게 무수의 영구 기억 장치가 되어야 한다"</strong>. 현재 60% 완성, V23.5에서 HTML render layer 추가하면 완성.</p>
+
+<table>
+  <thead>
+    <tr><th>구성요소</th><th>현재 상태</th><th>증거</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>영구 저장소</td><td class="sev-strong">✅ 있음</td><td><code>~/llm-wiki/wiki/</code> · SQLite</td></tr>
+    <tr><td>REST API</td><td class="sev-strong">✅ 있음</td><td><code>wiki_routes.py</code> · 5 endpoints (list/search/get/create/delete)</td></tr>
+    <tr><td>FTS5 full-text search</td><td class="sev-strong">✅ 있음</td><td><code>GET /api/wiki/search?q=...</code></td></tr>
+    <tr><td>Agent MCP tools</td><td class="sev-strong">✅ 있음</td><td><code>list_wiki_pages</code>, <code>search_wiki</code>, <code>get_wiki_page</code>, <code>write_wiki_page</code></td></tr>
+    <tr><td>구조화 metadata</td><td class="sev-strong">✅ 있음</td><td>summary · key_points · evidence · related · open_questions</td></tr>
+    <tr><td>Agent instructions가 wiki SSOT로 사용</td><td class="sev-strong">✅ 있음</td><td>cto.md:30,42 · marketing_strategist.md:21 등 6+ instructions</td></tr>
+    <tr><td><strong>HTML render layer</strong></td><td class="sev-gap">❌ 없음</td><td>musu-bee가 <code>&lt;pre&gt;{markdown}&lt;/pre&gt;</code>로 raw 표시 (AIDisplay.tsx:309)</td></tr>
+    <tr><td><strong><code>/wiki</code> UI page</strong></td><td class="sev-gap">❌ 없음</td><td>API route는 있지만 user-facing page route 없음</td></tr>
+    <tr><td><strong>Session memory</strong></td><td class="sev-gap">❌ 없음</td><td>handlers.py:2331 "wipes on restart — MVP only"</td></tr>
+    <tr><td><strong>Auto-retrieval (RAG)</strong></td><td class="sev-gap">❌ 없음</td><td>agent가 명시적으로 <code>search_wiki()</code> 호출해야 함</td></tr>
+  </tbody>
+</table>
+
+<h3>V23.5 plan (wiki/455 Step 2 prototype)</h3>
+<ol>
+  <li><code>musu-bee/app/wiki/[id]/page.tsx</code> 추가 — Next.js page route</li>
+  <li>markdown → HTML render: react-markdown + DOMPurify (XSS sanitize)</li>
+  <li>구조화 metadata를 Tariq use case #14 "Feature Explainer" 패턴으로 render (TL;DR · collapsible · tabbed code · FAQ — 지금 이 문서 같은 형태)</li>
+  <li>자주 다시 읽히는 wiki page (master plan · qual eval · closure doc) 우선 적용</li>
+</ol>
+
+<!-- §8 FAQ -->
+<h2 id="faq">§8 — FAQ</h2>
+
+<div class="faq">
+
+<details>
+<summary>musu 깔면 paperclip을 대체하나? 아니면 같이 쓰나?</summary>
+<div>
+<strong>같이 쓰는 게 default.</strong> musu는 paperclip을 *대체*하는 게 아니라 *멀티 기기 도구*로 추가됨. Paperclip 사용자는 musu 깔면:
+<ul>
+  <li>Paperclip은 그대로 씀 (workflow 안 바뀜)</li>
+  <li>4대 기기에서 paperclip 회사 진행 상황을 한 화면에 통합 조회 가능</li>
+  <li>musu의 CoS가 paperclip 회사 status도 briefing에 포함</li>
+</ul>
+</div>
+</details>
+
+<details>
+<summary>"집사 agent" 가 뭐고 어디서 시작되나?</summary>
+<div>
+<strong>CoS (Chief of Staff = 참모장)</strong>. <code>seed_agents.py:88</code>에서 musu install 시 자동 시드됨. 한국어 instruction (<code>instructions/cos.md</code>). 사용자가 "지금 어떤 일들이 돌고 있어?" 같은 질문하면 CoS가 모든 회사 (native + paperclip)를 종합해서 briefing.
+</div>
+</details>
+
+<details>
+<summary>musu native company vs Paperclip company — 어떻게 다른가?</summary>
+<div>
+<strong>책임 위치가 다름.</strong>
+<ul>
+  <li><strong>musu native</strong>: musu가 회사 정의 + task 실행 + 모든 상태 소유. <code>POST /api/companies</code>로 생성, musu의 CEO/Team Lead가 일감 위임.</li>
+  <li><strong>Paperclip</strong>: paperclip이 회사 정의 + task 실행 다 소유. musu는 <strong>status만 30초마다 polling해서 보기만</strong>. 편집은 paperclip UI(localhost:3100)에서.</li>
+</ul>
+</div>
+</details>
+
+<details>
+<summary>Paperclip이 다운되면 musu도 다운되나?</summary>
+<div>
+<strong>아니요.</strong> musu native companies는 paperclip과 완전 독립. musu-bee UI의 "Paperclip companies" 섹션이 <em>unreachable</em> 표시되고, native companies 섹션은 그대로 작동.
+</div>
+</details>
+
+<details>
+<summary>왜 자동 scan 안 함? 깔자마자 paperclip 인식하면 더 편할 텐데.</summary>
+<div>
+<strong>보안 + 명시적 동의</strong>. localhost에 다른 서비스가 같은 포트를 쓸 수도 있음. 또 사용자가 의도하지 않은 외부 연결이 자동 활성화되면 안 됨. 사용자가 musu-bee UI의 "Add runtime" 버튼을 명시적으로 누르거나 <code>runtimes.toml</code>에 직접 추가해야 함.
+</div>
+</details>
+
+<details>
+<summary>HTML wiki memory가 "영구 기억 장치"인 이유는?</summary>
+<div>
+musu agent들은 <strong>매 invocation이 fresh start</strong> (conversation memory 없음). 단 <strong>wiki는 영속</strong>. agent가 <code>write_wiki_page()</code>로 발견 사항을 저장하면 다음 turn / 다른 agent / 다른 기기에서도 <code>search_wiki()</code>로 찾을 수 있음. 즉 <strong>wiki = agent 간 / turn 간 공유 메모리</strong>. HTML로 격상하면 사용자도 같은 wiki를 시각적으로 즉시 흡수 가능 (Tariq use case #14 패턴).
+</div>
+</details>
+
+<details>
+<summary>musu-bridge 외에 다른 module들 (musu-port, musu-supervisor)은 뭐 함?</summary>
+<div>
+<strong>각각 다른 layer의 인프라</strong>:
+<ul>
+  <li><code>musu-port</code> (Rust): 네트워크 ingress · QUIC/WebSocket 브로커. mesh 안에서 다른 기기로 task 라우팅 시 사용.</li>
+  <li><code>musu-supervisor</code> (Rust): 프로세스 supervisor. systemd 통합. agent subprocess가 crash 시 재시작.</li>
+  <li><code>musu-worker</code>: agent subprocess 실행 wrapper. cgroup/process isolation.</li>
+  <li><code>musu-indexer</code>: 코드베이스 검색 (FTS5). agent가 "이 함수 어디 정의됨?" 질문 시 사용.</li>
+  <li><code>musu-control</code>: MCP server. 50+ tools를 agent에게 노출 (wiki/task/code/governance).</li>
+</ul>
+사용자는 이 모듈들을 <em>직접 다루지 않음</em>. install 후 background 서비스로 자동 운영.
+</div>
+</details>
+
+<details>
+<summary>왜 SQLite? Postgres가 더 안 좋나?</summary>
+<div>
+<strong>self-contained product 원칙</strong>. musu가 SQLite를 쓰면 사용자 PC에서 추가 dependency 없이 작동. Postgres 요구하면 "Postgres 설치하세요"가 install 첫 단계가 됨 — 사용자 onboarding 마찰. 단 V24+에서 enterprise multi-machine deploy가 demand되면 Postgres adapter 추가 후보 (현재 YAGNI).
+</div>
+</details>
+
+</div>
+
+<!-- §9 Roadmap snapshot -->
+<h2 id="roadmap">§9 — Roadmap Snapshot</h2>
+
+<table>
+  <thead>
+    <tr><th>버전</th><th>주요 작업</th><th>상태</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>V23.3</td><td>musu-relay → K3s Deployment + sub-domain TLS · OpenRC convergence · install_attempt schema</td><td><span class="badge active">Shipped</span></td></tr>
+    <tr><td>V23.4 Tier-1</td><td>install_attempt retention sweeper · uniform DB-write try/catch · PowerShell state file enrichment</td><td><span class="badge active">Shipped</span></td></tr>
+    <tr><td>V23.4 Phase 4</td><td>asyncio + SQLite workflow runner · fleet view UI · self-hosted signaling (fly.io retirement)</td><td><span class="badge partial">In progress</span> (T2-D React Flow editor pending)</td></tr>
+    <tr><td>V23.5</td><td>Paperclip observer · CoS briefing integration · HTML wiki render layer · musu-bridge V23.4 hardening</td><td><span class="badge planned">Planned</span></td></tr>
+    <tr><td>V24+</td><td>Webhook subscribe · OpenClaw direct connector · session memory layer · RAG auto-retrieval · Paperclip first-class routing</td><td><span class="badge deferred">Deferred</span></td></tr>
+  </tbody>
+</table>
+
+<!-- §10 Honesty notes -->
+<h2 id="honesty">§10 — Honesty Notes</h2>
+
+<ul>
+  <li><strong>"7.2/10 backend"는 V23.4 hardening이 musu-relay에만 적용된 상태 기준.</strong> V23.5에서 musu-bridge에도 같은 패턴 적용하면 8.5+ 가능.</li>
+  <li><strong>이 HTML 문서 자체가 Tariq HTML Effectiveness 패턴의 first prototype.</strong> wiki/455에서 제안한 §9 Step 2를 실제로 처음 실행. 자주 다시 읽힐 master plan + qual eval + closure doc 후보들이 같은 패턴 따라갈 예정.</li>
+  <li><strong>Paperclip 통합은 V23.5 계획이지 현재 상태 아님.</strong> 이 문서의 §5는 plan, §1-4는 현재 상태.</li>
+  <li><strong>module 12개 중 일부는 stub-tier</strong> (musu-ai-detector는 실제로 writer-studio editor에만 사용; cross-cutting infra 아님). "Active"는 코드 존재 + import 됨을 의미, 모든 module이 critical path 아님.</li>
+</ul>
+
+<footer>
+  <p>
+    <strong>wiki/458</strong> · 2026-05-18 ·
+    <a href="BRAINSTORM_PAPERCLIP_OBSERVER_2026_05_18.md">wiki/457 brainstorm</a> ·
+    <a href="RESEARCH_3LAYER_AND_HTML_WIKI_MEMORY_2026_05_18.md">wiki/456 audit</a> ·
+    <a href="RESEARCH_HTML_OVER_MARKDOWN_2026_05_18.md">wiki/455 Tariq HTML</a>
+  </p>
+  <p>
+    This document is the first HTML-rendered wiki page in musu, following Tariq's
+    "Unreasonable Effectiveness of HTML" use case #14 (Feature Explainer pattern):
+    TL;DR · sectional navigation · collapsible details · tabbed content · FAQ.
+    Single file, inline CSS, inline SVG diagram. Open in any browser.
+  </p>
+</footer>
+
+</div>
+
+<script>
+  // Tabs
+  document.querySelectorAll('.tab-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var targetId = btn.getAttribute('data-tab');
+      var container = btn.closest('.tabs');
+      container.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+      container.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById(targetId).classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>
