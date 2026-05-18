@@ -49,10 +49,10 @@ T2-D-mini delivers the **form-based workflow authoring surface** for V23.4 Phase
 2. Sees list of saved workflows for that company (name, status badge, created_at). Empty state shows "+ New workflow" button prominently
 3. Clicks "+ New workflow" → client generates UUID locally, navigates to `/c/[company]/workflows/[new-uuid]?new=1`
 4. Editor renders empty form: `name` input + "Add step" button
-5. User fills name "Daily summary" + adds 3 step rows:
-   - row 0: `step_id=step-1`, agent_role=`writer`, prompt="Summarize today's commits", depends_on=`[]`
-   - row 1: `step_id=step-2`, agent_role=`reviewer`, prompt="Review summary for clarity", depends_on=`[step-1]`
-   - row 2: `step_id=step-3`, agent_role=`publisher`, prompt="Post to slack", depends_on=`[step-2]`
+5. User fills name "Daily summary" + adds 3 step rows (post Critic C1 fix — agent_id IS identity, no step-N synthesis):
+   - row 0 (UI label "Row 1"): agent_id=`writer`, prompt="Summarize today's commits", depends_on=`[]`
+   - row 1 (UI label "Row 2"): agent_id=`reviewer`, prompt="Review summary for clarity", depends_on=`["writer"]`
+   - row 2 (UI label "Row 3"): agent_id=`publisher`, prompt="Post to slack", depends_on=`["reviewer"]`
 6. Clicks "Save" → client encodes form rows to `{name, spec: {agents: [...], edges: [...]}}` via `workflow-spec.ts` → POST `/api/workflows` → 201 with `{id, status: "pending"}` → toast "Workflow saved"
 7. Clicks "Run" → PATCH `/api/workflows/{id}` body `{"status": "running"}` → 200 → toast "Running"
 8. RunPanel begins polling `/api/workflows/{id}/status` every 2000 ms; renders 3 step rows with badges (pending → running → succeeded). On any step failure, badge turns red; click expands to show `error_json`
@@ -87,13 +87,18 @@ T2-D-mini delivers the **form-based workflow authoring surface** for V23.4 Phase
 | 5 | `musu-bee/src/app/api/workflows/[id]/status/route.ts` | NEW | ~15 | Proxy for `/api/workflows/{id}/status` (GET only) — narrow handler, polled at 2s |
 | 6 | `musu-bee/src/app/c/[company]/workflows/page.tsx` | NEW | ~40 | List page; fetches GET `/api/workflows?company_id=`; renders rows + "+ New workflow" |
 | 7 | `musu-bee/src/app/c/[company]/workflows/[id]/page.tsx` | NEW | ~50 | Editor SSR shell; mounts WorkflowFormClient + RunPanel; reads `?new=1` |
-| 8 | `musu-bee/src/app/c/[company]/workflows/[id]/WorkflowFormClient.tsx` | NEW | ~120 | Form-based step list; Save + Run; surfaces backend 422 errors |
+| 8 | `musu-bee/src/app/c/[company]/workflows/[id]/WorkflowFormClient.tsx` | NEW | ~110 | Orchestration only — name input + Add Step + Save + Run + 422 toast. Per-row controls split to StepRow.tsx |
+| 8b | `musu-bee/src/app/c/[company]/workflows/[id]/StepRow.tsx` | NEW | ~70 | Per-row component: agent dropdown + prompt textarea + depends_on checkboxes + ↑↓✕ buttons. Critic C9 split for complexity-mgmt |
 | 9 | `musu-bee/src/app/c/[company]/workflows/[id]/RunPanel.tsx` | NEW | ~50 | Polls `/status` every 2000ms; renders step badges; click expands |
 | 10 | `musu-bee/e2e/workflows-form.spec.ts` | NEW | ~40 | Playwright: happy path + cycle 422 + empty form validation, mocked |
 
-**Total**: ~520 LOC across 10 files. Master plan §5.D estimated ~400 LOC for 8 files; +120 LOC delta from: proxy split into 3 narrow files (+45), `topoOrder` helper (+25), robust test coverage (+50). Documented for Critic transparency.
+**Total**: ~560 LOC across 11 files (v2 added StepRow.tsx split per Critic C9 + revised WorkflowFormClient down to ~110 LOC). Net delta vs master plan ~400: +160. Documented breakdown:
+- Proxy split into 3 narrow files (+45)
+- `topoOrder` helper in workflow-spec.ts (+25)
+- Robust test coverage incl. C3 reorder + C6 empty-agents (+60)
+- StepRow.tsx component split for complexity mgmt per Critic C9 (+30; offset by -10 in WorkflowFormClient)
 
-**LOC contingency** (if Critic flags scope creep): collapse 3 proxy files into single `[...path]` reuse → recovers ~70 LOC; or trim test coverage by ~30 LOC. Planner recommends accepting ~520 LOC.
+**LOC contingency** (if real LOC overruns): collapse 3 proxy files into single `[...path]` reuse → recovers ~70 LOC.
 
 ### §2.1 Files NOT created
 
@@ -103,14 +108,30 @@ T2-D-mini delivers the **form-based workflow authoring surface** for V23.4 Phase
 
 ## §3 WorkflowSpec encode/decode logic (`workflow-spec.ts`)
 
-### §3.1 Form data model
+### §3.1 Form data model (v2 — Critic C1 fix)
+
+**Critic C1 found HIGH bug in v1**: original spec had separate `step_id` (UI label) and `agent_id` (real agent role); encode hardcoded `agents[].id = step.step_id`, discarding the real agent_id. T2-A' executor (`workflow_executor.py:285`) calls `enqueue_wake(agent_id=step["agent_id"])` where `step["agent_id"]` comes from `workflow_steps.agent_id` written from `AgentSpec.id`. So shipping v1 encode would dispatch to nonexistent agent "step-1" instead of real "writer".
+
+**v2 fix**: drop `step_id` from FormStep entirely. `agent_id` IS the identity. UI shows row position ("Row 1", "Row 2") as separate display-only label, derived from array index.
 
 ```ts
 export interface FormStep {
-  step_id: string;       // user-visible row identifier, also becomes agents[].id
-  agent_id: string;      // agent role / capability key
-  prompt: string;        // user-authored instruction; becomes agents[].command[0]
-  depends_on: string[];  // step_ids of prior steps this step depends on
+  // Stable React identity (UUID generated at row-add time).
+  // Used internally for reorder tracking; NEVER sent to backend.
+  reactKey: string;
+
+  // Real agent role / identity from company's agents table.
+  // Becomes AgentSpec.id directly. Must match server regex
+  // ^[a-z0-9][-a-z0-9]*[a-z0-9]$|^[a-z0-9]$ (max 63 chars, single-char OK per Critic C11).
+  // Must be unique across steps (enforced both client-side and by executor).
+  agent_id: string;
+
+  // User-authored instruction. Becomes AgentSpec.command = [prompt].
+  prompt: string;
+
+  // agent_ids of upstream steps this step depends on.
+  // Stored by agent_id (stable, since agent_id is the identity).
+  depends_on: string[];
 }
 
 export interface WorkflowFormState {
@@ -118,6 +139,20 @@ export interface WorkflowFormState {
   steps: FormStep[];
 }
 ```
+
+**Implications**:
+- Each step's row label in UI = `"Row " + (index + 1)`. No `step-1` style auto-generated identifier.
+- `depends_on` is array of `agent_id` strings (e.g. `["writer", "reviewer"]`), not synthetic `step-N` IDs.
+- Reorder swaps array entries; React `key={step.reactKey}` keeps row identity stable across reorder without renaming agent_ids.
+- Uniqueness constraint: same agent_id can't appear in two rows (enforces "one row per agent role per workflow" — semantically matches executor's dispatch model).
+
+### §3.1.b OQ-OPEN: should single agent_id appear in 2 steps? Decision
+
+Critic C1 OQ: "should same agent_id appear in 2 rows?" Planner v2 decision: **NO** — enforce uniqueness client-side. Rationale:
+- T2-A' executor uses `agent_id` as primary dispatch key. Two steps with same `agent_id` cannot be told apart.
+- Workflow semantics: "writer agent runs 'summarize' then 'rewrite' as two steps" — backend treats this as TWO separate workflow_steps rows with same agent_id, which IS valid SQL-wise but creates dispatch ambiguity (which step's command goes first when same agent enqueued twice?).
+- For mini scope, force unique agent_ids. If user wants writer twice, they create separate company-level agents (`writer`, `writer-2`) via Fleet view.
+- V23.6 visual editor can revisit if dogfood shows demand.
 
 ### §3.2 Backend WorkflowSpec shape (read from `workflow_routes.py:107-170`)
 
@@ -127,7 +162,7 @@ class WorkflowSpec(BaseModel):
     edges: list[EdgeSpec] = Field(default_factory=list)
 
 class AgentSpec(BaseModel):
-    id: str            # pattern ^[a-z0-9][-a-z0-9]*[a-z0-9]$ (max 63)
+    id: str            # pattern ^[a-z0-9][-a-z0-9]*[a-z0-9]$|^[a-z0-9]$ (max 63; single-char OK per Critic C11)
     image: str         # NON-EMPTY required
     command: list[str] = []
     nodeSelector: dict[str, str] = {}  # whitelisted keys only
@@ -143,21 +178,23 @@ class EdgeSpec(BaseModel):
     condition: Literal["succeeded", "failed", "always"] = "succeeded"
 ```
 
-### §3.3 Encode logic
+### §3.3 Encode logic (v2 — Critic C1 fix)
 
 ```
 encodeFormToSpec(name, steps): {name, spec: WorkflowSpec}
   1. Client validation:
      - name non-empty (throw "name required")
      - steps.length >= 1 (throw "at least one step required")
-     - each step.step_id matches pattern (throw on violation)
-     - step_ids unique (throw "duplicate step id: X")
+     - each step.agent_id matches pattern ^[a-z0-9][-a-z0-9]*[a-z0-9]$|^[a-z0-9]$
+       (throw "invalid agent_id: X")
+     - agent_ids unique across steps (throw "duplicate agent: X" — see §3.1.b)
      - each step.agent_id + step.prompt non-empty
-     - each step.depends_on[i] references existing step.step_id (throw on unknown)
+     - each step.depends_on[i] references existing step.agent_id (throw "unknown
+       dependency: X")
   2. Build agents array:
      for step in steps:
        agents.push({
-         id: step.step_id,
+         id: step.agent_id,           // ← Critic C1 fix: real agent identity
          image: "default",
          command: [step.prompt],
          nodeSelector: {},
@@ -170,21 +207,23 @@ encodeFormToSpec(name, steps): {name, spec: WorkflowSpec}
   3. Build edges array:
      for step in steps:
        for upstream in step.depends_on:
-         edges.push({from: upstream, to: step.step_id, condition: "succeeded"})
+         edges.push({from: upstream, to: step.agent_id, condition: "succeeded"})
   4. Return {name, spec: {agents, edges}}
 ```
 
-### §3.4 Decode logic
+**Reorder consequence**: agent_ids are stable identity (NOT regenerated on reorder). depends_on references survive reorder unchanged. encode emits edges using current agent_ids — which are the same agent_ids regardless of row order. ✓
+
+### §3.4 Decode logic (v2 — Critic C1 fix)
 
 ```
 decodeSpecToForm(spec): FormStep[]
-  1. Build reverse-edge map: depends_on[step_id] = []
+  1. Build reverse-edge map: depends_on[agent_id] = []
      for edge in spec.edges:
        depends_on[edge.to].push(edge.from)
   2. For each agent in topoOrder(spec.agents, spec.edges):
      formStep = {
-       step_id: agent.id,
-       agent_id: agent.id,
+       reactKey: crypto.randomUUID(),       // fresh stable key for new row
+       agent_id: agent.id,                  // ← Critic C1: real agent identity
        prompt: agent.command.join(" "),
        depends_on: depends_on[agent.id] ?? [],
      }
@@ -203,16 +242,24 @@ Per Phase 0 Researcher finding (workflow_routes.py:134-152 runs Kahn's algorithm
 
 ## §4 Form UX detail (`WorkflowFormClient.tsx`)
 
-### §4.1 Step row controls
+### §4.1 Step row controls (v2 — Critic C1 fix)
 
-- **Auto-generated step_id**: `step-{N}` where N is 1-indexed row position. Read-only display. Internal React `key` (UUID generated at row-add time) is the stable identity; depends_on references stored by stable key, translated to step_id at encode time. This prevents reorder-induced reference breakage (§9 R5).
-- **Agent role dropdown**: populated by `GET /api/companies/{company_id}/agents` (`server.py:1851`). Falls back to text input if endpoint returns 503 (mirror T2-C convention).
+- **Row label**: "Row {N}" where N is 1-indexed array position. Display-only, regenerates on reorder. NOT a backend identifier.
+- **Agent dropdown**: populated by `GET /api/companies/{company_id}/agents` (`server.py:1851`). Each option shows `agent.name` with `value={agent.id}`. Selected `agent.id` becomes `FormStep.agent_id`. Falls back to text input if endpoint returns 503 OR returns empty list (Critic C6 — must support 0-agent company onboarding). Free-text input validates against AgentSpec.id regex.
 - **Prompt**: `<textarea>` with 3-row default; resizable.
-- **Depends on**: checkbox list rendering all *prior* step_ids (steps with index < current). Multi-select. Hidden if no prior steps.
+- **Depends on**: checkbox list rendering `agent_id` of all *prior* rows (rows with index < current). Multi-select. Hidden if no prior rows.
+- **Uniqueness enforcement** (Critic C1 §3.1.b): if user picks the same agent_id in two rows, validation error on Save with inline highlight. UI prevents picking same agent_id from dropdown if already selected in another row.
 
-### §4.2 Reorder mechanism (Planner decision)
+### §4.2 Reorder mechanism (Planner decision + Critic C8 a11y fix)
 
 **Up/down arrow buttons per row.** NOT drag-and-drop. Rationale: ~30 LOC saved, accessible by default, V23.6 React Flow inherently solves visual reorder.
+
+Accessibility (Critic C8):
+- `<button aria-label="Move row up">↑</button>` (disabled at first row)
+- `<button aria-label="Move row down">↓</button>` (disabled at last row)
+- `<button aria-label="Delete row {N}">✕</button>` includes row position for context
+
+Reorder swaps array entries. `agent_id` (identity) does NOT change. `depends_on` references stay valid (they're stored by `agent_id`, not by row position). React `key={step.reactKey}` ensures React doesn't recycle DOM nodes incorrectly during swap.
 
 ### §4.3 Validation (client-side)
 
@@ -223,25 +270,39 @@ NOT validated client-side: cycle detection (server authoritative), agent_id exis
 ### §4.4 Save flow
 
 ```
-onSave():
-  1. Run client validation; halt + inline errors if fail
+onSave(): returns {ok: boolean, id?: string}
+  1. Run client validation; halt + inline errors if fail → return {ok: false}
   2. body = encodeFormToSpec(name, steps); body.company_id = companyId
-  3. fetch('/api/workflows', POST, JSON.stringify(body))
-  4. On 201: setSavedWorkflowId(json.id); toast saved; router.replace
-  5. On 422: parse json.detail; toast `Save failed: ${detail}`; keep form editable
-  6. On other error: toast "bridge unreachable"
+  3. resp = fetch('/api/workflows', POST, JSON.stringify(body))
+  4. On 201: setSavedWorkflowId(json.id); toast saved; router.replace; return {ok: true, id: json.id}
+  5. On 422: parse json.detail; toast `Save failed: ${detail}`; keep form editable; return {ok: false}
+  6. On other error: toast "bridge unreachable"; return {ok: false}
 ```
 
-### §4.5 Run flow
+### §4.5 Run flow (v2 — Critic C7 race fix)
 
 ```
-onRun():
-  1. If !savedWorkflowId: toast "Save workflow first"; return
-  2. fetch(`/api/workflows/${savedWorkflowId}`, PATCH, {status: 'running'})
-  3. On 200: toast running; RunPanel already polling
+onRun(id?: string):
+  // id parameter avoids race: caller passes savedWorkflowId from chained Save
+  const wfId = id ?? savedWorkflowId;
+  1. If !wfId: toast "Save workflow first"; return
+  2. fetch(`/api/workflows/${wfId}`, PATCH, {status: 'running'})
+  3. On 200: toast running; RunPanel already polling (if mounted)
   4. On 422: toast detail
   5. On 404: toast "Workflow not found — re-save"
 ```
+
+### §4.6 Save-and-Run combined flow (Critic C7)
+
+```
+onSaveAndRun():
+  const result = await onSave();
+  if (result.ok) await onRun(result.id);  // pass id directly, no race
+```
+
+UI: separate Save and Run buttons (existing), plus optional "Save and Run" combined button that chains both. The combined path uses the returned id directly, bypassing React state flush.
+
+Run button is `disabled` when `!savedWorkflowId` (visual cue + prevents standalone race).
 
 ---
 
@@ -309,6 +370,10 @@ Out of scope (master plan §1 SCOPE OUT).
 
 ## §6 API proxy routes
 
+### §6.0 Env var convention (Critic C2 + C10)
+
+`BRIDGE_URL` (server-side proxy URL) uses `MUSU_BRIDGE_URL` (server env, no `NEXT_PUBLIC_` prefix) primary, `NEXT_PUBLIC_BRIDGE_URL` (public) fallback for dev. `MUSU_BRIDGE_TOKEN` is **server-only** (NEVER `NEXT_PUBLIC_*`) — verified safe to embed in proxy route handler. Existing musu-bee codebase has two divergent conventions (`NEXT_PUBLIC_BRIDGE_URL` in catch-all proxy, `NEXT_PUBLIC_MUSU_BRIDGE_URL` in `/c/[id]/page.tsx` direct fetches). T2-D-mini server-side proxies use `NEXT_PUBLIC_BRIDGE_URL` (matches catch-all). Future unification deferred V23.6.
+
 ### §6.1 `app/api/workflows/route.ts` (POST + GET)
 
 ```ts
@@ -358,28 +423,34 @@ All routes passthrough status code from bridge (201/200/204/404/409/422). Body f
 
 ## §7 Tests
 
-### §7.1 `workflow-spec.test.ts`
+### §7.1 `workflow-spec.test.ts` (v2 — Critic C3 + C11 fixes)
 
 Test cases:
-1. encode 3-step linear chain → 3 agents, 2 edges
+1. encode 3-step linear chain → 3 agents (id=agent_id), 2 edges
 2. encode diamond fan-out/in → 4 agents, 4 edges
-3. encode 1-step solo → 1 agent, 0 edges
+3. encode 1-step solo → 1 agent, 0 edges (incl single-char agent_id per Critic C11)
 4. encode rejects empty name (throw)
 5. encode rejects empty steps (throw)
-6. encode rejects duplicate step_id (throw)
-7. encode rejects depends_on to non-existent step (throw)
-8. decode 3-step linear chain → 3 FormStep with correct depends_on
-9. round-trip linear (encode → decode → compare)
-10. round-trip diamond
+6. encode rejects duplicate **agent_id** (throw, per §3.1.b uniqueness)
+7. encode rejects depends_on to non-existent agent_id (throw)
+8. encode rejects invalid agent_id regex (uppercase, dots, etc.)
+9. decode 3-step linear chain → 3 FormStep with correct depends_on (by agent_id, not step_id)
+10. round-trip linear (encode → decode → compare; assert agent_id preserved)
+11. round-trip diamond
+12. **(Critic C3 NEW)** reorder simulation: swap rows 1 and 3, encode emits edges using current agent_ids (unchanged because agent_id IS identity)
+13. **(Critic C3 NEW)** decode of spec with `condition="failed"` edge — agent_id correctly populated, condition silently dropped (document lossiness in test message)
 
-Cycle behavior NOT in client tests (server authoritative per §3.6).
+Cycle behavior NOT in client tests (server authoritative per §3.6; server cycle handler tested in `musu-bridge/tests/test_workflow_routes.py`).
 
-### §7.2 `e2e/workflows-form.spec.ts`
+### §7.2 `e2e/workflows-form.spec.ts` (v2 — Critic C4 + C6 fixes)
 
 Playwright with `page.route()` bridge mocks (mirror `e2e/v23-fleet.spec.ts`):
-1. happy path: fill 3 steps → save 201 → run 200 → poll until succeeded
-2. cycle 422 shows error toast, form remains editable
-3. empty form validation error on Save, no POST issued
+1. **happy path**: fill 3 steps (writer/reviewer/publisher) → save 201 → run 200 → poll until succeeded.
+   **Critic C4 fix**: assert PATCH request body exactly equals `{status: "running"}` (not wrapped, not extra fields).
+2. **cycle 422**: form with cyclic depends_on → POST → backend 422 → error toast shows backend message verbatim → form remains editable
+3. **empty form validation**: click Save with no name + no steps → inline validation errors → POST NOT issued (verify via stub call count)
+4. **(Critic C6 NEW)** **empty company.agents fallback**: stub `/api/companies/X/agents` → returns `[]` → form shows "Add an agent in Fleet view" CTA + free-text input fallback works → user types `custom-agent` → Save succeeds (POST 201 with that agent_id)
+5. **(Critic C4 NEW)** **polling stop condition**: after status reaches `succeeded`, verify polling stops (no further `/status` GETs within 5s window)
 
 ---
 
@@ -442,7 +513,21 @@ When closed beta dogfood signals demand for visual graph editor:
 
 ## §11 Critic findings (resolved)
 
-_Empty header; populated by Phase 1.5 Critic._
+Phase 1.5 Critic (system-architect) reviewed wiki/435 v1 and returned 1 HIGH + 4 MED + 4 LOW + 2 INFO. All resolved in v2:
+
+| ID | Sev | Finding | Resolution (v2) |
+|---|---|---|---|
+| **C1** | **HIGH** | `agents[].id = step.step_id` discards real agent_id; executor would dispatch to nonexistent "step-1" | **Plan rewritten**: dropped `step_id` from FormStep entirely. `agent_id` IS identity. UI shows "Row N" as display-only label. §3.1/§3.3/§3.4/§1.1/§4.1 updated. §3.1.b decision: agent_id unique per workflow |
+| C2 | MED | env var name divergence in codebase | §6.0 documents convention; future unification noted (no V23.5 work) |
+| C3 | MED | Missing reorder/round-trip + condition-lossiness tests | §7.1 tests 12+13 added |
+| C4 | MED | §7.2 Playwright missing PATCH-body assertion | §7.2 test 1 asserts `expect(JSON.parse(req.postData())).toEqual({status: "running"})`; new test 5 polling-stop |
+| C5 | MED | Master plan §5.D references `/run` endpoint (doesn't exist) | Master plan amendment to be included in wiki/439 closure PR (1-line edit) |
+| C6 | LOW | Empty company.agents Playwright case missing | §7.2 test 4 added |
+| C7 | LOW | Save→Run race (state flush timing) | §4.4 returns `{ok, id}`; §4.5 takes optional `id` param; §4.6 Save-and-Run chained path bypasses React state. Run button disabled when `!savedWorkflowId` |
+| C8 | LOW | Reorder buttons missing aria-labels | §4.2 specifies `aria-label="Move row up/down/Delete row N"` |
+| C9 | LOW | WorkflowFormClient 120 LOC underbudgeted for 10 features | §2 split into WorkflowFormClient (~110 orchestration) + StepRow.tsx (~70 per-row) |
+| C10 | INFO | Env var safety (server vs client) | §6.0 documents: token is server-only |
+| C11 | INFO | AgentSpec.id regex slightly wrong in §3.2 doc | §3.2 regex fixed to include `\|^[a-z0-9]$` single-char branch |
 
 ---
 
@@ -467,3 +552,4 @@ _Empty header; populated by Phase 1.5 Critic._
 | Rev | Date | Change | Trigger |
 |---|---|---|---|
 | v1 | 2026-05-19 | Initial T2-D-mini detail plan per master plan §5.D reshape | grilling Q3 (user chose mini) |
+| **v2** | 2026-05-19 | Critic 1 HIGH (C1 agent_id identity) + 4 MED + 4 LOW + 2 INFO applied | Phase 1.5 Critic findings |
