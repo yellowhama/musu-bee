@@ -1,13 +1,16 @@
 {
   "name": "musu-relay",
-  "version": "0.23.2",
-  "description": "musu.pro WebRTC signaling + telemetry (V23.2). Hosts: signaling.musu.pro on Fly.io.",
+  "version": "0.23.4",
+  "description": "Self-hostable WebRTC signaling rendezvous for musu mesh (V23.4).",
   "main": "dist/signaling/server.js",
   "scripts": {
     "dev": "ts-node src/signaling/server.ts",
+    "dev:user-server": "ts-node src/signaling/user-server.ts",
     "dev:legacy-v21": "ts-node src/server.ts",
     "build": "tsc",
+    "build:user-server": "tsc -p tsconfig.user-server.json",
     "start": "node dist/signaling/server.js",
+    "start:user-server": "node dist/signaling/user-server.js",
     "test": "jest --forceExit --detectOpenHandles"
   },
   "dependencies": {

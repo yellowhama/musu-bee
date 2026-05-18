@@ -58,7 +58,20 @@ param(
     # hatch inside Send-MusuInstallAttempt itself; either suffices. The
     # local Save-MusuFailureDump write remains unconditional in both
     # modes (durable record stays local).
-    [switch]$NoTelemetry
+    [switch]$NoTelemetry,
+    # V23.4 T2-F (wiki/433) self-hosted signaling rendezvous flags.
+    # See §2.3.1 + OQ-CRIT-2 + OQ-CRIT-4.
+    #   -MakeMeRendezvous : this PC plays the rendezvous role (binds 0.0.0.0:9900
+    #                       and runs musu-signaling OpenRC service).
+    #   -RendezvousUrl    : peer mode — point at an existing rendezvous PC.
+    #                       Shape: http(s)://host[:port][/path]. Validation
+    #                       regex: ^https?://[^/]+(/.*)?$
+    #   -TelemetryBase    : OQ-CRIT-2 empty-by-default. Operator opts in by
+    #                       supplying https://telemetry.musu.pro/v1/telemetry.
+    #                       Empty value = telemetry disabled (warning logged).
+    [switch]$MakeMeRendezvous,
+    [string]$RendezvousUrl = "",
+    [string]$TelemetryBase = ""
 )
 
 Set-StrictMode -Version 2.0
@@ -608,6 +621,101 @@ if (-not $resp.user_id) {
 $script:UserId = $resp.user_id
 Write-MusuOk "Resolved user_id $($script:UserId.Substring(0, 8))..."
 
+# ── Step 5.9 — V23.4 T2-F rendezvous role decision (wiki/433 §2.3.2) ──────
+#
+# Decision priority (per OQ-CRIT-2 + Critic M2 precision):
+#   1. -MakeMeRendezvous flag: this PC = rendezvous, SignalingUrl=localhost.
+#   2. -RendezvousUrl <url>:   this PC = peer, point at existing rendezvous.
+#   3. Neither flag + state.json lacks rendezvous_role + (no prior install
+#      OR -ForceReinstall): interactive prompt, default-y.
+#   4. Neither flag + state.json HAS rendezvous_role: preserve prior role
+#      (default-n on the prompt) unless -ForceReinstall re-asks.
+#
+# Outputs:
+#   $script:IsRendezvous (bool)
+#   $script:SignalingUrl (string)
+#
+# URL validation regex (Critic M2): ^https?://[^/]+(/.*)?$
+# Save-MusuState extension: persists rendezvous_role='rendezvous'|'peer'
+# atomically so future re-installs honor the prior choice (T9b).
+
+Write-MusuInfo "Step 5.9/12: rendezvous role decision"
+
+$rendezvousUrlRegex = '^https?://[^/]+(/.*)?$'
+$script:IsRendezvous = $false
+$script:SignalingUrl = $SigningBase
+
+# Read prior role from state.json (if any). Save-MusuState atomic helpers
+# are in Musu-Common.psm1. State file path resolution mirrors the
+# existing top-of-file pattern (Step 1 already initialized $StateFile).
+$priorRole = $null
+if ($StateFile -and (Test-Path $StateFile)) {
+    try {
+        $priorState = Get-Content $StateFile -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($priorState.PSObject.Properties["rendezvous_role"]) {
+            $priorRole = [string]$priorState.rendezvous_role
+        }
+    } catch {
+        Write-MusuWarn "Could not parse state.json for rendezvous_role; ignoring"
+    }
+}
+
+if ($MakeMeRendezvous) {
+    $script:IsRendezvous = $true
+    $script:SignalingUrl = "http://localhost:9900"
+    Write-MusuOk "Rendezvous role: this PC (flag -MakeMeRendezvous)"
+} elseif ($RendezvousUrl) {
+    if ($RendezvousUrl -notmatch $rendezvousUrlRegex) {
+        throw "Invalid -RendezvousUrl shape '$RendezvousUrl'; expected http(s)://host[:port][/path]"
+    }
+    $script:IsRendezvous = $false
+    $script:SignalingUrl = $RendezvousUrl
+    Write-MusuOk "Rendezvous role: peer (flag -RendezvousUrl $RendezvousUrl)"
+} else {
+    # Interactive prompt. Default-y precision per Critic M2:
+    #   default-y when ALL of (no flags) AND ((-ForceReinstall) OR (no prior role))
+    $defaultYes = (-not $priorRole) -or $ForceReinstall
+    $defaultLabel = if ($defaultYes) { "Y/n" } else { "y/N" }
+    if ($priorRole -and -not $ForceReinstall) {
+        Write-MusuInfo "Prior rendezvous_role from state.json: $priorRole (default-n on prompt; pass -ForceReinstall to re-ask)"
+    }
+    $answer = Read-Host "Make this PC the rendezvous signaling server? [$defaultLabel]"
+    $normalized = ($answer ?? "").Trim().ToLower()
+    $yes = if ($normalized -eq "") { $defaultYes } else { $normalized -eq "y" -or $normalized -eq "yes" }
+    if ($yes) {
+        $script:IsRendezvous = $true
+        $script:SignalingUrl = "http://localhost:9900"
+        Write-MusuOk "Rendezvous role: this PC (interactive)"
+    } else {
+        $promptUrl = Read-Host "Enter rendezvous URL (e.g. http://192.168.1.10:9900)"
+        if ($promptUrl -notmatch $rendezvousUrlRegex) {
+            throw "Invalid rendezvous URL shape '$promptUrl'; expected http(s)://host[:port][/path]"
+        }
+        $script:IsRendezvous = $false
+        $script:SignalingUrl = $promptUrl
+        Write-MusuOk "Rendezvous role: peer (interactive, url=$promptUrl)"
+    }
+}
+
+# Persist rendezvous_role atomically to state.json (Critic M2 / T9b).
+$roleStr = if ($script:IsRendezvous) { "rendezvous" } else { "peer" }
+if ($StateFile) {
+    try {
+        $existingState = @{}
+        if (Test-Path $StateFile) {
+            $tmp = Get-Content $StateFile -Raw -Encoding UTF8 | ConvertFrom-Json
+            foreach ($p in $tmp.PSObject.Properties) {
+                $existingState[$p.Name] = $p.Value
+            }
+        }
+        $existingState["rendezvous_role"] = $roleStr
+        $existingState["rendezvous_url"] = $script:SignalingUrl
+        Save-MusuState -State $existingState -StateFile $StateFile
+    } catch {
+        Write-MusuWarn "Save-MusuState rendezvous_role failed: $($_.Exception.Message)"
+    }
+}
+
 # ── Step 6 — wsl --import with ACL hardening + C2 pre-check ────────────────
 
 Write-MusuInfo "Step 6/12: wsl --import musu"
@@ -678,6 +786,30 @@ try {
     }
     Write-MusuOk "OpenRC service file replaced atomically"
 
+    # ── Step 7.5 — V23.4 T2-F: install musu-signaling OpenRC service file ──
+    # Atomic tmp+mv install of /etc/init.d/musu-signaling — ONLY when this PC
+    # plays the rendezvous role. Per OQ-CRIT-4 (resolves Critic M1): NOT
+    # added to default runlevel; started by musu-init after gateway boot
+    # when MUSU_IS_RENDEZVOUS=true.
+    if ($script:IsRendezvous) {
+        Write-MusuInfo "Step 7.5/12: install /etc/init.d/musu-signaling (rendezvous role)"
+        $sigSrc = Join-Path $PSScriptRoot "openrc-musu-signaling.conf"
+        if (-not (Test-Path $sigSrc)) {
+            throw "openrc-musu-signaling.conf missing at $sigSrc"
+        }
+        $sigContent = (Get-Content $sigSrc -Raw -Encoding UTF8) -replace "`r`n", "`n"
+        $sigContent | & wsl.exe -d musu -- sh -c `
+            "cat > /etc/init.d/musu-signaling.tmp && chmod 0755 /etc/init.d/musu-signaling.tmp && mv /etc/init.d/musu-signaling.tmp /etc/init.d/musu-signaling"
+        if ($LASTEXITCODE -ne 0) {
+            throw "musu-signaling OpenRC service file install failed: exit $LASTEXITCODE"
+        }
+        # OQ-CRIT-4: NOT added to default runlevel; musu-init starts after
+        # gateway boot when MUSU_IS_RENDEZVOUS=true is set in gateway.env.
+        Write-MusuOk "musu-signaling OpenRC service file installed (not in default runlevel)"
+    } else {
+        Write-MusuInfo "Step 7.5/12: skipping musu-signaling install (peer role)"
+    }
+
     # ── Step 8 — Write /etc/musu/gateway.env atomically (C6 MED) ───────────
 
     Write-MusuInfo "Step 8/12: write /etc/musu/gateway.env"
@@ -694,9 +826,22 @@ try {
         $script:PrereqResult.probes.PSObject.Properties["bios_vt"]) {
         $biosVt = $script:PrereqResult.probes.bios_vt
     }
+    # V23.4 T2-F (wiki/433 §2.3.3):
+    #   MUSU_SIGNALING_URL = the rendezvous URL chosen at Step 5.9 (was
+    #     hard-coded to $SigningBase = signaling.musu.pro). Per
+    #     [[feedback-self-contained-product]], cloud signaling is now
+    #     optional infrastructure, not a product runtime requirement.
+    #   MUSU_TELEMETRY_BASE = installer-prompted ($TelemetryBase param),
+    #     EMPTY by default (OQ-CRIT-2 / Critic H3 strategic resolution).
+    #     Empty value = telemetry disabled (warning logged below). Decoupled
+    #     from MUSU_SIGNALING_URL per F9.
+    #   MUSU_IS_RENDEZVOUS = true|false, read by musu-init at boot to
+    #     conditionally start musu-signaling (OQ-CRIT-4 / Critic M1).
+    $isRendezvousLower = $script:IsRendezvous.ToString().ToLower()
     $envContent = @"
-MUSU_SIGNALING_URL=$SigningBase
-MUSU_TELEMETRY_BASE=$SigningBase/v1/telemetry
+MUSU_SIGNALING_URL=$($script:SignalingUrl)
+MUSU_TELEMETRY_BASE=$TelemetryBase
+MUSU_IS_RENDEZVOUS=$isRendezvousLower
 MUSU_TUNNEL_TOKEN=$TunnelToken
 MUSU_USER_ID=$($script:UserId)
 MUSU_INSTALL_ID=$($script:InstallId)
@@ -707,6 +852,10 @@ MUSU_WIN_OS_VERSION=$osVer
 MUSU_BIOS_VT=$biosVt
 MUSU_INSTALL_STARTED_AT_UTC=$($script:StartTime.ToUniversalTime().ToString("o"))
 "@
+    if (-not $TelemetryBase) {
+        Write-MusuWarn "Telemetry disabled (MUSU_TELEMETRY_BASE empty). musu.pro support team will not see install issues."
+        Write-MusuInfo "To opt-in, re-run installer with: -TelemetryBase https://telemetry.musu.pro/v1/telemetry"
+    }
     # Strip CR
     $envContent = $envContent -replace "`r`n", "`n"
     # Atomic write via tmp+mv (C6 MED): umask 077 → cat > .tmp → chmod →

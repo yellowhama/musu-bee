@@ -141,4 +141,21 @@ $KUBECTL -n musu scale deploy musu-bridge --replicas=1 || true
 echo "musu-init: starting musu-gateway"
 rc-service musu-gateway start
 
+# ── 5. Conditionally start musu-signaling (V23.4 T2-F / wiki/433 OQ-CRIT-4) ─
+# Read MUSU_IS_RENDEZVOUS from /etc/musu/gateway.env. When "true", start
+# musu-signaling AFTER musu-gateway is up. The `|| echo` pattern is load-
+# bearing per NEW-A4 / OQ-A5: musu-init runs with `set -e` (line 22), so a
+# bare `rc-service musu-signaling start` failure would propagate and stop
+# the init script, leaving the user without the working gateway. Swallowing
+# the failure with a WARNING line keeps gateway up even if signaling fails
+# to bind. Idempotent: rc-service on an already-started service returns 0.
+if [ -f /etc/musu/gateway.env ]; then
+    # shellcheck disable=SC1091
+    . /etc/musu/gateway.env
+fi
+if [ "${MUSU_IS_RENDEZVOUS:-false}" = "true" ]; then
+    echo "musu-init: starting musu-signaling (rendezvous role)"
+    rc-service musu-signaling start || echo "musu-init: WARNING musu-signaling failed; gateway still up"
+fi
+
 echo "musu-init: K3s + gateway up"
