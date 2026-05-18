@@ -2,6 +2,26 @@
 
 All notable changes to MUSU are documented here.
 
+## [1.13.0-dev] - 2026-05-19 — V23.5 (in progress): HTML wiki memory + bridge hardening + CoS aggregation
+
+Branch: `v23/phase4` (continues from Phase 4; new `v23/phase5` cut deferred
+until operator main-merge gate #436 clears). Implementation plan: wiki/460
+(`docs/V23_5_IMPL_PLAN_2026_05_19.md`). Master plan: wiki/459 v4
+(`docs/V23_5_MASTER_PLAN_2026_05_19.md`).
+
+Scope: 18 sub-WS, ~1540 LOC across 9 waves. Autonomous /loop with one
+operator-gated point (Phase −1 mini-gate for C-3 LLM opt-in path).
+
+- **S-1** SSOT_1PAGE 3-layer → 4-layer (CoS = Layer 0) — IN PROGRESS
+- **W-1..W-8** Agent-facing HTML wiki render (Tariq #14 pattern) — pending
+- **H-1..H-5** musu-bridge hardening (handler error opacity, uniform DB
+  try/catch, /health/ready PRAGMA, X-Request-ID, error classification) — pending
+- **C-1..C-4** CoS briefing aggregation (algorithmic default + LLM opt-in) — pending
+
+Entries below populated as sub-WS ship.
+
+---
+
 ## [1.12.0] - 2026-05-19 — V23.4 Phase 4: asyncio+SQLite workflow runner + Fleet view + fly.io retirement + form-based workflow builder + residual cleanup
 
 Branch: `v23/phase4` (HEAD `b6a1548`). Const VII main-merge gate
