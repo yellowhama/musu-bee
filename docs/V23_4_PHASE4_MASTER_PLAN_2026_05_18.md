@@ -518,4 +518,77 @@ All adjudicated in §0 above. SG-1 through SG-5 resolved via reshape. SG-6 retir
 | Rev | Date | Change | Trigger |
 |---|---|---|---|
 | **v1** | 2026-05-18 (earlier) | Original master plan: Argo + CRD + Go operator + fly.io retention. 4400 LOC, 9-11 weeks, 3 languages. | system-architect Critic gate (17 findings, all tactical — missed thesis) |
-| **v2** | 2026-05-18 (this revision) | Reshape per Phase -1 Strategic Gate RED verdict. T2-A→T2-A' (asyncio+SQLite), T2-B ELIMINATED, T2-F (fly retirement) ADDED. 3400 LOC, 8 weeks max, 2 languages, 0 paid SaaS in critical path. | Phase -1 business-panel-experts debate; 4-framework convergence on 8 HIGH findings; user accepted reshape |
+| **v2** | 2026-05-18 | Reshape per Phase -1 Strategic Gate RED verdict. T2-A→T2-A' (asyncio+SQLite), T2-B ELIMINATED, T2-F (fly retirement) ADDED. 3400 LOC, 8 weeks max, 2 languages, 0 paid SaaS in critical path. | Phase -1 business-panel-experts debate; 4-framework convergence on 8 HIGH findings; user accepted reshape |
+| **v3** | 2026-05-18 (this update) | §13 Sub-WS execution status added. T2-A' SHIPPED; T2-F + T2-C plan-drafted with Critic BLOCK; T2-D pending; T2-Z deferred. | Mid-Phase-4 status checkpoint after T2-A' Builder+Auditor+Scribe cycle complete |
+
+---
+
+## §13 Sub-WS execution status (updated 2026-05-18, post T2-A' ship)
+
+| Sub-WS | Phase | Status | Detail | Closure |
+|---|---|---|---|---|
+| **T2-A'** | 0→1→1.5→3→5→7 | **SHIPPED** | wiki/432 | wiki/436 |
+| **T2-F** | 0→1→1.5 BLOCK | plan-stage Critic returned 5 HIGH; revision queued | wiki/433 | wiki/437 (pending) |
+| **T2-C** | 0→1→1.5 BLOCK | plan-stage Critic returned 3 HIGH; revision queued | wiki/434 | wiki/438 (pending) |
+| **T2-D** | not started | gated on T2-A' API (now live) + T2-C component conventions | wiki/435 (pending) | wiki/439 (pending) |
+| **T2-Z** | not started | 6 micro-batches Z1-Z6 deferred to Phase 4 close | wiki/440-446 (pending) | wiki/446 (pending) |
+
+### T2-A' SHIPPED detail (branch `v23/phase4` HEAD `6f55e99`)
+
+- **Phase 0 Researcher**: 6 OQs resolved with file:line evidence (schema v37 location, enqueue_wake primitive, Pattern A vs B, depends_on_json shape, crash recovery default, executor poll interval)
+- **Phase 1 Planner**: wiki/432 detail plan ~1000 lines, 9 sections
+- **Phase 1.5 Critic** (system-architect): 5 HIGH + 5 MED + 4 LOW + 3 INFO
+  - H1: `_is_primary` env var (MUSU_NODE_ROLE not MUSU_PRIMARY_URL)
+  - H2: RETURNING + truthiness check (no `.rowcount` on `db.execute()`)
+  - H3: `_claim_step_toctou` takes full step dict
+  - H4: `_get_db()` per axis_routes.py convention (no `request.app.state.db`)
+  - H5: `_get_sync_token` from sync_engine (not mesh_router); `_primary_url` local helper
+- **Phase 5 plan-as-spec Auditor** (quality-engineer): 2 NEW HIGH + 3 MED + 4 LOW + 2 INFO
+  - A-H1: `workflow_steps.updated_at` column missing (KindSource default contract); every UPDATE bumps it
+  - A-H2: peer-side terminal PATCH returns bool with HTTP status check (silent state loss otherwise)
+- **Phase 3 Builder** (python-expert): 11 files, 3039 insertions
+  - Schema v37 in `musu-core/migrations.py`
+  - 13 Pydantic v2 models + 7 FastAPI routes in NEW `workflow_routes.py`
+  - 9 handlers in `handlers.py` (extends from line 2511)
+  - asyncio executor + peer-sweeper in NEW `workflow_executor.py`
+  - lifespan + router mount in `server.py`
+  - 29 tests in 2 NEW test files (T1-T27 + 2 split-coverage)
+- **Phase 5 Audit (built code)**: SHIP-OK; all 5 Critic HIGH + 2 Auditor HIGH verified in built code with file:line evidence; 29/29 plan tests green; 722→751 test count; mypy clean
+- **Orchestrator post-audit**: 1 MED hygiene fix (M-1 stale v35 test pin)
+- **Phase 7 Scribe**: wiki/436 closure doc (~470 lines, 12 sections, mirrors wiki/396 template)
+
+### T2-F plan-stage status (Critic BLOCK)
+
+Phase 0 Researcher 12 findings (F1-F12) + 4 OQ orchestrator-resolved (LAN-only beta, telemetry separate, `-MakeMeRendezvous` flag, spike-demo deferred). Phase 1 Planner wiki/433 ~365 lines.
+
+Critic returned **5 HIGH + 4 MED + 5 LOW**. Most acute:
+- C-T2F-H1: telemetry transitive import via server.ts pulls `better-sqlite3` (regular dep) onto user PC — needs `shared.ts` extraction
+- C-T2F-H2: `tsconfig.docker.json` orphan after Dockerfile deletion — rename to `tsconfig.user-server.json`
+- **C-T2F-H3 (strategic)**: `MUSU_TELEMETRY_BASE=https://telemetry.musu.pro/v1/telemetry` hardcoded as installer default = paid-SaaS dep in disguise. Equivalent to Phase -1 territory caught at Phase 1.5 — same pattern as v1's fly+Argo creep but tactical scale. Critic recommendation: installer prompts user with empty-default + warning; telemetry becomes opt-in not default
+- C-T2F-H4: missing `installer/test-signaling-smoke.ps1` spec (referenced in T12 + §5 acceptance but not in §1/§2 implementation)
+- C-T2F-H5: `_wssConnectionHandler` extraction signature ambiguity
+
+Plan revision (~105 LOC) + plan-as-spec Auditor + Builder queued for next iteration.
+
+### T2-C plan-stage status (Critic BLOCK)
+
+Phase 0 Researcher 15 findings (F-R1 to F-R15) + 7 OQ orchestrator-resolved (no touch app/page.tsx, /fleet public, chat carve-out, vocab scope src/app only, 3-bar mirror, inflight count badge, narrow test:vocab script). Phase 1 Planner wiki/434 ~450 lines.
+
+Critic returned **3 HIGH + 5 MED + 5 LOW + 3 INFO**. Most acute:
+- C-T2C-1: vocab `BANNED_WORDS` at `src/app/**` scope hits existing legitimate strings (`AbortController`, `"operators"` in marketing copy, Paddle webhook handler, K8s API path literal `/api/v1/namespaces`) → first commit fails Const VII per-push gate
+- C-T2C-2: `src/app/app/dashboard/page.tsx` is currently `"use client"` component; redirect-stub conversion needs `"use client"` removal + body rewrite (plan only describes server-component template)
+- C-T2C-3: `GET /api/agents` endpoint **EXISTS** at `server.py:1483-1486` — plan free-text fallback wrong; AddPcWizard should multiselect from endpoint with 503 fallback
+
+Plan revision (~150 LOC) + plan-as-spec Auditor + Builder queued for next iteration.
+
+### Token economics (this iteration ≈ 600K subagent + orchestrator)
+
+| Phase | Token (~K) | Output |
+|---|---|---|
+| T2-A' full cycle (Researcher → Scribe) | 280 | 3039 LOC code + 29 tests + wiki/436 |
+| T2-F Phase 0 + Phase 1 + Phase 1.5 | 120 | wiki/433 plan + Critic findings |
+| T2-C Phase 0 + Phase 1 + Phase 1.5 | 110 | wiki/434 plan + Critic findings |
+| Doc writing (qual eval, listup, status) | 50 | wiki/433-qual + wiki/449 + master plan §13 + V23 master §15+§16 |
+| Orchestrator overhead | 40 | task tracking, commit/push, decisions |
+
+Order-of-magnitude rework savings vs audit-after-build path remains validated: T2-A' alone caught 7 HIGH at plan stage (5 Critic + 2 Auditor) that would have cost ~7 × 60K rework tokens = 420K vs ~42K plan-gate cost. T2-F's H3 strategic finding alone would have shipped paid-SaaS dep to users — undetected cost much higher than tokens.

@@ -1426,3 +1426,75 @@ V23.3 starts the day after B4c records `gate_decision`. Plan candidates
 > 12+ Critic HIGHs caught before Builder, 5 Auditor MEDIUMs caught
 > in audit-fix loops, 189/189 tests stable. Awaiting 5-host empirical
 > data to fire α/β decision; V23.3 plan branches accordingly.**
+
+---
+
+## 15. V23.3 status (updated 2026-05-17)
+
+V23.3 fully shipped on `v22/gap-analysis` (HEAD `4c191a4` at close). Closure rollup at wiki/396, qual eval at wiki/397. 218/218 tests green, dual-audit SHIP-OK, cross-cutting final audit SHIP-OK.
+
+What's shipped (9 sub-workstreams):
+- Tier-A1.a/b/c: musu-relay Dockerfile + K3s manifest + Secret mount + parallel-path cutover + Const VI bench (wiki/391-393)
+- A2: wrtc factory wiring on musu-relay-gateway (wiki/394)
+- A3.helper/A3.swap: signAndPost helper + client.ts/main.ts call-site swap (wiki/395)
+- B2: install_attempt endpoint on musu-relay signaling telemetry (wiki/391 + NEW-MEDs forward-pointed to V23.4 Tier-1)
+- B6/B7/B8: SOURCE_DATE_EPOCH + openrc conf convergence + .gitattributes LF (small-batch wins)
+
+Main-merge to `main` remains operator-pending at V23.3 close — bundled with V23.4 Tier-1 close per wiki/429 §5.
+
+V23.4 Tier-1 cleanup (3 NEW-MEDs from V23.3 B2 closure) ran on the same branch with single-quality-engineer audits per sub-WS — kept light because each sub-WS was ≤30 LOC.
+
+---
+
+## 16. V23.4 status (updated 2026-05-18)
+
+V23.4 split into **Tier-1** (residual security fixes; SHIPPED) and **Phase 4** (the main feature lift; in progress).
+
+### V23.4 Tier-1 — SHIPPED on `v22/gap-analysis` HEAD `08b0c1a`
+
+- F-B2-1: install_attempt retention sweeper (wiki/406 + wiki/426; +2 tests; 220 baseline)
+- F-B2-2: PowerShell resume-path state file enrichment (wiki/407 + wiki/427)
+- F-B2-3: uniform DB-write try/catch on 4 telemetry routes (wiki/408 + wiki/428; +4 tests; 222 final)
+- Tier-1 final closure wiki/429 + qual eval wiki/430 + CHANGELOG 1.11.0
+
+### V23.4 Phase 4 — IN PROGRESS on `v23/phase4` (cut off `v22/gap-analysis` HEAD 2026-05-18)
+
+**Phase -1 Strategic Gate** (NEW agent-team mode addition per [[feedback-strategic-critic-gate]]): business-panel-experts debate-mode panel returned RED on the v1 plan thesis. Reshape committed in wiki/431-v2:
+
+- **ELIMINATED**: T2-A Argo Workflows install (~600 LOC + 200MB OCI), T2-B Go controller-runtime operator (~1300 LOC + new language)
+- **REPLACED with**: T2-A' asyncio + SQLite workflow runner (~700 LOC Python, single-process in musu-bridge)
+- **ADDED**: T2-F fly.io retirement + self-hosted signaling rendezvous (Critic-flagged H3 telemetry.musu.pro hardcoded as a hidden paid-SaaS dep — applies same Phase -1 reasoning at tactical level)
+- Net plan delta: 4400 → 3400 LOC, 11 → 8 weeks, 3 → 2 languages, 1 → 0 paid-SaaS critical-path
+
+**T2-A' SHIPPED** (this iteration, branch `v23/phase4` HEAD `6f55e99`):
+- Full agent-team cycle: Phase 0 Researcher + Phase 1 Planner + Phase 1.5 Critic + Phase 3 Builder (python-expert) + Phase 5 Auditor (quality-engineer) + Phase 7 Scribe (technical-writer)
+- 11 files: 3039 insertions (Schema v37 + 13 Pydantic models + 7 FastAPI routes + 9 handlers + asyncio executor + peer-sweeper + 29 tests)
+- Critic 5 HIGH + Auditor 2 HIGH all resolved with file:line verification (wiki/432 §11+§12 disposition tables)
+- 29/29 plan tests T1-T27 green; 722→751 bridge test count delta; mypy clean
+- Const III gate on v37 migration operator-pending at prod apply
+- wiki/436 closure doc
+
+**T2-F + T2-C plan-drafted, Critic-BLOCK** (this iteration, branch `v23/phase4` HEAD `dca6dda`):
+- T2-F (wiki/433, fly.io retirement, ~365 LOC plan): Critic 5 HIGH + 4 MED + 5 LOW. Strategic finding C-T2F-H3: telemetry.musu.pro hardcoded as installer default = paid-SaaS dep in disguise, equivalent to Phase -1 territory. Plan revision pending.
+- T2-C (wiki/434, fleet UI, ~450 LOC plan): Critic 3 HIGH + 5 MED. Most acute C-T2C-1: vocab BANNED_WORDS will hit existing AbortController/operators/webhook/namespaces strings → first commit fails Const VII. Plan revision pending.
+
+**Phase 4 still queued**: T2-D React Flow editor (gated on T2-A' API which is now live), T2-Z residual cleanup (defer to Phase 4 close), Phase 4 final closure wiki/447 + qual eval wiki/448 + CHANGELOG 1.12.0.
+
+**V23.4 Phase 4 close gate**: operator main-merge bundle (V23.3 + V23.4 Tier-1 + V23.4 Phase 4) → `main` after all sub-WS SHIP-OK.
+
+### Agent-team mode validation (3× in row)
+
+Per [[feedback-plan-stage-auditor]] memory: Critic + Auditor catch non-overlapping defect classes. Validated on T2-A' (Critic 5 HIGH tactical + Auditor 2 HIGH structural cross-section invariants = 7 total), T2-F (Critic 5 HIGH includes H3 strategic-level finding traditionally Phase -1 territory), T2-C (Critic 3 HIGH includes vocab-on-existing-code defect that would have failed first per-push commit). Plan-stage gating prevents ~order-of-magnitude rework token spend vs audit-after-build per wiki/433-qual.
+
+---
+
+## 17. One-line summary (updated for V23.4 Phase 4 mid-flight)
+
+> **V23.3 + V23.4 Tier-1 shipped on `v22/gap-analysis`; V23.4 Phase 4
+> reshaped by Phase -1 Strategic Gate from 4400→3400 LOC, retiring Argo
+> + Go operator + fly.io critical-path. T2-A' (asyncio workflow runner)
+> shipped clean with 7 HIGH plan-stage findings (5 Critic + 2 Auditor)
+> all resolved before Builder. T2-F + T2-C drafted + Critic-blocked
+> pending plan revision. Phase -1 + Critic + Auditor agent-team mode
+> validated 3× — order-of-magnitude rework savings vs solo-orchestrator
+> baseline.**
