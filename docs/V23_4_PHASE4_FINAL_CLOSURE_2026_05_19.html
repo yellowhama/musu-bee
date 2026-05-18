@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V23.4 Phase 4 Final Closure — wiki/447</title>
+<style>
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --surface-2: #f4f4f5;
+  --border: #e4e4e7;
+  --text: #18181b;
+  --text-dim: #52525b;
+  --accent: #2563eb;
+  --accent-soft: #dbeafe;
+  --ok: #16a34a;
+  --ok-soft: #dcfce7;
+  --warn: #d97706;
+  --warn-soft: #fef3c7;
+  --high: #dc2626;
+  --high-soft: #fee2e2;
+  --code-bg: #f4f4f5;
+  --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0a0a0a;
+    --surface: #18181b;
+    --surface-2: #27272a;
+    --border: #3f3f46;
+    --text: #fafafa;
+    --text-dim: #a1a1aa;
+    --accent: #60a5fa;
+    --accent-soft: #1e3a8a;
+    --ok: #4ade80;
+    --ok-soft: #14532d;
+    --warn: #fbbf24;
+    --warn-soft: #78350f;
+    --high: #f87171;
+    --high-soft: #7f1d1d;
+    --code-bg: #18181b;
+    --shadow: 0 1px 2px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.3);
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+.container { max-width: 920px; margin: 0 auto; padding: 32px 20px 80px; }
+header.doc-header { border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 24px; }
+.eyebrow { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); font-weight: 600; }
+h1 { font-size: 28px; font-weight: 700; margin: 6px 0 4px; letter-spacing: -0.01em; }
+.subtitle { color: var(--text-dim); font-size: 14px; margin: 0; }
+.meta-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; padding: 3px 10px; border-radius: 999px;
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--text-dim);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.chip-ok { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
+.chip-warn { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+.chip-high { background: var(--high-soft); color: var(--high); border-color: transparent; }
+
+.tldr {
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 4px solid var(--accent); border-radius: 8px;
+  padding: 20px 22px; box-shadow: var(--shadow); margin-bottom: 32px;
+}
+.tldr h2 { margin: 0 0 10px; font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.tldr-grid { display: grid; grid-template-columns: 150px 1fr; gap: 6px 16px; font-size: 14px; }
+.tldr-grid dt { color: var(--text-dim); font-weight: 500; }
+.tldr-grid dd { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+@media (max-width: 600px) {
+  .tldr-grid { grid-template-columns: 1fr; gap: 2px 0; }
+  .tldr-grid dt { margin-top: 8px; }
+}
+
+h2.section { font-size: 20px; font-weight: 700; margin: 36px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+h3 { font-size: 16px; font-weight: 600; margin: 22px 0 10px; }
+
+details {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; margin-bottom: 12px; overflow: hidden;
+}
+details > summary {
+  cursor: pointer; padding: 14px 18px; font-weight: 600; font-size: 14px;
+  list-style: none; display: flex; align-items: center; gap: 10px; user-select: none;
+}
+details > summary::-webkit-details-marker { display: none; }
+details > summary::before {
+  content: "\25B6"; font-size: 10px; color: var(--text-dim);
+  transition: transform 0.15s ease; flex-shrink: 0;
+}
+details[open] > summary::before { transform: rotate(90deg); }
+details > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+details > .details-body { padding: 4px 18px 18px; border-top: 1px solid var(--border); }
+
+table {
+  width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px;
+  background: var(--surface); border-radius: 6px; overflow: hidden; border: 1px solid var(--border);
+}
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { background: var(--surface-2); font-weight: 600; font-size: 12px; letter-spacing: 0.02em; }
+tr:last-child td { border-bottom: none; }
+td.mono, code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.sev { display: inline-block; padding: 1px 7px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+.sev-high { background: var(--high-soft); color: var(--high); }
+.sev-med  { background: var(--warn-soft); color: var(--warn); }
+.sev-low  { background: var(--surface-2); color: var(--text-dim); }
+.sev-info { background: var(--accent-soft); color: var(--accent); }
+.sev-ok   { background: var(--ok-soft); color: var(--ok); }
+
+code {
+  background: var(--code-bg); padding: 1px 5px; border-radius: 3px;
+  font-size: 0.92em; border: 1px solid var(--border);
+}
+pre {
+  background: var(--code-bg); border: 1px solid var(--border);
+  border-radius: 6px; padding: 12px 14px; overflow-x: auto;
+  font-size: 12.5px; line-height: 1.5; margin: 10px 0;
+}
+pre code { background: transparent; padding: 0; border: none; font-size: inherit; }
+
+.diagram {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px; margin: 14px 0; text-align: center;
+}
+.diagram svg { max-width: 100%; height: auto; }
+.diagram-caption { font-size: 12px; color: var(--text-dim); margin-top: 8px; font-style: italic; }
+
+.callout {
+  border-left: 3px solid var(--accent); background: var(--surface);
+  padding: 12px 16px; margin: 14px 0; border-radius: 0 6px 6px 0; font-size: 14px;
+}
+.callout-high { border-left-color: var(--high); }
+.callout-warn { border-left-color: var(--warn); }
+.callout-ok   { border-left-color: var(--ok); }
+.callout strong { display: block; margin-bottom: 4px; font-size: 13px; }
+
+ul, ol { padding-left: 22px; }
+li { margin-bottom: 4px; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-dim); }
+
+.stat-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px; margin: 16px 0;
+}
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 12px 14px;
+}
+.stat-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); }
+.stat-card .value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 18px; font-weight: 600; margin-top: 4px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header class="doc-header">
+  <div class="eyebrow">wiki/447 &middot; Phase 7 final closure</div>
+  <h1>V23.4 Phase 4 &middot; Final Closure</h1>
+  <p class="subtitle">5 sub-WS shipped on <code>v23/phase4</code>: T2-A' workflow runner, T2-F fly retirement, T2-C Fleet view, T2-D-mini form builder, T2-Z residual cleanup.</p>
+  <div class="meta-row">
+    <span class="chip chip-ok">SHIP-OK</span>
+    <span class="chip">branch: v23/phase4</span>
+    <span class="chip">HEAD b6a1548</span>
+    <span class="chip">2026-05-19</span>
+    <span class="chip chip-warn">main-merge: operator-pending (#436)</span>
+  </div>
+</header>
+
+<!-- ============ TL;DR ============ -->
+<section class="tldr" aria-labelledby="tldr-h">
+  <h2 id="tldr-h">TL;DR</h2>
+  <dl class="tldr-grid">
+    <dt>Branch</dt>
+    <dd><code>v23/phase4</code> at HEAD <code>b6a1548</code> &mdash; 36 commits since cut from <code>main</code> (08b0c1a)</dd>
+    <dt>Sub-WS shipped</dt>
+    <dd>T2-A' (asyncio + SQLite workflow runner) &middot; T2-F (fly.io retirement + self-hosted signaling) &middot; T2-C (Fleet view UI) &middot; T2-D-mini (form-based workflow builder) &middot; T2-Z (residual cleanup, 6 batches)</dd>
+    <dt>Tests</dt>
+    <dd>tsc / jest / pytest / Playwright all green &middot; vocabulary lint clean &middot; pwsh AST clean</dd>
+    <dt>LOC delta</dt>
+    <dd>~5500 LOC code (+supporting docs); 1.3x master plan estimate of ~3400</dd>
+    <dt>Const gates</dt>
+    <dd>III triggered on T2-A' v37 SQLite migration (operator-pending) &middot; VI not triggered (no K3s baseline change) &middot; VII per-push satisfied; main-merge pending operator "&#51652;&#54665;&#54644;" (#436)</dd>
+    <dt>Verdict</dt>
+    <dd><span class="sev sev-ok">SHIP-OK</span> &mdash; all audit-fix HIGHs resolved; only remaining gate is the operator main-merge bundle</dd>
+    <dt>Deferred</dt>
+    <dd>T2-D-visual (React Flow editor &rarr; V23.6) &middot; Z3 4 items + Z5 distroless &rarr; V23.5+</dd>
+  </dl>
+</section>
+
+<!-- ============ §1 Thesis recap ============ -->
+<h2 class="section" id="thesis">&sect;1 &middot; Phase 4 thesis recap</h2>
+<p>Phase 4 ships <strong>personal multi-PC AI workflow execution</strong>. Backend: an asyncio workflow runner with SQLite state inside <code>musu-bridge</code>. Frontend: a Fleet view that lists the user's PCs and a form-based workflow builder under <code>/c/[id]/workflows</code>. Self-contained-product positioning preserved: <code>fly.io</code> retired from the critical path; the first installed PC plays signaling rendezvous; STUN-only fallback when direct WebRTC fails.</p>
+
+<div class="callout callout-warn">
+  <strong>Plan v1 was RED at the Phase &minus;1 strategic gate.</strong>
+  The original wiki/431 v1 prescribed K3s + Argo + CRD + a Go operator. Phase &minus;1 (<code>business-panel-experts</code> debate mode: Christensen + Taleb + Kim &amp; Mauborgne + Drucker) rejected the thesis on two independent grounds:
+  (a) wrong product shape &mdash; K8s vocabulary inside a personal-productivity tool;
+  (b) <code>fly.io</code> retained in the critical path despite a four-phase-old user objection.
+  The reshape eliminated ~2500 LOC of platform-engineering code (Argo install + Go operator + CRD plumbing), retired <code>fly.io</code> entirely, and introduced T2-A' (asyncio + SQLite) and T2-F (self-hosted signaling). See <a href="#phase-minus-1">&sect;5 Phase &minus;1 retrospective</a>.
+</div>
+
+<!-- ============ §2 Sub-WS shipped ============ -->
+<h2 class="section" id="subws">&sect;2 &middot; Sub-workstreams shipped</h2>
+
+<table>
+  <thead>
+    <tr><th>ID</th><th>Scope</th><th>Key commits</th><th>LOC</th><th>Tests</th><th>Critic</th><th>Auditor</th><th>Closure</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>T2-A'</code></td>
+      <td>asyncio + SQLite workflow runner in <code>musu-bridge</code> (POST/GET/PATCH/DELETE <code>/api/workflows</code>, v37 schema)</td>
+      <td><code>6f55e99</code></td>
+      <td class="num">~1300</td>
+      <td>+29 pytest cases (722 &rarr; 751)</td>
+      <td>5 HIGH + 5 MED + 4 LOW</td>
+      <td>2 HIGH + 3 MED</td>
+      <td>wiki/436</td>
+    </tr>
+    <tr>
+      <td><code>T2-F</code></td>
+      <td>fly.io retirement: signaling-rendezvous folded into <code>musu-relay</code> user-server; Dockerfile + fly.toml deleted; STUN-only fallback</td>
+      <td><code>bf1c1a7</code>, <code>c59499e</code></td>
+      <td class="num">~850</td>
+      <td>tsc clean &middot; relay jest green</td>
+      <td>multi-HIGH (per wiki/437)</td>
+      <td>3 audit-fix items (F12 + musu-init + OQ3)</td>
+      <td>wiki/437</td>
+    </tr>
+    <tr>
+      <td><code>T2-C</code></td>
+      <td>Fleet view at <code>/fleet</code>: multi-company multi-agent capacity heat-map; <code>/dashboard</code> 301-redirect; K8s-vocabulary lint as defense-in-depth</td>
+      <td><code>3765b3a</code></td>
+      <td class="num">~900</td>
+      <td>jest + vocab-audit unit green</td>
+      <td>per wiki/438</td>
+      <td>SHIP-OK first pass</td>
+      <td>wiki/438</td>
+    </tr>
+    <tr>
+      <td><code>T2-D-mini</code></td>
+      <td>Form-based workflow builder at <code>/c/[id]/workflows</code> (steps list + depends_on multi-select; no graph canvas). React Flow visual deferred V23.6.</td>
+      <td><code>a97d593</code>, <code>e4ff17a</code></td>
+      <td class="num">~1170 FE + ~60 BE</td>
+      <td>13/13 workflow-spec unit &middot; 22/22 backend pytest &middot; 1/1 Playwright e2e &middot; 5/5 vocab</td>
+      <td>1 HIGH + 4 MED + 4 LOW</td>
+      <td>2 HIGH (A1 GET endpoint, A2 e2e mock) &rarr; audit-fix</td>
+      <td>wiki/439</td>
+    </tr>
+    <tr>
+      <td><code>T2-Z</code></td>
+      <td>Residual cleanup: 6 micro-batches Z1&ndash;Z6 + 3 defer one-pagers. Sweeper hatch observability, OCI label timing, K3s airgap trim, Windows-host bench, plan template post-mortem.</td>
+      <td><code>cd9bd11</code>, <code>b6a1548</code></td>
+      <td class="num">~200 code + ~520 doc</td>
+      <td>tsc + bash -n + pwsh AST clean &middot; regex fixture test</td>
+      <td>(batch-scoped)</td>
+      <td>2 HIGH + 1 MED &rarr; audit-fix</td>
+      <td>wiki/440&ndash;445</td>
+    </tr>
+  </tbody>
+</table>
+
+<p style="margin-top: 10px; font-size: 13px; color: var(--text-dim);">LOC totals are net-additive from <code>git show --stat</code> on the Builder commits; full <code>git diff --shortstat 08b0c1a..b6a1548</code> reports 93 files, +15698 / &minus;1079 over the branch life (includes V23.5 master plan drafting and unrelated docs research commits not part of Phase 4 sub-WS scope).</p>
+
+<!-- ============ §3 Pipeline ============ -->
+<h2 class="section" id="pipeline">&sect;3 &middot; Pipeline</h2>
+
+<div class="diagram" aria-label="Phase 4 sub-WS pipeline">
+<svg viewBox="0 0 900 320" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Phase 4 sub-WS pipeline: T2-A' first, then T2-F / T2-C / T2-D-mini in parallel, with T2-Z fanout below</title>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#52525b"/>
+    </marker>
+  </defs>
+  <g font-family="ui-monospace,monospace" font-size="12" text-anchor="middle">
+
+    <!-- Phase -1 -->
+    <rect x="20" y="20" width="180" height="44" rx="6" fill="#fee2e2" stroke="#dc2626"/>
+    <text x="110" y="40" fill="#7f1d1d">Phase -1 RED</text>
+    <text x="110" y="56" fill="#7f1d1d" font-size="10">business-panel debate</text>
+
+    <!-- Reshape arrow -->
+    <line x1="200" y1="42" x2="248" y2="42" stroke="#52525b" marker-end="url(#arrow)"/>
+    <text x="224" y="32" fill="#52525b" font-size="10" font-style="italic">reshape</text>
+
+    <!-- Master plan v2 -->
+    <rect x="250" y="20" width="180" height="44" rx="6" fill="#dcfce7" stroke="#16a34a"/>
+    <text x="340" y="40" fill="#14532d">wiki/431 v2 GREEN</text>
+    <text x="340" y="56" fill="#14532d" font-size="10">3e3e314 &middot; 221e8f3</text>
+
+    <!-- branch cut -->
+    <line x1="430" y1="42" x2="478" y2="42" stroke="#52525b" marker-end="url(#arrow)"/>
+
+    <!-- T2-A' -->
+    <rect x="480" y="20" width="180" height="44" rx="6" fill="#dbeafe" stroke="#2563eb"/>
+    <text x="570" y="40" fill="#1e3a8a">T2-A' workflow runner</text>
+    <text x="570" y="56" fill="#1e3a8a" font-size="10">6f55e99 &middot; SQLite v37</text>
+
+    <!-- Fanout from T2-A' -->
+    <line x1="570" y1="64" x2="180" y2="120" stroke="#52525b" marker-end="url(#arrow)"/>
+    <line x1="570" y1="64" x2="430" y2="120" stroke="#52525b" marker-end="url(#arrow)"/>
+    <line x1="570" y1="64" x2="680" y2="120" stroke="#52525b" marker-end="url(#arrow)"/>
+
+    <!-- Parallel row -->
+    <rect x="90" y="120" width="180" height="44" rx="6" fill="#dbeafe" stroke="#2563eb"/>
+    <text x="180" y="140" fill="#1e3a8a">T2-F fly retirement</text>
+    <text x="180" y="156" fill="#1e3a8a" font-size="10">bf1c1a7 + c59499e</text>
+
+    <rect x="340" y="120" width="180" height="44" rx="6" fill="#dbeafe" stroke="#2563eb"/>
+    <text x="430" y="140" fill="#1e3a8a">T2-C Fleet view</text>
+    <text x="430" y="156" fill="#1e3a8a" font-size="10">3765b3a</text>
+
+    <rect x="590" y="120" width="180" height="44" rx="6" fill="#dbeafe" stroke="#2563eb"/>
+    <text x="680" y="140" fill="#1e3a8a">T2-D-mini form builder</text>
+    <text x="680" y="156" fill="#1e3a8a" font-size="10">a97d593 + e4ff17a</text>
+
+    <!-- T2-Z fanout below -->
+    <text x="450" y="200" fill="#52525b" font-style="italic">T2-Z residual cleanup (parallel, orthogonal surface)</text>
+
+    <rect x="20"  y="220" width="80" height="36" rx="6" fill="#dcfce7" stroke="#16a34a"/>
+    <text x="60"  y="243" fill="#14532d" font-size="11">Z1 sweeper</text>
+    <rect x="110" y="220" width="80" height="36" rx="6" fill="#dcfce7" stroke="#16a34a"/>
+    <text x="150" y="243" fill="#14532d" font-size="11">Z2 dockerfile</text>
+    <rect x="200" y="220" width="80" height="36" rx="6" fill="#fef3c7" stroke="#d97706"/>
+    <text x="240" y="243" fill="#78350f" font-size="11">Z3 defer&times;4</text>
+    <rect x="290" y="220" width="80" height="36" rx="6" fill="#dcfce7" stroke="#16a34a"/>
+    <text x="330" y="243" fill="#14532d" font-size="11">Z4 bench</text>
+    <rect x="380" y="220" width="80" height="36" rx="6" fill="#fef3c7" stroke="#d97706"/>
+    <text x="420" y="243" fill="#78350f" font-size="11">Z5 distroless defer</text>
+    <rect x="470" y="220" width="80" height="36" rx="6" fill="#dcfce7" stroke="#16a34a"/>
+    <text x="510" y="243" fill="#14532d" font-size="11">Z6 trim</text>
+    <rect x="560" y="220" width="120" height="36" rx="6" fill="#fee2e2" stroke="#dc2626"/>
+    <text x="620" y="243" fill="#7f1d1d" font-size="11">Z audit-fix b6a1548</text>
+
+    <!-- Scribe -->
+    <line x1="450" y1="270" x2="450" y2="288" stroke="#52525b" marker-end="url(#arrow)"/>
+    <rect x="330" y="290" width="240" height="22" rx="6" fill="#dbeafe" stroke="#2563eb"/>
+    <text x="450" y="306" fill="#1e3a8a" font-size="11">Phase 7 final closure (this doc)</text>
+  </g>
+</svg>
+<div class="diagram-caption">Phase &minus;1 RED &rarr; reshape &rarr; master plan v2 GREEN &rarr; T2-A' (Const III) &rarr; parallel T2-F / T2-C / T2-D-mini &rarr; T2-Z fanout &rarr; audit-fix &rarr; closure.</div>
+</div>
+
+<!-- ============ §4 Metrics ============ -->
+<h2 class="section" id="metrics">&sect;4 &middot; Phase 4 metrics</h2>
+
+<div class="stat-grid">
+  <div class="stat-card"><div class="label">Branch HEAD</div><div class="value">b6a1548</div></div>
+  <div class="stat-card"><div class="label">Commits on v23/phase4</div><div class="value">36</div></div>
+  <div class="stat-card"><div class="label">Calendar duration</div><div class="value">2 days</div></div>
+  <div class="stat-card"><div class="label">Sub-WS shipped</div><div class="value">5</div></div>
+  <div class="stat-card"><div class="label">Audit-fix iterations</div><div class="value">3</div></div>
+  <div class="stat-card"><div class="label">Phase -1 verdicts</div><div class="value">1 RED &rarr; GREEN</div></div>
+  <div class="stat-card"><div class="label">Pytest baseline &rarr; final</div><div class="value">722 &rarr; 751</div></div>
+  <div class="stat-card"><div class="label">Net LOC code shipped</div><div class="value">~5500</div></div>
+</div>
+
+<details>
+  <summary>Per-sub-WS iteration table</summary>
+  <div class="details-body">
+    <table>
+      <thead><tr><th>Sub-WS</th><th>Plan iterations</th><th>Build iterations</th><th>Audit cycles</th><th>Audit-fix?</th></tr></thead>
+      <tbody>
+        <tr><td>T2-A'</td><td class="num">3 (Researcher &rarr; Plan &rarr; Critic &rarr; plan-as-spec Auditor)</td><td class="num">1</td><td class="num">1</td><td>fixed in-build (M-1 stale pin post-audit)</td></tr>
+        <tr><td>T2-F</td><td class="num">3 (Plan rev-2 + rev-3 + Auditor)</td><td class="num">1</td><td class="num">1</td><td>yes &mdash; c59499e (F12 + musu-init + OQ3)</td></tr>
+        <tr><td>T2-C</td><td class="num">3 (Plan + Critic + Auditor)</td><td class="num">1</td><td class="num">1</td><td>no &mdash; SHIP-OK first pass</td></tr>
+        <tr><td>T2-D-mini</td><td class="num">2 (Plan v2 post-Critic)</td><td class="num">1</td><td class="num">1</td><td>yes &mdash; e4ff17a (A1 + A2)</td></tr>
+        <tr><td>T2-Z</td><td class="num">1 (6 batches)</td><td class="num">1</td><td class="num">1</td><td>yes &mdash; b6a1548 ($Host shadow + airgap regex + sweeper test signal)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</details>
+
+<details>
+  <summary>HIGH-finding count per gate</summary>
+  <div class="details-body">
+    <table>
+      <thead><tr><th>Gate</th><th>HIGH count</th><th>Where caught</th></tr></thead>
+      <tbody>
+        <tr><td>Phase &minus;1 strategic</td><td class="num">1 RED + 7 supporting HIGH</td><td>Christensen + Taleb + Kim&amp;M + Drucker debate &mdash; thesis-level shape errors no tech Critic could see</td></tr>
+        <tr><td>Phase 1.5 Critic (system-architect)</td><td class="num">~10 across 5 sub-WS</td><td>plan-shape bugs (T2-A' H1&ndash;H5, T2-D-mini C1, others)</td></tr>
+        <tr><td>Plan-as-spec Auditor (T2-A' only)</td><td class="num">2</td><td>A-H1 missing <code>updated_at</code> + A-H2 silent peer-PATCH state loss &mdash; zero overlap with Critic</td></tr>
+        <tr><td>Phase 5 build-as-spec Auditor</td><td class="num">5 across 3 sub-WS</td><td>T2-D-mini A1 + A2; T2-Z HIGH #1 + #2; T2-F multi-HIGH (per wiki/437)</td></tr>
+        <tr><td>Phase 6 audit-fix</td><td class="num">3 commits</td><td>c59499e, e4ff17a, b6a1548 &mdash; every HIGH resolved before close</td></tr>
+      </tbody>
+    </table>
+  </div>
+</details>
+
+<details>
+  <summary>Constitution gate status</summary>
+  <div class="details-body">
+    <table>
+      <thead><tr><th>Gate</th><th>Status</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td>Const III (schema apply)</td><td><span class="sev sev-warn">operator-pending</span></td><td>SQLite v37 migration (<code>workflows</code> + <code>workflow_steps</code>) added in T2-A'. Reversible via <code>_v37_down</code>. Operator runs the 5-step checklist at first production deploy. No further schema changes in T2-C / T2-D-mini / T2-F / T2-Z.</td></tr>
+        <tr><td>Const VI (experiment)</td><td><span class="sev sev-ok">NOT triggered</span></td><td>Argo install eliminated by Phase &minus;1 reshape. No K3s baseline change. Asyncio executor characterised via plan-stage tests.</td></tr>
+        <tr><td>Const VII (push)</td><td><span class="sev sev-ok">per-push satisfied</span></td><td>36 commits on <code>v23/phase4</code>, each pushed under autonomous /loop per <code>feedback-autonomous-loop</code>. Main-merge gate fires once at Phase 4 close (#436).</td></tr>
+      </tbody>
+    </table>
+  </div>
+</details>
+
+<!-- ============ §5 Phase -1 retrospective ============ -->
+<h2 class="section" id="phase-minus-1">&sect;5 &middot; Phase &minus;1 strategic gate retrospective</h2>
+
+<p>wiki/431 v1 was the first plan ever submitted to the Phase &minus;1 strategic gate after the 2026-05-18 update to <code>MODE_Agent_Team.md</code>. The verdict was RED on first run. The panel (Christensen + Taleb + Kim &amp; Mauborgne + Drucker, debate mode) returned eight findings on the v1 thesis itself:</p>
+
+<details>
+  <summary>The eight Phase -1 findings (SG-1 ... SG-8)</summary>
+  <div class="details-body">
+    <ol>
+      <li><strong>SG-1 HIGH (Christensen + Kim ERRC)</strong> &mdash; Wrong product shape. K8s + Argo + CRD + operator is platform-engineering infra inside a personal-productivity-tool positioning. Job-execution chart does not intersect solution-feature chart.</li>
+      <li><strong>SG-2 HIGH (all four frameworks convergent)</strong> &mdash; fly.io paid SaaS retained in the critical-path signaling despite a user objection four phases ago. Every Phase 4 code path that ships with fly grows the removal cost.</li>
+      <li><strong>SG-3 HIGH (Taleb + Drucker)</strong> &mdash; Five compounding new fragilities in one phase: Argo upstream, Argo EOL clock, Go toolchain, controller-runtime, and AdmissionWebhook with <code>failurePolicy: Fail</code> (downtime blocks CRD apply by design).</li>
+      <li><strong>SG-4 HIGH (Christensen + Kim)</strong> &mdash; Industry mis-import. K8s + Argo + operator is correct for orchestration-platform industry (Kubeflow, Flyte, Prefect). musu is not in that industry.</li>
+      <li><strong>SG-5 HIGH (Drucker)</strong> &mdash; Effectiveness vs efficiency: the 11-week plan was internally efficient but moved further from "5 working users by V23.5" than a 4-6 week lightweight version would.</li>
+      <li><strong>SG-6 MED (Drucker + Taleb)</strong> &mdash; Plan explicitly schedules future damage-management work ("plan v4.0 upgrade workstream") and ships anyway.</li>
+      <li><strong>SG-7 MED (all four)</strong> &mdash; All 17 prior Critic findings lived within the unquestioned thesis frame. Tech-only Critic structurally cannot ask "should this exist".</li>
+      <li><strong>SG-8 LOW (Kim)</strong> &mdash; K8s-vocabulary lint treats symptom, not cause; can't rename "300MB Argo OCI failed to pull" in user log files.</li>
+    </ol>
+  </div>
+</details>
+
+<p>Reshape applied (<code>221e8f3</code>):</p>
+
+<table>
+  <thead><tr><th>Sub-WS</th><th>v1</th><th>v2 (this revision)</th><th>LOC delta</th></tr></thead>
+  <tbody>
+    <tr><td>T2-A (Argo + CRD + Python webhook)</td><td>KEEP ~600</td><td><strong>ELIMINATE</strong></td><td class="num">&minus;600</td></tr>
+    <tr><td>T2-A' (asyncio + SQLite)</td><td>(did not exist)</td><td><strong>NEW ~300 LOC</strong></td><td class="num">+300</td></tr>
+    <tr><td>T2-B (Go operator)</td><td>KEEP ~1300</td><td><strong>ELIMINATE</strong></td><td class="num">&minus;1300</td></tr>
+    <tr><td>T2-C (Fleet view)</td><td>KEEP ~1000</td><td>KEEP</td><td class="num">0</td></tr>
+    <tr><td>T2-D (React Flow)</td><td>KEEP ~1500</td><td><strong>RESHAPED &rarr; T2-D-mini ~400</strong></td><td class="num">&minus;1100</td></tr>
+    <tr><td>T2-Z (residuals)</td><td>KEEP ~300</td><td>KEEP</td><td class="num">0</td></tr>
+    <tr><td>T2-F (fly retirement)</td><td>(did not exist)</td><td><strong>NEW ~400 LOC</strong></td><td class="num">+400</td></tr>
+    <tr><th>Total</th><th class="num">~4400</th><th class="num">~3400</th><th class="num">&minus;1000 (&minus;23%)</th></tr>
+  </tbody>
+</table>
+
+<div class="callout callout-ok">
+  <strong>Validation point #6 for [[feedback-strategic-critic-gate]]</strong>
+  Tech-only Critics reliably catch tactical gaps and structurally miss thesis-level errors. The Phase &minus;1 gate caught a four-phase-old user policy violation (fly.io), a 1300 LOC Go operator commitment that all four frameworks rejected, and an EOL-clock subscription (Argo v3.7) that v1 acknowledged in writing and shipped anyway. The pattern fits the memory exactly. Permanent adoption confirmed.
+</div>
+
+<!-- ============ §6 Plan-as-spec Auditor retrospective ============ -->
+<h2 class="section" id="plan-as-spec">&sect;6 &middot; Plan-as-spec Auditor retrospective</h2>
+
+<p>The plan-as-spec Auditor (a quality-engineer that audits the plan body for cross-section invariants <em>after</em> the Critic has resolved its HIGHs) was invoked twice in Phase 4 and skipped once. Three observations:</p>
+
+<table>
+  <thead><tr><th>Sub-WS</th><th>Plan LOC</th><th>Plan-as-spec Auditor</th><th>HIGH delta vs Critic</th></tr></thead>
+  <tbody>
+    <tr><td>T2-A'</td><td class="num">~900</td><td>invoked</td><td>2 NEW HIGH (A-H1 missing <code>updated_at</code>, A-H2 silent peer-PATCH state loss) &mdash; <strong>zero overlap with Critic's 5 HIGH</strong></td></tr>
+    <tr><td>T2-F</td><td class="num">~600</td><td>invoked</td><td>plan-as-spec Auditor findings folded into wiki/433+434 rev-2 (6539863) &mdash; rev-3 added bridge-contract ground-truth patches</td></tr>
+    <tr><td>T2-C</td><td class="num">~500</td><td>invoked</td><td>plan-as-spec Auditor findings folded same commit as T2-F</td></tr>
+    <tr><td>T2-D-mini</td><td class="num">~500</td><td><strong>SKIPPED</strong></td><td>calibration data point &mdash; threshold should not drop below 500 LOC</td></tr>
+    <tr><td>T2-Z</td><td class="num">~520 doc</td><td>not applicable (one-pager batches)</td><td>&mdash;</td></tr>
+  </tbody>
+</table>
+
+<div class="callout callout-ok">
+  <strong>Validation point #6&ndash;7 for [[feedback-plan-stage-auditor]]</strong>
+  Every plan-stage Auditor invocation in Phase 4 found at least one HIGH that the Critic did not catch. The "zero overlap with Critic" principle held: Critic catches plan-shape bugs (variable names, missing fields, contract drift), plan-as-spec Auditor catches cross-section invariants (observability surface coverage, error-contract symmetry, additive-extension correctness). T2-D-mini's skip at ~500 LOC was acceptable &mdash; the two later Auditor HIGHs (A1 missing GET endpoint, A2 Playwright mock URL) were real-code bugs that plan-stage Auditor could not have caught from text alone. The 500-LOC threshold should not drop.
+</div>
+
+<!-- ============ §7 Deferred ============ -->
+<h2 class="section" id="deferred">&sect;7 &middot; What's deferred</h2>
+
+<table>
+  <thead><tr><th>Item</th><th>Target</th><th>Reason</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>T2-D-visual</strong> (React Flow editor, ~1100 LOC)</td>
+      <td>V23.6</td>
+      <td>Form-based T2-D-mini satisfies the closed-beta §9 #9 acceptance gate (DAG creation + run + status view). Visual editor gated on dogfood feedback &mdash; closed-beta users may not actually want graph drag-connect when form is faster for &lt;20-step workflows.</td>
+    </tr>
+    <tr>
+      <td><strong>Z3 four items</strong> (F-A1c-5/6/7/8: worker-sidecar bench, musu-health CLI status, in-toto attestation, install-telemetry signal-loss audit)</td>
+      <td>V23.5</td>
+      <td>All four require runtime artefacts that don't yet exist on disk (sidecar pattern, <code>musu-health</code> binary, in-toto harness, finalised telemetry schema). Implementing the pointers ahead of those targets produces dead code.</td>
+    </tr>
+    <tr>
+      <td><strong>Z5 distroless pivot</strong> (FO-A1a-3)</td>
+      <td>not committed</td>
+      <td>Image surface shrunk from 2 (bridge + signaling-cloud) to 1 (bridge only) post T2-F. Attack-surface ROI at single-user / 4-companies scale doesn't justify multi-stage build complexity. Reactivation gated on &gt;10x replica scale OR concrete bookworm-slim CVE.</td>
+    </tr>
+    <tr>
+      <td><strong>V23.5 master plan</strong> (wiki/459 v4)</td>
+      <td>ready</td>
+      <td>Already drafted on <code>v23/phase4</code> (4 commits b41614b &rarr; b79aea1). Option Z hybrid: full-wedge ship per board panel. Blocked only by V23.4 main-merge.</td>
+    </tr>
+    <tr>
+      <td><strong>Operator main-merge bundle (#436)</strong></td>
+      <td>operator-pending</td>
+      <td>V23.3 + V23.4-Tier-1 + V23.4-Phase4 &rarr; <code>main</code>. Four manual steps: (a) <code>fly secrets set MUSU_TELEMETRY_V42_AUTHORIZED=1</code> (b) <code>fly deploy</code> + smoke (c) A1.c bench EXECUTION on Windows host (V23.3 baseline) (d) "&#51652;&#54665;&#54644;" + <code>git merge</code>.</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ============ §8 Process learnings ============ -->
+<h2 class="section" id="learnings">&sect;8 &middot; Process learnings</h2>
+
+<ol>
+  <li><strong>Phase &minus;1 strategic gate is load-bearing.</strong> First invocation caught two RED-level findings (wrong product shape, fly.io critical-path violation) and seven supporting HIGHs. Permanent adoption confirmed; will run on every master plan and every sub-WS that extends a master's thesis.</li>
+  <li><strong>Plan-as-spec Auditor zero-overlap with Critic.</strong> Validated across 3-4 invocations in Phase 4. Critic catches plan-shape; Auditor catches cross-section invariants. Both gates are necessary; neither subsumes the other. 500 LOC threshold confirmed via T2-D-mini calibration skip.</li>
+  <li><strong>Runtime smoke-tests beat AST parse.</strong> The T2-Z audit caught two HIGHs that AST + bash -n could not see: bench-windows.ps1 <code>$Host</code> parameter shadow (PowerShell automatic variable conflict) and K3s airgap-trim regex missing <code>rancher/mirrored-*</code> upstream prefix. Process doc <code>PLAN_TEMPLATE_HEALTH_VERIFICATION_2026_05_19.md</code> (FO-A1a-6) is the formal response &mdash; every new file Builder ships gets a runtime smoke alongside syntax check.</li>
+  <li><strong>Form-heavy editor LOC multiplier.</strong> T2-D-mini plan budget was ~580 FE; actual ~1170 FE (1.7x). For form-heavy editors in V23.5 estimates, bake in 1.7x multiplier; for pure form-list pages, 1.3x suffices.</li>
+  <li><strong>HTML closure docs work.</strong> The wiki/439 T2-D-mini HTML closure (per <code>feedback-scribe-html-only</code>) feels more navigable than Markdown for closure context. Single self-contained file, light+dark theming, expandable sections, inline SVG diagrams. Adopting HTML format for this final closure as well.</li>
+</ol>
+
+<!-- ============ §9 References ============ -->
+<h2 class="section" id="refs">&sect;9 &middot; References</h2>
+
+<table>
+  <thead><tr><th>Wiki ID</th><th>Path</th><th>Role</th></tr></thead>
+  <tbody>
+    <tr><td>wiki/431 v2</td><td><code>docs/V23_4_PHASE4_MASTER_PLAN_2026_05_18.md</code></td><td>Phase 4 master plan (post Phase &minus;1 reshape)</td></tr>
+    <tr><td>wiki/432</td><td><code>docs/V23_4_PHASE4_T2A_PRIME_PLAN_*.md</code></td><td>T2-A' detail plan (lost to history; baked into wiki/431-v2 commit a1ce0cb of T2-A' Builder)</td></tr>
+    <tr><td>wiki/433+434</td><td><code>docs/V23_4_F_T2F_*</code>, <code>docs/V23_4_F_T2C_*</code></td><td>T2-F + T2-C detail plans (rev-2 + rev-3)</td></tr>
+    <tr><td>wiki/435 v2</td><td><code>docs/V23_4_PHASE4_T2D_MINI_PLAN_2026_05_19.md</code></td><td>T2-D-mini detail plan (form-based reshape)</td></tr>
+    <tr><td>wiki/436</td><td><code>docs/V23_4_PHASE4_T2A_PRIME_CLOSURE_2026_05_18.md</code></td><td>T2-A' closure</td></tr>
+    <tr><td>wiki/437</td><td><code>docs/V23_4_F_T2F_CLOSURE_*.md</code></td><td>T2-F closure</td></tr>
+    <tr><td>wiki/438</td><td><code>docs/V23_4_F_T2C_CLOSURE_*.md</code></td><td>T2-C closure</td></tr>
+    <tr><td>wiki/439</td><td><code>docs/V23_4_PHASE4_T2D_MINI_CLOSURE_2026_05_19.html</code></td><td>T2-D-mini closure (HTML)</td></tr>
+    <tr><td>wiki/440</td><td><code>docs/V23_4_PHASE4_Z1_CLOSURE_2026_05_19.md</code></td><td>Z1 sweeper hatch + GIT_SHA timing</td></tr>
+    <tr><td>wiki/441</td><td><code>docs/V23_4_PHASE4_Z2_CLOSURE_2026_05_19.md</code></td><td>Z2 dockerfile partial pin + WSL2 portproxy</td></tr>
+    <tr><td>wiki/442</td><td><code>docs/V23_4_PHASE4_Z3_DEFER_V23_5_2026_05_19.md</code></td><td>Z3 four-item defer</td></tr>
+    <tr><td>wiki/443</td><td><code>docs/V23_4_PHASE4_Z4_CLOSURE_2026_05_19.md</code></td><td>Z4 bridge-bench schema + bench-windows.ps1</td></tr>
+    <tr><td>wiki/444</td><td><code>docs/V23_4_PHASE4_Z5_DEFER_DISTROLESS_2026_05_19.md</code></td><td>Z5 distroless defer</td></tr>
+    <tr><td>wiki/445</td><td><code>docs/V23_4_PHASE4_Z6_CLOSURE_2026_05_19.md</code></td><td>Z6 airgap-trim + close-obsolete + plan template doc</td></tr>
+    <tr><td>wiki/447</td><td>this document</td><td>Phase 4 final closure</td></tr>
+    <tr><td>wiki/448</td><td><code>docs/V23_4_PHASE4_QUAL_EVAL_2026_05_19.md</code></td><td>Phase 4 qualitative evaluation</td></tr>
+  </tbody>
+</table>
+
+<footer>
+  <p>V23.4 Phase 4 final closure &middot; wiki/447 &middot; 2026-05-19 &middot; branch <code>v23/phase4</code> HEAD <code>b6a1548</code></p>
+  <p>SHIP-OK pending operator main-merge gate (#436). V23.5 master plan ready at wiki/459 v4.</p>
+</footer>
+
+</div>
+</body>
+</html>

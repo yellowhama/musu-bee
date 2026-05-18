@@ -2,6 +2,226 @@
 
 All notable changes to MUSU are documented here.
 
+## [1.12.0] - 2026-05-19 — V23.4 Phase 4: asyncio+SQLite workflow runner + Fleet view + fly.io retirement + form-based workflow builder + residual cleanup
+
+Branch: `v23/phase4` (HEAD `b6a1548`). Const VII main-merge gate
+OPERATOR-PENDING (#436 — bundles V23.3 + V23.4 Tier-1 + V23.4 Phase 4 →
+`main` in one operator action). Final closure: `docs/V23_4_PHASE4_FINAL_CLOSURE_2026_05_19.html`
+(wiki/447); qualitative evaluation: `docs/V23_4_PHASE4_QUAL_EVAL_2026_05_19.md`
+(wiki/448). 5 sub-workstreams shipped (T2-A' + T2-F + T2-C + T2-D-mini +
+T2-Z) + 3 audit-fix iterations; 751 pytest green (+29 from 722 baseline),
+tsc clean, Playwright e2e green, vocabulary-audit lint clean, pwsh AST
+clean.
+
+Plan v1 was RED at the Phase −1 strategic gate (business-panel-experts
+debate mode: Christensen + Taleb + Kim&Mauborgne + Drucker). All 4
+frameworks convergent on RED. Reshape eliminated K3s+Argo+CRD+Go-operator
+(~2500 LOC of platform-engineering infra inside personal-productivity-tool
+positioning), retired fly.io entirely, introduced T2-A' (asyncio+SQLite)
+and T2-F (self-hosted signaling). 6th validation of
+`[[feedback-strategic-critic-gate]]` — tech-only Critics structurally
+cannot ask "should this exist".
+
+### Added — T2-A' asyncio + SQLite workflow runner (wiki/436)
+- **SQLite schema v37** adds `workflows` + `workflow_steps` tables to
+  musu-core migrations (`migrations.py:1446` `_v37_up` / `:1509` `_v37_down`).
+  Reversible via standard musu-core migrator. Const III gate triggered;
+  operator runs wiki/432 §4.1 5-step checklist at first production deploy.
+- **`musu-bridge/workflow_routes.py`** (NEW, 359 LOC): 13 Pydantic models
+  + 7 FastAPI routes — POST/GET/PATCH/DELETE `/api/workflows`, GET
+  `/api/workflows/[id]/status`, POST `/api/workflows/[id]/retry`. JSON
+  workflow-spec shape (not CRD), validated by Pydantic with named
+  `@model_validator` methods per concern (`_check_edges_reference_existing_agents`,
+  `_check_no_cycles`, `_check_inputs_reference_declared_outputs`).
+- **`musu-bridge/workflow_executor.py`** (NEW, 458 LOC): asyncio loop +
+  crash recovery + peer-crash sweeper (60s cadence, 7200s timeout) +
+  TOCTOU-safe step claim via `UPDATE ... WHERE status='pending' AND
+  assigned_pc=? RETURNING id`. Cross-PC dispatch over existing WebRTC
+  channel (post-T2-F).
+- **`musu-bridge/handlers.py`** (+453 LOC): 9 new handler functions
+  with inline Critic-ID docstrings, terminal-transition aggregation
+  atomicity (`with db.cursor() as cur:` block prevents non-atomic
+  step+workflow status update race).
+- **`musu-bridge/server.py`** (+28 LOC): lifespan spawn of `workflow_task`
+  + `peer_sweeper_task`; router mount.
+- Tests: T1-T27 + T7-split + T22b (29 cases) cover Pydantic validation,
+  HTTP status mapping, executor TOCTOU, crash recovery, peer sweeper,
+  env-var binding, terminal PATCH error handling. 722 baseline → 751
+  final.
+
+### Added — T2-F fly.io retirement + self-hosted signaling (wiki/437)
+- **musu-relay signaling refactored** into 3 files: `shared.ts` (412 LOC
+  signaling logic) + `user-server.ts` (82 LOC user-PC rendezvous entry)
+  + `server.ts` (existing cloud entry, slimmed 475 → ~150 LOC).
+- **First-installed PC plays signaling rendezvous role** (static
+  assignment in v1; dynamic election deferred V23.5).
+  `installer/install-wsl2.ps1` sets `$script:IsRendezvous` and starts
+  `musu-signaling` service inside WSL2 distro.
+- **STUN-only public-server fallback** (`stun:stun.l.google.com:19302`)
+  for direct-WebRTC-fails cases. Self-hosted TURN deferred V23.5 if
+  needed.
+- **`installer/scripts/start-rendezvous.sh`** (NEW, 33 LOC): rendezvous
+  startup wrapper.
+- **`installer/musu-init.sh`** diagnostic enhancements (audit-fix `c59499e`):
+  build-pipeline OQ3 + musu-init diagnostic + F12 fix.
+
+### Added — T2-C Fleet view UI (wiki/438)
+- **musu-bee `/fleet` route** (`src/app/fleet/page.tsx`, 709 LOC):
+  multi-company multi-agent capacity heat-map. Lists user's PCs with
+  status + agent count.
+- **`/dashboard` → `/fleet` 301-redirect** via `src/middleware.ts`
+  rule. `/dashboard/page.tsx` retained as 301-stub for 1 release cycle.
+- **10-reference audit** updates sidebar / CommandPalette /
+  ConsoleMobileTabBar / CeoChatClient to point at `/fleet` instead of
+  `/dashboard`.
+- **K8s-vocabulary lint**: `src/lib/vocabulary-audit.ts` (108 LOC) +
+  `vocabulary-audit.test.ts` (87 LOC) — Jest unit catches K8s leakage
+  (Pod / Deployment / Service / CRD / kubectl) into user-facing copy.
+  Defense-in-depth; load-bearing dropped post-Phase −1 since K3s vocab
+  surface shrunk dramatically.
+
+### Added — T2-D-mini form-based workflow builder (wiki/439)
+- **`/c/[id]/workflows` list page** + **`/c/[id]/workflows/[wfId]/edit`
+  editor page** (musu-bee, ~870 LOC across page.tsx +
+  WorkflowFormClient + StepRow + RunPanel).
+- **Form-based step editor** (no graph canvas): steps list with
+  `depends_on` multi-select. React Flow visual editor deferred V23.6,
+  gated on closed-beta dogfood feedback.
+- **`musu-bee/src/lib/workflow-spec.ts`** (126 LOC): encode form state
+  → JSON workflow-spec, decode JSON → form state. T2-A' API contract
+  compliance via Pydantic round-trip test.
+- **API proxies**: `src/app/api/workflows/route.ts` +
+  `src/app/api/workflows/[id]/status/route.ts` (gateway → bridge).
+- **Audit-fix `e4ff17a`**: A1 missing GET endpoint + A2 Playwright
+  mock URL pattern.
+- Tests: 13/13 workflow-spec unit + 22/22 backend pytest + 1/1
+  Playwright e2e + 5/5 vocabulary-lint patterns.
+
+### Added — T2-Z Z4b bench-windows.ps1 (wiki/443)
+- **`musu-relay/installer/bench-windows.ps1`** (NEW, 172 LOC):
+  Windows-host-side peer to in-cluster `bridge-bench.sh`. Measures
+  WSL2 vEthernet latency + netsh portproxy DNAT overhead + rendezvous-role
+  detection timing. Schema `musu-bench-windows-v1` mirrors
+  `musu-bridge-bench-v2` field naming. Top-level `payload_sha256` over
+  rendered JSON.
+
+### Changed
+
+- **Default `MUSU_BACKEND_TAR` build trims K3s airgap-images** to
+  required core (T2-Z Z6a, wiki/445). Allowlist regex
+  `(mirrored-pause|mirrored-coredns-coredns|mirrored-library-traefik|local-path-provisioner)`
+  (case-insensitive). Drops `metrics-server`, `helm-controller`,
+  `klipper-helm`, `klipper-lb`, `coreos-etcd`, `flannelcni-flannel`
+  (~40-60 MB savings). **Opt-out**: `MUSU_KEEP_FULL_AIRGAP=1`.
+- **`install_attempt` sweeper exposes
+  `install_attempt_sweeper_disabled` flag on `/health`** (T2-Z Z1a,
+  wiki/440). When `MUSU_INSTALL_ATTEMPT_SWEEPER_DISABLED=1` short-circuits
+  the sweeper, emit `console.warn` once + surface state in `/health` JSON
+  so probes can detect the hatch externally.
+- **`bridge-bench.sh` emits full §5.6 schema** (T2-Z Z4a, wiki/443):
+  schema `musu-bridge-bench-v2` adds `aggregate.rss_kb`,
+  `aggregate.cold_start_ms[]`, `metadata` (K3s/kernel/cgroup-driver),
+  top-level `payload_sha256`. v1 fields preserved at same paths;
+  `schema_v1_compat: true` flag asserts compatibility.
+- **`musu-bridge/Dockerfile` apt cleanup** (T2-Z Z2a, wiki/441): added
+  `rm -rf /var/cache/apt/archives /var/cache/apt/*.bin` to apt cleanup
+  RUN. Digest pin deferred V23.5 (plumbing belongs in `manifest.yaml`
+  alongside K3s + airgap digests).
+- **`install-wsl2.ps1` Step 11.5 WSL2 portproxy fallback** (T2-Z Z2b,
+  wiki/441): rendezvous role only; `netsh interface portproxy add v4tov4
+  listenport=9900` to DNAT `:9900` to the WSL2 distro IP.
+
+### Deprecated
+
+- **fly.io self-hosted relay deployment**. T2-F retired in favor of
+  WebRTC self-hosted signaling on user's first installed PC. Files
+  removed: `musu-relay/Dockerfile`, `musu-relay/fly.toml`,
+  `musu-relay/railway.json`, `musu-relay/tsconfig.docker.json`.
+
+### Removed
+
+- N/A (deletions tracked under Deprecated above)
+
+### Fixed
+
+- **GIT_SHA / BUILD_TS OCI label derivation timing** (T2-Z Z1b, wiki/440):
+  `build-musu-backend.sh` step 3.d invoked `buildah build --build-arg
+  GIT_SHA="${GIT_SHA:-unknown}"` BEFORE step 6.c derived the variables;
+  every musu-bridge OCI image had `org.opencontainers.image.revision=unknown`.
+  Derivation moved to new step 3.c.1.
+- **`bench-windows.ps1` `$Host` parameter shadow** (T2-Z audit-fix
+  `b6a1548`): PowerShell automatic variable conflict — every invocation
+  failed. Renamed parameter. AST parse alone could not catch (runtime
+  smoke required).
+- **K3s airgap-images trim regex** (T2-Z audit-fix `b6a1548`): the
+  prior regex `(^|/)(pause|coredns|traefik|local-path-provisioner)(:|@|$)`
+  did NOT match K3s upstream `rancher/mirrored-*` prefixes for
+  pause/coredns/traefik; only `local-path-provisioner` matched, leaving
+  K3s unbootable. Corrected to
+  `(mirrored-pause|mirrored-coredns-coredns|mirrored-library-traefik|local-path-provisioner)`
+  (case-insensitive). 4 kept / 7 dropped verified against representative
+  K3s 1.30.x manifest refs.
+- **install-attempt sweeper test signal preservation** (T2-Z audit-fix
+  `b6a1548`): adding the `/health` flag changed the signal shape jest
+  tests asserted; signal preserved post-flag-addition.
+
+### Security
+
+- N/A
+
+### Process
+
+- **Phase −1 strategic gate** (`MODE_Agent_Team.md`) first production
+  use: 1 RED verdict on wiki/431 v1 → reshape → GREEN. 6th validation
+  of `[[feedback-strategic-critic-gate]]`. Permanent adoption confirmed
+  for all master plans + thesis-extension sub-WSs.
+- **Plan-as-spec Auditor zero-overlap with Critic** validated 6th-7th
+  times across Phase 4 (T2-A' A-H1 + A-H2 zero overlap with Critic's 5
+  HIGH; T2-D-mini skip at ~500 LOC subsequently verified by real-code
+  Auditor catching only real-code bugs). `[[feedback-plan-stage-auditor]]`
+  memory stands; 500 LOC threshold confirmed via T2-D-mini calibration.
+- **HTML closure docs** (`[[feedback-scribe-html-only]]`): wiki/439
+  (T2-D-mini) + wiki/447 (final closure) both HTML. Single self-contained
+  file with light+dark theming via `prefers-color-scheme`, expandable
+  sections, inline SVG diagrams. All other agent-team phases stay
+  Markdown to preserve LLM↔LLM handoff diff/line-citation.
+- **`docs/PLAN_TEMPLATE_HEALTH_VERIFICATION_2026_05_19.md`** (NEW,
+  T2-Z Z6c / wiki/445): process doc for Planner pre-freeze checklist —
+  identify every observability surface the new code exposes/modifies
+  (`/health`, `/metrics`, structured log events, install-attempt
+  telemetry shape) and verify emit matches Auditor probe target.
+  Project-scoped (not user-scoped).
+
+### Deferred to V23.5/V23.6
+
+- **T2-D-visual** React Flow editor (~1100 LOC) → V23.6, gated on
+  closed-beta dogfood feedback. Closed-beta acceptance gate §9 #9
+  (DAG creation + run + status view) satisfied by T2-D-mini form-based
+  surface; visual editor optional.
+- **FO-A1a-3 distroless chainguard pivot** → not committed.
+  Reactivation gated on >10x replica scale OR concrete bookworm-slim
+  CVE. Single-user / 4-companies / few-PCs operational scale doesn't
+  justify multi-stage build complexity. See wiki/444.
+- **4 bench/CLI items** (F-A1c-5/6/7/8): worker-sidecar bench scenario,
+  `musu-health` CLI status command, in-toto attestation harness,
+  installer-telemetry signal-loss audit → V23.5 (all require runtime
+  artefacts that don't yet exist on disk). See wiki/442.
+- **V23.5 master plan** (wiki/459 v4): Option Z hybrid (full-wedge ship
+  per board panel) drafted on `v23/phase4`. Critic round-3 + plan-as-spec
+  Auditor cleared. Blocked only by V23.4 main-merge.
+
+### Operator-pending (gates Const VII main-merge)
+
+- `fly secrets set MUSU_TELEMETRY_V42_AUTHORIZED=1` (last fly action
+  before T2-F retirement deploys; inherited from V23.4 Tier-1).
+- `fly deploy` + smoke 204/400/429 (last fly deploy before T2-F retires
+  it).
+- A1.c bench EXECUTION on Windows host (V23.3 baseline capture;
+  inherited).
+- Const VII main-merge gate "진행해" — bundle scope is
+  V23.3 + V23.4-Tier-1 + V23.4-Phase4 → `main` in one operator
+  action (#436).
+
 ## [1.11.0] - 2026-05-17 — V23.4 Tier-1: install_attempt retention sweeper + uniform DB-write error handling + installer state-file enrichment
 
 Branch: `v22/gap-analysis` (HEAD `199595b`). Const VII main-merge gate
