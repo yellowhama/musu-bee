@@ -7,6 +7,7 @@ Search uses SQLite FTS5 for ranked full-text search.
 """
 from __future__ import annotations
 
+import datetime as _dt
 import logging
 import os
 import re as _re
@@ -177,6 +178,107 @@ async def api_wiki_search(q: str = Query("", max_length=200), company_id: str = 
                     "snippet": r["snippet"].replace("\n", " ").strip(),
                 })
     return results
+
+
+# ── V23.5 W-3: Server-side HTML render ──────────────────────────────────────
+# GFM subset (aligned with W-1 client-side react-markdown + remark-gfm):
+#   - tables        → GFM tables
+#   - fenced_code   → GFM fenced code blocks
+#   - nl2br         → GFM hard line break
+#   - sane_lists    → GFM-compatible list parsing
+# Custom extensions / `extra` are forbidden (XSS risk; relies on raw HTML).
+_GFM_EXTENSIONS = ["fenced_code", "tables", "nl2br", "sane_lists"]
+
+
+class WikiHtmlResponse(BaseModel):
+    page_id: str
+    title: str
+    html: str
+    source_markdown: str  # original for client fallback / diff
+    scope: str  # "global" | "company:<id>"
+    updated_at: str  # ISO 8601
+
+
+def _resolve_wiki_file(scope_dir: _Path, safe_id: str) -> _Path:
+    """Resolve <safe_id>.md within scope_dir, supporting one folder level."""
+    parts = safe_id.split("/", 1)
+    if len(parts) == 2:
+        folder, stem = parts
+        return scope_dir / folder / f"{stem}.md"
+    return scope_dir / f"{safe_id}.md"
+
+
+# IMPORTANT: registered BEFORE the legacy `/page/{page_id:path}` catch-all GET
+# so requests like `/api/wiki/page/foo/html` route here, not to the legacy handler.
+@wiki_router.get(
+    "/api/wiki/page/{page_id:path}/html",
+    response_model=WikiHtmlResponse,
+    summary="Get a wiki page rendered to sanitized HTML (server-side)",
+)
+async def api_wiki_page_html(
+    page_id: str = Path(..., max_length=200),
+    company_id: str = Query("", max_length=64),
+) -> WikiHtmlResponse:
+    """Server-side GFM-subset render of a wiki page.
+
+    Scope-aware via ``company_id`` query param:
+      - empty / None  → ``~/llm-wiki/global/``
+      - otherwise     → ``~/llm-wiki/companies/<company_id[:8]>/`` (falls back to global if missing)
+
+    Graceful 503 fallback (R11) when:
+      - ``markdown`` library cannot be imported  → ``markdown_lib_unavailable``
+      - wiki path is not readable               → ``wiki_path_read_only``
+    Other failures surface as 500 (FastAPI default).
+    """
+    # 503-a: markdown lib import (deferred so monkey-patch in tests can break it)
+    try:
+        import markdown as _md  # type: ignore
+    except ImportError:
+        logger.error("wiki_html: markdown lib unavailable")
+        raise HTTPException(status_code=503, detail="markdown_lib_unavailable")
+
+    # Resolve scope path
+    cid = (company_id or "").strip()
+    scope_dir = get_wiki_path(cid or None)
+    scope_label = f"company:{cid[:8]}" if (cid and scope_dir.name != "global") else "global"
+
+    # 503-b: filesystem read access
+    if not os.access(str(scope_dir), os.R_OK):
+        logger.error("wiki_html: wiki path not readable: %s", scope_dir)
+        raise HTTPException(status_code=503, detail="wiki_path_read_only")
+
+    # ID sanitisation (mirrors api_wiki_page; allow alphanumerics, _, -, /)
+    safe_id = _re.sub(r"[^a-zA-Z0-9_\-/]", "", page_id).strip("/").replace("//", "/")
+    if not safe_id:
+        raise HTTPException(status_code=404, detail="Wiki page id is empty after sanitisation.")
+
+    path = _resolve_wiki_file(scope_dir, safe_id)
+    if not path.exists() or not path.is_file():
+        raise HTTPException(status_code=404, detail=f"Wiki page '{safe_id}' not found in scope '{scope_label}'.")
+
+    try:
+        source = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        logger.error("wiki_html: read failed for %s: %s", path, exc)
+        raise HTTPException(status_code=503, detail="wiki_path_read_only") from exc
+
+    md_renderer = _md.Markdown(extensions=_GFM_EXTENSIONS, output_format="html5")
+    html = md_renderer.convert(source)
+
+    try:
+        mtime = _dt.datetime.fromtimestamp(path.stat().st_mtime, tz=_dt.timezone.utc)
+        updated_at = mtime.isoformat()
+    except OSError:
+        updated_at = _dt.datetime.now(tz=_dt.timezone.utc).isoformat()
+
+    return WikiHtmlResponse(
+        page_id=safe_id,
+        title=_wiki_title(source, safe_id.split("/")[-1]),
+        html=html,
+        source_markdown=source,
+        scope=scope_label,
+        updated_at=updated_at,
+    )
 
 
 @wiki_router.get("/api/wiki/page/{page_id:path}", summary="Get a wiki page by ID")

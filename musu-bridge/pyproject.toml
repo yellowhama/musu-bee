@@ -16,6 +16,7 @@ dependencies = [
     "prometheus-fastapi-instrumentator>=7.0",
     "prometheus-client>=0.20",
     "psutil>=5.9",
+    "markdown>=3.5",
 ]
 
 [project.optional-dependencies]
