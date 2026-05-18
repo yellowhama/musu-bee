@@ -44,9 +44,14 @@ export default async function WorkflowEditPage({
   const initialId = existing?.id ?? null;
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "32px 24px", color: "var(--fg1)" }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 24 }}>
-        {existing ? `Edit · ${existing.name}` : "New workflow"}
+      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>
+        {existing ? `Duplicate · ${existing.name}` : "New workflow"}
       </h1>
+      {existing ? (
+        <p style={{ fontSize: 13, color: "var(--fg2)", marginBottom: 24 }}>
+          Save creates a new workflow (update-in-place lands V23.6). Original {existing.id} stays unchanged.
+        </p>
+      ) : null}
       <WorkflowFormClient
         companyId={companyId}
         initialName={initialName}

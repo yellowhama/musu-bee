@@ -1,0 +1,306 @@
+# Musu-Bee Wiki ID Index
+
+**Generated**: 2026-05-19
+**Scope**: `F:\workspace\musu-bee\docs\` — all wiki-identified docs (`**Wiki ID**: wiki/N` header)
+**Source of truth**: each doc's own `**Wiki ID**` header. This file is a roll-up index — when a doc and this index disagree, the doc wins.
+
+Layout:
+- §1 — Master plans (V21..V23.5)
+- §2 — Sub-WS detail plans + closures + qual evals (V23.1..V23.4 Phase 4)
+- §3 — V23.4 Phase 4 (current shipped — wiki/431..448)
+- §4 — V23.5 (reserved — wiki/459..482)
+- §5 — Research / brainstorm / architecture (wiki/449..458)
+- §6 — Pre-V21 docs (no wiki ID; archived/legacy)
+- §7 — New code files this Phase 4 (entry-point inventory, no wiki ID)
+
+Status legend:
+- `complete` — file exists, wiki ID assigned, closure phase done
+- `draft` — file exists, in active iteration
+- `reserved` — wiki ID reserved in a planning doc, file not yet created
+- `legacy` — pre-V21, no wiki ID
+
+---
+
+## §1 Master Plans
+
+| Wiki ID | Title | Date | File | Status |
+|---|---|---|---|---|
+| wiki/347 | V21 master plan (K8s-light 2-axis rebuild, 7 phases) | (referenced in memory) | — (master plan lives in agent memory `[[project-musu-v21-master-plan]]`) | complete |
+| wiki/354 | V23 master plan / V23.0 closure | 2026-05-15 | `V23_MASTER_PLAN_2026_05_15.md` | complete |
+| wiki/356 | V23.2 plan | 2026-05-16 | `V23_2_PLAN_2026_05_16.md` | complete |
+| wiki/361 | V23.2 Workstream B master plan | 2026-05-16 | `V23_2_WORKSTREAM_B_MASTER_PLAN_2026_05_16.md` | complete |
+| wiki/379 | V23.3 master plan | 2026-05-17 | `V23_3_MASTER_PLAN_2026_05_17.md` | complete |
+| wiki/425 | V23.4 master plan | 2026-05-17 | `V23_4_MASTER_PLAN_2026_05_17.md` | complete |
+| wiki/431 | V23.4 Phase 4 master plan (v2 post Phase -1 Strategic Gate) | 2026-05-18 | `V23_4_PHASE4_MASTER_PLAN_2026_05_18.md` | complete |
+| wiki/459 | V23.5 master plan (v4 — agent-facing wiki + CoS + bridge hardening) | 2026-05-19 | `V23_5_MASTER_PLAN_2026_05_19.md` | draft (v4 post Critic) |
+
+---
+
+## §2 Sub-WS Plans / Closures / Qual Evals (V23.1..V23.4 Tier-1)
+
+### V23.1
+| Wiki ID | Title | Date | File | Status |
+|---|---|---|---|---|
+| wiki/355 | V23.1 closure | 2026-05-16 | `V23_1_CLOSURE_2026_05_16.md` | complete |
+
+### V23.2 Workstream A
+| Wiki ID | Title | Date | File | Status |
+|---|---|---|---|---|
+| wiki/357 | V23.2 Workstream A closure | 2026-05-16 | `V23_2_WORKSTREAM_A_CLOSURE_2026_05_16.md` | complete |
+| wiki/358 | V23.2 Workstream A2 closure | 2026-05-16 | `V23_2_WORKSTREAM_A2_CLOSURE_2026_05_16.md` | complete |
+| wiki/359 | V23.2 Workstream A2 qual eval | 2026-05-16 | `V23_2_WORKSTREAM_A2_QUAL_EVAL_2026_05_16.md` | complete |
+
+### V23.2 Workstream B
+| Wiki ID | Title | Date | File | Status |
+|---|---|---|---|---|
+| wiki/360 | V23.2 Workstream B prep | 2026-05-16 | `V23_2_WORKSTREAM_B_PREP_2026_05_16.md` | complete |
+| wiki/362 | V23.2 B0 closure | 2026-05-16 | `V23_2_B0_CLOSURE_2026_05_16.md` | complete |
+| wiki/363 | V23.2 B1 plan | 2026-05-16 | `V23_2_WORKSTREAM_B1_PLAN_2026_05_16.md` | complete |
+| wiki/364 | V23.2 B1 closure | 2026-05-16 | `V23_2_WORKSTREAM_B1_CLOSURE_2026_05_16.md` | complete |
+| wiki/365 | V23.2 B2 plan | 2026-05-16 | `V23_2_WORKSTREAM_B2_PLAN_2026_05_16.md` | complete |
+| wiki/366 | V23.2 B2 closure | 2026-05-16 | `V23_2_WORKSTREAM_B2_CLOSURE_2026_05_16.md` | complete |
+| wiki/367 | V23.2 B3 plan | 2026-05-16 | `V23_2_WORKSTREAM_B3_PLAN_2026_05_16.md` | complete |
+| wiki/368 | V23.2 B3 closure | 2026-05-16 | `V23_2_WORKSTREAM_B3_CLOSURE_2026_05_16.md` | complete |
+| wiki/369 | V23.2 B5 closure | 2026-05-16 | `V23_2_WORKSTREAM_B5_CLOSURE_2026_05_16.md` | complete |
+| wiki/370 | V23.2 B4a plan | 2026-05-16 | `V23_2_WORKSTREAM_B4A_PLAN_2026_05_16.md` | complete |
+| wiki/371 | V23.2 B4a closure | 2026-05-16 | `V23_2_WORKSTREAM_B4A_CLOSURE_2026_05_16.md` | complete |
+| wiki/372 | V23.2 B4b plan | 2026-05-16 | `V23_2_WORKSTREAM_B4B_PLAN_2026_05_16.md` | complete |
+| wiki/373 | V23.2 B4b closure | 2026-05-16 | `V23_2_WORKSTREAM_B4B_CLOSURE_2026_05_16.md` | complete |
+| wiki/374 | V23.2 B4c plan | 2026-05-16 | `V23_2_WORKSTREAM_B4C_PLAN_2026_05_16.md` | complete |
+| wiki/375 | V23.2 B4c closure | 2026-05-16 | `V23_2_WORKSTREAM_B4C_CLOSURE_2026_05_16.md` | complete |
+| wiki/376 | V23.2 Workstream B final closure | 2026-05-17 | `V23_2_WORKSTREAM_B_FINAL_CLOSURE_2026_05_17.md` | complete |
+| wiki/377 | V23.2 Workstream B qual eval | 2026-05-17 | `V23_2_WORKSTREAM_B_QUAL_EVAL_2026_05_17.md` | complete |
+| (wiki/378-385) | V23.2 B1/B2-pro overflow + V23.2 follow-on | 2026-05-16 | `V23_2_B1_B2PRO_QUAL_EVAL_2026_05_16.md` (no header) | partial |
+
+### V23.3
+| Wiki ID | Title | Date | File | Status |
+|---|---|---|---|---|
+| wiki/378 | V23.3 prep | 2026-05-17 | `V23_3_PREP_2026_05_17.md` | complete |
+| wiki/380 | V23.3 A1a plan | 2026-05-17 | `V23_3_A1A_PLAN_2026_05_17.md` | complete |
+| wiki/381 | V23.3 A1a closure | 2026-05-17 | `V23_3_A1A_CLOSURE_2026_05_17.md` | complete |
+| wiki/382 | V23.3 A1b plan | 2026-05-17 | `V23_3_A1B_PLAN_2026_05_17.md` | complete |
+| wiki/383 | V23.3 A1b closure | 2026-05-17 | `V23_3_A1B_CLOSURE_2026_05_17.md` | complete |
+| wiki/384 | V23.3 A1c plan | 2026-05-17 | `V23_3_A1C_PLAN_2026_05_17.md` | complete |
+| wiki/385 | V23.3 A1c closure | 2026-05-17 | `V23_3_A1C_CLOSURE_2026_05_17.md` | complete |
+| wiki/387 | V23.3 A2 closure | 2026-05-17 | `V23_3_A2_CLOSURE_2026_05_17.md` | complete |
+| wiki/389 | V23.3 A3 closure | 2026-05-17 | `V23_3_A3_CLOSURE_2026_05_17.md` | complete |
+| wiki/390 | V23.3 B2 plan | 2026-05-17 | `V23_3_B2_PLAN_2026_05_17.md` | complete |
+| wiki/391 | V23.3 B2 closure | 2026-05-17 | `V23_3_B2_CLOSURE_2026_05_17.md` | complete |
+| wiki/392 | V23.3 B6 plan | 2026-05-17 | `V23_3_B6_PLAN_2026_05_17.md` | complete |
+| wiki/393 | V23.3 B6 closure | 2026-05-17 | `V23_3_B6_CLOSURE_2026_05_17.md` | complete |
+| (wiki/394) | V23.3 B7 closure | 2026-05-17 | `V23_3_B7_CLOSURE_2026_05_17.md` | complete (no explicit header) |
+| (wiki/395) | V23.3 B8 closure | 2026-05-17 | `V23_3_B8_CLOSURE_2026_05_17.md` | complete (no explicit header) |
+| wiki/396 | V23.3 final closure | 2026-05-17 | `V23_3_FINAL_CLOSURE_2026_05_17.md` | complete |
+| wiki/397 | V23.3 qual eval | 2026-05-17 | `V23_3_QUAL_EVAL_2026_05_17.md` | complete |
+
+### V23.4 Tier-1 (F-B2 follow-ons)
+| Wiki ID | Title | Date | File | Status |
+|---|---|---|---|---|
+| wiki/406 | V23.4 F-B2-1 plan | 2026-05-17 | `V23_4_F_B2_1_PLAN_2026_05_17.md` | complete |
+| wiki/407 | V23.4 F-B2-2 plan | 2026-05-17 | `V23_4_F_B2_2_PLAN_2026_05_17.md` | complete |
+| wiki/408 | V23.4 F-B2-3 plan | 2026-05-17 | `V23_4_F_B2_3_PLAN_2026_05_17.md` | complete |
+| wiki/426 | V23.4 F-B2-1 closure | 2026-05-17 | `V23_4_F_B2_1_CLOSURE_2026_05_17.md` | complete |
+| wiki/427 | V23.4 F-B2-2 closure | 2026-05-17 | `V23_4_F_B2_2_CLOSURE_2026_05_17.md` | complete |
+| wiki/428 | V23.4 F-B2-3 closure | 2026-05-17 | `V23_4_F_B2_3_CLOSURE_2026_05_17.md` | complete |
+| wiki/429 | V23.4 Tier-1 final closure | 2026-05-17 | `V23_4_TIER1_FINAL_CLOSURE_2026_05_17.md` | complete |
+| wiki/430 | V23.4 Tier-1 qual eval | 2026-05-17 | `V23_4_TIER1_QUAL_EVAL_2026_05_17.md` | complete |
+
+---
+
+## §3 V23.4 Phase 4 (current — shipped 2026-05-18..19)
+
+| Wiki ID | Title | Date | File | Status |
+|---|---|---|---|---|
+| wiki/431 | V23.4 Phase 4 master plan (v2 post Phase -1 Strategic Gate) | 2026-05-18 | `V23_4_PHASE4_MASTER_PLAN_2026_05_18.md` | complete |
+| wiki/432 | V23.4 Phase 4 T2-A' detail plan (asyncio + SQLite workflow runner) | 2026-05-18 | `V23_4_F_T2A_PRIME_PLAN_2026_05_18.md` | complete |
+| wiki/433 | V23.4 Phase 4 T2-F detail plan (fly.io retirement + self-hosted signaling) | 2026-05-18 | `V23_4_F_T2F_PLAN_2026_05_18.md` | complete |
+| wiki/434 | V23.4 Phase 4 T2-C detail plan (Fleet view UI on musu-bee) | 2026-05-18 | `V23_4_F_T2C_PLAN_2026_05_18.md` | complete |
+| wiki/435 | V23.4 Phase 4 T2-D-mini detail plan (workflow builder UI, form-based reshape) | 2026-05-19 | `V23_4_PHASE4_T2D_MINI_PLAN_2026_05_19.md` | complete (v2) |
+| wiki/436 | V23.4 Phase 4 T2-A' closure | 2026-05-18 | `V23_4_PHASE4_T2A_PRIME_CLOSURE_2026_05_18.md` | complete |
+| wiki/437 | V23.4 Phase 4 T2-F closure | 2026-05-18 | `V23_4_F_T2F_CLOSURE_2026_05_18.md` | complete |
+| wiki/438 | V23.4 Phase 4 T2-C closure | 2026-05-18 | `V23_4_F_T2C_CLOSURE_2026_05_18.md` | complete |
+| wiki/439 | V23.4 Phase 4 T2-D-mini closure (HTML — first HTML closure doc) | 2026-05-19 | `V23_4_PHASE4_T2D_MINI_CLOSURE_2026_05_19.html` | complete |
+| wiki/440 | V23.4 Phase 4 T2-Z1 closure (F-B2-1-FOLLOW-1 silent sweeper hatch fix) | 2026-05-19 | `V23_4_PHASE4_Z1_CLOSURE_2026_05_19.md` | complete |
+| wiki/441 | V23.4 Phase 4 T2-Z2 closure | 2026-05-19 | `V23_4_PHASE4_Z2_CLOSURE_2026_05_19.md` | complete |
+| wiki/442 | V23.4 Phase 4 T2-Z3 defer note (deferred V23.5) | 2026-05-19 | `V23_4_PHASE4_Z3_DEFER_V23_5_2026_05_19.md` | complete (defer) |
+| wiki/443 | V23.4 Phase 4 T2-Z4 closure (bench scripts) | 2026-05-19 | `V23_4_PHASE4_Z4_CLOSURE_2026_05_19.md` | complete |
+| wiki/444 | V23.4 Phase 4 T2-Z5 defer note (distroless deferred) | 2026-05-19 | `V23_4_PHASE4_Z5_DEFER_DISTROLESS_2026_05_19.md` | complete (defer) |
+| wiki/445 | V23.4 Phase 4 T2-Z6 closure (plan template health verification source) | 2026-05-19 | `V23_4_PHASE4_Z6_CLOSURE_2026_05_19.md` | complete |
+| (wiki/446) | Reserved per V23_4_F_T2F_CLOSURE refs (T2-Z final closure?) | — | — | reserved |
+| wiki/447 | V23.4 Phase 4 final closure (bundles T2-A' + T2-C + T2-F + T2-D + T2-Z, HTML) | 2026-05-19 | `V23_4_PHASE4_FINAL_CLOSURE_2026_05_19.html` | complete |
+| wiki/448 | V23.4 Phase 4 qualitative evaluation | 2026-05-19 | `V23_4_PHASE4_QUAL_EVAL_2026_05_19.md` | complete |
+
+### Phase 4 intermediate qual evals (iter cycles)
+| Wiki ID | Title | Date | File | Status |
+|---|---|---|---|---|
+| (wiki/449) | V23.4 Phase 4 iter-2 qual eval (referenced as wiki/450 in some docs) | 2026-05-18 | `V23_4_PHASE4_ITER2_QUAL_EVAL_2026_05_18.md` | complete |
+| (wiki/450) | V23.4 Phase 4 iter-2 qual eval — see RESEARCH refs | 2026-05-18 | (same as above; see RESEARCH_BEN_AI_OS_5_SKILLS, RESEARCH_RL_CONDUCTOR for citations) | — |
+| wiki/454 | V23.4 Phase 4 iter-3 qual eval | 2026-05-18 | `V23_4_PHASE4_ITER3_QUAL_EVAL_2026_05_18.md` | complete |
+| — | V23.4 Phase 4 T2-A' plan qual eval | 2026-05-18 | `V23_4_PHASE4_T2A_PRIME_PLAN_QUAL_EVAL_2026_05_18.md` | complete (no header) |
+| — | V23.4 Phase 4 remaining work tracker | 2026-05-18 | `V23_4_PHASE4_REMAINING_WORK_2026_05_18.md` | complete (no header) |
+
+Phase 4 supporting docs (no explicit Wiki ID):
+- `PLAN_TEMPLATE_HEALTH_VERIFICATION_2026_05_19.md` — authored from Z6 (wiki/445) findings
+- `V23_4_F_T2A_PRIME_PLAN_2026_05_18.md` predecessors live in master plan §5.A'
+
+---
+
+## §4 V23.5 (reserved — wiki/459..482)
+
+V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
+
+| Wiki ID | Reserved For | File (when created) | Status |
+|---|---|---|---|
+| wiki/459 | V23.5 master plan (v4) | `V23_5_MASTER_PLAN_2026_05_19.md` | draft |
+| wiki/460 | S-1 closure (SSOT_1PAGE 4-layer update) | `V23_5_S1_CLOSURE_*.{md,html}` | reserved |
+| wiki/461 | W-1 closure (agent-facing HTML render core) | — | reserved |
+| wiki/462 | W-2 closure | — | reserved |
+| wiki/463 | W-3 closure (agent-side rendering reshape) | — | reserved |
+| wiki/464 | W-4 closure | — | reserved |
+| wiki/465 | W-5 closure | — | reserved |
+| wiki/466 | W-6 closure (12 docs Tariq-pattern conversion) | — | reserved |
+| wiki/467 | W-7 closure | — | reserved |
+| wiki/468 | W-8 closure | — | reserved |
+| wiki/469 | V23.5 final closure (HTML) | — | reserved |
+| wiki/470 | V23.5 qual eval (HTML) | — | reserved |
+| wiki/471 | H-1 closure (bridge hardening 1) | — | reserved |
+| wiki/472 | H-2 closure (DB error opacity uniform handling) | — | reserved |
+| wiki/473 | H-3 closure (PRAGMA user_version) | — | reserved |
+| wiki/474 | H-4a closure (X-Request-ID HTTP propagation) | — | reserved |
+| wiki/475 | H-5 closure (observability tail) | — | reserved |
+| wiki/476 | C-1 closure (CoS briefing wiki integration) **OR** O-1 Paperclip observer (deferred V24+) | — | reserved (conflict per master plan §6: 476-479 dual-assigned to C-1..C-4 v4 addition + O-1..O-4 Paperclip defer; will resolve at sub-WS branch time) |
+| wiki/477 | C-2 closure **OR** O-2 Paperclip observer (deferred) | — | reserved (same conflict) |
+| wiki/478 | C-3 closure **OR** O-3 Paperclip observer (deferred) | — | reserved (same conflict) |
+| wiki/479 | C-4 closure **OR** O-4 Paperclip observer (deferred) | — | reserved (same conflict) |
+| wiki/480 | O-5 Paperclip observer (deferred V24+) | — | reserved (deferred) |
+| wiki/481 | O-6 Paperclip observer (deferred V24+) | — | reserved (deferred) |
+| wiki/482 | O-7 Paperclip observer (deferred V24+) | — | reserved (deferred) |
+
+**Note**: V23.5 master plan §6 #9 lists `wiki/460-468 (W-1..W-8, S-1) + wiki/471-475 (H-1, H-2, H-3, H-4a, H-5)`. The C-1..C-4 v4 addition (§6 line 320) overlaps with O-1..O-4 Paperclip defer slot (§6 line 333) at wiki/476-479. Master plan flags this for resolution when branches cut.
+
+---
+
+## §5 Research / Brainstorm / Architecture (wiki/449..458)
+
+| Wiki ID | Title | Date | File | Status |
+|---|---|---|---|---|
+| wiki/451 | Research — ACI (Agent-Computer Interface) | 2026-05-18 | `RESEARCH_ACI_AGENT_COMPUTER_INTERFACE_2026_05_18.md` | complete |
+| wiki/452 | Research — RL Conductor multi-agent orchestration | 2026-05-18 | `RESEARCH_RL_CONDUCTOR_MULTI_AGENT_ORCHESTRATION_2026_05_18.md` | complete |
+| wiki/453 | Research — Ben AI-OS 5 skills (vault hygiene patterns) | 2026-05-18 | `RESEARCH_BEN_AI_OS_5_SKILLS_2026_05_18.md` | complete |
+| wiki/455 | Research — HTML over Markdown (Tariq) | 2026-05-18 | `RESEARCH_HTML_OVER_MARKDOWN_2026_05_18.md` | complete |
+| wiki/456 | Research — 3-layer audit + HTML wiki memory | 2026-05-18 | `RESEARCH_3LAYER_AND_HTML_WIKI_MEMORY_2026_05_18.md` | complete |
+| wiki/457 | Brainstorm — Paperclip observer closure | 2026-05-18 | `BRAINSTORM_PAPERCLIP_OBSERVER_2026_05_18.md` | complete |
+| wiki/458 | Musu architecture overview (HTML — first HTML wiki page) | 2026-05-18 | `MUSU_ARCHITECTURE_2026_05_18.html` | complete |
+
+---
+
+## §6 V21..V22 Closures + Pre-V23 Decisions
+
+| Wiki ID | Title | Date | File | Status |
+|---|---|---|---|---|
+| — | V21C closure | 2026-05-15 | `V21C_CLOSURE_2026_05_15.md` | complete (no header) |
+| — | V21D detail plan | 2026-05-15 | `V21D_DETAIL_PLAN_2026_05_15.md` | complete (no header) |
+| — | V21D closure | 2026-05-15 | `V21D_CLOSURE_2026_05_15.md` | complete (no header) |
+| — | V21E closure | 2026-05-15 | `V21E_CLOSURE_2026_05_15.md` | complete (no header) |
+| — | V21F closure | 2026-05-15 | `V21F_CLOSURE_2026_05_15.md` | complete (no header) |
+| — | V22 K8s gap analysis | 2026-05-15 | `V22_K8S_GAP_ANALYSIS_2026_05_15.md` | complete (no header) |
+| — | V22 option SWOT | 2026-05-15 | `V22_OPTION_SWOT_2026_05_15.md` | complete (no header) |
+| — | V23 T1.7 fly.io deploy decision | (V23 era) | `V23_T1_7_FLY_IO_DEPLOY_DECISION.md` | legacy |
+| — | V23.1 loop handoff | 2026-05-16 | `V23_1_LOOP_HANDOFF_2026_05_16.md` | complete (no header) |
+| — | V23.1 spike result template | (V23.1 era) | `V23_1_SPIKE_RESULT_TEMPLATE.md` | template |
+| — | Package inventory | 2026-05-15 | `PACKAGE_INVENTORY_2026_05_15.md` | complete (no header) |
+
+---
+
+## §7 Pre-V21 Docs (legacy, no wiki ID)
+
+| Title | Date | File | Status |
+|---|---|---|---|
+| API reference | — | `API.md` | legacy |
+| Architecture | — | `ARCHITECTURE.md` | legacy |
+| Architecture boundaries | — | `ARCHITECTURE_BOUNDARIES.md` | legacy |
+| Boundary | — | `BOUNDARY.md` | legacy |
+| CEO butler guide | — | `CEO_BUTLER_GUIDE.md` | legacy |
+| CLI reference | — | `CLI.md` | legacy |
+| Config | — | `CONFIG.md` | legacy |
+| Development process | — | `DEVELOPMENT_PROCESS.md` | legacy |
+| Getting started | — | `GETTING_STARTED.md` | legacy |
+| Handoff next session | 2026-05-13 | `HANDOFF_NEXT_SESSION_2026_05_13.md` | historical |
+| Handoff V16 Windows install | 2026-05-13 | `HANDOFF_V16_WINDOWS_INSTALL_2026_05_13.md` | historical |
+| Manual | — | `MANUAL.md` | legacy |
+| Monitoring | — | `MONITORING.md` | legacy |
+| Note — chat is web GUI, not core | 2026-04-09 | `NOTE_2026-04-09_chat_is_web_gui_not_core.md` | historical |
+| Onboarding | — | `ONBOARDING.md` | legacy |
+| Phase 4 roadmap (pre-V21 phase 4, not V23.4 Phase 4) | 2026-04-14 | `PHASE4_ROADMAP_2026-04-14.md` | historical |
+| Production | — | `PRODUCTION.md` | legacy |
+| Troubleshooting | — | `TROUBLESHOOTING.md` | legacy |
+| Musu-indexer guide | — | `musu-indexer-guide.md` | legacy |
+| Observability best practices | — | `observability-best-practices.md` | legacy |
+| Wave F deployment runbook | — | `wave_f_deployment_runbook.md` | legacy |
+| Plan template health verification | 2026-05-19 | `PLAN_TEMPLATE_HEALTH_VERIFICATION_2026_05_19.md` | active (authored from Z6/wiki/445) |
+| PRODUCT_CHARTER/* | — | `PRODUCT_CHARTER/` (11 files) | legacy |
+| TEMPLATES/* | — | `TEMPLATES/` (1 file) | legacy |
+| plans/* | (V17-V18 era) | `plans/` (27 files) | historical |
+| agents/* | — | `agents/` (1 file) | legacy |
+| audits/* | 2026-04-08 | `audits/SECURITY_AUDIT_2026-04-08.md` | historical |
+| incident/* | 2026-04-16 | `incident/2026-04-16-multimachine-network-issue.md` | historical |
+| memory/* | — | `memory/chief_of_staff/` | legacy state |
+
+---
+
+## §8 New Code Files this V23.4 Phase 4 (no wiki ID — entry-point inventory)
+
+These are the code surfaces that landed during V23.4 Phase 4 (wiki/431..448). Cross-reference for future Critics/Auditors to know which files are "Phase 4 surface" vs prior state.
+
+### T2-A' — asyncio + SQLite workflow runner (wiki/432 plan, wiki/436 closure)
+| File | Purpose |
+|---|---|
+| `musu-bridge/workflow_routes.py` | FastAPI typed routes: `POST /api/workflows`, `GET /api/workflows/{id}/status`, `POST /api/workflows/{id}/retry`. Pydantic-v2 request/response. |
+| `musu-bridge/workflow_executor.py` | Single-process asyncio dispatcher + SQLite-backed step transitions. Same sweeper pattern as V23.4 Tier-1 `install_attempt`. |
+
+### T2-D-mini — Workflow Builder UI (wiki/435 plan, wiki/439 closure)
+| File | Purpose |
+|---|---|
+| `musu-bee/src/app/c/[id]/workflows/page.tsx` | Workflow editor index route. |
+| `musu-bee/src/app/c/[id]/workflows/[wfId]/` | Workflow builder UI for a specific workflow (form-based reshape per Critic; not React Flow). |
+| `musu-bee/src/lib/workflow-spec.ts` | TypeScript types + serialization for workflow spec (companion to musu-bridge Pydantic models). |
+| `musu-bee/src/lib/workflow-spec.test.ts` | `node:test` unit specs (per V23.4 T2-C plan §3 — repo uses `node:test` via `tsx`, NOT Jest). |
+
+### T2-Z4 — Benchmark scripts (wiki/443 closure)
+| File | Purpose |
+|---|---|
+| `musu-relay/installer/bench-windows.ps1` | Windows-side bridge benchmark harness. |
+| `musu-relay/installer/bridge-bench.sh` | Linux/macOS bridge benchmark harness. |
+
+### T2-C — Fleet view UI (wiki/434 plan, wiki/438 closure)
+| Surface | Purpose |
+|---|---|
+| musu-bee fleet list + capacity bars + agent fetch + 503 fallback | (specifics tracked in closure doc; see commit `3765b3a`, `3d944bb`, `ad9d563`) |
+
+### T2-F — fly.io retirement + self-hosted signaling (wiki/433 plan, wiki/437 closure)
+| Surface | Purpose |
+|---|---|
+| musu-relay signaling rendezvous (self-hosted, replaces fly.io) | (specifics tracked in closure doc; see commits `bf1c1a7`, `c59499e`) |
+| `installer/test-signaling-smoke.ps1` | 2-PC smoke test harness (shipped, awaiting real hardware execution at Phase 4 close bundle / main-merge). |
+
+---
+
+## §9 Cross-Reference: Const Gates (per memory `[[feedback-autonomous-loop]]`)
+
+User-gated boundaries (autonomous loop pauses here):
+- **Const III** — schema_version / DDL apply on prod databases
+- **Const VI** — production deploy (musu.pro, fly.io DNS cutover)
+- **Const VII** — main-merge of any branch into `main`/`master`
+
+Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-merge Const VII gate fires only at phase-close bundles (e.g., V23.4 Phase 4 close → wiki/447).
+
+---
+
+## §10 Index Maintenance Notes
+
+- This index is **roll-up only** — when a doc and this index disagree, the doc wins.
+- When adding a new wiki/N doc, also append to the correct §1..§5 table here.
+- When a `reserved` ID is realized (file created), update Status `reserved → draft → complete`.
+- "(wiki/N)" with parens indicates ID was referenced in another doc but the target file lacks an explicit `**Wiki ID**` header — verify before citing externally.
+
+**End of WIKI_INDEX.md.**
