@@ -102,26 +102,97 @@ for run in $(seq 1 "$RUNS"); do
   $KUBECTL -n "$NAMESPACE" delete pod "$POD_NAME" --ignore-not-found >&2 || true
 done
 
-# Aggregate JSON: V23_1_SPIKE_RESULT_TEMPLATE §2 schema + A1.c extensions.
-# Auditor B-H2: emit success_rate_pct + gate_eligible so §4.1 verdict logic can
-# precondition on §5.5 (must be ≥99.5% to count). Auditor B-H1: schema is
-# minimal-by-design for A1.c per Option (b); RSS + cold-start + metadata
-# enrichment is V23.4 forward-pointer F-A1c-9 (operator stitches into wiki/385).
-echo "${ALL_RESULTS}" | jq '{
-  schema: "musu-bridge-bench-v1",
-  wiki_id: 385,
-  sub_ws: "v23.3-a1c",
-  runs: .,
-  aggregate: ((map(.runs[0].n) | add) as $n_total
-    | (map(.runs[0].success) | add) as $succ_total
-    | {
-        n_attempts: $n_total,
-        success: $succ_total,
-        fail: (map(.runs[0].fail) | add),
-        success_rate_pct: ($succ_total / $n_total * 100),
-        gate_eligible: (($succ_total / $n_total * 100) >= 99.5),
-        p50_ms_median: (map(.runs[0].p50_ms) | sort | .[(length/2|floor)]),
-        p95_ms_median: (map(.runs[0].p95_ms) | sort | .[(length/2|floor)]),
-        p99_ms_median: (map(.runs[0].p99_ms) | sort | .[(length/2|floor)])
-      })
-}'
+# V23.4 T2-Z / F-A1c-9 (wiki/443): widen schema to full wiki/385 §5.6 spec.
+# Adds RSS sampling, cold-start loop, host-environment metadata, and an
+# outer-tar sha256 stitch over the final report-payload so the consumer can
+# verify the report was not edited between bench-run and analysis.
+# Backward-compat: every field present in v1 is preserved at the same path;
+# new fields are additive under `metadata`, `rss_kb`, `cold_start_ms`, and
+# `payload_sha256` (computed last over the rendered JSON).
+
+# Cold-start sampling. Restart the bridge Pod N_COLD times and measure the
+# time from `delete pod` to `Ready` so we capture the worst-case startup
+# latency distribution. Bench is local-cluster so each restart is cheap.
+N_COLD="${BENCH_COLD_RESTARTS:-3}"
+COLD_LATENCIES_MS="[]"
+echo "[bridge-bench] cold-start sampling: ${N_COLD} restart(s)" >&2
+for c in $(seq 1 "$N_COLD"); do
+  COLD_START_MS=$(date +%s%3N)
+  $KUBECTL -n "$NAMESPACE" delete pod -l app=musu-bridge --wait=true >&2 || true
+  $KUBECTL -n "$NAMESPACE" wait --for=condition=Ready pod \
+    -l app=musu-bridge --timeout=120s >&2 || true
+  COLD_END_MS=$(date +%s%3N)
+  COLD_ELAPSED=$(( COLD_END_MS - COLD_START_MS ))
+  COLD_LATENCIES_MS=$(echo "$COLD_LATENCIES_MS" | jq --argjson v "$COLD_ELAPSED" '. + [$v]')
+  echo "[bridge-bench]   cold ${c}/${N_COLD}: ${COLD_ELAPSED} ms" >&2
+done
+
+# RSS sampling on the running bridge pod (post-cold). `ps -o rss=` runs
+# inside the container so the value is the bridge PID's RSS in KB.
+BRIDGE_POD="$($KUBECTL -n "$NAMESPACE" get pod -l app=musu-bridge \
+  -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")"
+RSS_KB="null"
+if [ -n "$BRIDGE_POD" ]; then
+  # uvicorn workers + master; sum RSS across all PIDs in the container.
+  RSS_KB=$($KUBECTL -n "$NAMESPACE" exec "$BRIDGE_POD" -- \
+    sh -c "ps -e -o rss= 2>/dev/null | awk 'BEGIN{s=0}{s+=\$1}END{print s}'" \
+    2>/dev/null || echo "null")
+  if [ -z "$RSS_KB" ]; then RSS_KB="null"; fi
+fi
+
+# Host environment metadata for the report consumer.
+BENCH_VERSION="v23.4-z4-schema-v2"
+K3S_VERSION="$($KUBECTL version --output=json 2>/dev/null | jq -r '.serverVersion.gitVersion // "unknown"' 2>/dev/null || echo "unknown")"
+KERNEL_VERSION="$(uname -r 2>/dev/null || echo "unknown")"
+CGROUP_DRIVER="$($CRICTL info 2>/dev/null | jq -r '.config.systemdCgroup // "unknown"' 2>/dev/null || echo "unknown")"
+BENCH_TS_UTC="$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo "unknown")"
+
+# Render the report JSON to a temp file first so we can hash it before
+# emitting to stdout (the sha256 over the payload becomes part of the final
+# report on stdout — payload_sha256 covers everything EXCEPT itself).
+REPORT_TMP=$(mktemp)
+trap 'rm -f "$REPORT_TMP"' EXIT
+echo "${ALL_RESULTS}" | jq \
+  --arg bench_version "$BENCH_VERSION" \
+  --arg k3s_version "$K3S_VERSION" \
+  --arg kernel_version "$KERNEL_VERSION" \
+  --arg cgroup_driver "$CGROUP_DRIVER" \
+  --arg bench_ts_utc "$BENCH_TS_UTC" \
+  --argjson cold_start_ms "$COLD_LATENCIES_MS" \
+  --argjson rss_kb "$RSS_KB" \
+  '{
+    schema: "musu-bridge-bench-v2",
+    schema_v1_compat: true,
+    wiki_id: 443,
+    sub_ws: "v23.4-z4",
+    metadata: {
+      bench_version: $bench_version,
+      bench_ts_utc: $bench_ts_utc,
+      k3s_version: $k3s_version,
+      kernel_version: $kernel_version,
+      cgroup_driver: $cgroup_driver
+    },
+    runs: .,
+    aggregate: ((map(.runs[0].n) | add) as $n_total
+      | (map(.runs[0].success) | add) as $succ_total
+      | {
+          n_attempts: $n_total,
+          success: $succ_total,
+          fail: (map(.runs[0].fail) | add),
+          success_rate_pct: ($succ_total / $n_total * 100),
+          gate_eligible: (($succ_total / $n_total * 100) >= 99.5),
+          p50_ms_median: (map(.runs[0].p50_ms) | sort | .[(length/2|floor)]),
+          p95_ms_median: (map(.runs[0].p95_ms) | sort | .[(length/2|floor)]),
+          p99_ms_median: (map(.runs[0].p99_ms) | sort | .[(length/2|floor)]),
+          rss_kb: $rss_kb,
+          cold_start_ms: $cold_start_ms,
+          cold_start_p50_ms: ($cold_start_ms | sort | .[(length/2|floor)]),
+          cold_start_max_ms: ($cold_start_ms | max)
+        })
+  }' > "$REPORT_TMP"
+
+# Stitch outer sha256 over the report payload itself. The hash COVERS the
+# entire JSON above (sorted-keys, no trailing newline) so downstream tooling
+# can verify the report was not mutated in transit.
+PAYLOAD_SHA="$(jq -S -c . < "$REPORT_TMP" | sha256sum | awk '{print $1}')"
+jq --arg sha "$PAYLOAD_SHA" '. + {payload_sha256: $sha}' "$REPORT_TMP"

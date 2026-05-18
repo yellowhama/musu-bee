@@ -29,7 +29,11 @@
 import http from "http";
 import { WebSocketServer } from "ws";
 import express from "express";
-import { checkTelemetryAuthBootConfig, makeTelemetryRouter } from "./telemetry";
+import {
+  checkTelemetryAuthBootConfig,
+  makeTelemetryRouter,
+  _installAttemptSweeperDisabled,
+} from "./telemetry";
 import {
   // OQ-A1 / NEW-A3: alias _validationCache as validationCache so internal
   // call sites stay byte-identical to the pre-refactor file. signaling.test.ts
@@ -75,7 +79,13 @@ app.set("trust proxy", 1);
 const _startTime = Date.now();
 
 app.get("/health", (_req, res) => {
-  res.json({ status: "ok" });
+  // V23.4 T2-Z / F-B2-1-FOLLOW-1 (wiki/440): surface sweeper hatch state so
+  // operators can detect MUSU_INSTALL_ATTEMPT_SWEEPER_DISABLED=1 via a probe
+  // instead of grepping the relay log.
+  res.json({
+    status: "ok",
+    install_attempt_sweeper_disabled: _installAttemptSweeperDisabled,
+  });
 });
 
 // Telemetry endpoints (V23.1 T1.5)

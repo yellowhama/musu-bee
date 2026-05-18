@@ -444,9 +444,28 @@ export function _runInstallAttemptSweeperOnce(): number {
   return Number(info.changes);
 }
 
+// V23.4 T2-Z / F-B2-1-FOLLOW-1 (wiki/440): observable hatch.
+// Captured at module init (the env var is evaluated once at process start;
+// it is not a hot toggle) so /health can surface the sweeper-disabled state
+// without re-reading process.env on every request.
+export const _installAttemptSweeperDisabled =
+  process.env.MUSU_INSTALL_ATTEMPT_SWEEPER_DISABLED === "1";
+let _warnedSweeperDisabled = false;
+
 export function _maybeStartInstallAttemptSweeper(): void {
   // C12 safety hatch — checked FIRST so it overrides everything else.
-  if (process.env.MUSU_INSTALL_ATTEMPT_SWEEPER_DISABLED === "1") return;
+  if (_installAttemptSweeperDisabled) {
+    // F-B2-1-FOLLOW-1: surface the silent hatch once at startup so operators
+    // discover it from the relay log without grepping for the env var.
+    if (!_warnedSweeperDisabled) {
+      _warnedSweeperDisabled = true;
+      console.warn(
+        "[telemetry] install_attempt sweeper disabled via " +
+          "MUSU_INSTALL_ATTEMPT_SWEEPER_DISABLED=1",
+      );
+    }
+    return;
+  }
   // Test-env exempt: jest hangs on dangling intervals.
   if (process.env.NODE_ENV !== "production") return;
   // Re-entrancy guard: makeTelemetryRouter() may be called more than once

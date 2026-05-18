@@ -987,6 +987,53 @@ if (-not $ready) {
 }
 Write-MusuOk "musu-gateway connected to signaling"
 
+# ── Step 11.5 — V23.4 T2-Z / F-A1c-4: WSL2 portproxy for rendezvous role ────
+# Wiki/441. WSL2 is NATed: a service binding 0.0.0.0:9900 inside the distro
+# is NOT reachable from the Windows host LAN by default. When this PC plays
+# the rendezvous role (Step 5.9), external peers must reach the signaling
+# port via the Windows host IP. `netsh interface portproxy add v4tov4`
+# installs a Windows-side TCP proxy that DNATs incoming :9900 to the WSL2
+# distro's vEthernet IP.
+#
+# Defensive wiring (per spec): if `netsh` is unavailable or the proxy add
+# fails, log a warning and continue — peer-role installs do not need the
+# proxy, and we don't want a portproxy failure to fail the whole install.
+if ($script:IsRendezvous) {
+    Write-MusuInfo "Step 11.5/12: install netsh portproxy 0.0.0.0:9900 -> WSL2 (rendezvous role)"
+    try {
+        $netshAvailable = $null -ne (Get-Command netsh.exe -ErrorAction SilentlyContinue)
+        if (-not $netshAvailable) {
+            Write-MusuWarn "netsh.exe not on PATH; skipping portproxy. External peers may be unable to reach signaling:9900."
+        } else {
+            # Resolve WSL2 distro IP (eth0 inet addr). `hostname -I` returns
+            # space-separated v4+v6; take the first v4-looking token.
+            $wslIpRaw = & wsl.exe -d musu -- sh -c "hostname -I" 2>$null
+            $wslIp = $null
+            if ($wslIpRaw) {
+                foreach ($tok in ($wslIpRaw -split '\s+')) {
+                    if ($tok -match '^\d+\.\d+\.\d+\.\d+$') { $wslIp = $tok; break }
+                }
+            }
+            if (-not $wslIp) {
+                Write-MusuWarn "Could not resolve WSL2 distro IP; skipping portproxy."
+            } else {
+                # Best-effort delete of any prior mapping (idempotent re-install).
+                & netsh.exe interface portproxy delete v4tov4 listenport=9900 listenaddress=0.0.0.0 2>$null | Out-Null
+                & netsh.exe interface portproxy add v4tov4 listenport=9900 listenaddress=0.0.0.0 connectport=9900 connectaddress=$wslIp | Out-Null
+                if ($LASTEXITCODE -ne 0) {
+                    Write-MusuWarn "netsh portproxy add returned exit $LASTEXITCODE; external peers may be unable to reach signaling:9900."
+                } else {
+                    Write-MusuOk "netsh portproxy installed: 0.0.0.0:9900 -> ${wslIp}:9900"
+                }
+            }
+        }
+    } catch {
+        Write-MusuWarn "portproxy step threw: $($_.Exception.Message). Continuing — peer-mode reachability unaffected."
+    }
+} else {
+    Write-MusuInfo "Step 11.5/12: skipping portproxy (peer role)"
+}
+
 # ── Step 12 — Cleanup staging + Scheduled Task ─────────────────────────────
 
 Write-MusuInfo "Step 12/12: cleanup"

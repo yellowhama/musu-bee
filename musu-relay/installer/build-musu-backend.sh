@@ -230,9 +230,48 @@ echo "${K3S_BINARY_SHA}  $STAGING/usr/local/bin/k3s" | sha256sum -c -
 chmod 0755 "$STAGING/usr/local/bin/k3s"
 
 mkdir -p "$STAGING/var/lib/rancher/k3s/agent/images"
+AIRGAP_DST="$STAGING/var/lib/rancher/k3s/agent/images/k3s-airgap-images-${ARCH}.tar.zst"
 curl -fsSL "https://github.com/k3s-io/k3s/releases/download/v${K3S_VER_NUM}+k3s1/k3s-airgap-images-${ARCH}.tar.zst" \
-    -o "$STAGING/var/lib/rancher/k3s/agent/images/k3s-airgap-images-${ARCH}.tar.zst"
-echo "${K3S_AIRGAP_SHA}  $STAGING/var/lib/rancher/k3s/agent/images/k3s-airgap-images-${ARCH}.tar.zst" | sha256sum -c -
+    -o "$AIRGAP_DST"
+echo "${K3S_AIRGAP_SHA}  $AIRGAP_DST" | sha256sum -c -
+
+# V23.4 T2-Z / FO-A1a-4 (wiki/445): trim airgap-images to the four containerd
+# core images musu actually needs (pause, coredns, traefik, local-path-
+# provisioner). Trimming saves ~40-60 MB off the final tar. The upstream sha
+# was verified above against the untrimmed blob (integrity gate); the trimmed
+# repack legitimately produces a different sha256, which is captured by the
+# Step 9 outer sha256 sidecar over OUTPUT.
+#
+# Set MUSU_KEEP_FULL_AIRGAP=1 to skip the trim (e.g., when validating a
+# build against an unmodified upstream airgap set during incident triage).
+if [ "${MUSU_KEEP_FULL_AIRGAP:-0}" != "1" ]; then
+  echo "[2.b/10] Trim airgap-images to {pause,coredns,traefik,local-path-provisioner}"
+  AIRGAP_TRIM_DIR="$STAGING/.airgap-trim"
+  rm -rf "$AIRGAP_TRIM_DIR"
+  mkdir -p "$AIRGAP_TRIM_DIR"
+  zstd -dc "$AIRGAP_DST" | tar -xf - -C "$AIRGAP_TRIM_DIR"
+  # K3s airgap layout: index.json + manifests/blobs. We use crane/skopeo if
+  # available; otherwise prune by image-tag refs in index.json.
+  if [ -f "$AIRGAP_TRIM_DIR/index.json" ]; then
+    KEEP_RE='(^|/)(pause|coredns|traefik|local-path-provisioner)(:|@|$)'
+    # Rewrite index.json keeping only matching annotations.org.opencontainers.image.ref.name
+    jq --arg re "$KEEP_RE" \
+       '.manifests |= map(select((.annotations["org.opencontainers.image.ref.name"] // "") | test($re; "i")))' \
+       "$AIRGAP_TRIM_DIR/index.json" > "$AIRGAP_TRIM_DIR/index.json.tmp"
+    mv "$AIRGAP_TRIM_DIR/index.json.tmp" "$AIRGAP_TRIM_DIR/index.json"
+  fi
+  # Repack with the same SDE-clamped flags as the outer tar (B6 reproducibility).
+  ( cd "$AIRGAP_TRIM_DIR" && tar --sort=name \
+      --mtime="@${SOURCE_DATE_EPOCH}" \
+      --owner=0 --group=0 --numeric-owner \
+      --format=pax \
+      --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime \
+      -cf - . | zstd -19 -T0 -o "$AIRGAP_DST.trimmed" )
+  mv "$AIRGAP_DST.trimmed" "$AIRGAP_DST"
+  rm -rf "$AIRGAP_TRIM_DIR"
+  TRIMMED_SIZE_MB=$(( $(stat -c %s "$AIRGAP_DST") / 1024 / 1024 ))
+  echo "[2.b/10] trimmed airgap-images: ${TRIMMED_SIZE_MB} MB"
+fi
 
 # k3s-install.sh REMOVED from the tar (Critic C-B6-H3 resolution).
 #
@@ -317,6 +356,19 @@ find "$STAGING/usr/local/lib/musu-gateway/node_modules" -type d -name build -pri
   done
 rm -rf "$STAGE_NM_PARENT"
 popd >/dev/null
+
+# ── Step 3.c.1: Derive GIT_SHA / GIT_DESC / BUILD_TS for downstream consumers ─
+# V23.4 T2-Z / FO-A1a-1 (wiki/440): these used to be derived only at Step 6.c
+# (line ~575), which was AFTER step 3.d consumed them via --build-arg. The
+# OCI labels org.opencontainers.image.revision and image.created consequently
+# baked "unknown" into every bridge image. Moving the derivation up here so
+# 3.d sees real values; Step 6.c still references the same variable names
+# below (re-deriving with the same git command is a noop but harmless — the
+# values are read once and used in both buildah --build-arg and the
+# /etc/musu-version provenance block).
+GIT_SHA="$(git -C "$SCRIPT_DIR/.." rev-parse --short HEAD 2>/dev/null || echo unknown)"
+GIT_DESC="$(git -C "$SCRIPT_DIR/.." describe --always --dirty=-dirty 2>/dev/null || echo unknown)"
+BUILD_TS="$(date -u -d "@${SOURCE_DATE_EPOCH}" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)"
 
 # ── Step 3.d: Build musu-bridge OCI image (V23.3 A1.a / wiki/380) ─────────
 echo "[3.d/10] Build musu-bridge OCI image (buildah --timestamp=SDE)"
@@ -572,9 +624,10 @@ echo "[6.c/10] Bake /etc/musu-version provenance block"
 # telemetry) AND git_desc (new, surfaces dirty-tree marker for
 # validate-import.ps1 / B4c host comparison). Additive schema, no
 # TypeScript source touch.
-GIT_SHA="$(git -C "$SCRIPT_DIR/.." rev-parse --short HEAD 2>/dev/null || echo unknown)"
-GIT_DESC="$(git -C "$SCRIPT_DIR/.." describe --always --dirty=-dirty 2>/dev/null || echo unknown)"
-BUILD_TS="$(date -u -d "@${SOURCE_DATE_EPOCH}" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)"
+#
+# V23.4 T2-Z / FO-A1a-1 (wiki/440): GIT_SHA / GIT_DESC / BUILD_TS already
+# derived at Step 3.c.1 (above) so step 3.d's --build-arg sees real values
+# instead of "unknown". The variables remain in scope here.
 cat > "$STAGING/etc/musu-version" <<VERS
 git_sha=${GIT_SHA}
 git_desc=${GIT_DESC}

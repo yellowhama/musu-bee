@@ -13,6 +13,16 @@
 # with the B6 reproducible tar recipe by build-musu-backend.sh step 3.d
 # (Critic H1) -- do NOT rely on buildah's native oci-archive layout.
 
+# V23.4 T2-Z / F-A1c-3 (wiki/441): full reproducibility requires a digest
+# pin (FROM python:3.11-slim-bookworm@sha256:<digest>). The current build
+# host has no network access to docker hub from the sealed builder pipeline
+# so the live digest cannot be resolved here without breaking the airgap
+# property. Until V23.5 wires a manifest.yaml digest field, pin format is:
+#   FROM python:3.11-slim-bookworm@sha256:<resolve-current-stable-digest>
+# Run `crane digest python:3.11-slim-bookworm` (or `skopeo inspect`) from
+# a network-connected build box, drop the resulting sha256 into manifest.yaml,
+# and replace this line with the pinned form. See V23.4 Z2 closure (wiki/441).
+# TODO(V23.5): pin to digest for byte-reproducibility — verify digest at next build.
 FROM python:3.11-slim-bookworm
 
 # Provenance labels (V23.3 A1.a F16). Values passed via --build-arg.
@@ -46,7 +56,14 @@ LABEL org.opencontainers.image.source="https://github.com/yellowhama/musu-bee" \
 #      RUN as apt-install so they never enter the layer.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends tini=0.19.0-1+b3 && \
-    rm -rf /var/lib/apt/lists/* /var/log/apt /var/log/dpkg.log /var/log/alternatives.log /var/cache/ldconfig/aux-cache
+    rm -rf /var/lib/apt/lists/* /var/log/apt /var/log/dpkg.log /var/log/alternatives.log /var/cache/ldconfig/aux-cache && \
+    rm -rf /var/cache/apt/archives /var/cache/apt/*.bin
+# V23.4 T2-Z / F-A1c-3 (wiki/441): the extra `rm -rf /var/cache/apt/archives`
+# scrubs the downloaded .deb files apt-get keeps after install. Pre-fix, the
+# layer carried ~2-5 MB of apt-cached .debs (timestamped on download) which
+# both inflated the image and leaked wall-clock mtime into the layer. This is
+# half of the F-A1c-3 fix; the other half (FROM <digest>) is gated on V23.5
+# manifest.yaml digest plumbing (see TODO above).
 RUN find /usr/bin/tini /usr/share/doc/tini -exec touch -h -d "@${SOURCE_DATE_EPOCH}" {} + 2>/dev/null || true
 
 # Non-root user for A1.b Secret mount compat (F10). UID 1000 matches
