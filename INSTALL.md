@@ -101,11 +101,21 @@ pnpm start
 
 ### musu-relay (Node.js)
 
+`musu-relay` is optional unless you need self-hosted WebRTC signaling
+rendezvous for cross-PC mesh (V23.4+). For single-machine use, skip
+this block.
+
 ```bash
 cd musu-relay
 pnpm install
-node server.js
+pnpm build
+pnpm start    # runs dist/signaling/server.js
 ```
+
+There is no `server.js` at the repo root — the entry is built into
+`dist/signaling/server.js` by the `build` script. The legacy V21
+WebSocket relay (`src/server.ts`) is still in tree but only used by
+`pnpm dev:legacy-v21` for backward-compat tests.
 
 ---
 
@@ -135,7 +145,7 @@ tail -f ~/.musu/logs/musu-bridge.err.log
 Start-ScheduledTask    -TaskName musu-bridge
 Stop-ScheduledTask     -TaskName musu-bridge
 Get-ScheduledTaskInfo  -TaskName musu-bridge
-Get-Content "$env:USERPROFILE\musu-functions\logs\bridge-install-start.log" -Tail 50
+Get-Content "$env:USERPROFILE\musu-bee\logs\bridge-install-start.log" -Tail 50
 
 # Reload bridge after a code change (no admin needed):
 powershell -ExecutionPolicy Bypass -File scripts\restart-bridge.ps1
@@ -145,16 +155,33 @@ powershell -ExecutionPolicy Bypass -File scripts\restart-bridge.ps1
 
 ## Adding another machine
 
-Once the bridge is running on one machine, you can add more from the
-CLI:
+Once the bridge is running on one machine, register more nodes via
+the bridge API. (There is no `musu` top-level CLI — only the
+`musu-bridge` and `musu-bridge-init` entry points get put on PATH.)
 
 ```bash
-musu nodes add 100.x.x.x      # Tailscale IP of the new node
+# On the first machine:
+curl -X POST http://localhost:8070/api/nodes/add \
+  -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "<friendly-name>",
+    "tailscale_ip": "100.x.x.x"
+  }'
 ```
+
+`NodeAddRequest` accepts `name` (required, 1-64 chars), and either
+`url` or `tailscale_ip` (the bridge auto-generates the URL from the
+Tailscale IP). Optional `agents` list assigns specific agents to
+the node. GPU/OS metadata goes in `~/.musu/nodes.toml` on the
+destination machine, not in this request.
 
 The new node needs to run the installer too (same one-liner). After
 that, both bridges discover each other over Tailscale and the mesh
 router can spill work between them.
+
+See [`docs/ONBOARDING.md`](docs/ONBOARDING.md) for the full mesh
+onboarding flow (token exchange, peer acceptance, agent assignment).
 
 ---
 
@@ -170,7 +197,7 @@ journalctl --user -u musu-bridge -n 50
 tail -100 ~/.musu/logs/musu-bridge.err.log
 
 # Windows
-Get-Content "$env:USERPROFILE\musu-functions\logs\bridge-install-start.log" -Tail 100
+Get-Content "$env:USERPROFILE\musu-bee\logs\bridge-install-start.log" -Tail 100
 ```
 
 ### "No AI CLI found" warning

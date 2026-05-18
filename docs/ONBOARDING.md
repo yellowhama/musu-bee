@@ -1,6 +1,8 @@
 # MUSU Node Onboarding
 
-New device? New user? Follow this guide to join the mesh.
+**Adding another machine to an existing MUSU mesh.** For *first*
+single-machine setup, use [`../QUICKSTART.md`](../QUICKSTART.md) — this
+doc assumes a bridge is already running somewhere on your tailnet.
 
 ## Prerequisites
 
@@ -14,14 +16,19 @@ New device? New user? Follow this guide to join the mesh.
 ### 1. Clone
 
 ```bash
-git clone https://github.com/yellowhama/musu-bee.git ~/musu-functions
-cd ~/musu-functions
+git clone https://github.com/yellowhama/musu-bee.git ~/musu-bee
+cd ~/musu-bee
 ```
 
 ### 2. Install Python packages
 
+The musu Python modules use editable installs from their `pyproject.toml`
+— there is no `requirements.txt`. The convenience installer handles all
+of this in one command (`bash scripts/install.sh --service --start`).
+Manual equivalent:
+
 ```bash
-cd musu-bridge && python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && deactivate
+cd musu-bridge && python3 -m venv .venv && source .venv/bin/activate && pip install -e . && deactivate
 cd ../musu-core && python3 -m venv .venv && source .venv/bin/activate && pip install -e . && deactivate
 cd ../musu-control && python3 -m venv .venv && source .venv/bin/activate && pip install -e . && deactivate
 cd ..
@@ -83,15 +90,25 @@ musu-bridge/.venv/bin/python musu-bridge/seed_agents.py
 python3 scripts/apply-agent-defaults.py
 ```
 
-### 6. Connect to Forgejo (central Git)
+### 6. Connect to a shared Git server (optional)
+
+> **Optional, opt-in only.** V23.4+ musu does not require a shared
+> Forgejo / Gitea / GitHub server. The mesh works fine without one.
+> Skip this section unless you already operate a shared Git host for
+> agent code sync.
+
+If you DO run a shared Git server, register it as a Git remote with
+your own credentials — NEVER paste someone else's IP or token here:
 
 ```bash
-git remote add forgejo http://100.126.67.88:3000/musu_admin/musu-project.git
+# Replace with YOUR shared Git host + YOUR credentials
+git remote add forgejo "https://<YOUR_GIT_HOST>/<ORG>/musu-project.git"
 git config --global credential.helper store
-echo "http://musu_admin:musu_admin@100.126.67.88:3000" >> ~/.git-credentials
-chmod 600 ~/.git-credentials
 git fetch forgejo
 ```
+
+Use a personal access token (not username:password) and let
+`credential.helper store` save it after the first `git fetch` prompt.
 
 ### 7. Start
 
@@ -111,12 +128,12 @@ cd musu-bridge && .venv/bin/python server.py
 # Local health
 curl http://localhost:8070/health
 
-# Mesh connection (to 4060)
-curl http://100.126.67.88:8070/health -H "Authorization: Bearer local-dev-token-change-in-prod"
+# Mesh connection (replace <MESH_PEER_IP> with the existing node's Tailscale IP)
+curl http://<MESH_PEER_IP>:8070/health -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN"
 
 # Announce on CEO board
 curl -X POST http://localhost:8070/api/groups/ceo-board/messages \
-  -H "Authorization: Bearer local-dev-token-change-in-prod" \
+  -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"text": "NEW_NODE online. Mesh connected.", "sender_id": "ceo-NEW_NODE"}'
 ```
@@ -131,10 +148,14 @@ Your Device
        ├─ QA (Claude) — reviews code
        └─ Node Manager — reports device health
 
-       Connected to:
-       ├─ Forgejo (Git sync) — central code repository
-       ├─ #ceo-board — inter-device CEO group chat
-       └─ musu.pro relay — remote access via web
+       Optional integrations (not required):
+       ├─ Shared Git host (Forgejo/Gitea/GitHub) — code sync between
+       │  nodes when you operate one. Self-contained product positioning
+       │  ([[feedback-self-contained-product]]) makes this opt-in.
+       ├─ #ceo-board — inter-device CEO group chat (built into bridge,
+       │  no external service needed)
+       └─ musu.pro — remote-access SaaS. V23.4+ optional; the bridge
+          itself runs locally with no SaaS dep.
 ```
 
 ## Key Files
@@ -170,8 +191,8 @@ to bind the bridge to it.
 When notified via #ceo-board:
 
 ```bash
-cd ~/musu-functions
-git pull forgejo main
+cd ~/musu-bee
+git pull                                       # or `git pull forgejo main` if you registered one
 python3 scripts/apply-agent-defaults.py
 systemctl --user restart musu-bridge
 ```

@@ -18,25 +18,31 @@ Your Device
        ├─ QA (Claude) — reviews and scores work
        └─ Node Manager — reports device health
 
-Connected to:
+Connected to (optional, not required for single-machine use):
   ├─ Other devices via Tailscale mesh
-  ├─ Forgejo (local Git server) for code sharing
-  ├─ musu.pro for remote access
+  ├─ musu-relay WebRTC signaling rendezvous (for cross-PC mesh)
   └─ #ceo-board for inter-device coordination
+
+A self-hosted Forgejo for shared Git, or the musu.pro remote-access
+service, are optional integrations — not part of the V23.4+ core
+runtime. Treat sections below that reference them as opt-in.
 ```
 
 ---
 
-## Quick Start (5 minutes)
+## Quick Start
 
-See [ONBOARDING.md](ONBOARDING.md) for full setup.
+For single-machine install + first company: see [`../QUICKSTART.md`](../QUICKSTART.md).
+For adding a node to an existing mesh: see [`ONBOARDING.md`](ONBOARDING.md).
+Per-OS reference + troubleshooting: see [`../INSTALL.md`](../INSTALL.md).
+
+Set the bearer token once per shell:
 
 ```bash
-git clone https://github.com/yellowhama/musu-bee.git ~/musu-functions
-cd ~/musu-functions
-# Install deps, configure .env, seed agents, start bridge
-# Details in ONBOARDING.md
+export MUSU_BRIDGE_TOKEN=$(grep '^MUSU_BRIDGE_TOKEN=' ~/.musu/bridge.env | cut -d= -f2)
 ```
+
+All curl examples below assume `$MUSU_BRIDGE_TOKEN` is exported.
 
 ---
 
@@ -67,7 +73,7 @@ sqlite3 ~/.musu/musu.db "SELECT status, substr(output,1,100), created_at FROM ro
 
 ```bash
 curl -X POST http://localhost:8070/api/agents/{CEO_ID}/heartbeat/invoke \
-  -H "Authorization: Bearer local-dev-token-change-in-prod" \
+  -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN" \
   -H "Content-Type: application/json" -d '{}'
 ```
 
@@ -75,7 +81,7 @@ curl -X POST http://localhost:8070/api/agents/{CEO_ID}/heartbeat/invoke \
 
 ```bash
 curl -X POST http://localhost:8070/api/feedback \
-  -H "Authorization: Bearer local-dev-token-change-in-prod" \
+  -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"title": "Fix the login page", "type": "bug"}'
 # Creates an issue → CEO picks it up on next heartbeat
@@ -89,7 +95,7 @@ curl -X POST http://localhost:8070/api/feedback \
 
 ```bash
 curl -X POST http://{REMOTE_IP}:8070/api/system/update \
-  -H "Authorization: Bearer local-dev-token-change-in-prod"
+  -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN"
 # Runs git pull + apply-agent-defaults.py + restart if needed
 ```
 
@@ -120,7 +126,7 @@ curl http://localhost:8070/api/notifications/writer-1
 
 ```bash
 curl http://localhost:8070/api/groups/ceo-board/messages?limit=5 \
-  -H "Authorization: Bearer local-dev-token-change-in-prod"
+  -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN"
 ```
 
 ### Change model distribution (all nodes)
@@ -130,7 +136,7 @@ Edit `.musu/agent-defaults.json`, then:
 git add .musu/agent-defaults.json && git commit -m "update models" && git push
 # Then remote-update each node:
 curl -X POST http://{NODE_IP}:8070/api/system/update \
-  -H "Authorization: Bearer local-dev-token-change-in-prod"
+  -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN"
 ```
 
 ### Browse files on another device
@@ -208,10 +214,23 @@ Never hardcode tokens in code, wiki, or instructions. Always read from vault.
 
 ```bash
 curl -X POST http://localhost:8070/api/companies \
-  -H "Authorization: Bearer local-dev-token-change-in-prod" \
+  -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"name": "My App", "template_key": "dev-team", "purpose": "Build a web app"}'
-# Creates company + team lead + engineer + planner + qa
+# → {"company": {"id": "<COMPANY_ID>", ...}, "agents": [...], "governance": {...}}
+# Extract id: ... | jq -r '.company.id'
+```
+
+The response wraps the company row under `company`, the auto-created
+agents under `agents`, and the template's harness governance config
+under `governance`. Extracting just the id:
+
+```bash
+COMPANY_ID=$(curl -s -X POST http://localhost:8070/api/companies \
+  -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"My App","template_key":"dev-team","purpose":"..."}' \
+  | jq -r '.company.id')
 ```
 
 Templates: `dev-team`, `content-team`, `research-team`, `writer-studio`
@@ -220,7 +239,7 @@ Templates: `dev-team`, `content-team`, `research-team`, `writer-studio`
 
 ```bash
 curl http://localhost:8070/api/companies/{ID}/briefing \
-  -H "Authorization: Bearer local-dev-token-change-in-prod"
+  -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN"
 # Returns: name, purpose, status, summary, blockers, recent wins
 ```
 
@@ -235,7 +254,7 @@ curl -X POST http://localhost:8070/api/companies/{ID}/deactivate
 
 ```bash
 curl -X POST http://localhost:8070/api/companies/{ID}/run \
-  -H "Authorization: Bearer local-dev-token-change-in-prod"
+  -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN"
 ```
 
 ---
@@ -246,7 +265,7 @@ curl -X POST http://localhost:8070/api/companies/{ID}/run \
 
 ```bash
 curl http://localhost:8070/api/agents \
-  -H "Authorization: Bearer local-dev-token-change-in-prod"
+  -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN"
 ```
 
 ### Pause/Resume an agent
@@ -282,7 +301,7 @@ Auto-fallback: Claude → Gemini → Codex (if rate limited)
 
 ```bash
 curl -X POST http://localhost:8070/api/tasks/delegate \
-  -H "Authorization: Bearer local-dev-token-change-in-prod" \
+  -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"channel": "engineer", "text": "Fix the login bug in auth.py line 45. pytest tests/test_auth.py should pass."}'
 # Returns: {"task_id": "..."}
@@ -292,7 +311,7 @@ curl -X POST http://localhost:8070/api/tasks/delegate \
 
 ```bash
 curl http://localhost:8070/api/tasks/{TASK_ID} \
-  -H "Authorization: Bearer local-dev-token-change-in-prod"
+  -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN"
 # Returns: {status: "done"/"running"/"failed", summary: "..."}
 ```
 
@@ -385,7 +404,7 @@ tailscale ping {NODE_IP}
 curl http://{NODE_IP}:8070/health
 # Force update
 curl -X POST http://{NODE_IP}:8070/api/system/update \
-  -H "Authorization: Bearer local-dev-token-change-in-prod"
+  -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN"
 ```
 
 ### High failure rate
@@ -406,7 +425,7 @@ sqlite3 ~/.musu/musu.db "DELETE FROM route_executions WHERE status='failed' AND 
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | MUSU_BRIDGE_TOKEN | (required) | API authentication |
-| BRIDGE_HOST | 0.0.0.0 | Bind address |
+| BRIDGE_HOST | 127.0.0.1 | Bind address (set `0.0.0.0` for LAN; also set `MUSU_BRIDGE_LOCALHOST_AUTH=1` so LAN traffic still needs the token) |
 | BRIDGE_PORT | 8070 | HTTP port |
 | MUSU_NODE_NAME | hostname | Device identifier |
 | MUSU_TOKEN | | Cloud registry token |
