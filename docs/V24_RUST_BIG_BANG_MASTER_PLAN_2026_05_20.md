@@ -154,7 +154,7 @@ Strict sequence within each phase; no parallel sub-WS — per panel H5 from V23.
 | ─── JTBD ships ~day 14 ─── | | | | | | | |
 | R-cleanup | **V24-R3** | wiki/493 | `control` | MCP server (stdio JSON-RPC, ~10-20 tools subset); when shipped, remove Python musu-control from facade | MED | ~1,500 | none |
 | R-cleanup | **V24-R4** | wiki/494 | `indexer` | Per-company file indexing (tantivy or sqlx FTS5); remove Python musu-indexer from facade | MED | ~1,500 | none |
-| R-cleanup | **V24-R5** | wiki/495 | `writer` | Agent task execution + SSE writer surface; remove Python musu-writer from facade | MED | ~1,500 | `musu-supervisor/` (V21.D, **pending R0 audit per MED-2**) |
+| R-cleanup | **V24-R5** | wiki/495 | `writer` | Agent task execution + SSE writer surface; remove Python musu-writer from facade | MED | ~1,500 | **GREENFIELD per R0 audit** (musu-supervisor/ = scaffold, zero Python refs) |
 | R-cleanup | **V24-R6** | wiki/496 | — | Installer rewrite (Linux/macOS/Windows parity, single-binary, no facade) | MED | ~600 | none |
 | R-cleanup | **V24-R10** | wiki/500 | — | **MANUAL GATE**: Python deletion + final closure HTML + CHANGELOG 1.14.0 + §9.12 operator-attested confirmation | — | (delete+doc) | n/a |
 
@@ -213,7 +213,7 @@ Strict serial within each phase. Each step requires the previous to be on real d
 | ─── JTBD ships here (~day 14) ─── | | | | |
 | **R3** `control` module | R-cleanup | `system-architect` | `quality-engineer` | MCP server (stdio JSON-RPC, ~10-20 tools subset). Stack: `rmcp` crate IF audit (per MED-2 logic, applied to rmcp) shows stable API + fallback compile path; else hand-rolled `tokio` JSON-RPC. **Remove `/api/control/*` from R1 facade when shipped**. |
 | **R4** `indexer` module | R-cleanup | `system-architect` | `quality-engineer` | Per-company indexing. `tantivy` IF audit shows stable; else `sqlx` FTS5. Watcher: `notify`. **Remove `/api/indexer/*` from R1 facade when shipped**. |
-| **R5** `writer` module | R-cleanup | `system-architect` | `quality-engineer` | Agent task execution + SSE writer. **R0 audit determines integration path**: if `musu-supervisor/` compiles + has API surface for R5 needs → integrate. Else greenfield process isolation in R5 itself. **Remove `/api/writer/*` from R1 facade when shipped**. |
+| **R5** `writer` module | R-cleanup | `system-architect` | `quality-engineer` | Agent task execution + SSE writer. **R0 audit verdict (2026-05-20): GREENFIELD** — musu-supervisor/ exists with isolation-trait API but zero Python integration; commit 59b0717 explicitly "scaffold-phase closure"; platform crates return `Unsupported`. R5 builds process isolation de novo (may reference 59b0717 for trait shape, but no inheritance). **Remove `/api/writer/*` from R1 facade when shipped**. |
 | **R6** Installer rewrite | R-cleanup | `devops-architect` | `quality-engineer` + `security-engineer` (DUAL — service registration one-way blast radius) | install.sh + install.ps1 rewrite. rustup install + `cargo build --release` (single binary now, MED-1) + systemd/launchd/Windows service. Removes Python install steps entirely. |
 | **R10** Python deletion + closure | R-cleanup | n/a | n/a | **MANUAL GATE**: operator approves before `rm -rf musu-bridge/ musu-core/ musu-control/ musu-indexer/ musu-writer/`. Final closure HTML wiki/500 + qual eval. **CHANGELOG 1.14.0** (panel HIGH-3 + LOW-1, NOT 2.0.0). **§9.12 operator-attested confirmation** required before mark-complete (panel HIGH-4). |
 
@@ -245,7 +245,7 @@ Next free ID after V24: wiki/501.
 | R2 | HIGH | V24-R1 axum auth surface re-introduces auth bugs V23.2-B1 already fixed in Python. | Dual security-engineer audit on R1. V23.2-B1 prior audit findings forwarded to Auditor in PRIOR ARTIFACTS envelope. Specifically: (a) `validateToken` fail-closed with cached grace, (b) drop user_id from cache key + HELLO, (c) timingSafeEqual for secret compare, (d) boot-time secret check + `/health` flag. |
 | R3 | MED | Rust learning cost (operator + orchestrator). | tokio + axum + sqlx are mainstream Rust. Orchestrator already has prior Rust exposure (`musu-supervisor/` workspace shipped V21.D). Builder = `backend-architect` subagent. |
 | R4 | MED | `rmcp` crate API may be unstable or thin. | R3 starts with minimal tool subset (10-20 most-used by Claude Code session). Fallback: hand-rolled `tokio` JSON-RPC over stdio (well-specified protocol). Defer remaining 60+ tools to V25. |
-| R5 | MED | Cross-machine NAT/firewall (4060Ti↔5070Ti) fails at R9. | `musu-port/` Rust workspace already in repo as relay/punch-through scaffold. Same-LAN URL fallback documented (operator has both machines on home network). |
+| R5 | MED | Cross-machine NAT/firewall (4060Ti↔5070Ti) fails at R9. | R0 audit verdict: `musu-port/` has zero Python integration; treat as greenfield. **Primary mitigation: same-LAN URL** (operator has both machines on home network — direct `http://5070ti.lan:8070` works without NAT punch). If same-LAN fails: R9 ships with limitation noted, NAT punch deferred to V25. |
 | R6 | LOW | companies.yaml format drift between Python schema v37 and Rust schema v1. | R2 declares fresh format. Operator creates new companies in R8 (no migration of stale Python-side companies — there are zero real ones per wiki/471 v3 ground-truth). |
 | R7 | LOW | musu-bee build breaks because Rust bridge endpoint shapes drift from Python. | R7 acceptance is `curl` based, not UI-based. musu-bee UI fix can be V25 if shape drift surfaces. |
 
@@ -301,13 +301,24 @@ Closure decision: orchestrator (사장) declares V24 §9.1-§9.10 done. **§9.12
 
 ---
 
-## §11 Critic Findings (resolved)
+## §11 Critic Findings + R0 Audit Findings (resolved)
 
-*Empty at master plan write time. Populated per-sub-WS as Phase 1.5 `system-architect` Critic returns findings. Each finding row: severity / claim / evidence / resolution (in-plan reshape or user decision).*
+### R0 Phase 0 audit — musu-supervisor/ + musu-port/ (panel MED-2, 2026-05-20)
+
+`Explore` subagent ran read-only audit. Verdict: both workspaces are **greenfield for V24 purposes** despite existing on disk.
+
+| Workspace | Compile signal | Usage signal | Decision |
+|---|---|---|---|
+| `musu-supervisor/` | HIGH (Cargo.lock present, target/debug populated, last touch 2026-05-15, no unimplemented! macros) | **ZERO** (no Python imports, no subprocess refs in musu-core/src/adapters/process.py, commit 59b0717 explicitly labeled "scaffold-phase closure") | **GREENFIELD R5** — drop §5-R5 integration claim. Isolation trait is API-stable but platform crates return `Unsupported` (tasks #296/#297/#298 never finished). Use 59b0717 as code-archaeology reference only. |
+| `musu-port/` | MED (Cargo.lock + target present, axum 0.8 + rusqlite 0.32, partial impl) | **ZERO** (no Python imports, no integration commits since f20a4b7) | **GREENFIELD R9-NAT** — drop §7-R5 NAT-fallback claim. MusuPortConfig architecture sound but never integrated upstream. |
+
+**Wiki/490 reshape applied to §5 R5 + §7 R5 row** (below).
+
+### Critic Findings (per-sub-WS, populated as Phase 1.5 runs)
 
 | Sub-WS | Finding | Severity | Resolution |
 |---|---|---|---|
-| — | (none yet — Phase -1 panel runs first) | — | — |
+| — | (per-sub-WS Critic findings populate here as R1..R6 plans go through Phase 1.5) | — | — |
 
 ---
 
