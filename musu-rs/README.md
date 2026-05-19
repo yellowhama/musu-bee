@@ -8,8 +8,8 @@ V24 Rust replacement for the Python `musu-bridge` + `musu-core` + `musu-control`
 | Phase | Component | Status |
 |---|---|---|
 | R0 | Workspace bootstrap | shipped (5a5ee25) |
-| R1 | `musu bridge` (this commit) | shipped — see wiki/491 |
-| R2 | `musu core` (schema v1) | pending |
+| R1 | `musu bridge` | shipped — see wiki/491 |
+| R2 | `musu core` (schema v1 + companies.yaml) | shipped — see wiki/492 |
 | R3 | `musu indexer` | pending |
 | R4 | `musu writer` | pending |
 | R5 | Replace bridge writer-stub with native Rust | pending |
@@ -77,6 +77,35 @@ All other paths are reverse-proxied to Python `127.0.0.1:8071` via the facade
 | `MUSU_NODES_TOML_PATH` | `~/.musu/nodes.toml` | nodes mesh state |
 | `MUSU_V24_FACADE_TARGET` | off | Python-side guard — `1` enforces `BRIDGE_HOST=127.0.0.1` |
 
+## R2: `musu core` (schema v1 + companies.yaml)
+
+R2 lands the `core` module per wiki/492. Single-binary, four subcommands now
+include a fifth: `musu core` provisions the SQLite schema without booting
+the bridge — useful for first-install / CI bootstrap.
+
+| Subcommand | Purpose |
+|---|---|
+| `musu bridge` | Native bridge + facade reverse-proxy (R1). Auto-applies schema during boot. |
+| `musu core` | Apply schema v1 against the default DB path; exit. Idempotent. |
+| `musu indexer` | Pending (R3). |
+| `musu writer` | Pending (R4). |
+| `musu control` | Pending (R6). |
+
+Schema v1 ships 4 tables (`companies`, `route_executions`, `audit_log`,
+`machines`) in `STRICT` mode with `foreign_keys=ON` and WAL journalling.
+First apply on a machine emits a Const III gate message; subsequent boots
+are silent. Override behavior:
+
+| Var | Effect |
+|---|---|
+| `MUSU_COMPANIES_DIR` | Override `~/.musu/companies/` path (used by tests). |
+| `MUSU_CONST_III_REQUIRE_ACK` | Set `1` to require `MUSU_CONST_III_ACK=1` before applying. |
+| `MUSU_CONST_III_ACK` | Pair with the above. |
+
+`companies.yaml` files live in `~/.musu/companies/<id>.yaml`. The DB is
+canonical; YAML files are derived state written atomically (tempfile +
+rename) on every POST/UPDATE.
+
 ## Tests
 
 ```bash
@@ -84,6 +113,8 @@ cargo test
 cargo clippy --all-targets -- -D warnings
 ```
 
-41 unit tests cover the security-critical auth + config + rate-limit + dedup
-surface area. See wiki/491 §4 "Unit tests required" for the C-SEC-1..12
-test inventory.
+R2 ships 68 unit tests + 1 integration smoke test. The smoke test
+(`tests/r2_smoke.rs`) boots the actual binary against a tempfile DB and
+verifies the wiki/492 §11 acceptance flow end-to-end (boot → ready=true →
+POST companies → YAML file written → GET lists it). R1's 41 security-
+critical auth/config/rate-limit/dedup tests still apply — see wiki/491 §4.
