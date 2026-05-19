@@ -13,6 +13,7 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+use dashmap::mapref::entry::Entry;
 use dashmap::DashMap;
 use sha2::{Digest, Sha256};
 use sqlx::SqlitePool;
@@ -47,23 +48,43 @@ impl DedupCache {
 
     /// Probe + insert. Returns `Some(existing_task_id)` if a fresh duplicate
     /// exists; returns `None` and inserts the new task_id otherwise.
+    ///
+    /// Auditor B MED-1 audit-fix 2026-05-20: previous read-modify-write
+    /// (get → remove-if-expired → insert) opened a TOCTOU window where two
+    /// concurrent dedup probes could both miss the cache and both insert.
+    /// Now uses dashmap's atomic `entry()` API so the read+conditional-write
+    /// happens under a single per-bucket write lock.
     pub fn check_and_insert(&self, key: &str, new_task_id: &str) -> Option<String> {
         let now = Instant::now();
 
-        // Lazy purge: drop expired matches we observe.
-        if let Some(e) = self.inner.get(key) {
-            let (existing_id, inserted) = e.value().clone();
-            if now.duration_since(inserted) < TTL {
-                return Some(existing_id);
+        match self.inner.entry(key.to_string()) {
+            Entry::Occupied(mut e) => {
+                let (existing_id, inserted) = e.get().clone();
+                if now.duration_since(inserted) < TTL {
+                    // Live entry — return existing task_id as duplicate.
+                    Some(existing_id)
+                } else {
+                    // Expired — overwrite atomically under the same lock.
+                    e.insert((new_task_id.to_string(), now));
+                    drop(e);
+                    self.evict_if_needed();
+                    None
+                }
             }
-            // Expired; drop entry and fall through.
-            drop(e);
-            self.inner.remove(key);
+            Entry::Vacant(e) => {
+                e.insert((new_task_id.to_string(), now));
+                self.evict_if_needed();
+                None
+            }
         }
+    }
 
-        // LRU eviction when at cap.
-        if self.inner.len() >= LRU_CAP {
-            // Drop the oldest entry by `inserted_at`.
+    /// LRU eviction when at cap. Drops the oldest entry by `inserted_at`.
+    /// Called from the not-found / expired branches of `check_and_insert`
+    /// after the new entry is already in place — overshoot of one entry
+    /// during the eviction-search window is acceptable for a soft cap.
+    fn evict_if_needed(&self) {
+        if self.inner.len() > LRU_CAP {
             let oldest = self
                 .inner
                 .iter()
@@ -73,10 +94,6 @@ impl DedupCache {
                 self.inner.remove(&k);
             }
         }
-
-        self.inner
-            .insert(key.to_string(), (new_task_id.to_string(), now));
-        None
     }
 
     /// Populate from `route_executions` rows created within the last hour
