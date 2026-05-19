@@ -22,10 +22,10 @@ Per `business-panel-experts` adversarial critique of wiki/471 v1 + W5 RED verdic
 
 **Entry conditions for V23.6 master plan Phase −1 spawn** (ALL three required):
 1. Operator clears #436 (V23.3 + V23.4 + V23.5 → main) OR explicitly confirms #436 batching policy (deliberate vs accidental)
-2. ≥1 V23.5 product-outcome telemetry signal exists (any of: `GET /api/wiki/page/{id}/html` hit, `recent_wiki_pages` agent consumption, `MUSU_USER_LLM_API_KEY` opt-in attempt)
-3. Operator reviews ≥3 V23.5 sub-WS Builder diffs end-to-end
+2. **~~≥1 V23.5 product-outcome telemetry signal exists~~ → DATA RETURNED 2026-05-19 v3: ZERO.** Ground-truth: `audit.db` 601 rows = 100% pytest `testclient`, `/api/wiki/*` + briefing paths = 0 hits ever; `telemetry.db` install_attempt + nat_pierce + agent_spawn = 0 rows ever. **Revised condition: operator decides what to do with the zero-usage finding** — either (a) accept "V23.5 was a capability investment, no runtime expected yet, V23.6 proceeds anyway", (b) "stop adding surface until V23.5 features are actually exercised once" (panel-aligned default), or (c) "build the runtime that would consume V23.5 surface first, before V23.6 hygiene work" (deepest change).
+3. Operator reviews ≥3 V23.5 sub-WS Builder diffs end-to-end (still pending — no signal exists that this has happened)
 
-Rationale: panel H5 (parallelism doesn't help solo operator) + M5 (#436 4-cycle backlog) + H2 (V23.5 product outcome unmeasured). V23.6 must not deepen the backlog before clearing the bottleneck.
+Rationale: panel H5 (parallelism doesn't help solo operator) + M5 (#436 4-cycle backlog) + H2 (V23.5 product outcome) — H2 now confirmed empirically zero, not unknown. The remaining question is not "is V23.5 used" (answer: no) but "given that V23.5 is not used, what does V23.6 do."
 
 ### A.1 In-scope (v2)
 
