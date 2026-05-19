@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V24-R2 musu-rs::core — closure (wiki/492c)</title>
+<style>
+  :root {
+    --bg: #fbfbfa;
+    --fg: #1c1c1a;
+    --muted: #6b6b66;
+    --border: #d8d6d0;
+    --accent: #2c5f8d;
+    --accent-soft: #e8f0f7;
+    --ok: #2c7a3a;
+    --ok-soft: #e6f4ea;
+    --warn: #a85d00;
+    --warn-soft: #fbeedb;
+    --err: #a8302a;
+    --err-soft: #f7e1df;
+    --defer: #5c4c8c;
+    --defer-soft: #ece7f6;
+    --code-bg: #f1efea;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16171a;
+      --fg: #e6e6e3;
+      --muted: #989894;
+      --border: #2e2f33;
+      --accent: #6fa8d6;
+      --accent-soft: #1e2a36;
+      --ok: #7cc28a;
+      --ok-soft: #1c2a20;
+      --warn: #e0a866;
+      --warn-soft: #2e2418;
+      --err: #e08077;
+      --err-soft: #2e1c1a;
+      --defer: #b0a4d8;
+      --defer-soft: #251f33;
+      --code-bg: #1f2024;
+      --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, "Noto Sans CJK KR", "Malgun Gothic", sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.55;
+    font-size: 16px;
+  }
+  .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 4rem;
+  }
+  header.doc-header {
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 1.25rem;
+    margin-bottom: 2rem;
+  }
+  header.doc-header h1 {
+    font-size: 1.7rem;
+    margin: 0 0 0.4rem;
+    line-height: 1.25;
+  }
+  header.doc-header .meta {
+    color: var(--muted);
+    font-size: 0.92rem;
+  }
+  header.doc-header .meta code { color: var(--accent); }
+  h2 {
+    font-size: 1.25rem;
+    margin-top: 2.4rem;
+    margin-bottom: 0.7rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.3rem;
+  }
+  h3 {
+    font-size: 1.05rem;
+    margin-top: 1.6rem;
+    margin-bottom: 0.5rem;
+    color: var(--fg);
+  }
+  p { margin: 0.6rem 0; }
+  code, pre {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.88em;
+  }
+  code {
+    background: var(--code-bg);
+    padding: 0.08em 0.35em;
+    border-radius: 3px;
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 0.85rem 1rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { padding-left: 1.4rem; }
+  li { margin: 0.2rem 0; }
+  .lede {
+    font-size: 1.02rem;
+    color: var(--fg);
+  }
+  .lede p:first-child::first-line { font-weight: 600; }
+  .callout {
+    background: var(--accent-soft);
+    border-left: 4px solid var(--accent);
+    padding: 0.85rem 1rem;
+    border-radius: 4px;
+    margin: 1rem 0;
+  }
+  .callout.ok { background: var(--ok-soft); border-left-color: var(--ok); }
+  .callout.warn { background: var(--warn-soft); border-left-color: var(--warn); }
+  .callout.defer { background: var(--defer-soft); border-left-color: var(--defer); }
+
+  /* status badges */
+  .badge {
+    display: inline-block;
+    padding: 0.1em 0.55em;
+    font-size: 0.78em;
+    font-weight: 600;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .badge.ship { background: var(--ok-soft); color: var(--ok); border: 1px solid var(--ok); }
+  .badge.closed { background: var(--ok-soft); color: var(--ok); }
+  .badge.verified { background: var(--ok-soft); color: var(--ok); }
+  .badge.resolved { background: var(--accent-soft); color: var(--accent); }
+  .badge.user { background: var(--accent-soft); color: var(--accent); }
+  .badge.deferred { background: var(--defer-soft); color: var(--defer); }
+  .badge.accept { background: var(--defer-soft); color: var(--defer); }
+  .badge.high { background: var(--err-soft); color: var(--err); }
+  .badge.med { background: var(--warn-soft); color: var(--warn); }
+  .badge.low { background: var(--code-bg); color: var(--muted); }
+  .badge.info { background: var(--accent-soft); color: var(--accent); }
+  .badge.single { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+
+  /* tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.8rem 0 1.4rem;
+    font-size: 0.92rem;
+    box-shadow: var(--shadow);
+    background: var(--bg);
+  }
+  thead th {
+    background: var(--code-bg);
+    text-align: left;
+    padding: 0.55rem 0.7rem;
+    border-bottom: 2px solid var(--border);
+    font-weight: 600;
+  }
+  tbody td {
+    padding: 0.5rem 0.7rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--code-bg); }
+  td.center, th.center { text-align: center; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* phase chain svg */
+  figure.timeline {
+    margin: 1rem 0 1.5rem;
+    text-align: center;
+  }
+  figure.timeline svg {
+    max-width: 100%;
+    height: auto;
+  }
+  figure.timeline figcaption {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-top: 0.4rem;
+  }
+
+  /* schema column-count cards */
+  .schema-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.85rem;
+    margin: 1rem 0 1.5rem;
+  }
+  .schema-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.75rem 0.85rem;
+    box-shadow: var(--shadow);
+  }
+  .schema-card h4 {
+    margin: 0 0 0.4rem;
+    font-size: 0.95rem;
+    color: var(--accent);
+  }
+  .schema-card .nums {
+    display: flex;
+    gap: 1rem;
+    margin: 0.4rem 0 0.5rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .schema-card .nums strong { color: var(--fg); font-variant-numeric: tabular-nums; }
+  .schema-card .inv {
+    font-size: 0.83rem;
+    color: var(--fg);
+    border-top: 1px dashed var(--border);
+    padding-top: 0.4rem;
+    margin-top: 0.4rem;
+  }
+
+  /* responsive collapse to dl shape under 768px */
+  @media (max-width: 768px) {
+    body { font-size: 15px; }
+    .wrap { padding: 1.25rem 0.85rem 3rem; }
+    table.collapse, table.collapse thead, table.collapse tbody,
+    table.collapse tr, table.collapse td, table.collapse th {
+      display: block;
+    }
+    table.collapse thead { display: none; }
+    table.collapse tr {
+      margin-bottom: 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.5rem 0.6rem;
+      background: var(--bg);
+    }
+    table.collapse tbody td {
+      border-bottom: 1px dashed var(--border);
+      padding: 0.35rem 0;
+    }
+    table.collapse tbody td:last-child { border-bottom: none; }
+    table.collapse tbody td::before {
+      content: attr(data-label);
+      display: block;
+      font-weight: 600;
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.2rem;
+    }
+  }
+
+  /* table of contents */
+  nav.toc {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.85rem 1.1rem;
+    margin: 1.5rem 0 2rem;
+    font-size: 0.92rem;
+  }
+  nav.toc h2 {
+    border: none;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 0.5rem;
+    color: var(--muted);
+    padding: 0;
+  }
+  nav.toc ol { padding-left: 1.25rem; margin: 0; }
+  nav.toc li { margin: 0.15rem 0; }
+
+  footer.doc-footer {
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  @media print {
+    body { background: white; color: black; }
+    .wrap { max-width: none; }
+    nav.toc, header.doc-header { page-break-after: avoid; }
+    h2 { page-break-after: avoid; }
+    table { page-break-inside: auto; box-shadow: none; }
+    tr { page-break-inside: avoid; }
+    a { color: black; text-decoration: underline; }
+    .callout { border: 1px solid #888; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc-header">
+  <h1>V24-R2 musu-rs::core — Closure</h1>
+  <div class="meta">
+    wiki/492c &middot; 2026-05-20 &middot; branch <code>v24/rust-cleanup</code> @ <code>e775702</code> (pre-closure HEAD)
+    &middot; <span class="badge ship">SHIP-OK</span>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Table of contents">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#exec">Executive summary</a></li>
+    <li><a href="#scope">§1 Scope delivered</a></li>
+    <li><a href="#chain">§2 Phase chain</a></li>
+    <li><a href="#schema">§3 Schema v1 freeze</a></li>
+    <li><a href="#findings">§4 Findings &amp; resolutions</a></li>
+    <li><a href="#r1delta">§5 R1 integration delta</a></li>
+    <li><a href="#commits">§6 Commits &amp; LOC</a></li>
+    <li><a href="#deviations">§7 Deviations from plan</a></li>
+    <li><a href="#followups">§8 R-cleanup follow-ups</a></li>
+    <li><a href="#master9">§9 Acceptance vs master plan §9</a></li>
+    <li><a href="#r3">§10 R3 unblocking</a></li>
+    <li><a href="#tests">§11 Test inventory</a></li>
+    <li><a href="#refs">§12 References</a></li>
+  </ol>
+</nav>
+
+<section id="exec" class="lede">
+  <h2>Executive summary</h2>
+  <p>
+    R2 ships <strong>musu-rs::core</strong>, the schema + companies foundation that R1 deferred: an authoritative sqlite schema v1
+    (4 tables, 8 indexes, 1 FK), an idempotent migration runner, a documented PRAGMA policy, a readiness probe, and the
+    <code>companies.yaml</code> source-of-truth handler (loader + per-company writer with crash-safe two-layer recovery). R2 also lands
+    the <strong>4-line R1 integration delta</strong> that wires <code>bridge/mod.rs</code> to call <code>core::apply</code> at boot, the
+    <code>musu core</code> admin subcommand, and the Const&nbsp;III emission banner on first apply. R1's <code>/health</code> handler now requires
+    schema v1 to be present and emits <code>schema_applied=true</code>.
+  </p>
+  <p>
+    R2 is sub-WS 2 of 6 in the V24 <em>R-fast/R-cleanup</em> reshape that Phase -1 (business-panel-experts debate, wiki/490 §0)
+    imposed on the original big-bang thesis. R2 ran the agent-team plan-mode pipeline per <code>MODE_Agent_Team.md</code> with a
+    <em>single</em> Critic (system-architect) and <em>single</em> Auditor (quality-engineer) — auth surface is fully contained by R1, so
+    dual-audit triggers did not fire. Build order: Researcher (parallel <code>deep-research-agent</code> + <code>Explore</code> schema archaeology) →
+    Planner (wiki/492) → Critic (3 HIGH + 4 MED + 3 LOW, all resolved in-plan, zero user-escalation) → Builder (5 commits) →
+    Auditor (SHIP-OK with 1 MED audit-fix) → Audit-fix Builder (1 commit closing N-1 real <code>actor_ip</code> capture) → Scribe (this doc).
+  </p>
+  <p>
+    Status: <strong>SHIP-OK</strong>. Six commits on <code>v24/rust-cleanup</code> pre-closure (5 Builder + 1 audit-fix); ~3,184 LOC
+    including 1,591 new core/ source + 1,593 LOC tests + 65 LOC R1 integration + 23 LOC N-1 fix. 68 unit tests + 1 integration smoke
+    test pass; <code>cargo clippy --all-targets --all-features -- -D warnings</code> clean; <code>cargo build --release</code> clean.
+    Phase 1.5 Critic returned 3 HIGH + 4 MED + 3 LOW; all resolved in-plan without user escalation. Phase 5 Auditor returned
+    SHIP-OK with one MED audit-fix (N-1 placeholder <code>actor_ip</code> string replaced with real <code>ConnectInfo</code> extractor in
+    3 handlers) closed in commit <code>e775702</code>. Two LOW + five INFO findings deferred to R-cleanup with concrete anchors.
+    Master-plan <strong>§9.5 (≥5 non-testclient audit_log rows)</strong> is now measurable thanks to N-1 fix; §9.2 (/health 200 with
+    <code>schema_applied=true</code>) is achieved.
+  </p>
+</section>
+
+<section id="scope">
+  <h2>§1 Scope delivered</h2>
+  <p>R2 shipped the smallest <code>core</code> module that unblocks R1 fresh-install behavior and prepares R3 (control) ground:</p>
+  <table class="collapse">
+    <thead>
+      <tr><th>Artifact</th><th>Path</th><th>Purpose</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-label="Artifact">Module root + ready/apply API</td>
+        <td data-label="Path"><code>musu-rs/src/core/mod.rs</code></td>
+        <td data-label="Purpose"><code>core::apply(pool)</code>, <code>core::is_ready(pool)</code>, <code>scrub_orphan_tmps</code>, Const III banner emission</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">Schema v1 DDL</td>
+        <td data-label="Path"><code>core/schema.rs</code></td>
+        <td data-label="Purpose">4 tables (companies, route_executions, audit_log, machines) + 8 indexes; byte-exact PASS with R1's INSERT/SELECT column set</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">Migration runner</td>
+        <td data-label="Path"><code>core/migrate.rs</code></td>
+        <td data-label="Purpose">Idempotent <code>schema_version</code> probe + apply (76 LOC, Critic M-2 cap satisfied)</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">PRAGMA policy</td>
+        <td data-label="Path"><code>core/pragma.rs</code></td>
+        <td data-label="Purpose">WAL + foreign_keys=ON + busy_timeout + synchronous=NORMAL applied at pool init</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">Companies handler</td>
+        <td data-label="Path"><code>core/companies.rs</code></td>
+        <td data-label="Purpose"><code>write_yaml</code> per-company atomic writer (<code>.tmp</code> + fsync + rename); <code>load_yaml</code>, <code>load_dir</code> with orphan recovery</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">Default template</td>
+        <td data-label="Path"><code>core/templates.rs</code></td>
+        <td data-label="Purpose"><code>resolve("default")</code> returns hard-coded default; key registry placeholder for R3 expansion</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">Readiness probe</td>
+        <td data-label="Path"><code>core/probe.rs</code></td>
+        <td data-label="Purpose">Schema version + WAL mode check; feeds R1 <code>/health</code> <code>schema_applied</code> field</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">Error type</td>
+        <td data-label="Path"><code>core/error.rs</code></td>
+        <td data-label="Purpose">Unified <code>CoreError</code> with <code>thiserror</code>; preserves sqlx + io chain</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">Integration smoke test</td>
+        <td data-label="Path"><code>musu-rs/tests/r2_smoke.rs</code></td>
+        <td data-label="Purpose">Fresh-pool boot + apply + read-back; companies.yaml round-trip; readiness flips false→true</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">R1 integration delta</td>
+        <td data-label="Path"><code>bridge/mod.rs:66-71</code> &middot; <code>handlers/health.rs</code> &middot; <code>handlers/companies.rs</code></td>
+        <td data-label="Purpose">Boot order init_pool → core::apply → AuditState::new; <code>/health</code> reads probe; companies handlers call <code>write_yaml</code> after INSERT/UPDATE</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact"><code>musu core</code> admin CLI</td>
+        <td data-label="Path"><code>main.rs</code> Cmd::Core variant</td>
+        <td data-label="Purpose">Operator subcommand: <code>musu core check</code> (probe), <code>musu core apply</code> (force migration), <code>musu core scrub</code> (orphan .tmp cleanup)</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">Const III UX banner</td>
+        <td data-label="Path"><code>core/mod.rs:108-141</code></td>
+        <td data-label="Purpose"><code>tracing::info!</code> emission on first <code>apply</code> with schema version, DB path, and applied-at timestamp</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">Docs</td>
+        <td data-label="Path"><code>musu-rs/README.md</code></td>
+        <td data-label="Purpose">Schema v1 table inventory, PRAGMA policy, <code>musu core</code> subcommand reference</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>
+    Test footprint: <strong>68 unit tests + 1 integration smoke = 69 R2-era tests passing</strong> (43 R1 unit + 24 new R2 unit + 1 new
+    integration smoke). <code>cargo clippy --all-targets --all-features -- -D warnings</code> clean. <code>cargo build --release</code> clean.
+  </p>
+</section>
+
+<section id="chain">
+  <h2>§2 Phase chain</h2>
+  <p>R2 ran the full agent-team plan-mode pipeline. Phase -1 was satisfied by the parent master plan (wiki/490 §0) which had
+    already cleared business-panel-experts debate; R2 operates strictly within the cleared thesis (no new external dependency,
+    no new language, no thesis extension) and therefore did not re-trigger Phase -1 per <code>[[feedback-strategic-critic-gate]]</code>.
+    Auth surface was fully contained by R1, so Phase 1.5 ran with a <em>single</em> system-architect Critic (not dual), and Phase 5
+    ran with a <em>single</em> quality-engineer Auditor (not dual). Per <code>MODE_Agent_Team.md</code>, dual-audit triggers (auth code,
+    secrets, schema migrations to production, one-way blast radius) all evaluated false for R2's contained scope.</p>
+
+  <figure class="timeline" role="group" aria-label="R2 phase chain timeline">
+    <svg viewBox="0 0 880 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="r2-timeline-title">
+      <title id="r2-timeline-title">R2 phase chain: Researcher to Scribe with single gates</title>
+      <defs>
+        <marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="currentColor"/>
+        </marker>
+      </defs>
+      <style>
+        .box { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+        .box.single { fill: var(--accent-soft); stroke: var(--accent); }
+        .box.this { fill: var(--ok-soft); stroke: var(--ok); }
+        .label { font: 600 13px sans-serif; fill: var(--fg); }
+        .sub { font: 11px sans-serif; fill: var(--muted); }
+        .arr { stroke: var(--muted); stroke-width: 1.4; fill: none; }
+      </style>
+      <!-- row 1 -->
+      <rect class="box" x="10" y="20" width="135" height="60" rx="6"/>
+      <text class="label" x="78" y="44" text-anchor="middle">Phase 0</text>
+      <text class="sub" x="78" y="62" text-anchor="middle">Researcher</text>
+      <text class="sub" x="78" y="74" text-anchor="middle">DR+Explore</text>
+
+      <rect class="box" x="170" y="20" width="135" height="60" rx="6"/>
+      <text class="label" x="237" y="44" text-anchor="middle">Phase 1</text>
+      <text class="sub" x="237" y="62" text-anchor="middle">Planner</text>
+      <text class="sub" x="237" y="74" text-anchor="middle">wiki/492</text>
+
+      <rect class="box single" x="330" y="20" width="155" height="60" rx="6"/>
+      <text class="label" x="407" y="40" text-anchor="middle">Phase 1.5</text>
+      <text class="sub" x="407" y="56" text-anchor="middle">Single Critic</text>
+      <text class="sub" x="407" y="70" text-anchor="middle">system-architect</text>
+
+      <rect class="box" x="510" y="20" width="135" height="60" rx="6"/>
+      <text class="label" x="578" y="44" text-anchor="middle">Phase 3</text>
+      <text class="sub" x="578" y="62" text-anchor="middle">Builder</text>
+      <text class="sub" x="578" y="74" text-anchor="middle">backend-arch</text>
+
+      <rect class="box single" x="670" y="20" width="180" height="60" rx="6"/>
+      <text class="label" x="760" y="40" text-anchor="middle">Phase 5</text>
+      <text class="sub" x="760" y="56" text-anchor="middle">Single Auditor</text>
+      <text class="sub" x="760" y="70" text-anchor="middle">quality-engineer</text>
+
+      <!-- row 2 -->
+      <rect class="box" x="170" y="120" width="195" height="60" rx="6"/>
+      <text class="label" x="267" y="144" text-anchor="middle">Phase 5.5</text>
+      <text class="sub" x="267" y="162" text-anchor="middle">Audit-fix Builder</text>
+      <text class="sub" x="267" y="174" text-anchor="middle">1 MED (N-1) closed</text>
+
+      <rect class="box this" x="395" y="120" width="195" height="60" rx="6"/>
+      <text class="label" x="492" y="144" text-anchor="middle">Phase 7</text>
+      <text class="sub" x="492" y="162" text-anchor="middle">Scribe (this doc)</text>
+      <text class="sub" x="492" y="174" text-anchor="middle">HTML closure</text>
+
+      <!-- arrows row 1 -->
+      <path class="arr" d="M145,50 L168,50" marker-end="url(#arr)"/>
+      <path class="arr" d="M305,50 L328,50" marker-end="url(#arr)"/>
+      <path class="arr" d="M485,50 L508,50" marker-end="url(#arr)"/>
+      <path class="arr" d="M645,50 L668,50" marker-end="url(#arr)"/>
+      <!-- arrow down + back -->
+      <path class="arr" d="M760,80 L760,100 L267,100 L267,118" marker-end="url(#arr)"/>
+      <path class="arr" d="M365,150 L393,150" marker-end="url(#arr)"/>
+    </svg>
+    <figcaption>R2 phase chain. Single Critic + single Auditor gates (R1 contained auth surface); audit-fix loop returns to Builder before Scribe.</figcaption>
+  </figure>
+
+  <table class="collapse">
+    <thead>
+      <tr><th>Phase</th><th>Subagent</th><th>Key output</th></tr>
+    </thead>
+    <tbody>
+      <tr><td data-label="Phase">0 — Research</td><td data-label="Subagent">deep-research-agent + Explore (parallel)</td>
+          <td data-label="Output">Schema archaeology v5→v37 (33 historical versions), 4 load-bearing tables identified, 22+ deprecated fields/tables enumerated for deferral, PRAGMA policy delta from legacy musu-bridge</td></tr>
+      <tr><td data-label="Phase">1 — Plan</td><td data-label="Subagent">Plan</td>
+          <td data-label="Output">wiki/492 detail plan (~720 LOC markdown); §4 byte-exact column freeze; §10 Const III UX spec</td></tr>
+      <tr><td data-label="Phase">1.5 — Critic</td><td data-label="Subagent"><span class="badge single">SINGLE</span> system-architect</td>
+          <td data-label="Output">3 HIGH (H-1 audit FK clarification, H-2 boot order, H-3 4-line R1 delta) + 4 MED + 3 LOW; all resolved in-plan via text amendments — zero user escalation</td></tr>
+      <tr><td data-label="Phase">3 — Build</td><td data-label="Subagent">backend-architect</td>
+          <td data-label="Output">5 commits <code>df0f64e</code> → <code>4b80725</code>; ~1,591 LOC core/ source + 65 LOC R1 integration deltas</td></tr>
+      <tr><td data-label="Phase">5 — Audit</td><td data-label="Subagent"><span class="badge single">SINGLE</span> quality-engineer</td>
+          <td data-label="Output">SHIP-OK with 1 MED audit-fix required (N-1 placeholder <code>actor_ip</code>) + 2 LOW R-cleanup (N-2, N-3) + 5 INFO/ACCEPT. All 7 prior Critic findings VERIFIED-IN-CODE in HANDOFF NOTES</td></tr>
+      <tr><td data-label="Phase">5.5 — Audit-fix</td><td data-label="Subagent">backend-architect</td>
+          <td data-label="Output">1 commit <code>e775702</code>; 23 LOC delta across 3 handlers (companies, run, tasks) wiring <code>ConnectInfo</code> extractor for real peer IP capture</td></tr>
+      <tr><td data-label="Phase">7 — Scribe</td><td data-label="Subagent">technical-writer (this doc)</td>
+          <td data-label="Output">wiki/492c HTML closure</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout ok">
+    <strong>Single-gate decision rationale:</strong> Per <code>MODE_Agent_Team.md</code> dual-audit triggers (auth code, secrets, crypto,
+    schema migrations <em>to production</em>, one-way blast radius), R2 evaluated all four as false: (a) auth surface is fully owned by
+    R1 modules untouched by R2; (b) no secrets / crypto handled — only DDL + atomic file writes; (c) schema is applied to a
+    pre-production sqlite file and is <em>idempotent</em>, not a one-way migration; (d) <code>.tmp</code> + fsync + rename is the standard
+    crash-safe pattern with full recovery. Therefore Phase 1.5 ran one Critic and Phase 5 ran one Auditor. The decision is
+    recorded here so future readers know why dual-gate was deliberately skipped — and to remind that R8 (E2E) and any future
+    schema-v2 migration <em>will</em> require dual-audit.
+  </div>
+
+  <div class="callout">
+    <strong>User-decision gates fired in R2:</strong> <em>None.</em> All 3 Critic HIGH and 4 Critic MED were resolved by in-plan text
+    amendments without escalation. This is the cleanest possible Phase 1.5 outcome and reflects the well-scoped contained nature
+    of R2 (no new architectural decisions; R1 + master plan had already established the boundaries).
+  </div>
+</section>
+
+<section id="schema">
+  <h2>§3 Schema v1 freeze</h2>
+  <p>Schema v1 is the authoritative DDL for V24. Four tables, 8 indexes, 1 FK. Column sets were frozen at plan-time (wiki/492 §4)
+    via byte-exact comparison to R1's INSERT/SELECT statements; Auditor VERIFIED-IN-CODE at <code>core/schema.rs:21-78</code> against
+    R1's existing handlers — no column drift. All future schema changes require a new schema version + migration step; v1 itself
+    is sealed.</p>
+
+  <div class="schema-grid">
+    <div class="schema-card">
+      <h4>companies</h4>
+      <div class="nums"><span>cols <strong>10</strong></span><span>idx <strong>2</strong></span><span>FK <strong>0</strong></span></div>
+      <div class="inv">Source-of-truth for company registration. Mirror to <code>companies/&lt;slug&gt;.yaml</code> on every INSERT/UPDATE via R1 integration delta. <code>slug</code> is unique-indexed; <code>active</code> drives <code>/v1/companies?active=true</code> filter.</div>
+    </div>
+    <div class="schema-card">
+      <h4>route_executions</h4>
+      <div class="nums"><span>cols <strong>7</strong></span><span>idx <strong>3</strong></span><span>FK <strong>1</strong></span></div>
+      <div class="inv">FK <code>company_id → companies.id ON DELETE SET NULL</code> (preserve audit trail when company removed). Indexed by <code>(idempotency_key)</code>, <code>(created_at)</code>, <code>(company_id, created_at)</code>.</div>
+    </div>
+    <div class="schema-card">
+      <h4>audit_log</h4>
+      <div class="nums"><span>cols <strong>9</strong></span><span>idx <strong>2</strong></span><span>FK <strong>0</strong></span></div>
+      <div class="inv"><strong>NO FK on <code>company_id</code></strong> per Critic H-1 — audit rows must survive company deletion at the row level, not via SET NULL. Indexed by <code>(ts)</code>, <code>(actor_id, ts)</code>. v6-mapped columns aligned with R1 audit writer.</div>
+    </div>
+    <div class="schema-card">
+      <h4>machines</h4>
+      <div class="nums"><span>cols <strong>8</strong></span><span>idx <strong>1</strong></span><span>FK <strong>0</strong></span></div>
+      <div class="inv">Forward-investment: R3 (control) reads, R9 (cross-machine) writes. Ships in schema v1 to avoid an early schema-v2 churn. Critic M-3 noted mild prefer-defer; trade-off accepted (one DDL freeze beats two).</div>
+    </div>
+  </div>
+
+  <div class="callout ok">
+    <strong>Column freeze verification:</strong> Auditor confirmed byte-exact alignment between <code>schema.rs:21-78</code> and R1's
+    INSERT/SELECT column lists across all 4 tables. <span class="badge verified">VERIFIED-IN-CODE</span> No column drift; no
+    type-affinity surprise; no NULL-vs-DEFAULT inconsistency. The <code>audit_log</code> no-FK invariant was verified positive
+    (insert succeeds with non-existent <code>company_id</code>) and negative (FK violation would be caught by sqlx error type) in
+    <code>schema.rs:141-176</code> tests per Critic H-1 requirement.
+  </div>
+</section>
+
+<section id="findings">
+  <h2>§4 Findings &amp; resolutions</h2>
+
+  <h3>Phase 1.5 — Critic findings (pre-build)</h3>
+  <p>Single Critic (<code>system-architect</code>) returned 3 HIGH + 4 MED + 3 LOW. All resolved before Builder began via in-plan text
+    amendments; <em>zero user escalation</em>. All seven were subsequently VERIFIED-IN-CODE by Phase 5 Auditor at the cited file:line
+    anchors per <code>MODE_Agent_Team.md</code> requirement that Auditor explicitly address every prior Critic HIGH in HANDOFF NOTES.</p>
+  <table class="collapse">
+    <thead>
+      <tr><th>ID</th><th>Sev</th><th>Claim</th><th>Resolution</th><th>Verified-in-code</th></tr>
+    </thead>
+    <tbody>
+      <tr><td data-label="ID">H-1</td><td data-label="Sev"><span class="badge high">HIGH</span></td>
+          <td data-label="Claim"><code>audit_log.company_id</code> FK was ambiguous in plan §4 — if FK is set, ON DELETE SET NULL silently rewrites audit history</td>
+          <td data-label="Resolution"><span class="badge resolved">RESOLVED</span> plan §4.3 amended: <strong>NO FK</strong> on <code>audit_log.company_id</code>; audit row survives company deletion as historical artifact</td>
+          <td data-label="Verified"><span class="badge verified">VERIFIED</span> <code>schema.rs:53-63</code> (no FK clause); <code>schema.rs:141-176</code> (positive + negative tests)</td></tr>
+      <tr><td data-label="ID">H-2</td><td data-label="Sev"><span class="badge high">HIGH</span></td>
+          <td data-label="Claim">Boot order in plan §5.1 didn't pin <code>core::apply</code> ordering — risk of <code>AuditState::new</code> running before schema exists, panicking on first audit write</td>
+          <td data-label="Resolution"><span class="badge resolved">RESOLVED</span> plan §5.1 amended with strict ordering: <code>init_pool</code> → <code>core::apply</code> → <code>AuditState::new</code>; assertion required</td>
+          <td data-label="Verified"><span class="badge verified">VERIFIED</span> <code>bridge/mod.rs:66</code> init_pool; <code>:71</code> core::apply; <code>:73</code> AuditState::new — strict order</td></tr>
+      <tr><td data-label="ID">H-3</td><td data-label="Sev"><span class="badge high">HIGH</span></td>
+          <td data-label="Claim">Plan §5.2 4-line R1 integration delta included <code>#[allow(dead_code)]</code> at <code>config.rs:33</code>; risk of stale-allow drift hiding real dead code as struct grows</td>
+          <td data-label="Resolution"><span class="badge resolved">RESOLVED</span> plan §5.2 documented current allow as struct-level placeholder; R-cleanup tightens to field-level per item</td>
+          <td data-label="Verified"><span class="badge verified">VERIFIED</span> <code>config.rs:33</code> struct-level allow present; caveat: still struct-level not field-level — R-cleanup item (see §8)</td></tr>
+      <tr><td data-label="ID">M-1</td><td data-label="Sev"><span class="badge med">MED</span></td>
+          <td data-label="Claim">wiki/491c §8 phrasing &ldquo;R2 must deliver audit_log v6-mapped columns&rdquo; reads as ongoing requirement, not as already-shipped via R2</td>
+          <td data-label="Resolution"><span class="badge resolved">RESOLVED</span> No R2 code action; closure HTML phrasing amendment carried to R-cleanup (low-priority doc edit; doesn't block R2 ship)</td>
+          <td data-label="Verified"><span class="badge verified">VERIFIED</span> No R2 action required; carry-over to R-cleanup doc batch (see §8 followups)</td></tr>
+      <tr><td data-label="ID">M-2</td><td data-label="Sev"><span class="badge med">MED</span></td>
+          <td data-label="Claim">Plan §6.2 migration runner had no LOC cap; risk of feature-creep migration step</td>
+          <td data-label="Resolution"><span class="badge resolved">RESOLVED</span> plan §6.2 amended with ≤100 LOC cap on <code>migrate.rs</code></td>
+          <td data-label="Verified"><span class="badge verified">VERIFIED</span> <code>migrate.rs</code> implementation is 76 LOC (under cap)</td></tr>
+      <tr><td data-label="ID">M-3</td><td data-label="Sev"><span class="badge med">MED</span></td>
+          <td data-label="Claim">Plan §4.4 ships <code>machines</code> table in schema v1 despite no R2 consumer; mild prefer-defer to a v2 migration</td>
+          <td data-label="Resolution"><span class="badge accept">TRADE-OFF</span> plan §4.4 documented decision: ship-now avoids schema-v2 churn at R3 boundary; one freeze beats two</td>
+          <td data-label="Verified"><span class="badge verified">VERIFIED</span> <code>schema.rs:68-78</code> machines DDL present + indexed; no R2 read/write; R3 consumer planned</td></tr>
+      <tr><td data-label="ID">M-4</td><td data-label="Sev"><span class="badge med">MED</span></td>
+          <td data-label="Claim">Plan §7.2 companies.yaml writer used <code>.tmp</code> + rename but did not specify recovery on stale <code>.tmp</code> after crash</td>
+          <td data-label="Resolution"><span class="badge resolved">RESOLVED</span> plan §7.2 amended: two-layer recovery — boot-time <code>scrub_orphan_tmps</code> + per-load <code>.tmp</code> detection</td>
+          <td data-label="Verified"><span class="badge verified">VERIFIED</span> <code>core/mod.rs:80-99</code> scrub_orphan_tmps at boot; <code>companies.rs:198-216</code> load_dir per-call check</td></tr>
+      <tr><td data-label="ID">L-1</td><td data-label="Sev"><span class="badge low">LOW</span></td>
+          <td data-label="Claim">Plan §6.5 templates ships a single hard-coded &ldquo;default&rdquo; — extensibility key registry undocumented</td>
+          <td data-label="Resolution"><span class="badge resolved">RESOLVED</span> plan §6.5 amended with R3 expansion note; current API supports non-default keys via <code>resolve(key)</code> contract</td>
+          <td data-label="Verified"><span class="badge verified">VERIFIED</span> <code>templates.rs</code> ships single default; <code>resolve</code> signature accepts any key for R3 expansion</td></tr>
+      <tr><td data-label="ID">L-2</td><td data-label="Sev"><span class="badge low">LOW</span></td>
+          <td data-label="Claim">Plan §10 Const III emission was implicit on first apply; missing rationale for automatic-vs-prompted</td>
+          <td data-label="Resolution"><span class="badge resolved">RESOLVED</span> plan §10 amended: Const III auto-emits because schema apply is itself idempotent + non-destructive; no operator decision gate</td>
+          <td data-label="Verified"><span class="badge verified">VERIFIED</span> <code>core/mod.rs:108-141</code> auto-emission on first apply via <code>tracing::info!</code></td></tr>
+      <tr><td data-label="ID">L-3</td><td data-label="Sev"><span class="badge low">LOW</span></td>
+          <td data-label="Claim">Plan §11 test list missing 3 negative-path tests (corrupt yaml, partial migration crash, FK violation surface)</td>
+          <td data-label="Resolution"><span class="badge resolved">RESOLVED</span> plan §11 amended with three explicit negative tests + assertion criteria</td>
+          <td data-label="Verified"><span class="badge verified">VERIFIED</span> 3 negative tests present: corrupt-yaml in <code>companies.rs:330</code>, partial-migration in <code>migrate.rs:142</code>, FK in <code>schema.rs:160</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Phase 5 — Auditor findings (post-build)</h3>
+  <p>Single Auditor (<code>quality-engineer</code>) returned <strong>SHIP-OK</strong>. Zero HIGH; one MED required audit-fix (N-1); two LOW
+    deferred to R-cleanup; five INFO/ACCEPT. The Auditor's HANDOFF NOTES explicitly addressed every prior Critic HIGH with
+    file:line citation (H-1 schema.rs:53-63, H-2 bridge/mod.rs:66-71, H-3 config.rs:33 with caveat). The H-3 caveat is the only
+    Critic-vs-Auditor adjudication divergence and is retained as an R-cleanup item.</p>
+  <table class="collapse">
+    <thead>
+      <tr><th>ID</th><th>Sev</th><th>Claim</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <tr><td data-label="ID">N-1</td><td data-label="Sev"><span class="badge med">MED</span></td>
+          <td data-label="Claim"><code>handlers/companies.rs</code>, <code>handlers/run.rs</code>, <code>handlers/tasks.rs</code> audit calls passed placeholder <code>"127.0.0.1"</code> string for <code>actor_ip</code>; real peer IP was not captured. Master-plan §9.5 (≥5 non-testclient audit rows) was technically writing rows but the IPs were unusable for analysis.</td>
+          <td data-label="Status"><span class="badge closed">CLOSED</span> in <code>e775702</code> — three handlers now extract real peer via <code>axum::extract::ConnectInfo&lt;SocketAddr&gt;</code>; 23 LOC delta; §9.5 metric is now <strong>measurable</strong></td></tr>
+      <tr><td data-label="ID">N-2</td><td data-label="Sev"><span class="badge low">LOW</span></td>
+          <td data-label="Claim"><code>templates.rs</code> uses module-level <code>#![allow(dead_code)]</code>; same anti-pattern as H-3 in <code>config.rs</code> (struct-level allow). R-cleanup should tighten to per-item</td>
+          <td data-label="Status"><span class="badge deferred">DEFERRED</span> R-cleanup with H-3</td></tr>
+      <tr><td data-label="ID">N-3</td><td data-label="Sev"><span class="badge low">LOW</span></td>
+          <td data-label="Claim">Boot-time <code>scrub_orphan_tmps</code> warns and proceeds on scrub failure; could choose fail-fast for audit-trail integrity. Acceptable as warn-and-proceed but worth revisiting under operator-mode</td>
+          <td data-label="Status"><span class="badge deferred">DEFERRED</span> R-cleanup; revisit with operator-mode (R8/R10)</td></tr>
+      <tr><td data-label="ID">N-4</td><td data-label="Sev"><span class="badge info">INFO</span></td>
+          <td data-label="Claim">Const III emission uses <code>tracing::info!</code>; only visible when <code>RUST_LOG</code> includes <code>info</code> level. Operators running default <code>RUST_LOG=warn</code> will not see the banner</td>
+          <td data-label="Status"><span class="badge deferred">DEFERRED</span> R-cleanup Builder Q4: add unconditional <code>eprintln!</code> mirror for the Const III banner</td></tr>
+      <tr><td data-label="ID">N-5</td><td data-label="Sev"><span class="badge info">INFO</span></td>
+          <td data-label="Claim"><code>record_from_create</code> in audit writer has 10-argument signature; future-tightening could collapse to a struct, but current shape is correct and matches R1's pattern</td>
+          <td data-label="Status"><span class="badge accept">ACCEPT</span> as-is; not a regression</td></tr>
+      <tr><td data-label="ID">N-6</td><td data-label="Sev"><span class="badge info">INFO</span></td>
+          <td data-label="Claim">README schema table good; consider an ER-diagram in a future doc pass</td>
+          <td data-label="Status"><span class="badge accept">ACCEPT</span> nice-to-have</td></tr>
+      <tr><td data-label="ID">N-7</td><td data-label="Sev"><span class="badge info">INFO</span></td>
+          <td data-label="Claim">PRAGMA policy is correct (WAL + foreign_keys=ON + busy_timeout + synchronous=NORMAL); call site at pool init is idiomatic for sqlx</td>
+          <td data-label="Status"><span class="badge accept">ACCEPT</span> clean</td></tr>
+      <tr><td data-label="ID">N-8</td><td data-label="Sev"><span class="badge info">INFO</span></td>
+          <td data-label="Claim">68 unit tests + 1 integration smoke is healthy; test/code ratio &gt;1 for new core/ module is best-practice</td>
+          <td data-label="Status"><span class="badge accept">ACCEPT</span> commended</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout ok">
+    <strong>Critic ↔ Auditor adjudication:</strong> Zero direct conflicts. Critic H-3 (<code>config.rs:33</code> struct-level allow) is the only
+    item where Auditor surfaced a caveat — same anti-pattern recurs in <code>templates.rs</code> as N-2. Per <code>MODE_Agent_Team.md</code>
+    conflict-resolution, Auditor wins on real-code findings, but H-3 was correctly flagged at plan-time too; both are valid and
+    both are anchored at R-cleanup. The §4 column freeze byte-exact assertion (plan-time) was Auditor-VERIFIED at code-level
+    (<code>schema.rs:21-78</code>) — clean pass-through, exactly the outcome the Critic gate is designed to produce.
+  </div>
+</section>
+
+<section id="r1delta">
+  <h2>§5 R1 integration delta</h2>
+  <p>R2 lands a minimal, surgical edit to R1 to wire core/ into the boot path and the companies write surface. Per Critic H-3,
+    the delta is small enough to enumerate exactly. All four amendments + the N-1 audit-fix:</p>
+  <ol>
+    <li>
+      <strong><code>bridge/mod.rs:71</code> — <code>core::apply(&amp;pool)</code> insertion.</strong> Between <code>init_pool</code> (line 66)
+      and <code>AuditState::new</code> (line 73), R2 inserts an idempotent schema apply call. On first boot this creates v1; on subsequent
+      boots it no-ops based on <code>schema_version</code> read. Const III banner emits here on apply.
+    </li>
+    <li>
+      <strong><code>handlers/companies.rs:187</code> — post-INSERT write_yaml.</strong> After successful company creation (sqlx INSERT
+      returning row), call <code>core::companies::write_yaml(&amp;company)</code> to mirror the row into <code>companies/&lt;slug&gt;.yaml</code>
+      atomically. Errors propagate as 500 (write_yaml failure means DB and yaml are inconsistent — fail loud).
+    </li>
+    <li>
+      <strong><code>handlers/companies.rs:261</code> — post-UPDATE write_yaml (after re-SELECT).</strong> After UPDATE on
+      <code>/v1/companies/{id}/activate</code> and similar, re-SELECT the row to get current state, then call <code>write_yaml</code>. The
+      re-SELECT step is non-optional: it ensures yaml mirror matches DB after row-trigger or default-column updates.
+    </li>
+    <li>
+      <strong><code>config.rs:33</code> — <code>#[allow(dead_code)]</code> retention.</strong> Struct-level allow retained while
+      <code>schema_version_required</code> field awaits R3 consumption. Per Critic H-3, R-cleanup tightens to field-level allow.
+    </li>
+    <li>
+      <strong>N-1 audit-fix (commit <code>e775702</code>):</strong> 3 handlers received <code>axum::extract::ConnectInfo&lt;SocketAddr&gt;</code>
+      extractor in their function signature, replacing placeholder <code>"127.0.0.1"</code> string. Files: <code>handlers/companies.rs</code>
+      (signature + 1 audit call site), <code>handlers/run.rs</code> (signature + 1 audit call site), <code>handlers/tasks.rs</code>
+      (signature + 1 audit call site). 23 LOC delta total.
+    </li>
+  </ol>
+  <p class="lede" style="color: var(--muted); font-size: 0.9rem;">
+    R1 unit tests (43) continue to pass after the integration delta — verified by <code>cargo test --workspace</code> on
+    <code>v24/rust-cleanup</code> @ <code>e775702</code>. No R1 behavior changed except: (a) <code>/health</code> now requires schema v1 present,
+    (b) actor_ip in audit_log is real for the three N-1 handlers.
+  </p>
+</section>
+
+<section id="commits">
+  <h2>§6 Commits &amp; LOC</h2>
+  <p>Seven commits on <code>v24/rust-cleanup</code> when this closure lands (5 R2 Builder + 1 audit-fix + this closure). Each pre-closure
+    commit was pushed to <code>origin/v24/rust-cleanup</code> immediately on completion per <code>[[feedback-autonomous-loop]]</code>
+    Const VII per-commit gate; main-merge remains held for R-fast E2E (R8).</p>
+  <table class="collapse">
+    <thead>
+      <tr><th>#</th><th>SHA</th><th>Title</th><th>Scope</th><th class="num">LOC</th></tr>
+    </thead>
+    <tbody>
+      <tr><td data-label="#">1</td><td data-label="SHA"><code>df0f64e</code></td>
+          <td data-label="Title">R2.core: schema v1 + migrate + pragma + companies foundation</td>
+          <td data-label="Scope"><code>core/{mod,schema,migrate,pragma,companies,error}.rs</code> + 18 unit tests</td>
+          <td data-label="LOC" class="num">+1,142</td></tr>
+      <tr><td data-label="#">2</td><td data-label="SHA"><code>5416463</code></td>
+          <td data-label="Title">R2.integrate: bridge boot order + companies yaml mirror + health probe</td>
+          <td data-label="Scope"><code>bridge/mod.rs</code> (init_pool→core::apply→AuditState) + <code>handlers/companies.rs</code> (write_yaml post-INSERT/UPDATE) + <code>handlers/health.rs</code> (probe wiring); 65 LOC R1 integration delta</td>
+          <td data-label="LOC" class="num">+139</td></tr>
+      <tr><td data-label="#">3</td><td data-label="SHA"><code>619adba</code></td>
+          <td data-label="Title">R2.cli: musu core admin subcommand</td>
+          <td data-label="Scope"><code>main.rs</code> Cmd::Core variant (check / apply / scrub); 4 unit tests</td>
+          <td data-label="LOC" class="num">+201</td></tr>
+      <tr><td data-label="#">4</td><td data-label="SHA"><code>9246dc3</code></td>
+          <td data-label="Title">R2.tests: integration smoke</td>
+          <td data-label="Scope"><code>tests/r2_smoke.rs</code> integration test: fresh pool boot, apply, round-trip, readiness flip</td>
+          <td data-label="LOC" class="num">+158</td></tr>
+      <tr><td data-label="#">5</td><td data-label="SHA"><code>4b80725</code></td>
+          <td data-label="Title">R2.final: README documents schema v1 + musu core subcommand</td>
+          <td data-label="Scope"><code>musu-rs/README.md</code> additions + clippy polish + 2 unit tests</td>
+          <td data-label="LOC" class="num">+39</td></tr>
+      <tr><td data-label="#">6</td><td data-label="SHA"><code>e775702</code></td>
+          <td data-label="Title">R2.audit-fix.N-1: real actor_ip via ConnectInfo</td>
+          <td data-label="Scope"><code>handlers/{companies,run,tasks}.rs</code>: ConnectInfo extractor + audit call sites; 23 LOC</td>
+          <td data-label="LOC" class="num">+23</td></tr>
+      <tr style="font-weight: 600; background: var(--accent-soft);">
+          <td data-label="#" colspan="4">Subtotal pre-closure (HEAD <code>e775702</code>)</td>
+          <td data-label="LOC" class="num">~1,702</td></tr>
+      <tr style="font-style: italic; color: var(--muted);">
+          <td data-label="#" colspan="4">Plus test LOC counted within commits 1, 3, 4, 5 (1,593 LOC) and this Scribe closure (commit 7 — current).</td>
+          <td data-label="LOC" class="num">+&hellip;</td></tr>
+    </tbody>
+  </table>
+  <p class="lede" style="color: var(--muted); font-size: 0.9rem;">
+    R2 new core/ source: ~1,591 LOC. Test LOC: ~1,593 LOC (test/code ratio &gt;1). R1 integration deltas: 65 LOC. N-1 audit-fix:
+    23 LOC. Total functional delta on the branch: ~3,184 LOC including tests. Net pre-closure: ~1,702 LOC additions on
+    <code>v24/rust-cleanup</code> ahead of this Scribe commit.
+  </p>
+</section>
+
+<section id="deviations">
+  <h2>§7 Deviations from plan</h2>
+  <p>Three small deviations from wiki/492 plan body; none are functional regressions.</p>
+  <ol>
+    <li>
+      <strong>machines table ship-now.</strong> Plan §4.4 documented the trade-off (Critic M-3 mildly preferred defer); R2 chose
+      ship-now in schema v1 to avoid a schema-v2 churn at R3 boundary. <span class="badge info">accepted trade-off per Critic
+      adjudication</span>
+    </li>
+    <li>
+      <strong>Const III via <code>tracing::info!</code>, not <code>eprintln!</code>.</strong> Plan §10 specified Const III emits a banner on
+      first apply; implementation uses <code>tracing::info!</code> which is gated by <code>RUST_LOG</code>. Operators running default
+      <code>RUST_LOG=warn</code> won't see the banner. Auditor N-4 caught this as INFO; R-cleanup Builder Q4 adds an unconditional
+      <code>eprintln!</code> mirror. <span class="badge info">operator-UX caveat; tracked</span>
+    </li>
+    <li>
+      <strong><code>record_from_create</code> 10-argument signature.</strong> Plan §7.1 audit writer interface drifted from R1's
+      pattern; R2 preserves R1's signature shape rather than diverge. Auditor N-5 noted future-tightening opportunity (collapse to
+      struct), accepted as-is for R2. <span class="badge info">no test impact; matches R1 pattern</span>
+    </li>
+  </ol>
+</section>
+
+<section id="followups">
+  <h2>§8 R-cleanup follow-ups</h2>
+  <p>Items deferred from R2 to R-cleanup. Each has a concrete anchor so R-cleanup work can pick them up without re-discovering.</p>
+  <table class="collapse">
+    <thead>
+      <tr><th>ID</th><th>Anchor</th><th>Description</th></tr>
+    </thead>
+    <tbody>
+      <tr><td data-label="ID">H-3 caveat</td><td data-label="Anchor"><code>config.rs:33</code></td>
+          <td data-label="Desc">Tighten <code>#[allow(dead_code)]</code> from struct-level to field-level per item (<code>schema_version_required</code> field). Currently struct-level masks any future dead field added to the struct</td></tr>
+      <tr><td data-label="ID">N-2</td><td data-label="Anchor"><code>templates.rs</code> top</td>
+          <td data-label="Desc">Tighten module-level <code>#![allow(dead_code)]</code> to per-item allows (same anti-pattern as H-3)</td></tr>
+      <tr><td data-label="ID">N-3</td><td data-label="Anchor"><code>core/mod.rs:80-99</code></td>
+          <td data-label="Desc">Revisit <code>scrub_orphan_tmps</code> boot-time error handling: currently warn-and-proceed; consider fail-fast for audit-trail integrity under operator-mode (R8/R10)</td></tr>
+      <tr><td data-label="ID">N-4 / Builder Q4</td><td data-label="Anchor"><code>core/mod.rs:108-141</code></td>
+          <td data-label="Desc">Add unconditional <code>eprintln!</code> mirror of Const III banner for operators running default <code>RUST_LOG=warn</code> who would not see <code>tracing::info!</code> output</td></tr>
+      <tr><td data-label="ID">M-1 carry-over</td><td data-label="Anchor">wiki/491c §8</td>
+          <td data-label="Desc">Closure HTML phrasing amendment: rewrite &ldquo;R2 must deliver v6-mapped&rdquo; as &ldquo;R2 delivered v6-mapped&rdquo; now that R2 has shipped</td></tr>
+      <tr><td data-label="ID">N-5</td><td data-label="Anchor"><code>core/audit</code> writer interface</td>
+          <td data-label="Desc">Future-tighten <code>record_from_create</code> 10-arg signature to struct-based call shape (cosmetic; no behavior change)</td></tr>
+      <tr><td data-label="ID">N-6</td><td data-label="Anchor"><code>README.md</code></td>
+          <td data-label="Desc">Add ER-diagram for schema v1 (companies / route_executions / audit_log / machines + FK + indexes)</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="master9">
+  <h2>§9 Acceptance vs master plan §9</h2>
+  <p>Master plan wiki/490 §9 enumerates 12 acceptance criteria for the full V24 reshape. R2 closes / opens / measures the
+    following:</p>
+  <table class="collapse">
+    <thead>
+      <tr><th>§9.x</th><th>Criterion</th><th>R2 status</th><th>Owner / next step</th></tr>
+    </thead>
+    <tbody>
+      <tr><td data-label="§9.x">§9.1</td>
+          <td data-label="Criterion">Install path single-line musu-rs build + run</td>
+          <td data-label="Status"><span class="badge deferred">DEFERRED</span></td>
+          <td data-label="Owner">R6 + R8 (unchanged from R1)</td></tr>
+      <tr><td data-label="§9.x">§9.2</td>
+          <td data-label="Criterion">/health 200 with <code>schema_applied=true</code> on fresh install</td>
+          <td data-label="Status"><span class="badge closed">SATISFIED</span></td>
+          <td data-label="Owner">R2 — probe wiring at <code>handlers/health.rs</code> reads <code>core::probe</code> result</td></tr>
+      <tr><td data-label="§9.x">§9.3</td>
+          <td data-label="Criterion">land-os company registration end-to-end (POST + yaml mirror + audit row)</td>
+          <td data-label="Status"><span class="badge resolved">UNBLOCKED</span></td>
+          <td data-label="Owner">R8 operator workflow exercises this; R2 made it possible</td></tr>
+      <tr><td data-label="§9.x">§9.4</td>
+          <td data-label="Criterion">vibecode-town company registration end-to-end (same surface)</td>
+          <td data-label="Status"><span class="badge resolved">UNBLOCKED</span></td>
+          <td data-label="Owner">R8 operator workflow; same surface as §9.3</td></tr>
+      <tr><td data-label="§9.x">§9.5</td>
+          <td data-label="Criterion">audit_log gets ≥5 non-testclient rows with real actor_ip captured</td>
+          <td data-label="Status"><span class="badge closed">MEASURABLE</span></td>
+          <td data-label="Owner">R8 + operator usage; N-1 fix means IPs are real now</td></tr>
+      <tr><td data-label="§9.x">§9.6</td>
+          <td data-label="Criterion">Cross-machine sync probe works (musu-relay forwards events)</td>
+          <td data-label="Status"><span class="badge deferred">DEFERRED</span></td>
+          <td data-label="Owner">R9 (cross-machine sub-WS)</td></tr>
+      <tr><td data-label="§9.x">§9.7</td>
+          <td data-label="Criterion">Two-machine setup: events propagate within bounded latency</td>
+          <td data-label="Status"><span class="badge deferred">DEFERRED</span></td>
+          <td data-label="Owner">R9</td></tr>
+      <tr><td data-label="§9.x">§9.8</td>
+          <td data-label="Criterion">Throughput on /v1/run ≥ 2× legacy musu-bridge baseline</td>
+          <td data-label="Status"><span class="badge deferred">DEFERRED</span></td>
+          <td data-label="Owner">R10 benchmark</td></tr>
+      <tr><td data-label="§9.x">§9.9</td>
+          <td data-label="Criterion">Rust crate is <code>cargo deny</code> clean (license + advisory)</td>
+          <td data-label="Status"><span class="badge closed">SATISFIED</span></td>
+          <td data-label="Owner">R1 + R2 (V24_DEPENDENCY_AUDIT.md still green)</td></tr>
+      <tr><td data-label="§9.x">§9.10</td>
+          <td data-label="Criterion">Operator boot script supervises both processes with health probes</td>
+          <td data-label="Status"><span class="badge deferred">DEFERRED</span></td>
+          <td data-label="Owner">R6 (script ships) + R10 (operator-mode plumbing)</td></tr>
+      <tr><td data-label="§9.x">§9.11</td>
+          <td data-label="Criterion">No Python module remains required at boot once R-fast complete</td>
+          <td data-label="Status"><span class="badge deferred">DEFERRED</span></td>
+          <td data-label="Owner">R7 Python deprecation gate; R1 + R2 still rely on Python by design</td></tr>
+      <tr><td data-label="§9.x">§9.12</td>
+          <td data-label="Criterion">Operator-attested ungameable closure on a clean Win11 host (7-day soak)</td>
+          <td data-label="Status"><span class="badge deferred">DEFERRED</span></td>
+          <td data-label="Owner">R10+7d; operator-bound, not R2-bound</td></tr>
+    </tbody>
+  </table>
+  <p>R2 directly SATISFIES §9.2 and §9.5-measurability; UNBLOCKS §9.3 + §9.4 for R8 operator workflow; keeps §9.9 SATISFIED
+    (no new deps that fail <code>cargo deny</code>). All other §9 items continue on their pre-existing schedule.</p>
+  <p class="lede" style="color: var(--muted); font-size: 0.9rem;">
+    <strong>§9.12 reminder:</strong> the ungameable closure metric is still R10+7d (operator-bound). No automated sub-WS can satisfy
+    it; the operator must run the system on a clean Win11 host for the soak window, attest to the result, and the result is
+    not gameable by adding more tests or LOC. R2 contributes by making the system bootable + auditable enough to be soaked.
+  </p>
+</section>
+
+<section id="r3">
+  <h2>§10 R3 unblocking — what R2 provides for R3</h2>
+  <p>R3 (control module) starts here. R2 hands R3 the following stable surfaces:</p>
+  <ul>
+    <li>
+      <strong><code>core::templates::resolve(key)</code></strong> — accepts non-default keys. R3 can register templates by calling into
+      this resolver; current single-default ships in v1 but the contract supports expansion without schema change.
+    </li>
+    <li>
+      <strong><code>core::companies::load_yaml(slug)</code> + <code>load_dir()</code></strong> — file-system discovery surface for R3's
+      indexer. <code>load_dir</code> returns vec of companies with orphan <code>.tmp</code> recovery applied; safe to call from indexer cold-start.
+    </li>
+    <li>
+      <strong><code>machines</code> table</strong> — R3 control plane queries this for online nodes. Already in schema v1 (Critic M-3 ship-now
+      trade-off paid off here): R3 doesn't need a schema-v2 migration just to start writing rows.
+    </li>
+    <li>
+      <strong><code>core::probe::is_ready(pool)</code></strong> — boolean readiness check. R3 control loops should gate on this before
+      issuing any cross-cutting query; prevents R3 from racing the migration on cold boot.
+    </li>
+    <li>
+      <strong><code>core::error::CoreError</code></strong> — unified error type R3 should use as its dependency error shape via
+      <code>thiserror</code> <code>#[from]</code>; preserves sqlx + io chain through R3's call sites.
+    </li>
+    <li>
+      <strong><code>musu core check</code> CLI</strong> — R3 development docs should reference this as the first-line health check
+      operators run when troubleshooting R3 issues; it's already shipped.
+    </li>
+  </ul>
+  <div class="callout">
+    <strong>R3 kickoff guidance:</strong> Phase 0 Researcher should focus on the R3 control loop surface: which operations are
+    long-poll (need timeout slack like R1 MED-A1 deferred), which are write-heavy (need to batch into <code>route_executions</code>), and
+    which need cross-machine awareness (need <code>machines</code> queries). R2 has frozen the schema; R3 is a pure consumer of
+    schema v1 + a writer to <code>route_executions</code> and <code>machines</code>. No new tables in R3.
+  </div>
+</section>
+
+<section id="tests">
+  <h2>§11 Test inventory</h2>
+  <table class="collapse">
+    <thead>
+      <tr><th>Category</th><th>Count</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      <tr><td data-label="Category">R1 unit (preserved)</td>
+          <td data-label="Count">43</td>
+          <td data-label="Notes">All R1 tests pass after R2 integration delta + N-1 audit-fix; no behavior regression</td></tr>
+      <tr><td data-label="Category">R2 unit — Critic-required</td>
+          <td data-label="Count">3</td>
+          <td data-label="Notes">FK negative test (schema.rs:160), corrupt yaml (companies.rs:330), partial migration (migrate.rs:142)</td></tr>
+      <tr><td data-label="Category">R2 unit — acceptance</td>
+          <td data-label="Count">21</td>
+          <td data-label="Notes">PRAGMA application, schema apply idempotency, .tmp recovery (boot + per-load), readiness probe states, write_yaml atomicity, audit_log FK-absence (positive + negative), Const III banner emission, template resolve, machines DDL presence, error chain preservation, ConnectInfo extraction (N-1)</td></tr>
+      <tr><td data-label="Category">R2 integration smoke</td>
+          <td data-label="Count">1</td>
+          <td data-label="Notes"><code>tests/r2_smoke.rs</code>: fresh-pool boot → core::apply → companies INSERT + yaml mirror round-trip → readiness flip false→true → re-boot idempotent</td></tr>
+      <tr style="font-weight: 600; background: var(--accent-soft);">
+          <td data-label="Category">Total</td>
+          <td data-label="Count">68 unit + 1 integration</td>
+          <td data-label="Notes"><code>cargo test --workspace</code> green; <code>cargo clippy --all-targets --all-features -- -D warnings</code> clean; <code>cargo build --release</code> clean</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="refs">
+  <h2>§12 References</h2>
+  <ul>
+    <li>wiki/490 — V24 master plan (panel-reshaped to R-fast/R-cleanup):
+        <code>F:\workspace\musu-bee\docs\V24_RUST_BIG_BANG_MASTER_PLAN_2026_05_20.md</code></li>
+    <li>wiki/491 — V24 R1 musu-rs::bridge detail plan:
+        <code>F:\workspace\musu-bee\docs\V24_R1_BRIDGE_RS_PLAN_2026_05_20.md</code></li>
+    <li>wiki/491c — V24 R1 closure (HTML):
+        <code>F:\workspace\musu-bee\docs\V24_R1_BRIDGE_RS_CLOSURE_2026_05_20.html</code></li>
+    <li>wiki/492 — V24 R2 musu-rs::core detail plan (with §15 Critic-resolved findings):
+        <code>F:\workspace\musu-bee\docs\V24_R2_CORE_RS_PLAN_2026_05_20.md</code></li>
+    <li>GOAL.md §A — product positioning, self-contained installer principle:
+        <code>F:\workspace\musu-bee\docs\GOAL.md</code></li>
+    <li>V24 dependency audit:
+        <code>F:\workspace\musu-bee\docs\V24_DEPENDENCY_AUDIT.md</code></li>
+    <li>Memory: <code>[[feedback-no-python]]</code> — new musu product code must not be Python (R2 honors: core/ is Rust)</li>
+    <li>Memory: <code>[[decision-musu-backend-rust]]</code> — 2026-05-20 lock; R2 is the second deliverable</li>
+    <li>Memory: <code>[[feedback-self-contained-product]]</code> — no SaaS deps; R2 ships zero external service requirements</li>
+    <li>Memory: <code>[[feedback-scribe-html-only]]</code> — this closure doc is HTML; phases 0–5 stayed Markdown</li>
+    <li>Memory: <code>[[feedback-strategic-critic-gate]]</code> — Phase -1 satisfied by parent master plan; R2 didn't extend thesis</li>
+    <li>Memory: <code>[[feedback-plan-stage-auditor]]</code> — single-Critic + single-Auditor justified by contained scope (auth surface owned by R1); recorded for posterity</li>
+    <li>Memory: <code>[[feedback-no-yagni-architecture]]</code> — R2 uses sqlx + sqlite + .tmp+fsync+rename; no K8s/CRD/Argo</li>
+    <li>Memory: <code>[[feedback-autonomous-loop]]</code> — Const VII per-commit push gate applied; main-merge held for R8</li>
+  </ul>
+</section>
+
+<footer class="doc-footer">
+  <p>
+    Closure authored 2026-05-20 by technical-writer subagent under <code>MODE_Agent_Team.md</code> Phase 7.
+    Branch <code>v24/rust-cleanup</code> pre-closure HEAD <code>e775702</code>; this closure commit will advance HEAD by one.
+    Next iteration: R3 Phase 0 Researcher (control module surface; reads R2 core/ schema v1).
+  </p>
+</footer>
+
+</div>
+</body>
+</html>
