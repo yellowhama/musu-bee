@@ -52,11 +52,16 @@ pub async fn get_health(State(state): State<AppState>) -> Json<HealthResponse> {
 }
 
 pub async fn get_health_ready(State(state): State<AppState>) -> Json<serde_json::Value> {
-    // Readiness probe: DB pool accessible AND schema applied.
+    // wiki/492 §3 + §11: readiness = PRAGMA user_version >= EXPECTED.
+    // schema_applied/audit_schema_applied retained for back-compat with
+    // anything inspecting the legacy keys.
+    let ready = crate::core::is_ready(&state.pool).await;
+    let schema_version = crate::core::schema_version(&state.pool).await;
     let schema_applied = crate::bridge::db::schema_applied(&state.pool).await;
     let audit_applied = crate::bridge::db::audit_schema_applied(&state.pool).await;
     Json(serde_json::json!({
-        "ready": schema_applied,
+        "ready": ready,
+        "schema_version": schema_version,
         "schema_applied": schema_applied,
         "audit_schema_applied": audit_applied,
     }))

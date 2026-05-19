@@ -64,6 +64,12 @@ pub async fn run() -> Result<()> {
     );
 
     let pool = db::init_pool(&cfg.db_path).await?;
+
+    // R2 wiki/492 §3 boot-order invariant (Critic H-2): apply schema BEFORE
+    // AuditState::new so audit.boot_check sees the table on a fresh install.
+    // Idempotent on subsequent boots (PRAGMA user_version short-circuits).
+    crate::core::apply(&pool).await?;
+
     let audit = AuditState::new(pool.clone());
 
     // Boot probe per C-SEC-10. In production this is fatal; in dev/test

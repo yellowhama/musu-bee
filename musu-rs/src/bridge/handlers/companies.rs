@@ -169,6 +169,29 @@ pub async fn create(
         .map_err(MusuError::Sqlx)?;
     let company = row_to_company(&row)?;
 
+    // wiki/492 §7.6: write the YAML mirror of the new row. DB is canonical;
+    // YAML files are derived state. Failure here is warn-only — the row is
+    // already committed and the API contract is satisfied.
+    let yaml_record = crate::core::record_from_create(
+        &company.id,
+        &company.name,
+        &company.workspace_id,
+        &company.status,
+        company.created_at,
+        company.updated_at,
+        company.purpose.as_deref().unwrap_or(""),
+        company.work_dir.as_deref().unwrap_or(""),
+        company.test_cmd.as_deref().unwrap_or("python -m pytest -q"),
+        company.meta.clone(),
+    );
+    if let Err(e) = crate::core::write_yaml(&yaml_record) {
+        tracing::warn!(
+            error = %e,
+            id = %company.id,
+            "companies.yaml write failed; row committed (DB is canonical)"
+        );
+    }
+
     // Audit best-effort.
     state
         .audit
@@ -221,6 +244,27 @@ pub async fn activate(
         .await
         .map_err(MusuError::Sqlx)?;
     let company = row_to_company(&row)?;
+
+    // wiki/492 §7.6: refresh YAML mirror after UPDATE.
+    let yaml_record = crate::core::record_from_create(
+        &company.id,
+        &company.name,
+        &company.workspace_id,
+        &company.status,
+        company.created_at,
+        company.updated_at,
+        company.purpose.as_deref().unwrap_or(""),
+        company.work_dir.as_deref().unwrap_or(""),
+        company.test_cmd.as_deref().unwrap_or("python -m pytest -q"),
+        company.meta.clone(),
+    );
+    if let Err(e) = crate::core::write_yaml(&yaml_record) {
+        tracing::warn!(
+            error = %e,
+            id = %company.id,
+            "companies.yaml refresh failed on activate; row committed (DB is canonical)"
+        );
+    }
 
     state
         .audit
