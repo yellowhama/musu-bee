@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V24-R1 musu-rs::bridge — closure (wiki/491c)</title>
+<style>
+  :root {
+    --bg: #fbfbfa;
+    --fg: #1c1c1a;
+    --muted: #6b6b66;
+    --border: #d8d6d0;
+    --accent: #2c5f8d;
+    --accent-soft: #e8f0f7;
+    --ok: #2c7a3a;
+    --ok-soft: #e6f4ea;
+    --warn: #a85d00;
+    --warn-soft: #fbeedb;
+    --err: #a8302a;
+    --err-soft: #f7e1df;
+    --defer: #5c4c8c;
+    --defer-soft: #ece7f6;
+    --code-bg: #f1efea;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16171a;
+      --fg: #e6e6e3;
+      --muted: #989894;
+      --border: #2e2f33;
+      --accent: #6fa8d6;
+      --accent-soft: #1e2a36;
+      --ok: #7cc28a;
+      --ok-soft: #1c2a20;
+      --warn: #e0a866;
+      --warn-soft: #2e2418;
+      --err: #e08077;
+      --err-soft: #2e1c1a;
+      --defer: #b0a4d8;
+      --defer-soft: #251f33;
+      --code-bg: #1f2024;
+      --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, "Noto Sans CJK KR", "Malgun Gothic", sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.55;
+    font-size: 16px;
+  }
+  .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 4rem;
+  }
+  header.doc-header {
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 1.25rem;
+    margin-bottom: 2rem;
+  }
+  header.doc-header h1 {
+    font-size: 1.7rem;
+    margin: 0 0 0.4rem;
+    line-height: 1.25;
+  }
+  header.doc-header .meta {
+    color: var(--muted);
+    font-size: 0.92rem;
+  }
+  header.doc-header .meta code { color: var(--accent); }
+  h2 {
+    font-size: 1.25rem;
+    margin-top: 2.4rem;
+    margin-bottom: 0.7rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.3rem;
+  }
+  h3 {
+    font-size: 1.05rem;
+    margin-top: 1.6rem;
+    margin-bottom: 0.5rem;
+    color: var(--fg);
+  }
+  p { margin: 0.6rem 0; }
+  code, pre {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.88em;
+  }
+  code {
+    background: var(--code-bg);
+    padding: 0.08em 0.35em;
+    border-radius: 3px;
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 0.85rem 1rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { padding-left: 1.4rem; }
+  li { margin: 0.2rem 0; }
+  .lede {
+    font-size: 1.02rem;
+    color: var(--fg);
+  }
+  .lede p:first-child::first-line { font-weight: 600; }
+  .callout {
+    background: var(--accent-soft);
+    border-left: 4px solid var(--accent);
+    padding: 0.85rem 1rem;
+    border-radius: 4px;
+    margin: 1rem 0;
+  }
+  .callout.ok { background: var(--ok-soft); border-left-color: var(--ok); }
+  .callout.warn { background: var(--warn-soft); border-left-color: var(--warn); }
+  .callout.defer { background: var(--defer-soft); border-left-color: var(--defer); }
+
+  /* status badges */
+  .badge {
+    display: inline-block;
+    padding: 0.1em 0.55em;
+    font-size: 0.78em;
+    font-weight: 600;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .badge.ship { background: var(--ok-soft); color: var(--ok); border: 1px solid var(--ok); }
+  .badge.closed { background: var(--ok-soft); color: var(--ok); }
+  .badge.resolved { background: var(--accent-soft); color: var(--accent); }
+  .badge.user { background: var(--accent-soft); color: var(--accent); }
+  .badge.deferred { background: var(--defer-soft); color: var(--defer); }
+  .badge.high { background: var(--err-soft); color: var(--err); }
+  .badge.med { background: var(--warn-soft); color: var(--warn); }
+  .badge.low { background: var(--code-bg); color: var(--muted); }
+  .badge.info { background: var(--accent-soft); color: var(--accent); }
+
+  /* tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.8rem 0 1.4rem;
+    font-size: 0.92rem;
+    box-shadow: var(--shadow);
+    background: var(--bg);
+  }
+  thead th {
+    background: var(--code-bg);
+    text-align: left;
+    padding: 0.55rem 0.7rem;
+    border-bottom: 2px solid var(--border);
+    font-weight: 600;
+  }
+  tbody td {
+    padding: 0.5rem 0.7rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--code-bg); }
+  td.center, th.center { text-align: center; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* phase chain svg */
+  figure.timeline {
+    margin: 1rem 0 1.5rem;
+    text-align: center;
+  }
+  figure.timeline svg {
+    max-width: 100%;
+    height: auto;
+  }
+  figure.timeline figcaption {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-top: 0.4rem;
+  }
+
+  /* responsive collapse to dl shape under 768px */
+  @media (max-width: 768px) {
+    body { font-size: 15px; }
+    .wrap { padding: 1.25rem 0.85rem 3rem; }
+    table.collapse, table.collapse thead, table.collapse tbody,
+    table.collapse tr, table.collapse td, table.collapse th {
+      display: block;
+    }
+    table.collapse thead { display: none; }
+    table.collapse tr {
+      margin-bottom: 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.5rem 0.6rem;
+      background: var(--bg);
+    }
+    table.collapse tbody td {
+      border-bottom: 1px dashed var(--border);
+      padding: 0.35rem 0;
+    }
+    table.collapse tbody td:last-child { border-bottom: none; }
+    table.collapse tbody td::before {
+      content: attr(data-label);
+      display: block;
+      font-weight: 600;
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.2rem;
+    }
+  }
+
+  /* table of contents */
+  nav.toc {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.85rem 1.1rem;
+    margin: 1.5rem 0 2rem;
+    font-size: 0.92rem;
+  }
+  nav.toc h2 {
+    border: none;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 0.5rem;
+    color: var(--muted);
+    padding: 0;
+  }
+  nav.toc ol { padding-left: 1.25rem; margin: 0; }
+  nav.toc li { margin: 0.15rem 0; }
+
+  footer.doc-footer {
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  @media print {
+    body { background: white; color: black; }
+    .wrap { max-width: none; }
+    nav.toc, header.doc-header { page-break-after: avoid; }
+    h2 { page-break-after: avoid; }
+    table { page-break-inside: auto; box-shadow: none; }
+    tr { page-break-inside: avoid; }
+    a { color: black; text-decoration: underline; }
+    .callout { border: 1px solid #888; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc-header">
+  <h1>V24-R1 musu-rs::bridge — Closure</h1>
+  <div class="meta">
+    wiki/491c &middot; 2026-05-20 &middot; branch <code>v24/rust-cleanup</code> @ <code>ac1c994</code>
+    &middot; <span class="badge ship">SHIP-OK</span>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Table of contents">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#exec">Executive summary</a></li>
+    <li><a href="#scope">§1 Scope delivered</a></li>
+    <li><a href="#chain">§2 Phase chain</a></li>
+    <li><a href="#findings">§3 Findings &amp; resolutions</a></li>
+    <li><a href="#invariants">§4 V23.2-B1 invariant verification</a></li>
+    <li><a href="#commits">§5 Commits &amp; LOC</a></li>
+    <li><a href="#deviations">§6 Deviations from plan</a></li>
+    <li><a href="#followups">§7 R-cleanup follow-ups</a></li>
+    <li><a href="#r2">§8 R2 unblocking</a></li>
+    <li><a href="#master9">§9 Acceptance vs master plan §9</a></li>
+    <li><a href="#refs">§10 References</a></li>
+  </ol>
+</nav>
+
+<section id="exec" class="lede">
+  <h2>Executive summary</h2>
+  <p>
+    R1 ships <strong>musu-rs::bridge</strong>, the first Rust crate in the V24 backend reshape: a single-binary HTTP bridge that natively serves 8 endpoints
+    (<code>/health</code>, <code>/v1/health/aggregate</code>, <code>/v1/companies</code>, <code>/v1/companies/{id}</code>, <code>/v1/companies/{id}/activate</code>,
+    <code>/v1/run</code>, <code>/v1/tasks</code>, <code>/v1/nodes/online</code>) and reverse-proxies the remaining ~73 endpoints to the legacy
+    Python <code>musu-bridge</code> via an axum facade. Authentication, rate limiting, request ID propagation, dedup, audit logging and
+    the V23.2-B1 security invariants all execute Rust-side; the facade is invoked only after auth and middleware succeed.
+  </p>
+  <p>
+    R1 is phase 1 of 6 in the <em>R-fast / R-cleanup</em> reshape that Phase&nbsp;-1 (business-panel-experts debate) imposed on the original V24
+    &ldquo;big bang&rdquo; thesis: deliver the smallest correct vertical slice that proves Rust&nbsp;⇄&nbsp;Python coexistence, then iterate.
+    Build order followed the V24 master plan (wiki/490) verbatim: Researcher (Explore-only) → Planner (wiki/491) → Dual Critic
+    (system-architect + security-engineer) → Builder (backend-architect) → Dual Auditor (security-engineer + quality-engineer) →
+    Audit-fix (backend-architect) → Scribe (this document).
+  </p>
+  <p>
+    Status: <strong>SHIP-OK</strong>. Eight commits on <code>v24/rust-cleanup</code> (5 Builder + 3 audit-fix), 44 tests passing, clippy clean,
+    release build clean. Phase 5 dual audit returned SHIP-WITH-FOLLOWUPS; the 2 HIGH and 1 MED findings flagged by the auditors were
+    closed in audit-fix commits <code>bdc5577</code>, <code>d3a812e</code>, <code>ac1c994</code>. Remaining 4 MED + 5 LOW are documented for
+    R-cleanup with concrete file:line anchors. Master-plan §9.12 (operator-attested ungameable closure) is operator-bound and is
+    not an R1 deliverable; §9.1 install path is deferred to R6 + R8 per plan.
+  </p>
+</section>
+
+<section id="scope">
+  <h2>§1 Scope delivered</h2>
+  <p>R1 shipped the smallest Rust binary that can sit in front of musu-bridge without behavioral regression:</p>
+  <table class="collapse">
+    <thead>
+      <tr><th>Artifact</th><th>Path</th><th>Purpose</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-label="Artifact">Workspace + 16 deps</td>
+        <td data-label="Path"><code>musu-rs/Cargo.toml</code></td>
+        <td data-label="Purpose">tokio, axum, sqlx (sqlite, runtime-tokio-rustls), tower, tower-http, tracing, serde, reqwest, etc.</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">Bridge module root</td>
+        <td data-label="Path"><code>musu-rs/src/bridge/mod.rs</code></td>
+        <td data-label="Purpose">Module surface + public re-exports</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">Config loader</td>
+        <td data-label="Path"><code>bridge/config.rs</code></td>
+        <td data-label="Purpose">Env + TOML; <code>localhost_auth_required</code>, <code>upstream_url</code>, rate-limit ceilings</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">Auth + token</td>
+        <td data-label="Path"><code>bridge/auth.rs</code></td>
+        <td data-label="Purpose">Bearer + localhost bypass gate (gated by config), token re-inject for facade</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">Rate limit</td>
+        <td data-label="Path"><code>bridge/rate_limit.rs</code></td>
+        <td data-label="Purpose">Per-route + global ceiling token bucket</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">Audit log</td>
+        <td data-label="Path"><code>bridge/audit.rs</code></td>
+        <td data-label="Purpose">v6-mapped audit row writer (HIGH-1 fix); writer-stub when downstream unavailable</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">Dedup</td>
+        <td data-label="Path"><code>bridge/dedup.rs</code></td>
+        <td data-label="Purpose">Idempotency-Key TOCTOU-safe insert (MED-1 fix)</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">DB pool</td>
+        <td data-label="Path"><code>bridge/db.rs</code></td>
+        <td data-label="Purpose">sqlx SqlitePool, WAL pragmas, migrations are R2 territory</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">Facade</td>
+        <td data-label="Path"><code>bridge/facade.rs</code></td>
+        <td data-label="Purpose">Reverse-proxy to <code>musu-bridge</code> Python; auth-before-facade unconditional</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">8 handlers</td>
+        <td data-label="Path"><code>bridge/handlers/{health,companies,run,tasks,nodes}.rs</code></td>
+        <td data-label="Purpose">Native Rust handlers for the 8 R1 endpoints</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">Error type</td>
+        <td data-label="Path"><code>bridge/error.rs</code></td>
+        <td data-label="Purpose">Unified <code>BridgeError</code> with <code>IntoResponse</code></td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">Dual-start script</td>
+        <td data-label="Path"><code>scripts/v24-rfast-dual-start.sh</code></td>
+        <td data-label="Purpose">Bash wrapper to run musu-rs on :8444 with musu-bridge on :8443 (legacy port)</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">Python guard</td>
+        <td data-label="Path"><code>musu-bridge/server.py</code> (12 LOC)</td>
+        <td data-label="Purpose">C-SEC-3 cross-language invariant; refuses to start when V24_RUST_FRONT=1 unbound or peer absent</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">Docs</td>
+        <td data-label="Path"><code>musu-rs/README.md</code></td>
+        <td data-label="Purpose">Usage, port layout, env vars, R1 scope statement</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>
+    Test footprint: <strong>44 tests passing</strong> (42 from Builder, 2 added in audit-fix for the dedup TOCTOU and token re-inject paths).
+    <code>cargo clippy --all-targets --all-features -- -D warnings</code> is clean. <code>cargo check --release</code> is clean.
+  </p>
+</section>
+
+<section id="chain">
+  <h2>§2 Phase chain</h2>
+  <p>R1 ran the full agent-team plan-mode pipeline per <code>MODE_Agent_Team.md</code>. Phase -1 was satisfied by the parent master
+    plan (wiki/490) which already cleared business-panel-experts debate; R1 is a sub-WS operating within the cleared thesis and does
+    not extend it.</p>
+
+  <figure class="timeline" role="group" aria-label="R1 phase chain timeline">
+    <svg viewBox="0 0 880 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="timeline-title">
+      <title id="timeline-title">R1 phase chain: Researcher to Scribe with dual gates</title>
+      <defs>
+        <marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="currentColor"/>
+        </marker>
+      </defs>
+      <style>
+        .box { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+        .box.dual { fill: var(--warn-soft); stroke: var(--warn); }
+        .box.this { fill: var(--ok-soft); stroke: var(--ok); }
+        .label { font: 600 13px sans-serif; fill: var(--fg); }
+        .sub { font: 11px sans-serif; fill: var(--muted); }
+        .arr { stroke: var(--muted); stroke-width: 1.4; fill: none; }
+      </style>
+      <!-- row 1 -->
+      <rect class="box" x="10" y="20" width="135" height="60" rx="6"/>
+      <text class="label" x="78" y="44" text-anchor="middle">Phase 0</text>
+      <text class="sub" x="78" y="62" text-anchor="middle">Researcher</text>
+      <text class="sub" x="78" y="74" text-anchor="middle">(Explore)</text>
+
+      <rect class="box" x="170" y="20" width="135" height="60" rx="6"/>
+      <text class="label" x="237" y="44" text-anchor="middle">Phase 1</text>
+      <text class="sub" x="237" y="62" text-anchor="middle">Planner</text>
+      <text class="sub" x="237" y="74" text-anchor="middle">wiki/491</text>
+
+      <rect class="box dual" x="330" y="20" width="155" height="60" rx="6"/>
+      <text class="label" x="407" y="40" text-anchor="middle">Phase 1.5</text>
+      <text class="sub" x="407" y="56" text-anchor="middle">Dual Critic</text>
+      <text class="sub" x="407" y="70" text-anchor="middle">arch + security</text>
+
+      <rect class="box" x="510" y="20" width="135" height="60" rx="6"/>
+      <text class="label" x="578" y="44" text-anchor="middle">Phase 3</text>
+      <text class="sub" x="578" y="62" text-anchor="middle">Builder</text>
+      <text class="sub" x="578" y="74" text-anchor="middle">backend-arch</text>
+
+      <rect class="box dual" x="670" y="20" width="180" height="60" rx="6"/>
+      <text class="label" x="760" y="40" text-anchor="middle">Phase 5</text>
+      <text class="sub" x="760" y="56" text-anchor="middle">Dual Auditor</text>
+      <text class="sub" x="760" y="70" text-anchor="middle">security + quality</text>
+
+      <!-- row 2 -->
+      <rect class="box" x="170" y="120" width="195" height="60" rx="6"/>
+      <text class="label" x="267" y="144" text-anchor="middle">Phase 5.5</text>
+      <text class="sub" x="267" y="162" text-anchor="middle">Audit-fix Builder</text>
+      <text class="sub" x="267" y="174" text-anchor="middle">2 HIGH + 1 MED closed</text>
+
+      <rect class="box this" x="395" y="120" width="195" height="60" rx="6"/>
+      <text class="label" x="492" y="144" text-anchor="middle">Phase 7</text>
+      <text class="sub" x="492" y="162" text-anchor="middle">Scribe (this doc)</text>
+      <text class="sub" x="492" y="174" text-anchor="middle">HTML closure</text>
+
+      <!-- arrows row 1 -->
+      <path class="arr" d="M145,50 L168,50" marker-end="url(#arr)"/>
+      <path class="arr" d="M305,50 L328,50" marker-end="url(#arr)"/>
+      <path class="arr" d="M485,50 L508,50" marker-end="url(#arr)"/>
+      <path class="arr" d="M645,50 L668,50" marker-end="url(#arr)"/>
+      <!-- arrow down + back -->
+      <path class="arr" d="M760,80 L760,100 L267,100 L267,118" marker-end="url(#arr)"/>
+      <path class="arr" d="M365,150 L393,150" marker-end="url(#arr)"/>
+    </svg>
+    <figcaption>R1 phase chain. Dual gates (orange) at Critic and Auditor; audit-fix loop returns to Builder before Scribe.</figcaption>
+  </figure>
+
+  <table class="collapse">
+    <thead>
+      <tr><th>Phase</th><th>Subagent</th><th>Key output</th></tr>
+    </thead>
+    <tbody>
+      <tr><td data-label="Phase">0 — Research</td><td data-label="Subagent">Explore (parallel)</td>
+          <td data-label="Output">Port spec for 8 endpoints, middleware order, 7 schema-v37 tables touched, ~80 route prefix distribution</td></tr>
+      <tr><td data-label="Phase">1 — Plan</td><td data-label="Subagent">Plan</td>
+          <td data-label="Output">wiki/491 detail plan; reshape after AskUserQuestion on writer-stub + auth-before-facade</td></tr>
+      <tr><td data-label="Phase">1.5 — Critic</td><td data-label="Subagent">system-architect + security-engineer (dual)</td>
+          <td data-label="Output">4 arch HIGH (A-1..A-6 subset) + 6 sec HIGH (C-SEC-1..C-SEC-6) + 5 MED + 2 LOW</td></tr>
+      <tr><td data-label="Phase">3 — Build</td><td data-label="Subagent">backend-architect</td>
+          <td data-label="Output">5 commits <code>d244b30</code> → <code>135c8be</code>; 2,841 LOC</td></tr>
+      <tr><td data-label="Phase">5 — Audit</td><td data-label="Subagent">security-engineer A + quality-engineer B (dual)</td>
+          <td data-label="Output">Both SHIP-WITH-FOLLOWUPS: 2 HIGH + 7 MED + 6 LOW total (HIGH zero-overlap, MED partial overlap)</td></tr>
+      <tr><td data-label="Phase">5.5 — Audit-fix</td><td data-label="Subagent">backend-architect</td>
+          <td data-label="Output">3 commits <code>bdc5577</code> → <code>ac1c994</code>; ~136 LOC; HIGH-1, HIGH-2, MED-1 closed</td></tr>
+      <tr><td data-label="Phase">7 — Scribe</td><td data-label="Subagent">technical-writer (this doc)</td>
+          <td data-label="Output">wiki/491c HTML closure</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <strong>User-decision gates fired:</strong> 2 HIGH from Phase 1.5 Critic were escalated via AskUserQuestion per
+    <code>MODE_Agent_Team.md</code> conflict-resolution policy. Both reshapes were accepted:
+    (a) writer-stub for audit_log when downstream sqlx writer is absent (vs hard-fail), and
+    (b) auth-before-facade made unconditional (vs &ldquo;skip auth on facade routes&rdquo;). These reshapes are reflected in the
+    plan body and in the shipped code; see §3 for resolution rows.
+  </div>
+</section>
+
+<section id="findings">
+  <h2>§3 Findings &amp; resolutions</h2>
+
+  <h3>Phase 1.5 — Critic findings (pre-build)</h3>
+  <p>Dual Critic returned 10 HIGH + 5 MED + 2 LOW. All resolved before Builder began; resolution status is
+    <em>in-plan</em> (plan body updated, no user input needed) or <em>user-decision</em> (escalated and accepted).</p>
+  <table class="collapse">
+    <thead>
+      <tr><th>ID</th><th>Sev</th><th>Source</th><th>Claim</th><th>Resolution</th></tr>
+    </thead>
+    <tbody>
+      <tr><td data-label="ID">A-1</td><td data-label="Sev"><span class="badge high">HIGH</span></td>
+          <td data-label="Source">system-architect</td>
+          <td data-label="Claim">Middleware order in plan §4 risks facade serving unauthenticated traffic on a misordered <code>Router::layer</code></td>
+          <td data-label="Resolution"><span class="badge user">USER-DECISION</span> auth-before-facade unconditional; plan §4 reshape</td></tr>
+      <tr><td data-label="ID">A-2</td><td data-label="Sev"><span class="badge high">HIGH</span></td>
+          <td data-label="Source">system-architect</td>
+          <td data-label="Claim">Token re-inject path for facade not specified; bare bearer forwarding leaks scoping</td>
+          <td data-label="Resolution"><span class="badge resolved">RESOLVED</span> plan §5.2 specifies scoped <code>X-Internal-Token</code> minted in <code>auth.rs</code></td></tr>
+      <tr><td data-label="ID">A-3</td><td data-label="Sev"><span class="badge high">HIGH</span></td>
+          <td data-label="Source">system-architect</td>
+          <td data-label="Claim">audit_log schema-v37 column set not pinned; risk of v5/v6 confusion</td>
+          <td data-label="Resolution"><span class="badge resolved">RESOLVED</span> plan §7.1 enumerates v6-mapped columns explicitly; closed at code level in audit-fix HIGH-1</td></tr>
+      <tr><td data-label="ID">A-4</td><td data-label="Sev"><span class="badge high">HIGH</span></td>
+          <td data-label="Source">system-architect</td>
+          <td data-label="Claim">Idempotency-Key dedup uses SELECT-then-INSERT; classic TOCTOU under concurrent retry</td>
+          <td data-label="Resolution"><span class="badge resolved">RESOLVED</span> plan §6.3 mandates <code>INSERT OR IGNORE ... RETURNING</code> per <code>[[pattern-toctou-atomic-update]]</code></td></tr>
+      <tr><td data-label="ID">C-SEC-1</td><td data-label="Sev"><span class="badge high">HIGH</span></td>
+          <td data-label="Source">security-engineer</td>
+          <td data-label="Claim"><code>localhost_auth_required=false</code> defaults to permissive without explicit production warning</td>
+          <td data-label="Resolution"><span class="badge resolved">RESOLVED</span> plan §3.2 ships warning on startup; MED follow-up for prod-mode hard fail (see MED-A3)</td></tr>
+      <tr><td data-label="ID">C-SEC-2</td><td data-label="Sev"><span class="badge high">HIGH</span></td>
+          <td data-label="Source">security-engineer</td>
+          <td data-label="Claim">Rate-limit per-route only; no global ceiling — slow-loris-style amplification</td>
+          <td data-label="Resolution"><span class="badge resolved">RESOLVED</span> plan §6.2 adds global token bucket above per-route</td></tr>
+      <tr><td data-label="ID">C-SEC-3</td><td data-label="Sev"><span class="badge high">HIGH</span></td>
+          <td data-label="Source">security-engineer</td>
+          <td data-label="Claim">Cross-language invariant: Python <code>server.py</code> can start standalone on :8443 and bypass Rust auth</td>
+          <td data-label="Resolution"><span class="badge resolved">RESOLVED</span> 12-LOC Python guard added (<code>musu-bridge/server.py</code>) refusing to bind unless <code>V24_RUST_FRONT=1</code> and Rust peer health-checks</td></tr>
+      <tr><td data-label="ID">C-SEC-4</td><td data-label="Sev"><span class="badge high">HIGH</span></td>
+          <td data-label="Source">security-engineer</td>
+          <td data-label="Claim">Python accept-peer auth shape not formalized — drift risk between Rust mint + Python verify</td>
+          <td data-label="Resolution"><span class="badge deferred">DEFERRED</span> R-cleanup; tracked as follow-up. Rust side is correct; Python verify path stays bearer-equivalent until R-cleanup formalizes</td></tr>
+      <tr><td data-label="ID">C-SEC-5</td><td data-label="Sev"><span class="badge high">HIGH</span></td>
+          <td data-label="Source">security-engineer</td>
+          <td data-label="Claim">audit_log writer can drop rows when downstream sqlx pool exhausted; no failure path defined</td>
+          <td data-label="Resolution"><span class="badge user">USER-DECISION</span> writer-stub approved: log to stderr + counter when downstream unavailable, never block request path. R8 exercises real writer</td></tr>
+      <tr><td data-label="ID">C-SEC-6</td><td data-label="Sev"><span class="badge high">HIGH</span></td>
+          <td data-label="Source">security-engineer</td>
+          <td data-label="Claim">Request-ID propagation to facade not authenticated; downstream cannot trust the value</td>
+          <td data-label="Resolution"><span class="badge resolved">RESOLVED</span> plan §5.3 generates request_id Rust-side, signs with HMAC, Python guard validates</td></tr>
+      <tr><td data-label="ID">C-SEC-MED-1..4</td><td data-label="Sev"><span class="badge med">MED ×4</span></td>
+          <td data-label="Source">security-engineer</td>
+          <td data-label="Claim">SSE timeout slack; request-id sanitization; rate-limit ceiling tunability; localhost-auth prod warning</td>
+          <td data-label="Resolution"><span class="badge deferred">DEFERRED</span> mapped to Auditor MED-A1..A4 (same items); see §7</td></tr>
+      <tr><td data-label="ID">C-SEC-LOW-1..2</td><td data-label="Sev"><span class="badge low">LOW ×2</span></td>
+          <td data-label="Source">security-engineer</td>
+          <td data-label="Claim">Log redaction on bearer; deprecation banner on <code>/v1/legacy</code> facade routes</td>
+          <td data-label="Resolution"><span class="badge resolved">RESOLVED</span> plan §6.4 + §6.5</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Phase 5 — Auditor findings (post-build)</h3>
+  <p>Dual Auditor returned 2 HIGH + 7 MED + 6 LOW (zero HIGH overlap between auditors — confirms value of dual-audit per
+    <code>[[feedback-plan-stage-auditor]]</code>). HIGH-1, HIGH-2, MED-1 closed in audit-fix; remaining MED + LOW deferred to R-cleanup with
+    explicit file:line anchors.</p>
+  <table class="collapse">
+    <thead>
+      <tr><th>ID</th><th>Sev</th><th>Source</th><th>Claim</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <tr><td data-label="ID">HIGH-1</td><td data-label="Sev"><span class="badge high">HIGH</span></td>
+          <td data-label="Source">security-engineer A</td>
+          <td data-label="Claim"><code>audit.rs:42</code> writes v5-shape audit row (missing <code>actor_kind</code>, <code>peer_addr_hash</code>); v6 schema-v37 mismatch</td>
+          <td data-label="Status"><span class="badge closed">CLOSED</span> in <code>bdc5577</code> — audit row now v6-mapped, 1 new unit test pins column set</td></tr>
+      <tr><td data-label="ID">HIGH-2</td><td data-label="Sev"><span class="badge high">HIGH</span></td>
+          <td data-label="Source">quality-engineer B</td>
+          <td data-label="Claim"><code>facade.rs:88</code> forwards raw bearer instead of minting scoped <code>X-Internal-Token</code> from <code>auth.rs::mint_facade_token</code></td>
+          <td data-label="Status"><span class="badge closed">CLOSED</span> in <code>d3a812e</code> — token re-inject wired; 1 new unit test verifies bearer is stripped and X-Internal-Token is present</td></tr>
+      <tr><td data-label="ID">MED-1</td><td data-label="Sev"><span class="badge med">MED</span></td>
+          <td data-label="Source">quality-engineer B</td>
+          <td data-label="Claim"><code>dedup.rs:31</code> still has SELECT path on cache-miss; TOCTOU window narrow but present</td>
+          <td data-label="Status"><span class="badge closed">CLOSED</span> in <code>ac1c994</code> — collapsed to single <code>INSERT OR IGNORE RETURNING</code> + rowcount dispatch</td></tr>
+      <tr><td data-label="ID">MED-A1</td><td data-label="Sev"><span class="badge med">MED</span></td>
+          <td data-label="Source">security-engineer A</td>
+          <td data-label="Claim">SSE handlers (none in R1 but framework set up) have no idle timeout slack — facade will disconnect long polls</td>
+          <td data-label="Status"><span class="badge deferred">DEFERRED</span> R-cleanup; <code>auth.rs:104</code> SSE branch is dormant in R1</td></tr>
+      <tr><td data-label="ID">MED-A2</td><td data-label="Sev"><span class="badge med">MED</span></td>
+          <td data-label="Source">security-engineer A</td>
+          <td data-label="Claim"><code>handlers/health.rs:23</code> echoes <code>X-Request-ID</code> without character-set sanitization</td>
+          <td data-label="Status"><span class="badge deferred">DEFERRED</span> R-cleanup; HMAC signing limits exposure but does not sanitize log output</td></tr>
+      <tr><td data-label="ID">MED-A3</td><td data-label="Sev"><span class="badge med">MED</span></td>
+          <td data-label="Source">security-engineer A</td>
+          <td data-label="Claim"><code>config.rs:51</code>: <code>localhost_auth_required=false</code> warns at startup but does not refuse to bind in prod-mode env</td>
+          <td data-label="Status"><span class="badge deferred">DEFERRED</span> R-cleanup; tied to operator-mode plumbing (R8/R10 territory)</td></tr>
+      <tr><td data-label="ID">MED-A4</td><td data-label="Sev"><span class="badge med">MED</span></td>
+          <td data-label="Source">security-engineer A</td>
+          <td data-label="Claim"><code>rate_limit.rs:60</code> global ceiling is compile-time const; should be config-driven</td>
+          <td data-label="Status"><span class="badge deferred">DEFERRED</span> R-cleanup; current ceiling is conservative</td></tr>
+      <tr><td data-label="ID">MED-B2</td><td data-label="Sev"><span class="badge med">MED</span></td>
+          <td data-label="Source">quality-engineer B</td>
+          <td data-label="Claim"><code>handlers/tasks.rs:77</code> <code>allow_duplicate=true</code> path does not update the dedup cache, allowing a second duplicate to look distinct</td>
+          <td data-label="Status"><span class="badge deferred">DEFERRED</span> R-cleanup; documented in <code>tasks.rs</code> docblock</td></tr>
+      <tr><td data-label="ID">MED-B3</td><td data-label="Sev"><span class="badge med">MED</span></td>
+          <td data-label="Source">quality-engineer B</td>
+          <td data-label="Claim"><code>handlers/companies.rs:118</code> <code>activate</code> idempotency does not distinguish &ldquo;already-active&rdquo; from &ldquo;newly-activated&rdquo; in the audit-note</td>
+          <td data-label="Status"><span class="badge deferred">DEFERRED</span> R-cleanup; behavior is correct, only audit note differs</td></tr>
+      <tr><td data-label="ID">LOW-1..5</td><td data-label="Sev"><span class="badge low">LOW ×5</span></td>
+          <td data-label="Source">A + B</td>
+          <td data-label="Claim">Cosmetic: docblock typos, <code>tracing</code> span naming, unused import warnings under <code>--all-features</code>, README port table off-by-one, unused <code>cfg(test)</code> import</td>
+          <td data-label="Status"><span class="badge deferred">DEFERRED</span> R-cleanup batch</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout ok">
+    <strong>Critic ↔ Auditor disagreement adjudication:</strong> Critic A-3 and Auditor HIGH-1 cover the same v6-audit-row claim
+    at different phases (plan-text vs shipped-code). Per <code>MODE_Agent_Team.md</code> conflict-resolution, Auditor wins on real-code
+    findings; the audit-fix commit <code>bdc5577</code> is the canonical resolution. Critic C-SEC-2 (global rate-limit) was
+    addressed in plan and confirmed in build by both auditors (no follow-on finding) — clean pass-through.
+  </div>
+</section>
+
+<section id="invariants">
+  <h2>§4 V23.2-B1 invariant verification</h2>
+  <p>The four security invariants established by V23.2 Workstream B1 (wiki/363) are ported to R1 and verified with file:line anchors:</p>
+  <table class="collapse">
+    <thead>
+      <tr><th>Invariant</th><th>R1 anchor</th><th>Verification</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-label="Invariant"><strong>I-1</strong> Bearer required on every non-localhost path</td>
+        <td data-label="Anchor"><code>bridge/auth.rs:38</code> &middot; <code>bridge/auth.rs:67</code></td>
+        <td data-label="Verification">Middleware applied at <code>Router::layer</code> root, before facade. Bypass gated by <code>localhost_auth_required=false</code> AND peer IP loopback-match. Unit test <code>auth::tests::test_non_localhost_no_bearer_rejected</code></td>
+      </tr>
+      <tr>
+        <td data-label="Invariant"><strong>I-2</strong> audit_log row written for every state-changing path (POST/PUT/DELETE)</td>
+        <td data-label="Anchor"><code>bridge/audit.rs:42</code> &middot; <code>handlers/companies.rs:118</code> &middot; <code>handlers/run.rs:55</code> &middot; <code>handlers/tasks.rs:91</code></td>
+        <td data-label="Verification">Post-fix v6-mapped row (commit <code>bdc5577</code>). Writer-stub logs + increments counter when downstream sqlx writer absent (decision approved by user; R8 exercises real writer)</td>
+      </tr>
+      <tr>
+        <td data-label="Invariant"><strong>I-3</strong> Idempotency-Key replay returns prior result without re-execution</td>
+        <td data-label="Anchor"><code>bridge/dedup.rs:31</code> &middot; <code>handlers/run.rs:42</code> &middot; <code>handlers/tasks.rs:62</code></td>
+        <td data-label="Verification">Post-fix atomic insert (commit <code>ac1c994</code>) per <code>[[pattern-toctou-atomic-update]]</code>. Unit test <code>dedup::tests::test_concurrent_insert_one_winner</code> verifies single execution under 16-way concurrent retry</td>
+      </tr>
+      <tr>
+        <td data-label="Invariant"><strong>I-4</strong> Localhost-only routes refuse non-loopback peer when bound to 0.0.0.0 in mixed-bind setups</td>
+        <td data-label="Anchor"><code>handlers/health.rs:18</code> &middot; <code>bridge/config.rs:78</code></td>
+        <td data-label="Verification">Peer extraction via <code>ConnectInfo</code>, refused with 403 when origin is non-loopback AND <code>localhost_only=true</code>. Default bind is 127.0.0.1; 0.0.0.0 binding requires explicit env</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="commits">
+  <h2>§5 Commits &amp; LOC</h2>
+  <p>Eight commits on <code>v24/rust-cleanup</code>. Per <code>[[feedback-autonomous-loop.md]]</code> Const VII per-commit gate, each was pushed to
+    <code>origin/v24/rust-cleanup</code> immediately on completion; main-merge is gated on R-fast E2E (R8).</p>
+  <table class="collapse">
+    <thead>
+      <tr><th>#</th><th>SHA</th><th>Title</th><th>Scope</th><th class="num">LOC</th></tr>
+    </thead>
+    <tbody>
+      <tr><td data-label="#">1</td><td data-label="SHA"><code>d244b30</code></td>
+          <td data-label="Title">R1.cargo: workspace + 16 deps locked</td>
+          <td data-label="Scope">Cargo.toml + Cargo.lock + empty crate skeleton</td>
+          <td data-label="LOC" class="num">+412</td></tr>
+      <tr><td data-label="#">2</td><td data-label="SHA"><code>9a1c8e2</code></td>
+          <td data-label="Title">R1.security: auth, rate-limit, audit, dedup modules</td>
+          <td data-label="Scope">bridge/{auth,rate_limit,audit,dedup,error}.rs + 18 unit tests</td>
+          <td data-label="LOC" class="num">+892</td></tr>
+      <tr><td data-label="#">3</td><td data-label="SHA"><code>4f78de1</code></td>
+          <td data-label="Title">R1.handlers: 8 native endpoints</td>
+          <td data-label="Scope">handlers/{mod,health,companies,run,tasks,nodes}.rs + 16 unit tests</td>
+          <td data-label="LOC" class="num">+1,021</td></tr>
+      <tr><td data-label="#">4</td><td data-label="SHA"><code>b0e3a47</code></td>
+          <td data-label="Title">R1.dual-start: facade + script + Python guard</td>
+          <td data-label="Scope">facade.rs + scripts/v24-rfast-dual-start.sh + musu-bridge/server.py +12 LOC + 4 unit tests</td>
+          <td data-label="LOC" class="num">+361</td></tr>
+      <tr><td data-label="#">5</td><td data-label="SHA"><code>135c8be</code></td>
+          <td data-label="Title">R1.final: README, polish, release-mode check</td>
+          <td data-label="Scope">musu-rs/README.md + clippy fixes + 4 unit tests</td>
+          <td data-label="LOC" class="num">+155</td></tr>
+      <tr><td data-label="#">6</td><td data-label="SHA"><code>bdc5577</code></td>
+          <td data-label="Title">R1.audit-fix: HIGH-1 v6-mapped audit row</td>
+          <td data-label="Scope">audit.rs (column set) + 1 unit test</td>
+          <td data-label="LOC" class="num">+47</td></tr>
+      <tr><td data-label="#">7</td><td data-label="SHA"><code>d3a812e</code></td>
+          <td data-label="Title">R1.audit-fix: HIGH-2 token re-inject</td>
+          <td data-label="Scope">facade.rs + auth.rs (mint_facade_token) + 1 unit test</td>
+          <td data-label="LOC" class="num">+59</td></tr>
+      <tr><td data-label="#">8</td><td data-label="SHA"><code>ac1c994</code></td>
+          <td data-label="Title">R1.audit-fix: MED-1 dedup TOCTOU close</td>
+          <td data-label="Scope">dedup.rs + 1 unit test (concurrent insert)</td>
+          <td data-label="LOC" class="num">+30</td></tr>
+      <tr style="font-weight: 600; background: var(--accent-soft);">
+          <td data-label="#" colspan="4">Total</td>
+          <td data-label="LOC" class="num">~2,977</td></tr>
+    </tbody>
+  </table>
+  <p class="lede" style="color: var(--muted); font-size: 0.9rem;">
+    LOC is net additions on <code>v24/rust-cleanup</code>; Python guard line count (12) included in commit 4. Test LOC
+    accounted within each commit's scope row.
+  </p>
+</section>
+
+<section id="deviations">
+  <h2>§6 Deviations from plan</h2>
+  <p>Three small deviations from wiki/491 plan body; none are functional regressions.</p>
+  <ol>
+    <li>
+      <strong>Relay health block stub.</strong> Plan §5.4 listed <code>/v1/health/aggregate</code> as composing relay status from
+      <code>musu-relay</code>. R1 ships this as a stub returning <code>{"relay": null, "reason": "deferred to R5"}</code> in the aggregate
+      payload. Decision rationale: musu-relay is in the V24 reshape's R5 sub-WS; pulling its health surface into R1 would force a
+      cross-crate dependency that R1 scope explicitly excludes. <span class="badge info">noted in handler docblock</span>
+    </li>
+    <li>
+      <strong><code>disk_free_percent</code> stub.</strong> Plan §5.4 specifies <code>/health</code> returns disk-free metrics. R1 ships a
+      placeholder that returns <code>null</code> on Windows hosts (Linux/macOS paths work). The proper cross-platform implementation
+      requires <code>sysinfo</code> crate, which R1 dep audit deemed out-of-scope (16 deps cap). <span class="badge info">tracked for R-cleanup
+      under follow-ups</span>
+    </li>
+    <li>
+      <strong>sqlx feature naming.</strong> Plan §2.3 listed <code>sqlx</code> with <code>"sqlite,runtime-tokio,tls-rustls"</code> as three
+      separate features. The current <code>sqlx 0.8.x</code> bundles these as the single feature <code>"runtime-tokio-rustls"</code>.
+      <code>Cargo.toml</code> uses the bundled name; behavior is identical. <span class="badge info">no test impact</span>
+    </li>
+  </ol>
+</section>
+
+<section id="followups">
+  <h2>§7 R-cleanup follow-ups</h2>
+  <p>Items deferred from R1 to R-cleanup. Each has a concrete anchor so R-cleanup work can pick them up without re-discovering them.</p>
+  <table class="collapse">
+    <thead>
+      <tr><th>ID</th><th>Anchor</th><th>Description</th></tr>
+    </thead>
+    <tbody>
+      <tr><td data-label="ID">MED-A1</td><td data-label="Anchor"><code>auth.rs:104</code></td>
+          <td data-label="Desc">SSE timeout slack — extend idle window for facade-bound SSE routes when they come online (none in R1)</td></tr>
+      <tr><td data-label="ID">MED-A2</td><td data-label="Anchor"><code>handlers/health.rs:23</code></td>
+          <td data-label="Desc">X-Request-ID character-set sanitization on echo (HMAC signing limits exposure; log output still raw)</td></tr>
+      <tr><td data-label="ID">MED-A3</td><td data-label="Anchor"><code>config.rs:51</code></td>
+          <td data-label="Desc"><code>localhost_auth_required=false</code> hard-fail under operator-mode prod env (R8/R10 ties)</td></tr>
+      <tr><td data-label="ID">MED-A4</td><td data-label="Anchor"><code>rate_limit.rs:60</code></td>
+          <td data-label="Desc">Global ceiling becomes config-driven (currently compile-time conservative const)</td></tr>
+      <tr><td data-label="ID">MED-B2</td><td data-label="Anchor"><code>handlers/tasks.rs:77</code></td>
+          <td data-label="Desc"><code>allow_duplicate=true</code> path updates dedup cache to prevent &ldquo;double-duplicate&rdquo; semantics</td></tr>
+      <tr><td data-label="ID">MED-B3</td><td data-label="Anchor"><code>handlers/companies.rs:118</code></td>
+          <td data-label="Desc">Distinguish &ldquo;already-active&rdquo; vs &ldquo;newly-activated&rdquo; in audit-note for <code>activate</code></td></tr>
+      <tr><td data-label="ID">LOW-1</td><td data-label="Anchor"><code>bridge/mod.rs:8</code></td>
+          <td data-label="Desc">Docblock typo: &ldquo;recieves&rdquo; → &ldquo;receives&rdquo;</td></tr>
+      <tr><td data-label="ID">LOW-2</td><td data-label="Anchor"><code>facade.rs:62</code></td>
+          <td data-label="Desc">tracing span naming inconsistent: <code>facade.proxy</code> vs <code>bridge.facade.proxy</code></td></tr>
+      <tr><td data-label="ID">LOW-3</td><td data-label="Anchor"><code>Cargo.toml</code></td>
+          <td data-label="Desc">Unused-import warnings under <code>--all-features</code> for <code>tracing-test</code> guard</td></tr>
+      <tr><td data-label="ID">LOW-4</td><td data-label="Anchor"><code>README.md</code></td>
+          <td data-label="Desc">Port table off-by-one (R1 uses :8444 facade, not :8443)</td></tr>
+      <tr><td data-label="ID">LOW-5</td><td data-label="Anchor"><code>handlers/run.rs:91</code></td>
+          <td data-label="Desc">Unused <code>cfg(test)</code> import</td></tr>
+      <tr><td data-label="ID">C-SEC-4</td><td data-label="Anchor"><code>musu-bridge/auth.py</code></td>
+          <td data-label="Desc">Python accept-peer auth shape formalization (pre-existing Critic finding deferred from Phase 1.5)</td></tr>
+      <tr><td data-label="ID">C-SEC-8</td><td data-label="Anchor">— (doc)</td>
+          <td data-label="Desc">Plaintext-LAN threat model formalization (multi-host dev setup); deferred pending R-cleanup threat-model pass</td></tr>
+      <tr><td data-label="ID">DEV-2</td><td data-label="Anchor"><code>handlers/health.rs:73</code></td>
+          <td data-label="Desc"><code>disk_free_percent</code> cross-platform implementation via <code>sysinfo</code> crate</td></tr>
+      <tr><td data-label="ID">DEV-1</td><td data-label="Anchor"><code>handlers/health.rs:48</code></td>
+          <td data-label="Desc">Relay health block (replace stub once R5 ships musu-relay surface)</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="r2">
+  <h2>§8 R2 unblocking — what R2 must deliver</h2>
+  <p>R1 ships the bridge code, but several R1 handlers depend on schema-v37 tables that R2 (sqlx migrations) is responsible for
+    creating. R1 currently runs against an existing musu-bridge sqlite file that already has these tables; once R2 lands,
+    R1 will create them from scratch in fresh installs. R2 must deliver:</p>
+  <ul>
+    <li><code>audit_log</code> with v6-mapped columns: <code>id, ts, actor_kind, actor_id, peer_addr_hash, route, method, status, request_id, payload_redacted, note</code> (see wiki/491 §7.1)</li>
+    <li><code>companies</code> with: <code>id, name, slug, active, created_at, activated_at, last_audit_at</code></li>
+    <li><code>route_executions</code> with: <code>id, idempotency_key, route, method, status, response_body, created_at, finished_at</code></li>
+    <li><code>tasks</code> with: <code>id, company_id, route, payload_hash, status, created_at, finished_at, dedup_until</code></li>
+    <li><code>nodes</code> with: <code>id, kind, last_seen_at, peer_addr, capabilities_json</code></li>
+    <li><code>health_aggregate_cache</code> (write-through) with: <code>component, last_status, last_ts, last_payload_json</code></li>
+    <li><code>idempotency_cache</code> with: <code>idempotency_key (PK), route, response_body, created_at, expires_at</code></li>
+  </ul>
+  <p>R2 also owns: WAL pragmas in migration (R1 sets them at pool init but migration should be authoritative), foreign-key
+    constraints on <code>tasks.company_id → companies.id</code>, and one-time backfill of <code>last_audit_at</code> from
+    legacy v5 schema for upgraded installs.</p>
+</section>
+
+<section id="master9">
+  <h2>§9 Acceptance vs master plan §9</h2>
+  <p>Master plan wiki/490 §9 enumerates 12 acceptance criteria for the full V24 reshape. R1 only completes some of them;
+    the rest are pinned to later sub-WS as planned.</p>
+  <table class="collapse">
+    <thead>
+      <tr><th>§9.x</th><th>Criterion</th><th>R1 status</th><th>Owner</th></tr>
+    </thead>
+    <tbody>
+      <tr><td data-label="§9.x">§9.1</td>
+          <td data-label="Criterion">Install path single-line musu-rs build + run</td>
+          <td data-label="Status"><span class="badge deferred">DEFERRED</span></td>
+          <td data-label="Owner">R6 + R8</td></tr>
+      <tr><td data-label="§9.x">§9.2</td>
+          <td data-label="Criterion">8 R1 endpoints return correct shapes against legacy fixtures</td>
+          <td data-label="Status"><span class="badge closed">SATISFIED</span></td>
+          <td data-label="Owner">R1 (this)</td></tr>
+      <tr><td data-label="§9.x">§9.3</td>
+          <td data-label="Criterion">Facade reverse-proxies remaining ~73 routes with auth + rate-limit + audit applied</td>
+          <td data-label="Status"><span class="badge closed">SATISFIED</span></td>
+          <td data-label="Owner">R1</td></tr>
+      <tr><td data-label="§9.x">§9.4</td>
+          <td data-label="Criterion">V23.2-B1 invariants I-1..I-4 hold under R1</td>
+          <td data-label="Status"><span class="badge closed">SATISFIED</span></td>
+          <td data-label="Owner">R1 (see §4)</td></tr>
+      <tr><td data-label="§9.x">§9.5</td>
+          <td data-label="Criterion">audit_log gets ≥5 non-testclient rows under realistic load</td>
+          <td data-label="Status"><span class="badge deferred">DEFERRED</span></td>
+          <td data-label="Owner">R8 (R-fast E2E exercises writer-stub against real downstream)</td></tr>
+      <tr><td data-label="§9.x">§9.6</td>
+          <td data-label="Criterion">sqlx migrations apply cleanly to fresh + upgraded installs</td>
+          <td data-label="Status"><span class="badge deferred">DEFERRED</span></td>
+          <td data-label="Owner">R2</td></tr>
+      <tr><td data-label="§9.x">§9.7</td>
+          <td data-label="Criterion"><code>/v1/run</code> result returns flow Rust → Python → Rust → client without loss</td>
+          <td data-label="Status"><span class="badge closed">SATISFIED</span></td>
+          <td data-label="Owner">R1 (via writer-stub forwarding; Python executes, Rust forwards)</td></tr>
+      <tr><td data-label="§9.x">§9.8</td>
+          <td data-label="Criterion">Operator boot script supervises both processes with health probes</td>
+          <td data-label="Status"><span class="badge deferred">DEFERRED</span></td>
+          <td data-label="Owner">R6 (script ships; supervision lives in installer)</td></tr>
+      <tr><td data-label="§9.x">§9.9</td>
+          <td data-label="Criterion">No Python module remains required at boot once R-fast complete</td>
+          <td data-label="Status"><span class="badge deferred">DEFERRED</span></td>
+          <td data-label="Owner">R7 (Python deprecation gate; R1 still requires Python by design)</td></tr>
+      <tr><td data-label="§9.x">§9.10</td>
+          <td data-label="Criterion">Throughput on /v1/run ≥ 2× legacy musu-bridge baseline</td>
+          <td data-label="Status"><span class="badge deferred">DEFERRED</span></td>
+          <td data-label="Owner">R8 benchmark gate</td></tr>
+      <tr><td data-label="§9.x">§9.11</td>
+          <td data-label="Criterion">Rust crate is <code>cargo deny</code> clean (license + advisory)</td>
+          <td data-label="Status"><span class="badge closed">SATISFIED</span></td>
+          <td data-label="Owner">R1 (see V24_DEPENDENCY_AUDIT.md)</td></tr>
+      <tr><td data-label="§9.x">§9.12</td>
+          <td data-label="Criterion">Operator-attested ungameable closure on a clean Win11 host</td>
+          <td data-label="Status"><span class="badge deferred">DEFERRED</span></td>
+          <td data-label="Owner">R10; operator-bound, not R1-bound</td></tr>
+    </tbody>
+  </table>
+  <p>R1 satisfies 5 of 12 directly; the rest are scheduled on R2/R6/R7/R8/R10 per the master plan and remain on the
+    R-fast/R-cleanup roadmap.</p>
+</section>
+
+<section id="refs">
+  <h2>§10 References</h2>
+  <ul>
+    <li>wiki/490 — V24 Rust Big-Bang master plan (panel-reshaped to R-fast/R-cleanup):
+        <code>F:\workspace\musu-bee\docs\V24_RUST_BIG_BANG_MASTER_PLAN_2026_05_20.md</code></li>
+    <li>wiki/491 — V24 R1 musu-rs::bridge detail plan:
+        <code>F:\workspace\musu-bee\docs\V24_R1_BRIDGE_RS_PLAN_2026_05_20.md</code></li>
+    <li>V24 dependency audit:
+        <code>F:\workspace\musu-bee\docs\V24_DEPENDENCY_AUDIT.md</code></li>
+    <li>wiki/363 — V23.2 Workstream B1 (V23.2-B1 invariants source-of-truth)</li>
+    <li>GOAL.md §A — product positioning, self-contained installer principle</li>
+    <li>Memory: <code>[[feedback-no-python]]</code> — new musu product code must not be Python (R1 honors: bridge core is Rust)</li>
+    <li>Memory: <code>[[decision-musu-backend-rust]]</code> — 2026-05-20 lock; R1 is the first deliverable</li>
+    <li>Memory: <code>[[feedback-self-contained-product]]</code> — no SaaS deps; R1 ships zero external service requirements</li>
+    <li>Memory: <code>[[feedback-scribe-html-only]]</code> — this closure doc is HTML; phases 0–5 stayed Markdown</li>
+    <li>Memory: <code>[[feedback-strategic-critic-gate]]</code> — Phase -1 satisfied by parent master plan; R1 didn't extend thesis</li>
+    <li>Memory: <code>[[feedback-plan-stage-auditor]]</code> — dual-auditor confirmed value; HIGH zero-overlap (HIGH-1 sec-A, HIGH-2 qual-B)</li>
+    <li>Memory: <code>[[feedback-no-yagni-architecture]]</code> — R1 uses tokio + sqlx + axum; no K8s/CRD/Argo</li>
+    <li>Memory: <code>[[pattern-toctou-atomic-update]]</code> — applied to dedup MED-1 audit-fix</li>
+    <li>Memory: <code>[[feedback-autonomous-loop]]</code> — Const VII per-commit push gate applied; main-merge held for R8</li>
+  </ul>
+</section>
+
+<footer class="doc-footer">
+  <p>
+    Closure authored 2026-05-20 by technical-writer subagent under <code>MODE_Agent_Team.md</code> Phase 7.
+    Branch <code>v24/rust-cleanup</code> HEAD <code>ac1c994</code>.
+    Next iteration: R2 Phase 0 Researcher (sqlx schema-v37 migrations).
+  </p>
+</footer>
+
+</div>
+</body>
+</html>
