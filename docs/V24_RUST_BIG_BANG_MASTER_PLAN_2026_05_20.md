@@ -135,7 +135,11 @@ musu-rs/
 
 ### Phase split (panel HIGH-1+2)
 
-**R-fast (~2 weeks, JTBD ships)**: R0 → R1 → R2 → R7 (musu-bee wire-up) → R8 (4060Ti E2E) → R9 (5070Ti cross-machine). End state: Rust bridge + core live on both machines; operator can register land-os + vibecode-town; cross-machine task routes. Python still running for control/indexer/writer functions behind Rust auth facade (axum proxy routes unknown paths to `localhost:8071` Python bridge).
+**R-fast (~2 weeks, JTBD ships)**: R0 → R1 → R2 → R7 (musu-bee wire-up) → R8 (4060Ti E2E) → R9 (5070Ti cross-machine). End state: Rust bridge + core live on both machines; operator can register land-os + vibecode-town; cross-machine task routes.
+
+**Facade scope** (revised post-R1 Phase 0, 2026-05-20): R1 Phase 0 Researcher found musu-bridge has NO `/api/control/*`, `/api/indexer/*`, `/api/writer/*` paths — those are separate Python microservices (musu-control, musu-indexer, musu-writer at their own ports). musu-bridge itself has ~80 routes across `/api/companies/*` (25), `/api/tasks/*` (8), `/api/nodes/*` (5), `/api/agents/*` (6), `/api/issues/*` (4), `/api/goals/*` (2), `/api/projects/*` (2), plus ~30 other top-level paths.
+
+Therefore R1 facade strategy: **Rust bridge owns 7 endpoints natively + reverse-proxies the OTHER ~73 musu-bridge routes to Python on port 8071**. Python musu-control / musu-indexer / musu-writer microservices stay running at their own ports throughout R-cleanup until R3/R4/R5 ship.
 
 **R-cleanup (~2-4 weeks, parallel to dogfood)**: R3 → R4 → R5 → R6 (installer rewrite) → R10 (Python deletion). Operator uses musu on real work throughout. Each R-cleanup step removes one Python service from behind the facade.
 
