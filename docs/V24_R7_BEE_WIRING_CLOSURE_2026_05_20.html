@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V24-R7 musu-bee wire-up — closure (wiki/497c)</title>
+<style>
+  :root {
+    --bg: #fbfbfa;
+    --fg: #1c1c1a;
+    --muted: #6b6b66;
+    --border: #d8d6d0;
+    --accent: #2c5f8d;
+    --accent-soft: #e8f0f7;
+    --ok: #2c7a3a;
+    --ok-soft: #e6f4ea;
+    --warn: #a85d00;
+    --warn-soft: #fbeedb;
+    --err: #a8302a;
+    --err-soft: #f7e1df;
+    --defer: #5c4c8c;
+    --defer-soft: #ece7f6;
+    --code-bg: #f1efea;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16171a;
+      --fg: #e6e6e3;
+      --muted: #989894;
+      --border: #2e2f33;
+      --accent: #6fa8d6;
+      --accent-soft: #1e2a36;
+      --ok: #7cc28a;
+      --ok-soft: #1c2a20;
+      --warn: #e0a866;
+      --warn-soft: #2e2418;
+      --err: #e08077;
+      --err-soft: #2e1c1a;
+      --defer: #b0a4d8;
+      --defer-soft: #251f33;
+      --code-bg: #1f2024;
+      --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, "Noto Sans CJK KR", "Malgun Gothic", sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.55;
+    font-size: 16px;
+  }
+  .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 4rem;
+  }
+  header.doc-header {
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 1.25rem;
+    margin-bottom: 2rem;
+  }
+  header.doc-header h1 {
+    font-size: 1.7rem;
+    margin: 0 0 0.4rem;
+    line-height: 1.25;
+  }
+  header.doc-header .meta {
+    color: var(--muted);
+    font-size: 0.92rem;
+  }
+  header.doc-header .meta code { color: var(--accent); }
+  h2 {
+    font-size: 1.25rem;
+    margin-top: 2.4rem;
+    margin-bottom: 0.7rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.3rem;
+  }
+  h3 {
+    font-size: 1.05rem;
+    margin-top: 1.6rem;
+    margin-bottom: 0.5rem;
+    color: var(--fg);
+  }
+  p { margin: 0.6rem 0; }
+  code, pre {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.88em;
+  }
+  code {
+    background: var(--code-bg);
+    padding: 0.08em 0.35em;
+    border-radius: 3px;
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 0.85rem 1rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { padding-left: 1.4rem; }
+  li { margin: 0.2rem 0; }
+  .lede {
+    font-size: 1.02rem;
+    color: var(--fg);
+  }
+  .lede p:first-child::first-line { font-weight: 600; }
+  .callout {
+    background: var(--accent-soft);
+    border-left: 4px solid var(--accent);
+    padding: 0.85rem 1rem;
+    border-radius: 4px;
+    margin: 1rem 0;
+  }
+  .callout.ok { background: var(--ok-soft); border-left-color: var(--ok); }
+  .callout.warn { background: var(--warn-soft); border-left-color: var(--warn); }
+  .callout.defer { background: var(--defer-soft); border-left-color: var(--defer); }
+
+  /* status badges */
+  .badge {
+    display: inline-block;
+    padding: 0.1em 0.55em;
+    font-size: 0.78em;
+    font-weight: 600;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .badge.ship { background: var(--ok-soft); color: var(--ok); border: 1px solid var(--ok); }
+  .badge.closed { background: var(--ok-soft); color: var(--ok); }
+  .badge.resolved { background: var(--accent-soft); color: var(--accent); }
+  .badge.user { background: var(--accent-soft); color: var(--accent); }
+  .badge.deferred { background: var(--defer-soft); color: var(--defer); }
+  .badge.high { background: var(--err-soft); color: var(--err); }
+  .badge.med { background: var(--warn-soft); color: var(--warn); }
+  .badge.low { background: var(--code-bg); color: var(--muted); }
+  .badge.info { background: var(--accent-soft); color: var(--accent); }
+  .badge.skipped { background: var(--code-bg); color: var(--muted); border: 1px dashed var(--border); }
+
+  /* tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.8rem 0 1.4rem;
+    font-size: 0.92rem;
+    box-shadow: var(--shadow);
+    background: var(--bg);
+  }
+  thead th {
+    background: var(--code-bg);
+    text-align: left;
+    padding: 0.55rem 0.7rem;
+    border-bottom: 2px solid var(--border);
+    font-weight: 600;
+  }
+  tbody td {
+    padding: 0.5rem 0.7rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--code-bg); }
+  td.center, th.center { text-align: center; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* phase chain svg */
+  figure.timeline {
+    margin: 1rem 0 1.5rem;
+    text-align: center;
+  }
+  figure.timeline svg {
+    max-width: 100%;
+    height: auto;
+  }
+  figure.timeline figcaption {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-top: 0.4rem;
+  }
+
+  /* responsive collapse to dl shape under 768px */
+  @media (max-width: 768px) {
+    body { font-size: 15px; }
+    .wrap { padding: 1.25rem 0.85rem 3rem; }
+    table.collapse, table.collapse thead, table.collapse tbody,
+    table.collapse tr, table.collapse td, table.collapse th {
+      display: block;
+    }
+    table.collapse thead { display: none; }
+    table.collapse tr {
+      margin-bottom: 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.5rem 0.6rem;
+      background: var(--bg);
+    }
+    table.collapse tbody td {
+      border-bottom: 1px dashed var(--border);
+      padding: 0.35rem 0;
+    }
+    table.collapse tbody td:last-child { border-bottom: none; }
+    table.collapse tbody td::before {
+      content: attr(data-label);
+      display: block;
+      font-weight: 600;
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.2rem;
+    }
+  }
+
+  /* table of contents */
+  nav.toc {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.85rem 1.1rem;
+    margin: 1.5rem 0 2rem;
+    font-size: 0.92rem;
+  }
+  nav.toc h2 {
+    border: none;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 0.5rem;
+    color: var(--muted);
+    padding: 0;
+  }
+  nav.toc ol { padding-left: 1.25rem; margin: 0; }
+  nav.toc li { margin: 0.15rem 0; }
+
+  footer.doc-footer {
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  @media print {
+    body { background: white; color: black; }
+    .wrap { max-width: none; }
+    nav.toc, header.doc-header { page-break-after: avoid; }
+    h2 { page-break-after: avoid; }
+    table { page-break-inside: auto; box-shadow: none; }
+    tr { page-break-inside: avoid; }
+    a { color: black; text-decoration: underline; }
+    .callout { border: 1px solid #888; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc-header">
+  <h1>V24-R7 musu-bee wire-up — Closure</h1>
+  <div class="meta">
+    wiki/497c &middot; 2026-05-20 &middot; branch <code>v24/rust-cleanup</code> @ <code>ecd96a4</code>
+    &middot; <span class="badge ship">SHIP-OK</span>
+    &middot; companion to <a href="#refs">wiki/497 plan</a>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Table of contents">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#exec">Executive summary</a></li>
+    <li><a href="#scope">§1 Scope delivered</a></li>
+    <li><a href="#chain">§2 Phase chain</a></li>
+    <li><a href="#findings">§3 Findings &amp; resolutions</a></li>
+    <li><a href="#commits">§4 Commits &amp; LOC</a></li>
+    <li><a href="#r8">§5 R8 acceptance follow-ups</a></li>
+    <li><a href="#unblocks">§6 What R7 unblocks</a></li>
+    <li><a href="#master9">§7 Acceptance vs master plan §9</a></li>
+    <li><a href="#carry">§8 R-cleanup follow-ups carried forward</a></li>
+    <li><a href="#tests">§9 Test results</a></li>
+    <li><a href="#refs">§10 References</a></li>
+  </ol>
+</nav>
+
+<section id="exec" class="lede">
+  <h2>Executive summary</h2>
+  <p>
+    R7 wires the musu-bee Next.js cockpit to the Rust bridge shipped by R1
+    (<code>musu-rs::bridge</code> at <code>http://127.0.0.1:8070</code>). Per wiki/490 §5-R7, R7 does
+    <strong>no frontend rewrite</strong>; it only reconciles the Python-era <code>/api/admin/*</code> path terminology
+    in four musu-bee TypeScript route files to R1's canonical <code>/api/nodes</code> + <code>/api/nodes/add</code>
+    surface, and adds one integration smoke test that asserts a musu-bee server route forwards correctly to the
+    Rust bridge base URL. No new dependencies, no new endpoints, no schema work, no env-shape change.
+  </p>
+  <p>
+    The pipeline was the standard agent-team pattern with one deliberate compression: Phase 1.5 Critic was
+    <strong>skipped</strong> per <code>[[feedback-plan-stage-auditor]]</code> calibration (LOC&nbsp;&lt;&nbsp;500 and LOW
+    risk per wiki/497 §5). Phase 0 Researcher → Phase 1 Planner (wiki/497) → Phase 3 Builder (3 commits) →
+    Phase 5 Auditor (single quality-engineer; SHIP-WITH-FOLLOWUPS) → Phase 7 Scribe (this doc).
+  </p>
+  <p>
+    Status: <strong>SHIP-OK</strong> with three deferred follow-ups, all small and scope-correct.
+    Audit returned 1 MED + 2 LOW + 1 INFO; the MED is a scope-discipline-correct deferral (two client-side
+    fetch call sites in fleet/screen pages still use <code>/api/admin/*</code> — outside R7's stated 4-file
+    route reconciliation scope, flagged for R8). The two LOWs (DELETE node + <code>/discovered</code> paths
+    against R1 surface that doesn't ship them yet; <code>MUSU_BRIDGE_TOKEN</code> not in <code>.env.local.example</code>)
+    are documented inline and rolled forward to R-cleanup / R8 install procedure respectively.
+  </p>
+</section>
+
+<section id="scope">
+  <h2>§1 Scope delivered</h2>
+  <p>R7 shipped the smallest TypeScript surface to repoint musu-bee at R1's canonical endpoint shape:</p>
+  <table class="collapse">
+    <thead>
+      <tr><th>Artifact</th><th>Path</th><th>Action</th><th class="num">LOC</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-label="Artifact">Env example</td>
+        <td data-label="Path"><code>musu-bee/.env.local.example</code></td>
+        <td data-label="Action">Verified (already correct: <code>MUSU_BRIDGE_URL=http://127.0.0.1:8070</code>)</td>
+        <td data-label="LOC" class="num">0</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">Nodes list</td>
+        <td data-label="Path"><code>musu-bee/src/app/api/nodes/route.ts</code></td>
+        <td data-label="Action">Upstream path <code>/api/admin/nodes</code> → <code>/api/nodes</code></td>
+        <td data-label="LOC" class="num">~7</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">Node pair</td>
+        <td data-label="Path"><code>musu-bee/src/app/api/nodes/pair/route.ts</code></td>
+        <td data-label="Action">Upstream path <code>/api/admin/pair</code> → <code>/api/nodes/add</code></td>
+        <td data-label="LOC" class="num">~7</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">Node by name</td>
+        <td data-label="Path"><code>musu-bee/src/app/api/nodes/[name]/route.ts</code></td>
+        <td data-label="Action">Upstream path <code>/api/admin/nodes/{name}</code> → <code>/api/nodes/{name}</code></td>
+        <td data-label="LOC" class="num">~8</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">Discovered nodes</td>
+        <td data-label="Path"><code>musu-bee/src/app/api/nodes/discovered/route.ts</code></td>
+        <td data-label="Action">Upstream path <code>/api/admin/discovered</code> → <code>/api/nodes/discovered</code> <span class="badge low">graceful</span></td>
+        <td data-label="LOC" class="num">~8</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">Smoke test</td>
+        <td data-label="Path"><code>musu-bee/src/app/api/nodes/route.test.ts</code></td>
+        <td data-label="Action">NEW: asserts route handler builds correct upstream URL against <code>MUSU_BRIDGE_URL</code>; positive (target path present) + negative (legacy path absent) assertions</td>
+        <td data-label="LOC" class="num">+116</td>
+      </tr>
+      <tr>
+        <td data-label="Artifact">README</td>
+        <td data-label="Path"><code>musu-bee/README.md</code></td>
+        <td data-label="Action">R-fast dual-start note: musu-bee dev server expects Rust bridge on :8070; legacy Python on :8071 retained for non-R1 routes via facade</td>
+        <td data-label="LOC" class="num">+16</td>
+      </tr>
+      <tr style="font-weight: 600; background: var(--accent-soft);">
+          <td data-label="Artifact" colspan="3">Total (4 path edits + 1 test + 1 README note)</td>
+          <td data-label="LOC" class="num">~162</td></tr>
+    </tbody>
+  </table>
+  <p>
+    All four <code>nodes/*</code> route files needed the edit; Phase 0 Researcher had reported three. The
+    fourth (<code>nodes/discovered/route.ts</code>) was discovered by Builder at edit time. See §3 INFO row.
+  </p>
+</section>
+
+<section id="chain">
+  <h2>§2 Phase chain</h2>
+  <p>R7 ran a deliberately compressed plan-mode pipeline per <code>MODE_Agent_Team.md</code>. Phase -1 was
+    satisfied by the parent master plan (wiki/490) — R7 is a sub-WS that does not extend the cleared thesis
+    (no new language, no new dep, no new infra). Phase 1.5 Critic was <em>skipped</em> per
+    <code>[[feedback-plan-stage-auditor]]</code> calibration: plan LOC&nbsp;&lt;&nbsp;500 and risk LOW, with no
+    schema change, no security boundary touched, and no cross-language invariant at stake.</p>
+
+  <figure class="timeline" role="group" aria-label="R7 phase chain timeline">
+    <svg viewBox="0 0 880 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="r7-timeline-title">
+      <title id="r7-timeline-title">R7 phase chain: Researcher to Scribe with compressed Critic</title>
+      <defs>
+        <marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="currentColor"/>
+        </marker>
+      </defs>
+      <style>
+        .box { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+        .box.skip { fill: var(--code-bg); stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 4 3; }
+        .box.this { fill: var(--ok-soft); stroke: var(--ok); }
+        .label { font: 600 13px sans-serif; fill: var(--fg); }
+        .label.muted { fill: var(--muted); }
+        .sub { font: 11px sans-serif; fill: var(--muted); }
+        .arr { stroke: var(--muted); stroke-width: 1.4; fill: none; }
+      </style>
+
+      <rect class="box" x="10" y="30" width="125" height="60" rx="6"/>
+      <text class="label" x="72" y="54" text-anchor="middle">Phase 0</text>
+      <text class="sub" x="72" y="70" text-anchor="middle">Researcher</text>
+      <text class="sub" x="72" y="82" text-anchor="middle">23 endpoints</text>
+
+      <rect class="box" x="155" y="30" width="125" height="60" rx="6"/>
+      <text class="label" x="217" y="54" text-anchor="middle">Phase 1</text>
+      <text class="sub" x="217" y="70" text-anchor="middle">Planner</text>
+      <text class="sub" x="217" y="82" text-anchor="middle">wiki/497</text>
+
+      <rect class="box skip" x="300" y="30" width="140" height="60" rx="6"/>
+      <text class="label muted" x="370" y="54" text-anchor="middle">Phase 1.5</text>
+      <text class="sub" x="370" y="70" text-anchor="middle">Critic SKIPPED</text>
+      <text class="sub" x="370" y="82" text-anchor="middle">LOC&lt;500 + LOW</text>
+
+      <rect class="box" x="460" y="30" width="125" height="60" rx="6"/>
+      <text class="label" x="522" y="54" text-anchor="middle">Phase 3</text>
+      <text class="sub" x="522" y="70" text-anchor="middle">Builder</text>
+      <text class="sub" x="522" y="82" text-anchor="middle">3 commits</text>
+
+      <rect class="box" x="605" y="30" width="125" height="60" rx="6"/>
+      <text class="label" x="667" y="54" text-anchor="middle">Phase 5</text>
+      <text class="sub" x="667" y="70" text-anchor="middle">Auditor</text>
+      <text class="sub" x="667" y="82" text-anchor="middle">qual-eng</text>
+
+      <rect class="box this" x="750" y="30" width="125" height="60" rx="6"/>
+      <text class="label" x="812" y="54" text-anchor="middle">Phase 7</text>
+      <text class="sub" x="812" y="70" text-anchor="middle">Scribe</text>
+      <text class="sub" x="812" y="82" text-anchor="middle">this doc</text>
+
+      <path class="arr" d="M135,60 L153,60" marker-end="url(#arr)"/>
+      <path class="arr" d="M280,60 L298,60" marker-end="url(#arr)"/>
+      <path class="arr" d="M440,60 L458,60" marker-end="url(#arr)"/>
+      <path class="arr" d="M585,60 L603,60" marker-end="url(#arr)"/>
+      <path class="arr" d="M730,60 L748,60" marker-end="url(#arr)"/>
+    </svg>
+    <figcaption>R7 phase chain. Critic gate (dashed) was compressed per LOC + risk calibration; single quality-engineer Auditor (no dual-audit, R7 is not high-stakes).</figcaption>
+  </figure>
+
+  <table class="collapse">
+    <thead>
+      <tr><th>Phase</th><th>Subagent</th><th>Key output</th></tr>
+    </thead>
+    <tbody>
+      <tr><td data-label="Phase">0 — Research</td><td data-label="Subagent">deep-research + Explore</td>
+          <td data-label="Output">23 unique musu-bee endpoint calls inventoried; 4 path mismatches against R1 (admin/* → canonical); token plumbing shape confirmed (<code>MUSU_BRIDGE_TOKEN</code> env → <code>Authorization: Bearer</code> header at fetch site)</td></tr>
+      <tr><td data-label="Phase">1 — Plan</td><td data-label="Subagent">Plan</td>
+          <td data-label="Output">wiki/497 detail plan; Option A (TS-side path edit) selected over Option B (Rust-side alias) on canonicality + reversibility grounds</td></tr>
+      <tr><td data-label="Phase">1.5 — Critic</td><td data-label="Subagent">— <span class="badge skipped">SKIPPED</span></td>
+          <td data-label="Output">Per <code>[[feedback-plan-stage-auditor]]</code> calibration: plan LOC&nbsp;&lt;&nbsp;500 (~100 estimate; ~162 actual) + LOW risk + no schema/security/cross-language touch. Decision logged in plan §8; orchestrator approved.</td></tr>
+      <tr><td data-label="Phase">3 — Build</td><td data-label="Subagent">backend-architect (TS surface)</td>
+          <td data-label="Output">3 commits <code>ce3c853</code> → <code>f738548</code> → <code>ecd96a4</code>. Builder discovered the 4th file (Phase 0 said 3); see §3.</td></tr>
+      <tr><td data-label="Phase">5 — Audit</td><td data-label="Subagent">quality-engineer (single)</td>
+          <td data-label="Output">SHIP-WITH-FOLLOWUPS: 1 MED (scope-correct deferral) + 2 LOW + 1 INFO. No HIGH. No regressions.</td></tr>
+      <tr><td data-label="Phase">7 — Scribe</td><td data-label="Subagent">technical-writer (this doc)</td>
+          <td data-label="Output">wiki/497c HTML closure</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <strong>Compressed Critic rationale.</strong> The plan-stage Auditor calibration rule
+    (<code>[[feedback-plan-stage-auditor]]</code>) gates the Critic skip on three conjuncts: plan body
+    LOC&nbsp;&lt;&nbsp;500 AND risk classified LOW by the planner AND no thesis extension. R7 satisfied all
+    three: wiki/497 is ~100 LOC of body, R7-1..R7-4 risks all enumerated as LOW with concrete mitigations,
+    and the work is path-string substitution within a sub-WS the master plan already cleared. The Auditor
+    pass at Phase 5 is the substitute gate, and it returned with no HIGH and one correctly-scoped MED.
+  </div>
+</section>
+
+<section id="findings">
+  <h2>§3 Findings &amp; resolutions</h2>
+  <p>Phase 5 Auditor (single quality-engineer pass) returned 1 MED + 2 LOW + 1 INFO. No HIGH.</p>
+  <table class="collapse">
+    <thead>
+      <tr><th>ID</th><th>Sev</th><th>Claim</th><th>Resolution / disposition</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-label="ID">F-1</td>
+        <td data-label="Sev"><span class="badge med">MED</span></td>
+        <td data-label="Claim">Two client-side fetch call sites still hit <code>/api/admin/*</code>:
+            <code>musu-bee/src/app/fleet/page.tsx:319</code> and <code>musu-bee/src/app/screen/page.tsx:64</code>.
+            These pages drive in-browser fetches and were outside the 4-file server-route reconciliation
+            scope wiki/497 declared.</td>
+        <td data-label="Resolution">
+          <span class="badge user">SCOPE-CORRECT DEFERRAL</span>
+          R7 plan §1 scoped the wire-up to the four <code>src/app/api/nodes/*</code> server routes. The two
+          client-page call sites continue to work today because musu-bee's <code>/api/bridge/[...path]</code>
+          facade proxies whichever path the client hands it; <code>/api/admin/*</code> still resolves via the
+          Python facade route on the legacy bridge. Functionally correct; terminologically inconsistent.
+          Carried forward as R8 follow-up (see §5).
+        </td>
+      </tr>
+      <tr>
+        <td data-label="ID">F-2</td>
+        <td data-label="Sev"><span class="badge low">LOW</span></td>
+        <td data-label="Claim">DELETE-node and <code>/discovered</code> upstream paths now point at R1's
+            canonical surface (<code>DELETE /api/nodes/{name}</code> and <code>GET /api/nodes/discovered</code>)
+            but R1's shipped handler set does not yet implement either endpoint
+            (R1 ships nodes <em>list</em> and <code>POST /api/nodes/add</code> only).</td>
+        <td data-label="Resolution">
+          <span class="badge resolved">DOCUMENTED INLINE</span>
+          Both call sites graceful-degrade: a 404 from the bridge surfaces as a structured error in musu-bee's
+          response (existing error handler unchanged). When R-cleanup adds the two endpoints Rust-side, no
+          musu-bee change is required. Inline comment added to the two route files noting "R1 not yet shipping
+          this; will resolve once R-cleanup adds DELETE/discovered handlers."
+        </td>
+      </tr>
+      <tr>
+        <td data-label="ID">F-3</td>
+        <td data-label="Sev"><span class="badge low">LOW</span></td>
+        <td data-label="Claim"><code>MUSU_BRIDGE_TOKEN</code> is read at fetch time in
+            <code>src/lib/bridge.ts</code> but not declared in <code>.env.local.example</code>; an operator
+            following the README will set <code>MUSU_BRIDGE_URL</code> but miss the token, producing 401s from
+            R1's bearer-required middleware.</td>
+        <td data-label="Resolution">
+          <span class="badge deferred">DEFERRED to R8</span>
+          R8 (install procedure) is the natural owner of the env-template completeness gate. R8 acceptance
+          will add <code>MUSU_BRIDGE_TOKEN=&lt;generate with: head -c 24 /dev/urandom | base64&gt;</code> to
+          <code>.env.local.example</code> with a matching note in the operator quickstart. See §5 F-3 row.
+        </td>
+      </tr>
+      <tr>
+        <td data-label="ID">F-4</td>
+        <td data-label="Sev"><span class="badge info">INFO</span></td>
+        <td data-label="Claim">The new smoke test (<code>nodes/route.test.ts</code>) asserts both that the
+            target upstream URL contains <code>/api/nodes</code> AND that it does NOT contain
+            <code>/api/admin</code>. The negative assertion is non-obvious good practice for a path-rename
+            patch — confirms the legacy string has been removed, not merely that the new one was added.</td>
+        <td data-label="Resolution">
+          <span class="badge closed">ACK</span>
+          Noted as positive design feedback; no action required. The dual-assertion shape will inform future
+          path-rename PRs in R-cleanup.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout ok">
+    <strong>Phase 0 vs Builder discrepancy.</strong> Phase 0 Researcher reported 3 musu-bee files needing
+    the <code>/api/admin/*</code>&nbsp;→&nbsp;canonical edit (<code>route.ts</code>, <code>pair/route.ts</code>,
+    <code>[name]/route.ts</code>). Builder discovered a fourth file at edit time:
+    <code>nodes/discovered/route.ts</code>. Both Phase 0 and the planner (wiki/497 §3) listed it as a
+    conditional row ("if exists"), so the gap was anticipated by the plan, but Phase 0 should have
+    enumerated it definitively. INFO-level note for the next Researcher tasking: glob the whole
+    <code>app/api/nodes/**</code> tree rather than a hand-listed three-file set.
+  </div>
+</section>
+
+<section id="commits">
+  <h2>§4 Commits &amp; LOC</h2>
+  <p>Three commits on <code>v24/rust-cleanup</code>. Per <code>[[feedback-autonomous-loop]]</code> Const VII
+    per-commit gate, each was pushed to <code>origin/v24/rust-cleanup</code> immediately on completion;
+    main-merge is gated on R-fast E2E (R8).</p>
+  <table class="collapse">
+    <thead>
+      <tr><th>#</th><th>SHA</th><th>Title</th><th>Scope</th><th class="num">LOC</th></tr>
+    </thead>
+    <tbody>
+      <tr><td data-label="#">1</td><td data-label="SHA"><code>ce3c853</code></td>
+          <td data-label="Title">R7.paths: musu-bee route handlers point at R1 canonical surface</td>
+          <td data-label="Scope">4 files in <code>src/app/api/nodes/**</code>: upstream URLs
+              <code>/api/admin/*</code>&nbsp;→&nbsp;<code>/api/nodes</code> + <code>/api/nodes/add</code></td>
+          <td data-label="LOC" class="num">+30</td></tr>
+      <tr><td data-label="#">2</td><td data-label="SHA"><code>f738548</code></td>
+          <td data-label="Title">R7.test: integration smoke for nodes route bridge wiring</td>
+          <td data-label="Scope"><code>src/app/api/nodes/route.test.ts</code> — positive + negative URL
+              assertions, mocked <code>MUSU_BRIDGE_URL</code></td>
+          <td data-label="LOC" class="num">+116</td></tr>
+      <tr><td data-label="#">3</td><td data-label="SHA"><code>ecd96a4</code></td>
+          <td data-label="Title">R7.docs: README note on R-fast dual-start (Rust :8070 + Python :8071)</td>
+          <td data-label="Scope"><code>musu-bee/README.md</code> — operator-facing dual-start procedure</td>
+          <td data-label="LOC" class="num">+16</td></tr>
+      <tr style="font-weight: 600; background: var(--accent-soft);">
+          <td data-label="#" colspan="4">Total</td>
+          <td data-label="LOC" class="num">~162</td></tr>
+    </tbody>
+  </table>
+  <p class="lede" style="color: var(--muted); font-size: 0.9rem;">
+    HEAD before closure: <code>ecd96a4</code>. This closure commit advances HEAD by one and remains on
+    <code>v24/rust-cleanup</code>. Const III (schema apply) and Const VI (perf experiment) gates were not
+    triggered by R7; Const VII per-commit push gate was satisfied for all three R7 commits and will be
+    satisfied again on closure commit.
+  </p>
+</section>
+
+<section id="r8">
+  <h2>§5 R8 acceptance follow-ups</h2>
+  <p>R7 explicitly transfers two items to R8's operator-workflow acceptance pass. Both are small but
+    load-bearing; the next sub-WS must not miss them.</p>
+  <table class="collapse">
+    <thead>
+      <tr><th>ID</th><th>Anchor</th><th>R8 action</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-label="ID">F-1</td>
+        <td data-label="Anchor"><code>musu-bee/src/app/fleet/page.tsx:319</code> &middot;
+            <code>musu-bee/src/app/screen/page.tsx:64</code></td>
+        <td data-label="R8 action">Rename the two client-side fetch URLs from <code>/api/admin/*</code> to the
+            canonical path the matching server route accepts. Verify in the browser DevTools network panel that
+            both pages still render after the swap. No backend change required (Rust bridge already serves the
+            canonical paths via R1; the legacy path serves equivalently through the Python facade today but the
+            terminology drift is the issue R7 began closing).</td>
+      </tr>
+      <tr>
+        <td data-label="ID">F-3</td>
+        <td data-label="Anchor"><code>musu-bee/.env.local.example</code></td>
+        <td data-label="R8 action">
+          Add the token line so a fresh operator install produces a working bridge call on first try:
+          <pre><code># MUSU_BRIDGE_TOKEN: required by Rust bridge bearer auth (R1 invariant I-1).
+# Generate locally with one of:
+#   head -c 24 /dev/urandom | base64
+#   openssl rand -base64 24
+# Then copy the same value into the bridge process' env.
+MUSU_BRIDGE_TOKEN=replace-me</code></pre>
+          The operator quickstart in <code>musu-bee/README.md</code> must reference the new line so the env
+          shape is discoverable from a single doc path.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="callout warn">
+    <strong>Without F-3 done in R8</strong>, a fresh operator install will see musu-bee server routes return
+    401 from the Rust bridge with a confusing error chain (Next.js server log shows the bearer-rejection but
+    the client-facing JSON is a generic "bridge unreachable"). F-3 is the difference between &ldquo;works on
+    first <code>npm run dev</code>&rdquo; and &ldquo;works after one hour of token-source archaeology.&rdquo;
+  </div>
+</section>
+
+<section id="unblocks">
+  <h2>§6 What R7 unblocks</h2>
+  <p>With R7 shipped, musu-bee can now successfully call the following Rust bridge endpoints either directly
+    (via the four reconciled <code>src/app/api/nodes/*</code> server routes) or via the generic
+    <code>/api/bridge/[...path]</code> proxy:</p>
+  <ul>
+    <li><code>GET /api/companies</code> — list known companies (R2 schema apply makes this return non-empty)</li>
+    <li><code>POST /api/companies/{id}/activate</code> — activate a company (operator action)</li>
+    <li><code>POST /api/companies/{id}/run</code> — execute a run cycle</li>
+    <li><code>GET /api/nodes</code> — list paired nodes (R7 canonical path)</li>
+    <li><code>POST /api/nodes/add</code> — pair a new node (R7 canonical path)</li>
+    <li><code>POST /api/tasks/delegate</code> — delegate a task to a peer</li>
+  </ul>
+  <p>The R8 operator-workflow acceptance pass can now build a UI-driven E2E (pair node → activate company →
+    run cycle → check audit row) without needing any further musu-bee wire-up. R8's remaining surface area
+    is operator scripts, env-template completeness, and the F-1 / F-3 follow-ups above.</p>
+</section>
+
+<section id="master9">
+  <h2>§7 Acceptance vs master plan §9</h2>
+  <p>R7 advances the V24 acceptance criteria as follows. R7's contribution is primarily &ldquo;enable&rdquo;:
+    the cockpit can now talk to the Rust bridge end-to-end, which other sub-WS depend on for E2E
+    verification.</p>
+  <table class="collapse">
+    <thead>
+      <tr><th>§9.x</th><th>Criterion</th><th>R7 contribution</th><th>Status after R7</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-label="§9.x">§9.1</td>
+        <td data-label="Criterion">Install path single-line musu-rs build + run</td>
+        <td data-label="Contribution">Indirect: R7 closes the cockpit-side env-shape gap (modulo F-3 token-line)</td>
+        <td data-label="Status"><span class="badge deferred">DEFERRED to R6+R8</span></td>
+      </tr>
+      <tr>
+        <td data-label="§9.x">§9.2</td>
+        <td data-label="Criterion">8 R1 endpoints return correct shapes against legacy fixtures</td>
+        <td data-label="Contribution">Indirect: R7 adds the first integration smoke (TS-side) hitting R1's surface; full fixture pass remains R8 E2E</td>
+        <td data-label="Status"><span class="badge ship">SATISFIED (server-side) + R8 E2E pending</span></td>
+      </tr>
+      <tr>
+        <td data-label="§9.x">§9.3</td>
+        <td data-label="Criterion">Facade reverse-proxies remaining ~73 routes with auth + rate-limit + audit applied</td>
+        <td data-label="Contribution">R7 confirms the musu-bee server routes call the bridge with bearer attached; the bridge applies its middleware regardless of caller. R7 does not exercise the full ~73 surface.</td>
+        <td data-label="Status"><span class="badge ship">SATISFIED at R1; R7 confirms client direction</span></td>
+      </tr>
+      <tr>
+        <td data-label="§9.x">§9.4</td>
+        <td data-label="Criterion">V23.2-B1 invariants I-1..I-4 hold under R1</td>
+        <td data-label="Contribution">R7 unblocks operator-workflow path that exercises I-1 (bearer) and I-2 (audit_log) on a realistic call shape</td>
+        <td data-label="Status"><span class="badge ship">SATISFIED at R1; R8 will exercise under operator workflow</span></td>
+      </tr>
+      <tr>
+        <td data-label="§9.x">§9.5</td>
+        <td data-label="Criterion">audit_log gets ≥5 non-testclient rows under realistic load</td>
+        <td data-label="Contribution">Measurable now: R2 unblocked the table, R7 unblocked the caller. R8 will produce the rows.</td>
+        <td data-label="Status"><span class="badge deferred">DEFERRED to R8</span></td>
+      </tr>
+      <tr>
+        <td data-label="§9.x">§9.7</td>
+        <td data-label="Criterion"><code>/v1/run</code> result returns flow Rust → Python → Rust → client without loss</td>
+        <td data-label="Contribution">Indirect: R7's smoke test validates the URL shape; the runtime cross-machine flow remains R9</td>
+        <td data-label="Status"><span class="badge deferred">DEFERRED to R9</span></td>
+      </tr>
+      <tr>
+        <td data-label="§9.x">§9.8&ndash;§9.12</td>
+        <td data-label="Criterion">Operator boot script, Python deprecation, throughput, cargo-deny clean, operator-attested close</td>
+        <td data-label="Contribution">Not in R7 scope</td>
+        <td data-label="Status"><span class="badge deferred">DEFERRED to R10+</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="carry">
+  <h2>§8 R-cleanup follow-ups carried forward</h2>
+  <p>Consolidated R-cleanup queue across R1 + R2 + R7. Each row has a concrete anchor so a future
+    R-cleanup work session can pick items up without re-discovering them.</p>
+  <table class="collapse">
+    <thead>
+      <tr><th>ID</th><th>Source</th><th>Anchor</th><th>Description</th></tr>
+    </thead>
+    <tbody>
+      <tr><td data-label="ID">R1 MED-A1</td><td data-label="Source">R1</td>
+          <td data-label="Anchor"><code>musu-rs/src/bridge/auth.rs:104</code></td>
+          <td data-label="Desc">SSE timeout slack for facade-bound SSE routes when they come online</td></tr>
+      <tr><td data-label="ID">R1 MED-A2</td><td data-label="Source">R1</td>
+          <td data-label="Anchor"><code>musu-rs/src/bridge/handlers/health.rs:23</code></td>
+          <td data-label="Desc">X-Request-ID character-set sanitization on echo</td></tr>
+      <tr><td data-label="ID">R1 MED-A3</td><td data-label="Source">R1</td>
+          <td data-label="Anchor"><code>musu-rs/src/bridge/config.rs:51</code></td>
+          <td data-label="Desc"><code>localhost_auth_required=false</code> hard-fail under operator-mode prod env</td></tr>
+      <tr><td data-label="ID">R1 MED-A4</td><td data-label="Source">R1</td>
+          <td data-label="Anchor"><code>musu-rs/src/bridge/rate_limit.rs:60</code></td>
+          <td data-label="Desc">Global rate-limit ceiling becomes config-driven</td></tr>
+      <tr><td data-label="ID">R1 MED-B2</td><td data-label="Source">R1</td>
+          <td data-label="Anchor"><code>musu-rs/src/bridge/handlers/tasks.rs:77</code></td>
+          <td data-label="Desc"><code>allow_duplicate=true</code> path updates dedup cache</td></tr>
+      <tr><td data-label="ID">R1 MED-B3</td><td data-label="Source">R1</td>
+          <td data-label="Anchor"><code>musu-rs/src/bridge/handlers/companies.rs:118</code></td>
+          <td data-label="Desc">Distinguish &ldquo;already-active&rdquo; vs &ldquo;newly-activated&rdquo; in audit-note</td></tr>
+      <tr><td data-label="ID">R1 LOW-1..5</td><td data-label="Source">R1</td>
+          <td data-label="Anchor">various (see wiki/491c §7)</td>
+          <td data-label="Desc">Docblock typo, span naming, unused imports, README port table, cfg(test) cleanup</td></tr>
+      <tr><td data-label="ID">R1 C-SEC-4</td><td data-label="Source">R1</td>
+          <td data-label="Anchor"><code>musu-bridge/auth.py</code></td>
+          <td data-label="Desc">Python accept-peer auth shape formalization</td></tr>
+      <tr><td data-label="ID">R1 DEV-1</td><td data-label="Source">R1</td>
+          <td data-label="Anchor"><code>musu-rs/src/bridge/handlers/health.rs:48</code></td>
+          <td data-label="Desc">Relay health block (replace stub once R5 ships)</td></tr>
+      <tr><td data-label="ID">R1 DEV-2</td><td data-label="Source">R1</td>
+          <td data-label="Anchor"><code>musu-rs/src/bridge/handlers/health.rs:73</code></td>
+          <td data-label="Desc"><code>disk_free_percent</code> cross-platform via <code>sysinfo</code> crate</td></tr>
+      <tr><td data-label="ID">R7 F-2 (a)</td><td data-label="Source">R7</td>
+          <td data-label="Anchor"><code>musu-rs/src/bridge/handlers/nodes.rs</code></td>
+          <td data-label="Desc">Add <code>DELETE /api/nodes/{name}</code> handler (musu-bee already calls it)</td></tr>
+      <tr><td data-label="ID">R7 F-2 (b)</td><td data-label="Source">R7</td>
+          <td data-label="Anchor"><code>musu-rs/src/bridge/handlers/nodes.rs</code></td>
+          <td data-label="Desc">Add <code>GET /api/nodes/discovered</code> handler (musu-bee already calls it)</td></tr>
+    </tbody>
+  </table>
+  <p class="lede" style="color: var(--muted); font-size: 0.9rem;">
+    R2-sourced follow-ups (if any) are tracked in wiki/492c §7 and not duplicated here.
+  </p>
+</section>
+
+<section id="tests">
+  <h2>§9 Test results</h2>
+  <p>Build and test posture at R7 closure HEAD <code>ecd96a4</code>:</p>
+  <ul>
+    <li><code>npm test -- nodes/route.test.ts</code>: <span class="badge closed">PASS</span> — the new R7
+        smoke test asserts URL shape (positive + negative).</li>
+    <li><code>npm test</code> (full Jest suite): <span class="badge closed">PASS for R7-touched tests</span>;
+        pre-existing failures in unrelated suites verified against baseline pre-R7 (<code>ce3c853^</code>)
+        — same failures, R7 did not introduce any new red.</li>
+    <li><code>npm run build</code>: <span class="badge closed">CLEAN</span> — TypeScript compilation +
+        Next.js bundle build complete with no R7-introduced warnings.</li>
+    <li><code>npm run typecheck</code>: <span class="badge closed">CLEAN</span> — no TS errors in R7-touched
+        files or in transitively impacted modules.</li>
+    <li><code>npx playwright test</code>: not run (R7 has no playwright impact; R8 owns E2E gate).</li>
+  </ul>
+  <p>The integration test asserts two specific properties about
+    <code>src/app/api/nodes/route.ts</code>'s server-side fetch construction:</p>
+  <ol>
+    <li>The constructed upstream URL contains <code>/api/nodes</code> (positive: canonical path
+        present).</li>
+    <li>The constructed upstream URL does NOT contain <code>/api/admin</code> (negative: legacy path
+        removed).</li>
+  </ol>
+  <p>The negative assertion is the meaningful half — it catches the failure mode where someone re-adds the
+    legacy path next to the canonical one and the route still works for the wrong reason. This shape was
+    flagged by Auditor F-4 INFO as good practice.</p>
+</section>
+
+<section id="refs">
+  <h2>§10 References</h2>
+  <ul>
+    <li>wiki/490 — V24 Rust Big-Bang master plan (panel-reshaped to R-fast/R-cleanup):
+        <code>F:\workspace\musu-bee\docs\V24_RUST_BIG_BANG_MASTER_PLAN_2026_05_20.md</code></li>
+    <li>wiki/491 + wiki/491c — V24 R1 musu-rs::bridge detail plan + closure:
+        <code>F:\workspace\musu-bee\docs\V24_R1_BRIDGE_RS_PLAN_2026_05_20.md</code> and
+        <code>V24_R1_BRIDGE_RS_CLOSURE_2026_05_20.html</code></li>
+    <li>wiki/492 + wiki/492c — V24 R2 musu-rs::core (schema-v37 migrations) detail plan + closure</li>
+    <li>wiki/497 — V24 R7 musu-bee wire-up detail plan:
+        <code>F:\workspace\musu-bee\docs\V24_R7_BEE_WIRING_PLAN_2026_05_20.md</code></li>
+    <li>GOAL.md §A — product positioning, self-contained installer principle</li>
+    <li>Phase 0 Researcher output (this turn) — 23-endpoint inventory + token plumbing confirmation</li>
+    <li>Memory: <code>[[feedback-scribe-html-only]]</code> — this closure doc is HTML; phases 0&ndash;5 stayed Markdown</li>
+    <li>Memory: <code>[[feedback-plan-stage-auditor]]</code> — compressed Critic gate calibration applied at Phase 1.5 (LOC&lt;500 + LOW risk)</li>
+    <li>Memory: <code>[[feedback-no-python]]</code> — R7 touches only musu-bee TypeScript; no new Python introduced</li>
+    <li>Memory: <code>[[decision-musu-backend-rust]]</code> — backend lock; R7 confirms the cockpit talks to Rust by default</li>
+    <li>Memory: <code>[[feedback-self-contained-product]]</code> — no SaaS deps; R7 added zero npm deps</li>
+    <li>Memory: <code>[[feedback-autonomous-loop]]</code> — Const VII per-commit push gate satisfied for R7 commits 1&ndash;3 and on this closure</li>
+    <li>Memory: <code>[[feedback-strategic-critic-gate]]</code> — Phase -1 not triggered (R7 does not extend master plan thesis)</li>
+    <li>Memory: <code>[[feedback-no-yagni-architecture]]</code> — R7 used only path-string edits; no new abstractions added</li>
+  </ul>
+</section>
+
+<footer class="doc-footer">
+  <p>
+    Closure authored 2026-05-20 by technical-writer subagent under <code>MODE_Agent_Team.md</code> Phase 7.
+    Branch <code>v24/rust-cleanup</code> HEAD <code>ecd96a4</code> (pre-closure commit).
+    Next iteration: R8 Phase 0 Researcher (operator-workflow E2E acceptance, including R7 F-1 + F-3 follow-ups).
+  </p>
+</footer>
+
+</div>
+</body>
+</html>
