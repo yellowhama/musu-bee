@@ -2,15 +2,114 @@
 
 **Wiki ID**: wiki/485
 **Created**: 2026-05-19
+**Last reshape**: 2026-05-20 (V23.6-minimal SUPERSEDED → V24-Rust-big-bang)
 **Updates**: append-only revision history at bottom
-**Owner**: autonomous /loop orchestrator (Claude Opus 4.7 1M context)
+**Owner**: autonomous /loop orchestrator (Claude Opus 4.7 1M context). Per user 2026-05-20: "니가 결정, 나는 고객임, 니가 사장임" — orchestrator is 사장 (decides closure), user is customer (rejection right + AS duty owed back).
 **User**: emptyermind@gmail.com
 
 This is the single source of truth for the autonomous /loop. Future Claude sessions read this first. Goals are **explicit + dated + measurable**. Section A is current cycle goal. Sections B–D are reference state (branch / gates / deferred).
 
 ---
 
-## §A — Current cycle goal: V23.6-minimal (operator hygiene only, panel-amended 2026-05-19)
+## §A — Current cycle goal: V24-Rust-big-bang (locked 2026-05-20)
+
+### A.0 The decision
+
+**GOAL**: Big-bang rewrite — Python 25k LOC 통째로 Rust로. 4-6주. 동안 musu = down. 다 끝나야 한 번 켜짐.
+
+**SCOPE**: musu-bridge (25,885 LOC Python) + musu-core + musu-control + musu-indexer + musu-writer → **all rewritten in Rust**. Existing Python deprecated wholesale on V24 close.
+
+**WHY**:
+1. User instruction "백엔드로 파이썬 쓰지 말라고" (months-long, repeated). Existing 25k Python = 6 weeks of violation. See [[feedback-no-python]].
+2. Rust locked as musu backend language 2026-05-20. See [[decision-musu-backend-rust]].
+3. Big-bang (α) chosen over incremental (β): user-locked. Rationale: 6 weeks of Python rot makes incremental migration carry the rot forward; big-bang draws a line.
+4. Existing Rust crates already in repo: `musu-relay-gateway` (V23.1 T1.8) + `musu-supervisor-isolation-{linux,windows,macos}` (V21.D). Not greenfield.
+5. Thesis lock from SSOT_1PAGE_2026-04-09 holds: musu = control plane tying multiple personal computers (4060Ti + 5070Ti) into one protected on-prem AI operation. 4-layer (CoS / machines / companies / agents).
+
+**STACK** (locked): tokio + axum + sqlx (or rusqlite). Single binary. ~5MB cross-compile target. No GC. No K8s. No SaaS dep.
+
+**APPROACH**: α Big-bang. 4-6 weeks. musu = down during rewrite. No incremental Python-deprecate. Existing musu-bridge stays untouched as reference until Rust port reaches parity, then deleted in one commit.
+
+**Reshape lock**: ON. Orchestrator MUST NOT propose framing reshapes (e.g., "kill company entity", "indexer only", "incremental instead") during V24 execution without explicit user request. Past 3 reshape errors this cycle informed this lock.
+
+### A.1 Day-2 acceptance (operator-defined)
+
+**Acceptance bar = D (cross-machine)**:
+1. ✅ `bash scripts/install.sh --service --start` (or equivalent Rust installer) succeeds end-to-end on 4060Ti from a clean shell
+2. ✅ `bash scripts/install.sh --service --start` succeeds on 5070Ti
+3. ✅ `F:\Aisaak\Projects\land-os` registered as musu company "land-os 개발팀"
+4. ✅ `F:\Aisaak\Projects\vibecode-town` registered as musu company
+5. ✅ `/api/nodes/add` mesh: 4060Ti and 5070Ti recognize each other; both `nodes.toml` mention each other
+6. ✅ Cross-machine task: one task delegated from 4060Ti routes to an agent on 5070Ti (or vice versa); audit_log on receiving machine shows the task arrived; result returns
+7. ✅ audit_log has ≥ 5 rows where `actor_ip != 'testclient'` (real operator usage, not pytest fixture)
+8. ✅ V24 final closure HTML + qual eval committed
+
+Closure decision: orchestrator (사장) declares V24 done. User (customer) inspects and may reject — orchestrator owes AS (after-sales) duty until accepted.
+
+### A.2 Sub-WS (high-level, detail plans deferred to per-WS /loop iterations)
+
+Detail per-WS plans will be written per [[feedback-strategic-critic-gate]] (Phase -1 → Phase 0 → Phase 1 → Phase 1.5 → ...) inside the V24 master plan (wiki/490 reservation) after Phase -1 strategic gate clears the Rust big-bang thesis.
+
+Provisional sub-WS list (subject to Phase -1 reshape, NOT subject to orchestrator drift):
+
+| Sub-WS | Wiki (reserved) | Scope (provisional) | Risk |
+|---|---|---|---|
+| V24-R0 | wiki/490 | Master plan + Phase -1 strategic gate + workspace cargo layout | — |
+| V24-R1 | wiki/491 | musu-bridge-rs: tokio+axum HTTP surface — port `/health`, `/api/companies`, `/api/companies/{id}/activate`, `/api/companies/{id}/run`, `/api/tasks/delegate`, `/api/nodes`, `/api/nodes/add` | HIGH |
+| V24-R2 | wiki/492 | musu-core-rs: SQLite schema (sqlx or rusqlite), companies.yaml loader, agent seed | HIGH |
+| V24-R3 | wiki/493 | musu-control-rs: MCP server (stdio JSON-RPC; 80 tools subset → minimal first) | MED |
+| V24-R4 | wiki/494 | musu-indexer-rs: file/code indexing per-company | MED |
+| V24-R5 | wiki/495 | musu-writer-rs: agent task execution + writer surface | MED |
+| V24-R6 | wiki/496 | Installer rewrite (`scripts/install.sh` + `scripts/install.ps1`): install rustup, cargo build --release, register systemd/launchd/Windows service | MED |
+| V24-R7 | wiki/497 | musu-bee (TS/Next.js cockpit) wiring to Rust bridge endpoints — no frontend rewrite, only adjust BRIDGE_URL + token + endpoint paths if shape differs | LOW |
+| V24-R8 | wiki/498 | E2E gate on 4060Ti: A.1 acceptance items 1, 3, 4 | MED |
+| V24-R9 | wiki/499 | E2E gate on 5070Ti + cross-machine: A.1 acceptance items 2, 5, 6 | MED |
+| V24-R10 | wiki/500 | Python deletion + V24 final closure HTML + qual eval | — |
+
+**Total LOC estimate**: 8,000–12,000 Rust (60–80% reduction vs 25,885 Python, typical Python→Rust ratio with sqlx + axum macros doing more work).
+
+**Order**: Strict sequence R0 → R1 → R2 → R3 → R4 → R5 → R6 → R7 → R8 → R9 → R10. No parallel sub-WS (panel H5 from V23.5: parallelism doesn't help solo operator).
+
+### A.3 Hard constraints (cycle-level invariants)
+
+1. **No new SaaS dep** — [[feedback-self-contained-product]]. Rust crates from crates.io only; no fly/AWS/Vercel/etc.
+2. **No Python** — [[feedback-no-python]]. New code Rust only. Shell scripts (install.sh) OK. Existing 25k Python = deprecate target, no new endpoints/handlers/migrations added to it.
+3. **No K8s/Argo/CRD/Operator pattern** — [[feedback-no-yagni-architecture]]. Single binary + tokio async. No Kubernetes runtime at musu scale (4060Ti + 5070Ti, 4 companies max).
+4. **No new schema migrations on existing Python codebase** — schema v37 is the last Python-side schema. Rust port designs fresh schema (semver reset for SQLite migrations to v1).
+5. **Reshape lock ON** — orchestrator does not propose scope reshapes during V24 execution without explicit user request.
+6. **Scribe HTML closure** — [[feedback-scribe-html-only]]. Per-sub-WS closure markdown; final wiki/500 HTML.
+7. **Critic per sub-WS** — V24-R1 + V24-R2 + V24-R3 + V24-R5 + V24-R8 + V24-R9 (≥MED risk) require `system-architect` Critic per [[feedback-plan-stage-auditor]]. LOW-risk skips.
+8. **Dual audit for V24-R1 + V24-R6** — auth-touching endpoints + installer (one-way blast radius via service registration).
+
+### A.4 Operator gates (where /loop pauses)
+
+Per [[feedback-autonomous-loop]]:
+
+| Gate | Status | Action |
+|---|---|---|
+| **Phase -1 RED verdict** | not yet evaluated | If RED, HALT V24 until user decision |
+| **Const VII main-merge** | PENDING (#436) | Orthogonal to V24; /loop continues on v23/phase4-rust or new v24/main-rust branch |
+| **Const III schema apply** | will fire on R2 | New SQLite schema apply on operator machine = manual gate |
+| **Production deploy** | N/A (single-operator) | — |
+| **Irreversible destructive op** | wiki/500 Python deletion | Manual gate before `rm -rf musu-bridge/ musu-core/ musu-control/ musu-indexer/ musu-writer/` |
+
+### A.5 What does NOT change
+
+- musu thesis (SSOT_1PAGE 2026-04-09, 4-layer CoS/machines/companies/agents) — locked, not under review
+- musu-bee (TS/React frontend) — keep, only adjust endpoints
+- musu-relay-gateway Rust crate (V23.1 T1.8) — keep, integrate
+- musu-supervisor-isolation-{linux,windows,macos} Rust crates (V21.D) — keep, integrate
+- Operator hardware: 4060Ti + 5070Ti (multi-machine reality, locked since 5b8b103 2026-04-07)
+- `INSTALL.md` / `QUICKSTART.md` / `ONBOARDING.md` — keep as templates, rewrite content for Rust bridge in V24-R6
+
+### A.6 Supersedes
+
+- **V23.6-minimal (prior §A)** — superseded. W2 direnv + W4 LESSONS_LEARNED were operator hygiene tasks; V24 makes operator hygiene moot until the install path actually runs. Re-evaluate post-V24 if still relevant.
+- **V24-Python plan (deleted 2026-05-20)** — was extending Python violation. Replaced with V24-Rust-big-bang.
+
+---
+
+## §A-prior (ARCHIVED) — V23.6-minimal (superseded 2026-05-20 by V24-Rust-big-bang)
 
 ### A.0 v2 amend (2026-05-19): scope cut from 5 sub-WS to 2
 
@@ -87,34 +186,33 @@ V23.6 cycle is DONE when:
 
 ---
 
-## §B — Branch + commit state (snapshot 2026-05-19)
+## §B — Branch + commit state (snapshot 2026-05-20, V24-Rust-big-bang start)
 
-- **Active branch**: `v23/phase4` HEAD `5451d5a` (158 commits ahead of `main`)
+- **Active branch**: `v23/phase4` HEAD `644525e` — to be branched into `v24/rust-big-bang` at V24-R0 start
 - **Pushed to**: `origin/v23/phase4`
-- **Recent commits** (top 5):
-  - `5451d5a` docs: wiki/450 → wiki/484 rename + Critic findings + AutoAgent #7
-  - `3d72020` docs: wiki/450 reference — agentic 5-step install order (initial)
-  - `ed2e974` V23.5 final closure: wiki/470 + wiki/471 + CHANGELOG 1.13.0
-  - `c1a87b4` V23.5 W-8: V23.6 firewall + agent instruction tweaks + W-8 closure
-  - `f63269d` V23.5 C-4: Y-path failure-mode tests + C-2 wiring + V23.7 criterion
-- **Cumulative LOC**: ~1900 V23.5 production + ~5500 V23.4 Phase 4 production
-- **CHANGELOG**: at 1.13.0 (V23.5 closed) + post-closure doc note (wiki/484)
-- **VERSION**: 1.13.0-dev (S-1 set; will bump to 1.14.0-dev at V23.6 S start)
+- **Cumulative LOC (Python, to be deleted)**: 25,885 LOC across musu-bridge + musu-core + musu-control + musu-indexer + musu-writer
+- **Existing Rust scaffold (to keep + integrate)**:
+  - `musu-relay-gateway` crate (V23.1 T1.8)
+  - `musu-supervisor-isolation-{linux,windows,macos}` crates (V21.D)
+- **CHANGELOG**: at 1.13.0 (V23.5 closed). V24-R0 will set 2.0.0-dev (major version pivot ∵ wholesale rewrite).
+- **VERSION**: 1.13.0-dev → 2.0.0-dev on V24-R0 commit
 
 ---
 
-## §C — Operator gates (only points where autonomous /loop pauses)
+## §C — Operator gates (V24-Rust-big-bang scope)
 
-Per [[feedback-autonomous-loop]] — these are the 4 exceptions where /loop must wait:
+Per [[feedback-autonomous-loop]]:
 
 | Gate | Current status | Action |
 |---|---|---|
-| **Const VII main-merge** | **PENDING** — task #436 | Operator: 4 manual steps + "진행해" → V23.3 + V23.4 + V23.5 → main |
-| Const III schema apply | not triggered V23.6 | — |
-| Production deploy | not triggered V23.6 | — |
-| Irreversible destructive op | not triggered V23.6 | — |
+| **Phase -1 strategic gate** | not yet evaluated | Next /loop iteration must spawn `business-panel-experts` debate on Rust big-bang thesis before V24-R0 plan body writes |
+| **Const VII main-merge** | orthogonal to V24 | #436 still pending V23 backlog → main; /loop continues on `v24/rust-big-bang` branch independently |
+| **Const III schema apply** | will fire on V24-R2 | New SQLite schema on operator machine = manual gate |
+| **Const III Python schema rollback** | will fire on V24-R10 closure | Final Python deletion = manual gate (irreversible) |
+| Production deploy | N/A (single-operator) | — |
+| Irreversible destructive op | wiki/500 Python deletion | Manual gate before `rm -rf musu-bridge/ musu-core/ musu-control/ musu-indexer/ musu-writer/` |
 
-**Only #436 actively blocks.** /loop continues on v23/phase4 for V23.6 work meantime, accepting branch hygiene trade-off.
+**Phase -1 gate is next action.** /loop continues to plan + Phase -1 panel; only blocks if RED verdict.
 
 ---
 
@@ -153,14 +251,12 @@ Per `~/.claude/MODE_Agent_Team.md` /loop decision tree, evaluate in order:
 7. **new sub-task in cleared master?** → Researcher + Explore parallel, then Plan
 8. **NEW master plan / thesis extension?** → Phase −1 strategic gate FIRST
 
-### Current state evaluation (2026-05-19 v2 — post panel critique)
+### Current state evaluation (2026-05-20 — V24-Rust-big-bang start)
 
-- Step 1: **3 entry conditions in §A.0 all PENDING** — operator gate. Per panel H5+M5, autonomous bypass per `[[feedback-autonomous-loop]]` is NOT applicable here because the bypass clause covers technical gates (push, schema, deploy), not review-bandwidth gates. **Decision: HALT autonomous /loop on V23.6 work until operator confirms entry conditions.**
-- Step 8: V23.6-minimal is operator-hygiene-only — Phase −1 strategic gate SKIPPED (no thesis, no new SaaS dep, no new code surface). Phase 1 Planner is a ~1-page master plan.
+- Step 1: NO operator gate active (Phase -1 not yet run; not RED). #436 orthogonal.
+- Step 8: **NEW master plan** → Phase -1 strategic gate FIRES. Next action: `EnterPlanMode` for V24 master plan (wiki/490) body draft + `business-panel-experts` debate on Rust big-bang thesis.
 
-**Next /loop iteration goal**: WAIT for operator. When operator responds to §A.0 entry conditions: (a) start V23.6-W2 direnv if all 3 cleared, (b) re-evaluate if operator chooses different scope.
-
-**Single-line warning embedded for operator visibility**: autonomous loop currently produces reviewable output faster than operator-merge gate clears (verifiable via `git log`). V23.6-minimal scope cut is the panel-recommended throttle. Do not auto-resume without operator decision.
+**Next /loop iteration goal**: enter plan mode → draft wiki/490 body (sub-WS table, sequence, acceptance, Const gates predicted) → spawn Phase -1 panel (Christensen + Taleb + Kim&Mauborgne + Drucker, debate mode) → record verdict in wiki/490 §0 → if GREEN/YELLOW proceed to V24-R0 commit, if RED HALT.
 
 ---
 
@@ -170,3 +266,4 @@ Per `~/.claude/MODE_Agent_Team.md` /loop decision tree, evaluate in order:
 |---|---|---|
 | 2026-05-19 v1 | Initial GOAL.md created, V23.6 cycle defined | User request "야 골설정 제대로 해서 /loop으로 만들어"; covers scope 1+2 (V23.6 master plan entry + sub-WS impl); dynamic cadence; project-root location |
 | 2026-05-19 v2 | §A scope cut: 5 sub-WS → 2 (V23.6-minimal: W2+W4 only). §A.0 added with 3 entry conditions. §E decision tree current-state recalibrated. | Post-`business-panel-experts` adversarial critique of wiki/471 V23.5 qual eval v1 (4-expert unanimous AMEND verdict: 5 HIGH + 6 MED). W5 RED verdict from V23.6 Phase −1 strategic gate absorbed. Scope cut directly addresses panel H5 (parallelism vs solo-operator review bandwidth) + M5 (#436 4-cycle backlog) + H2 (V23.5 product-outcome unmeasured). User approved Option 1 ("amend + W5 결정 같이"). |
+| 2026-05-20 v3 | §A FULL RESHAPE: V23.6-minimal → V24-Rust-big-bang. §A archived as §A-prior. §B branch state pivoted to v24/rust-big-bang. §C operator gates rescoped to Rust install + Python deletion. §E next action = Phase -1 panel. | User explosion 2026-05-20 on discovering musu-bridge 25,885 LOC Python = 6 weeks of [[feedback-no-python]] violation. User locked Rust backend + α big-bang approach (4-6 weeks down time). Day-2 acceptance defined: land-os + vibecode-town companies cross-machine on 4060Ti↔5070Ti. Reshape lock ON per user "reshape 금지". |
