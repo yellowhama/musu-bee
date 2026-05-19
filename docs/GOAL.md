@@ -10,34 +10,49 @@ This is the single source of truth for the autonomous /loop. Future Claude sessi
 
 ---
 
-## §A — Current cycle goal: V23.6 (HTML wiki hardening + bridge resilience + operator hygiene)
+## §A — Current cycle goal: V23.6-minimal (operator hygiene only, panel-amended 2026-05-19)
 
-### A.1 In-scope
+### A.0 v2 amend (2026-05-19): scope cut from 5 sub-WS to 2
 
-Two phases, sequential within /loop:
+Per `business-panel-experts` adversarial critique of wiki/471 v1 + W5 RED verdict from V23.6 Phase −1 strategic gate, V23.6 scope is cut to **operator hygiene only**:
 
-**Phase 1: V23.6 master plan entry (gated on operator)**
-1. Wait for operator to clear main-merge gate (task #436): V23.3 + V23.4 Tier-1 + V23.4 Phase 4 + V23.5 → `main` in one operator action. 4 manual steps + "진행해". **Only operator action that gates V23.6 start.**
-2. Cut `v23/phase5` branch off `main` (or continue on `v23/phase4` if main-merge stays pending — `[[feedback-autonomous-loop]]` allows branch hygiene trade-off).
-3. Phase −1 strategic gate: `business-panel-experts` debate (Christensen + Taleb + Kim&Mauborgne + Drucker) stress-tests wiki/484 7 candidates. Output: GREEN/YELLOW/RED verdict per candidate, prioritization, kills.
-4. Phase 1 Planner: write **wiki/485 V23.6 master plan** (template = wiki/431 V23.4 Phase 4 master plan). Reference wiki/484 §3.7 AutoAgent stress points.
-5. Phase 1.5 Critic (system-architect): adversarial review wiki/485. Resolve all HIGH before sub-WS detail plans.
-6. Plan-as-spec Auditor if total V23.6 LOC ≥500 (current estimate: ~330 LOC across 5 candidates → likely SKIP; trigger only if scope expands).
+**Ship**: W2 direnv pattern + `.envrc.example` (~40 LOC, doc + operator hygiene) + W4 LESSONS_LEARNED.md seed (~30 LOC, doc). Total ~70 LOC.
 
-**Phase 2: V23.6 sub-WS implementation (5 candidates from wiki/484 §3)**
-Order is **provisional** — Phase −1 panel may reshape. Default sequencing by leverage proxy:
+**Paused** (all V23.7+ pending entry conditions): W1 mitmproxy wiretap, W3 uv migration, W5 litellm (RED verdict).
+
+**Entry conditions for V23.6 master plan Phase −1 spawn** (ALL three required):
+1. Operator clears #436 (V23.3 + V23.4 + V23.5 → main) OR explicitly confirms #436 batching policy (deliberate vs accidental)
+2. ≥1 V23.5 product-outcome telemetry signal exists (any of: `GET /api/wiki/page/{id}/html` hit, `recent_wiki_pages` agent consumption, `MUSU_USER_LLM_API_KEY` opt-in attempt)
+3. Operator reviews ≥3 V23.5 sub-WS Builder diffs end-to-end
+
+Rationale: panel H5 (parallelism doesn't help solo operator) + M5 (#436 4-cycle backlog) + H2 (V23.5 product outcome unmeasured). V23.6 must not deepen the backlog before clearing the bottleneck.
+
+### A.1 In-scope (v2)
+
+**V23.6-minimal**: 2 sub-WS only (W2 + W4). All other candidates from wiki/484 deferred to V23.7+ pending entry conditions in §A.0.
 
 | Wave | Sub-WS | Source | LOC | Risk | Why this wave |
 |---|---|---|---|---|---|
-| 1 | **V23.6-S** SSOT bump + master plan write | (this doc + wiki/485) | ~50 | — | unblocks wave 2 |
-| 2 (parallel) | **V23.6-W1** mitmproxy wiretap dev mode | wiki/484 #1 (5-step #4) | ~80 + doc | LOW | C-3 visibility unlock; first LLM call site has prompt injection surface (`cos_briefing_agent.py:119-129`) |
-| 2 (parallel) | **V23.6-W2** direnv pattern + `.envrc.example` | wiki/484 #2 (5-step #1) | ~40 + doc | LOW | operator hygiene; no musu code change; `.env.example` is starting point |
-| 2 (parallel) | **V23.6-W3** uv migration musu-bridge | wiki/484 #4 (5-step #3) | ~60 + lockfile | LOW | install speed + dep reproducibility; CI ripple small |
-| 2 (parallel) | **V23.6-W4** LESSONS_LEARNED.md seed | wiki/484 #5 ("lessons.md") | ~30 + 5 seeds | LOW | 2AM-debugging running journal; distinct from MEMORY.md (per-type) + qual eval (post-mortem) |
-| 3 | **V23.6-W5** litellm in front of `cos_briefing_agent` | wiki/484 #3 (5-step #2) | ~120 | MED | **unlocks 2/4 firewall #7 preconditions** for V23.7 Y-path promotion. Critic gate required (external lib dep). |
-| 4 | **V23.6 final closure (HTML wiki/486) + qual eval (wiki/487)** | per [[feedback-scribe-html-only]] | — | — | Const VII per-push automated; main-merge stays operator-pending. |
+| 1 | **V23.6-W2** direnv pattern + `.envrc.example` | wiki/484 #2 (5-step #1) | ~40 + doc | LOW | operator hygiene; no musu code change; `.env.example` is starting point |
+| 1 | **V23.6-W4** LESSONS_LEARNED.md seed | wiki/484 #5 ("lessons.md") | ~30 + 5 seeds | LOW | 2AM-debugging running journal; distinct from MEMORY.md (per-type) + qual eval (post-mortem) |
+| 2 | **V23.6 final closure (HTML wiki/486) + qual eval (wiki/487)** | per [[feedback-scribe-html-only]] | — | — | Const VII per-push automated; main-merge stays operator-pending. |
 
-**Total**: ~330 LOC across 5 sub-WS + closure. Estimated 5–6 /loop iterations.
+**Total**: ~70 LOC + closure. Estimated 1-2 /loop iterations.
+
+**Phase chain for V23.6-minimal (compressed)**:
+1. Operator clears 3 entry conditions in §A.0 (this is the only gate; no autonomous bypass)
+2. Cut `v23/phase5` branch off `main` (or continue on `v23/phase4`)
+3. Phase −1 strategic gate: SKIP — scope is operator hygiene only, no thesis extension, no new SaaS dep, no new code surface
+4. Phase 1 Planner: minimal wiki/485 (V23.6-minimal master plan, ~1 page)
+5. Phase 1.5 Critic: SKIP per `[[feedback-plan-stage-auditor]]` (LOC <500, no thesis extension)
+6. Phase 3 Builder × 2 (W2 + W4 sequential — solo operator review-friendly per panel H5)
+7. Phase 7 Scribe: wiki/486 HTML closure + wiki/487 qual eval
+8. Const VII push gate per commit
+
+**Paused** (V23.7+ pending entry conditions in §A.0):
+- V23.6-W1 mitmproxy wiretap (wiki/484 #1) — was MED risk, deferred
+- V23.6-W3 uv migration musu-bridge (wiki/484 #4) — was LOW risk, deferred
+- V23.6-W5 litellm in front of `cos_briefing_agent` (wiki/484 #3) — Phase −1 RED verdict locked 2026-05-19
 
 ### A.2 Out-of-scope (firewalled to V23.7+)
 
@@ -138,12 +153,14 @@ Per `~/.claude/MODE_Agent_Team.md` /loop decision tree, evaluate in order:
 7. **new sub-task in cleared master?** → Researcher + Explore parallel, then Plan
 8. **NEW master plan / thesis extension?** → Phase −1 strategic gate FIRST
 
-### Current state evaluation (2026-05-19, this turn)
+### Current state evaluation (2026-05-19 v2 — post panel critique)
 
-- Step 1: task #436 main-merge PENDING — operator gate. Choice: HALT /loop OR proceed on v23/phase4 per [[feedback-autonomous-loop]]. **Decision: proceed on v23/phase4**, queue main-merge as eventual op cleanup.
-- Step 8: V23.6 is a NEW master plan thesis (not within wiki/431 V23.4 cleared scope) → **Phase −1 strategic gate fires FIRST** before any Builder.
+- Step 1: **3 entry conditions in §A.0 all PENDING** — operator gate. Per panel H5+M5, autonomous bypass per `[[feedback-autonomous-loop]]` is NOT applicable here because the bypass clause covers technical gates (push, schema, deploy), not review-bandwidth gates. **Decision: HALT autonomous /loop on V23.6 work until operator confirms entry conditions.**
+- Step 8: V23.6-minimal is operator-hygiene-only — Phase −1 strategic gate SKIPPED (no thesis, no new SaaS dep, no new code surface). Phase 1 Planner is a ~1-page master plan.
 
-**Next /loop iteration goal**: Phase −1 strategic gate on V23.6 thesis (wiki/484 7 candidates).
+**Next /loop iteration goal**: WAIT for operator. When operator responds to §A.0 entry conditions: (a) start V23.6-W2 direnv if all 3 cleared, (b) re-evaluate if operator chooses different scope.
+
+**Single-line warning embedded for operator visibility**: autonomous loop currently produces reviewable output faster than operator-merge gate clears (verifiable via `git log`). V23.6-minimal scope cut is the panel-recommended throttle. Do not auto-resume without operator decision.
 
 ---
 
@@ -152,3 +169,4 @@ Per `~/.claude/MODE_Agent_Team.md` /loop decision tree, evaluate in order:
 | Date | Change | Reason |
 |---|---|---|
 | 2026-05-19 v1 | Initial GOAL.md created, V23.6 cycle defined | User request "야 골설정 제대로 해서 /loop으로 만들어"; covers scope 1+2 (V23.6 master plan entry + sub-WS impl); dynamic cadence; project-root location |
+| 2026-05-19 v2 | §A scope cut: 5 sub-WS → 2 (V23.6-minimal: W2+W4 only). §A.0 added with 3 entry conditions. §E decision tree current-state recalibrated. | Post-`business-panel-experts` adversarial critique of wiki/471 V23.5 qual eval v1 (4-expert unanimous AMEND verdict: 5 HIGH + 6 MED). W5 RED verdict from V23.6 Phase −1 strategic gate absorbed. Scope cut directly addresses panel H5 (parallelism vs solo-operator review bandwidth) + M5 (#436 4-cycle backlog) + H2 (V23.5 product-outcome unmeasured). User approved Option 1 ("amend + W5 결정 같이"). |
