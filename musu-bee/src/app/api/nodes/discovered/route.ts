@@ -6,7 +6,11 @@ const BRIDGE_URL = (
 
 export async function GET() {
   try {
-    const res = await fetch(`${BRIDGE_URL}/api/admin/discovered`);
+    // V24-R7: canonical Rust path namespace /api/nodes/discovered (was
+    // Python-era /api/admin/discovered). Handler not yet implemented in R1
+    // Rust bridge — call will 404 against Rust :8070 until a later R-fast
+    // step adds it. Empty-array fallback below keeps the UI graceful.
+    const res = await fetch(`${BRIDGE_URL}/api/nodes/discovered`);
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
   } catch {

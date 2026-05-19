@@ -12,7 +12,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
   try {
-    const res = await fetch(`${BRIDGE_URL}/api/admin/pair`, {
+    // V24-R7: canonical Rust path /api/nodes/add (was Python-era /api/admin/pair).
+    const res = await fetch(`${BRIDGE_URL}/api/nodes/add`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
