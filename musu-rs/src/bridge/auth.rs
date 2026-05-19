@@ -116,6 +116,24 @@ fn client_ip(req: &Request) -> IpAddr {
         .unwrap_or(IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED))
 }
 
+/// True iff `ip` is a loopback address, including v6-mapped v4 loopback
+/// (`::ffff:127.0.0.0/104`). Stdlib `IpAddr::is_loopback` returns false
+/// for v6-mapped v4 loopback; we must handle that case explicitly.
+///
+/// wiki/491 §4 C-SEC-9 (Auditor A HIGH-1 audit-fix 2026-05-20).
+fn is_loopback_strict(ip: IpAddr) -> bool {
+    match ip {
+        IpAddr::V4(v4) => v4.is_loopback(),
+        IpAddr::V6(v6) => {
+            v6.is_loopback()
+                || v6
+                    .to_ipv4_mapped()
+                    .map(|v4| v4.is_loopback())
+                    .unwrap_or(false)
+        }
+    }
+}
+
 /// Build a JSON 401 response with the supplied reason.
 fn unauthorized(reason: &str) -> Response {
     let body = Json(json!({
@@ -155,8 +173,9 @@ pub async fn require_bearer(
     }
 
     // C-SEC-3: localhost-auth-bypass only when explicitly opted in.
+    // C-SEC-9: use is_loopback_strict to cover v6-mapped v4 loopback.
     let ip = client_ip(&req);
-    if !state.localhost_auth_required && ip.is_loopback() {
+    if !state.localhost_auth_required && is_loopback_strict(ip) {
         return next.run(req).await;
     }
 
@@ -361,22 +380,30 @@ mod tests {
     #[test]
     fn ipv6_mapped_v4_loopback_is_loopback() {
         // C-SEC-9: ::ffff:127.0.0.1 (v6-mapped v4 loopback).
-        // NOTE: stdlib `Ipv6Addr::is_loopback` returns true only for `::1`.
-        // For v4-mapped addresses we must convert via `to_ipv4_mapped()`.
+        // Stdlib `Ipv6Addr::is_loopback` returns true only for `::1`;
+        // our is_loopback_strict helper handles the v4-mapped case.
         let v6: Ipv6Addr = "::ffff:127.0.0.1".parse().unwrap();
         let ip = IpAddr::V6(v6);
-        // Hand-rolled check matching the auth middleware's expectations:
-        let is_loopback = match ip {
-            IpAddr::V4(v4) => v4.is_loopback(),
-            IpAddr::V6(v6) => {
-                v6.is_loopback()
-                    || v6
-                        .to_ipv4_mapped()
-                        .map(|v4| v4.is_loopback())
-                        .unwrap_or(false)
-            }
-        };
-        assert!(is_loopback, "::ffff:127.0.0.1 should count as loopback");
+        assert!(
+            is_loopback_strict(ip),
+            "::ffff:127.0.0.1 should count as loopback"
+        );
+        // Also verify stdlib's behavior diverges (regression-guard the gap).
+        assert!(
+            !ip.is_loopback(),
+            "stdlib should NOT recognize ::ffff:127.0.0.1 as loopback (bug we worked around)"
+        );
+    }
+
+    #[test]
+    fn ipv6_mapped_non_loopback_is_not_loopback() {
+        // C-SEC-9: ::ffff:192.168.1.5 is a v6-mapped LAN address, NOT loopback.
+        let v6: Ipv6Addr = "::ffff:192.168.1.5".parse().unwrap();
+        let ip = IpAddr::V6(v6);
+        assert!(
+            !is_loopback_strict(ip),
+            "::ffff:192.168.1.5 must NOT count as loopback"
+        );
     }
 
     #[test]
