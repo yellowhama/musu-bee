@@ -3,7 +3,9 @@
 //! wiki/491 §5.2 / §5.3 / §5.4. The /run handler lives in `run.rs`
 //! (writer-stub path per A-1 resolution).
 
-use axum::extract::{Path, Query, State};
+use std::net::SocketAddr;
+
+use axum::extract::{ConnectInfo, Path, Query, State};
 use axum::Json;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -115,6 +117,7 @@ pub struct CreateResponse {
 
 pub async fn create(
     State(state): State<AppState>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Json(req): Json<CreateRequest>,
 ) -> Result<Json<CreateResponse>> {
     if req.name.trim().is_empty() {
@@ -192,11 +195,13 @@ pub async fn create(
         );
     }
 
-    // Audit best-effort.
+    // Audit best-effort. wiki/491 §9.5 / Auditor N-1: capture real client IP
+    // from ConnectInfo so audit rows reflect the actual origin (loopback for
+    // local installs, LAN IP for multi-PC) instead of 0.0.0.0.
     state
         .audit
         .write(crate::bridge::audit::AuditEntry {
-            actor_ip: std::net::IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED),
+            actor_ip: addr.ip(),
             method: "POST".into(),
             path: "/api/companies".into(),
             status_code: 200,
@@ -216,6 +221,7 @@ pub struct ActivateResponse {
 
 pub async fn activate(
     State(state): State<AppState>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Path(id): Path<String>,
 ) -> Result<Json<ActivateResponse>> {
     if !crate::bridge::db::schema_applied(&state.pool).await {
@@ -266,10 +272,11 @@ pub async fn activate(
         );
     }
 
+    // Auditor N-1: real client IP from ConnectInfo.
     state
         .audit
         .write(crate::bridge::audit::AuditEntry {
-            actor_ip: std::net::IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED),
+            actor_ip: addr.ip(),
             method: "POST".into(),
             path: format!("/api/companies/{}/activate", id),
             status_code: 200,

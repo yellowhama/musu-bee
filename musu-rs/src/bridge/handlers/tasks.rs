@@ -1,6 +1,8 @@
 //! POST /api/tasks/delegate — writer-stub + dedup per wiki/491 §5.6.
 
-use axum::extract::State;
+use std::net::SocketAddr;
+
+use axum::extract::{ConnectInfo, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
@@ -47,6 +49,7 @@ pub struct DuplicateResponse {
 
 pub async fn delegate(
     State(state): State<AppState>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Json(req): Json<DelegateRequest>,
 ) -> Result<axum::response::Response> {
     // Validation: text 1..10000 chars.
@@ -157,10 +160,11 @@ pub async fn delegate(
         }
     }
 
+    // Auditor N-1: real client IP from ConnectInfo.
     state
         .audit
         .write(crate::bridge::audit::AuditEntry {
-            actor_ip: std::net::IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED),
+            actor_ip: addr.ip(),
             method: "POST".into(),
             path: "/api/tasks/delegate".into(),
             status_code: 202,

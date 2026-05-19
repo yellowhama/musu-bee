@@ -4,7 +4,9 @@
 //! to Python `/api/tasks/delegate` on :8071 to trigger real execution.
 //! R5 replaces this with native Rust writer.
 
-use axum::extract::{Path, State};
+use std::net::SocketAddr;
+
+use axum::extract::{ConnectInfo, Path, State};
 use axum::http::StatusCode;
 use axum::Json;
 use serde::{Deserialize, Serialize};
@@ -42,6 +44,7 @@ pub struct TaskRef {
 
 pub async fn run_company(
     State(state): State<AppState>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Path(id): Path<String>,
     Json(req): Json<RunRequest>,
 ) -> Result<(StatusCode, Json<RunResponse>)> {
@@ -134,10 +137,11 @@ pub async fn run_company(
         }
     }
 
+    // Auditor N-1: real client IP from ConnectInfo.
     state
         .audit
         .write(crate::bridge::audit::AuditEntry {
-            actor_ip: std::net::IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED),
+            actor_ip: addr.ip(),
             method: "POST".into(),
             path: format!("/api/companies/{}/run", id),
             status_code: 202,
