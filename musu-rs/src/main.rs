@@ -19,6 +19,9 @@ enum Cmd {
     Indexer,
     Writer,
     Control,
+    /// Apply the schema to the default DB path without booting the bridge.
+    /// Use for first-install provisioning and CI bootstrap.
+    Core,
 }
 
 #[tokio::main]
@@ -33,5 +36,6 @@ async fn main() -> anyhow::Result<()> {
         Cmd::Indexer => indexer::run().await,
         Cmd::Writer => writer::run().await,
         Cmd::Control => control::run().await,
+        Cmd::Core => core::run().await,
     }
 }
