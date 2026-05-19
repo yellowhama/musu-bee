@@ -11,7 +11,7 @@
 
 use axum::body::Body;
 use axum::extract::{Request, State};
-use axum::http::header::{HeaderName, HOST};
+use axum::http::header::{HeaderName, AUTHORIZATION, HOST};
 use axum::http::{HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 
@@ -41,6 +41,13 @@ fn copy_request_headers(
 ) {
     for (name, value) in src.iter() {
         if is_hop_by_hop(name) || name == HOST {
+            continue;
+        }
+        // HIGH-2: strip incoming Authorization; caller re-injects the
+        // canonical MUSU_BRIDGE_TOKEN. peer_token (accepted by Rust auth)
+        // is NOT known to Python upstream, so forwarding it verbatim would
+        // produce silent 401s on peer-sync requests.
+        if name == AUTHORIZATION {
             continue;
         }
         if let (Ok(n), Ok(v)) = (
@@ -93,6 +100,15 @@ pub async fn proxy(State(state): State<AppState>, req: Request) -> Response {
 
     let mut headers = reqwest::header::HeaderMap::new();
     copy_request_headers(&parts.headers, &mut headers);
+
+    // HIGH-2: re-inject canonical token; peer_token not forwarded (Python
+    // doesn't know it). C-SEC-3 guarantees Python on :8071 binds 127.0.0.1
+    // only, so the Python-side bearer check is defense-in-depth, not the
+    // security boundary — the actual boundary is connection trust.
+    let canonical_auth = format!("Bearer {}", state.config.token);
+    if let Ok(v) = reqwest::header::HeaderValue::from_str(&canonical_auth) {
+        headers.insert(reqwest::header::AUTHORIZATION, v);
+    }
 
     let method = match reqwest::Method::from_bytes(parts.method.as_str().as_bytes()) {
         Ok(m) => m,
@@ -160,4 +176,49 @@ fn body_to_stream(
     BodyStream::new(body)
         .map_ok(|frame| frame.into_data().unwrap_or_default())
         .map_err(|e| std::io::Error::other(e.to_string()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn copy_strips_authorization() {
+        // HIGH-2: Authorization MUST be stripped from forwarded headers;
+        // caller re-injects the canonical token.
+        let mut src = HeaderMap::new();
+        src.insert(
+            AUTHORIZATION,
+            HeaderValue::from_static("Bearer peer-token-xyz"),
+        );
+        src.insert("x-custom", HeaderValue::from_static("keep-me"));
+        let mut dst = reqwest::header::HeaderMap::new();
+        copy_request_headers(&src, &mut dst);
+
+        assert!(
+            !dst.contains_key(reqwest::header::AUTHORIZATION),
+            "Authorization must be stripped before re-injection"
+        );
+        assert_eq!(
+            dst.get("x-custom").map(|v| v.to_str().unwrap()),
+            Some("keep-me"),
+            "non-auth headers must still be forwarded"
+        );
+    }
+
+    #[test]
+    fn copy_strips_hop_by_hop_and_host() {
+        let mut src = HeaderMap::new();
+        src.insert(HOST, HeaderValue::from_static("evil.example.com"));
+        src.insert("connection", HeaderValue::from_static("close"));
+        src.insert("transfer-encoding", HeaderValue::from_static("chunked"));
+        src.insert("x-keeper", HeaderValue::from_static("ok"));
+        let mut dst = reqwest::header::HeaderMap::new();
+        copy_request_headers(&src, &mut dst);
+
+        assert!(!dst.contains_key(reqwest::header::HOST));
+        assert!(!dst.contains_key("connection"));
+        assert!(!dst.contains_key("transfer-encoding"));
+        assert!(dst.contains_key("x-keeper"));
+    }
 }
