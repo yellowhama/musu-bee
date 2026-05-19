@@ -177,7 +177,9 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | wiki/482 | O-7 Paperclip observer (deferred V24+) | — | reserved (deferred) |
 | wiki/483 | H-4b QUIC mesh propagation (deferred V23.6) | — | reserved (deferred per W-8 firewall) |
 | wiki/484 | V23.6 planning input — agentic 5-step install order + AutoAgent self-improving meta-agent (7 candidates) | 2026-05-19 | `REFERENCE_AGENTIC_INSTALL_ORDER_2026_05_19.md` | complete |
+| wiki/485 | V23.6 GOAL — autonomous /loop source of truth | 2026-05-19 | `GOAL.md` | draft (cycle-active) |
 | wiki/488 | V23.7 Y-path promotion gate (≥40% click rate / 60d) | — | reserved (V23.7 strategic gate) |
+| wiki/489 | External reference — Terax AI Terminal (crynta/terax-ai, Tauri+Rust+CodeMirror 7MB binary) | 2026-05-19 | `REFERENCE_TERAX_AI_TERMINAL_2026_05_19.md` | complete |
 
 **Note**: V23.5 master plan §6 #9 lists `wiki/460-468 (W-1..W-8, S-1) + wiki/471-475 (H-1, H-2, H-3, H-4a, H-5)`. The C-1..C-4 v4 addition (§6 line 320) overlaps with O-1..O-4 Paperclip defer slot (§6 line 333) at wiki/476-479. Master plan flags this for resolution when branches cut.
 
