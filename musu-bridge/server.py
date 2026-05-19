@@ -216,6 +216,20 @@ if os.environ.get("MUSU_ENV") == "production" and len(_token) < 32:
     )
     sys.exit(1)
 
+# V24-R1 §6.1 safety guard (wiki/491): when Python is the facade target
+# behind Rust musu-rs on :8070, Python MUST bind 127.0.0.1 only so the
+# auth-middleware-before-facade invariant (C-SEC-3) holds. The Rust dual-start
+# wrapper (scripts/v24-rfast-dual-start.sh) sets MUSU_V24_FACADE_TARGET=1.
+# This is the ONE Python edit shipped by R1 per [[feedback-no-python]].
+if os.environ.get("MUSU_V24_FACADE_TARGET") == "1":
+    if os.environ.get("BRIDGE_HOST", "127.0.0.1") != "127.0.0.1":
+        print(
+            "FATAL: V24 facade target — BRIDGE_HOST must be 127.0.0.1 "
+            "(see wiki/491 §6.1 C-SEC-3 invariant).",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
 _MAX_CONCURRENT_TASKS = int(os.environ.get("MUSU_MAX_CONCURRENT_TASKS", "20"))
 _CHANNEL_MAX_TASKS = int(os.environ.get("MUSU_CHANNEL_MAX_TASKS", "10"))
 
