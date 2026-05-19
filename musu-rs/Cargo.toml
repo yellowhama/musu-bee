@@ -15,13 +15,29 @@ axum = "0.7"
 tower = "0.4"
 tower-http = { version = "0.5", features = ["trace"] }
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
 anyhow = "1"
 thiserror = "1"
 clap = { version = "4", features = ["derive"] }
+
+# R1 (wiki/491): bridge module deps
+sqlx = { version = "0.7", default-features = false, features = ["sqlite", "runtime-tokio-rustls", "macros", "chrono"] }
+subtle = "2"
+reqwest = { version = "0.12", default-features = false, features = ["stream", "rustls-tls", "json"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+toml = "0.8"
+dashmap = "6"
+futures-util = "0.3"
+chrono = { version = "0.4", default-features = false, features = ["serde", "clock"] }
+sha2 = "0.10"  # used only for dedup cache key (NOT for auth — see C-SEC-7)
+hex = "0.4"
+hostname = "0.4"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full", "test-util"] }
 
 [profile.release]
 opt-level = 3
