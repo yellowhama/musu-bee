@@ -184,6 +184,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 
 | Wiki ID | Title | Date | File | Status |
 |---|---|---|---|---|
+| wiki/450 | Reference — agentic project install order (5-step) + musu fit-gap + V23.6 sub-WS candidates | 2026-05-19 | `REFERENCE_AGENTIC_INSTALL_ORDER_2026_05_19.md` | complete |
 | wiki/451 | Research — ACI (Agent-Computer Interface) | 2026-05-18 | `RESEARCH_ACI_AGENT_COMPUTER_INTERFACE_2026_05_18.md` | complete |
 | wiki/452 | Research — RL Conductor multi-agent orchestration | 2026-05-18 | `RESEARCH_RL_CONDUCTOR_MULTI_AGENT_ORCHESTRATION_2026_05_18.md` | complete |
 | wiki/453 | Research — Ben AI-OS 5 skills (vault hygiene patterns) | 2026-05-18 | `RESEARCH_BEN_AI_OS_5_SKILLS_2026_05_18.md` | complete |
