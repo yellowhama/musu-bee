@@ -93,8 +93,9 @@ Terax is **not** a direct competitor or input to musu's current cycle. But two p
 |---|---|---|
 | **LM Studio local-model adapter** | V23.7+ candidate #8 (new) | If user wants offline operation OR if anthropic SDK dep becomes friction. Aligns with [[feedback-self-contained-product]] (local model = zero external dep). Not currently blocking; C-3 4 hard constraints already cover the "no bundled key" angle. |
 | **Bottom-bar global AI input UI** | V23.7+ UX exploration | Unifies CoS briefing surface across musu-bee pages. Would replace per-page `ProjectBriefing.tsx` section with global bar + pop-out detail (Warp+Notion pattern). UX experiment, not priority. |
+| **TinyFish CLI adapter (search/fetch/agent/browser)** | V24+ Paperclip observer adapter candidate | Web-automation CLI suite (`@tiny-fish/cli`, npm-installed; auth via `TINYFISH_API_KEY` against `agent.tinyfish.ai`). 4 tools: `search` (web search), `fetch` (clean URL→markdown/json), `agent` (NL browser automation with SSE result stream), `browser` (raw CDP WebSocket). Escalation pattern: fetch → agent when JS-heavy / bot-protected. **Hosted SaaS, cloud-only** — direct conflict with [[feedback-self-contained-product]]; harder firewall than Terax LM Studio (which has local fallback). Only viable musu use: Paperclip observer adapter (deferred V24+ per wiki/477-482) IF a workstream emerges that needs scraping external runtime metadata or competitor agent surfaces. Not on V23.6/V23.7 roadmap. Operator-side use (e.g., harvesting reference video transcripts like this doc or wiki/484) is a personal-tool choice, not a product decision. |
 
-Both are **firewalled to V23.7+**, NOT V23.6. V23.6 scope already pinned per wiki/484 + GOAL.md §A.
+All three are **firewalled to V23.7+ or V24+**, NOT V23.6. V23.6 scope already pinned per wiki/484 + GOAL.md §A.
 
 ---
 
@@ -106,9 +107,11 @@ Both are **firewalled to V23.7+**, NOT V23.6. V23.6 scope already pinned per wik
 - xterm.js: https://xtermjs.org
 - CodeMirror 6: https://codemirror.net
 - LM Studio: https://lmstudio.ai (local model runtime)
+- TinyFish CLI skill spec: https://github.com/tinyfish-io/tinyfish-cookbook/blob/main/skills/use-tinyfish/SKILL.md
+- TinyFish package: `@tiny-fish/cli` (npm) — API keys at https://agent.tinyfish.ai/api-keys
 - wiki/484: agentic 5-step + AutoAgent candidates (sibling reference doc)
 - wiki/450: V23.4 Phase 4 iter-2 qual eval (unrelated, same numeric prefix)
-- [[feedback-self-contained-product]]: relevant to LM Studio adapter consideration
+- [[feedback-self-contained-product]]: relevant to LM Studio adapter AND TinyFish adapter consideration
 - [[feedback-no-yagni-architecture]]: relevant — most Terax patterns are NOT musu cycle inputs, just noted
 
 ---
@@ -118,3 +121,4 @@ Both are **firewalled to V23.7+**, NOT V23.6. V23.6 scope already pinned per wik
 | Date | Change | Reason |
 |---|---|---|
 | 2026-05-19 v1 | Initial reference doc, wiki/489 assigned | User request "이거 위키에 저장해" — preserve transcript verbatim for future-Claude reference, surface 2 V23.7+ candidate hooks |
+| 2026-05-19 v2 | §4 third candidate row: TinyFish CLI adapter; §5 references + feedback memory link extended | User shared https://github.com/tinyfish-io/tinyfish-cookbook/blob/main/skills/use-tinyfish/SKILL.md — same "external-tool adapter, firewalled by self-contained-product" shape as Terax LM Studio; consolidated here per "Option 3 — add to wiki/489 §4" decision (cheaper than a new doc, same value) |
