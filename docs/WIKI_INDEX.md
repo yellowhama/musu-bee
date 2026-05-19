@@ -175,8 +175,13 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | wiki/480 | O-5 Paperclip observer (deferred V24+) | — | reserved (deferred) |
 | wiki/481 | O-6 Paperclip observer (deferred V24+) | — | reserved (deferred) |
 | wiki/482 | O-7 Paperclip observer (deferred V24+) | — | reserved (deferred) |
+| wiki/483 | H-4b QUIC mesh propagation (deferred V23.6) | — | reserved (deferred per W-8 firewall) |
+| wiki/484 | V23.6 planning input — agentic 5-step install order + AutoAgent self-improving meta-agent (7 candidates) | 2026-05-19 | `REFERENCE_AGENTIC_INSTALL_ORDER_2026_05_19.md` | complete |
+| wiki/488 | V23.7 Y-path promotion gate (≥40% click rate / 60d) | — | reserved (V23.7 strategic gate) |
 
 **Note**: V23.5 master plan §6 #9 lists `wiki/460-468 (W-1..W-8, S-1) + wiki/471-475 (H-1, H-2, H-3, H-4a, H-5)`. The C-1..C-4 v4 addition (§6 line 320) overlaps with O-1..O-4 Paperclip defer slot (§6 line 333) at wiki/476-479. Master plan flags this for resolution when branches cut.
+
+**wiki/484 placement note**: doc is V23.6 planning input (not external research like §5 below). Placed in §4 V23.5/V23.6 boundary block since (a) it was authored at V23.5 close and (b) it feeds V23.6 master plan Phase −1 strategic gate when authored. Distinct from V23.4 Phase 4 iter-2 qual eval at wiki/450 (line 137 of this index).
 
 ---
 
@@ -184,7 +189,6 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 
 | Wiki ID | Title | Date | File | Status |
 |---|---|---|---|---|
-| wiki/450 | Reference — agentic project install order (5-step) + musu fit-gap + V23.6 sub-WS candidates | 2026-05-19 | `REFERENCE_AGENTIC_INSTALL_ORDER_2026_05_19.md` | complete |
 | wiki/451 | Research — ACI (Agent-Computer Interface) | 2026-05-18 | `RESEARCH_ACI_AGENT_COMPUTER_INTERFACE_2026_05_18.md` | complete |
 | wiki/452 | Research — RL Conductor multi-agent orchestration | 2026-05-18 | `RESEARCH_RL_CONDUCTOR_MULTI_AGENT_ORCHESTRATION_2026_05_18.md` | complete |
 | wiki/453 | Research — Ben AI-OS 5 skills (vault hygiene patterns) | 2026-05-18 | `RESEARCH_BEN_AI_OS_5_SKILLS_2026_05_18.md` | complete |

@@ -114,6 +114,18 @@ sub-WS SHIP-OK first pass.
 - V23.7 LLM-default promotion gate: wiki/479 (≥40% click rate over 60d
   rolling window from local structured logs).
 
+### Documentation (post-closure, V23.6 planning input)
+- **wiki/484** (`docs/REFERENCE_AGENTIC_INSTALL_ORDER_2026_05_19.md`):
+  V23.6 planning input — agentic 5-step install order (direnv, litellm,
+  uv, mitmproxy, inspect-ai) + AutoAgent self-improving meta-agent
+  (Karpathy auto-research analog at agent harness layer). 7 V23.6 sub-WS
+  candidates with leverage proxy + risk classification + reactivation
+  criteria. Originally written as wiki/450 (commit `3d72020`), renamed
+  to wiki/484 in follow-up to resolve ID collision with V23.4 Phase 4
+  iter-2 qual eval (WIKI_INDEX.md:137). Adversarial Critic returned 3
+  HIGH + 5 MED + 2 LOW findings; all addressed in the rename commit.
+  Code-free doc, does not affect 18/18 V23.5 sub-WS ship status.
+
 ---
 
 ## [1.12.0] - 2026-05-19 — V23.4 Phase 4: asyncio+SQLite workflow runner + Fleet view + fly.io retirement + form-based workflow builder + residual cleanup
