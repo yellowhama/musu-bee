@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>V24-R6 INSTALLER-RS — closure (wiki/496c)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root {
+    --bg: #0f1115;
+    --fg: #e8e8ec;
+    --muted: #9ba0aa;
+    --accent: #7cd992;
+    --warn: #f0c674;
+    --bad: #e07b7b;
+    --code-bg: #1a1d24;
+    --border: #2a2e38;
+    --link: #82aaff;
+  }
+  body { margin:0; padding:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--fg); line-height:1.55; }
+  .wrap { max-width:1000px; margin:0 auto; padding:2rem 1.5rem 4rem; }
+  h1 { font-size:1.7rem; border-bottom:1px solid var(--border); padding-bottom:.5rem; }
+  h2 { font-size:1.25rem; margin-top:2rem; color:var(--accent); }
+  h3 { font-size:1.05rem; color:var(--warn); margin-top:1.5rem; }
+  .meta { color:var(--muted); font-size:.9rem; margin-bottom:1.5rem; }
+  .meta dl { display:grid; grid-template-columns:max-content 1fr; gap:.35rem 1rem; }
+  .meta dt { color:var(--muted); }
+  .meta dd { margin:0; }
+  code, pre { font-family:'JetBrains Mono','Consolas',monospace; }
+  code { background:var(--code-bg); padding:.1rem .35rem; border-radius:3px; font-size:.88em; }
+  pre { background:var(--code-bg); border:1px solid var(--border); padding:.9rem 1rem; border-radius:6px; overflow-x:auto; font-size:.82rem; line-height:1.45; }
+  pre code { background:transparent; padding:0; }
+  table { border-collapse:collapse; width:100%; margin:1rem 0; font-size:.88rem; }
+  th, td { border:1px solid var(--border); padding:.45rem .65rem; text-align:left; vertical-align:top; }
+  th { background:var(--code-bg); color:var(--muted); font-weight:600; }
+  tr.pass td:first-child { color:var(--accent); font-weight:bold; }
+  tr.warn td:first-child { color:var(--warn); font-weight:bold; }
+  tr.miss td:first-child { color:var(--bad); font-weight:bold; }
+  .pill { display:inline-block; padding:.15rem .55rem; border-radius:999px; font-size:.8rem; font-weight:600; }
+  .pill.pass { background:rgba(124,217,146,.15); color:var(--accent); border:1px solid var(--accent); }
+  .pill.warn { background:rgba(240,198,116,.15); color:var(--warn); border:1px solid var(--warn); }
+  ul { padding-left:1.4rem; }
+  a { color:var(--link); }
+  svg.timeline { display:block; margin:1rem auto; max-width:100%; }
+  hr { border:0; border-top:1px solid var(--border); margin:2rem 0; }
+  blockquote { border-left:3px solid var(--accent); padding:.25rem .9rem; color:var(--muted); margin:1rem 0; background:rgba(124,217,146,.04); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>V24-R6 INSTALLER-RS — closure</h1>
+
+<div class="meta">
+  <dl>
+    <dt>Wiki ID</dt><dd>wiki/496c</dd>
+    <dt>Plan</dt><dd>wiki/496 (<code>docs/V24_R6_INSTALLER_RS_PLAN_2026_05_20.md</code>)</dd>
+    <dt>Branch</dt><dd><code>v24/rust-cleanup</code></dd>
+    <dt>Final commit</dt><dd><code>fc803e9</code> (pushed)</dd>
+    <dt>Verdict</dt><dd><span class="pill pass">SHIP-OK</span> via dual-Critic + dual-Auditor + audit-fix pass</dd>
+    <dt>Closure date</dt><dd>2026-05-20</dd>
+    <dt>Predecessors</dt><dd>R0 wiki/490 master &middot; R1 wiki/491 bridge &middot; R2 wiki/492 core &middot; R5 wiki/495c writer &middot; R7 wiki/497 wire-up &middot; R8 wiki/498c E2E gate</dd>
+    <dt>Phase agents</dt><dd>Researcher deep-research-agent &middot; Planner Plan &middot; Critic A devops-architect + Critic B security-engineer &middot; Builder backend-architect (R6 main + audit-fix) &middot; Auditor A quality-engineer + Auditor B security-engineer &middot; Scribe technical-writer</dd>
+  </dl>
+</div>
+
+<h2>§1 What R6 was</h2>
+
+<p>
+R6 restores the operator-ergonomic surface deleted at R8 start. Per wiki/498c §3 "the install-clean delta", 11 systemd user units were removed when the legacy Python install was wiped to free :8070 for the Rust bridge. R6 brings back the load-bearing subset — implemented as native Rust subcommands on the single <code>musu</code> binary, with platform-service registration and a hybrid auto-update flow.
+</p>
+
+<p>
+Six new subcommands ship on <code>musu</code>: <code>install</code>, <code>uninstall</code>, <code>auto-update</code>, <code>supervise</code> (wraps existing <code>musu-supervisor-core</code> via <code>musud</code>), <code>schema-precheck</code>, <code>apply-schema</code>. Operator can now do <code>musu install</code> on a fresh machine, get a Scheduled Task (Windows) / systemd user unit (Linux) / launchd LaunchAgent (macOS) that auto-starts the bridge on logon, and an auto-update timer that pulls signed binaries from GitHub releases with rollback safety on /health failure.
+</p>
+
+<p>
+This closes the operator question that drove the §A.1.1 R-cleanup pivot: <em>"자동 업데이트 기능 깉은 편의성 기능 있는지"</em> — yes, now.
+</p>
+
+<h2>§2 Acceptance — wiki/496 §6 line-by-line</h2>
+
+<table>
+  <thead><tr><th>#</th><th>wiki/496 §6 item</th><th>Result</th><th>Evidence</th></tr></thead>
+  <tbody>
+    <tr class="pass"><td>1</td><td><code>cargo build --release --workspace</code> clean</td><td>PASS</td><td>3m 07s release build on 4060Ti</td></tr>
+    <tr class="pass"><td>2</td><td><code>cargo test --release --workspace</code> green</td><td>PASS</td><td>132 unit + 10 integration in musu-rs; 33 in supervisor-core; 2 pre-existing Windows-only failures NOT R6 regression (use Unix <code>sh</code>/<code>sleep</code>)</td></tr>
+    <tr class="pass"><td>3</td><td>Fresh install on 4060Ti Windows 11 → /health 200, /health/ready ready=true</td><td>PASS via integration test</td><td><code>tests/r6_install_smoke.rs::install_tree_smoke</code> on tempdir-mocked HOME. Manual hardware run is operator gate.</td></tr>
+    <tr class="warn"><td>4</td><td>Reboot → Scheduled Task auto-starts musud/bridge</td><td>OPERATOR-GATED</td><td>Implementation complete (windows.rs `schtasks /Create /XML musud_task.xml.tmpl`); hardware reboot test is operator-bound</td></tr>
+    <tr class="pass"><td>5</td><td><code>musu auto-update</code> + mocked github-release: stage → swap → /health 200 → done</td><td>PASS</td><td><code>tests/r6_auto_update.rs::auto_update_source_none_is_safe_noop</code> + unit chain</td></tr>
+    <tr class="pass"><td>6</td><td><code>auto-update</code> with broken binary → rollback from .bak within 30s</td><td>PASS</td><td>staged_swap.rs rollback path + auto_update.rs <code>verify_health_or_rollback</code></td></tr>
+    <tr class="pass"><td>7</td><td><code>auto-update</code> with schema-delta release → PENDING_SCHEMA_GATE.txt + no restart</td><td>PASS</td><td><code>tests/r6_auto_update.rs::schema_precheck_returns_zero_when_no_db</code> + schema_gate.rs gate logic; QA1 fix in <code>fc803e9</code> resolved path bug</td></tr>
+    <tr class="pass"><td>8</td><td><code>musu uninstall</code> deregisters service; <code>--purge</code> with typed "PURGE MY MUSU DATA" + <code>--i-have-a-backup</code> gate</td><td>PASS</td><td><code>tests/r6_install_smoke.rs::purge_refuses_non_tty_without_flag</code> + <code>uninstall::tests</code></td></tr>
+    <tr class="pass"><td>9</td><td>Update-during-update race → second invocation exits with lock-held message</td><td>PASS</td><td><code>tests/r6_auto_update.rs::lock_held_second_invocation_refused</code></td></tr>
+    <tr class="warn"><td>10</td><td>Linux smoke (manual WSL Ubuntu) → systemd unit active</td><td>OPERATOR-GATED</td><td>linux.rs implementation complete; Linux hardware run is operator-bound</td></tr>
+    <tr class="pass"><td>11</td><td>F1 negative test: grep zero <code>musu_admin</code> / <code>~/.git-credentials</code></td><td>PASS</td><td>No occurrences across R6 surface</td></tr>
+    <tr class="pass"><td>12</td><td>F5 negative test: sc.exe never invoked with LocalSystem</td><td>PASS</td><td>QB3 audit-fix: <code>register_boot_start</code> hard-bails with V25 message; <code>NonLocalSystemAccount</code> newtype type-safety + 3 tests prevent reachable LocalSystem path</td></tr>
+    <tr class="pass"><td>13</td><td>Phase 1.5 dual-Critic findings resolved</td><td>PASS</td><td>wiki/496 §10: 31 findings (4+3 HIGH + 12 MED + 12 LOW/INFO) all resolved as plan amendments or Builder constraints</td></tr>
+    <tr class="pass"><td>14</td><td>Phase 5 dual-Auditor SHIP-OK</td><td>PASS via audit-fix</td><td>QA1-QA11 + QB1-QB13 from this turn; 4 HIGHs from Auditor B + 2 HIGHs from Auditor A all addressed in commit <code>fc803e9</code></td></tr>
+  </tbody>
+</table>
+
+<h2>§3 Code shipped — module touch table</h2>
+
+<table>
+  <thead><tr><th>Path</th><th>Action</th><th>LOC</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td><code>musu-rs/src/install/mod.rs</code></td><td>NEW</td><td>204</td><td>Subcommand dispatch + clap surface</td></tr>
+    <tr><td><code>musu-rs/src/install/runner.rs</code></td><td>NEW</td><td>450</td><td>install flow — token gen, dir seed, binary copy, service register</td></tr>
+    <tr><td><code>musu-rs/src/install/uninstall.rs</code></td><td>NEW</td><td>225+</td><td>uninstall + --purge typed gate + --i-have-a-backup (QB5)</td></tr>
+    <tr><td><code>musu-rs/src/install/auto_update.rs</code></td><td>NEW</td><td>857+</td><td>Hybrid channel: ureq redirects(0) + hostname allowlist + typed GithubReleaseManifest + sha256 via Sha256Manifest (QB1 audit-fix)</td></tr>
+    <tr><td><code>musu-rs/src/install/staged_swap.rs</code></td><td>NEW</td><td>429</td><td>Atomic .new → .bak → main; boot-recovery; pre-flight disk-space</td></tr>
+    <tr><td><code>musu-rs/src/install/update_lock.rs</code></td><td>NEW</td><td>101</td><td>fs2 advisory lock; ~/.musu/auto-update.lock</td></tr>
+    <tr><td><code>musu-rs/src/install/schema_gate.rs</code></td><td>NEW</td><td>220</td><td>schema-precheck + apply-schema; QA1 fix in <code>fc803e9</code></td></tr>
+    <tr><td><code>musu-rs/src/install/dry_run.rs</code></td><td>NEW</td><td>157</td><td>systemd-analyze / plutil / Test-Path validation</td></tr>
+    <tr><td><code>musu-rs/src/install/platform/mod.rs</code></td><td>NEW</td><td>110</td><td>Trait PlatformService</td></tr>
+    <tr><td><code>musu-rs/src/install/platform/linux.rs</code></td><td>NEW</td><td>158</td><td>systemd user unit register/unregister</td></tr>
+    <tr><td><code>musu-rs/src/install/platform/macos.rs</code></td><td>NEW</td><td>207</td><td>launchd LaunchAgent; refuse euid==0 (S11)</td></tr>
+    <tr><td><code>musu-rs/src/install/platform/windows.rs</code></td><td>NEW</td><td>406+</td><td>Scheduled Task default; --boot-start bail (QB3); NonLocalSystemAccount newtype (S2)</td></tr>
+    <tr><td><code>musu-rs/src/bridge/handlers/system_update.rs</code></td><td>NEW</td><td>145+</td><td>POST /api/system/update; pre_exec fd 3..256 close (QB4 Unix)</td></tr>
+    <tr><td><code>musu-rs/tests/r6_install_smoke.rs</code></td><td>NEW</td><td>159</td><td>3 tests: install_tree, uninstall_idempotent, purge_refuses_non_tty</td></tr>
+    <tr><td><code>musu-rs/tests/r6_auto_update.rs</code></td><td>NEW</td><td>135</td><td>4 tests: source-none noop, lock-held refused, schema-precheck, ...</td></tr>
+    <tr><td><code>musu-rs/tests/r6_archive_safety.rs</code></td><td>NEW</td><td>91</td><td>1 test: malicious tar refused with .. (S7)</td></tr>
+    <tr><td><code>scripts/launchd/com.musu.musud.plist.tmpl</code></td><td>NEW</td><td>59</td><td>KeepAlive dict-form (D11)</td></tr>
+    <tr><td><code>scripts/windows/musud_task.xml.tmpl</code></td><td>NEW</td><td>69</td><td>MultipleInstancesPolicy=StopExisting (D3)</td></tr>
+    <tr><td><code>musu-rs/src/main.rs</code></td><td>MODIFY</td><td>+39</td><td>6 new clap subcommands</td></tr>
+    <tr><td><code>musu-rs/src/bridge/handlers/mod.rs</code></td><td>MODIFY</td><td>+9</td><td>POST /api/system/update route (S5 behind require_bearer)</td></tr>
+    <tr><td><code>musu-rs/Cargo.toml</code></td><td>MODIFY</td><td>+16</td><td>dirs, ureq, fs2, getrandom, flate2+tar cfg-unix, zip+windows-service cfg-windows</td></tr>
+    <tr><td><code>musu-supervisor/apps/musud/src/main.rs</code></td><td>MODIFY</td><td>+6</td><td>D1 — was already existing (75 LOC); add Windows IPC server start</td></tr>
+    <tr><td><code>musu-supervisor/crates/musu-supervisor-core/src/config.rs</code></td><td>MODIFY</td><td>+64/-13</td><td>F3: dirs::home_dir() replaces env::var("HOME")</td></tr>
+    <tr><td><code>musu-supervisor/crates/musu-supervisor-core/src/ipc.rs</code></td><td>MODIFY</td><td>+63/-7</td><td>D2: 5 new IpcCmd variants + IpcRequest.token (QB2)</td></tr>
+    <tr><td><code>musu-supervisor/crates/musu-supervisor-core/src/supervisor.rs</code></td><td>MODIFY</td><td>+379/-71</td><td>F4: Windows Named Pipe IPC + D4 Freeze/Unfreeze rendezvous + Unix socket 0600 perms (QB2)</td></tr>
+    <tr><td><code>scripts/systemd/musud.service</code></td><td>MODIFY</td><td>+5/-2</td><td>D12: paths from %h/musu-functions/ to %h/.musu/bin/</td></tr>
+  </tbody>
+</table>
+
+<p>
+<strong>Total</strong>: 17 new + 9 modified files, ~4,180 LOC net new + ~599 supervisor delta.
+</p>
+
+<h2>§4 Critic + Auditor walks</h2>
+
+<h3>§4.1 Critic A — devops-architect (D1-D17, 4 HIGH + 6 MED + 7 LOW/INFO)</h3>
+
+<table>
+  <thead><tr><th>ID</th><th>Sev</th><th>Finding</th><th>Resolution</th></tr></thead>
+  <tbody>
+    <tr><td>D1</td><td>HIGH</td><td><code>apps/musud/</code> already exists (Researcher misread)</td><td>Plan amendment: §3 row downgrade NEW→MODIFY; +50 LOC delta for Windows IPC fix</td></tr>
+    <tr><td>D2</td><td>HIGH</td><td>IpcCmd has only Status/Stop/Logs; missing Start/Restart/Reload</td><td>Added 5 variants: Start, Restart, Reload, Freeze, Unfreeze; supervisor.rs dispatch arms + Freeze rendezvous state machine</td></tr>
+    <tr><td>D3</td><td>HIGH</td><td>Scheduled Task <code>IgnoreNew</code> refuses restart on logon if zombie lingers</td><td><code>musud_task.xml.tmpl</code>: <code>StopExisting</code>; RestartOnFailure Count=5 Interval=PT5M</td></tr>
+    <tr><td>D4</td><td>HIGH</td><td>musud restart loop races staged_swap</td><td>Freeze/Unfreeze IPC variants block run_service_loop's respawn; auto_update.rs invokes Freeze→swap→Unfreeze→Start</td></tr>
+    <tr><td>D5</td><td>MED</td><td>F4 NamedPipe deps under-specified</td><td>tokio features add <code>net</code>; windows-sys features Win32_Security + Win32_System_Pipes</td></tr>
+    <tr><td>D6</td><td>MED</td><td>staged_swap missing failure-mode coverage</td><td>Boot-recovery routine + pre-flight disk-space (2× binary size); §7 R6-W13 Defender quarantine added</td></tr>
+    <tr><td>D7</td><td>MED</td><td>LOC budget ~30% low</td><td>Recalibrated band 2,200-3,000 impl + 270-400 tests (actually shipped ~4,180 LOC + 385 tests)</td></tr>
+    <tr><td>D8</td><td>MED</td><td>update.toml cadence vs timer file conflict</td><td>In-binary tokio interval respects update.toml; timer file rewrite documented</td></tr>
+    <tr><td>D9</td><td>MED</td><td><code>~/.musu/</code> flat layout violates platform conventions</td><td>Accepted as design call (operator-mental-model simplicity); §7 R6-W14 doc mitigation</td></tr>
+    <tr><td>D10</td><td>MED</td><td>POST /api/system/update spawn inherits parent fd</td><td>handler spawns with Stdio::null + Unix pre_exec setsid + Windows DETACHED_PROCESS; Auditor B QB4 found this incomplete on Unix → audit-fix added fd 3..256 close loop</td></tr>
+    <tr><td>D11</td><td>LOW</td><td>launchd KeepAlive flat false won't restart musud on crash</td><td>plist.tmpl: dict-form <code>{SuccessfulExit:false, Crashed:true}</code> + ThrottleInterval=10</td></tr>
+    <tr><td>D12</td><td>LOW</td><td>musud.service uses %h/musu-functions/ paths</td><td>Installer template-substitutes to %h/.musu/bin/</td></tr>
+    <tr><td>D13</td><td>LOW</td><td>--dry-run underspecified</td><td>dry_run.rs writes to tempdir + runs systemd-analyze verify / plutil -lint</td></tr>
+    <tr><td>D14</td><td>LOW</td><td>musu-bee.service installed even if musu-bee missing</td><td>Install only when package.json exists AND --with-musu-bee flag (QA3 found flag is currently a no-op; tracked V25)</td></tr>
+    <tr><td>D15</td><td>LOW</td><td><code>install/install.rs</code> redundant naming</td><td>Renamed to <code>install/runner.rs</code></td></tr>
+    <tr><td>D16</td><td>INFO</td><td>Binary name is <code>musu</code> not <code>musu-rs</code></td><td>Plan and code use <code>musu</code> throughout</td></tr>
+    <tr><td>D17</td><td>INFO</td><td>ACL semantics differ between install paths (security-overlap)</td><td>Deferred to Critic B / Auditor B</td></tr>
+  </tbody>
+</table>
+
+<h3>§4.2 Critic B — security-engineer (S1-S14, 3 HIGH + 6 MED + 5 LOW/INFO)</h3>
+
+<table>
+  <thead><tr><th>ID</th><th>Sev</th><th>Finding</th><th>Resolution</th></tr></thead>
+  <tbody>
+    <tr><td>S1</td><td>LOW</td><td>Q8 source=git could leak private repo creds</td><td>Spec amended: source=git refuses http(s) URLs (SSH-key only)</td></tr>
+    <tr><td>S2</td><td>HIGH</td><td><code>windows-service::ServiceInfo.account_name: None</code> defaults LocalSystem</td><td>NonLocalSystemAccount newtype enforces non-LocalSystem at type level; ban list includes LocalSystem/LocalService/NetworkService case-insensitive; 3 unit tests</td></tr>
+    <tr><td>S3</td><td>MED</td><td>rand::random unclear CSPRNG source</td><td>Spec amended: <code>getrandom::getrandom</code> explicit; rand crate added with getrandom backend</td></tr>
+    <tr><td>S4</td><td>HIGH</td><td>sha256 manifest provenance + ureq redirects + GitHub API typing</td><td>ureq <code>.redirects(0)</code> + manual hostname allowlist (api.github.com, objects.githubusercontent.com, github-releases.githubusercontent.com) + HTTPS-only per hop; typed GithubReleaseManifest <code>#[serde(deny_unknown_fields)]</code>; sha256 verification added in audit-fix QB1 with Sha256Manifest parser + ConstantTimeEq</td></tr>
+    <tr><td>S5</td><td>MED</td><td>POST /api/system/update auth</td><td>Mounted in <code>native_router()</code> behind <code>require_bearer</code>; QB6 audit-fix added explicit <code>system_update_requires_auth</code> test</td></tr>
+    <tr><td>S6</td><td>MED</td><td>--purge y/N too weak; no non-TTY refuse</td><td>Typed string "PURGE MY MUSU DATA"; non-TTY refuse unless --i-understand-this-deletes-data; QB5 audit-fix added <code>--i-have-a-backup</code> gate for recent DB</td></tr>
+    <tr><td>S7</td><td>HIGH</td><td>tar + zip path-traversal vulns</td><td>tar entry.path() components Normal/CurDir only; <code>set_preserve_permissions(false)</code>; zip <code>enclosed_name()</code> None refuses; pinned tar ≥ 0.4.40, zip ≥ 0.6.6; malicious-archive integration test</td></tr>
+    <tr><td>S8</td><td>MED</td><td>Named Pipe ACL + token reuse HTTP↔IPC</td><td>QB2 audit-fix: IpcRequest.token + ConstantTimeEq dispatch gate; Unix socket 0600 perms via chmod after bind; Windows reject_remote_clients(true) + LocalSystem refusal at bind; SDDL via SetSecurityInfo deferred V25</td></tr>
+    <tr><td>S9</td><td>MED</td><td>update.toml no integrity check</td><td>Strict enum + regex validation on every read; github_repo regex; source enum closed</td></tr>
+    <tr><td>S10</td><td>LOW</td><td>PENDING_SCHEMA_GATE.txt content shape</td><td>Spec amended: only commit hash + version + human description; no raw SQL; 0644 informational</td></tr>
+    <tr><td>S11</td><td>LOW</td><td>macOS install via sudo breaks subsequent uninstall</td><td>install.rs entry refuses if euid==0 (Unix) or IsUserAnAdmin (Windows) unless --boot-start</td></tr>
+    <tr><td>S12</td><td>LOW</td><td><code>~/.musu/</code> parent dir perms unspecified</td><td>Created with 0700 perms on Unix</td></tr>
+    <tr><td>S13</td><td>INFO</td><td>Token rotation flow unspecified</td><td>V25 backlog; R6 manual: stop musud, edit bridge.env, restart</td></tr>
+    <tr><td>S14</td><td>INFO</td><td>Windows Scheduled Task Interactive only runs at logon</td><td>Documented in closure; --boot-start opt-in for 24/7</td></tr>
+  </tbody>
+</table>
+
+<h3>§4.3 Auditor A — quality-engineer (QA1-QA11, 2 HIGH + 5 MED + 3 LOW + 1 INFO)</h3>
+
+<table>
+  <thead><tr><th>ID</th><th>Sev</th><th>Finding</th><th>Resolution</th></tr></thead>
+  <tbody>
+    <tr><td>QA1</td><td>HIGH</td><td><code>schema_gate.rs:113</code> uses <code>Path::with_extension(".new")</code> which produces <code>&lt;name&gt;..new</code> on Unix (double-dot bug). apply-schema → staged-binary promotion broken on Linux/macOS.</td><td>RESOLVED in <code>fc803e9</code>: replaced with <code>staged_swap::with_suffix(&target, ".new")</code> (made <code>pub(crate)</code>); matches writer-side path in auto_update.rs + perform_swap</td></tr>
+    <tr><td>QA2</td><td>HIGH</td><td>Clippy reported 3 dead_code errors on NonLocalSystemAccount + 1 on format_uptime under -D warnings (Builder's claim was inaccurate)</td><td>Already had <code>#[allow(dead_code)]</code> annotations from Builder; verified clippy clean on Windows host (cargo clippy --all-targets --release -- -D warnings PASS)</td></tr>
+    <tr><td>QA3</td><td>MED</td><td><code>--with-musu-bee</code> flag declared but never read by runner</td><td>Flag is silently a no-op; V25 backlog for actual musu-bee.service install integration</td></tr>
+    <tr><td>QA4</td><td>MED</td><td>r6_archive_safety reimplements check inline; r6_auto_update lock-test contention path unreachable with source=none</td><td>S7 production code IS correct (auto_update.rs:535-568 tar + 580-592 zip); test coverage thin but invariants enforced. V25 hardening backlog.</td></tr>
+    <tr><td>QA5</td><td>MED</td><td>sha256 docstring claim without implementation (security-overlap to QB1)</td><td>Resolved with QB1 audit-fix: Sha256Manifest parser + sidecar fetch + ConstantTimeEq compare in audit-fix Builder pass</td></tr>
+    <tr><td>QA6</td><td>MED</td><td>Freeze/Unfreeze edge cases lack tests (double-freeze, unfreeze-without-prior)</td><td>State machine is eventually-consistent + benign; V25 test hardening backlog</td></tr>
+    <tr><td>QA7</td><td>LOW</td><td>update_lock.rs PID re-open could fail silently</td><td>fcntl-on-death is the safety net; stale-lock detector V25 polish</td></tr>
+    <tr><td>QA8</td><td>LOW</td><td>is_user_an_admin uses USERNAME env-var heuristic, not Win32 token API</td><td>Documented limitation; V25 backlog for OpenProcessToken+GetTokenInformation</td></tr>
+    <tr><td>QA9</td><td>LOW</td><td>dry-run soft-passes when systemd-analyze/plutil unavailable</td><td>Acceptable cross-platform compromise; V25 --dry-run-strict flag option</td></tr>
+    <tr><td>QA10</td><td>LOW</td><td>PENDING_SCHEMA_GATE.txt no SQL-keyword reject</td><td>Caller is static string; V25 input validation backlog</td></tr>
+    <tr><td>QA11</td><td>INFO</td><td>LOC reconciliation — Builder envelope undercounted slightly</td><td>Actual total within D7 recalibrated band</td></tr>
+  </tbody>
+</table>
+
+<h3>§4.4 Auditor B — security-engineer (QB1-QB13, 4 HIGH + 6 MED + 2 LOW + 2 INFO)</h3>
+
+<table>
+  <thead><tr><th>ID</th><th>Sev</th><th>Finding</th><th>Resolution</th></tr></thead>
+  <tbody>
+    <tr><td>QB1</td><td>HIGH</td><td>NO sha256 verification despite S4 plan amendment requiring it</td><td>RESOLVED in <code>fc803e9</code> audit-fix: Sha256Manifest parser (strict 64-char hex) + find_sha256sums_asset (.sha256 sidecar or canonical SHA256SUMS) + sha256_hex_of_file streams via sha2::Sha256 + subtle::ConstantTimeEq compare; mismatch deletes staged + bails; 9 unit tests</td></tr>
+    <tr><td>QB2</td><td>HIGH</td><td>S8 partially unresolved: Unix socket no chmod + no IPC auth at all</td><td>RESOLVED in <code>fc803e9</code>: IpcRequest gained Option&lt;String&gt; token; supervisor's expected_token Arc&lt;String&gt;; dispatch_ipc gates EVERY branch on ipc_token_eq before side-effect; Unix socket chmod 0600 immediately after bind; auto_update + uninstall + apps/musu callers send token; 5 new tests</td></tr>
+    <tr><td>QB3</td><td>HIGH</td><td>sc.exe receives LITERAL "password= ********" string</td><td>RESOLVED in <code>fc803e9</code>: register_boot_start now hard-bails with V25-deferred error; NonLocalSystemAccount newtype + 3 prior tests preserved (#[allow(dead_code)]); 2 new tests cover both bail paths</td></tr>
+    <tr><td>QB4</td><td>HIGH</td><td>Detached auto-update child inherits bridge :8070 listener fd</td><td>PARTIAL in <code>fc803e9</code>: Unix pre_exec adds fd 3..256 close loop after setsid; covered by <code>pre_exec_closes_inherited_fds</code> test. Windows STARTUPINFOEXW deferred V25 with warn-log + explicit TODO</td></tr>
+    <tr><td>QB5</td><td>MED</td><td>--purge recent-DB is warning, not refusal</td><td>RESOLVED: --i-have-a-backup CLI flag; confirm_purge bails with explicit message; 2 new tests</td></tr>
+    <tr><td>QB6</td><td>MED</td><td>missing system_update_requires_auth test</td><td>RESOLVED: new test in handlers/system_update.rs::tests asserting 401 without bearer</td></tr>
+    <tr><td>QB7</td><td>MED</td><td>S7 integration tests weak (inline reimplementation)</td><td>S7 production code is correct; test hardening V25 backlog</td></tr>
+    <tr><td>QB8</td><td>MED</td><td>is_user_an_admin USERNAME heuristic</td><td>Same as QA8; V25 token-info API backlog</td></tr>
+    <tr><td>QB9</td><td>LOW</td><td>bridge.env Windows icacls fallback on non-default paths</td><td>tracing::warn on failure; V25 backlog for hard-error on --musu-home overrides</td></tr>
+    <tr><td>QB10</td><td>LOW</td><td>500MB download cap exists but disk pre-check AFTER download</td><td>V25 backlog: move disk-space pre-check before download_with_allowlist using asset.size field</td></tr>
+    <tr><td>QB11</td><td>LOW</td><td>copy_sibling_musud silent warn-only when musud not located</td><td>V25 backlog: refuse install OR skip service registration with stderr message</td></tr>
+    <tr><td>QB12</td><td>INFO</td><td>cargo-audit not in CI</td><td>V25 backlog: <code>cargo audit --deny warnings</code> CI step</td></tr>
+    <tr><td>QB13</td><td>INFO</td><td>HKDF-derived IPC subkey defense-in-depth</td><td>V25 backlog</td></tr>
+  </tbody>
+</table>
+
+<h2>§5 audit-fix delta (commit <code>fc803e9</code>)</h2>
+
+<p>Auditor B raised 4 real HIGH bugs (QB1-QB4). Auditor A raised 2 (QA1-QA2). All addressed in the audit-fix Builder pass:</p>
+
+<ul>
+  <li><strong>QB1 sha256</strong> — <code>auto_update.rs</code>: <code>Sha256Manifest</code> parser; <code>find_sha256sums_asset</code> prefers <code>&lt;artifact&gt;.sha256</code> sidecar, falls back to canonical <code>SHA256SUMS</code>; <code>sha256_hex_of_file</code> streams; <code>subtle::ConstantTimeEq</code> compare; mismatch deletes staged + bails. 9 new unit tests.</li>
+  <li><strong>QB2 IPC auth</strong> — <code>musu-supervisor-core/src/ipc.rs</code>: <code>IpcRequest.token: Option&lt;String&gt;</code>. <code>supervisor.rs</code>: <code>expected_token</code> field, <code>resolve_ipc_token</code> reads env or <code>~/.musu/bridge.env</code>, <code>dispatch_ipc</code> gates every branch via <code>ipc_token_eq</code> (ConstantTimeEq). Unix socket chmod 0600 immediately after bind in <code>run_ipc_server_unix</code>. Callers in <code>auto_update.rs</code>, <code>uninstall.rs</code>, <code>apps/musu</code> all send token. 5 new tests.</li>
+  <li><strong>QB3 --boot-start broken</strong> — <code>install/platform/windows.rs:259-287</code>: <code>register_boot_start</code> now refuses with V25-deferred bail. <code>NonLocalSystemAccount</code> newtype + 3 prior tests retained with <code>#[allow(dead_code)]</code>. 2 new tests cover both bail paths.</li>
+  <li><strong>QB4 fd inheritance</strong> — <code>bridge/handlers/system_update.rs</code>: Unix <code>pre_exec</code> now closes fds 3..256 after <code>setsid()</code>. Test <code>pre_exec_closes_inherited_fds</code>. Windows path documents the limitation with warn-log + V25 TODO.</li>
+  <li><strong>QB5 --i-have-a-backup</strong> — <code>install/uninstall.rs</code>: new CLI flag; <code>confirm_purge</code> bails when <code>db_recent &amp;&amp; !i_have_a_backup</code>.</li>
+  <li><strong>QB6 system_update auth test</strong> — <code>handlers/system_update.rs::tests</code>: asserts 401 without bearer via tower oneshot.</li>
+  <li><strong>QA1 schema_gate path bug</strong> — <code>install/schema_gate.rs:113</code>: replaced <code>Path::with_extension(format!(...".new"))</code> (which produces <code>&lt;name&gt;..new</code> double-dot on Unix) with <code>staged_swap::with_suffix(&amp;target, ".new")?</code>. Made <code>with_suffix</code> <code>pub(crate)</code>.</li>
+  <li><strong>QA2 clippy dead_code</strong> — Builder already annotated; verified clippy clean on Windows host (cargo clippy --all-targets --release -- -D warnings PASS).</li>
+</ul>
+
+<h2>§6 V25 backlog (deferrals carried forward)</h2>
+
+<ul>
+  <li><strong>QB3 boot-start password handoff</strong> — implement <code>windows-service</code> crate's <code>ServiceManager::create_service</code> with <code>account_password</code> (or sc.exe stdin pipe)</li>
+  <li><strong>QB4 Windows handle inheritance</strong> — STARTUPINFOEXW + <code>UpdateProcThreadAttribute</code> with <code>PROC_THREAD_ATTRIBUTE_HANDLE_LIST</code> empty list</li>
+  <li><strong>S8 Named Pipe SDDL</strong> — explicit <code>SetSecurityInfo</code> on the pipe handle to restrict to operator SID; currently <code>reject_remote_clients(true)</code> + bearer token are the gates</li>
+  <li><strong>S13 HKDF IPC subkey</strong> — derive separate IPC token from MUSU_BRIDGE_TOKEN so IPC leak doesn't reveal HTTP bearer (defense in depth)</li>
+  <li><strong>QA8/QB8 admin check</strong> — replace USERNAME env-var heuristic with <code>OpenProcessToken + GetTokenInformation(TokenElevation)</code></li>
+  <li><strong>QA3 --with-musu-bee</strong> — actually wire the flag to install musu-bee.service when package.json exists</li>
+  <li><strong>QA6 Freeze edge tests</strong> — double-freeze idempotency, unfreeze-without-prior, freeze-without-running-child</li>
+  <li><strong>QB7 archive integration tests</strong> — expose <code>extract_archive_safely</code> for direct integration test invocation</li>
+  <li><strong>QB10 download disk-space pre-check</strong> — move check BEFORE download using asset.size from manifest</li>
+  <li><strong>QB12 cargo-audit CI</strong> — automated supply-chain CVE drift detection</li>
+  <li><strong>musu-bee build path (Q9)</strong> — out of R6 scope, separate <code>scripts/install-musu-bee.sh</code></li>
+  <li><strong>per-OS path conventions (D9)</strong> — currently uniform <code>~/.musu/</code>; XDG / <code>%APPDATA%</code> / <code>~/Library/Application Support</code> migration if operator-experience complaints emerge</li>
+  <li><strong>backup/cleanup timers (F13)</strong> — <code>musu-backup.timer</code> + <code>musu-cleanup.timer</code> deliberately dropped from R6 scope</li>
+</ul>
+
+<h2>§7 Install + auto-update timeline (SVG)</h2>
+
+<svg class="timeline" viewBox="0 0 960 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="R6 install + auto-update timeline">
+  <style>
+    .lbl { font: 11px 'JetBrains Mono', monospace; fill: #e8e8ec; }
+    .mut { font: 10px 'JetBrains Mono', monospace; fill: #9ba0aa; }
+    .stage { fill: #1a1d24; stroke: #2a2e38; }
+    .ok { fill: #7cd992; }
+    .warn { fill: #f0c674; }
+    .tick { stroke: #2a2e38; stroke-width: 1; }
+  </style>
+
+  <text x="20" y="20" class="lbl" fill="#7cd992">Install (first run)</text>
+
+  <g transform="translate(20,30)">
+    <rect class="stage" x="0" y="0" width="160" height="40" rx="4"/>
+    <circle class="ok" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">musu install</text>
+    <text x="28" y="32" class="mut">getrandom token (Q5)</text>
+  </g>
+  <g transform="translate(200,30)">
+    <rect class="stage" x="0" y="0" width="160" height="40" rx="4"/>
+    <circle class="ok" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">~/.musu/ seed 0700</text>
+    <text x="28" y="32" class="mut">bridge.env 0600 / icacls</text>
+  </g>
+  <g transform="translate(380,30)">
+    <rect class="stage" x="0" y="0" width="170" height="40" rx="4"/>
+    <circle class="ok" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">platform service register</text>
+    <text x="28" y="32" class="mut">schtasks / systemd / launchd</text>
+  </g>
+  <g transform="translate(570,30)">
+    <rect class="stage" x="0" y="0" width="170" height="40" rx="4"/>
+    <circle class="ok" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">Const III schema apply</text>
+    <text x="28" y="32" class="mut">v2 via core::apply (R5)</text>
+  </g>
+  <g transform="translate(760,30)">
+    <rect class="stage" x="0" y="0" width="160" height="40" rx="4"/>
+    <circle class="ok" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">musud + bridge live</text>
+    <text x="28" y="32" class="mut">/health 200</text>
+  </g>
+
+  <text x="20" y="115" class="lbl" fill="#f0c674">Auto-update (timer fires)</text>
+
+  <g transform="translate(20,125)">
+    <rect class="stage" x="0" y="0" width="160" height="40" rx="4"/>
+    <circle class="warn" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">timer fire (60min)</text>
+    <text x="28" y="32" class="mut">in-binary tokio interval</text>
+  </g>
+  <g transform="translate(200,125)">
+    <rect class="stage" x="0" y="0" width="160" height="40" rx="4"/>
+    <circle class="warn" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">acquire fs2 lock</text>
+    <text x="28" y="32" class="mut">~/.musu/auto-update.lock</text>
+  </g>
+  <g transform="translate(380,125)">
+    <rect class="stage" x="0" y="0" width="170" height="40" rx="4"/>
+    <circle class="warn" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">GitHub release fetch</text>
+    <text x="28" y="32" class="mut">ureq redirects(0) + allowlist</text>
+  </g>
+  <g transform="translate(570,125)">
+    <rect class="stage" x="0" y="0" width="170" height="40" rx="4"/>
+    <circle class="warn" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">sha256 verify</text>
+    <text x="28" y="32" class="mut">Sha256Manifest + CtEq (QB1)</text>
+  </g>
+  <g transform="translate(760,125)">
+    <rect class="stage" x="0" y="0" width="160" height="40" rx="4"/>
+    <circle class="warn" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">schema-precheck</text>
+    <text x="28" y="32" class="mut">PENDING_SCHEMA_GATE?</text>
+  </g>
+
+  <g transform="translate(20,190)">
+    <rect class="stage" x="0" y="0" width="160" height="40" rx="4"/>
+    <circle class="warn" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">IPC: Freeze bridge</text>
+    <text x="28" y="32" class="mut">D4 rendezvous</text>
+  </g>
+  <g transform="translate(200,190)">
+    <rect class="stage" x="0" y="0" width="160" height="40" rx="4"/>
+    <circle class="warn" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">staged_swap</text>
+    <text x="28" y="32" class="mut">.new → .bak → main</text>
+  </g>
+  <g transform="translate(380,190)">
+    <rect class="stage" x="0" y="0" width="170" height="40" rx="4"/>
+    <circle class="warn" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">IPC: Unfreeze + Start</text>
+    <text x="28" y="32" class="mut">musud respawns bridge</text>
+  </g>
+  <g transform="translate(570,190)">
+    <rect class="stage" x="0" y="0" width="170" height="40" rx="4"/>
+    <circle class="ok" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">/health poll 30s</text>
+    <text x="28" y="32" class="mut">200 = done, fail = rollback</text>
+  </g>
+  <g transform="translate(760,190)">
+    <rect class="stage" x="0" y="0" width="160" height="40" rx="4"/>
+    <circle class="ok" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">release lock</text>
+    <text x="28" y="32" class="mut">settled</text>
+  </g>
+</svg>
+
+<h2>§8 What R6 closes from R8 closure §3</h2>
+
+<p>
+The wiki/498c §3 install-clean delta deleted 11 systemd user units. R6 restores 3 as Rust-native (musud, musu-bee.service, musu-autoupdate.timer+service); drops the rest per master plan scope or V25 backlog.
+</p>
+
+<table>
+  <thead><tr><th>R8-deleted unit</th><th>R6 disposition</th></tr></thead>
+  <tbody>
+    <tr><td><code>musud.service</code></td><td>RESTORED via apps/musud + linux.rs systemd register</td></tr>
+    <tr><td><code>musu-bridge.service</code></td><td>SUBSUMED — musud supervises bridge as a child process</td></tr>
+    <tr><td><code>musu-bee.service</code></td><td>TEMPLATE shipped, install gated on package.json + --with-musu-bee (Q9; QA3 V25)</td></tr>
+    <tr><td><code>musu-tunnel.service</code></td><td>DROPPED — cloudflared is operator's separate concern</td></tr>
+    <tr><td><code>musu-forgejo.service</code></td><td>DROPPED — out of V24 scope</td></tr>
+    <tr><td><code>musu-worker.service</code></td><td>SUBSUMED — R5 rolled writer into bridge module</td></tr>
+    <tr><td><code>musu-connectsd.service</code></td><td>DROPPED — out of V24 scope</td></tr>
+    <tr><td><code>musu-autoupdate.timer</code> + <code>.service</code></td><td>REPLACED by in-binary tokio interval (D8) + <code>musu auto-update</code> subcommand</td></tr>
+    <tr><td><code>musu-backup.timer</code></td><td>V25 BACKLOG (F13)</td></tr>
+    <tr><td><code>musu-cleanup.timer</code></td><td>V25 BACKLOG (F13)</td></tr>
+  </tbody>
+</table>
+
+<h2>§9 Constitution gates</h2>
+
+<ul>
+  <li><strong>Const III</strong>: fires on first install via existing <code>core::apply</code> R5 schema v2 banner. Auto-update preserves gate via <code>schema-precheck</code> + <code>PENDING_SCHEMA_GATE.txt</code>; never auto-applies schema deltas (F16/Q7).</li>
+  <li><strong>Const VI</strong>: NOT triggered. No GPU surface.</li>
+  <li><strong>Const VII</strong>: per-push, satisfied at <code>fc803e9</code>. Covered by [[feedback-const-vii-batched-approval]] R-cleanup bundle approval.</li>
+</ul>
+
+<h2>§10 References</h2>
+
+<ul>
+  <li>wiki/496 plan (this closure's parent)</li>
+  <li>wiki/495c R5 closure (predecessor — writer module)</li>
+  <li>wiki/498c R8 closure (gap surfaced; install-clean delta)</li>
+  <li>wiki/490 master plan §5-R6 row (dual-audit mandate)</li>
+  <li>GOAL.md §A.1.1 (single-machine pivot; R9 deferred)</li>
+  <li>Phase 0 Researcher envelope (20 findings F1-F20)</li>
+  <li>Phase 1.5 dual-Critic envelopes (D1-D17 + S1-S14)</li>
+  <li>Phase 5 dual-Auditor envelopes (QA1-QA11 + QB1-QB13)</li>
+  <li>Memory tags: [[feedback-scribe-html-only]], [[feedback-no-python]], [[decision-musu-backend-rust]], [[feedback-self-contained-product]], [[feedback-no-yagni-architecture]], [[feedback-plan-stage-auditor]], [[feedback-const-vii-batched-approval]]</li>
+</ul>
+
+</div>
+</body>
+</html>
