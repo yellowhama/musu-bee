@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>V24-R3 CONTROL-RS — closure (wiki/493c)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root { --bg:#0f1115; --fg:#e8e8ec; --muted:#9ba0aa; --accent:#7cd992; --warn:#f0c674; --bad:#e07b7b; --code-bg:#1a1d24; --border:#2a2e38; --link:#82aaff; }
+  body { margin:0; padding:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--fg); line-height:1.55; }
+  .wrap { max-width:980px; margin:0 auto; padding:2rem 1.5rem 4rem; }
+  h1 { font-size:1.7rem; border-bottom:1px solid var(--border); padding-bottom:.5rem; }
+  h2 { font-size:1.25rem; margin-top:2rem; color:var(--accent); }
+  h3 { font-size:1.05rem; color:var(--warn); margin-top:1.5rem; }
+  .meta { color:var(--muted); font-size:.9rem; margin-bottom:1.5rem; }
+  .meta dl { display:grid; grid-template-columns:max-content 1fr; gap:.35rem 1rem; }
+  .meta dt { color:var(--muted); }
+  .meta dd { margin:0; }
+  code, pre { font-family:'JetBrains Mono','Consolas',monospace; }
+  code { background:var(--code-bg); padding:.1rem .35rem; border-radius:3px; font-size:.88em; }
+  pre { background:var(--code-bg); border:1px solid var(--border); padding:.9rem 1rem; border-radius:6px; overflow-x:auto; font-size:.82rem; }
+  table { border-collapse:collapse; width:100%; margin:1rem 0; font-size:.88rem; }
+  th, td { border:1px solid var(--border); padding:.45rem .65rem; text-align:left; vertical-align:top; }
+  th { background:var(--code-bg); color:var(--muted); font-weight:600; }
+  tr.pass td:first-child { color:var(--accent); font-weight:bold; }
+  tr.warn td:first-child { color:var(--warn); font-weight:bold; }
+  .pill { display:inline-block; padding:.15rem .55rem; border-radius:999px; font-size:.8rem; font-weight:600; }
+  .pill.pass { background:rgba(124,217,146,.15); color:var(--accent); border:1px solid var(--accent); }
+  ul { padding-left:1.4rem; }
+  a { color:var(--link); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>V24-R3 CONTROL-RS — closure</h1>
+
+<div class="meta">
+  <dl>
+    <dt>Wiki ID</dt><dd>wiki/493c</dd>
+    <dt>Plan</dt><dd>wiki/493 (<code>docs/V24_R3_CONTROL_RS_PLAN_2026_05_20.md</code>)</dd>
+    <dt>Branch</dt><dd><code>v24/rust-cleanup</code></dd>
+    <dt>Verdict</dt><dd><span class="pill pass">SHIP-OK</span> — Critic 4 HIGH + 8 MED/LOW all resolved; Auditor 0 HIGH</dd>
+    <dt>Closure date</dt><dd>2026-05-20</dd>
+    <dt>Predecessors</dt><dd>R0..R2, R5, R6, R7, R8 (all shipped)</dd>
+    <dt>Phase agents</dt><dd>Researcher deep-research-agent · Planner Plan · Critic system-architect (single, MED risk) · Builder backend-architect · Auditor quality-engineer (single) · Scribe orchestrator-direct</dd>
+  </dl>
+</div>
+
+<h2>§1 What R3 was</h2>
+
+<p>
+R3 replaces the standalone Python <code>musu-control</code> MCP stdio process (registered by Claude Code via <code>.mcp.json</code> and invoked as <code>python -m musu_control</code>) with a native Rust <code>musu control</code> subcommand on the single <code>musu-rs</code> binary. The new subcommand serves Anthropic's <code>rmcp</code> 1.7 stdio JSON-RPC server and exposes 13 tools (8 T1 native proxies + 5 T2 deprecated stubs) that talk to the R1 bridge via <code>reqwest</code> over loopback HTTP. Token resolution reuses the R6 install resolver via the new shared <code>install/token.rs</code> module — dedupes one of two pre-existing copies (R6 Auditor QB2 backlog) as part of R3.
+</p>
+
+<p>
+<strong>Frame correction (load-bearing)</strong>: musu-control is NOT a set of <code>/api/control/*</code> bridge routes. The original V24 master plan §5-R3 row implied this; Phase 0 Researcher F1 clarified the actual scope. R3 ports a STDIO PROCESS, not HTTP routes. Closes one of the R-cleanup outstanding gaps: Python <code>musu-control</code> can now be deleted at R10.
+</p>
+
+<h2>§2 Acceptance — wiki/493 §6 line-by-line</h2>
+
+<table>
+  <thead><tr><th>#</th><th>Item</th><th>Result</th><th>Evidence</th></tr></thead>
+  <tbody>
+    <tr class="pass"><td>1</td><td><code>cargo build --release</code> clean</td><td>PASS</td><td>3m 04s</td></tr>
+    <tr class="pass"><td>2</td><td><code>cargo clippy --workspace -- -D warnings</code> clean</td><td>PASS</td><td>Zero warnings, zero allows</td></tr>
+    <tr class="pass"><td>3</td><td><code>cargo test --release</code> green</td><td>PASS</td><td>154/154 (137 lib + 17 integration incl. 7 new R3 tests)</td></tr>
+    <tr class="pass"><td>4</td><td><code>musu control</code> accepts MCP initialize</td><td>PASS</td><td><code>r3_mcp_smoke.rs:318</code> handshake assertion</td></tr>
+    <tr class="pass"><td>5</td><td><code>tools/list</code> returns exactly 13 tools</td><td>PASS</td><td><code>r3_mcp_smoke.rs:330</code> <code>assert_eq!(listed.len(), 13)</code></td></tr>
+    <tr class="pass"><td>6</td><td><code>tools/call list_companies</code> against mocked bridge</td><td>PASS</td><td>wiremock + parameterized 13-tool fixture</td></tr>
+    <tr class="pass"><td>7</td><td><code>tools/call list_agents</code> returns deprecation string</td><td>PASS</td><td><code>params.rs:34</code> <code>T2_BODY = "endpoint not yet ported to Rust (V25 candidate)"</code></td></tr>
+    <tr class="pass"><td>8</td><td>T2 description ends with literal suffix</td><td>PASS</td><td><code>r3_mcp_smoke.rs:352</code> <code>desc.ends_with(T2_SUFFIX)</code> per T2 tool</td></tr>
+    <tr class="pass"><td>9</td><td>Stdin closed → clean exit within 2s</td><td>PASS</td><td><code>r3_stdout_clean.rs</code> + CancellationToken watcher</td></tr>
+    <tr class="pass"><td>10</td><td>Bridge unreachable → friendly Ok-string</td><td>PASS</td><td><code>bridge_client.rs:101</code> connection-refused; smoke test <code>r3_mcp_bridge_unreachable_returns_friendly_text</code></td></tr>
+    <tr class="pass"><td>11</td><td>Missing token → clear stderr BEFORE MCP frame</td><td>PASS</td><td><code>control/mod.rs:283</code> eager <code>BridgeClient::try_new()</code> at run() entry</td></tr>
+    <tr class="pass"><td>12</td><td>Zero stdout output other than MCP frames</td><td>PASS</td><td><code>r3_stdout_clean.rs:144</code> empty-stdin scenario asserts 0 bytes on stdout</td></tr>
+    <tr class="pass"><td>13</td><td><code>GET /api/companies/:id</code> 200/404 + no audit</td><td>PASS</td><td><code>r3_companies_get.rs:175</code> + handler <code>companies.rs:74-93</code> has NO audit.write</td></tr>
+    <tr class="pass"><td>14</td><td><code>.mcp.json</code> example documented</td><td>PASS</td><td>Plan §3.2 + this closure §6</td></tr>
+    <tr class="pass"><td>15</td><td>Phase 1.5 Critic findings resolved</td><td>PASS</td><td>Plan §10 — 12 findings (4 HIGH + 4 MED + 2 LOW + 2 INFO) all addressed</td></tr>
+    <tr class="pass"><td>16</td><td>Phase 5 Auditor SHIP-OK</td><td>PASS</td><td>Plan §11 — 0 HIGH, 2 MED non-blocking; QA1 doc-comment fix applied this turn</td></tr>
+  </tbody>
+</table>
+
+<h2>§3 Code shipped</h2>
+
+<table>
+  <thead><tr><th>Path</th><th>Action</th><th>LOC</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td><code>musu-rs/src/install/token.rs</code></td><td>NEW</td><td>94</td><td>Shared MUSU_BRIDGE_TOKEN resolver (C4 dedup)</td></tr>
+    <tr><td><code>musu-rs/src/control/mod.rs</code></td><td>REPLACE (was 3-LOC stub)</td><td>334</td><td>ControlServer + 13 <code>#[tool]</code> methods + eager BridgeClient init + Ctrl-C watcher</td></tr>
+    <tr><td><code>musu-rs/src/control/bridge_client.rs</code></td><td>NEW</td><td>224</td><td>Eager try_new; 8 T1 proxy methods; HTTP→tool-string error mapping (C12)</td></tr>
+    <tr><td><code>musu-rs/src/control/tools/mod.rs</code></td><td>NEW</td><td>12</td><td>Re-export module entry</td></tr>
+    <tr><td><code>musu-rs/src/control/tools/params.rs</code></td><td>NEW</td><td>152</td><td>T2_SUFFIX + T2_BODY consts; 6 param structs w/ <code>#[serde(deny_unknown_fields)]</code>; QA1 doc fix applied</td></tr>
+    <tr><td><code>musu-rs/tests/r3_companies_get.rs</code></td><td>NEW</td><td>264</td><td>200 + 404 + audit-invariant (C3 gate)</td></tr>
+    <tr><td><code>musu-rs/tests/r3_stdout_clean.rs</code></td><td>NEW</td><td>170</td><td>2 scenarios: missing-token + empty-stdin (C2 gate)</td></tr>
+    <tr><td><code>musu-rs/tests/r3_mcp_smoke.rs</code></td><td>NEW</td><td>470</td><td>Subprocess + rmcp client + wiremock; 13-tool parameterized + bridge-unreachable</td></tr>
+    <tr><td><code>musu-rs/src/main.rs</code></td><td>MODIFY</td><td>+89</td><td>Per-subcommand tracing init (C1); Control branch uses <code>with_writer(std::io::stderr)</code></td></tr>
+    <tr><td><code>musu-rs/Cargo.toml</code></td><td>MODIFY</td><td>+20</td><td>rmcp 1.7, tokio-util, schemars, dev wiremock + rmcp client feature</td></tr>
+    <tr><td><code>musu-rs/src/install/mod.rs</code></td><td>MODIFY</td><td>+4</td><td><code>pub mod token</code></td></tr>
+    <tr><td><code>musu-rs/src/install/auto_update.rs</code></td><td>MODIFY</td><td>-26</td><td>read_ipc_token delegates to token::read_bridge_token (C4 dedup)</td></tr>
+    <tr><td><code>musu-rs/src/install/uninstall.rs</code></td><td>MODIFY</td><td>-25</td><td>Same delegation</td></tr>
+    <tr><td><code>musu-rs/src/bridge/handlers/companies.rs</code></td><td>MODIFY</td><td>+25</td><td>New <code>get</code> handler — fetch_optional + NotFound (C9); NO audit.write (C3)</td></tr>
+    <tr><td><code>musu-rs/src/bridge/handlers/mod.rs</code></td><td>MODIFY</td><td>+3</td><td>Route <code>GET /api/companies/:id</code></td></tr>
+  </tbody>
+</table>
+
+<p><strong>Total</strong>: 8 NEW + 7 MODIFY, ~1,720 LOC net new (with -51 from dedup). Builder envelope counted "11 NEW + 4 MODIFY" — Auditor QA6 reconciled to actual 8+7 (plan's 4 <code>tools/*.rs</code> sub-files consolidated into <code>control/mod.rs</code> via <code>#[tool_router]</code> for shared <code>&self</code> access; architecturally sound per inline comment at <code>mod.rs:64-67</code>).</p>
+
+<h2>§4 Critic + Auditor walks</h2>
+
+<h3>§4.1 Critic (system-architect, 12 findings)</h3>
+
+<ul>
+  <li><strong>C1 HIGH</strong> tracing init order — RESOLVED: per-subcommand init in <code>main.rs:79-84</code> + <code>main.rs:102-106</code> Control arm uses stderr writer</li>
+  <li><strong>C2 HIGH</strong> tool count drift — RESOLVED: locked at exactly 13 (8 T1 + 5 T2); assertion at <code>r3_mcp_smoke.rs:318</code></li>
+  <li><strong>C3 HIGH</strong> GET audit policy — RESOLVED: <code>companies.rs:74-93</code> has NO audit.write; test <code>r3_companies_get.rs:175</code> verifies row count unchanged</li>
+  <li><strong>C4 HIGH</strong> token resolver dedup — RESOLVED: new <code>install/token.rs:21-43</code>; 3 call sites delegate (auto_update.rs:430-432, uninstall.rs:190-192, bridge_client.rs:60-66)</li>
+  <li>C5 MED transport.rs dropped — confirmed absent</li>
+  <li>C6 MED eager BridgeClient — <code>control/mod.rs:283</code> Arc::new(try_new()...) before serve</li>
+  <li>C7 MED cargo tree no NEW duplicates — verified; tower 0.4/0.5 pre-existing from R1</li>
+  <li>C8 MED stdin EOF watcher — <code>control/mod.rs:294</code> CancellationToken + Ctrl-C watcher</li>
+  <li>C9 LOW fetch_optional NotFound — <code>companies.rs:88-91</code> ok_or_else MusuError::NotFound</li>
+  <li>C10 LOW T2 suffix const — <code>params.rs:30</code> T2_SUFFIX; runtime <code>ends_with</code> gate at smoke.rs:352</li>
+  <li>C11 INFO parameterized smoke — 13-tool fixture table at smoke.rs:240-318</li>
+  <li>C12 INFO error mapping — <code>bridge_client.rs:101,113,117,118</code> connection-refused/401/4xx/5xx</li>
+</ul>
+
+<h3>§4.2 Auditor (quality-engineer, SHIP-OK)</h3>
+
+<ul>
+  <li><strong>QA1 MED</strong> params.rs:4-6 stale doc-comment — RESOLVED this turn (now describes the literal-only macro restriction + runtime test gate)</li>
+  <li>QA2 MED smoke test 60-130s runtime — ACK; V25 refactor candidate if CI flake emerges</li>
+  <li>QA3-5 LOW — code-quality polish, all ACK</li>
+  <li>QA6 INFO file count reconciliation — plan's 4 tools/*.rs consolidated into mod.rs via <code>#[tool_router]</code></li>
+  <li>QA7-9 INFO — documented invariants + tuning notes</li>
+</ul>
+
+<p>All four Critic HIGHs (C1-C4) explicitly cited at file:line by Auditor. SHIP-OK without audit-fix needed.</p>
+
+<h2>§5 What R3 closes</h2>
+
+<table>
+  <thead><tr><th>R3 closes</th><th>How</th></tr></thead>
+  <tbody>
+    <tr><td>Standalone Python <code>musu-control</code> MCP process</td><td>Replaced by <code>musu control</code> Rust subcommand. Python module can be deleted at R10 alongside the rest of the Python tree.</td></tr>
+    <tr><td>Token-resolver duplication in install module</td><td>R6 Auditor QB2 backlog item: previously 2 copies (auto_update + uninstall). Now 1 canonical + 3 delegators (R3 adds bridge_client).</td></tr>
+    <tr><td>Missing <code>GET /api/companies/:id</code> on R1 bridge</td><td>R1 patch in R3 — single-row read for <code>get_company</code> tool.</td></tr>
+    <tr><td>Claude Code MCP integration after Python deletion</td><td><code>.mcp.json</code> snippet (§6) replaces <code>scripts/musu-control-mcp.sh</code> wrapper.</td></tr>
+  </tbody>
+</table>
+
+<h2>§6 <code>.mcp.json</code> example</h2>
+
+<p>Operator's per-project Claude Code config:</p>
+
+<pre><code>{
+  "mcpServers": {
+    "musu-control": {
+      "command": "musu",
+      "args": ["control"],
+      "env": {
+        "MUSU_BRIDGE_URL": "http://127.0.0.1:8070"
+      }
+    }
+  }
+}</code></pre>
+
+<p>Token resolved via <code>~/.musu/bridge.env</code> (R6-managed); never appears in <code>.mcp.json</code>.</p>
+
+<h2>§7 Tool surface (13)</h2>
+
+<h3>T1 strictly-native (8)</h3>
+<ul>
+  <li><code>list_companies</code> → GET /api/companies</li>
+  <li><code>get_company</code> → GET /api/companies/:id (R1 patch in this WS)</li>
+  <li><code>create_company</code> → POST /api/companies</li>
+  <li><code>activate_company</code> → POST /api/companies/:id/activate</li>
+  <li><code>run_company</code> → POST /api/companies/:id/run</li>
+  <li><code>delegate_task</code> → POST /api/tasks/delegate</li>
+  <li><code>cancel_task</code> → DELETE /api/tasks/:task_id (R5)</li>
+  <li><code>list_nodes</code> → GET /api/nodes</li>
+</ul>
+
+<h3>T2 deprecated stubs (5)</h3>
+<p>Each returns <code>"endpoint not yet ported to Rust (V25 candidate)"</code>. Description ends with <code> (deprecated, will be removed in V25 unless ported to native Rust endpoint)</code>.</p>
+<ul>
+  <li><code>list_agents</code></li>
+  <li><code>get_agent</code></li>
+  <li><code>get_dashboard</code></li>
+  <li><code>list_runs</code></li>
+  <li><code>get_activity</code></li>
+</ul>
+
+<h2>§8 V25 backlog</h2>
+
+<ul>
+  <li>Port T2 tools to T1 as their backing endpoints port to Rust (agents, dashboard, runs, activity)</li>
+  <li>QA2 smoke test refactor: shared harness vs 13× subprocess reboot</li>
+  <li>QA9 audit timing: replace 500ms sleep with explicit audit.flush()</li>
+  <li>S13 HKDF-derived IPC subkey from MUSU_BRIDGE_TOKEN (R6 carryover)</li>
+  <li>tower 0.4 removal once axum 0.8 lands + reqwest aligns</li>
+  <li>Full 80-tool port subset (post-V24)</li>
+</ul>
+
+<h2>§9 Constitution gates</h2>
+
+<ul>
+  <li>Const III: NOT triggered (no schema change)</li>
+  <li>Const VI: NOT triggered</li>
+  <li>Const VII: per-push, R-cleanup bundle approval via [[feedback-const-vii-batched-approval]]</li>
+</ul>
+
+<h2>§10 References</h2>
+
+<ul>
+  <li>wiki/493 plan (this closure's parent)</li>
+  <li>wiki/495c R5 closure + wiki/496c R6 closure (predecessors)</li>
+  <li>wiki/490 master plan §5-R3</li>
+  <li>GOAL.md §A.1.1 single-machine R-cleanup pivot</li>
+  <li>Phase 0 Researcher envelope (F1 frame correction, F3 rmcp 1.7 substrate, F6/F8 T1/T2 split, Q1-Q8 lock-ins)</li>
+  <li>Phase 1.5 Critic envelope (C1-C12)</li>
+  <li>Phase 5 Auditor envelope (QA1-QA9)</li>
+  <li>Memory tags: [[feedback-no-python]], [[decision-musu-backend-rust]], [[feedback-self-contained-product]], [[feedback-no-yagni-architecture]], [[feedback-plan-stage-auditor]], [[feedback-const-vii-batched-approval]], [[feedback-scribe-html-only]]</li>
+</ul>
+
+</div>
+</body>
+</html>

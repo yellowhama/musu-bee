@@ -27,6 +27,9 @@ pub fn native_router() -> Router<AppState> {
             "/api/companies",
             get(companies::list).post(companies::create),
         )
+        // V24-R3 wiki/493 §3 R1 patch: single-row GET for control plane's
+        // `get_company` MCP tool. Read-only, no audit (Critic C3).
+        .route("/api/companies/:id", get(companies::get))
         .route("/api/companies/:id/activate", post(companies::activate))
         .route("/api/companies/:id/run", post(run::run_company))
         .route("/api/tasks/delegate", post(tasks::delegate))

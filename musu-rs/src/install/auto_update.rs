@@ -423,28 +423,12 @@ async fn run_github_release(home: &Path, cfg: &UpdateConfig, opts: &AutoUpdateOp
 /// env, falling back to `~/.musu/bridge.env`. Returns None when neither
 /// is set — the IPC call still proceeds and musud will reject if it has
 /// an expected token configured.
+///
+/// V24-R3 wiki/493 Critic C4 (HIGH): delegates to the shared resolver in
+/// `crate::install::token` to eliminate the previous 2-copy duplication
+/// (auto_update.rs + uninstall.rs). Behavior preserved.
 fn read_ipc_token(home: &Path) -> Option<String> {
-    if let Ok(t) = std::env::var("MUSU_BRIDGE_TOKEN") {
-        if !t.is_empty() {
-            return Some(t);
-        }
-    }
-    let env_path = home.join("bridge.env");
-    let body = std::fs::read_to_string(&env_path).ok()?;
-    for line in body.lines() {
-        let line = line.trim();
-        if line.is_empty() || line.starts_with('#') {
-            continue;
-        }
-        let line = line.strip_prefix("export ").unwrap_or(line);
-        if let Some(rest) = line.strip_prefix("MUSU_BRIDGE_TOKEN=") {
-            let val = rest.trim_matches(|c| c == '"' || c == '\'');
-            if !val.is_empty() {
-                return Some(val.to_string());
-            }
-        }
-    }
-    None
+    super::token::read_bridge_token(home)
 }
 
 /// R6 audit-fix (Auditor B QB2): compose a one-line IPC request JSON with

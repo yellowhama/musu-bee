@@ -184,28 +184,11 @@ fn is_recent_file(path: &Path) -> bool {
 
 /// R6 audit-fix (Auditor B QB2): read MUSU_BRIDGE_TOKEN from env or
 /// `~/.musu/bridge.env` so we can include it in the IPC stop request.
+///
+/// V24-R3 wiki/493 Critic C4 (HIGH): delegates to the shared resolver in
+/// `crate::install::token`. Behavior preserved.
 fn read_ipc_token(home: &Path) -> Option<String> {
-    if let Ok(t) = std::env::var("MUSU_BRIDGE_TOKEN") {
-        if !t.is_empty() {
-            return Some(t);
-        }
-    }
-    let env_path = home.join("bridge.env");
-    let body = std::fs::read_to_string(&env_path).ok()?;
-    for line in body.lines() {
-        let line = line.trim();
-        if line.is_empty() || line.starts_with('#') {
-            continue;
-        }
-        let line = line.strip_prefix("export ").unwrap_or(line);
-        if let Some(rest) = line.strip_prefix("MUSU_BRIDGE_TOKEN=") {
-            let val = rest.trim_matches(|c| c == '"' || c == '\'');
-            if !val.is_empty() {
-                return Some(val.to_string());
-            }
-        }
-    }
-    None
+    super::token::read_bridge_token(home)
 }
 
 /// Compose the stop-all IPC request JSON, including the bearer token

@@ -25,6 +25,10 @@ pub mod platform;
 pub mod runner;
 pub mod schema_gate;
 pub mod staged_swap;
+// V24-R3 wiki/493 Critic C4 (HIGH): shared MUSU_BRIDGE_TOKEN resolver.
+// Replaces the duplicated `read_ipc_token` impls in auto_update.rs +
+// uninstall.rs and is reused by control::bridge_client.
+pub mod token;
 pub mod uninstall;
 pub mod update_lock;
 

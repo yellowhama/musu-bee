@@ -41,6 +41,19 @@ http-body-util = "0.1"
 # R5 (wiki/495): writer module deps
 tokio-stream = { version = "0.1", features = ["sync"] }
 
+# R3 (wiki/493): control plane MCP server.
+# Anthropic-blessed Rust MCP SDK. Pinned at "1.7" minor per Critic C5 / §7
+# R3-W1 — if 1.7 yanks or 2.0 breaks, fallback path is rewriting control/
+# against jsonrpc-core + tokio stdin/stdout (~300 LOC delta).
+# Features: default {base64,macros,server} + transport-io for stdio() helper +
+# schemars (re-exported, needed for Parameters/JsonSchema derive in tools).
+rmcp = { version = "1.7", features = ["transport-io", "schemars"] }
+schemars = "1"
+# tokio-util already pulled in transitively (tokio_util::codec via rmcp's
+# transport-async-rw); declared explicitly so `CancellationToken` is part of
+# our public API surface contract, not an accidental transitive borrow.
+tokio-util = { version = "0.7", features = ["rt"] }
+
 # R6 (wiki/496): installer + auto-update + supervisor IPC client deps
 dirs = "5"                       # F3 cross-platform home_dir()
 ureq = { version = "2", default-features = false, features = ["tls"] }
@@ -66,6 +79,13 @@ tokio = { version = "1", features = ["full", "test-util"] }
 tempfile = "3"
 # R6 audit-fix (QB6): tower::ServiceExt::oneshot for router-level auth tests.
 tower = { version = "0.4", features = ["util"] }
+# R3 (wiki/493) test deps:
+#  * rmcp `client` feature enables RoleClient + IntoTransport so the smoke
+#    test can drive the server in-process via tokio::io::duplex pipes (no
+#    subprocess for the MCP plumbing).
+#  * wiremock mocks the loopback bridge endpoints that T1 tools proxy to.
+rmcp = { version = "1.7", features = ["transport-io", "schemars", "client"] }
+wiremock = "0.6"
 
 [profile.release]
 opt-level = 3

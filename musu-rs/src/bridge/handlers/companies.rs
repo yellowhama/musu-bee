@@ -68,6 +68,31 @@ fn row_to_company(row: &sqlx::sqlite::SqliteRow) -> Result<Company> {
     })
 }
 
+/// V24-R3 wiki/493 §3 R1 patch + Critic C3 (HIGH) / C9 (LOW):
+/// GET /api/companies/:id — single-row read, no audit, NotFound on miss.
+///
+/// MUST mirror `list()`'s shape exactly: schema_applied guard → fetch
+/// (here `fetch_optional`, NOT `fetch_one`, per C9 so an absent row returns
+/// 404 instead of 500 via `sqlx::Error::RowNotFound`) → `row_to_company` →
+/// Json. MUST NOT call `state.audit.write` — reads are non-mutating and R1's
+/// `list()` doesn't audit either (Critic C3 mandate; matched 1:1).
+pub async fn get(State(state): State<AppState>, Path(id): Path<String>) -> Result<Json<Company>> {
+    if !crate::bridge::db::schema_applied(&state.pool).await {
+        return Err(MusuError::Internal(
+            "schema not applied — apply R2 migrations first".into(),
+        ));
+    }
+
+    let row = sqlx::query("SELECT * FROM companies WHERE id = ?")
+        .bind(&id)
+        .fetch_optional(&state.pool)
+        .await
+        .map_err(MusuError::Sqlx)?
+        .ok_or_else(|| MusuError::NotFound(format!("company {} not found", id)))?;
+
+    Ok(Json(row_to_company(&row)?))
+}
+
 pub async fn list(
     State(state): State<AppState>,
     Query(q): Query<ListQuery>,

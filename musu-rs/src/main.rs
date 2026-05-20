@@ -55,26 +55,85 @@ enum Cmd {
     ApplySchema(install::SchemaGateOpts),
 }
 
+/// V24-R3 wiki/493 Critic C1 (HIGH): per-subcommand `tracing` init.
+///
+/// Previously `tracing_subscriber::fmt().init()` ran in `main()` BEFORE
+/// `Cli::parse`, locking the global subscriber to stdout for the lifetime of
+/// the process. That makes `Cmd::Control`'s "stderr-only writer" structurally
+/// impossible — by the time `control::run()` ran, the global subscriber was
+/// already wired to stdout, and `tracing_subscriber::set_global_default` panics
+/// on re-init.
+///
+/// Fix: each `Cmd::*` arm now calls one of these init fns BEFORE its `run`.
+/// Non-control arms preserve the original stdout sink. Control routes to
+/// stderr explicitly — `r3_stdout_clean.rs` is the regression gate.
+fn init_tracing_default() {
+    let _ = tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .try_init();
+}
+
+/// Control-only: identical filter but writes to stderr so MCP JSON-RPC frames
+/// on stdout stay byte-clean (C2 invariant — `r3_stdout_clean.rs` asserts 0
+/// stdout bytes with empty stdin).
+fn init_tracing_control() {
+    let _ = tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .with_writer(std::io::stderr)
+        .try_init();
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-        .init();
-
     let cli = Cli::parse();
     match cli.command {
-        Cmd::Bridge => bridge::run().await,
-        Cmd::Indexer => indexer::run().await,
-        Cmd::Writer => writer::run().await,
-        Cmd::Control => control::run().await,
-        Cmd::Core => core::run().await,
+        Cmd::Bridge => {
+            init_tracing_default();
+            bridge::run().await
+        }
+        Cmd::Indexer => {
+            init_tracing_default();
+            indexer::run().await
+        }
+        Cmd::Writer => {
+            init_tracing_default();
+            writer::run().await
+        }
+        Cmd::Control => {
+            // C1: stderr-only init MUST happen BEFORE control::run() so any
+            // tracing call inside rmcp serve also lands on stderr.
+            init_tracing_control();
+            control::run().await
+        }
+        Cmd::Core => {
+            init_tracing_default();
+            core::run().await
+        }
 
         // R6 wiki/496:
-        Cmd::Install(opts) => install::run_install(opts).await,
-        Cmd::Uninstall(opts) => install::run_uninstall(opts).await,
-        Cmd::AutoUpdate(opts) => install::run_auto_update(opts).await,
-        Cmd::Supervise { musu_home } => install::run_supervise(musu_home).await,
-        Cmd::SchemaPrecheck(opts) => install::run_schema_precheck(opts).await,
-        Cmd::ApplySchema(opts) => install::run_apply_schema(opts).await,
+        Cmd::Install(opts) => {
+            init_tracing_default();
+            install::run_install(opts).await
+        }
+        Cmd::Uninstall(opts) => {
+            init_tracing_default();
+            install::run_uninstall(opts).await
+        }
+        Cmd::AutoUpdate(opts) => {
+            init_tracing_default();
+            install::run_auto_update(opts).await
+        }
+        Cmd::Supervise { musu_home } => {
+            init_tracing_default();
+            install::run_supervise(musu_home).await
+        }
+        Cmd::SchemaPrecheck(opts) => {
+            init_tracing_default();
+            install::run_schema_precheck(opts).await
+        }
+        Cmd::ApplySchema(opts) => {
+            init_tracing_default();
+            install::run_apply_schema(opts).await
+        }
     }
 }
