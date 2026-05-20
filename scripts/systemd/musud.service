@@ -4,8 +4,11 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=%h/musu-functions
-ExecStart=%h/musu-functions/bin/musud
+# wiki/496 D12: was %h/musu-functions/... (Python-era layout). R6
+# installer writes to ~/.musu/bin/ and the runtime resolves via dirs::home_dir().
+WorkingDirectory=%h/.musu
+ExecStart=%h/.musu/bin/musud
+Environment=MUSU_HOME=%h/.musu
 KillMode=mixed
 TimeoutStopSec=20
 SendSIGKILL=yes

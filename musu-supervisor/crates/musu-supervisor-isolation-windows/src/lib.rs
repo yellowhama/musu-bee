@@ -29,8 +29,7 @@ impl Isolation for WindowsIsolation {
         _profile: &IsolationProfile,
     ) -> Result<Child, IsolationError> {
         Err(IsolationError::Unsupported(
-            "WindowsIsolation::spawn not yet wired — task #297 in progress"
-                .into(),
+            "WindowsIsolation::spawn not yet wired — task #297 in progress".into(),
         ))
     }
 
@@ -47,8 +46,7 @@ impl Isolation for WindowsIsolation {
         #[cfg(not(target_os = "windows"))]
         {
             Err(IsolationError::Unsupported(
-                "WindowsIsolation only available on target_os=\"windows\""
-                    .into(),
+                "WindowsIsolation only available on target_os=\"windows\"".into(),
             ))
         }
     }

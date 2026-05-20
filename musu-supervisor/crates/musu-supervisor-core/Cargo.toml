@@ -8,11 +8,34 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "1"
 toml = "0.7"
-tokio = { version = "1", features = ["process", "io-util", "net", "rt", "sync", "time", "fs"], optional = true }
+# R6 audit-fix (Auditor B QB2): IPC token comparison via constant-time eq.
+# Same crate version as musu-rs (workspace-consistent).
+subtle = "2"
+# R6 (wiki/496 F3 / D5): cross-platform home-directory resolution.
+# Replaces `env::var("HOME").unwrap_or("/root")` at config.rs:207,255
+# which was unconditionally broken on Windows.
+dirs = "5"
+# R6 (wiki/496 D5): named-pipe IPC on Windows needs tokio "net" feature
+# (already covered by the existing feature list).
+tokio = { version = "1", features = ["process", "io-util", "net", "rt", "sync", "time", "fs", "macros", "signal"], optional = true }
 libc = { version = "0.2", optional = true }
+
+# R6 (wiki/496 F4 / D5 / S8): Windows Named Pipe transport requires the
+# Win32_System_Pipes + Win32_Security feature surfaces of windows-sys
+# for SDDL-based ACL setup (operator SID only — S8 mitigation).
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_Security_Authorization",
+    "Win32_System_Pipes",
+    "Win32_Storage_FileSystem",
+] }
 
 [features]
 runtime = ["tokio", "libc"]
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
+# R6 audit-fix (Auditor B QB2): unix_socket_has_0600_perms uses tempdir.
+tempfile = "3"

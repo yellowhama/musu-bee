@@ -19,10 +19,15 @@ pub enum ConfigError {
     #[error("invalid port for service '{service}': port {port} is out of the valid range 1-65535")]
     InvalidPort { service: String, port: u32 },
 
-    #[error(
-        "port conflict: services '{a}' and '{b}' both bind port {port}"
-    )]
+    #[error("port conflict: services '{a}' and '{b}' both bind port {port}")]
     PortConflict { a: String, b: String, port: u16 },
+
+    /// R6 (wiki/496 F3): emitted by `MusuConfig::load_default` /
+    /// `musu_dir` / `default_*_path` when `dirs::home_dir()` returns None
+    /// (no $HOME on Unix, no %USERPROFILE% on Windows). Previously this
+    /// silently fell back to `/root` which broke Windows entirely.
+    #[error("cannot determine user home directory (HOME/USERPROFILE unset)")]
+    NoHomeDir,
 }
 
 /// Restart policy for a supervised service.
@@ -184,6 +189,11 @@ impl Default for MusuConfig {
 
 impl MusuConfig {
     /// Parse a `musu.toml` from a raw TOML string.
+    ///
+    /// Pre-existing API; matches the conventional naming for parse-from-text
+    /// constructors in supervisor-core. Implementing `FromStr` instead would
+    /// constrain Err to a different shape and break the public surface.
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(content: &str) -> Result<Self, ConfigError> {
         let cfg: MusuConfig = toml::from_str(content)?;
         cfg.validate()?;
@@ -203,9 +213,13 @@ impl MusuConfig {
     /// Load from the default location (`~/.musu/musu.toml`).
     ///
     /// Returns `Ok(MusuConfig::default())` if the file does not exist.
+    ///
+    /// **R6 (wiki/496 F3) fix**: was `env::var("HOME").unwrap_or("/root")`
+    /// — broken on Windows where %USERPROFILE% is the convention.
+    /// `dirs::home_dir()` resolves the right path on all three platforms.
     pub fn load_default() -> Result<Self, ConfigError> {
-        let home = std::env::var("HOME").unwrap_or_else(|_| "/root".to_string());
-        let path = Path::new(&home).join(".musu").join("musu.toml");
+        let home = dirs::home_dir().ok_or(ConfigError::NoHomeDir)?;
+        let path = home.join(".musu").join("musu.toml");
         if !path.exists() {
             return Ok(Self::default());
         }
@@ -245,15 +259,22 @@ impl MusuConfig {
     ///
     /// Falls back to the service key name when `command` is not set.
     pub fn service_command<'a>(&'a self, name: &'a str) -> Option<&'a str> {
-        self.services.get(name).map(|s| {
-            s.command.as_deref().unwrap_or(name)
-        })
+        self.services
+            .get(name)
+            .map(|s| s.command.as_deref().unwrap_or(name))
     }
 
     /// Returns the default musu state directory (`~/.musu`).
+    ///
+    /// **R6 (wiki/496 F3) fix**: now uses `dirs::home_dir()` to resolve
+    /// cross-platform (was `HOME` env-var only, broken on Windows).
+    /// Falls back to the current directory if no home can be resolved
+    /// (well-formed in the type system; callers like `default_socket_path`
+    /// keep their existing infallible signature for back-compat).
     pub fn musu_dir() -> std::path::PathBuf {
-        let home = std::env::var("HOME").unwrap_or_else(|_| "/root".to_string());
-        std::path::Path::new(&home).join(".musu")
+        dirs::home_dir()
+            .unwrap_or_else(|| std::path::PathBuf::from("."))
+            .join(".musu")
     }
 
     /// Path to the IPC Unix socket (`~/.musu/musu.sock`).
@@ -310,10 +331,7 @@ DATA_DIR  = "~/.musu"
         assert_eq!(cfg.services.len(), 5);
         assert!(cfg.services["core"].enabled);
         assert!(!cfg.services["llm"].enabled);
-        assert_eq!(
-            cfg.services["llm"].command.as_deref(),
-            Some("ollama")
-        );
+        assert_eq!(cfg.services["llm"].command.as_deref(), Some("ollama"));
         assert_eq!(cfg.services["llm"].args, vec!["serve"]);
 
         assert_eq!(cfg.ports["core"], 8420);
@@ -359,11 +377,27 @@ core = { enabled = true }
 
     #[test]
     fn load_default_returns_empty_when_file_missing() {
-        // Force HOME to a temp dir that definitely has no musu.toml.
+        // R6 (wiki/496 F3): load_default uses dirs::home_dir() which reads
+        // HOME on Unix and USERPROFILE on Windows. We set BOTH so the test
+        // works regardless of platform. tempfile gives us a guaranteed-empty
+        // dir; ~/.musu/musu.toml inside it definitely does not exist.
         let dir = std::env::temp_dir().join(format!("musu-test-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
+        // Save originals so this test doesn't leak state into other tests.
+        let prev_home = std::env::var_os("HOME");
+        let prev_profile = std::env::var_os("USERPROFILE");
         std::env::set_var("HOME", &dir);
+        std::env::set_var("USERPROFILE", &dir);
         let cfg = MusuConfig::load_default().unwrap();
+        // Restore.
+        match prev_home {
+            Some(v) => std::env::set_var("HOME", v),
+            None => std::env::remove_var("HOME"),
+        }
+        match prev_profile {
+            Some(v) => std::env::set_var("USERPROFILE", v),
+            None => std::env::remove_var("USERPROFILE"),
+        }
         let _ = std::fs::remove_dir_all(&dir);
         assert_eq!(cfg, MusuConfig::default());
     }

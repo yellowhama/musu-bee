@@ -15,11 +15,8 @@ use thiserror::Error;
 /// carries everything the spawn needs.
 pub trait Isolation: Send + Sync {
     /// Spawn `cmd` inside the sandbox described by `profile`.
-    fn spawn(
-        &self,
-        cmd: &mut Command,
-        profile: &IsolationProfile,
-    ) -> Result<Child, IsolationError>;
+    fn spawn(&self, cmd: &mut Command, profile: &IsolationProfile)
+        -> Result<Child, IsolationError>;
 
     /// Self-test: does this implementation actually work on this host?
     fn available(&self) -> Result<(), IsolationError>;

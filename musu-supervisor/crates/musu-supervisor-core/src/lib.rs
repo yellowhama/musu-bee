@@ -1,7 +1,7 @@
 pub mod config;
-pub mod ipc;
 #[cfg(feature = "runtime")]
 pub mod health;
+pub mod ipc;
 #[cfg(feature = "runtime")]
 pub mod supervisor;
 

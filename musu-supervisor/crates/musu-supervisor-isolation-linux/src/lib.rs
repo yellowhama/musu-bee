@@ -30,8 +30,7 @@ impl Isolation for LinuxIsolation {
         _profile: &IsolationProfile,
     ) -> Result<Child, IsolationError> {
         Err(IsolationError::Unsupported(
-            "LinuxIsolation::spawn not yet wired — task #296 in progress"
-                .into(),
+            "LinuxIsolation::spawn not yet wired — task #296 in progress".into(),
         ))
     }
 

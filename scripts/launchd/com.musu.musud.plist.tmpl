@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  musu launchd LaunchAgent template (wiki/496 §3 + D11).
+
+  Substitutes:
+    {MUSU_HOME}  — operator's ~/.musu directory
+
+  Installer (install/platform/macos.rs) writes the rendered copy to:
+    ~/Library/LaunchAgents/com.musu.musud.plist
+
+  D11: KeepAlive is in DICT form so launchd restarts on Crashed (true)
+  but NOT on clean SuccessfulExit (false). This pairs musud's own
+  supervision loop without fighting it.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.musu.musud</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>{MUSU_HOME}/bin/musud</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>{MUSU_HOME}</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>MUSU_HOME</key>
+    <string>{MUSU_HOME}</string>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>{MUSU_HOME}/logs/musud.log</string>
+  <key>StandardErrorPath</key>
+  <string>{MUSU_HOME}/logs/musud.err</string>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <!-- D11: dict-form KeepAlive (Crashed:true, SuccessfulExit:false). -->
+  <key>KeepAlive</key>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+    <key>Crashed</key>
+    <true/>
+  </dict>
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+
+  <key>ProcessType</key>
+  <string>Interactive</string>
+</dict>
+</plist>

@@ -39,8 +39,7 @@ async fn http_probe(url: &str, timeout: Duration) -> ProbeResult {
     };
     match tokio::time::timeout(timeout, async {
         let mut stream = TcpStream::connect(&addr).await?;
-        let req =
-            format!("GET {path} HTTP/1.0\r\nHost: {addr}\r\nConnection: close\r\n\r\n");
+        let req = format!("GET {path} HTTP/1.0\r\nHost: {addr}\r\nConnection: close\r\n\r\n");
         stream.write_all(req.as_bytes()).await?;
         let mut buf = Vec::new();
         stream.read_to_end(&mut buf).await?;
@@ -204,7 +203,10 @@ mod tests {
         let _ = stop_tx.send(true);
 
         let result = tokio::time::timeout(Duration::from_secs(2), handle).await;
-        assert!(result.is_ok(), "health loop did not exit within 2s after stop signal");
+        assert!(
+            result.is_ok(),
+            "health loop did not exit within 2s after stop signal"
+        );
     }
 
     #[tokio::test]
@@ -221,7 +223,7 @@ mod tests {
         let config = HealthConfig {
             http: None,
             tcp: Some(addr.to_string()), // always refused
-            interval_secs: 0,           // no wait between checks
+            interval_secs: 0,            // no wait between checks
             failure_threshold: 2,
             max_restarts: 0,
         };

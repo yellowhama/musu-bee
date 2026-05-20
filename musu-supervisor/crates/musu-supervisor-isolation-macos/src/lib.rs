@@ -30,8 +30,7 @@ impl Isolation for MacOsIsolation {
         _profile: &IsolationProfile,
     ) -> Result<Child, IsolationError> {
         Err(IsolationError::Unsupported(
-            "MacOsIsolation::spawn not yet wired — task #298 in progress"
-                .into(),
+            "MacOsIsolation::spawn not yet wired — task #298 in progress".into(),
         ))
     }
 

@@ -20,8 +20,12 @@ async fn main() {
 
     let supervisor = Supervisor::start(&cfg).await;
 
-    // Start the IPC socket server so `musu stop/status` can connect.
+    // Start the IPC server so `musu stop/status/freeze/unfreeze` can connect.
+    // R6 (wiki/496 F4 / D1): Windows path also lights up — Named Pipe at
+    // `\\.\pipe\musu` with reject_remote_clients=true (S8).
     #[cfg(unix)]
+    let _ipc_task = supervisor.start_ipc_server();
+    #[cfg(windows)]
     let _ipc_task = supervisor.start_ipc_server();
 
     let shutdown_notify = supervisor.ipc.shutdown_notify.clone();

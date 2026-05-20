@@ -41,15 +41,31 @@ http-body-util = "0.1"
 # R5 (wiki/495): writer module deps
 tokio-stream = { version = "0.1", features = ["sync"] }
 
+# R6 (wiki/496): installer + auto-update + supervisor IPC client deps
+dirs = "5"                       # F3 cross-platform home_dir()
+ureq = { version = "2", default-features = false, features = ["tls"] }
+                                 # auto-update HTTP client (smaller than reqwest)
+fs2 = "0.4"                      # F15 advisory file lock for auto-update.lock
+getrandom = "0.2"                # S3 explicit CSPRNG for bridge token
+
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
+# R6 (wiki/496): release-tarball extraction on Unix.
+flate2 = "1"
+tar = "0.4.40"                   # S7 — pin minimum for zip-slip mitigations
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.59", features = ["Win32_System_JobObjects", "Win32_System_Console", "Win32_System_Threading", "Win32_Foundation", "Win32_Security"] }
+windows-sys = { version = "0.59", features = ["Win32_System_JobObjects", "Win32_System_Console", "Win32_System_Threading", "Win32_Foundation", "Win32_Security", "Win32_Storage_FileSystem"] }
+# R6 (wiki/496): release-zip extraction + Windows Service registration.
+zip = { version = "0.6.6", default-features = false, features = ["deflate"] }
+                                 # S7 — pin minimum for ZipFile::enclosed_name
+windows-service = "0.7"          # F5 / S2 — opt-in --boot-start path
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full", "test-util"] }
 tempfile = "3"
+# R6 audit-fix (QB6): tower::ServiceExt::oneshot for router-level auth tests.
+tower = { version = "0.4", features = ["util"] }
 
 [profile.release]
 opt-level = 3

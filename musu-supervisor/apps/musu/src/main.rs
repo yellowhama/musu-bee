@@ -53,7 +53,11 @@ fn parse_args() -> Result<Args, String> {
         .unwrap_or_else(|| "help".to_string());
     let rest = positional.into_iter().skip(1).collect();
 
-    Ok(Args { config_path, subcommand, rest })
+    Ok(Args {
+        config_path,
+        subcommand,
+        rest,
+    })
 }
 
 // ── Entry point ────────────────────────────────────────────────────────────
@@ -197,7 +201,13 @@ async fn cmd_stop_ipc(
 
     let is_stop_all = service.is_none();
     let socket_path = MusuConfig::default_socket_path();
-    let req = IpcRequest { cmd: IpcCmd::Stop, service };
+    // R6 audit-fix (Auditor B QB2): include the bearer token so musud
+    // can authenticate this request.
+    let req = IpcRequest {
+        cmd: IpcCmd::Stop,
+        service,
+        token: read_ipc_token(),
+    };
     let resp = send_ipc(&socket_path, &req).await?;
     if resp.ok {
         if is_stop_all {
@@ -226,7 +236,12 @@ async fn cmd_status_ipc(_config_path: Option<&std::path::Path>) -> Result<(), St
     use musu_supervisor_core::ipc::{IpcCmd, IpcRequest};
 
     let socket_path = MusuConfig::default_socket_path();
-    let req = IpcRequest { cmd: IpcCmd::Status, service: None };
+    // R6 audit-fix (Auditor B QB2): include the bearer token.
+    let req = IpcRequest {
+        cmd: IpcCmd::Status,
+        service: None,
+        token: read_ipc_token(),
+    };
     let resp = send_ipc(&socket_path, &req).await?;
     if !resp.ok {
         return Err(resp.error.unwrap_or_else(|| "unknown error".into()));
@@ -239,7 +254,12 @@ async fn cmd_status_ipc(_config_path: Option<&std::path::Path>) -> Result<(), St
     }
 
     // Determine column widths.
-    let name_w = services.iter().map(|s| s.name.len()).max().unwrap_or(4).max(4);
+    let name_w = services
+        .iter()
+        .map(|s| s.name.len())
+        .max()
+        .unwrap_or(4)
+        .max(4);
     let pid_w = 7usize;
     let status_w = 7usize;
     let uptime_w = 9usize;
@@ -248,14 +268,21 @@ async fn cmd_status_ipc(_config_path: Option<&std::path::Path>) -> Result<(), St
     // Header
     println!(
         "{:<name_w$}  {:>pid_w$}  {:<status_w$}  {:>uptime_w$}  {:>restarts_w$}",
-        "NAME", "PID", "STATUS", "UPTIME", "RESTARTS",
+        "NAME",
+        "PID",
+        "STATUS",
+        "UPTIME",
+        "RESTARTS",
         name_w = name_w,
         pid_w = pid_w,
         status_w = status_w,
         uptime_w = uptime_w,
         restarts_w = restarts_w,
     );
-    println!("{}", "-".repeat(name_w + pid_w + status_w + uptime_w + restarts_w + 8));
+    println!(
+        "{}",
+        "-".repeat(name_w + pid_w + status_w + uptime_w + restarts_w + 8)
+    );
 
     for svc in &services {
         let pid_str = svc
@@ -290,6 +317,7 @@ async fn cmd_status_ipc(_config_path: Option<&std::path::Path>) -> Result<(), St
     Err("musu status via IPC is only supported on Unix".into())
 }
 
+#[cfg_attr(not(unix), allow(dead_code))]
 fn format_uptime(secs: u64) -> String {
     if secs < 60 {
         format!("{secs}s")
@@ -322,7 +350,11 @@ fn cmd_logs(
     let content = std::fs::read_to_string(&log_path)
         .map_err(|e| format!("cannot read {}: {e}", log_path.display()))?;
     let lines: Vec<&str> = content.lines().collect();
-    let tail_start = if lines.len() > 50 { lines.len() - 50 } else { 0 };
+    let tail_start = if lines.len() > 50 {
+        lines.len() - 50
+    } else {
+        0
+    };
     for line in &lines[tail_start..] {
         println!("{line}");
     }
@@ -353,6 +385,35 @@ fn cmd_logs(
 
 // ── IPC client helpers ─────────────────────────────────────────────────────
 
+/// R6 audit-fix (Auditor B QB2 — ipc-auth): resolve the IPC bearer token
+/// from `MUSU_BRIDGE_TOKEN` env, falling back to `~/.musu/bridge.env`.
+/// Returns `None` if no token is configured — the musud side will reject
+/// if it has an expected token configured, which is the production path.
+#[cfg(unix)]
+fn read_ipc_token() -> Option<String> {
+    if let Ok(t) = std::env::var("MUSU_BRIDGE_TOKEN") {
+        if !t.is_empty() {
+            return Some(t);
+        }
+    }
+    let env_path = MusuConfig::musu_dir().join("bridge.env");
+    let body = std::fs::read_to_string(&env_path).ok()?;
+    for line in body.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let line = line.strip_prefix("export ").unwrap_or(line);
+        if let Some(rest) = line.strip_prefix("MUSU_BRIDGE_TOKEN=") {
+            let val = rest.trim_matches(|c| c == '"' || c == '\'');
+            if !val.is_empty() {
+                return Some(val.to_string());
+            }
+        }
+    }
+    None
+}
+
 #[cfg(unix)]
 async fn send_ipc(
     socket_path: &std::path::Path,
@@ -370,8 +431,7 @@ async fn send_ipc(
 
     let (reader, mut writer) = stream.into_split();
 
-    let mut json = serde_json::to_string(request)
-        .map_err(|e| format!("serialize error: {e}"))?;
+    let mut json = serde_json::to_string(request).map_err(|e| format!("serialize error: {e}"))?;
     json.push('\n');
     writer
         .write_all(json.as_bytes())
