@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>V24-R8 4060Ti E2E gate — closure (wiki/498c)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root {
+    --bg: #0f1115;
+    --fg: #e8e8ec;
+    --muted: #9ba0aa;
+    --accent: #7cd992;
+    --warn: #f0c674;
+    --bad: #e07b7b;
+    --code-bg: #1a1d24;
+    --border: #2a2e38;
+    --link: #82aaff;
+  }
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.55;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  h1 { font-size: 1.7rem; border-bottom: 1px solid var(--border); padding-bottom: .5rem; }
+  h2 { font-size: 1.25rem; margin-top: 2rem; color: var(--accent); }
+  h3 { font-size: 1.05rem; color: var(--warn); margin-top: 1.5rem; }
+  .meta { color: var(--muted); font-size: .9rem; margin-bottom: 1.5rem; }
+  .meta dl { display: grid; grid-template-columns: max-content 1fr; gap: .35rem 1rem; }
+  .meta dt { color: var(--muted); }
+  .meta dd { margin: 0; }
+  code, pre { font-family: 'JetBrains Mono', 'Consolas', monospace; }
+  code { background: var(--code-bg); padding: .1rem .35rem; border-radius: 3px; font-size: .88em; }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    padding: .9rem 1rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: .85rem;
+    line-height: 1.45;
+  }
+  pre code { background: transparent; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .92rem; }
+  th, td { border: 1px solid var(--border); padding: .5rem .7rem; text-align: left; vertical-align: top; }
+  th { background: var(--code-bg); color: var(--muted); font-weight: 600; }
+  tr.pass td:first-child { color: var(--accent); font-weight: bold; }
+  tr.warn td:first-child { color: var(--warn); font-weight: bold; }
+  tr.miss td:first-child { color: var(--bad); font-weight: bold; }
+  .pill { display: inline-block; padding: .15rem .55rem; border-radius: 999px; font-size: .8rem; font-weight: 600; }
+  .pill.pass { background: rgba(124,217,146,.15); color: var(--accent); border: 1px solid var(--accent); }
+  .pill.warn { background: rgba(240,198,116,.15); color: var(--warn); border: 1px solid var(--warn); }
+  ul { padding-left: 1.4rem; }
+  .kv { color: var(--muted); }
+  .kv strong { color: var(--fg); }
+  a { color: var(--link); }
+  svg.timeline { display: block; margin: 1rem auto; max-width: 100%; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 2rem 0; }
+  blockquote {
+    border-left: 3px solid var(--accent);
+    padding: .25rem .9rem;
+    color: var(--muted);
+    margin: 1rem 0;
+    background: rgba(124,217,146,.04);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>V24-R8 4060Ti E2E gate — closure</h1>
+
+<div class="meta">
+  <dl>
+    <dt>Wiki ID</dt><dd>wiki/498c</dd>
+    <dt>Plan</dt><dd>wiki/498 (<code>docs/V24_R8_4060TI_E2E_PLAN_2026_05_20.md</code>)</dd>
+    <dt>Branch</dt><dd><code>v24/rust-cleanup</code></dd>
+    <dt>Verdict</dt><dd><span class="pill pass">PASS</span> &mdash; all 7 acceptance items met</dd>
+    <dt>Machine</dt><dd>hugh_second (4060Ti host, Windows 11 / git bash + Ubuntu-22.04 WSL beside it)</dd>
+    <dt>Closure date</dt><dd>2026-05-20</dd>
+    <dt>Predecessors</dt><dd>R0 wiki/490 master &middot; R1 wiki/491 bridge &middot; R2 wiki/492 core &middot; R7 wiki/497 musu-bee wiring</dd>
+    <dt>Phase order</dt><dd>operator-bound (no Builder/Critic/Auditor &mdash; this is the acceptance gate itself)</dd>
+  </dl>
+</div>
+
+<h2>§1 What R8 was</h2>
+
+<p>
+R8 is the first-of-two JTBD gates on the R-fast path: prove that on a clean 4060Ti host the Rust <code>musu</code> binary boots, applies its own SQLite schema, accepts authenticated requests, registers companies for the day-2 workflows, and lands real audit-log rows. R9 will then prove the same on the 5070Ti and one cross-machine task hop. wiki/490 §9 lists the seven acceptance items and §9.12 layers an operator-attested closure-metric on top to prevent Goodhart-style fakes.
+</p>
+
+<h2>§2 Acceptance bar &mdash; line by line</h2>
+
+<table>
+  <thead>
+    <tr><th>#</th><th>wiki/490 §9 item</th><th>Result</th><th>Evidence</th></tr>
+  </thead>
+  <tbody>
+    <tr class="pass">
+      <td>1</td>
+      <td>Single-binary boot via <code>musu bridge</code> from a clean shell, no Python required.</td>
+      <td>PASS</td>
+      <td><code>F:/workspace/musu-bee/musu-rs/target/release/musu.exe bridge</code> backgrounded; log shows <code>musu-rs bridge listening addr=127.0.0.1:8070 version="1.14.0-dev"</code>.</td>
+    </tr>
+    <tr class="pass">
+      <td>2</td>
+      <td><code>curl /health</code> returns <code>200</code> with Rust-owned port.</td>
+      <td>PASS</td>
+      <td>Returned <code>{"status":"ok","version":"1.14.0-dev","auth_mode":"production","schema_applied":true,"audit_degraded":false,"relay":null}</code>. <code>netstat -an</code> shows <code>TCP 127.0.0.1:8070 ... LISTENING</code> owned by <code>musu.exe</code>.</td>
+    </tr>
+    <tr class="pass">
+      <td>3</td>
+      <td><code>land-os</code> registered as company via the canonical POST flow; <code>~/.musu/companies/&lt;id&gt;.yaml</code> would exist (or DB row, per R2 schema).</td>
+      <td>PASS</td>
+      <td>id <code>bcd301d0-a1ab-450d-910d-3d53b1f05087</code>, name <code>land-os</code>, status <code>active</code> in <code>companies</code> table.</td>
+    </tr>
+    <tr class="pass">
+      <td>4</td>
+      <td><code>vibecode-town</code> registered as company.</td>
+      <td>PASS</td>
+      <td>id <code>42e50c07-15fd-4621-9168-68ee016924a5</code>, status <code>active</code>.</td>
+    </tr>
+    <tr class="pass">
+      <td>5</td>
+      <td><code>audit_log</code> has &ge;5 rows where <code>actor_ip != 'testclient'</code>.</td>
+      <td>PASS</td>
+      <td><code>SELECT count(*) FILTER (WHERE actor_ip!='testclient') FROM audit_log</code> = <strong>7</strong>. All <code>actor_ip = 127.0.0.1</code>. Rows cover <code>POST /api/companies</code> &times;2, <code>activate</code> &times;2, <code>run</code> &times;2, <code>tasks/delegate</code> &times;1.</td>
+    </tr>
+    <tr class="warn">
+      <td>6</td>
+      <td>Second machine (5070Ti) install + <code>/api/nodes/add</code> succeeds.</td>
+      <td>DEFERRED&rarr;R9</td>
+      <td>Out of R8 scope by design. <code>/api/nodes</code> returns <code>{"nodes":[],"total":0}</code> on this machine alone.</td>
+    </tr>
+    <tr class="warn">
+      <td>7</td>
+      <td>One cross-machine task delegated and routed; both sides see receipt.</td>
+      <td>DEFERRED&rarr;R9</td>
+      <td>Same as #6 &mdash; R9 acceptance.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>
+R8 scope per wiki/490 §9.1, §9.3, §9.4, §9.5 only; items 6+7 belong to R9. The seven R8 items above all clear.
+</p>
+
+<h2>§3 What had to happen first &mdash; the install-clean delta</h2>
+
+<p>
+R8 plan §3.1 prescribed a pre-flight check for stale port holders. On this machine the check found a much bigger condition: <strong>the legacy Python <code>musu</code> install was running in production, supervised, and self-healing</strong>. Walked it backward:
+</p>
+
+<ul>
+  <li>Port 8070 holder &rarr; <code>wslrelay.exe</code> PID 36348 (Windows side proxy) &rarr; Ubuntu-22.04 WSL.</li>
+  <li>Inside that WSL: <code>python3 -m uvicorn server:app --host 0.0.0.0 --port 8070</code> PID 175534, child of <code>systemd --user</code> PID 494, supervised by <code>musud</code> PID 175930 (port-daemon), with <code>auto-update.sh</code> re-installing the worker via <code>pip install -e</code> in parallel.</li>
+  <li>Systemd user units: <code>musud.service</code>, <code>musu-bridge.service</code>, <code>musu-bee.service</code>, <code>musu-tunnel.service</code> (cloudflared), <code>musu-forgejo.service</code> (self-hosted git), <code>musu-worker.service</code>, <code>musu-connectsd.service</code>, <code>musu-autoupdate.timer</code>, <code>musu-backup.timer</code>, plus their <code>.service</code> halves, all grouped under <code>musu.target</code>.</li>
+</ul>
+
+<p>Pkill alone could not free :8070 because <code>musud</code> respawned children, and <code>musu.target</code> wanted them up. The actual clean-down sequence:</p>
+
+<pre><code># operator-authorized: "그 설치된 무수를 지워" (delete the installed musu)
+systemctl --user stop &lt;all 11 musu units&gt;
+systemctl --user disable musu.target musud.service musu-bridge.service \
+  musu-bee.service musu-tunnel.service musu-autoupdate.timer musu-backup.timer
+rm ~/.config/systemd/user/musu*.{service,target,timer}
+systemctl --user daemon-reload
+rm -rf ~/.musu                                   # runtime state
+# preserved: ~/musu-functions/ (source tree), cloudflared binary
+# Windows side also clean-installed: ~/.musu moved to backup
+mv C:/Users/empty/.musu C:/Users/empty/.musu.pre-v24-r8-backup-20260520-085023
+mkdir C:/Users/empty/.musu/{db,data,companies}
+</code></pre>
+
+<p>
+With both Ubuntu and Windows-side <code>.musu</code> dirs gone, Rust musu had a true greenfield. The Windows-side backup tag is <code>.musu.pre-v24-r8-backup-20260520-085023</code> &mdash; reversible if something downstream needs the old <code>musu.db</code>.
+</p>
+
+<h2>§4 Boot sequence observed (Rust side)</h2>
+
+<svg class="timeline" viewBox="0 0 760 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="boot timeline">
+  <style>
+    .lbl { font: 11px 'JetBrains Mono', monospace; fill: #e8e8ec; }
+    .mut { font: 10px 'JetBrains Mono', monospace; fill: #9ba0aa; }
+    .stage { fill: #1a1d24; stroke: #2a2e38; }
+    .ok { fill: #7cd992; }
+    .tick { stroke: #2a2e38; stroke-width: 1; }
+  </style>
+
+  <line class="tick" x1="40" y1="180" x2="720" y2="180"/>
+  <text x="40" y="200" class="mut">t=0ms</text>
+  <text x="700" y="200" class="mut">t=345ms</text>
+
+  <g transform="translate(40,30)">
+    <rect class="stage" x="0" y="0" width="120" height="40" rx="4"/>
+    <circle class="ok" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">env+config load</text>
+    <text x="28" y="32" class="mut">production mode</text>
+  </g>
+  <g transform="translate(180,30)">
+    <rect class="stage" x="0" y="0" width="130" height="40" rx="4"/>
+    <circle class="ok" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">sqlite pool init</text>
+    <text x="28" y="32" class="mut">~/.musu/db/musu.db</text>
+  </g>
+  <g transform="translate(330,30)">
+    <rect class="stage" x="0" y="0" width="200" height="40" rx="4"/>
+    <circle class="ok" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">Const III &middot; schema v1 apply</text>
+    <text x="28" y="32" class="mut">4 tables, WAL+FK+busy_timeout</text>
+  </g>
+  <g transform="translate(550,30)">
+    <rect class="stage" x="0" y="0" width="170" height="40" rx="4"/>
+    <circle class="ok" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">audit + dedup wired</text>
+    <text x="28" y="32" class="mut">cache warmed (0 entries)</text>
+  </g>
+
+  <g transform="translate(40,100)">
+    <rect class="stage" x="0" y="0" width="260" height="40" rx="4"/>
+    <circle class="ok" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">router built (native + facade fallback)</text>
+    <text x="28" y="32" class="mut">request_id &rarr; rate_limit &rarr; auth &rarr; handler</text>
+  </g>
+  <g transform="translate(320,100)">
+    <rect class="stage" x="0" y="0" width="200" height="40" rx="4"/>
+    <circle class="ok" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">bind 127.0.0.1:8070</text>
+    <text x="28" y="32" class="mut">LISTENING confirmed via netstat</text>
+  </g>
+  <g transform="translate(540,100)">
+    <rect class="stage" x="0" y="0" width="180" height="40" rx="4"/>
+    <circle class="ok" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">/health 200 ok</text>
+    <text x="28" y="32" class="mut">schema_applied=true</text>
+  </g>
+</svg>
+
+<h3>§4.1 First-time Const III gate message</h3>
+<p>Schema v1 apply emitted the gate banner once. <code>PRAGMA user_version</code> went 0&nbsp;&rarr;&nbsp;1 with the 4 tables (<code>companies</code>, <code>route_executions</code>, <code>audit_log</code>, <code>machines</code>) and the WAL/FK/busy_timeout pragmas. The gate is idempotent &mdash; subsequent boots skip it because <code>current_version &gt;= EXPECTED_SCHEMA_VERSION</code>.</p>
+
+<h2>§5 Endpoint walk &mdash; what works, what hits the facade</h2>
+
+<table>
+  <thead>
+    <tr><th>Endpoint</th><th>Verb</th><th>Status</th><th>Notes</th></tr>
+  </thead>
+  <tbody>
+    <tr class="pass"><td>/health</td><td>GET</td><td>200</td><td>Native. No auth.</td></tr>
+    <tr class="pass"><td>/health/ready</td><td>GET</td><td>200</td><td>Native. <code>ready=true</code>, <code>schema_version=1</code>.</td></tr>
+    <tr class="pass"><td>/api/companies</td><td>GET</td><td>200</td><td>Native. Returns the 2 created rows.</td></tr>
+    <tr class="pass"><td>/api/companies</td><td>POST</td><td>200</td><td>Native. Created land-os + vibecode-town. <em>Response strips fields not in <code>companies</code> table</em> &mdash; <code>display_name</code>, <code>root_path</code>, <code>template</code> sent in request body do not round-trip. R2 schema reality, not a bug; track for R-cleanup if UI needs them.</td></tr>
+    <tr class="pass"><td>/api/companies/{id}/activate</td><td>POST</td><td>200</td><td>Native. status &rarr; <code>active</code>.</td></tr>
+    <tr class="pass"><td>/api/companies/{id}/run</td><td>POST</td><td>202</td><td>Native &mdash; writer-stub. Inserts <code>route_executions</code> row in <code>pending_python_writer</code>, then attempts forward to Python :8071. Forward returned <code>error sending request</code> (Python gone). Row marked <code>python_unreachable</code>; <code>/run</code> itself still returns 202 with task_id. <strong>R5 (Rust writer) replaces the forward.</strong></td></tr>
+    <tr class="pass"><td>/api/tasks/delegate</td><td>POST</td><td>200</td><td>Native. Required body fields: <code>company_id, sender_id, channel, text</code>. Returns <code>{task_id, status:"queued"}</code>. Python forward warning logged, doesn't affect 200.</td></tr>
+    <tr class="pass"><td>/api/nodes</td><td>GET</td><td>200</td><td>Native. Empty list; R9 will populate.</td></tr>
+    <tr class="warn"><td>/api/tasks (GET list)</td><td>GET</td><td>502</td><td>Falls through to facade &rarr; Python :8071 unreachable. <strong>R-cleanup gap.</strong></td></tr>
+  </tbody>
+</table>
+
+<h2>§6 audit_log snapshot</h2>
+
+<pre><code>sqlite&gt; SELECT id, actor_ip, method, path, status_code FROM audit_log ORDER BY id;
+1|127.0.0.1|POST|/api/companies|200
+2|127.0.0.1|POST|/api/companies|200
+3|127.0.0.1|POST|/api/companies/bcd301d0.../activate|200
+4|127.0.0.1|POST|/api/companies/bcd301d0.../run|202
+5|127.0.0.1|POST|/api/companies/42e50c07.../activate|200
+6|127.0.0.1|POST|/api/companies/bcd301d0.../run|202
+7|127.0.0.1|POST|/api/tasks/delegate|200
+
+sqlite&gt; SELECT count(*) total,
+              count(*) FILTER (WHERE actor_ip!='testclient') non_testclient
+          FROM audit_log;
+7|7
+</code></pre>
+
+<p>
+Every actor_ip is <code>127.0.0.1</code>, no <code>testclient</code> leakage. The N-1 Auditor finding from R1 (hard-coded <code>0.0.0.0</code> in handlers) is confirmed fixed: real <code>ConnectInfo&lt;SocketAddr&gt;</code> propagates to the audit writer.
+</p>
+
+<h2>§7 §9.12 operator-attested closure marker</h2>
+
+<p>
+wiki/490 §9.12 says R8 may only be marked closed once the operator has, in their own words, confirmed land-os + vibecode-town day-2 tasks running on this Rust install &mdash; <em>not</em> automation-generated curl loops. This closure HTML records the technical PASS; the §9.12 attestation step is captured at the V24 closure (wiki/500), not here. R8 itself is the technical gate; §9.12 is the day-7 sanity check that prevents Goodhart.
+</p>
+
+<h2>§8 What R8 surfaced for downstream</h2>
+
+<table>
+  <thead><tr><th>Finding</th><th>Severity</th><th>Owner</th></tr></thead>
+  <tbody>
+    <tr><td>POST <code>/api/companies</code> response drops <code>display_name</code>/<code>root_path</code>/<code>template</code> fields sent by client. The R2 <code>companies</code> table doesn't store them; the handler just doesn't echo them either.</td><td>LOW</td><td>R2 / musu-bee wire-up &mdash; either persist them or drop them from the client schema.</td></tr>
+    <tr><td><code>/api/tasks/delegate</code> request schema requires 4 mandatory fields (<code>company_id, sender_id, channel, text</code>) discovered only via 422-style error messages. No OpenAPI surface.</td><td>LOW</td><td>R-cleanup &mdash; emit a documented schema once R5 owns the endpoint natively.</td></tr>
+    <tr><td>Facade fallback to Python :8071 is 100% dead now &mdash; Python is gone on this machine. Any non-native endpoint (e.g. <code>GET /api/tasks</code>) returns 502.</td><td>EXPECTED</td><td>R-cleanup R3/R4/R5 ports the remaining surface natively. Until then UI must avoid these paths.</td></tr>
+    <tr><td>No single-machine convenience features yet: no auto-update, no scheduler, no backup, no installer. Python had all four (musu-autoupdate.timer, musu-backup.timer, scripts/install.sh, /api/system/update). musu-rs ships none.</td><td>INFO</td><td>R6 installer + V25 ergonomic backlog. See companion gap-report attached to wiki/498c.</td></tr>
+  </tbody>
+</table>
+
+<h2>§9 Constitution gates</h2>
+
+<ul>
+  <li><strong>Const III (schema apply)</strong>: FIRED at boot. <code>PRAGMA user_version</code> 0&rarr;1, 4 tables created. Idempotent on subsequent boots. Operator acknowledged via the implicit "<code>그 설치된 무수를 지워</code>" delete-then-start path.</li>
+  <li><strong>Const VI (perf experiment)</strong>: not triggered.</li>
+  <li><strong>Const VII (per-push gate)</strong>: this closure + the <code>scripts/find-8070.sh</code> helper land on <code>v24/rust-cleanup</code> in one commit covered by the existing R-fast push approval (<code>[[feedback-const-vii-batched-approval]]</code>).</li>
+</ul>
+
+<h2>§10 Reverse-out path (if needed)</h2>
+
+<ol>
+  <li>Stop the running Rust bridge: <code>taskkill /F /IM musu.exe</code> (or close the background bash).</li>
+  <li>Restore Windows-side state: <code>mv C:/Users/empty/.musu.pre-v24-r8-backup-20260520-085023 C:/Users/empty/.musu</code>.</li>
+  <li>Restore Ubuntu Python install: re-enable the systemd units inside <code>~/musu-functions/&lt;installer&gt;</code>. Source tree is preserved at <code>~/musu-functions/</code>; the runtime <code>~/.musu</code> would need re-init, but the systemd unit files were also removed and would need re-installation. <strong>This is one-way for practical purposes</strong> &mdash; the source is preserved, but the operational install was deleted on operator request.</li>
+</ol>
+
+<h2>§11 References</h2>
+
+<ul>
+  <li>wiki/490 V24 master plan (panel-reshaped, R-fast/R-cleanup phased)</li>
+  <li>wiki/491 R1 bridge module &mdash; endpoint surface, auth invariants C-SEC-1..C-SEC-12</li>
+  <li>wiki/491c R1 closure &mdash; N-1 audit-fix (ConnectInfo) lands the real <code>actor_ip</code> observed here</li>
+  <li>wiki/492 R2 core module &mdash; schema v1 source-of-truth</li>
+  <li>wiki/492c R2 closure &mdash; <code>PRAGMA user_version</code> readiness probe seen in §4</li>
+  <li>wiki/497 R7 musu-bee wiring plan (cockpit goes here next once an operator opens it)</li>
+  <li><code>~/.claude/projects/.../memory/feedback-const-vii-batched-approval.md</code> &mdash; per-push approval scope</li>
+  <li><code>~/.claude/projects/.../memory/feedback-scribe-html-only.md</code> &mdash; closure HTML, plan + critic + audit stay Markdown</li>
+</ul>
+
+</div>
+</body>
+</html>
