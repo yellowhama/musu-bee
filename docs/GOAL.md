@@ -2,7 +2,7 @@
 
 **Wiki ID**: wiki/485
 **Created**: 2026-05-19
-**Last reshape**: 2026-05-20 (V23.6-minimal SUPERSEDED → V24-Rust-big-bang)
+**Last reshape**: 2026-05-20 (V24-Rust-big-bang → R-fast/R-cleanup phased → 2026-05-20 evening pivot: single-machine first, R9 deferred per operator "이 기계에서 무수 다른기능-멀티기기 말고 다 되는지")
 **Updates**: append-only revision history at bottom
 **Owner**: autonomous /loop orchestrator (Claude Opus 4.7 1M context). Per user 2026-05-20: "니가 결정, 나는 고객임, 니가 사장임" — orchestrator is 사장 (decides closure), user is customer (rejection right + AS duty owed back).
 **User**: emptyermind@gmail.com
@@ -55,6 +55,24 @@ Closure decision shape:
 - Item 9 (§9.12): operator-authored, not orchestrator-asserted. This is the Goodhart firewall.
 - Until §9.12 exists, V24 stays "code shipped, acceptance pending" — not closed.
 
+### A.1.1 Pivot 2026-05-20 evening: single-machine completeness before R9
+
+**Trigger**: R8 PASS on 4060Ti (wiki/498c, commit `0d58f08`). Operator follow-up: "이 기계에서 무수 다른기능-멀티기기 말고 다 되는지. 자동 업데이트 기능 깉은 편의성 기능 있는지". Probe found musu-rs surface is bridge + DB + auth + audit + dedup + company CRUD only; every other Python endpoint (`/api/system/update`, `/api/agents`, `/api/instructions`, `/api/briefing`, `/api/sse`, `/api/wiki/*`, `/api/workflows`, `/api/templates`, `/api/system/backup`, `/api/system/restart`) returns 502 because Python facade target is gone after `~/.musu` delete.
+
+**Reorder** (sequence change, NOT scope change — same R-cleanup sub-WS set):
+- **OLD**: R3 (control/MCP) → R4 (indexer) → R5 (writer) → R6 (installer) → R9 (cross-machine) → R10 (Python delete)
+- **NEW**: **R5 (writer) → R6 (installer + auto-update + supervisor) → R3 (control/MCP) → R4 (indexer)** → R9 → R10
+
+**Why R5 first**: writer-stub currently inserts `route_executions` row + tries facade POST to dead Python = `python_unreachable`. This is the load-bearing endpoint for any agent task; without native writer, every `/api/companies/{id}/run` is a stub. Highest single-machine impact.
+
+**Why R6 second**: no supervisor + no auto-update + no service registration = operator must keep a bash window open to run musu. R6 brings systemd/Windows-service equivalent + `git pull` auto-update path. This is what the operator literally asked about ("자동 업데이트 기능 깉은 편의성 기능 있는지").
+
+**Why R9 deferred**: cross-machine is multi-machine by definition; operator explicitly carved it out for this cycle's focus. R9 task still in §A.2 table, status moved to "deferred (post single-machine completeness)".
+
+**R-cleanup sequencing budget**: R5 (~1500 LOC) → R6 (~600 LOC) → R3 (~1500 LOC) → R4 (~1500 LOC). Solo-operator review bottleneck per panel H5: strict sequence, no parallel. Each sub-WS = Phase 0 Researcher → Phase 1 Planner → Phase 1.5 Critic (MED risk) → Phase 3 Builder → Phase 5 Auditor → Phase 7 Scribe HTML closure → Const VII per-push.
+
+**§9.12 unchanged**: still locked to V24 closure (wiki/500) post-R10. Single-machine reorder does not affect Goodhart firewall.
+
 ### A.2 Sub-WS (panel-reshaped, R-fast → R-cleanup phases)
 
 Detail per-WS plans live in wiki/491..500 reservations. Phase -1 strategic gate on master plan (wiki/490) ran 2026-05-20: verdict YELLOW, 4 HIGH accepted, plan reshaped per §A.0 above. Per-sub-WS Phase 1.5 Critic still required for HIGH/MED sub-WS.
@@ -82,15 +100,16 @@ musu-rs/src/writer/     (R5)
 | V24-R8 | wiki/498 | — | 4060Ti E2E: install + register land-os + vibecode-town; Python still on port 8071 behind facade | MED |
 | V24-R9 | wiki/499 | — | 5070Ti install + cross-machine task. **JTBD ships at end of R9** (~day 14). Operator starts dogfooding. | MED |
 
-**R-cleanup (~2-4 weeks parallel to operator dogfood)** — strict sequence, each removes one Python service from facade:
+**R-cleanup (~2-4 weeks parallel to operator dogfood)** — strict sequence, each removes one Python service from facade. **Sequence reordered 2026-05-20 evening per §A.1.1 pivot**: R5 first (writer = highest single-machine impact), then R6 (installer + auto-update = operator-asked ergonomic gap), then R3/R4. R9 deferred until single-machine complete.
 
-| Sub-WS | Wiki | Module | Scope | Risk |
-|---|---|---|---|---|
-| V24-R3 | wiki/493 | `control` | MCP server stdio JSON-RPC (~10-20 tools subset); remove /api/control/* from facade | MED |
-| V24-R4 | wiki/494 | `indexer` | Per-company indexing (tantivy or FTS5); remove /api/indexer/* from facade | MED |
-| V24-R5 | wiki/495 | `writer` | Agent task execution + SSE (musu-supervisor integration pending R0 audit per MED-2); remove /api/writer/* from facade | MED |
-| V24-R6 | wiki/496 | — | Installer rewrite (single-binary, no facade, no Python) | MED |
-| V24-R10 | wiki/500 | — | MANUAL GATE: Python `rm -rf` + closure HTML + **CHANGELOG 1.14.0** + §9.12 wait | — |
+| Sub-WS | Wiki | Module | Scope | Risk | Order |
+|---|---|---|---|---|---|
+| V24-R5 | wiki/495 | `writer` | Agent task execution + SSE; replace writer-stub Python forward in `/api/companies/{id}/run` with native execution. Integrate `musu-supervisor-isolation-{linux,windows,macos}` crates. | MED | 1st |
+| V24-R6 | wiki/496 | — | Installer rewrite (single-binary, no facade, no Python) + **auto-update path** (`git pull` + rebuild + service restart) + **service supervisor** (systemd unit + Windows Service + auto-restart) | MED | 2nd |
+| V24-R3 | wiki/493 | `control` | MCP server stdio JSON-RPC (~10-20 tools subset); remove /api/control/* from facade | MED | 3rd |
+| V24-R4 | wiki/494 | `indexer` | Per-company indexing (tantivy or FTS5); remove /api/indexer/* from facade | MED | 4th |
+| V24-R9 | wiki/499 | — | 5070Ti install + cross-machine task. **Deferred** post single-machine completeness (R5+R6+R3+R4 done) per operator carve-out 2026-05-20 evening. | MED | 5th (deferred) |
+| V24-R10 | wiki/500 | — | MANUAL GATE: Python `rm -rf` + closure HTML + **CHANGELOG 1.14.0** + §9.12 wait | — | 6th |
 
 **Total Rust LOC estimate**: ~10,200 (vs 25,885 Python). Subagent-phase count: 7 chains (R7 compressed), saving ~28 invocations vs 5-crate split.
 
