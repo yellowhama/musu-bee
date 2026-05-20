@@ -1,4 +1,6 @@
 //! V24-R3 wiki/493 §6 acceptance #4-#8 + Critic C11 parameterized smoke test.
+//! V24-R4 wiki/494 / Critic C-R4-3: bumped from 13→14 tools (added
+//! `search_company` fixture mounted on `GET /api/index-search`).
 //!
 //! Spawns the real `musu control` binary as a subprocess (the same binary
 //! Claude Code launches) and drives it with rmcp client over the
@@ -6,7 +8,7 @@
 //! proxy to are stubbed by wiremock; we set `MUSU_BRIDGE_URL` in the
 //! subprocess env to point at the wiremock listener.
 //!
-//! Coverage (Critic C11): one fixture per tool, 13 tools total.
+//! Coverage (Critic C11 + C-R4-3): one fixture per tool, 14 tools total.
 //!   * T1 tools assert wiremock receives the right HTTP shape AND the MCP
 //!     response contains the bridge body verbatim.
 //!   * T2 tools assert the response is exactly `T2_BODY` and the tool's
@@ -199,6 +201,27 @@ fn setup_list_nodes(mock: Arc<MockServer>) -> futures_util::future::BoxFuture<'s
     })
 }
 
+/// V24-R4 wiki/494 / C-R4-3: mock for `search_company` MCP tool.
+/// Returns the R4 byte-compat shape `[{path, snippet, type}]`. The snippet
+/// intentionally embeds `<b>` markers + a U+2026 ellipsis so the test can
+/// assert the same bytes Python emits — see r4_index_smoke.rs for the real
+/// FTS5-driven version.
+fn setup_search_company(mock: Arc<MockServer>) -> futures_util::future::BoxFuture<'static, ()> {
+    Box::pin(async move {
+        Mock::given(method("GET"))
+            .and(path("/api/index-search"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!([
+                {
+                    "path": "src/lib.rs",
+                    "snippet": "pub fn <b>hello</b>() {…}",
+                    "type": "symbol"
+                }
+            ])))
+            .mount(&mock)
+            .await;
+    })
+}
+
 fn setup_noop(_mock: Arc<MockServer>) -> futures_util::future::BoxFuture<'static, ()> {
     Box::pin(async move {})
 }
@@ -266,6 +289,17 @@ fn fixtures() -> Vec<Fixture> {
             expected_substring: "is_self",
             is_t2: false,
         },
+        // V24-R4 wiki/494 §3 / C-R4-3: 14th tool — native indexer search.
+        Fixture {
+            tool: "search_company",
+            arguments: args(json!({
+                "workspace": "alpha",
+                "q": "hello"
+            })),
+            bridge_setup: setup_search_company,
+            expected_substring: "src/lib.rs",
+            is_t2: false,
+        },
         // ── T2 deprecated (5) ──────────────────────────────
         Fixture {
             tool: "list_agents",
@@ -305,9 +339,9 @@ fn fixtures() -> Vec<Fixture> {
     ]
 }
 
-/// Acceptance #4 (initialize) + #5 (13 tools) + #8 (T2 suffix).
+/// Acceptance #4 (initialize) + #5 (14 tools per C-R4-3) + #8 (T2 suffix).
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn r3_mcp_initialize_lists_13_tools_with_t2_suffix() {
+async fn r3_mcp_initialize_lists_14_tools_with_t2_suffix() {
     let harness = boot().await;
 
     let listed = harness
@@ -317,8 +351,8 @@ async fn r3_mcp_initialize_lists_13_tools_with_t2_suffix() {
         .expect("list_all_tools");
     assert_eq!(
         listed.len(),
-        13,
-        "expected 13 tools; got: {:?}",
+        14,
+        "expected 14 tools (R3 13 + R4 search_company); got: {:?}",
         listed.iter().map(|t| t.name.as_ref()).collect::<Vec<_>>()
     );
 
@@ -358,11 +392,11 @@ async fn r3_mcp_initialize_lists_13_tools_with_t2_suffix() {
     let _ = harness.client.cancel().await;
 }
 
-/// Acceptance #6 + #7 + Critic C11: each of the 13 tools is callable and
-/// produces the expected response shape. Per Q8 / C12, even on T2 stubs
-/// `is_error` is never true — the contract is "Ok(text) always".
+/// Acceptance #6 + #7 + Critic C11 + C-R4-3: each of the 14 tools is
+/// callable and produces the expected response shape. Per Q8 / C12, even
+/// on T2 stubs `is_error` is never true — the contract is "Ok(text) always".
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn r3_mcp_all_13_tools_callable() {
+async fn r3_mcp_all_14_tools_callable() {
     for fx in fixtures() {
         let harness = boot().await;
         (fx.bridge_setup)(harness.mock.clone()).await;

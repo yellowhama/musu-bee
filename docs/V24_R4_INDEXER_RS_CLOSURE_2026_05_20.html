@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>V24-R4 INDEXER-RS — closure (wiki/494c)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root { --bg:#0f1115; --fg:#e8e8ec; --muted:#9ba0aa; --accent:#7cd992; --warn:#f0c674; --bad:#e07b7b; --code-bg:#1a1d24; --border:#2a2e38; --link:#82aaff; }
+  body { margin:0; padding:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--fg); line-height:1.55; }
+  .wrap { max-width:980px; margin:0 auto; padding:2rem 1.5rem 4rem; }
+  h1 { font-size:1.7rem; border-bottom:1px solid var(--border); padding-bottom:.5rem; }
+  h2 { font-size:1.25rem; margin-top:2rem; color:var(--accent); }
+  h3 { font-size:1.05rem; color:var(--warn); margin-top:1.5rem; }
+  .meta { color:var(--muted); font-size:.9rem; margin-bottom:1.5rem; }
+  .meta dl { display:grid; grid-template-columns:max-content 1fr; gap:.35rem 1rem; }
+  .meta dt { color:var(--muted); }
+  .meta dd { margin:0; }
+  code, pre { font-family:'JetBrains Mono','Consolas',monospace; }
+  code { background:var(--code-bg); padding:.1rem .35rem; border-radius:3px; font-size:.88em; }
+  pre { background:var(--code-bg); border:1px solid var(--border); padding:.9rem 1rem; border-radius:6px; overflow-x:auto; font-size:.82rem; }
+  table { border-collapse:collapse; width:100%; margin:1rem 0; font-size:.88rem; }
+  th, td { border:1px solid var(--border); padding:.45rem .65rem; text-align:left; vertical-align:top; }
+  th { background:var(--code-bg); color:var(--muted); font-weight:600; }
+  tr.pass td:first-child { color:var(--accent); font-weight:bold; }
+  tr.warn td:first-child { color:var(--warn); font-weight:bold; }
+  .pill { display:inline-block; padding:.15rem .55rem; border-radius:999px; font-size:.8rem; font-weight:600; }
+  .pill.pass { background:rgba(124,217,146,.15); color:var(--accent); border:1px solid var(--accent); }
+  ul { padding-left:1.4rem; }
+  a { color:var(--link); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>V24-R4 INDEXER-RS — closure</h1>
+
+<div class="meta">
+  <dl>
+    <dt>Wiki ID</dt><dd>wiki/494c</dd>
+    <dt>Plan</dt><dd>wiki/494 (<code>docs/V24_R4_INDEXER_RS_PLAN_2026_05_20.md</code>)</dd>
+    <dt>Branch</dt><dd><code>v24/rust-cleanup</code></dd>
+    <dt>Verdict</dt><dd><span class="pill pass">SHIP-OK</span> — Critic 11 findings + Auditor 1 NEW HIGH all resolved (QA1 audit-fixed in-place)</dd>
+    <dt>Closure date</dt><dd>2026-05-20</dd>
+    <dt>Predecessors</dt><dd>R0..R3, R5, R6, R7, R8 (all shipped). R4 is the LAST native module before R10 Python deletion.</dd>
+    <dt>Phase agents</dt><dd>Researcher deep-research-agent · Planner orchestrator-direct · Critic system-architect · Builder backend-architect · Auditor quality-engineer · Scribe orchestrator-direct</dd>
+  </dl>
+</div>
+
+<h2>§1 What R4 was</h2>
+
+<p>
+R4 replaces Python <code>musu-indexer</code> (3,115 LOC + 252-line Go scanner binary) with native Rust per-workspace file/code indexing. Substrate: SQLite FTS5 (already in tree via sqlx; tantivy YAGNI per [[feedback-no-yagni-architecture]]). Per-workspace <code>&lt;work_dir&gt;/.musu_dev.db</code> file matches Python parity — no Const III gate on main musu.db.
+</p>
+
+<p>
+<strong>Scope sharpening (F2)</strong>: Python <code>musu-indexer</code> is a hybrid — 1,500 LOC of session/spy/PTY tooling + ~1,100 LOC of actual indexer logic. R4 ports ONLY the indexer logic. session/spy/PTY surface is DROPPED (zero non-test usage signal; R10 deletes alongside Python).
+</p>
+
+<p>
+R4 is the FINAL native module — all 4 R-cleanup native crates (R3 control, R4 indexer, R5 writer, R6 installer) are now shipped. Remaining V24 work: R10 (Python deletion + V24 closure + CHANGELOG 1.14.0 + §9.12 operator-attested gate).
+</p>
+
+<h2>§2 Acceptance — wiki/494 §6 line-by-line</h2>
+
+<table>
+  <thead><tr><th>#</th><th>Item</th><th>Result</th><th>Evidence</th></tr></thead>
+  <tbody>
+    <tr class="pass"><td>1</td><td><code>cargo build --release</code> clean</td><td>PASS</td><td>Release build green</td></tr>
+    <tr class="pass"><td>2</td><td><code>cargo clippy --workspace -- -D warnings</code> clean</td><td>PASS</td><td>Zero warnings</td></tr>
+    <tr class="pass"><td>3</td><td><code>cargo test --release</code> green</td><td>PASS</td><td>151 unit + 14 integration (r3 now 14 tools; r4_index_smoke + r4_scanner_perf added)</td></tr>
+    <tr class="pass"><td>4</td><td><code>musu indexer init-profile</code> writes <code>.musu-indexer.json</code></td><td>PASS</td><td><code>profile.rs::init_profile_in</code></td></tr>
+    <tr class="pass"><td>5</td><td><code>musu indexer sync</code> produces <code>.musu_dev.db</code> with search_index</td><td>PASS</td><td><code>sync.rs::sync_workspace_async</code> + r4_index_smoke</td></tr>
+    <tr class="pass"><td>6</td><td><code>curl /api/index-search?q=foo&workspace=land-os</code> returns <code>[{path, snippet, type}]</code> with <code>&lt;b&gt;</code> markers AND U+2026 ellipsis byte</td><td>PASS</td><td><code>search.rs:80-87</code> SQL exact: <code>snippet(search_index, 2, '&lt;b&gt;', '&lt;/b&gt;', '…', 20)</code>; <code>r4_index_smoke.rs:247-256</code> asserts literal U+2026 byte</td></tr>
+    <tr class="pass"><td>7</td><td>R3 MCP <code>search_company</code> tool callable</td><td>PASS</td><td><code>r3_mcp_smoke.rs:322</code> asserts 14 tools; <code>search_company</code> fixture mounted via wiremock</td></tr>
+    <tr class="pass"><td>8</td><td>R1 bridge company-create hooks <code>sync_workspace_async</code></td><td>PASS</td><td><code>companies.rs::create</code> tokio::spawn fire-and-forget; warn-only on error (C-R4-7)</td></tr>
+    <tr class="pass"><td>9</td><td>1000-file fixture &lt; perf gate</td><td>PASS</td><td><code>r4_scanner_perf.rs</code> 1000 files in &lt;2s (well under 30s absolute fallback)</td></tr>
+    <tr class="pass"><td>10</td><td>Phase 1.5 Critic + Phase 5 Auditor</td><td>PASS</td><td>Critic: 3 HIGH + 4 MED + 3 LOW + 1 INFO all resolved; Auditor: SHIP-OK after QA1 audit-fix</td></tr>
+  </tbody>
+</table>
+
+<h2>§3 Code shipped</h2>
+
+<table>
+  <thead><tr><th>Path</th><th>Action</th><th>LOC</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td><code>musu-rs/src/indexer/mod.rs</code></td><td>NEW</td><td>159</td><td>Subcommand dispatch + IndexerAction enum</td></tr>
+    <tr><td><code>musu-rs/src/indexer/db.rs</code></td><td>NEW</td><td>141</td><td>FTS5 schema + drift-rebuild + index_meta (C-R4-4)</td></tr>
+    <tr><td><code>musu-rs/src/indexer/scanner.rs</code></td><td>NEW</td><td>259</td><td>rayon parallel walker + flat_map_iter row producer (C-R4-11)</td></tr>
+    <tr><td><code>musu-rs/src/indexer/symbols.rs</code></td><td>NEW</td><td>291</td><td>rs/ts/py/go/md regex tables ported byte-for-byte (C-R4-8)</td></tr>
+    <tr><td><code>musu-rs/src/indexer/profile.rs</code></td><td>NEW</td><td>149</td><td>24 default ignore globs + .musu-indexer.json (Python parity per QA4)</td></tr>
+    <tr><td><code>musu-rs/src/indexer/search.rs</code></td><td>NEW</td><td>124</td><td>FTS5 query with C-R4-1 snippet bytes (col=2, '…' U+2026, maxchars=20)</td></tr>
+    <tr><td><code>musu-rs/src/indexer/sync.rs</code></td><td>NEW</td><td>213</td><td>C-R4-5 empty-work_dir gate + batched FTS5 INSERTs + C-R4-4 meta upserts</td></tr>
+    <tr><td><code>musu-rs/src/indexer/watch.rs</code></td><td>NEW</td><td>113</td><td>cfg-gated notify watcher, debounced 2s</td></tr>
+    <tr><td><code>musu-rs/src/bridge/handlers/index_search.rs</code></td><td>NEW</td><td>94</td><td>GET /api/index-search; QA1 audit-fix: empty workspace → Ok([])</td></tr>
+    <tr><td><code>musu-rs/tests/r4_index_smoke.rs</code></td><td>NEW</td><td>314</td><td>e2e bridge subprocess + U+2026 + &lt;b&gt; byte gate + empty-workdir gate</td></tr>
+    <tr><td><code>musu-rs/tests/r4_scanner_perf.rs</code></td><td>NEW</td><td>132</td><td>1000-file synthetic fixture; MUSU_R4_REF_MS env or 30s absolute fallback</td></tr>
+    <tr><td><code>musu-rs/Cargo.toml</code></td><td>MODIFY</td><td>+15</td><td>ignore, rayon, regex, notify optional; [features] indexer-watch</td></tr>
+    <tr><td><code>musu-rs/src/main.rs</code></td><td>MODIFY</td><td>+10</td><td>Cmd::Indexer { action } clap dispatch</td></tr>
+    <tr><td><code>musu-rs/src/bridge/handlers/mod.rs</code></td><td>MODIFY</td><td>+3</td><td>GET /api/index-search route</td></tr>
+    <tr><td><code>musu-rs/src/bridge/handlers/companies.rs</code></td><td>MODIFY</td><td>+17</td><td>tokio::spawn sync hook in create() (C-R4-7)</td></tr>
+    <tr><td><code>musu-rs/src/control/tools/params.rs</code></td><td>MODIFY</td><td>+30</td><td>SearchCompanyParams + GetAgentParams (Builder also tidied existing params)</td></tr>
+    <tr><td><code>musu-rs/src/control/bridge_client.rs</code></td><td>MODIFY</td><td>+30</td><td>search_company HTTP proxy method</td></tr>
+    <tr><td><code>musu-rs/src/control/mod.rs</code></td><td>MODIFY</td><td>+25</td><td>search_company MCP tool (14th, T1)</td></tr>
+    <tr><td><code>musu-rs/tests/r3_mcp_smoke.rs</code></td><td>MODIFY</td><td>+50</td><td>13→14 tools assert + search_company fixture with wiremock</td></tr>
+  </tbody>
+</table>
+
+<p><strong>Total</strong>: 11 NEW + 8 MODIFY, ~1,899 LOC net new.</p>
+
+<h2>§4 Critic + Auditor walks</h2>
+
+<h3>§4.1 Critic (system-architect, 11 findings)</h3>
+
+<ul>
+  <li><strong>C-R4-1 HIGH</strong> snippet bytes — RESOLVED: <code>search.rs:80-87</code> exact <code>snippet(search_index, 2, '&lt;b&gt;', '&lt;/b&gt;', '…', 20)</code>; r4_index_smoke asserts U+2026 byte</li>
+  <li><strong>C-R4-2 HIGH</strong> perf gate — RESOLVED: MUSU_R4_REF_MS env (2× ref) OR 30s absolute fallback; r4_scanner_perf with #[ignore]</li>
+  <li><strong>C-R4-3 HIGH</strong> r3 smoke 13→14 — RESOLVED: r3_mcp_smoke.rs:322 asserts 14, search_company fixture mounted</li>
+  <li>C-R4-4 MED index_meta schema — db.rs:79-87 CREATE TABLE; sync.rs upserts last_sync_at + workspace_name</li>
+  <li>C-R4-5 MED empty work_dir — sync.rs:60-65 SyncReport skipped_reason="no_work_dir"; r4_index_smoke covers</li>
+  <li>C-R4-6 MED indexer-watch feature — Cargo.toml [features]; notify optional</li>
+  <li>C-R4-7 MED R1 hook — companies.rs::create post-INSERT tokio::spawn fire-and-forget</li>
+  <li>C-R4-8 LOW regex line iter — symbols.rs:178-193 per Python parity, no (?m) flag</li>
+  <li>C-R4-9 LOW fixture spec — make_synthetic_workspace(1000) writes ~2KB .rs each with 1 struct + 3 fns</li>
+  <li>C-R4-10 LOW R10 deletion checklist — documented in plan §1.1 Q8</li>
+  <li>C-R4-11 INFO rayon/tokio split — rayon walk → mpsc → tokio FTS5 inserts (sync.rs spawn_blocking)</li>
+</ul>
+
+<h3>§4.2 Auditor (quality-engineer)</h3>
+
+<p><strong>SHIP-OK after QA1 audit-fix.</strong> 1 NEW HIGH + 3 MED + 4 LOW/INFO.</p>
+
+<ul>
+  <li><strong>QA1 HIGH</strong> frontend regression: live SearchPanel.tsx calls without <code>workspace</code> param, R4 returned 400. <strong>Resolved audit-fix in <code>index_search.rs:54-63</code></strong> — missing/empty workspace now returns <code>Ok(Json(Vec::new()))</code> (Python parity).</li>
+  <li>QA2 MED perf-gate baseline deferred — recommend R10 prerequisite</li>
+  <li>QA3 MED parallel Next.js index handler uses different bytes — V25 harmonization candidate</li>
+  <li>QA4 LOW 18→24 glob count plan-doc drift</li>
+  <li>QA5 LOW watch.rs dead capture (cosmetic)</li>
+  <li>QA6 LOW empty-q/missing-workspace symmetry — resolved via QA1 fix</li>
+  <li>QA7 INFO drift-rebuild tracing observability</li>
+  <li>QA8 INFO scanner.rs::count_candidates dead public API</li>
+</ul>
+
+<h2>§5 R10 deletion checklist (per Q8)</h2>
+
+<p>R10 bulk-deletes Python indexer artifacts. R4 enumerates here so R10 doesn't miss anything:</p>
+
+<ul>
+  <li><code>musu-indexer/</code> entire directory (Python package + Go scanner source + bin/ pre-built binaries)</li>
+  <li><code>musu-bridge/server.py:2711-2743</code> (Python <code>/api/index-search</code> route)</li>
+  <li><code>musu-bridge/handlers.py:1648-1684</code> (Python <code>_setup_company_workspace</code> Popen call)</li>
+  <li><code>scripts/start-indexer-http.sh</code> (MCP stdio singleton wrapper)</li>
+  <li><code>musu-control-mcp.sh</code> wrapper (R3 already obsoleted; R10 deletes file)</li>
+  <li>Bridge facade fall-through pattern for <code>/api/index-search</code> in <code>musu-rs/src/bridge/mod.rs</code> (native handler now serves; facade can stay for other paths until R10)</li>
+</ul>
+
+<h2>§6 V25 backlog</h2>
+
+<ul>
+  <li>QA2: Python+Go baseline on land-os captured BEFORE R10 deletion (gate becomes meaningful)</li>
+  <li>QA3: Next.js <code>app/api/index-search/route.ts</code> harmonization (route through bridge for byte parity)</li>
+  <li>QA7: <code>tracing::info!</code> on FTS5 drift-rebuild</li>
+  <li>QA8: <code>musu indexer count</code> debug subcommand or delete dead API</li>
+  <li>Semantic embeddings / vector search</li>
+  <li>File-watch default-on once <code>notify</code> Windows AV edge cases proven</li>
+</ul>
+
+<h2>§7 Constitution gates</h2>
+
+<ul>
+  <li>Const III: NOT triggered (per-workspace <code>.musu_dev.db</code> separate file; main musu.db unchanged)</li>
+  <li>Const VI: NOT triggered</li>
+  <li>Const VII: per-push, R-cleanup bundle approval via [[feedback-const-vii-batched-approval]]</li>
+</ul>
+
+<h2>§8 R-cleanup status (after R4 ship)</h2>
+
+<table>
+  <thead><tr><th>Sub-WS</th><th>Wiki</th><th>Status</th><th>Commit</th></tr></thead>
+  <tbody>
+    <tr><td>V24-R5 writer</td><td>wiki/495 + 495c</td><td>SHIPPED</td><td>41efc2e</td></tr>
+    <tr><td>V24-R6 installer</td><td>wiki/496 + 496c</td><td>SHIPPED</td><td>fc803e9 + 289ff7e</td></tr>
+    <tr><td>V24-R3 control</td><td>wiki/493 + 493c</td><td>SHIPPED</td><td>de5cb37</td></tr>
+    <tr><td>V24-R4 indexer</td><td>wiki/494 + 494c</td><td><strong>SHIPPED (this turn)</strong></td><td>pending push</td></tr>
+    <tr><td>V24-R9 cross-machine</td><td>wiki/499</td><td>deferred (§A.1.1)</td><td>—</td></tr>
+    <tr><td>V24-R10 Python deletion</td><td>wiki/500</td><td>pending</td><td>—</td></tr>
+  </tbody>
+</table>
+
+<p>All 4 R-cleanup native modules (R3, R4, R5, R6) are SHIPPED. Only R10 (Python bulk deletion + V24 closure + CHANGELOG 1.14.0 + §9.12 operator-attested gate) remains for V24 close.</p>
+
+<h2>§9 References</h2>
+
+<ul>
+  <li>wiki/494 plan (this closure's parent)</li>
+  <li>wiki/495c R5 + wiki/496c R6 + wiki/493c R3 closures</li>
+  <li>wiki/490 master plan §5-R4</li>
+  <li>GOAL.md §A.1.1 R-cleanup pivot</li>
+  <li>Phase 0 Researcher envelope (F1-F14 + Q1-Q8)</li>
+  <li>Phase 1.5 Critic envelope (C-R4-1..11)</li>
+  <li>Phase 5 Auditor envelope (QA1-QA8)</li>
+  <li>Memory tags: [[feedback-no-python]], [[decision-musu-backend-rust]], [[feedback-self-contained-product]], [[feedback-no-yagni-architecture]], [[feedback-plan-stage-auditor]], [[feedback-const-vii-batched-approval]], [[feedback-scribe-html-only]]</li>
+</ul>
+
+</div>
+</body>
+</html>

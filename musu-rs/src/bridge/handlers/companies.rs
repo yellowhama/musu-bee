@@ -252,6 +252,35 @@ pub async fn create(
         })
         .await;
 
+    // V24-R4 wiki/494 §3 / Critic C-R4-7: post-INSERT fire-and-forget
+    // index sync. The 201 response is NOT blocked on disk scan — if the
+    // workspace is huge or work_dir is empty, the spawn just logs and
+    // exits without touching the request path. Idempotent against an
+    // existing `<work_dir>/.musu_dev.db` (sync.rs wipes + repopulates).
+    //
+    // We pre-clone the work_dir + name so the spawned task owns its data.
+    // Empty work_dir is handled inside sync_workspace_async (C-R4-5);
+    // we don't gate here so the contract stays in one place.
+    {
+        let work_dir_clone = company.work_dir.clone().unwrap_or_default();
+        let name_clone = company.name.clone();
+        tokio::spawn(async move {
+            if let Err(e) = crate::indexer::sync::sync_workspace_async(
+                std::path::PathBuf::from(&work_dir_clone),
+                name_clone.clone(),
+            )
+            .await
+            {
+                tracing::warn!(
+                    error = %e,
+                    company = %name_clone,
+                    work_dir = %work_dir_clone,
+                    "indexer sync after create_company failed; non-fatal"
+                );
+            }
+        });
+    }
+
     Ok(Json(CreateResponse { company }))
 }
 

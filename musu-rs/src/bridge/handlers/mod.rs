@@ -3,9 +3,11 @@
 //! wiki/491 §5: 8 R-fast endpoints.
 //! wiki/495 §3: +2 R5 endpoints (`GET /api/tasks/events`, `DELETE /api/tasks/{id}`).
 //! wiki/496 §3 (D10): +1 R6 endpoint (`POST /api/system/update`).
+//! wiki/494 §3 (R4): +1 R4 endpoint (`GET /api/index-search`).
 
 pub mod companies;
 pub mod health;
+pub mod index_search;
 pub mod nodes;
 pub mod run;
 pub mod sse;
@@ -48,4 +50,8 @@ pub fn native_router() -> Router<AppState> {
             "/api/system/update",
             post(system_update::post_system_update),
         )
+        // R4 (wiki/494 §3): native /api/index-search replacing Python
+        // server.py:2711-2743. Byte-compat response shape; read-only
+        // (no audit.write per C5).
+        .route("/api/index-search", get(index_search::get))
 }

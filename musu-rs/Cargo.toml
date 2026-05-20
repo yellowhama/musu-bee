@@ -9,6 +9,15 @@ license = "PROPRIETARY"
 name = "musu"
 path = "src/main.rs"
 
+# V24-R4 (wiki/494) §2 / C-R4-6 — `indexer-watch` opt-in feature.
+# Default builds do NOT pull `notify`. Power users compile with
+# `cargo build --features indexer-watch` to enable `musu indexer watch`.
+# Plan §6 R4-W4 — file-watch fragility on Windows AV / network drives
+# kept behind a feature gate so the default path stays simple + reliable.
+[features]
+default = []
+indexer-watch = ["notify"]
+
 [dependencies]
 tokio = { version = "1", features = ["full"] }
 axum = "0.7"
@@ -40,6 +49,23 @@ http-body-util = "0.1"
 
 # R5 (wiki/495): writer module deps
 tokio-stream = { version = "0.1", features = ["sync"] }
+
+# R4 (wiki/494): indexer module deps.
+#   * `ignore` — ripgrep's gitignore-aware parallel walker. Replaces Python
+#     `fnmatch` + the pre-built Go scanner binary. Battle-tested on Windows.
+#   * `rayon`  — CPU-bound regex + file-read parallelism per C-R4-11. The
+#     scanner uses a rayon thread pool to walk + symbol-extract, then funnels
+#     IndexEntry rows through an mpsc channel to the tokio runtime where
+#     sqlx batches FTS5 INSERTs. Mixing rayon scope with #[tokio::main] is
+#     fine as long as we don't .block_on() inside a rayon worker.
+#   * `notify` — file-watch crate, opt-in via `indexer-watch` feature only
+#     (C-R4-6 plan amendment). Default builds skip the dep entirely.
+ignore = "0.4"
+rayon = "1"
+notify = { version = "6", optional = true }
+# `regex` is already transitive via `tracing-subscriber` / `ignore`; declare
+# directly so symbols.rs gets a stable pin and the dep graph stays honest.
+regex = "1"
 
 # R3 (wiki/493): control plane MCP server.
 # Anthropic-blessed Rust MCP SDK. Pinned at "1.7" minor per Critic C5 / §7

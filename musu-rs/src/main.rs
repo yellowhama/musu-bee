@@ -17,7 +17,12 @@ struct Cli {
 #[derive(Subcommand)]
 enum Cmd {
     Bridge,
-    Indexer,
+    /// V24-R4 wiki/494: native Rust per-workspace file/code indexer.
+    /// Sub-actions: sync, search, init-profile, watch.
+    Indexer {
+        #[command(subcommand)]
+        action: indexer::IndexerAction,
+    },
     Writer,
     Control,
     /// Apply the schema to the default DB path without booting the bridge.
@@ -91,9 +96,9 @@ async fn main() -> anyhow::Result<()> {
             init_tracing_default();
             bridge::run().await
         }
-        Cmd::Indexer => {
+        Cmd::Indexer { action } => {
             init_tracing_default();
-            indexer::run().await
+            indexer::run(action).await
         }
         Cmd::Writer => {
             init_tracing_default();

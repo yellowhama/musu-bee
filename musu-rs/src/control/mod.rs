@@ -6,7 +6,9 @@
 //!   1. `main.rs` set up stderr-only `tracing` BEFORE entering this fn.
 //!   2. Eagerly construct `BridgeClient` — token-resolve failure returns Err
 //!      before any byte hits stdout.
-//!   3. Build the `ServerHandler` with all 13 tool routes pre-registered.
+//!   3. Build the `ServerHandler` with all 14 tool routes pre-registered.
+//!      (R3 shipped 13; R4 wiki/494 adds `search_company` as the 14th —
+//!      see Critic C-R4-3.)
 //!   4. `serve((stdin, stdout))` — rmcp's `AsyncRwTransport` returns on
 //!      stdin EOF, so `service.waiting()` resolves when the client closes
 //!      its stdin. C8 belt-and-suspenders: we run that `waiting()` future
@@ -38,7 +40,7 @@ pub mod tools;
 use bridge_client::BridgeClient;
 use tools::params::{
     CancelTaskParams, CreateCompanyParams, DelegateTaskParams, GetAgentParams, GetCompanyParams,
-    RunCompanyParams,
+    RunCompanyParams, SearchCompanyParams,
 };
 
 /// The MCP server. Holds the eagerly-constructed bridge client + the rmcp
@@ -172,6 +174,27 @@ impl ControlServer {
     )]
     async fn list_nodes(&self) -> Result<CallToolResult, ErrorData> {
         ok_text(self.bridge.list_nodes().await)
+    }
+
+    // ── T1 strictly-native: R4 indexer (1 tool) ──────────────────────────
+
+    /// search_company — V24-R4 wiki/494 §3. Proxies GET /api/index-search.
+    /// Native HTTP-proxy tool (NOT a T2 deprecated stub) — backed by the
+    /// native Rust indexer module, not Python. The 14th tool per
+    /// Critic C-R4-3 (bumped from R3's 13).
+    #[tool(
+        name = "search_company",
+        description = "Full-text search a company's workspace index (path/snippet/type results)."
+    )]
+    async fn search_company(
+        &self,
+        Parameters(p): Parameters<SearchCompanyParams>,
+    ) -> Result<CallToolResult, ErrorData> {
+        ok_text(
+            self.bridge
+                .search_company(&p.workspace, &p.q, p.scope.as_deref(), p.limit)
+                .await,
+        )
     }
 
     // ── T2 DEPRECATED stubs (5 tools) ────────────────────────────────────

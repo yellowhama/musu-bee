@@ -118,6 +118,30 @@ pub struct CancelTaskParams {
     pub task_id: String,
 }
 
+// ─────────────────────── T1 R4 indexer params ───────────────────────
+
+/// V24-R4 wiki/494 §3 — params for `search_company` MCP tool.
+///
+/// Proxies `GET /api/index-search?q=&workspace=&scope=&limit=` over the
+/// loopback bridge HTTP. The MCP layer adds NO defaults of its own; the
+/// bridge handler applies `scope=all` and `limit=20` if absent (matching
+/// Python parity bytes).
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SearchCompanyParams {
+    /// Workspace selector — company id OR company name. Required.
+    pub workspace: String,
+    /// FTS5 query string. Empty → empty result (Python parity short-circuit).
+    pub q: String,
+    /// `all` | `code` | `doc`. Advisory in R4; defaults to `all` on the
+    /// bridge side when omitted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope: Option<String>,
+    /// Result cap. Defaults to 20 on the bridge side when omitted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u32>,
+}
+
 // ─────────────────────── T2 deprecated params ───────────────────────
 
 /// T2 deprecated `get_agent` takes an agent id we never use (stub body

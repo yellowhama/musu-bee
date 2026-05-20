@@ -194,6 +194,36 @@ impl BridgeClient {
     pub async fn list_nodes(&self) -> Result<String> {
         self.get("/api/nodes").await
     }
+
+    /// V24-R4 wiki/494 §3 — proxy to `GET /api/index-search`.
+    ///
+    /// Builds the query string from explicit args (rather than letting
+    /// `reqwest` infer from `Option<T>` defaults) so we can omit absent
+    /// optionals cleanly and so the test assertion against the wiremock
+    /// route is exact-path, not "anything starting with /api/index-search".
+    pub async fn search_company(
+        &self,
+        workspace: &str,
+        q: &str,
+        scope: Option<&str>,
+        limit: Option<u32>,
+    ) -> Result<String> {
+        if workspace.is_empty() {
+            return Ok("error: workspace required".into());
+        }
+        // Use reqwest's `query` to URL-encode for us. Pairs with Option
+        // skip semantics — `None` parameters never appear in the wire.
+        let mut params: Vec<(&str, String)> =
+            vec![("workspace", workspace.to_string()), ("q", q.to_string())];
+        if let Some(s) = scope {
+            params.push(("scope", s.to_string()));
+        }
+        if let Some(l) = limit {
+            params.push(("limit", l.to_string()));
+        }
+        let req = self.http.get(self.url("/api/index-search")).query(&params);
+        self.send(req).await
+    }
 }
 
 /// Resolve `~/.musu/` for the token lookup. Honours `MUSU_HOME` env override
