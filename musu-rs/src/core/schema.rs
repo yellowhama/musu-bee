@@ -32,7 +32,6 @@ pub const SCHEMA_V1_STATEMENTS: &[&str] = &[
     ) STRICT",
     "CREATE INDEX IF NOT EXISTS idx_companies_workspace ON companies(workspace_id)",
     "CREATE INDEX IF NOT EXISTS idx_companies_status    ON companies(status)",
-
     // ---- §4.2 route_executions (7 cols + 3 indexes; FK→companies SET NULL) ----
     "CREATE TABLE IF NOT EXISTS route_executions (
         task_id      TEXT    NOT NULL PRIMARY KEY,
@@ -47,7 +46,6 @@ pub const SCHEMA_V1_STATEMENTS: &[&str] = &[
     "CREATE INDEX IF NOT EXISTS idx_route_exec_created ON route_executions(created_at)",
     "CREATE INDEX IF NOT EXISTS idx_route_exec_status  ON route_executions(status)",
     "CREATE INDEX IF NOT EXISTS idx_route_exec_hash    ON route_executions(input_hash)",
-
     // ---- §4.3 audit_log (9 cols, AUTOINCREMENT id, NO FK on company_id) ----
     // Critic H-1 invariant: company_id is a forensic string ref, NEVER a FK.
     "CREATE TABLE IF NOT EXISTS audit_log (
@@ -63,7 +61,6 @@ pub const SCHEMA_V1_STATEMENTS: &[&str] = &[
     ) STRICT",
     "CREATE INDEX IF NOT EXISTS idx_audit_ts      ON audit_log(ts)",
     "CREATE INDEX IF NOT EXISTS idx_audit_company ON audit_log(company_id)",
-
     // ---- §4.4 machines (8 cols + 1 index; R3+ readiness) ----
     "CREATE TABLE IF NOT EXISTS machines (
         id              TEXT    NOT NULL PRIMARY KEY,
@@ -76,6 +73,31 @@ pub const SCHEMA_V1_STATEMENTS: &[&str] = &[
         updated_at      INTEGER NOT NULL
     ) STRICT",
     "CREATE INDEX IF NOT EXISTS idx_machines_last_seen ON machines(last_seen_at)",
+];
+
+/// Schema-v2 ALTER TABLE statements — wiki/495 §4.
+///
+/// All additions are NULLable (no DEFAULT) so existing rows survive the
+/// migration with NULLs in the new columns. Builder UPDATEs populate them
+/// per-task as runs complete.
+///
+/// Order doesn't matter (each ALTER is independent), but listed in the
+/// order columns appear in the post-migration row.
+///
+/// 6 cols (Critic C3 added `started_at`):
+///   - `output` TEXT          — final claude assistant text (SQLite-only per Q3)
+///   - `error` TEXT           — first stderr line OR runner error context
+///   - `exit_code` INTEGER    — claude subprocess return code (NULL on cancel)
+///   - `duration_sec` REAL    — wall-clock seconds from spawn to terminal
+///   - `started_at` INTEGER   — set when subprocess actually spawns (post-queue admission)
+///   - `updated_at` INTEGER   — bumped on every status transition
+pub const SCHEMA_V2_ALTER_STATEMENTS: &[&str] = &[
+    "ALTER TABLE route_executions ADD COLUMN output       TEXT",
+    "ALTER TABLE route_executions ADD COLUMN error        TEXT",
+    "ALTER TABLE route_executions ADD COLUMN exit_code    INTEGER",
+    "ALTER TABLE route_executions ADD COLUMN duration_sec REAL",
+    "ALTER TABLE route_executions ADD COLUMN started_at   INTEGER",
+    "ALTER TABLE route_executions ADD COLUMN updated_at   INTEGER",
 ];
 
 #[cfg(test)]

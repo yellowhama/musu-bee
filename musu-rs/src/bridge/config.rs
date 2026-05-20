@@ -91,7 +91,9 @@ impl BridgeConfig {
             .and_then(|p| p.parse().ok())
             .unwrap_or(8071);
 
-        let public_url = env::var("MUSU_BRIDGE_PUBLIC_URL").ok().filter(|s| !s.is_empty());
+        let public_url = env::var("MUSU_BRIDGE_PUBLIC_URL")
+            .ok()
+            .filter(|s| !s.is_empty());
 
         let node_name = env::var("MUSU_NODE_NAME")
             .ok()
@@ -213,7 +215,10 @@ mod tests {
         clear_env();
         // No MUSU_ENV → defaults to Production → requires token.
         let result = BridgeConfig::from_env();
-        assert!(result.is_err(), "expected boot reject on empty token in default/prod");
+        assert!(
+            result.is_err(),
+            "expected boot reject on empty token in default/prod"
+        );
     }
 
     #[test]
@@ -222,7 +227,10 @@ mod tests {
         clear_env();
         env::set_var("MUSU_BRIDGE_TOKEN", "shorttoken");
         let result = BridgeConfig::from_env();
-        assert!(result.is_err(), "expected boot reject on <32 char token in prod");
+        assert!(
+            result.is_err(),
+            "expected boot reject on <32 char token in prod"
+        );
     }
 
     #[test]
@@ -252,7 +260,10 @@ mod tests {
         clear_env();
         env::set_var("MUSU_ENV", "Production");
         let result = BridgeConfig::from_env();
-        assert!(result.is_err(), "Capitalized 'Production' must NOT downgrade to dev");
+        assert!(
+            result.is_err(),
+            "Capitalized 'Production' must NOT downgrade to dev"
+        );
     }
 
     #[test]
@@ -271,7 +282,10 @@ mod tests {
         env::set_var("MUSU_BRIDGE_TOKEN", "a".repeat(32));
         env::set_var("MUSU_DISABLE_RATE_LIMIT", "1");
         let result = BridgeConfig::from_env();
-        assert!(result.is_err(), "MUSU_DISABLE_RATE_LIMIT must be rejected in prod");
+        assert!(
+            result.is_err(),
+            "MUSU_DISABLE_RATE_LIMIT must be rejected in prod"
+        );
     }
 
     #[test]
@@ -281,7 +295,10 @@ mod tests {
         clear_env();
         env::set_var("MUSU_ENV", "development");
         let cfg = BridgeConfig::from_env().unwrap();
-        assert!(cfg.localhost_auth_required, "default localhost_auth_required must be true");
+        assert!(
+            cfg.localhost_auth_required,
+            "default localhost_auth_required must be true"
+        );
     }
 
     #[test]
@@ -291,6 +308,9 @@ mod tests {
         env::set_var("MUSU_ENV", "development");
         env::set_var("MUSU_BRIDGE_LOCALHOST_AUTH", "0");
         let cfg = BridgeConfig::from_env().unwrap();
-        assert!(!cfg.localhost_auth_required, "explicit '0' must enable bypass");
+        assert!(
+            !cfg.localhost_auth_required,
+            "explicit '0' must enable bypass"
+        );
     }
 }

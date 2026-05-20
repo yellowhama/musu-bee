@@ -65,9 +65,8 @@ fn write_nodes_toml(path: &Path, file: &NodesFile) -> std::io::Result<()> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).ok();
     }
-    let text = toml::to_string_pretty(file).map_err(|e| {
-        std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string())
-    })?;
+    let text = toml::to_string_pretty(file)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string()))?;
     // Atomic write: tmp file + rename.
     let tmp = path.with_extension("toml.tmp");
     std::fs::write(&tmp, text)?;
@@ -113,8 +112,7 @@ pub async fn list(State(state): State<AppState>) -> Result<Json<NodesListRespons
 
     // For each peer node, health-check with 3s timeout.
     let client = state.http_client.clone();
-    let peer_entries: Vec<(String, NodeEntry)> =
-        file.nodes.into_iter().collect();
+    let peer_entries: Vec<(String, NodeEntry)> = file.nodes.into_iter().collect();
     let mut tasks = Vec::with_capacity(peer_entries.len());
     for (name, entry) in peer_entries {
         let client = client.clone();
@@ -183,9 +181,7 @@ pub async fn add(
         (Some(u), _) if !u.trim().is_empty() => u.trim().trim_end_matches('/').to_string(),
         (_, Some(ip)) if !ip.trim().is_empty() => format!("http://{}:8070", ip.trim()),
         _ => {
-            return Err(MusuError::BadRequest(
-                "url or tailscale_ip required".into(),
-            ));
+            return Err(MusuError::BadRequest("url or tailscale_ip required".into()));
         }
     };
 
@@ -214,15 +210,11 @@ pub async fn add(
     if !state.config.token.is_empty() {
         req_b = req_b.bearer_auth(&state.config.token);
     }
-    let peer_acceptance = match timeout(
-        Duration::from_secs(10),
-        req_b.json(&accept_body).send(),
-    )
-    .await
-    {
-        Ok(Ok(r)) => Some(r.status().is_success()),
-        _ => Some(false),
-    };
+    let peer_acceptance =
+        match timeout(Duration::from_secs(10), req_b.json(&accept_body).send()).await {
+            Ok(Ok(r)) => Some(r.status().is_success()),
+            _ => Some(false),
+        };
 
     // Persist to nodes.toml.
     let mut file = read_nodes_toml(&state.config.nodes_toml_path);

@@ -57,10 +57,12 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn schema_version_zero_before_one_after() {
+    async fn schema_version_zero_before_expected_after() {
+        // R5 (wiki/495) bumped EXPECTED_SCHEMA_VERSION to 2. Assert against the
+        // constant rather than a literal so future bumps don't break this test.
         let pool = mem_pool().await;
         assert_eq!(schema_version(&pool).await, 0);
         run(&pool).await.unwrap();
-        assert_eq!(schema_version(&pool).await, 1);
+        assert_eq!(schema_version(&pool).await, EXPECTED_SCHEMA_VERSION);
     }
 }

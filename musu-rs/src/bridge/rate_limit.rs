@@ -140,11 +140,7 @@ impl RateLimitState {
             }
         }
 
-        let mut entry = self
-            .inner
-            .per_ip
-            .entry(ip)
-            .or_insert_with(Window::new);
+        let mut entry = self.inner.per_ip.entry(ip).or_insert_with(Window::new);
         entry.record_and_check(limit)
     }
 }
@@ -159,7 +155,8 @@ fn rate_limited_response(retry_in: Duration) -> Response {
     }));
     let mut resp = (StatusCode::TOO_MANY_REQUESTS, body).into_response();
     if let Ok(val) = HeaderValue::from_str(&secs.to_string()) {
-        resp.headers_mut().insert(axum::http::header::RETRY_AFTER, val);
+        resp.headers_mut()
+            .insert(axum::http::header::RETRY_AFTER, val);
     }
     resp
 }
@@ -175,7 +172,10 @@ pub async fn rate_limit_middleware(
 
     // Global ceiling check first.
     if let Err(retry_in) = state.check_global() {
-        tracing::warn!(retry_in_s = retry_in.as_secs(), "global rate limit exceeded");
+        tracing::warn!(
+            retry_in_s = retry_in.as_secs(),
+            "global rate limit exceeded"
+        );
         return rate_limited_response(retry_in);
     }
 

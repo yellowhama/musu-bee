@@ -12,6 +12,7 @@ use crate::bridge::error::{MusuError, Result};
 use crate::bridge::AppState;
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)] // qa_loop fields accepted for future R7+ qa-loop wiring; runner ignores today.
 pub struct DelegateRequest {
     pub channel: String,
     pub sender_id: String,
@@ -28,6 +29,11 @@ pub struct DelegateRequest {
     pub company_id: Option<String>,
     #[serde(default)]
     pub allow_duplicate: bool,
+    // R5 (wiki/495 §3.3 / Critic C2): adapter knob parity with Python.
+    #[serde(default)]
+    pub model: Option<String>,
+    #[serde(default)]
+    pub cwd: Option<String>,
 }
 
 fn default_qa_loop_max() -> u32 {
@@ -54,9 +60,7 @@ pub async fn delegate(
 ) -> Result<axum::response::Response> {
     // Validation: text 1..10000 chars.
     if req.text.is_empty() || req.text.len() > 10_000 {
-        return Err(MusuError::BadRequest(
-            "text must be 1..10000 chars".into(),
-        ));
+        return Err(MusuError::BadRequest("text must be 1..10000 chars".into()));
     }
     if req.channel.is_empty() {
         return Err(MusuError::BadRequest("channel required".into()));
@@ -94,11 +98,12 @@ pub async fn delegate(
         let _ = state.dedup.check_and_insert(&key, &task_id);
     }
 
-    // Write pending row.
+    // EDIT-A (wiki/495 §3.2 / Critic C1): explicit 'pending' literal matches
+    // schema v1 DEFAULT but is legible at the call site.
     let now = chrono::Utc::now().timestamp();
     sqlx::query(
         "INSERT INTO route_executions (task_id, company_id, channel, sender_id, input_hash, status, created_at) \
-         VALUES (?, ?, ?, ?, ?, 'pending_python_writer', ?)",
+         VALUES (?, ?, ?, ?, ?, 'pending', ?)",
     )
     .bind(&task_id)
     .bind(&req.company_id)
@@ -110,57 +115,34 @@ pub async fn delegate(
     .await
     .map_err(MusuError::Sqlx)?;
 
-    // Forward to Python facade target.
-    let upstream = format!(
-        "http://127.0.0.1:{}/api/tasks/delegate",
-        state.config.python_facade_port
-    );
-    let body = serde_json::json!({
-        "channel": req.channel,
-        "sender_id": req.sender_id,
-        "text": req.text,
-        "expected_output": req.expected_output,
-        "use_qa_loop": req.use_qa_loop,
-        "qa_loop_max_iter": req.qa_loop_max_iter,
-        "timeout_sec": req.timeout_sec,
-        "company_id": req.company_id,
-        "allow_duplicate": req.allow_duplicate,
-        "via_rust_task_id": task_id,
-    });
+    // EDIT-B (wiki/495 §3.2): hand off to native runner. spawn_task returns
+    // immediately (Q1 spawn-then-track). Runner owns JoinHandle + all status
+    // updates. SSE delivers state transitions to subscribers.
+    let cwd = req
+        .cwd
+        .clone()
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| {
+            std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."))
+        });
+    state
+        .task_runner
+        .spawn_task(crate::writer::TaskSpec {
+            task_id: task_id.clone(),
+            company_id: req.company_id.clone(),
+            channel: req.channel.clone(),
+            sender_id: req.sender_id.clone(),
+            prompt: req.text.clone(),
+            expected_output: req.expected_output.clone(),
+            cwd,
+            model: req.model.clone(),
+            timeout_sec: req.timeout_sec,
+        })
+        .await
+        .map_err(|e| MusuError::Internal(format!("spawn_task: {e}")))?;
 
-    let mut req_b = state
-        .http_client
-        .post(&upstream)
-        .header("X-Musu-Via-Rust", "1")
-        .header("X-Musu-Task-Id", &task_id);
-    if !state.config.token.is_empty() {
-        req_b = req_b.bearer_auth(&state.config.token);
-    }
-
-    match req_b.json(&body).send().await {
-        Ok(resp) => {
-            tracing::info!(
-                task_id = %task_id,
-                status = %resp.status(),
-                "tasks/delegate forwarded to python"
-            );
-        }
-        Err(e) => {
-            tracing::warn!(
-                task_id = %task_id,
-                error = %e,
-                "tasks/delegate forward to python failed"
-            );
-            let _ = sqlx::query(
-                "UPDATE route_executions SET status = 'python_unreachable' WHERE task_id = ?",
-            )
-            .bind(&task_id)
-            .execute(&state.pool)
-            .await;
-        }
-    }
-
-    // Auditor N-1: real client IP from ConnectInfo.
+    // EDIT-C (wiki/495 §3.2): audit_log write — PRESERVED unchanged from N-1
+    // Auditor fix. DO NOT fold into EDIT-B.
     state
         .audit
         .write(crate::bridge::audit::AuditEntry {

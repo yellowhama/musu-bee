@@ -35,10 +35,7 @@ fn is_hop_by_hop(name: &HeaderName) -> bool {
         .any(|h| name.as_str().eq_ignore_ascii_case(h))
 }
 
-fn copy_request_headers(
-    src: &HeaderMap,
-    dst: &mut reqwest::header::HeaderMap,
-) {
+fn copy_request_headers(src: &HeaderMap, dst: &mut reqwest::header::HeaderMap) {
     for (name, value) in src.iter() {
         if is_hop_by_hop(name) || name == HOST {
             continue;
@@ -59,16 +56,10 @@ fn copy_request_headers(
     }
 }
 
-fn copy_response_headers(
-    src: &reqwest::header::HeaderMap,
-    dst: &mut HeaderMap,
-) {
+fn copy_response_headers(src: &reqwest::header::HeaderMap, dst: &mut HeaderMap) {
     for (name, value) in src.iter() {
         let std_name = name.as_str();
-        if HOP_BY_HOP
-            .iter()
-            .any(|h| std_name.eq_ignore_ascii_case(h))
-        {
+        if HOP_BY_HOP.iter().any(|h| std_name.eq_ignore_ascii_case(h)) {
             continue;
         }
         if let (Ok(n), Ok(v)) = (
@@ -129,13 +120,12 @@ pub async fn proxy(State(state): State<AppState>, req: Request) -> Response {
                 error = %e,
                 "facade upstream send failed"
             );
-            return MusuError::Upstream(format!("upstream unreachable: {}", e))
-                .into_response();
+            return MusuError::Upstream(format!("upstream unreachable: {}", e)).into_response();
         }
     };
 
-    let status = StatusCode::from_u16(upstream_resp.status().as_u16())
-        .unwrap_or(StatusCode::BAD_GATEWAY);
+    let status =
+        StatusCode::from_u16(upstream_resp.status().as_u16()).unwrap_or(StatusCode::BAD_GATEWAY);
 
     let is_sse = upstream_resp
         .headers()

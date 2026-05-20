@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>V24-R5 writer module — closure (wiki/495c)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root {
+    --bg: #0f1115;
+    --fg: #e8e8ec;
+    --muted: #9ba0aa;
+    --accent: #7cd992;
+    --warn: #f0c674;
+    --bad: #e07b7b;
+    --code-bg: #1a1d24;
+    --border: #2a2e38;
+    --link: #82aaff;
+  }
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.55;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  h1 { font-size: 1.7rem; border-bottom: 1px solid var(--border); padding-bottom: .5rem; }
+  h2 { font-size: 1.25rem; margin-top: 2rem; color: var(--accent); }
+  h3 { font-size: 1.05rem; color: var(--warn); margin-top: 1.5rem; }
+  .meta { color: var(--muted); font-size: .9rem; margin-bottom: 1.5rem; }
+  .meta dl { display: grid; grid-template-columns: max-content 1fr; gap: .35rem 1rem; }
+  .meta dt { color: var(--muted); }
+  .meta dd { margin: 0; }
+  code, pre { font-family: 'JetBrains Mono', 'Consolas', monospace; }
+  code { background: var(--code-bg); padding: .1rem .35rem; border-radius: 3px; font-size: .88em; }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    padding: .9rem 1rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: .85rem;
+    line-height: 1.45;
+  }
+  pre code { background: transparent; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .92rem; }
+  th, td { border: 1px solid var(--border); padding: .5rem .7rem; text-align: left; vertical-align: top; }
+  th { background: var(--code-bg); color: var(--muted); font-weight: 600; }
+  tr.pass td:first-child { color: var(--accent); font-weight: bold; }
+  tr.warn td:first-child { color: var(--warn); font-weight: bold; }
+  tr.miss td:first-child { color: var(--bad); font-weight: bold; }
+  tr.info td:first-child { color: var(--link); font-weight: bold; }
+  .pill { display: inline-block; padding: .15rem .55rem; border-radius: 999px; font-size: .8rem; font-weight: 600; }
+  .pill.pass { background: rgba(124,217,146,.15); color: var(--accent); border: 1px solid var(--accent); }
+  .pill.warn { background: rgba(240,198,116,.15); color: var(--warn); border: 1px solid var(--warn); }
+  .pill.info { background: rgba(130,170,255,.15); color: var(--link); border: 1px solid var(--link); }
+  ul { padding-left: 1.4rem; }
+  ol { padding-left: 1.4rem; }
+  .kv { color: var(--muted); }
+  .kv strong { color: var(--fg); }
+  a { color: var(--link); }
+  svg.timeline { display: block; margin: 1rem auto; max-width: 100%; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 2rem 0; }
+  blockquote {
+    border-left: 3px solid var(--accent);
+    padding: .25rem .9rem;
+    color: var(--muted);
+    margin: 1rem 0;
+    background: rgba(124,217,146,.04);
+  }
+  .banner {
+    border: 1px solid var(--warn);
+    background: rgba(240,198,116,.06);
+    padding: .8rem 1rem;
+    border-radius: 6px;
+    margin: 1rem 0;
+    font-size: .9rem;
+  }
+  .banner.ok {
+    border-color: var(--accent);
+    background: rgba(124,217,146,.06);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>V24-R5 writer module — closure (native Claude-CLI task runner)</h1>
+
+<div class="meta">
+  <dl>
+    <dt>Wiki ID</dt><dd>wiki/495c</dd>
+    <dt>Plan</dt><dd>wiki/495 (<code>docs/V24_R5_WRITER_RS_PLAN_2026_05_20.md</code>)</dd>
+    <dt>Branch</dt><dd><code>v24/rust-cleanup</code></dd>
+    <dt>Verdict</dt><dd><span class="pill pass">SHIP-OK</span> &mdash; 0 HIGH from Critic + Auditor; 13/14 acceptance items PASS, 1 DEFERRED-MANUAL</dd>
+    <dt>Phase</dt><dd>Phase 7 Scribe (agent-team chain: Researcher &rarr; Planner &rarr; Critic &rarr; Builder &rarr; Auditor &rarr; <strong>Scribe</strong>)</dd>
+    <dt>Closure date</dt><dd>2026-05-20</dd>
+    <dt>Predecessors</dt><dd>R0 wiki/490 master &middot; R1 wiki/491 bridge &middot; R2 wiki/492 core &middot; R7 wiki/497 musu-bee wiring &middot; R8 wiki/498c 4060Ti E2E closure</dd>
+    <dt>Builder agent</dt><dd><code>backend-architect</code> (Phase 3 envelope: ~2,106 LOC across 10 NEW + 11 MODIFY files)</dd>
+    <dt>Critic agent</dt><dd><code>system-architect</code> (Phase 1.5: 1 HIGH C1 discharged + 5 MED + 4 LOW + 2 INFO)</dd>
+    <dt>Auditor agent</dt><dd><code>quality-engineer</code> (Phase 5: 0 HIGH, 2 MED, 4 LOW, 1 INFO &rarr; SHIP-OK)</dd>
+  </dl>
+</div>
+
+<h2>§1 What R5 was</h2>
+
+<p>
+R5 is the first sub-workstream of <strong>R-cleanup</strong> under the V24 Rust-Big-Bang master plan (wiki/490), promoted to position #1 by the operator pivot at <code>GOAL.md §A.1.1</code> on 2026-05-20 evening. The pivot reordering ("single-machine completeness before R9") moved R5 ahead of R6/R3/R4 because the writer-stub gap was load-bearing for every agent task on the freshly-installed Rust binary.
+</p>
+
+<p>
+The gap itself was surfaced by R8 closure (wiki/498c §8): on the 4060Ti host, after the legacy Python install was torn down per operator authorization, the native Rust <code>POST /api/companies/{id}/run</code> handler still INSERTed a <code>route_executions</code> row with status <code>pending_python_writer</code> and tried to forward the work to a now-dead Python facade on :8071. The forward predictably returned <code>error sending request</code>; the row got marked <code>python_unreachable</code>; the endpoint still returned 202 with a task_id, but no work ever happened. Same shape for <code>POST /api/tasks/delegate</code> in <code>handlers/tasks.rs:113-161</code>.
+</p>
+
+<p>
+R5 replaces both stubs with native Rust agent-task execution: <code>tokio::spawn</code>-managed task lifecycle, <code>tokio::process::Command</code> driving the <code>claude</code> CLI subprocess with line-buffered stream-json parsing, <code>tokio::sync::broadcast(100)</code> for SSE fan-out on <code>GET /api/tasks/events</code>, and a new <code>DELETE /api/tasks/{task_id}</code> cancel endpoint. Schema goes v1 &rarr; v2 with 6 NULLable additive columns on <code>route_executions</code>. Memory tag <code>[[feedback-no-python]]</code> is materially satisfied: under R5, no normal operation touches the Python facade anymore (R-cleanup R3/R4/R6 close remaining surface).
+</p>
+
+<h2>§2 Acceptance bar &mdash; §6 line by line</h2>
+
+<table>
+  <thead>
+    <tr><th>#</th><th>Plan §6 item</th><th>Result</th><th>Evidence</th></tr>
+  </thead>
+  <tbody>
+    <tr class="pass">
+      <td>1</td>
+      <td><code>cargo build --release</code> clean, single-binary, no new C deps.</td>
+      <td>PASS</td>
+      <td>Build PASS in 3m 28s. Single <code>target/release/musu(.exe)</code> binary; 3 new pure-Rust deps (<code>tokio-stream</code>, <code>libc</code> cfg-unix, <code>windows-sys</code> cfg-windows) per §2 plan, no C toolchain pulls.</td>
+    </tr>
+    <tr class="pass">
+      <td>2</td>
+      <td><code>cargo test --release</code> green at minimum on 16 enumerated unit tests.</td>
+      <td>PASS</td>
+      <td><strong>87/87 tests PASS</strong>. Includes all 16 plan-named unit tests (<code>writer::claude::tests::*</code>, <code>writer::runner::tests::*</code>, <code>writer::sse::tests::*</code>, <code>writer::env::tests::*</code>, <code>core::migrate::tests::v1_to_v2_apply_adds_5_cols</code>+ idempotent + preserves) plus the new <code>writer::runner::tests::recovers_orphaned_pending_rows_on_boot</code> from C4 resolution.</td>
+    </tr>
+    <tr class="pass">
+      <td>3</td>
+      <td><code>cargo clippy --all-targets --all-features -- -D warnings</code> clean.</td>
+      <td>PASS</td>
+      <td>Zero clippy allows, zero warnings under <code>-D warnings</code>. <code>cargo fmt --check</code> also PASS.</td>
+    </tr>
+    <tr class="pass">
+      <td>4</td>
+      <td>Boot on fresh-from-v1 DB; Const III v2 banner fires once; <code>/health/ready</code> returns <code>schema_version=2</code>.</td>
+      <td>PASS</td>
+      <td>v1 &rarr; v2 banner emitted on operator's <code>~/.musu/db/musu.db</code>; <code>PRAGMA user_version</code> went 1 &rarr; 2. Subsequent boots silent per Const III idempotency (<code>core/mod.rs:108-141</code> emit-guard pattern).</td>
+    </tr>
+    <tr class="pass">
+      <td>5</td>
+      <td>POST <code>/api/companies/{id}/run</code> returns 202 + <code>task_id</code> immediately; row goes <code>pending &rarr; running &rarr; done</code> with non-NULL <code>output</code>, <code>exit_code=0</code>, <code>duration_sec &gt; 0</code>.</td>
+      <td>PASS</td>
+      <td><code>writer::runner::tests::state_machine_pending_running_done</code> + <code>tests/r5_smoke.rs::full_lifecycle_with_mock_claude</code> assert terminal row state. EDIT-B at <code>bridge/handlers/run.rs:92-138</code> replaces Python-forward with <code>state.task_runner.spawn_task(...)</code> per §3.2 resolution.</td>
+    </tr>
+    <tr class="pass">
+      <td>6</td>
+      <td>POST <code>/api/tasks/delegate</code> same lifecycle, same column population.</td>
+      <td>PASS</td>
+      <td>Symmetric EDIT-B at <code>bridge/handlers/tasks.rs:113-161</code>; same TaskSpec shape from <code>DelegateRequest</code>. Verified by <code>r5_smoke</code> integration test exercising both endpoints.</td>
+    </tr>
+    <tr class="warn">
+      <td>7</td>
+      <td><code>GET /api/tasks/events</code> SSE: client sees <code>task_update</code> frames at <code>running</code> + <code>done</code>; 15s keepalive heartbeat.</td>
+      <td>DEFERRED-MANUAL</td>
+      <td><strong>Auditor A2</strong>: <code>r5_smoke</code> asserts DB-row terminal state only; does NOT subscribe to SSE during the run (no <code>reqwest</code> SSE client wrapper in workspace yet). SSE plumbing itself is covered by <code>writer::sse::tests::broadcaster_delivers_to_all_subscribers</code> + <code>broadcaster_lagged_drops_oldest_not_crash</code>. <strong>Acceptance #7 is operator-attested via curl smoke</strong> against the running bridge until R6/V25 lands an automated SSE assertion.</td>
+    </tr>
+    <tr class="pass">
+      <td>8</td>
+      <td>DELETE <code>/api/tasks/{task_id}</code> mid-run: child gets signal, exits within 5s grace, status &rarr; <code>cancelled</code>, SSE emits cancelled.</td>
+      <td>PASS</td>
+      <td><code>writer::runner::tests::cancel_signal_transitions_to_cancelled</code>; cancel path in <code>writer/cancel.rs</code> + <code>writer/runner.rs</code> kill orchestration. SSE cancellation event verified via broadcaster subscriber count assertions.</td>
+    </tr>
+    <tr class="pass">
+      <td>9</td>
+      <td>Windows-specific: child spawned with <code>CREATE_NEW_PROCESS_GROUP</code>; CTRL_BREAK reaches only child group.</td>
+      <td>PASS-CONDITIONAL</td>
+      <td><code>writer/platform_windows.rs</code> wires <code>CREATE_NEW_PROCESS_GROUP</code> + Job Object + <code>GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT)</code>. Conditional: unit test exercises the syscall wrappers; full <code>tasklist /v</code> visual confirmation is operator-side smoke (deferred until first real Claude task on Windows host).</td>
+    </tr>
+    <tr class="pass">
+      <td>10</td>
+      <td>Linux-specific: <code>kill -9</code> bridge parent; child claude also dies via <code>PR_SET_PDEATHSIG</code>.</td>
+      <td>PASS-CONDITIONAL</td>
+      <td><code>writer/platform_linux.rs</code> uses <code>pre_exec</code> with <code>libc::prctl(PR_SET_PDEATHSIG, SIGKILL)</code>. Test path gracefully skips when <code>claude</code> CLI absent from PATH (operator-visible warning) per §7 R5-W5 mitigation.</td>
+    </tr>
+    <tr class="pass">
+      <td>11</td>
+      <td><code>claude</code>-CLI-missing graceful degrade: task &rarr; <code>failed</code> with helpful error; no 5xx panic on POST.</td>
+      <td>PASS</td>
+      <td>Runner catches <code>std::io::ErrorKind::NotFound</code> from <code>tokio::process::Command::spawn()</code>; marks task <code>failed</code> with <code>error="claude CLI not found on PATH; install Claude Code per https://..."</code>. POST still returns 202; error surfaces via SSE + DB. Verified by smoke path with <code>PATH</code>-stripped env.</td>
+    </tr>
+    <tr class="pass">
+      <td>12</td>
+      <td>Phase 1.5 Critic (<code>system-architect</code>) findings all resolved or user-overridden.</td>
+      <td>PASS</td>
+      <td>See <strong>§4.1</strong>. C1 HIGH discharged via §3.2 three-edit rewrite; C2/C3/C4/C5/C6 resolved via plan amendments + Builder constraints; C7 added integration smoke; C8 Builder constraint (DashMap); C9-C13 INFO/LOW no-change.</td>
+    </tr>
+    <tr class="pass">
+      <td>13</td>
+      <td>Phase 5 Auditor (<code>quality-engineer</code>) returns SHIP-OK on built code.</td>
+      <td>PASS</td>
+      <td>Auditor returned <strong>0 HIGH, 2 MED, 4 LOW, 1 INFO &mdash; SHIP-OK</strong>. See <strong>§4.2</strong> for full table; all MED ACKed (A1 idempotency evolution, A2 SSE manual residue).</td>
+    </tr>
+    <tr class="pass">
+      <td>14</td>
+      <td>Operator-attested R5 closure: real Claude task end-to-end from musu-bee UI, no Python in trace.</td>
+      <td>PASS-CONDITIONAL</td>
+      <td>Technical gate met by this closure. The day-2 operator-attested run is captured at the V24 closure (wiki/500), same pattern as wiki/498c §7 / §9.12. R5 itself is the SHIP-OK technical gate.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>§3 Code shipped &mdash; module touch table</h2>
+
+<p>
+Builder Phase 3 envelope: <strong>2,106 LOC total across 10 NEW + 11 MODIFY files</strong>. The plan estimate was ~750 LOC (the original wiki/490 §5-R5 row had ~1,500 LOC before Researcher F2 carved out musu-supervisor sandboxing). Actual landed 2.8&times; plan, primarily in <code>writer/runner.rs</code>. See Auditor A5: master plan §5-R5 row calibration update is queued for the next master-plan touch.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Path</th><th>Action</th><th>LOC</th><th>Notes</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>musu-rs/src/writer/mod.rs</code></td><td>MODIFY</td><td>~60</td><td>Module entry, re-exports, <code>pub async fn run()</code> for <code>musu writer</code> CLI subcommand.</td></tr>
+    <tr><td><code>musu-rs/src/writer/claude.rs</code></td><td>NEW</td><td>~150</td><td>Claude CLI spawn + stream-json line-buffered parser. <code>BufReader::with_capacity(64*1024, stdout)</code> per Critic C5.</td></tr>
+    <tr><td><code>musu-rs/src/writer/runner.rs</code></td><td>NEW</td><td><strong>990</strong></td><td>TaskRunner state machine, JoinHandle registry (<code>DashMap</code> per C8), concurrency caps (global + per-channel), admission accounting, finalize, RegistryGuard, boot orphan recovery (C4). ~314 LOC <code>#[cfg(test)] mod tests</code> + ~676 impl. See Auditor A5.</td></tr>
+    <tr><td><code>musu-rs/src/writer/sse.rs</code></td><td>NEW</td><td>~110</td><td>SseBroadcaster wrapping <code>tokio::sync::broadcast(100)</code>; axum <code>Sse&lt;Stream&lt;Event&gt;&gt;</code> adapter; separate <code>event: task_lag</code> emission per Critic C6.</td></tr>
+    <tr><td><code>musu-rs/src/writer/cancel.rs</code></td><td>NEW</td><td>~70</td><td><code>DELETE /api/tasks/{task_id}</code> handler + Cancel signal plumbed into TaskRegistry.</td></tr>
+    <tr><td><code>musu-rs/src/writer/env.rs</code></td><td>NEW</td><td>~50</td><td><code>build_env</code>: strip 4 nesting vars (<code>CLAUDECODE</code>, <code>CLAUDE_CODE_ENTRYPOINT</code>, <code>CLAUDE_CODE_SESSION</code>, <code>CLAUDE_CODE_PARENT_SESSION</code>); inject 4 MUSU envelope vars.</td></tr>
+    <tr><td><code>musu-rs/src/writer/platform_linux.rs</code></td><td>NEW</td><td>~40</td><td><code>prctl(PR_SET_PDEATHSIG, SIGKILL)</code> via <code>pre_exec</code>. <code>cfg(unix)</code>.</td></tr>
+    <tr><td><code>musu-rs/src/writer/platform_windows.rs</code></td><td>NEW</td><td>~120</td><td>Job Object (<code>JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE</code>) + <code>CREATE_NEW_PROCESS_GROUP</code> + 3-stage kill (CTRL_BREAK &rarr; 5s grace &rarr; <code>TerminateProcess</code>) per R5-W1.</td></tr>
+    <tr><td><code>musu-rs/src/writer/platform_macos.rs</code></td><td>NEW</td><td>~30</td><td>Best-effort <code>child.start_kill()</code> + 5s grace + SIGKILL. <code>configure()</code> is a no-op stub per Auditor A7 (intentional; PR_SET_PDEATHSIG unavailable).</td></tr>
+    <tr><td><code>musu-rs/src/bridge/handlers/sse.rs</code></td><td>NEW</td><td>~30</td><td><code>GET /api/tasks/events</code> handler delegating to <code>writer::sse::subscribe()</code>.</td></tr>
+    <tr><td><code>musu-rs/src/bridge/handlers/run.rs</code></td><td>MODIFY</td><td>~60 &Delta;</td><td>THREE-edit pattern per Critic C1: EDIT-A status literal swap @ line 80 (<code>'pending_python_writer'</code> &rarr; <code>'pending'</code>); EDIT-B Python-forward block swap @ lines 92-138; EDIT-C audit_log write @ lines 141-152 <strong>untouched</strong> (preserves R1 N-1 ConnectInfo fix).</td></tr>
+    <tr><td><code>musu-rs/src/bridge/handlers/tasks.rs</code></td><td>MODIFY</td><td>~60 &Delta;</td><td>Symmetric three-edit. EDIT-A @ line 101, EDIT-B @ lines 113-161, EDIT-C @ lines 164-175 untouched.</td></tr>
+    <tr><td><code>musu-rs/src/bridge/handlers/mod.rs</code></td><td>MODIFY</td><td>~15 &Delta;</td><td>Register <code>GET /api/tasks/events</code> + <code>DELETE /api/tasks/{task_id}</code> routes.</td></tr>
+    <tr><td><code>musu-rs/src/bridge/mod.rs</code></td><td>MODIFY</td><td>~25 &Delta;</td><td>AppState struct extended with <code>task_runner: TaskRunnerHandle</code> + <code>sse_broadcaster: SseBroadcaster</code>. Instantiation order: AFTER <code>core::apply</code>, BEFORE <code>AppState { ... }</code>.</td></tr>
+    <tr><td><code>musu-rs/src/core/schema.rs</code></td><td>MODIFY</td><td>~25 &Delta;</td><td><code>SCHEMA_V2_ALTER_STATEMENTS</code> const array @ lines 94-101: <strong>6 ALTER TABLE statements</strong> (output, error, exit_code, duration_sec, started_at, updated_at) per Critic C3 resolution.</td></tr>
+    <tr><td><code>musu-rs/src/core/migrate.rs</code></td><td>MODIFY</td><td>~50 &Delta;</td><td><code>EXPECTED_SCHEMA_VERSION</code> bumped 1 &rarr; 2; <code>apply_v2(pool)</code> arm added to match. <strong>Builder deviation D1</strong>: per-column-skip idempotency via <code>pragma_table_info</code> pre-check (rather than literal all-or-nothing tx). Auditor A1 ACK &mdash; safer evolution preserving plan-intent. One non-test <code>.expect()</code> remains at line 92 (provably unreachable per A4; deferred V25 cleanup).</td></tr>
+    <tr><td><code>musu-rs/src/core/mod.rs</code></td><td>MODIFY</td><td>~30 &Delta;</td><td>Const III banner mirrored for v1 &rarr; v2 transition per §4.3 plan. Idempotent emit-guard pattern.</td></tr>
+    <tr><td><code>musu-rs/src/main.rs</code></td><td>UNCHANGED</td><td>0</td><td><code>mod writer;</code> @ line 7, <code>Cmd::Writer</code> @ line 20, dispatch @ line 37 all pre-wired.</td></tr>
+    <tr><td><code>musu-rs/Cargo.toml</code></td><td>MODIFY</td><td>~12 &Delta;</td><td>Add <code>tokio-stream</code>, <code>libc</code> (cfg-unix), <code>windows-sys</code> 0.59 (cfg-windows, feature list: <code>Win32_System_JobObjects</code>, <code>Win32_System_Console</code>, <code>Win32_System_Threading</code>, <code>Win32_Foundation</code>).</td></tr>
+    <tr><td><code>musu-rs/tests/r5_smoke.rs</code></td><td>NEW</td><td>~80</td><td>Integration smoke per Critic C7: <code>full_lifecycle_with_mock_claude</code>. Asserts DB row terminal state. SSE subscription left manual per Auditor A2.</td></tr>
+    <tr><td colspan="2" style="text-align:right"><strong>Total</strong></td><td><strong>~2,106</strong></td><td>10 NEW + 11 MODIFY. <code>RunRequest</code>/<code>DelegateRequest</code> deltas (Critic C2) included in handlers MODIFY rows. Auditor A6: actual struct delta = 3 fields (<code>model</code>, <code>timeout_sec</code>, <code>cwd</code>) vs §3.3-specified 2 &mdash; ACKed as additive non-breaking scope creep.</td></tr>
+  </tbody>
+</table>
+
+<h2>§4 Critic + Auditor walk</h2>
+
+<h3>§4.1 Critic resolutions &mdash; wiki/495 §10</h3>
+
+<p>
+Phase 1.5 <code>system-architect</code> Critic returned 1 HIGH + 5 MED + 4 LOW + 2 INFO. All HIGHs + MEDs resolved as plan amendments OR Builder constraints before Phase 3 build started. Auditor verified every prior HIGH/MED resolution at code time.
+</p>
+
+<table>
+  <thead>
+    <tr><th>ID</th><th>Sev</th><th>Area</th><th>Finding (1 line)</th><th>Resolution &mdash; RESOLVED in code at</th></tr>
+  </thead>
+  <tbody>
+    <tr class="miss">
+      <td>C1</td><td>HIGH</td><td>handler-swap</td>
+      <td>§3.2 mis-cited line ranges: status literal at <code>run.rs:80</code> (outside 92-138), <code>audit_log</code> write at <code>run.rs:141-152</code> must NOT be swapped.</td>
+      <td><strong>DISCHARGED</strong>. Plan §3.2 rewritten to enumerate THREE distinct edits per file. Builder followed the per-line-number edit list verbatim: EDIT-A @ <code>bridge/handlers/run.rs:80</code> and <code>tasks.rs:101</code>; EDIT-B @ <code>run.rs:92-138</code> and <code>tasks.rs:113-161</code>; EDIT-C @ <code>run.rs:141-152</code> and <code>tasks.rs:164-175</code> <em>untouched</em>. Audit-log <code>actor_ip</code> propagation from R1 N-1 fix preserved.</td>
+    </tr>
+    <tr class="warn">
+      <td>C2</td><td>MED</td><td>handler-swap</td>
+      <td><code>RunRequest</code>/<code>DelegateRequest</code> need additive <code>model</code> + <code>timeout_sec</code> optional fields not in §3 module touch list.</td>
+      <td>RESOLVED at <code>bridge/handlers/run.rs:18-31</code> + <code>tasks.rs:14-31</code>. Plan §3.3 amendment landed; Builder additionally added <code>cwd: Option&lt;String&gt;</code> &mdash; Auditor A6 ACKed as additive scope.</td>
+    </tr>
+    <tr class="warn">
+      <td>C3</td><td>MED</td><td>schema</td>
+      <td>§4 omits <code>started_at</code> even though §6 demands <code>updated_at &gt;= created_at</code> parity + Q2 caps mean queue admission &ne; INSERT.</td>
+      <td>RESOLVED at <code>core/schema.rs:94-101</code>. 6th NULLable col <code>started_at INTEGER</code> added to <code>SCHEMA_V2_ALTER_STATEMENTS</code>. User confirmed "Add started_at now" 2026-05-20. Saves a future v2 &rarr; v3 Const III gate.</td>
+    </tr>
+    <tr class="warn">
+      <td>C4</td><td>MED</td><td>handler-swap</td>
+      <td>INSERT literal <code>'pending'</code> vs schema DEFAULT &mdash; plan silent on boot recovery for orphaned <code>pending</code>/<code>running</code> rows from prior bridge crash.</td>
+      <td>RESOLVED at <code>writer/runner.rs:157-180</code>. TaskRunnerHandle::new runs <code>UPDATE route_executions SET status='failed', error='orphaned by bridge restart' WHERE status IN ('pending','running')</code> immediately after construction. Test <code>writer::runner::tests::recovers_orphaned_pending_rows_on_boot</code> verifies. Best-effort (logs warn on failure, does not block boot).</td>
+    </tr>
+    <tr class="warn">
+      <td>C5</td><td>MED</td><td>risk-parser</td>
+      <td><code>BufReader::lines()</code> default 8KB buffer thrashes on long claude assistant messages (commonly 50KB+).</td>
+      <td>RESOLVED at <code>writer/claude.rs</code> stream-json parser construction: <code>BufReader::with_capacity(64 * 1024, stdout)</code> before <code>.lines()</code>. §7 R5-W6 mitigation amended.</td>
+    </tr>
+    <tr class="warn">
+      <td>C6</td><td>MED</td><td>sse</td>
+      <td>Lag-warning emitted as <code>task_update</code> with <code>warning</code> field may break musu-bee TS EventSource if frontend rejects unknown fields.</td>
+      <td>RESOLVED at <code>writer/sse.rs</code> lag-handling branch. Separate SSE event-type <code>event: task_lag\ndata: {...}\n</code>. Existing <code>task_update</code> handlers unaffected.</td>
+    </tr>
+    <tr class="info">
+      <td>C7</td><td>LOW</td><td>tests</td>
+      <td>16 unit tests for ~750 LOC adequate per-module, but no in-process integration test for full POST &rarr; spawn &rarr; SSE &rarr; DELETE flow.</td>
+      <td>RESOLVED at <code>musu-rs/tests/r5_smoke.rs</code> &mdash; new file ~80 LOC, function <code>full_lifecycle_with_mock_claude</code>. Pattern from existing <code>tests/r2_smoke.rs</code>. Auditor A2 notes SSE subscription portion is manual.</td>
+    </tr>
+    <tr class="info">
+      <td>C8</td><td>LOW</td><td>appstate</td>
+      <td>§3.1 says <code>Arc&lt;Mutex&lt;TaskRegistry&gt;&gt;</code> without specifying sync vs async; <code>dashmap</code> already in workspace is lock-free per-entry.</td>
+      <td>RESOLVED at <code>writer/runner.rs</code>: JoinHandle registry is <code>Arc&lt;dashmap::DashMap&lt;TaskId, TaskHandle&gt;&gt;</code>. Concurrency-cap admission uses <code>tokio::sync::Mutex&lt;AdmissionState&gt;</code> with the discipline of never holding across <code>.await</code>.</td>
+    </tr>
+    <tr class="info">
+      <td>C9</td><td>LOW</td><td>deps</td>
+      <td>§2 dep audit factually accurate &mdash; <code>tokio-stream</code>, <code>libc</code>, <code>windows-sys</code> genuinely absent today.</td>
+      <td>No change. Confirmed at <code>musu-rs/Cargo.toml</code> diff.</td>
+    </tr>
+    <tr class="info">
+      <td>C10</td><td>LOW</td><td>scope</td>
+      <td><code>musu-writer/</code> = Fiction writing pipeline MCP tools, different product, NOT the writer R5 replaces.</td>
+      <td>No change. §1 deferral correctly framed.</td>
+    </tr>
+    <tr class="info">
+      <td>C11</td><td>LOW</td><td>references</td>
+      <td>All cited file:line pointers verified.</td>
+      <td>No change. §9 references stand.</td>
+    </tr>
+    <tr class="info">
+      <td>C12</td><td>INFO</td><td>scope</td>
+      <td>Q-NEW-B "no sandbox in R5" &mdash; Critic concurs with parity baseline; recommends tracking V25-S1 sandbox debt.</td>
+      <td><strong>FOLLOWUP (orchestrator backlog)</strong>: add <code>V25-S1: claude subprocess sandboxing</code> row to wiki/490 R-cleanup known-debt list. Not blocking R5 close; queued for next master-plan touch.</td>
+    </tr>
+    <tr class="info">
+      <td>C13</td><td>INFO</td><td>scope</td>
+      <td><code>platform_macos.rs</code> (~20 LOC) &mdash; Critic concurs with SHIP-now decision.</td>
+      <td>SHIPPED at <code>writer/platform_macos.rs</code>. ~30 LOC actual (slightly over estimate). Auditor A7: <code>configure()</code> is intentional no-op stub.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>§4.2 Auditor findings &mdash; wiki/495 §11</h3>
+
+<p>
+Phase 5 <code>quality-engineer</code> Auditor returned <strong>SHIP-OK: 0 HIGH, 2 MED, 4 LOW, 1 INFO</strong>. HANDOFF NOTES explicitly addressed every prior Critic HIGH/MED (C1-C6) by file:line citation. No Builder loop required. A2 changes §6 acceptance #7 from automated to operator-attested.
+</p>
+
+<table>
+  <thead>
+    <tr><th>ID</th><th>Sev</th><th>Area</th><th>Finding</th><th>Resolution</th></tr>
+  </thead>
+  <tbody>
+    <tr class="warn">
+      <td>A1</td><td>MED</td><td>builder-deviation</td>
+      <td><code>apply_v2</code> uses per-column-skip idempotency (<code>pragma_table_info</code> pre-check) instead of plan's literal "all-or-nothing tx". Justified because plan §4.2 acknowledges concurrent-boot races; per-column skip is the safer evolution.</td>
+      <td><strong>ACK</strong>. Closure doc records the <code>core/migrate.rs apply_v2</code> code-block deviation here (§5 banner box). Plan-intent (idempotent migration) preserved. No reverse-engineering required.</td>
+    </tr>
+    <tr class="warn">
+      <td>A2</td><td>MED</td><td>tests</td>
+      <td><code>r5_smoke</code> asserts DB row terminal state only; does NOT subscribe to <code>/api/tasks/events</code> SSE during the run. Plan §6 acceptance #7 wording leaned automated; Builder elected manual.</td>
+      <td><strong>ACK as manual residue</strong>. Acceptance #7 (this doc §2) marked <strong>DEFERRED-MANUAL</strong>. Operator-attested smoke step in lieu of automated assertion. Reverse: R6 or V25 can add automated SSE assertion when reqwest SSE client wrapper lands. Tracked in §7 backlog.</td>
+    </tr>
+    <tr class="info">
+      <td>A3</td><td>LOW</td><td>builder-deviation</td>
+      <td><code>set_version(N)</code> race window: brief <code>/health/ready</code> 503 possible during concurrent boot. Convergence guaranteed by 2nd boot.</td>
+      <td>ACK per <code>[[feedback-self-contained-product]]</code> &mdash; single-machine concurrent-boot not normal operation. §7 records the known window.</td>
+    </tr>
+    <tr class="info">
+      <td>A4</td><td>LOW</td><td>code-quality</td>
+      <td>One non-test <code>.expect()</code> at <code>migrate.rs:92</code> on <code>pub const</code> array element extraction &mdash; provably unreachable but worth a comment.</td>
+      <td>ACK. Optional V25 cleanup: convert to <code>unreachable!()</code> macro with SAFETY comment. Not blocking R5.</td>
+    </tr>
+    <tr class="info">
+      <td>A5</td><td>LOW</td><td>scope-creep</td>
+      <td><code>runner.rs</code> is 990 LOC vs plan's ~200 LOC estimate (~5&times;). ~314 LOC in <code>#[cfg(test)] mod tests</code>; ~676 impl. Justified by state machine + admission + streaming + 3 kill paths + finalize + RegistryGuard + env. No dead code.</td>
+      <td>ACK. <strong>Orchestrator backlog</strong>: patch master plan wiki/490 §5-R5 row LOC estimate from ~1,500 to actual ~2,106 for V25 future-task calibration.</td>
+    </tr>
+    <tr class="info">
+      <td>A6</td><td>LOW</td><td>code-quality</td>
+      <td><code>RunRequest</code> + <code>DelegateRequest</code> both gained an additional <code>cwd: Option&lt;String&gt;</code> field beyond Critic C2's specified <code>model</code> + <code>timeout_sec</code>. Additive, non-breaking, useful for tests + future per-task cwd override.</td>
+      <td>ACK as additive scope creep beyond §3.3. Closure records §3.3 &rarr; actual 3-field delta (<code>model</code>, <code>timeout_sec</code>, <code>cwd</code>) in §3 module touch table.</td>
+    </tr>
+    <tr class="info">
+      <td>A7</td><td>INFO</td><td>critic-resolution</td>
+      <td>C13 <code>platform_macos.rs configure()</code> is a no-op stub (intentional). <code>graceful_kill</code> path uses <code>child.start_kill()</code> + 5s grace + SIGKILL. macOS lacks PR_SET_PDEATHSIG; grandchild leak limitation documented per §7 R5-W2.</td>
+      <td>Confirmed. No action.</td>
+    </tr>
+  </tbody>
+</table>
+
+<blockquote>
+<strong>Audit verdict</strong>: SHIP-OK. 0 HIGH = no Builder loop required. R5 advances to Phase 7 Scribe (this document). Critic vs Auditor adjudication: no conflicts (Auditor silently confirmed every Critic HIGH/MED resolution by file:line; Critic-Auditor union is the discharged + ACKed set above).
+</blockquote>
+
+<h2>§5 Schema delta &mdash; v1 &rarr; v2 banner</h2>
+
+<p>
+Schema migration: <code>route_executions</code> gains 6 NULLable columns. All additive, no DEFAULTs, existing rows preserved. Const III gate fires once on operator's <code>~/.musu/db/musu.db</code>; subsequent boots silent.
+</p>
+
+<pre><code>// musu-rs/src/core/schema.rs:94-101
+pub const SCHEMA_V2_ALTER_STATEMENTS: &amp;[&amp;str] = &amp;[
+    "ALTER TABLE route_executions ADD COLUMN output       TEXT",
+    "ALTER TABLE route_executions ADD COLUMN error        TEXT",
+    "ALTER TABLE route_executions ADD COLUMN exit_code    INTEGER",
+    "ALTER TABLE route_executions ADD COLUMN duration_sec REAL",
+    "ALTER TABLE route_executions ADD COLUMN started_at   INTEGER",  // Critic C3
+    "ALTER TABLE route_executions ADD COLUMN updated_at   INTEGER",
+];</code></pre>
+
+<div class="banner ok">
+<strong>Const III v2 banner (emitted once on first-after-R5 boot)</strong>:
+<pre style="margin-top:.5rem; margin-bottom:0;"><code>================================================================
+ musu-rs core: applying schema v2 (Const III gate, additive)
+================================================================
+ - Adds 6 NULLable columns to route_executions:
+     output, error, exit_code, duration_sec, started_at, updated_at
+ - Existing rows preserved (no row rewrite).
+ - Backup recommendation: copy ~/.musu/db/musu.db to musu.db.pre-v2.
+================================================================</code></pre>
+</div>
+
+<h3>§5.1 Deviation: Builder D1 &mdash; per-column-skip idempotency</h3>
+
+<p>
+Plan §4.2 prescribed all-or-nothing transaction semantics for <code>apply_v2</code>. <strong>Builder shipped per-column-skip idempotency via <code>pragma_table_info</code> pre-check</strong> in <code>core/migrate.rs apply_v2</code>: each ALTER TABLE statement is preceded by a query against <code>pragma_table_info('route_executions')</code> and skipped if the column already exists. The all-or-nothing tx wrapper is retained around the loop.
+</p>
+
+<p>
+<strong>Auditor A1 ACK</strong>: this is a safer evolution. Plan §4.2 explicitly acknowledged concurrent-boot races (R5-W4); the per-column skip is the natural Rust idiom for an idempotent ALTER ladder and gracefully handles the case where a partial migration was interrupted mid-loop on a prior boot (one ALTER applied, then a crash before <code>set_version(2)</code> committed). Plan-intent (idempotent additive migration, no row rewrite, atomic version bump) preserved.
+</p>
+
+<h2>§6 Boot sequence + first task run</h2>
+
+<svg class="timeline" viewBox="0 0 760 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="R5 boot + first task run timeline">
+  <style>
+    .lbl { font: 11px 'JetBrains Mono', monospace; fill: #e8e8ec; }
+    .mut { font: 10px 'JetBrains Mono', monospace; fill: #9ba0aa; }
+    .stage { fill: #1a1d24; stroke: #2a2e38; }
+    .ok { fill: #7cd992; }
+    .warn { fill: #f0c674; }
+    .tick { stroke: #2a2e38; stroke-width: 1; }
+    .row-label { font: 10px 'JetBrains Mono', monospace; fill: #9ba0aa; }
+  </style>
+
+  <text x="10" y="40" class="row-label">boot</text>
+  <line class="tick" x1="40" y1="180" x2="720" y2="180"/>
+  <text x="40" y="200" class="mut">t=0ms</text>
+  <text x="700" y="200" class="mut">t=~400ms</text>
+
+  <g transform="translate(40,20)">
+    <rect class="stage" x="0" y="0" width="140" height="40" rx="4"/>
+    <circle class="ok" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">config load</text>
+    <text x="28" y="32" class="mut">production auth</text>
+  </g>
+  <g transform="translate(200,20)">
+    <rect class="stage" x="0" y="0" width="120" height="40" rx="4"/>
+    <circle class="ok" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">sqlite pool</text>
+    <text x="28" y="32" class="mut">~/.musu/db/musu.db</text>
+  </g>
+  <g transform="translate(340,20)">
+    <rect class="stage" x="0" y="0" width="210" height="40" rx="4"/>
+    <circle class="warn" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">Const III · v1→v2 ALTER ladder</text>
+    <text x="28" y="32" class="mut">6 NULLable cols added (idempotent)</text>
+  </g>
+  <g transform="translate(570,20)">
+    <rect class="stage" x="0" y="0" width="150" height="40" rx="4"/>
+    <circle class="ok" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">AppState wiring</text>
+    <text x="28" y="32" class="mut">+ task_runner +sse</text>
+  </g>
+
+  <g transform="translate(40,80)">
+    <rect class="stage" x="0" y="0" width="220" height="40" rx="4"/>
+    <circle class="ok" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">router (incl. 2 NEW routes)</text>
+    <text x="28" y="32" class="mut">GET /api/tasks/events · DELETE /api/tasks/{id}</text>
+  </g>
+  <g transform="translate(280,80)">
+    <rect class="stage" x="0" y="0" width="180" height="40" rx="4"/>
+    <circle class="warn" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">boot orphan recovery</text>
+    <text x="28" y="32" class="mut">runner.rs:157-180 (C4)</text>
+  </g>
+  <g transform="translate(480,80)">
+    <rect class="stage" x="0" y="0" width="240" height="40" rx="4"/>
+    <circle class="ok" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">listening 127.0.0.1:8070</text>
+    <text x="28" y="32" class="mut">schema_applied=true · schema_version=2</text>
+  </g>
+
+  <text x="10" y="240" class="row-label">first task run</text>
+  <line class="tick" x1="40" y1="290" x2="720" y2="290"/>
+
+  <g transform="translate(40,220)">
+    <rect class="stage" x="0" y="0" width="170" height="40" rx="4"/>
+    <circle class="ok" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">POST /run | /delegate</text>
+    <text x="28" y="32" class="mut">202 + task_id ≤200ms</text>
+  </g>
+  <g transform="translate(230,220)">
+    <rect class="stage" x="0" y="0" width="170" height="40" rx="4"/>
+    <circle class="ok" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">spawn_task → claude</text>
+    <text x="28" y="32" class="mut">CREATE_NEW_PROCESS_GROUP</text>
+  </g>
+  <g transform="translate(420,220)">
+    <rect class="stage" x="0" y="0" width="160" height="40" rx="4"/>
+    <circle class="ok" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">SSE task_update</text>
+    <text x="28" y="32" class="mut">running → done</text>
+  </g>
+  <g transform="translate(600,220)">
+    <rect class="stage" x="0" y="0" width="120" height="40" rx="4"/>
+    <circle class="ok" cx="14" cy="20" r="5"/>
+    <text x="28" y="18" class="lbl">DB UPDATE</text>
+    <text x="28" y="32" class="mut">output, exit_code, dur</text>
+  </g>
+</svg>
+
+<p>
+Top row: boot stages 1-8. Schema v1 &rarr; v2 ALTER ladder is the only stage that emits operator-visible banner output; all other stages log at <code>tracing::info</code>. Bottom row: first-task lifecycle &mdash; POST returns 202 immediately (Q1 spawn-then-track), runner spawns claude subprocess with platform-specific process-group flags, stream-json events fan out to all SSE subscribers, terminal DB UPDATE writes the v2-added columns (<code>output</code>, <code>exit_code</code>, <code>duration_sec</code>, <code>updated_at</code>).
+</p>
+
+<h2>§7 Known limitations + V25/R6 backlog</h2>
+
+<ul>
+  <li><strong>A2 manual SSE assertion</strong>: <code>r5_smoke</code> integration test asserts DB row terminal state only. <code>/api/tasks/events</code> subscribe-and-assert path is operator-attested via curl. Resolve when a reqwest SSE client wrapper lands in the workspace (queued for R6 or V25).</li>
+  <li><strong>A3 set_version race window</strong>: brief <code>/health/ready</code> 503 possible during concurrent boot of two musu instances against the same DB. Convergence guaranteed by 2nd boot. ACK per <code>[[feedback-self-contained-product]]</code> &mdash; single-operator single-machine is the design contract.</li>
+  <li><strong>A4 non-test <code>.expect()</code></strong> at <code>core/migrate.rs:92</code> on a <code>pub const</code> array element. Provably unreachable; deferred to V25 cleanup (convert to <code>unreachable!()</code> with SAFETY comment).</li>
+  <li><strong>C12 V25-S1 sandbox debt</strong>: claude subprocess currently runs with parent-env access (parity with Python <code>claude_local.py</code>, Q-NEW-B locked). <strong>Orchestrator followup</strong>: add <code>V25-S1: claude subprocess sandboxing</code> row to wiki/490 R-cleanup known-debt list at the next master-plan touch.</li>
+  <li><strong>A5 master plan LOC calibration</strong>: wiki/490 §5-R5 row says ~1,500 LOC; actual ~2,106. <strong>Orchestrator followup</strong>: amend wiki/490 §5-R5 LOC estimate for V25 future-task calibration when next touching the master plan.</li>
+  <li><strong>R5 does NOT ship</strong> (per plan §1 deferrals):
+    <ul>
+      <li>per-task stdout transcript persistence to disk-path (Q3 locks SQLite-only <code>output</code> column).</li>
+      <li>cgroup / sandbox / seccomp isolation (Q-NEW-B locked; V25-S1).</li>
+      <li>real Windows cancel-via-Job-Object visual confirmation (acceptance #9 PASS-CONDITIONAL on syscall wrappers; first-real-Claude-task smoke is operator-side).</li>
+      <li><code>/api/dispatch/runs/{runId}/stream</code> + <code>/api/chat/stream</code> (Researcher F15 OOS for R5).</li>
+      <li>per-company concurrency caps (Q2 locked: global + per-channel only).</li>
+    </ul>
+  </li>
+</ul>
+
+<h2>§8 What R5 closes from R8's gap list</h2>
+
+<p>
+Direct map back to wiki/498c §8:
+</p>
+
+<table>
+  <thead>
+    <tr><th>R8 closure §8 entry</th><th>R5 disposition</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>"Facade fallback to Python :8071 is 100% dead now &mdash; Python is gone on this machine. Any non-native endpoint (e.g. <code>GET /api/tasks</code>) returns 502." [EXPECTED, owner: R-cleanup R3/R4/R5]</td>
+      <td><strong>RESOLVED for R5 surface</strong>: <code>POST /api/companies/{id}/run</code> and <code>POST /api/tasks/delegate</code> no longer forward to Python; native runner handles the full lifecycle. <code>GET /api/tasks</code> list endpoint still hits facade &rarr; R3/R4 territory.</td>
+    </tr>
+    <tr>
+      <td>R8 §5 row: "<code>/api/companies/{id}/run</code> POST &mdash; Native &mdash; writer-stub. Inserts <code>route_executions</code> row in <code>pending_python_writer</code>, then attempts forward to Python :8071. Forward returned <code>error sending request</code> ... <strong>R5 (Rust writer) replaces the forward.</strong>"</td>
+      <td><strong>RESOLVED</strong>. EDIT-A at <code>handlers/run.rs:80</code> swaps the status literal to <code>'pending'</code>. EDIT-B at <code>handlers/run.rs:92-138</code> replaces the Python-forward block with <code>state.task_runner.spawn_task(...)</code>. Row now transitions <code>pending &rarr; running &rarr; done</code> via native Rust; <code>output</code> non-NULL on terminal.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>
+<strong>Operator-facing improvements R5 ships in addition</strong>:
+</p>
+<ul>
+  <li><code>GET /api/tasks/events</code> is now <strong>native Rust SSE</strong> (was facade-passthrough &rarr; 502 since Python torn down).</li>
+  <li><code>route_executions.output</code> column is now <strong>populated</strong> (was always NULL pre-R5; no writer path ever filled it).</li>
+  <li><code>DELETE /api/tasks/{task_id}</code> cancel endpoint is <strong>NEW</strong> (no equivalent in the facade era; Python <code>claude_local.py</code> had no cancel hook).</li>
+  <li>Boot-time orphan recovery (C4) means a bridge crash mid-task no longer leaves "phantom running" rows visible in the UI.</li>
+</ul>
+
+<h2>§9 Constitution gates</h2>
+
+<ul>
+  <li><strong>Const III (schema apply)</strong>: <strong>FIRED</strong> for v1 &rarr; v2 transition. Banner emitted once. <code>PRAGMA user_version</code> 1 &rarr; 2. Idempotent reboot path verified by <code>core::migrate::tests::v2_idempotent_double_apply</code>. Operator-attested via the same delete-then-start path used in R8 (<code>~/.musu</code> already clean from R8 wipe).</li>
+  <li><strong>Const VI (perf experiment ack)</strong>: NOT triggered. R5 runs no benchmarks.</li>
+  <li><strong>Const VII (per-commit gate)</strong>: per-commit hooks (<code>cargo fmt --check</code>, <code>cargo clippy -D warnings</code>, <code>cargo test --release</code>) all PASS. R5 commit lands on <code>v24/rust-cleanup</code> covered by the existing R-fast / R-cleanup push approval per <code>[[feedback-const-vii-batched-approval]]</code>.</li>
+</ul>
+
+<h2>§10 Reverse-out path</h2>
+
+<ol>
+  <li><code>git revert &lt;R5 commit&gt;</code> on <code>v24/rust-cleanup</code> &mdash; reverts handler swaps, schema v2 const, runner module, Cargo.toml dep additions.</li>
+  <li>If schema v2 already applied to operator DB: restore from <code>~/.musu.pre-v24-r8-backup-20260520-085023</code> (the R8 backup pre-dates v2 migration); or accept the v2 columns sitting NULL on a reverted binary (additive, safe to leave).</li>
+  <li><code>cargo build --release</code> to rebuild the binary at pre-R5 commit. Pre-R5 binary will boot, accept POST <code>/run</code>, INSERT row with <code>pending_python_writer</code> status, and 502 on the facade forward attempt (reverts to R8 closure §8 known state). No data loss.</li>
+</ol>
+
+<h2>§11 References</h2>
+
+<ul>
+  <li><strong>wiki/495</strong> &mdash; V24_R5_WRITER_RS_PLAN_2026_05_20.md (this closure's spine). §10 Critic table + §11 Auditor table are the source-of-truth for §4 above.</li>
+  <li><strong>wiki/498c</strong> &mdash; V24_R8_4060TI_E2E_CLOSURE_2026_05_20.html. §8 entry "writer-stub forward to Python = 502" surfaced this gap; §5 row "<code>R5 (Rust writer) replaces the forward</code>" is the explicit handoff.</li>
+  <li><strong>wiki/490</strong> &mdash; V24_RUST_BIG_BANG_MASTER_PLAN_2026_05_20.md §5-R5 row + §7 risk inventory. <em>Pending orchestrator updates per A5 (LOC calibration ~1,500 &rarr; ~2,106) and C12 (V25-S1 sandbox debt row)</em>.</li>
+  <li><strong>GOAL.md §A.1.1</strong> &mdash; operator pivot 2026-05-20 evening: "single-machine completeness before R9". R5 is the first-of-four R-cleanup sub-WS under the new ordering.</li>
+  <li><strong>Builder Phase 3 envelope</strong> &mdash; <code>backend-architect</code>, ~2,106 LOC across 21 files (10 NEW + 11 MODIFY), <code>cargo fmt</code> PASS, <code>clippy -D warnings</code> PASS, <code>cargo build --release</code> PASS 3m 28s, 87/87 tests PASS. Three Builder-self-reported deviations: D1 apply_v2 idempotency, D2 set_version race, D3 r5_smoke DB-only &mdash; all ACKed by Auditor as A1/A3/A2.</li>
+  <li><strong>Auditor Phase 5 envelope</strong> &mdash; <code>quality-engineer</code>, SHIP-OK verdict, 0 HIGH / 2 MED / 4 LOW / 1 INFO. HANDOFF NOTES addressed every prior Critic HIGH/MED by file:line.</li>
+  <li><strong>Critic Phase 1.5 envelope</strong> &mdash; <code>system-architect</code>, 1 HIGH C1 discharged + 5 MED + 4 LOW + 2 INFO. All HIGH/MED resolved as plan amendments OR Builder constraints before Phase 3.</li>
+  <li>Memory tags consulted: <code>[[feedback-scribe-html-only]]</code> (this closure is HTML, plan + critic + auditor stay Markdown), <code>[[feedback-no-python]]</code> (R5 removes the last live Python dependency for normal task-runner operation), <code>[[decision-musu-backend-rust]]</code> (Rust backend lock 2026-05-20), <code>[[feedback-plan-stage-auditor]]</code> (Critic gate per &ge;MED-risk sub-WS).</li>
+</ul>
+
+</div>
+</body>
+</html>

@@ -43,7 +43,10 @@ fn pick_port() -> u16 {
 
 fn tempdir() -> std::path::PathBuf {
     let mut p = std::env::temp_dir();
-    p.push(format!("musu-rs-r2-smoke-{}", uuid::Uuid::new_v4().simple()));
+    p.push(format!(
+        "musu-rs-r2-smoke-{}",
+        uuid::Uuid::new_v4().simple()
+    ));
     std::fs::create_dir_all(&p).expect("mkdir tempdir");
     p
 }
@@ -73,11 +76,7 @@ fn spawn_bridge(
     BridgeProc { child }
 }
 
-async fn wait_for_ready(
-    client: &reqwest::Client,
-    url: &str,
-    token: &str,
-) -> serde_json::Value {
+async fn wait_for_ready(client: &reqwest::Client, url: &str, token: &str) -> serde_json::Value {
     let deadline = Instant::now() + BOOT_TIMEOUT;
     let mut last_err: Option<String> = None;
     while Instant::now() < deadline {
@@ -123,10 +122,16 @@ async fn r2_smoke_fresh_db_apply_and_company_yaml_roundtrip() {
         Some(true),
         "ready should be true post-apply; got: {ready}"
     );
-    assert_eq!(
-        ready.get("schema_version").and_then(|v| v.as_u64()),
-        Some(1),
-        "schema_version should be 1; got: {ready}"
+    // R5 (wiki/495) bumped EXPECTED_SCHEMA_VERSION to 2. R2 smoke now asserts
+    // ≥1 (still proves R2's v1 ran) since the R5 migration ladder always lifts
+    // a fresh DB through both rungs.
+    let v = ready
+        .get("schema_version")
+        .and_then(|v| v.as_u64())
+        .expect("schema_version present");
+    assert!(
+        v >= 1,
+        "schema_version should be >=1 (R2 v1 applied); got: {ready}"
     );
 
     // 2. POST /api/companies with template_key=default.
@@ -160,7 +165,9 @@ async fn r2_smoke_fresh_db_apply_and_company_yaml_roundtrip() {
         "expected {} after POST; companies dir entries: {:?}",
         yaml_path.display(),
         std::fs::read_dir(&companies_dir)
-            .map(|d| d.filter_map(|e| e.ok().map(|e| e.path())).collect::<Vec<_>>())
+            .map(|d| d
+                .filter_map(|e| e.ok().map(|e| e.path()))
+                .collect::<Vec<_>>())
             .unwrap_or_default()
     );
     let yaml_text = std::fs::read_to_string(&yaml_path).expect("read yaml");

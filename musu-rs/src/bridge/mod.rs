@@ -46,6 +46,9 @@ pub struct AppState {
     pub http_client: reqwest::Client,
     pub audit: AuditState,
     pub dedup: DedupCache,
+    // R5 (wiki/495 §3.1): native writer wiring.
+    pub task_runner: crate::writer::TaskRunnerHandle,
+    pub sse_broadcaster: crate::writer::SseBroadcaster,
 }
 
 /// Entry point invoked from `main.rs` for `musu bridge`.
@@ -97,12 +100,20 @@ pub async fn run() -> Result<()> {
         .build()
         .map_err(|e| anyhow::anyhow!("reqwest client build: {}", e))?;
 
+    // R5 (wiki/495 §3.1): instantiate broadcaster + runner BEFORE state.
+    // Runner ctor performs boot-orphan recovery (Critic C4).
+    let sse_broadcaster = crate::writer::SseBroadcaster::from_env();
+    let task_runner =
+        crate::writer::TaskRunnerHandle::new(pool.clone(), sse_broadcaster.clone()).await;
+
     let state = AppState {
         config: cfg.clone(),
         pool,
         http_client,
         audit,
         dedup,
+        task_runner,
+        sse_broadcaster,
     };
 
     let auth_state = AuthState::from_config(&cfg);

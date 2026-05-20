@@ -41,10 +41,26 @@ fn row_to_company(row: &sqlx::sqlite::SqliteRow) -> Result<Company> {
     Ok(Company {
         id: row.try_get("id").map_err(MusuError::Sqlx)?,
         name: row.try_get("name").map_err(MusuError::Sqlx)?,
-        workspace_id: row.try_get::<Option<String>, _>("workspace_id").ok().flatten().unwrap_or_default(),
-        status: row.try_get::<Option<String>, _>("status").ok().flatten().unwrap_or_else(|| "draft".into()),
-        created_at: row.try_get::<Option<i64>, _>("created_at").ok().flatten().unwrap_or(0),
-        updated_at: row.try_get::<Option<i64>, _>("updated_at").ok().flatten().unwrap_or(0),
+        workspace_id: row
+            .try_get::<Option<String>, _>("workspace_id")
+            .ok()
+            .flatten()
+            .unwrap_or_default(),
+        status: row
+            .try_get::<Option<String>, _>("status")
+            .ok()
+            .flatten()
+            .unwrap_or_else(|| "draft".into()),
+        created_at: row
+            .try_get::<Option<i64>, _>("created_at")
+            .ok()
+            .flatten()
+            .unwrap_or(0),
+        updated_at: row
+            .try_get::<Option<i64>, _>("updated_at")
+            .ok()
+            .flatten()
+            .unwrap_or(0),
         meta,
         purpose: row.try_get::<Option<String>, _>("purpose").ok().flatten(),
         work_dir: row.try_get::<Option<String>, _>("work_dir").ok().flatten(),
@@ -231,14 +247,12 @@ pub async fn activate(
     }
 
     let now = chrono::Utc::now().timestamp();
-    let result = sqlx::query(
-        "UPDATE companies SET status = 'active', updated_at = ? WHERE id = ?",
-    )
-    .bind(now)
-    .bind(&id)
-    .execute(&state.pool)
-    .await
-    .map_err(MusuError::Sqlx)?;
+    let result = sqlx::query("UPDATE companies SET status = 'active', updated_at = ? WHERE id = ?")
+        .bind(now)
+        .bind(&id)
+        .execute(&state.pool)
+        .await
+        .map_err(MusuError::Sqlx)?;
 
     if result.rows_affected() == 0 {
         return Err(MusuError::NotFound(format!("company {} not found", id)));

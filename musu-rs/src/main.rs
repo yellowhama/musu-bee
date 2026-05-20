@@ -1,8 +1,8 @@
 use clap::{Parser, Subcommand};
 
 mod bridge;
-mod core;
 mod control;
+mod core;
 mod indexer;
 mod writer;
 

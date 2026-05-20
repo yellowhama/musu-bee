@@ -51,10 +51,13 @@ pub async fn apply(pool: &SqlitePool) -> Result<u32> {
     pragma::apply_pragmas(pool).await?;
 
     let current = migrate::current_version(pool).await?;
-    let needs_gate_msg = current == 0;
+    let needs_v1_gate = current == 0;
+    let needs_v2_gate = current == 1;
 
-    if needs_gate_msg {
-        emit_const_iii_notice().await?;
+    if needs_v1_gate {
+        emit_const_iii_notice_v1().await?;
+    } else if needs_v2_gate {
+        emit_const_iii_notice_v2().await?;
     }
 
     // Recovery side-effect: clear any orphan .yaml.tmp from a previous
@@ -66,8 +69,10 @@ pub async fn apply(pool: &SqlitePool) -> Result<u32> {
 
     let post = migrate::run(pool).await?;
 
-    if needs_gate_msg {
+    if needs_v1_gate {
         tracing::info!(version = post, "schema v1 applied (first time on this DB)");
+    } else if needs_v2_gate {
+        tracing::info!(version = post, "schema v1→v2 migration applied");
     } else {
         tracing::debug!(version = post, "schema already at expected version");
     }
@@ -105,7 +110,7 @@ fn scrub_orphan_tmps() -> std::io::Result<()> {
 ///   - If `MUSU_CONST_III_REQUIRE_ACK=1`, requires `MUSU_CONST_III_ACK=1`
 ///     to proceed; otherwise errors out with operator-facing guidance.
 ///   - Subsequent boots (where current_version >= 1) skip this entirely.
-async fn emit_const_iii_notice() -> Result<()> {
+async fn emit_const_iii_notice_v1() -> Result<()> {
     let msg = "\n\
 ================================================================\n\
  musu-rs core: applying schema v1 (Const III gate)\n\
@@ -119,6 +124,27 @@ async fn emit_const_iii_notice() -> Result<()> {
  Confirm with: curl http://127.0.0.1:8070/health/ready\n\
  Expected:    {\"ready\":true, ...}\n\
 ================================================================\n";
+    require_ack_or_log(msg)
+}
+
+/// R5 (wiki/495 §4.3) — emit Const III banner for v1 → v2 transition.
+async fn emit_const_iii_notice_v2() -> Result<()> {
+    let msg = "\n\
+================================================================\n\
+ musu-rs core: applying schema v2 (Const III gate, additive)\n\
+================================================================\n\
+ - Adds 6 NULLable columns to route_executions:\n\
+     output, error, exit_code, duration_sec, started_at, updated_at\n\
+ - Existing rows preserved (no row rewrite; ALTER ADD COLUMN is\n\
+   metadata-only on SQLite).\n\
+ - Native Rust writer (R5) populates these columns on each task run.\n\
+\n\
+ Backup recommendation: copy ~/.musu/db/musu.db to musu.db.pre-v2\n\
+================================================================\n";
+    require_ack_or_log(msg)
+}
+
+fn require_ack_or_log(msg: &str) -> Result<()> {
     tracing::info!("{msg}");
 
     let require_ack = std::env::var("MUSU_CONST_III_REQUIRE_ACK")

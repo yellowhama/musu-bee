@@ -66,8 +66,8 @@ pub fn resolve(template_key: &str) -> Option<TemplateBlueprint> {
 }
 
 fn parse(yaml: &str) -> Result<TemplateBlueprint, CoreError> {
-    let bp: TemplateBlueprint = serde_yaml::from_str(yaml)
-        .map_err(|e| CoreError::InvalidYaml(format!("template: {e}")))?;
+    let bp: TemplateBlueprint =
+        serde_yaml::from_str(yaml).map_err(|e| CoreError::InvalidYaml(format!("template: {e}")))?;
     if bp.schema_version != 1 {
         return Err(CoreError::UnsupportedSchemaVersion(bp.schema_version));
     }

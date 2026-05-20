@@ -89,7 +89,10 @@ impl IntoResponse for MusuError {
     fn into_response(self) -> Response {
         // Log internal errors with stack context; 401/403/404 are client-side info.
         match &self {
-            MusuError::Internal(_) | MusuError::Sqlx(_) | MusuError::Io(_) | MusuError::Anyhow(_) => {
+            MusuError::Internal(_)
+            | MusuError::Sqlx(_)
+            | MusuError::Io(_)
+            | MusuError::Anyhow(_) => {
                 tracing::error!(error = %self, code = self.code(), "request failed");
             }
             MusuError::Upstream(_) => {

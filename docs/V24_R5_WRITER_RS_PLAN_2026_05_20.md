@@ -435,3 +435,19 @@ Phase 1.5 `system-architect` Critic returned 2026-05-20. 1 HIGH + 5 MED + 4 LOW 
 **Test count update**: §6 now lists 17 unit tests + 1 integration smoke = 18 total assertions.
 
 **LOC budget update**: +10 LOC (struct deltas C2) + ~80 LOC (r5_smoke integration test C7) = total budget ~840 LOC. Still well within wiki/490 §5-R5 ~1500 LOC original budget.
+
+## §11 Auditor Findings (Phase 5, quality-engineer 2026-05-20)
+
+Phase 5 Auditor returned SHIP-OK. 0 HIGH, 2 MED, 4 LOW, 1 INFO. All resolved or accepted.
+
+| ID | Sev | Area | Finding | Resolution |
+|---|---|---|---|---|
+| A1 | MED | builder-deviation | `apply_v2` uses per-column-skip idempotency (pragma_table_info pre-check) instead of plan's literal "all-or-nothing tx". Justified because plan §4.2 acknowledges concurrent-boot races; per-column skip is the safer evolution. | ACK. Closure doc records the §4.1 code-block deviation. Plan-intent preserved (idempotent migration). |
+| A2 | MED | tests | r5_smoke asserts DB row terminal state only; does NOT subscribe to /api/tasks/events SSE during the run. Plan §6 acceptance #7 wording leans automated; Builder elected manual. | ACK as manual residue. R5 closure HTML documents §6#7 as operator-attested manual smoke step. Reverse: R6 or V25 can add automated SSE assertion when reqwest SSE client wrapper lands. |
+| A3 | LOW | builder-deviation | `set_version(N)` race window: brief /health/ready 503 possible during concurrent boot. Convergence guaranteed by 2nd boot. | ACK per [[feedback-self-contained-product]] — single-machine concurrent-boot not normal operation. Closure doc notes the known window. |
+| A4 | LOW | code-quality | One non-test `.expect()` at migrate.rs:92 on `pub const` array element extraction — provably unreachable but worth a comment. | ACK; optional follow-up to convert to `unreachable!()` macro with SAFETY comment. Not blocking; deferred to V25 cleanup. |
+| A5 | LOW | scope-creep | runner.rs is 990 LOC vs plan's ~200 LOC estimate (5x). ~314 LOC in #[cfg(test)] mod tests; ~676 impl LOC. Justified by state machine + admission + streaming + 3 kill paths + finalize + RegistryGuard + env. No dead code. | ACK; closure doc patches master plan wiki/490 §5-R5 row LOC estimate from ~1,500 to actual ~2,100 for V25 future-task calibration. |
+| A6 | LOW | code-quality | `RunRequest` + `DelegateRequest` both gained an additional `cwd: Option<String>` field beyond Critic C2's specified `model` + `timeout_sec`. Additive, non-breaking, useful for tests + future per-task cwd override. | ACK as additive scope creep beyond §3.3. Closure doc notes the §3.3 → 3-field actual delta (model, timeout_sec, cwd). |
+| A7 | INFO | critic-resolution | C13 platform_macos.rs configure() is a no-op stub (intentional). Graceful_kill path uses `child.start_kill()` + 5s grace + SIGKILL. macOS lacks PR_SET_PDEATHSIG; grandchild leak limitation documented per §7 R5-W2. | Confirmed. |
+
+**Audit verdict**: SHIP-OK. 0 HIGH = no Builder loop required. R5 advances to Phase 7 Scribe.

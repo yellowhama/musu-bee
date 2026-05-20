@@ -144,11 +144,7 @@ fn unauthorized(reason: &str) -> Response {
 }
 
 /// Axum middleware function. Mount with `axum::middleware::from_fn_with_state`.
-pub async fn require_bearer(
-    State(state): State<AuthState>,
-    req: Request,
-    next: Next,
-) -> Response {
+pub async fn require_bearer(State(state): State<AuthState>, req: Request, next: Next) -> Response {
     let method = req.method().clone();
     // Use the raw URI path; axum 0.7 has already done percent-decoding
     // normalization, but the raw query/path may still contain encoded
@@ -273,9 +269,18 @@ mod tests {
 
     #[test]
     fn screen_novnc_simple_bypass_ok() {
-        assert!(is_screen_novnc_bypass(&Method::GET, "/screen/novnc/index.html"));
-        assert!(is_screen_novnc_bypass(&Method::GET, "/screen/novnc/a/b/c.js"));
-        assert!(is_screen_novnc_bypass(&Method::HEAD, "/screen/novnc/index.html"));
+        assert!(is_screen_novnc_bypass(
+            &Method::GET,
+            "/screen/novnc/index.html"
+        ));
+        assert!(is_screen_novnc_bypass(
+            &Method::GET,
+            "/screen/novnc/a/b/c.js"
+        ));
+        assert!(is_screen_novnc_bypass(
+            &Method::HEAD,
+            "/screen/novnc/index.html"
+        ));
     }
 
     #[test]
@@ -315,8 +320,12 @@ mod tests {
     #[test]
     fn percent_2e_detected() {
         // Encoded dot — common in traversal smuggle.
-        assert!(has_suspicious_encoding("/screen/novnc/%2e%2e/api/companies"));
-        assert!(has_suspicious_encoding("/screen/novnc/%2E%2E/api/companies"));
+        assert!(has_suspicious_encoding(
+            "/screen/novnc/%2e%2e/api/companies"
+        ));
+        assert!(has_suspicious_encoding(
+            "/screen/novnc/%2E%2E/api/companies"
+        ));
     }
 
     #[test]

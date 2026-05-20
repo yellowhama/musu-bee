@@ -118,7 +118,10 @@ mod tests {
     async fn busy_timeout_is_set() {
         let pool = mem_pool().await;
         apply_pragmas(&pool).await.unwrap();
-        let row = sqlx::query("PRAGMA busy_timeout").fetch_one(&pool).await.unwrap();
+        let row = sqlx::query("PRAGMA busy_timeout")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
         let v: i64 = row.try_get(0).unwrap();
         assert_eq!(v, 5000, "busy_timeout should be 5000ms");
     }
