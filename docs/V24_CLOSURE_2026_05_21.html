@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>V24-Rust-cleanup — final closure (wiki/500)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root { --bg:#0f1115; --fg:#e8e8ec; --muted:#9ba0aa; --accent:#7cd992; --warn:#f0c674; --bad:#e07b7b; --code-bg:#1a1d24; --border:#2a2e38; --link:#82aaff; }
+  body { margin:0; padding:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--fg); line-height:1.55; }
+  .wrap { max-width:1000px; margin:0 auto; padding:2rem 1.5rem 4rem; }
+  h1 { font-size:1.8rem; border-bottom:1px solid var(--border); padding-bottom:.5rem; }
+  h2 { font-size:1.3rem; margin-top:2rem; color:var(--accent); }
+  h3 { font-size:1.05rem; color:var(--warn); margin-top:1.5rem; }
+  .meta { color:var(--muted); font-size:.9rem; margin-bottom:1.5rem; }
+  .meta dl { display:grid; grid-template-columns:max-content 1fr; gap:.35rem 1rem; }
+  .meta dt { color:var(--muted); }
+  .meta dd { margin:0; }
+  code, pre { font-family:'JetBrains Mono','Consolas',monospace; }
+  code { background:var(--code-bg); padding:.1rem .35rem; border-radius:3px; font-size:.88em; }
+  pre { background:var(--code-bg); border:1px solid var(--border); padding:.9rem 1rem; border-radius:6px; overflow-x:auto; font-size:.82rem; }
+  table { border-collapse:collapse; width:100%; margin:1rem 0; font-size:.88rem; }
+  th, td { border:1px solid var(--border); padding:.45rem .65rem; text-align:left; vertical-align:top; }
+  th { background:var(--code-bg); color:var(--muted); font-weight:600; }
+  tr.pass td:first-child { color:var(--accent); font-weight:bold; }
+  tr.warn td:first-child { color:var(--warn); font-weight:bold; }
+  tr.bad td:first-child { color:var(--bad); font-weight:bold; }
+  .pill { display:inline-block; padding:.15rem .55rem; border-radius:999px; font-size:.8rem; font-weight:600; }
+  .pill.pass { background:rgba(124,217,146,.15); color:var(--accent); border:1px solid var(--accent); }
+  .pill.warn { background:rgba(240,198,116,.15); color:var(--warn); border:1px solid var(--warn); }
+  .pill.bad { background:rgba(224,123,123,.15); color:var(--bad); border:1px solid var(--bad); }
+  ul { padding-left:1.4rem; }
+  a { color:var(--link); }
+  blockquote { border-left:3px solid var(--warn); padding:.5rem 1rem; color:var(--fg); margin:1rem 0; background:rgba(240,198,116,.06); }
+  blockquote.attest { border-left-color:var(--accent); background:rgba(124,217,146,.06); }
+  blockquote.danger { border-left-color:var(--bad); background:rgba(224,123,123,.08); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>V24-Rust-cleanup — final closure</h1>
+
+<div class="meta">
+  <dl>
+    <dt>Wiki ID</dt><dd>wiki/500</dd>
+    <dt>Master plan</dt><dd>wiki/490 (<code>docs/V24_RUST_BIG_BANG_MASTER_PLAN_2026_05_20.md</code>)</dd>
+    <dt>Branch</dt><dd><code>v24/rust-cleanup</code></dd>
+    <dt>R-cleanup HEAD</dt><dd><code>9c1b8e8</code> (R4 SHIP)</dd>
+    <dt>Closure status</dt><dd><span class="pill warn">CODE COMPLETE / §9.12 OPERATOR-ATTESTED GATE PENDING</span></dd>
+    <dt>R10 destructive op</dt><dd><span class="pill bad">PENDING OPERATOR APPROVAL</span> — bulk delete of 25,885 LOC Python NOT yet executed</dd>
+    <dt>Closure date (code complete)</dt><dd>2026-05-21</dd>
+  </dl>
+</div>
+
+<blockquote class="danger">
+<strong>§9.12 ungameable closure metric</strong>: Orchestrator MAY NOT mark V24 §A complete until operator attests (text reply OR git commit) that ≥3 named real tasks completed via musu within 7 days of R10 ship. This closure documents <em>code complete</em>, not V24 <em>cycle close</em>. The §A row in GOAL.md remains "code shipped, acceptance pending" until §9.12 is operator-authored.
+</blockquote>
+
+<h2>§1 What V24 was</h2>
+
+<p>
+V24 ported musu from <strong>25,885 LOC Python + 252 LOC Go scanner</strong> to <strong>native Rust single-binary `musu`</strong>. Triggered 2026-05-20 by 6 weeks of `[[feedback-no-python]]` accumulating debt; locked via Phase -1 business-panel-experts YELLOW verdict (Christensen + Taleb + Kim&Mauborgne + Drucker) reshaping operator's initial big-bang draft to <strong>R-fast → R-cleanup phased</strong> approach. JTBD (land-os + vibecode-town companies cross-machine on 4060Ti) shipped at R8 (day ~14, JTBD step 1); R-cleanup completed the native module port so operator runs <strong>zero Python at runtime</strong>.
+</p>
+
+<p>
+Operator's primary machine: Windows 11 4060Ti (hugh_second). R9 cross-machine deferred per §A.1.1 single-machine pivot.
+</p>
+
+<h2>§2 Sub-WS status</h2>
+
+<table>
+  <thead><tr><th>Sub-WS</th><th>Wiki</th><th>Status</th><th>Commit</th><th>LOC</th></tr></thead>
+  <tbody>
+    <tr class="pass"><td>R0 master plan</td><td>wiki/490</td><td>SHIPPED</td><td>(branch cut)</td><td>(plan doc)</td></tr>
+    <tr class="pass"><td>R1 bridge</td><td>wiki/491 + 491c</td><td>SHIPPED</td><td>(R-fast)</td><td>~3,200</td></tr>
+    <tr class="pass"><td>R2 core</td><td>wiki/492 + 492c</td><td>SHIPPED</td><td>(R-fast)</td><td>~1,800</td></tr>
+    <tr class="pass"><td>R5 writer</td><td>wiki/495 + 495c</td><td>SHIPPED</td><td><code>41efc2e</code></td><td>~2,106</td></tr>
+    <tr class="pass"><td>R6 installer</td><td>wiki/496 + 496c</td><td>SHIPPED</td><td><code>fc803e9</code> + <code>289ff7e</code></td><td>~4,180</td></tr>
+    <tr class="pass"><td>R3 control (MCP)</td><td>wiki/493 + 493c</td><td>SHIPPED</td><td><code>de5cb37</code></td><td>~1,720</td></tr>
+    <tr class="pass"><td>R4 indexer</td><td>wiki/494 + 494c</td><td>SHIPPED</td><td><code>9c1b8e8</code></td><td>~1,899</td></tr>
+    <tr class="pass"><td>R7 musu-bee wire-up</td><td>wiki/497 + 497c</td><td>SHIPPED</td><td><code>108f9df</code></td><td>~30</td></tr>
+    <tr class="pass"><td>R8 4060Ti E2E</td><td>wiki/498 + 498c</td><td>SHIPPED (operator-attested 7 audit_log rows)</td><td><code>0d58f08</code></td><td>(manual gate)</td></tr>
+    <tr class="warn"><td>R9 5070Ti cross-machine</td><td>wiki/499</td><td>DEFERRED per §A.1.1</td><td>—</td><td>—</td></tr>
+    <tr class="warn"><td>R10 Python bulk delete</td><td>wiki/500 (this doc)</td><td><strong>PENDING OPERATOR APPROVAL</strong></td><td>—</td><td>—</td></tr>
+  </tbody>
+</table>
+
+<p><strong>Code complete (Rust side)</strong>: ~16,000 LOC native Rust shipped across 8 sub-WS. Python tree (25,885 LOC) intact in repo as R10-pending deletion target.</p>
+
+<h2>§3 Strategic gates honored</h2>
+
+<table>
+  <thead><tr><th>Gate</th><th>Outcome</th></tr></thead>
+  <tbody>
+    <tr><td>Phase -1 strategic gate (Christensen + Taleb + Kim&Mauborgne + Drucker)</td><td>YELLOW verdict with 4 HIGH; operator accepted all 4 reshapes (R-fast/R-cleanup phasing, version 1.14.0 not 2.0.0, §9.12 operator-attested closure metric, single-binary `musu` not 5 crates)</td></tr>
+    <tr><td>Reshape lock</td><td>Honored across R1-R10; no orchestrator-initiated mid-execution scope reshapes</td></tr>
+    <tr><td>Const III schema apply</td><td>Fired ONCE at R5 (schema v1→v2 with 6 NULLable cols incl. started_at per Critic C3)</td></tr>
+    <tr><td>Const VII per-push</td><td>Bundled R-cleanup approval via [[feedback-const-vii-batched-approval]]</td></tr>
+    <tr><td>Dual-audit on auth-touching ranges</td><td>R6 dual-Critic (devops-architect + security-engineer) + dual-Auditor (quality-engineer + security-engineer); 7 union HIGHs all resolved</td></tr>
+    <tr><td>Plan-as-spec Auditor zero-overlap principle</td><td>9th + 10th validation of `[[feedback-plan-stage-auditor]]`: Critic and Auditor findings demonstrate distinct review lanes (Critic reads plan, Auditor reads code)</td></tr>
+    <tr><td>Strategic critic gate</td><td>8th-11th validation of `[[feedback-strategic-critic-gate]]`: panel finds thesis-level errors before Researcher commits</td></tr>
+  </tbody>
+</table>
+
+<h2>§4 What R10 will delete (when operator approves)</h2>
+
+<p><strong>NON-REVERSIBLE</strong>. Operator must explicitly invoke. R10 is gated by `[[feedback-autonomous-loop]]` (orchestrator never auto-runs `rm -rf` on production directories).</p>
+
+<table>
+  <thead><tr><th>Path</th><th>Size</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td><code>musu-bridge/</code></td><td>142 MB</td><td>R1 bridge native; facade target deprecated by R3+R4+R5 native handlers</td></tr>
+    <tr><td><code>musu-core/</code></td><td>3.7 MB</td><td>R2 core native; companies + agents + audit + adapters subsumed</td></tr>
+    <tr><td><code>musu-control/</code></td><td>508 KB</td><td>R3 native MCP `musu control` subcommand replaces standalone Python stdio process</td></tr>
+    <tr><td><code>musu-indexer/</code></td><td>86 MB</td><td>R4 native FTS5 `musu indexer` subcommand + Go scanner binary obsolete</td></tr>
+    <tr><td><code>musu-writer/</code></td><td>339 KB</td><td>R5 native task execution; agent transcripts subsumed</td></tr>
+    <tr><td><code>scripts/musu-control-mcp.sh</code></td><td>—</td><td>R3 replaces with `.mcp.json` command spawn</td></tr>
+    <tr><td><code>scripts/start-indexer-http.sh</code></td><td>—</td><td>R4 native HTTP route; MCP stdio singleton not needed</td></tr>
+    <tr><td><code>scripts/setup-indexer-workspace.sh</code></td><td>—</td><td>R6 installer + R4 init-profile subcommand</td></tr>
+    <tr><td><code>musu-rs/src/bridge/facade.rs</code> + fall-through wiring</td><td>—</td><td>R-cleanup native routes serve all production paths; facade no longer needs Python upstream</td></tr>
+  </tbody>
+</table>
+
+<p><strong>Total deletion target</strong>: ~232 MB across 3,312 .py files + 1 Go binary + 3 shell wrappers + bridge facade Rust module.</p>
+
+<h3>§4.1 R10 operator-approved execution sequence</h3>
+
+<p>When operator says "지워" (delete), orchestrator runs (in order):</p>
+
+<pre><code># 0. Pre-flight: confirm no live musu-rs process holds files
+taskkill /F /IM musu.exe 2>nul || true
+
+# 1. Bulk delete Python tree
+rm -rf musu-bridge/ musu-core/ musu-control/ musu-indexer/ musu-writer/
+
+# 2. Delete obsolete shell wrappers
+rm -f scripts/musu-control-mcp.sh
+rm -f scripts/start-indexer-http.sh
+rm -f scripts/setup-indexer-workspace.sh
+
+# 3. Remove bridge facade fall-through (Rust-side cleanup)
+# Edit musu-rs/src/bridge/mod.rs to drop .fallback(facade::proxy)
+# Edit musu-rs/src/bridge/facade.rs deletion
+# (Auto-update will pick this up on next bridge restart)
+
+# 4. Verify cargo build + tests still pass after deletion
+cd musu-rs &amp;&amp; cargo build --release &amp;&amp; cargo test --release
+
+# 5. Commit + push
+cd .. &amp;&amp; git add -A &amp;&amp; git commit -m "V24-R10: bulk delete Python (25,885 LOC + Go binary)"
+git push origin v24/rust-cleanup
+</code></pre>
+
+<p>Recovery path: if R10 breaks something, <code>git revert HEAD</code> restores Python tree from git history. Operator-friendly safety net.</p>
+
+<h2>§5 §9.12 operator-attested closure (template, awaiting operator-authored)</h2>
+
+<blockquote class="attest">
+<strong>Operator: please fill in (or git commit) the following after R10 ship + 7-day soak. This is the load-bearing Goodhart firewall.</strong>
+
+<p>I, the musu operator, confirm that the following ≥3 real tasks completed via musu-rs (NOT testclient curl scripts) within 7 days of R10 ship:</p>
+
+<ol>
+  <li><strong>Task 1</strong>: <em>(operator fills in: company, what was done, audit_log row reference if available)</em></li>
+  <li><strong>Task 2</strong>: <em>(operator fills in)</em></li>
+  <li><strong>Task 3</strong>: <em>(operator fills in)</em></li>
+</ol>
+
+<p>I attest these are reproducible from my own terminal history or git log in <code>F:\Aisaak\Projects\land-os</code> or <code>F:\Aisaak\Projects\vibecode-town</code>.</p>
+
+<p>Operator signature: <em>(textual identifier — email, git author, hostname)</em><br>
+Date: <em>(yyyy-mm-dd)</em></p>
+</blockquote>
+
+<p>This template is intentionally ungameable — orchestrator cannot fake operator terminal history or git authorship. V24 §A row in GOAL.md remains "code shipped, acceptance pending" until operator authors this block.</p>
+
+<h2>§6 V25 backlog (carried forward)</h2>
+
+<h3>§6.1 From R6 (installer/auto-update)</h3>
+<ul>
+  <li>QB3 boot-start password handoff (SetServiceCredentials API path; currently bails with V25 message)</li>
+  <li>QB4 Windows STARTUPINFOEXW for handle inheritance (Unix path landed in audit-fix)</li>
+  <li>S8 Named Pipe SDDL via SetSecurityInfo (currently reject_remote_clients + bearer token)</li>
+  <li>S13 HKDF-derived IPC subkey from MUSU_BRIDGE_TOKEN (defense in depth)</li>
+  <li>QA8 Win32 token-info API instead of USERNAME env-var heuristic for admin check</li>
+  <li>musu-bee build path (Q9) wired into installer</li>
+  <li>per-OS path conventions (D9) XDG / %APPDATA% / ~/Library/Application Support migration if operator complaints emerge</li>
+  <li>backup/cleanup timers (F13) — musu-backup.timer + musu-cleanup.timer reintroduction</li>
+</ul>
+
+<h3>§6.2 From R5 (writer)</h3>
+<ul>
+  <li>Sandboxing claude subprocess via musu-supervisor-isolation crates (currently parity-with-Python unrestricted)</li>
+  <li>SSE assertion in r5_smoke (manual residue per A2)</li>
+</ul>
+
+<h3>§6.3 From R3 (control)</h3>
+<ul>
+  <li>Port T2 deprecated tools to T1 as backing endpoints port to Rust (list_agents, get_agent, get_dashboard, list_runs, get_activity)</li>
+  <li>Smoke test parallelization (QA2 — 13× subprocess reboot → shared harness)</li>
+</ul>
+
+<h3>§6.4 From R4 (indexer)</h3>
+<ul>
+  <li>QA2 Python+Go baseline measurement on land-os (must happen BEFORE R10 makes the reference irrecoverable)</li>
+  <li>QA3 musu-bee Next.js parallel `app/api/index-search/route.ts` harmonization (route through bridge for byte parity)</li>
+  <li>QA7 tracing::info! on FTS5 drift-rebuild observability</li>
+  <li>Semantic embeddings / vector search</li>
+</ul>
+
+<h3>§6.5 From R10 (this turn forward)</h3>
+<ul>
+  <li>R10 itself: operator-approved Python bulk delete + facade module removal</li>
+  <li>§9.12 operator-attested closure (load-bearing)</li>
+  <li>Main-merge precondition (#436): v24/rust-cleanup → main once §9.12 lands</li>
+</ul>
+
+<h2>§7 Lessons learned (panel reshape validation)</h2>
+
+<h3>§7.1 Phase -1 strategic gate was load-bearing</h3>
+<p>Operator's initial draft was "Big-bang Rust rewrite — Python 25k 통째로 Rust로. 4-6주. 동안 musu = down." Panel YELLOW with 4 HIGH reshaped this to R-fast (~2 weeks → JTBD ships) → R-cleanup (~2-4 weeks parallel to operator dogfood). Without the panel gate, V24 would have shipped a multi-week down-window and missed acceptance items because operator's daily workflows would have been blocked.</p>
+
+<h3>§7.2 LOC estimates undershot by 2-5×</h3>
+<p>Every sub-WS LOC estimate was low: R5 200→990, R6 600→4,180, R3 estimated low but landed ~1,720, R4 1,100→1,899. Master plan §5 LOC budgets should default to 3× the initial estimate; better yet, abandon LOC budgets and bound by test-count + acceptance items.</p>
+
+<h3>§7.3 Researcher F1 frame corrections are critical</h3>
+<p>R3 task brief originally said "replaces /api/control/*" — wrong frame. Researcher F1 caught this BEFORE Planner committed to wrong design. Same pattern in R4 where Researcher F2 found ~1,500 LOC of Python musu-indexer was unrelated session/spy/PTY tooling. Frame corrections at Phase 0 save Phase 3 rebuild.</p>
+
+<h3>§7.4 Dual-audit catches what single-audit misses</h3>
+<p>R6 dual-Critic returned 4+3=7 HIGH; dual-Auditor returned 6 HIGH. Single-Critic/Auditor on R3+R4+R5 returned 3 + 1 + 1 NEW HIGH respectively. Dual-audit on auth-touching / one-way blast radius ranges (R6) is mandatory and pays off; single is sufficient for MED-risk non-auth.</p>
+
+<h3>§7.5 Operator gates work</h3>
+<p>R8 (4060Ti install/E2E) was operator-bound and PASSED with 7 audit_log non-testclient rows. §9.12 ungameable metric will operator-attest within 7 days post-R10. The orchestrator's role is to ship code; operator's role is to attest acceptance. This separation is the load-bearing Goodhart firewall.</p>
+
+<h2>§8 References</h2>
+<ul>
+  <li>wiki/490 master plan</li>
+  <li>wiki/491c R1, wiki/492c R2 (R-fast)</li>
+  <li>wiki/495c R5, wiki/496c R6, wiki/493c R3, wiki/494c R4 (R-cleanup natives)</li>
+  <li>wiki/497c R7, wiki/498c R8 (musu-bee + 4060Ti gate)</li>
+  <li>GOAL.md §A.0 + §A.1.1 (operator decisions)</li>
+  <li>CHANGELOG.md [1.14.0] entry (this turn)</li>
+  <li>Memory tags: [[feedback-no-python]], [[decision-musu-backend-rust]], [[feedback-self-contained-product]], [[feedback-no-yagni-architecture]], [[feedback-plan-stage-auditor]], [[feedback-strategic-critic-gate]], [[feedback-const-vii-batched-approval]], [[feedback-scribe-html-only]], [[feedback-autonomous-loop]]</li>
+</ul>
+
+<hr>
+
+<p style="text-align:center;color:var(--muted);font-size:.85em;">
+V24 code complete. R10 destructive op + §9.12 operator-attested gate pending operator approval.
+</p>
+
+</div>
+</body>
+</html>

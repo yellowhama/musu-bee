@@ -2,6 +2,64 @@
 
 All notable changes to MUSU are documented here.
 
+## [1.14.0] - 2026-05-21 — V24-Rust-cleanup: full Python → Rust migration
+
+Branch: `v24/rust-cleanup`. All 6 R-fast + R-cleanup sub-WS shipped (R0 + R1 + R2 + R3 + R4 + R5 + R6 + R7 + R8). R9 (cross-machine) deferred per GOAL.md §A.1.1 single-machine pivot. **R10 pending operator-attested gate §9.12.**
+
+V24 is the panel-reshaped (Phase -1 YELLOW, 4 HIGH accepted) Big-bang→R-fast/R-cleanup phased rewrite of musu from 25,885 LOC Python (+ 252 LOC Go scanner) to native Rust on the single-binary `musu-rs` workspace. JTBD (land-os + vibecode-town companies running cross-machine) shipped at R8 (4060Ti E2E gate); R-cleanup completed the native module port so operator runs zero Python at runtime.
+
+### Native Rust modules shipped (single `musu` binary, 5 subcommands)
+
+| Sub-WS | Wiki | Module | Commit | LOC |
+|---|---|---|---|---|
+| R1 bridge | wiki/491c | tokio + axum HTTP server, 9 native routes, bearer auth, audit_log, dedup | (R-fast) | ~3,200 |
+| R2 core | wiki/492c | SQLite schema v1 (4 tables) + companies.yaml loader | (R-fast) | ~1,800 |
+| R5 writer | wiki/495c | Native Claude CLI agent-task execution + tokio::sync::broadcast SSE + DELETE cancel; schema v1→v2 (5 NULLable cols + started_at) | 41efc2e | ~2,106 |
+| R6 installer | wiki/496c | `musu install/uninstall/auto-update/supervise/schema-precheck/apply-schema` subcommands; cross-platform Scheduled Task / systemd / launchd; sha256 verify; staged swap with rollback; IPC bearer auth; Unix socket 0600 perms; dual-Critic + dual-Auditor (one-way blast radius) | fc803e9 + 289ff7e | ~4,180 |
+| R3 control | wiki/493c | rmcp 1.7 MCP stdio server with 13 tools (8 T1 native + 5 T2 deprecated stubs); R6 token resolver dedup; small R1 patch GET `/api/companies/:id` | de5cb37 | ~1,720 |
+| R4 indexer | wiki/494c | SQLite FTS5 per-workspace `.musu_dev.db`; `ignore` crate + rayon parallel scan replaces Go scanner binary; native `/api/index-search` with Python parity bytes (U+2026, col=2, maxchars=20); R3 ControlServer gains 14th tool `search_company`; R1 companies::create hooks `tokio::spawn(sync_workspace_async)` fire-and-forget | 9c1b8e8 | ~1,899 |
+| R7 musu-bee | wiki/497c | TS frontend points to Rust bridge :8070; 2 endpoint path reconciliations (Option A operator-chosen) | 108f9df | ~30 |
+| R8 4060Ti E2E | wiki/498c | Operator-attested clean install + land-os + vibecode-town companies registered + audit_log 7 non-testclient rows | 0d58f08 | (manual gate) |
+
+### Operator-asked ergonomic features delivered
+
+| Question | Answer |
+|---|---|
+| "이 기계에서 multi-machine 빼고 다 되는지" | YES (R5+R6+R3+R4 complete; bridge native; auto-update working; service supervisor via musud) |
+| "자동 업데이트 기능 같은 편의성 기능 있는지" | YES (R6 `musu auto-update` hybrid pre-built/source channel; Q2 user lock 2026-05-20; sha256 verify + staged swap + 30s health rollback) |
+| Service auto-start on boot/logon | YES (R6: Scheduled Task on Windows default; opt-in `--boot-start` Windows Service; systemd user unit; launchd LaunchAgent) |
+| MCP integration with Claude Code | YES (R3: `.mcp.json` registers `musu control`; rmcp 1.7 Anthropic-blessed SDK) |
+| FTS5 keyword search per company | YES (R4: `/api/index-search?q=...&workspace=...`; SearchPanel.tsx + handleWikiCommand.ts work unchanged) |
+
+### Dual-audit + audit-fix chain
+- R6: Dual-Critic (devops-architect + security-engineer) returned 7 union HIGHs all resolved (D1-D4 + S2/S4/S7). Dual-Auditor returned 6 HIGHs (QB1 sha256, QB2 IPC auth + Unix socket 0600, QB3 sc.exe password literal, QB4 listener fd inherit, QA1 schema_gate path, QA2 clippy dead_code) all audit-fixed in `fc803e9`.
+- R3: Single Critic 4 HIGH (C1-C4) resolved; Auditor SHIP-OK 0 HIGH 2 MED non-blocking.
+- R4: Single Critic 3 HIGH (C-R4-1 snippet bytes, C-R4-2 perf gate, C-R4-3 r3 smoke breakage) resolved; Auditor 1 NEW HIGH QA1 (frontend regression) audit-fixed in-place.
+
+### Strategic + thesis-level gates honored
+- Phase -1 business-panel-experts YELLOW verdict (Christensen + Taleb + Kim&Mauborgne + Drucker) on V24 master plan; 4 HIGH reshape accepted by operator → R-fast + R-cleanup phased instead of big-bang
+- 8th + 9th + 10th + 11th validation of `[[feedback-strategic-critic-gate]]` (panel finds thesis-level errors before Researcher commits to wrong investigation)
+- 9th + 10th validation of `[[feedback-plan-stage-auditor]]` zero-overlap principle (Critic ≠ Auditor findings demonstrate distinct review lanes)
+- `[[feedback-no-python]]` honored: zero new Python written across V24; old Python tolerated as facade target during R-fast (deleted at R10 below)
+- `[[decision-musu-backend-rust]]` honored: single-binary `musu` workspace, no SaaS deps, no licensed runtime
+- `[[feedback-self-contained-product]]` honored: all 6 R6 new crates (dirs, ureq, fs2, getrandom, flate2+tar/zip, windows-service) from crates.io, no external service required
+- `[[feedback-no-yagni-architecture]]` honored: SQLite FTS5 (not tantivy), 13-tool MCP surface (not 80), session/spy/PTY dropped (R4 §2)
+- `[[feedback-const-vii-batched-approval]]` honored: R-cleanup bundle approval covers per-push gate; main-merge stays operator-pending #436
+
+### R10 status (pending §9.12 operator-attested gate)
+
+R10 = bulk delete of 25,885 LOC Python + Go scanner binary + 3 shell wrappers. **Non-reversible. Requires explicit operator approval before execution.** Until then, Python tree (musu-bridge/, musu-core/, musu-control/, musu-indexer/, musu-writer/, scripts/musu-control-mcp.sh, scripts/start-indexer-http.sh, scripts/setup-indexer-workspace.sh) remains in tree as facade target. Rust musu-rs serves all production traffic; Python only used by facade fall-through for unported endpoints (≤5 routes).
+
+### §9.12 ungameable closure metric (Goodhart firewall)
+
+V24 §A complete is operator-attested, NOT orchestrator-asserted. Required evidence in wiki/500 closure HTML:
+- Operator-authored text reply OR git commit in land-os/vibecode-town
+- Within 7 days of R10 ship
+- Confirming ≥3 named real tasks completed via musu (NOT testclient curl scripts)
+- Reproducible from operator's own terminal history or git log
+
+Orchestrator MAY NOT mark V24 closed until §9.12 is operator-attested. Structurally ungameable — orchestrator cannot fake operator terminal history.
+
 ## [1.13.0] - 2026-05-19 — V23.5: HTML wiki memory + bridge hardening + CoS aggregation
 
 Branch: `v23/phase4` (HEAD `c1a87b4`). Const VII main-merge gate
