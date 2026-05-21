@@ -1,3 +1,4 @@
+use super::openai_compat::OpenAICompatAdapter;
 use super::{Adapter, AdapterContext, AdapterError};
 
 /// Dispatch to concrete adapter implementation.
@@ -7,8 +8,7 @@ pub fn dispatch(
     _ctx: &AdapterContext,
 ) -> Result<Box<dyn Adapter>, AdapterError> {
     match adapter_type {
-        // Commit 2 populates these with OpenAICompatAdapter.
-        // "openai_compat_local" | "openai_compat_remote" => { ... }
+        "openai_compat_local" | "openai_compat_remote" => Ok(Box::new(OpenAICompatAdapter)),
         //
         // Commit 3 populates this with the claude shim.
         // "claude" => { ... }

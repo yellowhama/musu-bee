@@ -117,6 +117,7 @@ pub trait Adapter: Send + Sync {
     async fn execute(&self, ctx: &AdapterContext) -> Result<AdapterResult, AdapterError>;
 }
 
+pub mod openai_compat;
 pub mod registry;
 
 #[cfg(test)]
@@ -163,4 +164,3 @@ mod tests {
         assert!(ctx.cancel.is_none());
     }
 }
-
