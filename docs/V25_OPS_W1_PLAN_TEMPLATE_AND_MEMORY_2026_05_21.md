@@ -176,8 +176,14 @@ Builder execution sequence (sequential, no parallel):
 
 | ID | Sev | Area | Finding | Resolution |
 |---|---|---|---|---|
+| A1 | LOW | Dual-audit cond 4 wording drift | PLAN_TEMPLATE.md:100 stops at catch-all definition; feedback-dual-audit-trigger-narrow.md:27 elaborates with examples (DELETE + downstream sync, one-way data transform) | Accepted: template = canonical generic, memo = elaboration. Not blocking |
+| A2 | LOW | MEMORY.md hook length | L16-18 새 entry hook 140-175 chars, plan §6.7 의 <120 chars 룰 초과 | Accepted: 기존 MEMORY.md convention (L8 strategic-critic-gate ~165 chars) 따름. Plan §6.7 의 ceiling 이 de-facto 보다 strict. slug grep-ability satisfied |
+| A3 | LOW | §6.10 V-agnostic body hit | L5 의 meta-statement ("사례 (V24 등) 는 callout 박스로만 mention") 가 grep 에 'V24' 1 hit. callout 안이 아닌 본문 | Accepted: 룰 자체 statement (callout convention 설명) — 'V24' 제거 시 룰 불명료. exemption |
+| A4 | LOW | §0 verdict format meta vs concrete | PLAN_TEMPLATE.md:32 meta-form ("verdict = GREEN \| YELLOW \| RED 셋 중 하나 explicit") vs V24 wiki/490 concrete-form ("**Verdict**: **YELLOW** — ...") | Accepted: template = skeleton instruction. 향후 revision 에 "**Verdict**: [GREEN \| YELLOW \| RED]" field hint 추가 고려 |
+| A5 | LOW | F-row wording byte-drift | feedback-phase0-scope-cutter.md:18 "Researcher frame correction" vs PLAN_TEMPLATE.md:198 "Phase 0 frame correction" | Accepted: semantic identical, grep "F1" + "frame correction" 둘 다 hit |
+| A6 | LOW | §9.10 ungameable literal | PLAN_TEMPLATE.md:134 prelude 에 'ungameable / operator-attested' 명시. L145 row 자체는 'Operator-attested' literal 만 | Accepted: §6.4 가 둘 중 어느 하나 만 요구. spirit satisfied (Goodhart firewall + Auditor explicit check) |
 
-(empty header — populated post-Auditor)
+(Auditor: quality-engineer Phase 5, 2026-05-21. 0 HIGH + 0 MED + 6 LOW. SHIP-OK. 모든 5 prior Critic HIGH (C1-C5) 명시 해소 확인 — HANDOFF NOTES 참조. Dual-audit 적용 안 함 — W1 dual-audit 4 조건 0 매치 (doc-only, no install/migration/auth/one-way blast).)
 
 ---
 
