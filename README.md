@@ -26,16 +26,23 @@ put your work: you almost certainly want to **create a new company**
 
 ## Modules
 
-| Module | What | Language |
-|---|---|---|
-| `musu-bridge/` | FastAPI agent runtime. Heartbeats, task delegation, mesh routing. | Python 3.12 |
-| `musu-core/` | Agent / task / company / SQLite backend library. | Python |
-| `musu-control/` | MCP server. Claude Code / Codex / Gemini control plane for the bridge. | Python |
-| `musu-relay/` | WebRTC signaling rendezvous for cross-PC mesh handshake (V23.4+; replaced legacy WebSocket relay). | Node.js |
-| `musu-bee/` | Web UI (Next.js). The cockpit. | TypeScript + React |
-| `musu-indexer/` | Codebase indexer + MCP. Search, recent, watch. | Python + Go scanner |
-| `musu-writer/` | Long-form fiction writing tooling (operator-shaped). | Python |
-| `musu-ai-detector/` | AI-generated text detection MCP. | Python |
+V24 migrated Layer 1 (machines) from Python to a single Rust binary (`musu`). The 5 Python modules below are retained as a R10-pending deletion target so operators can audit the migration before approving bulk delete. See [V24 closure §4](docs/V24_CLOSURE_2026_05_21.html) for the R10 runbook.
+
+| Module | What | Language | Status |
+|---|---|---|---|
+| `musu bridge` | Bridge subcommand (tokio + axum). Heartbeats, task delegation, mesh routing. | Rust | Active (Rust subcommand) |
+| `musu core` | Core subcommand. Companies / agents / audit / adapters. Schema v1. | Rust | Active (Rust subcommand) |
+| `musu control` | MCP subcommand (stdio JSON-RPC, `rmcp` crate). 14 tools. | Rust | Active (Rust subcommand) |
+| `musu indexer` | Indexer subcommand. Per-workspace SQLite FTS5 + scanner. | Rust | Active (Rust subcommand) |
+| `musu writer` | Writer subcommand. Agent task execution + SSE stream. | Rust | Active (Rust subcommand) |
+| `musu-relay/` | WebRTC signaling rendezvous for cross-PC mesh handshake (V23.4+; replaced legacy WebSocket relay). | Node.js | Active |
+| `musu-bee/` | Web UI (Next.js). The cockpit. | TypeScript + React | Active |
+| `musu-ai-detector/` | AI-generated text detection MCP. | Python | Active |
+| `musu-bridge/` | (legacy) FastAPI agent runtime. Heartbeats, task delegation, mesh routing. | Python 3.12 | Deprecated (R10-pending) |
+| `musu-core/` | (legacy) Agent / task / company / SQLite backend library. | Python | Deprecated (R10-pending) |
+| `musu-control/` | (legacy) MCP server. Claude Code / Codex / Gemini control plane for the bridge. | Python | Deprecated (R10-pending) |
+| `musu-indexer/` | (legacy) Codebase indexer + MCP. Search, recent, watch. | Python + Go scanner | Deprecated (R10-pending) |
+| `musu-writer/` | (legacy) Long-form fiction writing tooling (operator-shaped). | Python | Deprecated (R10-pending) |
 
 ## Install
 
