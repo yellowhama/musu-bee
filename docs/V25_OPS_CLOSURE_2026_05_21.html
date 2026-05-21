@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V25-OPS closure — V24 retrospective findings codified (wiki/506)</title>
+<style>
+  :root {
+    --bg: #fafaf7;
+    --fg: #1c1c1c;
+    --muted: #6b6b6b;
+    --accent: #2e5cb8;
+    --ok: #2d7a3e;
+    --warn: #a06a00;
+    --danger: #a02828;
+    --border: #d8d4cc;
+    --code-bg: #f0ede5;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 900px; margin: 2em auto; padding: 0 1.5em; color: var(--fg); background: var(--bg); line-height: 1.55; }
+  h1 { border-bottom: 2px solid var(--accent); padding-bottom: 0.3em; }
+  h2 { color: var(--accent); margin-top: 1.8em; }
+  h3 { color: var(--fg); border-left: 3px solid var(--accent); padding-left: 0.6em; }
+  code { background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 3px; font-family: "JetBrains Mono", Consolas, monospace; font-size: 0.92em; }
+  pre { background: var(--code-bg); padding: 1em; border-radius: 5px; overflow-x: auto; }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+  th, td { border: 1px solid var(--border); padding: 0.5em 0.75em; text-align: left; vertical-align: top; }
+  th { background: var(--code-bg); font-weight: 600; }
+  .pill { display: inline-block; padding: 0.15em 0.6em; border-radius: 3px; font-size: 0.85em; font-weight: 600; }
+  .pill.ok { background: #d4ead8; color: var(--ok); }
+  .pill.warn { background: #f5e8c8; color: var(--warn); }
+  .pill.danger { background: #f0d0d0; color: var(--danger); }
+  .pill.info { background: #d4dff0; color: var(--accent); }
+  blockquote { border-left: 3px solid var(--muted); margin: 1em 0; padding: 0.3em 1em; color: var(--muted); background: #f4f1ea; }
+  .meta { color: var(--muted); font-size: 0.9em; }
+  ul, ol { margin: 0.6em 0; padding-left: 1.5em; }
+  li { margin: 0.3em 0; }
+  .summary-box { background: #e8f0e0; border-left: 4px solid var(--ok); padding: 0.8em 1em; margin: 1em 0; }
+</style>
+</head>
+<body>
+
+<h1>V25-OPS closure — V24 retrospective findings codified into reusable assets</h1>
+
+<p class="meta">
+<strong>Wiki ID</strong>: wiki/506 (master closure, HTML per <code>[[feedback-scribe-html-only]]</code>)<br>
+<strong>Date</strong>: 2026-05-21<br>
+<strong>Branch</strong>: <code>v24/rust-cleanup</code><br>
+<strong>Master plan</strong>: <code>docs/V25_OPS_MASTER_PLAN_2026_05_21.md</code> (wiki/501)<br>
+<strong>Phase -1 strategic gate</strong>: <span class="pill info">EXEMPT</span> — thesis = "codify V24 retrospective into reusable artifacts" (no spec change, no thesis extension)<br>
+<strong>Status</strong>: <span class="pill ok">SHIP-OK</span> — 5 sub-WS (W1-W5) all SHIP, 0 HIGH residual
+</p>
+
+<div class="summary-box">
+<strong>V25-OPS in one sentence</strong>: turned 5 V24 retrospective findings (Phase 0 scope cutter, LOC ×2 floor, dual-audit narrow trigger, Phase -1 YELLOW reshape, Python dead code visibility) — which previously lived only in <code>V24_QUAL_EVAL_2026_05_21.md</code> prose — into 3 durable channels: <strong>(A) 3 orchestrator-memory feedback notes</strong>, <strong>(B) 1 repo-local <code>PLAN_TEMPLATE.md</code></strong>, <strong>(C) operator-visible artifacts (5 module README banners + R10 runbook 100% complete + §9.12 attestation HOW-TO + #436 main-merge brief)</strong>.
+</div>
+
+<h2>§1 V25-OPS commits (chronological)</h2>
+
+<table>
+  <thead>
+    <tr><th>Commit</th><th>W</th><th>Wiki</th><th>Files</th><th>Status</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>66244fa</code></td><td>master</td><td>wiki/500-501</td><td>master plan + V24 qual eval + SSOT_1PAGE V24 status</td><td><span class="pill ok">pushed</span></td></tr>
+    <tr><td><code>63ca953</code></td><td>W1</td><td>wiki/502</td><td><code>PLAN_TEMPLATE.md</code> + W1 plan v2</td><td><span class="pill ok">pushed</span></td></tr>
+    <tr><td><code>b0a35ff</code></td><td>W1</td><td>wiki/502c</td><td>W1 plan §11 Auditor + W1 closure</td><td><span class="pill ok">pushed</span></td></tr>
+    <tr><td><code>310855c</code></td><td>W2</td><td>wiki/503</td><td>5 module README banners + top README Status column + W2 plan v2</td><td><span class="pill ok">pushed</span></td></tr>
+    <tr><td><code>a5a85cf</code></td><td>W2</td><td>wiki/503c</td><td>W2 plan §11 Auditor + W2 closure</td><td><span class="pill ok">pushed</span></td></tr>
+    <tr><td><code>6b7263c</code></td><td>W3</td><td>wiki/504 + 504c</td><td>V24_CLOSURE §4.1 보강 + §4.1.1 facade reference table + W3 plan + closure</td><td><span class="pill ok">pushed</span></td></tr>
+    <tr><td><code>851874d</code></td><td>W4</td><td>wiki/505 + 505c</td><td>§9.12 attestation HOW-TO + #436 main-merge brief + W4 plan + closure</td><td><span class="pill ok">pushed</span></td></tr>
+    <tr><td>(this commit)</td><td>W5</td><td>wiki/506</td><td>this closure HTML</td><td><span class="pill warn">pending push</span></td></tr>
+  </tbody>
+</table>
+
+<p>Total: 8 commits on <code>v24/rust-cleanup</code> branch. Net LOC ≈ 1,800 markdown + 1 HTML (V24_CLOSURE 보강). All Const VII batched per <code>[[feedback-const-vii-batched-approval]]</code>.</p>
+
+<h2>§2 5 V24 findings × 3 durable channels — codification matrix</h2>
+
+<table>
+  <thead>
+    <tr><th>Finding (from <code>V24_QUAL_EVAL</code>)</th><th>Channel A (memory)</th><th>Channel B (PLAN_TEMPLATE)</th><th>Channel C (operator-visible)</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1. Phase 0 Researcher = scope cutter (R3 stdio MCP, R4 HTTP-first frame correction)</td>
+      <td><code>feedback-phase0-scope-cutter.md</code> (W1)</td>
+      <td>master §8 + sub-WS §1.1 F[N] row (W1)</td>
+      <td>(orchestrator behavior, no operator surface)</td>
+    </tr>
+    <tr>
+      <td>2. LOC estimate ×2 floor (V24 R5/R6 4.95×/6.97×)</td>
+      <td><code>feedback-loc-estimate-x2.md</code> (W1)</td>
+      <td>master §2 + sub-WS §3 "LOC est ×2" column (W1)</td>
+      <td>(planning behavior, no operator surface)</td>
+    </tr>
+    <tr>
+      <td>3. Dual-audit narrow trigger (4-condition: auth/migration/install/one-way blast)</td>
+      <td><code>feedback-dual-audit-trigger-narrow.md</code> (W1)</td>
+      <td>master §5 4-condition + sub-WS §1.0 Dual? column (W1)</td>
+      <td>(orchestrator routing, no operator surface)</td>
+    </tr>
+    <tr>
+      <td>4. Phase -1 panel YELLOW reshape (V24 panel reshaped big-bang → R-fast/R-cleanup)</td>
+      <td>(covered by existing <code>feedback-strategic-critic-gate</code>)</td>
+      <td>master §0 GREEN/YELLOW/RED verdict format (W1)</td>
+      <td>(plan-mode behavior, no operator surface)</td>
+    </tr>
+    <tr>
+      <td>5. Python 25,885 LOC dead code visibility</td>
+      <td>(covered by existing <code>feedback-no-python</code>)</td>
+      <td>master §1 "Out of scope (operator manual)" subsection (W1)</td>
+      <td>
+        <strong>W2</strong>: top README Status column + 5 module README banners (Active vs Deprecated (R10-pending) vs Active (Rust subcommand))<br>
+        <strong>W3</strong>: V24_CLOSURE §4.1 R10 runbook 85% → 100% (line numbers + SHA pin + bash/PowerShell verify + cargo check + git revert dry-run) + §4.1.1 facade reference inventory table<br>
+        <strong>W4</strong>: §9.12 attestation HOW-TO (Goodhart firewall HOW-TO, orchestrator-no-prefill rules) + #436 main-merge brief (V23.3 + V23.4 Tier-1 + V23.5 + V24 bundle)
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<p><strong>Channel completeness</strong>: A (3 memo) + B (1 template) + C (5 module README + 1 HTML §4 보강 + 2 operator brief) = <strong>11 durable artifacts</strong>. V26 master plan kick-off 시 모두 자동 effective.</p>
+
+<h2>§3 Phase chain stats across W1-W5</h2>
+
+<table>
+  <thead>
+    <tr><th>Sub-WS</th><th>Critic findings</th><th>Auditor findings</th><th>Phase 0 frame correction</th><th>Dual-audit?</th><th>LOC actual / floor / ceiling</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>W1 PLAN_TEMPLATE + 3 memo</td>
+      <td>5H + 3M + 2L + 2I (12 total)</td>
+      <td>0H + 0M + 6L (6 total)</td>
+      <td><strong>F1</strong>: D2 frontmatter spec drift (3-field vs actual 4-key metadata block)</td>
+      <td>single (4-cond 0 match)</td>
+      <td>artifacts ~273 / 273 / 800</td>
+    </tr>
+    <tr>
+      <td>W2 Python deprecation banners</td>
+      <td>2H + 3M + 2L + 3I (10 total)</td>
+      <td>0H + 0M + 2L + 2I (4 total)</td>
+      <td><strong>F1</strong>: musu-indexer/README.md 이미 52 line live Python doc (prepend-only 시 내부 모순)</td>
+      <td>single</td>
+      <td>artifacts ~165 / 273 / 700</td>
+    </tr>
+    <tr>
+      <td>W3 R10 runbook completeness</td>
+      <td>1H + 2M + 2L + 2I (7 total)</td>
+      <td>0H + 0M + 0L + 0I (mechanical pass)</td>
+      <td><strong>F1</strong>: Python bulk-rm vs Rust source-edit 분리 cleanup nature</td>
+      <td>single</td>
+      <td>artifacts ~140 / 100 / 300</td>
+    </tr>
+    <tr>
+      <td>W4 §9.12 HOW-TO + #436 brief</td>
+      <td>0H + 2M + 2L + 3I (7 total)</td>
+      <td>0H + 0M + 0L + 0I (Goodhart firewall verified)</td>
+      <td><strong>F1</strong>: doc A = HOW-TO 가 attestation template 자체 아님 (V24_CLOSURE §5 가 template)</td>
+      <td>single (doc-only, not auth code)</td>
+      <td>artifacts ~330 / 460 / 500</td>
+    </tr>
+    <tr>
+      <td>W5 closure HTML (this)</td>
+      <td>(self-scribe, no Critic)</td>
+      <td>(self-scribe, no Auditor)</td>
+      <td>—</td>
+      <td>single (closure-only)</td>
+      <td>artifacts ~estimated 350 / 350 / 700</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><strong>Aggregate</strong>: 36 Critic findings + 10 Auditor findings + 4 Phase 0 frame corrections. 0 HIGH residual after all phases. All sub-WS single-Auditor (dual-audit 4-condition 0 match — V25-OPS 가 doc-only operation 이라 정확히 narrow trigger memo 의 적용 사례).</p>
+
+<h2>§4 Self-application validation — V25-OPS ate its own dogfood</h2>
+
+<p>본 V25-OPS 가 W1 에서 codify 한 5 룰을 W1-W5 자체에 self-apply. 4 frame correction (F1) + 1 self-audit pattern 모두 V25-OPS 본 작업 안에서 trigger:</p>
+
+<ul>
+  <li><strong>Phase 0 scope cutter</strong>: W1 (frontmatter 3-field 가정 vs 실제 4-key metadata), W2 (musu-indexer/README.md prepend-only 가정 vs 실제 live doc), W3 (Python vs Rust cleanup 분리), W4 (HOW-TO vs template 구분) — 모두 plan-time 에 catch. Phase 0 Researcher 가 spec-verifier 가 아니라 scope-cutter 라는 메모의 정확한 4 사례.</li>
+  <li><strong>LOC ×2</strong>: W2 artifacts 165 LOC (master ceiling 700 의 24%), W3 140 LOC (ceiling 300 의 47%), W4 330 LOC (ceiling 500 의 66%) — doc-only sub-WS 가 일관 under-ship. <strong>memo refinement candidate</strong>: <code>feedback-loc-estimate-x2.md</code> exception clause 를 "doc-only sub-WS ×1.5 OK" 로 확장 검토 (W2 A3 + W3 C7 + W4 C6 INFO finding 종합). 본 W5 closure 가 V26 진입 시 refinement 적용 선택권 명시.</li>
+  <li><strong>Dual-audit narrow trigger</strong>: W1-W5 모두 4-condition 0 match → single Auditor → 합산 Auditor finding 0 HIGH (W1 6 LOW, W2 2 LOW + 2 INFO, W3-W5 0). dual 적용했어도 추가 catch 거의 0 예상. 정확한 ROI 영역.</li>
+  <li><strong>Phase -1 EXEMPT</strong>: V25-OPS master plan §Context 명시. <code>MODE_Agent_Team.md</code> Phase -1 skip clause ("pure refactor/cleanup, no thesis extension") 정확 매치. 사양 변경 0, 새 dep 0, 새 architecture 0 — 본 closure 가 V26 master plan 의 새 thesis 시작점이 아니라 V24 운영 마무리.</li>
+  <li><strong>Out of scope (operator manual)</strong>: 매 sub-WS plan §1 OUT 마지막 group 에 operator-manual 항목 명시 (R10 실행, §9.12 attestation 본문, main merge 실행). orchestrator-no-prefill 규칙이 W4 doc A 의 CRITICAL acceptance check 로 mechanical 검증 (grep <code>emptyermind@gmail|F:\Aisaak</code> in Doc A = 0 hits → Goodhart firewall preserved).</li>
+</ul>
+
+<h2>§5 V26 master plan 진입점</h2>
+
+<p>다음 master plan (V26 또는 새 product 단위) 작성자는 V25-OPS 결과 자동 inherit:</p>
+
+<ol>
+  <li>
+    <strong>orchestrator-side</strong>: <code>~/.claude/projects/C--Users-empty/memory/MEMORY.md</code> 가 매 conversation context 에 auto-load. 신규 3 memo (<code>feedback-phase0-scope-cutter</code>, <code>feedback-loc-estimate-x2</code>, <code>feedback-dual-audit-trigger-narrow</code>) 가 plan-time 결정에 자동 적용.
+  </li>
+  <li>
+    <strong>Planner-side</strong>: <code>docs/PLAN_TEMPLATE.md</code> copy → <code>docs/V26_*_MASTER_PLAN_*.md</code>. Master plan skeleton (§0 Phase -1 verdict + §2 sub-WS table LOC est ×2 + §5 dual-audit 4-condition + §9 ungameable acceptance) + sub-WS detail plan skeleton (§1.1 D + F[N] rows + §10/§11 findings tables) 모두 prefilled.
+  </li>
+  <li>
+    <strong>operator-side</strong>: V24 close 후 (operator-attested §9.12 채움 + R10 실행 + #436 main merge) V25-OPS 의 W2 banner 가 working tree 에서 자연스럽게 사라짐 (Python dir delete 와 함께). R10 runbook (W3) + attestation HOW-TO (W4) + merge brief (W4) 는 V24 운영 마무리 artifact 로 git history 에 영구 보존.
+  </li>
+</ol>
+
+<h2>§6 What V25-OPS deliberately did NOT do</h2>
+
+<ul>
+  <li><strong>R10 자체 실행</strong> — operator manual gate. V25-OPS 가 runbook 만 100% 완성, 실행 0.</li>
+  <li><strong>R9 cross-machine</strong> — operator decision per V24 §A.1.1. V25-OPS scope 밖.</li>
+  <li><strong>§9.12 attestation 본문 작성</strong> — Goodhart firewall preserve. orchestrator absent surface. V25-OPS-W4 가 HOW-TO 만, template 본문 채움 0.</li>
+  <li><strong>#436 main-merge 실행</strong> — operator authority. V25-OPS-W4 가 brief 만, main push 0.</li>
+  <li><strong><code>MODE_Agent_Team.md</code> 수정</strong> — global config 보존. V25-OPS 가 그 안의 dual-audit trigger + Phase -1 gate 룰을 codify (PLAN_TEMPLATE + memo) 만, 수정 X.</li>
+  <li><strong>Python 코드 0 변경</strong> — <code>[[feedback-no-python]]</code> 완전 honored. W2 가 markdown banner 만, <code>__init__.py</code> <code>warnings.warn</code> 같은 Python 코드 추가 X.</li>
+  <li><strong>musu-rs Rust 코드 0 변경</strong> — W3 가 facade.rs/mod.rs line number 인용만, 실제 edit 0. R10 step 3 에서 operator 가 직접 edit.</li>
+  <li><strong>SSOT_1PAGE 4-layer thesis</strong> — V23.5 lock 그대로. V25-OPS 가 layer 변경 X.</li>
+</ul>
+
+<h2>§7 Memo refinement candidate (V26 진입 시 검토)</h2>
+
+<p>V25-OPS 의 self-application 결과로 발견된 1 memo refinement candidate:</p>
+
+<blockquote>
+<p><code>feedback-loc-estimate-x2.md</code> 의 exception clause: 현재 "pure-refactor or <150 LOC sub-WS 만 ×1 OK". V25-OPS 의 W2 (165 LOC), W3 (140 LOC), W4 (330 LOC) 가 모두 doc-only — ×2 multiplier 가 over-conservative.</p>
+<p><strong>Proposed refinement</strong>: exception clause 확장 — "doc-only sub-WS (markdown/HTML edit only, no code) 는 ×1.5 floor 도 OK; pure-refactor or &lt;150 LOC sub-WS 만 ×1 OK".</p>
+<p>V26 작성자가 본 refinement 를 본인 master plan 의 LOC estimate 에 적용 가능. 또는 새 V25.1 sub-WS 로 memo edit (W1 의 D2 pattern 재적용) — operator 결정.</p>
+</blockquote>
+
+<h2>§8 References</h2>
+
+<ul>
+  <li><code>docs/V25_OPS_MASTER_PLAN_2026_05_21.md</code> (wiki/501) — V25-OPS thesis</li>
+  <li><code>docs/V24_QUAL_EVAL_2026_05_21.md</code> — 5 findings source</li>
+  <li><code>docs/V25_OPS_W1_PLAN_TEMPLATE_AND_MEMORY_2026_05_21.md</code> + <code>...W1_CLOSURE_...</code> (wiki/502 + 502c)</li>
+  <li><code>docs/V25_OPS_W2_DEPRECATION_BANNERS_2026_05_21.md</code> + <code>...W2_CLOSURE_...</code> (wiki/503 + 503c)</li>
+  <li><code>docs/V25_OPS_W3_R10_RUNBOOK_COMPLETENESS_2026_05_21.md</code> + <code>...W3_CLOSURE_...</code> (wiki/504 + 504c)</li>
+  <li><code>docs/V25_OPS_W4_OPERATOR_BRIEFS_2026_05_21.md</code> + <code>...W4_CLOSURE_...</code> + <code>...W4_GOODHART_ATTESTATION_HOWTO.md</code> + <code>...W4_MAIN_MERGE_BRIEF_436.md</code> (wiki/505 + 505c)</li>
+  <li><code>docs/PLAN_TEMPLATE.md</code> — V-agnostic master + sub-WS skeleton</li>
+  <li><code>docs/V24_CLOSURE_2026_05_21.html</code> (wiki/500) — V24 master closure (W3 가 §4.1 보강)</li>
+  <li>5 module READMEs: <code>musu-{bridge,core,control,indexer,writer}/README.md</code> (W2)</li>
+  <li><code>~/.claude/projects/C--Users-empty/memory/feedback-{phase0-scope-cutter,loc-estimate-x2,dual-audit-trigger-narrow}.md</code> (W1)</li>
+  <li><code>~/.claude/projects/C--Users-empty/memory/MEMORY.md</code> L16-18 (W1)</li>
+  <li>Memory: <code>[[feedback-no-python]]</code>, <code>[[feedback-self-contained-product]]</code>, <code>[[feedback-strategic-critic-gate]]</code>, <code>[[feedback-no-yagni-architecture]]</code>, <code>[[feedback-plan-stage-auditor]]</code>, <code>[[feedback-const-vii-batched-approval]]</code>, <code>[[feedback-autonomous-loop]]</code>, <code>[[feedback-scribe-html-only]]</code></li>
+</ul>
+
+<hr>
+
+<p class="meta"><strong>V25-OPS terminates here.</strong> Next action: operator chooses among (a) trigger R10 (V24 close path), (b) #436 main-merge (V23.3 + V23.4 Tier-1 + V23.5 + V24 → main), or (c) start V26 master plan. All three are operator-authority decisions; orchestrator stands by.</p>
+
+</body>
+</html>
