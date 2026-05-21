@@ -139,19 +139,73 @@ rm -f scripts/start-indexer-http.sh
 rm -f scripts/setup-indexer-workspace.sh
 
 # 3. Remove bridge facade fall-through (Rust-side cleanup)
-# Edit musu-rs/src/bridge/mod.rs to drop .fallback(facade::proxy)
-# Edit musu-rs/src/bridge/facade.rs deletion
-# (Auto-update will pick this up on next bridge restart)
+# Line numbers valid at commit a5a85cf (W2 closure HEAD; W3 = V25-OPS runbook completeness).
+# Verify before edit (bash):
+#   git show a5a85cf:musu-rs/src/bridge/mod.rs | sed -n '17p;126p'
+# Verify before edit (PowerShell):
+#   git show a5a85cf:musu-rs/src/bridge/mod.rs | Select-Object -Index 16,125
+# Expected output:
+#   L17 = "pub mod facade;"
+#   L126 = "        .fallback(facade::proxy)"
+# If line numbers drift in your working tree HEAD, re-locate via:
+#   grep -n 'pub mod facade\|fallback(facade::proxy)' musu-rs/src/bridge/mod.rs
 
-# 4. Verify cargo build + tests still pass after deletion
-cd musu-rs &amp;&amp; cargo build --release &amp;&amp; cargo test --release
+# 3a. Edit musu-rs/src/bridge/mod.rs:
+#     - Delete line 17:  pub mod facade;
+#     - Delete line 126: .fallback(facade::proxy)
+
+# 3b. Delete facade.rs entire file (214 lines):
+rm musu-rs/src/bridge/facade.rs
+
+# 3c. (Optional, dead-code reduction) Additional facade references that become dead after 3a+3b:
+# 7 occurrences across 5 files (config.rs L37/L89/L161 `python_facade_port` field; error.rs L99 facade log;
+# handlers/system_update.rs:218 test mock; handlers/mod.rs L23 comment; companies.rs L172 comment;
+# r2_smoke.rs L69 MUSU_PYTHON_BRIDGE_PORT env var). After 3a+3b cargo check will emit
+# unused-field/unused-import warnings, NOT errors — operator may either:
+#   (a) Leave as dead config (cargo build still succeeds; cleaner R10 commit), or
+#   (b) Cleanup also (additional ~30 LOC edit, defer to V25-OPS-W3-followup if pursued).
+# Recommended: (a) — keep R10 commit scope minimal; future Rust refactor sweeps dead config.
+
+# 4. Verify cargo check + build + tests pass after deletion (3 stages)
+cd musu-rs
+cargo check                     # ~5s, fast syntax + type validation (expect: unused-field warnings only)
+cargo build --release           # ~60s+, full release build
+cargo test --release            # release-mode integration tests (r2_smoke + others)
+# All three must exit 0. Any fail → halt, do NOT proceed to step 5. Investigate then re-attempt.
 
 # 5. Commit + push
-cd .. &amp;&amp; git add -A &amp;&amp; git commit -m "V24-R10: bulk delete Python (25,885 LOC + Go binary)"
+cd ..
+git diff --stat HEAD            # confirm change scope before commit (expect: thousands of .py deletions + facade.rs delete + mod.rs 2-line edit)
+git add -A
+git commit -m "V24-R10: bulk delete Python (25,885 LOC + Go binary) + facade.rs cleanup"
+git log --stat -1               # verify commit composition before push
 git push origin v24/rust-cleanup
 </code></pre>
 
-<p>Recovery path: if R10 breaks something, <code>git revert HEAD</code> restores Python tree from git history. Operator-friendly safety net.</p>
+<p><strong>Recovery path</strong>: if R10 breaks something downstream, <code>git revert HEAD</code> restores both Python tree AND Rust facade cleanup from git history. To preview the revert without committing (safer), use <code>git revert HEAD --no-commit</code> followed by <code>git diff --cached</code> to inspect, then <code>git revert --abort</code> if abandoning OR <code>git revert --continue</code> to land the revert. Avoid <code>git restore --staged .; git checkout -- .</code> as a dry-run shortcut — it nukes unstaged local changes; prefer <code>git stash</code> first if you need a clean working tree.</p>
+
+<h4 id="facade-reference-list">§4.1.1 facade reference inventory (verification aid)</h4>
+
+<p>Before R10 step 3, facade is referenced in <strong>9 files / 15 occurrences</strong> across the musu-rs workspace (state at commit a5a85cf). After step 3a+3b, the table below shows expected state. Use <code>grep -rn 'facade\|python_facade_port\|MUSU_PYTHON_BRIDGE_PORT' musu-rs/src/ musu-rs/tests/</code> to verify post-R10 state matches the "after" column.</p>
+
+<table>
+  <thead>
+    <tr><th>File</th><th>Lines (before R10)</th><th>After R10 step 3a+3b</th><th>Notes</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>musu-rs/src/bridge/mod.rs</code></td><td>L3, L8, L17, L62, L122, L126, L153 (7 hits)</td><td>L62, L153 remain (config log + error msg referencing python_facade_port)</td><td>L17 + L126 deleted by step 3a; L3/L8/L122 are comments removable in optional cleanup</td></tr>
+    <tr><td><code>musu-rs/src/bridge/facade.rs</code></td><td>entire file, 214 lines</td><td>file deleted</td><td>step 3b</td></tr>
+    <tr><td><code>musu-rs/src/bridge/handlers/mod.rs</code></td><td>L23 (1 hit)</td><td>L23 remains (comment "falls through to the facade reverse-proxy")</td><td>Optional comment cleanup; cargo check unaffected</td></tr>
+    <tr><td><code>musu-rs/src/bridge/handlers/companies.rs</code></td><td>L172 (1 hit)</td><td>L172 remains (comment "use facade or wait for R2")</td><td>Optional cleanup</td></tr>
+    <tr><td><code>musu-rs/src/bridge/handlers/system_update.rs</code></td><td>L218 (1 hit)</td><td>L218 remains (<code>python_facade_port: 0</code> test mock field)</td><td>Optional cleanup if config field also removed</td></tr>
+    <tr><td><code>musu-rs/src/bridge/config.rs</code></td><td>L37, L89, L161 (3 hits)</td><td>3 remain (<code>python_facade_port</code> field + env parse + struct init)</td><td>Dead config after R10; cargo check warns unused — leave or cleanup (operator choice)</td></tr>
+    <tr><td><code>musu-rs/src/bridge/error.rs</code></td><td>L99 (1 hit)</td><td>L99 remains ("facade upstream error" log message)</td><td>Optional cleanup</td></tr>
+    <tr><td><code>musu-rs/tests/r2_smoke.rs</code></td><td>L69 (1 hit)</td><td>L69 remains (<code>MUSU_PYTHON_BRIDGE_PORT</code> env var, already noted unused)</td><td>Test comment already says "unused (no facade calls in smoke)"</td></tr>
+    <tr><td><code>musu-rs/README.md</code></td><td>L29, L58, L59, L69, L88 (5 hits)</td><td>5 remain (documentation references)</td><td>README cleanup scheduled for post-R10 README sweep, not part of R10 itself</td></tr>
+  </tbody>
+</table>
+
+<p><strong>Summary</strong>: step 3a (mod.rs L17 + L126 delete) + step 3b (facade.rs delete) closes the load-bearing fall-through — <code>cargo check</code> succeeds. Remaining 7 references in 5 files become dead code as warnings, not errors. Operator may sweep them in a follow-up commit or leave for future Rust refactor.</p>
 
 <h2>§5 §9.12 operator-attested closure (template, awaiting operator-authored)</h2>
 
