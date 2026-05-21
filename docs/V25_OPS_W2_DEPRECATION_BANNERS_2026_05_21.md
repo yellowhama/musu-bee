@@ -163,8 +163,12 @@
 
 | ID | Sev | Area | Finding | Resolution |
 |---|---|---|---|---|
+| A1 | LOW | musu-indexer legacy body 4 textual deltas | Critic C1 spec 가 "preserve 52 lines as-is" 인데 Builder 가 tense edits ('ship→shipped' L48, 'lives→lived' L71), sub-heading demotion (##→### Install/Workspace/CLI/DB), L73 Rust path preservation addendum 추가 | Accepted: Builder-discretionary improvements within C1 intent. audit trail purpose 유지 + past-tense framing 강화. closure doc 에 명시 |
+| A2 | LOW | Banner 5-line spec vs 4-line + HTML comment | Critic C6 resolution literal "5-line multi-line blockquote" 이었으나 Builder 가 4-line blockquote + L1 HTML comment 로 cross-ref invariant 처리. 5 content element (DEPRECATED + replacement + closure link + local-render note + cross-ref invariant) 모두 있음 | Accepted: Builder interpretation 가 build-time metadata 와 operator-facing prose 분리 — 더 좋은 design choice. closure doc 에 future banner-editor 가 구조 이해 가능하게 기록 |
+| A3 | INFO | LOC ×2 over-estimate for doc-only | W2 net artifact LOC 153 (5 module README 140 + README.md edit 25 − overlap). detail floor 400 / master ceiling 700 둘 다 큰 폭으로 under. ×2 multiplier 가 doc-only sub-WS 에는 over-conservative | candidate refinement: [[feedback-loc-estimate-x2]] 메모 의 exception clause ("pure-refactor or <150 LOC sub-WS 만 ×1") 를 "doc-only sub-WS 도 ×1.5 OK" 로 확장 고려. W5 closure 에 검토 후보로 기록, 본 W2 에서 action 안 함 |
+| A4 | INFO | 5 banner byte-consistency | 5 module README 의 L5 blockquote opener byte-identical (`> ⚠️ **DEPRECATED** (V24 R10 pending)`). L6-7 per-module 차이 (specific Rust subcommand). musu-control 가 L10 INSTALL.md 한 줄 추가 (D10). D2 inline duplication 원칙 정확히 따름 | accepted, no change. closure doc trace 만 |
 
-(empty header — populated post-Auditor)
+(Auditor: quality-engineer Phase 5 single, 2026-05-21. 0 HIGH + 0 MED + 2 LOW + 2 INFO. SHIP-OK. 모든 prior Critic finding 명시 해소 확인 — HANDOFF NOTES 참조. Dual-audit 4 조건 0 매치 (doc-only, no install/migration/auth/one-way blast) — single Auditor 정당.)
 
 ---
 
