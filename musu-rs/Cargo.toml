@@ -87,6 +87,15 @@ ureq = { version = "2", default-features = false, features = ["tls"] }
 fs2 = "0.4"                      # F15 advisory file lock for auto-update.lock
 getrandom = "0.2"                # S3 explicit CSPRNG for bridge token
 
+# V26-W1 (wiki/509): OpenAI-compat adapter deps.
+#   * `async-openai` pinned exact per plan D7 + RV1 — adapter ergonomics matter
+#     more than dep flexibility for this surface. Bump tracked in W1 closure doc.
+#   * `async-trait` needed for the `Adapter` trait until Rust stable supports
+#     `async fn` in traits with `?Send` (currently 1.75 stabilised but with
+#     caveats; pin async-trait for now to keep MSRV flexibility + dyn-safety).
+async-openai = "=0.38.2"
+async-trait = "0.1"
+
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 # R6 (wiki/496): release-tarball extraction on Unix.

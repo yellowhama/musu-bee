@@ -1,5 +1,6 @@
 use clap::{Parser, Subcommand};
 
+mod adapter;
 mod bridge;
 mod control;
 mod core;
