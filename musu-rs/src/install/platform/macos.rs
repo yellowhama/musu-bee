@@ -164,6 +164,113 @@ impl PlatformService for LaunchAgentService {
             kind: TemplateKind::Plist,
         }])
     }
+
+    fn register_peer(&self, ctx: &crate::peer::service::PeerServiceContext) -> Result<()> {
+        refuse_if_root()?;
+        let dir = if let Some(over) = ctx.unit_dir_override {
+            over.join("Library").join("LaunchAgents")
+        } else {
+            let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("cannot resolve $HOME"))?;
+            home.join("Library").join("LaunchAgents")
+        };
+        std::fs::create_dir_all(&dir).with_context(|| format!("create {}", dir.display()))?;
+
+        // XML-escape the start command
+        let mut escaped_start = String::with_capacity(ctx.start_cmd.len());
+        for c in ctx.start_cmd.chars() {
+            match c {
+                '<' => escaped_start.push_str("&lt;"),
+                '>' => escaped_start.push_str("&gt;"),
+                '&' => escaped_start.push_str("&amp;"),
+                '"' => escaped_start.push_str("&quot;"),
+                '\'' => escaped_start.push_str("&apos;"),
+                _ => escaped_start.push(c),
+            }
+        }
+
+        let template = r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.musu.peer.{PEER_NAME}</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-c</string>
+    <string>{START_CMD}</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>{MUSU_HOME}</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>MUSU_HOME</key>
+    <string>{MUSU_HOME}</string>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>{MUSU_HOME}/logs/peer-{PEER_NAME}.log</string>
+  <key>StandardErrorPath</key>
+  <string>{MUSU_HOME}/logs/peer-{PEER_NAME}.err</string>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>KeepAlive</key>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+    <key>Crashed</key>
+    <true/>
+  </dict>
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+
+  <key>ProcessType</key>
+  <string>Interactive</string>
+</dict>
+</plist>
+"#;
+        let body = template
+            .replace("{MUSU_HOME}", &ctx.musu_home.to_string_lossy())
+            .replace("{PEER_NAME}", ctx.peer_name)
+            .replace("{START_CMD}", &escaped_start);
+
+        let filename = format!("com.musu.peer.{}.plist", ctx.peer_name);
+        let path = dir.join(&filename);
+        std::fs::write(&path, &body).with_context(|| format!("write {}", path.display()))?;
+
+        if ctx.unit_dir_override.is_none() {
+            let uid = current_uid();
+            let domain = format!("gui/{uid}");
+            run_launchctl(&["bootstrap", &domain, path.to_string_lossy().as_ref()])?;
+            let service_label = format!("com.musu.peer.{}", ctx.peer_name);
+            let _ = run_launchctl(&["kickstart", "-k", &format!("{domain}/{service_label}")]);
+        }
+        tracing::info!(path = %path.display(), "launchd LaunchAgent peer registered");
+        Ok(())
+    }
+
+    fn unregister_peer(&self, peer_name: &str) -> Result<()> {
+        let service_label = format!("com.musu.peer.{}", peer_name);
+        let uid = current_uid();
+        let domain = format!("gui/{uid}");
+        if let Err(e) = run_launchctl(&["bootout", &format!("{domain}/{service_label}")]) {
+            tracing::warn!(error = %e, "launchctl bootout failed (continuing)");
+        }
+        let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("cannot resolve $HOME"))?;
+        let filename = format!("com.musu.peer.{}.plist", peer_name);
+        let path = home.join("Library").join("LaunchAgents").join(&filename);
+        if path.exists() {
+            std::fs::remove_file(&path).with_context(|| format!("remove {}", path.display()))?;
+        }
+        Ok(())
+    }
 }
 
 fn run_launchctl(args: &[&str]) -> Result<()> {

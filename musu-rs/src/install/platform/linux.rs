@@ -110,6 +110,67 @@ impl PlatformService for SystemdUserService {
             kind: TemplateKind::SystemdUnit,
         }])
     }
+
+    fn register_peer(&self, ctx: &crate::peer::service::PeerServiceContext) -> Result<()> {
+        let dir = if let Some(over) = ctx.unit_dir_override {
+            over.join(".config").join("systemd").join("user")
+        } else {
+            let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("cannot resolve $HOME"))?;
+            home.join(".config").join("systemd").join("user")
+        };
+        std::fs::create_dir_all(&dir).with_context(|| format!("create {}", dir.display()))?;
+
+        let template = r#"[Unit]
+Description=MUSU peer worker — {PEER_KIND} ({PEER_NAME})
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory={MUSU_HOME}
+ExecStart={START_CMD}
+Restart=on-failure
+RestartSec=5
+Environment=MUSU_HOME={MUSU_HOME}
+Environment=MUSU_PEER_NAME={PEER_NAME}
+Environment=MUSU_PEER_KIND={PEER_KIND}
+
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target
+"#;
+        let body = template
+            .replace("{MUSU_HOME}", &ctx.musu_home.to_string_lossy())
+            .replace("{PEER_NAME}", ctx.peer_name)
+            .replace("{PEER_KIND}", ctx.peer_kind)
+            .replace("{START_CMD}", ctx.start_cmd);
+
+        let filename = format!("musu-peer-{}.service", ctx.peer_name);
+        let path = dir.join(&filename);
+        std::fs::write(&path, &body).with_context(|| format!("write {}", path.display()))?;
+
+        if ctx.unit_dir_override.is_none() {
+            run_systemctl(&["daemon-reload"])?;
+            run_systemctl(&["enable", &filename])?;
+            run_systemctl(&["start", &filename])?;
+        }
+        tracing::info!(path = %path.display(), "systemd user peer unit registered");
+        Ok(())
+    }
+
+    fn unregister_peer(&self, peer_name: &str) -> Result<()> {
+        let filename = format!("musu-peer-{}.service", peer_name);
+        if let Err(e) = run_systemctl(&["disable", "--now", &filename]) {
+            tracing::warn!(error = %e, "systemctl disable for peer {} failed (continuing)", peer_name);
+        }
+        let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("cannot resolve $HOME"))?;
+        let path = home.join(".config").join("systemd").join("user").join(&filename);
+        if path.exists() {
+            std::fs::remove_file(&path).with_context(|| format!("remove {}", path.display()))?;
+        }
+        let _ = run_systemctl(&["daemon-reload"]);
+        Ok(())
+    }
 }
 
 fn run_systemctl(args: &[&str]) -> Result<()> {

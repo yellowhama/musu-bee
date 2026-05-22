@@ -59,6 +59,18 @@ pub trait PlatformService {
     /// Produce the unit-file blob(s) the registration WOULD write, without
     /// touching the real filesystem or service manager. Used by --dry-run.
     fn dry_run_templates(&self, ctx: &RegisterContext) -> Result<Vec<TemplateSpec>>;
+
+    /// Register a PEER worker process (ollama / comfyui / script) as a
+    /// platform service. Parallel to `register()` (which registers musud
+    /// itself) but parameterized by `PeerServiceContext`. V26-W7 wiki/510.
+    fn register_peer(&self, _ctx: &crate::peer::service::PeerServiceContext) -> Result<()> {
+        anyhow::bail!("register_peer not implemented on this platform")
+    }
+
+    #[allow(dead_code)]
+    fn unregister_peer(&self, _peer_name: &str) -> Result<()> {
+        anyhow::bail!("unregister_peer not implemented on this platform")
+    }
 }
 
 /// Inputs the registrar needs from the caller (install runner).

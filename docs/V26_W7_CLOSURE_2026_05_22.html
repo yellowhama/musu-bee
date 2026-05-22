@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V26-W7 Closure — 2026-05-22</title>
+<style>
+  :root {
+    --bg: #0f1116;
+    --fg: #e6e9ef;
+    --muted: #9aa3b2;
+    --accent: #ffb45a;
+    --accent-2: #6cd1ff;
+    --ok: #76e095;
+    --warn: #ffd87a;
+    --bad: #ff7a85;
+    --line: #232734;
+    --code-bg: #1a1d27;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); }
+  body {
+    font-family: -apple-system, "Segoe UI", "Pretendard", Roboto, sans-serif;
+    line-height: 1.55; font-size: 16px;
+    max-width: 920px; margin: 0 auto; padding: 32px 24px 80px;
+  }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  h2 { font-size: 20px; margin: 32px 0 12px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+  h3 { font-size: 16px; margin: 20px 0 8px; color: var(--accent-2); }
+  .sub { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+  code, pre { font-family: "JetBrains Mono", Consolas, "SF Mono", monospace; font-size: 13.5px; }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 3px; }
+  pre { background: var(--code-bg); padding: 12px 14px; border-radius: 6px; overflow-x: auto; line-height: 1.45; border: 1px solid var(--line); }
+  pre code { background: transparent; padding: 0; }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; margin-right: 4px; font-weight: 600; }
+  .pill.ok { background: rgba(118,224,149,.15); color: var(--ok); border: 1px solid rgba(118,224,149,.35); }
+  .pill.warn { background: rgba(255,216,122,.15); color: var(--warn); border: 1px solid rgba(255,216,122,.35); }
+  .pill.muted { background: rgba(154,163,178,.12); color: var(--muted); border: 1px solid rgba(154,163,178,.3); }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 16px; font-size: 14.5px; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  th { background: var(--code-bg); color: var(--muted); font-weight: 600; }
+  ul, ol { padding-left: 22px; }
+  li { margin: 4px 0; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0 20px; }
+  .card { background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+  .card h3 { margin: 0 0 6px; color: var(--accent); font-size: 14px; text-transform: uppercase; letter-spacing: .04em; }
+  .card .num { font-size: 28px; font-weight: 700; }
+  .card .lbl { color: var(--muted); font-size: 13px; }
+  .score-bar { display: flex; align-items: center; gap: 10px; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 14px 18px; margin: 12px 0 24px; }
+  .score-bar .big { font-size: 36px; font-weight: 700; color: var(--accent); line-height: 1; }
+  .score-bar .small { color: var(--muted); font-size: 13.5px; }
+  hr.section { border: 0; height: 1px; background: var(--line); margin: 28px 0; }
+  .small { font-size: 13.5px; color: var(--muted); }
+  .footer { color: var(--muted); font-size: 12px; margin-top: 40px; border-top: 1px solid var(--line); padding-top: 12px; }
+  @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } body { padding: 18px 14px 60px; } }
+</style>
+</head>
+<body>
+
+<h1>V26-W7 Closure <span class="pill ok">SHIP</span></h1>
+<div class="sub">
+  2026-05-22 · branch <code>v26/distributed-actor</code> · M2 cycle of musu /goal master plan · Wiki ID <code>wiki/510c</code>
+</div>
+
+<div class="score-bar">
+  <div class="big">8.6 / 10</div>
+  <div>
+    <div><strong>PASS — W7 Peer Register Completed</strong></div>
+    <div class="small">6 integration tests green, platform service registration templates verified, Const VII real-home isolation preserved</div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h3>Peer Register Tests</h3>
+    <div class="num">6 / 6 <span class="lbl">passed</span></div>
+    <div class="lbl">Serde roundtrip + script kind + dry-run isolation + CLI error handling + override test</div>
+  </div>
+  <div class="card">
+    <h3>Const VII Protection</h3>
+    <div class="num">100% <span class="lbl">isolated</span></div>
+    <div class="lbl">Override guard guarantees test execution never pollutes real <code>~/.config</code> or Task Scheduler</div>
+  </div>
+  <div class="card">
+    <h3>Clippy & Build</h3>
+    <div class="num">Clean <span class="lbl">zero warnings</span></div>
+    <div class="lbl">Cargo build + cargo clippy -- -D warnings compiled flawlessly</div>
+  </div>
+  <div class="card">
+    <h3>Critic Findings</h3>
+    <div class="num">6 HIGH <span class="lbl">all resolved</span></div>
+    <div class="lbl">+4 MEDIUM + 5 LOW + 2 INFO successfully patched and verified</div>
+  </div>
+</div>
+
+<h2>What V26-W7 closed</h2>
+
+<table>
+  <tr><th>Goal</th><th>Status</th><th>Evidence</th></tr>
+  <tr>
+    <td><code>musu peer register --type &lt;type&gt; --start "&lt;cmd&gt;"</code> CLI command and parsing</td>
+    <td><span class="pill ok">SHIP</span></td>
+    <td><code>musu-rs/src/peer/register.rs</code> (subcommand definitions and run dispatcher)</td>
+  </tr>
+  <tr>
+    <td>Worker capability autodetect (Ollama / ComfyUI / Script)</td>
+    <td><span class="pill ok">SHIP</span></td>
+    <td><code>musu-rs/src/peer/capability.rs</code> (HTTP probes with timeouts, port parsing, error tolerance)</td>
+  </tr>
+  <tr>
+    <td>Self-Node Manifest (<code>~/.musu/node.toml</code>) serialization and advisory file lock</td>
+    <td><span class="pill ok">SHIP</span></td>
+    <td><code>musu-rs/src/peer/manifest.rs</code> (atomic write, TOML parsing, exclusive locking via <code>fs2</code>)</td>
+  </tr>
+  <tr>
+    <td>Cross-platform Peer registration trait overrides (systemd, LaunchAgent, Scheduled Task)</td>
+    <td><span class="pill ok">SHIP</span></td>
+    <td><code>musu-rs/src/install/platform/</code> (mod.rs trait extension + linux.rs, macos.rs, windows.rs overrides)</td>
+  </tr>
+  <tr>
+    <td>Const VII Real-Home Pollution Prevention in test suites</td>
+    <td><span class="pill ok">SHIP</span></td>
+    <td><code>musu-rs/tests/r7_peer_register.rs</code> (Test 6 snapshot guard + <code>unit_dir_override</code>)</td>
+  </tr>
+</table>
+
+<h2>Windows UAC OS Error 740 Finding</h2>
+
+<p>During local test verification, we identified a Windows-specific constraint:</p>
+<blockquote>
+  <p><strong>Windows UAC OS Error 740:</strong> Running a global <code>cargo test</code> in an un-elevated command prompt fails on <code>tests/r6_auto_update.rs</code>. Windows UAC (User Account Control) automatically blocks execution of any binary with names containing keywords like "update" or "install" unless the shell is run with Administrator privileges (elevated). Because of this, integration testing on un-elevated Windows shells must be executed targeting specific suites (e.g., <code>cargo test --test r7_peer_register</code>) rather than executing a blanket test pass.</p>
+</blockquote>
+
+<h2>Critic HIGH findings (all resolved)</h2>
+
+<table>
+  <tr><th>#</th><th>Finding</th><th>Resolution</th></tr>
+  <tr>
+    <td>H1</td>
+    <td><code>lib.rs</code> doesn't export <code>peer</code> module preventing integration tests from referencing structures</td>
+    <td>Added <code>pub mod peer;</code> to <code>musu-rs/src/lib.rs</code> to expose minimal API for test suites.</td>
+  </tr>
+  <tr>
+    <td>H2</td>
+    <td><code>dirs::home_dir()</code> hardcoding in platform modules causes tests to write to user's real configuration folders</td>
+    <td>Added <code>unit_dir_override: Option&lt;&amp;Path&gt;</code> to <code>PeerServiceContext</code>. Rewrote platform service implementations to respect this override, and added integration test checking for real-home zero-pollution.</td>
+  </tr>
+  <tr>
+    <td>H3</td>
+    <td>Local manifest (<code>node.toml</code>) written but bridge doesn't read it yet (integration seam is silent until W10)</td>
+    <td>Added loud warning message to log upon successful registration stating that bridge synchronization is deferred to W10. Added out-of-scope markers in docs.</td>
+  </tr>
+  <tr>
+    <td>H4</td>
+    <td>Mac/Linux/Windows unit and task names hardcoded to musud constants</td>
+    <td>Refactored platform traits to construct service labels dynamically from <code>peer_name</code> at runtime (e.g., <code>com.musu.peer.{name}</code>, <code>Musu\peer-{name}</code>).</td>
+  </tr>
+  <tr>
+    <td>H5</td>
+    <td>Serde capability tag-enum roundtrip finicky under TOML arrays</td>
+    <td>Promoted Test 5 (capability roundtrip) to a mandatory spawn-blocking verification step and confirmed that no <code>#[serde(deny_unknown_fields)]</code> constraints break future forward-compatibility tags.</td>
+  </tr>
+  <tr>
+    <td>H6</td>
+    <td>Semantic mismatch of reusing <code>/api/nodes/add</code> for self-registration</td>
+    <td>Locked file-only registration by default in M2, deferring mesh registry sync to W10.</td>
+  </tr>
+</table>
+
+<h2>Verification Summary</h2>
+
+<pre><code>cd F:\workspace\musu-bee
+
+# 1. Build clean
+cargo build --manifest-path musu-rs/Cargo.toml
+
+# 2. Integration tests (6 tests, all green)
+cargo test --manifest-path musu-rs/Cargo.toml --test r7_peer_register
+
+# 3. Clippy verification (zero warnings)
+cargo clippy --manifest-path musu-rs/Cargo.toml -- -D warnings
+</code></pre>
+
+<h2>Files shipped this cycle</h2>
+
+<h3>New</h3>
+<ul>
+  <li><code>musu-rs/src/peer/mod.rs</code> — peer module structure</li>
+  <li><code>musu-rs/src/peer/register.rs</code> — registration actions and command routing</li>
+  <li><code>musu-rs/src/peer/capability.rs</code> — Ollama/ComfyUI/Script probes and structures</li>
+  <li><code>musu-rs/src/peer/manifest.rs</code> — <code>node.toml</code> serialization, locking, and parsing</li>
+  <li><code>musu-rs/src/peer/service.rs</code> — system service registration glue</li>
+  <li><code>musu-rs/tests/r7_peer_register.rs</code> — 6 integration tests checking capabilities, dry-runs, and file overrides</li>
+  <li><code>docs/V26_W7_PEER_REGISTER_DETAIL_PLAN_2026_05_22.md</code> — detail plan</li>
+  <li><code>docs/V26_W7_CLOSURE_2026_05_22.html</code> — this document (wiki/510c)</li>
+</ul>
+
+<h3>Edited</h3>
+<ul>
+  <li><code>musu-rs/src/main.rs</code> — added <code>Peer</code> CLI command routing</li>
+  <li><code>musu-rs/src/lib.rs</code> — exported <code>peer</code> module for test suite</li>
+  <li><code>musu-rs/src/install/platform/mod.rs</code> — added peer registration methods to <code>PlatformService</code> trait</li>
+  <li><code>musu-rs/src/install/platform/linux.rs</code> — implemented user systemd unit creation</li>
+  <li><code>musu-rs/src/install/platform/macos.rs</code> — implemented LaunchAgent plist creation</li>
+  <li><code>musu-rs/src/install/platform/windows.rs</code> — implemented Scheduled Task XML generation and registration</li>
+  <li><code>docs/V26_MASTER_PLAN_2026_05_22.md</code> — updated W7 module definition (F1 row correction)</li>
+  <li><code>docs/WIKI_INDEX.md</code> — updated W7 entries from reserved to complete</li>
+</ul>
+
+<div class="footer">
+  Generated by M2 cycle Scribe phase (technical-writer) · closure HTML per [[feedback-scribe-html-only]] · W7 peer registration completed; M3 (W12) unblocked.
+</div>
+
+</body>
+</html>

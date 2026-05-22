@@ -6,6 +6,7 @@ mod control;
 mod core;
 mod indexer;
 mod install;
+mod peer;
 mod writer;
 
 #[derive(Parser)]
@@ -59,6 +60,15 @@ enum Cmd {
     /// runs the migration, removes PENDING_SCHEMA_GATE.txt, and promotes
     /// any staged `musu.new` candidate via staged_swap.
     ApplySchema(install::SchemaGateOpts),
+
+    /// V26-W7 wiki/510: register THIS machine as a musu peer of a given
+    /// kind (ollama / comfyui / script). Writes ~/.musu/node.toml,
+    /// installs a platform service for boot-start, and optionally posts
+    /// to the local bridge + musu.pro registry.
+    Peer {
+        #[command(subcommand)]
+        action: peer::PeerAction,
+    },
 }
 
 /// V24-R3 wiki/493 Critic C1 (HIGH): per-subcommand `tracing` init.
@@ -140,6 +150,10 @@ async fn main() -> anyhow::Result<()> {
         Cmd::ApplySchema(opts) => {
             init_tracing_default();
             install::run_apply_schema(opts).await
+        }
+        Cmd::Peer { action } => {
+            init_tracing_default();
+            peer::run(action).await
         }
     }
 }

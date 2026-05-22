@@ -234,6 +234,115 @@ impl PlatformService for WindowsService {
             kind: TemplateKind::ScheduledTaskXml,
         }])
     }
+
+    fn register_peer(&self, ctx: &crate::peer::service::PeerServiceContext) -> Result<()> {
+        let dir = if let Some(over) = ctx.unit_dir_override {
+            over.join(".musu").join("scheduled_tasks")
+        } else {
+            scheduled_task_xml_dir()?
+        };
+        std::fs::create_dir_all(&dir).with_context(|| "create scheduled-task xml dir")?;
+
+        let user_id = current_user_id();
+        let escaped_start = xml_escape(ctx.start_cmd);
+        let template = r#"<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Description>MUSU peer worker — {PEER_KIND} ({PEER_NAME})</Description>
+    <URI>\Musu\peer-{PEER_NAME}</URI>
+  </RegistrationInfo>
+  <Triggers>
+    <LogonTrigger>
+      <Enabled>true</Enabled>
+      <UserId>{USER_ID}</UserId>
+    </LogonTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <UserId>{USER_ID}</UserId>
+      <LogonType>InteractiveToken</LogonType>
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>StopExisting</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>false</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <Enabled>true</Enabled>
+    <Hidden>false</Hidden>
+    <RunOnlyIfIdle>false</RunOnlyIfIdle>
+    <DisallowStartOnRemoteAppSession>false</DisallowStartOnRemoteAppSession>
+    <UseUnifiedSchedulingEngine>true</UseUnifiedSchedulingEngine>
+    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+    <Priority>7</Priority>
+    <RestartOnFailure>
+      <Interval>PT5M</Interval>
+      <Count>5</Count>
+    </RestartOnFailure>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>cmd.exe</Command>
+      <Arguments>/c {START_CMD}</Arguments>
+      <WorkingDirectory>{MUSU_HOME}</WorkingDirectory>
+    </Exec>
+  </Actions>
+</Task>
+"#;
+        let body = template
+            .replace("{USER_ID}", &user_id)
+            .replace("{PEER_NAME}", ctx.peer_name)
+            .replace("{PEER_KIND}", ctx.peer_kind)
+            .replace("{START_CMD}", &escaped_start)
+            .replace("{MUSU_HOME}", &ctx.musu_home.to_string_lossy());
+
+        let filename = format!("peer-{}_task.xml", ctx.peer_name);
+        let xml_path = dir.join(&filename);
+        std::fs::write(&xml_path, &body).with_context(|| format!("write {}", xml_path.display()))?;
+
+        if ctx.unit_dir_override.is_none() {
+            let full_task_name = format!(r"Musu\peer-{}", ctx.peer_name);
+            run_schtasks(&[
+                "/Create",
+                "/TN",
+                &full_task_name,
+                "/XML",
+                xml_path.to_string_lossy().as_ref(),
+                "/F",
+            ])?;
+        }
+        tracing::info!(peer_name = %ctx.peer_name, "Scheduled Task registered");
+        Ok(())
+    }
+
+    fn unregister_peer(&self, peer_name: &str) -> Result<()> {
+        let full_task_name = format!(r"Musu\peer-{}", peer_name);
+        let _ = run_schtasks(&["/Delete", "/TN", &full_task_name, "/F"]);
+        Ok(())
+    }
+}
+
+fn xml_escape(s: &str) -> String {
+    let mut escaped = String::with_capacity(s.len());
+    for c in s.chars() {
+        match c {
+            '<' => escaped.push_str("&lt;"),
+            '>' => escaped.push_str("&gt;"),
+            '&' => escaped.push_str("&amp;"),
+            '"' => escaped.push_str("&quot;"),
+            '\'' => escaped.push_str("&apos;"),
+            _ => escaped.push(c),
+        }
+    }
+    escaped
 }
 
 fn register_scheduled_task(ctx: &RegisterContext) -> Result<()> {
