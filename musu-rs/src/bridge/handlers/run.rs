@@ -34,6 +34,11 @@ pub struct RunRequest {
     pub timeout_sec: Option<u32>,
     #[serde(default)]
     pub cwd: Option<String>,
+    /// V26-W1 Commit 3 (wiki/509 §9.2). Adapter discriminator. `None` →
+    /// canonical default `"claude"` (Critic MEDIUM-1: handler-side default
+    /// is THE canonical place). V24-R5 clients unchanged.
+    #[serde(default)]
+    pub adapter_type: Option<String>,
     #[serde(flatten)]
     pub passthrough: Value,
 }
@@ -122,6 +127,12 @@ pub async fn run_company(
             cwd,
             model: req.model.clone(),
             timeout_sec: req.timeout_sec,
+            // V26-W1 Commit 3 (wiki/509 §9.2): handler-side canonical
+            // default. V24-R5 clients omit the field → "claude".
+            adapter_type: req
+                .adapter_type
+                .clone()
+                .unwrap_or_else(|| "claude".into()),
         })
         .await
         .map_err(|e| MusuError::Internal(format!("spawn_task: {e}")))?;

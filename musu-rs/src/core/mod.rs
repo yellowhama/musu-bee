@@ -28,7 +28,8 @@ use sqlx::SqlitePool;
 // the surface without polluting clippy.
 #[allow(unused_imports)]
 pub use companies::{
-    companies_dir, load_dir, load_yaml, record_from_create, write_yaml, CompanyRecord,
+    companies_dir, load_dir, load_yaml, record_from_create, write_yaml, AgentRecord,
+    CompanyRecord,
 };
 #[allow(unused_imports)]
 pub use error::CoreError;

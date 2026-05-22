@@ -34,6 +34,12 @@ pub struct DelegateRequest {
     pub model: Option<String>,
     #[serde(default)]
     pub cwd: Option<String>,
+    /// V26-W1 Commit 3 (wiki/509 §9.1). Adapter discriminator. `None` →
+    /// canonical default `"claude"` (Critic MEDIUM-1: this handler is THE
+    /// canonical default; no `default_adapter_type()` helper). V24-R5
+    /// clients omitting the field get V24-R5 behavior unchanged.
+    #[serde(default)]
+    pub adapter_type: Option<String>,
 }
 
 fn default_qa_loop_max() -> u32 {
@@ -137,6 +143,12 @@ pub async fn delegate(
             cwd,
             model: req.model.clone(),
             timeout_sec: req.timeout_sec,
+            // V26-W1 Commit 3 (wiki/509 §9.1): handler-side canonical
+            // default. V24-R5 clients omit the field entirely → "claude".
+            adapter_type: req
+                .adapter_type
+                .clone()
+                .unwrap_or_else(|| "claude".into()),
         })
         .await
         .map_err(|e| MusuError::Internal(format!("spawn_task: {e}")))?;

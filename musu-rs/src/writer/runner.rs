@@ -87,6 +87,14 @@ pub struct TaskSpec {
     pub cwd: PathBuf,
     pub model: Option<String>,
     pub timeout_sec: Option<u32>,
+    /// V26-W1 Commit 3 (wiki/509). Adapter discriminator. Canonical default
+    /// = `"claude"` applied at the HTTP handler boundary via
+    /// `req.adapter_type.unwrap_or_else(|| "claude".into())`
+    /// (`bridge/handlers/{tasks,run}.rs`). Inside the runner this field is a
+    /// required `String`, never `None`. Per Critic MEDIUM-1, there is no
+    /// `default_adapter_type()` helper — the canonical default lives at the
+    /// handler boundary only.
+    pub adapter_type: String,
 }
 
 /// Registry entry. Holds the cancel notifier so DELETE handler can signal.
@@ -257,20 +265,14 @@ async fn run_one(inner: Arc<Inner>, spec: TaskSpec, cancel: Arc<Notify>) {
     update_status_started(&inner.pool, &task_id, started_at).await;
     inner.sse.publish(TaskEvent::update(&task_id, "running"));
 
-    // Spawn claude.
-    let spawn_spec = SpawnSpec {
-        command: inner.claude_command.clone(),
-        task_id: task_id.clone(),
-        prompt: spec.prompt.clone(),
-        cwd: spec.cwd.clone(),
-        model: spec.model.clone(),
-        timeout_sec: spec.timeout_sec,
-        company_id: spec.company_id.clone(),
-        agent_id: None,
-        run_id: None,
-    };
+    // Spawn via the V26-W1 Commit 3 (wiki/509 §7) narrow dispatch helper.
+    // For `adapter_type="claude"` it builds the V24-R5 SpawnSpec and calls
+    // `claude::spawn` — preserving runner.rs's existing stream loop,
+    // admission accounting, SSE publish, and finalize bit-for-bit. For
+    // non-claude adapter_type it returns `ErrorKind::Unsupported` so the
+    // existing Err arm below surfaces a clear message; M3 (W12) unifies.
     let start = Instant::now();
-    let mut child = match claude::spawn(&spawn_spec).await {
+    let mut child = match claude_dispatch_spawn(&inner, &spec, &task_id).await {
         Ok(c) => c,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
             let msg = format!(
@@ -292,8 +294,20 @@ async fn run_one(inner: Arc<Inner>, spec: TaskSpec, cancel: Arc<Notify>) {
             return;
         }
         Err(e) => {
-            let msg = format!("failed to spawn claude: {e}");
-            tracing::error!(task_id = %task_id, error = %e, "spawn failed");
+            // V26-W1 Commit 3 (wiki/509 / Critic Q6): branch on adapter_type
+            // so a non-claude `adapter_type` request hitting the runner hot
+            // path (which is currently claude-only) doesn't produce a
+            // misleading "failed to spawn claude" message.
+            let msg = if spec.adapter_type == "claude" {
+                format!("failed to spawn claude: {e}")
+            } else {
+                format!(
+                    "failed to dispatch adapter_type={:?} via runner hot path: {e} \
+                     (only \"claude\" is wired here in W1; other adapters dispatch via registry)",
+                    spec.adapter_type
+                )
+            };
+            tracing::error!(task_id = %task_id, adapter_type = %spec.adapter_type, error = %e, "spawn failed");
             release_admission(&inner, &channel).await;
             finalize(
                 &inner,
@@ -573,7 +587,14 @@ async fn wait_with_timeout(
         .and_then(|r| r.ok())
 }
 
-async fn graceful_kill(child: &mut tokio::process::Child, pid: Option<u32>) {
+/// Graceful kill: Windows sends CTRL_BREAK_EVENT + 5s grace + TerminateProcess;
+/// other platforms try `start_kill` (SIGTERM-equivalent) + 5s grace + SIGKILL.
+///
+/// V26-W1 Commit 3 (wiki/509 §3 R6 / Critic HIGH-2): elevated from private
+/// `async fn` to `pub(crate) async fn` so the `ClaudeAdapter` shim
+/// (`adapter/claude.rs`) can reuse the SAME kill path instead of
+/// re-implementing it. The shim calls `crate::writer::runner::graceful_kill`.
+pub(crate) async fn graceful_kill(child: &mut tokio::process::Child, pid: Option<u32>) {
     #[cfg(target_os = "windows")]
     {
         if let Some(p) = pid {
@@ -672,6 +693,53 @@ impl Drop for RegistryGuard {
 #[allow(dead_code)]
 fn _bc_typeref() -> Option<broadcast::Receiver<TaskEvent>> {
     None
+}
+
+/// V26-W1 Commit 3 (wiki/509 §7 + §7.1). Narrow dispatch boundary for the
+/// runner hot path. Lives inside `runner.rs` (not in `adapter/claude.rs`)
+/// because it needs `&Inner.claude_command` (private to this module — §7.1
+/// helper-placement lock / Critic MEDIUM-2).
+///
+/// For `adapter_type="claude"`: builds the V24-R5 `SpawnSpec` (the SAME
+/// shape the inline literal at the old `:261-273` used) and delegates to
+/// `claude::spawn`. The returned `Child` flows into the existing stream
+/// loop at `runner.rs:325-358` BYTE-IDENTICAL (detail plan §4.6 contract).
+///
+/// For non-claude `adapter_type`: returns `ErrorKind::Unsupported`. Those
+/// adapters dispatch through `adapter::registry::dispatch(...)` and run via
+/// `Adapter::execute(...)`, not via this hot path. M3 (W12) unifies both
+/// surfaces once deadline+cancel propagation lands.
+async fn claude_dispatch_spawn(
+    inner: &Inner,
+    spec: &TaskSpec,
+    task_id: &str,
+) -> std::io::Result<tokio::process::Child> {
+    match spec.adapter_type.as_str() {
+        "claude" => {
+            let spawn_spec = SpawnSpec {
+                command: inner.claude_command.clone(),
+                task_id: task_id.to_string(),
+                prompt: spec.prompt.clone(),
+                cwd: spec.cwd.clone(),
+                model: spec.model.clone(),
+                timeout_sec: spec.timeout_sec,
+                company_id: spec.company_id.clone(),
+                agent_id: None,
+                run_id: None,
+            };
+            claude::spawn(&spawn_spec).await
+        }
+        other => Err(std::io::Error::new(
+            std::io::ErrorKind::Unsupported,
+            format!(
+                "adapter_type {other:?} not yet wired into the runner hot path \
+                 (only \"claude\" is supported in W1; non-claude adapters dispatch \
+                 via adapter::registry::dispatch and run through Adapter::execute, \
+                 which is exercised by adapter_openai_compat tests). M3 (W12) \
+                 unifies both surfaces."
+            ),
+        )),
+    }
 }
 
 #[cfg(test)]
@@ -802,6 +870,7 @@ mod tests {
                 cwd: std::env::temp_dir(),
                 model: None,
                 timeout_sec: Some(10),
+                adapter_type: "claude".into(),
             })
             .await
             .unwrap();
@@ -832,6 +901,7 @@ exit 2"#
                 cwd: std::env::temp_dir(),
                 model: None,
                 timeout_sec: Some(10),
+                adapter_type: "claude".into(),
             })
             .await
             .unwrap();
@@ -863,6 +933,7 @@ printf '{"type":"result","result":"ok","is_error":false}\n'"#
                 cwd: std::env::temp_dir(),
                 model: None,
                 timeout_sec: Some(120),
+                adapter_type: "claude".into(),
             })
             .await
             .unwrap();
@@ -900,6 +971,7 @@ printf '{"type":"result","result":"ok","is_error":false}\n'"#
                     cwd: std::env::temp_dir(),
                     model: None,
                     timeout_sec: Some(10),
+                    adapter_type: "claude".into(),
                 })
                 .await
                 .unwrap();
@@ -938,6 +1010,7 @@ printf '{"type":"result","result":"ok","is_error":false}\n'"#
                     cwd: std::env::temp_dir(),
                     model: None,
                     timeout_sec: Some(10),
+                    adapter_type: "claude".into(),
                 })
                 .await
                 .unwrap();
@@ -970,6 +1043,7 @@ printf '{"type":"result","result":"ok","is_error":false}\n'"#
                     cwd: std::env::temp_dir(),
                     model: None,
                     timeout_sec: Some(10),
+                    adapter_type: "claude".into(),
                 })
                 .await
                 .unwrap();

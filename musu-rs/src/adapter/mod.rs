@@ -117,6 +117,7 @@ pub trait Adapter: Send + Sync {
     async fn execute(&self, ctx: &AdapterContext) -> Result<AdapterResult, AdapterError>;
 }
 
+pub mod claude;
 pub mod openai_compat;
 pub mod registry;
 

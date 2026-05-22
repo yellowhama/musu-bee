@@ -50,8 +50,50 @@ pub struct CompanyRecord {
     pub template_key: String,
     #[serde(default = "default_meta")]
     pub meta: serde_json::Value,
+    /// V26-W1 Commit 3 D9 (wiki/509 §8): typed agents list. V24-R6-era
+    /// YAML written before adapter_type existed deserializes cleanly via
+    /// `AgentRecord`'s defaults + `#[serde(flatten)] extra` capture.
     #[serde(default)]
-    pub agents: Vec<serde_json::Value>,
+    pub agents: Vec<AgentRecord>,
+}
+
+/// V26-W1 D9 (wiki/509 §8.1). Typed agent record.
+///
+/// `#[serde(flatten)] extra` captures top-level unknown keys from V24-R6
+/// YAML as a JSON object. **Critic HIGH-3 clarification**: `flatten` on a
+/// `serde_json::Value` field captures top-level unknown keys whose values
+/// are stored as `Value` subtrees. It does NOT recursively flatten nested
+/// objects. A nested subtree like `extras_nested: { foo: bar }` is
+/// preserved INTACT as an `extra["extras_nested"]` Value::Object — still
+/// queryable via `Value::pointer("/extras_nested/foo")`.
+///
+/// Round-trip stability of `extra` requires `serde_json`'s `preserve_order`
+/// feature, enabled in `musu-rs/Cargo.toml` (V26-W1 Commit 3 §8.5).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AgentRecord {
+    pub id: String,
+    /// Adapter type discriminator. Defaults to `"claude"` for V24-R6 YAML
+    /// written before this field existed. Must match a registry entry in
+    /// `adapter::registry::dispatch`.
+    #[serde(default = "default_agent_adapter_type")]
+    pub adapter_type: String,
+    /// Optional per-agent model override (claude model name, ollama model
+    /// tag, etc). When `None`, the adapter uses its own default.
+    #[serde(default)]
+    pub model: Option<String>,
+    /// Adapter-specific config blob, passed to the adapter via
+    /// `AdapterContext.config_json`. Defaults to `Null`.
+    #[serde(default)]
+    pub config: serde_json::Value,
+    /// Captures top-level unknown keys as a JSON object. Each unknown key's
+    /// value is stored as-is (object subtrees preserved, arrays preserved).
+    /// MUST come last so `flatten` captures everything not matched above.
+    #[serde(flatten)]
+    pub extra: serde_json::Value,
+}
+
+fn default_agent_adapter_type() -> String {
+    "claude".into()
 }
 
 fn default_status() -> String {

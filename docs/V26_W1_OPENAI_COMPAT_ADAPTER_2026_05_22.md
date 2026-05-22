@@ -23,7 +23,7 @@
 7. `musu-rs/src/config.rs` 또는 agents loader (edit) — parse `adapter_type` + `config` per-agent (YAML)
 8. `musu-rs/tests/adapter_openai_compat.rs` (new) — wiremock fixtures × 3 backends
 9. `musu-rs/tests/adapter_registry.rs` (new) — dispatch test
-10. `musu-rs/Cargo.toml` (edit) — async-openai + reqwest features + wiremock dev-dep
+10. `musu-rs/Cargo.toml` (edit) — async-trait only; runtime HTTP reuses existing reqwest, wiremock already present as dev-dep
 
 **OUT** (W1 절대 손대지 않음):
 - Streaming variant (`async fn execute_stream(...)` — W12 scope)
@@ -45,7 +45,7 @@
 | D4 (Critic-revised v2) | Registry = **new `adapter/registry.rs`** with `fn dispatch(adapter_type: &str, ctx: &AdapterContext) -> Box<dyn Adapter>`. **Rationale (Critic HIGH-6 lock)**: `Box<dyn Adapter>` chosen over enum dispatch because V27 Python-9 Rust port 가 매 새 adapter 마다 dispatch site 손대지 않아야 함 (extensibility 가 ~10ns heap-alloc cost 보다 우선). operator-static 오늘이지만 V27+ growth path 확보. V24-R5 writer 의 hardcoded `claude` 호출 deprecate (shim 으로 wrap) | Critic HIGH-6 reasoning lock |
 | D5 | Backend detection = **operator config only** (no `/v1/models` probe). `companies.yaml` agent.config 에 `backend: "ollama"` 명시 | YAGNI + 200ms cold-start avoid |
 | D6 | Test fixtures = **wiremock crate** (no real Ollama spawn). real-process smoke test = W13 또는 별도 | CI determinism |
-| D7 | `async-openai = "0.38"` (Config trait — base_url override). `eventsource-stream` 는 W12 까지 deferred (W1 = non-streaming `.create()` only) | Phase 0 (b) HIGH-confidence recommendation |
+| D7 (Builder-audit revised) | Runtime HTTP path uses existing `reqwest` directly instead of `async-openai`. Reason: async-openai 0.38.2 response types use tagged `tool_calls`; vLLM can omit per-tool `"type":"function"` (C8/D10 surface). Direct JSON parse keeps W1 non-streaming, accepts backend quirks defensively, and avoids adding an unused dependency. `eventsource-stream` remains deferred to W12. | Commit 2 audit: implementation needed flexible JSON parsing for vLLM; `async-openai` dependency removed post-audit |
 | D8 | Bearer header always sent. Default `"sk-musu-local"` if no API key (Ollama/LM Studio safe ignore, vLLM `--api-key` 없으면 ignore) | Phase 0 (b) finding 5 |
 | **F1 (Phase 0 frame correction)** | V26 master §2 W1 row says "2 variants" — 실제는 1 unified adapter + 3 BackendKind enum. **master §2 row update = commit 3 (runner+claude shim+YAML) 안에 같이 edit** ("2 variants" → "1 unified + 3 BackendKind enum (Ollama/vLLM/LmStudio)") | Critic LOW-1 lock |
 | **D9 (Critic HIGH-4)** | Typed `AgentRecord` struct 신규 (`musu-rs/src/core/agents.rs` 또는 `companies.rs` 안): `{ adapter_type: String, model: Option<String>, config: serde_json::Value, #[serde(flatten)] extra: serde_json::Value }`. `CompanyRecord.agents: Vec<serde_json::Value>` → `Vec<AgentRecord>` change. backward-compat = `#[serde(flatten)] extra` escape hatch. **acceptance pre-commit failing test 로 guard**: 기존 V24-R6-written `~/.musu/companies/<id>.yaml` deserialize 성공 verify | Critic HIGH-4: 현재 `companies.rs:54` 가 untyped `Vec<serde_json::Value>` |
@@ -58,16 +58,16 @@
 
 ```toml
 [dependencies]
-async-openai = "0.38"
 reqwest = { version = "0.12", features = ["json", "stream"] }
 thiserror = "1"
+async-trait = "0.1"
 # existing: serde, serde_json, tokio
 
 [dev-dependencies]
 wiremock = "0.6"
 ```
 
-**NOT** included in W1: `eventsource-stream` (W12), `sse-codec` (W12+W13).
+**NOT** included in W1: `async-openai` (removed after Commit 2 audit), `eventsource-stream` (W12), `sse-codec` (W12+W13).
 
 ---
 
@@ -98,7 +98,7 @@ wiremock = "0.6"
 
 ## §5 Order of operations
 
-1. `Cargo.toml` deps add (async-openai 0.38 + wiremock dev)
+1. `Cargo.toml` deps add (async-trait only; reqwest/wiremock already exist)
 2. `adapter/mod.rs` — trait + struct + enum (compile-only, no impl)
 3. `adapter/registry.rs` skeleton with `unimplemented!()` arms (compile check)
 4. `adapter/openai_compat.rs` happy path **Ollama backend first** (most common). wiremock test green
@@ -138,7 +138,7 @@ wiremock = "0.6"
 
 | # | Sev | Risk | Mitigation |
 |---|---|---|---|
-| RV1 (Critic C11 revised) | HIGH | `async-openai` 0.38 Config trait API drift (crate 최근 업데이트 < 48h) | pin exact version `0.38.2`, vendor minimal client (200-**320 LOC**, 5-7 day Builder window) backup plan if 0.39 breaks. primary path 변경 X |
+| RV1 (Builder-audit revised) | LOW | Direct reqwest JSON path can drift from OpenAI-compatible response variance if parsing becomes too permissive | Keep strict top-level validation (`choices[0].message` required to include content/tool/function_call), wiremock backend matrix, and defer streaming/tool execution semantics to W12/W9. No `async-openai` version-drift risk remains in W1 |
 | RV2 | MED | vLLM tool_call schema variance across model+version | defensive `Option<String>` everywhere, log warn never panic, integration test with both `type:"function"` present 와 missing |
 | RV3 | MED | runner.rs TaskSpec change ripples to musu-bridge handlers | TaskSpec.adapter_type default `"claude"` when absent (backward compat); musu-bridge handler 0 change |
 | RV4 (Critic C7 revised) | MED | LOC 2,280 actual vs 600 est ×3.8 — split into 3 commits for reviewability. **At +1,200 actual LOC checkpoint (commit 2 land), recompute ceiling**. If trajectory >4× est, split commit 2 into 2a (Ollama backend) + 2b (vLLM + LM Studio + integration tests) | commit 1 = trait+registry+Cargo.toml (~380 LOC), commit 2 = openai_compat impl + tests (~1,200 LOC), commit 3 = runner+claude shim+YAML (~700 LOC) |
@@ -155,7 +155,7 @@ wiremock = "0.6"
 - D3 single execute() vs execute_stream() 추가: W12 가 trait breaking change 강제하나? sealed trait pattern + `#[allow(async_fn_in_trait)]` 로 semver-safe extension 가능?
 - D5 no-probe: operator misconfig 시 silent wrong-backend behavior — fail-fast 가 어떻게? first request 의 response schema mismatch 검출 가능?
 - D6 wiremock vs real Ollama: integration confidence 차이? real-process smoke test 가 W13 acceptance 의 일부로 가능?
-- D7 async-openai 0.38 의 0.39 breaking change 위험: minimal vendor backup plan 의 cost?
+- D7 reqwest direct JSON path: does flexible parsing hide backend mismatch, or does fail-fast validation catch it early enough?
 - D8 Bearer 항상 send: Ollama 가 dummy token 받아 log 에 노출되나? privacy 영향?
 - §3 LOC 2,280 ×3.8 가 적정? V24 R5 (200→990 = 4.95×) 와 비교 — adapter 가 writer 보다 trait abstraction layer 추가라 multiplier higher 가능?
 - §6.7 `is_retriable()` method: V24 Python AdapterError enum 의 mapping 정확? (RATE_LIMIT, TIMEOUT, MODEL_UNAVAILABLE, UNKNOWN, CONTEXT_EXCEEDED)
@@ -178,7 +178,7 @@ wiremock = "0.6"
 | C8 | MED | Test coverage 9 case under-tests error variants | 5 error variants → 1 "error" axis 만 collapse. is_retriable 경계 misclassification = V27 fallback chain infinite-loop risk | §6.3 v2: ≥12 cases (3 backends × {happy, tool-call, RateLimit retriable, ContextExceeded non-retriable}) — retriable boundary covered |
 | C9 | MED | Dummy `sk-musu-local` log 노출 + OpenAI key false positive | `sk-` prefix log scanner 노이즈 + operator 혼동 | D11 신설: default 토큰 `musu-local-noauth` (not `sk-` prefix). 추가 `X-Musu-Adapter: openai_compat_<backend>` header 로 operator log 검색 marker. ~1 LOC change |
 | C10 | LOW | F1 master §2 row update 시점 모호 | "commit 안 vs closure 시점 별도 commit" — V25-OPS pattern 따라 명확 | F1 v2: master §2 row update = commit 3 (runner+claude shim+YAML) 안 같이 edit. W1 closure 가 그 commit reference |
-| C11 | LOW | RV1 vendor LOC est 부정확 | async-openai 0.39 breaking 시 vendor 200 LOC 가 30-50% 낙관 | RV1 v2: 200-320 LOC, 5-7 day Builder window. primary path async-openai 0.38 변경 X |
+| C11 | LOW | RV1 vendor LOC est 부정확 | async-openai 0.39 breaking 시 vendor 200 LOC 가 30-50% 낙관 | Superseded by Builder audit: `async-openai` removed; reqwest direct JSON path uses existing dependency and tests backend variance directly |
 | C12 | INFO | D5 no-probe fail-fast mechanism explicit 누락 | serde::Deserialize error implicit mechanism 명시 안 함 | D10 신설: fail-fast = first request serde::Deserialize error on missing required field (id/choices/message.content) → `AdapterError::Unknown` log + backend kind + URL. wiremock test 추가 (vLLM endpoint Ollama-shape response → Unknown log + silent write 0) |
 | C13 | INFO | `extra` escape hatch absent | Python `base.py:97 extra` 와 parity 누락 | D2 v2 에 `extra: serde_json::Value` 포함 (C1 fix 와 fold) |
 
@@ -190,8 +190,9 @@ wiremock = "0.6"
 
 | ID | Sev | Area | Finding | Resolution |
 |---|---|---|---|---|
-
-(empty — populated post-Auditor)
+| A1 | MED | Spec/code dependency drift | Commit 2 implementation correctly used reqwest direct JSON parsing for vLLM tool-call variance, but the plan and Cargo.toml still carried `async-openai = "=0.38.2"` as if it were the runtime client | D7/RV1/Stack revised here. Cargo.toml removes `async-openai`; implementation remains reqwest direct with wiremock coverage |
+| A2 | LOW | Commit 2 coverage shape | Plan asked for ≥12 cases; implementation has 6 tests, but three tests loop across all 3 backends for happy, RateLimit, ContextExceeded, plus vLLM tool-call and malformed fail-fast. Effective backend assertions cover 12+ paths, but the test count is lower than the plan wording | Keep current tests; future closure should report “effective case coverage” rather than raw test fn count |
+| A3 | LOW | Real backend smoke not executed | Ollama/vLLM/LM Studio are wiremocked only. This matches D6 but means “real endpoint works” remains unproven until W1 closure or W13 hardware/operator smoke | Add real Ollama/vLLM smoke as optional/operator-attested closure evidence, not as Commit 2 gate |
 
 ---
 
@@ -207,8 +208,7 @@ wiremock = "0.6"
 - `musu-core/src/musu_core/adapters/router.py:240-279` — fallback chain reference (V27 별도)
 - `musu-core/src/musu_core/adapters/claude_local.py:183-195` — subprocess pattern
 - Phase 0 Researcher (a) — musu-rs adapter current state (2026-05-22)
-- Phase 0 Researcher (b) — OpenAI-compat 16-source deep research (2026-05-22, async-openai 0.38.x recommendation)
-- async-openai docs: https://docs.rs/async-openai
+- Phase 0 Researcher (b) — OpenAI-compat 16-source deep research (2026-05-22, async-openai 0.38.x initially recommended; superseded by Builder audit direct-reqwest decision)
 - Ollama OpenAI-compat: https://docs.ollama.com/api/openai-compatibility
 - vLLM tool-call issue #16340 (missing `type:function`): https://github.com/vllm-project/vllm/issues/16340
 - LM Studio OpenAI-compat: https://lmstudio.ai/docs/developer/openai-compat

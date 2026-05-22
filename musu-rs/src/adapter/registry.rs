@@ -1,3 +1,4 @@
+use super::claude::ClaudeAdapter;
 use super::openai_compat::OpenAICompatAdapter;
 use super::{Adapter, AdapterContext, AdapterError};
 
@@ -9,15 +10,18 @@ pub fn dispatch(
 ) -> Result<Box<dyn Adapter>, AdapterError> {
     match adapter_type {
         "openai_compat_local" | "openai_compat_remote" => Ok(Box::new(OpenAICompatAdapter)),
-        //
-        // Commit 3 populates this with the claude shim.
-        // "claude" => { ... }
+        // V26-W1 Commit 3 (wiki/509) — claude shim registered for the
+        // registry-callable surface. Runner hot path at
+        // `writer/runner.rs:273` still dispatches "claude" via the
+        // narrow `claude_dispatch_spawn()` helper (returns `Child`, keeps
+        // SSE/admission/finalize byte-identical). M3 (W12) unifies both.
+        "claude" => Ok(Box::new(ClaudeAdapter)),
         //
         // Box<dyn Adapter> is intentionally chosen over enum dispatch for V27
         // adapter growth: new providers should not force every call site to
         // depend on a larger provider enum.
         _ => Err(AdapterError::Unknown(format!(
-            "adapter type not yet implemented in commit 1 skeleton: {}",
+            "adapter type not registered: {}",
             adapter_type
         ))),
     }
@@ -47,11 +51,29 @@ mod tests {
         let ctx = ctx("unknown");
         match dispatch("unknown", &ctx) {
             Err(AdapterError::Unknown(message)) => {
-                assert!(message.contains("not yet implemented"));
+                assert!(
+                    message.contains("not registered"),
+                    "error message should describe unregistered adapter; got {message:?}"
+                );
                 assert!(message.contains("unknown"));
             }
             Err(other) => panic!("expected Unknown, got {other:?}"),
             Ok(_) => panic!("expected Unknown error, got adapter"),
         }
+    }
+
+    /// V26-W1 Commit 3 (wiki/509 §5): claude shim must dispatch ok.
+    #[test]
+    fn dispatch_claude_returns_claude_adapter() {
+        let ctx = ctx("claude");
+        let res = dispatch("claude", &ctx);
+        // Box<dyn Adapter> doesn't implement Debug; collapse to is_ok().
+        assert!(
+            res.is_ok(),
+            "claude dispatch should succeed; got Err: {}",
+            res.err()
+                .map(|e| e.to_string())
+                .unwrap_or_else(|| "<no err>".into())
+        );
     }
 }

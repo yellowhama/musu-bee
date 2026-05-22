@@ -9,6 +9,14 @@ license = "PROPRIETARY"
 name = "musu"
 path = "src/main.rs"
 
+# V26-W1 Commit 3 (wiki/509): library target so out-of-bin integration tests
+# (e.g. `tests/agent_record_backward_compat.rs`) can `use musu_rs::core::...`.
+# The binary still owns the runtime entry point; lib.rs only re-exports the
+# modules that already exist as `mod foo;` in main.rs.
+[lib]
+name = "musu_rs"
+path = "src/lib.rs"
+
 # V24-R4 (wiki/494) §2 / C-R4-6 — `indexer-watch` opt-in feature.
 # Default builds do NOT pull `notify`. Power users compile with
 # `cargo build --features indexer-watch` to enable `musu indexer watch`.
@@ -26,7 +34,10 @@ tower-http = { version = "0.5", features = ["trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+# V26-W1 Commit 3 (wiki/509 §8.5 / Critic HIGH-3): `preserve_order` keeps
+# `serde_json::Map` insertion order stable so the AgentRecord `extra`
+# round-trip emits operator-edited YAML in a diff-stable order.
+serde_json = { version = "1", features = ["preserve_order"] }
 serde_yaml = "0.9"
 anyhow = "1"
 thiserror = "1"
@@ -88,12 +99,11 @@ fs2 = "0.4"                      # F15 advisory file lock for auto-update.lock
 getrandom = "0.2"                # S3 explicit CSPRNG for bridge token
 
 # V26-W1 (wiki/509): OpenAI-compat adapter deps.
-#   * `async-openai` pinned exact per plan D7 + RV1 — adapter ergonomics matter
-#     more than dep flexibility for this surface. Bump tracked in W1 closure doc.
 #   * `async-trait` needed for the `Adapter` trait until Rust stable supports
 #     `async fn` in traits with `?Send` (currently 1.75 stabilised but with
 #     caveats; pin async-trait for now to keep MSRV flexibility + dyn-safety).
-async-openai = "=0.38.2"
+#   * Runtime HTTP uses existing `reqwest` directly so vLLM tool-call variants
+#     with missing tagged `type` fields can be parsed defensively.
 async-trait = "0.1"
 
 [target.'cfg(unix)'.dependencies]

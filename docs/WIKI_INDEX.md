@@ -1,6 +1,6 @@
 # Musu-Bee Wiki ID Index
 
-**Generated**: 2026-05-19
+**Generated**: 2026-05-22
 **Scope**: `F:\workspace\musu-bee\docs\` — all wiki-identified docs (`**Wiki ID**: wiki/N` header)
 **Source of truth**: each doc's own `**Wiki ID**` header. This file is a roll-up index — when a doc and this index disagree, the doc wins.
 
@@ -9,6 +9,7 @@ Layout:
 - §2 — Sub-WS detail plans + closures + qual evals (V23.1..V23.4 Phase 4)
 - §3 — V23.4 Phase 4 (current shipped — wiki/431..448)
 - §4 — V23.5 (reserved — wiki/459..482)
+- §4.5 — V24..V26 Rust-native / distributed actor line
 - §5 — Research / brainstorm / architecture (wiki/449..458)
 - §6 — Pre-V21 docs (no wiki ID; archived/legacy)
 - §7 — New code files this Phase 4 (entry-point inventory, no wiki ID)
@@ -184,6 +185,25 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 **Note**: V23.5 master plan §6 #9 lists `wiki/460-468 (W-1..W-8, S-1) + wiki/471-475 (H-1, H-2, H-3, H-4a, H-5)`. The C-1..C-4 v4 addition (§6 line 320) overlaps with O-1..O-4 Paperclip defer slot (§6 line 333) at wiki/476-479. Master plan flags this for resolution when branches cut.
 
 **wiki/484 placement note**: doc is V23.6 planning input (not external research like §5 below). Placed in §4 V23.5/V23.6 boundary block since (a) it was authored at V23.5 close and (b) it feeds V23.6 master plan Phase −1 strategic gate when authored. Distinct from V23.4 Phase 4 iter-2 qual eval at wiki/450 (line 137 of this index).
+
+---
+
+## §4.5 V24..V26 Rust-Native / Distributed Actor Line
+
+| Wiki ID | Title | Date | File | Status |
+|---|---|---|---|---|
+| wiki/508 | V26 master plan — Rust distributed actor mesh + LLM DAG builder + MCP external surface | 2026-05-22 | `V26_MASTER_PLAN_2026_05_22.md` | draft / active |
+| wiki/509 | V26-W1 Rust adapter trait + OpenAI-compatible adapter detail plan | 2026-05-22 | `V26_W1_OPENAI_COMPAT_ADAPTER_2026_05_22.md` | **SHIP** (Commit 1+2+3 land); D7/RV1/C11 revised to reqwest direct; Commit 3 added ClaudeAdapter shim + registry dispatch + typed AgentRecord |
+| wiki/509-c3 | V26-W1 Commit 3 detail plan — claude shim + registry dispatch + typed AgentRecord | 2026-05-22 | `V26_W1_COMMIT3_DETAIL_PLAN_2026_05_22.md` | SHIP (M1 cycle; 4 HIGH + 4 MED Critic findings resolved; Auditor PASS) |
+| — | V26-W1 handoff — next session entry point | 2026-05-22 | `V26_W1_HANDOFF_2026_05_22.md` | historical handoff |
+| — | V26-W1 handoff current | 2026-05-22 | `V26_W1_HANDOFF_CURRENT.md` | superseded by wiki/509c closure |
+| — | V26-W1 Commit 1-2 audit + next steps | 2026-05-22 | `V26_W1_COMMIT1_2_AUDIT_AND_NEXT_2026_05_22.md` | historical interim audit |
+| — | V26-W1 handoff after Commit 2 audit | 2026-05-22 | `V26_W1_HANDOFF_AFTER_COMMIT2_AUDIT_2026_05_22.md` | superseded by wiki/509c closure |
+| wiki/509c | V26-W1 closure | 2026-05-22 | `V26_W1_CLOSURE_2026_05_22.html` | **SHIP** (W1 chokepoint closed; M2 (W7) unblocked) |
+| wiki/510..514 | V26 W7/W12/W9/W13/W10 plans + closures | — | see `V26_MASTER_PLAN_2026_05_22.md` §6 | reserved |
+| wiki/515 | V26 master closure HTML | — | — | reserved |
+
+**V26-W1 indexing note**: Commit 2 runtime uses direct `reqwest` JSON parsing, not `async-openai`, because vLLM can omit tagged tool-call `type` fields. Commit 3 added ClaudeAdapter shim (narrow dispatch boundary per §4.6: shim returns SpawnSpec, runner's V24-R5 stream loop preserved bit-for-bit) + typed AgentRecord with `#[serde(flatten)] extra` for V24-R6 YAML backward-compat + `serde_json preserve_order` feature flag. The spec's D7/RV1/C11 rows were revised on 2026-05-22 to match implementation. M1 cycle (musu /goal master plan) closed W1 chokepoint; M2 (W7 `musu peer register`) is next.
 
 ---
 

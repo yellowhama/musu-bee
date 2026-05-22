@@ -128,6 +128,12 @@ impl DedupCache {
     }
 
     #[allow(dead_code)] // Exposed for Prometheus exporter / health diagnostics in R-cleanup.
+    // V26-W1 Commit 3: surfaces clippy::len_without_is_empty when seen as a
+    // library symbol (lib.rs added in W1). The DedupCache invariant is that
+    // it is created empty and is never observed empty during runtime; an
+    // is_empty() helper would only ever return false at meaningful call
+    // sites. Allow rather than add a misleading helper.
+    #[allow(clippy::len_without_is_empty)]
     pub fn len(&self) -> usize {
         self.inner.len()
     }
