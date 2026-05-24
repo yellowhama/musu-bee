@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V26 Master Closure — 2026-05-23</title>
+<style>
+  :root {
+    --bg: #0f1116;
+    --fg: #e6e9ef;
+    --muted: #9aa3b2;
+    --accent: #ffb45a;
+    --accent-2: #6cd1ff;
+    --ok: #76e095;
+    --warn: #ffd87a;
+    --bad: #ff7a85;
+    --line: #232734;
+    --code-bg: #1a1d27;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); }
+  body {
+    font-family: -apple-system, "Segoe UI", "Pretendard", Roboto, sans-serif;
+    line-height: 1.55; font-size: 16px;
+    max-width: 920px; margin: 0 auto; padding: 32px 24px 80px;
+  }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  h2 { font-size: 20px; margin: 32px 0 12px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+  h3 { font-size: 16px; margin: 20px 0 8px; color: var(--accent-2); }
+  .sub { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+  code, pre { font-family: "JetBrains Mono", Consolas, "SF Mono", monospace; font-size: 13.5px; }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 3px; }
+  pre { background: var(--code-bg); padding: 12px 14px; border-radius: 6px; overflow-x: auto; line-height: 1.45; border: 1px solid var(--line); }
+  pre code { background: transparent; padding: 0; }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; margin-right: 4px; font-weight: 600; }
+  .pill.ok { background: rgba(118,224,149,.15); color: var(--ok); border: 1px solid rgba(118,224,149,.35); }
+  .pill.warn { background: rgba(255,216,122,.15); color: var(--warn); border: 1px solid rgba(255,216,122,.35); }
+  .pill.muted { background: rgba(154,163,178,.12); color: var(--muted); border: 1px solid rgba(154,163,178,.3); }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 16px; font-size: 14.5px; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  th { background: var(--code-bg); color: var(--muted); font-weight: 600; }
+  ul, ol { padding-left: 22px; }
+  li { margin: 4px 0; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin: 12px 0 20px; }
+  .card { background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+  .card h3 { margin: 0 0 6px; color: var(--accent); font-size: 14px; text-transform: uppercase; letter-spacing: .04em; }
+  .card .num { font-size: 28px; font-weight: 700; }
+  .card .lbl { color: var(--muted); font-size: 13px; }
+  .score-bar { display: flex; align-items: center; gap: 10px; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 14px 18px; margin: 12px 0 24px; }
+  .score-bar .big { font-size: 36px; font-weight: 700; color: var(--accent); line-height: 1; }
+  .score-bar .small { color: var(--muted); font-size: 13.5px; }
+  hr.section { border: 0; height: 1px; background: var(--line); margin: 28px 0; }
+  .small { font-size: 13.5px; color: var(--muted); }
+  .footer { color: var(--muted); font-size: 12px; margin-top: 40px; border-top: 1px solid var(--line); padding-top: 12px; }
+  @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } body { padding: 18px 14px 60px; } }
+</style>
+</head>
+<body>
+
+<h1>V26 Master Closure <span class="pill ok">SHIP</span></h1>
+<div class="sub">
+  2026-05-23 · branch <code>v26/distributed-actor</code> · Rust distributed actor mesh + LLM DAG + MCP + registry · Wiki ID <code>wiki/515</code>
+</div>
+
+<div class="score-bar">
+  <div class="big">9.1 / 10</div>
+  <div>
+    <div><strong>V26 COMPLETE — 6/6 Sub-WS SHIP</strong></div>
+    <div class="small">236 tests green, clippy clean, single-port 8070 multiplex, thesis lock maintained, 4 architectural invariants preserved</div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h3>Total Tests</h3>
+    <div class="num">236 <span class="lbl">passed</span></div>
+    <div class="lbl">190 lib + 14 R13 + 12 R10 + 14 R9 + 6 R7</div>
+  </div>
+  <div class="card">
+    <h3>Sub-Workstreams</h3>
+    <div class="num">6 / 6 <span class="lbl">SHIP</span></div>
+    <div class="lbl">W1 + W7 + W12 + W9 + W13 + W10</div>
+  </div>
+  <div class="card">
+    <h3>Clippy</h3>
+    <div class="num">Clean <span class="lbl">zero warnings</span></div>
+    <div class="lbl">cargo clippy -- -D warnings</div>
+  </div>
+</div>
+
+<h2>V26 Thesis</h2>
+<blockquote>
+  <p><strong>V26 = Rust native distributed actor mesh with masterless P2P + LLM DAG builder + MCP external surface + optional musu.pro registry + single-port multiplex.</strong></p>
+  <p>모든 PC가 같은 <code>musu</code> 단일 binary 실행. 각 binary가 local Rust actor + Tokio + axum HTTP+JSON+SSE transport + sidecar pattern으로 Python AI worker supervise. musu.pro registry optional. W9 LLM DAG builder = flywheel 첫 spin. W13 외부 MCP HTTP+SSE endpoint = Claude Code / Cursor가 musu fleet을 tool로 호출. Single port (default 8070) 만 expose.</p>
+</blockquote>
+
+<h2>Sub-WS Completion Dashboard</h2>
+
+<table>
+  <tr><th>#</th><th>Sub-WS</th><th>Status</th><th>Tests</th><th>Wiki</th></tr>
+  <tr>
+    <td>W1</td>
+    <td>Rust OpenAI-compat adapter</td>
+    <td><span class="pill ok">SHIP</span></td>
+    <td>lib tests</td>
+    <td>wiki/509, 509c</td>
+  </tr>
+  <tr>
+    <td>W7</td>
+    <td><code>musu peer register</code> worker helper</td>
+    <td><span class="pill ok">SHIP</span></td>
+    <td>6/6 (r7)</td>
+    <td>wiki/510, 510c</td>
+  </tr>
+  <tr>
+    <td>W12</td>
+    <td>axum tower deadline middleware</td>
+    <td><span class="pill ok">SHIP</span></td>
+    <td>lib tests</td>
+    <td>wiki/511, 511c</td>
+  </tr>
+  <tr>
+    <td>W9</td>
+    <td>LLM DAG builder (single-pass)</td>
+    <td><span class="pill ok">SHIP</span></td>
+    <td>14/14 (r9)</td>
+    <td>wiki/512, 512c</td>
+  </tr>
+  <tr>
+    <td>W13</td>
+    <td>MCP HTTP+SSE server endpoint</td>
+    <td><span class="pill ok">SHIP</span></td>
+    <td>14/14 (r13)</td>
+    <td>wiki/513, 513c</td>
+  </tr>
+  <tr>
+    <td>W10</td>
+    <td>Registry hardening + invariant doc</td>
+    <td><span class="pill ok">SHIP</span></td>
+    <td>12/12 (r10)</td>
+    <td>wiki/514, 514c</td>
+  </tr>
+</table>
+
+<h2>Key Architectural Decisions</h2>
+
+<table>
+  <tr><th>Decision</th><th>Rationale</th></tr>
+  <tr>
+    <td><strong>W11 gRPC REJECT</strong></td>
+    <td>musu scale (1.6 req/s peak) 1000× below gRPC inflection point. 16-source fact-check confirmed.</td>
+  </tr>
+  <tr>
+    <td><strong>Single-port multiplex</strong></td>
+    <td>axum 내부 Content-Type routing. W13 MCP = <code>/mcp/v1/*</code> mount. Port 8070 only.</td>
+  </tr>
+  <tr>
+    <td><strong>§9.12 Goodhart firewall</strong></td>
+    <td>W9 DAG builder <code>attestation_required = true</code> 강제. Operator-attest 없이 실행 불가.</td>
+  </tr>
+  <tr>
+    <td><strong>musu.pro optional</strong></td>
+    <td>W10 3-state invariant: healthy/degraded/absent. TTL 7-day cache + manual peer add.</td>
+  </tr>
+</table>
+
+<h2>W13: MCP HTTP+SSE Server Endpoint</h2>
+
+<h3>What shipped</h3>
+<ul>
+  <li><code>control/http_server.rs</code> — JSON-RPC 2.0 over HTTP (same 14 tools as stdio MCP)</li>
+  <li><code>/mcp/v1/messages</code> POST — initialize, tools/list, tools/call dispatch</li>
+  <li><code>/mcp/v1/sse</code> GET — SSE heartbeat stream (30s interval)</li>
+  <li><code>/mcp/v1/health</code> GET — server health + tool count</li>
+  <li>Bearer auth shared with bridge (axum middleware)</li>
+  <li>Loopback-only default</li>
+</ul>
+
+<h3>Security considerations</h3>
+<ul>
+  <li>MCP routes go through existing bridge auth middleware (<code>require_bearer</code>)</li>
+  <li>Loopback-only default — external bind requires explicit <code>--mcp-bind-external</code> opt-in</li>
+  <li>JSON-RPC 2.0 version validation before processing</li>
+  <li>Tool dispatch mirrors stdio exactly — no separate code path for HTTP</li>
+</ul>
+
+<h2>W10: Registry Hardening</h2>
+
+<h3>What shipped</h3>
+<ul>
+  <li><code>peer/discovery.rs</code> — 3-source peer resolver (cache > manual > nodes.toml)</li>
+  <li><code>CachedRegistry</code> — <code>~/.musu/nodes.cache.json</code> with 7-day TTL</li>
+  <li><code>ManualPeerList</code> — <code>~/.musu/manual_peers.toml</code> persistent storage</li>
+  <li><code>musu peer add &lt;addr&gt; --name &lt;name&gt;</code> CLI command</li>
+  <li><code>musu peer remove &lt;addr&gt;</code> CLI command</li>
+  <li><code>musu peer list</code> — shows all peers from all sources</li>
+  <li><code>docs/V26_W10_REGISTRY_INVARIANT.md</code> — 3-state mesh guarantee document</li>
+</ul>
+
+<h3>3-State Invariant</h3>
+<table>
+  <tr><th>State</th><th>Cache</th><th>Manual</th><th>Mesh?</th></tr>
+  <tr><td>1 — Healthy</td><td>✅ valid</td><td>optional</td><td><span class="pill ok">YES</span></td></tr>
+  <tr><td>2 — Degraded</td><td>✅ stale (&lt;7d)</td><td>optional</td><td><span class="pill ok">YES</span></td></tr>
+  <tr><td>3 — Absent</td><td>❌ expired</td><td>✅ required</td><td><span class="pill ok">YES</span></td></tr>
+</table>
+
+<h2>Verification Summary</h2>
+
+<pre><code>cargo clippy -- -D warnings        ✅ CLEAN
+cargo test --test r13_mcp_http      ✅ 14/14
+cargo test --test r10_registry      ✅ 12/12
+cargo test --test r9_workflow_dag   ✅ 14/14 (regression)
+cargo test --test r7_peer_register  ✅  6/6  (regression)
+cargo test --lib                    ✅ 190/190
+                                    ─────────
+                                    236 TOTAL ALL GREEN
+</code></pre>
+
+<h2>Files shipped (V26 total)</h2>
+
+<h3>New files</h3>
+<ul>
+  <li><code>musu-rs/src/adapter/openai_compat.rs</code> — W1 OpenAI-compat adapter</li>
+  <li><code>musu-rs/src/adapter/claude.rs</code> — W1 Claude shim</li>
+  <li><code>musu-rs/src/adapter/registry.rs</code> — W1 adapter dispatch</li>
+  <li><code>musu-rs/src/peer/mod.rs</code> — W7 module root</li>
+  <li><code>musu-rs/src/peer/register.rs</code> — W7 registration + W10 add/remove/list CLI</li>
+  <li><code>musu-rs/src/peer/capability.rs</code> — W7 Ollama/ComfyUI/Script probes</li>
+  <li><code>musu-rs/src/peer/manifest.rs</code> — W7 node.toml</li>
+  <li><code>musu-rs/src/peer/service.rs</code> — W7 platform service glue</li>
+  <li><code>musu-rs/src/peer/discovery.rs</code> — W10 3-source peer resolver</li>
+  <li><code>musu-rs/src/workflow/mod.rs</code> — W9 module root</li>
+  <li><code>musu-rs/src/workflow/workflow_spec.rs</code> — W9 WorkflowSpec schema</li>
+  <li><code>musu-rs/src/workflow/llm_dag_builder.rs</code> — W9 LLM DAG builder</li>
+  <li><code>musu-rs/src/bridge/handlers/workflow.rs</code> — W9 8 API handlers</li>
+  <li><code>musu-rs/src/control/http_server.rs</code> — W13 MCP HTTP+SSE</li>
+  <li><code>musu-rs/tests/r7_peer_register.rs</code> — 6 tests</li>
+  <li><code>musu-rs/tests/r9_workflow_dag.rs</code> — 14 tests</li>
+  <li><code>musu-rs/tests/r10_registry.rs</code> — 12 tests</li>
+  <li><code>musu-rs/tests/r13_mcp_http.rs</code> — 14 tests</li>
+  <li><code>docs/V26_W10_REGISTRY_INVARIANT.md</code> — invariant doc</li>
+  <li><code>docs/V26_MASTER_PLAN_2026_05_22.md</code> — master plan</li>
+</ul>
+
+<h3>Modified files</h3>
+<ul>
+  <li><code>musu-rs/src/main.rs</code> — Peer CLI routing + workflow module</li>
+  <li><code>musu-rs/src/lib.rs</code> — peer + workflow module exports</li>
+  <li><code>musu-rs/src/core/schema.rs</code> — Schema v4 (workflows + workflow_steps)</li>
+  <li><code>musu-rs/src/core/migrate.rs</code> — v3→v4 migration</li>
+  <li><code>musu-rs/src/bridge/handlers/mod.rs</code> — workflow + MCP router merge</li>
+  <li><code>musu-rs/src/control/mod.rs</code> — http_server module declaration</li>
+</ul>
+
+<h2>Channel to V27</h2>
+
+<p><strong>V27 entry criteria</strong> (measurement-gated, 14-day soak):</p>
+<ul>
+  <li>주간 cross-machine task delegation ≥5회 → V27 진입 (W2 agent tool use + W5 capability label + W6 GPU telemetry)</li>
+  <li>&lt;5회 → V27 보류, 다른 thesis 시작</li>
+</ul>
+
+<p><strong>7-day soak criteria</strong> (§9 acceptance #12):</p>
+<ol>
+  <li>W9 DAG builder로 회사 ≥3개 자발 추가</li>
+  <li>W13 외부 MCP 호출 ≥10회 (Claude Code 또는 Cursor에서)</li>
+  <li>W10 offline E2E test (musu.pro down → manual peer → task delegate 성공)</li>
+</ol>
+
+<div class="footer">
+  Generated by V26 Closure Scribe · wiki/515 · per [[feedback-scribe-html-only]] · V26 distributed actor mesh complete. V27 measurement-gated (cross-machine delegation ≥5/week).
+</div>
+
+</body>
+</html>

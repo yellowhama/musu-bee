@@ -202,8 +202,17 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | wiki/509c | V26-W1 closure | 2026-05-22 | `V26_W1_CLOSURE_2026_05_22.html` | **SHIP** (W1 chokepoint closed; M2 (W7) unblocked) |
 | wiki/510 | V26-W7 musu peer register detail plan | 2026-05-22 | `docs/V26_W7_PEER_REGISTER_DETAIL_PLAN_2026_05_22.md` | complete |
 | wiki/510c | V26-W7 closure | 2026-05-22 | `docs/V26_W7_CLOSURE_2026_05_22.html` | complete |
-| wiki/511..514 | V26 W12/W9/W13/W10 plans + closures | — | see `V26_MASTER_PLAN_2026_05_22.md` §6 | reserved |
-| wiki/515 | V26 master closure HTML | — | — | reserved |
+| wiki/511 | V26-W12 deadline middleware (inline — no separate plan) | 2026-05-22 | `musu-rs/src/bridge/middleware/deadline.rs` | complete |
+| wiki/511c | V26-W12 closure (inline in V26 master closure) | 2026-05-23 | `docs/V26_CLOSURE_2026_05_23.html` | complete |
+| wiki/512 | V26-W9 LLM DAG builder (inline — no separate plan) | 2026-05-22 | `musu-rs/src/workflow/` | complete |
+| wiki/512c | V26-W9 closure (inline in V26 master closure) | 2026-05-23 | `docs/V26_CLOSURE_2026_05_23.html` | complete |
+| wiki/513 | V26-W13 MCP HTTP+SSE endpoint | 2026-05-22 | `musu-rs/src/control/http_server.rs` | complete |
+| wiki/513c | V26-W13 closure (inline in V26 master closure) | 2026-05-23 | `docs/V26_CLOSURE_2026_05_23.html` | complete |
+| wiki/514 | V26-W10 registry hardening | 2026-05-22 | `musu-rs/src/peer/discovery.rs` + `docs/V26_W10_REGISTRY_INVARIANT.md` | complete |
+| wiki/514c | V26-W10 closure (inline in V26 master closure) | 2026-05-23 | `docs/V26_CLOSURE_2026_05_23.html` | complete |
+| wiki/515 | V26 master closure HTML | 2026-05-23 | `docs/V26_CLOSURE_2026_05_23.html` | complete |
+| wiki/359 | V26 master closure (musu-brainai & file-based SSOT) | 2026-05-24 | `docs/V26_CLOSURE_2026_05_24.html` | complete |
+
 
 **V26-W1 indexing note**: Commit 2 runtime uses direct `reqwest` JSON parsing, not `async-openai`, because vLLM can omit tagged tool-call `type` fields. Commit 3 added ClaudeAdapter shim (narrow dispatch boundary per §4.6: shim returns SpawnSpec, runner's V24-R5 stream loop preserved bit-for-bit) + typed AgentRecord with `#[serde(flatten)] extra` for V24-R6 YAML backward-compat + `serde_json preserve_order` feature flag. The spec's D7/RV1/C11 rows were revised on 2026-05-22 to match implementation. M1 cycle (musu /goal master plan) closed W1 chokepoint; M2 (W7 `musu peer register`) is next.
 

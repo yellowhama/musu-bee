@@ -221,7 +221,7 @@ function LoginPageContent() {
             style={{
               width: "100%",
               background: loading ? "var(--accent-hover)" : "var(--accent)",
-              color: "var(--fg-on-accent, #2D1D19)",
+              color: "var(--fg-on-accent, #432c1c)",
               border: "none",
               borderRadius: 8,
               padding: "12px 24px",

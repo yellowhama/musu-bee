@@ -249,6 +249,7 @@ pub async fn create(
             agent_id: None,
             note: Some(format!("created company {}", id)),
             company_id: Some(id.clone()),
+            cross_machine: false,
         })
         .await;
 
@@ -351,6 +352,7 @@ pub async fn activate(
             agent_id: None,
             note: Some("activated".into()),
             company_id: Some(id.clone()),
+            cross_machine: false,
         })
         .await;
 

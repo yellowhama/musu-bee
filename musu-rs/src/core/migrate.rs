@@ -12,12 +12,14 @@
 use anyhow::{Context, Result};
 use sqlx::{Row, SqlitePool};
 
-use crate::core::schema::{SCHEMA_V1_STATEMENTS, SCHEMA_V2_ALTER_STATEMENTS};
+use crate::core::schema::{SCHEMA_V1_STATEMENTS, SCHEMA_V2_ALTER_STATEMENTS, SCHEMA_V3_ALTER_STATEMENTS, SCHEMA_V4_STATEMENTS};
 
 /// Schema version this build expects. Bumped per R-phase:
 ///   - R2 (wiki/492) shipped v1.
 ///   - R5 (wiki/495) ships v2 — 6 additive NULLable columns on route_executions.
-pub const EXPECTED_SCHEMA_VERSION: u32 = 2;
+///   - W12 (wiki/511) ships v3 — 1 additive NULLable column on audit_log.
+///   - W9 (wiki/512) ships v4 — workflows + workflow_steps tables.
+pub const EXPECTED_SCHEMA_VERSION: u32 = 4;
 
 /// Read `PRAGMA user_version`. Returns 0 on a fresh DB.
 pub async fn current_version(pool: &SqlitePool) -> Result<u32> {
@@ -103,6 +105,58 @@ async fn apply_v2(pool: &SqlitePool) -> Result<()> {
     Ok(())
 }
 
+/// Apply schema_v3: 1 ALTER TABLE statement on audit_log in one tx.
+/// Adds `cross_machine INTEGER` (NULLable). wiki/511 §2.
+///
+/// Same idempotent pattern as apply_v2: read existing column names,
+/// skip if already present.
+async fn apply_v3(pool: &SqlitePool) -> Result<()> {
+    let existing: Vec<(String,)> =
+        sqlx::query_as("SELECT name FROM pragma_table_info('audit_log')")
+            .fetch_all(pool)
+            .await
+            .context("read audit_log table_info")?;
+    let existing: std::collections::HashSet<String> = existing.into_iter().map(|r| r.0).collect();
+
+    let mut tx = pool.begin().await.context("begin v3 tx")?;
+    for stmt in SCHEMA_V3_ALTER_STATEMENTS {
+        let col = stmt
+            .split_whitespace()
+            .nth(5)
+            .expect("malformed v3 ALTER statement");
+        if existing.contains(col) {
+            tracing::debug!(column = col, "v3: column already present, skipping ALTER");
+            continue;
+        }
+        sqlx::query(stmt)
+            .execute(&mut *tx)
+            .await
+            .with_context(|| format!("apply v3 DDL: {}", stmt))?;
+    }
+    tx.commit().await.context("commit v3 tx")?;
+    Ok(())
+}
+
+/// Apply schema_v4: workflows + workflow_steps CREATE TABLE statements.
+/// Uses `CREATE TABLE IF NOT EXISTS` — DDL-idempotent (same pattern as v1).
+/// wiki/512 §4 (W9).
+async fn apply_v4(pool: &SqlitePool) -> Result<()> {
+    let mut tx = pool.begin().await.context("begin v4 tx")?;
+    for stmt in SCHEMA_V4_STATEMENTS {
+        sqlx::query(stmt).execute(&mut *tx).await.with_context(|| {
+            format!(
+                "apply v4 DDL: {}",
+                stmt.split_whitespace()
+                    .take(6)
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            )
+        })?;
+    }
+    tx.commit().await.context("commit v4 tx")?;
+    Ok(())
+}
+
 /// Run the migration ladder up to EXPECTED_SCHEMA_VERSION. Idempotent.
 /// Returns the post-migration version.
 pub async fn run(pool: &SqlitePool) -> Result<u32> {
@@ -114,6 +168,8 @@ pub async fn run(pool: &SqlitePool) -> Result<u32> {
         match v {
             1 => apply_v1(pool).await?,
             2 => apply_v2(pool).await?,
+            3 => apply_v3(pool).await?,
+            4 => apply_v4(pool).await?,
             _ => {
                 anyhow::bail!("unknown schema version: {v} (max known = {EXPECTED_SCHEMA_VERSION})")
             }
@@ -231,7 +287,7 @@ mod tests {
         .await
         .unwrap();
         let post = run(&pool).await.unwrap();
-        assert_eq!(post, 2);
+        assert_eq!(post, EXPECTED_SCHEMA_VERSION);
 
         let (task_id, status, output): (String, String, Option<String>) = sqlx::query_as(
             "SELECT task_id, status, output FROM route_executions WHERE task_id = 'keep-me'",

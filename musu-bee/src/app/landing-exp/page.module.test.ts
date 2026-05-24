@@ -9,12 +9,18 @@ test("landing-exp module uses brand css vars instead of hardcoded brand palette"
   const css = await readFile(PAGE_MODULE_PATH, "utf8");
 
   const forbiddenPatterns = [
-    /#2d1d19/i,
-    /#ffd166/i,
-    /#fdfcf0/i,
-    /rgba\(45,\s*29,\s*25/i,
-    /rgba\(255,\s*209,\s*102/i,
-    /rgba\(253,\s*252,\s*240/i,
+    /#2d1d19/i,    // old ink
+    /#432c1c/i,    // new ink
+    /#ffd166/i,    // old accent
+    /#ffa602/i,    // new accent
+    /#fdfcf0/i,    // old canvas
+    /#fdfbf7/i,    // new canvas
+    /rgba\(45,\s*29,\s*25/i,    // old ink rgba
+    /rgba\(67,\s*44,\s*28/i,    // new ink rgba
+    /rgba\(255,\s*209,\s*102/i, // old accent rgba
+    /rgba\(255,\s*166,\s*2/i,   // new accent rgba
+    /rgba\(253,\s*252,\s*240/i, // old canvas rgba
+    /rgba\(253,\s*251,\s*247/i, // new canvas rgba
   ];
 
   for (const pattern of forbiddenPatterns) {

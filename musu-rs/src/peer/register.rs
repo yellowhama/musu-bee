@@ -9,6 +9,12 @@ use crate::peer::service::{self, PeerServiceContext};
 pub enum PeerAction {
     /// Register THIS machine as a musu peer node
     Register(PeerRegisterOpts),
+    /// V26-W10: manually add a remote peer address for mesh discovery
+    Add(PeerAddOpts),
+    /// V26-W10: remove a manually-added peer address
+    Remove(PeerRemoveOpts),
+    /// V26-W10: list all known peers from all sources
+    List(PeerListOpts),
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -75,6 +81,9 @@ pub fn validate_peer_name(s: &str) -> Result<String, String> {
 pub async fn run(action: PeerAction) -> anyhow::Result<()> {
     match action {
         PeerAction::Register(opts) => register(opts).await,
+        PeerAction::Add(opts) => run_add(opts).await,
+        PeerAction::Remove(opts) => run_remove(opts).await,
+        PeerAction::List(opts) => run_list(opts).await,
     }
 }
 
@@ -450,5 +459,113 @@ pub async fn register(opts: PeerRegisterOpts) -> anyhow::Result<()> {
 
     tracing::info!("node.toml written; bridge will pick up on next sync (W10). For now, GET /api/nodes self-row is unchanged until W10 SHIP.");
 
+    Ok(())
+}
+
+// ── V26-W10: `musu peer add/remove/list` ────────────────────────────
+
+#[derive(Args, Debug, Clone)]
+pub struct PeerAddOpts {
+    /// Address of the remote peer (e.g., "192.168.1.50:8070" or "10.0.0.5:8070").
+    pub addr: String,
+
+    /// Optional human-readable name for this peer.
+    #[arg(long)]
+    pub name: Option<String>,
+
+    /// musu home directory override (for tests).
+    #[arg(long, hide = true)]
+    pub musu_home: Option<PathBuf>,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct PeerRemoveOpts {
+    /// Address of the peer to remove.
+    pub addr: String,
+
+    #[arg(long, hide = true)]
+    pub musu_home: Option<PathBuf>,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct PeerListOpts {
+    #[arg(long, hide = true)]
+    pub musu_home: Option<PathBuf>,
+}
+
+fn resolve_musu_home_for_peer(override_: Option<&PathBuf>) -> anyhow::Result<PathBuf> {
+    if let Some(p) = override_ {
+        return Ok(p.clone());
+    }
+    if let Ok(s) = std::env::var("MUSU_HOME") {
+        if !s.is_empty() {
+            return Ok(PathBuf::from(s));
+        }
+    }
+    let home = dirs::home_dir()
+        .ok_or_else(|| anyhow::anyhow!("cannot resolve home directory"))?;
+    Ok(home.join(".musu"))
+}
+
+async fn run_add(opts: PeerAddOpts) -> anyhow::Result<()> {
+    let musu_home = resolve_musu_home_for_peer(opts.musu_home.as_ref())?;
+    std::fs::create_dir_all(&musu_home)?;
+
+    crate::peer::discovery::validate_peer_addr(&opts.addr)
+        .map_err(|e| anyhow::anyhow!("invalid peer address: {e}"))?;
+
+    let mut list = crate::peer::discovery::ManualPeerList::load(&musu_home);
+    list.add(opts.addr.clone(), opts.name.clone());
+    list.save(&musu_home)?;
+
+    println!(
+        "✓ Added peer {} (name: {})",
+        opts.addr,
+        opts.name.as_deref().unwrap_or("<auto>")
+    );
+    println!(
+        "  Stored in {}",
+        musu_home.join("manual_peers.toml").display()
+    );
+    Ok(())
+}
+
+async fn run_remove(opts: PeerRemoveOpts) -> anyhow::Result<()> {
+    let musu_home = resolve_musu_home_for_peer(opts.musu_home.as_ref())?;
+
+    crate::peer::discovery::validate_peer_addr(&opts.addr)
+        .map_err(|e| anyhow::anyhow!("invalid peer address: {e}"))?;
+
+    let mut list = crate::peer::discovery::ManualPeerList::load(&musu_home);
+    if list.remove(&opts.addr) {
+        list.save(&musu_home)?;
+        println!("✓ Removed peer {}", opts.addr);
+    } else {
+        println!("⚠ Peer {} not found in manual peer list", opts.addr);
+    }
+    Ok(())
+}
+
+async fn run_list(opts: PeerListOpts) -> anyhow::Result<()> {
+    let musu_home = resolve_musu_home_for_peer(opts.musu_home.as_ref())?;
+
+    let peers = crate::peer::discovery::resolve_all_peers(&musu_home);
+
+    if peers.is_empty() {
+        println!("No peers found. Use `musu peer add <addr>` to add a peer manually.");
+        return Ok(());
+    }
+
+    println!("{:<25} {:<15} {:<10}", "ADDR", "NAME", "SOURCE");
+    println!("{}", "-".repeat(50));
+    for peer in &peers {
+        println!(
+            "{:<25} {:<15} {:?}",
+            peer.addr,
+            peer.name.as_deref().unwrap_or("-"),
+            peer.source,
+        );
+    }
+    println!("\nTotal: {} peer(s)", peers.len());
     Ok(())
 }

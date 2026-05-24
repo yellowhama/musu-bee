@@ -39,6 +39,9 @@ pub struct RunRequest {
     /// is THE canonical place). V24-R5 clients unchanged.
     #[serde(default)]
     pub adapter_type: Option<String>,
+    /// V27: explicit target node for cross-machine routing.
+    #[serde(default)]
+    pub target_node: Option<String>,
     #[serde(flatten)]
     pub passthrough: Value,
 }
@@ -104,6 +107,22 @@ pub async fn run_company(
     .await
     .map_err(MusuError::Sqlx)?;
 
+    crate::writer::runner::write_task_json(
+        &task_id,
+        Some(&id),
+        Some(&channel),
+        Some(&sender_id),
+        Some(&text),
+        "pending",
+        None,
+        None,
+        None,
+        None,
+        None,
+        Some(now),
+        None,
+    );
+
     // EDIT-B (wiki/495 §3.2): hand off to native runner. spawn_task returns
     // immediately (Q1 spawn-then-track). Runner owns JoinHandle + all status
     // updates. POST returns 202 with the task_id; subsequent state changes
@@ -115,27 +134,75 @@ pub async fn run_company(
         .unwrap_or_else(|| {
             std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."))
         });
-    state
-        .task_runner
-        .spawn_task(crate::writer::TaskSpec {
-            task_id: task_id.clone(),
-            company_id: Some(id.clone()),
-            channel: channel.clone(),
-            sender_id: sender_id.clone(),
-            prompt: text.clone(),
-            expected_output: req.expected_output.clone(),
-            cwd,
-            model: req.model.clone(),
-            timeout_sec: req.timeout_sec,
-            // V26-W1 Commit 3 (wiki/509 §9.2): handler-side canonical
-            // default. V24-R5 clients omit the field → "claude".
-            adapter_type: req
-                .adapter_type
-                .clone()
-                .unwrap_or_else(|| "claude".into()),
-        })
-        .await
-        .map_err(|e| MusuError::Internal(format!("spawn_task: {e}")))?;
+    // V27: Route decision — local or remote?
+    let decision = crate::bridge::router::route_task(
+        &state,
+        req.target_node.as_deref(),
+        &crate::bridge::router::RouteHints::default(),
+    );
+    let cross_machine = matches!(decision, crate::bridge::router::RouteDecision::Remote { .. });
+
+    match decision {
+        crate::bridge::router::RouteDecision::Local => {
+            state
+                .task_runner
+                .spawn_task(crate::writer::TaskSpec {
+                    task_id: task_id.clone(),
+                    company_id: Some(id.clone()),
+                    channel: channel.clone(),
+                    sender_id: sender_id.clone(),
+                    prompt: text.clone(),
+                    expected_output: req.expected_output.clone(),
+                    cwd,
+                    model: req.model.clone(),
+                    timeout_sec: req.timeout_sec,
+                    adapter_type: req
+                        .adapter_type
+                        .clone()
+                        .unwrap_or_else(|| "claude".into()),
+                    callback_url: None,
+                    source_task_id: None,
+                })
+                .await
+                .map_err(|e| MusuError::Internal(format!("spawn_task: {e}")))?;
+        }
+        crate::bridge::router::RouteDecision::Remote { ref peer } => {
+            let forwarded = crate::bridge::handlers::forward::ForwardedTask {
+                source_node: state.config.node_name.clone(),
+                source_task_id: task_id.clone(),
+                channel: channel.clone(),
+                sender_id: sender_id.clone(),
+                text: text.clone(),
+                adapter_type: req.adapter_type.clone(),
+                model: req.model.clone(),
+                cwd: req.cwd.clone(),
+                deadline_unix_ms: None,
+                company_id: Some(id.clone()),
+                timeout_sec: req.timeout_sec,
+                callback_url: Some(format!(
+                    "http://{}:{}/api/tasks/callback",
+                    state.config.bridge_host, state.config.bridge_port,
+                )),
+            };
+            match crate::bridge::handlers::forward::forward_to_peer_with_retry(
+                &state.http_client,
+                peer,
+                forwarded,
+                &state.config.token,
+                2, // max retries
+            )
+            .await
+            {
+                Ok(_resp) => {
+                    crate::bridge::router::record_success(&peer.addr);
+                }
+                Err(e) => {
+                    crate::bridge::router::record_failure(&peer.addr);
+                    return Err(MusuError::Internal(format!("forward_to_peer: {e}")));
+                }
+            }
+        }
+    }
 
     // EDIT-C (wiki/495 §3.2): audit_log write — PRESERVED unchanged from N-1
     // Auditor fix. DO NOT fold into EDIT-B.
@@ -149,6 +216,7 @@ pub async fn run_company(
             agent_id: None,
             note: Some(format!("run via writer-stub task_id={}", task_id)),
             company_id: Some(id.clone()),
+            cross_machine,
         })
         .await;
 

@@ -5,9 +5,9 @@ import { useState, useEffect } from "react";
 export type ServiceStatus = "up" | "down" | "checking";
 
 export interface ServiceHealth {
-  port: ServiceStatus;    // musu-port :1355
-  bridge: ServiceStatus;  // musu-bridge :8070
-  worker: ServiceStatus;  // musu-worker :9700
+  port: ServiceStatus;    // musu-port (via bridge proxy)
+  bridge: ServiceStatus;  // musu-bridge (unified gateway)
+  worker: ServiceStatus;  // musu-worker (via bridge proxy)
 }
 
 const POLL_INTERVAL_MS = 5_000;

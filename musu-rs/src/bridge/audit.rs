@@ -45,6 +45,10 @@ pub struct AuditEntry {
     pub agent_id: Option<String>,
     pub note: Option<String>,
     pub company_id: Option<String>,
+    /// V26-W12 (wiki/511): true when request originated from another musu
+    /// node (detected by presence of `X-Musu-Deadline-Unix-Ms` header).
+    /// V27 uses this for cross-machine task delegation measurement.
+    pub cross_machine: bool,
 }
 
 impl AuditState {
@@ -63,8 +67,8 @@ impl AuditState {
     pub async fn write(&self, entry: AuditEntry) {
         let ts = chrono::Utc::now().timestamp();
         let res = sqlx::query(
-            "INSERT INTO audit_log (ts, actor_ip, method, path, status_code, agent_id, note, company_id) \
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO audit_log (ts, actor_ip, method, path, status_code, agent_id, note, company_id, cross_machine) \
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(ts)
         .bind(entry.actor_ip.to_string())
@@ -74,6 +78,7 @@ impl AuditState {
         .bind(entry.agent_id.as_deref())
         .bind(entry.note.as_deref())
         .bind(entry.company_id.as_deref())
+        .bind(entry.cross_machine as i64)
         .execute(&self.inner.pool)
         .await;
 

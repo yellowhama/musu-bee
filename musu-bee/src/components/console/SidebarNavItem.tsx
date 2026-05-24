@@ -36,9 +36,9 @@ export function SidebarNavItem({
     border: "none",
     width: "100%",
     cursor: "pointer",
-    color: active ? "var(--musu-color-brand-canvas, #FDFCF0)" : "var(--console-sidebar-text, rgba(253,252,240,0.7))",
-    background: active ? "var(--console-sidebar-active, rgba(255,209,102,0.10))" : "transparent",
-    borderLeft: active ? "2px solid var(--accent, #FFD166)" : "2px solid transparent",
+    color: active ? "var(--musu-color-brand-canvas, #FDFBF7)" : "var(--console-sidebar-text, rgba(253,251,247,0.7))",
+    background: active ? "var(--console-sidebar-active, rgba(255,166,2,0.10))" : "transparent",
+    borderLeft: active ? "2px solid var(--accent, #FFA602)" : "2px solid transparent",
     transition: "color 150ms, background 150ms",
     overflow: "hidden",
     whiteSpace: "nowrap",
@@ -53,7 +53,7 @@ export function SidebarNavItem({
         <span style={{ fontSize: "13px", fontWeight: 600, flex: 1, textAlign: "left" }}>{label}</span>
       )}
       {!collapsed && badge != null && badge > 0 && (
-        <span style={{ background: "var(--accent, #FFD166)", color: "var(--fg-on-accent, #2D1D19)", borderRadius: "10px", padding: "1px 6px", fontSize: "10px", fontWeight: 800, flexShrink: 0 }}>
+        <span style={{ background: "var(--accent, #FFA602)", color: "var(--fg-on-accent, #432c1c)", borderRadius: "10px", padding: "1px 6px", fontSize: "10px", fontWeight: 800, flexShrink: 0 }}>
           {badge}
         </span>
       )}

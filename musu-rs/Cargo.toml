@@ -1,6 +1,6 @@
 [package]
 name = "musu-rs"
-version = "1.14.0-dev"
+version = "1.15.0-dev"
 edition = "2021"
 description = "musu control plane — single-binary Rust replacement for Python musu-bridge/core/control/indexer/writer (V24, panel-reshaped)"
 license = "PROPRIETARY"
@@ -17,20 +17,14 @@ path = "src/main.rs"
 name = "musu_rs"
 path = "src/lib.rs"
 
-# V24-R4 (wiki/494) §2 / C-R4-6 — `indexer-watch` opt-in feature.
-# Default builds do NOT pull `notify`. Power users compile with
-# `cargo build --features indexer-watch` to enable `musu indexer watch`.
-# Plan §6 R4-W4 — file-watch fragility on Windows AV / network drives
-# kept behind a feature gate so the default path stays simple + reliable.
 [features]
 default = []
-indexer-watch = ["notify"]
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
-axum = "0.7"
+axum = { version = "0.7", features = ["ws"] }
 tower = "0.4"
-tower-http = { version = "0.5", features = ["trace"] }
+tower-http = { version = "0.5", features = ["trace", "fs"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 serde = { version = "1", features = ["derive"] }
@@ -52,11 +46,15 @@ toml = "0.8"
 dashmap = "6"
 futures-util = "0.3"
 chrono = { version = "0.4", default-features = false, features = ["serde", "clock"] }
+mime_guess = "2"
 sha2 = "0.10"  # used only for dedup cache key (NOT for auth — see C-SEC-7)
 hex = "0.4"
 hostname = "0.4"
 bytes = "1"
 http-body-util = "0.1"
+# A-3: WebSocket proxy to musu-port (upstream WS client).
+tokio-tungstenite = "0.24"
+urlencoding = "2"
 
 # R5 (wiki/495): writer module deps
 tokio-stream = { version = "0.1", features = ["sync"] }
@@ -69,11 +67,11 @@ tokio-stream = { version = "0.1", features = ["sync"] }
 #     IndexEntry rows through an mpsc channel to the tokio runtime where
 #     sqlx batches FTS5 INSERTs. Mixing rayon scope with #[tokio::main] is
 #     fine as long as we don't .block_on() inside a rayon worker.
-#   * `notify` — file-watch crate, opt-in via `indexer-watch` feature only
-#     (C-R4-6 plan amendment). Default builds skip the dep entirely.
 ignore = "0.4"
 rayon = "1"
-notify = { version = "6", optional = true }
+# V27-F9 (file sync): filesystem watcher for real-time sync.
+# Also used by indexer watch (previously optional behind indexer-watch feature).
+notify = "7"
 # `regex` is already transitive via `tracing-subscriber` / `ignore`; declare
 # directly so symbols.rs gets a stable pin and the dep graph stays honest.
 regex = "1"
@@ -89,7 +87,7 @@ schemars = "1"
 # tokio-util already pulled in transitively (tokio_util::codec via rmcp's
 # transport-async-rw); declared explicitly so `CancellationToken` is part of
 # our public API surface contract, not an accidental transitive borrow.
-tokio-util = { version = "0.7", features = ["rt"] }
+tokio-util = { version = "0.7", features = ["rt", "io"] }
 
 # R6 (wiki/496): installer + auto-update + supervisor IPC client deps
 dirs = "5"                       # F3 cross-platform home_dir()
@@ -98,6 +96,15 @@ ureq = { version = "2", default-features = false, features = ["tls"] }
 fs2 = "0.4"                      # F15 advisory file lock for auto-update.lock
 getrandom = "0.2"                # S3 explicit CSPRNG for bridge token
 
+# V27-F2 (mDNS auto-discovery): advertise and browse musu nodes on LAN.
+mdns-sd = "0.11"
+
+# V27-F6 (TLS): self-signed cert generation + TLS server.
+rcgen = "0.13"
+axum-server = { version = "0.7", features = ["tls-rustls"] }
+rustls = "0.23"
+rustls-pemfile = "2"
+
 # V26-W1 (wiki/509): OpenAI-compat adapter deps.
 #   * `async-trait` needed for the `Adapter` trait until Rust stable supports
 #     `async fn` in traits with `?Send` (currently 1.75 stabilised but with
@@ -105,6 +112,7 @@ getrandom = "0.2"                # S3 explicit CSPRNG for bridge token
 #   * Runtime HTTP uses existing `reqwest` directly so vLLM tool-call variants
 #     with missing tagged `type` fields can be parsed defensively.
 async-trait = "0.1"
+local-ip-address = "0.6.13"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

@@ -74,7 +74,7 @@ export default function ResearchForm({ onComplete }: ResearchFormProps) {
         style={{
           padding: "8px 16px",
           borderRadius: "6px",
-          background: loading ? "#ccc" : "#2D1D19",
+          background: loading ? "#ccc" : "#432c1c",
           color: "#fff",
           border: "none",
           cursor: loading ? "wait" : "pointer",

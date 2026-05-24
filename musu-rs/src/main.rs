@@ -2,12 +2,20 @@ use clap::{Parser, Subcommand};
 
 mod adapter;
 mod bridge;
+mod cloud;
 mod control;
 mod core;
 mod indexer;
 mod install;
 mod peer;
+mod workflow;
 mod writer;
+
+// V27: re-export CLI option structs from their canonical home in
+// `install::cli_commands` so the `Cmd` enum can reference them.
+use install::cli_commands::{
+    GetOpts, LsOpts, PutOpts, RouteOpts, ShareOpts, UnshareOpts,
+};
 
 #[derive(Parser)]
 #[command(name = "musu", version, about = "musu control plane (Rust)")]
@@ -69,6 +77,65 @@ enum Cmd {
         #[command(subcommand)]
         action: peer::PeerAction,
     },
+
+    // ── V27 file-sharing + task-routing CLI ──────────────────────────────
+    /// Share a directory with connected peers.
+    Share(ShareOpts),
+    /// Stop sharing a directory.
+    Unshare(UnshareOpts),
+    /// List currently shared directories.
+    Shares,
+    /// Send a task to a specific peer or let musu auto-route.
+    Route(RouteOpts),
+    /// List files on a peer machine.
+    Ls(LsOpts),
+    /// Download a file from a peer.
+    Get(GetOpts),
+    /// Upload a file to a peer.
+    Put(PutOpts),
+
+    /// V27-F2: Discover musu peers on the local network via mDNS.
+    Discover {
+        /// How long to scan in seconds.
+        #[arg(long, default_value = "5")]
+        timeout: u64,
+    },
+
+    /// Show fleet status across all connected nodes.
+    Status,
+    /// List recent tasks across the fleet.
+    Tasks,
+
+    /// V27-F5: Execute a workflow.
+    WorkflowRun {
+        /// Workflow ID to execute.
+        id: String,
+    },
+
+    /// V27-F7: Generate a pairing code for another machine to join.
+    Pair,
+    /// V27-F7: Join another machine using a pairing code.
+    Join {
+        /// The pairing code (e.g., 123-456).
+        code: String,
+    },
+
+    /// V27-F9: Start watching shared directories and sync to peers.
+    Sync,
+
+    /// V27-F10: Mount a remote node's shared directory (shows WebDAV URL).
+    Mount {
+        /// Remote node name or addr.
+        #[arg(long)]
+        node: Option<String>,
+    },
+
+    /// V27 Account: Login to musu.pro to enable automatic peer discovery.
+    Login,
+    /// V27 Account: Logout from musu.pro.
+    Logout,
+    /// V27 Account: Show current login status.
+    Whoami,
 }
 
 /// V24-R3 wiki/493 Critic C1 (HIGH): per-subcommand `tracing` init.
@@ -154,6 +221,100 @@ async fn main() -> anyhow::Result<()> {
         Cmd::Peer { action } => {
             init_tracing_default();
             peer::run(action).await
+        }
+
+        // V27 file-sharing + task-routing CLI:
+        Cmd::Share(opts) => {
+            init_tracing_default();
+            install::cli_commands::run_share(opts).await
+        }
+        Cmd::Unshare(opts) => {
+            init_tracing_default();
+            install::cli_commands::run_unshare(opts).await
+        }
+        Cmd::Shares => {
+            init_tracing_default();
+            install::cli_commands::run_shares().await
+        }
+        Cmd::Route(opts) => {
+            init_tracing_default();
+            install::cli_commands::run_route(opts).await
+        }
+        Cmd::Ls(opts) => {
+            init_tracing_default();
+            install::cli_commands::run_ls(opts).await
+        }
+        Cmd::Get(opts) => {
+            init_tracing_default();
+            install::cli_commands::run_get(opts).await
+        }
+        Cmd::Put(opts) => {
+            init_tracing_default();
+            install::cli_commands::run_put(opts).await
+        }
+
+        Cmd::Discover { timeout } => {
+            init_tracing_default();
+            println!("Scanning local network for musu peers ({timeout}s)...");
+            let peers = peer::mdns::discover_peers(
+                std::time::Duration::from_secs(timeout),
+            ).await;
+            if peers.is_empty() {
+                println!("No peers found. Make sure musu bridge is running on other machines.");
+            } else {
+                println!("Found {} peer(s):\n", peers.len());
+                for p in &peers {
+                    println!("  {} ({})", p.name, p.addr);
+                    println!("     version: {}", p.version);
+                }
+            }
+            Ok(())
+        }
+
+        Cmd::Status => {
+            init_tracing_default();
+            install::cli_commands::run_status().await
+        }
+        Cmd::Tasks => {
+            init_tracing_default();
+            install::cli_commands::run_tasks().await
+        }
+
+        Cmd::WorkflowRun { id } => {
+            init_tracing_default();
+            install::cli_commands::run_workflow_execute(&id).await
+        }
+
+        Cmd::Pair => {
+            init_tracing_default();
+            install::cli_commands::run_pair().await
+        }
+        Cmd::Join { code } => {
+            init_tracing_default();
+            install::cli_commands::run_join(&code).await
+        }
+
+        Cmd::Sync => {
+            init_tracing_default();
+            install::cli_commands::run_sync().await
+        }
+
+        Cmd::Mount { node } => {
+            init_tracing_default();
+            install::cli_commands::run_mount(node.as_deref()).await
+        }
+
+        Cmd::Login => {
+            init_tracing_default();
+            install::cli_commands::run_login().await
+        }
+        Cmd::Logout => {
+            init_tracing_default();
+            install::cli_commands::run_logout().await
+        }
+        Cmd::Whoami => {
+            init_tracing_default();
+            install::cli_commands::run_whoami().await
         }
     }
 }

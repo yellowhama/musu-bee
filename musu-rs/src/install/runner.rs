@@ -93,6 +93,15 @@ pub async fn run(opts: InstallOpts) -> Result<()> {
         boot_start: opts.boot_start,
     })?;
 
+    // V27-F6: Generate TLS certificates (non-fatal).
+    let hostname = hostname::get().unwrap_or_default();
+    if let Err(e) = super::tls::ensure_tls_certs(
+        &home,
+        &hostname.to_string_lossy(),
+    ) {
+        tracing::warn!(err = %e, "TLS cert generation failed (non-fatal)");
+    }
+
     eprintln!(
         "\nmusu install complete.\n\
          - Home:        {}\n\

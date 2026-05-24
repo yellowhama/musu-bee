@@ -100,6 +100,61 @@ pub const SCHEMA_V2_ALTER_STATEMENTS: &[&str] = &[
     "ALTER TABLE route_executions ADD COLUMN updated_at   INTEGER",
 ];
 
+/// Schema-v3 ALTER TABLE statement — wiki/511 §2 (W12).
+///
+/// Adds `cross_machine` to audit_log: INTEGER (SQLite boolean, 0/1).
+/// NULLable, no DEFAULT — existing rows get NULL (= unknown/local).
+/// V27 uses this for cross-machine task delegation measurement
+/// (master plan §9.13: weekly ≥5 triggers V27 entry).
+///
+/// No index: low cardinality (boolean), read via full-table scans in
+/// reporting queries only.
+pub const SCHEMA_V3_ALTER_STATEMENTS: &[&str] = &[
+    "ALTER TABLE audit_log ADD COLUMN cross_machine INTEGER",
+];
+
+/// Schema-v4 DDL statements — wiki/512 §4 (W9).
+///
+/// Adds workflow DAG tables. Two new tables:
+///   - `workflows`: top-level workflow with spec_json blob
+///   - `workflow_steps`: per-agent steps with dependency tracking
+///
+/// Schema matches Python `musu-bridge/handlers.py:2697-2756` table shape
+/// (1:1 column parity for cross-bridge compatibility).
+///
+/// Uses TEXT timestamps (ISO-8601) instead of INTEGER for consistency with
+/// the Python bridge's datetime strings. FK cascade on steps → workflows.
+pub const SCHEMA_V4_STATEMENTS: &[&str] = &[
+    "CREATE TABLE IF NOT EXISTS workflows (
+        id          TEXT NOT NULL PRIMARY KEY,
+        company_id  TEXT NOT NULL,
+        name        TEXT NOT NULL,
+        spec_json   TEXT NOT NULL,
+        status      TEXT NOT NULL DEFAULT 'pending',
+        created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+        updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+        FOREIGN KEY (company_id) REFERENCES companies(id)
+    )",
+    "CREATE TABLE IF NOT EXISTS workflow_steps (
+        id              TEXT    NOT NULL PRIMARY KEY,
+        workflow_id     TEXT    NOT NULL,
+        agent_id        TEXT    NOT NULL,
+        assigned_pc     TEXT,
+        status          TEXT    NOT NULL DEFAULT 'pending',
+        depends_on_json TEXT    NOT NULL DEFAULT '[]',
+        input_json      TEXT,
+        started_at      TEXT,
+        finished_at     TEXT,
+        updated_at      TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+        retry_count     INTEGER NOT NULL DEFAULT 0,
+        result_json     TEXT,
+        error_json      TEXT,
+        FOREIGN KEY (workflow_id) REFERENCES workflows(id) ON DELETE CASCADE
+    )",
+    "CREATE INDEX IF NOT EXISTS idx_workflow_steps_workflow ON workflow_steps(workflow_id)",
+    "CREATE INDEX IF NOT EXISTS idx_workflow_steps_status   ON workflow_steps(status, assigned_pc)",
+];
+
 #[cfg(test)]
 mod tests {
     use super::*;

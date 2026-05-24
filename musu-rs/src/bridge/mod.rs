@@ -2,8 +2,8 @@
 //!
 //! wiki/491 §3 module layout, §4 auth, §6 facade, §8.5 rate-limit.
 //!
-//! Middleware order (wiki/491 §8.5):
-//!   request_id → rate_limit → auth → audit_setup → handler
+//! Middleware order (wiki/491 §8.5, updated wiki/511 W12):
+//!   request_id → deadline → rate_limit → auth → audit_setup → handler
 //! Rate-limit BEFORE auth so DoS attacks don't consume auth budget.
 //! Facade is the Router fallback — auth runs unconditionally before it
 //! (C-SEC-3 invariant).
@@ -16,7 +16,10 @@ pub mod dedup;
 pub mod error;
 pub mod facade;
 pub mod handlers;
+pub mod middleware;
 pub mod rate_limit;
+pub mod router;
+pub mod services;
 
 use std::io::ErrorKind;
 use std::net::SocketAddr;
@@ -49,6 +52,8 @@ pub struct AppState {
     // R5 (wiki/495 §3.1): native writer wiring.
     pub task_runner: crate::writer::TaskRunnerHandle,
     pub sse_broadcaster: crate::writer::SseBroadcaster,
+    // V27-F7: easy token pairing store.
+    pub pairing: crate::bridge::handlers::pair::PairingStore,
 }
 
 /// Entry point invoked from `main.rs` for `musu bridge`.
@@ -114,6 +119,7 @@ pub async fn run() -> Result<()> {
         dedup,
         task_runner,
         sse_broadcaster,
+        pairing: crate::bridge::handlers::pair::PairingStore::new(),
     };
 
     let auth_state = AuthState::from_config(&cfg);
@@ -133,6 +139,9 @@ pub async fn run() -> Result<()> {
             rate_limit_state.clone(),
             rate_limit::rate_limit_middleware,
         ))
+        .layer(axum::middleware::from_fn(
+            middleware::deadline::deadline_middleware,
+        ))
         .layer(axum::middleware::from_fn(request_id_middleware))
         .layer(TraceLayer::new_for_http())
         .with_state(state);
@@ -145,25 +154,220 @@ pub async fn run() -> Result<()> {
         Ok(l) => l,
         Err(e) if e.kind() == ErrorKind::AddrInUse => {
             anyhow::bail!(
-                "Port {} in use. Did you mean to run scripts/v24-rfast-dual-start.sh? \
-                 If Python musu-bridge is already on :{}, stop it and use the dual-start \
-                 wrapper so Python moves to :{}.",
+                "Port {} in use. Set BRIDGE_PORT=0 for dynamic allocation, \
+                 or stop the conflicting process.",
                 addr.port(),
-                addr.port(),
-                cfg.python_facade_port
             );
         }
         Err(e) => return Err(e.into()),
     };
 
-    tracing::info!(addr = %addr, "musu-rs bridge listening");
+    // Read the actual port assigned by the OS (crucial when BRIDGE_PORT=0).
+    let actual_addr = listener.local_addr()?;
+    let actual_port = actual_addr.port();
 
-    axum::serve(
-        listener,
-        app.into_make_service_with_connect_info::<SocketAddr>(),
-    )
-    .await
-    .map_err(|e| anyhow::anyhow!("axum serve: {}", e))?;
+    // Register ourselves in the service registry so other components can
+    // discover which port we landed on.
+    let svc_registry = services::ServiceRegistry::new();
+    svc_registry.cleanup_stale(); // remove dead entries from previous crashes
+    svc_registry
+        .register(&services::ServiceRecord {
+            name: "bridge".to_string(),
+            addr: format!("{}:{}", cfg.bridge_host, actual_port),
+            pid: Some(std::process::id()),
+            started_at: chrono::Utc::now().timestamp(),
+            transport: services::Transport::Tcp,
+        })
+        .unwrap_or_else(|e| tracing::warn!(error = %e, "failed to register bridge in service registry"));
+
+    if cfg.bridge_port == 0 {
+        tracing::info!(
+            port = actual_port,
+            "dynamic port assigned — registered in ~/.musu/services/bridge.json"
+        );
+    }
+
+    tracing::info!(addr = %actual_addr, "musu-rs bridge listening");
+
+    // V27 Account: Cloud registration & peer discovery (replaces mDNS)
+    let musu_home = cfg.nodes_toml_path
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new("."))
+        .to_path_buf();
+
+    if let Some(token) = crate::cloud::token::load_token(&musu_home) {
+        let cloud = crate::cloud::MusuCloud::new("https://musu.pro", Some(token));
+        let my_name = cfg.node_name.clone();
+        let port = cfg.bridge_port;
+        // In a real scenario we'd determine the local LAN IP, but we'll use bridge_host for now, or "0.0.0.0"
+        let host = if cfg.bridge_host == "0.0.0.0" {
+            hostname::get().unwrap_or_default().to_string_lossy().to_string()
+        } else {
+            cfg.bridge_host.clone()
+        };
+
+        tokio::spawn(async move {
+            tracing::info!("attempting musu.pro cloud registration...");
+            
+            // 1. Heartbeat loop
+            loop {
+                let tailscale_ip = crate::peer::tailscale::get_tailscale_ip();
+                let hardware = crate::peer::hardware::gather_hardware_info();
+                let mut meta_obj = serde_json::json!({
+                    "hardware": hardware,
+                });
+                if let Some(ip) = tailscale_ip.as_ref() {
+                    meta_obj["tailscale_ip"] = serde_json::json!(ip);
+                }
+                let meta = Some(meta_obj);
+
+                let req = crate::cloud::RegisterNodeRequest {
+                    node_name: my_name.clone(),
+                    public_url: format!("http://{}:{}", host, port),
+                    meta,
+                    ..Default::default()
+                };
+
+                if let Err(e) = cloud.register_node(req).await {
+                    tracing::warn!(err = %e, "musu.pro registration failed");
+                } else {
+                    // 2. Discover peers
+                    match cloud.list_nodes().await {
+                        Ok(siblings) => {
+                            let mut list = crate::peer::discovery::ManualPeerList::load(&musu_home);
+                            let mut added = 0;
+                            
+                            // Also save a CachedRegistry so we have rich metadata for routing
+                            let mut cached_nodes = Vec::new();
+                            
+                            for node in siblings {
+                                if node.node_name != my_name {
+                                    let mut peer_addr = node.public_url
+                                        .trim_start_matches("http://")
+                                        .trim_start_matches("https://")
+                                        .trim_end_matches('/')
+                                        .to_string();
+                                    
+                                    // Smart Fallback: If local machine has Tailscale AND remote peer has Tailscale IP,
+                                    // prioritize routing over Tailscale.
+                                    if let Some(meta) = &node.meta {
+                                        if let Some(ip) = meta.get("tailscale_ip").and_then(|v| v.as_str()) {
+                                            if tailscale_ip.is_some() {
+                                                peer_addr = format!("{}:{}", ip, port);
+                                                tracing::debug!(peer = %node.node_name, ip = %ip, "Upgrading peer routing to Tailscale IP");
+                                            }
+                                        }
+                                    }
+                                    
+                                    cached_nodes.push(crate::peer::discovery::CachedNode {
+                                        node_id: node.node_name.clone(), // using name as id
+                                        name: node.node_name.clone(),
+                                        addr: peer_addr.clone(),
+                                        capabilities: vec![],
+                                        last_heartbeat: Some(chrono::Utc::now()),
+                                        meta: node.meta.clone(),
+                                    });
+
+                                    if !list.peers.iter().any(|p| p.addr == peer_addr) {
+                                        list.add(peer_addr.clone(), Some(node.node_name.clone()));
+                                        added += 1;
+                                        tracing::info!(name = %node.node_name, addr = %peer_addr, "auto-registered sibling peer");
+                                    }
+                                }
+                            }
+                            
+                            // Persist CachedRegistry
+                            let cache = crate::peer::discovery::CachedRegistry {
+                                nodes: cached_nodes,
+                                fetched_at: chrono::Utc::now(),
+                                registry_url: "https://musu.pro".into(),
+                            };
+                            if let Err(e) = cache.save(&musu_home) {
+                                tracing::error!(err = %e, "failed to save cached registry");
+                            }
+
+                            if added > 0 {
+                                if let Err(e) = list.save(&musu_home) {
+                                    tracing::error!(err = %e, "failed to save discovered peers");
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            tracing::warn!(err = %e, "failed to list nodes from musu.pro");
+                        }
+                    }
+                }
+                
+                tokio::time::sleep(Duration::from_secs(60)).await;
+            }
+        });
+    } else {
+        tracing::info!("no musu.pro token found. Run `musu login` to enable auto-discovery.");
+    }
+
+    // V27-F9: Start file sync if shared dirs are configured.
+    if !cfg.file_serve_roots.is_empty() {
+        let sync_paths = cfg.file_serve_roots.clone();
+        let musu_home = cfg
+            .nodes_toml_path
+            .parent()
+            .unwrap_or_else(|| std::path::Path::new("."))
+            .to_path_buf();
+        let token = cfg.token.clone();
+
+        match crate::install::sync::start_watcher(&sync_paths) {
+            Ok((rx, watcher)) => {
+                // Get peer addrs from all sources.
+                let peers = crate::peer::discovery::resolve_all_peers(&musu_home)
+                    .into_iter()
+                    .map(|p| p.addr)
+                    .collect();
+                // Watcher handle is moved into the sync loop so it stays alive.
+                tokio::spawn(crate::install::sync::run_sync_loop(
+                    rx, watcher, peers, token,
+                ));
+                tracing::info!("file sync started for {} directories", sync_paths.len());
+            }
+            Err(e) => {
+                tracing::warn!(err = %e, "file sync disabled");
+            }
+        }
+    }
+
+    // V27-F6: TLS mode vs. plaintext mode.
+    if cfg.tls_enabled {
+        let musu_home = cfg
+            .nodes_toml_path
+            .parent()
+            .unwrap_or_else(|| std::path::Path::new("."));
+        let tls_paths =
+            crate::install::tls::ensure_tls_certs(musu_home, &cfg.node_name).map_err(|e| {
+                tracing::error!(err = %e, "TLS cert generation failed");
+                e
+            })?;
+
+        let cert_path = cfg.tls_cert_path.clone().unwrap_or(tls_paths.cert_path);
+        let key_path = cfg.tls_key_path.clone().unwrap_or(tls_paths.key_path);
+
+        tracing::info!(cert = %cert_path.display(), "starting bridge with TLS");
+
+        let tls_config =
+            axum_server::tls_rustls::RustlsConfig::from_pem_file(&cert_path, &key_path)
+                .await
+                .map_err(|e| anyhow::anyhow!("TLS config error: {e}"))?;
+
+        axum_server::bind_rustls(addr, tls_config)
+            .serve(app.into_make_service_with_connect_info::<SocketAddr>())
+            .await
+            .map_err(|e| anyhow::anyhow!("axum-server TLS serve: {e}"))?;
+    } else {
+        axum::serve(
+            listener,
+            app.into_make_service_with_connect_info::<SocketAddr>(),
+        )
+        .await
+        .map_err(|e| anyhow::anyhow!("axum serve: {}", e))?;
+    }
 
     Ok(())
 }

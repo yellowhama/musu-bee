@@ -210,7 +210,7 @@ function PcCapacityCard({ machine }: { machine: FleetMachine }) {
         <span
           style={{
             fontSize: 11,
-            background: "rgba(255,209,102,0.12)",
+            background: "rgba(255,166,2,0.12)",
             color: "var(--musu-color-brand-accent)",
             padding: "3px 8px",
             borderRadius: 4,
@@ -419,7 +419,7 @@ function AddPcWizard({
           <>
             <div
               style={{
-                background: "rgba(255,209,102,0.08)",
+                background: "rgba(255,166,2,0.08)",
                 border: "1px solid var(--status-warn)",
                 borderRadius: 6,
                 padding: "8px 10px",
@@ -499,7 +499,7 @@ function AddPcWizard({
               background: "var(--musu-color-brand-accent)",
               border: "none",
               borderRadius: 6,
-              color: "#2D1D19",
+              color: "#432c1c",
               cursor: submitting || !name || !url ? "not-allowed" : "pointer",
               fontWeight: 600,
               fontSize: 13,
@@ -618,7 +618,7 @@ export default function FleetPage() {
             background: "var(--musu-color-brand-accent)",
             border: "none",
             borderRadius: 8,
-            color: "#2D1D19",
+            color: "#432c1c",
             cursor: "pointer",
             fontWeight: 600,
             fontSize: 13,

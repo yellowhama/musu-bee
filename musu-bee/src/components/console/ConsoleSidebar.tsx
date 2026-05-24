@@ -77,7 +77,7 @@ export function ConsoleSidebar({ contextPanel, onNavigate, activePanel }: Consol
           {collapsed ? (
             <span
               style={{
-                color: "#FFD166",
+                color: "#FFA602",
                 fontWeight: 900,
                 fontSize: "15px",
                 letterSpacing: "-0.02em",
@@ -168,7 +168,7 @@ export function ConsoleSidebar({ contextPanel, onNavigate, activePanel }: Consol
             gap: "10px",
             background: "none",
             border: "none",
-            color: "rgba(253,252,240,0.3)",
+            color: "rgba(253,251,247,0.3)",
             cursor: "pointer",
             borderRadius: "6px",
             textDecoration: "none",
@@ -176,8 +176,8 @@ export function ConsoleSidebar({ contextPanel, onNavigate, activePanel }: Consol
             fontWeight: 600,
             transition: "color 150ms",
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "#FDFCF0")}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(253,252,240,0.3)")}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "#FDFBF7")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(253,251,247,0.3)")}
         >
           <ExternalLink size={14} />
           {!collapsed && <span>GitHub</span>}
@@ -196,7 +196,7 @@ export function ConsoleSidebar({ contextPanel, onNavigate, activePanel }: Consol
             padding: collapsed ? "0" : "0 8px",
             background: "none",
             border: "none",
-            color: "rgba(253,252,240,0.3)",
+            color: "rgba(253,251,247,0.3)",
             cursor: "pointer",
             borderRadius: "6px",
             transition: "color 150ms",

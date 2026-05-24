@@ -2,7 +2,7 @@ import type { CommandContext } from "./types";
 import { makeId } from "./utils";
 
 const WORKER_BASE =
-  process.env.NEXT_PUBLIC_MUSU_WORKER_URL ?? "http://localhost:9700";
+  process.env.NEXT_PUBLIC_MUSU_WORKER_URL ?? process.env.NEXT_PUBLIC_MUSU_BRIDGE_URL ?? "http://localhost:8070";
 
 export function createRunHandler(ctx: CommandContext) {
   return async (text: string): Promise<boolean> => {

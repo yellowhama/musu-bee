@@ -1,10 +1,10 @@
 const STATUS_CONFIG = {
-  queued: { color: "rgba(253,252,240,0.3)", pulse: false },
+  queued: { color: "rgba(253,251,247,0.3)", pulse: false },
   running: { color: "#22c55e", pulse: true },
-  waiting: { color: "#FFD166", pulse: false },
+  waiting: { color: "#FFA602", pulse: false },
   done: { color: "#6fcf97", pulse: false },
   failed: { color: "#ff6b6b", pulse: false },
-  cancelled: { color: "rgba(253,252,240,0.2)", pulse: false },
+  cancelled: { color: "rgba(253,251,247,0.2)", pulse: false },
 } as const;
 
 export type TaskStatus = keyof typeof STATUS_CONFIG;
@@ -32,7 +32,7 @@ export function StatusDot({ status, size = 8, label }: StatusDotProps) {
         }}
       />
       {label && (
-        <span style={{ color: "rgba(253,252,240,0.6)", fontSize: "12px" }}>{label}</span>
+        <span style={{ color: "rgba(253,251,247,0.6)", fontSize: "12px" }}>{label}</span>
       )}
     </span>
   );

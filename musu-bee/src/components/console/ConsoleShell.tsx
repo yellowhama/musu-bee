@@ -127,7 +127,7 @@ export function ConsoleShell(props: ConsoleShellProps) {
         style={{
           position: "fixed",
           inset: 0,
-          background: "var(--console-sidebar-bg, #2D1D19)",
+          background: "var(--console-sidebar-bg, #432c1c)",
           overflow: "hidden",
         }}
       >

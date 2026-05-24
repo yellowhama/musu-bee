@@ -1,31 +1,19 @@
-//! V24-R4 wiki/494 §3 — opt-in file-watch sync (`musu indexer watch`).
+//! V24-R4 wiki/494 §3 — file-watch sync (`musu indexer watch`).
 //!
-//! C-R4-6 plan amendment: the `notify` crate is gated behind the
-//! `indexer-watch` Cargo feature so default builds don't pull the dep.
-//! Power users compile with `cargo build --features indexer-watch` to
-//! enable the subcommand.
-//!
-//! On the default-feature build path, the `run_watch` function still
-//! exists but returns a clear error explaining how to enable it — so
-//! `musu indexer watch` doesn't quietly do nothing on a stock binary.
-//!
-//! Debounce policy (when feature is on): 2 seconds quiescence before
-//! re-syncing. Matches Python parity (paraphrased — Python's watcher
-//! coalesced events on a 2s timer). DB-sidecar files (`*.db-wal`,
-//! `*.db-shm`) are ignored so we don't loop on our own sqlite writes.
+//! Debounce policy: 2 seconds quiescence before re-syncing. Matches
+//! Python parity (paraphrased — Python's watcher coalesced events on a
+//! 2s timer). DB-sidecar files (`*.db-wal`, `*.db-shm`) are ignored so
+//! we don't loop on our own sqlite writes.
 
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use anyhow::Result;
+use notify::{RecommendedWatcher, RecursiveMode, Watcher};
+use tokio::sync::Notify;
 
-#[cfg(feature = "indexer-watch")]
 pub async fn run_watch(work_dir: PathBuf, name: String) -> Result<()> {
-    use std::sync::{Arc, Mutex};
-    use std::time::Duration;
-
-    use notify::{RecommendedWatcher, RecursiveMode, Watcher};
-    use tokio::sync::Notify;
-
     // Initial sync so the index isn't stale on startup.
     let initial =
         crate::indexer::sync::sync_workspace_async(work_dir.clone(), name.clone()).await?;
@@ -102,12 +90,4 @@ pub async fn run_watch(work_dir: PathBuf, name: String) -> Result<()> {
             Err(e) => tracing::warn!(error = %e, "watch re-sync failed"),
         }
     }
-}
-
-#[cfg(not(feature = "indexer-watch"))]
-pub async fn run_watch(_work_dir: PathBuf, _name: String) -> Result<()> {
-    Err(anyhow::anyhow!(
-        "musu was built without the `indexer-watch` feature; rebuild with \
-         `cargo build --features indexer-watch` to enable `musu indexer watch`."
-    ))
 }

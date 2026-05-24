@@ -7,6 +7,7 @@ use std::path::Path;
 use std::time::Duration;
 
 use axum::extract::State;
+use axum::http::StatusCode;
 use axum::Json;
 use serde::{Deserialize, Serialize};
 use tokio::time::timeout;
@@ -251,4 +252,58 @@ pub async fn add(
             Some("peer unreachable; persisted but marked unhealthy".into())
         },
     }))
+}
+
+// ---- /api/nodes/accept-peer ----
+
+#[derive(Debug, Deserialize)]
+pub struct AcceptPeerRequest {
+    pub peer: AcceptPeerInfo,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AcceptPeerInfo {
+    pub name: String,
+    pub url: String,
+}
+
+pub async fn accept_peer(
+    State(state): State<AppState>,
+    Json(req): Json<AcceptPeerRequest>,
+) -> Result<StatusCode> {
+    if req.peer.name.is_empty() || req.peer.name.len() > 64 {
+        return Err(MusuError::BadRequest("peer name must be 1..64 chars".into()));
+    }
+    if req.peer.url.is_empty() {
+        return Err(MusuError::BadRequest("peer url required".into()));
+    }
+
+    let url = req.peer.url.trim_end_matches('/').to_string();
+
+    // Persist the peer to our nodes.toml
+    let mut file = read_nodes_toml(&state.config.nodes_toml_path);
+    file.nodes.insert(
+        req.peer.name.clone(),
+        NodeEntry {
+            url,
+            tailscale_ip: None,
+            agents: vec![],
+            machine: None,
+            os: None,
+            gpu: None,
+            roles: vec!["bridge".into()],
+            last_health_at: Some(chrono::Utc::now().timestamp()),
+        },
+    );
+
+    if let Err(e) = write_nodes_toml(&state.config.nodes_toml_path, &file) {
+        return Err(MusuError::Internal(format!("nodes.toml write: {}", e)));
+    }
+
+    tracing::info!(
+        peer_name = %req.peer.name,
+        "accepted peer registration"
+    );
+
+    Ok(StatusCode::OK)
 }

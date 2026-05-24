@@ -95,6 +95,11 @@ pub struct TaskSpec {
     /// `default_adapter_type()` helper — the canonical default lives at the
     /// handler boundary only.
     pub adapter_type: String,
+    /// V27-F1: callback URL for forwarded tasks. When set, the runner POSTs
+    /// the result to this URL after finalization.
+    pub callback_url: Option<String>,
+    /// V27-F1: original task ID on the requesting node.
+    pub source_task_id: Option<String>,
 }
 
 /// Registry entry. Holds the cancel notifier so DELETE handler can signal.
@@ -229,6 +234,49 @@ impl TaskRunnerHandle {
     }
 }
 
+/// V27-F1: fire callback to the originating node after task finalization.
+fn fire_callback(spec: &TaskSpec, status: TaskStatus, output: Option<&str>, error: Option<&str>, exit_code: Option<i32>, duration_sec: Option<f64>) {
+    let url = match spec.callback_url {
+        Some(ref u) => u.clone(),
+        None => return,
+    };
+    let cb = crate::bridge::handlers::forward::TaskCallback {
+        source_task_id: spec.source_task_id.clone().unwrap_or_else(|| spec.task_id.clone()),
+        remote_task_id: spec.task_id.clone(),
+        status: status.as_str().to_string(),
+        output: output.map(|s| s.to_string()),
+        error: error.map(|s| s.to_string()),
+        exit_code,
+        duration_sec,
+        node: hostname::get().unwrap_or_default().to_string_lossy().to_string(),
+    };
+    tokio::spawn(async move {
+        let client = reqwest::Client::new();
+        for attempt in 0..3u32 {
+            match client
+                .post(&url)
+                .json(&cb)
+                .timeout(std::time::Duration::from_secs(10))
+                .send()
+                .await
+            {
+                Ok(resp) if resp.status().is_success() => {
+                    tracing::info!(url = %url, attempt, "callback delivered");
+                    return;
+                }
+                Ok(resp) => {
+                    tracing::warn!(url = %url, status = %resp.status(), attempt, "callback rejected");
+                }
+                Err(e) => {
+                    tracing::warn!(url = %url, err = %e, attempt, "callback failed");
+                }
+            }
+            tokio::time::sleep(std::time::Duration::from_secs(1 << attempt)).await;
+        }
+        tracing::error!(url = %url, "callback failed after 3 attempts");
+    });
+}
+
 /// Drive one task end-to-end. This runs inside `tokio::spawn`.
 async fn run_one(inner: Arc<Inner>, spec: TaskSpec, cancel: Arc<Notify>) {
     let task_id = spec.task_id.clone();
@@ -246,7 +294,7 @@ async fn run_one(inner: Arc<Inner>, spec: TaskSpec, cancel: Arc<Notify>) {
             AdmissionExit::Cancelled => {
                 finalize(
                     &inner,
-                    &task_id,
+                    &spec,
                     TaskStatus::Cancelled,
                     None,
                     None,
@@ -283,7 +331,7 @@ async fn run_one(inner: Arc<Inner>, spec: TaskSpec, cancel: Arc<Notify>) {
             release_admission(&inner, &channel).await;
             finalize(
                 &inner,
-                &task_id,
+                &spec,
                 TaskStatus::Failed,
                 Some(msg.as_str()),
                 None,
@@ -311,7 +359,7 @@ async fn run_one(inner: Arc<Inner>, spec: TaskSpec, cancel: Arc<Notify>) {
             release_admission(&inner, &channel).await;
             finalize(
                 &inner,
-                &task_id,
+                &spec,
                 TaskStatus::Failed,
                 Some(msg.as_str()),
                 None,
@@ -344,7 +392,7 @@ async fn run_one(inner: Arc<Inner>, spec: TaskSpec, cancel: Arc<Notify>) {
             release_admission(&inner, &channel).await;
             finalize(
                 &inner,
-                &task_id,
+                &spec,
                 TaskStatus::Failed,
                 Some("claude child stdout missing"),
                 None,
@@ -425,7 +473,7 @@ async fn run_one(inner: Arc<Inner>, spec: TaskSpec, cancel: Arc<Notify>) {
     release_admission(&inner, &channel).await;
     finalize(
         &inner,
-        &task_id,
+        &spec,
         status,
         error.as_deref(),
         Some(final_output.as_str()),
@@ -637,18 +685,34 @@ async fn update_status_started(pool: &SqlitePool, task_id: &str, started_at: i64
     {
         tracing::warn!(error = %e, task_id, "update_status_started failed");
     }
+    write_task_json(
+        task_id,
+        None,
+        None,
+        None,
+        None,
+        "running",
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        Some(started_at),
+    );
 }
 
 #[allow(clippy::too_many_arguments)]
 async fn finalize(
     inner: &Inner,
-    task_id: &str,
+    spec: &TaskSpec,
     status: TaskStatus,
     error: Option<&str>,
     output: Option<&str>,
     exit_code: Option<i32>,
     duration_sec: Option<f64>,
 ) {
+    let task_id = &spec.task_id;
     let now = chrono::Utc::now().timestamp();
     if let Err(e) = sqlx::query(
         "UPDATE route_executions
@@ -666,15 +730,125 @@ async fn finalize(
     .bind(exit_code)
     .bind(duration_sec)
     .bind(now)
-    .bind(task_id)
+    .bind(task_id.as_str())
     .execute(&inner.pool)
     .await
     {
         tracing::warn!(error = %e, task_id, "finalize update failed");
     }
+    write_task_json(
+        task_id.as_str(),
+        spec.company_id.as_deref(),
+        Some(&spec.channel),
+        Some(&spec.sender_id),
+        Some(&spec.prompt),
+        status.as_str(),
+        output,
+        error,
+        None,
+        exit_code,
+        duration_sec,
+        None,
+        None,
+    );
     inner
         .sse
         .publish(TaskEvent::update(task_id, status.as_str()));
+
+    // V27-F1: send result callback if this was a forwarded task.
+    fire_callback(spec, status, output, error, exit_code, duration_sec);
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn write_task_json(
+    task_id: &str,
+    company_id: Option<&str>,
+    channel: Option<&str>,
+    sender_id: Option<&str>,
+    prompt: Option<&str>,
+    status: &str,
+    output: Option<&str>,
+    error: Option<&str>,
+    assigned_pc: Option<&str>,
+    exit_code: Option<i32>,
+    duration_sec: Option<f64>,
+    created_at: Option<i64>,
+    started_at: Option<i64>,
+) {
+    let musu_home = if let Ok(s) = std::env::var("MUSU_HOME") {
+        std::path::PathBuf::from(s)
+    } else {
+        let home = std::env::var("HOME")
+            .or_else(|_| std::env::var("USERPROFILE"))
+            .unwrap_or_else(|_| ".".into());
+        std::path::PathBuf::from(home).join(".musu")
+    };
+
+    let tasks_dir = musu_home.join("tasks");
+    if let Err(e) = std::fs::create_dir_all(&tasks_dir) {
+        tracing::warn!("Failed to create tasks dir {}: {}", tasks_dir.display(), e);
+        return;
+    }
+
+    let file_path = tasks_dir.join(format!("{}.json", task_id));
+
+    let mut json_val = if file_path.exists() {
+        if let Ok(data) = std::fs::read_to_string(&file_path) {
+            serde_json::from_str::<serde_json::Value>(&data).unwrap_or_else(|_| serde_json::json!({}))
+        } else {
+            serde_json::json!({})
+        }
+    } else {
+        serde_json::json!({})
+    };
+
+    if let Some(obj) = json_val.as_object_mut() {
+        obj.insert("task_id".to_string(), serde_json::json!(task_id));
+        obj.insert("status".to_string(), serde_json::json!(status));
+        obj.insert("updated_at".to_string(), serde_json::json!(chrono::Utc::now().timestamp()));
+
+        if let Some(val) = company_id {
+            obj.insert("company_id".to_string(), serde_json::json!(val));
+        }
+        if let Some(val) = channel {
+            obj.insert("channel".to_string(), serde_json::json!(val));
+        }
+        if let Some(val) = sender_id {
+            obj.insert("sender_id".to_string(), serde_json::json!(val));
+        }
+        if let Some(val) = prompt {
+            obj.insert("prompt".to_string(), serde_json::json!(val));
+        }
+        if let Some(val) = output {
+            obj.insert("output".to_string(), serde_json::json!(val));
+        }
+        if let Some(val) = error {
+            obj.insert("error".to_string(), serde_json::json!(val));
+        }
+        if let Some(val) = assigned_pc {
+            obj.insert("assigned_pc".to_string(), serde_json::json!(val));
+        }
+        if let Some(val) = exit_code {
+            obj.insert("exit_code".to_string(), serde_json::json!(val));
+        }
+        if let Some(val) = duration_sec {
+            obj.insert("duration_sec".to_string(), serde_json::json!(val));
+        }
+        if let Some(val) = created_at {
+            obj.insert("created_at".to_string(), serde_json::json!(val));
+        } else if obj.get("created_at").is_none() {
+            obj.insert("created_at".to_string(), serde_json::json!(chrono::Utc::now().timestamp()));
+        }
+        if let Some(val) = started_at {
+            obj.insert("started_at".to_string(), serde_json::json!(val));
+        }
+    }
+
+    if let Ok(data) = serde_json::to_string_pretty(&json_val) {
+        if let Err(e) = std::fs::write(&file_path, data) {
+            tracing::warn!("Failed to write task json to {}: {}", file_path.display(), e);
+        }
+    }
 }
 
 /// Registry guard: removes the task entry on drop so JoinHandles never leak.
@@ -871,6 +1045,8 @@ mod tests {
                 model: None,
                 timeout_sec: Some(10),
                 adapter_type: "claude".into(),
+                callback_url: None,
+                source_task_id: None,
             })
             .await
             .unwrap();
@@ -902,6 +1078,8 @@ exit 2"#
                 model: None,
                 timeout_sec: Some(10),
                 adapter_type: "claude".into(),
+                callback_url: None,
+                source_task_id: None,
             })
             .await
             .unwrap();
@@ -934,6 +1112,8 @@ printf '{"type":"result","result":"ok","is_error":false}\n'"#
                 model: None,
                 timeout_sec: Some(120),
                 adapter_type: "claude".into(),
+                callback_url: None,
+                source_task_id: None,
             })
             .await
             .unwrap();
@@ -972,6 +1152,8 @@ printf '{"type":"result","result":"ok","is_error":false}\n'"#
                     model: None,
                     timeout_sec: Some(10),
                     adapter_type: "claude".into(),
+                    callback_url: None,
+                    source_task_id: None,
                 })
                 .await
                 .unwrap();
@@ -1011,6 +1193,8 @@ printf '{"type":"result","result":"ok","is_error":false}\n'"#
                     model: None,
                     timeout_sec: Some(10),
                     adapter_type: "claude".into(),
+                    callback_url: None,
+                    source_task_id: None,
                 })
                 .await
                 .unwrap();
@@ -1044,6 +1228,8 @@ printf '{"type":"result","result":"ok","is_error":false}\n'"#
                     model: None,
                     timeout_sec: Some(10),
                     adapter_type: "claude".into(),
+                    callback_url: None,
+                    source_task_id: None,
                 })
                 .await
                 .unwrap();

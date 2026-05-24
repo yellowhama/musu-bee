@@ -10,14 +10,14 @@ interface NodeCardProps {
 
 const STATUS_COLOR = {
   online: "#22c55e",
-  stale: "#FFD166",
-  offline: "rgba(253,252,240,0.25)",
-  unknown: "rgba(253,252,240,0.18)",
+  stale: "#FFA602",
+  offline: "rgba(253,251,247,0.25)",
+  unknown: "rgba(253,251,247,0.18)",
 };
 
 const STATUS_BORDER = {
   online: "rgba(34,197,94,0.25)",
-  stale: "rgba(255,209,102,0.2)",
+  stale: "rgba(255,166,2,0.2)",
   offline: "rgba(255,255,255,0.07)",
   unknown: "rgba(255,255,255,0.07)",
 };
@@ -59,9 +59,9 @@ export function NodeCard({ node, selected, onSelect }: NodeCardProps) {
         display: "block",
         width: "100%",
         textAlign: "left",
-        background: selected ? "rgba(255,209,102,0.06)" : "rgba(255,255,255,0.03)",
+        background: selected ? "rgba(255,166,2,0.06)" : "rgba(255,255,255,0.03)",
         border: selected
-          ? "2px solid #FFD166"
+          ? "2px solid #FFA602"
           : `1px solid ${STATUS_BORDER[ns]}`,
         borderRadius: "12px",
         padding: "14px 16px",
@@ -84,7 +84,7 @@ export function NodeCard({ node, selected, onSelect }: NodeCardProps) {
           style={{
             fontWeight: 700,
             fontSize: "13px",
-            color: "#FDFCF0",
+            color: "#FDFBF7",
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
@@ -94,18 +94,18 @@ export function NodeCard({ node, selected, onSelect }: NodeCardProps) {
         </span>
       </div>
       {node.machine_group && (
-        <div style={{ fontSize: "11px", color: "rgba(253,252,240,0.35)", marginBottom: "4px" }}>
+        <div style={{ fontSize: "11px", color: "rgba(253,251,247,0.35)", marginBottom: "4px" }}>
           {node.machine_group}
         </div>
       )}
-      <div style={{ fontSize: "11px", color: "rgba(253,252,240,0.3)" }}>
+      <div style={{ fontSize: "11px", color: "rgba(253,251,247,0.3)" }}>
         {relativeTime(node.last_seen)}
       </div>
       {node.public_url && (
         <div
           style={{
             fontSize: "10px",
-            color: "rgba(253,252,240,0.2)",
+            color: "rgba(253,251,247,0.2)",
             fontFamily: "var(--font-jetbrains), monospace",
             marginTop: "4px",
             overflow: "hidden",

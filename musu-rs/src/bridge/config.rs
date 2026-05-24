@@ -50,6 +50,17 @@ pub struct BridgeConfig {
     pub rate_limit_per_min: u32,
     /// wiki/491 §4 C-SEC-8 plaintext-LAN gate.
     pub allow_plaintext_lan: bool,
+    /// V27: directories exposed via /api/files. Comma-separated.
+    /// Empty = file API disabled.
+    pub file_serve_roots: Vec<PathBuf>,
+    /// V27: allow write operations (upload, delete, mkdir) via file API.
+    pub file_serve_writable: bool,
+    /// V27-F6: Enable TLS for the bridge server.
+    pub tls_enabled: bool,
+    /// V27-F6: Path to TLS certificate.
+    pub tls_cert_path: Option<PathBuf>,
+    /// V27-F6: Path to TLS key.
+    pub tls_key_path: Option<PathBuf>,
 }
 
 impl BridgeConfig {
@@ -82,10 +93,12 @@ impl BridgeConfig {
         let peer_token = env::var("MUSU_TOKEN").ok().filter(|t| !t.is_empty());
 
         let bridge_host = env::var("BRIDGE_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
+        // Port 0 = OS assigns a free port dynamically.
+        // Set BRIDGE_PORT=8070 (or any fixed port) for production / remote peer access.
         let bridge_port: u16 = env::var("BRIDGE_PORT")
             .ok()
             .and_then(|p| p.parse().ok())
-            .unwrap_or(8070);
+            .unwrap_or(0);
         let python_facade_port: u16 = env::var("MUSU_PYTHON_BRIDGE_PORT")
             .ok()
             .and_then(|p| p.parse().ok())
@@ -155,6 +168,39 @@ impl BridgeConfig {
             );
         }
 
+        // V27: merge shares.toml into file_serve_roots so `musu share`
+        // directories are auto-served without touching env vars.
+        let shares_home = nodes_toml_path
+            .parent()
+            .unwrap_or_else(|| std::path::Path::new("."));
+        let shares = crate::install::shares::SharesConfig::load(shares_home);
+
+        let mut file_serve_roots: Vec<PathBuf> = env::var("MUSU_FILE_SERVE_ROOTS")
+            .unwrap_or_default()
+            .split(',')
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty())
+            .map(PathBuf::from)
+            .collect();
+        for root in shares.roots() {
+            if !file_serve_roots.contains(&root) {
+                file_serve_roots.push(root);
+            }
+        }
+
+        let file_serve_writable = matches!(
+            env::var("MUSU_FILE_SERVE_WRITABLE").as_deref(),
+            Ok("1") | Ok("true") | Ok("yes")
+        ) || shares.any_writable();
+
+        // V27-F6: TLS configuration.
+        let tls_enabled = matches!(
+            env::var("MUSU_TLS").as_deref(),
+            Ok("1") | Ok("true") | Ok("yes")
+        );
+        let tls_cert_path = env::var("MUSU_TLS_CERT").ok().map(PathBuf::from);
+        let tls_key_path = env::var("MUSU_TLS_KEY").ok().map(PathBuf::from);
+
         Ok(Self {
             bridge_host,
             bridge_port,
@@ -171,6 +217,11 @@ impl BridgeConfig {
             rate_limit_disabled,
             rate_limit_per_min,
             allow_plaintext_lan,
+            file_serve_roots,
+            file_serve_writable,
+            tls_enabled,
+            tls_cert_path,
+            tls_key_path,
         })
     }
 }
@@ -204,6 +255,11 @@ mod tests {
             "MUSU_DISABLE_RATE_LIMIT",
             "MUSU_BRIDGE_LOCALHOST_AUTH",
             "MUSU_ALLOW_PLAINTEXT_LAN",
+            "MUSU_FILE_SERVE_ROOTS",
+            "MUSU_FILE_SERVE_WRITABLE",
+            "MUSU_TLS",
+            "MUSU_TLS_CERT",
+            "MUSU_TLS_KEY",
         ] {
             env::remove_var(var);
         }

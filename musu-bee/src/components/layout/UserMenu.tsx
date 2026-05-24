@@ -20,8 +20,8 @@ export function UserAvatar({ email, displayName, avatarUrl, size = 28 }: { email
         width: size,
         height: size,
         borderRadius: "50%",
-        background: "#FFD166",
-        color: "#2D1D19",
+        background: "#FFA602",
+        color: "#432c1c",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -94,8 +94,8 @@ export function UserMenu({ email, displayName, avatarUrl }: UserMenuProps) {
             marginTop: 8,
             minWidth: 180,
             borderRadius: 12,
-            border: "1px solid rgba(255,209,102,0.2)",
-            background: "var(--musu-color-brand-ink, #2D1D19)",
+            border: "1px solid rgba(255,166,2,0.2)",
+            background: "var(--musu-color-brand-ink, #432c1c)",
             padding: "4px 0",
             boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
           }}
@@ -107,7 +107,7 @@ export function UserMenu({ email, displayName, avatarUrl }: UserMenuProps) {
           >
             Account
           </a>
-          <div style={{ margin: "4px 0", borderTop: "1px solid rgba(255,209,102,0.1)" }} />
+          <div style={{ margin: "4px 0", borderTop: "1px solid rgba(255,166,2,0.1)" }} />
           <button
             onClick={() => { /* sign out not available in musu-bee */ }}
             style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 16px", fontSize: 13, color: "var(--fg2)", background: "none", border: "none", cursor: "pointer", width: "100%", textAlign: "left" }}

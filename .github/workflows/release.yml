@@ -100,3 +100,4 @@ jobs:
           files: |
             dist/*
             install.sh
+            install.ps1

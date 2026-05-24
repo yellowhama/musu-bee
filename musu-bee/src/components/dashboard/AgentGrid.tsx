@@ -25,7 +25,7 @@ const MODELS = [
 
 const AGENT_DOT: Record<string, string> = {
   active: "#22c55e",
-  paused: "rgba(253,252,240,0.2)",
+  paused: "rgba(253,251,247,0.2)",
   error: "#ff6b6b",
 };
 
@@ -104,7 +104,7 @@ export function AgentGrid({ agents, loading, error, onAgentUpdated }: AgentGridP
       }}
     >
       {displayAgents.length === 0 && !loading && !error && (
-        <div style={{ gridColumn: "1 / -1", fontSize: "11px", color: "rgba(253,252,240,0.3)", padding: "8px 0" }}>
+        <div style={{ gridColumn: "1 / -1", fontSize: "11px", color: "rgba(253,251,247,0.3)", padding: "8px 0" }}>
           No agents registered
         </div>
       )}
@@ -122,7 +122,7 @@ export function AgentGrid({ agents, loading, error, onAgentUpdated }: AgentGridP
             style={{
               background: "rgba(255,255,255,0.03)",
               border: isEditing
-                ? "1px solid rgba(255,209,102,0.4)"
+                ? "1px solid rgba(255,166,2,0.4)"
                 : "1px solid rgba(255,255,255,0.06)",
               borderRadius: "10px",
               padding: "12px",
@@ -151,14 +151,14 @@ export function AgentGrid({ agents, loading, error, onAgentUpdated }: AgentGridP
                 style={{
                   fontSize: "13px",
                   fontWeight: 700,
-                  color: "#FDFCF0",
+                  color: "#FDFBF7",
                   fontFamily: "var(--font-jetbrains), monospace",
                 }}
               >
                 {label}
               </span>
               {isScoped && (
-                <span style={{ fontSize: "9px", color: "rgba(255,209,102,0.5)", fontWeight: 600 }}>
+                <span style={{ fontSize: "9px", color: "rgba(255,166,2,0.5)", fontWeight: 600 }}>
                   CO
                 </span>
               )}
@@ -178,7 +178,7 @@ export function AgentGrid({ agents, loading, error, onAgentUpdated }: AgentGridP
                     marginLeft: "auto",
                     background: "none",
                     border: "none",
-                    color: "rgba(253,252,240,0.25)",
+                    color: "rgba(253,251,247,0.25)",
                     cursor: "pointer",
                     fontSize: "11px",
                     padding: "0 2px",
@@ -194,7 +194,7 @@ export function AgentGrid({ agents, loading, error, onAgentUpdated }: AgentGridP
             <span
               style={{
                 fontSize: "10px",
-                color: "rgba(253,252,240,0.35)",
+                color: "rgba(253,251,247,0.35)",
                 textTransform: "uppercase",
                 letterSpacing: "0.08em",
               }}
@@ -207,7 +207,7 @@ export function AgentGrid({ agents, loading, error, onAgentUpdated }: AgentGridP
               <span
                 style={{
                   fontSize: "10px",
-                  color: "rgba(253,252,240,0.4)",
+                  color: "rgba(253,251,247,0.4)",
                   fontFamily: "var(--font-jetbrains), monospace",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -237,7 +237,7 @@ export function AgentGrid({ agents, loading, error, onAgentUpdated }: AgentGridP
                     background: "rgba(255,255,255,0.05)",
                     border: "1px solid rgba(255,255,255,0.1)",
                     borderRadius: "5px",
-                    color: "#FDFCF0",
+                    color: "#FDFBF7",
                     fontSize: "11px",
                     padding: "4px 8px",
                     fontFamily: "inherit",
@@ -250,10 +250,10 @@ export function AgentGrid({ agents, loading, error, onAgentUpdated }: AgentGridP
                   value={editing.model}
                   onChange={(e) => setEditing({ ...editing, model: e.target.value })}
                   style={{
-                    background: "#2D1D19",
+                    background: "#432c1c",
                     border: "1px solid rgba(255,255,255,0.1)",
                     borderRadius: "5px",
-                    color: "#FDFCF0",
+                    color: "#FDFBF7",
                     fontSize: "11px",
                     padding: "4px 8px",
                     fontFamily: "var(--font-jetbrains), monospace",
@@ -264,7 +264,7 @@ export function AgentGrid({ agents, loading, error, onAgentUpdated }: AgentGridP
                 >
                   <option value="">— model —</option>
                   {MODELS.map((m) => (
-                    <option key={m} value={m} style={{ background: "#2D1D19" }}>
+                    <option key={m} value={m} style={{ background: "#432c1c" }}>
                       {m}
                     </option>
                   ))}
@@ -282,10 +282,10 @@ export function AgentGrid({ agents, loading, error, onAgentUpdated }: AgentGridP
                     onClick={() => void saveEdit(agentId)}
                     style={{
                       flex: 1,
-                      background: "rgba(255,209,102,0.1)",
-                      border: "1px solid rgba(255,209,102,0.3)",
+                      background: "rgba(255,166,2,0.1)",
+                      border: "1px solid rgba(255,166,2,0.3)",
                       borderRadius: "5px",
-                      color: "#FFD166",
+                      color: "#FFA602",
                       fontSize: "11px",
                       fontWeight: 700,
                       cursor: editing.saving ? "wait" : "pointer",
@@ -302,7 +302,7 @@ export function AgentGrid({ agents, loading, error, onAgentUpdated }: AgentGridP
                       background: "rgba(255,255,255,0.04)",
                       border: "1px solid rgba(255,255,255,0.08)",
                       borderRadius: "5px",
-                      color: "rgba(253,252,240,0.5)",
+                      color: "rgba(253,251,247,0.5)",
                       fontSize: "11px",
                       cursor: "pointer",
                       padding: "4px 0",

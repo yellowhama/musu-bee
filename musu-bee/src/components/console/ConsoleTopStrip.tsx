@@ -27,9 +27,9 @@ function nodeAge(lastSeen: string | null | undefined): "online" | "stale" | "off
 
 const NODE_DOT_COLOR: Record<string, string> = {
   online: "#22c55e",
-  stale: "#FFD166",
-  offline: "rgba(253,252,240,0.2)",
-  unknown: "rgba(253,252,240,0.15)",
+  stale: "#FFA602",
+  offline: "rgba(253,251,247,0.2)",
+  unknown: "rgba(253,251,247,0.15)",
 };
 
 export function ConsoleTopStrip({
@@ -45,7 +45,7 @@ export function ConsoleTopStrip({
   const onlineNode = nodes.find((n) => (n.health_status ?? nodeAge(n.last_seen)) === "online");
   const displayNode = onlineNode ?? nodes[0] ?? null;
   const displayStatus = displayNode ? (displayNode.health_status ?? nodeAge(displayNode.last_seen)) : "unknown";
-  const dotColor = NODE_DOT_COLOR[displayStatus] ?? "rgba(253,252,240,0.2)";
+  const dotColor = NODE_DOT_COLOR[displayStatus] ?? "rgba(253,251,247,0.2)";
 
   return (
     <div
@@ -56,7 +56,7 @@ export function ConsoleTopStrip({
         justifyContent: "space-between",
         padding: "0 16px",
         borderBottom: "1px solid var(--console-sidebar-border, rgba(255,255,255,0.07))",
-        background: "var(--console-sidebar-bg, #2D1D19)",
+        background: "var(--console-sidebar-bg, #432c1c)",
         flexShrink: 0,
       }}
     >
@@ -67,7 +67,7 @@ export function ConsoleTopStrip({
         style={{
           background: "none",
           border: "none",
-          color: "var(--console-sidebar-text, rgba(253,252,240,0.7))",
+          color: "var(--console-sidebar-text, rgba(253,251,247,0.7))",
           cursor: "pointer",
           padding: "4px",
           borderRadius: "4px",
@@ -96,7 +96,7 @@ export function ConsoleTopStrip({
             <span
               style={{
                 fontSize: "12px",
-                color: "var(--console-sidebar-text, rgba(253,252,240,0.7))",
+                color: "var(--console-sidebar-text, rgba(253,251,247,0.7))",
                 fontWeight: 600,
                 fontFamily: "var(--font-mono)",
               }}
@@ -105,7 +105,7 @@ export function ConsoleTopStrip({
             </span>
           </>
         ) : (
-          <span style={{ fontSize: "12px", color: "var(--console-sidebar-text, rgba(253,252,240,0.7))", opacity: 0.4 }}>
+          <span style={{ fontSize: "12px", color: "var(--console-sidebar-text, rgba(253,251,247,0.7))", opacity: 0.4 }}>
             No nodes connected
           </span>
         )}
@@ -127,7 +127,7 @@ export function ConsoleTopStrip({
             border: "1px solid var(--console-sidebar-border, rgba(255,255,255,0.07))",
             borderRadius: "5px",
             padding: "2px 7px",
-            color: "var(--console-sidebar-text, rgba(253,252,240,0.7))",
+            color: "var(--console-sidebar-text, rgba(253,251,247,0.7))",
             opacity: 0.5,
             fontSize: "11px",
             fontFamily: "var(--font-mono)",

@@ -36,7 +36,8 @@ function parsePlan(msgId: string, text: string): MessagePlan | null {
 }
 
 const WS_BASE =
-  process.env.NEXT_PUBLIC_MUSU_PORT_WS_URL ?? "ws://localhost:1355";
+  process.env.NEXT_PUBLIC_MUSU_PORT_WS_URL ??
+  (process.env.NEXT_PUBLIC_BRIDGE_PORT ? `ws://localhost:${process.env.NEXT_PUBLIC_BRIDGE_PORT}` : "ws://localhost:1355");
 
 const WS_REMOTE_BASE =
   process.env.NEXT_PUBLIC_MUSU_PORT_WS_REMOTE_URL ?? null;

@@ -35,7 +35,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
       style={{
         fontSize: "11px",
         fontWeight: 800,
-        color: "rgba(253,252,240,0.35)",
+        color: "rgba(253,251,247,0.35)",
         textTransform: "uppercase" as const,
         letterSpacing: "0.1em",
         marginBottom: "10px",
@@ -364,7 +364,7 @@ export default function DashboardClient({ nodes }: Props) {
         display: "flex",
         flexDirection: "column",
         gap: "28px",
-        color: "#FDFCF0",
+        color: "#FDFBF7",
         fontFamily: "system-ui, -apple-system, sans-serif",
         paddingBottom: "calc(48px + env(safe-area-inset-bottom))",
       }}
@@ -390,22 +390,22 @@ export default function DashboardClient({ nodes }: Props) {
             gap: "12px",
           }}>
             <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
-              <span style={{ color: "rgba(253,252,240,0.5)", fontSize: "12px" }}>
-                <span style={{ color: online > 0 ? "#22c55e" : "rgba(253,252,240,0.3)", fontWeight: 700 }}>{online}</span>
-                <span style={{ color: "rgba(253,252,240,0.3)" }}>/{nodes.length} nodes online</span>
+              <span style={{ color: "rgba(253,251,247,0.5)", fontSize: "12px" }}>
+                <span style={{ color: online > 0 ? "#22c55e" : "rgba(253,251,247,0.3)", fontWeight: 700 }}>{online}</span>
+                <span style={{ color: "rgba(253,251,247,0.3)" }}>/{nodes.length} nodes online</span>
               </span>
-              <span style={{ color: "rgba(253,252,240,0.5)", fontSize: "12px" }}>
-                <span style={{ color: activeAgents > 0 ? "#FFD166" : "rgba(253,252,240,0.3)", fontWeight: 700 }}>{activeAgents}</span>
-                <span style={{ color: "rgba(253,252,240,0.3)" }}>/{CANONICAL_TEAM_SIZE} team active</span>
+              <span style={{ color: "rgba(253,251,247,0.5)", fontSize: "12px" }}>
+                <span style={{ color: activeAgents > 0 ? "#FFA602" : "rgba(253,251,247,0.3)", fontWeight: 700 }}>{activeAgents}</span>
+                <span style={{ color: "rgba(253,251,247,0.3)" }}>/{CANONICAL_TEAM_SIZE} team active</span>
               </span>
               {tasks.length > 0 && (
-                <span style={{ color: "rgba(253,252,240,0.3)", fontSize: "12px" }}>
+                <span style={{ color: "rgba(253,251,247,0.3)", fontSize: "12px" }}>
                   {`${tasks.length} tasks`}
                 </span>
               )}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <span style={{ color: "rgba(253,252,240,0.2)", fontSize: "11px" }}>
+              <span style={{ color: "rgba(253,251,247,0.2)", fontSize: "11px" }}>
                 {lastRefresh ? `updated ${relativeTime(lastRefresh.toISOString())}` : ""}
               </span>
               <button
@@ -415,7 +415,7 @@ export default function DashboardClient({ nodes }: Props) {
                   border: "1px solid rgba(255,255,255,0.1)",
                   borderRadius: "8px",
                   padding: "5px 12px",
-                  color: "rgba(253,252,240,0.5)",
+                  color: "rgba(253,251,247,0.5)",
                   fontSize: "11px",
                   cursor: "pointer",
                   fontFamily: "inherit",
@@ -448,11 +448,11 @@ export default function DashboardClient({ nodes }: Props) {
               textAlign: "center",
             }}
           >
-            <div style={{ color: "rgba(253,252,240,0.4)", fontSize: "14px", marginBottom: "10px" }}>
+            <div style={{ color: "rgba(253,251,247,0.4)", fontSize: "14px", marginBottom: "10px" }}>
               No nodes connected
             </div>
-            <code style={{ color: "#FFD166", fontSize: "12px" }}>musu-bridge start</code>
-            <span style={{ color: "rgba(253,252,240,0.3)", fontSize: "12px" }}> to connect</span>
+            <code style={{ color: "#FFA602", fontSize: "12px" }}>musu-bridge start</code>
+            <span style={{ color: "rgba(253,251,247,0.3)", fontSize: "12px" }}> to connect</span>
           </div>
         ) : (
           <div
@@ -487,12 +487,12 @@ export default function DashboardClient({ nodes }: Props) {
                         borderRadius: "50%",
                         flexShrink: 0,
                         background: wd
-                          ? (wd.connectsd_ok ? "#22c55e" : "rgba(253,252,240,0.2)")
-                          : "rgba(253,252,240,0.1)",
+                          ? (wd.connectsd_ok ? "#22c55e" : "rgba(253,251,247,0.2)")
+                          : "rgba(253,251,247,0.1)",
                         display: "inline-block",
                       }}
                     />
-                    <span style={{ fontSize: "10px", color: "rgba(253,252,240,0.25)", flexShrink: 0 }}>
+                    <span style={{ fontSize: "10px", color: "rgba(253,251,247,0.25)", flexShrink: 0 }}>
                       {wd ? (wd.connectsd_ok ? "sidecar" : "no sidecar") : "…"}
                     </span>
                     {canStart && (
@@ -522,10 +522,10 @@ export default function DashboardClient({ nodes }: Props) {
                         style={{
                           marginLeft: "auto",
                           background: "transparent",
-                          border: "1px solid rgba(255,209,102,0.3)",
+                          border: "1px solid rgba(255,166,2,0.3)",
                           borderRadius: "5px",
                           padding: "2px 8px",
-                          color: "rgba(255,209,102,0.7)",
+                          color: "rgba(255,166,2,0.7)",
                           fontSize: "10px",
                           cursor: cmdInFlight ? "wait" : "pointer",
                           fontFamily: "inherit",
@@ -544,7 +544,7 @@ export default function DashboardClient({ nodes }: Props) {
                           border: "1px solid rgba(255,255,255,0.1)",
                           borderRadius: "5px",
                           padding: "2px 8px",
-                          color: "rgba(253,252,240,0.35)",
+                          color: "rgba(253,251,247,0.35)",
                           fontSize: "10px",
                           cursor: cmdInFlight ? "wait" : "pointer",
                           fontFamily: "inherit",
@@ -565,7 +565,7 @@ export default function DashboardClient({ nodes }: Props) {
                         border: `1px solid ${updState === "ok" ? "rgba(34,197,94,0.4)" : updState === "error" ? "rgba(239,68,68,0.4)" : "rgba(255,255,255,0.08)"}`,
                         borderRadius: "5px",
                         padding: "2px 8px",
-                        color: updState === "ok" ? "#22c55e" : updState === "error" ? "#ef4444" : "rgba(253,252,240,0.25)",
+                        color: updState === "ok" ? "#22c55e" : updState === "error" ? "#ef4444" : "rgba(253,251,247,0.25)",
                         fontSize: "10px",
                         cursor: updState === "updating" ? "wait" : "pointer",
                         fontFamily: "inherit",
@@ -592,9 +592,9 @@ export default function DashboardClient({ nodes }: Props) {
               style={{
                 padding: "2px 10px",
                 borderRadius: "5px",
-                border: activeTab === tab ? "1px solid rgba(255,209,102,0.4)" : "1px solid rgba(255,255,255,0.08)",
-                background: activeTab === tab ? "rgba(255,209,102,0.08)" : "transparent",
-                color: activeTab === tab ? "#FFD166" : "rgba(253,252,240,0.35)",
+                border: activeTab === tab ? "1px solid rgba(255,166,2,0.4)" : "1px solid rgba(255,255,255,0.08)",
+                background: activeTab === tab ? "rgba(255,166,2,0.08)" : "transparent",
+                color: activeTab === tab ? "#FFA602" : "rgba(253,251,247,0.35)",
                 fontSize: "11px",
                 fontWeight: 800,
                 textTransform: "uppercase" as const,
@@ -629,7 +629,7 @@ export default function DashboardClient({ nodes }: Props) {
                 }}
               >
                 {[
-                  { label: "Total", value: costSummary.total_requests, color: "rgba(253,252,240,0.7)" },
+                  { label: "Total", value: costSummary.total_requests, color: "rgba(253,251,247,0.7)" },
                   { label: "Done", value: costSummary.by_status["done"] ?? 0, color: "#22c55e" },
                   { label: "Failed", value: costSummary.by_status["failed"] ?? 0, color: "#ff6b6b" },
                 ].map(({ label, value, color }) => (
@@ -643,7 +643,7 @@ export default function DashboardClient({ nodes }: Props) {
                       minWidth: 80,
                     }}
                   >
-                    <div style={{ fontSize: "11px", color: "rgba(253,252,240,0.35)", marginBottom: 2 }}>{label}</div>
+                    <div style={{ fontSize: "11px", color: "rgba(253,251,247,0.35)", marginBottom: 2 }}>{label}</div>
                     <div style={{ fontSize: "20px", fontWeight: 700, color }}>{value.toLocaleString()}</div>
                   </div>
                 ))}
@@ -669,7 +669,7 @@ export default function DashboardClient({ nodes }: Props) {
                           style={{
                             padding: "8px 12px",
                             textAlign: h === "Agent" ? "left" : "right",
-                            color: "rgba(253,252,240,0.35)",
+                            color: "rgba(253,251,247,0.35)",
                             fontWeight: 700,
                             fontSize: "11px",
                             textTransform: "uppercase",
@@ -687,16 +687,16 @@ export default function DashboardClient({ nodes }: Props) {
                         key={row.agent_name}
                         style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
                       >
-                        <td style={{ padding: "7px 12px", color: "#FDFCF0", fontWeight: 600 }}>
+                        <td style={{ padding: "7px 12px", color: "#FDFBF7", fontWeight: 600 }}>
                           {row.agent_name}
                         </td>
-                        <td style={{ padding: "7px 12px", textAlign: "right", color: "rgba(253,252,240,0.6)" }}>
+                        <td style={{ padding: "7px 12px", textAlign: "right", color: "rgba(253,251,247,0.6)" }}>
                           {row.total_requests}
                         </td>
                         <td style={{ padding: "7px 12px", textAlign: "right", color: "#22c55e" }}>
                           {row.done}
                         </td>
-                        <td style={{ padding: "7px 12px", textAlign: "right", color: row.failed > 0 ? "#ff6b6b" : "rgba(253,252,240,0.3)" }}>
+                        <td style={{ padding: "7px 12px", textAlign: "right", color: row.failed > 0 ? "#ff6b6b" : "rgba(253,251,247,0.3)" }}>
                           {row.failed}
                         </td>
                       </tr>
@@ -707,7 +707,7 @@ export default function DashboardClient({ nodes }: Props) {
             )}
 
             {!costSummary && (
-              <div style={{ color: "rgba(253,252,240,0.3)", fontSize: "13px", padding: "12px 0" }}>
+              <div style={{ color: "rgba(253,251,247,0.3)", fontSize: "13px", padding: "12px 0" }}>
                 No run data — select an online node to load.
               </div>
             )}
@@ -752,9 +752,9 @@ export default function DashboardClient({ nodes }: Props) {
                   fontWeight: 700,
                   color:
                     wsStatus === "connected" ? "#6fcf97"
-                    : wsStatus === "connecting" ? "#FFD166"
+                    : wsStatus === "connecting" ? "#FFA602"
                     : wsStatus === "error" ? "#ff6b6b"
-                    : "rgba(253,252,240,0.3)",
+                    : "rgba(253,251,247,0.3)",
                 }}
               >
                 ●{" "}
@@ -764,7 +764,7 @@ export default function DashboardClient({ nodes }: Props) {
                 {wsStatus === "idle" && "Idle"}
               </span>
               {wsStatus === "error" && retryCountRef.current < MAX_RETRIES && (
-                <span style={{ color: "rgba(253,252,240,0.3)", fontSize: "11px" }}>
+                <span style={{ color: "rgba(253,251,247,0.3)", fontSize: "11px" }}>
                   {`Retrying in ${RETRY_DELAY_MS / 1000}s… (${retryCountRef.current}/${MAX_RETRIES})`}
                 </span>
               )}
@@ -775,10 +775,10 @@ export default function DashboardClient({ nodes }: Props) {
                   onClick={() => { retryCountRef.current = 0; connectRelay(relayInfo, selectedNode); }}
                   style={{
                     background: "transparent",
-                    border: "1px solid #FFD166",
+                    border: "1px solid #FFA602",
                     borderRadius: "6px",
                     padding: "5px 14px",
-                    color: "#FFD166",
+                    color: "#FFA602",
                     fontSize: "12px",
                     cursor: "pointer",
                     fontFamily: "inherit",
@@ -796,7 +796,7 @@ export default function DashboardClient({ nodes }: Props) {
                     border: "1px solid rgba(255,255,255,0.12)",
                     borderRadius: "6px",
                     padding: "5px 14px",
-                    color: "rgba(253,252,240,0.4)",
+                    color: "rgba(253,251,247,0.4)",
                     fontSize: "12px",
                     cursor: "pointer",
                     fontFamily: "inherit",
@@ -810,7 +810,7 @@ export default function DashboardClient({ nodes }: Props) {
         </section>
       )}
 
-      <p style={{ textAlign: "center", color: "rgba(253,252,240,0.15)", fontSize: "11px", margin: 0 }}>
+      <p style={{ textAlign: "center", color: "rgba(253,251,247,0.15)", fontSize: "11px", margin: 0 }}>
         musu-relay → musu-bridge proxy
       </p>
     </div>

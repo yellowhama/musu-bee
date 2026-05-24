@@ -144,16 +144,16 @@ export default function ScreenPage() {
   return (
     <div style={{ padding: "24px", background: "#1a1210", minHeight: "100%" }}>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, color: "#FDFCF0", margin: 0, letterSpacing: "-0.02em" }}>
+        <h1 style={{ fontSize: 22, fontWeight: 800, color: "#FDFBF7", margin: 0, letterSpacing: "-0.02em" }}>
           Remote Screens
         </h1>
-        <p style={{ fontSize: 13, color: "rgba(253,252,240,0.4)", marginTop: 4 }}>
+        <p style={{ fontSize: 13, color: "rgba(253,251,247,0.4)", marginTop: 4 }}>
           {machines.length} machine{machines.length !== 1 ? "s" : ""} in mesh
         </p>
       </div>
 
       {loading && (
-        <div style={{ color: "rgba(253,252,240,0.3)", fontSize: 13, padding: 20 }}>Loading machines...</div>
+        <div style={{ color: "rgba(253,251,247,0.3)", fontSize: 13, padding: 20 }}>Loading machines...</div>
       )}
 
       <div style={{
@@ -166,7 +166,7 @@ export default function ScreenPage() {
             key={machine.machine}
             style={{
               background: "#261813",
-              border: `2px solid ${machine.hasOnline ? "rgba(255,209,102,0.2)" : "rgba(255,255,255,0.05)"}`,
+              border: `2px solid ${machine.hasOnline ? "rgba(255,166,2,0.2)" : "rgba(255,255,255,0.05)"}`,
               borderRadius: 16,
               overflow: "hidden",
               opacity: machine.hasOnline ? 1 : 0.4,
@@ -181,13 +181,13 @@ export default function ScreenPage() {
               justifyContent: "space-between",
             }}>
               <div>
-                <div style={{ fontSize: 17, fontWeight: 800, color: "#FDFCF0", letterSpacing: "-0.01em" }}>
+                <div style={{ fontSize: 17, fontWeight: 800, color: "#FDFBF7", letterSpacing: "-0.01em" }}>
                   {machine.machine}
                 </div>
                 {machine.gpu && (
                   <div style={{
-                    fontSize: 11, fontWeight: 700, color: "#FFD166", marginTop: 3,
-                    background: "rgba(255,209,102,0.1)", padding: "1px 8px", borderRadius: 3,
+                    fontSize: 11, fontWeight: 700, color: "#FFA602", marginTop: 3,
+                    background: "rgba(255,166,2,0.1)", padding: "1px 8px", borderRadius: 3,
                     display: "inline-block",
                   }}>
                     {machine.gpu}
@@ -230,15 +230,15 @@ export default function ScreenPage() {
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
                     <span style={{ fontSize: 14 }}>{osIcon(node.os)}</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#FDFCF0" }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#FDFBF7" }}>
                       {osLabel(node.os)}
                     </span>
                   </div>
-                  <div style={{ fontSize: 10, color: "rgba(253,252,240,0.35)", marginBottom: 4 }}>
+                  <div style={{ fontSize: 10, color: "rgba(253,251,247,0.35)", marginBottom: 4 }}>
                     {node.name}
                   </div>
                   {node.agents.length > 0 && (
-                    <div style={{ fontSize: 10, color: "rgba(253,252,240,0.3)" }}>
+                    <div style={{ fontSize: 10, color: "rgba(253,251,247,0.3)" }}>
                       {node.agents.length} agent{node.agents.length !== 1 ? "s" : ""}
                     </div>
                   )}
@@ -246,7 +246,7 @@ export default function ScreenPage() {
                     <div style={{ display: "flex", gap: 3, marginTop: 4, flexWrap: "wrap" }}>
                       {node.roles.map((r) => (
                         <span key={r} style={{
-                          fontSize: 8, fontWeight: 700, color: "rgba(253,252,240,0.5)",
+                          fontSize: 8, fontWeight: 700, color: "rgba(253,251,247,0.5)",
                           background: "rgba(255,255,255,0.05)", padding: "1px 5px", borderRadius: 2,
                           textTransform: "uppercase", letterSpacing: "0.05em",
                         }}>
@@ -270,8 +270,8 @@ export default function ScreenPage() {
                     onClick={() => handleConnect(machine.rustdesk_id)}
                     style={{
                       flex: 1,
-                      background: "#FFD166",
-                      color: "#2D1D19",
+                      background: "#FFA602",
+                      color: "#432c1c",
                       border: "none",
                       borderRadius: 8,
                       padding: "10px 0",
@@ -294,7 +294,7 @@ export default function ScreenPage() {
                     padding: "10px 0",
                     textAlign: "center",
                     fontSize: 11,
-                    color: "rgba(253,252,240,0.3)",
+                    color: "rgba(253,251,247,0.3)",
                   }}>
                     Install RustDesk on this machine to enable remote desktop
                   </div>
@@ -305,7 +305,7 @@ export default function ScreenPage() {
         ))}
 
         {machines.length === 0 && !loading && (
-          <div style={{ color: "rgba(253,252,240,0.3)", fontSize: 13, padding: 20, gridColumn: "1 / -1" }}>
+          <div style={{ color: "rgba(253,251,247,0.3)", fontSize: 13, padding: 20, gridColumn: "1 / -1" }}>
             No machines found. Check nodes in ~/.musu/nodes.toml
           </div>
         )}

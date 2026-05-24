@@ -1,16 +1,16 @@
-/* ---------- Webfonts ---------- */
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+/* ---------- Webfonts (VibeCode Town brand) ---------- */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap');
 
 :root {
-  /* ========== BRAND (SSOT) ========== */
-  --musu-color-brand-ink: #2D1D19;       /* Cocoa brown — brand ink, text on yellow */
-  --musu-color-brand-accent: #FFD166;    /* Musu yellow — single accent */
-  --musu-color-brand-canvas: #FDFCF0;    /* Warm off-white — light contexts */
+  /* ========== BRAND (SSOT — VibeCode Town design.md) ========== */
+  --musu-color-brand-ink: #432c1c;       /* Dark Coffee Brown — brand ink, text on accent */
+  --musu-color-brand-accent: #FFA602;    /* Golden Orange — single accent */
+  --musu-color-brand-canvas: #FDFBF7;    /* Warm Paper Cream — light contexts */
   --musu-color-brand-stroke: #F8F6F1;    /* Warm stroke — light contexts */
 
-  --musu-color-brand-ink-rgb: 45 29 25;
-  --musu-color-brand-accent-rgb: 255 209 102;
-  --musu-color-brand-canvas-rgb: 253 252 240;
+  --musu-color-brand-ink-rgb: 67 44 28;
+  --musu-color-brand-accent-rgb: 255 166 2;
+  --musu-color-brand-canvas-rgb: 253 251 247;
 
   /* Legacy aliases (carry over from globals.css) */
   --musu-cocoa-brown: var(--musu-color-brand-ink);
@@ -20,12 +20,12 @@
   --musu-stroke: var(--musu-color-brand-stroke);
 
   /* ========== SURFACES (dark UI) ========== */
-  --bg-base:    #1A110C;   /* Page + sidebar */
-  --bg-surface: #261811;   /* Raised panels, main area */
+  --bg-base:    #251714;   /* Deep Espresso — page + sidebar */
+  --bg-surface: #2D1D19;   /* Raised panels, main area */
   --bg-card:    rgba(255, 255, 255, 0.03);   /* Cards, list rows, chat bubbles */
-  --bg-overlay: #2D1D19;   /* Modals, dropdowns */
+  --bg-overlay: #362218;   /* Modals, dropdowns */
   --bg-hover:   #2a2a2a;   /* Hover on list rows */
-  --bg-inset:   #150D0A;
+  --bg-inset:   #1A110C;
   --bg-brand:   var(--musu-color-brand-ink);
 
   /* Backward compatibility for musu-bee components */
@@ -35,12 +35,12 @@
   --musu-bg-inset: var(--bg-inset);
 
   /* ========== TEXT ========== */
-  --fg1: #F3F4F6;    /* Primary — body, labels */
+  --fg1: #FDFBF7;    /* Warm Paper Cream — primary body text */
   --fg2: #9CA3AF;    /* Secondary — metadata, timestamps */
   --fg3: #6B7280;    /* Muted — placeholders, helpers */
   --fg4: #374151;    /* Dim — disabled, embedded dividers */
-  --fg-on-accent: #2D1D19; /* Text on yellow */
-  --fg-accent:    #FFD166;
+  --fg-on-accent: #432c1c; /* Dark Coffee on Golden Orange */
+  --fg-accent:    #FFA602;
 
   --musu-text: var(--fg1);
   --musu-text-muted: var(--fg2);
@@ -55,13 +55,13 @@
   --musu-border-subtle: var(--border-strong);
   --musu-border-dim: var(--border-subtle);
 
-  /* ========== ACCENT (Musu Yellow) ========== */
-  --accent:        #FFD166;
-  --accent-hover:  #FFC947;
-  --accent-muted:  rgba(255, 209, 102, 0.12);
-  --accent-tint:   rgba(255, 209, 102, 0.05);
-  --accent-glow:   rgba(255, 209, 102, 0.20);
-  --accent-border: rgba(255, 209, 102, 0.30);
+  /* ========== ACCENT (Golden Orange — VibeCode Town) ========== */
+  --accent:        #FFA602;
+  --accent-hover:  #D98801;
+  --accent-muted:  rgba(255, 166, 2, 0.12);
+  --accent-tint:   rgba(255, 166, 2, 0.05);
+  --accent-glow:   rgba(255, 166, 2, 0.20);
+  --accent-border: rgba(255, 166, 2, 0.30);
 
   /* ========== SEMANTIC STATUS ========== */
   --status-online:     #22C55E;
@@ -112,11 +112,11 @@
   --musu-status-error: var(--status-error);
 
   /* ========== CONSOLE SHELL (musu.pro style) ========== */
-  --console-sidebar-bg:     #2D1D19;
-  --console-sidebar-text:   rgba(253, 252, 240, 0.7);
-  --console-sidebar-active: rgba(255, 209, 102, 0.15);
+  --console-sidebar-bg:     #432c1c;
+  --console-sidebar-text:   rgba(253, 251, 247, 0.7);
+  --console-sidebar-active: rgba(255, 166, 2, 0.15);
   --console-sidebar-hover:  rgba(255, 255, 255, 0.05);
-  --console-sidebar-border: rgba(255, 209, 102, 0.12);
+  --console-sidebar-border: rgba(255, 166, 2, 0.12);
   --console-sidebar-w:      56px;
   --console-sidebar-w-expanded: 220px;
   --console-topbar-h:       48px;
@@ -124,8 +124,8 @@
   /* ========== SHADOWS ========== */
   --shadow-sm:    0 1px 2px rgba(0, 0, 0, 0.40);
   --shadow-md:    0 4px 12px rgba(0, 0, 0, 0.50);
-  --shadow-warm:  0 8px 24px rgba(45, 29, 25, 0.20);
-  --shadow-glow:  0 0 16px rgba(255, 209, 102, 0.18);
+  --shadow-warm:  0 8px 24px rgba(67, 44, 28, 0.20);
+  --shadow-glow:  0 0 16px rgba(255, 166, 2, 0.18);
 
   /* ========== RADIUS ========== */
   --radius-xs: 4px;    /* Small inline pills, inline code */
@@ -147,20 +147,20 @@
   --space-6:  24px;
   --space-8:  32px;
 
-  /* ========== NEOBRUTALIST EFFECTS (from musu.pro) ========== */
-  --neo-border:     3px solid var(--border-default);
-  --neo-shadow:     4px 4px 0px rgba(0, 0, 0, 0.6);
-  --neo-shadow-sm:  2px 2px 0px rgba(0, 0, 0, 0.4);
+  /* ========== NEOBRUTALIST EFFECTS (VibeCode Town — heavier brutalist) ========== */
+  --neo-border:     3px solid var(--musu-color-brand-ink);
+  --neo-shadow:     8px 8px 0px var(--musu-color-brand-ink);
+  --neo-shadow-sm:  4px 4px 0px rgba(67, 44, 28, 0.5);
   --neo-inset:      inset 0px 2px 6px rgba(255, 255, 255, 0.03);
-  --neo-lift:       translateY(-2px);
-  --neo-press:      translate(2px, 2px);
-  --neo-radius:     16px;
+  --neo-lift:       translateY(-3px);
+  --neo-press:      translate(4px, 4px);
+  --neo-radius:     8px;
 
-  /* ========== TYPE — FAMILIES ========== */
-  --font-ui:   'Nunito', 'Inter', -apple-system, BlinkMacSystemFont, 'Pretendard', 'Noto Sans KR', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'Menlo', monospace;
+  /* ========== TYPE — FAMILIES (VibeCode Town) ========== */
+  --font-ui:   'Inter', -apple-system, BlinkMacSystemFont, 'Pretendard', 'Noto Sans KR', system-ui, sans-serif;
+  --font-mono: 'Space Mono', ui-monospace, SFMono-Regular, 'Menlo', monospace;
   --font-jetbrains: var(--font-mono);
-  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
 
   /* ========== TYPE — SCALE ========== */
   --text-xs:   10px; /* UPPERCASE section labels, task IDs */
@@ -209,6 +209,12 @@ html, body {
   font-size: var(--text-base);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* ========== HEADING TYPOGRAPHY (VibeCode Town §3) ========== */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
 }
 
 /* ========== SEMANTIC UTILITY CLASSES ========== */

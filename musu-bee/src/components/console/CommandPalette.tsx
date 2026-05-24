@@ -197,7 +197,7 @@ export function CommandPalette({ nodes }: CommandPaletteProps) {
             borderBottom: "1px solid rgba(255,255,255,0.07)",
           }}
         >
-          <Search size={16} color="rgba(253,252,240,0.35)" style={{ flexShrink: 0 }} />
+          <Search size={16} color="rgba(253,251,247,0.35)" style={{ flexShrink: 0 }} />
           <input
             ref={inputRef}
             type="text"
@@ -209,7 +209,7 @@ export function CommandPalette({ nodes }: CommandPaletteProps) {
               background: "none",
               border: "none",
               outline: "none",
-              color: "#FDFCF0",
+              color: "#FDFBF7",
               fontSize: "14px",
               fontFamily: "inherit",
             }}
@@ -217,7 +217,7 @@ export function CommandPalette({ nodes }: CommandPaletteProps) {
           <kbd
             style={{
               fontSize: "11px",
-              color: "rgba(253,252,240,0.25)",
+              color: "rgba(253,251,247,0.25)",
               border: "1px solid rgba(255,255,255,0.1)",
               borderRadius: "4px",
               padding: "1px 5px",
@@ -236,7 +236,7 @@ export function CommandPalette({ nodes }: CommandPaletteProps) {
               style={{
                 padding: "20px",
                 textAlign: "center",
-                color: "rgba(253,252,240,0.3)",
+                color: "rgba(253,251,247,0.3)",
                 fontSize: "13px",
               }}
             >
@@ -259,8 +259,8 @@ export function CommandPalette({ nodes }: CommandPaletteProps) {
                   padding: "9px 12px",
                   borderRadius: "7px",
                   border: "none",
-                  background: isActive ? "rgba(255,209,102,0.1)" : "transparent",
-                  color: isActive ? "#FFD166" : "rgba(253,252,240,0.7)",
+                  background: isActive ? "rgba(255,166,2,0.1)" : "transparent",
+                  color: isActive ? "#FFA602" : "rgba(253,251,247,0.7)",
                   cursor: "pointer",
                   fontFamily: "inherit",
                   fontSize: "13px",
@@ -270,7 +270,7 @@ export function CommandPalette({ nodes }: CommandPaletteProps) {
               >
                 <span
                   style={{
-                    color: isActive ? "#FFD166" : "rgba(253,252,240,0.3)",
+                    color: isActive ? "#FFA602" : "rgba(253,251,247,0.3)",
                     flexShrink: 0,
                     display: "flex",
                     alignItems: "center",
@@ -285,7 +285,7 @@ export function CommandPalette({ nodes }: CommandPaletteProps) {
                   <span
                     style={{
                       fontSize: "11px",
-                      color: "rgba(253,252,240,0.25)",
+                      color: "rgba(253,251,247,0.25)",
                       fontFamily: "var(--font-jetbrains), monospace",
                       flexShrink: 0,
                     }}

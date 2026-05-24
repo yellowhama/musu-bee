@@ -35,6 +35,8 @@ use rmcp::{tool, tool_handler, tool_router, ErrorData, ServerHandler, ServiceExt
 use tokio_util::sync::CancellationToken;
 
 pub mod bridge_client;
+// V26-W13 wiki/513: MCP HTTP+SSE server (same 14 tools over HTTP).
+pub mod http_server;
 pub mod tools;
 
 use bridge_client::BridgeClient;

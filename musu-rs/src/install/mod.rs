@@ -31,6 +31,12 @@ pub mod staged_swap;
 pub mod token;
 pub mod uninstall;
 pub mod update_lock;
+// V27: CLI file-sharing + task-routing subcommands.
+#[allow(unreachable_pub)]
+pub mod cli_commands;
+pub mod shares;
+pub mod sync;
+pub mod tls;
 
 use anyhow::Result;
 use clap::Args;

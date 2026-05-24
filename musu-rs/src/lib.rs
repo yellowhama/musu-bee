@@ -25,4 +25,7 @@ pub mod install;
 // (`tests/r7_peer_register.rs`) can `use musu_rs::peer::capability::Capability`
 // etc. Same pattern as V26-W1 Commit 3 added `core::companies::AgentRecord`.
 pub mod peer;
+// V26-W9 wiki/512: workflow DAG spec + LLM DAG builder.
+pub mod workflow;
 pub mod writer;
+pub mod cloud;

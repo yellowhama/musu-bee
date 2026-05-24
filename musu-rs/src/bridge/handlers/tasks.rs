@@ -40,6 +40,16 @@ pub struct DelegateRequest {
     /// clients omitting the field get V24-R5 behavior unchanged.
     #[serde(default)]
     pub adapter_type: Option<String>,
+    /// V27: explicit target node for cross-machine routing.
+    /// If set, task is forwarded to the named peer instead of local execution.
+    #[serde(default)]
+    pub target_node: Option<String>,
+    /// V27-F4: request GPU routing.
+    #[serde(default)]
+    pub needs_gpu: bool,
+    /// V27-F4: preferred OS.
+    #[serde(default)]
+    pub prefer_os: Option<String>,
 }
 
 fn default_qa_loop_max() -> u32 {
@@ -121,6 +131,22 @@ pub async fn delegate(
     .await
     .map_err(MusuError::Sqlx)?;
 
+    crate::writer::runner::write_task_json(
+        &task_id,
+        req.company_id.as_deref(),
+        Some(&req.channel),
+        Some(&req.sender_id),
+        Some(&req.text),
+        "pending",
+        None,
+        None,
+        None,
+        None,
+        None,
+        Some(now),
+        None,
+    );
+
     // EDIT-B (wiki/495 §3.2): hand off to native runner. spawn_task returns
     // immediately (Q1 spawn-then-track). Runner owns JoinHandle + all status
     // updates. SSE delivers state transitions to subscribers.
@@ -131,27 +157,77 @@ pub async fn delegate(
         .unwrap_or_else(|| {
             std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."))
         });
-    state
-        .task_runner
-        .spawn_task(crate::writer::TaskSpec {
-            task_id: task_id.clone(),
-            company_id: req.company_id.clone(),
-            channel: req.channel.clone(),
-            sender_id: req.sender_id.clone(),
-            prompt: req.text.clone(),
-            expected_output: req.expected_output.clone(),
-            cwd,
-            model: req.model.clone(),
-            timeout_sec: req.timeout_sec,
-            // V26-W1 Commit 3 (wiki/509 §9.1): handler-side canonical
-            // default. V24-R5 clients omit the field entirely → "claude".
-            adapter_type: req
-                .adapter_type
-                .clone()
-                .unwrap_or_else(|| "claude".into()),
-        })
-        .await
-        .map_err(|e| MusuError::Internal(format!("spawn_task: {e}")))?;
+    // V27-F4: Build route hints from request fields.
+    let hints = crate::bridge::router::RouteHints {
+        needs_gpu: req.needs_gpu,
+        prefer_os: req.prefer_os.clone(),
+        prefer_least_busy: false,
+    };
+    // V27: Route decision — local or remote?
+    let decision = crate::bridge::router::route_task(&state, req.target_node.as_deref(), &hints);
+    let cross_machine = matches!(decision, crate::bridge::router::RouteDecision::Remote { .. });
+
+    match decision {
+        crate::bridge::router::RouteDecision::Local => {
+            state
+                .task_runner
+                .spawn_task(crate::writer::TaskSpec {
+                    task_id: task_id.clone(),
+                    company_id: req.company_id.clone(),
+                    channel: req.channel.clone(),
+                    sender_id: req.sender_id.clone(),
+                    prompt: req.text.clone(),
+                    expected_output: req.expected_output.clone(),
+                    cwd,
+                    model: req.model.clone(),
+                    timeout_sec: req.timeout_sec,
+                    adapter_type: req
+                        .adapter_type
+                        .clone()
+                        .unwrap_or_else(|| "claude".into()),
+                    callback_url: None,
+                    source_task_id: None,
+                })
+                .await
+                .map_err(|e| MusuError::Internal(format!("spawn_task: {e}")))?;
+        }
+        crate::bridge::router::RouteDecision::Remote { ref peer } => {
+            let forwarded = crate::bridge::handlers::forward::ForwardedTask {
+                source_node: state.config.node_name.clone(),
+                source_task_id: task_id.clone(),
+                channel: req.channel.clone(),
+                sender_id: req.sender_id.clone(),
+                text: req.text.clone(),
+                adapter_type: req.adapter_type.clone(),
+                model: req.model.clone(),
+                cwd: req.cwd.clone(),
+                deadline_unix_ms: None,
+                company_id: req.company_id.clone(),
+                timeout_sec: req.timeout_sec,
+                callback_url: Some(format!(
+                    "http://{}:{}/api/tasks/callback",
+                    state.config.bridge_host, state.config.bridge_port,
+                )),
+            };
+            match crate::bridge::handlers::forward::forward_to_peer_with_retry(
+                &state.http_client,
+                peer,
+                forwarded,
+                &state.config.token,
+                2, // max retries
+            )
+            .await
+            {
+                Ok(_resp) => {
+                    crate::bridge::router::record_success(&peer.addr);
+                }
+                Err(e) => {
+                    crate::bridge::router::record_failure(&peer.addr);
+                    return Err(MusuError::Internal(format!("forward_to_peer: {e}")));
+                }
+            }
+        }
+    }
 
     // EDIT-C (wiki/495 §3.2): audit_log write — PRESERVED unchanged from N-1
     // Auditor fix. DO NOT fold into EDIT-B.
@@ -165,6 +241,7 @@ pub async fn delegate(
             agent_id: None,
             note: Some(format!("delegate via writer-stub task_id={}", task_id)),
             company_id: req.company_id.clone(),
+            cross_machine,
         })
         .await;
 
@@ -173,4 +250,34 @@ pub async fn delegate(
         status: "queued",
     });
     Ok((StatusCode::ACCEPTED, body).into_response())
+}
+
+/// GET /api/tasks/:task_id — get task status and result.
+pub async fn get_task(
+    State(state): State<AppState>,
+    axum::extract::Path(task_id): axum::extract::Path<String>,
+) -> Result<Json<serde_json::Value>> {
+    let row = sqlx::query(
+        "SELECT task_id, status, output, error, exit_code, duration_sec, created_at, updated_at \
+         FROM route_executions WHERE task_id = ?",
+    )
+    .bind(&task_id)
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(MusuError::Sqlx)?;
+
+    match row {
+        Some(row) => {
+            use sqlx::Row;
+            Ok(Json(serde_json::json!({
+                "task_id": row.try_get::<String, _>("task_id").unwrap_or_default(),
+                "status": row.try_get::<String, _>("status").unwrap_or_default(),
+                "output": row.try_get::<Option<String>, _>("output").unwrap_or(None),
+                "error": row.try_get::<Option<String>, _>("error").unwrap_or(None),
+                "exit_code": row.try_get::<Option<i32>, _>("exit_code").unwrap_or(None),
+                "duration_sec": row.try_get::<Option<f64>, _>("duration_sec").unwrap_or(None),
+            })))
+        }
+        None => Err(MusuError::NotFound(format!("task {} not found", task_id))),
+    }
 }

@@ -228,6 +228,11 @@ mod tests {
             rate_limit_per_min: 0,
             rate_limit_disabled: true,
             allow_plaintext_lan: false,
+            tls_enabled: false,
+            tls_cert_path: None,
+            tls_key_path: None,
+            file_serve_roots: vec![],
+            file_serve_writable: false,
         };
         let cfg = Arc::new(cfg);
 
@@ -249,6 +254,7 @@ mod tests {
             dedup,
             task_runner,
             sse_broadcaster,
+            pairing: crate::bridge::handlers::pair::PairingStore::new(),
         };
 
         let auth_state = AuthState::from_config(&cfg);

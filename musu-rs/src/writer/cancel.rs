@@ -38,6 +38,7 @@ pub async fn cancel_task(
                 agent_id: None,
                 note: Some("cancel: task_id not found in live registry".into()),
                 company_id: None,
+                cross_machine: false,
             })
             .await;
         return Err(MusuError::NotFound(format!(
@@ -55,6 +56,7 @@ pub async fn cancel_task(
             agent_id: None,
             note: Some("cancel signal delivered".into()),
             company_id: None,
+            cross_machine: false,
         })
         .await;
 

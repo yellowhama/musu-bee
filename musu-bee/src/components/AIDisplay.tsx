@@ -139,7 +139,7 @@ export default function AIDisplay({ activePanel, companyId, openRequest, onOpenH
               gap: 6,
               padding: "0 12px",
               border: "none",
-              borderBottom: activeTabId === tab.id ? "2px solid var(--musu-yellow, #FFD166)" : "2px solid transparent",
+              borderBottom: activeTabId === tab.id ? "2px solid var(--musu-yellow, #FFA602)" : "2px solid transparent",
               background: activeTabId === tab.id ? "var(--bg-surface, #111)" : "transparent",
               color: activeTabId === tab.id ? "var(--fg1, #F3F4F6)" : "var(--fg3, #6B7280)",
               fontSize: 12,

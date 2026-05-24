@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const BRIDGE_URL = (process.env.MUSU_BRIDGE_URL ?? "http://localhost:8070").trim().replace(/\/+$/, "");
+
 const SERVICES: Record<string, string> = {
-  port:   (process.env.MUSU_PORT_URL   ?? "http://localhost:1355").trim().replace(/\/+$/, "") + "/health",
-  bridge: (process.env.MUSU_BRIDGE_URL ?? "http://localhost:8070").trim().replace(/\/+$/, "") + "/health",
-  worker: (process.env.MUSU_WORKER_URL ?? "http://localhost:9700").trim().replace(/\/+$/, "") + "/health",
+  port:   (process.env.MUSU_PORT_URL   ?? BRIDGE_URL).trim().replace(/\/+$/, "") + "/health",
+  bridge: BRIDGE_URL + "/health",
+  worker: (process.env.MUSU_WORKER_URL ?? BRIDGE_URL + "/worker").trim().replace(/\/+$/, "") + "/health",
 };
 
 export async function GET(req: NextRequest) {

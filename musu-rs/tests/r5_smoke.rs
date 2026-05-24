@@ -133,12 +133,12 @@ async fn r5_full_lifecycle_with_mock_claude() {
         .build()
         .expect("client build");
 
-    // 1. /health/ready — must report schema_version=2 (R5 bumped).
+    // 1. /health/ready — must report current schema_version (bumped by V3+V4 migrations).
     let ready = wait_for_ready(&client, &format!("{base}/health/ready"), &token).await;
     assert_eq!(
         ready.get("schema_version").and_then(|v| v.as_u64()),
-        Some(2),
-        "schema_version should be 2 post-R5; got: {ready}"
+        Some(4),
+        "schema_version should be 4; got: {ready}"
     );
 
     // 2. Create a company.

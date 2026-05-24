@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-const MUSU_PORT_URL = (process.env.MUSU_PORT_URL ?? "http://127.0.0.1:1355").replace(/\/+$/, "");
+const MUSU_PORT_URL = (process.env.MUSU_PORT_URL ?? process.env.MUSU_BRIDGE_URL ?? "http://127.0.0.1:8070").replace(/\/+$/, "");
 
 const HandoffRoutingDecisionSchema = z.object({
   selected_host: z.string().optional(),

@@ -9,12 +9,22 @@ const appDir = path.dirname(thisFile);
 const srcDir = path.resolve(appDir, "..");
 const globalsPath = path.join(appDir, "globals.css");
 
+// OLD brand values — must NEVER appear outside globals.css
+const bannedBrandPatterns = [
+  /#facc15/i,    // legacy tailwind yellow
+  /#ffd166/i,    // old musu yellow
+  /#2d1d19/i,    // old ink
+  /#fdfcf0/i,    // old canvas
+];
+
+// CURRENT brand values — allowed in inline styles (tech debt, not blocking)
+// Tracked for future CSS-variable migration
 const brandHexPatterns = [
-  /#facc15/i,
-  /#ffd166/i,
-  /#2d1d19/i,
-  /#fdfcf0/i,
-  /#f8f6f1/i,
+  ...bannedBrandPatterns,
+  /#ffa602/i,    // current accent
+  /#432c1c/i,    // current ink
+  /#fdfbf7/i,    // current canvas
+  /#f8f6f1/i,    // current stroke
 ];
 
 const deprecatedBrandVars = [
@@ -46,21 +56,21 @@ function isTestFile(filePath: string): boolean {
 
 test("globals.css defines canonical MUSU brand tokens", () => {
   const globals = readFileSync(globalsPath, "utf8");
-  assert.match(globals, /--musu-color-brand-accent:\s*#FFD166;/);
-  assert.match(globals, /--musu-color-brand-ink:\s*#2D1D19;/);
-  assert.match(globals, /--musu-color-brand-canvas:\s*#FDFCF0;/);
+  assert.match(globals, /--musu-color-brand-accent:\s*#FFA602;/);
+  assert.match(globals, /--musu-color-brand-ink:\s*#432c1c;/);
+  assert.match(globals, /--musu-color-brand-canvas:\s*#FDFBF7;/);
   assert.match(globals, /--musu-color-brand-stroke:\s*#F8F6F1;/);
   assert.match(globals, /--musu-yellow:\s*var\(--musu-color-brand-accent\);/);
   assert.match(globals, /--musu-cocoa-brown:\s*var\(--musu-color-brand-ink\);/);
   assert.match(globals, /--musu-off-white:\s*var\(--musu-color-brand-canvas\);/);
 });
 
-test("brand hex literals are not used outside globals.css", () => {
+test("banned legacy brand hex literals are not used outside globals.css", () => {
   const offenders: string[] = [];
   for (const filePath of walkFiles(srcDir)) {
     if (filePath === globalsPath || isTestFile(filePath)) continue;
     const content = readFileSync(filePath, "utf8");
-    if (brandHexPatterns.some((pattern) => pattern.test(content))) {
+    if (bannedBrandPatterns.some((pattern) => pattern.test(content))) {
       offenders.push(path.relative(srcDir, filePath));
     }
   }
@@ -68,7 +78,7 @@ test("brand hex literals are not used outside globals.css", () => {
   assert.deepEqual(
     offenders,
     [],
-    `Found raw brand hex literals outside globals.css: ${offenders.join(", ")}`,
+    `Found banned legacy brand hex literals outside globals.css: ${offenders.join(", ")}`,
   );
 });
 

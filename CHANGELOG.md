@@ -2,6 +2,56 @@
 
 All notable changes to MUSU are documented here.
 
+## [1.15.0] - 2026-05-23 — V26 Distributed Actor Mesh: peer-to-peer + LLM DAG + MCP HTTP + registry hardening
+
+Branch: `v26/distributed-actor`. All 6 sub-WS shipped (W1 + W7 + W12 + W9 + W13 + W10). V26 = Rust native distributed actor mesh with masterless P2P, LLM DAG builder (flywheel first spin), MCP external surface for Claude Code / Cursor, optional musu.pro registry. Single-port 8070 multiplex via axum Content-Type routing. **236 tests ALL GREEN** (190 lib + 46 integration). Clippy -D warnings clean. Closure: `docs/V26_CLOSURE_2026_05_23.html` (wiki/515).
+
+### Native Rust modules shipped (single `musu` binary, V26 additions)
+
+| Sub-WS | Wiki | Module | Tests | LOC |
+|---|---|---|---|---|
+| W1 OpenAI-compat adapter | wiki/509c | `adapter/openai_compat.rs`, `claude.rs`, `registry.rs` | lib | ~2,280 |
+| W7 peer register | wiki/510c | `peer/register.rs`, `capability.rs`, `manifest.rs`, `service.rs` | 6/6 (r7) | ~1,140 |
+| W12 deadline middleware | wiki/511c | `bridge/middleware/deadline.rs` | lib | ~380 |
+| W9 LLM DAG builder | wiki/512c | `workflow/workflow_spec.rs`, `llm_dag_builder.rs`, `handlers/workflow.rs` | 14/14 (r9) | ~3,040 |
+| W13 MCP HTTP+SSE | wiki/513c | `control/http_server.rs` | 14/14 (r13) | ~450 |
+| W10 registry hardening | wiki/514c | `peer/discovery.rs` | 12/12 (r10) | ~500 |
+
+### Added
+- **W1**: Unified Ollama/vLLM/LmStudio + Claude adapter dispatch. Axum route auto-switches by model name prefix.
+- **W7**: `musu peer register --type <type> --start "<cmd>"` worker registration with capability autodetect (Ollama HTTP probe, ComfyUI port, Script passthrough). Cross-platform service templates (systemd, LaunchAgent, Scheduled Task). Self-node manifest at `~/.musu/node.toml` with advisory file lock.
+- **W12**: `X-Musu-Deadline-Unix-Ms` header parsing + tokio `CancellationToken` propagation. 50ms buffer for graceful shutdown. Schema v3: `cross_machine` column in `audit_log`.
+- **W9**: Natural-language → workflow DAG JSON (single-pass, no human loop). §9.12 Goodhart firewall: `attestation_required = true` at type level. 8 CRUD API handlers. Schema v4: `workflows` + `workflow_steps` tables.
+- **W13**: JSON-RPC 2.0 dispatch over HTTP POST (`/mcp/v1/messages`). Same 14 tools as `musu control` stdio MCP. SSE heartbeat (`/mcp/v1/sse`). Health endpoint (`/mcp/v1/health`). Single-port 8070 merge via axum router. Bearer auth inherited.
+- **W10**: `CachedRegistry` (`~/.musu/nodes.cache.json`, TTL 7-day). `ManualPeerList` (`~/.musu/manual_peers.toml`). `resolve_all_peers()` 3-source dedup peer resolver (cache > manual > nodes.toml). 3-state mesh invariant: healthy / degraded (cached) / absent (manual). `musu peer add/remove/list` CLI commands.
+- **CHANGELOG.md** in `musu-rs/` directory (first standalone Rust-era changelog).
+- **docs/V26_W10_REGISTRY_INVARIANT.md**: 3-state mesh guarantee document.
+- **Integration test suites**: `r7_peer_register.rs` (6), `r9_workflow_dag.rs` (14), `r10_registry.rs` (12), `r13_mcp_http.rs` (14).
+
+### Changed
+- `bridge/handlers/mod.rs`: Merged workflow and MCP routers into `native_router()`.
+- `control/mod.rs`: Added `http_server` module.
+- `core/schema.rs`: v3→v4 (`cross_machine`, `workflows`, `workflow_steps`).
+- `main.rs`: Added `Peer` CLI subcommand routing.
+- `lib.rs`: Exported `peer`, `workflow` modules for test access.
+
+### Security
+- MCP HTTP endpoints inherit bridge Bearer token auth middleware.
+- Loopback-only binding default; `--mcp-bind-external` opt-in for remote.
+- §9.12 Goodhart firewall enforced at type level — DAG execution requires operator attestation.
+- W10 3-state invariant ensures no single point of failure in peer discovery.
+
+### Architectural decisions
+- **W11 gRPC REJECT**: musu scale (1.6 req/s peak) 1000× below gRPC inflection. 16-source fact-check confirmed HTTP+JSON sufficient.
+- **Single-port 8070**: axum Content-Type routing. No additional ports or services.
+- **musu.pro optional**: 3-state invariant (healthy/degraded/absent). TTL 7-day cache + manual peer add fallback.
+
+### V27 channel (measurement-gated)
+- Entry criteria: cross-machine task delegation ≥5/week over 14-day soak → V27 진입
+- 7-day soak: W9 DAG ≥3 companies added, W13 MCP ≥10 external calls, W10 offline E2E
+
+---
+
 ## [1.14.0] - 2026-05-21 — V24-Rust-cleanup: full Python → Rust migration
 
 Branch: `v24/rust-cleanup`. All 6 R-fast + R-cleanup sub-WS shipped (R0 + R1 + R2 + R3 + R4 + R5 + R6 + R7 + R8). R9 (cross-machine) deferred per GOAL.md §A.1.1 single-machine pivot. **R10 pending operator-attested gate §9.12.**
