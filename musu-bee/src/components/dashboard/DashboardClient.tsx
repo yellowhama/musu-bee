@@ -364,7 +364,7 @@ export default function DashboardClient({ nodes }: Props) {
         display: "flex",
         flexDirection: "column",
         gap: "28px",
-        color: "#FDFBF7",
+        color: "var(--fg1)",
         fontFamily: "system-ui, -apple-system, sans-serif",
         paddingBottom: "calc(48px + env(safe-area-inset-bottom))",
       }}
@@ -395,7 +395,7 @@ export default function DashboardClient({ nodes }: Props) {
                 <span style={{ color: "rgba(253,251,247,0.3)" }}>/{nodes.length} nodes online</span>
               </span>
               <span style={{ color: "rgba(253,251,247,0.5)", fontSize: "12px" }}>
-                <span style={{ color: activeAgents > 0 ? "#FFA602" : "rgba(253,251,247,0.3)", fontWeight: 700 }}>{activeAgents}</span>
+                <span style={{ color: activeAgents > 0 ? "var(--accent)" : "rgba(253,251,247,0.3)", fontWeight: 700 }}>{activeAgents}</span>
                 <span style={{ color: "rgba(253,251,247,0.3)" }}>/{CANONICAL_TEAM_SIZE} team active</span>
               </span>
               {tasks.length > 0 && (
@@ -451,7 +451,7 @@ export default function DashboardClient({ nodes }: Props) {
             <div style={{ color: "rgba(253,251,247,0.4)", fontSize: "14px", marginBottom: "10px" }}>
               No nodes connected
             </div>
-            <code style={{ color: "#FFA602", fontSize: "12px" }}>musu-bridge start</code>
+            <code style={{ color: "var(--accent)", fontSize: "12px" }}>musu-bridge start</code>
             <span style={{ color: "rgba(253,251,247,0.3)", fontSize: "12px" }}> to connect</span>
           </div>
         ) : (
@@ -594,7 +594,7 @@ export default function DashboardClient({ nodes }: Props) {
                 borderRadius: "5px",
                 border: activeTab === tab ? "1px solid rgba(255,166,2,0.4)" : "1px solid rgba(255,255,255,0.08)",
                 background: activeTab === tab ? "rgba(255,166,2,0.08)" : "transparent",
-                color: activeTab === tab ? "#FFA602" : "rgba(253,251,247,0.35)",
+                color: activeTab === tab ? "var(--accent)" : "rgba(253,251,247,0.35)",
                 fontSize: "11px",
                 fontWeight: 800,
                 textTransform: "uppercase" as const,
@@ -687,7 +687,7 @@ export default function DashboardClient({ nodes }: Props) {
                         key={row.agent_name}
                         style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
                       >
-                        <td style={{ padding: "7px 12px", color: "#FDFBF7", fontWeight: 600 }}>
+                        <td style={{ padding: "7px 12px", color: "var(--fg1)", fontWeight: 600 }}>
                           {row.agent_name}
                         </td>
                         <td style={{ padding: "7px 12px", textAlign: "right", color: "rgba(253,251,247,0.6)" }}>
@@ -752,7 +752,7 @@ export default function DashboardClient({ nodes }: Props) {
                   fontWeight: 700,
                   color:
                     wsStatus === "connected" ? "#6fcf97"
-                    : wsStatus === "connecting" ? "#FFA602"
+                    : wsStatus === "connecting" ? "var(--accent)"
                     : wsStatus === "error" ? "#ff6b6b"
                     : "rgba(253,251,247,0.3)",
                 }}
@@ -775,10 +775,10 @@ export default function DashboardClient({ nodes }: Props) {
                   onClick={() => { retryCountRef.current = 0; connectRelay(relayInfo, selectedNode); }}
                   style={{
                     background: "transparent",
-                    border: "1px solid #FFA602",
+                    border: "1px solid var(--accent)",
                     borderRadius: "6px",
                     padding: "5px 14px",
-                    color: "#FFA602",
+                    color: "var(--accent)",
                     fontSize: "12px",
                     cursor: "pointer",
                     fontFamily: "inherit",

@@ -27,7 +27,7 @@ function nodeAge(lastSeen: string | null | undefined): "online" | "stale" | "off
 
 const NODE_DOT_COLOR: Record<string, string> = {
   online: "#22c55e",
-  stale: "#FFA602",
+  stale: "var(--accent)",
   offline: "rgba(253,251,247,0.2)",
   unknown: "rgba(253,251,247,0.15)",
 };

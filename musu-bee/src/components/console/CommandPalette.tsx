@@ -209,7 +209,7 @@ export function CommandPalette({ nodes }: CommandPaletteProps) {
               background: "none",
               border: "none",
               outline: "none",
-              color: "#FDFBF7",
+              color: "var(--fg1)",
               fontSize: "14px",
               fontFamily: "inherit",
             }}
@@ -259,8 +259,8 @@ export function CommandPalette({ nodes }: CommandPaletteProps) {
                   padding: "9px 12px",
                   borderRadius: "7px",
                   border: "none",
-                  background: isActive ? "rgba(255,166,2,0.1)" : "transparent",
-                  color: isActive ? "#FFA602" : "rgba(253,251,247,0.7)",
+                  background: isActive ? "var(--accent-muted)" : "transparent",
+                  color: isActive ? "var(--accent)" : "rgba(253,251,247,0.7)",
                   cursor: "pointer",
                   fontFamily: "inherit",
                   fontSize: "13px",
@@ -270,7 +270,7 @@ export function CommandPalette({ nodes }: CommandPaletteProps) {
               >
                 <span
                   style={{
-                    color: isActive ? "#FFA602" : "rgba(253,251,247,0.3)",
+                    color: isActive ? "var(--accent)" : "rgba(253,251,247,0.3)",
                     flexShrink: 0,
                     display: "flex",
                     alignItems: "center",

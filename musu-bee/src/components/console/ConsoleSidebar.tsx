@@ -77,7 +77,7 @@ export function ConsoleSidebar({ contextPanel, onNavigate, activePanel }: Consol
           {collapsed ? (
             <span
               style={{
-                color: "#FFA602",
+                color: "var(--accent)",
                 fontWeight: 900,
                 fontSize: "15px",
                 letterSpacing: "-0.02em",
@@ -176,7 +176,7 @@ export function ConsoleSidebar({ contextPanel, onNavigate, activePanel }: Consol
             fontWeight: 600,
             transition: "color 150ms",
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "#FDFBF7")}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--fg1)")}
           onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(253,251,247,0.3)")}
         >
           <ExternalLink size={14} />

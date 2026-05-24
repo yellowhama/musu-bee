@@ -52,7 +52,7 @@ export function ConsoleMobileTabBar() {
                 justifyContent: "center",
                 gap: "3px",
                 textDecoration: "none",
-                color: active ? "#FFA602" : "rgba(253,251,247,0.4)",
+                color: active ? "var(--accent)" : "rgba(253,251,247,0.4)",
                 transition: "color 150ms",
               }}
             >

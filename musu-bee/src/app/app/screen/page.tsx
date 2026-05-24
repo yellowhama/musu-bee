@@ -142,9 +142,9 @@ export default function ScreenPage() {
   };
 
   return (
-    <div style={{ padding: "24px", background: "#1a1210", minHeight: "100%" }}>
+    <div style={{ padding: "24px", background: "var(--bg-inset)", minHeight: "100%" }}>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, color: "#FDFBF7", margin: 0, letterSpacing: "-0.02em" }}>
+        <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--fg1)", margin: 0, letterSpacing: "-0.02em" }}>
           Remote Screens
         </h1>
         <p style={{ fontSize: 13, color: "rgba(253,251,247,0.4)", marginTop: 4 }}>
@@ -166,7 +166,7 @@ export default function ScreenPage() {
             key={machine.machine}
             style={{
               background: "#261813",
-              border: `2px solid ${machine.hasOnline ? "rgba(255,166,2,0.2)" : "rgba(255,255,255,0.05)"}`,
+              border: `2px solid ${machine.hasOnline ? "var(--accent-glow)" : "rgba(255,255,255,0.05)"}`,
               borderRadius: 16,
               overflow: "hidden",
               opacity: machine.hasOnline ? 1 : 0.4,
@@ -181,13 +181,13 @@ export default function ScreenPage() {
               justifyContent: "space-between",
             }}>
               <div>
-                <div style={{ fontSize: 17, fontWeight: 800, color: "#FDFBF7", letterSpacing: "-0.01em" }}>
+                <div style={{ fontSize: 17, fontWeight: 800, color: "var(--fg1)", letterSpacing: "-0.01em" }}>
                   {machine.machine}
                 </div>
                 {machine.gpu && (
                   <div style={{
-                    fontSize: 11, fontWeight: 700, color: "#FFA602", marginTop: 3,
-                    background: "rgba(255,166,2,0.1)", padding: "1px 8px", borderRadius: 3,
+                    fontSize: 11, fontWeight: 700, color: "var(--accent)", marginTop: 3,
+                    background: "var(--accent-muted)", padding: "1px 8px", borderRadius: 3,
                     display: "inline-block",
                   }}>
                     {machine.gpu}
@@ -230,7 +230,7 @@ export default function ScreenPage() {
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
                     <span style={{ fontSize: 14 }}>{osIcon(node.os)}</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#FDFBF7" }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--fg1)" }}>
                       {osLabel(node.os)}
                     </span>
                   </div>
@@ -270,8 +270,8 @@ export default function ScreenPage() {
                     onClick={() => handleConnect(machine.rustdesk_id)}
                     style={{
                       flex: 1,
-                      background: "#FFA602",
-                      color: "#432c1c",
+                      background: "var(--accent)",
+                      color: "var(--fg-on-accent)",
                       border: "none",
                       borderRadius: 8,
                       padding: "10px 0",

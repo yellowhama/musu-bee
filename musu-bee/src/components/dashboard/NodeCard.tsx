@@ -10,14 +10,14 @@ interface NodeCardProps {
 
 const STATUS_COLOR = {
   online: "#22c55e",
-  stale: "#FFA602",
+  stale: "var(--accent)",
   offline: "rgba(253,251,247,0.25)",
   unknown: "rgba(253,251,247,0.18)",
 };
 
 const STATUS_BORDER = {
   online: "rgba(34,197,94,0.25)",
-  stale: "rgba(255,166,2,0.2)",
+  stale: "var(--accent-glow)",
   offline: "rgba(255,255,255,0.07)",
   unknown: "rgba(255,255,255,0.07)",
 };
@@ -61,7 +61,7 @@ export function NodeCard({ node, selected, onSelect }: NodeCardProps) {
         textAlign: "left",
         background: selected ? "rgba(255,166,2,0.06)" : "rgba(255,255,255,0.03)",
         border: selected
-          ? "2px solid #FFA602"
+          ? "2px solid var(--accent)"
           : `1px solid ${STATUS_BORDER[ns]}`,
         borderRadius: "12px",
         padding: "14px 16px",
@@ -84,7 +84,7 @@ export function NodeCard({ node, selected, onSelect }: NodeCardProps) {
           style={{
             fontWeight: 700,
             fontSize: "13px",
-            color: "#FDFBF7",
+            color: "var(--fg1)",
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",

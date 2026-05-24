@@ -102,7 +102,7 @@ export function SidebarWikiTree({
               background: "none",
               border: "none",
               outline: "none",
-              color: "#FDFBF7",
+              color: "var(--fg1)",
               fontSize: "12px",
               fontFamily: "inherit",
               minWidth: 0,
@@ -114,8 +114,8 @@ export function SidebarWikiTree({
                 display: "inline-block",
                 width: "10px",
                 height: "10px",
-                border: "1.5px solid rgba(255,166,2,0.3)",
-                borderTop: "1.5px solid #FFA602",
+                border: "1.5px solid var(--accent-border)",
+                borderTop: "1.5px solid var(--accent)",
                 borderRadius: "50%",
                 animation: "musu-spin 0.7s linear infinite",
                 flexShrink: 0,
@@ -150,10 +150,10 @@ export function SidebarWikiTree({
                   padding: "2px 8px",
                   borderRadius: "4px",
                   border: active
-                    ? "1px solid rgba(255,166,2,0.35)"
+                    ? "1px solid var(--accent-border)"
                     : "1px solid rgba(255,255,255,0.07)",
-                  background: active ? "rgba(255,166,2,0.1)" : "transparent",
-                  color: active ? "#FFA602" : "rgba(253,251,247,0.4)",
+                  background: active ? "var(--accent-muted)" : "transparent",
+                  color: active ? "var(--accent)" : "rgba(253,251,247,0.4)",
                   fontSize: "11px",
                   fontWeight: active ? 700 : 400,
                   cursor: "pointer",
@@ -163,7 +163,7 @@ export function SidebarWikiTree({
                 {tab.label}
                 <span
                   style={{
-                    background: active ? "rgba(255,166,2,0.2)" : "rgba(255,255,255,0.06)",
+                    background: active ? "var(--accent-glow)" : "rgba(255,255,255,0.06)",
                     borderRadius: "3px",
                     padding: "0 4px",
                     fontSize: "10px",
@@ -203,12 +203,12 @@ export function SidebarWikiTree({
                 display: "block",
                 width: "100%",
                 textAlign: "left",
-                background: isSelected ? "rgba(255,166,2,0.12)" : "transparent",
+                background: isSelected ? "var(--accent-muted)" : "transparent",
                 border: "none",
                 borderRadius: "5px",
                 padding: "6px 8px",
                 cursor: "pointer",
-                color: isSelected ? "#FFA602" : "rgba(253,251,247,0.65)",
+                color: isSelected ? "var(--accent)" : "rgba(253,251,247,0.65)",
                 fontSize: "12px",
                 fontFamily: "inherit",
                 minHeight: "32px",
@@ -218,7 +218,7 @@ export function SidebarWikiTree({
                 {p.title}
               </div>
               {activeTab === "all" && p.folder && (
-                <div style={{ color: "rgba(255,166,2,0.35)", fontSize: "10px", marginTop: "1px" }}>
+                <div style={{ color: "var(--accent-border)", fontSize: "10px", marginTop: "1px" }}>
                   {p.folder}
                 </div>
               )}
@@ -257,7 +257,7 @@ function EmptyWikiTree() {
         위키가 비어있습니다
       </div>
       <div style={{ color: "rgba(253,251,247,0.3)", fontSize: "11px", lineHeight: 1.7, marginBottom: "10px" }}>
-        <code style={{ color: "#FFA602", fontSize: "10px" }}>~/llm-wiki/wiki/</code>
+        <code style={{ color: "var(--accent)", fontSize: "10px" }}>~/llm-wiki/wiki/</code>
         {" "}에 마크다운 파일을 추가하면 여기에 나타납니다.
       </div>
       <div

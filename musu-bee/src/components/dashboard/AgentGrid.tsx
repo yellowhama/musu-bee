@@ -151,7 +151,7 @@ export function AgentGrid({ agents, loading, error, onAgentUpdated }: AgentGridP
                 style={{
                   fontSize: "13px",
                   fontWeight: 700,
-                  color: "#FDFBF7",
+                  color: "var(--fg1)",
                   fontFamily: "var(--font-jetbrains), monospace",
                 }}
               >
@@ -237,7 +237,7 @@ export function AgentGrid({ agents, loading, error, onAgentUpdated }: AgentGridP
                     background: "rgba(255,255,255,0.05)",
                     border: "1px solid rgba(255,255,255,0.1)",
                     borderRadius: "5px",
-                    color: "#FDFBF7",
+                    color: "var(--fg1)",
                     fontSize: "11px",
                     padding: "4px 8px",
                     fontFamily: "inherit",
@@ -250,10 +250,10 @@ export function AgentGrid({ agents, loading, error, onAgentUpdated }: AgentGridP
                   value={editing.model}
                   onChange={(e) => setEditing({ ...editing, model: e.target.value })}
                   style={{
-                    background: "#432c1c",
+                    background: "var(--fg-on-accent)",
                     border: "1px solid rgba(255,255,255,0.1)",
                     borderRadius: "5px",
-                    color: "#FDFBF7",
+                    color: "var(--fg1)",
                     fontSize: "11px",
                     padding: "4px 8px",
                     fontFamily: "var(--font-jetbrains), monospace",
@@ -264,7 +264,7 @@ export function AgentGrid({ agents, loading, error, onAgentUpdated }: AgentGridP
                 >
                   <option value="">— model —</option>
                   {MODELS.map((m) => (
-                    <option key={m} value={m} style={{ background: "#432c1c" }}>
+                    <option key={m} value={m} style={{ background: "var(--fg-on-accent)" }}>
                       {m}
                     </option>
                   ))}
@@ -282,10 +282,10 @@ export function AgentGrid({ agents, loading, error, onAgentUpdated }: AgentGridP
                     onClick={() => void saveEdit(agentId)}
                     style={{
                       flex: 1,
-                      background: "rgba(255,166,2,0.1)",
-                      border: "1px solid rgba(255,166,2,0.3)",
+                      background: "var(--accent-muted)",
+                      border: "1px solid var(--accent-border)",
                       borderRadius: "5px",
-                      color: "#FFA602",
+                      color: "var(--accent)",
                       fontSize: "11px",
                       fontWeight: 700,
                       cursor: editing.saving ? "wait" : "pointer",
