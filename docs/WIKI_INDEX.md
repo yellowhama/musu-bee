@@ -212,6 +212,8 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | wiki/514c | V26-W10 closure (inline in V26 master closure) | 2026-05-23 | `docs/V26_CLOSURE_2026_05_23.html` | complete |
 | wiki/515 | V26 master closure HTML | 2026-05-23 | `docs/V26_CLOSURE_2026_05_23.html` | complete |
 | wiki/359 | V26 master closure (musu-brainai & file-based SSOT) | 2026-05-24 | `docs/V26_CLOSURE_2026_05_24.html` | complete |
+| wiki/360 | V26 port unification — 5-7 ports → single bridge gateway | 2026-05-24 | `docs/360_PORT_UNIFICATION.md` | complete |
+| wiki/516 | V26 VibeCode Town design system migration | 2026-05-24 | (inline — globals.css + 25 component files) | complete |
 
 
 **V26-W1 indexing note**: Commit 2 runtime uses direct `reqwest` JSON parsing, not `async-openai`, because vLLM can omit tagged tool-call `type` fields. Commit 3 added ClaudeAdapter shim (narrow dispatch boundary per §4.6: shim returns SpawnSpec, runner's V24-R5 stream loop preserved bit-for-bit) + typed AgentRecord with `#[serde(flatten)] extra` for V24-R6 YAML backward-compat + `serde_json preserve_order` feature flag. The spec's D7/RV1/C11 rows were revised on 2026-05-22 to match implementation. M1 cycle (musu /goal master plan) closed W1 chokepoint; M2 (W7 `musu peer register`) is next.
