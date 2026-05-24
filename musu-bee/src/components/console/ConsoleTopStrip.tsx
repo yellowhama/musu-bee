@@ -1,6 +1,7 @@
 "use client";
 
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { ThemeToggle } from "./ThemeToggle";
 import { UserMenu } from "@/components/layout/UserMenu";
 import type { RegistryNode } from "@/lib/types/node";
 import { useConsoleShell } from "./ConsoleShellContext";
@@ -119,6 +120,7 @@ export function ConsoleTopStrip({
             onJump={(target) => onInboxJump?.(target)}
           />
         ) : null}
+        <ThemeToggle />
         <button
           onClick={() => setPaletteOpen(true)}
           title="Command palette  ⌘K"

@@ -31,7 +31,7 @@ export function ConsoleMobileTabBar() {
           right: 0,
           height: "calc(56px + env(safe-area-inset-bottom))",
           paddingBottom: "env(safe-area-inset-bottom)",
-          background: "#261813",
+          background: "var(--bg-elevated)",
           borderTop: "1px solid rgba(255,255,255,0.07)",
           display: "flex",
           alignItems: "stretch",

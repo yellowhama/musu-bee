@@ -165,7 +165,7 @@ export default function ScreenPage() {
           <div
             key={machine.machine}
             style={{
-              background: "#261813",
+              background: "var(--bg-elevated)",
               border: `2px solid ${machine.hasOnline ? "var(--accent-glow)" : "rgba(255,255,255,0.05)"}`,
               borderRadius: 16,
               overflow: "hidden",

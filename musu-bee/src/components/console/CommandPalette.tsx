@@ -178,7 +178,7 @@ export function CommandPalette({ nodes }: CommandPaletteProps) {
           transform: "translateX(-50%)",
           zIndex: 9999,
           width: "min(560px, calc(100vw - 32px))",
-          background: "#261813",
+          background: "var(--bg-elevated)",
           border: "1px solid rgba(255,255,255,0.1)",
           borderRadius: "12px",
           boxShadow: "0 24px 64px rgba(0,0,0,0.55)",

@@ -356,7 +356,7 @@ function AddPcWizard({
         style={{
           width: "100%",
           maxWidth: 480,
-          background: "#261813",
+          background: "var(--bg-elevated)",
           border: "1px solid var(--border-default)",
           borderRadius: 12,
           padding: 24,
