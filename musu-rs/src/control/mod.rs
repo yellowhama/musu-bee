@@ -210,14 +210,14 @@ impl ControlServer {
         &self,
         Parameters(p): Parameters<KvmControlParams>,
     ) -> Result<CallToolResult, ErrorData> {
-        let msg = serde_json::json!({
-            "type": p.action_type,
-            "rx": p.rx,
-            "ry": p.ry,
-            "button": p.button,
-            "key": p.key,
-        });
-        crate::io::kvm::handle_kvm_message(msg.to_string().as_bytes());
+        let msg = crate::io::kvm::KvmMessage {
+            r#type: p.action_type,
+            rx: p.rx,
+            ry: p.ry,
+            button: p.button,
+            key: p.key,
+        };
+        crate::io::kvm::execute_kvm_command(&msg);
         ok_text(Ok("KVM command executed successfully.".into()))
     }
 

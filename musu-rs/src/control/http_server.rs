@@ -400,15 +400,15 @@ async fn dispatch_tool(
         "kvm_control" => {
             let p: KvmControlParams = serde_json::from_value(args.clone())
                 .map_err(|e| format!("invalid params: {e}"))?;
-            let msg = serde_json::json!({
-                "type": p.action_type,
-                "rx": p.rx,
-                "ry": p.ry,
-                "button": p.button,
-                "key": p.key,
-            });
-            crate::io::kvm::handle_kvm_message(msg.to_string().as_bytes());
-            Ok("KVM command executed successfully.".into())
+            let msg = crate::io::kvm::KvmMessage {
+                r#type: p.action_type,
+                rx: p.rx,
+                ry: p.ry,
+                button: p.button,
+                key: p.key,
+            };
+            crate::io::kvm::execute_kvm_command(&msg);
+            Ok(serde_json::json!({"status": "success"}).to_string())
         }
         "list_agents" | "get_agent" | "get_dashboard" | "list_runs" | "get_activity" => {
             Ok(T2_BODY.to_string())

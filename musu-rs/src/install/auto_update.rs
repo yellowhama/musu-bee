@@ -1068,18 +1068,6 @@ github_repo = "owner/repo""#;
         GithubReleaseAsset {
             name: name.to_string(),
             browser_download_url: format!("https://objects.githubusercontent.com/{name}"),
-            size: 0,
-            id: None,
-            node_id: None,
-            label: None,
-            state: None,
-            content_type: None,
-            digest: None,
-            download_count: None,
-            created_at: None,
-            updated_at: None,
-            uploader: None,
-            url: None,
         }
     }
 
@@ -1161,35 +1149,11 @@ github_repo = "owner/repo""#;
                 name: "musu-linux-x86_64.tar.gz".into(),
                 browser_download_url:
                     "https://objects.githubusercontent.com/musu-linux-x86_64.tar.gz".into(),
-                size: 100,
-                id: None,
-                node_id: None,
-                label: None,
-                state: None,
-                content_type: None,
-                digest: None,
-                download_count: None,
-                created_at: None,
-                updated_at: None,
-                uploader: None,
-                url: None,
             },
             GithubReleaseAsset {
                 name: "musu-windows-x86_64.zip".into(),
                 browser_download_url:
                     "https://objects.githubusercontent.com/musu-windows-x86_64.zip".into(),
-                size: 100,
-                id: None,
-                node_id: None,
-                label: None,
-                state: None,
-                content_type: None,
-                digest: None,
-                download_count: None,
-                created_at: None,
-                updated_at: None,
-                uploader: None,
-                url: None,
             },
         ];
         let picked = pick_platform_asset(&assets).expect("should pick");

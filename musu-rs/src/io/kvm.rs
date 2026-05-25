@@ -24,15 +24,11 @@ fn get_enigo() -> std::sync::MutexGuard<'static, enigo::Enigo> {
     ENIGO.get_or_init(|| Mutex::new(enigo::Enigo::new(&enigo::Settings::default()).unwrap())).lock().unwrap()
 }
 
-pub fn handle_kvm_message(msg: &[u8]) {
+pub fn execute_kvm_command(cmd: &KvmMessage) {
     use enigo::{Mouse, Keyboard, Button, Coordinate, Direction};
+    let mut enigo = get_enigo();
     
-    let payload: Result<KvmMessage, _> = serde_json::from_slice(msg);
-    match payload {
-        Ok(cmd) => {
-            let mut enigo = get_enigo();
-            
-            match cmd.r#type.as_str() {
+    match cmd.r#type.as_str() {
                 "mousemove" => {
                     if let (Some(rx), Some(ry)) = (cmd.rx, cmd.ry) {
                         let (w, h) = enigo.main_display().unwrap_or((1920, 1080));
@@ -42,7 +38,7 @@ pub fn handle_kvm_message(msg: &[u8]) {
                     }
                 }
                 "mousedown" => {
-                    if let Some(btn) = cmd.button {
+                    if let Some(btn) = &cmd.button {
                         let b = match btn.as_str() {
                             "right" => Button::Right,
                             "middle" => Button::Middle,
@@ -52,7 +48,7 @@ pub fn handle_kvm_message(msg: &[u8]) {
                     }
                 }
                 "mouseup" => {
-                    if let Some(btn) = cmd.button {
+                    if let Some(btn) = &cmd.button {
                         let b = match btn.as_str() {
                             "right" => Button::Right,
                             "middle" => Button::Middle,
@@ -62,23 +58,26 @@ pub fn handle_kvm_message(msg: &[u8]) {
                     }
                 }
                 "keydown" => {
-                    if let Some(k) = cmd.key {
+                    if let Some(k) = &cmd.key {
                         let key = parse_key(&k);
                         let _ = enigo.key(key, Direction::Press);
                     }
                 }
                 "keyup" => {
-                    if let Some(k) = cmd.key {
+                    if let Some(k) = &cmd.key {
                         let key = parse_key(&k);
                         let _ = enigo.key(key, Direction::Release);
                     }
                 }
-                _ => {}
-            }
-        }
-        Err(e) => {
-            tracing::warn!("Invalid KVM message: {}", e);
-        }
+        _ => {}
+    }
+}
+
+pub fn handle_kvm_message(msg: &[u8]) {
+    let payload: Result<KvmMessage, _> = serde_json::from_slice(msg);
+    match payload {
+        Ok(cmd) => execute_kvm_command(&cmd),
+        Err(e) => tracing::warn!("Invalid KVM message: {}", e),
     }
 }
 
