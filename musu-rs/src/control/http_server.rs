@@ -397,6 +397,19 @@ async fn dispatch_tool(
                 Err(format!("Error {}: {}", status, text))
             }
         }
+        "kvm_control" => {
+            let p: KvmControlParams = serde_json::from_value(args.clone())
+                .map_err(|e| format!("invalid params: {e}"))?;
+            let msg = serde_json::json!({
+                "type": p.action_type,
+                "rx": p.rx,
+                "ry": p.ry,
+                "button": p.button,
+                "key": p.key,
+            });
+            crate::io::kvm::handle_kvm_message(msg.to_string().as_bytes());
+            Ok("KVM command executed successfully.".into())
+        }
         "list_agents" | "get_agent" | "get_dashboard" | "list_runs" | "get_activity" => {
             Ok(T2_BODY.to_string())
         }
@@ -421,6 +434,7 @@ fn tool_definitions() -> Vec<McpToolInfo> {
         McpToolInfo { name: "run_remote_command".into(), description: "Execute a command on a remote machine in the mesh.".into(), input_schema: serde_json::json!({"type":"object","properties":{"node_id":{"type":"string","description":"Target node ID"},"command":{"type":"string"},"args":{"type":"array","items":{"type":"string"}},"cwd":{"type":"string"}},"required":["node_id","command"]}) },
         McpToolInfo { name: "read_remote_file".into(), description: "Read a file from a remote machine in the mesh.".into(), input_schema: serde_json::json!({"type":"object","properties":{"node_id":{"type":"string","description":"Target node ID"},"path":{"type":"string","description":"Absolute file path on the remote machine"}},"required":["node_id","path"]}) },
         McpToolInfo { name: "write_remote_file".into(), description: "Write content to a file on a remote machine in the mesh.".into(), input_schema: serde_json::json!({"type":"object","properties":{"node_id":{"type":"string","description":"Target node ID"},"path":{"type":"string","description":"Absolute file path on the remote machine"},"content":{"type":"string"}},"required":["node_id","path","content"]}) },
+        McpToolInfo { name: "kvm_control".into(), description: "Execute physical computer interactions (mouse moves, clicks, keyboard events) via the KVM.".into(), input_schema: serde_json::json!({"type":"object","properties":{"action_type":{"type":"string"},"rx":{"type":"number"},"ry":{"type":"number"},"button":{"type":"string"},"key":{"type":"string"}},"required":["action_type"]}) },
         McpToolInfo { name: "list_agents".into(), description: "list known agents (legacy) (deprecated)".into(), input_schema: empty.clone() },
         McpToolInfo { name: "get_agent".into(), description: "fetch a single agent's record (legacy) (deprecated)".into(), input_schema: serde_json::json!({"type":"object","properties":{"agent_id":{"type":"string"}}}) },
         McpToolInfo { name: "get_dashboard".into(), description: "fetch the dashboard payload (legacy) (deprecated)".into(), input_schema: empty.clone() },

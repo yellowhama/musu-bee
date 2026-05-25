@@ -278,7 +278,7 @@ fn fire_callback(spec: &TaskSpec, status: TaskStatus, output: Option<&str>, erro
 }
 
 /// Drive one task end-to-end. This runs inside `tokio::spawn`.
-async fn run_one(inner: Arc<Inner>, spec: TaskSpec, cancel: Arc<Notify>) {
+async fn run_one(inner: Arc<Inner>, mut spec: TaskSpec, cancel: Arc<Notify>) {
     let task_id = spec.task_id.clone();
     let channel = spec.channel.clone();
 
@@ -312,6 +312,30 @@ async fn run_one(inner: Arc<Inner>, spec: TaskSpec, cancel: Arc<Notify>) {
     let started_at = chrono::Utc::now().timestamp();
     update_status_started(&inner.pool, &task_id, started_at).await;
     inner.sse.publish(TaskEvent::update(&task_id, "running"));
+
+    // --- AUTONOMOUS PRE-FETCHING ---
+    // Seamlessly query the Semantic SSOT and inject knowledge into the prompt
+    if let Ok(musu_crawl_exe) = std::env::var("MUSU_CRAWL_BINARY") {
+        tracing::info!(task_id = %task_id, "Running autonomous pre-fetch using musu-crawl");
+        let out = std::process::Command::new(&musu_crawl_exe)
+            .arg("search")
+            .arg(&spec.prompt)
+            .arg("--limit")
+            .arg("3")
+            .output();
+        if let Ok(output) = out {
+            if output.status.success() {
+                let crawler_results = String::from_utf8_lossy(&output.stdout);
+                if !crawler_results.trim().is_empty() {
+                    spec.prompt = format!("<BACKGROUND_CONTEXT>\n{}\n</BACKGROUND_CONTEXT>\n\n{}", crawler_results.trim(), spec.prompt);
+                }
+            } else {
+                tracing::warn!(task_id = %task_id, "Autonomous pre-fetch crawler failed with status: {}", output.status);
+            }
+        } else {
+            tracing::warn!(task_id = %task_id, "Autonomous pre-fetch failed to spawn musu-crawl");
+        }
+    }
 
     // Spawn via the V26-W1 Commit 3 (wiki/509 §7) narrow dispatch helper.
     // For `adapter_type="claude"` it builds the V24-R5 SpawnSpec and calls
@@ -675,7 +699,7 @@ async fn update_status_started(pool: &SqlitePool, task_id: &str, started_at: i64
             SET status = 'running',
                 started_at = ?,
                 updated_at = ?
-          WHERE task_id = ?",
+          WHERE task_id = ?"
     )
     .bind(started_at)
     .bind(now)
@@ -685,21 +709,13 @@ async fn update_status_started(pool: &SqlitePool, task_id: &str, started_at: i64
     {
         tracing::warn!(error = %e, task_id, "update_status_started failed");
     }
-    write_task_json(
+    
+    TaskUpdate {
         task_id,
-        None,
-        None,
-        None,
-        None,
-        "running",
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(started_at),
-    );
+        status: "running",
+        started_at: Some(started_at),
+        ..Default::default()
+    }.save();
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -736,21 +752,19 @@ async fn finalize(
     {
         tracing::warn!(error = %e, task_id, "finalize update failed");
     }
-    write_task_json(
-        task_id.as_str(),
-        spec.company_id.as_deref(),
-        Some(&spec.channel),
-        Some(&spec.sender_id),
-        Some(&spec.prompt),
-        status.as_str(),
+    TaskUpdate {
+        task_id: task_id.as_str(),
+        status: status.as_str(),
+        company_id: spec.company_id.as_deref(),
+        channel: Some(&spec.channel),
+        sender_id: Some(&spec.sender_id),
+        prompt: Some(&spec.prompt),
         output,
         error,
-        None,
         exit_code,
         duration_sec,
-        None,
-        None,
-    );
+        ..Default::default()
+    }.save();
     inner
         .sse
         .publish(TaskEvent::update(task_id, status.as_str()));
@@ -772,94 +786,147 @@ async fn finalize(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-pub fn write_task_json(
-    task_id: &str,
-    company_id: Option<&str>,
-    channel: Option<&str>,
-    sender_id: Option<&str>,
-    prompt: Option<&str>,
-    status: &str,
-    output: Option<&str>,
-    error: Option<&str>,
-    assigned_pc: Option<&str>,
-    exit_code: Option<i32>,
-    duration_sec: Option<f64>,
-    created_at: Option<i64>,
-    started_at: Option<i64>,
-) {
-    let musu_home = if let Ok(s) = std::env::var("MUSU_HOME") {
-        std::path::PathBuf::from(s)
-    } else {
-        let home = std::env::var("HOME")
-            .or_else(|_| std::env::var("USERPROFILE"))
-            .unwrap_or_else(|_| ".".into());
-        std::path::PathBuf::from(home).join(".musu")
-    };
+#[derive(Debug, Clone, serde::Serialize, Default)]
+pub struct TaskUpdate<'a> {
+    pub task_id: &'a str,
+    pub status: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub company_id: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub channel: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sender_id: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prompt: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub output: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub assigned_pc: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exit_code: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub duration_sec: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub started_at: Option<i64>,
+}
 
-    let tasks_dir = musu_home.join("tasks");
-    if let Err(e) = std::fs::create_dir_all(&tasks_dir) {
-        tracing::warn!("Failed to create tasks dir {}: {}", tasks_dir.display(), e);
-        return;
-    }
+impl<'a> TaskUpdate<'a> {
+    pub fn save(self) {
+        let musu_home = if let Ok(s) = std::env::var("MUSU_HOME") {
+            std::path::PathBuf::from(s)
+        } else {
+            let home = std::env::var("HOME")
+                .or_else(|_| std::env::var("USERPROFILE"))
+                .unwrap_or_else(|_| ".".into());
+            std::path::PathBuf::from(home).join(".musu")
+        };
 
-    let file_path = tasks_dir.join(format!("{}.json", task_id));
+        let tasks_dir = musu_home.join("tasks");
+        if let Err(e) = std::fs::create_dir_all(&tasks_dir) {
+            tracing::warn!("Failed to create tasks dir {}: {}", tasks_dir.display(), e);
+            return;
+        }
 
-    let mut json_val = if file_path.exists() {
-        if let Ok(data) = std::fs::read_to_string(&file_path) {
-            serde_json::from_str::<serde_json::Value>(&data).unwrap_or_else(|_| serde_json::json!({}))
+        let file_path = tasks_dir.join(format!("{}.json", self.task_id));
+
+        let mut json_val = if file_path.exists() {
+            std::fs::read_to_string(&file_path)
+                .ok()
+                .and_then(|data| serde_json::from_str::<serde_json::Value>(&data).ok())
+                .unwrap_or_else(|| serde_json::json!({}))
         } else {
             serde_json::json!({})
-        }
-    } else {
-        serde_json::json!({})
-    };
+        };
 
-    if let Some(obj) = json_val.as_object_mut() {
-        obj.insert("task_id".to_string(), serde_json::json!(task_id));
-        obj.insert("status".to_string(), serde_json::json!(status));
-        obj.insert("updated_at".to_string(), serde_json::json!(chrono::Utc::now().timestamp()));
+        if let Some(obj) = json_val.as_object_mut() {
+            let update_val = serde_json::to_value(&self).unwrap_or_else(|_| serde_json::json!({}));
+            if let Some(update_obj) = update_val.as_object() {
+                for (k, v) in update_obj {
+                    obj.insert(k.clone(), v.clone());
+                }
+            }
+            obj.insert("updated_at".to_string(), serde_json::json!(chrono::Utc::now().timestamp()));
+            
+            if obj.get("created_at").is_none() {
+                obj.insert("created_at".to_string(), serde_json::json!(chrono::Utc::now().timestamp()));
+            }
+        }
 
-        if let Some(val) = company_id {
-            obj.insert("company_id".to_string(), serde_json::json!(val));
+        if let Ok(data) = serde_json::to_string_pretty(&json_val) {
+            if let Err(e) = std::fs::write(&file_path, data) {
+                tracing::warn!("Failed to write task json to {}: {}", file_path.display(), e);
+            }
         }
-        if let Some(val) = channel {
-            obj.insert("channel".to_string(), serde_json::json!(val));
-        }
-        if let Some(val) = sender_id {
-            obj.insert("sender_id".to_string(), serde_json::json!(val));
-        }
-        if let Some(val) = prompt {
-            obj.insert("prompt".to_string(), serde_json::json!(val));
-        }
-        if let Some(val) = output {
-            obj.insert("output".to_string(), serde_json::json!(val));
-        }
-        if let Some(val) = error {
-            obj.insert("error".to_string(), serde_json::json!(val));
-        }
-        if let Some(val) = assigned_pc {
-            obj.insert("assigned_pc".to_string(), serde_json::json!(val));
-        }
-        if let Some(val) = exit_code {
-            obj.insert("exit_code".to_string(), serde_json::json!(val));
-        }
-        if let Some(val) = duration_sec {
-            obj.insert("duration_sec".to_string(), serde_json::json!(val));
-        }
-        if let Some(val) = created_at {
-            obj.insert("created_at".to_string(), serde_json::json!(val));
-        } else if obj.get("created_at").is_none() {
-            obj.insert("created_at".to_string(), serde_json::json!(chrono::Utc::now().timestamp()));
-        }
-        if let Some(val) = started_at {
-            obj.insert("started_at".to_string(), serde_json::json!(val));
-        }
-    }
 
-    if let Ok(data) = serde_json::to_string_pretty(&json_val) {
-        if let Err(e) = std::fs::write(&file_path, data) {
-            tracing::warn!("Failed to write task json to {}: {}", file_path.display(), e);
+        // --- SEMANTIC SSOT INTEGRATION ---
+        // If the task has reached a terminal state, export it to the musu-crawl-ai wiki directory.
+        if let Some(status) = json_val.get("status").and_then(|s| s.as_str()) {
+            if status == "done" || status == "failed" {
+                if let Ok(wiki_dir_str) = std::env::var("MUSU_CRAWL_WIKI_DIR") {
+                    let wiki_dir = std::path::PathBuf::from(&wiki_dir_str);
+                    let project_dir = wiki_dir.join("projects").join("brainai").join("tasks");
+                    if let Err(e) = std::fs::create_dir_all(&project_dir) {
+                        tracing::warn!("Failed to create Semantic SSOT wiki dir: {}", e);
+                        return;
+                    }
+
+                    let task_id = json_val.get("task_id").and_then(|v| v.as_str()).unwrap_or("unknown");
+                    let prompt = json_val.get("prompt").and_then(|v| v.as_str()).unwrap_or("");
+                    let output = json_val.get("output").and_then(|v| v.as_str()).unwrap_or("");
+                    let error = json_val.get("error").and_then(|v| v.as_str()).unwrap_or("");
+                    let channel = json_val.get("channel").and_then(|v| v.as_str()).unwrap_or("unknown");
+                    
+                    let summary = if prompt.len() > 100 { &prompt[..100] } else { prompt };
+                    let safe_summary = summary.replace('\n', " ").replace('"', "\\\"");
+
+                    let md_content = format!(
+r#"---
+title: "Task {}"
+source: "brainai"
+project: "brainai"
+reliability: 1.0
+id: "{}"
+date: "{}"
+tags:
+  - "status_{}"
+  - "channel_{}"
+summary: "{}"
+---
+
+## Prompt
+{}
+
+## Output
+{}
+
+## Error
+{}
+"#,
+                        task_id, task_id, chrono::Utc::now().format("%Y-%m-%d"), status, channel, safe_summary, prompt, output, error
+                    );
+
+                    let md_path = project_dir.join(format!("{}.md", task_id));
+                    if let Err(e) = std::fs::write(&md_path, md_content) {
+                        tracing::warn!("Failed to write Semantic SSOT markdown to {}: {}", md_path.display(), e);
+                    } else {
+                        // Spawn a background thread to trigger musu-crawl index
+                        std::thread::spawn(move || {
+                            let musu_crawl_exe = std::env::var("MUSU_CRAWL_BINARY").unwrap_or_else(|_| "musu-crawl".to_string());
+                            let _ = std::process::Command::new(musu_crawl_exe)
+                                .arg("index")
+                                .arg("--out")
+                                .arg(wiki_dir_str)
+                                .arg("--project")
+                                .arg("brainai")
+                                .output();
+                        });
+                    }
+                }
+            }
         }
     }
 }

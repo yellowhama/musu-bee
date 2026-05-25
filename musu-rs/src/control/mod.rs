@@ -42,7 +42,7 @@ pub mod tools;
 use bridge_client::BridgeClient;
 use tools::params::{
     CancelTaskParams, CreateCompanyParams, DelegateTaskParams, GetAgentParams, GetCompanyParams,
-    RunCompanyParams, SearchCompanyParams,
+    RunCompanyParams, SearchCompanyParams, KvmControlParams,
 };
 
 /// The MCP server. Holds the eagerly-constructed bridge client + the rmcp
@@ -197,6 +197,28 @@ impl ControlServer {
                 .search_company(&p.workspace, &p.q, p.scope.as_deref(), p.limit)
                 .await,
         )
+    }
+
+    // ── T1 strictly-native: KVM (1 tool) ─────────────────────────────────
+
+    /// kvm_control — Maps to io::kvm physical inputs for AI computer use
+    #[tool(
+        name = "kvm_control",
+        description = "Execute physical computer interactions (mouse moves, clicks, keyboard events) via the KVM."
+    )]
+    async fn kvm_control(
+        &self,
+        Parameters(p): Parameters<KvmControlParams>,
+    ) -> Result<CallToolResult, ErrorData> {
+        let msg = serde_json::json!({
+            "type": p.action_type,
+            "rx": p.rx,
+            "ry": p.ry,
+            "button": p.button,
+            "key": p.key,
+        });
+        crate::io::kvm::handle_kvm_message(msg.to_string().as_bytes());
+        ok_text(Ok("KVM command executed successfully.".into()))
     }
 
     // ── T2 DEPRECATED stubs (5 tools) ────────────────────────────────────

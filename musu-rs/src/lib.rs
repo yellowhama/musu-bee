@@ -30,3 +30,4 @@ pub mod writer;
 pub mod cloud;
 pub mod mesh;
 pub mod io;
+pub mod brain;

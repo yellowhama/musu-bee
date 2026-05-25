@@ -111,6 +111,14 @@ pub async fn run() -> Result<()> {
     let task_runner =
         crate::writer::TaskRunnerHandle::new(pool.clone(), sse_broadcaster.clone()).await;
 
+    // V27-F10: Autonomous CEO Planner Loop
+    if std::env::var("MUSU_ENABLE_PLANNER").unwrap_or_else(|_| "0".into()) == "1" {
+        let runner_clone = task_runner.clone();
+        tokio::spawn(async move {
+            crate::brain::planner::run_planner_loop(runner_clone).await;
+        });
+    }
+
     let state = AppState {
         config: cfg.clone(),
         pool,

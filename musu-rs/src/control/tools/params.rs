@@ -142,6 +142,31 @@ pub struct SearchCompanyParams {
     pub limit: Option<u32>,
 }
 
+// ─────────────────────── T1 KVM Control params ───────────────────────
+
+/// Params for `kvm_control` — Pillar 1 Perfect Butler KVM physical execution.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct KvmControlParams {
+    /// Type of action: "mousemove", "mousedown", "mouseup", "keydown", "keyup"
+    pub action_type: String,
+    
+    /// For mousemove: X coordinate ratio (0.0 to 1.0)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rx: Option<f64>,
+    /// For mousemove: Y coordinate ratio (0.0 to 1.0)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ry: Option<f64>,
+    
+    /// For mousedown/up: "left", "right", "middle"
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub button: Option<String>,
+    
+    /// For keydown/up: key name (e.g. "enter", "tab", "super", "a")
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key: Option<String>,
+}
+
 // ─────────────────────── T2 deprecated params ───────────────────────
 
 /// T2 deprecated `get_agent` takes an agent id we never use (stub body

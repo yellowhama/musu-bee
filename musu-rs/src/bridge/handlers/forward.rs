@@ -128,21 +128,16 @@ pub async fn receive_forwarded(
     .await
     .map_err(MusuError::Sqlx)?;
 
-    crate::writer::runner::write_task_json(
-        &task_id,
-        req.company_id.as_deref(),
-        Some(&req.channel),
-        Some(&req.sender_id),
-        Some(&req.text),
-        "pending",
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(now),
-        None,
-    );
+    crate::writer::runner::TaskUpdate {
+        task_id: &task_id,
+        company_id: req.company_id.as_deref(),
+        channel: Some(&req.channel),
+        sender_id: Some(&req.sender_id),
+        prompt: Some(&req.text),
+        status: "pending",
+        created_at: Some(now),
+        ..Default::default()
+    }.save();
 
     // Spawn task locally
     state
@@ -311,21 +306,16 @@ pub async fn receive_callback(
     .await
     .map_err(MusuError::Sqlx)?;
 
-    crate::writer::runner::write_task_json(
-        &cb.source_task_id,
-        None,
-        None,
-        None,
-        None,
-        &cb.status,
-        cb.output.as_deref(),
-        cb.error.as_deref(),
-        Some(&cb.node),
-        cb.exit_code,
-        cb.duration_sec,
-        None,
-        None,
-    );
+    crate::writer::runner::TaskUpdate {
+        task_id: &cb.source_task_id,
+        status: &cb.status,
+        output: cb.output.as_deref(),
+        error: cb.error.as_deref(),
+        assigned_pc: Some(&cb.node),
+        exit_code: cb.exit_code,
+        duration_sec: cb.duration_sec,
+        ..Default::default()
+    }.save();
 
     // Broadcast SSE event so any listeners (including `musu route --wait`)
     // get notified.

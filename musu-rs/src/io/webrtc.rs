@@ -66,7 +66,7 @@ pub async fn handle_offer(
     let pc_clone = Arc::clone(&peer_connection);
     peer_connection.on_data_channel(Box::new(move |d: Arc<webrtc::data_channel::RTCDataChannel>| {
         let d_label = d.label().to_owned();
-        let pc = Arc::clone(&pc_clone);
+        let _pc = Arc::clone(&pc_clone);
         Box::pin(async move {
             if d_label == "kvm_control" {
                 tracing::info!("KVM Control channel opened!");

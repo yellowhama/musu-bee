@@ -107,21 +107,16 @@ pub async fn run_company(
     .await
     .map_err(MusuError::Sqlx)?;
 
-    crate::writer::runner::write_task_json(
-        &task_id,
-        Some(&id),
-        Some(&channel),
-        Some(&sender_id),
-        Some(&text),
-        "pending",
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(now),
-        None,
-    );
+    crate::writer::runner::TaskUpdate {
+        task_id: &task_id,
+        company_id: Some(&id),
+        channel: Some(&channel),
+        sender_id: Some(&sender_id),
+        prompt: Some(&text),
+        status: "pending",
+        created_at: Some(now),
+        ..Default::default()
+    }.save();
 
     // EDIT-B (wiki/495 §3.2): hand off to native runner. spawn_task returns
     // immediately (Q1 spawn-then-track). Runner owns JoinHandle + all status

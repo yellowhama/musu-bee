@@ -25,21 +25,15 @@ pub async fn handle_chat(
 
     // Ensure we write a pending task row to the database or JSON log if required by runner
     let now = chrono::Utc::now().timestamp();
-    crate::writer::runner::write_task_json(
-        &task_id,
-        None,
-        Some("cli"),
-        Some("musu-bee"),
-        Some(&payload.text),
-        "pending",
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(now),
-        None,
-    );
+    crate::writer::runner::TaskUpdate {
+        task_id: &task_id,
+        status: "pending",
+        channel: Some("cli"),
+        sender_id: Some("musu-bee"),
+        prompt: Some(&payload.text),
+        created_at: Some(now),
+        ..Default::default()
+    }.save();
 
     // Spawn the real AI task using the distributed adapter
     state
@@ -103,7 +97,7 @@ pub struct DirectMessageResponse {
 /// POST /api/ai/direct_message
 /// Handles peer-to-peer Agent direct messaging for Delegation, Approval, and Reports.
 pub async fn handle_direct_message(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Json(payload): Json<DirectMessageRequest>,
 ) -> Result<Json<DirectMessageResponse>, MusuError> {
     let receipt_id = uuid::Uuid::new_v4().to_string();
@@ -115,6 +109,60 @@ pub async fn handle_direct_message(
     // In a real distributed system, we would check if `to_agent` is on a remote mesh node
     // and route it via the WebRTC or proxy channel if needed.
     // For now, we accept it into the event bus / state.
+
+    // Update musu-brainai SSOT
+    let brain_client = crate::brain::client::BrainClient::new();
+    let now = chrono::Utc::now().timestamp();
+
+    match &payload.message {
+        A2AMessage::TaskDelegation { target_agent, task_id, prompt } => {
+            let task = crate::brain::client::TaskState {
+                task_id: task_id.clone(),
+                company_id: "default".into(), // Or extract from context
+                channel: "a2a".into(),
+                sender_id: payload.from_agent.clone(),
+                parent_task_id: Some("unknown".into()), // Needs tracking in state ideally
+                assigned_agent: Some(target_agent.clone()),
+                approver_agent: Some(payload.from_agent.clone()),
+                prompt: prompt.clone(),
+                status: "pending".into(),
+                output: None,
+                error: None,
+                assigned_pc: None,
+                created_at: now,
+            };
+            let _ = brain_client.create_task(&task).await;
+        }
+        A2AMessage::TaskApproval { target_agent: _, task_id, decision, feedback } => {
+            let status = if decision == "approved" { "completed" } else { "failed" };
+            let update = crate::brain::client::TaskStateUpdate {
+                status: Some(status.into()),
+                output: feedback.clone(),
+                error: None,
+                assigned_pc: None,
+                assigned_agent: None,
+                approver_agent: None,
+                parent_task_id: None,
+                started_at: None,
+                updated_at: Some(now),
+            };
+            let _ = brain_client.update_task(task_id, &update).await;
+        }
+        A2AMessage::TaskReport { target_agent, task_id, result } => {
+            let update = crate::brain::client::TaskStateUpdate {
+                status: Some("waiting_for_approval".into()),
+                output: Some(result.clone()),
+                error: None,
+                assigned_pc: None,
+                assigned_agent: None,
+                approver_agent: Some(target_agent.clone()),
+                parent_task_id: None,
+                started_at: None,
+                updated_at: Some(now),
+            };
+            let _ = brain_client.update_task(task_id, &update).await;
+        }
+    }
     
     Ok(Json(DirectMessageResponse {
         status: "delivered".into(),

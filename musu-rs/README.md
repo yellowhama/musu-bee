@@ -1,4 +1,19 @@
-# musu-rs — V24 single-binary musu control plane
+# Musu (무수) — Autonomous Distributed AI Agent Ecosystem
+
+## 🎯 궁극적인 3대 목표와 비전 (Product Vision)
+
+### 1. 완벽한 집사 (기기 및 설비의 완전한 제어)
+무수는 단순한 텍스트 답변기가 아닙니다. `musu-rs`의 `io/kvm.rs`와 `webrtc.rs` 구조를 보면 알 수 있듯, 무수는 사용자의 컴퓨터나 서버의 키보드, 마우스, 화면을 직접 보고 제어할 수 있는 **'물리적 실행력'**을 갖추도록 설계되었습니다. 사용자가 명령하면 단순히 코드를 짜주는 것에 그치지 않고, 직접 환경을 세팅하고 기기를 제어하는 완벽한 디지털 집사(Butler)가 되는 것이 첫 번째 목표입니다.
+
+### 2. 스스로 판단하는 CEO (목표 설정과 플래닝)
+`musu-brainai`와 `musu-crawl-ai`의 연동(SSOT 및 자율 사전 학습)에서 보았듯, 무수는 주어진 단편적인 명령만 수행하는 수동적인 존재가 아닙니다. 회사(Company) 단위로 스스로 목표를 설정하고, 방대한 과거의 기억(Semantic Vector DB)을 되짚어 보며, 어떻게 문제를 해결할지 스스로 플랜을 짜고(Planner) 의사결정을 내리는 뇌(Brain) 역할을 하는 것이 두 번째 목표입니다.
+
+### 3. 유기적인 분산 조직 (에이전트 간의 협업 ㅡ A2A Mesh)
+하나의 거대한 AI가 모든 것을 다 하는 것이 아니라, 무수 프로(`musu-pro`) 대시보드를 통해 여러 에이전트 노드들이 서로 소통합니다. 작업이 막히면 `/api/ai/direct_message`를 통해 다른 특화된 사원(에이전트)이나 중간관리자에게 작업을 위임(Delegation)하고 결과를 보고(Report) 받습니다. 수많은 무수 노드들이 WebRTC와 P2P로 연결되어 하나의 거대한 지능형 기업(Virtual Company)처럼 동작하는 것이 최종 목표입니다.
+
+---
+
+## musu-rs — V24 single-binary musu control plane
 
 V24 Rust replacement for the Python `musu-bridge` + `musu-core` + `musu-control`
 + `musu-indexer` + `musu-writer` stack. Single binary, four subcommands.

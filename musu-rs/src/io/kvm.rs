@@ -25,7 +25,7 @@ fn get_enigo() -> std::sync::MutexGuard<'static, enigo::Enigo> {
 }
 
 pub fn handle_kvm_message(msg: &[u8]) {
-    use enigo::{Enigo, Mouse, Keyboard, Button, Key, Coordinate, Direction};
+    use enigo::{Mouse, Keyboard, Button, Coordinate, Direction};
     
     let payload: Result<KvmMessage, _> = serde_json::from_slice(msg);
     match payload {

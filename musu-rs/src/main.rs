@@ -12,6 +12,7 @@ mod mesh;
 mod peer;
 mod workflow;
 mod writer;
+mod brain;
 
 // V27: re-export CLI option structs from their canonical home in
 // `install::cli_commands` so the `Cmd` enum can reference them.

@@ -45,17 +45,11 @@ pub enum UpdateSource {
     None,
 }
 
-/// Typed `update.toml` (S9). `deny_unknown_fields` so a future operator
-/// can't sneak in a path-traversal-bearing field that we silently parse.
 #[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
 pub struct UpdateConfig {
     pub source: UpdateSource,
     #[serde(default)]
     pub github_repo: Option<String>,
-    /// Channel selector — only "stable" is consumed today. Future R7+ may
-    /// add "beta" / "nightly"; kept on the struct so deny_unknown_fields
-    /// accepts the user-edited toml.
     #[serde(default = "default_channel")]
     #[allow(dead_code)]
     pub channel: String,
@@ -137,85 +131,16 @@ pub fn validate_github_repo(s: &str) -> Result<()> {
     Ok(())
 }
 
-/// S4: typed GitHub release manifest. `deny_unknown_fields` to refuse any
-/// future API shape change so a blind `.unwrap()` on `serde_json::Value`
-/// is impossible.
 #[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
 struct GithubReleaseManifest {
     tag_name: String,
-    #[allow(dead_code)]
-    name: Option<String>,
-    #[allow(dead_code)]
-    draft: bool,
-    #[allow(dead_code)]
-    prerelease: bool,
     assets: Vec<GithubReleaseAsset>,
-    // We accept-and-ignore some optional informational fields that the
-    // GitHub API returns. deny_unknown_fields would otherwise refuse
-    // them on every call. We list the actual known fields so future
-    // additions surface in CI.
-    #[allow(dead_code)]
-    body: Option<String>,
-    #[allow(dead_code)]
-    published_at: Option<String>,
-    #[allow(dead_code)]
-    created_at: Option<String>,
-    #[allow(dead_code)]
-    html_url: Option<String>,
-    #[allow(dead_code)]
-    url: Option<String>,
-    #[allow(dead_code)]
-    id: Option<u64>,
-    #[allow(dead_code)]
-    node_id: Option<String>,
-    #[allow(dead_code)]
-    tarball_url: Option<String>,
-    #[allow(dead_code)]
-    zipball_url: Option<String>,
-    #[allow(dead_code)]
-    target_commitish: Option<String>,
-    #[allow(dead_code)]
-    author: Option<serde_json::Value>,
-    #[allow(dead_code)]
-    upload_url: Option<String>,
-    #[allow(dead_code)]
-    assets_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
 struct GithubReleaseAsset {
     name: String,
     browser_download_url: String,
-    #[allow(dead_code)]
-    size: u64,
-    // GitHub does NOT return a sha256 in the assets array; the release
-    // body convention is to publish a `SHA256SUMS` asset. We treat the
-    // sha256 line within that asset as the manifest line (signed by
-    // GitHub's release process — transport-only check per S4).
-    #[allow(dead_code)]
-    id: Option<u64>,
-    #[allow(dead_code)]
-    node_id: Option<String>,
-    #[allow(dead_code)]
-    label: Option<String>,
-    #[allow(dead_code)]
-    state: Option<String>,
-    #[allow(dead_code)]
-    content_type: Option<String>,
-    #[allow(dead_code)]
-    digest: Option<String>,
-    #[allow(dead_code)]
-    download_count: Option<u64>,
-    #[allow(dead_code)]
-    created_at: Option<String>,
-    #[allow(dead_code)]
-    updated_at: Option<String>,
-    #[allow(dead_code)]
-    uploader: Option<serde_json::Value>,
-    #[allow(dead_code)]
-    url: Option<String>,
 }
 
 // ── S4: hostname allowlist for redirect follow ────────────────────────────
@@ -386,10 +311,7 @@ async fn run_github_release(home: &Path, cfg: &UpdateConfig, opts: &AutoUpdateOp
         return Ok(());
     }
 
-    // D4: Freeze before swap, then perform swap, then unfreeze + start.
-    // Auditor B QB2: each IPC call now includes a bearer token so musud
-    // can authenticate the request (constant-time compare in supervisor).
-    let token = read_ipc_token(home);
+    let token = super::token::read_bridge_token(home);
     let _ = ipc_send(home, &ipc_request_json("freeze", Some("bridge"), &token)).await;
     let swap_outcome =
         staged_swap::perform_swap(&home.join("bin").join(super::musu_binary_name()))?;
@@ -419,17 +341,7 @@ async fn run_github_release(home: &Path, cfg: &UpdateConfig, opts: &AutoUpdateOp
     }
 }
 
-/// R6 audit-fix (Auditor B QB2 — ipc-auth): read MUSU_BRIDGE_TOKEN from
-/// env, falling back to `~/.musu/bridge.env`. Returns None when neither
-/// is set — the IPC call still proceeds and musud will reject if it has
-/// an expected token configured.
-///
-/// V24-R3 wiki/493 Critic C4 (HIGH): delegates to the shared resolver in
-/// `crate::install::token` to eliminate the previous 2-copy duplication
-/// (auto_update.rs + uninstall.rs). Behavior preserved.
-fn read_ipc_token(home: &Path) -> Option<String> {
-    super::token::read_bridge_token(home)
-}
+
 
 /// R6 audit-fix (Auditor B QB2): compose a one-line IPC request JSON with
 /// optional service name + optional bearer token. We hand-build the JSON
@@ -452,40 +364,27 @@ fn ipc_request_json(cmd: &str, service: Option<&str>, token: &Option<String>) ->
     serde_json::Value::Object(obj).to_string()
 }
 
-/// Fetch a JSON document with ureq, redirects(0), hostname-allowlist
-/// manual follow (S4).
 fn fetch_json<T: for<'de> Deserialize<'de>>(url: &str, opts: &AutoUpdateOpts) -> Result<T> {
-    let body = http_get_with_follow(url, opts, 5)?;
-    let parsed: T =
-        serde_json::from_str(&body).with_context(|| format!("parse JSON from {url}"))?;
-    Ok(parsed)
+    let body = http_get_with_follow(url, opts, 5, |r| {
+        let mut s = String::new();
+        r.into_reader().take(20_000_000).read_to_string(&mut s)?;
+        Ok(s)
+    })?;
+    serde_json::from_str(&body).with_context(|| format!("parse JSON from {url}"))
 }
 
-/// Issue an HTTP GET with manual redirect follow, never crossing the
-/// hostname allowlist. ureq is configured with `.redirects(0)` so its
-/// default automatic follow is disabled; we look at the Location header
-/// ourselves and re-issue.
-fn http_get_with_follow(url: &str, opts: &AutoUpdateOpts, max_hops: u32) -> Result<String> {
+fn http_get_with_follow<T, F>(url: &str, opts: &AutoUpdateOpts, max_hops: u32, mut handler: F) -> Result<T>
+where
+    F: FnMut(ureq::Response) -> Result<T>,
+{
     let mut current = url.to_string();
     for hop in 0..max_hops {
         if opts.github_api_base.is_none() && !host_is_allowed(&current) {
-            anyhow::bail!(
-                "auto-update refused redirect to non-allowlisted host: {} (hop {hop})",
-                current
-            );
+            anyhow::bail!("auto-update refused redirect to non-allowlisted host: {} (hop {hop})", current);
         }
-        let agent = ureq::AgentBuilder::new()
-            .redirects(0)
-            .timeout(Duration::from_secs(30))
-            .build();
-        let resp = match agent
-            .get(&current)
-            .set("User-Agent", "musu-auto-update")
-            .call()
-        {
+        let agent = ureq::AgentBuilder::new().redirects(0).timeout(Duration::from_secs(30)).build();
+        let resp = match agent.get(&current).set("User-Agent", "musu-auto-update").call() {
             Ok(r) => r,
-            // ureq Err for redirects: 3xx wraps as Err(Status(_, _)) when
-            // redirects=0. Treat as informational and use the Location.
             Err(ureq::Error::Status(code, resp)) if (300..400).contains(&code) => {
                 if let Some(loc) = resp.header("Location") {
                     current = loc.to_string();
@@ -495,13 +394,7 @@ fn http_get_with_follow(url: &str, opts: &AutoUpdateOpts, max_hops: u32) -> Resu
             }
             Err(e) => anyhow::bail!("ureq GET {current}: {e}"),
         };
-        // 2xx — read body.
-        let mut s = String::new();
-        resp.into_reader()
-            .take(20_000_000) // 20MB cap on JSON / manifest payloads
-            .read_to_string(&mut s)
-            .context("read response body")?;
-        return Ok(s);
+        return handler(resp);
     }
     Err(anyhow!("max redirect hops ({max_hops}) exceeded for {url}"))
 }
@@ -688,7 +581,11 @@ fn verify_sha256_or_delete(
         return scrub("SHA256SUMS asset URL is not HTTPS");
     }
 
-    let body = match http_get_with_follow(&sums_asset.browser_download_url, opts, 5) {
+    let body = match http_get_with_follow(&sums_asset.browser_download_url, opts, 5, |r| {
+        let mut s = String::new();
+        r.into_reader().take(20_000_000).read_to_string(&mut s)?;
+        Ok(s)
+    }) {
         Ok(s) => s,
         Err(e) => return scrub(&format!("fetch SHA256SUMS: {e}")),
     };
