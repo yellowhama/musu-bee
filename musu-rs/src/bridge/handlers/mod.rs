@@ -83,6 +83,7 @@ pub fn native_router() -> Router<AppState> {
         .route("/api/index-search", get(index_search::get))
         // V28: AI Agent Loop Endpoint
         .route("/api/ai/chat", post(ai::handle_chat))
+        .route("/api/ai/direct_message", post(ai::handle_direct_message))
         // V27: Remote filesystem API.
         .route("/api/files", get(files::list_dir).delete(files::delete_path))
         .route("/api/files/read", get(files::read_file))
@@ -90,7 +91,7 @@ pub fn native_router() -> Router<AppState> {
         .route("/api/files/mkdir", post(files::mkdir))
         .route("/api/files/info", get(files::file_info))
         // W4: Mesh File Proxy
-        .route("/api/v1/fs/proxy/:node_id/*path", get(crate::mesh::file_proxy::proxy_file))
+        .route("/api/v1/fs/proxy/:node_id/*path", get(crate::mesh::file_proxy::proxy_file).post(crate::mesh::file_proxy::proxy_write_file))
         // W14: WebRTC Signaling
         .route("/api/webrtc/offer", post(crate::io::webrtc::handle_offer))
         // W15: Universal Clipboard

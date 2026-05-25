@@ -13,9 +13,12 @@ export function getBridgeUrl(): string {
 
   // 1. Try to read from ~/.musu/services/bridge.json on the server
   try {
-    const fs = require('fs');
-    const path = require('path');
-    const os = require('os');
+    // @ts-ignore
+    const fs = eval("require")('fs');
+    // @ts-ignore
+    const path = eval("require")('path');
+    // @ts-ignore
+    const os = eval("require")('os');
     const homeDir = process.env.USERPROFILE || process.env.HOME || os.homedir();
     const bridgeJsonPath = path.join(homeDir, '.musu', 'services', 'bridge.json');
     

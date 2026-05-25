@@ -118,5 +118,36 @@ export const useFleetStore = create<FleetStore>((set) => ({
         console.error("Failed to parse ai_message event:", err);
       }
     });
+
+    // Phase 3: Agent-to-Agent Protocol Events
+    es.addEventListener("a2a_message", (e) => {
+      try {
+        const payload = JSON.parse(e.data);
+        const a2aMsg = payload.message; // e.g. { type: 'TaskDelegation', payload: {...} }
+        
+        if (a2aMsg.type === 'TaskApproval') {
+           useFleetStore.getState().pushWidget({
+              type: 'Approval',
+              props: {
+                 taskId: a2aMsg.payload.task_id,
+                 targetAgent: a2aMsg.payload.target_agent,
+                 decision: a2aMsg.payload.decision,
+                 feedback: a2aMsg.payload.feedback
+              }
+           });
+        }
+        
+        // Log in chat as a system/agent notice
+        set((state) => ({
+           messages: [...state.messages, {
+              id: `a2a-${Date.now()}-${Math.random()}`,
+              sender: "ai",
+              text: `[A2A ${a2aMsg.type}]: ${a2aMsg.payload.target_agent} -> ${a2aMsg.payload.task_id}`,
+           }]
+        }));
+      } catch(err) {
+        console.error("Failed to parse a2a_message event:", err);
+      }
+    });
   }
 }));

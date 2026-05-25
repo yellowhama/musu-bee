@@ -1,7 +1,7 @@
 import React from "react";
 import { VscCheck, VscWarning, VscInfo } from "react-icons/vsc";
 
-export type WidgetType = "TerminalLog" | "ProgressCircle" | "ServerHealth";
+export type WidgetType = "TerminalLog" | "ProgressCircle" | "ServerHealth" | "Approval";
 
 export interface WidgetPayload {
   type: WidgetType;
@@ -78,9 +78,29 @@ export function ServerHealthWidget({ cpu, memory, status }: { cpu: number, memor
   );
 }
 
+// 4. Approval Widget
+export function ApprovalWidget({ taskId, targetAgent, decision, feedback }: { taskId: string, targetAgent: string, decision: string, feedback?: string }) {
+  return (
+    <div style={{
+      background: "rgba(0,0,0,0.85)", border: `1px solid ${decision === "approved" ? "var(--status-success)" : "var(--status-error)"}`,
+      borderRadius: 6, padding: "8px 12px", width: 220, fontFamily: "'Space Mono', monospace",
+      fontSize: 10, color: "var(--fg1)", boxShadow: "0 4px 12px rgba(0,0,0,0.5)"
+    }}>
+      <div style={{ fontWeight: "bold", marginBottom: 8, display: "flex", justifyContent: "space-between" }}>
+        <span>AGENT APPROVAL</span>
+        <span style={{ color: decision === "approved" ? "var(--status-success)" : "var(--status-error)" }}>{decision.toUpperCase()}</span>
+      </div>
+      <div style={{ marginBottom: 4 }}>Task: {taskId.split('-')[0]}...</div>
+      <div style={{ marginBottom: 4 }}>Target: {targetAgent}</div>
+      {feedback && <div style={{ fontStyle: "italic", color: "var(--fg2)", marginTop: 8 }}>"{feedback}"</div>}
+    </div>
+  );
+}
+
 // Registry Mapper
 export const WIDGETS = {
   TerminalLog: TerminalLogWidget,
   ProgressCircle: ProgressWidget,
-  ServerHealth: ServerHealthWidget
+  ServerHealth: ServerHealthWidget,
+  Approval: ApprovalWidget
 };

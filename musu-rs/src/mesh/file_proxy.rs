@@ -56,3 +56,50 @@ pub async fn proxy_file(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to build response: {}", e))
     })
 }
+
+use std::sync::{Mutex, OnceLock};
+
+/// In-memory queue for offline write operations. 
+/// In production, this should be backed by SQLite (WAL) to survive restarts.
+fn get_offline_queue() -> &'static Mutex<Vec<(String, String, Vec<u8>)>> {
+    static OFFLINE_WRITE_QUEUE: OnceLock<Mutex<Vec<(String, String, Vec<u8>)>>> = OnceLock::new();
+    OFFLINE_WRITE_QUEUE.get_or_init(|| Mutex::new(Vec::new()))
+}
+
+/// Proxies a file write request to a remote node. If the node is offline, buffers it.
+pub async fn proxy_write_file(
+    State(state): State<AppState>,
+    Path((node_id, path)): Path<(String, String)>,
+    body: axum::body::Bytes,
+) -> Result<impl IntoResponse, (StatusCode, String)> {
+    
+    let musu_home = state.config.nodes_toml_path
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new("."));
+    
+    let peers = crate::peer::discovery::resolve_all_peers(musu_home);
+    let peer = peers.into_iter().find(|p| p.name.as_deref() == Some(node_id.as_str()) || p.addr == node_id);
+    
+    if let Some(p) = peer {
+        let target_url = format!("http://{}/api/files/write?path={}", p.addr, path);
+        match state.http_client.post(&target_url).body(body.to_vec()).send().await {
+            Ok(resp) => {
+                if resp.status().is_success() {
+                    return Ok((StatusCode::OK, "Write successful".to_string()));
+                }
+            }
+            Err(e) => {
+                tracing::warn!("Target node is offline, buffering write: {}", e);
+            }
+        }
+    } else {
+        tracing::warn!("Node not found, buffering write for future peer discovery");
+    }
+
+    // Node offline or request failed: Buffer it
+    let mut queue = get_offline_queue().lock().unwrap();
+    queue.push((node_id.clone(), path.clone(), body.to_vec()));
+    tracing::info!("Queued write operation for {}, file: {}. Queue size: {}", node_id, path, queue.len());
+
+    Ok((StatusCode::ACCEPTED, "Write queued for offline sync".to_string()))
+}

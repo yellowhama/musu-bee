@@ -63,17 +63,39 @@ pub async fn handle_offer(
     })?);
 
     // Register KVM data channel listener
+    let pc_clone = Arc::clone(&peer_connection);
     peer_connection.on_data_channel(Box::new(move |d: Arc<webrtc::data_channel::RTCDataChannel>| {
         let d_label = d.label().to_owned();
+        let pc = Arc::clone(&pc_clone);
         Box::pin(async move {
             if d_label == "kvm_control" {
                 tracing::info!("KVM Control channel opened!");
+                
+                let d_clone = Arc::clone(&d);
                 d.on_message(Box::new(move |msg: webrtc::data_channel::data_channel_message::DataChannelMessage| {
-                    crate::io::kvm::handle_kvm_message(&msg.data);
+                    if msg.data.as_ref() == b"ping" {
+                        // Heartbeat response
+                        let dc = Arc::clone(&d_clone);
+                        tokio::spawn(async move {
+                            let _ = dc.send_text("pong").await;
+                        });
+                    } else {
+                        crate::io::kvm::handle_kvm_message(&msg.data);
+                    }
                     Box::pin(async {})
                 }));
             }
         })
+    }));
+
+    // Monitor Peer Connection State for Auto-Reconnect/Cleanup
+    peer_connection.on_peer_connection_state_change(Box::new(move |s: webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState| {
+        tracing::info!("Peer Connection State has changed: {}", s);
+        if s == webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState::Failed {
+            tracing::warn!("WebRTC connection failed. Awaiting auto-reconnect from client.");
+            // Here we could clean up resources or trigger a mesh reconnect event
+        }
+        Box::pin(async {})
     }));
 
     // 2. Set up Video Track for H.264 stream
