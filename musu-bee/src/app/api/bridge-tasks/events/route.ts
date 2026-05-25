@@ -1,10 +1,11 @@
+import { getBridgeUrl } from '../../../../lib/bridge-config';
 import { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   const BRIDGE =
-    process.env.NEXT_PUBLIC_BRIDGE_URL ?? "http://localhost:8070";
+    getBridgeUrl();
   const token = process.env.MUSU_BRIDGE_TOKEN ?? "";
 
   const upstream = await fetch(`${BRIDGE}/api/tasks/events`, {

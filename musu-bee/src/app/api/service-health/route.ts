@@ -1,6 +1,7 @@
+import { getBridgeUrl } from '../../../lib/bridge-config';
 import { NextRequest, NextResponse } from "next/server";
 
-const BRIDGE_URL = (process.env.MUSU_BRIDGE_URL ?? "http://localhost:8070").trim().replace(/\/+$/, "");
+const BRIDGE_URL = (getBridgeUrl()).trim().replace(/\/+$/, "");
 
 const SERVICES: Record<string, string> = {
   port:   (process.env.MUSU_PORT_URL   ?? BRIDGE_URL).trim().replace(/\/+$/, "") + "/health",

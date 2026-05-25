@@ -1,4 +1,5 @@
 "use client";
+import { getBridgeUrl } from '../../../lib/bridge-config';
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
@@ -30,7 +31,7 @@ interface CompanyDispatch {
   };
 }
 
-const BRIDGE_URL = process.env.NEXT_PUBLIC_MUSU_BRIDGE_URL || "http://localhost:8070";
+const BRIDGE_URL = getBridgeUrl();
 const REFRESH_INTERVAL = 5_000;
 
 function StatusDot({ status }: { status: string }) {

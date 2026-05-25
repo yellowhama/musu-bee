@@ -181,6 +181,16 @@ http://localhost:3001/fleet                     Fleet view (V23.4+)
 
 ---
 
+## 9. Multi-Machine Binding (V27+)
+
+MUSU naturally binds all your devices together into one seamless work environment.
+
+- **Mesh File Proxy**: Stream or download files from remote machines directly using the bridge API: `GET /api/v1/fs/proxy/:node_id/*path`.
+- **WebRTC Remote View**: Open the Machine view (`/m/<MACHINE_ID>`) in `musu-bee` to view a low-latency, real-time screen feed of any remote node in your fleet.
+- **Universal Clipboard**: Copy text on one machine, and the clipboard is seamlessly broadcasted and synced to all other connected MUSU machines in real-time.
+
+---
+
 ## Where to go next
 
 - [`docs/MANUAL.md`](docs/MANUAL.md) — full API surface: delegation,

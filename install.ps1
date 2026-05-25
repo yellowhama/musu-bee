@@ -68,6 +68,33 @@ try {
     $WebClient = New-Object System.Net.WebClient
     $WebClient.DownloadFile($DownloadUrl, $TmpFile)
 
+    # Validate checksum if available
+    try {
+        $ChecksumUrl = "$ReleaseBase/SHA256SUMS"
+        $TmpChecksum = Join-Path $env:TEMP "musu-checksum-$([guid]::NewGuid().ToString('N')).txt"
+        $WebClient.DownloadFile($ChecksumUrl, $TmpChecksum)
+        
+        $Checksums = Get-Content $TmpChecksum
+        $ExpectedSha = $null
+        foreach ($line in $Checksums) {
+            if ($line -match "^([A-Fa-f0-9]{64})\s+.*$BinaryName$") {
+                $ExpectedSha = $matches[1].ToLower()
+                break
+            }
+        }
+        
+        if ($ExpectedSha) {
+            $ActualSha = (Get-FileHash $TmpFile -Algorithm SHA256).Hash.ToLower()
+            if ($ActualSha -ne $ExpectedSha) {
+                Write-Err "Checksum mismatch! Expected: $ExpectedSha, Actual: $ActualSha"
+            }
+            Write-Ok "Checksum verified ($($ActualSha.Substring(0,8))...)"
+        }
+        Remove-Item $TmpChecksum -Force -ErrorAction SilentlyContinue
+    } catch {
+        # Ignore if checksum file missing
+    }
+
     # Sanity: check file size (real binary should be > 1MB)
     $FileSize = (Get-Item $TmpFile).Length
     if ($FileSize -gt 1MB) {
@@ -129,7 +156,26 @@ if (-not $Downloaded) {
     # Clone and build
     $CloneDir = Join-Path $env:TEMP "musu-build-$([guid]::NewGuid().ToString('N'))"
     Write-Step "Cloning $CloneUrl..."
-    & git clone --depth 1 $CloneUrl $CloneDir
+    
+    # Try getting the latest tag
+    $LatestTag = ""
+    try {
+        $Req = [System.Net.WebRequest]::Create("https://github.com/$Repo/releases/latest")
+        $Req.AllowAutoRedirect = $false
+        $Res = $Req.GetResponse()
+        if ($Res.StatusCode -eq 302 -or $Res.StatusCode -eq 301) {
+            $Loc = $Res.Headers["Location"]
+            $LatestTag = $Loc.Substring($Loc.LastIndexOf('/') + 1)
+        }
+    } catch { }
+
+    if ($LatestTag -and $LatestTag -ne "latest") {
+        Write-Step "Checking out latest stable tag: $LatestTag"
+        & git clone --depth 1 -b $LatestTag $CloneUrl $CloneDir
+    } else {
+        & git clone --depth 1 $CloneUrl $CloneDir
+    }
+    
     if ($LASTEXITCODE -ne 0) { Write-Err "git clone failed" }
 
     Write-Step "Running cargo build --release (this may take 2-5 minutes)..."

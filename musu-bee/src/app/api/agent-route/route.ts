@@ -1,3 +1,4 @@
+import { getBridgeUrl } from '../../../lib/bridge-config';
 import { NextRequest, NextResponse } from "next/server";
 import { readFile } from "fs/promises";
 import { join } from "path";
@@ -102,7 +103,7 @@ function parseDelegationChain(
 }
 
 const MUSU_BRIDGE_URL = (
-  process.env.MUSU_BRIDGE_URL ?? "http://localhost:8070"
+  getBridgeUrl()
 ).replace(/\/+$/, "");
 
 /** Validate that a URL is an allowed musu-bridge endpoint (http/https, no path traversal). */

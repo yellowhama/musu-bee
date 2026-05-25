@@ -1,205 +1,69 @@
-# MUSU Node Onboarding
+# MUSU Node Onboarding (V27)
 
-**Adding another machine to an existing MUSU mesh.** For *first*
-single-machine setup, use [`../QUICKSTART.md`](../QUICKSTART.md) — this
-doc assumes a bridge is already running somewhere on your tailnet.
+**Adding another machine to an existing MUSU mesh.** 
+For the *first* initial machine setup, refer to [`../QUICKSTART.md`](../QUICKSTART.md). This document assumes you already have a MUSU cloud account (`musu.pro`).
 
 ## Prerequisites
 
-- Python 3.12+
-- Node.js 20+ (for CLI tools)
-- Tailscale installed and connected to the same network
-- One of: Claude / Gemini / Codex CLI subscription
+- Windows, macOS, or Linux
+- (Optional but Recommended) Tailscale installed and connected to the same network for secure mesh routing.
 
 ## Quick Start (5 minutes)
 
-### 1. Clone
+### 1. Download or Build `musu-rs`
+
+MUSU V27 is a single-binary architecture. You no longer need Python, virtual environments, or Node.js to run the node itself.
+
+You can download the pre-compiled binary from the release page, or build it from source:
 
 ```bash
 git clone https://github.com/yellowhama/musu-bee.git ~/musu-bee
-cd ~/musu-bee
+cd ~/musu-bee/musu-rs
+cargo build --release
 ```
 
-### 2. Install Python packages
+### 2. Install and Initialize
 
-The musu Python modules use editable installs from their `pyproject.toml`
-— there is no `requirements.txt`. The convenience installer handles all
-of this in one command (`bash scripts/install.sh --service --start`).
-Manual equivalent:
+Run the installation command. This sets up your `~/.musu/` directory and creates the initial SQLite schema.
 
 ```bash
-cd musu-bridge && python3 -m venv .venv && source .venv/bin/activate && pip install -e . && deactivate
-cd ../musu-core && python3 -m venv .venv && source .venv/bin/activate && pip install -e . && deactivate
-cd ../musu-control && python3 -m venv .venv && source .venv/bin/activate && pip install -e . && deactivate
-cd ..
+# For built source
+./target/release/musu install
 ```
 
-### 3. Install AI CLIs
+### 3. Login to musu.pro (Required for Auto-Discovery)
+
+To enable mDNS local discovery and cloud routing, you must authenticate your node.
 
 ```bash
-npm install -g @anthropic-ai/claude-code    # Claude
-npm install -g @anthropic-ai/gemini-cli     # Gemini
-npm install -g @openai/codex                # Codex
-# Login to each: claude login, etc.
+musu login
 ```
+*Follow the OAuth prompt in your browser. This will save a secure token to `~/.musu/token`.*
 
-### 4. Configure
+### 4. Start the Bridge
+
+Start the local bridge. The bridge automatically assigns a dynamic port (saved in `~/.musu/services/bridge.json`) and begins broadcasting its presence via mDNS to other local nodes.
 
 ```bash
-# Run init.sh — generates token, copies templates, installs deps
-bash scripts/init.sh
+musu bridge
 ```
+*(In production, this is usually run as a background service via systemd or Windows Scheduled Tasks. `musu peer register` can set this up for you).*
 
-Or manually:
+### 5. Verify Discovery
+
+On your main machine (or the new node), check if the fleet sees each other:
 
 ```bash
-mkdir -p ~/.musu/secrets && chmod 700 ~/.musu/secrets
-
-# Generate secure token
-TOKEN=$(openssl rand -hex 32)
-
-# Create vault (wiki/009)
-cat > ~/.musu/secrets/vault.json << EOF
-{
-  "bridge": {"token": "$TOKEN"},
-  "cloud": {"musu_token": ""},
-  "forgejo": {"user": "", "pass": "", "url": ""},
-  "nodes": {}
-}
-EOF
-# If you operate a shared Forgejo, fill the forgejo block AFTER this with your
-# OWN credentials — never paste another operator's user/pass/url.
-chmod 600 ~/.musu/secrets/vault.json
-
-# Create .env from vault token
-cat > musu-bridge/.env << EOF
-MUSU_BRIDGE_TOKEN=$TOKEN
-BRIDGE_HOST=0.0.0.0
-BRIDGE_PORT=8070
-MUSU_NODE_NAME=YOUR_NODE_NAME
-MUSU_CEO_HEARTBEAT_ENABLED=true
-MUSU_CEO_HEARTBEAT_INTERVAL=1800
-MUSU_NODE_HEARTBEAT_ENABLED=true
-EOF
+musu discover
+# or
+musu status
 ```
 
-Replace `YOUR_NODE_NAME` with your device name (e.g., `laptop`, `desktop`, `server`).
+### 6. Register as a Worker Peer (Optional)
 
-### 5. Seed agents + Apply model distribution
+If this node is meant to process tasks (e.g., Ollama GPU worker, script runner), register it:
 
 ```bash
-musu-bridge/.venv/bin/python musu-bridge/seed_agents.py
-python3 scripts/apply-agent-defaults.py
+musu peer register --type ollama --start "ollama serve" --name "my-gpu-worker"
 ```
-
-### 6. Connect to a shared Git server (optional)
-
-> **Optional, opt-in only.** V23.4+ musu does not require a shared
-> Forgejo / Gitea / GitHub server. The mesh works fine without one.
-> Skip this section unless you already operate a shared Git host for
-> agent code sync.
-
-If you DO run a shared Git server, register it as a Git remote with
-your own credentials — NEVER paste someone else's IP or token here:
-
-```bash
-# Replace with YOUR shared Git host + YOUR credentials
-git remote add forgejo "https://<YOUR_GIT_HOST>/<ORG>/musu-project.git"
-git config --global credential.helper store
-git fetch forgejo
-```
-
-Use a personal access token (not username:password) and let
-`credential.helper store` save it after the first `git fetch` prompt.
-
-### 7. Start
-
-```bash
-# Linux (systemd)
-cp scripts/systemd/musu-bridge.service ~/.config/systemd/user/
-systemctl --user daemon-reload
-systemctl --user enable --now musu-bridge
-
-# Or manual
-cd musu-bridge && .venv/bin/python server.py
-```
-
-### 8. Verify
-
-```bash
-# Local health
-curl http://localhost:8070/health
-
-# Mesh connection (replace <MESH_PEER_IP> with the existing node's Tailscale IP)
-curl http://<MESH_PEER_IP>:8070/health -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN"
-
-# Announce on CEO board
-curl -X POST http://localhost:8070/api/groups/ceo-board/messages \
-  -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"text": "NEW_NODE online. Mesh connected.", "sender_id": "ceo-NEW_NODE"}'
-```
-
-## How It Works
-
-```
-Your Device
-  └─ musu-bridge (:8070)
-       ├─ CEO agent (Claude) — manages your projects
-       ├─ Engineer (Gemini) — writes code
-       ├─ QA (Claude) — reviews code
-       └─ Node Manager — reports device health
-
-       Optional integrations (not required):
-       ├─ Shared Git host (Forgejo/Gitea/GitHub) — code sync between
-       │  nodes when you operate one. Self-contained product positioning
-       │  ([[feedback-self-contained-product]]) makes this opt-in.
-       ├─ #ceo-board — inter-device CEO group chat (built into bridge,
-       │  no external service needed)
-       └─ musu.pro — remote-access SaaS. V23.4+ optional; the bridge
-          itself runs locally with no SaaS dep.
-```
-
-## Key Files
-
-| File | Purpose |
-|------|---------|
-| `.musu/charter.md` | Company mission and rules |
-| `.musu/agent-defaults.json` | Model distribution config |
-| `musu-bridge/.env` | Node-specific environment |
-| `musu-bridge/instructions/*.md` | Agent behavior |
-
-## Writer Studio Setup
-
-For a fiction workspace, use the writer-company provisioning script with
-your own workspace path:
-
-```bash
-python3 scripts/setup-writer-company.py --workspace-root ~/writer
-```
-
-This expects (under `<workspace-root>`):
-
-- `.musu/company.json`
-- `.musu/charter.md`
-- `.musu/agent-defaults.json`
-
-The active company manifest lives at `~/.musu/companies/<id>.yaml`. Set
-`MUSU_COMPANY_YAML=~/.musu/companies/<id>.yaml` (or `MUSU_COMPANY_ID=<id>`)
-to bind the bridge to it.
-
-## Updating
-
-When notified via #ceo-board:
-
-```bash
-cd ~/musu-bee
-git pull                                       # or `git pull forgejo main` if you registered one
-python3 scripts/apply-agent-defaults.py
-systemctl --user restart musu-bridge
-```
-
-## The Chairman Principle (wiki/001)
-
-The user is the chairman. You are a subsidiary president.
-Report in results, not processes. No data dumps. Ever.
+This automatically configures the node to accept delegated tasks and starts a platform service to keep it running across reboots.

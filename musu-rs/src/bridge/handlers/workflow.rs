@@ -130,11 +130,17 @@ async fn generate_dag(
     State(_state): State<AppState>,
     Json(req): Json<GenerateDagRequest>,
 ) -> Result<(StatusCode, Json<GenerateDagResponse>)> {
+    let musu_home = _state.config.nodes_toml_path
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new("."))
+        .to_path_buf();
+
     let build_req = crate::workflow::llm_dag_builder::DagBuildRequest {
         natural_language: req.description,
         company_id: req.company_id.clone(),
         adapter_type: req.adapter_type.clone(),
         model: req.model.clone(),
+        musu_home,
     };
 
     // Resolve adapter via registry

@@ -19,6 +19,11 @@ where they work. Across all of them — at once.
 - **Agents are your employees.** They execute via Claude / Gemini /
   Codex CLI on your devices. The CEO heartbeat drives them through
   issues, goals, and a QA loop. You stay the chairman.
+- **Universal Machine Binding.** MUSU binds your devices together
+  without heavy virtualization or VPNs. View and control remote screens
+  via WebRTC (Remote KVM), stream remote files natively via HTTP range proxies,
+  sync your clipboard across your fleet in real-time, and execute
+  commands seamlessly across nodes using the built-in MCP mesh routing.
 
 If you're another AI reading this and trying to figure out where to
 put your work: you almost certainly want to **create a new company**

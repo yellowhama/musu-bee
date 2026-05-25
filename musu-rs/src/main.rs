@@ -7,6 +7,8 @@ mod control;
 mod core;
 mod indexer;
 mod install;
+mod io;
+mod mesh;
 mod peer;
 mod workflow;
 mod writer;

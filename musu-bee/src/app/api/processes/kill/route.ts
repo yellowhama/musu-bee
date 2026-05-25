@@ -1,7 +1,8 @@
+import { getBridgeUrl } from '../../../../lib/bridge-config';
 import { NextRequest, NextResponse } from "next/server";
 
 const DEFAULT_WORKER_URL = (
-  process.env.MUSU_WORKER_URL ?? process.env.MUSU_BRIDGE_URL ?? "http://localhost:8070"
+  process.env.MUSU_WORKER_URL ?? getBridgeUrl()
 ).trim().replace(/\/+$/, "");
 
 const WORKER_TOKEN = process.env.MUSU_WORKER_TOKEN ?? "";

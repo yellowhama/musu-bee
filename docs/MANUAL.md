@@ -11,34 +11,39 @@ MUSU runs AI agent teams on your local devices. Each device has a CEO that manag
 
 ```
 Your Device
-  └─ musu-bridge (:8070)
-       ├─ CEO — manages all projects, delegates to team leads
-       ├─ Team Lead — runs one project, delegates to engineers
-       ├─ Engineer (Gemini) — writes code, runs tests
-       ├─ QA (Claude) — reviews and scores work
-       └─ Node Manager — reports device health
+  ?붴? musu-rs (:8070) ??Single Rust binary replacing legacy python bridges (Now V27 Single Binary Rust)
+       ?쒋? CEO ??manages all projects, delegates to team leads
+       ?쒋? Team Lead ??runs one project, delegates to engineers
+       ?쒋? Engineer (Gemini) ??writes code, runs tests
+       ?쒋? QA (Claude) ??reviews and scores work
+       ?붴? Node Manager ??reports device health
 
 Connected to (optional, not required for single-machine use):
-  ├─ Other devices via Tailscale mesh
-  ├─ musu-relay WebRTC signaling rendezvous (for cross-PC mesh)
-  └─ #ceo-board for inter-device coordination
-
-A self-hosted Forgejo for shared Git, or the musu.pro remote-access
-service, are optional integrations — not part of the V23.4+ core
-runtime. Treat sections below that reference them as opt-in.
+  ?쒋? Other local devices via mDNS (Local Peer Discovery)
+  ?쒋? Cloud remote devices via musu.pro registry (Token Binding)
+  ?붴? #ceo-board for inter-device coordination
 ```
 
 ---
 
 ## Quick Start
 
-For single-machine install + first company: see [`../QUICKSTART.md`](../QUICKSTART.md).
-For adding a node to an existing mesh: see [`ONBOARDING.md`](ONBOARDING.md).
-Per-OS reference + troubleshooting: see [`../INSTALL.md`](../INSTALL.md).
+For single-machine installation, use the zero-dependency one-liner:
+
+**Linux/macOS:**
+```bash
+curl -fsSL https://musu.pro/install.sh | bash
+```
+
+**Windows (PowerShell):**
+```powershell
+iwr https://musu.pro/install.ps1 -useb | iex
+```
 
 Set the bearer token once per shell:
 
 ```bash
+export BRIDGE_PORT=$(jq -r '.addr' ~/.musu/services/bridge.json | cut -d: -f2)
 export MUSU_BRIDGE_TOKEN=$(grep '^MUSU_BRIDGE_TOKEN=' ~/.musu/bridge.env | cut -d= -f2)
 ```
 
@@ -51,14 +56,14 @@ All curl examples below assume `$MUSU_BRIDGE_TOKEN` is exported.
 ### Check if everything is working
 
 ```bash
-curl http://localhost:8070/health
+curl http://localhost:\$BRIDGE_PORT/health
 # {"status":"ok"}
 ```
 
 ### Check success rate
 
 ```bash
-curl http://localhost:8070/api/stats/success-rate?days=1
+curl http://localhost:\$BRIDGE_PORT/api/stats/success-rate?days=1
 # Shows: done/failed/running counts + success percentage
 ```
 
@@ -72,7 +77,7 @@ sqlite3 ~/.musu/musu.db "SELECT status, substr(output,1,100), created_at FROM ro
 ### Trigger CEO heartbeat manually
 
 ```bash
-curl -X POST http://localhost:8070/api/agents/{CEO_ID}/heartbeat/invoke \
+curl -X POST http://localhost:\$BRIDGE_PORT/api/agents/{CEO_ID}/heartbeat/invoke \
   -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN" \
   -H "Content-Type: application/json" -d '{}'
 ```
@@ -80,11 +85,11 @@ curl -X POST http://localhost:8070/api/agents/{CEO_ID}/heartbeat/invoke \
 ### Give feedback (as chairman)
 
 ```bash
-curl -X POST http://localhost:8070/api/feedback \
+curl -X POST http://localhost:\$BRIDGE_PORT/api/feedback \
   -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"title": "Fix the login page", "type": "bug"}'
-# Creates an issue → CEO picks it up on next heartbeat
+# Creates an issue ??CEO picks it up on next heartbeat
 ```
 
 ---
@@ -109,26 +114,26 @@ Channels: ceo-board, md-team, my-team
 
 ```bash
 # Post
-curl -X POST http://localhost:8070/api/groups/my-team/messages \
+curl -X POST http://localhost:\$BRIDGE_PORT/api/groups/my-team/messages \
   -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"text": "Draft ready", "sender_id": "writer-1"}'
 
 # Reply (notifies original author)
-curl -X POST http://localhost:8070/api/groups/my-team/messages \
+curl -X POST http://localhost:\$BRIDGE_PORT/api/groups/my-team/messages \
   -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"text": "Looks good", "sender_id": "editor-1", "reply_to": "msg-id"}'
 
 # Check your notifications
-curl http://localhost:8070/api/notifications/writer-1 \
+curl http://localhost:\$BRIDGE_PORT/api/notifications/writer-1 \
   -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN"
 ```
 
 ### Read channel messages
 
 ```bash
-curl http://localhost:8070/api/groups/ceo-board/messages?limit=5 \
+curl http://localhost:\$BRIDGE_PORT/api/groups/ceo-board/messages?limit=5 \
   -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN"
 ```
 
@@ -155,6 +160,41 @@ curl "http://{NODE_IP}:8070/api/files/read?path=/home/user/project/chapter1.md" 
 ```
 
 Security: files restricted to home directory. Auth token required.
+
+### Mesh File Proxy (V27+)
+
+Transparently stream or download large files directly from a remote node via HTTP ranges without memory bloat.
+
+```bash
+curl "http://localhost:\$BRIDGE_PORT/api/v1/fs/proxy/{NODE_ID}/path/to/remote/file.mp4" \
+  -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN" \
+  -H "Range: bytes=0-1024"
+```
+
+### WebRTC Remote View (V27+)
+
+Request a low-latency WebRTC P2P view of a remote machine's screen. The remote bridge leverages a lightweight MJPEG data channel over WebRTC to broadcast its screen without heavy H.264 video dependencies.
+
+```bash
+# Initiate signaling
+curl -X POST "http://localhost:\$BRIDGE_PORT/api/webrtc/offer" \
+  -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"sdp": "...", "type": "offer"}'
+```
+
+The simplest way to use this is via `musu-bee` Web UI under the Machine View (`/app/m/<MACHINE_ID>`).
+
+### Universal Clipboard (V28)
+
+MUSU automatically polls the OS clipboard on every device and broadcasts text changes to the fleet. To programmatically update the clipboard of a node:
+
+```bash
+curl -X POST "http://localhost:\$BRIDGE_PORT/api/clipboard/write" \
+  -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Copied from another device!"}'
+```
 
 ### Restart services on another device
 
@@ -193,7 +233,7 @@ bash scripts/vault.sh get bridge.token
 
 # Export as env vars for curl commands
 source scripts/vault.sh export
-curl http://localhost:8070/health -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN"
+curl http://localhost:\$BRIDGE_PORT/health -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN"
 ```
 
 Agents use MCP: `get_vault_secret("bridge.token")`
@@ -216,11 +256,11 @@ Never hardcode tokens in code, wiki, or instructions. Always read from vault.
 ### Create a new project
 
 ```bash
-curl -X POST http://localhost:8070/api/companies \
+curl -X POST http://localhost:\$BRIDGE_PORT/api/companies \
   -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"name": "My App", "template_key": "dev-team", "purpose": "Build a web app"}'
-# → {"company": {"id": "<COMPANY_ID>", ...}, "agents": [...], "governance": {...}}
+# ??{"company": {"id": "<COMPANY_ID>", ...}, "agents": [...], "governance": {...}}
 # Extract id: ... | jq -r '.company.id'
 ```
 
@@ -229,7 +269,7 @@ agents under `agents`, and the template's harness governance config
 under `governance`. Extracting just the id:
 
 ```bash
-COMPANY_ID=$(curl -s -X POST http://localhost:8070/api/companies \
+COMPANY_ID=$(curl -s -X POST http://localhost:\$BRIDGE_PORT/api/companies \
   -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"name":"My App","template_key":"dev-team","purpose":"..."}' \
@@ -241,7 +281,7 @@ Templates: `dev-team`, `content-team`, `research-team`, `writer-studio`
 ### Get project briefing (Chairman Principle)
 
 ```bash
-curl http://localhost:8070/api/companies/{ID}/briefing \
+curl http://localhost:\$BRIDGE_PORT/api/companies/{ID}/briefing \
   -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN"
 # Returns: name, purpose, status, summary, blockers, recent wins
 ```
@@ -249,14 +289,14 @@ curl http://localhost:8070/api/companies/{ID}/briefing \
 ### Activate/Deactivate a project
 
 ```bash
-curl -X POST http://localhost:8070/api/companies/{ID}/activate
-curl -X POST http://localhost:8070/api/companies/{ID}/deactivate
+curl -X POST http://localhost:\$BRIDGE_PORT/api/companies/{ID}/activate
+curl -X POST http://localhost:\$BRIDGE_PORT/api/companies/{ID}/deactivate
 ```
 
 ### Kick CEO to work on a project
 
 ```bash
-curl -X POST http://localhost:8070/api/companies/{ID}/run \
+curl -X POST http://localhost:\$BRIDGE_PORT/api/companies/{ID}/run \
   -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN"
 ```
 
@@ -267,21 +307,21 @@ curl -X POST http://localhost:8070/api/companies/{ID}/run \
 ### List agents
 
 ```bash
-curl http://localhost:8070/api/agents \
+curl http://localhost:\$BRIDGE_PORT/api/agents \
   -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN"
 ```
 
 ### Pause/Resume an agent
 
 ```bash
-curl -X POST http://localhost:8070/api/agents/{ID}/pause
-curl -X POST http://localhost:8070/api/agents/{ID}/resume
+curl -X POST http://localhost:\$BRIDGE_PORT/api/agents/{ID}/pause
+curl -X POST http://localhost:\$BRIDGE_PORT/api/agents/{ID}/resume
 ```
 
 ### Update agent model
 
 ```bash
-curl -X PATCH http://localhost:8070/api/agents/{ID} \
+curl -X PATCH http://localhost:\$BRIDGE_PORT/api/agents/{ID} \
   -H "Content-Type: application/json" \
   -d '{"model": "gemini-2.5-flash"}'
 ```
@@ -294,7 +334,7 @@ curl -X PATCH http://localhost:8070/api/agents/{ID} \
 | Gemini | Engineer, Planner, Team Lead, Worker | Speed, volume |
 | Codex | CoS, VP, Node Manager | Simple tasks |
 
-Auto-fallback: Claude → Gemini → Codex (if rate limited)
+Auto-fallback: Claude ??Gemini ??Codex (if rate limited)
 
 ---
 
@@ -303,7 +343,7 @@ Auto-fallback: Claude → Gemini → Codex (if rate limited)
 ### Delegate a task
 
 ```bash
-curl -X POST http://localhost:8070/api/tasks/delegate \
+curl -X POST http://localhost:\$BRIDGE_PORT/api/tasks/delegate \
   -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"channel": "engineer", "text": "Fix the login bug in auth.py line 45. pytest tests/test_auth.py should pass."}'
@@ -313,7 +353,7 @@ curl -X POST http://localhost:8070/api/tasks/delegate \
 ### Poll task status
 
 ```bash
-curl http://localhost:8070/api/tasks/{TASK_ID} \
+curl http://localhost:\$BRIDGE_PORT/api/tasks/{TASK_ID} \
   -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN"
 # Returns: {status: "done"/"running"/"failed", summary: "..."}
 ```
@@ -325,7 +365,7 @@ curl http://localhost:8070/api/tasks/{TASK_ID} \
 ### Create an issue
 
 ```bash
-curl -X POST http://localhost:8070/api/companies/{CID}/issues \
+curl -X POST http://localhost:\$BRIDGE_PORT/api/companies/{CID}/issues \
   -H "Content-Type: application/json" \
   -d '{"title": "Login page broken", "priority": "high"}'
 ```
@@ -333,7 +373,7 @@ curl -X POST http://localhost:8070/api/companies/{CID}/issues \
 ### Create a goal
 
 ```bash
-curl -X POST http://localhost:8070/api/companies/{CID}/goals \
+curl -X POST http://localhost:\$BRIDGE_PORT/api/companies/{CID}/goals \
   -H "Content-Type: application/json" \
   -d '{"title": "Ship v2.0 by end of month"}'
 ```
@@ -345,19 +385,19 @@ curl -X POST http://localhost:8070/api/companies/{CID}/goals \
 ### Search wiki
 
 ```bash
-curl http://localhost:8070/api/wiki/search?q=authentication
+curl http://localhost:\$BRIDGE_PORT/api/wiki/search?q=authentication
 ```
 
 ### Read a page
 
 ```bash
-curl http://localhost:8070/api/wiki/page/001_CHAIRMAN_PRINCIPLE
+curl http://localhost:\$BRIDGE_PORT/api/wiki/page/001_CHAIRMAN_PRINCIPLE
 ```
 
 ### Write a page
 
 ```bash
-curl -X POST http://localhost:8070/api/wiki/page/my-notes \
+curl -X POST http://localhost:\$BRIDGE_PORT/api/wiki/page/my-notes \
   -H "Content-Type: application/json" \
   -d '{"content": "# My Notes\n\nSome content here."}'
 ```
@@ -371,14 +411,11 @@ curl -X POST http://localhost:8070/api/wiki/page/my-notes \
 ```bash
 # Check service status
 systemctl --user status musu-bee
-# If "production build not found":
-cd musu-bee && npm run build && systemctl --user restart musu-bee
-# If build fails, service auto-falls back to dev mode
 # Check logs:
 journalctl --user -u musu-bee -n 20 --no-pager
 ```
 
-Services auto-start on boot (`loginctl enable-linger`). If a service dies, systemd restarts it in 10 seconds.
+Services auto-start on boot (`loginctl enable-linger`). If a service dies, systemd restarts it.
 
 ### Bridge won't start
 
@@ -413,7 +450,7 @@ curl -X POST http://{NODE_IP}:8070/api/system/update \
 ### High failure rate
 
 ```bash
-curl http://localhost:8070/api/stats/success-rate?days=1
+curl http://localhost:\$BRIDGE_PORT/api/stats/success-rate?days=1
 # If high failures: check agent CLI availability, rate limits, timeouts
 # Archive old failures:
 sqlite3 ~/.musu/musu.db "DELETE FROM route_executions WHERE status='failed' AND created_at < date('now', '-7 days');"
@@ -452,13 +489,9 @@ Company strategy: mission, priorities, constraints, Chairman Principle.
 ## Architecture
 
 ```
-musu-bridge (Python/FastAPI)     — API server, agent dispatch
-musu-core (Python library)       — DB, router, QA loop, adapters
-musu-control (MCP server)        — 50+ tools for AI agents
-musu-indexer (MCP server)        — code search, session management
-musu-bee (Next.js/Tauri)         — desktop UI
-musu-connects (Rust/QUIC)        — P2P mesh transport
-Forgejo                          — local Git server for code sharing
+musu-rs (Rust)                   ??Single-binary core (replaces Python bridge, core, control, indexer). Handles API (:8070), agent dispatch, mDNS discovery, and P2P mesh
+musu-bee (Next.js)               ??Full-stack web application (port 3001) serving as both the local dashboard and the musu.pro cloud SaaS (billing, auth, registry)
+Forgejo                          ??local Git server for code sharing (optional)
 ```
 
 ---
@@ -472,3 +505,4 @@ You are a subsidiary president. The user is the chairman.
 - Results, not processes
 - No data dumps, no technical jargon
 - Handle everything yourself, report outcomes only
+

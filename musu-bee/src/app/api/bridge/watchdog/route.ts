@@ -1,10 +1,11 @@
+import { getBridgeUrl } from '../../../../lib/bridge-config';
 import { NextRequest, NextResponse } from "next/server";
 import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
 import { appendControlAudit, createTraceId } from "@/lib/control-audit";
 import { getUserFromRequest } from "@/lib/auth-server";
 
 const BRIDGE_URL =
-  process.env.MUSU_BRIDGE_URL ?? process.env.NEXT_PUBLIC_BRIDGE_URL ?? "http://localhost:8070";
+  getBridgeUrl();
 
 const WATCHDOG_COMMANDS = new Set(["bridge:start", "bridge:stop", "bridge:restart", "agents:cleanup"]);
 

@@ -35,12 +35,7 @@ function parsePlan(msgId: string, text: string): MessagePlan | null {
   return { steps, status: "pending" };
 }
 
-const WS_BASE =
-  process.env.NEXT_PUBLIC_MUSU_PORT_WS_URL ??
-  (process.env.NEXT_PUBLIC_BRIDGE_PORT ? `ws://localhost:${process.env.NEXT_PUBLIC_BRIDGE_PORT}` : "ws://localhost:1355");
-
-const WS_REMOTE_BASE =
-  process.env.NEXT_PUBLIC_MUSU_PORT_WS_REMOTE_URL ?? null;
+const SSE_URL = "/api/bridge-tasks/events";
 
 // ── History localStorage cache ─────────────────────────────────────────────
 // Restores the last 50 messages per channel when musu-bridge is unreachable.
@@ -127,7 +122,7 @@ export function useChat(
   const [activeNode, setActiveNode] = useState<string>(selectedNodeId ?? getDefaultNode());
   const [selectedAdapter, setSelectedAdapter] = useState<string | null>(null);
 
-  const wsRef = useRef<WebSocket | null>(null);
+  const esRef = useRef<EventSource | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const reconnectDelay = useRef(1000);
   const oldestHistoryId = useRef<string | null>(null);
@@ -237,86 +232,47 @@ export function useChat(
     });
   }, [channel, fetchHistory, hasMoreHistory, isLoadingHistory]);
 
-  // ── WebSocket ──────────────────────────────────────────────────────────────
-
   const isEmbedded = typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("embed") === "1";
 
   const connect = useCallback(() => {
     if (!isAgentChannel) return;
-    if (isEmbedded) return; // Skip WS in iframe embed mode (localhost unreachable)
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
+    if (isEmbedded) return; // Skip in iframe embed mode
+    if (esRef.current?.readyState === EventSource.OPEN) return;
 
-    const wsBase = activeNode === "remote" && WS_REMOTE_BASE ? WS_REMOTE_BASE : WS_BASE;
-    const ws = new WebSocket(`${wsBase}/chat/ws/${channel}`);
-    wsRef.current = ws;
+    const es = new EventSource(SSE_URL);
+    esRef.current = es;
 
-    ws.onopen = () => {
+    es.onopen = () => {
       setIsConnected(true);
       reconnectDelay.current = 1000;
     };
 
-    ws.onclose = () => {
+    es.onerror = () => {
+      es.close();
       setIsConnected(false);
-      setIsAgentTyping(false);
       reconnectTimer.current = setTimeout(() => {
         reconnectDelay.current = Math.min(reconnectDelay.current * 2, 10000);
         connect();
       }, reconnectDelay.current);
     };
 
-    ws.onerror = () => { ws.close(); };
-
-    ws.onmessage = (event) => {
+    es.addEventListener("task_update", (event) => {
       try {
-        const data: ChatWsMessage = JSON.parse(event.data);
-
-        if (data.type === "typing") { setIsAgentTyping(true); return; }
-        if (data.type === "user_message" && data.sender_id === "local-user") return;
-
-        if (data.type === "agent_response") {
-          setIsAgentTyping(false);
-          const approvalMatch = /\[APPROVAL_REQUIRED:\s*([^\]]+)\]/i.exec(data.text ?? "");
-          if (approvalMatch) {
-            const action = approvalMatch[1].trim().slice(0, 200).replace(/[<>]/g, "");
-            setMessages((prev) => [
-              ...prev.slice(-(499)),
-              {
-                id: makeId(), channelId: channel, sender: "System", senderKind: "system" as const,
-                text: `⚠ **Approval required**: ${action}\nRespond with \`/approve <task_id>\` or \`/reject <task_id>\`.`,
-                timestamp: new Date(),
-              },
-            ]);
-          }
-        }
-
-        const msg: Message = {
-          id: makeId(), channelId: channel,
-          sender:
-            data.type === "user_message" ? data.sender_name || "User"
-            : data.type === "agent_response" ? data.sender_name || channel
-            : "System",
-          senderKind:
-            data.type === "user_message" ? "user"
-            : data.type === "agent_response" ? "ai"
-            : "system",
-          text: data.text,
-          timestamp: new Date(data.timestamp * 1000),
-        };
-
-        const MAX_MESSAGES = 500;
-        setMessages((prev) => [...prev.slice(-(MAX_MESSAGES - 1)), msg]);
+        const data = JSON.parse(event.data);
+        // Handle background task updates if necessary
+        // Example: data = { type: "task_update", task_id: "...", status: "..." }
       } catch {
         // ignore malformed messages
       }
-    };
-  }, [channel, isAgentChannel]);
+    });
+  }, [channel, isAgentChannel, isEmbedded]);
 
   useEffect(() => {
     if (!isAgentChannel) {
       clearTimeout(reconnectTimer.current);
-      wsRef.current?.close();
-      wsRef.current = null;
+      esRef.current?.close();
+      esRef.current = null;
       setIsConnected(false);
       setIsAgentTyping(false);
       return;
@@ -325,17 +281,17 @@ export function useChat(
     connect();
     return () => {
       clearTimeout(reconnectTimer.current);
-      wsRef.current?.close();
-      wsRef.current = null;
+      esRef.current?.close();
+      esRef.current = null;
     };
   }, [connect, isAgentChannel]);
 
-  // Reconnect WS when activeNode changes (LOCAL ↔ REMOTE)
+  // Reconnect SSE when activeNode changes (LOCAL ↔ REMOTE)
   useEffect(() => {
     if (!isAgentChannel) return;
     clearTimeout(reconnectTimer.current);
-    wsRef.current?.close();
-    wsRef.current = null;
+    esRef.current?.close();
+    esRef.current = null;
     reconnectDelay.current = 1000;
     connect();
   // eslint-disable-next-line react-hooks/exhaustive-deps

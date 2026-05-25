@@ -9,11 +9,14 @@
 //! and `tokio-tungstenite` for the upstream connection to musu-port.
 
 use axum::extract::ws::{Message as AxumMessage, WebSocket, WebSocketUpgrade};
-use axum::extract::Path;
+use axum::extract::{Path, Query, State};
 use axum::response::IntoResponse;
+use axum::http::StatusCode;
 use futures_util::{SinkExt, StreamExt};
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message as TungMessage;
+use std::collections::HashMap;
+use crate::bridge::AppState;
 
 /// Accept a WebSocket upgrade on `/chat/ws/*path` and proxy it to the
 /// upstream musu-port WebSocket at `ws://127.0.0.1:{port}/chat/ws/{path}`.
@@ -31,6 +34,33 @@ pub async fn ws_proxy_chat(
     let upstream_url = format!("ws://127.0.0.1:{}/chat/ws/{}", port, path);
 
     tracing::debug!(upstream = %upstream_url, "ws_proxy upgrading");
+
+    ws.on_upgrade(move |socket| handle_ws_proxy(socket, upstream_url))
+}
+
+/// Proxy PTY WebSocket to a remote peer node
+pub async fn ws_proxy_pty(
+    ws: WebSocketUpgrade,
+    Query(params): Query<HashMap<String, String>>,
+    State(state): State<AppState>,
+) -> impl IntoResponse {
+    let node_id = match params.get("node_id") {
+        Some(id) => id,
+        None => return (StatusCode::BAD_REQUEST, "Missing node_id").into_response(),
+    };
+    
+    let musu_home = state.config.nodes_toml_path
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new("."));
+        
+    let peers = crate::peer::discovery::resolve_all_peers(musu_home);
+    let peer = match peers.into_iter().find(|p| p.name.as_deref() == Some(node_id) || &p.addr == node_id) {
+        Some(p) => p,
+        None => return (StatusCode::NOT_FOUND, "Node not found").into_response(),
+    };
+
+    let upstream_url = format!("ws://{}/api/v1/rpc/pty", peer.addr);
+    tracing::debug!(upstream = %upstream_url, "ws_proxy_pty upgrading");
 
     ws.on_upgrade(move |socket| handle_ws_proxy(socket, upstream_url))
 }

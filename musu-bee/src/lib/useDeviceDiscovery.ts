@@ -14,15 +14,11 @@ function itemToDevice(item: DeviceStatusItem): Device {
     name: item.name,
     label: item.isRemote ? "Remote" : "Local",
     status: item.status,
-    stats: {
-      cpu: item.cpu,
-      gpu: item.gpu,
-      ram: item.ram,
-    },
+    tasks_running: item.tasks_running,
+    tasks_pending: item.tasks_pending,
+    version: item.version,
     isLeader: item.isLeader,
     isRemote: item.isRemote,
-    peerUrl: item.peerUrl,
-    lastSeenMs: item.lastSeenMs,
   };
 }
 

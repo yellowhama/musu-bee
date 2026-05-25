@@ -1,7 +1,8 @@
+import { getBridgeUrl } from '../../../../lib/bridge-config';
 import { NextRequest, NextResponse } from "next/server";
 
 const BRIDGE_URL = (
-  process.env.MUSU_BRIDGE_URL ?? "http://localhost:8070"
+  getBridgeUrl()
 ).replace(/\/+$/, "");
 
 export async function GET(

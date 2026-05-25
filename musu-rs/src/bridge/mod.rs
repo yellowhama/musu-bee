@@ -125,6 +125,9 @@ pub async fn run() -> Result<()> {
     let auth_state = AuthState::from_config(&cfg);
     let rate_limit_state = RateLimitState::new(cfg.rate_limit_per_min, cfg.rate_limit_disabled);
 
+    // W15: Universal Clipboard broadcast monitor
+    crate::io::clipboard::start_clipboard_monitor(state.clone());
+
     // Build the native router (matched endpoints) + facade fallback.
     let native = handlers::native_router();
 
@@ -196,7 +199,7 @@ pub async fn run() -> Result<()> {
         .to_path_buf();
 
     if let Some(token) = crate::cloud::token::load_token(&musu_home) {
-        let cloud = crate::cloud::MusuCloud::new("https://musu.pro", Some(token));
+        let cloud = crate::cloud::MusuCloud::new("https://musu.pro", Some(token.clone()));
         let my_name = cfg.node_name.clone();
         let port = cfg.bridge_port;
         // In a real scenario we'd determine the local LAN IP, but we'll use bridge_host for now, or "0.0.0.0"
@@ -206,11 +209,36 @@ pub async fn run() -> Result<()> {
             cfg.bridge_host.clone()
         };
 
+        // Start mDNS advertiser
+        let my_name_for_mdns = cfg.node_name.clone();
+        let token_for_mdns = token.clone();
+        let mdns_port = if cfg.bridge_port == 0 { actual_port } else { cfg.bridge_port };
+        let _mdns_daemon = match crate::peer::mdns::start_advertiser(&my_name_for_mdns, mdns_port, &token_for_mdns) {
+            Ok(d) => Some(d),
+            Err(e) => {
+                tracing::warn!(err = %e, "failed to start mDNS advertiser");
+                None
+            }
+        };
+
+        let musu_home_clone = musu_home.clone();
+        let token_clone = token.clone();
+        let my_name_clone = cfg.node_name.clone();
+
         tokio::spawn(async move {
-            tracing::info!("attempting musu.pro cloud registration...");
+            let _daemon_handle = _mdns_daemon; // keep alive
+            tracing::info!("attempting musu.pro cloud registration & mDNS discovery...");
             
             // 1. Heartbeat loop
             loop {
+                // Discover LAN peers via mDNS first
+                crate::peer::mdns::auto_register_peers(
+                    &musu_home_clone,
+                    &my_name_clone,
+                    &token_clone,
+                    std::time::Duration::from_secs(5)
+                ).await;
+
                 let tailscale_ip = crate::peer::tailscale::get_tailscale_ip();
                 let hardware = crate::peer::hardware::gather_hardware_info();
                 let mut meta_obj = serde_json::json!({

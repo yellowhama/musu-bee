@@ -22,7 +22,7 @@ default = []
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
-axum = { version = "0.7", features = ["ws"] }
+axum = { version = "0.7", features = ["ws", "multipart"] }
 tower = "0.4"
 tower-http = { version = "0.5", features = ["trace", "fs"] }
 tracing = "0.1"
@@ -40,7 +40,7 @@ clap = { version = "4", features = ["derive"] }
 # R1 (wiki/491): bridge module deps
 sqlx = { version = "0.7", default-features = false, features = ["sqlite", "runtime-tokio-rustls", "macros", "chrono"] }
 subtle = "2"
-reqwest = { version = "0.12", default-features = false, features = ["stream", "rustls-tls", "json"] }
+reqwest = { version = "0.12", default-features = false, features = ["stream", "rustls-tls", "json", "multipart"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 toml = "0.8"
 dashmap = "6"
@@ -71,7 +71,8 @@ ignore = "0.4"
 rayon = "1"
 # V27-F9 (file sync): filesystem watcher for real-time sync.
 # Also used by indexer watch (previously optional behind indexer-watch feature).
-notify = "7"
+notify = "6.1.1"
+enigo = "0.6.1"
 # `regex` is already transitive via `tracing-subscriber` / `ignore`; declare
 # directly so symbols.rs gets a stable pin and the dep graph stays honest.
 regex = "1"
@@ -113,6 +114,14 @@ rustls-pemfile = "2"
 #     with missing tagged `type` fields can be parsed defensively.
 async-trait = "0.1"
 local-ip-address = "0.6.13"
+# W14 Context Transport requires cross-platform zip support
+zip = { version = "0.6.6", default-features = false, features = ["deflate"] }
+walkdir = "2"
+arboard = "3.6.1"
+webrtc = "0.17.1"
+xcap = "0.9.6"
+image = "0.25.10"
+portable-pty = "0.8"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
@@ -122,9 +131,6 @@ tar = "0.4.40"                   # S7 — pin minimum for zip-slip mitigations
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.59", features = ["Win32_System_JobObjects", "Win32_System_Console", "Win32_System_Threading", "Win32_Foundation", "Win32_Security", "Win32_Storage_FileSystem"] }
-# R6 (wiki/496): release-zip extraction + Windows Service registration.
-zip = { version = "0.6.6", default-features = false, features = ["deflate"] }
-                                 # S7 — pin minimum for ZipFile::enclosed_name
 windows-service = "0.7"          # F5 / S2 — opt-in --boot-start path
 
 [dev-dependencies]

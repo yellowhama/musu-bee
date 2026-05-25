@@ -14,5 +14,6 @@ pub mod hardware;
 pub mod mdns;
 pub mod service;
 pub mod register;
+pub mod context_sync;
 
 pub use register::*;

@@ -1,4 +1,5 @@
 "use client";
+import { getBridgeUrl } from '../../lib/bridge-config';
 
 // V23.4 T2-C — Fleet view (per wiki/434 rev-2).
 //
@@ -26,7 +27,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-const BRIDGE_URL = process.env.NEXT_PUBLIC_MUSU_BRIDGE_URL || "http://localhost:8070";
+const BRIDGE_URL = getBridgeUrl();
 const REFRESH_INTERVAL = 5_000;
 
 // ---- Types ----------------------------------------------------------------

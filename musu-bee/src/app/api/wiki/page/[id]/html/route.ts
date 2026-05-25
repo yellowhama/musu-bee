@@ -15,11 +15,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
 
-const BRIDGE_URL = (
-  process.env.MUSU_BRIDGE_URL ??
-  process.env.NEXT_PUBLIC_BRIDGE_URL ??
-  "http://localhost:8070"
-).replace(/\/+$/, "");
+import { getBridgeUrl } from "@/lib/bridge-config";
+
+const BRIDGE_URL = getBridgeUrl();
 
 type Ctx = { params: Promise<{ id: string }> };
 

@@ -221,6 +221,50 @@
   }
 }
 
+/* Explicit light theme override */
+[data-theme="light"] {
+  --bg-base:    #FDFBF7;   /* Warm Paper Cream */
+  --bg-surface: #F5F0E8;   /* Slightly darker cream for raised panels */
+  --bg-card:    rgba(67, 44, 28, 0.03);
+  --bg-overlay: #FFFFFF;
+  --bg-elevated: #F8F4ED;  /* Slightly warm raised surface */
+  --bg-hover:   #EDE8DF;
+  --bg-inset:   #F0EBE3;
+  --bg-brand:   var(--musu-color-brand-canvas);
+
+  --fg1: #432c1c;          /* Dark Coffee Brown — primary text */
+  --fg2: #6B5D52;          /* Secondary (warm gray) */
+  --fg3: #9C8E82;          /* Muted */
+  --fg4: #C4B8AD;          /* Dim */
+  --fg-on-accent: #432c1c;
+  --fg-accent: #D98801;    /* Slightly darker accent for light bg */
+
+  --border-subtle:  #E8E2DA;
+  --border-default: #D5CFC6;
+  --border-strong:  #BDB5AA;
+
+  --accent:        #FFA602;
+  --accent-hover:  #D98801;
+  --accent-muted:  rgba(255, 166, 2, 0.10);
+  --accent-tint:   rgba(255, 166, 2, 0.04);
+  --accent-glow:   rgba(255, 166, 2, 0.15);
+  --accent-border: rgba(255, 166, 2, 0.25);
+
+  --shadow-sm:    0 1px 2px rgba(67, 44, 28, 0.08);
+  --shadow-md:    0 4px 12px rgba(67, 44, 28, 0.12);
+  --shadow-warm:  0 8px 24px rgba(67, 44, 28, 0.08);
+  --shadow-glow:  0 0 16px rgba(255, 166, 2, 0.10);
+
+  --neo-shadow:     8px 8px 0px var(--musu-color-brand-ink);
+  --neo-shadow-sm:  4px 4px 0px rgba(67, 44, 28, 0.25);
+
+  --console-sidebar-bg:     #432c1c;
+  --console-sidebar-text:   rgba(253, 251, 247, 0.85);
+  --console-sidebar-active: rgba(255, 166, 2, 0.18);
+
+  --code-bg: #F0EBE3;
+}
+
 /* Explicit dark theme override (always wins over prefers-color-scheme) */
 [data-theme="dark"] {
   --bg-base:    #251714;

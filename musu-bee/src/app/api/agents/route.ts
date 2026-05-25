@@ -1,3 +1,4 @@
+import { getBridgeUrl } from '../../../lib/bridge-config';
 import { NextResponse } from "next/server";
 
 type AgentSnapshotRow = {
@@ -33,7 +34,7 @@ const PAPERCLIP_API_BASE = normalizePaperclipApiBase(
 const PAPERCLIP_COMPANY_ID =
   (process.env.PAPERCLIP_COMPANY_ID ?? DEFAULT_COMPANY_ID).trim() || DEFAULT_COMPANY_ID;
 const MUSU_PORT_URL = normalizeBase(
-  process.env.MUSU_PORT_URL ?? "http://127.0.0.1:1355",
+  getBridgeUrl(),
 );
 const STALE_THRESHOLD_MS = toPositiveInt(
   process.env.AGENTS_STALE_THRESHOLD_MS,

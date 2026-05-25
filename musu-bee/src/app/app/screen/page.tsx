@@ -1,8 +1,9 @@
 "use client";
+import { getBridgeUrl } from '../../../lib/bridge-config';
 
 import { useEffect, useState, useCallback } from "react";
 
-const BRIDGE_URL = process.env.NEXT_PUBLIC_MUSU_BRIDGE_URL || "http://localhost:8070";
+const BRIDGE_URL = getBridgeUrl();
 const REFRESH_INTERVAL = 15_000;
 
 interface NodeInfo {

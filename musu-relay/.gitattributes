@@ -1,3 +1,0 @@
-# Shell scripts must stay LF — Alpine's /bin/sh barfs on CRLF interpreters.
-*.sh text eol=lf
-docker-entrypoint.sh text eol=lf

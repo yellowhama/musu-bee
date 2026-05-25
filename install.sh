@@ -125,6 +125,24 @@ trap 'rm -rf "${TMPDIR_INSTALL}"' EXIT
 DOWNLOADED=0
 info "Downloading ${BINARY_NAME}..."
 if download "${DOWNLOAD_URL}" "${TMPDIR_INSTALL}/musu" 2>/dev/null; then
+    download "${RELEASE_BASE}/SHA256SUMS" "${TMPDIR_INSTALL}/SHA256SUMS" 2>/dev/null || true
+    if [ -f "${TMPDIR_INSTALL}/SHA256SUMS" ] && grep -q "${BINARY_NAME}" "${TMPDIR_INSTALL}/SHA256SUMS"; then
+        EXPECTED_SHA=$(grep "${BINARY_NAME}" "${TMPDIR_INSTALL}/SHA256SUMS" | awk '{print $1}')
+        ACTUAL_SHA=""
+        if command -v sha256sum &>/dev/null; then
+            ACTUAL_SHA=$(sha256sum "${TMPDIR_INSTALL}/musu" | awk '{print $1}')
+        elif command -v shasum &>/dev/null; then
+            ACTUAL_SHA=$(shasum -a 256 "${TMPDIR_INSTALL}/musu" | awk '{print $1}')
+        fi
+        
+        if [ -n "${ACTUAL_SHA}" ]; then
+            if [ "${EXPECTED_SHA}" != "${ACTUAL_SHA}" ]; then
+                err "Checksum mismatch! Expected: ${EXPECTED_SHA}, Actual: ${ACTUAL_SHA}"
+            fi
+            ok "Checksum verified (${ACTUAL_SHA:0:8}...)"
+        fi
+    fi
+
     chmod +x "${TMPDIR_INSTALL}/musu"
     # Sanity check: is it actually an executable?
     if file "${TMPDIR_INSTALL}/musu" 2>/dev/null | grep -qiE 'executable|Mach-O|ELF'; then
@@ -166,7 +184,13 @@ if [ "${DOWNLOADED}" -eq 0 ]; then
     # Clone and build
     CLONE_DIR="${TMPDIR_INSTALL}/Musu"
     info "Cloning ${CLONE_URL}..."
-    git clone --depth 1 "${CLONE_URL}" "${CLONE_DIR}"
+    LATEST_TAG=$(curl -fsSL -o /dev/null -w "%{url_effective}" "https://github.com/${REPO}/releases/latest" 2>/dev/null | rev | cut -d/ -f1 | rev || true)
+    if [ -n "${LATEST_TAG}" ] && [ "${LATEST_TAG}" != "latest" ]; then
+        info "Checking out latest stable tag: ${LATEST_TAG}"
+        git clone --depth 1 -b "${LATEST_TAG}" "${CLONE_URL}" "${CLONE_DIR}"
+    else
+        git clone --depth 1 "${CLONE_URL}" "${CLONE_DIR}"
+    fi
 
     info "Running cargo build --release (this may take 2-5 minutes)..."
     (cd "${CLONE_DIR}/musu-rs" && cargo build --release)
@@ -190,6 +214,7 @@ if [ -w "/usr/local/bin" ]; then
 elif command -v sudo &>/dev/null; then
     INSTALL_DIR="/usr/local/bin"
     MUSU_BIN="${INSTALL_DIR}/musu"
+    warn "Global installation to /usr/local/bin requires root privileges."
     info "Installing to ${MUSU_BIN} (sudo)..."
     sudo cp "${TMPDIR_INSTALL}/musu" "${MUSU_BIN}"
     sudo chmod +x "${MUSU_BIN}"

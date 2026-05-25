@@ -68,22 +68,16 @@ export interface Channel {
 
 export type DeviceStatus = "online" | "offline" | "busy";
 
-export interface DeviceStats {
-  cpu: number; // 0-100
-  gpu: number | null; // null if no GPU
-  ram: number; // 0-100
-}
-
 export interface Device {
   id: string;
   name: string;
   label: string;
   status: DeviceStatus;
-  stats: DeviceStats;
   isLeader: boolean; // current "leader" node
   isRemote?: boolean; // true for peer machines
-  peerUrl?: string; // musu-port URL for remote peers
-  lastSeenMs?: number; // unix ms of last successful probe
+  tasks_running?: number;
+  tasks_pending?: number;
+  version?: string;
 }
 
 export interface MessageMeta {

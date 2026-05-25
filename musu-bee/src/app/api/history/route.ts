@@ -1,7 +1,8 @@
+import { getBridgeUrl } from '../../../lib/bridge-config';
 import { NextRequest, NextResponse } from "next/server";
 
 const MUSU_BRIDGE_URL = (
-  process.env.MUSU_BRIDGE_URL ?? "http://localhost:8070"
+  getBridgeUrl()
 ).trim();
 
 export interface HistoryMessage {

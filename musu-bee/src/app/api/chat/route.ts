@@ -1,3 +1,4 @@
+import { getBridgeUrl } from '../../../lib/bridge-config';
 import { NextRequest, NextResponse } from "next/server";
 import { spawn } from "child_process";
 import { checkChatRateLimit } from "@/lib/chatRateLimit";
@@ -14,10 +15,7 @@ const MUSU_AI_CLI_ARGS = (process.env.MUSU_AI_CLI_ARGS ?? "--print")
   .filter(Boolean);
 const MUSU_AI_CLI_TIMEOUT_MS = 120_000;
 
-const MUSU_PORT_URL = (process.env.MUSU_PORT_URL ?? "http://127.0.0.1:11434").replace(
-  /\/+$/,
-  ""
-);
+const MUSU_PORT_URL = getBridgeUrl();
 const MUSU_LLM_URL = (process.env.MUSU_LLM_URL ?? "http://127.0.0.1:11434").replace(
   /\/+$/,
   ""

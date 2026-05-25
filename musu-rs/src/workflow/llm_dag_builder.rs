@@ -25,6 +25,8 @@ pub struct DagBuildRequest {
     pub adapter_type: Option<String>,
     /// Override the default model.
     pub model: Option<String>,
+    /// Path to .musu home directory for peer discovery.
+    pub musu_home: std::path::PathBuf,
 }
 
 /// Successful DAG generation result.
@@ -100,6 +102,8 @@ Given a natural-language description of a workflow, generate a valid JSON Workfl
 4. inputs.name must match a declared output of the referenced upstream agent.
 5. Put the main task description in command[0].
 6. Return ONLY the JSON object, no markdown fences, no explanation.
+
+{PEER_CAPABILITIES}
 "#;
 
 // ── Builder ───────────────────────────────────────────────────────────
@@ -115,10 +119,24 @@ pub async fn build_dag(
 ) -> Result<DagBuildResult, DagBuildError> {
     let model = req.model.clone().unwrap_or_default();
 
+    let mut peer_info = String::from("## Available Nodes in Mesh\n");
+    let peers = crate::peer::discovery::resolve_all_peers(&req.musu_home);
+    for peer in peers {
+        peer_info.push_str(&format!("- Node Name: {}\n", peer.name.as_deref().unwrap_or("unknown")));
+        peer_info.push_str(&format!("  Address: {}\n", peer.addr));
+        // Note: For full resource-aware scheduling we should parse peer.capabilities,
+        // but for now we instruct the LLM that it can use `nodeSelector: {"node_name": "..."}`
+        // to assign to a specific peer.
+    }
+    if peer_info == "## Available Nodes in Mesh\n" {
+        peer_info.push_str("- (Only this local node is available)\n");
+    }
+
     // First attempt
     let prompt = format!(
         "{}\n\nUser request:\n{}",
-        SYSTEM_PROMPT, req.natural_language
+        SYSTEM_PROMPT.replace("{PEER_CAPABILITIES}", &peer_info),
+        req.natural_language
     );
 
     let ctx = build_adapter_context(req, &prompt);
@@ -142,7 +160,8 @@ pub async fn build_dag(
             // Retry with error feedback
             let retry_prompt = format!(
                 "{}\n\nUser request:\n{}\n\nYour previous attempt produced an error:\n{}\n\nPlease fix the JSON and try again. Return ONLY the corrected JSON.",
-                SYSTEM_PROMPT, req.natural_language, first_err
+                SYSTEM_PROMPT.replace("{PEER_CAPABILITIES}", &peer_info),
+                req.natural_language, first_err
             );
 
             let retry_ctx = build_adapter_context(req, &retry_prompt);

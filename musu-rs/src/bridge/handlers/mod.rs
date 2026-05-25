@@ -13,6 +13,7 @@ pub mod run;
 pub mod sse;
 pub mod system_update;
 pub mod tasks;
+pub mod ai;
 // V26-W9 wiki/512: workflow DAG builder + CRUD.
 pub mod workflow;
 // V27: cross-machine task forwarding.
@@ -29,6 +30,10 @@ pub mod webdav;
 pub mod proxy;
 // A-3: WebSocket proxy to musu-port.
 pub mod ws_proxy;
+// Remote RPC Execution.
+pub mod rpc;
+// Remote PTY Execution.
+pub mod pty;
 
 use axum::routing::{self, get, post};
 use axum::Router;
@@ -76,12 +81,23 @@ pub fn native_router() -> Router<AppState> {
         // server.py:2711-2743. Byte-compat response shape; read-only
         // (no audit.write per C5).
         .route("/api/index-search", get(index_search::get))
+        // V28: AI Agent Loop Endpoint
+        .route("/api/ai/chat", post(ai::handle_chat))
         // V27: Remote filesystem API.
         .route("/api/files", get(files::list_dir).delete(files::delete_path))
         .route("/api/files/read", get(files::read_file))
         .route("/api/files/write", post(files::write_file))
         .route("/api/files/mkdir", post(files::mkdir))
         .route("/api/files/info", get(files::file_info))
+        // W4: Mesh File Proxy
+        .route("/api/v1/fs/proxy/:node_id/*path", get(crate::mesh::file_proxy::proxy_file))
+        // W14: WebRTC Signaling
+        .route("/api/webrtc/offer", post(crate::io::webrtc::handle_offer))
+        // W15: Universal Clipboard
+        .route("/api/clipboard/write", post(crate::io::clipboard::write_clipboard))
+        // Remote RPC
+        .route("/api/v1/rpc/exec", post(rpc::exec_command))
+        .route("/api/v1/rpc/pty", get(pty::ws_pty))
         // V27-F3: Fleet dashboard.
         .route("/api/fleet/status", get(fleet::fleet_status))
         .route("/api/fleet/node-status", get(fleet::node_status))
@@ -99,6 +115,13 @@ pub fn native_router() -> Router<AppState> {
         .route("/worker/*path", routing::any(proxy::proxy_worker))
         // A-3: WebSocket proxy to musu-port chat.
         .route("/chat/ws/*path", get(ws_proxy::ws_proxy_chat))
+        // PTY proxy to peer node.
+        .route("/api/v1/proxy/pty", get(ws_proxy::ws_proxy_pty))
+        // File Explorer proxy to peer node.
+        .route("/api/v1/proxy/files", get(proxy::proxy_files_list))
+        .route("/api/v1/proxy/files/read", get(proxy::proxy_files_read))
+        .route("/api/v1/proxy/files/write", post(proxy::proxy_files_write))
+        .route("/api/v1/proxy/files/mkdir", post(proxy::proxy_files_mkdir))
         // W9 (wiki/512): workflow DAG builder + CRUD routes.
         .merge(workflow::router())
         // W13 (wiki/513): MCP HTTP+SSE endpoint — same 14 tools as stdio.

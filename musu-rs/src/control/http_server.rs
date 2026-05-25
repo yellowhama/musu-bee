@@ -135,7 +135,7 @@ async fn handle_mcp_message(
     let result = match req.method.as_str() {
         "initialize" => handle_initialize(),
         "tools/list" => handle_tools_list(),
-        "tools/call" => handle_tools_call(&bridge, &req).await,
+        "tools/call" => handle_tools_call(&state, &bridge, &req).await,
         "notifications/initialized" => {
             // JSON-RPC 2.0: notifications have no id and get no response.
             if req.id.is_none() {
@@ -224,6 +224,7 @@ fn handle_tools_list() -> Result<serde_json::Value, JsonRpcError> {
 }
 
 async fn handle_tools_call(
+    state: &AppState,
     bridge: &BridgeClient,
     req: &JsonRpcRequest,
 ) -> Result<serde_json::Value, JsonRpcError> {
@@ -247,7 +248,7 @@ async fn handle_tools_call(
         .cloned()
         .unwrap_or(serde_json::Value::Object(serde_json::Map::new()));
 
-    let result = dispatch_tool(bridge, tool_name, &arguments).await;
+    let result = dispatch_tool(state, bridge, tool_name, &arguments).await;
 
     match result {
         Ok(text) => Ok(serde_json::json!({
@@ -264,6 +265,7 @@ async fn handle_tools_call(
 // ── Tool dispatch ────────────────────────────────────────────────────
 
 async fn dispatch_tool(
+    state: &AppState,
     bridge: &BridgeClient,
     name: &str,
     args: &serde_json::Value,
@@ -299,6 +301,102 @@ async fn dispatch_tool(
                 .map_err(|e| format!("invalid params: {e}"))?;
             bridge.search_company(&p.workspace, &p.q, p.scope.as_deref(), p.limit).await.map_err(|e| format!("{e}"))
         }
+        "run_remote_command" => {
+            let node_id = args.get("node_id").and_then(|v| v.as_str()).ok_or_else(|| "node_id required".to_string())?;
+            let cmd = args.get("command").and_then(|v| v.as_str()).ok_or_else(|| "command required".to_string())?;
+            let mut req_args = Vec::new();
+            if let Some(arr) = args.get("args").and_then(|v| v.as_array()) {
+                for a in arr {
+                    if let Some(s) = a.as_str() {
+                        req_args.push(s.to_string());
+                    }
+                }
+            }
+            let cwd = args.get("cwd").and_then(|v| v.as_str()).map(|s| s.to_string());
+            
+            // Resolve node_id locally
+            let musu_home = state.config.nodes_toml_path
+                .parent()
+                .unwrap_or_else(|| std::path::Path::new("."));
+            
+            let peers = crate::peer::discovery::resolve_all_peers(musu_home);
+            let peer = peers.into_iter().find(|p| p.name.as_deref() == Some(node_id) || p.addr == node_id)
+                .ok_or_else(|| format!("Node {} not found", node_id))?;
+
+            // HTTP POST to remote RPC exec
+            let target_url = format!("http://{}/api/v1/rpc/exec", peer.addr);
+            let payload = serde_json::json!({
+                "cmd": cmd,
+                "args": req_args,
+                "cwd": cwd,
+            });
+
+            let resp = state.http_client.post(&target_url)
+                .bearer_auth(&state.config.token)
+                .json(&payload)
+                .send()
+                .await
+                .map_err(|e| format!("Remote RPC failed: {}", e))?;
+
+            let text = resp.text().await.unwrap_or_default();
+            Ok(text)
+        }
+        "read_remote_file" => {
+            let node_id = args.get("node_id").and_then(|v| v.as_str()).ok_or_else(|| "node_id required".to_string())?;
+            let path = args.get("path").and_then(|v| v.as_str()).ok_or_else(|| "path required".to_string())?;
+            
+            let musu_home = state.config.nodes_toml_path
+                .parent()
+                .unwrap_or_else(|| std::path::Path::new("."));
+            let peers = crate::peer::discovery::resolve_all_peers(musu_home);
+            let peer = peers.into_iter().find(|p| p.name.as_deref() == Some(node_id) || p.addr == node_id)
+                .ok_or_else(|| format!("Node {} not found", node_id))?;
+
+            let target_url = format!("http://{}/api/files/read?path={}", peer.addr, path);
+            let resp = state.http_client.get(&target_url)
+                .bearer_auth(&state.config.token)
+                .send()
+                .await
+                .map_err(|e| format!("Failed to read remote file: {}", e))?;
+            let status = resp.status();
+            let text = resp.text().await.unwrap_or_default();
+            if status.is_success() {
+                Ok(text)
+            } else {
+                Err(format!("Error {}: {}", status, text))
+            }
+        }
+        "write_remote_file" => {
+            let node_id = args.get("node_id").and_then(|v| v.as_str()).ok_or_else(|| "node_id required".to_string())?;
+            let path = args.get("path").and_then(|v| v.as_str()).ok_or_else(|| "path required".to_string())?;
+            let content = args.get("content").and_then(|v| v.as_str()).ok_or_else(|| "content required".to_string())?;
+            
+            let musu_home = state.config.nodes_toml_path
+                .parent()
+                .unwrap_or_else(|| std::path::Path::new("."));
+            let peers = crate::peer::discovery::resolve_all_peers(musu_home);
+            let peer = peers.into_iter().find(|p| p.name.as_deref() == Some(node_id) || p.addr == node_id)
+                .ok_or_else(|| format!("Node {} not found", node_id))?;
+
+            let target_url = format!("http://{}/api/files/write", peer.addr);
+            let payload = serde_json::json!({
+                "path": path,
+                "content": content
+            });
+            let resp = state.http_client.post(&target_url)
+                .bearer_auth(&state.config.token)
+                .json(&payload)
+                .send()
+                .await
+                .map_err(|e| format!("Failed to write remote file: {}", e))?;
+            let status = resp.status();
+            let text = resp.text().await.unwrap_or_default();
+            if status.is_success() {
+                Ok("File written successfully".to_string())
+            } else {
+                Err(format!("Error {}: {}", status, text))
+            }
+        }
         "list_agents" | "get_agent" | "get_dashboard" | "list_runs" | "get_activity" => {
             Ok(T2_BODY.to_string())
         }
@@ -320,6 +418,9 @@ fn tool_definitions() -> Vec<McpToolInfo> {
         McpToolInfo { name: "cancel_task".into(), description: "Cancel a running task on the local musu bridge writer.".into(), input_schema: serde_json::json!({"type":"object","properties":{"task_id":{"type":"string"}},"required":["task_id"]}) },
         McpToolInfo { name: "list_nodes".into(), description: "List musu nodes (self + peers) known to the local bridge.".into(), input_schema: empty.clone() },
         McpToolInfo { name: "search_company".into(), description: "Full-text search a company's workspace index.".into(), input_schema: serde_json::json!({"type":"object","properties":{"workspace":{"type":"string"},"q":{"type":"string"},"scope":{"type":"string"},"limit":{"type":"integer"}},"required":["workspace","q"]}) },
+        McpToolInfo { name: "run_remote_command".into(), description: "Execute a command on a remote machine in the mesh.".into(), input_schema: serde_json::json!({"type":"object","properties":{"node_id":{"type":"string","description":"Target node ID"},"command":{"type":"string"},"args":{"type":"array","items":{"type":"string"}},"cwd":{"type":"string"}},"required":["node_id","command"]}) },
+        McpToolInfo { name: "read_remote_file".into(), description: "Read a file from a remote machine in the mesh.".into(), input_schema: serde_json::json!({"type":"object","properties":{"node_id":{"type":"string","description":"Target node ID"},"path":{"type":"string","description":"Absolute file path on the remote machine"}},"required":["node_id","path"]}) },
+        McpToolInfo { name: "write_remote_file".into(), description: "Write content to a file on a remote machine in the mesh.".into(), input_schema: serde_json::json!({"type":"object","properties":{"node_id":{"type":"string","description":"Target node ID"},"path":{"type":"string","description":"Absolute file path on the remote machine"},"content":{"type":"string"}},"required":["node_id","path","content"]}) },
         McpToolInfo { name: "list_agents".into(), description: "list known agents (legacy) (deprecated)".into(), input_schema: empty.clone() },
         McpToolInfo { name: "get_agent".into(), description: "fetch a single agent's record (legacy) (deprecated)".into(), input_schema: serde_json::json!({"type":"object","properties":{"agent_id":{"type":"string"}}}) },
         McpToolInfo { name: "get_dashboard".into(), description: "fetch the dashboard payload (legacy) (deprecated)".into(), input_schema: empty.clone() },

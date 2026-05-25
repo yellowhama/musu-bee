@@ -19,9 +19,7 @@ export default function ResearchForm({ onComplete }: ResearchFormProps) {
     setStatus("리서치 시작...");
 
     try {
-      const bridgeUrl =
-        process.env.NEXT_PUBLIC_BRIDGE_URL || "http://localhost:8070";
-      const res = await fetch(`${bridgeUrl}/api/research`, {
+      const res = await fetch(`/api/bridge/api/research`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ topic: topic.trim(), max_sources: 5 }),

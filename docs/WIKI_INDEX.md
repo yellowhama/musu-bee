@@ -220,7 +220,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 
 ---
 
-## §5 Research / Brainstorm / Architecture (wiki/449..458)
+## §5 Research / Brainstorm / Architecture (wiki/449..458, 517)
 
 | Wiki ID | Title | Date | File | Status |
 |---|---|---|---|---|
@@ -231,6 +231,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | wiki/456 | Research — 3-layer audit + HTML wiki memory | 2026-05-18 | `RESEARCH_3LAYER_AND_HTML_WIKI_MEMORY_2026_05_18.md` | complete |
 | wiki/457 | Brainstorm — Paperclip observer closure | 2026-05-18 | `BRAINSTORM_PAPERCLIP_OBSERVER_2026_05_18.md` | complete |
 | wiki/458 | Musu architecture overview (HTML — first HTML wiki page) | 2026-05-18 | `MUSU_ARCHITECTURE_2026_05_18.html` | complete |
+| wiki/517 | Brainstorm — Multi-Machine Binding Architecture | 2026-05-24 | `BRAINSTORM_MULTI_MACHINE_BINDING_2026_05_24.md` | complete |
 
 ---
 

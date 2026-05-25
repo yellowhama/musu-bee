@@ -1,4 +1,5 @@
 "use client";
+import { getBridgeUrl } from '../../../lib/bridge-config';
 
 import WikiPanel from "@/components/WikiPanel";
 import ResearchForm from "@/components/ResearchForm";
@@ -9,7 +10,7 @@ export default function WikiPageClient() {
   const [companyId, setCompanyId] = useState<string | null>(null);
 
   useEffect(() => {
-    const bridgeUrl = process.env.NEXT_PUBLIC_BRIDGE_URL || "http://localhost:8070";
+    const bridgeUrl = getBridgeUrl();
     fetch(`${bridgeUrl}/api/workspace`)
       .then((r) => r.json())
       .then((d) => setCompanyId(d.active_company_id || null))

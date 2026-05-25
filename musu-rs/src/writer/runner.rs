@@ -757,6 +757,19 @@ async fn finalize(
 
     // V27-F1: send result callback if this was a forwarded task.
     fire_callback(spec, status, output, error, exit_code, duration_sec);
+
+    // GC: If this was a forwarded task with a callback, clean up the temporary workspace
+    if spec.callback_url.is_some() {
+        // Only remove if it's actually in temp_dir to prevent accidental deletion of real workspaces
+        let temp_dir_base = std::env::temp_dir().join("musu_workspaces");
+        if spec.cwd.starts_with(&temp_dir_base) {
+            if let Err(e) = std::fs::remove_dir_all(&spec.cwd) {
+                tracing::warn!(task_id = %task_id, err = %e, "Failed to garbage collect temporary workspace");
+            } else {
+                tracing::debug!(task_id = %task_id, dir = %spec.cwd.display(), "Garbage collected temporary workspace");
+            }
+        }
+    }
 }
 
 #[allow(clippy::too_many_arguments)]

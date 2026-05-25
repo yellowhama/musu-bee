@@ -246,12 +246,12 @@ export default function ProcessesPanel() {
   const deviceOptions = [
     { id: "local", label: "This Machine" },
     ...devices
-      .filter((d) => d.isRemote && d.peerUrl)
+      .filter((d) => d.isRemote)
       .map((d) => {
-        // Extract host from peerUrl (e.g. http://100.x.x.x:1355 → 100.x.x.x)
         let host = d.id;
         try {
-          host = new URL(d.peerUrl!).hostname;
+          // In V27, id is usually "ip:port"
+          host = d.id.split(":")[0];
         } catch {
           // fallback to device id
         }

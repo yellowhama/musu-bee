@@ -261,6 +261,107 @@ pub async fn proxy_worker(State(state): State<AppState>, req: Request) -> Respon
     proxy_to_service(&state, "worker", 9700, "/worker", req).await
 }
 
+// ── File Explorer proxy ─────────────────────────────────────────────
+
+#[derive(serde::Deserialize)]
+pub struct ProxyFileParams {
+    pub node_id: String,
+    pub path: String,
+}
+
+/// Helper to proxy an HTTP request to a peer.
+async fn proxy_to_peer_url(state: &AppState, node_id: &str, upstream_url: &str, req: Request) -> Response {
+    let musu_home = state.config.nodes_toml_path.parent().unwrap_or(std::path::Path::new("."));
+    let peers = crate::peer::discovery::resolve_all_peers(musu_home);
+    let peer = match peers.into_iter().find(|p| p.name.as_deref() == Some(node_id)) {
+        Some(p) => p,
+        None => return (StatusCode::NOT_FOUND, "node not found").into_response(),
+    };
+
+    let url = format!("http://{}{}", peer.addr, upstream_url);
+    let (parts, body) = req.into_parts();
+    let body_stream = body_to_stream(body);
+    let mut headers = reqwest::header::HeaderMap::new();
+    copy_request_headers(&parts.headers, &mut headers);
+
+    // Forward Bearer token from our configuration so the peer accepts it
+    headers.insert(
+        reqwest::header::AUTHORIZATION,
+        reqwest::header::HeaderValue::from_str(&format!("Bearer {}", state.config.token)).unwrap(),
+    );
+
+    let method = match reqwest::Method::from_bytes(parts.method.as_str().as_bytes()) {
+        Ok(m) => m,
+        Err(_) => return (StatusCode::METHOD_NOT_ALLOWED, "method not allowed").into_response(),
+    };
+
+    let req_b = state
+        .http_client
+        .request(method, &url)
+        .headers(headers)
+        .body(reqwest::Body::wrap_stream(body_stream));
+
+    let upstream_resp = match req_b.send().await {
+        Ok(r) => r,
+        Err(e) => {
+            tracing::warn!(peer = %peer.addr, error = %e, "peer unreachable for file proxy");
+            return (StatusCode::BAD_GATEWAY, "peer unreachable").into_response();
+        }
+    };
+
+    let status = StatusCode::from_u16(upstream_resp.status().as_u16()).unwrap_or(StatusCode::BAD_GATEWAY);
+    let mut resp_headers = HeaderMap::new();
+    copy_response_headers(upstream_resp.headers(), &mut resp_headers);
+
+    let stream = upstream_resp.bytes_stream();
+    let body = Body::from_stream(stream);
+
+    let mut resp = Response::builder().status(status).body(body).unwrap();
+    *resp.headers_mut() = resp_headers;
+    resp
+}
+
+/// GET /api/v1/proxy/files
+pub async fn proxy_files_list(
+    State(state): State<AppState>,
+    axum::extract::Query(params): axum::extract::Query<ProxyFileParams>,
+    req: Request,
+) -> Response {
+    // percent encode the path for safety
+    let enc_path = urlencoding::encode(&params.path);
+    proxy_to_peer_url(&state, &params.node_id, &format!("/api/files?path={}", enc_path), req).await
+}
+
+/// GET /api/v1/proxy/files/read
+pub async fn proxy_files_read(
+    State(state): State<AppState>,
+    axum::extract::Query(params): axum::extract::Query<ProxyFileParams>,
+    req: Request,
+) -> Response {
+    let enc_path = urlencoding::encode(&params.path);
+    proxy_to_peer_url(&state, &params.node_id, &format!("/api/files/read?path={}", enc_path), req).await
+}
+
+/// POST /api/v1/proxy/files/write
+pub async fn proxy_files_write(
+    State(state): State<AppState>,
+    axum::extract::Query(params): axum::extract::Query<ProxyFileParams>,
+    req: Request,
+) -> Response {
+    let enc_path = urlencoding::encode(&params.path);
+    proxy_to_peer_url(&state, &params.node_id, &format!("/api/files/write?path={}", enc_path), req).await
+}
+
+/// POST /api/v1/proxy/files/mkdir
+pub async fn proxy_files_mkdir(
+    State(state): State<AppState>,
+    axum::extract::Query(params): axum::extract::Query<ProxyFileParams>,
+    req: Request,
+) -> Response {
+    let enc_path = urlencoding::encode(&params.path);
+    proxy_to_peer_url(&state, &params.node_id, &format!("/api/files/mkdir?path={}", enc_path), req).await
+}
+
 // ── Tests ───────────────────────────────────────────────────────────
 
 #[cfg(test)]

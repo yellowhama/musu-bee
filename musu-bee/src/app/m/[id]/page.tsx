@@ -155,23 +155,60 @@ export default function MachinePage() {
       }}
     >
       <header style={{ marginBottom: 32 }}>
-        <div style={{ fontSize: 12, color: "var(--fg3)", textTransform: "uppercase", letterSpacing: 1 }}>
-          Machine axis · /m/{machineId}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <div style={{ fontSize: 12, color: "var(--fg3)", textTransform: "uppercase", letterSpacing: 1 }}>
+              Machine axis · /m/{machineId}
+            </div>
+            <h1 style={{ fontSize: 28, fontWeight: 700, margin: "8px 0 0", display: "flex", alignItems: "center" }}>
+              {data ? <StatusDot status={data.status} /> : null}
+              {data?.hostname || machineId}
+            </h1>
+            {data && (
+              <div style={{ fontSize: 12, color: "var(--fg3)", marginTop: 4 }}>
+                {data.os} · {data.arch} · status: <strong style={{ color: "var(--fg1)" }}>{data.status}</strong>
+              </div>
+            )}
+            {lastUpdated && (
+              <div style={{ fontSize: 12, color: "var(--fg3)", marginTop: 4 }}>
+                Last updated: {lastUpdated} (auto-refresh {REFRESH_INTERVAL / 1000}s)
+              </div>
+            )}
+          </div>
+          <button
+            onClick={() => window.location.href = `/m/${machineId}/workstation`}
+            style={{
+              background: "var(--musu-color-brand-accent)",
+              color: "var(--fg-on-accent)",
+              border: "none",
+              borderRadius: 6,
+              padding: "10px 20px",
+              fontSize: 14,
+              fontWeight: 700,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              boxShadow: "0 0 16px rgba(255,166,2,0.15)",
+              transition: "transform 0.1s, box-shadow 0.1s",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)";
+              (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 20px rgba(255,166,2,0.25)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.transform = "none";
+              (e.currentTarget as HTMLElement).style.boxShadow = "0 0 16px rgba(255,166,2,0.15)";
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+            Open Workstation
+          </button>
         </div>
-        <h1 style={{ fontSize: 28, fontWeight: 700, margin: "8px 0 0", display: "flex", alignItems: "center" }}>
-          {data ? <StatusDot status={data.status} /> : null}
-          {data?.hostname || machineId}
-        </h1>
-        {data && (
-          <div style={{ fontSize: 12, color: "var(--fg3)", marginTop: 4 }}>
-            {data.os} · {data.arch} · status: <strong style={{ color: "var(--fg1)" }}>{data.status}</strong>
-          </div>
-        )}
-        {lastUpdated && (
-          <div style={{ fontSize: 12, color: "var(--fg3)", marginTop: 4 }}>
-            Last updated: {lastUpdated} (auto-refresh {REFRESH_INTERVAL / 1000}s)
-          </div>
-        )}
       </header>
 
       {error && (

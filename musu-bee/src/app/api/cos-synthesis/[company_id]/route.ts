@@ -1,3 +1,4 @@
+import { getBridgeUrl } from '../../../../lib/bridge-config';
 // V23.5 C-3 — musu-bee proxy for cos-synthesis invocation.
 //
 // POST /api/cos-synthesis/[company_id]
@@ -16,7 +17,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const BRIDGE_URL = (
-  process.env.MUSU_BRIDGE_URL ?? "http://localhost:8070"
+  getBridgeUrl()
 ).replace(/\/+$/, "");
 
 // Synthesis can take several seconds; match the bridge's internal 8s

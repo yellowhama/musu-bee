@@ -62,12 +62,27 @@ pub struct ForwardResponse {
 
 /// POST /api/tasks/forward — receive a forwarded task from a peer.
 ///
-/// The peer node calls this endpoint to delegate work to us.
-/// We create a local task and execute it.
+/// Handles receiving forwarded tasks, with an optional workspace ZIP context.
 pub async fn receive_forwarded(
     State(state): State<AppState>,
-    Json(req): Json<ForwardedTask>,
+    mut multipart: axum::extract::Multipart,
 ) -> Result<(StatusCode, Json<ForwardResponse>)> {
+    let mut task_req: Option<ForwardedTask> = None;
+    let mut zip_data: Option<axum::body::Bytes> = None;
+
+    while let Some(field) = multipart.next_field().await.map_err(|e| MusuError::BadRequest(e.to_string()))? {
+        if let Some(name) = field.name() {
+            if name == "task" {
+                let bytes = field.bytes().await.map_err(|e| MusuError::BadRequest(e.to_string()))?;
+                task_req = serde_json::from_slice(&bytes).ok();
+            } else if name == "workspace" {
+                zip_data = field.bytes().await.ok();
+            }
+        }
+    }
+
+    let req = task_req.ok_or_else(|| MusuError::BadRequest("missing task metadata".into()))?;
+    
     // Validate
     if req.text.is_empty() || req.text.len() > 10_000 {
         return Err(MusuError::BadRequest("text must be 1..10000 chars".into()));
@@ -78,6 +93,25 @@ pub async fn receive_forwarded(
 
     let task_id = uuid::Uuid::new_v4().to_string();
     let now = chrono::Utc::now().timestamp();
+
+    // Setup working directory and unpack zip if present
+    let cwd = if let Some(zip_bytes) = zip_data {
+        let dest_dir = std::env::temp_dir().join("musu_workspaces").join(&task_id);
+        std::fs::create_dir_all(&dest_dir).map_err(|e| MusuError::Internal(e.to_string()))?;
+        
+        let zip_path = dest_dir.join("workspace.zip");
+        std::fs::write(&zip_path, zip_bytes).map_err(|e| MusuError::Internal(e.to_string()))?;
+        
+        crate::peer::context_sync::unpack_workspace(&zip_path, &dest_dir)
+            .map_err(|e| MusuError::Internal(format!("failed to unpack workspace: {}", e)))?;
+            
+        std::fs::remove_file(&zip_path).ok();
+        dest_dir
+    } else {
+        req.cwd.clone().map(std::path::PathBuf::from).unwrap_or_else(|| {
+            std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."))
+        })
+    };
 
     // Insert pending row
     sqlx::query(
@@ -111,14 +145,6 @@ pub async fn receive_forwarded(
     );
 
     // Spawn task locally
-    let cwd = req
-        .cwd
-        .clone()
-        .map(std::path::PathBuf::from)
-        .unwrap_or_else(|| {
-            std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."))
-        });
-
     state
         .task_runner
         .spawn_task(crate::writer::TaskSpec {
@@ -173,10 +199,14 @@ pub async fn forward_to_peer(
         "forwarding task to peer"
     );
 
+    let task_json = serde_json::to_string(&task).map_err(|e| format!("serialize task: {e}"))?;
+    let part = reqwest::multipart::Part::text(task_json).mime_str("application/json").unwrap();
+    let form = reqwest::multipart::Form::new().part("task", part);
+
     let resp = client
         .post(&url)
         .bearer_auth(token)
-        .json(&task)
+        .multipart(form)
         .timeout(std::time::Duration::from_secs(10))
         .send()
         .await
@@ -307,3 +337,5 @@ pub async fn receive_callback(
 
     Ok(StatusCode::OK)
 }
+
+

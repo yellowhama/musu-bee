@@ -7,6 +7,7 @@ import Image from "next/image";
 import { Inbox, Building2, ListTodo, BookOpen, BarChart3, Settings, ScreenShare, ChevronsLeft, ChevronsRight, ExternalLink, LayoutGrid } from "lucide-react";
 import { SidebarNavItem } from "./SidebarNavItem";
 import { useConsoleShell } from "./ConsoleShellContext";
+import ThemeToggle from "../ThemeToggle";
 
 const NAV_ITEMS = [
   { id: "home",      href: "/home",      icon: Inbox,       label: "Home" },
@@ -182,6 +183,11 @@ export function ConsoleSidebar({ contextPanel, onNavigate, activePanel }: Consol
           <ExternalLink size={14} />
           {!collapsed && <span>GitHub</span>}
         </a>
+
+        {/* Theme toggle */}
+        <div style={{ display: "flex", justifyContent: collapsed ? "center" : "flex-start", padding: collapsed ? "0" : "0 2px" }}>
+          <ThemeToggle />
+        </div>
 
         {/* Collapse toggle */}
         <button

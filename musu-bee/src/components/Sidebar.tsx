@@ -134,34 +134,28 @@ function DeviceItem({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 10, color: "var(--fg2)", width: 30 }}>
-              CPU
+            <span style={{ fontSize: 10, color: "var(--fg2)", width: 45 }}>
+              Running
             </span>
-            <ProgressBar value={device.stats.cpu} color="var(--status-running)" />
-            <span style={{ fontSize: 10, color: "var(--fg2)", width: 28, textAlign: "right" }}>
-              {device.stats.cpu}%
+            <span style={{ fontSize: 10, color: "var(--status-running)", fontWeight: 600 }}>
+              {device.tasks_running ?? 0}
             </span>
           </div>
-          {device.stats.gpu !== null && (
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ fontSize: 10, color: "var(--fg2)", width: 30 }}>
-                GPU
-              </span>
-              <ProgressBar value={device.stats.gpu} color="var(--accent)" />
-              <span style={{ fontSize: 10, color: "var(--fg2)", width: 28, textAlign: "right" }}>
-                {device.stats.gpu}%
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 10, color: "var(--fg2)", width: 45 }}>
+              Pending
+            </span>
+            <span style={{ fontSize: 10, color: "var(--fg3)", fontWeight: 600 }}>
+              {device.tasks_pending ?? 0}
+            </span>
+          </div>
+          {device.version && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+              <span style={{ fontSize: 9, color: "var(--fg4)" }}>
+                v{device.version}
               </span>
             </div>
           )}
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 10, color: "var(--fg2)", width: 30 }}>
-              RAM
-            </span>
-            <ProgressBar value={device.stats.ram} color="var(--musu-status-online)" />
-            <span style={{ fontSize: 10, color: "var(--fg2)", width: 28, textAlign: "right" }}>
-              {device.stats.ram}%
-            </span>
-          </div>
         </div>
       )}
       {device.status === "offline" && (

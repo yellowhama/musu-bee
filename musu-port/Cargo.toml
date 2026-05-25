@@ -1,4 +1,0 @@
-[workspace]
-members = ["apps/musu-portd", "crates/musu-port-core"]
-resolver = "2"
-

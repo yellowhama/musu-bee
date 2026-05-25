@@ -1,10 +1,11 @@
+import { getBridgeUrl } from '../../../../../lib/bridge-config';
 // V23.4 Phase 4 T2-D-mini — /api/workflows/[id]/status proxy (wiki/435 v2 §6.3).
 // GET-only; called every 2s by RunPanel polling.
 import { NextRequest, NextResponse } from "next/server";
 import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
 
 const BRIDGE_URL =
-  process.env.MUSU_BRIDGE_URL ?? process.env.NEXT_PUBLIC_BRIDGE_URL ?? "http://localhost:8070";
+  getBridgeUrl();
 
 type Ctx = { params: Promise<{ id: string }> };
 

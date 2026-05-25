@@ -1,124 +1,42 @@
 import type { Metadata } from "next";
-import CheckoutButton from "@/components/CheckoutButton";
+import React from "react";
 
 export const metadata: Metadata = {
-  title: "MUSU — Your AI-powered team",
-  description:
-    "Multiple machines. One AI team. Work gets done automatically.",
+  title: "MUSU | Your Personal AI Team",
+  description: "Connect your devices and let your AI team do the work.",
 };
 
-// Pricing tiers
-const TIERS = [
-  {
-    name: "Free",
-    tier: "free" as const,
-    price: "Free",
-    period: "",
-    devices: "Up to 2 devices",
-    features: ["Basic AI chat", "Task dispatch", "Status monitoring", "100 messages/day"],
-    cta: "Get started for free",
-    highlight: false,
-  },
-  {
-    name: "Pro",
-    tier: "pro" as const,
-    price: "₩29,000",
-    period: "/mo",
-    devices: "Up to 5 devices",
-    features: ["All Free features", "Unlimited messages", "Priority queue", "Email support"],
-    cta: "Start Pro",
-    highlight: true,
-  },
-  {
-    name: "Team",
-    tier: "team" as const,
-    price: "₩49,000",
-    period: "/mo",
-    devices: "Unlimited devices",
-    features: ["All Pro features", "Team sharing", "API access", "Priority support"],
-    cta: "Start Team",
-    highlight: false,
-  },
-] as const;
-
-const VALUE_PROPS = [
-  {
-    icon: "⚡",
-    title: "Auto task dispatch",
-    desc: "Auto-distribute to machines with free CPU/GPU. The boss AI picks the best device.",
-  },
-  {
-    icon: "📊",
-    title: "Real-time monitoring",
-    desc: "Track CPU, GPU, and RAM across all machines from one screen.",
-  },
-  {
-    icon: "💬",
-    title: "AI team chat",
-    desc: "Just say it. The boss AI instructs the team and brings back results.",
-  },
-] as const;
-
-interface PageProps {
-  searchParams: Promise<{ success?: string; cancelled?: string; tier?: string }>;
-}
-
-export default async function ProLandingPage({ searchParams }: PageProps) {
-  const params = await searchParams;
-  const isSuccess = params.success === "1";
-  const isCancelled = params.cancelled === "1";
+export default function ProLandingPage() {
+  // VibeCode Aesthetics for V2
+  const colors = {
+    bgBase: "#251714", // Deep Espresso
+    bgSurface: "#2D1D19",
+    bgCard: "#3A2621",
+    accent: "#FFA602", // Golden Orange
+    textPrimary: "#F3F4F6",
+    textSecondary: "#D4C5B9",
+    border: "#3A2621",
+  };
 
   return (
     <div
       style={{
         minHeight: "100vh",
-        background: "var(--bg-base)",
-        color: "var(--fg1)",
-        fontFamily:
-          "'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif",
+        background: colors.bgBase,
+        color: colors.textPrimary,
+        fontFamily: "'Inter', 'Pretendard', sans-serif",
         overflowX: "hidden",
       }}
     >
-      {/* ── Payment status banner ── */}
-      {isSuccess && (
-        <div
-          style={{
-            background: "rgba(34,197,94,0.1)",
-            border: "1px solid rgba(34,197,94,0.3)",
-            color: "var(--status-online)",
-            padding: "12px 24px",
-            textAlign: "center",
-            fontSize: 14,
-            fontWeight: 600,
-          }}
-        >
-          Payment successful! Your MUSU {params.tier?.toUpperCase() ?? "Pro"} plan is now active.
-        </div>
-      )}
-      {isCancelled && (
-        <div
-          style={{
-            background: "rgba(239,68,68,0.08)",
-            border: "1px solid rgba(239,68,68,0.2)",
-            color: "#fca5a5",
-            padding: "12px 24px",
-            textAlign: "center",
-            fontSize: 14,
-          }}
-        >
-          Payment cancelled. You can try again whenever you&apos;re ready.
-        </div>
-      )}
-
       {/* ── Nav ── */}
       <nav
         style={{
           position: "sticky",
           top: 0,
           zIndex: 50,
-          background: "rgba(10,10,10,0.85)",
+          background: "rgba(37,23,20,0.85)",
           backdropFilter: "blur(12px)",
-          borderBottom: "1px solid var(--border-subtle)",
+          borderBottom: `1px solid ${colors.border}`,
           padding: "0 24px",
           height: 56,
           display: "flex",
@@ -127,490 +45,145 @@ export default async function ProLandingPage({ searchParams }: PageProps) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <img src="/images/favicon-header.png" alt="MUSU" style={{ height: 22, width: "auto" }} />
           <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.03em" }}>
-            MUSU
-          </span>
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              color: "var(--musu-color-brand-accent)",
-              background: "rgba(250,204,21,0.12)",
-              border: "1px solid rgba(250,204,21,0.3)",
-              borderRadius: 4,
-              padding: "1px 6px",
-              letterSpacing: "0.04em",
-            }}
-          >
-            BETA
+            <span style={{ color: colors.accent }}>✦</span> MUSU
           </span>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <a
-            href="/pro#pricing"
-            style={{
-              fontSize: 13,
-              color: "var(--fg2)",
-              textDecoration: "none",
-              padding: "6px 14px",
-              borderRadius: 8,
-              transition: "color 0.15s",
-            }}
-          >
-            Pricing
-          </a>
-          <a
-            href="/landing"
-            style={{
-              fontSize: 13,
-              color: "var(--bg-base)",
-              background: "var(--musu-color-brand-accent)",
-              textDecoration: "none",
-              padding: "6px 16px",
-              borderRadius: 8,
-              fontWeight: 600,
-            }}
-          >
-            Open app
-          </a>
+        <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+          <a href="/landing" style={{ fontSize: 13, color: colors.bgBase, background: colors.accent, textDecoration: "none", padding: "6px 16px", borderRadius: 8, fontWeight: 700 }}>Open app</a>
         </div>
       </nav>
 
       {/* ── Hero ── */}
-      <section
-        style={{
-          maxWidth: 860,
-          margin: "0 auto",
-          padding: "100px 24px 80px",
-          textAlign: "center",
-        }}
-      >
-        {/* Beta badge */}
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            background: "rgba(250,204,21,0.1)",
-            border: "1px solid rgba(250,204,21,0.25)",
-            borderRadius: 20,
-            padding: "4px 14px",
-            fontSize: 12,
-            color: "var(--musu-color-brand-accent)",
-            fontWeight: 600,
-            marginBottom: 32,
-            letterSpacing: "0.03em",
-          }}
-        >
-          <span>✦</span>
-          <span>Beta open — first 10 users free</span>
+      <section style={{ maxWidth: 960, margin: "0 auto", padding: "120px 24px 80px", textAlign: "center" }}>
+        <div style={{ display: "inline-block", background: colors.bgSurface, color: colors.accent, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", textTransform: "uppercase", padding: "4px 14px", borderRadius: 999, marginBottom: 32, border: `1px solid rgba(255, 166, 2, 0.3)` }}>
+          Coming Soon
         </div>
-
-        <h1
-          style={{
-            fontSize: "clamp(36px, 6vw, 68px)",
-            fontWeight: 900,
-            lineHeight: 1.1,
-            letterSpacing: "-0.04em",
-            margin: "0 0 24px",
-          }}
-        >
-          Your AI-powered
-          <br />
-          <span
-            style={{
-              background: "linear-gradient(135deg, var(--musu-color-brand-accent) 0%, #f97316 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}
-          >
-            device team
-          </span>
+        <h1 style={{ fontSize: "clamp(40px, 6vw, 76px)", fontWeight: 900, lineHeight: 1.1, letterSpacing: "-0.04em", margin: "0 0 24px" }}>
+          Control multiple computers <br />
+          <span style={{ color: colors.textSecondary }}>at once.</span>
         </h1>
-
-        <p
-          style={{
-            fontSize: "clamp(16px, 2vw, 20px)",
-            color: "var(--fg2)",
-            lineHeight: 1.7,
-            maxWidth: 560,
-            margin: "0 auto 48px",
-          }}
-        >
-          Connect multiple machines as one team.
-          <br />
-          The boss AI dispatches work automatically and brings back results.
+        <p style={{ fontSize: "clamp(16px, 2vw, 20px)", color: colors.textSecondary, lineHeight: 1.6, maxWidth: 680, margin: "0 auto 48px" }}>
+          Turn your scattered laptops and desktops into one powerful AI team. Just tell the AI what to do, and it will automatically find the right machine for the job and show you the results visually.
         </p>
 
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <a
-            href="/faq"
-            style={{
-              display: "inline-block",
-              background: "var(--musu-color-brand-accent)",
-              color: "var(--bg-base)",
-              fontWeight: 700,
-              fontSize: 15,
-              padding: "14px 32px",
-              borderRadius: 12,
-              textDecoration: "none",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            Get started free →
-          </a>
-          <a
-            href="/"
-            style={{
-              display: "inline-block",
-              background: "transparent",
-              color: "var(--fg1)",
-              fontWeight: 600,
-              fontSize: 15,
-              padding: "14px 32px",
-              borderRadius: 12,
-              textDecoration: "none",
-              border: "1px solid var(--border-default)",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            Watch demo
-          </a>
+          <form style={{ display: "flex", width: "100%", maxWidth: 400, gap: 8 }}>
+            <input
+              type="email"
+              placeholder="Enter your email for early access"
+              required
+              style={{
+                flex: 1,
+                background: colors.bgSurface,
+                border: `1px solid ${colors.border}`,
+                borderRadius: 8,
+                color: colors.textPrimary,
+                padding: "14px 16px",
+                fontSize: 15,
+                outline: "none",
+              }}
+            />
+            <button
+              type="submit"
+              style={{
+                background: colors.accent,
+                color: colors.bgBase,
+                border: "none",
+                borderRadius: 8,
+                padding: "0 24px",
+                fontSize: 15,
+                fontWeight: 700,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Join Waitlist
+            </button>
+          </form>
         </div>
+      </section>
 
-        {/* Hero illustration placeholder — device status row */}
-        <div
-          style={{
-            marginTop: 72,
-            background: "var(--bg-surface)",
-            border: "1px solid var(--border-subtle)",
-            borderRadius: 16,
-            padding: "24px 28px",
-            textAlign: "left",
-            fontSize: 13,
-            color: "var(--fg3)",
-            fontFamily: "monospace",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              marginBottom: 16,
-              paddingBottom: 12,
-              borderBottom: "1px solid var(--border-subtle)",
-            }}
-          >
-            <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--status-online)", display: "inline-block" }} />
-            <span style={{ color: "var(--fg1)", fontWeight: 600, fontSize: 13 }}>MUSU Team Status</span>
-            <span style={{ marginLeft: "auto", color: "var(--fg4)" }}>2 active</span>
+      {/* ── Simple App Showcase ── */}
+      <section style={{ padding: "0 24px 120px" }}>
+        <div style={{ maxWidth: 1000, margin: "0 auto", background: colors.bgSurface, border: `1px solid ${colors.border}`, borderRadius: 12, overflow: "hidden", boxShadow: "0 12px 40px rgba(0,0,0,0.4)", display: "flex", height: 480 }}>
+          {/* Left Panel - Devices */}
+          <div style={{ width: 220, borderRight: `1px solid ${colors.border}`, background: colors.bgBase, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: colors.textSecondary, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>My Devices</div>
+            <div style={{ background: colors.bgSurface, padding: "8px 12px", borderRadius: 6, display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#22C55E" }} />
+              <span style={{ fontSize: 13, color: colors.textPrimary }}>Home PC</span>
+            </div>
+            <div style={{ background: colors.bgSurface, padding: "8px 12px", borderRadius: 6, display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#22C55E" }} />
+              <span style={{ fontSize: 13, color: colors.textPrimary }}>Work Laptop</span>
+            </div>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+
+          {/* Center Panel - Visual Work */}
+          <div style={{ flex: 1, padding: 24, position: "relative" }}>
+            <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 24, marginTop: 12 }}>My AI Team</h3>
+            <div style={{ display: "flex", gap: 16 }}>
+              <div style={{ background: colors.bgCard, border: `1px solid rgba(255,166,2,0.2)`, borderRadius: 8, padding: 16, width: 200 }}>
+                <div style={{ width: 48, height: 48, borderRadius: "50%", background: colors.accent, marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "center", color: colors.bgBase, fontWeight: 800 }}>AI</div>
+                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Project Manager</div>
+                <div style={{ fontSize: 12, color: colors.textSecondary }}>Running on Home PC</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Panel - Chat */}
+          <div style={{ width: 280, borderLeft: `1px solid ${colors.border}`, background: colors.bgBase, display: "flex", flexDirection: "column" }}>
+            <div style={{ padding: 16, borderBottom: `1px solid ${colors.border}`, fontSize: 13, fontWeight: 600 }}>Chat with Manager</div>
+            <div style={{ flex: 1, padding: 16, display: "flex", flexDirection: "column", gap: 12, overflowY: "hidden" }}>
+              <div style={{ background: colors.bgSurface, padding: 12, borderRadius: 8, fontSize: 13, color: colors.textSecondary }}>
+                Finding the fastest device...
+              </div>
+              <div style={{ background: `rgba(255, 166, 2, 0.1)`, border: `1px solid rgba(255, 166, 2, 0.2)`, padding: 12, borderRadius: 8, fontSize: 13, color: colors.textPrimary }}>
+                I've assigned the heavy data processing to your Home PC. I'll show you the chart when it's done!
+              </div>
+            </div>
+            <div style={{ padding: 16, borderTop: `1px solid ${colors.border}` }}>
+              <div style={{ background: colors.bgSurface, border: `1px solid ${colors.border}`, borderRadius: 20, padding: "8px 12px", display: "flex", alignItems: "center" }}>
+                <span style={{ fontSize: 13, color: colors.textSecondary, flex: 1 }}>Type a message...</span>
+                <div style={{ width: 24, height: 24, borderRadius: "50%", background: colors.accent }} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Value Props (Layman terms) ── */}
+      <section style={{ background: colors.bgSurface, padding: "100px 24px", borderTop: `1px solid ${colors.border}` }}>
+        <div style={{ maxWidth: 960, margin: "0 auto" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24 }}>
             {[
-              { label: "Musu-A (Lead)", note: "4060Ti Desktop", cpu: 48, gpu: 23, ram: 62, status: "online" },
-              { label: "Musu-B", note: "5070Ti Desktop", cpu: 72, gpu: 61, ram: 45, status: "busy" },
-              { label: "Musu-C", note: "Laptop", cpu: 0, gpu: null, ram: 0, status: "offline" },
-            ].map((d) => (
-              <div
-                key={d.label}
-                style={{ display: "flex", alignItems: "center", gap: 12, opacity: d.status === "offline" ? 0.4 : 1 }}
-              >
-                <span
-                  style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: "50%",
-                    background: d.status === "online" ? "var(--status-online)" : d.status === "busy" ? "var(--musu-color-brand-accent)" : "var(--fg4)",
-                    display: "inline-block",
-                    flexShrink: 0,
-                  }}
-                />
-                <span style={{ color: "var(--fg1)", minWidth: 160 }}>{d.label}</span>
-                <span style={{ color: "var(--fg4)", fontSize: 11, minWidth: 120 }}>{d.note}</span>
-                {d.status !== "offline" ? (
-                  <span style={{ color: "var(--fg3)", fontSize: 11 }}>
-                    CPU {d.cpu}% · GPU {d.gpu ?? "—"}% · RAM {d.ram}%
-                  </span>
-                ) : (
-                  <span style={{ color: "var(--fg4)", fontSize: 11 }}>Offline</span>
-                )}
+              {
+                title: "Everything on one screen",
+                desc: "See your connected laptops and desktops on the left, chat with your AI boss on the right, and watch the work happen in the middle.",
+              },
+              {
+                title: "Answers you can see",
+                desc: "The AI doesn't just reply with text. It creates charts, builds tables, and shows progress bars right in front of you.",
+              },
+              {
+                title: "Made for everyone",
+                desc: "Whether you're an expert who loves writing code, or someone who just wants to tell the AI what to do—there's a mode for you.",
+              },
+            ].map((feat, i) => (
+              <div key={i} style={{ background: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: 8, padding: 32 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: colors.accent, fontFamily: "monospace", marginBottom: 16 }}>0{i + 1}</div>
+                <h3 style={{ fontSize: 18, fontWeight: 600, color: colors.textPrimary, marginBottom: 12 }}>{feat.title}</h3>
+                <p style={{ fontSize: 14, color: colors.textSecondary, lineHeight: 1.6, margin: 0 }}>{feat.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Value Props ── */}
-      <section
-        style={{
-          maxWidth: 960,
-          margin: "0 auto",
-          padding: "80px 24px",
-        }}
-      >
-        <h2
-          style={{
-            textAlign: "center",
-            fontSize: "clamp(24px, 4vw, 36px)",
-            fontWeight: 800,
-            letterSpacing: "-0.03em",
-            marginBottom: 56,
-          }}
-        >
-          All your machines. One team.
-        </h2>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-            gap: 20,
-          }}
-        >
-          {VALUE_PROPS.map((vp) => (
-            <div
-              key={vp.title}
-              style={{
-                background: "var(--bg-surface)",
-                border: "1px solid var(--border-subtle)",
-                borderRadius: 16,
-                padding: "28px 24px",
-              }}
-            >
-              <div style={{ fontSize: 32, marginBottom: 16 }}>{vp.icon}</div>
-              <h3
-                style={{
-                  fontSize: 17,
-                  fontWeight: 700,
-                  letterSpacing: "-0.02em",
-                  marginBottom: 10,
-                  color: "var(--fg1)",
-                }}
-              >
-                {vp.title}
-              </h3>
-              <p style={{ fontSize: 14, color: "var(--fg3)", lineHeight: 1.65, margin: 0 }}>
-                {vp.desc}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Pricing ── */}
-      <section
-        id="pricing"
-        style={{
-          maxWidth: 960,
-          margin: "0 auto",
-          padding: "80px 24px",
-        }}
-      >
-        <h2
-          style={{
-            textAlign: "center",
-            fontSize: "clamp(24px, 4vw, 36px)",
-            fontWeight: 800,
-            letterSpacing: "-0.03em",
-            marginBottom: 12,
-          }}
-        >
-          Simple pricing
-        </h2>
-        <p
-          style={{
-            textAlign: "center",
-            color: "var(--fg3)",
-            fontSize: 15,
-            marginBottom: 48,
-          }}
-        >
-          First 10 beta users are free. 50% off coupon when beta ends.
-        </p>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-            gap: 20,
-            alignItems: "start",
-          }}
-        >
-          {TIERS.map((tier) => (
-            <div
-              key={tier.name}
-              style={{
-                background: tier.highlight ? "var(--musu-color-brand-accent)" : "var(--bg-surface)",
-                border: tier.highlight ? "none" : "1px solid var(--border-subtle)",
-                borderRadius: 20,
-                padding: "32px 28px",
-                position: "relative",
-                transform: tier.highlight ? "scale(1.03)" : "none",
-              }}
-            >
-              {tier.highlight && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: -12,
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    background: "#f97316",
-                    color: "#fff",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    padding: "3px 12px",
-                    borderRadius: 20,
-                    letterSpacing: "0.05em",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  Most popular
-                </div>
-              )}
-              <div
-                style={{
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: tier.highlight ? "var(--bg-base)" : "var(--fg2)",
-                  letterSpacing: "0.06em",
-                  marginBottom: 12,
-                }}
-              >
-                {tier.name.toUpperCase()}
-              </div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 4 }}>
-                <span
-                  style={{
-                    fontSize: 40,
-                    fontWeight: 900,
-                    letterSpacing: "-0.04em",
-                    color: tier.highlight ? "var(--bg-base)" : "var(--fg1)",
-                  }}
-                >
-                  {tier.price}
-                </span>
-                <span style={{ fontSize: 14, color: tier.highlight ? "#4b3a00" : "var(--fg4)" }}>
-                  {tier.period}
-                </span>
-              </div>
-              <div
-                style={{
-                  fontSize: 13,
-                  color: tier.highlight ? "#4b3a00" : "var(--fg3)",
-                  marginBottom: 24,
-                  fontWeight: 600,
-                }}
-              >
-                {tier.devices}
-              </div>
-              <ul
-                style={{
-                  listStyle: "none",
-                  padding: 0,
-                  margin: "0 0 28px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 10,
-                }}
-              >
-                {tier.features.map((f) => (
-                  <li
-                    key={f}
-                    style={{
-                      fontSize: 14,
-                      color: tier.highlight ? "#1a1000" : "var(--fg2)",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
-                  >
-                    <span style={{ color: tier.highlight ? "#92400e" : "var(--fg4)", fontSize: 12 }}>✓</span>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <CheckoutButton
-                tier={tier.tier}
-                label={tier.cta}
-                style={{
-                  background: tier.highlight ? "var(--bg-base)" : "var(--bg-card)",
-                  color: tier.highlight ? "var(--musu-color-brand-accent)" : "var(--fg1)",
-                  border: tier.highlight ? "none" : "1px solid var(--border-default)",
-                }}
-              />
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Bottom CTA ── */}
-      <section
-        style={{
-          maxWidth: 700,
-          margin: "0 auto",
-          padding: "80px 24px 120px",
-          textAlign: "center",
-        }}
-      >
-        <h2
-          style={{
-            fontSize: "clamp(28px, 4vw, 44px)",
-            fontWeight: 900,
-            letterSpacing: "-0.04em",
-            marginBottom: 16,
-            lineHeight: 1.15,
-          }}
-        >
-          Start now,
-          <br />
-          <span style={{ color: "var(--musu-color-brand-accent)" }}>free in beta</span>
-        </h2>
-        <p
-          style={{
-            color: "var(--fg3)",
-            fontSize: 15,
-            marginBottom: 40,
-            lineHeight: 1.6,
-          }}
-        >
-          The first 10 beta users get full access for free.
-          <br />
-          A 50% discount coupon will be issued when beta ends.
-        </p>
-        <a
-          href="/landing"
-          style={{
-            display: "inline-block",
-            background: "var(--musu-color-brand-accent)",
-            color: "var(--bg-base)",
-            fontWeight: 800,
-            fontSize: 16,
-            padding: "16px 40px",
-            borderRadius: 14,
-            textDecoration: "none",
-            letterSpacing: "-0.02em",
-          }}
-        >
-          Get started free →
-        </a>
-      </section>
-
       {/* ── Footer ── */}
-      <footer
-        style={{
-          borderTop: "1px solid var(--bg-card)",
-          padding: "32px 24px",
-          textAlign: "center",
-          color: "var(--fg4)",
-          fontSize: 13,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 8 }}>
-          <img src="/images/favicon-header.png" alt="MUSU" style={{ height: 16, width: "auto" }} />
-          <span style={{ fontWeight: 700, color: "var(--fg4)" }}>MUSU</span>
-        </div>
-        <p style={{ margin: 0 }}>© 2026 MUSU. All your machines. One team.</p>
+      <footer style={{ borderTop: `1px solid ${colors.border}`, padding: "32px 24px", textAlign: "center", color: colors.textSecondary, fontSize: 13 }}>
+        <p style={{ margin: 0 }}>© 2026 MUSU. Your personal AI team.</p>
       </footer>
     </div>
   );

@@ -1,3 +1,4 @@
+import { getBridgeUrl } from '../../../../lib/bridge-config';
 /**
  * Catch-all proxy for musu-bridge API.
  * Forwards /api/bridge/<path> → BRIDGE_URL/api/<path>
@@ -7,7 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
 
 const BRIDGE_URL =
-  process.env.MUSU_BRIDGE_URL ?? process.env.NEXT_PUBLIC_BRIDGE_URL ?? "http://localhost:8070";
+  getBridgeUrl();
 
 type RouteContext = { params: Promise<{ path: string[] }> };
 

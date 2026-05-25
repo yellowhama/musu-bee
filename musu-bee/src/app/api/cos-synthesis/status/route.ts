@@ -1,3 +1,4 @@
+import { getBridgeUrl } from '../../../../lib/bridge-config';
 // V23.5 C-3 — musu-bee proxy for cos-synthesis status.
 //
 // GET /api/cos-synthesis/status
@@ -13,7 +14,7 @@
 import { NextResponse } from "next/server";
 
 const BRIDGE_URL = (
-  process.env.MUSU_BRIDGE_URL ?? "http://localhost:8070"
+  getBridgeUrl()
 ).replace(/\/+$/, "");
 
 const STATUS_TIMEOUT_MS = 3_000; // status is read-only, should be snappy
