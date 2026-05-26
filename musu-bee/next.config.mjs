@@ -4,8 +4,10 @@ const nextConfig = {
   outputFileTracingRoot: process.cwd(),
   // Only use App Router, suppress Pages Router error page generation
   typescript: { ignoreBuildErrors: false },
-  eslint: { ignoreDuringBuilds: true },
-  async headers() {
+};
+
+if (process.env.TAURI_ENV !== 'true') {
+  nextConfig.headers = async function() {
     return [{
       source: '/:path*',
       headers: [
@@ -19,7 +21,7 @@ const nextConfig = {
         { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
       ],
     }];
-  },
-};
+  };
+}
 
 export default nextConfig;

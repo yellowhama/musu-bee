@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "cross-env NODE_ENV=production next build",
     "start": "next start -p 3001",
-    "lint": "next lint",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test:vocab": "tsx --test src/lib/vocabulary-audit.test.ts",
     "test:webhooks": "tsx --test src/app/api/webhooks/**/*.test.ts",
@@ -14,12 +14,16 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:auth-landing": "bash ./scripts/run-auth-e2e-lane.sh 3003 false playwright.authlanding.config.ts e2e/auth-landing.spec.ts",
-    "test:e2e:auth-guard": "bash ./scripts/run-auth-e2e-lane.sh 3002 true playwright.authguard.config.ts e2e/auth-landing.spec.ts -g @guard"
+    "test:e2e:auth-guard": "bash ./scripts/run-auth-e2e-lane.sh 3002 true playwright.authguard.config.ts e2e/auth-landing.spec.ts -g @guard",
+    "tauri": "tauri",
+    "tauri:dev": "set TAURI_ENV=true&& tauri dev",
+    "tauri:build": "set TAURI_ENV=true&& tauri build"
   },
   "dependencies": {
     "@paddle/paddle-js": "^1.6.2",
     "@streamoji/avatar-widget": "^0.7.5",
     "@supabase/supabase-js": "^2.102.1",
+    "@tauri-apps/api": "^2.11.0",
     "@vercel/kv": "^3.0.0",
     "dompurify": "^3.4.5",
     "lucide-react": "^1.11.0",
@@ -41,6 +45,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
+    "@tauri-apps/cli": "^2.11.2",
     "@types/dompurify": "^3.0.5",
     "@types/jsdom": "^28.0.3",
     "@types/node": "^20",

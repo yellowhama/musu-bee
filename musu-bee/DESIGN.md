@@ -9,18 +9,18 @@
 
 ## 1. Visual Theme & Atmosphere
 
-**Mood:** Cold precision with warm undertones. Like a server room lit by candlelight — dark, purposeful, nothing decorative. Every element earns its place.
+**Mood:** Bold, stark, and architectural. A direct translation of Neo-Brutalism (Color Block Stack) principles into a functional AI orchestration plane. Raw structural elements with extremely high contrast.
 
-**Density:** Medium-tight. Information-dense panels (chat, tasks, nodes) with generous breathing room between sections. Not sparse like Apple. Not crammed like a Bloomberg terminal.
+**Density:** Medium-tight. Information-dense panels (chat, tasks, nodes) distinctly separated by thick structural borders. Content is aggressively compartmentalized.
 
 **Philosophy:**
-- Dark-native. No light mode is the default; the UI lives in darkness.
-- Terminal-adjacent. Monospace where it matters (logs, IDs, code). Sans-serif everywhere else.
-- Precision over personality. Rounded corners (8px), not pill-shaped. Clean, not bubbly.
-- Warm darkness. Background is Cocoa Brown, not flat black. Feels grounded, not cold.
-- The agent is the product. UI gets out of the way.
+- High-contrast clarity. Pure black `#000000` boundaries and shadows on pure white `#FFFFFF` canvases.
+- Structural borders. `3px solid black` for major components, no subtle gray lines.
+- Sharp edges. `0px` border-radius everywhere (except circular status dots).
+- Block shadows. `4px` or `8px` solid black drop shadows with no blur (`0px` blur radius) to create physical depth without lighting effects.
+- The agent is the product. UI gets out of the way, but provides undeniable structure.
 
-**Inspirations:** Linear (restraint), Cursor (code-density), Supabase (semantic clarity), Raycast (interaction polish)
+**Inspirations:** Gumroad (neo-brutalism layout), Figma (canvas structure), Figma Dev Mode (sharp tooling).
 
 ---
 
@@ -29,56 +29,32 @@
 ### Foundation
 | Token | Hex | Role |
 |-------|-----|------|
-| `--bg-base` | `#0d0d0d` | Page background (pure dark) |
-| `--bg-surface` | `#111111` | Raised panels, sidebars |
-| `--bg-card` | `#1a1a1a` | Cards, chat bubbles, list items |
-| `--bg-overlay` | `#222222` | Modals, dropdowns, popovers |
-| `--bg-hover` | `#2a2a2a` | Hover state for list rows |
-| `--bg-brand` | `#2D1D19` | Cocoa Brown — headers, brand surfaces |
+| `--bg-base` | `#FFFFFF` | Page background (pure white canvas) |
+| `--bg-surface` | `#FFFFFF` | Raised panels, sidebars |
+| `--bg-card` | `#FFFFFF` | Cards, chat bubbles, list items |
+| `--surface-inverse`| `#000000` | Dark panels (e.g. Sidebar) |
 
 ### Text
 | Token | Hex | Role |
 |-------|-----|------|
-| `--text-primary` | `#F3F4F6` | Body, labels, all primary content |
-| `--text-secondary` | `#9CA3AF` | Metadata, timestamps, descriptions |
-| `--text-muted` | `#6B7280` | Placeholder, helper text |
-| `--text-dim` | `#374151` | Disabled, dividers embedded in text |
-| `--text-on-accent` | `#2D1D19` | Text on yellow buttons |
+| `--text-primary` | `#000000` | Body, labels, all primary content |
+| `--text-secondary` | `#374151` | Secondary information |
+| `--text-inverse` | `#FFFFFF` | Text on dark backgrounds |
 
 ### Borders
 | Token | Hex | Role |
 |-------|-----|------|
-| `--border-subtle` | `#1F1F1F` | Panel borders, card edges |
-| `--border-default` | `#2D2D2D` | Default visible borders |
-| `--border-strong` | `#404040` | Active/focus visible borders |
+| `--border-default` | `#000000` | Core structural borders (3px thick) |
 
-### Accent — Musu Yellow
+### Accent
 | Token | Hex / Value | Role |
 |-------|-------------|------|
-| `--accent` | `#FFD166` | Primary CTA, active indicators, links |
-| `--accent-hover` | `#FFC947` | Hover state for accent elements |
-| `--accent-muted` | `rgba(255,209,102,0.12)` | Highlighted row bg, selection bg |
-| `--accent-glow` | `rgba(255,209,102,0.20)` | Box-shadow on accent button hover |
-| `--accent-border` | `rgba(255,209,102,0.30)` | Accent-colored borders (badges, outlines) |
+| `--accent-primary` | `#FF9800` | Primary CTA, active indicators, highlights |
 
-### Semantic Status
-| Token | Hex | Usage |
-|-------|-----|-------|
-| `--status-online` | `#22C55E` | Agent online, task done |
-| `--status-online-bg` | `rgba(34,197,94,0.12)` | Online status bg |
-| `--status-running` | `#60A5FA` | Task running, agent busy |
-| `--status-running-bg` | `rgba(96,165,250,0.12)` | Running status bg |
-| `--status-pending` | `#9CA3AF` | Task pending, agent idle |
-| `--status-error` | `#F87171` | Task failed, connection error |
-| `--status-error-bg` | `rgba(248,113,113,0.12)` | Error status bg |
-| `--status-warn` | `#F59E0B` | Warning, degraded state |
-
-### Shadows
+### Shadows (Neo-Brutalism)
 ```css
---shadow-sm:   0 1px 2px rgba(0,0,0,0.40);
---shadow-md:   0 4px 12px rgba(0,0,0,0.50);
---shadow-warm: 0 8px 24px rgba(45,29,25,0.20);   /* Cocoa-tinted */
---shadow-glow: 0 0 16px rgba(255,209,102,0.18);   /* Yellow glow */
+--neo-shadow-sm:  4px 4px 0px #000000;
+--neo-shadow:     8px 8px 0px #000000;
 ```
 
 ---
@@ -120,68 +96,47 @@ Never use: Comic Sans, Papyrus, decorative display fonts in UI panels.
 
 **Primary (Execute action)**
 ```css
-background: #FFD166;
-color: #2D1D19;
-border: none;
-border-radius: 6px;
-padding: 8px 16px;
-font-size: 13px;
-font-weight: 600;
-transition: all 0.15s ease;
-/* Hover: */
-background: #FFC947;
-box-shadow: 0 0 14px rgba(255,209,102,0.22);
-transform: translateY(-1px);
-```
-
-**Secondary (Outline)**
-```css
-background: transparent;
-color: #FFD166;
-border: 1px solid rgba(255,209,102,0.35);
-border-radius: 6px;
-padding: 6px 14px;
-/* Hover: background rgba(255,209,102,0.08) */
+background: var(--accent-primary);
+color: #000000;
+border: 3px solid #000000;
+border-radius: 0px;
+box-shadow: 4px 4px 0px #000000;
+padding: 10px 16px;
+font-size: 14px;
+font-weight: 800;
+transition: transform 0.1s ease;
+/* Active/Press: */
+transform: translate(4px, 4px);
+box-shadow: none;
 ```
 
 **Destructive (Cancel, Delete)**
 ```css
-background: transparent;
-color: #F87171;
-border: 1px solid #F87171;
-border-radius: 4px;
-padding: 2px 8px;
-font-size: 11px;
-```
-
-**Ghost / Icon**
-```css
-background: transparent;
-color: #6B7280;
-border: none;
-padding: 4px 8px;
-border-radius: 4px;
-/* Hover: background #1F1F1F, color #9CA3AF */
+background: #F87171;
+color: #000000;
+border: 3px solid #000000;
+border-radius: 0px;
+box-shadow: 4px 4px 0px #000000;
 ```
 
 ### Cards / List Items
 
-**Standard card**
+**Neo-Brutalism card**
 ```css
-background: #1A1A1A;
-border: 1px solid #1F1F1F;
-border-radius: 8px;
-padding: 12px 14px;
-/* Hover: border-color #2D2D2D */
+background: #FFFFFF;
+border: 3px solid #000000;
+border-radius: 0px;
+padding: 12px 16px;
+box-shadow: 4px 4px 0px #000000;
 ```
 
 **Active/selected card**
 ```css
-border-color: rgba(255,209,102,0.30);
-background: rgba(255,209,102,0.05);
+border-color: #000000;
+background: var(--accent-primary);
 ```
 
-**Do not:** Add box-shadow to cards. Borders carry the depth.
+**Do:** Add solid block box-shadow to cards for that physical stacked look.
 
 ### Status Badges
 ```css
@@ -209,16 +164,15 @@ font-size: 13px;
 
 ### Sidebar / Navigation
 ```css
-background: #0D0D0D;
-border-right: 1px solid #1F1F1F;
-width: 220px;
+background: #000000;
+border-right: 3px solid #000000;
+width: 240px;
 /* Channel items */
-padding: 6px 12px;
-border-radius: 6px;
-font-size: 13px;
-color: #6B7280;
-/* Active channel: background rgba(255,209,102,0.10), color #FFD166 */
-/* Unread badge: background #FFD166, color #2D1D19, border-radius 999px */
+padding: 0px 12px;
+border-radius: 4px;
+font-size: 14px;
+color: #FFFFFF;
+/* Active channel: background #FF9800, color #000000, border: 3px solid #000000 */
 ```
 
 ### Dividers
@@ -289,18 +243,15 @@ border: 1px solid #2D2D2D;
 
 ### Do
 - ✓ Use monospace for task IDs, agent IDs, execution logs, timestamps in panels
-- ✓ Use semantic colors for all status states — never ad-hoc colors
-- ✓ Use `#FFD166` as the single accent — not blue, not purple
-- ✓ Mount unmount guards on polling hooks (`let mounted = true`)
-- ✓ Show "loading…" in gray (`#6B7280`), errors in red (`#F87171`)
-- ✓ Keep header heights consistent: 52–60px per panel
-- ✓ Truncate long text with `-webkit-line-clamp` or `text-overflow: ellipsis`
-- ✓ Add `cursor: pointer` to every interactive element
+- ✓ Use pure `#000000` for borders, shadows, and text on light surfaces
+- ✓ Use `#FF9800` as the bold accent color
+- ✓ Make sure elements look physically stacked via `4px 4px 0px #000` box-shadows
+- ✓ Sharp corners (`0px` border radius) for primary UI regions
 
 ### Don't
-- ✗ Gradients in UI panels (landing page only)
-- ✗ Bright white (`#FFFFFF`) anywhere — use `#F3F4F6` max
-- ✗ Blue links — use `#FFD166` for interactive text
+- ✗ Soft blurred shadows (e.g. `box-shadow: 0 4px 12px rgba(0,0,0,0.1)`)
+- ✗ Subtle gray borders (always use `3px solid black`)
+- ✗ Rounded containers (`border-radius: 8px` is forbidden in Neo-Brutalism except for maybe badges)
 - ✗ Multiple accent colors in a single view
 - ✗ Emojis in UI (landing page only, with purpose)
 - ✗ `box-shadow` on cards (use border instead)

@@ -51,13 +51,14 @@ export function ConsoleTopStrip({
   return (
     <div
       style={{
-        height: "40px",
+        height: "88px", /* Match the new sidebar logo height */
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "0 16px",
-        borderBottom: "1px solid var(--console-sidebar-border, rgba(255,255,255,0.07))",
-        background: "var(--console-sidebar-bg, #432c1c)",
+        padding: "0 32px",
+        borderBottom: "3px solid var(--border-default)",
+        background: "var(--surface-primary)",
+        color: "var(--foreground-primary)",
         flexShrink: 0,
       }}
     >

@@ -47,7 +47,7 @@ jobs:
       - name: Build musu
         working-directory: musu-rs
         run: |
-          cargo build --release --target ${{ matrix.target }} -p musu
+          cargo build --release --target ${{ matrix.target }} --bin musu
 
       - name: Package binaries (Unix)
         if: runner.os != 'Windows'

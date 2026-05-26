@@ -419,7 +419,7 @@ export default function AppShell() {
         {/* Right: Chat (always visible on desktop, toggled on mobile) */}
         <div
           className={`appshell-pane appshell-pane-chat${mobileView === "chat" ? " mobile-active" : ""}`}
-          style={{ width: 420, minWidth: 360, maxWidth: 520, borderLeft: "1px solid var(--border-subtle, rgba(255,255,255,0.06))" }}
+          style={{ width: 400, minWidth: 360, maxWidth: 520, borderLeft: "3px solid var(--border-default)", background: "var(--surface-primary)" }}
         >
           <ChatArea
             key={activeChat}

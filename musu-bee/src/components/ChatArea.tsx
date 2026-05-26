@@ -163,9 +163,9 @@ function ApprovalCard({ text, onSend }: { text: string; onSend: (t: string) => v
   const handleReject = useCallback(() => { if (taskId) onSend(`/reject ${taskId}`); }, [taskId, onSend]);
 
   return (
-    <div className="card" style={{ margin: "12px auto", maxWidth: 460, border: "1px solid var(--accent-border)", background: "var(--accent-tint)" }}>
+    <div className="neo-card" style={{ margin: "12px auto", maxWidth: 460, border: "var(--neo-border)", background: "var(--accent-tint)", borderRadius: "var(--neo-radius)", boxShadow: "var(--neo-shadow-sm)" }}>
       <div className="label" style={{ color: "var(--accent)", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-        <span className="dot-working" style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--accent)" }} />
+        <span className="dot-working" style={{ width: 6, height: 6, borderRadius: "0px", background: "var(--accent)" }} />
         Approval Required
       </div>
       <div style={{ fontSize: 13, color: "var(--fg1)", lineHeight: 1.5, marginBottom: 12 }}>
@@ -209,11 +209,12 @@ function PlanCard({ msg, onApprove, onReject }: { msg: Message; onApprove?: (msg
   return (
     <div
       style={{
-        border: "1px solid var(--border-default)",
-        borderRadius: 8,
+        border: "var(--neo-border)",
+        borderRadius: "var(--neo-radius)",
         padding: 12,
         marginTop: 8,
         background: "var(--bg-base)",
+        boxShadow: "var(--neo-shadow-sm)",
       }}
     >
       <div style={{ fontSize: 12, fontWeight: 600, color: "var(--fg2)", marginBottom: 8 }}>
@@ -398,7 +399,9 @@ function Avatar({ who, role }: { who: string; role?: string }) {
       style={{
         width: 32,
         height: 32,
-        borderRadius: "var(--radius-sm)",
+        borderRadius: "var(--neo-radius)",
+        border: "var(--neo-border)",
+        boxShadow: "var(--neo-shadow-sm)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -456,12 +459,17 @@ function MessageBubble({ msg, onSend, onApprovePlan, onRejectPlan }: { msg: Mess
           <DelegationChip chain={msg.meta.chain} />
         )}
 
-        <div className="mtext" style={{ fontSize: 14, lineHeight: 1.6, color: "var(--fg1)", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+        <div className={`mtext ${isUser ? 'neo-card' : ''}`} style={{ 
+          fontSize: 14, lineHeight: 1.6, 
+          color: isUser ? "var(--bg-base)" : "var(--fg1)", 
+          whiteSpace: "pre-wrap", wordBreak: "break-word",
+          ...(isUser ? { background: "var(--accent)", padding: "12px 16px", marginTop: "8px", fontWeight: "600" } : {})
+        }}>
           {isUser ? msg.text : renderMarkdown(msg.text)}
         </div>
 
         {msg.attachment && (
-          <div className="card" style={{ marginTop: 8, padding: "8px 12px", display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12 }}>
+          <div className="neo-card" style={{ marginTop: 8, padding: "8px 12px", display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12 }}>
             📎 {msg.attachment}
           </div>
         )}
@@ -642,8 +650,9 @@ export default function ChatArea({
       <div
         className={`chead${flashActive ? " chat-channel-flash" : ""}`}
         style={{
-          padding: "16px 20px",
-          borderBottom: "1px solid var(--border-subtle)",
+          padding: "0 20px",
+          height: "88px", /* Match the other headers */
+          borderBottom: "3px solid var(--border-default)",
           display: "flex",
           alignItems: "center",
           gap: 12,
@@ -769,16 +778,13 @@ export default function ChatArea({
         }}
       >
         <div
-          className="box"
+          className="neo-card"
           style={{
             background: "var(--bg-card)",
-            border: "1px solid var(--border-default)",
-            borderRadius: "var(--radius-md)",
             padding: "12px",
             display: "flex",
             flexDirection: "column",
             gap: 12,
-            boxShadow: "var(--shadow-sm)",
           }}
         >
           <textarea

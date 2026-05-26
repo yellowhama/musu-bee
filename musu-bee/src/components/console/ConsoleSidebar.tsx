@@ -43,7 +43,7 @@ export function ConsoleSidebar({ contextPanel, onNavigate, activePanel }: Consol
     return () => document.removeEventListener("keydown", handleKey);
   }, [collapsed, setCollapsed]);
 
-  const width = collapsed ? 56 : 220;
+  const width = collapsed ? 56 : 240;
 
   return (
     <div
@@ -53,8 +53,8 @@ export function ConsoleSidebar({ contextPanel, onNavigate, activePanel }: Consol
         top: 0,
         bottom: 0,
         width,
-        background: "var(--console-sidebar-bg)",
-        borderRight: "1px solid var(--console-sidebar-border)",
+        background: "var(--surface-inverse)",
+        borderRight: "3px solid var(--border-default)",
         display: "flex",
         flexDirection: "column",
         transition: "width 200ms ease",
@@ -62,39 +62,42 @@ export function ConsoleSidebar({ contextPanel, onNavigate, activePanel }: Consol
         zIndex: 50,
       }}
     >
-      {/* Logo — 40px header row */}
+      {/* Logo — 72px header row */}
       <div
         style={{
-          height: "40px",
+          height: "88px",
           display: "flex",
           alignItems: "center",
-          padding: collapsed ? "0" : "0 14px",
+          padding: collapsed ? "0" : "0 24px",
           justifyContent: collapsed ? "center" : "flex-start",
-          borderBottom: "1px solid var(--console-sidebar-border)",
+          borderBottom: "0px solid var(--border-default)",
           flexShrink: 0,
         }}
       >
-        <Link href="/home" style={{ display: "flex", alignItems: "center" }}>
+        <Link href="/home" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
           {collapsed ? (
             <span
               style={{
-                color: "var(--accent)",
+                color: "var(--accent-primary)",
                 fontWeight: 900,
-                fontSize: "15px",
+                fontSize: "24px",
                 letterSpacing: "-0.02em",
               }}
             >
               M
             </span>
           ) : (
-            <Image
-              src="/images/favicon-header.png"
-              alt="MUSU"
-              width={612}
-              height={200}
-              style={{ width: 72, height: "auto" }}
-              priority
-            />
+            <span
+              style={{
+                color: "var(--accent-primary)",
+                fontFamily: "var(--font-heading)",
+                fontWeight: 900,
+                fontSize: "32px",
+                letterSpacing: "-1px",
+              }}
+            >
+              MUSU
+            </span>
           )}
         </Link>
       </div>
@@ -102,10 +105,10 @@ export function ConsoleSidebar({ contextPanel, onNavigate, activePanel }: Consol
       {/* Nav items */}
       <nav
         style={{
-          padding: "8px 6px",
+          padding: "8px 12px",
           display: "flex",
           flexDirection: "column",
-          gap: "2px",
+          gap: "8px",
           flexShrink: 0,
         }}
       >
@@ -132,7 +135,7 @@ export function ConsoleSidebar({ contextPanel, onNavigate, activePanel }: Consol
           style={{
             flex: 1,
             overflow: "hidden",
-            borderTop: "1px solid var(--console-sidebar-border)",
+            borderTop: "3px solid var(--border-default)",
           }}
         >
           {contextPanel}
@@ -146,7 +149,7 @@ export function ConsoleSidebar({ contextPanel, onNavigate, activePanel }: Consol
       <div
         style={{
           padding: "8px 6px",
-          borderTop: "1px solid var(--console-sidebar-border)",
+          borderTop: "2px solid var(--border-default)",
           flexShrink: 0,
           display: "flex",
           flexDirection: "column",

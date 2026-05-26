@@ -206,7 +206,7 @@ export default function NodesPanel() {
       <div
         style={{
           padding: "16px 24px",
-          borderBottom: "1px solid var(--border-subtle)",
+          borderBottom: "3px solid var(--border-default)",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -240,14 +240,10 @@ export default function NodesPanel() {
         </div>
         <button
           onClick={() => void fetchNodes()}
+          className="btn"
           style={{
-            fontSize: 12,
-            color: "var(--fg2)",
-            background: "var(--bg-card)",
-            border: "1px solid var(--border-default)",
-            borderRadius: 6,
             padding: "6px 12px",
-            cursor: "pointer",
+            fontSize: 12,
           }}
         >
           Refresh
@@ -277,10 +273,8 @@ export default function NodesPanel() {
             return (
               <div
                 key={node.name}
+                className="neo-card"
                 style={{
-                  background: "var(--bg-surface)",
-                  border: "1px solid var(--border-subtle)",
-                  borderRadius: 12,
                   padding: 16,
                   display: "flex",
                   flexDirection: "column",
@@ -352,7 +346,7 @@ export default function NodesPanel() {
                             color: "var(--fg2)",
                             background: "var(--bg-card)",
                             border: "1px solid var(--border-default)",
-                            borderRadius: 4,
+                            borderRadius: 0,
                             padding: "2px 6px",
                           }}
                         >
@@ -368,16 +362,10 @@ export default function NodesPanel() {
                   <button
                     onClick={() => handleTestCommand(node.name)}
                     disabled={isExecuting || node.status === "offline"}
+                    className="btn btn-primary"
                     style={{
-                      fontSize: 11,
-                      color: isExecuting ? "var(--fg3)" : "var(--musu-color-brand-accent)",
-                      background: isExecuting ? "var(--bg-card)" : "rgba(250,204,21,0.08)",
-                      border: isExecuting
-                        ? "1px solid var(--border-default)"
-                        : "1px solid rgba(250,204,21,0.25)",
-                      borderRadius: 6,
-                      padding: "6px 10px",
-                      cursor: isExecuting || node.status === "offline" ? "not-allowed" : "pointer",
+                      padding: "6px 12px",
+                      fontSize: 12,
                       opacity: isExecuting || node.status === "offline" ? 0.5 : 1,
                     }}
                   >
@@ -387,14 +375,10 @@ export default function NodesPanel() {
                     onClick={() =>
                       setExpandedNode(isExpanded ? null : node.name)
                     }
+                    className="btn"
                     style={{
-                      fontSize: 11,
-                      color: "var(--fg2)",
-                      background: "var(--bg-card)",
-                      border: "1px solid var(--border-default)",
-                      borderRadius: 6,
-                      padding: "6px 10px",
-                      cursor: "pointer",
+                      padding: "6px 12px",
+                      fontSize: 12,
                     }}
                   >
                     {isExpanded ? "Hide details" : "Show details"}
@@ -405,9 +389,8 @@ export default function NodesPanel() {
                 {execResult && (
                   <div
                     style={{
-                      background: "var(--bg-base)",
-                      border: "1px solid var(--border-subtle)",
-                      borderRadius: 8,
+                      background: "var(--code-bg)",
+                      border: "var(--neo-border)",
                       padding: 12,
                       fontSize: 11,
                       fontFamily: "monospace",
@@ -452,13 +435,12 @@ export default function NodesPanel() {
                 {isExpanded && (
                   <div
                     style={{
-                      background: "var(--bg-base)",
-                      border: "1px solid var(--border-subtle)",
-                      borderRadius: 8,
+                      background: "var(--code-bg)",
+                      border: "var(--neo-border)",
                       padding: 12,
                       fontSize: 11,
                       fontFamily: "monospace",
-                      color: "var(--fg2)",
+                      color: "var(--fg1)",
                     }}
                   >
                     {node.health && (

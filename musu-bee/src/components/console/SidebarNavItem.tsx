@@ -28,32 +28,31 @@ export function SidebarNavItem({
     display: "flex",
     alignItems: "center",
     gap: "10px",
-    height: "36px",
+    height: "40px",
     padding: collapsed ? "0" : "0 12px",
     justifyContent: collapsed ? "center" : "flex-start",
-    borderRadius: "6px",
+    borderRadius: "4px",
     textDecoration: "none",
-    border: "none",
+    border: active ? "3px solid var(--border-default)" : "3px solid transparent",
     width: "100%",
     cursor: "pointer",
-    color: active ? "var(--musu-color-brand-canvas, #FDFBF7)" : "var(--console-sidebar-text, rgba(253,251,247,0.7))",
-    background: active ? "var(--console-sidebar-active, rgba(255,166,2,0.10))" : "transparent",
-    borderLeft: active ? "2px solid var(--accent, #FFA602)" : "2px solid transparent",
-    transition: "color 150ms, background 150ms",
+    color: active ? "var(--foreground-primary)" : "var(--foreground-inverse)",
+    background: active ? "var(--accent-primary)" : "transparent",
+    transition: "transform 100ms",
     overflow: "hidden",
     whiteSpace: "nowrap",
-    fontSize: "inherit",
-    fontFamily: "inherit",
+    textTransform: "uppercase",
+    letterSpacing: "1px",
   };
 
   const inner = (
     <>
-      <Icon size={16} style={{ flexShrink: 0 }} />
+      <Icon size={16} strokeWidth={active ? 3 : 2} style={{ flexShrink: 0 }} />
       {!collapsed && (
-        <span style={{ fontSize: "13px", fontWeight: 600, flex: 1, textAlign: "left" }}>{label}</span>
+        <span style={{ fontSize: "14px", fontWeight: 800, flex: 1, textAlign: "left" }}>{label}</span>
       )}
       {!collapsed && badge != null && badge > 0 && (
-        <span style={{ background: "var(--accent, #FFA602)", color: "var(--fg-on-accent, #432c1c)", borderRadius: "10px", padding: "1px 6px", fontSize: "10px", fontWeight: 800, flexShrink: 0 }}>
+        <span style={{ background: "var(--foreground-primary)", color: "var(--foreground-inverse)", borderRadius: "0", border: "2px solid var(--border-default)", padding: "2px 8px", fontSize: "11px", fontWeight: 900, flexShrink: 0 }}>
           {badge}
         </span>
       )}

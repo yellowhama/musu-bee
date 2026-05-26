@@ -6,24 +6,13 @@ export const metadata = {
   description: "The Antigravity Workspace for Vibe Coders.",
 };
 
-// VibeCode Aesthetics
-const colors = {
-  bgBase: "#251714", // Deep Espresso
-  bgSurface: "#2D1D19", // Slightly lighter espresso
-  bgCard: "#3A2621",
-  accent: "#FFA602", // Golden Orange
-  textPrimary: "#F3F4F6",
-  textSecondary: "#D4C5B9", // Warm muted text
-  border: "#3A2621",
-};
-
 export default function ComingSoonPage() {
   return (
     <div
       style={{
-        background: colors.bgBase,
-        color: colors.textPrimary,
-        fontFamily: "'Inter', -apple-system, sans-serif",
+        background: "var(--bg-base)",
+        color: "var(--fg1)",
+        fontFamily: "var(--font-ui)",
         minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
@@ -36,10 +25,9 @@ export default function ComingSoonPage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "20px 40px",
-          borderBottom: `1px solid ${colors.border}`,
-          background: "rgba(37, 23, 20, 0.85)",
-          backdropFilter: "blur(12px)",
+          padding: "24px var(--space-3)", /* Using min 56px height indirectly */
+          borderBottom: "var(--neo-border)",
+          background: "var(--bg-surface)",
           position: "sticky",
           top: 0,
           zIndex: 100,
@@ -48,27 +36,21 @@ export default function ComingSoonPage() {
         <span
           style={{
             fontWeight: 800,
-            fontSize: 20,
-            letterSpacing: "-0.03em",
+            fontSize: "var(--text-md)",
+            fontFamily: "var(--font-display)",
             display: "flex",
             alignItems: "center",
             gap: 8,
           }}
         >
-          <span style={{ color: colors.accent }}>✦</span> musu
+          <span style={{ color: "var(--accent)" }}>✦</span> musu
         </span>
         <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
           <Link
             href="/app"
+            className="btn btn-primary"
             style={{
-              fontSize: 13,
-              fontWeight: 600,
-              background: colors.accent,
-              color: colors.bgBase,
-              padding: "8px 16px",
-              borderRadius: 6,
               textDecoration: "none",
-              transition: "all 0.15s ease",
             }}
           >
             Open App →
@@ -80,49 +62,49 @@ export default function ComingSoonPage() {
         {/* HERO */}
         <section
           style={{
-            maxWidth: 900,
+            maxWidth: 1000,
             margin: "0 auto",
-            padding: "120px 40px 80px",
+            padding: "var(--space-6) var(--space-3) var(--space-4)",
             textAlign: "center",
           }}
         >
           <div
             style={{
               display: "inline-block",
-              background: colors.bgSurface,
-              color: colors.accent,
+              background: "var(--bg-card)",
+              color: "var(--accent)",
+              fontFamily: "var(--font-mono)",
               fontWeight: 700,
-              fontSize: 11,
-              letterSpacing: "0.05em",
+              fontSize: "var(--text-xs)",
               textTransform: "uppercase",
-              padding: "4px 12px",
-              borderRadius: 999,
+              padding: "12px 16px",
+              border: "var(--neo-border)",
               marginBottom: 32,
-              border: `1px solid rgba(255, 166, 2, 0.3)`,
+              boxShadow: "var(--neo-shadow-sm)",
             }}
           >
             Antigravity Workspace
           </div>
           <h1
             style={{
-              fontSize: "clamp(40px, 6vw, 72px)",
+              fontFamily: "var(--font-display)",
+              fontSize: "clamp(48px, 8vw, 80px)",
               fontWeight: 800,
-              letterSpacing: "-0.04em",
               lineHeight: 1.1,
-              margin: "0 0 24px",
-              color: colors.textPrimary,
+              margin: "0 0 32px",
+              color: "var(--fg1)",
             }}
           >
             The Ultimate IDE <br />
-            <span style={{ color: colors.textSecondary }}>for Vibe Coders.</span>
+            <span style={{ color: "var(--fg3)" }}>for Vibe Coders.</span>
           </h1>
           <p
             style={{
-              fontSize: 18,
-              color: colors.textSecondary,
-              lineHeight: 1.6,
-              maxWidth: 680,
-              margin: "0 auto 48px",
+              fontSize: "var(--text-md)", /* At least 18px (text-base is 18, md is 20) */
+              color: "var(--fg2)",
+              lineHeight: 1.7,
+              maxWidth: 720,
+              margin: "0 auto 56px",
             }}
           >
             The era of text-only chat bots is over. Meet the most beautiful AI control plane featuring Generative UI, 3 distinct workflow modes, and flawless multi-machine orchestration.
@@ -132,113 +114,111 @@ export default function ComingSoonPage() {
             style={{
               display: "flex",
               justifyContent: "center",
-              gap: 12,
-              maxWidth: 480,
+              maxWidth: 500,
               margin: "0 auto",
             }}
           >
-            <form style={{ display: "flex", width: "100%", gap: 8 }}>
-              <input
-                type="email"
-                placeholder="Enter your email"
-                required
-                style={{
-                  flex: 1,
-                  background: colors.bgSurface,
-                  border: `1px solid ${colors.border}`,
-                  borderRadius: 6,
-                  color: colors.textPrimary,
-                  padding: "12px 16px",
-                  fontSize: 14,
-                  outline: "none",
-                }}
-              />
-              <button
-                type="submit"
-                style={{
-                  background: colors.accent,
-                  color: colors.bgBase,
-                  border: "none",
-                  borderRadius: 6,
-                  padding: "0 24px",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                Request Access
-              </button>
+            <form style={{ display: "flex", width: "100%", gap: 0, flexDirection: "column", gap: 16 }}>
+              {/* Added gap and column for mobile, but let's do responsive flex */}
+              <div style={{ display: "flex", width: "100%", flexWrap: "wrap", gap: 16 }}>
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  required
+                  style={{
+                    flex: "1 1 200px",
+                    background: "var(--bg-surface)",
+                    border: "var(--neo-border)",
+                    color: "var(--fg1)",
+                    padding: "16px 24px",
+                    fontFamily: "var(--font-ui)",
+                    fontSize: "var(--text-base)", /* 18px */
+                    outline: "none",
+                    boxShadow: "var(--neo-shadow-sm)",
+                    borderRadius: 0,
+                  }}
+                />
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{
+                    flex: "1 1 auto",
+                    padding: "16px 32px",
+                  }}
+                >
+                  Request Access
+                </button>
+              </div>
             </form>
           </div>
         </section>
 
         {/* 3-COLUMN MOCKUP SHOWCASE */}
-        <section style={{ padding: "0 40px 120px" }}>
+        <section style={{ padding: "0 var(--space-3) var(--space-6)" }}>
           <div
             style={{
               maxWidth: 1000,
               margin: "0 auto",
-              background: colors.bgSurface,
-              border: `1px solid ${colors.border}`,
-              borderRadius: 12,
-              overflow: "hidden",
-              boxShadow: "0 12px 40px rgba(0,0,0,0.4)",
+              background: "var(--bg-surface)",
+              border: "var(--neo-border)",
+              boxShadow: "var(--neo-shadow)",
               display: "flex",
+              flexDirection: "row",
               height: 480,
+              overflow: "hidden", /* Keep inner bounds sharp */
             }}
           >
             {/* Left Panel - Nodes */}
-            <div style={{ width: 220, borderRight: `1px solid ${colors.border}`, background: colors.bgBase, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: colors.textSecondary, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>Connected Fleet</div>
-              <div style={{ background: colors.bgSurface, padding: "8px 12px", borderRadius: 6, display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#22C55E" }} />
-                <span style={{ fontSize: 13, fontFamily: "monospace" }}>MacBook-Pro</span>
+            <div style={{ width: 220, borderRight: "var(--neo-border)", background: "var(--bg-base)", padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--fg2)", textTransform: "uppercase" }}>Connected Fleet</div>
+              <div style={{ background: "var(--bg-card)", border: "var(--neo-border)", padding: "12px", display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 12, height: 12, borderRadius: "50%", background: "var(--status-online)" }} />
+                <span style={{ fontSize: "var(--text-base)", fontFamily: "var(--font-mono)", fontWeight: 700 }}>MacBook-Pro</span>
               </div>
-              <div style={{ background: colors.bgSurface, padding: "8px 12px", borderRadius: 6, display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#22C55E" }} />
-                <span style={{ fontSize: 13, fontFamily: "monospace" }}>Cloud-A100</span>
+              <div style={{ background: "var(--bg-card)", border: "var(--neo-border)", padding: "12px", display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 12, height: 12, borderRadius: "50%", background: "var(--status-online)" }} />
+                <span style={{ fontSize: "var(--text-base)", fontFamily: "var(--font-mono)", fontWeight: 700 }}>Cloud-A100</span>
               </div>
             </div>
 
             {/* Center Panel - Town Mode / Viewport */}
-            <div style={{ flex: 1, padding: 24, position: "relative" }}>
-              <div style={{ position: "absolute", top: 16, right: 16, display: "flex", gap: 8 }}>
-                <span style={{ background: colors.bgCard, padding: "4px 12px", borderRadius: 999, fontSize: 11, fontWeight: 600 }}>Dev</span>
-                <span style={{ background: colors.accent, color: colors.bgBase, padding: "4px 12px", borderRadius: 999, fontSize: 11, fontWeight: 600 }}>Town</span>
-                <span style={{ background: colors.bgCard, padding: "4px 12px", borderRadius: 999, fontSize: 11, fontWeight: 600 }}>Butler</span>
+            <div style={{ flex: 1, padding: 32, position: "relative", background: "var(--bg-surface)" }}>
+              <div style={{ position: "absolute", top: 24, right: 24, display: "flex", gap: 12 }}>
+                <span style={{ border: "var(--neo-border)", background: "var(--bg-base)", padding: "8px 16px", fontSize: "var(--text-sm)", fontWeight: 700 }}>Dev</span>
+                <span style={{ border: "var(--neo-border)", background: "var(--accent)", color: "#000", padding: "8px 16px", fontSize: "var(--text-sm)", fontWeight: 700, boxShadow: "var(--neo-shadow-sm)" }}>Town</span>
+                <span style={{ border: "var(--neo-border)", background: "var(--bg-base)", padding: "8px 16px", fontSize: "var(--text-sm)", fontWeight: 700 }}>Butler</span>
               </div>
               
-              <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 24, marginTop: 12 }}>Agent Fleet Management</h3>
+              <h3 style={{ fontSize: "var(--text-lg)", fontWeight: 700, fontFamily: "var(--font-display)", marginBottom: 32, marginTop: 12 }}>Agent Fleet Management</h3>
               
-              <div style={{ display: "flex", gap: 16 }}>
+              <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
                 {/* Agent Card */}
-                <div style={{ background: colors.bgCard, border: `1px solid rgba(255,166,2,0.2)`, borderRadius: 8, padding: 16, width: 200 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: "50%", background: colors.accent, marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "center", color: colors.bgBase, fontWeight: 800 }}>CEO</div>
-                  <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Project Lead</div>
-                  <div style={{ fontSize: 12, color: colors.textSecondary }}>Claude 3.5 Sonnet</div>
+                <div style={{ background: "var(--bg-card)", border: "var(--neo-border)", padding: 24, width: 220, boxShadow: "var(--neo-shadow-sm)" }}>
+                  <div style={{ width: 64, height: 64, background: "var(--accent)", border: "2px solid #000", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "center", color: "#000", fontWeight: 800, fontSize: "var(--text-md)" }}>CEO</div>
+                  <div style={{ fontSize: "var(--text-base)", fontWeight: 700, marginBottom: 8 }}>Project Lead</div>
+                  <div style={{ fontSize: "var(--text-sm)", fontFamily: "var(--font-mono)", color: "var(--fg2)" }}>Claude 3.5 Sonnet</div>
                 </div>
-                <div style={{ background: colors.bgBase, border: `1px dashed ${colors.border}`, borderRadius: 8, padding: 16, width: 200, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <span style={{ color: colors.textSecondary, fontSize: 13 }}>+ Add Agent</span>
+                <div style={{ background: "var(--bg-base)", border: "2px dashed var(--border-default)", padding: 24, width: 220, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                  <span style={{ color: "var(--fg1)", fontSize: "var(--text-base)", fontWeight: 700 }}>+ Add Agent</span>
                 </div>
               </div>
             </div>
 
             {/* Right Panel - Chat Console */}
-            <div style={{ width: 280, borderLeft: `1px solid ${colors.border}`, background: colors.bgBase, display: "flex", flexDirection: "column" }}>
-              <div style={{ padding: 16, borderBottom: `1px solid ${colors.border}`, fontSize: 13, fontWeight: 600 }}>Console</div>
-              <div style={{ flex: 1, padding: 16, display: "flex", flexDirection: "column", gap: 12, overflowY: "hidden" }}>
-                <div style={{ background: colors.bgSurface, padding: 12, borderRadius: 8, fontSize: 13, color: colors.textSecondary }}>
+            <div style={{ width: 320, borderLeft: "var(--neo-border)", background: "var(--bg-base)", display: "flex", flexDirection: "column" }}>
+              <div style={{ padding: 24, borderBottom: "var(--neo-border)", fontSize: "var(--text-base)", fontFamily: "var(--font-display)", fontWeight: 700 }}>Console</div>
+              <div style={{ flex: 1, padding: 24, display: "flex", flexDirection: "column", gap: 16, overflowY: "hidden" }}>
+                <div style={{ background: "var(--bg-surface)", border: "var(--neo-border)", padding: 16, fontSize: "var(--text-base)", color: "var(--fg1)", boxShadow: "2px 2px 0px #000" }}>
                   Checking GPU memory across nodes...
                 </div>
-                <div style={{ background: `rgba(255, 166, 2, 0.1)`, border: `1px solid rgba(255, 166, 2, 0.2)`, padding: 12, borderRadius: 8, fontSize: 13, color: colors.textPrimary }}>
+                <div style={{ background: "var(--accent)", border: "var(--neo-border)", padding: 16, fontSize: "var(--text-base)", color: "#000", fontWeight: 600, boxShadow: "2px 2px 0px #000" }}>
                   I've assigned the backend refactoring to Cloud-A100.
                 </div>
               </div>
-              <div style={{ padding: 16, borderTop: `1px solid ${colors.border}` }}>
-                <div style={{ background: colors.bgSurface, border: `1px solid ${colors.border}`, borderRadius: 20, padding: "8px 12px", display: "flex", alignItems: "center" }}>
-                  <span style={{ fontSize: 13, color: colors.textSecondary, flex: 1 }}>Message CEO...</span>
-                  <div style={{ width: 24, height: 24, borderRadius: "50%", background: colors.accent }} />
+              <div style={{ padding: 24, borderTop: "var(--neo-border)" }}>
+                <div style={{ background: "var(--bg-surface)", border: "var(--neo-border)", padding: "12px 16px", display: "flex", alignItems: "center" }}>
+                  <span style={{ fontSize: "var(--text-base)", fontFamily: "var(--font-mono)", color: "var(--fg2)", flex: 1 }}>Message CEO...</span>
+                  <div style={{ width: 24, height: 24, background: "var(--accent)", border: "2px solid #000" }} />
                 </div>
               </div>
             </div>
@@ -246,13 +226,13 @@ export default function ComingSoonPage() {
         </section>
 
         {/* FEATURES GRID */}
-        <section style={{ background: colors.bgSurface, padding: "100px 40px", borderTop: `1px solid ${colors.border}` }}>
-          <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+        <section style={{ background: "var(--bg-surface)", padding: "var(--space-6) var(--space-3)", borderTop: "var(--neo-border)" }}>
+          <div style={{ maxWidth: 1100, margin: "0 auto" }}>
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-                gap: 24,
+                gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                gap: 32,
               }}
             >
               {[
@@ -271,28 +251,27 @@ export default function ComingSoonPage() {
               ].map((feat, i) => (
                 <div
                   key={i}
-                  style={{
-                    background: colors.bgCard,
-                    border: `1px solid ${colors.border}`,
-                    borderRadius: 8,
-                    padding: 32,
-                  }}
+                  className="card"
                 >
                   <div
                     style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: colors.accent,
-                      fontFamily: "monospace",
+                      fontSize: "var(--text-sm)",
+                      fontWeight: 800,
+                      color: "var(--accent)",
+                      fontFamily: "var(--font-mono)",
                       marginBottom: 16,
+                      background: "#000",
+                      display: "inline-block",
+                      padding: "4px 12px",
+                      border: "1px solid var(--accent)",
                     }}
                   >
                     0{i + 1}
                   </div>
-                  <h3 style={{ fontSize: 18, fontWeight: 600, color: colors.textPrimary, marginBottom: 12 }}>
+                  <h3 style={{ fontSize: "var(--text-lg)", fontWeight: 700, fontFamily: "var(--font-display)", color: "var(--fg1)", marginBottom: 16 }}>
                     {feat.title}
                   </h3>
-                  <p style={{ fontSize: 14, color: colors.textSecondary, lineHeight: 1.6 }}>
+                  <p style={{ fontSize: "var(--text-base)", color: "var(--fg2)", lineHeight: 1.6 }}>
                     {feat.desc}
                   </p>
                 </div>
@@ -305,20 +284,20 @@ export default function ComingSoonPage() {
       {/* FOOTER */}
       <footer
         style={{
-          borderTop: `1px solid ${colors.border}`,
-          background: colors.bgBase,
-          padding: "32px 40px",
+          borderTop: "var(--neo-border)",
+          background: "var(--bg-base)",
+          padding: "32px var(--space-3)",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           flexWrap: "wrap",
-          gap: 12,
+          gap: 24,
         }}
       >
-        <span style={{ fontWeight: 800, fontSize: 14, display: "flex", alignItems: "center", gap: 6, color: colors.textSecondary }}>
-          <span style={{ color: colors.accent }}>✦</span> musu
+        <span style={{ fontWeight: 800, fontSize: "var(--text-base)", fontFamily: "var(--font-display)", display: "flex", alignItems: "center", gap: 8, color: "var(--fg1)" }}>
+          <span style={{ color: "var(--accent)" }}>✦</span> musu
         </span>
-        <span style={{ fontSize: 12, color: colors.textSecondary }}>© 2026 MUSU. The Antigravity Workspace.</span>
+        <span style={{ fontSize: "var(--text-sm)", fontFamily: "var(--font-mono)", color: "var(--fg3)" }}>© 2026 MUSU. The Antigravity Workspace.</span>
       </footer>
     </div>
   );

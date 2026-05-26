@@ -121,7 +121,7 @@ export default function AIDisplay({ activePanel, companyId, openRequest, onOpenH
         style={{
           display: "flex",
           alignItems: "stretch",
-          borderBottom: "1px solid var(--border-subtle, rgba(255,255,255,0.06))",
+          borderBottom: "2px solid var(--border-default)",
           background: "var(--bg-base, var(--bg-base))",
           flexShrink: 0,
           overflowX: "auto",

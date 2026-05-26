@@ -1,16 +1,12 @@
-/* ---------- Webfonts (VibeCode Town brand) ---------- */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap');
+/* ---------- Webfonts (Land-OS Retro-Engineering) ---------- */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Noto+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
 
 :root {
-  /* ========== BRAND (SSOT — VibeCode Town design.md) ========== */
-  --musu-color-brand-ink: #432c1c;       /* Dark Coffee Brown — brand ink, text on accent */
-  --musu-color-brand-accent: #FFA602;    /* Golden Orange — single accent */
-  --musu-color-brand-canvas: #FDFBF7;    /* Warm Paper Cream — light contexts */
-  --musu-color-brand-stroke: #F8F6F1;    /* Warm stroke — light contexts */
-
-  --musu-color-brand-ink-rgb: 67 44 28;
-  --musu-color-brand-accent-rgb: 255 166 2;
-  --musu-color-brand-canvas-rgb: 253 251 247;
+  /* ========== BRAND (Neo-Brutalism Color Block Stack) ========== */
+  --musu-color-brand-ink: #000000;       
+  --musu-color-brand-accent: #FF9800;    
+  --musu-color-brand-canvas: #FFFFFF;    
+  --musu-color-brand-stroke: #000000;    
 
   /* Legacy aliases (carry over from globals.css) */
   --musu-cocoa-brown: var(--musu-color-brand-ink);
@@ -19,15 +15,15 @@
   --musu-brown: var(--musu-color-brand-ink);
   --musu-stroke: var(--musu-color-brand-stroke);
 
-  /* ========== SURFACES (dark UI) ========== */
-  --bg-base:    #251714;   /* Deep Espresso — page + sidebar */
-  --bg-surface: #2D1D19;   /* Raised panels, main area */
-  --bg-card:    rgba(255, 255, 255, 0.03);   /* Cards, list rows, chat bubbles */
-  --bg-overlay: #362218;   /* Modals, dropdowns */
-  --bg-elevated: #261813;  /* Raised cards, command palette, selectors */
-  --bg-hover:   #2a2a2a;   /* Hover on list rows */
-  --bg-inset:   #1A110C;
-  --bg-brand:   var(--musu-color-brand-ink);
+  /* ========== SURFACES ========== */
+  --bg-base:    #FFFFFF;
+  --bg-surface: #FFFFFF;
+  --bg-card:    #FFFFFF;
+  --bg-overlay: #FFFFFF;
+  --bg-elevated: #FFFFFF;
+  --bg-hover:   #F3F4F6;
+  --bg-inset:   #E5E7EB;
+  --bg-brand:   #000000;
 
   /* Backward compatibility for musu-bee components */
   --musu-bg: var(--bg-base);
@@ -36,56 +32,56 @@
   --musu-bg-inset: var(--bg-inset);
 
   /* ========== TEXT ========== */
-  --fg1: #FDFBF7;    /* Warm Paper Cream — primary body text */
-  --fg2: #9CA3AF;    /* Secondary — metadata, timestamps */
-  --fg3: #6B7280;    /* Muted — placeholders, helpers */
-  --fg4: #374151;    /* Dim — disabled, embedded dividers */
-  --fg-on-accent: #432c1c; /* Dark Coffee on Golden Orange */
-  --fg-accent:    #FFA602;
+  --fg1: #000000;
+  --fg2: #374151;
+  --fg3: #9CA3AF;
+  --fg4: #D1D5DB;
+  --fg-on-accent: #000000;
+  --fg-accent:    #FF9800;
 
   --musu-text: var(--fg1);
   --musu-text-muted: var(--fg2);
   --musu-text-dim: var(--fg3);
 
   /* ========== BORDERS ========== */
-  --border-subtle:  #1F1F1F;  /* Panel borders, card edges */
-  --border-default: #2D2D2D;  /* Default visible borders */
-  --border-strong:  #404040;  /* Active/focus visible */
+  --border-subtle:  #E5E7EB;  
+  --border-default: #000000;  
+  --border-strong:  #000000;  
 
   --musu-border: var(--border-default);
   --musu-border-subtle: var(--border-strong);
   --musu-border-dim: var(--border-subtle);
 
-  /* ========== ACCENT (Golden Orange — VibeCode Town) ========== */
-  --accent:        #FFA602;
-  --accent-hover:  #D98801;
-  --accent-muted:  rgba(255, 166, 2, 0.12);
-  --accent-tint:   rgba(255, 166, 2, 0.05);
-  --accent-glow:   rgba(255, 166, 2, 0.20);
-  --accent-border: rgba(255, 166, 2, 0.30);
+  /* ========== ACCENT ========== */
+  --accent:        #FF9800;
+  --accent-hover:  #F97316;
+  --accent-muted:  #708DA9;
+  --accent-tint:   #D4A574;
+  --accent-glow:   none;
+  --accent-border: #000000;
 
   /* ========== SEMANTIC STATUS ========== */
   --status-online:     #22C55E;
-  --status-online-bg:  rgba(34, 197, 94, 0.12);
-  --status-online-br:  rgba(34, 197, 94, 0.35);
+  --status-online-bg:  #FFFFFF;
+  --status-online-br:  #000000;
 
-  --status-running:    #60A5FA;
-  --status-running-bg: rgba(96, 165, 250, 0.12);
+  --status-running:    #3B82F6;
+  --status-running-bg: #FFFFFF;
 
   --status-pending:    #9CA3AF;
-  --status-pending-bg: rgba(156, 163, 175, 0.12);
+  --status-pending-bg: #FFFFFF;
 
-  --status-error:      #F87171;
-  --status-error-bg:   rgba(248, 113, 113, 0.12);
+  --status-error:      #EF4444;
+  --status-error-bg:   #FFFFFF;
 
-  --status-warn:       #F59E0B;
-  --status-warn-bg:    rgba(245, 158, 11, 0.12);
+  --status-warn:       #FF9800;
+  --status-warn-bg:    #FFFFFF;
 
-  /* Task status (DESIGN.md §2) */
+  /* Task status */
   --task-pending: #9CA3AF;
-  --task-running: #60A5FA;
-  --task-done:    #86EFAC;
-  --task-failed:  #F87171;
+  --task-running: #3B82F6;
+  --task-done:    #22C55E;
+  --task-failed:  #EF4444;
 
   --musu-task-pending: var(--task-pending);
   --musu-task-running: var(--task-running);
@@ -93,85 +89,86 @@
   --musu-task-failed: var(--task-failed);
 
   /* Device/agent status mirrors */
-  --status-offline: #4B5563;
-  --status-busy:    #F59E0B;
+  --status-offline: #9CA3AF;
+  --status-busy:    #FF9800;
 
   --musu-status-online: var(--status-online);
 
   /* ========== CODE / SYNTAX ========== */
-  --code-purple:   #a78bfa;
-  --code-bg:       #111827;
-  --code-border:   var(--fg4);
+  --code-purple:   #A855F7;
+  --code-bg:       #F3F4F6;
+  --code-border:   #000000;
 
   /* ========== MISC ========== */
-  --white:         #ffffff;
+  --white:         #FFFFFF;
   --black:         #000000;
-  --success-light: #34d399;
-  --error-light:   #fca5a5;
+  --success-light: #22C55E;
+  --error-light:   #EF4444;
   --musu-status-busy: var(--status-busy);
   --musu-status-offline: var(--status-offline);
   --musu-status-error: var(--status-error);
 
-  /* ========== CONSOLE SHELL (musu.pro style) ========== */
-  --console-sidebar-bg:     #432c1c;
-  --console-sidebar-text:   rgba(253, 251, 247, 0.7);
-  --console-sidebar-active: rgba(255, 166, 2, 0.15);
-  --console-sidebar-hover:  rgba(255, 255, 255, 0.05);
-  --console-sidebar-border: rgba(255, 166, 2, 0.12);
-  --console-sidebar-w:      56px;
-  --console-sidebar-w-expanded: 220px;
-  --console-topbar-h:       48px;
+  /* ========== CONSOLE SHELL ========== */
+  --console-sidebar-bg:     #000000;
+  --console-sidebar-text:   #FFFFFF;
+  --console-sidebar-active: #FF9800;
+  --console-sidebar-hover:  #374151;
+  --console-sidebar-border: #000000;
+  --console-sidebar-w:      80px;
+  --console-sidebar-w-expanded: 240px;
+  --console-topbar-h:       64px;
 
   /* ========== SHADOWS ========== */
-  --shadow-sm:    0 1px 2px rgba(0, 0, 0, 0.40);
-  --shadow-md:    0 4px 12px rgba(0, 0, 0, 0.50);
-  --shadow-warm:  0 8px 24px rgba(67, 44, 28, 0.20);
-  --shadow-glow:  0 0 16px rgba(255, 166, 2, 0.18);
+  --shadow-sm:    2px 2px 0px #000000;
+  --shadow-md:    4px 4px 0px #000000;
+  --shadow-warm:  8px 8px 0px #000000;
+  --shadow-glow:  none;
 
   /* ========== RADIUS ========== */
-  --radius-xs: 4px;    /* Small inline pills, inline code */
-  --radius-sm: 6px;    /* Buttons, inputs, channel rows */
-  --radius-md: 8px;    /* Cards, panels */
-  --radius-lg: 12px;   /* Marketing inputs, lifted cards */
-  --radius-xl: 20px;   /* Marketing info cards */
-  --radius-2xl: 24px;  /* Marketing hero panels */
-  --radius-pill: 999px;/* Status badges only */
+  --radius-xs: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-pill: 9999px;
 
-  --musu-radius: var(--radius-md);
-  --musu-radius-sm: var(--radius-xs);
+  --musu-radius: 0px;
+  --musu-radius-sm: 0px;
 
-  /* ========== SPACING (4px grid) ========== */
-  --space-1:  4px;
-  --space-2:  8px;
-  --space-3:  12px;
-  --space-4:  16px;
-  --space-6:  24px;
-  --space-8:  32px;
+  /* ========== SPACING ========== */
+  --space-1:  8px;
+  --space-2:  12px;
+  --space-3:  24px;
+  --space-4:  48px;
+  --space-6:  64px;
+  --space-8:  80px;
 
-  /* ========== NEOBRUTALIST EFFECTS (VibeCode Town — heavier brutalist) ========== */
-  --neo-border:     3px solid var(--musu-color-brand-ink);
-  --neo-shadow:     8px 8px 0px var(--musu-color-brand-ink);
-  --neo-shadow-sm:  4px 4px 0px rgba(67, 44, 28, 0.5);
-  --neo-inset:      inset 0px 2px 6px rgba(255, 255, 255, 0.03);
-  --neo-lift:       translateY(-3px);
+  /* ========== NEOBRUTALIST EFFECTS ========== */
+  --neo-border:     3px solid #000000;
+  --neo-shadow:     8px 8px 0px #000000;
+  --neo-shadow-sm:  4px 4px 0px #000000;
+  --neo-inset:      none;
+  --neo-lift:       none;
   --neo-press:      translate(4px, 4px);
-  --neo-radius:     8px;
+  --neo-radius:     0px;
 
-  /* ========== TYPE — FAMILIES (VibeCode Town) ========== */
-  --font-ui:   'Inter', -apple-system, BlinkMacSystemFont, 'Pretendard', 'Noto Sans KR', system-ui, sans-serif;
-  --font-mono: 'Space Mono', ui-monospace, SFMono-Regular, 'Menlo', monospace;
+  /* ========== TYPE — FAMILIES ========== */
+  --font-ui:   'Inter', 'Pretendard', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
   --font-jetbrains: var(--font-mono);
-  --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Inter', 'Pretendard', sans-serif;
 
   /* ========== TYPE — SCALE ========== */
-  --text-xs:   10px; /* UPPERCASE section labels, task IDs */
-  --text-sm:   11px; /* Secondary metadata, badges */
-  --text-base: 12px; /* Primary UI text, list items */
-  --text-md:   13px; /* Chat messages, buttons */
-  --text-lg:   15px; /* Panel titles */
-  --text-xl:   18px; /* Page headings */
-  --text-2xl:  24px; /* Hero / landing headings (small) */
+  --text-xs:   14px; 
+  --text-sm:   16px; 
+  --text-base: 18px; 
+  --text-md:   20px; 
+  --text-lg:   24px; 
+  --text-xl:   32px; 
+  --text-2xl:  48px; 
 }
+
 
 /* ========== LIGHT MODE (VibeCode Town design.md §2) ========== */
 /* Activated via prefers-color-scheme OR data-theme="light" attribute */
@@ -205,13 +202,13 @@
     --accent-glow:   rgba(255, 166, 2, 0.15);
     --accent-border: rgba(255, 166, 2, 0.25);
 
-    --shadow-sm:    0 1px 2px rgba(67, 44, 28, 0.08);
-    --shadow-md:    0 4px 12px rgba(67, 44, 28, 0.12);
-    --shadow-warm:  0 8px 24px rgba(67, 44, 28, 0.08);
-    --shadow-glow:  0 0 16px rgba(255, 166, 2, 0.10);
+    --shadow-sm:    2px 2px 0px #000000;
+    --shadow-md:    4px 4px 0px #000000;
+    --shadow-warm:  8px 8px 0px #000000;
+    --shadow-glow:  none;
 
-    --neo-shadow:     8px 8px 0px var(--musu-color-brand-ink);
-    --neo-shadow-sm:  4px 4px 0px rgba(67, 44, 28, 0.25);
+    --neo-shadow:     8px 8px 0px #000000;
+    --neo-shadow-sm:  4px 4px 0px #000000;
 
     --console-sidebar-bg:     #432c1c;
     --console-sidebar-text:   rgba(253, 251, 247, 0.85);
@@ -250,13 +247,13 @@
   --accent-glow:   rgba(255, 166, 2, 0.15);
   --accent-border: rgba(255, 166, 2, 0.25);
 
-  --shadow-sm:    0 1px 2px rgba(67, 44, 28, 0.08);
-  --shadow-md:    0 4px 12px rgba(67, 44, 28, 0.12);
-  --shadow-warm:  0 8px 24px rgba(67, 44, 28, 0.08);
-  --shadow-glow:  0 0 16px rgba(255, 166, 2, 0.10);
+  --shadow-sm:    2px 2px 0px #000000;
+  --shadow-md:    4px 4px 0px #000000;
+  --shadow-warm:  8px 8px 0px #000000;
+  --shadow-glow:  none;
 
-  --neo-shadow:     8px 8px 0px var(--musu-color-brand-ink);
-  --neo-shadow-sm:  4px 4px 0px rgba(67, 44, 28, 0.25);
+  --neo-shadow:     8px 8px 0px #000000;
+  --neo-shadow-sm:  4px 4px 0px #000000;
 
   --console-sidebar-bg:     #432c1c;
   --console-sidebar-text:   rgba(253, 251, 247, 0.85);
@@ -265,13 +262,13 @@
   --code-bg: #F0EBE3;
 }
 
-/* Explicit dark theme override (always wins over prefers-color-scheme) */
+/* Explicit dark theme override (matches Color Block Stack) */
 [data-theme="dark"] {
-  --bg-base:    #251714;
-  --bg-surface: #2D1D19;
-  --fg1:        #FDFBF7;
-  --fg2:        #9CA3AF;
-  /* ...rest inherits from :root which is already dark */
+  --bg-base:    #FFFFFF;
+  --bg-surface: #FFFFFF;
+  --fg1:        #000000;
+  --fg2:        #374151;
+  /* rest inherits from :root */
 }
 
 /* ========== RESPONSIVE BREAKPOINTS ========== */
@@ -283,6 +280,10 @@
     --console-sidebar-w-expanded: 0px;
     --text-base: 14px;
     --text-md: 15px;
+    --neo-border: 2px solid #000000;
+    --neo-shadow-sm: 2px 2px 0px #000000;
+    --neo-shadow: 4px 4px 0px #000000;
+    --neo-press: translate(2px, 2px);
   }
 }
 
@@ -338,28 +339,26 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  border-radius: var(--radius-sm);
-  padding: 8px 16px;
+  border-radius: var(--radius-xs);
+  padding: 12px 24px;
   font-family: var(--font-ui);
   font-size: var(--text-md);
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  border: 1px solid transparent;
-  transition: all 0.15s ease;
+  border: var(--neo-border);
+  box-shadow: var(--neo-shadow-sm);
+  transition: transform 0.05s ease, box-shadow 0.05s ease;
   line-height: 1;
 }
 
 .btn-primary {
   background: var(--accent);
   color: var(--fg-on-accent);
-  border-color: transparent;
 }
 .btn-primary:hover {
   background: var(--accent-hover);
-  box-shadow: var(--neo-shadow), var(--shadow-glow);
-  transform: var(--neo-lift);
 }
-.btn-primary:active {
+.btn-primary:active, .btn:active {
   transform: var(--neo-press);
   box-shadow: none;
 }
@@ -395,13 +394,15 @@ h1, h2, h3, h4, h5, h6 {
 
 .card {
   background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 12px 14px;
-  transition: border-color 0.15s ease;
+  border: var(--neo-border);
+  border-radius: var(--neo-radius);
+  padding: 24px;
+  box-shadow: var(--neo-shadow-sm);
 }
 .card:hover {
   border-color: var(--border-default);
+  box-shadow: var(--neo-shadow);
+  transform: translate(-2px, -2px);
 }
 .card.is-active {
   border-color: var(--accent-border);
@@ -459,7 +460,7 @@ code, .mono {
   background: var(--bg-card);
   border: var(--neo-border);
   border-radius: var(--neo-radius);
-  box-shadow: var(--neo-shadow-sm), var(--neo-inset);
+  box-shadow: var(--neo-shadow-sm);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .neo-card:hover {
