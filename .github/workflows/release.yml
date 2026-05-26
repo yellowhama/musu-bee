@@ -13,6 +13,7 @@ jobs:
     name: Build ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - target: x86_64-unknown-linux-gnu
@@ -42,7 +43,7 @@ jobs:
 
       - name: Install Linux C dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y pkg-config libxdo-dev libx11-dev libasound2-dev libxcb-shape0-dev libxcb-xfixes0-dev
+        run: sudo apt-get update && sudo apt-get install -y pkg-config libxdo-dev libx11-dev libasound2-dev libxcb-shape0-dev libxcb-xfixes0-dev libxcb1-dev libxkbcommon-dev libxcb-randr0-dev libxcb-shm0-dev
 
       - name: Build musu
         working-directory: musu-rs

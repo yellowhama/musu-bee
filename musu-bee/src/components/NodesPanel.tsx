@@ -223,7 +223,7 @@ export default function NodesPanel() {
               margin: 0,
             }}
           >
-            Mesh Nodes
+            Devices
           </h2>
           <span
             style={{

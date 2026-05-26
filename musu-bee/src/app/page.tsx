@@ -170,7 +170,7 @@ export default function ComingSoonPage() {
           >
             {/* Left Panel - Nodes */}
             <div style={{ width: 220, borderRight: "var(--neo-border)", background: "var(--bg-base)", padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--fg2)", textTransform: "uppercase" }}>Connected Fleet</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--fg2)", textTransform: "uppercase" }}>Devices</div>
               <div style={{ background: "var(--bg-card)", border: "var(--neo-border)", padding: "12px", display: "flex", alignItems: "center", gap: 12 }}>
                 <div style={{ width: 12, height: 12, borderRadius: "50%", background: "var(--status-online)" }} />
                 <span style={{ fontSize: "var(--text-base)", fontFamily: "var(--font-mono)", fontWeight: 700 }}>MacBook-Pro</span>
