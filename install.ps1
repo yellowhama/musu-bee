@@ -8,9 +8,8 @@ $apiUrl = "https://api.github.com/repos/yellowhama/musu-bee/releases/latest"
 $release = Invoke-RestMethod -Uri $apiUrl -UseBasicParsing
 
 $musuAsset = $release.assets | Where-Object { $_.name -match "musu-windows-x86_64.exe$" }
-$musudAsset = $release.assets | Where-Object { $_.name -match "musud-windows-x86_64.exe$" }
 
-if (-not $musuAsset -or -not $musudAsset) {
+if (-not $musuAsset) {
     Write-Host "Error: Could not find Windows binaries in the latest release." -ForegroundColor Red
     exit 1
 }
@@ -20,18 +19,15 @@ if (Test-Path $tempDir) { Remove-Item -Path $tempDir -Recurse -Force }
 New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
 
 $musuPath = Join-Path $tempDir "musu.exe"
-$musudPath = Join-Path $tempDir "musud.exe"
 
 Write-Host ">>> Downloading musu..." -ForegroundColor Cyan
 Invoke-WebRequest -Uri $musuAsset.browser_download_url -OutFile $musuPath -UseBasicParsing
-Write-Host ">>> Downloading musud..." -ForegroundColor Cyan
-Invoke-WebRequest -Uri $musudAsset.browser_download_url -OutFile $musudPath -UseBasicParsing
 
 Write-Host ">>> Running musu installer..." -ForegroundColor Cyan
 Push-Location $tempDir
 try {
-    # Install and register system service. --boot-start makes it a Windows Service
-    & .\musu.exe install --boot-start
+    # Install and register system service. Use the default Scheduled Task (logon-start) install path.
+    & .\musu.exe install
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Error during musu install." -ForegroundColor Red
         exit $LASTEXITCODE

@@ -28,9 +28,8 @@ RELEASE_JSON=$(curl -s "https://api.github.com/repos/yellowhama/musu-bee/release
 
 # Extract download URLs for musu and musud
 MUSU_URL=$(echo "$RELEASE_JSON" | grep "browser_download_url" | grep "musu-${TARGET_SUFFIX}" | head -n 1 | cut -d '"' -f 4)
-MUSUD_URL=$(echo "$RELEASE_JSON" | grep "browser_download_url" | grep "musud-${TARGET_SUFFIX}" | head -n 1 | cut -d '"' -f 4)
 
-if [ -z "$MUSU_URL" ] || [ -z "$MUSUD_URL" ]; then
+if [ -z "$MUSU_URL" ]; then
     echo -e "\033[1;31mError: Could not find binaries for ${TARGET_SUFFIX} in the latest release.\033[0m"
     exit 1
 fi
@@ -41,10 +40,6 @@ trap "rm -rf $TEMP_DIR" EXIT
 echo -e "\033[1;36m>>> Downloading musu...\033[0m"
 curl -sL "$MUSU_URL" -o "$TEMP_DIR/musu"
 chmod +x "$TEMP_DIR/musu"
-
-echo -e "\033[1;36m>>> Downloading musud...\033[0m"
-curl -sL "$MUSUD_URL" -o "$TEMP_DIR/musud"
-chmod +x "$TEMP_DIR/musud"
 
 echo -e "\033[1;36m>>> Running musu installer...\033[0m"
 cd "$TEMP_DIR"

@@ -127,24 +127,17 @@ export const PRICING_TIERS = [
 export const INSTALL_COMMANDS = [
   {
     platform: "Windows",
-    label: "Early-access onboarding",
-    status: "guided setup",
+    label: "1-Liner (PowerShell)",
+    status: "live",
     detail:
-      "Installer delivery is handled during onboarding while the public bootstrap endpoint is still being hardened.",
+      "iwr https://raw.githubusercontent.com/yellowhama/musu-bee/main/install.ps1 -useb | iex",
   },
   {
-    platform: "Linux",
-    label: "Early-access onboarding",
-    status: "guided setup",
+    platform: "Linux / macOS",
+    label: "1-Liner (Bash)",
+    status: "live",
     detail:
-      "Linux install instructions are issued after access approval so the public site does not point to a bootstrap URL that is not live yet.",
-  },
-  {
-    platform: "macOS",
-    label: "Early-access onboarding",
-    status: "guided setup",
-    detail:
-      "macOS follows the same beta flow: confirm access, receive the install package, then connect the machine.",
+      "curl -sSf https://raw.githubusercontent.com/yellowhama/musu-bee/main/install.sh | bash",
   },
 ] as const;
 
