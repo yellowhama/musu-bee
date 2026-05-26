@@ -40,23 +40,16 @@ jobs:
         if: contains(matrix.target, 'musl')
         run: sudo apt-get install -y musl-tools
 
-      - name: Build musud + musu
-        working-directory: musu-supervisor
+      - name: Build musu
+        working-directory: musu-rs
         run: |
-          cargo build --release --target ${{ matrix.target }} -p musud
           cargo build --release --target ${{ matrix.target }} -p musu
-
-      - name: Build musu-portd
-        working-directory: musu-port
-        run: cargo build --release --target ${{ matrix.target }} -p musu-portd
 
       - name: Package binaries (Unix)
         if: runner.os != 'Windows'
         run: |
           mkdir -p dist
-          cp musu-supervisor/target/${{ matrix.target }}/release/musud dist/musud-${{ matrix.suffix }}
-          cp musu-supervisor/target/${{ matrix.target }}/release/musu dist/musu-${{ matrix.suffix }}
-          cp musu-port/target/${{ matrix.target }}/release/musu-portd dist/musu-portd-${{ matrix.suffix }}
+          cp musu-rs/target/${{ matrix.target }}/release/musu dist/musu-${{ matrix.suffix }}
           chmod +x dist/*
 
       - name: Package binaries (Windows)
@@ -64,9 +57,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist
-          Copy-Item "musu-supervisor\target\${{ matrix.target }}\release\musud.exe" "dist\musud-${{ matrix.suffix }}.exe"
-          Copy-Item "musu-supervisor\target\${{ matrix.target }}\release\musu.exe" "dist\musu-${{ matrix.suffix }}.exe"
-          Copy-Item "musu-port\target\${{ matrix.target }}\release\musu-portd.exe" "dist\musu-portd-${{ matrix.suffix }}.exe"
+          Copy-Item "musu-rs\target\${{ matrix.target }}\release\musu.exe" "dist\musu-${{ matrix.suffix }}.exe"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
