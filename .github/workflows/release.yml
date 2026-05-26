@@ -40,6 +40,10 @@ jobs:
         if: contains(matrix.target, 'musl')
         run: sudo apt-get install -y musl-tools
 
+      - name: Install Linux C dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y pkg-config libxdo-dev libx11-dev libasound2-dev libxcb-shape0-dev libxcb-xfixes0-dev
+
       - name: Build musu
         working-directory: musu-rs
         run: |
