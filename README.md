@@ -54,22 +54,26 @@ V24 migrated Layer 1 (machines) from Python to a single Rust binary (`musu`). Th
 One command. Pick your OS.
 
 ```bash
-# Linux / WSL / macOS
-bash scripts/install.sh --service --start
+# Linux / macOS
+curl -sSf https://raw.githubusercontent.com/yellowhama/musu-bee/main/install.sh | bash
 ```
 
 ```powershell
-# Windows (native — WSL not required)
-powershell -ExecutionPolicy Bypass -File scripts\install.ps1 -Service -Start
+# Windows
+iwr https://raw.githubusercontent.com/yellowhama/musu-bee/main/install.ps1 -useb | iex
 ```
 
-The installer creates `~/.musu/`, generates `MUSU_BRIDGE_TOKEN`,
-sets up the venv, seeds the system-level agent team, auto-detects
-your GPU + Tailscale IP, and registers a service (systemd / launchd
-/ Task Scheduler) so the bridge survives reboots.
+The installer downloads the pre-built `musu` and `musud` binaries, registers a background service so the bridge survives reboots, and adds `~/.musu/bin` to your PATH.
 
-See [`INSTALL.md`](INSTALL.md) for prerequisites, the per-module
-manual path, and troubleshooting.
+### Connect your account
+
+Once installed, link this machine to your fleet (V27 Account Mesh):
+
+```bash
+musu login
+```
+
+This will give you an 8-character code to authorize in your browser. Upon success, your node is securely registered and instantly visible in the musu.pro dashboard.
 
 ## Create your first company
 

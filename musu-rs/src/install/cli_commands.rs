@@ -859,6 +859,21 @@ pub async fn run_login() -> Result<()> {
             Ok(Some(token)) => {
                 crate::cloud::token::save_token(&home, &token)?;
                 println!("\n✅ Logged in successfully!");
+                
+                // V27: Automatically register this node in the mesh
+                println!("Registering node to your fleet...");
+                let authed_cloud = crate::cloud::MusuCloud::new("https://musu.pro", Some(token));
+                let req = crate::cloud::RegisterNodeRequest {
+                    node_name: my_name.clone(),
+                    public_url: "local".to_string(), // Can be updated later by musud
+                    ..Default::default()
+                };
+                if let Err(e) = authed_cloud.register_node(req).await {
+                    println!("⚠️ Logged in, but node registration failed: {}", e);
+                } else {
+                    println!("✅ Node registered successfully!");
+                }
+                
                 println!("This machine is now connected to your musu account.");
                 println!("Start the bridge with `musu bridge` to join your fleet.");
                 return Ok(());
