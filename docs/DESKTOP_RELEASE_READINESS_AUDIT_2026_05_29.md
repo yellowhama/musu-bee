@@ -47,7 +47,7 @@ fail_count: 1
 
 Blocking checks:
 
-1. `second-PC execution` fails because the multi-device runbook explicitly records second-PC validation as pending.
+1. `second-PC execution` fails because no verified multi-device evidence JSON exists under `docs\evidence\multidevice\1.15.0-rc.1` or `.local-build\multi-device`.
 
 Passing foundation checks:
 
@@ -67,6 +67,7 @@ Passing foundation checks:
 - Store submission bundle exists
 - single-machine and multi-device smoke scripts exist
 - multi-device test kit builder exists
+- multi-device evidence verifier exists
 
 Additional verification run after metadata update:
 
@@ -130,6 +131,7 @@ Not allowed yet:
 P0:
 
 - Run the user's second-PC smoke using `scripts\windows\smoke-multidevice-beta.ps1`.
+- Validate the returned JSON with `scripts\windows\verify-multidevice-evidence.ps1`.
 - Submit the Store-reviewed MSIX bundle and record Microsoft certification/restricted-capability result.
 
 P1:

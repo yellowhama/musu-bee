@@ -138,8 +138,9 @@ Multi-device preparation:
 
 - script: `scripts\windows\smoke-multidevice-beta.ps1`
 - kit builder: `scripts\windows\prepare-multidevice-test-kit.ps1`
+- evidence verifier: `scripts\windows\verify-multidevice-evidence.ps1`
 - runbook: `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md` (wiki/519)
-- generated kit: `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-20260529-044006.zip`
+- generated kit: `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-20260529-044952.zip`
 - current state: ready for second-PC execution; no full multi-machine release claim yet
 
 MSIX release packaging verification:
@@ -156,7 +157,7 @@ Desktop release readiness audit:
 
 - script: `scripts\windows\audit-desktop-release-readiness.ps1`
 - result: `runtime_package_ready=True`, `desktop_shell_ready=True`, `multi_device_verified=False`, `public_desktop_release_ready=False`
-- blocking check: second-PC execution pending
+- blocking check: no verified second-PC evidence JSON under `docs\evidence\multidevice\1.15.0-rc.1` or `.local-build\multi-device`
 - metadata/build verification: `npm run typecheck` passed; `npm run build:tauri-shell` passed; `cargo check --manifest-path .\musu-bee\src-tauri\Cargo.toml -j 1` passed; `npm run tauri:build` produced MSI and NSIS bundles
 - render proof: Playwright captured `.local-build\tauri-shell-1280x800.png`
 - report: `docs/DESKTOP_RELEASE_READINESS_AUDIT_2026_05_29.md` (wiki/520)
@@ -164,7 +165,7 @@ Desktop release readiness audit:
 Indexing:
 
 - `musu indexer sync --work-dir . --name musu-bee`
-- latest result: `824 files`, `1897 symbols`
+- latest result: `825 files`, `1897 symbols`
 - search verification: query `multi-device release test` returns `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md`
 - search verification: query `smoke-single-machine-beta` returns `scripts/windows/smoke-single-machine-beta.ps1`
 
@@ -189,6 +190,7 @@ P1 beta hardening:
 - Keep `scripts\windows\smoke-single-machine-beta.ps1` in the RC gate and run it on clean Windows machines.
 - Run `scripts\windows\smoke-multidevice-beta.ps1` on the user's second PC and record the output in wiki/519.
 - Hand the generated multi-device test kit zip to the second PC instead of relying on a repo checkout.
+- Validate returned evidence with `scripts\windows\verify-multidevice-evidence.ps1` before changing release status.
 - Keep `scripts\windows\audit-desktop-release-readiness.ps1` as the release-readiness gate; do not claim public multi-device desktop release until the second-PC evidence lands.
 
 P2 product hardening:

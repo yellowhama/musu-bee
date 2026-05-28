@@ -53,6 +53,7 @@ $scriptFiles = @(
     "install-msix.ps1",
     "install-and-verify-msix.ps1",
     "verify-installed-msix-package.ps1",
+    "verify-multidevice-evidence.ps1",
     "smoke-multidevice-beta.ps1"
 )
 
@@ -78,11 +79,11 @@ if ($IncludeDesktopShell) {
     }
 }
 
-$readme = @"
-# MUSU $version Multi-Device Test Kit
+$readme = @'
+# MUSU __VERSION__ Multi-Device Test Kit
 
 This kit is for the required second-PC beta smoke. It contains the public test
-certificate, the $StartupContract MSIX, install/verify scripts, and the
+certificate, the __STARTUP_CONTRACT__ MSIX, install/verify scripts, and the
 multi-device smoke script.
 
 No private signing key is included.
@@ -93,7 +94,7 @@ Open PowerShell in this kit directory.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\windows\check-msix-sideload-readiness.ps1
-powershell -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix.ps1 -StartupContract $StartupContract -ReplaceExisting
+powershell -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix.ps1 -StartupContract __STARTUP_CONTRACT__ -ReplaceExisting
 musu up --json
 musu doctor --json
 musu status
@@ -102,7 +103,7 @@ musu status
 If certificate trust fails, rerun the install from an elevated PowerShell with:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix.ps1 -StartupContract $StartupContract -ReplaceExisting -MachineTrust
+powershell -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix.ps1 -StartupContract __STARTUP_CONTRACT__ -ReplaceExisting -MachineTrust
 ```
 
 ## On the primary PC
@@ -123,7 +124,14 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\smoke-multidevice-beta.
 
 The smoke writes an evidence JSON file under `.local-build\multi-device\`.
 Send that JSON back to the release repo before claiming multi-device readiness.
-"@
+
+Verify it locally with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\verify-multidevice-evidence.ps1 -EvidencePath .local-build\multi-device\YOUR-EVIDENCE.json
+```
+'@
+$readme = $readme.Replace("__VERSION__", $version).Replace("__STARTUP_CONTRACT__", $StartupContract)
 $readme | Set-Content -LiteralPath (Join-Path $kitRoot "README_MULTI_DEVICE_TEST_KIT.md") -Encoding UTF8
 
 $checksumsPath = Join-Path $kitRoot "SHA256SUMS.txt"

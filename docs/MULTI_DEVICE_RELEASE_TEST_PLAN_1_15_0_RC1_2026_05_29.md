@@ -30,6 +30,7 @@ The kit contains:
 - the public signing certificate only (`.cer`; no `.pfx` private key)
 - MSIX install/verify scripts
 - the multi-device smoke script
+- the multi-device evidence verifier
 - this runbook
 - checksums
 - optional Tauri desktop shell MSI/NSIS bundles
@@ -57,6 +58,21 @@ The smoke script now:
 - auto-detects repo-local `musu-rs\target\debug\musu.exe` first, then installed `musu.exe`
 - writes a machine-readable evidence JSON under `.local-build\multi-device\`
 - records command output for `up`, `doctor`, `peer add`, `peer list`, `discover`, `status`, and route
+
+Verify returned evidence before changing release status:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\verify-multidevice-evidence.ps1 `
+  -EvidencePath .local-build\multi-device\<EVIDENCE_JSON>
+```
+
+For committed release proof, place verified evidence under:
+
+```text
+docs\evidence\multidevice\1.15.0-rc.1\
+```
+
+`scripts\windows\audit-desktop-release-readiness.ps1` checks that location first, then `.local-build\multi-device\`.
 
 ## Setup Steps
 
@@ -129,6 +145,6 @@ It should **not** be described as:
 - Run this plan on the user's second Windows machine.
 - Use `scripts\windows\prepare-multidevice-test-kit.ps1` to generate the exact zip handed to the second PC.
 - Capture the exact `musu up --json`, `musu doctor --json`, `musu peer list`, `musu status`, and route output.
-- Attach the smoke evidence JSON from `.local-build\multi-device\`.
+- Verify and attach the smoke evidence JSON from `.local-build\multi-device\`.
 - If mDNS discovery fails but manual peer add works, keep manual peer add as the beta path and file mDNS/Tailscale IPv6 warning as P1.
 - If targeted route fails after peer add, audit bridge routing and target-name resolution before broad release.

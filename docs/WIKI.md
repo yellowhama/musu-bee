@@ -91,8 +91,9 @@ Canonical references:
 Multi-device state:
 
 - `scripts\windows\smoke-multidevice-beta.ps1` exists for the second-PC test.
-- `scripts\windows\prepare-multidevice-test-kit.ps1` builds a second-PC install/test zip with MSIX, public `.cer`, scripts, checksums, and optional desktop shell bundles.
-- Latest generated kit: `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-20260529-044006.zip`.
+- `scripts\windows\prepare-multidevice-test-kit.ps1` builds a second-PC install/test zip with MSIX, public `.cer`, scripts, checksums, evidence verifier, and optional desktop shell bundles.
+- `scripts\windows\verify-multidevice-evidence.ps1` validates the returned smoke evidence before release status changes.
+- Latest generated kit: `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-20260529-044952.zip`.
 - `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md` (wiki/519) is the current runbook.
 - Full multi-machine readiness is still pending real second-machine execution.
 

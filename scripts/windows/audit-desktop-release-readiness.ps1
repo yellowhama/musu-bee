@@ -233,7 +233,7 @@ else {
     Add-Check "runtime-package" "Store submission bundle" "fail" "Store submission bundle is missing."
 }
 
-foreach ($scriptName in @("smoke-single-machine-beta.ps1", "smoke-multidevice-beta.ps1", "prepare-multidevice-test-kit.ps1")) {
+foreach ($scriptName in @("smoke-single-machine-beta.ps1", "smoke-multidevice-beta.ps1", "prepare-multidevice-test-kit.ps1", "verify-multidevice-evidence.ps1")) {
     $scriptPath = Join-Path $scriptDir $scriptName
     if (Test-Path -LiteralPath $scriptPath) {
         Add-Check "release-smoke" $scriptName "pass" "$scriptName exists."
@@ -244,17 +244,40 @@ foreach ($scriptName in @("smoke-single-machine-beta.ps1", "smoke-multidevice-be
 }
 
 $multiDevicePlan = Join-Path $repoRoot "docs\MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md"
-if (Test-Path -LiteralPath $multiDevicePlan) {
-    $multiDevicePlanText = Get-Content -LiteralPath $multiDevicePlan -Raw
-    if ($multiDevicePlanText -match "pending" -or $multiDevicePlanText -match "not closed") {
-        Add-Check "multi-device" "second-PC execution" "fail" "Multi-device runbook exists, but it explicitly records second-PC execution as pending."
-    }
-    else {
-        Add-Check "multi-device" "second-PC execution" "pass" "Multi-device plan no longer records pending execution."
+$evidenceRoots = @(
+    (Join-Path $repoRoot ("docs\evidence\multidevice\{0}" -f $repoVersion)),
+    (Join-Path $repoRoot ".local-build\multi-device")
+)
+$latestEvidence = $null
+foreach ($root in $evidenceRoots) {
+    if (Test-Path -LiteralPath $root) {
+        $candidate = Get-ChildItem -LiteralPath $root -Filter "*.json" -File -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+        if ($candidate) {
+            $latestEvidence = $candidate
+            break
+        }
     }
 }
-else {
+
+if (-not (Test-Path -LiteralPath $multiDevicePlan)) {
     Add-Check "multi-device" "second-PC execution" "fail" "Multi-device test plan is missing."
+}
+elseif (-not $latestEvidence) {
+    Add-Check "multi-device" "second-PC execution" "fail" "No multi-device evidence JSON found under docs\evidence\multidevice\$repoVersion or .local-build\multi-device."
+}
+else {
+    $verifyScript = Join-Path $scriptDir "verify-multidevice-evidence.ps1"
+    $verifyOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File $verifyScript -EvidencePath $latestEvidence.FullName -Json 2>&1
+    $verifyExit = $LASTEXITCODE
+    if ($verifyExit -eq 0) {
+        $verifyResult = ($verifyOutput | Out-String).Trim() | ConvertFrom-Json
+        Add-Check "multi-device" "second-PC execution" "pass" "Verified multi-device evidence: $($verifyResult.evidence_path)."
+    }
+    else {
+        Add-Check "multi-device" "second-PC execution" "fail" "Latest multi-device evidence did not verify: $($latestEvidence.FullName). $($verifyOutput | Out-String)"
+    }
 }
 
 $failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
