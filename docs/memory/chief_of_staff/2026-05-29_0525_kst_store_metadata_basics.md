@@ -7,6 +7,8 @@ Facts:
   - `musu-bee/src/app/support/page.tsx` -> `https://musu.pro/support`
 - `docs/STORE_SUBMISSION_METADATA_2026_05_29.md` records Partner Center metadata fields, conservative Store copy, support URL, privacy URL, and pre-submission checks.
 - `scripts/windows/audit-desktop-release-readiness.ps1` now checks that the privacy route, support route, and Store metadata doc exist.
+- `scripts/windows/verify-store-public-metadata.ps1` verifies deployed or local `/privacy` and `/support` pages return HTTP 200 and expected content.
+- Local production verification passed against `http://127.0.0.1:3015` after `npm run build` and `npx next start -p 3015`.
 - Microsoft Store policy requires a privacy policy for Win32/Desktop Bridge products; Partner Center support info accepts a support URL or email.
 
 Decision:

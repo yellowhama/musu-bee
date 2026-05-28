@@ -115,7 +115,12 @@ Current metadata handoff:
 
 Microsoft Store policy requires a privacy policy for Win32/Desktop Bridge-style
 products, and Partner Center support info accepts a support page URL or email.
-Before submission, verify both public routes are deployed and reachable.
+Before submission, verify both public routes are deployed and reachable with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\verify-store-public-metadata.ps1 `
+  -BaseUrl https://musu.pro
+```
 
 ## Store Listing Positioning
 

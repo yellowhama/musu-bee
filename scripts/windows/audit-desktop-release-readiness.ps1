@@ -233,7 +233,7 @@ else {
     Add-Check "runtime-package" "Store submission bundle" "fail" "Store submission bundle is missing."
 }
 
-foreach ($scriptName in @("smoke-single-machine-beta.ps1", "smoke-multidevice-beta.ps1", "prepare-multidevice-test-kit.ps1", "verify-multidevice-evidence.ps1", "record-multidevice-evidence.ps1", "write-release-candidate-manifest.ps1")) {
+foreach ($scriptName in @("smoke-single-machine-beta.ps1", "smoke-multidevice-beta.ps1", "prepare-multidevice-test-kit.ps1", "verify-multidevice-evidence.ps1", "record-multidevice-evidence.ps1", "write-release-candidate-manifest.ps1", "verify-store-public-metadata.ps1")) {
     $scriptPath = Join-Path $scriptDir $scriptName
     if (Test-Path -LiteralPath $scriptPath) {
         Add-Check "release-smoke" $scriptName "pass" "$scriptName exists."

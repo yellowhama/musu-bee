@@ -110,6 +110,7 @@ Store metadata:
 
 - privacy route: `musu-bee/src/app/privacy/page.tsx` -> `https://musu.pro/privacy`
 - support route: `musu-bee/src/app/support/page.tsx` -> `https://musu.pro/support`
+- public metadata verifier: `scripts\windows\verify-store-public-metadata.ps1`
 - metadata handoff: `docs/STORE_SUBMISSION_METADATA_2026_05_29.md`
 - public deployment and mailbox verification still must be checked before Partner Center submission.
 

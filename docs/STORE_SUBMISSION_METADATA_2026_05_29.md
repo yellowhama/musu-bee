@@ -79,10 +79,22 @@ Before uploading to Partner Center:
 
 1. Verify `https://musu.pro/privacy` and `https://musu.pro/support` are deployed and reachable.
 2. Verify `support@musu.pro` receives mail, or replace the support email with a known-good mailbox.
-3. Run `scripts\windows\audit-desktop-release-readiness.ps1`.
-4. Run `scripts\windows\write-release-candidate-manifest.ps1`.
-5. Attach the current `1.15.0-rc.1` Store-reviewed MSIX and restricted-capability justification.
-6. Keep `public_desktop_release_ready=false` until real second-PC evidence is recorded.
+3. Run `scripts\windows\verify-store-public-metadata.ps1 -BaseUrl https://musu.pro`.
+4. Run `scripts\windows\audit-desktop-release-readiness.ps1`.
+5. Run `scripts\windows\write-release-candidate-manifest.ps1`.
+6. Attach the current `1.15.0-rc.1` Store-reviewed MSIX and restricted-capability justification.
+7. Keep `public_desktop_release_ready=false` until real second-PC evidence is recorded.
+
+Local verification command after `npm run build`:
+
+```powershell
+cd musu-bee
+npx next start -p 3015
+
+cd ..
+powershell -ExecutionPolicy Bypass -File scripts\windows\verify-store-public-metadata.ps1 `
+  -BaseUrl http://127.0.0.1:3015
+```
 
 ## Official References
 

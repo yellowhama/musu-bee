@@ -118,6 +118,7 @@ Current Store path truth:
 - release checksum file: `.local-build\release-candidates\1.15.0-rc.1\SHA256SUMS.txt`
 - Store metadata handoff: `docs/STORE_SUBMISSION_METADATA_2026_05_29.md`
 - public privacy route exists at `/privacy`; public support route exists at `/support`
+- public metadata verifier exists at `scripts\windows\verify-store-public-metadata.ps1`
 - old 2026-05-27 package: template only (`1.13.0.0`, do not submit as current)
 - Tauri shell: dedicated static runtime launcher/status shell now builds to `musu-bee/out`, bundles as MSI/NSIS through `npm run tauri:build`, and is audited as `desktop_shell_ready=True`; it is still not the full dashboard GUI
 - Microsoft app certification: pending
