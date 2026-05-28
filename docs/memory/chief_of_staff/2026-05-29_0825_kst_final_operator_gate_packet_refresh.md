@@ -4,7 +4,6 @@
 
 - Latest verified final operator gate packet:
   - `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip`
-  - current stamped output: `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260529-082741.zip`
 - The packet was regenerated after fixing the README summary so it lists all three remaining public release blockers:
   1. real second-PC multi-device evidence
   2. real `support@musu.pro` inbox delivery evidence
@@ -12,6 +11,13 @@
 - `verify-final-operator-gate-packet.ps1` now explicitly checks that the packet README names Store release approval as a blocker and includes `record-store-release-verification.ps1`.
 - `prepare-final-operator-gate-packet.ps1` now writes a stable `latest.zip` alias in addition to the stamped packet.
 - Verification passed with `ok=true`, `fail_count=0`, `kit_count=1`.
+
+2026-05-29 08:35 KST completion runner refresh:
+
+- `complete-final-operator-gates.ps1` can now record Store approval evidence in the same final command as multi-device and support evidence.
+- The packet verifier now checks that the README final command includes Store evidence parameters such as `-StoreSubmissionId`.
+- Smoke verification recorded Store approval only under `.local-build\store-release-complete-smoke`; this intentionally does not satisfy the real go/no-go Store release gate.
+- Real release remains blocked until approved Store evidence is recorded under the normal evidence path.
 
 ## Product State
 

@@ -121,7 +121,7 @@ Current Store path truth:
 - final operator gate packet generator: `scripts\windows\prepare-final-operator-gate-packet.ps1`
 - final operator gate packet verifier: `scripts\windows\verify-final-operator-gate-packet.ps1`
 - final operator evidence completion runner: `scripts\windows\complete-final-operator-gates.ps1`
-- latest verified final operator gate packet: `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip` (`ok=true`, `fail_count=0`, `kit_count=1`; README Store release blocker check hardened)
+- latest verified final operator gate packet: `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip` (`ok=true`, `fail_count=0`, `kit_count=1`; README Store release blocker check hardened; final completion runner can record Store approval evidence too)
 - Store metadata handoff: `docs/STORE_SUBMISSION_METADATA_2026_05_29.md`
 - public privacy route exists at `/privacy`; public support route exists at `/support`
 - public metadata verifier exists at `scripts\windows\verify-store-public-metadata.ps1`
@@ -131,6 +131,7 @@ Current Store path truth:
 - `write-release-go-no-go.ps1` now auto-detects valid support mailbox evidence under `docs\evidence\support-mailbox\<version>\*.evidence.json` or `.local-build\support-mailbox\*.evidence.json`
 - Store release evidence scripts exist: `scripts\windows\verify-store-release-evidence.ps1` and `scripts\windows\record-store-release-verification.ps1`
 - `write-release-go-no-go.ps1` now treats Store approval as an evidence-backed blocker and auto-detects valid evidence under `docs\evidence\store-release\<version>\*.evidence.json` or `.local-build\store-release\*.evidence.json`
+- `complete-final-operator-gates.ps1` can record multi-device, support mailbox, and Store release evidence in one final command; smoke evidence for this path is intentionally written only to `.local-build\store-release-complete-smoke`
 - support mailbox DNS exists: `Resolve-DnsName -Type MX musu.pro` returns `smtp.google.com`; actual delivery remains unverified until evidence is recorded
 - GitHub Actions deployment/test infrastructure was repaired for the current Rust/Next repo shape: Node 22+, JavaScript actions forced onto Node 24 runtime, no deleted Python dirs, no deleted `musu-port`, Linux Rust CI includes Wayland/PipeWire/GBM native dependencies, legacy likely-required check names preserved, and Store metadata Playwright smoke for `/privacy` + `/support`
 - Remote release gates are green as of 2026-05-29: `Tests` passed on `ad5f752`; latest relevant `E2E Tests — musu-bee` and `Deploy musu-bee to Vercel` passed on `0919a83`; live `https://musu.pro/privacy` and `/support` passed public metadata verification

@@ -28,13 +28,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\prepare-fina
   -IncludeDesktopShell
 ```
 
-Latest generated packet:
-
-```text
-.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260529-082741.zip
-```
-
-The generator also writes a stable latest alias:
+Latest generated packet alias:
 
 ```text
 .local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip
@@ -209,12 +203,29 @@ Expected change:
 
 ## Final Release Command
 
-After Gate 1, Gate 2, and Gate 3:
+After Gate 1, Gate 2, and Gate 3 evidence exists, the preferred final command is the single completion runner:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-candidate-manifest.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-final-operator-gates.ps1 `
+  -MultiDeviceEvidencePath .local-build\multi-device\<EVIDENCE_JSON> `
+  -SupportFromAddress "<sender@example.com>" `
+  -SupportReceivedBy "<operator-name>" `
+  -SupportVerificationId "<support-verification-id>" `
+  -SupportNotes "Verified delivery in support@musu.pro inbox" `
+  -StoreProductName "MUSU" `
+  -StoreSubmissionId "<partner-center-submission-id>" `
+  -StoreCertificationStatus "approved" `
+  -StoreRestrictedCapabilityStatus "approved" `
+  -StoreRecordedBy "<operator-name>" `
+  -StoreNotes "Microsoft Store certification and restricted capability review approved" `
+  -Json
 ```
+
+The runner records multi-device, support mailbox, and Store release evidence,
+regenerates the release candidate manifest, and then runs the final go/no-go
+check. If evidence has already been recorded separately, it is also valid to run
+`write-release-candidate-manifest.ps1` and `write-release-go-no-go.ps1 -Json`
+directly.
 
 The release is ready for public desktop release only when:
 

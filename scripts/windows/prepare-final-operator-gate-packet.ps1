@@ -155,8 +155,9 @@ Expected result: `multi_device_verified=true`.
 ## Gate C - Store release approval evidence
 
 After Partner Center submission completes and Microsoft approves the package and
-restricted startup capability, record that result from the real MUSU release
-repo root:
+restricted startup capability, record those values with the final command below.
+If you need to record Store approval separately before the final command, run
+this from the real MUSU release repo root:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-store-release-verification.ps1 `
@@ -182,10 +183,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-fin
   -SupportReceivedBy "<operator-name>" `
   -SupportVerificationId "__SUPPORT_VERIFICATION_ID__" `
   -SupportNotes "Verified delivery in __SUPPORT_EMAIL__ inbox" `
+  -StoreProductName "MUSU" `
+  -StoreSubmissionId "<partner-center-submission-id>" `
+  -StoreCertificationStatus "approved" `
+  -StoreRestrictedCapabilityStatus "approved" `
+  -StoreRecordedBy "<operator-name>" `
+  -StoreNotes "Microsoft Store certification and restricted capability review approved" `
   -Json
 ```
 
-This records the multi-device and support evidence files, regenerates the release candidate manifest, and then runs the final go/no-go check. Store release evidence must already have been recorded by Gate C, because the public release gate also requires `store_release_verified=true`.
+This records the multi-device, support mailbox, and Store release evidence, regenerates the release candidate manifest, and then runs the final go/no-go check.
 
 The release can proceed only when:
 

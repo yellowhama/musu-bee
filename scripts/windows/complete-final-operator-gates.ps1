@@ -10,6 +10,18 @@ param(
     [string]$SupportSentAt,
     [string]$SupportReceivedAt,
     [string]$SupportNotes = "",
+    [string]$StoreProductName = "MUSU",
+    [string]$StorePartnerCenterProductId = "",
+    [string]$StoreSubmissionId,
+    [string]$StoreCertificationStatus,
+    [string]$StoreRestrictedCapabilityStatus,
+    [string]$StoreRecordedBy,
+    [string]$StoreSubmittedAt,
+    [string]$StoreCertificationCompletedAt,
+    [string]$StoreRestrictedCapabilityCompletedAt,
+    [string]$StorePublishedAt,
+    [string]$StoreNotes = "",
+    [string]$StoreOutputRoot,
     [string]$PublicMetadataBaseUrl = "https://musu.pro",
     [switch]$SkipPublicMetadata,
     [switch]$FailOnNotReady,
@@ -110,6 +122,69 @@ if (@($supportFieldsProvided).Count -gt 0) {
         type = "support-mailbox"
         ok = [bool]$supportRecord.ok
         result = $supportRecord
+    }) | Out-Null
+}
+
+$storeFieldsProvided = @(
+    $StorePartnerCenterProductId,
+    $StoreSubmissionId,
+    $StoreCertificationStatus,
+    $StoreRestrictedCapabilityStatus,
+    $StoreRecordedBy,
+    $StoreSubmittedAt,
+    $StoreCertificationCompletedAt,
+    $StoreRestrictedCapabilityCompletedAt,
+    $StorePublishedAt,
+    $StoreNotes
+) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }
+
+if (@($storeFieldsProvided).Count -gt 0) {
+    if ([string]::IsNullOrWhiteSpace($StoreProductName) `
+        -or [string]::IsNullOrWhiteSpace($StoreSubmissionId) `
+        -or [string]::IsNullOrWhiteSpace($StoreCertificationStatus) `
+        -or [string]::IsNullOrWhiteSpace($StoreRestrictedCapabilityStatus) `
+        -or [string]::IsNullOrWhiteSpace($StoreRecordedBy)) {
+        throw "Store release evidence recording requires -StoreProductName, -StoreSubmissionId, -StoreCertificationStatus, -StoreRestrictedCapabilityStatus, and -StoreRecordedBy."
+    }
+
+    $storeArgs = @(
+        "-ProductName", $StoreProductName,
+        "-SubmissionId", $StoreSubmissionId,
+        "-CertificationStatus", $StoreCertificationStatus,
+        "-RestrictedCapabilityStatus", $StoreRestrictedCapabilityStatus,
+        "-RecordedBy", $StoreRecordedBy,
+        "-Json"
+    )
+    if (-not [string]::IsNullOrWhiteSpace($StorePartnerCenterProductId)) {
+        $storeArgs += @("-PartnerCenterProductId", $StorePartnerCenterProductId)
+    }
+    if (-not [string]::IsNullOrWhiteSpace($StoreSubmittedAt)) {
+        $storeArgs += @("-SubmittedAt", $StoreSubmittedAt)
+    }
+    if (-not [string]::IsNullOrWhiteSpace($StoreCertificationCompletedAt)) {
+        $storeArgs += @("-CertificationCompletedAt", $StoreCertificationCompletedAt)
+    }
+    if (-not [string]::IsNullOrWhiteSpace($StoreRestrictedCapabilityCompletedAt)) {
+        $storeArgs += @("-RestrictedCapabilityCompletedAt", $StoreRestrictedCapabilityCompletedAt)
+    }
+    if (-not [string]::IsNullOrWhiteSpace($StorePublishedAt)) {
+        $storeArgs += @("-PublishedAt", $StorePublishedAt)
+    }
+    if (-not [string]::IsNullOrWhiteSpace($StoreNotes)) {
+        $storeArgs += @("-Notes", $StoreNotes)
+    }
+    if (-not [string]::IsNullOrWhiteSpace($StoreOutputRoot)) {
+        $storeArgs += @("-OutputRoot", $StoreOutputRoot)
+    }
+
+    $storeRecord = Invoke-JsonScript `
+        -FilePath (Join-Path $scriptDir "record-store-release-verification.ps1") `
+        -Arguments $storeArgs
+
+    $records.Add([pscustomobject]@{
+        type = "store-release"
+        ok = [bool]$storeRecord.ok
+        result = $storeRecord
     }) | Out-Null
 }
 

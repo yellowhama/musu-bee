@@ -115,6 +115,7 @@ try {
         Add-CheckFromCondition "readme support mailbox gate" ($readme -like "*support@musu.pro*") "README names support@musu.pro" "README does not name support@musu.pro"
         Add-CheckFromCondition "readme store release blocker" ($readme -like "*Partner Center submission*" -and $readme -like "*store_release_verified=true*") "README states Store release approval is a blocker" "README does not clearly state Store release approval evidence is required"
         Add-CheckFromCondition "readme store release recorder" ($readme -like "*record-store-release-verification.ps1*") "README includes Store release evidence recorder command" "README missing Store release evidence recorder command"
+        Add-CheckFromCondition "readme complete runner store params" ($readme -like "*complete-final-operator-gates.ps1*" -and $readme -like "*-StoreSubmissionId*") "README final command can record Store release evidence" "README final command does not include Store release evidence parameters"
         Add-CheckFromCondition "readme go no-go gate" ($readme -like "*write-release-go-no-go.ps1*") "README includes final go/no-go command" "README missing final go/no-go command"
     }
 

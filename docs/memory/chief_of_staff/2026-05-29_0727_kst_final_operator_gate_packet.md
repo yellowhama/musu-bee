@@ -18,7 +18,6 @@ Facts:
 
 Latest generated packet:
 
-- `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260529-082741.zip`
 - `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip` stable alias
 
 2026-05-29 08:25 KST refresh:
