@@ -65,6 +65,7 @@ Passing foundation checks:
 - local-sideload MSIX exists
 - Store-reviewed MSIX exists
 - Store submission bundle exists
+- release candidate manifest script exists
 - single-machine and multi-device smoke scripts exist
 - multi-device test kit builder exists
 - multi-device evidence verifier exists
@@ -91,6 +92,12 @@ Tauri build update:
 - The first bundle attempt found a real Windows packaging rule: MSI rejects prerelease identifiers like `1.15.0-rc.1`.
 - `tauri.conf.json` now uses numeric bundle version `1.15.0` while the repo/package/Cargo release version remains `1.15.0-rc.1`.
 - Static shell render evidence was captured with Playwright at `.local-build\tauri-shell-1280x800.png`; file-mode rendering correctly shows IPC unavailable because it is outside the Tauri runtime.
+
+Release manifest update:
+
+- `scripts\windows\write-release-candidate-manifest.ps1` writes `.local-build\release-candidates\1.15.0-rc.1\release-candidate-manifest.json`.
+- The companion `SHA256SUMS.txt` records the current release artifact hashes.
+- Private `.pfx` signing material is excluded unless the operator explicitly passes `-IncludePrivateArtifacts`.
 
 ## Desktop Shell Decision
 

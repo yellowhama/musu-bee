@@ -135,6 +135,13 @@ Tauri desktop shell evidence:
 - render proof: `.local-build\tauri-shell-1280x800.png`
 - caveat: this is a runtime launcher/status shell, not the full dashboard GUI.
 
+Release candidate manifest:
+
+- script: `scripts\windows\write-release-candidate-manifest.ps1`
+- latest manifest: `.local-build\release-candidates\1.15.0-rc.1\release-candidate-manifest.json`
+- latest checksums: `.local-build\release-candidates\1.15.0-rc.1\SHA256SUMS.txt`
+- private signing material is excluded unless explicitly requested with `-IncludePrivateArtifacts`.
+
 ## RC Gate Commands
 
 ```powershell
