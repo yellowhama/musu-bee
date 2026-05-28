@@ -88,6 +88,7 @@ Canonical references:
 - script task `2d9e93b1-fb2f-4cd4-ab40-1147fea89a6d`
 - script output `MUSU_SCRIPT_SMOKE_OK`; CLI route output `MUSU_SCRIPT_CLI_OK`
 - fresh 2026-05-29 06:52 KST smoke passed on commit `f9ae873`: dashboard task `b4b05b93-34d2-4946-b4cd-fdd5c5c6632d`, output `MUSU_RELEASE_SMOKE_OK_20260529_0652`, CLI route `MUSU_CLI_ROUTE_OK_20260529_0652`
+- machine-readable single-machine evidence exists at `docs\evidence\single-machine\1.15.0-rc.1\20260529-070403-HUGH_SECOND.evidence.json`; release audit reports `single_machine_verified=true`
 
 Multi-device state:
 

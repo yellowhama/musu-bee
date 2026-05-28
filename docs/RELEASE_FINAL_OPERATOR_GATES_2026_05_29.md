@@ -45,6 +45,15 @@ Observed result:
 
 This closes the assistant-side single-computer test for the current commit.
 
+Machine-readable evidence was added on 2026-05-29 07:04 KST:
+
+- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260529-070403-HUGH_SECOND.evidence.json`
+- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260529-070403-HUGH_SECOND.verification.json`
+- dashboard task id: `b772a958-ded9-4cb1-a180-98ca75c9b91f`
+- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260529_0705`
+- CLI route output: `MUSU_CLI_ROUTE_OK_20260529_0705`
+- release audit now reports `single_machine_verified=true`
+
 ## Gate 1 - Support Mailbox Evidence
 
 Send a real email to `support@musu.pro` from an external mailbox.
@@ -145,6 +154,7 @@ The release is ready to submit only when:
 
 - `ready_for_public_desktop_release=true`
 - `local_artifacts_ready=true`
+- `single_machine_verified=true`
 - `multi_device_verified=true`
 - `public_metadata_ok=true`
 - `support_mailbox_verified=true`

@@ -144,6 +144,9 @@ if (-not [bool]$audit.runtime_package_ready) {
 if (-not [bool]$audit.desktop_shell_ready) {
     Add-Blocker -List $blockers -Area "desktop-shell" -Message "Desktop shell readiness is false."
 }
+if (-not [bool]$audit.single_machine_verified) {
+    Add-Blocker -List $blockers -Area "single-machine" -Message "Fresh single-machine smoke evidence has not been recorded."
+}
 if (-not [bool]$audit.multi_device_verified) {
     Add-Blocker -List $blockers -Area "multi-device" -Message "Real second-PC multi-device evidence has not been recorded."
 }
@@ -183,6 +186,7 @@ $result = [pscustomobject]@{
     repo_root = $repoRoot
     ready_for_public_desktop_release = $ready
     local_artifacts_ready = ([bool]$audit.runtime_package_ready -and [bool]$audit.desktop_shell_ready)
+    single_machine_verified = [bool]$audit.single_machine_verified
     multi_device_verified = [bool]$audit.multi_device_verified
     public_metadata_checked = -not [bool]$SkipPublicMetadata
     public_metadata_ok = if ($SkipPublicMetadata) { $null } elseif ($publicMetadataResult.json) { [bool]$publicMetadataResult.json.ok } else { $false }
@@ -204,6 +208,7 @@ else {
     "MUSU release go/no-go"
     "ready_for_public_desktop_release: $($result.ready_for_public_desktop_release)"
     "local_artifacts_ready: $($result.local_artifacts_ready)"
+    "single_machine_verified: $($result.single_machine_verified)"
     "multi_device_verified: $($result.multi_device_verified)"
     "public_metadata_ok: $($result.public_metadata_ok)"
     "support_mailbox_verified: $($result.support_mailbox_verified)"

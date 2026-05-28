@@ -6,7 +6,10 @@ param(
     [string]$ExpectedDashboardOutput = "MUSU_RELEASE_SMOKE_OK",
     [string]$ExpectedCliOutput = "MUSU_CLI_ROUTE_OK",
     [int]$TaskTimeoutSec = 180,
-    [switch]$SkipCliRoute
+    [switch]$SkipCliRoute,
+    [string]$EvidencePath,
+    [string]$EvidenceRoot,
+    [string]$Version
 )
 
 Set-StrictMode -Version Latest
@@ -18,6 +21,20 @@ $repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
 if (-not $MusuExe) {
     $MusuExe = Join-Path $repoRoot "musu-rs\target\debug\musu.exe"
 }
+if ([string]::IsNullOrWhiteSpace($Version)) {
+    $Version = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
+}
+if ([string]::IsNullOrWhiteSpace($EvidenceRoot)) {
+    $EvidenceRoot = Join-Path $repoRoot ".local-build\single-machine"
+}
+if ([string]::IsNullOrWhiteSpace($EvidencePath)) {
+    $stamp = (Get-Date).ToString("yyyyMMdd-HHmmss")
+    $machine = if ([string]::IsNullOrWhiteSpace($env:COMPUTERNAME)) { "machine" } else { $env:COMPUTERNAME }
+    $safeMachine = $machine -replace "[^A-Za-z0-9._-]", "_"
+    $EvidencePath = Join-Path $EvidenceRoot "$stamp-$safeMachine.evidence.json"
+}
+
+$startedAt = Get-Date
 
 function Write-Step([string]$Message) {
     Write-Host ""
@@ -123,6 +140,34 @@ if (-not $SkipCliRoute) {
     Assert-True ((($cliRouteOutput | Out-String) -as [string]).Contains($ExpectedCliOutput)) "CLI route output did not contain expected text"
 }
 
+New-Item -ItemType Directory -Force -Path (Split-Path -Parent $EvidencePath) | Out-Null
+$gitCommit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
+$evidence = [pscustomobject]@{
+    schema = "musu.single_machine_smoke_evidence.v1"
+    ok = $true
+    version = $Version
+    git_commit = $gitCommit
+    started_at = $startedAt.ToString("o")
+    completed_at = (Get-Date).ToString("o")
+    machine = $env:COMPUTERNAME
+    dashboard_base_url = $DashboardBaseUrl
+    bridge_url = $up.bridge.local_url
+    workspace_uri = $WorkspaceUri
+    doctor_overall = $doctor.overall
+    dashboard_doctor_overall = $dashboardDoctor.overall
+    device_node_count = $deviceNodes.Count
+    dashboard_task_id = $task.task_id
+    dashboard_task_status = $taskResult.status
+    expected_dashboard_output = $ExpectedDashboardOutput
+    dashboard_output = $taskResult.output
+    sse_status_code = $sse.StatusCode
+    sse_content_type = $sseContentType
+    cli_route_checked = -not $SkipCliRoute
+    expected_cli_output = if ($SkipCliRoute) { $null } else { $ExpectedCliOutput }
+    cli_route_output = if ($SkipCliRoute) { $null } else { ($cliRouteOutput | Out-String).Trim() }
+}
+$evidence | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $EvidencePath -Encoding UTF8
+
 Write-Step "Single-machine beta smoke passed"
 [pscustomobject]@{
     ok = $true
@@ -131,4 +176,5 @@ Write-Step "Single-machine beta smoke passed"
     dashboard_task_id = $task.task_id
     dashboard_output = $taskResult.output
     cli_route_checked = -not $SkipCliRoute
+    evidence_path = (Resolve-Path -LiteralPath $EvidencePath).Path
 }

@@ -240,7 +240,7 @@ else {
     Add-Check "runtime-package" "Store submission bundle" "fail" "Store submission bundle is missing."
 }
 
-foreach ($scriptName in @("smoke-single-machine-beta.ps1", "smoke-multidevice-beta.ps1", "prepare-multidevice-test-kit.ps1", "verify-multidevice-evidence.ps1", "record-multidevice-evidence.ps1", "verify-support-mailbox-evidence.ps1", "record-support-mailbox-verification.ps1", "write-release-candidate-manifest.ps1", "verify-store-public-metadata.ps1", "write-release-go-no-go.ps1")) {
+foreach ($scriptName in @("smoke-single-machine-beta.ps1", "verify-single-machine-evidence.ps1", "record-single-machine-evidence.ps1", "smoke-multidevice-beta.ps1", "prepare-multidevice-test-kit.ps1", "verify-multidevice-evidence.ps1", "record-multidevice-evidence.ps1", "verify-support-mailbox-evidence.ps1", "record-support-mailbox-verification.ps1", "write-release-candidate-manifest.ps1", "verify-store-public-metadata.ps1", "write-release-go-no-go.ps1")) {
     $scriptPath = Join-Path $scriptDir $scriptName
     if (Test-Path -LiteralPath $scriptPath) {
         Add-Check "release-smoke" $scriptName "pass" "$scriptName exists."
@@ -282,6 +282,45 @@ if ((Test-Path -LiteralPath $storeMetadataE2e) -and (Test-Path -LiteralPath $pla
 }
 else {
     Add-Check "store-metadata" "public metadata E2E smoke" "fail" "Playwright CI smoke for /privacy and /support is missing."
+}
+
+$singleEvidenceRoots = @(
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ("docs\evidence\single-machine\{0}" -f $repoVersion))
+        filter = "*.evidence.json"
+    },
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ".local-build\single-machine")
+        filter = "*.json"
+    }
+)
+$latestSingleEvidence = $null
+foreach ($root in $singleEvidenceRoots) {
+    if (Test-Path -LiteralPath $root.path) {
+        $candidate = Get-ChildItem -LiteralPath $root.path -Filter $root.filter -File -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+        if ($candidate) {
+            $latestSingleEvidence = $candidate
+            break
+        }
+    }
+}
+
+if (-not $latestSingleEvidence) {
+    Add-Check "single-machine" "local smoke execution" "fail" "No single-machine evidence JSON found under docs\evidence\single-machine\$repoVersion\*.evidence.json or .local-build\single-machine\*.json."
+}
+else {
+    $verifySingleScript = Join-Path $scriptDir "verify-single-machine-evidence.ps1"
+    $verifySingleOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File $verifySingleScript -EvidencePath $latestSingleEvidence.FullName -Json 2>&1
+    $verifySingleExit = $LASTEXITCODE
+    if ($verifySingleExit -eq 0) {
+        $verifySingleResult = ($verifySingleOutput | Out-String).Trim() | ConvertFrom-Json
+        Add-Check "single-machine" "local smoke execution" "pass" "Verified single-machine evidence: $($verifySingleResult.evidence_path)."
+    }
+    else {
+        Add-Check "single-machine" "local smoke execution" "fail" "Latest single-machine evidence did not verify: $($latestSingleEvidence.FullName). $($verifySingleOutput | Out-String)"
+    }
 }
 
 $multiDevicePlan = Join-Path $repoRoot "docs\MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md"
@@ -331,12 +370,14 @@ $failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
 $warnCount = @($checks | Where-Object { $_.status -eq "warn" }).Count
 $runtimeFailCount = @($checks | Where-Object { $_.area -eq "runtime-package" -and $_.status -eq "fail" }).Count
 $desktopFailCount = @($checks | Where-Object { $_.area -eq "desktop-shell" -and $_.status -eq "fail" }).Count
+$singleMachineFailCount = @($checks | Where-Object { $_.area -eq "single-machine" -and $_.status -eq "fail" }).Count
 $multiDeviceFailCount = @($checks | Where-Object { $_.area -eq "multi-device" -and $_.status -eq "fail" }).Count
 
 $result = [pscustomobject]@{
     ok = ($failCount -eq 0)
     runtime_package_ready = ($runtimeFailCount -eq 0)
     desktop_shell_ready = ($desktopFailCount -eq 0)
+    single_machine_verified = ($singleMachineFailCount -eq 0)
     multi_device_verified = ($multiDeviceFailCount -eq 0)
     public_desktop_release_ready = ($failCount -eq 0)
     fail_count = $failCount
@@ -351,6 +392,7 @@ else {
     "MUSU desktop release readiness"
     "runtime_package_ready: $($result.runtime_package_ready)"
     "desktop_shell_ready: $($result.desktop_shell_ready)"
+    "single_machine_verified: $($result.single_machine_verified)"
     "multi_device_verified: $($result.multi_device_verified)"
     "public_desktop_release_ready: $($result.public_desktop_release_ready)"
     ""

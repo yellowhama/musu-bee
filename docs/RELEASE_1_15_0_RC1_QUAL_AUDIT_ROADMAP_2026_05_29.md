@@ -134,6 +134,7 @@ Repeatable script smoke:
 - dashboard output: `MUSU_SCRIPT_SMOKE_OK`
 - CLI route output: `MUSU_SCRIPT_CLI_OK`
 - fresh 2026-05-29 06:52 KST evidence on commit `f9ae873`: dashboard task `b4b05b93-34d2-4946-b4cd-fdd5c5c6632d`, dashboard output `MUSU_RELEASE_SMOKE_OK_20260529_0652`, CLI route `MUSU_CLI_ROUTE_OK_20260529_0652`
+- machine-readable 2026-05-29 07:04 KST evidence on commit `129b06b`: `docs\evidence\single-machine\1.15.0-rc.1\20260529-070403-HUGH_SECOND.evidence.json`, dashboard task `b772a958-ded9-4cb1-a180-98ca75c9b91f`, dashboard output `MUSU_RELEASE_SMOKE_OK_20260529_0705`, CLI route `MUSU_CLI_ROUTE_OK_20260529_0705`
 
 Multi-device preparation:
 
@@ -161,7 +162,7 @@ MSIX release packaging verification:
 Desktop release readiness audit:
 
 - script: `scripts\windows\audit-desktop-release-readiness.ps1`
-- result: `runtime_package_ready=True`, `desktop_shell_ready=True`, `multi_device_verified=False`, `public_desktop_release_ready=False`
+- result: `runtime_package_ready=True`, `desktop_shell_ready=True`, `single_machine_verified=True`, `multi_device_verified=False`, `public_desktop_release_ready=False`
 - Store metadata basics: privacy route, support route, and metadata handoff exist
 - blocking check: no verified second-PC evidence JSON under `docs\evidence\multidevice\1.15.0-rc.1\*.evidence.json` or `.local-build\multi-device\*.json`
 - release manifest script is present and was executed locally
@@ -177,7 +178,7 @@ Desktop release readiness audit:
 Indexing:
 
 - `musu indexer sync --work-dir . --name musu-bee`
-- latest result: `844 files`, `1897 symbols`
+- latest result: `850 files`, `1897 symbols`
 - search verification: query `multi-device release test` returns `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md`
 - search verification: query `smoke-single-machine-beta` returns `scripts/windows/smoke-single-machine-beta.ps1`
 - search verification: query `record-multidevice-evidence` returns `scripts/windows/record-multidevice-evidence.ps1`
@@ -186,6 +187,8 @@ Indexing:
 - search verification: query `Store metadata Playwright` returns `musu-bee/e2e/store-public-metadata.spec.ts`, `musu-bee/playwright.ci.config.ts`, and the CI deploy repair memory note
 - search verification: query `support mailbox evidence` returns `scripts/windows/record-support-mailbox-verification.ps1`, `scripts/windows/verify-support-mailbox-evidence.ps1`, and the support mailbox evidence memory note
 - search verification: query `musu-system recheck` returns `docs/memory/chief_of_staff/2026-05-29_0645_kst_musu_system_recheck.md`
+- search verification: query `single machine evidence gate` returns `docs/memory/chief_of_staff/2026-05-29_0710_kst_single_machine_evidence_gate.md`
+- search verification: query `MUSU_RELEASE_SMOKE_OK_20260529_0705` returns `docs/evidence/single-machine/1.15.0-rc.1/20260529-070403-HUGH_SECOND.evidence.json`
 - final operator gates doc: `docs/RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md`
 
 Adjacent repo assessment:

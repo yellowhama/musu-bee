@@ -104,6 +104,14 @@ Fresh repeatable script smoke passed again on 2026-05-29 06:52 KST:
 - dashboard output: `MUSU_RELEASE_SMOKE_OK_20260529_0652`
 - CLI route output: `MUSU_CLI_ROUTE_OK_20260529_0652`
 
+Machine-readable single-machine evidence passed and was recorded on 2026-05-29 07:04 KST:
+
+- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260529-070403-HUGH_SECOND.evidence.json`
+- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260529-070403-HUGH_SECOND.verification.json`
+- dashboard task id: `b772a958-ded9-4cb1-a180-98ca75c9b91f`
+- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260529_0705`
+- CLI route output: `MUSU_CLI_ROUTE_OK_20260529_0705`
+
 Multi-device packet:
 
 - script: `scripts\windows\smoke-multidevice-beta.ps1`
@@ -144,6 +152,7 @@ Latest result:
 
 - `runtime_package_ready=True`
 - `desktop_shell_ready=True`
+- `single_machine_verified=True`
 - `multi_device_verified=False`
 - `public_desktop_release_ready=False`
 

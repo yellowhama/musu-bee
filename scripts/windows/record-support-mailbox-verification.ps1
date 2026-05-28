@@ -69,21 +69,21 @@ $verificationHash = Get-FileHash -Algorithm SHA256 -LiteralPath $verificationPat
 $summary = @"
 # MUSU Support Mailbox Evidence
 
-- Version: `$Version`
-- Verified: `$($verification.ok)`
-- Support mailbox: `$SupportEmail`
-- Verification ID: `$VerificationId`
-- From: `$FromAddress`
-- Received by: `$ReceivedBy`
-- Sent at: `$($SentAt.ToString("o"))`
-- Received at: `$($ReceivedAt.ToString("o"))`
-- Evidence: `$([System.IO.Path]::GetFileName($evidencePath))`
-- Evidence SHA256: `$($evidenceHash.Hash.ToLowerInvariant())`
-- Verification: `$([System.IO.Path]::GetFileName($verificationPath))`
-- Verification SHA256: `$($verificationHash.Hash.ToLowerInvariant())`
-- Recorded at: `$((Get-Date).ToString("o"))`
+- Version: $Version
+- Verified: $($verification.ok)
+- Support mailbox: $SupportEmail
+- Verification ID: $VerificationId
+- From: $FromAddress
+- Received by: $ReceivedBy
+- Sent at: $($SentAt.ToString("o"))
+- Received at: $($ReceivedAt.ToString("o"))
+- Evidence: $([System.IO.Path]::GetFileName($evidencePath))
+- Evidence SHA256: $($evidenceHash.Hash.ToLowerInvariant())
+- Verification: $([System.IO.Path]::GetFileName($verificationPath))
+- Verification SHA256: $($verificationHash.Hash.ToLowerInvariant())
+- Recorded at: $((Get-Date).ToString("o"))
 
-This file records operator-verified delivery to `support@musu.pro` for
+This file records operator-verified delivery to support@musu.pro for
 the Microsoft Store submission gate.
 "@
 $summary | Set-Content -LiteralPath $summaryPath -Encoding UTF8

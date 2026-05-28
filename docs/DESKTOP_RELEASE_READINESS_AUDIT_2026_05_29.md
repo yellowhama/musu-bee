@@ -40,6 +40,7 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\audit-desktop-release-r
 ```text
 runtime_package_ready: True
 desktop_shell_ready: True
+single_machine_verified: True
 multi_device_verified: False
 public_desktop_release_ready: False
 fail_count: 1
@@ -67,6 +68,7 @@ Passing foundation checks:
 - Store submission bundle exists
 - release candidate manifest script exists
 - single-machine and multi-device smoke scripts exist
+- single-machine evidence verifier and recorder exist
 - multi-device test kit builder exists
 - multi-device evidence verifier exists
 - multi-device evidence recorder exists
@@ -97,6 +99,7 @@ These passed on 2026-05-29. Tauri `cargo check` generated `musu-bee/src-tauri/Ca
 - `scripts\windows\verify-store-public-metadata.ps1 -BaseUrl http://127.0.0.1:3015 -Json` passed against local `next start`.
 - `scripts\windows\verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json` now passes against production.
 - `scripts\windows\write-release-go-no-go.ps1 -Json` reports `local_artifacts_ready=true` and `ready_for_public_desktop_release=false`.
+- `scripts\windows\audit-desktop-release-readiness.ps1 -Json` now reports `single_machine_verified=true` from committed evidence under `docs\evidence\single-machine\1.15.0-rc.1`.
 - Remaining go/no-go blockers are second-PC evidence and `support@musu.pro` delivery verification; support mailbox verification now has `verify-support-mailbox-evidence.ps1` and `record-support-mailbox-verification.ps1`.
 - CI/deploy repair: Node 22+ is required for `node:sqlite`, GitHub JavaScript actions are forced onto Node 24 runtime, deleted Python and `musu-port` references were removed from GitHub Actions, Linux Rust CI installs Wayland/PipeWire/GBM native dependencies, likely legacy required check names were preserved, and `npm run test:e2e:ci` now runs Store metadata smoke tests for `/privacy` and `/support`.
 
@@ -155,6 +158,7 @@ P0:
 
 - Run the user's second-PC smoke using `scripts\windows\smoke-multidevice-beta.ps1`.
 - Validate the returned JSON with `scripts\windows\verify-multidevice-evidence.ps1`.
+- Verify `support@musu.pro` delivery and record it with `scripts\windows\record-support-mailbox-verification.ps1`.
 - Submit the Store-reviewed MSIX bundle and record Microsoft certification/restricted-capability result.
 
 P1:
