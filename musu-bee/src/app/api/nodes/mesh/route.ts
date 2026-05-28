@@ -20,6 +20,18 @@ interface NodesConfig {
   };
 }
 
+interface NodeHealthResponse {
+  name: string;
+  tailscale_ip: string;
+  worker_url: string;
+  roles: string[];
+  gpu: string;
+  status: "online" | "offline" | "degraded";
+  health?: unknown;
+  capabilities?: unknown;
+  error?: string;
+}
+
 async function readNodesConfig(): Promise<NodesConfig> {
   try {
     const configPath = join(homedir(), ".musu", "nodes.toml");
@@ -109,7 +121,7 @@ async function readNodesConfig(): Promise<NodesConfig> {
 async function fetchNodeHealth(
   node: NodeConfig,
   workerPort: number
-): Promise<any> {
+): Promise<NodeHealthResponse> {
   const workerUrl = `http://${node.tailscale_ip}:${workerPort}`;
   const bridgeUrl = `http://${node.tailscale_ip}:8070`;
 
@@ -134,7 +146,7 @@ async function fetchNodeHealth(
       health,
       capabilities,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       name: node.name,
       tailscale_ip: node.tailscale_ip,
@@ -142,7 +154,7 @@ async function fetchNodeHealth(
       roles: node.roles || [],
       gpu: node.gpu || "",
       status: "offline",
-      error: error.message,
+      error: error instanceof Error ? error.message : "unknown error",
     };
   }
 }
@@ -160,11 +172,11 @@ export async function GET() {
       nodes: nodesWithHealth,
       worker_port: workerPort,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
       {
         error: "Failed to fetch nodes",
-        message: error.message,
+        message: error instanceof Error ? error.message : "unknown error",
       },
       { status: 500 }
     );

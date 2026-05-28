@@ -35,11 +35,11 @@ Restart MUSU services. `service` = `all|bridge|portd|bee|worker`.
 **Response:** `{"restarted": ["bridge"], "results": {"bridge": {"exit_code": 0, "output": ""}}}`
 
 ### `POST /api/system/update`
-Git pull + restart bridge if code changed.
+Direct-download nodes only: git pull + restart bridge if code changed. Store/MSIX packaged Windows nodes must use package-managed updates and return a conflict instead of self-updating.
 **Response:** `{"updated": true, "before": "abc12345", "after": "def67890", "restart_scheduled": true}`
 
 ### `POST /api/system/update-all`
-Update this node + trigger `/api/system/update` on all mesh peers.
+Update this node + trigger `/api/system/update` on all mesh peers. In a mixed fleet, packaged Store/MSIX Windows nodes will not self-update and should report that their updates are package-managed.
 **Response:** `{"self": {...}, "peers": {"4060": {...}}}`
 
 ### `POST /api/system/event`

@@ -48,6 +48,7 @@ pub struct RegisterNodeRequest {
 }
 
 #[derive(Debug, Deserialize, Clone)]
+#[allow(dead_code)] // Full cloud DTO; some fields are retained for diagnostics/API parity.
 pub struct RegistryNode {
     pub id: String,
     pub user_id: String,
@@ -108,13 +109,19 @@ impl MusuCloud {
         if let Some(token) = body.token {
             return Ok(Some(token));
         }
+        if let Some(status) = body.status.as_deref() {
+            tracing::debug!(status, "device login still pending");
+        }
 
         Ok(None)
     }
 
     /// POST /api/v1/nodes/register to register this node.
     pub async fn register_node(&self, req: RegisterNodeRequest) -> Result<RegistryNode> {
-        let token = self.token.as_ref().ok_or_else(|| anyhow!("Not logged in"))?;
+        let token = self
+            .token
+            .as_ref()
+            .ok_or_else(|| anyhow!("Not logged in"))?;
         let url = format!("{}/api/v1/nodes/register", self.base_url);
 
         let resp = self
@@ -135,15 +142,13 @@ impl MusuCloud {
 
     /// GET /api/v1/nodes to list sibling nodes.
     pub async fn list_nodes(&self) -> Result<Vec<RegistryNode>> {
-        let token = self.token.as_ref().ok_or_else(|| anyhow!("Not logged in"))?;
+        let token = self
+            .token
+            .as_ref()
+            .ok_or_else(|| anyhow!("Not logged in"))?;
         let url = format!("{}/api/v1/nodes", self.base_url);
 
-        let resp = self
-            .client
-            .get(&url)
-            .bearer_auth(token)
-            .send()
-            .await?;
+        let resp = self.client.get(&url).bearer_auth(token).send().await?;
 
         if !resp.status().is_success() {
             let err = resp.text().await.unwrap_or_default();

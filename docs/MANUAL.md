@@ -40,6 +40,12 @@ curl -fsSL https://musu.pro/install.sh | bash
 iwr https://musu.pro/install.ps1 -useb | iex
 ```
 
+Windows distribution note:
+- The one-liner above is the **current direct-download/operator path**.
+- The intended Windows product direction is a **Store/MSIX packaged runtime** with package-managed install/update.
+- Store/MSIX builds must not depend on raw bootstrap download, binary self-copy under `~/.musu/bin`, Task Scheduler registration, or MUSU-managed self-update.
+- Reference: [`STORE_MSIX_AUDIT_2026_05_27.md`](STORE_MSIX_AUDIT_2026_05_27.md), [`PRODUCT_CHARTER/WINDOWS_DISTRIBUTION_PIVOT_2026-05-27.md`](PRODUCT_CHARTER/WINDOWS_DISTRIBUTION_PIVOT_2026-05-27.md)
+
 Set the bearer token once per shell:
 
 ```bash
@@ -103,6 +109,8 @@ curl -X POST http://{REMOTE_IP}:8070/api/system/update \
   -H "Authorization: Bearer $MUSU_BRIDGE_TOKEN"
 # Runs git pull + apply-agent-defaults.py + restart if needed
 ```
+
+This flow applies to direct-download nodes. Store/MSIX packaged Windows nodes must use Windows / Store-managed updates and reject MUSU-managed self-update.
 
 ### Team channels (wiki/008)
 
@@ -505,4 +513,3 @@ You are a subsidiary president. The user is the chairman.
 - Results, not processes
 - No data dumps, no technical jargon
 - Handle everything yourself, report outcomes only
-

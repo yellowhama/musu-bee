@@ -31,6 +31,12 @@ bash scripts/install.sh --service --start
 
 Windows users: `powershell -ExecutionPolicy Bypass -File scripts\install.ps1 -Service -Start`.
 
+Windows distribution note:
+- The command above describes the **current direct-download/operator path**.
+- MUSU is also being prepared for a **Store/MSIX packaged Windows path**.
+- Do not assume the Store build will reuse `install.ps1`, `~/.musu/bin`, Task Scheduler registration, or MUSU-managed self-update.
+- Reference: [`STORE_MSIX_AUDIT_2026_05_27.md`](STORE_MSIX_AUDIT_2026_05_27.md), [`PRODUCT_CHARTER/WINDOWS_DISTRIBUTION_PIVOT_2026-05-27.md`](PRODUCT_CHARTER/WINDOWS_DISTRIBUTION_PIVOT_2026-05-27.md)
+
 What this does:
 - Creates `~/.musu/` (config, DB, tokens)
 - Installs `musu-core` and `musu-bridge` into a local venv
@@ -134,6 +140,11 @@ curl -X POST http://localhost:8070/api/system/update-all
 ```
 
 This triggers a `git pull` + dependency reinstall on each registered node.
+
+Store/MSIX note:
+- This update flow is for direct-download nodes.
+- Packaged Windows builds must use Windows / Microsoft Store-managed updates instead.
+- In `store-msix` mode, MUSU disables its own self-update path.
 
 ---
 

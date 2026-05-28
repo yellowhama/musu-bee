@@ -4,6 +4,15 @@ const nextConfig = {
   outputFileTracingRoot: process.cwd(),
   // Only use App Router, suppress Pages Router error page generation
   typescript: { ignoreBuildErrors: false },
+  // `npm run lint -- --quiet` remains the lint gate. Avoid duplicating the
+  // noisy warning-only ESLint pass inside `next build`.
+  eslint: { ignoreDuringBuilds: true },
+  webpack: (config, { dev }) => {
+    if (!dev) {
+      config.cache = false;
+    }
+    return config;
+  },
 };
 
 if (process.env.TAURI_ENV !== 'true') {

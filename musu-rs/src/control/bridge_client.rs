@@ -32,8 +32,6 @@ use anyhow::{anyhow, Result};
 use reqwest::StatusCode;
 use serde::Serialize;
 use serde_json::Value;
-
-const DEFAULT_BRIDGE_URL: &str = "http://127.0.0.1:8070";
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// Thin proxy wrapping a `reqwest::Client` + the bearer token. Cheap to clone
@@ -51,12 +49,8 @@ impl BridgeClient {
     /// Eager construction. Returns `Err` ONLY when the token cannot be
     /// resolved — caller must propagate before `rmcp::serve` writes any frame.
     pub fn try_new() -> Result<Self> {
-        let base_url = std::env::var("MUSU_BRIDGE_URL")
-            .unwrap_or_else(|_| DEFAULT_BRIDGE_URL.to_string())
-            .trim_end_matches('/')
-            .to_string();
-
         let home = musu_home_for_token()?;
+        let base_url = resolve_bridge_base_url(&home);
         let token = crate::install::token::read_bridge_token(&home).ok_or_else(|| {
             anyhow!(
                 "MUSU_BRIDGE_TOKEN not set and {}/bridge.env is missing or empty. \
@@ -98,7 +92,7 @@ impl BridgeClient {
                 // underlying error to stderr for ops debugging.
                 tracing::warn!(error = %e, url = %self.base_url, "bridge request failed");
                 return Ok(format!(
-                    "musu bridge not running at {}; start with `musu install` or `musud`",
+                    "musu bridge not running at {}; start with `musu bridge`",
                     self.base_url
                 ));
             }
@@ -226,23 +220,26 @@ impl BridgeClient {
     }
 }
 
-/// Resolve `~/.musu/` for the token lookup. Honours `MUSU_HOME` env override
-/// (used by tests) before falling back to `dirs::home_dir()`. We DO NOT use
-/// `install::resolve_musu_home` because that takes `Option<&Path>` from CLI
-/// args; control has no CLI arg surface.
-fn musu_home_for_token() -> Result<PathBuf> {
-    if let Ok(s) = std::env::var("MUSU_HOME") {
-        if !s.is_empty() {
-            return Ok(PathBuf::from(s));
+fn resolve_bridge_base_url(home: &std::path::Path) -> String {
+    if let Ok(url) = std::env::var("MUSU_BRIDGE_URL") {
+        let trimmed = url.trim().trim_end_matches('/').to_string();
+        if !trimmed.is_empty() {
+            return trimmed;
         }
     }
-    let home = dirs::home_dir().ok_or_else(|| {
-        anyhow!(
-            "cannot resolve user home directory (HOME / USERPROFILE unset); \
-             set MUSU_HOME or MUSU_BRIDGE_TOKEN explicitly"
-        )
-    })?;
-    Ok(home.join(".musu"))
+    local_bridge_base_url(home)
+}
+
+fn local_bridge_base_url(home: &std::path::Path) -> String {
+    crate::bridge::services::local_bridge_http_url(home)
+}
+
+/// Resolve `~/.musu/` for the token lookup. Honours `MUSU_HOME` env override
+/// via the shared install/runtime contract.
+fn musu_home_for_token() -> Result<PathBuf> {
+    crate::install::resolve_musu_home_from_env().map_err(|_| {
+        anyhow!("cannot resolve MUSU home directory; set MUSU_HOME or MUSU_BRIDGE_TOKEN explicitly")
+    })
 }
 
 /// Minimal path-segment safety: refuse `/`, `?`, `#`. We don't need full
@@ -251,4 +248,42 @@ fn musu_home_for_token() -> Result<PathBuf> {
 /// rejected empty.)
 fn url_segment(s: &str) -> String {
     s.replace(['/', '?', '#'], "_")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
+
+    #[test]
+    fn resolve_bridge_base_url_prefers_registry_and_normalizes_wildcards() {
+        let tmp = TempDir::new().unwrap();
+        let home = tmp.path().join(".musu");
+        std::fs::create_dir_all(home.join("services")).unwrap();
+
+        let registry = crate::bridge::services::ServiceRegistry::with_dir(home.join("services"));
+        registry
+            .register(&crate::bridge::services::ServiceRecord {
+                name: "bridge".to_string(),
+                addr: "0.0.0.0:43123".to_string(),
+                pid: None,
+                started_at: 0,
+                transport: crate::bridge::services::Transport::Tcp,
+            })
+            .unwrap();
+
+        assert_eq!(resolve_bridge_base_url(&home), "http://127.0.0.1:43123");
+    }
+
+    #[test]
+    fn resolve_bridge_base_url_prefers_explicit_env_override() {
+        let tmp = TempDir::new().unwrap();
+        let home = tmp.path().join(".musu");
+        std::env::set_var("MUSU_BRIDGE_URL", " https://bridge.example.test/ ");
+        assert_eq!(
+            resolve_bridge_base_url(&home),
+            "https://bridge.example.test"
+        );
+        std::env::remove_var("MUSU_BRIDGE_URL");
+    }
 }

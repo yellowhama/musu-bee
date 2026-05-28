@@ -516,7 +516,10 @@ mod tests {
             }],
         };
         let err = spec.validate().unwrap_err();
-        assert!(matches!(err, WorkflowSpecError::EdgeReferencesUnknown { .. }));
+        assert!(matches!(
+            err,
+            WorkflowSpecError::EdgeReferencesUnknown { .. }
+        ));
     }
 
     #[test]
@@ -633,10 +636,26 @@ mod tests {
                 make_agent("d"),
             ],
             edges: vec![
-                EdgeSpec { from_agent: "a".into(), to: "b".into(), condition: EdgeCondition::Succeeded },
-                EdgeSpec { from_agent: "a".into(), to: "c".into(), condition: EdgeCondition::Succeeded },
-                EdgeSpec { from_agent: "b".into(), to: "d".into(), condition: EdgeCondition::Succeeded },
-                EdgeSpec { from_agent: "c".into(), to: "d".into(), condition: EdgeCondition::Succeeded },
+                EdgeSpec {
+                    from_agent: "a".into(),
+                    to: "b".into(),
+                    condition: EdgeCondition::Succeeded,
+                },
+                EdgeSpec {
+                    from_agent: "a".into(),
+                    to: "c".into(),
+                    condition: EdgeCondition::Succeeded,
+                },
+                EdgeSpec {
+                    from_agent: "b".into(),
+                    to: "d".into(),
+                    condition: EdgeCondition::Succeeded,
+                },
+                EdgeSpec {
+                    from_agent: "c".into(),
+                    to: "d".into(),
+                    condition: EdgeCondition::Succeeded,
+                },
             ],
         };
         assert!(spec.validate().is_ok());

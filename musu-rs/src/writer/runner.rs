@@ -135,6 +135,40 @@ struct Inner {
     claude_command: String,
 }
 
+fn resolve_claude_command() -> String {
+    if let Ok(value) = std::env::var("MUSU_CLAUDE_BINARY") {
+        if !value.trim().is_empty() {
+            return value;
+        }
+    }
+    default_claude_command()
+}
+
+#[cfg(windows)]
+fn default_claude_command() -> String {
+    find_on_path("claude.cmd")
+        .or_else(|| find_on_path("claude.exe"))
+        .or_else(|| find_on_path("claude.bat"))
+        .unwrap_or_else(|| "claude".into())
+}
+
+#[cfg(not(windows))]
+fn default_claude_command() -> String {
+    "claude".into()
+}
+
+#[cfg(windows)]
+fn find_on_path(file_name: &str) -> Option<String> {
+    let path = std::env::var_os("PATH")?;
+    for dir in std::env::split_paths(&path) {
+        let candidate = dir.join(file_name);
+        if candidate.is_file() {
+            return Some(candidate.to_string_lossy().into_owned());
+        }
+    }
+    None
+}
+
 impl TaskRunnerHandle {
     /// Construct + run boot-orphan recovery (Critic C4).
     pub async fn new(pool: SqlitePool, sse: SseBroadcaster) -> Self {
@@ -146,8 +180,7 @@ impl TaskRunnerHandle {
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(DEFAULT_MAX_PER_CHANNEL);
-        let claude_command =
-            std::env::var("MUSU_CLAUDE_BINARY").unwrap_or_else(|_| "claude".into());
+        let claude_command = resolve_claude_command();
 
         let inner = Inner {
             pool,
@@ -235,20 +268,33 @@ impl TaskRunnerHandle {
 }
 
 /// V27-F1: fire callback to the originating node after task finalization.
-fn fire_callback(spec: &TaskSpec, status: TaskStatus, output: Option<&str>, error: Option<&str>, exit_code: Option<i32>, duration_sec: Option<f64>) {
+fn fire_callback(
+    spec: &TaskSpec,
+    status: TaskStatus,
+    output: Option<&str>,
+    error: Option<&str>,
+    exit_code: Option<i32>,
+    duration_sec: Option<f64>,
+) {
     let url = match spec.callback_url {
         Some(ref u) => u.clone(),
         None => return,
     };
     let cb = crate::bridge::handlers::forward::TaskCallback {
-        source_task_id: spec.source_task_id.clone().unwrap_or_else(|| spec.task_id.clone()),
+        source_task_id: spec
+            .source_task_id
+            .clone()
+            .unwrap_or_else(|| spec.task_id.clone()),
         remote_task_id: spec.task_id.clone(),
         status: status.as_str().to_string(),
         output: output.map(|s| s.to_string()),
         error: error.map(|s| s.to_string()),
         exit_code,
         duration_sec,
-        node: hostname::get().unwrap_or_default().to_string_lossy().to_string(),
+        node: hostname::get()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string(),
     };
     tokio::spawn(async move {
         let client = reqwest::Client::new();
@@ -292,16 +338,7 @@ async fn run_one(inner: Arc<Inner>, mut spec: TaskSpec, cancel: Arc<Notify>) {
     if let Err(e) = wait_for_admission(&inner, &channel, &cancel).await {
         match e {
             AdmissionExit::Cancelled => {
-                finalize(
-                    &inner,
-                    &spec,
-                    TaskStatus::Cancelled,
-                    None,
-                    None,
-                    None,
-                    None,
-                )
-                .await;
+                finalize(&inner, &spec, TaskStatus::Cancelled, None, None, None, None).await;
                 let _ = registry_guard;
                 return;
             }
@@ -311,7 +348,13 @@ async fn run_one(inner: Arc<Inner>, mut spec: TaskSpec, cancel: Arc<Notify>) {
     // Mark running.
     let started_at = chrono::Utc::now().timestamp();
     update_status_started(&inner.pool, &task_id, started_at).await;
-    inner.sse.publish(TaskEvent::update(&task_id, "running"));
+    inner.sse.publish(
+        TaskEvent::update(&task_id, "running").with_context(
+            spec.company_id.as_deref(),
+            Some(&spec.channel),
+            Some(&spec.sender_id),
+        ),
+    );
 
     // --- AUTONOMOUS PRE-FETCHING ---
     // Seamlessly query the Semantic SSOT and inject knowledge into the prompt
@@ -327,7 +370,11 @@ async fn run_one(inner: Arc<Inner>, mut spec: TaskSpec, cancel: Arc<Notify>) {
             if output.status.success() {
                 let crawler_results = String::from_utf8_lossy(&output.stdout);
                 if !crawler_results.trim().is_empty() {
-                    spec.prompt = format!("<BACKGROUND_CONTEXT>\n{}\n</BACKGROUND_CONTEXT>\n\n{}", crawler_results.trim(), spec.prompt);
+                    spec.prompt = format!(
+                        "<BACKGROUND_CONTEXT>\n{}\n</BACKGROUND_CONTEXT>\n\n{}",
+                        crawler_results.trim(),
+                        spec.prompt
+                    );
                 }
             } else {
                 tracing::warn!(task_id = %task_id, "Autonomous pre-fetch crawler failed with status: {}", output.status);
@@ -699,7 +746,7 @@ async fn update_status_started(pool: &SqlitePool, task_id: &str, started_at: i64
             SET status = 'running',
                 started_at = ?,
                 updated_at = ?
-          WHERE task_id = ?"
+          WHERE task_id = ?",
     )
     .bind(started_at)
     .bind(now)
@@ -709,13 +756,14 @@ async fn update_status_started(pool: &SqlitePool, task_id: &str, started_at: i64
     {
         tracing::warn!(error = %e, task_id, "update_status_started failed");
     }
-    
+
     TaskUpdate {
         task_id,
         status: "running",
         started_at: Some(started_at),
         ..Default::default()
-    }.save();
+    }
+    .save();
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -764,10 +812,17 @@ async fn finalize(
         exit_code,
         duration_sec,
         ..Default::default()
-    }.save();
-    inner
-        .sse
-        .publish(TaskEvent::update(task_id, status.as_str()));
+    }
+    .save();
+    inner.sse.publish(
+        TaskEvent::update(task_id, status.as_str())
+            .with_context(
+                spec.company_id.as_deref(),
+                Some(&spec.channel),
+                Some(&spec.sender_id),
+            )
+            .with_result(output, error, exit_code, duration_sec),
+    );
 
     // V27-F1: send result callback if this was a forwarded task.
     fire_callback(spec, status, output, error, exit_code, duration_sec);
@@ -816,14 +871,8 @@ pub struct TaskUpdate<'a> {
 
 impl<'a> TaskUpdate<'a> {
     pub fn save(self) {
-        let musu_home = if let Ok(s) = std::env::var("MUSU_HOME") {
-            std::path::PathBuf::from(s)
-        } else {
-            let home = std::env::var("HOME")
-                .or_else(|_| std::env::var("USERPROFILE"))
-                .unwrap_or_else(|_| ".".into());
-            std::path::PathBuf::from(home).join(".musu")
-        };
+        let musu_home = crate::install::resolve_musu_home_from_env()
+            .unwrap_or_else(|_| std::path::PathBuf::from(".").join(".musu"));
 
         let tasks_dir = musu_home.join("tasks");
         if let Err(e) = std::fs::create_dir_all(&tasks_dir) {
@@ -849,16 +898,26 @@ impl<'a> TaskUpdate<'a> {
                     obj.insert(k.clone(), v.clone());
                 }
             }
-            obj.insert("updated_at".to_string(), serde_json::json!(chrono::Utc::now().timestamp()));
-            
+            obj.insert(
+                "updated_at".to_string(),
+                serde_json::json!(chrono::Utc::now().timestamp()),
+            );
+
             if obj.get("created_at").is_none() {
-                obj.insert("created_at".to_string(), serde_json::json!(chrono::Utc::now().timestamp()));
+                obj.insert(
+                    "created_at".to_string(),
+                    serde_json::json!(chrono::Utc::now().timestamp()),
+                );
             }
         }
 
         if let Ok(data) = serde_json::to_string_pretty(&json_val) {
             if let Err(e) = std::fs::write(&file_path, data) {
-                tracing::warn!("Failed to write task json to {}: {}", file_path.display(), e);
+                tracing::warn!(
+                    "Failed to write task json to {}: {}",
+                    file_path.display(),
+                    e
+                );
             }
         }
 
@@ -874,17 +933,33 @@ impl<'a> TaskUpdate<'a> {
                         return;
                     }
 
-                    let task_id = json_val.get("task_id").and_then(|v| v.as_str()).unwrap_or("unknown");
-                    let prompt = json_val.get("prompt").and_then(|v| v.as_str()).unwrap_or("");
-                    let output = json_val.get("output").and_then(|v| v.as_str()).unwrap_or("");
+                    let task_id = json_val
+                        .get("task_id")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("unknown");
+                    let prompt = json_val
+                        .get("prompt")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("");
+                    let output = json_val
+                        .get("output")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("");
                     let error = json_val.get("error").and_then(|v| v.as_str()).unwrap_or("");
-                    let channel = json_val.get("channel").and_then(|v| v.as_str()).unwrap_or("unknown");
-                    
-                    let summary = if prompt.len() > 100 { &prompt[..100] } else { prompt };
+                    let channel = json_val
+                        .get("channel")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("unknown");
+
+                    let summary = if prompt.len() > 100 {
+                        &prompt[..100]
+                    } else {
+                        prompt
+                    };
                     let safe_summary = summary.replace('\n', " ").replace('"', "\\\"");
 
                     let md_content = format!(
-r#"---
+                        r#"---
 title: "Task {}"
 source: "brainai"
 project: "brainai"
@@ -906,16 +981,29 @@ summary: "{}"
 ## Error
 {}
 "#,
-                        task_id, task_id, chrono::Utc::now().format("%Y-%m-%d"), status, channel, safe_summary, prompt, output, error
+                        task_id,
+                        task_id,
+                        chrono::Utc::now().format("%Y-%m-%d"),
+                        status,
+                        channel,
+                        safe_summary,
+                        prompt,
+                        output,
+                        error
                     );
 
                     let md_path = project_dir.join(format!("{}.md", task_id));
                     if let Err(e) = std::fs::write(&md_path, md_content) {
-                        tracing::warn!("Failed to write Semantic SSOT markdown to {}: {}", md_path.display(), e);
+                        tracing::warn!(
+                            "Failed to write Semantic SSOT markdown to {}: {}",
+                            md_path.display(),
+                            e
+                        );
                     } else {
                         // Spawn a background thread to trigger musu-crawl index
                         std::thread::spawn(move || {
-                            let musu_crawl_exe = std::env::var("MUSU_CRAWL_BINARY").unwrap_or_else(|_| "musu-crawl".to_string());
+                            let musu_crawl_exe = std::env::var("MUSU_CRAWL_BINARY")
+                                .unwrap_or_else(|_| "musu-crawl".to_string());
                             let _ = std::process::Command::new(musu_crawl_exe)
                                 .arg("index")
                                 .arg("--out")

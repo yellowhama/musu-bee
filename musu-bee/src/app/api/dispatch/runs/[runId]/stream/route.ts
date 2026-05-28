@@ -8,10 +8,9 @@
  */
 import { NextRequest } from "next/server";
 import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
+import { getBridgeToken } from "@/lib/bridge-token";
 
 import { getBridgeUrl } from "@/lib/bridge-config";
-
-const BRIDGE_URL = getBridgeUrl();
 
 type RouteContext = { params: Promise<{ runId: string }> };
 
@@ -25,8 +24,8 @@ export async function GET(req: NextRequest, ctx: RouteContext): Promise<Response
     );
   }
 
-  const target = `${BRIDGE_URL}/api/dispatch/runs/${runId}/stream`;
-  const token = process.env.MUSU_BRIDGE_TOKEN ?? "";
+  const target = `${getBridgeUrl().replace(/\/+$/, "")}/api/dispatch/runs/${runId}/stream`;
+  const token = await getBridgeToken();
   const headers = {
     ...buildBridgeHeaders(token),
     Accept: "text/event-stream",

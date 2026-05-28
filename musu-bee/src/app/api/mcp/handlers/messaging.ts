@@ -1,4 +1,6 @@
-import { MUSU_BRIDGE_URL } from "../config";
+import { getMusuBridgeUrl } from "../config";
+import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
+import { getBridgeToken } from "@/lib/bridge-token";
 
 export async function handleSendMessage(params: Record<string, unknown>): Promise<unknown> {
   if (typeof params.channel !== "string" || typeof params.text !== "string") {
@@ -6,9 +8,12 @@ export async function handleSendMessage(params: Record<string, unknown>): Promis
   }
   const sender = typeof params.sender === "string" ? params.sender : "mcp";
   try {
-    const res = await fetch(`${MUSU_BRIDGE_URL}/api/route`, {
+    const res = await fetch(`${getMusuBridgeUrl()}/api/route`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...buildBridgeHeaders(await getBridgeToken()),
+      },
       body: JSON.stringify({
         channel: params.channel,
         sender_id: sender,

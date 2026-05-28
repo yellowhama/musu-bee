@@ -45,10 +45,8 @@ pub fn ensure_tls_certs(musu_home: &Path, node_name: &str) -> Result<TlsPaths> {
     std::fs::create_dir_all(&tls_dir)?;
 
     // Generate certificate — DNS SANs only in CertificateParams::new.
-    let mut params = rcgen::CertificateParams::new(vec![
-        node_name.to_string(),
-        "localhost".to_string(),
-    ])?;
+    let mut params =
+        rcgen::CertificateParams::new(vec![node_name.to_string(), "localhost".to_string()])?;
     params.distinguished_name.push(
         rcgen::DnType::CommonName,
         rcgen::DnValue::Utf8String(format!("musu-{node_name}")),
@@ -61,9 +59,11 @@ pub fn ensure_tls_certs(musu_home: &Path, node_name: &str) -> Result<TlsPaths> {
     params.not_after = rcgen::date_time_ymd(2035, 12, 31);
 
     // Add IP SANs for common local addresses.
-    params.subject_alt_names.push(rcgen::SanType::IpAddress(
-        std::net::IpAddr::V4(std::net::Ipv4Addr::new(127, 0, 0, 1)),
-    ));
+    params
+        .subject_alt_names
+        .push(rcgen::SanType::IpAddress(std::net::IpAddr::V4(
+            std::net::Ipv4Addr::new(127, 0, 0, 1),
+        )));
 
     let key_pair = rcgen::KeyPair::generate()?;
     let cert = params.self_signed(&key_pair)?;
@@ -76,10 +76,7 @@ pub fn ensure_tls_certs(musu_home: &Path, node_name: &str) -> Result<TlsPaths> {
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(
-            &paths.key_path,
-            std::fs::Permissions::from_mode(0o600),
-        )?;
+        std::fs::set_permissions(&paths.key_path, std::fs::Permissions::from_mode(0o600))?;
     }
 
     tracing::info!(

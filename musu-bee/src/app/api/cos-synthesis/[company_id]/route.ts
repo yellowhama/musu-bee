@@ -15,10 +15,8 @@ import { getBridgeUrl } from '../../../../lib/bridge-config';
 // Cost preview (constraint c) is owned by the frontend onClick handler +
 // sessionStorage `cos_synthesis_cost_acked` flag — NOT by this proxy.
 import { NextRequest, NextResponse } from "next/server";
-
-const BRIDGE_URL = (
-  getBridgeUrl()
-).replace(/\/+$/, "");
+import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
+import { getBridgeToken } from "@/lib/bridge-token";
 
 // Synthesis can take several seconds; match the bridge's internal 8s
 // per-request budget with a small buffer for network/overhead.
@@ -41,10 +39,13 @@ export async function POST(
 
   try {
     const upstream = await fetch(
-      `${BRIDGE_URL}/api/companies/${encodeURIComponent(company_id)}/cos-briefing-synthesize`,
+      `${getBridgeUrl().replace(/\/+$/, "")}/api/companies/${encodeURIComponent(company_id)}/cos-briefing-synthesize`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...buildBridgeHeaders(await getBridgeToken()),
+        },
         signal: controller.signal,
       },
     );

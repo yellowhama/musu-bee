@@ -97,19 +97,17 @@ pub struct FleetNodeStatus {
 /// GET /api/fleet/status — overview of the entire fleet.
 pub async fn fleet_status(State(state): State<AppState>) -> Result<Json<FleetDashboard>> {
     // Get local task counts.
-    let local_running: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM route_executions WHERE status = 'running'",
-    )
-    .fetch_one(&state.pool)
-    .await
-    .map_err(MusuError::Sqlx)?;
+    let local_running: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM route_executions WHERE status = 'running'")
+            .fetch_one(&state.pool)
+            .await
+            .map_err(MusuError::Sqlx)?;
 
-    let local_pending: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM route_executions WHERE status = 'pending'",
-    )
-    .fetch_one(&state.pool)
-    .await
-    .map_err(MusuError::Sqlx)?;
+    let local_pending: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM route_executions WHERE status = 'pending'")
+            .fetch_one(&state.pool)
+            .await
+            .map_err(MusuError::Sqlx)?;
 
     let local_running = local_running as u32;
     let local_pending = local_pending as u32;
@@ -126,7 +124,10 @@ pub async fn fleet_status(State(state): State<AppState>) -> Result<Json<FleetDas
 
     let this_node = FleetNodeStatus {
         name: state.config.node_name.clone(),
-        addr: format!("{}:{}", state.config.bridge_host, state.config.bridge_port),
+        addr: crate::bridge::services::advertised_bridge_http_url(&state.config)
+            .trim_start_matches("http://")
+            .trim_start_matches("https://")
+            .to_string(),
         healthy: true,
         is_self: true,
         tasks_running: local_running,
@@ -208,19 +209,17 @@ pub async fn fleet_status(State(state): State<AppState>) -> Result<Json<FleetDas
 
 /// GET /api/fleet/node-status — this node's status (called by peers).
 pub async fn node_status(State(state): State<AppState>) -> Result<Json<FleetNodeStatus>> {
-    let running: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM route_executions WHERE status = 'running'",
-    )
-    .fetch_one(&state.pool)
-    .await
-    .map_err(MusuError::Sqlx)?;
+    let running: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM route_executions WHERE status = 'running'")
+            .fetch_one(&state.pool)
+            .await
+            .map_err(MusuError::Sqlx)?;
 
-    let pending: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM route_executions WHERE status = 'pending'",
-    )
-    .fetch_one(&state.pool)
-    .await
-    .map_err(MusuError::Sqlx)?;
+    let pending: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM route_executions WHERE status = 'pending'")
+            .fetch_one(&state.pool)
+            .await
+            .map_err(MusuError::Sqlx)?;
 
     let shares = crate::install::shares::SharesConfig::load(
         state
@@ -232,7 +231,10 @@ pub async fn node_status(State(state): State<AppState>) -> Result<Json<FleetNode
 
     Ok(Json(FleetNodeStatus {
         name: state.config.node_name.clone(),
-        addr: format!("{}:{}", state.config.bridge_host, state.config.bridge_port),
+        addr: crate::bridge::services::advertised_bridge_http_url(&state.config)
+            .trim_start_matches("http://")
+            .trim_start_matches("https://")
+            .to_string(),
         healthy: true,
         is_self: false,
         tasks_running: running as u32,
@@ -280,6 +282,10 @@ pub async fn list_tasks(State(state): State<AppState>) -> Result<Json<serde_json
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bridge::AppState;
+    use axum::extract::State;
+    use std::sync::Arc;
+    use tempfile::TempDir;
 
     #[test]
     fn detect_returns_valid_defaults() {
@@ -299,5 +305,82 @@ mod tests {
         let json = serde_json::to_string(&status).unwrap();
         assert!(json.contains("test-node"));
     }
-}
 
+    #[tokio::test]
+    async fn node_status_uses_runtime_registry_addr() {
+        let tmp = TempDir::new().unwrap();
+        let musu_home = tmp.path().join(".musu");
+        std::env::set_var("MUSU_HOME", &musu_home);
+        std::fs::create_dir_all(musu_home.join("services")).unwrap();
+
+        let registry = crate::bridge::services::ServiceRegistry::new();
+        registry
+            .register(&crate::bridge::services::ServiceRecord {
+                name: "bridge".to_string(),
+                addr: "127.0.0.1:43123".to_string(),
+                pid: None,
+                started_at: 0,
+                transport: crate::bridge::services::Transport::Tcp,
+            })
+            .unwrap();
+
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+
+        sqlx::query(
+            "CREATE TABLE route_executions (
+                task_id TEXT,
+                status TEXT
+            )",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let cfg = Arc::new(crate::bridge::config::BridgeConfig {
+            bridge_host: "127.0.0.1".to_string(),
+            bridge_port: 0,
+            python_facade_port: 0,
+            public_url: None,
+            node_name: "test-node".to_string(),
+            db_path: musu_home.join("db").join("musu.db"),
+            audit_db_path: musu_home.join("data").join("audit.db"),
+            nodes_toml_path: musu_home.join("nodes.toml"),
+            token: String::new(),
+            peer_token: None,
+            localhost_auth_required: false,
+            env: crate::bridge::config::AuthMode::Development,
+            rate_limit_disabled: true,
+            rate_limit_per_min: 0,
+            allow_plaintext_lan: false,
+            file_serve_roots: vec![],
+            file_serve_writable: false,
+            tls_enabled: false,
+            tls_cert_path: None,
+            tls_key_path: None,
+        });
+
+        let sse_broadcaster = crate::writer::SseBroadcaster::from_env();
+        let task_runner =
+            crate::writer::TaskRunnerHandle::new(pool.clone(), sse_broadcaster.clone()).await;
+
+        let state = AppState {
+            config: cfg,
+            pool: pool.clone(),
+            http_client: reqwest::Client::new(),
+            audit: crate::bridge::audit::AuditState::new(pool.clone()),
+            dedup: crate::bridge::dedup::DedupCache::new(),
+            task_runner,
+            sse_broadcaster,
+            pairing: crate::bridge::handlers::pair::PairingStore::new(),
+        };
+
+        let Json(status) = node_status(State(state)).await.unwrap();
+        assert_eq!(status.addr, "127.0.0.1:43123");
+
+        std::env::remove_var("MUSU_HOME");
+    }
+}

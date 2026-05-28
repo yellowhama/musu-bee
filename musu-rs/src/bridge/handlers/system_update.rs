@@ -25,6 +25,20 @@ use crate::bridge::AppState;
 const PID_MARKER_FILENAME: &str = "system-update.pid";
 
 pub async fn post_system_update(State(_state): State<AppState>) -> impl IntoResponse {
+    let distribution = crate::install::distribution::DistributionMode::current();
+    if !distribution.supports_self_update() {
+        return (
+            StatusCode::CONFLICT,
+            Json(json!({
+                "ok": false,
+                "error": format!(
+                    "system update is disabled in {} mode; packaged Store/MSIX builds must use Windows/Microsoft Store-managed updates",
+                    distribution.as_str()
+                )
+            })),
+        );
+    }
+
     let home = match resolve_musu_home() {
         Ok(h) => h,
         Err(e) => {
@@ -166,9 +180,8 @@ pub async fn post_system_update(State(_state): State<AppState>) -> impl IntoResp
 }
 
 fn resolve_musu_home() -> Result<std::path::PathBuf, std::io::Error> {
-    dirs::home_dir()
-        .map(|h| h.join(".musu"))
-        .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "no home directory"))
+    crate::install::resolve_musu_home_from_env()
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::NotFound, e.to_string()))
 }
 
 fn musu_binary_name() -> &'static str {
@@ -195,17 +208,14 @@ mod tests {
     use crate::bridge::handlers::native_router;
     use crate::bridge::AppState;
     use axum::body::Body;
+    use axum::extract::State;
     use axum::http::{Request, StatusCode};
+    use axum::response::IntoResponse;
+    use serde_json::Value;
     use std::sync::Arc;
     use tower::ServiceExt; // for `.oneshot`
 
-    /// Build a minimal AppState + AuthState pair, mount native_router with
-    /// require_bearer middleware (mirroring bridge::run wiring), and assert
-    /// that POST /api/system/update without an Authorization header is 401.
-    #[tokio::test]
-    async fn system_update_requires_auth() {
-        // Minimal in-memory sqlite pool so AppState can be constructed.
-        // We do NOT need any tables — auth rejects before the handler runs.
+    async fn test_app_state() -> (AppState, Arc<crate::bridge::config::BridgeConfig>) {
         let pool = sqlx::sqlite::SqlitePoolOptions::new()
             .max_connections(1)
             .connect("sqlite::memory:")
@@ -257,6 +267,15 @@ mod tests {
             pairing: crate::bridge::handlers::pair::PairingStore::new(),
         };
 
+        (state, cfg)
+    }
+
+    /// Build a minimal AppState + AuthState pair, mount native_router with
+    /// require_bearer middleware (mirroring bridge::run wiring), and assert
+    /// that POST /api/system/update without an Authorization header is 401.
+    #[tokio::test]
+    async fn system_update_requires_auth() {
+        let (state, cfg) = test_app_state().await;
         let auth_state = AuthState::from_config(&cfg);
 
         let app = native_router()
@@ -278,6 +297,30 @@ mod tests {
             StatusCode::UNAUTHORIZED,
             "POST /api/system/update without bearer must be 401 (S5)"
         );
+    }
+
+    #[tokio::test]
+    async fn system_update_conflicts_in_store_msix_mode() {
+        let (state, _cfg) = test_app_state().await;
+        std::env::set_var("MUSU_DISTRIBUTION", "store-msix");
+
+        let response = super::post_system_update(State(state))
+            .await
+            .into_response();
+        assert_eq!(response.status(), StatusCode::CONFLICT);
+
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .expect("read body");
+        let json: Value = serde_json::from_slice(&body).expect("json body");
+        assert_eq!(json["ok"], Value::Bool(false));
+        let error = json["error"].as_str().unwrap_or_default();
+        assert!(
+            error.contains("disabled in store-msix mode"),
+            "unexpected error body: {error}"
+        );
+
+        std::env::remove_var("MUSU_DISTRIBUTION");
     }
 
     /// R6 audit-fix (Auditor B QB4): pre_exec must close inherited fds

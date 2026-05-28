@@ -14,10 +14,9 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
+import { getBridgeToken } from "@/lib/bridge-token";
 
 import { getBridgeUrl } from "@/lib/bridge-config";
-
-const BRIDGE_URL = getBridgeUrl();
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -37,12 +36,12 @@ export async function GET(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
       .split("/")
       .map((seg) => encodeURIComponent(seg))
       .join("/");
-    const target = new URL(`${BRIDGE_URL}/api/wiki/page/${safeId}/html`);
+    const target = new URL(`${getBridgeUrl().replace(/\/+$/, "")}/api/wiki/page/${safeId}/html`);
     if (companyId) target.searchParams.set("company_id", companyId);
 
     const upstream = await fetch(target.toString(), {
       method: "GET",
-      headers: buildBridgeHeaders(process.env.MUSU_BRIDGE_TOKEN ?? ""),
+      headers: buildBridgeHeaders(await getBridgeToken()),
       cache: "no-store",
     });
     const body = await upstream.text();

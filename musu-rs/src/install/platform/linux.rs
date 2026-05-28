@@ -164,7 +164,11 @@ WantedBy=default.target
             tracing::warn!(error = %e, "systemctl disable for peer {} failed (continuing)", peer_name);
         }
         let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("cannot resolve $HOME"))?;
-        let path = home.join(".config").join("systemd").join("user").join(&filename);
+        let path = home
+            .join(".config")
+            .join("systemd")
+            .join("user")
+            .join(&filename);
         if path.exists() {
             std::fs::remove_file(&path).with_context(|| format!("remove {}", path.display()))?;
         }

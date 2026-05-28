@@ -118,7 +118,7 @@ export default function ComingSoonPage() {
               margin: "0 auto",
             }}
           >
-            <form style={{ display: "flex", width: "100%", gap: 0, flexDirection: "column", gap: 16 }}>
+            <form style={{ display: "flex", width: "100%", flexDirection: "column", gap: 16 }}>
               {/* Added gap and column for mobile, but let's do responsive flex */}
               <div style={{ display: "flex", width: "100%", flexWrap: "wrap", gap: 16 }}>
                 <input
@@ -212,7 +212,7 @@ export default function ComingSoonPage() {
                   Checking GPU memory across nodes...
                 </div>
                 <div style={{ background: "var(--accent)", border: "var(--neo-border)", padding: 16, fontSize: "var(--text-base)", color: "#000", fontWeight: 600, boxShadow: "2px 2px 0px #000" }}>
-                  I've assigned the backend refactoring to Cloud-A100.
+                  I&apos;ve assigned the backend refactoring to Cloud-A100.
                 </div>
               </div>
               <div style={{ padding: 24, borderTop: "var(--neo-border)" }}>

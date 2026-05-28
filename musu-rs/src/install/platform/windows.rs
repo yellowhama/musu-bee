@@ -306,7 +306,8 @@ impl PlatformService for WindowsService {
 
         let filename = format!("peer-{}_task.xml", ctx.peer_name);
         let xml_path = dir.join(&filename);
-        std::fs::write(&xml_path, &body).with_context(|| format!("write {}", xml_path.display()))?;
+        std::fs::write(&xml_path, &body)
+            .with_context(|| format!("write {}", xml_path.display()))?;
 
         if ctx.unit_dir_override.is_none() {
             let full_task_name = format!(r"Musu\peer-{}", ctx.peer_name);

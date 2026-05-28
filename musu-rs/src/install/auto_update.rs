@@ -46,6 +46,7 @@ pub enum UpdateSource {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct UpdateConfig {
     pub source: UpdateSource,
     #[serde(default)]
@@ -168,6 +169,13 @@ fn host_is_allowed(url: &str) -> bool {
 // ── Public entry ──────────────────────────────────────────────────────────
 
 pub async fn run(opts: AutoUpdateOpts) -> Result<()> {
+    let distribution = super::distribution::DistributionMode::current();
+    if !distribution.supports_self_update() {
+        anyhow::bail!(
+            "musu auto-update is disabled in {} mode. Packaged Store/MSIX builds must use Windows/Microsoft Store-managed updates instead of self-replacing binaries.",
+            distribution.as_str()
+        );
+    }
     if opts.supervise {
         return supervise_loop(opts).await;
     }
@@ -325,7 +333,7 @@ async fn run_github_release(home: &Path, cfg: &UpdateConfig, opts: &AutoUpdateOp
     }
 
     // Poll /health for 30s; rollback on failure.
-    match poll_health(Duration::from_secs(30)).await {
+    match poll_health(home, Duration::from_secs(30)).await {
         Ok(()) => {
             eprintln!("musu auto-update: /health 200 — update complete.");
             Ok(())
@@ -340,8 +348,6 @@ async fn run_github_release(home: &Path, cfg: &UpdateConfig, opts: &AutoUpdateOp
         }
     }
 }
-
-
 
 /// R6 audit-fix (Auditor B QB2): compose a one-line IPC request JSON with
 /// optional service name + optional bearer token. We hand-build the JSON
@@ -373,17 +379,32 @@ fn fetch_json<T: for<'de> Deserialize<'de>>(url: &str, opts: &AutoUpdateOpts) ->
     serde_json::from_str(&body).with_context(|| format!("parse JSON from {url}"))
 }
 
-fn http_get_with_follow<T, F>(url: &str, opts: &AutoUpdateOpts, max_hops: u32, mut handler: F) -> Result<T>
+fn http_get_with_follow<T, F>(
+    url: &str,
+    opts: &AutoUpdateOpts,
+    max_hops: u32,
+    mut handler: F,
+) -> Result<T>
 where
     F: FnMut(ureq::Response) -> Result<T>,
 {
     let mut current = url.to_string();
     for hop in 0..max_hops {
         if opts.github_api_base.is_none() && !host_is_allowed(&current) {
-            anyhow::bail!("auto-update refused redirect to non-allowlisted host: {} (hop {hop})", current);
+            anyhow::bail!(
+                "auto-update refused redirect to non-allowlisted host: {} (hop {hop})",
+                current
+            );
         }
-        let agent = ureq::AgentBuilder::new().redirects(0).timeout(Duration::from_secs(30)).build();
-        let resp = match agent.get(&current).set("User-Agent", "musu-auto-update").call() {
+        let agent = ureq::AgentBuilder::new()
+            .redirects(0)
+            .timeout(Duration::from_secs(30))
+            .build();
+        let resp = match agent
+            .get(&current)
+            .set("User-Agent", "musu-auto-update")
+            .call()
+        {
             Ok(r) => r,
             Err(ureq::Error::Status(code, resp)) if (300..400).contains(&code) => {
                 if let Some(loc) = resp.header("Location") {
@@ -785,14 +806,16 @@ fn run_schema_precheck(staged: &Path) -> Result<bool> {
     }
 }
 
-/// Poll http://127.0.0.1:8070/health for 30s. Returns Ok on first 200.
-async fn poll_health(deadline: Duration) -> Result<()> {
+/// Poll the local bridge `/health` endpoint for 30s. Returns Ok on first 200.
+async fn poll_health(home: &Path, deadline: Duration) -> Result<()> {
     let start = std::time::Instant::now();
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(3))
         .build()?;
+    let base_url = crate::bridge::services::local_bridge_http_url_for_home(home, 8070);
+    let health_url = format!("{}/health", base_url);
     while start.elapsed() < deadline {
-        match client.get("http://127.0.0.1:8070/health").send().await {
+        match client.get(&health_url).send().await {
             Ok(r) if r.status().is_success() => return Ok(()),
             _ => tokio::time::sleep(Duration::from_millis(500)).await,
         }

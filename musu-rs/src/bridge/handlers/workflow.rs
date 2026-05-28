@@ -130,7 +130,9 @@ async fn generate_dag(
     State(_state): State<AppState>,
     Json(req): Json<GenerateDagRequest>,
 ) -> Result<(StatusCode, Json<GenerateDagResponse>)> {
-    let musu_home = _state.config.nodes_toml_path
+    let musu_home = _state
+        .config
+        .nodes_toml_path
         .parent()
         .unwrap_or_else(|| std::path::Path::new("."))
         .to_path_buf();
@@ -157,14 +159,12 @@ async fn generate_dag(
         cancel: None,
         extra: serde_json::Value::Null,
     };
-    let adapter = crate::adapter::registry::dispatch(adapter_type, &dummy_ctx).map_err(|e| {
-        MusuError::Internal(format!("adapter dispatch failed: {e}"))
-    })?;
+    let adapter = crate::adapter::registry::dispatch(adapter_type, &dummy_ctx)
+        .map_err(|e| MusuError::Internal(format!("adapter dispatch failed: {e}")))?;
 
-    let result =
-        crate::workflow::llm_dag_builder::build_dag(&build_req, adapter.as_ref())
-            .await
-            .map_err(|e| MusuError::Internal(format!("DAG build failed: {e}")))?;
+    let result = crate::workflow::llm_dag_builder::build_dag(&build_req, adapter.as_ref())
+        .await
+        .map_err(|e| MusuError::Internal(format!("DAG build failed: {e}")))?;
 
     let spec_json = serde_json::to_value(&result.spec)
         .map_err(|e| MusuError::Internal(format!("spec serialize: {e}")))?;
@@ -212,7 +212,8 @@ async fn create_workflow(
         _ => {
             return Err(MusuError::BadRequest(
                 "§9.12: attestation_token required. Use POST /api/workflows/generate \
-                 to get the spec + token, review it, then pass the token here.".into(),
+                 to get the spec + token, review it, then pass the token here."
+                    .into(),
             ));
         }
     }
@@ -236,7 +237,10 @@ async fn create_workflow(
     }
 
     // Begin transaction for atomic workflow + steps insertion.
-    let mut tx = state.pool.begin().await
+    let mut tx = state
+        .pool
+        .begin()
+        .await
         .map_err(|e| MusuError::Internal(format!("begin transaction: {e}")))?;
 
     // Insert workflow
@@ -280,7 +284,8 @@ async fn create_workflow(
     let created_at: String = row.try_get("created_at").unwrap_or_default();
 
     // Commit transaction
-    tx.commit().await
+    tx.commit()
+        .await
         .map_err(|e| MusuError::Internal(format!("commit transaction: {e}")))?;
 
     Ok((

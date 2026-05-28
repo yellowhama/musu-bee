@@ -68,10 +68,7 @@ fn copy_request_headers(src: &HeaderMap, dst: &mut reqwest::header::HeaderMap) {
 fn copy_response_headers(src: &reqwest::header::HeaderMap, dst: &mut HeaderMap) {
     for (name, value) in src.iter() {
         let std_name = name.as_str();
-        if HOP_BY_HOP
-            .iter()
-            .any(|h| std_name.eq_ignore_ascii_case(h))
-        {
+        if HOP_BY_HOP.iter().any(|h| std_name.eq_ignore_ascii_case(h)) {
             continue;
         }
         if let (Ok(n), Ok(v)) = (
@@ -166,9 +163,7 @@ async fn proxy_to_service(
 
     let method = match reqwest::Method::from_bytes(parts.method.as_str().as_bytes()) {
         Ok(m) => m,
-        Err(_) => {
-            return (StatusCode::METHOD_NOT_ALLOWED, "method not allowed").into_response()
-        }
+        Err(_) => return (StatusCode::METHOD_NOT_ALLOWED, "method not allowed").into_response(),
     };
 
     tracing::debug!(
@@ -270,10 +265,22 @@ pub struct ProxyFileParams {
 }
 
 /// Helper to proxy an HTTP request to a peer.
-async fn proxy_to_peer_url(state: &AppState, node_id: &str, upstream_url: &str, req: Request) -> Response {
-    let musu_home = state.config.nodes_toml_path.parent().unwrap_or(std::path::Path::new("."));
+async fn proxy_to_peer_url(
+    state: &AppState,
+    node_id: &str,
+    upstream_url: &str,
+    req: Request,
+) -> Response {
+    let musu_home = state
+        .config
+        .nodes_toml_path
+        .parent()
+        .unwrap_or(std::path::Path::new("."));
     let peers = crate::peer::discovery::resolve_all_peers(musu_home);
-    let peer = match peers.into_iter().find(|p| p.name.as_deref() == Some(node_id)) {
+    let peer = match peers
+        .into_iter()
+        .find(|p| p.name.as_deref() == Some(node_id))
+    {
         Some(p) => p,
         None => return (StatusCode::NOT_FOUND, "node not found").into_response(),
     };
@@ -309,7 +316,8 @@ async fn proxy_to_peer_url(state: &AppState, node_id: &str, upstream_url: &str, 
         }
     };
 
-    let status = StatusCode::from_u16(upstream_resp.status().as_u16()).unwrap_or(StatusCode::BAD_GATEWAY);
+    let status =
+        StatusCode::from_u16(upstream_resp.status().as_u16()).unwrap_or(StatusCode::BAD_GATEWAY);
     let mut resp_headers = HeaderMap::new();
     copy_response_headers(upstream_resp.headers(), &mut resp_headers);
 
@@ -329,7 +337,13 @@ pub async fn proxy_files_list(
 ) -> Response {
     // percent encode the path for safety
     let enc_path = urlencoding::encode(&params.path);
-    proxy_to_peer_url(&state, &params.node_id, &format!("/api/files?path={}", enc_path), req).await
+    proxy_to_peer_url(
+        &state,
+        &params.node_id,
+        &format!("/api/files?path={}", enc_path),
+        req,
+    )
+    .await
 }
 
 /// GET /api/v1/proxy/files/read
@@ -339,7 +353,13 @@ pub async fn proxy_files_read(
     req: Request,
 ) -> Response {
     let enc_path = urlencoding::encode(&params.path);
-    proxy_to_peer_url(&state, &params.node_id, &format!("/api/files/read?path={}", enc_path), req).await
+    proxy_to_peer_url(
+        &state,
+        &params.node_id,
+        &format!("/api/files/read?path={}", enc_path),
+        req,
+    )
+    .await
 }
 
 /// POST /api/v1/proxy/files/write
@@ -349,7 +369,13 @@ pub async fn proxy_files_write(
     req: Request,
 ) -> Response {
     let enc_path = urlencoding::encode(&params.path);
-    proxy_to_peer_url(&state, &params.node_id, &format!("/api/files/write?path={}", enc_path), req).await
+    proxy_to_peer_url(
+        &state,
+        &params.node_id,
+        &format!("/api/files/write?path={}", enc_path),
+        req,
+    )
+    .await
 }
 
 /// POST /api/v1/proxy/files/mkdir
@@ -359,7 +385,13 @@ pub async fn proxy_files_mkdir(
     req: Request,
 ) -> Response {
     let enc_path = urlencoding::encode(&params.path);
-    proxy_to_peer_url(&state, &params.node_id, &format!("/api/files/mkdir?path={}", enc_path), req).await
+    proxy_to_peer_url(
+        &state,
+        &params.node_id,
+        &format!("/api/files/mkdir?path={}", enc_path),
+        req,
+    )
+    .await
 }
 
 // ── Tests ───────────────────────────────────────────────────────────

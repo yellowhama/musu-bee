@@ -1,5 +1,7 @@
 import { getBridgeUrl } from '../../../lib/bridge-config';
 import { NextResponse } from "next/server";
+import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
+import { getBridgeToken } from "@/lib/bridge-token";
 
 type AgentSnapshotRow = {
   id: string;
@@ -33,9 +35,6 @@ const PAPERCLIP_API_BASE = normalizePaperclipApiBase(
 );
 const PAPERCLIP_COMPANY_ID =
   (process.env.PAPERCLIP_COMPANY_ID ?? DEFAULT_COMPANY_ID).trim() || DEFAULT_COMPANY_ID;
-const MUSU_PORT_URL = normalizeBase(
-  getBridgeUrl(),
-);
 const STALE_THRESHOLD_MS = toPositiveInt(
   process.env.AGENTS_STALE_THRESHOLD_MS,
   15 * 60 * 1000,
@@ -66,11 +65,16 @@ function parseIsoMs(raw: string | null | undefined): number | null {
   return Number.isFinite(ms) ? ms : null;
 }
 
-async function fetchJsonWithTimeout(url: string, timeoutMs: number): Promise<FetchResult> {
+async function fetchJsonWithTimeout(
+  url: string,
+  timeoutMs: number,
+  headers?: HeadersInit,
+): Promise<FetchResult> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(url, {
+      headers,
       signal: controller.signal,
       next: { revalidate: 0 },
     });
@@ -92,7 +96,7 @@ export async function GET() {
   const fetchedAt = new Date(fetchedAtMs).toISOString();
 
   const agentsUrl = `${PAPERCLIP_API_BASE}/companies/${encodeURIComponent(PAPERCLIP_COMPANY_ID)}/agents`;
-  const handoffLatestUrl = `${MUSU_PORT_URL}/handoff/latest`;
+  const handoffLatestUrl = `${normalizeBase(getBridgeUrl())}/handoff/latest`;
 
   const agentsResult = await fetchJsonWithTimeout(agentsUrl, AGENTS_TIMEOUT_MS);
 
@@ -133,7 +137,11 @@ export async function GET() {
     degradedReason = "agents_stale";
   }
 
-  const handoffResult = await fetchJsonWithTimeout(handoffLatestUrl, HANDOFF_TIMEOUT_MS);
+  const handoffResult = await fetchJsonWithTimeout(
+    handoffLatestUrl,
+    HANDOFF_TIMEOUT_MS,
+    buildBridgeHeaders(await getBridgeToken()),
+  );
   const handoffPayload =
     handoffResult.ok &&
     handoffResult.data &&

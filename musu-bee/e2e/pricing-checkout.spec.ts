@@ -5,7 +5,7 @@ const hasClientToken = Boolean(process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN?.trim
 async function mockCheckoutRoute(page: Page) {
   await page.addInitScript(() => {
     const nativeFetch = window.fetch.bind(window);
-    window.fetch = async (input: any, init?: any) => {
+    window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       const url =
         typeof input === "string"
           ? input

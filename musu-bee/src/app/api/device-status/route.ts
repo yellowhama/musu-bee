@@ -1,5 +1,7 @@
 import { getBridgeUrl } from '../../../lib/bridge-config';
 import { NextResponse } from "next/server";
+import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
+import { getBridgeToken } from "@/lib/bridge-token";
 
 export interface DeviceStatusItem {
   id: string;
@@ -37,6 +39,7 @@ export async function GET() {
 
   try {
     const res = await fetch(`${BRIDGE_URL}/api/fleet/status`, {
+      headers: buildBridgeHeaders(await getBridgeToken()),
       next: { revalidate: 0 },
     });
 

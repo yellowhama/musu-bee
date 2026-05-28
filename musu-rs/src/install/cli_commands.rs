@@ -5,11 +5,9 @@
 //! `manual_peers.toml`, authenticate with `MUSU_BRIDGE_TOKEN` /
 //! `MUSU_TOKEN`, and print operator-friendly output.
 
-
-
-
 use anyhow::Result;
 use clap::Args;
+use serde::Serialize;
 
 use super::shares::SharesConfig;
 
@@ -79,6 +77,28 @@ pub struct PutOpts {
     /// Remote destination: peer-name:/path/to/dest.
     pub remote: String,
 }
+
+/// Options for `musu doctor`.
+#[derive(Args, Debug, Clone)]
+pub struct DoctorOpts {
+    /// Emit machine-readable JSON for dashboards and install scripts.
+    #[arg(long)]
+    pub json: bool,
+}
+
+/// Options for `musu up`.
+#[derive(Args, Debug, Clone)]
+pub struct UpOpts {
+    /// Emit machine-readable JSON.
+    #[arg(long)]
+    pub json: bool,
+    /// Open the dashboard URL after the bridge is reachable.
+    #[arg(long)]
+    pub open_dashboard: bool,
+    /// Seconds to wait for bridge health after starting it.
+    #[arg(long, default_value_t = 20)]
+    pub timeout_sec: u64,
+}
 // ── share / unshare / shares ────────────────────────────────────────────
 
 /// `musu share <path>` — register a directory in `shares.toml`.
@@ -112,8 +132,8 @@ pub async fn run_unshare(opts: UnshareOpts) -> Result<()> {
     let home = musu_home();
     let mut config = SharesConfig::load(&home);
 
-    let abs_path = std::fs::canonicalize(&opts.path)
-        .unwrap_or_else(|_| std::path::PathBuf::from(&opts.path));
+    let abs_path =
+        std::fs::canonicalize(&opts.path).unwrap_or_else(|_| std::path::PathBuf::from(&opts.path));
 
     if config.remove(&abs_path.to_string_lossy()) {
         config.save(&home)?;
@@ -154,8 +174,7 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
     let addr = if let Some(ref target) = opts.target {
         find_peer_addr(&home, target.as_str())?
     } else {
-        let port = std::env::var("BRIDGE_PORT").unwrap_or_else(|_| "8070".into());
-        format!("127.0.0.1:{port}")
+        local_bridge_addr()
     };
 
     let url = format!("http://{addr}/api/tasks/delegate");
@@ -185,10 +204,7 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
     if resp.status().is_success() {
         let result: serde_json::Value = resp.json().await?;
         let task_id = result["task_id"].as_str().unwrap_or("unknown");
-        println!(
-            "✓ Task queued: {}",
-            task_id,
-        );
+        println!("✓ Task queued: {}", task_id,);
 
         if opts.wait {
             println!("⏳ Waiting for task {}...", task_id);
@@ -337,8 +353,8 @@ pub async fn run_put(opts: PutOpts) -> Result<()> {
     let (peer_name, path) = parse_remote(&opts.remote)?;
     let addr = find_peer_addr(&home, &peer_name)?;
 
-    let data =
-        std::fs::read(&opts.local).map_err(|e| anyhow::anyhow!("cannot read '{}': {e}", opts.local))?;
+    let data = std::fs::read(&opts.local)
+        .map_err(|e| anyhow::anyhow!("cannot read '{}': {e}", opts.local))?;
     let size = data.len();
 
     let url = format!(
@@ -374,9 +390,11 @@ pub async fn run_put(opts: PutOpts) -> Result<()> {
 /// name from the remote path, and a second colon (e.g. `C:\`) is left
 /// as part of the path.
 fn parse_remote(remote: &str) -> Result<(String, String)> {
-    let colon_pos = remote
-        .find(':')
-        .ok_or_else(|| anyhow::anyhow!("invalid remote format '{remote}'. Use: peer-name:/path or peer-name:C:\\path"))?;
+    let colon_pos = remote.find(':').ok_or_else(|| {
+        anyhow::anyhow!(
+            "invalid remote format '{remote}'. Use: peer-name:/path or peer-name:C:\\path"
+        )
+    })?;
 
     let peer = &remote[..colon_pos];
     let path = &remote[colon_pos + 1..];
@@ -432,9 +450,735 @@ fn find_peer_addr(home: &std::path::Path, peer_name: &str) -> Result<String> {
 
 /// Read the bridge/peer token from env.
 fn get_token() -> String {
-    std::env::var("MUSU_BRIDGE_TOKEN")
-        .or_else(|_| std::env::var("MUSU_TOKEN"))
-        .unwrap_or_default()
+    if let Ok(token) = std::env::var("MUSU_BRIDGE_TOKEN") {
+        if !token.trim().is_empty() {
+            return token;
+        }
+    }
+    if let Ok(token) = std::env::var("MUSU_TOKEN") {
+        if !token.trim().is_empty() {
+            return token;
+        }
+    }
+    crate::install::token::read_bridge_token(&musu_home()).unwrap_or_default()
+}
+
+fn local_bridge_addr() -> String {
+    crate::bridge::services::local_bridge_addr(&musu_home())
+}
+
+fn local_bridge_base_url() -> String {
+    crate::bridge::services::local_bridge_http_url(&musu_home())
+}
+
+fn resolve_public_bridge_url() -> String {
+    crate::bridge::services::resolve_public_bridge_url(&musu_home())
+}
+
+// ── doctor ───────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+enum DoctorLevel {
+    Ok,
+    Warn,
+    Fail,
+}
+
+impl DoctorLevel {
+    fn label(self) -> &'static str {
+        match self {
+            Self::Ok => "ok",
+            Self::Warn => "warn",
+            Self::Fail => "fail",
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+struct DoctorReport {
+    overall: DoctorLevel,
+    generated_at: String,
+    version: &'static str,
+    distribution: String,
+    home: DoctorHome,
+    binary: DoctorBinary,
+    account: DoctorAccount,
+    bridge: DoctorBridge,
+    dashboard: DoctorDashboard,
+    package: DoctorPackage,
+    next_steps: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct DoctorHome {
+    status: DoctorLevel,
+    path: String,
+    exists: bool,
+    note: String,
+}
+
+#[derive(Debug, Serialize)]
+struct DoctorBinary {
+    status: DoctorLevel,
+    current_exe: Option<String>,
+    installed_binary: String,
+    installed_binary_exists: bool,
+    bin_dir_on_path: bool,
+    first_path_musu: Option<String>,
+    windowsapps_alias: Option<String>,
+    alias_shadowed_by: Option<String>,
+    note: String,
+}
+
+#[derive(Debug, Serialize)]
+struct DoctorAccount {
+    status: DoctorLevel,
+    logged_in: bool,
+    account_token_present: bool,
+    bridge_token_present: bool,
+    note: String,
+}
+
+#[derive(Debug, Serialize)]
+struct DoctorBridge {
+    status: DoctorLevel,
+    local_url: String,
+    service_registry_addr: Option<String>,
+    public_url: String,
+    public_url_valid: bool,
+    health_http_status: Option<u16>,
+    health_body: Option<serde_json::Value>,
+    error: Option<String>,
+    note: String,
+}
+
+#[derive(Debug, Serialize)]
+struct DoctorDashboard {
+    status: DoctorLevel,
+    dev_url: String,
+    start_url: String,
+    reachable_url: Option<String>,
+    note: String,
+}
+
+#[derive(Debug, Serialize)]
+struct DoctorPackage {
+    status: DoctorLevel,
+    distribution: String,
+    package_status_command: String,
+    note: String,
+}
+
+#[derive(Debug, Serialize)]
+struct UpReport {
+    ok: bool,
+    token_created: bool,
+    bridge_started: bool,
+    bridge_pid: Option<u32>,
+    bridge_log_path: String,
+    bridge: DoctorBridge,
+    dashboard: DoctorDashboard,
+    dashboard_open_attempted: bool,
+    dashboard_open_error: Option<String>,
+    next_steps: Vec<String>,
+}
+
+/// `musu doctor` — diagnose install, login, bridge, dashboard, and package state.
+pub async fn run_doctor(opts: DoctorOpts) -> Result<()> {
+    let home = musu_home();
+    let home_exists = home.exists();
+    let home_status = if home_exists {
+        DoctorLevel::Ok
+    } else {
+        DoctorLevel::Warn
+    };
+    let home_check = DoctorHome {
+        status: home_status,
+        path: home.display().to_string(),
+        exists: home_exists,
+        note: if home_exists {
+            "MUSU home exists.".into()
+        } else {
+            "MUSU home does not exist yet. Run `musu install` or start the bridge once.".into()
+        },
+    };
+
+    let bin_dir = home.join("bin");
+    let installed_binary = bin_dir.join(crate::install::musu_binary_name());
+    let installed_binary_exists = installed_binary.exists();
+    let current_exe = std::env::current_exe().ok();
+    let bin_dir_on_path = path_contains_dir(&bin_dir);
+    let first_path_musu = find_first_binary_on_path(crate::install::musu_binary_name());
+    let windowsapps_alias = windowsapps_alias_path();
+    let alias_shadowed_by = match (&windowsapps_alias, &first_path_musu) {
+        (Some(alias), Some(first)) if !paths_equivalent(alias, first) => {
+            Some(first.display().to_string())
+        }
+        _ => None,
+    };
+    let binary_status = if alias_shadowed_by.is_some() {
+        DoctorLevel::Warn
+    } else if installed_binary_exists || current_exe.is_some() {
+        if bin_dir_on_path || crate::install::distribution::DistributionMode::current().is_store_msix()
+        {
+            DoctorLevel::Ok
+        } else {
+            DoctorLevel::Warn
+        }
+    } else {
+        DoctorLevel::Fail
+    };
+    let binary_check = DoctorBinary {
+        status: binary_status,
+        current_exe: current_exe.as_ref().map(|p| p.display().to_string()),
+        installed_binary: installed_binary.display().to_string(),
+        installed_binary_exists,
+        bin_dir_on_path,
+        first_path_musu: first_path_musu.as_ref().map(|p| p.display().to_string()),
+        windowsapps_alias: windowsapps_alias.as_ref().map(|p| p.display().to_string()),
+        alias_shadowed_by: alias_shadowed_by.clone(),
+        note: match binary_status {
+            DoctorLevel::Ok => "CLI binary is discoverable.".into(),
+            DoctorLevel::Warn if alias_shadowed_by.is_some() => {
+                "WindowsApps package alias is shadowed by another musu.exe earlier on PATH.".into()
+            }
+            DoctorLevel::Warn => {
+                "CLI binary exists, but ~/.musu/bin is not on PATH for this shell.".into()
+            }
+            DoctorLevel::Fail => "Cannot locate a MUSU CLI binary.".into(),
+        },
+    };
+
+    let account_token = crate::cloud::token::load_token(&home);
+    let bridge_token = get_token();
+    let account_token_present = account_token.as_deref().is_some_and(|t| !t.trim().is_empty());
+    let bridge_token_present = !bridge_token.trim().is_empty();
+    let account_status = match (account_token_present, bridge_token_present) {
+        (true, true) => DoctorLevel::Ok,
+        (true, false) | (false, true) => DoctorLevel::Warn,
+        (false, false) => DoctorLevel::Fail,
+    };
+    let account_check = DoctorAccount {
+        status: account_status,
+        logged_in: account_token_present,
+        account_token_present,
+        bridge_token_present,
+        note: match account_status {
+            DoctorLevel::Ok => "Account token and local bridge token are present.".into(),
+            DoctorLevel::Warn => {
+                "Partial auth state: either account login or local bridge token is missing.".into()
+            }
+            DoctorLevel::Fail => "No account token or bridge token found. Run `musu login`.".into(),
+        },
+    };
+
+    let bridge_check = check_bridge(&home).await;
+    let dashboard_check = check_dashboard().await;
+    let distribution = crate::install::distribution::DistributionMode::current()
+        .as_str()
+        .to_string();
+    let package_status = if cfg!(windows) {
+        DoctorLevel::Ok
+    } else {
+        DoctorLevel::Warn
+    };
+    let package_check = DoctorPackage {
+        status: package_status,
+        distribution: distribution.clone(),
+        package_status_command: "musu package-status".into(),
+        note: if cfg!(windows) {
+            "Run `musu package-status` for Windows package identity and startup-task details.".into()
+        } else {
+            "Package startup-task diagnostics are Windows/MSIX specific.".into()
+        },
+    };
+
+    let mut levels = vec![
+        home_check.status,
+        binary_check.status,
+        account_check.status,
+        bridge_check.status,
+        dashboard_check.status,
+    ];
+    if cfg!(windows) {
+        levels.push(package_check.status);
+    }
+    let overall = summarize_levels(&levels);
+
+    let next_steps = next_steps_for(
+        &account_check,
+        bridge_check.status,
+        dashboard_check.status,
+        bridge_check.public_url_valid,
+    );
+
+    let report = DoctorReport {
+        overall,
+        generated_at: chrono::Utc::now().to_rfc3339(),
+        version: env!("CARGO_PKG_VERSION"),
+        distribution,
+        home: home_check,
+        binary: binary_check,
+        account: account_check,
+        bridge: bridge_check,
+        dashboard: dashboard_check,
+        package: package_check,
+        next_steps,
+    };
+
+    if opts.json {
+        println!("{}", serde_json::to_string_pretty(&report)?);
+    } else {
+        print_doctor_report(&report);
+    }
+    Ok(())
+}
+
+/// `musu up` — first-run helper. Ensures a bridge token exists, starts the
+/// bridge if needed, waits for health, and prints the dashboard handoff.
+pub async fn run_up(opts: UpOpts) -> Result<()> {
+    let home = musu_home();
+    std::fs::create_dir_all(&home)?;
+
+    let had_token = crate::install::token::read_bridge_token(&home).is_some();
+    let _token = crate::install::token::ensure_bridge_token(&home)?;
+    let token_created = !had_token;
+
+    let mut bridge = check_bridge(&home).await;
+    let bridge_log_path = home.join("logs").join("bridge.log");
+    let mut bridge_started = false;
+    let mut bridge_pid = None;
+
+    if !bridge_reachable(&bridge) {
+        let child = spawn_bridge_process(&home, &bridge_log_path)?;
+        bridge_started = true;
+        bridge_pid = Some(child.id());
+        bridge = wait_for_bridge(&home, std::time::Duration::from_secs(opts.timeout_sec)).await;
+    }
+
+    let dashboard = check_dashboard().await;
+    let mut dashboard_open_error = None;
+    if opts.open_dashboard {
+        let url = dashboard
+            .reachable_url
+            .as_deref()
+            .unwrap_or(dashboard.dev_url.as_str());
+        if let Err(err) = open_url(url) {
+            dashboard_open_error = Some(err.to_string());
+        }
+    }
+
+    let ok = bridge_reachable(&bridge);
+    let mut next_steps = Vec::new();
+    if !bridge_reachable(&bridge) {
+        next_steps.push(format!(
+            "Bridge did not become healthy within {}s. Check {}.",
+            opts.timeout_sec,
+            bridge_log_path.display()
+        ));
+    }
+    if dashboard.status != DoctorLevel::Ok {
+        next_steps.push(
+            "Start the dashboard from `musu-bee`: `npm run dev` or `npm start`.".into(),
+        );
+    }
+    if next_steps.is_empty() {
+        next_steps.push("Open the dashboard and run a first agent task.".into());
+    }
+
+    let report = UpReport {
+        ok,
+        token_created,
+        bridge_started,
+        bridge_pid,
+        bridge_log_path: bridge_log_path.display().to_string(),
+        bridge,
+        dashboard,
+        dashboard_open_attempted: opts.open_dashboard,
+        dashboard_open_error,
+        next_steps,
+    };
+
+    if opts.json {
+        println!("{}", serde_json::to_string_pretty(&report)?);
+    } else {
+        print_up_report(&report);
+    }
+    Ok(())
+}
+
+async fn check_bridge(home: &std::path::Path) -> DoctorBridge {
+    let local_url = crate::bridge::services::local_bridge_http_url(home);
+    let service_registry_addr = crate::bridge::services::discover_local_bridge_addr(home);
+    let public_url = crate::bridge::services::resolve_public_bridge_url(home);
+    let public_url_valid = is_http_url(&public_url);
+
+    let client = reqwest::Client::new();
+    match client
+        .get(format!("{}/health", local_url.trim_end_matches('/')))
+        .timeout(std::time::Duration::from_secs(3))
+        .send()
+        .await
+    {
+        Ok(resp) => {
+            let status = resp.status();
+            let health_http_status = Some(status.as_u16());
+            let health_body = resp.json::<serde_json::Value>().await.ok();
+            let level = if status.is_success() {
+                if public_url_valid {
+                    DoctorLevel::Ok
+                } else {
+                    DoctorLevel::Warn
+                }
+            } else {
+                DoctorLevel::Fail
+            };
+            DoctorBridge {
+                status: level,
+                local_url,
+                service_registry_addr,
+                public_url,
+                public_url_valid,
+                health_http_status,
+                health_body,
+                error: None,
+                note: match level {
+                    DoctorLevel::Ok => "Local bridge is reachable.".into(),
+                    DoctorLevel::Warn => {
+                        "Local bridge is reachable, but public URL is not a valid http/https URL."
+                            .into()
+                    }
+                    DoctorLevel::Fail => "Bridge health endpoint returned an error status.".into(),
+                },
+            }
+        }
+        Err(err) => DoctorBridge {
+            status: DoctorLevel::Fail,
+            local_url,
+            service_registry_addr,
+            public_url,
+            public_url_valid,
+            health_http_status: None,
+            health_body: None,
+            error: Some(err.to_string()),
+            note: "Local bridge is not reachable. Start it with `musu bridge`.".into(),
+        },
+    }
+}
+
+async fn check_dashboard() -> DoctorDashboard {
+    let candidates = [
+        ("http://127.0.0.1:3000/app", "dev"),
+        ("http://127.0.0.1:3001/app", "start"),
+    ];
+    let client = reqwest::Client::new();
+    for (url, _) in candidates {
+        if let Ok(resp) = client
+            .get(url)
+            .timeout(std::time::Duration::from_secs(1))
+            .send()
+            .await
+        {
+            if resp.status().is_success() || resp.status().is_redirection() {
+                return DoctorDashboard {
+                    status: DoctorLevel::Ok,
+                    dev_url: "http://127.0.0.1:3000/app".into(),
+                    start_url: "http://127.0.0.1:3001/app".into(),
+                    reachable_url: Some(url.into()),
+                    note: "Dashboard is reachable.".into(),
+                };
+            }
+        }
+    }
+
+    DoctorDashboard {
+        status: DoctorLevel::Warn,
+        dev_url: "http://127.0.0.1:3000/app".into(),
+        start_url: "http://127.0.0.1:3001/app".into(),
+        reachable_url: None,
+        note: "Dashboard is not reachable from this shell. Start `musu-bee` with `npm run dev` or `npm start`.".into(),
+    }
+}
+
+async fn wait_for_bridge(home: &std::path::Path, timeout: std::time::Duration) -> DoctorBridge {
+    let deadline = std::time::Instant::now() + timeout;
+    let mut last = check_bridge(home).await;
+    while std::time::Instant::now() < deadline {
+        if bridge_reachable(&last) {
+            return last;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        last = check_bridge(home).await;
+    }
+    last
+}
+
+fn bridge_reachable(bridge: &DoctorBridge) -> bool {
+    bridge
+        .health_http_status
+        .is_some_and(|status| (200..300).contains(&status))
+}
+
+fn spawn_bridge_process(
+    home: &std::path::Path,
+    log_path: &std::path::Path,
+) -> Result<std::process::Child> {
+    if let Some(parent) = log_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let stdout = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(log_path)?;
+    let stderr = stdout.try_clone()?;
+    let exe = std::env::current_exe()?;
+    let mut cmd = std::process::Command::new(exe);
+    cmd.arg("bridge")
+        .env("MUSU_HOME", home)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::from(stdout))
+        .stderr(std::process::Stdio::from(stderr));
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.creation_flags(CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW);
+    }
+
+    cmd.spawn().map_err(Into::into)
+}
+
+fn open_url(url: &str) -> Result<()> {
+    #[cfg(windows)]
+    let mut cmd = {
+        let mut c = std::process::Command::new("cmd");
+        c.args(["/C", "start", "", url]);
+        c
+    };
+
+    #[cfg(target_os = "macos")]
+    let mut cmd = {
+        let mut c = std::process::Command::new("open");
+        c.arg(url);
+        c
+    };
+
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let mut cmd = {
+        let mut c = std::process::Command::new("xdg-open");
+        c.arg(url);
+        c
+    };
+
+    #[cfg(not(any(windows, target_os = "macos", unix)))]
+    {
+        let _ = url;
+        anyhow::bail!("opening dashboard URLs is not supported on this platform");
+    }
+
+    #[cfg(any(windows, target_os = "macos", unix))]
+    {
+        cmd.stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()?;
+        Ok(())
+    }
+}
+
+fn summarize_levels(levels: &[DoctorLevel]) -> DoctorLevel {
+    if levels.contains(&DoctorLevel::Fail) {
+        DoctorLevel::Fail
+    } else if levels.contains(&DoctorLevel::Warn) {
+        DoctorLevel::Warn
+    } else {
+        DoctorLevel::Ok
+    }
+}
+
+fn next_steps_for(
+    account: &DoctorAccount,
+    bridge: DoctorLevel,
+    dashboard: DoctorLevel,
+    public_url_valid: bool,
+) -> Vec<String> {
+    let mut steps = Vec::new();
+    if !account.account_token_present {
+        steps.push("Run `musu login`.".into());
+    }
+    if !account.bridge_token_present {
+        steps.push("Seed the local bridge token by running `musu install` or starting `musu bridge` once.".into());
+    }
+    if matches!(bridge, DoctorLevel::Fail) {
+        steps.push("Start the local bridge with `musu bridge`.".into());
+    }
+    if !public_url_valid {
+        steps.push("Set MUSU_BRIDGE_PUBLIC_URL to an http:// or https:// URL if cloud registration rejects the computed URL.".into());
+    }
+    if matches!(dashboard, DoctorLevel::Warn | DoctorLevel::Fail) {
+        steps.push("Start the dashboard from `musu-bee`: `npm run dev` for port 3000 or `npm start` for port 3001.".into());
+    }
+    if steps.is_empty() {
+        steps.push("System looks ready. Use the dashboard or `musu route --wait <task>` to run work.".into());
+    }
+    steps
+}
+
+fn is_http_url(raw: &str) -> bool {
+    reqwest::Url::parse(raw)
+        .map(|url| matches!(url.scheme(), "http" | "https"))
+        .unwrap_or(false)
+}
+
+fn path_contains_dir(dir: &std::path::Path) -> bool {
+    let Some(path) = std::env::var_os("PATH") else {
+        return false;
+    };
+    std::env::split_paths(&path).any(|entry| paths_equivalent(&entry, dir))
+}
+
+fn paths_equivalent(a: &std::path::Path, b: &std::path::Path) -> bool {
+    match (std::fs::canonicalize(a), std::fs::canonicalize(b)) {
+        (Ok(a), Ok(b)) => a == b,
+        _ => a == b,
+    }
+}
+
+fn find_first_binary_on_path(binary_name: &str) -> Option<std::path::PathBuf> {
+    let path = std::env::var_os("PATH")?;
+    for dir in std::env::split_paths(&path) {
+        let candidate = dir.join(binary_name);
+        if candidate.exists() {
+            return Some(candidate);
+        }
+        #[cfg(windows)]
+        {
+            if !binary_name.to_ascii_lowercase().ends_with(".exe") {
+                let candidate = dir.join(format!("{binary_name}.exe"));
+                if candidate.exists() {
+                    return Some(candidate);
+                }
+            }
+        }
+    }
+    None
+}
+
+fn windowsapps_alias_path() -> Option<std::path::PathBuf> {
+    #[cfg(windows)]
+    {
+        let local_app_data = std::env::var_os("LOCALAPPDATA")?;
+        let path = std::path::PathBuf::from(local_app_data)
+            .join("Microsoft")
+            .join("WindowsApps")
+            .join(crate::install::musu_binary_name());
+        path.exists().then_some(path)
+    }
+    #[cfg(not(windows))]
+    {
+        None
+    }
+}
+
+fn print_doctor_report(report: &DoctorReport) {
+    println!("MUSU Doctor");
+    println!("version: {}", report.version);
+    println!("overall: {}", report.overall.label());
+    println!();
+    print_line(
+        "home",
+        report.home.status,
+        &format!("{} ({})", report.home.path, report.home.note),
+    );
+    print_line(
+        "binary",
+        report.binary.status,
+        &format!(
+            "{}; PATH={}",
+            report.binary.installed_binary,
+            if report.binary.bin_dir_on_path {
+                "ok"
+            } else {
+                "missing"
+            }
+        ),
+    );
+    if let Some(shadow) = &report.binary.alias_shadowed_by {
+        print_line(
+            "alias",
+            DoctorLevel::Warn,
+            &format!("WindowsApps alias shadowed by {shadow}"),
+        );
+    }
+    print_line("account", report.account.status, &report.account.note);
+    print_line(
+        "bridge",
+        report.bridge.status,
+        &format!("{} ({})", report.bridge.local_url, report.bridge.note),
+    );
+    print_line(
+        "public URL",
+        if report.bridge.public_url_valid {
+            DoctorLevel::Ok
+        } else {
+            DoctorLevel::Warn
+        },
+        &report.bridge.public_url,
+    );
+    print_line("dashboard", report.dashboard.status, &report.dashboard.note);
+    print_line("package", report.package.status, &report.package.note);
+    println!();
+    println!("Next steps:");
+    for step in &report.next_steps {
+        println!("  - {step}");
+    }
+}
+
+fn print_up_report(report: &UpReport) {
+    println!("MUSU Up");
+    println!(
+        "bridge: {} ({})",
+        report.bridge.status.label(),
+        report.bridge.local_url
+    );
+    println!(
+        "token: {}",
+        if report.token_created {
+            "created"
+        } else {
+            "existing"
+        }
+    );
+    if report.bridge_started {
+        println!(
+            "started bridge pid: {}",
+            report
+                .bridge_pid
+                .map(|p| p.to_string())
+                .unwrap_or_else(|| "unknown".into())
+        );
+    } else {
+        println!("bridge was already running or still unreachable");
+    }
+    println!("bridge log: {}", report.bridge_log_path);
+    println!("dashboard: {}", report.dashboard.status.label());
+    println!("dashboard dev: {}", report.dashboard.dev_url);
+    println!("dashboard start: {}", report.dashboard.start_url);
+    if let Some(err) = &report.dashboard_open_error {
+        println!("dashboard open failed: {err}");
+    }
+    println!();
+    println!("Next steps:");
+    for step in &report.next_steps {
+        println!("  - {step}");
+    }
+}
+
+fn print_line(name: &str, level: DoctorLevel, detail: &str) {
+    println!("  [{:<4}] {:<10} {}", level.label(), name, detail);
 }
 
 /// Human-friendly byte-size formatter.
@@ -452,13 +1196,8 @@ fn format_size(bytes: u64) -> String {
 
 /// Resolve `~/.musu` from environment.
 fn musu_home() -> std::path::PathBuf {
-    if let Ok(home) = std::env::var("HOME") {
-        return std::path::PathBuf::from(home).join(".musu");
-    }
-    if let Ok(userprofile) = std::env::var("USERPROFILE") {
-        return std::path::PathBuf::from(userprofile).join(".musu");
-    }
-    std::path::PathBuf::from(".").join(".musu")
+    crate::install::resolve_musu_home_from_env()
+        .unwrap_or_else(|_| std::path::PathBuf::from(".").join(".musu"))
 }
 
 // ── F3 fleet dashboard CLI ──────────────────────────────────────────
@@ -467,9 +1206,7 @@ fn musu_home() -> std::path::PathBuf {
 pub async fn run_status() -> Result<()> {
     let _home = musu_home();
     let token = get_token();
-    let port = std::env::var("BRIDGE_PORT").unwrap_or_else(|_| "8070".into());
-    let addr = format!("127.0.0.1:{}", port);
-    let url = format!("http://{}/api/fleet/status", addr);
+    let url = format!("{}/api/fleet/status", local_bridge_base_url());
     let client = reqwest::Client::new();
 
     let resp = client
@@ -504,10 +1241,7 @@ pub async fn run_status() -> Result<()> {
         this["name"].as_str().unwrap_or("?"),
         this["tasks_running"].as_u64().unwrap_or(0),
         this["tasks_pending"].as_u64().unwrap_or(0),
-        this["shared_dirs"]
-            .as_array()
-            .map(|a| a.len())
-            .unwrap_or(0),
+        this["shared_dirs"].as_array().map(|a| a.len()).unwrap_or(0),
     );
 
     // Peers
@@ -547,9 +1281,7 @@ pub async fn run_status() -> Result<()> {
 /// `musu tasks` — list recent tasks across the fleet.
 pub async fn run_tasks() -> Result<()> {
     let token = get_token();
-    let port = std::env::var("BRIDGE_PORT").unwrap_or_else(|_| "8070".into());
-    let addr = format!("127.0.0.1:{}", port);
-    let url = format!("http://{}/api/tasks", addr);
+    let url = format!("{}/api/tasks", local_bridge_base_url());
     let client = reqwest::Client::new();
 
     let resp = client
@@ -590,7 +1322,10 @@ pub async fn run_tasks() -> Result<()> {
                 .unwrap_or_else(|| "-".into());
             let channel = task["channel"].as_str().unwrap_or("?");
 
-            println!("{:<12} {:<10} {:<10} {}", short_id, status, duration, channel);
+            println!(
+                "{:<12} {:<10} {:<10} {}",
+                short_id, status, duration, channel
+            );
         }
         println!("\nTotal: {} tasks", tasks.len());
     }
@@ -603,10 +1338,10 @@ pub async fn run_tasks() -> Result<()> {
 /// `musu workflow-run --id <ID>` — execute a workflow via the bridge.
 pub async fn run_workflow_execute(workflow_id: &str) -> Result<()> {
     let token = get_token();
-    let port = std::env::var("BRIDGE_PORT").unwrap_or_else(|_| "8070".into());
     let url = format!(
-        "http://127.0.0.1:{}/api/workflows/{}/execute",
-        port, workflow_id
+        "{}/api/workflows/{}/execute",
+        local_bridge_base_url(),
+        workflow_id
     );
     let client = reqwest::Client::new();
 
@@ -634,8 +1369,7 @@ pub async fn run_workflow_execute(workflow_id: &str) -> Result<()> {
 /// `musu pair` — generate a pairing code for another machine to join.
 pub async fn run_pair() -> Result<()> {
     let token = get_token();
-    let port = std::env::var("BRIDGE_PORT").unwrap_or_else(|_| "8070".into());
-    let url = format!("http://127.0.0.1:{}/api/pair/offer", port);
+    let url = format!("{}/api/pair/offer", local_bridge_base_url());
     let client = reqwest::Client::new();
 
     let resp = client
@@ -667,14 +1401,13 @@ pub async fn run_join(code: &str) -> Result<()> {
     let peers = crate::peer::mdns::discover_peers(std::time::Duration::from_secs(5)).await;
 
     let token = get_token();
-    let my_port = std::env::var("BRIDGE_PORT").unwrap_or_else(|_| "8070".into());
     let my_name = std::env::var("MUSU_NODE_NAME").unwrap_or_else(|_| {
         hostname::get()
             .unwrap_or_default()
             .to_string_lossy()
             .to_string()
     });
-    let my_url = format!("http://0.0.0.0:{}", my_port);
+    let my_url = resolve_public_bridge_url();
 
     // Try each discovered peer.
     let client = reqwest::Client::new();
@@ -711,7 +1444,7 @@ pub async fn run_join(code: &str) -> Result<()> {
     }
 
     // Fallback: try local bridge.
-    let url = format!("http://127.0.0.1:{}/api/pair/accept", my_port);
+    let url = format!("{}/api/pair/accept", local_bridge_base_url());
     let body = serde_json::json!({
         "code": code,
         "my_name": my_name,
@@ -786,9 +1519,9 @@ pub async fn run_mount(node: Option<&str>) -> Result<()> {
 
     if let Some(target) = node {
         // Find specific peer.
-        let peer = peers.iter().find(|p| {
-            p.addr == target || p.name.as_deref() == Some(target)
-        });
+        let peer = peers
+            .iter()
+            .find(|p| p.addr == target || p.name.as_deref() == Some(target));
         match peer {
             Some(p) => {
                 let url = format!("http://{}/webdav", p.addr);
@@ -806,9 +1539,7 @@ pub async fn run_mount(node: Option<&str>) -> Result<()> {
         }
     } else {
         // Show local WebDAV URL.
-        let port =
-            std::env::var("BRIDGE_PORT").unwrap_or_else(|_| "8070".into());
-        let url = format!("http://127.0.0.1:{}/webdav", port);
+        let url = format!("{}/webdav", local_bridge_base_url());
         println!("\nLocal WebDAV URL: {}\n", url);
         println!("Mount it on another machine to access shared files.");
 
@@ -843,7 +1574,11 @@ pub async fn run_login() -> Result<()> {
 
     println!("\n🔗 Open this URL in your browser to approve:");
     println!("   {}", flow.verification_uri);
-    println!("\n⏳ Waiting for approval (timeout {}s)...", flow.expires_in);
+    println!("   Code: {}", flow.user_code);
+    println!(
+        "\n⏳ Waiting for approval (timeout {}s)...",
+        flow.expires_in
+    );
 
     let start = std::time::Instant::now();
     let timeout = std::time::Duration::from_secs(flow.expires_in as u64);
@@ -858,24 +1593,32 @@ pub async fn run_login() -> Result<()> {
         match cloud.poll_device_token(&flow.device_code).await {
             Ok(Some(token)) => {
                 crate::cloud::token::save_token(&home, &token)?;
-                println!("\n✅ Logged in successfully!");
-                
+                println!("\nAccount login succeeded.");
+
                 // V27: Automatically register this node in the mesh
                 println!("Registering node to your fleet...");
                 let authed_cloud = crate::cloud::MusuCloud::new("https://musu.pro", Some(token));
+                let public_url = resolve_public_bridge_url();
                 let req = crate::cloud::RegisterNodeRequest {
                     node_name: my_name.clone(),
-                    public_url: "local".to_string(), // Can be updated later by musud
+                    public_url: public_url.clone(),
                     ..Default::default()
                 };
                 if let Err(e) = authed_cloud.register_node(req).await {
-                    println!("⚠️ Logged in, but node registration failed: {}", e);
+                    println!("Node registration failed.");
+                    println!("  reason: {}", e);
+                    println!("  computed public_url: {}", public_url);
+                    println!("This machine is logged in, but is not yet fully registered in your fleet.");
                 } else {
-                    println!("✅ Node registered successfully!");
+                    println!("Node registered successfully.");
+                    println!("This machine is connected to your MUSU account.");
                 }
-                
-                println!("This machine is now connected to your musu account.");
-                println!("Start the bridge with `musu bridge` to join your fleet.");
+
+                println!();
+                println!("Connection checklist:");
+                println!("  1. Run `musu doctor` to verify local state.");
+                println!("  2. Start the bridge with `musu bridge` if it is not already running.");
+                println!("  3. Open the dashboard: http://127.0.0.1:3000/app or http://127.0.0.1:3001/app");
                 return Ok(());
             }
             Ok(None) => {
@@ -905,4 +1648,60 @@ pub async fn run_whoami() -> Result<()> {
         println!("❌ Not logged in. Run `musu login`.");
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn shared_service_helper_normalizes_wildcards_to_loopback() {
+        assert_eq!(
+            crate::bridge::services::normalize_loopback_addr("0.0.0.0:8070"),
+            "127.0.0.1:8070"
+        );
+        assert_eq!(
+            crate::bridge::services::normalize_loopback_addr("[::]:9000"),
+            "127.0.0.1:9000"
+        );
+        assert_eq!(
+            crate::bridge::services::normalize_loopback_addr(":::7777"),
+            "127.0.0.1:7777"
+        );
+        assert_eq!(
+            crate::bridge::services::normalize_loopback_addr("127.0.0.1:5555"),
+            "127.0.0.1:5555"
+        );
+    }
+
+    #[test]
+    fn local_bridge_addr_prefers_service_registry_and_normalizes_it() {
+        let tmp = tempfile::tempdir().unwrap();
+        let musu_home = tmp.path().join(".musu");
+        std::env::set_var("MUSU_HOME", &musu_home);
+        std::env::set_var("BRIDGE_PORT", "9999");
+
+        let registry = crate::bridge::services::ServiceRegistry::new();
+        registry
+            .register(&crate::bridge::services::ServiceRecord {
+                name: "bridge".to_string(),
+                addr: "0.0.0.0:43123".to_string(),
+                pid: Some(std::process::id()),
+                started_at: chrono::Utc::now().timestamp(),
+                transport: crate::bridge::services::Transport::Tcp,
+            })
+            .unwrap();
+
+        assert_eq!(local_bridge_addr(), "127.0.0.1:43123");
+
+        std::env::remove_var("BRIDGE_PORT");
+        std::env::remove_var("MUSU_HOME");
+    }
+
+    #[test]
+    fn resolve_public_bridge_url_prefers_explicit_env() {
+        std::env::set_var("MUSU_BRIDGE_PUBLIC_URL", "https://fleet.example.test");
+        assert_eq!(resolve_public_bridge_url(), "https://fleet.example.test");
+        std::env::remove_var("MUSU_BRIDGE_PUBLIC_URL");
+    }
 }

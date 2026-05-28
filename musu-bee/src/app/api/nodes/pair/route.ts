@@ -1,9 +1,11 @@
 import { getBridgeUrl } from '../../../../lib/bridge-config';
 import { NextRequest, NextResponse } from "next/server";
+import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
+import { getBridgeToken } from "@/lib/bridge-token";
 
-const BRIDGE_URL = (
-  getBridgeUrl()
-).replace(/\/+$/, "");
+function bridgeUrl(): string {
+  return getBridgeUrl().replace(/\/+$/, "");
+}
 
 export async function POST(req: NextRequest) {
   let body: unknown;
@@ -14,9 +16,12 @@ export async function POST(req: NextRequest) {
   }
   try {
     // V24-R7: canonical Rust path /api/nodes/add (was Python-era /api/admin/pair).
-    const res = await fetch(`${BRIDGE_URL}/api/nodes/add`, {
+    const res = await fetch(`${bridgeUrl()}/api/nodes/add`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...buildBridgeHeaders(await getBridgeToken()),
+      },
       body: JSON.stringify(body),
     });
     const data = await res.json();

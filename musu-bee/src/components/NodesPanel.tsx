@@ -13,7 +13,7 @@ interface NodeHealth {
     status?: string;
     hostname?: string;
     platform?: string;
-    gpu?: any;
+    gpu?: unknown;
   };
   capabilities?: {
     available_clis?: string[];
@@ -80,9 +80,9 @@ export default function NodesPanel() {
         setNodes(data.nodes);
         setError(null);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (mountedRef.current) {
-        setError(err.message || "Failed to fetch nodes");
+        setError(err instanceof Error ? err.message : "Failed to fetch nodes");
       }
     } finally {
       if (mountedRef.current) {
@@ -136,10 +136,10 @@ export default function NodesPanel() {
           updated.set(key, result);
           return updated;
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         setExecResults((prev) => {
           const updated = new Map(prev);
-          updated.set(key, { error: err.message });
+          updated.set(key, { error: err instanceof Error ? err.message : "Execution failed" });
           return updated;
         });
       } finally {

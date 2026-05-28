@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { readFile } from "fs/promises";
 import { join } from "path";
 import { homedir } from "os";
+import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
+import { getBridgeToken } from "@/lib/bridge-token";
 
 interface NodeConfig {
   name: string;
@@ -102,9 +104,9 @@ function parseDelegationChain(
   return [sourceChannel.toUpperCase(), ...found.map((n) => n.toUpperCase())];
 }
 
-const MUSU_BRIDGE_URL = (
-  getBridgeUrl()
-).replace(/\/+$/, "");
+function localBridgeUrl(): string {
+  return getBridgeUrl().replace(/\/+$/, "");
+}
 
 /** Validate that a URL is an allowed musu-bridge endpoint (http/https, no path traversal). */
 function validateBridgeUrl(raw: string): string | null {
@@ -151,7 +153,7 @@ export async function POST(req: NextRequest) {
   const timer = setTimeout(() => controller.abort(), AGENT_ROUTE_TIMEOUT_MS);
 
   // Determine target URL based on selected node
-  let targetUrl = MUSU_BRIDGE_URL;
+  let targetUrl = localBridgeUrl();
 
   if (node && node !== "local") {
     // If a specific node is selected, read nodes.toml and find the node's URL
@@ -171,7 +173,10 @@ export async function POST(req: NextRequest) {
     // TODO: Pass node parameter to musu-bridge once RouteRequest supports it
     const upstream = await fetch(`${targetUrl}/api/route`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...buildBridgeHeaders(await getBridgeToken()),
+      },
       body: JSON.stringify({
         channel,
         sender_id,

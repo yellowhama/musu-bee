@@ -4,6 +4,19 @@
 
 ## Commands
 
+### `musu up` — Start local MUSU for first-run use
+
+```bash
+musu up
+musu up --json
+musu up --open-dashboard
+```
+
+Ensures `~/.musu/bridge.env` exists, starts the local bridge when needed,
+waits for `/health`, checks whether the dashboard is reachable, and prints the
+next operator step. Use this as the beta first-run command before opening the
+dashboard.
+
 ### `musu do` — Delegate a task to an AI agent
 
 ```bash
@@ -26,6 +39,8 @@ Delegates to the `engineer` channel by default. Polls for 60s, prints result.
 musu status
 ```
 
+Local CLI commands resolve the local bridge from `~/.musu/services/bridge.json` when available, then fall back to `BRIDGE_PORT` / `127.0.0.1:8070`.
+
 Output:
 ```
   ✓ Bridge       http://localhost:8070
@@ -47,7 +62,8 @@ Output:
 musu doctor
 ```
 
-Checks: bridge connectivity, CLI tools (claude/gemini/codex), agent availability, remote nodes.
+Checks: MUSU home, account/bridge tokens, bridge health, dashboard reachability,
+package mode, and Windows PATH/alias shadowing.
 
 ### `musu update` — Update all mesh nodes
 
@@ -55,7 +71,7 @@ Checks: bridge connectivity, CLI tools (claude/gemini/codex), agent availability
 musu update
 ```
 
-Runs `git pull` + restart on this node and every peer. No SSH needed.
+Runs `git pull` + restart on this node and every peer for direct-download nodes. Store/MSIX packaged Windows nodes must use Windows / Microsoft Store-managed updates instead and do not allow MUSU self-update.
 
 ### `musu nodes` — Manage mesh machines
 
@@ -132,5 +148,6 @@ MUSU CLI provides actionable error messages:
 | "Bridge timed out" | Server overloaded | `musu status` to check load |
 | "401 Unauthorized" | Token mismatch | Check `MUSU_BRIDGE_TOKEN` in bridge.env |
 | "404 Not Found" | Agent channel doesn't exist | `musu agent list` |
+| "409 Conflict" on update | Node is running in `store-msix` mode | Update that Windows install through its packaged Windows / Store channel |
 | "429 Rate Limited" | Too many tasks | Wait, or increase `MUSU_MAX_CONCURRENT_TASKS` |
 | "Agent unavailable" | Agent can't execute | `musu doctor` |

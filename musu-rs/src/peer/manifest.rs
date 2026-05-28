@@ -1,12 +1,12 @@
-use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
 use crate::peer::capability::Capability;
 use fs2::FileExt;
+use serde::{Deserialize, Serialize};
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct NodeManifest {
     pub name: String,
-    pub kind: String,                            // PeerType serialized as lowercase
+    pub kind: String, // PeerType serialized as lowercase
     pub start: String,
     pub registered_at: i64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -20,7 +20,7 @@ pub struct NodeManifest {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ServiceState {
-    /// "systemd" | "launchd" | "scheduled_task" | "none"
+    /// "systemd" | "launchd" | "scheduled_task" | "package_startup" | "none"
     pub platform: String,
     pub unit_name: String,
     /// "registered" | "running" | "not_installed" | "dry_run"
@@ -51,7 +51,7 @@ pub fn write(musu_home: &Path, m: &NodeManifest) -> anyhow::Result<()> {
         std::fs::create_dir_all(parent)?;
     }
     let text = toml::to_string_pretty(m)?;
-    
+
     // Atomic write: write to temp file then rename
     let tmp = path.with_extension("toml.tmp");
     std::fs::write(&tmp, text)?;
@@ -78,7 +78,9 @@ impl PeerLock {
             .open(&lock_path)?;
 
         if file.try_lock_exclusive().is_err() {
-            anyhow::bail!("another peer registration is currently running (could not acquire peer.lock)");
+            anyhow::bail!(
+                "another peer registration is currently running (could not acquire peer.lock)"
+            );
         }
 
         Ok(Self { file })

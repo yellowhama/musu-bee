@@ -19,8 +19,8 @@ pub async fn execute_workflow(state: &AppState, workflow_id: &str) -> Result<(),
         .await
         .map_err(MusuError::Sqlx)?;
 
-    let wf_row = wf_row
-        .ok_or_else(|| MusuError::NotFound(format!("workflow {} not found", workflow_id)))?;
+    let wf_row =
+        wf_row.ok_or_else(|| MusuError::NotFound(format!("workflow {} not found", workflow_id)))?;
 
     use sqlx::Row;
     let status: String = wf_row.try_get("status").unwrap_or_default();
@@ -163,13 +163,8 @@ pub async fn execute_workflow(state: &AppState, workflow_id: &str) -> Result<(),
                     .await
                 {
                     tracing::error!(step_id = %step_id, err = %e, "step spawn failed");
-                    update_step_status(
-                        &state.pool,
-                        step_id,
-                        "failed",
-                        Some(&e.to_string()),
-                    )
-                    .await?;
+                    update_step_status(&state.pool, step_id, "failed", Some(&e.to_string()))
+                        .await?;
                     workflow_failed = true;
                     continue;
                 }

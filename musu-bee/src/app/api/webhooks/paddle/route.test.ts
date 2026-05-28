@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { before, test } from "node:test";
 import type { SubscriptionState } from "@/lib/subscription";
+import type { PaddleWebhookDeps } from "./handler";
 
 let handlePaddleWebhook: (
   rawBody: string,
   signature: string | null,
-  deps: any
+  deps: PaddleWebhookDeps
 ) => Promise<{ status: number; body: Record<string, unknown> }>;
 
 before(async () => {

@@ -1,9 +1,11 @@
 import { getBridgeUrl } from '../../../../lib/bridge-config';
 import { NextRequest, NextResponse } from "next/server";
+import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
+import { getBridgeToken } from "@/lib/bridge-token";
 
-const BRIDGE_URL = (
-  getBridgeUrl()
-).replace(/\/+$/, "");
+function bridgeUrl(): string {
+  return getBridgeUrl().replace(/\/+$/, "");
+}
 
 export async function GET(
   _req: NextRequest,
@@ -11,7 +13,9 @@ export async function GET(
 ) {
   const { id } = await params;
   try {
-    const res = await fetch(`${BRIDGE_URL}/api/companies/${encodeURIComponent(id)}`);
+    const res = await fetch(`${bridgeUrl()}/api/companies/${encodeURIComponent(id)}`, {
+      headers: buildBridgeHeaders(await getBridgeToken()),
+    });
     if (res.status === 404) return NextResponse.json({ error: "not_found" }, { status: 404 });
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
@@ -32,9 +36,12 @@ export async function PUT(
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
   try {
-    const res = await fetch(`${BRIDGE_URL}/api/companies/${encodeURIComponent(id)}`, {
+    const res = await fetch(`${bridgeUrl()}/api/companies/${encodeURIComponent(id)}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...buildBridgeHeaders(await getBridgeToken()),
+      },
       body: JSON.stringify(body),
     });
     const data = await res.json();
@@ -50,8 +57,9 @@ export async function DELETE(
 ) {
   const { id } = await params;
   try {
-    const res = await fetch(`${BRIDGE_URL}/api/companies/${encodeURIComponent(id)}`, {
+    const res = await fetch(`${bridgeUrl()}/api/companies/${encodeURIComponent(id)}`, {
       method: "DELETE",
+      headers: buildBridgeHeaders(await getBridgeToken()),
     });
     if (res.status === 404) return NextResponse.json({ error: "not_found" }, { status: 404 });
     const data = await res.json();

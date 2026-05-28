@@ -54,8 +54,9 @@ pub enum IndexerAction {
         /// Workspace root.
         #[arg(long)]
         work_dir: PathBuf,
-        /// Query string. Passed verbatim to FTS5 (caller responsible for
-        /// any operator syntax).
+        /// Query string. Plain-text input is accepted; if raw FTS5 parsing
+        /// fails (for example on hyphenated literals), MUSU retries as a
+        /// quoted phrase query.
         #[arg(long, short = 'q')]
         query: String,
         /// `all` | `code` | `doc` — currently advisory; FTS5 matches all

@@ -3,18 +3,17 @@ import { getBridgeUrl } from '../../../lib/bridge-config';
 // Forwards GET (list) + POST (create) to musu-bridge.
 import { NextRequest, NextResponse } from "next/server";
 import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
-
-const BRIDGE_URL =
-  getBridgeUrl();
+import { getBridgeToken } from "@/lib/bridge-token";
 
 async function proxy(req: NextRequest, method: "GET" | "POST"): Promise<NextResponse> {
   try {
-    const target = new URL(`${BRIDGE_URL}/api/workflows`);
+    const target = new URL(`${getBridgeUrl().replace(/\/+$/, "")}/api/workflows`);
     req.nextUrl.searchParams.forEach((v, k) => target.searchParams.set(k, v));
     const body = method === "POST" ? await req.text() : undefined;
+    const token = await getBridgeToken();
     const res = await fetch(target.toString(), {
       method,
-      headers: buildBridgeHeaders(process.env.MUSU_BRIDGE_TOKEN ?? ""),
+      headers: buildBridgeHeaders(token),
       body,
       cache: "no-store",
     });

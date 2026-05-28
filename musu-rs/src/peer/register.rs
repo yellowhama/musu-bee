@@ -1,8 +1,8 @@
-use clap::{Args, Subcommand, ValueEnum};
-use std::path::PathBuf;
 use crate::peer::capability::{self, Capability};
 use crate::peer::manifest::{self, NodeManifest, ServiceState};
 use crate::peer::service::{self, PeerServiceContext};
+use clap::{Args, Subcommand, ValueEnum};
+use std::path::PathBuf;
 
 /// `musu peer ...` subcommand action enum.
 #[derive(Subcommand, Debug, Clone)]
@@ -71,7 +71,9 @@ pub fn validate_peer_name(s: &str) -> Result<String, String> {
     if s.len() > 32 {
         return Err("Name length cannot exceed 32 characters".to_string());
     }
-    if s.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_' || c == '-') {
+    if s.chars()
+        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_' || c == '-')
+    {
         Ok(s.to_string())
     } else {
         Err("Name must match ^[a-z0-9_-]{1,32}$".to_string())
@@ -92,7 +94,8 @@ fn get_default_name(kind: &str) -> String {
         .map(|os| os.to_string_lossy().into_owned())
         .unwrap_or_else(|_| "localhost".to_string());
 
-    let mut sanitized: String = host.chars()
+    let mut sanitized: String = host
+        .chars()
         .map(|c| c.to_ascii_lowercase())
         .filter(|&c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_' || c == '-')
         .collect();
@@ -283,6 +286,7 @@ fn render_windows_template(ctx: &PeerServiceContext<'_>) -> String {
 
 pub async fn register(opts: PeerRegisterOpts) -> anyhow::Result<()> {
     let musu_home = crate::install::resolve_musu_home(opts.musu_home.as_deref())?;
+    let distribution = crate::install::distribution::DistributionMode::current();
 
     let peer_name = match &opts.name {
         Some(n) => n.clone(),
@@ -300,16 +304,30 @@ pub async fn register(opts: PeerRegisterOpts) -> anyhow::Result<()> {
     let capability = if opts.dry_run {
         match opts.type_ {
             PeerType::Ollama => {
-                eprintln!("[dry-run] would probe Ollama API tags at {}", opts.ollama_url);
-                Capability::Ollama { models: vec![], base_url: opts.ollama_url.clone() }
+                eprintln!(
+                    "[dry-run] would probe Ollama API tags at {}",
+                    opts.ollama_url
+                );
+                Capability::Ollama {
+                    models: vec![],
+                    base_url: opts.ollama_url.clone(),
+                }
             }
             PeerType::Comfyui => {
-                eprintln!("[dry-run] would probe ComfyUI system stats at {}", opts.comfyui_url);
-                Capability::Comfyui { port: 8188, base_url: opts.comfyui_url.clone() }
+                eprintln!(
+                    "[dry-run] would probe ComfyUI system stats at {}",
+                    opts.comfyui_url
+                );
+                Capability::Comfyui {
+                    port: 8188,
+                    base_url: opts.comfyui_url.clone(),
+                }
             }
             PeerType::Script => {
                 eprintln!("[dry-run] script worker start command: {}", opts.start);
-                Capability::Script { cmd: opts.start.clone() }
+                Capability::Script {
+                    cmd: opts.start.clone(),
+                }
             }
         }
     } else {
@@ -327,27 +345,39 @@ pub async fn register(opts: PeerRegisterOpts) -> anyhow::Result<()> {
     };
     let now = chrono::Utc::now().timestamp();
 
-    let platform_str = if cfg!(target_os = "linux") {
-        "systemd"
-    } else if cfg!(target_os = "macos") {
-        "launchd"
-    } else if cfg!(target_os = "windows") {
-        "scheduled_task"
+    let (platform_str, unit_name, state_str) = if distribution.supports_platform_service_install() {
+        let platform = if cfg!(target_os = "linux") {
+            "systemd"
+        } else if cfg!(target_os = "macos") {
+            "launchd"
+        } else if cfg!(target_os = "windows") {
+            "scheduled_task"
+        } else {
+            "none"
+        };
+        let unit = match platform {
+            "systemd" => format!("musu-peer-{}.service", peer_name),
+            "launchd" => format!("com.musu.peer.{}", peer_name),
+            "scheduled_task" => format!("peer-{}", peer_name),
+            _ => format!("musu-peer-{}", peer_name),
+        };
+        let state = if opts.dry_run {
+            "dry_run"
+        } else {
+            "registered"
+        };
+        (platform.to_string(), unit, state.to_string())
     } else {
-        "none"
-    };
-
-    let unit_name = match platform_str {
-        "systemd" => format!("musu-peer-{}.service", peer_name),
-        "launchd" => format!("com.musu.peer.{}", peer_name),
-        "scheduled_task" => format!("peer-{}", peer_name),
-        _ => format!("musu-peer-{}", peer_name),
-    };
-
-    let state_str = if opts.dry_run {
-        "dry_run"
-    } else {
-        "registered"
+        let state = if opts.dry_run {
+            "dry_run"
+        } else {
+            "not_installed"
+        };
+        (
+            "package_startup".to_string(),
+            "package-managed".to_string(),
+            state.to_string(),
+        )
     };
 
     let mut manifest = NodeManifest {
@@ -355,20 +385,26 @@ pub async fn register(opts: PeerRegisterOpts) -> anyhow::Result<()> {
         kind: kind_str.to_string(),
         start: opts.start.clone(),
         registered_at: now,
-        registry_url: opts.registry_url.clone().or_else(|| std::env::var("MUSU_REGISTRY_URL").ok()),
+        registry_url: opts
+            .registry_url
+            .clone()
+            .or_else(|| std::env::var("MUSU_REGISTRY_URL").ok()),
         musu_pro_node_id: None,
         capability: vec![capability.clone()],
         service: ServiceState {
-            platform: platform_str.to_string(),
+            platform: platform_str.clone(),
             unit_name: unit_name.clone(),
-            state: state_str.to_string(),
+            state: state_str.clone(),
             registered_at: now,
         },
     };
 
     if opts.dry_run {
         let manifest_toml = toml::to_string_pretty(&manifest)?;
-        eprintln!("[dry-run] would write ~/.musu/node.toml:\n{}", manifest_toml);
+        eprintln!(
+            "[dry-run] would write ~/.musu/node.toml:\n{}",
+            manifest_toml
+        );
 
         let mock_ctx = PeerServiceContext {
             musu_home: &musu_home,
@@ -379,7 +415,11 @@ pub async fn register(opts: PeerRegisterOpts) -> anyhow::Result<()> {
             unit_dir_override: opts.musu_home.as_deref(),
         };
 
-        if cfg!(target_os = "linux") {
+        if !distribution.supports_platform_service_install() {
+            eprintln!(
+                "[dry-run] packaged Store/MSIX runtime detected: would write ~/.musu/node.toml, but would NOT register a raw platform service or Scheduled Task. Peer startup must come from a package-aware startup path."
+            );
+        } else if cfg!(target_os = "linux") {
             let body = render_linux_template(&mock_ctx);
             eprintln!("[dry-run] would write systemd unit:\n{}", body);
         } else if cfg!(target_os = "macos") {
@@ -408,27 +448,33 @@ pub async fn register(opts: PeerRegisterOpts) -> anyhow::Result<()> {
         unit_dir_override: opts.musu_home.as_deref(),
     };
 
-    service::register(&ctx)?;
-    tracing::info!("peer service registered and started");
+    if distribution.supports_platform_service_install() {
+        service::register(&ctx)?;
+        tracing::info!("peer service registered and started");
+    } else {
+        tracing::info!(
+            distribution = distribution.as_str(),
+            "skipping peer platform service registration for packaged Store/MSIX runtime"
+        );
+    }
 
     if let Some(ref registry_url) = manifest.registry_url {
-        let auth_token = std::env::var("MUSU_TOKEN").ok().or_else(|| {
-            crate::install::token::read_bridge_token(&musu_home)
-        });
+        let auth_token = std::env::var("MUSU_TOKEN")
+            .ok()
+            .or_else(|| crate::install::token::read_bridge_token(&musu_home));
 
         let client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(10))
             .build()
             .expect("reqwest client build");
 
-        let mut req = client.post(registry_url)
-            .json(&serde_json::json!({
-                "name": manifest.name,
-                "kind": manifest.kind,
-                "capability": manifest.capability,
-                "start": manifest.start,
-                "tailscale_ip": serde_json::Value::Null,
-            }));
+        let mut req = client.post(registry_url).json(&serde_json::json!({
+            "name": manifest.name,
+            "kind": manifest.kind,
+            "capability": manifest.capability,
+            "start": manifest.start,
+            "tailscale_ip": serde_json::Value::Null,
+        }));
 
         if let Some(token) = auth_token {
             req = req.header("Authorization", format!("Bearer {}", token));
@@ -497,14 +543,7 @@ fn resolve_musu_home_for_peer(override_: Option<&PathBuf>) -> anyhow::Result<Pat
     if let Some(p) = override_ {
         return Ok(p.clone());
     }
-    if let Ok(s) = std::env::var("MUSU_HOME") {
-        if !s.is_empty() {
-            return Ok(PathBuf::from(s));
-        }
-    }
-    let home = dirs::home_dir()
-        .ok_or_else(|| anyhow::anyhow!("cannot resolve home directory"))?;
-    Ok(home.join(".musu"))
+    crate::install::resolve_musu_home_from_env()
 }
 
 async fn run_add(opts: PeerAddOpts) -> anyhow::Result<()> {

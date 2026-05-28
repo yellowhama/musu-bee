@@ -165,7 +165,10 @@ fn t09_attestation_always_true() {
         model_used: "test-model".into(),
         attestation_required: true,
     };
-    assert!(result.attestation_required, "§9.12: attestation must be true");
+    assert!(
+        result.attestation_required,
+        "§9.12: attestation must be true"
+    );
 }
 
 // ── 10. Schema v4 creates workflow tables ────────────────────────────
@@ -190,12 +193,11 @@ async fn t10_schema_v4_creates_workflow_tables() {
 
     // Verify both tables exist
     for tbl in ["workflows", "workflow_steps"] {
-        let row =
-            sqlx::query("SELECT name FROM sqlite_master WHERE type='table' AND name=?")
-                .bind(tbl)
-                .fetch_optional(&pool)
-                .await
-                .unwrap();
+        let row = sqlx::query("SELECT name FROM sqlite_master WHERE type='table' AND name=?")
+            .bind(tbl)
+            .fetch_optional(&pool)
+            .await
+            .unwrap();
         assert!(row.is_some(), "table {tbl} not created by v4 migration");
     }
 
@@ -233,8 +235,7 @@ fn t11_diamond_dag_valid() {
 #[test]
 fn t12_forbidden_nodeselector_key() {
     let mut a = agent("a");
-    a.node_selector
-        .insert("forbidden_key".into(), "val".into());
+    a.node_selector.insert("forbidden_key".into(), "val".into());
     let spec = WorkflowSpec {
         agents: vec![a],
         edges: vec![],

@@ -1,11 +1,14 @@
 import { getBridgeUrl } from '../../../../lib/bridge-config';
 import { NextRequest, NextResponse } from "next/server";
-
-const BRIDGE_URL =
-  getBridgeUrl();
+import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
+import { getBridgeToken } from "@/lib/bridge-token";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+function bridgeUrl(): string {
+  return getBridgeUrl().replace(/\/+$/, "");
+}
 
 export async function DELETE(
   _req: NextRequest,
@@ -16,7 +19,10 @@ export async function DELETE(
     return NextResponse.json({ error: "Invalid task ID" }, { status: 400 });
   }
   try {
-    const res = await fetch(`${BRIDGE_URL}/api/tasks/${id}`, { method: "DELETE" });
+    const res = await fetch(`${bridgeUrl()}/api/tasks/${id}`, {
+      method: "DELETE",
+      headers: buildBridgeHeaders(await getBridgeToken()),
+    });
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
   } catch {

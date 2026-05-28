@@ -1,13 +1,18 @@
-import { MUSU_WORKER_URL } from "../config";
+import { getMusuWorkerUrl } from "../config";
+import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
+import { getBridgeToken } from "@/lib/bridge-token";
 
 export async function handleRunCommand(params: Record<string, unknown>): Promise<unknown> {
   const command = typeof params.command === "string" ? params.command : null;
   if (!command || !command.trim()) return { error: "command_required" };
   const timeoutSec = typeof params.timeout_sec === "number" ? params.timeout_sec : 30;
   try {
-    const res = await fetch(`${MUSU_WORKER_URL}/execute/cli`, {
+    const res = await fetch(`${getMusuWorkerUrl()}/execute/cli`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...buildBridgeHeaders(await getBridgeToken()),
+      },
       body: JSON.stringify({ prompt: command, cli_type: "bash", timeout_sec: timeoutSec }),
       signal: AbortSignal.timeout((timeoutSec + 5) * 1000),
     });

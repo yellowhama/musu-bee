@@ -33,3 +33,107 @@ MUSU는 단일 기기를 넘어 다수의 머신(Fleet)을 **단일 컴퓨터처
    - 단순 텍스트 답변이 아닌, 자율 루프(Planner)를 통해 스스로 Company 단위의 목표를 설정하고, 방대한 Vector DB(SSOT) 기억을 참조하며 다음 행동을 계획합니다.
 3. **유기적인 분산 조직 (에이전트 간의 협업 ㅡ A2A Mesh)**
    - `delegate_task` 도구를 통해 자신의 역량을 초과하거나 병렬 처리가 필요한 작업을 네트워크 상의 다른 에이전트(노드)에게 위임하고 결과를 취합합니다.
+
+## 6. Windows Distribution State (2026-05-27)
+
+Windows 배포는 이제 하나의 계약이 아니다. 현재 wiki/SSOT 기준 공식 해석은 다음 3분기다.
+
+1. **direct-download operator path**
+   - `install.ps1` + GitHub release asset
+   - `~/.musu/bin`
+   - background service registration
+   - self-update 가능
+2. **local sideload / MSIX manual bridge path**
+   - packaged install
+   - package identity 사용
+   - bridge auto-start 보장 안 함
+   - packaged alias로 `musu bridge`를 수동 실행하는 계약
+3. **Store-reviewed / restricted-capability auto-start path**
+   - packaged install/update
+   - `desktop:StartupTask` + restricted capability
+   - Microsoft Partner Center submission + review가 필요
+
+현재 상태:
+
+- local sideload / manual contract는 repo-local 검증 완료
+- Store-reviewed artifact와 submission bundle은 준비 완료
+- 최종 auto-start 승인 여부는 Microsoft review 외부 게이트에 걸려 있음
+
+Canonical references:
+
+- `docs/PRODUCT_CHARTER/WINDOWS_DISTRIBUTION_PIVOT_2026-05-27.md`
+- `docs/STORE_MSIX_APPROVAL_STATUS_2026_05_27.md`
+- `docs/STORE_MSIX_NEXT_STEPS_2026_05_27.md`
+
+## 7. 1.15.0-rc.1 Beta State (2026-05-29)
+
+현재 1.15 RC의 공식 해석은 **single-machine Windows local beta ready**다. 이 말은 사용자가 같은 Windows 머신에서 `musu up`을 실행하고, 대시보드에서 readiness를 보고, Claude 기반 로컬 agent task를 실제로 실행/확인할 수 있다는 뜻이다.
+
+제품 계약 업데이트:
+
+- first-run entry point: `musu up`
+- readiness/diagnostic entry point: `musu doctor`
+- bridge token source: env 우선, 없으면 `~/.musu/bridge.env`
+- bridge URL source: dashboard server route마다 `~/.musu/services/bridge.json`를 재해석
+- dashboard/bridge task default adapter: `claude`
+- WindowsApps alias shadowing: beta blocker가 아니라 `doctor` warning
+
+검증된 smoke:
+
+- dashboard `http://127.0.0.1:3001`
+- bridge `http://127.0.0.1:11041`
+- task `72ff5cff-f122-496b-ad6a-6d7e55711bf4`
+- output `MUSU_SMOKE_OK`
+
+Canonical references:
+
+- `docs/RELEASE_1_15_0_RC1_QUAL_AUDIT_ROADMAP_2026_05_29.md` (wiki/518)
+- `docs/BETA_RELEASE_CHECKLIST_1_15_0_RC1.md`
+
+## 8. Microsoft Store Launch State (2026-05-29)
+
+Partner Center enrollment approval cleared by operator report. This removes the account-verification blocker recorded on 2026-05-27, but it does **not** mean the app package or restricted startup capability has passed Microsoft certification.
+
+Current Store path truth:
+
+- product name reservation: next
+- current-version Store-reviewed package: must regenerate for `1.15.0-rc.1`
+- old 2026-05-27 package: template only (`1.13.0.0`, do not submit as current)
+- Microsoft app certification: pending
+- restricted startup capability review: pending
+
+Promotion rule:
+
+- Promote MUSU itself as the trusted Windows local AI operations node.
+- Do not reuse unrelated product names from external launch notes.
+- Measure page views → install attempts → installs → first launch → doctor ok → first task done.
+
+Canonical reference:
+
+- `docs/STORE_LAUNCH_AND_PROMOTION_PLAN_2026_05_29.md`
+
+## 9. musu-system Integration State (2026-05-29)
+
+`yellowhama/musu-system` is a credible adjacent MUSU ecosystem line, not a Rust-core replacement. It contains:
+
+- `core`: shared Go env/agent/preflight module
+- `crawl-ai`: knowledge harvesting + local wiki + MCP
+- `marketer`: grounded campaign drafting + MCP/REST
+- `nurikun`: compliant support inbox and opt-in email operations
+
+Current decision:
+
+- Do not merge this code into `musu-rs` now.
+- Integrate through MCP/CLI/bridge adapters and shared data contracts.
+- Treat `musu-system` as canonical over the older split repos.
+- Keep `nurikun` delivery operations gated; safe status/list/subscribe/suppress tools can be exposed first.
+- Do not bundle this stack into the first Microsoft Store desktop package.
+
+Verified:
+
+- local clone of `musu-system` HEAD `d4e58e010fe30e83c1e96165d75d7c3ec80a2f40`
+- `go test ./...` passed for `core`, `crawl-ai`, `marketer`, and `nurikun`
+
+Canonical reference:
+
+- `docs/MUSU_SYSTEM_INTEGRATION_ASSESSMENT_2026_05_29.md`

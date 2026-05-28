@@ -1,10 +1,10 @@
-import { MUSU_PORT_URL, MUSU_BRIDGE_URL, MUSU_WORKER_URL } from "../config";
+import { getMusuBridgeUrl, getMusuPortUrl, getMusuWorkerUrl } from "../config";
 
 export async function handleGetServiceHealth(): Promise<unknown> {
   const endpoints: Record<string, string> = {
-    port: `${MUSU_PORT_URL}/health`,
-    bridge: `${MUSU_BRIDGE_URL}/health`,
-    worker: `${MUSU_WORKER_URL}/health`,
+    port: `${getMusuPortUrl()}/health`,
+    bridge: `${getMusuBridgeUrl()}/health`,
+    worker: `${getMusuWorkerUrl()}/health`,
   };
   const results: Record<string, { status: string; latency_ms?: number }> = {};
   await Promise.allSettled(

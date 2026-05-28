@@ -13,6 +13,7 @@
 //! `auto_update.rs` and `uninstall.rs` now delegate to `read_bridge_token`;
 //! `control::bridge_client` calls it directly.
 
+use anyhow::{anyhow, Context, Result};
 use std::path::Path;
 
 /// Resolve the bridge bearer token. Returns `None` if neither source yields a
@@ -40,6 +41,56 @@ pub fn read_bridge_token(home: &Path) -> Option<String> {
         }
     }
     None
+}
+
+/// Ensure a valid `bridge.env` exists under `home` and return the token.
+///
+/// Used by packaged startup paths where no prior `musu install` bootstrap may
+/// have run yet, but the bridge still needs a production token to boot.
+pub fn ensure_bridge_token(home: &Path) -> Result<String> {
+    if let Some(token) = read_bridge_token(home) {
+        return Ok(token);
+    }
+
+    let mut buf = [0u8; 32];
+    getrandom::getrandom(&mut buf).map_err(|e| anyhow!("getrandom failed: {e}"))?;
+    let token = hex::encode(buf);
+
+    let path = home.join("bridge.env");
+    let body = format!(
+        "# musu bridge environment — generated automatically.\n\
+         # Do NOT commit this file. Do NOT share the token.\n\
+         MUSU_BRIDGE_TOKEN={token}\n"
+    );
+    std::fs::create_dir_all(home).with_context(|| format!("create {}", home.display()))?;
+    std::fs::write(&path, body).with_context(|| format!("write {}", path.display()))?;
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = std::fs::metadata(&path)?.permissions();
+        perms.set_mode(0o600);
+        std::fs::set_permissions(&path, perms)
+            .with_context(|| format!("chmod 600 {}", path.display()))?;
+    }
+
+    #[cfg(windows)]
+    {
+        let user = std::env::var("USERNAME").context("USERNAME env var")?;
+        let output = std::process::Command::new("icacls")
+            .arg(&path)
+            .arg("/inheritance:r")
+            .arg("/grant:r")
+            .arg(format!("{user}:F"))
+            .output()
+            .context("spawn icacls")?;
+        if !output.status.success() {
+            let err = String::from_utf8_lossy(&output.stderr);
+            anyhow::bail!("icacls failed: {}", err.trim());
+        }
+    }
+
+    Ok(token)
 }
 
 #[cfg(test)]
@@ -90,5 +141,19 @@ mod tests {
         std::fs::create_dir_all(&home).ok();
         let _ = std::fs::remove_file(home.join("bridge.env"));
         assert_eq!(read_bridge_token(&home), None);
+    }
+
+    #[test]
+    fn ensure_bridge_token_creates_bridge_env() {
+        let _guard = ENV_LOCK.lock().expect("env lock");
+        std::env::remove_var("MUSU_BRIDGE_TOKEN");
+        let home = std::env::temp_dir().join("musu-rs-token-test-ensure");
+        let _ = std::fs::remove_dir_all(&home);
+        std::fs::create_dir_all(&home).ok();
+        let _ = std::fs::remove_file(home.join("bridge.env"));
+
+        let token = ensure_bridge_token(&home).expect("ensure token");
+        assert_eq!(token.len(), 64);
+        assert_eq!(read_bridge_token(&home), Some(token));
     }
 }

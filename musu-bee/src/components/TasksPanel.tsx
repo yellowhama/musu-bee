@@ -154,7 +154,7 @@ export default function TasksPanel({ companyId }: TasksPanelProps = {}) {
 
     const es = new EventSource("/api/bridge-tasks/events");
 
-    es.onmessage = (e: MessageEvent) => {
+    const handleTaskUpdate = (e: MessageEvent) => {
       try {
         const event = JSON.parse(e.data as string) as { type: string };
         if (mountedRef.current && event.type === "task_update") {
@@ -164,6 +164,9 @@ export default function TasksPanel({ companyId }: TasksPanelProps = {}) {
         // ignore parse errors
       }
     };
+
+    es.addEventListener("task_update", handleTaskUpdate);
+    es.onmessage = handleTaskUpdate;
 
     es.onerror = () => {
       es.close();

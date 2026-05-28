@@ -42,10 +42,20 @@ fn t02_tools_list_returns_14_tools() {
     // Simulate by calling tool_definitions() directly via the module.
     // This requires the function to be pub — test via serde round-trip instead.
     let tools_json = json!([
-        "list_companies", "get_company", "create_company", "activate_company",
-        "run_company", "delegate_task", "cancel_task", "list_nodes",
-        "search_company", "list_agents", "get_agent", "get_dashboard",
-        "list_runs", "get_activity"
+        "list_companies",
+        "get_company",
+        "create_company",
+        "activate_company",
+        "run_company",
+        "delegate_task",
+        "cancel_task",
+        "list_nodes",
+        "search_company",
+        "list_agents",
+        "get_agent",
+        "get_dashboard",
+        "list_runs",
+        "get_activity"
     ]);
     let tools: Vec<String> = serde_json::from_value(tools_json).unwrap();
     assert_eq!(tools.len(), 14, "MCP HTTP must expose exactly 14 tools");
@@ -183,12 +193,24 @@ fn t13_health_endpoint_shape() {
 #[test]
 fn t14_tool_dispatch_t2_deprecated_stubs() {
     // T2 tools should return T2_BODY constant
-    let t2_tools = ["list_agents", "get_agent", "get_dashboard", "list_runs", "get_activity"];
+    let t2_tools = [
+        "list_agents",
+        "get_agent",
+        "get_dashboard",
+        "list_runs",
+        "get_activity",
+    ];
     for tool in t2_tools {
         // Verify the tool name is in our known set
         assert!(
-            ["list_agents", "get_agent", "get_dashboard", "list_runs", "get_activity"]
-                .contains(&tool),
+            [
+                "list_agents",
+                "get_agent",
+                "get_dashboard",
+                "list_runs",
+                "get_activity"
+            ]
+            .contains(&tool),
             "tool {tool} should be in T2 set"
         );
     }

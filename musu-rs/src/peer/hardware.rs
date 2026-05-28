@@ -17,7 +17,7 @@ pub fn gather_hardware_info() -> HardwareInfo {
     let cpu_cores = std::thread::available_parallelism()
         .map(|p| p.get())
         .unwrap_or(1);
-    
+
     let total_memory_mb = get_total_memory_mb();
     let cpu_brand = get_cpu_brand();
     let gpu_vram_mb = get_gpu_vram();
@@ -38,7 +38,10 @@ fn get_total_memory_mb() -> u64 {
     #[cfg(target_os = "windows")]
     {
         if let Ok(output) = std::process::Command::new("powershell")
-            .args(&["-Command", "(Get-CimInstance Win32_PhysicalMemory | Measure-Object -Property Capacity -Sum).Sum"])
+            .args([
+                "-Command",
+                "(Get-CimInstance Win32_PhysicalMemory | Measure-Object -Property Capacity -Sum).Sum",
+            ])
             .output()
         {
             let stdout = String::from_utf8_lossy(&output.stdout);
@@ -48,7 +51,7 @@ fn get_total_memory_mb() -> u64 {
         }
         // Fallback wmic
         if let Ok(output) = std::process::Command::new("wmic")
-            .args(&["ComputerSystem", "get", "TotalPhysicalMemory"])
+            .args(["ComputerSystem", "get", "TotalPhysicalMemory"])
             .output()
         {
             let stdout = String::from_utf8_lossy(&output.stdout);
@@ -81,7 +84,7 @@ fn get_total_memory_mb() -> u64 {
     #[cfg(target_os = "macos")]
     {
         if let Ok(output) = std::process::Command::new("sysctl")
-            .args(&["-n", "hw.memsize"])
+            .args(["-n", "hw.memsize"])
             .output()
         {
             let stdout = String::from_utf8_lossy(&output.stdout);
@@ -104,7 +107,10 @@ fn get_cpu_brand() -> String {
     {
         // Read processor name from registry
         if let Ok(output) = std::process::Command::new("powershell")
-            .args(&["-Command", "(Get-ItemProperty 'HKLM:\\HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0').ProcessorNameString"])
+            .args([
+                "-Command",
+                "(Get-ItemProperty 'HKLM:\\HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0').ProcessorNameString",
+            ])
             .output()
         {
             let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
@@ -133,7 +139,7 @@ fn get_cpu_brand() -> String {
     #[cfg(target_os = "macos")]
     {
         if let Ok(output) = std::process::Command::new("sysctl")
-            .args(&["-n", "machdep.cpu.brand_string"])
+            .args(["-n", "machdep.cpu.brand_string"])
             .output()
         {
             return String::from_utf8_lossy(&output.stdout).trim().to_string();
@@ -150,7 +156,7 @@ fn get_cpu_brand() -> String {
 /// Fallback mechanism to get GPU VRAM via nvidia-smi.
 fn get_gpu_vram() -> Option<u64> {
     if let Ok(output) = std::process::Command::new("nvidia-smi")
-        .args(&["--query-gpu=memory.total", "--format=csv,noheader,nounits"])
+        .args(["--query-gpu=memory.total", "--format=csv,noheader,nounits"])
         .output()
     {
         if output.status.success() {

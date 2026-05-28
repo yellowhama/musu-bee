@@ -1,6 +1,6 @@
 [package]
 name = "musu-rs"
-version = "1.15.0-dev"
+version = "1.15.0-rc.1"
 edition = "2021"
 description = "musu control plane — single-binary Rust replacement for Python musu-bridge/core/control/indexer/writer (V24, panel-reshaped)"
 license = "PROPRIETARY"
@@ -8,6 +8,10 @@ license = "PROPRIETARY"
 [[bin]]
 name = "musu"
 path = "src/main.rs"
+
+[[bin]]
+name = "musu-startup"
+path = "src/bin/musu-startup.rs"
 
 # V26-W1 Commit 3 (wiki/509): library target so out-of-bin integration tests
 # (e.g. `tests/agent_record_backward_compat.rs`) can `use musu_rs::core::...`.
@@ -130,7 +134,8 @@ flate2 = "1"
 tar = "0.4.40"                   # S7 — pin minimum for zip-slip mitigations
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.59", features = ["Win32_System_JobObjects", "Win32_System_Console", "Win32_System_Threading", "Win32_Foundation", "Win32_Security", "Win32_Storage_FileSystem"] }
+windows-sys = { version = "0.59", features = ["Win32_System_JobObjects", "Win32_System_Console", "Win32_System_Threading", "Win32_Foundation", "Win32_Security", "Win32_Storage_FileSystem", "Win32_Storage_Packaging_Appx"] }
+windows = { version = "0.58", features = ["ApplicationModel", "Foundation"] }
 windows-service = "0.7"          # F5 / S2 — opt-in --boot-start path
 
 [dev-dependencies]

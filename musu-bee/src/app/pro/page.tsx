@@ -140,7 +140,7 @@ export default function ProLandingPage() {
                 Finding the fastest device...
               </div>
               <div style={{ background: `rgba(255, 166, 2, 0.1)`, border: `1px solid rgba(255, 166, 2, 0.2)`, padding: 12, borderRadius: 8, fontSize: 13, color: colors.textPrimary }}>
-                I've assigned the heavy data processing to your Home PC. I'll show you the chart when it's done!
+                I&apos;ve assigned the heavy data processing to your Home PC. I&apos;ll show you the chart when it&apos;s done!
               </div>
             </div>
             <div style={{ padding: 16, borderTop: `1px solid ${colors.border}` }}>

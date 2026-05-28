@@ -13,7 +13,7 @@ interface NodeHealth {
     status?: string;
     hostname?: string;
     platform?: string;
-    gpu?: any;
+    gpu?: unknown;
   };
   capabilities?: {
     available_clis?: string[];
@@ -51,9 +51,9 @@ export function useNodes(): UseNodesReturn {
         setNodes(data.nodes.map(n => ({ name: n.name, status: n.status })));
         setError(null);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (mountedRef.current) {
-        setError(err.message || "Failed to fetch nodes");
+        setError(err instanceof Error ? err.message : "Failed to fetch nodes");
         setNodes([]);
       }
     } finally {

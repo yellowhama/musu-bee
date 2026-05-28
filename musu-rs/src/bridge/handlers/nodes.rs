@@ -198,13 +198,13 @@ pub async fn add(
     // Peer accept-peer call (10s). Best-effort.
     let accept_url = format!("{}/api/nodes/accept-peer", url);
     let accept_body = serde_json::json!({
-        "peer": {
-            "name": state.config.node_name,
-            "url": state
+            "peer": {
+                "name": state.config.node_name,
+                "url": state
                 .config
                 .public_url
                 .clone()
-                .unwrap_or_else(|| format!("http://127.0.0.1:{}", state.config.bridge_port)),
+                .unwrap_or_else(|| crate::bridge::services::advertised_bridge_http_url(&state.config)),
         }
     });
     let mut req_b = client.post(&accept_url);
@@ -272,7 +272,9 @@ pub async fn accept_peer(
     Json(req): Json<AcceptPeerRequest>,
 ) -> Result<StatusCode> {
     if req.peer.name.is_empty() || req.peer.name.len() > 64 {
-        return Err(MusuError::BadRequest("peer name must be 1..64 chars".into()));
+        return Err(MusuError::BadRequest(
+            "peer name must be 1..64 chars".into(),
+        ));
     }
     if req.peer.url.is_empty() {
         return Err(MusuError::BadRequest("peer url required".into()));

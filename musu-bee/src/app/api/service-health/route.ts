@@ -1,22 +1,24 @@
 import { getBridgeUrl } from '../../../lib/bridge-config';
 import { NextRequest, NextResponse } from "next/server";
 
-const BRIDGE_URL = (getBridgeUrl()).trim().replace(/\/+$/, "");
-
-const SERVICES: Record<string, string> = {
-  port:   (process.env.MUSU_PORT_URL   ?? BRIDGE_URL).trim().replace(/\/+$/, "") + "/health",
-  bridge: BRIDGE_URL + "/health",
-  worker: (process.env.MUSU_WORKER_URL ?? BRIDGE_URL + "/worker").trim().replace(/\/+$/, "") + "/health",
-};
+function services(): Record<string, string> {
+  const bridgeUrl = (getBridgeUrl()).trim().replace(/\/+$/, "");
+  return {
+    port: (process.env.MUSU_PORT_URL ?? bridgeUrl).trim().replace(/\/+$/, "") + "/health",
+    bridge: bridgeUrl + "/health",
+    worker: (process.env.MUSU_WORKER_URL ?? bridgeUrl + "/worker").trim().replace(/\/+$/, "") + "/health",
+  };
+}
 
 export async function GET(req: NextRequest) {
   const svc = new URL(req.url).searchParams.get("svc");
-  if (!svc || !(svc in SERVICES)) {
+  const endpoints = services();
+  if (!svc || !(svc in endpoints)) {
     return NextResponse.json({ error: "unknown service" }, { status: 400 });
   }
 
   try {
-    const res = await fetch(SERVICES[svc], {
+    const res = await fetch(endpoints[svc], {
       next: { revalidate: 0 },
       signal: AbortSignal.timeout(2_000),
     });

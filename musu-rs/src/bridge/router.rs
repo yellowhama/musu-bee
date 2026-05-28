@@ -84,7 +84,6 @@ pub fn is_circuit_open(peer_addr: &str) -> bool {
     false
 }
 
-
 /// Routing decision for a task.
 #[derive(Debug)]
 pub enum RouteDecision {
@@ -122,16 +121,18 @@ pub fn route_task(
     // ── 1. Explicit target takes priority ───────────────────────────────
     if let Some(target) = explicit_target {
         // Resolve musu home for peer discovery
-        let musu_home = state.config.nodes_toml_path
+        let musu_home = state
+            .config
+            .nodes_toml_path
             .parent()
             .unwrap_or_else(|| std::path::Path::new("."));
         let peers = resolve_all_peers(musu_home);
 
         // Find peer matching the target (by name or addr)
-        if let Some(peer) = peers.into_iter().find(|p| {
-            p.addr == target
-                || p.name.as_deref() == Some(target)
-        }) {
+        if let Some(peer) = peers
+            .into_iter()
+            .find(|p| p.addr == target || p.name.as_deref() == Some(target))
+        {
             if is_circuit_open(&peer.addr) {
                 tracing::warn!(peer = %peer.addr, "circuit breaker open but explicit target — attempting anyway");
             }
@@ -155,7 +156,9 @@ pub fn route_task(
     }
 
     // ── 3. Auto-route based on hints ────────────────────────────────────
-    let musu_home = state.config.nodes_toml_path
+    let musu_home = state
+        .config
+        .nodes_toml_path
         .parent()
         .unwrap_or_else(|| std::path::Path::new("."));
     let peers = resolve_all_peers(musu_home);
@@ -173,7 +176,7 @@ pub fn route_task(
                 tracing::debug!(peer = %peer.addr, "skipping — circuit breaker open");
                 continue;
             }
-            
+
             // 1. Check hardware metadata from cloud
             let mut has_gpu = false;
             if let Some(meta) = &peer.meta {
@@ -244,7 +247,7 @@ mod tests {
         // Without AppState we can't call route_task directly,
         // but we can test the enum.
         match RouteDecision::Local {
-            RouteDecision::Local => {},
+            RouteDecision::Local => {}
             _ => panic!("expected Local"),
         }
     }

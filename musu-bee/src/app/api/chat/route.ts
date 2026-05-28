@@ -2,6 +2,8 @@ import { getBridgeUrl } from '../../../lib/bridge-config';
 import { NextRequest, NextResponse } from "next/server";
 import { spawn } from "child_process";
 import { checkChatRateLimit } from "@/lib/chatRateLimit";
+import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
+import { getBridgeToken } from "@/lib/bridge-token";
 import { buildMusuCliPrompt, buildMusuSystemPrompt } from "@/lib/musuSystemPrompt";
 import { queryWiki } from "@/lib/wiki";
 
@@ -15,7 +17,6 @@ const MUSU_AI_CLI_ARGS = (process.env.MUSU_AI_CLI_ARGS ?? "--print")
   .filter(Boolean);
 const MUSU_AI_CLI_TIMEOUT_MS = 120_000;
 
-const MUSU_PORT_URL = getBridgeUrl();
 const MUSU_LLM_URL = (process.env.MUSU_LLM_URL ?? "http://127.0.0.1:11434").replace(
   /\/+$/,
   ""
@@ -74,6 +75,17 @@ class RequestDeadlineExceededError extends Error {
     super(`request deadline exceeded during ${stage}`);
     this.name = "RequestDeadlineExceededError";
   }
+}
+
+async function bridgeAuthHeadersFor(baseUrl: string): Promise<Record<string, string>> {
+  if (baseUrl.replace(/\/+$/, "") !== musuPortUrl().replace(/\/+$/, "")) {
+    return {};
+  }
+  return buildBridgeHeaders(await getBridgeToken());
+}
+
+function musuPortUrl(): string {
+  return getBridgeUrl().replace(/\/+$/, "");
 }
 
 function getRemainingBudgetMs(deadlineAt: number): number {
@@ -137,11 +149,15 @@ function extractResponseError(payload: PortResponse): string | null {
 
 async function tryMusuPort(message: string, deadlineAt: number): Promise<ChatAttempt> {
   try {
+    const portUrl = musuPortUrl();
     const res = await fetchWithRemainingBudget(
-      `${MUSU_PORT_URL}/chat`,
+      `${portUrl}/chat`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(await bridgeAuthHeadersFor(portUrl)),
+        },
         body: JSON.stringify({ message }),
       },
       deadlineAt,
@@ -161,7 +177,7 @@ async function tryMusuPort(message: string, deadlineAt: number): Promise<ChatAtt
     }
 
     if (!res.ok && [400, 404, 405, 422].includes(res.status)) {
-      const openAiAttempt = await tryOpenAiCompatible(MUSU_PORT_URL, message, deadlineAt);
+      const openAiAttempt = await tryOpenAiCompatible(portUrl, message, deadlineAt);
       if (openAiAttempt.ok) {
         return openAiAttempt;
       }
@@ -188,11 +204,11 @@ async function tryMusuPort(message: string, deadlineAt: number): Promise<ChatAtt
 async function discoverModelId(baseUrl: string, deadlineAt: number): Promise<string> {
   if (MUSU_LLM_MODEL) return MUSU_LLM_MODEL;
 
-  const res = await fetchWithRemainingBudget(
-    `${baseUrl}/v1/models`,
-    { method: "GET" },
-    deadlineAt,
-    `${baseUrl}/v1/models`
+    const res = await fetchWithRemainingBudget(
+      `${baseUrl}/v1/models`,
+      { method: "GET", headers: await bridgeAuthHeadersFor(baseUrl) },
+      deadlineAt,
+      `${baseUrl}/v1/models`
   );
   const data = (await res.json()) as OpenAIModelsResponse;
   const firstModelId =
@@ -219,7 +235,10 @@ async function tryOpenAiCompatible(
       `${baseUrl}/v1/chat/completions`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(await bridgeAuthHeadersFor(baseUrl)),
+        },
         body: JSON.stringify({
           model,
           messages: [

@@ -2,7 +2,10 @@
 //! WebSocket endpoint for Remote PTY Execution.
 
 use axum::{
-    extract::{ws::{Message, WebSocket, WebSocketUpgrade}, State},
+    extract::{
+        ws::{Message, WebSocket, WebSocketUpgrade},
+        State,
+    },
     response::Response,
 };
 use portable_pty::{CommandBuilder, NativePtySystem, PtySize, PtySystem};
@@ -33,9 +36,13 @@ async fn handle_socket(mut socket: WebSocket) {
         }
     };
 
-    let shell = if cfg!(windows) { "powershell.exe" } else { "bash" };
+    let shell = if cfg!(windows) {
+        "powershell.exe"
+    } else {
+        "bash"
+    };
     let mut cmd = CommandBuilder::new(shell);
-    
+
     // Set some basic environment variables
     if !cfg!(windows) {
         cmd.env("TERM", "xterm-256color");
@@ -56,7 +63,7 @@ async fn handle_socket(mut socket: WebSocket) {
             return;
         }
     };
-    
+
     let writer = match pair.master.take_writer() {
         Ok(w) => Arc::new(Mutex::new(w)),
         Err(e) => {

@@ -122,7 +122,10 @@ pub async fn build_dag(
     let mut peer_info = String::from("## Available Nodes in Mesh\n");
     let peers = crate::peer::discovery::resolve_all_peers(&req.musu_home);
     for peer in peers {
-        peer_info.push_str(&format!("- Node Name: {}\n", peer.name.as_deref().unwrap_or("unknown")));
+        peer_info.push_str(&format!(
+            "- Node Name: {}\n",
+            peer.name.as_deref().unwrap_or("unknown")
+        ));
         peer_info.push_str(&format!("  Address: {}\n", peer.addr));
         // Note: For full resource-aware scheduling we should parse peer.capabilities,
         // but for now we instruct the LLM that it can use `nodeSelector: {"node_name": "..."}`
@@ -227,10 +230,7 @@ fn build_adapter_context(req: &DagBuildRequest, prompt: &str) -> AdapterContext 
         run_id: uuid::Uuid::new_v4().to_string(),
         prompt: prompt.to_string(),
         agent_id: "dag-builder".into(),
-        adapter_type: req
-            .adapter_type
-            .clone()
-            .unwrap_or_else(|| "claude".into()),
+        adapter_type: req.adapter_type.clone().unwrap_or_else(|| "claude".into()),
         config_json: if let Some(ref model) = req.model {
             serde_json::json!({ "model": model })
         } else {

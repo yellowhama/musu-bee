@@ -189,7 +189,9 @@ pub async fn run() -> Result<()> {
             started_at: chrono::Utc::now().timestamp(),
             transport: services::Transport::Tcp,
         })
-        .unwrap_or_else(|e| tracing::warn!(error = %e, "failed to register bridge in service registry"));
+        .unwrap_or_else(
+            |e| tracing::warn!(error = %e, "failed to register bridge in service registry"),
+        );
 
     if cfg.bridge_port == 0 {
         tracing::info!(
@@ -201,7 +203,8 @@ pub async fn run() -> Result<()> {
     tracing::info!(addr = %actual_addr, "musu-rs bridge listening");
 
     // V27 Account: Cloud registration & peer discovery (replaces mDNS)
-    let musu_home = cfg.nodes_toml_path
+    let musu_home = cfg
+        .nodes_toml_path
         .parent()
         .unwrap_or_else(|| std::path::Path::new("."))
         .to_path_buf();
@@ -209,19 +212,17 @@ pub async fn run() -> Result<()> {
     if let Some(token) = crate::cloud::token::load_token(&musu_home) {
         let cloud = crate::cloud::MusuCloud::new("https://musu.pro", Some(token.clone()));
         let my_name = cfg.node_name.clone();
-        let port = cfg.bridge_port;
-        // In a real scenario we'd determine the local LAN IP, but we'll use bridge_host for now, or "0.0.0.0"
-        let host = if cfg.bridge_host == "0.0.0.0" {
-            hostname::get().unwrap_or_default().to_string_lossy().to_string()
-        } else {
-            cfg.bridge_host.clone()
-        };
+        let advertised_public_url = services::advertised_bridge_http_url(&cfg);
 
         // Start mDNS advertiser
         let my_name_for_mdns = cfg.node_name.clone();
         let token_for_mdns = token.clone();
-        let mdns_port = if cfg.bridge_port == 0 { actual_port } else { cfg.bridge_port };
-        let _mdns_daemon = match crate::peer::mdns::start_advertiser(&my_name_for_mdns, mdns_port, &token_for_mdns) {
+        let mdns_port = actual_port;
+        let _mdns_daemon = match crate::peer::mdns::start_advertiser(
+            &my_name_for_mdns,
+            mdns_port,
+            &token_for_mdns,
+        ) {
             Ok(d) => Some(d),
             Err(e) => {
                 tracing::warn!(err = %e, "failed to start mDNS advertiser");
@@ -236,7 +237,7 @@ pub async fn run() -> Result<()> {
         tokio::spawn(async move {
             let _daemon_handle = _mdns_daemon; // keep alive
             tracing::info!("attempting musu.pro cloud registration & mDNS discovery...");
-            
+
             // 1. Heartbeat loop
             loop {
                 // Discover LAN peers via mDNS first
@@ -244,8 +245,9 @@ pub async fn run() -> Result<()> {
                     &musu_home_clone,
                     &my_name_clone,
                     &token_clone,
-                    std::time::Duration::from_secs(5)
-                ).await;
+                    std::time::Duration::from_secs(5),
+                )
+                .await;
 
                 let tailscale_ip = crate::peer::tailscale::get_tailscale_ip();
                 let hardware = crate::peer::hardware::gather_hardware_info();
@@ -259,7 +261,7 @@ pub async fn run() -> Result<()> {
 
                 let req = crate::cloud::RegisterNodeRequest {
                     node_name: my_name.clone(),
-                    public_url: format!("http://{}:{}", host, port),
+                    public_url: advertised_public_url.clone(),
                     meta,
                     ..Default::default()
                 };
@@ -272,29 +274,29 @@ pub async fn run() -> Result<()> {
                         Ok(siblings) => {
                             let mut list = crate::peer::discovery::ManualPeerList::load(&musu_home);
                             let mut added = 0;
-                            
+
                             // Also save a CachedRegistry so we have rich metadata for routing
                             let mut cached_nodes = Vec::new();
-                            
+
                             for node in siblings {
                                 if node.node_name != my_name {
-                                    let mut peer_addr = node.public_url
-                                        .trim_start_matches("http://")
-                                        .trim_start_matches("https://")
-                                        .trim_end_matches('/')
-                                        .to_string();
-                                    
+                                    let mut peer_addr = public_url_to_addr(&node.public_url);
+
                                     // Smart Fallback: If local machine has Tailscale AND remote peer has Tailscale IP,
                                     // prioritize routing over Tailscale.
                                     if let Some(meta) = &node.meta {
-                                        if let Some(ip) = meta.get("tailscale_ip").and_then(|v| v.as_str()) {
+                                        if let Some(ip) =
+                                            meta.get("tailscale_ip").and_then(|v| v.as_str())
+                                        {
                                             if tailscale_ip.is_some() {
-                                                peer_addr = format!("{}:{}", ip, port);
+                                                peer_addr =
+                                                    replace_public_url_host(&node.public_url, ip)
+                                                        .unwrap_or_else(|| peer_addr.clone());
                                                 tracing::debug!(peer = %node.node_name, ip = %ip, "Upgrading peer routing to Tailscale IP");
                                             }
                                         }
                                     }
-                                    
+
                                     cached_nodes.push(crate::peer::discovery::CachedNode {
                                         node_id: node.node_name.clone(), // using name as id
                                         name: node.node_name.clone(),
@@ -311,7 +313,7 @@ pub async fn run() -> Result<()> {
                                     }
                                 }
                             }
-                            
+
                             // Persist CachedRegistry
                             let cache = crate::peer::discovery::CachedRegistry {
                                 nodes: cached_nodes,
@@ -333,7 +335,7 @@ pub async fn run() -> Result<()> {
                         }
                     }
                 }
-                
+
                 tokio::time::sleep(Duration::from_secs(60)).await;
             }
         });
@@ -392,7 +394,11 @@ pub async fn run() -> Result<()> {
                 .await
                 .map_err(|e| anyhow::anyhow!("TLS config error: {e}"))?;
 
-        axum_server::bind_rustls(addr, tls_config)
+        let std_listener = listener
+            .into_std()
+            .map_err(|e| anyhow::anyhow!("convert TLS listener: {e}"))?;
+
+        axum_server::from_tcp_rustls(std_listener, tls_config)
             .serve(app.into_make_service_with_connect_info::<SocketAddr>())
             .await
             .map_err(|e| anyhow::anyhow!("axum-server TLS serve: {e}"))?;
@@ -427,4 +433,55 @@ async fn request_id_middleware(mut req: Request, next: Next) -> Response {
         resp.headers_mut().insert("x-request-id", val);
     }
     resp
+}
+
+fn public_url_to_addr(public_url: &str) -> String {
+    if let Ok(url) = reqwest::Url::parse(public_url) {
+        if let Some(host) = url.host_str() {
+            if let Some(port) = url.port_or_known_default() {
+                return format_host_port(host, port);
+            }
+            return host.to_string();
+        }
+    }
+    public_url
+        .trim_start_matches("http://")
+        .trim_start_matches("https://")
+        .trim_end_matches('/')
+        .to_string()
+}
+
+fn replace_public_url_host(public_url: &str, host: &str) -> Option<String> {
+    let url = reqwest::Url::parse(public_url).ok()?;
+    let port = url.port_or_known_default()?;
+    Some(format_host_port(host, port))
+}
+
+fn format_host_port(host: &str, port: u16) -> String {
+    if host.contains(':') && !host.starts_with('[') {
+        format!("[{host}]:{port}")
+    } else {
+        format!("{host}:{port}")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn public_url_helpers_preserve_remote_port() {
+        assert_eq!(
+            public_url_to_addr("https://peer.example.test:43123/"),
+            "peer.example.test:43123"
+        );
+        assert_eq!(
+            replace_public_url_host("https://peer.example.test:43123/", "100.64.0.5"),
+            Some("100.64.0.5:43123".to_string())
+        );
+        assert_eq!(
+            replace_public_url_host("http://[fd7a:115c:a1e0::1]:8070/", "fd7a:115c:a1e0::99"),
+            Some("[fd7a:115c:a1e0::99]:8070".to_string())
+        );
+    }
 }

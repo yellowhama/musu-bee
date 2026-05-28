@@ -39,6 +39,12 @@ pub struct BrainClient {
     client: Client,
 }
 
+impl Default for BrainClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BrainClient {
     pub fn new() -> Self {
         Self {
@@ -49,13 +55,27 @@ impl BrainClient {
 
     pub async fn create_task(&self, task: &TaskState) -> Result<(), reqwest::Error> {
         let url = format!("{}/api/tasks", self.base_url);
-        self.client.post(&url).json(task).send().await?.error_for_status()?;
+        self.client
+            .post(&url)
+            .json(task)
+            .send()
+            .await?
+            .error_for_status()?;
         Ok(())
     }
 
-    pub async fn update_task(&self, task_id: &str, update: &TaskStateUpdate) -> Result<(), reqwest::Error> {
+    pub async fn update_task(
+        &self,
+        task_id: &str,
+        update: &TaskStateUpdate,
+    ) -> Result<(), reqwest::Error> {
         let url = format!("{}/api/tasks/{}", self.base_url, task_id);
-        self.client.put(&url).json(update).send().await?.error_for_status()?;
+        self.client
+            .put(&url)
+            .json(update)
+            .send()
+            .await?
+            .error_for_status()?;
         Ok(())
     }
 }

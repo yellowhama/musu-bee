@@ -1,8 +1,8 @@
 import { getBridgeUrl } from '../../../lib/bridge-config';
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-
-const MUSU_PORT_URL = getBridgeUrl();
+import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
+import { getBridgeToken } from "@/lib/bridge-token";
 
 const HandoffRoutingDecisionSchema = z.object({
   selected_host: z.string().optional(),
@@ -25,9 +25,12 @@ export async function POST(req: NextRequest) {
       metrics_max_age_ms: body.metrics_max_age_ms ?? 30_000,
     };
 
-    const res = await fetch(`${MUSU_PORT_URL}/handoff/route`, {
+    const res = await fetch(`${getBridgeUrl().replace(/\/+$/, "")}/handoff/route`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...buildBridgeHeaders(await getBridgeToken()),
+      },
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(3_000),
     });

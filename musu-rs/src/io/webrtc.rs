@@ -1,27 +1,27 @@
 //! WebRTC Remote View & Screen Sharing
-//! 
+//!
 //! Exposes a WebRTC signaling endpoint to allow the musu-bee web UI
 //! to establish a peer-to-peer video stream of the node's screen.
 
-use axum::extract::{State, Json};
-use axum::response::IntoResponse;
+use axum::extract::{Json, State};
 use axum::http::StatusCode;
+use axum::response::IntoResponse;
 use serde::{Deserialize, Serialize};
+use std::process::Stdio;
 use std::sync::Arc;
-use webrtc::api::APIBuilder;
-use webrtc::api::media_engine::{MediaEngine, MIME_TYPE_H264};
+use std::time::Duration;
+use tokio::io::AsyncReadExt;
+use tokio::process::Command;
 use webrtc::api::interceptor_registry::register_default_interceptors;
+use webrtc::api::media_engine::{MediaEngine, MIME_TYPE_H264};
+use webrtc::api::APIBuilder;
 use webrtc::interceptor::registry::Registry;
-use webrtc::rtp_transceiver::rtp_codec::RTCRtpCodecCapability;
+use webrtc::media::Sample;
 use webrtc::peer_connection::configuration::RTCConfiguration;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
+use webrtc::rtp_transceiver::rtp_codec::RTCRtpCodecCapability;
 use webrtc::track::track_local::track_local_static_sample::TrackLocalStaticSample;
 use webrtc::track::track_local::TrackLocal;
-use webrtc::media::Sample;
-use tokio::process::Command;
-use std::process::Stdio;
-use tokio::io::AsyncReadExt;
-use std::time::Duration;
 
 use crate::bridge::AppState;
 
@@ -40,13 +40,14 @@ pub async fn handle_offer(
     State(_state): State<AppState>,
     Json(offer): Json<SdpOffer>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
-    
     // 1. Setup WebRTC API
     let mut m = MediaEngine::default();
-    m.register_default_codecs().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    
+    m.register_default_codecs()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
     let mut registry = Registry::new();
-    registry = register_default_interceptors(registry, &mut m).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    registry = register_default_interceptors(registry, &mut m)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     let api = APIBuilder::new()
         .with_media_engine(m)
@@ -59,7 +60,10 @@ pub async fn handle_offer(
     };
 
     let peer_connection = Arc::new(api.new_peer_connection(config).await.map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to create PC: {}", e))
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to create PC: {}", e),
+        )
     })?);
 
     // Register KVM data channel listener
@@ -70,7 +74,7 @@ pub async fn handle_offer(
         Box::pin(async move {
             if d_label == "kvm_control" {
                 tracing::info!("KVM Control channel opened!");
-                
+
                 let d_clone = Arc::clone(&d);
                 d.on_message(Box::new(move |msg: webrtc::data_channel::data_channel_message::DataChannelMessage| {
                     if msg.data.as_ref() == b"ping" {
@@ -89,14 +93,16 @@ pub async fn handle_offer(
     }));
 
     // Monitor Peer Connection State for Auto-Reconnect/Cleanup
-    peer_connection.on_peer_connection_state_change(Box::new(move |s: webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState| {
-        tracing::info!("Peer Connection State has changed: {}", s);
-        if s == webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState::Failed {
-            tracing::warn!("WebRTC connection failed. Awaiting auto-reconnect from client.");
-            // Here we could clean up resources or trigger a mesh reconnect event
-        }
-        Box::pin(async {})
-    }));
+    peer_connection.on_peer_connection_state_change(Box::new(
+        move |s: webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState| {
+            tracing::info!("Peer Connection State has changed: {}", s);
+            if s == webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState::Failed {
+                tracing::warn!("WebRTC connection failed. Awaiting auto-reconnect from client.");
+                // Here we could clean up resources or trigger a mesh reconnect event
+            }
+            Box::pin(async {})
+        },
+    ));
 
     // 2. Set up Video Track for H.264 stream
     let video_track = Arc::new(TrackLocalStaticSample::new(
@@ -111,7 +117,12 @@ pub async fn handle_offer(
     let rtp_sender = peer_connection
         .add_track(Arc::clone(&video_track) as Arc<dyn TrackLocal + Send + Sync>)
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to add track: {}", e)))?;
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to add track: {}", e),
+            )
+        })?;
 
     // Read incoming RTCP packets (Required for WebRTC internals like NACK)
     tokio::spawn(async move {
@@ -130,25 +141,32 @@ pub async fn handle_offer(
         let (input_format, input_device) = match os {
             "windows" => ("gdigrab", "desktop"),
             "macos" => ("avfoundation", "1"), // Usually 1 is screen on mac, but requires permissions
-            "linux" => ("x11grab", ":0.0"), // Assuming X11 for now
-            _ => ("gdigrab", "desktop"), // Fallback
+            "linux" => ("x11grab", ":0.0"),   // Assuming X11 for now
+            _ => ("gdigrab", "desktop"),      // Fallback
         };
-        
+
         let mut child = match Command::new("ffmpeg")
-            .args(&[
-                "-f", input_format,
-                "-framerate", "30",
-                "-i", input_device,
-                "-c:v", "libx264",
-                "-preset", "ultrafast",
-                "-tune", "zerolatency",
+            .args([
+                "-f",
+                input_format,
+                "-framerate",
+                "30",
+                "-i",
+                input_device,
+                "-c:v",
+                "libx264",
+                "-preset",
+                "ultrafast",
+                "-tune",
+                "zerolatency",
                 // Output raw Annex B H.264
-                "-f", "h264",
-                "pipe:1"
+                "-f",
+                "h264",
+                "pipe:1",
             ])
             .stdout(Stdio::piped())
             .stderr(Stdio::null()) // Mute ffmpeg stderr logs
-            .spawn() 
+            .spawn()
         {
             Ok(c) => c,
             Err(e) => {
@@ -169,17 +187,24 @@ pub async fn handle_offer(
                 }
                 Ok(n) => {
                     h264_stream.extend_from_slice(&buf[..n]);
-                    
+
                     // NAL unit splitter
                     while let Some(idx) = find_nal_unit_start(&h264_stream) {
-                        if let Some(next_idx) = find_nal_unit_start(&h264_stream[idx + 4 ..]) {
-                            let nal_unit = h264_stream.drain(.. idx + 4 + next_idx).collect::<Vec<u8>>();
-                            if let Err(e) = track_clone.write_sample(&Sample {
-                                data: bytes::Bytes::from(nal_unit),
-                                duration: Duration::from_millis(33),
-                                ..Default::default()
-                            }).await {
-                                tracing::warn!("Failed to write sample, connection might be closed: {}", e);
+                        if let Some(next_idx) = find_nal_unit_start(&h264_stream[idx + 4..]) {
+                            let nal_unit =
+                                h264_stream.drain(..idx + 4 + next_idx).collect::<Vec<u8>>();
+                            if let Err(e) = track_clone
+                                .write_sample(&Sample {
+                                    data: bytes::Bytes::from(nal_unit),
+                                    duration: Duration::from_millis(33),
+                                    ..Default::default()
+                                })
+                                .await
+                            {
+                                tracing::warn!(
+                                    "Failed to write sample, connection might be closed: {}",
+                                    e
+                                );
                                 let _ = child.kill().await;
                                 return;
                             }
@@ -200,30 +225,52 @@ pub async fn handle_offer(
     });
 
     // 3. Set remote description
-    let desc = RTCSessionDescription::offer(offer.sdp).map_err(|e| {
-        (StatusCode::BAD_REQUEST, format!("Invalid SDP: {}", e))
-    })?;
-    
-    peer_connection.set_remote_description(desc).await.map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to set remote desc: {}", e))
-    })?;
+    let desc = RTCSessionDescription::offer(offer.sdp)
+        .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid SDP: {}", e)))?;
+
+    peer_connection
+        .set_remote_description(desc)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to set remote desc: {}", e),
+            )
+        })?;
 
     // 4. Create answer
     let answer = peer_connection.create_answer(None).await.map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to create answer: {}", e))
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to create answer: {}", e),
+        )
     })?;
 
-    peer_connection.set_local_description(answer.clone()).await.map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to set local desc: {}", e))
-    })?;
+    peer_connection
+        .set_local_description(answer.clone())
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to set local desc: {}", e),
+            )
+        })?;
 
     let local_desc = peer_connection.local_description().await.ok_or_else(|| {
-        (StatusCode::INTERNAL_SERVER_ERROR, "Local desc missing".to_string())
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Local desc missing".to_string(),
+        )
     })?;
 
-    Ok((StatusCode::OK, Json(SdpAnswer { sdp: local_desc.sdp })))
+    Ok((
+        StatusCode::OK,
+        Json(SdpAnswer {
+            sdp: local_desc.sdp,
+        }),
+    ))
 }
 
 fn find_nal_unit_start(data: &[u8]) -> Option<usize> {
-    data.windows(4).position(|w| w == &[0, 0, 0, 1])
+    data.windows(4).position(|w| w == [0, 0, 0, 1])
 }

@@ -5,11 +5,11 @@ export type WidgetType = "TerminalLog" | "ProgressCircle" | "ServerHealth" | "Ap
 
 export interface WidgetPayload {
   type: WidgetType;
-  props: any;
+  props: Record<string, unknown>;
 }
 
 // 1. Terminal Log Widget
-export function TerminalLogWidget({ log, level = "info" }: { log: string, level?: "info" | "warn" | "error" }) {
+export function TerminalLogWidget({ log = "", level = "info" }: { log?: string, level?: "info" | "warn" | "error" }) {
   const color = level === "error" ? "var(--status-error)" : level === "warn" ? "var(--status-warn)" : "var(--fg1)";
   return (
     <div style={{
@@ -27,7 +27,7 @@ export function TerminalLogWidget({ log, level = "info" }: { log: string, level?
 }
 
 // 2. Progress Circle Widget
-export function ProgressWidget({ progress, taskName }: { progress: number, taskName: string }) {
+export function ProgressWidget({ progress = 0, taskName = "Task" }: { progress?: number, taskName?: string }) {
   return (
     <div style={{
       background: "rgba(0,0,0,0.85)", border: "1px solid var(--border-default)",
@@ -53,7 +53,7 @@ export function ProgressWidget({ progress, taskName }: { progress: number, taskN
 }
 
 // 3. Server Health Widget
-export function ServerHealthWidget({ cpu, memory, status }: { cpu: number, memory: number, status: "OK" | "OVERLOAD" }) {
+export function ServerHealthWidget({ cpu = 0, memory = 0, status = "OK" }: { cpu?: number, memory?: number, status?: "OK" | "OVERLOAD" }) {
   return (
     <div style={{
       background: "rgba(0,0,0,0.85)", border: `1px solid ${status === "OK" ? "var(--status-success)" : "var(--status-error)"}`,
@@ -79,7 +79,7 @@ export function ServerHealthWidget({ cpu, memory, status }: { cpu: number, memor
 }
 
 // 4. Approval Widget
-export function ApprovalWidget({ taskId, targetAgent, decision, feedback }: { taskId: string, targetAgent: string, decision: string, feedback?: string }) {
+export function ApprovalWidget({ taskId = "task", targetAgent = "agent", decision = "pending", feedback }: { taskId?: string, targetAgent?: string, decision?: string, feedback?: string }) {
   return (
     <div style={{
       background: "rgba(0,0,0,0.85)", border: `1px solid ${decision === "approved" ? "var(--status-success)" : "var(--status-error)"}`,
@@ -92,7 +92,7 @@ export function ApprovalWidget({ taskId, targetAgent, decision, feedback }: { ta
       </div>
       <div style={{ marginBottom: 4 }}>Task: {taskId.split('-')[0]}...</div>
       <div style={{ marginBottom: 4 }}>Target: {targetAgent}</div>
-      {feedback && <div style={{ fontStyle: "italic", color: "var(--fg2)", marginTop: 8 }}>"{feedback}"</div>}
+      {feedback && <div style={{ fontStyle: "italic", color: "var(--fg2)", marginTop: 8 }}>&quot;{feedback}&quot;</div>}
     </div>
   );
 }

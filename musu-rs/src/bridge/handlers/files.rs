@@ -159,14 +159,11 @@ pub async fn list_dir(
             path: full_path.to_string_lossy().to_string(),
             is_dir: metadata.as_ref().map(|m| m.is_dir()).unwrap_or(false),
             size: metadata.as_ref().map(|m| m.len()).unwrap_or(0),
-            modified: metadata
-                .as_ref()
-                .and_then(|m| m.modified().ok())
-                .map(|t| {
-                    chrono::DateTime::<chrono::Utc>::from(t)
-                        .format("%Y-%m-%dT%H:%M:%SZ")
-                        .to_string()
-                }),
+            modified: metadata.as_ref().and_then(|m| m.modified().ok()).map(|t| {
+                chrono::DateTime::<chrono::Utc>::from(t)
+                    .format("%Y-%m-%dT%H:%M:%SZ")
+                    .to_string()
+            }),
         });
     }
 
@@ -352,14 +349,11 @@ pub async fn file_info(
         exists: true,
         is_dir: metadata.is_dir(),
         size: metadata.len(),
-        modified: metadata
-            .modified()
-            .ok()
-            .map(|t| {
-                chrono::DateTime::<chrono::Utc>::from(t)
-                    .format("%Y-%m-%dT%H:%M:%SZ")
-                    .to_string()
-            }),
+        modified: metadata.modified().ok().map(|t| {
+            chrono::DateTime::<chrono::Utc>::from(t)
+                .format("%Y-%m-%dT%H:%M:%SZ")
+                .to_string()
+        }),
     }))
 }
 

@@ -70,10 +70,17 @@ pub async fn receive_forwarded(
     let mut task_req: Option<ForwardedTask> = None;
     let mut zip_data: Option<axum::body::Bytes> = None;
 
-    while let Some(field) = multipart.next_field().await.map_err(|e| MusuError::BadRequest(e.to_string()))? {
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|e| MusuError::BadRequest(e.to_string()))?
+    {
         if let Some(name) = field.name() {
             if name == "task" {
-                let bytes = field.bytes().await.map_err(|e| MusuError::BadRequest(e.to_string()))?;
+                let bytes = field
+                    .bytes()
+                    .await
+                    .map_err(|e| MusuError::BadRequest(e.to_string()))?;
                 task_req = serde_json::from_slice(&bytes).ok();
             } else if name == "workspace" {
                 zip_data = field.bytes().await.ok();
@@ -82,7 +89,7 @@ pub async fn receive_forwarded(
     }
 
     let req = task_req.ok_or_else(|| MusuError::BadRequest("missing task metadata".into()))?;
-    
+
     // Validate
     if req.text.is_empty() || req.text.len() > 10_000 {
         return Err(MusuError::BadRequest("text must be 1..10000 chars".into()));
@@ -98,19 +105,22 @@ pub async fn receive_forwarded(
     let cwd = if let Some(zip_bytes) = zip_data {
         let dest_dir = std::env::temp_dir().join("musu_workspaces").join(&task_id);
         std::fs::create_dir_all(&dest_dir).map_err(|e| MusuError::Internal(e.to_string()))?;
-        
+
         let zip_path = dest_dir.join("workspace.zip");
         std::fs::write(&zip_path, zip_bytes).map_err(|e| MusuError::Internal(e.to_string()))?;
-        
+
         crate::peer::context_sync::unpack_workspace(&zip_path, &dest_dir)
             .map_err(|e| MusuError::Internal(format!("failed to unpack workspace: {}", e)))?;
-            
+
         std::fs::remove_file(&zip_path).ok();
         dest_dir
     } else {
-        req.cwd.clone().map(std::path::PathBuf::from).unwrap_or_else(|| {
-            std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."))
-        })
+        req.cwd
+            .clone()
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|| {
+                std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."))
+            })
     };
 
     // Insert pending row
@@ -137,7 +147,8 @@ pub async fn receive_forwarded(
         status: "pending",
         created_at: Some(now),
         ..Default::default()
-    }.save();
+    }
+    .save();
 
     // Spawn task locally
     state
@@ -152,10 +163,7 @@ pub async fn receive_forwarded(
             cwd,
             model: req.model.clone(),
             timeout_sec: req.timeout_sec,
-            adapter_type: req
-                .adapter_type
-                .clone()
-                .unwrap_or_else(|| "claude".into()),
+            adapter_type: req.adapter_type.clone().unwrap_or_else(|| "claude".into()),
             callback_url: req.callback_url.clone(),
             source_task_id: Some(req.source_task_id.clone()),
         })
@@ -195,7 +203,9 @@ pub async fn forward_to_peer(
     );
 
     let task_json = serde_json::to_string(&task).map_err(|e| format!("serialize task: {e}"))?;
-    let part = reqwest::multipart::Part::text(task_json).mime_str("application/json").unwrap();
+    let part = reqwest::multipart::Part::text(task_json)
+        .mime_str("application/json")
+        .unwrap();
     let form = reqwest::multipart::Form::new().part("task", part);
 
     let resp = client
@@ -315,17 +325,24 @@ pub async fn receive_callback(
         exit_code: cb.exit_code,
         duration_sec: cb.duration_sec,
         ..Default::default()
-    }.save();
+    }
+    .save();
 
     // Broadcast SSE event so any listeners (including `musu route --wait`)
     // get notified.
-    state.sse_broadcaster.publish(crate::writer::sse::TaskEvent {
-        r#type: "task_update".into(),
-        task_id: cb.source_task_id.clone(),
-        status: cb.status.clone(),
-    });
+    state
+        .sse_broadcaster
+        .publish(crate::writer::sse::TaskEvent::update(
+            &cb.source_task_id,
+            &cb.status,
+        )
+        .with_result(
+            cb.output.as_deref(),
+            cb.error.as_deref(),
+            cb.exit_code,
+            cb.duration_sec,
+        )
+        .with_assigned_pc(Some(&cb.node)));
 
     Ok(StatusCode::OK)
 }
-
-

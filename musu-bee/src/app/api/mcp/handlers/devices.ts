@@ -1,8 +1,13 @@
-import { MUSU_PORT_URL } from "../config";
+import { getMusuPortUrl } from "../config";
+import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
+import { getBridgeToken } from "@/lib/bridge-token";
 
 export async function handleGetDevices(): Promise<unknown> {
   try {
-    const res = await fetch(`${MUSU_PORT_URL}/status`, { next: { revalidate: 0 } });
+    const res = await fetch(`${getMusuPortUrl()}/status`, {
+      headers: buildBridgeHeaders(await getBridgeToken()),
+      next: { revalidate: 0 },
+    });
     if (!res.ok) return { error: `musu_port_http_${res.status}`, devices: [] };
     const data = (await res.json()) as Record<string, unknown>;
     return {

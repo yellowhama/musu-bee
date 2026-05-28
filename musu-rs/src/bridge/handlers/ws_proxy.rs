@@ -8,25 +8,22 @@
 //! Uses axum's built-in `WebSocketUpgrade` for the client-facing side
 //! and `tokio-tungstenite` for the upstream connection to musu-port.
 
+use crate::bridge::AppState;
 use axum::extract::ws::{Message as AxumMessage, WebSocket, WebSocketUpgrade};
 use axum::extract::{Path, Query, State};
-use axum::response::IntoResponse;
 use axum::http::StatusCode;
+use axum::response::IntoResponse;
 use futures_util::{SinkExt, StreamExt};
+use std::collections::HashMap;
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message as TungMessage;
-use std::collections::HashMap;
-use crate::bridge::AppState;
 
 /// Accept a WebSocket upgrade on `/chat/ws/*path` and proxy it to the
 /// upstream musu-port WebSocket at `ws://127.0.0.1:{port}/chat/ws/{path}`.
 ///
 /// The upstream port is resolved from `MUSU_PORT_PORT` env var, falling
 /// back to `1355`.
-pub async fn ws_proxy_chat(
-    ws: WebSocketUpgrade,
-    Path(path): Path<String>,
-) -> impl IntoResponse {
+pub async fn ws_proxy_chat(ws: WebSocketUpgrade, Path(path): Path<String>) -> impl IntoResponse {
     let port: u16 = std::env::var("MUSU_PORT_PORT")
         .ok()
         .and_then(|p| p.parse().ok())
@@ -48,13 +45,18 @@ pub async fn ws_proxy_pty(
         Some(id) => id,
         None => return (StatusCode::BAD_REQUEST, "Missing node_id").into_response(),
     };
-    
-    let musu_home = state.config.nodes_toml_path
+
+    let musu_home = state
+        .config
+        .nodes_toml_path
         .parent()
         .unwrap_or_else(|| std::path::Path::new("."));
-        
+
     let peers = crate::peer::discovery::resolve_all_peers(musu_home);
-    let peer = match peers.into_iter().find(|p| p.name.as_deref() == Some(node_id) || &p.addr == node_id) {
+    let peer = match peers
+        .into_iter()
+        .find(|p| p.name.as_deref() == Some(node_id) || &p.addr == node_id)
+    {
         Some(p) => p,
         None => return (StatusCode::NOT_FOUND, "Node not found").into_response(),
     };
@@ -153,13 +155,11 @@ fn axum_to_tungstenite(msg: AxumMessage) -> Option<TungMessage> {
         AxumMessage::Ping(data) => Some(TungMessage::Ping(data.to_vec())),
         AxumMessage::Pong(data) => Some(TungMessage::Pong(data.to_vec())),
         AxumMessage::Close(frame) => {
-            let tung_frame = frame.map(|f| {
-                tokio_tungstenite::tungstenite::protocol::CloseFrame {
-                    code: tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode::from(
-                        f.code,
-                    ),
-                    reason: f.reason.into(),
-                }
+            let tung_frame = frame.map(|f| tokio_tungstenite::tungstenite::protocol::CloseFrame {
+                code: tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode::from(
+                    f.code,
+                ),
+                reason: f.reason,
             });
             Some(TungMessage::Close(tung_frame))
         }
@@ -169,14 +169,14 @@ fn axum_to_tungstenite(msg: AxumMessage) -> Option<TungMessage> {
 /// Convert a tungstenite `Message` to an axum `Message`.
 fn tungstenite_to_axum(msg: TungMessage) -> Option<AxumMessage> {
     match msg {
-        TungMessage::Text(text) => Some(AxumMessage::Text(text.into())),
-        TungMessage::Binary(data) => Some(AxumMessage::Binary(data.into())),
-        TungMessage::Ping(data) => Some(AxumMessage::Ping(data.into())),
-        TungMessage::Pong(data) => Some(AxumMessage::Pong(data.into())),
+        TungMessage::Text(text) => Some(AxumMessage::Text(text)),
+        TungMessage::Binary(data) => Some(AxumMessage::Binary(data)),
+        TungMessage::Ping(data) => Some(AxumMessage::Ping(data)),
+        TungMessage::Pong(data) => Some(AxumMessage::Pong(data)),
         TungMessage::Close(frame) => {
             let axum_frame = frame.map(|f| axum::extract::ws::CloseFrame {
                 code: f.code.into(),
-                reason: f.reason.into(),
+                reason: f.reason,
             });
             Some(AxumMessage::Close(axum_frame))
         }

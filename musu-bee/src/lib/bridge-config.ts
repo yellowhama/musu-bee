@@ -13,14 +13,13 @@ export function getBridgeUrl(): string {
 
   // 1. Try to read from ~/.musu/services/bridge.json on the server
   try {
-    // @ts-ignore
-    const fs = eval("require")('fs');
-    // @ts-ignore
-    const path = eval("require")('path');
-    // @ts-ignore
-    const os = eval("require")('os');
+    const dynamicRequire = eval("require") as NodeRequire;
+    const fs = dynamicRequire("fs") as typeof import("fs");
+    const path = dynamicRequire("path") as typeof import("path");
+    const os = dynamicRequire("os") as typeof import("os");
+    const musuHome = process.env.MUSU_HOME?.trim();
     const homeDir = process.env.USERPROFILE || process.env.HOME || os.homedir();
-    const bridgeJsonPath = path.join(homeDir, '.musu', 'services', 'bridge.json');
+    const bridgeJsonPath = path.join(musuHome || path.join(homeDir, ".musu"), "services", "bridge.json");
     
     if (fs.existsSync(bridgeJsonPath)) {
       const data = fs.readFileSync(bridgeJsonPath, 'utf8');

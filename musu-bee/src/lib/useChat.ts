@@ -126,6 +126,7 @@ export function useChat(
   const reconnectTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const reconnectDelay = useRef(1000);
   const oldestHistoryId = useRef<string | null>(null);
+  const seenTaskUpdates = useRef<Set<string>>(new Set());
   const isAgentChannel = AGENT_CHANNELS.includes(channel);
 
   // Update activeNode when selectedNodeId changes
@@ -259,14 +260,44 @@ export function useChat(
 
     es.addEventListener("task_update", (event) => {
       try {
-        const data = JSON.parse(event.data);
-        // Handle background task updates if necessary
-        // Example: data = { type: "task_update", task_id: "...", status: "..." }
+        const data = JSON.parse(event.data) as {
+          type?: string;
+          task_id?: string;
+          status?: string;
+          output?: string | null;
+          error?: string | null;
+          assigned_pc?: string | null;
+          duration_sec?: number | null;
+        };
+        if (data.type !== "task_update" || !data.task_id) return;
+        if (data.status === "running" || data.status === "pending") {
+          setIsAgentTyping(true);
+          return;
+        }
+        if (!["done", "failed", "cancelled"].includes(data.status ?? "")) return;
+        const dedupeKey = `${data.task_id}:${data.status}`;
+        if (seenTaskUpdates.current.has(dedupeKey)) return;
+        seenTaskUpdates.current.add(dedupeKey);
+
+        const shortId = data.task_id.slice(0, 8);
+        const text = data.output?.trim() || data.error?.trim() || `Task ${shortId} ${data.status}.`;
+        appendChatMessage({
+          id: makeId(),
+          channelId: channel,
+          sender: data.assigned_pc ? `Agent @ ${data.assigned_pc}` : "Agent",
+          senderKind: data.status === "failed" ? "system" : "ai",
+          text,
+          timestamp: new Date(),
+          meta: {
+            durationSec: data.duration_sec ?? undefined,
+          },
+        });
+        setIsAgentTyping(false);
       } catch {
         // ignore malformed messages
       }
     });
-  }, [channel, isAgentChannel, isEmbedded]);
+  }, [appendChatMessage, channel, isAgentChannel, isEmbedded]);
 
   useEffect(() => {
     if (!isAgentChannel) {

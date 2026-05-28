@@ -46,7 +46,7 @@ export default function AgentPage() {
         body: JSON.stringify({
           instruction: userMsg.text,
           target_node: "local",
-          adapter_type: "openai_compat_local",
+          adapter_type: "claude",
           workspace_uri: "f:/workspace/musu-bee/musu-bee"
         })
       });

@@ -8,6 +8,12 @@ For the *first* initial machine setup, refer to [`../QUICKSTART.md`](../QUICKSTA
 - Windows, macOS, or Linux
 - (Optional but Recommended) Tailscale installed and connected to the same network for secure mesh routing.
 
+Windows distribution note:
+- This page primarily describes the current direct-download/operator runtime flow.
+- The intended Windows product direction is a Store/MSIX packaged runtime with package-managed install/update/startup.
+- Do not assume packaged Windows builds will reuse raw Scheduled Task setup or MUSU-managed self-update.
+- Reference: [`STORE_MSIX_AUDIT_2026_05_27.md`](STORE_MSIX_AUDIT_2026_05_27.md), [`PRODUCT_CHARTER/WINDOWS_DISTRIBUTION_PIVOT_2026-05-27.md`](PRODUCT_CHARTER/WINDOWS_DISTRIBUTION_PIVOT_2026-05-27.md)
+
 ## Quick Start (5 minutes)
 
 ### 1. Download or Build `musu-rs`
@@ -47,7 +53,7 @@ Start the local bridge. The bridge automatically assigns a dynamic port (saved i
 ```bash
 musu bridge
 ```
-*(In production, this is usually run as a background service via systemd or Windows Scheduled Tasks. `musu peer register` can set this up for you).*
+*(In production, direct-download builds usually run this via a platform service such as systemd or Windows Scheduled Tasks. Store/MSIX packaged Windows builds need a package-aware startup path instead of the raw Scheduled Task/bootstrap model.)*
 
 ### 5. Verify Discovery
 
@@ -66,4 +72,4 @@ If this node is meant to process tasks (e.g., Ollama GPU worker, script runner),
 ```bash
 musu peer register --type ollama --start "ollama serve" --name "my-gpu-worker"
 ```
-This automatically configures the node to accept delegated tasks and starts a platform service to keep it running across reboots.
+This automatically configures the node to accept delegated tasks and starts a platform service to keep it running across reboots on direct-download builds. Store/MSIX packaged Windows builds must use a package-aware startup model instead.

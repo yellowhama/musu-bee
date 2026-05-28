@@ -69,7 +69,7 @@ export default function WebRtcViewer({ machineId }: { machineId: string }) {
     };
   }, [machineId]);
 
-  const sendKvm = (msg: any) => {
+  const sendKvm = (msg: Record<string, unknown>) => {
     if (dcRef.current?.readyState === "open") {
       dcRef.current.send(JSON.stringify(msg));
     }

@@ -1,9 +1,7 @@
 import { getBridgeUrl } from '../../../lib/bridge-config';
 import { NextRequest, NextResponse } from "next/server";
-
-const MUSU_BRIDGE_URL = (
-  getBridgeUrl()
-).trim();
+import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
+import { getBridgeToken } from "@/lib/bridge-token";
 
 export interface HistoryMessage {
   id: string;
@@ -26,14 +24,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "session_id required" }, { status: 400 });
   }
 
-  const upstream = new URL(`${MUSU_BRIDGE_URL}/api/messages`);
+  const upstream = new URL(`${getBridgeUrl().trim().replace(/\/+$/, "")}/api/messages`);
   upstream.searchParams.set("session_id", sessionId);
   upstream.searchParams.set("limit", limit);
   if (beforeId) upstream.searchParams.set("before_id", beforeId);
 
   try {
     const res = await fetch(upstream.toString(), {
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...buildBridgeHeaders(await getBridgeToken()),
+      },
       // No cache — always fresh for chat history
       cache: "no-store",
     });

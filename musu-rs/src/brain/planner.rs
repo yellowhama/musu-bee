@@ -2,9 +2,9 @@
 //!
 //! Autonomous background worker that polls SSOT for state and spawns workflows.
 
-use tokio::time::{sleep, Duration};
 use crate::writer::runner::{TaskRunnerHandle, TaskSpec};
 use std::process::Command;
+use tokio::time::{sleep, Duration};
 
 pub async fn run_planner_loop(runner: TaskRunnerHandle) {
     let interval = std::env::var("MUSU_PLANNER_INTERVAL_SEC")
@@ -12,14 +12,17 @@ pub async fn run_planner_loop(runner: TaskRunnerHandle) {
         .and_then(|v| v.parse().ok())
         .unwrap_or(300); // Default 5 minutes
 
-    tracing::info!("Starting autonomous CEO planner loop (interval: {}s)", interval);
+    tracing::info!(
+        "Starting autonomous CEO planner loop (interval: {}s)",
+        interval
+    );
 
     loop {
         sleep(Duration::from_secs(interval)).await;
 
         if let Ok(musu_crawl_exe) = std::env::var("MUSU_CRAWL_BINARY") {
             tracing::info!("Planner awakening. Querying SSOT for company goals...");
-            
+
             // Query SSOT for overarching goals or pending issues
             let out = Command::new(&musu_crawl_exe)
                 .arg("search")
@@ -33,10 +36,11 @@ pub async fn run_planner_loop(runner: TaskRunnerHandle) {
                     let results = String::from_utf8_lossy(&output.stdout);
                     if !results.trim().is_empty() {
                         tracing::info!("Planner found active context. Dispatching synthesis task.");
-                        
+
                         let task_id = uuid::Uuid::new_v4().to_string();
-                        let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
-                        
+                        let cwd = std::env::current_dir()
+                            .unwrap_or_else(|_| std::path::PathBuf::from("."));
+
                         let prompt = format!(
                             "You are the CEO Planner of this Musu Virtual Company.\n\
                             Review the following SSOT state and determine if any new workflows need to be spawned.\n\

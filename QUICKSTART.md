@@ -27,7 +27,24 @@ sets up the venv, seeds the system-level agent team, builds the
 web UI (if Node.js is present), and registers the bridge as a
 systemd / launchd / Task Scheduler service.
 
+Windows note:
+
+- This is the **current direct-download/operator path**.
+- MUSU is also being prepared for a **Store/MSIX packaged Windows path** that will not reuse the full bootstrap/service/self-update model above.
+
 Full reference + troubleshooting: [`INSTALL.md`](INSTALL.md).
+
+Fast local start after install or unpack:
+
+```powershell
+musu up
+musu doctor
+```
+
+`musu up` ensures `~/.musu/bridge.env` exists, starts the local bridge if it
+is not already reachable, and reports the dashboard URL/next step. The web UI
+server reads the same bridge token automatically, so normal dashboard API
+calls do not need a manually exported `MUSU_BRIDGE_TOKEN`.
 
 ---
 

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "cross-env NODE_ENV=production next build",
+    "build": "cross-env NODE_ENV=production NODE_OPTIONS=--disable-warning=ExperimentalWarning next build",
     "start": "next start -p 3001",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

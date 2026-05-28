@@ -15,15 +15,15 @@ export interface ProcessInfo {
   device_id: string;
 }
 
-const DEFAULT_WORKER_URL = (
-  process.env.MUSU_WORKER_URL ?? getBridgeUrl()
-).trim().replace(/\/+$/, "");
-
 const WORKER_TOKEN = process.env.MUSU_WORKER_TOKEN ?? "";
 const FETCH_TIMEOUT_MS = 5_000;
 
+function defaultWorkerUrl(): string {
+  return (process.env.MUSU_WORKER_URL ?? getBridgeUrl()).trim().replace(/\/+$/, "");
+}
+
 function workerUrl(deviceId: string | null): string {
-  if (!deviceId || deviceId === "local") return DEFAULT_WORKER_URL;
+  if (!deviceId || deviceId === "local") return defaultWorkerUrl();
   // deviceId is an IP or hostname — worker is always on port 9700
   return `http://${deviceId}:9700`;
 }

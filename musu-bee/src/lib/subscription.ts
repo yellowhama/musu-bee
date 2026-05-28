@@ -9,6 +9,10 @@
  * the file fallback is safe. Do NOT use the file path on stateless serverless runtimes
  * (Vercel, Lambda) without KV_REST_API_URL configured.
  */
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
 import type { PlanTier } from "./billing-types";
 import { PLAN_DEVICE_LIMITS } from "./billing-types";
 
@@ -50,18 +54,33 @@ const DEFAULT_STATE: SubscriptionState = {
   _processedEventIds: [],
 };
 
-function normalizeState(state: any): SubscriptionState {
+function normalizeState(state: unknown): SubscriptionState {
   if (!state || typeof state !== "object") return { ...DEFAULT_STATE };
+  const record = state as Partial<SubscriptionState> & {
+    stripeCustomerId?: unknown;
+    stripeSubscriptionId?: unknown;
+    _processedPaddleEventIds?: unknown;
+    _processedStripeEventIds?: unknown;
+  };
 
   // Migration from Stripe fields
-  const customerId = state.customerId ?? state.stripeCustomerId ?? null;
+  const customerId =
+    typeof record.customerId === "string"
+      ? record.customerId
+      : typeof record.stripeCustomerId === "string"
+        ? record.stripeCustomerId
+        : null;
   const subscriptionId =
-    state.subscriptionId ?? state.stripeSubscriptionId ?? null;
+    typeof record.subscriptionId === "string"
+      ? record.subscriptionId
+      : typeof record.stripeSubscriptionId === "string"
+        ? record.stripeSubscriptionId
+        : null;
 
-  let provider = state.provider ?? "none";
+  let provider = record.provider ?? "none";
   if (
     provider === "none" &&
-    (state.stripeCustomerId || state.stripeSubscriptionId)
+    (record.stripeCustomerId || record.stripeSubscriptionId)
   ) {
     provider = "stripe";
   }
@@ -71,15 +90,15 @@ function normalizeState(state: any): SubscriptionState {
 
   const _processedEventIds = Array.from(
     new Set([
-      ...toStringArray(state._processedEventIds),
-      ...toStringArray(state._processedPaddleEventIds),
-      ...toStringArray(state._processedStripeEventIds),
+      ...toStringArray(record._processedEventIds),
+      ...toStringArray(record._processedPaddleEventIds),
+      ...toStringArray(record._processedStripeEventIds),
     ])
   ).slice(-MAX_PROCESSED_EVENTS);
 
   return {
     ...DEFAULT_STATE,
-    ...state,
+    ...record,
     customerId,
     subscriptionId,
     provider: provider as SubscriptionState["provider"],
@@ -87,7 +106,7 @@ function normalizeState(state: any): SubscriptionState {
   };
 }
 
-function useKv(): boolean {
+function shouldUseKv(): boolean {
   return Boolean(process.env.KV_REST_API_URL);
 }
 
@@ -107,8 +126,6 @@ async function kvSet(state: SubscriptionState): Promise<void> {
 // ── File fallback path (local dev only) ──────────────────────────────────────
 
 function fileGet(): SubscriptionState {
-  const fs = require("fs") as typeof import("fs");
-  const path = require("path") as typeof import("path");
   const stateFile = path.join(process.cwd(), "data", "subscription.json");
   try {
     const raw = fs.readFileSync(stateFile, "utf-8");
@@ -119,9 +136,6 @@ function fileGet(): SubscriptionState {
 }
 
 function fileSet(state: SubscriptionState): void {
-  const fs = require("fs") as typeof import("fs");
-  const path = require("path") as typeof import("path");
-  const os = require("os") as typeof import("os");
   const stateFile = path.join(process.cwd(), "data", "subscription.json");
   const dir = path.dirname(stateFile);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -134,12 +148,12 @@ function fileSet(state: SubscriptionState): void {
 // ── Public API ────────────────────────────────────────────────────────────────
 
 export async function getSubscription(): Promise<SubscriptionState> {
-  if (useKv()) return kvGet();
+  if (shouldUseKv()) return kvGet();
   return fileGet();
 }
 
 export async function saveSubscription(state: SubscriptionState): Promise<void> {
-  if (useKv()) return kvSet(state);
+  if (shouldUseKv()) return kvSet(state);
   fileSet(state);
 }
 
@@ -199,7 +213,7 @@ async function withKvSubscriptionLock<T>(fn: () => Promise<T>): Promise<T> {
 export async function withSubscriptionStateLock<T>(
   fn: () => Promise<T>
 ): Promise<T> {
-  if (useKv()) {
+  if (shouldUseKv()) {
     return withKvSubscriptionLock(fn);
   }
   return withLocalSubscriptionLock(fn);

@@ -21,7 +21,9 @@ pub enum SyncEventKind {
     Modified,
     Deleted,
     #[allow(dead_code)]
-    Renamed { to: PathBuf },
+    Renamed {
+        to: PathBuf,
+    },
 }
 
 /// Start watching a directory for changes.

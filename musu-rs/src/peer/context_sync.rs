@@ -14,9 +14,10 @@ use zip::write::FileOptions;
 use zip::ZipWriter;
 
 /// Packs a workspace directory into a ZIP file.
+#[allow(dead_code)] // Reserved for context-forwarding; unpack path is active today.
 pub fn pack_workspace(src_dir: &Path, dest_zip: &Path) -> Result<()> {
     tracing::debug!(src = %src_dir.display(), dest = %dest_zip.display(), "Packing workspace");
-    
+
     let file = File::create(dest_zip).context("Failed to create zip file")?;
     let mut zip = ZipWriter::new(file);
     let options = FileOptions::default()
@@ -26,29 +27,30 @@ pub fn pack_workspace(src_dir: &Path, dest_zip: &Path) -> Result<()> {
     let walker = WalkDir::new(src_dir).into_iter();
     for entry in walker.filter_entry(|e| {
         let name = e.file_name().to_string_lossy();
-        !name.starts_with(".git")
-            && name != "node_modules"
-            && name != "target"
-            && name != ".musu"
+        !name.starts_with(".git") && name != "node_modules" && name != "target" && name != ".musu"
     }) {
         let entry = entry.context("Failed to read directory entry")?;
         let path = entry.path();
-        
-        let name = path.strip_prefix(src_dir)
+
+        let name = path
+            .strip_prefix(src_dir)
             .context("Failed to strip prefix from path")?;
-            
+
         // Convert to a forward-slash separated path for the ZIP archive
         let zip_name = name.to_string_lossy().replace("\\", "/");
 
         if path.is_file() {
             tracing::trace!("Adding file to ZIP: {}", zip_name);
-            zip.start_file(zip_name, options).context("Failed to start file in zip")?;
+            zip.start_file(zip_name, options)
+                .context("Failed to start file in zip")?;
             let mut f = File::open(path).context("Failed to open file for zipping")?;
             let mut buffer = Vec::new();
-            f.read_to_end(&mut buffer).context("Failed to read file content")?;
+            f.read_to_end(&mut buffer)
+                .context("Failed to read file content")?;
             zip.write_all(&buffer).context("Failed to write to zip")?;
         } else if !name.as_os_str().is_empty() {
-            zip.add_directory(zip_name, options).context("Failed to add directory to zip")?;
+            zip.add_directory(zip_name, options)
+                .context("Failed to add directory to zip")?;
         }
     }
     zip.finish().context("Failed to finish zip archive")?;
@@ -59,32 +61,36 @@ pub fn pack_workspace(src_dir: &Path, dest_zip: &Path) -> Result<()> {
 /// Unpacks a ZIP file into a destination directory.
 pub fn unpack_workspace(zip_path: &Path, dest_dir: &Path) -> Result<()> {
     tracing::debug!(zip = %zip_path.display(), dest = %dest_dir.display(), "Unpacking workspace");
-    
+
     let file = File::open(zip_path).context("Failed to open zip file")?;
     let mut archive = zip::ZipArchive::new(file).context("Failed to read zip archive")?;
-    
+
     std::fs::create_dir_all(dest_dir).context("Failed to create destination directory")?;
-    
+
     for i in 0..archive.len() {
-        let mut file = archive.by_index(i).context("Failed to get zip entry by index")?;
+        let mut file = archive
+            .by_index(i)
+            .context("Failed to get zip entry by index")?;
         let outpath = match file.enclosed_name() {
             Some(path) => dest_dir.join(path),
             None => continue, // Skip malicious or absolute paths
         };
-        
+
         if file.name().ends_with('/') {
             std::fs::create_dir_all(&outpath).context("Failed to create extracted directory")?;
         } else {
             if let Some(p) = outpath.parent() {
                 if !p.exists() {
-                    std::fs::create_dir_all(p).context("Failed to create parent directory for file")?;
+                    std::fs::create_dir_all(p)
+                        .context("Failed to create parent directory for file")?;
                 }
             }
             let mut outfile = File::create(&outpath).context("Failed to create extracted file")?;
-            std::io::copy(&mut file, &mut outfile).context("Failed to copy zip contents to file")?;
+            std::io::copy(&mut file, &mut outfile)
+                .context("Failed to copy zip contents to file")?;
         }
     }
-    
+
     // Explicitly grant permissions if needed
     #[cfg(unix)]
     {
@@ -94,13 +100,16 @@ pub fn unpack_workspace(zip_path: &Path, dest_dir: &Path) -> Result<()> {
             if let Some(mode) = file.unix_mode() {
                 if let Some(outpath) = file.enclosed_name().map(|p| dest_dir.join(p)) {
                     if outpath.exists() {
-                        let _ = std::fs::set_permissions(&outpath, std::fs::Permissions::from_mode(mode));
+                        let _ = std::fs::set_permissions(
+                            &outpath,
+                            std::fs::Permissions::from_mode(mode),
+                        );
                     }
                 }
             }
         }
     }
-    
+
     tracing::debug!("Workspace unpacked successfully");
     Ok(())
 }
@@ -152,7 +161,13 @@ mod tests {
         assert!(!dest_dir.path().join("node_modules").exists());
 
         // Check file contents
-        assert_eq!(fs::read_to_string(dest_dir.path().join("file1.txt")).unwrap(), "Hello");
-        assert_eq!(fs::read_to_string(dest_dir.path().join("subdir/file3.txt")).unwrap(), "Subdir");
+        assert_eq!(
+            fs::read_to_string(dest_dir.path().join("file1.txt")).unwrap(),
+            "Hello"
+        );
+        assert_eq!(
+            fs::read_to_string(dest_dir.path().join("subdir/file3.txt")).unwrap(),
+            "Subdir"
+        );
     }
 }

@@ -150,18 +150,18 @@ pub struct SearchCompanyParams {
 pub struct KvmControlParams {
     /// Type of action: "mousemove", "mousedown", "mouseup", "keydown", "keyup"
     pub action_type: String,
-    
+
     /// For mousemove: X coordinate ratio (0.0 to 1.0)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rx: Option<f64>,
     /// For mousemove: Y coordinate ratio (0.0 to 1.0)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ry: Option<f64>,
-    
+
     /// For mousedown/up: "left", "right", "middle"
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub button: Option<String>,
-    
+
     /// For keydown/up: key name (e.g. "enter", "tab", "super", "a")
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub key: Option<String>,

@@ -1,14 +1,18 @@
 import { getBridgeUrl } from '../../../lib/bridge-config';
 import { NextResponse } from "next/server";
+import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
+import { getBridgeToken } from "@/lib/bridge-token";
 
-const BRIDGE_URL = (
-  getBridgeUrl()
-).replace(/\/+$/, "");
+function bridgeUrl(): string {
+  return getBridgeUrl().replace(/\/+$/, "");
+}
 
 export async function GET() {
   try {
     // V24-R7: canonical Rust path /api/nodes (was Python-era /api/admin/nodes).
-    const res = await fetch(`${BRIDGE_URL}/api/nodes`);
+    const res = await fetch(`${bridgeUrl()}/api/nodes`, {
+      headers: buildBridgeHeaders(await getBridgeToken()),
+    });
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
   } catch {

@@ -196,8 +196,6 @@ function ApprovalCard({ text, onSend }: { text: string; onSend: (t: string) => v
 // Plan card rendered when msg.plan is present (numbered execution plan)
 function PlanCard({ msg, onApprove, onReject }: { msg: Message; onApprove?: (msgId: string) => void; onReject?: (msgId: string) => void }) {
   const plan = msg.plan;
-  if (!plan) return null;
-
   const handleApprove = useCallback(() => {
     if (onApprove) onApprove(msg.id);
   }, [msg.id, onApprove]);
@@ -205,6 +203,8 @@ function PlanCard({ msg, onApprove, onReject }: { msg: Message; onApprove?: (msg
   const handleReject = useCallback(() => {
     if (onReject) onReject(msg.id);
   }, [msg.id, onReject]);
+
+  if (!plan) return null;
 
   return (
     <div

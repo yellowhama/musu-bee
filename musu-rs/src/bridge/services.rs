@@ -17,9 +17,12 @@
 //! Each JSON file contains a [`ServiceRecord`] serialised via serde.
 
 use std::fs;
+use std::path::Path;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
+
+pub const DEFAULT_LOCAL_BRIDGE_PORT: u16 = 8070;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -146,17 +149,6 @@ impl ServiceRegistry {
         }
     }
 
-    /// Discover a service or fall back to `127.0.0.1:{default_port}`.
-    ///
-    /// This is the primary lookup used at boot: try the registry first, and
-    /// if the service hasn't self-registered yet, assume it's on its well-known
-    /// port.
-    pub fn discover_or_default(&self, name: &str, default_port: u16) -> String {
-        self.discover(name)
-            .map(|r| r.addr)
-            .unwrap_or_else(|| format!("127.0.0.1:{}", default_port))
-    }
-
     /// List every currently registered service.
     pub fn list(&self) -> Vec<ServiceRecord> {
         let entries = match fs::read_dir(&self.dir) {
@@ -214,20 +206,104 @@ impl Default for ServiceRegistry {
     }
 }
 
+pub fn normalize_loopback_addr(addr: &str) -> String {
+    if let Some(port) = addr.strip_prefix("0.0.0.0:") {
+        return format!("127.0.0.1:{port}");
+    }
+    if let Some(port) = addr.strip_prefix("[::]:") {
+        return format!("127.0.0.1:{port}");
+    }
+    if let Some(port) = addr.strip_prefix(":::") {
+        return format!("127.0.0.1:{port}");
+    }
+    addr.to_string()
+}
+
+pub fn discover_local_bridge_addr(home: &Path) -> Option<String> {
+    let registry = ServiceRegistry::with_dir(home.join("services"));
+    registry.discover("bridge").and_then(|record| {
+        if matches!(record.transport, Transport::Tcp) {
+            Some(normalize_loopback_addr(&record.addr))
+        } else {
+            None
+        }
+    })
+}
+
+pub fn local_bridge_addr_for_home(home: &Path, fallback_port: u16) -> String {
+    discover_local_bridge_addr(home).unwrap_or_else(|| format!("127.0.0.1:{fallback_port}"))
+}
+
+pub fn fallback_bridge_port_from_env() -> u16 {
+    std::env::var("BRIDGE_PORT")
+        .ok()
+        .and_then(|port| port.parse::<u16>().ok())
+        .unwrap_or(DEFAULT_LOCAL_BRIDGE_PORT)
+}
+
+pub fn local_bridge_addr(home: &Path) -> String {
+    local_bridge_addr_for_home(home, fallback_bridge_port_from_env())
+}
+
+pub fn local_bridge_http_url_for_home(home: &Path, fallback_port: u16) -> String {
+    format!("http://{}", local_bridge_addr_for_home(home, fallback_port))
+}
+
+pub fn local_bridge_http_url(home: &Path) -> String {
+    local_bridge_http_url_for_home(home, fallback_bridge_port_from_env())
+}
+
+pub fn resolve_public_bridge_url(home: &Path) -> String {
+    if let Ok(url) = std::env::var("MUSU_BRIDGE_PUBLIC_URL") {
+        let trimmed = url.trim().trim_end_matches('/').to_string();
+        if !trimmed.is_empty() {
+            return trimmed;
+        }
+    }
+    local_bridge_http_url(home)
+}
+
+pub fn current_bridge_addr(cfg: &crate::bridge::config::BridgeConfig) -> String {
+    let registry = ServiceRegistry::new();
+    if let Some(record) = registry.discover("bridge") {
+        if matches!(record.transport, Transport::Tcp) {
+            return record.addr;
+        }
+    }
+    format!("{}:{}", cfg.bridge_host, cfg.bridge_port)
+}
+
+pub fn advertised_bridge_http_url(cfg: &crate::bridge::config::BridgeConfig) -> String {
+    if let Some(url) = cfg.public_url.as_ref().filter(|u| !u.trim().is_empty()) {
+        return url.trim_end_matches('/').to_string();
+    }
+
+    let addr = current_bridge_addr(cfg);
+    let actual_port = addr
+        .rsplit_once(':')
+        .and_then(|(_, port)| port.parse::<u16>().ok())
+        .unwrap_or(cfg.bridge_port);
+
+    let host = if cfg.bridge_host == "0.0.0.0" || cfg.bridge_host == "::" {
+        hostname::get()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string()
+    } else {
+        cfg.bridge_host.clone()
+    };
+    format!("http://{}:{}", host, actual_port)
+}
+
 // ---------------------------------------------------------------------------
 // Home directory helper (mirrors bridge::config::home_dir)
 // ---------------------------------------------------------------------------
 
-/// Resolve the musu home directory (`~/.musu`).
-///
-/// Uses `HOME` (Unix) → `USERPROFILE` (Windows) → `"."` fallback, matching
-/// the convention in [`crate::bridge::config`].
+/// Resolve the musu home directory (`~/.musu`) using the shared install/runtime
+/// contract.
 fn musu_home() -> PathBuf {
-    std::env::var("HOME")
-        .or_else(|_| std::env::var("USERPROFILE"))
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| PathBuf::from("."))
-        .join(".musu")
+    crate::install::resolve_musu_home_from_env()
+        .unwrap_or_else(|_| PathBuf::from(".").join(".musu"))
 }
 
 // ---------------------------------------------------------------------------
@@ -248,9 +324,7 @@ fn is_pid_alive(pid: u32) -> bool {
 #[cfg(windows)]
 fn is_pid_alive(pid: u32) -> bool {
     use windows_sys::Win32::Foundation::CloseHandle;
-    use windows_sys::Win32::System::Threading::{
-        OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION,
-    };
+    use windows_sys::Win32::System::Threading::{OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION};
 
     // SAFETY: OpenProcess returns NULL on failure (invalid PID / access
     // denied with no handle leak).  We close any valid handle immediately.
@@ -303,7 +377,9 @@ mod tests {
 
         reg.register(&rec).unwrap();
 
-        let found = reg.discover("facade").expect("should find registered service");
+        let found = reg
+            .discover("facade")
+            .expect("should find registered service");
         assert_eq!(found.name, "facade");
         assert_eq!(found.addr, "127.0.0.1:9999");
         assert_eq!(found.pid, Some(std::process::id()));
@@ -314,21 +390,6 @@ mod tests {
     fn discover_missing_returns_none() {
         let (_tmp, reg) = temp_registry();
         assert!(reg.discover("nonexistent").is_none());
-    }
-
-    #[test]
-    fn discover_or_default_fallback() {
-        let (_tmp, reg) = temp_registry();
-
-        // No registration → falls back to default port.
-        let addr = reg.discover_or_default("worker", 8071);
-        assert_eq!(addr, "127.0.0.1:8071");
-
-        // With registration → returns registered addr.
-        let rec = sample_record("worker");
-        reg.register(&rec).unwrap();
-        let addr = reg.discover_or_default("worker", 8071);
-        assert_eq!(addr, "127.0.0.1:9999");
     }
 
     #[test]
@@ -363,6 +424,119 @@ mod tests {
         let names: Vec<&str> = all.iter().map(|r| r.name.as_str()).collect();
         assert!(names.contains(&"facade"));
         assert!(names.contains(&"worker"));
+    }
+
+    #[test]
+    fn default_registry_honors_musu_home_override() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let musu_home = tmp.path().join("custom-musu-home");
+        std::env::set_var("MUSU_HOME", &musu_home);
+
+        let reg = ServiceRegistry::new();
+        reg.register(&sample_record("bridge")).unwrap();
+
+        assert!(musu_home.join("services").join("bridge.json").exists());
+
+        std::env::remove_var("MUSU_HOME");
+    }
+
+    #[test]
+    fn helper_urls_use_registry_port_and_public_url_override() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let musu_home = tmp.path().join("custom-musu-home");
+        std::env::set_var("MUSU_HOME", &musu_home);
+
+        let reg = ServiceRegistry::new();
+        reg.register(&ServiceRecord {
+            name: "bridge".to_string(),
+            addr: "0.0.0.0:43123".to_string(),
+            pid: None,
+            started_at: 0,
+            transport: Transport::Tcp,
+        })
+        .unwrap();
+
+        let cfg = crate::bridge::config::BridgeConfig {
+            bridge_host: "0.0.0.0".to_string(),
+            bridge_port: 0,
+            python_facade_port: 0,
+            public_url: None,
+            node_name: "test-node".to_string(),
+            db_path: musu_home.join("db").join("musu.db"),
+            audit_db_path: musu_home.join("data").join("audit.db"),
+            nodes_toml_path: musu_home.join("nodes.toml"),
+            token: String::new(),
+            peer_token: None,
+            localhost_auth_required: false,
+            env: crate::bridge::config::AuthMode::Development,
+            rate_limit_disabled: true,
+            rate_limit_per_min: 0,
+            allow_plaintext_lan: false,
+            file_serve_roots: vec![],
+            file_serve_writable: false,
+            tls_enabled: false,
+            tls_cert_path: None,
+            tls_key_path: None,
+        };
+
+        assert_eq!(current_bridge_addr(&cfg), "0.0.0.0:43123");
+        assert_eq!(
+            discover_local_bridge_addr(&musu_home).as_deref(),
+            Some("127.0.0.1:43123")
+        );
+        assert_eq!(
+            local_bridge_http_url_for_home(&musu_home, 8070),
+            "http://127.0.0.1:43123"
+        );
+        assert!(
+            advertised_bridge_http_url(&cfg).ends_with(":43123"),
+            "advertised URL should use actual runtime port"
+        );
+
+        let mut cfg = cfg;
+        cfg.public_url = Some("https://fleet.example.test/".to_string());
+        assert_eq!(
+            advertised_bridge_http_url(&cfg),
+            "https://fleet.example.test"
+        );
+
+        std::env::remove_var("MUSU_HOME");
+    }
+
+    #[test]
+    fn env_default_helpers_use_bridge_port_and_public_url_override() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let musu_home = tmp.path().join("custom-musu-home");
+        std::env::set_var("MUSU_HOME", &musu_home);
+        std::env::set_var("BRIDGE_PORT", "9999");
+
+        assert_eq!(fallback_bridge_port_from_env(), 9999);
+        assert_eq!(local_bridge_addr(&musu_home), "127.0.0.1:9999");
+        assert_eq!(local_bridge_http_url(&musu_home), "http://127.0.0.1:9999");
+
+        std::env::set_var("MUSU_BRIDGE_PUBLIC_URL", "https://fleet.example.test/");
+        assert_eq!(
+            resolve_public_bridge_url(&musu_home),
+            "https://fleet.example.test"
+        );
+
+        std::env::remove_var("MUSU_BRIDGE_PUBLIC_URL");
+        std::env::remove_var("BRIDGE_PORT");
+        std::env::remove_var("MUSU_HOME");
+    }
+
+    #[test]
+    fn local_bridge_helpers_fall_back_when_registry_missing() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let musu_home = tmp.path().join("missing-registry-home");
+        assert_eq!(
+            local_bridge_addr_for_home(&musu_home, DEFAULT_LOCAL_BRIDGE_PORT),
+            "127.0.0.1:8070"
+        );
+        assert_eq!(
+            local_bridge_http_url_for_home(&musu_home, DEFAULT_LOCAL_BRIDGE_PORT),
+            "http://127.0.0.1:8070"
+        );
     }
 
     #[test]

@@ -139,12 +139,15 @@ async fn handle_mcp_message(
         "notifications/initialized" => {
             // JSON-RPC 2.0: notifications have no id and get no response.
             if req.id.is_none() {
-                return (StatusCode::NO_CONTENT, Json(JsonRpcResponse {
-                    jsonrpc: "2.0".into(),
-                    result: None,
-                    error: None,
-                    id: None,
-                }));
+                return (
+                    StatusCode::NO_CONTENT,
+                    Json(JsonRpcResponse {
+                        jsonrpc: "2.0".into(),
+                        result: None,
+                        error: None,
+                        id: None,
+                    }),
+                );
             }
             Ok(serde_json::json!({}))
         }
@@ -180,9 +183,9 @@ async fn handle_mcp_message(
 async fn handle_sse(
     State(_state): State<AppState>,
 ) -> Sse<impl tokio_stream::Stream<Item = Result<Event, std::convert::Infallible>>> {
-    let stream = tokio_stream::wrappers::IntervalStream::new(
-        tokio::time::interval(std::time::Duration::from_secs(30)),
-    )
+    let stream = tokio_stream::wrappers::IntervalStream::new(tokio::time::interval(
+        std::time::Duration::from_secs(30),
+    ))
     .map(|_| {
         Ok(Event::default()
             .event("heartbeat")
@@ -274,36 +277,57 @@ async fn dispatch_tool(
     match name {
         "list_companies" => bridge.list_companies().await.map_err(|e| format!("{e}")),
         "get_company" => {
-            let p: GetCompanyParams = serde_json::from_value(args.clone())
-                .map_err(|e| format!("invalid params: {e}"))?;
+            let p: GetCompanyParams =
+                serde_json::from_value(args.clone()).map_err(|e| format!("invalid params: {e}"))?;
             bridge.get_company(&p.id).await.map_err(|e| format!("{e}"))
         }
-        "create_company" => bridge.create_company(args).await.map_err(|e| format!("{e}")),
+        "create_company" => bridge
+            .create_company(args)
+            .await
+            .map_err(|e| format!("{e}")),
         "activate_company" => {
-            let p: GetCompanyParams = serde_json::from_value(args.clone())
-                .map_err(|e| format!("invalid params: {e}"))?;
-            bridge.activate_company(&p.id).await.map_err(|e| format!("{e}"))
+            let p: GetCompanyParams =
+                serde_json::from_value(args.clone()).map_err(|e| format!("invalid params: {e}"))?;
+            bridge
+                .activate_company(&p.id)
+                .await
+                .map_err(|e| format!("{e}"))
         }
         "run_company" => {
-            let p: RunCompanyParams = serde_json::from_value(args.clone())
-                .map_err(|e| format!("invalid params: {e}"))?;
-            bridge.run_company(&p.id, &p.body).await.map_err(|e| format!("{e}"))
+            let p: RunCompanyParams =
+                serde_json::from_value(args.clone()).map_err(|e| format!("invalid params: {e}"))?;
+            bridge
+                .run_company(&p.id, &p.body)
+                .await
+                .map_err(|e| format!("{e}"))
         }
         "delegate_task" => bridge.delegate_task(args).await.map_err(|e| format!("{e}")),
         "cancel_task" => {
-            let p: CancelTaskParams = serde_json::from_value(args.clone())
-                .map_err(|e| format!("invalid params: {e}"))?;
-            bridge.cancel_task(&p.task_id).await.map_err(|e| format!("{e}"))
+            let p: CancelTaskParams =
+                serde_json::from_value(args.clone()).map_err(|e| format!("invalid params: {e}"))?;
+            bridge
+                .cancel_task(&p.task_id)
+                .await
+                .map_err(|e| format!("{e}"))
         }
         "list_nodes" => bridge.list_nodes().await.map_err(|e| format!("{e}")),
         "search_company" => {
-            let p: SearchCompanyParams = serde_json::from_value(args.clone())
-                .map_err(|e| format!("invalid params: {e}"))?;
-            bridge.search_company(&p.workspace, &p.q, p.scope.as_deref(), p.limit).await.map_err(|e| format!("{e}"))
+            let p: SearchCompanyParams =
+                serde_json::from_value(args.clone()).map_err(|e| format!("invalid params: {e}"))?;
+            bridge
+                .search_company(&p.workspace, &p.q, p.scope.as_deref(), p.limit)
+                .await
+                .map_err(|e| format!("{e}"))
         }
         "run_remote_command" => {
-            let node_id = args.get("node_id").and_then(|v| v.as_str()).ok_or_else(|| "node_id required".to_string())?;
-            let cmd = args.get("command").and_then(|v| v.as_str()).ok_or_else(|| "command required".to_string())?;
+            let node_id = args
+                .get("node_id")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| "node_id required".to_string())?;
+            let cmd = args
+                .get("command")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| "command required".to_string())?;
             let mut req_args = Vec::new();
             if let Some(arr) = args.get("args").and_then(|v| v.as_array()) {
                 for a in arr {
@@ -312,15 +336,22 @@ async fn dispatch_tool(
                     }
                 }
             }
-            let cwd = args.get("cwd").and_then(|v| v.as_str()).map(|s| s.to_string());
-            
+            let cwd = args
+                .get("cwd")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+
             // Resolve node_id locally
-            let musu_home = state.config.nodes_toml_path
+            let musu_home = state
+                .config
+                .nodes_toml_path
                 .parent()
                 .unwrap_or_else(|| std::path::Path::new("."));
-            
+
             let peers = crate::peer::discovery::resolve_all_peers(musu_home);
-            let peer = peers.into_iter().find(|p| p.name.as_deref() == Some(node_id) || p.addr == node_id)
+            let peer = peers
+                .into_iter()
+                .find(|p| p.name.as_deref() == Some(node_id) || p.addr == node_id)
                 .ok_or_else(|| format!("Node {} not found", node_id))?;
 
             // HTTP POST to remote RPC exec
@@ -331,7 +362,9 @@ async fn dispatch_tool(
                 "cwd": cwd,
             });
 
-            let resp = state.http_client.post(&target_url)
+            let resp = state
+                .http_client
+                .post(&target_url)
                 .bearer_auth(&state.config.token)
                 .json(&payload)
                 .send()
@@ -342,18 +375,30 @@ async fn dispatch_tool(
             Ok(text)
         }
         "read_remote_file" => {
-            let node_id = args.get("node_id").and_then(|v| v.as_str()).ok_or_else(|| "node_id required".to_string())?;
-            let path = args.get("path").and_then(|v| v.as_str()).ok_or_else(|| "path required".to_string())?;
-            
-            let musu_home = state.config.nodes_toml_path
+            let node_id = args
+                .get("node_id")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| "node_id required".to_string())?;
+            let path = args
+                .get("path")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| "path required".to_string())?;
+
+            let musu_home = state
+                .config
+                .nodes_toml_path
                 .parent()
                 .unwrap_or_else(|| std::path::Path::new("."));
             let peers = crate::peer::discovery::resolve_all_peers(musu_home);
-            let peer = peers.into_iter().find(|p| p.name.as_deref() == Some(node_id) || p.addr == node_id)
+            let peer = peers
+                .into_iter()
+                .find(|p| p.name.as_deref() == Some(node_id) || p.addr == node_id)
                 .ok_or_else(|| format!("Node {} not found", node_id))?;
 
             let target_url = format!("http://{}/api/files/read?path={}", peer.addr, path);
-            let resp = state.http_client.get(&target_url)
+            let resp = state
+                .http_client
+                .get(&target_url)
                 .bearer_auth(&state.config.token)
                 .send()
                 .await
@@ -367,15 +412,28 @@ async fn dispatch_tool(
             }
         }
         "write_remote_file" => {
-            let node_id = args.get("node_id").and_then(|v| v.as_str()).ok_or_else(|| "node_id required".to_string())?;
-            let path = args.get("path").and_then(|v| v.as_str()).ok_or_else(|| "path required".to_string())?;
-            let content = args.get("content").and_then(|v| v.as_str()).ok_or_else(|| "content required".to_string())?;
-            
-            let musu_home = state.config.nodes_toml_path
+            let node_id = args
+                .get("node_id")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| "node_id required".to_string())?;
+            let path = args
+                .get("path")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| "path required".to_string())?;
+            let content = args
+                .get("content")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| "content required".to_string())?;
+
+            let musu_home = state
+                .config
+                .nodes_toml_path
                 .parent()
                 .unwrap_or_else(|| std::path::Path::new("."));
             let peers = crate::peer::discovery::resolve_all_peers(musu_home);
-            let peer = peers.into_iter().find(|p| p.name.as_deref() == Some(node_id) || p.addr == node_id)
+            let peer = peers
+                .into_iter()
+                .find(|p| p.name.as_deref() == Some(node_id) || p.addr == node_id)
                 .ok_or_else(|| format!("Node {} not found", node_id))?;
 
             let target_url = format!("http://{}/api/files/write", peer.addr);
@@ -383,7 +441,9 @@ async fn dispatch_tool(
                 "path": path,
                 "content": content
             });
-            let resp = state.http_client.post(&target_url)
+            let resp = state
+                .http_client
+                .post(&target_url)
                 .bearer_auth(&state.config.token)
                 .json(&payload)
                 .send()
@@ -398,8 +458,8 @@ async fn dispatch_tool(
             }
         }
         "kvm_control" => {
-            let p: KvmControlParams = serde_json::from_value(args.clone())
-                .map_err(|e| format!("invalid params: {e}"))?;
+            let p: KvmControlParams =
+                serde_json::from_value(args.clone()).map_err(|e| format!("invalid params: {e}"))?;
             let msg = crate::io::kvm::KvmMessage {
                 r#type: p.action_type,
                 rx: p.rx,

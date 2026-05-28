@@ -64,71 +64,129 @@ grace_period_secs = 30
 
 pub async fn run(opts: InstallOpts) -> Result<()> {
     let home = super::resolve_musu_home(opts.musu_home.as_deref())?;
+    let distribution = super::distribution::DistributionMode::current();
 
     // S11: refuse running as root/admin (except --boot-start on Windows
     // which requires UAC for sc.exe).
     refuse_privileged_unless_boot_start(opts.boot_start)?;
 
     if opts.dry_run {
-        return run_dry_run(&home, &opts);
+        return run_dry_run(&home, &opts, distribution);
     }
 
     seed_directory_tree(&home)?;
-    let token = generate_bridge_token()?;
-    write_bridge_env(&home, &token)?;
-    write_update_toml(&home)?;
-    write_musu_toml(&home)?;
+    let _token = if distribution.is_store_msix() {
+        ensure_bridge_env(&home)?
+    } else {
+        let token = generate_bridge_token()?;
+        write_bridge_env(&home, &token)?;
+        token
+    };
+
+    if distribution.supports_self_update() {
+        write_update_toml(&home)?;
+    }
+    if distribution.supports_platform_service_install() {
+        write_musu_toml(&home)?;
+    }
+    write_usage_docs(&home)?;
 
     let bridge_path = home.join("bin").join(super::musu_binary_name());
     let musud_path = home.join("bin").join(super::musud_binary_name());
-    copy_running_binary(&bridge_path)?;
-    copy_sibling_musud(&musud_path).context("copy musud into ~/.musu/bin")?;
+    if distribution.supports_platform_service_install() {
+        copy_running_binary(&bridge_path)?;
+        copy_sibling_musud(&musud_path).context("copy musud into ~/.musu/bin")?;
+    }
 
     apply_initial_schema(&home).await?;
 
-    // Register platform service.
-    let svc = platform::current();
-    svc.register(&RegisterContext {
-        musu_home: &home,
-        boot_start: opts.boot_start,
-    })?;
+    if distribution.supports_platform_service_install() {
+        // Register platform service.
+        let svc = platform::current();
+        svc.register(&RegisterContext {
+            musu_home: &home,
+            boot_start: opts.boot_start,
+        })?;
+    } else {
+        tracing::info!(
+            distribution = distribution.as_str(),
+            "skipping platform service registration for packaged Store/MSIX runtime"
+        );
+    }
 
     // V27-F6: Generate TLS certificates (non-fatal).
     let hostname = hostname::get().unwrap_or_default();
-    if let Err(e) = super::tls::ensure_tls_certs(
-        &home,
-        &hostname.to_string_lossy(),
-    ) {
+    if let Err(e) = super::tls::ensure_tls_certs(&home, &hostname.to_string_lossy()) {
         tracing::warn!(err = %e, "TLS cert generation failed (non-fatal)");
     }
 
-    eprintln!(
-        "\nmusu install complete.\n\
-         - Home:        {}\n\
-         - Bridge bin:  {}\n\
-         - musud bin:   {}\n\
-         - Service:     registered\n\
-         - Token:       {} hex chars\n\
-         \n\
-         The bridge will start automatically on next logon (or now if the\n\
-         platform service auto-starts on register). Verify with:\n\
-         \n\
-             curl http://127.0.0.1:8070/health\n",
-        home.display(),
-        bridge_path.display(),
-        musud_path.display(),
-        token.len()
-    );
+    if distribution.is_store_msix() {
+        eprintln!(
+            "\n🎉 Welcome to musu!\n\n\
+             Store/MSIX runtime bootstrap is complete.\n\
+             Package installation and updates are managed by Windows, so this command did not:\n\
+               - copy binaries into ~/.musu/bin\n\
+               - write update.toml\n\
+               - register a Task Scheduler startup entry\n\
+             \n\
+             Runtime state was initialized at:\n\
+               {}\n\
+             \n\
+             [ 1 ] Setup your account for peer discovery:\n\
+                   musu login\n\
+             \n\
+             [ 2 ] Start the packaged bridge directly during development:\n\
+                   musu bridge\n\
+             \n\
+             [ 3 ] Check your fleet status once the bridge is running:\n\
+                   musu status\n\
+             \n\
+             📚 A full usage guide has been saved to:\n\
+             {}\n",
+            home.display(),
+            home.join("docs").join("USAGE.md").display()
+        );
+    } else {
+        eprintln!(
+            "\n🎉 Welcome to musu!\n\n\
+             Installation is complete. The musu bridge will start automatically on next logon\n\
+             (or now if the platform service auto-starts on register).\n\
+             \n\
+             [ 1 ] Setup your account for peer discovery:\n\
+                   musu login\n\
+             \n\
+             [ 2 ] Share files with your other machines:\n\
+                   musu share /path/to/share\n\
+             \n\
+             [ 3 ] Check your fleet status:\n\
+                   musu status\n\
+             \n\
+             📚 A full usage guide has been saved to:\n\
+             {}\n\
+             \n\
+             Verify the bridge is running with:\n\
+                 curl http://127.0.0.1:8070/health\n",
+            home.join("docs").join("USAGE.md").display()
+        );
+    }
 
     Ok(())
 }
 
-fn run_dry_run(home: &Path, opts: &InstallOpts) -> Result<()> {
-    let svc = platform::current();
-    let templates = svc.dry_run_templates(&RegisterContext {
-        musu_home: home,
-        boot_start: opts.boot_start,
-    })?;
+fn run_dry_run(
+    home: &Path,
+    opts: &InstallOpts,
+    distribution: super::distribution::DistributionMode,
+) -> Result<()> {
+    let templates = if distribution.supports_platform_service_install() {
+        let svc = platform::current();
+        svc.dry_run_templates(&RegisterContext {
+            musu_home: home,
+            boot_start: opts.boot_start,
+        })?
+    } else {
+        Vec::new()
+    };
 
     // Materialize to a tempdir and validate each.
     let tmp = std::env::temp_dir().join(format!("musu-dryrun-{}", std::process::id()));
@@ -149,15 +207,25 @@ fn run_dry_run(home: &Path, opts: &InstallOpts) -> Result<()> {
         eprintln!("  - {}", home.join(sub).display());
     }
     eprintln!("dry-run: would write files:");
-    for f in &["bridge.env", "update.toml", "musu.toml"] {
+    let files: &[&str] = if distribution.supports_platform_service_install() {
+        &["bridge.env", "update.toml", "musu.toml"]
+    } else {
+        &["bridge.env"]
+    };
+    for f in files {
         eprintln!("  - {}", home.join(f).display());
+    }
+    if distribution.is_store_msix() {
+        eprintln!(
+            "dry-run: Store/MSIX runtime detected — package-managed install path, no Task Scheduler/service registration, no self-update seed."
+        );
     }
     eprintln!("dry-run: validation passed.");
     let _ = std::fs::remove_dir_all(&tmp);
     Ok(())
 }
 
-const EXPECTED_SUBDIRS: &[&str] = &["bin", "companies", "db", "data", "logs"];
+const EXPECTED_SUBDIRS: &[&str] = &["bin", "companies", "db", "data", "logs", "docs"];
 
 fn refuse_privileged_unless_boot_start(boot_start: bool) -> Result<()> {
     #[cfg(unix)]
@@ -257,6 +325,10 @@ fn write_bridge_env(home: &Path, token: &str) -> Result<()> {
     Ok(())
 }
 
+fn ensure_bridge_env(home: &Path) -> Result<String> {
+    super::token::ensure_bridge_token(home)
+}
+
 #[cfg(windows)]
 fn restrict_acl_to_current_user(path: &Path) -> Result<()> {
     let user = std::env::var("USERNAME").context("USERNAME env var")?;
@@ -294,6 +366,55 @@ fn write_musu_toml(home: &Path) -> Result<()> {
     }
     let body = DEFAULT_MUSU_TOML.replace("{MUSU_HOME}", &home.to_string_lossy());
     std::fs::write(&path, body).with_context(|| format!("write {}", path.display()))?;
+    Ok(())
+}
+
+const DEFAULT_USAGE_MD: &str = r#"# musu Usage Guide
+
+Welcome to musu! This guide will help you get started.
+
+## 1. Account & Discovery
+To easily connect your machines, login to your musu.pro account:
+  musu login
+
+If you don't use musu.pro, you can pair machines manually on your local network:
+  musu pair
+  musu join <code>
+
+## 2. File Sharing
+Share a directory with your fleet:
+  musu share C:\my\folder --writable
+  musu shares
+  musu unshare C:\my\folder
+
+Sync shared folders to peers in real-time:
+  musu sync
+
+## 3. Remote File Access
+List files on a peer:
+  musu ls peer-name:/path/to/folder
+
+Download a file from a peer:
+  musu get peer-name:/path/to/file.txt
+
+Upload a file to a peer:
+  musu put local.txt peer-name:/path/to/dest.txt
+
+## 4. Task Routing
+Send a prompt/instruction to another machine:
+  musu route "Compile the project" -t peer-name -w
+
+View fleet status and running tasks:
+  musu status
+  musu tasks
+"#;
+
+fn write_usage_docs(home: &Path) -> Result<()> {
+    let path = home.join("docs").join("USAGE.md");
+    if !path.exists() {
+        std::fs::write(&path, DEFAULT_USAGE_MD)
+            .with_context(|| format!("write {}", path.display()))?;
+    }
     Ok(())
 }
 

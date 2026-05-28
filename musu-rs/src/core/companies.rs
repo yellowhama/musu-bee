@@ -160,26 +160,16 @@ fn validate_id(id: &str) -> Result<(), CoreError> {
     Ok(())
 }
 
-/// Resolve the home directory. Falls back per `BridgeConfig::home_dir`
-/// semantics (HOME → USERPROFILE → ".").
-fn home_dir() -> PathBuf {
-    if let Ok(h) = std::env::var("HOME") {
-        return PathBuf::from(h);
-    }
-    if let Ok(u) = std::env::var("USERPROFILE") {
-        return PathBuf::from(u);
-    }
-    PathBuf::from(".")
-}
-
-/// `$HOME/.musu/companies`. Created on first write.
+/// `~/.musu/companies`. Created on first write.
 ///
 /// Override with `MUSU_COMPANIES_DIR` (used by tests).
 pub fn companies_dir() -> PathBuf {
     if let Ok(override_dir) = std::env::var("MUSU_COMPANIES_DIR") {
         return PathBuf::from(override_dir);
     }
-    home_dir().join(".musu").join("companies")
+    crate::install::resolve_musu_home_from_env()
+        .unwrap_or_else(|_| PathBuf::from(".").join(".musu"))
+        .join("companies")
 }
 
 /// Serialize + atomic write a single company record to its YAML file.

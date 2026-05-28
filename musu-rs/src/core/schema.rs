@@ -109,9 +109,8 @@ pub const SCHEMA_V2_ALTER_STATEMENTS: &[&str] = &[
 ///
 /// No index: low cardinality (boolean), read via full-table scans in
 /// reporting queries only.
-pub const SCHEMA_V3_ALTER_STATEMENTS: &[&str] = &[
-    "ALTER TABLE audit_log ADD COLUMN cross_machine INTEGER",
-];
+pub const SCHEMA_V3_ALTER_STATEMENTS: &[&str] =
+    &["ALTER TABLE audit_log ADD COLUMN cross_machine INTEGER"];
 
 /// Schema-v4 DDL statements — wiki/512 §4 (W9).
 ///

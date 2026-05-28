@@ -73,7 +73,9 @@ impl BridgeConfig {
             _ => AuthMode::Production,
         };
 
-        let token = env::var("MUSU_BRIDGE_TOKEN").unwrap_or_default();
+        let musu_home = crate::install::resolve_musu_home_from_env()
+            .unwrap_or_else(|_| home_dir().join(".musu"));
+        let token = crate::install::token::read_bridge_token(&musu_home).unwrap_or_default();
 
         // C-SEC-1: empty token rejected in production (unconditionally).
         if auth_mode == AuthMode::Production {
@@ -118,16 +120,15 @@ impl BridgeConfig {
                     .unwrap_or_else(|| "unknown-node".to_string())
             });
 
-        let home = home_dir();
         let db_path = env::var("MUSU_BRIDGE_DB_PATH")
             .map(PathBuf::from)
-            .unwrap_or_else(|_| home.join(".musu").join("db").join("musu.db"));
+            .unwrap_or_else(|_| musu_home.join("db").join("musu.db"));
         let audit_db_path = env::var("MUSU_BRIDGE_AUDIT_DB")
             .map(PathBuf::from)
-            .unwrap_or_else(|_| home.join(".musu").join("data").join("audit.db"));
+            .unwrap_or_else(|_| musu_home.join("data").join("audit.db"));
         let nodes_toml_path = env::var("MUSU_NODES_TOML_PATH")
             .map(PathBuf::from)
-            .unwrap_or_else(|_| home.join(".musu").join("nodes.toml"));
+            .unwrap_or_else(|_| musu_home.join("nodes.toml"));
 
         // C-SEC-3 INVERSION: default = true (localhost requires auth).
         // Set MUSU_BRIDGE_LOCALHOST_AUTH=0 to enable bypass.
@@ -250,6 +251,9 @@ mod tests {
             "MUSU_ENV",
             "MUSU_BRIDGE_TOKEN",
             "MUSU_TOKEN",
+            "MUSU_HOME",
+            "HOME",
+            "USERPROFILE",
             "BRIDGE_HOST",
             "BRIDGE_PORT",
             "MUSU_DISABLE_RATE_LIMIT",
@@ -263,6 +267,27 @@ mod tests {
         ] {
             env::remove_var(var);
         }
+        let temp_home =
+            std::env::temp_dir().join(format!("musu-bridge-config-{}", uuid::Uuid::new_v4()));
+        let _ = std::fs::create_dir_all(&temp_home);
+        env::set_var("HOME", &temp_home);
+        env::set_var("USERPROFILE", &temp_home);
+    }
+
+    #[test]
+    fn musu_home_override_controls_default_paths() {
+        let _g = ENV_LOCK.lock().unwrap();
+        clear_env();
+        env::set_var("MUSU_ENV", "test");
+        let musu_home =
+            std::env::temp_dir().join(format!("musu-bridge-config-home-{}", uuid::Uuid::new_v4()));
+        let _ = std::fs::create_dir_all(musu_home.join("db"));
+        env::set_var("MUSU_HOME", &musu_home);
+
+        let cfg = BridgeConfig::from_env().expect("config should load");
+        assert_eq!(cfg.db_path, musu_home.join("db").join("musu.db"));
+        assert_eq!(cfg.audit_db_path, musu_home.join("data").join("audit.db"));
+        assert_eq!(cfg.nodes_toml_path, musu_home.join("nodes.toml"));
     }
 
     #[test]
@@ -297,6 +322,27 @@ mod tests {
         let result = BridgeConfig::from_env();
         assert!(result.is_ok(), "expected boot OK on 32 char token in prod");
         assert_eq!(result.unwrap().env, AuthMode::Production);
+    }
+
+    #[test]
+    fn boot_accepts_bridge_env_token_in_prod() {
+        let _g = ENV_LOCK.lock().unwrap();
+        clear_env();
+        let home = PathBuf::from(env::var("HOME").unwrap());
+        let musu_home = home.join(".musu");
+        std::fs::create_dir_all(&musu_home).unwrap();
+        std::fs::write(
+            musu_home.join("bridge.env"),
+            format!("MUSU_BRIDGE_TOKEN={}\n", "b".repeat(32)),
+        )
+        .unwrap();
+
+        let result = BridgeConfig::from_env();
+        assert!(
+            result.is_ok(),
+            "expected boot OK when bridge.env provides token"
+        );
+        assert_eq!(result.unwrap().token, "b".repeat(32));
     }
 
     #[test]

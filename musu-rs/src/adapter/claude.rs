@@ -130,9 +130,13 @@ impl Adapter for ClaudeAdapter {
         };
 
         let timeout = spec.timeout_sec.map(|s| Duration::from_secs(s as u64));
-        let outcome =
-            stream_until_done(&mut reader, ctx.cancel.clone(), timeout, ctx.deadline_unix_ms)
-                .await;
+        let outcome = stream_until_done(
+            &mut reader,
+            ctx.cancel.clone(),
+            timeout,
+            ctx.deadline_unix_ms,
+        )
+        .await;
 
         // Reap subprocess based on outcome, mirroring runner.rs:361-392.
         match outcome {

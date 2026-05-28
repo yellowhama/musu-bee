@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getUser } from "@/lib/auth-server";
+import { getBridgeToken } from "@/lib/bridge-token";
 
 export const dynamic = "force-dynamic";
 
@@ -13,10 +14,7 @@ export async function GET() {
     process.env.MUSU_RELAY_WS_URL ??
     process.env.NEXT_PUBLIC_MUSU_RELAY_WS_URL ??
     "";
-  const token =
-    process.env.MUSU_RELAY_TOKEN ??
-    process.env.MUSU_BRIDGE_TOKEN ??
-    "";
+  const token = process.env.MUSU_RELAY_TOKEN ?? await getBridgeToken();
 
   if (!relayWsUrl || !token) {
     return NextResponse.json({ error: "Relay is not configured" }, { status: 503 });

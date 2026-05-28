@@ -18,6 +18,22 @@ interface NodesConfig {
   };
 }
 
+interface ExecuteBody {
+  node_name?: unknown;
+  command?: unknown;
+  args?: unknown;
+  cwd?: unknown;
+  timeout_sec?: unknown;
+}
+
+interface ExecutePayload {
+  command: string;
+  args: string[];
+  timeout_sec: number;
+  env: Record<string, string>;
+  cwd?: string;
+}
+
 async function readNodesConfig(): Promise<NodesConfig> {
   try {
     const configPath = join(homedir(), ".musu", "nodes.toml");
@@ -82,10 +98,15 @@ async function readNodesConfig(): Promise<NodesConfig> {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { node_name, command, args = [], cwd, timeout_sec = 30 } = body;
+    const body = (await request.json()) as ExecuteBody;
+    const { node_name, command } = body;
+    const args = Array.isArray(body.args)
+      ? body.args.filter((arg): arg is string => typeof arg === "string")
+      : [];
+    const cwd = typeof body.cwd === "string" ? body.cwd : undefined;
+    const timeout_sec = typeof body.timeout_sec === "number" ? body.timeout_sec : 30;
 
-    if (!node_name || !command) {
+    if (typeof node_name !== "string" || typeof command !== "string") {
       return NextResponse.json(
         {
           error: "Missing required fields: node_name, command",
@@ -119,7 +140,7 @@ export async function POST(request: NextRequest) {
 
     const workerUrl = `http://${targetNode.tailscale_ip}:${workerPort}`;
 
-    const payload: any = {
+    const payload: ExecutePayload = {
       command,
       args,
       timeout_sec,
@@ -162,11 +183,11 @@ export async function POST(request: NextRequest) {
         { status: workerResponse.status }
       );
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
       {
         error: "Failed to execute remote process",
-        message: error.message,
+        message: error instanceof Error ? error.message : "unknown error",
       },
       { status: 500 }
     );

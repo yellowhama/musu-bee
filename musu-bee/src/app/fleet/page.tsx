@@ -26,6 +26,7 @@ import { getBridgeUrl } from '../../lib/bridge-config';
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import DoctorStatusCard from "../../components/DoctorStatusCard";
 
 const BRIDGE_URL = getBridgeUrl();
 const REFRESH_INTERVAL = 5_000;
@@ -628,6 +629,8 @@ export default function FleetPage() {
           + Add a PC
         </button>
       </header>
+
+      <DoctorStatusCard />
 
       {error && (
         <div

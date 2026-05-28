@@ -4,7 +4,7 @@ use std::net::IpAddr;
 /// Scans all local network interfaces and looks for an IPv4 address in the CGNAT range.
 pub fn get_tailscale_ip() -> Option<String> {
     let interfaces = local_ip_address::list_afinet_netifas().ok()?;
-    
+
     for (name, ip) in interfaces {
         if let IpAddr::V4(ipv4) = ip {
             let octets = ipv4.octets();
@@ -15,6 +15,6 @@ pub fn get_tailscale_ip() -> Option<String> {
             }
         }
     }
-    
+
     None
 }

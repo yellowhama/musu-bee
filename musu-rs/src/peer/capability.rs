@@ -37,11 +37,16 @@ pub async fn probe_ollama(base_url: &str) -> Capability {
     let models = match timeout(Duration::from_secs(5), client.get(&url).send()).await {
         Ok(Ok(resp)) if resp.status().is_success() => {
             match resp.json::<serde_json::Value>().await {
-                Ok(j) => j.get("models")
+                Ok(j) => j
+                    .get("models")
                     .and_then(|v| v.as_array())
-                    .map(|arr| arr.iter()
-                        .filter_map(|m| m.get("name").and_then(|n| n.as_str()).map(String::from))
-                        .collect())
+                    .map(|arr| {
+                        arr.iter()
+                            .filter_map(|m| {
+                                m.get("name").and_then(|n| n.as_str()).map(String::from)
+                            })
+                            .collect()
+                    })
                     .unwrap_or_default(),
                 Err(_) => Vec::new(),
             }
@@ -51,7 +56,10 @@ pub async fn probe_ollama(base_url: &str) -> Capability {
             Vec::new()
         }
     };
-    Capability::Ollama { models, base_url: base_url.into() }
+    Capability::Ollama {
+        models,
+        base_url: base_url.into(),
+    }
 }
 
 pub async fn probe_comfyui(base_url: &str) -> Capability {
@@ -66,13 +74,21 @@ pub async fn probe_comfyui(base_url: &str) -> Capability {
         Ok(Ok(r)) if r.status().is_success() || r.status() == 404
     );
     if !reachable {
-        tracing::warn!(url = stats_url, "ComfyUI probe failed; recording port-only capability");
+        tracing::warn!(
+            url = stats_url,
+            "ComfyUI probe failed; recording port-only capability"
+        );
     }
-    Capability::Comfyui { port, base_url: base_url.into() }
+    Capability::Comfyui {
+        port,
+        base_url: base_url.into(),
+    }
 }
 
 pub fn probe_script(start_cmd: &str) -> Capability {
-    Capability::Script { cmd: start_cmd.into() }
+    Capability::Script {
+        cmd: start_cmd.into(),
+    }
 }
 
 fn parse_port(base_url: &str) -> Option<u16> {

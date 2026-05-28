@@ -65,6 +65,31 @@ iwr https://raw.githubusercontent.com/yellowhama/musu-bee/main/install.ps1 -useb
 
 The installer downloads the pre-built `musu` and `musud` binaries, registers a background service so the bridge survives reboots, and adds `~/.musu/bin` to your PATH.
 
+### Windows distribution direction
+
+Windows now has three intended distribution modes:
+
+- **Current operator path**: direct-download bootstrap via `install.ps1`
+- **Packaged local validation path**: MSIX sideload with **manual** `musu bridge`
+- **Target product path**: Microsoft Store review with restricted-capability **ImmediateRegistration** auto-start
+
+The packaged Windows paths are not intended to reuse the full direct-download install model. In both packaged paths, Windows owns installation and updates, and MUSU must not depend on binary self-copy, PATH mutation, Task Scheduler registration, or GitHub self-update. Local sideload is currently a manual-bridge contract; Windows auto-start is a separate Store-reviewed deployment model.
+
+Current state:
+
+- **local sideload / manual bridge**: validated in-repo
+- **Store-reviewed auto-start**: artifact and submission bundle ready, external Microsoft review still pending
+
+See:
+
+- [Store/MSIX audit](docs/STORE_MSIX_AUDIT_2026_05_27.md)
+- [Store/MSIX execution plan](docs/STORE_MSIX_EXECUTION_PLAN_2026_05_27.md)
+- [Store/MSIX packaging guide](docs/STORE_MSIX_PACKAGING_GUIDE_2026_05_27.md)
+- [Store/MSIX restricted capability submission checklist](docs/STORE_MSIX_RESTRICTED_CAPABILITY_SUBMISSION_CHECKLIST_2026_05_27.md)
+- [Store/MSIX approval status ledger](docs/STORE_MSIX_APPROVAL_STATUS_2026_05_27.md)
+- [Store/MSIX next steps](docs/STORE_MSIX_NEXT_STEPS_2026_05_27.md)
+- [Windows distribution pivot](docs/PRODUCT_CHARTER/WINDOWS_DISTRIBUTION_PIVOT_2026-05-27.md)
+
 ### Connect your account
 
 Once installed, link this machine to your fleet (V27 Account Mesh):

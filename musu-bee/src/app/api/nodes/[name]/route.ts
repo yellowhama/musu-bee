@@ -1,9 +1,11 @@
 import { getBridgeUrl } from '../../../../lib/bridge-config';
 import { NextRequest, NextResponse } from "next/server";
+import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
+import { getBridgeToken } from "@/lib/bridge-token";
 
-const BRIDGE_URL = (
-  getBridgeUrl()
-).replace(/\/+$/, "");
+function bridgeUrl(): string {
+  return getBridgeUrl().replace(/\/+$/, "");
+}
 
 export async function DELETE(
   _req: NextRequest,
@@ -15,8 +17,9 @@ export async function DELETE(
     // /api/admin/nodes/{name}). DELETE handler not yet implemented in R1
     // Rust bridge — call will 404 against Rust :8070 until a later R-fast step
     // adds it; behaviour matches Python-bridge legacy path layout otherwise.
-    const res = await fetch(`${BRIDGE_URL}/api/nodes/${encodeURIComponent(name)}`, {
+    const res = await fetch(`${bridgeUrl()}/api/nodes/${encodeURIComponent(name)}`, {
       method: "DELETE",
+      headers: buildBridgeHeaders(await getBridgeToken()),
     });
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });

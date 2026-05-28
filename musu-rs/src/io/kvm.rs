@@ -6,14 +6,14 @@ use std::sync::{Mutex, OnceLock};
 #[derive(Debug, Deserialize)]
 pub struct KvmMessage {
     pub r#type: String,
-    
+
     // For mousemove
     pub rx: Option<f64>,
     pub ry: Option<f64>,
-    
+
     // For mousedown/up
     pub button: Option<String>,
-    
+
     // For keydown/up
     pub key: Option<String>,
 }
@@ -21,54 +21,57 @@ pub struct KvmMessage {
 static ENIGO: OnceLock<Mutex<enigo::Enigo>> = OnceLock::new();
 
 fn get_enigo() -> std::sync::MutexGuard<'static, enigo::Enigo> {
-    ENIGO.get_or_init(|| Mutex::new(enigo::Enigo::new(&enigo::Settings::default()).unwrap())).lock().unwrap()
+    ENIGO
+        .get_or_init(|| Mutex::new(enigo::Enigo::new(&enigo::Settings::default()).unwrap()))
+        .lock()
+        .unwrap()
 }
 
 pub fn execute_kvm_command(cmd: &KvmMessage) {
-    use enigo::{Mouse, Keyboard, Button, Coordinate, Direction};
+    use enigo::{Button, Coordinate, Direction, Keyboard, Mouse};
     let mut enigo = get_enigo();
-    
+
     match cmd.r#type.as_str() {
-                "mousemove" => {
-                    if let (Some(rx), Some(ry)) = (cmd.rx, cmd.ry) {
-                        let (w, h) = enigo.main_display().unwrap_or((1920, 1080));
-                        let x = (rx * w as f64) as i32;
-                        let y = (ry * h as f64) as i32;
-                        let _ = enigo.move_mouse(x, y, Coordinate::Abs);
-                    }
-                }
-                "mousedown" => {
-                    if let Some(btn) = &cmd.button {
-                        let b = match btn.as_str() {
-                            "right" => Button::Right,
-                            "middle" => Button::Middle,
-                            _ => Button::Left,
-                        };
-                        let _ = enigo.button(b, Direction::Press);
-                    }
-                }
-                "mouseup" => {
-                    if let Some(btn) = &cmd.button {
-                        let b = match btn.as_str() {
-                            "right" => Button::Right,
-                            "middle" => Button::Middle,
-                            _ => Button::Left,
-                        };
-                        let _ = enigo.button(b, Direction::Release);
-                    }
-                }
-                "keydown" => {
-                    if let Some(k) = &cmd.key {
-                        let key = parse_key(&k);
-                        let _ = enigo.key(key, Direction::Press);
-                    }
-                }
-                "keyup" => {
-                    if let Some(k) = &cmd.key {
-                        let key = parse_key(&k);
-                        let _ = enigo.key(key, Direction::Release);
-                    }
-                }
+        "mousemove" => {
+            if let (Some(rx), Some(ry)) = (cmd.rx, cmd.ry) {
+                let (w, h) = enigo.main_display().unwrap_or((1920, 1080));
+                let x = (rx * w as f64) as i32;
+                let y = (ry * h as f64) as i32;
+                let _ = enigo.move_mouse(x, y, Coordinate::Abs);
+            }
+        }
+        "mousedown" => {
+            if let Some(btn) = &cmd.button {
+                let b = match btn.as_str() {
+                    "right" => Button::Right,
+                    "middle" => Button::Middle,
+                    _ => Button::Left,
+                };
+                let _ = enigo.button(b, Direction::Press);
+            }
+        }
+        "mouseup" => {
+            if let Some(btn) = &cmd.button {
+                let b = match btn.as_str() {
+                    "right" => Button::Right,
+                    "middle" => Button::Middle,
+                    _ => Button::Left,
+                };
+                let _ = enigo.button(b, Direction::Release);
+            }
+        }
+        "keydown" => {
+            if let Some(k) = &cmd.key {
+                let key = parse_key(k);
+                let _ = enigo.key(key, Direction::Press);
+            }
+        }
+        "keyup" => {
+            if let Some(k) = &cmd.key {
+                let key = parse_key(k);
+                let _ = enigo.key(key, Direction::Release);
+            }
+        }
         _ => {}
     }
 }

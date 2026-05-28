@@ -20,7 +20,9 @@
 //! IPC enum gained 5 new variants (D2). Freeze rendezvous protects swap (D4).
 
 pub mod auto_update;
+pub mod distribution;
 pub mod dry_run;
+pub mod package_status;
 pub mod platform;
 pub mod runner;
 pub mod schema_gate;
@@ -127,20 +129,46 @@ pub struct SchemaGateOpts {
     pub musu_home: Option<std::path::PathBuf>,
 }
 
-/// Resolve `~/.musu` against an optional override (tests) or `dirs::home_dir()`.
+/// Resolve `~/.musu` against an optional override or the process home.
 ///
 /// Single source of truth for the install layout root (wiki/496 §4).
 pub fn resolve_musu_home(override_dir: Option<&std::path::Path>) -> Result<std::path::PathBuf> {
     if let Some(d) = override_dir {
         return Ok(d.to_path_buf());
     }
-    let home = dirs::home_dir().ok_or_else(|| {
+    let home = resolve_user_home()?;
+    Ok(home.join(".musu"))
+}
+
+fn resolve_user_home() -> Result<std::path::PathBuf> {
+    for var in ["HOME", "USERPROFILE"] {
+        if let Ok(value) = std::env::var(var) {
+            if !value.trim().is_empty() {
+                return Ok(std::path::PathBuf::from(value));
+            }
+        }
+    }
+    dirs::home_dir().ok_or_else(|| {
         anyhow::anyhow!(
             "cannot resolve user home directory (HOME / USERPROFILE unset); \
              pass --musu-home for tests"
         )
-    })?;
-    Ok(home.join(".musu"))
+    })
+}
+
+/// Resolve `~/.musu` using `MUSU_HOME` when present, otherwise the platform
+/// home directory.
+///
+/// This is the shared non-CLI runtime helper for bridge/control/peer code
+/// paths that do not receive an explicit `--musu-home` argument but still
+/// need to honor the same install/runtime contract.
+pub fn resolve_musu_home_from_env() -> Result<std::path::PathBuf> {
+    if let Ok(s) = std::env::var("MUSU_HOME") {
+        if !s.trim().is_empty() {
+            return Ok(std::path::PathBuf::from(s));
+        }
+    }
+    resolve_musu_home(None)
 }
 
 /// Entry points dispatched from `main.rs`. Thin wrappers so main.rs stays
@@ -165,16 +193,20 @@ pub async fn run_apply_schema(opts: SchemaGateOpts) -> Result<()> {
     schema_gate::apply(opts).await
 }
 
+pub async fn run_package_status() -> Result<()> {
+    package_status::run().await
+}
+
 /// `musu supervise` — execs `~/.musu/bin/musud` if present, otherwise
 /// errors with operator-facing guidance. Per §1.1 Q3 we ship musud as a
 /// separate binary (apps/musud/), so the embedded form is intentionally
 /// absent — this subcommand is just a friendly indirection.
 pub async fn run_supervise(musu_home: Option<std::path::PathBuf>) -> Result<()> {
     let home = resolve_musu_home(musu_home.as_deref())?;
-    let musud = home.join("bin").join(musud_binary_name());
+    let musud = distribution::resolve_musud_path(&home)?;
     if !musud.exists() {
         anyhow::bail!(
-            "musud binary not found at {}. Run `musu install` first or build apps/musud and copy it manually.",
+            "musud binary not found at {}. Run `musu install` first, or package musud alongside the Store/MSIX app, or build apps/musud and copy it manually.",
             musud.display()
         );
     }
@@ -218,5 +250,47 @@ pub fn musu_binary_name() -> &'static str {
     #[cfg(not(windows))]
     {
         "musu"
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn resolve_musu_home_from_env_prefers_musu_home() {
+        std::env::set_var("MUSU_HOME", r"C:\temp\musu-home-test");
+        assert_eq!(
+            resolve_musu_home_from_env().unwrap(),
+            std::path::PathBuf::from(r"C:\temp\musu-home-test")
+        );
+        std::env::remove_var("MUSU_HOME");
+    }
+
+    #[test]
+    fn resolve_musu_home_honors_process_home_env_for_runtime_tests() {
+        std::env::remove_var("MUSU_HOME");
+        let old_home = std::env::var("HOME").ok();
+        let old_userprofile = std::env::var("USERPROFILE").ok();
+        let temp_home =
+            std::env::temp_dir().join(format!("musu-install-home-{}", uuid::Uuid::new_v4()));
+
+        std::env::set_var("HOME", &temp_home);
+        std::env::remove_var("USERPROFILE");
+
+        let resolved = resolve_musu_home_from_env().unwrap();
+
+        if let Some(value) = old_home {
+            std::env::set_var("HOME", value);
+        } else {
+            std::env::remove_var("HOME");
+        }
+        if let Some(value) = old_userprofile {
+            std::env::set_var("USERPROFILE", value);
+        } else {
+            std::env::remove_var("USERPROFILE");
+        }
+
+        assert_eq!(resolved, temp_home.join(".musu"));
     }
 }

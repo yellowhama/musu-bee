@@ -16,7 +16,7 @@ fn main() {
         created_at: None,
         started_at: None,
     };
-    
+
     println!("Saving TaskUpdate...");
     update.save();
     println!("Saved successfully.");

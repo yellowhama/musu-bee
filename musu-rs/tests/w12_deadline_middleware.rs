@@ -59,10 +59,7 @@ fn echo_app() -> Router {
 
 #[tokio::test]
 async fn no_deadline_header_passes_through() {
-    let req = Request::builder()
-        .uri("/test")
-        .body(Body::empty())
-        .unwrap();
+    let req = Request::builder().uri("/test").body(Body::empty()).unwrap();
     let resp = fast_app().oneshot(req).await.unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     // No deadline header in response.
@@ -82,12 +79,7 @@ async fn valid_deadline_future_succeeds() {
     let resp = fast_app().oneshot(req).await.unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     // Deadline header echoed back.
-    let echoed = resp
-        .headers()
-        .get(HEADER_NAME)
-        .unwrap()
-        .to_str()
-        .unwrap();
+    let echoed = resp.headers().get(HEADER_NAME).unwrap().to_str().unwrap();
     assert_eq!(echoed, future_ms.to_string());
 }
 
@@ -161,7 +153,10 @@ async fn deadline_header_echoed_in_response() {
         .unwrap();
     let resp = fast_app().oneshot(req).await.unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let hdr = resp.headers().get(HEADER_NAME).expect("header must be echoed");
+    let hdr = resp
+        .headers()
+        .get(HEADER_NAME)
+        .expect("header must be echoed");
     assert_eq!(hdr.to_str().unwrap(), future_ms.to_string());
 }
 
@@ -189,10 +184,7 @@ async fn deadline_ms_injected_into_extensions() {
 
 #[tokio::test]
 async fn no_header_no_deadline_in_extensions() {
-    let req = Request::builder()
-        .uri("/test")
-        .body(Body::empty())
-        .unwrap();
+    let req = Request::builder().uri("/test").body(Body::empty()).unwrap();
     let resp = echo_app().oneshot(req).await.unwrap();
     let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
         .await
@@ -227,7 +219,11 @@ async fn schema_v3_cross_machine_column_exists() {
     .fetch_all(&pool)
     .await
     .unwrap();
-    assert_eq!(rows.len(), 1, "cross_machine column must exist after v3 migration");
+    assert_eq!(
+        rows.len(),
+        1,
+        "cross_machine column must exist after v3 migration"
+    );
 }
 
 // ─── Test 10: v3 preserves existing audit rows ───────────────────
@@ -303,7 +299,9 @@ async fn fresh_db_reaches_latest() {
     let v = musu_rs::core::migrate::run(&pool).await.unwrap();
     assert_eq!(v, 4, "fresh DB migration must reach v4");
 
-    let cv = musu_rs::core::migrate::current_version(&pool).await.unwrap();
+    let cv = musu_rs::core::migrate::current_version(&pool)
+        .await
+        .unwrap();
     assert_eq!(cv, 4);
 }
 

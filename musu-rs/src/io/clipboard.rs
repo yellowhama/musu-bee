@@ -1,18 +1,18 @@
 //! Universal Clipboard
-//! 
+//!
 //! Monitors local OS clipboard changes and broadcasts them to the fleet
 //! via SSE, and applies incoming clipboard events to the local system.
-//! 
+//!
 //! Uses `arboard` for cross-platform clipboard access.
 
+use crate::bridge::AppState;
 use arboard::Clipboard;
-use axum::extract::{State, Json};
-use axum::response::IntoResponse;
+use axum::extract::{Json, State};
 use axum::http::StatusCode;
+use axum::response::IntoResponse;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use crate::bridge::AppState;
 
 static LAST_CLIPBOARD_TEXT: Mutex<String> = Mutex::new(String::new());
 
@@ -63,13 +63,23 @@ pub fn start_clipboard_monitor(state: AppState) {
                 if current != *last && !current.is_empty() {
                     *last = current.clone();
                     drop(last); // release lock before broadcasting
-                    
+
                     // Broadcast over existing SSE channel
-                    state.sse_broadcaster.publish(crate::writer::sse::TaskEvent {
-                        r#type: "clipboard_update".to_string(),
-                        task_id: "clipboard".to_string(),
-                        status: current.clone(),
-                    });
+                    state
+                        .sse_broadcaster
+                        .publish(crate::writer::sse::TaskEvent {
+                            r#type: "clipboard_update".to_string(),
+                            task_id: "clipboard".to_string(),
+                            status: current.clone(),
+                            company_id: None,
+                            channel: None,
+                            sender_id: None,
+                            output: None,
+                            error: None,
+                            assigned_pc: None,
+                            exit_code: None,
+                            duration_sec: None,
+                        });
                 }
             }
         }
@@ -82,7 +92,7 @@ pub async fn write_clipboard(
     Json(payload): Json<ClipboardPayload>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
     let sync = ClipboardSync::new().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
-    
+
     // Update global state FIRST to prevent ping-pong loop
     if let Ok(mut last) = LAST_CLIPBOARD_TEXT.lock() {
         *last = payload.text.clone();

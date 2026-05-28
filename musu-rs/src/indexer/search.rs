@@ -77,20 +77,19 @@ pub async fn search(
     // limits but the bridge route caller sets 20 default.
     let lim = limit.clamp(1, 200) as i64;
 
-    let rows: Vec<(String, String, String)> = sqlx::query_as(
-        "SELECT path, \
-                snippet(search_index, 2, '<b>', '</b>', '…', 20) AS snippet, \
-                type \
-         FROM search_index \
-         WHERE search_index MATCH ? \
-         ORDER BY rank \
-         LIMIT ?",
-    )
-    .bind(q)
-    .bind(lim)
-    .fetch_all(&pool)
-    .await
-    .context("FTS5 search query")?;
+    let rows = match run_match_query(&pool, q, lim).await {
+        Ok(rows) => rows,
+        Err(raw_err) => {
+            let fallback = phrase_query(q);
+            if fallback == q {
+                return Err(raw_err).context("FTS5 search query");
+            }
+            match run_match_query(&pool, &fallback, lim).await {
+                Ok(rows) => rows,
+                Err(_) => return Err(raw_err).context("FTS5 search query"),
+            }
+        }
+    };
 
     Ok(rows
         .into_iter()
@@ -102,9 +101,38 @@ pub async fn search(
         .collect())
 }
 
+async fn run_match_query(
+    pool: &sqlx::SqlitePool,
+    query: &str,
+    limit: i64,
+) -> Result<Vec<(String, String, String)>, sqlx::Error> {
+    sqlx::query_as(
+        "SELECT path, \
+                snippet(search_index, 2, '<b>', '</b>', '…', 20) AS snippet, \
+                type \
+         FROM search_index \
+         WHERE search_index MATCH ? \
+         ORDER BY rank \
+         LIMIT ?",
+    )
+    .bind(query)
+    .bind(limit)
+    .fetch_all(pool)
+    .await
+}
+
+fn phrase_query(query: &str) -> String {
+    let trimmed = query.trim();
+    if trimmed.starts_with('"') && trimmed.ends_with('"') && trimmed.len() >= 2 {
+        return trimmed.to_string();
+    }
+    format!("\"{}\"", trimmed.replace('"', "\"\""))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::indexer::db;
     use tempfile::TempDir;
 
     #[tokio::test]
@@ -120,5 +148,30 @@ mod tests {
         // Even if the DB existed, an empty query should short-circuit.
         let hits = search(dir.path(), "   ", "all", 20).await.unwrap();
         assert!(hits.is_empty());
+    }
+
+    #[tokio::test]
+    async fn hyphenated_plain_text_query_falls_back_to_phrase_search() {
+        let dir = TempDir::new().unwrap();
+        let pool = db::open_index_db(dir.path()).await.unwrap();
+        sqlx::query("INSERT INTO search_index (path, title, content, type) VALUES (?, ?, ?, ?)")
+            .bind("docs/example.md")
+            .bind("Example")
+            .bind("store-reviewed-immediate-registration contract")
+            .bind("section")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        let hits = search(
+            dir.path(),
+            "store-reviewed-immediate-registration",
+            "all",
+            5,
+        )
+        .await
+        .unwrap();
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].path, "docs/example.md");
     }
 }

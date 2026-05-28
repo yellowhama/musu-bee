@@ -42,7 +42,7 @@ pub mod tools;
 use bridge_client::BridgeClient;
 use tools::params::{
     CancelTaskParams, CreateCompanyParams, DelegateTaskParams, GetAgentParams, GetCompanyParams,
-    RunCompanyParams, SearchCompanyParams, KvmControlParams,
+    KvmControlParams, RunCompanyParams, SearchCompanyParams,
 };
 
 /// The MCP server. Holds the eagerly-constructed bridge client + the rmcp

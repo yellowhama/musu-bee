@@ -1,5 +1,5 @@
-use std::path::Path;
 use crate::peer::capability::Capability;
+use std::path::Path;
 
 /// Inputs the per-platform peer registrar needs.
 #[allow(dead_code)]

@@ -4,8 +4,7 @@
 //! and CLI add/remove roundtrips.
 
 use musu_rs::peer::discovery::{
-    CachedNode, CachedRegistry, ManualPeer, ManualPeerList, PeerSource, ResolvedPeer,
-    resolve_all_peers,
+    resolve_all_peers, CachedNode, CachedRegistry, ManualPeerList, PeerSource, ResolvedPeer,
 };
 
 fn temp_musu_home() -> (std::path::PathBuf, impl Drop) {
@@ -36,7 +35,10 @@ fn t02_manual_peer_remove() {
     list.add("10.0.0.1:8070".into(), None);
     assert!(list.remove("10.0.0.1:8070"));
     assert!(list.peers.is_empty());
-    assert!(!list.remove("ghost:8070"), "removing non-existent returns false");
+    assert!(
+        !list.remove("ghost:8070"),
+        "removing non-existent returns false"
+    );
 }
 
 #[test]
@@ -201,7 +203,7 @@ fn t10_invariant_3_states() {
     };
     cache_old.save(&dir).unwrap();
     let _p2 = resolve_all_peers(&dir); // cache expired, returns manual only
-    // No panic = invariant holds ✓
+                                       // No panic = invariant holds ✓
 }
 
 #[test]

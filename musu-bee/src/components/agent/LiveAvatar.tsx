@@ -4,9 +4,13 @@ import React, { useEffect, useState } from "react";
 import { useFleetStore } from "@/store/useFleetStore";
 import { AvatarWidget } from "@streamoji/avatar-widget";
 
+interface AvatarActions {
+  avatarSpeak: (text: string) => void;
+}
+
 export function LiveAvatar({ role = "CEO" }: { role?: string }) {
   const agentState = useFleetStore((s) => s.agentState);
-  const [actions, setActions] = useState<any>(null);
+  const [actions, setActions] = useState<AvatarActions | null>(null);
 
   // Derive animation classes based on state
   const isThinking = agentState === "thinking";

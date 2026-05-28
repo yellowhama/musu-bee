@@ -16,7 +16,7 @@ use std::time::Duration;
 
 use mdns_sd::{ServiceDaemon, ServiceEvent, ServiceInfo};
 
-use crate::peer::discovery::{ManualPeerList, validate_peer_addr};
+use crate::peer::discovery::{validate_peer_addr, ManualPeerList};
 
 const SERVICE_TYPE: &str = "_musu._tcp.local.";
 const MUSU_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -24,11 +24,7 @@ const MUSU_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Start advertising this node via mDNS.
 ///
 /// Runs until the returned handle is dropped.
-pub fn start_advertiser(
-    node_name: &str,
-    port: u16,
-    token: &str,
-) -> anyhow::Result<ServiceDaemon> {
+pub fn start_advertiser(node_name: &str, port: u16, token: &str) -> anyhow::Result<ServiceDaemon> {
     let mdns = ServiceDaemon::new().map_err(|e| anyhow::anyhow!("mDNS daemon: {e}"))?;
 
     let host_name = format!("{}.local.", node_name.replace(' ', "-"));
@@ -44,10 +40,11 @@ pub fn start_advertiser(
         SERVICE_TYPE,
         node_name,
         &host_name,
-        "",  // let mdns-sd auto-detect IP
+        "", // let mdns-sd auto-detect IP
         port,
         &properties[..],
-    ).map_err(|e| anyhow::anyhow!("ServiceInfo: {e}"))?;
+    )
+    .map_err(|e| anyhow::anyhow!("ServiceInfo: {e}"))?;
 
     mdns.register(service_info)
         .map_err(|e| anyhow::anyhow!("mDNS register: {e}"))?;
@@ -101,10 +98,13 @@ pub async fn discover_peers(duration: Duration) -> Vec<DiscoveredPeer> {
             break;
         }
 
-        match tokio::time::timeout(remaining, tokio::task::spawn_blocking({
-            let receiver = receiver.clone();
-            move || receiver.recv_timeout(Duration::from_secs(1))
-        }))
+        match tokio::time::timeout(
+            remaining,
+            tokio::task::spawn_blocking({
+                let receiver = receiver.clone();
+                move || receiver.recv_timeout(Duration::from_secs(1))
+            }),
+        )
         .await
         {
             Ok(Ok(Ok(ServiceEvent::ServiceResolved(info)))) => {
@@ -116,10 +116,7 @@ pub async fn discover_peers(duration: Duration) -> Vec<DiscoveredPeer> {
                     .get_property_val_str("version")
                     .unwrap_or("unknown")
                     .to_string();
-                let acct = info
-                    .get_property_val_str("acct")
-                    .unwrap_or("")
-                    .to_string();
+                let acct = info.get_property_val_str("acct").unwrap_or("").to_string();
                 let port = info.get_port();
 
                 for addr in info.get_addresses() {
@@ -138,9 +135,9 @@ pub async fn discover_peers(duration: Duration) -> Vec<DiscoveredPeer> {
                     });
                 }
             }
-            Ok(Ok(Ok(_))) => {} // other events, ignore
+            Ok(Ok(Ok(_))) => {}  // other events, ignore
             Ok(Ok(Err(_))) => {} // recv timeout, continue
-            _ => break, // tokio timeout or join error
+            _ => break,          // tokio timeout or join error
         }
     }
 

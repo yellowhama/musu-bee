@@ -12,7 +12,10 @@
 use anyhow::{Context, Result};
 use sqlx::{Row, SqlitePool};
 
-use crate::core::schema::{SCHEMA_V1_STATEMENTS, SCHEMA_V2_ALTER_STATEMENTS, SCHEMA_V3_ALTER_STATEMENTS, SCHEMA_V4_STATEMENTS};
+use crate::core::schema::{
+    SCHEMA_V1_STATEMENTS, SCHEMA_V2_ALTER_STATEMENTS, SCHEMA_V3_ALTER_STATEMENTS,
+    SCHEMA_V4_STATEMENTS,
+};
 
 /// Schema version this build expects. Bumped per R-phase:
 ///   - R2 (wiki/492) shipped v1.

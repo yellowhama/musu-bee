@@ -3,9 +3,7 @@ import { getBridgeUrl } from '../../../../lib/bridge-config';
 // GET single + PATCH status + DELETE.
 import { NextRequest, NextResponse } from "next/server";
 import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
-
-const BRIDGE_URL =
-  getBridgeUrl();
+import { getBridgeToken } from "@/lib/bridge-token";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -19,11 +17,12 @@ async function proxy(
     if (!id || id.includes("/") || id.includes("..")) {
       return NextResponse.json({ error: "invalid id" }, { status: 400 });
     }
-    const target = new URL(`${BRIDGE_URL}/api/workflows/${encodeURIComponent(id)}`);
+    const target = new URL(`${getBridgeUrl().replace(/\/+$/, "")}/api/workflows/${encodeURIComponent(id)}`);
     const body = method === "PATCH" ? await req.text() : undefined;
+    const token = await getBridgeToken();
     const res = await fetch(target.toString(), {
       method,
-      headers: buildBridgeHeaders(process.env.MUSU_BRIDGE_TOKEN ?? ""),
+      headers: buildBridgeHeaders(token),
       body,
       cache: "no-store",
     });

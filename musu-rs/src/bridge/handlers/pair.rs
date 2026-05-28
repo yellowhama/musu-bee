@@ -88,10 +88,7 @@ pub struct PairOfferResponse {
 
 /// `POST /api/pair/offer` — generate a pairing code.
 pub async fn create_pair_offer(State(state): State<AppState>) -> Result<Json<PairOfferResponse>> {
-    let node_url = format!(
-        "http://{}:{}",
-        state.config.bridge_host, state.config.bridge_port
-    );
+    let node_url = crate::bridge::services::advertised_bridge_http_url(&state.config);
     let code = state
         .pairing
         .create_offer(

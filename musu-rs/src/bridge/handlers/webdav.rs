@@ -16,10 +16,7 @@ use axum::response::{IntoResponse, Response};
 use crate::bridge::AppState;
 
 /// Handle all WebDAV requests at `/webdav` and `/webdav/*path`.
-pub async fn handle_webdav(
-    State(state): State<AppState>,
-    request: Request,
-) -> Response {
+pub async fn handle_webdav(State(state): State<AppState>, request: Request) -> Response {
     let method = request.method().clone();
     let uri_path = request.uri().path().to_string();
 
@@ -46,28 +43,18 @@ pub async fn handle_webdav(
 
     match method {
         Method::OPTIONS => handle_options(),
-        _ if method.as_str() == "PROPFIND" => {
-            handle_propfind(&state, &abs_path, &file_path).await
-        }
-        Method::GET | Method::HEAD => {
-            handle_get(&abs_path, method == Method::HEAD).await
-        }
+        _ if method.as_str() == "PROPFIND" => handle_propfind(&state, &abs_path, &file_path).await,
+        Method::GET | Method::HEAD => handle_get(&abs_path, method == Method::HEAD).await,
         Method::PUT => {
-            let body =
-                match axum::body::to_bytes(request.into_body(), 100_000_000).await {
-                    Ok(b) => b,
-                    Err(_) => {
-                        return (StatusCode::PAYLOAD_TOO_LARGE, "body too large")
-                            .into_response()
-                    }
-                };
+            let body = match axum::body::to_bytes(request.into_body(), 100_000_000).await {
+                Ok(b) => b,
+                Err(_) => return (StatusCode::PAYLOAD_TOO_LARGE, "body too large").into_response(),
+            };
             handle_put(&abs_path, &body).await
         }
         _ if method.as_str() == "MKCOL" => handle_mkcol(&abs_path).await,
         Method::DELETE => handle_delete(&abs_path).await,
-        _ => {
-            (StatusCode::METHOD_NOT_ALLOWED, "method not allowed").into_response()
-        }
+        _ => (StatusCode::METHOD_NOT_ALLOWED, "method not allowed").into_response(),
     }
 }
 
@@ -100,11 +87,7 @@ fn handle_options() -> Response {
         .unwrap()
 }
 
-async fn handle_propfind(
-    state: &AppState,
-    path: &Path,
-    rel_path: &str,
-) -> Response {
+async fn handle_propfind(state: &AppState, path: &Path, rel_path: &str) -> Response {
     if !path.exists() {
         return (StatusCode::NOT_FOUND, "not found").into_response();
     }
@@ -125,8 +108,7 @@ async fn handle_propfind(
         if let Ok(mut rd) = tokio::fs::read_dir(path).await {
             while let Ok(Some(entry)) = rd.next_entry().await {
                 let meta = entry.metadata().await.ok();
-                let is_dir =
-                    meta.as_ref().map(|m| m.is_dir()).unwrap_or(false);
+                let is_dir = meta.as_ref().map(|m| m.is_dir()).unwrap_or(false);
                 entries.push(propfind_entry(&root, &entry.path(), is_dir));
             }
         }
@@ -170,10 +152,7 @@ fn propfind_entry(root: &Path, path: &Path, is_dir: bool) -> String {
         format!("/webdav/{}", encode_uri_path(&rel))
     };
 
-    let name = path
-        .file_name()
-        .unwrap_or_default()
-        .to_string_lossy();
+    let name = path.file_name().unwrap_or_default().to_string_lossy();
 
     let size = if is_dir {
         0
@@ -268,7 +247,10 @@ async fn handle_put(path: &Path, body: &[u8]) -> Response {
         }
         Err(e) => {
             tracing::error!(path = %path.display(), err = %e, "webdav PUT error");
-            (StatusCode::INTERNAL_SERVER_ERROR, format!("write error: {e}"))
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("write error: {e}"),
+            )
                 .into_response()
         }
     }
@@ -282,7 +264,10 @@ async fn handle_mkcol(path: &Path) -> Response {
         }
         Err(e) => {
             tracing::error!(path = %path.display(), err = %e, "webdav MKCOL error");
-            (StatusCode::INTERNAL_SERVER_ERROR, format!("mkdir error: {e}"))
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("mkdir error: {e}"),
+            )
                 .into_response()
         }
     }
@@ -304,7 +289,10 @@ async fn handle_delete(path: &Path) -> Response {
         }
         Err(e) => {
             tracing::error!(path = %path.display(), err = %e, "webdav DELETE error");
-            (StatusCode::INTERNAL_SERVER_ERROR, format!("delete error: {e}"))
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("delete error: {e}"),
+            )
                 .into_response()
         }
     }

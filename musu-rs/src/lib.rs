@@ -24,10 +24,10 @@ pub mod install;
 // V26-W7 wiki/510 (Critic H1): export peer module so integration tests
 // (`tests/r7_peer_register.rs`) can `use musu_rs::peer::capability::Capability`
 // etc. Same pattern as V26-W1 Commit 3 added `core::companies::AgentRecord`.
+pub mod brain;
+pub mod cloud;
+pub mod io;
+pub mod mesh;
 pub mod peer;
 pub mod workflow;
 pub mod writer;
-pub mod cloud;
-pub mod mesh;
-pub mod io;
-pub mod brain;

@@ -1,9 +1,11 @@
 import { getBridgeUrl } from '../../../../lib/bridge-config';
 import { NextResponse } from "next/server";
+import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
+import { getBridgeToken } from "@/lib/bridge-token";
 
-const BRIDGE_URL = (
-  getBridgeUrl()
-).replace(/\/+$/, "");
+function bridgeUrl(): string {
+  return getBridgeUrl().replace(/\/+$/, "");
+}
 
 export async function GET() {
   try {
@@ -11,7 +13,9 @@ export async function GET() {
     // Python-era /api/admin/discovered). Handler not yet implemented in R1
     // Rust bridge — call will 404 against Rust :8070 until a later R-fast
     // step adds it. Empty-array fallback below keeps the UI graceful.
-    const res = await fetch(`${BRIDGE_URL}/api/nodes/discovered`);
+    const res = await fetch(`${bridgeUrl()}/api/nodes/discovered`, {
+      headers: buildBridgeHeaders(await getBridgeToken()),
+    });
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
   } catch {

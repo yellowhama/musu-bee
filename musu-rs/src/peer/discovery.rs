@@ -148,7 +148,10 @@ pub fn validate_peer_addr(addr: &str) -> Result<(), String> {
         return Err("addr cannot be empty".into());
     }
     if !addr.contains(':') {
-        return Err(format!("addr '{}' must contain host:port (e.g., 192.168.1.50:8070)", addr));
+        return Err(format!(
+            "addr '{}' must contain host:port (e.g., 192.168.1.50:8070)",
+            addr
+        ));
     }
     Ok(())
 }
@@ -229,7 +232,12 @@ pub fn resolve_all_peers(musu_home: &Path) -> Vec<ResolvedPeer> {
         if let Ok(file) = toml::from_str::<NodesToml>(&text) {
             for (name, entry) in &file.nodes {
                 // Extract host:port from URL (e.g., "http://192.168.1.50:8070" -> "192.168.1.50:8070")
-                let addr = entry.url.trim_start_matches("http://").trim_start_matches("https://").trim_end_matches('/').to_string();
+                let addr = entry
+                    .url
+                    .trim_start_matches("http://")
+                    .trim_start_matches("https://")
+                    .trim_end_matches('/')
+                    .to_string();
                 if seen.insert(addr.clone()) {
                     result.push(ResolvedPeer {
                         addr,
@@ -255,10 +263,7 @@ mod tests {
         list.add("192.168.1.50:8070".into(), Some("pc-a".into()));
         list.add("192.168.1.50:8070".into(), Some("pc-a-updated".into()));
         assert_eq!(list.peers.len(), 1);
-        assert_eq!(
-            list.peers[0].name.as_deref(),
-            Some("pc-a-updated")
-        );
+        assert_eq!(list.peers[0].name.as_deref(), Some("pc-a-updated"));
     }
 
     #[test]

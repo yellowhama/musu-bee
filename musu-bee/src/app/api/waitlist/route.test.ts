@@ -31,6 +31,10 @@ function restoreEnv(snapshot: Record<string, string | undefined>) {
   }
 }
 
+function setNodeEnv(value: "development" | "production" | "test") {
+  Object.assign(process.env, { NODE_ENV: value });
+}
+
 test("waitlist invalid email returns json error (accept: application/json)", async () => {
   const env = snapshotEnv(["NODE_ENV", "KV_REST_API_URL", "KV_REST_API_TOKEN"]);
   delete (globalThis as unknown as Record<string, unknown>)[KV_OVERRIDE_KEY];
@@ -100,7 +104,7 @@ test("waitlist persistence fails loudly in production when KV is not configured"
   delete (globalThis as unknown as Record<string, unknown>)[KV_OVERRIDE_KEY];
 
   try {
-    (process.env as any).NODE_ENV = "production";
+    setNodeEnv("production");
     delete process.env.KV_REST_API_URL;
     delete process.env.KV_REST_API_TOKEN;
 
@@ -121,7 +125,7 @@ test("waitlist persistence failure surfaces as 503 (KV configured but write fail
   const env = snapshotEnv(["NODE_ENV", "KV_REST_API_URL", "KV_REST_API_TOKEN"]);
 
   try {
-    (process.env as any).NODE_ENV = "production";
+    setNodeEnv("production");
     process.env.KV_REST_API_URL = "https://kv.example.invalid";
     process.env.KV_REST_API_TOKEN = "kv-token";
 
@@ -171,7 +175,7 @@ test("waitlist succeeds in dev mode without KV configured (local fallback)", asy
   delete (globalThis as unknown as Record<string, unknown>)[KV_OVERRIDE_KEY];
 
   try {
-    (process.env as any).NODE_ENV = "development";
+    setNodeEnv("development");
     delete process.env.KV_REST_API_URL;
     delete process.env.KV_REST_API_TOKEN;
 
@@ -193,7 +197,7 @@ test("waitlist html success redirects without echoing the submitted email in the
   delete (globalThis as unknown as Record<string, unknown>)[KV_OVERRIDE_KEY];
 
   try {
-    (process.env as any).NODE_ENV = "development";
+    setNodeEnv("development");
     delete process.env.KV_REST_API_URL;
     delete process.env.KV_REST_API_TOKEN;
 

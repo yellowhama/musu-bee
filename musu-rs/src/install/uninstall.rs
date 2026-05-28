@@ -21,6 +21,7 @@ const RECENT_DB_WINDOW_SECS: u64 = 7 * 24 * 60 * 60;
 
 pub async fn run(opts: UninstallOpts) -> Result<()> {
     let home = super::resolve_musu_home(opts.musu_home.as_deref())?;
+    let distribution = super::distribution::DistributionMode::current();
 
     if !home.exists() {
         eprintln!(
@@ -36,10 +37,17 @@ pub async fn run(opts: UninstallOpts) -> Result<()> {
         tracing::warn!(error = %e, "supervisor IPC stop failed (continuing)");
     }
 
-    // 2. Deregister the platform service.
-    let svc = platform::current();
-    if let Err(e) = svc.unregister() {
-        tracing::warn!(error = %e, "platform service unregister failed (continuing)");
+    // 2. Deregister the platform service when this distribution mode owns it.
+    if distribution.supports_platform_service_install() {
+        let svc = platform::current();
+        if let Err(e) = svc.unregister() {
+            tracing::warn!(error = %e, "platform service unregister failed (continuing)");
+        }
+    } else {
+        tracing::info!(
+            distribution = distribution.as_str(),
+            "skipping platform service unregister for packaged Store/MSIX runtime"
+        );
     }
 
     // 3. Purge if requested.
@@ -52,12 +60,21 @@ pub async fn run(opts: UninstallOpts) -> Result<()> {
         std::fs::remove_dir_all(&home).with_context(|| format!("remove {}", home.display()))?;
         eprintln!("musu uninstall: removed {}", home.display());
     } else {
-        eprintln!(
-            "musu uninstall: platform service deregistered.\n\
-             Data preserved at {}.\n\
-             Pass --purge to delete it as well (requires interactive confirmation).",
-            home.display()
-        );
+        if distribution.supports_platform_service_install() {
+            eprintln!(
+                "musu uninstall: platform service deregistered.\n\
+                 Data preserved at {}.\n\
+                 Pass --purge to delete it as well (requires interactive confirmation).",
+                home.display()
+            );
+        } else {
+            eprintln!(
+                "musu uninstall: packaged Store/MSIX runtime state preserved at {}.\n\
+                 Windows owns package install/update/startup for this distribution.\n\
+                 Pass --purge to delete MUSU runtime data as well (requires interactive confirmation).",
+                home.display()
+            );
+        }
     }
 
     Ok(())

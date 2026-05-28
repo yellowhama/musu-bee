@@ -18,7 +18,7 @@ import {
 
 export type { CompanySetupState } from "./companySetup.shared";
 
-function useKv(): boolean {
+function shouldUseKv(): boolean {
   return Boolean(process.env.KV_REST_API_URL);
 }
 
@@ -68,7 +68,7 @@ async function kvSet(scope: CompanyScope, state: CompanySetupState): Promise<voi
 
 export async function getCompanySetup(scopeInput: CompanyScopeInput = {}): Promise<CompanySetupState> {
   const scope = resolveCompanyScope(scopeInput);
-  if (useKv()) return kvGet(scope);
+  if (shouldUseKv()) return kvGet(scope);
   return fileGet(scope);
 }
 
@@ -91,7 +91,7 @@ export async function saveCompanySetup(
     template
   );
 
-  if (useKv()) {
+  if (shouldUseKv()) {
     await kvSet(scope, next);
   } else {
     fileSet(scope, next);

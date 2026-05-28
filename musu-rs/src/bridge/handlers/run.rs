@@ -116,7 +116,8 @@ pub async fn run_company(
         status: "pending",
         created_at: Some(now),
         ..Default::default()
-    }.save();
+    }
+    .save();
 
     // EDIT-B (wiki/495 §3.2): hand off to native runner. spawn_task returns
     // immediately (Q1 spawn-then-track). Runner owns JoinHandle + all status
@@ -135,7 +136,10 @@ pub async fn run_company(
         req.target_node.as_deref(),
         &crate::bridge::router::RouteHints::default(),
     );
-    let cross_machine = matches!(decision, crate::bridge::router::RouteDecision::Remote { .. });
+    let cross_machine = matches!(
+        decision,
+        crate::bridge::router::RouteDecision::Remote { .. }
+    );
 
     match decision {
         crate::bridge::router::RouteDecision::Local => {
@@ -151,10 +155,7 @@ pub async fn run_company(
                     cwd,
                     model: req.model.clone(),
                     timeout_sec: req.timeout_sec,
-                    adapter_type: req
-                        .adapter_type
-                        .clone()
-                        .unwrap_or_else(|| "claude".into()),
+                    adapter_type: req.adapter_type.clone().unwrap_or_else(|| "claude".into()),
                     callback_url: None,
                     source_task_id: None,
                 })
@@ -175,8 +176,8 @@ pub async fn run_company(
                 company_id: Some(id.clone()),
                 timeout_sec: req.timeout_sec,
                 callback_url: Some(format!(
-                    "http://{}:{}/api/tasks/callback",
-                    state.config.bridge_host, state.config.bridge_port,
+                    "{}/api/tasks/callback",
+                    crate::bridge::services::advertised_bridge_http_url(&state.config),
                 )),
             };
             match crate::bridge::handlers::forward::forward_to_peer_with_retry(

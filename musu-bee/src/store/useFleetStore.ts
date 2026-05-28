@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { WidgetPayload } from '../components/workstation/town/widgets/WidgetRegistry';
 
+let fleetEvents: EventSource | null = null;
+const seenFinalTaskIds = new Set<string>();
+
 export interface ChatMessage {
   id: string;
   sender: "user" | "ai";
@@ -38,6 +41,45 @@ interface FleetStore {
   agentState: 'idle' | 'thinking' | 'speaking' | 'error';
   setAgentState: (state: 'idle' | 'thinking' | 'speaking' | 'error') => void;
   initSSE: () => void;
+}
+
+interface TaskUpdateEvent {
+  type?: string;
+  task_id?: string;
+  status?: string;
+  channel?: string;
+  sender_id?: string;
+  output?: string | null;
+  error?: string | null;
+  assigned_pc?: string | null;
+  exit_code?: number | null;
+  duration_sec?: number | null;
+}
+
+function summarizeTaskEvent(event: TaskUpdateEvent): string {
+  const shortId = event.task_id ? event.task_id.slice(0, 8) : "unknown";
+  const target = event.assigned_pc ? ` on ${event.assigned_pc}` : "";
+  if (event.output?.trim()) return event.output.trim();
+  if (event.error?.trim()) return event.error.trim();
+  return `Task ${shortId} ${event.status ?? "updated"}${target}.`;
+}
+
+function widgetFromTaskEvent(event: TaskUpdateEvent): WidgetPayload {
+  const isError = event.status === "failed" || Boolean(event.error?.trim());
+  const shortId = event.task_id ? event.task_id.slice(0, 8) : "unknown";
+  const header = [
+    `task: ${shortId}`,
+    event.status ? `status: ${event.status}` : null,
+    event.assigned_pc ? `node: ${event.assigned_pc}` : null,
+    typeof event.duration_sec === "number" ? `duration: ${event.duration_sec.toFixed(1)}s` : null,
+  ].filter(Boolean).join("\n");
+  return {
+    type: "TerminalLog",
+    props: {
+      level: isError ? "error" : "info",
+      log: `${header}\n\n${summarizeTaskEvent(event)}`,
+    },
+  };
 }
 
 export const useFleetStore = create<FleetStore>((set) => ({
@@ -81,9 +123,61 @@ export const useFleetStore = create<FleetStore>((set) => ({
   setAgentState: (s) => set({ agentState: s }),
 
   initSSE: () => {
-    // Only initialize once (in a real app, use a ref or check if connected)
     if (typeof window === "undefined") return;
-    const es = new EventSource("/api/tasks/events");
+    if (
+      fleetEvents &&
+      (fleetEvents.readyState === EventSource.CONNECTING ||
+        fleetEvents.readyState === EventSource.OPEN)
+    ) {
+      return;
+    }
+
+    const es = new EventSource("/api/bridge-tasks/events");
+    fleetEvents = es;
+
+    const handleTaskUpdate = (e: MessageEvent) => {
+      try {
+        const event = JSON.parse(e.data) as TaskUpdateEvent;
+        if (event.type !== "task_update" || !event.task_id) return;
+
+        if (event.status === "running" || event.status === "pending") {
+          set({ isTyping: true, agentState: "thinking" });
+          return;
+        }
+
+        if (!["done", "failed", "cancelled"].includes(event.status ?? "")) return;
+        if (seenFinalTaskIds.has(event.task_id)) return;
+        seenFinalTaskIds.add(event.task_id);
+
+        const widget = widgetFromTaskEvent(event);
+        const aiMsg: ChatMessage = {
+          id: `task-${event.task_id}-${Date.now()}`,
+          sender: "ai",
+          text: summarizeTaskEvent(event),
+          widget,
+        };
+
+        set((state) => ({
+          messages: [...state.messages, aiMsg],
+          overlayWidgets: [...state.overlayWidgets, { id: `w-${Date.now()}-${Math.random()}`, payload: widget }],
+          isTyping: false,
+          agentState: event.status === "failed" ? "error" : "speaking",
+        }));
+
+        setTimeout(() => {
+          set((state) => state.agentState === "speaking" ? { agentState: "idle" } : state);
+        }, 2000);
+      } catch (err) {
+        console.error("Failed to parse task_update event:", err);
+      }
+    };
+
+    es.addEventListener("task_update", handleTaskUpdate);
+    es.onmessage = handleTaskUpdate;
+    es.onerror = () => {
+      es.close();
+      if (fleetEvents === es) fleetEvents = null;
+    };
 
     es.addEventListener("ai_message", (e) => {
       try {

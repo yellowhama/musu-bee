@@ -1,4 +1,7 @@
 import { randomUUID } from "node:crypto";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 import type { CompanyScope, CompanyScopeInput } from "./companyScope";
 import { resolveCompanyScope } from "./companyScope";
@@ -44,7 +47,7 @@ export interface CompanyRegistryState {
   updatedAt: string;
 }
 
-function useKv(): boolean {
+function shouldUseKv(): boolean {
   return Boolean(process.env.KV_REST_API_URL);
 }
 
@@ -53,7 +56,7 @@ function getKvKey(scope: CompanyScope) {
 }
 
 function getStateFilePath(scope: CompanyScope) {
-  return require("path").join(
+  return path.join(
     process.cwd(),
     "data",
     "company-registries",
@@ -196,7 +199,6 @@ function normalizeRegistry(value: unknown, scope: CompanyScope): CompanyRegistry
 }
 
 function fileGet(scope: CompanyScope): CompanyRegistryState {
-  const fs = require("fs") as typeof import("fs");
   try {
     const raw = fs.readFileSync(getStateFilePath(scope), "utf8");
     return normalizeRegistry(JSON.parse(raw), scope);
@@ -206,9 +208,6 @@ function fileGet(scope: CompanyScope): CompanyRegistryState {
 }
 
 function fileSet(scope: CompanyScope, state: CompanyRegistryState): void {
-  const fs = require("fs") as typeof import("fs");
-  const path = require("path") as typeof import("path");
-  const os = require("os") as typeof import("os");
   const stateFile = getStateFilePath(scope);
   const dir = path.dirname(stateFile);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -229,12 +228,12 @@ async function kvSet(scope: CompanyScope, state: CompanyRegistryState): Promise<
 }
 
 async function loadRegistry(scope: CompanyScope): Promise<CompanyRegistryState> {
-  if (useKv()) return kvGet(scope);
+  if (shouldUseKv()) return kvGet(scope);
   return fileGet(scope);
 }
 
 async function persistRegistry(scope: CompanyScope, state: CompanyRegistryState): Promise<void> {
-  if (useKv()) {
+  if (shouldUseKv()) {
     await kvSet(scope, state);
   } else {
     fileSet(scope, state);

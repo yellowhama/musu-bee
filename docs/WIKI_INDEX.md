@@ -1,6 +1,6 @@
 # Musu-Bee Wiki ID Index
 
-**Generated**: 2026-05-22
+**Generated**: 2026-05-27
 **Scope**: `F:\workspace\musu-bee\docs\` — all wiki-identified docs (`**Wiki ID**: wiki/N` header)
 **Source of truth**: each doc's own `**Wiki ID**` header. This file is a roll-up index — when a doc and this index disagree, the doc wins.
 
@@ -10,7 +10,9 @@ Layout:
 - §3 — V23.4 Phase 4 (current shipped — wiki/431..448)
 - §4 — V23.5 (reserved — wiki/459..482)
 - §4.5 — V24..V26 Rust-native / distributed actor line
+- §4.6 — 1.15.0-rc.1 beta readiness line
 - §5 — Research / brainstorm / architecture (wiki/449..458)
+- §5.5 — Windows distribution pivot working set (2026-05-27, no wiki ID)
 - §6 — Pre-V21 docs (no wiki ID; archived/legacy)
 - §7 — New code files this Phase 4 (entry-point inventory, no wiki ID)
 
@@ -216,7 +218,19 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | wiki/516 | V26 VibeCode Town design system migration | 2026-05-24 | (inline — globals.css + 25 component files) | complete |
 
 
-**V26-W1 indexing note**: Commit 2 runtime uses direct `reqwest` JSON parsing, not `async-openai`, because vLLM can omit tagged tool-call `type` fields. Commit 3 added ClaudeAdapter shim (narrow dispatch boundary per §4.6: shim returns SpawnSpec, runner's V24-R5 stream loop preserved bit-for-bit) + typed AgentRecord with `#[serde(flatten)] extra` for V24-R6 YAML backward-compat + `serde_json preserve_order` feature flag. The spec's D7/RV1/C11 rows were revised on 2026-05-22 to match implementation. M1 cycle (musu /goal master plan) closed W1 chokepoint; M2 (W7 `musu peer register`) is next.
+**V26-W1 indexing note**: Commit 2 runtime uses direct `reqwest` JSON parsing, not `async-openai`, because vLLM can omit tagged tool-call `type` fields. Commit 3 added ClaudeAdapter shim (narrow dispatch boundary: shim returns SpawnSpec, runner's V24-R5 stream loop preserved bit-for-bit) + typed AgentRecord with `#[serde(flatten)] extra` for V24-R6 YAML backward-compat + `serde_json preserve_order` feature flag. The spec's D7/RV1/C11 rows were revised on 2026-05-22 to match implementation. M1 cycle (musu /goal master plan) closed W1 chokepoint; M2 (W7 `musu peer register`) is next.
+
+---
+
+## §4.6 1.15.0-rc.1 Beta Readiness Line
+
+| Wiki ID | Title | Date | File | Status |
+|---|---|---|---|---|
+| wiki/518 | 1.15.0-rc.1 qualitative evaluation, code audit, and roadmap | 2026-05-29 | `RELEASE_1_15_0_RC1_QUAL_AUDIT_ROADMAP_2026_05_29.md` | complete |
+| — | 1.15.0-rc.1 beta release checklist and smoke evidence | 2026-05-29 | `BETA_RELEASE_CHECKLIST_1_15_0_RC1.md` | active |
+| — | CoS memory note — 1.15.0-rc.1 beta readiness | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0130_kst_1_15_rc1_beta_readiness.md` | active |
+
+State lock: `1.15.0-rc.1` is beta-ready for the single-machine Windows local operator path (`musu up` → dashboard doctor → Claude task smoke). It is not yet a Store auto-start or full multi-machine release.
 
 ---
 
@@ -232,6 +246,32 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | wiki/457 | Brainstorm — Paperclip observer closure | 2026-05-18 | `BRAINSTORM_PAPERCLIP_OBSERVER_2026_05_18.md` | complete |
 | wiki/458 | Musu architecture overview (HTML — first HTML wiki page) | 2026-05-18 | `MUSU_ARCHITECTURE_2026_05_18.html` | complete |
 | wiki/517 | Brainstorm — Multi-Machine Binding Architecture | 2026-05-24 | `BRAINSTORM_MULTI_MACHINE_BINDING_2026_05_24.md` | complete |
+
+---
+
+## §5.5 Windows Distribution Pivot Working Set (2026-05-27, no wiki ID)
+
+These docs capture the post-install / post-review conclusion that Windows packaged delivery is split into two different packaged contracts plus the legacy operator bootstrap path.
+
+| Title | Date | File | Status |
+|---|---|---|---|
+| Windows distribution pivot | 2026-05-27 | `PRODUCT_CHARTER/WINDOWS_DISTRIBUTION_PIVOT_2026-05-27.md` | active |
+| Store/MSIX audit | 2026-05-27 | `STORE_MSIX_AUDIT_2026_05_27.md` | active |
+| Store/MSIX execution plan | 2026-05-27 | `STORE_MSIX_EXECUTION_PLAN_2026_05_27.md` | active |
+| Store/MSIX packaging guide | 2026-05-27 | `STORE_MSIX_PACKAGING_GUIDE_2026_05_27.md` | active |
+| Store/MSIX approval status ledger | 2026-05-27 | `STORE_MSIX_APPROVAL_STATUS_2026_05_27.md` | active |
+| Store/MSIX restricted capability submission checklist | 2026-05-27 | `STORE_MSIX_RESTRICTED_CAPABILITY_SUBMISSION_CHECKLIST_2026_05_27.md` | active |
+| Store/MSIX qualitative critique | 2026-05-27 | `STORE_MSIX_QUAL_CRITIQUE_2026_05_27.md` | active |
+| Store/MSIX thermo-nuclear audit | 2026-05-27 | `STORE_MSIX_THERMO_AUDIT_2026_05_27.md` | active |
+| Store/MSIX next steps | 2026-05-27 | `STORE_MSIX_NEXT_STEPS_2026_05_27.md` | active |
+| Store/MSIX Partner Center handoff | 2026-05-27 | `STORE_MSIX_PARTNER_CENTER_HANDOFF_2026_05_27.md` | active |
+| Windows install/login usability report | 2026-05-27 | `USABILITY_REPORT_WINDOWS_INSTALL_LOGIN_2026_05_27.md` | active |
+| Store launch and promotion plan | 2026-05-29 | `STORE_LAUNCH_AND_PROMOTION_PLAN_2026_05_29.md` | active |
+| musu-system integration assessment | 2026-05-29 | `MUSU_SYSTEM_INTEGRATION_ASSESSMENT_2026_05_29.md` | active |
+
+2026-05-29 state update: Partner Center enrollment approval cleared by operator report. Store-reviewed package submission is still pending product-name reservation, current-version `1.15.0-rc.1` package regeneration, Microsoft app certification, and restricted capability review.
+
+2026-05-29 ecosystem update: `yellowhama/musu-system` is the canonical Go monorepo for `core`, `crawl-ai`, `marketer`, and `nurikun`. Integration value is high, but current decision is adapter/MCP/CLI integration, not Rust-core merge or first Store package bundling.
 
 ---
 

@@ -5,6 +5,7 @@
 //! wiki/496 §3 (D10): +1 R6 endpoint (`POST /api/system/update`).
 //! wiki/494 §3 (R4): +1 R4 endpoint (`GET /api/index-search`).
 
+pub mod ai;
 pub mod companies;
 pub mod health;
 pub mod index_search;
@@ -13,7 +14,6 @@ pub mod run;
 pub mod sse;
 pub mod system_update;
 pub mod tasks;
-pub mod ai;
 // V26-W9 wiki/512: workflow DAG builder + CRUD.
 pub mod workflow;
 // V27: cross-machine task forwarding.
@@ -60,8 +60,7 @@ pub fn native_router() -> Router<AppState> {
         .route("/api/tasks/events", get(sse::task_events))
         .route(
             "/api/tasks/:task_id",
-            routing::get(tasks::get_task)
-                .delete(crate::writer::cancel::cancel_task),
+            routing::get(tasks::get_task).delete(crate::writer::cancel::cancel_task),
         )
         .route("/api/nodes", get(nodes::list))
         .route("/api/nodes/add", post(nodes::add))
@@ -85,17 +84,27 @@ pub fn native_router() -> Router<AppState> {
         .route("/api/ai/chat", post(ai::handle_chat))
         .route("/api/ai/direct_message", post(ai::handle_direct_message))
         // V27: Remote filesystem API.
-        .route("/api/files", get(files::list_dir).delete(files::delete_path))
+        .route(
+            "/api/files",
+            get(files::list_dir).delete(files::delete_path),
+        )
         .route("/api/files/read", get(files::read_file))
         .route("/api/files/write", post(files::write_file))
         .route("/api/files/mkdir", post(files::mkdir))
         .route("/api/files/info", get(files::file_info))
         // W4: Mesh File Proxy
-        .route("/api/v1/fs/proxy/:node_id/*path", get(crate::mesh::file_proxy::proxy_file).post(crate::mesh::file_proxy::proxy_write_file))
+        .route(
+            "/api/v1/fs/proxy/:node_id/*path",
+            get(crate::mesh::file_proxy::proxy_file)
+                .post(crate::mesh::file_proxy::proxy_write_file),
+        )
         // W14: WebRTC Signaling
         .route("/api/webrtc/offer", post(crate::io::webrtc::handle_offer))
         // W15: Universal Clipboard
-        .route("/api/clipboard/write", post(crate::io::clipboard::write_clipboard))
+        .route(
+            "/api/clipboard/write",
+            post(crate::io::clipboard::write_clipboard),
+        )
         // Remote RPC
         .route("/api/v1/rpc/exec", post(rpc::exec_command))
         .route("/api/v1/rpc/pty", get(pty::ws_pty))

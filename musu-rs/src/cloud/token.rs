@@ -20,7 +20,7 @@ pub fn load_token(musu_home: &Path) -> Option<String> {
 /// Saves the account token to disk with secure permissions.
 pub fn save_token(musu_home: &Path, token: &str) -> Result<()> {
     let token_path = musu_home.join("token");
-    
+
     // Create ~/.musu if it doesn't exist
     if !musu_home.exists() {
         std::fs::create_dir_all(musu_home)?;

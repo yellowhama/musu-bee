@@ -33,15 +33,18 @@ pub async fn exec_command(
 
     let mut command = Command::new(&req.cmd);
     command.args(&req.args);
-    
+
     if let Some(cwd) = req.cwd {
         command.current_dir(cwd);
     }
-    
+
     command.stdout(Stdio::piped()).stderr(Stdio::piped());
 
     let output = command.output().await.map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to spawn command: {}", e))
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to spawn command: {}", e),
+        )
     })?;
 
     Ok(Json(RpcExecResponse {

@@ -1,9 +1,9 @@
 //! V26-W7 musu peer register integration tests (wiki/510 §9).
 
-use std::path::{Path, PathBuf};
-use tempfile::TempDir;
 use musu_rs::peer::capability::Capability;
 use musu_rs::peer::manifest::{NodeManifest, ServiceState};
+use std::path::{Path, PathBuf};
+use tempfile::TempDir;
 
 /// Locate the freshly-built musu binary.
 fn current_test_binary() -> Option<PathBuf> {
@@ -46,6 +46,8 @@ async fn peer_register_writes_node_manifest_with_ollama_kind() {
             "ollama serve",
             "--name",
             "test-ollama",
+            "--ollama-url",
+            "http://127.0.0.1:9",
             "--musu-home",
         ])
         .arg(&musu_home)
@@ -72,6 +74,8 @@ async fn peer_register_writes_node_manifest_with_ollama_kind() {
             "ollama serve",
             "--name",
             "test-ollama",
+            "--ollama-url",
+            "http://127.0.0.1:9",
             "--musu-home",
         ])
         .arg(&musu_home)
@@ -146,10 +150,7 @@ async fn peer_register_script_kind_skips_autodetect() {
             "--musu-home",
         ])
         .arg(&musu_home)
-        .args([
-            "--ollama-url",
-            "http://invalid.test.example.com:11434",
-        ])
+        .args(["--ollama-url", "http://invalid.test.example.com:11434"])
         .output()
         .expect("spawn musu peer register");
 
@@ -322,21 +323,43 @@ async fn peer_register_with_musu_home_override_does_not_touch_real_home() {
 
     // Check that files are created under overridden directory structure
     if cfg!(target_os = "linux") {
-        let path = musu_home.join(".config").join("systemd").join("user").join("musu-peer-overrule-test.service");
-        assert!(path.exists(), "Expected unit file in override directory, got none");
+        let path = musu_home
+            .join(".config")
+            .join("systemd")
+            .join("user")
+            .join("musu-peer-overrule-test.service");
+        assert!(
+            path.exists(),
+            "Expected unit file in override directory, got none"
+        );
     } else if cfg!(target_os = "macos") {
-        let path = musu_home.join("Library").join("LaunchAgents").join("com.musu.peer.overrule-test.plist");
-        assert!(path.exists(), "Expected plist file in override directory, got none");
+        let path = musu_home
+            .join("Library")
+            .join("LaunchAgents")
+            .join("com.musu.peer.overrule-test.plist");
+        assert!(
+            path.exists(),
+            "Expected plist file in override directory, got none"
+        );
     } else if cfg!(target_os = "windows") {
-        let path = musu_home.join(".musu").join("scheduled_tasks").join("peer-overrule-test_task.xml");
-        assert!(path.exists(), "Expected scheduled task XML in override directory, got none");
+        let path = musu_home
+            .join(".musu")
+            .join("scheduled_tasks")
+            .join("peer-overrule-test_task.xml");
+        assert!(
+            path.exists(),
+            "Expected scheduled task XML in override directory, got none"
+        );
 
         // Verify task is NOT registered with Task Scheduler
         let query_output = std::process::Command::new("schtasks")
             .args(["/Query", "/TN", "Musu\\peer-overrule-test"])
             .output();
         if let Ok(qo) = query_output {
-            assert!(!qo.status.success(), "Scheduled Task should not be registered in Windows when overridden");
+            assert!(
+                !qo.status.success(),
+                "Scheduled Task should not be registered in Windows when overridden"
+            );
         }
     }
 }

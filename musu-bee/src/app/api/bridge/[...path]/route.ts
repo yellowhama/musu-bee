@@ -6,11 +6,13 @@ import { getBridgeUrl } from '../../../../lib/bridge-config';
  */
 import { NextRequest, NextResponse } from "next/server";
 import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
-
-const BRIDGE_URL =
-  getBridgeUrl();
+import { getBridgeToken } from "@/lib/bridge-token";
 
 type RouteContext = { params: Promise<{ path: string[] }> };
+
+function bridgeUrl(): string {
+  return getBridgeUrl().replace(/\/+$/, "");
+}
 
 async function proxyToBridge(req: NextRequest, ctx: RouteContext): Promise<NextResponse> {
   try {
@@ -23,7 +25,7 @@ async function proxyToBridge(req: NextRequest, ctx: RouteContext): Promise<NextR
       }
     }
     const bridgePath = path.join("/");
-    const target = new URL(`${BRIDGE_URL}/api/${bridgePath}`);
+    const target = new URL(`${bridgeUrl()}/api/${bridgePath}`);
     // Guard: ensure final URL stays within the expected API scope
     if (!target.pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "invalid path" }, { status: 400 });
@@ -34,7 +36,7 @@ async function proxyToBridge(req: NextRequest, ctx: RouteContext): Promise<NextR
       target.searchParams.set(key, value);
     });
 
-    const token = process.env.MUSU_BRIDGE_TOKEN ?? "";
+    const token = await getBridgeToken();
     const headers = buildBridgeHeaders(token);
 
     const body =

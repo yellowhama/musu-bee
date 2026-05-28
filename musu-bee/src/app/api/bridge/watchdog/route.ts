@@ -1,11 +1,9 @@
 import { getBridgeUrl } from '../../../../lib/bridge-config';
 import { NextRequest, NextResponse } from "next/server";
 import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
+import { getBridgeToken } from "@/lib/bridge-token";
 import { appendControlAudit, createTraceId } from "@/lib/control-audit";
 import { getUserFromRequest } from "@/lib/auth-server";
-
-const BRIDGE_URL =
-  getBridgeUrl();
 
 const WATCHDOG_COMMANDS = new Set(["bridge:start", "bridge:stop", "bridge:restart", "agents:cleanup"]);
 
@@ -18,8 +16,8 @@ function nodeParam(req: NextRequest): string | null {
 }
 
 async function forwardBridge(path: string, init: RequestInit): Promise<{ response: NextResponse; status: number }> {
-  const target = new URL(`/api/${path.replace(/^\/+/, "")}`, BRIDGE_URL);
-  const token = process.env.MUSU_BRIDGE_TOKEN ?? "";
+  const target = new URL(`/api/${path.replace(/^\/+/, "")}`, getBridgeUrl().replace(/\/+$/, ""));
+  const token = await getBridgeToken();
 
   try {
     const res = await fetch(target.toString(), {

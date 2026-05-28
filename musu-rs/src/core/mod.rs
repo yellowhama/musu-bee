@@ -28,8 +28,7 @@ use sqlx::SqlitePool;
 // the surface without polluting clippy.
 #[allow(unused_imports)]
 pub use companies::{
-    companies_dir, load_dir, load_yaml, record_from_create, write_yaml, AgentRecord,
-    CompanyRecord,
+    companies_dir, load_dir, load_yaml, record_from_create, write_yaml, AgentRecord, CompanyRecord,
 };
 #[allow(unused_imports)]
 pub use error::CoreError;
@@ -198,12 +197,8 @@ fn default_db_path() -> std::path::PathBuf {
     if let Ok(p) = std::env::var("MUSU_BRIDGE_DB_PATH") {
         return std::path::PathBuf::from(p);
     }
-    let home = if let Ok(h) = std::env::var("HOME") {
-        std::path::PathBuf::from(h)
-    } else if let Ok(u) = std::env::var("USERPROFILE") {
-        std::path::PathBuf::from(u)
-    } else {
-        std::path::PathBuf::from(".")
-    };
-    home.join(".musu").join("db").join("musu.db")
+    crate::install::resolve_musu_home_from_env()
+        .unwrap_or_else(|_| std::path::PathBuf::from(".").join(".musu"))
+        .join("db")
+        .join("musu.db")
 }

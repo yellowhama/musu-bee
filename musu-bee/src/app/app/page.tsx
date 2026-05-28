@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 import AppShell from "@/components/AppShell";
 import { getSubscription } from "@/lib/subscription";
@@ -31,12 +32,12 @@ export default async function AppPage({ searchParams }: PageProps) {
             Cloud dashboard access is available on Pro plans and above.
           </p>
           <div className="app-gate-actions">
-            <a href="/pro#pricing" className="btn btn-primary app-gate-btn">
+            <Link href="/pro#pricing" className="btn btn-primary app-gate-btn">
               View Pro Plan →
-            </a>
-            <a href="/" className="btn btn-ghost app-gate-btn">
+            </Link>
+            <Link href="/" className="btn btn-ghost app-gate-btn">
               Back to Home
-            </a>
+            </Link>
           </div>
           <div className="app-gate-footer">
             <strong className="app-gate-footer-label">How to Use the Local Dashboard</strong>

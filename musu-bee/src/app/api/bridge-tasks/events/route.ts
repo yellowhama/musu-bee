@@ -1,12 +1,13 @@
 import { getBridgeUrl } from '../../../../lib/bridge-config';
 import { NextRequest } from "next/server";
+import { getBridgeToken } from "@/lib/bridge-token";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   const BRIDGE =
     getBridgeUrl();
-  const token = process.env.MUSU_BRIDGE_TOKEN ?? "";
+  const token = await getBridgeToken();
 
   const upstream = await fetch(`${BRIDGE}/api/tasks/events`, {
     headers: {

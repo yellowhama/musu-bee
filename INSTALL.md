@@ -1,8 +1,24 @@
 # Install
 
 MUSU runs on three platforms: **Linux / WSL**, **macOS**, **Windows**.
-Pick yours. Each path is a single command and leaves the bridge
-running as a system service.
+Pick yours.
+
+Important Windows note:
+
+- The **current** Windows install path is still the direct-download bootstrap flow.
+- The packaged Windows path now has **two** contracts:
+  - **local sideload / MSIX manual**: packaged install, but bridge startup is manual via `musu bridge`
+  - **Store-reviewed auto-start**: packaged install plus restricted-capability approval for `ImmediateRegistration`
+- Do not assume either packaged path will reuse `install.ps1`, `~/.musu/bin`, Task Scheduler registration, or MUSU-managed self-update.
+
+Design references:
+
+- [Store/MSIX audit](docs/STORE_MSIX_AUDIT_2026_05_27.md)
+- [Store/MSIX packaging guide](docs/STORE_MSIX_PACKAGING_GUIDE_2026_05_27.md)
+- [Store/MSIX approval status ledger](docs/STORE_MSIX_APPROVAL_STATUS_2026_05_27.md)
+- [Store/MSIX next steps](docs/STORE_MSIX_NEXT_STEPS_2026_05_27.md)
+- [Store/MSIX restricted capability submission checklist](docs/STORE_MSIX_RESTRICTED_CAPABILITY_SUBMISSION_CHECKLIST_2026_05_27.md)
+- [Windows distribution pivot](docs/PRODUCT_CHARTER/WINDOWS_DISTRIBUTION_PIVOT_2026-05-27.md)
 
 ---
 
@@ -40,6 +56,9 @@ Runs the equivalent steps in PowerShell. Registers a user-level
 **Task Scheduler task** (`musu-bridge`) that auto-starts on logon.
 No admin privileges required.
 
+This describes the **direct-download/operator** path.
+It is not the intended final Store/MSIX install story.
+
 ---
 
 ## Prerequisites
@@ -55,6 +74,8 @@ Optional (any platform): Claude / Codex / Gemini CLI for adapter use.
 ---
 
 ## What the installer does
+
+This section describes the current direct-download bootstrap path, not the future Store/MSIX packaged path.
 
 Whether you ran `install.sh` or `install.ps1`, the same 7 steps run:
 

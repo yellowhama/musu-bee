@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
 
 mod adapter;
+mod brain;
 mod bridge;
 mod cloud;
 mod control;
@@ -12,12 +13,11 @@ mod mesh;
 mod peer;
 mod workflow;
 mod writer;
-mod brain;
 
 // V27: re-export CLI option structs from their canonical home in
 // `install::cli_commands` so the `Cmd` enum can reference them.
 use install::cli_commands::{
-    GetOpts, LsOpts, PutOpts, RouteOpts, ShareOpts, UnshareOpts,
+    DoctorOpts, GetOpts, LsOpts, PutOpts, RouteOpts, ShareOpts, UnshareOpts, UpOpts,
 };
 
 #[derive(Parser)]
@@ -139,6 +139,13 @@ enum Cmd {
     Logout,
     /// V27 Account: Show current login status.
     Whoami,
+    /// Diagnose local install, login, bridge, dashboard, and package state.
+    Doctor(DoctorOpts),
+    /// First-run helper: seed token, start bridge, and hand off to dashboard.
+    Up(UpOpts),
+    /// Show package/runtime status, including Windows startup-task state
+    /// when running with package identity.
+    PackageStatus,
 }
 
 /// V24-R3 wiki/493 Critic C1 (HIGH): per-subcommand `tracing` init.
@@ -172,6 +179,7 @@ fn init_tracing_control() {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
+    install::package_status::best_effort_prime_packaged_startup_task();
     match cli.command {
         Cmd::Bridge => {
             init_tracing_default();
@@ -259,9 +267,7 @@ async fn main() -> anyhow::Result<()> {
         Cmd::Discover { timeout } => {
             init_tracing_default();
             println!("Scanning local network for musu peers ({timeout}s)...");
-            let peers = peer::mdns::discover_peers(
-                std::time::Duration::from_secs(timeout),
-            ).await;
+            let peers = peer::mdns::discover_peers(std::time::Duration::from_secs(timeout)).await;
             if peers.is_empty() {
                 println!("No peers found. Make sure musu bridge is running on other machines.");
             } else {
@@ -318,6 +324,18 @@ async fn main() -> anyhow::Result<()> {
         Cmd::Whoami => {
             init_tracing_default();
             install::cli_commands::run_whoami().await
+        }
+        Cmd::Doctor(opts) => {
+            init_tracing_default();
+            install::cli_commands::run_doctor(opts).await
+        }
+        Cmd::Up(opts) => {
+            init_tracing_default();
+            install::cli_commands::run_up(opts).await
+        }
+        Cmd::PackageStatus => {
+            init_tracing_default();
+            install::run_package_status().await
         }
     }
 }

@@ -15,6 +15,12 @@ type TreeNode = {
   children?: TreeNode[];
 };
 
+interface RemoteFileEntry {
+  path: string;
+  name: string;
+  is_dir: boolean;
+}
+
 export default function RemoteFileExplorer({ machineId }: RemoteFileExplorerProps) {
   const [data, setData] = useState<TreeNode[]>([]);
   const [loading, setLoading] = useState(false);
@@ -31,12 +37,12 @@ export default function RemoteFileExplorer({ machineId }: RemoteFileExplorerProp
   const fetchDir = async (path: string): Promise<TreeNode[]> => {
     const res = await fetch(`/api/v1/proxy/files?node_id=${machineId}&path=${encodeURIComponent(path)}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
-    const json = await res.json();
-    return json.children.map((c: any) => ({
+    const json = (await res.json()) as { children: RemoteFileEntry[] };
+    return json.children.map((c) => ({
       id: c.path,
       name: c.name,
       isDir: c.is_dir,
-      children: c.is_dir ? [] : null
+      children: c.is_dir ? [] : undefined
     }));
   };
 
