@@ -95,7 +95,9 @@ These passed on 2026-05-29. Tauri `cargo check` generated `musu-bee/src-tauri/Ca
 - `npm run build` passed and prerendered `/privacy` and `/support` as static routes.
 - `scripts\windows\audit-desktop-release-readiness.ps1` now includes Store metadata checks for privacy route, support route, and Partner Center metadata doc.
 - `scripts\windows\verify-store-public-metadata.ps1 -BaseUrl http://127.0.0.1:3015 -Json` passed against local `next start`.
+- `scripts\windows\verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json` now passes against production.
 - `scripts\windows\write-release-go-no-go.ps1 -Json` reports `local_artifacts_ready=true` and `ready_for_public_desktop_release=false`.
+- Remaining go/no-go blockers are second-PC evidence and `support@musu.pro` delivery verification.
 - CI/deploy repair: Node 22+ is required for `node:sqlite`, GitHub JavaScript actions are forced onto Node 24 runtime, deleted Python and `musu-port` references were removed from GitHub Actions, Linux Rust CI installs Wayland/PipeWire/GBM native dependencies, likely legacy required check names were preserved, and `npm run test:e2e:ci` now runs Store metadata smoke tests for `/privacy` and `/support`.
 
 Tauri build update:

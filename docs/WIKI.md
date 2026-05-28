@@ -122,6 +122,7 @@ Current Store path truth:
 - release go/no-go preflight exists at `scripts\windows\write-release-go-no-go.ps1`
 - 2026-05-29 live `musu.pro` check still fails expected privacy/support content; deploy public site before Partner Center submission
 - GitHub Actions deployment/test infrastructure was repaired for the current Rust/Next repo shape: Node 22+, JavaScript actions forced onto Node 24 runtime, no deleted Python dirs, no deleted `musu-port`, Linux Rust CI includes Wayland/PipeWire/GBM native dependencies, legacy likely-required check names preserved, and Store metadata Playwright smoke for `/privacy` + `/support`
+- Remote release gates are green as of 2026-05-29: `Tests` passed on `ad5f752`; latest relevant `E2E Tests — musu-bee` and `Deploy musu-bee to Vercel` passed on `0919a83`; live `https://musu.pro/privacy` and `/support` passed public metadata verification
 - old 2026-05-27 package: template only (`1.13.0.0`, do not submit as current)
 - Tauri shell: dedicated static runtime launcher/status shell now builds to `musu-bee/out`, bundles as MSI/NSIS through `npm run tauri:build`, and is audited as `desktop_shell_ready=True`; it is still not the full dashboard GUI
 - Microsoft app certification: pending

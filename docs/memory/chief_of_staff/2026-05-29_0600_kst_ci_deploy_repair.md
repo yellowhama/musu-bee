@@ -19,8 +19,10 @@ Verification:
 - `npm run typecheck` passed.
 - `npm run test:e2e:ci` passed 2 Store metadata Playwright tests.
 - `cargo test --manifest-path .\musu-rs\Cargo.toml --lib -- --test-threads=1` passed 235 tests.
+- Remote `Tests` passed on `ad5f752`; latest relevant `E2E Tests — musu-bee` and `Deploy musu-bee to Vercel` passed on `0919a83`.
+- Live `verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json` passed.
 
 Decision:
 
-- Treat green GitHub Actions and live `verify-store-public-metadata.ps1 -BaseUrl https://musu.pro` as required before Partner Center submission.
+- Treat second-PC multi-device evidence and `support@musu.pro` operator delivery verification as the remaining internal gates before Partner Center submission.
 - Keep legacy broad E2E specs out of required CI until they are updated for the current product routes and bridge model.
