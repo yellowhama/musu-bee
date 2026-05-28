@@ -70,6 +70,7 @@ Passing foundation checks:
 - single-machine and multi-device smoke scripts exist
 - single-machine evidence verifier and recorder exist
 - multi-device test kit builder exists
+- final operator gate packet builder exists
 - multi-device evidence verifier exists
 - multi-device evidence recorder exists
 - Store public metadata verifier exists
@@ -101,6 +102,7 @@ These passed on 2026-05-29. Tauri `cargo check` generated `musu-bee/src-tauri/Ca
 - `scripts\windows\write-release-go-no-go.ps1 -Json` reports `local_artifacts_ready=true` and `ready_for_public_desktop_release=false`.
 - `scripts\windows\audit-desktop-release-readiness.ps1 -Json` now reports `single_machine_verified=true` from committed evidence under `docs\evidence\single-machine\1.15.0-rc.1`.
 - Remaining go/no-go blockers are second-PC evidence and `support@musu.pro` delivery verification; support mailbox verification now has `verify-support-mailbox-evidence.ps1` and `record-support-mailbox-verification.ps1`.
+- `scripts\windows\prepare-final-operator-gate-packet.ps1 -IncludeDesktopShell -Json` generated `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260529-072606.zip`, bundling the remaining manual gate runbook, multi-device kit, support mailbox template, recorder/verifier scripts, and checksums.
 - CI/deploy repair: Node 22+ is required for `node:sqlite`, GitHub JavaScript actions are forced onto Node 24 runtime, deleted Python and `musu-port` references were removed from GitHub Actions, Linux Rust CI installs Wayland/PipeWire/GBM native dependencies, likely legacy required check names were preserved, and `npm run test:e2e:ci` now runs Store metadata smoke tests for `/privacy` and `/support`.
 
 Tauri build update:
@@ -159,6 +161,7 @@ P0:
 - Run the user's second-PC smoke using `scripts\windows\smoke-multidevice-beta.ps1`.
 - Validate the returned JSON with `scripts\windows\verify-multidevice-evidence.ps1`.
 - Verify `support@musu.pro` delivery and record it with `scripts\windows\record-support-mailbox-verification.ps1`.
+- For operator handoff, generate the combined final-gate packet with `scripts\windows\prepare-final-operator-gate-packet.ps1 -IncludeDesktopShell`.
 - Submit the Store-reviewed MSIX bundle and record Microsoft certification/restricted-capability result.
 
 P1:

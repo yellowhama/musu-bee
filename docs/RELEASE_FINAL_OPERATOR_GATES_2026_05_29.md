@@ -22,6 +22,31 @@ External manual gates still remain after those:
 - Microsoft app certification
 - Microsoft restricted capability review
 
+## Final Operator Gate Packet
+
+The remaining manual gates can now be packaged into a single handoff zip:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\prepare-final-operator-gate-packet.ps1 `
+  -IncludeDesktopShell
+```
+
+Latest generated packet:
+
+```text
+.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260529-072606.zip
+```
+
+The packet includes:
+
+- a fresh multi-device test kit under `kits\`
+- support mailbox recording instructions and a prefilled verification id
+- release gate docs
+- evidence recorder/verifier scripts
+- `SHA256SUMS.txt`
+
+This packet does not close the manual gates by itself. It exists so the operator can execute the two remaining external checks and return evidence without hunting across the repo.
+
 ## Fresh Single-Machine Evidence
 
 Fresh smoke run on 2026-05-29 06:52 KST:
