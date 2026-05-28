@@ -168,7 +168,7 @@ Desktop release readiness audit:
 - public metadata verifier: `scripts\windows\verify-store-public-metadata.ps1 -BaseUrl http://127.0.0.1:3015 -Json` passed against local `next start`
 - release go/no-go preflight: `scripts\windows\write-release-go-no-go.ps1 -Json` reports `local_artifacts_ready=true`, `ready_for_public_desktop_release=false`
 - live public metadata check: `https://musu.pro/privacy` and `/support` return HTTP 200 but do not yet contain the new expected content; deploy before Partner Center submission
-- CI/deploy repair: GitHub Actions now use Node 22 for `node:sqlite`, no longer reference deleted Python `musu-core`/`musu-bridge` or deleted `musu-port`, preserve legacy required check names where likely relevant, include Linux `libwayland-dev` for Rust CI, opt JavaScript actions into Node 24 runtime, and Playwright CI smoke covers `/privacy` + `/support` content through `musu-bee/playwright.ci.config.ts`.
+- CI/deploy repair: GitHub Actions now use Node 22 for `node:sqlite`, no longer reference deleted Python `musu-core`/`musu-bridge` or deleted `musu-port`, preserve legacy required check names where likely relevant, include Linux Wayland/PipeWire/GBM native dependencies for Rust CI, opt JavaScript actions into Node 24 runtime, and Playwright CI smoke covers `/privacy` + `/support` content through `musu-bee/playwright.ci.config.ts`.
 - render proof: Playwright captured `.local-build\tauri-shell-1280x800.png`
 - report: `docs/DESKTOP_RELEASE_READINESS_AUDIT_2026_05_29.md` (wiki/520)
 
@@ -196,7 +196,7 @@ CI verification after repair:
 - `npm run typecheck` passed after build-generated Next types were present.
 - `npm run test:e2e:ci` passed 2 Playwright Store metadata smoke tests and now emits an HTML report artifact in CI.
 - `cargo test --manifest-path .\musu-rs\Cargo.toml --lib -- --test-threads=1` passed 235 Rust tests.
-- first remote `Tests` run after CI repair failed because Ubuntu lacked `wayland-client.pc`; workflow was patched to install `libwayland-dev`.
+- first remote `Tests` runs after CI repair exposed missing Ubuntu native libraries (`wayland-client.pc`, then `libpipewire-0.3.pc`); workflow was patched to install the Wayland/PipeWire/GBM dependency set.
 
 ## Roadmap
 

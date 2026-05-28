@@ -9,7 +9,7 @@ Facts:
 - `musu-bee/package.json` now requires Node `>=22.12.0`.
 - Deploy and CI web checks now use Node 22.
 - GitHub JavaScript actions are forced onto Node 24 runtime with `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`.
-- Linux Rust CI installs `libwayland-dev`; the first remote Rust run failed because `wayland-client.pc` was missing.
+- Linux Rust CI installs Wayland/PipeWire/GBM native dependencies; the first remote Rust runs failed because `wayland-client.pc` and then `libpipewire-0.3.pc` were missing.
 - Likely legacy required check names are preserved: `test` remains as an aggregate Tests job and the E2E job remains `Playwright E2E`.
 - Playwright CI smoke now uses `musu-bee/playwright.ci.config.ts` and verifies `/privacy` plus `/support` Store metadata content.
 
