@@ -243,6 +243,31 @@ foreach ($scriptName in @("smoke-single-machine-beta.ps1", "smoke-multidevice-be
     }
 }
 
+$privacyPage = Join-Path $appRoot "src\app\privacy\page.tsx"
+$supportPage = Join-Path $appRoot "src\app\support\page.tsx"
+$storeMetadataDoc = Join-Path $repoRoot "docs\STORE_SUBMISSION_METADATA_2026_05_29.md"
+
+if (Test-Path -LiteralPath $privacyPage) {
+    Add-Check "store-metadata" "privacy policy route" "pass" "Public privacy route exists at /privacy."
+}
+else {
+    Add-Check "store-metadata" "privacy policy route" "fail" "Public privacy route is missing."
+}
+
+if (Test-Path -LiteralPath $supportPage) {
+    Add-Check "store-metadata" "support route" "pass" "Public support route exists at /support."
+}
+else {
+    Add-Check "store-metadata" "support route" "fail" "Public support route is missing."
+}
+
+if (Test-Path -LiteralPath $storeMetadataDoc) {
+    Add-Check "store-metadata" "Partner Center metadata doc" "pass" "Store submission metadata doc exists."
+}
+else {
+    Add-Check "store-metadata" "Partner Center metadata doc" "fail" "Store submission metadata doc is missing."
+}
+
 $multiDevicePlan = Join-Path $repoRoot "docs\MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md"
 $evidenceRoots = @(
     [pscustomobject]@{

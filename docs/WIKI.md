@@ -116,6 +116,8 @@ Current Store path truth:
 - current submission bundle: `.local-build\msix\submission-bundles\store-reviewed-20260529-033609`
 - release candidate manifest: `.local-build\release-candidates\1.15.0-rc.1\release-candidate-manifest.json`
 - release checksum file: `.local-build\release-candidates\1.15.0-rc.1\SHA256SUMS.txt`
+- Store metadata handoff: `docs/STORE_SUBMISSION_METADATA_2026_05_29.md`
+- public privacy route exists at `/privacy`; public support route exists at `/support`
 - old 2026-05-27 package: template only (`1.13.0.0`, do not submit as current)
 - Tauri shell: dedicated static runtime launcher/status shell now builds to `musu-bee/out`, bundles as MSI/NSIS through `npm run tauri:build`, and is audited as `desktop_shell_ready=True`; it is still not the full dashboard GUI
 - Microsoft app certification: pending
@@ -130,6 +132,7 @@ Promotion rule:
 Canonical reference:
 
 - `docs/STORE_LAUNCH_AND_PROMOTION_PLAN_2026_05_29.md`
+- `docs/STORE_SUBMISSION_METADATA_2026_05_29.md`
 - `docs/DESKTOP_RELEASE_READINESS_AUDIT_2026_05_29.md` (wiki/520)
 
 ## 9. musu-system Integration State (2026-05-29)

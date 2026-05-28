@@ -236,6 +236,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | — | CoS memory note — multi-device test kit ready | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0445_kst_multidevice_test_kit_ready.md` | active |
 | — | CoS memory note — release candidate manifest | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0500_kst_release_candidate_manifest.md` | active |
 | — | CoS memory note — multi-device evidence recording | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0510_kst_multidevice_evidence_recording.md` | active |
+| — | CoS memory note — Store metadata basics | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0525_kst_store_metadata_basics.md` | active |
 
 State lock: `1.15.0-rc.1` is beta-ready for the single-machine Windows local operator path (`musu up` → dashboard doctor → Claude task smoke). A repeatable single-machine smoke script now passes. Multi-device test kit generation now works, but two-machine validation is still pending. Runtime/MSIX package readiness is true for submission attempt; the dedicated Tauri static launcher/status shell now builds, renders, and bundles, but it is not the full dashboard GUI.
 
@@ -274,6 +275,7 @@ These docs capture the post-install / post-review conclusion that Windows packag
 | Store/MSIX Partner Center handoff | 2026-05-27 | `STORE_MSIX_PARTNER_CENTER_HANDOFF_2026_05_27.md` | active |
 | Windows install/login usability report | 2026-05-27 | `USABILITY_REPORT_WINDOWS_INSTALL_LOGIN_2026_05_27.md` | active |
 | Store launch and promotion plan | 2026-05-29 | `STORE_LAUNCH_AND_PROMOTION_PLAN_2026_05_29.md` | active |
+| Store submission metadata | 2026-05-29 | `STORE_SUBMISSION_METADATA_2026_05_29.md` | active |
 | musu-system integration assessment | 2026-05-29 | `MUSU_SYSTEM_INTEGRATION_ASSESSMENT_2026_05_29.md` | active |
 | Multi-device 1.15.0-rc.1 test plan | 2026-05-29 | `MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md` | active |
 | Desktop release readiness audit | 2026-05-29 | `DESKTOP_RELEASE_READINESS_AUDIT_2026_05_29.md` | active |

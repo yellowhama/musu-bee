@@ -84,6 +84,14 @@ export default function PublicSiteShell({
         }}
       >
         <div style={{ marginBottom: 8 }}>MUSU · multi-machine AI control plane</div>
+        <div style={{ display: "flex", justifyContent: "center", gap: 14, flexWrap: "wrap", marginBottom: 8 }}>
+          <Link href="/privacy" style={footerLinkStyle}>
+            Privacy
+          </Link>
+          <Link href="/support" style={footerLinkStyle}>
+            Support
+          </Link>
+        </div>
         <div>© 2026 MUSU · honest beta, proof-backed claims only.</div>
       </footer>
     </div>
@@ -105,5 +113,11 @@ const appButtonStyle: React.CSSProperties = {
   fontWeight: 800,
   padding: "9px 14px",
   borderRadius: 999,
+};
+
+const footerLinkStyle: React.CSSProperties = {
+  color: "var(--fg2)",
+  textDecoration: "none",
+  fontWeight: 700,
 };
 

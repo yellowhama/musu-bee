@@ -99,8 +99,23 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\verify-msix-package.ps1
    - Explain P2P / local network behavior.
    - Explain file access and remote command surfaces.
    - Explain why startup registration is needed and how the user can control/disable it.
+   - Use `https://musu.pro/privacy` as the privacy policy URL.
+   - Use `https://musu.pro/support` as the support URL.
 
 6. Record Microsoft result back into repo docs before changing code.
+
+## Required Store Metadata
+
+Current metadata handoff:
+
+- `docs/STORE_SUBMISSION_METADATA_2026_05_29.md`
+- privacy URL: `https://musu.pro/privacy`
+- support URL: `https://musu.pro/support`
+- support email: `support@musu.pro` after mailbox verification
+
+Microsoft Store policy requires a privacy policy for Win32/Desktop Bridge-style
+products, and Partner Center support info accepts a support page URL or email.
+Before submission, verify both public routes are deployed and reachable.
 
 ## Store Listing Positioning
 

@@ -70,12 +70,14 @@ Passing foundation checks:
 - multi-device test kit builder exists
 - multi-device evidence verifier exists
 - multi-device evidence recorder exists
+- Store metadata basics exist: `/privacy`, `/support`, and `STORE_SUBMISSION_METADATA_2026_05_29.md`
 
 Additional verification run after metadata update:
 
 ```powershell
 cd musu-bee
 npm run typecheck
+npm run build
 npm run build:tauri-shell
 npm run tauri:build
 
@@ -84,6 +86,11 @@ cargo check --manifest-path .\musu-bee\src-tauri\Cargo.toml -j 1
 ```
 
 These passed on 2026-05-29. Tauri `cargo check` generated `musu-bee/src-tauri/Cargo.lock`, which should stay tracked for repeatable desktop-shell builds.
+
+2026-05-29 Store metadata update:
+
+- `npm run build` passed and prerendered `/privacy` and `/support` as static routes.
+- `scripts\windows\audit-desktop-release-readiness.ps1` now includes Store metadata checks for privacy route, support route, and Partner Center metadata doc.
 
 Tauri build update:
 

@@ -106,6 +106,13 @@ Multi-device packet:
 - latest generated kit: `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-20260529-051149.zip`
 - current state: install/test kit ready, second-PC execution pending
 
+Store metadata:
+
+- privacy route: `musu-bee/src/app/privacy/page.tsx` -> `https://musu.pro/privacy`
+- support route: `musu-bee/src/app/support/page.tsx` -> `https://musu.pro/support`
+- metadata handoff: `docs/STORE_SUBMISSION_METADATA_2026_05_29.md`
+- public deployment and mailbox verification still must be checked before Partner Center submission.
+
 Current MSIX artifacts:
 
 - local sideload: `.local-build\msix\output\musu_1.15.0.0_x64_local-sideload-manual.msix`

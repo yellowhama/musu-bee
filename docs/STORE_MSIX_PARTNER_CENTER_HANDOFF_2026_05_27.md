@@ -17,6 +17,7 @@ Use this handoff now, but with one correction:
 See:
 
 - [STORE_LAUNCH_AND_PROMOTION_PLAN_2026_05_29.md](F:/workspace/musu-bee/docs/STORE_LAUNCH_AND_PROMOTION_PLAN_2026_05_29.md)
+- [STORE_SUBMISSION_METADATA_2026_05_29.md](F:/workspace/musu-bee/docs/STORE_SUBMISSION_METADATA_2026_05_29.md)
 
 ## Resume condition
 
@@ -115,6 +116,8 @@ Partner Center flow:
 3. `New product`
 4. choose the Windows MSIX/PWA product path
 5. reserve the MUSU name if not already reserved
+6. enter `https://musu.pro/privacy` as the privacy policy URL
+7. enter `https://musu.pro/support` as the support URL
 
 ### 5. Submit the Store-reviewed artifact
 
@@ -126,6 +129,8 @@ Copy into the Partner Center form:
 
 - capability justification from `partner-center-capability-justification.md`
 - any extra reviewer notes from `submission-notes.txt`
+- privacy URL: `https://musu.pro/privacy`
+- support URL: `https://musu.pro/support`
 
 ## Decision tree after submission
 
