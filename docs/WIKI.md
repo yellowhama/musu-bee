@@ -121,7 +121,7 @@ Current Store path truth:
 - final operator gate packet generator: `scripts\windows\prepare-final-operator-gate-packet.ps1`
 - final operator gate packet verifier: `scripts\windows\verify-final-operator-gate-packet.ps1`
 - final operator evidence completion runner: `scripts\windows\complete-final-operator-gates.ps1`
-- latest verified final operator gate packet: `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260529-080736.zip` (`ok=true`, `fail_count=0`, `kit_count=1`)
+- latest verified final operator gate packet: `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip` (`ok=true`, `fail_count=0`, `kit_count=1`; README Store release blocker check hardened)
 - Store metadata handoff: `docs/STORE_SUBMISSION_METADATA_2026_05_29.md`
 - public privacy route exists at `/privacy`; public support route exists at `/support`
 - public metadata verifier exists at `scripts\windows\verify-store-public-metadata.ps1`

@@ -110,6 +110,7 @@ Remaining blockers:
 
 1. real second-PC multi-device evidence
 2. real __SUPPORT_EMAIL__ inbox delivery evidence
+3. Partner Center submission, Microsoft certification, and restricted startup capability approval evidence
 
 ## Gate A - Support mailbox delivery
 
@@ -151,23 +152,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-multi
 
 Expected result: `multi_device_verified=true`.
 
-## Final command
-
-After both gates, run from the real MUSU release repo root:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-final-operator-gates.ps1 `
-  -MultiDeviceEvidencePath .local-build\multi-device\<EVIDENCE_JSON> `
-  -SupportFromAddress "<sender@example.com>" `
-  -SupportReceivedBy "<operator-name>" `
-  -SupportVerificationId "__SUPPORT_VERIFICATION_ID__" `
-  -SupportNotes "Verified delivery in __SUPPORT_EMAIL__ inbox" `
-  -Json
-```
-
-This records both evidence files, regenerates the release candidate manifest, and then runs the final go/no-go check.
-
-## 3. Store release approval evidence
+## Gate C - Store release approval evidence
 
 After Partner Center submission completes and Microsoft approves the package and
 restricted startup capability, record that result from the real MUSU release
@@ -183,6 +168,24 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-store
   -Notes "Microsoft Store certification and restricted capability review approved" `
   -Json
 ```
+
+Expected result: `store_release_verified=true`.
+
+## Final command
+
+After Gate A, Gate B, and Gate C evidence exists, run from the real MUSU release repo root:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-final-operator-gates.ps1 `
+  -MultiDeviceEvidencePath .local-build\multi-device\<EVIDENCE_JSON> `
+  -SupportFromAddress "<sender@example.com>" `
+  -SupportReceivedBy "<operator-name>" `
+  -SupportVerificationId "__SUPPORT_VERIFICATION_ID__" `
+  -SupportNotes "Verified delivery in __SUPPORT_EMAIL__ inbox" `
+  -Json
+```
+
+This records the multi-device and support evidence files, regenerates the release candidate manifest, and then runs the final go/no-go check. Store release evidence must already have been recorded by Gate C, because the public release gate also requires `store_release_verified=true`.
 
 The release can proceed only when:
 
@@ -219,12 +222,15 @@ Get-ChildItem -LiteralPath $packetRoot -Recurse -File |
 
 $zipPath = "$packetRoot.zip"
 Compress-Archive -Path (Join-Path $packetRoot "*") -DestinationPath $zipPath -Force
+$latestZipPath = Join-Path (Resolve-Path -LiteralPath $OutputRoot).Path "musu-final-operator-gates-$safeVersion-latest.zip"
+Copy-Item -LiteralPath $zipPath -Destination $latestZipPath -Force
 
 $result = [pscustomobject]@{
     ok = $true
     version = $Version
     packet_root = (Resolve-Path -LiteralPath $packetRoot).Path
     zip_path = (Resolve-Path -LiteralPath $zipPath).Path
+    latest_zip_path = (Resolve-Path -LiteralPath $latestZipPath).Path
     multi_device_kit = if ($copiedMultiDeviceKit) { (Resolve-Path -LiteralPath $copiedMultiDeviceKit).Path } else { $null }
     support_email = $SupportEmail
     support_verification_id = $supportVerificationId

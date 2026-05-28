@@ -18,7 +18,16 @@ Facts:
 
 Latest generated packet:
 
-- `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260529-080736.zip`
+- `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260529-082741.zip`
+- `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip` stable alias
+
+2026-05-29 08:25 KST refresh:
+
+- Regenerated after hardening the packet README and verifier around Store release approval.
+- The README now lists all three blockers in the first blocker list: second-PC evidence, support inbox evidence, and Partner Center/Microsoft Store approval evidence.
+- `verify-final-operator-gate-packet.ps1` now fails if the README omits the Store release approval blocker or the `record-store-release-verification.ps1` command.
+- Verification passed with `ok=true`, `fail_count=0`, `kit_count=1`.
+- 08:27 KST refresh added the stable `latest.zip` alias so operator docs do not churn on every packet timestamp.
 
 Decision:
 

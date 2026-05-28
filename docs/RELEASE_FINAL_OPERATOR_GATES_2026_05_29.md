@@ -31,7 +31,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\prepare-fina
 Latest generated packet:
 
 ```text
-.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260529-080736.zip
+.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260529-082741.zip
+```
+
+The generator also writes a stable latest alias:
+
+```text
+.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip
 ```
 
 The packet includes:
@@ -51,11 +57,13 @@ The latest packet was verified with:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-final-operator-gate-packet.ps1 `
-  -PacketPath .local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260529-080736.zip `
+  -PacketPath .local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip `
   -Json
 ```
 
 Result: `ok=true`, `fail_count=0`, `kit_count=1`.
+
+The packet verifier now explicitly checks that the README names Store release approval as a blocker and includes `record-store-release-verification.ps1`.
 
 This packet does not close the manual gates by itself. It exists so the operator can execute the remaining external checks and return evidence without hunting across the repo.
 
