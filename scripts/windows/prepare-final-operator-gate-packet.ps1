@@ -75,6 +75,7 @@ $scriptsToCopy = @(
     "record-multidevice-evidence.ps1",
     "verify-multidevice-evidence.ps1",
     "verify-final-operator-gate-packet.ps1",
+    "complete-final-operator-gates.ps1",
     "write-release-candidate-manifest.ps1",
     "write-release-go-no-go.ps1"
 )
@@ -153,9 +154,16 @@ Expected result: `multi_device_verified=true`.
 After both gates, run from the real MUSU release repo root:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-candidate-manifest.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-final-operator-gates.ps1 `
+  -MultiDeviceEvidencePath .local-build\multi-device\<EVIDENCE_JSON> `
+  -SupportFromAddress "<sender@example.com>" `
+  -SupportReceivedBy "<operator-name>" `
+  -SupportVerificationId "__SUPPORT_VERIFICATION_ID__" `
+  -SupportNotes "Verified delivery in __SUPPORT_EMAIL__ inbox" `
+  -Json
 ```
+
+This records both evidence files, regenerates the release candidate manifest, and then runs the final go/no-go check.
 
 The release can proceed only when:
 
@@ -167,7 +175,7 @@ The release can proceed only when:
 - `support_mailbox_verified=true`
 - `manifest_git.dirty=false`
 '@
-$readme = $readme.Replace("__VERSION__", $Version).Replace("__SUPPORT_EMAIL__", $SupportEmail).Replace("__SUPPORT_COMMAND__", $supportCommand)
+$readme = $readme.Replace("__VERSION__", $Version).Replace("__SUPPORT_EMAIL__", $SupportEmail).Replace("__SUPPORT_COMMAND__", $supportCommand).Replace("__SUPPORT_VERIFICATION_ID__", $supportVerificationId)
 $readmePath = Join-Path $packetRoot "README_FINAL_OPERATOR_GATES.md"
 $readme | Set-Content -LiteralPath $readmePath -Encoding UTF8
 

@@ -34,7 +34,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\prepare-fina
 Latest generated packet:
 
 ```text
-.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260529-073523.zip
+.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260529-074422.zip
 ```
 
 The packet includes:
@@ -44,6 +44,7 @@ The packet includes:
 - release gate docs
 - evidence recorder/verifier scripts
 - final packet verifier script
+- final evidence completion script
 - `SHA256SUMS.txt`
 
 Only the zip under `kits\` should be copied to the second Windows PC. Evidence recording and final go/no-go commands must be run from the real release repo root; the script copies inside the packet are reference copies, not a standalone repo.
@@ -52,7 +53,7 @@ The latest packet was verified with:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-final-operator-gate-packet.ps1 `
-  -PacketPath .local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260529-073523.zip `
+  -PacketPath .local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260529-074422.zip `
   -Json
 ```
 

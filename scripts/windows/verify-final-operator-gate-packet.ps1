@@ -95,6 +95,7 @@ try {
         "scripts\windows\record-multidevice-evidence.ps1",
         "scripts\windows\verify-multidevice-evidence.ps1",
         "scripts\windows\verify-final-operator-gate-packet.ps1",
+        "scripts\windows\complete-final-operator-gates.ps1",
         "scripts\windows\write-release-candidate-manifest.ps1",
         "scripts\windows\write-release-go-no-go.ps1"
     )

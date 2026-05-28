@@ -120,7 +120,8 @@ Current Store path truth:
 - release checksum file: `.local-build\release-candidates\1.15.0-rc.1\SHA256SUMS.txt`
 - final operator gate packet generator: `scripts\windows\prepare-final-operator-gate-packet.ps1`
 - final operator gate packet verifier: `scripts\windows\verify-final-operator-gate-packet.ps1`
-- latest verified final operator gate packet: `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260529-073523.zip` (`ok=true`, `fail_count=0`, `kit_count=1`)
+- final operator evidence completion runner: `scripts\windows\complete-final-operator-gates.ps1`
+- latest verified final operator gate packet: `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260529-074422.zip` (`ok=true`, `fail_count=0`, `kit_count=1`)
 - Store metadata handoff: `docs/STORE_SUBMISSION_METADATA_2026_05_29.md`
 - public privacy route exists at `/privacy`; public support route exists at `/support`
 - public metadata verifier exists at `scripts\windows\verify-store-public-metadata.ps1`
@@ -174,8 +175,10 @@ Verified:
 - observed monorepo release tags include `crawl-ai/v0.8.0`, `marketer/v2.0.5`, and `nurikun/v0.3.1`
 - 2026-05-29 06:43 KST recheck: `go test ./...` and `go vet ./...` passed inside each `core`, `crawl-ai`, `marketer`, and `nurikun` module
 - 2026-05-29 07:17 KST recheck: `go test ./...` and `go vet ./...` passed again in the same four monorepo modules from `F:\workspace\_external\musu-system`; latest remote `musu-system` CI run `26587103682` is green
+- 2026-05-29 07:52 KST recheck: `go test ./...` and `go vet ./...` passed again; latest monorepo HEAD remains `d4e58e0`; latest remote CI and GHCR publish runs are green
+- stale-note correction: current `musu-system` HEAD already declares MCP tool schemas and creates missing marketer/nurikun DB parent directories; do not repeat older MCP-empty-schema or SQLite-cwd reports unless they are tied to an old split repo
 - spot audit: `nurikun` keeps delivery ops out of MCP, but `watch` should record failed sends explicitly before any dashboard integration
-- integration adapter caveat: `crawl-ai`/`marketer` MCP paths currently assume local defaults such as `./wiki` and fixed model names; MUSU-side registration must pass explicit working directory/model settings or wrap them
+- integration adapter caveat: current issue is not MCP schema; MUSU-side registration must pass or wrap explicit working directory, wiki root, project, model, and env settings
 - launch-note filter: use the supplied other-product note only for narrow Store positioning, funnel measurement, and grounded promotion workflow; do not carry over unrelated product names or stale Microsoft packaging claims without re-verification
 
 Canonical reference:

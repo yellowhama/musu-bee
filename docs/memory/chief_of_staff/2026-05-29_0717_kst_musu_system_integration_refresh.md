@@ -19,6 +19,10 @@ Audit notes:
 - `nurikun watch` still needs send-failure persistence fixed or wrapped before dashboard integration; it saves `sent` before mailbox `Send` returns.
 - `crawl-ai` and `marketer` MCP paths currently assume local defaults like `./wiki` and fixed model names; MUSU registration should provide explicit working directory/model settings or a wrapper adapter.
 
+Supersession note:
+
+- 2026-05-29 07:52 KST recheck confirmed this decision remains current, but corrected stale caveats from older split-repo notes: current `musu-system` HEAD already has MCP tool schemas and marketer/nurikun DB parent creation. The surviving caveat is MUSU-managed cwd/wiki/project/model/env context plus `nurikun watch` send-failure persistence.
+
 Launch-note filter:
 
 - Keep the other-product launch memo only for narrow Store positioning, funnel/campaign tracking, and grounded promotion workflow.

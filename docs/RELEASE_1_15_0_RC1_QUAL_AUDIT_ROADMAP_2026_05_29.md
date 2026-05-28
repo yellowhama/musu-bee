@@ -195,9 +195,10 @@ Adjacent repo assessment:
 
 - `yellowhama/musu-system` cloned and reviewed
 - 2026-05-29 06:43 KST recheck: `go test ./...` and `go vet ./...` passed inside each `core`, `crawl-ai`, `marketer`, and `nurikun` module
+- 2026-05-29 07:52 KST recheck: `go test ./...` and `go vet ./...` passed again; latest monorepo CI and GHCR publish runs are green
 - observed monorepo release tags include `crawl-ai/v0.8.0`, `marketer/v2.0.5`, and `nurikun/v0.3.1`
 - decision recorded in `docs/MUSU_SYSTEM_INTEGRATION_ASSESSMENT_2026_05_29.md`
-- spot audit: `nurikun` delivery ops are CLI-only, not MCP-exposed; fix/wrap `watch` send-failure persistence before dashboard integration
+- spot audit: current HEAD already fixes MCP schemas and marketer/nurikun DB parent creation; `nurikun` delivery ops are CLI-only, not MCP-exposed; fix/wrap `watch` send-failure persistence before dashboard integration
 
 CI verification after repair:
 

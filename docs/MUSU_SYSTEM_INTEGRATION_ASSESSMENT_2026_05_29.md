@@ -26,7 +26,7 @@ The current MUSU desktop beta is trying to prove a narrow Windows trust/install 
 
 ## Repository Snapshot
 
-Checked via local Git clone on 2026-05-29. Rechecked again at 2026-05-29 06:43 KST from `F:\workspace\external\musu-system`.
+Checked via local Git clone on 2026-05-29. Rechecked again at 2026-05-29 07:52 KST from `F:\workspace\_external\musu-system`.
 
 | Repo | HEAD | Time | State |
 |---|---|---:|---|
@@ -42,6 +42,16 @@ Fresh recheck on 2026-05-29 07:17 KST:
 - Local analysis clones live under `F:\workspace\_external\`.
 - `git log -1` for `musu-system` remains `d4e58e010fe30e83c1e96165d75d7c3ec80a2f40` (`nurikun(v0.3.1): block placeholder sender_identity from sending`).
 - Latest GitHub Actions CI on `musu-system` passed for run `26587103682`.
+
+Fresh recheck on 2026-05-29 07:52 KST:
+
+- GitHub page shows `yellowhama/musu-system` as a public repo with 155 commits and top-level `core`, `crawl-ai`, `deploy`, `docs`, `marketer`, and `nurikun` folders.
+- `git ls-remote https://github.com/yellowhama/musu-system.git HEAD refs/heads/main` still resolves to `d4e58e010fe30e83c1e96165d75d7c3ec80a2f40`.
+- Split repo HEADs still resolve to `musu-crawl-ai` `f94b79b1cd8b81fd320e504318ea7dfd61d57596`, `musu-marketer` `5b3bd5c3c91cb3f68f964b70bca310a5bebfb88a`, and private `musu-nurikun` `4bed668f3b809cc9157ae8d28cce59b58ce8daa2`.
+- `git ls-remote --tags` still shows active service tags `crawl-ai/v0.8.0`, `marketer/v2.0.5`, and `nurikun/v0.3.1`.
+- Local `go test ./...` passed in `core`, `crawl-ai`, `marketer`, and `nurikun`.
+- Local `go vet ./...` passed in the same four modules.
+- Latest remote runs on the monorepo HEAD are green: CI run `26587103682` and GHCR publish run `26587105434`.
 
 Links:
 
@@ -100,7 +110,7 @@ Observed:
 
 This is enough to treat the repo as a credible integration candidate.
 
-The latest verification was run from `F:\workspace\external\musu-system` against HEAD `d4e58e010fe30e83c1e96165d75d7c3ec80a2f40`.
+The latest verification was run from `F:\workspace\_external\musu-system` against HEAD `d4e58e010fe30e83c1e96165d75d7c3ec80a2f40`.
 
 2026-05-29 recheck:
 
@@ -123,6 +133,13 @@ The latest verification was run from `F:\workspace\external\musu-system` against
 - Latest remote CI for `yellowhama/musu-system` is green.
 - This confirms the earlier integration verdict is still current, not stale split-repo information.
 
+2026-05-29 07:52 KST recheck:
+
+- `go test ./...` and `go vet ./...` passed again in all four modules from `F:\workspace\_external\musu-system`.
+- The prior "MCP schema is empty" concern is stale for current HEAD. `crawl-ai`, `marketer`, and `nurikun` now declare MCP arguments with `WithString`, `WithNumber`, `Required`, and `Enum` where relevant.
+- The prior SQLite cwd failure concern is partially closed for current HEAD. `marketer/internal/db` and `nurikun/internal/db` now create the parent DB directory before `sql.Open`.
+- Remaining adapter concern is not MCP schema; it is MUSU-managed context: explicit working directory, wiki root, project, model, and env injection.
+
 ## Code Audit Notes
 
 `musu-system` is not just a README wrapper. It has a coherent Go workspace, per-module tests, CI build/vet/race-test workflow, tag-triggered GHCR publishing, and a deploy bundle with Ollama, shared wiki volume, Caddy TLS profile, and optional scheduler.
@@ -134,12 +151,14 @@ Important observations:
 - `nurikun` MCP exposes safe operations only: doctor, list/create list, subscribe, confirm subscriber, list subscribers, suppress, and message listing. It intentionally does not expose `watch`, `campaign`, or `serve`.
 - `nurikun campaign` has send-time gates for confirmed/due subscribers, suppression checks, per-domain/per-run rate limiting, sender identity validation, `(광고)` labeling, footer, and `List-Unsubscribe`.
 - `nurikun watch` can auto-send low-risk high-confidence inbound replies according to policy. That is useful, but it should remain behind explicit operator configuration and not become a default dashboard button.
+- Current HEAD has already fixed the earlier MCP tool-parameter issue; do not repeat old split-repo reports that say the MCP tools have empty schemas.
+- Current HEAD has already fixed the cheap SQLite `MkdirAll(parent)` failure in `marketer` and `nurikun`.
 - Runtime state paths (`/var`, `/wiki`, `/oauth`, `/projects-*`, `.env`) are gitignored, and deploy docs explicitly keep Gmail OAuth material mounted read-only.
 
 Audit concern:
 
 - `nurikun watch` records outbound status as `sent` before mailbox `Send` returns. If send fails, the log reports failure but the stored row has already been saved as `sent`. This is acceptable for an adjacent prototype, but before any MUSU dashboard integration it should record `send_failed` or update the row after delivery success.
-- The MCP surfaces are usable, but not yet ideal as a MUSU-managed adapter boundary. `crawl-ai` MCP currently starts `NewOrchestrator("./wiki")` and passes fixed model names such as `llama3` / `nomic-embed-text`; `marketer` MCP also calls `ExecuteDraft(..., "llama3", ...)`. Before MUSU registers these tools automatically, add explicit env/flag-driven model and wiki path contracts or wrap them with a MUSU-side adapter that supplies the right working directory and model settings.
+- The MCP surfaces are usable, but not yet ideal as a MUSU-managed adapter boundary. `crawl-ai` MCP currently starts from a local wiki default and model defaults, while `marketer` also assumes default model/context unless the operator supplies the right environment. Before MUSU registers these tools automatically, add explicit env/flag-driven model and wiki path contracts or wrap them with a MUSU-side adapter that supplies the right working directory, project, wiki root, and model settings.
 - `marketer` has a useful MCP surface, but its REST API is not the primary integration path yet. Use CLI/MCP first; REST can follow after endpoint contracts become product-grade.
 
 ## Use Of The Cross-Product Launch Memo
