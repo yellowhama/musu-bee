@@ -7,7 +7,7 @@ Facts:
 - Committed release evidence is stored as `docs\evidence\multidevice\<VERSION>\*.evidence.json`.
 - Verification and Markdown summary sidecars are written next to the raw evidence, but the release audit only treats `*.evidence.json` as committed proof.
 - `scripts/windows/audit-desktop-release-readiness.ps1` now checks committed `*.evidence.json` first, then raw local `.local-build\multi-device\*.json`.
-- The latest second-PC kit is `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-20260529-051149.zip`; it includes the evidence recorder and no private `.pfx` signing material.
+- The latest second-PC kit is `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-20260529-063527.zip`; it includes the evidence recorder and no private `.pfx` signing material.
 
 Decision:
 

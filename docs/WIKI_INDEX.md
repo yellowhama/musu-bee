@@ -237,6 +237,9 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | — | CoS memory note — release candidate manifest | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0500_kst_release_candidate_manifest.md` | active |
 | — | CoS memory note — multi-device evidence recording | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0510_kst_multidevice_evidence_recording.md` | active |
 | — | CoS memory note — Store metadata basics | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0525_kst_store_metadata_basics.md` | active |
+| — | CoS memory note — release CI and deploy repair | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0600_kst_ci_deploy_repair.md` | active |
+| — | CoS memory note — support mailbox evidence gate | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0635_kst_support_mailbox_evidence_gate.md` | active |
+| — | CoS memory note — musu-system recheck | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0645_kst_musu_system_recheck.md` | active |
 
 State lock: `1.15.0-rc.1` is beta-ready for the single-machine Windows local operator path (`musu up` → dashboard doctor → Claude task smoke). A repeatable single-machine smoke script now passes. Multi-device test kit generation now works, but two-machine validation is still pending. Runtime/MSIX package readiness is true for submission attempt; the dedicated Tauri static launcher/status shell now builds, renders, and bundles, but it is not the full dashboard GUI.
 
@@ -282,7 +285,7 @@ These docs capture the post-install / post-review conclusion that Windows packag
 
 2026-05-29 state update: Partner Center enrollment approval cleared by operator report. Current-version `1.15.0.0` local-sideload and Store-reviewed MSIX artifacts were regenerated and verified; submission bundle `.local-build\msix\submission-bundles\store-reviewed-20260529-033609` is prepared. Dedicated Tauri shell build/bundle now passes. Store submission is still pending product-name reservation, Microsoft app certification, and restricted capability review.
 
-2026-05-29 ecosystem update: `yellowhama/musu-system` is the canonical Go monorepo for `core`, `crawl-ai`, `marketer`, and `nurikun`. Integration value is high, but current decision is adapter/MCP/CLI integration, not Rust-core merge or first Store package bundling.
+2026-05-29 ecosystem update: `yellowhama/musu-system` is the canonical Go monorepo for `core`, `crawl-ai`, `marketer`, and `nurikun`. Integration value is high, but current decision is adapter/MCP/CLI integration, not Rust-core merge or first Store package bundling. 06:43 KST recheck passed `go test ./...` and `go vet ./...`; `nurikun` delivery ops remain outside MCP.
 
 ---
 

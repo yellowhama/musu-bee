@@ -103,7 +103,7 @@ Multi-device packet:
 - evidence verifier: `scripts\windows\verify-multidevice-evidence.ps1`
 - evidence recorder: `scripts\windows\record-multidevice-evidence.ps1`
 - runbook: `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md`
-- latest generated kit: `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-20260529-051149.zip`
+- latest generated kit: `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-20260529-063527.zip`
 - current state: install/test kit ready, second-PC execution pending
 
 Store metadata:
@@ -111,9 +111,12 @@ Store metadata:
 - privacy route: `musu-bee/src/app/privacy/page.tsx` -> `https://musu.pro/privacy`
 - support route: `musu-bee/src/app/support/page.tsx` -> `https://musu.pro/support`
 - public metadata verifier: `scripts\windows\verify-store-public-metadata.ps1`
+- support mailbox evidence verifier: `scripts\windows\verify-support-mailbox-evidence.ps1`
+- support mailbox evidence recorder: `scripts\windows\record-support-mailbox-verification.ps1`
+- support mailbox DNS: `musu.pro` MX resolves to `smtp.google.com`; actual delivery still requires operator evidence
 - release go/no-go preflight: `scripts\windows\write-release-go-no-go.ps1`
 - metadata handoff: `docs/STORE_SUBMISSION_METADATA_2026_05_29.md`
-- public deployment and mailbox verification still must be checked before Partner Center submission.
+- public deployment now verifies; mailbox delivery evidence still must be recorded before Partner Center submission.
 
 Current MSIX artifacts:
 

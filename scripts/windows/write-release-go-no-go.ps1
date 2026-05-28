@@ -63,6 +63,7 @@ function Add-Blocker {
 $auditScript = Join-Path $scriptDir "audit-desktop-release-readiness.ps1"
 $metadataScript = Join-Path $scriptDir "verify-store-public-metadata.ps1"
 $manifestScript = Join-Path $scriptDir "write-release-candidate-manifest.ps1"
+$supportMailboxVerifierScript = Join-Path $scriptDir "verify-support-mailbox-evidence.ps1"
 $manifestPath = Join-Path $repoRoot ".local-build\release-candidates\$version\release-candidate-manifest.json"
 
 $auditResult = Invoke-JsonScript -FilePath $auditScript -Arguments @("-Json")
@@ -85,6 +86,52 @@ if (-not $SkipPublicMetadata) {
         -FilePath $metadataScript `
         -Arguments @("-BaseUrl", $PublicMetadataBaseUrl, "-Json") `
         -AllowFailure
+}
+
+$supportMailboxVerified = [bool]$AssumeSupportMailboxVerified
+$supportMailboxEvidence = $null
+$supportMailboxEvidenceCandidate = $null
+if (-not $supportMailboxVerified) {
+    $supportEvidenceRoots = @(
+        [pscustomobject]@{
+            path = (Join-Path $repoRoot ("docs\evidence\support-mailbox\{0}" -f $version))
+            filter = "*.evidence.json"
+        },
+        [pscustomobject]@{
+            path = (Join-Path $repoRoot ".local-build\support-mailbox")
+            filter = "*.evidence.json"
+        }
+    )
+
+    foreach ($root in $supportEvidenceRoots) {
+        if (Test-Path -LiteralPath $root.path) {
+            $candidate = Get-ChildItem -LiteralPath $root.path -Filter $root.filter -File -ErrorAction SilentlyContinue |
+                Sort-Object LastWriteTime -Descending |
+                Select-Object -First 1
+            if ($candidate) {
+                $supportMailboxEvidenceCandidate = $candidate
+                break
+            }
+        }
+    }
+
+    if ($supportMailboxEvidenceCandidate) {
+        $supportMailboxEvidenceResult = Invoke-JsonScript `
+            -FilePath $supportMailboxVerifierScript `
+            -Arguments @("-EvidencePath", $supportMailboxEvidenceCandidate.FullName, "-Json") `
+            -AllowFailure
+        if ($supportMailboxEvidenceResult.json -and [bool]$supportMailboxEvidenceResult.json.ok) {
+            $supportMailboxVerified = $true
+            $supportMailboxEvidence = $supportMailboxEvidenceResult.json
+        }
+        else {
+            $supportMailboxEvidence = [pscustomobject]@{
+                ok = $false
+                evidence_path = $supportMailboxEvidenceCandidate.FullName
+                raw = $supportMailboxEvidenceResult.raw
+            }
+        }
+    }
 }
 
 $gitStatus = (& git -C $repoRoot status --short 2>$null | Out-String).Trim()
@@ -111,7 +158,7 @@ else {
         message = "Public privacy/support metadata verification was skipped."
     }) | Out-Null
 }
-if (-not $AssumeSupportMailboxVerified) {
+if (-not $supportMailboxVerified) {
     Add-Blocker -List $blockers -Area "support-mailbox" -Message "support@musu.pro delivery has not been operator-verified."
 }
 if (-not [string]::IsNullOrWhiteSpace($gitStatus)) {
@@ -139,7 +186,8 @@ $result = [pscustomobject]@{
     multi_device_verified = [bool]$audit.multi_device_verified
     public_metadata_checked = -not [bool]$SkipPublicMetadata
     public_metadata_ok = if ($SkipPublicMetadata) { $null } elseif ($publicMetadataResult.json) { [bool]$publicMetadataResult.json.ok } else { $false }
-    support_mailbox_verified = [bool]$AssumeSupportMailboxVerified
+    support_mailbox_verified = [bool]$supportMailboxVerified
+    support_mailbox_evidence = $supportMailboxEvidence
     blockers = $blockers.ToArray()
     warnings = $warnings.ToArray()
     manual_external_gates = $manualExternalGates

@@ -141,7 +141,7 @@ Multi-device preparation:
 - evidence verifier: `scripts\windows\verify-multidevice-evidence.ps1`
 - evidence recorder: `scripts\windows\record-multidevice-evidence.ps1`
 - runbook: `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md` (wiki/519)
-- generated kit: `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-20260529-051149.zip`
+- generated kit: `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-20260529-063527.zip`
 - current state: ready for second-PC execution; no full multi-machine release claim yet
 
 MSIX release packaging verification:
@@ -168,6 +168,7 @@ Desktop release readiness audit:
 - public metadata verifier: `scripts\windows\verify-store-public-metadata.ps1 -BaseUrl http://127.0.0.1:3015 -Json` passed against local `next start`
 - release go/no-go preflight: `scripts\windows\write-release-go-no-go.ps1 -Json` reports `local_artifacts_ready=true`, `public_metadata_ok=true`, `ready_for_public_desktop_release=false`
 - live public metadata check: `scripts\windows\verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json` passed for `/privacy` and `/support`
+- support mailbox evidence gate: `scripts\windows\verify-support-mailbox-evidence.ps1` and `scripts\windows\record-support-mailbox-verification.ps1` exist; `Resolve-DnsName -Type MX musu.pro` resolves to `smtp.google.com`; go/no-go auto-detects valid support mailbox evidence, but no real `support@musu.pro` delivery evidence has been recorded yet
 - CI/deploy repair: GitHub Actions now use Node 22 for `node:sqlite`, no longer reference deleted Python `musu-core`/`musu-bridge` or deleted `musu-port`, preserve legacy required check names where likely relevant, include Linux Wayland/PipeWire/GBM native dependencies for Rust CI, opt JavaScript actions into Node 24 runtime, and Playwright CI smoke covers `/privacy` + `/support` content through `musu-bee/playwright.ci.config.ts`.
 - render proof: Playwright captured `.local-build\tauri-shell-1280x800.png`
 - report: `docs/DESKTOP_RELEASE_READINESS_AUDIT_2026_05_29.md` (wiki/520)
@@ -175,20 +176,23 @@ Desktop release readiness audit:
 Indexing:
 
 - `musu indexer sync --work-dir . --name musu-bee`
-- latest result: `838 files`, `1897 symbols`
+- latest result: `842 files`, `1897 symbols`
 - search verification: query `multi-device release test` returns `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md`
 - search verification: query `smoke-single-machine-beta` returns `scripts/windows/smoke-single-machine-beta.ps1`
 - search verification: query `record-multidevice-evidence` returns `scripts/windows/record-multidevice-evidence.ps1`
 - search verification: query `Store submission metadata` returns `docs/STORE_SUBMISSION_METADATA_2026_05_29.md`
 - search verification: query `release go no go` returns `scripts/windows/write-release-go-no-go.ps1`
 - search verification: query `Store metadata Playwright` returns `musu-bee/e2e/store-public-metadata.spec.ts`, `musu-bee/playwright.ci.config.ts`, and the CI deploy repair memory note
+- search verification: query `support mailbox evidence` returns `scripts/windows/record-support-mailbox-verification.ps1`, `scripts/windows/verify-support-mailbox-evidence.ps1`, and the support mailbox evidence memory note
+- search verification: query `musu-system recheck` returns `docs/memory/chief_of_staff/2026-05-29_0645_kst_musu_system_recheck.md`
 
 Adjacent repo assessment:
 
 - `yellowhama/musu-system` cloned and reviewed
-- `go test ./...` passed inside each `core`, `crawl-ai`, `marketer`, and `nurikun` module
+- 2026-05-29 06:43 KST recheck: `go test ./...` and `go vet ./...` passed inside each `core`, `crawl-ai`, `marketer`, and `nurikun` module
 - observed monorepo release tags include `crawl-ai/v0.8.0`, `marketer/v2.0.5`, and `nurikun/v0.3.1`
 - decision recorded in `docs/MUSU_SYSTEM_INTEGRATION_ASSESSMENT_2026_05_29.md`
+- spot audit: `nurikun` delivery ops are CLI-only, not MCP-exposed; fix/wrap `watch` send-failure persistence before dashboard integration
 
 CI verification after repair:
 
@@ -218,6 +222,7 @@ P1 beta hardening:
 - Record returned evidence with `scripts\windows\record-multidevice-evidence.ps1` so audit can use `docs\evidence\multidevice\1.15.0-rc.1\*.evidence.json`.
 - Keep `scripts\windows\audit-desktop-release-readiness.ps1` as the release-readiness gate; do not claim public multi-device desktop release until the second-PC evidence lands.
 - Live `https://musu.pro/privacy` and `https://musu.pro/support` now verify with `verify-store-public-metadata.ps1`; verify `support@musu.pro` before Partner Center submission.
+- Record real support mailbox evidence with `scripts\windows\record-support-mailbox-verification.ps1` after confirming delivery to `support@musu.pro`.
 - Use `write-release-go-no-go.ps1` as the final pre-submission operator gate.
 - Remaining No-Go items: run and record real second-PC evidence, verify `support@musu.pro` delivery, then complete Partner Center submission/certification/restricted capability review.
 

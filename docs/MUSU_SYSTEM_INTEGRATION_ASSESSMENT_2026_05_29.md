@@ -20,7 +20,7 @@ The current MUSU desktop beta is trying to prove a narrow Windows trust/install 
 
 ## Repository Snapshot
 
-Checked via local Git clone on 2026-05-29. Rechecked at 2026-05-29 05:42 KST from `F:\workspace\external\musu-system`.
+Checked via local Git clone on 2026-05-29. Rechecked again at 2026-05-29 06:43 KST from `F:\workspace\external\musu-system`.
 
 | Repo | HEAD | Time | State |
 |---|---|---:|---|
@@ -94,6 +94,30 @@ The latest verification was run from `F:\workspace\external\musu-system` against
 - 2026-05-29 `git ls-remote ... HEAD` confirmed the recorded HEADs are still current for all four repos.
 - The split repos are behind the monorepo HEAD in this audit; treat them as transition/reference repos unless a deliberate split-release reason appears.
 - Monorepo HEAD includes a newer `nurikun` compliance hardening commit: `nurikun(v0.3.1): block placeholder sender_identity from sending`.
+
+2026-05-29 06:43 KST recheck:
+
+- `go test ./...` passed again inside `core`, `crawl-ai`, `marketer`, and `nurikun`.
+- `go vet ./...` passed inside the same four modules.
+- `git ls-remote --tags https://github.com/yellowhama/musu-system.git` showed the active service tags are still `crawl-ai/v0.8.0`, `marketer/v2.0.5`, and `nurikun/v0.3.1`.
+- Code audit spot-check found no evidence that `nurikun` exposes delivery operations through MCP; delivery remains CLI-only by design.
+
+## Code Audit Notes
+
+`musu-system` is not just a README wrapper. It has a coherent Go workspace, per-module tests, CI build/vet/race-test workflow, tag-triggered GHCR publishing, and a deploy bundle with Ollama, shared wiki volume, Caddy TLS profile, and optional scheduler.
+
+Important observations:
+
+- `crawl-ai` MCP exposes `fetch`, `search`, and `research` with declared schemas and required arguments. This is immediately useful for MUSU knowledge ingestion.
+- `marketer` MCP exposes `draft_campaign` and `list_campaigns`; the REST server is still shallow (`/health` plus WIP endpoints), so MCP/CLI should be the first integration path.
+- `nurikun` MCP exposes safe operations only: doctor, list/create list, subscribe, confirm subscriber, list subscribers, suppress, and message listing. It intentionally does not expose `watch`, `campaign`, or `serve`.
+- `nurikun campaign` has send-time gates for confirmed/due subscribers, suppression checks, per-domain/per-run rate limiting, sender identity validation, `(광고)` labeling, footer, and `List-Unsubscribe`.
+- `nurikun watch` can auto-send low-risk high-confidence inbound replies according to policy. That is useful, but it should remain behind explicit operator configuration and not become a default dashboard button.
+- Runtime state paths (`/var`, `/wiki`, `/oauth`, `/projects-*`, `.env`) are gitignored, and deploy docs explicitly keep Gmail OAuth material mounted read-only.
+
+Audit concern:
+
+- `nurikun watch` records outbound status as `sent` before mailbox `Send` returns. If send fails, the log reports failure but the stored row has already been saved as `sent`. This is acceptable for an adjacent prototype, but before any MUSU dashboard integration it should record `send_failed` or update the row after delivery success.
 
 ## Integration Value By Component
 

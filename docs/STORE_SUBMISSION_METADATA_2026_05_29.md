@@ -21,7 +21,7 @@ Current MUSU URLs:
 |---|---|---|
 | Privacy policy URL | `https://musu.pro/privacy` | `musu-bee/src/app/privacy/page.tsx` |
 | Support URL | `https://musu.pro/support` | `musu-bee/src/app/support/page.tsx` |
-| Support email | `support@musu.pro` | page copy; verify mailbox before submission |
+| Support email | `support@musu.pro` | page copy; MX resolves to `smtp.google.com`; verify actual delivery before submission |
 
 ## Listing Metadata Draft
 
@@ -78,7 +78,7 @@ Avoid:
 Before uploading to Partner Center:
 
 1. Verify `https://musu.pro/privacy` and `https://musu.pro/support` are deployed and reachable.
-2. Verify `support@musu.pro` receives mail, or replace the support email with a known-good mailbox.
+2. Verify `support@musu.pro` receives mail, then record evidence with `scripts\windows\record-support-mailbox-verification.ps1`, or replace the support email with a known-good mailbox.
 3. Run `scripts\windows\verify-store-public-metadata.ps1 -BaseUrl https://musu.pro`.
 4. Run `scripts\windows\audit-desktop-release-readiness.ps1`.
 5. Run `scripts\windows\write-release-candidate-manifest.ps1`.
@@ -104,9 +104,9 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.
 
 2026-05-29 live check:
 
-- `https://musu.pro/privacy` returned HTTP 200 but did not yet contain the new MUSU privacy policy content.
-- `https://musu.pro/support` returned HTTP 200 but did not yet contain the new MUSU support content.
-- Treat public metadata as **not deployed** until `verify-store-public-metadata.ps1 -BaseUrl https://musu.pro` passes.
+- `verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json` now passes for `/privacy` and `/support`.
+- `Resolve-DnsName -Type MX musu.pro` returns `smtp.google.com`, but this only proves DNS routing exists.
+- Treat support mailbox readiness as **not verified** until `record-support-mailbox-verification.ps1` records real delivery evidence.
 
 ## Official References
 

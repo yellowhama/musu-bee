@@ -94,7 +94,7 @@ Multi-device state:
 - `scripts\windows\prepare-multidevice-test-kit.ps1` builds a second-PC install/test zip with MSIX, public `.cer`, scripts, checksums, evidence verifier, and optional desktop shell bundles.
 - `scripts\windows\verify-multidevice-evidence.ps1` validates the returned smoke evidence before release status changes.
 - `scripts\windows\record-multidevice-evidence.ps1` records verified evidence under `docs\evidence\multidevice\1.15.0-rc.1\`.
-- Latest generated kit: `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-20260529-051149.zip`.
+- Latest generated kit: `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-20260529-063527.zip`.
 - `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md` (wiki/519) is the current runbook.
 - Full multi-machine readiness is still pending real second-machine execution.
 
@@ -120,7 +120,10 @@ Current Store path truth:
 - public privacy route exists at `/privacy`; public support route exists at `/support`
 - public metadata verifier exists at `scripts\windows\verify-store-public-metadata.ps1`
 - release go/no-go preflight exists at `scripts\windows\write-release-go-no-go.ps1`
-- 2026-05-29 live `musu.pro` check still fails expected privacy/support content; deploy public site before Partner Center submission
+- 2026-05-29 live `musu.pro` public metadata check now passes for `/privacy` and `/support`
+- support mailbox evidence scripts exist: `scripts\windows\verify-support-mailbox-evidence.ps1` and `scripts\windows\record-support-mailbox-verification.ps1`
+- `write-release-go-no-go.ps1` now auto-detects valid support mailbox evidence under `docs\evidence\support-mailbox\<version>\*.evidence.json` or `.local-build\support-mailbox\*.evidence.json`
+- support mailbox DNS exists: `Resolve-DnsName -Type MX musu.pro` returns `smtp.google.com`; actual delivery remains unverified until evidence is recorded
 - GitHub Actions deployment/test infrastructure was repaired for the current Rust/Next repo shape: Node 22+, JavaScript actions forced onto Node 24 runtime, no deleted Python dirs, no deleted `musu-port`, Linux Rust CI includes Wayland/PipeWire/GBM native dependencies, legacy likely-required check names preserved, and Store metadata Playwright smoke for `/privacy` + `/support`
 - Remote release gates are green as of 2026-05-29: `Tests` passed on `ad5f752`; latest relevant `E2E Tests — musu-bee` and `Deploy musu-bee to Vercel` passed on `0919a83`; live `https://musu.pro/privacy` and `/support` passed public metadata verification
 - old 2026-05-27 package: template only (`1.13.0.0`, do not submit as current)
@@ -163,7 +166,8 @@ Verified:
 - split repos cloned successfully; they are older transition/reference repos than `musu-system` HEAD
 - 2026-05-29 `git ls-remote ... HEAD` confirmed all four recorded HEADs were unchanged/current
 - observed monorepo release tags include `crawl-ai/v0.8.0`, `marketer/v2.0.5`, and `nurikun/v0.3.1`
-- `go test ./...` passed inside each `core`, `crawl-ai`, `marketer`, and `nurikun` module
+- 2026-05-29 06:43 KST recheck: `go test ./...` and `go vet ./...` passed inside each `core`, `crawl-ai`, `marketer`, and `nurikun` module
+- spot audit: `nurikun` keeps delivery ops out of MCP, but `watch` should record failed sends explicitly before any dashboard integration
 
 Canonical reference:
 
