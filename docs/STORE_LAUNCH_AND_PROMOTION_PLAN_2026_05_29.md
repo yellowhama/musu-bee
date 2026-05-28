@@ -22,12 +22,22 @@ That does **not** mean the app itself is approved. The remaining gates are now:
 5. submit the restricted-capability auto-start justification
 6. wait for Microsoft app certification / capability review
 
+2026-05-29 packaging update:
+
+- `musu_1.15.0.0_x64_local-sideload-manual.msix` regenerated and verified.
+- local-sideload workflow passed packaged startup smoke using release `musu-startup.exe`.
+- `musu_1.15.0.0_x64_store-reviewed-immediate-registration.msix` regenerated and verified.
+- Store-reviewed manifest has `ImmediateRegistration=true` and the restricted startup custom capability.
+- current submission bundle: `.local-build\msix\submission-bundles\store-reviewed-20260529-033609`
+- still pending: Partner Center app submission, Microsoft certification, and restricted capability approval.
+
 Critical correction:
 
 - The prepared 2026-05-27 submission bundle is useful as a template.
 - It contains `musu_1.13.0.0_x64_store-reviewed-immediate-registration.msix`.
 - The current beta target is `1.15.0-rc.1`.
 - Therefore the 1.13 package must not be submitted as the current Store candidate.
+- The current Tauri scaffold is not the release-grade desktop shell yet (`0.1.0`, dev identifier, static `../out` assumption). Store submission should use the verified Rust packaged runtime path until the GUI shell is aligned and tested.
 
 ## Packaging Decision
 
@@ -65,6 +75,7 @@ Fallback constraints:
    - Rebuild package.
    - Regenerate submission bundle.
    - Verify manifest still has the restricted startup capability and `ImmediateRegistration=true`.
+   - Use `run-msix-workflow.ps1 -Configuration release`; this now forwards the configuration into `verify-msix-package.ps1` so release packages are verified with release `musu-startup.exe`.
 
 3. Re-run proof commands.
 

@@ -54,6 +54,7 @@ Write-Step "Verify MSIX artifact and packaged startup contract"
 $verifyArgs = @(
     "-ExecutionPolicy", "Bypass",
     "-File", (Join-Path $scriptDir "verify-msix-package.ps1"),
+    "-Configuration", $Configuration,
     "-StartupContract", $StartupContract
 )
 if ($SkipSmoke) {

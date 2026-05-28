@@ -84,10 +84,20 @@ Canonical references:
 - bridge `http://127.0.0.1:11041`
 - task `72ff5cff-f122-496b-ad6a-6d7e55711bf4`
 - output `MUSU_SMOKE_OK`
+- repeatable script `scripts\windows\smoke-single-machine-beta.ps1` passed on dashboard `3000`
+- script task `2d9e93b1-fb2f-4cd4-ab40-1147fea89a6d`
+- script output `MUSU_SCRIPT_SMOKE_OK`; CLI route output `MUSU_SCRIPT_CLI_OK`
+
+Multi-device state:
+
+- `scripts\windows\smoke-multidevice-beta.ps1` exists for the second-PC test.
+- `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md` (wiki/519) is the current runbook.
+- Full multi-machine readiness is still pending real second-machine execution.
 
 Canonical references:
 
 - `docs/RELEASE_1_15_0_RC1_QUAL_AUDIT_ROADMAP_2026_05_29.md` (wiki/518)
+- `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md` (wiki/519)
 - `docs/BETA_RELEASE_CHECKLIST_1_15_0_RC1.md`
 
 ## 8. Microsoft Store Launch State (2026-05-29)
@@ -97,8 +107,11 @@ Partner Center enrollment approval cleared by operator report. This removes the 
 Current Store path truth:
 
 - product name reservation: next
-- current-version Store-reviewed package: must regenerate for `1.15.0-rc.1`
+- current-version Store-reviewed package: regenerated for `1.15.0-rc.1` as `musu_1.15.0.0_x64_store-reviewed-immediate-registration.msix`
+- local-sideload release package: `musu_1.15.0.0_x64_local-sideload-manual.msix`, workflow passed packaged startup smoke
+- current submission bundle: `.local-build\msix\submission-bundles\store-reviewed-20260529-033609`
 - old 2026-05-27 package: template only (`1.13.0.0`, do not submit as current)
+- Tauri shell: still dev scaffold, not release-grade Store desktop shell
 - Microsoft app certification: pending
 - restricted startup capability review: pending
 

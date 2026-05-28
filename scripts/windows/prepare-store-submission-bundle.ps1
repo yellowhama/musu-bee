@@ -23,8 +23,23 @@ function Invoke-CapturedPowerShell {
         [Parameter(Mandatory = $true)][string[]]$ArgumentList
     )
 
-    $output = & powershell @ArgumentList 2>&1
-    $exitCode = $LASTEXITCODE
+    $hasNativePreference = Test-Path -LiteralPath "variable:PSNativeCommandUseErrorActionPreference"
+    $previousNativePreference = $null
+    if ($hasNativePreference) {
+        $previousNativePreference = $PSNativeCommandUseErrorActionPreference
+        $PSNativeCommandUseErrorActionPreference = $false
+    }
+
+    try {
+        $output = & powershell @ArgumentList 2>&1
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        if ($hasNativePreference) {
+            $PSNativeCommandUseErrorActionPreference = $previousNativePreference
+        }
+    }
+
     return [pscustomobject]@{
         Output   = ($output | Out-String)
         ExitCode = $exitCode

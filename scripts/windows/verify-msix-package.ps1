@@ -3,6 +3,8 @@ param(
     [string]$PackagePath,
     [string]$StartupExe,
     [string]$MusuHome,
+    [ValidateSet("release", "debug")]
+    [string]$Configuration = "debug",
     [ValidateSet("local-sideload-manual", "store-reviewed-immediate-registration")]
     [string]$StartupContract = "local-sideload-manual",
     [switch]$SkipSmoke
@@ -29,7 +31,7 @@ if (-not $PackagePath) {
     $PackagePath = Find-LatestMsixArtifact -Directory (Join-Path $repoRoot ".local-build\msix\output") -StartupContract $StartupContract
 }
 if (-not $StartupExe) {
-    $StartupExe = Join-Path $repoRoot "musu-rs\target\debug\musu-startup.exe"
+    $StartupExe = Join-Path $repoRoot "musu-rs\target\$Configuration\musu-startup.exe"
 }
 if (-not $MusuHome) {
     $MusuHome = Join-Path $repoRoot ".local-build\startup-smoke"

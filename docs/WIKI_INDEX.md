@@ -227,10 +227,12 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | Wiki ID | Title | Date | File | Status |
 |---|---|---|---|---|
 | wiki/518 | 1.15.0-rc.1 qualitative evaluation, code audit, and roadmap | 2026-05-29 | `RELEASE_1_15_0_RC1_QUAL_AUDIT_ROADMAP_2026_05_29.md` | complete |
+| wiki/519 | 1.15.0-rc.1 multi-device release test plan | 2026-05-29 | `MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md` | active |
 | — | 1.15.0-rc.1 beta release checklist and smoke evidence | 2026-05-29 | `BETA_RELEASE_CHECKLIST_1_15_0_RC1.md` | active |
 | — | CoS memory note — 1.15.0-rc.1 beta readiness | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0130_kst_1_15_rc1_beta_readiness.md` | active |
+| — | CoS memory note — smoke scripts and multi-device packet | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0333_kst_release_smoke_multidevice_packet.md` | active |
 
-State lock: `1.15.0-rc.1` is beta-ready for the single-machine Windows local operator path (`musu up` → dashboard doctor → Claude task smoke). It is not yet a Store auto-start or full multi-machine release.
+State lock: `1.15.0-rc.1` is beta-ready for the single-machine Windows local operator path (`musu up` → dashboard doctor → Claude task smoke). A repeatable single-machine smoke script now passes. Multi-device test packet is ready, but two-machine validation is still pending. It is not yet a Store auto-start or full multi-machine release.
 
 ---
 
@@ -268,8 +270,9 @@ These docs capture the post-install / post-review conclusion that Windows packag
 | Windows install/login usability report | 2026-05-27 | `USABILITY_REPORT_WINDOWS_INSTALL_LOGIN_2026_05_27.md` | active |
 | Store launch and promotion plan | 2026-05-29 | `STORE_LAUNCH_AND_PROMOTION_PLAN_2026_05_29.md` | active |
 | musu-system integration assessment | 2026-05-29 | `MUSU_SYSTEM_INTEGRATION_ASSESSMENT_2026_05_29.md` | active |
+| Multi-device 1.15.0-rc.1 test plan | 2026-05-29 | `MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md` | active |
 
-2026-05-29 state update: Partner Center enrollment approval cleared by operator report. Store-reviewed package submission is still pending product-name reservation, current-version `1.15.0-rc.1` package regeneration, Microsoft app certification, and restricted capability review.
+2026-05-29 state update: Partner Center enrollment approval cleared by operator report. Current-version `1.15.0.0` local-sideload and Store-reviewed MSIX artifacts were regenerated and verified; submission bundle `.local-build\msix\submission-bundles\store-reviewed-20260529-033609` is prepared. Store submission is still pending product-name reservation, Microsoft app certification, and restricted capability review.
 
 2026-05-29 ecosystem update: `yellowhama/musu-system` is the canonical Go monorepo for `core`, `crawl-ai`, `marketer`, and `nurikun`. Integration value is high, but current decision is adapter/MCP/CLI integration, not Rust-core merge or first Store package bundling.
 

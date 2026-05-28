@@ -29,7 +29,9 @@ Current product contract changes from this work:
 
 ## Qualitative Evaluation
 
-Overall single-machine beta completion: **about 80%**.
+Overall single-machine beta completion: **about 82%**.
+
+Release-grade desktop completion: **not yet release-grade** if "desktop app" means a Store-ready GUI shell. The Rust runtime and dashboard bridge path are credible beta infrastructure; the Tauri desktop scaffold is still a dev scaffold (`productName=MUSU`, `version=0.1.0`, `identifier=com.tauri.dev`, `frontendDist=../out`, `csp=null`) and should not be represented as the finished desktop product.
 
 The important loop now closes: start local services, check readiness, send a real task, get the result back through dashboard APIs. The product finally has a believable local operator path instead of being only a pile of subsystem work.
 
@@ -45,6 +47,7 @@ Main weaknesses:
 - The beta is still Claude-first. OpenAI-compatible adapters exist, but the runner hot path rejects non-Claude task dispatch.
 - Coverage is stronger for the smoke path than for every legacy dashboard/API route.
 - Store/MSIX auto-start remains an external approval track, not a shipped product promise.
+- Tauri GUI packaging is not release-grade yet; current Store path should be treated as the Rust packaged runtime path until the desktop shell is aligned and tested.
 - The repo worktree has a broad pre-existing dirty state; commits for this release must stay scoped.
 
 ## Code Audit
@@ -81,6 +84,7 @@ Residual risks:
 - Add a regression test for `/api/ai/chat` default adapter.
 - Add a dashboard API restart-regression test that changes `services/bridge.json` between requests.
 - Keep `openai_compat_local` out of UI defaults until runner dispatch supports it.
+- Keep release MSIX verification tied to the selected build configuration. `run-msix-workflow.ps1` now passes `-Configuration` through to `verify-msix-package.ps1` so a release package is not accidentally smoked with debug `musu-startup.exe`.
 
 ## Verification Evidence
 
@@ -119,11 +123,37 @@ Live production smoke:
 - terminal output: `MUSU_SMOKE_OK`
 - SSE route: `HTTP/1.1 200 OK`, `content-type: text/event-stream`
 
+Repeatable script smoke:
+
+- script: `scripts\windows\smoke-single-machine-beta.ps1`
+- dashboard: `http://127.0.0.1:3000`
+- bridge: `http://127.0.0.1:11041`
+- task id: `2d9e93b1-fb2f-4cd4-ab40-1147fea89a6d`
+- dashboard output: `MUSU_SCRIPT_SMOKE_OK`
+- CLI route output: `MUSU_SCRIPT_CLI_OK`
+
+Multi-device preparation:
+
+- script: `scripts\windows\smoke-multidevice-beta.ps1`
+- runbook: `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md` (wiki/519)
+- current state: ready for second-PC execution; no full multi-machine release claim yet
+
+MSIX release packaging verification:
+
+- release build completed: `cargo build --manifest-path .\musu-rs\Cargo.toml --release --bin musu --bin musu-startup -j 1`
+- local-sideload package: `.local-build\msix\output\musu_1.15.0.0_x64_local-sideload-manual.msix`
+- local-sideload workflow: passed, including packaged startup smoke with `musu-rs\target\release\musu-startup.exe`
+- Store-reviewed package: `.local-build\msix\output\musu_1.15.0.0_x64_store-reviewed-immediate-registration.msix`
+- Store-reviewed workflow: manifest/package verification passed with `ImmediateRegistration=true` and restricted startup custom capability present
+- submission bundle: `.local-build\msix\submission-bundles\store-reviewed-20260529-033609`
+- remaining packaging warnings: Developer Mode off, non-elevated shell, and PATH alias shadowing by `C:\Users\empty\.cargo\bin\musu.exe`
+
 Indexing:
 
 - `musu indexer sync --work-dir . --name musu-bee`
-- result: `810 files`, `1880 symbols`
-- search verification: query `musu-system integration` returns `docs/MUSU_SYSTEM_INTEGRATION_ASSESSMENT_2026_05_29.md`
+- latest result: `814 files`, `1880 symbols`
+- search verification: query `multi-device release test` returns `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md`
+- search verification: query `smoke-single-machine-beta` returns `scripts/windows/smoke-single-machine-beta.ps1`
 
 Adjacent repo assessment:
 
@@ -143,7 +173,8 @@ P1 beta hardening:
 
 - Add regression tests for dynamic bridge URL restart behavior.
 - Add a test for `/api/ai/chat` defaulting to `claude`.
-- Add a tiny smoke script that runs `musu up`, `doctor`, `/api/doctor`, task forward, task poll, and SSE HEAD.
+- Keep `scripts\windows\smoke-single-machine-beta.ps1` in the RC gate and run it on clean Windows machines.
+- Run `scripts\windows\smoke-multidevice-beta.ps1` on the user's second PC and record the output in wiki/519.
 
 P2 product hardening:
 

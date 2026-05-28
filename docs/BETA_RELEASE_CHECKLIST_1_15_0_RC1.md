@@ -14,6 +14,15 @@ Date: 2026-05-29
 
 ## Must-Pass Smoke
 
+Repeatable script:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\smoke-single-machine-beta.ps1 `
+  -DashboardBaseUrl http://127.0.0.1:3000
+```
+
+Manual equivalent:
+
 ```powershell
 .\musu-rs\target\debug\musu.exe up --json
 .\musu-rs\target\debug\musu.exe doctor --json
@@ -67,7 +76,7 @@ Expected: `HTTP/1.1 200 OK` and `content-type: text/event-stream`.
 
 ## Current Verified Result
 
-Verified locally against a production-built dashboard on `3001` and bridge on dynamic port `11041`:
+Verified locally against dashboards on `3001` and `3000`, and bridge on dynamic port `11041`:
 
 - `musu up --json`: ok, used `~\.musu\bridge.env`, started/confirmed bridge
 - `musu doctor --json`: warn only for PATH alias shadowing; account/bridge/dashboard/package ok
@@ -78,6 +87,26 @@ Verified locally against a production-built dashboard on `3001` and bridge on dy
 - task id: `72ff5cff-f122-496b-ad6a-6d7e55711bf4`
 - terminal output: `MUSU_SMOKE_OK`
 - SSE route: 200 `text/event-stream`
+
+Repeatable script smoke also passed on 2026-05-29:
+
+- script: `scripts\windows\smoke-single-machine-beta.ps1`
+- dashboard: `http://127.0.0.1:3000`
+- dashboard task id: `2d9e93b1-fb2f-4cd4-ab40-1147fea89a6d`
+- dashboard output: `MUSU_SCRIPT_SMOKE_OK`
+- CLI route output: `MUSU_SCRIPT_CLI_OK`
+
+Multi-device packet:
+
+- script: `scripts\windows\smoke-multidevice-beta.ps1`
+- runbook: `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md`
+- current state: packet ready, second-PC execution pending
+
+Current MSIX artifacts:
+
+- local sideload: `.local-build\msix\output\musu_1.15.0.0_x64_local-sideload-manual.msix`
+- Store reviewed: `.local-build\msix\output\musu_1.15.0.0_x64_store-reviewed-immediate-registration.msix`
+- submission bundle: `.local-build\msix\submission-bundles\store-reviewed-20260529-033609`
 
 ## RC Gate Commands
 

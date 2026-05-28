@@ -41,6 +41,7 @@ Interpretation:
 - `musu-system` is the new source of truth.
 - The three split repos remain useful as reference/transition mirrors, but should not be developed in parallel long-term.
 - Monorepo README explicitly says the repo was consolidated from the four prior repos on 2026-05-28 and that legacy repos are kept as a short observation-window reference.
+- Treat older agent notes that discuss only the split repos as stale unless they are reconciled against `musu-system` HEAD.
 
 ## What `musu-system` Contains
 
@@ -67,10 +68,7 @@ That maps well to MUSU's company/agent thesis, but it is an application layer, n
 Local Go tests passed:
 
 ```powershell
-cd core;      go test ./...
-cd crawl-ai;  go test ./...
-cd marketer;  go test ./...
-cd nurikun;   go test ./...
+go test ./core/... ./crawl-ai/... ./marketer/... ./nurikun/...
 ```
 
 Observed:
@@ -81,6 +79,8 @@ Observed:
 - `nurikun`: cmd, agent, compliance, config, knowledge, policy, preflight tests passed
 
 This is enough to treat the repo as a credible integration candidate.
+
+The verification was run from `F:\workspace\tmp\musu-system-audit-20260529\musu-system` against HEAD `d4e58e010fe30e83c1e96165d75d7c3ec80a2f40`.
 
 ## Integration Value By Component
 
