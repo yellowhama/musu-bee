@@ -230,6 +230,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | wiki/519 | 1.15.0-rc.1 multi-device release test plan | 2026-05-29 | `MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md` | active |
 | wiki/520 | Desktop release readiness audit | 2026-05-29 | `DESKTOP_RELEASE_READINESS_AUDIT_2026_05_29.md` | active |
 | — | 1.15.0-rc.1 beta release checklist and smoke evidence | 2026-05-29 | `BETA_RELEASE_CHECKLIST_1_15_0_RC1.md` | active |
+| — | 1.15.0-rc.1 final operator gates | 2026-05-29 | `RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md` | active |
 | — | CoS memory note — 1.15.0-rc.1 beta readiness | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0130_kst_1_15_rc1_beta_readiness.md` | active |
 | — | CoS memory note — smoke scripts and multi-device packet | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0333_kst_release_smoke_multidevice_packet.md` | active |
 | — | CoS memory note — desktop shell and musu-system refresh | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0415_kst_desktop_shell_and_musu_system_refresh.md` | active |
@@ -240,6 +241,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | — | CoS memory note — release CI and deploy repair | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0600_kst_ci_deploy_repair.md` | active |
 | — | CoS memory note — support mailbox evidence gate | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0635_kst_support_mailbox_evidence_gate.md` | active |
 | — | CoS memory note — musu-system recheck | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0645_kst_musu_system_recheck.md` | active |
+| — | CoS memory note — single-machine smoke refresh | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0655_kst_single_machine_smoke_refresh.md` | active |
 
 State lock: `1.15.0-rc.1` is beta-ready for the single-machine Windows local operator path (`musu up` → dashboard doctor → Claude task smoke). A repeatable single-machine smoke script now passes. Multi-device test kit generation now works, but two-machine validation is still pending. Runtime/MSIX package readiness is true for submission attempt; the dedicated Tauri static launcher/status shell now builds, renders, and bundles, but it is not the full dashboard GUI.
 
@@ -279,6 +281,7 @@ These docs capture the post-install / post-review conclusion that Windows packag
 | Windows install/login usability report | 2026-05-27 | `USABILITY_REPORT_WINDOWS_INSTALL_LOGIN_2026_05_27.md` | active |
 | Store launch and promotion plan | 2026-05-29 | `STORE_LAUNCH_AND_PROMOTION_PLAN_2026_05_29.md` | active |
 | Store submission metadata | 2026-05-29 | `STORE_SUBMISSION_METADATA_2026_05_29.md` | active |
+| Final operator gates | 2026-05-29 | `RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md` | active |
 | musu-system integration assessment | 2026-05-29 | `MUSU_SYSTEM_INTEGRATION_ASSESSMENT_2026_05_29.md` | active |
 | Multi-device 1.15.0-rc.1 test plan | 2026-05-29 | `MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md` | active |
 | Desktop release readiness audit | 2026-05-29 | `DESKTOP_RELEASE_READINESS_AUDIT_2026_05_29.md` | active |

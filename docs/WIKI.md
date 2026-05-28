@@ -87,6 +87,7 @@ Canonical references:
 - repeatable script `scripts\windows\smoke-single-machine-beta.ps1` passed on dashboard `3000`
 - script task `2d9e93b1-fb2f-4cd4-ab40-1147fea89a6d`
 - script output `MUSU_SCRIPT_SMOKE_OK`; CLI route output `MUSU_SCRIPT_CLI_OK`
+- fresh 2026-05-29 06:52 KST smoke passed on commit `f9ae873`: dashboard task `b4b05b93-34d2-4946-b4cd-fdd5c5c6632d`, output `MUSU_RELEASE_SMOKE_OK_20260529_0652`, CLI route `MUSU_CLI_ROUTE_OK_20260529_0652`
 
 Multi-device state:
 
@@ -142,6 +143,7 @@ Canonical reference:
 - `docs/STORE_LAUNCH_AND_PROMOTION_PLAN_2026_05_29.md`
 - `docs/STORE_SUBMISSION_METADATA_2026_05_29.md`
 - `docs/DESKTOP_RELEASE_READINESS_AUDIT_2026_05_29.md` (wiki/520)
+- `docs/RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md`
 
 ## 9. musu-system Integration State (2026-05-29)
 

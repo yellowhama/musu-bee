@@ -96,6 +96,14 @@ Repeatable script smoke also passed on 2026-05-29:
 - dashboard output: `MUSU_SCRIPT_SMOKE_OK`
 - CLI route output: `MUSU_SCRIPT_CLI_OK`
 
+Fresh repeatable script smoke passed again on 2026-05-29 06:52 KST:
+
+- dashboard: `http://127.0.0.1:3000`
+- bridge: `http://127.0.0.1:11041`
+- dashboard task id: `b4b05b93-34d2-4946-b4cd-fdd5c5c6632d`
+- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260529_0652`
+- CLI route output: `MUSU_CLI_ROUTE_OK_20260529_0652`
+
 Multi-device packet:
 
 - script: `scripts\windows\smoke-multidevice-beta.ps1`
@@ -117,6 +125,7 @@ Store metadata:
 - release go/no-go preflight: `scripts\windows\write-release-go-no-go.ps1`
 - metadata handoff: `docs/STORE_SUBMISSION_METADATA_2026_05_29.md`
 - public deployment now verifies; mailbox delivery evidence still must be recorded before Partner Center submission.
+- final operator gates: `docs/RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md`
 
 Current MSIX artifacts:
 
