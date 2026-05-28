@@ -6,20 +6,20 @@ on:
       - main
     paths:
       - 'musu-bee/**'
-      - 'musu-port/**'
       - '.github/workflows/e2e-musu-bee.yml'
   pull_request:
     branches:
       - main
     paths:
       - 'musu-bee/**'
-      - 'musu-port/**'
+      - '.github/workflows/e2e-musu-bee.yml'
   workflow_dispatch:
 
 jobs:
   e2e:
     name: Playwright E2E
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: musu-bee
@@ -30,25 +30,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: musu-bee/package-lock.json
-
-      - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
-
-      - name: Cache Rust build artifacts
-        uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae
-        with:
-          workspaces: musu-port -> target
-
-      - name: Build musu-portd
-        run: cargo build --release -p musu-portd
-        working-directory: musu-port
-        env:
-          CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER: cc
-          CC: cc
-          CXX: c++
 
       - name: Install dependencies
         run: npm ci
@@ -56,8 +40,8 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Run E2E tests
-        run: npm run test:e2e
+      - name: Run CI E2E smoke
+        run: npm run test:e2e:ci
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321' }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'public-anon-key-for-ci' }}

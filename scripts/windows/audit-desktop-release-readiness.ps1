@@ -83,6 +83,13 @@ else {
     Add-Check "desktop-shell" "package.json version" "fail" "package.json version does not match VERSION."
 }
 
+if ($packageJson -and $packageJson.engines -and [string]$packageJson.engines.node -match "22") {
+    Add-Check "desktop-shell" "Node runtime floor" "pass" "package.json requires Node $($packageJson.engines.node), compatible with node:sqlite."
+}
+else {
+    Add-Check "desktop-shell" "Node runtime floor" "fail" "package.json must require Node 22+ because server routes use node:sqlite."
+}
+
 if (-not [string]::IsNullOrWhiteSpace($packageLockText)) {
     $lockVersionMatches = [regex]::Matches($packageLockText, '"version"\s*:\s*"([^"]+)"')
     $lockRootVersion = if ($lockVersionMatches.Count -ge 1) { $lockVersionMatches[0].Groups[1].Value } else { "" }
@@ -246,6 +253,8 @@ foreach ($scriptName in @("smoke-single-machine-beta.ps1", "smoke-multidevice-be
 $privacyPage = Join-Path $appRoot "src\app\privacy\page.tsx"
 $supportPage = Join-Path $appRoot "src\app\support\page.tsx"
 $storeMetadataDoc = Join-Path $repoRoot "docs\STORE_SUBMISSION_METADATA_2026_05_29.md"
+$storeMetadataE2e = Join-Path $appRoot "e2e\store-public-metadata.spec.ts"
+$playwrightCiConfig = Join-Path $appRoot "playwright.ci.config.ts"
 
 if (Test-Path -LiteralPath $privacyPage) {
     Add-Check "store-metadata" "privacy policy route" "pass" "Public privacy route exists at /privacy."
@@ -266,6 +275,13 @@ if (Test-Path -LiteralPath $storeMetadataDoc) {
 }
 else {
     Add-Check "store-metadata" "Partner Center metadata doc" "fail" "Store submission metadata doc is missing."
+}
+
+if ((Test-Path -LiteralPath $storeMetadataE2e) -and (Test-Path -LiteralPath $playwrightCiConfig)) {
+    Add-Check "store-metadata" "public metadata E2E smoke" "pass" "Playwright CI smoke covers /privacy and /support content."
+}
+else {
+    Add-Check "store-metadata" "public metadata E2E smoke" "fail" "Playwright CI smoke for /privacy and /support is missing."
 }
 
 $multiDevicePlan = Join-Path $repoRoot "docs\MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md"

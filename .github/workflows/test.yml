@@ -7,41 +7,75 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  web:
+    name: Web typecheck and build
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: musu-bee
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          python-version: "3.12"
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: musu-bee/package-lock.json
 
       - name: Install dependencies
-        run: |
-          python -m venv .venv
-          .venv/bin/pip install --quiet -e musu-core/
-          .venv/bin/pip install --quiet -e musu-bridge/
-          .venv/bin/pip install pytest pytest-asyncio pytest-timeout pytest-cov
+        run: npm ci
 
-      - name: Run musu-core tests
-        run: |
-          .venv/bin/pytest musu-core/tests/ --timeout=30 -q --tb=short
+      - name: Build
+        run: npm run build
         env:
-          MUSU_BRIDGE_TOKEN: test-ci-token-for-testing
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'public-anon-key-for-ci' }}
+          NEXT_PUBLIC_APP_URL: https://musu.pro
+          NEXT_PUBLIC_AUTH_ENABLED: "false"
 
-      - name: Run musu-bridge tests with coverage
-        run: |
-          .venv/bin/pytest musu-bridge/tests/ --timeout=30 -q --tb=short \
-            --cov=musu_core --cov-report=term-missing --cov-report=html:coverage-html
-        env:
-          MUSU_BRIDGE_TOKEN: test-ci-token-for-testing
+      - name: Typecheck
+        run: npm run typecheck
 
-      - name: Upload coverage report
-        if: always()
-        uses: actions/upload-artifact@v4
+  rust:
+    name: Rust core tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        run: sudo apt-get update && sudo apt-get install -y pkg-config libxdo-dev libx11-dev libasound2-dev libxcb-shape0-dev libxcb-xfixes0-dev libxcb1-dev libxkbcommon-dev libxcb-randr0-dev libxcb-shm0-dev
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
         with:
-          name: coverage-report
-          path: coverage-html/
+          workspaces: musu-rs -> target
+
+      - name: Cargo test
+        run: cargo test --manifest-path musu-rs/Cargo.toml --lib -- --test-threads=1
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs:
+      - web
+      - rust
+    if: always()
+    steps:
+      - name: Verify required jobs
+        shell: bash
+        run: |
+          if [[ "${{ needs.web.result }}" != "success" ]]; then
+            echo "web job failed: ${{ needs.web.result }}"
+            exit 1
+          fi
+          if [[ "${{ needs.rust.result }}" != "success" ]]; then
+            echo "rust job failed: ${{ needs.rust.result }}"
+            exit 1
+          fi
