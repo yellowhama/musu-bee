@@ -123,6 +123,7 @@ heartbeat.ts.patched
 .qa-m*.log
 qa-artifacts/
 .qa-artifacts/
+musu-bee/playwright-report/
 .mus*_latest_evid
 
 # 세션 로그

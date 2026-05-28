@@ -11,7 +11,10 @@ export default defineConfig({
   forbidOnly: true,
   retries: 1,
   workers: 1,
-  reporter: "github",
+  reporter: [
+    ["github"],
+    ["html", { outputFolder: "playwright-report", open: "never" }],
+  ],
   use: {
     baseURL: "http://localhost:3101",
     trace: "on-first-retry",
