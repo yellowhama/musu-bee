@@ -1,10 +1,10 @@
 [package]
-name = "app"
-version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
-license = ""
-repository = ""
+name = "musu-desktop"
+version = "1.15.0-rc.1"
+description = "MUSU desktop shell for the local AI operations runtime"
+authors = ["Yellowhama"]
+license = "Proprietary"
+repository = "https://github.com/yellowhama/musu-bee"
 edition = "2021"
 rust-version = "1.77.2"
 

@@ -33,6 +33,8 @@ Overall single-machine beta completion: **about 82%**.
 
 Release-grade desktop completion: **not yet release-grade** if "desktop app" means a Store-ready GUI shell. The Rust runtime and dashboard bridge path are credible beta infrastructure; the Tauri desktop scaffold is still a dev scaffold (`productName=MUSU`, `version=0.1.0`, `identifier=com.tauri.dev`, `frontendDist=../out`, `csp=null`) and should not be represented as the finished desktop product.
 
+2026-05-29 update: the scaffold metadata gap was reduced (`package.json`, `package-lock.json`, `src-tauri/Cargo.toml`, and `tauri.conf.json` now use `1.15.0-rc.1`; the Tauri identifier is `com.yellowhama.musu`; CSP is explicit; native window decorations are enabled). The blocking GUI-shell gap remains: `frontendDist=../out` does not exist and `npm run build` does not emit a static export.
+
 The important loop now closes: start local services, check readiness, send a real task, get the result back through dashboard APIs. The product finally has a believable local operator path instead of being only a pile of subsystem work.
 
 Main strengths:
@@ -148,10 +150,18 @@ MSIX release packaging verification:
 - submission bundle: `.local-build\msix\submission-bundles\store-reviewed-20260529-033609`
 - remaining packaging warnings: Developer Mode off, non-elevated shell, and PATH alias shadowing by `C:\Users\empty\.cargo\bin\musu.exe`
 
+Desktop release readiness audit:
+
+- script: `scripts\windows\audit-desktop-release-readiness.ps1`
+- result: `runtime_package_ready=True`, `desktop_shell_ready=False`, `multi_device_verified=False`, `public_desktop_release_ready=False`
+- blocking checks: missing Tauri `frontendDist`, mismatched Tauri static build contract, second-PC execution pending
+- metadata verification: `npm run typecheck` passed; `cargo check --manifest-path .\musu-bee\src-tauri\Cargo.toml -j 1` passed
+- report: `docs/DESKTOP_RELEASE_READINESS_AUDIT_2026_05_29.md` (wiki/520)
+
 Indexing:
 
 - `musu indexer sync --work-dir . --name musu-bee`
-- latest result: `814 files`, `1880 symbols`
+- latest result: `817 files`, `1880 symbols`
 - search verification: query `multi-device release test` returns `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md`
 - search verification: query `smoke-single-machine-beta` returns `scripts/windows/smoke-single-machine-beta.ps1`
 
@@ -175,6 +185,7 @@ P1 beta hardening:
 - Add a test for `/api/ai/chat` defaulting to `claude`.
 - Keep `scripts\windows\smoke-single-machine-beta.ps1` in the RC gate and run it on clean Windows machines.
 - Run `scripts\windows\smoke-multidevice-beta.ps1` on the user's second PC and record the output in wiki/519.
+- Keep `scripts\windows\audit-desktop-release-readiness.ps1` as the release-readiness gate; do not claim public desktop release until it reports ready or the accepted release scope excludes Tauri GUI readiness.
 
 P2 product hardening:
 

@@ -29,6 +29,7 @@ That does **not** mean the app itself is approved. The remaining gates are now:
 - `musu_1.15.0.0_x64_store-reviewed-immediate-registration.msix` regenerated and verified.
 - Store-reviewed manifest has `ImmediateRegistration=true` and the restricted startup custom capability.
 - current submission bundle: `.local-build\msix\submission-bundles\store-reviewed-20260529-033609`
+- desktop release audit: runtime package ready, Tauri GUI shell not ready, multi-device second-PC execution pending
 - still pending: Partner Center app submission, Microsoft certification, and restricted capability approval.
 
 Critical correction:
@@ -37,7 +38,7 @@ Critical correction:
 - It contains `musu_1.13.0.0_x64_store-reviewed-immediate-registration.msix`.
 - The current beta target is `1.15.0-rc.1`.
 - Therefore the 1.13 package must not be submitted as the current Store candidate.
-- The current Tauri scaffold is not the release-grade desktop shell yet (`0.1.0`, dev identifier, static `../out` assumption). Store submission should use the verified Rust packaged runtime path until the GUI shell is aligned and tested.
+- The current Tauri shell is not release-grade yet because the static `../out` frontend artifact is missing and the build command does not produce it. Store submission should use the verified Rust packaged runtime path until the GUI shell is aligned and tested.
 
 ## Packaging Decision
 

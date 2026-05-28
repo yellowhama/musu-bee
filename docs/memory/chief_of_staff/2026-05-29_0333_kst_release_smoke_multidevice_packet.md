@@ -10,6 +10,7 @@ Durable decisions:
 - Release-grade desktop wording must stay precise: Rust runtime/dashboard path is credible beta infrastructure; the Tauri shell is still a dev scaffold and Store certification is pending.
 - MSIX workflow script fixed a configuration boundary: `run-msix-workflow.ps1` passes `-Configuration` through to `verify-msix-package.ps1`, and `verify-msix-package.ps1` uses that configuration to select `musu-startup.exe`.
 - Current-version MSIX artifacts were regenerated and verified for `1.15.0.0`; Store submission bundle is `.local-build\msix\submission-bundles\store-reviewed-20260529-033609`.
+- Desktop release readiness audit now exists at `scripts\windows\audit-desktop-release-readiness.ps1`. Tauri metadata is no longer scaffold/dev metadata, but GUI readiness remains false because `frontendDist=../out` is missing and `npm run build` does not create a static export.
 
 Live evidence:
 
@@ -20,6 +21,7 @@ Live evidence:
 - CLI route output: `MUSU_SCRIPT_CLI_OK`
 - local-sideload MSIX: `.local-build\msix\output\musu_1.15.0.0_x64_local-sideload-manual.msix`
 - Store-reviewed MSIX: `.local-build\msix\output\musu_1.15.0.0_x64_store-reviewed-immediate-registration.msix`
+- desktop audit report: `docs/DESKTOP_RELEASE_READINESS_AUDIT_2026_05_29.md` (wiki/520)
 
 Open gates:
 

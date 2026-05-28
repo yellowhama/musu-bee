@@ -111,7 +111,7 @@ Current Store path truth:
 - local-sideload release package: `musu_1.15.0.0_x64_local-sideload-manual.msix`, workflow passed packaged startup smoke
 - current submission bundle: `.local-build\msix\submission-bundles\store-reviewed-20260529-033609`
 - old 2026-05-27 package: template only (`1.13.0.0`, do not submit as current)
-- Tauri shell: still dev scaffold, not release-grade Store desktop shell
+- Tauri shell: metadata now matches `1.15.0-rc.1`, but GUI shell readiness is still false because `frontendDist=../out` is missing and the build command does not produce a static export
 - Microsoft app certification: pending
 - restricted startup capability review: pending
 
@@ -124,6 +124,7 @@ Promotion rule:
 Canonical reference:
 
 - `docs/STORE_LAUNCH_AND_PROMOTION_PLAN_2026_05_29.md`
+- `docs/DESKTOP_RELEASE_READINESS_AUDIT_2026_05_29.md` (wiki/520)
 
 ## 9. musu-system Integration State (2026-05-29)
 

@@ -108,6 +108,19 @@ Current MSIX artifacts:
 - Store reviewed: `.local-build\msix\output\musu_1.15.0.0_x64_store-reviewed-immediate-registration.msix`
 - submission bundle: `.local-build\msix\submission-bundles\store-reviewed-20260529-033609`
 
+Desktop release audit:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\audit-desktop-release-readiness.ps1
+```
+
+Latest result:
+
+- `runtime_package_ready=True`
+- `desktop_shell_ready=False`
+- `multi_device_verified=False`
+- `public_desktop_release_ready=False`
+
 ## RC Gate Commands
 
 ```powershell

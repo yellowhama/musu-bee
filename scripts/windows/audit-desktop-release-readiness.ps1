@@ -1,0 +1,252 @@
+[CmdletBinding()]
+param(
+    [switch]$Json,
+    [switch]$FailOnBlocking
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
+$appRoot = Join-Path $repoRoot "musu-bee"
+$tauriRoot = Join-Path $appRoot "src-tauri"
+
+$checks = New-Object System.Collections.Generic.List[object]
+
+function Add-Check {
+    param(
+        [Parameter(Mandatory = $true)][string]$Area,
+        [Parameter(Mandatory = $true)][string]$Name,
+        [ValidateSet("pass", "warn", "fail")]
+        [Parameter(Mandatory = $true)][string]$Status,
+        [Parameter(Mandatory = $true)][string]$Message
+    )
+
+    $checks.Add([pscustomobject]@{
+        area = $Area
+        name = $Name
+        status = $Status
+        message = $Message
+    }) | Out-Null
+}
+
+function Test-JsonFile([string]$Path) {
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return $null
+    }
+    return Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
+}
+
+function Resolve-TauriPath([string]$RelativePath) {
+    if ([string]::IsNullOrWhiteSpace($RelativePath)) {
+        return $null
+    }
+    return Join-Path $tauriRoot $RelativePath
+}
+
+$versionPath = Join-Path $repoRoot "VERSION"
+$repoVersion = if (Test-Path -LiteralPath $versionPath) {
+    (Get-Content -LiteralPath $versionPath -Raw).Trim()
+} else {
+    ""
+}
+
+$packageJsonPath = Join-Path $appRoot "package.json"
+$packageLockPath = Join-Path $appRoot "package-lock.json"
+$tauriConfigPath = Join-Path $tauriRoot "tauri.conf.json"
+$tauriCargoPath = Join-Path $tauriRoot "Cargo.toml"
+$nextConfigPath = Join-Path $appRoot "next.config.mjs"
+
+$packageJson = Test-JsonFile $packageJsonPath
+$packageLockText = if (Test-Path -LiteralPath $packageLockPath) { Get-Content -LiteralPath $packageLockPath -Raw } else { "" }
+$tauriConfig = Test-JsonFile $tauriConfigPath
+$nextConfig = if (Test-Path -LiteralPath $nextConfigPath) { Get-Content -LiteralPath $nextConfigPath -Raw } else { "" }
+$tauriCargo = if (Test-Path -LiteralPath $tauriCargoPath) { Get-Content -LiteralPath $tauriCargoPath -Raw } else { "" }
+
+if ([string]::IsNullOrWhiteSpace($repoVersion)) {
+    Add-Check "version" "repo VERSION" "fail" "VERSION file is missing or empty."
+}
+else {
+    Add-Check "version" "repo VERSION" "pass" "Repository release version is $repoVersion."
+}
+
+if ($packageJson -and $packageJson.version -eq $repoVersion) {
+    Add-Check "desktop-shell" "package.json version" "pass" "package.json matches VERSION."
+}
+else {
+    Add-Check "desktop-shell" "package.json version" "fail" "package.json version does not match VERSION."
+}
+
+if (-not [string]::IsNullOrWhiteSpace($packageLockText)) {
+    $lockVersionMatches = [regex]::Matches($packageLockText, '"version"\s*:\s*"([^"]+)"')
+    $lockRootVersion = if ($lockVersionMatches.Count -ge 1) { $lockVersionMatches[0].Groups[1].Value } else { "" }
+    $lockPackageVersion = if ($lockVersionMatches.Count -ge 2) { $lockVersionMatches[1].Groups[1].Value } else { "" }
+    if ($lockRootVersion -eq $repoVersion -and $lockPackageVersion -eq $repoVersion) {
+        Add-Check "desktop-shell" "package-lock version" "pass" "package-lock root and package entry match VERSION."
+    }
+    else {
+        Add-Check "desktop-shell" "package-lock version" "fail" "package-lock versions do not match VERSION."
+    }
+}
+else {
+    Add-Check "desktop-shell" "package-lock version" "fail" "package-lock.json is missing."
+}
+
+if ($tauriConfig -and $tauriConfig.version -eq $repoVersion) {
+    Add-Check "desktop-shell" "Tauri version" "pass" "tauri.conf.json version matches VERSION."
+}
+else {
+    Add-Check "desktop-shell" "Tauri version" "fail" "tauri.conf.json version does not match VERSION."
+}
+
+if ($tauriConfig -and $tauriConfig.identifier -and $tauriConfig.identifier -ne "com.tauri.dev") {
+    Add-Check "desktop-shell" "Tauri identifier" "pass" "Tauri identifier is $($tauriConfig.identifier)."
+}
+else {
+    Add-Check "desktop-shell" "Tauri identifier" "fail" "Tauri identifier is missing or still set to com.tauri.dev."
+}
+
+if ($tauriConfig -and $tauriConfig.app.security.csp) {
+    Add-Check "desktop-shell" "Tauri CSP" "pass" "Tauri CSP is explicit."
+}
+else {
+    Add-Check "desktop-shell" "Tauri CSP" "fail" "Tauri CSP is null or missing."
+}
+
+$mainWindow = if ($tauriConfig -and $tauriConfig.app.windows.Count -gt 0) { $tauriConfig.app.windows[0] } else { $null }
+if ($mainWindow -and $mainWindow.decorations -eq $true -and $mainWindow.transparent -eq $false) {
+    Add-Check "desktop-shell" "native window controls" "pass" "Main Tauri window uses native decorations and opaque background."
+}
+else {
+    Add-Check "desktop-shell" "native window controls" "fail" "Main Tauri window is frameless/transparent without an audited custom titlebar."
+}
+
+if ($tauriCargo -match 'version\s*=\s*"([^"]+)"' -and $Matches[1] -eq $repoVersion) {
+    Add-Check "desktop-shell" "Tauri Cargo version" "pass" "src-tauri Cargo version matches VERSION."
+}
+else {
+    Add-Check "desktop-shell" "Tauri Cargo version" "fail" "src-tauri Cargo version does not match VERSION."
+}
+
+if ($tauriCargo -notmatch 'description\s*=\s*"A Tauri App"' -and $tauriCargo -notmatch 'authors\s*=\s*\["you"\]') {
+    Add-Check "desktop-shell" "Tauri Cargo metadata" "pass" "src-tauri Cargo metadata is no longer scaffold placeholder text."
+}
+else {
+    Add-Check "desktop-shell" "Tauri Cargo metadata" "fail" "src-tauri Cargo metadata still contains scaffold placeholders."
+}
+
+$frontendDist = if ($tauriConfig) { [string]$tauriConfig.build.frontendDist } else { "" }
+$frontendDistPath = Resolve-TauriPath $frontendDist
+if ($frontendDistPath -and (Test-Path -LiteralPath $frontendDistPath)) {
+    Add-Check "desktop-shell" "Tauri frontendDist" "pass" "frontendDist exists at $frontendDistPath."
+}
+else {
+    Add-Check "desktop-shell" "Tauri frontendDist" "fail" "frontendDist '$frontendDist' does not exist. The GUI shell cannot be called release-ready until this build artifact is produced and tested."
+}
+
+$beforeBuildCommand = if ($tauriConfig) { [string]$tauriConfig.build.beforeBuildCommand } else { "" }
+$packageBuildScript = if ($packageJson) { [string]$packageJson.scripts.build } else { "" }
+if (
+    (($beforeBuildCommand -match "next build") -or ($beforeBuildCommand -eq "npm run build" -and $packageBuildScript -match "next build")) -and
+    $frontendDist -eq "../out" -and
+    $nextConfig -notmatch "output\s*:\s*['`"]export['`"]"
+) {
+    Add-Check "desktop-shell" "Tauri build command" "fail" "Tauri beforeBuildCommand resolves to Next build, but next.config.mjs does not produce a static out/ export for frontendDist."
+}
+elseif (-not [string]::IsNullOrWhiteSpace($beforeBuildCommand)) {
+    Add-Check "desktop-shell" "Tauri build command" "pass" "beforeBuildCommand is set to '$beforeBuildCommand'."
+}
+else {
+    Add-Check "desktop-shell" "Tauri build command" "warn" "beforeBuildCommand is empty."
+}
+
+$localMsix = Join-Path $repoRoot ".local-build\msix\output\musu_1.15.0.0_x64_local-sideload-manual.msix"
+$storeMsix = Join-Path $repoRoot ".local-build\msix\output\musu_1.15.0.0_x64_store-reviewed-immediate-registration.msix"
+$bundleRoot = Join-Path $repoRoot ".local-build\msix\submission-bundles"
+$latestBundle = if (Test-Path -LiteralPath $bundleRoot) {
+    Get-ChildItem -LiteralPath $bundleRoot -Directory -Filter "store-reviewed-*" |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First 1
+} else {
+    $null
+}
+
+if (Test-Path -LiteralPath $localMsix) {
+    Add-Check "runtime-package" "local sideload MSIX" "pass" "Current local-sideload MSIX exists."
+}
+else {
+    Add-Check "runtime-package" "local sideload MSIX" "fail" "Current local-sideload MSIX is missing."
+}
+
+if (Test-Path -LiteralPath $storeMsix) {
+    Add-Check "runtime-package" "Store-reviewed MSIX" "pass" "Current Store-reviewed MSIX exists."
+}
+else {
+    Add-Check "runtime-package" "Store-reviewed MSIX" "fail" "Current Store-reviewed MSIX is missing."
+}
+
+if ($latestBundle) {
+    Add-Check "runtime-package" "Store submission bundle" "pass" "Latest Store submission bundle: $($latestBundle.FullName)."
+}
+else {
+    Add-Check "runtime-package" "Store submission bundle" "fail" "Store submission bundle is missing."
+}
+
+foreach ($scriptName in @("smoke-single-machine-beta.ps1", "smoke-multidevice-beta.ps1")) {
+    $scriptPath = Join-Path $scriptDir $scriptName
+    if (Test-Path -LiteralPath $scriptPath) {
+        Add-Check "release-smoke" $scriptName "pass" "$scriptName exists."
+    }
+    else {
+        Add-Check "release-smoke" $scriptName "fail" "$scriptName is missing."
+    }
+}
+
+$multiDevicePlan = Join-Path $repoRoot "docs\MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md"
+if (Test-Path -LiteralPath $multiDevicePlan) {
+    $multiDevicePlanText = Get-Content -LiteralPath $multiDevicePlan -Raw
+    if ($multiDevicePlanText -match "pending" -or $multiDevicePlanText -match "not closed") {
+        Add-Check "multi-device" "second-PC execution" "fail" "Multi-device runbook exists, but it explicitly records second-PC execution as pending."
+    }
+    else {
+        Add-Check "multi-device" "second-PC execution" "pass" "Multi-device plan no longer records pending execution."
+    }
+}
+else {
+    Add-Check "multi-device" "second-PC execution" "fail" "Multi-device test plan is missing."
+}
+
+$failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
+$warnCount = @($checks | Where-Object { $_.status -eq "warn" }).Count
+$runtimeFailCount = @($checks | Where-Object { $_.area -eq "runtime-package" -and $_.status -eq "fail" }).Count
+$desktopFailCount = @($checks | Where-Object { $_.area -eq "desktop-shell" -and $_.status -eq "fail" }).Count
+$multiDeviceFailCount = @($checks | Where-Object { $_.area -eq "multi-device" -and $_.status -eq "fail" }).Count
+
+$result = [pscustomobject]@{
+    ok = ($failCount -eq 0)
+    runtime_package_ready = ($runtimeFailCount -eq 0)
+    desktop_shell_ready = ($desktopFailCount -eq 0)
+    multi_device_verified = ($multiDeviceFailCount -eq 0)
+    public_desktop_release_ready = ($failCount -eq 0)
+    fail_count = $failCount
+    warn_count = $warnCount
+    checks = $checks.ToArray()
+}
+
+if ($Json) {
+    $result | ConvertTo-Json -Depth 6
+}
+else {
+    "MUSU desktop release readiness"
+    "runtime_package_ready: $($result.runtime_package_ready)"
+    "desktop_shell_ready: $($result.desktop_shell_ready)"
+    "multi_device_verified: $($result.multi_device_verified)"
+    "public_desktop_release_ready: $($result.public_desktop_release_ready)"
+    ""
+    $checks | Sort-Object area, name | Format-Table area, name, status, message -Wrap
+}
+
+if ($FailOnBlocking -and -not $result.ok) {
+    throw "desktop release readiness has $failCount blocking check(s)"
+}
