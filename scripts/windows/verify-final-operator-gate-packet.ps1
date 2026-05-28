@@ -94,6 +94,8 @@ try {
         "scripts\windows\verify-support-mailbox-evidence.ps1",
         "scripts\windows\record-multidevice-evidence.ps1",
         "scripts\windows\verify-multidevice-evidence.ps1",
+        "scripts\windows\record-store-release-verification.ps1",
+        "scripts\windows\verify-store-release-evidence.ps1",
         "scripts\windows\verify-final-operator-gate-packet.ps1",
         "scripts\windows\complete-final-operator-gates.ps1",
         "scripts\windows\write-release-candidate-manifest.ps1",

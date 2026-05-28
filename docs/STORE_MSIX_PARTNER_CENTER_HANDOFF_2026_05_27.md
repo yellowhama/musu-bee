@@ -138,11 +138,13 @@ Copy into the Partner Center form:
 
 1. Update [STORE_MSIX_APPROVAL_STATUS_2026_05_27.md](F:/workspace/musu-bee/docs/STORE_MSIX_APPROVAL_STATUS_2026_05_27.md)
    - mark the Store-reviewed path externally cleared
-2. Update [STORE_MSIX_NEXT_STEPS_2026_05_27.md](F:/workspace/musu-bee/docs/STORE_MSIX_NEXT_STEPS_2026_05_27.md)
+2. Record machine-readable approval evidence:
+   `scripts\windows\record-store-release-verification.ps1`
+3. Update [STORE_MSIX_NEXT_STEPS_2026_05_27.md](F:/workspace/musu-bee/docs/STORE_MSIX_NEXT_STEPS_2026_05_27.md)
    - replace verification/submission queue with publication/post-approval tasks
-3. Append a revision line to [GOAL.md](F:/workspace/musu-bee/docs/GOAL.md) if the Windows product contract changed from blocked to cleared
-4. Add a short result memo under `docs/memory/chief_of_staff/`
-5. Queue post-approval engineering work:
+4. Append a revision line to [GOAL.md](F:/workspace/musu-bee/docs/GOAL.md) if the Windows product contract changed from blocked to cleared
+5. Add a short result memo under `docs/memory/chief_of_staff/`
+6. Queue post-approval engineering work:
    - runtime-home decision (`~/.musu` vs package-aware app data)
    - `cli_commands.rs` split
    - Store-policy-sensitive surface review

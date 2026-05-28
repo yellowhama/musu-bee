@@ -64,6 +64,7 @@ $auditScript = Join-Path $scriptDir "audit-desktop-release-readiness.ps1"
 $metadataScript = Join-Path $scriptDir "verify-store-public-metadata.ps1"
 $manifestScript = Join-Path $scriptDir "write-release-candidate-manifest.ps1"
 $supportMailboxVerifierScript = Join-Path $scriptDir "verify-support-mailbox-evidence.ps1"
+$storeReleaseVerifierScript = Join-Path $scriptDir "verify-store-release-evidence.ps1"
 $manifestPath = Join-Path $repoRoot ".local-build\release-candidates\$version\release-candidate-manifest.json"
 
 $auditResult = Invoke-JsonScript -FilePath $auditScript -Arguments @("-Json")
@@ -134,6 +135,50 @@ if (-not $supportMailboxVerified) {
     }
 }
 
+$storeReleaseVerified = $false
+$storeReleaseEvidence = $null
+$storeReleaseEvidenceCandidate = $null
+$storeReleaseEvidenceRoots = @(
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ("docs\evidence\store-release\{0}" -f $version))
+        filter = "*.evidence.json"
+    },
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ".local-build\store-release")
+        filter = "*.evidence.json"
+    }
+)
+
+foreach ($root in $storeReleaseEvidenceRoots) {
+    if (Test-Path -LiteralPath $root.path) {
+        $candidate = Get-ChildItem -LiteralPath $root.path -Filter $root.filter -File -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+        if ($candidate) {
+            $storeReleaseEvidenceCandidate = $candidate
+            break
+        }
+    }
+}
+
+if ($storeReleaseEvidenceCandidate) {
+    $storeReleaseEvidenceResult = Invoke-JsonScript `
+        -FilePath $storeReleaseVerifierScript `
+        -Arguments @("-EvidencePath", $storeReleaseEvidenceCandidate.FullName, "-ExpectedVersion", $version, "-Json") `
+        -AllowFailure
+    if ($storeReleaseEvidenceResult.json -and [bool]$storeReleaseEvidenceResult.json.ok) {
+        $storeReleaseVerified = $true
+        $storeReleaseEvidence = $storeReleaseEvidenceResult.json
+    }
+    else {
+        $storeReleaseEvidence = [pscustomobject]@{
+            ok = $false
+            evidence_path = $storeReleaseEvidenceCandidate.FullName
+            raw = $storeReleaseEvidenceResult.raw
+        }
+    }
+}
+
 $gitStatus = (& git -C $repoRoot status --short 2>$null | Out-String).Trim()
 $blockers = New-Object System.Collections.Generic.List[object]
 $warnings = New-Object System.Collections.Generic.List[object]
@@ -164,6 +209,9 @@ else {
 if (-not $supportMailboxVerified) {
     Add-Blocker -List $blockers -Area "support-mailbox" -Message "support@musu.pro delivery has not been operator-verified."
 }
+if (-not $storeReleaseVerified) {
+    Add-Blocker -List $blockers -Area "store-release" -Message "Partner Center submission, Microsoft certification, and restricted capability approval evidence has not been recorded."
+}
 if (-not [string]::IsNullOrWhiteSpace($gitStatus)) {
     $warnings.Add([pscustomobject]@{
         area = "git"
@@ -192,6 +240,8 @@ $result = [pscustomobject]@{
     public_metadata_ok = if ($SkipPublicMetadata) { $null } elseif ($publicMetadataResult.json) { [bool]$publicMetadataResult.json.ok } else { $false }
     support_mailbox_verified = [bool]$supportMailboxVerified
     support_mailbox_evidence = $supportMailboxEvidence
+    store_release_verified = [bool]$storeReleaseVerified
+    store_release_evidence = $storeReleaseEvidence
     blockers = $blockers.ToArray()
     warnings = $warnings.ToArray()
     manual_external_gates = $manualExternalGates
@@ -212,6 +262,7 @@ else {
     "multi_device_verified: $($result.multi_device_verified)"
     "public_metadata_ok: $($result.public_metadata_ok)"
     "support_mailbox_verified: $($result.support_mailbox_verified)"
+    "store_release_verified: $($result.store_release_verified)"
     ""
     "Blockers"
     $blockers | Format-Table area, message -Wrap

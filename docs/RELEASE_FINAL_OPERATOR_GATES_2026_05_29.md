@@ -14,13 +14,10 @@ Remaining blockers:
 
 1. real second-PC multi-device evidence has not been recorded
 2. `support@musu.pro` delivery has not been operator-verified
-
-External manual gates still remain after those:
-
-- Partner Center product name reservation
-- Partner Center app submission
-- Microsoft app certification
-- Microsoft restricted capability review
+3. Store release approval evidence has not been recorded:
+   - Partner Center product name reservation / app submission
+   - Microsoft app certification
+   - Microsoft restricted startup capability approval
 
 ## Final Operator Gate Packet
 
@@ -34,7 +31,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\prepare-fina
 Latest generated packet:
 
 ```text
-.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260529-074422.zip
+.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260529-080736.zip
 ```
 
 The packet includes:
@@ -43,6 +40,7 @@ The packet includes:
 - support mailbox recording instructions and a prefilled verification id
 - release gate docs
 - evidence recorder/verifier scripts
+- Store release approval recorder/verifier scripts
 - final packet verifier script
 - final evidence completion script
 - `SHA256SUMS.txt`
@@ -53,13 +51,13 @@ The latest packet was verified with:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-final-operator-gate-packet.ps1 `
-  -PacketPath .local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260529-074422.zip `
+  -PacketPath .local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260529-080736.zip `
   -Json
 ```
 
 Result: `ok=true`, `fail_count=0`, `kit_count=1`.
 
-This packet does not close the manual gates by itself. It exists so the operator can execute the two remaining external checks and return evidence without hunting across the repo.
+This packet does not close the manual gates by itself. It exists so the operator can execute the remaining external checks and return evidence without hunting across the repo.
 
 ## Fresh Single-Machine Evidence
 
@@ -180,16 +178,37 @@ Expected change:
 - `multi_device_verified=true`
 - multi-device blocker removed
 
-## Final Pre-Submission Command
+## Gate 3 - Store Release Approval Evidence
 
-After Gate 1 and Gate 2:
+After Partner Center submission completes and Microsoft approves the package and
+restricted startup capability, record the approval result:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-store-release-verification.ps1 `
+  -ProductName "MUSU" `
+  -SubmissionId "<partner-center-submission-id>" `
+  -CertificationStatus "approved" `
+  -RestrictedCapabilityStatus "approved" `
+  -RecordedBy "<operator-name>" `
+  -Notes "Microsoft Store certification and restricted capability review approved" `
+  -Json
+```
+
+Expected change:
+
+- `store_release_verified=true`
+- store-release blocker removed
+
+## Final Release Command
+
+After Gate 1, Gate 2, and Gate 3:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-candidate-manifest.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json
 ```
 
-The release is ready to submit only when:
+The release is ready for public desktop release only when:
 
 - `ready_for_public_desktop_release=true`
 - `local_artifacts_ready=true`
@@ -197,4 +216,5 @@ The release is ready to submit only when:
 - `multi_device_verified=true`
 - `public_metadata_ok=true`
 - `support_mailbox_verified=true`
+- `store_release_verified=true`
 - `manifest_git.dirty=false`

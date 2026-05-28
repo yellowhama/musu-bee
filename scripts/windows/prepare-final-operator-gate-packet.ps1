@@ -74,6 +74,8 @@ $scriptsToCopy = @(
     "verify-support-mailbox-evidence.ps1",
     "record-multidevice-evidence.ps1",
     "verify-multidevice-evidence.ps1",
+    "record-store-release-verification.ps1",
+    "verify-store-release-evidence.ps1",
     "verify-final-operator-gate-packet.ps1",
     "complete-final-operator-gates.ps1",
     "write-release-candidate-manifest.ps1",
@@ -165,6 +167,23 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-fin
 
 This records both evidence files, regenerates the release candidate manifest, and then runs the final go/no-go check.
 
+## 3. Store release approval evidence
+
+After Partner Center submission completes and Microsoft approves the package and
+restricted startup capability, record that result from the real MUSU release
+repo root:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-store-release-verification.ps1 `
+  -ProductName "MUSU" `
+  -SubmissionId "<partner-center-submission-id>" `
+  -CertificationStatus "approved" `
+  -RestrictedCapabilityStatus "approved" `
+  -RecordedBy "<operator-name>" `
+  -Notes "Microsoft Store certification and restricted capability review approved" `
+  -Json
+```
+
 The release can proceed only when:
 
 - `ready_for_public_desktop_release=true`
@@ -173,6 +192,7 @@ The release can proceed only when:
 - `multi_device_verified=true`
 - `public_metadata_ok=true`
 - `support_mailbox_verified=true`
+- `store_release_verified=true`
 - `manifest_git.dirty=false`
 '@
 $readme = $readme.Replace("__VERSION__", $Version).Replace("__SUPPORT_EMAIL__", $SupportEmail).Replace("__SUPPORT_COMMAND__", $supportCommand).Replace("__SUPPORT_VERIFICATION_ID__", $supportVerificationId)

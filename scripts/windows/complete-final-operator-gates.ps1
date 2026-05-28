@@ -135,6 +135,7 @@ $result = [pscustomobject]@{
     generated_at = (Get-Date).ToString("o")
     recorded = $records.ToArray()
     ready_for_public_desktop_release = [bool]$goNoGo.ready_for_public_desktop_release
+    store_release_verified = [bool]$goNoGo.store_release_verified
     blockers = $goNoGo.blockers
     warnings = $goNoGo.warnings
     go_no_go = $goNoGo
@@ -146,6 +147,7 @@ if ($Json) {
 else {
     "MUSU complete final operator gates"
     "ready_for_public_desktop_release: $($result.ready_for_public_desktop_release)"
+    "store_release_verified: $($result.store_release_verified)"
     ""
     "Recorded evidence"
     if ($records.Count -eq 0) {

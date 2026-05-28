@@ -113,6 +113,7 @@ Updated interpretation:
 - Store-reviewed app package submission: **not yet submitted**
 - Microsoft app certification: **not yet complete**
 - restricted startup capability approval: **not yet complete**
+- Store release approval evidence: **not yet recorded**; use `scripts\windows\record-store-release-verification.ps1` after Microsoft approval.
 
 Important correction:
 

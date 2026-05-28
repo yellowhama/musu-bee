@@ -1,0 +1,174 @@
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $true)][string]$EvidencePath,
+    [string]$ExpectedVersion,
+    [int]$MaxAgeDays = 180,
+    [switch]$Json
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
+
+if ([string]::IsNullOrWhiteSpace($ExpectedVersion)) {
+    $ExpectedVersion = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
+}
+
+$checks = New-Object System.Collections.Generic.List[object]
+
+function Add-Check {
+    param(
+        [Parameter(Mandatory = $true)][string]$Name,
+        [ValidateSet("pass", "fail")]
+        [Parameter(Mandatory = $true)][string]$Status,
+        [Parameter(Mandatory = $true)][string]$Message
+    )
+
+    $checks.Add([pscustomobject]@{
+        name = $Name
+        status = $Status
+        message = $Message
+    }) | Out-Null
+}
+
+function Add-CheckFromCondition {
+    param(
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][bool]$Condition,
+        [Parameter(Mandatory = $true)][string]$PassMessage,
+        [Parameter(Mandatory = $true)][string]$FailMessage
+    )
+
+    if ($Condition) {
+        Add-Check -Name $Name -Status "pass" -Message $PassMessage
+    }
+    else {
+        Add-Check -Name $Name -Status "fail" -Message $FailMessage
+    }
+}
+
+function Get-StringProperty {
+    param(
+        [Parameter(Mandatory = $true)]$Object,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    $property = $Object.PSObject.Properties[$Name]
+    if (-not $property -or $null -eq $property.Value) {
+        return ""
+    }
+    return [string]$property.Value
+}
+
+function Get-BoolProperty {
+    param(
+        [Parameter(Mandatory = $true)]$Object,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    $property = $Object.PSObject.Properties[$Name]
+    if (-not $property -or $null -eq $property.Value) {
+        return $false
+    }
+    return [bool]$property.Value
+}
+
+function Try-ParseDateTimeOffset {
+    param([string]$Text)
+
+    if ([string]::IsNullOrWhiteSpace($Text)) {
+        return $null
+    }
+    try {
+        return [datetimeoffset]::Parse($Text)
+    }
+    catch {
+        return $null
+    }
+}
+
+if (-not (Test-Path -LiteralPath $EvidencePath)) {
+    throw "Store release evidence file not found: $EvidencePath"
+}
+
+$evidence = Get-Content -LiteralPath $EvidencePath -Raw | ConvertFrom-Json
+
+$schema = Get-StringProperty -Object $evidence -Name "schema"
+$version = Get-StringProperty -Object $evidence -Name "version"
+$productName = Get-StringProperty -Object $evidence -Name "product_name"
+$submissionId = Get-StringProperty -Object $evidence -Name "submission_id"
+$certificationStatus = (Get-StringProperty -Object $evidence -Name "certification_status").Trim().ToLowerInvariant()
+$restrictedCapabilityStatus = (Get-StringProperty -Object $evidence -Name "restricted_capability_status").Trim().ToLowerInvariant()
+$recordedBy = Get-StringProperty -Object $evidence -Name "recorded_by"
+$submittedAtText = Get-StringProperty -Object $evidence -Name "submitted_at"
+$certificationCompletedAtText = Get-StringProperty -Object $evidence -Name "certification_completed_at"
+$restrictedCapabilityCompletedAtText = Get-StringProperty -Object $evidence -Name "restricted_capability_completed_at"
+$recordedAtText = Get-StringProperty -Object $evidence -Name "recorded_at"
+$evidenceOk = Get-BoolProperty -Object $evidence -Name "ok"
+
+$submittedAt = Try-ParseDateTimeOffset -Text $submittedAtText
+$certificationCompletedAt = Try-ParseDateTimeOffset -Text $certificationCompletedAtText
+$restrictedCapabilityCompletedAt = Try-ParseDateTimeOffset -Text $restrictedCapabilityCompletedAtText
+$recordedAt = Try-ParseDateTimeOffset -Text $recordedAtText
+
+$acceptableCertificationStatuses = @("approved", "passed", "certified", "published")
+$acceptableRestrictedStatuses = @("approved")
+
+Add-CheckFromCondition "schema" ($schema -eq "musu.store_release_gate_evidence.v1") "schema is valid" "schema is not musu.store_release_gate_evidence.v1"
+Add-CheckFromCondition "evidence ok" $evidenceOk "evidence reports ok=true" "evidence does not report ok=true"
+Add-CheckFromCondition "version" ($version -eq $ExpectedVersion) "version matches $ExpectedVersion" "version is '$version', expected '$ExpectedVersion'"
+Add-CheckFromCondition "product name" (-not [string]::IsNullOrWhiteSpace($productName)) "product_name is present" "product_name is missing"
+Add-CheckFromCondition "submission id" (-not [string]::IsNullOrWhiteSpace($submissionId)) "submission_id is present" "submission_id is missing"
+Add-CheckFromCondition "certification status" ($acceptableCertificationStatuses -contains $certificationStatus) "certification status is release-acceptable" "certification_status '$certificationStatus' is not one of $($acceptableCertificationStatuses -join ', ')"
+Add-CheckFromCondition "restricted capability status" ($acceptableRestrictedStatuses -contains $restrictedCapabilityStatus) "restricted capability approval is recorded" "restricted_capability_status '$restrictedCapabilityStatus' is not approved"
+Add-CheckFromCondition "recorded by" (-not [string]::IsNullOrWhiteSpace($recordedBy)) "recorded_by is present" "recorded_by is missing"
+Add-CheckFromCondition "submitted timestamp" ($null -ne $submittedAt) "submitted_at parses" "submitted_at is missing or invalid"
+Add-CheckFromCondition "certification timestamp" ($null -ne $certificationCompletedAt) "certification_completed_at parses" "certification_completed_at is missing or invalid"
+Add-CheckFromCondition "restricted capability timestamp" ($null -ne $restrictedCapabilityCompletedAt) "restricted_capability_completed_at parses" "restricted_capability_completed_at is missing or invalid"
+Add-CheckFromCondition "recorded timestamp" ($null -ne $recordedAt) "recorded_at parses" "recorded_at is missing or invalid"
+
+if ($submittedAt -and $certificationCompletedAt) {
+    Add-CheckFromCondition "certification order" ($certificationCompletedAt -ge $submittedAt) "certification_completed_at is at or after submitted_at" "certification_completed_at is before submitted_at"
+}
+
+if ($submittedAt -and $restrictedCapabilityCompletedAt) {
+    Add-CheckFromCondition "restricted capability order" ($restrictedCapabilityCompletedAt -ge $submittedAt) "restricted_capability_completed_at is at or after submitted_at" "restricted_capability_completed_at is before submitted_at"
+}
+
+if ($recordedAt) {
+    $age = [datetimeoffset]::Now - $recordedAt
+    Add-CheckFromCondition "evidence age" ($age.TotalDays -le $MaxAgeDays) "recorded_at is within $MaxAgeDays days" "recorded_at is older than $MaxAgeDays days"
+}
+
+$failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
+$result = [pscustomobject]@{
+    ok = ($failCount -eq 0)
+    evidence_path = (Resolve-Path -LiteralPath $EvidencePath).Path
+    fail_count = $failCount
+    version = $version
+    product_name = $productName
+    submission_id = $submissionId
+    certification_status = $certificationStatus
+    restricted_capability_status = $restrictedCapabilityStatus
+    recorded_by = $recordedBy
+    checks = $checks.ToArray()
+}
+
+if ($Json) {
+    $result | ConvertTo-Json -Depth 6
+}
+else {
+    "MUSU Store release evidence verification"
+    "ok: $($result.ok)"
+    "evidence_path: $($result.evidence_path)"
+    "product_name: $($result.product_name)"
+    "submission_id: $($result.submission_id)"
+    ""
+    $checks | Format-Table name, status, message -Wrap
+}
+
+if (-not $result.ok) {
+    exit 1
+}

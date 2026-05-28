@@ -83,7 +83,8 @@ Before uploading to Partner Center:
 4. Run `scripts\windows\audit-desktop-release-readiness.ps1`.
 5. Run `scripts\windows\write-release-candidate-manifest.ps1`.
 6. Attach the current `1.15.0-rc.1` Store-reviewed MSIX and restricted-capability justification.
-7. Keep `public_desktop_release_ready=false` until real second-PC evidence is recorded.
+7. After Microsoft certification and restricted capability approval, record the approval with `scripts\windows\record-store-release-verification.ps1`.
+8. Keep `public_desktop_release_ready=false` until real second-PC evidence, support mailbox delivery, and Store release approval evidence are all recorded.
 
 Local verification command after `npm run build`:
 
@@ -107,6 +108,7 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.
 - `verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json` now passes for `/privacy` and `/support`.
 - `Resolve-DnsName -Type MX musu.pro` returns `smtp.google.com`, but this only proves DNS routing exists.
 - Treat support mailbox readiness as **not verified** until `record-support-mailbox-verification.ps1` records real delivery evidence.
+- Treat Store release readiness as **not verified** until `record-store-release-verification.ps1` records Partner Center submission, Microsoft certification, and restricted capability approval evidence.
 
 ## Official References
 
