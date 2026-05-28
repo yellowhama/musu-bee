@@ -54,6 +54,7 @@ $scriptFiles = @(
     "install-and-verify-msix.ps1",
     "verify-installed-msix-package.ps1",
     "verify-multidevice-evidence.ps1",
+    "record-multidevice-evidence.ps1",
     "smoke-multidevice-beta.ps1"
 )
 
@@ -129,6 +130,12 @@ Verify it locally with:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\windows\verify-multidevice-evidence.ps1 -EvidencePath .local-build\multi-device\YOUR-EVIDENCE.json
+```
+
+In the release repo, record verified evidence with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\record-multidevice-evidence.ps1 -EvidencePath .local-build\multi-device\YOUR-EVIDENCE.json
 ```
 '@
 $readme = $readme.Replace("__VERSION__", $version).Replace("__STARTUP_CONTRACT__", $StartupContract)

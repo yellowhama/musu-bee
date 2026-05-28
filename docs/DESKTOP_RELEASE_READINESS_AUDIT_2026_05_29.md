@@ -47,7 +47,7 @@ fail_count: 1
 
 Blocking checks:
 
-1. `second-PC execution` fails because no verified multi-device evidence JSON exists under `docs\evidence\multidevice\1.15.0-rc.1` or `.local-build\multi-device`.
+1. `second-PC execution` fails because no verified multi-device evidence JSON exists under `docs\evidence\multidevice\1.15.0-rc.1\*.evidence.json` or `.local-build\multi-device`.
 
 Passing foundation checks:
 
@@ -69,6 +69,7 @@ Passing foundation checks:
 - single-machine and multi-device smoke scripts exist
 - multi-device test kit builder exists
 - multi-device evidence verifier exists
+- multi-device evidence recorder exists
 
 Additional verification run after metadata update:
 

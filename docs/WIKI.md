@@ -93,7 +93,8 @@ Multi-device state:
 - `scripts\windows\smoke-multidevice-beta.ps1` exists for the second-PC test.
 - `scripts\windows\prepare-multidevice-test-kit.ps1` builds a second-PC install/test zip with MSIX, public `.cer`, scripts, checksums, evidence verifier, and optional desktop shell bundles.
 - `scripts\windows\verify-multidevice-evidence.ps1` validates the returned smoke evidence before release status changes.
-- Latest generated kit: `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-20260529-044952.zip`.
+- `scripts\windows\record-multidevice-evidence.ps1` records verified evidence under `docs\evidence\multidevice\1.15.0-rc.1\`.
+- Latest generated kit: `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-20260529-051149.zip`.
 - `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md` (wiki/519) is the current runbook.
 - Full multi-machine readiness is still pending real second-machine execution.
 
@@ -152,6 +153,7 @@ Verified:
 
 - local clone of `musu-system` HEAD `d4e58e010fe30e83c1e96165d75d7c3ec80a2f40`
 - split repos cloned successfully; they are older transition/reference repos than `musu-system` HEAD
+- 2026-05-29 05:05 KST `git fetch origin main` confirmed all four recorded HEADs were unchanged/current
 - `go test ./core/... ./crawl-ai/... ./marketer/... ./nurikun/...` passed for `core`, `crawl-ai`, `marketer`, and `nurikun`
 
 Canonical reference:

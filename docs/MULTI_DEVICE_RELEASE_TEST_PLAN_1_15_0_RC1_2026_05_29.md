@@ -72,7 +72,14 @@ For committed release proof, place verified evidence under:
 docs\evidence\multidevice\1.15.0-rc.1\
 ```
 
-`scripts\windows\audit-desktop-release-readiness.ps1` checks that location first, then `.local-build\multi-device\`.
+Recommended import command in the release repo:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\record-multidevice-evidence.ps1 `
+  -EvidencePath .local-build\multi-device\<EVIDENCE_JSON>
+```
+
+`scripts\windows\audit-desktop-release-readiness.ps1` checks committed `*.evidence.json` files there first, then raw `.local-build\multi-device\*.json`.
 
 ## Setup Steps
 
@@ -145,6 +152,6 @@ It should **not** be described as:
 - Run this plan on the user's second Windows machine.
 - Use `scripts\windows\prepare-multidevice-test-kit.ps1` to generate the exact zip handed to the second PC.
 - Capture the exact `musu up --json`, `musu doctor --json`, `musu peer list`, `musu status`, and route output.
-- Verify and attach the smoke evidence JSON from `.local-build\multi-device\`.
+- Verify and record the smoke evidence JSON from `.local-build\multi-device\` using `record-multidevice-evidence.ps1`.
 - If mDNS discovery fails but manual peer add works, keep manual peer add as the beta path and file mDNS/Tailscale IPv6 warning as P1.
 - If targeted route fails after peer add, audit bridge routing and target-name resolution before broad release.

@@ -233,7 +233,7 @@ else {
     Add-Check "runtime-package" "Store submission bundle" "fail" "Store submission bundle is missing."
 }
 
-foreach ($scriptName in @("smoke-single-machine-beta.ps1", "smoke-multidevice-beta.ps1", "prepare-multidevice-test-kit.ps1", "verify-multidevice-evidence.ps1", "write-release-candidate-manifest.ps1")) {
+foreach ($scriptName in @("smoke-single-machine-beta.ps1", "smoke-multidevice-beta.ps1", "prepare-multidevice-test-kit.ps1", "verify-multidevice-evidence.ps1", "record-multidevice-evidence.ps1", "write-release-candidate-manifest.ps1")) {
     $scriptPath = Join-Path $scriptDir $scriptName
     if (Test-Path -LiteralPath $scriptPath) {
         Add-Check "release-smoke" $scriptName "pass" "$scriptName exists."
@@ -245,13 +245,19 @@ foreach ($scriptName in @("smoke-single-machine-beta.ps1", "smoke-multidevice-be
 
 $multiDevicePlan = Join-Path $repoRoot "docs\MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md"
 $evidenceRoots = @(
-    (Join-Path $repoRoot ("docs\evidence\multidevice\{0}" -f $repoVersion)),
-    (Join-Path $repoRoot ".local-build\multi-device")
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ("docs\evidence\multidevice\{0}" -f $repoVersion))
+        filter = "*.evidence.json"
+    },
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ".local-build\multi-device")
+        filter = "*.json"
+    }
 )
 $latestEvidence = $null
 foreach ($root in $evidenceRoots) {
-    if (Test-Path -LiteralPath $root) {
-        $candidate = Get-ChildItem -LiteralPath $root -Filter "*.json" -File -ErrorAction SilentlyContinue |
+    if (Test-Path -LiteralPath $root.path) {
+        $candidate = Get-ChildItem -LiteralPath $root.path -Filter $root.filter -File -ErrorAction SilentlyContinue |
             Sort-Object LastWriteTime -Descending |
             Select-Object -First 1
         if ($candidate) {
@@ -265,7 +271,7 @@ if (-not (Test-Path -LiteralPath $multiDevicePlan)) {
     Add-Check "multi-device" "second-PC execution" "fail" "Multi-device test plan is missing."
 }
 elseif (-not $latestEvidence) {
-    Add-Check "multi-device" "second-PC execution" "fail" "No multi-device evidence JSON found under docs\evidence\multidevice\$repoVersion or .local-build\multi-device."
+    Add-Check "multi-device" "second-PC execution" "fail" "No multi-device evidence JSON found under docs\evidence\multidevice\$repoVersion\*.evidence.json or .local-build\multi-device\*.json."
 }
 else {
     $verifyScript = Join-Path $scriptDir "verify-multidevice-evidence.ps1"

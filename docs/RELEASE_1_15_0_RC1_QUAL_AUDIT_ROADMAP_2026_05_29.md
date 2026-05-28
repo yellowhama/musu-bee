@@ -139,8 +139,9 @@ Multi-device preparation:
 - script: `scripts\windows\smoke-multidevice-beta.ps1`
 - kit builder: `scripts\windows\prepare-multidevice-test-kit.ps1`
 - evidence verifier: `scripts\windows\verify-multidevice-evidence.ps1`
+- evidence recorder: `scripts\windows\record-multidevice-evidence.ps1`
 - runbook: `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md` (wiki/519)
-- generated kit: `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-20260529-044952.zip`
+- generated kit: `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-20260529-051149.zip`
 - current state: ready for second-PC execution; no full multi-machine release claim yet
 
 MSIX release packaging verification:
@@ -169,9 +170,10 @@ Desktop release readiness audit:
 Indexing:
 
 - `musu indexer sync --work-dir . --name musu-bee`
-- latest result: `827 files`, `1897 symbols`
+- latest result: `829 files`, `1897 symbols`
 - search verification: query `multi-device release test` returns `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md`
 - search verification: query `smoke-single-machine-beta` returns `scripts/windows/smoke-single-machine-beta.ps1`
+- search verification: query `record-multidevice-evidence` returns `scripts/windows/record-multidevice-evidence.ps1`
 
 Adjacent repo assessment:
 
@@ -195,6 +197,7 @@ P1 beta hardening:
 - Run `scripts\windows\smoke-multidevice-beta.ps1` on the user's second PC and record the output in wiki/519.
 - Hand the generated multi-device test kit zip to the second PC instead of relying on a repo checkout.
 - Validate returned evidence with `scripts\windows\verify-multidevice-evidence.ps1` before changing release status.
+- Record returned evidence with `scripts\windows\record-multidevice-evidence.ps1` so audit can use `docs\evidence\multidevice\1.15.0-rc.1\*.evidence.json`.
 - Keep `scripts\windows\audit-desktop-release-readiness.ps1` as the release-readiness gate; do not claim public multi-device desktop release until the second-PC evidence lands.
 
 P2 product hardening:

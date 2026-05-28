@@ -85,6 +85,7 @@ The verification was run from `F:\workspace\tmp\musu-system-latest` against HEAD
 2026-05-29 recheck:
 
 - `musu-system`, `musu-crawl-ai`, `musu-marketer`, and private `musu-nurikun` all cloned successfully.
+- 2026-05-29 05:05 KST `git fetch origin main` confirmed the recorded HEADs are still current for all four repos.
 - The split repos are behind the monorepo HEAD in this audit; treat them as transition/reference repos unless a deliberate split-release reason appears.
 - Monorepo HEAD includes a newer `nurikun` compliance hardening commit: `nurikun(v0.3.1): block placeholder sender_identity from sending`.
 

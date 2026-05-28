@@ -3,11 +3,12 @@
 Facts:
 
 - `scripts/windows/prepare-multidevice-test-kit.ps1` now builds a second-PC test zip.
-- Latest generated kit: `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-20260529-044952.zip`.
-- The kit includes the current local-sideload MSIX, public `.cer`, install/verify scripts, multi-device smoke script, runbook, checksums, and optional Tauri shell bundles.
+- Latest generated kit: `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-20260529-051149.zip`.
+- The kit includes the current local-sideload MSIX, public `.cer`, install/verify scripts, multi-device smoke script, evidence recorder, runbook, checksums, and optional Tauri shell bundles.
 - The kit intentionally excludes `.pfx` private signing material.
 - `scripts/windows/smoke-multidevice-beta.ps1` now auto-detects installed `musu.exe` and writes evidence JSON under `.local-build\multi-device\`.
 - `scripts/windows/verify-multidevice-evidence.ps1` validates returned evidence and is wired into the release readiness audit.
+- `scripts/windows/record-multidevice-evidence.ps1` validates returned evidence, stores raw release proof as `*.evidence.json`, and writes verification/summary sidecars.
 - MSIX install/readiness scripts now support public `.cer` certificate trust, not only local `.pfx`.
 
 Decision:
