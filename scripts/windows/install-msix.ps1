@@ -52,7 +52,7 @@ if (-not $PackagePath) {
     $PackagePath = Find-LatestMsixArtifact -Directory (Join-Path $repoRoot ".local-build\msix\output") -StartupContract $StartupContract
 }
 if (-not $CertPath) {
-    $CertPath = Find-LatestArtifact -Directory (Join-Path $repoRoot ".local-build\msix\output") -Filter "*.pfx"
+    $CertPath = Find-LatestMsixCertificateArtifact -Directory (Join-Path $repoRoot ".local-build\msix\output")
 }
 
 if (-not (Test-Path -LiteralPath $PackagePath)) {
@@ -64,12 +64,7 @@ if (-not $SkipCertInstall -and -not (Test-Path -LiteralPath $CertPath)) {
 
 $msixIdentity = Get-MsixPackageInfo -Path $PackagePath
 $artifactContract = Get-MsixStartupContract -Manifest $msixIdentity.Manifest
-$artifactThumbprint = $null
-if ($CertPath -and (Test-Path -LiteralPath $CertPath)) {
-    $pwd = ConvertTo-SecureString $CertPassword -AsPlainText -Force
-    $artifactPfx = Get-PfxData -FilePath $CertPath -Password $pwd
-    $artifactThumbprint = $artifactPfx.EndEntityCertificates[0].Thumbprint
-}
+$artifactThumbprint = Get-MsixCertificateThumbprint -CertPath $CertPath -CertPassword $CertPassword
 if (-not $PackageName) {
     $PackageName = $msixIdentity.IdentityName
 }
@@ -81,29 +76,47 @@ if ($MachineTrust -and -not $DryRun -and -not (Test-IsAdministrator)) {
 if (-not $SkipCertInstall) {
     $storeScope = if ($MachineTrust) { "LocalMachine" } else { "CurrentUser" }
     Write-Step "Importing signing certificate into $storeScope stores"
-    $publicCertPath = [System.IO.Path]::ChangeExtension($CertPath, ".cer")
-    if ($DryRun) {
-        Write-Host "[dry-run] Import-PfxCertificate -FilePath $CertPath -CertStoreLocation Cert:\$storeScope\TrustedPeople"
-        Write-Host "[dry-run] Export-Certificate -> $publicCertPath"
+    $certExtension = [System.IO.Path]::GetExtension($CertPath).ToLowerInvariant()
+    $publicCertPath = if ($certExtension -eq ".pfx" -or $certExtension -eq ".p12") {
+        [System.IO.Path]::ChangeExtension($CertPath, ".cer")
     }
     else {
-        $pwd = ConvertTo-SecureString $CertPassword -AsPlainText -Force
-        $pfx = Get-PfxData -FilePath $CertPath -Password $pwd
-
-        Import-PfxCertificate `
-            -FilePath $CertPath `
-            -CertStoreLocation ("Cert:\{0}\TrustedPeople" -f $storeScope) `
-            -Password $pwd | Out-Null
-
-        $cert = Get-ChildItem ("Cert:\{0}\TrustedPeople" -f $storeScope) | Where-Object {
-            $_.Thumbprint -eq $pfx.EndEntityCertificates[0].Thumbprint
-        } | Select-Object -First 1
-
-        if (-not $cert) {
-            throw "Imported cert not found in ${storeScope}\\TrustedPeople."
+        $CertPath
+    }
+    if ($DryRun) {
+        if ($certExtension -eq ".pfx" -or $certExtension -eq ".p12") {
+            Write-Host "[dry-run] Import-PfxCertificate -FilePath $CertPath -CertStoreLocation Cert:\$storeScope\TrustedPeople"
+            Write-Host "[dry-run] Export-Certificate -> $publicCertPath"
         }
+        else {
+            Write-Host "[dry-run] Import-Certificate -FilePath $CertPath -CertStoreLocation Cert:\$storeScope\TrustedPeople"
+        }
+    }
+    else {
+        if ($certExtension -eq ".pfx" -or $certExtension -eq ".p12") {
+            $pwd = ConvertTo-SecureString $CertPassword -AsPlainText -Force
+            $pfx = Get-PfxData -FilePath $CertPath -Password $pwd
 
-        Export-Certificate -Cert $cert -FilePath $publicCertPath -Force | Out-Null
+            Import-PfxCertificate `
+                -FilePath $CertPath `
+                -CertStoreLocation ("Cert:\{0}\TrustedPeople" -f $storeScope) `
+                -Password $pwd | Out-Null
+
+            $cert = Get-ChildItem ("Cert:\{0}\TrustedPeople" -f $storeScope) | Where-Object {
+                $_.Thumbprint -eq $pfx.EndEntityCertificates[0].Thumbprint
+            } | Select-Object -First 1
+
+            if (-not $cert) {
+                throw "Imported cert not found in ${storeScope}\TrustedPeople."
+            }
+
+            Export-Certificate -Cert $cert -FilePath $publicCertPath -Force | Out-Null
+        }
+        else {
+            Import-Certificate `
+                -FilePath $CertPath `
+                -CertStoreLocation ("Cert:\{0}\TrustedPeople" -f $storeScope) | Out-Null
+        }
     }
 
     if ($MachineTrust) {

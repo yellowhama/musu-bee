@@ -233,8 +233,9 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | — | CoS memory note — 1.15.0-rc.1 beta readiness | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0130_kst_1_15_rc1_beta_readiness.md` | active |
 | — | CoS memory note — smoke scripts and multi-device packet | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0333_kst_release_smoke_multidevice_packet.md` | active |
 | — | CoS memory note — desktop shell and musu-system refresh | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0415_kst_desktop_shell_and_musu_system_refresh.md` | active |
+| — | CoS memory note — multi-device test kit ready | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0445_kst_multidevice_test_kit_ready.md` | active |
 
-State lock: `1.15.0-rc.1` is beta-ready for the single-machine Windows local operator path (`musu up` → dashboard doctor → Claude task smoke). A repeatable single-machine smoke script now passes. Multi-device test packet is ready, but two-machine validation is still pending. Runtime/MSIX package readiness is true for submission attempt; the dedicated Tauri static launcher/status shell now builds, renders, and bundles, but it is not the full dashboard GUI.
+State lock: `1.15.0-rc.1` is beta-ready for the single-machine Windows local operator path (`musu up` → dashboard doctor → Claude task smoke). A repeatable single-machine smoke script now passes. Multi-device test kit generation now works, but two-machine validation is still pending. Runtime/MSIX package readiness is true for submission attempt; the dedicated Tauri static launcher/status shell now builds, renders, and bundles, but it is not the full dashboard GUI.
 
 ---
 

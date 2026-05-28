@@ -12,6 +12,28 @@ The codebase has peer discovery, manual peer add, fleet status, and targeted rou
 
 ## Test Packet
 
+Package the second-PC kit from the release repo:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\prepare-multidevice-test-kit.ps1 -IncludeDesktopShell
+```
+
+The generated zip is written under:
+
+```text
+.local-build\multi-device-test-kit\
+```
+
+The kit contains:
+
+- the current local-sideload MSIX
+- the public signing certificate only (`.cer`; no `.pfx` private key)
+- MSIX install/verify scripts
+- the multi-device smoke script
+- this runbook
+- checksums
+- optional Tauri desktop shell MSI/NSIS bundles
+
 Primary script:
 
 ```powershell
@@ -30,14 +52,28 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\smoke-multidevice-beta.
   -SkipRoute
 ```
 
+The smoke script now:
+
+- auto-detects repo-local `musu-rs\target\debug\musu.exe` first, then installed `musu.exe`
+- writes a machine-readable evidence JSON under `.local-build\multi-device\`
+- records command output for `up`, `doctor`, `peer add`, `peer list`, `discover`, `status`, and route
+
 ## Setup Steps
 
 Run on both machines:
 
 ```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\check-msix-sideload-readiness.ps1
+powershell -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix.ps1 -StartupContract local-sideload-manual -ReplaceExisting
 musu up --json
 musu doctor --json
 musu status
+```
+
+If certificate trust fails during sideload install, rerun from elevated PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix.ps1 -StartupContract local-sideload-manual -ReplaceExisting -MachineTrust
 ```
 
 Record from each machine:
@@ -91,6 +127,8 @@ It should **not** be described as:
 ## Follow-Up Work
 
 - Run this plan on the user's second Windows machine.
+- Use `scripts\windows\prepare-multidevice-test-kit.ps1` to generate the exact zip handed to the second PC.
 - Capture the exact `musu up --json`, `musu doctor --json`, `musu peer list`, `musu status`, and route output.
+- Attach the smoke evidence JSON from `.local-build\multi-device\`.
 - If mDNS discovery fails but manual peer add works, keep manual peer add as the beta path and file mDNS/Tailscale IPv6 warning as P1.
 - If targeted route fails after peer add, audit bridge routing and target-name resolution before broad release.

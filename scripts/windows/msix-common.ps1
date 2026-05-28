@@ -24,6 +24,30 @@ function Find-LatestMsixArtifact([string]$Directory, [string]$StartupContract) {
     return Find-LatestArtifact -Directory $Directory -Filter ("*_{0}.msix" -f $suffix)
 }
 
+function Find-LatestMsixCertificateArtifact([string]$Directory) {
+    $publicCert = Find-LatestArtifact -Directory $Directory -Filter "*.cer"
+    if ($publicCert) {
+        return $publicCert
+    }
+    return Find-LatestArtifact -Directory $Directory -Filter "*.pfx"
+}
+
+function Get-MsixCertificateThumbprint([string]$CertPath, [string]$CertPassword = "password") {
+    if (-not $CertPath -or -not (Test-Path -LiteralPath $CertPath)) {
+        return $null
+    }
+
+    $extension = [System.IO.Path]::GetExtension($CertPath).ToLowerInvariant()
+    if ($extension -eq ".pfx" -or $extension -eq ".p12") {
+        $pwd = ConvertTo-SecureString $CertPassword -AsPlainText -Force
+        $pfx = Get-PfxData -FilePath $CertPath -Password $pwd
+        return $pfx.EndEntityCertificates[0].Thumbprint
+    }
+
+    $cert = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($CertPath)
+    return $cert.Thumbprint
+}
+
 function Test-IsAdministrator() {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = [Security.Principal.WindowsPrincipal]::new($identity)

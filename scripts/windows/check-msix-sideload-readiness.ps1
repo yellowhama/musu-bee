@@ -34,7 +34,7 @@ if (-not $PackagePath) {
     $PackagePath = Find-LatestMsixArtifact -Directory (Join-Path $repoRoot ".local-build\msix\output") -StartupContract $StartupContract
 }
 if (-not $CertPath) {
-    $CertPath = Find-LatestArtifact -Directory (Join-Path $repoRoot ".local-build\msix\output") -Filter "*.pfx"
+    $CertPath = Find-LatestMsixCertificateArtifact -Directory (Join-Path $repoRoot ".local-build\msix\output")
 }
 
 Write-Step "Inspecting MSIX sideload prerequisites"
@@ -48,8 +48,7 @@ $thumbprint = $null
 $certStores = @{}
 
 if ($certExists) {
-    $pfx = Get-PfxData -FilePath $CertPath -Password (ConvertTo-SecureString "password" -AsPlainText -Force)
-    $thumbprint = $pfx.EndEntityCertificates[0].Thumbprint
+    $thumbprint = Get-MsixCertificateThumbprint -CertPath $CertPath
     $certStores = @{
         CurrentUserTrustedPeople = Get-CertPresence -Thumbprint $thumbprint -StorePath "Cert:\CurrentUser\TrustedPeople"
         CurrentUserRoot          = Get-CertPresence -Thumbprint $thumbprint -StorePath "Cert:\CurrentUser\Root"

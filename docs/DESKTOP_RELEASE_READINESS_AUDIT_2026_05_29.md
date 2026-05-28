@@ -66,6 +66,7 @@ Passing foundation checks:
 - Store-reviewed MSIX exists
 - Store submission bundle exists
 - single-machine and multi-device smoke scripts exist
+- multi-device test kit builder exists
 
 Additional verification run after metadata update:
 

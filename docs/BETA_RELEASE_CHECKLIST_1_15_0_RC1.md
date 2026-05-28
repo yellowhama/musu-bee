@@ -99,8 +99,10 @@ Repeatable script smoke also passed on 2026-05-29:
 Multi-device packet:
 
 - script: `scripts\windows\smoke-multidevice-beta.ps1`
+- kit builder: `scripts\windows\prepare-multidevice-test-kit.ps1`
 - runbook: `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md`
-- current state: packet ready, second-PC execution pending
+- latest generated kit: `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-20260529-044006.zip`
+- current state: install/test kit ready, second-PC execution pending
 
 Current MSIX artifacts:
 
