@@ -170,7 +170,10 @@ Verified:
 - 2026-05-29 `git ls-remote ... HEAD` confirmed all four recorded HEADs were unchanged/current
 - observed monorepo release tags include `crawl-ai/v0.8.0`, `marketer/v2.0.5`, and `nurikun/v0.3.1`
 - 2026-05-29 06:43 KST recheck: `go test ./...` and `go vet ./...` passed inside each `core`, `crawl-ai`, `marketer`, and `nurikun` module
+- 2026-05-29 07:17 KST recheck: `go test ./...` and `go vet ./...` passed again in the same four monorepo modules from `F:\workspace\_external\musu-system`; latest remote `musu-system` CI run `26587103682` is green
 - spot audit: `nurikun` keeps delivery ops out of MCP, but `watch` should record failed sends explicitly before any dashboard integration
+- integration adapter caveat: `crawl-ai`/`marketer` MCP paths currently assume local defaults such as `./wiki` and fixed model names; MUSU-side registration must pass explicit working directory/model settings or wrap them
+- launch-note filter: use the supplied other-product note only for narrow Store positioning, funnel measurement, and grounded promotion workflow; do not carry over unrelated product names or stale Microsoft packaging claims without re-verification
 
 Canonical reference:
 

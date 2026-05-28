@@ -7,6 +7,12 @@
 
 `musu-system` has real integration value, but it should **not** be merged into the MUSU Rust core now.
 
+Korean operator summary:
+
+- 통합 가치는 높다. 특히 `crawl-ai`는 무수 wiki/memory ingestion, `marketer`는 출시/캠페인 산출물, `nurikun`은 support inbox와 opt-in 운영에 바로 연결될 수 있다.
+- 그러나 지금 `musu-rs`나 첫 Microsoft Store 패키지 안으로 끌어오면 안 된다. 현재 Store/desktop beta의 핵심 증명은 "안전한 설치 + 로컬 runtime + single/multi-device task"이고, crawler/marketing/email은 정책/운영 표면을 불필요하게 넓힌다.
+- 올바른 방향은 **MCP/CLI/bridge adapter로 붙이는 companion tool line**이다. `musu-system`은 무수의 machine-control substrate가 아니라, 무수 위에서 돌아가는 Brain/Voice/Hand 업무 앱 묶음으로 봐야 한다.
+
 Best architecture:
 
 - keep `musu-rs` as the machine/control/runtime layer
@@ -28,6 +34,14 @@ Checked via local Git clone on 2026-05-29. Rechecked again at 2026-05-29 06:43 K
 | `yellowhama/musu-crawl-ai` | `f94b79b1cd8b81fd320e504318ea7dfd61d57596` | 2026-05-28 21:41 KST | legacy/reference split repo |
 | `yellowhama/musu-marketer` | `5b3bd5c3c91cb3f68f964b70bca310a5bebfb88a` | 2026-05-28 21:41 KST | legacy/reference split repo |
 | `yellowhama/musu-nurikun` | `4bed668f3b809cc9157ae8d28cce59b58ce8daa2` | 2026-05-28 21:41 KST | private legacy/reference split repo |
+
+Fresh recheck on 2026-05-29 07:17 KST:
+
+- `gh repo view` shows `musu-system` public and pushed at 2026-05-29 01:15:45 KST.
+- `gh repo view` shows private `musu-nurikun` plus public `musu-marketer` and `musu-crawl-ai` still active and pushed around 2026-05-28 21:50 KST.
+- Local analysis clones live under `F:\workspace\_external\`.
+- `git log -1` for `musu-system` remains `d4e58e010fe30e83c1e96165d75d7c3ec80a2f40` (`nurikun(v0.3.1): block placeholder sender_identity from sending`).
+- Latest GitHub Actions CI on `musu-system` passed for run `26587103682`.
 
 Links:
 
@@ -102,6 +116,13 @@ The latest verification was run from `F:\workspace\external\musu-system` against
 - `git ls-remote --tags https://github.com/yellowhama/musu-system.git` showed the active service tags are still `crawl-ai/v0.8.0`, `marketer/v2.0.5`, and `nurikun/v0.3.1`.
 - Code audit spot-check found no evidence that `nurikun` exposes delivery operations through MCP; delivery remains CLI-only by design.
 
+2026-05-29 07:17 KST recheck:
+
+- `go test ./...` passed again in the monorepo modules: `core`, `crawl-ai`, `marketer`, and `nurikun`.
+- `go vet ./...` passed again in all four modules.
+- Latest remote CI for `yellowhama/musu-system` is green.
+- This confirms the earlier integration verdict is still current, not stale split-repo information.
+
 ## Code Audit Notes
 
 `musu-system` is not just a README wrapper. It has a coherent Go workspace, per-module tests, CI build/vet/race-test workflow, tag-triggered GHCR publishing, and a deploy bundle with Ollama, shared wiki volume, Caddy TLS profile, and optional scheduler.
@@ -118,6 +139,23 @@ Important observations:
 Audit concern:
 
 - `nurikun watch` records outbound status as `sent` before mailbox `Send` returns. If send fails, the log reports failure but the stored row has already been saved as `sent`. This is acceptable for an adjacent prototype, but before any MUSU dashboard integration it should record `send_failed` or update the row after delivery success.
+- The MCP surfaces are usable, but not yet ideal as a MUSU-managed adapter boundary. `crawl-ai` MCP currently starts `NewOrchestrator("./wiki")` and passes fixed model names such as `llama3` / `nomic-embed-text`; `marketer` MCP also calls `ExecuteDraft(..., "llama3", ...)`. Before MUSU registers these tools automatically, add explicit env/flag-driven model and wiki path contracts or wrap them with a MUSU-side adapter that supplies the right working directory and model settings.
+- `marketer` has a useful MCP surface, but its REST API is not the primary integration path yet. Use CLI/MCP first; REST can follow after endpoint contracts become product-grade.
+
+## Use Of The Cross-Product Launch Memo
+
+The operator supplied a launch note written for a different product. Relevant parts to keep:
+
+- Keep the Microsoft Store product narrow and trust-focused.
+- Use Store/funnel metrics and campaign IDs for promotion measurement.
+- Put launch copy through grounded, source-backed drafting.
+- Separate "installable desktop trust channel" from broader ecosystem promotion.
+
+Parts not to carry over:
+
+- Do not reuse unrelated product names, screenshots, positioning, or HiveLink-specific P2P claims.
+- Do not treat old Microsoft Store packaging claims as current policy without re-verifying them against Microsoft docs at submission time.
+- Do not market `musu-system` as the first Store app. It is companion tooling after the MUSU desktop runtime is accepted.
 
 ## Integration Value By Component
 
