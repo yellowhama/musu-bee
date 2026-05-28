@@ -117,9 +117,20 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\audit-desktop-release-r
 Latest result:
 
 - `runtime_package_ready=True`
-- `desktop_shell_ready=False`
+- `desktop_shell_ready=True`
 - `multi_device_verified=False`
 - `public_desktop_release_ready=False`
+
+Tauri desktop shell evidence:
+
+- source: `musu-bee\src-tauri-shell`
+- build command: `npm run build:tauri-shell`
+- bundle command: `npm run tauri:build`
+- release binary: `musu-bee\src-tauri\target\release\musu-desktop.exe`
+- MSI bundle: `musu-bee\src-tauri\target\release\bundle\msi\MUSU_1.15.0_x64_en-US.msi`
+- NSIS bundle: `musu-bee\src-tauri\target\release\bundle\nsis\MUSU_1.15.0_x64-setup.exe`
+- render proof: `.local-build\tauri-shell-1280x800.png`
+- caveat: this is a runtime launcher/status shell, not the full dashboard GUI.
 
 ## RC Gate Commands
 

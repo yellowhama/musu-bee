@@ -51,6 +51,11 @@ $repoVersion = if (Test-Path -LiteralPath $versionPath) {
 } else {
     ""
 }
+$numericReleaseVersion = if ($repoVersion.Contains("-")) {
+    $repoVersion.Split("-", 2)[0]
+} else {
+    $repoVersion
+}
 
 $packageJsonPath = Join-Path $appRoot "package.json"
 $packageLockPath = Join-Path $appRoot "package-lock.json"
@@ -93,11 +98,11 @@ else {
     Add-Check "desktop-shell" "package-lock version" "fail" "package-lock.json is missing."
 }
 
-if ($tauriConfig -and $tauriConfig.version -eq $repoVersion) {
-    Add-Check "desktop-shell" "Tauri version" "pass" "tauri.conf.json version matches VERSION."
+if ($tauriConfig -and (($tauriConfig.version -eq $repoVersion) -or ($tauriConfig.version -eq $numericReleaseVersion))) {
+    Add-Check "desktop-shell" "Tauri version" "pass" "tauri.conf.json version is $($tauriConfig.version) for release $repoVersion."
 }
 else {
-    Add-Check "desktop-shell" "Tauri version" "fail" "tauri.conf.json version does not match VERSION."
+    Add-Check "desktop-shell" "Tauri version" "fail" "tauri.conf.json version must match VERSION or its numeric Windows bundle version $numericReleaseVersion."
 }
 
 if ($tauriConfig -and $tauriConfig.identifier -and $tauriConfig.identifier -ne "com.tauri.dev") {
@@ -112,6 +117,13 @@ if ($tauriConfig -and $tauriConfig.app.security.csp) {
 }
 else {
     Add-Check "desktop-shell" "Tauri CSP" "fail" "Tauri CSP is null or missing."
+}
+
+if ($tauriConfig -and $tauriConfig.app.withGlobalTauri -eq $true) {
+    Add-Check "desktop-shell" "Tauri IPC bridge" "pass" "withGlobalTauri is enabled for the static desktop shell."
+}
+else {
+    Add-Check "desktop-shell" "Tauri IPC bridge" "fail" "withGlobalTauri must be enabled so the static shell can invoke runtime commands."
 }
 
 $mainWindow = if ($tauriConfig -and $tauriConfig.app.windows.Count -gt 0) { $tauriConfig.app.windows[0] } else { $null }
@@ -138,16 +150,20 @@ else {
 
 $frontendDist = if ($tauriConfig) { [string]$tauriConfig.build.frontendDist } else { "" }
 $frontendDistPath = Resolve-TauriPath $frontendDist
-if ($frontendDistPath -and (Test-Path -LiteralPath $frontendDistPath)) {
-    Add-Check "desktop-shell" "Tauri frontendDist" "pass" "frontendDist exists at $frontendDistPath."
+$frontendIndex = if ($frontendDistPath) { Join-Path $frontendDistPath "index.html" } else { $null }
+if ($frontendIndex -and (Test-Path -LiteralPath $frontendIndex)) {
+    Add-Check "desktop-shell" "Tauri frontendDist" "pass" "frontendDist index exists at $frontendIndex."
 }
 else {
-    Add-Check "desktop-shell" "Tauri frontendDist" "fail" "frontendDist '$frontendDist' does not exist. The GUI shell cannot be called release-ready until this build artifact is produced and tested."
+    Add-Check "desktop-shell" "Tauri frontendDist" "fail" "frontendDist '$frontendDist' does not contain index.html. Run npm run build:tauri-shell before the desktop build."
 }
 
 $beforeBuildCommand = if ($tauriConfig) { [string]$tauriConfig.build.beforeBuildCommand } else { "" }
 $packageBuildScript = if ($packageJson) { [string]$packageJson.scripts.build } else { "" }
-if (
+if ($beforeBuildCommand -eq "npm run build:tauri-shell") {
+    Add-Check "desktop-shell" "Tauri build command" "pass" "beforeBuildCommand builds the dedicated Tauri desktop shell."
+}
+elseif (
     (($beforeBuildCommand -match "next build") -or ($beforeBuildCommand -eq "npm run build" -and $packageBuildScript -match "next build")) -and
     $frontendDist -eq "../out" -and
     $nextConfig -notmatch "output\s*:\s*['`"]export['`"]"
@@ -159,6 +175,30 @@ elseif (-not [string]::IsNullOrWhiteSpace($beforeBuildCommand)) {
 }
 else {
     Add-Check "desktop-shell" "Tauri build command" "warn" "beforeBuildCommand is empty."
+}
+
+$shellSourceRoot = Join-Path $appRoot "src-tauri-shell"
+$shellSources = @("index.html", "styles.css", "main.js")
+$missingShellSources = @($shellSources | Where-Object { -not (Test-Path -LiteralPath (Join-Path $shellSourceRoot $_)) })
+if ($missingShellSources.Count -eq 0) {
+    Add-Check "desktop-shell" "Tauri shell source" "pass" "Dedicated Tauri shell source files are present."
+}
+else {
+    Add-Check "desktop-shell" "Tauri shell source" "fail" "Missing Tauri shell source files: $($missingShellSources -join ', ')."
+}
+
+$tauriLibPath = Join-Path $tauriRoot "src\lib.rs"
+$tauriLib = if (Test-Path -LiteralPath $tauriLibPath) { Get-Content -LiteralPath $tauriLibPath -Raw } else { "" }
+if (
+    $tauriLib -match "desktop_status" -and
+    $tauriLib -match "start_runtime" -and
+    $tauriLib -match "open_dashboard" -and
+    $tauriLib -match "generate_handler"
+) {
+    Add-Check "desktop-shell" "Tauri runtime commands" "pass" "Desktop shell can invoke status, start, and dashboard commands."
+}
+else {
+    Add-Check "desktop-shell" "Tauri runtime commands" "fail" "Desktop shell runtime commands are missing from src-tauri/src/lib.rs."
 }
 
 $localMsix = Join-Path $repoRoot ".local-build\msix\output\musu_1.15.0.0_x64_local-sideload-manual.msix"

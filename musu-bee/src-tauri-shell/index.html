@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MUSU Desktop</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <aside class="rail">
+        <div class="brand">
+          <div class="mark">M</div>
+          <div>
+            <h1>MUSU</h1>
+            <p>Desktop runtime shell</p>
+          </div>
+        </div>
+
+        <div class="version">__MUSU_VERSION__</div>
+      </aside>
+
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Local AI operations node</p>
+            <h2>Runtime Control</h2>
+          </div>
+          <div id="overall-pill" class="pill neutral">Checking</div>
+        </header>
+
+        <section class="status-grid" aria-label="Runtime status">
+          <article>
+            <span>Bridge</span>
+            <strong id="bridge-status">Unknown</strong>
+            <small id="bridge-detail">Waiting for status.</small>
+          </article>
+          <article>
+            <span>Dashboard</span>
+            <strong id="dashboard-status">Unknown</strong>
+            <small id="dashboard-detail">Waiting for status.</small>
+          </article>
+          <article>
+            <span>Package</span>
+            <strong id="package-status">Desktop shell</strong>
+            <small id="package-detail">Version __MUSU_VERSION__</small>
+          </article>
+        </section>
+
+        <section class="actions" aria-label="Runtime actions">
+          <button id="refresh" type="button">Refresh</button>
+          <button id="start-runtime" type="button">Start Runtime</button>
+          <button id="open-dashboard" type="button">Open Dashboard</button>
+          <button id="copy-diagnostics" type="button">Copy Diagnostics</button>
+        </section>
+
+        <section class="details" aria-label="Runtime details">
+          <dl>
+            <div>
+              <dt>Bridge URL</dt>
+              <dd id="bridge-url">-</dd>
+            </div>
+            <div>
+              <dt>Dashboard URL</dt>
+              <dd id="dashboard-url">-</dd>
+            </div>
+            <div>
+              <dt>MUSU home</dt>
+              <dd id="musu-home">-</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="log-panel" aria-label="Runtime log">
+          <div class="log-head">
+            <h3>Event Log</h3>
+            <button id="clear-log" type="button">Clear</button>
+          </div>
+          <pre id="log" aria-live="polite"></pre>
+        </section>
+      </section>
+    </main>
+    <script src="./main.js"></script>
+  </body>
+</html>

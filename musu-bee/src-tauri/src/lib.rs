@@ -1,6 +1,11 @@
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
+    .invoke_handler(tauri::generate_handler![
+      desktop_status,
+      start_runtime,
+      open_dashboard
+    ])
     .setup(|app| {
       if cfg!(debug_assertions) {
         app.handle().plugin(
@@ -13,4 +18,268 @@ pub fn run() {
     })
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
+}
+
+#[derive(serde::Serialize)]
+struct DesktopStatus {
+  version: String,
+  musu_home: String,
+  bridge_status: String,
+  bridge_url: Option<String>,
+  bridge_detail: String,
+  dashboard_status: String,
+  dashboard_url: Option<String>,
+  dashboard_detail: String,
+  can_start_runtime: bool,
+}
+
+#[derive(serde::Serialize)]
+struct CommandResult {
+  ok: bool,
+  message: String,
+  output: String,
+}
+
+#[tauri::command]
+fn desktop_status() -> DesktopStatus {
+  let version = env!("CARGO_PKG_VERSION").to_string();
+  let home = musu_home();
+  let bridge_url = bridge_url_from_registry(&home);
+  let dashboard_probe = probe_dashboard();
+  let bridge_probe = bridge_url
+    .as_deref()
+    .map(|url| probe_http(url, "/health"))
+    .unwrap_or_else(|| ProbeResult {
+      ok: false,
+      detail: "bridge registry not found".to_string(),
+    });
+
+  DesktopStatus {
+    version,
+    musu_home: home.display().to_string(),
+    bridge_status: if bridge_probe.ok { "ok" } else { "offline" }.to_string(),
+    bridge_url,
+    bridge_detail: bridge_probe.detail,
+    dashboard_status: if dashboard_probe.ok { "ok" } else { "offline" }.to_string(),
+    dashboard_url: dashboard_probe.url,
+    dashboard_detail: dashboard_probe.detail,
+    can_start_runtime: true,
+  }
+}
+
+#[tauri::command]
+fn start_runtime() -> Result<CommandResult, String> {
+  let command = musu_command_name();
+  let output = std::process::Command::new(command)
+    .args(["up", "--json"])
+    .output()
+    .map_err(|err| format!("failed to run {command} up --json: {err}"))?;
+
+  let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+  let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+  let combined = if stderr.is_empty() {
+    stdout
+  } else {
+    format!("{stdout}\n{stderr}").trim().to_string()
+  };
+
+  Ok(CommandResult {
+    ok: output.status.success(),
+    message: if output.status.success() {
+      "musu up completed".to_string()
+    } else {
+      format!("musu up exited with {}", output.status)
+    },
+    output: combined,
+  })
+}
+
+#[tauri::command]
+fn open_dashboard(url: String) -> Result<CommandResult, String> {
+  if !is_allowed_dashboard_url(&url) {
+    return Err("dashboard URL must be local http://127.0.0.1 or http://localhost".to_string());
+  }
+
+  open_url(&url)?;
+  Ok(CommandResult {
+    ok: true,
+    message: format!("opening {url}"),
+    output: String::new(),
+  })
+}
+
+struct ProbeResult {
+  ok: bool,
+  detail: String,
+}
+
+struct DashboardProbe {
+  ok: bool,
+  url: Option<String>,
+  detail: String,
+}
+
+fn musu_home() -> std::path::PathBuf {
+  if let Some(home) = std::env::var_os("MUSU_HOME") {
+    return std::path::PathBuf::from(home);
+  }
+  if let Some(home) = std::env::var_os("USERPROFILE") {
+    return std::path::PathBuf::from(home).join(".musu");
+  }
+  if let Some(home) = std::env::var_os("HOME") {
+    return std::path::PathBuf::from(home).join(".musu");
+  }
+  std::path::PathBuf::from(".musu")
+}
+
+fn bridge_url_from_registry(home: &std::path::Path) -> Option<String> {
+  let path = home.join("services").join("bridge.json");
+  let text = std::fs::read_to_string(path).ok()?;
+  let value: serde_json::Value = serde_json::from_str(&text).ok()?;
+  let addr = value.get("addr")?.as_str()?;
+  Some(format!("http://{addr}"))
+}
+
+fn probe_dashboard() -> DashboardProbe {
+  for base in ["http://127.0.0.1:3000", "http://127.0.0.1:3001"] {
+    let result = probe_http(base, "/api/doctor");
+    if result.ok {
+      return DashboardProbe {
+        ok: true,
+        url: Some(format!("{base}/app")),
+        detail: result.detail,
+      };
+    }
+  }
+
+  DashboardProbe {
+    ok: false,
+    url: Some("http://127.0.0.1:3000/app".to_string()),
+    detail: "dashboard did not answer on 3000 or 3001".to_string(),
+  }
+}
+
+fn probe_http(base: &str, path: &str) -> ProbeResult {
+  match http_get(base, path) {
+    Ok(response) => {
+      let status = response.lines().next().unwrap_or_default().to_string();
+      ProbeResult {
+        ok: status.contains(" 200 "),
+        detail: status,
+      }
+    }
+    Err(err) => ProbeResult {
+      ok: false,
+      detail: err,
+    },
+  }
+}
+
+fn http_get(base: &str, path: &str) -> Result<String, String> {
+  let without_scheme = base
+    .strip_prefix("http://")
+    .ok_or_else(|| format!("unsupported URL scheme in {base}"))?;
+  let host_port = without_scheme
+    .split('/')
+    .next()
+    .filter(|value| !value.is_empty())
+    .ok_or_else(|| format!("missing host in {base}"))?;
+
+  let mut stream = std::net::TcpStream::connect_timeout(
+    &host_port.parse().map_err(|err| format!("bad address {host_port}: {err}"))?,
+    std::time::Duration::from_millis(850),
+  )
+  .map_err(|err| format!("{host_port} unreachable: {err}"))?;
+
+  let _ = stream.set_read_timeout(Some(std::time::Duration::from_millis(1200)));
+  let request = format!("GET {path} HTTP/1.1\r\nHost: {host_port}\r\nConnection: close\r\n\r\n");
+  std::io::Write::write_all(&mut stream, request.as_bytes())
+    .map_err(|err| format!("request write failed: {err}"))?;
+
+  let mut response = String::new();
+  std::io::Read::read_to_string(&mut stream, &mut response)
+    .map_err(|err| format!("response read failed: {err}"))?;
+  Ok(response)
+}
+
+fn is_allowed_dashboard_url(url: &str) -> bool {
+  let Some(rest) = url.strip_prefix("http://") else {
+    return false;
+  };
+  let authority_end = rest
+    .find(|ch| matches!(ch, '/' | '?' | '#'))
+    .unwrap_or(rest.len());
+  let authority = &rest[..authority_end];
+  if authority.contains('@') {
+    return false;
+  }
+
+  let Some((host, port)) = authority.rsplit_once(':') else {
+    return false;
+  };
+  if host != "127.0.0.1" && host != "localhost" {
+    return false;
+  }
+  if port.is_empty() || !port.chars().all(|ch| ch.is_ascii_digit()) {
+    return false;
+  }
+
+  port.parse::<u16>().is_ok_and(|value| value > 0)
+}
+
+fn musu_command_name() -> &'static str {
+  if cfg!(target_os = "windows") {
+    "musu.exe"
+  } else {
+    "musu"
+  }
+}
+
+fn open_url(url: &str) -> Result<(), String> {
+  #[cfg(target_os = "windows")]
+  {
+    std::process::Command::new("cmd")
+      .args(["/C", "start", "", url])
+      .spawn()
+      .map_err(|err| format!("failed to open dashboard: {err}"))?;
+    return Ok(());
+  }
+
+  #[cfg(target_os = "macos")]
+  {
+    std::process::Command::new("open")
+      .arg(url)
+      .spawn()
+      .map_err(|err| format!("failed to open dashboard: {err}"))?;
+    return Ok(());
+  }
+
+  #[cfg(all(unix, not(target_os = "macos")))]
+  {
+    std::process::Command::new("xdg-open")
+      .arg(url)
+      .spawn()
+      .map_err(|err| format!("failed to open dashboard: {err}"))?;
+    return Ok(());
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::is_allowed_dashboard_url;
+
+  #[test]
+  fn allows_local_dashboard_urls() {
+    assert!(is_allowed_dashboard_url("http://127.0.0.1:3000/app"));
+    assert!(is_allowed_dashboard_url("http://localhost:3001"));
+  }
+
+  #[test]
+  fn rejects_non_local_or_ambiguous_dashboard_urls() {
+    assert!(!is_allowed_dashboard_url("https://127.0.0.1:3000/app"));
+    assert!(!is_allowed_dashboard_url("http://example.com:3000/app"));
+    assert!(!is_allowed_dashboard_url("http://localhost:3000@example.com/app"));
+    assert!(!is_allowed_dashboard_url("http://localhost:bad/app"));
+    assert!(!is_allowed_dashboard_url("http://localhost:0/app"));
+  }
 }

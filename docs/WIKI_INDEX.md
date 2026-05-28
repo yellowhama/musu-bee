@@ -232,8 +232,9 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | — | 1.15.0-rc.1 beta release checklist and smoke evidence | 2026-05-29 | `BETA_RELEASE_CHECKLIST_1_15_0_RC1.md` | active |
 | — | CoS memory note — 1.15.0-rc.1 beta readiness | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0130_kst_1_15_rc1_beta_readiness.md` | active |
 | — | CoS memory note — smoke scripts and multi-device packet | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0333_kst_release_smoke_multidevice_packet.md` | active |
+| — | CoS memory note — desktop shell and musu-system refresh | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0415_kst_desktop_shell_and_musu_system_refresh.md` | active |
 
-State lock: `1.15.0-rc.1` is beta-ready for the single-machine Windows local operator path (`musu up` → dashboard doctor → Claude task smoke). A repeatable single-machine smoke script now passes. Multi-device test packet is ready, but two-machine validation is still pending. Runtime/MSIX package readiness is true for submission attempt; Tauri GUI desktop shell readiness is false until the `frontendDist`/static-build contract is fixed.
+State lock: `1.15.0-rc.1` is beta-ready for the single-machine Windows local operator path (`musu up` → dashboard doctor → Claude task smoke). A repeatable single-machine smoke script now passes. Multi-device test packet is ready, but two-machine validation is still pending. Runtime/MSIX package readiness is true for submission attempt; the dedicated Tauri static launcher/status shell now builds, renders, and bundles, but it is not the full dashboard GUI.
 
 ---
 
@@ -274,7 +275,7 @@ These docs capture the post-install / post-review conclusion that Windows packag
 | Multi-device 1.15.0-rc.1 test plan | 2026-05-29 | `MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md` | active |
 | Desktop release readiness audit | 2026-05-29 | `DESKTOP_RELEASE_READINESS_AUDIT_2026_05_29.md` | active |
 
-2026-05-29 state update: Partner Center enrollment approval cleared by operator report. Current-version `1.15.0.0` local-sideload and Store-reviewed MSIX artifacts were regenerated and verified; submission bundle `.local-build\msix\submission-bundles\store-reviewed-20260529-033609` is prepared. Store submission is still pending product-name reservation, Microsoft app certification, and restricted capability review.
+2026-05-29 state update: Partner Center enrollment approval cleared by operator report. Current-version `1.15.0.0` local-sideload and Store-reviewed MSIX artifacts were regenerated and verified; submission bundle `.local-build\msix\submission-bundles\store-reviewed-20260529-033609` is prepared. Dedicated Tauri shell build/bundle now passes. Store submission is still pending product-name reservation, Microsoft app certification, and restricted capability review.
 
 2026-05-29 ecosystem update: `yellowhama/musu-system` is the canonical Go monorepo for `core`, `crawl-ai`, `marketer`, and `nurikun`. Integration value is high, but current decision is adapter/MCP/CLI integration, not Rust-core merge or first Store package bundling.
 

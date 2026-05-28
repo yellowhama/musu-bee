@@ -80,7 +80,13 @@ Observed:
 
 This is enough to treat the repo as a credible integration candidate.
 
-The verification was run from `F:\workspace\tmp\musu-system-audit-20260529\musu-system` against HEAD `d4e58e010fe30e83c1e96165d75d7c3ec80a2f40`.
+The verification was run from `F:\workspace\tmp\musu-system-latest` against HEAD `d4e58e010fe30e83c1e96165d75d7c3ec80a2f40`.
+
+2026-05-29 recheck:
+
+- `musu-system`, `musu-crawl-ai`, `musu-marketer`, and private `musu-nurikun` all cloned successfully.
+- The split repos are behind the monorepo HEAD in this audit; treat them as transition/reference repos unless a deliberate split-release reason appears.
+- Monorepo HEAD includes a newer `nurikun` compliance hardening commit: `nurikun(v0.3.1): block placeholder sender_identity from sending`.
 
 ## Integration Value By Component
 

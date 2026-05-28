@@ -13,7 +13,7 @@
 - Dashboard-to-bridge task forwarding works with the real Claude runner hot path.
 - Doctor/readiness state is visible from `/fleet` through `/api/doctor`.
 
-This is not yet a Store-grade or full multi-machine release. Store/MSIX auto-start still depends on Partner Center verification and Microsoft review. Non-Claude adapters remain registered in the adapter layer but are not wired into the runner hot path.
+This is not yet a full multi-machine release. Store/MSIX auto-start still depends on Partner Center submission, Microsoft certification, and restricted capability review. Non-Claude adapters remain registered in the adapter layer but are not wired into the runner hot path.
 
 ## Product Spec Updates
 
@@ -31,9 +31,9 @@ Current product contract changes from this work:
 
 Overall single-machine beta completion: **about 82%**.
 
-Release-grade desktop completion: **not yet release-grade** if "desktop app" means a Store-ready GUI shell. The Rust runtime and dashboard bridge path are credible beta infrastructure; the Tauri desktop scaffold is still a dev scaffold (`productName=MUSU`, `version=0.1.0`, `identifier=com.tauri.dev`, `frontendDist=../out`, `csp=null`) and should not be represented as the finished desktop product.
+Release-grade desktop completion: **partially closed**. The Rust runtime and dashboard bridge path are credible beta infrastructure, and the Tauri scaffold is no longer a blank/dev shell. It now builds a static runtime launcher/status surface and bundles on Windows. It should still not be represented as the finished dashboard GUI.
 
-2026-05-29 update: the scaffold metadata gap was reduced (`package.json`, `package-lock.json`, `src-tauri/Cargo.toml`, and `tauri.conf.json` now use `1.15.0-rc.1`; the Tauri identifier is `com.yellowhama.musu`; CSP is explicit; native window decorations are enabled). The blocking GUI-shell gap remains: `frontendDist=../out` does not exist and `npm run build` does not emit a static export.
+2026-05-29 update: the scaffold metadata gap was reduced (`package.json`, `package-lock.json`, `src-tauri/Cargo.toml`, and `tauri.conf.json` now align to the `1.15.0-rc.1` release, with numeric Tauri bundle version `1.15.0` for Windows MSI rules). The Tauri identifier is `com.yellowhama.musu`; CSP is explicit; native window decorations are enabled; `beforeBuildCommand` now emits `out/index.html` through a dedicated `build:tauri-shell` script.
 
 The important loop now closes: start local services, check readiness, send a real task, get the result back through dashboard APIs. The product finally has a believable local operator path instead of being only a pile of subsystem work.
 
@@ -49,7 +49,7 @@ Main weaknesses:
 - The beta is still Claude-first. OpenAI-compatible adapters exist, but the runner hot path rejects non-Claude task dispatch.
 - Coverage is stronger for the smoke path than for every legacy dashboard/API route.
 - Store/MSIX auto-start remains an external approval track, not a shipped product promise.
-- Tauri GUI packaging is not release-grade yet; current Store path should be treated as the Rust packaged runtime path until the desktop shell is aligned and tested.
+- Tauri GUI packaging is now buildable as a static runtime launcher/status shell, but the full dashboard GUI remains browser/server-backed.
 - The repo worktree has a broad pre-existing dirty state; commits for this release must stay scoped.
 
 ## Code Audit
@@ -153,15 +153,16 @@ MSIX release packaging verification:
 Desktop release readiness audit:
 
 - script: `scripts\windows\audit-desktop-release-readiness.ps1`
-- result: `runtime_package_ready=True`, `desktop_shell_ready=False`, `multi_device_verified=False`, `public_desktop_release_ready=False`
-- blocking checks: missing Tauri `frontendDist`, mismatched Tauri static build contract, second-PC execution pending
-- metadata verification: `npm run typecheck` passed; `cargo check --manifest-path .\musu-bee\src-tauri\Cargo.toml -j 1` passed
+- result: `runtime_package_ready=True`, `desktop_shell_ready=True`, `multi_device_verified=False`, `public_desktop_release_ready=False`
+- blocking check: second-PC execution pending
+- metadata/build verification: `npm run typecheck` passed; `npm run build:tauri-shell` passed; `cargo check --manifest-path .\musu-bee\src-tauri\Cargo.toml -j 1` passed; `npm run tauri:build` produced MSI and NSIS bundles
+- render proof: Playwright captured `.local-build\tauri-shell-1280x800.png`
 - report: `docs/DESKTOP_RELEASE_READINESS_AUDIT_2026_05_29.md` (wiki/520)
 
 Indexing:
 
 - `musu indexer sync --work-dir . --name musu-bee`
-- latest result: `817 files`, `1880 symbols`
+- latest result: `822 files`, `1897 symbols`
 - search verification: query `multi-device release test` returns `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md`
 - search verification: query `smoke-single-machine-beta` returns `scripts/windows/smoke-single-machine-beta.ps1`
 
@@ -175,7 +176,7 @@ Adjacent repo assessment:
 
 P0 before tagging:
 
-- Re-run Rust check/clippy/lib tests after the `/api/ai/chat` adapter fix.
+- Re-run release smoke and readiness audit after any packaging-affecting changes.
 - Re-index code/docs after this document set lands.
 - Commit and push the scoped beta-readiness changes.
 
@@ -185,7 +186,7 @@ P1 beta hardening:
 - Add a test for `/api/ai/chat` defaulting to `claude`.
 - Keep `scripts\windows\smoke-single-machine-beta.ps1` in the RC gate and run it on clean Windows machines.
 - Run `scripts\windows\smoke-multidevice-beta.ps1` on the user's second PC and record the output in wiki/519.
-- Keep `scripts\windows\audit-desktop-release-readiness.ps1` as the release-readiness gate; do not claim public desktop release until it reports ready or the accepted release scope excludes Tauri GUI readiness.
+- Keep `scripts\windows\audit-desktop-release-readiness.ps1` as the release-readiness gate; do not claim public multi-device desktop release until the second-PC evidence lands.
 
 P2 product hardening:
 
@@ -199,7 +200,7 @@ P3 distribution:
 - Keep direct-download beta separate from Store/MSIX claims.
 - Partner Center enrollment approval cleared by operator report on 2026-05-29.
 - Do not submit the older 2026-05-27 `1.13.0.0` Store-reviewed bundle as the current release candidate.
-- Regenerate Store-reviewed MSIX and submission bundle for `1.15.0-rc.1`.
-- Submit Store-reviewed auto-start only after current-version package verification passes.
+- Store-reviewed MSIX and submission bundle for `1.15.0-rc.1` are regenerated and verified.
+- Submit Store-reviewed auto-start only after product-name reservation and final Partner Center listing material are ready.
 - Record Microsoft approval/rejection back into repo docs before changing packaging code.
 - Do not bundle crawler/marketing/email tooling into the first Store package.

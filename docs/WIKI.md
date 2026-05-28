@@ -111,7 +111,7 @@ Current Store path truth:
 - local-sideload release package: `musu_1.15.0.0_x64_local-sideload-manual.msix`, workflow passed packaged startup smoke
 - current submission bundle: `.local-build\msix\submission-bundles\store-reviewed-20260529-033609`
 - old 2026-05-27 package: template only (`1.13.0.0`, do not submit as current)
-- Tauri shell: metadata now matches `1.15.0-rc.1`, but GUI shell readiness is still false because `frontendDist=../out` is missing and the build command does not produce a static export
+- Tauri shell: dedicated static runtime launcher/status shell now builds to `musu-bee/out`, bundles as MSI/NSIS through `npm run tauri:build`, and is audited as `desktop_shell_ready=True`; it is still not the full dashboard GUI
 - Microsoft app certification: pending
 - restricted startup capability review: pending
 
@@ -146,7 +146,8 @@ Current decision:
 Verified:
 
 - local clone of `musu-system` HEAD `d4e58e010fe30e83c1e96165d75d7c3ec80a2f40`
-- `go test ./...` passed for `core`, `crawl-ai`, `marketer`, and `nurikun`
+- split repos cloned successfully; they are older transition/reference repos than `musu-system` HEAD
+- `go test ./core/... ./crawl-ai/... ./marketer/... ./nurikun/...` passed for `core`, `crawl-ai`, `marketer`, and `nurikun`
 
 Canonical reference:
 
