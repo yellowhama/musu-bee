@@ -119,7 +119,7 @@ Multi-device packet:
 - evidence verifier: `scripts\windows\verify-multidevice-evidence.ps1`
 - evidence recorder: `scripts\windows\record-multidevice-evidence.ps1`
 - runbook: `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md`
-- latest generated kit: `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-20260529-063527.zip`
+- latest generated kit pattern: `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-*.zip` (use the newest file by `LastWriteTime`)
 - latest verified final gate packet with fresh multi-device kit: `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip`
 - current state: install/test kit ready, second-PC execution pending
 
@@ -137,6 +137,7 @@ Store metadata:
 - final operator packet builder: `scripts\windows\prepare-final-operator-gate-packet.ps1`
 - final operator packet verifier: `scripts\windows\verify-final-operator-gate-packet.ps1`
 - final evidence completion runner: `scripts\windows\complete-final-operator-gates.ps1`
+- final release handoff status: `scripts\windows\show-final-release-handoff-status.ps1`
 - metadata handoff: `docs/STORE_SUBMISSION_METADATA_2026_05_29.md`
 - public deployment now verifies; mailbox delivery evidence still must be recorded before Partner Center submission; Store release approval evidence must be recorded after Microsoft certification and restricted capability approval.
 - final operator gates: `docs/RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md`

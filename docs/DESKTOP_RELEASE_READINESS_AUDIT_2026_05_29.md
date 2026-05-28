@@ -73,6 +73,7 @@ Passing foundation checks:
 - final operator gate packet builder exists
 - final operator gate packet verifier exists
 - final operator evidence completion runner exists
+- final release handoff status script exists
 - multi-device evidence verifier exists
 - multi-device evidence recorder exists
 - Store public metadata verifier exists
@@ -105,9 +106,10 @@ These passed on 2026-05-29. Tauri `cargo check` generated `musu-bee/src-tauri/Ca
 - `scripts\windows\write-release-go-no-go.ps1 -Json` reports `local_artifacts_ready=true` and `ready_for_public_desktop_release=false`.
 - `scripts\windows\audit-desktop-release-readiness.ps1 -Json` now reports `single_machine_verified=true` from committed evidence under `docs\evidence\single-machine\1.15.0-rc.1`.
 - Remaining go/no-go blockers are second-PC evidence, `support@musu.pro` delivery verification, and Store release approval evidence; support mailbox verification now has `verify-support-mailbox-evidence.ps1` and `record-support-mailbox-verification.ps1`, and Store release approval now has `verify-store-release-evidence.ps1` and `record-store-release-verification.ps1`.
-- `scripts\windows\prepare-final-operator-gate-packet.ps1 -IncludeDesktopShell -Json` generates a stamped packet and updates the stable alias `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip`, bundling the remaining manual gate runbook, multi-device kit, support mailbox template, recorder/verifier scripts, Store release recorder/verifier scripts, final packet verifier, final evidence completion runner, and checksums.
-- `scripts\windows\verify-final-operator-gate-packet.ps1 -PacketPath .local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip -Json` passed with `ok=true`, `fail_count=0`, `kit_count=1`; the verifier now fails if the packet README omits the Store release approval blocker, `record-store-release-verification.ps1`, or Store evidence parameters in the final completion command.
+- `scripts\windows\prepare-final-operator-gate-packet.ps1 -IncludeDesktopShell -Json` generates a stamped packet and updates the stable alias `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip`, bundling the remaining manual gate runbook, multi-device kit, support mailbox template, recorder/verifier scripts, Store release recorder/verifier scripts, final release handoff status script, final packet verifier, final evidence completion runner, and checksums.
+- `scripts\windows\verify-final-operator-gate-packet.ps1 -PacketPath .local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip -Json` passed with `ok=true`, `fail_count=0`, `kit_count=1`; the verifier now fails if the packet README omits the Store release approval blocker, `record-store-release-verification.ps1`, `show-final-release-handoff-status.ps1`, or Store evidence parameters in the final completion command.
 - `scripts\windows\complete-final-operator-gates.ps1` can now record Store approval evidence in the same final command as multi-device and support evidence. Smoke verification wrote Store evidence only to `.local-build\store-release-complete-smoke`, so it did not satisfy or fake the real go/no-go Store release gate.
+- `scripts\windows\show-final-release-handoff-status.ps1` is evidence-non-recording and summarizes the latest go/no-go, packet verification, evidence search roots, and remaining operator commands in one screen.
 - CI/deploy repair: Node 22+ is required for `node:sqlite`, GitHub JavaScript actions are forced onto Node 24 runtime, deleted Python and `musu-port` references were removed from GitHub Actions, Linux Rust CI installs Wayland/PipeWire/GBM native dependencies, likely legacy required check names were preserved, and `npm run test:e2e:ci` now runs Store metadata smoke tests for `/privacy` and `/support`.
 
 Tauri build update:
@@ -168,6 +170,7 @@ P0:
 - Verify `support@musu.pro` delivery and record it with `scripts\windows\record-support-mailbox-verification.ps1`.
 - For operator handoff, generate the combined final-gate packet with `scripts\windows\prepare-final-operator-gate-packet.ps1 -IncludeDesktopShell`.
 - Verify the packet before handoff with `scripts\windows\verify-final-operator-gate-packet.ps1`.
+- Use `scripts\windows\show-final-release-handoff-status.ps1` before handoff and after each returned evidence file to confirm the current remaining blockers.
 - After external evidence is available, run `scripts\windows\complete-final-operator-gates.ps1` to record both evidence files, regenerate the manifest, and run final go/no-go in one step.
 - Submit the Store-reviewed MSIX bundle and record Microsoft certification/restricted-capability result with `scripts\windows\record-store-release-verification.ps1`.
 

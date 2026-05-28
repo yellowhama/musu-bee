@@ -41,6 +41,7 @@ The packet includes:
 - release gate docs
 - evidence recorder/verifier scripts
 - Store release approval recorder/verifier scripts
+- final release handoff status script
 - final packet verifier script
 - final evidence completion script
 - `SHA256SUMS.txt`
@@ -57,9 +58,19 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-final
 
 Result: `ok=true`, `fail_count=0`, `kit_count=1`.
 
-The packet verifier now explicitly checks that the README names Store release approval as a blocker and includes `record-store-release-verification.ps1`.
+The packet verifier now explicitly checks that the README names Store release approval as a blocker and includes `record-store-release-verification.ps1` and `show-final-release-handoff-status.ps1`.
 
 This packet does not close the manual gates by itself. It exists so the operator can execute the remaining external checks and return evidence without hunting across the repo.
+
+## Handoff Status Command
+
+Use this evidence-non-recording command before handoff and after each returned evidence file:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-final-release-handoff-status.ps1
+```
+
+It summarizes the current go/no-go flags, verifies the latest final operator packet, shows the evidence roots being searched, and prints the remaining operator commands. It may refresh local manifest/status artifacts, but it does not create or satisfy release evidence.
 
 ## Fresh Single-Machine Evidence
 
@@ -126,10 +137,10 @@ Expected change:
 
 ## Gate 2 - Second-PC Multi-Device Evidence
 
-Use the current test kit:
+Use the multi-device kit inside the latest final operator packet, or the newest standalone test kit matching:
 
 ```text
-.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-20260529-063527.zip
+.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-*.zip
 ```
 
 On the second Windows machine:

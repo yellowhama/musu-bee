@@ -76,6 +76,7 @@ $scriptsToCopy = @(
     "verify-multidevice-evidence.ps1",
     "record-store-release-verification.ps1",
     "verify-store-release-evidence.ps1",
+    "show-final-release-handoff-status.ps1",
     "verify-final-operator-gate-packet.ps1",
     "complete-final-operator-gates.ps1",
     "write-release-candidate-manifest.ps1",
@@ -111,6 +112,13 @@ Remaining blockers:
 1. real second-PC multi-device evidence
 2. real __SUPPORT_EMAIL__ inbox delivery evidence
 3. Partner Center submission, Microsoft certification, and restricted startup capability approval evidence
+
+Before handoff, or after each returned evidence file, run this status command
+from the real MUSU release repo root:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-final-release-handoff-status.ps1
+```
 
 ## Gate A - Support mailbox delivery
 

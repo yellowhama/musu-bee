@@ -96,7 +96,7 @@ Multi-device state:
 - `scripts\windows\prepare-multidevice-test-kit.ps1` builds a second-PC install/test zip with MSIX, public `.cer`, scripts, checksums, evidence verifier, and optional desktop shell bundles.
 - `scripts\windows\verify-multidevice-evidence.ps1` validates the returned smoke evidence before release status changes.
 - `scripts\windows\record-multidevice-evidence.ps1` records verified evidence under `docs\evidence\multidevice\1.15.0-rc.1\`.
-- Latest generated kit: `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-20260529-063527.zip`.
+- Latest generated kit pattern: `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-*.zip` (use the newest file by `LastWriteTime`).
 - `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md` (wiki/519) is the current runbook.
 - Full multi-machine readiness is still pending real second-machine execution.
 
@@ -121,7 +121,8 @@ Current Store path truth:
 - final operator gate packet generator: `scripts\windows\prepare-final-operator-gate-packet.ps1`
 - final operator gate packet verifier: `scripts\windows\verify-final-operator-gate-packet.ps1`
 - final operator evidence completion runner: `scripts\windows\complete-final-operator-gates.ps1`
-- latest verified final operator gate packet: `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip` (`ok=true`, `fail_count=0`, `kit_count=1`; README Store release blocker check hardened; final completion runner can record Store approval evidence too)
+- final release handoff status script: `scripts\windows\show-final-release-handoff-status.ps1` (evidence-non-recording one-screen go/no-go, packet verification, evidence roots, and remaining operator commands)
+- latest verified final operator gate packet: `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip` (`ok=true`, `fail_count=0`, `kit_count=1`; README Store release blocker and handoff status checks hardened; final completion runner can record Store approval evidence too)
 - Store metadata handoff: `docs/STORE_SUBMISSION_METADATA_2026_05_29.md`
 - public privacy route exists at `/privacy`; public support route exists at `/support`
 - public metadata verifier exists at `scripts\windows\verify-store-public-metadata.ps1`
@@ -132,6 +133,7 @@ Current Store path truth:
 - Store release evidence scripts exist: `scripts\windows\verify-store-release-evidence.ps1` and `scripts\windows\record-store-release-verification.ps1`
 - `write-release-go-no-go.ps1` now treats Store approval as an evidence-backed blocker and auto-detects valid evidence under `docs\evidence\store-release\<version>\*.evidence.json` or `.local-build\store-release\*.evidence.json`
 - `complete-final-operator-gates.ps1` can record multi-device, support mailbox, and Store release evidence in one final command; smoke evidence for this path is intentionally written only to `.local-build\store-release-complete-smoke`
+- Indexer refreshed after final handoff status updates: `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed `864 files` and `1897 symbols`; searches for `show-final-release-handoff-status`, `final handoff status`, and `evidence-non-recording` return the new script/docs/memory note.
 - support mailbox DNS exists: `Resolve-DnsName -Type MX musu.pro` returns `smtp.google.com`; actual delivery remains unverified until evidence is recorded
 - GitHub Actions deployment/test infrastructure was repaired for the current Rust/Next repo shape: Node 22+, JavaScript actions forced onto Node 24 runtime, no deleted Python dirs, no deleted `musu-port`, Linux Rust CI includes Wayland/PipeWire/GBM native dependencies, legacy likely-required check names preserved, and Store metadata Playwright smoke for `/privacy` + `/support`
 - Remote release gates are green as of 2026-05-29: `Tests` passed on `ad5f752`; latest relevant `E2E Tests — musu-bee` and `Deploy musu-bee to Vercel` passed on `0919a83`; live `https://musu.pro/privacy` and `/support` passed public metadata verification
