@@ -34,7 +34,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\prepare-fina
 Latest generated packet:
 
 ```text
-.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260529-072606.zip
+.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260529-073523.zip
 ```
 
 The packet includes:
@@ -43,7 +43,20 @@ The packet includes:
 - support mailbox recording instructions and a prefilled verification id
 - release gate docs
 - evidence recorder/verifier scripts
+- final packet verifier script
 - `SHA256SUMS.txt`
+
+Only the zip under `kits\` should be copied to the second Windows PC. Evidence recording and final go/no-go commands must be run from the real release repo root; the script copies inside the packet are reference copies, not a standalone repo.
+
+The latest packet was verified with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-final-operator-gate-packet.ps1 `
+  -PacketPath .local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260529-073523.zip `
+  -Json
+```
+
+Result: `ok=true`, `fail_count=0`, `kit_count=1`.
 
 This packet does not close the manual gates by itself. It exists so the operator can execute the two remaining external checks and return evidence without hunting across the repo.
 

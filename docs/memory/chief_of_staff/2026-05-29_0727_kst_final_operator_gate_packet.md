@@ -3,16 +3,19 @@
 Facts:
 
 - Added `scripts\windows\prepare-final-operator-gate-packet.ps1`.
+- Added `scripts\windows\verify-final-operator-gate-packet.ps1`.
 - The script builds a single handoff packet for the two remaining manual release gates:
   - real second-PC multi-device evidence
   - real `support@musu.pro` inbox delivery evidence
-- The packet includes release gate docs, recorder/verifier scripts, a support mailbox record template, `SHA256SUMS.txt`, and a fresh multi-device test kit unless `-SkipMultiDeviceKit` is passed.
+- The packet includes release gate docs, recorder/verifier scripts, the final packet verifier, a support mailbox record template, `SHA256SUMS.txt`, and a fresh multi-device test kit unless `-SkipMultiDeviceKit` is passed.
+- The packet README now states the execution boundary explicitly: copy only `kits\*.zip` to the second PC; run evidence recording and final go/no-go commands from the real release repo root.
 - Test run passed with `-SkipMultiDeviceKit -Json`.
 - Full test run passed with `-IncludeDesktopShell -Json`.
+- Final packet verification passed on the full packet with `ok=true`, `fail_count=0`, `kit_count=1`.
 
 Latest generated packet:
 
-- `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260529-072606.zip`
+- `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260529-073523.zip`
 
 Decision:
 
@@ -23,3 +26,4 @@ Canonical docs:
 
 - `docs/RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md`
 - `scripts\windows\prepare-final-operator-gate-packet.ps1`
+- `scripts\windows\verify-final-operator-gate-packet.ps1`

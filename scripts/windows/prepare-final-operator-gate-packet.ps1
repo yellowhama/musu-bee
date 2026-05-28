@@ -74,6 +74,7 @@ $scriptsToCopy = @(
     "verify-support-mailbox-evidence.ps1",
     "record-multidevice-evidence.ps1",
     "verify-multidevice-evidence.ps1",
+    "verify-final-operator-gate-packet.ps1",
     "write-release-candidate-manifest.ps1",
     "write-release-go-no-go.ps1"
 )
@@ -88,6 +89,12 @@ $readme = @'
 # MUSU __VERSION__ Final Operator Gate Packet
 
 This packet contains the remaining manual release gates for MUSU __VERSION__.
+
+Important execution boundary:
+
+- Copy only the zip under `kits\` to the second Windows PC.
+- Run all evidence recording and final go/no-go commands from the real MUSU release repo root, not from inside this packet directory.
+- The `scripts\windows\` files in this packet are reference copies for review/checksums. They are not a standalone release repo.
 
 Current machine-verifiable state before these gates:
 
@@ -115,13 +122,13 @@ Recommended subject:
 MUSU Store support verification __VERSION__
 ```
 
-After the message is visible in the actual support inbox, run this from the release repo root and fill the placeholders:
+After the message is visible in the actual support inbox, open PowerShell in the real MUSU release repo root and fill the placeholders:
 
 ```powershell
 __SUPPORT_COMMAND__
 ```
 
-Then run:
+Then run this from the real MUSU release repo root:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json
@@ -133,7 +140,7 @@ Expected result: `support_mailbox_verified=true`.
 
 Use the multi-device kit in `kits\` if this packet includes one. Copy it to the second Windows PC, unzip it, and follow its README.
 
-When the second-PC smoke creates `.local-build\multi-device\*.evidence.json`, return that file to the release repo and record it:
+When the second-PC smoke creates `.local-build\multi-device\*.evidence.json`, return that file to the real MUSU release repo and record it from the release repo root:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-multidevice-evidence.ps1 -EvidencePath .local-build\multi-device\<EVIDENCE_JSON>
@@ -143,7 +150,7 @@ Expected result: `multi_device_verified=true`.
 
 ## Final command
 
-After both gates:
+After both gates, run from the real MUSU release repo root:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-candidate-manifest.ps1
