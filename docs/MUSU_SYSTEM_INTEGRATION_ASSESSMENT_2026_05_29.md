@@ -26,7 +26,7 @@ The current MUSU desktop beta is trying to prove a narrow Windows trust/install 
 
 ## Repository Snapshot
 
-Checked via local Git clone on 2026-05-29. Rechecked again at 2026-05-29 07:52 KST from `F:\workspace\_external\musu-system`.
+Checked via local Git clone on 2026-05-29. Rechecked again at 2026-05-29 07:52 KST and 08:14 KST from `F:\workspace\_external\musu-system`.
 
 | Repo | HEAD | Time | State |
 |---|---|---:|---|
@@ -52,6 +52,16 @@ Fresh recheck on 2026-05-29 07:52 KST:
 - Local `go test ./...` passed in `core`, `crawl-ai`, `marketer`, and `nurikun`.
 - Local `go vet ./...` passed in the same four modules.
 - Latest remote runs on the monorepo HEAD are green: CI run `26587103682` and GHCR publish run `26587105434`.
+
+Fresh recheck on 2026-05-29 08:14 KST:
+
+- `gh repo view` confirms `yellowhama/musu-system` is still public, default branch `main`, pushed at 2026-05-29 01:15:45 KST.
+- `gh repo view` confirms `musu-crawl-ai` and `musu-marketer` are public split repos, while `musu-nurikun` is private; all three split repos still show the 2026-05-28 21:50 KST push window.
+- `git ls-remote` confirms `musu-system` HEAD/main remains `d4e58e010fe30e83c1e96165d75d7c3ec80a2f40`; split repo HEADs remain `f94b79b1cd8b81fd320e504318ea7dfd61d57596`, `5b3bd5c3c91cb3f68f964b70bca310a5bebfb88a`, and `4bed668f3b809cc9157ae8d28cce59b58ce8daa2`.
+- Active monorepo service tags remain `crawl-ai/v0.8.0`, `marketer/v2.0.5`, and `nurikun/v0.3.1`.
+- Latest branch CI on the monorepo HEAD remains green: run `26587103682`.
+- Local `git fetch --all --tags --prune` left `F:\workspace\_external\musu-system` clean and aligned with `origin/main`.
+- Local `go test ./...` and `go vet ./...` passed again in `core`, `crawl-ai`, `marketer`, and `nurikun`.
 
 Links:
 
@@ -139,6 +149,13 @@ The latest verification was run from `F:\workspace\_external\musu-system` agains
 - The prior "MCP schema is empty" concern is stale for current HEAD. `crawl-ai`, `marketer`, and `nurikun` now declare MCP arguments with `WithString`, `WithNumber`, `Required`, and `Enum` where relevant.
 - The prior SQLite cwd failure concern is partially closed for current HEAD. `marketer/internal/db` and `nurikun/internal/db` now create the parent DB directory before `sql.Open`.
 - Remaining adapter concern is not MCP schema; it is MUSU-managed context: explicit working directory, wiki root, project, model, and env injection.
+
+2026-05-29 08:14 KST recheck:
+
+- HEADs, tags, and repo visibility remain unchanged from the 07:52 KST assessment.
+- `go test ./...` and `go vet ./...` passed again in all four modules.
+- Spot audit still supports the same boundary: `nurikun` exposes safe MCP operations only and keeps `watch`, `campaign`, and `serve` outside MCP.
+- The surviving integration issue remains `nurikun watch` send-failure persistence plus MUSU-side adapter context management; no new blocker was found.
 
 ## Code Audit Notes
 
