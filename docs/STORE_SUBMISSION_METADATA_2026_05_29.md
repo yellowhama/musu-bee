@@ -96,6 +96,18 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\verify-store-public-met
   -BaseUrl http://127.0.0.1:3015
 ```
 
+Go/no-go command:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json
+```
+
+2026-05-29 live check:
+
+- `https://musu.pro/privacy` returned HTTP 200 but did not yet contain the new MUSU privacy policy content.
+- `https://musu.pro/support` returned HTTP 200 but did not yet contain the new MUSU support content.
+- Treat public metadata as **not deployed** until `verify-store-public-metadata.ps1 -BaseUrl https://musu.pro` passes.
+
 ## Official References
 
 - Microsoft Store Policies 7.19: https://learn.microsoft.com/en-us/windows/apps/publish/store-policies

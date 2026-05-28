@@ -119,6 +119,8 @@ Current Store path truth:
 - Store metadata handoff: `docs/STORE_SUBMISSION_METADATA_2026_05_29.md`
 - public privacy route exists at `/privacy`; public support route exists at `/support`
 - public metadata verifier exists at `scripts\windows\verify-store-public-metadata.ps1`
+- release go/no-go preflight exists at `scripts\windows\write-release-go-no-go.ps1`
+- 2026-05-29 live `musu.pro` check still fails expected privacy/support content; deploy public site before Partner Center submission
 - old 2026-05-27 package: template only (`1.13.0.0`, do not submit as current)
 - Tauri shell: dedicated static runtime launcher/status shell now builds to `musu-bee/out`, bundles as MSI/NSIS through `npm run tauri:build`, and is audited as `desktop_shell_ready=True`; it is still not the full dashboard GUI
 - Microsoft app certification: pending
@@ -157,8 +159,9 @@ Verified:
 
 - local clone of `musu-system` HEAD `d4e58e010fe30e83c1e96165d75d7c3ec80a2f40`
 - split repos cloned successfully; they are older transition/reference repos than `musu-system` HEAD
-- 2026-05-29 05:05 KST `git fetch origin main` confirmed all four recorded HEADs were unchanged/current
-- `go test ./core/... ./crawl-ai/... ./marketer/... ./nurikun/...` passed for `core`, `crawl-ai`, `marketer`, and `nurikun`
+- 2026-05-29 `git ls-remote ... HEAD` confirmed all four recorded HEADs were unchanged/current
+- observed monorepo release tags include `crawl-ai/v0.8.0`, `marketer/v2.0.5`, and `nurikun/v0.3.1`
+- `go test ./...` passed inside each `core`, `crawl-ai`, `marketer`, and `nurikun` module
 
 Canonical reference:
 

@@ -71,6 +71,7 @@ Passing foundation checks:
 - multi-device evidence verifier exists
 - multi-device evidence recorder exists
 - Store public metadata verifier exists
+- release go/no-go preflight exists
 - Store metadata basics exist: `/privacy`, `/support`, and `STORE_SUBMISSION_METADATA_2026_05_29.md`
 
 Additional verification run after metadata update:
@@ -93,6 +94,7 @@ These passed on 2026-05-29. Tauri `cargo check` generated `musu-bee/src-tauri/Ca
 - `npm run build` passed and prerendered `/privacy` and `/support` as static routes.
 - `scripts\windows\audit-desktop-release-readiness.ps1` now includes Store metadata checks for privacy route, support route, and Partner Center metadata doc.
 - `scripts\windows\verify-store-public-metadata.ps1 -BaseUrl http://127.0.0.1:3015 -Json` passed against local `next start`.
+- `scripts\windows\write-release-go-no-go.ps1 -Json` reports `local_artifacts_ready=true` and `ready_for_public_desktop_release=false`.
 
 Tauri build update:
 

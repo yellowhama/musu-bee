@@ -122,6 +122,12 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\verify-store-public-met
   -BaseUrl https://musu.pro
 ```
 
+For the full release decision matrix, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1
+```
+
 ## Store Listing Positioning
 
 Short English line:

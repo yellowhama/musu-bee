@@ -111,6 +111,7 @@ Store metadata:
 - privacy route: `musu-bee/src/app/privacy/page.tsx` -> `https://musu.pro/privacy`
 - support route: `musu-bee/src/app/support/page.tsx` -> `https://musu.pro/support`
 - public metadata verifier: `scripts\windows\verify-store-public-metadata.ps1`
+- release go/no-go preflight: `scripts\windows\write-release-go-no-go.ps1`
 - metadata handoff: `docs/STORE_SUBMISSION_METADATA_2026_05_29.md`
 - public deployment and mailbox verification still must be checked before Partner Center submission.
 
@@ -124,6 +125,7 @@ Desktop release audit:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\windows\audit-desktop-release-readiness.ps1
+powershell -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1
 ```
 
 Latest result:

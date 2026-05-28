@@ -166,22 +166,26 @@ Desktop release readiness audit:
 - release manifest script is present and was executed locally
 - metadata/build verification: `npm run typecheck` passed; `npm run build` passed and included static `/privacy` and `/support`; `npm run build:tauri-shell` passed; `cargo check --manifest-path .\musu-bee\src-tauri\Cargo.toml -j 1` passed; `npm run tauri:build` produced MSI and NSIS bundles
 - public metadata verifier: `scripts\windows\verify-store-public-metadata.ps1 -BaseUrl http://127.0.0.1:3015 -Json` passed against local `next start`
+- release go/no-go preflight: `scripts\windows\write-release-go-no-go.ps1 -Json` reports `local_artifacts_ready=true`, `ready_for_public_desktop_release=false`
+- live public metadata check: `https://musu.pro/privacy` and `/support` return HTTP 200 but do not yet contain the new expected content; deploy before Partner Center submission
 - render proof: Playwright captured `.local-build\tauri-shell-1280x800.png`
 - report: `docs/DESKTOP_RELEASE_READINESS_AUDIT_2026_05_29.md` (wiki/520)
 
 Indexing:
 
 - `musu indexer sync --work-dir . --name musu-bee`
-- latest result: `834 files`, `1897 symbols`
+- latest result: `835 files`, `1897 symbols`
 - search verification: query `multi-device release test` returns `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md`
 - search verification: query `smoke-single-machine-beta` returns `scripts/windows/smoke-single-machine-beta.ps1`
 - search verification: query `record-multidevice-evidence` returns `scripts/windows/record-multidevice-evidence.ps1`
 - search verification: query `Store submission metadata` returns `docs/STORE_SUBMISSION_METADATA_2026_05_29.md`
+- search verification: query `release go no go` returns `scripts/windows/write-release-go-no-go.ps1`
 
 Adjacent repo assessment:
 
 - `yellowhama/musu-system` cloned and reviewed
-- `go test ./...` passed for `core`, `crawl-ai`, `marketer`, and `nurikun`
+- `go test ./...` passed inside each `core`, `crawl-ai`, `marketer`, and `nurikun` module
+- observed monorepo release tags include `crawl-ai/v0.8.0`, `marketer/v2.0.5`, and `nurikun/v0.3.1`
 - decision recorded in `docs/MUSU_SYSTEM_INTEGRATION_ASSESSMENT_2026_05_29.md`
 
 ## Roadmap
@@ -203,6 +207,7 @@ P1 beta hardening:
 - Record returned evidence with `scripts\windows\record-multidevice-evidence.ps1` so audit can use `docs\evidence\multidevice\1.15.0-rc.1\*.evidence.json`.
 - Keep `scripts\windows\audit-desktop-release-readiness.ps1` as the release-readiness gate; do not claim public multi-device desktop release until the second-PC evidence lands.
 - Deploy and verify `https://musu.pro/privacy` and `https://musu.pro/support` with `verify-store-public-metadata.ps1`; verify `support@musu.pro` before Partner Center submission.
+- Use `write-release-go-no-go.ps1` as the final pre-submission operator gate.
 
 P2 product hardening:
 

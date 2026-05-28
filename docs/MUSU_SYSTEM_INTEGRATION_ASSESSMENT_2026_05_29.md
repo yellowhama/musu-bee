@@ -20,7 +20,7 @@ The current MUSU desktop beta is trying to prove a narrow Windows trust/install 
 
 ## Repository Snapshot
 
-Checked via local Git clone on 2026-05-29.
+Checked via local Git clone on 2026-05-29. Rechecked at 2026-05-29 05:42 KST from `F:\workspace\external\musu-system`.
 
 | Repo | HEAD | Time | State |
 |---|---|---:|---|
@@ -42,6 +42,8 @@ Interpretation:
 - The three split repos remain useful as reference/transition mirrors, but should not be developed in parallel long-term.
 - Monorepo README explicitly says the repo was consolidated from the four prior repos on 2026-05-28 and that legacy repos are kept as a short observation-window reference.
 - Treat older agent notes that discuss only the split repos as stale unless they are reconciled against `musu-system` HEAD.
+- Current monorepo release tags observed: `crawl-ai/v0.8.0`, `marketer/v2.0.5`, and `nurikun/v0.3.1`.
+- The split repos still resolve at the recorded HEADs, but `musu-system` already contains newer consolidated changes such as `nurikun(v0.3.1): block placeholder sender_identity from sending`.
 
 ## What `musu-system` Contains
 
@@ -65,10 +67,14 @@ That maps well to MUSU's company/agent thesis, but it is an application layer, n
 
 ## Verification
 
-Local Go tests passed:
+Local Go tests passed with the monorepo `go.work` modules tested one by one:
 
 ```powershell
-go test ./core/... ./crawl-ai/... ./marketer/... ./nurikun/...
+foreach ($d in @('core','crawl-ai','marketer','nurikun')) {
+  Push-Location $d
+  go test ./...
+  Pop-Location
+}
 ```
 
 Observed:
@@ -80,12 +86,12 @@ Observed:
 
 This is enough to treat the repo as a credible integration candidate.
 
-The verification was run from `F:\workspace\tmp\musu-system-latest` against HEAD `d4e58e010fe30e83c1e96165d75d7c3ec80a2f40`.
+The latest verification was run from `F:\workspace\external\musu-system` against HEAD `d4e58e010fe30e83c1e96165d75d7c3ec80a2f40`.
 
 2026-05-29 recheck:
 
 - `musu-system`, `musu-crawl-ai`, `musu-marketer`, and private `musu-nurikun` all cloned successfully.
-- 2026-05-29 05:05 KST `git fetch origin main` confirmed the recorded HEADs are still current for all four repos.
+- 2026-05-29 `git ls-remote ... HEAD` confirmed the recorded HEADs are still current for all four repos.
 - The split repos are behind the monorepo HEAD in this audit; treat them as transition/reference repos unless a deliberate split-release reason appears.
 - Monorepo HEAD includes a newer `nurikun` compliance hardening commit: `nurikun(v0.3.1): block placeholder sender_identity from sending`.
 
