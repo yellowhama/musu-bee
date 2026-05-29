@@ -232,7 +232,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | — | 1.15.0-rc.1 beta release checklist and smoke evidence | 2026-05-29 | `BETA_RELEASE_CHECKLIST_1_15_0_RC1.md` | active |
 | — | 1.15.0-rc.1 final operator gates | 2026-05-29 | `RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md` | active |
 | — | MUSU Microsoft Store release run card | 2026-05-29 | `MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md` | active |
-| — | 1.15.0-rc.1 single-machine evidence | 2026-05-29 | `evidence/single-machine/1.15.0-rc.1/20260529-121456-HUGH_SECOND.evidence.json` | complete |
+| — | 1.15.0-rc.1 single-machine evidence | 2026-05-29 | `evidence/single-machine/1.15.0-rc.1/20260529-125448-HUGH_SECOND.evidence.json` | complete |
 | — | Final operator gate packet generator/verifier/completion runner/status | 2026-05-29 | `scripts/windows/prepare-final-operator-gate-packet.ps1`, `scripts/windows/verify-final-operator-gate-packet.ps1`, `scripts/windows/complete-final-operator-gates.ps1`, `scripts/windows/show-final-release-handoff-status.ps1` | active |
 | — | MSIX install evidence capture/verifier/recorder | 2026-05-29 | `scripts/windows/capture-msix-install-evidence.ps1`, `scripts/windows/verify-msix-install-evidence.ps1`, `scripts/windows/record-msix-install-evidence.ps1` | active |
 | — | Second-PC handoff collector | 2026-05-29 | `scripts/windows/collect-second-pc-handoff.ps1` | active |
@@ -265,6 +265,8 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | — | CoS memory note — current single-machine evidence and musu-system recheck | 2026-05-29 | `memory/chief_of_staff/2026-05-29_1155_kst_current_single_machine_and_musu_system_recheck.md` | active |
 | — | CoS memory note — Store release run card | 2026-05-29 | `memory/chief_of_staff/2026-05-29_1215_kst_store_release_run_card.md` | active |
 | — | CoS memory note — Store run card packet and single-machine refresh | 2026-05-29 | `memory/chief_of_staff/2026-05-29_1216_kst_store_run_card_packet_and_single_machine_refresh.md` | active |
+| — | CoS memory note — musu-system 12:41 recheck | 2026-05-29 | `memory/chief_of_staff/2026-05-29_1241_kst_musu_system_recheck.md` | active |
+| — | CoS memory note — PowerShell capture and single-machine refresh | 2026-05-29 | `memory/chief_of_staff/2026-05-29_1255_kst_powershell_capture_and_single_machine_refresh.md` | active |
 
 State lock: `1.15.0-rc.1` is beta-ready for the single-machine Windows local operator path (`musu up` → dashboard doctor → Claude task smoke). A repeatable single-machine smoke script now passes. Multi-device test kit generation now works, but clean/current second-PC MSIX install evidence and two-machine validation are still pending. Runtime/MSIX package readiness is true for submission attempt; the dedicated Tauri static launcher/status shell now builds, renders, and bundles, but it is not the full dashboard GUI.
 
