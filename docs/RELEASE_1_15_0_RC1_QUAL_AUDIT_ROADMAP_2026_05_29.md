@@ -134,7 +134,7 @@ Repeatable script smoke:
 - dashboard output: `MUSU_SCRIPT_SMOKE_OK`
 - CLI route output: `MUSU_SCRIPT_CLI_OK`
 - fresh 2026-05-29 06:52 KST evidence on commit `f9ae873`: dashboard task `b4b05b93-34d2-4946-b4cd-fdd5c5c6632d`, dashboard output `MUSU_RELEASE_SMOKE_OK_20260529_0652`, CLI route `MUSU_CLI_ROUTE_OK_20260529_0652`
-- machine-readable 2026-05-29 07:04 KST evidence on commit `129b06b`: `docs\evidence\single-machine\1.15.0-rc.1\20260529-070403-HUGH_SECOND.evidence.json`, dashboard task `b772a958-ded9-4cb1-a180-98ca75c9b91f`, dashboard output `MUSU_RELEASE_SMOKE_OK_20260529_0705`, CLI route `MUSU_CLI_ROUTE_OK_20260529_0705`
+- current machine-readable 2026-05-29 11:49 KST evidence on commit `a3ace02`: `docs\evidence\single-machine\1.15.0-rc.1\20260529-114932-HUGH_SECOND.evidence.json`, dashboard task `e97cec87-c10a-48e4-acfa-5052a6485320`, dashboard output `MUSU_RELEASE_SMOKE_OK_20260529_1149`, CLI route `MUSU_CLI_ROUTE_OK_20260529_1149`
 
 Multi-device preparation:
 
@@ -180,7 +180,7 @@ Desktop release readiness audit:
 Indexing:
 
 - `musu indexer sync --work-dir . --name musu-bee`
-- latest result: `881 files`, `1897 symbols`
+- latest result: `885 files`, `1897 symbols`
 - search verification: query `multi-device release test` returns `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md`
 - search verification: query `smoke-single-machine-beta` returns `scripts/windows/smoke-single-machine-beta.ps1`
 - search verification: query `record-multidevice-evidence` returns `scripts/windows/record-multidevice-evidence.ps1`
@@ -205,7 +205,10 @@ Indexing:
 - search verification: query `musu-system recheck` returns `docs/memory/chief_of_staff/2026-05-29_0645_kst_musu_system_recheck.md`
 - search verification: query `0919 musu system recheck` returns `docs/memory/chief_of_staff/2026-05-29_0919_kst_musu_system_recheck.md`
 - search verification: query `single machine evidence gate` returns `docs/memory/chief_of_staff/2026-05-29_0710_kst_single_machine_evidence_gate.md`
-- search verification: query `MUSU_RELEASE_SMOKE_OK_20260529_0705` returns `docs/evidence/single-machine/1.15.0-rc.1/20260529-070403-HUGH_SECOND.evidence.json`
+- search verification: query `MUSU_RELEASE_SMOKE_OK_20260529_1149` returns `docs/evidence/single-machine/1.15.0-rc.1/20260529-114932-HUGH_SECOND.evidence.json`
+- search verification: query `current single machine evidence` returns `docs/memory/chief_of_staff/2026-05-29_1155_kst_current_single_machine_and_musu_system_recheck.md`
+- search verification: query `musu system 1155` returns `docs/memory/chief_of_staff/2026-05-29_1155_kst_current_single_machine_and_musu_system_recheck.md`
+- search verification: query `timeout safe process` returns `docs/memory/chief_of_staff/2026-05-29_1155_kst_current_single_machine_and_musu_system_recheck.md`
 - final operator gates doc: `docs/RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md`
 
 Adjacent repo assessment:
@@ -214,6 +217,7 @@ Adjacent repo assessment:
 - 2026-05-29 06:43 KST recheck: `go test ./...` and `go vet ./...` passed inside each `core`, `crawl-ai`, `marketer`, and `nurikun` module
 - 2026-05-29 07:52 KST recheck: `go test ./...` and `go vet ./...` passed again; latest monorepo CI and GHCR publish runs are green
 - 2026-05-29 09:19 KST recheck: `go test ./...` and `go vet ./...` passed again in all four `musu-system` modules; monorepo HEAD, split repo HEADs, active tags, CI, and GHCR publish status remain unchanged/green
+- 2026-05-29 11:55 KST recheck: public `musu-system` HEAD, split repo HEADs, and active tags remain unchanged; local `go test ./...` and `go vet ./...` passed again in `core`, `crawl-ai`, `marketer`, and `nurikun`
 - observed monorepo release tags include `crawl-ai/v0.8.0`, `marketer/v2.0.5`, and `nurikun/v0.3.1`
 - decision recorded in `docs/MUSU_SYSTEM_INTEGRATION_ASSESSMENT_2026_05_29.md`
 - spot audit: current HEAD already fixes MCP schemas and marketer/nurikun DB parent creation; `nurikun` delivery ops are CLI-only, not MCP-exposed; fix/wrap `watch` send-failure persistence before dashboard integration
