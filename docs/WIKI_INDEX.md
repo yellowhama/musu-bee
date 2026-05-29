@@ -271,6 +271,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | — | CoS memory note — support email correction | 2026-05-29 | `memory/chief_of_staff/2026-05-29_1331_kst_support_email_correction.md` | active |
 | — | CoS memory note — support email and single-machine refresh | 2026-05-29 | `memory/chief_of_staff/2026-05-29_1338_kst_support_email_and_single_machine_refresh.md` | active |
 | — | CoS memory note — operator handoff card | 2026-05-29 | `memory/chief_of_staff/2026-05-29_1346_kst_operator_handoff_card.md` | active |
+| — | CoS memory note — operator card single-machine refresh | 2026-05-29 | `memory/chief_of_staff/2026-05-29_1352_kst_operator_card_single_machine_refresh.md` | active |
 
 State lock: `1.15.0-rc.1` is beta-ready for the single-machine Windows local operator path (`musu up` → dashboard doctor → Claude task smoke). A repeatable single-machine smoke script now passes. Multi-device test kit generation now works, but clean/current second-PC MSIX install evidence and two-machine validation are still pending. Runtime/MSIX package readiness is true for submission attempt; the dedicated Tauri static launcher/status shell now builds, renders, and bundles, but it is not the full dashboard GUI. The release support mailbox is `musu@musu.pro`, sourced from root `SUPPORT_EMAIL`.
 
