@@ -183,6 +183,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-fin
   -StoreRestrictedCapabilityStatus "approved" `
   -StoreRecordedBy "<operator-name>" `
   -StoreNotes "Microsoft Store certification and restricted capability review approved" `
+  -FailOnNotReady `
   -Json
 "@
     go_no_go = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json"

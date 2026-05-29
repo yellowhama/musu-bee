@@ -261,14 +261,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-fin
   -StoreRestrictedCapabilityStatus "approved" `
   -StoreRecordedBy "<operator-name>" `
   -StoreNotes "Microsoft Store certification and restricted capability review approved" `
+  -FailOnNotReady `
   -Json
 ```
 
 The runner records MSIX install, multi-device, support mailbox, and Store release evidence,
 regenerates the release candidate manifest, and then runs the final go/no-go
-check. If evidence has already been recorded separately, it is also valid to run
-`write-release-candidate-manifest.ps1` and `write-release-go-no-go.ps1 -Json`
-directly.
+check. `-FailOnNotReady` makes this command exit non-zero if any release blocker
+remains. If evidence has already been recorded separately, it is also valid to
+run `write-release-candidate-manifest.ps1` and
+`write-release-go-no-go.ps1 -FailOnNotReady -Json` directly.
 
 The release is ready for public desktop release only when:
 
