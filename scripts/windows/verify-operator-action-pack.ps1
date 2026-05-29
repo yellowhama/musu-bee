@@ -138,6 +138,39 @@ try {
                 Add-CheckFromCondition "second-pc transfer quickstart" ($entries -contains "SECOND_PC_QUICKSTART_CURRENT.txt") "second-PC transfer includes quickstart" "second-PC transfer missing quickstart"
                 $nestedKit = @($entries | Where-Object { $_ -like "musu-multidevice-*.zip" })
                 Add-CheckFromCondition "second-pc transfer kit" ($nestedKit.Count -eq 1) "second-PC transfer includes one kit zip" "second-PC transfer missing nested kit zip"
+                if ($nestedKit.Count -eq 1) {
+                    $nestedKitEntry = $archive.GetEntry($nestedKit[0])
+                    if ($nestedKitEntry) {
+                        $nestedStream = $nestedKitEntry.Open()
+                        try {
+                            $nestedArchive = [System.IO.Compression.ZipArchive]::new($nestedStream, [System.IO.Compression.ZipArchiveMode]::Read)
+                            try {
+                                $nestedEntries = @($nestedArchive.Entries | ForEach-Object { $_.FullName -replace "/", "\" })
+                                Add-CheckFromCondition "second-pc nested kit wrapper" ($nestedEntries -contains "scripts\windows\run-second-pc-release-check.ps1") "nested kit includes run-second-pc-release-check.ps1" "nested kit missing run-second-pc-release-check.ps1"
+                                $kitReadmeEntry = $nestedArchive.Entries | Where-Object { $_.FullName -eq "README_MULTI_DEVICE_TEST_KIT.md" } | Select-Object -First 1
+                                if ($kitReadmeEntry) {
+                                    $reader = [System.IO.StreamReader]::new($kitReadmeEntry.Open())
+                                    try {
+                                        $kitReadme = $reader.ReadToEnd()
+                                    }
+                                    finally {
+                                        $reader.Dispose()
+                                    }
+                                    Add-CheckFromCondition "second-pc nested kit README wrapper" ($kitReadme -like "*run-second-pc-release-check.ps1*" -and $kitReadme -like "*.release-check.json*") "nested kit README explains release-check wrapper" "nested kit README missing release-check wrapper instructions"
+                                }
+                                else {
+                                    Add-Check "second-pc nested kit README" "fail" "nested kit is missing README_MULTI_DEVICE_TEST_KIT.md"
+                                }
+                            }
+                            finally {
+                                $nestedArchive.Dispose()
+                            }
+                        }
+                        finally {
+                            $nestedStream.Dispose()
+                        }
+                    }
+                }
             }
             finally {
                 $archive.Dispose()

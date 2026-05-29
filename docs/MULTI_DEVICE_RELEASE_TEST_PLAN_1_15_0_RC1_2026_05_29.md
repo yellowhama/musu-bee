@@ -30,6 +30,7 @@ The kit contains:
 - the public signing certificate only (`.cer`; no `.pfx` private key)
 - MSIX install/verify scripts
 - second-PC handoff collector (`collect-second-pc-handoff.ps1`)
+- second-PC one-command release check (`run-second-pc-release-check.ps1`)
 - the multi-device smoke script
 - the multi-device evidence verifier
 - this runbook
@@ -86,7 +87,19 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\record-multidevice-evid
 
 ## Setup Steps
 
-Run on both machines:
+Run on the second PC from the extracted kit, preferred path:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1
+```
+
+If certificate trust fails during sideload install, rerun the wrapper from elevated PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -MachineTrust
+```
+
+Manual fallback on both machines:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\windows\check-msix-sideload-readiness.ps1
@@ -108,6 +121,7 @@ Record from each machine:
 
 - MSIX install evidence JSON from `.local-build\msix-install\*.evidence.json`
 - second-PC handoff JSON from `.local-build\second-pc-handoff\*.handoff.json`
+- second-PC release-check summary from `.local-build\second-pc-release-check\*.release-check.json`
 - one `suggested_remote_addrs` value from the handoff JSON
 - hostname/node name from `musu status`
 - whether `doctor.overall` is `ok` or `warn`

@@ -133,20 +133,29 @@ Copy this inner zip to the second Windows PC:
 On the second PC:
 1. Extract $($kitZip.Name) into a normal writable folder, for example Downloads\musu-multidevice.
 2. Open PowerShell in the extracted folder.
-3. Run these commands:
+3. Run this one-command release check:
+
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1
+
+If certificate trust fails, rerun the one-command check from elevated PowerShell with -MachineTrust:
+
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -MachineTrust
+
+Manual fallback:
 
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\check-msix-sideload-readiness.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix.ps1 -StartupContract local-sideload-manual -ReplaceExisting
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-evidence.ps1 -StartupContract local-sideload-manual
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\collect-second-pc-handoff.ps1
 
-If certificate trust fails, rerun the install command from elevated PowerShell with -MachineTrust:
+If certificate trust fails during manual fallback, rerun the install command from elevated PowerShell with -MachineTrust:
 
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix.ps1 -StartupContract local-sideload-manual -ReplaceExisting -MachineTrust
 
 Return these files/folders to the primary repo:
 - .local-build\msix-install\*.evidence.json
 - .local-build\second-pc-handoff\*.handoff.json
+- .local-build\second-pc-release-check\*.release-check.json
 
 After the handoff JSON is returned, run this on the primary PC:
 

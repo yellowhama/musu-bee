@@ -55,6 +55,7 @@ $scriptFiles = @(
     "verify-installed-msix-package.ps1",
     "capture-msix-install-evidence.ps1",
     "collect-second-pc-handoff.ps1",
+    "run-second-pc-release-check.ps1",
     "verify-msix-install-evidence.ps1",
     "record-msix-install-evidence.ps1",
     "verify-multidevice-evidence.ps1",
@@ -96,6 +97,27 @@ No private signing key is included.
 ## On each Windows PC
 
 Open PowerShell in this kit directory.
+
+Recommended one-command path:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1
+```
+
+If certificate trust fails, rerun the one-command check from an elevated
+PowerShell with machine trust:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -MachineTrust
+```
+
+The wrapper runs the same steps below, writes
+`.local-build\msix-install\*.evidence.json`,
+`.local-build\second-pc-handoff\*.handoff.json`, and
+`.local-build\second-pc-release-check\*.release-check.json`, then prints the
+files to return to the primary release repo.
+
+Manual fallback:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\windows\check-msix-sideload-readiness.ps1

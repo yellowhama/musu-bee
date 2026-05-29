@@ -42,6 +42,12 @@ Extract it, then copy only the zip under `kits\` to the second Windows PC.
 On the second PC, unzip the kit and run:
 
 ```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1
+```
+
+Manual fallback:
+
+```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix.ps1 -StartupContract local-sideload-manual -ReplaceExisting
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-evidence.ps1 -StartupContract local-sideload-manual
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\collect-second-pc-handoff.ps1
@@ -51,6 +57,7 @@ Return these files to the primary release repo:
 
 - `.local-build\msix-install\*.evidence.json`
 - `.local-build\second-pc-handoff\*.handoff.json`
+- `.local-build\second-pc-release-check\*.release-check.json`
 
 After returning the files, generate the exact primary-side commands from the
 handoff JSON:

@@ -295,6 +295,7 @@ try {
                     "scripts\windows\install-and-verify-msix.ps1",
                     "scripts\windows\capture-msix-install-evidence.ps1",
                     "scripts\windows\collect-second-pc-handoff.ps1",
+                    "scripts\windows\run-second-pc-release-check.ps1",
                     "scripts\windows\smoke-multidevice-beta.ps1",
                     "scripts\windows\verify-msix-install-evidence.ps1",
                     "scripts\windows\record-msix-install-evidence.ps1",
@@ -314,6 +315,11 @@ try {
                     ($entries -contains "scripts\windows\collect-second-pc-handoff.ps1") `
                     "kit contains collect-second-pc-handoff.ps1" `
                     "kit is missing collect-second-pc-handoff.ps1"
+                Add-CheckFromCondition `
+                    "kit second-PC wrapper: $($kitZip.Name)" `
+                    ($entries -contains "scripts\windows\run-second-pc-release-check.ps1") `
+                    "kit contains run-second-pc-release-check.ps1" `
+                    "kit is missing run-second-pc-release-check.ps1"
 
                 $readmeEntry = $archive.Entries | Where-Object { $_.FullName -eq "README_MULTI_DEVICE_TEST_KIT.md" } | Select-Object -First 1
                 if ($readmeEntry) {
@@ -331,7 +337,7 @@ try {
                         "kit README does not explain second-PC handoff helper"
                     Add-CheckFromCondition `
                         "kit readme install evidence: $($kitZip.Name)" `
-                        ($kitReadme -like "*install-and-verify-msix.ps1*" -and $kitReadme -like "*capture-msix-install-evidence.ps1*" -and $kitReadme -like "*.local-build\msix-install\*.evidence.json*") `
+                        ($kitReadme -like "*install-and-verify-msix.ps1*" -and $kitReadme -like "*capture-msix-install-evidence.ps1*" -and $kitReadme -like "*run-second-pc-release-check.ps1*" -and $kitReadme -like "*.local-build\msix-install\*.evidence.json*") `
                         "kit README explains MSIX install evidence capture" `
                         "kit README does not explain MSIX install evidence capture"
                     Add-CheckFromCondition `

@@ -169,14 +169,26 @@ Use the multi-device kit inside the latest final operator packet, or the newest 
 On the second Windows machine:
 
 1. unzip the kit
-2. run the included MSIX install/verify script
-3. capture install evidence:
+2. run the preferred one-command release check:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-evidence.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1
 ```
 
-Return the generated `.local-build\msix-install\*.evidence.json` file to the release repo and record it:
+If certificate trust fails, rerun from elevated PowerShell with `-MachineTrust`.
+
+Manual fallback:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix.ps1 -StartupContract local-sideload-manual -ReplaceExisting
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-evidence.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\collect-second-pc-handoff.ps1
+```
+
+Return the generated `.local-build\msix-install\*.evidence.json`,
+`.local-build\second-pc-handoff\*.handoff.json`, and
+`.local-build\second-pc-release-check\*.release-check.json` files to the
+release repo and record the install evidence:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-msix-install-evidence.ps1 `

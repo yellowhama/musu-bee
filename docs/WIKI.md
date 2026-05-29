@@ -101,7 +101,8 @@ Microsoft Store run card:
 Multi-device state:
 
 - `scripts\windows\smoke-multidevice-beta.ps1` exists for the second-PC test.
-- `scripts\windows\prepare-multidevice-test-kit.ps1` builds a second-PC install/test zip with MSIX, public `.cer`, scripts, checksums, evidence verifier, and optional desktop shell bundles.
+- `scripts\windows\prepare-multidevice-test-kit.ps1` builds a second-PC install/test zip with MSIX, public `.cer`, scripts, checksums, evidence verifier, second-PC one-command release check wrapper, and optional desktop shell bundles.
+- `scripts\windows\run-second-pc-release-check.ps1` runs sideload readiness, MSIX install/verify, install evidence capture, and second-PC handoff collection from the extracted kit.
 - `scripts\windows\capture-msix-install-evidence.ps1` captures second-PC package install, WindowsApps alias, startup contract, and legacy-conflict proof; `verify-msix-install-evidence.ps1` and `record-msix-install-evidence.ps1` validate and archive it.
 - `smoke-multidevice-beta.ps1` now writes `musu.multidevice_smoke_evidence.v1` with release version, operator machine, and started/completed timestamps.
 - `scripts\windows\verify-multidevice-evidence.ps1` validates the returned smoke evidence before release status changes.

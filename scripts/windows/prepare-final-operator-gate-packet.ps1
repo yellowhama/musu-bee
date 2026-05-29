@@ -222,15 +222,29 @@ Expected result: `support_mailbox_verified=true`.
 ## Gate B - Second-PC MSIX install evidence
 
 Use the multi-device kit in `kits\` if this packet includes one. Copy it to the
-second Windows PC, unzip it, and follow its README. After
-`install-and-verify-msix.ps1` succeeds, run this inside the unzipped kit:
+second Windows PC, unzip it, and follow its README. Preferred path inside the
+unzipped kit:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1
+```
+
+If certificate trust fails, rerun from elevated PowerShell with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -MachineTrust
+```
+
+Manual fallback after `install-and-verify-msix.ps1` succeeds:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-evidence.ps1
 ```
 
-Return the generated `.local-build\msix-install\*.evidence.json` file to the
-real MUSU release repo and record it from the release repo root:
+Return the generated `.local-build\msix-install\*.evidence.json`,
+`.local-build\second-pc-handoff\*.handoff.json`, and
+`.local-build\second-pc-release-check\*.release-check.json` files to the real
+MUSU release repo and record install evidence from the release repo root:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-msix-install-evidence.ps1 -EvidencePath .local-build\msix-install\<INSTALL_EVIDENCE_JSON>

@@ -74,14 +74,23 @@ Copy only the zip inside `kits\` to the second Windows PC. Do not copy the whole
 On the second Windows PC, unzip the kit and run:
 
 ```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1
+```
+
+If certificate trust fails, rerun from elevated PowerShell with `-MachineTrust`.
+
+Manual fallback:
+
+```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix.ps1 -StartupContract local-sideload-manual -ReplaceExisting
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-evidence.ps1 -StartupContract local-sideload-manual
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\collect-second-pc-handoff.ps1
 ```
 
 Return the generated `.local-build\msix-install\*.evidence.json` file and
-`.local-build\second-pc-handoff\*.handoff.json` file to the release repo. Record
-the install evidence:
+`.local-build\second-pc-handoff\*.handoff.json` file to the release repo. Also
+return `.local-build\second-pc-release-check\*.release-check.json` when using
+the wrapper. Record the install evidence:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-msix-install-evidence.ps1 `

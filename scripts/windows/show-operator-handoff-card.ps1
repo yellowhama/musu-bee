@@ -76,6 +76,7 @@ try {
     }
 
     $secondPcCommands = @(
+        "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1",
         "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix.ps1 -StartupContract local-sideload-manual -ReplaceExisting",
         "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-evidence.ps1 -StartupContract local-sideload-manual",
         "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\collect-second-pc-handoff.ps1"
@@ -99,6 +100,7 @@ try {
         return_files = @(
             ".local-build\msix-install\*.evidence.json",
             ".local-build\second-pc-handoff\*.handoff.json",
+            ".local-build\second-pc-release-check\*.release-check.json",
             ".local-build\multi-device\*.evidence.json"
         )
         remaining_evidence_gates = @(
