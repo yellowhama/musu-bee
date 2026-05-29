@@ -6,7 +6,7 @@ Facts:
 - `scripts/windows/record-support-mailbox-verification.ps1` now records operator-verified delivery evidence under `docs/evidence/support-mailbox/<version>/`.
 - `scripts/windows/verify-support-mailbox-evidence.ps1` validates schema, support email, verification ID, sender, receiver, timestamps, delivery order, and age.
 - `scripts/windows/write-release-go-no-go.ps1` now auto-detects valid `*.evidence.json` under `docs/evidence/support-mailbox/<version>/` or `.local-build/support-mailbox/`.
-- The old `-AssumeSupportMailboxVerified` override still exists, but the preferred release path is evidence-backed verification.
+- The old `-AssumeSupportMailboxVerified` override has been removed; the release path is evidence-backed verification only.
 - `Resolve-DnsName -Type MX musu.pro` returns `smtp.google.com`, so DNS routing exists but delivery still needs an inbox receipt.
 
 Verification:

@@ -2,7 +2,6 @@
 param(
     [string]$PublicMetadataBaseUrl = "https://musu.pro",
     [switch]$SkipPublicMetadata,
-    [switch]$AssumeSupportMailboxVerified,
     [switch]$FailOnNotReady,
     [switch]$Json
 )
@@ -90,7 +89,7 @@ if (-not $SkipPublicMetadata) {
         -AllowFailure
 }
 
-$supportMailboxVerified = [bool]$AssumeSupportMailboxVerified
+$supportMailboxVerified = $false
 $supportMailboxEvidence = $null
 $supportMailboxEvidenceCandidate = $null
 if (-not $supportMailboxVerified) {
