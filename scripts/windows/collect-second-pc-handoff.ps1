@@ -86,41 +86,62 @@ function Invoke-TextCommand {
         [Parameter(Mandatory = $true)][string[]]$Arguments
     )
 
-    $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
-    $startInfo.FileName = $FilePath
-    $startInfo.Arguments = ConvertTo-ProcessArgumentString -Items $Arguments
-    $startInfo.RedirectStandardOutput = $true
-    $startInfo.RedirectStandardError = $true
-    $startInfo.UseShellExecute = $false
-    $startInfo.CreateNoWindow = $true
+    $tempRoot = [System.IO.Path]::GetTempPath()
+    $commandId = [guid]::NewGuid().ToString("N")
+    $stdoutPath = Join-Path $tempRoot "musu-handoff-$commandId.stdout.log"
+    $stderrPath = Join-Path $tempRoot "musu-handoff-$commandId.stderr.log"
+    $exitPath = Join-Path $tempRoot "musu-handoff-$commandId.exit.txt"
+    $job = $null
 
-    $process = [System.Diagnostics.Process]::Start($startInfo)
-    if (-not $process.WaitForExit($CommandTimeoutSec * 1000)) {
-        try {
-            $process.Kill()
+    try {
+        $job = Start-Job -ScriptBlock {
+            param(
+                [string]$CommandPath,
+                [string[]]$CommandArguments,
+                [string]$StdoutPath,
+                [string]$StderrPath,
+                [string]$ExitPath
+            )
+
+            & $CommandPath @CommandArguments > $StdoutPath 2> $StderrPath
+            $code = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }
+            Set-Content -LiteralPath $ExitPath -Value ([string]$code)
+        } -ArgumentList $FilePath, $Arguments, $stdoutPath, $stderrPath, $exitPath
+
+        if (-not (Wait-Job -Job $job -Timeout $CommandTimeoutSec)) {
+            Stop-Job -Job $job -ErrorAction SilentlyContinue
+            throw "command timed out after ${CommandTimeoutSec}s: $FilePath $($Arguments -join ' ')"
         }
-        catch {
+
+        Receive-Job -Job $job -ErrorAction Stop | Out-Null
+
+        $stdout = if (Test-Path -LiteralPath $stdoutPath) { Get-Content -LiteralPath $stdoutPath -Raw } else { "" }
+        $stderr = if (Test-Path -LiteralPath $stderrPath) { Get-Content -LiteralPath $stderrPath -Raw } else { "" }
+        $text = @($stdout, $stderr) -join ""
+        $text = $text.Trim()
+
+        $exitCodeText = if (Test-Path -LiteralPath $exitPath) { (Get-Content -LiteralPath $exitPath -Raw).Trim() } else { "1" }
+        $exitCode = [int]$exitCodeText
+
+        $commands.Add([pscustomobject]@{
+            command = "musu $($Arguments -join ' ')"
+            exit_code = $exitCode
+            output = $text
+            completed_at = (Get-Date).ToString("o")
+        }) | Out-Null
+
+        if ($exitCode -ne 0) {
+            throw "musu command failed with exit code ${exitCode}: $($Arguments -join ' ')`n$text"
         }
-        throw "command timed out after ${CommandTimeoutSec}s: $FilePath $($Arguments -join ' ')"
+
+        return $text
     }
-
-    $stdout = $process.StandardOutput.ReadToEnd()
-    $stderr = $process.StandardError.ReadToEnd()
-    $text = @($stdout, $stderr) -join ""
-    $text = $text.Trim()
-
-    $commands.Add([pscustomobject]@{
-        command = "musu $($Arguments -join ' ')"
-        exit_code = $process.ExitCode
-        output = $text
-        completed_at = (Get-Date).ToString("o")
-    }) | Out-Null
-
-    if ($process.ExitCode -ne 0) {
-        throw "musu command failed with exit code $($process.ExitCode): $($Arguments -join ' ')`n$text"
+    finally {
+        if ($null -ne $job) {
+            Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
+        }
+        Remove-Item -LiteralPath $stdoutPath, $stderrPath, $exitPath -Force -ErrorAction SilentlyContinue
     }
-
-    return $text
 }
 
 function Resolve-MusuExePath {

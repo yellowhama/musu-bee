@@ -70,37 +70,59 @@ function Invoke-TextCommand {
         }) -join " "
     }
 
-    $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
-    $startInfo.FileName = $FilePath
-    $startInfo.Arguments = ConvertTo-ProcessArgumentString -Items $Arguments
-    $startInfo.RedirectStandardOutput = $true
-    $startInfo.RedirectStandardError = $true
-    $startInfo.UseShellExecute = $false
-    $startInfo.CreateNoWindow = $true
+    $tempRoot = [System.IO.Path]::GetTempPath()
+    $commandId = [guid]::NewGuid().ToString("N")
+    $stdoutPath = Join-Path $tempRoot "musu-smoke-$commandId.stdout.log"
+    $stderrPath = Join-Path $tempRoot "musu-smoke-$commandId.stderr.log"
+    $exitPath = Join-Path $tempRoot "musu-smoke-$commandId.exit.txt"
+    $job = $null
 
-    $process = [System.Diagnostics.Process]::Start($startInfo)
-    if (-not $process.WaitForExit($TimeoutSec * 1000)) {
-        try {
-            $process.Kill()
+    try {
+        $job = Start-Job -ScriptBlock {
+            param(
+                [string]$CommandPath,
+                [string[]]$CommandArguments,
+                [string]$StdoutPath,
+                [string]$StderrPath,
+                [string]$ExitPath
+            )
+
+            & $CommandPath @CommandArguments > $StdoutPath 2> $StderrPath
+            $code = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }
+            Set-Content -LiteralPath $ExitPath -Value ([string]$code)
+        } -ArgumentList $FilePath, $Arguments, $stdoutPath, $stderrPath, $exitPath
+
+        if (-not (Wait-Job -Job $job -Timeout $TimeoutSec)) {
+            Stop-Job -Job $job -ErrorAction SilentlyContinue
+            throw "command timed out after ${TimeoutSec}s: $FilePath $($Arguments -join ' ')"
         }
-        catch {
+
+        Receive-Job -Job $job -ErrorAction Stop | Out-Null
+
+        $stdoutRaw = if (Test-Path -LiteralPath $stdoutPath) { Get-Content -LiteralPath $stdoutPath -Raw } else { "" }
+        $stderrRaw = if (Test-Path -LiteralPath $stderrPath) { Get-Content -LiteralPath $stderrPath -Raw } else { "" }
+        $stdoutText = if ($null -eq $stdoutRaw) { "" } else { ([string]$stdoutRaw).Trim() }
+        $stderrText = if ($null -eq $stderrRaw) { "" } else { ([string]$stderrRaw).Trim() }
+        $exitCodeText = if (Test-Path -LiteralPath $exitPath) { (Get-Content -LiteralPath $exitPath -Raw).Trim() } else { "1" }
+        $exitCode = [int]$exitCodeText
+        if ($exitCode -ne 0) {
+            throw "command failed with exit code ${exitCode}: $FilePath $($Arguments -join ' ')`n$stdoutText`n$stderrText"
         }
-        throw "command timed out after ${TimeoutSec}s: $FilePath $($Arguments -join ' ')"
-    }
 
-    $stdoutText = $process.StandardOutput.ReadToEnd().Trim()
-    $stderrText = $process.StandardError.ReadToEnd().Trim()
-    if ($process.ExitCode -ne 0) {
-        throw "command failed with exit code $($process.ExitCode): $FilePath $($Arguments -join ' ')`n$stdoutText`n$stderrText"
+        if ([string]::IsNullOrWhiteSpace($stdoutText)) {
+            return $stderrText
+        }
+        if (-not [string]::IsNullOrWhiteSpace($stderrText)) {
+            return "$stdoutText`n$stderrText"
+        }
+        return $stdoutText
     }
-
-    if ([string]::IsNullOrWhiteSpace($stdoutText)) {
-        return $stderrText
+    finally {
+        if ($null -ne $job) {
+            Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
+        }
+        Remove-Item -LiteralPath $stdoutPath, $stderrPath, $exitPath -Force -ErrorAction SilentlyContinue
     }
-    if (-not [string]::IsNullOrWhiteSpace($stderrText)) {
-        return "$stdoutText`n$stderrText"
-    }
-    return $stdoutText
 }
 
 function Invoke-JsonCommand {
