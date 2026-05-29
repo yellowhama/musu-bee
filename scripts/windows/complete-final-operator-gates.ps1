@@ -13,6 +13,7 @@ param(
     [string]$SupportReceivedAt,
     [string]$SupportNotes = "",
     [string]$StoreProductName = "MUSU",
+    [string]$StoreProductNameReservedAt,
     [string]$StorePartnerCenterProductId = "",
     [string]$StoreSubmissionId,
     [string]$StoreCertificationStatus,
@@ -149,6 +150,7 @@ $storeFieldsProvided = @(
     $StoreCertificationStatus,
     $StoreRestrictedCapabilityStatus,
     $StoreRecordedBy,
+    $StoreProductNameReservedAt,
     $StoreSubmittedAt,
     $StoreCertificationCompletedAt,
     $StoreRestrictedCapabilityCompletedAt,
@@ -161,12 +163,14 @@ if (@($storeFieldsProvided).Count -gt 0) {
         -or [string]::IsNullOrWhiteSpace($StoreSubmissionId) `
         -or [string]::IsNullOrWhiteSpace($StoreCertificationStatus) `
         -or [string]::IsNullOrWhiteSpace($StoreRestrictedCapabilityStatus) `
-        -or [string]::IsNullOrWhiteSpace($StoreRecordedBy)) {
-        throw "Store release evidence recording requires -StoreProductName, -StoreSubmissionId, -StoreCertificationStatus, -StoreRestrictedCapabilityStatus, and -StoreRecordedBy."
+        -or [string]::IsNullOrWhiteSpace($StoreRecordedBy) `
+        -or [string]::IsNullOrWhiteSpace($StoreProductNameReservedAt)) {
+        throw "Store release evidence recording requires -StoreProductName, -StoreProductNameReservedAt, -StoreSubmissionId, -StoreCertificationStatus, -StoreRestrictedCapabilityStatus, and -StoreRecordedBy."
     }
 
     $storeArgs = @(
         "-ProductName", $StoreProductName,
+        "-ProductNameReservedAt", $StoreProductNameReservedAt,
         "-SubmissionId", $StoreSubmissionId,
         "-CertificationStatus", $StoreCertificationStatus,
         "-RestrictedCapabilityStatus", $StoreRestrictedCapabilityStatus,

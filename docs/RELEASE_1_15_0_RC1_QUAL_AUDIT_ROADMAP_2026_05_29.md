@@ -242,7 +242,7 @@ P1 beta hardening:
 - Live `https://musu.pro/privacy` and `https://musu.pro/support` now verify with `verify-store-public-metadata.ps1`; verify `support@musu.pro` before Partner Center submission.
 - Record real support mailbox evidence with `scripts\windows\record-support-mailbox-verification.ps1` after confirming delivery to `support@musu.pro`.
 - Use `write-release-go-no-go.ps1` as the final release operator gate.
-- Remaining No-Go items: run and record real second-PC evidence, verify `support@musu.pro` delivery, then complete and record Partner Center product name reservation/submission/certification/restricted capability review with `record-store-release-verification.ps1`.
+- Remaining No-Go items: run and record real second-PC evidence, verify `support@musu.pro` delivery, then complete and record Partner Center product name reservation timestamp/submission/certification/restricted capability review with `record-store-release-verification.ps1` or the final completion runner.
 
 P2 product hardening:
 

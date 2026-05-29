@@ -194,6 +194,7 @@ this from the real MUSU release repo root:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-store-release-verification.ps1 `
   -ProductName "MUSU" `
+  -ProductNameReservedAt "<partner-center-name-reserved-at>" `
   -SubmissionId "<partner-center-submission-id>" `
   -CertificationStatus "approved" `
   -RestrictedCapabilityStatus "approved" `
@@ -217,6 +218,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-fin
   -SupportVerificationId "__SUPPORT_VERIFICATION_ID__" `
   -SupportNotes "Verified delivery in __SUPPORT_EMAIL__ inbox" `
   -StoreProductName "MUSU" `
+  -StoreProductNameReservedAt "<partner-center-name-reserved-at>" `
   -StoreSubmissionId "<partner-center-submission-id>" `
   -StoreCertificationStatus "approved" `
   -StoreRestrictedCapabilityStatus "approved" `

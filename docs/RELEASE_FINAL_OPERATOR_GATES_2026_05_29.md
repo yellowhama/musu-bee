@@ -222,6 +222,7 @@ approval result:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-store-release-verification.ps1 `
   -ProductName "MUSU" `
+  -ProductNameReservedAt "<partner-center-name-reserved-at>" `
   -SubmissionId "<partner-center-submission-id>" `
   -CertificationStatus "approved" `
   -RestrictedCapabilityStatus "approved" `
@@ -235,9 +236,11 @@ Expected change:
 - `store_release_verified=true`
 - store-release blocker removed
 
-The Store evidence JSON now records `product_name_reserved=true` and
-`product_name_reserved_at`, so the Partner Center identity step is auditable and
-not only implied by a later submission id.
+The Store evidence JSON records `product_name_reserved=true` and
+`product_name_reserved_at`, and the final completion runner now requires the
+reservation timestamp instead of silently substituting the later submission
+timestamp. This keeps the Partner Center identity step auditable and not only
+implied by a submission id.
 
 ## Final Release Command
 
@@ -252,6 +255,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-fin
   -SupportVerificationId "<support-verification-id>" `
   -SupportNotes "Verified delivery in support@musu.pro inbox" `
   -StoreProductName "MUSU" `
+  -StoreProductNameReservedAt "<partner-center-name-reserved-at>" `
   -StoreSubmissionId "<partner-center-submission-id>" `
   -StoreCertificationStatus "approved" `
   -StoreRestrictedCapabilityStatus "approved" `
