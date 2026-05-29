@@ -180,7 +180,7 @@ Desktop release readiness audit:
 Indexing:
 
 - `musu indexer sync --work-dir . --name musu-bee`
-- latest result: `885 files`, `1897 symbols`
+- latest result: `887 files`, `1897 symbols`
 - search verification: query `multi-device release test` returns `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md`
 - search verification: query `smoke-single-machine-beta` returns `scripts/windows/smoke-single-machine-beta.ps1`
 - search verification: query `record-multidevice-evidence` returns `scripts/windows/record-multidevice-evidence.ps1`
@@ -209,6 +209,9 @@ Indexing:
 - search verification: query `current single machine evidence` returns `docs/memory/chief_of_staff/2026-05-29_1155_kst_current_single_machine_and_musu_system_recheck.md`
 - search verification: query `musu system 1155` returns `docs/memory/chief_of_staff/2026-05-29_1155_kst_current_single_machine_and_musu_system_recheck.md`
 - search verification: query `timeout safe process` returns `docs/memory/chief_of_staff/2026-05-29_1155_kst_current_single_machine_and_musu_system_recheck.md`
+- search verification: query `MUSU Microsoft Store release run card` returns `docs/MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md`
+- search verification: query `HiveLink Vibe PM` returns `docs/MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md`
+- search verification: query `MSIX first` returns `docs/MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md`
 - final operator gates doc: `docs/RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md`
 
 Adjacent repo assessment:

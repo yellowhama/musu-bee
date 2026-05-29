@@ -64,6 +64,10 @@ The packet generator refuses to run from a dirty git worktree and writes `packet
 
 This packet does not close the manual gates by itself. It exists so the operator can execute the remaining external checks and return evidence without hunting across the repo.
 
+For the shortest MUSU-specific operator sequence, use:
+
+- `docs/MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md`
+
 ## Handoff Status Command
 
 Use this evidence-non-recording command before handoff and after each returned evidence file:

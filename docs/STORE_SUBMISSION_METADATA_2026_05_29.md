@@ -8,6 +8,12 @@ Use the Microsoft Store as the trusted Windows install channel, but do not claim
 full public multi-device release readiness until the second-PC evidence gate
 passes.
 
+2026-05-29 source refresh: current Microsoft Learn guidance still supports MSIX
+as the first Store path for MUSU. Store-submitted MSIX packages are re-signed by
+Microsoft after certification; MSI/EXE fallback remains possible but shifts
+publisher-side signing and immutable versioned package URL responsibility back
+to us. See `docs/MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md`.
+
 ## Required URLs
 
 Microsoft's Store policy says Win32/Desktop Bridge products inherently need a
@@ -113,5 +119,11 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.
 
 ## Official References
 
+- MUSU Store release run card: `docs/MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md`
 - Microsoft Store Policies 7.19: https://learn.microsoft.com/en-us/windows/apps/publish/store-policies
 - Support info for MSIX app: https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/support-info?pivots=store-installer-msix
+- Code signing options for Windows app developers: https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/code-signing-options
+- MSIX app certification process: https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msix/app-certification-process/
+- Reserve your MSIX app name: https://learn.microsoft.com/windows/apps/publish/publish-your-app/msix/reserve-your-apps-name
+- MSI/EXE package URL requirements: https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msi/upload-app-packages
+- Restricted capability declarations: https://learn.microsoft.com/en-us/windows/uwp/packaging/app-capability-declarations

@@ -70,6 +70,7 @@ $docsToCopy = @(
     "docs\MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md",
     "docs\BETA_RELEASE_CHECKLIST_1_15_0_RC1.md",
     "docs\DESKTOP_RELEASE_READINESS_AUDIT_2026_05_29.md",
+    "docs\MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md",
     "docs\STORE_SUBMISSION_METADATA_2026_05_29.md"
 )
 foreach ($relative in $docsToCopy) {
@@ -119,6 +120,10 @@ Current machine-verifiable state before these gates:
 - desktop shell audit: ready
 - single-machine smoke evidence: recorded
 - public Store metadata: live and passing
+
+For the shortest Store/submission sequence, review:
+
+- `docs\MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md`
 
 Remaining blockers:
 
