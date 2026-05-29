@@ -113,8 +113,13 @@ Send a real email to `support@musu.pro` from an external mailbox.
 Recommended subject:
 
 ```text
-MUSU Store support verification 1.15.0-rc.1
+MUSU Store support verification 1.15.0-rc.1 musu-store-support-1.15.0-rc.1-20260529
 ```
+
+Keep the `musu-...` verification token in the message subject or body. The
+recorder now requires an explicit token and the verifier checks the release
+version, token shape, sender address shape, sender/support-mailbox distinction,
+timestamp order, and evidence age.
 
 After confirming the message is visible in the actual support inbox, record evidence from the release repo:
 
@@ -238,6 +243,7 @@ Expected change:
 
 The Store evidence JSON records `product_name_reserved=true` and
 `product_name_reserved_at`, and the final completion runner now requires the
+reservation timestamp. The direct Store recorder also rejects an omitted
 reservation timestamp instead of silently substituting the later submission
 timestamp. This keeps the Partner Center identity step auditable and not only
 implied by a submission id.

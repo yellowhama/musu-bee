@@ -110,8 +110,10 @@ $supportFieldsProvided = @(
 ) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }
 
 if (@($supportFieldsProvided).Count -gt 0) {
-    if ([string]::IsNullOrWhiteSpace($SupportFromAddress) -or [string]::IsNullOrWhiteSpace($SupportReceivedBy)) {
-        throw "Support evidence recording requires both -SupportFromAddress and -SupportReceivedBy."
+    if ([string]::IsNullOrWhiteSpace($SupportFromAddress) `
+        -or [string]::IsNullOrWhiteSpace($SupportReceivedBy) `
+        -or [string]::IsNullOrWhiteSpace($SupportVerificationId)) {
+        throw "Support evidence recording requires -SupportFromAddress, -SupportReceivedBy, and -SupportVerificationId."
     }
 
     $supportArgs = @(

@@ -223,8 +223,8 @@ if (-not [bool]$goNoGo.support_mailbox_verified) {
     Add-OperatorStep `
         -List $operatorSteps `
         -Gate "support-mailbox" `
-        -Summary "Send a real email to support@musu.pro, confirm inbox delivery, then record the operator evidence." `
-        -Command 'powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-support-mailbox-verification.ps1 -FromAddress "<sender@example.com>" -ReceivedBy "<operator-name>" -VerificationId "<support-verification-id>" -Notes "Verified delivery in support@musu.pro inbox" -Json'
+        -Summary "Send a real email to support@musu.pro with a MUSU verification token, confirm inbox delivery, then record the operator evidence." `
+        -Command 'powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-support-mailbox-verification.ps1 -FromAddress "<sender@example.com>" -ReceivedBy "<operator-name>" -VerificationId "musu-support-mailbox-<unique-token>" -Notes "Verified delivery in support@musu.pro inbox" -Json'
 }
 if (-not [bool]$goNoGo.store_release_verified) {
     Add-OperatorStep `

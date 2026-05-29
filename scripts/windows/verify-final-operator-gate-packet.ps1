@@ -150,6 +150,51 @@ try {
             ($goNoGoScript -like '*Add-Blocker -List $blockers -Area "git"*' -and $goNoGoScript -like "*Working tree is dirty*" -and $goNoGoScript -notlike "*warnings.Add*") `
             "packet go/no-go script blocks dirty git state" `
             "packet go/no-go script does not block dirty git state"
+        Add-CheckFromCondition `
+            "go no-go support version gate" `
+            ($goNoGoScript -like "*verify-support-mailbox-evidence.ps1*" -and $goNoGoScript -like "*-ExpectedVersion*" -and $goNoGoScript -like '*$version*') `
+            "packet go/no-go verifies support evidence against the release version" `
+            "packet go/no-go does not pass ExpectedVersion to support evidence verifier"
+    }
+
+    $supportRecorderScriptPath = Join-Path $packetRoot "scripts\windows\record-support-mailbox-verification.ps1"
+    if (Test-Path -LiteralPath $supportRecorderScriptPath) {
+        $supportRecorderScript = Get-Content -LiteralPath $supportRecorderScriptPath -Raw
+        Add-CheckFromCondition `
+            "support recorder explicit verification id" `
+            ($supportRecorderScript -like "*Mandatory = `$true*VerificationId*" -and $supportRecorderScript -notlike "*NewGuid*") `
+            "packet support recorder requires an explicit verification id" `
+            "packet support recorder can generate or omit the verification id"
+    }
+
+    $supportVerifierScriptPath = Join-Path $packetRoot "scripts\windows\verify-support-mailbox-evidence.ps1"
+    if (Test-Path -LiteralPath $supportVerifierScriptPath) {
+        $supportVerifierScript = Get-Content -LiteralPath $supportVerifierScriptPath -Raw
+        Add-CheckFromCondition `
+            "support verifier version and token gate" `
+            ($supportVerifierScript -like "*ExpectedVersion*" -and $supportVerifierScript -like "*verification id shape*" -and $supportVerifierScript -like "*from address distinct*") `
+            "packet support verifier checks version, token shape, and sender distinction" `
+            "packet support verifier lacks version/token/sender evidence checks"
+    }
+
+    $storeRecorderScriptPath = Join-Path $packetRoot "scripts\windows\record-store-release-verification.ps1"
+    if (Test-Path -LiteralPath $storeRecorderScriptPath) {
+        $storeRecorderScript = Get-Content -LiteralPath $storeRecorderScriptPath -Raw
+        Add-CheckFromCondition `
+            "store recorder explicit reservation timestamp" `
+            ($storeRecorderScript -like "*Mandatory = `$true*ProductNameReservedAt*" -and $storeRecorderScript -like "*ProductNameReservedAt is required*" -and $storeRecorderScript -notlike "*ProductNameReservedAt = `"`"*") `
+            "packet Store recorder requires explicit product-name reservation timestamp" `
+            "packet Store recorder can infer or omit product-name reservation timestamp"
+    }
+
+    $storeVerifierScriptPath = Join-Path $packetRoot "scripts\windows\verify-store-release-evidence.ps1"
+    if (Test-Path -LiteralPath $storeVerifierScriptPath) {
+        $storeVerifierScript = Get-Content -LiteralPath $storeVerifierScriptPath -Raw
+        Add-CheckFromCondition `
+            "store verifier timestamp safety gate" `
+            ($storeVerifierScript -like "*recording order*" -and $storeVerifierScript -like "*not future*" -and $storeVerifierScript -like "*published_at*") `
+            "packet Store verifier checks recording order and future timestamps" `
+            "packet Store verifier lacks timestamp safety checks"
     }
 
     $multiDeviceVerifierScriptPath = Join-Path $packetRoot "scripts\windows\verify-multidevice-evidence.ps1"
@@ -167,9 +212,9 @@ try {
         $packetVerifierScript = Get-Content -LiteralPath $packetVerifierScriptPath -Raw
         Add-CheckFromCondition `
             "packet verifier release safety checks" `
-            ($packetVerifierScript -like "*go no-go dirty git blocker*" -and $packetVerifierScript -like "*multi-device verifier schema gate*") `
-            "packet verifier checks dirty git and multi-device evidence rules" `
-            "packet verifier does not check dirty git and multi-device evidence rules"
+            ($packetVerifierScript -like "*go no-go dirty git blocker*" -and $packetVerifierScript -like "*multi-device verifier schema gate*" -and $packetVerifierScript -like "*support verifier version and token gate*" -and $packetVerifierScript -like "*store recorder explicit reservation timestamp*") `
+            "packet verifier checks dirty git, multi-device, support, and Store evidence rules" `
+            "packet verifier does not check all release evidence rules"
     }
 
     $templatePath = Join-Path $packetRoot "support-mailbox-record-template.json"

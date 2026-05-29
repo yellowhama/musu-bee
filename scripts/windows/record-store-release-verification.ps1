@@ -2,7 +2,7 @@
 param(
     [Parameter(Mandatory = $true)][string]$ProductName,
     [bool]$ProductNameReserved = $true,
-    [string]$ProductNameReservedAt = "",
+    [Parameter(Mandatory = $true)][string]$ProductNameReservedAt,
     [string]$PartnerCenterProductId = "",
     [Parameter(Mandatory = $true)][string]$SubmissionId,
     [Parameter(Mandatory = $true)][string]$CertificationStatus,
@@ -34,12 +34,10 @@ if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
 New-Item -ItemType Directory -Force -Path $OutputRoot | Out-Null
 
 $recordedAt = [datetimeoffset]::Now
-$resolvedProductNameReservedAt = if ([string]::IsNullOrWhiteSpace($ProductNameReservedAt)) {
-    $SubmittedAt
+if ([string]::IsNullOrWhiteSpace($ProductNameReservedAt)) {
+    throw "ProductNameReservedAt is required. Record the actual Partner Center product-name reservation timestamp; do not infer it from submission time."
 }
-else {
-    [datetimeoffset]::Parse($ProductNameReservedAt)
-}
+$resolvedProductNameReservedAt = [datetimeoffset]::Parse($ProductNameReservedAt)
 $stamp = $recordedAt.ToString("yyyyMMdd-HHmmss")
 $safeProductName = $ProductName -replace "[^A-Za-z0-9._-]", "_"
 $baseName = "$stamp-$safeProductName"

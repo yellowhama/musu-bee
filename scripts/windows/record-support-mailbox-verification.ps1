@@ -3,7 +3,7 @@ param(
     [string]$SupportEmail = "support@musu.pro",
     [Parameter(Mandatory = $true)][string]$FromAddress,
     [Parameter(Mandatory = $true)][string]$ReceivedBy,
-    [string]$VerificationId,
+    [Parameter(Mandatory = $true)][string]$VerificationId,
     [datetimeoffset]$SentAt = [datetimeoffset]::Now,
     [datetimeoffset]$ReceivedAt = [datetimeoffset]::Now,
     [string]$Notes = "",
@@ -24,8 +24,8 @@ if ([string]::IsNullOrWhiteSpace($Version)) {
 if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
     $OutputRoot = Join-Path $repoRoot ("docs\evidence\support-mailbox\{0}" -f $Version)
 }
-if ([string]::IsNullOrWhiteSpace($VerificationId)) {
-    $VerificationId = "musu-support-mailbox-$([guid]::NewGuid().ToString("N"))"
+if ([string]::IsNullOrWhiteSpace($VerificationId) -or $VerificationId -notmatch "^musu-[A-Za-z0-9._-]{16,}$") {
+    throw "VerificationId must be an explicit MUSU verification token that starts with 'musu-' and has at least 16 token characters."
 }
 
 New-Item -ItemType Directory -Force -Path $OutputRoot | Out-Null
@@ -56,7 +56,7 @@ $evidence = [pscustomobject]@{
 $evidence | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $evidencePath -Encoding UTF8
 
 $verifyScript = Join-Path $scriptDir "verify-support-mailbox-evidence.ps1"
-$verifyText = (& powershell -NoProfile -ExecutionPolicy Bypass -File $verifyScript -EvidencePath $evidencePath -ExpectedSupportEmail $SupportEmail -Json 2>&1 | Out-String).Trim()
+$verifyText = (& powershell -NoProfile -ExecutionPolicy Bypass -File $verifyScript -EvidencePath $evidencePath -ExpectedSupportEmail $SupportEmail -ExpectedVersion $Version -Json 2>&1 | Out-String).Trim()
 if ($LASTEXITCODE -ne 0) {
     throw "Support mailbox evidence did not verify.`n$verifyText"
 }

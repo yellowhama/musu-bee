@@ -119,7 +119,7 @@ if (-not $supportMailboxVerified) {
     if ($supportMailboxEvidenceCandidate) {
         $supportMailboxEvidenceResult = Invoke-JsonScript `
             -FilePath $supportMailboxVerifierScript `
-            -Arguments @("-EvidencePath", $supportMailboxEvidenceCandidate.FullName, "-Json") `
+            -Arguments @("-EvidencePath", $supportMailboxEvidenceCandidate.FullName, "-ExpectedVersion", $version, "-Json") `
             -AllowFailure
         if ($supportMailboxEvidenceResult.json -and [bool]$supportMailboxEvidenceResult.json.ok) {
             $supportMailboxVerified = $true

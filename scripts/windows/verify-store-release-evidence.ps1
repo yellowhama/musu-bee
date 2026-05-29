@@ -108,6 +108,7 @@ $submittedAtText = Get-StringProperty -Object $evidence -Name "submitted_at"
 $certificationCompletedAtText = Get-StringProperty -Object $evidence -Name "certification_completed_at"
 $restrictedCapabilityCompletedAtText = Get-StringProperty -Object $evidence -Name "restricted_capability_completed_at"
 $recordedAtText = Get-StringProperty -Object $evidence -Name "recorded_at"
+$publishedAtText = Get-StringProperty -Object $evidence -Name "published_at"
 $evidenceOk = Get-BoolProperty -Object $evidence -Name "ok"
 
 $submittedAt = Try-ParseDateTimeOffset -Text $submittedAtText
@@ -115,6 +116,9 @@ $productNameReservedAt = Try-ParseDateTimeOffset -Text $productNameReservedAtTex
 $certificationCompletedAt = Try-ParseDateTimeOffset -Text $certificationCompletedAtText
 $restrictedCapabilityCompletedAt = Try-ParseDateTimeOffset -Text $restrictedCapabilityCompletedAtText
 $recordedAt = Try-ParseDateTimeOffset -Text $recordedAtText
+$publishedAt = Try-ParseDateTimeOffset -Text $publishedAtText
+$now = [datetimeoffset]::Now
+$futureTolerance = [timespan]::FromMinutes(5)
 
 $acceptableCertificationStatuses = @("approved", "passed", "certified", "published")
 $acceptableRestrictedStatuses = @("approved")
@@ -134,6 +138,10 @@ Add-CheckFromCondition "certification timestamp" ($null -ne $certificationComple
 Add-CheckFromCondition "restricted capability timestamp" ($null -ne $restrictedCapabilityCompletedAt) "restricted_capability_completed_at parses" "restricted_capability_completed_at is missing or invalid"
 Add-CheckFromCondition "recorded timestamp" ($null -ne $recordedAt) "recorded_at parses" "recorded_at is missing or invalid"
 
+if (-not [string]::IsNullOrWhiteSpace($publishedAtText)) {
+    Add-CheckFromCondition "published timestamp" ($null -ne $publishedAt) "published_at parses when present" "published_at is present but invalid"
+}
+
 if ($submittedAt -and $certificationCompletedAt) {
     Add-CheckFromCondition "certification order" ($certificationCompletedAt -ge $submittedAt) "certification_completed_at is at or after submitted_at" "certification_completed_at is before submitted_at"
 }
@@ -144,6 +152,35 @@ if ($submittedAt -and $productNameReservedAt) {
 
 if ($submittedAt -and $restrictedCapabilityCompletedAt) {
     Add-CheckFromCondition "restricted capability order" ($restrictedCapabilityCompletedAt -ge $submittedAt) "restricted_capability_completed_at is at or after submitted_at" "restricted_capability_completed_at is before submitted_at"
+}
+
+if ($publishedAt -and $certificationCompletedAt) {
+    Add-CheckFromCondition "published order" ($publishedAt -ge $certificationCompletedAt) "published_at is at or after certification_completed_at" "published_at is before certification_completed_at"
+}
+
+if ($recordedAt) {
+    $latestRequiredEvent = @(
+        $productNameReservedAt,
+        $submittedAt,
+        $certificationCompletedAt,
+        $restrictedCapabilityCompletedAt
+    ) | Where-Object { $null -ne $_ } | Sort-Object UtcDateTime -Descending | Select-Object -First 1
+    if ($latestRequiredEvent) {
+        Add-CheckFromCondition "recording order" ($recordedAt -ge $latestRequiredEvent) "recorded_at is at or after the latest required Store event" "recorded_at is before the latest required Store event"
+    }
+}
+
+foreach ($timestamp in @(
+    [pscustomobject]@{ name = "product_name_reserved_at"; value = $productNameReservedAt },
+    [pscustomobject]@{ name = "submitted_at"; value = $submittedAt },
+    [pscustomobject]@{ name = "certification_completed_at"; value = $certificationCompletedAt },
+    [pscustomobject]@{ name = "restricted_capability_completed_at"; value = $restrictedCapabilityCompletedAt },
+    [pscustomobject]@{ name = "published_at"; value = $publishedAt },
+    [pscustomobject]@{ name = "recorded_at"; value = $recordedAt }
+)) {
+    if ($timestamp.value) {
+        Add-CheckFromCondition "$($timestamp.name) not future" ($timestamp.value -le ($now + $futureTolerance)) "$($timestamp.name) is not in the future" "$($timestamp.name) is more than 5 minutes in the future"
+    }
 }
 
 if ($recordedAt) {

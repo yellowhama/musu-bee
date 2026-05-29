@@ -145,8 +145,12 @@ __SUPPORT_EMAIL__
 Recommended subject:
 
 ```text
-MUSU Store support verification __VERSION__
+MUSU Store support verification __VERSION__ __SUPPORT_VERIFICATION_ID__
 ```
+
+Keep the verification id in the message subject or body. The recorder requires
+an explicit MUSU verification token so post-hoc support evidence cannot be
+created with a generated id.
 
 After the message is visible in the actual support inbox, open PowerShell in the real MUSU release repo root and fill the placeholders:
 

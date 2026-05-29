@@ -136,6 +136,7 @@ Store metadata:
 - Store release evidence verifier: `scripts\windows\verify-store-release-evidence.ps1`
 - Store release evidence recorder: `scripts\windows\record-store-release-verification.ps1`
 - support mailbox DNS: `musu.pro` MX resolves to `smtp.google.com`; actual delivery still requires operator evidence
+- support mailbox evidence must match the current release version and include an explicit `musu-...` verification token; Store release evidence must include an explicit Partner Center product-name reservation timestamp
 - release go/no-go preflight: `scripts\windows\write-release-go-no-go.ps1`
 - final operator packet builder: `scripts\windows\prepare-final-operator-gate-packet.ps1`
 - final operator packet verifier: `scripts\windows\verify-final-operator-gate-packet.ps1`
