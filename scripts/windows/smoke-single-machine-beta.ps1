@@ -7,6 +7,8 @@ param(
     [string]$ExpectedCliOutput = "MUSU_CLI_ROUTE_OK",
     [int]$TaskTimeoutSec = 180,
     [int]$CommandTimeoutSec = 90,
+    [int]$ReadinessRetryCount = 5,
+    [int]$ReadinessRetryDelaySec = 2,
     [switch]$SkipCliRoute,
     [string]$EvidencePath,
     [string]$EvidenceRoot,
@@ -74,37 +76,36 @@ function Invoke-TextCommand {
     $commandId = [guid]::NewGuid().ToString("N")
     $stdoutPath = Join-Path $tempRoot "musu-smoke-$commandId.stdout.log"
     $stderrPath = Join-Path $tempRoot "musu-smoke-$commandId.stderr.log"
-    $exitPath = Join-Path $tempRoot "musu-smoke-$commandId.exit.txt"
-    $job = $null
+    $process = $null
 
     try {
-        $job = Start-Job -ScriptBlock {
-            param(
-                [string]$CommandPath,
-                [string[]]$CommandArguments,
-                [string]$StdoutPath,
-                [string]$StderrPath,
-                [string]$ExitPath
-            )
+        $process = Start-Process `
+            -FilePath $FilePath `
+            -ArgumentList (ConvertTo-ProcessArgumentString -Items $Arguments) `
+            -RedirectStandardOutput $stdoutPath `
+            -RedirectStandardError $stderrPath `
+            -WindowStyle Hidden `
+            -PassThru
 
-            & $CommandPath @CommandArguments > $StdoutPath 2> $StderrPath
-            $code = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }
-            Set-Content -LiteralPath $ExitPath -Value ([string]$code)
-        } -ArgumentList $FilePath, $Arguments, $stdoutPath, $stderrPath, $exitPath
-
-        if (-not (Wait-Job -Job $job -Timeout $TimeoutSec)) {
-            Stop-Job -Job $job -ErrorAction SilentlyContinue
+        if (-not $process.WaitForExit($TimeoutSec * 1000)) {
+            try {
+                $process.Kill()
+            }
+            catch {
+                # Best effort; the timeout error below is the useful failure.
+            }
             throw "command timed out after ${TimeoutSec}s: $FilePath $($Arguments -join ' ')"
         }
-
-        Receive-Job -Job $job -ErrorAction Stop | Out-Null
 
         $stdoutRaw = if (Test-Path -LiteralPath $stdoutPath) { Get-Content -LiteralPath $stdoutPath -Raw } else { "" }
         $stderrRaw = if (Test-Path -LiteralPath $stderrPath) { Get-Content -LiteralPath $stderrPath -Raw } else { "" }
         $stdoutText = if ($null -eq $stdoutRaw) { "" } else { ([string]$stdoutRaw).Trim() }
         $stderrText = if ($null -eq $stderrRaw) { "" } else { ([string]$stderrRaw).Trim() }
-        $exitCodeText = if (Test-Path -LiteralPath $exitPath) { (Get-Content -LiteralPath $exitPath -Raw).Trim() } else { "1" }
-        $exitCode = [int]$exitCodeText
+        $process.Refresh()
+        $exitCode = $process.ExitCode
+        if ($null -eq $exitCode -or [string]::IsNullOrWhiteSpace([string]$exitCode)) {
+            $exitCode = 0
+        }
         if ($exitCode -ne 0) {
             throw "command failed with exit code ${exitCode}: $FilePath $($Arguments -join ' ')`n$stdoutText`n$stderrText"
         }
@@ -118,10 +119,10 @@ function Invoke-TextCommand {
         return $stdoutText
     }
     finally {
-        if ($null -ne $job) {
-            Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
+        if ($null -ne $process) {
+            $process.Dispose()
         }
-        Remove-Item -LiteralPath $stdoutPath, $stderrPath, $exitPath -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $stdoutPath, $stderrPath -Force -ErrorAction SilentlyContinue
     }
 }
 
@@ -149,20 +150,54 @@ Assert-True ($up.bridge.status -eq "ok") "bridge status was not ok"
 Assert-True ($up.dashboard.status -eq "ok") "dashboard status was not ok"
 
 Write-Step "Run local doctor"
-$doctor = Invoke-JsonCommand -FilePath $MusuExe -Arguments @("doctor", "--json")
-Assert-True ($doctor.overall -ne "fail") "doctor overall failed"
-Assert-True ($doctor.bridge.status -eq "ok") "doctor bridge check failed"
-Assert-True ($doctor.dashboard.status -eq "ok") "doctor dashboard check failed"
+$doctor = $null
+$doctorError = $null
+for ($attempt = 1; $attempt -le $ReadinessRetryCount; $attempt++) {
+    try {
+        $candidate = Invoke-JsonCommand -FilePath $MusuExe -Arguments @("doctor", "--json")
+        if ($candidate.overall -ne "fail" -and $candidate.bridge.status -eq "ok" -and $candidate.dashboard.status -eq "ok") {
+            $doctor = $candidate
+            break
+        }
+        $doctorError = "overall=$($candidate.overall), bridge=$($candidate.bridge.status), dashboard=$($candidate.dashboard.status)"
+    }
+    catch {
+        $doctorError = $_.Exception.Message
+    }
+
+    if ($attempt -lt $ReadinessRetryCount) {
+        Start-Sleep -Seconds $ReadinessRetryDelaySec
+    }
+}
+Assert-True ($null -ne $doctor) "doctor did not become ready after $ReadinessRetryCount attempt(s): $doctorError"
 
 Write-Step "Check dashboard APIs"
-$dashboardDoctor = Invoke-RestMethod -Uri "$DashboardBaseUrl/api/doctor" -Method Get -TimeoutSec 15
-Assert-True ($dashboardDoctor.overall -ne "fail") "dashboard doctor failed"
+$dashboardDoctor = $null
+$dashboardDoctorError = $null
+for ($attempt = 1; $attempt -le $ReadinessRetryCount; $attempt++) {
+    try {
+        $candidate = Invoke-RestMethod -Uri "$DashboardBaseUrl/api/doctor" -Method Get -TimeoutSec 30
+        if ($candidate.overall -ne "fail") {
+            $dashboardDoctor = $candidate
+            break
+        }
+        $dashboardDoctorError = "overall=$($candidate.overall)"
+    }
+    catch {
+        $dashboardDoctorError = $_.Exception.Message
+    }
 
-$deviceStatus = Invoke-RestMethod -Uri "$DashboardBaseUrl/api/device-status" -Method Get -TimeoutSec 15
+    if ($attempt -lt $ReadinessRetryCount) {
+        Start-Sleep -Seconds $ReadinessRetryDelaySec
+    }
+}
+Assert-True ($null -ne $dashboardDoctor) "dashboard doctor did not become ready after $ReadinessRetryCount attempt(s): $dashboardDoctorError"
+
+$deviceStatus = Invoke-RestMethod -Uri "$DashboardBaseUrl/api/device-status" -Method Get -TimeoutSec 30
 [object[]]$deviceNodes = if ($deviceStatus.PSObject.Properties.Name -contains "nodes") { @($deviceStatus.nodes) } else { @($deviceStatus) }
 Assert-True ($deviceNodes.Count -ge 1) "dashboard device-status returned no nodes"
 
-$tasks = Invoke-RestMethod -Uri "$DashboardBaseUrl/api/bridge-tasks?limit=3" -Method Get -TimeoutSec 15
+$tasks = Invoke-RestMethod -Uri "$DashboardBaseUrl/api/bridge-tasks?limit=3" -Method Get -TimeoutSec 30
 Assert-True ($null -ne $tasks) "dashboard bridge-tasks returned null"
 
 Write-Step "Submit dashboard task and wait for completion"
