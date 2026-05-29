@@ -229,6 +229,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | wiki/518 | 1.15.0-rc.1 qualitative evaluation, code audit, and roadmap | 2026-05-29 | `RELEASE_1_15_0_RC1_QUAL_AUDIT_ROADMAP_2026_05_29.md` | complete |
 | wiki/519 | 1.15.0-rc.1 multi-device release test plan | 2026-05-29 | `MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md` | active |
 | wiki/520 | Desktop release readiness audit | 2026-05-29 | `DESKTOP_RELEASE_READINESS_AUDIT_2026_05_29.md` | active |
+| wiki/521 | 1.15.0-rc.1 final qualitative evaluation, code audit, and next steps | 2026-05-29 | `RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md` | active |
 | — | 1.15.0-rc.1 beta release checklist and smoke evidence | 2026-05-29 | `BETA_RELEASE_CHECKLIST_1_15_0_RC1.md` | active |
 | — | 1.15.0-rc.1 final operator gates | 2026-05-29 | `RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md` | active |
 | — | MUSU Microsoft Store release run card | 2026-05-29 | `MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md` | active |
@@ -272,8 +273,9 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | — | CoS memory note — support email and single-machine refresh | 2026-05-29 | `memory/chief_of_staff/2026-05-29_1338_kst_support_email_and_single_machine_refresh.md` | active |
 | — | CoS memory note — operator handoff card | 2026-05-29 | `memory/chief_of_staff/2026-05-29_1346_kst_operator_handoff_card.md` | active |
 | — | CoS memory note — operator card single-machine refresh | 2026-05-29 | `memory/chief_of_staff/2026-05-29_1352_kst_operator_card_single_machine_refresh.md` | active |
+| — | CoS memory note — final qual audit and next steps | 2026-05-29 | `memory/chief_of_staff/2026-05-29_1405_kst_final_qual_audit_next_steps.md` | active |
 
-State lock: `1.15.0-rc.1` is beta-ready for the single-machine Windows local operator path (`musu up` → dashboard doctor → Claude task smoke). A repeatable single-machine smoke script now passes. Multi-device test kit generation now works, but clean/current second-PC MSIX install evidence and two-machine validation are still pending. Runtime/MSIX package readiness is true for submission attempt; the dedicated Tauri static launcher/status shell now builds, renders, and bundles, but it is not the full dashboard GUI. The release support mailbox is `musu@musu.pro`, sourced from root `SUPPORT_EMAIL`.
+State lock: `1.15.0-rc.1` is beta-ready for the single-machine Windows local operator path (`musu up` → dashboard doctor → Claude task smoke). A repeatable single-machine smoke script now passes. Multi-device test kit generation now works, but clean/current second-PC MSIX install evidence and two-machine validation are still pending. Runtime/MSIX package readiness is true for submission attempt; the dedicated Tauri static launcher/status shell now builds, renders, and bundles, but it is not the full dashboard GUI. The release support mailbox is `musu@musu.pro`, sourced from root `SUPPORT_EMAIL`. Current qualitative completion is recorded in wiki/521: local single-machine beta ~92%, Store/operator-gate infrastructure ~88%, public desktop release ~68%, full desktop GUI ~55-60%.
 
 ---
 
@@ -311,6 +313,7 @@ These docs capture the post-install / post-review conclusion that Windows packag
 | Windows install/login usability report | 2026-05-27 | `USABILITY_REPORT_WINDOWS_INSTALL_LOGIN_2026_05_27.md` | active |
 | Store launch and promotion plan | 2026-05-29 | `STORE_LAUNCH_AND_PROMOTION_PLAN_2026_05_29.md` | active |
 | Store submission metadata | 2026-05-29 | `STORE_SUBMISSION_METADATA_2026_05_29.md` | active |
+| Final qualitative audit and next steps | 2026-05-29 | `RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md` | active |
 | Final operator gates | 2026-05-29 | `RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md` | active |
 | Release operator handoff card | 2026-05-29 | `RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md` | active |
 | musu-system integration assessment | 2026-05-29 | `MUSU_SYSTEM_INTEGRATION_ASSESSMENT_2026_05_29.md` | active |
@@ -322,6 +325,8 @@ These docs capture the post-install / post-review conclusion that Windows packag
 2026-05-29 ecosystem update: `yellowhama/musu-system` is the canonical Go monorepo for `core`, `crawl-ai`, `marketer`, and `nurikun`. Integration value is high, but current decision is adapter/MCP/CLI integration, not Rust-core merge or first Store package bundling. 12:41 KST recheck confirmed monorepo/split HEADs and active tags unchanged, latest monorepo CI `26587103682` and GHCR publish `26587105434` still green, and local `go test ./...` plus `go vet ./...` passing in all four modules. Current HEAD already has MCP schemas and marketer/nurikun DB parent creation. `nurikun` delivery ops remain outside MCP. Adapter caveat: MUSU registration needs explicit cwd/wiki/project/model/env handling before auto-registration. First integration candidate should be `crawl-ai` as optional knowledge/wiki ingestion.
 
 2026-05-29 Store release update: `MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md` is the current concise MUSU-specific operator card. `RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md` plus `show-operator-handoff-card.ps1` are the packet-aware quick handoff for current support verification id, second-PC kit name, and recording commands. The release path keeps MSIX first, rejects other-product HiveLink/Vibe PM copy, and requires second-PC MSIX install evidence, real multi-device evidence, support mailbox delivery evidence, and Partner Center/Microsoft approval evidence before public desktop readiness can turn true.
+
+2026-05-29 final qualitative update: `RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md` (wiki/521) is the current qualitative report, code audit, product spec update, and next-step roadmap. Scoped audit found no internal release-blocking code issue in the support/packet/evidence-gate surface; public release remains No-Go only because the four external evidence gates are not recorded. Final operator packets now include and verify wiki/521.
 
 ---
 

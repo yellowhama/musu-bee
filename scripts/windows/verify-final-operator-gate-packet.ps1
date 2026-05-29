@@ -91,6 +91,7 @@ try {
         "docs\MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md",
         "docs\BETA_RELEASE_CHECKLIST_1_15_0_RC1.md",
         "docs\DESKTOP_RELEASE_READINESS_AUDIT_2026_05_29.md",
+        "docs\RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md",
         "docs\MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md",
         "docs\RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md",
         "docs\STORE_SUBMISSION_METADATA_2026_05_29.md",
@@ -147,6 +148,7 @@ try {
         Add-CheckFromCondition "readme second pc copy boundary" ($readme.Contains('Copy only the zip under `kits\`')) "README states only the kit zip should be copied to second PC" "README does not clearly state only kit zip should be copied"
         Add-CheckFromCondition "readme support mailbox gate" (-not [string]::IsNullOrWhiteSpace($expectedSupportEmail) -and $readme -like "*$expectedSupportEmail*") "README names $expectedSupportEmail" "README does not name the configured support email"
         Add-CheckFromCondition "readme second pc handoff helper" ($readme -like "*collect-second-pc-handoff.ps1*" -and $readme -like "*.handoff.json*") "README explains the second-PC handoff helper" "README missing second-PC handoff helper"
+        Add-CheckFromCondition "readme final qual audit" ($readme -like "*RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md*") "README points to the final qualitative audit and next steps" "README missing final qualitative audit reference"
         Add-CheckFromCondition "readme Store run card" ($readme -like "*MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md*") "README points to the Store release run card" "README missing Store release run card reference"
         Add-CheckFromCondition "readme msix install gate" ($readme -like "*record-msix-install-evidence.ps1*" -and $readme -like "*msix_install_verified=true*") "README includes MSIX install evidence gate" "README missing MSIX install evidence gate"
         Add-CheckFromCondition "readme store release blocker" ($readme -like "*Partner Center product name reservation*" -and $readme -like "*app submission*" -and $readme -like "*store_release_verified=true*") "README states Store release approval is a blocker" "README does not clearly state Store release approval evidence is required"

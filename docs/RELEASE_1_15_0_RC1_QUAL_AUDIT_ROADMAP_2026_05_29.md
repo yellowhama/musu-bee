@@ -4,6 +4,8 @@
 **Date**: 2026-05-29
 **Scope**: Windows local beta path, Rust bridge/runner, Next dashboard bridge integration, docs/index state.
 
+**Current-state note**: this document records the earlier 1.15.0-rc.1 beta audit. For the current final release-gate qualitative state after support mailbox correction, refreshed single-machine evidence, packet-aware handoff card, and final operator packet audit, use `docs/RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md` (wiki/521).
+
 ## Executive State
 
 `1.15.0-rc.1` is beta-ready for the **single-machine Windows operator path**:

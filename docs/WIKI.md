@@ -112,6 +112,7 @@ Multi-device state:
 Canonical references:
 
 - `docs/RELEASE_1_15_0_RC1_QUAL_AUDIT_ROADMAP_2026_05_29.md` (wiki/518)
+- `docs/RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md` (wiki/521, current final qualitative evaluation / code audit / next-step roadmap)
 - `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md` (wiki/519)
 - `docs/BETA_RELEASE_CHECKLIST_1_15_0_RC1.md`
 
@@ -134,6 +135,7 @@ Current Store path truth:
 - operator handoff card script: `scripts\windows\show-operator-handoff-card.ps1` reads the latest packet and prints current support verification id, support subject, second-PC kit name, return-file list, and recording commands; use it instead of copying packet-specific values from old notes
 - latest final operator gate packet alias: `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip`; regenerate it from a clean HEAD immediately before operator handoff and verify with `verify-final-operator-gate-packet.ps1`. The verifier requires `ok=true`, `fail_count=0`, `kit_count=1`, clean source git metadata, README MSIX install instructions, Store release blocker, second-PC handoff collector, final `-FailOnNotReady`, dirty-git blocker, MSIX capture-check evidence, multi-device endpoint-shape evidence, support token evidence, and Store reservation timestamp checks hardened; final completion runner can record MSIX install and Store approval evidence too.
 - Store metadata handoff: `docs/STORE_SUBMISSION_METADATA_2026_05_29.md`
+- current final qualitative evaluation, code audit, product spec update, and next-step roadmap: `docs/RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md` (wiki/521)
 - public privacy route exists at `/privacy`; public support route exists at `/support`
 - public metadata verifier exists at `scripts\windows\verify-store-public-metadata.ps1`
 - release go/no-go preflight exists at `scripts\windows\write-release-go-no-go.ps1`
@@ -158,7 +160,7 @@ Current Store path truth:
 - `verify-final-operator-gate-packet.ps1` also fails stale packets whose bundled multi-device verifier lacks schema, version, and completion-time checks, whose bundled support evidence path lacks version/token/sender checks, or whose Store recorder/verifier can infer reservation time or omit timestamp safety checks
 - multi-device evidence now defaults verification to the repo `VERSION`, requires operator user metadata, and requires `remote_addr` to include a port; stale packets without this endpoint-shape gate fail verification
 - `write-release-candidate-manifest.ps1` writes manifest/checksum files atomically with retry, avoiding locked-file failures when final handoff status and go/no-go are run concurrently.
-- Indexer refreshed after support mailbox correction, current single-machine evidence, and operator handoff card: `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed `914 files` and `1897 symbols`; searches for `support email correction`, `SUPPORT_EMAIL`, `release config support mailbox`, `operator handoff card`, `MUSU_RELEASE_SMOKE_OK_20260529_1352`, `MUSU_CLI_ROUTE_OK_20260529_1352`, `StoreProductNameReservedAt`, `Second PC install route evidence`, `remote addr host port`, `capture checks missing`, `collect second pc handoff`, `suggested_remote_addrs`, `musu system recheck`, and `MICROSOFT_STORE_RELEASE_RUN_CARD` return the new scripts/docs/evidence/memory notes.
+- Indexer refreshed after support mailbox correction, current single-machine evidence, operator handoff card, and final qualitative audit: `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed `916 files` and `1897 symbols`; searches for `wiki 521`, `final qualitative audit next steps`, `musu pro final operator packet`, `MSIX install evidence`, `public desktop release evidence gates`, `show operator handoff card`, `support email correction`, `SUPPORT_EMAIL`, `release config support mailbox`, `MUSU_RELEASE_SMOKE_OK_20260529_1352`, `MUSU_CLI_ROUTE_OK_20260529_1352`, `StoreProductNameReservedAt`, `Second PC install route evidence`, `remote addr host port`, `capture checks missing`, `collect second pc handoff`, `suggested_remote_addrs`, `musu system recheck`, and `MICROSOFT_STORE_RELEASE_RUN_CARD` return the new scripts/docs/evidence/memory notes.
 - support mailbox DNS exists: `Resolve-DnsName -Type MX musu.pro` returns `smtp.google.com`; actual delivery remains unverified until evidence is recorded
 - GitHub Actions deployment/test infrastructure was repaired for the current Rust/Next repo shape: Node 22+, JavaScript actions forced onto Node 24 runtime, no deleted Python dirs, no deleted `musu-port`, Linux Rust CI includes Wayland/PipeWire/GBM native dependencies, legacy likely-required check names preserved, and Store metadata Playwright smoke for `/privacy` + `/support`
 - Final handoff contract: after the last documentation/code commit, regenerate the final operator packet from clean current HEAD, verify it, then run `show-final-release-handoff-status.ps1 -Json`; public desktop release remains blocked until clean/current second-PC MSIX install evidence, real second-PC multi-device evidence, `musu@musu.pro` inbox delivery evidence, and Partner Center/Microsoft Store release evidence are recorded.
@@ -177,6 +179,7 @@ Promotion rule:
 
 Canonical reference:
 
+- `docs/RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md` (wiki/521)
 - `docs/STORE_LAUNCH_AND_PROMOTION_PLAN_2026_05_29.md`
 - `docs/STORE_SUBMISSION_METADATA_2026_05_29.md`
 - `docs/DESKTOP_RELEASE_READINESS_AUDIT_2026_05_29.md` (wiki/520)
