@@ -94,6 +94,9 @@ try {
         "scripts\windows\verify-support-mailbox-evidence.ps1",
         "scripts\windows\record-multidevice-evidence.ps1",
         "scripts\windows\verify-multidevice-evidence.ps1",
+        "scripts\windows\capture-msix-install-evidence.ps1",
+        "scripts\windows\record-msix-install-evidence.ps1",
+        "scripts\windows\verify-msix-install-evidence.ps1",
         "scripts\windows\record-store-release-verification.ps1",
         "scripts\windows\verify-store-release-evidence.ps1",
         "scripts\windows\show-final-release-handoff-status.ps1",
@@ -114,9 +117,11 @@ try {
         Add-CheckFromCondition "readme execution boundary" ($readme -like "*real MUSU release repo root*") "README states commands run from real release repo root" "README does not clearly state release repo root execution boundary"
         Add-CheckFromCondition "readme second pc copy boundary" ($readme.Contains('Copy only the zip under `kits\`')) "README states only the kit zip should be copied to second PC" "README does not clearly state only kit zip should be copied"
         Add-CheckFromCondition "readme support mailbox gate" ($readme -like "*support@musu.pro*") "README names support@musu.pro" "README does not name support@musu.pro"
+        Add-CheckFromCondition "readme msix install gate" ($readme -like "*record-msix-install-evidence.ps1*" -and $readme -like "*msix_install_verified=true*") "README includes MSIX install evidence gate" "README missing MSIX install evidence gate"
         Add-CheckFromCondition "readme store release blocker" ($readme -like "*Partner Center submission*" -and $readme -like "*store_release_verified=true*") "README states Store release approval is a blocker" "README does not clearly state Store release approval evidence is required"
         Add-CheckFromCondition "readme store release recorder" ($readme -like "*record-store-release-verification.ps1*") "README includes Store release evidence recorder command" "README missing Store release evidence recorder command"
         Add-CheckFromCondition "readme handoff status command" ($readme -like "*show-final-release-handoff-status.ps1*") "README includes final release handoff status command" "README missing final release handoff status command"
+        Add-CheckFromCondition "readme complete runner msix params" ($readme -like "*complete-final-operator-gates.ps1*" -and $readme -like "*-MsixInstallEvidencePath*") "README final command can record MSIX install evidence" "README final command does not include MSIX install evidence parameters"
         Add-CheckFromCondition "readme complete runner store params" ($readme -like "*complete-final-operator-gates.ps1*" -and $readme -like "*-StoreSubmissionId*") "README final command can record Store release evidence" "README final command does not include Store release evidence parameters"
         Add-CheckFromCondition "readme go no-go gate" ($readme -like "*write-release-go-no-go.ps1*") "README includes final go/no-go command" "README missing final go/no-go command"
     }

@@ -1,5 +1,7 @@
 [CmdletBinding()]
 param(
+    [string]$MsixInstallEvidencePath,
+    [string]$MsixInstallOutputRoot,
     [string]$MultiDeviceEvidencePath,
     [string]$ExpectedRouteOutput = "MUSU_REMOTE_ROUTE_OK",
     [switch]$AllowStatusOnly,
@@ -59,6 +61,22 @@ function Invoke-JsonScript {
 }
 
 $records = New-Object System.Collections.Generic.List[object]
+
+if (-not [string]::IsNullOrWhiteSpace($MsixInstallEvidencePath)) {
+    $msixArgs = @("-EvidencePath", $MsixInstallEvidencePath, "-Json")
+    if (-not [string]::IsNullOrWhiteSpace($MsixInstallOutputRoot)) {
+        $msixArgs += @("-OutputRoot", $MsixInstallOutputRoot)
+    }
+    $msixRecord = Invoke-JsonScript `
+        -FilePath (Join-Path $scriptDir "record-msix-install-evidence.ps1") `
+        -Arguments $msixArgs
+
+    $records.Add([pscustomobject]@{
+        type = "msix-install"
+        ok = [bool]$msixRecord.ok
+        result = $msixRecord
+    }) | Out-Null
+}
 
 if (-not [string]::IsNullOrWhiteSpace($MultiDeviceEvidencePath)) {
     $multiArgs = @(
@@ -210,6 +228,7 @@ $result = [pscustomobject]@{
     generated_at = (Get-Date).ToString("o")
     recorded = $records.ToArray()
     ready_for_public_desktop_release = [bool]$goNoGo.ready_for_public_desktop_release
+    msix_install_verified = [bool]$goNoGo.msix_install_verified
     store_release_verified = [bool]$goNoGo.store_release_verified
     blockers = $goNoGo.blockers
     warnings = $goNoGo.warnings
@@ -222,6 +241,7 @@ if ($Json) {
 else {
     "MUSU complete final operator gates"
     "ready_for_public_desktop_release: $($result.ready_for_public_desktop_release)"
+    "msix_install_verified: $($result.msix_install_verified)"
     "store_release_verified: $($result.store_release_verified)"
     ""
     "Recorded evidence"

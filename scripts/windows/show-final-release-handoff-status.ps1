@@ -143,6 +143,16 @@ $supportRoots = @(
         filter = "*.evidence.json"
     }
 )
+$msixInstallRoots = @(
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ("docs\evidence\msix-install\{0}" -f $version))
+        filter = "*.evidence.json"
+    },
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ".local-build\msix-install")
+        filter = "*.evidence.json"
+    }
+)
 $storeRoots = @(
     [pscustomobject]@{
         path = (Join-Path $repoRoot ("docs\evidence\store-release\{0}" -f $version))
@@ -160,6 +170,7 @@ $commands = [pscustomobject]@{
     verify_packet = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-final-operator-gate-packet.ps1 -PacketPath .local-build\final-operator-gates\musu-final-operator-gates-$safeVersion-latest.zip -Json"
     final_completion = @"
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-final-operator-gates.ps1 `
+  -MsixInstallEvidencePath .local-build\msix-install\<INSTALL_EVIDENCE_JSON> `
   -MultiDeviceEvidencePath .local-build\multi-device\<EVIDENCE_JSON> `
   -SupportFromAddress "<sender@example.com>" `
   -SupportReceivedBy "<operator-name>" `
@@ -192,6 +203,13 @@ elseif (-not $SkipPacketVerification -and -not $packetVerified) {
         -Command $commands.verify_packet
 }
 
+if (-not [bool]$goNoGo.msix_install_verified) {
+    Add-OperatorStep `
+        -List $operatorSteps `
+        -Gate "msix-install" `
+        -Summary "Run the second-PC install evidence capture, return `.local-build\msix-install\*.evidence.json`, then record it." `
+        -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-msix-install-evidence.ps1 -EvidencePath .local-build\msix-install\<INSTALL_EVIDENCE_JSON>"
+}
 if (-not [bool]$goNoGo.multi_device_verified) {
     Add-OperatorStep `
         -List $operatorSteps `
@@ -229,6 +247,7 @@ $result = [pscustomobject]@{
     gates = [pscustomobject]@{
         local_artifacts_ready = [bool]$goNoGo.local_artifacts_ready
         single_machine_verified = [bool]$goNoGo.single_machine_verified
+        msix_install_verified = [bool]$goNoGo.msix_install_verified
         multi_device_verified = [bool]$goNoGo.multi_device_verified
         public_metadata_ok = $goNoGo.public_metadata_ok
         support_mailbox_verified = [bool]$goNoGo.support_mailbox_verified
@@ -238,6 +257,7 @@ $result = [pscustomobject]@{
     blockers = $goNoGo.blockers
     warnings = $goNoGo.warnings
     evidence_roots = [pscustomobject]@{
+        msix_install = Get-EvidenceRootStatus -Roots $msixInstallRoots
         multi_device = Get-EvidenceRootStatus -Roots $multiDeviceRoots
         support_mailbox = Get-EvidenceRootStatus -Roots $supportRoots
         store_release = Get-EvidenceRootStatus -Roots $storeRoots

@@ -74,6 +74,9 @@ $scriptsToCopy = @(
     "verify-support-mailbox-evidence.ps1",
     "record-multidevice-evidence.ps1",
     "verify-multidevice-evidence.ps1",
+    "capture-msix-install-evidence.ps1",
+    "record-msix-install-evidence.ps1",
+    "verify-msix-install-evidence.ps1",
     "record-store-release-verification.ps1",
     "verify-store-release-evidence.ps1",
     "show-final-release-handoff-status.ps1",
@@ -109,9 +112,10 @@ Current machine-verifiable state before these gates:
 
 Remaining blockers:
 
-1. real second-PC multi-device evidence
-2. real __SUPPORT_EMAIL__ inbox delivery evidence
-3. Partner Center submission, Microsoft certification, and restricted startup capability approval evidence
+1. clean/current MSIX install evidence from the second Windows PC
+2. real second-PC multi-device evidence
+3. real __SUPPORT_EMAIL__ inbox delivery evidence
+4. Partner Center submission, Microsoft certification, and restricted startup capability approval evidence
 
 Before handoff, or after each returned evidence file, run this status command
 from the real MUSU release repo root:
@@ -148,7 +152,26 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-releas
 
 Expected result: `support_mailbox_verified=true`.
 
-## Gate B - Second-PC multi-device test
+## Gate B - Second-PC MSIX install evidence
+
+Use the multi-device kit in `kits\` if this packet includes one. Copy it to the
+second Windows PC, unzip it, and follow its README. After
+`install-and-verify-msix.ps1` succeeds, run this inside the unzipped kit:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-evidence.ps1
+```
+
+Return the generated `.local-build\msix-install\*.evidence.json` file to the
+real MUSU release repo and record it from the release repo root:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-msix-install-evidence.ps1 -EvidencePath .local-build\msix-install\<INSTALL_EVIDENCE_JSON>
+```
+
+Expected result: `msix_install_verified=true`.
+
+## Gate C - Second-PC multi-device test
 
 Use the multi-device kit in `kits\` if this packet includes one. Copy it to the second Windows PC, unzip it, and follow its README.
 
@@ -160,7 +183,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-multi
 
 Expected result: `multi_device_verified=true`.
 
-## Gate C - Store release approval evidence
+## Gate D - Store release approval evidence
 
 After Partner Center submission completes and Microsoft approves the package and
 restricted startup capability, record those values with the final command below.
@@ -182,10 +205,11 @@ Expected result: `store_release_verified=true`.
 
 ## Final command
 
-After Gate A, Gate B, and Gate C evidence exists, run from the real MUSU release repo root:
+After Gate A, Gate B, Gate C, and Gate D evidence exists, run from the real MUSU release repo root:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-final-operator-gates.ps1 `
+  -MsixInstallEvidencePath .local-build\msix-install\<INSTALL_EVIDENCE_JSON> `
   -MultiDeviceEvidencePath .local-build\multi-device\<EVIDENCE_JSON> `
   -SupportFromAddress "<sender@example.com>" `
   -SupportReceivedBy "<operator-name>" `
@@ -200,13 +224,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-fin
   -Json
 ```
 
-This records the multi-device, support mailbox, and Store release evidence, regenerates the release candidate manifest, and then runs the final go/no-go check.
+This records the MSIX install, multi-device, support mailbox, and Store release evidence, regenerates the release candidate manifest, and then runs the final go/no-go check.
 
 The release can proceed only when:
 
 - `ready_for_public_desktop_release=true`
 - `local_artifacts_ready=true`
 - `single_machine_verified=true`
+- `msix_install_verified=true`
 - `multi_device_verified=true`
 - `public_metadata_ok=true`
 - `support_mailbox_verified=true`

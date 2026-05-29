@@ -64,6 +64,7 @@ $auditScript = Join-Path $scriptDir "audit-desktop-release-readiness.ps1"
 $metadataScript = Join-Path $scriptDir "verify-store-public-metadata.ps1"
 $manifestScript = Join-Path $scriptDir "write-release-candidate-manifest.ps1"
 $supportMailboxVerifierScript = Join-Path $scriptDir "verify-support-mailbox-evidence.ps1"
+$msixInstallVerifierScript = Join-Path $scriptDir "verify-msix-install-evidence.ps1"
 $storeReleaseVerifierScript = Join-Path $scriptDir "verify-store-release-evidence.ps1"
 $manifestPath = Join-Path $repoRoot ".local-build\release-candidates\$version\release-candidate-manifest.json"
 
@@ -135,6 +136,50 @@ if (-not $supportMailboxVerified) {
     }
 }
 
+$msixInstallVerified = $false
+$msixInstallEvidence = $null
+$msixInstallEvidenceCandidate = $null
+$msixInstallEvidenceRoots = @(
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ("docs\evidence\msix-install\{0}" -f $version))
+        filter = "*.evidence.json"
+    },
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ".local-build\msix-install")
+        filter = "*.evidence.json"
+    }
+)
+
+foreach ($root in $msixInstallEvidenceRoots) {
+    if (Test-Path -LiteralPath $root.path) {
+        $candidate = Get-ChildItem -LiteralPath $root.path -Filter $root.filter -File -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+        if ($candidate) {
+            $msixInstallEvidenceCandidate = $candidate
+            break
+        }
+    }
+}
+
+if ($msixInstallEvidenceCandidate) {
+    $msixInstallEvidenceResult = Invoke-JsonScript `
+        -FilePath $msixInstallVerifierScript `
+        -Arguments @("-EvidencePath", $msixInstallEvidenceCandidate.FullName, "-ExpectedVersion", $version, "-Json") `
+        -AllowFailure
+    if ($msixInstallEvidenceResult.json -and [bool]$msixInstallEvidenceResult.json.ok) {
+        $msixInstallVerified = $true
+        $msixInstallEvidence = $msixInstallEvidenceResult.json
+    }
+    else {
+        $msixInstallEvidence = [pscustomobject]@{
+            ok = $false
+            evidence_path = $msixInstallEvidenceCandidate.FullName
+            raw = $msixInstallEvidenceResult.raw
+        }
+    }
+}
+
 $storeReleaseVerified = $false
 $storeReleaseEvidence = $null
 $storeReleaseEvidenceCandidate = $null
@@ -192,6 +237,9 @@ if (-not [bool]$audit.desktop_shell_ready) {
 if (-not [bool]$audit.single_machine_verified) {
     Add-Blocker -List $blockers -Area "single-machine" -Message "Fresh single-machine smoke evidence has not been recorded."
 }
+if (-not $msixInstallVerified) {
+    Add-Blocker -List $blockers -Area "msix-install" -Message "Clean/current Windows MSIX install evidence has not been recorded."
+}
 if (-not [bool]$audit.multi_device_verified) {
     Add-Blocker -List $blockers -Area "multi-device" -Message "Real second-PC multi-device evidence has not been recorded."
 }
@@ -220,6 +268,8 @@ if (-not [string]::IsNullOrWhiteSpace($gitStatus)) {
 }
 
 $manualExternalGates = @(
+    "Second-PC clean/current MSIX install verification",
+    "Second-PC multi-device route verification",
     "Partner Center product name reservation",
     "Partner Center app submission",
     "Microsoft app certification",
@@ -238,6 +288,8 @@ $result = [pscustomobject]@{
     multi_device_verified = [bool]$audit.multi_device_verified
     public_metadata_checked = -not [bool]$SkipPublicMetadata
     public_metadata_ok = if ($SkipPublicMetadata) { $null } elseif ($publicMetadataResult.json) { [bool]$publicMetadataResult.json.ok } else { $false }
+    msix_install_verified = [bool]$msixInstallVerified
+    msix_install_evidence = $msixInstallEvidence
     support_mailbox_verified = [bool]$supportMailboxVerified
     support_mailbox_evidence = $supportMailboxEvidence
     store_release_verified = [bool]$storeReleaseVerified
@@ -259,6 +311,7 @@ else {
     "ready_for_public_desktop_release: $($result.ready_for_public_desktop_release)"
     "local_artifacts_ready: $($result.local_artifacts_ready)"
     "single_machine_verified: $($result.single_machine_verified)"
+    "msix_install_verified: $($result.msix_install_verified)"
     "multi_device_verified: $($result.multi_device_verified)"
     "public_metadata_ok: $($result.public_metadata_ok)"
     "support_mailbox_verified: $($result.support_mailbox_verified)"

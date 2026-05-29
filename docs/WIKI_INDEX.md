@@ -233,6 +233,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | — | 1.15.0-rc.1 final operator gates | 2026-05-29 | `RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md` | active |
 | — | 1.15.0-rc.1 single-machine evidence | 2026-05-29 | `evidence/single-machine/1.15.0-rc.1/20260529-070403-HUGH_SECOND.evidence.json` | complete |
 | — | Final operator gate packet generator/verifier/completion runner/status | 2026-05-29 | `scripts/windows/prepare-final-operator-gate-packet.ps1`, `scripts/windows/verify-final-operator-gate-packet.ps1`, `scripts/windows/complete-final-operator-gates.ps1`, `scripts/windows/show-final-release-handoff-status.ps1` | active |
+| — | MSIX install evidence capture/verifier/recorder | 2026-05-29 | `scripts/windows/capture-msix-install-evidence.ps1`, `scripts/windows/verify-msix-install-evidence.ps1`, `scripts/windows/record-msix-install-evidence.ps1` | active |
 | — | Store release evidence verifier/recorder | 2026-05-29 | `scripts/windows/verify-store-release-evidence.ps1`, `scripts/windows/record-store-release-verification.ps1` | active |
 | — | CoS memory note — 1.15.0-rc.1 beta readiness | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0130_kst_1_15_rc1_beta_readiness.md` | active |
 | — | CoS memory note — smoke scripts and multi-device packet | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0333_kst_release_smoke_multidevice_packet.md` | active |
@@ -254,8 +255,10 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | — | CoS memory note — final operator gate packet refresh | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0825_kst_final_operator_gate_packet_refresh.md` | active |
 | — | CoS memory note — final completion runner Store evidence | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0835_kst_final_completion_runner_store_evidence.md` | active |
 | — | CoS memory note — final handoff status script | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0850_kst_final_handoff_status.md` | active |
+| — | CoS memory note — MSIX install evidence gate | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0910_kst_msix_install_evidence_gate.md` | active |
+| — | CoS memory note — musu-system 09:19 recheck | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0919_kst_musu_system_recheck.md` | active |
 
-State lock: `1.15.0-rc.1` is beta-ready for the single-machine Windows local operator path (`musu up` → dashboard doctor → Claude task smoke). A repeatable single-machine smoke script now passes. Multi-device test kit generation now works, but two-machine validation is still pending. Runtime/MSIX package readiness is true for submission attempt; the dedicated Tauri static launcher/status shell now builds, renders, and bundles, but it is not the full dashboard GUI.
+State lock: `1.15.0-rc.1` is beta-ready for the single-machine Windows local operator path (`musu up` → dashboard doctor → Claude task smoke). A repeatable single-machine smoke script now passes. Multi-device test kit generation now works, but clean/current second-PC MSIX install evidence and two-machine validation are still pending. Runtime/MSIX package readiness is true for submission attempt; the dedicated Tauri static launcher/status shell now builds, renders, and bundles, but it is not the full dashboard GUI.
 
 ---
 
@@ -300,7 +303,7 @@ These docs capture the post-install / post-review conclusion that Windows packag
 
 2026-05-29 state update: Partner Center enrollment approval cleared by operator report. Current-version `1.15.0.0` local-sideload and Store-reviewed MSIX artifacts were regenerated and verified; submission bundle `.local-build\msix\submission-bundles\store-reviewed-20260529-033609` is prepared. Dedicated Tauri shell build/bundle now passes. Store submission is still pending product-name reservation, Microsoft app certification, and restricted capability review; those Store release approvals are now evidence-gated by `verify-store-release-evidence.ps1` / `record-store-release-verification.ps1`.
 
-2026-05-29 ecosystem update: `yellowhama/musu-system` is the canonical Go monorepo for `core`, `crawl-ai`, `marketer`, and `nurikun`. Integration value is high, but current decision is adapter/MCP/CLI integration, not Rust-core merge or first Store package bundling. 08:14 KST recheck confirmed HEADs/tags unchanged, latest branch CI green, and local `go test ./...` plus `go vet ./...` passing in all four modules. Current HEAD already has MCP schemas and marketer/nurikun DB parent creation. `nurikun` delivery ops remain outside MCP. Adapter caveat: MUSU registration needs explicit cwd/wiki/project/model/env handling before auto-registration.
+2026-05-29 ecosystem update: `yellowhama/musu-system` is the canonical Go monorepo for `core`, `crawl-ai`, `marketer`, and `nurikun`. Integration value is high, but current decision is adapter/MCP/CLI integration, not Rust-core merge or first Store package bundling. 09:19 KST recheck confirmed monorepo/split HEADs and active tags unchanged, latest branch CI/GHCR runs green, and local `go test ./...` plus `go vet ./...` passing in all four modules. Current HEAD already has MCP schemas and marketer/nurikun DB parent creation. `nurikun` delivery ops remain outside MCP. Adapter caveat: MUSU registration needs explicit cwd/wiki/project/model/env handling before auto-registration.
 
 ---
 

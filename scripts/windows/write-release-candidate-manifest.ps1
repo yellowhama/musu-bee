@@ -102,6 +102,39 @@ function Find-LatestDirectory([string]$Directory, [string]$Filter) {
         Select-Object -ExpandProperty FullName -First 1
 }
 
+function Set-TextFileAtomic {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)]$Content,
+        [string]$Encoding = "UTF8",
+        [int]$Attempts = 6
+    )
+
+    $directory = Split-Path -Parent $Path
+    if (-not [string]::IsNullOrWhiteSpace($directory)) {
+        New-Item -ItemType Directory -Force -Path $directory | Out-Null
+    }
+
+    $lastError = $null
+    for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
+        $tempPath = "{0}.{1}.{2}.tmp" -f $Path, $PID, ([guid]::NewGuid().ToString("N"))
+        try {
+            $Content | Set-Content -LiteralPath $tempPath -Encoding $Encoding
+            Move-Item -LiteralPath $tempPath -Destination $Path -Force
+            return
+        }
+        catch {
+            $lastError = $_
+            if (Test-Path -LiteralPath $tempPath) {
+                Remove-Item -LiteralPath $tempPath -Force -ErrorAction SilentlyContinue
+            }
+            Start-Sleep -Milliseconds (150 * $attempt)
+        }
+    }
+
+    throw "Failed to write $Path after $Attempts attempts: $($lastError.Exception.Message)"
+}
+
 $msixOutput = Join-Path $repoRoot ".local-build\msix\output"
 $localMsix = Join-Path $msixOutput ("musu_{0}_x64_local-sideload-manual.msix" -f $msixVersion)
 $storeMsix = Join-Path $msixOutput ("musu_{0}_x64_store-reviewed-immediate-registration.msix" -f $msixVersion)
@@ -151,10 +184,11 @@ $manifest = [ordered]@{
 }
 
 $manifestPath = Join-Path $OutputDir "release-candidate-manifest.json"
-$manifest | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $manifestPath -Encoding UTF8
+$manifestJson = $manifest | ConvertTo-Json -Depth 12
+Set-TextFileAtomic -Path $manifestPath -Content $manifestJson -Encoding "UTF8"
 
 $sumsPath = Join-Path $OutputDir "SHA256SUMS.txt"
-$artifacts | ForEach-Object {
+$sumLines = @($artifacts | ForEach-Object {
     if ($_.present -and $_.PSObject.Properties.Name -contains "sha256") {
         "{0}  {1}" -f $_.sha256, $_.path
     }
@@ -163,7 +197,8 @@ $artifacts | ForEach-Object {
             "{0}  {1}/{2}" -f $file.sha256, $_.path, $file.relative_path
         }
     }
-} | Set-Content -LiteralPath $sumsPath -Encoding ASCII
+})
+Set-TextFileAtomic -Path $sumsPath -Content $sumLines -Encoding "ASCII"
 
 [pscustomobject]@{
     ok = $true

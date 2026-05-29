@@ -116,12 +116,15 @@ Multi-device packet:
 
 - script: `scripts\windows\smoke-multidevice-beta.ps1`
 - kit builder: `scripts\windows\prepare-multidevice-test-kit.ps1`
+- MSIX install evidence capture: `scripts\windows\capture-msix-install-evidence.ps1`
+- MSIX install evidence verifier: `scripts\windows\verify-msix-install-evidence.ps1`
+- MSIX install evidence recorder: `scripts\windows\record-msix-install-evidence.ps1`
 - evidence verifier: `scripts\windows\verify-multidevice-evidence.ps1`
 - evidence recorder: `scripts\windows\record-multidevice-evidence.ps1`
 - runbook: `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md`
 - latest generated kit pattern: `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-*.zip` (use the newest file by `LastWriteTime`)
 - latest verified final gate packet with fresh multi-device kit: `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip`
-- current state: install/test kit ready, second-PC execution pending
+- current state: install/test kit ready, second-PC install evidence and multi-device execution pending
 
 Store metadata:
 

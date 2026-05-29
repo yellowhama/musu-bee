@@ -53,6 +53,9 @@ $scriptFiles = @(
     "install-msix.ps1",
     "install-and-verify-msix.ps1",
     "verify-installed-msix-package.ps1",
+    "capture-msix-install-evidence.ps1",
+    "verify-msix-install-evidence.ps1",
+    "record-msix-install-evidence.ps1",
     "verify-multidevice-evidence.ps1",
     "record-multidevice-evidence.ps1",
     "smoke-multidevice-beta.ps1"
@@ -96,6 +99,7 @@ Open PowerShell in this kit directory.
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\windows\check-msix-sideload-readiness.ps1
 powershell -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix.ps1 -StartupContract __STARTUP_CONTRACT__ -ReplaceExisting
+powershell -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-evidence.ps1 -StartupContract __STARTUP_CONTRACT__
 musu up --json
 musu doctor --json
 musu status
@@ -106,6 +110,9 @@ If certificate trust fails, rerun the install from an elevated PowerShell with:
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix.ps1 -StartupContract __STARTUP_CONTRACT__ -ReplaceExisting -MachineTrust
 ```
+
+The install evidence command writes `.local-build\msix-install\*.evidence.json`.
+Return that JSON to the release repo with the multi-device smoke evidence.
 
 ## On the primary PC
 

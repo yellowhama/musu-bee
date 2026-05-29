@@ -94,6 +94,7 @@ Multi-device state:
 
 - `scripts\windows\smoke-multidevice-beta.ps1` exists for the second-PC test.
 - `scripts\windows\prepare-multidevice-test-kit.ps1` builds a second-PC install/test zip with MSIX, public `.cer`, scripts, checksums, evidence verifier, and optional desktop shell bundles.
+- `scripts\windows\capture-msix-install-evidence.ps1` captures second-PC package install, WindowsApps alias, startup contract, and legacy-conflict proof; `verify-msix-install-evidence.ps1` and `record-msix-install-evidence.ps1` validate and archive it.
 - `scripts\windows\verify-multidevice-evidence.ps1` validates the returned smoke evidence before release status changes.
 - `scripts\windows\record-multidevice-evidence.ps1` records verified evidence under `docs\evidence\multidevice\1.15.0-rc.1\`.
 - Latest generated kit pattern: `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-*.zip` (use the newest file by `LastWriteTime`).
@@ -122,18 +123,21 @@ Current Store path truth:
 - final operator gate packet verifier: `scripts\windows\verify-final-operator-gate-packet.ps1`
 - final operator evidence completion runner: `scripts\windows\complete-final-operator-gates.ps1`
 - final release handoff status script: `scripts\windows\show-final-release-handoff-status.ps1` (evidence-non-recording one-screen go/no-go, packet verification, evidence roots, and remaining operator commands)
-- latest verified final operator gate packet: `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip` (`ok=true`, `fail_count=0`, `kit_count=1`; README Store release blocker and handoff status checks hardened; final completion runner can record Store approval evidence too)
+- latest verified final operator gate packet: `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip` (`ok=true`, `fail_count=0`, `kit_count=1`; README MSIX install, Store release blocker, and handoff status checks hardened; final completion runner can record MSIX install and Store approval evidence too)
 - Store metadata handoff: `docs/STORE_SUBMISSION_METADATA_2026_05_29.md`
 - public privacy route exists at `/privacy`; public support route exists at `/support`
 - public metadata verifier exists at `scripts\windows\verify-store-public-metadata.ps1`
 - release go/no-go preflight exists at `scripts\windows\write-release-go-no-go.ps1`
 - 2026-05-29 live `musu.pro` public metadata check now passes for `/privacy` and `/support`
+- MSIX install evidence scripts exist: `scripts\windows\capture-msix-install-evidence.ps1`, `scripts\windows\verify-msix-install-evidence.ps1`, and `scripts\windows\record-msix-install-evidence.ps1`
+- `write-release-go-no-go.ps1` now auto-detects valid MSIX install evidence under `docs\evidence\msix-install\<version>\*.evidence.json` or `.local-build\msix-install\*.evidence.json`
 - support mailbox evidence scripts exist: `scripts\windows\verify-support-mailbox-evidence.ps1` and `scripts\windows\record-support-mailbox-verification.ps1`
 - `write-release-go-no-go.ps1` now auto-detects valid support mailbox evidence under `docs\evidence\support-mailbox\<version>\*.evidence.json` or `.local-build\support-mailbox\*.evidence.json`
 - Store release evidence scripts exist: `scripts\windows\verify-store-release-evidence.ps1` and `scripts\windows\record-store-release-verification.ps1`
 - `write-release-go-no-go.ps1` now treats Store approval as an evidence-backed blocker and auto-detects valid evidence under `docs\evidence\store-release\<version>\*.evidence.json` or `.local-build\store-release\*.evidence.json`
-- `complete-final-operator-gates.ps1` can record multi-device, support mailbox, and Store release evidence in one final command; smoke evidence for this path is intentionally written only to `.local-build\store-release-complete-smoke`
-- Indexer refreshed after final handoff status updates: `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed `864 files` and `1897 symbols`; searches for `show-final-release-handoff-status`, `final handoff status`, and `evidence-non-recording` return the new script/docs/memory note.
+- `complete-final-operator-gates.ps1` can record MSIX install, multi-device, support mailbox, and Store release evidence in one final command; smoke evidence for this path is intentionally written only to `.local-build\msix-install-complete-smoke` and `.local-build\store-release-complete-smoke`
+- `write-release-candidate-manifest.ps1` writes manifest/checksum files atomically with retry, avoiding locked-file failures when final handoff status and go/no-go are run concurrently.
+- Indexer refreshed after MSIX install evidence and `musu-system` recheck updates: `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed `869 files` and `1897 symbols`; searches for `msix install evidence`, `capture-msix-install-evidence`, `MsixInstallEvidencePath`, and `0919 musu system recheck` return the new scripts/docs/memory notes.
 - support mailbox DNS exists: `Resolve-DnsName -Type MX musu.pro` returns `smtp.google.com`; actual delivery remains unverified until evidence is recorded
 - GitHub Actions deployment/test infrastructure was repaired for the current Rust/Next repo shape: Node 22+, JavaScript actions forced onto Node 24 runtime, no deleted Python dirs, no deleted `musu-port`, Linux Rust CI includes Wayland/PipeWire/GBM native dependencies, legacy likely-required check names preserved, and Store metadata Playwright smoke for `/privacy` + `/support`
 - Remote release gates are green as of 2026-05-29: `Tests` passed on `ad5f752`; latest relevant `E2E Tests — musu-bee` and `Deploy musu-bee to Vercel` passed on `0919a83`; live `https://musu.pro/privacy` and `/support` passed public metadata verification
@@ -182,6 +186,7 @@ Verified:
 - 2026-05-29 07:17 KST recheck: `go test ./...` and `go vet ./...` passed again in the same four monorepo modules from `F:\workspace\_external\musu-system`; latest remote `musu-system` CI run `26587103682` is green
 - 2026-05-29 07:52 KST recheck: `go test ./...` and `go vet ./...` passed again; latest monorepo HEAD remains `d4e58e0`; latest remote CI and GHCR publish runs are green
 - 2026-05-29 08:14 KST recheck: GitHub repo visibility/HEADs/tags are unchanged; latest branch CI run `26587103682` remains green; local `go test ./...` and `go vet ./...` passed again in `core`, `crawl-ai`, `marketer`, and `nurikun`
+- 2026-05-29 09:19 KST recheck: `musu-system` HEAD remains `d4e58e010fe30e83c1e96165d75d7c3ec80a2f40`; split repo HEADs remain unchanged; active tags remain `crawl-ai/v0.8.0`, `marketer/v2.0.5`, and `nurikun/v0.3.1`; latest remote CI/GHCR runs remain green; local `go test ./...` and `go vet ./...` passed again in all four monorepo modules from `.local-build\external\musu-system`
 - stale-note correction: current `musu-system` HEAD already declares MCP tool schemas and creates missing marketer/nurikun DB parent directories; do not repeat older MCP-empty-schema or SQLite-cwd reports unless they are tied to an old split repo
 - spot audit: `nurikun` keeps delivery ops out of MCP, but `watch` should record failed sends explicitly before any dashboard integration
 - integration adapter caveat: current issue is not MCP schema; MUSU-side registration must pass or wrap explicit working directory, wiki root, project, model, and env settings

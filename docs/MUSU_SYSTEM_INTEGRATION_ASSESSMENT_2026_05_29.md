@@ -26,7 +26,7 @@ The current MUSU desktop beta is trying to prove a narrow Windows trust/install 
 
 ## Repository Snapshot
 
-Checked via local Git clone on 2026-05-29. Rechecked again at 2026-05-29 07:52 KST and 08:14 KST from `F:\workspace\_external\musu-system`.
+Checked via local Git clone on 2026-05-29. Rechecked again at 2026-05-29 07:52 KST and 08:14 KST from `F:\workspace\_external\musu-system`; latest 09:19 KST recheck used `.local-build\external\musu-system`.
 
 | Repo | HEAD | Time | State |
 |---|---|---:|---|
@@ -62,6 +62,15 @@ Fresh recheck on 2026-05-29 08:14 KST:
 - Latest branch CI on the monorepo HEAD remains green: run `26587103682`.
 - Local `git fetch --all --tags --prune` left `F:\workspace\_external\musu-system` clean and aligned with `origin/main`.
 - Local `go test ./...` and `go vet ./...` passed again in `core`, `crawl-ai`, `marketer`, and `nurikun`.
+
+Fresh recheck on 2026-05-29 09:19 KST:
+
+- `git ls-remote https://github.com/yellowhama/musu-system.git HEAD` still resolves to `d4e58e010fe30e83c1e96165d75d7c3ec80a2f40`.
+- Split repo HEADs still resolve to `musu-crawl-ai` `f94b79b1cd8b81fd320e504318ea7dfd61d57596`, `musu-marketer` `5b3bd5c3c91cb3f68f964b70bca310a5bebfb88a`, and private `musu-nurikun` `4bed668f3b809cc9157ae8d28cce59b58ce8daa2`.
+- Active monorepo service tags remain `crawl-ai/v0.8.0`, `marketer/v2.0.5`, and `nurikun/v0.3.1`.
+- Latest remote runs on monorepo HEAD remain green: CI run `26587103682` and GHCR publish run `26587105434`.
+- Local `go test ./...` and `go vet ./...` passed again in `core`, `crawl-ai`, `marketer`, and `nurikun` from `.local-build\external\musu-system`.
+- Conclusion unchanged: integration value is high, but the right first move is optional MCP/CLI/bridge integration, not Rust-core merge or first Store package bundling.
 
 Links:
 
@@ -120,7 +129,7 @@ Observed:
 
 This is enough to treat the repo as a credible integration candidate.
 
-The latest verification was run from `F:\workspace\_external\musu-system` against HEAD `d4e58e010fe30e83c1e96165d75d7c3ec80a2f40`.
+The latest verification was run from `.local-build\external\musu-system` against HEAD `d4e58e010fe30e83c1e96165d75d7c3ec80a2f40`.
 
 2026-05-29 recheck:
 
@@ -156,6 +165,13 @@ The latest verification was run from `F:\workspace\_external\musu-system` agains
 - `go test ./...` and `go vet ./...` passed again in all four modules.
 - Spot audit still supports the same boundary: `nurikun` exposes safe MCP operations only and keeps `watch`, `campaign`, and `serve` outside MCP.
 - The surviving integration issue remains `nurikun watch` send-failure persistence plus MUSU-side adapter context management; no new blocker was found.
+
+2026-05-29 09:19 KST recheck:
+
+- HEADs, split repo references, and active service tags remain unchanged.
+- Latest GitHub Actions CI and GHCR publish runs for the monorepo HEAD remain successful.
+- `go test ./...` and `go vet ./...` passed again in all four modules.
+- No new integration blocker was found. The stale-information risk is now mainly process risk: future reports must check `musu-system` first, then only use split repos as transition/reference context.
 
 ## Code Audit Notes
 

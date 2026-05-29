@@ -12,9 +12,10 @@ This is not because the local runtime, desktop shell, CI, or public metadata are
 
 Remaining blockers:
 
-1. real second-PC multi-device evidence has not been recorded
-2. `support@musu.pro` delivery has not been operator-verified
-3. Store release approval evidence has not been recorded:
+1. clean/current Windows MSIX install evidence has not been recorded
+2. real second-PC multi-device evidence has not been recorded
+3. `support@musu.pro` delivery has not been operator-verified
+4. Store release approval evidence has not been recorded:
    - Partner Center product name reservation / app submission
    - Microsoft app certification
    - Microsoft restricted startup capability approval
@@ -40,6 +41,7 @@ The packet includes:
 - support mailbox recording instructions and a prefilled verification id
 - release gate docs
 - evidence recorder/verifier scripts
+- MSIX install evidence capture/recorder/verifier scripts
 - Store release approval recorder/verifier scripts
 - final release handoff status script
 - final packet verifier script
@@ -58,7 +60,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-final
 
 Result: `ok=true`, `fail_count=0`, `kit_count=1`.
 
-The packet verifier now explicitly checks that the README names Store release approval as a blocker and includes `record-store-release-verification.ps1` and `show-final-release-handoff-status.ps1`.
+The packet verifier now explicitly checks that the README names MSIX install and Store release approval as blockers and includes `record-msix-install-evidence.ps1`, `record-store-release-verification.ps1`, and `show-final-release-handoff-status.ps1`.
 
 This packet does not close the manual gates by itself. It exists so the operator can execute the remaining external checks and return evidence without hunting across the repo.
 
@@ -135,7 +137,7 @@ Expected change:
 - `support_mailbox_verified=true`
 - support-mailbox blocker removed
 
-## Gate 2 - Second-PC Multi-Device Evidence
+## Gate 2 - Second-PC MSIX Install Evidence
 
 Use the multi-device kit inside the latest final operator packet, or the newest standalone test kit matching:
 
@@ -147,7 +149,27 @@ On the second Windows machine:
 
 1. unzip the kit
 2. run the included MSIX install/verify script
-3. run:
+3. capture install evidence:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-evidence.ps1
+```
+
+Return the generated `.local-build\msix-install\*.evidence.json` file to the release repo and record it:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-msix-install-evidence.ps1 `
+  -EvidencePath .local-build\msix-install\<INSTALL_EVIDENCE_JSON>
+```
+
+Expected change:
+
+- `msix_install_verified=true`
+- msix-install blocker removed
+
+## Gate 3 - Second-PC Multi-Device Evidence
+
+On the second Windows machine, after MSIX install evidence is captured, run:
 
 ```powershell
 musu up --json
@@ -191,7 +213,7 @@ Expected change:
 - `multi_device_verified=true`
 - multi-device blocker removed
 
-## Gate 3 - Store Release Approval Evidence
+## Gate 4 - Store Release Approval Evidence
 
 After Partner Center submission completes and Microsoft approves the package and
 restricted startup capability, record the approval result:
@@ -214,10 +236,11 @@ Expected change:
 
 ## Final Release Command
 
-After Gate 1, Gate 2, and Gate 3 evidence exists, the preferred final command is the single completion runner:
+After Gate 1, Gate 2, Gate 3, and Gate 4 evidence exists, the preferred final command is the single completion runner:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-final-operator-gates.ps1 `
+  -MsixInstallEvidencePath .local-build\msix-install\<INSTALL_EVIDENCE_JSON> `
   -MultiDeviceEvidencePath .local-build\multi-device\<EVIDENCE_JSON> `
   -SupportFromAddress "<sender@example.com>" `
   -SupportReceivedBy "<operator-name>" `
@@ -232,7 +255,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-fin
   -Json
 ```
 
-The runner records multi-device, support mailbox, and Store release evidence,
+The runner records MSIX install, multi-device, support mailbox, and Store release evidence,
 regenerates the release candidate manifest, and then runs the final go/no-go
 check. If evidence has already been recorded separately, it is also valid to run
 `write-release-candidate-manifest.ps1` and `write-release-go-no-go.ps1 -Json`
@@ -243,6 +266,7 @@ The release is ready for public desktop release only when:
 - `ready_for_public_desktop_release=true`
 - `local_artifacts_ready=true`
 - `single_machine_verified=true`
+- `msix_install_verified=true`
 - `multi_device_verified=true`
 - `public_metadata_ok=true`
 - `support_mailbox_verified=true`
