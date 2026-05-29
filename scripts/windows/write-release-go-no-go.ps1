@@ -248,10 +248,7 @@ if (-not $SkipPublicMetadata) {
     }
 }
 else {
-    $warnings.Add([pscustomobject]@{
-        area = "store-public-metadata"
-        message = "Public privacy/support metadata verification was skipped."
-    }) | Out-Null
+    Add-Blocker -List $blockers -Area "store-public-metadata" -Message "Public privacy/support metadata verification was skipped."
 }
 if (-not $supportMailboxVerified) {
     Add-Blocker -List $blockers -Area "support-mailbox" -Message "support@musu.pro delivery has not been operator-verified."
