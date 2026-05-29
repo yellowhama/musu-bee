@@ -56,14 +56,16 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\smoke-multidevice-beta.
 The smoke script now:
 
 - auto-detects repo-local `musu-rs\target\debug\musu.exe` first, then installed `musu.exe`
-- writes a machine-readable evidence JSON under `.local-build\multi-device\`
+- writes a machine-readable `musu.multidevice_smoke_evidence.v1` evidence JSON under `.local-build\multi-device\`
+- records the release version, operator machine, `started_at`, and `completed_at`
 - records command output for `up`, `doctor`, `peer add`, `peer list`, `discover`, `status`, and route
 
 Verify returned evidence before changing release status:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\windows\verify-multidevice-evidence.ps1 `
-  -EvidencePath .local-build\multi-device\<EVIDENCE_JSON>
+  -EvidencePath .local-build\multi-device\<EVIDENCE_JSON> `
+  -ExpectedVersion 1.15.0-rc.1
 ```
 
 For committed release proof, place verified evidence under:
@@ -122,6 +124,7 @@ musu status
 4. `musu peer list` shows the remote address or remote name.
 5. `musu status` renders a fleet status without crashing.
 6. If route is enabled, `musu route --target <OTHER_PC_NAME> --wait "Reply exactly: MUSU_REMOTE_ROUTE_OK"` returns the expected text.
+7. The returned evidence verifies with the current release version, valid schema, valid timestamps, and acceptable evidence age.
 
 ## Current Local Evidence
 

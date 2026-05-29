@@ -44,6 +44,7 @@ $verifyArgs = @(
     "-ExecutionPolicy", "Bypass",
     "-File", $verifyScript,
     "-EvidencePath", (Resolve-Path -LiteralPath $EvidencePath).Path,
+    "-ExpectedVersion", $Version,
     "-ExpectedRouteOutput", $ExpectedRouteOutput,
     "-Json"
 )

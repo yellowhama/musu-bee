@@ -355,7 +355,7 @@ elseif (-not $latestEvidence) {
 }
 else {
     $verifyScript = Join-Path $scriptDir "verify-multidevice-evidence.ps1"
-    $verifyOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File $verifyScript -EvidencePath $latestEvidence.FullName -Json 2>&1
+    $verifyOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File $verifyScript -EvidencePath $latestEvidence.FullName -ExpectedVersion $repoVersion -Json 2>&1
     $verifyExit = $LASTEXITCODE
     if ($verifyExit -eq 0) {
         $verifyResult = ($verifyOutput | Out-String).Trim() | ConvertFrom-Json

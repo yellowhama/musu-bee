@@ -17,6 +17,7 @@ $ErrorActionPreference = "Stop"
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
+$version = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
 
 function Write-Step([string]$Message) {
     if (-not $Json) {
@@ -63,9 +64,13 @@ if ([string]::IsNullOrWhiteSpace($EvidencePath)) {
 
 $MusuExe = Resolve-MusuExePath
 $evidence = [ordered]@{
+    schema = "musu.multidevice_smoke_evidence.v1"
     ok = $false
+    version = $version
     started_at = (Get-Date).ToString("o")
     completed_at = $null
+    operator_machine = $env:COMPUTERNAME
+    operator_user = $env:USERNAME
     musu_exe = $MusuExe
     remote_addr = $RemoteAddr
     remote_name = $RemoteName

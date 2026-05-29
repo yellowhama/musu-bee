@@ -152,14 +152,24 @@ try {
             "packet go/no-go script does not block dirty git state"
     }
 
+    $multiDeviceVerifierScriptPath = Join-Path $packetRoot "scripts\windows\verify-multidevice-evidence.ps1"
+    if (Test-Path -LiteralPath $multiDeviceVerifierScriptPath) {
+        $multiDeviceVerifierScript = Get-Content -LiteralPath $multiDeviceVerifierScriptPath -Raw
+        Add-CheckFromCondition `
+            "multi-device verifier schema gate" `
+            ($multiDeviceVerifierScript -like "*musu.multidevice_smoke_evidence.v1*" -and $multiDeviceVerifierScript -like "*ExpectedVersion*" -and $multiDeviceVerifierScript -like "*completed_at*") `
+            "packet multi-device verifier checks schema, version, and completion time" `
+            "packet multi-device verifier does not check schema, version, and completion time"
+    }
+
     $packetVerifierScriptPath = Join-Path $packetRoot "scripts\windows\verify-final-operator-gate-packet.ps1"
     if (Test-Path -LiteralPath $packetVerifierScriptPath) {
         $packetVerifierScript = Get-Content -LiteralPath $packetVerifierScriptPath -Raw
         Add-CheckFromCondition `
-            "packet verifier dirty git check" `
-            ($packetVerifierScript -like "*go no-go dirty git blocker*") `
-            "packet verifier checks dirty git blocker rule" `
-            "packet verifier does not check dirty git blocker rule"
+            "packet verifier release safety checks" `
+            ($packetVerifierScript -like "*go no-go dirty git blocker*" -and $packetVerifierScript -like "*multi-device verifier schema gate*") `
+            "packet verifier checks dirty git and multi-device evidence rules" `
+            "packet verifier does not check dirty git and multi-device evidence rules"
     }
 
     $templatePath = Join-Path $packetRoot "support-mailbox-record-template.json"
