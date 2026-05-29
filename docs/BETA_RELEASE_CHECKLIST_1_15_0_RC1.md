@@ -142,6 +142,8 @@ Store metadata:
 - release go/no-go preflight: `scripts\windows\write-release-go-no-go.ps1`
 - final operator packet builder: `scripts\windows\prepare-final-operator-gate-packet.ps1`
 - final operator packet verifier: `scripts\windows\verify-final-operator-gate-packet.ps1`
+- final operator action pack builder: `scripts\windows\prepare-operator-action-pack.ps1`
+- final operator action pack verifier: `scripts\windows\verify-operator-action-pack.ps1`
 - final evidence completion runner: `scripts\windows\complete-final-operator-gates.ps1`
 - final release handoff status: `scripts\windows\show-final-release-handoff-status.ps1`
 - metadata handoff: `docs/STORE_SUBMISSION_METADATA_2026_05_29.md`

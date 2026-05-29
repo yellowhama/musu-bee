@@ -2,7 +2,7 @@
 
 **Wiki ID**: wiki/521
 **Date**: 2026-05-29
-**Scope**: current product state after support mailbox correction, refreshed single-machine evidence, packet-aware operator handoff card, second-PC return-card helper, and final operator packet verification.
+**Scope**: current product state after support mailbox correction, refreshed single-machine evidence, packet-aware operator handoff card, second-PC return-card helper, final operator packet verification, and operator action pack generator/verifier.
 
 ## Verdict
 
@@ -84,6 +84,7 @@ These are the current product/spec locks from the work:
 8. **musu-system integration**: `yellowhama/musu-system`, `musu-crawl-ai`, `musu-marketer`, and `musu-nurikun` are high-value adjacent tooling, but they are not part of the first Store package and should not be merged into `musu-rs`. First likely integration candidate is `crawl-ai` as optional wiki/knowledge ingestion through an adapter/MCP/CLI boundary. `nurikun` support ops should stay human-approved until send-failure persistence is fixed or wrapped.
 9. **Handoff values**: support verification id, subject, and second-PC kit name must come from `show-operator-handoff-card.ps1`, not from old notes.
 10. **Second-PC return values**: returned `.local-build\second-pc-handoff\*.handoff.json` should be fed to `show-second-pc-return-card.ps1` so the primary PC uses a current `host:port` endpoint and matching evidence paths.
+11. **Operator action pack**: `prepare-operator-action-pack.ps1` and `verify-operator-action-pack.ps1` create/check a local handoff archive for second-PC transfer, support-mailbox verification, and Partner Center submission copy. It is a convenience wrapper, not release evidence.
 
 ## Qualitative Report
 
@@ -93,6 +94,7 @@ What is solid:
 - Support email drift was fixed centrally. The public routes, E2E checks, release scripts, packet metadata, and verifier now converge on `musu@musu.pro`.
 - The final release process fails closed. Missing public metadata, dirty git, weak support evidence, weak MSIX evidence, weak multi-device evidence, and inferred Store evidence cannot produce a public release pass.
 - Operator friction is much lower than before. The packet-aware handoff card removes stale packet id / stale kit name risk for the remaining manual gates.
+- Operator file handling now has a repeatable action pack that wraps the second-PC transfer zip, Partner Center submission copy, and support-mailbox verification template without including private `.pfx` material.
 - The second-PC return path is now less error-prone because returned handoff JSON can generate exact primary-side record/smoke commands.
 - Public metadata is live and verified. This is no longer a local-only claim.
 
@@ -110,6 +112,7 @@ Audit scope:
 
 - support mailbox correction and config flow
 - final operator packet generator/verifier
+- operator action pack generator/verifier
 - operator handoff card
 - go/no-go evidence gates
 - MSIX install, support mailbox, Store release, and multi-device evidence validators
@@ -122,9 +125,10 @@ Findings:
 3. **Operator handoff card is evidence-non-recording.** It reads packet metadata and support template values, prints commands, and cleans temporary extraction paths. It does not create readiness evidence.
 4. **Final packet creation is properly source-attributed.** `prepare-final-operator-gate-packet.ps1` refuses dirty git state and writes packet build metadata with branch, commit, clean status, version, support email, and support verification id.
 5. **Final packet verification is materially useful.** It checks required docs/scripts, packet metadata, README instructions, support email consistency, checksums, kit count, handoff helper, and stale verifier safety rules.
-6. **Evidence validators fail closed on the important fields.** Current scripts require explicit support verification token, sender distinction, current version, timestamps, operator metadata, Store product-name reservation timestamp, MSIX capture checks, and multi-device endpoint shape.
-7. **No release-blocking code issue found in the scoped audit.** Remaining release blockers are missing external evidence files, not internal code defects.
-8. **Smoke harness issue fixed after audit.** `Start-Job` and redirected pipe capture were unsafe for `musu up` because the command can spawn a long-lived bridge. `smoke-single-machine-beta.ps1` now uses readiness retries and temp-file command capture through `Start-Process`.
+6. **Operator action pack generation is repeatable and evidence-safe.** `prepare-operator-action-pack.ps1` refuses dirty git state, verifies the final operator packet first, creates second-PC/Partner Center/support sub-bundles, records source metadata, and rejects private `.pfx` material. `verify-operator-action-pack.ps1` checks metadata, nested zips, checksums, support template values, and `.pfx` exclusion.
+7. **Evidence validators fail closed on the important fields.** Current scripts require explicit support verification token, sender distinction, current version, timestamps, operator metadata, Store product-name reservation timestamp, MSIX capture checks, and multi-device endpoint shape.
+8. **No release-blocking code issue found in the scoped audit.** Remaining release blockers are missing external evidence files, not internal code defects.
+9. **Smoke harness issue fixed after audit.** `Start-Job` and redirected pipe capture were unsafe for `musu up` because the command can spawn a long-lived bridge. `smoke-single-machine-beta.ps1` now uses readiness retries and temp-file command capture through `Start-Process`.
 
 Residual risks:
 
@@ -140,13 +144,14 @@ P0: close public release evidence gates.
 1. Commit and push the updated docs/scripts.
 2. Regenerate `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip` from the clean pushed HEAD.
 3. Run `verify-final-operator-gate-packet.ps1 -PacketPath .local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip -Json`.
-4. Run `show-operator-handoff-card.ps1` and use only its current support subject/id and kit name.
-5. Copy only `kits\musu-multidevice-*.zip` from the final packet to the second Windows PC.
-6. On the second PC, install/verify MSIX, capture MSIX install evidence, and run `collect-second-pc-handoff.ps1`.
-7. On the primary PC, run `smoke-multidevice-beta.ps1` with the second PC `host:port`, then record returned MSIX and multi-device evidence.
-8. Send a real email to `musu@musu.pro` using the current support subject/id and record support mailbox evidence.
-9. In Partner Center, reserve product name, submit the MSIX, wait for Microsoft certification/restricted capability review, then record Store release evidence.
-10. Run `complete-final-operator-gates.ps1 ... -FailOnNotReady -Json`.
+4. Run `prepare-operator-action-pack.ps1 -Json`, then `verify-operator-action-pack.ps1 -PackPath .local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-latest.zip -Json`.
+5. Run `show-operator-handoff-card.ps1` and use only its current support subject/id and kit name.
+6. Copy the action pack or only its second-PC transfer zip to the second Windows PC.
+7. On the second PC, install/verify MSIX, capture MSIX install evidence, and run `collect-second-pc-handoff.ps1`.
+8. On the primary PC, run `smoke-multidevice-beta.ps1` with the second PC `host:port`, then record returned MSIX and multi-device evidence.
+9. Send a real email to `musu@musu.pro` using the current support subject/id and record support mailbox evidence.
+10. In Partner Center, reserve product name, submit the MSIX, wait for Microsoft certification/restricted capability review, then record Store release evidence.
+11. Run `complete-final-operator-gates.ps1 ... -FailOnNotReady -Json`.
 
 P1: stabilize first public release operations.
 

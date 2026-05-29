@@ -64,6 +64,15 @@ The packet generator refuses to run from a dirty git worktree and writes `packet
 
 This packet does not close the manual gates by itself. It exists so the operator can execute the remaining external checks and return evidence without hunting across the repo.
 
+For a single copyable operator archive, generate and verify the action pack after the final operator packet is current:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\prepare-operator-action-pack.ps1 -Json
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-operator-action-pack.ps1 -PackPath .local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-latest.zip -Json
+```
+
+The action pack is only a convenience wrapper for second-PC transfer, support-mailbox proof, and Partner Center submission copy. It does not create evidence and does not close any release gate.
+
 For the shortest MUSU-specific operator sequence, use:
 
 - `docs/MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md`
