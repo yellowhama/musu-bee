@@ -11,6 +11,8 @@ use serde::Serialize;
 
 use super::shares::SharesConfig;
 
+const BRIDGE_HEALTH_TIMEOUT_SECS: u64 = 10;
+
 // ── V27 CLI option structs ──────────────────────────────────────────────
 
 /// Options for `musu share <path>`.
@@ -817,7 +819,7 @@ async fn check_bridge(home: &std::path::Path) -> DoctorBridge {
     let client = reqwest::Client::new();
     match client
         .get(format!("{}/health", local_url.trim_end_matches('/')))
-        .timeout(std::time::Duration::from_secs(3))
+        .timeout(std::time::Duration::from_secs(BRIDGE_HEALTH_TIMEOUT_SECS))
         .send()
         .await
     {
