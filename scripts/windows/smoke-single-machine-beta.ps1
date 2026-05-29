@@ -6,6 +6,7 @@ param(
     [string]$ExpectedDashboardOutput = "MUSU_RELEASE_SMOKE_OK",
     [string]$ExpectedCliOutput = "MUSU_CLI_ROUTE_OK",
     [int]$TaskTimeoutSec = 180,
+    [int]$CommandTimeoutSec = 90,
     [switch]$SkipCliRoute,
     [string]$EvidencePath,
     [string]$EvidenceRoot,
@@ -47,18 +48,68 @@ function Assert-True([bool]$Condition, [string]$Message) {
     }
 }
 
+function Invoke-TextCommand {
+    param(
+        [Parameter(Mandatory = $true)][string]$FilePath,
+        [Parameter(Mandatory = $true)][string[]]$Arguments,
+        [int]$TimeoutSec = $CommandTimeoutSec
+    )
+
+    function ConvertTo-ProcessArgumentString {
+        param([string[]]$Items)
+
+        (@($Items) | ForEach-Object {
+            $item = [string]$_
+            $escaped = $item -replace '"', '\"'
+            if ($escaped -match "\s") {
+                "`"$escaped`""
+            }
+            else {
+                $escaped
+            }
+        }) -join " "
+    }
+
+    $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
+    $startInfo.FileName = $FilePath
+    $startInfo.Arguments = ConvertTo-ProcessArgumentString -Items $Arguments
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+
+    $process = [System.Diagnostics.Process]::Start($startInfo)
+    if (-not $process.WaitForExit($TimeoutSec * 1000)) {
+        try {
+            $process.Kill()
+        }
+        catch {
+        }
+        throw "command timed out after ${TimeoutSec}s: $FilePath $($Arguments -join ' ')"
+    }
+
+    $stdoutText = $process.StandardOutput.ReadToEnd().Trim()
+    $stderrText = $process.StandardError.ReadToEnd().Trim()
+    if ($process.ExitCode -ne 0) {
+        throw "command failed with exit code $($process.ExitCode): $FilePath $($Arguments -join ' ')`n$stdoutText`n$stderrText"
+    }
+
+    if ([string]::IsNullOrWhiteSpace($stdoutText)) {
+        return $stderrText
+    }
+    if (-not [string]::IsNullOrWhiteSpace($stderrText)) {
+        return "$stdoutText`n$stderrText"
+    }
+    return $stdoutText
+}
+
 function Invoke-JsonCommand {
     param(
         [Parameter(Mandatory = $true)][string]$FilePath,
         [Parameter(Mandatory = $true)][string[]]$Arguments
     )
 
-    $output = & $FilePath @Arguments 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        throw "command failed: $FilePath $($Arguments -join ' ')`n$output"
-    }
-
-    $text = ($output | Out-String).Trim()
+    $text = Invoke-TextCommand -FilePath $FilePath -Arguments $Arguments
     try {
         return $text | ConvertFrom-Json
     }
@@ -133,11 +184,11 @@ Assert-True ($sseContentType.Contains("text/event-stream")) "SSE endpoint did no
 $cliRouteOutput = $null
 if (-not $SkipCliRoute) {
     Write-Step "Run CLI route smoke"
-    $cliRouteOutput = & $MusuExe route --wait "Reply exactly: $ExpectedCliOutput" 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        throw "musu route failed: $cliRouteOutput"
-    }
-    Assert-True ((($cliRouteOutput | Out-String) -as [string]).Contains($ExpectedCliOutput)) "CLI route output did not contain expected text"
+    $cliRouteOutput = Invoke-TextCommand `
+        -FilePath $MusuExe `
+        -Arguments @("route", "--wait", "Reply exactly: $ExpectedCliOutput") `
+        -TimeoutSec $TaskTimeoutSec
+    Assert-True ($cliRouteOutput.Contains($ExpectedCliOutput)) "CLI route output did not contain expected text"
 }
 
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $EvidencePath) | Out-Null
@@ -164,7 +215,7 @@ $evidence = [pscustomobject]@{
     sse_content_type = $sseContentType
     cli_route_checked = -not $SkipCliRoute
     expected_cli_output = if ($SkipCliRoute) { $null } else { $ExpectedCliOutput }
-    cli_route_output = if ($SkipCliRoute) { $null } else { ($cliRouteOutput | Out-String).Trim() }
+    cli_route_output = if ($SkipCliRoute) { $null } else { $cliRouteOutput.Trim() }
 }
 $evidence | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $EvidencePath -Encoding UTF8
 
