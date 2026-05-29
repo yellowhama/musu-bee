@@ -1,12 +1,25 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)][string]$EvidencePath,
+    [string]$ExpectedVersion,
+    [string]$ExpectedGitCommit,
+    [switch]$AllowDocumentationOnlyGitDelta,
     [int]$MaxAgeDays = 30,
     [switch]$Json
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
+
+if ([string]::IsNullOrWhiteSpace($ExpectedVersion)) {
+    $ExpectedVersion = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
+}
+if ([string]::IsNullOrWhiteSpace($ExpectedGitCommit)) {
+    $ExpectedGitCommit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
+}
 
 $checks = New-Object System.Collections.Generic.List[object]
 
@@ -81,6 +94,32 @@ function Try-ParseDateTimeOffset {
     }
 }
 
+function Test-DocumentationOnlyGitDelta {
+    param(
+        [Parameter(Mandatory = $true)][string]$FromCommit,
+        [Parameter(Mandatory = $true)][string]$ToCommit
+    )
+
+    if ($FromCommit -notmatch "^[0-9a-f]{40}$" -or $ToCommit -notmatch "^[0-9a-f]{40}$") {
+        return $false
+    }
+
+    $changedPathsText = (& git -C $repoRoot diff --name-only $FromCommit $ToCommit 2>$null | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0) {
+        return $false
+    }
+    if ([string]::IsNullOrWhiteSpace($changedPathsText)) {
+        return $true
+    }
+
+    $changedPaths = @($changedPathsText -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    $nonDocumentationPaths = @($changedPaths | Where-Object {
+        $path = ([string]$_).Replace("\", "/")
+        -not ($path -like "docs/*")
+    })
+    return ($nonDocumentationPaths.Count -eq 0)
+}
+
 if (-not (Test-Path -LiteralPath $EvidencePath)) {
     throw "Single-machine evidence file not found: $EvidencePath"
 }
@@ -107,6 +146,8 @@ $evidenceOk = Get-BoolProperty -Object $evidence -Name "ok"
 $cliRouteChecked = Get-BoolProperty -Object $evidence -Name "cli_route_checked"
 $startedAt = Try-ParseDateTimeOffset -Text $startedAtText
 $completedAt = Try-ParseDateTimeOffset -Text $completedAtText
+$now = [datetimeoffset]::Now
+$futureTolerance = [timespan]::FromMinutes(5)
 
 $deviceNodeCount = 0
 $deviceNodeProperty = $evidence.PSObject.Properties["device_node_count"]
@@ -123,13 +164,32 @@ if ($sseStatusProperty -and $null -ne $sseStatusProperty.Value) {
 Add-CheckFromCondition "schema" ($schema -eq "musu.single_machine_smoke_evidence.v1") "schema is valid" "schema is not musu.single_machine_smoke_evidence.v1"
 Add-CheckFromCondition "evidence ok" $evidenceOk "evidence reports ok=true" "evidence does not report ok=true"
 Add-CheckFromCondition "version" (-not [string]::IsNullOrWhiteSpace($version)) "version is present" "version is missing"
+Add-CheckFromCondition "expected version" ($version -eq $ExpectedVersion) "version matches $ExpectedVersion" "version is '$version', expected '$ExpectedVersion'"
 Add-CheckFromCondition "git commit" ($gitCommit -match "^[0-9a-f]{40}$") "git commit is present" "git commit is missing or invalid"
+$gitCommitMatchesExpected = ($gitCommit -eq $ExpectedGitCommit)
+$documentationOnlyGitDelta = $false
+if (-not $gitCommitMatchesExpected -and $AllowDocumentationOnlyGitDelta) {
+    $documentationOnlyGitDelta = Test-DocumentationOnlyGitDelta -FromCommit $gitCommit -ToCommit $ExpectedGitCommit
+}
+Add-CheckFromCondition `
+    "expected git commit" `
+    ($gitCommitMatchesExpected -or $documentationOnlyGitDelta) `
+    "git commit matches current HEAD $ExpectedGitCommit or differs only by documentation/evidence commits" `
+    "git commit is '$gitCommit', expected current HEAD '$ExpectedGitCommit' with no non-documentation changes after the evidence commit"
 Add-CheckFromCondition "started timestamp" ($null -ne $startedAt) "started_at parses" "started_at is missing or invalid"
 Add-CheckFromCondition "completed timestamp" ($null -ne $completedAt) "completed_at parses" "completed_at is missing or invalid"
 if ($startedAt -and $completedAt) {
     Add-CheckFromCondition "time order" ($completedAt -ge $startedAt) "completed_at is at or after started_at" "completed_at is before started_at"
     $age = [datetimeoffset]::Now - $completedAt
-    Add-CheckFromCondition "evidence age" ($age.TotalDays -le $MaxAgeDays) "completed_at is within $MaxAgeDays days" "completed_at is older than $MaxAgeDays days"
+    Add-CheckFromCondition "evidence age" ($age.TotalDays -le $MaxAgeDays -and $age.TotalSeconds -ge -300) "completed_at is within $MaxAgeDays days" "completed_at is outside the allowed evidence window"
+}
+foreach ($timestamp in @(
+    [pscustomobject]@{ name = "started_at"; value = $startedAt },
+    [pscustomobject]@{ name = "completed_at"; value = $completedAt }
+)) {
+    if ($timestamp.value) {
+        Add-CheckFromCondition "$($timestamp.name) not future" ($timestamp.value -le ($now + $futureTolerance)) "$($timestamp.name) is not in the future" "$($timestamp.name) is more than 5 minutes in the future"
+    }
 }
 Add-CheckFromCondition "dashboard base url" (-not [string]::IsNullOrWhiteSpace($dashboardBaseUrl)) "dashboard_base_url is present" "dashboard_base_url is missing"
 Add-CheckFromCondition "bridge url" ($bridgeUrl -match "^http://127\.0\.0\.1:\d+") "bridge_url is localhost" "bridge_url is missing or not localhost"

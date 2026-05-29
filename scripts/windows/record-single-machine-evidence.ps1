@@ -36,7 +36,8 @@ if (-not (Test-Path -LiteralPath $EvidencePath)) {
 }
 
 $verifyScript = Join-Path $scriptDir "verify-single-machine-evidence.ps1"
-$verifyText = (& powershell -NoProfile -ExecutionPolicy Bypass -File $verifyScript -EvidencePath (Resolve-Path -LiteralPath $EvidencePath).Path -Json 2>&1 | Out-String).Trim()
+$gitCommit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
+$verifyText = (& powershell -NoProfile -ExecutionPolicy Bypass -File $verifyScript -EvidencePath (Resolve-Path -LiteralPath $EvidencePath).Path -ExpectedVersion $Version -ExpectedGitCommit $gitCommit -Json 2>&1 | Out-String).Trim()
 if ($LASTEXITCODE -ne 0) {
     throw "Single-machine evidence did not verify.`n$verifyText"
 }

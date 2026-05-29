@@ -56,6 +56,7 @@ $numericReleaseVersion = if ($repoVersion.Contains("-")) {
 } else {
     $repoVersion
 }
+$gitCommit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
 
 $packageJsonPath = Join-Path $appRoot "package.json"
 $packageLockPath = Join-Path $appRoot "package-lock.json"
@@ -312,7 +313,7 @@ if (-not $latestSingleEvidence) {
 }
 else {
     $verifySingleScript = Join-Path $scriptDir "verify-single-machine-evidence.ps1"
-    $verifySingleOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File $verifySingleScript -EvidencePath $latestSingleEvidence.FullName -Json 2>&1
+    $verifySingleOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File $verifySingleScript -EvidencePath $latestSingleEvidence.FullName -ExpectedVersion $repoVersion -ExpectedGitCommit $gitCommit -AllowDocumentationOnlyGitDelta -Json 2>&1
     $verifySingleExit = $LASTEXITCODE
     if ($verifySingleExit -eq 0) {
         $verifySingleResult = ($verifySingleOutput | Out-String).Trim() | ConvertFrom-Json
