@@ -18,7 +18,7 @@ Remaining release blockers:
 
 1. clean/current second-PC MSIX install evidence
 2. real second-PC multi-device routing evidence
-3. real `support@musu.pro` inbox delivery evidence
+3. real `musu@musu.pro` inbox delivery evidence
 4. Partner Center product-name reservation, app submission, Microsoft certification, and restricted capability approval evidence
 
 ## Product Boundary
@@ -119,14 +119,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-multi
 
 ### 5. Verify Support Mailbox
 
-Send a real external email to `support@musu.pro` with a subject/body containing a `musu-...` token, then record evidence after confirming it is visible in the actual inbox:
+Send a real external email to `musu@musu.pro` with a subject/body containing a `musu-...` token, then record evidence after confirming it is visible in the actual inbox:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-support-mailbox-verification.ps1 `
   -FromAddress "<sender@example.com>" `
   -ReceivedBy "<operator-name>" `
   -VerificationId "musu-store-support-1.15.0-rc.1-<unique-token>" `
-  -Notes "Verified delivery in support@musu.pro inbox" `
+  -Notes "Verified delivery in musu@musu.pro inbox" `
   -Json
 ```
 
@@ -168,7 +168,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-fin
   -SupportFromAddress "<sender@example.com>" `
   -SupportReceivedBy "<operator-name>" `
   -SupportVerificationId "<support-verification-id>" `
-  -SupportNotes "Verified delivery in support@musu.pro inbox" `
+  -SupportNotes "Verified delivery in musu@musu.pro inbox" `
   -StoreProductName "MUSU" `
   -StoreProductNameReservedAt "<partner-center-name-reserved-at>" `
   -StoreSubmissionId "<partner-center-submission-id>" `

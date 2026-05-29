@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { SUPPORT_EMAIL } from "../src/lib/contact";
 
 test.describe("Store public metadata", () => {
   test("privacy page exposes Partner Center required content", async ({ page }) => {
@@ -8,7 +9,7 @@ test.describe("Store public metadata", () => {
       page.getByRole("heading", { name: "MUSU Privacy Policy", level: 1 }),
     ).toBeVisible();
     await expect(page.getByText("Data MUSU may process")).toBeVisible();
-    await expect(page.getByText("support@musu.pro").first()).toBeVisible();
+    await expect(page.getByText(SUPPORT_EMAIL).first()).toBeVisible();
   });
 
   test("support page exposes support evidence instructions", async ({ page }) => {
@@ -18,6 +19,6 @@ test.describe("Store public metadata", () => {
       page.getByRole("heading", { name: "MUSU Support", level: 1 }),
     ).toBeVisible();
     await expect(page.getByText("Include this diagnostic evidence")).toBeVisible();
-    await expect(page.getByText("support@musu.pro").first()).toBeVisible();
+    await expect(page.getByText(SUPPORT_EMAIL).first()).toBeVisible();
   });
 });

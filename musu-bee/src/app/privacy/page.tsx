@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import PublicSiteShell from "@/components/PublicSiteShell";
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/lib/contact";
 
 export const metadata: Metadata = {
   title: "MUSU Privacy",
@@ -82,8 +83,8 @@ export default function PrivacyPage() {
           <h2 style={headingStyle}>Contact</h2>
           <p style={bodyStyle}>
             For privacy or support requests, email{" "}
-            <a href="mailto:support@musu.pro" style={linkStyle}>
-              support@musu.pro
+            <a href={SUPPORT_MAILTO} style={linkStyle}>
+              {SUPPORT_EMAIL}
             </a>{" "}
             or use the MUSU support page at{" "}
             <a href="/support" style={linkStyle}>

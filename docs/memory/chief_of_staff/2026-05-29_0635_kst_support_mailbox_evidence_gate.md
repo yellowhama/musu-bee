@@ -2,7 +2,7 @@
 
 Facts:
 
-- `support@musu.pro` is still an internal No-Go item until delivery is operator-verified.
+- `musu@musu.pro` is still an internal No-Go item until delivery is operator-verified.
 - `scripts/windows/record-support-mailbox-verification.ps1` now records operator-verified delivery evidence under `docs/evidence/support-mailbox/<version>/`.
 - `scripts/windows/verify-support-mailbox-evidence.ps1` validates schema, support email, verification ID, sender, receiver, timestamps, delivery order, and age.
 - `scripts/windows/write-release-go-no-go.ps1` now auto-detects valid `*.evidence.json` under `docs/evidence/support-mailbox/<version>/` or `.local-build/support-mailbox/`.
@@ -18,4 +18,4 @@ Verification:
 
 Decision:
 
-- Before Partner Center submission, send a real test email to `support@musu.pro`, confirm it lands in the support inbox, then run `record-support-mailbox-verification.ps1` with the real sender, recipient/operator, and verification ID.
+- Before Partner Center submission, send a real test email to `musu@musu.pro`, confirm it lands in the support inbox, then run `record-support-mailbox-verification.ps1` with the real sender, recipient/operator, and verification ID.

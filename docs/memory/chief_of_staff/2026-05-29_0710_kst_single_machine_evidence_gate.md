@@ -16,7 +16,7 @@ Decision:
 
 - Assistant-side single-computer test is now machine-verifiable, not just narrated in docs.
 - `audit-desktop-release-readiness.ps1` now reports `single_machine_verified=true`.
-- Remaining public desktop release blockers are still second-PC multi-device evidence and `support@musu.pro` delivery evidence.
+- Remaining public desktop release blockers are still second-PC multi-device evidence and `musu@musu.pro` delivery evidence.
 
 Canonical docs:
 

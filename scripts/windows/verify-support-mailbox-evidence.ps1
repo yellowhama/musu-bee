@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)][string]$EvidencePath,
-    [string]$ExpectedSupportEmail = "support@musu.pro",
+    [string]$ExpectedSupportEmail,
     [string]$ExpectedVersion,
     [int]$MaxAgeDays = 30,
     [switch]$Json
@@ -12,9 +12,13 @@ $ErrorActionPreference = "Stop"
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
+. (Join-Path $scriptDir "release-config.ps1")
 
 if ([string]::IsNullOrWhiteSpace($ExpectedVersion)) {
     $ExpectedVersion = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
+}
+if ([string]::IsNullOrWhiteSpace($ExpectedSupportEmail)) {
+    $ExpectedSupportEmail = Get-MusuReleaseSupportEmail -RepoRoot $repoRoot
 }
 
 $checks = New-Object System.Collections.Generic.List[object]

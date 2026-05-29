@@ -16,4 +16,4 @@
 ## Product State
 
 - This reduces final operator handoff friction.
-- It does not close the public release gate. `write-release-go-no-go.ps1` still requires real second-PC evidence, real `support@musu.pro` delivery evidence, and real Partner Center/Microsoft approval evidence.
+- It does not close the public release gate. `write-release-go-no-go.ps1` still requires real second-PC evidence, real `musu@musu.pro` delivery evidence, and real Partner Center/Microsoft approval evidence.

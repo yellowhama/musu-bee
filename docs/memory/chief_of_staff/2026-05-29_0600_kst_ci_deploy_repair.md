@@ -24,5 +24,5 @@ Verification:
 
 Decision:
 
-- Treat second-PC multi-device evidence and `support@musu.pro` operator delivery verification as the remaining internal gates before Partner Center submission.
+- Treat second-PC multi-device evidence and `musu@musu.pro` operator delivery verification as the remaining internal gates before Partner Center submission.
 - Keep legacy broad E2E specs out of required CI until they are updated for the current product routes and bridge model.

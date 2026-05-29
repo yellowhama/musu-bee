@@ -8,4 +8,4 @@
 - Packet verification passed: `ok=true`, `fail_count=0`, `kit_count=1`; packet source commit is `0057a48` and clean.
 - `show-final-release-handoff-status.ps1 -Json` reports packet verified=true and `ready_for_public_desktop_release=false`.
 - Local artifacts, desktop shell, single-machine evidence, public metadata, packet, and handoff tooling are ready.
-- Remaining public release blockers are external evidence gates: second-PC MSIX install, real second-PC multi-device route, `support@musu.pro` inbox delivery verification, and Partner Center/Microsoft certification/restricted capability approval evidence.
+- Remaining public release blockers are external evidence gates: second-PC MSIX install, real second-PC multi-device route, `musu@musu.pro` inbox delivery verification, and Partner Center/Microsoft certification/restricted capability approval evidence.

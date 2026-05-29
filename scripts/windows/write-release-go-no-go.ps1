@@ -11,7 +11,9 @@ $ErrorActionPreference = "Stop"
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
+. (Join-Path $scriptDir "release-config.ps1")
 $version = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
+$supportEmail = Get-MusuReleaseSupportEmail -RepoRoot $repoRoot
 
 function Invoke-JsonScript {
     param(
@@ -251,7 +253,7 @@ else {
     Add-Blocker -List $blockers -Area "store-public-metadata" -Message "Public privacy/support metadata verification was skipped."
 }
 if (-not $supportMailboxVerified) {
-    Add-Blocker -List $blockers -Area "support-mailbox" -Message "support@musu.pro delivery has not been operator-verified."
+    Add-Blocker -List $blockers -Area "support-mailbox" -Message "$supportEmail delivery has not been operator-verified."
 }
 if (-not $storeReleaseVerified) {
     Add-Blocker -List $blockers -Area "store-release" -Message "Partner Center product name reservation, app submission, Microsoft certification, and restricted capability approval evidence has not been recorded."
@@ -263,7 +265,7 @@ if (-not [string]::IsNullOrWhiteSpace($gitStatus)) {
 $manualExternalGates = @(
     "Second-PC clean/current MSIX install verification",
     "Second-PC multi-device route verification",
-    "support@musu.pro inbox delivery verification",
+    "$supportEmail inbox delivery verification",
     "Partner Center product name reservation",
     "Partner Center app submission",
     "Microsoft app certification",

@@ -9,7 +9,7 @@
 - Public release remains blocked until all four external evidence gates are recorded:
   1. clean/current second-PC MSIX install evidence
   2. real second-PC multi-device routing evidence
-  3. real `support@musu.pro` inbox delivery evidence
+  3. real `musu@musu.pro` inbox delivery evidence
   4. Partner Center product-name reservation, app submission, Microsoft certification, and restricted capability approval evidence
 
 ## Source refresh

@@ -16,7 +16,7 @@ Facts:
 Decision:
 
 - Use `https://musu.pro/privacy` and `https://musu.pro/support` for Partner Center.
-- Verify public deployment and `support@musu.pro` mailbox delivery before submission.
+- Verify public deployment and `musu@musu.pro` mailbox delivery before submission.
 - Do not let Store metadata readiness override the real remaining release blocker: second-PC multi-device evidence is still missing.
 
 Canonical docs:

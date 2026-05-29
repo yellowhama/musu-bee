@@ -111,7 +111,7 @@ Current metadata handoff:
 - `docs/STORE_SUBMISSION_METADATA_2026_05_29.md`
 - privacy URL: `https://musu.pro/privacy`
 - support URL: `https://musu.pro/support`
-- support email: `support@musu.pro` after mailbox verification
+- support email: `musu@musu.pro` after mailbox verification
 
 Microsoft Store policy requires a privacy policy for Win32/Desktop Bridge-style
 products, and Partner Center support info accepts a support page URL or email.

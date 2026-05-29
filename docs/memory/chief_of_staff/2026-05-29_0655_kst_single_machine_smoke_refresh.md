@@ -13,7 +13,7 @@ Facts:
 Decision:
 
 - The assistant-side single-computer test is current for `1.15.0-rc.1`.
-- Public desktop release status remains No-Go only because real second-PC evidence and real `support@musu.pro` delivery evidence are still missing.
+- Public desktop release status remains No-Go only because real second-PC evidence and real `musu@musu.pro` delivery evidence are still missing.
 
 Canonical follow-up:
 

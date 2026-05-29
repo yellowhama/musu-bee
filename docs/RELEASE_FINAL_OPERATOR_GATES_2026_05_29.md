@@ -14,7 +14,7 @@ Remaining blockers:
 
 1. clean/current Windows MSIX install evidence has not been recorded
 2. real second-PC multi-device evidence has not been recorded
-3. `support@musu.pro` delivery has not been operator-verified
+3. `musu@musu.pro` delivery has not been operator-verified
 4. Store release approval evidence has not been recorded:
    - Partner Center product name reservation / app submission
    - Microsoft app certification
@@ -115,7 +115,7 @@ Current machine-readable evidence was added on 2026-05-29 12:55 KST after PowerS
 
 ## Gate 1 - Support Mailbox Evidence
 
-Send a real email to `support@musu.pro` from an external mailbox.
+Send a real email to `musu@musu.pro` from an external mailbox.
 
 Recommended subject:
 
@@ -135,7 +135,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-suppo
   -FromAddress "<sender@example.com>" `
   -ReceivedBy "<operator-name>" `
   -VerificationId "musu-store-support-1.15.0-rc.1-20260529" `
-  -Notes "Verified delivery in support@musu.pro inbox"
+  -Notes "Verified delivery in musu@musu.pro inbox"
 ```
 
 Then verify release status:
@@ -274,7 +274,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-fin
   -SupportFromAddress "<sender@example.com>" `
   -SupportReceivedBy "<operator-name>" `
   -SupportVerificationId "<support-verification-id>" `
-  -SupportNotes "Verified delivery in support@musu.pro inbox" `
+  -SupportNotes "Verified delivery in musu@musu.pro inbox" `
   -StoreProductName "MUSU" `
   -StoreProductNameReservedAt "<partner-center-name-reserved-at>" `
   -StoreSubmissionId "<partner-center-submission-id>" `

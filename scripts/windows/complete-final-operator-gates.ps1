@@ -5,7 +5,7 @@ param(
     [string]$MultiDeviceEvidencePath,
     [string]$ExpectedRouteOutput = "MUSU_REMOTE_ROUTE_OK",
     [switch]$AllowStatusOnly,
-    [string]$SupportEmail = "support@musu.pro",
+    [string]$SupportEmail,
     [string]$SupportFromAddress,
     [string]$SupportReceivedBy,
     [string]$SupportVerificationId,
@@ -35,6 +35,12 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
+. (Join-Path $scriptDir "release-config.ps1")
+
+if ([string]::IsNullOrWhiteSpace($SupportEmail)) {
+    $SupportEmail = Get-MusuReleaseSupportEmail -RepoRoot $repoRoot
+}
 
 function Invoke-JsonScript {
     param(

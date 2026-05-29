@@ -83,6 +83,7 @@ try {
 
     $requiredFiles = @(
         "README_FINAL_OPERATOR_GATES.md",
+        "SUPPORT_EMAIL",
         "SHA256SUMS.txt",
         "packet-build-metadata.json",
         "support-mailbox-record-template.json",
@@ -92,6 +93,7 @@ try {
         "docs\DESKTOP_RELEASE_READINESS_AUDIT_2026_05_29.md",
         "docs\MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md",
         "docs\STORE_SUBMISSION_METADATA_2026_05_29.md",
+        "scripts\windows\release-config.ps1",
         "scripts\windows\record-support-mailbox-verification.ps1",
         "scripts\windows\verify-support-mailbox-evidence.ps1",
         "scripts\windows\record-multidevice-evidence.ps1",
@@ -114,12 +116,20 @@ try {
         Add-CheckFromCondition "required file: $relative" $exists "$relative exists" "$relative is missing"
     }
 
+    $expectedSupportEmail = ""
+    $supportEmailConfigPath = Join-Path $packetRoot "SUPPORT_EMAIL"
+    if (Test-Path -LiteralPath $supportEmailConfigPath) {
+        $expectedSupportEmail = (Get-Content -LiteralPath $supportEmailConfigPath -Raw).Trim()
+        Add-CheckFromCondition "support email config shape" ($expectedSupportEmail -match "^[^@\s]+@[^@\s]+\.[^@\s]+$") "SUPPORT_EMAIL is email-shaped" "SUPPORT_EMAIL is not email-shaped"
+    }
+
     $metadataPath = Join-Path $packetRoot "packet-build-metadata.json"
     if (Test-Path -LiteralPath $metadataPath) {
         try {
             $metadata = Get-Content -LiteralPath $metadataPath -Raw | ConvertFrom-Json
             Add-CheckFromCondition "packet metadata schema" ([string]$metadata.schema -eq "musu.final_operator_gate_packet.v1") "packet metadata schema is valid" "packet metadata schema is invalid"
             Add-CheckFromCondition "packet metadata version" (-not [string]::IsNullOrWhiteSpace([string]$metadata.version)) "packet metadata includes version" "packet metadata is missing version"
+            Add-CheckFromCondition "packet metadata support email" ([string]$metadata.support_email -eq $expectedSupportEmail) "packet metadata uses $expectedSupportEmail" "packet metadata support email does not match SUPPORT_EMAIL"
             Add-CheckFromCondition "packet metadata git commit" ([string]$metadata.git.commit -match "^[0-9a-fA-F]{40}$") "packet metadata includes source git commit" "packet metadata source git commit is missing or invalid"
             Add-CheckFromCondition "packet metadata clean git" (-not [bool]$metadata.git.dirty -and [string]::IsNullOrWhiteSpace([string]$metadata.git.status_short)) "packet metadata records clean git state" "packet metadata does not record clean git state"
         }
@@ -133,7 +143,7 @@ try {
         $readme = Get-Content -LiteralPath $readmePath -Raw
         Add-CheckFromCondition "readme execution boundary" ($readme -like "*real MUSU release repo root*") "README states commands run from real release repo root" "README does not clearly state release repo root execution boundary"
         Add-CheckFromCondition "readme second pc copy boundary" ($readme.Contains('Copy only the zip under `kits\`')) "README states only the kit zip should be copied to second PC" "README does not clearly state only kit zip should be copied"
-        Add-CheckFromCondition "readme support mailbox gate" ($readme -like "*support@musu.pro*") "README names support@musu.pro" "README does not name support@musu.pro"
+        Add-CheckFromCondition "readme support mailbox gate" (-not [string]::IsNullOrWhiteSpace($expectedSupportEmail) -and $readme -like "*$expectedSupportEmail*") "README names $expectedSupportEmail" "README does not name the configured support email"
         Add-CheckFromCondition "readme second pc handoff helper" ($readme -like "*collect-second-pc-handoff.ps1*" -and $readme -like "*.handoff.json*") "README explains the second-PC handoff helper" "README missing second-PC handoff helper"
         Add-CheckFromCondition "readme Store run card" ($readme -like "*MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md*") "README points to the Store release run card" "README missing Store release run card reference"
         Add-CheckFromCondition "readme msix install gate" ($readme -like "*record-msix-install-evidence.ps1*" -and $readme -like "*msix_install_verified=true*") "README includes MSIX install evidence gate" "README missing MSIX install evidence gate"
@@ -235,7 +245,7 @@ try {
     if (Test-Path -LiteralPath $templatePath) {
         try {
             $template = Get-Content -LiteralPath $templatePath -Raw | ConvertFrom-Json
-            Add-CheckFromCondition "support template email" ([string]$template.support_email -eq "support@musu.pro") "support template uses support@musu.pro" "support template does not use support@musu.pro"
+            Add-CheckFromCondition "support template email" ([string]$template.support_email -eq $expectedSupportEmail) "support template uses $expectedSupportEmail" "support template does not use the configured support email"
             Add-CheckFromCondition "support template command" ([string]$template.record_command -like "*record-support-mailbox-verification.ps1*") "support template contains record command" "support template missing record command"
         }
         catch {

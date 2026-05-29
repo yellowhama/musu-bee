@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$SupportEmail = "support@musu.pro",
+    [string]$SupportEmail,
     [Parameter(Mandatory = $true)][string]$FromAddress,
     [Parameter(Mandatory = $true)][string]$ReceivedBy,
     [Parameter(Mandatory = $true)][string]$VerificationId,
@@ -17,9 +17,13 @@ $ErrorActionPreference = "Stop"
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
+. (Join-Path $scriptDir "release-config.ps1")
 
 if ([string]::IsNullOrWhiteSpace($Version)) {
     $Version = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
+}
+if ([string]::IsNullOrWhiteSpace($SupportEmail)) {
+    $SupportEmail = Get-MusuReleaseSupportEmail -RepoRoot $repoRoot
 }
 if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
     $OutputRoot = Join-Path $repoRoot ("docs\evidence\support-mailbox\{0}" -f $Version)
@@ -83,7 +87,7 @@ $summary = @"
 - Verification SHA256: $($verificationHash.Hash.ToLowerInvariant())
 - Recorded at: $((Get-Date).ToString("o"))
 
-This file records operator-verified delivery to support@musu.pro for
+This file records operator-verified delivery to $SupportEmail for
 the Microsoft Store submission gate.
 "@
 $summary | Set-Content -LiteralPath $summaryPath -Encoding UTF8

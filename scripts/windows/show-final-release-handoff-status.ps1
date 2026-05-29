@@ -12,7 +12,9 @@ $ErrorActionPreference = "Stop"
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
+. (Join-Path $scriptDir "release-config.ps1")
 $version = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
+$supportEmail = Get-MusuReleaseSupportEmail -RepoRoot $repoRoot
 $safeVersion = $version -replace "[^A-Za-z0-9._-]", "_"
 
 if ([string]::IsNullOrWhiteSpace($PacketPath)) {
@@ -175,7 +177,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-fin
   -SupportFromAddress "<sender@example.com>" `
   -SupportReceivedBy "<operator-name>" `
   -SupportVerificationId "<support-verification-id>" `
-  -SupportNotes "Verified delivery in support@musu.pro inbox" `
+  -SupportNotes "Verified delivery in $supportEmail inbox" `
   -StoreProductName "MUSU" `
   -StoreProductNameReservedAt "<partner-center-name-reserved-at>" `
   -StoreSubmissionId "<partner-center-submission-id>" `
@@ -223,8 +225,8 @@ if (-not [bool]$goNoGo.support_mailbox_verified) {
     Add-OperatorStep `
         -List $operatorSteps `
         -Gate "support-mailbox" `
-        -Summary "Send a real email to support@musu.pro with a MUSU verification token, confirm inbox delivery, then record the operator evidence." `
-        -Command 'powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-support-mailbox-verification.ps1 -FromAddress "<sender@example.com>" -ReceivedBy "<operator-name>" -VerificationId "musu-support-mailbox-<unique-token>" -Notes "Verified delivery in support@musu.pro inbox" -Json'
+        -Summary "Send a real email to $supportEmail with a MUSU verification token, confirm inbox delivery, then record the operator evidence." `
+        -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-support-mailbox-verification.ps1 -FromAddress `"<sender@example.com>`" -ReceivedBy `"<operator-name>`" -VerificationId `"musu-support-mailbox-<unique-token>`" -Notes `"Verified delivery in $supportEmail inbox`" -Json"
 }
 if (-not [bool]$goNoGo.store_release_verified) {
     Add-OperatorStep `

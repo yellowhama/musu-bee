@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import PublicSiteShell from "@/components/PublicSiteShell";
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/lib/contact";
 
 export const metadata: Metadata = {
   title: "MUSU Support",
@@ -24,8 +25,8 @@ export default function SupportPage() {
             For the first public release path, use this page as the Partner Center support URL:
             <strong> https://musu.pro/support</strong>. For account, privacy, or urgent install
             issues, email{" "}
-            <a href="mailto:support@musu.pro" style={linkStyle}>
-              support@musu.pro
+            <a href={SUPPORT_MAILTO} style={linkStyle}>
+              {SUPPORT_EMAIL}
             </a>
             .
           </p>

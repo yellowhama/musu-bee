@@ -3,7 +3,7 @@
 ## Change
 
 `scripts\windows\write-release-go-no-go.ps1` now includes
-`support@musu.pro inbox delivery verification` in `manual_external_gates`.
+`musu@musu.pro inbox delivery verification` in `manual_external_gates`.
 
 ## Reason
 

@@ -222,7 +222,7 @@ Audit concern:
 Risk update from 12:41 KST:
 
 - There is no reason to split-brain development across the old repos. If future work lands in `musu-crawl-ai`, `musu-marketer`, or `musu-nurikun` directly, require a mirror/subtree plan back into `musu-system`.
-- `nurikun` is useful for the MUSU support mailbox track, but it should not be used to satisfy the current Store support-mailbox evidence gate automatically. That gate still needs operator-observed delivery evidence for `support@musu.pro`.
+- `nurikun` is useful for the MUSU support mailbox track, but it should not be used to satisfy the current Store support-mailbox evidence gate automatically. That gate still needs operator-observed delivery evidence for `musu@musu.pro`.
 - The first integration candidate should be `crawl-ai`, because it improves MUSU's research/wiki memory without touching outbound comms, Store certification scope, or machine-control trust boundaries.
 
 ## Use Of The Cross-Product Launch Memo

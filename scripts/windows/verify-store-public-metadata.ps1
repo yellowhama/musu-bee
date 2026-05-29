@@ -1,13 +1,21 @@
 [CmdletBinding()]
 param(
     [string]$BaseUrl = "https://musu.pro",
-    [string]$ExpectedSupportEmail = "support@musu.pro",
+    [string]$ExpectedSupportEmail,
     [int]$TimeoutSec = 20,
     [switch]$Json
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
+. (Join-Path $scriptDir "release-config.ps1")
+
+if ([string]::IsNullOrWhiteSpace($ExpectedSupportEmail)) {
+    $ExpectedSupportEmail = Get-MusuReleaseSupportEmail -RepoRoot $repoRoot
+}
 
 $checks = New-Object System.Collections.Generic.List[object]
 

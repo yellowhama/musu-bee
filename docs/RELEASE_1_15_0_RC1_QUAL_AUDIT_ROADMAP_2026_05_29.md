@@ -170,7 +170,7 @@ Desktop release readiness audit:
 - public metadata verifier: `scripts\windows\verify-store-public-metadata.ps1 -BaseUrl http://127.0.0.1:3015 -Json` passed against local `next start`
 - release go/no-go preflight: `scripts\windows\write-release-go-no-go.ps1 -Json` reports `local_artifacts_ready=true`, `public_metadata_ok=true`, `ready_for_public_desktop_release=false`
 - live public metadata check: `scripts\windows\verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json` passed for `/privacy` and `/support`
-- support mailbox evidence gate: `scripts\windows\verify-support-mailbox-evidence.ps1` and `scripts\windows\record-support-mailbox-verification.ps1` exist; `Resolve-DnsName -Type MX musu.pro` resolves to `smtp.google.com`; go/no-go auto-detects current-version evidence only, the recorder requires an explicit `musu-...` verification token, and no real `support@musu.pro` delivery evidence has been recorded yet
+- support mailbox evidence gate: `scripts\windows\verify-support-mailbox-evidence.ps1` and `scripts\windows\record-support-mailbox-verification.ps1` exist; `Resolve-DnsName -Type MX musu.pro` resolves to `smtp.google.com`; go/no-go auto-detects current-version evidence only, the recorder requires an explicit `musu-...` verification token, and no real `musu@musu.pro` delivery evidence has been recorded yet
 - MSIX install evidence gate: `scripts\windows\capture-msix-install-evidence.ps1`, `scripts\windows\verify-msix-install-evidence.ps1`, and `scripts\windows\record-msix-install-evidence.ps1` exist; go/no-go auto-detects valid install evidence, the verifier now requires current-version/operator/timestamp/capture-check proof, but no real second-PC install evidence has been recorded yet
 - Store release evidence gate: `scripts\windows\verify-store-release-evidence.ps1` and `scripts\windows\record-store-release-verification.ps1` exist; go/no-go now blocks public desktop release until Partner Center product name reservation, app submission, Microsoft certification, and restricted capability approval evidence is recorded; the recorder now rejects omitted `-ProductNameReservedAt` instead of inferring it from submission time
 - CI/deploy repair: GitHub Actions now use Node 22 for `node:sqlite`, no longer reference deleted Python `musu-core`/`musu-bridge` or deleted `musu-port`, preserve legacy required check names where likely relevant, include Linux Wayland/PipeWire/GBM native dependencies for Rust CI, opt JavaScript actions into Node 24 runtime, and Playwright CI smoke covers `/privacy` + `/support` content through `musu-bee/playwright.ci.config.ts`.
@@ -257,10 +257,10 @@ P1 beta hardening:
 - Validate returned evidence with `scripts\windows\verify-multidevice-evidence.ps1` before changing release status.
 - Record returned evidence with `scripts\windows\record-multidevice-evidence.ps1` so audit can use `docs\evidence\multidevice\1.15.0-rc.1\*.evidence.json`.
 - Keep `scripts\windows\audit-desktop-release-readiness.ps1` as the release-readiness gate; do not claim public multi-device desktop release until the second-PC evidence lands.
-- Live `https://musu.pro/privacy` and `https://musu.pro/support` now verify with `verify-store-public-metadata.ps1`; verify `support@musu.pro` before Partner Center submission.
-- Record real support mailbox evidence with `scripts\windows\record-support-mailbox-verification.ps1` after confirming delivery to `support@musu.pro`.
+- Live `https://musu.pro/privacy` and `https://musu.pro/support` now verify with `verify-store-public-metadata.ps1`; verify `musu@musu.pro` before Partner Center submission.
+- Record real support mailbox evidence with `scripts\windows\record-support-mailbox-verification.ps1` after confirming delivery to `musu@musu.pro`.
 - Use `write-release-go-no-go.ps1` as the final release operator gate.
-- Remaining No-Go items: run and record real second-PC evidence, verify `support@musu.pro` delivery, then complete and record Partner Center product name reservation timestamp/submission/certification/restricted capability review with `record-store-release-verification.ps1` or the final completion runner.
+- Remaining No-Go items: run and record real second-PC evidence, verify `musu@musu.pro` delivery, then complete and record Partner Center product name reservation timestamp/submission/certification/restricted capability review with `record-store-release-verification.ps1` or the final completion runner.
 
 P2 product hardening:
 

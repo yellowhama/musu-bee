@@ -12,7 +12,7 @@ Release state:
 
 - This reduces handoff/operator error risk only. It may refresh local manifest/status artifacts through the existing go/no-go path, but it does not create release evidence.
 - It does not close the public release gate.
-- Public release remains No-Go until real second-PC evidence, real `support@musu.pro` delivery evidence, and real Partner Center/Microsoft certification/restricted capability approval evidence are recorded.
+- Public release remains No-Go until real second-PC evidence, real `musu@musu.pro` delivery evidence, and real Partner Center/Microsoft certification/restricted capability approval evidence are recorded.
 
 Indexing:
 

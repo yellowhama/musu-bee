@@ -2,7 +2,7 @@
 param(
     [string]$OutputRoot,
     [string]$Version,
-    [string]$SupportEmail = "support@musu.pro",
+    [string]$SupportEmail,
     [string]$MultiDeviceKitZip,
     [switch]$IncludeDesktopShell,
     [switch]$SkipMultiDeviceKit,
@@ -14,6 +14,11 @@ $ErrorActionPreference = "Stop"
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
+. (Join-Path $scriptDir "release-config.ps1")
+
+if ([string]::IsNullOrWhiteSpace($SupportEmail)) {
+    $SupportEmail = Get-MusuReleaseSupportEmail -RepoRoot $repoRoot
+}
 
 $gitBranch = (& git -C $repoRoot rev-parse --abbrev-ref HEAD 2>$null | Out-String).Trim()
 $gitCommit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
@@ -44,6 +49,8 @@ if (Test-Path -LiteralPath $packetRoot) {
 }
 
 New-Item -ItemType Directory -Force -Path $packetDocs, $packetScripts, $packetKits | Out-Null
+
+Copy-Item -LiteralPath (Join-Path $repoRoot "SUPPORT_EMAIL") -Destination (Join-Path $packetRoot "SUPPORT_EMAIL")
 
 $copiedMultiDeviceKit = $null
 if (-not $SkipMultiDeviceKit) {
@@ -81,6 +88,7 @@ foreach ($relative in $docsToCopy) {
 }
 
 $scriptsToCopy = @(
+    "release-config.ps1",
     "record-support-mailbox-verification.ps1",
     "verify-support-mailbox-evidence.ps1",
     "record-multidevice-evidence.ps1",

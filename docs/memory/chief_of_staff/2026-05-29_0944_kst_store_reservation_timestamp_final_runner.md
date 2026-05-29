@@ -33,5 +33,5 @@ awkward through `powershell.exe -File`; the recorder default and verifier enforc
 
 This closes an automation/documentation weakness only. Public desktop release
 remains blocked until real second-PC MSIX install evidence, real second-PC
-multi-device evidence, `support@musu.pro` delivery evidence, and Microsoft Store
+multi-device evidence, `musu@musu.pro` delivery evidence, and Microsoft Store
 release evidence are recorded.

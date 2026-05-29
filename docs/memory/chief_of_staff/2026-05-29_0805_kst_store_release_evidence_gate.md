@@ -20,7 +20,7 @@ Decision:
 Current expected blockers:
 
 - real second-PC multi-device evidence
-- `support@musu.pro` inbox delivery evidence
+- `musu@musu.pro` inbox delivery evidence
 - Store release approval evidence
 
 Canonical scripts:

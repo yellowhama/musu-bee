@@ -6,7 +6,7 @@
   - `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip`
 - The packet was regenerated after fixing the README summary so it lists all three remaining public release blockers:
   1. real second-PC multi-device evidence
-  2. real `support@musu.pro` inbox delivery evidence
+  2. real `musu@musu.pro` inbox delivery evidence
   3. Partner Center submission, Microsoft certification, and restricted startup capability approval evidence
 - `verify-final-operator-gate-packet.ps1` now explicitly checks that the packet README names Store release approval as a blocker and includes `record-store-release-verification.ps1`.
 - `prepare-final-operator-gate-packet.ps1` now writes a stable `latest.zip` alias in addition to the stamped packet.

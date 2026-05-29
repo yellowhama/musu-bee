@@ -7,7 +7,7 @@ Facts:
 - Added `scripts\windows\complete-final-operator-gates.ps1`.
 - The script builds a single handoff packet for the remaining manual release gates:
   - real second-PC multi-device evidence
-  - real `support@musu.pro` inbox delivery evidence
+  - real `musu@musu.pro` inbox delivery evidence
   - Store release approval evidence after Microsoft certification/restricted capability review
 - The packet includes release gate docs, recorder/verifier scripts, Store release recorder/verifier scripts, the final packet verifier, the final evidence completion runner, a support mailbox record template, `SHA256SUMS.txt`, and a fresh multi-device test kit unless `-SkipMultiDeviceKit` is passed.
 - The packet README now states the execution boundary explicitly: copy only `kits\*.zip` to the second PC; run evidence recording and final go/no-go commands from the real release repo root.

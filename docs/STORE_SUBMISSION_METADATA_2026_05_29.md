@@ -27,7 +27,7 @@ Current MUSU URLs:
 |---|---|---|
 | Privacy policy URL | `https://musu.pro/privacy` | `musu-bee/src/app/privacy/page.tsx` |
 | Support URL | `https://musu.pro/support` | `musu-bee/src/app/support/page.tsx` |
-| Support email | `support@musu.pro` | page copy; MX resolves to `smtp.google.com`; verify actual delivery before submission |
+| Support email | `musu@musu.pro` | page copy; MX resolves to `smtp.google.com`; verify actual delivery before submission |
 
 ## Listing Metadata Draft
 
@@ -85,7 +85,7 @@ Before uploading to Partner Center:
 
 1. Reserve the product name in Partner Center, using `MUSU` first if available, and preserve the reservation timestamp for `-ProductNameReservedAt`.
 2. Verify `https://musu.pro/privacy` and `https://musu.pro/support` are deployed and reachable.
-3. Verify `support@musu.pro` receives mail with a `musu-...` verification token in the subject/body, then record evidence with `scripts\windows\record-support-mailbox-verification.ps1`, or replace the support email with a known-good mailbox.
+3. Verify `musu@musu.pro` receives mail with a `musu-...` verification token in the subject/body, then record evidence with `scripts\windows\record-support-mailbox-verification.ps1`, or replace the support email with a known-good mailbox.
 4. Run `scripts\windows\verify-store-public-metadata.ps1 -BaseUrl https://musu.pro`.
 5. Run `scripts\windows\audit-desktop-release-readiness.ps1`.
 6. Run `scripts\windows\write-release-candidate-manifest.ps1`.

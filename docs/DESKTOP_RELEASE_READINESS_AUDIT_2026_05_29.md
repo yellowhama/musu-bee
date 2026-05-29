@@ -106,8 +106,8 @@ These passed on 2026-05-29. Tauri `cargo check` generated `musu-bee/src-tauri/Ca
 - `scripts\windows\verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json` now passes against production.
 - `scripts\windows\write-release-go-no-go.ps1 -Json` reports `local_artifacts_ready=true` and `ready_for_public_desktop_release=false`.
 - `scripts\windows\audit-desktop-release-readiness.ps1 -Json` now reports `single_machine_verified=true` from committed evidence under `docs\evidence\single-machine\1.15.0-rc.1`.
-- Remaining go/no-go blockers are clean/current MSIX install evidence, second-PC evidence, `support@musu.pro` delivery verification, and Store release approval evidence; support mailbox verification now has `verify-support-mailbox-evidence.ps1` and `record-support-mailbox-verification.ps1` with version/token/sender/timestamp checks, MSIX install verification has `capture-msix-install-evidence.ps1`, `verify-msix-install-evidence.ps1`, and `record-msix-install-evidence.ps1` with version/operator/timestamp/capture-check validation, and Store release approval now has `verify-store-release-evidence.ps1` and `record-store-release-verification.ps1` with mandatory explicit product-name reservation evidence.
-- `write-release-go-no-go.ps1` now lists `support@musu.pro` inbox delivery in `manual_external_gates`, matching the actual blocker and the final handoff operator steps.
+- Remaining go/no-go blockers are clean/current MSIX install evidence, second-PC evidence, `musu@musu.pro` delivery verification, and Store release approval evidence; support mailbox verification now has `verify-support-mailbox-evidence.ps1` and `record-support-mailbox-verification.ps1` with version/token/sender/timestamp checks, MSIX install verification has `capture-msix-install-evidence.ps1`, `verify-msix-install-evidence.ps1`, and `record-msix-install-evidence.ps1` with version/operator/timestamp/capture-check validation, and Store release approval now has `verify-store-release-evidence.ps1` and `record-store-release-verification.ps1` with mandatory explicit product-name reservation evidence.
+- `write-release-go-no-go.ps1` now lists `musu@musu.pro` inbox delivery in `manual_external_gates`, matching the actual blocker and the final handoff operator steps.
 - `write-release-go-no-go.ps1` no longer has the legacy `-AssumeSupportMailboxVerified` bypass; support readiness must come from recorded evidence.
 - `write-release-go-no-go.ps1 -SkipPublicMetadata` now remains a diagnostic/offline path only: skipping live privacy/support metadata verification adds a blocker, not only a warning.
 - `write-release-go-no-go.ps1` now treats a dirty git worktree as a blocker, so release readiness cannot become true until the release manifest is regenerated from committed state and reports `manifest_git.dirty=false`.
@@ -174,7 +174,7 @@ P0:
 - Run the user's second-PC smoke using `scripts\windows\smoke-multidevice-beta.ps1`.
 - Capture and record second-PC MSIX install evidence with `scripts\windows\capture-msix-install-evidence.ps1` and `scripts\windows\record-msix-install-evidence.ps1`.
 - Validate the returned JSON with `scripts\windows\verify-multidevice-evidence.ps1`.
-- Verify `support@musu.pro` delivery and record it with `scripts\windows\record-support-mailbox-verification.ps1`.
+- Verify `musu@musu.pro` delivery and record it with `scripts\windows\record-support-mailbox-verification.ps1`.
 - For operator handoff, generate the combined final-gate packet with `scripts\windows\prepare-final-operator-gate-packet.ps1 -IncludeDesktopShell`.
 - Verify the packet before handoff with `scripts\windows\verify-final-operator-gate-packet.ps1`.
 - Use `scripts\windows\show-final-release-handoff-status.ps1` before handoff and after each returned evidence file to confirm the current remaining blockers.
