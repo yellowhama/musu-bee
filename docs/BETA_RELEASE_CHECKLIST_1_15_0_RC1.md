@@ -104,14 +104,14 @@ Fresh repeatable script smoke passed again on 2026-05-29 06:52 KST:
 - dashboard output: `MUSU_RELEASE_SMOKE_OK_20260529_0652`
 - CLI route output: `MUSU_CLI_ROUTE_OK_20260529_0652`
 
-Current machine-readable single-machine evidence passed and was recorded on 2026-05-29 12:55 KST after PowerShell command capture was hardened:
+Current machine-readable single-machine evidence passed and was recorded on 2026-05-29 18:59 KST after second-PC return-card changes and smoke harness process-capture hardening:
 
-- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260529-125448-HUGH_SECOND.evidence.json`
-- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260529-125448-HUGH_SECOND.verification.json`
-- commit: `cc336b7b6361444a38c817fd6be2a77fb5c37fe9`
-- dashboard task id: `ee7c5613-87bf-4d71-95c1-03262b7e44cb`
-- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260529_1255`
-- CLI route output: `MUSU_CLI_ROUTE_OK_20260529_1255`
+- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260529-185958-HUGH_SECOND.evidence.json`
+- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260529-185958-HUGH_SECOND.verification.json`
+- commit: `242d75f74e98d9cabac6152149de4021433d7a09`
+- dashboard task id: `3cab5be8-1abf-40c0-91ad-3f5d2da33bcb`
+- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260529_185935`
+- CLI route output: `MUSU_CLI_ROUTE_OK_20260529_185935`
 
 Multi-device packet:
 
