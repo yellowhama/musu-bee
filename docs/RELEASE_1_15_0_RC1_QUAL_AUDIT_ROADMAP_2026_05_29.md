@@ -134,7 +134,7 @@ Repeatable script smoke:
 - dashboard output: `MUSU_SCRIPT_SMOKE_OK`
 - CLI route output: `MUSU_SCRIPT_CLI_OK`
 - fresh 2026-05-29 06:52 KST evidence on commit `f9ae873`: dashboard task `b4b05b93-34d2-4946-b4cd-fdd5c5c6632d`, dashboard output `MUSU_RELEASE_SMOKE_OK_20260529_0652`, CLI route `MUSU_CLI_ROUTE_OK_20260529_0652`
-- current machine-readable 2026-05-29 11:49 KST evidence on commit `a3ace02`: `docs\evidence\single-machine\1.15.0-rc.1\20260529-114932-HUGH_SECOND.evidence.json`, dashboard task `e97cec87-c10a-48e4-acfa-5052a6485320`, dashboard output `MUSU_RELEASE_SMOKE_OK_20260529_1149`, CLI route `MUSU_CLI_ROUTE_OK_20260529_1149`
+- current machine-readable 2026-05-29 12:15 KST evidence on commit `745d852`: `docs\evidence\single-machine\1.15.0-rc.1\20260529-121456-HUGH_SECOND.evidence.json`, dashboard task `ea9fe1ed-14c7-4af9-b9a8-1f1394deb88c`, dashboard output `MUSU_RELEASE_SMOKE_OK_20260529_1214`, CLI route `MUSU_CLI_ROUTE_OK_20260529_1214`
 
 Multi-device preparation:
 
@@ -180,7 +180,7 @@ Desktop release readiness audit:
 Indexing:
 
 - `musu indexer sync --work-dir . --name musu-bee`
-- latest result: `887 files`, `1897 symbols`
+- latest result: `891 files`, `1897 symbols`
 - search verification: query `multi-device release test` returns `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md`
 - search verification: query `smoke-single-machine-beta` returns `scripts/windows/smoke-single-machine-beta.ps1`
 - search verification: query `record-multidevice-evidence` returns `scripts/windows/record-multidevice-evidence.ps1`
@@ -205,13 +205,15 @@ Indexing:
 - search verification: query `musu-system recheck` returns `docs/memory/chief_of_staff/2026-05-29_0645_kst_musu_system_recheck.md`
 - search verification: query `0919 musu system recheck` returns `docs/memory/chief_of_staff/2026-05-29_0919_kst_musu_system_recheck.md`
 - search verification: query `single machine evidence gate` returns `docs/memory/chief_of_staff/2026-05-29_0710_kst_single_machine_evidence_gate.md`
-- search verification: query `MUSU_RELEASE_SMOKE_OK_20260529_1149` returns `docs/evidence/single-machine/1.15.0-rc.1/20260529-114932-HUGH_SECOND.evidence.json`
+- search verification: query `MUSU_RELEASE_SMOKE_OK_20260529_1214` returns `docs/evidence/single-machine/1.15.0-rc.1/20260529-121456-HUGH_SECOND.evidence.json`
+- search verification: query `Store run card packet single machine refresh` returns `docs/memory/chief_of_staff/2026-05-29_1216_kst_store_run_card_packet_and_single_machine_refresh.md`
 - search verification: query `current single machine evidence` returns `docs/memory/chief_of_staff/2026-05-29_1155_kst_current_single_machine_and_musu_system_recheck.md`
 - search verification: query `musu system 1155` returns `docs/memory/chief_of_staff/2026-05-29_1155_kst_current_single_machine_and_musu_system_recheck.md`
 - search verification: query `timeout safe process` returns `docs/memory/chief_of_staff/2026-05-29_1155_kst_current_single_machine_and_musu_system_recheck.md`
 - search verification: query `MUSU Microsoft Store release run card` returns `docs/MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md`
 - search verification: query `HiveLink Vibe PM` returns `docs/MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md`
 - search verification: query `MSIX first` returns `docs/MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md`
+- search verification: query `MICROSOFT_STORE_RELEASE_RUN_CARD` returns `docs/MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md`
 - final operator gates doc: `docs/RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md`
 
 Adjacent repo assessment:

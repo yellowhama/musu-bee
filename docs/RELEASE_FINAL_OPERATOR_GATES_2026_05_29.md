@@ -80,13 +80,13 @@ It summarizes the current go/no-go flags, verifies the latest final operator pac
 
 ## Fresh Single-Machine Evidence
 
-Fresh smoke run on 2026-05-29 11:49 KST:
+Fresh smoke run on 2026-05-29 12:14 KST:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\smoke-single-machine-beta.ps1 `
   -DashboardBaseUrl http://127.0.0.1:3000 `
-  -ExpectedDashboardOutput MUSU_RELEASE_SMOKE_OK_20260529_1149 `
-  -ExpectedCliOutput MUSU_CLI_ROUTE_OK_20260529_1149 `
+  -ExpectedDashboardOutput MUSU_RELEASE_SMOKE_OK_20260529_1214 `
+  -ExpectedCliOutput MUSU_CLI_ROUTE_OK_20260529_1214 `
   -CommandTimeoutSec 45 `
   -TaskTimeoutSec 180
 ```
@@ -96,21 +96,21 @@ Observed result:
 - `musu up --json`: passed
 - `musu doctor --json`: passed
 - dashboard APIs: passed
-- dashboard task id: `e97cec87-c10a-48e4-acfa-5052a6485320`
+- dashboard task id: `ea9fe1ed-14c7-4af9-b9a8-1f1394deb88c`
 - bridge URL: `http://127.0.0.1:10621`
-- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260529_1149`
-- CLI route: passed with `MUSU_CLI_ROUTE_OK_20260529_1149`
+- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260529_1214`
+- CLI route: passed with `MUSU_CLI_ROUTE_OK_20260529_1214`
 
 This closes the assistant-side single-computer test for the current code commit, with later documentation/evidence-only commits allowed by the verifier.
 
-Current machine-readable evidence was added on 2026-05-29 11:49 KST after the smoke verifier was hardened to reject stale code commits:
+Current machine-readable evidence was added on 2026-05-29 12:15 KST after the final packet scripts began requiring the Store run card:
 
-- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260529-114932-HUGH_SECOND.evidence.json`
-- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260529-114932-HUGH_SECOND.verification.json`
-- commit: `a3ace02cf3006f6ae60ed34202c3f54d81efca67`
-- dashboard task id: `e97cec87-c10a-48e4-acfa-5052a6485320`
-- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260529_1149`
-- CLI route output: `MUSU_CLI_ROUTE_OK_20260529_1149`
+- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260529-121456-HUGH_SECOND.evidence.json`
+- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260529-121456-HUGH_SECOND.verification.json`
+- commit: `745d852ff603cc5d04ddb78592bcbc2888143250`
+- dashboard task id: `ea9fe1ed-14c7-4af9-b9a8-1f1394deb88c`
+- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260529_1214`
+- CLI route output: `MUSU_CLI_ROUTE_OK_20260529_1214`
 - release audit now reports `single_machine_verified=true`
 
 ## Gate 1 - Support Mailbox Evidence

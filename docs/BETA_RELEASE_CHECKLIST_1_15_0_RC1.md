@@ -104,14 +104,14 @@ Fresh repeatable script smoke passed again on 2026-05-29 06:52 KST:
 - dashboard output: `MUSU_RELEASE_SMOKE_OK_20260529_0652`
 - CLI route output: `MUSU_CLI_ROUTE_OK_20260529_0652`
 
-Current machine-readable single-machine evidence passed and was recorded on 2026-05-29 11:49 KST after the smoke verifier was hardened to reject stale code commits:
+Current machine-readable single-machine evidence passed and was recorded on 2026-05-29 12:15 KST after the final packet scripts began requiring the Store run card:
 
-- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260529-114932-HUGH_SECOND.evidence.json`
-- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260529-114932-HUGH_SECOND.verification.json`
-- commit: `a3ace02cf3006f6ae60ed34202c3f54d81efca67`
-- dashboard task id: `e97cec87-c10a-48e4-acfa-5052a6485320`
-- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260529_1149`
-- CLI route output: `MUSU_CLI_ROUTE_OK_20260529_1149`
+- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260529-121456-HUGH_SECOND.evidence.json`
+- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260529-121456-HUGH_SECOND.verification.json`
+- commit: `745d852ff603cc5d04ddb78592bcbc2888143250`
+- dashboard task id: `ea9fe1ed-14c7-4af9-b9a8-1f1394deb88c`
+- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260529_1214`
+- CLI route output: `MUSU_CLI_ROUTE_OK_20260529_1214`
 
 Multi-device packet:
 
