@@ -101,6 +101,8 @@ $scriptsToCopy = @(
     "verify-msix-install-evidence.ps1",
     "record-store-release-verification.ps1",
     "verify-store-release-evidence.ps1",
+    "prepare-operator-action-pack.ps1",
+    "verify-operator-action-pack.ps1",
     "show-final-release-handoff-status.ps1",
     "show-operator-handoff-card.ps1",
     "show-second-pc-return-card.ps1",
@@ -172,6 +174,18 @@ from the real MUSU release repo root:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-final-release-handoff-status.ps1
 ```
+
+Before copying files to the operator/second-PC path, generate and verify the
+operator action pack from a clean release repo root:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\prepare-operator-action-pack.ps1 -Json
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-operator-action-pack.ps1 -PackPath .local-build\operator-action-pack\MUSU-__SAFE_VERSION__-operator-action-pack-latest.zip -Json
+```
+
+`show-final-release-handoff-status.ps1` reports action-pack existence and
+verification status. The action pack is a copy/handoff convenience only; it does
+not create or satisfy release evidence.
 
 ## Gate A - Support mailbox delivery
 
@@ -295,7 +309,7 @@ The release can proceed only when:
 - `store_release_verified=true`
 - `manifest_git.dirty=false`
 '@
-$readme = $readme.Replace("__VERSION__", $Version).Replace("__SUPPORT_EMAIL__", $SupportEmail).Replace("__SUPPORT_COMMAND__", $supportCommand).Replace("__SUPPORT_VERIFICATION_ID__", $supportVerificationId)
+$readme = $readme.Replace("__VERSION__", $Version).Replace("__SAFE_VERSION__", $safeVersion).Replace("__SUPPORT_EMAIL__", $SupportEmail).Replace("__SUPPORT_COMMAND__", $supportCommand).Replace("__SUPPORT_VERIFICATION_ID__", $supportVerificationId)
 $readmePath = Join-Path $packetRoot "README_FINAL_OPERATOR_GATES.md"
 $readme | Set-Content -LiteralPath $readmePath -Encoding UTF8
 

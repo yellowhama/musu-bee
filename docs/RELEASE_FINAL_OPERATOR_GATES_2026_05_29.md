@@ -85,7 +85,7 @@ Use this evidence-non-recording command before handoff and after each returned e
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-final-release-handoff-status.ps1
 ```
 
-It summarizes the current go/no-go flags, verifies the latest final operator packet, shows the evidence roots being searched, and prints the remaining operator commands. It may refresh local manifest/status artifacts, but it does not create or satisfy release evidence.
+It summarizes the current go/no-go flags, verifies the latest final operator packet, verifies the latest operator action pack when present, shows the evidence roots being searched, and prints the remaining operator commands. It may refresh local manifest/status artifacts, but it does not create or satisfy release evidence.
 
 ## Fresh Single-Machine Evidence
 

@@ -72,7 +72,7 @@ Latest harness/evidence refresh:
 
 Latest operator action pack/evidence refresh:
 
-- `prepare-operator-action-pack.ps1` and `verify-operator-action-pack.ps1` were added and validated after the operator action pack commit.
+- `prepare-operator-action-pack.ps1` and `verify-operator-action-pack.ps1` were added and validated after the operator action pack commit; `show-final-release-handoff-status.ps1` now reports action-pack existence/verification beside final packet verification.
 - Fresh evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260530-053645-HUGH_SECOND.evidence.json`.
 - Source commit: `2b91d0a78180eec19285948824a1f455ff48e39d`.
 - Dashboard output: `MUSU_RELEASE_SMOKE_OK_20260530_053611`.
@@ -156,13 +156,14 @@ P0: close public release evidence gates.
 2. Regenerate `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip` from the clean pushed HEAD.
 3. Run `verify-final-operator-gate-packet.ps1 -PacketPath .local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip -Json`.
 4. Run `prepare-operator-action-pack.ps1 -Json`, then `verify-operator-action-pack.ps1 -PackPath .local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-latest.zip -Json`.
-5. Run `show-operator-handoff-card.ps1` and use only its current support subject/id and kit name.
-6. Copy the action pack or only its second-PC transfer zip to the second Windows PC.
-7. On the second PC, install/verify MSIX, capture MSIX install evidence, and run `collect-second-pc-handoff.ps1`.
-8. On the primary PC, run `smoke-multidevice-beta.ps1` with the second PC `host:port`, then record returned MSIX and multi-device evidence.
-9. Send a real email to `musu@musu.pro` using the current support subject/id and record support mailbox evidence.
-10. In Partner Center, reserve product name, submit the MSIX, wait for Microsoft certification/restricted capability review, then record Store release evidence.
-11. Run `complete-final-operator-gates.ps1 ... -FailOnNotReady -Json`.
+5. Run `show-final-release-handoff-status.ps1 -Json` and confirm `packet.verified=true`, `action_pack.verified=true`, and the only blockers are the four external gates.
+6. Run `show-operator-handoff-card.ps1` and use only its current support subject/id and kit name.
+7. Copy the action pack or only its second-PC transfer zip to the second Windows PC.
+8. On the second PC, install/verify MSIX, capture MSIX install evidence, and run `collect-second-pc-handoff.ps1`.
+9. On the primary PC, run `smoke-multidevice-beta.ps1` with the second PC `host:port`, then record returned MSIX and multi-device evidence.
+10. Send a real email to `musu@musu.pro` using the current support subject/id and record support mailbox evidence.
+11. In Partner Center, reserve product name, submit the MSIX, wait for Microsoft certification/restricted capability review, then record Store release evidence.
+12. Run `complete-final-operator-gates.ps1 ... -FailOnNotReady -Json`.
 
 P1: stabilize first public release operations.
 

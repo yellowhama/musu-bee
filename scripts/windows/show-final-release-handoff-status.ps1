@@ -4,6 +4,8 @@ param(
     [switch]$SkipPublicMetadata,
     [string]$PacketPath,
     [switch]$SkipPacketVerification,
+    [string]$ActionPackPath,
+    [switch]$SkipActionPackVerification,
     [switch]$Json
 )
 
@@ -19,6 +21,9 @@ $safeVersion = $version -replace "[^A-Za-z0-9._-]", "_"
 
 if ([string]::IsNullOrWhiteSpace($PacketPath)) {
     $PacketPath = Join-Path $repoRoot ".local-build\final-operator-gates\musu-final-operator-gates-$safeVersion-latest.zip"
+}
+if ([string]::IsNullOrWhiteSpace($ActionPackPath)) {
+    $ActionPackPath = Join-Path $repoRoot ".local-build\operator-action-pack\MUSU-$safeVersion-operator-action-pack-latest.zip"
 }
 
 function Invoke-JsonScript {
@@ -125,6 +130,19 @@ if ($packetExists -and -not $SkipPacketVerification) {
     $packetVerified = ($packetVerificationResult.json -and [bool]$packetVerificationResult.json.ok)
 }
 
+$actionPackExists = Test-Path -LiteralPath $ActionPackPath
+$resolvedActionPackPath = if ($actionPackExists) { (Resolve-Path -LiteralPath $ActionPackPath).Path } else { $ActionPackPath }
+$actionPackVerification = $null
+$actionPackVerified = $null
+if ($actionPackExists -and -not $SkipActionPackVerification) {
+    $actionPackVerificationResult = Invoke-JsonScript `
+        -FilePath (Join-Path $scriptDir "verify-operator-action-pack.ps1") `
+        -Arguments @("-PackPath", $resolvedActionPackPath, "-Json") `
+        -AllowFailure
+    $actionPackVerification = $actionPackVerificationResult.json
+    $actionPackVerified = ($actionPackVerificationResult.json -and [bool]$actionPackVerificationResult.json.ok)
+}
+
 $multiDeviceRoots = @(
     [pscustomobject]@{
         path = (Join-Path $repoRoot ("docs\evidence\multidevice\{0}" -f $version))
@@ -170,6 +188,8 @@ $commands = [pscustomobject]@{
     show_status = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-final-release-handoff-status.ps1"
     prepare_packet = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\prepare-final-operator-gate-packet.ps1 -IncludeDesktopShell"
     verify_packet = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-final-operator-gate-packet.ps1 -PacketPath .local-build\final-operator-gates\musu-final-operator-gates-$safeVersion-latest.zip -Json"
+    prepare_action_pack = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\prepare-operator-action-pack.ps1 -Json"
+    verify_action_pack = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-operator-action-pack.ps1 -PackPath .local-build\operator-action-pack\MUSU-$safeVersion-operator-action-pack-latest.zip -Json"
     final_completion = @"
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-final-operator-gates.ps1 `
   -MsixInstallEvidencePath .local-build\msix-install\<INSTALL_EVIDENCE_JSON> `
@@ -205,6 +225,20 @@ elseif (-not $SkipPacketVerification -and -not $packetVerified) {
         -Gate "handoff-packet" `
         -Summary "Regenerate or fix the final operator packet; packet verification is not passing." `
         -Command $commands.verify_packet
+}
+if (-not $actionPackExists) {
+    Add-OperatorStep `
+        -List $operatorSteps `
+        -Gate "operator-action-pack" `
+        -Summary "Generate the operator action pack so second-PC, support-mailbox, and Partner Center handoff files are in one verified archive." `
+        -Command $commands.prepare_action_pack
+}
+elseif (-not $SkipActionPackVerification -and -not $actionPackVerified) {
+    Add-OperatorStep `
+        -List $operatorSteps `
+        -Gate "operator-action-pack" `
+        -Summary "Regenerate or fix the operator action pack; action pack verification is not passing." `
+        -Command $commands.verify_action_pack
 }
 
 if (-not [bool]$goNoGo.msix_install_verified) {
@@ -248,6 +282,12 @@ $result = [pscustomobject]@{
         verified = $packetVerified
         verification = $packetVerification
     }
+    action_pack = [pscustomobject]@{
+        path = $resolvedActionPackPath
+        exists = [bool]$actionPackExists
+        verified = $actionPackVerified
+        verification = $actionPackVerification
+    }
     gates = [pscustomobject]@{
         local_artifacts_ready = [bool]$goNoGo.local_artifacts_ready
         single_machine_verified = [bool]$goNoGo.single_machine_verified
@@ -281,6 +321,9 @@ else {
     "packet_exists: $($result.packet.exists)"
     "packet_verified: $($result.packet.verified)"
     "packet_path: $($result.packet.path)"
+    "action_pack_exists: $($result.action_pack.exists)"
+    "action_pack_verified: $($result.action_pack.verified)"
+    "action_pack_path: $($result.action_pack.path)"
     ""
     "Gates"
     $result.gates | Format-List
