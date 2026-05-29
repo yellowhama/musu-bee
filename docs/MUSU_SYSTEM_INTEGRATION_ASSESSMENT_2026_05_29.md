@@ -81,6 +81,14 @@ Fresh recheck on 2026-05-29 11:55 KST:
 - Local `go test ./...` and `go vet ./...` passed again in `core`, `crawl-ai`, `marketer`, and `nurikun` from `.local-build\external\musu-system`.
 - Conclusion unchanged: keep `musu-system` as optional ecosystem tooling; do not merge it into `musu-rs` and do not bundle it into the first Microsoft Store package.
 
+Fresh recheck on 2026-05-29 12:41 KST:
+
+- Local clone at `F:\workspace\_external\musu-system` is clean and aligned with `origin/main`.
+- `musu-system` HEAD remains `d4e58e010fe30e83c1e96165d75d7c3ec80a2f40`; split repo HEADs and active service tags remain unchanged.
+- GitHub Actions still shows the latest monorepo `CI` run `26587103682` successful on `main` and latest `Publish container image to GHCR` run `26587105434` successful on the same HEAD.
+- Local `go test ./...` and `go vet ./...` passed again in all four modules: `core`, `crawl-ai`, `marketer`, and `nurikun`.
+- The operator-supplied split-repo summary is therefore incomplete for current planning. Use `musu-system` as canonical; use the split repos only for transition/reference history unless a deliberate split-release reason appears.
+
 Links:
 
 - `https://github.com/yellowhama/musu-system`
@@ -182,6 +190,14 @@ The latest verification was run from `.local-build\external\musu-system` against
 - `go test ./...` and `go vet ./...` passed again in all four modules.
 - No new integration blocker was found. The stale-information risk is now mainly process risk: future reports must check `musu-system` first, then only use split repos as transition/reference context.
 
+2026-05-29 12:41 KST recheck:
+
+- HEADs, tags, repo visibility, and split-repo references remain unchanged.
+- Latest monorepo CI and GHCR publish runs remain successful.
+- `go test ./...` and `go vet ./...` passed again in `core`, `crawl-ai`, `marketer`, and `nurikun`.
+- Current decision remains unchanged: high integration value, adapter first, no Rust-core merge, no first Store package bundling.
+- The next useful MUSU-side task is not another audit; it is an adapter contract spike for `crawl-ai` with explicit cwd, wiki root, project/company mapping, model/env injection, and machine-readable result capture.
+
 ## Code Audit Notes
 
 `musu-system` is not just a README wrapper. It has a coherent Go workspace, per-module tests, CI build/vet/race-test workflow, tag-triggered GHCR publishing, and a deploy bundle with Ollama, shared wiki volume, Caddy TLS profile, and optional scheduler.
@@ -202,6 +218,12 @@ Audit concern:
 - `nurikun watch` records outbound status as `sent` before mailbox `Send` returns. If send fails, the log reports failure but the stored row has already been saved as `sent`. This is acceptable for an adjacent prototype, but before any MUSU dashboard integration it should record `send_failed` or update the row after delivery success.
 - The MCP surfaces are usable, but not yet ideal as a MUSU-managed adapter boundary. `crawl-ai` MCP currently starts from a local wiki default and model defaults, while `marketer` also assumes default model/context unless the operator supplies the right environment. Before MUSU registers these tools automatically, add explicit env/flag-driven model and wiki path contracts or wrap them with a MUSU-side adapter that supplies the right working directory, project, wiki root, and model settings.
 - `marketer` has a useful MCP surface, but its REST API is not the primary integration path yet. Use CLI/MCP first; REST can follow after endpoint contracts become product-grade.
+
+Risk update from 12:41 KST:
+
+- There is no reason to split-brain development across the old repos. If future work lands in `musu-crawl-ai`, `musu-marketer`, or `musu-nurikun` directly, require a mirror/subtree plan back into `musu-system`.
+- `nurikun` is useful for the MUSU support mailbox track, but it should not be used to satisfy the current Store support-mailbox evidence gate automatically. That gate still needs operator-observed delivery evidence for `support@musu.pro`.
+- The first integration candidate should be `crawl-ai`, because it improves MUSU's research/wiki memory without touching outbound comms, Store certification scope, or machine-control trust boundaries.
 
 ## Use Of The Cross-Product Launch Memo
 
