@@ -15,6 +15,16 @@ $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
 
+$gitBranch = (& git -C $repoRoot rev-parse --abbrev-ref HEAD 2>$null | Out-String).Trim()
+$gitCommit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
+$gitStatus = (& git -C $repoRoot status --short 2>$null | Out-String).Trim()
+if ([string]::IsNullOrWhiteSpace($gitCommit)) {
+    throw "Unable to resolve git commit for final operator packet."
+}
+if (-not [string]::IsNullOrWhiteSpace($gitStatus)) {
+    throw "Refusing to prepare final operator packet from a dirty worktree. Commit changes and regenerate the packet before handoff.`n$gitStatus"
+}
+
 if ([string]::IsNullOrWhiteSpace($Version)) {
     $Version = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
 }
@@ -254,6 +264,21 @@ $supportTemplate = [pscustomobject]@{
 }
 $supportTemplate | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $packetRoot "support-mailbox-record-template.json") -Encoding UTF8
 
+$packetMetadata = [pscustomobject]@{
+    schema = "musu.final_operator_gate_packet.v1"
+    generated_at = (Get-Date).ToString("o")
+    version = $Version
+    support_email = $SupportEmail
+    support_verification_id = $supportVerificationId
+    git = [pscustomobject]@{
+        branch = $gitBranch
+        commit = $gitCommit
+        dirty = $false
+        status_short = ""
+    }
+}
+$packetMetadata | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $packetRoot "packet-build-metadata.json") -Encoding UTF8
+
 $checksumsPath = Join-Path $packetRoot "SHA256SUMS.txt"
 Get-ChildItem -LiteralPath $packetRoot -Recurse -File |
     Where-Object { $_.FullName -ne $checksumsPath } |
@@ -278,6 +303,7 @@ $result = [pscustomobject]@{
     multi_device_kit = if ($copiedMultiDeviceKit) { (Resolve-Path -LiteralPath $copiedMultiDeviceKit).Path } else { $null }
     support_email = $SupportEmail
     support_verification_id = $supportVerificationId
+    git_commit = $gitCommit
 }
 
 if ($Json) {

@@ -84,6 +84,7 @@ try {
     $requiredFiles = @(
         "README_FINAL_OPERATOR_GATES.md",
         "SHA256SUMS.txt",
+        "packet-build-metadata.json",
         "support-mailbox-record-template.json",
         "docs\RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md",
         "docs\MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md",
@@ -109,6 +110,20 @@ try {
     foreach ($relative in $requiredFiles) {
         $exists = Test-Path -LiteralPath (Join-Path $packetRoot $relative)
         Add-CheckFromCondition "required file: $relative" $exists "$relative exists" "$relative is missing"
+    }
+
+    $metadataPath = Join-Path $packetRoot "packet-build-metadata.json"
+    if (Test-Path -LiteralPath $metadataPath) {
+        try {
+            $metadata = Get-Content -LiteralPath $metadataPath -Raw | ConvertFrom-Json
+            Add-CheckFromCondition "packet metadata schema" ([string]$metadata.schema -eq "musu.final_operator_gate_packet.v1") "packet metadata schema is valid" "packet metadata schema is invalid"
+            Add-CheckFromCondition "packet metadata version" (-not [string]::IsNullOrWhiteSpace([string]$metadata.version)) "packet metadata includes version" "packet metadata is missing version"
+            Add-CheckFromCondition "packet metadata git commit" ([string]$metadata.git.commit -match "^[0-9a-fA-F]{40}$") "packet metadata includes source git commit" "packet metadata source git commit is missing or invalid"
+            Add-CheckFromCondition "packet metadata clean git" (-not [bool]$metadata.git.dirty -and [string]::IsNullOrWhiteSpace([string]$metadata.git.status_short)) "packet metadata records clean git state" "packet metadata does not record clean git state"
+        }
+        catch {
+            Add-Check "packet metadata json" "fail" "packet metadata JSON did not parse: $($_.Exception.Message)"
+        }
     }
 
     $readmePath = Join-Path $packetRoot "README_FINAL_OPERATOR_GATES.md"
