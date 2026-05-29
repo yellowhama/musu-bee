@@ -270,6 +270,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | — | CoS memory note — final handoff and CI recheck | 2026-05-29 | `memory/chief_of_staff/2026-05-29_1305_kst_final_handoff_and_ci_recheck.md` | active |
 | — | CoS memory note — support email correction | 2026-05-29 | `memory/chief_of_staff/2026-05-29_1331_kst_support_email_correction.md` | active |
 | — | CoS memory note — support email and single-machine refresh | 2026-05-29 | `memory/chief_of_staff/2026-05-29_1338_kst_support_email_and_single_machine_refresh.md` | active |
+| — | CoS memory note — operator handoff card | 2026-05-29 | `memory/chief_of_staff/2026-05-29_1346_kst_operator_handoff_card.md` | active |
 
 State lock: `1.15.0-rc.1` is beta-ready for the single-machine Windows local operator path (`musu up` → dashboard doctor → Claude task smoke). A repeatable single-machine smoke script now passes. Multi-device test kit generation now works, but clean/current second-PC MSIX install evidence and two-machine validation are still pending. Runtime/MSIX package readiness is true for submission attempt; the dedicated Tauri static launcher/status shell now builds, renders, and bundles, but it is not the full dashboard GUI. The release support mailbox is `musu@musu.pro`, sourced from root `SUPPORT_EMAIL`.
 
@@ -310,6 +311,7 @@ These docs capture the post-install / post-review conclusion that Windows packag
 | Store launch and promotion plan | 2026-05-29 | `STORE_LAUNCH_AND_PROMOTION_PLAN_2026_05_29.md` | active |
 | Store submission metadata | 2026-05-29 | `STORE_SUBMISSION_METADATA_2026_05_29.md` | active |
 | Final operator gates | 2026-05-29 | `RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md` | active |
+| Release operator handoff card | 2026-05-29 | `RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md` | active |
 | musu-system integration assessment | 2026-05-29 | `MUSU_SYSTEM_INTEGRATION_ASSESSMENT_2026_05_29.md` | active |
 | Multi-device 1.15.0-rc.1 test plan | 2026-05-29 | `MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md` | active |
 | Desktop release readiness audit | 2026-05-29 | `DESKTOP_RELEASE_READINESS_AUDIT_2026_05_29.md` | active |
@@ -318,7 +320,7 @@ These docs capture the post-install / post-review conclusion that Windows packag
 
 2026-05-29 ecosystem update: `yellowhama/musu-system` is the canonical Go monorepo for `core`, `crawl-ai`, `marketer`, and `nurikun`. Integration value is high, but current decision is adapter/MCP/CLI integration, not Rust-core merge or first Store package bundling. 12:41 KST recheck confirmed monorepo/split HEADs and active tags unchanged, latest monorepo CI `26587103682` and GHCR publish `26587105434` still green, and local `go test ./...` plus `go vet ./...` passing in all four modules. Current HEAD already has MCP schemas and marketer/nurikun DB parent creation. `nurikun` delivery ops remain outside MCP. Adapter caveat: MUSU registration needs explicit cwd/wiki/project/model/env handling before auto-registration. First integration candidate should be `crawl-ai` as optional knowledge/wiki ingestion.
 
-2026-05-29 Store release update: `MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md` is the current concise MUSU-specific operator card. It keeps MSIX first, rejects other-product HiveLink/Vibe PM copy, and requires second-PC MSIX install evidence, real multi-device evidence, support mailbox delivery evidence, and Partner Center/Microsoft approval evidence before public desktop readiness can turn true.
+2026-05-29 Store release update: `MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md` is the current concise MUSU-specific operator card. `RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md` plus `show-operator-handoff-card.ps1` are the packet-aware quick handoff for current support verification id, second-PC kit name, and recording commands. The release path keeps MSIX first, rejects other-product HiveLink/Vibe PM copy, and requires second-PC MSIX install evidence, real multi-device evidence, support mailbox delivery evidence, and Partner Center/Microsoft approval evidence before public desktop readiness can turn true.
 
 ---
 

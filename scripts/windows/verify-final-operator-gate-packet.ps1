@@ -92,6 +92,7 @@ try {
         "docs\BETA_RELEASE_CHECKLIST_1_15_0_RC1.md",
         "docs\DESKTOP_RELEASE_READINESS_AUDIT_2026_05_29.md",
         "docs\MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md",
+        "docs\RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md",
         "docs\STORE_SUBMISSION_METADATA_2026_05_29.md",
         "scripts\windows\release-config.ps1",
         "scripts\windows\record-support-mailbox-verification.ps1",
@@ -105,6 +106,7 @@ try {
         "scripts\windows\record-store-release-verification.ps1",
         "scripts\windows\verify-store-release-evidence.ps1",
         "scripts\windows\show-final-release-handoff-status.ps1",
+        "scripts\windows\show-operator-handoff-card.ps1",
         "scripts\windows\verify-final-operator-gate-packet.ps1",
         "scripts\windows\complete-final-operator-gates.ps1",
         "scripts\windows\write-release-candidate-manifest.ps1",
@@ -150,6 +152,7 @@ try {
         Add-CheckFromCondition "readme store release blocker" ($readme -like "*Partner Center product name reservation*" -and $readme -like "*app submission*" -and $readme -like "*store_release_verified=true*") "README states Store release approval is a blocker" "README does not clearly state Store release approval evidence is required"
         Add-CheckFromCondition "readme store release recorder" ($readme -like "*record-store-release-verification.ps1*") "README includes Store release evidence recorder command" "README missing Store release evidence recorder command"
         Add-CheckFromCondition "readme handoff status command" ($readme -like "*show-final-release-handoff-status.ps1*") "README includes final release handoff status command" "README missing final release handoff status command"
+        Add-CheckFromCondition "readme operator handoff card" ($readme -like "*show-operator-handoff-card.ps1*" -or $readme -like "*RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md*") "README includes operator handoff card path" "README missing operator handoff card reference"
         Add-CheckFromCondition "readme complete runner msix params" ($readme -like "*complete-final-operator-gates.ps1*" -and $readme -like "*-MsixInstallEvidencePath*") "README final command can record MSIX install evidence" "README final command does not include MSIX install evidence parameters"
         Add-CheckFromCondition "readme complete runner store params" ($readme -like "*complete-final-operator-gates.ps1*" -and $readme -like "*-StoreProductNameReservedAt*" -and $readme -like "*-StoreSubmissionId*") "README final command can record Store release evidence with product name reservation timestamp" "README final command does not include Store release evidence parameters"
         Add-CheckFromCondition "readme complete runner fail gate" ($readme -like "*complete-final-operator-gates.ps1*" -and $readme -like "*-FailOnNotReady*") "README final command fails when final go/no-go is not ready" "README final command does not include -FailOnNotReady"

@@ -78,6 +78,7 @@ $docsToCopy = @(
     "docs\BETA_RELEASE_CHECKLIST_1_15_0_RC1.md",
     "docs\DESKTOP_RELEASE_READINESS_AUDIT_2026_05_29.md",
     "docs\MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md",
+    "docs\RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md",
     "docs\STORE_SUBMISSION_METADATA_2026_05_29.md"
 )
 foreach ($relative in $docsToCopy) {
@@ -100,6 +101,7 @@ $scriptsToCopy = @(
     "record-store-release-verification.ps1",
     "verify-store-release-evidence.ps1",
     "show-final-release-handoff-status.ps1",
+    "show-operator-handoff-card.ps1",
     "verify-final-operator-gate-packet.ps1",
     "complete-final-operator-gates.ps1",
     "write-release-candidate-manifest.ps1",
@@ -133,6 +135,14 @@ Current machine-verifiable state before these gates:
 For the shortest Store/submission sequence, review:
 
 - `docs\MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md`
+- `docs\RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md`
+
+To print the current packet-specific support verification id, second-PC kit
+name, and recording commands, run from the real MUSU release repo root:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-operator-handoff-card.ps1
+```
 
 Remaining blockers:
 
