@@ -36,8 +36,8 @@ Audit snapshot before this document update:
 | Operator handoff card | `show-operator-handoff-card.ps1` reads packet metadata and prints current support id, subject, kit name, return files, and recording commands |
 | Support mailbox | `musu@musu.pro` |
 | Support source of truth | root `SUPPORT_EMAIL`; scripts use `scripts\windows\release-config.ps1`; public Next pages use `musu-bee/src/lib/contact.ts` |
-| Current single-machine evidence | `docs\evidence\single-machine\1.15.0-rc.1\20260530-060739-HUGH_SECOND.evidence.json` |
-| Single-machine smoke output | `MUSU_RELEASE_SMOKE_OK_20260530_060700`; CLI route `MUSU_CLI_ROUTE_OK_20260530_060700` |
+| Current single-machine evidence | `docs\evidence\single-machine\1.15.0-rc.1\20260530-085123-HUGH_SECOND.evidence.json` |
+| Single-machine smoke output | `MUSU_RELEASE_SMOKE_OK_20260530_085059`; CLI route `MUSU_CLI_ROUTE_OK_20260530_085059` |
 | Public metadata | live `https://musu.pro/privacy` and `/support` verify with `musu@musu.pro` |
 | Final go/no-go | `ready_for_public_desktop_release=false` |
 
@@ -90,6 +90,16 @@ Latest handoff status/evidence refresh:
 - CLI route: `MUSU_CLI_ROUTE_OK_20260530_060700`.
 - Dashboard task: `146d0165-5f4a-428e-9d74-f3ea0b05dbad`.
 - Bridge: `http://127.0.0.1:12305`.
+
+Latest second-PC wrapper/evidence refresh:
+
+- `run-second-pc-release-check.ps1` was added to reduce second-PC operator sequencing risk.
+- Fresh evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260530-085123-HUGH_SECOND.evidence.json`.
+- Source commit: `213b69e4e0d6070aa02f15b4ecbea5f3b2605f48`.
+- Dashboard output: `MUSU_RELEASE_SMOKE_OK_20260530_085059`.
+- CLI route: `MUSU_CLI_ROUTE_OK_20260530_085059`.
+- Dashboard task: `14c9e9be-73b7-494f-9194-fd87d8f4b252`.
+- Bridge: `http://127.0.0.1:12427`.
 
 ## Product Spec Updates
 
