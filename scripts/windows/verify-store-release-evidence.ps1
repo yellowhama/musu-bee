@@ -98,6 +98,8 @@ $evidence = Get-Content -LiteralPath $EvidencePath -Raw | ConvertFrom-Json
 $schema = Get-StringProperty -Object $evidence -Name "schema"
 $version = Get-StringProperty -Object $evidence -Name "version"
 $productName = Get-StringProperty -Object $evidence -Name "product_name"
+$productNameReserved = Get-BoolProperty -Object $evidence -Name "product_name_reserved"
+$productNameReservedAtText = Get-StringProperty -Object $evidence -Name "product_name_reserved_at"
 $submissionId = Get-StringProperty -Object $evidence -Name "submission_id"
 $certificationStatus = (Get-StringProperty -Object $evidence -Name "certification_status").Trim().ToLowerInvariant()
 $restrictedCapabilityStatus = (Get-StringProperty -Object $evidence -Name "restricted_capability_status").Trim().ToLowerInvariant()
@@ -109,6 +111,7 @@ $recordedAtText = Get-StringProperty -Object $evidence -Name "recorded_at"
 $evidenceOk = Get-BoolProperty -Object $evidence -Name "ok"
 
 $submittedAt = Try-ParseDateTimeOffset -Text $submittedAtText
+$productNameReservedAt = Try-ParseDateTimeOffset -Text $productNameReservedAtText
 $certificationCompletedAt = Try-ParseDateTimeOffset -Text $certificationCompletedAtText
 $restrictedCapabilityCompletedAt = Try-ParseDateTimeOffset -Text $restrictedCapabilityCompletedAtText
 $recordedAt = Try-ParseDateTimeOffset -Text $recordedAtText
@@ -120,6 +123,8 @@ Add-CheckFromCondition "schema" ($schema -eq "musu.store_release_gate_evidence.v
 Add-CheckFromCondition "evidence ok" $evidenceOk "evidence reports ok=true" "evidence does not report ok=true"
 Add-CheckFromCondition "version" ($version -eq $ExpectedVersion) "version matches $ExpectedVersion" "version is '$version', expected '$ExpectedVersion'"
 Add-CheckFromCondition "product name" (-not [string]::IsNullOrWhiteSpace($productName)) "product_name is present" "product_name is missing"
+Add-CheckFromCondition "product name reserved" $productNameReserved "product_name_reserved is true" "product_name_reserved is not true"
+Add-CheckFromCondition "product name reservation timestamp" ($null -ne $productNameReservedAt) "product_name_reserved_at parses" "product_name_reserved_at is missing or invalid"
 Add-CheckFromCondition "submission id" (-not [string]::IsNullOrWhiteSpace($submissionId)) "submission_id is present" "submission_id is missing"
 Add-CheckFromCondition "certification status" ($acceptableCertificationStatuses -contains $certificationStatus) "certification status is release-acceptable" "certification_status '$certificationStatus' is not one of $($acceptableCertificationStatuses -join ', ')"
 Add-CheckFromCondition "restricted capability status" ($acceptableRestrictedStatuses -contains $restrictedCapabilityStatus) "restricted capability approval is recorded" "restricted_capability_status '$restrictedCapabilityStatus' is not approved"
@@ -131,6 +136,10 @@ Add-CheckFromCondition "recorded timestamp" ($null -ne $recordedAt) "recorded_at
 
 if ($submittedAt -and $certificationCompletedAt) {
     Add-CheckFromCondition "certification order" ($certificationCompletedAt -ge $submittedAt) "certification_completed_at is at or after submitted_at" "certification_completed_at is before submitted_at"
+}
+
+if ($submittedAt -and $productNameReservedAt) {
+    Add-CheckFromCondition "product name reservation order" ($submittedAt -ge $productNameReservedAt) "submitted_at is at or after product_name_reserved_at" "submitted_at is before product_name_reserved_at"
 }
 
 if ($submittedAt -and $restrictedCapabilityCompletedAt) {
@@ -149,6 +158,7 @@ $result = [pscustomobject]@{
     fail_count = $failCount
     version = $version
     product_name = $productName
+    product_name_reserved = $productNameReserved
     submission_id = $submissionId
     certification_status = $certificationStatus
     restricted_capability_status = $restrictedCapabilityStatus

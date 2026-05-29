@@ -115,7 +115,7 @@ Remaining blockers:
 1. clean/current MSIX install evidence from the second Windows PC
 2. real second-PC multi-device evidence
 3. real __SUPPORT_EMAIL__ inbox delivery evidence
-4. Partner Center submission, Microsoft certification, and restricted startup capability approval evidence
+4. Partner Center product name reservation, app submission, Microsoft certification, and restricted startup capability approval evidence
 
 Before handoff, or after each returned evidence file, run this status command
 from the real MUSU release repo root:
@@ -185,8 +185,9 @@ Expected result: `multi_device_verified=true`.
 
 ## Gate D - Store release approval evidence
 
-After Partner Center submission completes and Microsoft approves the package and
-restricted startup capability, record those values with the final command below.
+After Partner Center product name reservation, app submission, Microsoft package
+certification, and restricted startup capability approval complete, record those
+values with the final command below.
 If you need to record Store approval separately before the final command, run
 this from the real MUSU release repo root:
 

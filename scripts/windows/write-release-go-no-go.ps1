@@ -258,7 +258,7 @@ if (-not $supportMailboxVerified) {
     Add-Blocker -List $blockers -Area "support-mailbox" -Message "support@musu.pro delivery has not been operator-verified."
 }
 if (-not $storeReleaseVerified) {
-    Add-Blocker -List $blockers -Area "store-release" -Message "Partner Center submission, Microsoft certification, and restricted capability approval evidence has not been recorded."
+    Add-Blocker -List $blockers -Area "store-release" -Message "Partner Center product name reservation, app submission, Microsoft certification, and restricted capability approval evidence has not been recorded."
 }
 if (-not [string]::IsNullOrWhiteSpace($gitStatus)) {
     $warnings.Add([pscustomobject]@{

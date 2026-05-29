@@ -1,6 +1,8 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)][string]$ProductName,
+    [bool]$ProductNameReserved = $true,
+    [string]$ProductNameReservedAt = "",
     [string]$PartnerCenterProductId = "",
     [Parameter(Mandatory = $true)][string]$SubmissionId,
     [Parameter(Mandatory = $true)][string]$CertificationStatus,
@@ -32,6 +34,12 @@ if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
 New-Item -ItemType Directory -Force -Path $OutputRoot | Out-Null
 
 $recordedAt = [datetimeoffset]::Now
+$resolvedProductNameReservedAt = if ([string]::IsNullOrWhiteSpace($ProductNameReservedAt)) {
+    $SubmittedAt
+}
+else {
+    [datetimeoffset]::Parse($ProductNameReservedAt)
+}
 $stamp = $recordedAt.ToString("yyyyMMdd-HHmmss")
 $safeProductName = $ProductName -replace "[^A-Za-z0-9._-]", "_"
 $baseName = "$stamp-$safeProductName"
@@ -44,6 +52,8 @@ $evidence = [pscustomobject]@{
     ok = $true
     version = $Version
     product_name = $ProductName
+    product_name_reserved = [bool]$ProductNameReserved
+    product_name_reserved_at = $resolvedProductNameReservedAt.ToString("o")
     partner_center_product_id = $PartnerCenterProductId
     submission_id = $SubmissionId
     certification_status = $CertificationStatus
@@ -78,6 +88,8 @@ $summary = @"
 - Version: $Version
 - Verified: $($verification.ok)
 - Product name: $ProductName
+- Product name reserved: $ProductNameReserved
+- Product name reserved at: $($resolvedProductNameReservedAt.ToString("o"))
 - Partner Center product ID: $PartnerCenterProductId
 - Submission ID: $SubmissionId
 - Certification status: $CertificationStatus
@@ -94,8 +106,9 @@ $summary = @"
 - Recorded at: $($recordedAt.ToString("o"))
 
 This file records Partner Center submission, Microsoft certification, and
-restricted startup capability approval evidence for the public desktop
-release gate.
+restricted startup capability approval evidence for the public desktop release
+gate. Product name reservation is recorded separately in the same evidence so
+the Partner Center identity step remains auditable.
 "@
 $summary | Set-Content -LiteralPath $summaryPath -Encoding UTF8
 
@@ -109,6 +122,7 @@ $result = [pscustomobject]@{
     verification_sha256 = $verificationHash.Hash.ToLowerInvariant()
     summary_path = (Resolve-Path -LiteralPath $summaryPath).Path
     product_name = $ProductName
+    product_name_reserved = [bool]$ProductNameReserved
     submission_id = $SubmissionId
     certification_status = $CertificationStatus
     restricted_capability_status = $RestrictedCapabilityStatus

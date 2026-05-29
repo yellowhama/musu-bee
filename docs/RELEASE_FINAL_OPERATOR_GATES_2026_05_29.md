@@ -215,8 +215,9 @@ Expected change:
 
 ## Gate 4 - Store Release Approval Evidence
 
-After Partner Center submission completes and Microsoft approves the package and
-restricted startup capability, record the approval result:
+After Partner Center product name reservation, app submission, Microsoft package
+certification, and restricted startup capability approval complete, record the
+approval result:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-store-release-verification.ps1 `
@@ -233,6 +234,10 @@ Expected change:
 
 - `store_release_verified=true`
 - store-release blocker removed
+
+The Store evidence JSON now records `product_name_reserved=true` and
+`product_name_reserved_at`, so the Partner Center identity step is auditable and
+not only implied by a later submission id.
 
 ## Final Release Command
 

@@ -228,7 +228,7 @@ if (-not [bool]$goNoGo.store_release_verified) {
     Add-OperatorStep `
         -List $operatorSteps `
         -Gate "store-release" `
-        -Summary "After Partner Center submission, Microsoft certification, and restricted capability approval, record Store release evidence." `
+        -Summary "Reserve the Partner Center product name, submit the package, wait for Microsoft certification/restricted capability approval, then record Store release evidence." `
         -Command 'powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-store-release-verification.ps1 -ProductName "MUSU" -SubmissionId "<partner-center-submission-id>" -CertificationStatus "approved" -RestrictedCapabilityStatus "approved" -RecordedBy "<operator-name>" -Notes "Microsoft Store certification and restricted capability review approved" -Json'
 }
 
