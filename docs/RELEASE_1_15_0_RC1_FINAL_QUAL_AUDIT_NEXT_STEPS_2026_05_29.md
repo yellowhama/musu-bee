@@ -36,8 +36,8 @@ Audit snapshot before this document update:
 | Operator handoff card | `show-operator-handoff-card.ps1` reads packet metadata and prints current support id, subject, kit name, return files, and recording commands |
 | Support mailbox | `musu@musu.pro` |
 | Support source of truth | root `SUPPORT_EMAIL`; scripts use `scripts\windows\release-config.ps1`; public Next pages use `musu-bee/src/lib/contact.ts` |
-| Current single-machine evidence | `docs\evidence\single-machine\1.15.0-rc.1\20260530-053645-HUGH_SECOND.evidence.json` |
-| Single-machine smoke output | `MUSU_RELEASE_SMOKE_OK_20260530_053611`; CLI route `MUSU_CLI_ROUTE_OK_20260530_053611` |
+| Current single-machine evidence | `docs\evidence\single-machine\1.15.0-rc.1\20260530-060739-HUGH_SECOND.evidence.json` |
+| Single-machine smoke output | `MUSU_RELEASE_SMOKE_OK_20260530_060700`; CLI route `MUSU_CLI_ROUTE_OK_20260530_060700` |
 | Public metadata | live `https://musu.pro/privacy` and `/support` verify with `musu@musu.pro` |
 | Final go/no-go | `ready_for_public_desktop_release=false` |
 
@@ -80,6 +80,16 @@ Latest operator action pack/evidence refresh:
 - Dashboard task: `d0f7f581-3c3e-49b2-a551-1f8881100aa8`.
 - Bridge: `http://127.0.0.1:11971`.
 - A first smoke attempt failed while Next was still compiling `/app`; `musu up --json` returned bridge/dashboard `ok` after compilation and the rerun passed.
+
+Latest handoff status/evidence refresh:
+
+- `show-final-release-handoff-status.ps1` now reports `action_pack.exists` and `action_pack.verified`.
+- Fresh evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260530-060739-HUGH_SECOND.evidence.json`.
+- Source commit: `d7e745f6ddd84127c358b3cdcad68249ab1b55ca`.
+- Dashboard output: `MUSU_RELEASE_SMOKE_OK_20260530_060700`.
+- CLI route: `MUSU_CLI_ROUTE_OK_20260530_060700`.
+- Dashboard task: `146d0165-5f4a-428e-9d74-f3ea0b05dbad`.
+- Bridge: `http://127.0.0.1:12305`.
 
 ## Product Spec Updates
 
