@@ -135,7 +135,7 @@ Full route:
 powershell -ExecutionPolicy Bypass -File scripts\windows\smoke-multidevice-beta.ps1 -RemoteAddr OTHER_PC_IP:BRIDGE_PORT -RemoteName OTHER_PC_NAME -RouteTarget OTHER_PC_NAME
 ```
 
-The smoke writes an evidence JSON file under `.local-build\multi-device\`.
+The smoke writes `.local-build\multi-device\*.evidence.json`.
 Send that JSON back to the release repo before claiming multi-device readiness.
 
 Verify it locally with:

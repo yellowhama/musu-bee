@@ -271,6 +271,29 @@ try {
             $archive = [System.IO.Compression.ZipFile]::OpenRead($kitZip.FullName)
             try {
                 $entries = @($archive.Entries | ForEach-Object { $_.FullName -replace "/", "\" })
+                $requiredKitEntries = @(
+                    "README_MULTI_DEVICE_TEST_KIT.md",
+                    "VERSION",
+                    "SHA256SUMS.txt",
+                    ".local-build\msix\output\musu_1.15.0.0_x64_local-sideload-manual.msix",
+                    ".local-build\msix\output\Yellowhama.MUSU_cert.cer",
+                    "scripts\windows\install-and-verify-msix.ps1",
+                    "scripts\windows\capture-msix-install-evidence.ps1",
+                    "scripts\windows\collect-second-pc-handoff.ps1",
+                    "scripts\windows\smoke-multidevice-beta.ps1",
+                    "scripts\windows\verify-msix-install-evidence.ps1",
+                    "scripts\windows\record-msix-install-evidence.ps1",
+                    "scripts\windows\verify-multidevice-evidence.ps1",
+                    "scripts\windows\record-multidevice-evidence.ps1"
+                )
+                foreach ($requiredKitEntry in $requiredKitEntries) {
+                    Add-CheckFromCondition `
+                        "kit required entry: $($kitZip.Name): $requiredKitEntry" `
+                        ($entries -contains $requiredKitEntry) `
+                        "kit contains $requiredKitEntry" `
+                        "kit is missing $requiredKitEntry"
+                }
+
                 Add-CheckFromCondition `
                     "kit handoff helper: $($kitZip.Name)" `
                     ($entries -contains "scripts\windows\collect-second-pc-handoff.ps1") `
@@ -291,6 +314,16 @@ try {
                         ($kitReadme -like "*collect-second-pc-handoff.ps1*" -and $kitReadme -like "*suggested_remote_addrs*") `
                         "kit README explains suggested_remote_addrs handoff" `
                         "kit README does not explain second-PC handoff helper"
+                    Add-CheckFromCondition `
+                        "kit readme install evidence: $($kitZip.Name)" `
+                        ($kitReadme -like "*install-and-verify-msix.ps1*" -and $kitReadme -like "*capture-msix-install-evidence.ps1*" -and $kitReadme -like "*.local-build\msix-install\*.evidence.json*") `
+                        "kit README explains MSIX install evidence capture" `
+                        "kit README does not explain MSIX install evidence capture"
+                    Add-CheckFromCondition `
+                        "kit readme multi-device evidence: $($kitZip.Name)" `
+                        ($kitReadme -like "*smoke-multidevice-beta.ps1*" -and $kitReadme -like "*record-multidevice-evidence.ps1*" -and $kitReadme -like "*.local-build\multi-device\*.evidence.json*") `
+                        "kit README explains multi-device smoke evidence" `
+                        "kit README does not explain multi-device smoke evidence"
                 }
                 else {
                     Add-Check "kit readme: $($kitZip.Name)" "fail" "kit is missing README_MULTI_DEVICE_TEST_KIT.md"

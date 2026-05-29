@@ -275,6 +275,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | — | CoS memory note — operator card single-machine refresh | 2026-05-29 | `memory/chief_of_staff/2026-05-29_1352_kst_operator_card_single_machine_refresh.md` | active |
 | — | CoS memory note — final qual audit and next steps | 2026-05-29 | `memory/chief_of_staff/2026-05-29_1405_kst_final_qual_audit_next_steps.md` | active |
 | — | CoS memory note — final audit single-machine refresh | 2026-05-29 | `memory/chief_of_staff/2026-05-29_1513_kst_final_audit_single_machine_refresh.md` | active |
+| — | CoS memory note — second-PC kit verifier hardening | 2026-05-29 | `memory/chief_of_staff/2026-05-29_1525_kst_second_pc_kit_verifier_hardening.md` | active |
 
 State lock: `1.15.0-rc.1` is beta-ready for the single-machine Windows local operator path (`musu up` → dashboard doctor → Claude task smoke). A repeatable single-machine smoke script now passes with latest evidence `20260529-151324-HUGH_SECOND` on source commit `5209a82`. Multi-device test kit generation now works, but clean/current second-PC MSIX install evidence and two-machine validation are still pending. Runtime/MSIX package readiness is true for submission attempt; the dedicated Tauri static launcher/status shell now builds, renders, and bundles, but it is not the full dashboard GUI. The release support mailbox is `musu@musu.pro`, sourced from root `SUPPORT_EMAIL`. Current qualitative completion is recorded in wiki/521: local single-machine beta ~92%, Store/operator-gate infrastructure ~88%, public desktop release ~68%, full desktop GUI ~55-60%.
 
@@ -328,6 +329,8 @@ These docs capture the post-install / post-review conclusion that Windows packag
 2026-05-29 Store release update: `MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md` is the current concise MUSU-specific operator card. `RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md` plus `show-operator-handoff-card.ps1` are the packet-aware quick handoff for current support verification id, second-PC kit name, and recording commands. The release path keeps MSIX first, rejects other-product HiveLink/Vibe PM copy, and requires second-PC MSIX install evidence, real multi-device evidence, support mailbox delivery evidence, and Partner Center/Microsoft approval evidence before public desktop readiness can turn true.
 
 2026-05-29 final qualitative update: `RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md` (wiki/521) is the current qualitative report, code audit, product spec update, and next-step roadmap. Scoped audit found no internal release-blocking code issue in the support/packet/evidence-gate surface; public release remains No-Go only because the four external evidence gates are not recorded. Final operator packets now include and verify wiki/521.
+
+2026-05-29 second-PC handoff hardening: final packet verification now fails if the bundled multi-device kit omits the local-sideload MSIX, public signing cert, install/verify script, MSIX install evidence capture/verify/record scripts, second-PC handoff collector, multi-device smoke script, or multi-device evidence verify/record scripts. The kit README must also mention install evidence capture and multi-device smoke evidence capture.
 
 ---
 
