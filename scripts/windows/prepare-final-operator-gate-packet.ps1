@@ -86,6 +86,7 @@ $scriptsToCopy = @(
     "record-multidevice-evidence.ps1",
     "verify-multidevice-evidence.ps1",
     "capture-msix-install-evidence.ps1",
+    "collect-second-pc-handoff.ps1",
     "record-msix-install-evidence.ps1",
     "verify-msix-install-evidence.ps1",
     "record-store-release-verification.ps1",
@@ -131,6 +132,10 @@ Remaining blockers:
 2. real second-PC multi-device evidence
 3. real __SUPPORT_EMAIL__ inbox delivery evidence
 4. Partner Center product name reservation, app submission, Microsoft certification, and restricted startup capability approval evidence
+
+The multi-device kit includes `collect-second-pc-handoff.ps1`; run it on the
+second PC after install to generate `.local-build\second-pc-handoff\*.handoff.json`
+with candidate `RemoteAddr` values for the primary PC.
 
 Before handoff, or after each returned evidence file, run this status command
 from the real MUSU release repo root:

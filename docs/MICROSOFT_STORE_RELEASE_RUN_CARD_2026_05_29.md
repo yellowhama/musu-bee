@@ -74,10 +74,14 @@ Copy only the zip inside `kits\` to the second Windows PC. Do not copy the whole
 On the second Windows PC, unzip the kit and run:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-evidence.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix.ps1 -StartupContract local-sideload-manual -ReplaceExisting
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-evidence.ps1 -StartupContract local-sideload-manual
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\collect-second-pc-handoff.ps1
 ```
 
-Return the generated `.local-build\msix-install\*.evidence.json` file to the release repo, then record it:
+Return the generated `.local-build\msix-install\*.evidence.json` file and
+`.local-build\second-pc-handoff\*.handoff.json` file to the release repo. Record
+the install evidence:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-msix-install-evidence.ps1 `
@@ -90,10 +94,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-msix-
 On the second PC:
 
 ```powershell
-musu up --json
-musu doctor --json
-musu status
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\collect-second-pc-handoff.ps1
 ```
+
+Use one `suggested_remote_addrs` value from the returned
+`.local-build\second-pc-handoff\*.handoff.json` file.
 
 On the primary release machine:
 

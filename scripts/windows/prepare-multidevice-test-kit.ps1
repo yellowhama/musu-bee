@@ -54,6 +54,7 @@ $scriptFiles = @(
     "install-and-verify-msix.ps1",
     "verify-installed-msix-package.ps1",
     "capture-msix-install-evidence.ps1",
+    "collect-second-pc-handoff.ps1",
     "verify-msix-install-evidence.ps1",
     "record-msix-install-evidence.ps1",
     "verify-multidevice-evidence.ps1",
@@ -100,6 +101,7 @@ Open PowerShell in this kit directory.
 powershell -ExecutionPolicy Bypass -File scripts\windows\check-msix-sideload-readiness.ps1
 powershell -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix.ps1 -StartupContract __STARTUP_CONTRACT__ -ReplaceExisting
 powershell -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-evidence.ps1 -StartupContract __STARTUP_CONTRACT__
+powershell -ExecutionPolicy Bypass -File scripts\windows\collect-second-pc-handoff.ps1
 musu up --json
 musu doctor --json
 musu status
@@ -112,11 +114,14 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix
 ```
 
 The install evidence command writes `.local-build\msix-install\*.evidence.json`.
-Return that JSON to the release repo with the multi-device smoke evidence.
+The handoff command writes `.local-build\second-pc-handoff\*.handoff.json`
+with `suggested_remote_addrs` values such as `192.168.1.20:10621`.
+Return both JSON files to the release repo with the multi-device smoke evidence.
 
 ## On the primary PC
 
-Use the other PC's bridge address from `musu up --json`.
+Use one of the other PC's `suggested_remote_addrs` values from
+`.local-build\second-pc-handoff\*.handoff.json`.
 
 Status-only:
 

@@ -97,6 +97,7 @@ try {
         "scripts\windows\record-multidevice-evidence.ps1",
         "scripts\windows\verify-multidevice-evidence.ps1",
         "scripts\windows\capture-msix-install-evidence.ps1",
+        "scripts\windows\collect-second-pc-handoff.ps1",
         "scripts\windows\record-msix-install-evidence.ps1",
         "scripts\windows\verify-msix-install-evidence.ps1",
         "scripts\windows\record-store-release-verification.ps1",
@@ -133,6 +134,7 @@ try {
         Add-CheckFromCondition "readme execution boundary" ($readme -like "*real MUSU release repo root*") "README states commands run from real release repo root" "README does not clearly state release repo root execution boundary"
         Add-CheckFromCondition "readme second pc copy boundary" ($readme.Contains('Copy only the zip under `kits\`')) "README states only the kit zip should be copied to second PC" "README does not clearly state only kit zip should be copied"
         Add-CheckFromCondition "readme support mailbox gate" ($readme -like "*support@musu.pro*") "README names support@musu.pro" "README does not name support@musu.pro"
+        Add-CheckFromCondition "readme second pc handoff helper" ($readme -like "*collect-second-pc-handoff.ps1*" -and $readme -like "*.handoff.json*") "README explains the second-PC handoff helper" "README missing second-PC handoff helper"
         Add-CheckFromCondition "readme Store run card" ($readme -like "*MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md*") "README points to the Store release run card" "README missing Store release run card reference"
         Add-CheckFromCondition "readme msix install gate" ($readme -like "*record-msix-install-evidence.ps1*" -and $readme -like "*msix_install_verified=true*") "README includes MSIX install evidence gate" "README missing MSIX install evidence gate"
         Add-CheckFromCondition "readme store release blocker" ($readme -like "*Partner Center product name reservation*" -and $readme -like "*app submission*" -and $readme -like "*store_release_verified=true*") "README states Store release approval is a blocker" "README does not clearly state Store release approval evidence is required"
@@ -247,6 +249,45 @@ try {
     }
     else {
         Add-CheckFromCondition "multi-device kit" ($kitZips.Count -gt 0) "found $($kitZips.Count) kit zip(s)" "no multi-device kit zip found under kits"
+    }
+    foreach ($kitZip in $kitZips) {
+        try {
+            Add-Type -AssemblyName System.IO.Compression.FileSystem
+            $archive = [System.IO.Compression.ZipFile]::OpenRead($kitZip.FullName)
+            try {
+                $entries = @($archive.Entries | ForEach-Object { $_.FullName -replace "/", "\" })
+                Add-CheckFromCondition `
+                    "kit handoff helper: $($kitZip.Name)" `
+                    ($entries -contains "scripts\windows\collect-second-pc-handoff.ps1") `
+                    "kit contains collect-second-pc-handoff.ps1" `
+                    "kit is missing collect-second-pc-handoff.ps1"
+
+                $readmeEntry = $archive.Entries | Where-Object { $_.FullName -eq "README_MULTI_DEVICE_TEST_KIT.md" } | Select-Object -First 1
+                if ($readmeEntry) {
+                    $reader = [System.IO.StreamReader]::new($readmeEntry.Open())
+                    try {
+                        $kitReadme = $reader.ReadToEnd()
+                    }
+                    finally {
+                        $reader.Dispose()
+                    }
+                    Add-CheckFromCondition `
+                        "kit readme handoff helper: $($kitZip.Name)" `
+                        ($kitReadme -like "*collect-second-pc-handoff.ps1*" -and $kitReadme -like "*suggested_remote_addrs*") `
+                        "kit README explains suggested_remote_addrs handoff" `
+                        "kit README does not explain second-PC handoff helper"
+                }
+                else {
+                    Add-Check "kit readme: $($kitZip.Name)" "fail" "kit is missing README_MULTI_DEVICE_TEST_KIT.md"
+                }
+            }
+            finally {
+                $archive.Dispose()
+            }
+        }
+        catch {
+            Add-Check "kit inspection: $($kitZip.Name)" "fail" "unable to inspect kit zip: $($_.Exception.Message)"
+        }
     }
 
     $checksumsPath = Join-Path $packetRoot "SHA256SUMS.txt"

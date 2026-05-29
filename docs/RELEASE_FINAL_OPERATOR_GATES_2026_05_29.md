@@ -189,14 +189,13 @@ Evidence with only top-level booleans and no capture check log is rejected.
 On the second Windows machine, after MSIX install evidence is captured, run:
 
 ```powershell
-musu up --json
-musu doctor --json
-musu status
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\collect-second-pc-handoff.ps1
 ```
 
 Record:
 
-- second PC bridge address and port
+- second PC handoff JSON from `.local-build\second-pc-handoff\*.handoff.json`
+- one `suggested_remote_addrs` value from the handoff JSON
 - second PC node name
 - any firewall or WindowsApps alias warnings
 

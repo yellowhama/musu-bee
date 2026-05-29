@@ -29,6 +29,7 @@ The kit contains:
 - the current local-sideload MSIX
 - the public signing certificate only (`.cer`; no `.pfx` private key)
 - MSIX install/verify scripts
+- second-PC handoff collector (`collect-second-pc-handoff.ps1`)
 - the multi-device smoke script
 - the multi-device evidence verifier
 - this runbook
@@ -90,6 +91,8 @@ Run on both machines:
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\windows\check-msix-sideload-readiness.ps1
 powershell -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix.ps1 -StartupContract local-sideload-manual -ReplaceExisting
+powershell -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-evidence.ps1 -StartupContract local-sideload-manual
+powershell -ExecutionPolicy Bypass -File scripts\windows\collect-second-pc-handoff.ps1
 musu up --json
 musu doctor --json
 musu status
@@ -103,7 +106,9 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix
 
 Record from each machine:
 
-- bridge `local_url` from `musu up --json`
+- MSIX install evidence JSON from `.local-build\msix-install\*.evidence.json`
+- second-PC handoff JSON from `.local-build\second-pc-handoff\*.handoff.json`
+- one `suggested_remote_addrs` value from the handoff JSON
 - hostname/node name from `musu status`
 - whether `doctor.overall` is `ok` or `warn`
 - any firewall, WindowsApps alias, or package warning

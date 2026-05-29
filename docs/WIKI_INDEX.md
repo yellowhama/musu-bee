@@ -235,6 +235,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | — | 1.15.0-rc.1 single-machine evidence | 2026-05-29 | `evidence/single-machine/1.15.0-rc.1/20260529-121456-HUGH_SECOND.evidence.json` | complete |
 | — | Final operator gate packet generator/verifier/completion runner/status | 2026-05-29 | `scripts/windows/prepare-final-operator-gate-packet.ps1`, `scripts/windows/verify-final-operator-gate-packet.ps1`, `scripts/windows/complete-final-operator-gates.ps1`, `scripts/windows/show-final-release-handoff-status.ps1` | active |
 | — | MSIX install evidence capture/verifier/recorder | 2026-05-29 | `scripts/windows/capture-msix-install-evidence.ps1`, `scripts/windows/verify-msix-install-evidence.ps1`, `scripts/windows/record-msix-install-evidence.ps1` | active |
+| — | Second-PC handoff collector | 2026-05-29 | `scripts/windows/collect-second-pc-handoff.ps1` | active |
 | — | Store release evidence verifier/recorder | 2026-05-29 | `scripts/windows/verify-store-release-evidence.ps1`, `scripts/windows/record-store-release-verification.ps1` | active |
 | — | CoS memory note — 1.15.0-rc.1 beta readiness | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0130_kst_1_15_rc1_beta_readiness.md` | active |
 | — | CoS memory note — smoke scripts and multi-device packet | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0333_kst_release_smoke_multidevice_packet.md` | active |
