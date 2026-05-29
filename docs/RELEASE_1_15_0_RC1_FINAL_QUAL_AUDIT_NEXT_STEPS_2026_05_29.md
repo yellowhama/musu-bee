@@ -50,6 +50,15 @@ Blocking gates at this snapshot:
 
 After this document/code commit, regenerate the final operator packet from the clean post-commit HEAD before handoff. The packet generator and verifier now include this document so stale packets are easier to spot.
 
+Post-audit refresh:
+
+- `smoke-single-machine-beta.ps1` was rerun after the wiki/521 packet-script commit.
+- Fresh evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260529-151324-HUGH_SECOND.evidence.json`.
+- Source commit: `5209a82792b0eb5f439242220fb14495de7c61ac`.
+- Dashboard output: `MUSU_RELEASE_SMOKE_OK_20260529_1524`.
+- CLI route: `MUSU_CLI_ROUTE_OK_20260529_1524`.
+- Dashboard task: `d1571cf6-fbf6-415b-adf5-1e88ca6a3266`.
+
 ## Product Spec Updates
 
 These are the current product/spec locks from the work:
