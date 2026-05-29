@@ -52,6 +52,13 @@ Return these files to the primary release repo:
 - `.local-build\msix-install\*.evidence.json`
 - `.local-build\second-pc-handoff\*.handoff.json`
 
+After returning the files, generate the exact primary-side commands from the
+handoff JSON:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-second-pc-return-card.ps1 -HandoffPath .local-build\second-pc-handoff\<HANDOFF_JSON>
+```
+
 On the primary release machine, record the install evidence:
 
 ```powershell

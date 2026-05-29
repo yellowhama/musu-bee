@@ -103,6 +103,12 @@ Use one `suggested_remote_addrs` value from the returned
 On the primary release machine:
 
 ```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-second-pc-return-card.ps1 -HandoffPath .local-build\second-pc-handoff\<HANDOFF_JSON>
+```
+
+Then run the printed multi-device command, or fill it manually:
+
+```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\smoke-multidevice-beta.ps1 `
   -RemoteAddr <SECOND_PC_IP_OR_TAILSCALE_IP>:<BRIDGE_PORT> `
   -RemoteName <SECOND_PC_NODE_NAME> `

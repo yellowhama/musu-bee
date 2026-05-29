@@ -103,6 +103,7 @@ $scriptsToCopy = @(
     "verify-store-release-evidence.ps1",
     "show-final-release-handoff-status.ps1",
     "show-operator-handoff-card.ps1",
+    "show-second-pc-return-card.ps1",
     "verify-final-operator-gate-packet.ps1",
     "complete-final-operator-gates.ps1",
     "write-release-candidate-manifest.ps1",
@@ -144,6 +145,14 @@ name, and recording commands, run from the real MUSU release repo root:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-operator-handoff-card.ps1
+```
+
+After the second PC returns `.local-build\second-pc-handoff\*.handoff.json`,
+run this from the real MUSU release repo root to print the exact
+`smoke-multidevice-beta.ps1` command from the returned `suggested_remote_addrs`:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-second-pc-return-card.ps1 -HandoffPath .local-build\second-pc-handoff\<HANDOFF_JSON>
 ```
 
 Remaining blockers:
