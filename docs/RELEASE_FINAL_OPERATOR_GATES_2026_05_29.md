@@ -60,7 +60,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-final
 
 Result: `ok=true`, `fail_count=0`, `kit_count=1`.
 
-The packet generator refuses to run from a dirty git worktree and writes `packet-build-metadata.json` with the source branch, commit, and clean git state. The packet verifier now explicitly checks that metadata, that the README names MSIX install and Store release approval as blockers, includes `record-msix-install-evidence.ps1`, `record-store-release-verification.ps1`, and `show-final-release-handoff-status.ps1`, and bundles the fail-closed dirty-git go/no-go rule plus the multi-device evidence schema/version/timestamp verifier.
+The packet generator refuses to run from a dirty git worktree and writes `packet-build-metadata.json` with the source branch, commit, and clean git state. The packet verifier now explicitly checks that metadata, that the README names MSIX install and Store release approval as blockers, includes `record-msix-install-evidence.ps1`, `record-store-release-verification.ps1`, and `show-final-release-handoff-status.ps1`, and bundles the fail-closed dirty-git go/no-go rule plus MSIX install capture-check verification and multi-device evidence schema/version/timestamp/operator verification.
 
 This packet does not close the manual gates by itself. It exists so the operator can execute the remaining external checks and return evidence without hunting across the repo.
 
@@ -172,6 +172,11 @@ Expected change:
 - `msix_install_verified=true`
 - msix-install blocker removed
 
+The MSIX install verifier now requires current-version evidence, operator
+machine/user metadata, non-future `recorded_at`, installed/artifact version
+match, and the expected capture checks from `capture-msix-install-evidence.ps1`.
+Evidence with only top-level booleans and no capture check log is rejected.
+
 ## Gate 3 - Second-PC Multi-Device Evidence
 
 On the second Windows machine, after MSIX install evidence is captured, run:
@@ -217,6 +222,10 @@ Expected change:
 
 - `multi_device_verified=true`
 - multi-device blocker removed
+
+The multi-device verifier now defaults to the repo `VERSION`, requires
+operator machine/user metadata, and requires `remote_addr` to include a port
+(`host:port`) so stale or underspecified peer evidence is rejected.
 
 ## Gate 4 - Store Release Approval Evidence
 

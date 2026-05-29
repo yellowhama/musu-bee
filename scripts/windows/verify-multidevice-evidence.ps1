@@ -11,6 +11,13 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
+
+if ([string]::IsNullOrWhiteSpace($ExpectedVersion)) {
+    $ExpectedVersion = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
+}
+
 $checks = New-Object System.Collections.Generic.List[object]
 
 function Add-Check {
@@ -128,14 +135,14 @@ $discoverChecked = Get-BoolProperty -Object $evidence -Name "discover_checked"
 $routeChecked = Get-BoolProperty -Object $evidence -Name "route_checked"
 $remoteAddr = Get-StringProperty -Object $evidence -Name "remote_addr"
 $remoteName = Get-StringProperty -Object $evidence -Name "remote_name"
+$operatorMachine = Get-StringProperty -Object $evidence -Name "operator_machine"
+$operatorUser = Get-StringProperty -Object $evidence -Name "operator_user"
 $scriptError = Get-StringProperty -Object $evidence -Name "error"
 
 Add-CheckFromCondition "schema" ($schema -eq "musu.multidevice_smoke_evidence.v1") "schema is valid" "schema is not musu.multidevice_smoke_evidence.v1"
 Add-CheckFromCondition "evidence ok" (Get-BoolProperty -Object $evidence -Name "ok") "evidence reports ok=true" "evidence does not report ok=true"
 Add-CheckFromCondition "version" (-not [string]::IsNullOrWhiteSpace($version)) "version is present" "version is missing"
-if (-not [string]::IsNullOrWhiteSpace($ExpectedVersion)) {
-    Add-CheckFromCondition "expected version" ($version -eq $ExpectedVersion) "version matches $ExpectedVersion" "version does not match $ExpectedVersion"
-}
+Add-CheckFromCondition "expected version" ($version -eq $ExpectedVersion) "version matches $ExpectedVersion" "version does not match $ExpectedVersion"
 Add-CheckFromCondition "started timestamp" ($null -ne $startedAt) "started_at parses" "started_at is missing or invalid"
 Add-CheckFromCondition "completed timestamp" ($null -ne $completedAt) "completed_at parses" "completed_at is missing or invalid"
 if ($completedAt) {
@@ -145,8 +152,10 @@ if ($completedAt) {
 if ($startedAt -and $completedAt) {
     Add-CheckFromCondition "timestamp order" ($completedAt -ge $startedAt) "completed_at is after started_at" "completed_at is before started_at"
 }
-Add-CheckFromCondition "operator machine" (-not [string]::IsNullOrWhiteSpace((Get-StringProperty -Object $evidence -Name "operator_machine"))) "operator machine is present" "operator machine is missing"
+Add-CheckFromCondition "operator machine" (-not [string]::IsNullOrWhiteSpace($operatorMachine)) "operator machine is present" "operator machine is missing"
+Add-CheckFromCondition "operator user" (-not [string]::IsNullOrWhiteSpace($operatorUser)) "operator user is present" "operator user is missing"
 Add-CheckFromCondition "remote address" (-not [string]::IsNullOrWhiteSpace($remoteAddr)) "remote_addr is present" "remote_addr is missing"
+Add-CheckFromCondition "remote address includes port" ($remoteAddr -match ":\d+$") "remote_addr includes a port" "remote_addr must include host:port"
 Add-CheckFromCondition "remote name" (-not [string]::IsNullOrWhiteSpace($remoteName)) "remote_name is present" "remote_name is missing"
 Add-CheckFromCondition "command log" (@($commands).Count -gt 0) "command log is present" "command log is empty"
 Add-CheckFromCondition "no script error" ([string]::IsNullOrWhiteSpace($scriptError)) "script error field is empty" "script error field is not empty: $scriptError"

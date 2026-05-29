@@ -202,9 +202,19 @@ try {
         $multiDeviceVerifierScript = Get-Content -LiteralPath $multiDeviceVerifierScriptPath -Raw
         Add-CheckFromCondition `
             "multi-device verifier schema gate" `
-            ($multiDeviceVerifierScript -like "*musu.multidevice_smoke_evidence.v1*" -and $multiDeviceVerifierScript -like "*ExpectedVersion*" -and $multiDeviceVerifierScript -like "*completed_at*") `
-            "packet multi-device verifier checks schema, version, and completion time" `
-            "packet multi-device verifier does not check schema, version, and completion time"
+            ($multiDeviceVerifierScript -like "*musu.multidevice_smoke_evidence.v1*" -and $multiDeviceVerifierScript -like "*ExpectedVersion*" -and $multiDeviceVerifierScript -like "*completed_at*" -and $multiDeviceVerifierScript -like "*operator user*" -and $multiDeviceVerifierScript -like "*remote address includes port*") `
+            "packet multi-device verifier checks schema, version, completion time, operator, and remote endpoint shape" `
+            "packet multi-device verifier does not check schema, version, completion time, operator, and remote endpoint shape"
+    }
+
+    $msixInstallVerifierScriptPath = Join-Path $packetRoot "scripts\windows\verify-msix-install-evidence.ps1"
+    if (Test-Path -LiteralPath $msixInstallVerifierScriptPath) {
+        $msixInstallVerifierScript = Get-Content -LiteralPath $msixInstallVerifierScriptPath -Raw
+        Add-CheckFromCondition `
+            "msix verifier version and capture gate" `
+            ($msixInstallVerifierScript -like "*ExpectedVersion*" -and $msixInstallVerifierScript -like "*nested checks present*" -and $msixInstallVerifierScript -like "*requiredNestedChecks*" -and $msixInstallVerifierScript -like "*artifact path*" -and $msixInstallVerifierScript -like "*recorded timestamp not future*" -and $msixInstallVerifierScript -like "*operator user*") `
+            "packet MSIX verifier checks version, capture checks, timestamp, and operator metadata" `
+            "packet MSIX verifier lacks version/capture/timestamp/operator evidence checks"
     }
 
     $packetVerifierScriptPath = Join-Path $packetRoot "scripts\windows\verify-final-operator-gate-packet.ps1"
@@ -212,8 +222,8 @@ try {
         $packetVerifierScript = Get-Content -LiteralPath $packetVerifierScriptPath -Raw
         Add-CheckFromCondition `
             "packet verifier release safety checks" `
-            ($packetVerifierScript -like "*go no-go dirty git blocker*" -and $packetVerifierScript -like "*multi-device verifier schema gate*" -and $packetVerifierScript -like "*support verifier version and token gate*" -and $packetVerifierScript -like "*store recorder explicit reservation timestamp*") `
-            "packet verifier checks dirty git, multi-device, support, and Store evidence rules" `
+            ($packetVerifierScript -like "*go no-go dirty git blocker*" -and $packetVerifierScript -like "*multi-device verifier schema gate*" -and $packetVerifierScript -like "*msix verifier version and capture gate*" -and $packetVerifierScript -like "*support verifier version and token gate*" -and $packetVerifierScript -like "*store recorder explicit reservation timestamp*") `
+            "packet verifier checks dirty git, MSIX, multi-device, support, and Store evidence rules" `
             "packet verifier does not check all release evidence rules"
     }
 

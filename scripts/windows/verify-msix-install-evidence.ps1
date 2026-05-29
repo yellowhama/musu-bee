@@ -11,6 +11,13 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
+
+if ([string]::IsNullOrWhiteSpace($ExpectedVersion)) {
+    $ExpectedVersion = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
+}
+
 $checks = New-Object System.Collections.Generic.List[object]
 
 function Add-Check {
@@ -83,6 +90,45 @@ function Get-IntProperty {
     return [int]$property.Value
 }
 
+function Get-ArrayProperty {
+    param(
+        [Parameter(Mandatory = $true)]$Object,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    $property = $Object.PSObject.Properties[$Name]
+    if (-not $property -or $null -eq $property.Value) {
+        return @()
+    }
+    return @($property.Value)
+}
+
+function Get-NestedCheck {
+    param(
+        [object[]]$NestedChecks = @(),
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    @($NestedChecks | Where-Object {
+        $check = $_
+        if ($null -eq $check) {
+            $false
+        }
+        else {
+            (Get-StringProperty -Object $check -Name "name") -eq $Name
+        }
+    }) | Select-Object -First 1
+}
+
+function Get-NestedCheckStatus {
+    param($Check)
+
+    if (-not $Check) {
+        return ""
+    }
+    return (Get-StringProperty -Object $Check -Name "status")
+}
+
 function Try-ParseDateTimeOffset {
     param([string]$Text)
 
@@ -110,14 +156,18 @@ $recordedAt = Try-ParseDateTimeOffset -Text (Get-StringProperty -Object $evidenc
 $packageName = Get-StringProperty -Object $evidence -Name "package_name"
 $packageFullName = Get-StringProperty -Object $evidence -Name "package_full_name"
 $installedVersion = Get-StringProperty -Object $evidence -Name "installed_version"
+$artifactVersion = Get-StringProperty -Object $evidence -Name "artifact_version"
 $installLocation = Get-StringProperty -Object $evidence -Name "install_location"
+$operatorMachine = Get-StringProperty -Object $evidence -Name "operator_machine"
+$operatorUser = Get-StringProperty -Object $evidence -Name "operator_user"
+$nestedChecks = Get-ArrayProperty -Object $evidence -Name "checks"
+$now = [datetimeoffset]::Now
+$futureTolerance = [timespan]::FromMinutes(5)
 
 Add-CheckFromCondition "schema" ($schema -eq "musu.msix_install_evidence.v1") "schema is valid" "schema is not musu.msix_install_evidence.v1"
 Add-CheckFromCondition "evidence ok" $ok "evidence reports ok=true" "evidence does not report ok=true"
 Add-CheckFromCondition "version" (-not [string]::IsNullOrWhiteSpace($version)) "version is present" "version is missing"
-if (-not [string]::IsNullOrWhiteSpace($ExpectedVersion)) {
-    Add-CheckFromCondition "expected version" ($version -eq $ExpectedVersion) "version matches $ExpectedVersion" "version does not match $ExpectedVersion"
-}
+Add-CheckFromCondition "expected version" ($version -eq $ExpectedVersion) "version matches $ExpectedVersion" "version does not match $ExpectedVersion"
 Add-CheckFromCondition "startup contract" ($startupContract -in @("local-sideload-manual", "store-reviewed-immediate-registration")) "startup contract is valid" "startup contract is invalid"
 if (-not [string]::IsNullOrWhiteSpace($ExpectedStartupContract)) {
     Add-CheckFromCondition "expected startup contract" ($startupContract -eq $ExpectedStartupContract) "startup contract matches $ExpectedStartupContract" "startup contract does not match $ExpectedStartupContract"
@@ -125,13 +175,20 @@ if (-not [string]::IsNullOrWhiteSpace($ExpectedStartupContract)) {
 Add-CheckFromCondition "recorded timestamp" ($null -ne $recordedAt) "recorded_at parses" "recorded_at is missing or invalid"
 if ($recordedAt) {
     $age = [datetimeoffset]::Now - $recordedAt
-    Add-CheckFromCondition "evidence age" ($age.TotalDays -le $MaxAgeDays) "recorded_at is within $MaxAgeDays days" "recorded_at is older than $MaxAgeDays days"
+    Add-CheckFromCondition "evidence age" ($age.TotalDays -le $MaxAgeDays -and $age.TotalSeconds -ge -300) "recorded_at is within $MaxAgeDays days" "recorded_at is outside the allowed evidence window"
+    Add-CheckFromCondition "recorded timestamp not future" ($recordedAt -le ($now + $futureTolerance)) "recorded_at is not in the future" "recorded_at is more than 5 minutes in the future"
 }
 
 Add-CheckFromCondition "package name" (-not [string]::IsNullOrWhiteSpace($packageName)) "package name is present" "package name is missing"
 Add-CheckFromCondition "package full name" (-not [string]::IsNullOrWhiteSpace($packageFullName)) "package full name is present" "package full name is missing"
 Add-CheckFromCondition "installed version" (-not [string]::IsNullOrWhiteSpace($installedVersion)) "installed version is present" "installed version is missing"
+Add-CheckFromCondition "artifact version" (-not [string]::IsNullOrWhiteSpace($artifactVersion)) "artifact version is present" "artifact version is missing"
+if (-not [string]::IsNullOrWhiteSpace($installedVersion) -and -not [string]::IsNullOrWhiteSpace($artifactVersion)) {
+    Add-CheckFromCondition "installed artifact version match" ($installedVersion -eq $artifactVersion) "installed version matches artifact version" "installed version does not match artifact version"
+}
 Add-CheckFromCondition "install location" (-not [string]::IsNullOrWhiteSpace($installLocation)) "install location is present" "install location is missing"
+Add-CheckFromCondition "operator machine" (-not [string]::IsNullOrWhiteSpace($operatorMachine)) "operator_machine is present" "operator_machine is missing"
+Add-CheckFromCondition "operator user" (-not [string]::IsNullOrWhiteSpace($operatorUser)) "operator_user is present" "operator_user is missing"
 Add-CheckFromCondition "artifact contract match" (Get-BoolProperty -Object $evidence -Name "artifact_contract_match") "installed contract matches artifact" "installed contract does not match artifact"
 Add-CheckFromCondition "WindowsApps alias" (Get-BoolProperty -Object $evidence -Name "windowsapps_alias_present") "WindowsApps alias exists" "WindowsApps alias is missing"
 Add-CheckFromCondition "alias discoverable" (Get-BoolProperty -Object $evidence -Name "alias_visible_in_get_command") "alias is discoverable via Get-Command" "alias is not discoverable via Get-Command"
@@ -141,7 +198,31 @@ Add-CheckFromCondition "startup conflicts" ((Get-IntProperty -Object $evidence -
 Add-CheckFromCondition "alias shadowing conflicts" ((Get-IntProperty -Object $evidence -Name "alias_shadowing_count") -eq 0) "no alias shadowing conflicts" "alias shadowing conflicts are present"
 Add-CheckFromCondition "legacy conflicts" ((Get-IntProperty -Object $evidence -Name "legacy_conflict_count") -eq 0) "no legacy conflicts" "legacy conflicts are present"
 
-$nestedFailCount = @($evidence.checks | Where-Object { $_.status -eq "fail" }).Count
+$requiredNestedChecks = @(
+    "artifact path",
+    "package identity",
+    "installed package",
+    "musu exe",
+    "startup exe",
+    "installed manifest",
+    "installed alias contract",
+    "installed startup contract",
+    "artifact contract match",
+    "version match",
+    "windowsapps alias file",
+    "windowsapps alias discoverable",
+    "alias not shadowed",
+    "legacy startup conflicts",
+    "legacy alias shadowing"
+)
+Add-CheckFromCondition "nested checks present" (@($nestedChecks).Count -gt 0) "capture checks are present" "capture checks are missing"
+foreach ($requiredCheck in $requiredNestedChecks) {
+    $nestedCheck = Get-NestedCheck -NestedChecks $nestedChecks -Name $requiredCheck
+    $status = Get-NestedCheckStatus -Check $nestedCheck
+    Add-CheckFromCondition "capture check: $requiredCheck" ($status -eq "pass") "capture check '$requiredCheck' passed" "capture check '$requiredCheck' is missing or not passing"
+}
+
+$nestedFailCount = @($nestedChecks | Where-Object { (Get-NestedCheckStatus -Check $_) -eq "fail" }).Count
 Add-CheckFromCondition "nested checks" ($nestedFailCount -eq 0) "capture checks have no failures" "capture checks contain $nestedFailCount failure(s)"
 
 $failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count

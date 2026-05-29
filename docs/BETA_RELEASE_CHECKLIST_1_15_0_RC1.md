@@ -119,6 +119,7 @@ Multi-device packet:
 - MSIX install evidence capture: `scripts\windows\capture-msix-install-evidence.ps1`
 - MSIX install evidence verifier: `scripts\windows\verify-msix-install-evidence.ps1`
 - MSIX install evidence recorder: `scripts\windows\record-msix-install-evidence.ps1`
+- MSIX install evidence must match the current release version, include operator metadata, pass non-future timestamp checks, and include passing capture checks from the second-PC package install
 - evidence verifier: `scripts\windows\verify-multidevice-evidence.ps1`
 - evidence recorder: `scripts\windows\record-multidevice-evidence.ps1`
 - runbook: `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md`

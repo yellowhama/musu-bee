@@ -171,7 +171,7 @@ Desktop release readiness audit:
 - release go/no-go preflight: `scripts\windows\write-release-go-no-go.ps1 -Json` reports `local_artifacts_ready=true`, `public_metadata_ok=true`, `ready_for_public_desktop_release=false`
 - live public metadata check: `scripts\windows\verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json` passed for `/privacy` and `/support`
 - support mailbox evidence gate: `scripts\windows\verify-support-mailbox-evidence.ps1` and `scripts\windows\record-support-mailbox-verification.ps1` exist; `Resolve-DnsName -Type MX musu.pro` resolves to `smtp.google.com`; go/no-go auto-detects current-version evidence only, the recorder requires an explicit `musu-...` verification token, and no real `support@musu.pro` delivery evidence has been recorded yet
-- MSIX install evidence gate: `scripts\windows\capture-msix-install-evidence.ps1`, `scripts\windows\verify-msix-install-evidence.ps1`, and `scripts\windows\record-msix-install-evidence.ps1` exist; go/no-go auto-detects valid install evidence, but no real second-PC install evidence has been recorded yet
+- MSIX install evidence gate: `scripts\windows\capture-msix-install-evidence.ps1`, `scripts\windows\verify-msix-install-evidence.ps1`, and `scripts\windows\record-msix-install-evidence.ps1` exist; go/no-go auto-detects valid install evidence, the verifier now requires current-version/operator/timestamp/capture-check proof, but no real second-PC install evidence has been recorded yet
 - Store release evidence gate: `scripts\windows\verify-store-release-evidence.ps1` and `scripts\windows\record-store-release-verification.ps1` exist; go/no-go now blocks public desktop release until Partner Center product name reservation, app submission, Microsoft certification, and restricted capability approval evidence is recorded; the recorder now rejects omitted `-ProductNameReservedAt` instead of inferring it from submission time
 - CI/deploy repair: GitHub Actions now use Node 22 for `node:sqlite`, no longer reference deleted Python `musu-core`/`musu-bridge` or deleted `musu-port`, preserve legacy required check names where likely relevant, include Linux Wayland/PipeWire/GBM native dependencies for Rust CI, opt JavaScript actions into Node 24 runtime, and Playwright CI smoke covers `/privacy` + `/support` content through `musu-bee/playwright.ci.config.ts`.
 - render proof: Playwright captured `.local-build\tauri-shell-1280x800.png`
@@ -180,7 +180,7 @@ Desktop release readiness audit:
 Indexing:
 
 - `musu indexer sync --work-dir . --name musu-bee`
-- latest result: `880 files`, `1897 symbols`
+- latest result: `881 files`, `1897 symbols`
 - search verification: query `multi-device release test` returns `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md`
 - search verification: query `smoke-single-machine-beta` returns `scripts/windows/smoke-single-machine-beta.ps1`
 - search verification: query `record-multidevice-evidence` returns `scripts/windows/record-multidevice-evidence.ps1`
@@ -198,6 +198,9 @@ Indexing:
 - search verification: query `evidence-non-recording` returns `docs/RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md` and `docs/memory/chief_of_staff/2026-05-29_0850_kst_final_handoff_status.md`
 - search verification: query `msix install evidence` returns `docs/RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md`, `scripts/windows/record-msix-install-evidence.ps1`, and the 09:10 KST MSIX install evidence memory note
 - search verification: query `capture-msix-install-evidence` returns `scripts/windows/capture-msix-install-evidence.ps1`, `docs/RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md`, and the desktop release audit
+- search verification: query `Second PC install route evidence` returns `docs/memory/chief_of_staff/2026-05-29_1125_kst_msix_multidevice_evidence_hardening.md`
+- search verification: query `remote addr host port` returns `docs/memory/chief_of_staff/2026-05-29_1125_kst_msix_multidevice_evidence_hardening.md`
+- search verification: query `capture checks missing` returns `docs/memory/chief_of_staff/2026-05-29_1125_kst_msix_multidevice_evidence_hardening.md`
 - search verification: query `MsixInstallEvidencePath` returns `scripts/windows/complete-final-operator-gates.ps1`, `docs/RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md`, and the 09:10 KST memory note
 - search verification: query `musu-system recheck` returns `docs/memory/chief_of_staff/2026-05-29_0645_kst_musu_system_recheck.md`
 - search verification: query `0919 musu system recheck` returns `docs/memory/chief_of_staff/2026-05-29_0919_kst_musu_system_recheck.md`
