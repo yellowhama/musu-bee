@@ -127,6 +127,26 @@ try {
         Add-CheckFromCondition "readme go no-go gate" ($readme -like "*write-release-go-no-go.ps1*") "README includes final go/no-go command" "README missing final go/no-go command"
     }
 
+    $goNoGoScriptPath = Join-Path $packetRoot "scripts\windows\write-release-go-no-go.ps1"
+    if (Test-Path -LiteralPath $goNoGoScriptPath) {
+        $goNoGoScript = Get-Content -LiteralPath $goNoGoScriptPath -Raw
+        Add-CheckFromCondition `
+            "go no-go dirty git blocker" `
+            ($goNoGoScript -like '*Add-Blocker -List $blockers -Area "git"*' -and $goNoGoScript -like "*Working tree is dirty*" -and $goNoGoScript -notlike "*warnings.Add*") `
+            "packet go/no-go script blocks dirty git state" `
+            "packet go/no-go script does not block dirty git state"
+    }
+
+    $packetVerifierScriptPath = Join-Path $packetRoot "scripts\windows\verify-final-operator-gate-packet.ps1"
+    if (Test-Path -LiteralPath $packetVerifierScriptPath) {
+        $packetVerifierScript = Get-Content -LiteralPath $packetVerifierScriptPath -Raw
+        Add-CheckFromCondition `
+            "packet verifier dirty git check" `
+            ($packetVerifierScript -like "*go no-go dirty git blocker*") `
+            "packet verifier checks dirty git blocker rule" `
+            "packet verifier does not check dirty git blocker rule"
+    }
+
     $templatePath = Join-Path $packetRoot "support-mailbox-record-template.json"
     if (Test-Path -LiteralPath $templatePath) {
         try {

@@ -60,7 +60,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-final
 
 Result: `ok=true`, `fail_count=0`, `kit_count=1`.
 
-The packet verifier now explicitly checks that the README names MSIX install and Store release approval as blockers and includes `record-msix-install-evidence.ps1`, `record-store-release-verification.ps1`, and `show-final-release-handoff-status.ps1`.
+The packet verifier now explicitly checks that the README names MSIX install and Store release approval as blockers, includes `record-msix-install-evidence.ps1`, `record-store-release-verification.ps1`, and `show-final-release-handoff-status.ps1`, and bundles the fail-closed dirty-git go/no-go rule.
 
 This packet does not close the manual gates by itself. It exists so the operator can execute the remaining external checks and return evidence without hunting across the repo.
 
