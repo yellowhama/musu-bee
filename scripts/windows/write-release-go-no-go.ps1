@@ -257,10 +257,7 @@ if (-not $storeReleaseVerified) {
     Add-Blocker -List $blockers -Area "store-release" -Message "Partner Center product name reservation, app submission, Microsoft certification, and restricted capability approval evidence has not been recorded."
 }
 if (-not [string]::IsNullOrWhiteSpace($gitStatus)) {
-    $warnings.Add([pscustomobject]@{
-        area = "git"
-        message = "Working tree is dirty; commit and regenerate manifest before final handoff."
-    }) | Out-Null
+    Add-Blocker -List $blockers -Area "git" -Message "Working tree is dirty; commit and regenerate manifest before final handoff."
 }
 
 $manualExternalGates = @(
