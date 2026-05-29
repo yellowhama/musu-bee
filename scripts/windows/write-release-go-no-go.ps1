@@ -270,6 +270,7 @@ if (-not [string]::IsNullOrWhiteSpace($gitStatus)) {
 $manualExternalGates = @(
     "Second-PC clean/current MSIX install verification",
     "Second-PC multi-device route verification",
+    "support@musu.pro inbox delivery verification",
     "Partner Center product name reservation",
     "Partner Center app submission",
     "Microsoft app certification",
