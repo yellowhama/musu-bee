@@ -160,6 +160,15 @@ returned `suggested_remote_addrs`:
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\import-second-pc-return.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP> -Json
 ```
 
+Preview-only fallback if you do not want to import or record yet:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-second-pc-return-card.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP> -Json
+```
+
+The fallback prints the returned `suggested_remote_addrs` candidates without
+copying evidence into the canonical release roots.
+
 Remaining blockers:
 
 1. clean/current MSIX install evidence from the second Windows PC
