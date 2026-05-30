@@ -284,6 +284,8 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | — | CoS memory note — handoff status action pack verification | 2026-05-30 | `memory/chief_of_staff/2026-05-30_0605_kst_handoff_status_action_pack_verification.md` | active |
 | — | CoS memory note — handoff status single-machine refresh | 2026-05-30 | `memory/chief_of_staff/2026-05-30_0610_kst_handoff_status_single_machine_refresh.md` | active |
 | — | CoS memory note — second-PC release check wrapper | 2026-05-30 | `memory/chief_of_staff/2026-05-30_0625_kst_second_pc_release_check_wrapper.md` | active |
+| — | CoS memory note — second-PC wrapper single-machine refresh | 2026-05-30 | `memory/chief_of_staff/2026-05-30_0855_kst_second_pc_wrapper_single_machine_refresh.md` | active |
+| — | CoS memory note — beta checklist current evidence pointer | 2026-05-30 | `memory/chief_of_staff/2026-05-30_0910_kst_beta_checklist_current_evidence_pointer.md` | active |
 
 State lock: `1.15.0-rc.1` is beta-ready for the single-machine Windows local operator path (`musu up` → dashboard doctor → Claude task smoke). A repeatable single-machine smoke script now passes with latest evidence `20260530-085123-HUGH_SECOND` on source commit `213b69e`; `musu doctor` bridge health probing uses a 10s timeout and the smoke harness uses readiness retries plus `Start-Process` temp-file command capture to avoid PowerShell job/pipe hangs when `musu up` spawns a long-lived bridge. Multi-device test kit generation now works and now includes the one-command second-PC release check wrapper, but clean/current second-PC MSIX install evidence and two-machine validation are still pending. Runtime/MSIX package readiness is true for submission attempt; the dedicated Tauri static launcher/status shell now builds, renders, and bundles, but it is not the full dashboard GUI. The release support mailbox is `musu@musu.pro`, sourced from root `SUPPORT_EMAIL`. Current qualitative completion is recorded in wiki/521: local single-machine beta ~92%, Store/operator-gate infrastructure ~88%, public desktop release ~68%, full desktop GUI ~55-60%.
 
@@ -353,6 +355,8 @@ These docs capture the post-install / post-review conclusion that Windows packag
 2026-05-30 second-PC wrapper update: `run-second-pc-release-check.ps1` is now the preferred command inside the extracted second-PC kit. It runs readiness, install/verify, MSIX install evidence capture, and handoff collection, writes `.local-build\second-pc-release-check\*.release-check.json`, and prints the return files. Future kits include it, packet verification requires it in the bundled kit, and docs keep manual commands as fallback.
 
 2026-05-30 second-PC wrapper single-machine refresh: after adding the second-PC wrapper, single-machine smoke was rerun from commit `213b69e`. Current evidence `20260530-085123-HUGH_SECOND` verifies with dashboard output `MUSU_RELEASE_SMOKE_OK_20260530_085059`, CLI route `MUSU_CLI_ROUTE_OK_20260530_085059`, task `14c9e9be-73b7-494f-9194-fd87d8f4b252`, bridge `http://127.0.0.1:12427`, `doctor_overall=warn`, and dashboard doctor `ok`.
+
+2026-05-30 beta checklist evidence pointer correction: `BETA_RELEASE_CHECKLIST_1_15_0_RC1.md` now points its current machine-readable single-machine evidence section to `20260530-085123-HUGH_SECOND`; `20260529-185958-HUGH_SECOND` remains historical smoke harness evidence only.
 
 ---
 
