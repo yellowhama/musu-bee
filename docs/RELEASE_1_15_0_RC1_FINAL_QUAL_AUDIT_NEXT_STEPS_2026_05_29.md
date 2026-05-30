@@ -36,8 +36,8 @@ Audit snapshot before this document update:
 | Operator handoff card | `show-operator-handoff-card.ps1` reads packet metadata and prints current support id, subject, kit name, return files, and recording commands |
 | Support mailbox | `musu@musu.pro` |
 | Support source of truth | root `SUPPORT_EMAIL`; scripts use `scripts\windows\release-config.ps1`; public Next pages use `musu-bee/src/lib/contact.ts` |
-| Current single-machine evidence | `docs\evidence\single-machine\1.15.0-rc.1\20260530-224123-HUGH_SECOND.evidence.json` |
-| Single-machine smoke output | `MUSU_RELEASE_SMOKE_OK_20260530_2240`; CLI route `MUSU_CLI_ROUTE_OK_20260530_2240` |
+| Current single-machine evidence | `docs\evidence\single-machine\1.15.0-rc.1\20260530-225842-HUGH_SECOND.evidence.json` |
+| Single-machine smoke output | `MUSU_RELEASE_SMOKE_OK_20260530_2258`; CLI route `MUSU_CLI_ROUTE_OK_20260530_2258` |
 | Public metadata | live `https://musu.pro/privacy` and `/support` verify with `musu@musu.pro` |
 | Final go/no-go | `ready_for_public_desktop_release=false` |
 
@@ -115,13 +115,13 @@ Latest second-PC return archive/evidence refresh:
 
 - `run-second-pc-release-check.ps1` now creates `.local-build\second-pc-return\*.zip`.
 - `import-second-pc-return.ps1 -ReturnZipPath ...` extracts the returned archive, verifies MSIX install evidence, and prints primary-side commands; `-RecordMsixInstall` records the install gate.
-- Fresh evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260530-224123-HUGH_SECOND.evidence.json`.
-- Source commit: `2eca0405e660b23d39ce7c993d30a44ecc580483`.
-- Dashboard output: `MUSU_RELEASE_SMOKE_OK_20260530_2240`.
-- CLI route: `MUSU_CLI_ROUTE_OK_20260530_2240`.
-- Dashboard task: `dbb4d9dc-1c94-439c-89ae-98b43285f6b3`.
+- Fresh evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260530-225842-HUGH_SECOND.evidence.json`.
+- Source commit: `7c7d537ea9b8397c79eabb34e26cb574c2429909`.
+- Dashboard output: `MUSU_RELEASE_SMOKE_OK_20260530_2258`.
+- CLI route: `MUSU_CLI_ROUTE_OK_20260530_2258`.
+- Dashboard task: `69d71cea-dec0-47af-a0bb-fdde166c080e`.
 - Bridge: `http://127.0.0.1:3718`.
-- This evidence supersedes the earlier `20260530-100818-HUGH_SECOND` smoke after the importer script landed.
+- This evidence supersedes the earlier `20260530-224123-HUGH_SECOND` smoke after the preview fallback script landed.
 
 ## Product Spec Updates
 
