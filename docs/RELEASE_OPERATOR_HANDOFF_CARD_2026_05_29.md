@@ -53,17 +53,22 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\capture-msix
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\collect-second-pc-handoff.ps1
 ```
 
-Return these files to the primary release repo:
+Return the generated return archive to the primary release repo:
+
+- `.local-build\second-pc-return\*.zip`
+
+The wrapper also writes these raw files, which can be returned directly if the
+archive is unavailable:
 
 - `.local-build\msix-install\*.evidence.json`
 - `.local-build\second-pc-handoff\*.handoff.json`
 - `.local-build\second-pc-release-check\*.release-check.json`
 
 After returning the files, generate the exact primary-side commands from the
-handoff JSON:
+return archive:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-second-pc-return-card.ps1 -HandoffPath .local-build\second-pc-handoff\<HANDOFF_JSON>
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-second-pc-return-card.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP>
 ```
 
 On the primary release machine, record the install evidence:

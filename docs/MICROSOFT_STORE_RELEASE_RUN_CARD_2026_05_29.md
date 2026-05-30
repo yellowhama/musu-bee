@@ -87,10 +87,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\capture-msix
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\collect-second-pc-handoff.ps1
 ```
 
-Return the generated `.local-build\msix-install\*.evidence.json` file and
-`.local-build\second-pc-handoff\*.handoff.json` file to the release repo. Also
-return `.local-build\second-pc-release-check\*.release-check.json` when using
-the wrapper. Record the install evidence:
+Return the generated `.local-build\second-pc-return\*.zip` archive to the
+release repo. If the archive is unavailable, return the raw
+`.local-build\msix-install\*.evidence.json`,
+`.local-build\second-pc-handoff\*.handoff.json`, and
+`.local-build\second-pc-release-check\*.release-check.json` files. Record the
+install evidence:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-msix-install-evidence.ps1 `
@@ -106,13 +108,13 @@ On the second PC:
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\collect-second-pc-handoff.ps1
 ```
 
-Use one `suggested_remote_addrs` value from the returned
+Use one `suggested_remote_addrs` value from the returned archive or
 `.local-build\second-pc-handoff\*.handoff.json` file.
 
 On the primary release machine:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-second-pc-return-card.ps1 -HandoffPath .local-build\second-pc-handoff\<HANDOFF_JSON>
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-second-pc-return-card.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP>
 ```
 
 Then run the printed multi-device command, or fill it manually:

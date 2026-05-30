@@ -119,6 +119,7 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix
 
 Record from each machine:
 
+- second-PC return archive from `.local-build\second-pc-return\*.zip`
 - MSIX install evidence JSON from `.local-build\msix-install\*.evidence.json`
 - second-PC handoff JSON from `.local-build\second-pc-handoff\*.handoff.json`
 - second-PC release-check summary from `.local-build\second-pc-release-check\*.release-check.json`

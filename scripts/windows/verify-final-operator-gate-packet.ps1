@@ -162,6 +162,7 @@ try {
         Add-CheckFromCondition "readme action pack commands" ($readme -like "*prepare-operator-action-pack.ps1*" -and $readme -like "*verify-operator-action-pack.ps1*" -and $readme -like "*copy/handoff convenience*") "README includes operator action pack generation/verification boundary" "README missing operator action pack generation/verification boundary"
         Add-CheckFromCondition "readme operator handoff card" ($readme -like "*show-operator-handoff-card.ps1*" -or $readme -like "*RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md*") "README includes operator handoff card path" "README missing operator handoff card reference"
         Add-CheckFromCondition "readme second pc return card" ($readme -like "*show-second-pc-return-card.ps1*" -and $readme -like "*suggested_remote_addrs*") "README includes second-PC return card command" "README missing second-PC return card command"
+        Add-CheckFromCondition "readme second pc return archive" ($readme -like "*.local-build\second-pc-return\*.zip*") "README includes second-PC return archive handoff" "README missing second-PC return archive handoff"
         Add-CheckFromCondition "readme complete runner msix params" ($readme -like "*complete-final-operator-gates.ps1*" -and $readme -like "*-MsixInstallEvidencePath*") "README final command can record MSIX install evidence" "README final command does not include MSIX install evidence parameters"
         Add-CheckFromCondition "readme complete runner store params" ($readme -like "*complete-final-operator-gates.ps1*" -and $readme -like "*-StoreProductNameReservedAt*" -and $readme -like "*-StoreSubmissionId*") "README final command can record Store release evidence with product name reservation timestamp" "README final command does not include Store release evidence parameters"
         Add-CheckFromCondition "readme complete runner fail gate" ($readme -like "*complete-final-operator-gates.ps1*" -and $readme -like "*-FailOnNotReady*") "README final command fails when final go/no-go is not ready" "README final command does not include -FailOnNotReady"
@@ -176,6 +177,16 @@ try {
             ($handoffStatusScript -like "*ActionPackPath*" -and $handoffStatusScript -like "*verify-operator-action-pack.ps1*" -and $handoffStatusScript -like "*action_pack*") `
             "packet handoff status script reports action-pack verification" `
             "packet handoff status script does not report action-pack verification"
+    }
+
+    $operatorHandoffScriptPath = Join-Path $packetRoot "scripts\windows\show-operator-handoff-card.ps1"
+    if (Test-Path -LiteralPath $operatorHandoffScriptPath) {
+        $operatorHandoffScript = Get-Content -LiteralPath $operatorHandoffScriptPath -Raw
+        Add-CheckFromCondition `
+            "operator handoff return archive" `
+            ($operatorHandoffScript -like "*.local-build\second-pc-return\*.zip*") `
+            "packet operator handoff card lists the second-PC return archive" `
+            "packet operator handoff card does not list the second-PC return archive"
     }
 
     $goNoGoScriptPath = Join-Path $packetRoot "scripts\windows\write-release-go-no-go.ps1"
@@ -258,7 +269,7 @@ try {
         $packetVerifierScript = Get-Content -LiteralPath $packetVerifierScriptPath -Raw
         Add-CheckFromCondition `
             "packet verifier release safety checks" `
-            ($packetVerifierScript -like "*go no-go dirty git blocker*" -and $packetVerifierScript -like "*multi-device verifier schema gate*" -and $packetVerifierScript -like "*msix verifier version and capture gate*" -and $packetVerifierScript -like "*support verifier version and token gate*" -and $packetVerifierScript -like "*store recorder explicit reservation timestamp*") `
+            ($packetVerifierScript -like "*go no-go dirty git blocker*" -and $packetVerifierScript -like "*multi-device verifier schema gate*" -and $packetVerifierScript -like "*msix verifier version and capture gate*" -and $packetVerifierScript -like "*support verifier version and token gate*" -and $packetVerifierScript -like "*store recorder explicit reservation timestamp*" -and $packetVerifierScript -like "*operator handoff return archive*") `
             "packet verifier checks dirty git, MSIX, multi-device, support, and Store evidence rules" `
             "packet verifier does not check all release evidence rules"
     }
@@ -339,7 +350,7 @@ try {
                         "kit README does not explain second-PC handoff helper"
                     Add-CheckFromCondition `
                         "kit readme install evidence: $($kitZip.Name)" `
-                        ($kitReadme -like "*install-and-verify-msix.ps1*" -and $kitReadme -like "*capture-msix-install-evidence.ps1*" -and $kitReadme -like "*run-second-pc-release-check.ps1*" -and $kitReadme -like "*.local-build\msix-install\*.evidence.json*") `
+                        ($kitReadme -like "*install-and-verify-msix.ps1*" -and $kitReadme -like "*capture-msix-install-evidence.ps1*" -and $kitReadme -like "*run-second-pc-release-check.ps1*" -and $kitReadme -like "*.local-build\msix-install\*.evidence.json*" -and $kitReadme -like "*.local-build\second-pc-return\*.zip*") `
                         "kit README explains MSIX install evidence capture" `
                         "kit README does not explain MSIX install evidence capture"
                     Add-CheckFromCondition `

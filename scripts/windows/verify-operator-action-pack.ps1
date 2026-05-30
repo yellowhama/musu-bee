@@ -109,7 +109,7 @@ try {
     $readmePath = Join-Path $packRoot "OPERATOR_ACTION_PACK_README_CURRENT.md"
     if (Test-Path -LiteralPath $readmePath) {
         $readme = Get-Content -LiteralPath $readmePath -Raw
-        Add-CheckFromCondition "readme second pc action" ($readme -like "*Second PC test*" -and $readme -like "*msix-install*") "README describes second-PC action" "README missing second-PC action"
+        Add-CheckFromCondition "readme second pc action" ($readme -like "*Second PC test*" -and $readme -like "*msix-install*" -and $readme -like "*second-pc-return*") "README describes second-PC action" "README missing second-PC action"
         Add-CheckFromCondition "readme support action" ($readme -like "*Support mailbox proof*" -and $readme -like "*musu@musu.pro*") "README describes support mailbox action" "README missing support mailbox action"
         Add-CheckFromCondition "readme store action" ($readme -like "*Partner Center Store submission*" -and $readme -like "*Upload the MSIX inside*") "README describes Partner Center action" "README missing Partner Center action"
         Add-CheckFromCondition "readme blockers" ($readme -like "*MSIX install evidence: missing*" -and $readme -like "*Store approval evidence: missing*") "README states remaining external gates" "README missing remaining external gate status"
@@ -136,6 +136,17 @@ try {
             try {
                 $entries = @($archive.Entries | ForEach-Object { $_.FullName })
                 Add-CheckFromCondition "second-pc transfer quickstart" ($entries -contains "SECOND_PC_QUICKSTART_CURRENT.txt") "second-PC transfer includes quickstart" "second-PC transfer missing quickstart"
+                $quickstartEntry = $archive.GetEntry("SECOND_PC_QUICKSTART_CURRENT.txt")
+                if ($quickstartEntry) {
+                    $reader = [System.IO.StreamReader]::new($quickstartEntry.Open())
+                    try {
+                        $quickstart = $reader.ReadToEnd()
+                    }
+                    finally {
+                        $reader.Dispose()
+                    }
+                    Add-CheckFromCondition "second-pc transfer return zip instructions" ($quickstart -like "*.local-build\second-pc-return\*.zip*") "second-PC transfer quickstart explains return archive" "second-PC transfer quickstart missing return archive instructions"
+                }
                 $nestedKit = @($entries | Where-Object { $_ -like "musu-multidevice-*.zip" })
                 Add-CheckFromCondition "second-pc transfer kit" ($nestedKit.Count -eq 1) "second-PC transfer includes one kit zip" "second-PC transfer missing nested kit zip"
                 if ($nestedKit.Count -eq 1) {
@@ -156,7 +167,7 @@ try {
                                     finally {
                                         $reader.Dispose()
                                     }
-                                    Add-CheckFromCondition "second-pc nested kit README wrapper" ($kitReadme -like "*run-second-pc-release-check.ps1*" -and $kitReadme -like "*.release-check.json*") "nested kit README explains release-check wrapper" "nested kit README missing release-check wrapper instructions"
+                                    Add-CheckFromCondition "second-pc nested kit README wrapper" ($kitReadme -like "*run-second-pc-release-check.ps1*" -and $kitReadme -like "*.release-check.json*" -and $kitReadme -like "*.local-build\second-pc-return\*.zip*") "nested kit README explains release-check wrapper" "nested kit README missing release-check wrapper instructions"
                                 }
                                 else {
                                     Add-Check "second-pc nested kit README" "fail" "nested kit is missing README_MULTI_DEVICE_TEST_KIT.md"

@@ -61,7 +61,7 @@ Post-audit refresh:
 
 Latest harness/evidence refresh:
 
-- `show-second-pc-return-card.ps1` was added after this audit to turn returned second-PC handoff JSON into exact primary-side commands.
+- `show-second-pc-return-card.ps1` was added after this audit and now accepts returned second-PC ZIP archives or raw handoff JSON to produce exact primary-side commands.
 - `smoke-single-machine-beta.ps1` was hardened again after Windows process testing showed that PowerShell job/pipe capture can hang when `musu up` spawns a long-lived bridge.
 - Fresh evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260529-185958-HUGH_SECOND.evidence.json`.
 - Source commit: `242d75f74e98d9cabac6152149de4021433d7a09`.
@@ -125,9 +125,9 @@ These are the current product/spec locks from the work:
 8. **Store submission bundle proof**: the Partner Center upload bundle must pass `verify-store-submission-bundle.ps1`, include `SHA256SUMS.txt`, exclude private `.pfx/.p12`, and retain Store-reviewed startup capability justification.
 9. **musu-system integration**: `yellowhama/musu-system`, `musu-crawl-ai`, `musu-marketer`, and `musu-nurikun` are high-value adjacent tooling, but they are not part of the first Store package and should not be merged into `musu-rs`. First likely integration candidate is `crawl-ai` as optional wiki/knowledge ingestion through an adapter/MCP/CLI boundary. `nurikun` support ops should stay human-approved until send-failure persistence is fixed or wrapped.
 9. **Handoff values**: support verification id, subject, and second-PC kit name must come from `show-operator-handoff-card.ps1`, not from old notes.
-10. **Second-PC return values**: returned `.local-build\second-pc-handoff\*.handoff.json` should be fed to `show-second-pc-return-card.ps1` so the primary PC uses a current `host:port` endpoint and matching evidence paths.
+10. **Second-PC return values**: returned `.local-build\second-pc-return\*.zip` should be fed to `show-second-pc-return-card.ps1 -ReturnZipPath ...` so the primary PC extracts the current handoff, uses a current `host:port` endpoint, and records matching evidence paths.
 11. **Operator action pack**: `prepare-operator-action-pack.ps1` and `verify-operator-action-pack.ps1` create/check a local handoff archive for second-PC transfer, support-mailbox verification, and Partner Center submission copy. It is a convenience wrapper, not release evidence.
-12. **Second-PC release check wrapper**: `run-second-pc-release-check.ps1` is the preferred second-PC command. It runs sideload readiness, MSIX install/verify, install evidence capture, and handoff collection, then prints the files to return to the primary repo.
+12. **Second-PC release check wrapper**: `run-second-pc-release-check.ps1` is the preferred second-PC command. It runs sideload readiness, MSIX install/verify, install evidence capture, and handoff collection, then writes a `.local-build\second-pc-return\*.zip` archive plus raw return files for the primary repo.
 
 ## Qualitative Report
 
@@ -139,7 +139,7 @@ What is solid:
 - Operator friction is much lower than before. The packet-aware handoff card removes stale packet id / stale kit name risk for the remaining manual gates.
 - Operator file handling now has a repeatable action pack that wraps the second-PC transfer zip, Partner Center submission copy, and support-mailbox verification template without including private `.pfx` material.
 - The second-PC return path is now less error-prone because returned handoff JSON can generate exact primary-side record/smoke commands.
-- The second-PC execution path is now less error-prone because the kit has a one-command wrapper for install, evidence capture, and handoff collection.
+- The second-PC execution path is now less error-prone because the kit has a one-command wrapper for install, evidence capture, handoff collection, and return archive creation.
 - Public metadata is live and verified. This is no longer a local-only claim.
 
 What is still weak:
@@ -171,7 +171,7 @@ Findings:
 4. **Final packet creation is properly source-attributed.** `prepare-final-operator-gate-packet.ps1` refuses dirty git state and writes packet build metadata with branch, commit, clean status, version, support email, and support verification id.
 5. **Final packet verification is materially useful.** It checks required docs/scripts, packet metadata, README instructions, support email consistency, checksums, kit count, handoff helper, and stale verifier safety rules.
 6. **Operator action pack generation is repeatable and evidence-safe.** `prepare-operator-action-pack.ps1` refuses dirty git state, verifies the final operator packet first, verifies the Store submission bundle, creates second-PC/Partner Center/support sub-bundles, records source metadata, and rejects private `.pfx` material. `verify-operator-action-pack.ps1` checks metadata, nested zips, checksums, support template values, and `.pfx` exclusion.
-7. **Second-PC release check wrapper reduces operator sequencing risk.** `run-second-pc-release-check.ps1` runs readiness, install/verify, MSIX evidence capture, and second-PC handoff collection, then writes a summary JSON and prints return files.
+7. **Second-PC release check wrapper reduces operator sequencing and file-return risk.** `run-second-pc-release-check.ps1` runs readiness, install/verify, MSIX evidence capture, and second-PC handoff collection, then writes a summary JSON, creates a return archive, and prints both the archive and raw files.
 8. **Evidence validators fail closed on the important fields.** Current scripts require explicit support verification token, sender distinction, current version, timestamps, operator metadata, Store product-name reservation timestamp, MSIX capture checks, and multi-device endpoint shape.
 9. **No release-blocking code issue found in the scoped audit.** Remaining release blockers are missing external evidence files, not internal code defects.
 10. **Smoke harness issue fixed after audit.** `Start-Job` and redirected pipe capture were unsafe for `musu up` because the command can spawn a long-lived bridge. `smoke-single-machine-beta.ps1` now uses readiness retries and temp-file command capture through `Start-Process`.
@@ -194,7 +194,7 @@ P0: close public release evidence gates.
 5. Run `show-final-release-handoff-status.ps1 -Json` and confirm `packet.verified=true`, `action_pack.verified=true`, and the only blockers are the four external gates.
 6. Run `show-operator-handoff-card.ps1` and use only its current support subject/id and kit name.
 7. Copy the action pack or only its second-PC transfer zip to the second Windows PC.
-8. On the second PC, run `run-second-pc-release-check.ps1`; use `-MachineTrust` from elevated PowerShell if certificate trust fails.
+8. On the second PC, run `run-second-pc-release-check.ps1`; use `-MachineTrust` from elevated PowerShell if certificate trust fails, then return `.local-build\second-pc-return\*.zip` plus raw files if needed.
 9. On the primary PC, run `smoke-multidevice-beta.ps1` with the second PC `host:port`, then record returned MSIX and multi-device evidence.
 10. Send a real email to `musu@musu.pro` using the current support subject/id and record support mailbox evidence.
 11. In Partner Center, reserve product name, submit the MSIX, wait for Microsoft certification/restricted capability review, then record Store release evidence.

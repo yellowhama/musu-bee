@@ -165,13 +165,14 @@ If certificate trust fails during manual fallback, rerun the install command fro
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix.ps1 -StartupContract local-sideload-manual -ReplaceExisting -MachineTrust
 
 Return these files/folders to the primary repo:
+- .local-build\second-pc-return\*.zip
 - .local-build\msix-install\*.evidence.json
 - .local-build\second-pc-handoff\*.handoff.json
 - .local-build\second-pc-release-check\*.release-check.json
 
-After the handoff JSON is returned, run this on the primary PC:
+After the return zip is copied back, run this on the primary PC:
 
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-second-pc-return-card.ps1 -HandoffPath .local-build\second-pc-handoff\<HANDOFF_JSON>
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-second-pc-return-card.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP>
 "@
     $quickstartPath = Join-Path $secondPcDir "SECOND_PC_QUICKSTART_CURRENT.txt"
     $quickstart | Set-Content -LiteralPath $quickstartPath -Encoding UTF8
@@ -305,6 +306,7 @@ This pack groups the remaining external release actions.
 1. Second PC test
 - Use: `second-pc\MUSU-second-PC-transfer-$safeVersion-$stamp.zip`
 - Return to repo after second-PC run:
+  - `.local-build\second-pc-return\*.zip`
   - `.local-build\msix-install\*.evidence.json`
   - `.local-build\second-pc-handoff\*.handoff.json`
 

@@ -114,8 +114,9 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-c
 The wrapper runs the same steps below, writes
 `.local-build\msix-install\*.evidence.json`,
 `.local-build\second-pc-handoff\*.handoff.json`, and
-`.local-build\second-pc-release-check\*.release-check.json`, then prints the
-files to return to the primary release repo.
+`.local-build\second-pc-release-check\*.release-check.json`, creates
+`.local-build\second-pc-return\*.zip`, then prints the return zip and raw files
+to return to the primary release repo.
 
 Manual fallback:
 
@@ -138,7 +139,9 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix
 The install evidence command writes `.local-build\msix-install\*.evidence.json`.
 The handoff command writes `.local-build\second-pc-handoff\*.handoff.json`
 with `suggested_remote_addrs` values such as `192.168.1.20:10621`.
-Return both JSON files to the release repo with the multi-device smoke evidence.
+Return the `.local-build\second-pc-return\*.zip` if the wrapper created one;
+otherwise return both JSON files to the release repo with the multi-device smoke
+evidence.
 
 ## On the primary PC
 

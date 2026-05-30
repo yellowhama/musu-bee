@@ -6,6 +6,7 @@ param(
     [switch]$ReplaceExisting = $true,
     [string]$OutputRoot,
     [int]$CommandTimeoutSec = 90,
+    [switch]$NoReturnZip,
     [switch]$Json
 )
 
@@ -34,6 +35,7 @@ $safeMachine = $machine -replace "[^A-Za-z0-9._-]", "_"
 $summaryPath = Join-Path $OutputRoot "$stamp-$safeMachine.release-check.json"
 $msixEvidencePath = Join-Path $repoRoot ".local-build\msix-install\$stamp-$safeMachine.evidence.json"
 $handoffPath = Join-Path $repoRoot ".local-build\second-pc-handoff\$stamp-$safeMachine.handoff.json"
+$returnZipPath = Join-Path $repoRoot ".local-build\second-pc-return\$stamp-$safeMachine.second-pc-return.zip"
 
 $steps = New-Object System.Collections.Generic.List[object]
 $errorText = $null
@@ -120,6 +122,15 @@ catch {
     $errorText = $_.Exception.Message
 }
 
+$returnFiles = @(
+    $msixEvidencePath,
+    $handoffPath,
+    $summaryPath
+)
+if (-not $NoReturnZip) {
+    $returnFiles = @($returnZipPath) + $returnFiles
+}
+
 $result = [pscustomobject]@{
     schema = "musu.second_pc_release_check.v1"
     ok = [string]::IsNullOrWhiteSpace($errorText)
@@ -134,17 +145,34 @@ $result = [pscustomobject]@{
     remote_name_suggestion = if ($handoff) { [string]$handoff.remote_name_suggestion } else { $env:COMPUTERNAME }
     capture_ok = if ($capture) { [bool]$capture.ok } else { $false }
     handoff_ok = if ($handoff) { [bool]$handoff.ok } else { $false }
-    return_files = @(
-        $msixEvidencePath,
-        $handoffPath,
-        $summaryPath
-    )
+    return_zip_path = if ($NoReturnZip) { $null } else { $returnZipPath }
+    return_zip_ok = $false
+    return_zip_error = $null
+    return_files = $returnFiles
     steps = $steps.ToArray()
     error = $errorText
 }
 
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $summaryPath) | Out-Null
 $result | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $summaryPath -Encoding UTF8
+
+if (-not $NoReturnZip) {
+    try {
+        $filesToZip = @($msixEvidencePath, $handoffPath, $summaryPath) | Where-Object {
+            Test-Path -LiteralPath $_
+        }
+        if ($filesToZip.Count -eq 0) {
+            throw "No return files exist yet."
+        }
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $returnZipPath) | Out-Null
+        Compress-Archive -LiteralPath $filesToZip -DestinationPath $returnZipPath -CompressionLevel Optimal -Force
+        $result.return_zip_ok = $true
+    }
+    catch {
+        $result.return_zip_error = $_.Exception.Message
+    }
+    $result | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $summaryPath -Encoding UTF8
+}
 
 if ($Json) {
     $result | ConvertTo-Json -Depth 8
@@ -155,6 +183,7 @@ else {
     "summary_path: $((Resolve-Path -LiteralPath $summaryPath).Path)"
     "msix_install_evidence_path: $($result.msix_install_evidence_path)"
     "second_pc_handoff_path: $($result.second_pc_handoff_path)"
+    "return_zip_path: $($result.return_zip_path)"
     "remote_name_suggestion: $($result.remote_name_suggestion)"
     "suggested_remote_addrs:"
     foreach ($addr in @($result.suggested_remote_addrs)) {
@@ -164,6 +193,10 @@ else {
     "Return these files to the primary release repo:"
     foreach ($file in @($result.return_files)) {
         "  - $file"
+    }
+    if ($result.return_zip_error) {
+        ""
+        "return_zip_error: $($result.return_zip_error)"
     }
     if (-not $result.ok) {
         ""

@@ -150,12 +150,12 @@ name, and recording commands, run from the real MUSU release repo root:
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-operator-handoff-card.ps1
 ```
 
-After the second PC returns `.local-build\second-pc-handoff\*.handoff.json`,
-run this from the real MUSU release repo root to print the exact
+After the second PC returns `.local-build\second-pc-return\*.zip`, run this
+from the real MUSU release repo root to extract it and print the exact
 `smoke-multidevice-beta.ps1` command from the returned `suggested_remote_addrs`:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-second-pc-return-card.ps1 -HandoffPath .local-build\second-pc-handoff\<HANDOFF_JSON>
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-second-pc-return-card.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP>
 ```
 
 Remaining blockers:
@@ -242,10 +242,12 @@ Manual fallback after `install-and-verify-msix.ps1` succeeds:
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-evidence.ps1
 ```
 
-Return the generated `.local-build\msix-install\*.evidence.json`,
+Return the generated `.local-build\second-pc-return\*.zip` to the real MUSU
+release repo. If you need the raw files, the wrapper also writes
+`.local-build\msix-install\*.evidence.json`,
 `.local-build\second-pc-handoff\*.handoff.json`, and
-`.local-build\second-pc-release-check\*.release-check.json` files to the real
-MUSU release repo and record install evidence from the release repo root:
+`.local-build\second-pc-release-check\*.release-check.json`. Record install
+evidence from the release repo root:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-msix-install-evidence.ps1 -EvidencePath .local-build\msix-install\<INSTALL_EVIDENCE_JSON>

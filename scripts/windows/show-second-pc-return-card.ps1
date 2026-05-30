@@ -1,5 +1,6 @@
 [CmdletBinding()]
 param(
+    [string]$ReturnZipPath,
     [string]$HandoffPath,
     [string]$MsixInstallEvidencePath,
     [string]$RemoteAddr,
@@ -14,19 +15,30 @@ $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
 $version = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
+$extractedReturnRoot = $null
 
 function Resolve-LatestFile {
     param(
         [Parameter(Mandatory = $true)][string]$Root,
         [Parameter(Mandatory = $true)][string]$Filter,
-        [Parameter(Mandatory = $true)][string]$Label
+        [Parameter(Mandatory = $true)][string]$Label,
+        [switch]$Recurse
     )
 
     if (-not (Test-Path -LiteralPath $Root)) {
         throw "$Label directory not found: $Root"
     }
 
-    $file = Get-ChildItem -LiteralPath $Root -Filter $Filter -File -ErrorAction SilentlyContinue |
+    $childItemSplat = @{
+        LiteralPath = $Root
+        Filter = $Filter
+        File = $true
+        ErrorAction = "SilentlyContinue"
+    }
+    if ($Recurse) {
+        $childItemSplat["Recurse"] = $true
+    }
+    $file = Get-ChildItem @childItemSplat |
         Sort-Object LastWriteTimeUtc -Descending |
         Select-Object -First 1
     if (-not $file) {
@@ -44,6 +56,28 @@ function ConvertTo-RepoRelativeDisplayPath {
         return $resolved.Substring($rootWithSlash.Length)
     }
     return $resolved
+}
+
+if (-not [string]::IsNullOrWhiteSpace($ReturnZipPath)) {
+    if (-not (Test-Path -LiteralPath $ReturnZipPath)) {
+        throw "Return zip not found: $ReturnZipPath"
+    }
+    $resolvedReturnZip = (Resolve-Path -LiteralPath $ReturnZipPath).Path
+    $zipBase = [System.IO.Path]::GetFileNameWithoutExtension($resolvedReturnZip) -replace "[^A-Za-z0-9._-]", "_"
+    $extractRoot = Join-Path $repoRoot ".local-build\second-pc-return\extracted\$zipBase"
+    if (Test-Path -LiteralPath $extractRoot) {
+        $extractRoot = Join-Path $repoRoot ".local-build\second-pc-return\extracted\$zipBase-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+    }
+    New-Item -ItemType Directory -Force -Path $extractRoot | Out-Null
+    Expand-Archive -LiteralPath $resolvedReturnZip -DestinationPath $extractRoot -Force
+    $extractedReturnRoot = (Resolve-Path -LiteralPath $extractRoot).Path
+
+    if ([string]::IsNullOrWhiteSpace($HandoffPath)) {
+        $HandoffPath = Resolve-LatestFile -Root $extractedReturnRoot -Filter "*.handoff.json" -Label "second-PC handoff from return zip" -Recurse
+    }
+    if ([string]::IsNullOrWhiteSpace($MsixInstallEvidencePath)) {
+        $MsixInstallEvidencePath = Resolve-LatestFile -Root $extractedReturnRoot -Filter "*.evidence.json" -Label "MSIX install evidence from return zip" -Recurse
+    }
 }
 
 if ([string]::IsNullOrWhiteSpace($HandoffPath)) {
@@ -127,6 +161,8 @@ $result = [pscustomobject]@{
     schema = "musu.second_pc_return_card.v1"
     generated_at = (Get-Date).ToString("o")
     version = $version
+    return_zip_path = if ([string]::IsNullOrWhiteSpace($ReturnZipPath)) { $null } else { (Resolve-Path -LiteralPath $ReturnZipPath).Path }
+    return_zip_extract_root = $extractedReturnRoot
     handoff_path = $HandoffPath
     handoff_machine = [string]$handoff.operator_machine
     remote_name = $RemoteName
@@ -142,6 +178,8 @@ if ($Json) {
 else {
     "MUSU second-PC return card"
     "version: $($result.version)"
+    "return_zip: $(if ($result.return_zip_path) { $result.return_zip_path } else { '<not used>' })"
+    "return_zip_extract_root: $(if ($result.return_zip_extract_root) { $result.return_zip_extract_root } else { '<not used>' })"
     "handoff: $($result.handoff_path)"
     "handoff_machine: $($result.handoff_machine)"
     "remote_name: $($result.remote_name)"

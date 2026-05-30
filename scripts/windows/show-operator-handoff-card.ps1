@@ -69,7 +69,7 @@ try {
         verify_packet = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-final-operator-gate-packet.ps1 -PacketPath .local-build\final-operator-gates\musu-final-operator-gates-$safeVersion-latest.zip -Json"
         record_support = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-support-mailbox-verification.ps1 -SupportEmail `"$supportEmail`" -FromAddress `"<sender@example.com>`" -ReceivedBy `"<operator-name>`" -VerificationId `"$supportVerificationId`" -Notes `"Verified delivery in $supportEmail inbox`" -Json"
         record_msix_install = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-msix-install-evidence.ps1 -EvidencePath .local-build\msix-install\<INSTALL_EVIDENCE_JSON> -Json"
-        show_second_pc_return_card = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-second-pc-return-card.ps1 -HandoffPath .local-build\second-pc-handoff\<HANDOFF_JSON>"
+        show_second_pc_return_card = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-second-pc-return-card.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP>"
         run_multidevice_smoke = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\smoke-multidevice-beta.ps1 -RemoteAddr <SECOND_PC_IP_OR_TAILSCALE_IP>:<BRIDGE_PORT> -RemoteName <SECOND_PC_NODE_NAME> -RouteTarget <SECOND_PC_NODE_NAME>"
         record_multidevice = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-multidevice-evidence.ps1 -EvidencePath .local-build\multi-device\<EVIDENCE_JSON> -Json"
         record_store_release = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-store-release-verification.ps1 -ProductName `"MUSU`" -ProductNameReservedAt `"<partner-center-name-reserved-at>`" -SubmissionId `"<partner-center-submission-id>`" -CertificationStatus `"approved`" -RestrictedCapabilityStatus `"approved`" -RecordedBy `"<operator-name>`" -Notes `"Microsoft Store certification and restricted capability review approved`" -Json"
@@ -98,6 +98,7 @@ try {
         second_pc_commands = $secondPcCommands
         primary_commands = $commands
         return_files = @(
+            ".local-build\second-pc-return\*.zip",
             ".local-build\msix-install\*.evidence.json",
             ".local-build\second-pc-handoff\*.handoff.json",
             ".local-build\second-pc-release-check\*.release-check.json",
