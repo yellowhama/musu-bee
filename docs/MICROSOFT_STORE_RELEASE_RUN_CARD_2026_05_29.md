@@ -149,6 +149,12 @@ DNS MX alone is not enough; this gate requires inbox delivery proof.
 
 ### 6. Submit In Partner Center
 
+Before uploading, verify the current Store submission bundle:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-store-submission-bundle.ps1
+```
+
 In Partner Center:
 
 1. reserve product name, starting with `MUSU`

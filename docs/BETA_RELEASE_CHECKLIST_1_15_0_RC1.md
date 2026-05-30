@@ -138,6 +138,7 @@ Store metadata:
 - support mailbox evidence recorder: `scripts\windows\record-support-mailbox-verification.ps1`
 - Store release evidence verifier: `scripts\windows\verify-store-release-evidence.ps1`
 - Store release evidence recorder: `scripts\windows\record-store-release-verification.ps1`
+- Store submission bundle verifier: `scripts\windows\verify-store-submission-bundle.ps1`
 - support mailbox DNS: `musu.pro` MX resolves to `smtp.google.com`; actual delivery still requires operator evidence
 - support mailbox evidence must match the current release version and include an explicit `musu-...` verification token; Store release evidence must include an explicit Partner Center product-name reservation timestamp
 - release go/no-go preflight: `scripts\windows\write-release-go-no-go.ps1`
@@ -155,6 +156,7 @@ Current MSIX artifacts:
 
 - local sideload: `.local-build\msix\output\musu_1.15.0.0_x64_local-sideload-manual.msix`
 - Store reviewed: `.local-build\msix\output\musu_1.15.0.0_x64_store-reviewed-immediate-registration.msix`
+- latest Store submission bundle: `.local-build\msix\submission-bundles\store-reviewed-20260530-093140`
 - submission bundle: `.local-build\msix\submission-bundles\store-reviewed-20260529-033609`
 
 Desktop release audit:

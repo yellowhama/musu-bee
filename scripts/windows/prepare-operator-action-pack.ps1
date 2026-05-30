@@ -64,6 +64,18 @@ if ([string]::IsNullOrWhiteSpace($StoreSubmissionBundleDir) -or -not (Test-Path 
     throw "Store submission bundle not found. Build or pass -StoreSubmissionBundleDir."
 }
 
+$storeBundleVerifyScript = Join-Path $scriptDir "verify-store-submission-bundle.ps1"
+if (Test-Path -LiteralPath $storeBundleVerifyScript) {
+    $storeBundleVerifyOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File $storeBundleVerifyScript -BundleDir $StoreSubmissionBundleDir -Json 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Store submission bundle verification failed before action-pack generation.`n$($storeBundleVerifyOutput | Out-String)"
+    }
+    $storeBundleVerify = ($storeBundleVerifyOutput | Out-String).Trim() | ConvertFrom-Json
+    if (-not [bool]$storeBundleVerify.ok) {
+        throw "Store submission bundle verification did not report ok=true."
+    }
+}
+
 function Resolve-PacketRoot {
     param([Parameter(Mandatory = $true)][string]$Path)
 
@@ -174,6 +186,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-second-
         "submission-notes.txt",
         "partner-center-capability-justification.md",
         "verify-store-reviewed.txt",
+        "SHA256SUMS.txt",
         "STORE_MSIX_RESTRICTED_CAPABILITY_SUBMISSION_CHECKLIST_2026_05_27.md",
         "STORE_MSIX_PACKAGING_GUIDE_2026_05_27.md",
         "WINDOWS_DISTRIBUTION_PIVOT_2026-05-27.md"

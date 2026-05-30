@@ -171,6 +171,16 @@ $metadata = [pscustomobject]@{
 }
 $metadata | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $BundleDir "bundle.json") -Encoding UTF8
 
+$checksumsPath = Join-Path $BundleDir "SHA256SUMS.txt"
+Get-ChildItem -LiteralPath $BundleDir -Recurse -File |
+    Where-Object { $_.FullName -ne $checksumsPath } |
+    Sort-Object FullName |
+    ForEach-Object {
+        $relative = $_.FullName.Substring($BundleDir.Length + 1)
+        $hash = Get-FileHash -Algorithm SHA256 -LiteralPath $_.FullName
+        "{0}  {1}" -f $hash.Hash.ToLowerInvariant(), ($relative -replace "\\", "/")
+    } | Set-Content -LiteralPath $checksumsPath -Encoding ASCII
+
 Write-Host ""
 Write-Host "Store-reviewed submission bundle prepared."
 Write-Host "Bundle directory: $BundleDir"

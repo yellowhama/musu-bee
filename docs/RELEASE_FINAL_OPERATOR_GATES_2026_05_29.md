@@ -260,6 +260,12 @@ After Partner Center product name reservation, app submission, Microsoft package
 certification, and restricted startup capability approval complete, record the
 approval result:
 
+Before upload, verify the prepared Store submission bundle:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-store-submission-bundle.ps1
+```
+
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-store-release-verification.ps1 `
   -ProductName "MUSU" `

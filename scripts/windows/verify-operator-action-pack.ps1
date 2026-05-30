@@ -194,7 +194,8 @@ try {
                     "PARTNER_CENTER_CERTIFICATION_NOTES_CLEAN.txt",
                     "PARTNER_CENTER_UPLOAD_README_CURRENT.txt",
                     "partner-center-capability-justification.md",
-                    "STORE_SUBMISSION_METADATA_2026_05_29.md"
+                    "STORE_SUBMISSION_METADATA_2026_05_29.md",
+                    "SHA256SUMS.txt"
                 )
                 foreach ($entry in $requiredPartnerEntries) {
                     Add-CheckFromCondition "partner entry: $entry" ($entries -contains $entry) "Partner zip contains $entry" "Partner zip is missing $entry"

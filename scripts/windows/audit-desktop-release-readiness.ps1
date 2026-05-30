@@ -236,12 +236,31 @@ else {
 
 if ($latestBundle) {
     Add-Check "runtime-package" "Store submission bundle" "pass" "Latest Store submission bundle: $($latestBundle.FullName)."
+    $bundleVerifier = Join-Path $scriptDir "verify-store-submission-bundle.ps1"
+    if (Test-Path -LiteralPath $bundleVerifier) {
+        $bundleVerifyOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File $bundleVerifier -BundleDir $latestBundle.FullName -Json 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            $bundleVerify = ($bundleVerifyOutput | Out-String).Trim() | ConvertFrom-Json
+            if ([bool]$bundleVerify.ok) {
+                Add-Check "runtime-package" "Store submission bundle verification" "pass" "Latest Store submission bundle verifies with fail_count=0."
+            }
+            else {
+                Add-Check "runtime-package" "Store submission bundle verification" "fail" "Latest Store submission bundle verifier returned ok=false."
+            }
+        }
+        else {
+            Add-Check "runtime-package" "Store submission bundle verification" "fail" "Latest Store submission bundle verifier failed: $($bundleVerifyOutput | Out-String)"
+        }
+    }
+    else {
+        Add-Check "runtime-package" "Store submission bundle verification" "fail" "verify-store-submission-bundle.ps1 is missing."
+    }
 }
 else {
     Add-Check "runtime-package" "Store submission bundle" "fail" "Store submission bundle is missing."
 }
 
-foreach ($scriptName in @("smoke-single-machine-beta.ps1", "verify-single-machine-evidence.ps1", "record-single-machine-evidence.ps1", "smoke-multidevice-beta.ps1", "prepare-multidevice-test-kit.ps1", "run-second-pc-release-check.ps1", "prepare-final-operator-gate-packet.ps1", "verify-final-operator-gate-packet.ps1", "prepare-operator-action-pack.ps1", "verify-operator-action-pack.ps1", "complete-final-operator-gates.ps1", "show-final-release-handoff-status.ps1", "show-second-pc-return-card.ps1", "capture-msix-install-evidence.ps1", "collect-second-pc-handoff.ps1", "verify-msix-install-evidence.ps1", "record-msix-install-evidence.ps1", "verify-multidevice-evidence.ps1", "record-multidevice-evidence.ps1", "verify-support-mailbox-evidence.ps1", "record-support-mailbox-verification.ps1", "verify-store-release-evidence.ps1", "record-store-release-verification.ps1", "write-release-candidate-manifest.ps1", "verify-store-public-metadata.ps1", "write-release-go-no-go.ps1")) {
+foreach ($scriptName in @("smoke-single-machine-beta.ps1", "verify-single-machine-evidence.ps1", "record-single-machine-evidence.ps1", "smoke-multidevice-beta.ps1", "prepare-multidevice-test-kit.ps1", "run-second-pc-release-check.ps1", "prepare-final-operator-gate-packet.ps1", "verify-final-operator-gate-packet.ps1", "prepare-operator-action-pack.ps1", "verify-operator-action-pack.ps1", "complete-final-operator-gates.ps1", "show-final-release-handoff-status.ps1", "show-second-pc-return-card.ps1", "capture-msix-install-evidence.ps1", "collect-second-pc-handoff.ps1", "verify-msix-install-evidence.ps1", "record-msix-install-evidence.ps1", "verify-multidevice-evidence.ps1", "record-multidevice-evidence.ps1", "verify-support-mailbox-evidence.ps1", "record-support-mailbox-verification.ps1", "verify-store-release-evidence.ps1", "record-store-release-verification.ps1", "verify-store-submission-bundle.ps1", "write-release-candidate-manifest.ps1", "verify-store-public-metadata.ps1", "write-release-go-no-go.ps1")) {
     $scriptPath = Join-Path $scriptDir $scriptName
     if (Test-Path -LiteralPath $scriptPath) {
         Add-Check "release-smoke" $scriptName "pass" "$scriptName exists."

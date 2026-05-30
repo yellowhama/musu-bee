@@ -101,6 +101,7 @@ $scriptsToCopy = @(
     "verify-msix-install-evidence.ps1",
     "record-store-release-verification.ps1",
     "verify-store-release-evidence.ps1",
+    "verify-store-submission-bundle.ps1",
     "prepare-operator-action-pack.ps1",
     "verify-operator-action-pack.ps1",
     "show-final-release-handoff-status.ps1",
@@ -269,6 +270,13 @@ Expected result: `multi_device_verified=true`.
 After Partner Center product name reservation, app submission, Microsoft package
 certification, and restricted startup capability approval complete, record those
 values with the final command below.
+Before upload, verify the prepared Store submission bundle from the real MUSU
+release repo root:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-store-submission-bundle.ps1
+```
+
 If you need to record Store approval separately before the final command, run
 this from the real MUSU release repo root:
 

@@ -135,7 +135,7 @@ What is still weak:
 
 - Public desktop readiness still depends on external proof that cannot be produced from this primary machine.
 - The desktop GUI story is still partial. The Tauri shell is a viable entry surface, not the finished dashboard app.
-- The first Store submission still needs Partner Center product setup and Microsoft review evidence.
+- The first Store submission still needs Partner Center product setup and Microsoft review evidence; the prepared Store submission bundle now has a standalone verifier and checksum manifest before upload.
 - The multi-device claim is not yet release-grade because it has not passed on a real second PC with current artifacts.
 - Some historical docs still contain older completion estimates. This `wiki/521` page supersedes them for the current release state.
 
@@ -159,7 +159,7 @@ Findings:
 3. **Operator handoff card is evidence-non-recording.** It reads packet metadata and support template values, prints commands, and cleans temporary extraction paths. It does not create readiness evidence.
 4. **Final packet creation is properly source-attributed.** `prepare-final-operator-gate-packet.ps1` refuses dirty git state and writes packet build metadata with branch, commit, clean status, version, support email, and support verification id.
 5. **Final packet verification is materially useful.** It checks required docs/scripts, packet metadata, README instructions, support email consistency, checksums, kit count, handoff helper, and stale verifier safety rules.
-6. **Operator action pack generation is repeatable and evidence-safe.** `prepare-operator-action-pack.ps1` refuses dirty git state, verifies the final operator packet first, creates second-PC/Partner Center/support sub-bundles, records source metadata, and rejects private `.pfx` material. `verify-operator-action-pack.ps1` checks metadata, nested zips, checksums, support template values, and `.pfx` exclusion.
+6. **Operator action pack generation is repeatable and evidence-safe.** `prepare-operator-action-pack.ps1` refuses dirty git state, verifies the final operator packet first, verifies the Store submission bundle, creates second-PC/Partner Center/support sub-bundles, records source metadata, and rejects private `.pfx` material. `verify-operator-action-pack.ps1` checks metadata, nested zips, checksums, support template values, and `.pfx` exclusion.
 7. **Second-PC release check wrapper reduces operator sequencing risk.** `run-second-pc-release-check.ps1` runs readiness, install/verify, MSIX evidence capture, and second-PC handoff collection, then writes a summary JSON and prints return files.
 8. **Evidence validators fail closed on the important fields.** Current scripts require explicit support verification token, sender distinction, current version, timestamps, operator metadata, Store product-name reservation timestamp, MSIX capture checks, and multi-device endpoint shape.
 9. **No release-blocking code issue found in the scoped audit.** Remaining release blockers are missing external evidence files, not internal code defects.
