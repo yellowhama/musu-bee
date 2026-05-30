@@ -31,6 +31,7 @@ The kit contains:
 - MSIX install/verify scripts
 - second-PC handoff collector (`collect-second-pc-handoff.ps1`)
 - second-PC one-command release check (`run-second-pc-release-check.ps1`)
+- second-PC return importer (`import-second-pc-return.ps1`)
 - the multi-device smoke script
 - the multi-device evidence verifier
 - this runbook
@@ -127,6 +128,15 @@ Record from each machine:
 - hostname/node name from `musu status`
 - whether `doctor.overall` is `ok` or `warn`
 - any firewall, WindowsApps alias, or package warning
+
+On the primary release machine, prefer importing the returned archive:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\import-second-pc-return.ps1 `
+  -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP> `
+  -RecordMsixInstall `
+  -Json
+```
 
 If automatic discovery does not find the other node, use manual peer registration:
 

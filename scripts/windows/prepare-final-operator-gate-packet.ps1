@@ -107,6 +107,7 @@ $scriptsToCopy = @(
     "show-final-release-handoff-status.ps1",
     "show-operator-handoff-card.ps1",
     "show-second-pc-return-card.ps1",
+    "import-second-pc-return.ps1",
     "verify-final-operator-gate-packet.ps1",
     "complete-final-operator-gates.ps1",
     "write-release-candidate-manifest.ps1",
@@ -151,11 +152,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-operato
 ```
 
 After the second PC returns `.local-build\second-pc-return\*.zip`, run this
-from the real MUSU release repo root to extract it and print the exact
-`smoke-multidevice-beta.ps1` command from the returned `suggested_remote_addrs`:
+from the real MUSU release repo root to import it, verify the MSIX install
+evidence, and print the exact `smoke-multidevice-beta.ps1` command from the
+returned `suggested_remote_addrs`:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-second-pc-return-card.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP>
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\import-second-pc-return.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP> -Json
 ```
 
 Remaining blockers:
@@ -243,7 +245,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\capture-msix
 ```
 
 Return the generated `.local-build\second-pc-return\*.zip` to the real MUSU
-release repo. If you need the raw files, the wrapper also writes
+release repo. Import it from the release repo root:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\import-second-pc-return.ps1 `
+  -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP> `
+  -RecordMsixInstall `
+  -Json
+```
+
+If you need the raw files, the wrapper also writes
 `.local-build\msix-install\*.evidence.json`,
 `.local-build\second-pc-handoff\*.handoff.json`, and
 `.local-build\second-pc-release-check\*.release-check.json`. Record install

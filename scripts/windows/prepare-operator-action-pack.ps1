@@ -170,7 +170,11 @@ Return these files/folders to the primary repo:
 - .local-build\second-pc-handoff\*.handoff.json
 - .local-build\second-pc-release-check\*.release-check.json
 
-After the return zip is copied back, run this on the primary PC:
+After the return zip is copied back, run this on the primary PC from the real release repo:
+
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\import-second-pc-return.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP> -RecordMsixInstall -Json
+
+If you only need to preview the primary-side multi-device commands without recording install evidence:
 
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-second-pc-return-card.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP>
 "@

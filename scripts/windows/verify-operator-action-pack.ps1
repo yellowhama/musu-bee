@@ -145,7 +145,7 @@ try {
                     finally {
                         $reader.Dispose()
                     }
-                    Add-CheckFromCondition "second-pc transfer return zip instructions" ($quickstart -like "*.local-build\second-pc-return\*.zip*") "second-PC transfer quickstart explains return archive" "second-PC transfer quickstart missing return archive instructions"
+                    Add-CheckFromCondition "second-pc transfer return zip instructions" ($quickstart -like "*.local-build\second-pc-return\*.zip*" -and $quickstart -like "*import-second-pc-return.ps1*") "second-PC transfer quickstart explains return archive" "second-PC transfer quickstart missing return archive instructions"
                 }
                 $nestedKit = @($entries | Where-Object { $_ -like "musu-multidevice-*.zip" })
                 Add-CheckFromCondition "second-pc transfer kit" ($nestedKit.Count -eq 1) "second-PC transfer includes one kit zip" "second-PC transfer missing nested kit zip"

@@ -186,14 +186,23 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\collect-seco
 ```
 
 Return the generated `.local-build\second-pc-return\*.zip` to the release repo.
+Import it from the release repo root:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\import-second-pc-return.ps1 `
+  -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP> `
+  -RecordMsixInstall `
+  -Json
+```
+
 The wrapper also writes these raw files, which can be returned directly if the
-archive is unavailable:
+archive/importer path is unavailable:
 
 - `.local-build\msix-install\*.evidence.json`
 - `.local-build\second-pc-handoff\*.handoff.json`
 - `.local-build\second-pc-release-check\*.release-check.json`
 
-Record the install evidence:
+Manual install-evidence record fallback:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-msix-install-evidence.ps1 `

@@ -64,14 +64,22 @@ archive is unavailable:
 - `.local-build\second-pc-handoff\*.handoff.json`
 - `.local-build\second-pc-release-check\*.release-check.json`
 
-After returning the files, generate the exact primary-side commands from the
-return archive:
+After returning the archive, import it from the release repo. This extracts the
+archive, verifies the MSIX install evidence, records the MSIX install gate when
+`-RecordMsixInstall` is present, and prints the primary-side multi-device
+commands:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\import-second-pc-return.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP> -RecordMsixInstall -Json
+```
+
+Preview-only fallback:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-second-pc-return-card.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP>
 ```
 
-On the primary release machine, record the install evidence:
+If importing is not used, record the install evidence manually:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-msix-install-evidence.ps1 -EvidencePath .local-build\msix-install\<INSTALL_EVIDENCE_JSON> -Json

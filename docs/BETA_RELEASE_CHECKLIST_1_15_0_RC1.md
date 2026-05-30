@@ -119,6 +119,7 @@ Multi-device packet:
 - kit builder: `scripts\windows\prepare-multidevice-test-kit.ps1`
 - second-PC one-command release check: `scripts\windows\run-second-pc-release-check.ps1`
 - second-PC return archive: `.local-build\second-pc-return\*.zip`
+- second-PC return importer: `scripts\windows\import-second-pc-return.ps1`
 - MSIX install evidence capture: `scripts\windows\capture-msix-install-evidence.ps1`
 - MSIX install evidence verifier: `scripts\windows\verify-msix-install-evidence.ps1`
 - MSIX install evidence recorder: `scripts\windows\record-msix-install-evidence.ps1`

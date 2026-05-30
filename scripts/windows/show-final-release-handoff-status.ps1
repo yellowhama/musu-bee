@@ -245,8 +245,8 @@ if (-not [bool]$goNoGo.msix_install_verified) {
     Add-OperatorStep `
         -List $operatorSteps `
         -Gate "msix-install" `
-        -Summary "Run the second-PC install evidence capture, return `.local-build\msix-install\*.evidence.json`, then record it." `
-        -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-msix-install-evidence.ps1 -EvidencePath .local-build\msix-install\<INSTALL_EVIDENCE_JSON>"
+        -Summary "Run the second-PC kit, return `.local-build\second-pc-return\*.zip`, import it, and record the MSIX install evidence." `
+        -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\import-second-pc-return.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP> -RecordMsixInstall -Json"
 }
 if (-not [bool]$goNoGo.multi_device_verified) {
     Add-OperatorStep `

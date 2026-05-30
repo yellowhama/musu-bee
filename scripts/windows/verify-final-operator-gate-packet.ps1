@@ -112,6 +112,7 @@ try {
         "scripts\windows\show-final-release-handoff-status.ps1",
         "scripts\windows\show-operator-handoff-card.ps1",
         "scripts\windows\show-second-pc-return-card.ps1",
+        "scripts\windows\import-second-pc-return.ps1",
         "scripts\windows\verify-final-operator-gate-packet.ps1",
         "scripts\windows\complete-final-operator-gates.ps1",
         "scripts\windows\write-release-candidate-manifest.ps1",
@@ -163,6 +164,7 @@ try {
         Add-CheckFromCondition "readme operator handoff card" ($readme -like "*show-operator-handoff-card.ps1*" -or $readme -like "*RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md*") "README includes operator handoff card path" "README missing operator handoff card reference"
         Add-CheckFromCondition "readme second pc return card" ($readme -like "*show-second-pc-return-card.ps1*" -and $readme -like "*suggested_remote_addrs*") "README includes second-PC return card command" "README missing second-PC return card command"
         Add-CheckFromCondition "readme second pc return archive" ($readme -like "*.local-build\second-pc-return\*.zip*") "README includes second-PC return archive handoff" "README missing second-PC return archive handoff"
+        Add-CheckFromCondition "readme second pc importer" ($readme -like "*import-second-pc-return.ps1*" -and $readme -like "*-RecordMsixInstall*") "README includes second-PC return importer" "README missing second-PC return importer"
         Add-CheckFromCondition "readme complete runner msix params" ($readme -like "*complete-final-operator-gates.ps1*" -and $readme -like "*-MsixInstallEvidencePath*") "README final command can record MSIX install evidence" "README final command does not include MSIX install evidence parameters"
         Add-CheckFromCondition "readme complete runner store params" ($readme -like "*complete-final-operator-gates.ps1*" -and $readme -like "*-StoreProductNameReservedAt*" -and $readme -like "*-StoreSubmissionId*") "README final command can record Store release evidence with product name reservation timestamp" "README final command does not include Store release evidence parameters"
         Add-CheckFromCondition "readme complete runner fail gate" ($readme -like "*complete-final-operator-gates.ps1*" -and $readme -like "*-FailOnNotReady*") "README final command fails when final go/no-go is not ready" "README final command does not include -FailOnNotReady"
@@ -174,9 +176,9 @@ try {
         $handoffStatusScript = Get-Content -LiteralPath $handoffStatusScriptPath -Raw
         Add-CheckFromCondition `
             "handoff status action pack verification" `
-            ($handoffStatusScript -like "*ActionPackPath*" -and $handoffStatusScript -like "*verify-operator-action-pack.ps1*" -and $handoffStatusScript -like "*action_pack*") `
+            ($handoffStatusScript -like "*ActionPackPath*" -and $handoffStatusScript -like "*verify-operator-action-pack.ps1*" -and $handoffStatusScript -like "*action_pack*" -and $handoffStatusScript -like "*import-second-pc-return.ps1*") `
             "packet handoff status script reports action-pack verification" `
-            "packet handoff status script does not report action-pack verification"
+            "packet handoff status script does not report action-pack verification or second-PC return import"
     }
 
     $operatorHandoffScriptPath = Join-Path $packetRoot "scripts\windows\show-operator-handoff-card.ps1"
@@ -187,6 +189,16 @@ try {
             ($operatorHandoffScript -like "*.local-build\second-pc-return\*.zip*") `
             "packet operator handoff card lists the second-PC return archive" `
             "packet operator handoff card does not list the second-PC return archive"
+    }
+
+    $returnImporterScriptPath = Join-Path $packetRoot "scripts\windows\import-second-pc-return.ps1"
+    if (Test-Path -LiteralPath $returnImporterScriptPath) {
+        $returnImporterScript = Get-Content -LiteralPath $returnImporterScriptPath -Raw
+        Add-CheckFromCondition `
+            "second pc return importer safety" `
+            ($returnImporterScript -like "*verify-msix-install-evidence.ps1*" -and $returnImporterScript -like "*show-second-pc-return-card.ps1*" -and $returnImporterScript -like "*RecordMsixInstall*" -and $returnImporterScript -like "*musu.second_pc_return_import.v1*") `
+            "packet second-PC return importer verifies MSIX evidence and produces primary commands" `
+            "packet second-PC return importer lacks verification, command, or recording support"
     }
 
     $goNoGoScriptPath = Join-Path $packetRoot "scripts\windows\write-release-go-no-go.ps1"
@@ -269,7 +281,7 @@ try {
         $packetVerifierScript = Get-Content -LiteralPath $packetVerifierScriptPath -Raw
         Add-CheckFromCondition `
             "packet verifier release safety checks" `
-            ($packetVerifierScript -like "*go no-go dirty git blocker*" -and $packetVerifierScript -like "*multi-device verifier schema gate*" -and $packetVerifierScript -like "*msix verifier version and capture gate*" -and $packetVerifierScript -like "*support verifier version and token gate*" -and $packetVerifierScript -like "*store recorder explicit reservation timestamp*" -and $packetVerifierScript -like "*operator handoff return archive*") `
+            ($packetVerifierScript -like "*go no-go dirty git blocker*" -and $packetVerifierScript -like "*multi-device verifier schema gate*" -and $packetVerifierScript -like "*msix verifier version and capture gate*" -and $packetVerifierScript -like "*support verifier version and token gate*" -and $packetVerifierScript -like "*store recorder explicit reservation timestamp*" -and $packetVerifierScript -like "*operator handoff return archive*" -and $packetVerifierScript -like "*second pc return importer safety*") `
             "packet verifier checks dirty git, MSIX, multi-device, support, and Store evidence rules" `
             "packet verifier does not check all release evidence rules"
     }

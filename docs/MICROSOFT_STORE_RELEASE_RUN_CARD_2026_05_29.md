@@ -92,7 +92,16 @@ release repo. If the archive is unavailable, return the raw
 `.local-build\msix-install\*.evidence.json`,
 `.local-build\second-pc-handoff\*.handoff.json`, and
 `.local-build\second-pc-release-check\*.release-check.json` files. Record the
-install evidence:
+install evidence by importing the archive:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\import-second-pc-return.ps1 `
+  -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP> `
+  -RecordMsixInstall `
+  -Json
+```
+
+Manual fallback:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-msix-install-evidence.ps1 `
@@ -114,7 +123,7 @@ Use one `suggested_remote_addrs` value from the returned archive or
 On the primary release machine:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-second-pc-return-card.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP>
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\import-second-pc-return.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP> -Json
 ```
 
 Then run the printed multi-device command, or fill it manually:
