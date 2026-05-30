@@ -36,8 +36,8 @@ Audit snapshot before this document update:
 | Operator handoff card | `show-operator-handoff-card.ps1` reads packet metadata and prints current support id, subject, kit name, return files, and recording commands |
 | Support mailbox | `musu@musu.pro` |
 | Support source of truth | root `SUPPORT_EMAIL`; scripts use `scripts\windows\release-config.ps1`; public Next pages use `musu-bee/src/lib/contact.ts` |
-| Current single-machine evidence | `docs\evidence\single-machine\1.15.0-rc.1\20260530-085123-HUGH_SECOND.evidence.json` |
-| Single-machine smoke output | `MUSU_RELEASE_SMOKE_OK_20260530_085059`; CLI route `MUSU_CLI_ROUTE_OK_20260530_085059` |
+| Current single-machine evidence | `docs\evidence\single-machine\1.15.0-rc.1\20260530-094254-HUGH_SECOND.evidence.json` |
+| Single-machine smoke output | `MUSU_RELEASE_SMOKE_OK_20260530_094227`; CLI route `MUSU_CLI_ROUTE_OK_20260530_094227` |
 | Public metadata | live `https://musu.pro/privacy` and `/support` verify with `musu@musu.pro` |
 | Final go/no-go | `ready_for_public_desktop_release=false` |
 
@@ -101,6 +101,16 @@ Latest second-PC wrapper/evidence refresh:
 - Dashboard task: `14c9e9be-73b7-494f-9194-fd87d8f4b252`.
 - Bridge: `http://127.0.0.1:12427`.
 
+Latest Store submission bundle verifier/evidence refresh:
+
+- `verify-store-submission-bundle.ps1` was added to reduce Partner Center upload-package risk.
+- Fresh evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260530-094254-HUGH_SECOND.evidence.json`.
+- Source commit: `45209e8995d173bef874f0213926daa21712b3bc`.
+- Dashboard output: `MUSU_RELEASE_SMOKE_OK_20260530_094227`.
+- CLI route: `MUSU_CLI_ROUTE_OK_20260530_094227`.
+- Dashboard task: `948fd44f-41b3-4bc8-9aa2-e05ea002d838`.
+- Bridge: `http://127.0.0.1:12715`.
+
 ## Product Spec Updates
 
 These are the current product/spec locks from the work:
@@ -112,7 +122,8 @@ These are the current product/spec locks from the work:
 5. **Evidence policy**: public release readiness is evidence-backed only. No assumption flags, no fake support evidence, no Store approval inference, and dirty git state is a blocker.
 6. **Second-PC proof**: second-PC evidence must include a real install capture, operator metadata, current version, non-future timestamps, and a multi-device `remote_addr` with `host:port`.
 7. **Partner Center proof**: Store release evidence must explicitly include product-name reservation timestamp, submission id, certification status, and restricted capability status.
-8. **musu-system integration**: `yellowhama/musu-system`, `musu-crawl-ai`, `musu-marketer`, and `musu-nurikun` are high-value adjacent tooling, but they are not part of the first Store package and should not be merged into `musu-rs`. First likely integration candidate is `crawl-ai` as optional wiki/knowledge ingestion through an adapter/MCP/CLI boundary. `nurikun` support ops should stay human-approved until send-failure persistence is fixed or wrapped.
+8. **Store submission bundle proof**: the Partner Center upload bundle must pass `verify-store-submission-bundle.ps1`, include `SHA256SUMS.txt`, exclude private `.pfx/.p12`, and retain Store-reviewed startup capability justification.
+9. **musu-system integration**: `yellowhama/musu-system`, `musu-crawl-ai`, `musu-marketer`, and `musu-nurikun` are high-value adjacent tooling, but they are not part of the first Store package and should not be merged into `musu-rs`. First likely integration candidate is `crawl-ai` as optional wiki/knowledge ingestion through an adapter/MCP/CLI boundary. `nurikun` support ops should stay human-approved until send-failure persistence is fixed or wrapped.
 9. **Handoff values**: support verification id, subject, and second-PC kit name must come from `show-operator-handoff-card.ps1`, not from old notes.
 10. **Second-PC return values**: returned `.local-build\second-pc-handoff\*.handoff.json` should be fed to `show-second-pc-return-card.ps1` so the primary PC uses a current `host:port` endpoint and matching evidence paths.
 11. **Operator action pack**: `prepare-operator-action-pack.ps1` and `verify-operator-action-pack.ps1` create/check a local handoff archive for second-PC transfer, support-mailbox verification, and Partner Center submission copy. It is a convenience wrapper, not release evidence.
