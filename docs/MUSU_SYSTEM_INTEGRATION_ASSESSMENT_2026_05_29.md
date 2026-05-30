@@ -198,6 +198,16 @@ The latest verification was run from `.local-build\external\musu-system` against
 - Current decision remains unchanged: high integration value, adapter first, no Rust-core merge, no first Store package bundling.
 - The next useful MUSU-side task is not another audit; it is an adapter contract spike for `crawl-ai` with explicit cwd, wiki root, project/company mapping, model/env injection, and machine-readable result capture.
 
+2026-05-30 09:20 KST recheck:
+
+- `gh repo view yellowhama/musu-system` still reports public Go repo `https://github.com/yellowhama/musu-system`, last updated at `2026-05-28T16:15:48Z`.
+- `git ls-remote` still resolves `HEAD` and `refs/heads/main` to `d4e58e010fe30e83c1e96165d75d7c3ec80a2f40`.
+- Active service tags still resolve to `crawl-ai/v0.8.0`, `marketer/v2.0.5`, and `nurikun/v0.3.1`.
+- Latest remote `musu-system` CI remains green: run `26587103682`.
+- Local clone `.local-build\external\musu-system` is clean and aligned with `origin/main`.
+- `go test ./...` and `go vet ./...` passed again in `core`, `crawl-ai`, `marketer`, and `nurikun`.
+- Current decision remains unchanged: high future integration value, but keep it out of the first Store package and integrate later through optional MCP/CLI/bridge adapters.
+
 ## Code Audit Notes
 
 `musu-system` is not just a README wrapper. It has a coherent Go workspace, per-module tests, CI build/vet/race-test workflow, tag-triggered GHCR publishing, and a deploy bundle with Ollama, shared wiki volume, Caddy TLS profile, and optional scheduler.
