@@ -36,8 +36,8 @@ Audit snapshot before this document update:
 | Operator handoff card | `show-operator-handoff-card.ps1` reads packet metadata and prints current support id, subject, kit name, return files, and recording commands |
 | Support mailbox | `musu@musu.pro` |
 | Support source of truth | root `SUPPORT_EMAIL`; scripts use `scripts\windows\release-config.ps1`; public Next pages use `musu-bee/src/lib/contact.ts` |
-| Current single-machine evidence | `docs\evidence\single-machine\1.15.0-rc.1\20260530-094254-HUGH_SECOND.evidence.json` |
-| Single-machine smoke output | `MUSU_RELEASE_SMOKE_OK_20260530_094227`; CLI route `MUSU_CLI_ROUTE_OK_20260530_094227` |
+| Current single-machine evidence | `docs\evidence\single-machine\1.15.0-rc.1\20260530-100818-HUGH_SECOND.evidence.json` |
+| Single-machine smoke output | `MUSU_RELEASE_SMOKE_OK_20260530_1008`; CLI route `MUSU_CLI_ROUTE_OK_20260530_1008` |
 | Public metadata | live `https://musu.pro/privacy` and `/support` verify with `musu@musu.pro` |
 | Final go/no-go | `ready_for_public_desktop_release=false` |
 
@@ -110,6 +110,17 @@ Latest Store submission bundle verifier/evidence refresh:
 - CLI route: `MUSU_CLI_ROUTE_OK_20260530_094227`.
 - Dashboard task: `948fd44f-41b3-4bc8-9aa2-e05ea002d838`.
 - Bridge: `http://127.0.0.1:12715`.
+
+Latest second-PC return archive/evidence refresh:
+
+- `run-second-pc-release-check.ps1` now creates `.local-build\second-pc-return\*.zip`.
+- `show-second-pc-return-card.ps1 -ReturnZipPath ...` extracts the returned archive and prints primary-side commands.
+- Fresh evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260530-100818-HUGH_SECOND.evidence.json`.
+- Source commit: `7294d65d7728378b65e671479237ce68646c906a`.
+- Dashboard output: `MUSU_RELEASE_SMOKE_OK_20260530_1008`.
+- CLI route: `MUSU_CLI_ROUTE_OK_20260530_1008`.
+- Dashboard task: `695f1e1d-1d1b-46bd-8783-3eebb216842a`.
+- Bridge: `http://127.0.0.1:2217`.
 
 ## Product Spec Updates
 
