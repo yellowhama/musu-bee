@@ -4,20 +4,20 @@
 
 `1.15.0-rc.1` is **not public desktop release ready yet**.
 
-This is not because the local runtime, CI, or public metadata are failing. Current `write-release-go-no-go.ps1` reports:
+This is not because the local desktop entrypoint artifact/install split is failing. Current diagnostic `write-release-go-no-go.ps1` reports:
 
-- `local_artifacts_ready=false`
-- `msix_desktop_entrypoint_verified=false`
+- `local_artifacts_ready=true`
+- `msix_desktop_entrypoint_verified=true`
 - `public_metadata_ok=true`
 - `ready_for_public_desktop_release=false`
 
 Remaining blockers:
 
-1. Store/MSIX desktop entrypoint has not been fixed; the current MSIX launches `musu.exe` and omits `musu-desktop.exe`
+1. current single-machine smoke evidence must be refreshed after the latest hardening commit
 2. real second-PC multi-device evidence has not been recorded
-3. two-machine runtime idle CPU evidence has not been recorded
-4. process ownership evidence must pass on the live MUSU runtime
-5. startup single-instance evidence must prove repeated startup reuses one runtime
+3. two-machine runtime idle CPU evidence has not been recorded from clean committed state
+4. source-fresh Store/MSIX build reliability is unresolved on this machine because rustc/LLVM hit OOM/pagefile pressure
+5. Store-reviewed restricted-capability package still requires Partner Center/Microsoft review instead of ordinary local sideload proof
 6. `musu@musu.pro` delivery has not been operator-verified
 7. Store release approval evidence has not been recorded:
    - Partner Center product name reservation / app submission

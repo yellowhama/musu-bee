@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [int]$MaxMusuRuntimeProcesses = 1,
+    [int]$MaxMusuDesktopProcesses = 1,
     [int]$MaxOwnedNodeProcesses = 1,
     [int]$MaxOwnedWebView2Processes = 12,
     [switch]$AllowNoBridgeRegistry,
@@ -219,7 +220,7 @@ function Test-HttpHealth([string]$Addr) {
 
 $script:nativeParentLookupAvailable = $false
 $targetNames = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
-foreach ($name in @("musu", "musud", "node", "msedgewebview2")) {
+foreach ($name in @("musu", "musud", "musu-desktop", "node", "msedgewebview2")) {
     [void]$targetNames.Add($name)
 }
 
@@ -251,8 +252,14 @@ foreach ($process in Get-Process -ErrorAction SilentlyContinue) {
 $musuRoots = @($rawProcesses | Where-Object {
     $_.process_name -ieq "musu" -or $_.process_name -ieq "musud"
 })
+$desktopRoots = @($rawProcesses | Where-Object {
+    $_.process_name -ieq "musu-desktop"
+})
 $rootIds = New-Object 'System.Collections.Generic.HashSet[int]'
 foreach ($root in $musuRoots) {
+    [void]$rootIds.Add([int]$root.pid)
+}
+foreach ($root in $desktopRoots) {
     [void]$rootIds.Add([int]$root.pid)
 }
 
@@ -260,7 +267,10 @@ $processes = @()
 foreach ($process in $rawProcesses) {
     $isRoot = $rootIds.Contains([int]$process.pid)
     $isOwnedHelper = (-not $isRoot -and (Test-DescendantOfAnyRoot -ProcessId ([int]$process.pid) -RootIds $rootIds -ParentByPid $parentByPid))
-    $role = if ($isRoot) {
+    $role = if ($process.process_name -ieq "musu-desktop") {
+        "desktop_shell"
+    }
+    elseif ($isRoot) {
         "musu_runtime"
     }
     elseif ($process.process_name -ieq "node") {
@@ -345,6 +355,7 @@ else {
 $checks = New-Object System.Collections.Generic.List[object]
 Add-CheckFromCondition -Checks $checks -Name "native parent lookup" -Condition ([bool]$script:nativeParentLookupAvailable) -PassMessage "native parent-process lookup is available" -FailMessage "native parent-process lookup is unavailable"
 Add-CheckFromCondition -Checks $checks -Name "MUSU runtime process count" -Condition ($musuRoots.Count -ge 1 -and $musuRoots.Count -le $MaxMusuRuntimeProcesses) -PassMessage "$($musuRoots.Count) MUSU runtime process(es) running" -FailMessage "$($musuRoots.Count) MUSU runtime process(es) running; expected 1..$MaxMusuRuntimeProcesses"
+Add-CheckFromCondition -Checks $checks -Name "MUSU desktop process count" -Condition ($desktopRoots.Count -le $MaxMusuDesktopProcesses) -PassMessage "$($desktopRoots.Count) MUSU desktop shell process(es)" -FailMessage "$($desktopRoots.Count) MUSU desktop shell process(es); max $MaxMusuDesktopProcesses"
 Add-CheckFromCondition -Checks $checks -Name "owned Node helper count" -Condition ($ownedNode.Count -le $MaxOwnedNodeProcesses) -PassMessage "$($ownedNode.Count) owned Node helper process(es)" -FailMessage "$($ownedNode.Count) owned Node helper process(es); max $MaxOwnedNodeProcesses"
 Add-CheckFromCondition -Checks $checks -Name "owned WebView2 helper count" -Condition ($ownedWebView2.Count -le $MaxOwnedWebView2Processes) -PassMessage "$($ownedWebView2.Count) owned WebView2 helper process(es)" -FailMessage "$($ownedWebView2.Count) owned WebView2 helper process(es); max $MaxOwnedWebView2Processes"
 Add-CheckFromCondition -Checks $checks -Name "orphan repo helper count" -Condition ($repoRelatedHelpers.Count -eq 0) -PassMessage "no repo-related orphan Node/WebView2 helpers" -FailMessage "$($repoRelatedHelpers.Count) repo-related helper process(es) are not owned by a live MUSU root"
@@ -365,12 +376,14 @@ $result = [pscustomobject]@{
     repo_root = $repoRoot
     musu_home = $musuHome
     max_musu_runtime_processes = $MaxMusuRuntimeProcesses
+    max_musu_desktop_processes = $MaxMusuDesktopProcesses
     max_owned_node_processes = $MaxOwnedNodeProcesses
     max_owned_webview2_processes = $MaxOwnedWebView2Processes
     fail_count = $failCount
     process_counts = [pscustomobject]@{
         all_target_processes = @($processes).Count
         musu_runtime = @($musuRoots).Count
+        desktop_shell = @($desktopRoots).Count
         owned_node = @($ownedNode).Count
         owned_webview2 = @($ownedWebView2).Count
         machine_wide_node = @($processes | Where-Object { $_.role -eq "node_helper" }).Count

@@ -547,6 +547,7 @@ struct DoctorBridge {
     status: DoctorLevel,
     local_url: String,
     service_registry_addr: Option<String>,
+    service_registry_pid: Option<u32>,
     public_url: String,
     public_url_valid: bool,
     health_http_status: Option<u16>,
@@ -578,6 +579,7 @@ struct UpReport {
     token_created: bool,
     bridge_started: bool,
     bridge_pid: Option<u32>,
+    terminated_unhealthy_bridge_pid: Option<u32>,
     bridge_log_path: String,
     bridge: DoctorBridge,
     dashboard: DoctorDashboard,
@@ -622,7 +624,8 @@ pub async fn run_doctor(opts: DoctorOpts) -> Result<()> {
     let binary_status = if alias_shadowed_by.is_some() {
         DoctorLevel::Warn
     } else if installed_binary_exists || current_exe.is_some() {
-        if bin_dir_on_path || crate::install::distribution::DistributionMode::current().is_store_msix()
+        if bin_dir_on_path
+            || crate::install::distribution::DistributionMode::current().is_store_msix()
         {
             DoctorLevel::Ok
         } else {
@@ -654,7 +657,9 @@ pub async fn run_doctor(opts: DoctorOpts) -> Result<()> {
 
     let account_token = crate::cloud::token::load_token(&home);
     let bridge_token = get_token();
-    let account_token_present = account_token.as_deref().is_some_and(|t| !t.trim().is_empty());
+    let account_token_present = account_token
+        .as_deref()
+        .is_some_and(|t| !t.trim().is_empty());
     let bridge_token_present = !bridge_token.trim().is_empty();
     let account_status = match (account_token_present, bridge_token_present) {
         (true, true) => DoctorLevel::Ok,
@@ -690,7 +695,8 @@ pub async fn run_doctor(opts: DoctorOpts) -> Result<()> {
         distribution: distribution.clone(),
         package_status_command: "musu package-status".into(),
         note: if cfg!(windows) {
-            "Run `musu package-status` for Windows package identity and startup-task details.".into()
+            "Run `musu package-status` for Windows package identity and startup-task details."
+                .into()
         } else {
             "Package startup-task diagnostics are Windows/MSIX specific.".into()
         },
@@ -751,8 +757,41 @@ pub async fn run_up(opts: UpOpts) -> Result<()> {
     let bridge_log_path = home.join("logs").join("bridge.log");
     let mut bridge_started = false;
     let mut bridge_pid = None;
+    let mut terminated_unhealthy_bridge_pid = None;
 
     if !bridge_reachable(&bridge) {
+        if let Some(pid) = bridge.service_registry_pid {
+            if crate::bridge::services::is_pid_alive(pid) {
+                let registered_pid_is_musu_runtime =
+                    crate::bridge::services::is_musu_runtime_pid(pid);
+                if registered_pid_is_musu_runtime {
+                    tracing::warn!(
+                        pid,
+                        error = ?bridge.error,
+                        "terminating unhealthy registered bridge before restart"
+                    );
+                } else {
+                    tracing::warn!(
+                        pid,
+                        error = ?bridge.error,
+                        "registered bridge pid is alive but is not a MUSU runtime process; leaving it untouched"
+                    );
+                }
+                if registered_pid_is_musu_runtime {
+                    if crate::bridge::services::terminate_pid(pid) {
+                        terminated_unhealthy_bridge_pid = Some(pid);
+                        for _ in 0..10 {
+                            if !crate::bridge::services::is_pid_alive(pid) {
+                                break;
+                            }
+                            tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+                        }
+                    } else {
+                        tracing::warn!(pid, "failed to terminate unhealthy registered bridge");
+                    }
+                }
+            }
+        }
         let child = spawn_bridge_process(&home, &bridge_log_path)?;
         bridge_started = true;
         bridge_pid = Some(child.id());
@@ -781,9 +820,8 @@ pub async fn run_up(opts: UpOpts) -> Result<()> {
         ));
     }
     if dashboard.status != DoctorLevel::Ok {
-        next_steps.push(
-            "Start the dashboard from `musu-bee`: `npm run dev` or `npm start`.".into(),
-        );
+        next_steps
+            .push("Start the dashboard from `musu-bee`: `npm run dev` or `npm start`.".into());
     }
     if next_steps.is_empty() {
         next_steps.push("Open the dashboard and run a first agent task.".into());
@@ -794,6 +832,7 @@ pub async fn run_up(opts: UpOpts) -> Result<()> {
         token_created,
         bridge_started,
         bridge_pid,
+        terminated_unhealthy_bridge_pid,
         bridge_log_path: bridge_log_path.display().to_string(),
         bridge,
         dashboard,
@@ -812,7 +851,20 @@ pub async fn run_up(opts: UpOpts) -> Result<()> {
 
 async fn check_bridge(home: &std::path::Path) -> DoctorBridge {
     let local_url = crate::bridge::services::local_bridge_http_url(home);
-    let service_registry_addr = crate::bridge::services::discover_local_bridge_addr(home);
+    let registry = crate::bridge::services::ServiceRegistry::with_dir(home.join("services"));
+    let service_registry_record = registry.discover("bridge");
+    let service_registry_addr = service_registry_record.as_ref().and_then(|record| {
+        if matches!(record.transport, crate::bridge::services::Transport::Tcp) {
+            Some(crate::bridge::services::normalize_loopback_addr(
+                &record.addr,
+            ))
+        } else {
+            None
+        }
+    });
+    let service_registry_pid = service_registry_record
+        .as_ref()
+        .and_then(|record| record.pid);
     let public_url = crate::bridge::services::resolve_public_bridge_url(home);
     let public_url_valid = is_http_url(&public_url);
 
@@ -840,6 +892,7 @@ async fn check_bridge(home: &std::path::Path) -> DoctorBridge {
                 status: level,
                 local_url,
                 service_registry_addr,
+                service_registry_pid,
                 public_url,
                 public_url_valid,
                 health_http_status,
@@ -859,6 +912,7 @@ async fn check_bridge(home: &std::path::Path) -> DoctorBridge {
             status: DoctorLevel::Fail,
             local_url,
             service_registry_addr,
+            service_registry_pid,
             public_url,
             public_url_valid,
             health_http_status: None,
@@ -1012,7 +1066,10 @@ fn next_steps_for(
         steps.push("Run `musu login`.".into());
     }
     if !account.bridge_token_present {
-        steps.push("Seed the local bridge token by running `musu install` or starting `musu bridge` once.".into());
+        steps.push(
+            "Seed the local bridge token by running `musu install` or starting `musu bridge` once."
+                .into(),
+        );
     }
     if matches!(bridge, DoctorLevel::Fail) {
         steps.push("Start the local bridge with `musu bridge`.".into());
@@ -1024,7 +1081,10 @@ fn next_steps_for(
         steps.push("Start the dashboard from `musu-bee`: `npm run dev` for port 3000 or `npm start` for port 3001.".into());
     }
     if steps.is_empty() {
-        steps.push("System looks ready. Use the dashboard or `musu route --wait <task>` to run work.".into());
+        steps.push(
+            "System looks ready. Use the dashboard or `musu route --wait <task>` to run work."
+                .into(),
+        );
     }
     steps
 }
@@ -1610,7 +1670,9 @@ pub async fn run_login() -> Result<()> {
                     println!("Node registration failed.");
                     println!("  reason: {}", e);
                     println!("  computed public_url: {}", public_url);
-                    println!("This machine is logged in, but is not yet fully registered in your fleet.");
+                    println!(
+                        "This machine is logged in, but is not yet fully registered in your fleet."
+                    );
                 } else {
                     println!("Node registered successfully.");
                     println!("This machine is connected to your MUSU account.");
@@ -1620,7 +1682,9 @@ pub async fn run_login() -> Result<()> {
                 println!("Connection checklist:");
                 println!("  1. Run `musu doctor` to verify local state.");
                 println!("  2. Start the bridge with `musu bridge` if it is not already running.");
-                println!("  3. Open the dashboard: http://127.0.0.1:3000/app or http://127.0.0.1:3001/app");
+                println!(
+                    "  3. Open the dashboard: http://127.0.0.1:3000/app or http://127.0.0.1:3001/app"
+                );
                 return Ok(());
             }
             Ok(None) => {

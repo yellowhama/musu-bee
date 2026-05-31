@@ -69,9 +69,9 @@ Already applied:
 - release go/no-go now reports `process_ownership_verified` and blocks if the
   process ownership audit is missing or failing
 - current local process ownership audit on `HUGH_SECOND` passed with
-  `musu_runtime=1`, `owned_node=0`, `owned_webview2=0`,
+  `musu_runtime=1`, `desktop_shell=1`, `owned_node=0`, `owned_webview2=6`,
   `orphan_repo_helpers=0`, bridge registry PID alive, and bridge `/health`
-  HTTP 200, despite 13 unrelated machine-wide WebView2 processes
+  HTTP 200, despite 19 unrelated machine-wide WebView2 processes
 - `scripts\windows\audit-musu-startup-single-instance.ps1` now records
   `musu.startup_single_instance_audit.v1`, calls `musu up --json` repeatedly,
   verifies one stable bridge PID, and embeds the process ownership audit
@@ -85,10 +85,13 @@ Already applied:
   `max_one_core_percent_by_role.musu=0.03`, `total_working_set_mb_after=27.7`,
   `owned_node=0`, and `owned_webview2=0`. This proves the bridge-only runtime is
   not the current hot loop, but it is not final release evidence.
-- desktop-open diagnostic attempt
+- historical desktop-open diagnostic attempt
   `docs\evidence\runtime-idle-cpu-diagnostic\1.15.0-rc.1\20260531-211608-HUGH_SECOND.desktop-open-attempt.evidence.json`
   fails as intended because `-RequireOwnedWebView2` found zero MUSU-owned
-  WebView2 processes after MSIX app activation.
+  WebView2 processes after old MSIX app activation. A later dirty diagnostic
+  desktop-open sample passed after `musu-desktop` root attribution and fixed
+  local-sideload install, but final release evidence must still be captured
+  from clean committed state on both PCs.
 - MSIX desktop-entrypoint audit evidence
   `docs\evidence\msix-desktop-entrypoint\1.15.0-rc.1\20260531-214327-HUGH_SECOND.store-msix-runtime-only.evidence.json`
   identifies the root cause: the current MSIX `<Application Executable>` is
@@ -108,24 +111,62 @@ Already applied:
   `.local-build\msix\submission-bundles\store-reviewed-20260531-224352`
   verifies with `ok=true`, `fail_count=0`.
 - `audit-msix-desktop-entrypoint.ps1` now separates artifact audits from
-  installed-package audits. Artifact audits do not fail because an older
-  installed package exists; `-RequireInstalledPackage` still fails closed until
-  the fixed package is installed.
+  installed-package audits and verifies startup-contract equivalence when
+  `-RequireInstalledPackage` is used.
+- Fixed `local-sideload-manual` install evidence now passes on `HUGH_SECOND`:
+  `docs\evidence\msix-desktop-entrypoint\1.15.0-rc.1\20260531-232229-HUGH_SECOND.local-sideload-installed.evidence.json`
+  has `ok=true`, installed application executable `musu-desktop.exe`, runtime
+  alias `musu.exe`, startup task `musu-startup.exe`, and
+  `startup_contract_matches_artifact=true`.
+- Store-reviewed restricted-capability MSIX is no longer treated as ordinary
+  sideload evidence. `install-msix.ps1` and `install-and-verify-msix.ps1` refuse
+  to sideload it by default because local `Add-AppxPackage` can fail after
+  removing the current package. `-AllowRestrictedCapabilitySideload` is required
+  for intentional restricted-capability sideload experiments.
+- Store-reviewed `-RequireInstalledPackage` audit now correctly fails on a
+  local-sideload machine because the Store artifact has
+  `Microsoft.nonUserConfigurableStartupTasks_8wekyb3d8bbwe` and
+  `StartupImmediateRegistration=true`, while the local-sideload installed
+  package does not. The mismatch proof is
+  `docs\evidence\msix-desktop-entrypoint\1.15.0-rc.1\20260531-232229-HUGH_SECOND.store-reviewed-contract-mismatch.evidence.json`.
+- `write-release-go-no-go.ps1` now treats `msix_desktop_entrypoint_verified` as
+  the conjunction of Store-reviewed artifact proof plus local-sideload installed
+  proof. It does not ask local operators to install the restricted-capability
+  Store artifact before Microsoft signs/distributes it.
+- `scripts\windows\audit-musu-process-ownership.ps1` and
+  `measure-musu-idle-cpu.ps1` now include `musu-desktop` as a MUSU root process,
+  so WebView2 children of the packaged Tauri shell are attributed correctly.
+- Current local process ownership audit with the packaged desktop open passed
+  with `musu_runtime=1`, `desktop_shell=1`, `owned_node=0`,
+  `owned_webview2=6`, `machine_wide_node=2`, `machine_wide_webview2=19`,
+  `orphan_repo_helpers=0`, bridge registry PID alive, and bridge `/health`
+  HTTP 200.
+- A clean committed desktop-open diagnostic sample passed after attribution was
+  fixed at `.local-build\runtime-idle-cpu\musu-idle-cpu-20260531-235500.json`:
+  `git_dirty=false`, `process_counts_by_role.musu=2`, `webview2=6`, owned Node
+  `0`, `max_one_core_percent_by_role.webview2=0.03`, `musu=0.03`,
+  `total_working_set_mb_after=363.45`. This proves the primary PC packaged
+  desktop is now quiet in the sampled state; the final release gate still needs
+  the same evidence on the second PC.
+- `musu up` now has code to terminate a live but unhealthy registered bridge
+  PID before restarting the bridge. This addresses the observed "PID alive but
+  `/health` dead" class. Runtime verification is still pending because a local
+  debug binary build hit rustc/LLVM OOM.
 - Source-fresh release packaging still needs a stronger build machine or build
   profile adjustment: a `build-msix.ps1` release build attempt on `HUGH_SECOND`
   failed in `musu-rs` rustc OOM/pagefile pressure even with
-  `CARGO_BUILD_JOBS=1`. The package-structure proof used `-SkipBuild` and
-  existing release binaries.
+  `CARGO_BUILD_JOBS=1`, and a later `cargo build --bin musu` debug build also
+  hit rustc/LLVM OOM. `cargo check -j 1` passes.
 
 Next implementation:
 
 - produce a source-fresh fixed MSIX on a machine that can complete the release
   build, or reduce the MSIX release build memory profile without weakening the
   runtime contract
-- install the fixed MSIX on the primary PC and second PC
-- after `audit-msix-desktop-entrypoint.ps1 -RequireInstalledPackage -Json`
-  passes, run real 60s `desktop-open` samples with `-RequireOwnedWebView2` on
-  both PCs
+- keep local install evidence on the `local-sideload-manual` contract until the
+  Microsoft Store-signed restricted-capability package is available
+- run real clean 60s `desktop-open` samples with `-RequireOwnedWebView2` on the
+  primary PC and second PC using the fixed local-sideload package
 - run a queued-task/backlog CPU sample to prove the new event-driven admission
   path stays quiet when tasks are waiting for global/per-channel slots
 - extend startup-repeat coverage from repeated `musu up` to desktop Start

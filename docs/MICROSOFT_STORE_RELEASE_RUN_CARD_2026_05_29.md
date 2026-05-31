@@ -9,7 +9,7 @@ MUSU is not public Store-release ready yet.
 Current verified state:
 
 - Store/MSIX artifact structure now launches `musu-desktop.exe` and keeps `musu.exe` / `musu-startup.exe` in their CLI alias and startup-task roles
-- installed-package desktop evidence is still stale because the currently installed package is the older runtime-only MSIX
+- local-sideload installed-package desktop evidence now passes on `HUGH_SECOND`; Store-reviewed restricted-capability local sideload is refused by default and remains Partner Center/Microsoft Store evidence
 - public `/privacy` and `/support` metadata are reachable
 - current single-machine evidence is recorded and verified
 - final operator gate packet exists and verifies cleanly
@@ -18,8 +18,8 @@ Current verified state:
 Remaining release blockers:
 
 1. source-fresh Store/MSIX release packaging, because the latest full local release build hit `musu-rs` rustc OOM/pagefile pressure
-2. installed Store/MSIX desktop entrypoint evidence after reinstalling the fixed package
-3. packaged `desktop-open -RequireOwnedWebView2` idle CPU/resource evidence on primary and second PC
+2. clean packaged `desktop-open -RequireOwnedWebView2` idle CPU/resource evidence on primary and second PC
+3. current single-machine smoke evidence refreshed after the latest code hardening commit
 4. real second-PC multi-device routing evidence
 5. real `musu@musu.pro` inbox delivery evidence
 6. Partner Center product-name reservation, app submission, Microsoft certification, and restricted capability approval evidence

@@ -2,7 +2,7 @@
 param(
     [int]$SampleSeconds = 15,
     [double]$MaxOneCorePercent = 5.0,
-    [string[]]$ProcessName = @("musu", "MUSU", "musud"),
+    [string[]]$ProcessName = @("musu", "MUSU", "musud", "musu-desktop"),
     [switch]$IncludeNode,
     [switch]$IncludeWebView2,
     [switch]$IncludeUnrelatedHelpers,

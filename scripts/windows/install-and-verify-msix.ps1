@@ -5,7 +5,8 @@ param(
     [ValidateSet("local-sideload-manual", "store-reviewed-immediate-registration")]
     [string]$StartupContract = "local-sideload-manual",
     [switch]$DryRun,
-    [switch]$ElevatedRerun
+    [switch]$ElevatedRerun,
+    [switch]$AllowRestrictedCapabilitySideload
 )
 
 Set-StrictMode -Version Latest
@@ -50,6 +51,9 @@ function Invoke-SelfElevationIfNeeded {
     }
     if ($ReplaceExisting) {
         $args += "-ReplaceExisting"
+    }
+    if ($AllowRestrictedCapabilitySideload) {
+        $args += "-AllowRestrictedCapabilitySideload"
     }
     $args += @("-StartupContract", $StartupContract)
 
@@ -99,6 +103,9 @@ if ($StartupContract) {
 if ($DryRun) {
     $installArgs += "-DryRun"
 }
+if ($AllowRestrictedCapabilitySideload) {
+    $installArgs += "-AllowRestrictedCapabilitySideload"
+}
 $packageIdentity = Get-LatestPackageIdentity
 $packageInstalled = $false
 if ($packageIdentity) {
@@ -113,6 +120,9 @@ if (-not $DryRun -and $MachineTrust -and -not (Test-IsAdministrator) -and -not $
         "-File", (Join-Path $scriptDir "install-msix.ps1"),
         "-StartupContract", $StartupContract
     )
+    if ($AllowRestrictedCapabilitySideload) {
+        $currentUserArgs += "-AllowRestrictedCapabilitySideload"
+    }
     $currentUserExit = Invoke-ChildPowerShell -ArgumentList $currentUserArgs -AllowFailure
     if ($currentUserExit -eq 0) {
         $installedInCurrentSession = $true

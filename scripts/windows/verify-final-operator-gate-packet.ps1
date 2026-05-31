@@ -244,9 +244,9 @@ try {
             "packet go/no-go does not pass ExpectedVersion to support evidence verifier"
         Add-CheckFromCondition `
             "go no-go msix desktop entrypoint gate" `
-            ($goNoGoScript -like "*msix_desktop_entrypoint_verified*" -and $goNoGoScript -like "*audit-msix-desktop-entrypoint.ps1*" -and $goNoGoScript -like "*RequireInstalledPackage*" -and $goNoGoScript -like "*musu-desktop.exe*") `
-            "packet go/no-go blocks on MSIX desktop entrypoint evidence" `
-            "packet go/no-go does not block on MSIX desktop entrypoint evidence"
+            ($goNoGoScript -like "*msix_desktop_entrypoint_verified*" -and $goNoGoScript -like "*audit-msix-desktop-entrypoint.ps1*" -and $goNoGoScript -like "*store-reviewed-immediate-registration*" -and $goNoGoScript -like "*local-sideload-manual*" -and $goNoGoScript -like "*RequireInstalledPackage*" -and $goNoGoScript -like "*musu-desktop.exe*") `
+            "packet go/no-go blocks on Store artifact and local installed MSIX desktop entrypoint evidence" `
+            "packet go/no-go does not block on Store artifact plus local installed MSIX desktop entrypoint evidence"
         Add-CheckFromCondition `
             "go no-go runtime idle CPU gate" `
             ($goNoGoScript -like "*runtime_idle_cpu_verified*" -and $goNoGoScript -like "*runtime-idle-cpu*" -and $goNoGoScript -like "*MinRuntimeIdleCpuMachineCount*" -and $goNoGoScript -like "*RequiredRuntimeIdleCpuScenario*" -and $goNoGoScript -like "*require_owned_webview2*" -and $goNoGoScript -like "*max_owned_process_count*" -and $goNoGoScript -like "*max_owned_webview2_process_count*" -and $goNoGoScript -like "*max_total_working_set_mb*" -and $goNoGoScript -like "*memory_totals_by_role_mb*") `

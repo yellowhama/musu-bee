@@ -146,7 +146,7 @@ Runtime hardening:
 - default clipboard polling: off unless `MUSU_ENABLE_CLIPBOARD_SYNC=1`
 - runtime hardening and relay-control roadmap: `docs/RELEASE_1_15_0_RC1_RUNTIME_HARDENING_RELAY_ROADMAP_2026_05_31.md`
 - go/no-go preflight now reports `msix_desktop_entrypoint_verified`, `runtime_idle_cpu_verified`, `process_ownership_verified`, and `startup_single_instance_verified`
-- current state: bridge-only 60s diagnostic evidence passes on `HUGH_SECOND`; the regenerated Store/MSIX artifact now launches `musu-desktop.exe` and contains `musu.exe` plus `musu-startup.exe`, but installed-package desktop-open evidence still fails because `HUGH_SECOND` has the older runtime-only package installed and therefore creates no MUSU-owned WebView2 process; local process ownership and repeated startup evidence pass
+- current state: bridge-only 60s diagnostic evidence passes on `HUGH_SECOND`; the regenerated Store-reviewed artifact launches `musu-desktop.exe` and contains `musu.exe` plus `musu-startup.exe`; the fixed `local-sideload-manual` package is installed on `HUGH_SECOND` and passes installed desktop-entrypoint audit; Store-reviewed restricted-capability sideload is refused by default and must not be used as ordinary install evidence; a dirty packaged desktop-open diagnostic passes with one desktop shell and six MUSU-owned WebView2 helpers, but final release still needs clean two-machine `desktop-open -RequireOwnedWebView2` evidence; local process ownership and repeated startup evidence pass
 
 Store metadata:
 
@@ -158,7 +158,7 @@ Store metadata:
 - Store release evidence verifier: `scripts\windows\verify-store-release-evidence.ps1`
 - Store release evidence recorder: `scripts\windows\record-store-release-verification.ps1`
 - Store submission bundle verifier: `scripts\windows\verify-store-submission-bundle.ps1`
-- MSIX desktop entrypoint verifier: `scripts\windows\audit-msix-desktop-entrypoint.ps1`; regenerated Store-reviewed bundle `.local-build\msix\submission-bundles\store-reviewed-20260531-224352` passes artifact-level desktop-entrypoint verification, but `-RequireInstalledPackage` still fails until the fixed MSIX is installed
+- MSIX desktop entrypoint verifier: `scripts\windows\audit-msix-desktop-entrypoint.ps1`; regenerated Store-reviewed bundle `.local-build\msix\submission-bundles\store-reviewed-20260531-224352` passes artifact-level desktop-entrypoint verification, and `local-sideload-manual -RequireInstalledPackage` now passes on `HUGH_SECOND`. Store-reviewed `-RequireInstalledPackage` is expected to fail on local sideload installs unless the Microsoft Store-signed restricted-capability package is actually installed.
 - support mailbox DNS: `musu.pro` MX resolves to `smtp.google.com`; actual delivery still requires operator evidence
 - support mailbox evidence must match the current release version and include an explicit `musu-...` verification token; Store release evidence must include an explicit Partner Center product-name reservation timestamp
 - release go/no-go preflight: `scripts\windows\write-release-go-no-go.ps1`

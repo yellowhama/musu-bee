@@ -13,7 +13,7 @@ The blocker set has changed. It is no longer accurate to say the release is bloc
 1. **Idle CPU busy-loop risk**: operator observed MUSU using roughly 20% of one core while apparently idle on both the primary and second PC.
 2. **Hosted relay/control-plane gap**: current two-machine flow still depends too much on direct LAN/manual endpoint routing; MUSU needs a `musu.pro` assisted path for rendezvous, peer selection, and relay/tunnel fallback.
 3. **Runtime hardening gap**: background loops, process ownership, startup behavior, and resource budgets are not yet treated as release gates.
-4. **MSIX desktop boundary gap**: the regenerated MSIX artifact now launches `musu-desktop.exe`, but the installed package is still the older runtime-only MSIX and source-fresh release packaging hit local rustc OOM/pagefile pressure.
+4. **MSIX/source-fresh packaging gap**: the regenerated Store artifact and fixed local-sideload installed package now launch `musu-desktop.exe`, but source-fresh release packaging still hit local rustc OOM/pagefile pressure and final clean two-machine desktop/WebView2 evidence is missing.
 
 The correct current positioning is:
 
@@ -52,7 +52,12 @@ What it does not close:
   for the regenerated artifact. The regenerated artifact passes with
   `musu-desktop.exe` as the application executable, `musu.exe` as the CLI
   alias, `musu-startup.exe` as the startup task, and a desktop-shell
-  description. The installed package still fails until reinstalled.
+  description.
+- Local-sideload installed desktop-entrypoint evidence now passes at
+  `docs\evidence\msix-desktop-entrypoint\1.15.0-rc.1\20260531-232229-HUGH_SECOND.local-sideload-installed.evidence.json`.
+  Store-reviewed restricted-capability `-RequireInstalledPackage` evidence
+  correctly fails on local sideload installs at
+  `docs\evidence\msix-desktop-entrypoint\1.15.0-rc.1\20260531-232229-HUGH_SECOND.store-reviewed-contract-mismatch.evidence.json`.
 - Store submission bundle verification now passes for
   `.local-build\msix\submission-bundles\store-reviewed-20260531-224352`
   with `ok=true`, `fail_count=0`.
@@ -60,12 +65,12 @@ What it does not close:
   failed in `musu-rs` rustc OOM/pagefile pressure even with
   `CARGO_BUILD_JOBS=1`; the passing package-structure check used
   `build-msix.ps1 -SkipBuild` and existing release binaries.
-- Process ownership audit evidence now exists locally under
-  `.local-build\process-ownership\musu-process-ownership-20260531-201339.json`.
-  It passed with one MUSU runtime, zero MUSU-owned Node helpers, zero MUSU-owned
-  WebView2 helpers, one machine-wide Node process, 13 machine-wide WebView2
-  processes, zero repo-related orphan helpers, bridge registry PID alive, and
-  bridge `/health` HTTP 200.
+- Current process ownership audit evidence exists locally under
+  `.local-build\process-ownership\musu-process-ownership-20260531-232247.json`.
+  It passed with one MUSU runtime, one desktop shell, zero MUSU-owned Node
+  helpers, six MUSU-owned WebView2 helpers, two machine-wide Node processes, 19
+  machine-wide WebView2 processes, zero repo-related orphan helpers, bridge
+  registry PID alive, and bridge `/health` HTTP 200.
 - Startup single-instance evidence now exists under
   `docs\evidence\startup-single-instance\1.15.0-rc.1\20260531-203635-HUGH_SECOND.evidence.json`.
   Three consecutive `musu up --json` calls reused bridge PID 31208, left one

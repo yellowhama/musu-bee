@@ -2,7 +2,7 @@
 
 **Date**: 2026-05-31  
 **Release**: `1.15.0-rc.1`  
-**Purpose**: record real Windows second-PC MSIX install evidence for MUSU. This closes only the MSIX install evidence gate. It does not by itself close the MSIX desktop-entrypoint gate, real multi-device route gate, support mailbox gate, runtime idle CPU gate, or Microsoft Store approval gate. As of the late 2026-05-31 artifact fix, the Store-reviewed MSIX artifact launches `musu-desktop.exe`, but any installed older runtime-only package must be replaced before desktop-entrypoint or `desktop-open -RequireOwnedWebView2` evidence can pass.
+**Purpose**: record real Windows second-PC MSIX install evidence for MUSU. This closes only the MSIX install evidence gate. It does not by itself close the real multi-device route gate, support mailbox gate, runtime idle CPU gate, or Microsoft Store approval gate. As of the late 2026-05-31 desktop-entrypoint fix, the Store-reviewed artifact launches `musu-desktop.exe`, and local install/runtime evidence should use the fixed `local-sideload-manual` MSIX. Do not use the Store-reviewed restricted-capability MSIX as ordinary sideload evidence unless intentionally testing with `-AllowRestrictedCapabilitySideload`.
 
 ## Current Files
 

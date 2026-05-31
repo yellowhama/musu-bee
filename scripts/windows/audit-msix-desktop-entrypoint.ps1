@@ -120,8 +120,11 @@ function Test-EntryContainsFile {
 
 $packageInfo = $null
 $artifactEntrypoint = $null
+$artifactStartupContract = $null
 $pkg = $null
 $installedEntrypoint = $null
+$installedStartupContract = $null
+$installedStartupContractMatchesArtifact = $null
 $installLocation = $null
 $installedManifestPath = $null
 $startApp = $null
@@ -133,6 +136,7 @@ try {
         $PackagePath = (Resolve-Path -LiteralPath $PackagePath).Path
         $packageInfo = Get-MsixPackageInfo -Path $PackagePath
         $artifactEntrypoint = Get-MsixDesktopEntrypoint -Manifest $packageInfo.Manifest
+        $artifactStartupContract = Get-MsixStartupContract -Manifest $packageInfo.Manifest
         if ([string]::IsNullOrWhiteSpace($PackageName)) {
             $PackageName = [string]$packageInfo.IdentityName
         }
@@ -159,8 +163,11 @@ try {
         if (Test-Path -LiteralPath $installedManifestPath) {
             [xml]$installedManifest = Get-Content -LiteralPath $installedManifestPath
             $installedEntrypoint = Get-MsixDesktopEntrypoint -Manifest $installedManifest
+            $installedStartupContract = Get-MsixStartupContract -Manifest $installedManifest
+            $installedStartupContractMatchesArtifact = Test-MsixStartupContractEquivalent $artifactStartupContract $installedStartupContract
             Add-CheckFromCondition "installed application executable" ([string]$installedEntrypoint.application_executable -ieq $ExpectedApplicationExecutable) "installed application executable is $ExpectedApplicationExecutable" "installed application executable is '$($installedEntrypoint.application_executable)', expected '$ExpectedApplicationExecutable'"
             Add-CheckFromCondition "installed application not runtime CLI" ([string]$installedEntrypoint.application_executable -ine $RuntimeExecutable) "installed Start-menu app is not the runtime CLI" "installed Start-menu app launches $RuntimeExecutable, so the installed package is runtime-only"
+            Add-CheckFromCondition "installed startup contract matches artifact" ([bool]$installedStartupContractMatchesArtifact) "installed startup contract matches the audited artifact" "installed startup contract does not match the audited artifact; do not use a local-sideload install as Store-reviewed evidence"
             Add-CheckFromCondition "installed desktop executable file" (Test-Path -LiteralPath (Join-Path $installLocation $ExpectedApplicationExecutable)) "installed package contains $ExpectedApplicationExecutable" "installed package does not contain $ExpectedApplicationExecutable"
             Add-CheckFromCondition "installed runtime executable file" (Test-Path -LiteralPath (Join-Path $installLocation $RuntimeExecutable)) "installed package contains $RuntimeExecutable" "installed package does not contain $RuntimeExecutable"
             Add-CheckFromCondition "installed startup executable file" (Test-Path -LiteralPath (Join-Path $installLocation $StartupExecutable)) "installed package contains $StartupExecutable" "installed package does not contain $StartupExecutable"
@@ -213,6 +220,9 @@ $evidence = [pscustomobject]@{
             alias_name = $artifactEntrypoint.alias_name
             startup_executable = $artifactEntrypoint.startup_executable
             startup_task_id = $artifactEntrypoint.startup_task_id
+            startup_immediate_registration = if ($artifactStartupContract) { $artifactStartupContract.StartupImmediateRegistration } else { $null }
+            has_non_user_configurable_startup_capability = if ($artifactStartupContract) { [bool]$artifactStartupContract.HasNonUserConfigurableStartupCapability } else { $false }
+            has_run_full_trust = if ($artifactStartupContract) { [bool]$artifactStartupContract.HasRunFullTrust } else { $false }
             display_name = $artifactEntrypoint.display_name
             description = $artifactEntrypoint.description
             contains_expected_application_executable = Test-EntryContainsFile -Entries $packageInfo.Entries -FileName $ExpectedApplicationExecutable
@@ -235,6 +245,10 @@ $evidence = [pscustomobject]@{
             alias_name = if ($installedEntrypoint) { $installedEntrypoint.alias_name } else { $null }
             startup_executable = if ($installedEntrypoint) { $installedEntrypoint.startup_executable } else { $null }
             startup_task_id = if ($installedEntrypoint) { $installedEntrypoint.startup_task_id } else { $null }
+            startup_immediate_registration = if ($installedStartupContract) { $installedStartupContract.StartupImmediateRegistration } else { $null }
+            has_non_user_configurable_startup_capability = if ($installedStartupContract) { [bool]$installedStartupContract.HasNonUserConfigurableStartupCapability } else { $false }
+            has_run_full_trust = if ($installedStartupContract) { [bool]$installedStartupContract.HasRunFullTrust } else { $false }
+            startup_contract_matches_artifact = $installedStartupContractMatchesArtifact
             display_name = if ($installedEntrypoint) { $installedEntrypoint.display_name } else { $null }
             description = if ($installedEntrypoint) { $installedEntrypoint.description } else { $null }
             contains_expected_application_executable = if ($installLocation) { Test-Path -LiteralPath (Join-Path $installLocation $ExpectedApplicationExecutable) } else { $false }

@@ -158,6 +158,47 @@ function Test-MsixStartupContractEquivalent($Left, $Right) {
     )
 }
 
+function Invoke-MusuOptionalProbe {
+    param(
+        [Parameter(Mandatory = $true)][scriptblock]$ScriptBlock,
+        [int]$TimeoutSeconds = 5,
+        [string]$Name = "optional probe"
+    )
+
+    $job = $null
+    try {
+        $job = Start-Job -ScriptBlock $ScriptBlock
+        $completed = Wait-Job -Job $job -Timeout $TimeoutSeconds
+        if ($null -ne $completed) {
+            $value = @(Receive-Job -Job $job -ErrorAction Stop)
+            return [pscustomobject]@{
+                TimedOut = $false
+                Error    = $null
+                Value    = $value
+            }
+        }
+
+        Stop-Job -Job $job -ErrorAction SilentlyContinue
+        return [pscustomobject]@{
+            TimedOut = $true
+            Error    = "$Name timed out after ${TimeoutSeconds}s"
+            Value    = @()
+        }
+    }
+    catch {
+        return [pscustomobject]@{
+            TimedOut = $false
+            Error    = $_.Exception.Message
+            Value    = @()
+        }
+    }
+    finally {
+        if ($null -ne $job) {
+            Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
 function Get-MusuLegacyWindowsConflicts() {
     $startupDir = [Environment]::GetFolderPath("Startup")
     $startupHelpers = @()
@@ -172,16 +213,24 @@ function Get-MusuLegacyWindowsConflicts() {
 
     $scheduledTasks = @()
     $disabledScheduledTasks = @()
-    try {
-        $allScheduledTasks = @(Get-ScheduledTask -ErrorAction Stop | Where-Object {
+    $scheduledTaskProbeTimedOut = $false
+    $scheduledTaskProbeError = $null
+    $scheduledTaskProbe = Invoke-MusuOptionalProbe -Name "scheduled task conflict scan" -TimeoutSeconds 5 -ScriptBlock {
+        @(Get-ScheduledTask -ErrorAction Stop | Where-Object {
             $_.TaskName -like "*musu*" -or $_.TaskPath -like "*Musu*"
         })
+    }
+    $scheduledTaskProbeTimedOut = [bool]$scheduledTaskProbe.TimedOut
+    $scheduledTaskProbeError = $scheduledTaskProbe.Error
+    try {
+        $allScheduledTasks = @($scheduledTaskProbe.Value)
         $scheduledTasks = @($allScheduledTasks | Where-Object { $_.State -ne "Disabled" })
         $disabledScheduledTasks = @($allScheduledTasks | Where-Object { $_.State -eq "Disabled" })
     }
     catch {
         $scheduledTasks = @()
         $disabledScheduledTasks = @()
+        $scheduledTaskProbeError = $_.Exception.Message
     }
 
     $legacyBinPaths = @(
@@ -200,6 +249,8 @@ function Get-MusuLegacyWindowsConflicts() {
         DisabledStartupHelpers = $disabledStartupHelpers
         ScheduledTasks         = $scheduledTasks
         DisabledScheduledTasks = $disabledScheduledTasks
+        ScheduledTaskProbeTimedOut = $scheduledTaskProbeTimedOut
+        ScheduledTaskProbeError = $scheduledTaskProbeError
         LegacyBins             = $legacyBins
         AliasSources           = $aliasSources
         WindowsAppsAlias       = $windowsAppsAliasPath

@@ -371,11 +371,20 @@ $manifestPath = Join-Path $repoRoot ".local-build\release-candidates\$version\re
 
 $auditResult = Invoke-JsonScript -FilePath $auditScript -Arguments @("-Json")
 $audit = $auditResult.json
-$msixDesktopEntrypointAuditResult = Invoke-JsonScript `
+$msixStoreDesktopEntrypointArtifactAuditResult = Invoke-JsonScript `
     -FilePath $msixDesktopEntrypointAuditScript `
-    -Arguments @("-StartupContract", "store-reviewed-immediate-registration", "-ExpectedApplicationExecutable", "musu-desktop.exe", "-RequireInstalledPackage", "-Json") `
+    -Arguments @("-StartupContract", "store-reviewed-immediate-registration", "-ExpectedApplicationExecutable", "musu-desktop.exe", "-Json") `
     -AllowFailure
-$msixDesktopEntrypointVerified = ($msixDesktopEntrypointAuditResult.json -and [bool]$msixDesktopEntrypointAuditResult.json.ok)
+$msixLocalDesktopEntrypointInstalledAuditResult = Invoke-JsonScript `
+    -FilePath $msixDesktopEntrypointAuditScript `
+    -Arguments @("-StartupContract", "local-sideload-manual", "-ExpectedApplicationExecutable", "musu-desktop.exe", "-RequireInstalledPackage", "-Json") `
+    -AllowFailure
+$msixDesktopEntrypointVerified = (
+    $msixStoreDesktopEntrypointArtifactAuditResult.json -and
+    [bool]$msixStoreDesktopEntrypointArtifactAuditResult.json.ok -and
+    $msixLocalDesktopEntrypointInstalledAuditResult.json -and
+    [bool]$msixLocalDesktopEntrypointInstalledAuditResult.json.ok
+)
 
 & powershell -NoProfile -ExecutionPolicy Bypass -File $manifestScript | Out-Null
 if ($LASTEXITCODE -ne 0) {
@@ -745,7 +754,21 @@ $result = [pscustomobject]@{
     msix_install_verified = [bool]$msixInstallVerified
     msix_install_evidence = $msixInstallEvidence
     msix_desktop_entrypoint_verified = [bool]$msixDesktopEntrypointVerified
-    msix_desktop_entrypoint_audit = if ($msixDesktopEntrypointAuditResult.json) { $msixDesktopEntrypointAuditResult.json } else { [pscustomobject]@{ ok = $false; raw = $msixDesktopEntrypointAuditResult.raw } }
+    msix_desktop_entrypoint_audit = [pscustomobject]@{
+        ok = [bool]$msixDesktopEntrypointVerified
+        store_reviewed_artifact = if ($msixStoreDesktopEntrypointArtifactAuditResult.json) {
+            $msixStoreDesktopEntrypointArtifactAuditResult.json
+        }
+        else {
+            [pscustomobject]@{ ok = $false; raw = $msixStoreDesktopEntrypointArtifactAuditResult.raw }
+        }
+        local_sideload_installed = if ($msixLocalDesktopEntrypointInstalledAuditResult.json) {
+            $msixLocalDesktopEntrypointInstalledAuditResult.json
+        }
+        else {
+            [pscustomobject]@{ ok = $false; raw = $msixLocalDesktopEntrypointInstalledAuditResult.raw }
+        }
+    }
     runtime_idle_cpu_verified = [bool]$runtimeIdleCpuVerified
     required_runtime_idle_cpu_scenario = $RequiredRuntimeIdleCpuScenario
     runtime_idle_cpu_evidence = $runtimeIdleCpuEvidence

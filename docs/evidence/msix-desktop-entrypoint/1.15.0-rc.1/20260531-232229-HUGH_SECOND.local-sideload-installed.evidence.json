@@ -1,0 +1,155 @@
+﻿{
+    "schema":  "musu.msix_desktop_entrypoint_audit.v1",
+    "ok":  true,
+    "version":  "1.15.0-rc.1",
+    "recorded_at":  "2026-05-31T23:23:19.4083676+09:00",
+    "operator_machine":  "HUGH_SECOND",
+    "operator_user":  "empty",
+    "repo_root":  "F:\\workspace\\musu-bee",
+    "startup_contract":  "local-sideload-manual",
+    "package_path":  "F:\\workspace\\musu-bee\\.local-build\\msix\\output\\musu_1.15.0.0_x64_local-sideload-manual.msix",
+    "package_name":  "Yellowhama.MUSU",
+    "expected_application_executable":  "musu-desktop.exe",
+    "runtime_executable":  "musu.exe",
+    "startup_executable":  "musu-startup.exe",
+    "require_installed_package":  true,
+    "artifact":  {
+                     "identity_name":  "Yellowhama.MUSU",
+                     "version":  "1.15.0.0",
+                     "application_id":  "MUSU",
+                     "application_executable":  "musu-desktop.exe",
+                     "alias_executable":  "musu.exe",
+                     "alias_name":  "musu.exe",
+                     "startup_executable":  "musu-startup.exe",
+                     "startup_task_id":  "MusuBridgeStartup",
+                     "startup_immediate_registration":  "",
+                     "has_non_user_configurable_startup_capability":  false,
+                     "has_run_full_trust":  true,
+                     "display_name":  "MUSU",
+                     "description":  "MUSU desktop shell for the local AI operations runtime",
+                     "contains_expected_application_executable":  true,
+                     "contains_runtime_executable":  true,
+                     "contains_startup_executable":  true
+                 },
+    "installed":  {
+                      "package_full_name":  "Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6",
+                      "package_family_name":  "Yellowhama.MUSU_ygcjq669as2b6",
+                      "install_location":  "C:\\Program Files\\WindowsApps\\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6",
+                      "manifest_path":  "C:\\Program Files\\WindowsApps\\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6\\AppxManifest.xml",
+                      "application_id":  "MUSU",
+                      "application_executable":  "musu-desktop.exe",
+                      "alias_executable":  "musu.exe",
+                      "alias_name":  "musu.exe",
+                      "startup_executable":  "musu-startup.exe",
+                      "startup_task_id":  "MusuBridgeStartup",
+                      "startup_immediate_registration":  "",
+                      "has_non_user_configurable_startup_capability":  false,
+                      "has_run_full_trust":  true,
+                      "startup_contract_matches_artifact":  true,
+                      "display_name":  "MUSU",
+                      "description":  "MUSU desktop shell for the local AI operations runtime",
+                      "contains_expected_application_executable":  true,
+                      "contains_runtime_executable":  true,
+                      "contains_startup_executable":  true,
+                      "start_menu_entry":  true
+                  },
+    "fail_count":  0,
+    "checks":  [
+                   {
+                       "name":  "artifact path",
+                       "status":  "pass",
+                       "message":  "MSIX artifact exists"
+                   },
+                   {
+                       "name":  "artifact application executable",
+                       "status":  "pass",
+                       "message":  "artifact application executable is musu-desktop.exe"
+                   },
+                   {
+                       "name":  "artifact application not runtime CLI",
+                       "status":  "pass",
+                       "message":  "artifact Start-menu app is not the runtime CLI"
+                   },
+                   {
+                       "name":  "artifact contains desktop executable",
+                       "status":  "pass",
+                       "message":  "artifact contains musu-desktop.exe"
+                   },
+                   {
+                       "name":  "artifact contains runtime executable",
+                       "status":  "pass",
+                       "message":  "artifact contains musu.exe for CLI alias/runtime support"
+                   },
+                   {
+                       "name":  "artifact contains startup executable",
+                       "status":  "pass",
+                       "message":  "artifact contains musu-startup.exe for startup task"
+                   },
+                   {
+                       "name":  "artifact alias executable",
+                       "status":  "pass",
+                       "message":  "artifact keeps musu.exe as the execution alias"
+                   },
+                   {
+                       "name":  "artifact startup executable",
+                       "status":  "pass",
+                       "message":  "artifact startup task uses musu-startup.exe"
+                   },
+                   {
+                       "name":  "artifact desktop description",
+                       "status":  "pass",
+                       "message":  "artifact description does not describe a runtime-only package"
+                   },
+                   {
+                       "name":  "package identity",
+                       "status":  "pass",
+                       "message":  "package identity resolved"
+                   },
+                   {
+                       "name":  "installed manifest",
+                       "status":  "pass",
+                       "message":  "installed AppxManifest.xml exists"
+                   },
+                   {
+                       "name":  "installed application executable",
+                       "status":  "pass",
+                       "message":  "installed application executable is musu-desktop.exe"
+                   },
+                   {
+                       "name":  "installed application not runtime CLI",
+                       "status":  "pass",
+                       "message":  "installed Start-menu app is not the runtime CLI"
+                   },
+                   {
+                       "name":  "installed startup contract matches artifact",
+                       "status":  "pass",
+                       "message":  "installed startup contract matches the audited artifact"
+                   },
+                   {
+                       "name":  "installed desktop executable file",
+                       "status":  "pass",
+                       "message":  "installed package contains musu-desktop.exe"
+                   },
+                   {
+                       "name":  "installed runtime executable file",
+                       "status":  "pass",
+                       "message":  "installed package contains musu.exe"
+                   },
+                   {
+                       "name":  "installed startup executable file",
+                       "status":  "pass",
+                       "message":  "installed package contains musu-startup.exe"
+                   },
+                   {
+                       "name":  "installed desktop description",
+                       "status":  "pass",
+                       "message":  "installed description does not describe a runtime-only package"
+                   },
+                   {
+                       "name":  "installed Start menu entry",
+                       "status":  "pass",
+                       "message":  "installed package has a Start menu entry for Yellowhama.MUSU_ygcjq669as2b6!MUSU"
+                   }
+               ],
+    "error":  null
+}

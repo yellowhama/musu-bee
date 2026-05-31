@@ -315,14 +315,14 @@ fn musu_home() -> PathBuf {
 /// On Unix we use `kill(pid, 0)` which succeeds (or returns EPERM) for live
 /// processes.  On Windows we attempt `OpenProcess` via `windows-sys`.
 #[cfg(unix)]
-fn is_pid_alive(pid: u32) -> bool {
+pub fn is_pid_alive(pid: u32) -> bool {
     // SAFETY: signal 0 is a null signal — no signal is sent, but error
     // checking is still performed, letting us probe for process existence.
     unsafe { libc::kill(pid as libc::pid_t, 0) == 0 || *libc::__errno_location() == libc::EPERM }
 }
 
 #[cfg(windows)]
-fn is_pid_alive(pid: u32) -> bool {
+pub fn is_pid_alive(pid: u32) -> bool {
     use windows_sys::Win32::Foundation::CloseHandle;
     use windows_sys::Win32::System::Threading::{OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION};
 
@@ -339,9 +339,93 @@ fn is_pid_alive(pid: u32) -> bool {
 }
 
 #[cfg(not(any(unix, windows)))]
-fn is_pid_alive(_pid: u32) -> bool {
+pub fn is_pid_alive(_pid: u32) -> bool {
     // Conservative: assume alive on unknown platforms.
     true
+}
+
+#[cfg(unix)]
+pub fn terminate_pid(pid: u32) -> bool {
+    // SAFETY: SIGTERM asks the target process to exit; errors are surfaced as
+    // a false return so callers can fall back without panicking.
+    unsafe { libc::kill(pid as libc::pid_t, libc::SIGTERM) == 0 }
+}
+
+#[cfg(windows)]
+pub fn terminate_pid(pid: u32) -> bool {
+    use windows_sys::Win32::Foundation::CloseHandle;
+    use windows_sys::Win32::System::Threading::{OpenProcess, PROCESS_TERMINATE, TerminateProcess};
+
+    // SAFETY: OpenProcess returns NULL on failure. Any valid handle is closed
+    // before returning.
+    unsafe {
+        let handle = OpenProcess(PROCESS_TERMINATE, 0, pid);
+        if handle.is_null() {
+            return false;
+        }
+        let terminated = TerminateProcess(handle, 1) != 0;
+        CloseHandle(handle);
+        terminated
+    }
+}
+
+#[cfg(not(any(unix, windows)))]
+pub fn terminate_pid(_pid: u32) -> bool {
+    false
+}
+
+#[cfg(unix)]
+fn process_exe_path(pid: u32) -> Option<PathBuf> {
+    std::fs::read_link(format!("/proc/{pid}/exe")).ok()
+}
+
+#[cfg(windows)]
+fn process_exe_path(pid: u32) -> Option<PathBuf> {
+    use windows_sys::Win32::Foundation::CloseHandle;
+    use windows_sys::Win32::System::Threading::{
+        OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION, QueryFullProcessImageNameW,
+    };
+
+    let mut buffer = vec![0u16; 32_768];
+    let mut len = buffer.len() as u32;
+    // SAFETY: OpenProcess returns NULL on failure. QueryFullProcessImageNameW
+    // writes at most `len` UTF-16 code units into the allocated buffer.
+    unsafe {
+        let handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
+        if handle.is_null() {
+            return None;
+        }
+        let ok = QueryFullProcessImageNameW(handle, 0, buffer.as_mut_ptr(), &mut len) != 0;
+        CloseHandle(handle);
+        if !ok || len == 0 {
+            return None;
+        }
+    }
+
+    Some(PathBuf::from(String::from_utf16_lossy(
+        &buffer[..len as usize],
+    )))
+}
+
+#[cfg(not(any(unix, windows)))]
+fn process_exe_path(_pid: u32) -> Option<PathBuf> {
+    None
+}
+
+fn is_musu_runtime_exe_name(name: &str) -> bool {
+    matches!(
+        name.to_ascii_lowercase().as_str(),
+        "musu" | "musu.exe" | "musud" | "musud.exe"
+    )
+}
+
+pub fn is_musu_runtime_pid(pid: u32) -> bool {
+    process_exe_path(pid)
+        .and_then(|path| {
+            path.file_name()
+                .map(|name| name.to_string_lossy().to_string())
+        })
+        .is_some_and(|name| is_musu_runtime_exe_name(&name))
 }
 
 // ---------------------------------------------------------------------------
@@ -368,6 +452,15 @@ mod tests {
             started_at: 1700000000,
             transport: Transport::Tcp,
         }
+    }
+
+    #[test]
+    fn musu_runtime_exe_name_matches_only_runtime_bins() {
+        assert!(is_musu_runtime_exe_name("musu"));
+        assert!(is_musu_runtime_exe_name("musu.exe"));
+        assert!(is_musu_runtime_exe_name("MUSUD.EXE"));
+        assert!(!is_musu_runtime_exe_name("musu-desktop.exe"));
+        assert!(!is_musu_runtime_exe_name("node.exe"));
     }
 
     #[test]

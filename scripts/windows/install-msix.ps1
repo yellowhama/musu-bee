@@ -9,7 +9,8 @@ param(
     [switch]$ReplaceExisting,
     [switch]$MachineTrust,
     [switch]$DryRun,
-    [switch]$SkipCertInstall
+    [switch]$SkipCertInstall,
+    [switch]$AllowRestrictedCapabilitySideload
 )
 
 Set-StrictMode -Version Latest
@@ -71,6 +72,27 @@ if (-not $PackageName) {
 
 if ($MachineTrust -and -not $DryRun -and -not (Test-IsAdministrator)) {
     throw "Machine-level certificate trust requires an elevated PowerShell session. Rerun as Administrator or omit -MachineTrust."
+}
+
+if (
+    -not $DryRun -and
+    [bool]$artifactContract.HasNonUserConfigurableStartupCapability -and
+    -not $AllowRestrictedCapabilitySideload
+) {
+    throw @"
+Refusing to sideload the Store-reviewed restricted-capability MSIX.
+
+This artifact declares Microsoft.nonUserConfigurableStartupTasks_8wekyb3d8bbwe
+and is intended for Partner Center certification/re-signing, not ordinary
+operator sideload testing. A local Add-AppxPackage attempt can fail after
+removing the currently installed package.
+
+Use the local-sideload package for primary/second-PC install evidence:
+  powershell -ExecutionPolicy Bypass -File $($MyInvocation.MyCommand.Path) -StartupContract local-sideload-manual -ReplaceExisting
+
+If you are intentionally testing restricted-capability sideload behavior on a
+prepared machine, rerun with -AllowRestrictedCapabilitySideload.
+"@
 }
 
 if (-not $SkipCertInstall) {
