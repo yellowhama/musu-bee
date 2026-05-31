@@ -183,6 +183,16 @@ $runtimeIdleCpuRoots = @(
         filter = "*.json"
     }
 )
+$processOwnershipRoots = @(
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ("docs\evidence\process-ownership\{0}" -f $version))
+        filter = "*.json"
+    },
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ".local-build\process-ownership")
+        filter = "*.json"
+    }
+)
 $storeRoots = @(
     [pscustomobject]@{
         path = (Join-Path $repoRoot ("docs\evidence\store-release\{0}" -f $version))
@@ -201,6 +211,7 @@ $commands = [pscustomobject]@{
     prepare_action_pack = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\prepare-operator-action-pack.ps1 -Json"
     verify_action_pack = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-operator-action-pack.ps1 -PackPath .local-build\operator-action-pack\MUSU-$safeVersion-operator-action-pack-latest.zip -Json"
     measure_runtime_idle_cpu = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -MaxOneCorePercent 5 -IncludeNode -IncludeWebView2 -FailOnHot -Json"
+    audit_process_ownership = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-process-ownership.ps1 -FailOnProblem -Json"
     final_completion = @"
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-final-operator-gates.ps1 `
   -MsixInstallEvidencePath .local-build\msix-install\<INSTALL_EVIDENCE_JSON> `
@@ -273,6 +284,13 @@ if (-not [bool]$goNoGo.runtime_idle_cpu_verified) {
         -Summary "Run a 60s idle CPU sample on the primary and second PC with MUSU installed/app-open/runtime-started, then bring both JSON files back." `
         -Command $commands.measure_runtime_idle_cpu
 }
+if (-not [bool]$goNoGo.process_ownership_verified) {
+    Add-OperatorStep `
+        -List $operatorSteps `
+        -Gate "process-ownership" `
+        -Summary "Audit the live MUSU process tree so Node/WebView2 helpers are counted only when owned by MUSU, and bridge registry PID/health are verified." `
+        -Command $commands.audit_process_ownership
+}
 if (-not [bool]$goNoGo.support_mailbox_verified) {
     Add-OperatorStep `
         -List $operatorSteps `
@@ -311,6 +329,7 @@ $result = [pscustomobject]@{
         single_machine_verified = [bool]$goNoGo.single_machine_verified
         msix_install_verified = [bool]$goNoGo.msix_install_verified
         runtime_idle_cpu_verified = [bool]$goNoGo.runtime_idle_cpu_verified
+        process_ownership_verified = [bool]$goNoGo.process_ownership_verified
         multi_device_verified = [bool]$goNoGo.multi_device_verified
         public_metadata_ok = $goNoGo.public_metadata_ok
         support_mailbox_verified = [bool]$goNoGo.support_mailbox_verified
@@ -322,6 +341,7 @@ $result = [pscustomobject]@{
     evidence_roots = [pscustomobject]@{
         msix_install = Get-EvidenceRootStatus -Roots $msixInstallRoots
         runtime_idle_cpu = Get-EvidenceRootStatus -Roots $runtimeIdleCpuRoots
+        process_ownership = Get-EvidenceRootStatus -Roots $processOwnershipRoots
         multi_device = Get-EvidenceRootStatus -Roots $multiDeviceRoots
         support_mailbox = Get-EvidenceRootStatus -Roots $supportRoots
         store_release = Get-EvidenceRootStatus -Roots $storeRoots

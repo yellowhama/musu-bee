@@ -44,6 +44,12 @@ What it does not close:
   `.local-build\runtime-idle-cpu\musu-idle-cpu-20260531-194854.json`, but it
   is not enough for the public gate because no owned Tauri/WebView2 desktop
   shell was present and the second PC still needs its own sample.
+- Process ownership audit evidence now exists locally under
+  `.local-build\process-ownership\musu-process-ownership-20260531-201339.json`.
+  It passed with one MUSU runtime, zero MUSU-owned Node helpers, zero MUSU-owned
+  WebView2 helpers, one machine-wide Node process, 13 machine-wide WebView2
+  processes, zero repo-related orphan helpers, bridge registry PID alive, and
+  bridge `/health` HTTP 200.
 
 ## Code Audit Findings
 
@@ -131,6 +137,25 @@ This does not prove the reported 20% busy-loop is fixed. It removes unnecessary 
 
 The primary-side multi-device smoke hung while running `musu up --json` through the repo debug binary path. That is not acceptable as a public operator path.
 
+The first ownership gate is now implemented:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-process-ownership.ps1 -FailOnProblem -Json
+```
+
+It writes `musu.process_ownership_audit.v1` evidence under
+`.local-build\process-ownership\`, uses native Windows parent-process lookup,
+counts Node.js/WebView2 as MUSU-owned only when they descend from the MUSU
+runtime, rejects repo-related orphan helpers, and verifies that the bridge
+registry PID is alive and healthy. This directly addresses the operator concern
+that many Node/WebView2 processes are visible system-wide: the release gate now
+separates machine-wide helper inventory from MUSU-owned helper responsibility.
+
+Current result on `HUGH_SECOND`: pass. The machine had 13 WebView2 processes and
+one Node process visible, but none were MUSU-owned or repo-related orphans. The
+only MUSU runtime was `musu.exe` PID 31208 and the registry
+`C:\Users\empty\.musu\services\bridge.json` pointed to that live process.
+
 Required fixes:
 
 - enforce one bridge owner per `MUSU_HOME`
@@ -193,7 +218,10 @@ Minimal client behavior:
 1. Run `measure-musu-idle-cpu.ps1 -IncludeNode -IncludeWebView2` on primary and second PC with MUSU installed, app opened, runtime started, and the Tauri/WebView2 desktop shell present.
 2. Fix any process above 5% of one core while idle.
 3. Record passing idle CPU evidence; the release go/no-go gate now blocks until it passes.
-4. Add process-count and startup-repeat checks: repeated desktop "Start Runtime" clicks must not spawn duplicate bridges.
+4. Keep `audit-musu-process-ownership.ps1 -FailOnProblem -Json` in the release
+   gate. Repeated desktop "Start Runtime" clicks must not spawn duplicate
+   bridges, repo-owned orphan Node helpers, or MUSU-owned WebView2 growth beyond
+   the configured budget.
 5. Make smoke scripts fail fast if `musu up --json` does not return inside a bounded timeout.
 
 ### P0: Harden default background work
@@ -230,9 +258,9 @@ HTTP bearer routing from satisfying the public multi-device release gate.
 
 | Surface | Previous | Current | Reason |
 |---|---:|---:|---|
-| Single-machine Windows local beta | ~92% | ~82% | Functionality is proven, but idle CPU and process ownership are now unverified P0 gates. |
-| Store/operator-gate infrastructure | ~90% | ~88% | Evidence tooling is strong; runtime-quality gates must be added. |
-| Public desktop release readiness | ~68% | ~52% | MSIX install evidence improved, but idle CPU, multi-device route, relay path, support mailbox, and Store approval remain open. |
+| Single-machine Windows local beta | ~92% | ~84% | Functionality is proven and local process ownership now passes; packaged desktop/WebView2 idle CPU is still unproven. |
+| Store/operator-gate infrastructure | ~90% | ~90% | Evidence tooling now includes runtime idle CPU and process ownership gates. |
+| Public desktop release readiness | ~68% | ~54% | MSIX install evidence and local process ownership improved, but idle CPU, multi-device route, relay path, support mailbox, and Store approval remain open. |
 | Full desktop GUI product maturity | ~55-60% | ~50% | Tauri shell remains launcher/status only, and runtime resource polish is not yet product-grade. |
 | Multi-device product maturity | ~45% | ~38% | Direct second-PC install evidence exists, but route proof and relay fallback do not. |
 
@@ -247,5 +275,5 @@ Do not submit broadly or market as a reliable desktop utility until:
 - `support_mailbox_verified=true`
 - `store_release_verified=true`
 - idle CPU evidence passes on primary and second PC
-- repeated startup does not spawn duplicate runtimes
+- process ownership evidence passes and repeated startup does not spawn duplicate runtimes
 - `musu.pro` assisted peer routing has at least a registry/direct path proof, with relay/tunnel fallback either implemented or explicitly excluded from the launch promise

@@ -49,6 +49,15 @@ Already applied:
   default owned-helper scope
 - dashboard, node panel, and agents surface polling now use non-overlapping
   recursive timeouts with 30s visible / 120s hidden cadence
+- `scripts\windows\audit-musu-process-ownership.ps1` now records
+  `musu.process_ownership_audit.v1` evidence and distinguishes MUSU-owned
+  Node/WebView2 helpers from unrelated machine-wide processes
+- release go/no-go now reports `process_ownership_verified` and blocks if the
+  process ownership audit is missing or failing
+- current local process ownership audit on `HUGH_SECOND` passed with
+  `musu_runtime=1`, `owned_node=0`, `owned_webview2=0`,
+  `orphan_repo_helpers=0`, bridge registry PID alive, and bridge `/health`
+  HTTP 200, despite 13 unrelated machine-wide WebView2 processes
 - primary debug-runtime 60s diagnostic sample passed at
   `.local-build\runtime-idle-cpu\musu-idle-cpu-20260531-194854.json`; this is
   evidence that the current bridge-only debug process is not the hot loop, but
@@ -57,9 +66,10 @@ Already applied:
 
 Next implementation:
 
-- add a process-ownership audit for duplicate bridge/runtime/startup processes
 - run real 60s samples with the packaged MUSU desktop/WebView2 shell open on
   both PCs
+- extend startup-repeat coverage so repeated desktop Start Runtime clicks and
+  `musu up` calls cannot create duplicate bridge/runtime processes
 - fix the exact hot loop shown by those samples
 
 ## Track B - `musu.pro` Assisted P2P
@@ -113,6 +123,7 @@ Execution order:
 Release gates that must remain false until evidence exists:
 
 - `runtime_idle_cpu_verified`
+- `process_ownership_verified`
 - `multi_device_verified`
 - `support_mailbox_verified`
 - `store_release_verified`

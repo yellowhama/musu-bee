@@ -112,6 +112,7 @@ try {
         "scripts\windows\verify-store-release-evidence.ps1",
         "scripts\windows\verify-store-submission-bundle.ps1",
         "scripts\windows\measure-musu-idle-cpu.ps1",
+        "scripts\windows\audit-musu-process-ownership.ps1",
         "scripts\windows\prepare-operator-action-pack.ps1",
         "scripts\windows\verify-operator-action-pack.ps1",
         "scripts\windows\show-final-release-handoff-status.ps1",
@@ -169,6 +170,7 @@ try {
         Add-CheckFromCondition "readme store release recorder" ($readme -like "*record-store-release-verification.ps1*") "README includes Store release evidence recorder command" "README missing Store release evidence recorder command"
         Add-CheckFromCondition "readme store bundle verifier" ($readme -like "*verify-store-submission-bundle.ps1*") "README includes Store submission bundle verifier command" "README missing Store submission bundle verifier command"
         Add-CheckFromCondition "readme runtime cpu measurement" ($readme -like "*measure-musu-idle-cpu.ps1*" -and $readme -like "*SampleSeconds 60*" -and $readme -like "*MaxOneCorePercent 5*" -and $readme -like "*IncludeNode*" -and $readme -like "*IncludeWebView2*") "README includes runtime idle CPU measurement command" "README missing runtime idle CPU measurement command"
+        Add-CheckFromCondition "readme process ownership audit" ($readme -like "*audit-musu-process-ownership.ps1*" -and $readme -like "*process_ownership_verified=true*" -and $readme -like "*bridge registry PID*") "README includes process ownership audit gate" "README missing process ownership audit gate"
         Add-CheckFromCondition "readme handoff status command" ($readme -like "*show-final-release-handoff-status.ps1*") "README includes final release handoff status command" "README missing final release handoff status command"
         Add-CheckFromCondition "readme action pack commands" ($readme -like "*prepare-operator-action-pack.ps1*" -and $readme -like "*verify-operator-action-pack.ps1*" -and $readme -like "*copy/handoff convenience*") "README includes operator action pack generation/verification boundary" "README missing operator action pack generation/verification boundary"
         Add-CheckFromCondition "readme operator handoff card" ($readme -like "*show-operator-handoff-card.ps1*" -or $readme -like "*RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md*") "README includes operator handoff card path" "README missing operator handoff card reference"
@@ -189,6 +191,11 @@ try {
             ($handoffStatusScript -like "*ActionPackPath*" -and $handoffStatusScript -like "*verify-operator-action-pack.ps1*" -and $handoffStatusScript -like "*action_pack*" -and $handoffStatusScript -like "*import-second-pc-return.ps1*") `
             "packet handoff status script reports action-pack verification" `
             "packet handoff status script does not report action-pack verification or second-PC return import"
+        Add-CheckFromCondition `
+            "handoff status process ownership gate" `
+            ($handoffStatusScript -like "*audit-musu-process-ownership.ps1*" -and $handoffStatusScript -like "*process_ownership_verified*" -and $handoffStatusScript -like "*process_ownership = Get-EvidenceRootStatus*") `
+            "packet handoff status script reports process ownership evidence" `
+            "packet handoff status script does not report process ownership evidence"
     }
 
     $operatorHandoffScriptPath = Join-Path $packetRoot "scripts\windows\show-operator-handoff-card.ps1"
@@ -229,6 +236,11 @@ try {
             ($goNoGoScript -like "*runtime_idle_cpu_verified*" -and $goNoGoScript -like "*runtime-idle-cpu*" -and $goNoGoScript -like "*MinRuntimeIdleCpuMachineCount*") `
             "packet go/no-go blocks on runtime idle CPU evidence" `
             "packet go/no-go does not block on runtime idle CPU evidence"
+        Add-CheckFromCondition `
+            "go no-go process ownership gate" `
+            ($goNoGoScript -like "*process_ownership_verified*" -and $goNoGoScript -like "*process-ownership*" -and $goNoGoScript -like "*MinProcessOwnershipMachineCount*" -and $goNoGoScript -like "*musu.process_ownership_audit.v1*") `
+            "packet go/no-go blocks on process ownership evidence" `
+            "packet go/no-go does not block on process ownership evidence"
     }
 
     $supportRecorderScriptPath = Join-Path $packetRoot "scripts\windows\record-support-mailbox-verification.ps1"
@@ -296,8 +308,8 @@ try {
         $packetVerifierScript = Get-Content -LiteralPath $packetVerifierScriptPath -Raw
         Add-CheckFromCondition `
             "packet verifier release safety checks" `
-            ($packetVerifierScript -like "*go no-go dirty git blocker*" -and $packetVerifierScript -like "*multi-device verifier schema gate*" -and $packetVerifierScript -like "*msix verifier version and capture gate*" -and $packetVerifierScript -like "*support verifier version and token gate*" -and $packetVerifierScript -like "*store recorder explicit reservation timestamp*" -and $packetVerifierScript -like "*operator handoff return archive*" -and $packetVerifierScript -like "*second pc return importer safety*") `
-            "packet verifier checks dirty git, MSIX, multi-device, support, and Store evidence rules" `
+            ($packetVerifierScript -like "*go no-go dirty git blocker*" -and $packetVerifierScript -like "*go no-go process ownership gate*" -and $packetVerifierScript -like "*multi-device verifier schema gate*" -and $packetVerifierScript -like "*msix verifier version and capture gate*" -and $packetVerifierScript -like "*support verifier version and token gate*" -and $packetVerifierScript -like "*store recorder explicit reservation timestamp*" -and $packetVerifierScript -like "*operator handoff return archive*" -and $packetVerifierScript -like "*second pc return importer safety*") `
+            "packet verifier checks dirty git, process ownership, MSIX, multi-device, support, and Store evidence rules" `
             "packet verifier does not check all release evidence rules"
     }
 

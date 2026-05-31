@@ -14,8 +14,10 @@ Remaining blockers:
 
 1. clean/current Windows MSIX install evidence has not been recorded
 2. real second-PC multi-device evidence has not been recorded
-3. `musu@musu.pro` delivery has not been operator-verified
-4. Store release approval evidence has not been recorded:
+3. two-machine runtime idle CPU evidence has not been recorded
+4. process ownership evidence must pass on the live MUSU runtime
+5. `musu@musu.pro` delivery has not been operator-verified
+6. Store release approval evidence has not been recorded:
    - Partner Center product name reservation / app submission
    - Microsoft app certification
    - Microsoft restricted startup capability approval
@@ -340,6 +342,8 @@ The release is ready for public desktop release only when:
 - `local_artifacts_ready=true`
 - `single_machine_verified=true`
 - `msix_install_verified=true`
+- `runtime_idle_cpu_verified=true`
+- `process_ownership_verified=true`
 - `multi_device_verified=true`
 - `public_metadata_ok=true`
 - `support_mailbox_verified=true`

@@ -107,6 +107,7 @@ $scriptsToCopy = @(
     "verify-store-release-evidence.ps1",
     "verify-store-submission-bundle.ps1",
     "measure-musu-idle-cpu.ps1",
+    "audit-musu-process-ownership.ps1",
     "prepare-operator-action-pack.ps1",
     "verify-operator-action-pack.ps1",
     "show-final-release-handoff-status.ps1",
@@ -182,8 +183,10 @@ Remaining blockers:
 
 1. clean/current MSIX install evidence from the second Windows PC
 2. real second-PC multi-device evidence
-3. real __SUPPORT_EMAIL__ inbox delivery evidence
-4. Partner Center product name reservation, app submission, Microsoft certification, and restricted startup capability approval evidence
+3. runtime idle CPU evidence from the primary and second Windows PC
+4. process ownership evidence from a live MUSU runtime
+5. real __SUPPORT_EMAIL__ inbox delivery evidence
+6. Partner Center product name reservation, app submission, Microsoft certification, and restricted startup capability approval evidence
 
 The multi-device kit includes `collect-second-pc-handoff.ps1`; run it on the
 second PC after install to generate `.local-build\second-pc-handoff\*.handoff.json`
@@ -349,9 +352,24 @@ under `docs\evidence\runtime-idle-cpu\__VERSION__\`.
 
 Expected result: `runtime_idle_cpu_verified=true`.
 
+## Gate F - Process ownership evidence
+
+Run this from the real MUSU release repo root while MUSU is open and the runtime
+is started:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-process-ownership.ps1 -FailOnProblem -Json
+```
+
+This checks that there is one active MUSU runtime, counts Node.js/WebView2 only
+when those helpers are descendants of MUSU, rejects repo-owned orphan helpers,
+and verifies the bridge registry PID plus `/health`.
+
+Expected result: `process_ownership_verified=true`.
+
 ## Final command
 
-After Gate A, Gate B, Gate C, Gate D, and Gate E evidence exists, run from the real MUSU release repo root:
+After Gate A, Gate B, Gate C, Gate D, Gate E, and Gate F evidence exists, run from the real MUSU release repo root:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-final-operator-gates.ps1 `
@@ -381,6 +399,7 @@ The release can proceed only when:
 - `single_machine_verified=true`
 - `msix_install_verified=true`
 - `runtime_idle_cpu_verified=true`
+- `process_ownership_verified=true`
 - `multi_device_verified=true`
 - `public_metadata_ok=true`
 - `support_mailbox_verified=true`

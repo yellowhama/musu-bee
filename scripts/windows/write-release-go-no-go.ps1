@@ -4,6 +4,7 @@ param(
     [int]$MinRuntimeIdleCpuSampleSeconds = 60,
     [double]$MaxRuntimeIdleCpuOneCorePercent = 5.0,
     [int]$MinRuntimeIdleCpuMachineCount = 2,
+    [int]$MinProcessOwnershipMachineCount = 1,
     [switch]$SkipPublicMetadata,
     [switch]$FailOnNotReady,
     [switch]$Json
@@ -172,6 +173,78 @@ function Test-RuntimeIdleCpuEvidence {
     }
 }
 
+function Test-ProcessOwnershipEvidence {
+    param(
+        [Parameter(Mandatory = $true)][string]$EvidencePath,
+        [Parameter(Mandatory = $true)][string]$ExpectedVersion
+    )
+
+    $checks = New-Object System.Collections.Generic.List[object]
+    $evidence = $null
+    try {
+        $evidence = Get-Content -LiteralPath $EvidencePath -Raw | ConvertFrom-Json
+        $checks.Add((New-Check -Name "parse" -Status "pass" -Message "process ownership evidence parses")) | Out-Null
+    }
+    catch {
+        $checks.Add((New-Check -Name "parse" -Status "fail" -Message "process ownership evidence does not parse: $($_.Exception.Message)")) | Out-Null
+    }
+
+    if ($evidence) {
+        $schema = [string]$evidence.schema
+        $checks.Add((New-Check -Name "schema" -Status ($(if ($schema -eq "musu.process_ownership_audit.v1") { "pass" } else { "fail" })) -Message ($(if ($schema -eq "musu.process_ownership_audit.v1") { "schema is valid" } else { "schema is '$schema'" })))) | Out-Null
+
+        $versionValue = [string]$evidence.version
+        $checks.Add((New-Check -Name "version" -Status ($(if ($versionValue -eq $ExpectedVersion) { "pass" } else { "fail" })) -Message ($(if ($versionValue -eq $ExpectedVersion) { "version matches $ExpectedVersion" } else { "version is '$versionValue'" })))) | Out-Null
+
+        $okValue = [bool]$evidence.ok
+        $checks.Add((New-Check -Name "evidence ok" -Status ($(if ($okValue) { "pass" } else { "fail" })) -Message ($(if ($okValue) { "evidence reports ok=true" } else { "evidence reports ok=false" })))) | Out-Null
+
+        $operatorMachine = ""
+        if ($evidence.PSObject.Properties["operator_machine"]) {
+            $operatorMachine = [string]$evidence.operator_machine
+        }
+        $checks.Add((New-Check -Name "operator machine" -Status ($(if (-not [string]::IsNullOrWhiteSpace($operatorMachine)) { "pass" } else { "fail" })) -Message ($(if (-not [string]::IsNullOrWhiteSpace($operatorMachine)) { "operator_machine is present" } else { "operator_machine is missing" })))) | Out-Null
+
+        $recordedAtOk = $false
+        if ($evidence.PSObject.Properties["recorded_at"]) {
+            try {
+                [void][datetimeoffset]::Parse([string]$evidence.recorded_at)
+                $recordedAtOk = $true
+            }
+            catch {
+                $recordedAtOk = $false
+            }
+        }
+        $checks.Add((New-Check -Name "recorded timestamp" -Status ($(if ($recordedAtOk) { "pass" } else { "fail" })) -Message ($(if ($recordedAtOk) { "recorded_at parses" } else { "recorded_at is missing or invalid" })))) | Out-Null
+
+        $failCountValue = if ($evidence.PSObject.Properties["fail_count"]) { [int]$evidence.fail_count } else { 1 }
+        $checks.Add((New-Check -Name "nested fail count" -Status ($(if ($failCountValue -eq 0) { "pass" } else { "fail" })) -Message ($(if ($failCountValue -eq 0) { "nested process ownership checks passed" } else { "nested process ownership fail_count is $failCountValue" })))) | Out-Null
+
+        $counts = $evidence.process_counts
+        $musuRuntimeCount = if ($counts -and $counts.PSObject.Properties["musu_runtime"]) { [int]$counts.musu_runtime } else { 0 }
+        $checks.Add((New-Check -Name "MUSU runtime count" -Status ($(if ($musuRuntimeCount -eq 1) { "pass" } else { "fail" })) -Message ($(if ($musuRuntimeCount -eq 1) { "exactly one MUSU runtime process was observed" } else { "$musuRuntimeCount MUSU runtime processes were observed" })))) | Out-Null
+
+        $orphanRepoHelpers = if ($counts -and $counts.PSObject.Properties["orphan_repo_helpers"]) { [int]$counts.orphan_repo_helpers } else { 1 }
+        $checks.Add((New-Check -Name "orphan repo helpers" -Status ($(if ($orphanRepoHelpers -eq 0) { "pass" } else { "fail" })) -Message ($(if ($orphanRepoHelpers -eq 0) { "no repo-related orphan Node/WebView2 helpers" } else { "$orphanRepoHelpers repo-related orphan helper(s)" })))) | Out-Null
+
+        $bridge = $evidence.bridge_registry
+        $bridgePidAlive = ($bridge -and $bridge.PSObject.Properties["pid_alive"] -and [bool]$bridge.pid_alive)
+        $checks.Add((New-Check -Name "bridge registry pid alive" -Status ($(if ($bridgePidAlive) { "pass" } else { "fail" })) -Message ($(if ($bridgePidAlive) { "bridge registry pid is alive" } else { "bridge registry pid is missing or dead" })))) | Out-Null
+
+        $bridgeHealthOk = ($bridge -and $bridge.PSObject.Properties["health"] -and [bool]$bridge.health.ok)
+        $checks.Add((New-Check -Name "bridge health" -Status ($(if ($bridgeHealthOk) { "pass" } else { "fail" })) -Message ($(if ($bridgeHealthOk) { "bridge /health passed" } else { "bridge /health did not pass" })))) | Out-Null
+    }
+
+    $failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
+    [pscustomobject]@{
+        ok = ($failCount -eq 0)
+        evidence_path = $EvidencePath
+        fail_count = $failCount
+        operator_machine = if ($evidence -and $evidence.PSObject.Properties["operator_machine"]) { [string]$evidence.operator_machine } else { $null }
+        checks = $checks.ToArray()
+    }
+}
+
 $auditScript = Join-Path $scriptDir "audit-desktop-release-readiness.ps1"
 $metadataScript = Join-Path $scriptDir "verify-store-public-metadata.ps1"
 $manifestScript = Join-Path $scriptDir "write-release-candidate-manifest.ps1"
@@ -336,6 +409,48 @@ $runtimeIdleCpuEvidence = [pscustomobject]@{
     candidates = $runtimeIdleCpuEvidenceResults
 }
 
+$processOwnershipVerified = $false
+$processOwnershipEvidence = $null
+$processOwnershipEvidenceCandidates = @()
+$processOwnershipEvidenceRoots = @(
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ("docs\evidence\process-ownership\{0}" -f $version))
+        filter = "*.json"
+    },
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ".local-build\process-ownership")
+        filter = "*.json"
+    }
+)
+
+foreach ($root in $processOwnershipEvidenceRoots) {
+    if (Test-Path -LiteralPath $root.path) {
+        $processOwnershipEvidenceCandidates += @(Get-ChildItem -LiteralPath $root.path -Filter $root.filter -File -ErrorAction SilentlyContinue)
+    }
+}
+
+$processOwnershipEvidenceResults = @()
+$processOwnershipMachines = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+foreach ($candidate in @($processOwnershipEvidenceCandidates | Sort-Object LastWriteTime -Descending)) {
+    $verification = Test-ProcessOwnershipEvidence `
+        -EvidencePath $candidate.FullName `
+        -ExpectedVersion $version
+    $processOwnershipEvidenceResults += $verification
+    if ([bool]$verification.ok -and -not [string]::IsNullOrWhiteSpace([string]$verification.operator_machine)) {
+        [void]$processOwnershipMachines.Add([string]$verification.operator_machine)
+    }
+}
+
+$processOwnershipVerified = ($processOwnershipMachines.Count -ge $MinProcessOwnershipMachineCount)
+$processOwnershipEvidence = [pscustomobject]@{
+    ok = [bool]$processOwnershipVerified
+    min_machine_count = $MinProcessOwnershipMachineCount
+    valid_machine_count = $processOwnershipMachines.Count
+    valid_machines = @($processOwnershipMachines)
+    candidate_count = $processOwnershipEvidenceResults.Count
+    candidates = $processOwnershipEvidenceResults
+}
+
 $storeReleaseVerified = $false
 $storeReleaseEvidence = $null
 $storeReleaseEvidenceCandidate = $null
@@ -402,6 +517,9 @@ if (-not [bool]$audit.multi_device_verified) {
 if (-not $runtimeIdleCpuVerified) {
     Add-Blocker -List $blockers -Area "runtime-idle-cpu" -Message "Runtime idle CPU evidence has not passed on at least ${MinRuntimeIdleCpuMachineCount} machine(s) for ${MinRuntimeIdleCpuSampleSeconds}s at <= ${MaxRuntimeIdleCpuOneCorePercent}% of one logical CPU."
 }
+if (-not $processOwnershipVerified) {
+    Add-Blocker -List $blockers -Area "process-ownership" -Message "Process ownership evidence has not passed on at least ${MinProcessOwnershipMachineCount} machine(s)."
+}
 if (-not $SkipPublicMetadata) {
     if (-not $publicMetadataResult.json -or -not [bool]$publicMetadataResult.json.ok) {
         Add-Blocker -List $blockers -Area "store-public-metadata" -Message "Public privacy/support metadata verification failed for $PublicMetadataBaseUrl."
@@ -433,7 +551,8 @@ $manualExternalGates = @(
 $manualInternalGates = @(
     "Runtime idle CPU verification on primary Windows PC",
     "Runtime idle CPU verification on second Windows PC",
-    "Duplicate runtime/startup ownership verification",
+    "Process ownership audit on primary Windows PC",
+    "Second-PC runtime/startup ownership verification",
     "musu.pro registry/rendezvous/relay-control path decision"
 )
 
@@ -453,6 +572,8 @@ $result = [pscustomobject]@{
     msix_install_evidence = $msixInstallEvidence
     runtime_idle_cpu_verified = [bool]$runtimeIdleCpuVerified
     runtime_idle_cpu_evidence = $runtimeIdleCpuEvidence
+    process_ownership_verified = [bool]$processOwnershipVerified
+    process_ownership_evidence = $processOwnershipEvidence
     support_mailbox_verified = [bool]$supportMailboxVerified
     support_mailbox_evidence = $supportMailboxEvidence
     store_release_verified = [bool]$storeReleaseVerified
@@ -477,6 +598,7 @@ else {
     "single_machine_verified: $($result.single_machine_verified)"
     "msix_install_verified: $($result.msix_install_verified)"
     "runtime_idle_cpu_verified: $($result.runtime_idle_cpu_verified)"
+    "process_ownership_verified: $($result.process_ownership_verified)"
     "multi_device_verified: $($result.multi_device_verified)"
     "public_metadata_ok: $($result.public_metadata_ok)"
     "support_mailbox_verified: $($result.support_mailbox_verified)"

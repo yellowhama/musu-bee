@@ -2,7 +2,7 @@
 
 **Wiki ID**: wiki/522
 **Date**: 2026-05-31
-**Scope**: current release state after the route-evidence gate hardening, refreshed single-machine evidence, final operator packet verification, operator action pack verification, Store submission bundle verification, release handoff status check, second-PC MSIX install evidence import, and Windows/Tailscale mDNS health hardening.
+**Scope**: current release state after the route-evidence gate hardening, refreshed single-machine evidence, final operator packet verification, operator action pack verification, Store submission bundle verification, release handoff status check, second-PC MSIX install evidence import, Windows/Tailscale mDNS health hardening, runtime idle CPU attribution hardening, and process ownership audit gate.
 
 ## Verdict
 
@@ -13,9 +13,9 @@ It is ready as a **single-machine Windows beta** and as a **release-candidate ha
 Current internal blockers:
 
 1. idle CPU busy-loop risk reported by the operator on both primary and second PC
-2. missing runtime idle CPU evidence gate
+2. missing two-machine runtime idle CPU evidence gate
 3. incomplete `musu.pro` assisted relay/control-plane path for P2P setup and fallback routing
-4. process ownership/startup hardening gaps around `musu up`, duplicate runtime prevention, and smoke timeouts
+4. remaining second-PC startup/duplicate runtime proof and smoke timeout hardening
 
 Current external evidence blockers:
 
@@ -23,15 +23,15 @@ Current external evidence blockers:
 2. real `musu@musu.pro` inbox delivery evidence
 3. Partner Center/Microsoft Store approval evidence, including restricted startup capability review
 
-2026-05-31 update: the second-PC MSIX install evidence has now been returned and recorded locally under `docs\evidence\msix-install\1.15.0-rc.1\20260531-165211-HUGH-MAIN.evidence.json`. Route proof is still missing because `192.168.1.192:8949` and `172.27.208.1:8949` were not reachable from the primary during the follow-up smoke attempt. Runtime CPU work has moved from a broad process-name sampler to an owned-process-tree sampler; one primary debug-runtime sample passed, but formal two-machine desktop/WebView2 evidence is still missing.
+2026-05-31 update: the second-PC MSIX install evidence has now been returned and recorded locally under `docs\evidence\msix-install\1.15.0-rc.1\20260531-165211-HUGH-MAIN.evidence.json`. Route proof is still missing because `192.168.1.192:8949` and `172.27.208.1:8949` were not reachable from the primary during the follow-up smoke attempt. Runtime CPU work has moved from a broad process-name sampler to an owned-process-tree sampler; one primary debug-runtime sample passed, but formal two-machine desktop/WebView2 evidence is still missing. A separate process ownership audit now passes on `HUGH_SECOND`: one MUSU runtime, zero MUSU-owned Node helpers, zero MUSU-owned WebView2 helpers, 13 machine-wide WebView2 processes not owned by MUSU, bridge registry PID alive, and bridge `/health` HTTP 200.
 
 Current qualitative completion:
 
 | Surface | Completion | Reason |
 |---|---:|---|
-| Single-machine Windows local beta | ~82% | Functional smoke is evidence-backed, but idle CPU and duplicate-runtime behavior are not yet measured as gates. |
-| Store/operator-gate infrastructure | ~88% | Final packet, action pack, Store submission bundle, public metadata, support mailbox config, and evidence verifiers are in place; runtime-quality gates need to be added. |
-| Public desktop release readiness | ~52% | MSIX install evidence improved, but idle CPU, multi-device route, support mailbox, Store approval, and relay/control-plane readiness remain open. |
+| Single-machine Windows local beta | ~84% | Functional smoke is evidence-backed and process ownership now passes locally; packaged desktop/WebView2 idle CPU evidence is still missing. |
+| Store/operator-gate infrastructure | ~90% | Final packet, action pack, Store submission bundle, public metadata, support mailbox config, evidence verifiers, runtime CPU gate, and process ownership gate are in place. |
+| Public desktop release readiness | ~54% | MSIX install evidence and local process ownership improved, but idle CPU, multi-device route, support mailbox, Store approval, and relay/control-plane readiness remain open. |
 | Full desktop GUI product maturity | ~50% | Tauri shell is a usable launcher/status surface, not yet the full dashboard GUI, and runtime resource polish is not product-grade. |
 
 This document supersedes wiki/521 for the **current 2026-05-31 release status**. Wiki/521 remains the historical final qualitative audit and accumulated work log.
@@ -40,7 +40,7 @@ This document supersedes wiki/521 for the **current 2026-05-31 release status**.
 
 | Item | Current value |
 |---|---|
-| Latest release code commit | `3b1b1b0e751a12c63728829a8afe2774b489444e` before the post-smoke evidence/docs commit |
+| Latest release code commit | `a630ce4f8bddffe649c883a838f0ef10cc6c3fd9` before this process-ownership gate update |
 | Latest smoke source commit | `3b1b1b0e751a12c63728829a8afe2774b489444e` |
 | Working tree | clean after the post-smoke evidence/docs commit |
 | Latest single-machine evidence | `docs\evidence\single-machine\1.15.0-rc.1\20260531-195832-HUGH_SECOND.evidence.json` |
@@ -57,6 +57,7 @@ This document supersedes wiki/521 for the **current 2026-05-31 release status**.
 | Public metadata | `https://musu.pro/privacy` and `/support` pass with `musu@musu.pro` |
 | Second-PC MSIX install evidence | `docs\evidence\msix-install\1.15.0-rc.1\20260531-165211-HUGH-MAIN.evidence.json` |
 | Runtime idle CPU evidence | formal gate still missing; diagnostic primary debug-runtime sample passed at `.local-build\runtime-idle-cpu\musu-idle-cpu-20260531-194854.json`, but public readiness still requires two machines with the packaged desktop/WebView2 shell open |
+| Process ownership evidence | local audit passed at `.local-build\process-ownership\musu-process-ownership-20260531-201339.json`; `musu_runtime=1`, `owned_node=0`, `owned_webview2=0`, `machine_wide_node=1`, `machine_wide_webview2=13`, `orphan_repo_helpers=0`, bridge registry PID alive, `/health` HTTP 200 |
 | Current support verification id | `musu-store-support-1.15.0-rc.1-20260531-191548` |
 | Current second-PC kit | `kits\musu-multidevice-1.15.0-rc.1-20260531-191548.zip` |
 | Final release status | `ready_for_public_desktop_release=false` |
@@ -75,6 +76,7 @@ This document supersedes wiki/521 for the **current 2026-05-31 release status**.
 10. **Clipboard sync**: universal clipboard polling is opt-in via `MUSU_ENABLE_CLIPBOARD_SYNC=1`. It must not run by default in the Store-candidate idle path.
 11. **Runtime CPU budget**: public beta requires explicit idle CPU evidence on primary and second PC. The current target is <= 5% of one logical CPU for a 60s idle sample.
 12. **musu.pro network role**: the product needs a hosted registry/rendezvous/relay-control path. Direct LAN/manual peers remain valid, but cannot be the only public multi-device setup story.
+13. **Process ownership policy**: machine-wide Node.js/WebView2 processes are not automatically MUSU-owned. Release evidence must distinguish MUSU descendants and repo-related helpers from unrelated processes, and bridge registry PID plus `/health` must match the live MUSU runtime.
 
 ## Code Audit
 
@@ -105,6 +107,7 @@ Findings:
 11. **Relay/control-plane path is underspecified for public multi-device.** Existing cloud registration lists sibling nodes, but there is no explicit relay session, path negotiation, or fallback tunnel evidence yet. See `docs/RELEASE_1_15_0_RC1_RUNTIME_HARDENING_RELAY_ROADMAP_2026_05_31.md` (wiki/523).
 12. **Runtime CPU sampler false attribution was fixed.** `measure-musu-idle-cpu.ps1 -IncludeWebView2` no longer treats every stale WebView2 process on the machine as MUSU CPU. It now defaults to MUSU-owned descendants or repo-related helpers, records helper scope and process ownership metadata, and uses native Windows parent-process lookup instead of WMI/CIM because WMI timed out on the operator machine.
 13. **Frontend polling moved another step toward an idle budget.** Dashboard, node panel, and agents surface polling no longer use hot fixed intervals; they use non-overlapping recursive timeouts with 30s visible / 120s hidden cadence.
+14. **Process ownership audit is now a release gate.** `scripts\windows\audit-musu-process-ownership.ps1` writes `musu.process_ownership_audit.v1` evidence and `write-release-go-no-go.ps1` reports `process_ownership_verified`. The current local audit proves the extra WebView2 processes visible on the operator machine are not MUSU-owned, while the live bridge registry points to one healthy MUSU process.
 
 ## Next Steps
 
@@ -119,26 +122,31 @@ P0: keep No-Go until internal runtime quality and external evidence gates both p
    or if the default owned-helper scope cannot prove process ownership. The
    sample should include the packaged desktop shell so owned WebView2 CPU is
    represented.
-2. Fix any process that exceeds the idle CPU budget.
-3. Record passing runtime CPU evidence; go/no-go now blocks until it passes.
-4. Harden `musu up` and smoke scripts so duplicate/stale runtime state cannot hang the operator.
-5. Design and implement the first `musu.pro` assisted peer path: registry/rendezvous first, relay/tunnel fallback next.
-6. Copy `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-latest.zip` to the operator handoff location when runtime P0 is stable.
-7. On second Windows PC, extract `second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260531-010837.zip`.
-8. On second Windows PC, extract `musu-multidevice-1.15.0-rc.1-20260531-002518.zip` and run:
+2. Run process ownership audit whenever the operator sees many Node.js/WebView2 processes:
+   ```powershell
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-process-ownership.ps1 -FailOnProblem -Json
+   ```
+   Treat machine-wide helper counts as diagnostic only; release ownership is based on MUSU descendants, repo-related orphan helpers, and live bridge registry health.
+3. Fix any process that exceeds the idle CPU budget.
+4. Record passing runtime CPU evidence; go/no-go now blocks until it passes.
+5. Harden `musu up` and smoke scripts so duplicate/stale runtime state cannot hang the operator.
+6. Design and implement the first `musu.pro` assisted peer path: registry/rendezvous first, relay/tunnel fallback next.
+7. Copy `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-latest.zip` to the operator handoff location when runtime P0 is stable.
+8. On second Windows PC, extract `second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260531-010837.zip`.
+9. On second Windows PC, extract `musu-multidevice-1.15.0-rc.1-20260531-002518.zip` and run:
    ```powershell
    powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1
    ```
-9. If certificate trust fails, rerun elevated with `-MachineTrust`.
-10. Copy returned `.local-build\second-pc-return\*.zip` back to the primary release repo.
-11. On primary repo, run:
+10. If certificate trust fails, rerun elevated with `-MachineTrust`.
+11. Copy returned `.local-build\second-pc-return\*.zip` back to the primary release repo.
+12. On primary repo, run:
    ```powershell
    powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\import-second-pc-return.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP> -RecordMsixInstall -Json
    ```
-12. Run the generated `smoke-multidevice-beta.ps1` command against the returned `host:port`, then record the generated multi-device evidence.
-13. Send the support mailbox verification email to `musu@musu.pro` with the current subject/id, verify inbox delivery, then record support mailbox evidence.
-14. In Partner Center, reserve/confirm product name, submit the Store-reviewed MSIX, wait for certification and restricted capability approval, then record Store release evidence.
-15. Run `complete-final-operator-gates.ps1 ... -FailOnNotReady -Json`; only ship publicly if it reports `ready_for_public_desktop_release=true` and runtime CPU evidence passes.
+13. Run the generated `smoke-multidevice-beta.ps1` command against the returned `host:port`, then record the generated multi-device evidence.
+14. Send the support mailbox verification email to `musu@musu.pro` with the current subject/id, verify inbox delivery, then record support mailbox evidence.
+15. In Partner Center, reserve/confirm product name, submit the Store-reviewed MSIX, wait for certification and restricted capability approval, then record Store release evidence.
+16. Run `complete-final-operator-gates.ps1 ... -FailOnNotReady -Json`; only ship publicly if it reports `ready_for_public_desktop_release=true` and runtime CPU evidence passes.
 
 P1: after external evidence passes.
 
@@ -167,7 +175,7 @@ Do **not** publicly release until these are all true:
 - `go_no_go.support_mailbox_verified=true`
 - `go_no_go.store_release_verified=true`
 - runtime idle CPU evidence passes on primary and second PC
-- repeated startup does not spawn duplicate bridge/runtime processes
+- process ownership evidence passes and repeated startup does not spawn duplicate bridge/runtime processes
 - `packet.verified=true`
 - `action_pack.verified=true`
 - `manifest_git.dirty=false`
