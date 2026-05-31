@@ -17,6 +17,14 @@ pub struct MusuCloud {
     client: Client,
 }
 
+pub fn base_url_from_env() -> String {
+    std::env::var("MUSU_CLOUD_BASE_URL")
+        .ok()
+        .map(|value| value.trim().trim_end_matches('/').to_string())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| "https://musu.pro".to_string())
+}
+
 #[derive(Debug, Deserialize)]
 pub struct DeviceCodeResponse {
     pub user_code: String,

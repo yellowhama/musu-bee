@@ -69,6 +69,9 @@ Windows distribution note:
 | Name | Default | Required | Description |
 |------|---------|----------|-------------|
 | `MUSU_TOKEN` | *(empty)* | No | Account-level token from musu.pro. Enables cloud peer discovery and relay auth. |
+| `MUSU_CLOUD_BASE_URL` | `https://musu.pro` | No | Cloud API base URL for login, registry, and route-evidence submission. Use only for local/staging control-plane tests. |
+| `MUSU_P2P_CONTROL_TOKEN` | *(empty)* | Yes on server route-evidence stub | Bearer token accepted by `POST /api/v1/p2p/route-evidence`. Preferred server-side token for the P2P control-plane stub. |
+| `MUSU_ROUTE_EVIDENCE_TOKEN` | *(empty)* | No | Fallback server-side Bearer token accepted by the route-evidence stub when `MUSU_P2P_CONTROL_TOKEN` is unset. |
 | `MUSU_RELAY_ENABLED` | `false` | No | Set to `true` to connect to the cloud relay tunnel. |
 | `MUSU_RELAY_URL` | *(empty)* | No | WebSocket URL of the relay server (e.g. `wss://musu-relay-production.up.railway.app`). |
 | `MUSU_RELAY_PORT` | `9900` | No | Port for the relay server (musu-relay service). |

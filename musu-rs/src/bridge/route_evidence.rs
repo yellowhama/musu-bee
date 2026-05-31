@@ -18,7 +18,7 @@ pub enum RouteAttemptEvidenceResult {
     Failed,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct RouteAttemptEvidence {
     schema: &'static str,
     version: String,
@@ -49,6 +49,17 @@ pub struct RouteAttemptEvidenceInput {
     pub note: &'static str,
 }
 
+pub struct RouteEvidenceRecord {
+    pub path: PathBuf,
+    pub evidence: RouteAttemptEvidence,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RouteEvidenceSubmitOutcome {
+    Submitted,
+    SkippedNoToken,
+}
+
 pub fn build_route_attempt_evidence(input: RouteAttemptEvidenceInput) -> RouteAttemptEvidence {
     RouteAttemptEvidence {
         schema: "musu.route_evidence.v1",
@@ -68,6 +79,94 @@ pub fn build_route_attempt_evidence(input: RouteAttemptEvidenceInput) -> RouteAt
         recorded_at: chrono::Utc::now().to_rfc3339(),
         note: input.note,
     }
+}
+
+pub fn cloud_route_evidence(evidence: &RouteAttemptEvidence) -> crate::cloud::RouteEvidence {
+    crate::cloud::RouteEvidence {
+        schema: evidence.schema.to_string(),
+        version: evidence.version.clone(),
+        source_node_id: evidence.source_node_id.clone(),
+        target_node_id: evidence.target_node_id.clone(),
+        session_id: evidence.session_id.clone(),
+        route_kind: cloud_route_kind(evidence.route_kind),
+        candidate_addr: evidence.candidate_addr.clone(),
+        handshake_ms: evidence.handshake_ms,
+        total_attempt_ms: evidence.total_attempt_ms,
+        peer_identity_verified: evidence.peer_identity_verified,
+        encryption: evidence.encryption.to_string(),
+        payload_transited_musu_infra: evidence.payload_transited_musu_infra,
+        result: cloud_route_result(evidence.result),
+        failure_class: evidence.failure_class.clone(),
+        recorded_at: evidence.recorded_at.clone(),
+    }
+}
+
+fn cloud_route_kind(route_kind: &str) -> crate::cloud::RouteKind {
+    match route_kind {
+        "lan" => crate::cloud::RouteKind::Lan,
+        "tailscale" => crate::cloud::RouteKind::Tailscale,
+        "direct_quic" => crate::cloud::RouteKind::DirectQuic,
+        "relay" => crate::cloud::RouteKind::Relay,
+        _ => crate::cloud::RouteKind::Failed,
+    }
+}
+
+fn cloud_route_result(result: RouteAttemptEvidenceResult) -> crate::cloud::RouteAttemptResult {
+    match result {
+        RouteAttemptEvidenceResult::Success => crate::cloud::RouteAttemptResult::Success,
+        RouteAttemptEvidenceResult::Failed => crate::cloud::RouteAttemptResult::Failed,
+    }
+}
+
+pub async fn submit_recorded_route_evidence_if_configured(
+    musu_home: &Path,
+    record: &RouteEvidenceRecord,
+) -> Result<RouteEvidenceSubmitOutcome> {
+    let Some(token) = crate::cloud::token::load_token(musu_home)
+        .map(|token| token.trim().to_string())
+        .filter(|token| !token.is_empty())
+    else {
+        return Ok(RouteEvidenceSubmitOutcome::SkippedNoToken);
+    };
+
+    let base_url = crate::cloud::base_url_from_env();
+    let cloud = crate::cloud::MusuCloud::new(&base_url, Some(token));
+    cloud
+        .submit_route_evidence(&cloud_route_evidence(&record.evidence))
+        .await?;
+
+    Ok(RouteEvidenceSubmitOutcome::Submitted)
+}
+
+pub fn spawn_recorded_route_evidence_submit_if_configured(
+    musu_home: PathBuf,
+    record: RouteEvidenceRecord,
+    context: &'static str,
+    task_id: String,
+) {
+    tokio::spawn(async move {
+        match submit_recorded_route_evidence_if_configured(&musu_home, &record).await {
+            Ok(RouteEvidenceSubmitOutcome::Submitted) => tracing::info!(
+                task_id = %task_id,
+                context,
+                path = %record.path.display(),
+                "route evidence submitted to musu.pro"
+            ),
+            Ok(RouteEvidenceSubmitOutcome::SkippedNoToken) => tracing::debug!(
+                task_id = %task_id,
+                context,
+                path = %record.path.display(),
+                "route evidence cloud submit skipped; no token"
+            ),
+            Err(err) => tracing::warn!(
+                task_id = %task_id,
+                context,
+                path = %record.path.display(),
+                err = %err,
+                "failed to submit route evidence to musu.pro"
+            ),
+        }
+    });
 }
 
 pub fn route_evidence_kind_for_addr(addr: &str) -> &'static str {
@@ -138,7 +237,7 @@ pub fn record_bridge_forward_route_evidence(
     total_attempt_ms: u64,
     result: RouteAttemptEvidenceResult,
     failure_class: Option<String>,
-) -> Result<PathBuf> {
+) -> Result<RouteEvidenceRecord> {
     let path = route_evidence_path(musu_home, task_id);
     let evidence = build_route_attempt_evidence(RouteAttemptEvidenceInput {
         source_node_id: source_node_id.to_string(),
@@ -151,7 +250,7 @@ pub fn record_bridge_forward_route_evidence(
         note: BRIDGE_FORWARD_ROUTE_EVIDENCE_NOTE,
     });
     write_route_attempt_evidence(&path, &evidence)?;
-    Ok(path)
+    Ok(RouteEvidenceRecord { path, evidence })
 }
 
 #[cfg(test)]
@@ -211,5 +310,25 @@ mod tests {
     fn route_evidence_path_sanitizes_task_id() {
         let path = route_evidence_path(Path::new("/tmp/musu"), "task:bad/slash");
         assert!(path.ends_with("route-evidence/task_bad_slash.route-evidence.json"));
+    }
+
+    #[test]
+    fn route_attempt_evidence_maps_to_cloud_contract() {
+        let evidence = build_route_attempt_evidence(RouteAttemptEvidenceInput {
+            source_node_id: "source-node".to_string(),
+            target_node_id: "target-node".to_string(),
+            candidate_addr: "203.0.113.10:8070".to_string(),
+            handshake_ms: Some(17),
+            total_attempt_ms: 29,
+            result: RouteAttemptEvidenceResult::Success,
+            failure_class: None,
+            note: BRIDGE_FORWARD_ROUTE_EVIDENCE_NOTE,
+        });
+
+        let cloud = cloud_route_evidence(&evidence);
+        assert_eq!(cloud.schema, "musu.route_evidence.v1");
+        assert_eq!(cloud.route_kind, crate::cloud::RouteKind::DirectQuic);
+        assert_eq!(cloud.result, crate::cloud::RouteAttemptResult::Success);
+        assert_eq!(cloud.encryption, "none_http_bearer");
     }
 }

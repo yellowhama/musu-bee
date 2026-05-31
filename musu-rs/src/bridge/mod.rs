@@ -225,7 +225,8 @@ pub async fn run() -> Result<()> {
         .to_path_buf();
 
     if let Some(token) = crate::cloud::token::load_token(&musu_home) {
-        let cloud = crate::cloud::MusuCloud::new("https://musu.pro", Some(token.clone()));
+        let cloud_base_url = crate::cloud::base_url_from_env();
+        let cloud = crate::cloud::MusuCloud::new(&cloud_base_url, Some(token.clone()));
         let my_name = cfg.node_name.clone();
         let advertised_public_url = services::advertised_bridge_http_url(&cfg);
         let cloud_heartbeat_interval_secs = std::env::var("MUSU_CLOUD_HEARTBEAT_INTERVAL_SEC")
@@ -264,6 +265,7 @@ pub async fn run() -> Result<()> {
         let musu_home_clone = musu_home.clone();
         let token_clone = token.clone();
         let my_name_clone = cfg.node_name.clone();
+        let registry_url = cloud_base_url.clone();
 
         tokio::spawn(async move {
             let _daemon_handle = _mdns_daemon; // keep alive
@@ -359,7 +361,7 @@ pub async fn run() -> Result<()> {
                             let cache = crate::peer::discovery::CachedRegistry {
                                 nodes: cached_nodes,
                                 fetched_at: chrono::Utc::now(),
-                                registry_url: "https://musu.pro".into(),
+                                registry_url: registry_url.clone(),
                             };
                             if let Err(e) = cache.save(&musu_home) {
                                 tracing::error!(err = %e, "failed to save cached registry");

@@ -46,7 +46,7 @@ Required next APIs:
 - `POST /api/v1/p2p/rendezvous/:id/candidates`
 - `POST /api/v1/p2p/rendezvous/:id/approve`
 - `POST /api/v1/p2p/rendezvous/:id/close`
-- `POST /api/v1/p2p/route-evidence`
+- `POST /api/v1/p2p/route-evidence` **(stub exists as of 2026-06-01)**
 - `WS /api/v1/p2p/control?node_id=...`
 - `WS /api/v1/relay/connect?session_id=...&node_id=...`
 
@@ -130,6 +130,17 @@ Release gates must reject multi-device evidence that lacks:
 - encryption field
 - whether payload transited MUSU infrastructure
 
+Current `POST /api/v1/p2p/route-evidence` stub behavior:
+
+- Requires Bearer auth using server env `MUSU_P2P_CONTROL_TOKEN`,
+  `MUSU_ROUTE_EVIDENCE_TOKEN`, or `MUSU_TOKEN`.
+- Validates `musu.route_evidence.v1` with the route kinds above.
+- Returns `202` for valid evidence, including `release_grade` and `blockers`.
+- Accepts legacy/debug evidence for observability but marks it non-release-grade
+  when identity, encryption, timing, result, or relay-transit truth is weak.
+- Returns `stored=false`; durable storage and audit query APIs are still
+  pending.
+
 ## Runtime Hardening Requirements
 
 - One logged-in control connection per runtime process.
@@ -152,8 +163,11 @@ Release gates must reject multi-device evidence that lacks:
 2. Add client DTOs for rendezvous sessions and route evidence. **Initial Rust
    DTOs and client methods exist in `musu-rs/src/cloud/mod.rs`.**
 3. Add server-side mock/stub endpoints in `musu.pro` path for local tests.
-   **Pending as of 2026-06-01.** The Rust client has method surfaces, but no
-   local/server stub proof is recorded.
+   **Route-evidence stub partially done on 2026-06-01.**
+   `musu-bee/src/app/api/v1/p2p/route-evidence/route.ts` accepts and validates
+   authenticated evidence and reports release blockers; tests live next to the
+   route. Rendezvous stubs, durable storage, and evidence query APIs remain
+   pending.
 4. Add `musu relay status` and `musu route --explain`.
    **Initial diagnostic CLI done on 2026-06-01.** `musu relay status` reports
    login/cache/client readiness plus bridge path selection state, rendezvous
@@ -170,8 +184,9 @@ Release gates must reject multi-device evidence that lacks:
    `musu-rs/src/bridge/route_evidence.rs`, and bridge runtime forwarding from
    `/api/tasks/delegate`, `/api/companies/{id}/run`, and workflow remote steps
    writes local `~/.musu/route-evidence/<task_id>.route-evidence.json` files
-   from the actual forwarding attempt. Cloud submission and release-grade
-   identity/encryption proof remain pending.
+   from the actual forwarding attempt. Runtime forwarding now best-effort
+   submits that evidence to `musu.pro` after the local write when an account
+   token exists. Release-grade identity/encryption proof remains pending.
 5. Add direct path selection against registered LAN/Tailscale endpoints.
    **Initial client-side selector done on 2026-06-01.** `musu-rs/src/bridge/router.rs`
    now classifies candidate addresses as `local`, `lan`, `tailscale`, or

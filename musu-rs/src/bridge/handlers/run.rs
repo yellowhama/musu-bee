@@ -206,13 +206,21 @@ pub async fn run_company(
                         crate::bridge::route_evidence::RouteAttemptEvidenceResult::Success,
                         None,
                     ) {
-                        Ok(path) => tracing::info!(
-                            task_id = %task_id,
-                            remote_task_id = %report.response.task_id,
-                            remote_node = %report.response.node,
-                            path = %path.display(),
-                            "bridge route evidence written"
-                        ),
+                        Ok(record) => {
+                            tracing::info!(
+                                task_id = %task_id,
+                                remote_task_id = %report.response.task_id,
+                                remote_node = %report.response.node,
+                                path = %record.path.display(),
+                                "bridge route evidence written"
+                            );
+                            crate::bridge::route_evidence::spawn_recorded_route_evidence_submit_if_configured(
+                                musu_home.to_path_buf(),
+                                record,
+                                "bridge",
+                                task_id.clone(),
+                            );
+                        }
                         Err(err) => tracing::warn!(
                             task_id = %task_id,
                             err = %err,
@@ -237,11 +245,19 @@ pub async fn run_company(
                         crate::bridge::route_evidence::RouteAttemptEvidenceResult::Failed,
                         Some(e.failure_class.clone()),
                     ) {
-                        Ok(path) => tracing::info!(
-                            task_id = %task_id,
-                            path = %path.display(),
-                            "bridge route evidence written"
-                        ),
+                        Ok(record) => {
+                            tracing::info!(
+                                task_id = %task_id,
+                                path = %record.path.display(),
+                                "bridge route evidence written"
+                            );
+                            crate::bridge::route_evidence::spawn_recorded_route_evidence_submit_if_configured(
+                                musu_home.to_path_buf(),
+                                record,
+                                "bridge",
+                                task_id.clone(),
+                            );
+                        }
                         Err(err) => tracing::warn!(
                             task_id = %task_id,
                             err = %err,

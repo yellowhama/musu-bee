@@ -354,7 +354,7 @@ pub fn terminate_pid(pid: u32) -> bool {
 #[cfg(windows)]
 pub fn terminate_pid(pid: u32) -> bool {
     use windows_sys::Win32::Foundation::CloseHandle;
-    use windows_sys::Win32::System::Threading::{OpenProcess, PROCESS_TERMINATE, TerminateProcess};
+    use windows_sys::Win32::System::Threading::{OpenProcess, TerminateProcess, PROCESS_TERMINATE};
 
     // SAFETY: OpenProcess returns NULL on failure. Any valid handle is closed
     // before returning.
@@ -383,7 +383,7 @@ fn process_exe_path(pid: u32) -> Option<PathBuf> {
 fn process_exe_path(pid: u32) -> Option<PathBuf> {
     use windows_sys::Win32::Foundation::CloseHandle;
     use windows_sys::Win32::System::Threading::{
-        OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION, QueryFullProcessImageNameW,
+        OpenProcess, QueryFullProcessImageNameW, PROCESS_QUERY_LIMITED_INFORMATION,
     };
 
     let mut buffer = vec![0u16; 32_768];

@@ -2011,7 +2011,8 @@ pub async fn run_login() -> Result<()> {
 
     println!("\u{1f511} Initiating login to musu.pro...");
 
-    let cloud = crate::cloud::MusuCloud::new("https://musu.pro", None);
+    let cloud_base_url = crate::cloud::base_url_from_env();
+    let cloud = crate::cloud::MusuCloud::new(&cloud_base_url, None);
     let flow = cloud.initiate_device_login(&my_name).await?;
 
     println!("\n🔗 Open this URL in your browser to approve:");
@@ -2039,7 +2040,7 @@ pub async fn run_login() -> Result<()> {
 
                 // V27: Automatically register this node in the mesh
                 println!("Registering node to your fleet...");
-                let authed_cloud = crate::cloud::MusuCloud::new("https://musu.pro", Some(token));
+                let authed_cloud = crate::cloud::MusuCloud::new(&cloud_base_url, Some(token));
                 let public_url = resolve_public_bridge_url();
                 let req = crate::cloud::RegisterNodeRequest {
                     node_name: my_name.clone(),

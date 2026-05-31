@@ -213,14 +213,22 @@ pub async fn execute_workflow(state: &AppState, workflow_id: &str) -> Result<(),
                             crate::bridge::route_evidence::RouteAttemptEvidenceResult::Success,
                             None,
                         ) {
-                            Ok(path) => tracing::info!(
-                                step_id = %step_id,
-                                task_id = %task_id,
-                                remote_task_id = %report.response.task_id,
-                                remote_node = %report.response.node,
-                                path = %path.display(),
-                                "workflow route evidence written"
-                            ),
+                            Ok(record) => {
+                                tracing::info!(
+                                    step_id = %step_id,
+                                    task_id = %task_id,
+                                    remote_task_id = %report.response.task_id,
+                                    remote_node = %report.response.node,
+                                    path = %record.path.display(),
+                                    "workflow route evidence written"
+                                );
+                                crate::bridge::route_evidence::spawn_recorded_route_evidence_submit_if_configured(
+                                    musu_home.to_path_buf(),
+                                    record,
+                                    "workflow",
+                                    task_id.clone(),
+                                );
+                            }
                             Err(err) => tracing::warn!(
                                 step_id = %step_id,
                                 task_id = %task_id,
@@ -246,12 +254,20 @@ pub async fn execute_workflow(state: &AppState, workflow_id: &str) -> Result<(),
                             crate::bridge::route_evidence::RouteAttemptEvidenceResult::Failed,
                             Some(e.failure_class.clone()),
                         ) {
-                            Ok(path) => tracing::info!(
-                                step_id = %step_id,
-                                task_id = %task_id,
-                                path = %path.display(),
-                                "workflow route evidence written"
-                            ),
+                            Ok(record) => {
+                                tracing::info!(
+                                    step_id = %step_id,
+                                    task_id = %task_id,
+                                    path = %record.path.display(),
+                                    "workflow route evidence written"
+                                );
+                                crate::bridge::route_evidence::spawn_recorded_route_evidence_submit_if_configured(
+                                    musu_home.to_path_buf(),
+                                    record,
+                                    "workflow",
+                                    task_id.clone(),
+                                );
+                            }
                             Err(err) => tracing::warn!(
                                 step_id = %step_id,
                                 task_id = %task_id,
