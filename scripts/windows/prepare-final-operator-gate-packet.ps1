@@ -81,6 +81,7 @@ $docsToCopy = @(
     "docs\RELEASE_1_15_0_RC1_CURRENT_STATUS_AUDIT_2026_05_31.md",
     "docs\RELEASE_1_15_0_RC1_RUNTIME_HARDENING_RELAY_ROADMAP_2026_05_31.md",
     "docs\MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md",
+    "docs\MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md",
     "docs\MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md",
     "docs\RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md",
     "docs\STORE_SUBMISSION_METADATA_2026_05_29.md"
@@ -147,6 +148,7 @@ For the shortest Store/submission sequence, review:
 - `docs\RELEASE_1_15_0_RC1_CURRENT_STATUS_AUDIT_2026_05_31.md`
 - `docs\RELEASE_1_15_0_RC1_RUNTIME_HARDENING_RELAY_ROADMAP_2026_05_31.md`
 - `docs\MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md`
+- `docs\MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md`
 - `docs\RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md`
 - `docs\MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md`
 - `docs\RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md`
@@ -287,6 +289,11 @@ Expected result: `msix_install_verified=true`.
 Use the multi-device kit in `kits\` if this packet includes one. Copy it to the second Windows PC, unzip it, and follow its README.
 
 When the second-PC smoke creates `.local-build\multi-device\*.evidence.json`, return that file to the real MUSU release repo and record it from the release repo root:
+
+The evidence must include `musu.route_evidence.v1` and prove route kind,
+handshake timing, peer identity verification, hardened encryption, and whether
+payload transited MUSU infrastructure. A legacy manual HTTP bearer route can be
+useful debugging evidence but does not satisfy the public release gate.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-multidevice-evidence.ps1 -EvidencePath .local-build\multi-device\<EVIDENCE_JSON>

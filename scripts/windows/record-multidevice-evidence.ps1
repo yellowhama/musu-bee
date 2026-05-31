@@ -102,6 +102,7 @@ $summary = @"
 - Verified: $($verification.ok)
 - Remote: $($verification.remote_name) <$($verification.remote_addr)>
 - Route checked: $($verification.route_checked)
+- Route kind: $($verification.route_kind)
 - Evidence: $([System.IO.Path]::GetFileName($rawPath))
 - Evidence SHA256: $($rawHash.Hash.ToLowerInvariant())
 - Verification: $([System.IO.Path]::GetFileName($verificationPath))
@@ -125,6 +126,7 @@ $result = [pscustomobject]@{
     remote_addr = [string]$verification.remote_addr
     remote_name = [string]$verification.remote_name
     route_checked = [bool]$verification.route_checked
+    route_kind = if ($verification.PSObject.Properties["route_kind"]) { [string]$verification.route_kind } else { $null }
 }
 
 if ($Json) {

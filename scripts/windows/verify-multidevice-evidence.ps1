@@ -70,6 +70,15 @@ function Get-BoolProperty {
     return [bool]$property.Value
 }
 
+function Test-JsonProperty {
+    param(
+        [Parameter(Mandatory = $true)]$Object,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    return ($Object -and $null -ne $Object.PSObject.Properties[$Name])
+}
+
 function Get-ArrayProperty {
     param(
         [Parameter(Mandatory = $true)]$Object,
@@ -91,6 +100,24 @@ function Try-ParseDateTimeOffset {
     }
     try {
         return [datetimeoffset]::Parse($Text)
+    }
+    catch {
+        return $null
+    }
+}
+
+function Get-NumberProperty {
+    param(
+        [Parameter(Mandatory = $true)]$Object,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    $property = $Object.PSObject.Properties[$Name]
+    if (-not $property -or $null -eq $property.Value) {
+        return $null
+    }
+    try {
+        return [double]$property.Value
     }
     catch {
         return $null
@@ -138,6 +165,10 @@ $remoteName = Get-StringProperty -Object $evidence -Name "remote_name"
 $operatorMachine = Get-StringProperty -Object $evidence -Name "operator_machine"
 $operatorUser = Get-StringProperty -Object $evidence -Name "operator_user"
 $scriptError = Get-StringProperty -Object $evidence -Name "error"
+$routeEvidence = $null
+if ($evidence.PSObject.Properties["route_evidence"]) {
+    $routeEvidence = $evidence.route_evidence
+}
 
 Add-CheckFromCondition "schema" ($schema -eq "musu.multidevice_smoke_evidence.v1") "schema is valid" "schema is not musu.multidevice_smoke_evidence.v1"
 Add-CheckFromCondition "evidence ok" (Get-BoolProperty -Object $evidence -Name "ok") "evidence reports ok=true" "evidence does not report ok=true"
@@ -243,6 +274,45 @@ if ($routeRequired) {
             "route output contains $ExpectedRouteOutput" `
             "route output does not contain $ExpectedRouteOutput"
     }
+
+    Add-CheckFromCondition "route evidence present" ($null -ne $routeEvidence) "route_evidence is present" "route_evidence is missing"
+    if ($routeEvidence) {
+        $allowedRouteKinds = @("lan", "tailscale", "direct_quic", "relay", "failed")
+        $routeEvidenceSchema = Get-StringProperty -Object $routeEvidence -Name "schema"
+        $routeEvidenceVersion = Get-StringProperty -Object $routeEvidence -Name "version"
+        $routeKind = Get-StringProperty -Object $routeEvidence -Name "route_kind"
+        $candidateAddr = Get-StringProperty -Object $routeEvidence -Name "candidate_addr"
+        $encryption = Get-StringProperty -Object $routeEvidence -Name "encryption"
+        $routeResult = Get-StringProperty -Object $routeEvidence -Name "result"
+        $recordedAt = Try-ParseDateTimeOffset -Text (Get-StringProperty -Object $routeEvidence -Name "recorded_at")
+        $handshakeMs = Get-NumberProperty -Object $routeEvidence -Name "handshake_ms"
+        $totalAttemptMs = Get-NumberProperty -Object $routeEvidence -Name "total_attempt_ms"
+        $peerIdentityPresent = Test-JsonProperty -Object $routeEvidence -Name "peer_identity_verified"
+        $peerIdentityVerified = Get-BoolProperty -Object $routeEvidence -Name "peer_identity_verified"
+        $payloadTransitPresent = Test-JsonProperty -Object $routeEvidence -Name "payload_transited_musu_infra"
+        $payloadTransited = Get-BoolProperty -Object $routeEvidence -Name "payload_transited_musu_infra"
+        $legacyEncryptionValues = @("", "none", "http", "none_http_bearer", "unknown")
+
+        Add-CheckFromCondition "route evidence schema" ($routeEvidenceSchema -eq "musu.route_evidence.v1") "route_evidence schema is valid" "route_evidence schema is not musu.route_evidence.v1"
+        Add-CheckFromCondition "route evidence version" ($routeEvidenceVersion -eq $ExpectedVersion) "route_evidence version matches $ExpectedVersion" "route_evidence version does not match $ExpectedVersion"
+        Add-CheckFromCondition "route kind" ($allowedRouteKinds -contains $routeKind -and $routeKind -ne "failed") "route_kind is $routeKind" "route_kind must be one of lan/tailscale/direct_quic/relay and not failed for passing evidence"
+        Add-CheckFromCondition "route candidate address" (-not [string]::IsNullOrWhiteSpace($candidateAddr) -and $candidateAddr -match ":\d+$") "route candidate_addr includes host:port" "route candidate_addr is missing or lacks a port"
+        Add-CheckFromCondition "route result" ($routeResult -eq "success") "route evidence result is success" "route evidence result is not success"
+        Add-CheckFromCondition "route recorded timestamp" ($null -ne $recordedAt) "route evidence recorded_at parses" "route evidence recorded_at is missing or invalid"
+        Add-CheckFromCondition "route handshake timing" ($null -ne $handshakeMs -and $handshakeMs -ge 0) "route handshake_ms is present" "route handshake_ms is missing or invalid"
+        Add-CheckFromCondition "route total timing" ($null -ne $totalAttemptMs -and $totalAttemptMs -gt 0) "route total_attempt_ms is present" "route total_attempt_ms is missing or invalid"
+        Add-CheckFromCondition "route peer identity field" $peerIdentityPresent "peer_identity_verified is present" "peer_identity_verified is missing"
+        Add-CheckFromCondition "route peer identity verified" $peerIdentityVerified "peer identity is verified" "peer identity is not verified"
+        Add-CheckFromCondition "route encryption field" (-not [string]::IsNullOrWhiteSpace($encryption)) "route encryption field is present" "route encryption field is missing"
+        Add-CheckFromCondition "route encryption hardened" (-not ($legacyEncryptionValues -contains $encryption.ToLowerInvariant())) "route encryption is $encryption" "route encryption is legacy or unproven: $encryption"
+        Add-CheckFromCondition "route payload transit field" $payloadTransitPresent "payload_transited_musu_infra is present" "payload_transited_musu_infra is missing"
+        if ($routeKind -eq "relay") {
+            Add-CheckFromCondition "relay transit truth" $payloadTransited "relay evidence says payload transited MUSU infra" "relay route must set payload_transited_musu_infra=true"
+        }
+        elseif ($allowedRouteKinds -contains $routeKind) {
+            Add-CheckFromCondition "direct transit truth" (-not $payloadTransited) "direct route evidence says payload did not transit MUSU infra" "non-relay route must set payload_transited_musu_infra=false"
+        }
+    }
 }
 elseif ($routeChecked -and $route) {
     Add-CheckFromCondition "route exit" ([int]$route.exit_code -eq 0) "route exited 0" "route exit code was $($route.exit_code)"
@@ -257,6 +327,7 @@ $result = [pscustomobject]@{
     remote_addr = $remoteAddr
     remote_name = $remoteName
     route_checked = $routeChecked
+    route_kind = if ($routeEvidence) { Get-StringProperty -Object $routeEvidence -Name "route_kind" } else { $null }
     checks = $checks.ToArray()
 }
 

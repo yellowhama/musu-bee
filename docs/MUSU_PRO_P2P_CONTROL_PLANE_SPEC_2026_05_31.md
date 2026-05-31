@@ -146,8 +146,11 @@ Release gates must reject multi-device evidence that lacks:
 
 ## Next Implementation Order
 
-1. Extend route evidence verifier to require `route_kind`.
-2. Add client DTOs for rendezvous sessions and route evidence.
+1. Extend route evidence verifier to require `route_kind`. **Done in the release
+   verifier: multi-device evidence now requires `musu.route_evidence.v1` with
+   route kind, timing, peer identity, encryption, and payload transit truth.**
+2. Add client DTOs for rendezvous sessions and route evidence. **Initial Rust
+   DTOs and client methods exist in `musu-rs/src/cloud/mod.rs`.**
 3. Add server-side mock/stub endpoints in `musu.pro` path for local tests.
 4. Add `musu relay status` and `musu route --explain`.
 5. Add direct path selection against registered LAN/Tailscale endpoints.

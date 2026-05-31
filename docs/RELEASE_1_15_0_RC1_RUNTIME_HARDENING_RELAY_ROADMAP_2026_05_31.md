@@ -156,6 +156,9 @@ Minimal API shape:
 Detailed control-plane API and route evidence contract:
 `docs/MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md` (wiki/524).
 
+Execution plan for the three operator-reported blockers:
+`docs/MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md` (wiki/525).
+
 Minimal client behavior:
 
 - keep one low-duty outbound control connection when user is logged in
@@ -188,6 +191,13 @@ Minimal client behavior:
 3. Add bridge client commands: `musu relay status`, `musu relay connect`, `musu relay route`.
 4. Add route path selection: manual peer -> cached direct endpoint -> relay fallback.
 5. Record route evidence with path type and timings.
+
+Current enforcement update: `smoke-multidevice-beta.ps1` writes
+`musu.route_evidence.v1`, and `verify-multidevice-evidence.ps1` now rejects
+passing route evidence unless it includes route kind, candidate address,
+handshake timing, peer identity verification, hardened encryption, payload
+transit truth, and success result. This deliberately prevents legacy manual
+HTTP bearer routing from satisfying the public multi-device release gate.
 
 ### P2: Productize relay as MUSU Connect
 
