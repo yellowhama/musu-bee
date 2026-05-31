@@ -140,21 +140,43 @@ The Next dashboard had several mounted view-level polling loops at 5s and 10s in
 
 Change made:
 
-- service health polling: 5s -> 15s, no overlap, pause when hidden
-- processes polling: 5s -> 10s, no overlap, pause when hidden
-- doctor card polling: 10s -> 30s, pause when hidden
-- fleet dashboard polling: 10s -> 30s, pause when hidden
-- device discovery polling: 10s -> 15s, pause when hidden
-- main dashboard polling: 15s fixed interval -> 30s visible / 120s hidden
-  recursive timeout with no overlapping refreshes
-- node panel registry/discovery polling: 15s fixed interval -> 30s visible /
-  120s hidden recursive timeout
-- agents surface polling: 5s fixed interval -> 30s visible / 120s hidden
-  recursive timeout
+- `musu-bee/src/lib/useLowDutyPolling.ts` is now the shared low-duty client
+  polling helper for desktop-safe dashboard refreshes.
+- The helper uses one recursive timeout instead of fixed `setInterval`,
+  prevents overlapping requests, aborts in-flight fetches on unmount, pauses
+  low-priority work while the document is hidden, and backs off failed polling
+  up to a capped delay.
+- Device discovery, service health, process list, node mesh list, node panel,
+  doctor card, fleet pages, company/machine detail pages, tasks/approvals/goals/
+  projects/issues/costs panels, inbox polling, tasks SSE fallback polling, and
+  canvas company/message-flow polling now use the shared helper or the same
+  non-overlapping recursive pattern.
+- Fleet/company/machine pages now use 30s safety-net polling and rely on
+  existing EventSource wakeups for immediate updates instead of 5s fixed
+  refreshes.
 
 This does not prove the reported 20% busy-loop is fixed. It removes unnecessary foreground-style polling from the idle path and makes browser/WebView2 CPU easier to interpret.
 
-### P0-5: `musu up` and smoke path need process ownership hardening
+### P0-5: Task admission wait no longer polls at 50ms
+
+`musu-rs/src/writer/runner.rs` previously woke capped pending tasks every 50ms
+while waiting for global/per-channel admission. That is not always an idle-path
+bug, but it is still a needless periodic wakeup under backlog.
+
+Change made:
+
+- Admission now waits on `tokio::sync::Notify` and wakes when a running task
+  releases a slot.
+- A 1s safety recheck remains so a missed wake cannot strand a pending task.
+- Release uses both `notify_waiters()` and `notify_one()` so channel-specific
+  waiters get a broad wake while a permit is still available if no waiter was
+  registered at that instant.
+
+This reduces background scheduler wakeups during queued task pressure. It still
+needs runtime evidence under a real backlog scenario before it can be called a
+complete CPU fix.
+
+### P0-6: `musu up` and smoke path need process ownership hardening
 
 The primary-side multi-device smoke hung while running `musu up --json` through the repo debug binary path. That is not acceptable as a public operator path.
 
@@ -197,14 +219,17 @@ Required fixes:
 - add bounded timeout and child-process cleanup around smoke harness invocations
 - expose "already running", "started", "unhealthy", and "conflicting process" as separate states
 
-### P1: Frontend polling must be consolidated further
+### P1: Frontend polling must be audited against one product budget
 
-The Next dashboard has many view-level polling loops at 2s, 5s, 10s, 30s, and 60s intervals. Many are scoped to mounted pages, so they are not automatically idle-background bugs, but the product has no single polling budget.
+The worst Store-desktop polling paths now share one low-duty helper, but the
+repo still has specialized live surfaces such as workflow run status,
+onboarding progress, task fallback polling, and search debounces. Many are
+scoped to active pages or active work, so they are not automatically idle bugs,
+but the product still needs one budget and audit.
 
 Required fixes:
 
-- introduce a shared client polling scheduler
-- keep all low-priority polling paused when tab/app is hidden
+- keep moving low-priority surfaces to `useLowDutyPolling`
 - switch hot status surfaces to SSE/WebSocket where already available
 - add a browser-side poll budget audit
 

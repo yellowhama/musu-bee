@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 import SprintContractSection from "./SprintContractSection";
 
 interface BridgeTask {
@@ -68,6 +69,7 @@ export default function TasksPanel({ companyId }: TasksPanelProps = {}) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [channelFilter, setChannelFilter] = useState<string>("all");
   const [channels, setChannels] = useState<string[]>([]);
+  const [sseFallbackEnabled, setSseFallbackEnabled] = useState(false);
 
   // Pagination
   const [beforeId, setBeforeId] = useState<string | null>(null);
@@ -89,12 +91,12 @@ export default function TasksPanel({ companyId }: TasksPanelProps = {}) {
     [statusFilter, channelFilter, companyId]
   );
 
-  const doFetch = useCallback(async () => {
+  const doFetch = useCallback(async (signal?: AbortSignal) => {
     try {
-      const res = await fetch(buildUrl());
+      const res = await fetch(buildUrl(), { signal });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: BridgeTask[] = await res.json();
-      if (mountedRef.current) {
+      if (mountedRef.current && !signal?.aborted) {
         const list = Array.isArray(data) ? data : [];
         setTasks(list);
         setBeforeId(list.length === LIMIT ? list[list.length - 1].task_id : null);
@@ -107,10 +109,11 @@ export default function TasksPanel({ companyId }: TasksPanelProps = {}) {
         });
       }
     } catch (e) {
-      if (mountedRef.current)
+      if (mountedRef.current && !signal?.aborted)
         setError(e instanceof Error ? e.message : "Failed to load tasks");
+      if (signal) throw e;
     } finally {
-      if (mountedRef.current) setLoading(false);
+      if (mountedRef.current && !signal?.aborted) setLoading(false);
     }
   }, [buildUrl]);
 
@@ -148,7 +151,6 @@ export default function TasksPanel({ companyId }: TasksPanelProps = {}) {
   // SSE subscription
   useEffect(() => {
     mountedRef.current = true;
-    let fallbackInterval: ReturnType<typeof setInterval> | null = null;
 
     void doFetch();
 
@@ -170,19 +172,16 @@ export default function TasksPanel({ companyId }: TasksPanelProps = {}) {
 
     es.onerror = () => {
       es.close();
-      if (mountedRef.current && !fallbackInterval) {
-        fallbackInterval = setInterval(() => {
-          if (mountedRef.current) void doFetch();
-        }, 3000);
-      }
+      if (mountedRef.current) setSseFallbackEnabled(true);
     };
 
     return () => {
       mountedRef.current = false;
       es.close();
-      if (fallbackInterval) clearInterval(fallbackInterval);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useLowDutyPolling(doFetch, { enabled: sseFallbackEnabled, intervalMs: 30_000 });
 
   const handleCancel = useCallback(async (taskId: string) => {
     setCancelling((prev) => new Set(prev).add(taskId));

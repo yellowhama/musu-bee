@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
+import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 import RemoteFileExplorer from "../../../components/workstation/RemoteFileExplorer";
 import TownView from "../../../components/workstation/town/TownView";
 import ButlerView from "../../../components/workstation/butler/ButlerView";
@@ -46,11 +47,12 @@ export default function FleetDashboardPage() {
     isTyping, setIsTyping, initSSE
   } = useFleetStore();
 
-  const fetchFleetStatus = async () => {
+  const fetchFleetStatus = async (signal?: AbortSignal) => {
     try {
-      const res = await fetch("/api/fleet/status");
+      const res = await fetch("/api/fleet/status", { signal });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
+      if (signal?.aborted) return;
       setData(json);
       
       // Auto-select the first couple of healthy machines if none selected
@@ -66,18 +68,12 @@ export default function FleetDashboardPage() {
         setInitialMachineViewModes(initialModes);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch fleet status");
+      if (!signal?.aborted) setError(err instanceof Error ? err.message : "Failed to fetch fleet status");
+      if (signal) throw err;
     }
   };
 
-  useEffect(() => {
-    fetchFleetStatus();
-    const interval = setInterval(() => {
-      if (document.visibilityState !== "hidden") void fetchFleetStatus();
-    }, FLEET_STATUS_POLL_INTERVAL_MS);
-    return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useLowDutyPolling(fetchFleetStatus, { intervalMs: FLEET_STATUS_POLL_INTERVAL_MS });
 
   // Set up SSE Connection for Real-time AI events
   useEffect(() => {

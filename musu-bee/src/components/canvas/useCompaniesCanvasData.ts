@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CompanyCardData, CompanyCardAgent } from "./CompanyCard";
+import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 
 /**
  * Pulls the operator's company registry + per-company agents into the
@@ -18,16 +19,16 @@ export function useCompaniesCanvasData() {
   const [error, setError] = useState<string | null>(null);
   const cancelledRef = useRef(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (signal?: AbortSignal) => {
     try {
-      const compResp = await fetch("/api/bridge/companies");
+      const compResp = await fetch("/api/bridge/companies", { signal });
       if (!compResp.ok) throw new Error(`companies ${compResp.status}`);
       const compJson = await compResp.json();
       const list: Array<{ id: string; name: string; purpose?: string; meta?: Record<string, unknown> }> = Array.isArray(compJson) ? compJson : compJson.companies ?? [];
 
       const next: CompanyCardData[] = await Promise.all(
         list.map(async (co) => {
-          const agentsResp = await fetch(`/api/bridge/companies/${encodeURIComponent(co.id)}/agents`);
+          const agentsResp = await fetch(`/api/bridge/companies/${encodeURIComponent(co.id)}/agents`, { signal });
           const agentsJson: Array<{ id: string; name: string; role?: string; status?: string }> = agentsResp.ok ? await agentsResp.json() : [];
           const agents: CompanyCardAgent[] = agentsJson.map((a) => ({
             id: a.id,
@@ -51,28 +52,28 @@ export function useCompaniesCanvasData() {
           };
         }),
       );
-      if (!cancelledRef.current) {
+      if (!cancelledRef.current && !signal?.aborted) {
         setCards(next);
         setError(null);
       }
     } catch (e) {
-      if (!cancelledRef.current) {
+      if (!cancelledRef.current && !signal?.aborted) {
         setError((e as Error).message);
       }
+      if (signal) throw e;
     } finally {
-      if (!cancelledRef.current) setLoading(false);
+      if (!cancelledRef.current && !signal?.aborted) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     cancelledRef.current = false;
-    void load();
-    const timer = setInterval(() => void load(), 30_000);
     return () => {
       cancelledRef.current = true;
-      clearInterval(timer);
     };
-  }, [load]);
+  }, []);
+
+  useLowDutyPolling(load, { intervalMs: 30_000 });
 
   const refresh = useCallback(() => {
     setLoading(true);

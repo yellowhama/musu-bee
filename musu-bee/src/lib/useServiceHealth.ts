@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 
 export type ServiceStatus = "up" | "down" | "checking";
 
@@ -12,9 +13,9 @@ export interface ServiceHealth {
 
 const POLL_INTERVAL_MS = 15_000;
 
-async function pingService(apiPath: string): Promise<ServiceStatus> {
+async function pingService(apiPath: string, signal: AbortSignal): Promise<ServiceStatus> {
   try {
-    const res = await fetch(apiPath, { next: { revalidate: 0 } });
+    const res = await fetch(apiPath, { next: { revalidate: 0 }, signal });
     return res.ok ? "up" : "down";
   } catch {
     return "down";
@@ -32,34 +33,17 @@ export function useServiceHealth(): ServiceHealth {
     worker: isEmbedded ? "up" : "checking",
   });
 
-  useEffect(() => {
-    if (isEmbedded) return; // Skip polling in embed mode
-
-    let cancelled = false;
-    let inFlight = false;
-
-    async function poll() {
-      if (inFlight || document.visibilityState === "hidden") return;
-      inFlight = true;
-      try {
+  useLowDutyPolling(
+    async (signal) => {
         const [port, bridge, worker] = await Promise.all([
-          pingService("/api/service-health?svc=port"),
-          pingService("/api/service-health?svc=bridge"),
-          pingService("/api/service-health?svc=worker"),
+          pingService("/api/service-health?svc=port", signal),
+          pingService("/api/service-health?svc=bridge", signal),
+          pingService("/api/service-health?svc=worker", signal),
         ]);
-        if (!cancelled) setHealth({ port, bridge, worker });
-      } finally {
-        inFlight = false;
-      }
-    }
-
-    poll();
-    const id = setInterval(poll, POLL_INTERVAL_MS);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, [isEmbedded]);
+        if (!signal.aborted) setHealth({ port, bridge, worker });
+    },
+    { enabled: !isEmbedded, intervalMs: POLL_INTERVAL_MS },
+  );
 
   return health;
 }

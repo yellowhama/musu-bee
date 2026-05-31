@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 
 interface Issue {
   id: string;
@@ -65,7 +66,7 @@ export default function IssuesPanel({ companyId }: IssuesPanelProps) {
 
   const mountedRef = useRef(true);
 
-  const doFetch = useCallback(async () => {
+  const doFetch = useCallback(async (signal?: AbortSignal) => {
     if (!companyId) {
       setLoading(false);
       return;
@@ -74,18 +75,19 @@ export default function IssuesPanel({ companyId }: IssuesPanelProps) {
       const params = new URLSearchParams();
       if (statusFilter !== "all") params.set("status", statusFilter);
       const url = `/api/bridge/companies/${companyId}/issues?${params.toString()}`;
-      const res = await fetch(url);
+      const res = await fetch(url, { signal });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: Issue[] = await res.json();
-      if (mountedRef.current) {
+      if (mountedRef.current && !signal?.aborted) {
         setIssues(Array.isArray(data) ? data : []);
         setError(null);
       }
     } catch (e) {
-      if (mountedRef.current)
+      if (mountedRef.current && !signal?.aborted)
         setError(e instanceof Error ? e.message : "Failed to load issues");
+      if (signal) throw e;
     } finally {
-      if (mountedRef.current) setLoading(false);
+      if (mountedRef.current && !signal?.aborted) setLoading(false);
     }
   }, [companyId, statusFilter]);
 
@@ -97,15 +99,12 @@ export default function IssuesPanel({ companyId }: IssuesPanelProps) {
 
   useEffect(() => {
     mountedRef.current = true;
-    void doFetch();
-    const interval = setInterval(() => {
-      if (mountedRef.current) void doFetch();
-    }, 10000);
     return () => {
       mountedRef.current = false;
-      clearInterval(interval);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
+
+  useLowDutyPolling(doFetch, { enabled: Boolean(companyId), intervalMs: 30_000 });
 
   const handleCheckout = useCallback(
     async (issueId: string) => {

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 import type { Device } from "@/types";
 import type { DeviceStatusItem } from "@/app/api/device-status/route";
 
@@ -27,34 +28,31 @@ function itemToDevice(item: DeviceStatusItem): Device {
 export function useDeviceDiscovery(): UseDeviceDiscoveryReturn {
   const [devices, setDevices] = useState<Device[]>([]);
 
-  useEffect(() => {
-    async function fetchDevices() {
-      if (document.visibilityState === "hidden") return;
-      try {
-        const res = await fetch("/api/device-status");
-        if (!res.ok) {
-          setDevices((prev) =>
-            prev.length > 0
-              ? prev.map((d) => ({ ...d, status: "offline" as const }))
-              : prev,
-          );
-          return;
-        }
-        const items = (await res.json()) as DeviceStatusItem[];
-        setDevices(items.map(itemToDevice));
-      } catch {
+  useLowDutyPolling(
+    async (signal) => {
+      const markOffline = () => {
         setDevices((prev) =>
           prev.length > 0
             ? prev.map((d) => ({ ...d, status: "offline" as const }))
             : prev,
         );
-      }
-    }
+      };
 
-    fetchDevices();
-    const id = setInterval(fetchDevices, POLL_INTERVAL_MS);
-    return () => clearInterval(id);
-  }, []);
+      try {
+        const res = await fetch("/api/device-status", { signal });
+        if (!res.ok) {
+          markOffline();
+          throw new Error(`HTTP ${res.status}`);
+        }
+        const items = (await res.json()) as DeviceStatusItem[];
+        if (!signal.aborted) setDevices(items.map(itemToDevice));
+      } catch (err) {
+        if (!signal.aborted) markOffline();
+        throw err;
+      }
+    },
+    { intervalMs: POLL_INTERVAL_MS },
+  );
 
   return { devices };
 }

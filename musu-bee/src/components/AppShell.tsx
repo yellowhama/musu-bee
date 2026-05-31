@@ -32,6 +32,7 @@ import { useChat } from "@/lib/useChat";
 import { useServiceHealth } from "@/lib/useServiceHealth";
 import { useHealthPopover } from "@/lib/useHealthPopover";
 import { useNodes } from "@/lib/useNodes";
+import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 import { getSupabaseClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import type { Channel, ChannelId, ChatChannelId, PanelId, Message } from "@/types";
@@ -140,14 +141,12 @@ export default function AppShell() {
 
   // ── v13.4: all-companies inbox — fetch companies for the inbox subscription ─
   const [allCompanies, setAllCompanies] = useState<Array<{ id: string; name: string }>>([]);
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
+  async function loadCompanies(signal?: AbortSignal) {
       try {
-        const r = await fetch("/api/bridge/companies");
+      const r = await fetch("/api/bridge/companies", { signal });
         if (!r.ok) return;
         const json: Array<{ id: string; name: string; status?: string }> = await r.json();
-        if (cancelled) return;
+      if (signal?.aborted) return;
         setAllCompanies(
           (Array.isArray(json) ? json : [])
             .filter((c) => c.status !== "inactive")
@@ -155,12 +154,10 @@ export default function AppShell() {
         );
       } catch {
         /* keep previous list on transient failure */
+      throw new Error("company list unavailable");
       }
-    }
-    void load();
-    const t = setInterval(load, 60_000);
-    return () => { cancelled = true; clearInterval(t); };
-  }, []);
+  }
+  useLowDutyPolling(loadCompanies, { intervalMs: 60_000 });
 
   // ── v12-inbox / v13.4: shared attention surface across all companies ─────
   const inbox = useInbox(allCompanies, userIdentity.id);

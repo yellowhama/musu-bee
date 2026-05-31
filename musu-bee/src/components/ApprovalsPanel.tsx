@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 
 interface Approval {
   id: string;
@@ -41,24 +42,25 @@ export default function ApprovalsPanel({ companyId }: ApprovalsPanelProps) {
 
   const mountedRef = useRef(true);
 
-  const doFetch = useCallback(async () => {
+  const doFetch = useCallback(async (signal?: AbortSignal) => {
     if (!companyId) {
       setLoading(false);
       return;
     }
     try {
-      const res = await fetch(`/api/bridge/companies/${companyId}/approvals`);
+      const res = await fetch(`/api/bridge/companies/${companyId}/approvals`, { signal });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: Approval[] = await res.json();
-      if (mountedRef.current) {
+      if (mountedRef.current && !signal?.aborted) {
         setApprovals(Array.isArray(data) ? data : []);
         setError(null);
       }
     } catch (e) {
-      if (mountedRef.current)
+      if (mountedRef.current && !signal?.aborted)
         setError(e instanceof Error ? e.message : "Failed to load approvals");
+      if (signal) throw e;
     } finally {
-      if (mountedRef.current) setLoading(false);
+      if (mountedRef.current && !signal?.aborted) setLoading(false);
     }
   }, [companyId]);
 
@@ -70,15 +72,12 @@ export default function ApprovalsPanel({ companyId }: ApprovalsPanelProps) {
 
   useEffect(() => {
     mountedRef.current = true;
-    void doFetch();
-    const interval = setInterval(() => {
-      if (mountedRef.current) void doFetch();
-    }, 10000);
     return () => {
       mountedRef.current = false;
-      clearInterval(interval);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
+
+  useLowDutyPolling(doFetch, { enabled: Boolean(companyId), intervalMs: 30_000 });
 
   const handleResolve = useCallback(
     async (approvalId: string, decision: "approved" | "rejected") => {

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
+import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 
 interface NodeHealth {
   name: string;
@@ -68,42 +69,37 @@ export default function NodesPanel() {
 
   const mountedRef = useRef(true);
 
-  const fetchNodes = useCallback(async () => {
+  const fetchNodes = useCallback(async (signal?: AbortSignal) => {
     try {
       setLoading(true);
-      const res = await fetch("/api/nodes/mesh");
+      const res = await fetch("/api/nodes/mesh", { signal });
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
       }
       const data: NodesResponse = await res.json();
-      if (mountedRef.current) {
+      if (mountedRef.current && !signal?.aborted) {
         setNodes(data.nodes);
         setError(null);
       }
     } catch (err: unknown) {
-      if (mountedRef.current) {
+      if (mountedRef.current && !signal?.aborted) {
         setError(err instanceof Error ? err.message : "Failed to fetch nodes");
       }
+      if (signal) throw err;
     } finally {
-      if (mountedRef.current) {
+      if (mountedRef.current && !signal?.aborted) {
         setLoading(false);
       }
     }
   }, []);
 
-  useEffect(() => {
+  useLowDutyPolling(
+    async (signal) => {
     mountedRef.current = true;
-    void fetchNodes();
-
-    const interval = setInterval(() => {
-      void fetchNodes();
-    }, 10000);
-
-    return () => {
-      mountedRef.current = false;
-      clearInterval(interval);
-    };
-  }, [fetchNodes]);
+      await fetchNodes(signal);
+    },
+    { intervalMs: 30_000 },
+  );
 
   const handleExecute = useCallback(
     async (nodeName: string, command: string, args: string[] = []) => {

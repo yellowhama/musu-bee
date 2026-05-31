@@ -36,8 +36,11 @@ use crate::writer::sse::{SseBroadcaster, TaskEvent};
 pub const DEFAULT_MAX_GLOBAL: u32 = 4;
 pub const DEFAULT_MAX_PER_CHANNEL: u32 = 1;
 
-/// Wait between admission retries when capped.
-const ADMISSION_POLL_INTERVAL: Duration = Duration::from_millis(50);
+/// Fallback admission recheck when a notify wake is missed.
+///
+/// Normal admission wakeups are event-driven via `Inner::admission_notify`.
+/// This timeout is only a safety net, not the primary scheduling mechanism.
+const ADMISSION_RECHECK_INTERVAL: Duration = Duration::from_secs(1);
 
 /// Default cancel grace period before TerminateProcess on Windows /
 /// SIGKILL elsewhere.
@@ -129,6 +132,7 @@ struct Inner {
     pool: SqlitePool,
     registry: Arc<DashMap<String, TaskHandle>>,
     admission: Arc<Mutex<AdmissionState>>,
+    admission_notify: Arc<Notify>,
     max_global: u32,
     max_per_channel: u32,
     sse: SseBroadcaster,
@@ -186,6 +190,7 @@ impl TaskRunnerHandle {
             pool,
             registry: Arc::new(DashMap::new()),
             admission: Arc::new(Mutex::new(AdmissionState::default())),
+            admission_notify: Arc::new(Notify::new()),
             max_global,
             max_per_channel,
             sse,
@@ -348,13 +353,13 @@ async fn run_one(inner: Arc<Inner>, mut spec: TaskSpec, cancel: Arc<Notify>) {
     // Mark running.
     let started_at = chrono::Utc::now().timestamp();
     update_status_started(&inner.pool, &task_id, started_at).await;
-    inner.sse.publish(
-        TaskEvent::update(&task_id, "running").with_context(
+    inner
+        .sse
+        .publish(TaskEvent::update(&task_id, "running").with_context(
             spec.company_id.as_deref(),
             Some(&spec.channel),
             Some(&spec.sender_id),
-        ),
-    );
+        ));
 
     // --- AUTONOMOUS PRE-FETCHING ---
     // Seamlessly query the Semantic SSOT and inject knowledge into the prompt
@@ -566,6 +571,9 @@ async fn wait_for_admission(
     cancel: &Notify,
 ) -> Result<(), AdmissionExit> {
     loop {
+        let notified = inner.admission_notify.notified();
+        tokio::pin!(notified);
+
         {
             let mut st = inner.admission.lock().await;
             let chan_running = st.per_channel_running.get(channel).copied().unwrap_or(0);
@@ -577,9 +585,11 @@ async fn wait_for_admission(
                 return Ok(());
             }
         }
-        // Lock released — poll with cancel awareness.
+        // Lock released. Wait for an admission slot to be released, with a
+        // slow safety recheck so a missed wake cannot strand a pending task.
         tokio::select! {
-            _ = tokio::time::sleep(ADMISSION_POLL_INTERVAL) => {}
+            _ = &mut notified => {}
+            _ = tokio::time::sleep(ADMISSION_RECHECK_INTERVAL) => {}
             _ = cancel.notified() => return Err(AdmissionExit::Cancelled),
         }
     }
@@ -598,6 +608,8 @@ async fn release_admission(inner: &Inner, channel: &str) {
             st.per_channel_running.remove(channel);
         }
     }
+    inner.admission_notify.notify_waiters();
+    inner.admission_notify.notify_one();
 }
 
 enum StreamOutcome {

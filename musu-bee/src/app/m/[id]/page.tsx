@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 
 interface MachineCapacity {
   gpu_models: string[];
@@ -37,7 +38,7 @@ interface MachineDetail {
 }
 
 const BRIDGE_URL = process.env.NEXT_PUBLIC_MUSU_BRIDGE_URL || "http://localhost:8070";
-const REFRESH_INTERVAL = 5_000;
+const REFRESH_INTERVAL = 30_000;
 
 function StatusDot({ status }: { status: string }) {
   const color =
@@ -100,27 +101,33 @@ export default function MachinePage() {
   const [data, setData] = useState<MachineDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>("");
+  const fetchInFlightRef = useRef(false);
+
+  const fetchData = useCallback(async (signal?: AbortSignal) => {
+    if (!machineId) return;
+    if (fetchInFlightRef.current) return;
+    fetchInFlightRef.current = true;
+    try {
+      const resp = await fetch(`${BRIDGE_URL}/api/machines/${machineId}`, { signal });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const json = (await resp.json()) as MachineDetail;
+      if (signal?.aborted) return;
+      setData(json);
+      setError(null);
+      setLastUpdated(new Date().toLocaleTimeString());
+    } catch (e) {
+      if (!signal?.aborted) setError(e instanceof Error ? e.message : "Failed to fetch");
+      if (signal) throw e;
+    } finally {
+      fetchInFlightRef.current = false;
+    }
+  }, [machineId]);
+
+  useLowDutyPolling(fetchData, { enabled: Boolean(machineId), intervalMs: REFRESH_INTERVAL });
 
   useEffect(() => {
     if (!machineId) return;
     let alive = true;
-    const fetchData = async () => {
-      try {
-        const resp = await fetch(`${BRIDGE_URL}/api/machines/${machineId}`);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const json = (await resp.json()) as MachineDetail;
-        if (!alive) return;
-        setData(json);
-        setError(null);
-        setLastUpdated(new Date().toLocaleTimeString());
-      } catch (e) {
-        if (!alive) return;
-        setError(e instanceof Error ? e.message : "Failed to fetch");
-      }
-    };
-    fetchData();
-    const timer = setInterval(fetchData, REFRESH_INTERVAL);
-
     // v21.F — subscribe to two streams that affect this machine:
     //   resource_requests  — binds / runs / completes on this machine
     //   machines           — capacity heartbeat + status flips
@@ -136,11 +143,10 @@ export default function MachinePage() {
 
     return () => {
       alive = false;
-      clearInterval(timer);
       esReq.close();
       esMch.close();
     };
-  }, [machineId]);
+  }, [fetchData, machineId]);
 
   return (
     <div

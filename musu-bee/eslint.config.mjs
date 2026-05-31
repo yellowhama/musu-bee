@@ -3,6 +3,13 @@ import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
 import nextTypescript from "eslint-config-next/typescript";
 
 export default defineConfig([{
+    ignores: [
+        ".next/**",
+        "out/**",
+        "dist/**",
+        "src-tauri/target/**",
+    ],
+}, {
     extends: [...nextCoreWebVitals, ...nextTypescript],
     rules: {
         // This app is not React-Compiler-ready yet. Keep the runtime hook rules

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 
 export interface FlowEdge {
   /** Sender company id. */
@@ -38,35 +39,26 @@ export function useCompanyMessageFlow() {
   const [edges, setEdges] = useState<FlowEdge[]>([]);
   const [asOf, setAsOf] = useState<number>(() => Date.now());
 
-  useEffect(() => {
-    let cancelled = false;
-    let timer: ReturnType<typeof setInterval> | null = null;
-
-    async function load() {
+  useLowDutyPolling(
+    async (signal) => {
       try {
-        const resp = await fetch("/api/bridge/flow/companies");
+        const resp = await fetch("/api/bridge/flow/companies", { signal });
         if (!resp.ok) {
-          if (!cancelled) setEdges([]);
-          return;
+          if (!signal.aborted) setEdges([]);
+          throw new Error(`HTTP ${resp.status}`);
         }
         const json = (await resp.json()) as FlowApiResponse;
-        if (!cancelled) {
+        if (!signal.aborted) {
           setEdges(Array.isArray(json?.edges) ? json.edges : []);
           setAsOf(typeof json?.asOf === "number" ? json.asOf : Date.now());
         }
-      } catch {
-        if (!cancelled) setEdges([]);
+      } catch (err) {
+        if (!signal.aborted) setEdges([]);
+        throw err;
       }
-    }
-
-    load();
-    timer = setInterval(load, POLL_MS);
-
-    return () => {
-      cancelled = true;
-      if (timer) clearInterval(timer);
-    };
-  }, []);
+    },
+    { intervalMs: POLL_MS },
+  );
 
   /** Render-ready: include thickness + opacity already computed. */
   const renderEdges = useMemo(() => {

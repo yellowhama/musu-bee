@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { VscDebugStart, VscRefresh, VscWarning, VscCheck } from "react-icons/vsc";
+import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 
 type Level = "ok" | "warn" | "fail";
 
@@ -74,27 +75,25 @@ export default function DoctorStatusCard() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function refresh() {
+  async function refresh(signal?: AbortSignal) {
     setLoading(true);
     try {
-      const res = await fetch("/api/doctor", { cache: "no-store" });
+      const res = await fetch("/api/doctor", { cache: "no-store", signal });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setStatus((await res.json()) as DoctorStatus);
-      setError(null);
+      const next = (await res.json()) as DoctorStatus;
+      if (!signal?.aborted) {
+        setStatus(next);
+        setError(null);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "doctor unavailable");
+      if (!signal?.aborted) setError(err instanceof Error ? err.message : "doctor unavailable");
+      if (signal) throw err;
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   }
 
-  useEffect(() => {
-    void refresh();
-    const timer = setInterval(() => {
-      if (document.visibilityState !== "hidden") void refresh();
-    }, REFRESH_INTERVAL_MS);
-    return () => clearInterval(timer);
-  }, []);
+  useLowDutyPolling(refresh, { intervalMs: REFRESH_INTERVAL_MS });
 
   const overall = status?.overall ?? "warn";
   const t = tone[overall];

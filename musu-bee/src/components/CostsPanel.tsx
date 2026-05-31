@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 import { toPolylinePoints } from "./costs-panel-chart";
 
 interface CostsSummary {
@@ -45,16 +46,16 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
 
   const mountedRef = useRef(true);
 
-  const doFetch = useCallback(async () => {
+  const doFetch = useCallback(async (signal?: AbortSignal) => {
     if (!companyId) {
       setLoading(false);
       return;
     }
     try {
       const [summaryRes, byAgentRes, metricsRes] = await Promise.all([
-        fetch(`/api/bridge/companies/${companyId}/costs/summary`),
-        fetch(`/api/bridge/companies/${companyId}/costs/by-agent`),
-        fetch(`/api/bridge/companies/${companyId}/metrics`),
+        fetch(`/api/bridge/companies/${companyId}/costs/summary`, { signal }),
+        fetch(`/api/bridge/companies/${companyId}/costs/by-agent`, { signal }),
+        fetch(`/api/bridge/companies/${companyId}/metrics`, { signal }),
       ]);
       if (!summaryRes.ok) throw new Error(`summary HTTP ${summaryRes.status}`);
       if (!byAgentRes.ok) throw new Error(`by-agent HTTP ${byAgentRes.status}`);
@@ -65,17 +66,18 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
       const metricsData = metricsRes.ok
         ? ((await metricsRes.json()) as MetricsHistory)
         : null;
-      if (mountedRef.current) {
+      if (mountedRef.current && !signal?.aborted) {
         setSummary(summaryData);
         setByAgent(Array.isArray(byAgentData) ? byAgentData : []);
         setMetrics(metricsData);
         setError(null);
       }
     } catch (e) {
-      if (mountedRef.current)
+      if (mountedRef.current && !signal?.aborted)
         setError(e instanceof Error ? e.message : "Failed to load costs");
+      if (signal) throw e;
     } finally {
-      if (mountedRef.current) setLoading(false);
+      if (mountedRef.current && !signal?.aborted) setLoading(false);
     }
   }, [companyId]);
 
@@ -88,15 +90,12 @@ export default function CostsPanel({ companyId }: CostsPanelProps) {
 
   useEffect(() => {
     mountedRef.current = true;
-    void doFetch();
-    const interval = setInterval(() => {
-      if (mountedRef.current) void doFetch();
-    }, 30000);
     return () => {
       mountedRef.current = false;
-      clearInterval(interval);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
+
+  useLowDutyPolling(doFetch, { enabled: Boolean(companyId), intervalMs: 30_000 });
 
   const doneCount = summary?.by_status?.done ?? 0;
   const failedCount = summary?.by_status?.failed ?? 0;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 
 export type InboxKind = "approval" | "issue" | "notification";
 
@@ -114,7 +115,7 @@ export function useInbox(
   // reference would otherwise reset polling on every render.
   const companyIdsKey = companies.map((c) => c.id).join(",");
 
-  const doFetch = useCallback(async () => {
+  const doFetch = useCallback(async (signal?: AbortSignal) => {
     if (companies.length === 0 && !userId) {
       if (mountedRef.current) {
         setItems([]);
@@ -131,7 +132,7 @@ export function useInbox(
       const companyId = co.id;
       const companyName = co.name;
       tasks.push(
-        fetch(`/api/bridge/companies/${companyId}/approvals`)
+        fetch(`/api/bridge/companies/${companyId}/approvals`, { signal })
           .then((r) => (r.ok ? r.json() : []))
           .then((rows: ApprovalRow[]) =>
             (Array.isArray(rows) ? rows : [])
@@ -152,7 +153,7 @@ export function useInbox(
       );
 
       tasks.push(
-        fetch(`/api/bridge/companies/${companyId}/issues?status=open`)
+        fetch(`/api/bridge/companies/${companyId}/issues?status=open`, { signal })
           .then((r) => (r.ok ? r.json() : []))
           .then((rows: IssueRow[]) =>
             (Array.isArray(rows) ? rows : []).map<InboxItem>((row) => ({
@@ -173,7 +174,7 @@ export function useInbox(
 
     if (userId) {
       tasks.push(
-        fetch(`/api/bridge/notifications/${userId}`)
+        fetch(`/api/bridge/notifications/${userId}`, { signal })
           .then((r) => (r.ok ? r.json() : []))
           .then((rows: NotificationRow[]) =>
             (Array.isArray(rows) ? rows : []).map<InboxItem>((row) => {
@@ -203,7 +204,7 @@ export function useInbox(
         .flat()
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || signal?.aborted) return;
 
       // Flash signal: company ids of items new since last poll.
       const seen = lastSeenIdsRef.current;
@@ -226,8 +227,9 @@ export function useInbox(
       if (mountedRef.current) {
         setError(e instanceof Error ? e.message : "Failed to load inbox");
       }
+      if (signal) throw e;
     } finally {
-      if (mountedRef.current) setLoading(false);
+      if (mountedRef.current && !signal?.aborted) setLoading(false);
     }
   }, [companyIdsKey, userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -239,17 +241,17 @@ export function useInbox(
     void doFetch();
   }, [companyIdsKey, userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Poll.
   useEffect(() => {
     mountedRef.current = true;
-    const interval = setInterval(() => {
-      if (mountedRef.current) void doFetch();
-    }, POLL_MS);
     return () => {
       mountedRef.current = false;
-      clearInterval(interval);
     };
-  }, [doFetch]);
+  }, []);
+
+  useLowDutyPolling(doFetch, {
+    enabled: companies.length > 0 || Boolean(userId),
+    intervalMs: POLL_MS,
+  });
 
   const refresh = useCallback(() => {
     void doFetch();

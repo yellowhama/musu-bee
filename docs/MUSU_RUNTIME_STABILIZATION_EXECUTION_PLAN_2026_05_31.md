@@ -52,8 +52,17 @@ Already applied:
   `desktop-open` scenario, `-RequireOwnedWebView2`, clean git state, owned
   process count budget, owned WebView2 count budget, total working set, private
   memory total, and memory totals by role
-- dashboard, node panel, and agents surface polling now use non-overlapping
-  recursive timeouts with 30s visible / 120s hidden cadence
+- dashboard/frontend polling now has a shared `useLowDutyPolling` helper that
+  prevents overlapping requests, aborts in-flight fetches on unmount, pauses
+  low-priority polling while hidden, and backs off failures; device discovery,
+  service health, processes, nodes, doctor status, fleet pages, company/machine
+  pages, tasks/approvals/goals/projects/issues/costs panels, inbox polling, and
+  canvas data/flow polling use it or the same recursive timeout pattern
+- fleet/company/machine pages now use 30s safety-net polling and existing SSE
+  wakeups instead of 5s fixed intervals
+- `musu-rs/src/writer/runner.rs` task admission now waits on `Notify` instead
+  of waking capped pending tasks every 50ms, with a 1s safety recheck for
+  missed notifications
 - `scripts\windows\audit-musu-process-ownership.ps1` now records
   `musu.process_ownership_audit.v1` evidence and distinguishes MUSU-owned
   Node/WebView2 helpers from unrelated machine-wide processes
@@ -98,6 +107,8 @@ Next implementation:
 - after `audit-msix-desktop-entrypoint.ps1 -RequireInstalledPackage -Json`
   passes, run real 60s `desktop-open` samples with `-RequireOwnedWebView2` on
   both PCs
+- run a queued-task/backlog CPU sample to prove the new event-driven admission
+  path stays quiet when tasks are waiting for global/per-channel slots
 - extend startup-repeat coverage from repeated `musu up` to desktop Start
   Runtime clicks and Store StartupTask/manual-launch collisions
 - fix the exact hot loop shown by those samples

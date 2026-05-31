@@ -19,17 +19,18 @@ import { getBridgeUrl } from '../../lib/bridge-config';
 // musu-bridge axis_routes.py shape uses *_gb, NOT *_mb as the spec body
 // loosely indicated — ground-truth wins (see Builder FINDINGS).
 //
-// Refresh: 5s setInterval + single EventSource on `machines` table (OQ-CRIT-4
-// drops `machine_capacity` SSE; polling covers slow-moving capacity). The
+// Refresh: low-duty 30s polling + single EventSource on `machines` table
+// (OQ-CRIT-4 drops `machine_capacity` SSE; polling covers slow-moving capacity). The
 // alive-guard inside useEffect prevents setState after unmount (C-T2C-4),
 // mirroring /m/[id]/page.tsx:106,113-115.
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import DoctorStatusCard from "../../components/DoctorStatusCard";
+import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 
 const BRIDGE_URL = getBridgeUrl();
-const REFRESH_INTERVAL = 5_000;
+const REFRESH_INTERVAL = 30_000;
 
 // ---- Types ----------------------------------------------------------------
 
@@ -523,33 +524,36 @@ export default function FleetPage() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>("");
   const [wizardOpen, setWizardOpen] = useState(false);
+  const fetchInFlightRef = useRef(false);
 
   // Bump a counter to force a re-fetch on demand (e.g. after AddPcWizard success).
   const [refetchTick, setRefetchTick] = useState(0);
 
+  const fetchData = useCallback(async (signal?: AbortSignal) => {
+    if (fetchInFlightRef.current) return;
+    fetchInFlightRef.current = true;
+    try {
+      const resp = await fetch(`${BRIDGE_URL}/api/machines`, { signal });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const json = (await resp.json()) as MachinesListResponse;
+      if (signal?.aborted) return;
+      setMachines(json.machines || []);
+      setError(null);
+      setLastUpdated(new Date().toLocaleTimeString());
+    } catch (e) {
+      if (!signal?.aborted) setError(e instanceof Error ? e.message : "Failed to fetch");
+      if (signal) throw e;
+    } finally {
+      fetchInFlightRef.current = false;
+    }
+  }, []);
+
+  useLowDutyPolling(fetchData, { intervalMs: REFRESH_INTERVAL });
+
   useEffect(() => {
     let alive = true;
 
-    const fetchData = async () => {
-      try {
-        const resp = await fetch(`${BRIDGE_URL}/api/machines`);
-        if (!alive) return;
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const json = (await resp.json()) as MachinesListResponse;
-        if (!alive) return;
-        setMachines(json.machines || []);
-        setError(null);
-        setLastUpdated(new Date().toLocaleTimeString());
-      } catch (e) {
-        if (!alive) return;
-        setError(e instanceof Error ? e.message : "Failed to fetch");
-      }
-    };
-
-    fetchData();
-    const timer = setInterval(fetchData, REFRESH_INTERVAL);
-
-    // SINGLE EventSource on the `machines` table per OQ-CRIT-4. 5s polling
+    // SINGLE EventSource on the `machines` table per OQ-CRIT-4. Low-duty polling
     // covers `machine_capacity` (slow-moving). Frees 1 SSE slot against
     // browser HTTP/1.1 6-connections-per-host cap.
     const es = new EventSource(
@@ -564,10 +568,9 @@ export default function FleetPage() {
 
     return () => {
       alive = false;
-      clearInterval(timer);
       es.close();
     };
-  }, [refetchTick]);
+  }, [fetchData, refetchTick]);
 
   return (
     <div
@@ -682,7 +685,10 @@ export default function FleetPage() {
       <AddPcWizard
         open={wizardOpen}
         onClose={() => setWizardOpen(false)}
-        onSuccess={() => setRefetchTick((t) => t + 1)}
+        onSuccess={() => {
+          setRefetchTick((t) => t + 1);
+          void fetchData();
+        }}
       />
     </div>
   );

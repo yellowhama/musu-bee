@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import type { Goal } from "@/types";
+import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 
 const STATUS_COLOR: Record<Goal["status"], string> = {
   active: "var(--status-running)",
@@ -57,7 +58,7 @@ export default function GoalsPanel({ companyId }: GoalsPanelProps) {
 
   const mountedRef = useRef(true);
 
-  const doFetch = useCallback(async () => {
+  const doFetch = useCallback(async (signal?: AbortSignal) => {
     if (!companyId) {
       setLoading(false);
       return;
@@ -66,18 +67,19 @@ export default function GoalsPanel({ companyId }: GoalsPanelProps) {
       const params = new URLSearchParams();
       if (statusFilter !== "all") params.set("status", statusFilter);
       const url = `/api/bridge/companies/${companyId}/goals?${params.toString()}`;
-      const res = await fetch(url);
+      const res = await fetch(url, { signal });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: Goal[] = await res.json();
-      if (mountedRef.current) {
+      if (mountedRef.current && !signal?.aborted) {
         setGoals(Array.isArray(data) ? data : []);
         setError(null);
       }
     } catch (e) {
-      if (mountedRef.current)
+      if (mountedRef.current && !signal?.aborted)
         setError(e instanceof Error ? e.message : "Failed to load goals");
+      if (signal) throw e;
     } finally {
-      if (mountedRef.current) setLoading(false);
+      if (mountedRef.current && !signal?.aborted) setLoading(false);
     }
   }, [companyId, statusFilter]);
 
@@ -89,15 +91,12 @@ export default function GoalsPanel({ companyId }: GoalsPanelProps) {
 
   useEffect(() => {
     mountedRef.current = true;
-    void doFetch();
-    const interval = setInterval(() => {
-      if (mountedRef.current) void doFetch();
-    }, 10000);
     return () => {
       mountedRef.current = false;
-      clearInterval(interval);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
+
+  useLowDutyPolling(doFetch, { enabled: Boolean(companyId), intervalMs: 30_000 });
 
   const handleStatusChange = useCallback(
     async (goalId: string, newStatus: Goal["status"]) => {

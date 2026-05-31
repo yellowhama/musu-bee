@@ -1,8 +1,9 @@
 "use client";
 import { getBridgeUrl } from '../../../lib/bridge-config';
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 
 interface InflightRequest {
   id: string;
@@ -32,7 +33,7 @@ interface CompanyDispatch {
 }
 
 const BRIDGE_URL = getBridgeUrl();
-const REFRESH_INTERVAL = 5_000;
+const REFRESH_INTERVAL = 30_000;
 
 function StatusDot({ status }: { status: string }) {
   const color =
@@ -81,32 +82,37 @@ export default function CompanyPage() {
   const [data, setData] = useState<CompanyDispatch | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>("");
+  const fetchInFlightRef = useRef(false);
+
+  const fetchData = useCallback(async (signal?: AbortSignal) => {
+    if (!companyId) return;
+    if (fetchInFlightRef.current) return;
+    fetchInFlightRef.current = true;
+    try {
+      const resp = await fetch(`${BRIDGE_URL}/api/companies/${companyId}/dispatch`, { signal });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const json = (await resp.json()) as CompanyDispatch;
+      if (signal?.aborted) return;
+      setData(json);
+      setError(null);
+      setLastUpdated(new Date().toLocaleTimeString());
+    } catch (e) {
+      if (!signal?.aborted) setError(e instanceof Error ? e.message : "Failed to fetch");
+      if (signal) throw e;
+    } finally {
+      fetchInFlightRef.current = false;
+    }
+  }, [companyId]);
+
+  useLowDutyPolling(fetchData, { enabled: Boolean(companyId), intervalMs: REFRESH_INTERVAL });
 
   useEffect(() => {
     if (!companyId) return;
     let alive = true;
-    const fetchData = async () => {
-      try {
-        const resp = await fetch(`${BRIDGE_URL}/api/companies/${companyId}/dispatch`);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const json = (await resp.json()) as CompanyDispatch;
-        if (!alive) return;
-        setData(json);
-        setError(null);
-        setLastUpdated(new Date().toLocaleTimeString());
-      } catch (e) {
-        if (!alive) return;
-        setError(e instanceof Error ? e.message : "Failed to fetch");
-      }
-    };
-    fetchData();
-    // Periodic safety-net refresh in case SSE drops.
-    const timer = setInterval(fetchData, REFRESH_INTERVAL);
-
     // v21.F — SSE on resource_requests wakes a refresh as soon as the
     // scheduler binds/runs/completes an agent's request. Client-side
     // filter by company_id: we don't have that on the wire, so we
-    // refetch and let the totals diff. Cheap enough at ~5/s peak.
+    // refetch and let the totals diff. Low-duty polling is only a safety net.
     const es = new EventSource(
       `${BRIDGE_URL}/api/watch/subscribe?table=resource_requests`,
     );
@@ -119,10 +125,9 @@ export default function CompanyPage() {
 
     return () => {
       alive = false;
-      clearInterval(timer);
       es.close();
     };
-  }, [companyId]);
+  }, [companyId, fetchData]);
 
   return (
     <div

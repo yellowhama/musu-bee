@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
+import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 import type { ProcessInfo } from "@/app/api/processes/route";
 
 export type { ProcessInfo };
@@ -28,47 +29,36 @@ export function useProcesses(deviceId = "local", nameFilter?: string): UseProces
   const [processes, setProcesses] = useState<ProcessInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [tick, setTick] = useState(0);
 
-  const refresh = useCallback(() => setTick((t) => t + 1), []);
-
-  useEffect(() => {
-    let cancelled = false;
-    let inFlight = false;
-
-    async function fetchProcesses() {
-      if (inFlight || document.visibilityState === "hidden") return;
-      inFlight = true;
-      setLoading(true);
-      try {
-        const url = new URL("/api/processes", window.location.origin);
-        url.searchParams.set("device_id", deviceId);
-        if (nameFilter) url.searchParams.set("name", nameFilter);
-        const res = await fetch(url.toString());
-        if (!res.ok) {
-          setError(`Failed to fetch processes (HTTP ${res.status})`);
-          return;
-        }
-        const data = (await res.json()) as ProcessInfo[];
-        if (!cancelled) {
-          setProcesses(data);
-          setError(null);
-        }
-      } catch (err) {
-        if (!cancelled) setError(String(err));
-      } finally {
-        if (!cancelled) setLoading(false);
-        inFlight = false;
+  const fetchProcesses = useCallback(async (signal?: AbortSignal) => {
+    setLoading(true);
+    try {
+      const url = new URL("/api/processes", window.location.origin);
+      url.searchParams.set("device_id", deviceId);
+      if (nameFilter) url.searchParams.set("name", nameFilter);
+      const res = await fetch(url.toString(), { signal });
+      if (!res.ok) {
+        if (!signal?.aborted) setError(`Failed to fetch processes (HTTP ${res.status})`);
+        throw new Error(`HTTP ${res.status}`);
       }
+      const data = (await res.json()) as ProcessInfo[];
+      if (!signal?.aborted) {
+        setProcesses(data);
+        setError(null);
+      }
+    } catch (err) {
+      if (!signal?.aborted) setError(String(err));
+      if (signal) throw err;
+    } finally {
+      if (!signal?.aborted) setLoading(false);
     }
+  }, [deviceId, nameFilter]);
 
-    fetchProcesses();
-    const id = setInterval(fetchProcesses, POLL_INTERVAL_MS);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, [deviceId, nameFilter, tick]);
+  const refresh = useCallback(() => {
+    void fetchProcesses();
+  }, [fetchProcesses]);
+
+  useLowDutyPolling(fetchProcesses, { intervalMs: POLL_INTERVAL_MS });
 
   const killProcess = useCallback(
     async (pid: number, targetDeviceId: string, force = false) => {

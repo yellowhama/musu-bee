@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 
 interface Project {
   id: string;
@@ -53,16 +54,16 @@ export default function ProjectsPanel({ companyId }: ProjectsPanelProps) {
 
   const mountedRef = useRef(true);
 
-  const doFetch = useCallback(async () => {
+  const doFetch = useCallback(async (signal?: AbortSignal) => {
     if (!companyId) {
       setLoading(false);
       return;
     }
     try {
-      const res = await fetch(`/api/bridge/companies/${companyId}/projects`);
+      const res = await fetch(`/api/bridge/companies/${companyId}/projects`, { signal });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: Project[] = await res.json();
-      if (mountedRef.current) {
+      if (mountedRef.current && !signal?.aborted) {
         const list = Array.isArray(data) ? data : [];
         const filtered =
           statusFilter === "all"
@@ -72,10 +73,11 @@ export default function ProjectsPanel({ companyId }: ProjectsPanelProps) {
         setError(null);
       }
     } catch (e) {
-      if (mountedRef.current)
+      if (mountedRef.current && !signal?.aborted)
         setError(e instanceof Error ? e.message : "Failed to load projects");
+      if (signal) throw e;
     } finally {
-      if (mountedRef.current) setLoading(false);
+      if (mountedRef.current && !signal?.aborted) setLoading(false);
     }
   }, [companyId, statusFilter]);
 
@@ -87,15 +89,12 @@ export default function ProjectsPanel({ companyId }: ProjectsPanelProps) {
 
   useEffect(() => {
     mountedRef.current = true;
-    void doFetch();
-    const interval = setInterval(() => {
-      if (mountedRef.current) void doFetch();
-    }, 15000);
     return () => {
       mountedRef.current = false;
-      clearInterval(interval);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
+
+  useLowDutyPolling(doFetch, { enabled: Boolean(companyId), intervalMs: 30_000 });
 
   const handleStatusChange = useCallback(
     async (projectId: string, newStatus: Project["status"]) => {
