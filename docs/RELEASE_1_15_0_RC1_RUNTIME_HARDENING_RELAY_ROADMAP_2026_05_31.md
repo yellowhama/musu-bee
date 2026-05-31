@@ -62,7 +62,7 @@ What it does not close:
 The repo did not previously have a repeatable idle CPU gate. That was a real gap. A new local measurement script now exists:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -MaxOneCorePercent 5 -IncludeNode -IncludeWebView2 -FailOnHot -Json
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -Scenario desktop-open -RequireOwnedWebView2 -MaxOneCorePercent 5 -MaxOwnedProcessCount 16 -MaxOwnedWebView2ProcessCount 8 -MaxTotalWorkingSetMb 1024 -IncludeNode -IncludeWebView2 -FailOnHot -Json
 ```
 
 The script writes `musu.runtime_idle_cpu_evidence.v1` JSON under `.local-build\runtime-idle-cpu\`. A Store/public build should pass this on a fresh boot, after opening the app, after starting the runtime, and after the second-PC route flow. The sample is invalid if no MUSU runtime process is running.
@@ -75,13 +75,18 @@ system WebView2 processes are not counted unless the operator explicitly passes
 native parent-process lookup instead of WMI, because WMI/CIM can hang and would
 make CPU evidence unreliable. Release go/no-go now rejects runtime CPU evidence
 that omits `-IncludeNode`, omits `-IncludeWebView2`, has no valid helper scope,
-or cannot prove process ownership metadata for the default owned-helper scope.
+cannot prove process ownership metadata for the default owned-helper scope, is
+not captured from clean git, omits memory/resource-budget totals, or does not
+use the `desktop-open` scenario with `-RequireOwnedWebView2`.
 
-`scripts\windows\write-release-go-no-go.ps1` now reports `runtime_idle_cpu_verified` and blocks public readiness until runtime idle CPU evidence passes on at least two machines with the 60s / 5%-of-one-core threshold.
+`scripts\windows\write-release-go-no-go.ps1` now reports `runtime_idle_cpu_verified` and blocks public readiness until runtime idle CPU/resource-budget evidence passes on at least two machines with the 60s / 5%-of-one-core threshold, owned WebView2 present, owned process count <= 16, owned WebView2 process count <= 8, and total owned working set <= 1024MB.
 
 Acceptance target for public beta:
 
 - idle MUSU bridge/app process: <= 5% of one logical CPU for a 60s sample
+- desktop-open sample must include at least one MUSU-owned WebView2 process
+- owned process count <= 16, owned WebView2 process count <= 8, total owned
+  working set <= 1024MB
 - no unbounded process growth after repeated `musu up` / desktop start clicks
 - bridge remains reachable while idle CPU is low
 - second PC passes the same sample

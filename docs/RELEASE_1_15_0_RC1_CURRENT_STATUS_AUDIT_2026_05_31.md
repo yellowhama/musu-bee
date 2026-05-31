@@ -56,7 +56,7 @@ This document supersedes wiki/521 for the **current 2026-05-31 release status**.
 | Store submission bundle verification | `ok=true`, `fail_count=0` |
 | Public metadata | `https://musu.pro/privacy` and `/support` pass with `musu@musu.pro` |
 | Second-PC MSIX install evidence | `docs\evidence\msix-install\1.15.0-rc.1\20260531-165211-HUGH-MAIN.evidence.json` |
-| Runtime idle CPU evidence | formal gate still missing; diagnostic primary debug-runtime sample passed at `.local-build\runtime-idle-cpu\musu-idle-cpu-20260531-194854.json`, but public readiness still requires two machines with the packaged desktop/WebView2 shell open |
+| Runtime idle CPU evidence | formal gate still missing; bridge-only diagnostic sample passed at `docs\evidence\runtime-idle-cpu-diagnostic\1.15.0-rc.1\20260531-211448-HUGH_SECOND.bridge-only.evidence.json`, but public readiness requires two machines with `desktop-open`, `-RequireOwnedWebView2`, and the packaged desktop/WebView2 shell attributed |
 | Process ownership evidence | local audit passed at `.local-build\process-ownership\musu-process-ownership-20260531-201339.json`; `musu_runtime=1`, `owned_node=0`, `owned_webview2=0`, `machine_wide_node=1`, `machine_wide_webview2=13`, `orphan_repo_helpers=0`, bridge registry PID alive, `/health` HTTP 200 |
 | Startup single-instance evidence | local audit passed at `docs\evidence\startup-single-instance\1.15.0-rc.1\20260531-203635-HUGH_SECOND.evidence.json`; three repeated `musu up --json` calls reused bridge PID 31208, `after_musu_runtime=1`, `repeated_spawn_count=0`, nested process ownership audit passed |
 | Current support verification id | `musu-store-support-1.15.0-rc.1-20260531-191548` |
@@ -75,7 +75,7 @@ This document supersedes wiki/521 for the **current 2026-05-31 release status**.
 8. **musu-system integration**: `musu-system` remains future adjacent MCP/CLI/adapter work. It is not part of first Store package scope.
 9. **LAN mDNS discovery**: mDNS LAN auto-discovery is now opt-in via `MUSU_ENABLE_MDNS=1` for the Store-candidate path. Cloud/manual peer registration and the second-PC handoff route remain the canonical release-test path.
 10. **Clipboard sync**: universal clipboard polling is opt-in via `MUSU_ENABLE_CLIPBOARD_SYNC=1`. It must not run by default in the Store-candidate idle path.
-11. **Runtime CPU budget**: public beta requires explicit idle CPU evidence on primary and second PC. The current target is <= 5% of one logical CPU for a 60s idle sample.
+11. **Runtime CPU/resource budget**: public beta requires explicit idle CPU/resource evidence on primary and second PC. The current target is <= 5% of one logical CPU for a 60s `desktop-open` idle sample, at least one MUSU-owned WebView2 process attributed, owned process count <= 16, owned WebView2 process count <= 8, and total owned working set <= 1024MB.
 12. **musu.pro network role**: the product needs a hosted registry/rendezvous/relay-control path. Direct LAN/manual peers remain valid, but cannot be the only public multi-device setup story.
 13. **Process ownership policy**: machine-wide Node.js/WebView2 processes are not automatically MUSU-owned. Release evidence must distinguish MUSU descendants and repo-related helpers from unrelated processes, and bridge registry PID plus `/health` must match the live MUSU runtime.
 14. **Startup single-instance policy**: repeated `musu up`, desktop Start Runtime, and Store StartupTask/manual-launch overlap must reuse one runtime/bridge owner. The release gate now starts with repeated `musu up --json` evidence and must expand to packaged desktop click/startup-task collision tests.
@@ -111,6 +111,7 @@ Findings:
 13. **Frontend polling moved another step toward an idle budget.** Dashboard, node panel, and agents surface polling no longer use hot fixed intervals; they use non-overlapping recursive timeouts with 30s visible / 120s hidden cadence.
 14. **Process ownership audit is now a release gate.** `scripts\windows\audit-musu-process-ownership.ps1` writes `musu.process_ownership_audit.v1` evidence and `write-release-go-no-go.ps1` reports `process_ownership_verified`. The current local audit proves the extra WebView2 processes visible on the operator machine are not MUSU-owned, while the live bridge registry points to one healthy MUSU process.
 15. **Startup single-instance audit is now a release gate.** `scripts\windows\audit-musu-startup-single-instance.ps1` writes `musu.startup_single_instance_audit.v1`, calls `musu up --json` repeatedly, requires one stable bridge PID, rejects repeated bridge spawning, and embeds a nested process ownership audit. The current local run passed with three calls reusing PID 31208.
+16. **Runtime resource budget evidence was tightened.** `measure-musu-idle-cpu.ps1` now records scenario, git commit/dirty state, owned process count budget, owned WebView2 count budget, total/private memory, and memory totals by role. `write-release-go-no-go.ps1` requires `desktop-open` evidence with `-RequireOwnedWebView2`; a bridge-only diagnostic pass cannot satisfy public release.
 
 ## Next Steps
 
@@ -118,13 +119,13 @@ P0: keep No-Go until internal runtime quality and external evidence gates both p
 
 1. Run idle CPU evidence on primary and second PC:
    ```powershell
-   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -MaxOneCorePercent 5 -IncludeNode -IncludeWebView2 -FailOnHot -Json
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -Scenario desktop-open -RequireOwnedWebView2 -MaxOneCorePercent 5 -MaxOwnedProcessCount 16 -MaxOwnedWebView2ProcessCount 8 -MaxTotalWorkingSetMb 1024 -IncludeNode -IncludeWebView2 -FailOnHot -Json
    ```
    MUSU must be open and idle during the sample. The gate fails if no MUSU
    runtime process is running, if Node.js/WebView2 budget flags are omitted,
-   or if the default owned-helper scope cannot prove process ownership. The
-   sample should include the packaged desktop shell so owned WebView2 CPU is
-   represented.
+   if the default owned-helper scope cannot prove process ownership, if no
+   MUSU-owned WebView2 process is attributed, or if resource budget fields are
+   missing/exceeded.
 2. Run process ownership audit whenever the operator sees many Node.js/WebView2 processes:
    ```powershell
    powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-process-ownership.ps1 -FailOnProblem -Json

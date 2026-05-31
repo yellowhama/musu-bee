@@ -1,0 +1,99 @@
+﻿{
+    "schema":  "musu.runtime_idle_cpu_evidence.v1",
+    "ok":  true,
+    "version":  "1.15.0-rc.1",
+    "git_commit":  "080eb0afb7370d2fce087dd6968fedbc3ddfa8e4",
+    "git_dirty":  false,
+    "git_status_short":  "",
+    "started_at":  "2026-05-31T21:14:50.4414891+09:00",
+    "completed_at":  "2026-05-31T21:15:50.4958508+09:00",
+    "operator_machine":  "HUGH_SECOND",
+    "operator_user":  "empty",
+    "scenario":  "bridge-only",
+    "require_owned_webview2":  false,
+    "sample_seconds":  60.054,
+    "logical_processor_count":  12,
+    "max_one_core_percent":  5,
+    "max_owned_process_count":  16,
+    "max_owned_webview2_process_count":  8,
+    "max_total_working_set_mb":  1024,
+    "process_names":  [
+                          "musu",
+                          "musud",
+                          "node",
+                          "msedgewebview2"
+                      ],
+    "musu_process_names":  [
+                               "musu",
+                               "musud"
+                           ],
+    "include_node":  true,
+    "include_webview2":  true,
+    "include_unrelated_helpers":  false,
+    "helper_process_scope":  "musu_process_tree_or_repo_related",
+    "process_metadata_available":  true,
+    "process_metadata_timed_out":  false,
+    "process_count_before":  1,
+    "process_count_after":  1,
+    "musu_process_count_after":  1,
+    "target_process_running":  true,
+    "process_counts_by_role":  {
+                                   "musu":  1,
+                                   "node":  0,
+                                   "webview2":  0,
+                                   "other":  0
+                               },
+    "total_working_set_mb_after":  27.7,
+    "total_private_memory_mb_after":  5.76,
+    "memory_totals_by_role_mb":  {
+                                     "musu":  {
+                                                  "working_set_mb":  27.7,
+                                                  "private_memory_mb":  5.76
+                                              },
+                                     "node":  {
+                                                  "working_set_mb":  0,
+                                                  "private_memory_mb":  0
+                                              },
+                                     "webview2":  {
+                                                      "working_set_mb":  0,
+                                                      "private_memory_mb":  0
+                                                  },
+                                     "other":  {
+                                                   "working_set_mb":  0,
+                                                   "private_memory_mb":  0
+                                               }
+                                 },
+    "resource_budget_violations":  [
+
+                                   ],
+    "max_one_core_percent_by_role":  {
+                                         "musu":  0.03,
+                                         "node":  0,
+                                         "webview2":  0,
+                                         "other":  0
+                                     },
+    "hot_process_count":  0,
+    "samples":  [
+                    {
+                        "id":  31208,
+                        "process_name":  "musu",
+                        "process_role":  "musu",
+                        "cpu_seconds_delta":  0.016,
+                        "cpu_pct_one_core":  0.03,
+                        "cpu_pct_total":  0,
+                        "working_set_mb":  27.7,
+                        "private_memory_mb":  5.76,
+                        "start_time":  "2026-05-31T19:17:56.7838663+09:00",
+                        "path":  "F:\\workspace\\musu-bee\\musu-rs\\target\\debug\\musu.exe",
+                        "parent_process_id":  27164,
+                        "is_descendant_of_musu":  false,
+                        "is_repo_related":  true,
+                        "classification_reason":  "musu_process_name",
+                        "command_line_present":  false,
+                        "command_line_sha256":  null,
+                        "command_line_hint":  null
+                    }
+                ],
+    "note":  "cpu_pct_one_core is normalized so one fully busy logical processor is 100.",
+    "evidence_path":  "docs\\evidence\\runtime-idle-cpu-diagnostic\\1.15.0-rc.1\\20260531-211448-HUGH_SECOND.bridge-only.evidence.json"
+}

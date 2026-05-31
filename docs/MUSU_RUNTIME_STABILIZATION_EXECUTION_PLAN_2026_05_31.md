@@ -47,6 +47,10 @@ Already applied:
 - the release go/no-go check now rejects runtime CPU evidence that omits
   Node.js/WebView2 budget flags or cannot prove helper process ownership in the
   default owned-helper scope
+- the release go/no-go check now requires runtime CPU evidence to record the
+  `desktop-open` scenario, `-RequireOwnedWebView2`, clean git state, owned
+  process count budget, owned WebView2 count budget, total working set, private
+  memory total, and memory totals by role
 - dashboard, node panel, and agents surface polling now use non-overlapping
   recursive timeouts with 30s visible / 120s hidden cadence
 - `scripts\windows\audit-musu-process-ownership.ps1` now records
@@ -66,16 +70,21 @@ Already applied:
 - current local startup audit on `HUGH_SECOND` passed with three repeated calls
   reusing bridge PID 31208, `after_musu_runtime=1`, `repeated_spawn_count=0`,
   and nested process ownership passing
-- primary debug-runtime 60s diagnostic sample passed at
-  `.local-build\runtime-idle-cpu\musu-idle-cpu-20260531-194854.json`; this is
-  evidence that the current bridge-only debug process is not the hot loop, but
-  it is not final release evidence because the owned desktop WebView2 shell and
-  second PC sample are still missing
+- primary bridge-only 60s diagnostic sample passed at
+  `docs\evidence\runtime-idle-cpu-diagnostic\1.15.0-rc.1\20260531-211448-HUGH_SECOND.bridge-only.evidence.json`:
+  `max_one_core_percent_by_role.musu=0.03`, `total_working_set_mb_after=27.7`,
+  `owned_node=0`, and `owned_webview2=0`. This proves the bridge-only runtime is
+  not the current hot loop, but it is not final release evidence.
+- desktop-open diagnostic attempt
+  `docs\evidence\runtime-idle-cpu-diagnostic\1.15.0-rc.1\20260531-211608-HUGH_SECOND.desktop-open-attempt.evidence.json`
+  fails as intended because `-RequireOwnedWebView2` found zero MUSU-owned
+  WebView2 processes after MSIX app activation.
 
 Next implementation:
 
-- run real 60s samples with the packaged MUSU desktop/WebView2 shell open on
-  both PCs
+- fix packaged desktop activation/ownership so the desktop shell produces at
+  least one MUSU-owned WebView2 process, then run real 60s `desktop-open`
+  samples with `-RequireOwnedWebView2` on both PCs
 - extend startup-repeat coverage from repeated `musu up` to desktop Start
   Runtime clicks and Store StartupTask/manual-launch collisions
 - fix the exact hot loop shown by those samples
