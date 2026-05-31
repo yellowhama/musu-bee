@@ -9,42 +9,52 @@ interface MusuLogoProps {
   className?: string;
 }
 
-const sizeMap: Record<LogoSize, { width: number; height: number; prefix: string }> = {
-  hero:    { width: 828, height: 444, prefix: "hero" },
-  display: { width: 582, height: 324, prefix: "display" },
-  header:  { width: 447, height: 228, prefix: "header" },
-};
-
-const variantSuffix: Record<LogoVariant, string> = {
-  onDark:   "dark",
-  onLight:  "light",
-  onYellow: "yellow",
-};
-
 const displayHeight: Record<LogoSize, number> = {
   hero:    120,
   display: 80,
   header:  48,
 };
 
+const wordmarkColor: Record<LogoVariant, string> = {
+  onDark:   "var(--musu-color-brand-canvas)",
+  onLight:  "var(--musu-color-brand-ink)",
+  onYellow: "var(--musu-color-brand-ink)",
+};
+
 export function MusuLogo({ size = "header", variant = "onLight", className }: MusuLogoProps) {
-  const s = sizeMap[size];
-  const suffix = variantSuffix[variant];
-  const src = `/images/logos/${s.prefix}-${suffix}.png`;
   const h = displayHeight[size];
-  const w = Math.round(h * (s.width / s.height));
+  const markSize = Math.round(h * 0.78);
+  const fontSize = Math.round(h * 0.58);
+  const gap = Math.max(8, Math.round(h * 0.18));
 
   return (
-    <Image
-      src={src}
-      alt="MUSU"
-      width={s.width}
-      height={s.height}
+    <span
+      aria-label="MUSU"
       className={className}
-      style={{ width: w, height: h }}
-      sizes={`${w}px`}
-      priority={size === "hero" || size === "header"}
-      fetchPriority={size === "hero" ? "high" : undefined}
-    />
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap,
+        height: h,
+        color: wordmarkColor[variant],
+        fontFamily: "var(--font-heading)",
+        fontSize,
+        fontWeight: 900,
+        letterSpacing: 0,
+        lineHeight: 1,
+      }}
+    >
+      <Image
+        src="/images/favicon-header.png"
+        alt=""
+        width={512}
+        height={512}
+        style={{ width: markSize, height: markSize, objectFit: "contain" }}
+        sizes={`${markSize}px`}
+        priority={size === "hero" || size === "header"}
+        fetchPriority={size === "hero" ? "high" : undefined}
+      />
+      <span aria-hidden="true">MUSU</span>
+    </span>
   );
 }

@@ -24,5 +24,9 @@ Thumbs.db
 # User data & runtime artifacts
 data/
 test-results/
-public/
+public/*
+!public/agents/
+!public/agents/*.png
+!public/images/
+!public/images/favicon-header.png
 tmp-*.mjs
