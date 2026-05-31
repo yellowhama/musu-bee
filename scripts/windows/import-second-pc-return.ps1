@@ -49,6 +49,37 @@ function Resolve-LatestFile {
     return $file.FullName
 }
 
+function Resolve-LatestJsonBySchema {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string]$Schema,
+        [Parameter(Mandatory = $true)][string]$Label,
+        [switch]$Optional
+    )
+
+    $matches = @()
+    foreach ($file in @(Get-ChildItem -LiteralPath $Root -Filter "*.json" -File -Recurse -ErrorAction SilentlyContinue)) {
+        try {
+            $json = Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json
+            if ([string]$json.schema -eq $Schema) {
+                $matches += $file
+            }
+        }
+        catch {
+            # Ignore non-JSON or partial files; the final chosen file is verified later.
+        }
+    }
+
+    $match = $matches | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
+    if (-not $match -and -not $Optional) {
+        throw "$Label file not found under $Root with schema $Schema"
+    }
+    if (-not $match) {
+        return $null
+    }
+    return $match.FullName
+}
+
 function Copy-IntoRoot {
     param(
         [Parameter(Mandatory = $true)][string]$SourcePath,
@@ -84,14 +115,21 @@ New-Item -ItemType Directory -Force -Path $extractRoot | Out-Null
 Expand-Archive -LiteralPath $resolvedReturnZip -DestinationPath $extractRoot -Force
 $extractRoot = (Resolve-Path -LiteralPath $extractRoot).Path
 
-$sourceMsixEvidence = Resolve-LatestFile -Root $extractRoot -Filter "*.evidence.json" -Label "MSIX install evidence"
+$sourceMsixEvidence = Resolve-LatestJsonBySchema -Root $extractRoot -Schema "musu.msix_install_evidence.v1" -Label "MSIX install evidence"
 $sourceHandoff = Resolve-LatestFile -Root $extractRoot -Filter "*.handoff.json" -Label "second-PC handoff"
+$sourceRuntimeIdleCpuEvidence = Resolve-LatestJsonBySchema -Root $extractRoot -Schema "musu.runtime_idle_cpu_evidence.v1" -Label "runtime idle CPU evidence" -Optional
 $sourceReleaseCheck = Get-ChildItem -LiteralPath $extractRoot -Filter "*.release-check.json" -File -Recurse -ErrorAction SilentlyContinue |
     Sort-Object LastWriteTimeUtc -Descending |
     Select-Object -First 1
 
 $canonicalMsixEvidence = Copy-IntoRoot -SourcePath $sourceMsixEvidence -TargetRoot (Join-Path $repoRoot ".local-build\msix-install")
 $canonicalHandoff = Copy-IntoRoot -SourcePath $sourceHandoff -TargetRoot (Join-Path $repoRoot ".local-build\second-pc-handoff")
+$canonicalRuntimeIdleCpuEvidence = if ($sourceRuntimeIdleCpuEvidence) {
+    Copy-IntoRoot -SourcePath $sourceRuntimeIdleCpuEvidence -TargetRoot (Join-Path $repoRoot ".local-build\runtime-idle-cpu")
+}
+else {
+    $null
+}
 $canonicalReleaseCheck = if ($sourceReleaseCheck) {
     Copy-IntoRoot -SourcePath $sourceReleaseCheck.FullName -TargetRoot (Join-Path $repoRoot ".local-build\second-pc-release-check")
 }
@@ -156,6 +194,7 @@ $result = [pscustomobject]@{
     extract_root = $extractRoot
     msix_install_evidence_path = $canonicalMsixEvidence
     handoff_path = $canonicalHandoff
+    runtime_idle_cpu_evidence_path = $canonicalRuntimeIdleCpuEvidence
     release_check_path = $canonicalReleaseCheck
     remote_name = [string]$returnCard.remote_name
     remote_addr = [string]$returnCard.remote_addr
@@ -175,6 +214,7 @@ else {
     "return_zip: $($result.return_zip_path)"
     "msix_install_evidence: $($result.msix_install_evidence_path)"
     "handoff: $($result.handoff_path)"
+    "runtime_idle_cpu_evidence: $(if ($result.runtime_idle_cpu_evidence_path) { $result.runtime_idle_cpu_evidence_path } else { '<not present>' })"
     "release_check: $(if ($result.release_check_path) { $result.release_check_path } else { '<not present>' })"
     "remote_name: $($result.remote_name)"
     "remote_addr: $($result.remote_addr)"

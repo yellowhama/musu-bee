@@ -104,16 +104,16 @@ Fresh repeatable script smoke passed again on 2026-05-29 06:52 KST:
 - dashboard output: `MUSU_RELEASE_SMOKE_OK_20260529_0652`
 - CLI route output: `MUSU_CLI_ROUTE_OK_20260529_0652`
 
-Current machine-readable single-machine evidence passed and was recorded on 2026-06-01 01:54 KST after smoke harness hardening, mDNS/Tailscale IPv6 hardening, and runtime CPU evidence freshness hardening:
+Current machine-readable single-machine evidence passed and was recorded on 2026-06-01 02:20 KST after the second-PC CPU-return and logo-asset commit:
 
-- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260601-015424-HUGH_SECOND.evidence.json`
-- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260601-015424-HUGH_SECOND.verification.json`
-- summary: `docs\evidence\single-machine\1.15.0-rc.1\20260601-015424-HUGH_SECOND.summary.md`
-- commit: `e4509f6628fb2e54ef0c127c412722a3e52cf80f`
-- dashboard task id: `bc27c955-bd1e-41e1-8ff6-c60a38328955`
-- bridge: `http://127.0.0.1:5076`
-- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260601_015402`
-- CLI route output: `MUSU_CLI_ROUTE_OK_20260601_015402`
+- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260601-022021-HUGH_SECOND.evidence.json`
+- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260601-022021-HUGH_SECOND.verification.json`
+- summary: `docs\evidence\single-machine\1.15.0-rc.1\20260601-022021-HUGH_SECOND.summary.md`
+- commit: `47f261475abf7a88deb7632a27c242a97b603771`
+- dashboard task id: `04c4cae9-4b5c-4db3-bfb5-92e5429d8768`
+- bridge: `http://127.0.0.1:1923`
+- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260601_021958`
+- CLI route output: `MUSU_CLI_ROUTE_OK_20260601_021958`
 - dashboard task poll errors: `0`
 
 Multi-device packet:
@@ -124,6 +124,7 @@ Multi-device packet:
 - second-PC return archive: `.local-build\second-pc-return\*.zip`
 - second-PC return importer: `scripts\windows\import-second-pc-return.ps1`
 - MSIX install evidence capture: `scripts\windows\capture-msix-install-evidence.ps1`
+- runtime idle CPU evidence capture: `scripts\windows\measure-musu-idle-cpu.ps1` is now run by `run-second-pc-release-check.ps1` unless `-SkipRuntimeIdleCpu` is used
 - MSIX install evidence verifier: `scripts\windows\verify-msix-install-evidence.ps1`
 - MSIX install evidence recorder: `scripts\windows\record-msix-install-evidence.ps1`
 - MSIX install evidence must match the current release version, include operator metadata, pass non-future timestamp checks, and include passing capture checks from the second-PC package install
@@ -148,7 +149,16 @@ Runtime hardening:
 - default clipboard polling: off unless `MUSU_ENABLE_CLIPBOARD_SYNC=1`
 - runtime hardening and relay-control roadmap: `docs/RELEASE_1_15_0_RC1_RUNTIME_HARDENING_RELAY_ROADMAP_2026_05_31.md`
 - go/no-go preflight now reports `msix_desktop_entrypoint_verified`, `runtime_idle_cpu_verified`, `process_ownership_verified`, and `startup_single_instance_verified`
-- current state: bridge-only 60s diagnostic evidence passes on `HUGH_SECOND`; the regenerated Store-reviewed artifact launches `musu-desktop.exe` and contains `musu.exe` plus `musu-startup.exe`; the fixed `local-sideload-manual` package is installed on `HUGH_SECOND` and passes installed desktop-entrypoint audit; Store-reviewed restricted-capability sideload is refused by default and must not be used as ordinary install evidence; a dirty packaged desktop-open diagnostic passes with one desktop shell and six MUSU-owned WebView2 helpers, but final release still needs clean two-machine `desktop-open -RequireOwnedWebView2` evidence; local process ownership and repeated startup evidence pass
+- current state: primary clean packaged desktop-open evidence passes at `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-022649-HUGH_SECOND.desktop-open.evidence.json`; the regenerated Store-reviewed artifact launches `musu-desktop.exe` and contains `musu.exe` plus `musu-startup.exe`; the fixed `local-sideload-manual` package is installed on `HUGH_SECOND` and passes installed desktop-entrypoint audit; Store-reviewed restricted-capability sideload is refused by default and must not be used as ordinary install evidence; second-PC desktop-open CPU evidence is still pending but the second-PC return wrapper now captures and returns it; local process ownership and repeated startup evidence pass
+
+Brand assets:
+
+- official app mark: `musu-bee\src-tauri\icons\icon.png`
+- web favicon/header mark: `musu-bee\public\images\favicon-header.png`
+- public logo lockups: `musu-bee\public\images\logos\musu-logo-{header,display,hero}-{on-light,on-dark,on-yellow}.png`
+- standalone public mark: `musu-bee\public\images\logos\musu-mark-512.png`
+- logo generator: `scripts\windows\generate-brand-logo-assets.ps1`
+- current state: the favicon-quality mark is usable as the official beta mark; static lockups now exist for Store/README/landing-page handoff, but Store screenshots and a 60-90s demo video are still pending.
 
 Store metadata:
 

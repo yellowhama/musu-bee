@@ -6,6 +6,8 @@ param(
     [switch]$ReplaceExisting = $true,
     [string]$OutputRoot,
     [int]$CommandTimeoutSec = 90,
+    [int]$RuntimeIdleCpuSampleSeconds = 60,
+    [switch]$SkipRuntimeIdleCpu,
     [switch]$NoReturnZip,
     [switch]$Json
 )
@@ -35,12 +37,14 @@ $safeMachine = $machine -replace "[^A-Za-z0-9._-]", "_"
 $summaryPath = Join-Path $OutputRoot "$stamp-$safeMachine.release-check.json"
 $msixEvidencePath = Join-Path $repoRoot ".local-build\msix-install\$stamp-$safeMachine.evidence.json"
 $handoffPath = Join-Path $repoRoot ".local-build\second-pc-handoff\$stamp-$safeMachine.handoff.json"
+$runtimeIdleCpuEvidencePath = Join-Path $repoRoot ".local-build\runtime-idle-cpu\$stamp-$safeMachine.desktop-open.evidence.json"
 $returnZipPath = Join-Path $repoRoot ".local-build\second-pc-return\$stamp-$safeMachine.second-pc-return.zip"
 
 $steps = New-Object System.Collections.Generic.List[object]
 $errorText = $null
 $capture = $null
 $handoff = $null
+$runtimeIdleCpu = $null
 
 function Invoke-ReleaseStep {
     param(
@@ -86,6 +90,18 @@ function Invoke-ReleaseStep {
     return $parsed
 }
 
+function Start-MusuDesktopApp {
+    $app = Get-StartApps | Where-Object {
+        $_.Name -eq "MUSU" -or $_.AppID -like "Yellowhama.MUSU_*"
+    } | Select-Object -First 1
+    if (-not $app) {
+        throw "Unable to find installed MUSU Start menu app for desktop-open CPU evidence."
+    }
+
+    Start-Process explorer.exe ("shell:AppsFolder\{0}" -f $app.AppID) | Out-Null
+    Start-Sleep -Seconds 10
+}
+
 try {
     New-Item -ItemType Directory -Force -Path $OutputRoot | Out-Null
 
@@ -117,6 +133,28 @@ try {
         -ScriptName "collect-second-pc-handoff.ps1" `
         -Arguments @("-OutputPath", $handoffPath, "-CommandTimeoutSec", ([string]$CommandTimeoutSec), "-Json") `
         -ParseJson
+
+    if (-not $SkipRuntimeIdleCpu) {
+        Start-MusuDesktopApp
+        $runtimeIdleCpu = Invoke-ReleaseStep `
+            -Name "measure desktop-open runtime idle CPU" `
+            -ScriptName "measure-musu-idle-cpu.ps1" `
+            -Arguments @(
+                "-SampleSeconds", ([string]$RuntimeIdleCpuSampleSeconds),
+                "-Scenario", "desktop-open",
+                "-RequireOwnedWebView2",
+                "-MaxOneCorePercent", "5",
+                "-MaxOwnedProcessCount", "16",
+                "-MaxOwnedWebView2ProcessCount", "8",
+                "-MaxTotalWorkingSetMb", "1024",
+                "-IncludeNode",
+                "-IncludeWebView2",
+                "-OutputPath", $runtimeIdleCpuEvidencePath,
+                "-FailOnHot",
+                "-Json"
+            ) `
+            -ParseJson
+    }
 }
 catch {
     $errorText = $_.Exception.Message
@@ -125,8 +163,9 @@ catch {
 $returnFiles = @(
     $msixEvidencePath,
     $handoffPath,
+    $(if (-not $SkipRuntimeIdleCpu) { $runtimeIdleCpuEvidencePath }),
     $summaryPath
-)
+) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }
 if (-not $NoReturnZip) {
     $returnFiles = @($returnZipPath) + $returnFiles
 }
@@ -141,10 +180,12 @@ $result = [pscustomobject]@{
     operator_user = $env:USERNAME
     msix_install_evidence_path = $msixEvidencePath
     second_pc_handoff_path = $handoffPath
+    runtime_idle_cpu_evidence_path = if ($SkipRuntimeIdleCpu) { $null } else { $runtimeIdleCpuEvidencePath }
     suggested_remote_addrs = if ($handoff) { $handoff.suggested_remote_addrs } else { @() }
     remote_name_suggestion = if ($handoff) { [string]$handoff.remote_name_suggestion } else { $env:COMPUTERNAME }
     capture_ok = if ($capture) { [bool]$capture.ok } else { $false }
     handoff_ok = if ($handoff) { [bool]$handoff.ok } else { $false }
+    runtime_idle_cpu_ok = if ($SkipRuntimeIdleCpu) { $null } elseif ($runtimeIdleCpu) { [bool]$runtimeIdleCpu.ok } else { $false }
     return_zip_path = if ($NoReturnZip) { $null } else { $returnZipPath }
     return_zip_ok = $false
     return_zip_error = $null
@@ -158,8 +199,8 @@ $result | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $summaryPath -Encod
 
 if (-not $NoReturnZip) {
     try {
-        $filesToZip = @($msixEvidencePath, $handoffPath, $summaryPath) | Where-Object {
-            Test-Path -LiteralPath $_
+        $filesToZip = @($msixEvidencePath, $handoffPath, $(if (-not $SkipRuntimeIdleCpu) { $runtimeIdleCpuEvidencePath }), $summaryPath) | Where-Object {
+            (-not [string]::IsNullOrWhiteSpace([string]$_)) -and (Test-Path -LiteralPath $_)
         }
         if ($filesToZip.Count -eq 0) {
             throw "No return files exist yet."
@@ -183,6 +224,7 @@ else {
     "summary_path: $((Resolve-Path -LiteralPath $summaryPath).Path)"
     "msix_install_evidence_path: $($result.msix_install_evidence_path)"
     "second_pc_handoff_path: $($result.second_pc_handoff_path)"
+    "runtime_idle_cpu_evidence_path: $(if ($result.runtime_idle_cpu_evidence_path) { $result.runtime_idle_cpu_evidence_path } else { '<skipped>' })"
     "return_zip_path: $($result.return_zip_path)"
     "remote_name_suggestion: $($result.remote_name_suggestion)"
     "suggested_remote_addrs:"

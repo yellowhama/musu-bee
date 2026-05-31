@@ -111,11 +111,18 @@ It should also create these internal evidence files:
 
 ```text
 .local-build\msix-install\*.evidence.json
+.local-build\runtime-idle-cpu\*.evidence.json
 .local-build\second-pc-handoff\*.handoff.json
 .local-build\second-pc-release-check\*.release-check.json
 ```
 
 Do not edit these files.
+
+The runtime CPU evidence is part of the public desktop release gate. The
+wrapper opens MUSU Desktop and measures 60 seconds of `desktop-open` idle state
+with owned WebView2 required. If you are only diagnosing an install issue, you
+can run the wrapper with `-SkipRuntimeIdleCpu`, but that skipped run cannot close
+the runtime idle CPU gate.
 
 ## Step 5 - Bring The Return ZIP Back To The Primary Repo
 
@@ -149,6 +156,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\import-secon
 Expected result:
 
 - the returned MSIX install evidence verifies
+- the returned runtime idle CPU evidence is imported under `.local-build\runtime-idle-cpu\`
 - the MSIX install gate is recorded under `docs\evidence\msix-install\1.15.0-rc.1\`
 - the command prints the primary-side multi-device route commands for the next gate
 
@@ -164,11 +172,14 @@ After this runbook succeeds, expected state is:
 
 ```text
 msix_install_verified=true
+runtime_idle_cpu_verified=true
 multi_device_verified=false
 ready_for_public_desktop_release=false
 ```
 
-That is correct. The next release gate is the real second-PC multi-device route smoke using the `suggested_remote_addrs` from the returned handoff.
+That is correct if the primary CPU sample is already present. The next release
+gate is the real second-PC multi-device route smoke using the
+`suggested_remote_addrs` from the returned handoff.
 
 ## Failure Notes
 

@@ -29,4 +29,6 @@ public/*
 !public/agents/*.png
 !public/images/
 !public/images/favicon-header.png
+!public/images/logos/
+!public/images/logos/*.png
 tmp-*.mjs

@@ -54,6 +54,7 @@ $scriptFiles = @(
     "install-and-verify-msix.ps1",
     "verify-installed-msix-package.ps1",
     "capture-msix-install-evidence.ps1",
+    "measure-musu-idle-cpu.ps1",
     "collect-second-pc-handoff.ps1",
     "run-second-pc-release-check.ps1",
     "verify-msix-install-evidence.ps1",
@@ -113,10 +114,22 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-c
 
 The wrapper runs the same steps below, writes
 `.local-build\msix-install\*.evidence.json`,
+`.local-build\runtime-idle-cpu\*.evidence.json`,
 `.local-build\second-pc-handoff\*.handoff.json`, and
 `.local-build\second-pc-release-check\*.release-check.json`, creates
 `.local-build\second-pc-return\*.zip`, then prints the return zip and raw files
 to return to the primary release repo.
+
+The wrapper also opens the MUSU desktop app and captures the second-PC
+`desktop-open` runtime CPU/resource evidence with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -Scenario desktop-open -RequireOwnedWebView2 -MaxOneCorePercent 5 -MaxOwnedProcessCount 16 -MaxOwnedWebView2ProcessCount 8 -MaxTotalWorkingSetMb 1024 -IncludeNode -IncludeWebView2 -FailOnHot -Json
+```
+
+Use `-SkipRuntimeIdleCpu` on `run-second-pc-release-check.ps1` only for
+diagnosing install/handoff failures; a skipped CPU sample cannot close the
+public runtime idle CPU gate.
 
 Manual fallback:
 
@@ -125,6 +138,8 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\check-msix-sideload-rea
 powershell -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix.ps1 -StartupContract __STARTUP_CONTRACT__ -ReplaceExisting
 powershell -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-evidence.ps1 -StartupContract __STARTUP_CONTRACT__
 powershell -ExecutionPolicy Bypass -File scripts\windows\collect-second-pc-handoff.ps1
+Start-Process explorer.exe 'shell:AppsFolder\Yellowhama.MUSU_ygcjq669as2b6!MUSU'
+powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -Scenario desktop-open -RequireOwnedWebView2 -MaxOneCorePercent 5 -MaxOwnedProcessCount 16 -MaxOwnedWebView2ProcessCount 8 -MaxTotalWorkingSetMb 1024 -IncludeNode -IncludeWebView2 -FailOnHot -Json
 musu up --json
 musu doctor --json
 musu status
@@ -137,6 +152,7 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix
 ```
 
 The install evidence command writes `.local-build\msix-install\*.evidence.json`.
+The runtime CPU command writes `.local-build\runtime-idle-cpu\*.evidence.json`.
 The handoff command writes `.local-build\second-pc-handoff\*.handoff.json`
 with `suggested_remote_addrs` values such as `192.168.1.20:10621`.
 Return the `.local-build\second-pc-return\*.zip` if the wrapper created one;

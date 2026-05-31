@@ -367,6 +367,7 @@ try {
                     ".local-build\msix\output\Yellowhama.MUSU_cert.cer",
                     "scripts\windows\install-and-verify-msix.ps1",
                     "scripts\windows\capture-msix-install-evidence.ps1",
+                    "scripts\windows\measure-musu-idle-cpu.ps1",
                     "scripts\windows\collect-second-pc-handoff.ps1",
                     "scripts\windows\run-second-pc-release-check.ps1",
                     "scripts\windows\smoke-multidevice-beta.ps1",
@@ -413,6 +414,11 @@ try {
                         ($kitReadme -like "*install-and-verify-msix.ps1*" -and $kitReadme -like "*capture-msix-install-evidence.ps1*" -and $kitReadme -like "*run-second-pc-release-check.ps1*" -and $kitReadme -like "*.local-build\msix-install\*.evidence.json*" -and $kitReadme -like "*.local-build\second-pc-return\*.zip*") `
                         "kit README explains MSIX install evidence capture" `
                         "kit README does not explain MSIX install evidence capture"
+                    Add-CheckFromCondition `
+                        "kit readme runtime CPU evidence: $($kitZip.Name)" `
+                        ($kitReadme -like "*measure-musu-idle-cpu.ps1*" -and $kitReadme -like "*Scenario desktop-open*" -and $kitReadme -like "*RequireOwnedWebView2*" -and $kitReadme -like "*.local-build\runtime-idle-cpu\*.evidence.json*" -and $kitReadme -like "*SkipRuntimeIdleCpu*") `
+                        "kit README explains second-PC runtime idle CPU evidence capture" `
+                        "kit README does not explain second-PC runtime idle CPU evidence capture"
                     Add-CheckFromCondition `
                         "kit readme multi-device evidence: $($kitZip.Name)" `
                         ($kitReadme -like "*smoke-multidevice-beta.ps1*" -and $kitReadme -like "*record-multidevice-evidence.ps1*" -and $kitReadme -like "*.local-build\multi-device\*.evidence.json*" -and $kitReadme -like "*musu.route_evidence.v1*" -and $kitReadme -like "*peer identity verification*") `

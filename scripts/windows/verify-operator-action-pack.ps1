@@ -158,6 +158,7 @@ try {
                             try {
                                 $nestedEntries = @($nestedArchive.Entries | ForEach-Object { $_.FullName -replace "/", "\" })
                                 Add-CheckFromCondition "second-pc nested kit wrapper" ($nestedEntries -contains "scripts\windows\run-second-pc-release-check.ps1") "nested kit includes run-second-pc-release-check.ps1" "nested kit missing run-second-pc-release-check.ps1"
+                                Add-CheckFromCondition "second-pc nested kit runtime CPU script" ($nestedEntries -contains "scripts\windows\measure-musu-idle-cpu.ps1") "nested kit includes measure-musu-idle-cpu.ps1" "nested kit missing measure-musu-idle-cpu.ps1"
                                 $kitReadmeEntry = $nestedArchive.Entries | Where-Object { $_.FullName -eq "README_MULTI_DEVICE_TEST_KIT.md" } | Select-Object -First 1
                                 if ($kitReadmeEntry) {
                                     $reader = [System.IO.StreamReader]::new($kitReadmeEntry.Open())
@@ -167,7 +168,7 @@ try {
                                     finally {
                                         $reader.Dispose()
                                     }
-                                    Add-CheckFromCondition "second-pc nested kit README wrapper" ($kitReadme -like "*run-second-pc-release-check.ps1*" -and $kitReadme -like "*.release-check.json*" -and $kitReadme -like "*.local-build\second-pc-return\*.zip*") "nested kit README explains release-check wrapper" "nested kit README missing release-check wrapper instructions"
+                                    Add-CheckFromCondition "second-pc nested kit README wrapper" ($kitReadme -like "*run-second-pc-release-check.ps1*" -and $kitReadme -like "*.release-check.json*" -and $kitReadme -like "*.local-build\second-pc-return\*.zip*" -and $kitReadme -like "*measure-musu-idle-cpu.ps1*" -and $kitReadme -like "*.local-build\runtime-idle-cpu\*.evidence.json*") "nested kit README explains release-check wrapper and runtime CPU evidence" "nested kit README missing release-check wrapper/runtime CPU instructions"
                                 }
                                 else {
                                     Add-Check "second-pc nested kit README" "fail" "nested kit is missing README_MULTI_DEVICE_TEST_KIT.md"

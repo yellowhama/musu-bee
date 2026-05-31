@@ -249,7 +249,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-releas
 
 Expected result: `support_mailbox_verified=true`.
 
-## Gate B - Second-PC MSIX install evidence
+## Gate B - Second-PC MSIX install and runtime CPU evidence
 
 Use the multi-device kit in `kits\` if this packet includes one. Copy it to the
 second Windows PC, unzip it, and follow its README. Preferred path inside the
@@ -283,6 +283,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\import-secon
 
 If you need the raw files, the wrapper also writes
 `.local-build\msix-install\*.evidence.json`,
+`.local-build\runtime-idle-cpu\*.evidence.json`,
 `.local-build\second-pc-handoff\*.handoff.json`, and
 `.local-build\second-pc-release-check\*.release-check.json`. Record install
 evidence from the release repo root:
@@ -291,7 +292,8 @@ evidence from the release repo root:
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-msix-install-evidence.ps1 -EvidencePath .local-build\msix-install\<INSTALL_EVIDENCE_JSON>
 ```
 
-Expected result: `msix_install_verified=true`.
+Expected result: `msix_install_verified=true`, and if the primary CPU sample is
+already present, `runtime_idle_cpu_verified=true`.
 
 ## Gate C - Second-PC multi-device test
 
@@ -348,8 +350,9 @@ Expected result: `store_release_verified=true`.
 
 ## Gate E - Runtime idle CPU evidence
 
-Run the idle CPU sample on the primary PC and the second PC with MUSU installed,
-the desktop app opened, and the runtime started:
+Run the idle CPU sample on the primary PC and, if the second-PC wrapper was run
+with `-SkipRuntimeIdleCpu` or failed before CPU capture, on the second PC with
+MUSU installed, the desktop app opened, and the runtime started:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -Scenario desktop-open -RequireOwnedWebView2 -MaxOneCorePercent 5 -MaxOwnedProcessCount 16 -MaxOwnedWebView2ProcessCount 8 -MaxTotalWorkingSetMb 1024 -IncludeNode -IncludeWebView2 -FailOnHot -Json
