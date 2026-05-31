@@ -155,7 +155,12 @@ Release gates must reject multi-device evidence that lacks:
    **Pending as of 2026-06-01.** The Rust client has method surfaces, but no
    local/server stub proof is recorded.
 4. Add `musu relay status` and `musu route --explain`.
-   **Pending as of 2026-06-01.**
+   **Initial diagnostic CLI done on 2026-06-01.** `musu relay status` reports
+   login/cache/client readiness plus the fact that bridge path selection and
+   relay transport are not wired. `musu route --explain` reports the selected
+   candidate, current `http_bearer` transport, route-kind classification, and
+   release-evidence blockers without executing a task. This is not the final
+   runtime route selector.
 5. Add direct path selection against registered LAN/Tailscale endpoints.
    **Pending as of 2026-06-01.** `musu-rs/src/bridge/router.rs` still resolves
    local/manual peers and applies capability/circuit-breaker decisions; it does

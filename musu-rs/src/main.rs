@@ -17,7 +17,7 @@ mod writer;
 // V27: re-export CLI option structs from their canonical home in
 // `install::cli_commands` so the `Cmd` enum can reference them.
 use install::cli_commands::{
-    DoctorOpts, GetOpts, LsOpts, PutOpts, RouteOpts, ShareOpts, UnshareOpts, UpOpts,
+    DoctorOpts, GetOpts, LsOpts, PutOpts, RelayAction, RouteOpts, ShareOpts, UnshareOpts, UpOpts,
 };
 
 #[derive(Parser)]
@@ -90,6 +90,11 @@ enum Cmd {
     Shares,
     /// Send a task to a specific peer or let musu auto-route.
     Route(RouteOpts),
+    /// Inspect MUSU-assisted rendezvous/relay readiness.
+    Relay {
+        #[command(subcommand)]
+        action: RelayAction,
+    },
     /// List files on a peer machine.
     Ls(LsOpts),
     /// Download a file from a peer.
@@ -250,6 +255,10 @@ async fn main() -> anyhow::Result<()> {
         Cmd::Route(opts) => {
             init_tracing_default();
             install::cli_commands::run_route(opts).await
+        }
+        Cmd::Relay { action } => {
+            init_tracing_default();
+            install::cli_commands::run_relay(action).await
         }
         Cmd::Ls(opts) => {
             init_tracing_default();

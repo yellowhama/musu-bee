@@ -88,7 +88,7 @@ submission/release evidence.
 |---|---:|---|
 | Packaging trust | 8/10 | MSIX desktop-entrypoint and local-sideload contract are now coherent. Store certification remains external. |
 | Runtime efficiency | 7/10 | Current primary packaged desktop-open CPU evidence passes at `musu=0%`, `webview2=0.18%` of one logical core, but second-PC evidence is still missing. |
-| P2P product story | 5/10 | The strategy is right, but the implementation still depends on manual/direct paths. `musu.pro` rendezvous is not wired into routing yet. |
+| P2P product story | 5/10 | The strategy is right, but the implementation still depends on manual/direct paths. `musu route --explain` and `musu relay status` now expose the gap, but `musu.pro` rendezvous is not wired into routing yet. |
 | UX/branding | 6/10 -> 7/10 | App mark is strong. Public web asset tracking, wordmark fallback, and basic static logo lockups are now fixed. Store screenshots and product demo media are still needed. |
 | Release evidence quality | 8/10 | Gates are strict and honest. Runtime CPU evidence must now match current HEAD or documentation/evidence-only deltas, preventing stale CPU samples from passing after code changes. |
 | Overall public readiness | ~62% | Stronger than before, but still No-Go because second-PC CPU, real route, support inbox, and Store evidence remain open. |
@@ -109,7 +109,9 @@ submission/release evidence.
 2. **Wire `musu.pro` assisted routing**
    - Add local/server stub endpoints for rendezvous.
    - Add direct LAN/Tailscale candidate path selection before relay.
-   - Add `musu route --explain` and `musu relay status`.
+   - `musu route --explain` and `musu relay status` now exist as diagnostic
+     surfaces; next step is making their reported gap shrink by wiring the
+     bridge route selector to rendezvous sessions.
    - Submit `musu.route_evidence.v1` from actual runtime route attempts.
 
 3. **Re-run multi-device release proof**

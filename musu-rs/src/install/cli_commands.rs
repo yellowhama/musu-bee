@@ -6,7 +6,7 @@
 //! `MUSU_TOKEN`, and print operator-friendly output.
 
 use anyhow::Result;
-use clap::Args;
+use clap::{Args, Subcommand};
 use serde::Serialize;
 
 use super::shares::SharesConfig;
@@ -52,6 +52,27 @@ pub struct RouteOpts {
     /// Route to a GPU-capable node.
     #[arg(long)]
     pub gpu: bool,
+    /// Explain the route plan and release-evidence gaps without executing.
+    #[arg(long)]
+    pub explain: bool,
+    /// Emit machine-readable JSON for `--explain`.
+    #[arg(long)]
+    pub json: bool,
+}
+
+/// Subcommands for `musu relay`.
+#[derive(Subcommand, Debug)]
+pub enum RelayAction {
+    /// Show current registry/rendezvous/relay readiness.
+    Status(RelayStatusOpts),
+}
+
+/// Options for `musu relay status`.
+#[derive(Args, Debug)]
+pub struct RelayStatusOpts {
+    /// Emit machine-readable JSON.
+    #[arg(long)]
+    pub json: bool,
 }
 
 /// Options for `musu ls peer-name:/path`.
@@ -170,6 +191,10 @@ pub async fn run_shares() -> Result<()> {
 
 /// `musu route <text>` — send a task to a peer (or local bridge).
 pub async fn run_route(opts: RouteOpts) -> Result<()> {
+    if opts.explain || opts.json {
+        return explain_route(&opts).await;
+    }
+
     let home = musu_home();
     let token = get_token();
 
@@ -260,6 +285,307 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
         let status = resp.status();
         let body = resp.text().await?;
         println!("✗ Failed ({status}): {body}");
+    }
+    Ok(())
+}
+
+#[derive(Debug, Serialize)]
+struct RouteExplainReport {
+    schema: &'static str,
+    version: String,
+    requested_target: Option<String>,
+    channel: String,
+    needs_gpu: bool,
+    submission_endpoint: String,
+    selected_candidate: Option<RouteCandidateReport>,
+    candidate_count: usize,
+    current_transport: &'static str,
+    route_evidence_ready: bool,
+    release_blockers: Vec<&'static str>,
+    path_priority: Vec<&'static str>,
+    relay_policy: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+struct RouteCandidateReport {
+    name: Option<String>,
+    addr: String,
+    source: String,
+    route_kind: &'static str,
+    peer_identity_verified: bool,
+    encryption: &'static str,
+    payload_transited_musu_infra: bool,
+}
+
+async fn explain_route(opts: &RouteOpts) -> Result<()> {
+    let home = musu_home();
+    let peers = crate::peer::discovery::resolve_all_peers(&home);
+    let selected = select_route_candidate(&home, opts, &peers)?;
+    let submission_endpoint = if opts.target.is_some() {
+        selected
+            .as_ref()
+            .map(|p| format!("http://{}/api/tasks/delegate", p.addr))
+            .unwrap_or_else(|| format!("{}/api/tasks/delegate", local_bridge_base_url()))
+    } else {
+        format!("{}/api/tasks/delegate", local_bridge_base_url())
+    };
+
+    let report = RouteExplainReport {
+        schema: "musu.route_explain.v1",
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        requested_target: opts.target.clone(),
+        channel: opts.channel.clone(),
+        needs_gpu: opts.gpu,
+        submission_endpoint,
+        selected_candidate: selected,
+        candidate_count: peers.len(),
+        current_transport: "http_bearer",
+        route_evidence_ready: false,
+        release_blockers: vec![
+            "peer_identity_verified=false for current manual/local HTTP route",
+            "encryption is not QUIC/TLS route proof",
+            "handshake timing is not produced by runtime route selection",
+            "musu.pro rendezvous is not wired into bridge path selection",
+            "relay/tunnel fallback transport is not wired",
+        ],
+        path_priority: vec!["lan", "tailscale", "direct_quic", "relay"],
+        relay_policy:
+            "relay is Connect/Pro fallback only; it must not become the default data path",
+    };
+
+    if opts.json {
+        println!("{}", serde_json::to_string_pretty(&report)?);
+        return Ok(());
+    }
+
+    println!("MUSU route explanation");
+    println!("  submission: {}", report.submission_endpoint);
+    println!("  current transport: {}", report.current_transport);
+    println!("  release evidence ready: {}", report.route_evidence_ready);
+    if let Some(candidate) = &report.selected_candidate {
+        println!(
+            "  candidate: {} ({})",
+            candidate.name.as_deref().unwrap_or(candidate.addr.as_str()),
+            candidate.addr
+        );
+        println!("  route_kind: {}", candidate.route_kind);
+        println!(
+            "  peer identity verified: {}",
+            candidate.peer_identity_verified
+        );
+        println!("  encryption proof: {}", candidate.encryption);
+    } else {
+        println!("  candidate: local bridge");
+    }
+    println!("  path priority: {}", report.path_priority.join(" -> "));
+    println!("  blockers:");
+    for blocker in &report.release_blockers {
+        println!("    - {blocker}");
+    }
+    Ok(())
+}
+
+fn select_route_candidate(
+    home: &std::path::Path,
+    opts: &RouteOpts,
+    peers: &[crate::peer::discovery::ResolvedPeer],
+) -> Result<Option<RouteCandidateReport>> {
+    if let Some(target) = opts.target.as_deref() {
+        let addr = find_peer_addr(home, target)?;
+        let peer = peers
+            .iter()
+            .find(|peer| peer.addr == addr || peer.name.as_deref() == Some(target));
+        let name = peer
+            .and_then(|peer| peer.name.clone())
+            .or_else(|| Some(target.to_string()));
+        let source = peer
+            .map(|peer| format!("{:?}", peer.source).to_lowercase())
+            .unwrap_or_else(|| "configured".to_string());
+        return Ok(Some(candidate_report(name, addr, source)));
+    }
+
+    if opts.gpu {
+        if let Some(peer) = peers.iter().find(|peer| peer_has_gpu_hint(peer)) {
+            return Ok(Some(candidate_report(
+                peer.name.clone(),
+                peer.addr.clone(),
+                format!("{:?}", peer.source).to_lowercase(),
+            )));
+        }
+    }
+
+    Ok(None)
+}
+
+fn candidate_report(name: Option<String>, addr: String, source: String) -> RouteCandidateReport {
+    RouteCandidateReport {
+        route_kind: route_kind_for_addr(&addr),
+        name,
+        addr,
+        source,
+        peer_identity_verified: false,
+        encryption: "none_http_bearer",
+        payload_transited_musu_infra: false,
+    }
+}
+
+fn peer_has_gpu_hint(peer: &crate::peer::discovery::ResolvedPeer) -> bool {
+    if let Some(meta) = &peer.meta {
+        if let Some(vram) = meta
+            .get("hardware")
+            .and_then(|hardware| hardware.get("gpu_vram_mb"))
+            .and_then(|value| value.as_u64())
+        {
+            if vram > 0 {
+                return true;
+            }
+        }
+    }
+
+    peer.name
+        .as_deref()
+        .is_some_and(|name| name.to_lowercase().contains("gpu"))
+}
+
+fn route_kind_for_addr(addr: &str) -> &'static str {
+    let Some(host) = host_from_addr(addr) else {
+        return "direct_quic";
+    };
+    let Ok(ip) = host.parse::<std::net::IpAddr>() else {
+        return "direct_quic";
+    };
+
+    match ip {
+        std::net::IpAddr::V4(v4) => {
+            let octets = v4.octets();
+            if v4.is_loopback() {
+                "local"
+            } else if octets[0] == 100 && (64..=127).contains(&octets[1]) {
+                "tailscale"
+            } else if v4.is_private() || v4.is_link_local() {
+                "lan"
+            } else {
+                "direct_quic"
+            }
+        }
+        std::net::IpAddr::V6(v6) => {
+            if v6.is_loopback() {
+                "local"
+            } else if v6.is_unicast_link_local() {
+                "lan"
+            } else {
+                "direct_quic"
+            }
+        }
+    }
+}
+
+fn host_from_addr(addr: &str) -> Option<&str> {
+    let without_scheme = addr
+        .trim()
+        .trim_start_matches("http://")
+        .trim_start_matches("https://");
+    let authority = without_scheme.split('/').next()?.trim();
+    if authority.is_empty() {
+        return None;
+    }
+    if let Some(rest) = authority.strip_prefix('[') {
+        return rest.split(']').next();
+    }
+    authority
+        .rsplit_once(':')
+        .map(|(host, _)| host)
+        .or(Some(authority))
+}
+
+/// `musu relay ...` — inspect MUSU-assisted routing state.
+pub async fn run_relay(action: RelayAction) -> Result<()> {
+    match action {
+        RelayAction::Status(opts) => run_relay_status(opts).await,
+    }
+}
+
+#[derive(Debug, Serialize)]
+struct RelayStatusReport {
+    schema: &'static str,
+    registry_url: &'static str,
+    logged_in: bool,
+    cached_registry_present: bool,
+    cached_registry_valid: bool,
+    cached_node_count: usize,
+    rust_client_dtos_wired: bool,
+    route_evidence_client_wired: bool,
+    bridge_path_selection_wired: bool,
+    relay_transport_wired: bool,
+    release_route_evidence_ready: bool,
+    next_steps: Vec<&'static str>,
+}
+
+async fn run_relay_status(opts: RelayStatusOpts) -> Result<()> {
+    let home = musu_home();
+    let token_present =
+        crate::cloud::token::load_token(&home).is_some_and(|token| !token.trim().is_empty());
+    let cached_registry = crate::peer::discovery::CachedRegistry::load(&home);
+    let cached_node_count = cached_registry
+        .as_ref()
+        .map(|cache| cache.nodes.len())
+        .unwrap_or(0);
+
+    let report = RelayStatusReport {
+        schema: "musu.relay_status.v1",
+        registry_url: "https://musu.pro",
+        logged_in: token_present,
+        cached_registry_present: cached_registry.is_some(),
+        cached_registry_valid: cached_registry
+            .as_ref()
+            .map(|cache| cache.is_valid())
+            .unwrap_or(false),
+        cached_node_count,
+        rust_client_dtos_wired: true,
+        route_evidence_client_wired: true,
+        bridge_path_selection_wired: false,
+        relay_transport_wired: false,
+        release_route_evidence_ready: false,
+        next_steps: vec![
+            "wire bridge route selector to create/refresh rendezvous sessions",
+            "try LAN/Tailscale/direct QUIC candidates before relay",
+            "submit hardened route evidence from actual runtime attempts",
+            "implement relay/tunnel fallback behind Connect/Pro policy",
+        ],
+    };
+
+    if opts.json {
+        println!("{}", serde_json::to_string_pretty(&report)?);
+        return Ok(());
+    }
+
+    println!("MUSU relay/control-plane status");
+    println!("  registry: {}", report.registry_url);
+    println!("  logged in: {}", report.logged_in);
+    println!(
+        "  cached registry: present={}, valid={}, nodes={}",
+        report.cached_registry_present, report.cached_registry_valid, report.cached_node_count
+    );
+    println!(
+        "  Rust rendezvous DTO/client: {}",
+        report.rust_client_dtos_wired
+    );
+    println!(
+        "  route evidence client: {}",
+        report.route_evidence_client_wired
+    );
+    println!(
+        "  bridge path selection wired: {}",
+        report.bridge_path_selection_wired
+    );
+    println!("  relay transport wired: {}", report.relay_transport_wired);
+    println!(
+        "  release route evidence ready: {}",
+        report.release_route_evidence_ready
+    );
+    println!("  next steps:");
+    for step in &report.next_steps {
+        println!("    - {step}");
     }
     Ok(())
 }
@@ -1769,5 +2095,31 @@ mod tests {
         std::env::set_var("MUSU_BRIDGE_PUBLIC_URL", "https://fleet.example.test");
         assert_eq!(resolve_public_bridge_url(), "https://fleet.example.test");
         std::env::remove_var("MUSU_BRIDGE_PUBLIC_URL");
+    }
+
+    #[test]
+    fn route_kind_classifies_private_lan_and_tailscale() {
+        assert_eq!(route_kind_for_addr("192.168.1.50:8070"), "lan");
+        assert_eq!(route_kind_for_addr("10.0.0.5:8070"), "lan");
+        assert_eq!(route_kind_for_addr("100.100.1.2:8070"), "tailscale");
+    }
+
+    #[test]
+    fn route_kind_classifies_public_and_loopback() {
+        assert_eq!(route_kind_for_addr("8.8.8.8:443"), "direct_quic");
+        assert_eq!(route_kind_for_addr("127.0.0.1:8070"), "local");
+    }
+
+    #[test]
+    fn candidate_report_records_current_legacy_transport_gap() {
+        let candidate = candidate_report(
+            Some("remote".to_string()),
+            "192.168.1.50:8070".to_string(),
+            "manual".to_string(),
+        );
+        assert_eq!(candidate.route_kind, "lan");
+        assert!(!candidate.peer_identity_verified);
+        assert_eq!(candidate.encryption, "none_http_bearer");
+        assert!(!candidate.payload_transited_musu_infra);
     }
 }
