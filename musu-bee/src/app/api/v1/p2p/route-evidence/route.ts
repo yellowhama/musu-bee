@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+import { authorizeP2pControl } from "@/lib/p2pControlAuth";
 import {
   appendRouteEvidenceRecord,
   createRouteEvidenceId,
@@ -33,21 +34,6 @@ const RouteEvidenceSchema = z.object({
 type RouteEvidence = z.infer<typeof RouteEvidenceSchema> & RouteEvidencePayload;
 
 const LEGACY_ENCRYPTION = new Set(["", "none", "http", "none_http_bearer", "unknown"]);
-
-function configuredToken(): string {
-  return (
-    process.env.MUSU_P2P_CONTROL_TOKEN?.trim() ||
-    process.env.MUSU_ROUTE_EVIDENCE_TOKEN?.trim() ||
-    process.env.MUSU_TOKEN?.trim() ||
-    ""
-  );
-}
-
-function bearerToken(req: NextRequest): string {
-  const header = req.headers.get("authorization") ?? "";
-  const match = /^Bearer\s+(.+)$/i.exec(header);
-  return match?.[1]?.trim() ?? "";
-}
 
 function releaseBlockers(evidence: RouteEvidence): string[] {
   const blockers: string[] = [];
@@ -95,24 +81,8 @@ function parseReleaseGrade(value: string | null): boolean | undefined {
   return undefined;
 }
 
-function authFailure(req: NextRequest): NextResponse | null {
-  const expectedToken = configuredToken();
-  if (!expectedToken) {
-    return NextResponse.json(
-      { ok: false, error: "route_evidence_auth_not_configured" },
-      { status: 503 }
-    );
-  }
-
-  if (bearerToken(req) !== expectedToken) {
-    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-  }
-
-  return null;
-}
-
 export async function POST(req: NextRequest) {
-  const failedAuth = authFailure(req);
+  const failedAuth = authorizeP2pControl(req);
   if (failedAuth) {
     return failedAuth;
   }
@@ -177,7 +147,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const failedAuth = authFailure(req);
+  const failedAuth = authorizeP2pControl(req);
   if (failedAuth) {
     return failedAuth;
   }

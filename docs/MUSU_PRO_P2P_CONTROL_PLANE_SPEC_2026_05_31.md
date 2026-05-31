@@ -41,11 +41,11 @@ Existing API:
 
 Required next APIs:
 
-- `POST /api/v1/p2p/rendezvous`
-- `GET /api/v1/p2p/rendezvous/:id`
-- `POST /api/v1/p2p/rendezvous/:id/candidates`
-- `POST /api/v1/p2p/rendezvous/:id/approve`
-- `POST /api/v1/p2p/rendezvous/:id/close`
+- `POST /api/v1/p2p/rendezvous` **(short-lived session stub exists as of 2026-06-01)**
+- `GET /api/v1/p2p/rendezvous/:id` **(stub exists as of 2026-06-01)**
+- `POST /api/v1/p2p/rendezvous/:id/candidates` **(candidate exchange stub exists as of 2026-06-01)**
+- `POST /api/v1/p2p/rendezvous/:id/approve` **(stub exists as of 2026-06-01)**
+- `POST /api/v1/p2p/rendezvous/:id/close` **(stub exists as of 2026-06-01)**
 - `POST /api/v1/p2p/route-evidence` **(stub exists as of 2026-06-01)**
 - `GET /api/v1/p2p/route-evidence` **(stored evidence query exists as of 2026-06-01)**
 - `WS /api/v1/p2p/control?node_id=...`
@@ -89,6 +89,24 @@ Required next APIs:
    - relay fallback
 5. Target must approve the session unless policy already permits it.
 6. Source writes route evidence after success or final failure.
+
+Current rendezvous API behavior:
+
+- `POST /api/v1/p2p/rendezvous` creates a short-lived session with source and
+  target candidate sets initialized empty. This matches the current Rust client
+  DTO even before the registry can hydrate full node metadata.
+- `POST /api/v1/p2p/rendezvous/:id/candidates` lets either source or target
+  update its endpoint candidates, relay capability, public key, and capability
+  list.
+- `POST /api/v1/p2p/rendezvous/:id/approve` marks the session approved and
+  clears `approval_required`.
+- `POST /api/v1/p2p/rendezvous/:id/close` marks the session closed.
+- Hosted storage uses Vercel KV per-session keys. Local/dev can use
+  `MUSU_P2P_RENDEZVOUS_STORE_PATH`. Production fails closed without KV unless
+  an explicit persistent file path is configured.
+- The current implementation is a coordination contract, not yet bridge-wired
+  path selection. The bridge still reports `rendezvous_session_wired=false`
+  until runtime route attempts create and use these sessions.
 
 ## Client Path Selection Rules
 
@@ -176,11 +194,13 @@ Current `GET /api/v1/p2p/route-evidence` behavior:
 2. Add client DTOs for rendezvous sessions and route evidence. **Initial Rust
    DTOs and client methods exist in `musu-rs/src/cloud/mod.rs`.**
 3. Add server-side mock/stub endpoints in `musu.pro` path for local tests.
-   **Route-evidence receive/store/query partially done on 2026-06-01.**
-   `musu-bee/src/app/api/v1/p2p/route-evidence/route.ts` accepts, validates,
-   stores, and queries authenticated evidence; tests live next to the route.
-   Rendezvous stubs, account-scoped evidence ownership, UI/export, and retention
-   policy remain pending.
+   **Rendezvous and route-evidence stubs partially done on 2026-06-01.**
+   `musu-bee/src/app/api/v1/p2p/rendezvous/*` now creates, reads, updates
+   candidate sets, approves, and closes short-lived sessions. `musu-bee/src/app/api/v1/p2p/route-evidence/route.ts`
+   accepts, validates, stores, and queries authenticated evidence; tests live
+   next to the routes. Bridge runtime use of rendezvous sessions,
+   account-scoped evidence ownership, UI/export, and retention policy remain
+   pending.
 4. Add `musu relay status` and `musu route --explain`.
    **Initial diagnostic CLI done on 2026-06-01.** `musu relay status` reports
    login/cache/client readiness plus bridge path selection state, rendezvous
@@ -207,7 +227,7 @@ Current `GET /api/v1/p2p/route-evidence` behavior:
    endpoint, preserves circuit-breaker filtering, and uses the same selector
    for explicit target, GPU, and OS-hint routing. `musu route --explain` and
    `musu relay status` now report `bridge_path_selection_wired=true`. This does
-   not create rendezvous sessions or submit hardened cloud route evidence yet.
+   not create rendezvous sessions from bridge runtime route attempts yet.
 6. Add relay/tunnel transport only after direct path evidence is stable.
    **Pending as of 2026-06-01.** Relay must remain an explicit route kind, not
    a silent default payload path.

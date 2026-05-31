@@ -2,7 +2,7 @@
 
 **Wiki ID**: wiki/528
 **Date**: 2026-06-01
-**Status**: Current implementation addendum after operator mDNS/Tailscale logs, bridge forwarding evidence wiring, and stored `musu.pro` route-evidence API.
+**Status**: Current implementation addendum after operator mDNS/Tailscale logs, bridge forwarding evidence wiring, stored `musu.pro` route-evidence API, and first rendezvous control-plane endpoints.
 
 ## Executive Verdict
 
@@ -27,6 +27,10 @@ What changed materially:
 - Route evidence is durable on hosted `musu.pro` when Vercel KV is configured,
   using a capped Redis list. Local/dev has an atomic JSON file fallback through
   `MUSU_ROUTE_EVIDENCE_STORE_PATH`.
+- `musu-bee` now exposes the first short-lived rendezvous endpoints:
+  create/read session, update source/target candidates, approve, and close.
+  This is the server-side candidate-exchange contract the Rust cloud DTOs were
+  already shaped for.
 - Rust bridge runtime evidence now converts the local evidence file into the
   shared cloud DTO and starts a background best-effort submit after local write
   succeeds when a `~/.musu/token` account token is present.
@@ -41,6 +45,8 @@ What is still not release-grade:
   `payload_transited_musu_infra=false`.
 - The server endpoint is now a minimal durable storage/query API, but not an
   account-scoped operator UI or long-term retention system yet.
+- Rendezvous endpoints are not yet wired into bridge runtime route attempts, so
+  `musu relay status` still correctly reports `rendezvous_session_wired=false`.
 - Runtime submission does not make legacy HTTP evidence pass the release gate;
   it only makes the gap visible to the control plane.
 - Rendezvous session creation, QUIC/TLS peer identity proof, durable evidence
@@ -76,6 +82,14 @@ What is still not release-grade:
 6. Client cloud base URL:
    - `MUSU_CLOUD_BASE_URL` overrides the default `https://musu.pro` for login,
      registry, and route-evidence submission tests.
+7. Rendezvous control-plane endpoints:
+   - `POST /api/v1/p2p/rendezvous`
+   - `GET /api/v1/p2p/rendezvous/:id`
+   - `POST /api/v1/p2p/rendezvous/:id/candidates`
+   - `POST /api/v1/p2p/rendezvous/:id/approve`
+   - `POST /api/v1/p2p/rendezvous/:id/close`
+   - Hosted storage uses Vercel KV per-session keys; local/dev uses
+     `MUSU_P2P_RENDEZVOUS_STORE_PATH`.
 
 The operator-supplied log pattern:
 
@@ -90,6 +104,12 @@ If this reappears, first check whether the running binary predates this change,
 or whether `MUSU_ENABLE_MDNS=1`, `MUSU_MDNS_ENABLE_IPV6=1`, or
 `MUSU_MDNS_ENABLE_TAILSCALE=1` is set.
 
+Latest field evidence from 2026-05-31T16:09:08Z to 2026-05-31T16:10:24Z
+showed repeated sends to Tailscale adapter index 9 at `[ff02::fb%9]:5353`,
+followed by `SearchStarted(_musu._tcp.local.)` closed-channel errors. Treat
+that as a regression signal if it appears in a current build with all three
+mDNS opt-in variables unset.
+
 ## Code Audit Findings
 
 | Area | Severity | Finding | Status |
@@ -101,6 +121,7 @@ or whether `MUSU_ENABLE_MDNS=1`, `MUSU_MDNS_ENABLE_IPV6=1`, or
 | `musu.pro` route-evidence receiver | High | The Rust client had a DTO/method but no server endpoint to receive route evidence. | Fixed. `musu-bee/src/app/api/v1/p2p/route-evidence/route.ts` validates/authenticates the contract, stores evidence, and returns release blockers. |
 | Route-evidence queryability | Medium | Evidence accepted by the control plane needed an audit/query path before it could support release diagnosis. | Fixed as a minimal API. `GET /api/v1/p2p/route-evidence` returns stored records with basic filters. |
 | Runtime cloud submission | High | Bridge runtime forwarding wrote local evidence but did not submit it to the control plane. | Fixed as background best-effort. Runtime submits after local write when `~/.musu/token` exists. Failures do not fail or delay the user task. |
+| Rendezvous server contract | High | The Rust client had rendezvous DTOs/methods but no server endpoint to create sessions or exchange endpoint candidates. | Fixed as a first control-plane stub. Server endpoints now create/read/update/approve/close sessions. Bridge runtime wiring remains pending. |
 | Release-grade route proof | Critical | Submitted evidence still cannot prove peer identity, QUIC/TLS encryption, or payload transit truth. | Still blocked. This is the next P0. |
 
 ## Validation
@@ -112,6 +133,7 @@ Passed:
 - `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib route_evidence -- --nocapture`
 - targeted `rustfmt --check` on changed Rust files
 - `npx tsx --test src/app/api/v1/p2p/route-evidence/route.test.ts`
+- `npx tsx --test src/app/api/v1/p2p/rendezvous/route.test.ts`
 - `npm run typecheck`
 - `cargo fmt --manifest-path .\musu-rs\Cargo.toml --check`
 - `git diff --check`
@@ -125,9 +147,11 @@ Not completed:
 
 1. Add account-scoped route evidence ownership, retention policy, and operator
    UI/audit export on top of the stored evidence API.
-2. Add rendezvous endpoints and wire bridge route attempts to create a
-   rendezvous session before trying direct candidates.
-3. Replace HTTP bearer remote execution with peer identity verification and
+2. Wire bridge route attempts to create/read rendezvous sessions before trying
+   direct candidates.
+3. Hydrate rendezvous candidate sets from registry metadata instead of empty
+   source/target placeholders.
+4. Replace HTTP bearer remote execution with peer identity verification and
    QUIC/TLS proof before allowing evidence to pass the release verifier.
-4. Rerun real second-PC multi-device proof and two-machine desktop-open CPU
+5. Rerun real second-PC multi-device proof and two-machine desktop-open CPU
    evidence from a clean committed HEAD.
