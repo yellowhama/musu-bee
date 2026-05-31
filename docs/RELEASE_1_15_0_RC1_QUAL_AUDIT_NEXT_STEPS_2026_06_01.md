@@ -94,11 +94,19 @@ evidence are not yet in the runtime route attempt.
   `cli_commands` unit tests for both `--lib` and `--bin musu`, targeted
   `router` unit tests, and PowerShell parse validation for
   `scripts\windows\smoke-multidevice-beta.ps1`.
+- After recording the route-evidence writer commit, current single-machine
+  smoke evidence passed at
+  `docs\evidence\single-machine\1.15.0-rc.1\20260601-040308-HUGH_SECOND.evidence.json`
+  on commit `e8ac5a88c1dd9437c965f2d2e2f2c3b331596c2a`, with dashboard output
+  `MUSU_RELEASE_SMOKE_OK_20260601_040245`, CLI output
+  `MUSU_CLI_ROUTE_OK_20260601_040245`, dashboard task
+  `612c8aff-616e-4227-89dc-7023a77d4830`, bridge
+  `http://127.0.0.1:13800`, and `dashboard_task_poll_error_count=0`.
 - Current primary packaged `desktop-open` runtime CPU evidence is
-  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-033734-HUGH_SECOND.desktop-open.evidence.json`
-  on commit `1163396a26cc81ce045f6de44f35fe0029074522`; it passed with
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-040413-HUGH_SECOND.desktop-open.evidence.json`
+  on commit `b330de871364877f990cd0cc4d5a6e6f8666a53f`; it passed with
   `git_dirty=false`, owned WebView2 `6`, owned Node `0`, max one-core CPU
-  `musu=0`, `webview2=0.16`, total working set `376.6MB`, and no
+  `musu=0`, `webview2=0.21`, total working set `369.66MB`, and no
   resource-budget violations.
 - Final go/no-go after route diagnostics still reports
   `ready_for_public_desktop_release=false`, while local artifacts, current
@@ -117,7 +125,7 @@ submission/release evidence.
 | Dimension | Current score | Notes |
 |---|---:|---|
 | Packaging trust | 8/10 | MSIX desktop-entrypoint and local-sideload contract are now coherent. Store certification remains external. |
-| Runtime efficiency | 7/10 | Current primary packaged desktop-open CPU evidence passes at `musu=0%`, `webview2=0.16%` of one logical core, but second-PC evidence is still missing. |
+| Runtime efficiency | 7/10 | Current primary packaged desktop-open CPU evidence passes at `musu=0%`, `webview2=0.21%` of one logical core, but second-PC evidence is still missing. |
 | P2P product story | 5.8/10 | The strategy is right, the bridge now has shared path-kind ranking for cached/manual/nodes candidates, and the CLI can write actual route-attempt evidence. `musu.pro` rendezvous and hardened identity/encryption proof are still not wired. |
 | UX/branding | 6/10 -> 7/10 | App mark is strong. Public web asset tracking, wordmark fallback, and basic static logo lockups are now fixed. Store screenshots and product demo media are still needed. |
 | Release evidence quality | 8/10 | Gates are strict and honest. Runtime CPU evidence must now match current HEAD or documentation/evidence-only deltas, preventing stale CPU samples from passing after code changes. |
@@ -128,7 +136,7 @@ submission/release evidence.
 1. **Finish runtime evidence on two PCs**
    - Close unrelated old WebView2/Node/dev-server processes.
    - Primary evidence now exists at
-     `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-033734-HUGH_SECOND.desktop-open.evidence.json`.
+     `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-040413-HUGH_SECOND.desktop-open.evidence.json`.
    - Run `run-second-pc-release-check.ps1` on the second PC; it now captures
      MSIX install evidence, handoff, and `desktop-open` runtime CPU evidence in
      one return zip.
