@@ -196,7 +196,10 @@ Execution order:
 
 Current enforcement change:
 
-- `smoke-multidevice-beta.ps1` now writes `route_evidence`.
+- `musu route --route-evidence-path <path>` now writes
+  `musu.route_evidence.v1` from the actual CLI route attempt, and
+  `smoke-multidevice-beta.ps1` imports that file instead of inventing route
+  evidence from script-side inference.
 - `verify-multidevice-evidence.ps1` now rejects passing route evidence unless it
   includes route kind, candidate address, handshake timing, peer identity
   verification, hardened encryption, payload transit truth, and success result.
@@ -206,7 +209,8 @@ Current enforcement change:
 Next implementation:
 
 - wire the new Rust cloud DTOs into the bridge path selector
-- add `musu route --explain` or equivalent diagnostic output
+- promote the CLI route evidence writer into bridge/runtime forwarding and then
+  submit hardened route evidence through the `musu.pro` control-plane client
 - implement direct QUIC/TLS identity proof before allowing route evidence to pass
 - implement relay session creation after direct route proof is stable
 

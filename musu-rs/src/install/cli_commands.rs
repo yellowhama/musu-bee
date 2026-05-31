@@ -58,6 +58,9 @@ pub struct RouteOpts {
     /// Emit machine-readable JSON for `--explain`.
     #[arg(long)]
     pub json: bool,
+    /// Write a `musu.route_evidence.v1` JSON file for this actual route attempt.
+    #[arg(long)]
+    pub route_evidence_path: Option<std::path::PathBuf>,
 }
 
 /// Subcommands for `musu relay`.
@@ -192,28 +195,44 @@ pub async fn run_shares() -> Result<()> {
 /// `musu route <text>` — send a task to a peer (or local bridge).
 pub async fn run_route(opts: RouteOpts) -> Result<()> {
     if opts.explain || opts.json {
+        if opts.route_evidence_path.is_some() {
+            anyhow::bail!(
+                "--route-evidence-path requires an executing route, not --explain/--json"
+            );
+        }
         return explain_route(&opts).await;
     }
 
     let home = musu_home();
     let token = get_token();
+    let hints = route_hints_from_opts(&opts);
+    let peers = crate::peer::discovery::resolve_all_peers(&home);
+    let selected_peer = opts.target.as_ref().and_then(|target| {
+        crate::bridge::router::select_peer_for_route(Some(target.as_str()), &hints, &peers)
+    });
 
     let addr = if let Some(ref target) = opts.target {
-        let peers = crate::peer::discovery::resolve_all_peers(&home);
-        let hints = route_hints_from_opts(&opts);
-        if let Some(peer) =
-            crate::bridge::router::select_peer_for_route(Some(target.as_str()), &hints, &peers)
-        {
-            peer.addr
+        if let Some(peer) = selected_peer.as_ref() {
+            peer.addr.clone()
         } else {
             find_peer_addr(&home, target.as_str())?
         }
     } else {
         local_bridge_addr()
     };
+    let target_node_id = opts
+        .target
+        .clone()
+        .or_else(|| selected_peer.as_ref().and_then(|peer| peer.name.clone()))
+        .unwrap_or_else(|| "local".to_string());
+    let candidate_addr = addr.clone();
 
     let url = format!("http://{addr}/api/tasks/delegate");
     let client = reqwest::Client::new();
+    let route_started = std::time::Instant::now();
+    let handshake_ms: Option<u64>;
+    let mut route_result = RouteAttemptEvidenceResult::Failed;
+    let mut failure_class: Option<String> = None;
 
     println!(
         "→ Sending task to {}...",
@@ -228,18 +247,55 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
         "needs_gpu": opts.gpu,
     });
 
-    let resp = client
+    let submit_started = std::time::Instant::now();
+    let resp = match client
         .post(&url)
         .bearer_auth(&token)
         .json(&body)
         .timeout(std::time::Duration::from_secs(10))
         .send()
-        .await?;
+        .await
+    {
+        Ok(resp) => {
+            handshake_ms = Some(elapsed_ms(submit_started.elapsed()));
+            resp
+        }
+        Err(e) => {
+            handshake_ms = Some(elapsed_ms(submit_started.elapsed()));
+            failure_class = Some("submit_http_error".to_string());
+            write_route_evidence_if_requested(
+                &opts,
+                &candidate_addr,
+                &target_node_id,
+                handshake_ms,
+                elapsed_ms(route_started.elapsed()),
+                route_result,
+                failure_class.clone(),
+            )?;
+            return Err(e.into());
+        }
+    };
 
     if resp.status().is_success() {
-        let result: serde_json::Value = resp.json().await?;
+        let result: serde_json::Value = match resp.json().await {
+            Ok(result) => result,
+            Err(e) => {
+                failure_class = Some("submit_response_parse_error".to_string());
+                write_route_evidence_if_requested(
+                    &opts,
+                    &candidate_addr,
+                    &target_node_id,
+                    handshake_ms,
+                    elapsed_ms(route_started.elapsed()),
+                    route_result,
+                    failure_class.clone(),
+                )?;
+                return Err(e.into());
+            }
+        };
         let task_id = result["task_id"].as_str().unwrap_or("unknown");
         println!("✓ Task queued: {}", task_id,);
+        route_result = RouteAttemptEvidenceResult::Success;
 
         if opts.wait {
             println!("⏳ Waiting for task {}...", task_id);
@@ -272,10 +328,14 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
                                 if let Some(err) = data["error"].as_str() {
                                     eprintln!("{}", err);
                                 }
+                                route_result = RouteAttemptEvidenceResult::Failed;
+                                failure_class = Some("remote_task_failed".to_string());
                                 break;
                             }
                             "cancelled" => {
                                 println!("⚠ Task cancelled");
+                                route_result = RouteAttemptEvidenceResult::Failed;
+                                failure_class = Some("remote_task_cancelled".to_string());
                                 break;
                             }
                             _ => {
@@ -293,8 +353,141 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
         let status = resp.status();
         let body = resp.text().await?;
         println!("✗ Failed ({status}): {body}");
+        failure_class = Some(format!("submit_http_status_{status}"));
     }
+
+    write_route_evidence_if_requested(
+        &opts,
+        &candidate_addr,
+        &target_node_id,
+        handshake_ms,
+        elapsed_ms(route_started.elapsed()),
+        route_result,
+        failure_class,
+    )?;
     Ok(())
+}
+
+#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum RouteAttemptEvidenceResult {
+    Success,
+    Failed,
+}
+
+#[derive(Debug, Serialize)]
+struct RouteAttemptEvidence {
+    schema: &'static str,
+    version: String,
+    source_node_id: String,
+    target_node_id: String,
+    session_id: Option<String>,
+    route_kind: &'static str,
+    candidate_addr: String,
+    handshake_ms: Option<u64>,
+    total_attempt_ms: u64,
+    peer_identity_verified: bool,
+    encryption: &'static str,
+    payload_transited_musu_infra: bool,
+    result: RouteAttemptEvidenceResult,
+    failure_class: Option<String>,
+    recorded_at: String,
+    note: &'static str,
+}
+
+fn write_route_evidence_if_requested(
+    opts: &RouteOpts,
+    candidate_addr: &str,
+    target_node_id: &str,
+    handshake_ms: Option<u64>,
+    total_attempt_ms: u64,
+    result: RouteAttemptEvidenceResult,
+    failure_class: Option<String>,
+) -> Result<()> {
+    let Some(path) = opts.route_evidence_path.as_deref() else {
+        return Ok(());
+    };
+    let evidence = build_route_attempt_evidence(
+        candidate_addr,
+        target_node_id,
+        handshake_ms,
+        total_attempt_ms,
+        result,
+        failure_class,
+    );
+    write_route_attempt_evidence(path, &evidence)?;
+    println!("route evidence written: {}", path.display());
+    Ok(())
+}
+
+fn build_route_attempt_evidence(
+    candidate_addr: &str,
+    target_node_id: &str,
+    handshake_ms: Option<u64>,
+    total_attempt_ms: u64,
+    result: RouteAttemptEvidenceResult,
+    failure_class: Option<String>,
+) -> RouteAttemptEvidence {
+    RouteAttemptEvidence {
+        schema: "musu.route_evidence.v1",
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        source_node_id: local_node_id(),
+        target_node_id: target_node_id.to_string(),
+        session_id: None,
+        route_kind: route_evidence_kind_for_addr(candidate_addr),
+        candidate_addr: candidate_addr.to_string(),
+        handshake_ms,
+        total_attempt_ms,
+        peer_identity_verified: false,
+        encryption: "none_http_bearer",
+        payload_transited_musu_infra: false,
+        result,
+        failure_class,
+        recorded_at: chrono::Utc::now().to_rfc3339(),
+        note: "Actual CLI route attempt evidence. Current transport is legacy HTTP bearer, so this records timing/result but is intentionally not release-grade until peer identity and QUIC/TLS proof are wired.",
+    }
+}
+
+fn route_evidence_kind_for_addr(addr: &str) -> &'static str {
+    match crate::bridge::router::route_kind_for_addr(addr) {
+        crate::bridge::router::RoutePathKind::Local | crate::bridge::router::RoutePathKind::Lan => {
+            "lan"
+        }
+        crate::bridge::router::RoutePathKind::Tailscale => "tailscale",
+        crate::bridge::router::RoutePathKind::DirectQuic => "direct_quic",
+    }
+}
+
+fn write_route_attempt_evidence(
+    path: &std::path::Path,
+    evidence: &RouteAttemptEvidence,
+) -> Result<()> {
+    if let Some(parent) = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+    {
+        std::fs::create_dir_all(parent)?;
+    }
+    let mut json = serde_json::to_string_pretty(evidence)?;
+    json.push('\n');
+    std::fs::write(path, json)?;
+    Ok(())
+}
+
+fn elapsed_ms(elapsed: std::time::Duration) -> u64 {
+    elapsed.as_millis().min(u128::from(u64::MAX)) as u64
+}
+
+fn local_node_id() -> String {
+    std::env::var("MUSU_NODE_NAME")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| {
+            hostname::get()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string()
+        })
 }
 
 #[derive(Debug, Serialize)]
@@ -2087,5 +2280,49 @@ mod tests {
         assert!(!candidate.peer_identity_verified);
         assert_eq!(candidate.encryption, "none_http_bearer");
         assert!(!candidate.payload_transited_musu_infra);
+    }
+
+    #[test]
+    fn route_attempt_evidence_records_actual_cli_gap() {
+        let evidence = build_route_attempt_evidence(
+            "100.100.1.2:8070",
+            "target-node",
+            Some(37),
+            913,
+            RouteAttemptEvidenceResult::Success,
+            None,
+        );
+        let value = serde_json::to_value(evidence).unwrap();
+
+        assert_eq!(value["schema"], "musu.route_evidence.v1");
+        assert_eq!(value["target_node_id"], "target-node");
+        assert_eq!(value["route_kind"], "tailscale");
+        assert_eq!(value["candidate_addr"], "100.100.1.2:8070");
+        assert_eq!(value["handshake_ms"], 37);
+        assert_eq!(value["total_attempt_ms"], 913);
+        assert_eq!(value["peer_identity_verified"], false);
+        assert_eq!(value["encryption"], "none_http_bearer");
+        assert_eq!(value["payload_transited_musu_infra"], false);
+        assert_eq!(value["result"], "success");
+    }
+
+    #[test]
+    fn route_attempt_evidence_maps_loopback_to_lan_contract_kind() {
+        let evidence = build_route_attempt_evidence(
+            "127.0.0.1:8070",
+            "local",
+            Some(5),
+            12,
+            RouteAttemptEvidenceResult::Failed,
+            Some("submit_http_status_503 Service Unavailable".to_string()),
+        );
+        let value = serde_json::to_value(evidence).unwrap();
+
+        assert_eq!(value["route_kind"], "lan");
+        assert_eq!(value["result"], "failed");
+        assert_eq!(
+            value["failure_class"],
+            "submit_http_status_503 Service Unavailable"
+        );
     }
 }

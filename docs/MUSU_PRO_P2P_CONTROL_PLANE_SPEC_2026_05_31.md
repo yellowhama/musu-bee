@@ -157,10 +157,15 @@ Release gates must reject multi-device evidence that lacks:
 4. Add `musu relay status` and `musu route --explain`.
    **Initial diagnostic CLI done on 2026-06-01.** `musu relay status` reports
    login/cache/client readiness plus bridge path selection state, rendezvous
-   session state, and relay transport state. `musu route --explain` reports the selected
-   candidate, current `http_bearer` transport, route-kind classification, and
-   release-evidence blockers without executing a task. This is not the final
-   release-grade route evidence.
+   session state, and relay transport state. `musu route --explain` reports the
+   selected candidate, current `http_bearer` transport, route-kind
+   classification, and release-evidence blockers without executing a task.
+   `musu route --route-evidence-path <path>` now writes
+   `musu.route_evidence.v1` from the actual CLI route attempt, including
+   candidate address, route kind, submit/handshake timing, total attempt timing,
+   and success/failure result. This is still not final release-grade evidence
+   because current transport remains legacy HTTP bearer with
+   `peer_identity_verified=false` and `encryption=none_http_bearer`.
 5. Add direct path selection against registered LAN/Tailscale endpoints.
    **Initial client-side selector done on 2026-06-01.** `musu-rs/src/bridge/router.rs`
    now classifies candidate addresses as `local`, `lan`, `tailscale`, or
@@ -168,7 +173,7 @@ Release gates must reject multi-device evidence that lacks:
    endpoint, preserves circuit-breaker filtering, and uses the same selector
    for explicit target, GPU, and OS-hint routing. `musu route --explain` and
    `musu relay status` now report `bridge_path_selection_wired=true`. This does
-   not create rendezvous sessions or submit hardened route evidence yet.
+   not create rendezvous sessions or submit hardened cloud route evidence yet.
 6. Add relay/tunnel transport only after direct path evidence is stable.
    **Pending as of 2026-06-01.** Relay must remain an explicit route kind, not
    a silent default payload path.

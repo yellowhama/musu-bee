@@ -130,6 +130,11 @@ Multi-device packet:
 - MSIX install evidence must match the current release version, include operator metadata, pass non-future timestamp checks, and include passing capture checks from the second-PC package install
 - evidence verifier: `scripts\windows\verify-multidevice-evidence.ps1`
 - evidence recorder: `scripts\windows\record-multidevice-evidence.ps1`
+- route evidence source: `smoke-multidevice-beta.ps1` now calls
+  `musu route --route-evidence-path <path>` and imports the CLI-written
+  `musu.route_evidence.v1` instead of synthesizing route evidence in the
+  script. The current HTTP bearer evidence is still intentionally rejected for
+  release until peer identity and hardened encryption proof exist.
 - runbook: `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md`
 - latest generated kit pattern: `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-*.zip` (use the newest file by `LastWriteTime`)
 - latest verified final gate packet with fresh multi-device kit: `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip`

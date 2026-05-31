@@ -201,18 +201,17 @@ try {
         $evidence.route_target = $RouteTarget
 
         Write-Step "Run targeted remote route"
-        $routeKind = Resolve-RouteKind -Address $RemoteAddr
+        $routeEvidenceDir = Split-Path -Parent $EvidencePath
+        if ([string]::IsNullOrWhiteSpace($routeEvidenceDir)) {
+            $routeEvidenceDir = (Get-Location).Path
+        }
+        $routeEvidencePath = Join-Path $routeEvidenceDir ("{0}.route-evidence.json" -f ([System.IO.Path]::GetFileNameWithoutExtension($EvidencePath)))
         $routeStartedAt = Get-Date
-        $routeCompletedAt = $null
-        $routeResult = "failed"
         $routeFailureClass = $null
         try {
-            $routeOutput = Invoke-Musu -Arguments @("route", "--target", $RouteTarget, "--wait", "Reply exactly: $ExpectedRouteOutput")
+            $routeOutput = Invoke-Musu -Arguments @("route", "--target", $RouteTarget, "--route-evidence-path", $routeEvidencePath, "--wait", "Reply exactly: $ExpectedRouteOutput")
             if (-not $Json) {
                 Write-Host $routeOutput
-            }
-            if ($routeOutput.Contains($ExpectedRouteOutput)) {
-                $routeResult = "success"
             }
             Assert-True ($routeOutput.Contains($ExpectedRouteOutput)) "route output did not contain expected text"
         }
@@ -221,25 +220,31 @@ try {
             throw
         }
         finally {
-            $routeCompletedAt = Get-Date
-            $elapsedMs = [int][Math]::Round(($routeCompletedAt - $routeStartedAt).TotalMilliseconds)
-            $evidence.route_evidence = [ordered]@{
-                schema = "musu.route_evidence.v1"
-                version = $version
-                source_node_id = $env:COMPUTERNAME
-                target_node_id = $RemoteName
-                session_id = $null
-                route_kind = $routeKind
-                candidate_addr = $RemoteAddr
-                handshake_ms = $null
-                total_attempt_ms = $elapsedMs
-                peer_identity_verified = $false
-                encryption = "none_http_bearer"
-                payload_transited_musu_infra = ($routeKind -eq "relay")
-                result = $routeResult
-                failure_class = $routeFailureClass
-                recorded_at = $routeCompletedAt.ToString("o")
-                note = "Manual peer route evidence records the current gap: legacy HTTP bearer routing does not yet prove peer identity, QUIC/TLS encryption, or handshake timing."
+            if (Test-Path -LiteralPath $routeEvidencePath) {
+                $evidence.route_evidence = Get-Content -LiteralPath $routeEvidencePath -Raw | ConvertFrom-Json
+            }
+            else {
+                $routeKind = Resolve-RouteKind -Address $RemoteAddr
+                $routeCompletedAt = Get-Date
+                $elapsedMs = [int][Math]::Round(($routeCompletedAt - $routeStartedAt).TotalMilliseconds)
+                $evidence.route_evidence = [ordered]@{
+                    schema = "musu.route_evidence.v1"
+                    version = $version
+                    source_node_id = $env:COMPUTERNAME
+                    target_node_id = $RemoteName
+                    session_id = $null
+                    route_kind = $routeKind
+                    candidate_addr = $RemoteAddr
+                    handshake_ms = $null
+                    total_attempt_ms = $elapsedMs
+                    peer_identity_verified = $false
+                    encryption = "none_http_bearer"
+                    payload_transited_musu_infra = ($routeKind -eq "relay")
+                    result = "failed"
+                    failure_class = $routeFailureClass
+                    recorded_at = $routeCompletedAt.ToString("o")
+                    note = "CLI did not write route evidence; this fallback records the smoke-script timing gap only."
+                }
             }
         }
     }
