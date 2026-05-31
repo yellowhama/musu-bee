@@ -38,6 +38,13 @@ if ([string]::IsNullOrWhiteSpace($EvidencePath)) {
 }
 
 $startedAt = Get-Date
+$smokeRunId = $startedAt.ToString("yyyyMMdd_HHmmss")
+if ($ExpectedDashboardOutput -eq "MUSU_RELEASE_SMOKE_OK") {
+    $ExpectedDashboardOutput = "MUSU_RELEASE_SMOKE_OK_$smokeRunId"
+}
+if ($ExpectedCliOutput -eq "MUSU_CLI_ROUTE_OK") {
+    $ExpectedCliOutput = "MUSU_CLI_ROUTE_OK_$smokeRunId"
+}
 
 function Write-Step([string]$Message) {
     Write-Host ""
@@ -220,16 +227,24 @@ Assert-True (-not [string]::IsNullOrWhiteSpace($task.task_id)) "dashboard task r
 
 $deadline = (Get-Date).AddSeconds($TaskTimeoutSec)
 $taskResult = $null
+$taskPollErrorCount = 0
+$taskPollLastError = $null
 while ((Get-Date) -lt $deadline) {
-    $taskResult = Invoke-RestMethod -Uri "$DashboardBaseUrl/api/bridge/tasks/$($task.task_id)" -Method Get -TimeoutSec 15
-    if ($taskResult.status -in @("done", "failed", "cancelled", "timeout")) {
-        break
+    try {
+        $taskResult = Invoke-RestMethod -Uri "$DashboardBaseUrl/api/bridge/tasks/$($task.task_id)" -Method Get -TimeoutSec 30
+        if ($taskResult.status -in @("done", "failed", "cancelled", "timeout")) {
+            break
+        }
+    }
+    catch {
+        $taskPollErrorCount += 1
+        $taskPollLastError = $_.Exception.Message
     }
     Start-Sleep -Seconds 2
 }
 
-Assert-True ($null -ne $taskResult) "task result was never fetched"
-Assert-True ($taskResult.status -eq "done") "dashboard task did not complete: $($taskResult.status)"
+Assert-True ($null -ne $taskResult) "task result was never fetched; last poll error: $taskPollLastError"
+Assert-True ($taskResult.status -eq "done") "dashboard task did not complete: $($taskResult.status); poll_errors=$taskPollErrorCount; last_poll_error=$taskPollLastError"
 Assert-True (($taskResult.output -as [string]).Contains($ExpectedDashboardOutput)) "dashboard task output did not contain expected text"
 
 Write-Step "Check task SSE endpoint"
@@ -245,7 +260,7 @@ if (-not $SkipCliRoute) {
         -FilePath $MusuExe `
         -Arguments @("route", "--wait", "Reply exactly: $ExpectedCliOutput") `
         -TimeoutSec $TaskTimeoutSec
-    Assert-True ($cliRouteOutput.Contains($ExpectedCliOutput)) "CLI route output did not contain expected text"
+    Assert-True ($cliRouteOutput.Contains($ExpectedCliOutput)) "CLI route output did not contain expected text '$ExpectedCliOutput'. Output: $cliRouteOutput"
 }
 
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $EvidencePath) | Out-Null
@@ -255,6 +270,7 @@ $evidence = [pscustomobject]@{
     ok = $true
     version = $Version
     git_commit = $gitCommit
+    smoke_run_id = $smokeRunId
     started_at = $startedAt.ToString("o")
     completed_at = (Get-Date).ToString("o")
     machine = $env:COMPUTERNAME
@@ -266,6 +282,8 @@ $evidence = [pscustomobject]@{
     device_node_count = $deviceNodes.Count
     dashboard_task_id = $task.task_id
     dashboard_task_status = $taskResult.status
+    dashboard_task_poll_error_count = $taskPollErrorCount
+    dashboard_task_poll_last_error = $taskPollLastError
     expected_dashboard_output = $ExpectedDashboardOutput
     dashboard_output = $taskResult.output
     sse_status_code = $sse.StatusCode
