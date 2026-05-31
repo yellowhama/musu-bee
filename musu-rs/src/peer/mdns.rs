@@ -14,18 +14,43 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::time::Duration;
 
-use mdns_sd::{ServiceDaemon, ServiceEvent, ServiceInfo};
+use mdns_sd::{IfKind, ServiceDaemon, ServiceEvent, ServiceInfo};
 
-use crate::peer::discovery::{validate_peer_addr, ManualPeerList};
+use crate::peer::discovery::{ManualPeerList, validate_peer_addr};
 
 const SERVICE_TYPE: &str = "_musu._tcp.local.";
 const MUSU_VERSION: &str = env!("CARGO_PKG_VERSION");
+const MDNS_IPV6_ENV: &str = "MUSU_MDNS_ENABLE_IPV6";
+
+fn mdns_ipv6_enabled() -> bool {
+    matches!(
+        std::env::var(MDNS_IPV6_ENV).as_deref(),
+        Ok("1") | Ok("true") | Ok("yes")
+    )
+}
+
+fn new_musu_mdns_daemon() -> anyhow::Result<ServiceDaemon> {
+    let mdns = ServiceDaemon::new().map_err(|e| anyhow::anyhow!("mDNS daemon: {e}"))?;
+
+    if !mdns_ipv6_enabled() {
+        if let Err(e) = mdns.disable_interface(IfKind::IPv6) {
+            tracing::warn!(err = %e, "failed to disable IPv6 mDNS interfaces");
+        } else {
+            tracing::debug!(
+                env = MDNS_IPV6_ENV,
+                "mDNS IPv6 interfaces disabled by default"
+            );
+        }
+    }
+
+    Ok(mdns)
+}
 
 /// Start advertising this node via mDNS.
 ///
 /// Runs until the returned handle is dropped.
 pub fn start_advertiser(node_name: &str, port: u16, token: &str) -> anyhow::Result<ServiceDaemon> {
-    let mdns = ServiceDaemon::new().map_err(|e| anyhow::anyhow!("mDNS daemon: {e}"))?;
+    let mdns = new_musu_mdns_daemon()?;
 
     let host_name = format!("{}.local.", node_name.replace(' ', "-"));
     let acct_hash = token_hash(token);
@@ -74,7 +99,7 @@ pub struct DiscoveredPeer {
 pub async fn discover_peers(duration: Duration) -> Vec<DiscoveredPeer> {
     let mut peers = Vec::new();
 
-    let mdns = match ServiceDaemon::new() {
+    let mdns = match new_musu_mdns_daemon() {
         Ok(d) => d,
         Err(e) => {
             tracing::warn!("mDNS browse failed to start: {e}");

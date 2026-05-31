@@ -46,7 +46,8 @@ runtime route selector is not yet using the hosted control plane.
 |---|---:|---|---|
 | Web assets | High | `musu-bee/.gitignore` ignored the entire `public/` tree, while code referenced `/images/favicon-header.png` and `/agents/*.png`. A clean checkout could miss visible product assets. | Fixed in commit `5e8d195`: required public image assets are now unignored/tracked. |
 | Logo component | Medium | `MusuLogo` referenced `/images/logos/{hero,display,header}-{variant}.png`, but those files are not present in the repo. | Fixed in commit `5e8d195`: component uses the tracked app mark plus token-colored wordmark. |
-| Runtime smoke | High | Current single-machine smoke could not be refreshed after the logo asset commit on this machine. The dashboard task status API timed out, the Next dev server became unreachable, and PowerShell log-tail commands hit OOM/CLR errors. | Not fixed. Treat as local evidence blocker and release-engineering risk until reproduced on a clean/larger machine. |
+| Runtime smoke | High | Current single-machine smoke initially could not be refreshed after the logo asset commit. The dashboard task status API timed out once, then the fixed expected CLI string hit a duplicate-task `409 Conflict`. | Fixed in `smoke-single-machine-beta.ps1`: per-run expected strings avoid duplicate task hashes, dashboard task polling retries within the deadline, and polling errors are recorded in evidence. |
+| mDNS/Tailscale IPv6 | High | `mdns_sd::service_daemon` can repeatedly send to Tailscale IPv6 link-local multicast and log `os error 10065`, then `closed channel`. This is a credible idle CPU/log-noise source when mDNS is enabled or `musu discover` runs. | Fixed in `musu-rs/src/peer/mdns.rs`: mDNS stays opt-in, and IPv6 mDNS is separately opt-in via `MUSU_MDNS_ENABLE_IPV6=1`; default daemon setup disables IPv6 interfaces. |
 | P2P route | High | `musu-rs/src/cloud/mod.rs` has rendezvous/route-evidence DTOs and client methods, but `musu-rs/src/bridge/router.rs` still selects from local/manual peers and does not create rendezvous sessions or submit hardened route evidence. | Pending P0. |
 | Multi-device verifier | High | `smoke-multidevice-beta.ps1` honestly records legacy manual HTTP bearer route evidence with `peer_identity_verified=false`, `encryption=none_http_bearer`, and `handshake_ms=null`; verifier rejects that for release. | Correctly blocked. |
 
@@ -55,15 +56,20 @@ runtime route selector is not yet using the hosted control plane.
 - `npm run typecheck` passed in `musu-bee`.
 - `git diff --check` passed, with only CRLF normalization warnings before the
   asset commit.
-- Single-machine smoke attempted on commit `5e8d195` but failed while polling
-  dashboard task status:
+- Earlier single-machine smoke attempted on commit `5e8d195` but failed while
+  polling dashboard task status:
   `Invoke-RestMethod ... /api/bridge/tasks/<id>` timed out after 15 seconds.
-- `musu up --json` after the failure still reported bridge health `ok` at
-  `http://127.0.0.1:10954`, but dashboard health `warn`; no new
-  single-machine evidence was recorded.
+- After smoke hardening, local smoke on commit `31c5ee7` produced passing
+  `.local-build` evidence `20260601-003017-HUGH_SECOND` with
+  `dashboard_task_poll_error_count=0` and unique CLI output
+  `MUSU_CLI_ROUTE_OK_20260601_003017`.
+- `cargo check -j 1` and `cargo build --bin musu -j 1` passed after the mDNS
+  IPv6 hardening.
+- `musu discover --timeout 2` completed without the Tailscale IPv6 mDNS
+  `os error 10065` log spam when `MUSU_MDNS_ENABLE_IPV6` was unset.
 
-This means current stored single-machine evidence remains historical and does
-not close the release gate for the latest code commit.
+The release gate still needs committed/recorded single-machine evidence after
+the mDNS hardening commit and then two-machine desktop-open CPU evidence.
 
 ## Qualitative Evaluation
 

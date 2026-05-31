@@ -40,6 +40,9 @@ Already applied:
 
 - clipboard polling defaults off unless `MUSU_ENABLE_CLIPBOARD_SYNC=1`
 - mDNS defaults off unless `MUSU_ENABLE_MDNS=1`
+- IPv6 mDNS defaults off unless `MUSU_MDNS_ENABLE_IPV6=1`; this prevents the
+  Windows/Tailscale link-local IPv6 `os error 10065` send loop from becoming a
+  hidden CPU/log-noise source when mDNS is explicitly enabled
 - cloud heartbeat defaults to 300s with 60s floor, backoff, and jitter
 - major dashboard polling loops were slowed and paused while hidden
 - CPU evidence now separates MUSU, Node.js, and WebView2 process roles

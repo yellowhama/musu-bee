@@ -12,6 +12,9 @@ Durable updates:
 - `docs/RELEASE_1_15_0_RC1_QUAL_AUDIT_NEXT_STEPS_2026_06_01.md` (wiki/527) is the latest qualitative/code-audit addendum.
 - `npm run typecheck` passed after the logo/public asset fix.
 - A current single-machine smoke attempt on commit `5e8d195` failed during dashboard task-status polling. The bridge stayed healthy at `http://127.0.0.1:10954`, but the dashboard became unreachable and PowerShell log-tail commands hit OOM/CLR errors. No new release evidence was recorded.
+- Follow-up smoke hardening made dashboard/CLI expected strings unique per run and retries dashboard task-status polling within the task deadline. Local `.local-build` smoke evidence `20260601-003017-HUGH_SECOND` on commit `31c5ee7` passed with `dashboard_task_poll_error_count=0`.
+- User-supplied `mdns_sd::service_daemon` logs showed Tailscale IPv6 link-local multicast send failures (`os error 10065`) and `closed channel` errors. mDNS now disables IPv6 interfaces by default; IPv6 mDNS requires `MUSU_MDNS_ENABLE_IPV6=1`.
+- `cargo check -j 1`, `cargo build --bin musu -j 1`, and `musu discover --timeout 2` passed after the mDNS change.
 - P2P control-plane status remains: Rust cloud DTO/client methods exist, but bridge route selection still uses local/manual peer discovery and does not create rendezvous sessions or submit hardened route evidence.
 
 Next operators should not claim public release readiness from this run. Refresh single-machine smoke on a stable host, then collect two-machine desktop-open CPU evidence and real route evidence.

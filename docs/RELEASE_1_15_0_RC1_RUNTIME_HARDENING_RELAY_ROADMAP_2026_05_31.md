@@ -317,10 +317,13 @@ Minimal client behavior:
 ### P0: Harden default background work
 
 1. Keep `MUSU_ENABLE_MDNS=1` opt-in.
-2. Keep `MUSU_ENABLE_CLIPBOARD_SYNC=1` opt-in.
-3. Keep cloud heartbeat interval, floor, backoff, and jitter enforced by default.
-4. Add a "background features" section to `musu doctor --json`.
-5. Add a Windows StartupTask cold-boot idle check.
+2. Keep IPv6 mDNS disabled unless `MUSU_MDNS_ENABLE_IPV6=1`; Windows/Tailscale
+   link-local IPv6 mDNS can repeat `os error 10065` sends and `closed channel`
+   noise.
+3. Keep `MUSU_ENABLE_CLIPBOARD_SYNC=1` opt-in.
+4. Keep cloud heartbeat interval, floor, backoff, and jitter enforced by default.
+5. Add a "background features" section to `musu doctor --json`.
+6. Add a Windows StartupTask cold-boot idle check.
 
 ### P1: Build `musu.pro` assisted peer path
 
