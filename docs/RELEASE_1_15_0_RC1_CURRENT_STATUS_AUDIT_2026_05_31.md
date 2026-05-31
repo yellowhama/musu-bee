@@ -30,12 +30,12 @@ This document supersedes wiki/521 for the **current 2026-05-31 release status**.
 
 | Item | Current value |
 |---|---|
-| Git HEAD / remote main | `ccadd6e48cff587f8f28063d9951199e0263180a` |
-| Working tree | clean; `main...origin/main` |
-| Latest single-machine evidence | `docs\evidence\single-machine\1.15.0-rc.1\20260530-225842-HUGH_SECOND.evidence.json` |
-| Single-machine output | `MUSU_RELEASE_SMOKE_OK_20260530_2258`; CLI route `MUSU_CLI_ROUTE_OK_20260530_2258` |
-| Dashboard task | `69d71cea-dec0-47af-a0bb-fdde166c080e` |
-| Bridge URL | `http://127.0.0.1:3718` |
+| Latest smoke source commit | `dbd90e31c58d56f58d7d93dddeae9a74a4c16234` |
+| Working tree | clean after the post-smoke evidence/docs commit |
+| Latest single-machine evidence | `docs\evidence\single-machine\1.15.0-rc.1\20260531-154114-HUGH_SECOND.evidence.json` |
+| Single-machine output | `MUSU_RELEASE_SMOKE_OK_20260531_1540`; CLI route `MUSU_CLI_ROUTE_OK_20260531_1540` |
+| Dashboard task | `9e00f24e-1bbc-4cbf-b6aa-7057fdfeb63c` |
+| Bridge URL | `http://127.0.0.1:1407` |
 | Desktop readiness audit | `runtime_package_ready=true`, `desktop_shell_ready=true`, `single_machine_verified=true`, `multi_device_verified=false` |
 | Final operator packet | `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip` |
 | Final operator packet verification | `ok=true`, `fail_count=0`, `kit_count=1` |

@@ -9,7 +9,7 @@
 
 ## Current State
 
-- HEAD and remote main: `ccadd6e48cff587f8f28063d9951199e0263180a`.
-- Latest single-machine evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260530-225842-HUGH_SECOND.evidence.json`.
+- Latest mDNS-hardening smoke source commit: `dbd90e31c58d56f58d7d93dddeae9a74a4c16234`.
+- Latest single-machine evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260531-154114-HUGH_SECOND.evidence.json`.
 - Final packet, operator action pack, and Store submission bundle verify.
 - Public desktop release remains No-Go because real second-PC MSIX install, real multi-device route, `musu@musu.pro` inbox delivery, and Partner Center/Microsoft Store approval evidence are missing.
