@@ -144,13 +144,15 @@ Already applied:
   `owned_webview2=6`, `machine_wide_node=2`, `machine_wide_webview2=19`,
   `orphan_repo_helpers=0`, bridge registry PID alive, and bridge `/health`
   HTTP 200.
-- A clean committed desktop-open diagnostic sample passed after attribution was
-  fixed at `.local-build\runtime-idle-cpu\musu-idle-cpu-20260531-235500.json`:
-  `git_dirty=false`, `process_counts_by_role.musu=2`, `webview2=6`, owned Node
-  `0`, `max_one_core_percent_by_role.webview2=0.03`, `musu=0.03`,
-  `total_working_set_mb_after=363.45`. This proves the primary PC packaged
-  desktop is now quiet in the sampled state; the final release gate still needs
-  the same evidence on the second PC.
+- Current clean committed desktop-open evidence passed after the runtime CPU
+  gate was hardened to reject stale code commits:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-014656-HUGH_SECOND.desktop-open.evidence.json`.
+  It was captured from clean commit `2987f15`, with packaged
+  `musu-desktop.exe`, packaged `musu.exe bridge`, owned WebView2 count `6`,
+  owned Node count `0`, `max_one_core_percent_by_role.webview2=0.16`,
+  `musu=0.13`, and `total_working_set_mb_after=373.38`. This proves the
+  primary PC packaged desktop is quiet in the sampled state; the final release
+  gate still needs the same evidence on the second PC.
 - `musu up` now has code to terminate a live but unhealthy registered bridge
   PID before restarting the bridge. This addresses the observed "PID alive but
   `/health` dead" class. Runtime verification is still pending because a local
@@ -168,8 +170,9 @@ Next implementation:
   runtime contract
 - keep local install evidence on the `local-sideload-manual` contract until the
   Microsoft Store-signed restricted-capability package is available
-- run real clean 60s `desktop-open` samples with `-RequireOwnedWebView2` on the
-  primary PC and second PC using the fixed local-sideload package
+- run the same real clean 60s `desktop-open` sample with
+  `-RequireOwnedWebView2` on the second PC using the fixed local-sideload
+  package
 - run a queued-task/backlog CPU sample to prove the new event-driven admission
   path stays quiet when tasks are waiting for global/per-channel slots
 - extend startup-repeat coverage from repeated `musu up` to desktop Start

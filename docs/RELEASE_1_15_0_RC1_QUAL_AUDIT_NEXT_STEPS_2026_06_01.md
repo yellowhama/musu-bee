@@ -82,19 +82,22 @@ submission/release evidence.
 | Dimension | Current score | Notes |
 |---|---:|---|
 | Packaging trust | 8/10 | MSIX desktop-entrypoint and local-sideload contract are now coherent. Store certification remains external. |
-| Runtime efficiency | 6/10 | Busy-loop mitigations landed and local CPU samples are promising, but two-machine packaged desktop evidence is still missing. |
+| Runtime efficiency | 7/10 | Current primary packaged desktop-open CPU evidence passes at `musu=0.13%`, `webview2=0.16%` of one logical core, but second-PC evidence is still missing. |
 | P2P product story | 5/10 | The strategy is right, but the implementation still depends on manual/direct paths. `musu.pro` rendezvous is not wired into routing yet. |
 | UX/branding | 6/10 -> 7/10 | App mark is strong. Public web asset tracking and wordmark fallback are now fixed. Full marketing lockups/screenshots are still needed. |
-| Release evidence quality | 8/10 | Gates are strict and honest, and current single-machine evidence is now refreshed after the smoke/mDNS fixes. |
+| Release evidence quality | 8/10 | Gates are strict and honest. Runtime CPU evidence must now match current HEAD or documentation/evidence-only deltas, preventing stale CPU samples from passing after code changes. |
 | Overall public readiness | ~62% | Stronger than before, but still No-Go because second-PC CPU, real route, support inbox, and Store evidence remain open. |
 
 ## Next Roadmap
 
 1. **Finish runtime evidence on two PCs**
    - Close unrelated old WebView2/Node/dev-server processes.
+   - Primary evidence now exists at
+     `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-014656-HUGH_SECOND.desktop-open.evidence.json`.
    - Run `measure-musu-idle-cpu.ps1` with `desktop-open`,
-     `-RequireOwnedWebView2`, `-IncludeNode`, and `-IncludeWebView2`.
-   - Record both primary and second-PC evidence.
+     `-RequireOwnedWebView2`, `-IncludeNode`, and `-IncludeWebView2` on the
+     second PC.
+   - Record second-PC evidence.
    - Keep the 60s / 5%-of-one-core / owned process count / memory budgets.
 
 2. **Wire `musu.pro` assisted routing**
