@@ -234,6 +234,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | — | 1.15.0-rc.1 beta release checklist and smoke evidence | 2026-05-29 | `BETA_RELEASE_CHECKLIST_1_15_0_RC1.md` | active |
 | — | 1.15.0-rc.1 final operator gates | 2026-05-29 | `RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md` | active |
 | — | MUSU Microsoft Store release run card | 2026-05-29 | `MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md` | active |
+| — | Second-PC MSIX install operator runbook | 2026-05-31 | `SECOND_PC_MSIX_INSTALL_OPERATOR_RUNBOOK_2026_05_31.md` | active |
 | — | 1.15.0-rc.1 single-machine evidence | 2026-05-31 | `evidence/single-machine/1.15.0-rc.1/20260531-154114-HUGH_SECOND.evidence.json` | complete |
 | — | Final operator gate packet/action pack generator/verifier/completion runner/status | 2026-05-29 | `scripts/windows/prepare-final-operator-gate-packet.ps1`, `scripts/windows/verify-final-operator-gate-packet.ps1`, `scripts/windows/prepare-operator-action-pack.ps1`, `scripts/windows/verify-operator-action-pack.ps1`, `scripts/windows/complete-final-operator-gates.ps1`, `scripts/windows/show-final-release-handoff-status.ps1`, `scripts/windows/show-second-pc-return-card.ps1`, `scripts/windows/import-second-pc-return.ps1` | active |
 | — | MSIX install evidence capture/verifier/recorder | 2026-05-29 | `scripts/windows/capture-msix-install-evidence.ps1`, `scripts/windows/verify-msix-install-evidence.ps1`, `scripts/windows/record-msix-install-evidence.ps1` | active |
@@ -338,6 +339,7 @@ These docs capture the post-install / post-review conclusion that Windows packag
 | Store submission metadata | 2026-05-29 | `STORE_SUBMISSION_METADATA_2026_05_29.md` | active |
 | Final qualitative audit and next steps | 2026-05-29 | `RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md` | active |
 | Current status audit and next steps | 2026-05-31 | `RELEASE_1_15_0_RC1_CURRENT_STATUS_AUDIT_2026_05_31.md` | active |
+| Second-PC MSIX install operator runbook | 2026-05-31 | `SECOND_PC_MSIX_INSTALL_OPERATOR_RUNBOOK_2026_05_31.md` | active |
 | Final operator gates | 2026-05-29 | `RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md` | active |
 | Release operator handoff card | 2026-05-29 | `RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md` | active |
 | musu-system integration assessment | 2026-05-29 | `MUSU_SYSTEM_INTEGRATION_ASSESSMENT_2026_05_29.md` | active |
@@ -369,6 +371,8 @@ These docs capture the post-install / post-review conclusion that Windows packag
 2026-05-31 mDNS health hardening: current smoke revalidation found that a logged-in default `~/.musu` on Windows with a failing Tailscale mDNS interface could make bridge `/health` time out after the initial `musu up` probe. mDNS LAN auto-discovery is now opt-in with `MUSU_ENABLE_MDNS=1`; Store-candidate smoke/release paths use cloud/manual peer registration plus second-PC return handoff unless mDNS has separate current regression evidence.
 
 2026-05-31 post-mDNS single-machine evidence refresh: after committing mDNS opt-in hardening, single-machine smoke was rerun from commit `dbd90e3`. Current evidence `20260531-154114-HUGH_SECOND` verifies with dashboard output `MUSU_RELEASE_SMOKE_OK_20260531_1540`, CLI route `MUSU_CLI_ROUTE_OK_20260531_1540`, task `9e00f24e-1bbc-4cbf-b6aa-7057fdfeb63c`, bridge `http://127.0.0.1:1407`, `doctor_overall=warn`, and dashboard doctor `ok`.
+
+2026-05-31 second-PC MSIX install operator runbook: `SECOND_PC_MSIX_INSTALL_OPERATOR_RUNBOOK_2026_05_31.md` is the focused human checklist for copying the latest operator action pack to a real second Windows PC, running `run-second-pc-release-check.ps1`, returning `.local-build\second-pc-return\*.zip`, and importing it with `import-second-pc-return.ps1 -RecordMsixInstall`. It closes only the MSIX install evidence gate; the real multi-device route gate still follows.
 
 2026-05-29 final qualitative update: `RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md` (wiki/521) is the historical qualitative report, code audit, product spec update, and next-step roadmap now superseded by wiki/522 for current status. Scoped audit found no internal release-blocking code issue in the support/packet/evidence-gate surface; public release remains No-Go only because the four external evidence gates are not recorded. Final operator packets include wiki/521 for history and wiki/522 for current status.
 
