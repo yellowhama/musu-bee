@@ -15,11 +15,12 @@ launch `musu-desktop.exe`, the CLI alias remains `musu.exe`, startup remains
 machine-wide WebView2, and the idle polling/writer wakeup fixes remove obvious
 busy-loop sources.
 
-The remaining release blocker is not cosmetic. The product still needs clean
-current single-machine smoke, two-machine desktop-open idle CPU evidence, and a
-real multi-device route that satisfies the hardened route-evidence contract.
-`musu.pro` currently has client DTOs for rendezvous and route evidence, but the
-runtime route selector is not yet using the hosted control plane.
+The remaining release blocker is not cosmetic. The product still needs
+two-machine desktop-open idle CPU evidence and a real multi-device route that
+satisfies the hardened route-evidence contract. `musu.pro` currently has client
+DTOs for rendezvous and route evidence, and the bridge now ranks direct
+candidate endpoints by path kind, but rendezvous sessions and hardened route
+evidence are not yet in the runtime route attempt.
 
 ## Product Spec Updates
 
@@ -53,7 +54,7 @@ runtime route selector is not yet using the hosted control plane.
 | Logo component/assets | Medium | `MusuLogo` referenced missing `/images/logos/{hero,display,header}-{variant}.png`, and there was no reusable external logo lockup despite the app mark being strong. | Fixed: component uses the tracked app mark plus token-colored wordmark, and static logo lockups now exist under `musu-bee/public/images/logos/`. |
 | Runtime smoke | High | Current single-machine smoke initially could not be refreshed after the logo asset commit. The dashboard task status API timed out once, then the fixed expected CLI string hit a duplicate-task `409 Conflict`. | Fixed in `smoke-single-machine-beta.ps1`: per-run expected strings avoid duplicate task hashes, dashboard task polling retries within the deadline, and polling errors are recorded in evidence. |
 | mDNS/Tailscale IPv6 | High | `mdns_sd::service_daemon` can repeatedly send to Tailscale IPv6 link-local multicast and log `os error 10065`, then `closed channel`. This is a credible idle CPU/log-noise source when mDNS is enabled or `musu discover` runs. | Fixed in `musu-rs/src/peer/mdns.rs`: mDNS stays opt-in, and IPv6 mDNS is separately opt-in via `MUSU_MDNS_ENABLE_IPV6=1`; default daemon setup disables IPv6 interfaces. |
-| P2P route | High | `musu-rs/src/cloud/mod.rs` has rendezvous/route-evidence DTOs and client methods, but `musu-rs/src/bridge/router.rs` still selects from local/manual peers and does not create rendezvous sessions or submit hardened route evidence. | Pending P0. |
+| P2P route | High | `musu-rs/src/cloud/mod.rs` has rendezvous/route-evidence DTOs and client methods, and `musu-rs/src/bridge/router.rs` now ranks cached/manual/nodes candidates by path kind (`lan` -> `tailscale` -> `direct_quic`). It still does not create rendezvous sessions or submit hardened route evidence. | Partial P0. |
 | Multi-device verifier | High | `smoke-multidevice-beta.ps1` honestly records legacy manual HTTP bearer route evidence with `peer_identity_verified=false`, `encryption=none_http_bearer`, and `handshake_ms=null`; verifier rejects that for release. | Correctly blocked. |
 
 ## Validation Run
@@ -82,6 +83,12 @@ runtime route selector is not yet using the hosted control plane.
   `cargo test --manifest-path .\musu-rs\Cargo.toml --lib cli_commands`,
   `cargo test --manifest-path .\musu-rs\Cargo.toml --bin musu cli_commands`,
   `musu relay status --json`, and `musu route --explain --json`.
+- After bridge path-selection wiring, the shared route selector validation
+  passed: `cargo check --manifest-path .\musu-rs\Cargo.toml -j 1`,
+  targeted `router` and `cli_commands` unit tests, `cargo build --bin musu -j 1`,
+  `musu relay status --json`, and `musu route --explain --json`. The relay
+  status now reports `bridge_path_selection_wired=true`,
+  `rendezvous_session_wired=false`, and `relay_transport_wired=false`.
 - Current primary packaged `desktop-open` runtime CPU evidence is
   `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-030838-HUGH_SECOND.desktop-open.evidence.json`
   on commit `e0eebac44184e285ba120df5b4e0e9b209e83692`; it passed with
@@ -106,7 +113,7 @@ submission/release evidence.
 |---|---:|---|
 | Packaging trust | 8/10 | MSIX desktop-entrypoint and local-sideload contract are now coherent. Store certification remains external. |
 | Runtime efficiency | 7/10 | Current primary packaged desktop-open CPU evidence passes at `musu=0%`, `webview2=0.21%` of one logical core, but second-PC evidence is still missing. |
-| P2P product story | 5/10 | The strategy is right, but the implementation still depends on manual/direct paths. `musu route --explain` and `musu relay status` now expose the gap, but `musu.pro` rendezvous is not wired into routing yet. |
+| P2P product story | 5.5/10 | The strategy is right, and the bridge now has shared path-kind ranking for cached/manual/nodes candidates. `musu.pro` rendezvous and hardened route evidence are still not wired into actual route attempts. |
 | UX/branding | 6/10 -> 7/10 | App mark is strong. Public web asset tracking, wordmark fallback, and basic static logo lockups are now fixed. Store screenshots and product demo media are still needed. |
 | Release evidence quality | 8/10 | Gates are strict and honest. Runtime CPU evidence must now match current HEAD or documentation/evidence-only deltas, preventing stale CPU samples from passing after code changes. |
 | Overall public readiness | ~62% | Stronger than before, but still No-Go because second-PC CPU, real route, support inbox, and Store evidence remain open. |
@@ -126,7 +133,8 @@ submission/release evidence.
 
 2. **Wire `musu.pro` assisted routing**
    - Add local/server stub endpoints for rendezvous.
-   - Add direct LAN/Tailscale candidate path selection before relay.
+   - Direct LAN/Tailscale/public candidate ranking now exists in the bridge
+     selector; next wire it to short-lived rendezvous sessions.
    - `musu route --explain` and `musu relay status` now exist as diagnostic
      surfaces; next step is making their reported gap shrink by wiring the
      bridge route selector to rendezvous sessions.

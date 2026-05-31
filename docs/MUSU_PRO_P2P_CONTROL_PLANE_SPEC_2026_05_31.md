@@ -156,15 +156,19 @@ Release gates must reject multi-device evidence that lacks:
    local/server stub proof is recorded.
 4. Add `musu relay status` and `musu route --explain`.
    **Initial diagnostic CLI done on 2026-06-01.** `musu relay status` reports
-   login/cache/client readiness plus the fact that bridge path selection and
-   relay transport are not wired. `musu route --explain` reports the selected
+   login/cache/client readiness plus bridge path selection state, rendezvous
+   session state, and relay transport state. `musu route --explain` reports the selected
    candidate, current `http_bearer` transport, route-kind classification, and
    release-evidence blockers without executing a task. This is not the final
-   runtime route selector.
+   release-grade route evidence.
 5. Add direct path selection against registered LAN/Tailscale endpoints.
-   **Pending as of 2026-06-01.** `musu-rs/src/bridge/router.rs` still resolves
-   local/manual peers and applies capability/circuit-breaker decisions; it does
-   not create rendezvous sessions or submit hardened route evidence.
+   **Initial client-side selector done on 2026-06-01.** `musu-rs/src/bridge/router.rs`
+   now classifies candidate addresses as `local`, `lan`, `tailscale`, or
+   `direct_quic`, ranks remote candidates by LAN -> Tailscale -> direct public
+   endpoint, preserves circuit-breaker filtering, and uses the same selector
+   for explicit target, GPU, and OS-hint routing. `musu route --explain` and
+   `musu relay status` now report `bridge_path_selection_wired=true`. This does
+   not create rendezvous sessions or submit hardened route evidence yet.
 6. Add relay/tunnel transport only after direct path evidence is stable.
    **Pending as of 2026-06-01.** Relay must remain an explicit route kind, not
    a silent default payload path.

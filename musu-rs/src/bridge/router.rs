@@ -7,7 +7,7 @@
 //! preference, OS preference, least-busy selection).
 
 use crate::bridge::AppState;
-use crate::peer::discovery::{resolve_all_peers, ResolvedPeer};
+use crate::peer::discovery::{resolve_all_peers, PeerSource, ResolvedPeer};
 
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -31,6 +31,194 @@ const COOLDOWN: Duration = Duration::from_secs(60);
 /// If a peer fails consecutively, it's temporarily marked unhealthy.
 static CIRCUIT_BREAKER: std::sync::LazyLock<Mutex<HashMap<String, CircuitState>>> =
     std::sync::LazyLock::new(|| Mutex::new(HashMap::new()));
+
+/// Path kind used by the local selector before relay transport exists.
+///
+/// This is deliberately narrower than the final `musu.route_evidence.v1`
+/// contract: relay remains an unwired fallback and therefore is not returned
+/// as a selected direct peer path.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RoutePathKind {
+    Local,
+    Lan,
+    Tailscale,
+    DirectQuic,
+}
+
+impl RoutePathKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Local => "local",
+            Self::Lan => "lan",
+            Self::Tailscale => "tailscale",
+            Self::DirectQuic => "direct_quic",
+        }
+    }
+
+    fn priority(self) -> u8 {
+        match self {
+            Self::Local => 0,
+            Self::Lan => 10,
+            Self::Tailscale => 20,
+            Self::DirectQuic => 30,
+        }
+    }
+}
+
+/// Classify an endpoint address for path selection and diagnostics.
+pub fn route_kind_for_addr(addr: &str) -> RoutePathKind {
+    let Some(host) = host_from_addr(addr) else {
+        return RoutePathKind::DirectQuic;
+    };
+    let Ok(ip) = host.parse::<std::net::IpAddr>() else {
+        return RoutePathKind::DirectQuic;
+    };
+
+    match ip {
+        std::net::IpAddr::V4(v4) => {
+            let octets = v4.octets();
+            if v4.is_loopback() {
+                RoutePathKind::Local
+            } else if octets[0] == 100 && (64..=127).contains(&octets[1]) {
+                RoutePathKind::Tailscale
+            } else if v4.is_private() || v4.is_link_local() {
+                RoutePathKind::Lan
+            } else {
+                RoutePathKind::DirectQuic
+            }
+        }
+        std::net::IpAddr::V6(v6) => {
+            if v6.is_loopback() {
+                RoutePathKind::Local
+            } else if v6.is_unicast_link_local() {
+                RoutePathKind::Lan
+            } else {
+                RoutePathKind::DirectQuic
+            }
+        }
+    }
+}
+
+fn host_from_addr(addr: &str) -> Option<&str> {
+    let without_scheme = addr
+        .trim()
+        .trim_start_matches("http://")
+        .trim_start_matches("https://");
+    let authority = without_scheme.split('/').next()?.trim();
+    if authority.is_empty() {
+        return None;
+    }
+    if let Some(rest) = authority.strip_prefix('[') {
+        return rest.split(']').next();
+    }
+    authority
+        .rsplit_once(':')
+        .map(|(host, _)| host)
+        .or(Some(authority))
+}
+
+fn source_priority(source: PeerSource) -> u8 {
+    match source {
+        PeerSource::Registry => 0,
+        PeerSource::Cache => 1,
+        PeerSource::Manual => 2,
+        PeerSource::NodesToml => 3,
+    }
+}
+
+fn peer_sort_key(peer: &ResolvedPeer) -> (u8, u8, &str) {
+    (
+        route_kind_for_addr(&peer.addr).priority(),
+        source_priority(peer.source),
+        peer.addr.as_str(),
+    )
+}
+
+fn has_gpu_hint(peer: &ResolvedPeer) -> bool {
+    if let Some(meta) = &peer.meta {
+        if let Some(vram) = meta
+            .get("hardware")
+            .and_then(|hardware| hardware.get("gpu_vram_mb"))
+            .and_then(|value| value.as_u64())
+        {
+            if vram > 0 {
+                return true;
+            }
+        }
+    }
+
+    peer.name
+        .as_deref()
+        .is_some_and(|name| name.to_lowercase().contains("gpu"))
+}
+
+fn matches_os_hint(peer: &ResolvedPeer, preferred_os: &str) -> bool {
+    peer.meta
+        .as_ref()
+        .and_then(|meta| meta.get("hardware"))
+        .and_then(|hardware| hardware.get("os"))
+        .and_then(|value| value.as_str())
+        .is_some_and(|peer_os| {
+            peer_os
+                .to_lowercase()
+                .contains(&preferred_os.to_lowercase())
+        })
+}
+
+/// Select the best remote peer from an already-resolved candidate list.
+///
+/// Priority is LAN → Tailscale/overlay → direct QUIC candidate. Relay is not
+/// selected here because the relay/tunnel transport is not implemented yet.
+pub fn select_peer_for_route(
+    explicit_target: Option<&str>,
+    hints: &RouteHints,
+    peers: &[ResolvedPeer],
+) -> Option<ResolvedPeer> {
+    if let Some(target) = explicit_target {
+        let mut exact_addr_matches: Vec<&ResolvedPeer> =
+            peers.iter().filter(|peer| peer.addr == target).collect();
+        exact_addr_matches.sort_by_key(|peer| peer_sort_key(peer));
+        if let Some(peer) = exact_addr_matches.first() {
+            return Some((*peer).clone());
+        }
+
+        let mut name_matches: Vec<&ResolvedPeer> = peers
+            .iter()
+            .filter(|peer| peer.name.as_deref() == Some(target))
+            .collect();
+        name_matches.sort_by_key(|peer| peer_sort_key(peer));
+        if let Some(peer) = name_matches
+            .iter()
+            .copied()
+            .find(|peer| !is_circuit_open(&peer.addr))
+            .or_else(|| name_matches.first().copied())
+        {
+            return Some(peer.clone());
+        }
+
+        return None;
+    }
+
+    if !hints.needs_gpu && hints.prefer_os.is_none() && !hints.prefer_least_busy {
+        return None;
+    }
+
+    let mut candidates: Vec<&ResolvedPeer> = peers
+        .iter()
+        .filter(|peer| !is_circuit_open(&peer.addr))
+        .collect();
+
+    if hints.needs_gpu {
+        candidates.retain(|peer| has_gpu_hint(peer));
+    }
+
+    if let Some(preferred_os) = hints.prefer_os.as_deref() {
+        candidates.retain(|peer| matches_os_hint(peer, preferred_os));
+    }
+
+    candidates.sort_by_key(|peer| peer_sort_key(peer));
+    candidates.first().map(|peer| (*peer).clone())
+}
 
 /// Record a successful forwarding to a peer, resetting its circuit state.
 pub fn record_success(peer_addr: &str) {
@@ -118,27 +306,24 @@ pub fn route_task(
     explicit_target: Option<&str>,
     hints: &RouteHints,
 ) -> RouteDecision {
+    let musu_home = state
+        .config
+        .nodes_toml_path
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new("."));
+    let peers = resolve_all_peers(musu_home);
+
     // ── 1. Explicit target takes priority ───────────────────────────────
     if let Some(target) = explicit_target {
-        // Resolve musu home for peer discovery
-        let musu_home = state
-            .config
-            .nodes_toml_path
-            .parent()
-            .unwrap_or_else(|| std::path::Path::new("."));
-        let peers = resolve_all_peers(musu_home);
-
-        // Find peer matching the target (by name or addr)
-        if let Some(peer) = peers
-            .into_iter()
-            .find(|p| p.addr == target || p.name.as_deref() == Some(target))
-        {
+        if let Some(peer) = select_peer_for_route(Some(target), hints, &peers) {
             if is_circuit_open(&peer.addr) {
                 tracing::warn!(peer = %peer.addr, "circuit breaker open but explicit target — attempting anyway");
             }
             tracing::info!(
                 target = %target,
                 addr = %peer.addr,
+                route_kind = route_kind_for_addr(&peer.addr).as_str(),
+                source = ?peer.source,
                 "routing task to remote peer"
             );
             return RouteDecision::Remote { peer };
@@ -156,91 +341,55 @@ pub fn route_task(
     }
 
     // ── 3. Auto-route based on hints ────────────────────────────────────
-    let musu_home = state
-        .config
-        .nodes_toml_path
-        .parent()
-        .unwrap_or_else(|| std::path::Path::new("."));
-    let peers = resolve_all_peers(musu_home);
-
     if peers.is_empty() {
         tracing::debug!("no peers discovered, executing locally");
         return RouteDecision::Local;
     }
 
-    // Future: query /api/fleet/node-status for real-time capability data.
-    if hints.needs_gpu {
-        for peer in &peers {
-            // Skip peers with open circuit breakers.
-            if is_circuit_open(&peer.addr) {
-                tracing::debug!(peer = %peer.addr, "skipping — circuit breaker open");
-                continue;
-            }
-
-            // 1. Check hardware metadata from cloud
-            let mut has_gpu = false;
-            if let Some(meta) = &peer.meta {
-                if let Some(hardware) = meta.get("hardware") {
-                    if let Some(vram) = hardware.get("gpu_vram_mb").and_then(|v| v.as_u64()) {
-                        if vram > 0 {
-                            has_gpu = true;
-                        }
-                    }
-                }
-            }
-
-            // 2. Fallback to name-based heuristic
-            if !has_gpu {
-                if let Some(ref name) = peer.name {
-                    if name.to_lowercase().contains("gpu") {
-                        has_gpu = true;
-                    }
-                }
-            }
-
-            if has_gpu {
-                let name_display = peer.name.as_deref().unwrap_or("unknown");
-                tracing::info!(
-                    peer = %name_display,
-                    addr = %peer.addr,
-                    "auto-routing to GPU node (hardware spec matched)"
-                );
-                return RouteDecision::Remote { peer: peer.clone() };
-            }
-        }
-        tracing::warn!("no GPU peer found, executing locally");
+    if let Some(peer) = select_peer_for_route(None, hints, &peers) {
+        let name_display = peer.name.as_deref().unwrap_or("unknown");
+        tracing::info!(
+            peer = %name_display,
+            addr = %peer.addr,
+            route_kind = route_kind_for_addr(&peer.addr).as_str(),
+            source = ?peer.source,
+            needs_gpu = hints.needs_gpu,
+            prefer_os = hints.prefer_os.as_deref().unwrap_or(""),
+            "auto-routing to best available peer"
+        );
+        return RouteDecision::Remote { peer };
     }
 
-    // Example OS preference routing
-    if let Some(ref os) = hints.prefer_os {
-        for peer in &peers {
-            if is_circuit_open(&peer.addr) {
-                continue;
-            }
-            if let Some(meta) = &peer.meta {
-                if let Some(hardware) = meta.get("hardware") {
-                    if let Some(peer_os) = hardware.get("os").and_then(|v| v.as_str()) {
-                        if peer_os.to_lowercase().contains(&os.to_lowercase()) {
-                            let name_display = peer.name.as_deref().unwrap_or("unknown");
-                            tracing::info!(
-                                peer = %name_display,
-                                os = %peer_os,
-                                "auto-routing based on OS preference"
-                            );
-                            return RouteDecision::Remote { peer: peer.clone() };
-                        }
-                    }
-                }
-            }
-        }
-    }
-
+    tracing::warn!("no peer matched route hints, executing locally");
     RouteDecision::Local
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn peer(name: &str, addr: &str, source: PeerSource) -> ResolvedPeer {
+        ResolvedPeer {
+            addr: addr.to_string(),
+            name: Some(name.to_string()),
+            source,
+            meta: None,
+        }
+    }
+
+    fn gpu_peer(name: &str, addr: &str, source: PeerSource) -> ResolvedPeer {
+        ResolvedPeer {
+            addr: addr.to_string(),
+            name: Some(name.to_string()),
+            source,
+            meta: Some(serde_json::json!({
+                "hardware": {
+                    "gpu_vram_mb": 8192,
+                    "os": "windows"
+                }
+            })),
+        }
+    }
 
     #[test]
     fn route_local_when_no_target() {
@@ -258,5 +407,46 @@ mod tests {
         assert!(!hints.needs_gpu);
         assert!(hints.prefer_os.is_none());
         assert!(!hints.prefer_least_busy);
+    }
+
+    #[test]
+    fn route_kind_classifies_path_priority_inputs() {
+        assert_eq!(route_kind_for_addr("127.0.0.1:8070"), RoutePathKind::Local);
+        assert_eq!(route_kind_for_addr("192.168.1.5:8070"), RoutePathKind::Lan);
+        assert_eq!(
+            route_kind_for_addr("100.100.1.5:8070"),
+            RoutePathKind::Tailscale
+        );
+        assert_eq!(
+            route_kind_for_addr("8.8.8.8:443"),
+            RoutePathKind::DirectQuic
+        );
+    }
+
+    #[test]
+    fn explicit_name_selects_lan_before_tailscale_and_public() {
+        let peers = vec![
+            peer("workstation", "8.8.8.8:8070", PeerSource::Cache),
+            peer("workstation", "100.100.1.5:8070", PeerSource::Cache),
+            peer("workstation", "192.168.1.5:8070", PeerSource::Manual),
+        ];
+        let selected =
+            select_peer_for_route(Some("workstation"), &RouteHints::default(), &peers).unwrap();
+        assert_eq!(selected.addr, "192.168.1.5:8070");
+    }
+
+    #[test]
+    fn gpu_hint_selects_best_path_among_gpu_candidates() {
+        let hints = RouteHints {
+            needs_gpu: true,
+            ..Default::default()
+        };
+        let peers = vec![
+            gpu_peer("gpu-public", "8.8.8.8:8070", PeerSource::Cache),
+            gpu_peer("gpu-lan", "10.0.0.25:8070", PeerSource::Manual),
+            peer("cpu-lan", "10.0.0.30:8070", PeerSource::Manual),
+        ];
+        let selected = select_peer_for_route(None, &hints, &peers).unwrap();
+        assert_eq!(selected.name.as_deref(), Some("gpu-lan"));
     }
 }

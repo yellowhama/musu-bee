@@ -199,7 +199,15 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
     let token = get_token();
 
     let addr = if let Some(ref target) = opts.target {
-        find_peer_addr(&home, target.as_str())?
+        let peers = crate::peer::discovery::resolve_all_peers(&home);
+        let hints = route_hints_from_opts(&opts);
+        if let Some(peer) =
+            crate::bridge::router::select_peer_for_route(Some(target.as_str()), &hints, &peers)
+        {
+            peer.addr
+        } else {
+            find_peer_addr(&home, target.as_str())?
+        }
     } else {
         local_bridge_addr()
     };
@@ -300,6 +308,8 @@ struct RouteExplainReport {
     selected_candidate: Option<RouteCandidateReport>,
     candidate_count: usize,
     current_transport: &'static str,
+    bridge_path_selection_wired: bool,
+    rendezvous_session_wired: bool,
     route_evidence_ready: bool,
     release_blockers: Vec<&'static str>,
     path_priority: Vec<&'static str>,
@@ -320,7 +330,7 @@ struct RouteCandidateReport {
 async fn explain_route(opts: &RouteOpts) -> Result<()> {
     let home = musu_home();
     let peers = crate::peer::discovery::resolve_all_peers(&home);
-    let selected = select_route_candidate(&home, opts, &peers)?;
+    let selected = select_route_candidate(opts, &peers);
     let submission_endpoint = if opts.target.is_some() {
         selected
             .as_ref()
@@ -340,12 +350,14 @@ async fn explain_route(opts: &RouteOpts) -> Result<()> {
         selected_candidate: selected,
         candidate_count: peers.len(),
         current_transport: "http_bearer",
+        bridge_path_selection_wired: true,
+        rendezvous_session_wired: false,
         route_evidence_ready: false,
         release_blockers: vec![
             "peer_identity_verified=false for current manual/local HTTP route",
             "encryption is not QUIC/TLS route proof",
-            "handshake timing is not produced by runtime route selection",
-            "musu.pro rendezvous is not wired into bridge path selection",
+            "handshake timing is not yet recorded from the runtime route attempt",
+            "musu.pro rendezvous session is not created/refreshed before route selection",
             "relay/tunnel fallback transport is not wired",
         ],
         path_priority: vec!["lan", "tailscale", "direct_quic", "relay"],
@@ -361,6 +373,14 @@ async fn explain_route(opts: &RouteOpts) -> Result<()> {
     println!("MUSU route explanation");
     println!("  submission: {}", report.submission_endpoint);
     println!("  current transport: {}", report.current_transport);
+    println!(
+        "  bridge path selection wired: {}",
+        report.bridge_path_selection_wired
+    );
+    println!(
+        "  rendezvous session wired: {}",
+        report.rendezvous_session_wired
+    );
     println!("  release evidence ready: {}", report.route_evidence_ready);
     if let Some(candidate) = &report.selected_candidate {
         println!(
@@ -385,41 +405,33 @@ async fn explain_route(opts: &RouteOpts) -> Result<()> {
     Ok(())
 }
 
+fn route_hints_from_opts(opts: &RouteOpts) -> crate::bridge::router::RouteHints {
+    crate::bridge::router::RouteHints {
+        needs_gpu: opts.gpu,
+        prefer_os: None,
+        prefer_least_busy: false,
+    }
+}
+
 fn select_route_candidate(
-    home: &std::path::Path,
     opts: &RouteOpts,
     peers: &[crate::peer::discovery::ResolvedPeer],
-) -> Result<Option<RouteCandidateReport>> {
-    if let Some(target) = opts.target.as_deref() {
-        let addr = find_peer_addr(home, target)?;
-        let peer = peers
-            .iter()
-            .find(|peer| peer.addr == addr || peer.name.as_deref() == Some(target));
-        let name = peer
-            .and_then(|peer| peer.name.clone())
-            .or_else(|| Some(target.to_string()));
-        let source = peer
-            .map(|peer| format!("{:?}", peer.source).to_lowercase())
-            .unwrap_or_else(|| "configured".to_string());
-        return Ok(Some(candidate_report(name, addr, source)));
-    }
-
-    if opts.gpu {
-        if let Some(peer) = peers.iter().find(|peer| peer_has_gpu_hint(peer)) {
-            return Ok(Some(candidate_report(
-                peer.name.clone(),
-                peer.addr.clone(),
+) -> Option<RouteCandidateReport> {
+    let hints = route_hints_from_opts(opts);
+    crate::bridge::router::select_peer_for_route(opts.target.as_deref(), &hints, peers).map(
+        |peer| {
+            candidate_report(
+                peer.name,
+                peer.addr,
                 format!("{:?}", peer.source).to_lowercase(),
-            )));
-        }
-    }
-
-    Ok(None)
+            )
+        },
+    )
 }
 
 fn candidate_report(name: Option<String>, addr: String, source: String) -> RouteCandidateReport {
     RouteCandidateReport {
-        route_kind: route_kind_for_addr(&addr),
+        route_kind: crate::bridge::router::route_kind_for_addr(&addr).as_str(),
         name,
         addr,
         source,
@@ -427,75 +439,6 @@ fn candidate_report(name: Option<String>, addr: String, source: String) -> Route
         encryption: "none_http_bearer",
         payload_transited_musu_infra: false,
     }
-}
-
-fn peer_has_gpu_hint(peer: &crate::peer::discovery::ResolvedPeer) -> bool {
-    if let Some(meta) = &peer.meta {
-        if let Some(vram) = meta
-            .get("hardware")
-            .and_then(|hardware| hardware.get("gpu_vram_mb"))
-            .and_then(|value| value.as_u64())
-        {
-            if vram > 0 {
-                return true;
-            }
-        }
-    }
-
-    peer.name
-        .as_deref()
-        .is_some_and(|name| name.to_lowercase().contains("gpu"))
-}
-
-fn route_kind_for_addr(addr: &str) -> &'static str {
-    let Some(host) = host_from_addr(addr) else {
-        return "direct_quic";
-    };
-    let Ok(ip) = host.parse::<std::net::IpAddr>() else {
-        return "direct_quic";
-    };
-
-    match ip {
-        std::net::IpAddr::V4(v4) => {
-            let octets = v4.octets();
-            if v4.is_loopback() {
-                "local"
-            } else if octets[0] == 100 && (64..=127).contains(&octets[1]) {
-                "tailscale"
-            } else if v4.is_private() || v4.is_link_local() {
-                "lan"
-            } else {
-                "direct_quic"
-            }
-        }
-        std::net::IpAddr::V6(v6) => {
-            if v6.is_loopback() {
-                "local"
-            } else if v6.is_unicast_link_local() {
-                "lan"
-            } else {
-                "direct_quic"
-            }
-        }
-    }
-}
-
-fn host_from_addr(addr: &str) -> Option<&str> {
-    let without_scheme = addr
-        .trim()
-        .trim_start_matches("http://")
-        .trim_start_matches("https://");
-    let authority = without_scheme.split('/').next()?.trim();
-    if authority.is_empty() {
-        return None;
-    }
-    if let Some(rest) = authority.strip_prefix('[') {
-        return rest.split(']').next();
-    }
-    authority
-        .rsplit_once(':')
-        .map(|(host, _)| host)
-        .or(Some(authority))
 }
 
 /// `musu relay ...` — inspect MUSU-assisted routing state.
@@ -516,8 +459,10 @@ struct RelayStatusReport {
     rust_client_dtos_wired: bool,
     route_evidence_client_wired: bool,
     bridge_path_selection_wired: bool,
+    rendezvous_session_wired: bool,
     relay_transport_wired: bool,
     release_route_evidence_ready: bool,
+    path_priority: Vec<&'static str>,
     next_steps: Vec<&'static str>,
 }
 
@@ -543,12 +488,13 @@ async fn run_relay_status(opts: RelayStatusOpts) -> Result<()> {
         cached_node_count,
         rust_client_dtos_wired: true,
         route_evidence_client_wired: true,
-        bridge_path_selection_wired: false,
+        bridge_path_selection_wired: true,
+        rendezvous_session_wired: false,
         relay_transport_wired: false,
         release_route_evidence_ready: false,
+        path_priority: vec!["lan", "tailscale", "direct_quic", "relay"],
         next_steps: vec![
-            "wire bridge route selector to create/refresh rendezvous sessions",
-            "try LAN/Tailscale/direct QUIC candidates before relay",
+            "create/refresh rendezvous sessions before bridge route selection",
             "submit hardened route evidence from actual runtime attempts",
             "implement relay/tunnel fallback behind Connect/Pro policy",
         ],
@@ -578,11 +524,16 @@ async fn run_relay_status(opts: RelayStatusOpts) -> Result<()> {
         "  bridge path selection wired: {}",
         report.bridge_path_selection_wired
     );
+    println!(
+        "  rendezvous session wired: {}",
+        report.rendezvous_session_wired
+    );
     println!("  relay transport wired: {}", report.relay_transport_wired);
     println!(
         "  release route evidence ready: {}",
         report.release_route_evidence_ready
     );
+    println!("  path priority: {}", report.path_priority.join(" -> "));
     println!("  next steps:");
     for step in &report.next_steps {
         println!("    - {step}");
@@ -2099,15 +2050,30 @@ mod tests {
 
     #[test]
     fn route_kind_classifies_private_lan_and_tailscale() {
-        assert_eq!(route_kind_for_addr("192.168.1.50:8070"), "lan");
-        assert_eq!(route_kind_for_addr("10.0.0.5:8070"), "lan");
-        assert_eq!(route_kind_for_addr("100.100.1.2:8070"), "tailscale");
+        assert_eq!(
+            crate::bridge::router::route_kind_for_addr("192.168.1.50:8070").as_str(),
+            "lan"
+        );
+        assert_eq!(
+            crate::bridge::router::route_kind_for_addr("10.0.0.5:8070").as_str(),
+            "lan"
+        );
+        assert_eq!(
+            crate::bridge::router::route_kind_for_addr("100.100.1.2:8070").as_str(),
+            "tailscale"
+        );
     }
 
     #[test]
     fn route_kind_classifies_public_and_loopback() {
-        assert_eq!(route_kind_for_addr("8.8.8.8:443"), "direct_quic");
-        assert_eq!(route_kind_for_addr("127.0.0.1:8070"), "local");
+        assert_eq!(
+            crate::bridge::router::route_kind_for_addr("8.8.8.8:443").as_str(),
+            "direct_quic"
+        );
+        assert_eq!(
+            crate::bridge::router::route_kind_for_addr("127.0.0.1:8070").as_str(),
+            "local"
+        );
     }
 
     #[test]
