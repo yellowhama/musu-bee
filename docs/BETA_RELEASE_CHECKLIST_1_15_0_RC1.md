@@ -104,15 +104,15 @@ Fresh repeatable script smoke passed again on 2026-05-29 06:52 KST:
 - dashboard output: `MUSU_RELEASE_SMOKE_OK_20260529_0652`
 - CLI route output: `MUSU_CLI_ROUTE_OK_20260529_0652`
 
-Current machine-readable single-machine evidence passed and was recorded on 2026-05-30 22:58 KST after the second-PC return preview fallback commit:
+Current machine-readable single-machine evidence passed and was recorded on 2026-05-31 19:20 KST after route-evidence gate hardening:
 
-- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260530-225842-HUGH_SECOND.evidence.json`
-- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260530-225842-HUGH_SECOND.verification.json`
-- commit: `7c7d537ea9b8397c79eabb34e26cb574c2429909`
-- dashboard task id: `69d71cea-dec0-47af-a0bb-fdde166c080e`
-- bridge: `http://127.0.0.1:3718`
-- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260530_2258`
-- CLI route output: `MUSU_CLI_ROUTE_OK_20260530_2258`
+- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260531-192015-HUGH_SECOND.evidence.json`
+- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260531-192015-HUGH_SECOND.verification.json`
+- commit: `5211ff2ba6d095e474780997ebec10b2327358f4`
+- dashboard task id: `986733bf-c10c-4434-bd8e-d9b0512ce193`
+- bridge: `http://127.0.0.1:9818`
+- dashboard output: `MUSU_RELEASE_SMOKE_OK`
+- CLI route output: `MUSU_CLI_ROUTE_OK`
 
 Multi-device packet:
 

@@ -2,7 +2,7 @@
 
 **Wiki ID**: wiki/522
 **Date**: 2026-05-31
-**Scope**: current release state after the second-PC return importer, preview fallback, refreshed single-machine evidence, final operator packet verification, operator action pack verification, Store submission bundle verification, release handoff status check, and Windows/Tailscale mDNS health hardening.
+**Scope**: current release state after the route-evidence gate hardening, refreshed single-machine evidence, final operator packet verification, operator action pack verification, Store submission bundle verification, release handoff status check, second-PC MSIX install evidence import, and Windows/Tailscale mDNS health hardening.
 
 ## Verdict
 
@@ -40,12 +40,12 @@ This document supersedes wiki/521 for the **current 2026-05-31 release status**.
 
 | Item | Current value |
 |---|---|
-| Latest smoke source commit | `dbd90e31c58d56f58d7d93dddeae9a74a4c16234` |
+| Latest smoke source commit | `5211ff2ba6d095e474780997ebec10b2327358f4` |
 | Working tree | clean after the post-smoke evidence/docs commit |
-| Latest single-machine evidence | `docs\evidence\single-machine\1.15.0-rc.1\20260531-154114-HUGH_SECOND.evidence.json` |
-| Single-machine output | `MUSU_RELEASE_SMOKE_OK_20260531_1540`; CLI route `MUSU_CLI_ROUTE_OK_20260531_1540` |
-| Dashboard task | `9e00f24e-1bbc-4cbf-b6aa-7057fdfeb63c` |
-| Bridge URL | `http://127.0.0.1:1407` |
+| Latest single-machine evidence | `docs\evidence\single-machine\1.15.0-rc.1\20260531-192015-HUGH_SECOND.evidence.json` |
+| Single-machine output | `MUSU_RELEASE_SMOKE_OK`; CLI route `MUSU_CLI_ROUTE_OK` |
+| Dashboard task | `986733bf-c10c-4434-bd8e-d9b0512ce193` |
+| Bridge URL | `http://127.0.0.1:9818` |
 | Desktop readiness audit | `runtime_package_ready=true`, `desktop_shell_ready=true`, `single_machine_verified=true`, `multi_device_verified=false` |
 | Final operator packet | `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip` |
 | Final operator packet verification | `ok=true`, `fail_count=0`, `kit_count=1` |
@@ -56,8 +56,8 @@ This document supersedes wiki/521 for the **current 2026-05-31 release status**.
 | Public metadata | `https://musu.pro/privacy` and `/support` pass with `musu@musu.pro` |
 | Second-PC MSIX install evidence | `docs\evidence\msix-install\1.15.0-rc.1\20260531-165211-HUGH-MAIN.evidence.json` |
 | Runtime idle CPU evidence | missing; `write-release-go-no-go.ps1` now blocks until `scripts\windows\measure-musu-idle-cpu.ps1` evidence passes on two machines with MUSU open and Node.js/WebView2 included |
-| Current support verification id | `musu-store-support-1.15.0-rc.1-20260531-002518` |
-| Current second-PC kit | `kits\musu-multidevice-1.15.0-rc.1-20260531-002518.zip` |
+| Current support verification id | `musu-store-support-1.15.0-rc.1-20260531-191548` |
+| Current second-PC kit | `kits\musu-multidevice-1.15.0-rc.1-20260531-191548.zip` |
 | Final release status | `ready_for_public_desktop_release=false` |
 
 ## Product Spec Locks
@@ -67,7 +67,7 @@ This document supersedes wiki/521 for the **current 2026-05-31 release status**.
 3. **Support mailbox**: `musu@musu.pro` is the only release support mailbox. `support@musu.pro` is historical correction context only.
 4. **Evidence policy**: release readiness is evidence-backed. Assumption flags, inferred Store approval, weak mailbox proof, dirty git, and stale packets must not produce a Go decision.
 5. **Second-PC path**: second-PC operator should run `run-second-pc-release-check.ps1`, return `.local-build\second-pc-return\*.zip`, then primary repo should run `import-second-pc-return.ps1 -RecordMsixInstall`.
-6. **Multi-device proof**: public multi-device claim requires real `host:port` route evidence from a second Windows PC, not a same-machine simulation.
+6. **Multi-device proof**: public multi-device claim requires real `host:port` route evidence from a second Windows PC, not a same-machine simulation. Route evidence must include `musu.route_evidence.v1`, route kind, handshake timing, peer identity verification, hardened encryption, and payload transit truth.
 7. **Store proof**: Store readiness requires explicit Partner Center product-name reservation timestamp, submission id, Microsoft certification status, and restricted capability approval status.
 8. **musu-system integration**: `musu-system` remains future adjacent MCP/CLI/adapter work. It is not part of first Store package scope.
 9. **LAN mDNS discovery**: mDNS LAN auto-discovery is now opt-in via `MUSU_ENABLE_MDNS=1` for the Store-candidate path. Cloud/manual peer registration and the second-PC handoff route remain the canonical release-test path.
