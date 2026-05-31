@@ -160,10 +160,10 @@ against the advertised fingerprint during the actual bridge forward. That still
   `612c8aff-616e-4227-89dc-7023a77d4830`, bridge
   `http://127.0.0.1:13800`, and `dashboard_task_poll_error_count=0`.
 - Current primary packaged `desktop-open` runtime CPU evidence is
-  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-040413-HUGH_SECOND.desktop-open.evidence.json`
-  on commit `b330de871364877f990cd0cc4d5a6e6f8666a53f`; it passed with
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-082822-HUGH_SECOND.desktop-open.evidence.json`
+  on commit `cdefc1226481d554d2d151e6a08af4dc81572247`; it passed with
   `git_dirty=false`, owned WebView2 `6`, owned Node `0`, max one-core CPU
-  `musu=0`, `webview2=0.21`, total working set `369.66MB`, and no
+  `musu=0`, `webview2=0.16`, total working set `339.85MB`, and no
   resource-budget violations.
 - Final go/no-go after route diagnostics still reports
   `ready_for_public_desktop_release=false`, while local artifacts, current
@@ -239,6 +239,21 @@ against the advertised fingerprint during the actual bridge forward. That still
   `relay_lease_endpoint=/api/v1/p2p/relay/lease`,
   `relay_default_data_path=false`, and `relay_transport_wired=false`.
   Indexer sync recorded `1082 files / 2141 symbols`.
+- After the relay lease control-plane commit, current primary packaged
+  `desktop-open` runtime CPU evidence was refreshed from clean HEAD
+  `cdefc1226481d554d2d151e6a08af4dc81572247`:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-082822-HUGH_SECOND.desktop-open.evidence.json`.
+  It passed 60.015s with `git_dirty=false`, one `musu-desktop` process, six
+  owned WebView2 helpers, zero owned Node helpers, max one-core CPU
+  `musu=0` and `webview2=0.16`, total working set `339.85MB`, and no resource
+  budget violations. The two-machine CPU gate still needs second-PC
+  `desktop-open` evidence.
+- Post-commit go/no-go recheck from clean HEAD accepted the new runtime CPU
+  evidence as one valid machine (`valid_machine_count=1`, `valid_machines=[
+  "HUGH_SECOND" ]`) and kept `manifest_dirty=false`. Public readiness remains
+  false because fresh single-machine smoke evidence after the latest code
+  commit, real second-PC multi-device route evidence, and second-PC
+  `desktop-open` CPU evidence are still missing.
 
 The release gate still needs two-machine desktop-open CPU evidence, hardened
 multi-device route evidence, support inbox delivery evidence, and Store
@@ -249,7 +264,7 @@ submission/release evidence.
 | Dimension | Current score | Notes |
 |---|---:|---|
 | Packaging trust | 8/10 | MSIX desktop-entrypoint and local-sideload contract are now coherent. Store certification remains external. |
-| Runtime efficiency | 7/10 | Current primary packaged desktop-open CPU evidence passes at `musu=0%`, `webview2=0.21%` of one logical core, but second-PC evidence is still missing. |
+| Runtime efficiency | 7/10 | Current primary packaged desktop-open CPU evidence passes at `musu=0%`, `webview2=0.16%` of one logical core, but second-PC evidence is still missing. |
 | P2P product story | 8.1/10 | The strategy is right, the bridge now has shared path-kind ranking for cached/manual/nodes candidates, runtime route evidence is stored/queryable on `musu.pro`, server-side rendezvous candidate exchange plus recent node candidate caching exists, runtime forwarding creates/uses sessions, refreshed target candidates can affect the actual forward address, peer identity material is exchanged, HTTPS bridge attempts can pin the advertised certificate fingerprint, and relay fallback now has a fail-closed lease policy API. Release-grade QUIC/TLS proof, real second-PC verification, and relay/tunnel transport are still not wired. |
 | UX/branding | 6/10 -> 7/10 | App mark is strong. Public web asset tracking, wordmark fallback, and basic static logo lockups are now fixed. Store screenshots and product demo media are still needed. |
 | Release evidence quality | 8/10 | Gates are strict and honest. Runtime CPU evidence must now match current HEAD or documentation/evidence-only deltas, preventing stale CPU samples from passing after code changes. |
@@ -260,7 +275,7 @@ submission/release evidence.
 1. **Finish runtime evidence on two PCs**
    - Close unrelated old WebView2/Node/dev-server processes.
    - Primary evidence now exists at
-     `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-040413-HUGH_SECOND.desktop-open.evidence.json`.
+     `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-082822-HUGH_SECOND.desktop-open.evidence.json`.
    - Run `run-second-pc-release-check.ps1` on the second PC; it now captures
      MSIX install evidence, handoff, and `desktop-open` runtime CPU evidence in
      one return zip.
