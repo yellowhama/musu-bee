@@ -11,11 +11,17 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::Json;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 use crate::bridge::error::{MusuError, Result};
 use crate::bridge::route_evidence::elapsed_ms;
 use crate::bridge::AppState;
 use crate::peer::discovery::ResolvedPeer;
+
+use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
+use rustls::crypto::{verify_tls12_signature, verify_tls13_signature, WebPkiSupportedAlgorithms};
+use rustls::pki_types::{CertificateDer, ServerName, UnixTime};
+use rustls::{CertificateError, DigitallySignedStruct, Error, SignatureScheme};
 
 /// A task forwarded from a peer node.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -84,6 +90,143 @@ pub struct ForwardAttemptError {
     pub handshake_ms: Option<u64>,
     pub total_attempt_ms: u64,
     pub failure_class: String,
+}
+
+#[derive(Debug)]
+struct FingerprintServerCertVerifier {
+    expected_fingerprint: String,
+    supported: WebPkiSupportedAlgorithms,
+}
+
+impl ServerCertVerifier for FingerprintServerCertVerifier {
+    fn verify_server_cert(
+        &self,
+        end_entity: &CertificateDer<'_>,
+        _intermediates: &[CertificateDer<'_>],
+        _server_name: &ServerName<'_>,
+        _ocsp_response: &[u8],
+        _now: UnixTime,
+    ) -> std::result::Result<ServerCertVerified, Error> {
+        let actual = format!(
+            "sha256:{}",
+            hex::encode(Sha256::digest(end_entity.as_ref()))
+        );
+        if actual.eq_ignore_ascii_case(self.expected_fingerprint.trim()) {
+            Ok(ServerCertVerified::assertion())
+        } else {
+            Err(Error::InvalidCertificate(
+                CertificateError::ApplicationVerificationFailure,
+            ))
+        }
+    }
+
+    fn verify_tls12_signature(
+        &self,
+        message: &[u8],
+        cert: &CertificateDer<'_>,
+        dss: &DigitallySignedStruct,
+    ) -> std::result::Result<HandshakeSignatureValid, Error> {
+        verify_tls12_signature(message, cert, dss, &self.supported)
+    }
+
+    fn verify_tls13_signature(
+        &self,
+        message: &[u8],
+        cert: &CertificateDer<'_>,
+        dss: &DigitallySignedStruct,
+    ) -> std::result::Result<HandshakeSignatureValid, Error> {
+        verify_tls13_signature(message, cert, dss, &self.supported)
+    }
+
+    fn supported_verify_schemes(&self) -> Vec<SignatureScheme> {
+        self.supported.supported_schemes()
+    }
+}
+
+fn peer_meta_string(peer: &ResolvedPeer, key: &str) -> Option<String> {
+    peer.meta
+        .as_ref()
+        .and_then(|meta| meta.get(key))
+        .and_then(|value| value.as_str())
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+}
+
+fn peer_transport_scheme(peer: &ResolvedPeer) -> String {
+    if peer.addr.trim_start().starts_with("https://") {
+        return "https".to_string();
+    }
+    if peer.addr.trim_start().starts_with("http://") {
+        return "http".to_string();
+    }
+    if let Some(scheme) = peer_meta_string(peer, "transport_scheme") {
+        if matches!(scheme.as_str(), "http" | "https") {
+            return scheme;
+        }
+    }
+    if let Some(public_url) = peer_meta_string(peer, "public_url") {
+        if let Ok(url) = reqwest::Url::parse(&public_url) {
+            if matches!(url.scheme(), "http" | "https") {
+                return url.scheme().to_string();
+            }
+        }
+    }
+    "http".to_string()
+}
+
+fn peer_public_key_fingerprint(peer: &ResolvedPeer) -> Option<String> {
+    peer_meta_string(peer, "peer_public_key")
+        .or_else(|| peer_meta_string(peer, "public_key"))
+        .or_else(|| peer_meta_string(peer, "cert_fingerprint"))
+        .filter(|value| value.starts_with("sha256:"))
+}
+
+fn forward_url_for_peer(peer: &ResolvedPeer) -> String {
+    let addr = peer.addr.trim().trim_end_matches('/');
+    let base = if addr.starts_with("http://") || addr.starts_with("https://") {
+        addr.to_string()
+    } else {
+        format!("{}://{}", peer_transport_scheme(peer), addr)
+    };
+    format!("{}/api/tasks/forward", base.trim_end_matches('/'))
+}
+
+fn fingerprint_pinned_client(
+    expected_fingerprint: &str,
+) -> std::result::Result<reqwest::Client, String> {
+    let provider = rustls::crypto::aws_lc_rs::default_provider();
+    let supported = provider.signature_verification_algorithms;
+    let tls_config = rustls::ClientConfig::builder_with_provider(std::sync::Arc::new(provider))
+        .with_safe_default_protocol_versions()
+        .map_err(|err| format!("tls protocol config: {err}"))?
+        .dangerous()
+        .with_custom_certificate_verifier(std::sync::Arc::new(FingerprintServerCertVerifier {
+            expected_fingerprint: expected_fingerprint.to_string(),
+            supported,
+        }))
+        .with_no_client_auth();
+    reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(60))
+        .redirect(reqwest::redirect::Policy::none())
+        .use_preconfigured_tls(tls_config)
+        .build()
+        .map_err(|err| format!("fingerprint-pinned reqwest client: {err}"))
+}
+
+fn peer_with_verified_tls_fingerprint(peer: &ResolvedPeer, fingerprint: &str) -> ResolvedPeer {
+    let mut meta = peer.meta.clone().unwrap_or_else(|| serde_json::json!({}));
+    meta["transport_scheme"] = serde_json::json!("https");
+    meta["peer_identity_verified"] = serde_json::json!(true);
+    meta["peer_identity_method"] = serde_json::json!("tls_cert_fingerprint_pin");
+    meta["peer_public_key"] = serde_json::json!(fingerprint);
+    meta["encryption"] = serde_json::json!("https_tls_fingerprint_pin");
+    ResolvedPeer {
+        addr: peer.addr.clone(),
+        name: peer.name.clone(),
+        source: peer.source,
+        meta: Some(meta),
+    }
 }
 
 /// POST /api/tasks/forward — receive a forwarded task from a peer.
@@ -229,12 +372,31 @@ async fn forward_to_peer_attempt(
     task: ForwardedTask,
     token: &str,
 ) -> std::result::Result<ForwardAttemptReport, ForwardAttemptError> {
-    let url = format!("http://{}/api/tasks/forward", peer.addr);
+    let url = forward_url_for_peer(peer);
     let total_started = std::time::Instant::now();
+    let expected_tls_fingerprint = (peer_transport_scheme(peer) == "https")
+        .then(|| peer_public_key_fingerprint(peer))
+        .flatten();
+    let pinned_client = if let Some(fingerprint) = expected_tls_fingerprint.as_deref() {
+        Some(
+            fingerprint_pinned_client(fingerprint).map_err(|err| ForwardAttemptError {
+                message: format!("forward TLS client error: {err}"),
+                route_peer: peer.clone(),
+                rendezvous_session_id: None,
+                handshake_ms: None,
+                total_attempt_ms: elapsed_ms(total_started.elapsed()),
+                failure_class: "forward_tls_client_build_error".to_string(),
+            })?,
+        )
+    } else {
+        None
+    };
+    let request_client = pinned_client.as_ref().unwrap_or(client);
 
     tracing::info!(
         url = %url,
         source_task_id = %task.source_task_id,
+        tls_fingerprint_pin = expected_tls_fingerprint.is_some(),
         "forwarding task to peer"
     );
 
@@ -252,7 +414,7 @@ async fn forward_to_peer_attempt(
     let form = reqwest::multipart::Form::new().part("task", part);
 
     let submit_started = std::time::Instant::now();
-    let resp = client
+    let resp = request_client
         .post(&url)
         .bearer_auth(token)
         .multipart(form)
@@ -294,9 +456,15 @@ async fn forward_to_peer_attempt(
             failure_class: "forward_response_parse".to_string(),
         })?;
 
+    let route_peer = if let Some(fingerprint) = expected_tls_fingerprint.as_deref() {
+        peer_with_verified_tls_fingerprint(peer, fingerprint)
+    } else {
+        peer.clone()
+    };
+
     Ok(ForwardAttemptReport {
         response,
-        route_peer: peer.clone(),
+        route_peer,
         rendezvous_session_id: None,
         handshake_ms,
         total_attempt_ms: elapsed_ms(total_started.elapsed()),
@@ -543,4 +711,68 @@ pub async fn receive_callback(
     );
 
     Ok(StatusCode::OK)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::peer::discovery::PeerSource;
+
+    fn peer(addr: &str, meta: Option<serde_json::Value>) -> ResolvedPeer {
+        ResolvedPeer {
+            addr: addr.to_string(),
+            name: Some("target-node".to_string()),
+            source: PeerSource::Registry,
+            meta,
+        }
+    }
+
+    #[test]
+    fn forward_url_uses_transport_scheme_from_peer_metadata() {
+        let peer = peer(
+            "192.168.1.10:8070",
+            Some(serde_json::json!({
+                "transport_scheme": "https",
+            })),
+        );
+
+        assert_eq!(
+            forward_url_for_peer(&peer),
+            "https://192.168.1.10:8070/api/tasks/forward"
+        );
+    }
+
+    #[test]
+    fn forward_url_uses_public_url_scheme_when_available() {
+        let peer = peer(
+            "target.example.com:443",
+            Some(serde_json::json!({
+                "public_url": "https://target.example.com:443",
+            })),
+        );
+
+        assert_eq!(
+            forward_url_for_peer(&peer),
+            "https://target.example.com:443/api/tasks/forward"
+        );
+    }
+
+    #[test]
+    fn verified_tls_fingerprint_metadata_marks_only_pinned_https_attempts() {
+        let original = peer(
+            "192.168.1.10:8070",
+            Some(serde_json::json!({
+                "public_key": "sha256:old",
+            })),
+        );
+
+        let verified = peer_with_verified_tls_fingerprint(&original, "sha256:verified-fingerprint");
+        let meta = verified.meta.expect("verified peer metadata");
+
+        assert_eq!(meta["transport_scheme"], "https");
+        assert_eq!(meta["peer_identity_verified"], true);
+        assert_eq!(meta["peer_identity_method"], "tls_cert_fingerprint_pin");
+        assert_eq!(meta["peer_public_key"], "sha256:verified-fingerprint");
+        assert_eq!(meta["encryption"], "https_tls_fingerprint_pin");
+    }
 }

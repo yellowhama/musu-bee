@@ -36,6 +36,7 @@ const RouteEvidenceSchema = z.object({
 type RouteEvidence = z.infer<typeof RouteEvidenceSchema> & RouteEvidencePayload;
 
 const LEGACY_ENCRYPTION = new Set(["", "none", "http", "none_http_bearer", "unknown"]);
+const RELEASE_GRADE_ENCRYPTION = new Set(["quic_tls_1_3"]);
 
 function releaseBlockers(evidence: RouteEvidence): string[] {
   const blockers: string[] = [];
@@ -57,6 +58,9 @@ function releaseBlockers(evidence: RouteEvidence): string[] {
   }
   if (LEGACY_ENCRYPTION.has(evidence.encryption.trim().toLowerCase())) {
     blockers.push("legacy_or_missing_encryption");
+  }
+  if (!RELEASE_GRADE_ENCRYPTION.has(evidence.encryption.trim().toLowerCase())) {
+    blockers.push("transport_not_release_grade_quic_tls");
   }
   if (evidence.route_kind === "relay" && !evidence.payload_transited_musu_infra) {
     blockers.push("relay_route_missing_infra_transit");

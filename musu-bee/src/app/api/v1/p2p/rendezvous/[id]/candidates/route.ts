@@ -17,6 +17,7 @@ const CandidateEndpointSchema = z.object({
   kind: z.enum(["lan", "tailscale", "direct_quic", "relay", "failed"]),
   addr: z.string().min(1),
   observed_at: z.string().min(1),
+  scheme: z.enum(["http", "https"]).nullable().optional(),
 });
 
 const CandidatesSchema = z.object({

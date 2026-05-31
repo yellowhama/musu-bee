@@ -395,8 +395,10 @@ fn write_route_evidence_if_requested(
         result,
         failure_class,
         note: CLI_ROUTE_EVIDENCE_NOTE,
+        peer_identity_verified: false,
         peer_identity_method: None,
         peer_public_key: None,
+        encryption: "none_http_bearer".to_string(),
     });
     write_route_attempt_evidence(path, &evidence)?;
     println!("route evidence written: {}", path.display());

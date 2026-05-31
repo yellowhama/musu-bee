@@ -96,6 +96,15 @@ pub fn endpoint_addr_from_url(value: &str) -> String {
         .to_string()
 }
 
+fn endpoint_scheme_from_url(value: &str) -> Option<String> {
+    reqwest::Url::parse(value.trim().trim_end_matches('/'))
+        .ok()
+        .and_then(|url| match url.scheme() {
+            "http" | "https" => Some(url.scheme().to_string()),
+            _ => None,
+        })
+}
+
 fn cloud_route_kind_for_addr(addr: &str) -> crate::cloud::RouteKind {
     match crate::bridge::router::route_kind_for_addr(addr) {
         crate::bridge::router::RoutePathKind::Local | crate::bridge::router::RoutePathKind::Lan => {
@@ -140,6 +149,7 @@ pub fn local_candidate_request_for_node_id(
 ) -> crate::cloud::P2pRendezvousCandidatesRequest {
     let advertised = crate::bridge::services::advertised_bridge_http_url(cfg);
     let addr = endpoint_addr_from_url(&advertised);
+    let scheme = endpoint_scheme_from_url(&advertised);
     let public_key = local_identity_public_key(cfg);
     crate::cloud::P2pRendezvousCandidatesRequest {
         node_id,
@@ -147,6 +157,7 @@ pub fn local_candidate_request_for_node_id(
             kind: cloud_route_kind_for_addr(&addr),
             addr,
             observed_at: chrono::Utc::now().to_rfc3339(),
+            scheme,
         }],
         relay_capable: false,
         node_name: Some(cfg.node_name.clone()),
@@ -182,6 +193,9 @@ fn route_peer_from_target_candidates(
             if !peer_public_key.is_empty() {
                 meta["peer_public_key"] = serde_json::json!(peer_public_key);
                 meta["peer_identity_method"] = serde_json::json!("advertised_tls_cert_fingerprint");
+            }
+            if let Some(scheme) = candidate.scheme.as_deref() {
+                meta["transport_scheme"] = serde_json::json!(scheme);
             }
             Some(ResolvedPeer {
                 addr: candidate.addr.trim().to_string(),
@@ -404,6 +418,7 @@ mod tests {
         assert_eq!(req.app_version.as_deref(), Some(env!("CARGO_PKG_VERSION")));
         assert!(req.public_key.is_none());
         assert_eq!(req.candidate_endpoints[0].addr, "100.64.1.5:8070");
+        assert_eq!(req.candidate_endpoints[0].scheme.as_deref(), Some("http"));
         assert_eq!(
             req.candidate_endpoints[0].kind,
             crate::cloud::RouteKind::Tailscale
@@ -469,21 +484,25 @@ mod tests {
                     kind: crate::cloud::RouteKind::DirectQuic,
                     addr: "203.0.113.10:8070".to_string(),
                     observed_at: now.clone(),
+                    scheme: Some("https".to_string()),
                 },
                 crate::cloud::CandidateEndpoint {
                     kind: crate::cloud::RouteKind::Tailscale,
                     addr: "100.64.1.10:8070".to_string(),
                     observed_at: now.clone(),
+                    scheme: Some("https".to_string()),
                 },
                 crate::cloud::CandidateEndpoint {
                     kind: crate::cloud::RouteKind::Lan,
                     addr: "192.168.1.10:8070".to_string(),
                     observed_at: now,
+                    scheme: Some("https".to_string()),
                 },
                 crate::cloud::CandidateEndpoint {
                     kind: crate::cloud::RouteKind::Relay,
                     addr: "relay.musu.pro:443".to_string(),
                     observed_at: chrono::Utc::now().to_rfc3339(),
+                    scheme: Some("https".to_string()),
                 },
             ],
         };
@@ -497,6 +516,13 @@ mod tests {
                 .and_then(|meta| meta.get("peer_public_key"))
                 .and_then(|value| value.as_str()),
             Some("sha256:test")
+        );
+        assert_eq!(
+            peer.meta
+                .as_ref()
+                .and_then(|meta| meta.get("transport_scheme"))
+                .and_then(|value| value.as_str()),
+            Some("https")
         );
     }
 }

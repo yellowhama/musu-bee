@@ -138,7 +138,7 @@ test("updates candidates, approves, and closes the rendezvous", async () => {
       postReq({
         node_id: "pc-a",
         candidate_endpoints: [
-          { kind: "lan", addr: "192.168.1.10:8070", observed_at: "2026-06-01T00:00:00Z" },
+          { kind: "lan", addr: "192.168.1.10:8070", observed_at: "2026-06-01T00:00:00Z", scheme: "https" },
           { kind: "tailscale", addr: "100.64.1.10:8070", observed_at: "2026-06-01T00:00:01Z" },
         ],
         relay_capable: true,
@@ -149,10 +149,11 @@ test("updates candidates, approves, and closes the rendezvous", async () => {
     );
     assert.equal(candidateRes.status, 200);
     const withCandidates = (await candidateRes.json()) as {
-      source: { relay_capable: boolean; candidate_endpoints: Array<{ kind: string }> };
+      source: { relay_capable: boolean; candidate_endpoints: Array<{ kind: string; scheme?: string }> };
     };
     assert.equal(withCandidates.source.relay_capable, true);
     assert.equal(withCandidates.source.candidate_endpoints[0]?.kind, "lan");
+    assert.equal(withCandidates.source.candidate_endpoints[0]?.scheme, "https");
 
     const { POST: approve } = await loadApprove("flow-approve");
     const approveRes = await approve(postReq({}), ctx(created.session_id));

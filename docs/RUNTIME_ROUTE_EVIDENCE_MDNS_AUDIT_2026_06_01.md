@@ -2,7 +2,7 @@
 
 **Wiki ID**: wiki/528
 **Date**: 2026-06-01
-**Status**: Current implementation addendum after operator mDNS/Tailscale logs, bridge forwarding evidence wiring, stored `musu.pro` route-evidence API, rendezvous control-plane endpoints, and Rust bridge runtime rendezvous wiring.
+**Status**: Current implementation addendum after operator mDNS/Tailscale logs, bridge forwarding evidence wiring, stored `musu.pro` route-evidence API, rendezvous control-plane endpoints, Rust bridge runtime rendezvous wiring, and HTTPS certificate fingerprint pinning for bridge forwarding.
 
 ## Executive Verdict
 
@@ -40,6 +40,13 @@ What changed materially:
   evidence can carry the advertised peer fingerprint, but still records
   `peer_identity_verified=false` until the transport proves ownership of that
   key.
+- Rendezvous and registry metadata now preserve endpoint scheme (`http` or
+  `https`). When forwarding to an HTTPS target with an advertised
+  `sha256:<hex>` certificate fingerprint, the Rust bridge builds a fingerprint-
+  pinned rustls client, verifies the target leaf certificate during the actual
+  POST, and only then records `peer_identity_verified=true`,
+  `peer_identity_method=tls_cert_fingerprint_pin`, and
+  `encryption=https_tls_fingerprint_pin`.
 - Rust bridge forwarding now creates a short-lived rendezvous session before a
   remote route attempt when an account token exists, publishes the source
   bridge endpoint, attaches `session_id` to the forwarded task, lets the target
@@ -61,13 +68,17 @@ What changed materially:
 
 What is still not release-grade:
 
-- Current route transport remains legacy HTTP bearer.
-- Route evidence honestly records `peer_identity_verified=false`,
-  `encryption=none_http_bearer`, and
-  `payload_transited_musu_infra=false`.
+- Legacy/default route transport remains HTTP bearer.
+- Legacy route evidence honestly records `peer_identity_verified=false`,
+  `encryption=none_http_bearer`, and `payload_transited_musu_infra=false`.
+- HTTPS fingerprint-pinned bridge evidence is a real transport check, but it is
+  still bridge HTTP multipart over TLS, not the final QUIC/TLS route transport.
 - `musu.pro` now also requires identity proof material when evidence claims
   `peer_identity_verified=true`; a bare boolean claim without
   `peer_identity_method` and `peer_public_key` is not release-grade.
+- `musu.pro` now also requires `encryption=quic_tls_1_3` for release-grade
+  evidence and returns `transport_not_release_grade_quic_tls` for
+  `https_tls_fingerprint_pin`.
 - The server endpoint is now a minimal durable storage/query API, but not an
   account-scoped operator UI or long-term retention system yet.
 - Rendezvous is now bridge-wired for session lifecycle and candidate publish,
@@ -131,6 +142,17 @@ What is still not release-grade:
      path.
    - Current diagnostics now report `rendezvous_session_wired=true`, while
      `relay_transport_wired=false` and `release_route_evidence_ready=false`.
+9. HTTPS fingerprint-pinned bridge forwarding:
+   - Candidate endpoints and registry metadata preserve `transport_scheme`.
+   - `advertised_bridge_http_url` advertises `https://` when bridge TLS is
+     enabled and no public URL override is set.
+   - `forward_to_peer_attempt` uses a fingerprint-pinned rustls reqwest client
+     only for HTTPS peers with advertised `sha256:<hex>` key material.
+   - Successful pinned attempts update the route peer metadata before evidence
+     is written. Unpinned HTTP/HTTPS attempts do not get verified identity
+     metadata.
+   - The route-evidence API accepts this as useful evidence but keeps it
+     non-release-grade until QUIC/TLS route proof exists.
 
 The operator-supplied log pattern:
 
@@ -164,7 +186,8 @@ mDNS opt-in variables unset.
 | Runtime cloud submission | High | Bridge runtime forwarding wrote local evidence but did not submit it to the control plane. | Fixed as background best-effort. Runtime submits after local write when `~/.musu/token` exists. Failures do not fail or delay the user task. |
 | Rendezvous server contract | High | The Rust client had rendezvous DTOs/methods but no server endpoint to create sessions or exchange endpoint candidates. | Fixed. Server endpoints now create/read/update/approve/close sessions and seed new sessions from a recent node candidate cache. |
 | Runtime rendezvous wiring | High | Bridge remote forwarding selected a peer directly but did not create a `musu.pro` session, attach a session id to route evidence, or use session target candidates. | Fixed as first runtime wiring. Forwarding creates/refreshes a session, publishes source candidates, forwards the session id to target, target publishes candidates best-effort, uses refreshed target candidates when present, falls back once to the original peer if a selected candidate fails, and evidence records the session id. |
-| Peer identity material | High | Route evidence required peer identity proof, but route attempts had no durable identity material to carry. | Partially fixed. Local TLS certificate fingerprints are registered/published as candidate `public_key`, route evidence records advertised target fingerprints when available, and `musu.pro` rejects release-grade identity claims without method/key material. Transport-level ownership proof is still pending. |
+| Peer identity material | High | Route evidence required peer identity proof, but route attempts had no durable identity material to carry. | Partially fixed. Local TLS certificate fingerprints are registered/published as candidate `public_key`, route evidence records advertised target fingerprints when available, and `musu.pro` rejects release-grade identity claims without method/key material. |
+| HTTPS fingerprint pinning | High | Advertised fingerprints were previously only copied into evidence and did not prove the peer served that certificate. | Partially fixed. HTTPS bridge forwarding now verifies the target server certificate fingerprint during the actual POST and records verified identity metadata only after a successful pinned request. This is still not release-grade until QUIC/TLS route transport exists. |
 | Release-grade route proof | Critical | Submitted evidence still cannot prove peer identity, QUIC/TLS encryption, or payload transit truth. | Still blocked. This is the next P0. |
 
 ## Validation
@@ -173,8 +196,11 @@ Passed:
 
 - `cargo check --manifest-path .\musu-rs\Cargo.toml -j 1`
 - `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib cli_commands -- --nocapture`
+- `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib forward -- --nocapture`
 - `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib route_evidence -- --nocapture`
 - `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib rendezvous -- --nocapture`
+- `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib services -- --nocapture`
+- `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib discovery -- --nocapture`
 - `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib tls -- --nocapture`
 - `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib router -- --nocapture`
 - `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --bin musu cli_commands -- --nocapture`
@@ -189,8 +215,8 @@ Passed:
 - `cargo fmt --manifest-path .\musu-rs\Cargo.toml --check`
 - `git diff --check`
 - `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
-  indexed 1075 files and 2071 symbols after the peer identity material update
-  indexed `1074 files / 2064 symbols`
+  indexed 1076 files and 2096 symbols after the HTTPS fingerprint-pinned
+  forwarding update.
 
 Not completed:
 
@@ -204,7 +230,8 @@ Not completed:
 2. Verify target-candidate-assisted routing on the real second-PC route.
 3. Add registry metadata as a second candidate seed source behind the current
    short-lived node candidate cache.
-4. Replace HTTP bearer remote execution with peer identity verification and
-   QUIC/TLS proof before allowing evidence to pass the release verifier.
+4. Replace HTTP bearer remote execution with QUIC/TLS route proof before
+   allowing evidence to pass the release verifier. HTTPS fingerprint pinning is
+   useful interim proof but remains non-release-grade.
 5. Rerun real second-PC multi-device proof and two-machine desktop-open CPU
    evidence from a clean committed HEAD.

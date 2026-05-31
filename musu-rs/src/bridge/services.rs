@@ -292,7 +292,8 @@ pub fn advertised_bridge_http_url(cfg: &crate::bridge::config::BridgeConfig) -> 
     } else {
         cfg.bridge_host.clone()
     };
-    format!("http://{}:{}", host, actual_port)
+    let scheme = if cfg.tls_enabled { "https" } else { "http" };
+    format!("{scheme}://{}:{}", host, actual_port)
 }
 
 // ---------------------------------------------------------------------------
@@ -435,6 +436,42 @@ pub fn is_musu_runtime_pid(pid: u32) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::{LazyLock, Mutex, MutexGuard};
+
+    static ENV_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
+
+    struct EnvRestore {
+        values: Vec<(&'static str, Option<std::ffi::OsString>)>,
+    }
+
+    impl EnvRestore {
+        fn capture(keys: &[&'static str]) -> Self {
+            Self {
+                values: keys
+                    .iter()
+                    .map(|key| (*key, std::env::var_os(key)))
+                    .collect(),
+            }
+        }
+    }
+
+    impl Drop for EnvRestore {
+        fn drop(&mut self) {
+            for (key, value) in &self.values {
+                if let Some(value) = value {
+                    std::env::set_var(key, value);
+                } else {
+                    std::env::remove_var(key);
+                }
+            }
+        }
+    }
+
+    fn lock_env() -> MutexGuard<'static, ()> {
+        ENV_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
 
     /// Helper: create a temporary registry directory and return a registry
     /// pointed at it.
@@ -521,6 +558,8 @@ mod tests {
 
     #[test]
     fn default_registry_honors_musu_home_override() {
+        let _env_lock = lock_env();
+        let _env_restore = EnvRestore::capture(&["MUSU_HOME"]);
         let tmp = tempfile::tempdir().expect("tempdir");
         let musu_home = tmp.path().join("custom-musu-home");
         std::env::set_var("MUSU_HOME", &musu_home);
@@ -529,12 +568,12 @@ mod tests {
         reg.register(&sample_record("bridge")).unwrap();
 
         assert!(musu_home.join("services").join("bridge.json").exists());
-
-        std::env::remove_var("MUSU_HOME");
     }
 
     #[test]
     fn helper_urls_use_registry_port_and_public_url_override() {
+        let _env_lock = lock_env();
+        let _env_restore = EnvRestore::capture(&["MUSU_HOME"]);
         let tmp = tempfile::tempdir().expect("tempdir");
         let musu_home = tmp.path().join("custom-musu-home");
         std::env::set_var("MUSU_HOME", &musu_home);
@@ -587,17 +626,24 @@ mod tests {
         );
 
         let mut cfg = cfg;
+        cfg.tls_enabled = true;
+        assert!(
+            advertised_bridge_http_url(&cfg).starts_with("https://"),
+            "TLS bridge should advertise an HTTPS transport when no public URL override is set"
+        );
+
         cfg.public_url = Some("https://fleet.example.test/".to_string());
         assert_eq!(
             advertised_bridge_http_url(&cfg),
             "https://fleet.example.test"
         );
-
-        std::env::remove_var("MUSU_HOME");
     }
 
     #[test]
     fn env_default_helpers_use_bridge_port_and_public_url_override() {
+        let _env_lock = lock_env();
+        let _env_restore =
+            EnvRestore::capture(&["MUSU_HOME", "BRIDGE_PORT", "MUSU_BRIDGE_PUBLIC_URL"]);
         let tmp = tempfile::tempdir().expect("tempdir");
         let musu_home = tmp.path().join("custom-musu-home");
         std::env::set_var("MUSU_HOME", &musu_home);
@@ -612,10 +658,6 @@ mod tests {
             resolve_public_bridge_url(&musu_home),
             "https://fleet.example.test"
         );
-
-        std::env::remove_var("MUSU_BRIDGE_PUBLIC_URL");
-        std::env::remove_var("BRIDGE_PORT");
-        std::env::remove_var("MUSU_HOME");
     }
 
     #[test]

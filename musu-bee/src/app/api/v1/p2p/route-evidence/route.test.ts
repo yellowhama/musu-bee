@@ -145,6 +145,22 @@ test("requires identity proof material when evidence claims peer verification", 
   });
 });
 
+test("keeps HTTPS fingerprint-pinned bridge evidence non release grade until QUIC/TLS transport", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { POST } = await loadModule("non-quic-tls-proof");
+    const res = await POST(postReq({
+      ...hardenedEvidence,
+      peer_identity_method: "tls_cert_fingerprint_pin",
+      encryption: "https_tls_fingerprint_pin",
+    }));
+    assert.equal(res.status, 202);
+
+    const body = (await res.json()) as { release_grade: boolean; blockers: string[] };
+    assert.equal(body.release_grade, false);
+    assert.match(body.blockers.join(","), /transport_not_release_grade_quic_tls/);
+  });
+});
+
 test("rejects missing bearer token", async () => {
   await withRouteEvidenceToken(async () => {
     const { POST } = await loadModule("missing-auth");

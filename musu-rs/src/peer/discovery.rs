@@ -232,6 +232,13 @@ pub fn resolve_all_peers(musu_home: &Path) -> Vec<ResolvedPeer> {
         if let Ok(file) = toml::from_str::<NodesToml>(&text) {
             for (name, entry) in &file.nodes {
                 // Extract host:port from URL (e.g., "http://192.168.1.50:8070" -> "192.168.1.50:8070")
+                let scheme =
+                    reqwest::Url::parse(&entry.url)
+                        .ok()
+                        .and_then(|url| match url.scheme() {
+                            "http" | "https" => Some(url.scheme().to_string()),
+                            _ => None,
+                        });
                 let addr = entry
                     .url
                     .trim_start_matches("http://")
@@ -243,7 +250,12 @@ pub fn resolve_all_peers(musu_home: &Path) -> Vec<ResolvedPeer> {
                         addr,
                         name: Some(name.clone()),
                         source: PeerSource::NodesToml,
-                        meta: None,
+                        meta: scheme.map(|scheme| {
+                            serde_json::json!({
+                                "public_url": entry.url,
+                                "transport_scheme": scheme,
+                            })
+                        }),
                     });
                 }
             }

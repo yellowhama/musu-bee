@@ -230,6 +230,12 @@ pub async fn run() -> Result<()> {
         let cloud = crate::cloud::MusuCloud::new(&cloud_base_url, Some(token.clone()));
         let my_name = cfg.node_name.clone();
         let advertised_public_url = services::advertised_bridge_http_url(&cfg);
+        let advertised_transport_scheme = reqwest::Url::parse(&advertised_public_url)
+            .ok()
+            .and_then(|url| match url.scheme() {
+                "http" | "https" => Some(url.scheme().to_string()),
+                _ => None,
+            });
         let tls_cert_fingerprint =
             match crate::install::tls::ensure_tls_certs(&musu_home, &cfg.node_name)
                 .and_then(|paths| crate::install::tls::cert_sha256_fingerprint(&paths.cert_path))
@@ -281,6 +287,7 @@ pub async fn run() -> Result<()> {
         let my_name_clone = cfg.node_name.clone();
         let registry_url = cloud_base_url.clone();
         let tls_cert_fingerprint_clone = tls_cert_fingerprint.clone();
+        let advertised_transport_scheme_clone = advertised_transport_scheme.clone();
 
         tokio::spawn(async move {
             let _daemon_handle = _mdns_daemon; // keep alive
@@ -310,7 +317,11 @@ pub async fn run() -> Result<()> {
                 let hardware = crate::peer::hardware::gather_hardware_info();
                 let mut meta_obj = serde_json::json!({
                     "hardware": hardware,
+                    "public_url": advertised_public_url,
                 });
+                if let Some(scheme) = advertised_transport_scheme_clone.as_ref() {
+                    meta_obj["transport_scheme"] = serde_json::json!(scheme);
+                }
                 if let Some(ip) = tailscale_ip.as_ref() {
                     meta_obj["tailscale_ip"] = serde_json::json!(ip);
                 }
@@ -346,6 +357,13 @@ pub async fn run() -> Result<()> {
                                     let mut peer_addr = public_url_to_addr(&node.public_url);
                                     let mut node_meta =
                                         node.meta.clone().unwrap_or_else(|| serde_json::json!({}));
+                                    node_meta["public_url"] = serde_json::json!(node.public_url);
+                                    if let Ok(url) = reqwest::Url::parse(&node.public_url) {
+                                        if matches!(url.scheme(), "http" | "https") {
+                                            node_meta["transport_scheme"] =
+                                                serde_json::json!(url.scheme());
+                                        }
+                                    }
                                     if let Some(fingerprint) = node.cert_fingerprint.as_ref() {
                                         node_meta["cert_fingerprint"] =
                                             serde_json::json!(fingerprint);

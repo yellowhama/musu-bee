@@ -93,6 +93,8 @@ pub struct CandidateEndpoint {
     pub kind: RouteKind,
     pub addr: String,
     pub observed_at: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scheme: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

@@ -2,7 +2,7 @@
 
 **Wiki ID**: wiki/524
 **Date**: 2026-05-31
-**Status**: Current implementation spec. Server-side rendezvous and route-evidence APIs exist, Rust bridge runtime route attempts now create short-lived rendezvous sessions, seed sessions from recent node candidate cache, can use returned target candidates before legacy direct forwarding, and exchange advertised TLS certificate fingerprints as peer identity material.
+**Status**: Current implementation spec. Server-side rendezvous and route-evidence APIs exist, Rust bridge runtime route attempts now create short-lived rendezvous sessions, seed sessions from recent node candidate cache, can use returned target candidates before legacy direct forwarding, exchange advertised TLS certificate fingerprints as peer identity material, and verify HTTPS peer certificate fingerprints during bridge forwarding when a target candidate supplies a `sha256:<hex>` fingerprint. This is still not final release-grade transport because the accepted release proof remains QUIC/TLS evidence, not bridge HTTP multipart over TLS.
 
 ## Product Decision
 
@@ -62,6 +62,7 @@ P2P APIs:
     {
       "kind": "lan",
       "addr": "192.168.1.192:8949",
+      "scheme": "https",
       "observed_at": "2026-05-31T09:00:00Z"
     },
     {
@@ -102,8 +103,10 @@ Current rendezvous API behavior:
   storage).
 - Rust candidates now set `public_key` to the local TLS certificate SHA-256
   fingerprint when `~/.musu/tls/cert.pem` or `MUSU_TLS_CERT` is available.
-  This is identity material only; it is not considered verified until the route
-  transport proves the remote peer owns that key.
+  Candidate endpoints also preserve their advertised `scheme` (`http` or
+  `https`). Advertised identity material alone is not considered verified; an
+  HTTPS bridge forward is marked verified only after the TLS server leaf
+  certificate hash matches the advertised fingerprint during the actual POST.
 - New sessions are seeded from that recent node candidate cache before they are
   returned, so a target that previously published LAN/Tailscale/direct
   candidates can influence the next route attempt without waiting for payload
@@ -129,23 +132,33 @@ Current rendezvous API behavior:
   `MUSU_P2P_RENDEZVOUS_CLIENT_TIMEOUT_MS` (`3000` default, clamped
   `250..10000`) and fall back to the selected direct peer path on timeout or
   cloud failure.
-- The current implementation is still not release-grade routing: the payload
-  transport remains legacy HTTP bearer, target-side candidate publish is
-  best-effort, advertised peer identity material is not verified by the
-  transport, QUIC/TLS proof is not wired, and relay/tunnel fallback remains
+- The current implementation is still not release-grade routing: legacy HTTP
+  bearer remains the default/debug transport, target-side candidate publish is
+  best-effort, HTTPS fingerprint pinning is only a bridge HTTP-over-TLS proof,
+  QUIC/TLS release proof is not wired, and relay/tunnel fallback remains
   pending.
 
 Current route-evidence identity fields:
 
-- `peer_identity_verified`: still `false` for legacy HTTP bearer forwarding.
+- `peer_identity_verified`: `false` for legacy HTTP bearer forwarding; `true`
+  only for a successful HTTPS bridge forward whose server certificate
+  fingerprint matched the advertised `sha256:<hex>` value.
 - `peer_identity_method`: optional; currently records
   `advertised_tls_cert_fingerprint_unverified` when a target candidate supplied
-  a TLS certificate fingerprint.
+  a TLS certificate fingerprint, or `tls_cert_fingerprint_pin` when the actual
+  HTTPS connection matched that fingerprint.
 - `peer_public_key`: optional; currently the advertised certificate fingerprint
   such as `sha256:<hex>`.
+- `encryption`: `none_http_bearer` for legacy/debug forwarding,
+  `https_tls_fingerprint_pin` for HTTPS bridge forwarding with a matching
+  pinned certificate, and `quic_tls_1_3` only for the future release-grade route
+  proof.
 - `musu.pro` rejects release-grade claims where
   `peer_identity_verified=true` but identity method or public key proof is
   missing.
+- `musu.pro` also keeps `https_tls_fingerprint_pin` evidence non-release-grade
+  via `transport_not_release_grade_quic_tls`; accepted release-grade transport
+  still requires `encryption=quic_tls_1_3`.
 
 ## Client Path Selection Rules
 
@@ -197,6 +210,8 @@ Current `POST /api/v1/p2p/route-evidence` behavior:
   `evidence_id`, `release_grade`, and `blockers`.
 - Accepts legacy/debug evidence for observability but marks it non-release-grade
   when identity, encryption, timing, result, or relay-transit truth is weak.
+- Keeps HTTPS fingerprint-pinned bridge evidence observable but
+  non-release-grade until the route records `encryption=quic_tls_1_3`.
 - Hosted storage uses Vercel KV/Upstash Redis (`KV_REST_API_URL` and
   `KV_REST_API_TOKEN`) as a capped list. Local/dev can use
   `MUSU_ROUTE_EVIDENCE_STORE_PATH`.
@@ -241,7 +256,7 @@ Current `GET /api/v1/p2p/route-evidence` behavior:
    rendezvous sessions, publish source/target candidate sets on a best-effort
    path, cache recent node candidates, seed new sessions from that cache, and
    use refreshed target candidates when present. Account-scoped evidence
-   ownership, UI/export, retention policy, and release-grade identity proof
+   ownership, UI/export, retention policy, and release-grade QUIC/TLS proof
    remain pending.
 4. Add `musu relay status` and `musu route --explain`.
    **Initial diagnostic CLI done on 2026-06-01.** `musu relay status` reports
@@ -262,8 +277,11 @@ Current `GET /api/v1/p2p/route-evidence` behavior:
    from the actual forwarding attempt. Runtime forwarding now best-effort
    submits that evidence to `musu.pro` after the local write when an account
    token exists. Runtime route evidence now carries the rendezvous `session_id`
-   when one was created. Release-grade identity/encryption proof remains
-   pending.
+   when one was created. HTTPS target candidates with advertised SHA-256
+   certificate fingerprints can now be verified during bridge forwarding and
+   recorded as `peer_identity_method=tls_cert_fingerprint_pin` with
+   `encryption=https_tls_fingerprint_pin`; release-grade QUIC/TLS evidence
+   remains pending.
 5. Add direct path selection against registered LAN/Tailscale endpoints.
    **Initial client-side selector done on 2026-06-01.** `musu-rs/src/bridge/router.rs`
    now classifies candidate addresses as `local`, `lan`, `tailscale`, or

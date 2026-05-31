@@ -9,6 +9,7 @@ export type P2pCandidateEndpoint = {
   kind: P2pRouteKind;
   addr: string;
   observed_at: string;
+  scheme?: "http" | "https" | null;
 };
 
 export type P2pNodeCandidateSet = {
