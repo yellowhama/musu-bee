@@ -6,13 +6,14 @@
 
 ## Why This Exists
 
-The current product is not blocked only by Microsoft Store evidence. Three
+The current product is not blocked only by Microsoft Store evidence. Four
 runtime-product issues must be treated as release blockers before public desktop
 launch:
 
 1. idle busy-loop / unexpected CPU while MUSU is open
 2. missing `musu.pro` assisted P2P rendezvous and relay-control path
 3. insufficient desktop hardening for long-running user machines
+4. Store/MSIX packaging currently activating the runtime CLI instead of the Tauri desktop shell
 
 This plan defines how the work will be executed and how each item becomes
 evidence-backed instead of opinion-backed.
@@ -79,12 +80,24 @@ Already applied:
   `docs\evidence\runtime-idle-cpu-diagnostic\1.15.0-rc.1\20260531-211608-HUGH_SECOND.desktop-open-attempt.evidence.json`
   fails as intended because `-RequireOwnedWebView2` found zero MUSU-owned
   WebView2 processes after MSIX app activation.
+- MSIX desktop-entrypoint audit evidence
+  `docs\evidence\msix-desktop-entrypoint\1.15.0-rc.1\20260531-214327-HUGH_SECOND.store-msix-runtime-only.evidence.json`
+  identifies the root cause: the current MSIX `<Application Executable>` is
+  `musu.exe`, `musu-desktop.exe` is absent from both the artifact and installed
+  package, and the package description is still runtime-only.
+- `scripts\windows\audit-msix-desktop-entrypoint.ps1` now writes
+  `musu.msix_desktop_entrypoint_audit.v1`; release go/no-go reports
+  `msix_desktop_entrypoint_verified`, and Store bundle verification rejects
+  runtime-only MSIX artifacts.
 
 Next implementation:
 
-- fix packaged desktop activation/ownership so the desktop shell produces at
-  least one MUSU-owned WebView2 process, then run real 60s `desktop-open`
-  samples with `-RequireOwnedWebView2` on both PCs
+- fix packaged desktop activation/ownership by building a real desktop MSIX
+  where Start-menu activation launches `musu-desktop.exe`, while `musu.exe`
+  remains the CLI alias and `musu-startup.exe` remains the startup task
+- after `audit-msix-desktop-entrypoint.ps1 -RequireInstalledPackage -Json`
+  passes, run real 60s `desktop-open` samples with `-RequireOwnedWebView2` on
+  both PCs
 - extend startup-repeat coverage from repeated `musu up` to desktop Start
   Runtime clicks and Store StartupTask/manual-launch collisions
 - fix the exact hot loop shown by those samples
@@ -139,6 +152,7 @@ Execution order:
 
 Release gates that must remain false until evidence exists:
 
+- `msix_desktop_entrypoint_verified`
 - `runtime_idle_cpu_verified`
 - `process_ownership_verified`
 - `startup_single_instance_verified`

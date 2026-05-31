@@ -8,7 +8,7 @@ MUSU is not public Store-release ready yet.
 
 Current verified state:
 
-- local release artifacts are ready
+- local runtime artifacts install, but the public Store desktop MSIX is not ready
 - public `/privacy` and `/support` metadata are reachable
 - current single-machine evidence is recorded and verified
 - final operator gate packet exists and verifies cleanly
@@ -16,7 +16,7 @@ Current verified state:
 
 Remaining release blockers:
 
-1. clean/current second-PC MSIX install evidence
+1. Store/MSIX desktop entrypoint evidence: current MSIX launches `musu.exe` and omits `musu-desktop.exe`
 2. real second-PC multi-device routing evidence
 3. real `musu@musu.pro` inbox delivery evidence
 4. Partner Center product-name reservation, app submission, Microsoft certification, and restricted capability approval evidence
@@ -41,9 +41,10 @@ Current official Microsoft docs still support the core release decision:
 
 MUSU-specific path:
 
-1. Submit the current Store-reviewed MSIX first.
+1. Do not submit the current Store-reviewed MSIX as the public desktop app; it is runtime-only.
 2. Keep Tauri MSI/NSIS as fallback and diagnostic artifacts, not the primary Store path.
-3. Keep public release readiness false until second-PC install/routing, support mailbox, and Store approval evidence are recorded.
+3. Rebuild the MSIX so the Start-menu application launches `musu-desktop.exe`, while `musu.exe` remains the CLI alias and `musu-startup.exe` remains the startup task.
+4. Keep public release readiness false until desktop-entrypoint, second-PC routing, support mailbox, and Store approval evidence are recorded.
 
 ## Exact Operator Sequence
 
@@ -57,7 +58,7 @@ Expected now:
 
 - `ready_for_public_desktop_release=false`
 - packet verified
-- blockers are `msix-install`, `multi-device`, `support-mailbox`, and `store-release`
+- blockers include `msix-desktop-entrypoint`, `runtime-idle-cpu`, `multi-device`, `support-mailbox`, and `store-release`
 
 ### 2. Prepare The Second-PC Kit
 
@@ -158,13 +159,34 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-suppo
 
 DNS MX alone is not enough; this gate requires inbox delivery proof.
 
-### 6. Submit In Partner Center
+### 6. Fix And Verify Store MSIX
+
+Before Partner Center upload, rebuild the Store/MSIX package so it contains the Tauri desktop shell and launches it from the Start menu. Then run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-msix-desktop-entrypoint.ps1 `
+  -StartupContract store-reviewed-immediate-registration `
+  -ExpectedApplicationExecutable musu-desktop.exe `
+  -RequireInstalledPackage `
+  -Json
+```
+
+Expected:
+
+- `msix_desktop_entrypoint_verified=true` in go/no-go
+- Store-reviewed MSIX contains `musu-desktop.exe`
+- `musu.exe` remains the CLI alias
+- `musu-startup.exe` remains the startup task
+
+### 7. Submit In Partner Center
 
 Before uploading, verify the current Store submission bundle:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-store-submission-bundle.ps1
 ```
+
+If this verifier fails on `MSIX desktop entrypoint`, do not upload the package.
 
 In Partner Center:
 
@@ -189,9 +211,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-store
   -Json
 ```
 
-### 7. Final Go/No-Go
+### 8. Final Go/No-Go
 
-When all four evidence files exist:
+When the desktop-entrypoint audit and all remaining external evidence files exist:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-final-operator-gates.ps1 `

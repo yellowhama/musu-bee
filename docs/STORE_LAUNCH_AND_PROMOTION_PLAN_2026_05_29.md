@@ -16,11 +16,12 @@ Partner Center account approval is no longer the blocking item.
 That does **not** mean the app itself is approved. The remaining gates are now:
 
 1. reserve the product name
-2. regenerate a current Store-reviewed package for `1.15.0-rc.1`
-3. re-run the Store/MSIX verification scripts
-4. create the Partner Center app submission
-5. submit the restricted-capability auto-start justification
-6. wait for Microsoft app certification / capability review
+2. rebuild the Store-reviewed package so MSIX activation launches `musu-desktop.exe`
+3. regenerate a current Store-reviewed package for `1.15.0-rc.1`
+4. re-run the Store/MSIX verification scripts, including desktop-entrypoint audit
+5. create the Partner Center app submission
+6. submit the restricted-capability auto-start justification
+7. wait for Microsoft app certification / capability review
 
 2026-05-29 packaging update:
 
@@ -29,8 +30,16 @@ That does **not** mean the app itself is approved. The remaining gates are now:
 - `musu_1.15.0.0_x64_store-reviewed-immediate-registration.msix` regenerated and verified.
 - Store-reviewed manifest has `ImmediateRegistration=true` and the restricted startup custom capability.
 - current submission bundle: `.local-build\msix\submission-bundles\store-reviewed-20260529-033609`
-- desktop release audit: runtime package ready, basic Tauri launcher/status shell ready, multi-device second-PC execution pending
+- desktop release audit: basic Tauri launcher/status shell ready, but runtime package readiness is now false for public Store submission because the MSIX desktop entrypoint is runtime-only
 - still pending: Partner Center app submission, Microsoft certification, and restricted capability approval.
+
+2026-05-31 packaging correction:
+
+- The current MSIX artifacts are runtime-only packages.
+- `audit-msix-desktop-entrypoint.ps1` shows `<Application Executable="musu.exe">`, no `musu-desktop.exe` in the artifact, and description `MUSU packaged CLI and bridge runtime`.
+- `verify-store-submission-bundle.ps1` now rejects the current Store bundle for this reason.
+- Do not submit the current Store-reviewed MSIX as the public MUSU Desktop app.
+- The next package must make `musu-desktop.exe` the MSIX application executable, while keeping `musu.exe` as the CLI alias and `musu-startup.exe` as the startup task.
 
 Critical correction:
 
@@ -38,7 +47,7 @@ Critical correction:
 - It contains `musu_1.13.0.0_x64_store-reviewed-immediate-registration.msix`.
 - The current beta target is `1.15.0-rc.1`.
 - Therefore the 1.13 package must not be submitted as the current Store candidate.
-- The current Tauri shell is a basic runtime launcher/status surface, not the full dashboard GUI. Store submission should still lead with the verified Rust packaged runtime path unless the listing explicitly positions the Tauri shell as a launcher.
+- The current Tauri shell is a basic runtime launcher/status surface, not the full dashboard GUI. Store submission must package that shell as the desktop entrypoint if the product is listed as MUSU Desktop.
 
 ## Packaging Decision
 
@@ -73,9 +82,10 @@ Fallback constraints:
    - Do not use names from other internal products.
 
 2. Regenerate the Store-reviewed artifact for `1.15.0-rc.1`.
-   - Rebuild package.
+   - Rebuild package with `musu-desktop.exe` as the MSIX application executable.
    - Regenerate submission bundle.
    - Verify manifest still has the restricted startup capability and `ImmediateRegistration=true`.
+   - Verify `musu.exe` remains the CLI alias and `musu-startup.exe` remains the startup task.
    - Use `run-msix-workflow.ps1 -Configuration release`; this now forwards the configuration into `verify-msix-package.ps1` so release packages are verified with release `musu-startup.exe`.
 
 3. Re-run proof commands.
@@ -86,6 +96,11 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\audit-msix-startup-cont
 powershell -ExecutionPolicy Bypass -File scripts\windows\verify-msix-package.ps1 `
   -StartupContract store-reviewed-immediate-registration `
   -SkipSmoke
+
+powershell -ExecutionPolicy Bypass -File scripts\windows\audit-msix-desktop-entrypoint.ps1 `
+  -StartupContract store-reviewed-immediate-registration `
+  -ExpectedApplicationExecutable musu-desktop.exe `
+  -RequireInstalledPackage
 ```
 
 4. Create the Store submission.

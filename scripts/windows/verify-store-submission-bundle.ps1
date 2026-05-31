@@ -119,6 +119,26 @@ try {
         $verifyScript = Join-Path $scriptDir "verify-msix-package.ps1"
         $verifyOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File $verifyScript -PackagePath $msixFile.FullName -StartupContract store-reviewed-immediate-registration -SkipSmoke 2>&1
         Add-CheckFromCondition "verify-msix-package" ($LASTEXITCODE -eq 0) "verify-msix-package.ps1 passed" "verify-msix-package.ps1 failed: $($verifyOutput | Out-String)"
+
+        $desktopEntrypointScript = Join-Path $scriptDir "audit-msix-desktop-entrypoint.ps1"
+        if (Test-Path -LiteralPath $desktopEntrypointScript) {
+            $entrypointOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File $desktopEntrypointScript -PackagePath $msixFile.FullName -StartupContract store-reviewed-immediate-registration -Json 2>&1
+            if ($LASTEXITCODE -eq 0) {
+                try {
+                    $entrypointAudit = ($entrypointOutput | Out-String).Trim() | ConvertFrom-Json
+                    Add-CheckFromCondition "MSIX desktop entrypoint" ([bool]$entrypointAudit.ok) "MSIX application entrypoint launches $($entrypointAudit.expected_application_executable)" "MSIX desktop entrypoint audit failed: $(@($entrypointAudit.checks | Where-Object { $_.status -eq "fail" } | Select-Object -First 3 | ForEach-Object { $_.message }) -join '; ')"
+                }
+                catch {
+                    Add-Check "MSIX desktop entrypoint" "fail" "audit-msix-desktop-entrypoint.ps1 did not return parseable JSON: $($_.Exception.Message)"
+                }
+            }
+            else {
+                Add-Check "MSIX desktop entrypoint" "fail" "audit-msix-desktop-entrypoint.ps1 failed: $($entrypointOutput | Out-String)"
+            }
+        }
+        else {
+            Add-Check "MSIX desktop entrypoint" "fail" "audit-msix-desktop-entrypoint.ps1 is missing"
+        }
     }
 
     $notes = ""

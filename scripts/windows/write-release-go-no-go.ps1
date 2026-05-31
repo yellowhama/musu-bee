@@ -365,11 +365,17 @@ $metadataScript = Join-Path $scriptDir "verify-store-public-metadata.ps1"
 $manifestScript = Join-Path $scriptDir "write-release-candidate-manifest.ps1"
 $supportMailboxVerifierScript = Join-Path $scriptDir "verify-support-mailbox-evidence.ps1"
 $msixInstallVerifierScript = Join-Path $scriptDir "verify-msix-install-evidence.ps1"
+$msixDesktopEntrypointAuditScript = Join-Path $scriptDir "audit-msix-desktop-entrypoint.ps1"
 $storeReleaseVerifierScript = Join-Path $scriptDir "verify-store-release-evidence.ps1"
 $manifestPath = Join-Path $repoRoot ".local-build\release-candidates\$version\release-candidate-manifest.json"
 
 $auditResult = Invoke-JsonScript -FilePath $auditScript -Arguments @("-Json")
 $audit = $auditResult.json
+$msixDesktopEntrypointAuditResult = Invoke-JsonScript `
+    -FilePath $msixDesktopEntrypointAuditScript `
+    -Arguments @("-StartupContract", "store-reviewed-immediate-registration", "-ExpectedApplicationExecutable", "musu-desktop.exe", "-RequireInstalledPackage", "-Json") `
+    -AllowFailure
+$msixDesktopEntrypointVerified = ($msixDesktopEntrypointAuditResult.json -and [bool]$msixDesktopEntrypointAuditResult.json.ok)
 
 & powershell -NoProfile -ExecutionPolicy Bypass -File $manifestScript | Out-Null
 if ($LASTEXITCODE -ne 0) {
@@ -662,6 +668,9 @@ $warnings = New-Object System.Collections.Generic.List[object]
 if (-not [bool]$audit.runtime_package_ready) {
     Add-Blocker -List $blockers -Area "runtime-package" -Message "Runtime package readiness is false."
 }
+if (-not $msixDesktopEntrypointVerified) {
+    Add-Blocker -List $blockers -Area "msix-desktop-entrypoint" -Message "Store/MSIX package does not yet prove that Start-menu activation launches the Tauri desktop shell instead of the runtime CLI."
+}
 if (-not [bool]$audit.desktop_shell_ready) {
     Add-Blocker -List $blockers -Area "desktop-shell" -Message "Desktop shell readiness is false."
 }
@@ -712,6 +721,7 @@ $manualExternalGates = @(
 )
 
 $manualInternalGates = @(
+    "MSIX desktop entrypoint audit for Store package activation",
     "Runtime idle CPU verification on primary Windows PC",
     "Runtime idle CPU verification on second Windows PC",
     "Process ownership audit on primary Windows PC",
@@ -734,6 +744,8 @@ $result = [pscustomobject]@{
     public_metadata_ok = if ($SkipPublicMetadata) { $null } elseif ($publicMetadataResult.json) { [bool]$publicMetadataResult.json.ok } else { $false }
     msix_install_verified = [bool]$msixInstallVerified
     msix_install_evidence = $msixInstallEvidence
+    msix_desktop_entrypoint_verified = [bool]$msixDesktopEntrypointVerified
+    msix_desktop_entrypoint_audit = if ($msixDesktopEntrypointAuditResult.json) { $msixDesktopEntrypointAuditResult.json } else { [pscustomobject]@{ ok = $false; raw = $msixDesktopEntrypointAuditResult.raw } }
     runtime_idle_cpu_verified = [bool]$runtimeIdleCpuVerified
     required_runtime_idle_cpu_scenario = $RequiredRuntimeIdleCpuScenario
     runtime_idle_cpu_evidence = $runtimeIdleCpuEvidence
@@ -764,6 +776,7 @@ else {
     "local_artifacts_ready: $($result.local_artifacts_ready)"
     "single_machine_verified: $($result.single_machine_verified)"
     "msix_install_verified: $($result.msix_install_verified)"
+    "msix_desktop_entrypoint_verified: $($result.msix_desktop_entrypoint_verified)"
     "runtime_idle_cpu_verified: $($result.runtime_idle_cpu_verified)"
     "process_ownership_verified: $($result.process_ownership_verified)"
     "startup_single_instance_verified: $($result.startup_single_instance_verified)"

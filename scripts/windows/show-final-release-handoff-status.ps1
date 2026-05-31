@@ -173,6 +173,16 @@ $msixInstallRoots = @(
         filter = "*.evidence.json"
     }
 )
+$msixDesktopEntrypointRoots = @(
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ("docs\evidence\msix-desktop-entrypoint\{0}" -f $version))
+        filter = "*.json"
+    },
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ".local-build\msix-desktop-entrypoint")
+        filter = "*.json"
+    }
+)
 $runtimeIdleCpuRoots = @(
     [pscustomobject]@{
         path = (Join-Path $repoRoot ("docs\evidence\runtime-idle-cpu\{0}" -f $version))
@@ -220,7 +230,8 @@ $commands = [pscustomobject]@{
     verify_packet = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-final-operator-gate-packet.ps1 -PacketPath .local-build\final-operator-gates\musu-final-operator-gates-$safeVersion-latest.zip -Json"
     prepare_action_pack = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\prepare-operator-action-pack.ps1 -Json"
     verify_action_pack = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-operator-action-pack.ps1 -PackPath .local-build\operator-action-pack\MUSU-$safeVersion-operator-action-pack-latest.zip -Json"
-    measure_runtime_idle_cpu = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -MaxOneCorePercent 5 -IncludeNode -IncludeWebView2 -FailOnHot -Json"
+    audit_msix_desktop_entrypoint = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-msix-desktop-entrypoint.ps1 -StartupContract store-reviewed-immediate-registration -ExpectedApplicationExecutable musu-desktop.exe -RequireInstalledPackage -Json"
+    measure_runtime_idle_cpu = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -Scenario desktop-open -RequireOwnedWebView2 -MaxOneCorePercent 5 -MaxOwnedProcessCount 16 -MaxOwnedWebView2ProcessCount 8 -MaxTotalWorkingSetMb 1024 -IncludeNode -IncludeWebView2 -FailOnHot -Json"
     audit_process_ownership = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-process-ownership.ps1 -FailOnProblem -Json"
     audit_startup_single_instance = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-startup-single-instance.ps1 -RepeatCount 3 -FailOnProblem -Json"
     final_completion = @"
@@ -280,6 +291,13 @@ if (-not [bool]$goNoGo.msix_install_verified) {
         -Gate "msix-install" `
         -Summary "Run the second-PC kit, return `.local-build\second-pc-return\*.zip`, import it, and record the MSIX install evidence." `
         -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\import-second-pc-return.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP> -RecordMsixInstall -Json"
+}
+if (-not [bool]$goNoGo.msix_desktop_entrypoint_verified) {
+    Add-OperatorStep `
+        -List $operatorSteps `
+        -Gate "msix-desktop-entrypoint" `
+        -Summary "Fix or rebuild the Store/MSIX package so Start-menu activation launches the Tauri desktop shell instead of only the runtime CLI." `
+        -Command $commands.audit_msix_desktop_entrypoint
 }
 if (-not [bool]$goNoGo.multi_device_verified) {
     Add-OperatorStep `
@@ -346,6 +364,7 @@ $result = [pscustomobject]@{
         local_artifacts_ready = [bool]$goNoGo.local_artifacts_ready
         single_machine_verified = [bool]$goNoGo.single_machine_verified
         msix_install_verified = [bool]$goNoGo.msix_install_verified
+        msix_desktop_entrypoint_verified = [bool]$goNoGo.msix_desktop_entrypoint_verified
         runtime_idle_cpu_verified = [bool]$goNoGo.runtime_idle_cpu_verified
         process_ownership_verified = [bool]$goNoGo.process_ownership_verified
         startup_single_instance_verified = [bool]$goNoGo.startup_single_instance_verified
@@ -359,6 +378,7 @@ $result = [pscustomobject]@{
     warnings = $goNoGo.warnings
     evidence_roots = [pscustomobject]@{
         msix_install = Get-EvidenceRootStatus -Roots $msixInstallRoots
+        msix_desktop_entrypoint = Get-EvidenceRootStatus -Roots $msixDesktopEntrypointRoots
         runtime_idle_cpu = Get-EvidenceRootStatus -Roots $runtimeIdleCpuRoots
         process_ownership = Get-EvidenceRootStatus -Roots $processOwnershipRoots
         startup_single_instance = Get-EvidenceRootStatus -Roots $startupSingleInstanceRoots

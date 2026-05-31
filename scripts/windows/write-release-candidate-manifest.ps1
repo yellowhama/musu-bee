@@ -207,6 +207,7 @@ Set-TextFileAtomic -Path $sumsPath -Content $sumLines -Encoding "ASCII"
     version = $version
     artifact_count = $artifacts.Count
     runtime_package_ready = [bool]$audit.runtime_package_ready
+    msix_desktop_entrypoint_ready = [bool]$audit.msix_desktop_entrypoint_ready
     desktop_shell_ready = [bool]$audit.desktop_shell_ready
     single_machine_verified = [bool]$audit.single_machine_verified
     multi_device_verified = [bool]$audit.multi_device_verified

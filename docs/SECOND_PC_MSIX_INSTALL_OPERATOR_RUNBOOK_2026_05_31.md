@@ -2,7 +2,7 @@
 
 **Date**: 2026-05-31  
 **Release**: `1.15.0-rc.1`  
-**Purpose**: record real Windows second-PC MSIX install evidence for MUSU. This closes only the MSIX install evidence gate. It does not by itself close the real multi-device route gate, support mailbox gate, or Microsoft Store approval gate.
+**Purpose**: record real Windows second-PC MSIX install evidence for MUSU. This closes only the MSIX install evidence gate. It does not by itself close the MSIX desktop-entrypoint gate, real multi-device route gate, support mailbox gate, or Microsoft Store approval gate. As of 2026-05-31, the current MSIX is runtime-only and must be rebuilt before public Store submission.
 
 ## Current Files
 

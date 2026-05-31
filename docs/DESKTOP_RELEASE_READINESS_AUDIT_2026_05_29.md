@@ -149,11 +149,15 @@ Acceptable paths:
 
 Path 1 is still the least risky for the current Partner Center submission. Path 2 is now viable as a basic desktop entry surface. Path 3 remains product work, not a certification checkbox.
 
+2026-05-31 addendum:
+
+Path 1 is no longer acceptable as the public **MUSU Desktop** Store submission unless the product promise is explicitly reduced to a packaged runtime/CLI utility. The current Store-reviewed MSIX launches `musu.exe`, does not contain `musu-desktop.exe`, and describes itself as `MUSU packaged CLI and bridge runtime`. See `MSIX_DESKTOP_ENTRYPOINT_AUDIT_2026_05_31.md` (wiki/526). Public desktop release readiness now requires `msix_desktop_entrypoint_verified=true`.
+
 ## Current Release Language
 
 Allowed:
 
-> MUSU 1.15.0-rc.1 is single-machine Windows beta ready. The Store-reviewed MSIX runtime package is regenerated and ready for submission attempt.
+> MUSU 1.15.0-rc.1 is single-machine Windows beta ready. The current MSIX runtime package installs and verifies, but it is not the public desktop app package until it launches `musu-desktop.exe`.
 
 Allowed:
 
@@ -172,6 +176,7 @@ Not allowed yet:
 P0:
 
 - Run the user's second-PC smoke using `scripts\windows\smoke-multidevice-beta.ps1`.
+- Rebuild the Store/MSIX package so Start-menu activation launches `musu-desktop.exe`, then pass `scripts\windows\audit-msix-desktop-entrypoint.ps1 -RequireInstalledPackage -Json`.
 - Capture and record second-PC MSIX install evidence with `scripts\windows\capture-msix-install-evidence.ps1` and `scripts\windows\record-msix-install-evidence.ps1`.
 - Validate the returned JSON with `scripts\windows\verify-multidevice-evidence.ps1`.
 - Verify `musu@musu.pro` delivery and record it with `scripts\windows\record-support-mailbox-verification.ps1`.
@@ -179,7 +184,7 @@ P0:
 - Verify the packet before handoff with `scripts\windows\verify-final-operator-gate-packet.ps1`.
 - Use `scripts\windows\show-final-release-handoff-status.ps1` before handoff and after each returned evidence file to confirm the current remaining blockers.
 - After external evidence is available, run `scripts\windows\complete-final-operator-gates.ps1` to record MSIX install, multi-device, support mailbox, and Store release evidence, regenerate the manifest, and run final go/no-go in one step.
-- Submit the Store-reviewed MSIX bundle and record Microsoft certification/restricted-capability result with `scripts\windows\record-store-release-verification.ps1`.
+- Submit the Store-reviewed MSIX bundle only after `verify-store-submission-bundle.ps1` passes the desktop-entrypoint audit, then record Microsoft certification/restricted-capability result with `scripts\windows\record-store-release-verification.ps1`.
 
 P1:
 

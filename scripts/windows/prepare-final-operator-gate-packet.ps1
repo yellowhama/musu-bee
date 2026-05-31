@@ -82,6 +82,7 @@ $docsToCopy = @(
     "docs\RELEASE_1_15_0_RC1_RUNTIME_HARDENING_RELAY_ROADMAP_2026_05_31.md",
     "docs\MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md",
     "docs\MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md",
+    "docs\MSIX_DESKTOP_ENTRYPOINT_AUDIT_2026_05_31.md",
     "docs\MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md",
     "docs\RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md",
     "docs\STORE_SUBMISSION_METADATA_2026_05_29.md"
@@ -106,6 +107,7 @@ $scriptsToCopy = @(
     "record-store-release-verification.ps1",
     "verify-store-release-evidence.ps1",
     "verify-store-submission-bundle.ps1",
+    "audit-msix-desktop-entrypoint.ps1",
     "measure-musu-idle-cpu.ps1",
     "audit-musu-process-ownership.ps1",
     "audit-musu-startup-single-instance.ps1",
@@ -140,8 +142,8 @@ Important execution boundary:
 
 Current machine-verifiable state before these gates:
 
-- local artifacts: ready
-- desktop shell audit: ready
+- local artifacts: gated by the MSIX desktop entrypoint audit
+- desktop shell build audit: ready, but Store/MSIX activation must launch the desktop shell
 - single-machine smoke evidence: recorded
 - public Store metadata: live and passing
 
@@ -151,6 +153,7 @@ For the shortest Store/submission sequence, review:
 - `docs\RELEASE_1_15_0_RC1_RUNTIME_HARDENING_RELAY_ROADMAP_2026_05_31.md`
 - `docs\MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md`
 - `docs\MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md`
+- `docs\MSIX_DESKTOP_ENTRYPOINT_AUDIT_2026_05_31.md`
 - `docs\RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md`
 - `docs\MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md`
 - `docs\RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md`
@@ -182,13 +185,14 @@ copying evidence into the canonical release roots.
 
 Remaining blockers:
 
-1. clean/current MSIX install evidence from the second Windows PC
-2. real second-PC multi-device evidence
-3. runtime idle CPU evidence from the primary and second Windows PC
-4. process ownership evidence from a live MUSU runtime
-5. startup single-instance evidence from repeated `musu up` calls
-6. real __SUPPORT_EMAIL__ inbox delivery evidence
-7. Partner Center product name reservation, app submission, Microsoft certification, and restricted startup capability approval evidence
+1. Store/MSIX desktop entrypoint proof: Start-menu activation must launch `musu-desktop.exe`, not only the runtime CLI
+2. clean/current MSIX install evidence from the second Windows PC
+3. real second-PC multi-device evidence
+4. runtime idle CPU evidence from the primary and second Windows PC
+5. process ownership evidence from a live MUSU runtime
+6. startup single-instance evidence from repeated `musu up` calls
+7. real __SUPPORT_EMAIL__ inbox delivery evidence
+8. Partner Center product name reservation, app submission, Microsoft certification, and restricted startup capability approval evidence
 
 The multi-device kit includes `collect-second-pc-handoff.ps1`; run it on the
 second PC after install to generate `.local-build\second-pc-handoff\*.handoff.json`
@@ -318,6 +322,13 @@ release repo root:
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-store-submission-bundle.ps1
 ```
 
+That verifier includes the MSIX desktop entrypoint audit. If you need to run the
+entrypoint audit directly against the installed Store/MSIX package, use:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-msix-desktop-entrypoint.ps1 -StartupContract store-reviewed-immediate-registration -RequireInstalledPackage -Json
+```
+
 If you need to record Store approval separately before the final command, run
 this from the real MUSU release repo root:
 
@@ -416,6 +427,7 @@ The release can proceed only when:
 - `local_artifacts_ready=true`
 - `single_machine_verified=true`
 - `msix_install_verified=true`
+- `msix_desktop_entrypoint_verified=true`
 - `runtime_idle_cpu_verified=true`
 - `process_ownership_verified=true`
 - `startup_single_instance_verified=true`

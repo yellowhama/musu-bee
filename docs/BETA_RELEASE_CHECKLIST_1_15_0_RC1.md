@@ -136,6 +136,7 @@ Multi-device packet:
 Runtime hardening:
 
 - idle CPU measurement: `scripts\windows\measure-musu-idle-cpu.ps1`
+- MSIX desktop entrypoint audit: `scripts\windows\audit-msix-desktop-entrypoint.ps1`
 - process ownership audit: `scripts\windows\audit-musu-process-ownership.ps1`
 - startup single-instance audit: `scripts\windows\audit-musu-startup-single-instance.ps1`
 - public beta target: MUSU packaged desktop open and idle, at least one MUSU runtime process sampled, at least one MUSU-owned WebView2 process attributed, no MUSU/Node.js/WebView2 process above 5% of one logical CPU for a 60s idle sample, owned process count <= 16, owned WebView2 count <= 8, total owned working set <= 1024MB
@@ -144,8 +145,8 @@ Runtime hardening:
 - default mDNS: off unless `MUSU_ENABLE_MDNS=1`
 - default clipboard polling: off unless `MUSU_ENABLE_CLIPBOARD_SYNC=1`
 - runtime hardening and relay-control roadmap: `docs/RELEASE_1_15_0_RC1_RUNTIME_HARDENING_RELAY_ROADMAP_2026_05_31.md`
-- go/no-go preflight now reports `runtime_idle_cpu_verified`, `process_ownership_verified`, and `startup_single_instance_verified`
-- current state: bridge-only 60s diagnostic evidence passes on `HUGH_SECOND`, but desktop-open evidence still fails because no MUSU-owned WebView2 process is attributed after MSIX app activation; local process ownership and repeated startup evidence pass
+- go/no-go preflight now reports `msix_desktop_entrypoint_verified`, `runtime_idle_cpu_verified`, `process_ownership_verified`, and `startup_single_instance_verified`
+- current state: bridge-only 60s diagnostic evidence passes on `HUGH_SECOND`, but desktop-open evidence still fails because the installed Store/MSIX package launches `musu.exe`, does not contain `musu-desktop.exe`, and therefore creates no MUSU-owned WebView2 process; local process ownership and repeated startup evidence pass
 
 Store metadata:
 
@@ -157,6 +158,7 @@ Store metadata:
 - Store release evidence verifier: `scripts\windows\verify-store-release-evidence.ps1`
 - Store release evidence recorder: `scripts\windows\record-store-release-verification.ps1`
 - Store submission bundle verifier: `scripts\windows\verify-store-submission-bundle.ps1`
+- MSIX desktop entrypoint verifier: `scripts\windows\audit-msix-desktop-entrypoint.ps1`; current Store-reviewed bundle fails this check because it is runtime-only
 - support mailbox DNS: `musu.pro` MX resolves to `smtp.google.com`; actual delivery still requires operator evidence
 - support mailbox evidence must match the current release version and include an explicit `musu-...` verification token; Store release evidence must include an explicit Partner Center product-name reservation timestamp
 - release go/no-go preflight: `scripts\windows\write-release-go-no-go.ps1`
@@ -186,7 +188,8 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.
 
 Latest result:
 
-- `runtime_package_ready=True`
+- `runtime_package_ready=False`
+- `msix_desktop_entrypoint_ready=False`
 - `desktop_shell_ready=True`
 - `single_machine_verified=True`
 - `multi_device_verified=False`

@@ -234,6 +234,47 @@ else {
     Add-Check "runtime-package" "Store-reviewed MSIX" "fail" "Current Store-reviewed MSIX is missing."
 }
 
+$msixEntrypointAuditScript = Join-Path $scriptDir "audit-msix-desktop-entrypoint.ps1"
+if (Test-Path -LiteralPath $msixEntrypointAuditScript) {
+    foreach ($target in @(
+        [pscustomobject]@{
+            label = "local sideload MSIX desktop entrypoint"
+            path = $localMsix
+            contract = "local-sideload-manual"
+        },
+        [pscustomobject]@{
+            label = "Store-reviewed MSIX desktop entrypoint"
+            path = $storeMsix
+            contract = "store-reviewed-immediate-registration"
+        }
+    )) {
+        if (Test-Path -LiteralPath $target.path) {
+            $entrypointOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File $msixEntrypointAuditScript -PackagePath $target.path -StartupContract $target.contract -Json 2>&1
+            if ($LASTEXITCODE -eq 0) {
+                try {
+                    $entrypointAudit = ($entrypointOutput | Out-String).Trim() | ConvertFrom-Json
+                    if ([bool]$entrypointAudit.ok) {
+                        Add-Check "runtime-package" $target.label "pass" "MSIX application entrypoint launches $($entrypointAudit.expected_application_executable)."
+                    }
+                    else {
+                        $failed = @($entrypointAudit.checks | Where-Object { $_.status -eq "fail" } | Select-Object -First 3 | ForEach-Object { $_.message })
+                        Add-Check "runtime-package" $target.label "fail" "MSIX desktop entrypoint audit failed: $($failed -join '; ')"
+                    }
+                }
+                catch {
+                    Add-Check "runtime-package" $target.label "fail" "MSIX desktop entrypoint audit did not return parseable JSON: $($_.Exception.Message)"
+                }
+            }
+            else {
+                Add-Check "runtime-package" $target.label "fail" "MSIX desktop entrypoint audit command failed: $($entrypointOutput | Out-String)"
+            }
+        }
+    }
+}
+else {
+    Add-Check "runtime-package" "MSIX desktop entrypoint audit script" "fail" "audit-msix-desktop-entrypoint.ps1 is missing."
+}
+
 if ($latestBundle) {
     Add-Check "runtime-package" "Store submission bundle" "pass" "Latest Store submission bundle: $($latestBundle.FullName)."
     $bundleVerifier = Join-Path $scriptDir "verify-store-submission-bundle.ps1"
@@ -260,7 +301,7 @@ else {
     Add-Check "runtime-package" "Store submission bundle" "fail" "Store submission bundle is missing."
 }
 
-foreach ($scriptName in @("smoke-single-machine-beta.ps1", "verify-single-machine-evidence.ps1", "record-single-machine-evidence.ps1", "smoke-multidevice-beta.ps1", "prepare-multidevice-test-kit.ps1", "run-second-pc-release-check.ps1", "prepare-final-operator-gate-packet.ps1", "verify-final-operator-gate-packet.ps1", "prepare-operator-action-pack.ps1", "verify-operator-action-pack.ps1", "complete-final-operator-gates.ps1", "show-final-release-handoff-status.ps1", "show-second-pc-return-card.ps1", "import-second-pc-return.ps1", "capture-msix-install-evidence.ps1", "collect-second-pc-handoff.ps1", "verify-msix-install-evidence.ps1", "record-msix-install-evidence.ps1", "verify-multidevice-evidence.ps1", "record-multidevice-evidence.ps1", "verify-support-mailbox-evidence.ps1", "record-support-mailbox-verification.ps1", "verify-store-release-evidence.ps1", "record-store-release-verification.ps1", "verify-store-submission-bundle.ps1", "measure-musu-idle-cpu.ps1", "audit-musu-process-ownership.ps1", "audit-musu-startup-single-instance.ps1", "write-release-candidate-manifest.ps1", "verify-store-public-metadata.ps1", "write-release-go-no-go.ps1")) {
+foreach ($scriptName in @("smoke-single-machine-beta.ps1", "verify-single-machine-evidence.ps1", "record-single-machine-evidence.ps1", "smoke-multidevice-beta.ps1", "prepare-multidevice-test-kit.ps1", "run-second-pc-release-check.ps1", "prepare-final-operator-gate-packet.ps1", "verify-final-operator-gate-packet.ps1", "prepare-operator-action-pack.ps1", "verify-operator-action-pack.ps1", "complete-final-operator-gates.ps1", "show-final-release-handoff-status.ps1", "show-second-pc-return-card.ps1", "import-second-pc-return.ps1", "capture-msix-install-evidence.ps1", "collect-second-pc-handoff.ps1", "verify-msix-install-evidence.ps1", "record-msix-install-evidence.ps1", "verify-multidevice-evidence.ps1", "record-multidevice-evidence.ps1", "verify-support-mailbox-evidence.ps1", "record-support-mailbox-verification.ps1", "verify-store-release-evidence.ps1", "record-store-release-verification.ps1", "verify-store-submission-bundle.ps1", "audit-msix-desktop-entrypoint.ps1", "measure-musu-idle-cpu.ps1", "audit-musu-process-ownership.ps1", "audit-musu-startup-single-instance.ps1", "write-release-candidate-manifest.ps1", "verify-store-public-metadata.ps1", "write-release-go-no-go.ps1")) {
     $scriptPath = Join-Path $scriptDir $scriptName
     if (Test-Path -LiteralPath $scriptPath) {
         Add-Check "release-smoke" $scriptName "pass" "$scriptName exists."
@@ -389,6 +430,7 @@ else {
 $failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
 $warnCount = @($checks | Where-Object { $_.status -eq "warn" }).Count
 $runtimeFailCount = @($checks | Where-Object { $_.area -eq "runtime-package" -and $_.status -eq "fail" }).Count
+$msixEntrypointFailCount = @($checks | Where-Object { $_.area -eq "runtime-package" -and $_.name -like "*desktop entrypoint*" -and $_.status -eq "fail" }).Count
 $desktopFailCount = @($checks | Where-Object { $_.area -eq "desktop-shell" -and $_.status -eq "fail" }).Count
 $singleMachineFailCount = @($checks | Where-Object { $_.area -eq "single-machine" -and $_.status -eq "fail" }).Count
 $multiDeviceFailCount = @($checks | Where-Object { $_.area -eq "multi-device" -and $_.status -eq "fail" }).Count
@@ -396,6 +438,7 @@ $multiDeviceFailCount = @($checks | Where-Object { $_.area -eq "multi-device" -a
 $result = [pscustomobject]@{
     ok = ($failCount -eq 0)
     runtime_package_ready = ($runtimeFailCount -eq 0)
+    msix_desktop_entrypoint_ready = ($msixEntrypointFailCount -eq 0)
     desktop_shell_ready = ($desktopFailCount -eq 0)
     single_machine_verified = ($singleMachineFailCount -eq 0)
     multi_device_verified = ($multiDeviceFailCount -eq 0)
@@ -411,6 +454,7 @@ if ($Json) {
 else {
     "MUSU desktop release readiness"
     "runtime_package_ready: $($result.runtime_package_ready)"
+    "msix_desktop_entrypoint_ready: $($result.msix_desktop_entrypoint_ready)"
     "desktop_shell_ready: $($result.desktop_shell_ready)"
     "single_machine_verified: $($result.single_machine_verified)"
     "multi_device_verified: $($result.multi_device_verified)"

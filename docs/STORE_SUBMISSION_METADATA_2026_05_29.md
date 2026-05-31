@@ -88,10 +88,11 @@ Before uploading to Partner Center:
 3. Verify `musu@musu.pro` receives mail with a `musu-...` verification token in the subject/body, then record evidence with `scripts\windows\record-support-mailbox-verification.ps1`, or replace the support email with a known-good mailbox.
 4. Run `scripts\windows\verify-store-public-metadata.ps1 -BaseUrl https://musu.pro`.
 5. Run `scripts\windows\audit-desktop-release-readiness.ps1`.
-6. Run `scripts\windows\write-release-candidate-manifest.ps1`.
-7. Attach the current `1.15.0-rc.1` Store-reviewed MSIX and restricted-capability justification.
-8. After Microsoft certification and restricted capability approval, record the approval with `scripts\windows\record-store-release-verification.ps1`, including `-ProductNameReservedAt`.
-9. Keep `public_desktop_release_ready=false` until real second-PC evidence, support mailbox delivery, and Store release approval evidence are all recorded.
+6. Run `scripts\windows\audit-msix-desktop-entrypoint.ps1 -StartupContract store-reviewed-immediate-registration -ExpectedApplicationExecutable musu-desktop.exe -RequireInstalledPackage`.
+7. Run `scripts\windows\write-release-candidate-manifest.ps1`.
+8. Attach the current `1.15.0-rc.1` Store-reviewed MSIX and restricted-capability justification only after the desktop-entrypoint audit passes.
+9. After Microsoft certification and restricted capability approval, record the approval with `scripts\windows\record-store-release-verification.ps1`, including `-ProductNameReservedAt`.
+10. Keep `public_desktop_release_ready=false` until MSIX desktop entrypoint, real second-PC evidence, support mailbox delivery, and Store release approval evidence are all recorded.
 
 Local verification command after `npm run build`:
 

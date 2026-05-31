@@ -4,15 +4,16 @@
 
 `1.15.0-rc.1` is **not public desktop release ready yet**.
 
-This is not because the local runtime, desktop shell, CI, or public metadata are failing. Current `write-release-go-no-go.ps1` reports:
+This is not because the local runtime, CI, or public metadata are failing. Current `write-release-go-no-go.ps1` reports:
 
-- `local_artifacts_ready=true`
+- `local_artifacts_ready=false`
+- `msix_desktop_entrypoint_verified=false`
 - `public_metadata_ok=true`
 - `ready_for_public_desktop_release=false`
 
 Remaining blockers:
 
-1. clean/current Windows MSIX install evidence has not been recorded
+1. Store/MSIX desktop entrypoint has not been fixed; the current MSIX launches `musu.exe` and omits `musu-desktop.exe`
 2. real second-PC multi-device evidence has not been recorded
 3. two-machine runtime idle CPU evidence has not been recorded
 4. process ownership evidence must pass on the live MUSU runtime
@@ -217,6 +218,22 @@ Expected change:
 - `msix_install_verified=true`
 - msix-install blocker removed
 
+This gate proves install only. It does not prove the public desktop package
+boundary. Run the MSIX desktop entrypoint audit before Store submission:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-msix-desktop-entrypoint.ps1 `
+  -StartupContract store-reviewed-immediate-registration `
+  -ExpectedApplicationExecutable musu-desktop.exe `
+  -RequireInstalledPackage `
+  -Json
+```
+
+Expected change:
+
+- `msix_desktop_entrypoint_verified=true`
+- Store/MSIX desktop-entrypoint blocker removed
+
 The MSIX install verifier now requires current-version evidence, operator
 machine/user metadata, non-future `recorded_at`, installed/artifact version
 match, and the expected capture checks from `capture-msix-install-evidence.ps1`.
@@ -283,6 +300,9 @@ Before upload, verify the prepared Store submission bundle:
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-store-submission-bundle.ps1
 ```
 
+The Store bundle verifier now fails if the MSIX Start-menu application launches
+`musu.exe` instead of `musu-desktop.exe`.
+
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-store-release-verification.ps1 `
   -ProductName "MUSU" `
@@ -343,6 +363,7 @@ The release is ready for public desktop release only when:
 - `local_artifacts_ready=true`
 - `single_machine_verified=true`
 - `msix_install_verified=true`
+- `msix_desktop_entrypoint_verified=true`
 - `runtime_idle_cpu_verified=true`
 - `process_ownership_verified=true`
 - `startup_single_instance_verified=true`

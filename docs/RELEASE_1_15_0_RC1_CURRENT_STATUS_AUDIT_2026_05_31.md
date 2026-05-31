@@ -2,20 +2,21 @@
 
 **Wiki ID**: wiki/522
 **Date**: 2026-05-31
-**Scope**: current release state after the route-evidence gate hardening, refreshed single-machine evidence, final operator packet verification, operator action pack verification, Store submission bundle verification, release handoff status check, second-PC MSIX install evidence import, Windows/Tailscale mDNS health hardening, runtime idle CPU attribution hardening, process ownership audit gate, and startup single-instance gate.
+**Scope**: current release state after the route-evidence gate hardening, refreshed single-machine evidence, final operator packet verification, operator action pack verification, Store submission bundle verification, release handoff status check, second-PC MSIX install evidence import, Windows/Tailscale mDNS health hardening, runtime idle CPU attribution hardening, process ownership audit gate, startup single-instance gate, and MSIX desktop-entrypoint audit.
 
 ## Verdict
 
 MUSU is **not ready for public desktop release yet**.
 
-It is ready as a **single-machine Windows beta** and as a **release-candidate handoff package**, but the latest runtime reassessment adds internal product-quality blockers. The release is no longer blocked only by external evidence.
+It is ready as a **single-machine Windows beta**. The previous release-candidate handoff package is now stale until regenerated with the MSIX desktop-entrypoint gate, and the latest runtime reassessment adds internal product-quality blockers. The release is no longer blocked only by external evidence.
 
 Current internal blockers:
 
 1. idle CPU busy-loop risk reported by the operator on both primary and second PC
 2. missing two-machine runtime idle CPU evidence gate
-3. incomplete `musu.pro` assisted relay/control-plane path for P2P setup and fallback routing
-4. remaining second-PC startup/duplicate runtime proof and smoke timeout hardening; local repeated `musu up` proof now passes
+3. current Store/MSIX artifacts launch `musu.exe` and do not include `musu-desktop.exe`; they are runtime-only packages, not the public Tauri/WebView2 desktop package
+4. incomplete `musu.pro` assisted relay/control-plane path for P2P setup and fallback routing
+5. remaining packaged desktop/startup collision proof and smoke timeout hardening; local repeated `musu up` proof now passes
 
 Current external evidence blockers:
 
@@ -23,15 +24,15 @@ Current external evidence blockers:
 2. real `musu@musu.pro` inbox delivery evidence
 3. Partner Center/Microsoft Store approval evidence, including restricted startup capability review
 
-2026-05-31 update: the second-PC MSIX install evidence has now been returned and recorded locally under `docs\evidence\msix-install\1.15.0-rc.1\20260531-165211-HUGH-MAIN.evidence.json`. Route proof is still missing because `192.168.1.192:8949` and `172.27.208.1:8949` were not reachable from the primary during the follow-up smoke attempt. Runtime CPU work has moved from a broad process-name sampler to an owned-process-tree sampler; one primary debug-runtime sample passed, but formal two-machine desktop/WebView2 evidence is still missing. A separate process ownership audit now passes on `HUGH_SECOND`: one MUSU runtime, zero MUSU-owned Node helpers, zero MUSU-owned WebView2 helpers, 13 machine-wide WebView2 processes not owned by MUSU, bridge registry PID alive, and bridge `/health` HTTP 200. Startup single-instance evidence now also passes locally: three consecutive `musu up --json` calls reused bridge PID 31208 and did not spawn another runtime.
+2026-05-31 update: the second-PC MSIX install evidence has now been returned and recorded locally under `docs\evidence\msix-install\1.15.0-rc.1\20260531-165211-HUGH-MAIN.evidence.json`. Route proof is still missing because `192.168.1.192:8949` and `172.27.208.1:8949` were not reachable from the primary during the follow-up smoke attempt. Runtime CPU work has moved from a broad process-name sampler to an owned-process-tree sampler; one primary debug-runtime sample passed, but formal two-machine desktop/WebView2 evidence is still missing. The reason is now identified: the installed MSIX and current Store-reviewed artifact are runtime-only packages. Their Appx manifest launches `musu.exe`, the package description says `MUSU packaged CLI and bridge runtime`, and `musu-desktop.exe` is not present in the MSIX. A separate process ownership audit now passes on `HUGH_SECOND`: one MUSU runtime, zero MUSU-owned Node helpers, zero MUSU-owned WebView2 helpers, 13 machine-wide WebView2 processes not owned by MUSU, bridge registry PID alive, and bridge `/health` HTTP 200. Startup single-instance evidence now also passes locally: three consecutive `musu up --json` calls reused bridge PID 31208 and did not spawn another runtime.
 
 Current qualitative completion:
 
 | Surface | Completion | Reason |
 |---|---:|---|
 | Single-machine Windows local beta | ~85% | Functional smoke, process ownership, and repeated startup reuse are evidence-backed locally; packaged desktop/WebView2 idle CPU evidence is still missing. |
-| Store/operator-gate infrastructure | ~91% | Final packet, action pack, Store submission bundle, public metadata, support mailbox config, evidence verifiers, runtime CPU gate, process ownership gate, and startup single-instance gate are in place. |
-| Public desktop release readiness | ~55% | MSIX install evidence plus local process/startup ownership improved, but idle CPU, multi-device route, support mailbox, Store approval, and relay/control-plane readiness remain open. |
+| Store/operator-gate infrastructure | ~92% | Final packet, action pack, public metadata, support mailbox config, evidence verifiers, runtime CPU gate, process ownership gate, startup single-instance gate, and MSIX desktop-entrypoint gate are in place. The current Store submission bundle now correctly fails because the package is runtime-only. |
+| Public desktop release readiness | ~50% | MSIX install evidence plus local process/startup ownership improved, but the current Store/MSIX package does not launch the Tauri desktop shell; idle CPU, multi-device route, support mailbox, Store approval, and relay/control-plane readiness also remain open. |
 | Full desktop GUI product maturity | ~50% | Tauri shell is a usable launcher/status surface, not yet the full dashboard GUI, and runtime resource polish is not product-grade. |
 
 This document supersedes wiki/521 for the **current 2026-05-31 release status**. Wiki/521 remains the historical final qualitative audit and accumulated work log.
@@ -49,14 +50,15 @@ This document supersedes wiki/521 for the **current 2026-05-31 release status**.
 | Bridge URL | `http://127.0.0.1:9818` |
 | Desktop readiness audit | `runtime_package_ready=true`, `desktop_shell_ready=true`, `single_machine_verified=true`, `multi_device_verified=false` |
 | Final operator packet | `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip` |
-| Final operator packet verification | `ok=true`, `fail_count=0`, `kit_count=1` |
+| Final operator packet verification | must be regenerated after the MSIX desktop-entrypoint gate lands; old packets are stale |
 | Operator action pack | `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-latest.zip` |
-| Operator action pack verification | `ok=true`, `fail_count=0` |
+| Operator action pack verification | old pack is stale; new pack generation is blocked until Store submission bundle verification passes |
 | Store submission bundle | `.local-build\msix\submission-bundles\store-reviewed-20260530-093140` |
-| Store submission bundle verification | `ok=true`, `fail_count=0` |
+| Store submission bundle verification | `ok=false`, `fail_count=1`; current MSIX desktop entrypoint launches `musu.exe` and omits `musu-desktop.exe` |
 | Public metadata | `https://musu.pro/privacy` and `/support` pass with `musu@musu.pro` |
 | Second-PC MSIX install evidence | `docs\evidence\msix-install\1.15.0-rc.1\20260531-165211-HUGH-MAIN.evidence.json` |
 | Runtime idle CPU evidence | formal gate still missing; bridge-only diagnostic sample passed at `docs\evidence\runtime-idle-cpu-diagnostic\1.15.0-rc.1\20260531-211448-HUGH_SECOND.bridge-only.evidence.json`, but public readiness requires two machines with `desktop-open`, `-RequireOwnedWebView2`, and the packaged desktop/WebView2 shell attributed |
+| MSIX desktop entrypoint evidence | current audit fails at `docs\evidence\msix-desktop-entrypoint\1.15.0-rc.1\20260531-214327-HUGH_SECOND.store-msix-runtime-only.evidence.json`; artifact and installed package launch `musu.exe`, do not contain `musu-desktop.exe`, and still describe a CLI/bridge runtime package |
 | Process ownership evidence | local audit passed at `.local-build\process-ownership\musu-process-ownership-20260531-201339.json`; `musu_runtime=1`, `owned_node=0`, `owned_webview2=0`, `machine_wide_node=1`, `machine_wide_webview2=13`, `orphan_repo_helpers=0`, bridge registry PID alive, `/health` HTTP 200 |
 | Startup single-instance evidence | local audit passed at `docs\evidence\startup-single-instance\1.15.0-rc.1\20260531-203635-HUGH_SECOND.evidence.json`; three repeated `musu up --json` calls reused bridge PID 31208, `after_musu_runtime=1`, `repeated_spawn_count=0`, nested process ownership audit passed |
 | Current support verification id | `musu-store-support-1.15.0-rc.1-20260531-191548` |
@@ -79,6 +81,7 @@ This document supersedes wiki/521 for the **current 2026-05-31 release status**.
 12. **musu.pro network role**: the product needs a hosted registry/rendezvous/relay-control path. Direct LAN/manual peers remain valid, but cannot be the only public multi-device setup story.
 13. **Process ownership policy**: machine-wide Node.js/WebView2 processes are not automatically MUSU-owned. Release evidence must distinguish MUSU descendants and repo-related helpers from unrelated processes, and bridge registry PID plus `/health` must match the live MUSU runtime.
 14. **Startup single-instance policy**: repeated `musu up`, desktop Start Runtime, and Store StartupTask/manual-launch overlap must reuse one runtime/bridge owner. The release gate now starts with repeated `musu up --json` evidence and must expand to packaged desktop click/startup-task collision tests.
+15. **MSIX desktop entrypoint policy**: the public Store package must launch `musu-desktop.exe` from the Start menu, keep `musu.exe` as the CLI alias, and keep `musu-startup.exe` as the startup task. The current runtime-only MSIX is not acceptable as the public desktop package.
 
 ## Code Audit
 
@@ -99,8 +102,8 @@ Findings:
 1. **Issue found and mitigated during audit.** A logged-in Windows home with a failing Tailscale mDNS interface could leave bridge `/health` timing out after the first `musu up` probe. mDNS LAN discovery is now opt-in through `MUSU_ENABLE_MDNS=1`, keeping the Store-candidate single-machine path on cloud/manual peer registration until mDNS is separately hardened.
 2. **No remaining internal release-blocking issue found in the scoped release pipeline.** The current public-release failure is missing external evidence, not a broken local packaging/handoff pipeline.
 3. **Final packet verification is current and useful.** It checks required docs/scripts, including this wiki/522 current-status audit, README commands, checksum integrity, clean source metadata, second-PC kit contents, Store/support/multi-device evidence hardening, return importer safety, and preview fallback.
-4. **Operator action pack is evidence-safe.** It verifies the final packet first, bundles second-PC/Partner Center/support actions, checks nested zips and checksums, and excludes private signing keys.
-5. **Store submission bundle verification passes.** The bundle includes exactly one Store-reviewed MSIX, public cert, checksums, certification notes, restricted capability justification, and no private `.pfx/.p12`.
+4. **Operator action pack is evidence-safe, and now intentionally blocked.** It verifies the final packet first, bundles second-PC/Partner Center/support actions, checks nested zips and checksums, excludes private signing keys, and refuses to build while the Store submission bundle verifier fails.
+5. **Store submission bundle verification now catches the package mismatch.** The bundle still includes exactly one Store-reviewed MSIX, public cert, checksums, certification notes, restricted capability justification, and no private `.pfx/.p12`, but it now fails because the MSIX application entrypoint is `musu.exe` instead of `musu-desktop.exe`.
 6. **Support mailbox drift is controlled.** Scripts read root `SUPPORT_EMAIL` via `release-config.ps1`; public Next pages use `musu-bee/src/lib/contact.ts`; current packet/action pack use `musu@musu.pro`.
 7. **Second-PC return path now fails closed.** `import-second-pc-return.ps1` validates returned handoff/release-check schemas, verifies MSIX install evidence, optionally records the MSIX install gate, and prints primary-side commands.
 8. **Known residual issue is product-scope, not release-infra.** The desktop GUI remains a launcher/status shell; this is acceptable for beta/Store-candidate positioning only if the listing copy does not promise a full dashboard GUI.
@@ -112,12 +115,18 @@ Findings:
 14. **Process ownership audit is now a release gate.** `scripts\windows\audit-musu-process-ownership.ps1` writes `musu.process_ownership_audit.v1` evidence and `write-release-go-no-go.ps1` reports `process_ownership_verified`. The current local audit proves the extra WebView2 processes visible on the operator machine are not MUSU-owned, while the live bridge registry points to one healthy MUSU process.
 15. **Startup single-instance audit is now a release gate.** `scripts\windows\audit-musu-startup-single-instance.ps1` writes `musu.startup_single_instance_audit.v1`, calls `musu up --json` repeatedly, requires one stable bridge PID, rejects repeated bridge spawning, and embeds a nested process ownership audit. The current local run passed with three calls reusing PID 31208.
 16. **Runtime resource budget evidence was tightened.** `measure-musu-idle-cpu.ps1` now records scenario, git commit/dirty state, owned process count budget, owned WebView2 count budget, total/private memory, and memory totals by role. `write-release-go-no-go.ps1` requires `desktop-open` evidence with `-RequireOwnedWebView2`; a bridge-only diagnostic pass cannot satisfy public release.
+17. **MSIX desktop package mismatch found.** `audit-msix-desktop-entrypoint.ps1` proves the current local-sideload and Store-reviewed MSIX artifacts are runtime-only: their `<Application Executable>` is `musu.exe`, `musu-desktop.exe` is absent, and the installed package description says `MUSU packaged CLI and bridge runtime`. `audit-desktop-release-readiness.ps1`, `write-release-go-no-go.ps1`, `verify-store-submission-bundle.ps1`, final packet verification, and handoff status now fail closed on this package boundary.
 
 ## Next Steps
 
 P0: keep No-Go until internal runtime quality and external evidence gates both pass.
 
-1. Run idle CPU evidence on primary and second PC:
+1. Rebuild the Store/MSIX package so Start-menu activation launches `musu-desktop.exe`, while `musu.exe` remains the CLI alias and `musu-startup.exe` remains the startup task.
+2. Rerun the desktop entrypoint audit:
+   ```powershell
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-msix-desktop-entrypoint.ps1 -StartupContract store-reviewed-immediate-registration -ExpectedApplicationExecutable musu-desktop.exe -RequireInstalledPackage -Json
+   ```
+3. Run idle CPU evidence on primary and second PC only after the desktop entrypoint audit passes:
    ```powershell
    powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -Scenario desktop-open -RequireOwnedWebView2 -MaxOneCorePercent 5 -MaxOwnedProcessCount 16 -MaxOwnedWebView2ProcessCount 8 -MaxTotalWorkingSetMb 1024 -IncludeNode -IncludeWebView2 -FailOnHot -Json
    ```
@@ -126,31 +135,30 @@ P0: keep No-Go until internal runtime quality and external evidence gates both p
    if the default owned-helper scope cannot prove process ownership, if no
    MUSU-owned WebView2 process is attributed, or if resource budget fields are
    missing/exceeded.
-2. Run process ownership audit whenever the operator sees many Node.js/WebView2 processes:
+4. Run process ownership audit whenever the operator sees many Node.js/WebView2 processes:
    ```powershell
    powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-process-ownership.ps1 -FailOnProblem -Json
    ```
    Treat machine-wide helper counts as diagnostic only; release ownership is based on MUSU descendants, repo-related orphan helpers, and live bridge registry health.
-3. Fix any process that exceeds the idle CPU budget.
-4. Record passing runtime CPU evidence; go/no-go now blocks until it passes.
-5. Extend startup single-instance coverage from repeated `musu up` to packaged desktop Start Runtime clicks and Store StartupTask/manual-launch collision.
-6. Design and implement the first `musu.pro` assisted peer path: registry/rendezvous first, relay/tunnel fallback next.
-7. Copy `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-latest.zip` to the operator handoff location when runtime P0 is stable.
-8. On second Windows PC, extract `second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260531-010837.zip`.
-9. On second Windows PC, extract `musu-multidevice-1.15.0-rc.1-20260531-002518.zip` and run:
+5. Fix any process that exceeds the idle CPU budget.
+6. Extend startup single-instance coverage from repeated `musu up` to packaged desktop Start Runtime clicks and Store StartupTask/manual-launch collision.
+7. Design and implement the first `musu.pro` assisted peer path: registry/rendezvous first, relay/tunnel fallback next.
+8. Copy `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-latest.zip` to the operator handoff location when runtime P0 and MSIX desktop entrypoint are stable.
+9. On second Windows PC, extract `second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260531-010837.zip`.
+10. On second Windows PC, extract `musu-multidevice-1.15.0-rc.1-20260531-002518.zip` and run:
    ```powershell
    powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1
    ```
-10. If certificate trust fails, rerun elevated with `-MachineTrust`.
-11. Copy returned `.local-build\second-pc-return\*.zip` back to the primary release repo.
-12. On primary repo, run:
+11. If certificate trust fails, rerun elevated with `-MachineTrust`.
+12. Copy returned `.local-build\second-pc-return\*.zip` back to the primary release repo.
+13. On primary repo, run:
    ```powershell
    powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\import-second-pc-return.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP> -RecordMsixInstall -Json
    ```
-13. Run the generated `smoke-multidevice-beta.ps1` command against the returned `host:port`, then record the generated multi-device evidence.
-14. Send the support mailbox verification email to `musu@musu.pro` with the current subject/id, verify inbox delivery, then record support mailbox evidence.
-15. In Partner Center, reserve/confirm product name, submit the Store-reviewed MSIX, wait for certification and restricted capability approval, then record Store release evidence.
-16. Run `complete-final-operator-gates.ps1 ... -FailOnNotReady -Json`; only ship publicly if it reports `ready_for_public_desktop_release=true` and runtime CPU evidence passes.
+14. Run the generated `smoke-multidevice-beta.ps1` command against the returned `host:port`, then record the generated multi-device evidence.
+15. Send the support mailbox verification email to `musu@musu.pro` with the current subject/id, verify inbox delivery, then record support mailbox evidence.
+16. In Partner Center, reserve/confirm product name, submit the Store-reviewed MSIX, wait for certification and restricted capability approval, then record Store release evidence.
+17. Run `complete-final-operator-gates.ps1 ... -FailOnNotReady -Json`; only ship publicly if it reports `ready_for_public_desktop_release=true` and runtime CPU evidence passes.
 
 P1: after external evidence passes.
 
@@ -174,6 +182,7 @@ Do **not** publicly release until these are all true:
 
 - `go_no_go.single_machine_verified=true`
 - `go_no_go.msix_install_verified=true`
+- `go_no_go.msix_desktop_entrypoint_verified=true`
 - `go_no_go.multi_device_verified=true`
 - `go_no_go.public_metadata_ok=true`
 - `go_no_go.support_mailbox_verified=true`
