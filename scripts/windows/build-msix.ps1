@@ -10,7 +10,10 @@ param(
     [string]$Publisher = "CN=Yellowhama",
     [string]$DisplayName = "MUSU",
     [string]$PublisherDisplayName = "Yellowhama",
-    [string]$Description = "MUSU packaged CLI and bridge runtime",
+    [string]$Description = "MUSU desktop shell for the local AI operations runtime",
+    [string]$ApplicationExecutable = "musu-desktop.exe",
+    [string]$RuntimeExecutable = "musu.exe",
+    [string]$StartupExecutable = "musu-startup.exe",
     [string]$Version,
     [string]$StageDir,
     [string]$OutputDir,
@@ -129,6 +132,9 @@ function New-ManifestContent {
         [string]$AppDisplayName,
         [string]$AppPublisherDisplayName,
         [string]$AppDescription,
+        [string]$ApplicationExecutable,
+        [string]$RuntimeExecutable,
+        [string]$StartupExecutable,
         [string]$StartupContract
     )
 
@@ -180,7 +186,7 @@ $rescap5Namespace
   <Applications>
     <Application
       Id="MUSU"
-      Executable="musu.exe"
+      Executable="$ApplicationExecutable"
       EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
         DisplayName="$AppDisplayName"
@@ -195,15 +201,15 @@ $rescap5Namespace
       <Extensions>
         <uap3:Extension
           Category="windows.appExecutionAlias"
-          Executable="musu.exe"
+          Executable="$RuntimeExecutable"
           EntryPoint="Windows.FullTrustApplication">
           <uap3:AppExecutionAlias>
-            <desktop:ExecutionAlias Alias="musu.exe" />
+            <desktop:ExecutionAlias Alias="$RuntimeExecutable" />
           </uap3:AppExecutionAlias>
         </uap3:Extension>
         <desktop:Extension
           Category="windows.startupTask"
-          Executable="musu-startup.exe"
+          Executable="$StartupExecutable"
           EntryPoint="Windows.FullTrustApplication">
           <desktop:StartupTask
             TaskId="MusuBridgeStartup"
@@ -225,9 +231,14 @@ $extraCapability
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
 $musuRsDir = Join-Path $repoRoot "musu-rs"
+$musuBeeDir = Join-Path $repoRoot "musu-bee"
+$tauriDir = Join-Path $musuBeeDir "src-tauri"
 . (Join-Path $scriptDir "msix-common.ps1")
 
-Assert-CommandAvailable -CommandName "cargo" -InstallHint "Install Rust and ensure cargo is on PATH."
+if (-not $SkipBuild) {
+    Assert-CommandAvailable -CommandName "cargo" -InstallHint "Install Rust and ensure cargo is on PATH."
+    Assert-CommandAvailable -CommandName "npm" -InstallHint "Install Node.js/npm and ensure npm is on PATH."
+}
 Assert-CommandAvailable -CommandName "winapp" -InstallHint "Install Microsoft WinApp CLI with: winget install -e --id Microsoft.WinAppCLI --source winget"
 
 if (-not $Version) {
@@ -251,24 +262,36 @@ if (-not $SourceIconPath) {
 
 $contractSuffix = Get-StartupContractArtifactSuffix $StartupContract
 $packageDir = Join-Path $StageDir ("musu-{0}" -f $contractSuffix)
-$musuExe = Join-Path $musuRsDir "target\$Configuration\musu.exe"
-$startupExe = Join-Path $musuRsDir "target\$Configuration\musu-startup.exe"
+$musuExe = Join-Path $musuRsDir "target\$Configuration\$RuntimeExecutable"
+$startupExe = Join-Path $musuRsDir "target\$Configuration\$StartupExecutable"
+$desktopExe = Join-Path $tauriDir "target\$Configuration\$ApplicationExecutable"
 $generatedCertPath = Join-Path $OutputDir ("{0}_cert.pfx" -f $IdentityName)
 
 if (-not $SkipBuild) {
-    Write-Step "Building packaged Windows executables"
+    Write-Step "Building packaged runtime executables"
     $buildArgs = @("build", "--bin", "musu", "--bin", "musu-startup")
     if ($Configuration -eq "release") {
         $buildArgs += "--release"
     }
     Invoke-Checked -FilePath "cargo" -ArgumentList $buildArgs -WorkingDirectory $musuRsDir
+
+    Write-Step "Building Tauri desktop executable"
+    Invoke-Checked -FilePath "npm" -ArgumentList @("run", "build:tauri-shell") -WorkingDirectory $musuBeeDir
+    $desktopBuildArgs = @("build")
+    if ($Configuration -eq "release") {
+        $desktopBuildArgs += "--release"
+    }
+    Invoke-Checked -FilePath "cargo" -ArgumentList $desktopBuildArgs -WorkingDirectory $tauriDir
 }
 
 if (-not $DryRun -and -not (Test-Path -LiteralPath $musuExe)) {
-    throw "musu.exe not found at $musuExe"
+    throw "$RuntimeExecutable not found at $musuExe"
 }
 if (-not $DryRun -and -not (Test-Path -LiteralPath $startupExe)) {
-    throw "musu-startup.exe not found at $startupExe"
+    throw "$StartupExecutable not found at $startupExe"
+}
+if (-not $DryRun -and -not (Test-Path -LiteralPath $desktopExe)) {
+    throw "$ApplicationExecutable not found at $desktopExe"
 }
 
 $resolvedIcon = Resolve-OptionalPath $SourceIconPath
@@ -286,8 +309,9 @@ if ($DryRun) {
     }
     New-Item -ItemType Directory -Path $packageDir -Force | Out-Null
     New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
-    Copy-Item -LiteralPath $musuExe -Destination (Join-Path $packageDir "musu.exe")
-    Copy-Item -LiteralPath $startupExe -Destination (Join-Path $packageDir "musu-startup.exe")
+    Copy-Item -LiteralPath $musuExe -Destination (Join-Path $packageDir $RuntimeExecutable)
+    Copy-Item -LiteralPath $startupExe -Destination (Join-Path $packageDir $StartupExecutable)
+    Copy-Item -LiteralPath $desktopExe -Destination (Join-Path $packageDir $ApplicationExecutable)
 }
 
 Write-Step "Generating MSIX assets with WinApp CLI"
@@ -296,7 +320,7 @@ Invoke-Checked -FilePath "winapp" -ArgumentList @(
     "generate",
     ".",
     "--executable",
-    ".\musu.exe",
+    (".\{0}" -f $ApplicationExecutable),
     "--package-name",
     $IdentityName,
     "--publisher-name",
@@ -316,6 +340,9 @@ $manifestContent = New-ManifestContent `
     -AppDisplayName $DisplayName `
     -AppPublisherDisplayName $PublisherDisplayName `
     -AppDescription $Description `
+    -ApplicationExecutable $ApplicationExecutable `
+    -RuntimeExecutable $RuntimeExecutable `
+    -StartupExecutable $StartupExecutable `
     -StartupContract $StartupContract
 
 if ($DryRun) {
@@ -343,7 +370,7 @@ $packArgs = @(
     "--manifest",
     $manifestPath,
     "--executable",
-    "musu.exe",
+    $ApplicationExecutable,
     "--output",
     $outputMsix
 )

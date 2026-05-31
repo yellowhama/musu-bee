@@ -8,7 +8,8 @@ MUSU is not public Store-release ready yet.
 
 Current verified state:
 
-- local runtime artifacts install, but the public Store desktop MSIX is not ready
+- Store/MSIX artifact structure now launches `musu-desktop.exe` and keeps `musu.exe` / `musu-startup.exe` in their CLI alias and startup-task roles
+- installed-package desktop evidence is still stale because the currently installed package is the older runtime-only MSIX
 - public `/privacy` and `/support` metadata are reachable
 - current single-machine evidence is recorded and verified
 - final operator gate packet exists and verifies cleanly
@@ -16,10 +17,12 @@ Current verified state:
 
 Remaining release blockers:
 
-1. Store/MSIX desktop entrypoint evidence: current MSIX launches `musu.exe` and omits `musu-desktop.exe`
-2. real second-PC multi-device routing evidence
-3. real `musu@musu.pro` inbox delivery evidence
-4. Partner Center product-name reservation, app submission, Microsoft certification, and restricted capability approval evidence
+1. source-fresh Store/MSIX release packaging, because the latest full local release build hit `musu-rs` rustc OOM/pagefile pressure
+2. installed Store/MSIX desktop entrypoint evidence after reinstalling the fixed package
+3. packaged `desktop-open -RequireOwnedWebView2` idle CPU/resource evidence on primary and second PC
+4. real second-PC multi-device routing evidence
+5. real `musu@musu.pro` inbox delivery evidence
+6. Partner Center product-name reservation, app submission, Microsoft certification, and restricted capability approval evidence
 
 ## Product Boundary
 
@@ -41,10 +44,11 @@ Current official Microsoft docs still support the core release decision:
 
 MUSU-specific path:
 
-1. Do not submit the current Store-reviewed MSIX as the public desktop app; it is runtime-only.
+1. Do not submit an installed-package result from the old runtime-only MSIX as public desktop evidence.
 2. Keep Tauri MSI/NSIS as fallback and diagnostic artifacts, not the primary Store path.
-3. Rebuild the MSIX so the Start-menu application launches `musu-desktop.exe`, while `musu.exe` remains the CLI alias and `musu-startup.exe` remains the startup task.
-4. Keep public release readiness false until desktop-entrypoint, second-PC routing, support mailbox, and Store approval evidence are recorded.
+3. Keep the fixed MSIX contract: Start-menu application launches `musu-desktop.exe`, `musu.exe` remains the CLI alias, and `musu-startup.exe` remains the startup task.
+4. Produce one source-fresh fixed package before Partner Center upload; the current artifact proof used `-SkipBuild` with existing release binaries after the local release build OOM.
+5. Keep public release readiness false until installed desktop-entrypoint, desktop idle CPU, second-PC routing, support mailbox, and Store approval evidence are recorded.
 
 ## Exact Operator Sequence
 
@@ -161,9 +165,12 @@ DNS MX alone is not enough; this gate requires inbox delivery proof.
 
 ### 6. Fix And Verify Store MSIX
 
-Before Partner Center upload, rebuild the Store/MSIX package so it contains the Tauri desktop shell and launches it from the Start menu. Then run:
+Before Partner Center upload, produce a source-fresh Store/MSIX package that contains the Tauri desktop shell and launches it from the Start menu. The artifact-level package verifier currently passes for `.local-build\msix\submission-bundles\store-reviewed-20260531-224352`, but installed-package proof still requires reinstalling the fixed MSIX. Then run:
 
 ```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-store-submission-bundle.ps1 `
+  -BundleDir .local-build\msix\submission-bundles\store-reviewed-20260531-224352
+
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-msix-desktop-entrypoint.ps1 `
   -StartupContract store-reviewed-immediate-registration `
   -ExpectedApplicationExecutable musu-desktop.exe `
@@ -177,6 +184,7 @@ Expected:
 - Store-reviewed MSIX contains `musu-desktop.exe`
 - `musu.exe` remains the CLI alias
 - `musu-startup.exe` remains the startup task
+- `audit-msix-desktop-entrypoint.ps1 -RequireInstalledPackage` is run after reinstall and does not reuse the stale runtime-only package result
 
 ### 7. Submit In Partner Center
 

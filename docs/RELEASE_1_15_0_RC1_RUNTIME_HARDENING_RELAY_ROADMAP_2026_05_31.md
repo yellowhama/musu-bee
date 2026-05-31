@@ -13,7 +13,7 @@ The blocker set has changed. It is no longer accurate to say the release is bloc
 1. **Idle CPU busy-loop risk**: operator observed MUSU using roughly 20% of one core while apparently idle on both the primary and second PC.
 2. **Hosted relay/control-plane gap**: current two-machine flow still depends too much on direct LAN/manual endpoint routing; MUSU needs a `musu.pro` assisted path for rendezvous, peer selection, and relay/tunnel fallback.
 3. **Runtime hardening gap**: background loops, process ownership, startup behavior, and resource budgets are not yet treated as release gates.
-4. **MSIX desktop boundary gap**: the current MSIX artifacts launch `musu.exe` and do not include `musu-desktop.exe`, so Store/MSIX activation is a runtime package, not the public Tauri/WebView2 desktop shell.
+4. **MSIX desktop boundary gap**: the regenerated MSIX artifact now launches `musu-desktop.exe`, but the installed package is still the older runtime-only MSIX and source-fresh release packaging hit local rustc OOM/pagefile pressure.
 
 The correct current positioning is:
 
@@ -46,10 +46,20 @@ What it does not close:
   is not enough for the public gate because no owned Tauri/WebView2 desktop
   shell was present and the second PC still needs its own sample.
 - MSIX desktop-entrypoint evidence now exists under
-  `docs\evidence\msix-desktop-entrypoint\1.15.0-rc.1\20260531-214327-HUGH_SECOND.store-msix-runtime-only.evidence.json`.
-  It fails with `fail_count=8`: both the artifact and installed package launch
-  `musu.exe`, neither contains `musu-desktop.exe`, and the package description
-  still says `MUSU packaged CLI and bridge runtime`.
+  `docs\evidence\msix-desktop-entrypoint\1.15.0-rc.1\20260531-214327-HUGH_SECOND.store-msix-runtime-only.evidence.json`
+  for the old runtime-only package and
+  `docs\evidence\msix-desktop-entrypoint\1.15.0-rc.1\20260531-224328-HUGH_SECOND.store-msix-desktop-artifact.evidence.json`
+  for the regenerated artifact. The regenerated artifact passes with
+  `musu-desktop.exe` as the application executable, `musu.exe` as the CLI
+  alias, `musu-startup.exe` as the startup task, and a desktop-shell
+  description. The installed package still fails until reinstalled.
+- Store submission bundle verification now passes for
+  `.local-build\msix\submission-bundles\store-reviewed-20260531-224352`
+  with `ok=true`, `fail_count=0`.
+- A source-fresh `build-msix.ps1` release build attempt on `HUGH_SECOND`
+  failed in `musu-rs` rustc OOM/pagefile pressure even with
+  `CARGO_BUILD_JOBS=1`; the passing package-structure check used
+  `build-msix.ps1 -SkipBuild` and existing release binaries.
 - Process ownership audit evidence now exists locally under
   `.local-build\process-ownership\musu-process-ownership-20260531-201339.json`.
   It passed with one MUSU runtime, zero MUSU-owned Node helpers, zero MUSU-owned
@@ -87,11 +97,16 @@ use the `desktop-open` scenario with `-RequireOwnedWebView2`.
 
 `scripts\windows\write-release-go-no-go.ps1` now reports `runtime_idle_cpu_verified` and blocks public readiness until runtime idle CPU/resource-budget evidence passes on at least two machines with the 60s / 5%-of-one-core threshold, owned WebView2 present, owned process count <= 16, owned WebView2 process count <= 8, and total owned working set <= 1024MB.
 
-`scripts\windows\audit-msix-desktop-entrypoint.ps1` now reports whether the
-MSIX Start-menu application launches `musu-desktop.exe`. `write-release-go-no-go.ps1`
-reports `msix_desktop_entrypoint_verified`; `verify-store-submission-bundle.ps1`
-rejects bundles that still package only the runtime CLI. This gate must pass
-before any `desktop-open -RequireOwnedWebView2` CPU evidence can be meaningful.
+`scripts\windows\build-msix.ps1` now stages `musu-desktop.exe` as the MSIX
+application executable, keeps `musu.exe` as the CLI alias, keeps
+`musu-startup.exe` as the startup task, and writes a desktop-shell package
+description. `scripts\windows\audit-msix-desktop-entrypoint.ps1` now reports
+whether the MSIX Start-menu application launches `musu-desktop.exe`.
+`write-release-go-no-go.ps1` reports `msix_desktop_entrypoint_verified`;
+`verify-store-submission-bundle.ps1` rejects bundles that still package only
+the runtime CLI, while artifact-only audits no longer fail just because an old
+installed package is present. The installed-package gate must pass before any
+`desktop-open -RequireOwnedWebView2` CPU evidence can be meaningful.
 
 Acceptance target for public beta:
 
@@ -273,11 +288,14 @@ Minimal client behavior:
 
 ### P0: Fix the MSIX desktop package boundary
 
-1. Package `musu-desktop.exe` as the MSIX `<Application Executable>`.
+1. Keep `musu-desktop.exe` as the MSIX `<Application Executable>`.
 2. Keep `musu.exe` as the WindowsApps execution alias.
 3. Keep `musu-startup.exe` as the `MusuBridgeStartup` startup task.
-4. Rebuild and reinstall local-sideload and Store-reviewed MSIX artifacts.
-5. Require `audit-msix-desktop-entrypoint.ps1 -RequireInstalledPackage -Json`
+4. Produce a source-fresh fixed MSIX on CI or a larger build machine, or reduce
+   the MSIX release build memory profile without changing the runtime contract.
+5. Reinstall local-sideload and Store-reviewed MSIX artifacts on primary and
+   second PC.
+6. Require `audit-msix-desktop-entrypoint.ps1 -RequireInstalledPackage -Json`
    to pass before Store submission or `desktop-open` CPU evidence.
 
 ### P0: Stop release until idle resource behavior is measured
@@ -326,8 +344,8 @@ HTTP bearer routing from satisfying the public multi-device release gate.
 | Surface | Previous | Current | Reason |
 |---|---:|---:|---|
 | Single-machine Windows local beta | ~92% | ~85% | Functionality is proven and local process/startup ownership now passes; packaged desktop/WebView2 idle CPU is still unproven. |
-| Store/operator-gate infrastructure | ~90% | ~92% | Evidence tooling now includes runtime idle CPU, process ownership, startup single-instance, and MSIX desktop-entrypoint gates. |
-| Public desktop release readiness | ~68% | ~50% | MSIX install evidence and local process/startup ownership improved, but the current Store/MSIX artifact is runtime-only; idle CPU, multi-device route, relay path, support mailbox, and Store approval remain open. |
+| Store/operator-gate infrastructure | ~90% | ~95% | Evidence tooling now includes runtime idle CPU, process ownership, startup single-instance, MSIX desktop-entrypoint gates, and a passing regenerated Store submission bundle artifact. |
+| Public desktop release readiness | ~68% | ~55% | MSIX artifact packaging is fixed, but installed desktop evidence, source-fresh release packaging, idle CPU, multi-device route, relay path, support mailbox, and Store approval remain open. |
 | Full desktop GUI product maturity | ~55-60% | ~50% | Tauri shell remains launcher/status only, and runtime resource polish is not yet product-grade. |
 | Multi-device product maturity | ~45% | ~38% | Direct second-PC install evidence exists, but route proof and relay fallback do not. |
 

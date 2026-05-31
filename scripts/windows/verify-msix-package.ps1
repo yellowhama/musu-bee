@@ -3,6 +3,9 @@ param(
     [string]$PackagePath,
     [string]$StartupExe,
     [string]$MusuHome,
+    [string]$ExpectedApplicationExecutable = "musu-desktop.exe",
+    [string]$RuntimeExecutable = "musu.exe",
+    [string]$StartupExecutable = "musu-startup.exe",
     [ValidateSet("release", "debug")]
     [string]$Configuration = "debug",
     [ValidateSet("local-sideload-manual", "store-reviewed-immediate-registration")]
@@ -31,22 +34,25 @@ if (-not $PackagePath) {
     $PackagePath = Find-LatestMsixArtifact -Directory (Join-Path $repoRoot ".local-build\msix\output") -StartupContract $StartupContract
 }
 if (-not $StartupExe) {
-    $StartupExe = Join-Path $repoRoot "musu-rs\target\$Configuration\musu-startup.exe"
+    $StartupExe = Join-Path $repoRoot "musu-rs\target\$Configuration\$StartupExecutable"
 }
 if (-not $MusuHome) {
     $MusuHome = Join-Path $repoRoot ".local-build\startup-smoke"
 }
 
 Assert-True (Test-Path -LiteralPath $PackagePath) "MSIX package not found at $PackagePath"
-Assert-True (Test-Path -LiteralPath $StartupExe) "musu-startup.exe not found at $StartupExe"
+if (-not $SkipSmoke) {
+    Assert-True (Test-Path -LiteralPath $StartupExe) "$StartupExecutable not found at $StartupExe"
+}
 
 Write-Step "Inspecting MSIX package"
 $package = Get-MsixPackageInfo -Path $PackagePath
 $manifest = $package.Manifest
 $entries = $package.Entries
 
-Assert-True ($entries -contains "musu.exe") "MSIX package missing musu.exe"
-Assert-True ($entries -contains "musu-startup.exe") "MSIX package missing musu-startup.exe"
+Assert-True ($entries -contains $ExpectedApplicationExecutable) "MSIX package missing $ExpectedApplicationExecutable"
+Assert-True ($entries -contains $RuntimeExecutable) "MSIX package missing $RuntimeExecutable"
+Assert-True ($entries -contains $StartupExecutable) "MSIX package missing $StartupExecutable"
 
 $ns = New-Object System.Xml.XmlNamespaceManager($manifest.NameTable)
 $ns.AddNamespace("appx", "http://schemas.microsoft.com/appx/manifest/foundation/windows10")
@@ -60,17 +66,33 @@ $ns.AddNamespace("rescap5", "http://schemas.microsoft.com/appx/manifest/foundati
 $identity = $manifest.SelectSingleNode("/appx:Package/appx:Identity", $ns)
 Assert-True ($null -ne $identity) "MSIX manifest missing Identity element"
 
-$aliasNode = $manifest.SelectSingleNode(
-    "//uap3:Extension[@Category='windows.appExecutionAlias']//desktop:ExecutionAlias[@Alias='musu.exe']",
+$applicationNode = $manifest.SelectSingleNode("/appx:Package/appx:Applications/appx:Application", $ns)
+Assert-True ($null -ne $applicationNode) "MSIX manifest missing Application element"
+Assert-True ($applicationNode.GetAttribute("Executable") -ieq $ExpectedApplicationExecutable) "MSIX application executable is '$($applicationNode.GetAttribute("Executable"))', expected '$ExpectedApplicationExecutable'"
+
+$aliasExtension = $manifest.SelectSingleNode(
+    "//uap3:Extension[@Category='windows.appExecutionAlias']",
     $ns
 )
-Assert-True ($null -ne $aliasNode) "MSIX manifest missing appExecutionAlias for musu.exe"
+$aliasNode = $manifest.SelectSingleNode(
+    "//uap3:Extension[@Category='windows.appExecutionAlias']//desktop:ExecutionAlias[@Alias='$RuntimeExecutable']",
+    $ns
+)
+Assert-True ($null -ne $aliasExtension) "MSIX manifest missing appExecutionAlias extension"
+Assert-True ($aliasExtension.GetAttribute("Executable") -ieq $RuntimeExecutable) "MSIX alias executable is '$($aliasExtension.GetAttribute("Executable"))', expected '$RuntimeExecutable'"
+Assert-True ($null -ne $aliasNode) "MSIX manifest missing appExecutionAlias for $RuntimeExecutable"
 
+$startupExtension = $manifest.SelectSingleNode(
+    "//desktop:Extension[@Category='windows.startupTask']",
+    $ns
+)
 $startupNode = $manifest.SelectSingleNode(
     "//desktop:Extension[@Category='windows.startupTask']//desktop:StartupTask[@TaskId='MusuBridgeStartup']",
     $ns
 )
-Assert-True ($null -ne $startupNode) "MSIX manifest missing startupTask for musu-startup.exe"
+Assert-True ($null -ne $startupExtension) "MSIX manifest missing startupTask extension"
+Assert-True ($startupExtension.GetAttribute("Executable") -ieq $StartupExecutable) "MSIX startup executable is '$($startupExtension.GetAttribute("Executable"))', expected '$StartupExecutable'"
+Assert-True ($null -ne $startupNode) "MSIX manifest missing startupTask for $StartupExecutable"
 Assert-True ($startupNode.Enabled -eq "true") "MSIX startupTask is not enabled"
 $startupImmediateRegistration = $startupNode.GetAttribute("ImmediateRegistration", "http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities/5")
 
@@ -99,8 +121,12 @@ Write-Step "MSIX manifest and contents look correct"
     IdentityName    = $package.IdentityName
     Publisher       = $package.Publisher
     Version         = $package.Version
+    ApplicationExecutable = $applicationNode.GetAttribute("Executable")
+    IncludesDesktop = $true
     IncludesMusu    = $true
     IncludesStartup = $true
+    AliasExecutable = $aliasExtension.GetAttribute("Executable")
+    StartupExecutable = $startupExtension.GetAttribute("Executable")
     StartupTaskId   = $startupNode.TaskId
     StartupEnabled  = $startupNode.Enabled
     StartupContract = $StartupContract

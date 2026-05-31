@@ -98,12 +98,31 @@ Already applied:
   `musu.msix_desktop_entrypoint_audit.v1`; release go/no-go reports
   `msix_desktop_entrypoint_verified`, and Store bundle verification rejects
   runtime-only MSIX artifacts.
+- `scripts\windows\build-msix.ps1` now stages `musu-desktop.exe` as the MSIX
+  application executable, keeps `musu.exe` as the CLI alias, keeps
+  `musu-startup.exe` as the startup task, and uses a desktop-shell package
+  description.
+- Artifact-level MSIX desktop-entrypoint evidence now passes at
+  `docs\evidence\msix-desktop-entrypoint\1.15.0-rc.1\20260531-224328-HUGH_SECOND.store-msix-desktop-artifact.evidence.json`.
+  The regenerated Store submission bundle
+  `.local-build\msix\submission-bundles\store-reviewed-20260531-224352`
+  verifies with `ok=true`, `fail_count=0`.
+- `audit-msix-desktop-entrypoint.ps1` now separates artifact audits from
+  installed-package audits. Artifact audits do not fail because an older
+  installed package exists; `-RequireInstalledPackage` still fails closed until
+  the fixed package is installed.
+- Source-fresh release packaging still needs a stronger build machine or build
+  profile adjustment: a `build-msix.ps1` release build attempt on `HUGH_SECOND`
+  failed in `musu-rs` rustc OOM/pagefile pressure even with
+  `CARGO_BUILD_JOBS=1`. The package-structure proof used `-SkipBuild` and
+  existing release binaries.
 
 Next implementation:
 
-- fix packaged desktop activation/ownership by building a real desktop MSIX
-  where Start-menu activation launches `musu-desktop.exe`, while `musu.exe`
-  remains the CLI alias and `musu-startup.exe` remains the startup task
+- produce a source-fresh fixed MSIX on a machine that can complete the release
+  build, or reduce the MSIX release build memory profile without weakening the
+  runtime contract
+- install the fixed MSIX on the primary PC and second PC
 - after `audit-msix-desktop-entrypoint.ps1 -RequireInstalledPackage -Json`
   passes, run real 60s `desktop-open` samples with `-RequireOwnedWebView2` on
   both PCs

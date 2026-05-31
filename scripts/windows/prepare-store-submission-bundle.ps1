@@ -84,6 +84,7 @@ Write-Step "Verifying Store-reviewed artifact"
 $verifyArgs = @(
     "-ExecutionPolicy", "Bypass",
     "-File", (Join-Path $scriptDir "verify-msix-package.ps1"),
+    "-Configuration", $Configuration,
     "-StartupContract", $startupContract,
     "-SkipSmoke"
 )

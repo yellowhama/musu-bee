@@ -146,7 +146,7 @@ Runtime hardening:
 - default clipboard polling: off unless `MUSU_ENABLE_CLIPBOARD_SYNC=1`
 - runtime hardening and relay-control roadmap: `docs/RELEASE_1_15_0_RC1_RUNTIME_HARDENING_RELAY_ROADMAP_2026_05_31.md`
 - go/no-go preflight now reports `msix_desktop_entrypoint_verified`, `runtime_idle_cpu_verified`, `process_ownership_verified`, and `startup_single_instance_verified`
-- current state: bridge-only 60s diagnostic evidence passes on `HUGH_SECOND`, but desktop-open evidence still fails because the installed Store/MSIX package launches `musu.exe`, does not contain `musu-desktop.exe`, and therefore creates no MUSU-owned WebView2 process; local process ownership and repeated startup evidence pass
+- current state: bridge-only 60s diagnostic evidence passes on `HUGH_SECOND`; the regenerated Store/MSIX artifact now launches `musu-desktop.exe` and contains `musu.exe` plus `musu-startup.exe`, but installed-package desktop-open evidence still fails because `HUGH_SECOND` has the older runtime-only package installed and therefore creates no MUSU-owned WebView2 process; local process ownership and repeated startup evidence pass
 
 Store metadata:
 
@@ -158,7 +158,7 @@ Store metadata:
 - Store release evidence verifier: `scripts\windows\verify-store-release-evidence.ps1`
 - Store release evidence recorder: `scripts\windows\record-store-release-verification.ps1`
 - Store submission bundle verifier: `scripts\windows\verify-store-submission-bundle.ps1`
-- MSIX desktop entrypoint verifier: `scripts\windows\audit-msix-desktop-entrypoint.ps1`; current Store-reviewed bundle fails this check because it is runtime-only
+- MSIX desktop entrypoint verifier: `scripts\windows\audit-msix-desktop-entrypoint.ps1`; regenerated Store-reviewed bundle `.local-build\msix\submission-bundles\store-reviewed-20260531-224352` passes artifact-level desktop-entrypoint verification, but `-RequireInstalledPackage` still fails until the fixed MSIX is installed
 - support mailbox DNS: `musu.pro` MX resolves to `smtp.google.com`; actual delivery still requires operator evidence
 - support mailbox evidence must match the current release version and include an explicit `musu-...` verification token; Store release evidence must include an explicit Partner Center product-name reservation timestamp
 - release go/no-go preflight: `scripts\windows\write-release-go-no-go.ps1`
@@ -176,8 +176,8 @@ Current MSIX artifacts:
 
 - local sideload: `.local-build\msix\output\musu_1.15.0.0_x64_local-sideload-manual.msix`
 - Store reviewed: `.local-build\msix\output\musu_1.15.0.0_x64_store-reviewed-immediate-registration.msix`
-- latest Store submission bundle: `.local-build\msix\submission-bundles\store-reviewed-20260530-093140`
-- submission bundle: `.local-build\msix\submission-bundles\store-reviewed-20260529-033609`
+- latest Store submission bundle: `.local-build\msix\submission-bundles\store-reviewed-20260531-224352`
+- historical submission bundle: `.local-build\msix\submission-bundles\store-reviewed-20260529-033609`
 
 Desktop release audit:
 

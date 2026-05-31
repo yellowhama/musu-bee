@@ -16,12 +16,13 @@ Partner Center account approval is no longer the blocking item.
 That does **not** mean the app itself is approved. The remaining gates are now:
 
 1. reserve the product name
-2. rebuild the Store-reviewed package so MSIX activation launches `musu-desktop.exe`
-3. regenerate a current Store-reviewed package for `1.15.0-rc.1`
-4. re-run the Store/MSIX verification scripts, including desktop-entrypoint audit
-5. create the Partner Center app submission
-6. submit the restricted-capability auto-start justification
-7. wait for Microsoft app certification / capability review
+2. produce a source-fresh fixed Store-reviewed package for `1.15.0-rc.1`, or move that build to CI/a larger Windows build machine
+3. install the fixed package on the primary and second PC
+4. re-run the installed-package Store/MSIX desktop-entrypoint audit
+5. run packaged desktop-open idle CPU evidence with an owned WebView2 process
+6. create the Partner Center app submission
+7. submit the restricted-capability auto-start justification
+8. wait for Microsoft app certification / capability review
 
 2026-05-29 packaging update:
 
@@ -35,11 +36,11 @@ That does **not** mean the app itself is approved. The remaining gates are now:
 
 2026-05-31 packaging correction:
 
-- The current MSIX artifacts are runtime-only packages.
-- `audit-msix-desktop-entrypoint.ps1` shows `<Application Executable="musu.exe">`, no `musu-desktop.exe` in the artifact, and description `MUSU packaged CLI and bridge runtime`.
-- `verify-store-submission-bundle.ps1` now rejects the current Store bundle for this reason.
-- Do not submit the current Store-reviewed MSIX as the public MUSU Desktop app.
-- The next package must make `musu-desktop.exe` the MSIX application executable, while keeping `musu.exe` as the CLI alias and `musu-startup.exe` as the startup task.
+- The old MSIX artifacts were runtime-only packages.
+- `build-msix.ps1` now stages `musu-desktop.exe` as the MSIX application executable, while keeping `musu.exe` as the CLI alias and `musu-startup.exe` as the startup task.
+- Artifact-level evidence now passes at `docs\evidence\msix-desktop-entrypoint\1.15.0-rc.1\20260531-224328-HUGH_SECOND.store-msix-desktop-artifact.evidence.json`.
+- The regenerated Store submission bundle `.local-build\msix\submission-bundles\store-reviewed-20260531-224352` verifies with `ok=true`, `fail_count=0`.
+- This is still not a Partner Center upload green light: the fixed package has not been installed on both PCs, `audit-msix-desktop-entrypoint.ps1 -RequireInstalledPackage` still fails on `HUGH_SECOND` because the old runtime-only package is installed, and a source-fresh release build on `HUGH_SECOND` failed in `musu-rs` rustc OOM/pagefile pressure even with `CARGO_BUILD_JOBS=1`.
 
 Critical correction:
 
@@ -87,6 +88,7 @@ Fallback constraints:
    - Verify manifest still has the restricted startup capability and `ImmediateRegistration=true`.
    - Verify `musu.exe` remains the CLI alias and `musu-startup.exe` remains the startup task.
    - Use `run-msix-workflow.ps1 -Configuration release`; this now forwards the configuration into `verify-msix-package.ps1` so release packages are verified with release `musu-startup.exe`.
+   - Current artifact-structure proof used `build-msix.ps1 -SkipBuild` with existing release binaries. Before Partner Center upload, produce one source-fresh package on CI or a larger Windows build machine, or reduce the release build memory profile without changing the package contract.
 
 3. Re-run proof commands.
 
@@ -101,6 +103,9 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\audit-msix-desktop-entr
   -StartupContract store-reviewed-immediate-registration `
   -ExpectedApplicationExecutable musu-desktop.exe `
   -RequireInstalledPackage
+
+powershell -ExecutionPolicy Bypass -File scripts\windows\verify-store-submission-bundle.ps1 `
+  -BundleDir .local-build\msix\submission-bundles\store-reviewed-20260531-224352
 ```
 
 4. Create the Store submission.

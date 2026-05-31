@@ -1,0 +1,91 @@
+﻿{
+    "schema":  "musu.msix_desktop_entrypoint_audit.v1",
+    "ok":  true,
+    "version":  "1.15.0-rc.1",
+    "recorded_at":  "2026-05-31T22:44:28.0737828+09:00",
+    "operator_machine":  "HUGH_SECOND",
+    "operator_user":  "empty",
+    "repo_root":  "F:\\workspace\\musu-bee",
+    "startup_contract":  "store-reviewed-immediate-registration",
+    "package_path":  "F:\\workspace\\musu-bee\\.local-build\\msix\\output\\musu_1.15.0.0_x64_store-reviewed-immediate-registration.msix",
+    "package_name":  "Yellowhama.MUSU",
+    "expected_application_executable":  "musu-desktop.exe",
+    "runtime_executable":  "musu.exe",
+    "startup_executable":  "musu-startup.exe",
+    "require_installed_package":  false,
+    "artifact":  {
+                     "identity_name":  "Yellowhama.MUSU",
+                     "version":  "1.15.0.0",
+                     "application_id":  "MUSU",
+                     "application_executable":  "musu-desktop.exe",
+                     "alias_executable":  "musu.exe",
+                     "alias_name":  "musu.exe",
+                     "startup_executable":  "musu-startup.exe",
+                     "startup_task_id":  "MusuBridgeStartup",
+                     "display_name":  "MUSU",
+                     "description":  "MUSU desktop shell for the local AI operations runtime",
+                     "contains_expected_application_executable":  true,
+                     "contains_runtime_executable":  true,
+                     "contains_startup_executable":  true
+                 },
+    "installed":  null,
+    "fail_count":  0,
+    "checks":  [
+                   {
+                       "name":  "artifact path",
+                       "status":  "pass",
+                       "message":  "MSIX artifact exists"
+                   },
+                   {
+                       "name":  "artifact application executable",
+                       "status":  "pass",
+                       "message":  "artifact application executable is musu-desktop.exe"
+                   },
+                   {
+                       "name":  "artifact application not runtime CLI",
+                       "status":  "pass",
+                       "message":  "artifact Start-menu app is not the runtime CLI"
+                   },
+                   {
+                       "name":  "artifact contains desktop executable",
+                       "status":  "pass",
+                       "message":  "artifact contains musu-desktop.exe"
+                   },
+                   {
+                       "name":  "artifact contains runtime executable",
+                       "status":  "pass",
+                       "message":  "artifact contains musu.exe for CLI alias/runtime support"
+                   },
+                   {
+                       "name":  "artifact contains startup executable",
+                       "status":  "pass",
+                       "message":  "artifact contains musu-startup.exe for startup task"
+                   },
+                   {
+                       "name":  "artifact alias executable",
+                       "status":  "pass",
+                       "message":  "artifact keeps musu.exe as the execution alias"
+                   },
+                   {
+                       "name":  "artifact startup executable",
+                       "status":  "pass",
+                       "message":  "artifact startup task uses musu-startup.exe"
+                   },
+                   {
+                       "name":  "artifact desktop description",
+                       "status":  "pass",
+                       "message":  "artifact description does not describe a runtime-only package"
+                   },
+                   {
+                       "name":  "package identity",
+                       "status":  "pass",
+                       "message":  "package identity resolved"
+                   },
+                   {
+                       "name":  "installed package",
+                       "status":  "pass",
+                       "message":  "installed package is not required for this artifact audit"
+                   }
+               ],
+    "error":  null
+}

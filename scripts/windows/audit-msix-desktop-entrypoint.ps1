@@ -148,7 +148,7 @@ try {
     }
 
     Add-CheckFromCondition "package identity" (-not [string]::IsNullOrWhiteSpace($PackageName)) "package identity resolved" "package identity could not be resolved"
-    if (-not [string]::IsNullOrWhiteSpace($PackageName)) {
+    if ([bool]$RequireInstalledPackage -and -not [string]::IsNullOrWhiteSpace($PackageName)) {
         $pkg = Get-AppxPackage -Name $PackageName -ErrorAction SilentlyContinue | Select-Object -First 1
     }
 
