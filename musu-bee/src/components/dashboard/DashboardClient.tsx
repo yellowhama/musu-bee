@@ -27,6 +27,9 @@ interface RelayTokenResponse {
   relay_ws_url: string;
 }
 
+const DASHBOARD_REFRESH_VISIBLE_MS = 30_000;
+const DASHBOARD_REFRESH_HIDDEN_MS = 120_000;
+
 // ---- Section label ----
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -245,7 +248,7 @@ export default function DashboardClient({ nodes }: Props) {
     }
     setLoading(false);
     setLastRefresh(new Date());
-  }, [nodes, selectedNode]);
+  }, [selectedNode]);
 
   // ---- Runs/costs polling ----
   const fetchRuns = useCallback(async (node: string) => {
@@ -341,20 +344,64 @@ export default function DashboardClient({ nodes }: Props) {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    let inFlight = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const clearTimer = () => {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    };
+
+    const refreshDelay = () =>
+      typeof document !== "undefined" && document.visibilityState === "hidden"
+        ? DASHBOARD_REFRESH_HIDDEN_MS
+        : DASHBOARD_REFRESH_VISIBLE_MS;
+
+    const schedule = () => {
+      if (cancelled) return;
+      clearTimer();
+      timer = setTimeout(() => {
+        void refresh();
+      }, refreshDelay());
+    };
+
+    const refresh = async () => {
+      if (cancelled || inFlight) return;
+      inFlight = true;
+      try {
+        await Promise.allSettled([
+          fetchAll(),
+          fetchWatchdogAll(),
+          selectedNode ? fetchRuns(selectedNode) : Promise.resolve(),
+        ]);
+      } finally {
+        inFlight = false;
+        schedule();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (typeof document !== "undefined" && document.visibilityState !== "hidden") {
+        clearTimer();
+        void refresh();
+      }
+    };
+
     setLoading(true);
     setAgents([]);
     setTasks([]);
     setAgentsErr(null);
     setTasksErr(null);
-    fetchAll();
-    fetchWatchdogAll();
-    if (selectedNode) fetchRuns(selectedNode);
-    const id = setInterval(() => {
-      fetchAll();
-      fetchWatchdogAll();
-      if (selectedNode) fetchRuns(selectedNode);
-    }, 15_000);
-    return () => clearInterval(id);
+    void refresh();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      cancelled = true;
+      clearTimer();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [fetchAll, fetchWatchdogAll, fetchRuns, selectedNode]);
 
   return (

@@ -42,11 +42,24 @@ Already applied:
 - cloud heartbeat defaults to 300s with 60s floor, backoff, and jitter
 - major dashboard polling loops were slowed and paused while hidden
 - CPU evidence now separates MUSU, Node.js, and WebView2 process roles
+- CPU evidence now uses native Windows parent-process lookup instead of WMI so
+  WebView2/Node helpers can be attributed to MUSU without hanging the sampler
+- the release go/no-go check now rejects runtime CPU evidence that omits
+  Node.js/WebView2 budget flags or cannot prove helper process ownership in the
+  default owned-helper scope
+- dashboard, node panel, and agents surface polling now use non-overlapping
+  recursive timeouts with 30s visible / 120s hidden cadence
+- primary debug-runtime 60s diagnostic sample passed at
+  `.local-build\runtime-idle-cpu\musu-idle-cpu-20260531-194854.json`; this is
+  evidence that the current bridge-only debug process is not the hot loop, but
+  it is not final release evidence because the owned desktop WebView2 shell and
+  second PC sample are still missing
 
 Next implementation:
 
 - add a process-ownership audit for duplicate bridge/runtime/startup processes
-- run real 60s samples with MUSU open on both PCs
+- run real 60s samples with the packaged MUSU desktop/WebView2 shell open on
+  both PCs
 - fix the exact hot loop shown by those samples
 
 ## Track B - `musu.pro` Assisted P2P

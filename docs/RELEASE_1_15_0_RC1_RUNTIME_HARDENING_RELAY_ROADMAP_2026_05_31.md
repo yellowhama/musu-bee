@@ -39,7 +39,11 @@ What it does not close:
 - Multi-device route evidence is still missing.
 - Support mailbox delivery evidence is still missing.
 - Partner Center/Microsoft Store release evidence is still missing.
-- Runtime idle CPU evidence is newly required and still missing.
+- Formal two-machine runtime idle CPU evidence is newly required and still
+  missing. A primary-side debug-runtime diagnostic sample now exists under
+  `.local-build\runtime-idle-cpu\musu-idle-cpu-20260531-194854.json`, but it
+  is not enough for the public gate because no owned Tauri/WebView2 desktop
+  shell was present and the second PC still needs its own sample.
 
 ## Code Audit Findings
 
@@ -51,7 +55,17 @@ The repo did not previously have a repeatable idle CPU gate. That was a real gap
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -MaxOneCorePercent 5 -IncludeNode -IncludeWebView2 -FailOnHot -Json
 ```
 
-The script writes `musu.runtime_idle_cpu_evidence.v1` JSON under `.local-build\runtime-idle-cpu\`. A Store/public build should pass this on a fresh boot, after opening the app, after starting the runtime, and after the second-PC route flow. The sample is invalid if no MUSU runtime process is running. The operator command includes Node.js and WebView2 so dashboard/runtime helper CPU and Tauri desktop shell CPU are counted; close unrelated Node.js/WebView2-based apps before collecting final evidence.
+The script writes `musu.runtime_idle_cpu_evidence.v1` JSON under `.local-build\runtime-idle-cpu\`. A Store/public build should pass this on a fresh boot, after opening the app, after starting the runtime, and after the second-PC route flow. The sample is invalid if no MUSU runtime process is running.
+
+The measurement now separates MUSU, Node.js, and WebView2 by role and records
+`helper_process_scope`. By default, Node/WebView2 helpers are included only when
+they are owned by the MUSU process tree or are repo-related helpers; unrelated
+system WebView2 processes are not counted unless the operator explicitly passes
+`-IncludeUnrelatedHelpers` for a whole-machine diagnostic. On Windows this uses
+native parent-process lookup instead of WMI, because WMI/CIM can hang and would
+make CPU evidence unreliable. Release go/no-go now rejects runtime CPU evidence
+that omits `-IncludeNode`, omits `-IncludeWebView2`, has no valid helper scope,
+or cannot prove process ownership metadata for the default owned-helper scope.
 
 `scripts\windows\write-release-go-no-go.ps1` now reports `runtime_idle_cpu_verified` and blocks public readiness until runtime idle CPU evidence passes on at least two machines with the 60s / 5%-of-one-core threshold.
 
@@ -104,6 +118,12 @@ Change made:
 - doctor card polling: 10s -> 30s, pause when hidden
 - fleet dashboard polling: 10s -> 30s, pause when hidden
 - device discovery polling: 10s -> 15s, pause when hidden
+- main dashboard polling: 15s fixed interval -> 30s visible / 120s hidden
+  recursive timeout with no overlapping refreshes
+- node panel registry/discovery polling: 15s fixed interval -> 30s visible /
+  120s hidden recursive timeout
+- agents surface polling: 5s fixed interval -> 30s visible / 120s hidden
+  recursive timeout
 
 This does not prove the reported 20% busy-loop is fixed. It removes unnecessary foreground-style polling from the idle path and makes browser/WebView2 CPU easier to interpret.
 
@@ -170,7 +190,7 @@ Minimal client behavior:
 
 ### P0: Stop release until idle resource behavior is measured
 
-1. Run `measure-musu-idle-cpu.ps1 -IncludeNode -IncludeWebView2` on primary and second PC with MUSU installed, app opened, runtime started, and unrelated Node.js/WebView2 apps closed.
+1. Run `measure-musu-idle-cpu.ps1 -IncludeNode -IncludeWebView2` on primary and second PC with MUSU installed, app opened, runtime started, and the Tauri/WebView2 desktop shell present.
 2. Fix any process above 5% of one core while idle.
 3. Record passing idle CPU evidence; the release go/no-go gate now blocks until it passes.
 4. Add process-count and startup-repeat checks: repeated desktop "Start Runtime" clicks must not spawn duplicate bridges.

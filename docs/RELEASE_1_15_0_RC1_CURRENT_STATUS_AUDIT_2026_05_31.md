@@ -23,7 +23,7 @@ Current external evidence blockers:
 2. real `musu@musu.pro` inbox delivery evidence
 3. Partner Center/Microsoft Store approval evidence, including restricted startup capability review
 
-2026-05-31 update: the second-PC MSIX install evidence has now been returned and recorded locally under `docs\evidence\msix-install\1.15.0-rc.1\20260531-165211-HUGH-MAIN.evidence.json`; final go/no-go still needs to be rerun after this commit and after the new runtime-quality work.
+2026-05-31 update: the second-PC MSIX install evidence has now been returned and recorded locally under `docs\evidence\msix-install\1.15.0-rc.1\20260531-165211-HUGH-MAIN.evidence.json`. Route proof is still missing because `192.168.1.192:8949` and `172.27.208.1:8949` were not reachable from the primary during the follow-up smoke attempt. Runtime CPU work has moved from a broad process-name sampler to an owned-process-tree sampler; one primary debug-runtime sample passed, but formal two-machine desktop/WebView2 evidence is still missing.
 
 Current qualitative completion:
 
@@ -40,6 +40,7 @@ This document supersedes wiki/521 for the **current 2026-05-31 release status**.
 
 | Item | Current value |
 |---|---|
+| Latest release code commit | `b3a0618c47c06d30e81e4d4bb9b1e09fd94bd9c6` before the current idle-CPU hardening work |
 | Latest smoke source commit | `5211ff2ba6d095e474780997ebec10b2327358f4` |
 | Working tree | clean after the post-smoke evidence/docs commit |
 | Latest single-machine evidence | `docs\evidence\single-machine\1.15.0-rc.1\20260531-192015-HUGH_SECOND.evidence.json` |
@@ -55,7 +56,7 @@ This document supersedes wiki/521 for the **current 2026-05-31 release status**.
 | Store submission bundle verification | `ok=true`, `fail_count=0` |
 | Public metadata | `https://musu.pro/privacy` and `/support` pass with `musu@musu.pro` |
 | Second-PC MSIX install evidence | `docs\evidence\msix-install\1.15.0-rc.1\20260531-165211-HUGH-MAIN.evidence.json` |
-| Runtime idle CPU evidence | missing; `write-release-go-no-go.ps1` now blocks until `scripts\windows\measure-musu-idle-cpu.ps1` evidence passes on two machines with MUSU open and Node.js/WebView2 included |
+| Runtime idle CPU evidence | formal gate still missing; diagnostic primary debug-runtime sample passed at `.local-build\runtime-idle-cpu\musu-idle-cpu-20260531-194854.json`, but public readiness still requires two machines with the packaged desktop/WebView2 shell open |
 | Current support verification id | `musu-store-support-1.15.0-rc.1-20260531-191548` |
 | Current second-PC kit | `kits\musu-multidevice-1.15.0-rc.1-20260531-191548.zip` |
 | Final release status | `ready_for_public_desktop_release=false` |
@@ -102,6 +103,8 @@ Findings:
 9. **New internal P0 found.** Operator-observed idle CPU busy-loop behavior is now a release blocker until `measure-musu-idle-cpu.ps1` evidence passes on both machines.
 10. **One default background loop was hardened.** Clipboard sync no longer starts by default; it now requires `MUSU_ENABLE_CLIPBOARD_SYNC=1`.
 11. **Relay/control-plane path is underspecified for public multi-device.** Existing cloud registration lists sibling nodes, but there is no explicit relay session, path negotiation, or fallback tunnel evidence yet. See `docs/RELEASE_1_15_0_RC1_RUNTIME_HARDENING_RELAY_ROADMAP_2026_05_31.md` (wiki/523).
+12. **Runtime CPU sampler false attribution was fixed.** `measure-musu-idle-cpu.ps1 -IncludeWebView2` no longer treats every stale WebView2 process on the machine as MUSU CPU. It now defaults to MUSU-owned descendants or repo-related helpers, records helper scope and process ownership metadata, and uses native Windows parent-process lookup instead of WMI/CIM because WMI timed out on the operator machine.
+13. **Frontend polling moved another step toward an idle budget.** Dashboard, node panel, and agents surface polling no longer use hot fixed intervals; they use non-overlapping recursive timeouts with 30s visible / 120s hidden cadence.
 
 ## Next Steps
 
@@ -111,10 +114,11 @@ P0: keep No-Go until internal runtime quality and external evidence gates both p
    ```powershell
    powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -MaxOneCorePercent 5 -IncludeNode -IncludeWebView2 -FailOnHot -Json
    ```
-   MUSU must be open and idle during the sample. The gate now fails if no
-   MUSU runtime process is running, and the operator command includes Node.js
-   plus WebView2 so the dashboard/runtime helper processes and Tauri desktop
-   shell are inside the idle CPU budget.
+   MUSU must be open and idle during the sample. The gate fails if no MUSU
+   runtime process is running, if Node.js/WebView2 budget flags are omitted,
+   or if the default owned-helper scope cannot prove process ownership. The
+   sample should include the packaged desktop shell so owned WebView2 CPU is
+   represented.
 2. Fix any process that exceeds the idle CPU budget.
 3. Record passing runtime CPU evidence; go/no-go now blocks until it passes.
 4. Harden `musu up` and smoke scripts so duplicate/stale runtime state cannot hang the operator.

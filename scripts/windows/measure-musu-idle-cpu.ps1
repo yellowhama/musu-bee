@@ -5,6 +5,7 @@ param(
     [string[]]$ProcessName = @("musu", "MUSU", "musud"),
     [switch]$IncludeNode,
     [switch]$IncludeWebView2,
+    [switch]$IncludeUnrelatedHelpers,
     [string]$OutputPath,
     [switch]$FailOnHot,
     [switch]$Json
@@ -41,6 +42,189 @@ if ($IncludeWebView2) {
     [void]$names.Add("msedgewebview2")
 }
 
+$script:processMetadataTimedOut = $false
+$script:processMetadataAvailable = $false
+$script:nativeParentLookupAvailable = $false
+
+function ConvertTo-ExeName([string]$Name) {
+    if ($Name.EndsWith(".exe", [System.StringComparison]::OrdinalIgnoreCase)) {
+        return $Name
+    }
+    return "$Name.exe"
+}
+
+function Get-Sha256Hex([string]$Text) {
+    if ([string]::IsNullOrEmpty($Text)) {
+        return $null
+    }
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($Text)
+        $hash = $sha.ComputeHash($bytes)
+        return (($hash | ForEach-Object { $_.ToString("x2") }) -join "")
+    }
+    finally {
+        $sha.Dispose()
+    }
+}
+
+function ConvertTo-CommandLineHint([string]$CommandLine) {
+    if ([string]::IsNullOrWhiteSpace($CommandLine)) {
+        return $null
+    }
+
+    $value = $CommandLine
+    $value = $value -replace "(?i)(MUSU_[A-Z0-9_]*(TOKEN|SECRET|KEY|PASSWORD)=)[^\s]+", '$1<redacted>'
+    $value = $value -replace "(?i)(--?(token|secret|key|password)\s+)[^\s]+", '$1<redacted>'
+    $value = $value -replace "(?i)((token|secret|key|password)=)[^&\s]+", '$1<redacted>'
+    if ($value.Length -gt 260) {
+        return $value.Substring(0, 260) + "..."
+    }
+    return $value
+}
+
+function Initialize-NativeParentLookup {
+    if ($script:nativeParentLookupAvailable) {
+        return
+    }
+    if ($env:OS -ne "Windows_NT") {
+        return
+    }
+    if ("MusuProcessParent" -as [type]) {
+        $script:nativeParentLookupAvailable = $true
+        return
+    }
+
+    try {
+        Add-Type -TypeDefinition @"
+using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+
+public static class MusuProcessParent
+{
+    [StructLayout(LayoutKind.Sequential)]
+    private struct PROCESS_BASIC_INFORMATION
+    {
+        public IntPtr Reserved1;
+        public IntPtr PebBaseAddress;
+        public IntPtr Reserved2_0;
+        public IntPtr Reserved2_1;
+        public IntPtr UniqueProcessId;
+        public IntPtr InheritedFromUniqueProcessId;
+    }
+
+    [DllImport("ntdll.dll")]
+    private static extern int NtQueryInformationProcess(
+        IntPtr processHandle,
+        int processInformationClass,
+        ref PROCESS_BASIC_INFORMATION processInformation,
+        int processInformationLength,
+        out int returnLength);
+
+    public static int GetParentProcessId(int processId)
+    {
+        using (var process = Process.GetProcessById(processId))
+        {
+            var info = new PROCESS_BASIC_INFORMATION();
+            int returnLength;
+            int status = NtQueryInformationProcess(
+                process.Handle,
+                0,
+                ref info,
+                Marshal.SizeOf(typeof(PROCESS_BASIC_INFORMATION)),
+                out returnLength);
+            if (status != 0)
+            {
+                throw new InvalidOperationException("NtQueryInformationProcess failed: " + status);
+            }
+            return info.InheritedFromUniqueProcessId.ToInt32();
+        }
+    }
+}
+"@ -ErrorAction Stop
+        $script:nativeParentLookupAvailable = $true
+    }
+    catch {
+        $script:nativeParentLookupAvailable = $false
+    }
+}
+
+function Get-ParentProcessIdSafe([int]$ProcessId) {
+    Initialize-NativeParentLookup
+    if (-not $script:nativeParentLookupAvailable) {
+        return $null
+    }
+
+    try {
+        return [MusuProcessParent]::GetParentProcessId($ProcessId)
+    }
+    catch {
+        return $null
+    }
+}
+
+function Get-ProcessMetadataMap($Names) {
+    $map = @{}
+    foreach ($process in Get-Process -ErrorAction SilentlyContinue) {
+        if (-not $Names.Contains($process.ProcessName)) {
+            continue
+        }
+
+        $parentProcessId = Get-ParentProcessIdSafe ([int]$process.Id)
+        if ($null -ne $parentProcessId) {
+            $script:processMetadataAvailable = $true
+        }
+        $map[[int]$process.Id] = [pscustomobject]@{
+            parent_process_id = $parentProcessId
+            executable_path = Get-ProcessPathSafe $process
+            command_line = $null
+        }
+    }
+
+    return $map
+}
+
+function Test-RepoRelatedProcess($Meta, [string]$RepoRoot, [string]$ProcessPath) {
+    $needle = $RepoRoot.ToLowerInvariant()
+    $values = @($ProcessPath)
+    if ($null -ne $Meta) {
+        $values += @($Meta.executable_path, $Meta.command_line)
+    }
+    foreach ($value in $values) {
+        if ([string]::IsNullOrWhiteSpace($value)) {
+            continue
+        }
+        $lower = ([string]$value).ToLowerInvariant()
+        if ($lower.Contains($needle) -or $lower.Contains("musu-bee") -or $lower.Contains("musu-rs")) {
+            return $true
+        }
+    }
+    return $false
+}
+
+function Test-DescendantProcess([int]$ProcessId, $RootProcessIds, $MetadataMap) {
+    $seen = New-Object 'System.Collections.Generic.HashSet[int]'
+    $current = $ProcessId
+
+    while ($MetadataMap.ContainsKey($current)) {
+        if (-not $seen.Add($current)) {
+            return $false
+        }
+
+        $parent = $MetadataMap[$current].parent_process_id
+        if ($null -eq $parent -or $parent -le 0) {
+            return $false
+        }
+        if ($RootProcessIds.Contains([int]$parent)) {
+            return $true
+        }
+        $current = [int]$parent
+    }
+
+    return $false
+}
+
 function Get-ProcessPathSafe($Process) {
     try {
         return [string]$Process.Path
@@ -59,12 +243,13 @@ function Get-ProcessStartTimeSafe($Process) {
     }
 }
 
-function Get-TargetSnapshot($Names) {
+function Get-RawProcessSnapshot($Names) {
     $items = @()
     foreach ($process in Get-Process -ErrorAction SilentlyContinue) {
         if (-not $Names.Contains($process.ProcessName)) {
             continue
         }
+
         $items += [pscustomobject]@{
             id = [int]$process.Id
             process_name = [string]$process.ProcessName
@@ -73,16 +258,96 @@ function Get-TargetSnapshot($Names) {
             path = Get-ProcessPathSafe $process
         }
     }
-    return $items
+    return [pscustomobject]@{
+        captured_at = Get-Date
+        items = $items
+    }
 }
 
-$startedAt = Get-Date
-$before = @(Get-TargetSnapshot $names)
+function Add-ProcessOwnership {
+    param(
+        [object[]]$Items,
+        $MetadataMap,
+        $RootProcessIds
+    )
+
+    $owned = @()
+    foreach ($item in $Items) {
+        $meta = if ($MetadataMap.ContainsKey([int]$item.id)) { $MetadataMap[[int]$item.id] } else { $null }
+        $isMusu = $musuNames.Contains($item.process_name)
+        $isNode = ($item.process_name -ieq "node")
+        $isWebView2 = ($item.process_name -ieq "msedgewebview2")
+        $isDescendant = Test-DescendantProcess -ProcessId ([int]$item.id) -RootProcessIds $RootProcessIds -MetadataMap $MetadataMap
+        $isRepoRelated = Test-RepoRelatedProcess -Meta $meta -RepoRoot $repoRoot -ProcessPath $item.path
+        $include = $isMusu
+        $classificationReason = if ($isMusu) { "musu_process_name" } else { $null }
+
+        if (-not $include -and $IncludeNode -and $isNode) {
+            if ($IncludeUnrelatedHelpers) {
+                $include = $true
+                $classificationReason = "all_node_processes"
+            }
+            elseif ($isDescendant) {
+                $include = $true
+                $classificationReason = "musu_descendant"
+            }
+            elseif ($isRepoRelated) {
+                $include = $true
+                $classificationReason = "repo_related_node"
+            }
+        }
+
+        if (-not $include -and $IncludeWebView2 -and $isWebView2) {
+            if ($IncludeUnrelatedHelpers) {
+                $include = $true
+                $classificationReason = "all_webview2_processes"
+            }
+            elseif ($isDescendant) {
+                $include = $true
+                $classificationReason = "musu_descendant"
+            }
+        }
+
+        if (-not $include) {
+            continue
+        }
+
+        $owned += [pscustomobject]@{
+            id = $item.id
+            process_name = $item.process_name
+            cpu_seconds = $item.cpu_seconds
+            start_time = $item.start_time
+            path = $item.path
+            parent_process_id = if ($meta) { $meta.parent_process_id } else { $null }
+            is_descendant_of_musu = [bool]$isDescendant
+            is_repo_related = [bool]$isRepoRelated
+            classification_reason = $classificationReason
+            command_line_present = [bool]($meta -and -not [string]::IsNullOrWhiteSpace($meta.command_line))
+            command_line_sha256 = if ($meta) { Get-Sha256Hex $meta.command_line } else { $null }
+            command_line_hint = if ($meta) { ConvertTo-CommandLineHint $meta.command_line } else { $null }
+        }
+    }
+    return $owned
+}
+
+$beforeRaw = Get-RawProcessSnapshot $names
 Start-Sleep -Seconds $SampleSeconds
-$after = @(Get-TargetSnapshot $names)
-$completedAt = Get-Date
+$afterRaw = Get-RawProcessSnapshot $names
+$startedAt = $beforeRaw.captured_at
+$completedAt = $afterRaw.captured_at
 $elapsedSeconds = [Math]::Max(0.001, ($completedAt - $startedAt).TotalSeconds)
 $cores = [Environment]::ProcessorCount
+
+$metadataMap = Get-ProcessMetadataMap $names
+$rootProcessIds = New-Object 'System.Collections.Generic.HashSet[int]'
+foreach ($process in @($beforeRaw.items + $afterRaw.items)) {
+    if ($musuNames.Contains($process.process_name)) {
+        [void]$rootProcessIds.Add([int]$process.id)
+    }
+}
+
+$before = @(Add-ProcessOwnership -Items $beforeRaw.items -MetadataMap $metadataMap -RootProcessIds $rootProcessIds)
+$after = @(Add-ProcessOwnership -Items $afterRaw.items -MetadataMap $metadataMap -RootProcessIds $rootProcessIds)
 
 $samples = @()
 foreach ($current in $after) {
@@ -114,6 +379,13 @@ foreach ($current in $after) {
         cpu_pct_total = [Math]::Round($oneCorePercent / $cores, 2)
         start_time = $current.start_time
         path = $current.path
+        parent_process_id = $current.parent_process_id
+        is_descendant_of_musu = $current.is_descendant_of_musu
+        is_repo_related = $current.is_repo_related
+        classification_reason = $current.classification_reason
+        command_line_present = $current.command_line_present
+        command_line_sha256 = $current.command_line_sha256
+        command_line_hint = $current.command_line_hint
     }
 }
 
@@ -165,6 +437,14 @@ $result = [ordered]@{
     musu_process_names = @($musuNames)
     include_node = [bool]$IncludeNode
     include_webview2 = [bool]$IncludeWebView2
+    include_unrelated_helpers = [bool]$IncludeUnrelatedHelpers
+    helper_process_scope = if ($IncludeUnrelatedHelpers) {
+        "all_matching_process_names"
+    } else {
+        "musu_process_tree_or_repo_related"
+    }
+    process_metadata_available = [bool]$script:processMetadataAvailable
+    process_metadata_timed_out = [bool]$script:processMetadataTimedOut
     process_count_before = $before.Count
     process_count_after = $after.Count
     musu_process_count_after = $musuProcessCountAfter

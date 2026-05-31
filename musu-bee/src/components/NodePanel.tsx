@@ -16,6 +16,9 @@ interface RegistryNode {
   last_seen: string;
 }
 
+const NODE_PANEL_REFRESH_VISIBLE_MS = 30_000;
+const NODE_PANEL_REFRESH_HIDDEN_MS = 120_000;
+
 export default function NodePanel() {
   const [nodes, setNodes] = useState<NodeInfo[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -68,15 +71,55 @@ export default function NodePanel() {
   }, []);
 
   useEffect(() => {
-    void fetchNodes();
-    void fetchRegistry();
-    void fetchDiscovered();
-    const interval = setInterval(() => {
-      void fetchNodes();
-      void fetchRegistry();
-      void fetchDiscovered();
-    }, 15000);
-    return () => clearInterval(interval);
+    let cancelled = false;
+    let inFlight = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const clearTimer = () => {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    };
+
+    const refreshDelay = () =>
+      typeof document !== "undefined" && document.visibilityState === "hidden"
+        ? NODE_PANEL_REFRESH_HIDDEN_MS
+        : NODE_PANEL_REFRESH_VISIBLE_MS;
+
+    const schedule = () => {
+      if (cancelled) return;
+      clearTimer();
+      timer = setTimeout(() => {
+        void refresh();
+      }, refreshDelay());
+    };
+
+    const refresh = async () => {
+      if (cancelled || inFlight) return;
+      inFlight = true;
+      try {
+        await Promise.allSettled([fetchNodes(), fetchRegistry(), fetchDiscovered()]);
+      } finally {
+        inFlight = false;
+        schedule();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (typeof document !== "undefined" && document.visibilityState !== "hidden") {
+        clearTimer();
+        void refresh();
+      }
+    };
+
+    void refresh();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      cancelled = true;
+      clearTimer();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [fetchNodes, fetchRegistry, fetchDiscovered]);
 
   const handlePair = async () => {
@@ -344,7 +387,7 @@ export default function NodePanel() {
                     <button
                       onClick={() => {
                         try {
-                          const u = new URL(dn.url);
+                          void new URL(dn.url);
                           void handleCloudPair({ node_name: dn.name, public_url: dn.url, last_seen: new Date().toISOString() });
                         } catch {
                           // ignore

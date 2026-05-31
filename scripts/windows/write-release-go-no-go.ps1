@@ -106,6 +106,24 @@ function Test-RuntimeIdleCpuEvidence {
         $okValue = [bool]$evidence.ok
         $checks.Add((New-Check -Name "evidence ok" -Status ($(if ($okValue) { "pass" } else { "fail" })) -Message ($(if ($okValue) { "evidence reports ok=true" } else { "evidence reports ok=false" })))) | Out-Null
 
+        $includeNode = ($evidence.PSObject.Properties["include_node"] -and [bool]$evidence.include_node)
+        $checks.Add((New-Check -Name "Node.js budget included" -Status ($(if ($includeNode) { "pass" } else { "fail" })) -Message ($(if ($includeNode) { "evidence includes Node.js helper processes" } else { "evidence did not run with -IncludeNode" })))) | Out-Null
+
+        $includeWebView2 = ($evidence.PSObject.Properties["include_webview2"] -and [bool]$evidence.include_webview2)
+        $checks.Add((New-Check -Name "WebView2 budget included" -Status ($(if ($includeWebView2) { "pass" } else { "fail" })) -Message ($(if ($includeWebView2) { "evidence includes WebView2 helper processes" } else { "evidence did not run with -IncludeWebView2" })))) | Out-Null
+
+        $helperScope = if ($evidence.PSObject.Properties["helper_process_scope"]) { [string]$evidence.helper_process_scope } else { "" }
+        $helperScopeValid = $helperScope -in @("musu_process_tree_or_repo_related", "all_matching_process_names")
+        $checks.Add((New-Check -Name "helper process scope" -Status ($(if ($helperScopeValid) { "pass" } else { "fail" })) -Message ($(if ($helperScopeValid) { "helper process scope is $helperScope" } else { "helper process scope is missing or invalid" })))) | Out-Null
+
+        $includeUnrelatedHelpers = ($evidence.PSObject.Properties["include_unrelated_helpers"] -and [bool]$evidence.include_unrelated_helpers)
+        $metadataTimedOut = ($evidence.PSObject.Properties["process_metadata_timed_out"] -and [bool]$evidence.process_metadata_timed_out)
+        $checks.Add((New-Check -Name "process metadata timeout" -Status ($(if (-not $metadataTimedOut) { "pass" } else { "fail" })) -Message ($(if (-not $metadataTimedOut) { "process ownership metadata did not time out" } else { "process ownership metadata timed out" })))) | Out-Null
+
+        $metadataAvailable = ($evidence.PSObject.Properties["process_metadata_available"] -and [bool]$evidence.process_metadata_available)
+        $needsMetadata = (($includeNode -or $includeWebView2) -and -not $includeUnrelatedHelpers)
+        $checks.Add((New-Check -Name "process ownership metadata" -Status ($(if (-not $needsMetadata -or $metadataAvailable) { "pass" } else { "fail" })) -Message ($(if (-not $needsMetadata) { "all matching helper processes were intentionally included" } elseif ($metadataAvailable) { "process ownership metadata is available" } else { "process ownership metadata is missing; helper ownership cannot be proven" })))) | Out-Null
+
         $operatorMachine = ""
         if ($evidence.PSObject.Properties["operator_machine"]) {
             $operatorMachine = [string]$evidence.operator_machine
