@@ -189,7 +189,14 @@ function Test-RuntimeIdleCpuEvidence {
         $memoryByRolePresent = $evidence.PSObject.Properties["memory_totals_by_role_mb"]
         $checks.Add((New-Check -Name "memory by role present" -Status ($(if ($memoryByRolePresent) { "pass" } else { "fail" })) -Message ($(if ($memoryByRolePresent) { "memory totals by role are recorded" } else { "memory totals by role are missing" })))) | Out-Null
 
-        $resourceBudgetViolations = if ($evidence.PSObject.Properties["resource_budget_violations"]) { @($evidence.resource_budget_violations) } else { @("resource budget violations field missing") }
+        $resourceBudgetViolations = @(
+            if ($evidence.PSObject.Properties["resource_budget_violations"]) {
+                @($evidence.resource_budget_violations)
+            }
+            else {
+                "resource budget violations field missing"
+            }
+        )
         $checks.Add((New-Check -Name "resource budget violations" -Status ($(if ($resourceBudgetViolations.Count -eq 0) { "pass" } else { "fail" })) -Message ($(if ($resourceBudgetViolations.Count -eq 0) { "no resource budget violations reported" } else { "resource budget violation(s): $($resourceBudgetViolations -join '; ')" })))) | Out-Null
 
         $maxSample = 0.0
