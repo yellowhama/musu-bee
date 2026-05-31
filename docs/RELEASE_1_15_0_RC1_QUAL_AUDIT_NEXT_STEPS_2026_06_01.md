@@ -66,17 +66,28 @@ runtime route selector is not yet using the hosted control plane.
   `Invoke-RestMethod ... /api/bridge/tasks/<id>` timed out after 15 seconds.
 - After smoke hardening and mDNS/Tailscale IPv6 hardening, current
   single-machine smoke was recorded under
-  `docs\evidence\single-machine\1.15.0-rc.1\20260601-022021-HUGH_SECOND.evidence.json`
-  on commit `47f261475abf7a88deb7632a27c242a97b603771`, with
+  `docs\evidence\single-machine\1.15.0-rc.1\20260601-030639-HUGH_SECOND.evidence.json`
+  on commit `12f8cabaefb5722eb45941012d47848d95c9f895`, with
   `dashboard_task_poll_error_count=0`, dashboard output
-  `MUSU_RELEASE_SMOKE_OK_20260601_021958`, CLI output
-  `MUSU_CLI_ROUTE_OK_20260601_021958`, dashboard task
-  `04c4cae9-4b5c-4db3-bfb5-92e5429d8768`, and bridge
-  `http://127.0.0.1:1923`.
+  `MUSU_RELEASE_SMOKE_OK_20260601_030619`, CLI output
+  `MUSU_CLI_ROUTE_OK_20260601_030619`, dashboard task
+  `42449837-4936-4e79-82a6-d7bbeede6108`, and bridge
+  `http://127.0.0.1:14130`.
 - `cargo check -j 1` and `cargo build --bin musu -j 1` passed after the mDNS
   IPv6 hardening.
 - `musu discover --timeout 2` completed without the Tailscale IPv6 mDNS
   `os error 10065` log spam when `MUSU_MDNS_ENABLE_IPV6` was unset.
+- After route/relay diagnostic CLI work, targeted Rust validation passed:
+  `cargo check --manifest-path .\musu-rs\Cargo.toml -j 1`,
+  `cargo test --manifest-path .\musu-rs\Cargo.toml --lib cli_commands`,
+  `cargo test --manifest-path .\musu-rs\Cargo.toml --bin musu cli_commands`,
+  `musu relay status --json`, and `musu route --explain --json`.
+- Current primary packaged `desktop-open` runtime CPU evidence is
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-030838-HUGH_SECOND.desktop-open.evidence.json`
+  on commit `e0eebac44184e285ba120df5b4e0e9b209e83692`; it passed with
+  `git_dirty=false`, owned WebView2 `6`, owned Node `0`, max one-core CPU
+  `musu=0`, `webview2=0.21`, total working set `371.96MB`, and no
+  resource-budget violations.
 
 The release gate still needs two-machine desktop-open CPU evidence, hardened
 multi-device route evidence, support inbox delivery evidence, and Store
@@ -87,7 +98,7 @@ submission/release evidence.
 | Dimension | Current score | Notes |
 |---|---:|---|
 | Packaging trust | 8/10 | MSIX desktop-entrypoint and local-sideload contract are now coherent. Store certification remains external. |
-| Runtime efficiency | 7/10 | Current primary packaged desktop-open CPU evidence passes at `musu=0%`, `webview2=0.18%` of one logical core, but second-PC evidence is still missing. |
+| Runtime efficiency | 7/10 | Current primary packaged desktop-open CPU evidence passes at `musu=0%`, `webview2=0.21%` of one logical core, but second-PC evidence is still missing. |
 | P2P product story | 5/10 | The strategy is right, but the implementation still depends on manual/direct paths. `musu route --explain` and `musu relay status` now expose the gap, but `musu.pro` rendezvous is not wired into routing yet. |
 | UX/branding | 6/10 -> 7/10 | App mark is strong. Public web asset tracking, wordmark fallback, and basic static logo lockups are now fixed. Store screenshots and product demo media are still needed. |
 | Release evidence quality | 8/10 | Gates are strict and honest. Runtime CPU evidence must now match current HEAD or documentation/evidence-only deltas, preventing stale CPU samples from passing after code changes. |
@@ -98,7 +109,7 @@ submission/release evidence.
 1. **Finish runtime evidence on two PCs**
    - Close unrelated old WebView2/Node/dev-server processes.
    - Primary evidence now exists at
-     `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-022649-HUGH_SECOND.desktop-open.evidence.json`.
+     `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-030838-HUGH_SECOND.desktop-open.evidence.json`.
    - Run `run-second-pc-release-check.ps1` on the second PC; it now captures
      MSIX install evidence, handoff, and `desktop-open` runtime CPU evidence in
      one return zip.
