@@ -104,15 +104,17 @@ Fresh repeatable script smoke passed again on 2026-05-29 06:52 KST:
 - dashboard output: `MUSU_RELEASE_SMOKE_OK_20260529_0652`
 - CLI route output: `MUSU_CLI_ROUTE_OK_20260529_0652`
 
-Current machine-readable single-machine evidence passed and was recorded on 2026-05-31 21:26 KST after the runtime resource-budget gate update:
+Current machine-readable single-machine evidence passed and was recorded on 2026-06-01 01:28 KST after smoke harness hardening and mDNS/Tailscale IPv6 hardening:
 
-- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260531-212651-HUGH_SECOND.evidence.json`
-- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260531-212651-HUGH_SECOND.verification.json`
-- commit: `a89f6dd6a5663af318eb4eebbbe7de75f20c2471`
-- dashboard task id: `0cdd096c-626d-46ee-95e4-c347805016d8`
-- bridge: `http://127.0.0.1:9818`
-- dashboard output: `MUSU_RELEASE_SMOKE_OK`
-- CLI route output: `MUSU_CLI_ROUTE_OK`
+- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260601-012801-HUGH_SECOND.evidence.json`
+- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260601-012801-HUGH_SECOND.verification.json`
+- summary: `docs\evidence\single-machine\1.15.0-rc.1\20260601-012801-HUGH_SECOND.summary.md`
+- commit: `d4820173dab1f19abf0ac287abbd073330f6eb1b`
+- dashboard task id: `fe857b79-47af-47d8-abf0-80bcbb63d883`
+- bridge: `http://127.0.0.1:10474`
+- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260601_012735`
+- CLI route output: `MUSU_CLI_ROUTE_OK_20260601_012735`
+- dashboard task poll errors: `0`
 
 Multi-device packet:
 

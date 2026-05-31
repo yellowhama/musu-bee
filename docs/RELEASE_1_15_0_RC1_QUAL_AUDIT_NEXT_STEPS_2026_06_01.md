@@ -59,17 +59,23 @@ runtime route selector is not yet using the hosted control plane.
 - Earlier single-machine smoke attempted on commit `5e8d195` but failed while
   polling dashboard task status:
   `Invoke-RestMethod ... /api/bridge/tasks/<id>` timed out after 15 seconds.
-- After smoke hardening, local smoke on commit `31c5ee7` produced passing
-  `.local-build` evidence `20260601-003017-HUGH_SECOND` with
-  `dashboard_task_poll_error_count=0` and unique CLI output
-  `MUSU_CLI_ROUTE_OK_20260601_003017`.
+- After smoke hardening and mDNS/Tailscale IPv6 hardening, current
+  single-machine smoke was recorded under
+  `docs\evidence\single-machine\1.15.0-rc.1\20260601-012801-HUGH_SECOND.evidence.json`
+  on commit `d4820173dab1f19abf0ac287abbd073330f6eb1b`, with
+  `dashboard_task_poll_error_count=0`, dashboard output
+  `MUSU_RELEASE_SMOKE_OK_20260601_012735`, CLI output
+  `MUSU_CLI_ROUTE_OK_20260601_012735`, dashboard task
+  `fe857b79-47af-47d8-abf0-80bcbb63d883`, and bridge
+  `http://127.0.0.1:10474`.
 - `cargo check -j 1` and `cargo build --bin musu -j 1` passed after the mDNS
   IPv6 hardening.
 - `musu discover --timeout 2` completed without the Tailscale IPv6 mDNS
   `os error 10065` log spam when `MUSU_MDNS_ENABLE_IPV6` was unset.
 
-The release gate still needs committed/recorded single-machine evidence after
-the mDNS hardening commit and then two-machine desktop-open CPU evidence.
+The release gate still needs two-machine desktop-open CPU evidence, hardened
+multi-device route evidence, support inbox delivery evidence, and Store
+submission/release evidence.
 
 ## Qualitative Evaluation
 
@@ -79,36 +85,31 @@ the mDNS hardening commit and then two-machine desktop-open CPU evidence.
 | Runtime efficiency | 6/10 | Busy-loop mitigations landed and local CPU samples are promising, but two-machine packaged desktop evidence is still missing. |
 | P2P product story | 5/10 | The strategy is right, but the implementation still depends on manual/direct paths. `musu.pro` rendezvous is not wired into routing yet. |
 | UX/branding | 6/10 -> 7/10 | App mark is strong. Public web asset tracking and wordmark fallback are now fixed. Full marketing lockups/screenshots are still needed. |
-| Release evidence quality | 7/10 | Gates are strict and honest. The latest smoke failure shows the gate is catching real local instability instead of papering it over. |
-| Overall public readiness | ~58% | Stronger than before, but still No-Go because current smoke, second-PC CPU, real route, support inbox, and Store evidence remain open. |
+| Release evidence quality | 8/10 | Gates are strict and honest, and current single-machine evidence is now refreshed after the smoke/mDNS fixes. |
+| Overall public readiness | ~62% | Stronger than before, but still No-Go because second-PC CPU, real route, support inbox, and Store evidence remain open. |
 
 ## Next Roadmap
 
-1. **Refresh current single-machine evidence on a stable host**
+1. **Finish runtime evidence on two PCs**
    - Close unrelated old WebView2/Node/dev-server processes.
-   - Start one dashboard server on `127.0.0.1:3000`.
-   - Run `smoke-single-machine-beta.ps1`.
-   - Record evidence only if it verifies against current HEAD or doc/evidence-only delta.
-
-2. **Finish runtime evidence on two PCs**
    - Run `measure-musu-idle-cpu.ps1` with `desktop-open`,
      `-RequireOwnedWebView2`, `-IncludeNode`, and `-IncludeWebView2`.
    - Record both primary and second-PC evidence.
    - Keep the 60s / 5%-of-one-core / owned process count / memory budgets.
 
-3. **Wire `musu.pro` assisted routing**
+2. **Wire `musu.pro` assisted routing**
    - Add local/server stub endpoints for rendezvous.
    - Add direct LAN/Tailscale candidate path selection before relay.
    - Add `musu route --explain` and `musu relay status`.
    - Submit `musu.route_evidence.v1` from actual runtime route attempts.
 
-4. **Re-run multi-device release proof**
+3. **Re-run multi-device release proof**
    - Use second-PC returned handoff for candidate addresses.
    - Produce passing route evidence with peer identity, timing, encryption, and
      payload-transit truth.
    - Record evidence only after the verifier accepts it.
 
-5. **Complete external gates**
+4. **Complete external gates**
    - Verify `musu@musu.pro` inbox delivery with token evidence.
    - Submit the Store-reviewed MSIX in Partner Center.
    - Record product-name reservation, certification, restricted capability
@@ -116,6 +117,6 @@ the mDNS hardening commit and then two-machine desktop-open CPU evidence.
 
 ## Decision
 
-Do not publish yet. The right next engineering move is to stabilize the release
-test host, refresh current single-machine evidence, then implement the first
-`musu.pro` assisted direct route before touching relay transport.
+Do not publish yet. The right next engineering move is to collect clean
+two-machine desktop-open CPU evidence, then implement the first `musu.pro`
+assisted direct route before touching relay transport.
