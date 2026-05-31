@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-import { authorizeP2pControl } from "@/lib/p2pControlAuth";
+import { authorizeP2pControl, p2pControlPrincipal } from "@/lib/p2pControlAuth";
 import {
   appendRouteEvidenceRecord,
   createRouteEvidenceId,
@@ -98,6 +98,7 @@ export async function POST(req: NextRequest) {
   if (failedAuth) {
     return failedAuth;
   }
+  const principal = p2pControlPrincipal(req);
 
   let json: unknown;
   try {
@@ -127,6 +128,7 @@ export async function POST(req: NextRequest) {
   try {
     await appendRouteEvidenceRecord({
       id: evidenceId,
+      owner_key: principal.owner_key,
       received_at: receivedAt,
       release_grade: blockers.length === 0,
       blockers,
@@ -149,6 +151,7 @@ export async function POST(req: NextRequest) {
       accepted: true,
       stored: true,
       evidence_id: evidenceId,
+      owner_scoped: true,
       release_grade: blockers.length === 0,
       blockers,
       recorded_at: parsed.data.recorded_at,
@@ -163,9 +166,11 @@ export async function GET(req: NextRequest) {
   if (failedAuth) {
     return failedAuth;
   }
+  const principal = p2pControlPrincipal(req);
 
   const params = req.nextUrl.searchParams;
   const query: RouteEvidenceQuery = {
+    owner_key: principal.owner_key,
     limit: parseLimit(params.get("limit")),
     source_node_id: params.get("source_node_id") ?? undefined,
     target_node_id: params.get("target_node_id") ?? undefined,
@@ -182,8 +187,9 @@ export async function GET(req: NextRequest) {
     const records = await queryRouteEvidenceRecords(query);
     return NextResponse.json({
       ok: true,
+      owner_scoped: true,
       count: records.length,
-      records,
+      records: records.map(({ owner_key: _ownerKey, ...record }) => record),
     });
   } catch (error) {
     return NextResponse.json(

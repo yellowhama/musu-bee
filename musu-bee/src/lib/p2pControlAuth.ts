@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "node:crypto";
 
 export function configuredP2pControlToken(): string {
   return (
@@ -9,10 +10,18 @@ export function configuredP2pControlToken(): string {
   );
 }
 
-function bearerToken(req: NextRequest): string {
+export type P2pControlPrincipal = {
+  owner_key: string;
+};
+
+export function bearerToken(req: NextRequest): string {
   const header = req.headers.get("authorization") ?? "";
   const match = /^Bearer\s+(.+)$/i.exec(header);
   return match?.[1]?.trim() ?? "";
+}
+
+export function p2pControlOwnerKey(token: string): string {
+  return `token-sha256:${createHash("sha256").update(token).digest("hex")}`;
 }
 
 export function authorizeP2pControl(req: NextRequest): NextResponse | null {
@@ -29,4 +38,10 @@ export function authorizeP2pControl(req: NextRequest): NextResponse | null {
   }
 
   return null;
+}
+
+export function p2pControlPrincipal(req: NextRequest): P2pControlPrincipal {
+  return {
+    owner_key: p2pControlOwnerKey(bearerToken(req)),
+  };
 }

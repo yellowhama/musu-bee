@@ -26,9 +26,11 @@ runtime route attempts now create/read/close sessions on a bounded best-effort
 path. Nodes now also advertise TLS certificate fingerprints as identity material
 in registry/rendezvous candidates, and HTTPS target candidates can be checked
 against the advertised fingerprint during the actual bridge forward. That still
-does not satisfy the release gate because account-scoped evidence ownership,
-real second-PC target-candidate route proof, relay fallback, plus release-grade
-QUIC/TLS route proof are still missing.
+   does not satisfy the release gate because real second-PC target-candidate
+   route proof, relay fallback, plus release-grade QUIC/TLS route proof are
+   still missing. Token-owner scoped route evidence storage/query now exists as
+   a stub boundary, but it is not yet a full account UI/export/retention
+   system.
 
 ## Product Spec Updates
 
@@ -55,8 +57,10 @@ QUIC/TLS route proof are still missing.
    user/account policy allows it.
 7. **Route-evidence control-plane API**: `POST /api/v1/p2p/route-evidence`
    now validates authenticated `musu.route_evidence.v1`, stores it, returns
-   `stored=true`, `evidence_id`, `release_grade`, and `blockers`. `GET`
-   exposes filtered stored-evidence queries for audit/debug.
+   `stored=true`, `evidence_id`, `owner_scoped=true`, `release_grade`, and
+   `blockers`. `GET` exposes filtered stored-evidence queries for audit/debug
+   and is scoped by a SHA-256 owner key derived from the accepted Bearer token.
+   Responses omit the owner key.
 8. **Rendezvous control-plane API**: `POST /api/v1/p2p/rendezvous`, `GET
    /api/v1/p2p/rendezvous/:id`, `POST /:id/candidates`, `POST /:id/approve`,
    and `POST /:id/close` now exist as authenticated short-lived session
@@ -95,6 +99,7 @@ QUIC/TLS route proof are still missing.
 | P2P route | High | `musu-rs/src/cloud/mod.rs` has rendezvous/route-evidence DTOs and client methods, `musu-rs/src/bridge/router.rs` ranks cached/manual/nodes candidates by path kind (`lan` -> `tailscale` -> `direct_quic`), and bridge forwarding now creates/uses a short-lived rendezvous session before legacy direct forwarding. If the session returns target candidates seeded from recent node cache or same-session updates, forwarding uses the best candidate by the same priority and falls back once to the original peer if that candidate fails. It still does not prove hardened identity/encryption or relay fallback. | Partial P0. |
 | Multi-device verifier | High | `musu route --route-evidence-path <path>` and bridge remote forwarding now write actual route evidence with route kind, candidate address, submit/handshake timing, total timing, and success/failure result. Legacy HTTP bearer still records `peer_identity_verified=false` and `encryption=none_http_bearer`; HTTPS fingerprint-pinned bridge forwarding can record verified identity but is still rejected for release until QUIC/TLS route proof exists. | Correctly blocked. |
 | Evidence storage | Medium | The first route-evidence API previously returned `stored=false`, so server-side audit/history was missing. | Fixed as minimal storage/query. Hosted storage uses Vercel KV; local/dev uses an explicit file fallback. Production fails closed without KV or an explicit persistent file path. |
+| Evidence ownership | High | Stored route evidence needed an owner boundary before it could support multi-account control-plane diagnosis. | Partially fixed. Records are now written and queried under a token-derived SHA-256 `owner_key`, and API responses omit that key. Real account-id mapping, UI/export, and retention policy remain pending. |
 | Rendezvous storage | Medium | The control-plane lacked a server-side place for endpoint candidate exchange. | Fixed as a short-lived session store plus recent node candidate cache with Vercel KV or explicit local/dev file fallback. |
 | Runtime rendezvous | High | Bridge forwarding did not previously join runtime route attempts to the `musu.pro` rendezvous session/evidence model or use returned target candidates. | Fixed as first runtime lifecycle. `musu relay status` and `musu route --explain` now report `rendezvous_session_wired=true`; refreshed target candidates can replace the original peer address with original-peer fallback on candidate failure; release remains blocked by legacy HTTP bearer transport and missing two-machine proof. |
 | Peer identity proof | High | Evidence required peer identity verification, but route attempts had no identity material to carry or store. | Partial. TLS certificate SHA-256 fingerprints are registered/published as candidate identity material, and HTTPS bridge forwarding now verifies a target certificate fingerprint during the actual POST before recording `tls_cert_fingerprint_pin`. This is still non-release-grade until QUIC/TLS route proof exists. |
@@ -208,6 +213,9 @@ QUIC/TLS route proof are still missing.
   `npx tsx --test src/app/api/v1/p2p/route-evidence/route.test.ts`,
   `npx tsx --test src/app/api/v1/p2p/rendezvous/route.test.ts`, and
   `npm run typecheck`. Indexer sync then recorded `1076 files / 2096 symbols`.
+- After token-owner scoped route-evidence storage, validation passed:
+  `npx tsx --test src/app/api/v1/p2p/route-evidence/route.test.ts` and
+  `npm run typecheck`.
 
 The release gate still needs two-machine desktop-open CPU evidence, hardened
 multi-device route evidence, support inbox delivery evidence, and Store
@@ -242,7 +250,8 @@ submission/release evidence.
      publish source/target candidates best-effort; returned target candidates
      can replace the original selected peer address. Candidate updates now seed
      a short-lived node candidate cache for later sessions.
-   - Add account-scoped evidence ownership/export.
+   - Token-owner scoped evidence storage/query now exists; next map owner keys
+     to real accounts and add export/retention UI.
    - Direct LAN/Tailscale/public candidate ranking now exists in the bridge
      selector; next verify the short-lived rendezvous lifecycle with a real
      second-PC route.
@@ -250,8 +259,8 @@ submission/release evidence.
      surfaces and now report `rendezvous_session_wired=true`.
    - Bridge/runtime forwarding now writes local route-attempt evidence and
      starts a background best-effort submit to the stored `musu.pro`
-     route-evidence API; next make that evidence account-owned and release-grade
-     after rendezvous and QUIC/TLS proof are wired.
+     route-evidence API; next make that evidence release-grade after rendezvous
+     and QUIC/TLS proof are wired.
 
 3. **Re-run multi-device release proof**
    - Use second-PC returned handoff for candidate addresses.

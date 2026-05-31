@@ -24,6 +24,10 @@ What changed materially:
   and explicitly reports whether it is release-grade. `GET` returns stored
   evidence with filters for source, target, route kind, result, and
   release-grade status.
+- Route evidence storage is now token-owner scoped. The API derives an
+  `owner_key` from the accepted Bearer token's SHA-256 hash, stores records
+  under that key, filters `GET` results to the same owner, and omits the
+  linkage hash from responses.
 - Route evidence is durable on hosted `musu.pro` when Vercel KV is configured,
   using a capped Redis list. Local/dev has an atomic JSON file fallback through
   `MUSU_ROUTE_EVIDENCE_STORE_PATH`.
@@ -80,7 +84,8 @@ What is still not release-grade:
   evidence and returns `transport_not_release_grade_quic_tls` for
   `https_tls_fingerprint_pin`.
 - The server endpoint is now a minimal durable storage/query API, but not an
-  account-scoped operator UI or long-term retention system yet.
+  operator UI, export surface, or long-term retention system yet. Token-owner
+  scoping exists, but real account-id mapping remains pending.
 - Rendezvous is now bridge-wired for session lifecycle and candidate publish,
   and `musu relay status` reports `rendezvous_session_wired=true`.
 - Runtime submission does not make legacy HTTP evidence pass the release gate;
@@ -107,6 +112,7 @@ What is still not release-grade:
    - Auth: Bearer token from `MUSU_P2P_CONTROL_TOKEN`,
      `MUSU_ROUTE_EVIDENCE_TOKEN`, or `MUSU_TOKEN` on the server.
    - `POST` response: `202` with `stored=true`, `evidence_id`,
+     `owner_scoped=true`,
      `release_grade`, and `blockers` for valid evidence; invalid schema returns
      `400`, bad/missing bearer returns `401`, missing server token returns
      `503`, and storage failure returns `503`.
@@ -115,6 +121,9 @@ What is still not release-grade:
    - Hosted storage uses `KV_REST_API_URL` / `KV_REST_API_TOKEN`. Production
      fails closed without KV unless `MUSU_ROUTE_EVIDENCE_STORE_PATH` points to
      an explicit persistent file path.
+   - Records are scoped by a SHA-256 owner key derived from the accepted Bearer
+     token. `GET` filters by this owner key and does not expose the key in
+     response records.
 6. Client cloud base URL:
    - `MUSU_CLOUD_BASE_URL` overrides the default `https://musu.pro` for login,
      registry, and route-evidence submission tests.
@@ -183,6 +192,7 @@ mDNS opt-in variables unset.
 | mDNS/Tailscale adapter noise | High | Tailscale IPv6 mDNS can repeatedly emit `os error 10065` and `closed channel` logs. | Further hardened. IPv6 and Tailscale mDNS interfaces are default-disabled; explicit opt-in env vars are required. |
 | `musu.pro` route-evidence receiver | High | The Rust client had a DTO/method but no server endpoint to receive route evidence. | Fixed. `musu-bee/src/app/api/v1/p2p/route-evidence/route.ts` validates/authenticates the contract, stores evidence, and returns release blockers. |
 | Route-evidence queryability | Medium | Evidence accepted by the control plane needed an audit/query path before it could support release diagnosis. | Fixed as a minimal API. `GET /api/v1/p2p/route-evidence` returns stored records with basic filters. |
+| Route-evidence ownership | High | Stored route evidence could be queried from one shared control-plane bucket without a per-owner boundary. | Fixed as a token-owner scoped stub. `POST` stores a SHA-256 owner key derived from the accepted Bearer token, `GET` filters by that key, and responses omit the key. Real account-id mapping/UI/export remain pending. |
 | Runtime cloud submission | High | Bridge runtime forwarding wrote local evidence but did not submit it to the control plane. | Fixed as background best-effort. Runtime submits after local write when `~/.musu/token` exists. Failures do not fail or delay the user task. |
 | Rendezvous server contract | High | The Rust client had rendezvous DTOs/methods but no server endpoint to create sessions or exchange endpoint candidates. | Fixed. Server endpoints now create/read/update/approve/close sessions and seed new sessions from a recent node candidate cache. |
 | Runtime rendezvous wiring | High | Bridge remote forwarding selected a peer directly but did not create a `musu.pro` session, attach a session id to route evidence, or use session target candidates. | Fixed as first runtime wiring. Forwarding creates/refreshes a session, publishes source candidates, forwards the session id to target, target publishes candidates best-effort, uses refreshed target candidates when present, falls back once to the original peer if a selected candidate fails, and evidence records the session id. |
@@ -215,8 +225,8 @@ Passed:
 - `cargo fmt --manifest-path .\musu-rs\Cargo.toml --check`
 - `git diff --check`
 - `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
-  indexed 1076 files and 2096 symbols after the HTTPS fingerprint-pinned
-  forwarding update.
+  indexed 1078 files and 2107 symbols after the token-owner scoped
+  route-evidence update.
 
 Not completed:
 

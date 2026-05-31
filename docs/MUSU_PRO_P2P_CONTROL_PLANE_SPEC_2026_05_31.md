@@ -207,7 +207,10 @@ Current `POST /api/v1/p2p/route-evidence` behavior:
   `MUSU_ROUTE_EVIDENCE_TOKEN`, or `MUSU_TOKEN`.
 - Validates `musu.route_evidence.v1` with the route kinds above.
 - Stores valid evidence and returns `202`, including `stored=true`,
-  `evidence_id`, `release_grade`, and `blockers`.
+  `evidence_id`, `owner_scoped=true`, `release_grade`, and `blockers`.
+- Stores an `owner_key` derived from the accepted Bearer token's SHA-256 hash,
+  not the raw token. This is the current local/stub account boundary until real
+  account auth maps tokens to account ids.
 - Accepts legacy/debug evidence for observability but marks it non-release-grade
   when identity, encryption, timing, result, or relay-transit truth is weak.
 - Keeps HTTPS fingerprint-pinned bridge evidence observable but
@@ -223,8 +226,11 @@ Current `GET /api/v1/p2p/route-evidence` behavior:
 - Requires the same Bearer auth.
 - Returns stored evidence records with `limit`, `source_node_id`,
   `target_node_id`, `route_kind`, `result`, and `release_grade` filters.
-- This is an API audit surface only; account-scoped UI, export, and retention
-  policy remain pending.
+- Queries are scoped to the same token-derived `owner_key` used on write, so a
+  caller cannot enumerate records written under a different Bearer token.
+  Responses omit `owner_key` to avoid exposing the account-linkage hash.
+- This is an API audit surface only; operator UI, export, and retention policy
+  remain pending.
 
 ## Runtime Hardening Requirements
 
@@ -256,8 +262,9 @@ Current `GET /api/v1/p2p/route-evidence` behavior:
    rendezvous sessions, publish source/target candidate sets on a best-effort
    path, cache recent node candidates, seed new sessions from that cache, and
    use refreshed target candidates when present. Account-scoped evidence
-   ownership, UI/export, retention policy, and release-grade QUIC/TLS proof
-   remain pending.
+   evidence is now token-owner scoped and query-isolated. UI/export, retention
+   policy, real account-id mapping, and release-grade QUIC/TLS proof remain
+   pending.
 4. Add `musu relay status` and `musu route --explain`.
    **Initial diagnostic CLI done on 2026-06-01.** `musu relay status` reports
    login/cache/client readiness plus bridge path selection state, rendezvous

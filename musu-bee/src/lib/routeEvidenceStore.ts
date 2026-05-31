@@ -25,6 +25,7 @@ export type RouteEvidencePayload = {
 
 export type StoredRouteEvidenceRecord = {
   id: string;
+  owner_key: string;
   received_at: string;
   release_grade: boolean;
   blockers: string[];
@@ -37,6 +38,7 @@ type RouteEvidenceStoreState = {
 };
 
 export type RouteEvidenceQuery = {
+  owner_key?: string;
   limit?: number;
   source_node_id?: string;
   target_node_id?: string;
@@ -101,6 +103,7 @@ function isStoredRouteEvidenceRecord(value: unknown): value is StoredRouteEviden
   const evidence = record.evidence as Partial<RouteEvidencePayload> | undefined;
   return (
     typeof record.id === "string" &&
+    typeof record.owner_key === "string" &&
     typeof record.received_at === "string" &&
     typeof record.release_grade === "boolean" &&
     Array.isArray(record.blockers) &&
@@ -199,6 +202,9 @@ export async function queryRouteEvidenceRecords(
 
   return records
     .filter((record) => {
+      if (query.owner_key && record.owner_key !== query.owner_key) {
+        return false;
+      }
       if (query.source_node_id && record.evidence.source_node_id !== query.source_node_id) {
         return false;
       }

@@ -100,11 +100,13 @@ test("accepts hardened release-grade route evidence", async () => {
       ok: boolean;
       stored: boolean;
       evidence_id: string;
+      owner_scoped: boolean;
       release_grade: boolean;
       blockers: string[];
     };
     assert.equal(body.ok, true);
     assert.equal(body.stored, true);
+    assert.equal(body.owner_scoped, true);
     assert.match(body.evidence_id, /^route-evidence-/);
     assert.equal(body.release_grade, true);
     assert.deepEqual(body.blockers, []);
@@ -197,11 +199,55 @@ test("queries stored route evidence with filters", async () => {
     const filteredRes = await GET(getReq("?target_node_id=pc-b&release_grade=true"));
     assert.equal(filteredRes.status, 200);
     const filteredBody = (await filteredRes.json()) as {
+      owner_scoped: boolean;
       count: number;
-      records: Array<{ evidence: { target_node_id: string }; release_grade: boolean }>;
+      records: Array<{ evidence: { target_node_id: string }; release_grade: boolean; owner_key?: string }>;
     };
+    assert.equal(filteredBody.owner_scoped, true);
     assert.equal(filteredBody.count, 1);
     assert.equal(filteredBody.records[0]?.evidence.target_node_id, "pc-b");
     assert.equal(filteredBody.records[0]?.release_grade, true);
+    assert.equal(filteredBody.records[0]?.owner_key, undefined);
+  });
+});
+
+test("queries only records owned by the bearer token", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { GET, POST } = await loadModule("owner-scope");
+
+    process.env.MUSU_P2P_CONTROL_TOKEN = "owner-a-token";
+    await POST(postReq({
+      ...hardenedEvidence,
+      source_node_id: "owner-a-source",
+      target_node_id: "owner-a-target",
+    }, "owner-a-token"));
+
+    process.env.MUSU_P2P_CONTROL_TOKEN = "owner-b-token";
+    await POST(postReq({
+      ...hardenedEvidence,
+      source_node_id: "owner-b-source",
+      target_node_id: "owner-b-target",
+    }, "owner-b-token"));
+
+    const ownerBRes = await GET(getReq("?limit=10", "owner-b-token"));
+    assert.equal(ownerBRes.status, 200);
+    const ownerBBody = (await ownerBRes.json()) as {
+      count: number;
+      records: Array<{ evidence: { source_node_id: string }; owner_key?: string }>;
+    };
+    assert.equal(ownerBBody.count, 1);
+    assert.equal(ownerBBody.records[0]?.evidence.source_node_id, "owner-b-source");
+    assert.equal(ownerBBody.records[0]?.owner_key, undefined);
+
+    process.env.MUSU_P2P_CONTROL_TOKEN = "owner-a-token";
+    const ownerARes = await GET(getReq("?limit=10", "owner-a-token"));
+    assert.equal(ownerARes.status, 200);
+    const ownerABody = (await ownerARes.json()) as {
+      count: number;
+      records: Array<{ evidence: { source_node_id: string }; owner_key?: string }>;
+    };
+    assert.equal(ownerABody.count, 1);
+    assert.equal(ownerABody.records[0]?.evidence.source_node_id, "owner-a-source");
+    assert.equal(ownerABody.records[0]?.owner_key, undefined);
   });
 });
