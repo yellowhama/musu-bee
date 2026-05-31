@@ -2,7 +2,7 @@
 
 **Wiki ID**: wiki/527
 **Date**: 2026-06-01
-**Status**: Current audit addendum after MSIX desktop-entrypoint hardening, logo/public asset audit, local smoke recheck attempt, first bridge-wired `musu.pro` rendezvous lifecycle, HTTPS peer certificate fingerprint pinning for bridge forwarding, and relay fallback lease policy wiring.
+**Status**: Current audit addendum after MSIX desktop-entrypoint hardening, logo/public asset audit, current single-machine smoke refresh, first bridge-wired `musu.pro` rendezvous lifecycle, HTTPS peer certificate fingerprint pinning for bridge forwarding, relay fallback lease policy wiring, and primary desktop-open CPU evidence refresh.
 
 ## Executive Verdict
 
@@ -104,7 +104,7 @@ against the advertised fingerprint during the actual bridge forward. That still
 | Web assets | High | `musu-bee/.gitignore` ignored the entire `public/` tree, while code referenced `/images/favicon-header.png` and `/agents/*.png`. A clean checkout could miss visible product assets. | Fixed in commit `5e8d195`: required public image assets are now unignored/tracked. |
 | Logo component/assets | Medium | `MusuLogo` referenced missing `/images/logos/{hero,display,header}-{variant}.png`, and there was no reusable external logo lockup despite the app mark being strong. | Fixed: component uses the tracked app mark plus token-colored wordmark, and static logo lockups now exist under `musu-bee/public/images/logos/`. |
 | Runtime smoke | High | Current single-machine smoke initially could not be refreshed after the logo asset commit. The dashboard task status API timed out once, then the fixed expected CLI string hit a duplicate-task `409 Conflict`. | Fixed in `smoke-single-machine-beta.ps1`: per-run expected strings avoid duplicate task hashes, dashboard task polling retries within the deadline, and polling errors are recorded in evidence. |
-| mDNS/Tailscale IPv6 | High | `mdns_sd::service_daemon` can repeatedly send to Tailscale IPv6 link-local multicast and log `os error 10065`, then `closed channel`. Latest operator evidence showed repeated `[ff02::fb%9]:5353` sends on Tailscale adapter index 9 from 2026-05-31T16:09:08Z to 2026-05-31T16:10:24Z. This is a credible idle CPU/log-noise source when mDNS is enabled or `musu discover` runs. | Further fixed in `musu-rs/src/peer/mdns.rs`: mDNS stays opt-in, IPv6 mDNS is separately opt-in via `MUSU_MDNS_ENABLE_IPV6=1`, and Tailscale mDNS interfaces are separately opt-in via `MUSU_MDNS_ENABLE_TAILSCALE=1`. |
+| mDNS/Tailscale IPv6 | High | `mdns_sd::service_daemon` can repeatedly send to Tailscale IPv6 link-local multicast and log `os error 10065`, then `closed channel`. Latest operator evidence showed repeated `[ff02::fb%9]:5353` sends on Tailscale adapter index 9 from 2026-05-31T16:09:08Z to 2026-05-31T16:10:24Z. This is a credible idle CPU/log-noise source when mDNS is enabled or `musu discover` runs. | Fixed in current source defaults: mDNS stays opt-in, IPv6 mDNS is separately opt-in via `MUSU_MDNS_ENABLE_IPV6=1`, and Tailscale mDNS interfaces are separately opt-in via `MUSU_MDNS_ENABLE_TAILSCALE=1`. If an installed desktop still emits this log with defaults, treat that install as stale or explicitly mDNS/IPv6/Tailscale-opted-in. |
 | P2P route | High | `musu-rs/src/cloud/mod.rs` has rendezvous/route-evidence/relay-lease DTOs and client methods, `musu-rs/src/bridge/router.rs` ranks cached/manual/nodes candidates by path kind (`lan` -> `tailscale` -> `direct_quic`), and bridge forwarding now creates/uses a short-lived rendezvous session before legacy direct forwarding. If the session returns target candidates seeded from recent node cache or same-session updates, forwarding uses the best candidate by the same priority and falls back once to the original peer if that candidate fails. It still does not prove hardened identity/encryption or relay/tunnel data transport. | Partial P0. |
 | Multi-device verifier | High | `musu route --route-evidence-path <path>` and bridge remote forwarding now write actual route evidence with route kind, candidate address, submit/handshake timing, total timing, and success/failure result. Legacy HTTP bearer still records `peer_identity_verified=false` and `encryption=none_http_bearer`; HTTPS fingerprint-pinned bridge forwarding can record verified identity but is still rejected for release until QUIC/TLS route proof exists. | Correctly blocked. |
 | Evidence storage | Medium | The first route-evidence API previously returned `stored=false`, so server-side audit/history was missing. | Fixed as minimal storage/query. Hosted storage uses Vercel KV; local/dev uses an explicit file fallback. Production fails closed without KV or an explicit persistent file path. |
@@ -250,10 +250,25 @@ against the advertised fingerprint during the actual bridge forward. That still
   `desktop-open` evidence.
 - Post-commit go/no-go recheck from clean HEAD accepted the new runtime CPU
   evidence as one valid machine (`valid_machine_count=1`, `valid_machines=[
-  "HUGH_SECOND" ]`) and kept `manifest_dirty=false`. Public readiness remains
-  false because fresh single-machine smoke evidence after the latest code
-  commit, real second-PC multi-device route evidence, and second-PC
-  `desktop-open` CPU evidence are still missing.
+  "HUGH_SECOND" ]`) and kept `manifest_dirty=false`. At that moment public
+  readiness remained false because fresh single-machine smoke evidence after
+  the latest evidence/docs commit, real second-PC multi-device route evidence,
+  and second-PC `desktop-open` CPU evidence were still missing.
+- After the primary CPU evidence commit, current single-machine smoke was
+  refreshed and recorded as
+  `docs\evidence\single-machine\1.15.0-rc.1\20260601-084028-HUGH_SECOND.evidence.json`
+  on commit `a1ee33fa0c8e3b68e85dc4b48077134ec5dd99ac`. It passed with
+  dashboard output `MUSU_RELEASE_SMOKE_OK_20260601_084005`, CLI output
+  `MUSU_CLI_ROUTE_OK_20260601_084005`, dashboard task
+  `5ac5baa6-471f-4633-9a57-9e3a87a20c7a`, bridge
+  `http://127.0.0.1:13167`, evidence SHA-256
+  `4198b0720ae92554b608922e8e871d9d0379fbca04d913863e9ae77b918a0083`,
+  and verification SHA-256
+  `7e01108d694469644304b911d8f2329c06f54c27dd30d749028c9e7ea4a6ee17`.
+  Go/no-go now reports `single_machine_verified=true`; public readiness remains
+  false because real second-PC multi-device route evidence, second-PC
+  `desktop-open` CPU evidence, `musu@musu.pro` delivery evidence, and
+  Partner Center/Store release evidence are still missing.
 
 The release gate still needs two-machine desktop-open CPU evidence, hardened
 multi-device route evidence, support inbox delivery evidence, and Store

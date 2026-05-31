@@ -2,7 +2,7 @@
 
 **Wiki ID**: wiki/522
 **Date**: 2026-05-31
-**Scope**: current release state after the route-evidence gate hardening, refreshed single-machine evidence, final operator packet verification, operator action pack verification, Store submission bundle verification, release handoff status check, second-PC MSIX install evidence import, Windows/Tailscale mDNS health hardening, runtime idle CPU attribution hardening, process ownership audit gate, startup single-instance gate, and MSIX desktop-entrypoint audit.
+**Scope**: current release state after route-evidence gate hardening, refreshed single-machine evidence, final operator packet verification, operator action pack verification, Store submission bundle verification, release handoff status check, second-PC MSIX install evidence import, Windows/Tailscale mDNS health hardening, runtime idle CPU attribution hardening, process ownership audit gate, startup single-instance gate, MSIX desktop-entrypoint audit, relay lease control-plane wiring, and current primary desktop-open CPU evidence.
 
 ## Verdict
 
@@ -26,13 +26,15 @@ Current external evidence blockers:
 
 2026-05-31 update: the second-PC MSIX install evidence has now been returned and recorded locally under `docs\evidence\msix-install\1.15.0-rc.1\20260531-165211-HUGH-MAIN.evidence.json`. Route proof is still missing because `192.168.1.192:8949` and `172.27.208.1:8949` were not reachable from the primary during the follow-up smoke attempt. Runtime CPU work has moved from a broad process-name sampler to an owned-process-tree sampler; one primary debug-runtime sample passed, and a clean committed packaged desktop-open diagnostic now passes after `musu-desktop`/WebView2 ownership attribution was fixed. Formal two-machine desktop/WebView2 evidence is still missing because only `HUGH_SECOND` has this clean sample. The MSIX desktop-entrypoint root cause is now fixed for Store artifact and local install proof: the regenerated Store-reviewed artifact launches `musu-desktop.exe`, contains `musu.exe` and `musu-startup.exe`, and passes Store submission bundle verification; the fixed `local-sideload-manual` package is installed on `HUGH_SECOND` and passes installed desktop-entrypoint audit. Store-reviewed restricted-capability packages are now refused by default for ordinary sideload testing, and a Store-reviewed `-RequireInstalledPackage` audit correctly fails on a local-sideload install because the restricted startup contract differs. A separate process ownership audit now passes on `HUGH_SECOND`: one MUSU runtime, one desktop shell, zero MUSU-owned Node helpers, six MUSU-owned WebView2 helpers, 19 machine-wide WebView2 processes not owned by MUSU, bridge registry PID alive, and bridge `/health` HTTP 200. Startup single-instance evidence now also passes locally: three consecutive `musu up --json` calls reused bridge PID 31208 and did not spawn another runtime. A source-fresh release MSIX build attempt on this machine failed in `musu-rs` rustc OOM/pagefile pressure even with `CARGO_BUILD_JOBS=1`, and a later debug `cargo build --bin musu` also hit rustc/LLVM OOM; `cargo check -j 1` passes.
 
+2026-06-01 addendum: relay fallback now has a fail-closed owner-scoped lease API, primary packaged desktop-open CPU evidence was refreshed and passes at `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-082822-HUGH_SECOND.desktop-open.evidence.json`, and current single-machine smoke was refreshed at `docs\evidence\single-machine\1.15.0-rc.1\20260601-084028-HUGH_SECOND.evidence.json`. The operator-supplied Tailscale IPv6 mDNS log (`ff02::fb%9:5353`, `os error 10065`, then `closed channel`) remains classified as a real idle/log-spam risk for stale or explicitly mDNS/IPv6/Tailscale-enabled builds; current source keeps mDNS, IPv6 mDNS, and Tailscale mDNS off by default. Public release remains No-Go because second-PC desktop-open CPU evidence, real second-PC multi-device route evidence, `musu@musu.pro` inbox delivery evidence, and Store/Partner Center evidence are still missing.
+
 Current qualitative completion:
 
 | Surface | Completion | Reason |
 |---|---:|---|
-| Single-machine Windows local beta | ~85% | Functional smoke, process ownership, and repeated startup reuse are evidence-backed locally; packaged desktop/WebView2 idle CPU evidence is still missing. |
+| Single-machine Windows local beta | ~88% | Functional smoke, process ownership, repeated startup reuse, and primary packaged desktop/WebView2 idle CPU evidence are backed locally; second-PC desktop-open CPU and real route evidence are still missing. |
 | Store/operator-gate infrastructure | ~96% | Final packet, action pack, public metadata, support mailbox config, evidence verifiers, runtime CPU gate, process ownership gate, startup single-instance gate, and MSIX desktop-entrypoint gate are in place. The regenerated Store submission bundle passes artifact-level desktop entrypoint verification, and local-sideload installed desktop proof passes. |
-| Public desktop release readiness | ~58% | MSIX desktop entrypoint is fixed for Store artifact/local install proof, but source-fresh release packaging, clean two-machine desktop/WebView2 idle CPU, multi-device route, support mailbox, Store approval, and relay/control-plane readiness remain open. |
+| Public desktop release readiness | ~64% | MSIX desktop entrypoint and primary CPU proof are fixed, but clean two-machine desktop/WebView2 idle CPU, multi-device route, support mailbox, Store approval, and relay/tunnel transport remain open. |
 | Full desktop GUI product maturity | ~50% | Tauri shell is a usable launcher/status surface, not yet the full dashboard GUI, and runtime resource polish is not product-grade. |
 
 This document supersedes wiki/521 for the **current 2026-05-31 release status**. Wiki/521 remains the historical final qualitative audit and accumulated work log.
@@ -41,13 +43,13 @@ This document supersedes wiki/521 for the **current 2026-05-31 release status**.
 
 | Item | Current value |
 |---|---|
-| Latest pushed release code commit before this hardening pass | `5202d58d5fd176a372a23b1053a4ed861de449ec` with the Store MSIX desktop artifact fix |
-| Latest smoke source commit | `a89f6dd6a5663af318eb4eebbbe7de75f20c2471` |
+| Latest pushed release code commit before this hardening pass | `a1ee33fa0c8e3b68e85dc4b48077134ec5dd99ac` with refreshed primary desktop-open CPU evidence |
+| Latest smoke source commit | `a1ee33fa0c8e3b68e85dc4b48077134ec5dd99ac` |
 | Working tree | dirty during this audit/update pass; public release remains blocked until committed and the release manifest is regenerated clean |
-| Latest single-machine evidence | `docs\evidence\single-machine\1.15.0-rc.1\20260531-212651-HUGH_SECOND.evidence.json` |
-| Single-machine output | `MUSU_RELEASE_SMOKE_OK`; CLI route `MUSU_CLI_ROUTE_OK` |
-| Dashboard task | `0cdd096c-626d-46ee-95e4-c347805016d8` |
-| Bridge URL | `http://127.0.0.1:9818` |
+| Latest single-machine evidence | `docs\evidence\single-machine\1.15.0-rc.1\20260601-084028-HUGH_SECOND.evidence.json` |
+| Single-machine output | `MUSU_RELEASE_SMOKE_OK_20260601_084005`; CLI route `MUSU_CLI_ROUTE_OK_20260601_084005` |
+| Dashboard task | `5ac5baa6-471f-4633-9a57-9e3a87a20c7a` |
+| Bridge URL | `http://127.0.0.1:13167` |
 | Desktop readiness audit | `runtime_package_ready=true`, `desktop_shell_ready=true`, `single_machine_verified=true`, `multi_device_verified=false` |
 | Final operator packet | `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip` |
 | Final operator packet verification | must be regenerated after the MSIX desktop-entrypoint gate lands; old packets are stale |
@@ -57,7 +59,7 @@ This document supersedes wiki/521 for the **current 2026-05-31 release status**.
 | Store submission bundle verification | `ok=true`, `fail_count=0`; artifact MSIX desktop entrypoint launches `musu-desktop.exe` |
 | Public metadata | `https://musu.pro/privacy` and `/support` pass with `musu@musu.pro` |
 | Second-PC MSIX install evidence | `docs\evidence\msix-install\1.15.0-rc.1\20260531-165211-HUGH-MAIN.evidence.json` |
-| Runtime idle CPU evidence | primary clean desktop-open diagnostic passed at `.local-build\runtime-idle-cpu\musu-idle-cpu-20260531-235500.json` with `git_dirty=false`, `musu=2`, `webview2=6`, `owned_node=0`, max one-core CPU `musu=0.03`, `webview2=0.03`, and working set `363.45MB`; public readiness still requires the same clean evidence on the second PC |
+| Runtime idle CPU evidence | primary clean desktop-open evidence passed at `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-082822-HUGH_SECOND.desktop-open.evidence.json` with `git_dirty=false`, one `musu-desktop`, six owned WebView2 helpers, owned Node `0`, max one-core CPU `musu=0`, `webview2=0.16`, and working set `339.85MB`; public readiness still requires the same clean evidence on the second PC |
 | MSIX desktop entrypoint evidence | Store artifact audit passes at `docs\evidence\msix-desktop-entrypoint\1.15.0-rc.1\20260531-224328-HUGH_SECOND.store-msix-desktop-artifact.evidence.json`; local-sideload installed audit passes at `docs\evidence\msix-desktop-entrypoint\1.15.0-rc.1\20260531-232229-HUGH_SECOND.local-sideload-installed.evidence.json`; Store-reviewed local contract-mismatch proof is `docs\evidence\msix-desktop-entrypoint\1.15.0-rc.1\20260531-232229-HUGH_SECOND.store-reviewed-contract-mismatch.evidence.json` |
 | Process ownership evidence | local audit passed at `.local-build\process-ownership\musu-process-ownership-20260531-232247.json`; `musu_runtime=1`, `desktop_shell=1`, `owned_node=0`, `owned_webview2=6`, `machine_wide_node=2`, `machine_wide_webview2=19`, `orphan_repo_helpers=0`, bridge registry PID alive, `/health` HTTP 200 |
 | Startup single-instance evidence | local audit passed at `docs\evidence\startup-single-instance\1.15.0-rc.1\20260531-203635-HUGH_SECOND.evidence.json`; three repeated `musu up --json` calls reused bridge PID 31208, `after_musu_runtime=1`, `repeated_spawn_count=0`, nested process ownership audit passed |
@@ -75,7 +77,7 @@ This document supersedes wiki/521 for the **current 2026-05-31 release status**.
 6. **Multi-device proof**: public multi-device claim requires real `host:port` route evidence from a second Windows PC, not a same-machine simulation. Route evidence must include `musu.route_evidence.v1`, route kind, handshake timing, peer identity verification, hardened encryption, and payload transit truth.
 7. **Store proof**: Store readiness requires explicit Partner Center product-name reservation timestamp, submission id, Microsoft certification status, and restricted capability approval status.
 8. **musu-system integration**: `musu-system` remains future adjacent MCP/CLI/adapter work. It is not part of first Store package scope.
-9. **LAN mDNS discovery**: mDNS LAN auto-discovery is now opt-in via `MUSU_ENABLE_MDNS=1` for the Store-candidate path. Cloud/manual peer registration and the second-PC handoff route remain the canonical release-test path.
+9. **LAN mDNS discovery**: mDNS LAN auto-discovery is now opt-in via `MUSU_ENABLE_MDNS=1` for the Store-candidate path. IPv6 mDNS separately requires `MUSU_MDNS_ENABLE_IPV6=1`, and Tailscale mDNS interfaces separately require `MUSU_MDNS_ENABLE_TAILSCALE=1`, because Windows/Tailscale IPv6 multicast can spam `os error 10065`. Cloud/manual peer registration and the second-PC handoff route remain the canonical release-test path.
 10. **Clipboard sync**: universal clipboard polling is opt-in via `MUSU_ENABLE_CLIPBOARD_SYNC=1`. It must not run by default in the Store-candidate idle path.
 11. **Runtime CPU/resource budget**: public beta requires explicit idle CPU/resource evidence on primary and second PC. The current target is <= 5% of one logical CPU for a 60s `desktop-open` idle sample, at least one MUSU-owned WebView2 process attributed, owned process count <= 16, owned WebView2 process count <= 8, and total owned working set <= 1024MB.
 12. **musu.pro network role**: the product needs a hosted registry/rendezvous/relay-control path. Direct LAN/manual peers remain valid, but cannot be the only public multi-device setup story.

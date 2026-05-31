@@ -13,13 +13,12 @@ This is not because the local desktop entrypoint artifact/install split is faili
 
 Remaining blockers:
 
-1. current single-machine smoke evidence must be refreshed after the latest hardening commit
-2. real second-PC multi-device evidence has not been recorded
-3. two-machine runtime idle CPU evidence has not been recorded from clean committed state
-4. source-fresh Store/MSIX build reliability is unresolved on this machine because rustc/LLVM hit OOM/pagefile pressure
-5. Store-reviewed restricted-capability package still requires Partner Center/Microsoft review instead of ordinary local sideload proof
-6. `musu@musu.pro` delivery has not been operator-verified
-7. Store release approval evidence has not been recorded:
+1. real second-PC multi-device evidence has not been recorded
+2. two-machine runtime idle CPU evidence has not been recorded from clean committed state
+3. source-fresh Store/MSIX build reliability is unresolved on this machine because rustc/LLVM hit OOM/pagefile pressure
+4. Store-reviewed restricted-capability package still requires Partner Center/Microsoft review instead of ordinary local sideload proof
+5. `musu@musu.pro` delivery has not been operator-verified
+6. Store release approval evidence has not been recorded:
    - Partner Center product name reservation / app submission
    - Microsoft app certification
    - Microsoft restricted startup capability approval
@@ -116,14 +115,14 @@ Observed result:
 
 This closes the assistant-side single-computer test for the current code commit, with later documentation/evidence-only commits allowed by the verifier.
 
-Current machine-readable evidence was added on 2026-05-30 22:58 KST after second-PC return preview fallback:
+Current machine-readable evidence was added on 2026-06-01 08:40 KST after relay lease and runtime CPU evidence refresh:
 
-- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260530-225842-HUGH_SECOND.evidence.json`
-- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260530-225842-HUGH_SECOND.verification.json`
-- commit: `7c7d537ea9b8397c79eabb34e26cb574c2429909`
-- dashboard task id: `69d71cea-dec0-47af-a0bb-fdde166c080e`
-- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260530_2258`
-- CLI route output: `MUSU_CLI_ROUTE_OK_20260530_2258`
+- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260601-084028-HUGH_SECOND.evidence.json`
+- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260601-084028-HUGH_SECOND.verification.json`
+- commit: `a1ee33fa0c8e3b68e85dc4b48077134ec5dd99ac`
+- dashboard task id: `5ac5baa6-471f-4633-9a57-9e3a87a20c7a`
+- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260601_084005`
+- CLI route output: `MUSU_CLI_ROUTE_OK_20260601_084005`
 - release audit now reports `single_machine_verified=true`
 
 ## Gate 1 - Support Mailbox Evidence
