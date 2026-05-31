@@ -2,7 +2,7 @@
 
 **Wiki ID**: wiki/528
 **Date**: 2026-06-01
-**Status**: Current implementation addendum after operator mDNS/Tailscale logs, bridge forwarding evidence wiring, and first `musu.pro` route-evidence submit stub.
+**Status**: Current implementation addendum after operator mDNS/Tailscale logs, bridge forwarding evidence wiring, and stored `musu.pro` route-evidence API.
 
 ## Executive Verdict
 
@@ -18,10 +18,15 @@ What changed materially:
   `musu.route_evidence.v1` files under `~/.musu/route-evidence/`.
 - Forwarding attempts now record handshake timing, total attempt timing, retry
   failure class, and success/failure result from the actual runtime attempt.
-- `musu-bee` now exposes `POST /api/v1/p2p/route-evidence` as the first
-  authenticated `musu.pro` control-plane evidence receiver stub. It validates
-  `musu.route_evidence.v1`, accepts debug/legacy evidence, and explicitly
-  reports whether it is release-grade.
+- `musu-bee` now exposes authenticated `POST` and `GET`
+  `/api/v1/p2p/route-evidence` endpoints. `POST` validates
+  `musu.route_evidence.v1`, accepts debug/legacy evidence, stores the record,
+  and explicitly reports whether it is release-grade. `GET` returns stored
+  evidence with filters for source, target, route kind, result, and
+  release-grade status.
+- Route evidence is durable on hosted `musu.pro` when Vercel KV is configured,
+  using a capped Redis list. Local/dev has an atomic JSON file fallback through
+  `MUSU_ROUTE_EVIDENCE_STORE_PATH`.
 - Rust bridge runtime evidence now converts the local evidence file into the
   shared cloud DTO and starts a background best-effort submit after local write
   succeeds when a `~/.musu/token` account token is present.
@@ -34,8 +39,8 @@ What is still not release-grade:
 - Route evidence honestly records `peer_identity_verified=false`,
   `encryption=none_http_bearer`, and
   `payload_transited_musu_infra=false`.
-- The new server endpoint is a validation/auth stub, not durable production
-  storage yet (`stored=false`).
+- The server endpoint is now a minimal durable storage/query API, but not an
+  account-scoped operator UI or long-term retention system yet.
 - Runtime submission does not make legacy HTTP evidence pass the release gate;
   it only makes the gap visible to the control plane.
 - Rendezvous session creation, QUIC/TLS peer identity proof, durable evidence
@@ -56,12 +61,18 @@ What is still not release-grade:
    - `MUSU_MDNS_ENABLE_TAILSCALE=0`: no mDNS on Tailscale adapters by default
 5. Route evidence control-plane endpoint:
    - `POST /api/v1/p2p/route-evidence`
+   - `GET /api/v1/p2p/route-evidence`
    - Auth: Bearer token from `MUSU_P2P_CONTROL_TOKEN`,
      `MUSU_ROUTE_EVIDENCE_TOKEN`, or `MUSU_TOKEN` on the server.
-   - Response: `202` with `release_grade` and `blockers` for valid evidence;
-     invalid schema returns `400`, bad/missing bearer returns `401`, missing
-     server token returns `503`.
-   - Current endpoint is a stub with `stored=false`.
+   - `POST` response: `202` with `stored=true`, `evidence_id`,
+     `release_grade`, and `blockers` for valid evidence; invalid schema returns
+     `400`, bad/missing bearer returns `401`, missing server token returns
+     `503`, and storage failure returns `503`.
+   - `GET` query filters: `limit`, `source_node_id`, `target_node_id`,
+     `route_kind`, `result`, and `release_grade`.
+   - Hosted storage uses `KV_REST_API_URL` / `KV_REST_API_TOKEN`. Production
+     fails closed without KV unless `MUSU_ROUTE_EVIDENCE_STORE_PATH` points to
+     an explicit persistent file path.
 6. Client cloud base URL:
    - `MUSU_CLOUD_BASE_URL` overrides the default `https://musu.pro` for login,
      registry, and route-evidence submission tests.
@@ -87,7 +98,8 @@ or whether `MUSU_ENABLE_MDNS=1`, `MUSU_MDNS_ENABLE_IPV6=1`, or
 | Evidence contract duplication | Medium | CLI-owned evidence structs risked drifting from runtime evidence. | Fixed. Evidence structs/builders/writers are now shared in `bridge::route_evidence`. |
 | Retry observability | Medium | Forwarding retries returned only a string error, losing timing and failure class. | Fixed. `ForwardAttemptReport` / `ForwardAttemptError` carry timing and failure class. |
 | mDNS/Tailscale adapter noise | High | Tailscale IPv6 mDNS can repeatedly emit `os error 10065` and `closed channel` logs. | Further hardened. IPv6 and Tailscale mDNS interfaces are default-disabled; explicit opt-in env vars are required. |
-| `musu.pro` route-evidence receiver | High | The Rust client had a DTO/method but no server endpoint to receive route evidence. | Fixed as a first stub. `musu-bee/src/app/api/v1/p2p/route-evidence/route.ts` validates/authenticates the contract and returns release blockers. Persistence is still pending. |
+| `musu.pro` route-evidence receiver | High | The Rust client had a DTO/method but no server endpoint to receive route evidence. | Fixed. `musu-bee/src/app/api/v1/p2p/route-evidence/route.ts` validates/authenticates the contract, stores evidence, and returns release blockers. |
+| Route-evidence queryability | Medium | Evidence accepted by the control plane needed an audit/query path before it could support release diagnosis. | Fixed as a minimal API. `GET /api/v1/p2p/route-evidence` returns stored records with basic filters. |
 | Runtime cloud submission | High | Bridge runtime forwarding wrote local evidence but did not submit it to the control plane. | Fixed as background best-effort. Runtime submits after local write when `~/.musu/token` exists. Failures do not fail or delay the user task. |
 | Release-grade route proof | Critical | Submitted evidence still cannot prove peer identity, QUIC/TLS encryption, or payload transit truth. | Still blocked. This is the next P0. |
 
@@ -111,8 +123,8 @@ Not completed:
 
 ## Next Steps
 
-1. Add durable `musu.pro` storage for accepted route evidence and expose an
-   operator/audit query path.
+1. Add account-scoped route evidence ownership, retention policy, and operator
+   UI/audit export on top of the stored evidence API.
 2. Add rendezvous endpoints and wire bridge route attempts to create a
    rendezvous session before trying direct candidates.
 3. Replace HTTP bearer remote execution with peer identity verification and

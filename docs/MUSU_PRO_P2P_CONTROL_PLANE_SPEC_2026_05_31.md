@@ -47,6 +47,7 @@ Required next APIs:
 - `POST /api/v1/p2p/rendezvous/:id/approve`
 - `POST /api/v1/p2p/rendezvous/:id/close`
 - `POST /api/v1/p2p/route-evidence` **(stub exists as of 2026-06-01)**
+- `GET /api/v1/p2p/route-evidence` **(stored evidence query exists as of 2026-06-01)**
 - `WS /api/v1/p2p/control?node_id=...`
 - `WS /api/v1/relay/connect?session_id=...&node_id=...`
 
@@ -130,16 +131,28 @@ Release gates must reject multi-device evidence that lacks:
 - encryption field
 - whether payload transited MUSU infrastructure
 
-Current `POST /api/v1/p2p/route-evidence` stub behavior:
+Current `POST /api/v1/p2p/route-evidence` behavior:
 
 - Requires Bearer auth using server env `MUSU_P2P_CONTROL_TOKEN`,
   `MUSU_ROUTE_EVIDENCE_TOKEN`, or `MUSU_TOKEN`.
 - Validates `musu.route_evidence.v1` with the route kinds above.
-- Returns `202` for valid evidence, including `release_grade` and `blockers`.
+- Stores valid evidence and returns `202`, including `stored=true`,
+  `evidence_id`, `release_grade`, and `blockers`.
 - Accepts legacy/debug evidence for observability but marks it non-release-grade
   when identity, encryption, timing, result, or relay-transit truth is weak.
-- Returns `stored=false`; durable storage and audit query APIs are still
-  pending.
+- Hosted storage uses Vercel KV/Upstash Redis (`KV_REST_API_URL` and
+  `KV_REST_API_TOKEN`) as a capped list. Local/dev can use
+  `MUSU_ROUTE_EVIDENCE_STORE_PATH`.
+- Production fails closed without KV unless `MUSU_ROUTE_EVIDENCE_STORE_PATH`
+  points to an explicit persistent file path.
+
+Current `GET /api/v1/p2p/route-evidence` behavior:
+
+- Requires the same Bearer auth.
+- Returns stored evidence records with `limit`, `source_node_id`,
+  `target_node_id`, `route_kind`, `result`, and `release_grade` filters.
+- This is an API audit surface only; account-scoped UI, export, and retention
+  policy remain pending.
 
 ## Runtime Hardening Requirements
 
@@ -163,11 +176,11 @@ Current `POST /api/v1/p2p/route-evidence` stub behavior:
 2. Add client DTOs for rendezvous sessions and route evidence. **Initial Rust
    DTOs and client methods exist in `musu-rs/src/cloud/mod.rs`.**
 3. Add server-side mock/stub endpoints in `musu.pro` path for local tests.
-   **Route-evidence stub partially done on 2026-06-01.**
-   `musu-bee/src/app/api/v1/p2p/route-evidence/route.ts` accepts and validates
-   authenticated evidence and reports release blockers; tests live next to the
-   route. Rendezvous stubs, durable storage, and evidence query APIs remain
-   pending.
+   **Route-evidence receive/store/query partially done on 2026-06-01.**
+   `musu-bee/src/app/api/v1/p2p/route-evidence/route.ts` accepts, validates,
+   stores, and queries authenticated evidence; tests live next to the route.
+   Rendezvous stubs, account-scoped evidence ownership, UI/export, and retention
+   policy remain pending.
 4. Add `musu relay status` and `musu route --explain`.
    **Initial diagnostic CLI done on 2026-06-01.** `musu relay status` reports
    login/cache/client readiness plus bridge path selection state, rendezvous

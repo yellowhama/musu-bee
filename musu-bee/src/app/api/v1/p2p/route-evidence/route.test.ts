@@ -1,10 +1,24 @@
 import assert from "node:assert/strict";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 import { NextRequest } from "next/server";
 
-type Module = { POST: (req: NextRequest) => Promise<Response> };
+type Module = {
+  GET: (req: NextRequest) => Promise<Response>;
+  POST: (req: NextRequest) => Promise<Response>;
+};
 
-const ENV_KEYS = ["MUSU_P2P_CONTROL_TOKEN", "MUSU_ROUTE_EVIDENCE_TOKEN", "MUSU_TOKEN"] as const;
+const ENV_KEYS = [
+  "KV_REST_API_TOKEN",
+  "KV_REST_API_URL",
+  "MUSU_P2P_CONTROL_TOKEN",
+  "MUSU_ROUTE_EVIDENCE_MAX_RECORDS",
+  "MUSU_ROUTE_EVIDENCE_STORE_PATH",
+  "MUSU_ROUTE_EVIDENCE_TOKEN",
+  "MUSU_TOKEN",
+] as const;
 
 const hardenedEvidence = {
   schema: "musu.route_evidence.v1",
@@ -27,7 +41,7 @@ async function loadModule(caseName: string): Promise<Module> {
   return (await import(`./route?case=${caseName}-${Date.now()}`)) as Module;
 }
 
-function req(body: unknown, token: string | null = "test-token"): NextRequest {
+function postReq(body: unknown, token: string | null = "test-token"): NextRequest {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (token) {
     headers.Authorization = `Bearer ${token}`;
@@ -39,13 +53,26 @@ function req(body: unknown, token: string | null = "test-token"): NextRequest {
   });
 }
 
+function getReq(search = "", token: string | null = "test-token"): NextRequest {
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return new NextRequest(`http://localhost/api/v1/p2p/route-evidence${search}`, {
+    method: "GET",
+    headers,
+  });
+}
+
 async function withRouteEvidenceToken(fn: () => Promise<void>): Promise<void> {
   const previous = new Map<(typeof ENV_KEYS)[number], string | undefined>();
+  const tempDir = await mkdtemp(join(tmpdir(), "musu-route-evidence-"));
   for (const key of ENV_KEYS) {
     previous.set(key, process.env[key]);
     delete process.env[key];
   }
   process.env.MUSU_P2P_CONTROL_TOKEN = "test-token";
+  process.env.MUSU_ROUTE_EVIDENCE_STORE_PATH = join(tempDir, "route-evidence.json");
   try {
     await fn();
   } finally {
@@ -57,17 +84,26 @@ async function withRouteEvidenceToken(fn: () => Promise<void>): Promise<void> {
         process.env[key] = value;
       }
     }
+    await rm(tempDir, { recursive: true, force: true });
   }
 }
 
 test("accepts hardened release-grade route evidence", async () => {
   await withRouteEvidenceToken(async () => {
     const { POST } = await loadModule("hardened");
-    const res = await POST(req(hardenedEvidence));
+    const res = await POST(postReq(hardenedEvidence));
     assert.equal(res.status, 202);
 
-    const body = (await res.json()) as { ok: boolean; release_grade: boolean; blockers: string[] };
+    const body = (await res.json()) as {
+      ok: boolean;
+      stored: boolean;
+      evidence_id: string;
+      release_grade: boolean;
+      blockers: string[];
+    };
     assert.equal(body.ok, true);
+    assert.equal(body.stored, true);
+    assert.match(body.evidence_id, /^route-evidence-/);
     assert.equal(body.release_grade, true);
     assert.deepEqual(body.blockers, []);
   });
@@ -76,7 +112,7 @@ test("accepts hardened release-grade route evidence", async () => {
 test("accepts legacy debug evidence but marks it non release grade", async () => {
   await withRouteEvidenceToken(async () => {
     const { POST } = await loadModule("legacy");
-    const res = await POST(req({
+    const res = await POST(postReq({
       ...hardenedEvidence,
       route_kind: "tailscale",
       peer_identity_verified: false,
@@ -94,7 +130,7 @@ test("accepts legacy debug evidence but marks it non release grade", async () =>
 test("rejects missing bearer token", async () => {
   await withRouteEvidenceToken(async () => {
     const { POST } = await loadModule("missing-auth");
-    const res = await POST(req(hardenedEvidence, null));
+    const res = await POST(postReq(hardenedEvidence, null));
     assert.equal(res.status, 401);
   });
 });
@@ -102,7 +138,36 @@ test("rejects missing bearer token", async () => {
 test("rejects malformed evidence", async () => {
   await withRouteEvidenceToken(async () => {
     const { POST } = await loadModule("malformed");
-    const res = await POST(req({ ...hardenedEvidence, schema: "wrong.schema", candidate_addr: "" }));
+    const res = await POST(postReq({ ...hardenedEvidence, schema: "wrong.schema", candidate_addr: "" }));
     assert.equal(res.status, 400);
+  });
+});
+
+test("queries stored route evidence with filters", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { GET, POST } = await loadModule("query");
+    await POST(postReq(hardenedEvidence));
+    await POST(postReq({
+      ...hardenedEvidence,
+      target_node_id: "pc-c",
+      route_kind: "tailscale",
+      peer_identity_verified: false,
+      encryption: "none_http_bearer",
+    }));
+
+    const allRes = await GET(getReq("?limit=10"));
+    assert.equal(allRes.status, 200);
+    const allBody = (await allRes.json()) as { count: number };
+    assert.equal(allBody.count, 2);
+
+    const filteredRes = await GET(getReq("?target_node_id=pc-b&release_grade=true"));
+    assert.equal(filteredRes.status, 200);
+    const filteredBody = (await filteredRes.json()) as {
+      count: number;
+      records: Array<{ evidence: { target_node_id: string }; release_grade: boolean }>;
+    };
+    assert.equal(filteredBody.count, 1);
+    assert.equal(filteredBody.records[0]?.evidence.target_node_id, "pc-b");
+    assert.equal(filteredBody.records[0]?.release_grade, true);
   });
 });

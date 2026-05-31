@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+import {
+  appendRouteEvidenceRecord,
+  createRouteEvidenceId,
+  queryRouteEvidenceRecords,
+  type RouteEvidencePayload,
+  type RouteEvidenceQuery,
+} from "@/lib/routeEvidenceStore";
+
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 const RouteEvidenceSchema = z.object({
   schema: z.literal("musu.route_evidence.v1"),
@@ -21,7 +30,7 @@ const RouteEvidenceSchema = z.object({
   recorded_at: z.string().min(1),
 }).passthrough();
 
-type RouteEvidence = z.infer<typeof RouteEvidenceSchema>;
+type RouteEvidence = z.infer<typeof RouteEvidenceSchema> & RouteEvidencePayload;
 
 const LEGACY_ENCRYPTION = new Set(["", "none", "http", "none_http_bearer", "unknown"]);
 
@@ -68,7 +77,25 @@ function releaseBlockers(evidence: RouteEvidence): string[] {
   return blockers;
 }
 
-export async function POST(req: NextRequest) {
+function parseLimit(value: string | null): number | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function parseReleaseGrade(value: string | null): boolean | undefined {
+  if (value === "true") {
+    return true;
+  }
+  if (value === "false") {
+    return false;
+  }
+  return undefined;
+}
+
+function authFailure(req: NextRequest): NextResponse | null {
   const expectedToken = configuredToken();
   if (!expectedToken) {
     return NextResponse.json(
@@ -79,6 +106,15 @@ export async function POST(req: NextRequest) {
 
   if (bearerToken(req) !== expectedToken) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
+
+  return null;
+}
+
+export async function POST(req: NextRequest) {
+  const failedAuth = authFailure(req);
+  if (failedAuth) {
+    return failedAuth;
   }
 
   let json: unknown;
@@ -104,15 +140,77 @@ export async function POST(req: NextRequest) {
   }
 
   const blockers = releaseBlockers(parsed.data);
+  const receivedAt = new Date().toISOString();
+  const evidenceId = createRouteEvidenceId();
+  try {
+    await appendRouteEvidenceRecord({
+      id: evidenceId,
+      received_at: receivedAt,
+      release_grade: blockers.length === 0,
+      blockers,
+      evidence: parsed.data,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "route_evidence_store_failed",
+        detail: error instanceof Error ? error.message : "unknown",
+      },
+      { status: 503 }
+    );
+  }
+
   return NextResponse.json(
     {
       ok: true,
       accepted: true,
-      stored: false,
+      stored: true,
+      evidence_id: evidenceId,
       release_grade: blockers.length === 0,
       blockers,
       recorded_at: parsed.data.recorded_at,
+      received_at: receivedAt,
     },
     { status: 202 }
   );
+}
+
+export async function GET(req: NextRequest) {
+  const failedAuth = authFailure(req);
+  if (failedAuth) {
+    return failedAuth;
+  }
+
+  const params = req.nextUrl.searchParams;
+  const query: RouteEvidenceQuery = {
+    limit: parseLimit(params.get("limit")),
+    source_node_id: params.get("source_node_id") ?? undefined,
+    target_node_id: params.get("target_node_id") ?? undefined,
+    route_kind: RouteEvidenceSchema.shape.route_kind.safeParse(params.get("route_kind")).success
+      ? (params.get("route_kind") as RouteEvidenceQuery["route_kind"])
+      : undefined,
+    result: RouteEvidenceSchema.shape.result.safeParse(params.get("result")).success
+      ? (params.get("result") as RouteEvidenceQuery["result"])
+      : undefined,
+    release_grade: parseReleaseGrade(params.get("release_grade")),
+  };
+
+  try {
+    const records = await queryRouteEvidenceRecords(query);
+    return NextResponse.json({
+      ok: true,
+      count: records.length,
+      records,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "route_evidence_query_failed",
+        detail: error instanceof Error ? error.message : "unknown",
+      },
+      { status: 503 }
+    );
+  }
 }
