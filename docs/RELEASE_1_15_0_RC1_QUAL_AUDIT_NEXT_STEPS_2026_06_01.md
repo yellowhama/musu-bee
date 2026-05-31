@@ -88,6 +88,13 @@ runtime route selector is not yet using the hosted control plane.
   `git_dirty=false`, owned WebView2 `6`, owned Node `0`, max one-core CPU
   `musu=0`, `webview2=0.21`, total working set `371.96MB`, and no
   resource-budget violations.
+- Final go/no-go after route diagnostics still reports
+  `ready_for_public_desktop_release=false`, while local artifacts, current
+  single-machine smoke, MSIX install, MSIX desktop entrypoint, process
+  ownership, startup single-instance, and public metadata all pass. The
+  remaining blockers are real second-PC multi-device route evidence,
+  two-machine runtime idle CPU evidence, `musu@musu.pro` delivery evidence, and
+  Partner Center/Store release evidence.
 
 The release gate still needs two-machine desktop-open CPU evidence, hardened
 multi-device route evidence, support inbox delivery evidence, and Store
