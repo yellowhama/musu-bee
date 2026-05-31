@@ -5,6 +5,7 @@ param(
     [double]$MaxRuntimeIdleCpuOneCorePercent = 5.0,
     [int]$MinRuntimeIdleCpuMachineCount = 2,
     [int]$MinProcessOwnershipMachineCount = 1,
+    [int]$MinStartupSingleInstanceMachineCount = 1,
     [switch]$SkipPublicMetadata,
     [switch]$FailOnNotReady,
     [switch]$Json
@@ -245,6 +246,71 @@ function Test-ProcessOwnershipEvidence {
     }
 }
 
+function Test-StartupSingleInstanceEvidence {
+    param(
+        [Parameter(Mandatory = $true)][string]$EvidencePath,
+        [Parameter(Mandatory = $true)][string]$ExpectedVersion
+    )
+
+    $checks = New-Object System.Collections.Generic.List[object]
+    $evidence = $null
+    try {
+        $evidence = Get-Content -LiteralPath $EvidencePath -Raw | ConvertFrom-Json
+        $checks.Add((New-Check -Name "parse" -Status "pass" -Message "startup single-instance evidence parses")) | Out-Null
+    }
+    catch {
+        $checks.Add((New-Check -Name "parse" -Status "fail" -Message "startup single-instance evidence does not parse: $($_.Exception.Message)")) | Out-Null
+    }
+
+    if ($evidence) {
+        $schema = [string]$evidence.schema
+        $checks.Add((New-Check -Name "schema" -Status ($(if ($schema -eq "musu.startup_single_instance_audit.v1") { "pass" } else { "fail" })) -Message ($(if ($schema -eq "musu.startup_single_instance_audit.v1") { "schema is valid" } else { "schema is '$schema'" })))) | Out-Null
+
+        $versionValue = [string]$evidence.version
+        $checks.Add((New-Check -Name "version" -Status ($(if ($versionValue -eq $ExpectedVersion) { "pass" } else { "fail" })) -Message ($(if ($versionValue -eq $ExpectedVersion) { "version matches $ExpectedVersion" } else { "version is '$versionValue'" })))) | Out-Null
+
+        $okValue = [bool]$evidence.ok
+        $checks.Add((New-Check -Name "evidence ok" -Status ($(if ($okValue) { "pass" } else { "fail" })) -Message ($(if ($okValue) { "evidence reports ok=true" } else { "evidence reports ok=false" })))) | Out-Null
+
+        $operatorMachine = ""
+        if ($evidence.PSObject.Properties["operator_machine"]) {
+            $operatorMachine = [string]$evidence.operator_machine
+        }
+        $checks.Add((New-Check -Name "operator machine" -Status ($(if (-not [string]::IsNullOrWhiteSpace($operatorMachine)) { "pass" } else { "fail" })) -Message ($(if (-not [string]::IsNullOrWhiteSpace($operatorMachine)) { "operator_machine is present" } else { "operator_machine is missing" })))) | Out-Null
+
+        $repeatCount = if ($evidence.PSObject.Properties["repeat_count"]) { [int]$evidence.repeat_count } else { 0 }
+        $checks.Add((New-Check -Name "repeat count" -Status ($(if ($repeatCount -ge 2) { "pass" } else { "fail" })) -Message ($(if ($repeatCount -ge 2) { "repeat_count is $repeatCount" } else { "repeat_count is $repeatCount; expected at least 2" })))) | Out-Null
+
+        $failCountValue = if ($evidence.PSObject.Properties["fail_count"]) { [int]$evidence.fail_count } else { 1 }
+        $checks.Add((New-Check -Name "nested fail count" -Status ($(if ($failCountValue -eq 0) { "pass" } else { "fail" })) -Message ($(if ($failCountValue -eq 0) { "nested startup checks passed" } else { "nested startup fail_count is $failCountValue" })))) | Out-Null
+
+        $counts = $evidence.process_counts
+        $afterRuntime = if ($counts -and $counts.PSObject.Properties["after_musu_runtime"]) { [int]$counts.after_musu_runtime } else { 0 }
+        $checks.Add((New-Check -Name "runtime count after startup" -Status ($(if ($afterRuntime -eq 1) { "pass" } else { "fail" })) -Message ($(if ($afterRuntime -eq 1) { "exactly one MUSU runtime after repeated startup" } else { "$afterRuntime MUSU runtime process(es) after repeated startup" })))) | Out-Null
+
+        $observedBridgePidCount = if ($counts -and $counts.PSObject.Properties["observed_bridge_pid_count"]) { [int]$counts.observed_bridge_pid_count } else { 0 }
+        $checks.Add((New-Check -Name "stable bridge pid" -Status ($(if ($observedBridgePidCount -eq 1) { "pass" } else { "fail" })) -Message ($(if ($observedBridgePidCount -eq 1) { "one stable bridge pid observed" } else { "$observedBridgePidCount bridge pid(s) observed" })))) | Out-Null
+
+        $repeatedSpawnCount = if ($counts -and $counts.PSObject.Properties["repeated_spawn_count"]) { [int]$counts.repeated_spawn_count } else { 1 }
+        $checks.Add((New-Check -Name "no repeated spawn" -Status ($(if ($repeatedSpawnCount -eq 0) { "pass" } else { "fail" })) -Message ($(if ($repeatedSpawnCount -eq 0) { "no bridge spawn after the first startup call" } else { "$repeatedSpawnCount repeated bridge spawn(s)" })))) | Out-Null
+
+        $failedInvocationCount = if ($counts -and $counts.PSObject.Properties["failed_invocation_count"]) { [int]$counts.failed_invocation_count } else { 1 }
+        $checks.Add((New-Check -Name "startup invocation failures" -Status ($(if ($failedInvocationCount -eq 0) { "pass" } else { "fail" })) -Message ($(if ($failedInvocationCount -eq 0) { "all startup invocations passed" } else { "$failedInvocationCount startup invocation(s) failed" })))) | Out-Null
+
+        $ownershipOk = ($evidence.PSObject.Properties["process_ownership"] -and [bool]$evidence.process_ownership.ok)
+        $checks.Add((New-Check -Name "process ownership nested" -Status ($(if ($ownershipOk) { "pass" } else { "fail" })) -Message ($(if ($ownershipOk) { "nested process ownership audit passed" } else { "nested process ownership audit missing or failed" })))) | Out-Null
+    }
+
+    $failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
+    [pscustomobject]@{
+        ok = ($failCount -eq 0)
+        evidence_path = $EvidencePath
+        fail_count = $failCount
+        operator_machine = if ($evidence -and $evidence.PSObject.Properties["operator_machine"]) { [string]$evidence.operator_machine } else { $null }
+        checks = $checks.ToArray()
+    }
+}
+
 $auditScript = Join-Path $scriptDir "audit-desktop-release-readiness.ps1"
 $metadataScript = Join-Path $scriptDir "verify-store-public-metadata.ps1"
 $manifestScript = Join-Path $scriptDir "write-release-candidate-manifest.ps1"
@@ -451,6 +517,51 @@ $processOwnershipEvidence = [pscustomobject]@{
     candidates = $processOwnershipEvidenceResults
 }
 
+$startupSingleInstanceVerified = $false
+$startupSingleInstanceEvidence = $null
+$startupSingleInstanceEvidenceCandidates = @()
+$startupSingleInstanceEvidenceRoots = @(
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ("docs\evidence\startup-single-instance\{0}" -f $version))
+        filter = "*.json"
+    },
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ".local-build\startup-single-instance")
+        filter = "*.json"
+    }
+)
+
+foreach ($root in $startupSingleInstanceEvidenceRoots) {
+    if (Test-Path -LiteralPath $root.path) {
+        $startupSingleInstanceEvidenceCandidates += @(
+            Get-ChildItem -LiteralPath $root.path -Filter $root.filter -File -ErrorAction SilentlyContinue |
+                Where-Object { $_.Name -notlike "*.process-ownership.json" }
+        )
+    }
+}
+
+$startupSingleInstanceEvidenceResults = @()
+$startupSingleInstanceMachines = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+foreach ($candidate in @($startupSingleInstanceEvidenceCandidates | Sort-Object LastWriteTime -Descending)) {
+    $verification = Test-StartupSingleInstanceEvidence `
+        -EvidencePath $candidate.FullName `
+        -ExpectedVersion $version
+    $startupSingleInstanceEvidenceResults += $verification
+    if ([bool]$verification.ok -and -not [string]::IsNullOrWhiteSpace([string]$verification.operator_machine)) {
+        [void]$startupSingleInstanceMachines.Add([string]$verification.operator_machine)
+    }
+}
+
+$startupSingleInstanceVerified = ($startupSingleInstanceMachines.Count -ge $MinStartupSingleInstanceMachineCount)
+$startupSingleInstanceEvidence = [pscustomobject]@{
+    ok = [bool]$startupSingleInstanceVerified
+    min_machine_count = $MinStartupSingleInstanceMachineCount
+    valid_machine_count = $startupSingleInstanceMachines.Count
+    valid_machines = @($startupSingleInstanceMachines)
+    candidate_count = $startupSingleInstanceEvidenceResults.Count
+    candidates = $startupSingleInstanceEvidenceResults
+}
+
 $storeReleaseVerified = $false
 $storeReleaseEvidence = $null
 $storeReleaseEvidenceCandidate = $null
@@ -520,6 +631,9 @@ if (-not $runtimeIdleCpuVerified) {
 if (-not $processOwnershipVerified) {
     Add-Blocker -List $blockers -Area "process-ownership" -Message "Process ownership evidence has not passed on at least ${MinProcessOwnershipMachineCount} machine(s)."
 }
+if (-not $startupSingleInstanceVerified) {
+    Add-Blocker -List $blockers -Area "startup-single-instance" -Message "Startup single-instance evidence has not passed on at least ${MinStartupSingleInstanceMachineCount} machine(s)."
+}
 if (-not $SkipPublicMetadata) {
     if (-not $publicMetadataResult.json -or -not [bool]$publicMetadataResult.json.ok) {
         Add-Blocker -List $blockers -Area "store-public-metadata" -Message "Public privacy/support metadata verification failed for $PublicMetadataBaseUrl."
@@ -553,6 +667,7 @@ $manualInternalGates = @(
     "Runtime idle CPU verification on second Windows PC",
     "Process ownership audit on primary Windows PC",
     "Second-PC runtime/startup ownership verification",
+    "Startup single-instance repeat audit",
     "musu.pro registry/rendezvous/relay-control path decision"
 )
 
@@ -574,6 +689,8 @@ $result = [pscustomobject]@{
     runtime_idle_cpu_evidence = $runtimeIdleCpuEvidence
     process_ownership_verified = [bool]$processOwnershipVerified
     process_ownership_evidence = $processOwnershipEvidence
+    startup_single_instance_verified = [bool]$startupSingleInstanceVerified
+    startup_single_instance_evidence = $startupSingleInstanceEvidence
     support_mailbox_verified = [bool]$supportMailboxVerified
     support_mailbox_evidence = $supportMailboxEvidence
     store_release_verified = [bool]$storeReleaseVerified
@@ -599,6 +716,7 @@ else {
     "msix_install_verified: $($result.msix_install_verified)"
     "runtime_idle_cpu_verified: $($result.runtime_idle_cpu_verified)"
     "process_ownership_verified: $($result.process_ownership_verified)"
+    "startup_single_instance_verified: $($result.startup_single_instance_verified)"
     "multi_device_verified: $($result.multi_device_verified)"
     "public_metadata_ok: $($result.public_metadata_ok)"
     "support_mailbox_verified: $($result.support_mailbox_verified)"

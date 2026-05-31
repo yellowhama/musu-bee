@@ -58,6 +58,14 @@ Already applied:
   `musu_runtime=1`, `owned_node=0`, `owned_webview2=0`,
   `orphan_repo_helpers=0`, bridge registry PID alive, and bridge `/health`
   HTTP 200, despite 13 unrelated machine-wide WebView2 processes
+- `scripts\windows\audit-musu-startup-single-instance.ps1` now records
+  `musu.startup_single_instance_audit.v1`, calls `musu up --json` repeatedly,
+  verifies one stable bridge PID, and embeds the process ownership audit
+- release go/no-go now reports `startup_single_instance_verified` and blocks if
+  repeated startup evidence is missing or failing
+- current local startup audit on `HUGH_SECOND` passed with three repeated calls
+  reusing bridge PID 31208, `after_musu_runtime=1`, `repeated_spawn_count=0`,
+  and nested process ownership passing
 - primary debug-runtime 60s diagnostic sample passed at
   `.local-build\runtime-idle-cpu\musu-idle-cpu-20260531-194854.json`; this is
   evidence that the current bridge-only debug process is not the hot loop, but
@@ -68,8 +76,8 @@ Next implementation:
 
 - run real 60s samples with the packaged MUSU desktop/WebView2 shell open on
   both PCs
-- extend startup-repeat coverage so repeated desktop Start Runtime clicks and
-  `musu up` calls cannot create duplicate bridge/runtime processes
+- extend startup-repeat coverage from repeated `musu up` to desktop Start
+  Runtime clicks and Store StartupTask/manual-launch collisions
 - fix the exact hot loop shown by those samples
 
 ## Track B - `musu.pro` Assisted P2P
@@ -124,6 +132,7 @@ Release gates that must remain false until evidence exists:
 
 - `runtime_idle_cpu_verified`
 - `process_ownership_verified`
+- `startup_single_instance_verified`
 - `multi_device_verified`
 - `support_mailbox_verified`
 - `store_release_verified`

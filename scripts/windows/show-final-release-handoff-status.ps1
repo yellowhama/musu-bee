@@ -193,6 +193,16 @@ $processOwnershipRoots = @(
         filter = "*.json"
     }
 )
+$startupSingleInstanceRoots = @(
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ("docs\evidence\startup-single-instance\{0}" -f $version))
+        filter = "*.json"
+    },
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ".local-build\startup-single-instance")
+        filter = "*.json"
+    }
+)
 $storeRoots = @(
     [pscustomobject]@{
         path = (Join-Path $repoRoot ("docs\evidence\store-release\{0}" -f $version))
@@ -212,6 +222,7 @@ $commands = [pscustomobject]@{
     verify_action_pack = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-operator-action-pack.ps1 -PackPath .local-build\operator-action-pack\MUSU-$safeVersion-operator-action-pack-latest.zip -Json"
     measure_runtime_idle_cpu = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -MaxOneCorePercent 5 -IncludeNode -IncludeWebView2 -FailOnHot -Json"
     audit_process_ownership = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-process-ownership.ps1 -FailOnProblem -Json"
+    audit_startup_single_instance = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-startup-single-instance.ps1 -RepeatCount 3 -FailOnProblem -Json"
     final_completion = @"
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-final-operator-gates.ps1 `
   -MsixInstallEvidencePath .local-build\msix-install\<INSTALL_EVIDENCE_JSON> `
@@ -291,6 +302,13 @@ if (-not [bool]$goNoGo.process_ownership_verified) {
         -Summary "Audit the live MUSU process tree so Node/WebView2 helpers are counted only when owned by MUSU, and bridge registry PID/health are verified." `
         -Command $commands.audit_process_ownership
 }
+if (-not [bool]$goNoGo.startup_single_instance_verified) {
+    Add-OperatorStep `
+        -List $operatorSteps `
+        -Gate "startup-single-instance" `
+        -Summary "Run repeated startup audit so `musu up`/desktop start reuses one bridge PID instead of spawning duplicate runtimes." `
+        -Command $commands.audit_startup_single_instance
+}
 if (-not [bool]$goNoGo.support_mailbox_verified) {
     Add-OperatorStep `
         -List $operatorSteps `
@@ -330,6 +348,7 @@ $result = [pscustomobject]@{
         msix_install_verified = [bool]$goNoGo.msix_install_verified
         runtime_idle_cpu_verified = [bool]$goNoGo.runtime_idle_cpu_verified
         process_ownership_verified = [bool]$goNoGo.process_ownership_verified
+        startup_single_instance_verified = [bool]$goNoGo.startup_single_instance_verified
         multi_device_verified = [bool]$goNoGo.multi_device_verified
         public_metadata_ok = $goNoGo.public_metadata_ok
         support_mailbox_verified = [bool]$goNoGo.support_mailbox_verified
@@ -342,6 +361,7 @@ $result = [pscustomobject]@{
         msix_install = Get-EvidenceRootStatus -Roots $msixInstallRoots
         runtime_idle_cpu = Get-EvidenceRootStatus -Roots $runtimeIdleCpuRoots
         process_ownership = Get-EvidenceRootStatus -Roots $processOwnershipRoots
+        startup_single_instance = Get-EvidenceRootStatus -Roots $startupSingleInstanceRoots
         multi_device = Get-EvidenceRootStatus -Roots $multiDeviceRoots
         support_mailbox = Get-EvidenceRootStatus -Roots $supportRoots
         store_release = Get-EvidenceRootStatus -Roots $storeRoots

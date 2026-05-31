@@ -108,6 +108,7 @@ $scriptsToCopy = @(
     "verify-store-submission-bundle.ps1",
     "measure-musu-idle-cpu.ps1",
     "audit-musu-process-ownership.ps1",
+    "audit-musu-startup-single-instance.ps1",
     "prepare-operator-action-pack.ps1",
     "verify-operator-action-pack.ps1",
     "show-final-release-handoff-status.ps1",
@@ -185,8 +186,9 @@ Remaining blockers:
 2. real second-PC multi-device evidence
 3. runtime idle CPU evidence from the primary and second Windows PC
 4. process ownership evidence from a live MUSU runtime
-5. real __SUPPORT_EMAIL__ inbox delivery evidence
-6. Partner Center product name reservation, app submission, Microsoft certification, and restricted startup capability approval evidence
+5. startup single-instance evidence from repeated `musu up` calls
+6. real __SUPPORT_EMAIL__ inbox delivery evidence
+7. Partner Center product name reservation, app submission, Microsoft certification, and restricted startup capability approval evidence
 
 The multi-device kit includes `collect-second-pc-handoff.ps1`; run it on the
 second PC after install to generate `.local-build\second-pc-handoff\*.handoff.json`
@@ -367,9 +369,23 @@ and verifies the bridge registry PID plus `/health`.
 
 Expected result: `process_ownership_verified=true`.
 
+## Gate G - Startup single-instance evidence
+
+Run this from the real MUSU release repo root while MUSU runtime is available:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-startup-single-instance.ps1 -RepeatCount 3 -FailOnProblem -Json
+```
+
+This calls `musu up --json` repeatedly and verifies that repeated startup
+reuses one bridge PID, does not spawn another runtime after the first call, and
+still passes the nested process ownership audit.
+
+Expected result: `startup_single_instance_verified=true`.
+
 ## Final command
 
-After Gate A, Gate B, Gate C, Gate D, Gate E, and Gate F evidence exists, run from the real MUSU release repo root:
+After Gate A, Gate B, Gate C, Gate D, Gate E, Gate F, and Gate G evidence exists, run from the real MUSU release repo root:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-final-operator-gates.ps1 `
@@ -400,6 +416,7 @@ The release can proceed only when:
 - `msix_install_verified=true`
 - `runtime_idle_cpu_verified=true`
 - `process_ownership_verified=true`
+- `startup_single_instance_verified=true`
 - `multi_device_verified=true`
 - `public_metadata_ok=true`
 - `support_mailbox_verified=true`

@@ -2,7 +2,7 @@
 
 **Wiki ID**: wiki/522
 **Date**: 2026-05-31
-**Scope**: current release state after the route-evidence gate hardening, refreshed single-machine evidence, final operator packet verification, operator action pack verification, Store submission bundle verification, release handoff status check, second-PC MSIX install evidence import, Windows/Tailscale mDNS health hardening, runtime idle CPU attribution hardening, and process ownership audit gate.
+**Scope**: current release state after the route-evidence gate hardening, refreshed single-machine evidence, final operator packet verification, operator action pack verification, Store submission bundle verification, release handoff status check, second-PC MSIX install evidence import, Windows/Tailscale mDNS health hardening, runtime idle CPU attribution hardening, process ownership audit gate, and startup single-instance gate.
 
 ## Verdict
 
@@ -15,7 +15,7 @@ Current internal blockers:
 1. idle CPU busy-loop risk reported by the operator on both primary and second PC
 2. missing two-machine runtime idle CPU evidence gate
 3. incomplete `musu.pro` assisted relay/control-plane path for P2P setup and fallback routing
-4. remaining second-PC startup/duplicate runtime proof and smoke timeout hardening
+4. remaining second-PC startup/duplicate runtime proof and smoke timeout hardening; local repeated `musu up` proof now passes
 
 Current external evidence blockers:
 
@@ -23,15 +23,15 @@ Current external evidence blockers:
 2. real `musu@musu.pro` inbox delivery evidence
 3. Partner Center/Microsoft Store approval evidence, including restricted startup capability review
 
-2026-05-31 update: the second-PC MSIX install evidence has now been returned and recorded locally under `docs\evidence\msix-install\1.15.0-rc.1\20260531-165211-HUGH-MAIN.evidence.json`. Route proof is still missing because `192.168.1.192:8949` and `172.27.208.1:8949` were not reachable from the primary during the follow-up smoke attempt. Runtime CPU work has moved from a broad process-name sampler to an owned-process-tree sampler; one primary debug-runtime sample passed, but formal two-machine desktop/WebView2 evidence is still missing. A separate process ownership audit now passes on `HUGH_SECOND`: one MUSU runtime, zero MUSU-owned Node helpers, zero MUSU-owned WebView2 helpers, 13 machine-wide WebView2 processes not owned by MUSU, bridge registry PID alive, and bridge `/health` HTTP 200.
+2026-05-31 update: the second-PC MSIX install evidence has now been returned and recorded locally under `docs\evidence\msix-install\1.15.0-rc.1\20260531-165211-HUGH-MAIN.evidence.json`. Route proof is still missing because `192.168.1.192:8949` and `172.27.208.1:8949` were not reachable from the primary during the follow-up smoke attempt. Runtime CPU work has moved from a broad process-name sampler to an owned-process-tree sampler; one primary debug-runtime sample passed, but formal two-machine desktop/WebView2 evidence is still missing. A separate process ownership audit now passes on `HUGH_SECOND`: one MUSU runtime, zero MUSU-owned Node helpers, zero MUSU-owned WebView2 helpers, 13 machine-wide WebView2 processes not owned by MUSU, bridge registry PID alive, and bridge `/health` HTTP 200. Startup single-instance evidence now also passes locally: three consecutive `musu up --json` calls reused bridge PID 31208 and did not spawn another runtime.
 
 Current qualitative completion:
 
 | Surface | Completion | Reason |
 |---|---:|---|
-| Single-machine Windows local beta | ~84% | Functional smoke is evidence-backed and process ownership now passes locally; packaged desktop/WebView2 idle CPU evidence is still missing. |
-| Store/operator-gate infrastructure | ~90% | Final packet, action pack, Store submission bundle, public metadata, support mailbox config, evidence verifiers, runtime CPU gate, and process ownership gate are in place. |
-| Public desktop release readiness | ~54% | MSIX install evidence and local process ownership improved, but idle CPU, multi-device route, support mailbox, Store approval, and relay/control-plane readiness remain open. |
+| Single-machine Windows local beta | ~85% | Functional smoke, process ownership, and repeated startup reuse are evidence-backed locally; packaged desktop/WebView2 idle CPU evidence is still missing. |
+| Store/operator-gate infrastructure | ~91% | Final packet, action pack, Store submission bundle, public metadata, support mailbox config, evidence verifiers, runtime CPU gate, process ownership gate, and startup single-instance gate are in place. |
+| Public desktop release readiness | ~55% | MSIX install evidence plus local process/startup ownership improved, but idle CPU, multi-device route, support mailbox, Store approval, and relay/control-plane readiness remain open. |
 | Full desktop GUI product maturity | ~50% | Tauri shell is a usable launcher/status surface, not yet the full dashboard GUI, and runtime resource polish is not product-grade. |
 
 This document supersedes wiki/521 for the **current 2026-05-31 release status**. Wiki/521 remains the historical final qualitative audit and accumulated work log.
@@ -58,6 +58,7 @@ This document supersedes wiki/521 for the **current 2026-05-31 release status**.
 | Second-PC MSIX install evidence | `docs\evidence\msix-install\1.15.0-rc.1\20260531-165211-HUGH-MAIN.evidence.json` |
 | Runtime idle CPU evidence | formal gate still missing; diagnostic primary debug-runtime sample passed at `.local-build\runtime-idle-cpu\musu-idle-cpu-20260531-194854.json`, but public readiness still requires two machines with the packaged desktop/WebView2 shell open |
 | Process ownership evidence | local audit passed at `.local-build\process-ownership\musu-process-ownership-20260531-201339.json`; `musu_runtime=1`, `owned_node=0`, `owned_webview2=0`, `machine_wide_node=1`, `machine_wide_webview2=13`, `orphan_repo_helpers=0`, bridge registry PID alive, `/health` HTTP 200 |
+| Startup single-instance evidence | local audit passed at `docs\evidence\startup-single-instance\1.15.0-rc.1\20260531-203635-HUGH_SECOND.evidence.json`; three repeated `musu up --json` calls reused bridge PID 31208, `after_musu_runtime=1`, `repeated_spawn_count=0`, nested process ownership audit passed |
 | Current support verification id | `musu-store-support-1.15.0-rc.1-20260531-191548` |
 | Current second-PC kit | `kits\musu-multidevice-1.15.0-rc.1-20260531-191548.zip` |
 | Final release status | `ready_for_public_desktop_release=false` |
@@ -77,6 +78,7 @@ This document supersedes wiki/521 for the **current 2026-05-31 release status**.
 11. **Runtime CPU budget**: public beta requires explicit idle CPU evidence on primary and second PC. The current target is <= 5% of one logical CPU for a 60s idle sample.
 12. **musu.pro network role**: the product needs a hosted registry/rendezvous/relay-control path. Direct LAN/manual peers remain valid, but cannot be the only public multi-device setup story.
 13. **Process ownership policy**: machine-wide Node.js/WebView2 processes are not automatically MUSU-owned. Release evidence must distinguish MUSU descendants and repo-related helpers from unrelated processes, and bridge registry PID plus `/health` must match the live MUSU runtime.
+14. **Startup single-instance policy**: repeated `musu up`, desktop Start Runtime, and Store StartupTask/manual-launch overlap must reuse one runtime/bridge owner. The release gate now starts with repeated `musu up --json` evidence and must expand to packaged desktop click/startup-task collision tests.
 
 ## Code Audit
 
@@ -108,6 +110,7 @@ Findings:
 12. **Runtime CPU sampler false attribution was fixed.** `measure-musu-idle-cpu.ps1 -IncludeWebView2` no longer treats every stale WebView2 process on the machine as MUSU CPU. It now defaults to MUSU-owned descendants or repo-related helpers, records helper scope and process ownership metadata, and uses native Windows parent-process lookup instead of WMI/CIM because WMI timed out on the operator machine.
 13. **Frontend polling moved another step toward an idle budget.** Dashboard, node panel, and agents surface polling no longer use hot fixed intervals; they use non-overlapping recursive timeouts with 30s visible / 120s hidden cadence.
 14. **Process ownership audit is now a release gate.** `scripts\windows\audit-musu-process-ownership.ps1` writes `musu.process_ownership_audit.v1` evidence and `write-release-go-no-go.ps1` reports `process_ownership_verified`. The current local audit proves the extra WebView2 processes visible on the operator machine are not MUSU-owned, while the live bridge registry points to one healthy MUSU process.
+15. **Startup single-instance audit is now a release gate.** `scripts\windows\audit-musu-startup-single-instance.ps1` writes `musu.startup_single_instance_audit.v1`, calls `musu up --json` repeatedly, requires one stable bridge PID, rejects repeated bridge spawning, and embeds a nested process ownership audit. The current local run passed with three calls reusing PID 31208.
 
 ## Next Steps
 
@@ -129,7 +132,7 @@ P0: keep No-Go until internal runtime quality and external evidence gates both p
    Treat machine-wide helper counts as diagnostic only; release ownership is based on MUSU descendants, repo-related orphan helpers, and live bridge registry health.
 3. Fix any process that exceeds the idle CPU budget.
 4. Record passing runtime CPU evidence; go/no-go now blocks until it passes.
-5. Harden `musu up` and smoke scripts so duplicate/stale runtime state cannot hang the operator.
+5. Extend startup single-instance coverage from repeated `musu up` to packaged desktop Start Runtime clicks and Store StartupTask/manual-launch collision.
 6. Design and implement the first `musu.pro` assisted peer path: registry/rendezvous first, relay/tunnel fallback next.
 7. Copy `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-latest.zip` to the operator handoff location when runtime P0 is stable.
 8. On second Windows PC, extract `second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260531-010837.zip`.
@@ -175,7 +178,7 @@ Do **not** publicly release until these are all true:
 - `go_no_go.support_mailbox_verified=true`
 - `go_no_go.store_release_verified=true`
 - runtime idle CPU evidence passes on primary and second PC
-- process ownership evidence passes and repeated startup does not spawn duplicate bridge/runtime processes
+- process ownership and startup single-instance evidence pass; repeated startup does not spawn duplicate bridge/runtime processes
 - `packet.verified=true`
 - `action_pack.verified=true`
 - `manifest_git.dirty=false`

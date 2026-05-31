@@ -50,6 +50,10 @@ What it does not close:
   WebView2 helpers, one machine-wide Node process, 13 machine-wide WebView2
   processes, zero repo-related orphan helpers, bridge registry PID alive, and
   bridge `/health` HTTP 200.
+- Startup single-instance evidence now exists under
+  `docs\evidence\startup-single-instance\1.15.0-rc.1\20260531-203635-HUGH_SECOND.evidence.json`.
+  Three consecutive `musu up --json` calls reused bridge PID 31208, left one
+  MUSU runtime process, and passed nested process ownership.
 
 ## Code Audit Findings
 
@@ -156,6 +160,18 @@ one Node process visible, but none were MUSU-owned or repo-related orphans. The
 only MUSU runtime was `musu.exe` PID 31208 and the registry
 `C:\Users\empty\.musu\services\bridge.json` pointed to that live process.
 
+The first repeated-startup gate is also implemented:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-startup-single-instance.ps1 -RepeatCount 3 -FailOnProblem -Json
+```
+
+It writes `musu.startup_single_instance_audit.v1` evidence, calls `musu up
+--json` repeatedly with a timeout, verifies one stable bridge PID, rejects
+repeated bridge spawning after the first call, and embeds the process ownership
+audit. Current result on `HUGH_SECOND`: pass with PID 31208 reused across all
+three calls.
+
 Required fixes:
 
 - enforce one bridge owner per `MUSU_HOME`
@@ -258,9 +274,9 @@ HTTP bearer routing from satisfying the public multi-device release gate.
 
 | Surface | Previous | Current | Reason |
 |---|---:|---:|---|
-| Single-machine Windows local beta | ~92% | ~84% | Functionality is proven and local process ownership now passes; packaged desktop/WebView2 idle CPU is still unproven. |
-| Store/operator-gate infrastructure | ~90% | ~90% | Evidence tooling now includes runtime idle CPU and process ownership gates. |
-| Public desktop release readiness | ~68% | ~54% | MSIX install evidence and local process ownership improved, but idle CPU, multi-device route, relay path, support mailbox, and Store approval remain open. |
+| Single-machine Windows local beta | ~92% | ~85% | Functionality is proven and local process/startup ownership now passes; packaged desktop/WebView2 idle CPU is still unproven. |
+| Store/operator-gate infrastructure | ~90% | ~91% | Evidence tooling now includes runtime idle CPU, process ownership, and startup single-instance gates. |
+| Public desktop release readiness | ~68% | ~55% | MSIX install evidence and local process/startup ownership improved, but idle CPU, multi-device route, relay path, support mailbox, and Store approval remain open. |
 | Full desktop GUI product maturity | ~55-60% | ~50% | Tauri shell remains launcher/status only, and runtime resource polish is not yet product-grade. |
 | Multi-device product maturity | ~45% | ~38% | Direct second-PC install evidence exists, but route proof and relay fallback do not. |
 
@@ -275,5 +291,5 @@ Do not submit broadly or market as a reliable desktop utility until:
 - `support_mailbox_verified=true`
 - `store_release_verified=true`
 - idle CPU evidence passes on primary and second PC
-- process ownership evidence passes and repeated startup does not spawn duplicate runtimes
+- process ownership and startup single-instance evidence pass; repeated startup does not spawn duplicate runtimes
 - `musu.pro` assisted peer routing has at least a registry/direct path proof, with relay/tunnel fallback either implemented or explicitly excluded from the launch promise
