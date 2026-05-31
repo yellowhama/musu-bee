@@ -9,6 +9,11 @@ use anyhow::Result;
 use clap::{Args, Subcommand};
 use serde::Serialize;
 
+use crate::bridge::route_evidence::{
+    build_route_attempt_evidence, elapsed_ms, local_node_id, write_route_attempt_evidence,
+    RouteAttemptEvidenceInput, RouteAttemptEvidenceResult, CLI_ROUTE_EVIDENCE_NOTE,
+};
+
 use super::shares::SharesConfig;
 
 const BRIDGE_HEALTH_TIMEOUT_SECS: u64 = 10;
@@ -368,33 +373,6 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
     Ok(())
 }
 
-#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-enum RouteAttemptEvidenceResult {
-    Success,
-    Failed,
-}
-
-#[derive(Debug, Serialize)]
-struct RouteAttemptEvidence {
-    schema: &'static str,
-    version: String,
-    source_node_id: String,
-    target_node_id: String,
-    session_id: Option<String>,
-    route_kind: &'static str,
-    candidate_addr: String,
-    handshake_ms: Option<u64>,
-    total_attempt_ms: u64,
-    peer_identity_verified: bool,
-    encryption: &'static str,
-    payload_transited_musu_infra: bool,
-    result: RouteAttemptEvidenceResult,
-    failure_class: Option<String>,
-    recorded_at: String,
-    note: &'static str,
-}
-
 fn write_route_evidence_if_requested(
     opts: &RouteOpts,
     candidate_addr: &str,
@@ -407,87 +385,19 @@ fn write_route_evidence_if_requested(
     let Some(path) = opts.route_evidence_path.as_deref() else {
         return Ok(());
     };
-    let evidence = build_route_attempt_evidence(
-        candidate_addr,
-        target_node_id,
-        handshake_ms,
-        total_attempt_ms,
-        result,
-        failure_class,
-    );
-    write_route_attempt_evidence(path, &evidence)?;
-    println!("route evidence written: {}", path.display());
-    Ok(())
-}
-
-fn build_route_attempt_evidence(
-    candidate_addr: &str,
-    target_node_id: &str,
-    handshake_ms: Option<u64>,
-    total_attempt_ms: u64,
-    result: RouteAttemptEvidenceResult,
-    failure_class: Option<String>,
-) -> RouteAttemptEvidence {
-    RouteAttemptEvidence {
-        schema: "musu.route_evidence.v1",
-        version: env!("CARGO_PKG_VERSION").to_string(),
+    let evidence = build_route_attempt_evidence(RouteAttemptEvidenceInput {
         source_node_id: local_node_id(),
         target_node_id: target_node_id.to_string(),
-        session_id: None,
-        route_kind: route_evidence_kind_for_addr(candidate_addr),
         candidate_addr: candidate_addr.to_string(),
         handshake_ms,
         total_attempt_ms,
-        peer_identity_verified: false,
-        encryption: "none_http_bearer",
-        payload_transited_musu_infra: false,
         result,
         failure_class,
-        recorded_at: chrono::Utc::now().to_rfc3339(),
-        note: "Actual CLI route attempt evidence. Current transport is legacy HTTP bearer, so this records timing/result but is intentionally not release-grade until peer identity and QUIC/TLS proof are wired.",
-    }
-}
-
-fn route_evidence_kind_for_addr(addr: &str) -> &'static str {
-    match crate::bridge::router::route_kind_for_addr(addr) {
-        crate::bridge::router::RoutePathKind::Local | crate::bridge::router::RoutePathKind::Lan => {
-            "lan"
-        }
-        crate::bridge::router::RoutePathKind::Tailscale => "tailscale",
-        crate::bridge::router::RoutePathKind::DirectQuic => "direct_quic",
-    }
-}
-
-fn write_route_attempt_evidence(
-    path: &std::path::Path,
-    evidence: &RouteAttemptEvidence,
-) -> Result<()> {
-    if let Some(parent) = path
-        .parent()
-        .filter(|parent| !parent.as_os_str().is_empty())
-    {
-        std::fs::create_dir_all(parent)?;
-    }
-    let mut json = serde_json::to_string_pretty(evidence)?;
-    json.push('\n');
-    std::fs::write(path, json)?;
+        note: CLI_ROUTE_EVIDENCE_NOTE,
+    });
+    write_route_attempt_evidence(path, &evidence)?;
+    println!("route evidence written: {}", path.display());
     Ok(())
-}
-
-fn elapsed_ms(elapsed: std::time::Duration) -> u64 {
-    elapsed.as_millis().min(u128::from(u64::MAX)) as u64
-}
-
-fn local_node_id() -> String {
-    std::env::var("MUSU_NODE_NAME")
-        .ok()
-        .filter(|value| !value.trim().is_empty())
-        .unwrap_or_else(|| {
-            hostname::get()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string()
-        })
 }
 
 #[derive(Debug, Serialize)]
@@ -2280,49 +2190,5 @@ mod tests {
         assert!(!candidate.peer_identity_verified);
         assert_eq!(candidate.encryption, "none_http_bearer");
         assert!(!candidate.payload_transited_musu_infra);
-    }
-
-    #[test]
-    fn route_attempt_evidence_records_actual_cli_gap() {
-        let evidence = build_route_attempt_evidence(
-            "100.100.1.2:8070",
-            "target-node",
-            Some(37),
-            913,
-            RouteAttemptEvidenceResult::Success,
-            None,
-        );
-        let value = serde_json::to_value(evidence).unwrap();
-
-        assert_eq!(value["schema"], "musu.route_evidence.v1");
-        assert_eq!(value["target_node_id"], "target-node");
-        assert_eq!(value["route_kind"], "tailscale");
-        assert_eq!(value["candidate_addr"], "100.100.1.2:8070");
-        assert_eq!(value["handshake_ms"], 37);
-        assert_eq!(value["total_attempt_ms"], 913);
-        assert_eq!(value["peer_identity_verified"], false);
-        assert_eq!(value["encryption"], "none_http_bearer");
-        assert_eq!(value["payload_transited_musu_infra"], false);
-        assert_eq!(value["result"], "success");
-    }
-
-    #[test]
-    fn route_attempt_evidence_maps_loopback_to_lan_contract_kind() {
-        let evidence = build_route_attempt_evidence(
-            "127.0.0.1:8070",
-            "local",
-            Some(5),
-            12,
-            RouteAttemptEvidenceResult::Failed,
-            Some("submit_http_status_503 Service Unavailable".to_string()),
-        );
-        let value = serde_json::to_value(evidence).unwrap();
-
-        assert_eq!(value["route_kind"], "lan");
-        assert_eq!(value["result"], "failed");
-        assert_eq!(
-            value["failure_class"],
-            "submit_http_status_503 Service Unavailable"
-        );
     }
 }

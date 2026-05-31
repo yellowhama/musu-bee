@@ -214,12 +214,69 @@ pub async fn delegate(
             )
             .await
             {
-                Ok(_resp) => {
+                Ok(report) => {
                     crate::bridge::router::record_success(&peer.addr);
+                    let musu_home = state
+                        .config
+                        .nodes_toml_path
+                        .parent()
+                        .unwrap_or_else(|| std::path::Path::new("."));
+                    match crate::bridge::route_evidence::record_bridge_forward_route_evidence(
+                        musu_home,
+                        &task_id,
+                        &state.config.node_name,
+                        peer,
+                        report.handshake_ms,
+                        report.total_attempt_ms,
+                        crate::bridge::route_evidence::RouteAttemptEvidenceResult::Success,
+                        None,
+                    ) {
+                        Ok(path) => tracing::info!(
+                            task_id = %task_id,
+                            remote_task_id = %report.response.task_id,
+                            remote_node = %report.response.node,
+                            path = %path.display(),
+                            "bridge route evidence written"
+                        ),
+                        Err(err) => tracing::warn!(
+                            task_id = %task_id,
+                            err = %err,
+                            "failed to write bridge route evidence"
+                        ),
+                    }
                 }
                 Err(e) => {
                     crate::bridge::router::record_failure(&peer.addr);
-                    return Err(MusuError::Internal(format!("forward_to_peer: {e}")));
+                    let musu_home = state
+                        .config
+                        .nodes_toml_path
+                        .parent()
+                        .unwrap_or_else(|| std::path::Path::new("."));
+                    match crate::bridge::route_evidence::record_bridge_forward_route_evidence(
+                        musu_home,
+                        &task_id,
+                        &state.config.node_name,
+                        peer,
+                        e.handshake_ms,
+                        e.total_attempt_ms,
+                        crate::bridge::route_evidence::RouteAttemptEvidenceResult::Failed,
+                        Some(e.failure_class.clone()),
+                    ) {
+                        Ok(path) => tracing::info!(
+                            task_id = %task_id,
+                            path = %path.display(),
+                            "bridge route evidence written"
+                        ),
+                        Err(err) => tracing::warn!(
+                            task_id = %task_id,
+                            err = %err,
+                            "failed to write bridge route evidence"
+                        ),
+                    }
+                    return Err(MusuError::Internal(format!(
+                        "forward_to_peer: {}",
+                        e.message
+                    )));
                 }
             }
         }

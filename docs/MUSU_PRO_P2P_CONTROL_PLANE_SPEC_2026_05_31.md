@@ -166,6 +166,12 @@ Release gates must reject multi-device evidence that lacks:
    and success/failure result. This is still not final release-grade evidence
    because current transport remains legacy HTTP bearer with
    `peer_identity_verified=false` and `encryption=none_http_bearer`.
+   The route evidence builder/writer now lives in shared
+   `musu-rs/src/bridge/route_evidence.rs`, and bridge runtime forwarding from
+   `/api/tasks/delegate`, `/api/companies/{id}/run`, and workflow remote steps
+   writes local `~/.musu/route-evidence/<task_id>.route-evidence.json` files
+   from the actual forwarding attempt. Cloud submission and release-grade
+   identity/encryption proof remain pending.
 5. Add direct path selection against registered LAN/Tailscale endpoints.
    **Initial client-side selector done on 2026-06-01.** `musu-rs/src/bridge/router.rs`
    now classifies candidate addresses as `local`, `lan`, `tailscale`, or

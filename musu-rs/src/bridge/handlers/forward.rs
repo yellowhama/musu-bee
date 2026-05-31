@@ -13,6 +13,7 @@ use axum::Json;
 use serde::{Deserialize, Serialize};
 
 use crate::bridge::error::{MusuError, Result};
+use crate::bridge::route_evidence::elapsed_ms;
 use crate::bridge::AppState;
 use crate::peer::discovery::ResolvedPeer;
 
@@ -53,11 +54,26 @@ pub struct ForwardedTask {
 }
 
 /// Response after receiving a forwarded task.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ForwardResponse {
     pub task_id: String,
     pub status: String,
     pub node: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct ForwardAttemptReport {
+    pub response: ForwardResponse,
+    pub handshake_ms: Option<u64>,
+    pub total_attempt_ms: u64,
+}
+
+#[derive(Debug, Clone)]
+pub struct ForwardAttemptError {
+    pub message: String,
+    pub handshake_ms: Option<u64>,
+    pub total_attempt_ms: u64,
+    pub failure_class: String,
 }
 
 /// POST /api/tasks/forward — receive a forwarded task from a peer.
@@ -187,14 +203,14 @@ pub async fn receive_forwarded(
     ))
 }
 
-/// Forward a task to a remote peer node via HTTP POST.
-pub async fn forward_to_peer(
+async fn forward_to_peer_attempt(
     client: &reqwest::Client,
     peer: &ResolvedPeer,
     task: ForwardedTask,
     token: &str,
-) -> std::result::Result<ForwardResponse, String> {
+) -> std::result::Result<ForwardAttemptReport, ForwardAttemptError> {
     let url = format!("http://{}/api/tasks/forward", peer.addr);
+    let total_started = std::time::Instant::now();
 
     tracing::info!(
         url = %url,
@@ -202,12 +218,18 @@ pub async fn forward_to_peer(
         "forwarding task to peer"
     );
 
-    let task_json = serde_json::to_string(&task).map_err(|e| format!("serialize task: {e}"))?;
+    let task_json = serde_json::to_string(&task).map_err(|e| ForwardAttemptError {
+        message: format!("serialize task: {e}"),
+        handshake_ms: None,
+        total_attempt_ms: elapsed_ms(total_started.elapsed()),
+        failure_class: "forward_serialize_error".to_string(),
+    })?;
     let part = reqwest::multipart::Part::text(task_json)
         .mime_str("application/json")
         .unwrap();
     let form = reqwest::multipart::Form::new().part("task", part);
 
+    let submit_started = std::time::Instant::now();
     let resp = client
         .post(&url)
         .bearer_auth(token)
@@ -215,17 +237,40 @@ pub async fn forward_to_peer(
         .timeout(std::time::Duration::from_secs(10))
         .send()
         .await
-        .map_err(|e| format!("forward HTTP error: {e}"))?;
+        .map_err(|e| ForwardAttemptError {
+            message: format!("forward HTTP error: {e}"),
+            handshake_ms: Some(elapsed_ms(submit_started.elapsed())),
+            total_attempt_ms: elapsed_ms(total_started.elapsed()),
+            failure_class: "forward_http_error".to_string(),
+        })?;
+    let handshake_ms = Some(elapsed_ms(submit_started.elapsed()));
 
     if !resp.status().is_success() {
         let status = resp.status();
         let body = resp.text().await.unwrap_or_default();
-        return Err(format!("peer returned {status}: {body}"));
+        return Err(ForwardAttemptError {
+            message: format!("peer returned {status}: {body}"),
+            handshake_ms,
+            total_attempt_ms: elapsed_ms(total_started.elapsed()),
+            failure_class: format!("peer_http_status_{}", status.as_u16()),
+        });
     }
 
-    resp.json::<ForwardResponse>()
+    let response = resp
+        .json::<ForwardResponse>()
         .await
-        .map_err(|e| format!("forward response parse: {e}"))
+        .map_err(|e| ForwardAttemptError {
+            message: format!("forward response parse: {e}"),
+            handshake_ms,
+            total_attempt_ms: elapsed_ms(total_started.elapsed()),
+            failure_class: "forward_response_parse".to_string(),
+        })?;
+
+    Ok(ForwardAttemptReport {
+        response,
+        handshake_ms,
+        total_attempt_ms: elapsed_ms(total_started.elapsed()),
+    })
 }
 
 /// Forward a task with automatic retry on failure.
@@ -237,13 +282,18 @@ pub async fn forward_to_peer_with_retry(
     task: ForwardedTask,
     token: &str,
     max_retries: u32,
-) -> std::result::Result<ForwardResponse, String> {
-    let mut last_err = String::new();
+) -> std::result::Result<ForwardAttemptReport, ForwardAttemptError> {
+    let route_started = std::time::Instant::now();
+    let mut last_err: Option<ForwardAttemptError> = None;
     for attempt in 0..=max_retries {
-        match forward_to_peer(client, peer, task.clone(), token).await {
-            Ok(resp) => return Ok(resp),
+        match forward_to_peer_attempt(client, peer, task.clone(), token).await {
+            Ok(mut report) => {
+                report.total_attempt_ms = elapsed_ms(route_started.elapsed());
+                return Ok(report);
+            }
             Err(e) => {
-                last_err = e;
+                let err_message = e.message.clone();
+                last_err = Some(e);
                 if attempt < max_retries {
                     let delay = std::time::Duration::from_secs(1 << attempt);
                     tracing::warn!(
@@ -251,7 +301,7 @@ pub async fn forward_to_peer_with_retry(
                         attempt = attempt + 1,
                         max = max_retries,
                         delay_sec = delay.as_secs(),
-                        err = %last_err,
+                        err = %err_message,
                         "forward failed, retrying"
                     );
                     tokio::time::sleep(delay).await;
@@ -259,11 +309,20 @@ pub async fn forward_to_peer_with_retry(
             }
         }
     }
-    Err(format!(
+    let mut err = last_err.unwrap_or_else(|| ForwardAttemptError {
+        message: "forward failed before first attempt".to_string(),
+        handshake_ms: None,
+        total_attempt_ms: elapsed_ms(route_started.elapsed()),
+        failure_class: "forward_no_attempt".to_string(),
+    });
+    err.message = format!(
         "forward failed after {} attempts: {}",
         max_retries + 1,
-        last_err
-    ))
+        err.message
+    );
+    err.total_attempt_ms = elapsed_ms(route_started.elapsed());
+    err.failure_class = "forward_failed_after_retries".to_string();
+    Err(err)
 }
 
 /// V27-F1: Result callback payload from a remote peer.
@@ -330,19 +389,16 @@ pub async fn receive_callback(
 
     // Broadcast SSE event so any listeners (including `musu route --wait`)
     // get notified.
-    state
-        .sse_broadcaster
-        .publish(crate::writer::sse::TaskEvent::update(
-            &cb.source_task_id,
-            &cb.status,
-        )
-        .with_result(
-            cb.output.as_deref(),
-            cb.error.as_deref(),
-            cb.exit_code,
-            cb.duration_sec,
-        )
-        .with_assigned_pc(Some(&cb.node)));
+    state.sse_broadcaster.publish(
+        crate::writer::sse::TaskEvent::update(&cb.source_task_id, &cb.status)
+            .with_result(
+                cb.output.as_deref(),
+                cb.error.as_deref(),
+                cb.exit_code,
+                cb.duration_sec,
+            )
+            .with_assigned_pc(Some(&cb.node)),
+    );
 
     Ok(StatusCode::OK)
 }

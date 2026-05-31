@@ -16,15 +16,23 @@ use std::time::Duration;
 
 use mdns_sd::{IfKind, ServiceDaemon, ServiceEvent, ServiceInfo};
 
-use crate::peer::discovery::{ManualPeerList, validate_peer_addr};
+use crate::peer::discovery::{validate_peer_addr, ManualPeerList};
 
 const SERVICE_TYPE: &str = "_musu._tcp.local.";
 const MUSU_VERSION: &str = env!("CARGO_PKG_VERSION");
 const MDNS_IPV6_ENV: &str = "MUSU_MDNS_ENABLE_IPV6";
+const MDNS_TAILSCALE_ENV: &str = "MUSU_MDNS_ENABLE_TAILSCALE";
 
 fn mdns_ipv6_enabled() -> bool {
     matches!(
         std::env::var(MDNS_IPV6_ENV).as_deref(),
+        Ok("1") | Ok("true") | Ok("yes")
+    )
+}
+
+fn mdns_tailscale_enabled() -> bool {
+    matches!(
+        std::env::var(MDNS_TAILSCALE_ENV).as_deref(),
         Ok("1") | Ok("true") | Ok("yes")
     )
 }
@@ -39,6 +47,17 @@ fn new_musu_mdns_daemon() -> anyhow::Result<ServiceDaemon> {
             tracing::debug!(
                 env = MDNS_IPV6_ENV,
                 "mDNS IPv6 interfaces disabled by default"
+            );
+        }
+    }
+
+    if !mdns_tailscale_enabled() {
+        if let Err(e) = mdns.disable_interface(vec!["Tailscale", "tailscale0"]) {
+            tracing::warn!(err = %e, "failed to disable Tailscale mDNS interfaces");
+        } else {
+            tracing::debug!(
+                env = MDNS_TAILSCALE_ENV,
+                "mDNS Tailscale interfaces disabled by default"
             );
         }
     }

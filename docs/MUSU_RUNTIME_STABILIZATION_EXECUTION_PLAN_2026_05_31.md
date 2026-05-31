@@ -43,6 +43,9 @@ Already applied:
 - IPv6 mDNS defaults off unless `MUSU_MDNS_ENABLE_IPV6=1`; this prevents the
   Windows/Tailscale link-local IPv6 `os error 10065` send loop from becoming a
   hidden CPU/log-noise source when mDNS is explicitly enabled
+- Tailscale mDNS interfaces default off unless `MUSU_MDNS_ENABLE_TAILSCALE=1`;
+  Tailscale does not need LAN multicast discovery for the Store-candidate path,
+  and the operator-supplied `ff02::fb%9` errors came from that adapter class
 - cloud heartbeat defaults to 300s with 60s floor, backoff, and jitter
 - major dashboard polling loops were slowed and paused while hidden
 - CPU evidence now separates MUSU, Node.js, and WebView2 process roles
@@ -200,6 +203,11 @@ Current enforcement change:
   `musu.route_evidence.v1` from the actual CLI route attempt, and
   `smoke-multidevice-beta.ps1` imports that file instead of inventing route
   evidence from script-side inference.
+- Bridge runtime forwarding now uses the same shared route evidence contract:
+  `/api/tasks/delegate`, `/api/companies/{id}/run`, and workflow remote steps
+  write local `~/.musu/route-evidence/<task_id>.route-evidence.json` files with
+  candidate address, route kind, handshake timing, total timing, result, and
+  failure class.
 - `verify-multidevice-evidence.ps1` now rejects passing route evidence unless it
   includes route kind, candidate address, handshake timing, peer identity
   verification, hardened encryption, payload transit truth, and success result.
@@ -208,9 +216,10 @@ Current enforcement change:
 
 Next implementation:
 
-- wire the new Rust cloud DTOs into the bridge path selector
-- promote the CLI route evidence writer into bridge/runtime forwarding and then
-  submit hardened route evidence through the `musu.pro` control-plane client
+- wire the new Rust cloud DTOs into the bridge path selector and rendezvous
+  session lifecycle
+- submit hardened route evidence through the `musu.pro` control-plane client
+  after the local evidence file is written
 - implement direct QUIC/TLS identity proof before allowing route evidence to pass
 - implement relay session creation after direct route proof is stable
 

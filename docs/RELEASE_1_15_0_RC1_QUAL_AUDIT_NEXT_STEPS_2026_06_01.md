@@ -53,9 +53,9 @@ evidence are not yet in the runtime route attempt.
 | Web assets | High | `musu-bee/.gitignore` ignored the entire `public/` tree, while code referenced `/images/favicon-header.png` and `/agents/*.png`. A clean checkout could miss visible product assets. | Fixed in commit `5e8d195`: required public image assets are now unignored/tracked. |
 | Logo component/assets | Medium | `MusuLogo` referenced missing `/images/logos/{hero,display,header}-{variant}.png`, and there was no reusable external logo lockup despite the app mark being strong. | Fixed: component uses the tracked app mark plus token-colored wordmark, and static logo lockups now exist under `musu-bee/public/images/logos/`. |
 | Runtime smoke | High | Current single-machine smoke initially could not be refreshed after the logo asset commit. The dashboard task status API timed out once, then the fixed expected CLI string hit a duplicate-task `409 Conflict`. | Fixed in `smoke-single-machine-beta.ps1`: per-run expected strings avoid duplicate task hashes, dashboard task polling retries within the deadline, and polling errors are recorded in evidence. |
-| mDNS/Tailscale IPv6 | High | `mdns_sd::service_daemon` can repeatedly send to Tailscale IPv6 link-local multicast and log `os error 10065`, then `closed channel`. This is a credible idle CPU/log-noise source when mDNS is enabled or `musu discover` runs. | Fixed in `musu-rs/src/peer/mdns.rs`: mDNS stays opt-in, and IPv6 mDNS is separately opt-in via `MUSU_MDNS_ENABLE_IPV6=1`; default daemon setup disables IPv6 interfaces. |
-| P2P route | High | `musu-rs/src/cloud/mod.rs` has rendezvous/route-evidence DTOs and client methods, and `musu-rs/src/bridge/router.rs` now ranks cached/manual/nodes candidates by path kind (`lan` -> `tailscale` -> `direct_quic`). It still does not create rendezvous sessions or submit hardened cloud route evidence. | Partial P0. |
-| Multi-device verifier | High | `musu route --route-evidence-path <path>` now writes actual CLI attempt evidence with route kind, candidate address, submit/handshake timing, total timing, and success/failure result. Because the current path remains legacy HTTP bearer, it still records `peer_identity_verified=false` and `encryption=none_http_bearer`; verifier rejects that for release. | Correctly blocked. |
+| mDNS/Tailscale IPv6 | High | `mdns_sd::service_daemon` can repeatedly send to Tailscale IPv6 link-local multicast and log `os error 10065`, then `closed channel`. This is a credible idle CPU/log-noise source when mDNS is enabled or `musu discover` runs. | Further fixed in `musu-rs/src/peer/mdns.rs`: mDNS stays opt-in, IPv6 mDNS is separately opt-in via `MUSU_MDNS_ENABLE_IPV6=1`, and Tailscale mDNS interfaces are separately opt-in via `MUSU_MDNS_ENABLE_TAILSCALE=1`. |
+| P2P route | High | `musu-rs/src/cloud/mod.rs` has rendezvous/route-evidence DTOs and client methods, and `musu-rs/src/bridge/router.rs` ranks cached/manual/nodes candidates by path kind (`lan` -> `tailscale` -> `direct_quic`). Bridge forwarding now writes local route evidence, but it still does not create rendezvous sessions or submit hardened cloud route evidence. | Partial P0. |
+| Multi-device verifier | High | `musu route --route-evidence-path <path>` and bridge remote forwarding now write actual route evidence with route kind, candidate address, submit/handshake timing, total timing, and success/failure result. Because the current path remains legacy HTTP bearer, it still records `peer_identity_verified=false` and `encryption=none_http_bearer`; verifier rejects that for release. | Correctly blocked. |
 
 ## Validation Run
 
@@ -115,6 +115,14 @@ evidence are not yet in the runtime route attempt.
   remaining blockers are real second-PC multi-device route evidence,
   two-machine runtime idle CPU evidence, `musu@musu.pro` delivery evidence, and
   Partner Center/Store release evidence.
+- After runtime route-evidence sharing, validation passed:
+  `cargo check --manifest-path .\musu-rs\Cargo.toml -j 1`,
+  `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib cli_commands -- --nocapture`,
+  targeted `rustfmt --check` on changed Rust files, and `git diff --check`.
+  A filtered `route_evidence` unit-test run was attempted but stopped after the
+  MSVC test-binary compile became excessively long on this machine; rerun this
+  filter on a less constrained build host before treating those new unit tests
+  as separately green.
 
 The release gate still needs two-machine desktop-open CPU evidence, hardened
 multi-device route evidence, support inbox delivery evidence, and Store
@@ -126,7 +134,7 @@ submission/release evidence.
 |---|---:|---|
 | Packaging trust | 8/10 | MSIX desktop-entrypoint and local-sideload contract are now coherent. Store certification remains external. |
 | Runtime efficiency | 7/10 | Current primary packaged desktop-open CPU evidence passes at `musu=0%`, `webview2=0.21%` of one logical core, but second-PC evidence is still missing. |
-| P2P product story | 5.8/10 | The strategy is right, the bridge now has shared path-kind ranking for cached/manual/nodes candidates, and the CLI can write actual route-attempt evidence. `musu.pro` rendezvous and hardened identity/encryption proof are still not wired. |
+| P2P product story | 6.2/10 | The strategy is right, the bridge now has shared path-kind ranking for cached/manual/nodes candidates, and both CLI and runtime forwarding can write actual route-attempt evidence. `musu.pro` rendezvous, cloud evidence submission, and hardened identity/encryption proof are still not wired. |
 | UX/branding | 6/10 -> 7/10 | App mark is strong. Public web asset tracking, wordmark fallback, and basic static logo lockups are now fixed. Store screenshots and product demo media are still needed. |
 | Release evidence quality | 8/10 | Gates are strict and honest. Runtime CPU evidence must now match current HEAD or documentation/evidence-only deltas, preventing stale CPU samples from passing after code changes. |
 | Overall public readiness | ~62% | Stronger than before, but still No-Go because second-PC CPU, real route, support inbox, and Store evidence remain open. |
@@ -151,9 +159,9 @@ submission/release evidence.
    - `musu route --explain` and `musu relay status` now exist as diagnostic
      surfaces; next step is making their reported gap shrink by wiring the
      bridge route selector to rendezvous sessions.
-   - Promote the new CLI route-attempt evidence writer into bridge/runtime
-     forwarding, then submit hardened `musu.route_evidence.v1` through the
-     `musu.pro` client.
+   - Bridge/runtime forwarding now writes local route-attempt evidence; next
+     submit hardened `musu.route_evidence.v1` through the `musu.pro` client
+     after rendezvous and identity proof are wired.
 
 3. **Re-run multi-device release proof**
    - Use second-PC returned handoff for candidate addresses.

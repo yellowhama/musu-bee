@@ -18,6 +18,7 @@ pub mod facade;
 pub mod handlers;
 pub mod middleware;
 pub mod rate_limit;
+pub mod route_evidence;
 pub mod router;
 pub mod services;
 

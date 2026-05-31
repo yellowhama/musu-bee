@@ -187,18 +187,84 @@ pub async fn execute_workflow(state: &AppState, workflow_id: &str) -> Result<(),
                         state.config.bridge_host, state.config.bridge_port,
                     )),
                 };
-                if let Err(e) = crate::bridge::handlers::forward::forward_to_peer(
+                match crate::bridge::handlers::forward::forward_to_peer_with_retry(
                     &state.http_client,
                     peer,
                     forwarded,
                     &state.config.token,
+                    2,
                 )
                 .await
                 {
-                    tracing::error!(step_id = %step_id, err = %e, "step forward failed");
-                    update_step_status(&state.pool, step_id, "failed", Some(&e)).await?;
-                    workflow_failed = true;
-                    continue;
+                    Ok(report) => {
+                        crate::bridge::router::record_success(&peer.addr);
+                        let musu_home = state
+                            .config
+                            .nodes_toml_path
+                            .parent()
+                            .unwrap_or_else(|| std::path::Path::new("."));
+                        match crate::bridge::route_evidence::record_bridge_forward_route_evidence(
+                            musu_home,
+                            &task_id,
+                            &state.config.node_name,
+                            peer,
+                            report.handshake_ms,
+                            report.total_attempt_ms,
+                            crate::bridge::route_evidence::RouteAttemptEvidenceResult::Success,
+                            None,
+                        ) {
+                            Ok(path) => tracing::info!(
+                                step_id = %step_id,
+                                task_id = %task_id,
+                                remote_task_id = %report.response.task_id,
+                                remote_node = %report.response.node,
+                                path = %path.display(),
+                                "workflow route evidence written"
+                            ),
+                            Err(err) => tracing::warn!(
+                                step_id = %step_id,
+                                task_id = %task_id,
+                                err = %err,
+                                "failed to write workflow route evidence"
+                            ),
+                        }
+                    }
+                    Err(e) => {
+                        crate::bridge::router::record_failure(&peer.addr);
+                        let musu_home = state
+                            .config
+                            .nodes_toml_path
+                            .parent()
+                            .unwrap_or_else(|| std::path::Path::new("."));
+                        match crate::bridge::route_evidence::record_bridge_forward_route_evidence(
+                            musu_home,
+                            &task_id,
+                            &state.config.node_name,
+                            peer,
+                            e.handshake_ms,
+                            e.total_attempt_ms,
+                            crate::bridge::route_evidence::RouteAttemptEvidenceResult::Failed,
+                            Some(e.failure_class.clone()),
+                        ) {
+                            Ok(path) => tracing::info!(
+                                step_id = %step_id,
+                                task_id = %task_id,
+                                path = %path.display(),
+                                "workflow route evidence written"
+                            ),
+                            Err(err) => tracing::warn!(
+                                step_id = %step_id,
+                                task_id = %task_id,
+                                err = %err,
+                                "failed to write workflow route evidence"
+                            ),
+                        }
+                        tracing::error!(step_id = %step_id, err = %e.message, "step forward failed");
+                        update_step_status(&state.pool, step_id, "failed", Some(&e.message))
+                            .await?;
+                        workflow_failed = true;
+                        continue;
+                    }
                 }
             }
         }
