@@ -104,16 +104,16 @@ Fresh repeatable script smoke passed again on 2026-05-29 06:52 KST:
 - dashboard output: `MUSU_RELEASE_SMOKE_OK_20260529_0652`
 - CLI route output: `MUSU_CLI_ROUTE_OK_20260529_0652`
 
-Current machine-readable single-machine evidence passed and was recorded on 2026-06-01 03:06 KST after the route/relay diagnostic CLI commit:
+Current machine-readable single-machine evidence passed and was recorded on 2026-06-01 03:36 KST after the bridge path-selection commit:
 
-- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260601-030639-HUGH_SECOND.evidence.json`
-- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260601-030639-HUGH_SECOND.verification.json`
-- summary: `docs\evidence\single-machine\1.15.0-rc.1\20260601-030639-HUGH_SECOND.summary.md`
-- commit: `12f8cabaefb5722eb45941012d47848d95c9f895`
-- dashboard task id: `42449837-4936-4e79-82a6-d7bbeede6108`
-- bridge: `http://127.0.0.1:14130`
-- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260601_030619`
-- CLI route output: `MUSU_CLI_ROUTE_OK_20260601_030619`
+- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260601-033633-HUGH_SECOND.evidence.json`
+- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260601-033633-HUGH_SECOND.verification.json`
+- summary: `docs\evidence\single-machine\1.15.0-rc.1\20260601-033633-HUGH_SECOND.summary.md`
+- commit: `efff90cc9df3419f0cadc0398e5dd63d10f235de`
+- dashboard task id: `759429bc-001e-4a05-9a68-88a4c44ad3c1`
+- bridge: `http://127.0.0.1:13899`
+- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260601_033608`
+- CLI route output: `MUSU_CLI_ROUTE_OK_20260601_033608`
 - dashboard task poll errors: `0`
 
 Multi-device packet:
@@ -149,7 +149,7 @@ Runtime hardening:
 - default clipboard polling: off unless `MUSU_ENABLE_CLIPBOARD_SYNC=1`
 - runtime hardening and relay-control roadmap: `docs/RELEASE_1_15_0_RC1_RUNTIME_HARDENING_RELAY_ROADMAP_2026_05_31.md`
 - go/no-go preflight now reports `msix_desktop_entrypoint_verified`, `runtime_idle_cpu_verified`, `process_ownership_verified`, and `startup_single_instance_verified`
-- current state: primary clean packaged desktop-open evidence passes at `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-030838-HUGH_SECOND.desktop-open.evidence.json` with owned WebView2 `6`, owned Node `0`, and WebView2 max one-core CPU `0.21`; the regenerated Store-reviewed artifact launches `musu-desktop.exe` and contains `musu.exe` plus `musu-startup.exe`; the fixed `local-sideload-manual` package is installed on `HUGH_SECOND` and passes installed desktop-entrypoint audit; Store-reviewed restricted-capability sideload is refused by default and must not be used as ordinary install evidence; second-PC desktop-open CPU evidence is still pending but the second-PC return wrapper now captures and returns it; local process ownership and repeated startup evidence pass
+- current state: primary clean packaged desktop-open evidence passes at `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-033734-HUGH_SECOND.desktop-open.evidence.json` with owned WebView2 `6`, owned Node `0`, and WebView2 max one-core CPU `0.16`; the regenerated Store-reviewed artifact launches `musu-desktop.exe` and contains `musu.exe` plus `musu-startup.exe`; the fixed `local-sideload-manual` package is installed on `HUGH_SECOND` and passes installed desktop-entrypoint audit; Store-reviewed restricted-capability sideload is refused by default and must not be used as ordinary install evidence; second-PC desktop-open CPU evidence is still pending but the second-PC return wrapper now captures and returns it; local process ownership and repeated startup evidence pass
 
 Brand assets:
 
