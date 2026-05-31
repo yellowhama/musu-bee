@@ -2,7 +2,7 @@
 
 **Wiki ID**: wiki/527
 **Date**: 2026-06-01
-**Status**: Current audit addendum after MSIX desktop-entrypoint hardening, logo/public asset audit, local smoke recheck attempt, first bridge-wired `musu.pro` rendezvous lifecycle, and HTTPS peer certificate fingerprint pinning for bridge forwarding.
+**Status**: Current audit addendum after MSIX desktop-entrypoint hardening, logo/public asset audit, local smoke recheck attempt, first bridge-wired `musu.pro` rendezvous lifecycle, HTTPS peer certificate fingerprint pinning for bridge forwarding, and relay fallback lease policy wiring.
 
 ## Executive Verdict
 
@@ -27,10 +27,11 @@ path. Nodes now also advertise TLS certificate fingerprints as identity material
 in registry/rendezvous candidates, and HTTPS target candidates can be checked
 against the advertised fingerprint during the actual bridge forward. That still
    does not satisfy the release gate because real second-PC target-candidate
-   route proof, relay fallback, plus release-grade QUIC/TLS route proof are
+   route proof, actual relay/tunnel transport, plus release-grade QUIC/TLS route proof are
    still missing. Token-owner scoped route evidence storage/query now exists as
-   a stub boundary, but it is not yet a full account UI/export/retention
-   system.
+   a stub boundary, and the relay fallback lease API is now fail-closed behind
+   direct-path-failure plus Connect/Pro policy. That is still not yet a full
+   account UI/export/retention system or actual relay/tunnel data transport.
 
 ## Product Spec Updates
 
@@ -87,6 +88,14 @@ against the advertised fingerprint during the actual bridge forward. That still
    success/failure, uses returned target candidates when present, falls back
    once to the original peer if a selected candidate fails, and records the
    session id in route evidence.
+12. **Relay fallback lease policy**: `POST /api/v1/p2p/relay/lease` and `GET`
+   now exist as authenticated owner-scoped control-plane APIs. They do not
+   implement relay data transport. They prevent silent relay use by defaulting
+   to `lease_issued=false`, requiring direct path failure, requiring
+   `MUSU_P2P_RELAY_ENABLED=1`, `MUSU_P2P_RELAY_TRANSPORT_WIRED=1`,
+   `MUSU_P2P_RELAY_URL`, and
+   `MUSU_P2P_RELAY_ENTITLEMENT=connect|pro|enterprise`, and returning
+   `relay_default_data_path=false`.
 
 ## Code Audit Findings
 
@@ -96,13 +105,14 @@ against the advertised fingerprint during the actual bridge forward. That still
 | Logo component/assets | Medium | `MusuLogo` referenced missing `/images/logos/{hero,display,header}-{variant}.png`, and there was no reusable external logo lockup despite the app mark being strong. | Fixed: component uses the tracked app mark plus token-colored wordmark, and static logo lockups now exist under `musu-bee/public/images/logos/`. |
 | Runtime smoke | High | Current single-machine smoke initially could not be refreshed after the logo asset commit. The dashboard task status API timed out once, then the fixed expected CLI string hit a duplicate-task `409 Conflict`. | Fixed in `smoke-single-machine-beta.ps1`: per-run expected strings avoid duplicate task hashes, dashboard task polling retries within the deadline, and polling errors are recorded in evidence. |
 | mDNS/Tailscale IPv6 | High | `mdns_sd::service_daemon` can repeatedly send to Tailscale IPv6 link-local multicast and log `os error 10065`, then `closed channel`. Latest operator evidence showed repeated `[ff02::fb%9]:5353` sends on Tailscale adapter index 9 from 2026-05-31T16:09:08Z to 2026-05-31T16:10:24Z. This is a credible idle CPU/log-noise source when mDNS is enabled or `musu discover` runs. | Further fixed in `musu-rs/src/peer/mdns.rs`: mDNS stays opt-in, IPv6 mDNS is separately opt-in via `MUSU_MDNS_ENABLE_IPV6=1`, and Tailscale mDNS interfaces are separately opt-in via `MUSU_MDNS_ENABLE_TAILSCALE=1`. |
-| P2P route | High | `musu-rs/src/cloud/mod.rs` has rendezvous/route-evidence DTOs and client methods, `musu-rs/src/bridge/router.rs` ranks cached/manual/nodes candidates by path kind (`lan` -> `tailscale` -> `direct_quic`), and bridge forwarding now creates/uses a short-lived rendezvous session before legacy direct forwarding. If the session returns target candidates seeded from recent node cache or same-session updates, forwarding uses the best candidate by the same priority and falls back once to the original peer if that candidate fails. It still does not prove hardened identity/encryption or relay fallback. | Partial P0. |
+| P2P route | High | `musu-rs/src/cloud/mod.rs` has rendezvous/route-evidence/relay-lease DTOs and client methods, `musu-rs/src/bridge/router.rs` ranks cached/manual/nodes candidates by path kind (`lan` -> `tailscale` -> `direct_quic`), and bridge forwarding now creates/uses a short-lived rendezvous session before legacy direct forwarding. If the session returns target candidates seeded from recent node cache or same-session updates, forwarding uses the best candidate by the same priority and falls back once to the original peer if that candidate fails. It still does not prove hardened identity/encryption or relay/tunnel data transport. | Partial P0. |
 | Multi-device verifier | High | `musu route --route-evidence-path <path>` and bridge remote forwarding now write actual route evidence with route kind, candidate address, submit/handshake timing, total timing, and success/failure result. Legacy HTTP bearer still records `peer_identity_verified=false` and `encryption=none_http_bearer`; HTTPS fingerprint-pinned bridge forwarding can record verified identity but is still rejected for release until QUIC/TLS route proof exists. | Correctly blocked. |
 | Evidence storage | Medium | The first route-evidence API previously returned `stored=false`, so server-side audit/history was missing. | Fixed as minimal storage/query. Hosted storage uses Vercel KV; local/dev uses an explicit file fallback. Production fails closed without KV or an explicit persistent file path. |
 | Evidence ownership | High | Stored route evidence needed an owner boundary before it could support multi-account control-plane diagnosis. | Partially fixed. Records are now written and queried under a token-derived SHA-256 `owner_key`, and API responses omit that key. Real account-id mapping, UI/export, and retention policy remain pending. |
 | Rendezvous storage | Medium | The control-plane lacked a server-side place for endpoint candidate exchange. | Fixed as a short-lived session store plus recent node candidate cache with Vercel KV or explicit local/dev file fallback. |
 | Runtime rendezvous | High | Bridge forwarding did not previously join runtime route attempts to the `musu.pro` rendezvous session/evidence model or use returned target candidates. | Fixed as first runtime lifecycle. `musu relay status` and `musu route --explain` now report `rendezvous_session_wired=true`; refreshed target candidates can replace the original peer address with original-peer fallback on candidate failure; release remains blocked by legacy HTTP bearer transport and missing two-machine proof. |
 | Peer identity proof | High | Evidence required peer identity verification, but route attempts had no identity material to carry or store. | Partial. TLS certificate SHA-256 fingerprints are registered/published as candidate identity material, and HTTPS bridge forwarding now verifies a target certificate fingerprint during the actual POST before recording `tls_cert_fingerprint_pin`. This is still non-release-grade until QUIC/TLS route proof exists. |
+| Relay fallback policy | High | Relay/tunnel fallback was a roadmap item without a server-side lease boundary, which risked turning `musu.pro` into an implicit default payload path later. | Partially fixed. The relay lease API is authenticated, owner-scoped, fail-closed by default, requires direct-path failure and Connect/Pro policy env, and is visible in `musu relay status`. Actual relay/tunnel data transport remains unwired. |
 
 ## Validation Run
 
@@ -216,6 +226,19 @@ against the advertised fingerprint during the actual bridge forward. That still
 - After token-owner scoped route-evidence storage, validation passed:
   `npx tsx --test src/app/api/v1/p2p/route-evidence/route.test.ts` and
   `npm run typecheck`.
+- After relay fallback lease policy wiring, validation passed:
+  `npx tsx --test src/app/api/v1/p2p/relay/lease/route.test.ts`,
+  combined P2P API route tests covering rendezvous, route evidence, and relay
+  lease, `npm run typecheck`,
+  `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib cloud::tests -- --nocapture`,
+  `cargo check --manifest-path .\musu-rs\Cargo.toml -j 1`,
+  `cargo build --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1`,
+  `cargo fmt --manifest-path .\musu-rs\Cargo.toml --check`, and
+  `musu relay status --json`. The relay status reports
+  `relay_control_plane_lease_wired=true`,
+  `relay_lease_endpoint=/api/v1/p2p/relay/lease`,
+  `relay_default_data_path=false`, and `relay_transport_wired=false`.
+  Indexer sync recorded `1082 files / 2141 symbols`.
 
 The release gate still needs two-machine desktop-open CPU evidence, hardened
 multi-device route evidence, support inbox delivery evidence, and Store
@@ -227,7 +250,7 @@ submission/release evidence.
 |---|---:|---|
 | Packaging trust | 8/10 | MSIX desktop-entrypoint and local-sideload contract are now coherent. Store certification remains external. |
 | Runtime efficiency | 7/10 | Current primary packaged desktop-open CPU evidence passes at `musu=0%`, `webview2=0.21%` of one logical core, but second-PC evidence is still missing. |
-| P2P product story | 8.0/10 | The strategy is right, the bridge now has shared path-kind ranking for cached/manual/nodes candidates, runtime route evidence is stored/queryable on `musu.pro`, server-side rendezvous candidate exchange plus recent node candidate caching exists, runtime forwarding creates/uses sessions, refreshed target candidates can affect the actual forward address, peer identity material is exchanged, and HTTPS bridge attempts can pin the advertised certificate fingerprint. Release-grade QUIC/TLS proof, real second-PC verification, and relay fallback are still not wired. |
+| P2P product story | 8.1/10 | The strategy is right, the bridge now has shared path-kind ranking for cached/manual/nodes candidates, runtime route evidence is stored/queryable on `musu.pro`, server-side rendezvous candidate exchange plus recent node candidate caching exists, runtime forwarding creates/uses sessions, refreshed target candidates can affect the actual forward address, peer identity material is exchanged, HTTPS bridge attempts can pin the advertised certificate fingerprint, and relay fallback now has a fail-closed lease policy API. Release-grade QUIC/TLS proof, real second-PC verification, and relay/tunnel transport are still not wired. |
 | UX/branding | 6/10 -> 7/10 | App mark is strong. Public web asset tracking, wordmark fallback, and basic static logo lockups are now fixed. Store screenshots and product demo media are still needed. |
 | Release evidence quality | 8/10 | Gates are strict and honest. Runtime CPU evidence must now match current HEAD or documentation/evidence-only deltas, preventing stale CPU samples from passing after code changes. |
 | Overall public readiness | ~64% | Stronger than before, but still No-Go because second-PC CPU, real hardened route, support inbox, and Store evidence remain open. |
@@ -252,6 +275,9 @@ submission/release evidence.
      a short-lived node candidate cache for later sessions.
    - Token-owner scoped evidence storage/query now exists; next map owner keys
      to real accounts and add export/retention UI.
+   - Relay fallback lease control-plane now exists and is fail-closed by
+     default; next wire runtime relay/tunnel transport only after direct route
+     failure evidence and account entitlement are proven.
    - Direct LAN/Tailscale/public candidate ranking now exists in the bridge
      selector; next verify the short-lived rendezvous lifecycle with a real
      second-PC route.

@@ -146,6 +146,52 @@ pub struct P2pRendezvousCandidatesRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)] // Relay control-plane DTO; transport is wired separately.
+pub struct P2pRelayLeaseRequest {
+    pub session_id: String,
+    pub source_node_id: String,
+    pub target_node_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub requested_capability: Option<String>,
+    pub attempted_route_kinds: Vec<RouteKind>,
+    pub direct_path_failed: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub failure_class: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)] // Relay lease API response DTO; tunnel transport remains a release blocker.
+pub struct P2pRelayLease {
+    pub lease_id: String,
+    pub session_id: String,
+    pub source_node_id: String,
+    pub target_node_id: String,
+    pub relay_url: String,
+    pub route_kind: RouteKind,
+    pub payload_transited_musu_infra: bool,
+    pub default_data_path: bool,
+    pub policy: String,
+    pub created_at: String,
+    pub expires_at: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)] // Relay lease API response DTO; used by diagnostics/runtime after transport lands.
+pub struct P2pRelayLeaseResponse {
+    pub ok: bool,
+    pub lease_issued: bool,
+    pub owner_scoped: bool,
+    pub relay_control_plane_wired: bool,
+    pub relay_transport_wired: bool,
+    pub relay_default_data_path: bool,
+    pub policy: String,
+    #[serde(default)]
+    pub blockers: Vec<String>,
+    #[serde(default)]
+    pub lease: Option<P2pRelayLease>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[allow(dead_code)] // P2P control-plane DTO; wired after the route selector lands.
 pub struct RouteEvidence {
     pub schema: String,
@@ -395,6 +441,34 @@ impl MusuCloud {
         Ok(())
     }
 
+    /// POST /api/v1/p2p/relay/lease to request a Connect/Pro fallback relay lease.
+    #[allow(dead_code)] // Runtime calls this only after direct route failure and relay transport land.
+    pub async fn request_relay_lease(
+        &self,
+        req: &P2pRelayLeaseRequest,
+    ) -> Result<P2pRelayLeaseResponse> {
+        let token = self
+            .token
+            .as_ref()
+            .ok_or_else(|| anyhow!("Not logged in"))?;
+        let url = format!("{}/api/v1/p2p/relay/lease", self.base_url);
+
+        let resp = self
+            .client
+            .post(&url)
+            .bearer_auth(token)
+            .json(req)
+            .send()
+            .await?;
+
+        if !resp.status().is_success() && resp.status() != reqwest::StatusCode::CONFLICT {
+            let err = resp.text().await.unwrap_or_default();
+            return Err(anyhow!("Failed to request relay lease: {err}"));
+        }
+
+        Ok(resp.json().await?)
+    }
+
     /// POST /api/v1/p2p/route-evidence to record the route that carried work.
     #[allow(dead_code)] // Wired after route execution can produce hardened evidence.
     pub async fn submit_route_evidence(&self, evidence: &RouteEvidence) -> Result<()> {
@@ -466,5 +540,29 @@ mod tests {
         assert_eq!(value["encryption"], "quic_tls_1_3");
         assert_eq!(value["payload_transited_musu_infra"], false);
         assert_eq!(value["result"], "success");
+    }
+
+    #[test]
+    fn relay_lease_request_serializes_fallback_policy_fields() {
+        let req = P2pRelayLeaseRequest {
+            session_id: "rv_123".into(),
+            source_node_id: "pc-a".into(),
+            target_node_id: "pc-b".into(),
+            requested_capability: Some("remote_command".into()),
+            attempted_route_kinds: vec![
+                RouteKind::Lan,
+                RouteKind::Tailscale,
+                RouteKind::DirectQuic,
+            ],
+            direct_path_failed: true,
+            failure_class: Some("connect_timeout".into()),
+        };
+
+        let value = serde_json::to_value(req).unwrap();
+        assert_eq!(value["session_id"], "rv_123");
+        assert_eq!(value["attempted_route_kinds"][0], "lan");
+        assert_eq!(value["attempted_route_kinds"][2], "direct_quic");
+        assert_eq!(value["direct_path_failed"], true);
+        assert_eq!(value["failure_class"], "connect_timeout");
     }
 }

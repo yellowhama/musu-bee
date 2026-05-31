@@ -692,7 +692,10 @@ struct RelayStatusReport {
     rendezvous_session_wired: bool,
     https_fingerprint_pinning_wired: bool,
     release_grade_transport_required: &'static str,
+    relay_control_plane_lease_wired: bool,
+    relay_lease_endpoint: &'static str,
     relay_transport_wired: bool,
+    relay_default_data_path: bool,
     release_route_evidence_ready: bool,
     path_priority: Vec<&'static str>,
     next_steps: Vec<&'static str>,
@@ -724,13 +727,16 @@ async fn run_relay_status(opts: RelayStatusOpts) -> Result<()> {
         rendezvous_session_wired: true,
         https_fingerprint_pinning_wired: true,
         release_grade_transport_required: "quic_tls_1_3",
+        relay_control_plane_lease_wired: true,
+        relay_lease_endpoint: "/api/v1/p2p/relay/lease",
         relay_transport_wired: false,
+        relay_default_data_path: false,
         release_route_evidence_ready: false,
         path_priority: vec!["lan", "tailscale", "direct_quic", "relay"],
         next_steps: vec![
             "verify rendezvous target-candidate-assisted routing on a real second PC route",
             "verify HTTPS fingerprint pinning on a real second PC route, then replace bridge HTTP/TLS with QUIC/TLS proof",
-            "implement relay/tunnel fallback behind Connect/Pro policy",
+            "wire relay/tunnel transport behind the Connect/Pro fallback lease policy",
         ],
     };
 
@@ -770,7 +776,15 @@ async fn run_relay_status(opts: RelayStatusOpts) -> Result<()> {
         "  release transport required: {}",
         report.release_grade_transport_required
     );
+    println!(
+        "  relay lease control-plane: {} ({})",
+        report.relay_control_plane_lease_wired, report.relay_lease_endpoint
+    );
     println!("  relay transport wired: {}", report.relay_transport_wired);
+    println!(
+        "  relay default data path: {}",
+        report.relay_default_data_path
+    );
     println!(
         "  release route evidence ready: {}",
         report.release_route_evidence_ready
