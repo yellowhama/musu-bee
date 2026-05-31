@@ -418,6 +418,8 @@ struct RouteExplainReport {
     current_transport: &'static str,
     bridge_path_selection_wired: bool,
     rendezvous_session_wired: bool,
+    https_fingerprint_pinning_wired: bool,
+    release_grade_transport_required: &'static str,
     route_evidence_ready: bool,
     release_blockers: Vec<&'static str>,
     path_priority: Vec<&'static str>,
@@ -430,8 +432,12 @@ struct RouteCandidateReport {
     addr: String,
     source: String,
     route_kind: &'static str,
+    transport_scheme: String,
     peer_identity_verified: bool,
-    encryption: &'static str,
+    peer_identity_method: Option<String>,
+    peer_public_key_present: bool,
+    https_fingerprint_pin_available: bool,
+    encryption: String,
     payload_transited_musu_infra: bool,
 }
 
@@ -448,6 +454,7 @@ async fn explain_route(opts: &RouteOpts) -> Result<()> {
         format!("{}/api/tasks/delegate", local_bridge_base_url())
     };
 
+    let current_transport = route_explain_current_transport(selected.as_ref());
     let report = RouteExplainReport {
         schema: "musu.route_explain.v1",
         version: env!("CARGO_PKG_VERSION").to_string(),
@@ -457,14 +464,16 @@ async fn explain_route(opts: &RouteOpts) -> Result<()> {
         submission_endpoint,
         selected_candidate: selected,
         candidate_count: peers.len(),
-        current_transport: "http_bearer",
+        current_transport,
         bridge_path_selection_wired: true,
         rendezvous_session_wired: true,
+        https_fingerprint_pinning_wired: true,
+        release_grade_transport_required: "quic_tls_1_3",
         route_evidence_ready: false,
         release_blockers: vec![
             "peer_identity_verified=false for current manual/local HTTP route",
-            "encryption is not QUIC/TLS route proof",
-            "route evidence is not release-grade until the runtime route attempt proves peer identity",
+            "bridge HTTPS fingerprint pinning is not release-grade QUIC/TLS route proof",
+            "route evidence is not release-grade until the runtime route attempt records quic_tls_1_3",
             "rendezvous target-candidate-assisted routing still needs real second-PC evidence",
             "relay/tunnel fallback transport is not wired",
         ],
@@ -489,6 +498,14 @@ async fn explain_route(opts: &RouteOpts) -> Result<()> {
         "  rendezvous session wired: {}",
         report.rendezvous_session_wired
     );
+    println!(
+        "  HTTPS fingerprint pinning wired: {}",
+        report.https_fingerprint_pinning_wired
+    );
+    println!(
+        "  release transport required: {}",
+        report.release_grade_transport_required
+    );
     println!("  release evidence ready: {}", report.route_evidence_ready);
     if let Some(candidate) = &report.selected_candidate {
         println!(
@@ -497,9 +514,21 @@ async fn explain_route(opts: &RouteOpts) -> Result<()> {
             candidate.addr
         );
         println!("  route_kind: {}", candidate.route_kind);
+        println!("  transport scheme: {}", candidate.transport_scheme);
         println!(
             "  peer identity verified: {}",
             candidate.peer_identity_verified
+        );
+        if let Some(method) = &candidate.peer_identity_method {
+            println!("  peer identity method: {method}");
+        }
+        println!(
+            "  peer public key present: {}",
+            candidate.peer_public_key_present
+        );
+        println!(
+            "  HTTPS fingerprint pin available: {}",
+            candidate.https_fingerprint_pin_available
         );
         println!("  encryption proof: {}", candidate.encryption);
     } else {
@@ -532,21 +561,114 @@ fn select_route_candidate(
                 peer.name,
                 peer.addr,
                 format!("{:?}", peer.source).to_lowercase(),
+                peer.meta,
             )
         },
     )
 }
 
-fn candidate_report(name: Option<String>, addr: String, source: String) -> RouteCandidateReport {
+fn route_explain_current_transport(candidate: Option<&RouteCandidateReport>) -> &'static str {
+    if candidate.is_some_and(|candidate| candidate.https_fingerprint_pin_available) {
+        "bridge_https_fingerprint_pin_available"
+    } else {
+        "http_bearer"
+    }
+}
+
+fn candidate_report(
+    name: Option<String>,
+    addr: String,
+    source: String,
+    meta: Option<serde_json::Value>,
+) -> RouteCandidateReport {
+    let transport_scheme = candidate_transport_scheme(&addr, meta.as_ref());
+    let peer_public_key_present = candidate_peer_public_key(meta.as_ref()).is_some();
+    let peer_identity_verified = candidate_peer_identity_verified(meta.as_ref());
+    let peer_identity_method =
+        candidate_peer_identity_method(meta.as_ref(), peer_identity_verified);
+    let encryption = candidate_encryption(meta.as_ref(), peer_identity_verified);
+    let https_fingerprint_pin_available = transport_scheme == "https" && peer_public_key_present;
+
     RouteCandidateReport {
         route_kind: crate::bridge::router::route_kind_for_addr(&addr).as_str(),
         name,
         addr,
         source,
-        peer_identity_verified: false,
-        encryption: "none_http_bearer",
+        transport_scheme,
+        peer_identity_verified,
+        peer_identity_method,
+        peer_public_key_present,
+        https_fingerprint_pin_available,
+        encryption,
         payload_transited_musu_infra: false,
     }
+}
+
+fn candidate_transport_scheme(addr: &str, meta: Option<&serde_json::Value>) -> String {
+    if addr.trim_start().starts_with("https://") {
+        return "https".to_string();
+    }
+    if addr.trim_start().starts_with("http://") {
+        return "http".to_string();
+    }
+    if let Some(scheme) = candidate_meta_string(meta, &["transport_scheme"]) {
+        if matches!(scheme.as_str(), "http" | "https") {
+            return scheme;
+        }
+    }
+    if let Some(public_url) = candidate_meta_string(meta, &["public_url"]) {
+        if let Ok(url) = reqwest::Url::parse(&public_url) {
+            if matches!(url.scheme(), "http" | "https") {
+                return url.scheme().to_string();
+            }
+        }
+    }
+    "http".to_string()
+}
+
+fn candidate_peer_public_key(meta: Option<&serde_json::Value>) -> Option<String> {
+    candidate_meta_string(meta, &["peer_public_key", "public_key", "cert_fingerprint"])
+        .filter(|value| value.starts_with("sha256:"))
+}
+
+fn candidate_peer_identity_verified(meta: Option<&serde_json::Value>) -> bool {
+    meta.and_then(|meta| meta.get("peer_identity_verified"))
+        .and_then(|value| value.as_bool())
+        .unwrap_or(false)
+        && candidate_peer_public_key(meta).is_some()
+}
+
+fn candidate_peer_identity_method(
+    meta: Option<&serde_json::Value>,
+    verified: bool,
+) -> Option<String> {
+    if verified {
+        candidate_meta_string(meta, &["peer_identity_method"])
+            .or_else(|| Some("tls_cert_fingerprint_pin".to_string()))
+    } else {
+        candidate_peer_public_key(meta)
+            .as_ref()
+            .map(|_| "advertised_tls_cert_fingerprint_unverified".to_string())
+    }
+}
+
+fn candidate_encryption(meta: Option<&serde_json::Value>, verified: bool) -> String {
+    if verified {
+        candidate_meta_string(meta, &["encryption"])
+            .unwrap_or_else(|| "https_tls_fingerprint_pin".to_string())
+    } else {
+        "none_http_bearer".to_string()
+    }
+}
+
+fn candidate_meta_string(meta: Option<&serde_json::Value>, keys: &[&str]) -> Option<String> {
+    keys.iter().find_map(|key| {
+        meta.and_then(|meta| meta.get(*key))
+            .and_then(|value| value.as_str())
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_string)
+    })
 }
 
 /// `musu relay ...` — inspect MUSU-assisted routing state.
@@ -568,6 +690,8 @@ struct RelayStatusReport {
     route_evidence_client_wired: bool,
     bridge_path_selection_wired: bool,
     rendezvous_session_wired: bool,
+    https_fingerprint_pinning_wired: bool,
+    release_grade_transport_required: &'static str,
     relay_transport_wired: bool,
     release_route_evidence_ready: bool,
     path_priority: Vec<&'static str>,
@@ -598,12 +722,14 @@ async fn run_relay_status(opts: RelayStatusOpts) -> Result<()> {
         route_evidence_client_wired: true,
         bridge_path_selection_wired: true,
         rendezvous_session_wired: true,
+        https_fingerprint_pinning_wired: true,
+        release_grade_transport_required: "quic_tls_1_3",
         relay_transport_wired: false,
         release_route_evidence_ready: false,
         path_priority: vec!["lan", "tailscale", "direct_quic", "relay"],
         next_steps: vec![
             "verify rendezvous target-candidate-assisted routing on a real second PC route",
-            "wire transport-verified peer identity and QUIC/TLS proof into runtime route attempts",
+            "verify HTTPS fingerprint pinning on a real second PC route, then replace bridge HTTP/TLS with QUIC/TLS proof",
             "implement relay/tunnel fallback behind Connect/Pro policy",
         ],
     };
@@ -635,6 +761,14 @@ async fn run_relay_status(opts: RelayStatusOpts) -> Result<()> {
     println!(
         "  rendezvous session wired: {}",
         report.rendezvous_session_wired
+    );
+    println!(
+        "  HTTPS fingerprint pinning wired: {}",
+        report.https_fingerprint_pinning_wired
+    );
+    println!(
+        "  release transport required: {}",
+        report.release_grade_transport_required
     );
     println!("  relay transport wired: {}", report.relay_transport_wired);
     println!(
@@ -2191,10 +2325,67 @@ mod tests {
             Some("remote".to_string()),
             "192.168.1.50:8070".to_string(),
             "manual".to_string(),
+            None,
         );
         assert_eq!(candidate.route_kind, "lan");
+        assert_eq!(candidate.transport_scheme, "http");
         assert!(!candidate.peer_identity_verified);
+        assert_eq!(candidate.peer_identity_method, None);
+        assert!(!candidate.peer_public_key_present);
+        assert!(!candidate.https_fingerprint_pin_available);
         assert_eq!(candidate.encryption, "none_http_bearer");
         assert!(!candidate.payload_transited_musu_infra);
+    }
+
+    #[test]
+    fn candidate_report_marks_https_fingerprint_pin_available_without_claiming_verified() {
+        let candidate = candidate_report(
+            Some("remote".to_string()),
+            "192.168.1.50:8070".to_string(),
+            "registry".to_string(),
+            Some(serde_json::json!({
+                "transport_scheme": "https",
+                "peer_public_key": "sha256:abcdef",
+            })),
+        );
+
+        assert_eq!(candidate.transport_scheme, "https");
+        assert!(!candidate.peer_identity_verified);
+        assert_eq!(
+            candidate.peer_identity_method.as_deref(),
+            Some("advertised_tls_cert_fingerprint_unverified")
+        );
+        assert!(candidate.peer_public_key_present);
+        assert!(candidate.https_fingerprint_pin_available);
+        assert_eq!(candidate.encryption, "none_http_bearer");
+        assert_eq!(
+            route_explain_current_transport(Some(&candidate)),
+            "bridge_https_fingerprint_pin_available"
+        );
+    }
+
+    #[test]
+    fn candidate_report_preserves_verified_fingerprint_pin_metadata() {
+        let candidate = candidate_report(
+            Some("remote".to_string()),
+            "192.168.1.50:8070".to_string(),
+            "registry".to_string(),
+            Some(serde_json::json!({
+                "transport_scheme": "https",
+                "peer_identity_verified": true,
+                "peer_identity_method": "tls_cert_fingerprint_pin",
+                "peer_public_key": "sha256:abcdef",
+                "encryption": "https_tls_fingerprint_pin",
+            })),
+        );
+
+        assert!(candidate.peer_identity_verified);
+        assert_eq!(
+            candidate.peer_identity_method.as_deref(),
+            Some("tls_cert_fingerprint_pin")
+        );
+        assert!(candidate.peer_public_key_present);
+        assert!(candidate.https_fingerprint_pin_available);
+        assert_eq!(candidate.encryption, "https_tls_fingerprint_pin");
     }
 }
