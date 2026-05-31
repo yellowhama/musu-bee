@@ -6,6 +6,12 @@ param(
     [switch]$IncludeNode,
     [switch]$IncludeWebView2,
     [switch]$IncludeUnrelatedHelpers,
+    [ValidateSet("bridge-only", "desktop-open", "post-route", "diagnostic")]
+    [string]$Scenario = "bridge-only",
+    [switch]$RequireOwnedWebView2,
+    [int]$MaxOwnedProcessCount = 16,
+    [int]$MaxOwnedWebView2ProcessCount = 8,
+    [double]$MaxTotalWorkingSetMb = 1024.0,
     [string]$OutputPath,
     [switch]$FailOnHot,
     [switch]$Json
@@ -254,6 +260,8 @@ function Get-RawProcessSnapshot($Names) {
             id = [int]$process.Id
             process_name = [string]$process.ProcessName
             cpu_seconds = if ($null -ne $process.CPU) { [double]$process.CPU } else { $null }
+            working_set_mb = [Math]::Round(([double]$process.WorkingSet64 / 1MB), 2)
+            private_memory_mb = [Math]::Round(([double]$process.PrivateMemorySize64 / 1MB), 2)
             start_time = Get-ProcessStartTimeSafe $process
             path = Get-ProcessPathSafe $process
         }
@@ -316,6 +324,8 @@ function Add-ProcessOwnership {
             id = $item.id
             process_name = $item.process_name
             cpu_seconds = $item.cpu_seconds
+            working_set_mb = $item.working_set_mb
+            private_memory_mb = $item.private_memory_mb
             start_time = $item.start_time
             path = $item.path
             parent_process_id = if ($meta) { $meta.parent_process_id } else { $null }
@@ -337,6 +347,8 @@ $startedAt = $beforeRaw.captured_at
 $completedAt = $afterRaw.captured_at
 $elapsedSeconds = [Math]::Max(0.001, ($completedAt - $startedAt).TotalSeconds)
 $cores = [Environment]::ProcessorCount
+$gitCommit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
+$gitStatus = (& git -C $repoRoot status --short 2>$null | Out-String).Trim()
 
 $metadataMap = Get-ProcessMetadataMap $names
 $rootProcessIds = New-Object 'System.Collections.Generic.HashSet[int]'
@@ -377,6 +389,8 @@ foreach ($current in $after) {
         cpu_seconds_delta = [Math]::Round($delta, 3)
         cpu_pct_one_core = [Math]::Round($oneCorePercent, 2)
         cpu_pct_total = [Math]::Round($oneCorePercent / $cores, 2)
+        working_set_mb = $current.working_set_mb
+        private_memory_mb = $current.private_memory_mb
         start_time = $current.start_time
         path = $current.path
         parent_process_id = $current.parent_process_id
@@ -409,6 +423,46 @@ foreach ($current in $after) {
         $processCountsByRole.other += 1
     }
 }
+$memoryTotalsByRoleMb = [ordered]@{
+    musu = [ordered]@{ working_set_mb = 0.0; private_memory_mb = 0.0 }
+    node = [ordered]@{ working_set_mb = 0.0; private_memory_mb = 0.0 }
+    webview2 = [ordered]@{ working_set_mb = 0.0; private_memory_mb = 0.0 }
+    other = [ordered]@{ working_set_mb = 0.0; private_memory_mb = 0.0 }
+}
+foreach ($current in $after) {
+    $role = if ($musuNames.Contains($current.process_name)) {
+        "musu"
+    } elseif ($current.process_name -ieq "node") {
+        "node"
+    } elseif ($current.process_name -ieq "msedgewebview2") {
+        "webview2"
+    } else {
+        "other"
+    }
+    $memoryTotalsByRoleMb[$role].working_set_mb = [Math]::Round(([double]$memoryTotalsByRoleMb[$role].working_set_mb + [double]$current.working_set_mb), 2)
+    $memoryTotalsByRoleMb[$role].private_memory_mb = [Math]::Round(([double]$memoryTotalsByRoleMb[$role].private_memory_mb + [double]$current.private_memory_mb), 2)
+}
+$totalWorkingSetMbAfter = 0.0
+$totalPrivateMemoryMbAfter = 0.0
+foreach ($current in $after) {
+    $totalWorkingSetMbAfter += [double]$current.working_set_mb
+    $totalPrivateMemoryMbAfter += [double]$current.private_memory_mb
+}
+$totalWorkingSetMbAfter = [Math]::Round($totalWorkingSetMbAfter, 2)
+$totalPrivateMemoryMbAfter = [Math]::Round($totalPrivateMemoryMbAfter, 2)
+$resourceBudgetViolations = @()
+if ($after.Count -gt $MaxOwnedProcessCount) {
+    $resourceBudgetViolations += "owned_process_count $($after.Count) > $MaxOwnedProcessCount"
+}
+if ($processCountsByRole.webview2 -gt $MaxOwnedWebView2ProcessCount) {
+    $resourceBudgetViolations += "owned_webview2_process_count $($processCountsByRole.webview2) > $MaxOwnedWebView2ProcessCount"
+}
+if ($RequireOwnedWebView2 -and $processCountsByRole.webview2 -lt 1) {
+    $resourceBudgetViolations += "owned_webview2_process_count $($processCountsByRole.webview2) < 1 while RequireOwnedWebView2 is set"
+}
+if ($totalWorkingSetMbAfter -gt $MaxTotalWorkingSetMb) {
+    $resourceBudgetViolations += "total_working_set_mb $totalWorkingSetMbAfter > $MaxTotalWorkingSetMb"
+}
 $maxOneCorePercentByRole = [ordered]@{
     musu = 0.0
     node = 0.0
@@ -424,15 +478,23 @@ foreach ($sample in $samples) {
 }
 $result = [ordered]@{
     schema = "musu.runtime_idle_cpu_evidence.v1"
-    ok = ($musuProcessCountAfter -gt 0 -and $hot.Count -eq 0)
+    ok = ($musuProcessCountAfter -gt 0 -and $hot.Count -eq 0 -and $resourceBudgetViolations.Count -eq 0)
     version = $version
+    git_commit = $gitCommit
+    git_dirty = -not [string]::IsNullOrWhiteSpace($gitStatus)
+    git_status_short = $gitStatus
     started_at = $startedAt.ToString("o")
     completed_at = $completedAt.ToString("o")
     operator_machine = $env:COMPUTERNAME
     operator_user = $env:USERNAME
+    scenario = $Scenario
+    require_owned_webview2 = [bool]$RequireOwnedWebView2
     sample_seconds = [Math]::Round($elapsedSeconds, 3)
     logical_processor_count = $cores
     max_one_core_percent = $MaxOneCorePercent
+    max_owned_process_count = $MaxOwnedProcessCount
+    max_owned_webview2_process_count = $MaxOwnedWebView2ProcessCount
+    max_total_working_set_mb = $MaxTotalWorkingSetMb
     process_names = @($names)
     musu_process_names = @($musuNames)
     include_node = [bool]$IncludeNode
@@ -450,6 +512,10 @@ $result = [ordered]@{
     musu_process_count_after = $musuProcessCountAfter
     target_process_running = $targetProcessRunning
     process_counts_by_role = $processCountsByRole
+    total_working_set_mb_after = $totalWorkingSetMbAfter
+    total_private_memory_mb_after = $totalPrivateMemoryMbAfter
+    memory_totals_by_role_mb = $memoryTotalsByRoleMb
+    resource_budget_violations = @($resourceBudgetViolations)
     max_one_core_percent_by_role = $maxOneCorePercentByRole
     hot_process_count = $hot.Count
     samples = @($samples | Sort-Object cpu_pct_one_core -Descending)

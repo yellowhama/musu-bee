@@ -341,12 +341,14 @@ Run the idle CPU sample on the primary PC and the second PC with MUSU installed,
 the desktop app opened, and the runtime started:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -MaxOneCorePercent 5 -IncludeNode -IncludeWebView2 -FailOnHot -Json
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -Scenario desktop-open -RequireOwnedWebView2 -MaxOneCorePercent 5 -MaxOwnedProcessCount 16 -MaxOwnedWebView2ProcessCount 8 -MaxTotalWorkingSetMb 1024 -IncludeNode -IncludeWebView2 -FailOnHot -Json
 ```
 
 Keep MUSU open and idle during the sample. Close unrelated Node.js and
 WebView2-based apps before measuring, because this gate includes Node.js and
-the Tauri/WebView2 desktop process family in the CPU budget.
+the Tauri/WebView2 desktop process family in the CPU budget. The evidence also
+records owned process count, owned WebView2 process count, total working set,
+private memory total, and memory totals by role.
 
 Bring both generated `.local-build\runtime-idle-cpu\*.json` files back under the
 real MUSU release repo's `.local-build\runtime-idle-cpu\` folder or commit them

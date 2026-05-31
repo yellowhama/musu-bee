@@ -6,6 +6,7 @@ param(
     [int]$MinRuntimeIdleCpuMachineCount = 2,
     [int]$MinProcessOwnershipMachineCount = 1,
     [int]$MinStartupSingleInstanceMachineCount = 1,
+    [string]$RequiredRuntimeIdleCpuScenario = "desktop-open",
     [switch]$SkipPublicMetadata,
     [switch]$FailOnNotReady,
     [switch]$Json
@@ -105,8 +106,20 @@ function Test-RuntimeIdleCpuEvidence {
         $versionValue = [string]$evidence.version
         $checks.Add((New-Check -Name "version" -Status ($(if ($versionValue -eq $ExpectedVersion) { "pass" } else { "fail" })) -Message ($(if ($versionValue -eq $ExpectedVersion) { "version matches $ExpectedVersion" } else { "version is '$versionValue'" })))) | Out-Null
 
+        $gitCommit = if ($evidence.PSObject.Properties["git_commit"]) { [string]$evidence.git_commit } else { "" }
+        $checks.Add((New-Check -Name "git commit present" -Status ($(if (-not [string]::IsNullOrWhiteSpace($gitCommit)) { "pass" } else { "fail" })) -Message ($(if (-not [string]::IsNullOrWhiteSpace($gitCommit)) { "git commit is recorded" } else { "git commit is missing" })))) | Out-Null
+
+        $gitDirty = ($evidence.PSObject.Properties["git_dirty"] -and [bool]$evidence.git_dirty)
+        $checks.Add((New-Check -Name "git clean during sample" -Status ($(if (-not $gitDirty -and $evidence.PSObject.Properties["git_dirty"]) { "pass" } else { "fail" })) -Message ($(if (-not $gitDirty -and $evidence.PSObject.Properties["git_dirty"]) { "runtime idle sample was captured from a clean git state" } elseif ($gitDirty) { "runtime idle sample was captured from a dirty git state" } else { "git cleanliness is missing" })))) | Out-Null
+
         $okValue = [bool]$evidence.ok
         $checks.Add((New-Check -Name "evidence ok" -Status ($(if ($okValue) { "pass" } else { "fail" })) -Message ($(if ($okValue) { "evidence reports ok=true" } else { "evidence reports ok=false" })))) | Out-Null
+
+        $scenario = if ($evidence.PSObject.Properties["scenario"]) { [string]$evidence.scenario } else { "" }
+        $checks.Add((New-Check -Name "runtime scenario" -Status ($(if ($scenario -eq $RequiredRuntimeIdleCpuScenario) { "pass" } else { "fail" })) -Message ($(if ($scenario -eq $RequiredRuntimeIdleCpuScenario) { "runtime scenario is $scenario" } else { "runtime scenario is '$scenario', expected '$RequiredRuntimeIdleCpuScenario'" })))) | Out-Null
+
+        $requireOwnedWebView2 = ($evidence.PSObject.Properties["require_owned_webview2"] -and [bool]$evidence.require_owned_webview2)
+        $checks.Add((New-Check -Name "owned WebView2 required" -Status ($(if ($requireOwnedWebView2) { "pass" } else { "fail" })) -Message ($(if ($requireOwnedWebView2) { "desktop-open evidence requires owned WebView2" } else { "desktop-open evidence did not set -RequireOwnedWebView2" })))) | Out-Null
 
         $includeNode = ($evidence.PSObject.Properties["include_node"] -and [bool]$evidence.include_node)
         $checks.Add((New-Check -Name "Node.js budget included" -Status ($(if ($includeNode) { "pass" } else { "fail" })) -Message ($(if ($includeNode) { "evidence includes Node.js helper processes" } else { "evidence did not run with -IncludeNode" })))) | Out-Null
@@ -149,6 +162,35 @@ function Test-RuntimeIdleCpuEvidence {
 
         $sampleCount = @($evidence.samples).Count
         $checks.Add((New-Check -Name "cpu samples present" -Status ($(if ($sampleCount -gt 0) { "pass" } else { "fail" })) -Message ($(if ($sampleCount -gt 0) { "$sampleCount CPU sample(s) recorded" } else { "no CPU samples were recorded" })))) | Out-Null
+
+        $maxOwnedProcessCount = if ($evidence.PSObject.Properties["max_owned_process_count"]) { [int]$evidence.max_owned_process_count } else { 0 }
+        $checks.Add((New-Check -Name "owned process count budget present" -Status ($(if ($maxOwnedProcessCount -gt 0) { "pass" } else { "fail" })) -Message ($(if ($maxOwnedProcessCount -gt 0) { "owned process count budget is $maxOwnedProcessCount" } else { "owned process count budget is missing" })))) | Out-Null
+
+        $processCountAfter = if ($evidence.PSObject.Properties["process_count_after"]) { [int]$evidence.process_count_after } else { 0 }
+        $checks.Add((New-Check -Name "owned process count budget" -Status ($(if ($maxOwnedProcessCount -gt 0 -and $processCountAfter -le $maxOwnedProcessCount) { "pass" } else { "fail" })) -Message ($(if ($maxOwnedProcessCount -gt 0 -and $processCountAfter -le $maxOwnedProcessCount) { "owned process count $processCountAfter <= $maxOwnedProcessCount" } else { "owned process count $processCountAfter exceeds or lacks budget $maxOwnedProcessCount" })))) | Out-Null
+
+        $maxOwnedWebView2ProcessCount = if ($evidence.PSObject.Properties["max_owned_webview2_process_count"]) { [int]$evidence.max_owned_webview2_process_count } else { -1 }
+        $checks.Add((New-Check -Name "WebView2 process budget present" -Status ($(if ($maxOwnedWebView2ProcessCount -ge 0) { "pass" } else { "fail" })) -Message ($(if ($maxOwnedWebView2ProcessCount -ge 0) { "WebView2 process budget is $maxOwnedWebView2ProcessCount" } else { "WebView2 process budget is missing" })))) | Out-Null
+
+        $ownedWebView2ProcessCount = 0
+        if ($evidence.PSObject.Properties["process_counts_by_role"] -and $evidence.process_counts_by_role.PSObject.Properties["webview2"]) {
+            $ownedWebView2ProcessCount = [int]$evidence.process_counts_by_role.webview2
+        }
+        $checks.Add((New-Check -Name "WebView2 process budget" -Status ($(if ($maxOwnedWebView2ProcessCount -ge 0 -and $ownedWebView2ProcessCount -le $maxOwnedWebView2ProcessCount) { "pass" } else { "fail" })) -Message ($(if ($maxOwnedWebView2ProcessCount -ge 0 -and $ownedWebView2ProcessCount -le $maxOwnedWebView2ProcessCount) { "owned WebView2 process count $ownedWebView2ProcessCount <= $maxOwnedWebView2ProcessCount" } else { "owned WebView2 process count $ownedWebView2ProcessCount exceeds or lacks budget $maxOwnedWebView2ProcessCount" })))) | Out-Null
+
+        $maxTotalWorkingSetMb = if ($evidence.PSObject.Properties["max_total_working_set_mb"]) { [double]$evidence.max_total_working_set_mb } else { 0.0 }
+        $totalWorkingSetMbAfter = if ($evidence.PSObject.Properties["total_working_set_mb_after"]) { [double]$evidence.total_working_set_mb_after } else { 0.0 }
+        $checks.Add((New-Check -Name "working set budget present" -Status ($(if ($maxTotalWorkingSetMb -gt 0.0 -and $evidence.PSObject.Properties["total_working_set_mb_after"]) { "pass" } else { "fail" })) -Message ($(if ($maxTotalWorkingSetMb -gt 0.0 -and $evidence.PSObject.Properties["total_working_set_mb_after"]) { "working set budget is ${maxTotalWorkingSetMb}MB" } else { "working set budget or total working set is missing" })))) | Out-Null
+        $checks.Add((New-Check -Name "working set budget" -Status ($(if ($maxTotalWorkingSetMb -gt 0.0 -and $totalWorkingSetMbAfter -le $maxTotalWorkingSetMb) { "pass" } else { "fail" })) -Message ($(if ($maxTotalWorkingSetMb -gt 0.0 -and $totalWorkingSetMbAfter -le $maxTotalWorkingSetMb) { "total working set ${totalWorkingSetMbAfter}MB <= ${maxTotalWorkingSetMb}MB" } else { "total working set ${totalWorkingSetMbAfter}MB exceeds or lacks budget ${maxTotalWorkingSetMb}MB" })))) | Out-Null
+
+        $privateMemoryPresent = $evidence.PSObject.Properties["total_private_memory_mb_after"]
+        $checks.Add((New-Check -Name "private memory total present" -Status ($(if ($privateMemoryPresent) { "pass" } else { "fail" })) -Message ($(if ($privateMemoryPresent) { "total private memory is recorded" } else { "total private memory is missing" })))) | Out-Null
+
+        $memoryByRolePresent = $evidence.PSObject.Properties["memory_totals_by_role_mb"]
+        $checks.Add((New-Check -Name "memory by role present" -Status ($(if ($memoryByRolePresent) { "pass" } else { "fail" })) -Message ($(if ($memoryByRolePresent) { "memory totals by role are recorded" } else { "memory totals by role are missing" })))) | Out-Null
+
+        $resourceBudgetViolations = if ($evidence.PSObject.Properties["resource_budget_violations"]) { @($evidence.resource_budget_violations) } else { @("resource budget violations field missing") }
+        $checks.Add((New-Check -Name "resource budget violations" -Status ($(if ($resourceBudgetViolations.Count -eq 0) { "pass" } else { "fail" })) -Message ($(if ($resourceBudgetViolations.Count -eq 0) { "no resource budget violations reported" } else { "resource budget violation(s): $($resourceBudgetViolations -join '; ')" })))) | Out-Null
 
         $maxSample = 0.0
         if ($evidence.samples) {
@@ -626,7 +668,7 @@ if (-not [bool]$audit.multi_device_verified) {
     Add-Blocker -List $blockers -Area "multi-device" -Message "Real second-PC multi-device evidence has not been recorded."
 }
 if (-not $runtimeIdleCpuVerified) {
-    Add-Blocker -List $blockers -Area "runtime-idle-cpu" -Message "Runtime idle CPU evidence has not passed on at least ${MinRuntimeIdleCpuMachineCount} machine(s) for ${MinRuntimeIdleCpuSampleSeconds}s at <= ${MaxRuntimeIdleCpuOneCorePercent}% of one logical CPU."
+    Add-Blocker -List $blockers -Area "runtime-idle-cpu" -Message "Runtime idle CPU evidence has not passed on at least ${MinRuntimeIdleCpuMachineCount} machine(s) for ${MinRuntimeIdleCpuSampleSeconds}s at <= ${MaxRuntimeIdleCpuOneCorePercent}% of one logical CPU in scenario '${RequiredRuntimeIdleCpuScenario}' with owned WebView2 required."
 }
 if (-not $processOwnershipVerified) {
     Add-Blocker -List $blockers -Area "process-ownership" -Message "Process ownership evidence has not passed on at least ${MinProcessOwnershipMachineCount} machine(s)."
@@ -686,6 +728,7 @@ $result = [pscustomobject]@{
     msix_install_verified = [bool]$msixInstallVerified
     msix_install_evidence = $msixInstallEvidence
     runtime_idle_cpu_verified = [bool]$runtimeIdleCpuVerified
+    required_runtime_idle_cpu_scenario = $RequiredRuntimeIdleCpuScenario
     runtime_idle_cpu_evidence = $runtimeIdleCpuEvidence
     process_ownership_verified = [bool]$processOwnershipVerified
     process_ownership_evidence = $processOwnershipEvidence

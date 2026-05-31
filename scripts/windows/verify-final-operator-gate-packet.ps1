@@ -170,7 +170,7 @@ try {
         Add-CheckFromCondition "readme store release blocker" ($readme -like "*Partner Center product name reservation*" -and $readme -like "*app submission*" -and $readme -like "*store_release_verified=true*") "README states Store release approval is a blocker" "README does not clearly state Store release approval evidence is required"
         Add-CheckFromCondition "readme store release recorder" ($readme -like "*record-store-release-verification.ps1*") "README includes Store release evidence recorder command" "README missing Store release evidence recorder command"
         Add-CheckFromCondition "readme store bundle verifier" ($readme -like "*verify-store-submission-bundle.ps1*") "README includes Store submission bundle verifier command" "README missing Store submission bundle verifier command"
-        Add-CheckFromCondition "readme runtime cpu measurement" ($readme -like "*measure-musu-idle-cpu.ps1*" -and $readme -like "*SampleSeconds 60*" -and $readme -like "*MaxOneCorePercent 5*" -and $readme -like "*IncludeNode*" -and $readme -like "*IncludeWebView2*") "README includes runtime idle CPU measurement command" "README missing runtime idle CPU measurement command"
+        Add-CheckFromCondition "readme runtime cpu measurement" ($readme -like "*measure-musu-idle-cpu.ps1*" -and $readme -like "*SampleSeconds 60*" -and $readme -like "*Scenario desktop-open*" -and $readme -like "*RequireOwnedWebView2*" -and $readme -like "*MaxOneCorePercent 5*" -and $readme -like "*MaxOwnedProcessCount 16*" -and $readme -like "*MaxOwnedWebView2ProcessCount 8*" -and $readme -like "*MaxTotalWorkingSetMb 1024*" -and $readme -like "*IncludeNode*" -and $readme -like "*IncludeWebView2*") "README includes runtime idle CPU/resource measurement command" "README missing runtime idle CPU/resource measurement command"
         Add-CheckFromCondition "readme process ownership audit" ($readme -like "*audit-musu-process-ownership.ps1*" -and $readme -like "*process_ownership_verified=true*" -and $readme -like "*bridge registry PID*") "README includes process ownership audit gate" "README missing process ownership audit gate"
         Add-CheckFromCondition "readme startup single-instance audit" ($readme -like "*audit-musu-startup-single-instance.ps1*" -and $readme -like "*startup_single_instance_verified=true*" -and $readme -like "*one bridge PID*") "README includes startup single-instance audit gate" "README missing startup single-instance audit gate"
         Add-CheckFromCondition "readme handoff status command" ($readme -like "*show-final-release-handoff-status.ps1*") "README includes final release handoff status command" "README missing final release handoff status command"
@@ -240,9 +240,9 @@ try {
             "packet go/no-go does not pass ExpectedVersion to support evidence verifier"
         Add-CheckFromCondition `
             "go no-go runtime idle CPU gate" `
-            ($goNoGoScript -like "*runtime_idle_cpu_verified*" -and $goNoGoScript -like "*runtime-idle-cpu*" -and $goNoGoScript -like "*MinRuntimeIdleCpuMachineCount*") `
-            "packet go/no-go blocks on runtime idle CPU evidence" `
-            "packet go/no-go does not block on runtime idle CPU evidence"
+            ($goNoGoScript -like "*runtime_idle_cpu_verified*" -and $goNoGoScript -like "*runtime-idle-cpu*" -and $goNoGoScript -like "*MinRuntimeIdleCpuMachineCount*" -and $goNoGoScript -like "*RequiredRuntimeIdleCpuScenario*" -and $goNoGoScript -like "*require_owned_webview2*" -and $goNoGoScript -like "*max_owned_process_count*" -and $goNoGoScript -like "*max_owned_webview2_process_count*" -and $goNoGoScript -like "*max_total_working_set_mb*" -and $goNoGoScript -like "*memory_totals_by_role_mb*") `
+            "packet go/no-go blocks on runtime idle CPU and resource-budget evidence" `
+            "packet go/no-go does not block on runtime idle CPU and resource-budget evidence"
         Add-CheckFromCondition `
             "go no-go process ownership gate" `
             ($goNoGoScript -like "*process_ownership_verified*" -and $goNoGoScript -like "*process-ownership*" -and $goNoGoScript -like "*MinProcessOwnershipMachineCount*" -and $goNoGoScript -like "*musu.process_ownership_audit.v1*") `
