@@ -235,6 +235,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | wiki/524 | MUSU Pro P2P control-plane spec | 2026-05-31 | `MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md` | active |
 | wiki/525 | MUSU runtime stabilization execution plan | 2026-05-31 | `MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md` | active |
 | wiki/526 | MSIX desktop entrypoint audit | 2026-05-31 | `MSIX_DESKTOP_ENTRYPOINT_AUDIT_2026_05_31.md` | active |
+| wiki/527 | 1.15.0-rc.1 qualitative audit and next steps addendum | 2026-06-01 | `RELEASE_1_15_0_RC1_QUAL_AUDIT_NEXT_STEPS_2026_06_01.md` | active |
 | — | 1.15.0-rc.1 beta release checklist and smoke evidence | 2026-05-29 | `BETA_RELEASE_CHECKLIST_1_15_0_RC1.md` | active |
 | — | 1.15.0-rc.1 final operator gates | 2026-05-29 | `RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md` | active |
 | — | MUSU Microsoft Store release run card | 2026-05-29 | `MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md` | active |
@@ -246,11 +247,13 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | — | Store release evidence verifier/recorder | 2026-05-29 | `scripts/windows/verify-store-release-evidence.ps1`, `scripts/windows/record-store-release-verification.ps1` | active |
 | — | Store submission bundle verifier | 2026-05-30 | `scripts/windows/verify-store-submission-bundle.ps1` | active |
 | — | MSIX desktop entrypoint audit | 2026-05-31 | `scripts/windows/audit-msix-desktop-entrypoint.ps1`, `evidence/msix-desktop-entrypoint/1.15.0-rc.1/20260531-214327-HUGH_SECOND.store-msix-runtime-only.evidence.json`, `evidence/msix-desktop-entrypoint/1.15.0-rc.1/20260531-224328-HUGH_SECOND.store-msix-desktop-artifact.evidence.json`, `evidence/msix-desktop-entrypoint/1.15.0-rc.1/20260531-232229-HUGH_SECOND.local-sideload-installed.evidence.json`, `evidence/msix-desktop-entrypoint/1.15.0-rc.1/20260531-232229-HUGH_SECOND.store-reviewed-contract-mismatch.evidence.json` | active |
+| — | Public brand/runtime image assets | 2026-06-01 | `musu-bee/public/images/favicon-header.png`, `musu-bee/public/agents/*.png`, `musu-bee/src/components/brand/MusuLogo.tsx` | active |
 | — | CoS memory note — 1.15.0-rc.1 beta readiness | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0130_kst_1_15_rc1_beta_readiness.md` | active |
 | — | CoS memory note — smoke scripts and multi-device packet | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0333_kst_release_smoke_multidevice_packet.md` | active |
 | — | CoS memory note — process ownership audit gate | 2026-05-31 | `memory/chief_of_staff/2026-05-31_2015_kst_process_ownership_audit_gate.md` | active |
 | — | CoS memory note — post-process-ownership single-machine refresh | 2026-05-31 | `memory/chief_of_staff/2026-05-31_2024_kst_post_process_ownership_single_machine_refresh.md` | active |
 | — | CoS memory note — startup single-instance gate | 2026-05-31 | `memory/chief_of_staff/2026-05-31_2040_kst_startup_single_instance_gate.md` | active |
+| — | CoS memory note — brand asset audit and current release state | 2026-06-01 | `memory/chief_of_staff/2026-06-01_0030_kst_brand_asset_and_current_audit.md` | active |
 | — | CoS memory note — desktop shell and musu-system refresh | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0415_kst_desktop_shell_and_musu_system_refresh.md` | active |
 | — | CoS memory note — multi-device test kit ready | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0445_kst_multidevice_test_kit_ready.md` | active |
 | — | CoS memory note — release candidate manifest | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0500_kst_release_candidate_manifest.md` | active |

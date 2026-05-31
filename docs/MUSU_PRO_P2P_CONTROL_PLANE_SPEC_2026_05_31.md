@@ -152,6 +152,14 @@ Release gates must reject multi-device evidence that lacks:
 2. Add client DTOs for rendezvous sessions and route evidence. **Initial Rust
    DTOs and client methods exist in `musu-rs/src/cloud/mod.rs`.**
 3. Add server-side mock/stub endpoints in `musu.pro` path for local tests.
+   **Pending as of 2026-06-01.** The Rust client has method surfaces, but no
+   local/server stub proof is recorded.
 4. Add `musu relay status` and `musu route --explain`.
+   **Pending as of 2026-06-01.**
 5. Add direct path selection against registered LAN/Tailscale endpoints.
+   **Pending as of 2026-06-01.** `musu-rs/src/bridge/router.rs` still resolves
+   local/manual peers and applies capability/circuit-breaker decisions; it does
+   not create rendezvous sessions or submit hardened route evidence.
 6. Add relay/tunnel transport only after direct path evidence is stable.
+   **Pending as of 2026-06-01.** Relay must remain an explicit route kind, not
+   a silent default payload path.
