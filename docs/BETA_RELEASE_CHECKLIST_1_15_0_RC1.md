@@ -104,12 +104,12 @@ Fresh repeatable script smoke passed again on 2026-05-29 06:52 KST:
 - dashboard output: `MUSU_RELEASE_SMOKE_OK_20260529_0652`
 - CLI route output: `MUSU_CLI_ROUTE_OK_20260529_0652`
 
-Current machine-readable single-machine evidence passed and was recorded on 2026-05-31 19:20 KST after route-evidence gate hardening:
+Current machine-readable single-machine evidence passed and was recorded on 2026-05-31 19:58 KST after idle CPU ownership measurement hardening:
 
-- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260531-192015-HUGH_SECOND.evidence.json`
-- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260531-192015-HUGH_SECOND.verification.json`
-- commit: `5211ff2ba6d095e474780997ebec10b2327358f4`
-- dashboard task id: `986733bf-c10c-4434-bd8e-d9b0512ce193`
+- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260531-195832-HUGH_SECOND.evidence.json`
+- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260531-195832-HUGH_SECOND.verification.json`
+- commit: `3b1b1b0e751a12c63728829a8afe2774b489444e`
+- dashboard task id: `d568c5f1-d15d-4cbf-8172-c4a308deaf95`
 - bridge: `http://127.0.0.1:9818`
 - dashboard output: `MUSU_RELEASE_SMOKE_OK`
 - CLI route output: `MUSU_CLI_ROUTE_OK`
