@@ -147,6 +147,7 @@ Current Store path truth:
 - public privacy route exists at `/privacy`; public support route exists at `/support`
 - public metadata verifier exists at `scripts\windows\verify-store-public-metadata.ps1`
 - release go/no-go preflight exists at `scripts\windows\write-release-go-no-go.ps1`
+- mDNS LAN auto-discovery is opt-in through `MUSU_ENABLE_MDNS=1`; this mitigates a Windows/Tailscale adapter failure where logged-in bridge `/health` could time out after the initial `musu up` probe. Store-candidate smoke/release paths keep this disabled unless mDNS has its own current regression evidence.
 - 2026-05-29 live `musu.pro` public metadata check now passes for `/privacy` and `/support`
 - MSIX install evidence scripts exist: `scripts\windows\capture-msix-install-evidence.ps1`, `scripts\windows\verify-msix-install-evidence.ps1`, and `scripts\windows\record-msix-install-evidence.ps1`
 - `write-release-go-no-go.ps1` now auto-detects valid MSIX install evidence under `docs\evidence\msix-install\<version>\*.evidence.json` or `.local-build\msix-install\*.evidence.json`

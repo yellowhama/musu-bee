@@ -2,7 +2,7 @@
 
 **Wiki ID**: wiki/522
 **Date**: 2026-05-31
-**Scope**: current release state after the second-PC return importer, preview fallback, refreshed single-machine evidence, final operator packet verification, operator action pack verification, Store submission bundle verification, and release handoff status check.
+**Scope**: current release state after the second-PC return importer, preview fallback, refreshed single-machine evidence, final operator packet verification, operator action pack verification, Store submission bundle verification, release handoff status check, and Windows/Tailscale mDNS health hardening.
 
 ## Verdict
 
@@ -58,6 +58,7 @@ This document supersedes wiki/521 for the **current 2026-05-31 release status**.
 6. **Multi-device proof**: public multi-device claim requires real `host:port` route evidence from a second Windows PC, not a same-machine simulation.
 7. **Store proof**: Store readiness requires explicit Partner Center product-name reservation timestamp, submission id, Microsoft certification status, and restricted capability approval status.
 8. **musu-system integration**: `musu-system` remains future adjacent MCP/CLI/adapter work. It is not part of first Store package scope.
+9. **LAN mDNS discovery**: mDNS LAN auto-discovery is now opt-in via `MUSU_ENABLE_MDNS=1` for the Store-candidate path. Cloud/manual peer registration and the second-PC handoff route remain the canonical release-test path.
 
 ## Code Audit
 
@@ -73,13 +74,14 @@ Audit scope:
 
 Findings:
 
-1. **No internal release-blocking code issue found.** The current failure is missing external evidence, not a broken local pipeline.
-2. **Final packet verification is current and useful.** It checks required docs/scripts, including this wiki/522 current-status audit, README commands, checksum integrity, clean source metadata, second-PC kit contents, Store/support/multi-device evidence hardening, return importer safety, and preview fallback.
-3. **Operator action pack is evidence-safe.** It verifies the final packet first, bundles second-PC/Partner Center/support actions, checks nested zips and checksums, and excludes private signing keys.
-4. **Store submission bundle verification passes.** The bundle includes exactly one Store-reviewed MSIX, public cert, checksums, certification notes, restricted capability justification, and no private `.pfx/.p12`.
-5. **Support mailbox drift is controlled.** Scripts read root `SUPPORT_EMAIL` via `release-config.ps1`; public Next pages use `musu-bee/src/lib/contact.ts`; current packet/action pack use `musu@musu.pro`.
-6. **Second-PC return path now fails closed.** `import-second-pc-return.ps1` validates returned handoff/release-check schemas, verifies MSIX install evidence, optionally records the MSIX install gate, and prints primary-side commands.
-7. **Known residual issue is product-scope, not release-infra.** The desktop GUI remains a launcher/status shell; this is acceptable for beta/Store-candidate positioning only if the listing copy does not promise a full dashboard GUI.
+1. **Issue found and mitigated during audit.** A logged-in Windows home with a failing Tailscale mDNS interface could leave bridge `/health` timing out after the first `musu up` probe. mDNS LAN discovery is now opt-in through `MUSU_ENABLE_MDNS=1`, keeping the Store-candidate single-machine path on cloud/manual peer registration until mDNS is separately hardened.
+2. **No remaining internal release-blocking issue found in the scoped release pipeline.** The current public-release failure is missing external evidence, not a broken local packaging/handoff pipeline.
+3. **Final packet verification is current and useful.** It checks required docs/scripts, including this wiki/522 current-status audit, README commands, checksum integrity, clean source metadata, second-PC kit contents, Store/support/multi-device evidence hardening, return importer safety, and preview fallback.
+4. **Operator action pack is evidence-safe.** It verifies the final packet first, bundles second-PC/Partner Center/support actions, checks nested zips and checksums, and excludes private signing keys.
+5. **Store submission bundle verification passes.** The bundle includes exactly one Store-reviewed MSIX, public cert, checksums, certification notes, restricted capability justification, and no private `.pfx/.p12`.
+6. **Support mailbox drift is controlled.** Scripts read root `SUPPORT_EMAIL` via `release-config.ps1`; public Next pages use `musu-bee/src/lib/contact.ts`; current packet/action pack use `musu@musu.pro`.
+7. **Second-PC return path now fails closed.** `import-second-pc-return.ps1` validates returned handoff/release-check schemas, verifies MSIX install evidence, optionally records the MSIX install gate, and prints primary-side commands.
+8. **Known residual issue is product-scope, not release-infra.** The desktop GUI remains a launcher/status shell; this is acceptable for beta/Store-candidate positioning only if the listing copy does not promise a full dashboard GUI.
 
 ## Next Steps
 
@@ -108,6 +110,7 @@ P1: after external evidence passes.
 - Re-run `show-final-release-handoff-status.ps1 -Json`.
 - Update Store listing copy to avoid claiming full native dashboard GUI.
 - Keep `musu@musu.pro`, public metadata, and Store bundle verification in the pre-submit checklist.
+- Keep `MUSU_ENABLE_MDNS` off in Store-candidate smoke/release runs unless the mDNS path has its own passing Windows/Tailscale regression evidence.
 
 P2: after first Store submission.
 

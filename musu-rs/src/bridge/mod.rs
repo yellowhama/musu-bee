@@ -214,20 +214,31 @@ pub async fn run() -> Result<()> {
         let my_name = cfg.node_name.clone();
         let advertised_public_url = services::advertised_bridge_http_url(&cfg);
 
-        // Start mDNS advertiser
+        let mdns_enabled = matches!(
+            std::env::var("MUSU_ENABLE_MDNS").as_deref(),
+            Ok("1") | Ok("true") | Ok("yes")
+        );
+
+        // mDNS remains available, but it is opt-in for the Store-candidate
+        // desktop path after Windows/Tailscale adapter failures were observed
+        // to stall bridge health checks.
         let my_name_for_mdns = cfg.node_name.clone();
         let token_for_mdns = token.clone();
         let mdns_port = actual_port;
-        let _mdns_daemon = match crate::peer::mdns::start_advertiser(
-            &my_name_for_mdns,
-            mdns_port,
-            &token_for_mdns,
-        ) {
-            Ok(d) => Some(d),
-            Err(e) => {
-                tracing::warn!(err = %e, "failed to start mDNS advertiser");
-                None
+        let _mdns_daemon = if mdns_enabled {
+            match crate::peer::mdns::start_advertiser(&my_name_for_mdns, mdns_port, &token_for_mdns)
+            {
+                Ok(d) => Some(d),
+                Err(e) => {
+                    tracing::warn!(err = %e, "failed to start mDNS advertiser");
+                    None
+                }
             }
+        } else {
+            tracing::info!(
+                "mDNS discovery disabled; set MUSU_ENABLE_MDNS=1 to enable LAN auto-discovery"
+            );
+            None
         };
 
         let musu_home_clone = musu_home.clone();
@@ -236,18 +247,20 @@ pub async fn run() -> Result<()> {
 
         tokio::spawn(async move {
             let _daemon_handle = _mdns_daemon; // keep alive
-            tracing::info!("attempting musu.pro cloud registration & mDNS discovery...");
+            tracing::info!(mdns_enabled, "attempting musu.pro cloud registration");
 
             // 1. Heartbeat loop
             loop {
-                // Discover LAN peers via mDNS first
-                crate::peer::mdns::auto_register_peers(
-                    &musu_home_clone,
-                    &my_name_clone,
-                    &token_clone,
-                    std::time::Duration::from_secs(5),
-                )
-                .await;
+                if mdns_enabled {
+                    // Discover LAN peers via mDNS first.
+                    crate::peer::mdns::auto_register_peers(
+                        &musu_home_clone,
+                        &my_name_clone,
+                        &token_clone,
+                        std::time::Duration::from_secs(5),
+                    )
+                    .await;
+                }
 
                 let tailscale_ip = crate::peer::tailscale::get_tailscale_ip();
                 let hardware = crate::peer::hardware::gather_hardware_info();
