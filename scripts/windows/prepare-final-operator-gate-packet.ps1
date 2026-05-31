@@ -80,6 +80,7 @@ $docsToCopy = @(
     "docs\RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md",
     "docs\RELEASE_1_15_0_RC1_CURRENT_STATUS_AUDIT_2026_05_31.md",
     "docs\RELEASE_1_15_0_RC1_RUNTIME_HARDENING_RELAY_ROADMAP_2026_05_31.md",
+    "docs\MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md",
     "docs\MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md",
     "docs\RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md",
     "docs\STORE_SUBMISSION_METADATA_2026_05_29.md"
@@ -145,6 +146,7 @@ For the shortest Store/submission sequence, review:
 
 - `docs\RELEASE_1_15_0_RC1_CURRENT_STATUS_AUDIT_2026_05_31.md`
 - `docs\RELEASE_1_15_0_RC1_RUNTIME_HARDENING_RELAY_ROADMAP_2026_05_31.md`
+- `docs\MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md`
 - `docs\RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md`
 - `docs\MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md`
 - `docs\RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md`
@@ -327,12 +329,12 @@ Run the idle CPU sample on the primary PC and the second PC with MUSU installed,
 the desktop app opened, and the runtime started:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -MaxOneCorePercent 5 -IncludeWebView2 -FailOnHot -Json
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -MaxOneCorePercent 5 -IncludeNode -IncludeWebView2 -FailOnHot -Json
 ```
 
-Keep MUSU open and idle during the sample. Close unrelated WebView2-based apps
-before measuring, because this gate includes the Tauri/WebView2 desktop process
-family in the CPU budget.
+Keep MUSU open and idle during the sample. Close unrelated Node.js and
+WebView2-based apps before measuring, because this gate includes Node.js and
+the Tauri/WebView2 desktop process family in the CPU budget.
 
 Bring both generated `.local-build\runtime-idle-cpu\*.json` files back under the
 real MUSU release repo's `.local-build\runtime-idle-cpu\` folder or commit them

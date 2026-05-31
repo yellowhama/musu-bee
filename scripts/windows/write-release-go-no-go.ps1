@@ -118,11 +118,14 @@ function Test-RuntimeIdleCpuEvidence {
         $hotCount = [int]$evidence.hot_process_count
         $checks.Add((New-Check -Name "hot process count" -Status ($(if ($hotCount -eq 0) { "pass" } else { "fail" })) -Message ($(if ($hotCount -eq 0) { "no hot processes reported" } else { "$hotCount hot process(es) reported" })))) | Out-Null
 
-        $processCountAfter = 0
-        if ($evidence.PSObject.Properties["process_count_after"]) {
-            $processCountAfter = [int]$evidence.process_count_after
+        $musuProcessCountAfter = 0
+        if ($evidence.PSObject.Properties["musu_process_count_after"]) {
+            $musuProcessCountAfter = [int]$evidence.musu_process_count_after
         }
-        $checks.Add((New-Check -Name "target process running" -Status ($(if ($processCountAfter -gt 0) { "pass" } else { "fail" })) -Message ($(if ($processCountAfter -gt 0) { "$processCountAfter target process(es) were running at the end of the sample" } else { "no target MUSU process was running during the sample" })))) | Out-Null
+        elseif ($evidence.PSObject.Properties["process_count_after"]) {
+            $musuProcessCountAfter = [int]$evidence.process_count_after
+        }
+        $checks.Add((New-Check -Name "MUSU process running" -Status ($(if ($musuProcessCountAfter -gt 0) { "pass" } else { "fail" })) -Message ($(if ($musuProcessCountAfter -gt 0) { "$musuProcessCountAfter MUSU runtime process(es) were running at the end of the sample" } else { "no MUSU runtime process was running during the sample" })))) | Out-Null
 
         $sampleCount = @($evidence.samples).Count
         $checks.Add((New-Check -Name "cpu samples present" -Status ($(if ($sampleCount -gt 0) { "pass" } else { "fail" })) -Message ($(if ($sampleCount -gt 0) { "$sampleCount CPU sample(s) recorded" } else { "no CPU samples were recorded" })))) | Out-Null

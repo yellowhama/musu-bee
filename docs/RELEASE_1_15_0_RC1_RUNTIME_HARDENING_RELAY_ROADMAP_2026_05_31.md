@@ -48,10 +48,10 @@ What it does not close:
 The repo did not previously have a repeatable idle CPU gate. That was a real gap. A new local measurement script now exists:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -MaxOneCorePercent 5 -IncludeWebView2 -FailOnHot -Json
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -MaxOneCorePercent 5 -IncludeNode -IncludeWebView2 -FailOnHot -Json
 ```
 
-The script writes `musu.runtime_idle_cpu_evidence.v1` JSON under `.local-build\runtime-idle-cpu\`. A Store/public build should pass this on a fresh boot, after opening the app, after starting the runtime, and after the second-PC route flow. The sample is invalid if no target MUSU process is running. The operator command includes WebView2 so Tauri desktop shell CPU is counted; close unrelated WebView2-based apps before collecting final evidence.
+The script writes `musu.runtime_idle_cpu_evidence.v1` JSON under `.local-build\runtime-idle-cpu\`. A Store/public build should pass this on a fresh boot, after opening the app, after starting the runtime, and after the second-PC route flow. The sample is invalid if no MUSU runtime process is running. The operator command includes Node.js and WebView2 so dashboard/runtime helper CPU and Tauri desktop shell CPU are counted; close unrelated Node.js/WebView2-based apps before collecting final evidence.
 
 `scripts\windows\write-release-go-no-go.ps1` now reports `runtime_idle_cpu_verified` and blocks public readiness until runtime idle CPU evidence passes on at least two machines with the 60s / 5%-of-one-core threshold.
 
@@ -81,20 +81,33 @@ This does not prove the reported 20% busy-loop is fixed. It removes one unjustif
 - gathers hardware and optional Tailscale metadata
 - lists sibling nodes
 - writes cached peer metadata and manual peer entries
-- sleeps for 60 seconds
+- sleeps on a low-duty interval; default `MUSU_CLOUD_HEARTBEAT_INTERVAL_SEC=300`, with a 60s floor, failure backoff, and jitter
 
 This is useful, but it is not enough for the real product:
 
 - no explicit relay session model
 - no endpoint reachability negotiation
 - no fallback when direct LAN/Tailscale address fails
-- no backoff/jitter policy after cloud failures
 - no user-visible peer path choice or failure reason
-- no resource budget tied to the loop
+- no route-evidence contract tied to the loop
 
 The loop should become a low-duty-cycle control-plane client, not a hidden best-effort background task.
 
-### P0-4: `musu up` and smoke path need process ownership hardening
+### P0-4: Frontend polling needed an idle budget
+
+The Next dashboard had several mounted view-level polling loops at 5s and 10s intervals. That is tolerable for a developer dashboard, but not for a desktop app that may sit idle in the background.
+
+Change made:
+
+- service health polling: 5s -> 15s, no overlap, pause when hidden
+- processes polling: 5s -> 10s, no overlap, pause when hidden
+- doctor card polling: 10s -> 30s, pause when hidden
+- fleet dashboard polling: 10s -> 30s, pause when hidden
+- device discovery polling: 10s -> 15s, pause when hidden
+
+This does not prove the reported 20% busy-loop is fixed. It removes unnecessary foreground-style polling from the idle path and makes browser/WebView2 CPU easier to interpret.
+
+### P0-5: `musu up` and smoke path need process ownership hardening
 
 The primary-side multi-device smoke hung while running `musu up --json` through the repo debug binary path. That is not acceptable as a public operator path.
 
@@ -106,14 +119,14 @@ Required fixes:
 - add bounded timeout and child-process cleanup around smoke harness invocations
 - expose "already running", "started", "unhealthy", and "conflicting process" as separate states
 
-### P1: Frontend polling must be consolidated
+### P1: Frontend polling must be consolidated further
 
 The Next dashboard has many view-level polling loops at 2s, 5s, 10s, 30s, and 60s intervals. Many are scoped to mounted pages, so they are not automatically idle-background bugs, but the product has no single polling budget.
 
 Required fixes:
 
 - introduce a shared client polling scheduler
-- pause low-priority polling when tab/app is hidden
+- keep all low-priority polling paused when tab/app is hidden
 - switch hot status surfaces to SSE/WebSocket where already available
 - add a browser-side poll budget audit
 
@@ -132,11 +145,16 @@ Minimal API shape:
 
 - `POST /api/v1/nodes/register`
 - `GET /api/v1/nodes`
-- `POST /api/v1/relay/sessions`
-- `GET /api/v1/relay/sessions/:id`
-- `WS /api/v1/relay/connect?node_id=...`
-- `POST /api/v1/relay/sessions/:id/approve`
-- `POST /api/v1/relay/sessions/:id/close`
+- `POST /api/v1/p2p/rendezvous`
+- `GET /api/v1/p2p/rendezvous/:id`
+- `POST /api/v1/p2p/rendezvous/:id/candidates`
+- `POST /api/v1/p2p/rendezvous/:id/approve`
+- `POST /api/v1/p2p/route-evidence`
+- `WS /api/v1/p2p/control?node_id=...`
+- `WS /api/v1/relay/connect?session_id=...&node_id=...`
+
+Detailed control-plane API and route evidence contract:
+`docs/MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md` (wiki/524).
 
 Minimal client behavior:
 
@@ -149,7 +167,7 @@ Minimal client behavior:
 
 ### P0: Stop release until idle resource behavior is measured
 
-1. Run `measure-musu-idle-cpu.ps1 -IncludeWebView2` on primary and second PC with MUSU installed, app opened, runtime started, and unrelated WebView2 apps closed.
+1. Run `measure-musu-idle-cpu.ps1 -IncludeNode -IncludeWebView2` on primary and second PC with MUSU installed, app opened, runtime started, and unrelated Node.js/WebView2 apps closed.
 2. Fix any process above 5% of one core while idle.
 3. Record passing idle CPU evidence; the release go/no-go gate now blocks until it passes.
 4. Add process-count and startup-repeat checks: repeated desktop "Start Runtime" clicks must not spawn duplicate bridges.
@@ -159,14 +177,14 @@ Minimal client behavior:
 
 1. Keep `MUSU_ENABLE_MDNS=1` opt-in.
 2. Keep `MUSU_ENABLE_CLIPBOARD_SYNC=1` opt-in.
-3. Add env-configured cloud heartbeat interval, floor, backoff, and jitter.
+3. Keep cloud heartbeat interval, floor, backoff, and jitter enforced by default.
 4. Add a "background features" section to `musu doctor --json`.
 5. Add a Windows StartupTask cold-boot idle check.
 
 ### P1: Build `musu.pro` assisted peer path
 
 1. Treat existing cloud node registration as registry v0.
-2. Add relay session DTOs and tests in the Next API or dedicated service.
+2. Add rendezvous/route-evidence DTOs and tests in the Next API or dedicated service.
 3. Add bridge client commands: `musu relay status`, `musu relay connect`, `musu relay route`.
 4. Add route path selection: manual peer -> cached direct endpoint -> relay fallback.
 5. Record route evidence with path type and timings.

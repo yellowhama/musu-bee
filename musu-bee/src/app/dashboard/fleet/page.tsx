@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import RemoteFileExplorer from "../../../components/workstation/RemoteFileExplorer";
 import TownView from "../../../components/workstation/town/TownView";
 import ButlerView from "../../../components/workstation/butler/ButlerView";
-import { VscServer, VscTerminal, VscFiles, VscCircuitBoard, VscOrganization, VscSend, VscCommentDiscussion, VscHistory, VscProject } from "react-icons/vsc";
+import { VscServer, VscTerminal, VscFiles, VscCircuitBoard, VscOrganization, VscSend, VscCommentDiscussion } from "react-icons/vsc";
 
 const RemoteTerminal = dynamic(() => import("../../../components/workstation/RemoteTerminal"), { ssr: false });
 import { WIDGETS } from "../../../components/workstation/town/widgets/WidgetRegistry";
@@ -31,6 +31,8 @@ interface FleetDashboardData {
   total_tasks_pending: number;
 }
 
+const FLEET_STATUS_POLL_INTERVAL_MS = 30_000;
+
 export default function FleetDashboardPage() {
   const [data, setData] = useState<FleetDashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +43,7 @@ export default function FleetDashboardPage() {
     activeViewMode, setActiveViewMode,
     selectedMachines, toggleMachine, setSelectedMachines,
     machineViewModes, setNodeViewMode, setInitialMachineViewModes,
-    pushWidget, isTyping, setIsTyping, initSSE
+    isTyping, setIsTyping, initSSE
   } = useFleetStore();
 
   const fetchFleetStatus = async () => {
@@ -70,7 +72,9 @@ export default function FleetDashboardPage() {
 
   useEffect(() => {
     fetchFleetStatus();
-    const interval = setInterval(fetchFleetStatus, 10000);
+    const interval = setInterval(() => {
+      if (document.visibilityState !== "hidden") void fetchFleetStatus();
+    }, FLEET_STATUS_POLL_INTERVAL_MS);
     return () => clearInterval(interval);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

@@ -76,6 +76,12 @@ This does not change the product boundary:
 - MUSU-hosted relay/tunnel operation remains MUSU Connect
 - Store copy must not imply that direct P2P works through every NAT until the relay/tunnel fallback has evidence
 
+Implementation detail is now tracked in
+`docs/MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md` (wiki/524). That spec
+locks the route kinds (`lan`, `tailscale`, `direct_quic`, `relay`, `failed`),
+rendezvous API shape, and route evidence fields required before public
+multi-device claims.
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."

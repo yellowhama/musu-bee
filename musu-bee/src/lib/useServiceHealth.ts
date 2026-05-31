@@ -10,7 +10,7 @@ export interface ServiceHealth {
   worker: ServiceStatus;  // musu-worker (via bridge proxy)
 }
 
-const POLL_INTERVAL_MS = 5_000;
+const POLL_INTERVAL_MS = 15_000;
 
 async function pingService(apiPath: string): Promise<ServiceStatus> {
   try {
@@ -36,14 +36,21 @@ export function useServiceHealth(): ServiceHealth {
     if (isEmbedded) return; // Skip polling in embed mode
 
     let cancelled = false;
+    let inFlight = false;
 
     async function poll() {
-      const [port, bridge, worker] = await Promise.all([
-        pingService("/api/service-health?svc=port"),
-        pingService("/api/service-health?svc=bridge"),
-        pingService("/api/service-health?svc=worker"),
-      ]);
-      if (!cancelled) setHealth({ port, bridge, worker });
+      if (inFlight || document.visibilityState === "hidden") return;
+      inFlight = true;
+      try {
+        const [port, bridge, worker] = await Promise.all([
+          pingService("/api/service-health?svc=port"),
+          pingService("/api/service-health?svc=bridge"),
+          pingService("/api/service-health?svc=worker"),
+        ]);
+        if (!cancelled) setHealth({ port, bridge, worker });
+      } finally {
+        inFlight = false;
+      }
     }
 
     poll();

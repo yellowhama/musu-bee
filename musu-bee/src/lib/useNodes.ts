@@ -33,6 +33,8 @@ export interface UseNodesReturn {
   refetch: () => void;
 }
 
+const POLL_INTERVAL_MS = 30_000;
+
 export function useNodes(): UseNodesReturn {
   const [nodes, setNodes] = useState<Array<{ name: string; status: string }>>([]);
   const [loading, setLoading] = useState(true);
@@ -40,6 +42,7 @@ export function useNodes(): UseNodesReturn {
   const mountedRef = useRef(true);
 
   const fetchNodes = useCallback(async () => {
+    if (document.visibilityState === "hidden") return;
     try {
       setLoading(true);
       const res = await fetch("/api/nodes/mesh");
@@ -67,10 +70,9 @@ export function useNodes(): UseNodesReturn {
     mountedRef.current = true;
     void fetchNodes();
 
-    // Refresh every 30 seconds
     const interval = setInterval(() => {
       void fetchNodes();
-    }, 30000);
+    }, POLL_INTERVAL_MS);
 
     return () => {
       mountedRef.current = false;

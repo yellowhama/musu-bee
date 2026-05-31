@@ -55,7 +55,7 @@ This document supersedes wiki/521 for the **current 2026-05-31 release status**.
 | Store submission bundle verification | `ok=true`, `fail_count=0` |
 | Public metadata | `https://musu.pro/privacy` and `/support` pass with `musu@musu.pro` |
 | Second-PC MSIX install evidence | `docs\evidence\msix-install\1.15.0-rc.1\20260531-165211-HUGH-MAIN.evidence.json` |
-| Runtime idle CPU evidence | missing; `write-release-go-no-go.ps1` now blocks until `scripts\windows\measure-musu-idle-cpu.ps1` evidence passes on two machines with MUSU open and WebView2 included |
+| Runtime idle CPU evidence | missing; `write-release-go-no-go.ps1` now blocks until `scripts\windows\measure-musu-idle-cpu.ps1` evidence passes on two machines with MUSU open and Node.js/WebView2 included |
 | Current support verification id | `musu-store-support-1.15.0-rc.1-20260531-002518` |
 | Current second-PC kit | `kits\musu-multidevice-1.15.0-rc.1-20260531-002518.zip` |
 | Final release status | `ready_for_public_desktop_release=false` |
@@ -109,11 +109,12 @@ P0: keep No-Go until internal runtime quality and external evidence gates both p
 
 1. Run idle CPU evidence on primary and second PC:
    ```powershell
-   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -MaxOneCorePercent 5 -IncludeWebView2 -FailOnHot -Json
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -MaxOneCorePercent 5 -IncludeNode -IncludeWebView2 -FailOnHot -Json
    ```
    MUSU must be open and idle during the sample. The gate now fails if no
-   target MUSU process is running, and the operator command includes WebView2
-   so the Tauri desktop shell is inside the idle CPU budget.
+   MUSU runtime process is running, and the operator command includes Node.js
+   plus WebView2 so the dashboard/runtime helper processes and Tauri desktop
+   shell are inside the idle CPU budget.
 2. Fix any process that exceeds the idle CPU budget.
 3. Record passing runtime CPU evidence; go/no-go now blocks until it passes.
 4. Harden `musu up` and smoke scripts so duplicate/stale runtime state cannot hang the operator.

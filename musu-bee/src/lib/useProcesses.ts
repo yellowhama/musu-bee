@@ -22,7 +22,7 @@ export interface UseProcessesReturn {
   startProcess: (req: ProcessStartRequest) => Promise<{ pid: number; name: string }>;
 }
 
-const POLL_INTERVAL_MS = 5_000;
+const POLL_INTERVAL_MS = 10_000;
 
 export function useProcesses(deviceId = "local", nameFilter?: string): UseProcessesReturn {
   const [processes, setProcesses] = useState<ProcessInfo[]>([]);
@@ -34,8 +34,11 @@ export function useProcesses(deviceId = "local", nameFilter?: string): UseProces
 
   useEffect(() => {
     let cancelled = false;
+    let inFlight = false;
 
     async function fetchProcesses() {
+      if (inFlight || document.visibilityState === "hidden") return;
+      inFlight = true;
       setLoading(true);
       try {
         const url = new URL("/api/processes", window.location.origin);
@@ -55,6 +58,7 @@ export function useProcesses(deviceId = "local", nameFilter?: string): UseProces
         if (!cancelled) setError(String(err));
       } finally {
         if (!cancelled) setLoading(false);
+        inFlight = false;
       }
     }
 

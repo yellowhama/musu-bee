@@ -27,9 +27,11 @@ if ([string]::IsNullOrWhiteSpace($OutputPath)) {
 }
 
 $names = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+$musuNames = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
 foreach ($name in $ProcessName) {
     if (-not [string]::IsNullOrWhiteSpace($name)) {
         [void]$names.Add($name)
+        [void]$musuNames.Add($name)
     }
 }
 if ($IncludeNode) {
@@ -98,6 +100,15 @@ foreach ($current in $after) {
     $samples += [pscustomobject]@{
         id = $current.id
         process_name = $current.process_name
+        process_role = if ($musuNames.Contains($current.process_name)) {
+            "musu"
+        } elseif ($current.process_name -ieq "msedgewebview2") {
+            "webview2"
+        } elseif ($current.process_name -ieq "node") {
+            "node"
+        } else {
+            "other"
+        }
         cpu_seconds_delta = [Math]::Round($delta, 3)
         cpu_pct_one_core = [Math]::Round($oneCorePercent, 2)
         cpu_pct_total = [Math]::Round($oneCorePercent / $cores, 2)
@@ -107,10 +118,41 @@ foreach ($current in $after) {
 }
 
 $hot = @($samples | Where-Object { $_.cpu_pct_one_core -gt $MaxOneCorePercent })
+$musuProcessCountAfter = @($after | Where-Object { $musuNames.Contains($_.process_name) }).Count
 $targetProcessRunning = ($after.Count -gt 0)
+$processCountsByRole = [ordered]@{
+    musu = 0
+    node = 0
+    webview2 = 0
+    other = 0
+}
+foreach ($current in $after) {
+    if ($musuNames.Contains($current.process_name)) {
+        $processCountsByRole.musu += 1
+    } elseif ($current.process_name -ieq "node") {
+        $processCountsByRole.node += 1
+    } elseif ($current.process_name -ieq "msedgewebview2") {
+        $processCountsByRole.webview2 += 1
+    } else {
+        $processCountsByRole.other += 1
+    }
+}
+$maxOneCorePercentByRole = [ordered]@{
+    musu = 0.0
+    node = 0.0
+    webview2 = 0.0
+    other = 0.0
+}
+foreach ($sample in $samples) {
+    $role = [string]$sample.process_role
+    $value = [double]$sample.cpu_pct_one_core
+    if ($maxOneCorePercentByRole.Contains($role) -and $value -gt [double]$maxOneCorePercentByRole[$role]) {
+        $maxOneCorePercentByRole[$role] = $value
+    }
+}
 $result = [ordered]@{
     schema = "musu.runtime_idle_cpu_evidence.v1"
-    ok = ($targetProcessRunning -and $hot.Count -eq 0)
+    ok = ($musuProcessCountAfter -gt 0 -and $hot.Count -eq 0)
     version = $version
     started_at = $startedAt.ToString("o")
     completed_at = $completedAt.ToString("o")
@@ -120,13 +162,21 @@ $result = [ordered]@{
     logical_processor_count = $cores
     max_one_core_percent = $MaxOneCorePercent
     process_names = @($names)
+    musu_process_names = @($musuNames)
+    include_node = [bool]$IncludeNode
+    include_webview2 = [bool]$IncludeWebView2
     process_count_before = $before.Count
     process_count_after = $after.Count
+    musu_process_count_after = $musuProcessCountAfter
     target_process_running = $targetProcessRunning
+    process_counts_by_role = $processCountsByRole
+    max_one_core_percent_by_role = $maxOneCorePercentByRole
     hot_process_count = $hot.Count
     samples = @($samples | Sort-Object cpu_pct_one_core -Descending)
     note = if ($after.Count -eq 0) {
         "No target MUSU processes were running during this sample."
+    } elseif ($musuProcessCountAfter -eq 0) {
+        "Only helper processes matched; no MUSU runtime process was running during this sample."
     } else {
         "cpu_pct_one_core is normalized so one fully busy logical processor is 100."
     }

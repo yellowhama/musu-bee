@@ -8,6 +8,8 @@ export interface UseDeviceDiscoveryReturn {
   devices: Device[];
 }
 
+const POLL_INTERVAL_MS = 15_000;
+
 function itemToDevice(item: DeviceStatusItem): Device {
   return {
     id: item.id,
@@ -27,6 +29,7 @@ export function useDeviceDiscovery(): UseDeviceDiscoveryReturn {
 
   useEffect(() => {
     async function fetchDevices() {
+      if (document.visibilityState === "hidden") return;
       try {
         const res = await fetch("/api/device-status");
         if (!res.ok) {
@@ -49,7 +52,7 @@ export function useDeviceDiscovery(): UseDeviceDiscoveryReturn {
     }
 
     fetchDevices();
-    const id = setInterval(fetchDevices, 10_000);
+    const id = setInterval(fetchDevices, POLL_INTERVAL_MS);
     return () => clearInterval(id);
   }, []);
 

@@ -16,12 +16,12 @@ blocked.
 New locks:
 
 - Runtime idle CPU evidence is required before public launch.
-- New measurement script: `scripts/windows/measure-musu-idle-cpu.ps1`; final evidence must run while MUSU is open and idle, include WebView2, and fail if no target process is sampled.
+- New measurement script: `scripts/windows/measure-musu-idle-cpu.ps1`; final evidence must run while MUSU is open and idle, include Node.js/WebView2, and fail if no MUSU runtime process is sampled.
 - `write-release-go-no-go.ps1` now reports `runtime_idle_cpu_verified` and
   blocks public readiness until runtime idle CPU evidence passes on at least
   two machines.
-- Public target: no MUSU/WebView2 process above 5% of one logical CPU over a
-  60s idle sample on primary and second PC.
+- Public target: no MUSU/Node.js/WebView2 process above 5% of one logical CPU
+  over a 60s idle sample on primary and second PC.
 - Universal clipboard polling is opt-in via `MUSU_ENABLE_CLIPBOARD_SYNC=1`.
 - mDNS remains opt-in via `MUSU_ENABLE_MDNS=1`.
 - `musu.pro` must become registry + rendezvous + relay/tunnel control for the

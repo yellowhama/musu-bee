@@ -136,7 +136,7 @@ Multi-device packet:
 Runtime hardening:
 
 - idle CPU measurement: `scripts\windows\measure-musu-idle-cpu.ps1`
-- public beta target: MUSU open and idle, at least one target process sampled, no MUSU/WebView2 process above 5% of one logical CPU for a 60s idle sample
+- public beta target: MUSU open and idle, at least one MUSU runtime process sampled, no MUSU/Node.js/WebView2 process above 5% of one logical CPU for a 60s idle sample
 - default mDNS: off unless `MUSU_ENABLE_MDNS=1`
 - default clipboard polling: off unless `MUSU_ENABLE_CLIPBOARD_SYNC=1`
 - runtime hardening and relay-control roadmap: `docs/RELEASE_1_15_0_RC1_RUNTIME_HARDENING_RELAY_ROADMAP_2026_05_31.md`

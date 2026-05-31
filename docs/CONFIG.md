@@ -116,6 +116,7 @@ Windows distribution note:
 | `MUSU_CEO_HEARTBEAT_INTERVAL` | `1800` | No | Seconds between CEO heartbeats. |
 | `MUSU_ENABLE_MDNS` | `false` | No | Enable LAN mDNS advertiser/discovery. Store-candidate release paths keep this off unless separate Windows/Tailscale regression evidence exists. |
 | `MUSU_ENABLE_CLIPBOARD_SYNC` | `false` | No | Enable universal clipboard polling/sync. Defaults off for privacy and idle CPU control. |
+| `MUSU_CLOUD_HEARTBEAT_INTERVAL_SEC` | `300` | No | Seconds between logged-in `musu.pro` registry/rendezvous refreshes. Runtime enforces a 60s floor and applies failure backoff plus jitter. |
 | `MUSU_TEAM_LEAD_HEARTBEAT_ENABLED` | *(follows CEO)* | No | Enable Team Lead heartbeat. Defaults to `MUSU_CEO_HEARTBEAT_ENABLED`. |
 | `MUSU_NODE_HEARTBEAT_ENABLED` | `false` | No | Enable device stats reporting heartbeat. |
 | `MUSU_NODE_HEARTBEAT_INTERVAL` | `300` | No | Seconds between node heartbeats. |

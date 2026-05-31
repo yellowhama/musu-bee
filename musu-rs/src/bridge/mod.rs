@@ -227,6 +227,11 @@ pub async fn run() -> Result<()> {
         let cloud = crate::cloud::MusuCloud::new("https://musu.pro", Some(token.clone()));
         let my_name = cfg.node_name.clone();
         let advertised_public_url = services::advertised_bridge_http_url(&cfg);
+        let cloud_heartbeat_interval_secs = std::env::var("MUSU_CLOUD_HEARTBEAT_INTERVAL_SEC")
+            .ok()
+            .and_then(|value| value.parse::<u64>().ok())
+            .unwrap_or(300)
+            .max(60);
 
         let mdns_enabled = matches!(
             std::env::var("MUSU_ENABLE_MDNS").as_deref(),
@@ -261,10 +266,17 @@ pub async fn run() -> Result<()> {
 
         tokio::spawn(async move {
             let _daemon_handle = _mdns_daemon; // keep alive
-            tracing::info!(mdns_enabled, "attempting musu.pro cloud registration");
+            tracing::info!(
+                mdns_enabled,
+                cloud_heartbeat_interval_secs,
+                "starting low-duty musu.pro cloud registration loop"
+            );
+            let mut consecutive_failures: u32 = 0;
 
             // 1. Heartbeat loop
             loop {
+                let mut cycle_ok = true;
+
                 if mdns_enabled {
                     // Discover LAN peers via mDNS first.
                     crate::peer::mdns::auto_register_peers(
@@ -294,6 +306,7 @@ pub async fn run() -> Result<()> {
                 };
 
                 if let Err(e) = cloud.register_node(req).await {
+                    cycle_ok = false;
                     tracing::warn!(err = %e, "musu.pro registration failed");
                 } else {
                     // 2. Discover peers
@@ -358,12 +371,29 @@ pub async fn run() -> Result<()> {
                             }
                         }
                         Err(e) => {
+                            cycle_ok = false;
                             tracing::warn!(err = %e, "failed to list nodes from musu.pro");
                         }
                     }
                 }
 
-                tokio::time::sleep(Duration::from_secs(60)).await;
+                if cycle_ok {
+                    consecutive_failures = 0;
+                } else {
+                    consecutive_failures = consecutive_failures.saturating_add(1).min(8);
+                }
+                let backoff_multiplier = 1_u64 << consecutive_failures.min(4);
+                let jitter_ms = chrono::Utc::now().timestamp_millis().rem_euclid(1_000) as u64;
+                let sleep_for = Duration::from_secs(
+                    cloud_heartbeat_interval_secs.saturating_mul(backoff_multiplier),
+                ) + Duration::from_millis(jitter_ms);
+                tracing::debug!(
+                    cycle_ok,
+                    consecutive_failures,
+                    sleep_ms = sleep_for.as_millis(),
+                    "musu.pro cloud registration loop sleeping"
+                );
+                tokio::time::sleep(sleep_for).await;
             }
         });
     } else {

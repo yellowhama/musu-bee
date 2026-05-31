@@ -26,6 +26,8 @@ const tone: Record<Level, { color: string; bg: string; label: string }> = {
   fail: { color: "var(--status-error)", bg: "rgba(239,68,68,0.08)", label: "FAIL" },
 };
 
+const REFRESH_INTERVAL_MS = 30_000;
+
 function StatusPill({ status }: { status: Level }) {
   const t = tone[status];
   return (
@@ -88,7 +90,9 @@ export default function DoctorStatusCard() {
 
   useEffect(() => {
     void refresh();
-    const timer = setInterval(() => void refresh(), 10_000);
+    const timer = setInterval(() => {
+      if (document.visibilityState !== "hidden") void refresh();
+    }, REFRESH_INTERVAL_MS);
     return () => clearInterval(timer);
   }, []);
 
