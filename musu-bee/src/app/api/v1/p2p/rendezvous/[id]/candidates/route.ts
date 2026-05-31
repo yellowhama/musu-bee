@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { authorizeP2pControl } from "@/lib/p2pControlAuth";
 import {
+  saveNodeCandidateSet,
   updateRendezvousSession,
   upsertCandidateSet,
 } from "@/lib/p2pRendezvousStore";
@@ -72,6 +73,9 @@ export async function POST(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
     if (!session) {
       return NextResponse.json({ ok: false, error: "rendezvous_not_found" }, { status: 404 });
     }
+    const candidateSet =
+      session.source.node_id === parsed.data.node_id ? session.source : session.target;
+    await saveNodeCandidateSet(candidateSet);
     return NextResponse.json(session);
   } catch (error) {
     const code = error instanceof Error ? error.message : "unknown";

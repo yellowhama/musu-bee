@@ -31,11 +31,20 @@ What changed materially:
   create/read session, update source/target candidates, approve, and close.
   This is the server-side candidate-exchange contract the Rust cloud DTOs were
   already shaped for.
+- Rendezvous candidate updates now refresh a short-lived node candidate cache in
+  the control-plane store. New sessions seed source/target candidate sets from
+  that cache when available, so a target candidate published during one route
+  can influence a later route attempt.
 - Rust bridge forwarding now creates a short-lived rendezvous session before a
   remote route attempt when an account token exists, publishes the source
   bridge endpoint, attaches `session_id` to the forwarded task, lets the target
   publish its endpoint candidates when it receives the forwarded task, and
   closes the session after terminal success/failure.
+- When the refreshed rendezvous session already has target candidates, bridge
+  forwarding now selects the best non-relay candidate by LAN -> Tailscale ->
+  direct-public priority and uses that address for the actual attempt. If the
+  selected target candidate fails after retries, forwarding falls back once to
+  the original selected peer address.
 - Runtime route evidence now records the rendezvous `session_id` when a session
   was created, so local files and best-effort `musu.pro` submissions can be
   joined with the control-plane session.
@@ -104,6 +113,11 @@ What is still not release-grade:
      advertised bridge endpoint before trying the selected peer.
    - The forwarded task carries `rendezvous_session_id`; the target publishes
      its local endpoint candidates on receipt.
+   - The source can replace the original cached/manual peer address with the
+     best target candidate returned by the refreshed session. That candidate
+     can now come from the control-plane node candidate cache seeded by earlier
+     candidate updates. A stale/failing target candidate falls back once to the
+     original peer address.
    - Control-plane calls use `MUSU_P2P_RENDEZVOUS_CLIENT_TIMEOUT_MS` (`3000`
      default, clamped `250..10000`) and fail open to the selected direct peer
      path.
@@ -140,8 +154,8 @@ mDNS opt-in variables unset.
 | `musu.pro` route-evidence receiver | High | The Rust client had a DTO/method but no server endpoint to receive route evidence. | Fixed. `musu-bee/src/app/api/v1/p2p/route-evidence/route.ts` validates/authenticates the contract, stores evidence, and returns release blockers. |
 | Route-evidence queryability | Medium | Evidence accepted by the control plane needed an audit/query path before it could support release diagnosis. | Fixed as a minimal API. `GET /api/v1/p2p/route-evidence` returns stored records with basic filters. |
 | Runtime cloud submission | High | Bridge runtime forwarding wrote local evidence but did not submit it to the control plane. | Fixed as background best-effort. Runtime submits after local write when `~/.musu/token` exists. Failures do not fail or delay the user task. |
-| Rendezvous server contract | High | The Rust client had rendezvous DTOs/methods but no server endpoint to create sessions or exchange endpoint candidates. | Fixed. Server endpoints now create/read/update/approve/close sessions. |
-| Runtime rendezvous wiring | High | Bridge remote forwarding selected a peer directly but did not create a `musu.pro` session or attach a session id to route evidence. | Fixed as first runtime wiring. Forwarding creates/refreshes a session, publishes source candidates, forwards the session id to target, target publishes candidates best-effort, and evidence records the session id. |
+| Rendezvous server contract | High | The Rust client had rendezvous DTOs/methods but no server endpoint to create sessions or exchange endpoint candidates. | Fixed. Server endpoints now create/read/update/approve/close sessions and seed new sessions from a recent node candidate cache. |
+| Runtime rendezvous wiring | High | Bridge remote forwarding selected a peer directly but did not create a `musu.pro` session, attach a session id to route evidence, or use session target candidates. | Fixed as first runtime wiring. Forwarding creates/refreshes a session, publishes source candidates, forwards the session id to target, target publishes candidates best-effort, uses refreshed target candidates when present, falls back once to the original peer if a selected candidate fails, and evidence records the session id. |
 | Release-grade route proof | Critical | Submitted evidence still cannot prove peer identity, QUIC/TLS encryption, or payload transit truth. | Still blocked. This is the next P0. |
 
 ## Validation
@@ -152,6 +166,7 @@ Passed:
 - `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib cli_commands -- --nocapture`
 - `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib route_evidence -- --nocapture`
 - `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib rendezvous -- --nocapture`
+- `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib router -- --nocapture`
 - `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --bin musu cli_commands -- --nocapture`
 - `cargo build --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1`
 - `musu relay status --json` reports `rendezvous_session_wired=true`
@@ -163,6 +178,8 @@ Passed:
 - `npm run typecheck`
 - `cargo fmt --manifest-path .\musu-rs\Cargo.toml --check`
 - `git diff --check`
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `1074 files / 2064 symbols`
 
 Not completed:
 
@@ -173,9 +190,9 @@ Not completed:
 
 1. Add account-scoped route evidence ownership, retention policy, and operator
    UI/audit export on top of the stored evidence API.
-2. Verify two-sided rendezvous candidate exchange on the real second-PC route.
-3. Hydrate initial rendezvous candidate sets from registry metadata instead of
-   empty source/target placeholders.
+2. Verify target-candidate-assisted routing on the real second-PC route.
+3. Add registry metadata as a second candidate seed source behind the current
+   short-lived node candidate cache.
 4. Replace HTTP bearer remote execution with peer identity verification and
    QUIC/TLS proof before allowing evidence to pass the release verifier.
 5. Rerun real second-PC multi-device proof and two-machine desktop-open CPU

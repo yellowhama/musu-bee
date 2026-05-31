@@ -461,7 +461,7 @@ async fn explain_route(opts: &RouteOpts) -> Result<()> {
             "peer_identity_verified=false for current manual/local HTTP route",
             "encryption is not QUIC/TLS route proof",
             "route evidence is not release-grade until the runtime route attempt proves peer identity",
-            "two-sided rendezvous candidate exchange still needs real second-PC evidence",
+            "rendezvous target-candidate-assisted routing still needs real second-PC evidence",
             "relay/tunnel fallback transport is not wired",
         ],
         path_priority: vec!["lan", "tailscale", "direct_quic", "relay"],
@@ -598,7 +598,7 @@ async fn run_relay_status(opts: RelayStatusOpts) -> Result<()> {
         release_route_evidence_ready: false,
         path_priority: vec!["lan", "tailscale", "direct_quic", "relay"],
         next_steps: vec![
-            "verify two-sided rendezvous candidate exchange on a real second PC route",
+            "verify rendezvous target-candidate-assisted routing on a real second PC route",
             "wire peer identity and QUIC/TLS proof into runtime route attempts",
             "implement relay/tunnel fallback behind Connect/Pro policy",
         ],

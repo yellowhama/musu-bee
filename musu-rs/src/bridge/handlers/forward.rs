@@ -70,6 +70,7 @@ pub struct ForwardResponse {
 #[derive(Debug, Clone)]
 pub struct ForwardAttemptReport {
     pub response: ForwardResponse,
+    pub route_peer: ResolvedPeer,
     pub rendezvous_session_id: Option<String>,
     pub handshake_ms: Option<u64>,
     pub total_attempt_ms: u64,
@@ -78,6 +79,7 @@ pub struct ForwardAttemptReport {
 #[derive(Debug, Clone)]
 pub struct ForwardAttemptError {
     pub message: String,
+    pub route_peer: ResolvedPeer,
     pub rendezvous_session_id: Option<String>,
     pub handshake_ms: Option<u64>,
     pub total_attempt_ms: u64,
@@ -238,6 +240,7 @@ async fn forward_to_peer_attempt(
 
     let task_json = serde_json::to_string(&task).map_err(|e| ForwardAttemptError {
         message: format!("serialize task: {e}"),
+        route_peer: peer.clone(),
         rendezvous_session_id: None,
         handshake_ms: None,
         total_attempt_ms: elapsed_ms(total_started.elapsed()),
@@ -258,6 +261,7 @@ async fn forward_to_peer_attempt(
         .await
         .map_err(|e| ForwardAttemptError {
             message: format!("forward HTTP error: {e}"),
+            route_peer: peer.clone(),
             rendezvous_session_id: None,
             handshake_ms: Some(elapsed_ms(submit_started.elapsed())),
             total_attempt_ms: elapsed_ms(total_started.elapsed()),
@@ -270,6 +274,7 @@ async fn forward_to_peer_attempt(
         let body = resp.text().await.unwrap_or_default();
         return Err(ForwardAttemptError {
             message: format!("peer returned {status}: {body}"),
+            route_peer: peer.clone(),
             rendezvous_session_id: None,
             handshake_ms,
             total_attempt_ms: elapsed_ms(total_started.elapsed()),
@@ -282,6 +287,7 @@ async fn forward_to_peer_attempt(
         .await
         .map_err(|e| ForwardAttemptError {
             message: format!("forward response parse: {e}"),
+            route_peer: peer.clone(),
             rendezvous_session_id: None,
             handshake_ms,
             total_attempt_ms: elapsed_ms(total_started.elapsed()),
@@ -290,6 +296,7 @@ async fn forward_to_peer_attempt(
 
     Ok(ForwardAttemptReport {
         response,
+        route_peer: peer.clone(),
         rendezvous_session_id: None,
         handshake_ms,
         total_attempt_ms: elapsed_ms(total_started.elapsed()),
@@ -309,6 +316,10 @@ pub async fn forward_to_peer_with_retry(
     let rendezvous =
         crate::bridge::rendezvous::prepare_forward_rendezvous(state, peer, Some("task_forward"))
             .await;
+    let route_peer = rendezvous
+        .route_peer
+        .clone()
+        .unwrap_or_else(|| peer.clone());
     if let Some(session_id) = rendezvous.session_id.clone() {
         let target_node_id = crate::bridge::route_evidence::target_node_id(peer);
         tracing::debug!(
@@ -316,10 +327,19 @@ pub async fn forward_to_peer_with_retry(
             session_id = %session_id,
             target_node_id = %target_node_id,
             target_candidate_count = rendezvous.target_candidate_count,
+            selected_candidate = %route_peer.addr,
             "attaching rendezvous session to forwarded task"
         );
         task.rendezvous_session_id = Some(session_id);
         task.rendezvous_target_node_id = Some(target_node_id);
+    }
+    if route_peer.addr != peer.addr {
+        tracing::info!(
+            original_peer = %peer.addr,
+            selected_peer = %route_peer.addr,
+            selected_route_kind = crate::bridge::router::route_kind_for_addr(&route_peer.addr).as_str(),
+            "using rendezvous target candidate for forward attempt"
+        );
     }
     if let Some(failure_class) = rendezvous.failure_class.as_deref() {
         tracing::debug!(
@@ -333,8 +353,13 @@ pub async fn forward_to_peer_with_retry(
     let session_id = task.rendezvous_session_id.clone();
     let mut last_err: Option<ForwardAttemptError> = None;
     for attempt in 0..=max_retries {
-        match forward_to_peer_attempt(&state.http_client, peer, task.clone(), &state.config.token)
-            .await
+        match forward_to_peer_attempt(
+            &state.http_client,
+            &route_peer,
+            task.clone(),
+            &state.config.token,
+        )
+        .await
         {
             Ok(mut report) => {
                 report.total_attempt_ms = elapsed_ms(route_started.elapsed());
@@ -375,17 +400,53 @@ pub async fn forward_to_peer_with_retry(
             }
         }
     }
+    if route_peer.addr != peer.addr {
+        tracing::warn!(
+            original_peer = %peer.addr,
+            selected_peer = %route_peer.addr,
+            "rendezvous target candidate failed; falling back to original selected peer"
+        );
+        match forward_to_peer_attempt(&state.http_client, peer, task.clone(), &state.config.token)
+            .await
+        {
+            Ok(mut report) => {
+                report.total_attempt_ms = elapsed_ms(route_started.elapsed());
+                report.rendezvous_session_id = session_id.clone();
+                if let Some(session_id) = session_id.clone() {
+                    let musu_home = state
+                        .config
+                        .nodes_toml_path
+                        .parent()
+                        .unwrap_or_else(|| std::path::Path::new("."))
+                        .to_path_buf();
+                    crate::bridge::rendezvous::spawn_close_rendezvous_session(
+                        musu_home,
+                        session_id,
+                        "forward",
+                        task.source_task_id.clone(),
+                    );
+                }
+                return Ok(report);
+            }
+            Err(e) => {
+                let mut e = e;
+                e.rendezvous_session_id = session_id.clone();
+                last_err = Some(e);
+            }
+        }
+    }
     let mut err = last_err.unwrap_or_else(|| ForwardAttemptError {
         message: "forward failed before first attempt".to_string(),
+        route_peer: route_peer.clone(),
         rendezvous_session_id: session_id.clone(),
         handshake_ms: None,
         total_attempt_ms: elapsed_ms(route_started.elapsed()),
         failure_class: "forward_no_attempt".to_string(),
     });
+    let total_attempts = max_retries + 1 + if route_peer.addr != peer.addr { 1 } else { 0 };
     err.message = format!(
         "forward failed after {} attempts: {}",
-        max_retries + 1,
-        err.message
+        total_attempts, err.message
     );
     err.total_attempt_ms = elapsed_ms(route_started.elapsed());
     err.failure_class = "forward_failed_after_retries".to_string();

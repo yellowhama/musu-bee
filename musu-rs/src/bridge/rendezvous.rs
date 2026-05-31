@@ -25,6 +25,7 @@ pub enum RendezvousStatus {
 pub struct RendezvousPreparation {
     pub status: RendezvousStatus,
     pub session_id: Option<String>,
+    pub route_peer: Option<ResolvedPeer>,
     pub target_candidate_count: usize,
     pub failure_class: Option<String>,
 }
@@ -34,6 +35,7 @@ impl RendezvousPreparation {
         Self {
             status: RendezvousStatus::SkippedNoToken,
             session_id: None,
+            route_peer: None,
             target_candidate_count: 0,
             failure_class: Some("rendezvous_no_account_token".to_string()),
         }
@@ -43,6 +45,7 @@ impl RendezvousPreparation {
         Self {
             status: RendezvousStatus::Failed,
             session_id: None,
+            route_peer: None,
             target_candidate_count: 0,
             failure_class: Some(failure_class.into()),
         }
@@ -130,6 +133,38 @@ pub fn local_candidate_request_for_node_id(
     }
 }
 
+fn route_peer_from_target_candidates(
+    target_node_id: &str,
+    candidates: &[crate::cloud::CandidateEndpoint],
+) -> Option<ResolvedPeer> {
+    let peers = candidates
+        .iter()
+        .filter_map(|candidate| {
+            if candidate.addr.trim().is_empty() {
+                return None;
+            }
+            if matches!(
+                candidate.kind,
+                crate::cloud::RouteKind::Relay | crate::cloud::RouteKind::Failed
+            ) {
+                return None;
+            }
+            Some(ResolvedPeer {
+                addr: candidate.addr.trim().to_string(),
+                name: Some(target_node_id.to_string()),
+                source: crate::peer::discovery::PeerSource::Registry,
+                meta: Some(serde_json::json!({
+                    "source": "musu.pro_rendezvous",
+                    "candidate_kind": candidate.kind,
+                    "observed_at": candidate.observed_at,
+                })),
+            })
+        })
+        .collect::<Vec<_>>();
+
+    crate::bridge::router::select_best_remote_candidate(&peers)
+}
+
 pub async fn prepare_forward_rendezvous(
     state: &AppState,
     peer: &ResolvedPeer,
@@ -163,16 +198,22 @@ pub async fn prepare_forward_rendezvous(
 
     match tokio::time::timeout(rendezvous_timeout(), fut).await {
         Ok(Ok(session)) => {
+            let route_peer = route_peer_from_target_candidates(
+                &target_node_id,
+                &session.target.candidate_endpoints,
+            );
             tracing::info!(
                 session_id = %session.session_id,
                 source_node_id = %source_node_id,
                 target_node_id = %target_node_id,
                 target_candidates = session.target.candidate_endpoints.len(),
+                selected_candidate = route_peer.as_ref().map(|peer| peer.addr.as_str()).unwrap_or(""),
                 "created/refreshed musu.pro rendezvous session for route attempt"
             );
             RendezvousPreparation {
                 status: RendezvousStatus::Created,
                 session_id: Some(session.session_id),
+                route_peer,
                 target_candidate_count: session.target.candidate_endpoints.len(),
                 failure_class: None,
             }
@@ -347,5 +388,36 @@ mod tests {
         let override_req = local_candidate_request_for_node_id(&cfg, "100.64.1.5:8070".into());
         assert_eq!(override_req.node_id, "100.64.1.5:8070");
         assert_eq!(override_req.node_name.as_deref(), Some("test-node"));
+    }
+
+    #[test]
+    fn route_peer_from_target_candidates_prefers_best_direct_path() {
+        let now = chrono::Utc::now().to_rfc3339();
+        let candidates = vec![
+            crate::cloud::CandidateEndpoint {
+                kind: crate::cloud::RouteKind::DirectQuic,
+                addr: "203.0.113.10:8070".to_string(),
+                observed_at: now.clone(),
+            },
+            crate::cloud::CandidateEndpoint {
+                kind: crate::cloud::RouteKind::Tailscale,
+                addr: "100.64.1.10:8070".to_string(),
+                observed_at: now.clone(),
+            },
+            crate::cloud::CandidateEndpoint {
+                kind: crate::cloud::RouteKind::Lan,
+                addr: "192.168.1.10:8070".to_string(),
+                observed_at: now,
+            },
+            crate::cloud::CandidateEndpoint {
+                kind: crate::cloud::RouteKind::Relay,
+                addr: "relay.musu.pro:443".to_string(),
+                observed_at: chrono::Utc::now().to_rfc3339(),
+            },
+        ];
+
+        let peer = route_peer_from_target_candidates("target-node", &candidates).unwrap();
+        assert_eq!(peer.name.as_deref(), Some("target-node"));
+        assert_eq!(peer.addr, "192.168.1.10:8070");
     }
 }

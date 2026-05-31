@@ -195,7 +195,7 @@ pub async fn execute_workflow(state: &AppState, workflow_id: &str) -> Result<(),
                 .await
                 {
                     Ok(report) => {
-                        crate::bridge::router::record_success(&peer.addr);
+                        crate::bridge::router::record_success(&report.route_peer.addr);
                         let musu_home = state
                             .config
                             .nodes_toml_path
@@ -205,7 +205,7 @@ pub async fn execute_workflow(state: &AppState, workflow_id: &str) -> Result<(),
                             musu_home,
                             &task_id,
                             &state.config.node_name,
-                            peer,
+                            &report.route_peer,
                             report.rendezvous_session_id.clone(),
                             report.handshake_ms,
                             report.total_attempt_ms,
@@ -237,7 +237,7 @@ pub async fn execute_workflow(state: &AppState, workflow_id: &str) -> Result<(),
                         }
                     }
                     Err(e) => {
-                        crate::bridge::router::record_failure(&peer.addr);
+                        crate::bridge::router::record_failure(&e.route_peer.addr);
                         let musu_home = state
                             .config
                             .nodes_toml_path
@@ -247,7 +247,7 @@ pub async fn execute_workflow(state: &AppState, workflow_id: &str) -> Result<(),
                             musu_home,
                             &task_id,
                             &state.config.node_name,
-                            peer,
+                            &e.route_peer,
                             e.rendezvous_session_id.clone(),
                             e.handshake_ms,
                             e.total_attempt_ms,

@@ -170,6 +170,39 @@ test("updates candidates, approves, and closes the rendezvous", async () => {
   });
 });
 
+test("seeds new rendezvous sessions from cached node candidates", async () => {
+  await withRendezvousEnv(async () => {
+    const { POST: create } = await loadCreate("seed-create");
+    const createRes = await create(postReq({ source_node_id: "pc-a", target_node_id: "pc-b" }));
+    const created = (await createRes.json()) as { session_id: string };
+
+    const { POST: candidates } = await loadCandidates("seed-candidates");
+    const candidateRes = await candidates(
+      postReq({
+        node_id: "pc-b",
+        candidate_endpoints: [
+          { kind: "lan", addr: "192.168.1.20:8070", observed_at: "2026-06-01T00:00:00Z" },
+          { kind: "tailscale", addr: "100.64.1.20:8070", observed_at: "2026-06-01T00:00:01Z" },
+        ],
+        relay_capable: false,
+        node_name: "pc-b",
+        app_version: "1.15.0-rc.1",
+        capabilities: ["bridge_http_forward"],
+      }),
+      ctx(created.session_id)
+    );
+    assert.equal(candidateRes.status, 200);
+
+    const seededRes = await create(postReq({ source_node_id: "pc-a", target_node_id: "pc-b" }));
+    assert.equal(seededRes.status, 201);
+    const seeded = (await seededRes.json()) as {
+      target: { candidate_endpoints: Array<{ kind: string; addr: string }> };
+    };
+    assert.equal(seeded.target.candidate_endpoints[0]?.kind, "lan");
+    assert.equal(seeded.target.candidate_endpoints[0]?.addr, "192.168.1.20:8070");
+  });
+});
+
 test("rejects missing bearer token", async () => {
   await withRendezvousEnv(async () => {
     const { POST } = await loadCreate("auth");

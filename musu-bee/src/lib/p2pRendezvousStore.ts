@@ -40,10 +40,18 @@ export type StoredP2pRendezvousSession = {
 type P2pRendezvousStoreState = {
   schema: "musu.p2p_rendezvous_store.v1";
   sessions: Record<string, StoredP2pRendezvousSession>;
+  candidates_by_node: Record<string, CachedP2pNodeCandidateSet>;
 };
 
 const KV_SESSION_PREFIX = "musu:p2p:rendezvous:v1:";
+const KV_CANDIDATE_PREFIX = "musu:p2p:rendezvous-candidates:v1:";
 const DEFAULT_TTL_SECONDS = 300;
+const CANDIDATE_CACHE_TTL_MULTIPLIER = 4;
+
+type CachedP2pNodeCandidateSet = {
+  candidate_set: P2pNodeCandidateSet;
+  cached_at: string;
+};
 
 let localLockQueue: Promise<void> = Promise.resolve();
 
@@ -69,6 +77,18 @@ export function rendezvousTtlSeconds(): number {
   return Math.min(Math.max(parsed, 60), 3600);
 }
 
+export function candidateCacheTtlSeconds(): number {
+  return Math.min(rendezvousTtlSeconds() * CANDIDATE_CACHE_TTL_MULTIPLIER, 3600);
+}
+
+function candidateCacheFresh(cachedAt: string): boolean {
+  const millis = Date.parse(cachedAt);
+  if (!Number.isFinite(millis)) {
+    return false;
+  }
+  return Date.now() - millis <= candidateCacheTtlSeconds() * 1000;
+}
+
 function storePath(): string {
   const override = process.env.MUSU_P2P_RENDEZVOUS_STORE_PATH?.trim();
   if (override) {
@@ -79,6 +99,10 @@ function storePath(): string {
 
 function sessionKey(sessionId: string): string {
   return `${KV_SESSION_PREFIX}${sessionId}`;
+}
+
+function candidateKey(nodeId: string): string {
+  return `${KV_CANDIDATE_PREFIX}${encodeURIComponent(nodeId)}`;
 }
 
 function isSession(value: unknown): value is StoredP2pRendezvousSession {
@@ -96,9 +120,41 @@ function isSession(value: unknown): value is StoredP2pRendezvousSession {
   );
 }
 
+function isCandidateSet(value: unknown): value is P2pNodeCandidateSet {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const set = value as Partial<P2pNodeCandidateSet>;
+  return (
+    typeof set.node_id === "string" &&
+    typeof set.node_name === "string" &&
+    typeof set.app_version === "string" &&
+    Array.isArray(set.candidate_endpoints) &&
+    typeof set.relay_capable === "boolean" &&
+    typeof set.public_key === "string" &&
+    Array.isArray(set.capabilities)
+  );
+}
+
+function isCachedCandidateSet(value: unknown): value is CachedP2pNodeCandidateSet {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const cached = value as Partial<CachedP2pNodeCandidateSet>;
+  return typeof cached.cached_at === "string" && isCandidateSet(cached.candidate_set);
+}
+
+function emptyState(): P2pRendezvousStoreState {
+  return {
+    schema: "musu.p2p_rendezvous_store.v1",
+    sessions: {},
+    candidates_by_node: {},
+  };
+}
+
 function normalizeState(value: unknown): P2pRendezvousStoreState {
   if (!value || typeof value !== "object") {
-    return { schema: "musu.p2p_rendezvous_store.v1", sessions: {} };
+    return emptyState();
   }
 
   const input = value as Partial<P2pRendezvousStoreState>;
@@ -108,14 +164,24 @@ function normalizeState(value: unknown): P2pRendezvousStoreState {
       sessions[id] = session;
     }
   }
-  return { schema: "musu.p2p_rendezvous_store.v1", sessions };
+  const candidatesByNode: Record<string, CachedP2pNodeCandidateSet> = {};
+  for (const [nodeId, cached] of Object.entries(input.candidates_by_node ?? {})) {
+    if (isCachedCandidateSet(cached) && candidateCacheFresh(cached.cached_at)) {
+      candidatesByNode[nodeId] = cached;
+    }
+  }
+  return {
+    schema: "musu.p2p_rendezvous_store.v1",
+    sessions,
+    candidates_by_node: candidatesByNode,
+  };
 }
 
 function fileGet(): P2pRendezvousStoreState {
   try {
     return normalizeState(JSON.parse(fs.readFileSync(storePath(), "utf8")) as unknown);
   } catch {
-    return { schema: "musu.p2p_rendezvous_store.v1", sessions: {} };
+    return emptyState();
   }
 }
 
@@ -157,6 +223,24 @@ function emptyCandidateSet(nodeId: string): P2pNodeCandidateSet {
   };
 }
 
+function cloneCandidateSet(set: P2pNodeCandidateSet): P2pNodeCandidateSet {
+  return {
+    ...set,
+    candidate_endpoints: [...set.candidate_endpoints],
+    capabilities: [...set.capabilities],
+  };
+}
+
+function seedCandidateSet(
+  nodeId: string,
+  cached: P2pNodeCandidateSet | null
+): P2pNodeCandidateSet {
+  if (cached?.node_id === nodeId) {
+    return cloneCandidateSet(cached);
+  }
+  return emptyCandidateSet(nodeId);
+}
+
 function withExpiry(now: Date): string {
   return new Date(now.getTime() + rendezvousTtlSeconds() * 1000).toISOString();
 }
@@ -169,12 +253,15 @@ export function createRendezvousSession(input: {
   source_node_id: string;
   target_node_id: string;
   requested_capability?: string | null;
-}): StoredP2pRendezvousSession {
+}, seeds: {
+  source?: P2pNodeCandidateSet | null;
+  target?: P2pNodeCandidateSet | null;
+} = {}): StoredP2pRendezvousSession {
   const now = new Date();
   return {
     session_id: createSessionId(),
-    source: emptyCandidateSet(input.source_node_id),
-    target: emptyCandidateSet(input.target_node_id),
+    source: seedCandidateSet(input.source_node_id, seeds.source ?? null),
+    target: seedCandidateSet(input.target_node_id, seeds.target ?? null),
     expires_at: withExpiry(now),
     approval_required: true,
     status: "pending_approval",
@@ -182,6 +269,55 @@ export function createRendezvousSession(input: {
     updated_at: now.toISOString(),
     requested_capability: input.requested_capability ?? null,
   };
+}
+
+export async function loadNodeCandidateSet(
+  nodeId: string
+): Promise<P2pNodeCandidateSet | null> {
+  assertStoreConfigured();
+  if (shouldUseKv()) {
+    const { kv } = await import("@vercel/kv");
+    const cached = await kv.get<CachedP2pNodeCandidateSet>(candidateKey(nodeId));
+    if (!isCachedCandidateSet(cached) || !candidateCacheFresh(cached.cached_at)) {
+      return null;
+    }
+    return cloneCandidateSet(cached.candidate_set);
+  }
+
+  const cached = fileGet().candidates_by_node[nodeId];
+  if (!isCachedCandidateSet(cached) || !candidateCacheFresh(cached.cached_at)) {
+    return null;
+  }
+  return cloneCandidateSet(cached.candidate_set);
+}
+
+export async function saveNodeCandidateSet(
+  candidateSet: P2pNodeCandidateSet
+): Promise<void> {
+  assertStoreConfigured();
+  const cached: CachedP2pNodeCandidateSet = {
+    candidate_set: cloneCandidateSet(candidateSet),
+    cached_at: new Date().toISOString(),
+  };
+  if (shouldUseKv()) {
+    const { kv } = await import("@vercel/kv");
+    await kv.set(candidateKey(candidateSet.node_id), cached, {
+      ex: candidateCacheTtlSeconds(),
+    });
+    return;
+  }
+
+  await withLocalLock(async () => {
+    const state = fileGet();
+    fileSet({
+      schema: "musu.p2p_rendezvous_store.v1",
+      sessions: state.sessions,
+      candidates_by_node: {
+        ...state.candidates_by_node,
+        [candidateSet.node_id]: cached,
+      },
+    });
+  });
 }
 
 export async function saveRendezvousSession(
@@ -204,6 +340,7 @@ export async function saveRendezvousSession(
         ...state.sessions,
         [session.session_id]: session,
       },
+      candidates_by_node: state.candidates_by_node,
     });
   });
 }

@@ -2,7 +2,7 @@
 
 **Wiki ID**: wiki/524
 **Date**: 2026-05-31
-**Status**: Current implementation spec. Server-side rendezvous and route-evidence APIs exist, and Rust bridge runtime route attempts now create/use short-lived rendezvous sessions before legacy direct forwarding.
+**Status**: Current implementation spec. Server-side rendezvous and route-evidence APIs exist, and Rust bridge runtime route attempts now create short-lived rendezvous sessions, seed sessions from recent node candidate cache, and can use returned target candidates before legacy direct forwarding.
 
 ## Product Decision
 
@@ -93,11 +93,17 @@ P2P APIs:
 Current rendezvous API behavior:
 
 - `POST /api/v1/p2p/rendezvous` creates a short-lived session with source and
-  target candidate sets initialized empty. This matches the current Rust client
-  DTO even before the registry can hydrate full node metadata.
+  target candidate sets seeded from recent node candidate cache when available;
+  otherwise each side starts empty.
 - `POST /api/v1/p2p/rendezvous/:id/candidates` lets either source or target
   update its endpoint candidates, relay capability, public key, and capability
-  list.
+  list. Candidate updates also refresh a short-lived node candidate cache
+  (`candidates_by_node` for local/dev file storage, KV candidate keys in hosted
+  storage).
+- New sessions are seeded from that recent node candidate cache before they are
+  returned, so a target that previously published LAN/Tailscale/direct
+  candidates can influence the next route attempt without waiting for payload
+  delivery on that same attempt.
 - `POST /api/v1/p2p/rendezvous/:id/approve` marks the session approved and
   clears `approval_required`.
 - `POST /api/v1/p2p/rendezvous/:id/close` marks the session closed.
@@ -108,6 +114,13 @@ Current rendezvous API behavior:
   node's current advertised bridge endpoint, attach `session_id` to the
   forwarded task, let the receiving target publish its local candidate set, and
   close the session after terminal forward success/failure.
+- If the refreshed session already contains target candidate endpoints, the
+  bridge picks the best non-relay endpoint using the same LAN -> Tailscale ->
+  direct-public priority and forwards to that selected candidate instead of the
+  original cached/manual peer address. If that candidate is stale or fails
+  after retries, the bridge falls back once to the original selected peer
+  address so the control-plane hint does not make an otherwise valid direct
+  route less reliable.
 - Runtime control-plane calls are bounded by
   `MUSU_P2P_RENDEZVOUS_CLIENT_TIMEOUT_MS` (`3000` default, clamped
   `250..10000`) and fall back to the selected direct peer path on timeout or
@@ -208,9 +221,11 @@ Current `GET /api/v1/p2p/route-evidence` behavior:
    candidate sets, approves, and closes short-lived sessions. `musu-bee/src/app/api/v1/p2p/route-evidence/route.ts`
    accepts, validates, stores, and queries authenticated evidence; tests live
    next to the routes. Bridge runtime route attempts now create/read/close
-   rendezvous sessions and publish source/target candidate sets on a
-   best-effort path. Account-scoped evidence ownership, UI/export, retention
-   policy, and release-grade identity proof remain pending.
+   rendezvous sessions, publish source/target candidate sets on a best-effort
+   path, cache recent node candidates, seed new sessions from that cache, and
+   use refreshed target candidates when present. Account-scoped evidence
+   ownership, UI/export, retention policy, and release-grade identity proof
+   remain pending.
 4. Add `musu relay status` and `musu route --explain`.
    **Initial diagnostic CLI done on 2026-06-01.** `musu relay status` reports
    login/cache/client readiness plus bridge path selection state, rendezvous
@@ -239,9 +254,11 @@ Current `GET /api/v1/p2p/route-evidence` behavior:
    endpoint, preserves circuit-breaker filtering, and uses the same selector
    for explicit target, GPU, and OS-hint routing. `musu route --explain` and
    `musu relay status` now report `bridge_path_selection_wired=true` and
-   `rendezvous_session_wired=true`. This still does not prove hardened P2P
-   release readiness because the selected transport is legacy HTTP bearer and
-   relay/tunnel fallback is not implemented.
+   `rendezvous_session_wired=true`. Runtime forwarding can now replace the
+   selected peer with the best target endpoint returned by the rendezvous
+   session. This still does not prove hardened P2P release readiness because
+   the selected transport is legacy HTTP bearer and relay/tunnel fallback is
+   not implemented.
 6. Add relay/tunnel transport only after direct path evidence is stable.
    **Pending as of 2026-06-01.** Relay must remain an explicit route kind, not
    a silent default payload path.

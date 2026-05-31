@@ -4,6 +4,7 @@ import { z } from "zod";
 import { authorizeP2pControl } from "@/lib/p2pControlAuth";
 import {
   createRendezvousSession,
+  loadNodeCandidateSet,
   saveRendezvousSession,
 } from "@/lib/p2pRendezvousStore";
 
@@ -44,9 +45,17 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const session = createRendezvousSession(parsed.data);
   try {
+    const [sourceSeed, targetSeed] = await Promise.all([
+      loadNodeCandidateSet(parsed.data.source_node_id),
+      loadNodeCandidateSet(parsed.data.target_node_id),
+    ]);
+    const session = createRendezvousSession(parsed.data, {
+      source: sourceSeed,
+      target: targetSeed,
+    });
     await saveRendezvousSession(session);
+    return NextResponse.json(session, { status: 201 });
   } catch (error) {
     return NextResponse.json(
       {
@@ -57,6 +66,4 @@ export async function POST(req: NextRequest) {
       { status: 503 }
     );
   }
-
-  return NextResponse.json(session, { status: 201 });
 }

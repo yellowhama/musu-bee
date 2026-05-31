@@ -21,10 +21,11 @@ satisfies the hardened route-evidence contract. `musu.pro` now has the first
 authenticated route-evidence receive/store/query API, and the bridge can
 best-effort submit runtime route evidence after writing the local file. That is
 useful observability, not a release pass: rendezvous sessions now exist on the
-server and bridge runtime route attempts now create/read/close them on a
-bounded best-effort path. That still does not satisfy the release gate because
-account-scoped evidence ownership, real second-PC two-sided rendezvous proof,
-relay fallback, plus hardened peer identity/encryption proof are still missing.
+server, recent node candidates are cached for later session seeding, and bridge
+runtime route attempts now create/read/close sessions on a bounded best-effort
+path. That still does not satisfy the release gate because account-scoped
+evidence ownership, real second-PC target-candidate route proof, relay fallback,
+plus hardened peer identity/encryption proof are still missing.
 
 ## Product Spec Updates
 
@@ -56,12 +57,16 @@ relay fallback, plus hardened peer identity/encryption proof are still missing.
 8. **Rendezvous control-plane API**: `POST /api/v1/p2p/rendezvous`, `GET
    /api/v1/p2p/rendezvous/:id`, `POST /:id/candidates`, `POST /:id/approve`,
    and `POST /:id/close` now exist as authenticated short-lived session
-   endpoints for endpoint candidate exchange.
+   endpoints for endpoint candidate exchange. Candidate updates also refresh a
+   short-lived node candidate cache, and new sessions seed source/target
+   candidate sets from that cache when available.
 9. **Runtime rendezvous lifecycle**: bridge remote forwarding now creates a
    `musu.pro` session before a remote attempt when logged in, publishes the
    source endpoint, forwards the `rendezvous_session_id` to the target, lets the
    target publish candidates on receipt, closes the session after terminal
-   success/failure, and records the session id in route evidence.
+   success/failure, uses returned target candidates when present, falls back
+   once to the original peer if a selected candidate fails, and records the
+   session id in route evidence.
 
 ## Code Audit Findings
 
@@ -71,11 +76,11 @@ relay fallback, plus hardened peer identity/encryption proof are still missing.
 | Logo component/assets | Medium | `MusuLogo` referenced missing `/images/logos/{hero,display,header}-{variant}.png`, and there was no reusable external logo lockup despite the app mark being strong. | Fixed: component uses the tracked app mark plus token-colored wordmark, and static logo lockups now exist under `musu-bee/public/images/logos/`. |
 | Runtime smoke | High | Current single-machine smoke initially could not be refreshed after the logo asset commit. The dashboard task status API timed out once, then the fixed expected CLI string hit a duplicate-task `409 Conflict`. | Fixed in `smoke-single-machine-beta.ps1`: per-run expected strings avoid duplicate task hashes, dashboard task polling retries within the deadline, and polling errors are recorded in evidence. |
 | mDNS/Tailscale IPv6 | High | `mdns_sd::service_daemon` can repeatedly send to Tailscale IPv6 link-local multicast and log `os error 10065`, then `closed channel`. Latest operator evidence showed repeated `[ff02::fb%9]:5353` sends on Tailscale adapter index 9 from 2026-05-31T16:09:08Z to 2026-05-31T16:10:24Z. This is a credible idle CPU/log-noise source when mDNS is enabled or `musu discover` runs. | Further fixed in `musu-rs/src/peer/mdns.rs`: mDNS stays opt-in, IPv6 mDNS is separately opt-in via `MUSU_MDNS_ENABLE_IPV6=1`, and Tailscale mDNS interfaces are separately opt-in via `MUSU_MDNS_ENABLE_TAILSCALE=1`. |
-| P2P route | High | `musu-rs/src/cloud/mod.rs` has rendezvous/route-evidence DTOs and client methods, `musu-rs/src/bridge/router.rs` ranks cached/manual/nodes candidates by path kind (`lan` -> `tailscale` -> `direct_quic`), and bridge forwarding now creates/uses a short-lived rendezvous session before legacy direct forwarding. It still does not prove hardened identity/encryption or relay fallback. | Partial P0. |
+| P2P route | High | `musu-rs/src/cloud/mod.rs` has rendezvous/route-evidence DTOs and client methods, `musu-rs/src/bridge/router.rs` ranks cached/manual/nodes candidates by path kind (`lan` -> `tailscale` -> `direct_quic`), and bridge forwarding now creates/uses a short-lived rendezvous session before legacy direct forwarding. If the session returns target candidates seeded from recent node cache or same-session updates, forwarding uses the best candidate by the same priority and falls back once to the original peer if that candidate fails. It still does not prove hardened identity/encryption or relay fallback. | Partial P0. |
 | Multi-device verifier | High | `musu route --route-evidence-path <path>` and bridge remote forwarding now write actual route evidence with route kind, candidate address, submit/handshake timing, total timing, and success/failure result. Because the current path remains legacy HTTP bearer, it still records `peer_identity_verified=false` and `encryption=none_http_bearer`; verifier rejects that for release. | Correctly blocked. |
 | Evidence storage | Medium | The first route-evidence API previously returned `stored=false`, so server-side audit/history was missing. | Fixed as minimal storage/query. Hosted storage uses Vercel KV; local/dev uses an explicit file fallback. Production fails closed without KV or an explicit persistent file path. |
-| Rendezvous storage | Medium | The control-plane lacked a server-side place for endpoint candidate exchange. | Fixed as a short-lived session store with Vercel KV or explicit local/dev file fallback. |
-| Runtime rendezvous | High | Bridge forwarding did not previously join runtime route attempts to the `musu.pro` rendezvous session/evidence model. | Fixed as first runtime lifecycle. `musu relay status` and `musu route --explain` now report `rendezvous_session_wired=true`; release remains blocked by legacy HTTP bearer transport and missing two-machine proof. |
+| Rendezvous storage | Medium | The control-plane lacked a server-side place for endpoint candidate exchange. | Fixed as a short-lived session store plus recent node candidate cache with Vercel KV or explicit local/dev file fallback. |
+| Runtime rendezvous | High | Bridge forwarding did not previously join runtime route attempts to the `musu.pro` rendezvous session/evidence model or use returned target candidates. | Fixed as first runtime lifecycle. `musu relay status` and `musu route --explain` now report `rendezvous_session_wired=true`; refreshed target candidates can replace the original peer address with original-peer fallback on candidate failure; release remains blocked by legacy HTTP bearer transport and missing two-machine proof. |
 
 ## Validation Run
 
@@ -163,6 +168,12 @@ relay fallback, plus hardened peer identity/encryption proof are still missing.
   `musu route --explain --json "MUSU_ROUTE_EXPLAIN_CHECK"`. The current CLI
   diagnostics report `rendezvous_session_wired=true`,
   `relay_transport_wired=false`, and `release_route_evidence_ready=false`.
+- After target-candidate route selection and control-plane candidate-cache
+  seeding, validation passed: targeted Rust `rendezvous`, `router`,
+  `route_evidence`, and `cli_commands` tests for lib/bin, `cargo build --bin
+  musu -j 1`, rendezvous and route-evidence API tests, `npm run typecheck`,
+  both diagnostic CLI JSON commands, `cargo fmt --check`, `git diff --check`,
+  and indexer sync `1074 files / 2064 symbols`.
 
 The release gate still needs two-machine desktop-open CPU evidence, hardened
 multi-device route evidence, support inbox delivery evidence, and Store
@@ -174,7 +185,7 @@ submission/release evidence.
 |---|---:|---|
 | Packaging trust | 8/10 | MSIX desktop-entrypoint and local-sideload contract are now coherent. Store certification remains external. |
 | Runtime efficiency | 7/10 | Current primary packaged desktop-open CPU evidence passes at `musu=0%`, `webview2=0.21%` of one logical core, but second-PC evidence is still missing. |
-| P2P product story | 7.4/10 | The strategy is right, the bridge now has shared path-kind ranking for cached/manual/nodes candidates, runtime route evidence is stored/queryable on `musu.pro`, server-side rendezvous candidate exchange exists, and runtime forwarding now creates/uses sessions. Hardened identity/encryption proof, real second-PC verification, and relay fallback are still not wired. |
+| P2P product story | 7.7/10 | The strategy is right, the bridge now has shared path-kind ranking for cached/manual/nodes candidates, runtime route evidence is stored/queryable on `musu.pro`, server-side rendezvous candidate exchange plus recent node candidate caching exists, runtime forwarding creates/uses sessions, and refreshed target candidates can affect the actual forward address. Hardened identity/encryption proof, real second-PC verification, and relay fallback are still not wired. |
 | UX/branding | 6/10 -> 7/10 | App mark is strong. Public web asset tracking, wordmark fallback, and basic static logo lockups are now fixed. Store screenshots and product demo media are still needed. |
 | Release evidence quality | 8/10 | Gates are strict and honest. Runtime CPU evidence must now match current HEAD or documentation/evidence-only deltas, preventing stale CPU samples from passing after code changes. |
 | Overall public readiness | ~64% | Stronger than before, but still No-Go because second-PC CPU, real hardened route, support inbox, and Store evidence remain open. |
@@ -194,7 +205,9 @@ submission/release evidence.
 
 2. **Wire `musu.pro` assisted routing**
    - Runtime route attempts now create/read/close rendezvous sessions and
-     publish source/target candidates best-effort.
+     publish source/target candidates best-effort; returned target candidates
+     can replace the original selected peer address. Candidate updates now seed
+     a short-lived node candidate cache for later sessions.
    - Add account-scoped evidence ownership/export.
    - Direct LAN/Tailscale/public candidate ranking now exists in the bridge
      selector; next verify the short-lived rendezvous lifecycle with a real

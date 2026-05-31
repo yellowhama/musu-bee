@@ -364,6 +364,17 @@ pub fn route_task(
     RouteDecision::Local
 }
 
+/// Pick the best concrete remote candidate after a control-plane session has
+/// already authorized the target.
+pub fn select_best_remote_candidate(peers: &[ResolvedPeer]) -> Option<ResolvedPeer> {
+    let mut candidates: Vec<&ResolvedPeer> = peers
+        .iter()
+        .filter(|peer| !is_circuit_open(&peer.addr))
+        .collect();
+    candidates.sort_by_key(|peer| peer_sort_key(peer));
+    candidates.first().map(|peer| (*peer).clone())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -448,5 +459,17 @@ mod tests {
         ];
         let selected = select_peer_for_route(None, &hints, &peers).unwrap();
         assert_eq!(selected.name.as_deref(), Some("gpu-lan"));
+    }
+
+    #[test]
+    fn best_remote_candidate_prefers_lan_then_tailscale_then_public() {
+        let peers = vec![
+            peer("public", "203.0.113.10:8070", PeerSource::Registry),
+            peer("tail", "100.64.1.10:8070", PeerSource::Registry),
+            peer("lan", "192.168.1.10:8070", PeerSource::Registry),
+        ];
+
+        let selected = select_best_remote_candidate(&peers).unwrap();
+        assert_eq!(selected.name.as_deref(), Some("lan"));
     }
 }
