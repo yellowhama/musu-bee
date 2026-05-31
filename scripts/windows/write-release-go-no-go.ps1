@@ -20,6 +20,7 @@ $repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
 . (Join-Path $scriptDir "release-config.ps1")
 $version = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
 $supportEmail = Get-MusuReleaseSupportEmail -RepoRoot $repoRoot
+$currentGitCommit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
 
 function Invoke-JsonScript {
     param(
@@ -81,10 +82,37 @@ function New-Check {
     }
 }
 
+function Test-DocumentationOnlyGitDelta {
+    param(
+        [Parameter(Mandatory = $true)][string]$FromCommit,
+        [Parameter(Mandatory = $true)][string]$ToCommit
+    )
+
+    if ($FromCommit -notmatch "^[0-9a-f]{40}$" -or $ToCommit -notmatch "^[0-9a-f]{40}$") {
+        return $false
+    }
+
+    $changedPathsText = (& git -C $repoRoot diff --name-only $FromCommit $ToCommit 2>$null | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0) {
+        return $false
+    }
+    if ([string]::IsNullOrWhiteSpace($changedPathsText)) {
+        return $true
+    }
+
+    $changedPaths = @($changedPathsText -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    $nonDocumentationPaths = @($changedPaths | Where-Object {
+        $path = ([string]$_).Replace("\", "/")
+        -not ($path -like "docs/*")
+    })
+    return ($nonDocumentationPaths.Count -eq 0)
+}
+
 function Test-RuntimeIdleCpuEvidence {
     param(
         [Parameter(Mandatory = $true)][string]$EvidencePath,
         [Parameter(Mandatory = $true)][string]$ExpectedVersion,
+        [Parameter(Mandatory = $true)][string]$ExpectedGitCommit,
         [Parameter(Mandatory = $true)][int]$MinSampleSeconds,
         [Parameter(Mandatory = $true)][double]$MaxOneCorePercent
     )
@@ -107,7 +135,15 @@ function Test-RuntimeIdleCpuEvidence {
         $checks.Add((New-Check -Name "version" -Status ($(if ($versionValue -eq $ExpectedVersion) { "pass" } else { "fail" })) -Message ($(if ($versionValue -eq $ExpectedVersion) { "version matches $ExpectedVersion" } else { "version is '$versionValue'" })))) | Out-Null
 
         $gitCommit = if ($evidence.PSObject.Properties["git_commit"]) { [string]$evidence.git_commit } else { "" }
-        $checks.Add((New-Check -Name "git commit present" -Status ($(if (-not [string]::IsNullOrWhiteSpace($gitCommit)) { "pass" } else { "fail" })) -Message ($(if (-not [string]::IsNullOrWhiteSpace($gitCommit)) { "git commit is recorded" } else { "git commit is missing" })))) | Out-Null
+        $gitCommitValid = ($gitCommit -match "^[0-9a-f]{40}$")
+        $checks.Add((New-Check -Name "git commit present" -Status ($(if ($gitCommitValid) { "pass" } else { "fail" })) -Message ($(if ($gitCommitValid) { "git commit is recorded" } else { "git commit is missing or invalid" })))) | Out-Null
+
+        $gitCommitMatchesExpected = ($gitCommit -eq $ExpectedGitCommit)
+        $documentationOnlyGitDelta = $false
+        if (-not $gitCommitMatchesExpected -and $gitCommitValid -and $ExpectedGitCommit -match "^[0-9a-f]{40}$") {
+            $documentationOnlyGitDelta = Test-DocumentationOnlyGitDelta -FromCommit $gitCommit -ToCommit $ExpectedGitCommit
+        }
+        $checks.Add((New-Check -Name "expected git commit" -Status ($(if ($gitCommitMatchesExpected -or $documentationOnlyGitDelta) { "pass" } else { "fail" })) -Message ($(if ($gitCommitMatchesExpected) { "git commit matches current HEAD $ExpectedGitCommit" } elseif ($documentationOnlyGitDelta) { "git commit differs from current HEAD $ExpectedGitCommit only by documentation/evidence commits" } else { "git commit is '$gitCommit', expected current HEAD '$ExpectedGitCommit' with no non-documentation changes after the evidence commit" })))) | Out-Null
 
         $gitDirty = ($evidence.PSObject.Properties["git_dirty"] -and [bool]$evidence.git_dirty)
         $checks.Add((New-Check -Name "git clean during sample" -Status ($(if (-not $gitDirty -and $evidence.PSObject.Properties["git_dirty"]) { "pass" } else { "fail" })) -Message ($(if (-not $gitDirty -and $evidence.PSObject.Properties["git_dirty"]) { "runtime idle sample was captured from a clean git state" } elseif ($gitDirty) { "runtime idle sample was captured from a dirty git state" } else { "git cleanliness is missing" })))) | Out-Null
@@ -521,6 +557,7 @@ foreach ($candidate in @($runtimeIdleCpuEvidenceCandidates | Sort-Object LastWri
     $verification = Test-RuntimeIdleCpuEvidence `
         -EvidencePath $candidate.FullName `
         -ExpectedVersion $version `
+        -ExpectedGitCommit $currentGitCommit `
         -MinSampleSeconds $MinRuntimeIdleCpuSampleSeconds `
         -MaxOneCorePercent $MaxRuntimeIdleCpuOneCorePercent
     $runtimeIdleCpuEvidenceResults += $verification
