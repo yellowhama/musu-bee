@@ -51,6 +51,12 @@ pub struct ForwardedTask {
     /// V27-F1: URL to POST result back to when task completes.
     #[serde(default)]
     pub callback_url: Option<String>,
+    /// Short-lived `musu.pro` rendezvous session for this route attempt.
+    #[serde(default)]
+    pub rendezvous_session_id: Option<String>,
+    /// Target-side node id expected by the rendezvous session.
+    #[serde(default)]
+    pub rendezvous_target_node_id: Option<String>,
 }
 
 /// Response after receiving a forwarded task.
@@ -64,6 +70,7 @@ pub struct ForwardResponse {
 #[derive(Debug, Clone)]
 pub struct ForwardAttemptReport {
     pub response: ForwardResponse,
+    pub rendezvous_session_id: Option<String>,
     pub handshake_ms: Option<u64>,
     pub total_attempt_ms: u64,
 }
@@ -71,6 +78,7 @@ pub struct ForwardAttemptReport {
 #[derive(Debug, Clone)]
 pub struct ForwardAttemptError {
     pub message: String,
+    pub rendezvous_session_id: Option<String>,
     pub handshake_ms: Option<u64>,
     pub total_attempt_ms: u64,
     pub failure_class: String,
@@ -190,8 +198,18 @@ pub async fn receive_forwarded(
         task_id = %task_id,
         source_node = %req.source_node,
         source_task_id = %req.source_task_id,
+        rendezvous_session_id = req.rendezvous_session_id.as_deref().unwrap_or(""),
         "accepted forwarded task from peer"
     );
+
+    if let Some(session_id) = req.rendezvous_session_id.clone() {
+        crate::bridge::rendezvous::spawn_publish_target_candidates(
+            state.clone(),
+            session_id,
+            req.source_task_id.clone(),
+            req.rendezvous_target_node_id.clone(),
+        );
+    }
 
     Ok((
         StatusCode::ACCEPTED,
@@ -220,6 +238,7 @@ async fn forward_to_peer_attempt(
 
     let task_json = serde_json::to_string(&task).map_err(|e| ForwardAttemptError {
         message: format!("serialize task: {e}"),
+        rendezvous_session_id: None,
         handshake_ms: None,
         total_attempt_ms: elapsed_ms(total_started.elapsed()),
         failure_class: "forward_serialize_error".to_string(),
@@ -239,6 +258,7 @@ async fn forward_to_peer_attempt(
         .await
         .map_err(|e| ForwardAttemptError {
             message: format!("forward HTTP error: {e}"),
+            rendezvous_session_id: None,
             handshake_ms: Some(elapsed_ms(submit_started.elapsed())),
             total_attempt_ms: elapsed_ms(total_started.elapsed()),
             failure_class: "forward_http_error".to_string(),
@@ -250,6 +270,7 @@ async fn forward_to_peer_attempt(
         let body = resp.text().await.unwrap_or_default();
         return Err(ForwardAttemptError {
             message: format!("peer returned {status}: {body}"),
+            rendezvous_session_id: None,
             handshake_ms,
             total_attempt_ms: elapsed_ms(total_started.elapsed()),
             failure_class: format!("peer_http_status_{}", status.as_u16()),
@@ -261,6 +282,7 @@ async fn forward_to_peer_attempt(
         .await
         .map_err(|e| ForwardAttemptError {
             message: format!("forward response parse: {e}"),
+            rendezvous_session_id: None,
             handshake_ms,
             total_attempt_ms: elapsed_ms(total_started.elapsed()),
             failure_class: "forward_response_parse".to_string(),
@@ -268,6 +290,7 @@ async fn forward_to_peer_attempt(
 
     Ok(ForwardAttemptReport {
         response,
+        rendezvous_session_id: None,
         handshake_ms,
         total_attempt_ms: elapsed_ms(total_started.elapsed()),
     })
@@ -277,21 +300,64 @@ async fn forward_to_peer_attempt(
 ///
 /// Retries up to `max_retries` times with exponential backoff (1s, 2s, 4s).
 pub async fn forward_to_peer_with_retry(
-    client: &reqwest::Client,
+    state: &AppState,
     peer: &ResolvedPeer,
-    task: ForwardedTask,
-    token: &str,
+    mut task: ForwardedTask,
     max_retries: u32,
 ) -> std::result::Result<ForwardAttemptReport, ForwardAttemptError> {
     let route_started = std::time::Instant::now();
+    let rendezvous =
+        crate::bridge::rendezvous::prepare_forward_rendezvous(state, peer, Some("task_forward"))
+            .await;
+    if let Some(session_id) = rendezvous.session_id.clone() {
+        let target_node_id = crate::bridge::route_evidence::target_node_id(peer);
+        tracing::debug!(
+            peer = %peer.addr,
+            session_id = %session_id,
+            target_node_id = %target_node_id,
+            target_candidate_count = rendezvous.target_candidate_count,
+            "attaching rendezvous session to forwarded task"
+        );
+        task.rendezvous_session_id = Some(session_id);
+        task.rendezvous_target_node_id = Some(target_node_id);
+    }
+    if let Some(failure_class) = rendezvous.failure_class.as_deref() {
+        tracing::debug!(
+            peer = %peer.addr,
+            status = ?rendezvous.status,
+            failure_class,
+            "rendezvous was not available for this route attempt"
+        );
+    }
+
+    let session_id = task.rendezvous_session_id.clone();
     let mut last_err: Option<ForwardAttemptError> = None;
     for attempt in 0..=max_retries {
-        match forward_to_peer_attempt(client, peer, task.clone(), token).await {
+        match forward_to_peer_attempt(&state.http_client, peer, task.clone(), &state.config.token)
+            .await
+        {
             Ok(mut report) => {
                 report.total_attempt_ms = elapsed_ms(route_started.elapsed());
+                report.rendezvous_session_id = session_id.clone();
+                if let Some(session_id) = session_id.clone() {
+                    let musu_home = state
+                        .config
+                        .nodes_toml_path
+                        .parent()
+                        .unwrap_or_else(|| std::path::Path::new("."))
+                        .to_path_buf();
+                    crate::bridge::rendezvous::spawn_close_rendezvous_session(
+                        musu_home,
+                        session_id,
+                        "forward",
+                        task.source_task_id.clone(),
+                    );
+                }
                 return Ok(report);
             }
             Err(e) => {
+                let mut e = e;
+                e.rendezvous_session_id = session_id.clone();
                 let err_message = e.message.clone();
                 last_err = Some(e);
                 if attempt < max_retries {
@@ -311,6 +377,7 @@ pub async fn forward_to_peer_with_retry(
     }
     let mut err = last_err.unwrap_or_else(|| ForwardAttemptError {
         message: "forward failed before first attempt".to_string(),
+        rendezvous_session_id: session_id.clone(),
         handshake_ms: None,
         total_attempt_ms: elapsed_ms(route_started.elapsed()),
         failure_class: "forward_no_attempt".to_string(),
@@ -322,6 +389,20 @@ pub async fn forward_to_peer_with_retry(
     );
     err.total_attempt_ms = elapsed_ms(route_started.elapsed());
     err.failure_class = "forward_failed_after_retries".to_string();
+    if let Some(session_id) = session_id {
+        let musu_home = state
+            .config
+            .nodes_toml_path
+            .parent()
+            .unwrap_or_else(|| std::path::Path::new("."))
+            .to_path_buf();
+        crate::bridge::rendezvous::spawn_close_rendezvous_session(
+            musu_home,
+            session_id,
+            "forward",
+            task.source_task_id.clone(),
+        );
+    }
     Err(err)
 }
 

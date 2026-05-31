@@ -2,7 +2,7 @@
 
 **Wiki ID**: wiki/524
 **Date**: 2026-05-31
-**Status**: Draft implementation spec for the next runtime stabilization sprint.
+**Status**: Current implementation spec. Server-side rendezvous and route-evidence APIs exist, and Rust bridge runtime route attempts now create/use short-lived rendezvous sessions before legacy direct forwarding.
 
 ## Product Decision
 
@@ -39,13 +39,13 @@ Existing API:
 - `POST /api/v1/nodes/register`
 - `GET /api/v1/nodes`
 
-Required next APIs:
+P2P APIs:
 
-- `POST /api/v1/p2p/rendezvous` **(short-lived session stub exists as of 2026-06-01)**
-- `GET /api/v1/p2p/rendezvous/:id` **(stub exists as of 2026-06-01)**
-- `POST /api/v1/p2p/rendezvous/:id/candidates` **(candidate exchange stub exists as of 2026-06-01)**
-- `POST /api/v1/p2p/rendezvous/:id/approve` **(stub exists as of 2026-06-01)**
-- `POST /api/v1/p2p/rendezvous/:id/close` **(stub exists as of 2026-06-01)**
+- `POST /api/v1/p2p/rendezvous` **(short-lived session API exists as of 2026-06-01; Rust bridge source route attempts now call it)**
+- `GET /api/v1/p2p/rendezvous/:id` **(exists as of 2026-06-01; Rust bridge refreshes after source candidate publish)**
+- `POST /api/v1/p2p/rendezvous/:id/candidates` **(candidate exchange API exists as of 2026-06-01; source publishes before forwarding, target publishes on received forwarded task)**
+- `POST /api/v1/p2p/rendezvous/:id/approve` **(exists as of 2026-06-01)**
+- `POST /api/v1/p2p/rendezvous/:id/close` **(exists as of 2026-06-01; Rust bridge closes after terminal forward success/failure)**
 - `POST /api/v1/p2p/route-evidence` **(stub exists as of 2026-06-01)**
 - `GET /api/v1/p2p/route-evidence` **(stored evidence query exists as of 2026-06-01)**
 - `WS /api/v1/p2p/control?node_id=...`
@@ -104,9 +104,18 @@ Current rendezvous API behavior:
 - Hosted storage uses Vercel KV per-session keys. Local/dev can use
   `MUSU_P2P_RENDEZVOUS_STORE_PATH`. Production fails closed without KV unless
   an explicit persistent file path is configured.
-- The current implementation is a coordination contract, not yet bridge-wired
-  path selection. The bridge still reports `rendezvous_session_wired=false`
-  until runtime route attempts create and use these sessions.
+- Rust bridge runtime route attempts now create a session, publish the source
+  node's current advertised bridge endpoint, attach `session_id` to the
+  forwarded task, let the receiving target publish its local candidate set, and
+  close the session after terminal forward success/failure.
+- Runtime control-plane calls are bounded by
+  `MUSU_P2P_RENDEZVOUS_CLIENT_TIMEOUT_MS` (`3000` default, clamped
+  `250..10000`) and fall back to the selected direct peer path on timeout or
+  cloud failure.
+- The current implementation is still not release-grade routing: the payload
+  transport remains legacy HTTP bearer, target-side candidate publish is
+  best-effort, peer identity is not verified, QUIC/TLS proof is not wired, and
+  relay/tunnel fallback remains pending.
 
 ## Client Path Selection Rules
 
@@ -198,9 +207,10 @@ Current `GET /api/v1/p2p/route-evidence` behavior:
    `musu-bee/src/app/api/v1/p2p/rendezvous/*` now creates, reads, updates
    candidate sets, approves, and closes short-lived sessions. `musu-bee/src/app/api/v1/p2p/route-evidence/route.ts`
    accepts, validates, stores, and queries authenticated evidence; tests live
-   next to the routes. Bridge runtime use of rendezvous sessions,
-   account-scoped evidence ownership, UI/export, and retention policy remain
-   pending.
+   next to the routes. Bridge runtime route attempts now create/read/close
+   rendezvous sessions and publish source/target candidate sets on a
+   best-effort path. Account-scoped evidence ownership, UI/export, retention
+   policy, and release-grade identity proof remain pending.
 4. Add `musu relay status` and `musu route --explain`.
    **Initial diagnostic CLI done on 2026-06-01.** `musu relay status` reports
    login/cache/client readiness plus bridge path selection state, rendezvous
@@ -219,15 +229,19 @@ Current `GET /api/v1/p2p/route-evidence` behavior:
    writes local `~/.musu/route-evidence/<task_id>.route-evidence.json` files
    from the actual forwarding attempt. Runtime forwarding now best-effort
    submits that evidence to `musu.pro` after the local write when an account
-   token exists. Release-grade identity/encryption proof remains pending.
+   token exists. Runtime route evidence now carries the rendezvous `session_id`
+   when one was created. Release-grade identity/encryption proof remains
+   pending.
 5. Add direct path selection against registered LAN/Tailscale endpoints.
    **Initial client-side selector done on 2026-06-01.** `musu-rs/src/bridge/router.rs`
    now classifies candidate addresses as `local`, `lan`, `tailscale`, or
    `direct_quic`, ranks remote candidates by LAN -> Tailscale -> direct public
    endpoint, preserves circuit-breaker filtering, and uses the same selector
    for explicit target, GPU, and OS-hint routing. `musu route --explain` and
-   `musu relay status` now report `bridge_path_selection_wired=true`. This does
-   not create rendezvous sessions from bridge runtime route attempts yet.
+   `musu relay status` now report `bridge_path_selection_wired=true` and
+   `rendezvous_session_wired=true`. This still does not prove hardened P2P
+   release readiness because the selected transport is legacy HTTP bearer and
+   relay/tunnel fallback is not implemented.
 6. Add relay/tunnel transport only after direct path evidence is stable.
    **Pending as of 2026-06-01.** Relay must remain an explicit route kind, not
    a silent default payload path.

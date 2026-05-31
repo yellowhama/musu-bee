@@ -131,6 +131,14 @@ pub struct P2pRendezvousCandidatesRequest {
     pub node_id: String,
     pub candidate_endpoints: Vec<CandidateEndpoint>,
     pub relay_capable: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub node_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub app_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub public_key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub capabilities: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

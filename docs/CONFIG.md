@@ -70,12 +70,13 @@ Windows distribution note:
 |------|---------|----------|-------------|
 | `MUSU_TOKEN` | *(empty)* | No | Account-level token from musu.pro. Enables cloud peer discovery and relay auth. |
 | `MUSU_CLOUD_BASE_URL` | `https://musu.pro` | No | Cloud API base URL for login, registry, and route-evidence submission. Use only for local/staging control-plane tests. |
-| `MUSU_P2P_CONTROL_TOKEN` | *(empty)* | Yes on server route-evidence stub | Bearer token accepted by `POST /api/v1/p2p/route-evidence`. Preferred server-side token for the P2P control-plane stub. |
+| `MUSU_P2P_CONTROL_TOKEN` | *(empty)* | Yes on hosted P2P control-plane endpoints | Bearer token accepted by `/api/v1/p2p/rendezvous/*` and `/api/v1/p2p/route-evidence`. Preferred server-side token for P2P control-plane APIs. |
 | `MUSU_ROUTE_EVIDENCE_TOKEN` | *(empty)* | No | Fallback server-side Bearer token accepted by the route-evidence stub when `MUSU_P2P_CONTROL_TOKEN` is unset. |
 | `MUSU_ROUTE_EVIDENCE_STORE_PATH` | `data/p2p-route-evidence/route-evidence.json` | No | Local/dev file fallback for stored route evidence. In production, route-evidence storage requires Vercel KV unless this explicit persistent file path is set. |
 | `MUSU_ROUTE_EVIDENCE_MAX_RECORDS` | `1000` | No | Maximum stored route-evidence records retained by the `musu.pro` route-evidence API. Hard capped at `10000`. |
 | `MUSU_P2P_RENDEZVOUS_STORE_PATH` | `data/p2p-rendezvous/sessions.json` | No | Local/dev file fallback for rendezvous sessions. In production, rendezvous storage requires Vercel KV unless this explicit persistent file path is set. |
 | `MUSU_P2P_RENDEZVOUS_TTL_SEC` | `300` | No | Short-lived rendezvous session TTL in seconds. Runtime clamps the value to `60..3600`. |
+| `MUSU_P2P_RENDEZVOUS_CLIENT_TIMEOUT_MS` | `3000` | No | Rust bridge timeout budget for create/update/get/close rendezvous control-plane calls. Runtime clamps the value to `250..10000` and falls back to the selected peer path on timeout. |
 | `KV_REST_API_URL` / `KV_REST_API_TOKEN` | *(empty)* | Yes on hosted `musu.pro` route-evidence storage | Vercel KV/Upstash Redis credentials used for durable server-side route-evidence storage. |
 | `MUSU_RELAY_ENABLED` | `false` | No | Set to `true` to connect to the cloud relay tunnel. |
 | `MUSU_RELAY_URL` | *(empty)* | No | WebSocket URL of the relay server (e.g. `wss://musu-relay-production.up.railway.app`). |

@@ -204,13 +204,11 @@ pub async fn delegate(
                     "{}/api/tasks/callback",
                     crate::bridge::services::advertised_bridge_http_url(&state.config),
                 )),
+                rendezvous_session_id: None,
+                rendezvous_target_node_id: None,
             };
             match crate::bridge::handlers::forward::forward_to_peer_with_retry(
-                &state.http_client,
-                peer,
-                forwarded,
-                &state.config.token,
-                2, // max retries
+                &state, peer, forwarded, 2, // max retries
             )
             .await
             {
@@ -226,6 +224,7 @@ pub async fn delegate(
                         &task_id,
                         &state.config.node_name,
                         peer,
+                        report.rendezvous_session_id.clone(),
                         report.handshake_ms,
                         report.total_attempt_ms,
                         crate::bridge::route_evidence::RouteAttemptEvidenceResult::Success,
@@ -265,6 +264,7 @@ pub async fn delegate(
                         &task_id,
                         &state.config.node_name,
                         peer,
+                        e.rendezvous_session_id.clone(),
                         e.handshake_ms,
                         e.total_attempt_ms,
                         crate::bridge::route_evidence::RouteAttemptEvidenceResult::Failed,

@@ -41,6 +41,7 @@ pub struct RouteAttemptEvidence {
 pub struct RouteAttemptEvidenceInput {
     pub source_node_id: String,
     pub target_node_id: String,
+    pub session_id: Option<String>,
     pub candidate_addr: String,
     pub handshake_ms: Option<u64>,
     pub total_attempt_ms: u64,
@@ -66,7 +67,7 @@ pub fn build_route_attempt_evidence(input: RouteAttemptEvidenceInput) -> RouteAt
         version: env!("CARGO_PKG_VERSION").to_string(),
         source_node_id: input.source_node_id,
         target_node_id: input.target_node_id,
-        session_id: None,
+        session_id: input.session_id,
         route_kind: route_evidence_kind_for_addr(&input.candidate_addr),
         candidate_addr: input.candidate_addr,
         handshake_ms: input.handshake_ms,
@@ -233,6 +234,7 @@ pub fn record_bridge_forward_route_evidence(
     task_id: &str,
     source_node_id: &str,
     peer: &ResolvedPeer,
+    session_id: Option<String>,
     handshake_ms: Option<u64>,
     total_attempt_ms: u64,
     result: RouteAttemptEvidenceResult,
@@ -242,6 +244,7 @@ pub fn record_bridge_forward_route_evidence(
     let evidence = build_route_attempt_evidence(RouteAttemptEvidenceInput {
         source_node_id: source_node_id.to_string(),
         target_node_id: target_node_id(peer),
+        session_id,
         candidate_addr: peer.addr.clone(),
         handshake_ms,
         total_attempt_ms,
@@ -262,6 +265,7 @@ mod tests {
         let evidence = build_route_attempt_evidence(RouteAttemptEvidenceInput {
             source_node_id: "source-node".to_string(),
             target_node_id: "target-node".to_string(),
+            session_id: None,
             candidate_addr: "100.100.1.2:8070".to_string(),
             handshake_ms: Some(37),
             total_attempt_ms: 913,
@@ -289,6 +293,7 @@ mod tests {
         let evidence = build_route_attempt_evidence(RouteAttemptEvidenceInput {
             source_node_id: "source-node".to_string(),
             target_node_id: "local".to_string(),
+            session_id: None,
             candidate_addr: "127.0.0.1:8070".to_string(),
             handshake_ms: Some(5),
             total_attempt_ms: 12,
@@ -317,6 +322,7 @@ mod tests {
         let evidence = build_route_attempt_evidence(RouteAttemptEvidenceInput {
             source_node_id: "source-node".to_string(),
             target_node_id: "target-node".to_string(),
+            session_id: Some("rv_test".to_string()),
             candidate_addr: "203.0.113.10:8070".to_string(),
             handshake_ms: Some(17),
             total_attempt_ms: 29,
@@ -327,6 +333,7 @@ mod tests {
 
         let cloud = cloud_route_evidence(&evidence);
         assert_eq!(cloud.schema, "musu.route_evidence.v1");
+        assert_eq!(cloud.session_id.as_deref(), Some("rv_test"));
         assert_eq!(cloud.route_kind, crate::cloud::RouteKind::DirectQuic);
         assert_eq!(cloud.result, crate::cloud::RouteAttemptResult::Success);
         assert_eq!(cloud.encryption, "none_http_bearer");
