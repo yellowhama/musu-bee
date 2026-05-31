@@ -173,6 +173,16 @@ $msixInstallRoots = @(
         filter = "*.evidence.json"
     }
 )
+$runtimeIdleCpuRoots = @(
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ("docs\evidence\runtime-idle-cpu\{0}" -f $version))
+        filter = "*.json"
+    },
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ".local-build\runtime-idle-cpu")
+        filter = "*.json"
+    }
+)
 $storeRoots = @(
     [pscustomobject]@{
         path = (Join-Path $repoRoot ("docs\evidence\store-release\{0}" -f $version))
@@ -190,6 +200,7 @@ $commands = [pscustomobject]@{
     verify_packet = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-final-operator-gate-packet.ps1 -PacketPath .local-build\final-operator-gates\musu-final-operator-gates-$safeVersion-latest.zip -Json"
     prepare_action_pack = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\prepare-operator-action-pack.ps1 -Json"
     verify_action_pack = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-operator-action-pack.ps1 -PackPath .local-build\operator-action-pack\MUSU-$safeVersion-operator-action-pack-latest.zip -Json"
+    measure_runtime_idle_cpu = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -MaxOneCorePercent 5 -IncludeWebView2 -FailOnHot -Json"
     final_completion = @"
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-final-operator-gates.ps1 `
   -MsixInstallEvidencePath .local-build\msix-install\<INSTALL_EVIDENCE_JSON> `
@@ -255,6 +266,13 @@ if (-not [bool]$goNoGo.multi_device_verified) {
         -Summary "Run the second-PC kit, return `.local-build\multi-device\*.json`, then record it." `
         -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-multidevice-evidence.ps1 -EvidencePath .local-build\multi-device\<EVIDENCE_JSON>"
 }
+if (-not [bool]$goNoGo.runtime_idle_cpu_verified) {
+    Add-OperatorStep `
+        -List $operatorSteps `
+        -Gate "runtime-idle-cpu" `
+        -Summary "Run a 60s idle CPU sample on the primary and second PC with MUSU installed/app-open/runtime-started, then bring both JSON files back." `
+        -Command $commands.measure_runtime_idle_cpu
+}
 if (-not [bool]$goNoGo.support_mailbox_verified) {
     Add-OperatorStep `
         -List $operatorSteps `
@@ -292,6 +310,7 @@ $result = [pscustomobject]@{
         local_artifacts_ready = [bool]$goNoGo.local_artifacts_ready
         single_machine_verified = [bool]$goNoGo.single_machine_verified
         msix_install_verified = [bool]$goNoGo.msix_install_verified
+        runtime_idle_cpu_verified = [bool]$goNoGo.runtime_idle_cpu_verified
         multi_device_verified = [bool]$goNoGo.multi_device_verified
         public_metadata_ok = $goNoGo.public_metadata_ok
         support_mailbox_verified = [bool]$goNoGo.support_mailbox_verified
@@ -302,6 +321,7 @@ $result = [pscustomobject]@{
     warnings = $goNoGo.warnings
     evidence_roots = [pscustomobject]@{
         msix_install = Get-EvidenceRootStatus -Roots $msixInstallRoots
+        runtime_idle_cpu = Get-EvidenceRootStatus -Roots $runtimeIdleCpuRoots
         multi_device = Get-EvidenceRootStatus -Roots $multiDeviceRoots
         support_mailbox = Get-EvidenceRootStatus -Roots $supportRoots
         store_release = Get-EvidenceRootStatus -Roots $storeRoots

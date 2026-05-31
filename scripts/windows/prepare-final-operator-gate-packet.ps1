@@ -79,6 +79,7 @@ $docsToCopy = @(
     "docs\DESKTOP_RELEASE_READINESS_AUDIT_2026_05_29.md",
     "docs\RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md",
     "docs\RELEASE_1_15_0_RC1_CURRENT_STATUS_AUDIT_2026_05_31.md",
+    "docs\RELEASE_1_15_0_RC1_RUNTIME_HARDENING_RELAY_ROADMAP_2026_05_31.md",
     "docs\MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md",
     "docs\RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md",
     "docs\STORE_SUBMISSION_METADATA_2026_05_29.md"
@@ -103,6 +104,7 @@ $scriptsToCopy = @(
     "record-store-release-verification.ps1",
     "verify-store-release-evidence.ps1",
     "verify-store-submission-bundle.ps1",
+    "measure-musu-idle-cpu.ps1",
     "prepare-operator-action-pack.ps1",
     "verify-operator-action-pack.ps1",
     "show-final-release-handoff-status.ps1",
@@ -142,6 +144,7 @@ Current machine-verifiable state before these gates:
 For the shortest Store/submission sequence, review:
 
 - `docs\RELEASE_1_15_0_RC1_CURRENT_STATUS_AUDIT_2026_05_31.md`
+- `docs\RELEASE_1_15_0_RC1_RUNTIME_HARDENING_RELAY_ROADMAP_2026_05_31.md`
 - `docs\RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md`
 - `docs\MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md`
 - `docs\RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md`
@@ -318,9 +321,28 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-store
 
 Expected result: `store_release_verified=true`.
 
+## Gate E - Runtime idle CPU evidence
+
+Run the idle CPU sample on the primary PC and the second PC with MUSU installed,
+the desktop app opened, and the runtime started:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -MaxOneCorePercent 5 -IncludeWebView2 -FailOnHot -Json
+```
+
+Keep MUSU open and idle during the sample. Close unrelated WebView2-based apps
+before measuring, because this gate includes the Tauri/WebView2 desktop process
+family in the CPU budget.
+
+Bring both generated `.local-build\runtime-idle-cpu\*.json` files back under the
+real MUSU release repo's `.local-build\runtime-idle-cpu\` folder or commit them
+under `docs\evidence\runtime-idle-cpu\__VERSION__\`.
+
+Expected result: `runtime_idle_cpu_verified=true`.
+
 ## Final command
 
-After Gate A, Gate B, Gate C, and Gate D evidence exists, run from the real MUSU release repo root:
+After Gate A, Gate B, Gate C, Gate D, and Gate E evidence exists, run from the real MUSU release repo root:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-final-operator-gates.ps1 `
@@ -349,6 +371,7 @@ The release can proceed only when:
 - `local_artifacts_ready=true`
 - `single_machine_verified=true`
 - `msix_install_verified=true`
+- `runtime_idle_cpu_verified=true`
 - `multi_device_verified=true`
 - `public_metadata_ok=true`
 - `support_mailbox_verified=true`

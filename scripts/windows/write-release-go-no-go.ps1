@@ -1,6 +1,9 @@
 [CmdletBinding()]
 param(
     [string]$PublicMetadataBaseUrl = "https://musu.pro",
+    [int]$MinRuntimeIdleCpuSampleSeconds = 60,
+    [double]$MaxRuntimeIdleCpuOneCorePercent = 5.0,
+    [int]$MinRuntimeIdleCpuMachineCount = 2,
     [switch]$SkipPublicMetadata,
     [switch]$FailOnNotReady,
     [switch]$Json
@@ -59,6 +62,93 @@ function Add-Blocker {
         area = $Area
         message = $Message
     }) | Out-Null
+}
+
+function New-Check {
+    param(
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][string]$Status,
+        [Parameter(Mandatory = $true)][string]$Message
+    )
+
+    [pscustomobject]@{
+        name = $Name
+        status = $Status
+        message = $Message
+    }
+}
+
+function Test-RuntimeIdleCpuEvidence {
+    param(
+        [Parameter(Mandatory = $true)][string]$EvidencePath,
+        [Parameter(Mandatory = $true)][string]$ExpectedVersion,
+        [Parameter(Mandatory = $true)][int]$MinSampleSeconds,
+        [Parameter(Mandatory = $true)][double]$MaxOneCorePercent
+    )
+
+    $checks = New-Object System.Collections.Generic.List[object]
+    $evidence = $null
+    try {
+        $evidence = Get-Content -LiteralPath $EvidencePath -Raw | ConvertFrom-Json
+        $checks.Add((New-Check -Name "parse" -Status "pass" -Message "runtime idle CPU evidence parses")) | Out-Null
+    }
+    catch {
+        $checks.Add((New-Check -Name "parse" -Status "fail" -Message "runtime idle CPU evidence does not parse: $($_.Exception.Message)")) | Out-Null
+    }
+
+    if ($evidence) {
+        $schema = [string]$evidence.schema
+        $checks.Add((New-Check -Name "schema" -Status ($(if ($schema -eq "musu.runtime_idle_cpu_evidence.v1") { "pass" } else { "fail" })) -Message ($(if ($schema -eq "musu.runtime_idle_cpu_evidence.v1") { "schema is valid" } else { "schema is '$schema'" })))) | Out-Null
+
+        $versionValue = [string]$evidence.version
+        $checks.Add((New-Check -Name "version" -Status ($(if ($versionValue -eq $ExpectedVersion) { "pass" } else { "fail" })) -Message ($(if ($versionValue -eq $ExpectedVersion) { "version matches $ExpectedVersion" } else { "version is '$versionValue'" })))) | Out-Null
+
+        $okValue = [bool]$evidence.ok
+        $checks.Add((New-Check -Name "evidence ok" -Status ($(if ($okValue) { "pass" } else { "fail" })) -Message ($(if ($okValue) { "evidence reports ok=true" } else { "evidence reports ok=false" })))) | Out-Null
+
+        $operatorMachine = ""
+        if ($evidence.PSObject.Properties["operator_machine"]) {
+            $operatorMachine = [string]$evidence.operator_machine
+        }
+        $checks.Add((New-Check -Name "operator machine" -Status ($(if (-not [string]::IsNullOrWhiteSpace($operatorMachine)) { "pass" } else { "fail" })) -Message ($(if (-not [string]::IsNullOrWhiteSpace($operatorMachine)) { "operator_machine is present" } else { "operator_machine is missing" })))) | Out-Null
+
+        $sampleSeconds = [double]$evidence.sample_seconds
+        $checks.Add((New-Check -Name "sample duration" -Status ($(if ($sampleSeconds -ge $MinSampleSeconds) { "pass" } else { "fail" })) -Message ($(if ($sampleSeconds -ge $MinSampleSeconds) { "sample duration is at least ${MinSampleSeconds}s" } else { "sample duration is ${sampleSeconds}s, expected at least ${MinSampleSeconds}s" })))) | Out-Null
+
+        $hotCount = [int]$evidence.hot_process_count
+        $checks.Add((New-Check -Name "hot process count" -Status ($(if ($hotCount -eq 0) { "pass" } else { "fail" })) -Message ($(if ($hotCount -eq 0) { "no hot processes reported" } else { "$hotCount hot process(es) reported" })))) | Out-Null
+
+        $processCountAfter = 0
+        if ($evidence.PSObject.Properties["process_count_after"]) {
+            $processCountAfter = [int]$evidence.process_count_after
+        }
+        $checks.Add((New-Check -Name "target process running" -Status ($(if ($processCountAfter -gt 0) { "pass" } else { "fail" })) -Message ($(if ($processCountAfter -gt 0) { "$processCountAfter target process(es) were running at the end of the sample" } else { "no target MUSU process was running during the sample" })))) | Out-Null
+
+        $sampleCount = @($evidence.samples).Count
+        $checks.Add((New-Check -Name "cpu samples present" -Status ($(if ($sampleCount -gt 0) { "pass" } else { "fail" })) -Message ($(if ($sampleCount -gt 0) { "$sampleCount CPU sample(s) recorded" } else { "no CPU samples were recorded" })))) | Out-Null
+
+        $maxSample = 0.0
+        if ($evidence.samples) {
+            foreach ($sample in @($evidence.samples)) {
+                $value = [double]$sample.cpu_pct_one_core
+                if ($value -gt $maxSample) {
+                    $maxSample = $value
+                }
+            }
+        }
+        $checks.Add((New-Check -Name "max one-core CPU" -Status ($(if ($maxSample -le $MaxOneCorePercent) { "pass" } else { "fail" })) -Message ($(if ($maxSample -le $MaxOneCorePercent) { "max one-core CPU $maxSample <= $MaxOneCorePercent" } else { "max one-core CPU $maxSample > $MaxOneCorePercent" })))) | Out-Null
+    }
+
+    $failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
+    [pscustomobject]@{
+        ok = ($failCount -eq 0)
+        evidence_path = $EvidencePath
+        fail_count = $failCount
+        operator_machine = if ($evidence -and $evidence.PSObject.Properties["operator_machine"]) { [string]$evidence.operator_machine } else { $null }
+        min_sample_seconds = $MinSampleSeconds
+        max_one_core_percent = $MaxOneCorePercent
+        checks = $checks.ToArray()
+    }
 }
 
 $auditScript = Join-Path $scriptDir "audit-desktop-release-readiness.ps1"
@@ -181,6 +271,50 @@ if ($msixInstallEvidenceCandidate) {
     }
 }
 
+$runtimeIdleCpuVerified = $false
+$runtimeIdleCpuEvidence = $null
+$runtimeIdleCpuEvidenceCandidates = @()
+$runtimeIdleCpuEvidenceRoots = @(
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ("docs\evidence\runtime-idle-cpu\{0}" -f $version))
+        filter = "*.json"
+    },
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ".local-build\runtime-idle-cpu")
+        filter = "*.json"
+    }
+)
+
+foreach ($root in $runtimeIdleCpuEvidenceRoots) {
+    if (Test-Path -LiteralPath $root.path) {
+        $runtimeIdleCpuEvidenceCandidates += @(Get-ChildItem -LiteralPath $root.path -Filter $root.filter -File -ErrorAction SilentlyContinue)
+    }
+}
+
+$runtimeIdleCpuEvidenceResults = @()
+$runtimeIdleCpuMachines = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+foreach ($candidate in @($runtimeIdleCpuEvidenceCandidates | Sort-Object LastWriteTime -Descending)) {
+    $verification = Test-RuntimeIdleCpuEvidence `
+        -EvidencePath $candidate.FullName `
+        -ExpectedVersion $version `
+        -MinSampleSeconds $MinRuntimeIdleCpuSampleSeconds `
+        -MaxOneCorePercent $MaxRuntimeIdleCpuOneCorePercent
+    $runtimeIdleCpuEvidenceResults += $verification
+    if ([bool]$verification.ok -and -not [string]::IsNullOrWhiteSpace([string]$verification.operator_machine)) {
+        [void]$runtimeIdleCpuMachines.Add([string]$verification.operator_machine)
+    }
+}
+
+$runtimeIdleCpuVerified = ($runtimeIdleCpuMachines.Count -ge $MinRuntimeIdleCpuMachineCount)
+$runtimeIdleCpuEvidence = [pscustomobject]@{
+    ok = [bool]$runtimeIdleCpuVerified
+    min_machine_count = $MinRuntimeIdleCpuMachineCount
+    valid_machine_count = $runtimeIdleCpuMachines.Count
+    valid_machines = @($runtimeIdleCpuMachines)
+    candidate_count = $runtimeIdleCpuEvidenceResults.Count
+    candidates = $runtimeIdleCpuEvidenceResults
+}
+
 $storeReleaseVerified = $false
 $storeReleaseEvidence = $null
 $storeReleaseEvidenceCandidate = $null
@@ -244,6 +378,9 @@ if (-not $msixInstallVerified) {
 if (-not [bool]$audit.multi_device_verified) {
     Add-Blocker -List $blockers -Area "multi-device" -Message "Real second-PC multi-device evidence has not been recorded."
 }
+if (-not $runtimeIdleCpuVerified) {
+    Add-Blocker -List $blockers -Area "runtime-idle-cpu" -Message "Runtime idle CPU evidence has not passed on at least ${MinRuntimeIdleCpuMachineCount} machine(s) for ${MinRuntimeIdleCpuSampleSeconds}s at <= ${MaxRuntimeIdleCpuOneCorePercent}% of one logical CPU."
+}
 if (-not $SkipPublicMetadata) {
     if (-not $publicMetadataResult.json -or -not [bool]$publicMetadataResult.json.ok) {
         Add-Blocker -List $blockers -Area "store-public-metadata" -Message "Public privacy/support metadata verification failed for $PublicMetadataBaseUrl."
@@ -272,6 +409,13 @@ $manualExternalGates = @(
     "Microsoft restricted capability review"
 )
 
+$manualInternalGates = @(
+    "Runtime idle CPU verification on primary Windows PC",
+    "Runtime idle CPU verification on second Windows PC",
+    "Duplicate runtime/startup ownership verification",
+    "musu.pro registry/rendezvous/relay-control path decision"
+)
+
 $ready = ($blockers.Count -eq 0)
 $result = [pscustomobject]@{
     schema = "musu.release_go_no_go.v1"
@@ -286,12 +430,15 @@ $result = [pscustomobject]@{
     public_metadata_ok = if ($SkipPublicMetadata) { $null } elseif ($publicMetadataResult.json) { [bool]$publicMetadataResult.json.ok } else { $false }
     msix_install_verified = [bool]$msixInstallVerified
     msix_install_evidence = $msixInstallEvidence
+    runtime_idle_cpu_verified = [bool]$runtimeIdleCpuVerified
+    runtime_idle_cpu_evidence = $runtimeIdleCpuEvidence
     support_mailbox_verified = [bool]$supportMailboxVerified
     support_mailbox_evidence = $supportMailboxEvidence
     store_release_verified = [bool]$storeReleaseVerified
     store_release_evidence = $storeReleaseEvidence
     blockers = $blockers.ToArray()
     warnings = $warnings.ToArray()
+    manual_internal_gates = $manualInternalGates
     manual_external_gates = $manualExternalGates
     readiness_audit = $audit
     public_metadata = if ($publicMetadataResult) { $publicMetadataResult.json } else { $null }
@@ -308,6 +455,7 @@ else {
     "local_artifacts_ready: $($result.local_artifacts_ready)"
     "single_machine_verified: $($result.single_machine_verified)"
     "msix_install_verified: $($result.msix_install_verified)"
+    "runtime_idle_cpu_verified: $($result.runtime_idle_cpu_verified)"
     "multi_device_verified: $($result.multi_device_verified)"
     "public_metadata_ok: $($result.public_metadata_ok)"
     "support_mailbox_verified: $($result.support_mailbox_verified)"

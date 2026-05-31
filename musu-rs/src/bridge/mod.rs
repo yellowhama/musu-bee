@@ -133,8 +133,22 @@ pub async fn run() -> Result<()> {
     let auth_state = AuthState::from_config(&cfg);
     let rate_limit_state = RateLimitState::new(cfg.rate_limit_per_min, cfg.rate_limit_disabled);
 
-    // W15: Universal Clipboard broadcast monitor
-    crate::io::clipboard::start_clipboard_monitor(state.clone());
+    // W15: Universal Clipboard broadcast monitor.
+    //
+    // Keep this opt-in for the desktop/Store path. Clipboard polling is useful
+    // for fleet sync, but it is privacy-sensitive and should not consume idle
+    // background CPU before the operator explicitly enables it.
+    let clipboard_sync_enabled = matches!(
+        std::env::var("MUSU_ENABLE_CLIPBOARD_SYNC").as_deref(),
+        Ok("1") | Ok("true") | Ok("yes")
+    );
+    if clipboard_sync_enabled {
+        crate::io::clipboard::start_clipboard_monitor(state.clone());
+    } else {
+        tracing::info!(
+            "clipboard sync disabled; set MUSU_ENABLE_CLIPBOARD_SYNC=1 to enable clipboard polling"
+        );
+    }
 
     // Build the native router (matched endpoints) + facade fallback.
     let native = handlers::native_router();

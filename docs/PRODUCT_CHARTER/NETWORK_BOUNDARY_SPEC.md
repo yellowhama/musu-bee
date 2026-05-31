@@ -59,6 +59,23 @@ Connect adds:
 - remote access policy enforcement
 - audit trail for external access
 
+## 2026-05-31 relay/control-plane update
+
+The first public multi-device path should not rely only on manual LAN
+`host:port` entry. `musu.pro` should provide the assisted path:
+
+- account-scoped node registry
+- low-duty rendezvous/control channel
+- direct LAN/Tailscale path selection
+- relay/tunnel fallback when direct private routing fails
+- route evidence that records whether the path was `lan`, `tailscale`, or `relay`
+
+This does not change the product boundary:
+
+- direct localhost/LAN/private-network operation remains MUSU Core
+- MUSU-hosted relay/tunnel operation remains MUSU Connect
+- Store copy must not imply that direct P2P works through every NAT until the relay/tunnel fallback has evidence
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."
