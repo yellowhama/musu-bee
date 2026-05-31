@@ -23,9 +23,11 @@ best-effort submit runtime route evidence after writing the local file. That is
 useful observability, not a release pass: rendezvous sessions now exist on the
 server, recent node candidates are cached for later session seeding, and bridge
 runtime route attempts now create/read/close sessions on a bounded best-effort
-path. That still does not satisfy the release gate because account-scoped
-evidence ownership, real second-PC target-candidate route proof, relay fallback,
-plus hardened peer identity/encryption proof are still missing.
+path. Nodes now also advertise TLS certificate fingerprints as identity material
+in registry/rendezvous candidates. That still does not satisfy the release gate
+because account-scoped evidence ownership, real second-PC target-candidate route
+proof, relay fallback, plus transport-verified peer identity/encryption proof
+are still missing.
 
 ## Product Spec Updates
 
@@ -60,7 +62,12 @@ plus hardened peer identity/encryption proof are still missing.
    endpoints for endpoint candidate exchange. Candidate updates also refresh a
    short-lived node candidate cache, and new sessions seed source/target
    candidate sets from that cache when available.
-9. **Runtime rendezvous lifecycle**: bridge remote forwarding now creates a
+9. **Peer identity material**: bridge startup ensures local TLS certs when an
+   account token exists, registers `cert_fingerprint` with `musu.pro`, and
+   rendezvous candidates publish the same fingerprint as `public_key` when
+   available. Route evidence records advertised peer identity material but still
+   marks it unverified until the route transport proves key ownership.
+10. **Runtime rendezvous lifecycle**: bridge remote forwarding now creates a
    `musu.pro` session before a remote attempt when logged in, publishes the
    source endpoint, forwards the `rendezvous_session_id` to the target, lets the
    target publish candidates on receipt, closes the session after terminal
@@ -81,6 +88,7 @@ plus hardened peer identity/encryption proof are still missing.
 | Evidence storage | Medium | The first route-evidence API previously returned `stored=false`, so server-side audit/history was missing. | Fixed as minimal storage/query. Hosted storage uses Vercel KV; local/dev uses an explicit file fallback. Production fails closed without KV or an explicit persistent file path. |
 | Rendezvous storage | Medium | The control-plane lacked a server-side place for endpoint candidate exchange. | Fixed as a short-lived session store plus recent node candidate cache with Vercel KV or explicit local/dev file fallback. |
 | Runtime rendezvous | High | Bridge forwarding did not previously join runtime route attempts to the `musu.pro` rendezvous session/evidence model or use returned target candidates. | Fixed as first runtime lifecycle. `musu relay status` and `musu route --explain` now report `rendezvous_session_wired=true`; refreshed target candidates can replace the original peer address with original-peer fallback on candidate failure; release remains blocked by legacy HTTP bearer transport and missing two-machine proof. |
+| Peer identity proof | High | Evidence required peer identity verification, but route attempts had no identity material to carry or store. | Partial. TLS certificate SHA-256 fingerprints are now registered/published as candidate identity material, route evidence stores advertised target fingerprints, and `musu.pro` rejects release-grade identity claims without method/key fields. Actual transport ownership proof remains missing. |
 
 ## Validation Run
 
@@ -174,6 +182,15 @@ plus hardened peer identity/encryption proof are still missing.
   musu -j 1`, rendezvous and route-evidence API tests, `npm run typecheck`,
   both diagnostic CLI JSON commands, `cargo fmt --check`, `git diff --check`,
   and indexer sync `1074 files / 2064 symbols`.
+- After peer identity material exchange, validation passed:
+  `cargo check --manifest-path .\musu-rs\Cargo.toml -j 1`, targeted Rust
+  `tls`, `rendezvous`, `route_evidence`, and `cli_commands` tests for lib/bin,
+  `cargo build --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1`,
+  `npx tsx --test src/app/api/v1/p2p/route-evidence/route.test.ts`,
+  `npx tsx --test src/app/api/v1/p2p/rendezvous/route.test.ts`,
+  `npm run typecheck`, both diagnostic CLI JSON commands,
+  `cargo fmt --check`, `git diff --check`, and indexer sync
+  `1075 files / 2071 symbols`.
 
 The release gate still needs two-machine desktop-open CPU evidence, hardened
 multi-device route evidence, support inbox delivery evidence, and Store
@@ -185,7 +202,7 @@ submission/release evidence.
 |---|---:|---|
 | Packaging trust | 8/10 | MSIX desktop-entrypoint and local-sideload contract are now coherent. Store certification remains external. |
 | Runtime efficiency | 7/10 | Current primary packaged desktop-open CPU evidence passes at `musu=0%`, `webview2=0.21%` of one logical core, but second-PC evidence is still missing. |
-| P2P product story | 7.7/10 | The strategy is right, the bridge now has shared path-kind ranking for cached/manual/nodes candidates, runtime route evidence is stored/queryable on `musu.pro`, server-side rendezvous candidate exchange plus recent node candidate caching exists, runtime forwarding creates/uses sessions, and refreshed target candidates can affect the actual forward address. Hardened identity/encryption proof, real second-PC verification, and relay fallback are still not wired. |
+| P2P product story | 7.8/10 | The strategy is right, the bridge now has shared path-kind ranking for cached/manual/nodes candidates, runtime route evidence is stored/queryable on `musu.pro`, server-side rendezvous candidate exchange plus recent node candidate caching exists, runtime forwarding creates/uses sessions, refreshed target candidates can affect the actual forward address, and peer identity material is now exchanged. Transport-verified identity/encryption proof, real second-PC verification, and relay fallback are still not wired. |
 | UX/branding | 6/10 -> 7/10 | App mark is strong. Public web asset tracking, wordmark fallback, and basic static logo lockups are now fixed. Store screenshots and product demo media are still needed. |
 | Release evidence quality | 8/10 | Gates are strict and honest. Runtime CPU evidence must now match current HEAD or documentation/evidence-only deltas, preventing stale CPU samples from passing after code changes. |
 | Overall public readiness | ~64% | Stronger than before, but still No-Go because second-PC CPU, real hardened route, support inbox, and Store evidence remain open. |

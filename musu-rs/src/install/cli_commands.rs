@@ -395,6 +395,8 @@ fn write_route_evidence_if_requested(
         result,
         failure_class,
         note: CLI_ROUTE_EVIDENCE_NOTE,
+        peer_identity_method: None,
+        peer_public_key: None,
     });
     write_route_attempt_evidence(path, &evidence)?;
     println!("route evidence written: {}", path.display());
@@ -599,7 +601,7 @@ async fn run_relay_status(opts: RelayStatusOpts) -> Result<()> {
         path_priority: vec!["lan", "tailscale", "direct_quic", "relay"],
         next_steps: vec![
             "verify rendezvous target-candidate-assisted routing on a real second PC route",
-            "wire peer identity and QUIC/TLS proof into runtime route attempts",
+            "wire transport-verified peer identity and QUIC/TLS proof into runtime route attempts",
             "implement relay/tunnel fallback behind Connect/Pro policy",
         ],
     };

@@ -106,6 +106,28 @@ fn cloud_route_kind_for_addr(addr: &str) -> crate::cloud::RouteKind {
     }
 }
 
+fn local_identity_public_key(cfg: &crate::bridge::config::BridgeConfig) -> Option<String> {
+    let fingerprint = if let Some(cert_path) = cfg.tls_cert_path.as_ref() {
+        crate::install::tls::cert_sha256_fingerprint(cert_path)
+    } else {
+        let musu_home = cfg
+            .nodes_toml_path
+            .parent()
+            .unwrap_or_else(|| Path::new("."));
+        crate::install::tls::default_cert_fingerprint(musu_home).and_then(|value| {
+            value.ok_or_else(|| anyhow!("tls certificate fingerprint unavailable"))
+        })
+    };
+
+    match fingerprint {
+        Ok(value) => Some(value),
+        Err(err) => {
+            tracing::debug!(err = %err, "local TLS certificate fingerprint unavailable for rendezvous candidate");
+            None
+        }
+    }
+}
+
 pub fn local_candidate_request(
     cfg: &crate::bridge::config::BridgeConfig,
 ) -> crate::cloud::P2pRendezvousCandidatesRequest {
@@ -118,6 +140,7 @@ pub fn local_candidate_request_for_node_id(
 ) -> crate::cloud::P2pRendezvousCandidatesRequest {
     let advertised = crate::bridge::services::advertised_bridge_http_url(cfg);
     let addr = endpoint_addr_from_url(&advertised);
+    let public_key = local_identity_public_key(cfg);
     crate::cloud::P2pRendezvousCandidatesRequest {
         node_id,
         candidate_endpoints: vec![crate::cloud::CandidateEndpoint {
@@ -128,16 +151,18 @@ pub fn local_candidate_request_for_node_id(
         relay_capable: false,
         node_name: Some(cfg.node_name.clone()),
         app_version: Some(env!("CARGO_PKG_VERSION").to_string()),
-        public_key: None,
+        public_key,
         capabilities: Some(vec!["bridge_http_forward".to_string()]),
     }
 }
 
 fn route_peer_from_target_candidates(
     target_node_id: &str,
-    candidates: &[crate::cloud::CandidateEndpoint],
+    target: &crate::cloud::NodeCandidateSet,
 ) -> Option<ResolvedPeer> {
-    let peers = candidates
+    let peer_public_key = target.public_key.trim();
+    let peers = target
+        .candidate_endpoints
         .iter()
         .filter_map(|candidate| {
             if candidate.addr.trim().is_empty() {
@@ -149,15 +174,20 @@ fn route_peer_from_target_candidates(
             ) {
                 return None;
             }
+            let mut meta = serde_json::json!({
+                "source": "musu.pro_rendezvous",
+                "candidate_kind": candidate.kind,
+                "observed_at": candidate.observed_at,
+            });
+            if !peer_public_key.is_empty() {
+                meta["peer_public_key"] = serde_json::json!(peer_public_key);
+                meta["peer_identity_method"] = serde_json::json!("advertised_tls_cert_fingerprint");
+            }
             Some(ResolvedPeer {
                 addr: candidate.addr.trim().to_string(),
                 name: Some(target_node_id.to_string()),
                 source: crate::peer::discovery::PeerSource::Registry,
-                meta: Some(serde_json::json!({
-                    "source": "musu.pro_rendezvous",
-                    "candidate_kind": candidate.kind,
-                    "observed_at": candidate.observed_at,
-                })),
+                meta: Some(meta),
             })
         })
         .collect::<Vec<_>>();
@@ -198,10 +228,7 @@ pub async fn prepare_forward_rendezvous(
 
     match tokio::time::timeout(rendezvous_timeout(), fut).await {
         Ok(Ok(session)) => {
-            let route_peer = route_peer_from_target_candidates(
-                &target_node_id,
-                &session.target.candidate_endpoints,
-            );
+            let route_peer = route_peer_from_target_candidates(&target_node_id, &session.target);
             tracing::info!(
                 session_id = %session.session_id,
                 source_node_id = %source_node_id,
@@ -375,6 +402,7 @@ mod tests {
         assert_eq!(req.node_id, "test-node");
         assert_eq!(req.node_name.as_deref(), Some("test-node"));
         assert_eq!(req.app_version.as_deref(), Some(env!("CARGO_PKG_VERSION")));
+        assert!(req.public_key.is_none());
         assert_eq!(req.candidate_endpoints[0].addr, "100.64.1.5:8070");
         assert_eq!(
             req.candidate_endpoints[0].kind,
@@ -391,33 +419,84 @@ mod tests {
     }
 
     #[test]
+    fn local_candidate_request_includes_existing_tls_fingerprint() {
+        let dir = std::env::temp_dir().join(format!("musu-rv-test-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let paths = crate::install::tls::ensure_tls_certs(&dir, "test-node").unwrap();
+        let expected = crate::install::tls::cert_sha256_fingerprint(&paths.cert_path).unwrap();
+
+        let cfg = crate::bridge::config::BridgeConfig {
+            bridge_host: "127.0.0.1".to_string(),
+            bridge_port: 8070,
+            python_facade_port: 8071,
+            public_url: Some("http://127.0.0.1:8070".to_string()),
+            node_name: "test-node".to_string(),
+            db_path: ":memory:".into(),
+            audit_db_path: ":memory:".into(),
+            nodes_toml_path: dir.join("nodes.toml"),
+            token: "x".repeat(32),
+            peer_token: None,
+            localhost_auth_required: true,
+            env: crate::bridge::config::AuthMode::Development,
+            rate_limit_disabled: true,
+            rate_limit_per_min: 0,
+            allow_plaintext_lan: false,
+            file_serve_roots: vec![],
+            file_serve_writable: false,
+            tls_enabled: false,
+            tls_cert_path: None,
+            tls_key_path: None,
+        };
+
+        let req = local_candidate_request(&cfg);
+        assert_eq!(req.public_key.as_deref(), Some(expected.as_str()));
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn route_peer_from_target_candidates_prefers_best_direct_path() {
         let now = chrono::Utc::now().to_rfc3339();
-        let candidates = vec![
-            crate::cloud::CandidateEndpoint {
-                kind: crate::cloud::RouteKind::DirectQuic,
-                addr: "203.0.113.10:8070".to_string(),
-                observed_at: now.clone(),
-            },
-            crate::cloud::CandidateEndpoint {
-                kind: crate::cloud::RouteKind::Tailscale,
-                addr: "100.64.1.10:8070".to_string(),
-                observed_at: now.clone(),
-            },
-            crate::cloud::CandidateEndpoint {
-                kind: crate::cloud::RouteKind::Lan,
-                addr: "192.168.1.10:8070".to_string(),
-                observed_at: now,
-            },
-            crate::cloud::CandidateEndpoint {
-                kind: crate::cloud::RouteKind::Relay,
-                addr: "relay.musu.pro:443".to_string(),
-                observed_at: chrono::Utc::now().to_rfc3339(),
-            },
-        ];
+        let target = crate::cloud::NodeCandidateSet {
+            node_id: "target-node".to_string(),
+            node_name: "target-node".to_string(),
+            app_version: env!("CARGO_PKG_VERSION").to_string(),
+            public_key: "sha256:test".to_string(),
+            relay_capable: true,
+            capabilities: vec!["bridge_http_forward".to_string()],
+            candidate_endpoints: vec![
+                crate::cloud::CandidateEndpoint {
+                    kind: crate::cloud::RouteKind::DirectQuic,
+                    addr: "203.0.113.10:8070".to_string(),
+                    observed_at: now.clone(),
+                },
+                crate::cloud::CandidateEndpoint {
+                    kind: crate::cloud::RouteKind::Tailscale,
+                    addr: "100.64.1.10:8070".to_string(),
+                    observed_at: now.clone(),
+                },
+                crate::cloud::CandidateEndpoint {
+                    kind: crate::cloud::RouteKind::Lan,
+                    addr: "192.168.1.10:8070".to_string(),
+                    observed_at: now,
+                },
+                crate::cloud::CandidateEndpoint {
+                    kind: crate::cloud::RouteKind::Relay,
+                    addr: "relay.musu.pro:443".to_string(),
+                    observed_at: chrono::Utc::now().to_rfc3339(),
+                },
+            ],
+        };
 
-        let peer = route_peer_from_target_candidates("target-node", &candidates).unwrap();
+        let peer = route_peer_from_target_candidates("target-node", &target).unwrap();
         assert_eq!(peer.name.as_deref(), Some("target-node"));
         assert_eq!(peer.addr, "192.168.1.10:8070");
+        assert_eq!(
+            peer.meta
+                .as_ref()
+                .and_then(|meta| meta.get("peer_public_key"))
+                .and_then(|value| value.as_str()),
+            Some("sha256:test")
+        );
     }
 }

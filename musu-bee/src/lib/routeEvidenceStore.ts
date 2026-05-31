@@ -14,6 +14,8 @@ export type RouteEvidencePayload = {
   handshake_ms?: number | null;
   total_attempt_ms: number;
   peer_identity_verified: boolean;
+  peer_identity_method?: string | null;
+  peer_public_key?: string | null;
   encryption: string;
   payload_transited_musu_infra: boolean;
   result: "success" | "failed";

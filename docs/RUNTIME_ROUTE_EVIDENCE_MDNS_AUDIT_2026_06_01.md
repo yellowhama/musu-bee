@@ -35,6 +35,11 @@ What changed materially:
   the control-plane store. New sessions seed source/target candidate sets from
   that cache when available, so a target candidate published during one route
   can influence a later route attempt.
+- Bridge startup and rendezvous candidate publish now expose the local TLS
+  certificate SHA-256 fingerprint as identity material when available. Route
+  evidence can carry the advertised peer fingerprint, but still records
+  `peer_identity_verified=false` until the transport proves ownership of that
+  key.
 - Rust bridge forwarding now creates a short-lived rendezvous session before a
   remote route attempt when an account token exists, publishes the source
   bridge endpoint, attaches `session_id` to the forwarded task, lets the target
@@ -60,6 +65,9 @@ What is still not release-grade:
 - Route evidence honestly records `peer_identity_verified=false`,
   `encryption=none_http_bearer`, and
   `payload_transited_musu_infra=false`.
+- `musu.pro` now also requires identity proof material when evidence claims
+  `peer_identity_verified=true`; a bare boolean claim without
+  `peer_identity_method` and `peer_public_key` is not release-grade.
 - The server endpoint is now a minimal durable storage/query API, but not an
   account-scoped operator UI or long-term retention system yet.
 - Rendezvous is now bridge-wired for session lifecycle and candidate publish,
@@ -156,6 +164,7 @@ mDNS opt-in variables unset.
 | Runtime cloud submission | High | Bridge runtime forwarding wrote local evidence but did not submit it to the control plane. | Fixed as background best-effort. Runtime submits after local write when `~/.musu/token` exists. Failures do not fail or delay the user task. |
 | Rendezvous server contract | High | The Rust client had rendezvous DTOs/methods but no server endpoint to create sessions or exchange endpoint candidates. | Fixed. Server endpoints now create/read/update/approve/close sessions and seed new sessions from a recent node candidate cache. |
 | Runtime rendezvous wiring | High | Bridge remote forwarding selected a peer directly but did not create a `musu.pro` session, attach a session id to route evidence, or use session target candidates. | Fixed as first runtime wiring. Forwarding creates/refreshes a session, publishes source candidates, forwards the session id to target, target publishes candidates best-effort, uses refreshed target candidates when present, falls back once to the original peer if a selected candidate fails, and evidence records the session id. |
+| Peer identity material | High | Route evidence required peer identity proof, but route attempts had no durable identity material to carry. | Partially fixed. Local TLS certificate fingerprints are registered/published as candidate `public_key`, route evidence records advertised target fingerprints when available, and `musu.pro` rejects release-grade identity claims without method/key material. Transport-level ownership proof is still pending. |
 | Release-grade route proof | Critical | Submitted evidence still cannot prove peer identity, QUIC/TLS encryption, or payload transit truth. | Still blocked. This is the next P0. |
 
 ## Validation
@@ -166,6 +175,7 @@ Passed:
 - `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib cli_commands -- --nocapture`
 - `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib route_evidence -- --nocapture`
 - `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib rendezvous -- --nocapture`
+- `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib tls -- --nocapture`
 - `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib router -- --nocapture`
 - `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --bin musu cli_commands -- --nocapture`
 - `cargo build --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1`
@@ -179,6 +189,7 @@ Passed:
 - `cargo fmt --manifest-path .\musu-rs\Cargo.toml --check`
 - `git diff --check`
 - `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1075 files and 2071 symbols after the peer identity material update
   indexed `1074 files / 2064 symbols`
 
 Not completed:

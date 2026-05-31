@@ -24,6 +24,8 @@ const RouteEvidenceSchema = z.object({
   handshake_ms: z.number().int().nonnegative().nullable().optional(),
   total_attempt_ms: z.number().int().positive(),
   peer_identity_verified: z.boolean(),
+  peer_identity_method: z.string().min(1).nullable().optional(),
+  peer_public_key: z.string().min(1).nullable().optional(),
   encryption: z.string(),
   payload_transited_musu_infra: z.boolean(),
   result: z.enum(["success", "failed"]),
@@ -46,6 +48,12 @@ function releaseBlockers(evidence: RouteEvidence): string[] {
   }
   if (!evidence.peer_identity_verified) {
     blockers.push("peer_identity_unverified");
+  }
+  if (
+    evidence.peer_identity_verified &&
+    (!evidence.peer_identity_method?.trim() || !evidence.peer_public_key?.trim())
+  ) {
+    blockers.push("missing_peer_identity_proof");
   }
   if (LEGACY_ENCRYPTION.has(evidence.encryption.trim().toLowerCase())) {
     blockers.push("legacy_or_missing_encryption");

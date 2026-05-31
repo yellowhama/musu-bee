@@ -62,6 +62,8 @@ pub struct RegistryNode {
     pub user_id: String,
     pub node_name: String,
     pub public_url: String,
+    #[serde(default)]
+    pub cert_fingerprint: Option<String>,
     pub last_seen: String,
     pub meta: Option<serde_json::Value>,
 }
@@ -156,6 +158,10 @@ pub struct RouteEvidence {
     pub handshake_ms: Option<u64>,
     pub total_attempt_ms: u64,
     pub peer_identity_verified: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub peer_identity_method: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub peer_public_key: Option<String>,
     pub encryption: String,
     pub payload_transited_musu_infra: bool,
     pub result: RouteAttemptResult,
@@ -442,6 +448,8 @@ mod tests {
             handshake_ms: Some(42),
             total_attempt_ms: 611,
             peer_identity_verified: true,
+            peer_identity_method: Some("quic_tls_cert_fingerprint".into()),
+            peer_public_key: Some("sha256:test".into()),
             encryption: "quic_tls_1_3".into(),
             payload_transited_musu_infra: false,
             result: RouteAttemptResult::Success,

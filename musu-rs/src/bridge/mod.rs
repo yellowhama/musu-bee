@@ -230,6 +230,19 @@ pub async fn run() -> Result<()> {
         let cloud = crate::cloud::MusuCloud::new(&cloud_base_url, Some(token.clone()));
         let my_name = cfg.node_name.clone();
         let advertised_public_url = services::advertised_bridge_http_url(&cfg);
+        let tls_cert_fingerprint =
+            match crate::install::tls::ensure_tls_certs(&musu_home, &cfg.node_name)
+                .and_then(|paths| crate::install::tls::cert_sha256_fingerprint(&paths.cert_path))
+            {
+                Ok(fingerprint) => Some(fingerprint),
+                Err(err) => {
+                    tracing::warn!(
+                        err = %err,
+                        "TLS identity fingerprint unavailable for cloud registration"
+                    );
+                    None
+                }
+            };
         let cloud_heartbeat_interval_secs = std::env::var("MUSU_CLOUD_HEARTBEAT_INTERVAL_SEC")
             .ok()
             .and_then(|value| value.parse::<u64>().ok())
@@ -267,6 +280,7 @@ pub async fn run() -> Result<()> {
         let token_clone = token.clone();
         let my_name_clone = cfg.node_name.clone();
         let registry_url = cloud_base_url.clone();
+        let tls_cert_fingerprint_clone = tls_cert_fingerprint.clone();
 
         tokio::spawn(async move {
             let _daemon_handle = _mdns_daemon; // keep alive
@@ -300,11 +314,16 @@ pub async fn run() -> Result<()> {
                 if let Some(ip) = tailscale_ip.as_ref() {
                     meta_obj["tailscale_ip"] = serde_json::json!(ip);
                 }
+                if let Some(fingerprint) = tls_cert_fingerprint_clone.as_ref() {
+                    meta_obj["cert_fingerprint"] = serde_json::json!(fingerprint);
+                    meta_obj["peer_public_key"] = serde_json::json!(fingerprint);
+                }
                 let meta = Some(meta_obj);
 
                 let req = crate::cloud::RegisterNodeRequest {
                     node_name: my_name.clone(),
                     public_url: advertised_public_url.clone(),
+                    cert_fingerprint: tls_cert_fingerprint_clone.clone(),
                     meta,
                     ..Default::default()
                 };
@@ -325,19 +344,25 @@ pub async fn run() -> Result<()> {
                             for node in siblings {
                                 if node.node_name != my_name {
                                     let mut peer_addr = public_url_to_addr(&node.public_url);
+                                    let mut node_meta =
+                                        node.meta.clone().unwrap_or_else(|| serde_json::json!({}));
+                                    if let Some(fingerprint) = node.cert_fingerprint.as_ref() {
+                                        node_meta["cert_fingerprint"] =
+                                            serde_json::json!(fingerprint);
+                                        node_meta["peer_public_key"] =
+                                            serde_json::json!(fingerprint);
+                                    }
 
                                     // Smart Fallback: If local machine has Tailscale AND remote peer has Tailscale IP,
                                     // prioritize routing over Tailscale.
-                                    if let Some(meta) = &node.meta {
-                                        if let Some(ip) =
-                                            meta.get("tailscale_ip").and_then(|v| v.as_str())
-                                        {
-                                            if tailscale_ip.is_some() {
-                                                peer_addr =
-                                                    replace_public_url_host(&node.public_url, ip)
-                                                        .unwrap_or_else(|| peer_addr.clone());
-                                                tracing::debug!(peer = %node.node_name, ip = %ip, "Upgrading peer routing to Tailscale IP");
-                                            }
+                                    if let Some(ip) =
+                                        node_meta.get("tailscale_ip").and_then(|v| v.as_str())
+                                    {
+                                        if tailscale_ip.is_some() {
+                                            peer_addr =
+                                                replace_public_url_host(&node.public_url, ip)
+                                                    .unwrap_or_else(|| peer_addr.clone());
+                                            tracing::debug!(peer = %node.node_name, ip = %ip, "Upgrading peer routing to Tailscale IP");
                                         }
                                     }
 
@@ -347,7 +372,7 @@ pub async fn run() -> Result<()> {
                                         addr: peer_addr.clone(),
                                         capabilities: vec![],
                                         last_heartbeat: Some(chrono::Utc::now()),
-                                        meta: node.meta.clone(),
+                                        meta: Some(node_meta),
                                     });
 
                                     if !list.peers.iter().any(|p| p.addr == peer_addr) {

@@ -3,9 +3,11 @@
 //! Auto-generates self-signed certificates for inter-node encryption.
 //! Certificates are stored in `~/.musu/tls/`.
 
+use std::io::BufReader;
 use std::path::{Path, PathBuf};
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
+use sha2::{Digest, Sha256};
 
 /// Paths for TLS certificate and key.
 pub struct TlsPaths {
@@ -86,4 +88,48 @@ pub fn ensure_tls_certs(musu_home: &Path, node_name: &str) -> Result<TlsPaths> {
     );
 
     Ok(paths)
+}
+
+/// Return the SHA-256 fingerprint of the first X.509 certificate in PEM form.
+///
+/// The fingerprint is computed over the certificate DER bytes and formatted as
+/// `sha256:<hex>`. It is identity material only; release-grade verification
+/// still requires the route transport to prove it connected to this key.
+pub fn cert_sha256_fingerprint(cert_path: &Path) -> Result<String> {
+    let file = std::fs::File::open(cert_path)?;
+    let mut reader = BufReader::new(file);
+    let cert = rustls_pemfile::certs(&mut reader)
+        .next()
+        .ok_or_else(|| anyhow!("no certificate found in {}", cert_path.display()))??;
+    let digest = Sha256::digest(cert.as_ref());
+    Ok(format!("sha256:{}", hex::encode(digest)))
+}
+
+pub fn default_cert_fingerprint(musu_home: &Path) -> Result<Option<String>> {
+    let paths = TlsPaths::new(musu_home);
+    if !paths.cert_path.exists() {
+        return Ok(None);
+    }
+    cert_sha256_fingerprint(&paths.cert_path).map(Some)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn generated_cert_has_stable_sha256_fingerprint_shape() {
+        let dir = std::env::temp_dir().join(format!("musu-tls-test-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+
+        let paths = ensure_tls_certs(&dir, "test-node").unwrap();
+        let fp1 = cert_sha256_fingerprint(&paths.cert_path).unwrap();
+        let fp2 = default_cert_fingerprint(&dir).unwrap().unwrap();
+
+        assert_eq!(fp1, fp2);
+        assert!(fp1.starts_with("sha256:"));
+        assert_eq!(fp1.len(), "sha256:".len() + 64);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }

@@ -31,6 +31,8 @@ const hardenedEvidence = {
   handshake_ms: 42,
   total_attempt_ms: 311,
   peer_identity_verified: true,
+  peer_identity_method: "quic_tls_cert_fingerprint",
+  peer_public_key: "sha256:test",
   encryption: "quic_tls_1_3",
   payload_transited_musu_infra: false,
   result: "success",
@@ -124,6 +126,22 @@ test("accepts legacy debug evidence but marks it non release grade", async () =>
     assert.equal(body.release_grade, false);
     assert.match(body.blockers.join(","), /peer_identity_unverified/);
     assert.match(body.blockers.join(","), /legacy_or_missing_encryption/);
+  });
+});
+
+test("requires identity proof material when evidence claims peer verification", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { POST } = await loadModule("missing-identity-proof");
+    const res = await POST(postReq({
+      ...hardenedEvidence,
+      peer_identity_method: undefined,
+      peer_public_key: undefined,
+    }));
+    assert.equal(res.status, 202);
+
+    const body = (await res.json()) as { release_grade: boolean; blockers: string[] };
+    assert.equal(body.release_grade, false);
+    assert.match(body.blockers.join(","), /missing_peer_identity_proof/);
   });
 });
 

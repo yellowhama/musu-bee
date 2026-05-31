@@ -2,7 +2,7 @@
 
 **Wiki ID**: wiki/524
 **Date**: 2026-05-31
-**Status**: Current implementation spec. Server-side rendezvous and route-evidence APIs exist, and Rust bridge runtime route attempts now create short-lived rendezvous sessions, seed sessions from recent node candidate cache, and can use returned target candidates before legacy direct forwarding.
+**Status**: Current implementation spec. Server-side rendezvous and route-evidence APIs exist, Rust bridge runtime route attempts now create short-lived rendezvous sessions, seed sessions from recent node candidate cache, can use returned target candidates before legacy direct forwarding, and exchange advertised TLS certificate fingerprints as peer identity material.
 
 ## Product Decision
 
@@ -100,6 +100,10 @@ Current rendezvous API behavior:
   list. Candidate updates also refresh a short-lived node candidate cache
   (`candidates_by_node` for local/dev file storage, KV candidate keys in hosted
   storage).
+- Rust candidates now set `public_key` to the local TLS certificate SHA-256
+  fingerprint when `~/.musu/tls/cert.pem` or `MUSU_TLS_CERT` is available.
+  This is identity material only; it is not considered verified until the route
+  transport proves the remote peer owns that key.
 - New sessions are seeded from that recent node candidate cache before they are
   returned, so a target that previously published LAN/Tailscale/direct
   candidates can influence the next route attempt without waiting for payload
@@ -127,8 +131,21 @@ Current rendezvous API behavior:
   cloud failure.
 - The current implementation is still not release-grade routing: the payload
   transport remains legacy HTTP bearer, target-side candidate publish is
-  best-effort, peer identity is not verified, QUIC/TLS proof is not wired, and
-  relay/tunnel fallback remains pending.
+  best-effort, advertised peer identity material is not verified by the
+  transport, QUIC/TLS proof is not wired, and relay/tunnel fallback remains
+  pending.
+
+Current route-evidence identity fields:
+
+- `peer_identity_verified`: still `false` for legacy HTTP bearer forwarding.
+- `peer_identity_method`: optional; currently records
+  `advertised_tls_cert_fingerprint_unverified` when a target candidate supplied
+  a TLS certificate fingerprint.
+- `peer_public_key`: optional; currently the advertised certificate fingerprint
+  such as `sha256:<hex>`.
+- `musu.pro` rejects release-grade claims where
+  `peer_identity_verified=true` but identity method or public key proof is
+  missing.
 
 ## Client Path Selection Rules
 
