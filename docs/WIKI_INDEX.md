@@ -230,6 +230,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | wiki/519 | 1.15.0-rc.1 multi-device release test plan | 2026-05-29 | `MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md` | active |
 | wiki/520 | Desktop release readiness audit | 2026-05-29 | `DESKTOP_RELEASE_READINESS_AUDIT_2026_05_29.md` | active |
 | wiki/521 | 1.15.0-rc.1 final qualitative evaluation, code audit, and next steps | 2026-05-29 | `RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md` | active |
+| wiki/522 | 1.15.0-rc.1 current status audit, product spec lock, code audit, and next steps | 2026-05-31 | `RELEASE_1_15_0_RC1_CURRENT_STATUS_AUDIT_2026_05_31.md` | active |
 | — | 1.15.0-rc.1 beta release checklist and smoke evidence | 2026-05-29 | `BETA_RELEASE_CHECKLIST_1_15_0_RC1.md` | active |
 | — | 1.15.0-rc.1 final operator gates | 2026-05-29 | `RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md` | active |
 | — | MUSU Microsoft Store release run card | 2026-05-29 | `MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md` | active |
@@ -293,8 +294,9 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | — | CoS memory note — second-PC return zip | 2026-05-30 | `memory/chief_of_staff/2026-05-30_1005_kst_second_pc_return_zip.md` | active |
 | — | CoS memory note — second-PC return zip single-machine refresh | 2026-05-30 | `memory/chief_of_staff/2026-05-30_1010_kst_second_pc_return_zip_single_machine_refresh.md` | active |
 | — | CoS memory note — second-PC return importer | 2026-05-30 | `memory/chief_of_staff/2026-05-30_2225_kst_second_pc_return_importer.md` | active |
+| — | CoS memory note — current status audit | 2026-05-31 | `memory/chief_of_staff/2026-05-31_0525_kst_current_status_audit.md` | active |
 
-State lock: `1.15.0-rc.1` is beta-ready for the single-machine Windows local operator path (`musu up` → dashboard doctor → Claude task smoke). A repeatable single-machine smoke script now passes with latest evidence `20260530-225842-HUGH_SECOND` on source commit `7c7d537`; `musu doctor` bridge health probing uses a 10s timeout and the smoke harness uses readiness retries plus `Start-Process` temp-file command capture to avoid PowerShell job/pipe hangs when `musu up` spawns a long-lived bridge. Multi-device test kit generation now works and includes the one-command second-PC release check wrapper plus `.local-build\second-pc-return\*.zip` return archive flow and importer, but clean/current second-PC MSIX install evidence and two-machine validation are still pending. Runtime/MSIX package readiness is true for submission attempt; the dedicated Tauri static launcher/status shell now builds, renders, and bundles, but it is not the full dashboard GUI. The release support mailbox is `musu@musu.pro`, sourced from root `SUPPORT_EMAIL`. Current qualitative completion is recorded in wiki/521: local single-machine beta ~92%, Store/operator-gate infrastructure ~88%, public desktop release ~68%, full desktop GUI ~55-60%.
+State lock: `1.15.0-rc.1` is beta-ready for the single-machine Windows local operator path (`musu up` → dashboard doctor → Claude task smoke). A repeatable single-machine smoke script now passes with latest evidence `20260530-225842-HUGH_SECOND` on source commit `7c7d537`; `musu doctor` bridge health probing uses a 10s timeout and the smoke harness uses readiness retries plus `Start-Process` temp-file command capture to avoid PowerShell job/pipe hangs when `musu up` spawns a long-lived bridge. Multi-device test kit generation now works and includes the one-command second-PC release check wrapper plus `.local-build\second-pc-return\*.zip` return archive flow and importer, but clean/current second-PC MSIX install evidence and two-machine validation are still pending. Runtime/MSIX package readiness is true for submission attempt; the dedicated Tauri static launcher/status shell now builds, renders, and bundles, but it is not the full dashboard GUI. The release support mailbox is `musu@musu.pro`, sourced from root `SUPPORT_EMAIL`. Current qualitative completion is recorded in wiki/522: local single-machine beta ~92%, Store/operator-gate infrastructure ~90%, public desktop release ~68%, full desktop GUI ~55-60%.
 
 ---
 
@@ -333,6 +335,7 @@ These docs capture the post-install / post-review conclusion that Windows packag
 | Store launch and promotion plan | 2026-05-29 | `STORE_LAUNCH_AND_PROMOTION_PLAN_2026_05_29.md` | active |
 | Store submission metadata | 2026-05-29 | `STORE_SUBMISSION_METADATA_2026_05_29.md` | active |
 | Final qualitative audit and next steps | 2026-05-29 | `RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md` | active |
+| Current status audit and next steps | 2026-05-31 | `RELEASE_1_15_0_RC1_CURRENT_STATUS_AUDIT_2026_05_31.md` | active |
 | Final operator gates | 2026-05-29 | `RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md` | active |
 | Release operator handoff card | 2026-05-29 | `RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md` | active |
 | musu-system integration assessment | 2026-05-29 | `MUSU_SYSTEM_INTEGRATION_ASSESSMENT_2026_05_29.md` | active |
@@ -359,7 +362,9 @@ These docs capture the post-install / post-review conclusion that Windows packag
 
 2026-05-30 post-preview-fallback single-machine evidence refresh: after documenting the second-PC return preview fallback, single-machine smoke was rerun from commit `7c7d537`. Current evidence `20260530-225842-HUGH_SECOND` verifies with dashboard output `MUSU_RELEASE_SMOKE_OK_20260530_2258`, CLI route `MUSU_CLI_ROUTE_OK_20260530_2258`, task `69d71cea-dec0-47af-a0bb-fdde166c080e`, bridge `http://127.0.0.1:3718`, `doctor_overall=warn`, and dashboard doctor `ok`.
 
-2026-05-29 final qualitative update: `RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md` (wiki/521) is the current qualitative report, code audit, product spec update, and next-step roadmap. Scoped audit found no internal release-blocking code issue in the support/packet/evidence-gate surface; public release remains No-Go only because the four external evidence gates are not recorded. Final operator packets now include and verify wiki/521.
+2026-05-31 current status audit: `RELEASE_1_15_0_RC1_CURRENT_STATUS_AUDIT_2026_05_31.md` (wiki/522) is the current qualitative report, product spec lock, code audit, and next-step roadmap. It supersedes wiki/521 for current status while keeping wiki/521 as historical audit log. Final operator packet generation and verification now include wiki/522. Current decision remains No-Go only because the four external evidence gates are missing.
+
+2026-05-29 final qualitative update: `RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md` (wiki/521) is the historical qualitative report, code audit, product spec update, and next-step roadmap now superseded by wiki/522 for current status. Scoped audit found no internal release-blocking code issue in the support/packet/evidence-gate surface; public release remains No-Go only because the four external evidence gates are not recorded. Final operator packets include wiki/521 for history and wiki/522 for current status.
 
 2026-05-29 second-PC handoff hardening: final packet verification now fails if the bundled multi-device kit omits the local-sideload MSIX, public signing cert, install/verify script, MSIX install evidence capture/verify/record scripts, second-PC handoff collector, multi-device smoke script, or multi-device evidence verify/record scripts. The kit README must also mention install evidence capture and multi-device smoke evidence capture.
 
