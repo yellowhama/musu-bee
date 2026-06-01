@@ -461,3 +461,15 @@ transport proof, failed route kind, and false direct/relay payload-transit
 semantics. Current public release remains No-Go until the real second-PC
 runtime/route evidence, KV-backed live `musu.pro` P2P evidence,
 `musu@musu.pro` mailbox evidence, and Store evidence exist.
+
+2026-06-02 08:17 KST frontend polling timeout hardening addendum:
+`musu-bee/src/lib/useLowDutyPolling.ts` now accepts `taskTimeoutMs` and passes a
+combined cancellation/timeout `AbortSignal` to each configured poll task.
+Dashboard aggregate refresh, dashboard relay-token lookup, service health,
+device discovery, node mesh, process, agents surface, and bridge-task SSE
+fallback polling now have bounded 5s/8s/10s task timeouts. Validation passed
+runtime-polling contract 7/7, `npm run typecheck`, `npm run build`, and
+`npm run lint -- --quiet`. This directly narrows the frontend polling/refetch
+busy-loop candidate, but it is runtime source: fresh MSIX install plus primary
+smoke/process/desktop-open CPU/matrix evidence must be rerun after commit before
+current-HEAD release evidence can be claimed again.

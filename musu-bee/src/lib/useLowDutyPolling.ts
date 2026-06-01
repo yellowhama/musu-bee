@@ -9,6 +9,7 @@ interface LowDutyPollingOptions {
   visibleOnly?: boolean;
   maxBackoffMs?: number;
   backoffMultiplier?: number;
+  taskTimeoutMs?: number;
 }
 
 type PollTask = (signal: AbortSignal) => Promise<void> | void;
@@ -28,6 +29,7 @@ export function useLowDutyPolling(task: PollTask, options: LowDutyPollingOptions
     visibleOnly = true,
     maxBackoffMs = Math.max(intervalMs, 120_000),
     backoffMultiplier = 2,
+    taskTimeoutMs,
   } = options;
 
   useEffect(() => {
@@ -69,8 +71,15 @@ export function useLowDutyPolling(task: PollTask, options: LowDutyPollingOptions
 
       inFlight = true;
       controller = new AbortController();
+      const timeoutSignal =
+        typeof taskTimeoutMs === "number" && taskTimeoutMs > 0
+          ? AbortSignal.timeout(taskTimeoutMs)
+          : null;
+      const taskSignal = timeoutSignal
+        ? AbortSignal.any([controller.signal, timeoutSignal])
+        : controller.signal;
       try {
-        await taskRef.current(controller.signal);
+        await taskRef.current(taskSignal);
         failures = 0;
       } catch {
         failures = Math.min(failures + 1, 8);
@@ -100,5 +109,5 @@ export function useLowDutyPolling(task: PollTask, options: LowDutyPollingOptions
       controller?.abort();
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [backoffMultiplier, enabled, immediate, intervalMs, maxBackoffMs, visibleOnly]);
+  }, [backoffMultiplier, enabled, immediate, intervalMs, maxBackoffMs, taskTimeoutMs, visibleOnly]);
 }

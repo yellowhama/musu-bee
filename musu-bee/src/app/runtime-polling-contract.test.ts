@@ -49,6 +49,7 @@ test("dashboard refresh loop stays on shared low-duty polling", () => {
   assert.doesNotMatch(text, /document\.addEventListener\("visibilitychange"/);
   assert.match(text, /intervalMs:\s*DASHBOARD_REFRESH_VISIBLE_MS/);
   assert.match(text, /maxBackoffMs:\s*DASHBOARD_REFRESH_HIDDEN_MS/);
+  assert.match(text, /taskTimeoutMs:\s*DASHBOARD_REFRESH_TIMEOUT_MS/);
 });
 
 test("node panel refresh loop stays on shared low-duty polling", () => {
@@ -58,4 +59,12 @@ test("node panel refresh loop stays on shared low-duty polling", () => {
   assert.doesNotMatch(text, /document\.addEventListener\("visibilitychange"/);
   assert.match(text, /intervalMs:\s*NODE_PANEL_REFRESH_VISIBLE_MS/);
   assert.match(text, /maxBackoffMs:\s*NODE_PANEL_REFRESH_HIDDEN_MS/);
+});
+
+test("shared low-duty polling supports bounded task timeout cancellation", () => {
+  const text = source("src/lib/useLowDutyPolling.ts");
+
+  assert.match(text, /taskTimeoutMs\?:\s*number/);
+  assert.match(text, /AbortSignal\.timeout\(taskTimeoutMs\)/);
+  assert.match(text, /AbortSignal\.any/);
 });

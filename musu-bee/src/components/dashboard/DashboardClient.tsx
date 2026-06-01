@@ -31,6 +31,8 @@ interface RelayTokenResponse {
 const DASHBOARD_REFRESH_VISIBLE_MS = 30_000;
 const DASHBOARD_REFRESH_HIDDEN_MS = 120_000;
 const WATCHDOG_FETCH_TIMEOUT_MS = 5_000;
+const DASHBOARD_REFRESH_TIMEOUT_MS = 10_000;
+const RELAY_TOKEN_FETCH_TIMEOUT_MS = 5_000;
 
 function boundedAbortSignal(signal: AbortSignal | undefined, timeoutMs: number) {
   const timeoutSignal = AbortSignal.timeout(timeoutMs);
@@ -127,10 +129,14 @@ export default function DashboardClient({ nodes }: Props) {
   const RETRY_DELAY_MS = 5000;
 
   useEffect(() => {
-    fetch("/api/account/relay-token")
+    const controller = new AbortController();
+    fetch("/api/account/relay-token", {
+      signal: boundedAbortSignal(controller.signal, RELAY_TOKEN_FETCH_TIMEOUT_MS),
+    })
       .then((r) => (r.ok ? r.json() : null))
-      .then((data: RelayTokenResponse | null) => { if (data) setRelayInfo(data); })
+      .then((data: RelayTokenResponse | null) => { if (!controller.signal.aborted && data) setRelayInfo(data); })
       .catch(() => {});
+    return () => controller.abort();
   }, []);
 
   const clearRetry = useCallback(() => {
@@ -372,6 +378,7 @@ export default function DashboardClient({ nodes }: Props) {
   useLowDutyPolling(refreshDashboard, {
     intervalMs: DASHBOARD_REFRESH_VISIBLE_MS,
     maxBackoffMs: DASHBOARD_REFRESH_HIDDEN_MS,
+    taskTimeoutMs: DASHBOARD_REFRESH_TIMEOUT_MS,
   });
 
   return (

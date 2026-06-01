@@ -12,6 +12,7 @@ export interface ServiceHealth {
 }
 
 const POLL_INTERVAL_MS = 15_000;
+const POLL_TIMEOUT_MS = 5_000;
 
 async function pingService(apiPath: string, signal: AbortSignal): Promise<ServiceStatus> {
   try {
@@ -42,7 +43,7 @@ export function useServiceHealth(): ServiceHealth {
         ]);
         if (!signal.aborted) setHealth({ port, bridge, worker });
     },
-    { enabled: !isEmbedded, intervalMs: POLL_INTERVAL_MS },
+    { enabled: !isEmbedded, intervalMs: POLL_INTERVAL_MS, taskTimeoutMs: POLL_TIMEOUT_MS },
   );
 
   return health;

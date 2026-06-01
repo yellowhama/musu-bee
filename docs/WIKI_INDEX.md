@@ -993,5 +993,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `musu.release_evidence_verifier_regression.v1`,
   `test-release-evidence-verifiers.ps1`, `20260602-080146`,
   `owner_scope_verified=false`, and `route_kind=failed`.
+- 2026-06-02 frontend polling timeout hardening:
+  `useLowDutyPolling` now supports `taskTimeoutMs`; dashboard aggregate refresh,
+  relay-token lookup, service health, device discovery, node mesh, process,
+  agents surface, and bridge-task SSE fallback polling now have bounded
+  5s/8s/10s task timeouts. Search terms should include `GOAL v264`,
+  `wiki/539`, `taskTimeoutMs`, `AbortSignal.timeout`, `AbortSignal.any`,
+  `DASHBOARD_REFRESH_TIMEOUT_MS`, `POLL_TIMEOUT_MS`, and
+  `frontend polling timeout`.
+- 2026-06-02 index refresh after frontend polling timeout hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1278 files and 2217 symbols after wiki/539, frontend polling timeout wiring,
+  runtime-polling contract updates, BETA/WIKI/GOAL/current-status updates, and
+  CoS memory `2026-06-02_0817_kst_frontend_polling_timeout_hardening.md`.
+  Search terms should include `GOAL v265`, `1278 files`, `taskTimeoutMs`,
+  `AbortSignal.timeout`, `POLL_TIMEOUT_MS`, and `frontend polling timeout`.
 
 **End of WIKI_INDEX.md.**

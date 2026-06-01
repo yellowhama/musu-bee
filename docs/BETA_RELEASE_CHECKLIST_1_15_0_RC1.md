@@ -520,6 +520,17 @@ Tauri desktop shell evidence:
   the verifier policy while those external gates are still pending. The harness
   is included in desktop readiness script coverage and in the exact
   non-runtime-affecting evidence freshness allowlist.
+- 2026-06-02 08:17 KST frontend polling timeout hardening:
+  `useLowDutyPolling` now supports `taskTimeoutMs`, and major dashboard/desktop
+  frontend pollers have bounded task timeouts: dashboard aggregate refresh
+  `10s`, relay-token lookup `5s`, service health `5s`, device discovery `5s`,
+  node mesh `8s`, process polling `5s`, agents surface `8s`, and task SSE
+  fallback `8s`. Validation passed runtime-polling contract 7/7,
+  `npm run typecheck`, `npm run build`, and `npm run lint -- --quiet`. Because
+  this changes runtime source, the current packaged primary evidence becomes
+  stale after commit; rebuild/install MSIX and rerun smoke, desktop
+  single-instance, process ownership, desktop-open CPU, and matrix evidence
+  before treating current HEAD as release-evidence-current.
 
 Release candidate manifest:
 

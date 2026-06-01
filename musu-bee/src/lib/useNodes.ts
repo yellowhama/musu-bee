@@ -35,6 +35,7 @@ export interface UseNodesReturn {
 }
 
 const POLL_INTERVAL_MS = 30_000;
+const POLL_TIMEOUT_MS = 8_000;
 
 export function useNodes(): UseNodesReturn {
   const [nodes, setNodes] = useState<Array<{ name: string; status: string }>>([]);
@@ -72,7 +73,7 @@ export function useNodes(): UseNodesReturn {
     mountedRef.current = true;
       await fetchNodes(signal);
     },
-    { intervalMs: POLL_INTERVAL_MS },
+    { intervalMs: POLL_INTERVAL_MS, taskTimeoutMs: POLL_TIMEOUT_MS },
   );
 
   return { nodes, loading, error, refetch: fetchNodes };

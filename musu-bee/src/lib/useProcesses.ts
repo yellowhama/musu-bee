@@ -24,6 +24,7 @@ export interface UseProcessesReturn {
 }
 
 const POLL_INTERVAL_MS = 10_000;
+const POLL_TIMEOUT_MS = 5_000;
 
 export function useProcesses(deviceId = "local", nameFilter?: string): UseProcessesReturn {
   const [processes, setProcesses] = useState<ProcessInfo[]>([]);
@@ -58,7 +59,7 @@ export function useProcesses(deviceId = "local", nameFilter?: string): UseProces
     void fetchProcesses();
   }, [fetchProcesses]);
 
-  useLowDutyPolling(fetchProcesses, { intervalMs: POLL_INTERVAL_MS });
+  useLowDutyPolling(fetchProcesses, { intervalMs: POLL_INTERVAL_MS, taskTimeoutMs: POLL_TIMEOUT_MS });
 
   const killProcess = useCallback(
     async (pid: number, targetDeviceId: string, force = false) => {

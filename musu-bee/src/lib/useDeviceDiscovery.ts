@@ -10,6 +10,7 @@ export interface UseDeviceDiscoveryReturn {
 }
 
 const POLL_INTERVAL_MS = 15_000;
+const POLL_TIMEOUT_MS = 5_000;
 
 function itemToDevice(item: DeviceStatusItem): Device {
   return {
@@ -51,7 +52,7 @@ export function useDeviceDiscovery(): UseDeviceDiscoveryReturn {
         throw err;
       }
     },
-    { intervalMs: POLL_INTERVAL_MS },
+    { intervalMs: POLL_INTERVAL_MS, taskTimeoutMs: POLL_TIMEOUT_MS },
   );
 
   return { devices };

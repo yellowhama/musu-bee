@@ -78,6 +78,7 @@ export default function TasksPanel({ companyId }: TasksPanelProps = {}) {
 
   const mountedRef = useRef(true);
   const LIMIT = 20;
+  const POLL_TIMEOUT_MS = 8_000;
 
   const buildUrl = useCallback(
     (cursor?: string | null) => {
@@ -181,7 +182,11 @@ export default function TasksPanel({ companyId }: TasksPanelProps = {}) {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useLowDutyPolling(doFetch, { enabled: sseFallbackEnabled, intervalMs: 30_000 });
+  useLowDutyPolling(doFetch, {
+    enabled: sseFallbackEnabled,
+    intervalMs: 30_000,
+    taskTimeoutMs: POLL_TIMEOUT_MS,
+  });
 
   const handleCancel = useCallback(async (taskId: string) => {
     setCancelling((prev) => new Set(prev).add(taskId));

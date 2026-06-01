@@ -630,6 +630,15 @@ Current Store path truth:
   fixtures pass, while non-`musu.pro` base URL, unverified owner scope, relay
   default data path, non-release-grade transport proof, failed route kind, and
   false payload transit semantics fail as expected.
+- Frontend polling timeout hardening: `useLowDutyPolling` now accepts
+  `taskTimeoutMs` and combines hook cancellation with `AbortSignal.timeout`.
+  Dashboard aggregate refresh, relay-token lookup, service health, device
+  discovery, node mesh, process, agents surface, and bridge-task SSE fallback
+  polling now have bounded 5s/8s/10s task timeouts. Validation passed
+  runtime-polling contract 7/7, `npm run typecheck`, `npm run build`, and
+  `npm run lint -- --quiet`. Because this is runtime source, fresh MSIX install
+  plus primary smoke/process/CPU/matrix evidence must be rerun before claiming
+  release-grade current-HEAD evidence.
 - Remote release gates must be rechecked after the last pushed commit before public handoff; latest recorded runs were green, and live `https://musu.pro/privacy` plus `/support` passed public metadata verification with `musu@musu.pro`.
 - old 2026-05-27 package: template only (`1.13.0.0`, do not submit as current)
 - Tauri shell: dedicated static runtime launcher/status shell now builds to `musu-bee/out`, bundles as MSI/NSIS through `npm run tauri:build`, and is audited as `desktop_shell_ready=True`; it is still not the full dashboard GUI
@@ -653,6 +662,7 @@ Canonical reference:
 - `docs/PROCESS_ATTRIBUTION_NODE_COUNT_AUDIT_2026_06_02.md` (wiki/536)
 - `docs/RELEASE_1_15_0_RC1_FRESH_MDNS_RUNTIME_EVIDENCE_AUDIT_2026_06_02.md` (wiki/537)
 - `docs/RELEASE_1_15_0_RC1_EVIDENCE_VERIFIER_REGRESSION_AUDIT_2026_06_02.md` (wiki/538)
+- `docs/RELEASE_1_15_0_RC1_FRONTEND_POLLING_TIMEOUT_AUDIT_2026_06_02.md` (wiki/539)
 - `docs/P2P_CONTROL_PLANE_MUSU_PRO_NEXT_ACTIONS_2026_06_02.md`
 - `docs/RELEASE_1_15_0_RC1_QUAL_AUDIT_NEXT_STEPS_2026_06_01.md` (wiki/527)
 - `docs/RUNTIME_RELAY_FALLBACK_NEXT_STEPS_2026_06_01.md` (wiki/530)

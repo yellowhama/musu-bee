@@ -18,6 +18,7 @@ const EMPTY_SUMMARY: AgentsSurfaceSnapshot["summary"] = {
 };
 const AGENTS_SURFACE_REFRESH_VISIBLE_MS = 30_000;
 const AGENTS_SURFACE_REFRESH_HIDDEN_MS = 120_000;
+const AGENTS_SURFACE_FETCH_TIMEOUT_MS = 8_000;
 
 export function useAgentsSurface(onHandoff?: (newBoss: string) => void): UseAgentsSurfaceReturn {
   const [agentsSurface, setAgentsSurface] = useState<AgentsSurfaceSnapshot | null>(null);
@@ -61,6 +62,7 @@ export function useAgentsSurface(onHandoff?: (newBoss: string) => void): UseAgen
   useLowDutyPolling(fetchAgentsSurface, {
     intervalMs: AGENTS_SURFACE_REFRESH_VISIBLE_MS,
     maxBackoffMs: AGENTS_SURFACE_REFRESH_HIDDEN_MS,
+    taskTimeoutMs: AGENTS_SURFACE_FETCH_TIMEOUT_MS,
   });
 
   return { agentsSurface };
