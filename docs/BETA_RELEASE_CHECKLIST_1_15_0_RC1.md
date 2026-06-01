@@ -438,6 +438,24 @@ Tauri desktop shell evidence:
   run synced `MUSU_P2P_CONTROL_TOKEN_SHA256S`, skipped missing KV/relay env
   values by name, built production, and aliased `https://musu.pro`. The
   workflow is valid; KV provisioning remains the blocker.
+- 2026-06-02 04:48 KST latest HEAD redeploy: manual Vercel production run
+  `26777905910` succeeded for commit
+  `00694a2e766da8e0a79dd6dd7bb82fdadb6c39d1`. Live browser QA against
+  `https://musu.pro` passed on `/`, `/landing`, `/pricing`, and `/install` for
+  desktop/mobile scroll, no horizontal overflow, favicon-header logo, and
+  `#24C8DB` emerald accent. No website UI deploy remains pending for the
+  scroll/logo/accent request.
+- 2026-06-02 04:56 KST release-gate freshness audit: the apparent drop to
+  `single_machine=false`, runtime idle CPU `0/2`, and matrix `0/2` after the
+  hosted P2P status script was a gate-classification problem. The only
+  non-doc deltas since the latest primary evidence were the deploy workflow and
+  the P2P env status preflight, neither of which changes local desktop runtime
+  behavior. The verifiers now allow exactly those docs/status-only deltas; full
+  go/no-go returns `single_machine_verified=true`, runtime idle CPU
+  `1/2 [HUGH_SECOND]`, and runtime CPU matrix `1/2 [HUGH_SECOND]`. Public
+  release remains No-Go pending second-PC evidence, release-grade multi-device
+  route evidence, KV-backed P2P control-plane proof, `musu@musu.pro` mailbox
+  proof, and Microsoft Store evidence.
 
 Release candidate manifest:
 

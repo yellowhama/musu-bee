@@ -492,6 +492,28 @@ Current Store path truth:
   `26776909221` and `Deploy musu-bee to Vercel` run `26776909275`; deploy
   synced `MUSU_P2P_CONTROL_TOKEN_SHA256S`, skipped missing KV/relay env values,
   and aliased `https://musu.pro`.
+- Manual production redeploy for latest HEAD: `Deploy musu-bee to Vercel` run
+  `26777905910` deployed commit `00694a2e766da8e0a79dd6dd7bb82fdadb6c39d1`
+  to `https://musu.pro`. Live browser QA passed on `/`, `/landing`,
+  `/pricing`, and `/install` across desktop `1280x720` and mobile `390x844`:
+  pages scroll, no horizontal overflow, visible logo source contains
+  `favicon-header.png`, and `--musu-color-brand-emerald=#24C8DB` with emerald
+  accent color `36, 200, 219`.
+- Release-gate freshness correction: local desktop smoke/CPU evidence should
+  not be invalidated by docs, deploy workflow metadata, or the hosted P2P env
+  status preflight script. The go/no-go/verifier scripts now allow only
+  `docs/*`, `.github/workflows/deploy-musu-bee.yml`, and
+  `scripts/windows/show-musu-pro-p2p-env-status.ps1` between the evidence commit
+  and current HEAD. After the correction, go/no-go reports
+  `single_machine_verified=true`, runtime idle CPU `1/2 [HUGH_SECOND]`, runtime
+  CPU matrix `1/2 [HUGH_SECOND]`, and public release still No-Go because
+  second-PC, multi-device route, KV-backed P2P, `musu@musu.pro`, and Store
+  evidence remain open.
+- Indexer refreshed after the latest redeploy/freshness-gate documentation:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1257 files and 2214 symbols. Search terms include `26777905910`,
+  `Test-DocumentationOrStatusOnlyGitDelta`, `docs/status-only`,
+  `single_machine_verified=true`, and `runtime CPU scenario matrix 1/2`.
 - Remote release gates must be rechecked after the last pushed commit before public handoff; latest recorded runs were green, and live `https://musu.pro/privacy` plus `/support` passed public metadata verification with `musu@musu.pro`.
 - old 2026-05-27 package: template only (`1.13.0.0`, do not submit as current)
 - Tauri shell: dedicated static runtime launcher/status shell now builds to `musu-bee/out`, bundles as MSI/NSIS through `npm run tauri:build`, and is audited as `desktop_shell_ready=True`; it is still not the full dashboard GUI

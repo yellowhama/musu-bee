@@ -875,5 +875,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   docs, beta checklist, WIKI, GOAL, and CoS memory. Search terms should include
   `GOAL v241`, `1256 files`, `musu.p2p_control_plane_env_status.v1`,
   `missing_kv_rest_api_token`, and `show-musu-pro-p2p-env-status.ps1`.
+- 2026-06-02 latest HEAD `musu.pro` manual redeploy and freshness-gate fix:
+  Vercel production run `26777905910` deployed commit `00694a2e` to
+  `https://musu.pro`; live browser QA passed for `/`, `/landing`, `/pricing`,
+  and `/install` on desktop/mobile with scroll, no horizontal overflow,
+  `favicon-header.png`, `--musu-color-brand-emerald=#24C8DB`, and emerald
+  accent `36, 200, 219`. `write-release-go-no-go.ps1`,
+  `verify-single-machine-evidence.ps1`, and
+  `verify-runtime-cpu-scenario-matrix.ps1` now treat only docs, the deploy
+  workflow, and `show-musu-pro-p2p-env-status.ps1` as non-runtime-affecting
+  evidence freshness deltas. Search terms should include `26777905910`,
+  `00694a2e`, `Test-DocumentationOrStatusOnlyGitDelta`,
+  `single_machine_verified=true`, `runtime idle CPU 1/2`, and
+  `runtime CPU scenario matrix 1/2`.
+- 2026-06-02 index refresh after latest redeploy/freshness docs:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1257 files and 2214 symbols after the live deploy QA note, freshness-gate
+  script updates, BETA/WIKI/WIKI_INDEX/GOAL updates, and CoS memory
+  `2026-06-02_0458_kst_musu_pro_redeploy_freshness_gate.md`. Search terms
+  should include `GOAL v243`, `GOAL v244`, `26777905910`, `1257 files`,
+  `docs/status-only`, `runtime idle CPU 1/2`, and
+  `runtime CPU scenario matrix 1/2`.
 
 **End of WIKI_INDEX.md.**

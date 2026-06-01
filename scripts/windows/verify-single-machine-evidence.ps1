@@ -94,7 +94,22 @@ function Try-ParseDateTimeOffset {
     }
 }
 
-function Test-DocumentationOnlyGitDelta {
+function Test-ReleaseEvidenceFreshnessAllowedPath {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $normalizedPath = $Path.Replace("\", "/")
+    if ($normalizedPath -like "docs/*") {
+        return $true
+    }
+
+    $statusOnlyScripts = @(
+        ".github/workflows/deploy-musu-bee.yml",
+        "scripts/windows/show-musu-pro-p2p-env-status.ps1"
+    )
+    return ($statusOnlyScripts -contains $normalizedPath)
+}
+
+function Test-DocumentationOrStatusOnlyGitDelta {
     param(
         [Parameter(Mandatory = $true)][string]$FromCommit,
         [Parameter(Mandatory = $true)][string]$ToCommit
@@ -113,11 +128,8 @@ function Test-DocumentationOnlyGitDelta {
     }
 
     $changedPaths = @($changedPathsText -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
-    $nonDocumentationPaths = @($changedPaths | Where-Object {
-        $path = ([string]$_).Replace("\", "/")
-        -not ($path -like "docs/*")
-    })
-    return ($nonDocumentationPaths.Count -eq 0)
+    $runtimeAffectingPaths = @($changedPaths | Where-Object { -not (Test-ReleaseEvidenceFreshnessAllowedPath -Path ([string]$_)) })
+    return ($runtimeAffectingPaths.Count -eq 0)
 }
 
 if (-not (Test-Path -LiteralPath $EvidencePath)) {
@@ -167,15 +179,15 @@ Add-CheckFromCondition "version" (-not [string]::IsNullOrWhiteSpace($version)) "
 Add-CheckFromCondition "expected version" ($version -eq $ExpectedVersion) "version matches $ExpectedVersion" "version is '$version', expected '$ExpectedVersion'"
 Add-CheckFromCondition "git commit" ($gitCommit -match "^[0-9a-f]{40}$") "git commit is present" "git commit is missing or invalid"
 $gitCommitMatchesExpected = ($gitCommit -eq $ExpectedGitCommit)
-$documentationOnlyGitDelta = $false
+$documentationOrStatusOnlyGitDelta = $false
 if (-not $gitCommitMatchesExpected -and $AllowDocumentationOnlyGitDelta) {
-    $documentationOnlyGitDelta = Test-DocumentationOnlyGitDelta -FromCommit $gitCommit -ToCommit $ExpectedGitCommit
+    $documentationOrStatusOnlyGitDelta = Test-DocumentationOrStatusOnlyGitDelta -FromCommit $gitCommit -ToCommit $ExpectedGitCommit
 }
 Add-CheckFromCondition `
     "expected git commit" `
-    ($gitCommitMatchesExpected -or $documentationOnlyGitDelta) `
-    "git commit matches current HEAD $ExpectedGitCommit or differs only by documentation/evidence commits" `
-    "git commit is '$gitCommit', expected current HEAD '$ExpectedGitCommit' with no non-documentation changes after the evidence commit"
+    ($gitCommitMatchesExpected -or $documentationOrStatusOnlyGitDelta) `
+    "git commit matches current HEAD $ExpectedGitCommit or differs only by documentation/evidence/status-only commits" `
+    "git commit is '$gitCommit', expected current HEAD '$ExpectedGitCommit' with no runtime-affecting changes after the evidence commit"
 Add-CheckFromCondition "started timestamp" ($null -ne $startedAt) "started_at parses" "started_at is missing or invalid"
 Add-CheckFromCondition "completed timestamp" ($null -ne $completedAt) "completed_at parses" "completed_at is missing or invalid"
 if ($startedAt -and $completedAt) {

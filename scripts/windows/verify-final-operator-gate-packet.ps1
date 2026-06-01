@@ -265,7 +265,7 @@ try {
             "packet go/no-go does not block on Store artifact plus local installed MSIX desktop entrypoint evidence"
         Add-CheckFromCondition `
             "go no-go runtime idle CPU gate" `
-            ($goNoGoScript -like "*runtime_idle_cpu_verified*" -and $goNoGoScript -like "*runtime-idle-cpu*" -and $goNoGoScript -like "*MinRuntimeIdleCpuMachineCount*" -and $goNoGoScript -like "*RequiredRuntimeIdleCpuScenario*" -and $goNoGoScript -like "*require_owned_webview2*" -and $goNoGoScript -like "*max_owned_process_count*" -and $goNoGoScript -like "*max_owned_webview2_process_count*" -and $goNoGoScript -like "*max_total_working_set_mb*" -and $goNoGoScript -like "*memory_totals_by_role_mb*" -and $goNoGoScript -like "*ExpectedGitCommit*" -and $goNoGoScript -like "*Test-DocumentationOnlyGitDelta*") `
+            ($goNoGoScript -like "*runtime_idle_cpu_verified*" -and $goNoGoScript -like "*runtime-idle-cpu*" -and $goNoGoScript -like "*MinRuntimeIdleCpuMachineCount*" -and $goNoGoScript -like "*RequiredRuntimeIdleCpuScenario*" -and $goNoGoScript -like "*require_owned_webview2*" -and $goNoGoScript -like "*max_owned_process_count*" -and $goNoGoScript -like "*max_owned_webview2_process_count*" -and $goNoGoScript -like "*max_total_working_set_mb*" -and $goNoGoScript -like "*memory_totals_by_role_mb*" -and $goNoGoScript -like "*ExpectedGitCommit*" -and $goNoGoScript -like "*Test-ReleaseEvidenceFreshnessAllowedPath*" -and $goNoGoScript -like "*Test-DocumentationOrStatusOnlyGitDelta*") `
             "packet go/no-go blocks on current runtime idle CPU and resource-budget evidence" `
             "packet go/no-go does not block on runtime idle CPU and resource-budget evidence"
         Add-CheckFromCondition `
