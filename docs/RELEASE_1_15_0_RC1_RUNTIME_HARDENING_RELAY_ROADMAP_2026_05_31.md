@@ -765,5 +765,8 @@ Public-site follow-up:
 - The homepage `Open App` CTA also uses the emerald `#24C8DB` point color.
 - Local validation passed `npm run typecheck`, public-site Playwright 8/8, and
   `npm run build`.
-- This must deploy to `musu.pro` after push, followed by live QA on `/`,
-  `/landing`, `/pricing`, and `/install`.
+- This deployed to `musu.pro` in commit
+  `0ed3673a27b058ad1fc5d050434bf8435cb21e5d`. GitHub deploy run
+  `26764307713`, Tests run `26764309477`, and E2E run `26764310368` passed.
+  Production Playwright QA also passed 8/8 on `/`, `/landing`, `/pricing`, and
+  `/install`.

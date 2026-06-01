@@ -329,6 +329,12 @@ Tauri desktop shell evidence:
   `#24C8DB` point color. Local `npm run typecheck`, public-site Playwright
   8/8, and `npm run build` passed. Push should trigger `musu.pro` deployment;
   run live QA after Vercel production completes.
+- 2026-06-02 00:27 KST public-site deploy verification: commit `0ed3673a`
+  passed Vercel production deploy run `26764307713`, GitHub `Tests` run
+  `26764309477`, and `E2E Tests - musu-bee` run `26764310368`. Production
+  Playwright QA against `https://musu.pro` passed 8/8 on `/`, `/landing`,
+  `/pricing`, and `/install` for desktop/mobile scroll, no horizontal overflow,
+  favicon-mark logo, and `#24C8DB` accent.
 
 Release candidate manifest:
 

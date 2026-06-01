@@ -296,3 +296,12 @@ rules. Local validation passed `npm run typecheck`,
 `https://musu.pro`, then live scroll/logo/accent QA should be rerun. The desktop
 single-instance fix is separate from the website deploy and requires MSIX
 rebuild/install evidence.
+
+2026-06-02 00:27 KST public-site deployment verification: commit
+`0ed3673a27b058ad1fc5d050434bf8435cb21e5d` deployed to `musu.pro`.
+GitHub `Deploy musu-bee to Vercel` run `26764307713`, `Tests` run
+`26764309477`, and `E2E Tests - musu-bee` run `26764310368` all passed.
+Production Playwright QA against `https://musu.pro` also passed 8/8 for `/`,
+`/landing`, `/pricing`, and `/install` on desktop/mobile, verifying actual
+scroll movement, no horizontal overflow, favicon-mark logo source, emerald
+accent marker, and `--musu-color-brand-emerald=#24C8DB`.

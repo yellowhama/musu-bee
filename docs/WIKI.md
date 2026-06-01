@@ -340,14 +340,21 @@ Current Store path truth:
   favicon mark only, `.musu-public-scroll-root` has more explicit scrolling
   rules, and the homepage `Open App` CTA uses the emerald `#24C8DB` point
   color. Local validation passed `npm run typecheck`, public-site Playwright
-  8/8, and `npm run build`. This source change should deploy to `musu.pro`
-  after push and then be live-QA'd again.
+  8/8, and `npm run build`. Commit `0ed3673a` deployed this to `musu.pro`;
+  Vercel deploy run `26764307713`, Tests run `26764309477`, E2E run
+  `26764310368`, and production Playwright QA 8/8 passed on `/`, `/landing`,
+  `/pricing`, and `/install`.
 - Indexer refreshed after the 2026-06-02 desktop single-instance and
   public-site follow-up: `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
   indexed 1218 files and 2213 symbols. Search terms should
   include `tauri-plugin-single-instance`, `desktop repeated activation`,
   `favicon mark only`, `scrollbar-gutter: stable`, `100svh`, `#24C8DB`, and
-  `musu.pro deploy pending`.
+  `musu.pro deploy verified`.
+- Indexer refreshed again after live `musu.pro` deployment verification:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1218 files and 2213 symbols. Search terms should include `0ed3673a`,
+  `26764307713`, `26764309477`, `26764310368`, `production Playwright QA 8/8`,
+  and `musu.pro deploy verified`.
 - Remote release gates must be rechecked after the last pushed commit before public handoff; latest recorded runs were green, and live `https://musu.pro/privacy` plus `/support` passed public metadata verification with `musu@musu.pro`.
 - old 2026-05-27 package: template only (`1.13.0.0`, do not submit as current)
 - Tauri shell: dedicated static runtime launcher/status shell now builds to `musu-bee/out`, bundles as MSI/NSIS through `npm run tauri:build`, and is audited as `desktop_shell_ready=True`; it is still not the full dashboard GUI

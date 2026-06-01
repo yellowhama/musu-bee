@@ -21,6 +21,11 @@
 - `npx playwright test --config=playwright.public-site.config.ts` passed 8/8.
 - `npm run build` passed.
 - `git diff --check` passed.
+- Commit `0ed3673a27b058ad1fc5d050434bf8435cb21e5d` deployed to
+  `musu.pro`: Vercel production run `26764307713`, GitHub `Tests` run
+  `26764309477`, and `E2E Tests - musu-bee` run `26764310368` passed.
+- Production Playwright QA against `https://musu.pro` passed 8/8 on `/`,
+  `/landing`, `/pricing`, and `/install`.
 
 ## Release interpretation
 
@@ -30,5 +35,4 @@
   change.
 - Next hard gate: build/install a fresh package, run packaged desktop
   repeated-activation evidence, then refresh primary and second-PC CPU/matrix.
-- Public site changes should deploy to `musu.pro` after push; live QA must be
-  repeated on `/`, `/landing`, `/pricing`, and `/install`.
+- Public site changes are deployed and live-QA'd on `musu.pro`.

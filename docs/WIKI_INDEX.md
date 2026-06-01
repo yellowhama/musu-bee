@@ -719,12 +719,17 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
 - 2026-06-01 live deploy verification after public-site manual deploy hardening: commit `b08ed746`, GitHub run IDs `26759256487`, `26759256574`, and `26759256616`, plus live `musu.pro` QA with `qa=b08ed746`. Search terms should include `GOAL v218`, `b08ed746`, `26759256616`, `qa=b08ed746`, `actual scroll movement`, and `#24C8DB`.
 - 2026-06-01 go/no-go after public-site deploy verification: commit `bce29066` reports public release No-Go with `single_machine_verified=false`, runtime idle CPU `0/2`, runtime CPU scenario matrix `0/2`, and `p2p_control_plane_verified=false` because the public-site CSS/workflow source change reset primary evidence freshness. Search terms should include `GOAL v219`, `bce29066`, `single_machine_verified=false`, `runtime idle CPU 0/2`, `runtime CPU scenario matrix 0/2`, and `source freshness`.
 - 2026-06-02 Tauri desktop shell single-instance source hardening: current installed packaged desktop repeated activation duplicates shells; local repro expanded one `musu-desktop.exe` shell to PIDs `5744`, `27512`, and `31496`. Source now uses `tauri-plugin-single-instance = 2.4.2` and focuses the existing `main` window on repeat activation. Search terms should include `tauri-plugin-single-instance`, `get_webview_window("main")`, `musu-desktop.exe`, `desktop repeated activation`, `5744`, `27512`, and `31496`.
-- 2026-06-02 public-site favicon-mark/scroll/accent follow-up: `MusuLogo` renders `/images/favicon-header.png` without the wordmark, `.musu-public-scroll-root` has explicit `overflow-y:auto` and touch scrolling rules, and the homepage `Open App` CTA uses `#24C8DB`. Local validation passed Tauri cargo test 5/5, `npm run typecheck`, public-site Playwright 8/8, `npm run build`, and `git diff --check`. Search terms should include `GOAL v222`, `GOAL v223`, `favicon mark only`, `overflow-y:auto`, `scrollbar-gutter: stable`, `100svh`, `#24C8DB`, and `musu.pro deploy pending`.
+- 2026-06-02 public-site favicon-mark/scroll/accent follow-up: `MusuLogo` renders `/images/favicon-header.png` without the wordmark, `.musu-public-scroll-root` has explicit `overflow-y:auto` and touch scrolling rules, and the homepage `Open App` CTA uses `#24C8DB`. Local validation passed Tauri cargo test 5/5, `npm run typecheck`, public-site Playwright 8/8, `npm run build`, and `git diff --check`. Commit `0ed3673a` deployed to `musu.pro`; Vercel deploy run `26764307713`, Tests run `26764309477`, E2E run `26764310368`, and production Playwright QA 8/8 passed. Search terms should include `GOAL v222`, `GOAL v223`, `favicon mark only`, `overflow-y:auto`, `scrollbar-gutter: stable`, `100svh`, `#24C8DB`, and `musu.pro deploy verified`.
 - 2026-06-02 index refresh after desktop single-instance/public-site follow-up:
   `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
   indexed 1218 files and 2213 symbols. Search terms should include `GOAL v224`,
   `2026-06-02_0017_kst_desktop_single_instance_public_site_followup.md`,
   `tauri-plugin-single-instance`, `desktop repeated activation`,
-  `favicon mark only`, `100svh`, and `musu.pro deploy pending`.
+  `favicon mark only`, `100svh`, and `musu.pro deploy verified`.
+- 2026-06-02 index refresh after live `musu.pro` deployment verification:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1218 files and 2213 symbols. Search terms should include `GOAL v225`,
+  `GOAL v226`, `0ed3673a`, `26764307713`, `26764309477`, `26764310368`,
+  `production Playwright QA 8/8`, and `musu.pro deploy verified`.
 
 **End of WIKI_INDEX.md.**
