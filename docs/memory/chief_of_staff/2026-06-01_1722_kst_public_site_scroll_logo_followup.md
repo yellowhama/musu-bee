@@ -20,3 +20,9 @@ Release note:
 
 - Push to `main` should trigger the existing GitHub/Vercel production deploy to `musu.pro`.
 - Live `https://musu.pro` must be rechecked after that deployment; do not treat the follow-up as live until the deployed commit is confirmed.
+
+Live deploy verification:
+
+- Commit `674f501` (`Harden public site scroll and logo`) passed GitHub `Tests` run `26743680160`, `E2E Tests — musu-bee` run `26743680172`, and Vercel deploy run `26743680165`.
+- Live Playwright QA against `https://musu.pro` with `qa=674f501` passed for `/`, `/landing`, `/pricing`, and `/install` on desktop `1280x720` and mobile `390x844`.
+- Verified signals: `canScroll=true`, no horizontal overflow, `bodyOverflowY=auto`, `htmlOverflowY=auto`, `.musu-public-scroll-root=true`, logo source contains `favicon-header.png`, and `--musu-color-brand-emerald=#24C8DB`.

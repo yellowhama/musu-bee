@@ -221,8 +221,11 @@ Store metadata:
   `musu-bee\e2e\public-site-scroll-brand.spec.ts` now verify the homepage
   scrolls on desktop/mobile, has no horizontal overflow, renders the favicon
   mark through `MusuLogo`, and exposes `--musu-color-brand-emerald=#24C8DB`;
-  local follow-up validation passed on 2026-06-01 before push, and live
-  `musu.pro` must be rechecked after the follow-up commit deploys.
+  local follow-up validation passed on 2026-06-01 before push; commit
+  `674f501` then passed GitHub `Tests` run `26743680160`, `E2E Tests —
+  musu-bee` run `26743680172`, and Vercel production deploy run
+  `26743680165`; live `musu.pro` QA with `qa=674f501` passed for `/`,
+  `/landing`, `/pricing`, and `/install` on desktop/mobile.
 - final operator gates: `docs/RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md`
 
 Current MSIX artifacts:
