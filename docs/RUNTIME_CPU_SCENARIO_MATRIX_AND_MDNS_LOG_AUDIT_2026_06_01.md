@@ -321,6 +321,27 @@ after the matrix evidence commit:
   `desktop-open` CPU, and the 4-state CPU scenario matrix before treating the
   next second-PC return as capable of closing the two-machine gates.
 
+2026-06-01 19:50 KST primary evidence refresh:
+
+- Single-machine smoke passed at
+  `docs\evidence\single-machine\1.15.0-rc.1\20260601-194130-HUGH_SECOND.evidence.json`
+  with dashboard task `60cb73e5-ea3c-42c8-bcd6-41f09e618a16`, bridge
+  `http://127.0.0.1:4752`, and CLI route checked.
+- Primary packaged `desktop-open` idle CPU evidence passed at
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-194410-HUGH_SECOND.desktop-open.evidence.json`:
+  `git_dirty=false`, 60.056s, MUSU `2`, repo Node `1`, owned WebView2 `6`,
+  max one-core CPU `musu=0`, `node=0.03`, `webview2=0.08`, working set
+  `506.72MB`, private memory `328.53MB`, no resource violations.
+- Primary 4-state runtime CPU scenario matrix passed at
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260601-194528-HUGH_SECOND.runtime-cpu-scenario-matrix.json`.
+  `runtime-started`, `dashboard-open`, `desktop-open`, and `post-route` all
+  passed 60s clean samples; route probe token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260601_194528` succeeded.
+- Go/no-go now reports primary runtime gates back to `1/2`: single-machine true,
+  runtime idle CPU valid machines `[HUGH_SECOND]`, runtime matrix valid machines
+  `1`, public metadata ok, MSIX install ok, support false, Store false, and
+  public release No-Go.
+
 Parser validation:
 
 - `measure-musu-runtime-cpu-scenarios.ps1 parser ok`
