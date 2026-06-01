@@ -519,6 +519,26 @@ Current Store path truth:
   now included in the non-runtime-affecting allowlist. This prevents gate
   tooling commits from forcing primary desktop smoke/CPU evidence to `0/2`,
   while still refusing arbitrary `scripts/*` deltas.
+- Second-PC return classification: imported
+  `F:\Aisaak\Projects\localsend\second-pc-return\20260531-165240-HUGH-MAIN.second-pc-return.zip`
+  with `import-second-pc-return.ps1`; it verifies `HUGH-MAIN`
+  `192.168.1.192:8949` MSIX install and handoff only. It does not include
+  `.local-build\runtime-idle-cpu\*.evidence.json`,
+  `.local-build\runtime-cpu-scenarios\*.runtime-cpu-scenario-matrix.json`, or
+  `*.release-check.json`, so it cannot close the two-machine CPU/matrix gates.
+- Current second-PC handoff artifacts for the next operator run:
+  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-20260602-052353.zip`,
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260602-052411.zip`
+  verified with `ok=true`, `fail_count=0`, `kit_count=1`, and
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-052442.zip`
+  verified with `ok=true`, `fail_count=0`. Send the nested
+  `second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-052442.zip` to the
+  other Windows PC and run `run-second-pc-release-check.ps1` without skip flags.
+- Indexer refreshed after second-PC return classification:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1258 files and 2214 symbols. Search terms include `HUGH-MAIN`,
+  `20260531-165240-HUGH-MAIN`, `20260602-052442`, and
+  `no release-check JSON`.
 - Remote release gates must be rechecked after the last pushed commit before public handoff; latest recorded runs were green, and live `https://musu.pro/privacy` plus `/support` passed public metadata verification with `musu@musu.pro`.
 - old 2026-05-27 package: template only (`1.13.0.0`, do not submit as current)
 - Tauri shell: dedicated static runtime launcher/status shell now builds to `musu-bee/out`, bundles as MSI/NSIS through `npm run tauri:build`, and is audited as `desktop_shell_ready=True`; it is still not the full dashboard GUI

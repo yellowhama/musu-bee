@@ -456,6 +456,20 @@ Tauri desktop shell evidence:
   release remains No-Go pending second-PC evidence, release-grade multi-device
   route evidence, KV-backed P2P control-plane proof, `musu@musu.pro` mailbox
   proof, and Microsoft Store evidence.
+- 2026-06-02 05:24 KST second-PC return and handoff refresh: the returned
+  `F:\Aisaak\Projects\localsend\second-pc-return\20260531-165240-HUGH-MAIN.second-pc-return.zip`
+  imports successfully, but it only contains MSIX install evidence and a
+  handoff JSON for `HUGH-MAIN` at `192.168.1.192:8949`. It contains no
+  release-grade runtime idle CPU evidence, no runtime CPU scenario matrix, and
+  no release-check JSON, so it cannot close runtime CPU/matrix or multi-device
+  release gates. Fresh current-HEAD artifacts are now ready:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260602-052411.zip`
+  verifies with `ok=true`, `fail_count=0`, `kit_count=1`, and
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-052442.zip`
+  verifies with `ok=true`, `fail_count=0`. Send its nested
+  `second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-052442.zip` to the
+  second PC and run `run-second-pc-release-check.ps1` without
+  `-SkipRuntimeIdleCpu` or `-SkipRuntimeCpuScenarioMatrix`.
 
 Release candidate manifest:
 

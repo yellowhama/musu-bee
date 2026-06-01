@@ -909,5 +909,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `scripts/windows/write-release-go-no-go.ps1`,
   `verify-single-machine-evidence.ps1`, and
   `verify-runtime-cpu-scenario-matrix.ps1`.
+- 2026-06-02 second-PC return import classification and fresh handoff pack:
+  `20260531-165240-HUGH-MAIN.second-pc-return.zip` was imported successfully
+  but contains only MSIX install evidence and handoff for `HUGH-MAIN`
+  `192.168.1.192:8949`; it has no runtime idle CPU evidence, no runtime CPU
+  scenario matrix, and no release-check JSON. Fresh current-HEAD artifacts were
+  regenerated: `musu-multidevice-1.15.0-rc.1-20260602-052353.zip`,
+  `musu-final-operator-gates-1.15.0-rc.1-20260602-052411.zip` verified
+  `ok=true/fail_count=0/kit_count=1`, and
+  `MUSU-1.15.0-rc.1-operator-action-pack-20260602-052442.zip` verified
+  `ok=true/fail_count=0`. Search terms should include `GOAL v247`,
+  `GOAL v248`, `20260531-165240-HUGH-MAIN`,
+  `runtime_cpu_scenario_matrix_path=null`, `20260602-052442`, and
+  `run-second-pc-release-check.ps1`.
+- 2026-06-02 index refresh after second-PC return classification:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1258 files and 2214 symbols after BETA/WIKI/WIKI_INDEX/GOAL updates and CoS
+  memory `2026-06-02_0524_kst_second_pc_return_classification.md`. Search
+  terms should include `GOAL v249`, `1258 files`, `HUGH-MAIN`,
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260602-052442.zip`, and
+  `no release-check JSON`.
 
 **End of WIKI_INDEX.md.**
