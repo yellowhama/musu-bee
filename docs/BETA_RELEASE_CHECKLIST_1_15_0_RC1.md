@@ -482,6 +482,21 @@ Tauri desktop shell evidence:
   `second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-052442.zip` to the
   second PC and run `run-second-pc-release-check.ps1` without
   `-SkipRuntimeIdleCpu` or `-SkipRuntimeCpuScenarioMatrix`.
+- 2026-06-02 07:16 KST fresh mDNS runtime evidence refresh: after commit
+  `39a9adf9833acb4324c46c646001c8c1ab622bfa`, fresh local-sideload MSIX
+  build/install succeeded and the current primary evidence was rerun on
+  `HUGH_SECOND`. Single-machine smoke
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-070642-HUGH_SECOND.evidence.json`
+  passed with output `MUSU_RELEASE_SMOKE_OK_20260602_070616`; desktop-open CPU
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-070807-HUGH_SECOND.desktop-open.evidence.json`
+  passed with hot `0`, MUSU max one-core CPU `0`, repo Node `0.05`, owned
+  WebView2 `0.26`, and working set `534.5MB`; four-state matrix
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-070927-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  passed with route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_070927`.
+  Release status remains No-Go because runtime CPU and matrix are still
+  `1/2 [HUGH_SECOND]`, real multi-device route evidence is false,
+  `musu@musu.pro` support mailbox evidence is missing, Store evidence is
+  missing, and `musu.pro` P2P relay lease KV storage is not configured.
 
 Release candidate manifest:
 

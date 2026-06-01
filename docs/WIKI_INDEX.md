@@ -245,6 +245,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | wiki/534 | CLI pipe hardening and public site deploy audit | 2026-06-02 | `RELEASE_1_15_0_RC1_CLI_PIPE_SITE_DEPLOY_AUDIT_2026_06_02.md` | active |
 | wiki/535 | Packaged CLI/runtime evidence audit | 2026-06-02 | `RELEASE_1_15_0_RC1_PACKAGED_CLI_RUNTIME_EVIDENCE_2026_06_02.md` | active |
 | wiki/536 | Process attribution and Node count audit | 2026-06-02 | `PROCESS_ATTRIBUTION_NODE_COUNT_AUDIT_2026_06_02.md` | active |
+| wiki/537 | Fresh mDNS runtime evidence audit | 2026-06-02 | `RELEASE_1_15_0_RC1_FRESH_MDNS_RUNTIME_EVIDENCE_AUDIT_2026_06_02.md` | active |
 | — | 1.15.0-rc.1 beta release checklist and smoke evidence | 2026-05-29 | `BETA_RELEASE_CHECKLIST_1_15_0_RC1.md` | active |
 | — | 1.15.0-rc.1 final operator gates | 2026-05-29 | `RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md` | active |
 | — | MUSU Microsoft Store release run card | 2026-05-29 | `MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md` | active |
@@ -267,6 +268,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | — | CoS memory note — desktop single-instance release gate | 2026-06-02 | `memory/chief_of_staff/2026-06-02_0055_kst_desktop_single_instance_gate.md` | active |
 | — | CoS memory note — process attribution and Node count audit | 2026-06-02 | `memory/chief_of_staff/2026-06-02_0540_kst_process_attribution_node_count.md` | active |
 | — | CoS memory note — hosted P2P KV env configurator | 2026-06-02 | `memory/chief_of_staff/2026-06-02_0605_kst_p2p_kv_env_configurator.md` | active |
+| — | CoS memory note — fresh mDNS runtime evidence refresh | 2026-06-02 | `memory/chief_of_staff/2026-06-02_0716_kst_fresh_mdns_runtime_evidence_refresh.md` | active |
 | — | CoS memory note — desktop shell and musu-system refresh | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0415_kst_desktop_shell_and_musu_system_refresh.md` | active |
 | — | CoS memory note — multi-device test kit ready | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0445_kst_multidevice_test_kit_ready.md` | active |
 | — | CoS memory note — release candidate manifest | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0500_kst_release_candidate_manifest.md` | active |
@@ -421,6 +423,10 @@ These docs capture the post-install / post-review conclusion that Windows packag
 2026-06-02 hosted P2P KV env configurator: `configure-musu-pro-p2p-env.ps1` sets `KV_REST_API_URL` and `KV_REST_API_TOKEN` through `gh` without printing values, can trigger `deploy-musu-bee.yml`, and is now bundled in the final operator packet. Dry-run validation with redacted KV inputs returned `ok=true` and requested `KV_REST_API_URL` as a variable plus `KV_REST_API_TOKEN` as a secret. This does not provision external KV; it turns the remaining `p2p_relay_lease_kv_not_configured` blocker into a repeatable operator command once Upstash/Vercel KV values exist.
 
 2026-06-02 index refresh after hosted P2P KV env configurator wiring: `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed 1263 files and 2214 symbols. Search terms should include `musu.configure_musu_pro_p2p_env.v1`, `KV_REST_API_URL variable`, `KV_REST_API_TOKEN secret`, `Deploy`, `DryRun`, and `p2p_relay_lease_kv_not_configured`.
+
+2026-06-02 fresh mDNS runtime evidence refresh: after commit `39a9adf9833acb4324c46c646001c8c1ab622bfa`, fresh local-sideload MSIX build/install, single-machine smoke, desktop-open CPU, and four-state CPU matrix were rerun on `HUGH_SECOND`. Current evidence is `20260602-070642-HUGH_SECOND` single-machine, `20260602-070807-HUGH_SECOND.desktop-open`, and `20260602-070927-HUGH_SECOND.runtime-cpu-scenario-matrix`; all three pass from clean source state. `write-release-go-no-go.ps1 -Json` still reports public No-Go because runtime idle CPU and matrix are `1/2 [HUGH_SECOND]`, multi-device route evidence is false, `musu@musu.pro` mailbox proof is missing, Store release evidence is missing, and `musu.pro` P2P relay lease KV storage is not configured. See wiki/537.
+
+2026-06-02 index refresh after fresh mDNS runtime evidence audit: `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed 1271 files and 2217 symbols. Search terms should include `wiki/537`, `20260602-070642-HUGH_SECOND`, `20260602-070807-HUGH_SECOND.desktop-open`, `20260602-070927-HUGH_SECOND.runtime-cpu-scenario-matrix`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_070927`, `runtime_idle_cpu_valid=1/2`, and `p2p_relay_lease_kv_not_configured`.
 
 2026-05-30 second-PC return archive single-machine refresh: after adding the return archive flow, single-machine smoke was rerun from commit `7294d65`. Current evidence `20260530-100818-HUGH_SECOND` verifies with dashboard output `MUSU_RELEASE_SMOKE_OK_20260530_1008`, CLI route `MUSU_CLI_ROUTE_OK_20260530_1008`, task `695f1e1d-1d1b-46bd-8783-3eebb216842a`, bridge `http://127.0.0.1:2217`, `doctor_overall=warn`, and dashboard doctor `ok`.
 

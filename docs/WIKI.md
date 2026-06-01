@@ -588,6 +588,21 @@ Current Store path truth:
   include `MdnsRecvTimeoutKind`, `flume::RecvTimeoutError`,
   `mDNS browse receiver disconnected`, `sending on a closed channel`,
   `MUSU_ENABLE_MDNS=1`, and `peer::mdns::tests::`.
+- Fresh MSIX primary evidence after mDNS disconnected-receiver hardening:
+  local-sideload package `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6` was
+  rebuilt and reinstalled; single-machine smoke
+  `20260602-070642-HUGH_SECOND`, desktop-open CPU
+  `20260602-070807-HUGH_SECOND.desktop-open`, and runtime CPU matrix
+  `20260602-070927-HUGH_SECOND.runtime-cpu-scenario-matrix` all pass from clean
+  commit `39a9adf9833acb4324c46c646001c8c1ab622bfa`. Desktop-open CPU recorded
+  MUSU `2`, repo Node `1`, owned WebView2 `6`, hot `0`, max one-core CPU
+  `musu=0`, `node=0.05`, `webview2=0.26`, and working set `534.5MB`. Matrix
+  route token was `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_070927`; four-scenario
+  max one-core CPU stayed at or below `musu=0.03`, `node=0.03`,
+  `webview2=0.39`. Go/no-go is still public No-Go because runtime CPU evidence
+  is only `1/2 [HUGH_SECOND]`, multi-device/support/Store/P2P-control-plane
+  gates are false, and the dirty-git blocker remains until these docs/evidence
+  are committed.
 - Remote release gates must be rechecked after the last pushed commit before public handoff; latest recorded runs were green, and live `https://musu.pro/privacy` plus `/support` passed public metadata verification with `musu@musu.pro`.
 - old 2026-05-27 package: template only (`1.13.0.0`, do not submit as current)
 - Tauri shell: dedicated static runtime launcher/status shell now builds to `musu-bee/out`, bundles as MSI/NSIS through `npm run tauri:build`, and is audited as `desktop_shell_ready=True`; it is still not the full dashboard GUI
@@ -609,6 +624,7 @@ Canonical reference:
 - `docs/RELEASE_1_15_0_RC1_CLI_PIPE_SITE_DEPLOY_AUDIT_2026_06_02.md` (wiki/534)
 - `docs/RELEASE_1_15_0_RC1_PACKAGED_CLI_RUNTIME_EVIDENCE_2026_06_02.md` (wiki/535)
 - `docs/PROCESS_ATTRIBUTION_NODE_COUNT_AUDIT_2026_06_02.md` (wiki/536)
+- `docs/RELEASE_1_15_0_RC1_FRESH_MDNS_RUNTIME_EVIDENCE_AUDIT_2026_06_02.md` (wiki/537)
 - `docs/P2P_CONTROL_PLANE_MUSU_PRO_NEXT_ACTIONS_2026_06_02.md`
 - `docs/RELEASE_1_15_0_RC1_QUAL_AUDIT_NEXT_STEPS_2026_06_01.md` (wiki/527)
 - `docs/RUNTIME_RELAY_FALLBACK_NEXT_STEPS_2026_06_01.md` (wiki/530)

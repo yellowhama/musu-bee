@@ -413,3 +413,26 @@ documentation. `Deploy musu-bee to Vercel` run `26776909275` succeeded, synced
 `Tests` run `26776909221` succeeded across web build/typecheck, Rust core
 tests, and the final required-check job. This confirms the deployed workflow is
 valid; it also confirms KV remains the active hosted blocker.
+
+2026-06-02 07:16 KST fresh mDNS runtime evidence addendum: after commit
+`39a9adf9833acb4324c46c646001c8c1ab622bfa`, the release MSIX was rebuilt and
+reinstalled for `local-sideload-manual`, then primary smoke/CPU/matrix evidence
+was refreshed on `HUGH_SECOND`. Single-machine evidence now passes at
+`docs\evidence\single-machine\1.15.0-rc.1\20260602-070642-HUGH_SECOND.evidence.json`
+with dashboard output `MUSU_RELEASE_SMOKE_OK_20260602_070616`, dashboard task
+`9968e62c-5f42-43ce-86ac-7b9a57a0d120`, bridge
+`http://127.0.0.1:12438`, and CLI route checked. Desktop-open CPU evidence now
+passes at
+`docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-070807-HUGH_SECOND.desktop-open.evidence.json`
+from clean source state with MUSU `2`, repo Node `1`, owned WebView2 `6`, hot
+`0`, max one-core CPU `musu=0`, `node=0.05`, `webview2=0.26`, and working set
+`534.5MB`. Runtime CPU matrix evidence now passes at
+`docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-070927-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+with route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_070927`; all four
+scenarios stayed below the 5%-of-one-core budget with hot `0`. Current
+go/no-go remains public No-Go: local artifacts, MSIX install, public metadata,
+and single-machine evidence are true, runtime idle CPU is `1/2 [HUGH_SECOND]`,
+runtime CPU matrix is `1/2 [HUGH_SECOND]`, and the remaining blockers are
+multi-device, second-machine CPU/matrix, `musu@musu.pro` mailbox proof, Store
+release evidence, P2P control-plane KV-backed relay lease evidence, and a
+temporary dirty-git blocker until these docs/evidence are committed.
