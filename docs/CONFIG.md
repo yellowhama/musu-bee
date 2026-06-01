@@ -126,6 +126,7 @@ Windows distribution note:
 | `MUSU_ENABLE_MDNS` | `false` | No | Enable LAN mDNS advertiser/discovery. Store-candidate release paths keep this off unless separate Windows/Tailscale regression evidence exists. |
 | `MUSU_MDNS_ENABLE_IPV6` | `false` | No | Enable IPv6 mDNS interfaces. Defaults off because Windows/Tailscale link-local IPv6 can spam `os error 10065` and stall/disrupt release smoke. |
 | `MUSU_MDNS_ENABLE_TAILSCALE` | `false` | No | Allow mDNS on Tailscale interfaces. Defaults off because Tailscale does not need LAN multicast discovery and Windows can emit repeated `ff02::fb%iface` send failures on that adapter. |
+| `MUSU_MDNS_ENABLE_VIRTUAL_INTERFACES` | `false` | No | Allow mDNS on common VPN/virtual adapters such as NordLynx, WireGuard, ZeroTier, vEthernet/WSL, Docker, VMware, and VirtualBox. Defaults off so LAN discovery only multicasts on ordinary LAN adapters unless explicitly widened. |
 | `MUSU_ENABLE_CLIPBOARD_SYNC` | `false` | No | Enable universal clipboard polling/sync. Defaults off for privacy and idle CPU control. |
 | `MUSU_CLOUD_HEARTBEAT_INTERVAL_SEC` | `300` | No | Seconds between logged-in `musu.pro` registry/rendezvous refreshes. Runtime enforces a 60s floor and applies failure backoff plus jitter. |
 | `MUSU_TEAM_LEAD_HEARTBEAT_ENABLED` | *(follows CEO)* | No | Enable Team Lead heartbeat. Defaults to `MUSU_CEO_HEARTBEAT_ENABLED`. |

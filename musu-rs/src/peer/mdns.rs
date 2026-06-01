@@ -22,19 +22,88 @@ const SERVICE_TYPE: &str = "_musu._tcp.local.";
 const MUSU_VERSION: &str = env!("CARGO_PKG_VERSION");
 const MDNS_IPV6_ENV: &str = "MUSU_MDNS_ENABLE_IPV6";
 const MDNS_TAILSCALE_ENV: &str = "MUSU_MDNS_ENABLE_TAILSCALE";
+const MDNS_VIRTUAL_ENV: &str = "MUSU_MDNS_ENABLE_VIRTUAL_INTERFACES";
 
-fn mdns_ipv6_enabled() -> bool {
+fn env_truthy(name: &str) -> bool {
     matches!(
-        std::env::var(MDNS_IPV6_ENV).as_deref(),
+        std::env::var(name).as_deref(),
         Ok("1") | Ok("true") | Ok("yes")
     )
 }
 
+fn mdns_ipv6_enabled() -> bool {
+    env_truthy(MDNS_IPV6_ENV)
+}
+
 fn mdns_tailscale_enabled() -> bool {
-    matches!(
-        std::env::var(MDNS_TAILSCALE_ENV).as_deref(),
-        Ok("1") | Ok("true") | Ok("yes")
-    )
+    env_truthy(MDNS_TAILSCALE_ENV)
+}
+
+fn mdns_virtual_interfaces_enabled() -> bool {
+    env_truthy(MDNS_VIRTUAL_ENV)
+}
+
+fn is_virtual_mdns_interface_name(name: &str) -> bool {
+    let normalized = name.to_ascii_lowercase();
+    normalized.contains("tailscale")
+        || normalized.contains("nordlynx")
+        || normalized.contains("wireguard")
+        || normalized == "wg0"
+        || normalized.starts_with("wg")
+        || normalized.contains("zerotier")
+        || normalized.contains("vethernet")
+        || normalized.contains("hyper-v")
+        || normalized.contains("wsl")
+        || normalized.contains("docker")
+        || normalized.contains("vmware")
+        || normalized.contains("virtualbox")
+        || normalized.contains("vpn")
+        || normalized.starts_with("tun")
+        || normalized.starts_with("tap")
+        || normalized.starts_with("utun")
+}
+
+fn disable_virtual_mdns_interfaces(mdns: &ServiceDaemon) {
+    let interfaces = match local_ip_address::list_afinet_netifas() {
+        Ok(interfaces) => interfaces,
+        Err(e) => {
+            tracing::warn!(err = %e, "failed to enumerate interfaces for mDNS virtual-interface filter");
+            return;
+        }
+    };
+
+    let mut disabled = 0usize;
+    for (name, addr) in interfaces {
+        if !is_virtual_mdns_interface_name(&name) {
+            continue;
+        }
+
+        if let Err(e) = mdns.disable_interface(name.as_str()) {
+            tracing::warn!(
+                err = %e,
+                interface = %name,
+                "failed to disable virtual mDNS interface by name"
+            );
+        }
+        if let Err(e) = mdns.disable_interface(IfKind::Addr(addr)) {
+            tracing::warn!(
+                err = %e,
+                interface = %name,
+                ip = %addr,
+                "failed to disable virtual mDNS interface by address"
+            );
+        } else {
+            disabled += 1;
+        }
+    }
+
+    if disabled > 0 {
+        tracing::debug!(
+            env = MDNS_VIRTUAL_ENV,
+            disabled,
+            "mDNS virtual/VPN interfaces disabled by default"
+        );
+    }
 }
 
 fn new_musu_mdns_daemon() -> anyhow::Result<ServiceDaemon> {
@@ -60,6 +129,10 @@ fn new_musu_mdns_daemon() -> anyhow::Result<ServiceDaemon> {
                 "mDNS Tailscale interfaces disabled by default"
             );
         }
+    }
+
+    if !mdns_virtual_interfaces_enabled() {
+        disable_virtual_mdns_interfaces(&mdns);
     }
 
     Ok(mdns)
@@ -253,4 +326,35 @@ fn token_hash(token: &str) -> String {
     token.hash(&mut hasher);
     let hash = hasher.finish();
     format!("{:016x}", hash)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_virtual_mdns_interface_name;
+
+    #[test]
+    fn virtual_mdns_interface_filter_matches_vpn_and_vm_adapters() {
+        for name in [
+            "Tailscale",
+            "tailscale0",
+            "NordLynx",
+            "WireGuard Tunnel",
+            "wg0",
+            "ZeroTier One",
+            "vEthernet (WSL (Hyper-V firewall))",
+            "DockerNAT",
+            "VMware Network Adapter VMnet8",
+            "VirtualBox Host-Only Network",
+            "utun4",
+        ] {
+            assert!(is_virtual_mdns_interface_name(name), "{name}");
+        }
+    }
+
+    #[test]
+    fn virtual_mdns_interface_filter_allows_normal_lan_names() {
+        for name in ["Ethernet", "Wi-Fi", "Local Area Connection", "이더넷 2"] {
+            assert!(!is_virtual_mdns_interface_name(name), "{name}");
+        }
+    }
 }
