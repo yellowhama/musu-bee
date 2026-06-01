@@ -46,6 +46,10 @@ Already applied:
 - Tailscale mDNS interfaces default off unless `MUSU_MDNS_ENABLE_TAILSCALE=1`;
   Tailscale does not need LAN multicast discovery for the Store-candidate path,
   and the operator-supplied `ff02::fb%9` errors came from that adapter class
+- common VPN/virtual mDNS interfaces default off unless
+  `MUSU_MDNS_ENABLE_VIRTUAL_INTERFACES=1`; current validation disabled 9
+  virtual/VPN interfaces and sent only on the physical LAN adapter during
+  `musu discover --timeout 2`
 - cloud heartbeat defaults to 300s with 60s floor, backoff, and jitter
 - major dashboard polling loops were slowed and paused while hidden
 - CPU evidence now separates MUSU, Node.js, and WebView2 process roles

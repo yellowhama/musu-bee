@@ -113,6 +113,8 @@ What is still not release-grade:
    - `MUSU_ENABLE_MDNS=0`: no bridge advertiser/discovery loop by default
    - `MUSU_MDNS_ENABLE_IPV6=0`: no IPv6 mDNS by default
    - `MUSU_MDNS_ENABLE_TAILSCALE=0`: no mDNS on Tailscale adapters by default
+   - `MUSU_MDNS_ENABLE_VIRTUAL_INTERFACES=0`: no mDNS on common VPN/virtual
+     adapters by default
 5. Route evidence control-plane endpoint:
    - `POST /api/v1/p2p/route-evidence`
    - `GET /api/v1/p2p/route-evidence`
@@ -196,14 +198,22 @@ Failed to send SearchStarted(_musu._tcp.local.)(repeating:true): sending on a cl
 means a build or command path still opened mDNS over the Tailscale IPv6
 adapter. In the current source, default bridge startup should not do that.
 If this reappears, first check whether the running binary predates this change,
-or whether `MUSU_ENABLE_MDNS=1`, `MUSU_MDNS_ENABLE_IPV6=1`, or
-`MUSU_MDNS_ENABLE_TAILSCALE=1` is set.
+or whether `MUSU_ENABLE_MDNS=1`, `MUSU_MDNS_ENABLE_IPV6=1`,
+`MUSU_MDNS_ENABLE_TAILSCALE=1`, or
+`MUSU_MDNS_ENABLE_VIRTUAL_INTERFACES=1` is set.
 
 Latest field evidence from 2026-05-31T16:09:08Z to 2026-05-31T16:10:24Z
 showed repeated sends to Tailscale adapter index 9 at `[ff02::fb%9]:5353`,
 followed by `SearchStarted(_musu._tcp.local.)` closed-channel errors. Treat
-that as a regression signal if it appears in a current build with all three
+that as a regression signal if it appears in a current build with all four
 mDNS opt-in variables unset.
+
+Current 2026-06-01 validation on `HUGH_SECOND` passed
+`cargo test --lib -j 1 peer::mdns::tests::`, `cargo build --bin musu -j 1`,
+and `RUST_LOG=debug musu discover --timeout 2`. The discover run disabled 9
+virtual/VPN interfaces and sent multicast only on the physical `이더넷 2` LAN
+adapter, with no Tailscale/NordLynx/vEthernet/`ff02::fb`/`10065`/`closed
+channel` output.
 
 ## Code Audit Findings
 
@@ -212,7 +222,7 @@ mDNS opt-in variables unset.
 | Runtime route evidence | High | Bridge remote forwarding previously did not write `musu.route_evidence.v1`; only CLI attempts did. | Fixed locally. `/api/tasks/delegate`, `/api/companies/{id}/run`, and workflow remote steps now write evidence. |
 | Evidence contract duplication | Medium | CLI-owned evidence structs risked drifting from runtime evidence. | Fixed. Evidence structs/builders/writers are now shared in `bridge::route_evidence`. |
 | Retry observability | Medium | Forwarding retries returned only a string error, losing timing and failure class. | Fixed. `ForwardAttemptReport` / `ForwardAttemptError` carry timing and failure class. |
-| mDNS/Tailscale adapter noise | High | Tailscale IPv6 mDNS can repeatedly emit `os error 10065` and `closed channel` logs. | Further hardened. IPv6 and Tailscale mDNS interfaces are default-disabled; explicit opt-in env vars are required. |
+| mDNS/Tailscale adapter noise | High | Tailscale IPv6 mDNS can repeatedly emit `os error 10065` and `closed channel` logs. | Further hardened. IPv6, Tailscale, and common VPN/virtual mDNS interfaces are default-disabled; explicit opt-in env vars are required. |
 | `musu.pro` route-evidence receiver | High | The Rust client had a DTO/method but no server endpoint to receive route evidence. | Fixed. `musu-bee/src/app/api/v1/p2p/route-evidence/route.ts` validates/authenticates the contract, stores evidence, and returns release blockers. |
 | Route-evidence queryability | Medium | Evidence accepted by the control plane needed an audit/query path before it could support release diagnosis. | Fixed as a minimal API. `GET /api/v1/p2p/route-evidence` returns stored records with basic filters. |
 | Route-evidence ownership | High | Stored route evidence could be queried from one shared control-plane bucket without a per-owner boundary. | Fixed as a token-owner scoped stub. `POST` stores a SHA-256 owner key derived from the accepted Bearer token, `GET` filters by that key, and responses omit the key. Real account-id mapping/UI/export remain pending. |

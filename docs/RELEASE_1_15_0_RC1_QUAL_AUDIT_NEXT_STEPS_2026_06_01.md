@@ -104,7 +104,7 @@ against the advertised fingerprint during the actual bridge forward. That still
 | Web assets | High | `musu-bee/.gitignore` ignored the entire `public/` tree, while code referenced `/images/favicon-header.png` and `/agents/*.png`. A clean checkout could miss visible product assets. | Fixed in commit `5e8d195`: required public image assets are now unignored/tracked. |
 | Logo component/assets | Medium | `MusuLogo` referenced missing `/images/logos/{hero,display,header}-{variant}.png`, and there was no reusable external logo lockup despite the app mark being strong. | Fixed: component uses the tracked app mark plus token-colored wordmark, and static logo lockups now exist under `musu-bee/public/images/logos/`. |
 | Runtime smoke | High | Current single-machine smoke initially could not be refreshed after the logo asset commit. The dashboard task status API timed out once, then the fixed expected CLI string hit a duplicate-task `409 Conflict`. | Fixed in `smoke-single-machine-beta.ps1`: per-run expected strings avoid duplicate task hashes, dashboard task polling retries within the deadline, and polling errors are recorded in evidence. |
-| mDNS/Tailscale IPv6 | High | `mdns_sd::service_daemon` can repeatedly send to Tailscale IPv6 link-local multicast and log `os error 10065`, then `closed channel`. Latest operator evidence showed repeated `[ff02::fb%9]:5353` sends on Tailscale adapter index 9 from 2026-05-31T16:09:08Z to 2026-05-31T16:10:24Z. This is a credible idle CPU/log-noise source when mDNS is enabled or `musu discover` runs. | Fixed in current source defaults: mDNS stays opt-in, IPv6 mDNS is separately opt-in via `MUSU_MDNS_ENABLE_IPV6=1`, and Tailscale mDNS interfaces are separately opt-in via `MUSU_MDNS_ENABLE_TAILSCALE=1`. If an installed desktop still emits this log with defaults, treat that install as stale or explicitly mDNS/IPv6/Tailscale-opted-in. |
+| mDNS/Tailscale IPv6 | High | `mdns_sd::service_daemon` can repeatedly send to Tailscale IPv6 link-local multicast and log `os error 10065`, then `closed channel`. Latest operator evidence showed repeated `[ff02::fb%9]:5353` sends on Tailscale adapter index 9 from 2026-05-31T16:09:08Z to 2026-05-31T16:10:24Z. This is a credible idle CPU/log-noise source when mDNS is enabled or `musu discover` runs. | Fixed in current source defaults: mDNS stays opt-in, IPv6 mDNS is separately opt-in via `MUSU_MDNS_ENABLE_IPV6=1`, Tailscale mDNS interfaces are separately opt-in via `MUSU_MDNS_ENABLE_TAILSCALE=1`, and common VPN/virtual interfaces are separately opt-in via `MUSU_MDNS_ENABLE_VIRTUAL_INTERFACES=1`. Current validation disabled 9 virtual/VPN interfaces and sent only on the physical LAN adapter during `musu discover --timeout 2`. If an installed desktop still emits this log with defaults, treat that install as stale or explicitly mDNS/IPv6/Tailscale/virtual-interface-opted-in. |
 | P2P route | High | `musu-rs/src/cloud/mod.rs` has rendezvous/route-evidence/relay-lease DTOs and client methods, `musu-rs/src/bridge/router.rs` ranks cached/manual/nodes candidates by path kind (`lan` -> `tailscale` -> `direct_quic`), and bridge forwarding now creates/uses a short-lived rendezvous session before legacy direct forwarding. If the session returns target candidates seeded from recent node cache or same-session updates, forwarding uses the best candidate by the same priority and falls back once to the original peer if that candidate fails. It still does not prove hardened identity/encryption or relay/tunnel data transport. | Partial P0. |
 | Multi-device verifier | High | `musu route --route-evidence-path <path>` and bridge remote forwarding now write actual route evidence with route kind, candidate address, submit/handshake timing, total timing, and success/failure result. Legacy HTTP bearer still records `peer_identity_verified=false` and `encryption=none_http_bearer`; HTTPS fingerprint-pinned bridge forwarding can record verified identity but is still rejected for release until QUIC/TLS route proof exists. | Correctly blocked. |
 | Evidence storage | Medium | The first route-evidence API previously returned `stored=false`, so server-side audit/history was missing. | Fixed as minimal storage/query. Hosted storage uses Vercel KV; local/dev uses an explicit file fallback. Production fails closed without KV or an explicit persistent file path. |
@@ -131,10 +131,11 @@ against the advertised fingerprint during the actual bridge forward. That still
   `MUSU_CLI_ROUTE_OK_20260601_030619`, dashboard task
   `42449837-4936-4e79-82a6-d7bbeede6108`, and bridge
   `http://127.0.0.1:14130`.
-- `cargo check -j 1` and `cargo build --bin musu -j 1` passed after the mDNS
-  IPv6 hardening.
-- `musu discover --timeout 2` completed without the Tailscale IPv6 mDNS
-  `os error 10065` log spam when `MUSU_MDNS_ENABLE_IPV6` was unset.
+- `cargo test --lib -j 1 peer::mdns::tests::` and `cargo build --bin musu -j 1`
+  passed after mDNS virtual/VPN interface filtering.
+- `RUST_LOG=debug musu discover --timeout 2` disabled 9 virtual/VPN interfaces
+  and only sent multicast on the physical `이더넷 2` LAN adapter, with no
+  Tailscale/NordLynx/vEthernet/`ff02::fb`/`10065`/`closed channel` output.
 - After route/relay diagnostic CLI work, targeted Rust validation passed:
   `cargo check --manifest-path .\musu-rs\Cargo.toml -j 1`,
   `cargo test --manifest-path .\musu-rs\Cargo.toml --lib cli_commands`,
@@ -160,10 +161,10 @@ against the advertised fingerprint during the actual bridge forward. That still
   `612c8aff-616e-4227-89dc-7023a77d4830`, bridge
   `http://127.0.0.1:13800`, and `dashboard_task_poll_error_count=0`.
 - Current primary packaged `desktop-open` runtime CPU evidence is
-  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-082822-HUGH_SECOND.desktop-open.evidence.json`
-  on commit `cdefc1226481d554d2d151e6a08af4dc81572247`; it passed with
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-094127-HUGH_SECOND.desktop-open.evidence.json`
+  on commit `931e771650cda3026630cf0b2394c83211490dc6`; it passed with
   `git_dirty=false`, owned WebView2 `6`, owned Node `0`, max one-core CPU
-  `musu=0`, `webview2=0.16`, total working set `339.85MB`, and no
+  `musu=0`, `webview2=0.08`, total working set `340.49MB`, and no
   resource-budget violations.
 - Final go/no-go after route diagnostics still reports
   `ready_for_public_desktop_release=false`, while local artifacts, current
@@ -280,6 +281,22 @@ against the advertised fingerprint during the actual bridge forward. That still
   `52f34b6bc377404e118ec429bdc2c3d9c781d622870debee0d2d62a67e6eaae7`,
   and verification SHA-256
   `70f8665ddcc015305b539bf8832bcf57b4d4507c1f07d7284a1d0bfd59f7f22a`.
+- After mDNS virtual-interface filtering landed, current single-machine smoke
+  was refreshed again and recorded as
+  `docs\evidence\single-machine\1.15.0-rc.1\20260601-093958-HUGH_SECOND.evidence.json`
+  on commit `4ad4b5591bba3c03fffe7eb2d054a4e191b67bea`. It passed with
+  dashboard output `MUSU_RELEASE_SMOKE_OK_20260601_093933`, CLI output
+  `MUSU_CLI_ROUTE_OK_20260601_093933`, dashboard task
+  `61f5d95d-ec59-418d-a583-a47336cdf126`, bridge `http://127.0.0.1:9189`,
+  evidence SHA-256 `8ad3d4031f1b9592f6d6cabdd51a0ace8a9e78a08a527fde5716ecca2529d953`,
+  and verification SHA-256
+  `b4695c68131c47627bbc08dc1d45284db5a0ae1ba07954a4627e8a413ac7279c`.
+- Current primary packaged `desktop-open` CPU evidence was then refreshed as
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-094127-HUGH_SECOND.desktop-open.evidence.json`
+  from clean commit `931e771650cda3026630cf0b2394c83211490dc6`. It passed
+  60.029s with one `musu-desktop`, six owned WebView2 helpers, owned Node `0`,
+  max one-core CPU `musu=0` and `webview2=0.08`, total working set `340.49MB`,
+  private memory `181.8MB`, and no resource-budget violations.
 
 The release gate still needs two-machine desktop-open CPU evidence, hardened
 multi-device route evidence, support inbox delivery evidence, and Store
@@ -290,7 +307,7 @@ submission/release evidence.
 | Dimension | Current score | Notes |
 |---|---:|---|
 | Packaging trust | 8/10 | MSIX desktop-entrypoint and local-sideload contract are now coherent. Store certification remains external. |
-| Runtime efficiency | 7/10 | Current primary packaged desktop-open CPU evidence passes at `musu=0%`, `webview2=0.16%` of one logical core, but second-PC evidence is still missing. |
+| Runtime efficiency | 7/10 | Current primary packaged desktop-open CPU evidence passes at `musu=0%`, `webview2=0.08%` of one logical core, but second-PC evidence is still missing. |
 | P2P product story | 8.1/10 | The strategy is right, the bridge now has shared path-kind ranking for cached/manual/nodes candidates, runtime route evidence is stored/queryable on `musu.pro`, server-side rendezvous candidate exchange plus recent node candidate caching exists, runtime forwarding creates/uses sessions, refreshed target candidates can affect the actual forward address, peer identity material is exchanged, HTTPS bridge attempts can pin the advertised certificate fingerprint, and relay fallback now has a fail-closed lease policy API. Release-grade QUIC/TLS proof, real second-PC verification, and relay/tunnel transport are still not wired. |
 | UX/branding | 6/10 -> 7/10 | App mark is strong. Public web asset tracking, wordmark fallback, and basic static logo lockups are now fixed. Store screenshots and product demo media are still needed. |
 | Release evidence quality | 8/10 | Gates are strict and honest. Runtime CPU evidence must now match current HEAD or documentation/evidence-only deltas, preventing stale CPU samples from passing after code changes. |
@@ -301,7 +318,7 @@ submission/release evidence.
 1. **Finish runtime evidence on two PCs**
    - Close unrelated old WebView2/Node/dev-server processes.
    - Primary evidence now exists at
-     `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-082822-HUGH_SECOND.desktop-open.evidence.json`.
+     `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-094127-HUGH_SECOND.desktop-open.evidence.json`.
    - Run `run-second-pc-release-check.ps1` on the second PC; it now captures
      MSIX install evidence, handoff, and `desktop-open` runtime CPU evidence in
      one return zip.

@@ -104,16 +104,16 @@ Fresh repeatable script smoke passed again on 2026-05-29 06:52 KST:
 - dashboard output: `MUSU_RELEASE_SMOKE_OK_20260529_0652`
 - CLI route output: `MUSU_CLI_ROUTE_OK_20260529_0652`
 
-Current machine-readable single-machine evidence passed and was recorded on 2026-06-01 09:05 KST after the runtime CPU gate reporting code commit:
+Current machine-readable single-machine evidence passed and was recorded on 2026-06-01 09:39 KST after mDNS virtual-interface filtering:
 
-- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260601-090548-HUGH_SECOND.evidence.json`
-- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260601-090548-HUGH_SECOND.verification.json`
-- summary: `docs\evidence\single-machine\1.15.0-rc.1\20260601-090548-HUGH_SECOND.summary.md`
-- commit: `da4999081073018ab3b1b72a26645140ad2e68f7`
-- dashboard task id: `38d1eb2c-1905-493b-b536-459866c25c78`
-- bridge: `http://127.0.0.1:5089`
-- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260601_090528`
-- CLI route output: `MUSU_CLI_ROUTE_OK_20260601_090528`
+- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260601-093958-HUGH_SECOND.evidence.json`
+- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260601-093958-HUGH_SECOND.verification.json`
+- summary: `docs\evidence\single-machine\1.15.0-rc.1\20260601-093958-HUGH_SECOND.summary.md`
+- commit: `4ad4b5591bba3c03fffe7eb2d054a4e191b67bea`
+- dashboard task id: `61f5d95d-ec59-418d-a583-a47336cdf126`
+- bridge: `http://127.0.0.1:9189`
+- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260601_093933`
+- CLI route output: `MUSU_CLI_ROUTE_OK_20260601_093933`
 - CLI route checked: `true`
 
 Multi-device packet:
@@ -150,11 +150,11 @@ Runtime hardening:
 - public beta target: MUSU packaged desktop open and idle, at least one MUSU runtime process sampled, at least one MUSU-owned WebView2 process attributed, no MUSU/Node.js/WebView2 process above 5% of one logical CPU for a 60s idle sample, owned process count <= 16, owned WebView2 count <= 8, total owned working set <= 1024MB
 - process ownership target: one live MUSU runtime, no repo-related orphan Node/WebView2 helpers, and bridge registry PID plus `/health` matching the live runtime
 - startup single-instance target: repeated `musu up --json` calls reuse one bridge PID and do not spawn another runtime
-- default mDNS: off unless `MUSU_ENABLE_MDNS=1`
+- default mDNS: off unless `MUSU_ENABLE_MDNS=1`; IPv6, Tailscale, and common VPN/virtual adapters also require `MUSU_MDNS_ENABLE_IPV6=1`, `MUSU_MDNS_ENABLE_TAILSCALE=1`, and `MUSU_MDNS_ENABLE_VIRTUAL_INTERFACES=1`
 - default clipboard polling: off unless `MUSU_ENABLE_CLIPBOARD_SYNC=1`
 - runtime hardening and relay-control roadmap: `docs/RELEASE_1_15_0_RC1_RUNTIME_HARDENING_RELAY_ROADMAP_2026_05_31.md`
 - go/no-go preflight now reports `msix_desktop_entrypoint_verified`, `runtime_idle_cpu_verified`, `process_ownership_verified`, and `startup_single_instance_verified`
-- current state: primary clean packaged desktop-open evidence passes at `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-040413-HUGH_SECOND.desktop-open.evidence.json` with owned WebView2 `6`, owned Node `0`, and WebView2 max one-core CPU `0.21`; the regenerated Store-reviewed artifact launches `musu-desktop.exe` and contains `musu.exe` plus `musu-startup.exe`; the fixed `local-sideload-manual` package is installed on `HUGH_SECOND` and passes installed desktop-entrypoint audit; Store-reviewed restricted-capability sideload is refused by default and must not be used as ordinary install evidence; second-PC desktop-open CPU evidence is still pending but the second-PC return wrapper now captures and returns it; local process ownership and repeated startup evidence pass
+- current state: primary clean packaged desktop-open evidence passes at `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-094127-HUGH_SECOND.desktop-open.evidence.json` with owned WebView2 `6`, owned Node `0`, and WebView2 max one-core CPU `0.08`; the regenerated Store-reviewed artifact launches `musu-desktop.exe` and contains `musu.exe` plus `musu-startup.exe`; the fixed `local-sideload-manual` package is installed on `HUGH_SECOND` and passes installed desktop-entrypoint audit; Store-reviewed restricted-capability sideload is refused by default and must not be used as ordinary install evidence; second-PC desktop-open CPU evidence is still pending but the second-PC return wrapper now captures and returns it; local process ownership and repeated startup evidence pass
 
 Brand assets:
 
