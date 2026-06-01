@@ -82,6 +82,7 @@ README_MULTI_DEVICE_TEST_KIT.md
 scripts\windows\run-second-pc-release-check.ps1
 scripts\windows\capture-msix-install-evidence.ps1
 scripts\windows\collect-second-pc-handoff.ps1
+scripts\windows\measure-musu-runtime-cpu-scenarios.ps1
 ```
 
 ## Step 3 - Run The One-Command Second-PC Check
@@ -112,6 +113,7 @@ It should also create these internal evidence files:
 ```text
 .local-build\msix-install\*.evidence.json
 .local-build\runtime-idle-cpu\*.evidence.json
+.local-build\runtime-cpu-scenarios\*.runtime-cpu-scenario-matrix.json
 .local-build\second-pc-handoff\*.handoff.json
 .local-build\second-pc-release-check\*.release-check.json
 ```
@@ -123,6 +125,12 @@ wrapper opens MUSU Desktop and measures 60 seconds of `desktop-open` idle state
 with owned WebView2 required. If you are only diagnosing an install issue, you
 can run the wrapper with `-SkipRuntimeIdleCpu`, but that skipped run cannot close
 the runtime idle CPU gate.
+
+The wrapper also captures a diagnostic CPU scenario matrix for
+`runtime-started`, `dashboard-open`, `desktop-open`, and `post-route`. That
+matrix helps identify which state causes idle CPU pressure. It is not the
+release gate; the release gate remains the two-machine 60s `desktop-open`
+runtime idle CPU evidence.
 
 ## Step 5 - Bring The Return ZIP Back To The Primary Repo
 
@@ -157,6 +165,7 @@ Expected result:
 
 - the returned MSIX install evidence verifies
 - the returned runtime idle CPU evidence is imported under `.local-build\runtime-idle-cpu\`
+- the returned runtime CPU scenario matrix is imported under `.local-build\runtime-cpu-scenarios\`
 - the MSIX install gate is recorded under `docs\evidence\msix-install\1.15.0-rc.1\`
 - the command prints the primary-side multi-device route commands for the next gate
 

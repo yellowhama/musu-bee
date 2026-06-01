@@ -83,6 +83,7 @@ $docsToCopy = @(
     "docs\MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md",
     "docs\MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md",
     "docs\MSIX_DESKTOP_ENTRYPOINT_AUDIT_2026_05_31.md",
+    "docs\RUNTIME_CPU_SCENARIO_MATRIX_AND_MDNS_LOG_AUDIT_2026_06_01.md",
     "docs\MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md",
     "docs\RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md",
     "docs\STORE_SUBMISSION_METADATA_2026_05_29.md"
@@ -109,6 +110,7 @@ $scriptsToCopy = @(
     "verify-store-submission-bundle.ps1",
     "audit-msix-desktop-entrypoint.ps1",
     "measure-musu-idle-cpu.ps1",
+    "measure-musu-runtime-cpu-scenarios.ps1",
     "audit-musu-process-ownership.ps1",
     "audit-musu-startup-single-instance.ps1",
     "prepare-operator-action-pack.ps1",
@@ -154,6 +156,7 @@ For the shortest Store/submission sequence, review:
 - `docs\MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md`
 - `docs\MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md`
 - `docs\MSIX_DESKTOP_ENTRYPOINT_AUDIT_2026_05_31.md`
+- `docs\RUNTIME_CPU_SCENARIO_MATRIX_AND_MDNS_LOG_AUDIT_2026_06_01.md`
 - `docs\RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md`
 - `docs\MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md`
 - `docs\RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md`
@@ -369,6 +372,17 @@ real MUSU release repo's `.local-build\runtime-idle-cpu\` folder or commit them
 under `docs\evidence\runtime-idle-cpu\__VERSION__\`.
 
 Expected result: `runtime_idle_cpu_verified=true`.
+
+For hot-state attribution, the second-PC wrapper also returns a diagnostic
+runtime CPU scenario matrix. If you need to rerun it manually, use:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario runtime-started dashboard-open desktop-open post-route -SampleSeconds 60 -OpenDesktopApp -Json
+```
+
+This writes `musu.runtime_cpu_scenario_matrix.v1` under
+`.local-build\runtime-cpu-scenarios\`. It is diagnostic evidence only; it does
+not replace the two-machine `desktop-open` release CPU gate.
 
 ## Gate F - Process ownership evidence
 

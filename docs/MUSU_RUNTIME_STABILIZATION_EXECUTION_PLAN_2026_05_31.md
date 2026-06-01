@@ -179,6 +179,12 @@ Already applied:
   `git_dirty=false`, one `musu-desktop`, six owned WebView2 helpers, owned
   Node `0`, max one-core CPU `musu=0` and `webview2=0.13`, working set
   `342.44MB`, and private memory `184.04MB`.
+- The second-PC wrapper now returns the diagnostic scenario matrix alongside
+  the release CPU sample. `import-second-pc-return.ps1` imports
+  `musu.runtime_cpu_scenario_matrix.v1` separately and only treats
+  `.local-build\runtime-idle-cpu\` `desktop-open` evidence with
+  `require_owned_webview2=true` as release CPU evidence, so scenario diagnostics
+  cannot satisfy or shadow the release gate.
 - `musu up` now has code to terminate a live but unhealthy registered bridge
   PID before restarting the bridge. This addresses the observed "PID alive but
   `/health` dead" class. Runtime verification is still pending because a local

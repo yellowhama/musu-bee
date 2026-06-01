@@ -55,6 +55,7 @@ $scriptFiles = @(
     "verify-installed-msix-package.ps1",
     "capture-msix-install-evidence.ps1",
     "measure-musu-idle-cpu.ps1",
+    "measure-musu-runtime-cpu-scenarios.ps1",
     "collect-second-pc-handoff.ps1",
     "run-second-pc-release-check.ps1",
     "verify-msix-install-evidence.ps1",
@@ -115,6 +116,7 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-c
 The wrapper runs the same steps below, writes
 `.local-build\msix-install\*.evidence.json`,
 `.local-build\runtime-idle-cpu\*.evidence.json`,
+`.local-build\runtime-cpu-scenarios\*.runtime-cpu-scenario-matrix.json`,
 `.local-build\second-pc-handoff\*.handoff.json`, and
 `.local-build\second-pc-release-check\*.release-check.json`, creates
 `.local-build\second-pc-return\*.zip`, then prints the return zip and raw files
@@ -131,6 +133,20 @@ Use `-SkipRuntimeIdleCpu` on `run-second-pc-release-check.ps1` only for
 diagnosing install/handoff failures; a skipped CPU sample cannot close the
 public runtime idle CPU gate.
 
+The wrapper also captures a diagnostic runtime CPU scenario matrix with
+`musu.runtime_cpu_scenario_matrix.v1` across `runtime-started`,
+`dashboard-open`, `desktop-open`, and `post-route`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario runtime-started dashboard-open desktop-open post-route -SampleSeconds 60 -OpenDesktopApp -Json
+```
+
+This matrix is for hot-state attribution only. It helps identify whether CPU
+pressure appears after runtime start, dashboard/desktop opening, or route
+activity; it does not replace the release-grade two-machine `desktop-open`
+runtime idle CPU evidence. Use `-SkipRuntimeCpuScenarioMatrix` on
+`run-second-pc-release-check.ps1` only when debugging install/handoff failures.
+
 Manual fallback:
 
 ```powershell
@@ -140,6 +156,7 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-ev
 powershell -ExecutionPolicy Bypass -File scripts\windows\collect-second-pc-handoff.ps1
 Start-Process explorer.exe 'shell:AppsFolder\Yellowhama.MUSU_ygcjq669as2b6!MUSU'
 powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -Scenario desktop-open -RequireOwnedWebView2 -MaxOneCorePercent 5 -MaxOwnedProcessCount 16 -MaxOwnedWebView2ProcessCount 8 -MaxTotalWorkingSetMb 1024 -IncludeNode -IncludeWebView2 -FailOnHot -Json
+powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario runtime-started dashboard-open desktop-open post-route -SampleSeconds 60 -OpenDesktopApp -Json
 musu up --json
 musu doctor --json
 musu status
@@ -153,6 +170,7 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix
 
 The install evidence command writes `.local-build\msix-install\*.evidence.json`.
 The runtime CPU command writes `.local-build\runtime-idle-cpu\*.evidence.json`.
+The scenario matrix command writes `.local-build\runtime-cpu-scenarios\*.json`.
 The handoff command writes `.local-build\second-pc-handoff\*.handoff.json`
 with `suggested_remote_addrs` values such as `192.168.1.20:10621`.
 Return the `.local-build\second-pc-return\*.zip` if the wrapper created one;

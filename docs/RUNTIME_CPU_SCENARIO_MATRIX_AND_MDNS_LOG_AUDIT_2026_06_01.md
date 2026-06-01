@@ -57,6 +57,19 @@ The matrix script intentionally does not close the public release CPU gate by
 itself. It exists to answer "which state is hot?" before the full two-machine
 60s desktop-open release evidence is rerun.
 
+Second-PC returns now carry both layers:
+
+- `run-second-pc-release-check.ps1` still captures the release-grade
+  `.local-build\runtime-idle-cpu\*.desktop-open.evidence.json` sample by
+  default.
+- The same wrapper now also captures
+  `.local-build\runtime-cpu-scenarios\*.runtime-cpu-scenario-matrix.json` unless
+  `-SkipRuntimeCpuScenarioMatrix` is used.
+- `import-second-pc-return.ps1` imports the matrix under
+  `.local-build\runtime-cpu-scenarios\` while selecting release CPU evidence
+  only from `.local-build\runtime-idle-cpu\`, so diagnostic matrix samples
+  cannot accidentally replace the release gate sample.
+
 ## Code Audit Notes
 
 The first implementation attempt revealed a real PowerShell harness risk:

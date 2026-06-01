@@ -168,6 +168,7 @@ try {
         Add-CheckFromCondition "readme p2p control plane spec" ($readme -like "*MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md*") "README points to P2P control-plane spec" "README missing P2P control-plane spec reference"
         Add-CheckFromCondition "readme stabilization execution plan" ($readme -like "*MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md*") "README points to stabilization execution plan" "README missing stabilization execution plan reference"
         Add-CheckFromCondition "readme msix desktop entrypoint audit doc" ($readme -like "*MSIX_DESKTOP_ENTRYPOINT_AUDIT_2026_05_31.md*") "README points to MSIX desktop entrypoint audit" "README missing MSIX desktop entrypoint audit reference"
+        Add-CheckFromCondition "readme runtime CPU scenario matrix audit" ($readme -like "*RUNTIME_CPU_SCENARIO_MATRIX_AND_MDNS_LOG_AUDIT_2026_06_01.md*" -and $readme -like "*musu.runtime_cpu_scenario_matrix.v1*") "README points to runtime CPU scenario matrix diagnostics" "README missing runtime CPU scenario matrix diagnostic reference"
         Add-CheckFromCondition "readme Store run card" ($readme -like "*MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md*") "README points to the Store release run card" "README missing Store release run card reference"
         Add-CheckFromCondition "readme msix install gate" ($readme -like "*record-msix-install-evidence.ps1*" -and $readme -like "*msix_install_verified=true*") "README includes MSIX install evidence gate" "README missing MSIX install evidence gate"
         Add-CheckFromCondition "readme store release blocker" ($readme -like "*Partner Center product name reservation*" -and $readme -like "*app submission*" -and $readme -like "*store_release_verified=true*") "README states Store release approval is a blocker" "README does not clearly state Store release approval evidence is required"
@@ -175,6 +176,7 @@ try {
         Add-CheckFromCondition "readme store bundle verifier" ($readme -like "*verify-store-submission-bundle.ps1*") "README includes Store submission bundle verifier command" "README missing Store submission bundle verifier command"
         Add-CheckFromCondition "readme msix desktop entrypoint audit" ($readme -like "*audit-msix-desktop-entrypoint.ps1*" -and $readme -like "*musu-desktop.exe*" -and $readme -like "*msix_desktop_entrypoint_verified=true*") "README includes MSIX desktop entrypoint gate" "README missing MSIX desktop entrypoint gate"
         Add-CheckFromCondition "readme runtime cpu measurement" ($readme -like "*measure-musu-idle-cpu.ps1*" -and $readme -like "*SampleSeconds 60*" -and $readme -like "*Scenario desktop-open*" -and $readme -like "*RequireOwnedWebView2*" -and $readme -like "*MaxOneCorePercent 5*" -and $readme -like "*MaxOwnedProcessCount 16*" -and $readme -like "*MaxOwnedWebView2ProcessCount 8*" -and $readme -like "*MaxTotalWorkingSetMb 1024*" -and $readme -like "*IncludeNode*" -and $readme -like "*IncludeWebView2*") "README includes runtime idle CPU/resource measurement command" "README missing runtime idle CPU/resource measurement command"
+        Add-CheckFromCondition "readme runtime cpu scenario matrix" ($readme -like "*measure-musu-runtime-cpu-scenarios.ps1*" -and $readme -like "*runtime-started*" -and $readme -like "*dashboard-open*" -and $readme -like "*desktop-open*" -and $readme -like "*post-route*" -and $readme -like "*.local-build\runtime-cpu-scenarios\*") "README includes runtime CPU scenario matrix command" "README missing runtime CPU scenario matrix command"
         Add-CheckFromCondition "readme process ownership audit" ($readme -like "*audit-musu-process-ownership.ps1*" -and $readme -like "*process_ownership_verified=true*" -and $readme -like "*bridge registry PID*") "README includes process ownership audit gate" "README missing process ownership audit gate"
         Add-CheckFromCondition "readme startup single-instance audit" ($readme -like "*audit-musu-startup-single-instance.ps1*" -and $readme -like "*startup_single_instance_verified=true*" -and $readme -like "*one bridge PID*") "README includes startup single-instance audit gate" "README missing startup single-instance audit gate"
         Add-CheckFromCondition "readme handoff status command" ($readme -like "*show-final-release-handoff-status.ps1*") "README includes final release handoff status command" "README missing final release handoff status command"
@@ -224,7 +226,7 @@ try {
         $returnImporterScript = Get-Content -LiteralPath $returnImporterScriptPath -Raw
         Add-CheckFromCondition `
             "second pc return importer safety" `
-            ($returnImporterScript -like "*verify-msix-install-evidence.ps1*" -and $returnImporterScript -like "*show-second-pc-return-card.ps1*" -and $returnImporterScript -like "*RecordMsixInstall*" -and $returnImporterScript -like "*musu.second_pc_return_import.v1*") `
+            ($returnImporterScript -like "*verify-msix-install-evidence.ps1*" -and $returnImporterScript -like "*show-second-pc-return-card.ps1*" -and $returnImporterScript -like "*RecordMsixInstall*" -and $returnImporterScript -like "*musu.second_pc_return_import.v1*" -and $returnImporterScript -like "*musu.runtime_cpu_scenario_matrix.v1*") `
             "packet second-PC return importer verifies MSIX evidence and produces primary commands" `
             "packet second-PC return importer lacks verification, command, or recording support"
     }
@@ -329,7 +331,7 @@ try {
         $packetVerifierScript = Get-Content -LiteralPath $packetVerifierScriptPath -Raw
         Add-CheckFromCondition `
             "packet verifier release safety checks" `
-            ($packetVerifierScript -like "*go no-go dirty git blocker*" -and $packetVerifierScript -like "*go no-go process ownership gate*" -and $packetVerifierScript -like "*go no-go startup single-instance gate*" -and $packetVerifierScript -like "*multi-device verifier schema gate*" -and $packetVerifierScript -like "*msix verifier version and capture gate*" -and $packetVerifierScript -like "*support verifier version and token gate*" -and $packetVerifierScript -like "*store recorder explicit reservation timestamp*" -and $packetVerifierScript -like "*operator handoff return archive*" -and $packetVerifierScript -like "*second pc return importer safety*") `
+            ($packetVerifierScript -like "*go no-go dirty git blocker*" -and $packetVerifierScript -like "*go no-go process ownership gate*" -and $packetVerifierScript -like "*go no-go startup single-instance gate*" -and $packetVerifierScript -like "*multi-device verifier schema gate*" -and $packetVerifierScript -like "*msix verifier version and capture gate*" -and $packetVerifierScript -like "*support verifier version and token gate*" -and $packetVerifierScript -like "*store recorder explicit reservation timestamp*" -and $packetVerifierScript -like "*operator handoff return archive*" -and $packetVerifierScript -like "*second pc return importer safety*" -and $packetVerifierScript -like "*runtime CPU scenario matrix*") `
             "packet verifier checks dirty git, process ownership, startup single-instance, MSIX, multi-device, support, and Store evidence rules" `
             "packet verifier does not check all release evidence rules"
     }
@@ -368,6 +370,7 @@ try {
                     "scripts\windows\install-and-verify-msix.ps1",
                     "scripts\windows\capture-msix-install-evidence.ps1",
                     "scripts\windows\measure-musu-idle-cpu.ps1",
+                    "scripts\windows\measure-musu-runtime-cpu-scenarios.ps1",
                     "scripts\windows\collect-second-pc-handoff.ps1",
                     "scripts\windows\run-second-pc-release-check.ps1",
                     "scripts\windows\smoke-multidevice-beta.ps1",
@@ -419,6 +422,11 @@ try {
                         ($kitReadme -like "*measure-musu-idle-cpu.ps1*" -and $kitReadme -like "*Scenario desktop-open*" -and $kitReadme -like "*RequireOwnedWebView2*" -and $kitReadme -like "*.local-build\runtime-idle-cpu\*.evidence.json*" -and $kitReadme -like "*SkipRuntimeIdleCpu*") `
                         "kit README explains second-PC runtime idle CPU evidence capture" `
                         "kit README does not explain second-PC runtime idle CPU evidence capture"
+                    Add-CheckFromCondition `
+                        "kit readme runtime CPU scenario matrix: $($kitZip.Name)" `
+                        ($kitReadme -like "*measure-musu-runtime-cpu-scenarios.ps1*" -and $kitReadme -like "*musu.runtime_cpu_scenario_matrix.v1*" -and $kitReadme -like "*runtime-started*" -and $kitReadme -like "*dashboard-open*" -and $kitReadme -like "*desktop-open*" -and $kitReadme -like "*post-route*" -and $kitReadme -like "*.local-build\runtime-cpu-scenarios\*") `
+                        "kit README explains runtime CPU scenario matrix diagnostics" `
+                        "kit README does not explain runtime CPU scenario matrix diagnostics"
                     Add-CheckFromCondition `
                         "kit readme multi-device evidence: $($kitZip.Name)" `
                         ($kitReadme -like "*smoke-multidevice-beta.ps1*" -and $kitReadme -like "*record-multidevice-evidence.ps1*" -and $kitReadme -like "*.local-build\multi-device\*.evidence.json*" -and $kitReadme -like "*musu.route_evidence.v1*" -and $kitReadme -like "*peer identity verification*") `

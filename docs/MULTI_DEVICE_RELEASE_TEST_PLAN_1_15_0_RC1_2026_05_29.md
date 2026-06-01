@@ -107,6 +107,7 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\check-msix-sideload-rea
 powershell -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix.ps1 -StartupContract local-sideload-manual -ReplaceExisting
 powershell -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-evidence.ps1 -StartupContract local-sideload-manual
 powershell -ExecutionPolicy Bypass -File scripts\windows\collect-second-pc-handoff.ps1
+powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario runtime-started dashboard-open desktop-open post-route -SampleSeconds 60 -OpenDesktopApp -Json
 musu up --json
 musu doctor --json
 musu status
@@ -123,6 +124,7 @@ Record from each machine:
 - second-PC return archive from `.local-build\second-pc-return\*.zip`
 - MSIX install evidence JSON from `.local-build\msix-install\*.evidence.json`
 - second-PC handoff JSON from `.local-build\second-pc-handoff\*.handoff.json`
+- runtime CPU scenario matrix from `.local-build\runtime-cpu-scenarios\*.runtime-cpu-scenario-matrix.json`
 - second-PC release-check summary from `.local-build\second-pc-release-check\*.release-check.json`
 - one `suggested_remote_addrs` value from the handoff JSON
 - hostname/node name from `musu status`

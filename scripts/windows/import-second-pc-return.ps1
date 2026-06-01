@@ -80,6 +80,41 @@ function Resolve-LatestJsonBySchema {
     return $match.FullName
 }
 
+function Resolve-LatestRuntimeIdleReleaseEvidence {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [switch]$Optional
+    )
+
+    $matches = @()
+    foreach ($file in @(Get-ChildItem -LiteralPath $Root -Filter "*.json" -File -Recurse -ErrorAction SilentlyContinue)) {
+        try {
+            $json = Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json
+            $normalizedPath = $file.FullName -replace "/", "\"
+            if (
+                [string]$json.schema -eq "musu.runtime_idle_cpu_evidence.v1" -and
+                [string]$json.scenario -eq "desktop-open" -and
+                [bool]$json.require_owned_webview2 -and
+                $normalizedPath -like "*\.local-build\runtime-idle-cpu\*"
+            ) {
+                $matches += $file
+            }
+        }
+        catch {
+            # Ignore unrelated JSON files; the selected evidence is verified by go/no-go later.
+        }
+    }
+
+    $match = $matches | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
+    if (-not $match -and -not $Optional) {
+        throw "release-grade runtime idle CPU evidence file not found under $Root"
+    }
+    if (-not $match) {
+        return $null
+    }
+    return $match.FullName
+}
+
 function Copy-IntoRoot {
     param(
         [Parameter(Mandatory = $true)][string]$SourcePath,
@@ -117,7 +152,8 @@ $extractRoot = (Resolve-Path -LiteralPath $extractRoot).Path
 
 $sourceMsixEvidence = Resolve-LatestJsonBySchema -Root $extractRoot -Schema "musu.msix_install_evidence.v1" -Label "MSIX install evidence"
 $sourceHandoff = Resolve-LatestFile -Root $extractRoot -Filter "*.handoff.json" -Label "second-PC handoff"
-$sourceRuntimeIdleCpuEvidence = Resolve-LatestJsonBySchema -Root $extractRoot -Schema "musu.runtime_idle_cpu_evidence.v1" -Label "runtime idle CPU evidence" -Optional
+$sourceRuntimeIdleCpuEvidence = Resolve-LatestRuntimeIdleReleaseEvidence -Root $extractRoot -Optional
+$sourceRuntimeCpuScenarioMatrix = Resolve-LatestJsonBySchema -Root $extractRoot -Schema "musu.runtime_cpu_scenario_matrix.v1" -Label "runtime CPU scenario matrix" -Optional
 $sourceReleaseCheck = Get-ChildItem -LiteralPath $extractRoot -Filter "*.release-check.json" -File -Recurse -ErrorAction SilentlyContinue |
     Sort-Object LastWriteTimeUtc -Descending |
     Select-Object -First 1
@@ -126,6 +162,12 @@ $canonicalMsixEvidence = Copy-IntoRoot -SourcePath $sourceMsixEvidence -TargetRo
 $canonicalHandoff = Copy-IntoRoot -SourcePath $sourceHandoff -TargetRoot (Join-Path $repoRoot ".local-build\second-pc-handoff")
 $canonicalRuntimeIdleCpuEvidence = if ($sourceRuntimeIdleCpuEvidence) {
     Copy-IntoRoot -SourcePath $sourceRuntimeIdleCpuEvidence -TargetRoot (Join-Path $repoRoot ".local-build\runtime-idle-cpu")
+}
+else {
+    $null
+}
+$canonicalRuntimeCpuScenarioMatrix = if ($sourceRuntimeCpuScenarioMatrix) {
+    Copy-IntoRoot -SourcePath $sourceRuntimeCpuScenarioMatrix -TargetRoot (Join-Path $repoRoot ".local-build\runtime-cpu-scenarios")
 }
 else {
     $null
@@ -195,6 +237,7 @@ $result = [pscustomobject]@{
     msix_install_evidence_path = $canonicalMsixEvidence
     handoff_path = $canonicalHandoff
     runtime_idle_cpu_evidence_path = $canonicalRuntimeIdleCpuEvidence
+    runtime_cpu_scenario_matrix_path = $canonicalRuntimeCpuScenarioMatrix
     release_check_path = $canonicalReleaseCheck
     remote_name = [string]$returnCard.remote_name
     remote_addr = [string]$returnCard.remote_addr
@@ -215,6 +258,7 @@ else {
     "msix_install_evidence: $($result.msix_install_evidence_path)"
     "handoff: $($result.handoff_path)"
     "runtime_idle_cpu_evidence: $(if ($result.runtime_idle_cpu_evidence_path) { $result.runtime_idle_cpu_evidence_path } else { '<not present>' })"
+    "runtime_cpu_scenario_matrix: $(if ($result.runtime_cpu_scenario_matrix_path) { $result.runtime_cpu_scenario_matrix_path } else { '<not present>' })"
     "release_check: $(if ($result.release_check_path) { $result.release_check_path } else { '<not present>' })"
     "remote_name: $($result.remote_name)"
     "remote_addr: $($result.remote_addr)"

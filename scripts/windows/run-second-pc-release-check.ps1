@@ -8,6 +8,13 @@ param(
     [int]$CommandTimeoutSec = 90,
     [int]$RuntimeIdleCpuSampleSeconds = 60,
     [switch]$SkipRuntimeIdleCpu,
+    [int]$RuntimeCpuScenarioMatrixSampleSeconds = 60,
+    [ValidateSet("runtime-started", "dashboard-open", "desktop-open", "post-route")]
+    [string[]]$RuntimeCpuScenario = @("runtime-started", "dashboard-open", "desktop-open", "post-route"),
+    [string]$RuntimeCpuDashboardUrl,
+    [switch]$RunRuntimeCpuRouteProbe,
+    [switch]$SkipRuntimeCpuScenarioMatrix,
+    [switch]$FailOnRuntimeCpuScenarioMatrix,
     [switch]$NoReturnZip,
     [switch]$Json
 )
@@ -38,6 +45,7 @@ $summaryPath = Join-Path $OutputRoot "$stamp-$safeMachine.release-check.json"
 $msixEvidencePath = Join-Path $repoRoot ".local-build\msix-install\$stamp-$safeMachine.evidence.json"
 $handoffPath = Join-Path $repoRoot ".local-build\second-pc-handoff\$stamp-$safeMachine.handoff.json"
 $runtimeIdleCpuEvidencePath = Join-Path $repoRoot ".local-build\runtime-idle-cpu\$stamp-$safeMachine.desktop-open.evidence.json"
+$runtimeCpuScenarioOutputRoot = Join-Path $repoRoot ".local-build\runtime-cpu-scenarios\$stamp-$safeMachine"
 $returnZipPath = Join-Path $repoRoot ".local-build\second-pc-return\$stamp-$safeMachine.second-pc-return.zip"
 
 $steps = New-Object System.Collections.Generic.List[object]
@@ -45,6 +53,9 @@ $errorText = $null
 $capture = $null
 $handoff = $null
 $runtimeIdleCpu = $null
+$runtimeCpuScenarioMatrix = $null
+$runtimeCpuScenarioMatrixPath = $null
+$runtimeCpuScenarioMatrixError = $null
 
 function Invoke-ReleaseStep {
     param(
@@ -155,15 +166,61 @@ try {
             ) `
             -ParseJson
     }
+
+    if (-not $SkipRuntimeCpuScenarioMatrix) {
+        try {
+            $matrixArgs = @(
+                "-Scenario"
+            ) + @($RuntimeCpuScenario) + @(
+                "-SampleSeconds", ([string]$RuntimeCpuScenarioMatrixSampleSeconds),
+                "-CommandTimeoutSec", ([string]$CommandTimeoutSec),
+                "-OutputRoot", $runtimeCpuScenarioOutputRoot,
+                "-OpenDesktopApp",
+                "-Json"
+            )
+            if (-not [string]::IsNullOrWhiteSpace($RuntimeCpuDashboardUrl)) {
+                $matrixArgs += @("-DashboardUrl", $RuntimeCpuDashboardUrl)
+            }
+            if ($RunRuntimeCpuRouteProbe) {
+                $matrixArgs += "-RunRouteProbe"
+            }
+            if ($FailOnRuntimeCpuScenarioMatrix) {
+                $matrixArgs += "-FailOnHot"
+            }
+
+            $runtimeCpuScenarioMatrix = Invoke-ReleaseStep `
+                -Name "measure runtime CPU scenario matrix" `
+                -ScriptName "measure-musu-runtime-cpu-scenarios.ps1" `
+                -Arguments $matrixArgs `
+                -ParseJson
+            $runtimeCpuScenarioMatrixPath = if ($runtimeCpuScenarioMatrix) { [string]$runtimeCpuScenarioMatrix.matrix_path } else { $null }
+
+            if ($FailOnRuntimeCpuScenarioMatrix -and $runtimeCpuScenarioMatrix -and -not [bool]$runtimeCpuScenarioMatrix.ok) {
+                throw "Runtime CPU scenario matrix reports ok=false: $runtimeCpuScenarioMatrixPath"
+            }
+        }
+        catch {
+            $runtimeCpuScenarioMatrixError = $_.Exception.Message
+            if ($FailOnRuntimeCpuScenarioMatrix) {
+                throw
+            }
+        }
+    }
 }
 catch {
     $errorText = $_.Exception.Message
+}
+
+$runtimeCpuScenarioFiles = @()
+if (-not $SkipRuntimeCpuScenarioMatrix -and (Test-Path -LiteralPath $runtimeCpuScenarioOutputRoot)) {
+    $runtimeCpuScenarioFiles = @(Get-ChildItem -LiteralPath $runtimeCpuScenarioOutputRoot -File -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
 }
 
 $returnFiles = @(
     $msixEvidencePath,
     $handoffPath,
     $(if (-not $SkipRuntimeIdleCpu) { $runtimeIdleCpuEvidencePath }),
+    $runtimeCpuScenarioFiles,
     $summaryPath
 ) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }
 if (-not $NoReturnZip) {
@@ -181,6 +238,10 @@ $result = [pscustomobject]@{
     msix_install_evidence_path = $msixEvidencePath
     second_pc_handoff_path = $handoffPath
     runtime_idle_cpu_evidence_path = if ($SkipRuntimeIdleCpu) { $null } else { $runtimeIdleCpuEvidencePath }
+    runtime_cpu_scenario_output_root = if ($SkipRuntimeCpuScenarioMatrix) { $null } else { $runtimeCpuScenarioOutputRoot }
+    runtime_cpu_scenario_matrix_path = if ($SkipRuntimeCpuScenarioMatrix) { $null } else { $runtimeCpuScenarioMatrixPath }
+    runtime_cpu_scenario_matrix_ok = if ($SkipRuntimeCpuScenarioMatrix) { $null } elseif ($runtimeCpuScenarioMatrix) { [bool]$runtimeCpuScenarioMatrix.ok } else { $false }
+    runtime_cpu_scenario_matrix_error = $runtimeCpuScenarioMatrixError
     suggested_remote_addrs = if ($handoff) { $handoff.suggested_remote_addrs } else { @() }
     remote_name_suggestion = if ($handoff) { [string]$handoff.remote_name_suggestion } else { $env:COMPUTERNAME }
     capture_ok = if ($capture) { [bool]$capture.ok } else { $false }
@@ -199,7 +260,7 @@ $result | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $summaryPath -Encod
 
 if (-not $NoReturnZip) {
     try {
-        $filesToZip = @($msixEvidencePath, $handoffPath, $(if (-not $SkipRuntimeIdleCpu) { $runtimeIdleCpuEvidencePath }), $summaryPath) | Where-Object {
+        $filesToZip = @($msixEvidencePath, $handoffPath, $(if (-not $SkipRuntimeIdleCpu) { $runtimeIdleCpuEvidencePath }), $runtimeCpuScenarioFiles, $summaryPath) | Where-Object {
             (-not [string]::IsNullOrWhiteSpace([string]$_)) -and (Test-Path -LiteralPath $_)
         }
         if ($filesToZip.Count -eq 0) {
@@ -225,6 +286,7 @@ else {
     "msix_install_evidence_path: $($result.msix_install_evidence_path)"
     "second_pc_handoff_path: $($result.second_pc_handoff_path)"
     "runtime_idle_cpu_evidence_path: $(if ($result.runtime_idle_cpu_evidence_path) { $result.runtime_idle_cpu_evidence_path } else { '<skipped>' })"
+    "runtime_cpu_scenario_matrix_path: $(if ($result.runtime_cpu_scenario_matrix_path) { $result.runtime_cpu_scenario_matrix_path } elseif ($SkipRuntimeCpuScenarioMatrix) { '<skipped>' } else { '<not captured>' })"
     "return_zip_path: $($result.return_zip_path)"
     "remote_name_suggestion: $($result.remote_name_suggestion)"
     "suggested_remote_addrs:"
