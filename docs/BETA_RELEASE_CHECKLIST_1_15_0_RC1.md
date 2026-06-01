@@ -389,6 +389,30 @@ Tauri desktop shell evidence:
   false, support false, and Store false. The Rust CLI source fix invalidates
   the prior release-current primary evidence until a fresh MSIX with this fix
   is built/installed and primary smoke/CPU/matrix evidence is refreshed.
+- 2026-06-02 03:48 KST fresh packaged CLI/runtime evidence after the pipe fix:
+  fresh local-sideload MSIX installed package
+  `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`; packaged WindowsApps CLI
+  pipe proof passed at
+  `docs\evidence\cli-pipe\1.15.0-rc.1\20260602-032728-HUGH_SECOND.packaged-cli-pipe.evidence.json`
+  with `returned_without_hang=true`, duration `7544ms`, and bridge status
+  `ok`. Current primary smoke passes at
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-033029-HUGH_SECOND.evidence.json`;
+  packaged desktop repeated activation passes at
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-033145-HUGH_SECOND.desktop-single-instance.json`;
+  startup single-instance and process ownership pass at
+  `20260602-033225-HUGH_SECOND` and `20260602-033257-HUGH_SECOND`. Primary
+  desktop-open CPU passes at
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-033412-HUGH_SECOND.desktop-open.evidence.json`
+  with max one-core CPU `musu=0`, `node=0`, `webview2=0.23`, hot process
+  count `0`, working set `445.87MB`; primary matrix passes at
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-033636-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  with route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_033636`.
+- 2026-06-02 03:48 KST live `musu.pro` P2P control-plane recheck:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260602-034756-musu.pro.evidence.json`
+  still verifies false. Relay status is logged in and wired, but relay leases
+  return `p2p_control_auth_not_configured` with `accepted_auth_modes=[]`,
+  `owner_scope_verified=false`, and `relay_default_data_path=false`. The next
+  hosted action is production env/auth configuration, not a website UI deploy.
 
 Release candidate manifest:
 
@@ -428,4 +452,6 @@ cargo test --manifest-path .\musu-rs\Cargo.toml `
 - `musu up` currently checks standard dashboard ports, not arbitrary dev smoke ports such as `3002`.
 - Direct `musu up --json | ConvertFrom-Json` is now hardened in source for
   fresh bridge spawn, but packaged MSIX evidence for that exact CLI pipe is
-  still pending.
+  now present and passing through the explicit WindowsApps alias. Developer
+  PATH shadowing still exists on `HUGH_SECOND` because
+  `C:\Users\empty\.cargo\bin\musu.exe` precedes the WindowsApps alias.

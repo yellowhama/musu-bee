@@ -1,0 +1,9 @@
+# CoS Memory - 2026-06-02 03:48 KST - Packaged CLI/runtime evidence
+
+Fresh local-sideload MSIX was built and installed after the Windows CLI pipe fix. Installed package `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6` passed the direct packaged WindowsApps pipe proof: `up --json | ConvertFrom-Json` returned without hang in 7544ms, bridge status `ok`. Evidence path: `docs\evidence\cli-pipe\1.15.0-rc.1\20260602-032728-HUGH_SECOND.packaged-cli-pipe.evidence.json`.
+
+Primary runtime evidence was refreshed and passes: single-machine `20260602-033029-HUGH_SECOND`, desktop single-instance `20260602-033145-HUGH_SECOND`, startup single-instance `20260602-033225-HUGH_SECOND`, process ownership `20260602-033257-HUGH_SECOND`, desktop-open CPU `20260602-033412-HUGH_SECOND.desktop-open`, and 4-state CPU matrix `20260602-033636-HUGH_SECOND.runtime-cpu-scenario-matrix`. CPU max one-core was `musu=0`, `node=0`, `webview2=0.23`, hot process count `0`, working set `445.87MB`. Matrix route token: `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_033636`.
+
+`musu.pro` website UI deploy is not pending. Live QA still passes for scroll, favicon-header logo, `.musu-public-scroll-root`, and emerald `#24C8DB`. The remaining hosted blocker is production P2P control-plane auth/env. Fresh evidence `20260602-034756-musu.pro` still fails with `p2p_control_auth_not_configured`, `accepted_auth_modes=[]`, `owner_scope_verified=false`, while status remains logged in and wired.
+
+Machine-wide Node processes were observed, but process ownership attributes MUSU-owned Node `0` and orphan repo helpers `0`. The Node processes are Codex/MCP/dev helper state, not MUSU busy-loop evidence. Developer PATH shadow remains: `.cargo\bin\musu.exe` precedes the WindowsApps alias, so explicit WindowsApps path must be used for packaged CLI proof until the dev PATH is cleaned.

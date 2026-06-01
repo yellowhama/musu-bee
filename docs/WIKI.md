@@ -428,6 +428,34 @@ Current Store path truth:
   This is expected because the Rust CLI source changed after the fresh MSIX
   primary evidence. The next evidence action is a fresh MSIX containing the
   CLI pipe fix, packaged CLI pipe proof, then primary smoke/CPU/matrix refresh.
+- Packaged CLI/runtime evidence after the CLI pipe fix: wiki/535 records fresh
+  local-sideload MSIX install evidence on `HUGH_SECOND`. The explicit
+  WindowsApps alias proof
+  `20260602-032728-HUGH_SECOND.packaged-cli-pipe.evidence.json` passed with
+  `returned_without_hang=true` and bridge status `ok`. Current primary runtime
+  evidence passes at `20260602-033029-HUGH_SECOND` single-machine,
+  `20260602-033145-HUGH_SECOND` desktop single-instance,
+  `20260602-033225-HUGH_SECOND` startup single-instance,
+  `20260602-033257-HUGH_SECOND` process ownership,
+  `20260602-033412-HUGH_SECOND.desktop-open` CPU, and
+  `20260602-033636-HUGH_SECOND.runtime-cpu-scenario-matrix`. Desktop-open CPU
+  max one-core is `musu=0`, `node=0`, `webview2=0.23`; hot process count is
+  `0`; working set is `445.87MB`. Process ownership shows machine-wide Node
+  `19`, but MUSU-owned Node `0` and orphan repo helpers `0`.
+- Live `musu.pro` P2P control-plane recheck remains blocked by production env:
+  `20260602-034756-musu.pro.evidence.json` has logged-in/wired status, but
+  relay leases fail with `p2p_control_auth_not_configured`,
+  `accepted_auth_modes=[]`, and `owner_scope_verified=false`. The website UI
+  deploy question is closed; the next hosted action is setting production
+  `MUSU_P2P_CONTROL_TOKEN_SHA256S` or equivalent scoped auth and redeploying.
+- Indexer refreshed after wiki/535 packaged CLI/runtime evidence and P2P
+  recheck docs: `musu indexer sync --work-dir F:\workspace\musu-bee --name
+  musu-bee` indexed 1247 files and 2214 symbols. Search terms should include
+  `wiki/535`, `packaged-cli-pipe`, `returned_without_hang=true`,
+  `20260602-033412-HUGH_SECOND.desktop-open`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_033636`,
+  `p2p_control_auth_not_configured`, `machine-wide Node 19`, and
+  `owned Node 0`.
 - Indexer refreshed after recording the clean post-commit No-Go state:
   `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
   1232 files and 2214 symbols. Search terms include `post-commit No-Go`,

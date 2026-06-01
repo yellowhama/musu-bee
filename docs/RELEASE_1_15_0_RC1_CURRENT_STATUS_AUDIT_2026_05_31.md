@@ -367,3 +367,28 @@ the expected evidence-freshness consequence of changing Rust CLI source after
 the latest fresh MSIX primary evidence. The next evidence action is a fresh MSIX
 build/install containing this pipe fix, then packaged CLI pipe proof plus
 primary smoke/CPU/matrix refresh before second-PC capture.
+
+2026-06-02 03:48 KST packaged CLI/runtime evidence addendum: the fresh MSIX
+with the CLI pipe fix has now been built, installed, and rechecked on
+`HUGH_SECOND`. Packaged WindowsApps CLI pipe evidence
+`docs\evidence\cli-pipe\1.15.0-rc.1\20260602-032728-HUGH_SECOND.packaged-cli-pipe.evidence.json`
+passes with `returned_without_hang=true`, duration `7544ms`, and bridge status
+`ok`. Current primary evidence passes at
+`20260602-033029-HUGH_SECOND` single-machine,
+`20260602-033145-HUGH_SECOND` desktop single-instance,
+`20260602-033225-HUGH_SECOND` startup single-instance,
+`20260602-033257-HUGH_SECOND` process ownership,
+`20260602-033412-HUGH_SECOND.desktop-open` CPU, and
+`20260602-033636-HUGH_SECOND.runtime-cpu-scenario-matrix`. The primary
+busy-loop report is not reproduced: desktop-open CPU max one-core is
+`musu=0`, `node=0`, `webview2=0.23`, hot process count `0`, working set
+`445.87MB`. Machine-wide Node count is high, but MUSU-owned Node is `0` and
+orphan repo helpers are `0`.
+
+2026-06-02 03:48 KST hosted blocker update: live `musu.pro` public UI remains
+deployed and passes the scroll/logo/emerald checks. P2P control-plane evidence
+`docs\evidence\p2p-control-plane\1.15.0-rc.1\20260602-034756-musu.pro.evidence.json`
+still fails because relay leases return `p2p_control_auth_not_configured` with
+`accepted_auth_modes=[]`. Set production `MUSU_P2P_CONTROL_TOKEN_SHA256S` (or
+equivalent scoped auth), redeploy/reload `musu.pro`, and rerun evidence without
+`-AllowUnverified`.

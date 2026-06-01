@@ -797,5 +797,30 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `post-commit No-Go`, `manifest_dirty=false`, `single_machine_verified=false`,
   `runtime idle CPU 0/2`, `runtime CPU scenario matrix 0/2`, and
   `fresh MSIX with CLI pipe fix`.
+- 2026-06-02 packaged CLI/runtime evidence audit: wiki/535 records fresh MSIX
+  packaged proof after the CLI pipe fix. Evidence paths include
+  `20260602-032728-HUGH_SECOND.packaged-cli-pipe`,
+  `20260602-033029-HUGH_SECOND`, `20260602-033145-HUGH_SECOND`,
+  `20260602-033225-HUGH_SECOND`, `20260602-033257-HUGH_SECOND`,
+  `20260602-033412-HUGH_SECOND.desktop-open`, and
+  `20260602-033636-HUGH_SECOND.runtime-cpu-scenario-matrix`. Search terms
+  should include `wiki/535`, `returned_without_hang=true`, `7544ms`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_033636`, `machine-wide Node 19`,
+  `owned Node 0`, and `webview2=0.23`.
+- 2026-06-02 live `musu.pro` P2P control-plane recheck: evidence
+  `20260602-034756-musu.pro` still fails with
+  `p2p_control_auth_not_configured`, `accepted_auth_modes=[]`, and
+  `owner_scope_verified=false`; status remains logged in and relay control
+  plane wired. Search terms should include `production env/auth`,
+  `MUSU_P2P_CONTROL_TOKEN_SHA256S`, `relay_default_data_path=false`, and
+  `website UI deploy not pending`.
+- 2026-06-02 index refresh after wiki/535 packaged CLI/runtime evidence:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1247 files and 2214 symbols. Search terms should include `GOAL v235`,
+  `GOAL v236`, `wiki/535`, `packaged-cli-pipe`,
+  `returned_without_hang=true`, `20260602-033412-HUGH_SECOND.desktop-open`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_033636`,
+  `p2p_control_auth_not_configured`, `machine-wide Node 19`, and
+  `owned Node 0`.
 
 **End of WIKI_INDEX.md.**

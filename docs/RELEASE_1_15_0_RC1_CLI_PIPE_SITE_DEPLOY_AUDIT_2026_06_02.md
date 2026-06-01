@@ -64,8 +64,12 @@ Fix rationale:
 
 Residual risk:
 
-- This was verified on the primary machine from the debug binary. The next release-grade check should install a fresh MSIX containing this change and run the same PowerShell pipe through the packaged WindowsApps alias.
+- The follow-up packaged WindowsApps alias proof now passes from a fresh MSIX,
+  so this is no longer only a debug-binary fix.
 - The fix clears inheritance on standard handles. If a future caller injects other unrelated inheritable handles, this specific code path does not enumerate all process handles. That is acceptable for the observed stdout-pipe hang but should stay on the hardening watchlist.
+- `HUGH_SECOND` still has a developer PATH shadow where
+  `C:\Users\empty\.cargo\bin\musu.exe` resolves before the WindowsApps alias.
+  The packaged proof therefore uses the explicit WindowsApps path.
 
 ## Verification
 
@@ -130,21 +134,49 @@ Clean go/no-go after committing this source change:
 - `support_mailbox_verified=false`
 - `store_release_verified=false`
 
-Interpretation: the immediate fix is valid, but because this is a Rust source
-change after the latest fresh MSIX/CPU evidence, release-current evidence must
-be regenerated from a package that includes the CLI pipe hardening.
+Interpretation: this old clean go/no-go was the expected source-freshness
+reset immediately after the Rust fix. It has now been followed by fresh MSIX
+packaged CLI/runtime evidence in wiki/535.
+
+## 2026-06-02 03:48 KST Follow-Up
+
+Fresh MSIX build/install completed after this audit. The installed package
+`Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6` now has release evidence for the
+same pipe class through the packaged WindowsApps alias:
+
+- evidence:
+  `docs\evidence\cli-pipe\1.15.0-rc.1\20260602-032728-HUGH_SECOND.packaged-cli-pipe.evidence.json`
+- result: `ok=true`, `returned_without_hang=true`, duration `7544ms`
+- bridge status: `ok`
+- dashboard status: `warn`
+
+Primary runtime evidence was also refreshed:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-033029-HUGH_SECOND.evidence.json`
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-033145-HUGH_SECOND.desktop-single-instance.json`
+- startup single-instance:
+  `docs\evidence\startup-single-instance\1.15.0-rc.1\20260602-033225-HUGH_SECOND.startup-single-instance.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-033257-HUGH_SECOND.process-ownership.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-033412-HUGH_SECOND.desktop-open.evidence.json`
+- four-state CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-033636-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Current primary CPU: `60.071s`, hot process count `0`, max one-core CPU
+`musu=0`, `node=0`, `webview2=0.23`, working set `445.87MB`. Matrix route
+token: `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_033636`.
+
+Live `musu.pro` P2P evidence was re-recorded at
+`docs\evidence\p2p-control-plane\1.15.0-rc.1\20260602-034756-musu.pro.evidence.json`.
+It still fails release verification because relay lease query returns
+`p2p_control_auth_not_configured` with `accepted_auth_modes=[]`.
 
 ## Next Steps
 
-1. Build/install the next MSIX containing this CLI spawn hardening.
-2. Run the same direct packaged command:
-
-   ```powershell
-   & "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" up --json --timeout-sec 10 | ConvertFrom-Json
-   ```
-
-3. Record the packaged CLI pipe proof as release evidence if it passes.
-4. Configure production `MUSU_P2P_CONTROL_TOKEN_SHA256S` or equivalent scoped auth on `musu.pro`, run the Vercel production deploy/reload path, then record passing P2P control-plane evidence without `-AllowUnverified`.
-5. Capture second-PC desktop-open CPU and runtime CPU scenario matrix evidence from the fresh package.
-6. Capture release-grade multi-device route evidence, `musu@musu.pro` inbox delivery evidence, and Partner Center/Store evidence.
-7. Rerun `write-release-go-no-go.ps1` and `complete-final-operator-gates.ps1` only after those evidence records exist.
+1. Configure production `MUSU_P2P_CONTROL_TOKEN_SHA256S` or equivalent scoped auth on `musu.pro`, run the Vercel production deploy/reload path, then record passing P2P control-plane evidence without `-AllowUnverified`.
+2. Capture second-PC desktop-open CPU and runtime CPU scenario matrix evidence from the fresh package.
+3. Capture release-grade multi-device route evidence, `musu@musu.pro` inbox delivery evidence, and Partner Center/Store evidence.
+4. Rerun `write-release-go-no-go.ps1` and `complete-final-operator-gates.ps1` only after those evidence records exist.

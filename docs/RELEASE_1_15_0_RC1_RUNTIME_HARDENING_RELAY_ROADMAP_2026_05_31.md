@@ -871,3 +871,32 @@ Release interpretation:
 - Public release remains No-Go until second-PC CPU/matrix, release-grade
   multi-device route proof, production P2P control-plane auth/env evidence,
   `musu@musu.pro` delivery proof, and Store evidence pass.
+
+## 2026-06-02 Packaged CLI/Runtime Refresh
+
+Fresh package evidence after the CLI pipe fix:
+
+- packaged WindowsApps CLI pipe:
+  `docs\evidence\cli-pipe\1.15.0-rc.1\20260602-032728-HUGH_SECOND.packaged-cli-pipe.evidence.json`,
+  `returned_without_hang=true`, duration `7544ms`
+- primary desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-033412-HUGH_SECOND.desktop-open.evidence.json`,
+  max one-core CPU `musu=0`, `node=0`, `webview2=0.23`, hot process count
+  `0`, working set `445.87MB`
+- primary 4-state CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-033636-HUGH_SECOND.runtime-cpu-scenario-matrix.json`,
+  route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_033636`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-033257-HUGH_SECOND.process-ownership.json`,
+  runtime `1`, desktop shell `1`, owned Node `0`, owned WebView2 `6`,
+  machine-wide Node `19`, orphan repo helpers `0`
+
+Roadmap adjustment:
+
+- Treat primary Windows package hardening as currently acceptable for beta
+  evidence.
+- Keep second-PC CPU/matrix as the next runtime gate; the busy-loop report is
+  not closed until another machine confirms it.
+- Keep the P2P control-plane task as production env/auth, not public website
+  UI deployment. Latest live evidence still fails with
+  `p2p_control_auth_not_configured`.
