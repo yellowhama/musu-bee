@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 
 export type OnboardingStep = 1 | 2 | 3 | 4;
 export type AdapterType = "claude_local" | "codex_local" | "gemini_local";
@@ -255,37 +256,30 @@ export function useOnboardingFlow() {
   /**
    * v12-onboarding D — Poll the research stub task until it returns a
    * proposal, then store it on the flow so step 3 can render the
-   * approval card. Polling is cheap (2s) and stops as soon as the
-   * proposal lands.
+   * approval card. Uses the shared low-duty poller so hidden tabs pause,
+   * in-flight fetches are aborted on unmount, and failures back off.
    */
-  useEffect(() => {
-    if (flow.decision !== "research") return;
-    if (!flow.researchTaskId) return;
-    if (flow.proposedTemplate) return;
-
+  const pollResearchTask = useCallback(async (signal: AbortSignal) => {
     const tid = flow.researchTaskId;
-    let cancelled = false;
-
-    async function poll() {
-      try {
-        const r = await fetch(`/api/bridge/companies/onboarding/research/${tid}`);
-        if (!r.ok || cancelled) return;
-        const data: { status: string; proposal?: ProposedTemplate } = await r.json();
-        if (data.status === "ready" && data.proposal) {
-          setFlow((prev) => ({ ...prev, proposedTemplate: data.proposal ?? null }));
-        }
-      } catch {
-        // Network blip — try again next tick.
+    if (!tid) return;
+    try {
+      const r = await fetch(`/api/bridge/companies/onboarding/research/${tid}`, { signal });
+      if (!r.ok || signal.aborted) return;
+      const data: { status: string; proposal?: ProposedTemplate } = await r.json();
+      if (signal.aborted) return;
+      if (data.status === "ready" && data.proposal) {
+        setFlow((prev) => ({ ...prev, proposedTemplate: data.proposal ?? null }));
       }
+    } catch {
+      // Network blip — the shared poller will retry with backoff.
     }
+  }, [flow.researchTaskId]);
 
-    void poll();
-    const handle = window.setInterval(poll, 2000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(handle);
-    };
-  }, [flow.decision, flow.researchTaskId, flow.proposedTemplate]);
+  useLowDutyPolling(pollResearchTask, {
+    enabled: flow.decision === "research" && Boolean(flow.researchTaskId) && !flow.proposedTemplate,
+    intervalMs: 5_000,
+    maxBackoffMs: 60_000,
+  });
 
   /**
    * v12-onboarding D — Persist a research proposal as a reusable template

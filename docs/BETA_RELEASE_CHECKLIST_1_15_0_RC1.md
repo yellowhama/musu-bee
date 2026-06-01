@@ -180,6 +180,12 @@ Runtime hardening:
   so `musu.pro` can audit whether the lease was requested/issued/skipped
   without claiming relay payload transport
 - current state: primary clean packaged desktop-open evidence passes at `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-160102-HUGH_SECOND.desktop-open.evidence.json` with `musu`/`musu-desktop` process count `2`, repo-related Next Node `1`, owned WebView2 `6`, max one-core CPU `musu=0`, `node=0`, `webview2=0.08`, total working set `504.02MB`, and private memory `330.43MB`; current single-machine smoke passes at `docs\evidence\single-machine\1.15.0-rc.1\20260601-155630-HUGH_SECOND.evidence.json`; primary clean 4-state CPU scenario matrix passes at `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260601-154503-HUGH_SECOND.runtime-cpu-scenario-matrix.json` with repo Node counted and no hot processes; go/no-go reports single-machine verified, runtime idle CPU `1/2`, runtime CPU scenario matrix `1/2`, public metadata ok, MSIX install ok, and MSIX desktop entrypoint ok; second-PC desktop-open CPU evidence and second-PC scenario matrix evidence are still pending; the regenerated Store-reviewed artifact launches `musu-desktop.exe` and contains `musu.exe` plus `musu-startup.exe`; the fixed `local-sideload-manual` package is installed on `HUGH_SECOND` and passes installed desktop-entrypoint audit; Store-reviewed restricted-capability sideload is refused by default and must not be used as ordinary install evidence; local process ownership and repeated startup evidence pass
+- frontend polling hardening: `musu-bee/src` currently has no direct
+  `setInterval(` matches. Workflow run status, remote screen device refresh,
+  agents surface refresh, and onboarding research polling use
+  `useLowDutyPolling`; `musu-bee/src/app/runtime-polling-contract.test.ts`
+  guards the contract. This reduces known frontend busy-loop candidates but
+  does not replace the two-machine 60s CPU evidence gate.
 
 Brand assets:
 

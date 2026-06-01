@@ -1,7 +1,8 @@
 "use client";
 import { getBridgeUrl } from '../../../lib/bridge-config';
 
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
+import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 
 const BRIDGE_URL = getBridgeUrl();
 const REFRESH_INTERVAL = 15_000;
@@ -31,12 +32,12 @@ export default function ScreenPage() {
   const [machines, setMachines] = useState<MachineGroup[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchDevices = useCallback(async () => {
+  const fetchDevices = useCallback(async (signal?: AbortSignal) => {
     try {
       // Get active company dynamically
       let companyId = "";
       try {
-        const wsResp = await fetch(`${BRIDGE_URL}/api/workspace`);
+        const wsResp = await fetch(`${BRIDGE_URL}/api/workspace`, { signal });
         if (wsResp.ok) {
           const ws = await wsResp.json();
           companyId = ws.active_company_id || "";
@@ -44,7 +45,7 @@ export default function ScreenPage() {
       } catch { /* */ }
       if (!companyId) {
         try {
-          const coResp = await fetch(`${BRIDGE_URL}/api/companies`);
+          const coResp = await fetch(`${BRIDGE_URL}/api/companies`, { signal });
           if (coResp.ok) {
             const cos = await coResp.json();
             if (Array.isArray(cos) && cos.length > 0) companyId = cos[0].id;
@@ -55,14 +56,14 @@ export default function ScreenPage() {
       let data: Record<string, unknown> = {};
       if (companyId) {
         try {
-          const resp = await fetch(`${BRIDGE_URL}/api/companies/${companyId}/dashboard`);
+          const resp = await fetch(`${BRIDGE_URL}/api/companies/${companyId}/dashboard`, { signal });
           if (resp.ok) data = await resp.json();
         } catch { /* */ }
       }
       // Fallback: direct node-info if dashboard didn't return nodes
       if (!data.nodes || !(data.nodes as unknown[]).length) {
         try {
-          const nodeResp = await fetch(`${BRIDGE_URL}/api/admin/node-info`);
+          const nodeResp = await fetch(`${BRIDGE_URL}/api/admin/node-info`, { signal });
           if (nodeResp.ok) {
             const info = await nodeResp.json();
             // Wrap single node info as array for compatibility
@@ -103,18 +104,19 @@ export default function ScreenPage() {
         if (!group.rustdesk_id && node.rustdesk_id) group.rustdesk_id = node.rustdesk_id;
       }
 
+      if (signal?.aborted) return;
       setMachines(Array.from(machineMap.values()));
       setLoading(false);
     } catch {
+      if (signal?.aborted) return;
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    fetchDevices();
-    const timer = setInterval(fetchDevices, REFRESH_INTERVAL);
-    return () => clearInterval(timer);
-  }, [fetchDevices]);
+  useLowDutyPolling(fetchDevices, {
+    intervalMs: REFRESH_INTERVAL,
+    maxBackoffMs: 120_000,
+  });
 
   const handleConnect = (rustdesk_id: string) => {
     if (rustdesk_id && rustdesk_id.length >= 6) {

@@ -198,6 +198,24 @@ after the matrix evidence commit:
 - note: Node.js is now intentionally attributed through command-line metadata;
   the `node` process is the local Next production dashboard on port `3001`
 
+2026-06-01 17:38 KST frontend polling hardening update:
+
+- `musu-bee/src` no longer contains direct `setInterval(` usage.
+- Workflow run status polling, remote screen device refresh, agents surface
+  refresh, and onboarding research polling now use `useLowDutyPolling`.
+- The shared poller gives those paths hidden-tab throttling, failure backoff,
+  in-flight request suppression, and AbortController cancellation on unmount or
+  route change.
+- Regression guard:
+  `musu-bee/src/app/runtime-polling-contract.test.ts`.
+- Validation:
+  `rg -n "setInterval\(" musu-bee\src -S` returned no matches,
+  `npx tsx --test src/app/runtime-polling-contract.test.ts` passed 4/4,
+  `npm run typecheck` passed, and `npm run build` passed.
+- Release status: this is root-cause hardening, not new CPU evidence. The next
+  release proof still needs clean/current 60s primary and second-PC samples
+  after this commit is built/deployed/packaged.
+
 Parser validation:
 
 - `measure-musu-runtime-cpu-scenarios.ps1 parser ok`

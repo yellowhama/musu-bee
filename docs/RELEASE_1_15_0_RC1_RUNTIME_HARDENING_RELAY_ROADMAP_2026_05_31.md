@@ -298,6 +298,13 @@ Current 2026-06-01 implementation update:
 - This is still not release-grade P2P. Relay payload transport is not wired,
   `relay_default_data_path=false`, and QUIC/TLS route evidence remains the
   accepted release target.
+- Frontend polling hardening update: direct `setInterval(` usage has been
+  removed from `musu-bee/src`. Workflow run status, remote screen refresh,
+  agents surface refresh, and onboarding research polling now use the shared
+  `useLowDutyPolling` hook with cancellation, hidden-tab throttling, in-flight
+  suppression, and backoff. `runtime-polling-contract.test.ts` guards this
+  against regression. This reduces frontend busy-loop candidates, but release
+  still requires fresh 60s CPU evidence on two machines.
 
 Minimal client behavior:
 

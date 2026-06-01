@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { AgentsSurfaceSnapshot } from "@/types";
+import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 
 export interface UseAgentsSurfaceReturn {
   agentsSurface: AgentsSurfaceSnapshot | null;
@@ -24,85 +25,43 @@ export function useAgentsSurface(onHandoff?: (newBoss: string) => void): UseAgen
   const onHandoffRef = useRef(onHandoff);
   onHandoffRef.current = onHandoff;
 
-  useEffect(() => {
-    let cancelled = false;
-    let inFlight = false;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-
-    const clearTimer = () => {
-      if (timer) {
-        clearTimeout(timer);
-        timer = null;
-      }
-    };
-
-    const refreshDelay = () =>
-      typeof document !== "undefined" && document.visibilityState === "hidden"
-        ? AGENTS_SURFACE_REFRESH_HIDDEN_MS
-        : AGENTS_SURFACE_REFRESH_VISIBLE_MS;
-
-    const schedule = () => {
-      if (cancelled) return;
-      clearTimer();
-      timer = setTimeout(() => {
-        void fetchAgentsSurface();
-      }, refreshDelay());
-    };
-
-    async function fetchAgentsSurface() {
-      if (cancelled || inFlight) return;
-      inFlight = true;
-      try {
-        const res = await fetch("/api/agents");
-        if (!res.ok) {
-          if (!cancelled) setAgentsSurface((prev) => ({
-            fetchedAt: new Date().toISOString(),
-            degraded: true,
-            degradedReason: `agents_route_http_${res.status}`,
-            stale: true,
-            summary: prev?.summary ?? EMPTY_SUMMARY,
-          }));
-          return;
-        }
-        const payload = (await res.json()) as AgentsSurfaceSnapshot;
-        if (!cancelled) {
-          setAgentsSurface(payload);
-          // Detect boss handoff
-          const newBoss = payload.summary?.bossHost ?? null;
-          if (newBoss && prevBossHostRef.current !== null && prevBossHostRef.current !== newBoss) {
-            onHandoffRef.current?.(newBoss);
-          }
-          prevBossHostRef.current = newBoss;
-        }
-      } catch {
-        if (!cancelled) setAgentsSurface((prev) => ({
+  const fetchAgentsSurface = useCallback(async (signal: AbortSignal) => {
+    try {
+      const res = await fetch("/api/agents", { signal });
+      if (!res.ok) {
+        if (!signal.aborted) setAgentsSurface((prev) => ({
           fetchedAt: new Date().toISOString(),
           degraded: true,
-          degradedReason: "agents_route_fetch_error",
+          degradedReason: `agents_route_http_${res.status}`,
           stale: true,
           summary: prev?.summary ?? EMPTY_SUMMARY,
         }));
-      } finally {
-        inFlight = false;
-        schedule();
+        return;
       }
+      const payload = (await res.json()) as AgentsSurfaceSnapshot;
+      if (signal.aborted) return;
+      setAgentsSurface(payload);
+      // Detect boss handoff.
+      const newBoss = payload.summary?.bossHost ?? null;
+      if (newBoss && prevBossHostRef.current !== null && prevBossHostRef.current !== newBoss) {
+        onHandoffRef.current?.(newBoss);
+      }
+      prevBossHostRef.current = newBoss;
+    } catch {
+      if (!signal.aborted) setAgentsSurface((prev) => ({
+        fetchedAt: new Date().toISOString(),
+        degraded: true,
+        degradedReason: "agents_route_fetch_error",
+        stale: true,
+        summary: prev?.summary ?? EMPTY_SUMMARY,
+      }));
     }
-
-    const handleVisibilityChange = () => {
-      if (typeof document !== "undefined" && document.visibilityState !== "hidden") {
-        clearTimer();
-        void fetchAgentsSurface();
-      }
-    };
-
-    void fetchAgentsSurface();
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      cancelled = true;
-      clearTimer();
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
   }, []);
+
+  useLowDutyPolling(fetchAgentsSurface, {
+    intervalMs: AGENTS_SURFACE_REFRESH_VISIBLE_MS,
+    maxBackoffMs: AGENTS_SURFACE_REFRESH_HIDDEN_MS,
+  });
 
   return { agentsSurface };
 }

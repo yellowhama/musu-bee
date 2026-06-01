@@ -1,9 +1,9 @@
 // V23.4 Phase 4 T2-D-mini — RunPanel polling display (wiki/435 v2 §5).
-// Polls /api/workflows/[id]/status every 2000ms; stops on terminal status.
-// `alive` boolean closure pattern from src/app/c/[id]/page.tsx.
+// Polls /api/workflows/[id]/status with the shared low-duty poller; stops on terminal status.
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 
 interface StepStatus {
   id: string;
@@ -37,34 +37,26 @@ export default function RunPanel({ workflowId }: { workflowId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
+  const fetchStatus = useCallback(async (signal: AbortSignal) => {
     if (!workflowId) return;
-    let alive = true;
-    let timer: ReturnType<typeof setInterval> | null = null;
-    const fetchStatus = async () => {
-      try {
-        const res = await fetch(`/api/workflows/${workflowId}/status`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = (await res.json()) as WorkflowStatus;
-        if (!alive) return;
-        setStatus(json);
-        setError(null);
-        if (TERMINAL.has(json.status) && timer) {
-          clearInterval(timer);
-          timer = null;
-        }
-      } catch (e) {
-        if (!alive) return;
-        setError(e instanceof Error ? e.message : "fetch failed");
-      }
-    };
-    fetchStatus();
-    timer = setInterval(fetchStatus, 2000);
-    return () => {
-      alive = false;
-      if (timer) clearInterval(timer);
-    };
+    try {
+      const res = await fetch(`/api/workflows/${workflowId}/status`, { signal });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = (await res.json()) as WorkflowStatus;
+      if (signal.aborted) return;
+      setStatus(json);
+      setError(null);
+    } catch (e) {
+      if (signal.aborted) return;
+      setError(e instanceof Error ? e.message : "fetch failed");
+    }
   }, [workflowId]);
+
+  useLowDutyPolling(fetchStatus, {
+    enabled: Boolean(workflowId) && !TERMINAL.has(status?.status ?? ""),
+    intervalMs: 5_000,
+    maxBackoffMs: 60_000,
+  });
 
   if (!status && !error) return null;
 
