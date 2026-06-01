@@ -821,3 +821,53 @@ Release interpretation:
 - The website scroll/logo/accent fix is already deployed to `musu.pro`. The
   remaining hosted task is production P2P control-plane auth/env verification,
   not another website UI deploy.
+
+## 2026-06-02 CLI Pipe Handle and Live Site Verification Update
+
+The direct Windows CLI pipeline is now part of the release hardening contract.
+The observed pattern was:
+
+```powershell
+musu up --json | ConvertFrom-Json
+```
+
+When `musu up` had to spawn a fresh long-lived bridge, the bridge could inherit
+the caller stdout pipe and keep the PowerShell pipeline open after the parent
+CLI emitted JSON and exited.
+
+Source hardening:
+
+- `spawn_bridge_process()` still redirects bridge stdout/stderr to
+  `~/.musu/logs/bridge.log`.
+- On Windows, the short-lived parent clears inheritance on
+  `STD_INPUT_HANDLE`, `STD_OUTPUT_HANDLE`, and `STD_ERROR_HANDLE` before
+  spawning the bridge.
+- The bridge child is launched with `DETACHED_PROCESS`,
+  `CREATE_NEW_PROCESS_GROUP`, and `CREATE_NO_WINDOW`.
+
+Validation:
+
+- `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1`
+- `cargo build --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1`
+- `cargo fmt --manifest-path .\musu-rs\Cargo.toml --check`
+- `git diff --check`
+- fresh debug-binary pipe test returned instead of hanging:
+  `ok=true`, `bridge_started=true`, bridge PID `37284`, bridge status `ok`,
+  bridge URL `http://127.0.0.1:5692`, dashboard status `warn`
+
+Release interpretation:
+
+- This fixes the direct CLI pipe hang class in source and primary debug
+  runtime evidence.
+- The next release-grade step is to include this source in a fresh MSIX and
+  run the same command through the packaged WindowsApps alias.
+- Live `https://musu.pro` was rechecked on `/`, `/landing`, `/pricing`, and
+  `/install` across desktop/mobile and passed scroll/logo/emerald QA. The
+  website deploy question is closed for this UI scope.
+- Clean go/no-go after the source fix reports `manifest_dirty=false` but
+  `single_machine_verified=false`, runtime idle CPU `0/2`, and runtime CPU
+  matrix `0/2`, because this Rust source fix postdates the latest fresh MSIX
+  primary evidence.
+- Public release remains No-Go until second-PC CPU/matrix, release-grade
+  multi-device route proof, production P2P control-plane auth/env evidence,
+  `musu@musu.pro` delivery proof, and Store evidence pass.

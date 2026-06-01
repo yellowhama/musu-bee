@@ -405,6 +405,35 @@ Current Store path truth:
   `20260602-015510-HUGH_SECOND.runtime-cpu-scenario-matrix`,
   `20260602-020031-HUGH_SECOND`, and
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_015510`.
+- 2026-06-02 CLI pipe/site deploy audit: wiki/534 records that direct Windows
+  `musu up --json | ConvertFrom-Json` no longer hangs on a fresh debug bridge
+  spawn after source cleared standard-handle inheritance and launched the bridge
+  detached. Validation passed `cargo check --bin musu -j 1`, `cargo build --bin
+  musu -j 1`, `cargo fmt --check`, `git diff --check`, and a fresh debug pipe
+  test with bridge PID `37284` / URL `http://127.0.0.1:5692`; PID `37284` was
+  stopped after the test. Live `https://musu.pro` QA still passes 8/8 for
+  `/`, `/landing`, `/pricing`, and `/install` across desktop/mobile with
+  scroll, no horizontal overflow, favicon-header logo, and `#24C8DB` accent.
+  Public web deployment is not the current blocker; production P2P
+  control-plane auth/env remains the hosted blocker.
+- Indexer refreshed after wiki/534 and CLI pipe/site deploy audit:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1232 files and 2214 symbols. Search terms include `wiki/534`,
+  `ConvertFrom-Json`, `stdout pipe`, `clear_standard_handle_inheritance`,
+  `DETACHED_PROCESS`, `bridge_pid 37284`, `musu.pro live QA 8/8`, and
+  `packaged CLI pipe proof`.
+- Clean go/no-go after the source fix reports `manifest_dirty=false` but
+  `single_machine_verified=false`, runtime idle CPU `0/2`, runtime CPU matrix
+  `0/2`, `p2p_control_plane_verified=false`, support false, and Store false.
+  This is expected because the Rust CLI source changed after the fresh MSIX
+  primary evidence. The next evidence action is a fresh MSIX containing the
+  CLI pipe fix, packaged CLI pipe proof, then primary smoke/CPU/matrix refresh.
+- Indexer refreshed after recording the clean post-commit No-Go state:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1232 files and 2214 symbols. Search terms include `post-commit No-Go`,
+  `manifest_dirty=false`, `single_machine_verified=false`,
+  `runtime idle CPU 0/2`, `runtime CPU scenario matrix 0/2`, and
+  `fresh MSIX with CLI pipe fix`.
 - Remote release gates must be rechecked after the last pushed commit before public handoff; latest recorded runs were green, and live `https://musu.pro/privacy` plus `/support` passed public metadata verification with `musu@musu.pro`.
 - old 2026-05-27 package: template only (`1.13.0.0`, do not submit as current)
 - Tauri shell: dedicated static runtime launcher/status shell now builds to `musu-bee/out`, bundles as MSI/NSIS through `npm run tauri:build`, and is audited as `desktop_shell_ready=True`; it is still not the full dashboard GUI
@@ -423,6 +452,7 @@ Canonical reference:
 - `docs/RELEASE_1_15_0_RC1_CURRENT_STATUS_AUDIT_2026_05_31.md` (wiki/522)
 - `docs/DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md` (wiki/532)
 - `docs/RELEASE_1_15_0_RC1_FRESH_MSIX_EVIDENCE_AUDIT_2026_06_02.md` (wiki/533)
+- `docs/RELEASE_1_15_0_RC1_CLI_PIPE_SITE_DEPLOY_AUDIT_2026_06_02.md` (wiki/534)
 - `docs/RELEASE_1_15_0_RC1_QUAL_AUDIT_NEXT_STEPS_2026_06_01.md` (wiki/527)
 - `docs/RUNTIME_RELAY_FALLBACK_NEXT_STEPS_2026_06_01.md` (wiki/530)
 - `docs/STORE_LAUNCH_AND_PROMOTION_PLAN_2026_05_29.md`

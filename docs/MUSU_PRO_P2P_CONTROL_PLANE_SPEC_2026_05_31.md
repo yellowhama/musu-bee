@@ -421,3 +421,22 @@ Current Rust client/diagnostic behavior:
    **Control-plane lease boundary and runtime fail-closed lease request exist
    as of 2026-06-01; relay data transport remains pending.** Relay must remain
    an explicit route kind, not a silent default payload path.
+
+## 2026-06-02 Deployment Boundary Note
+
+The public marketing/support surface at `https://musu.pro` is already
+production-deployed for the current scroll/logo/emerald accent scope. Live QA
+passed on `/`, `/landing`, `/pricing`, and `/install` across desktop/mobile.
+That deployment does not satisfy the P2P control-plane release gate.
+
+The remaining `musu.pro` work for public desktop release is operational control
+plane evidence:
+
+- configure production `MUSU_P2P_CONTROL_TOKEN_SHA256S` or equivalent scoped
+  auth
+- deploy/reload the Vercel production environment after the env change
+- rerun `record-p2p-control-plane-evidence.ps1` without `-AllowUnverified`
+- require owner-scoped relay lease query success while keeping
+  `relay_default_data_path=false`
+
+Public web deploy status and P2P control-plane readiness are separate gates.

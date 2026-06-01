@@ -338,3 +338,32 @@ release-grade multi-device route evidence, live `musu.pro` P2P control-plane
 auth, `musu@musu.pro` inbox proof, and Store/Partner Center evidence are
 recorded. The qualitative/code-audit addendum is wiki/533:
 `docs/RELEASE_1_15_0_RC1_FRESH_MSIX_EVIDENCE_AUDIT_2026_06_02.md`.
+
+2026-06-02 02:42 KST CLI pipe/site deploy addendum: the direct Windows
+operator command `musu up --json | ConvertFrom-Json` had a real hang class
+when `musu up` spawned a fresh long-lived bridge. PowerShell had the JSON, but
+the bridge child could keep the caller stdout pipe open. Source now clears
+inheritance on the current standard handles before bridge spawn and uses
+`DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW`; bridge logs
+still go to `~/.musu/logs/bridge.log`. Validation passed `cargo check --bin
+musu -j 1`, `cargo build --bin musu -j 1`, `cargo fmt --check`, `git diff
+--check`, and a fresh debug-binary pipe test returned `ok=true`,
+`bridge_started=true`, bridge PID `37284`, bridge status `ok`, URL
+`http://127.0.0.1:5692`, without hanging. PID `37284` was stopped after the
+test. Live `https://musu.pro` QA was also rerun on `/`, `/landing`, `/pricing`,
+and `/install` across desktop/mobile and passed for actual scroll movement, no
+horizontal overflow, favicon-header logo, `.musu-public-scroll-root`, and
+`#24C8DB` accent. This closes the immediate public-site deployment question;
+the remaining hosted blocker is still production P2P control-plane auth/env,
+not another scroll/logo deploy. The qualitative/code-audit addendum is
+wiki/534: `docs/RELEASE_1_15_0_RC1_CLI_PIPE_SITE_DEPLOY_AUDIT_2026_06_02.md`.
+Clean go/no-go after committing the source fix reports
+`ready=false`, `manifest_dirty=false`, public metadata/MSIX install/MSIX desktop
+entrypoint/desktop single-instance/startup single-instance/process ownership
+all true, but `single_machine_verified=false`, runtime idle CPU `0/2`, runtime
+CPU scenario matrix `0/2`, `p2p_control_plane_verified=false`,
+`support_mailbox_verified=false`, and `store_release_verified=false`. This is
+the expected evidence-freshness consequence of changing Rust CLI source after
+the latest fresh MSIX primary evidence. The next evidence action is a fresh MSIX
+build/install containing this pipe fix, then packaged CLI pipe proof plus
+primary smoke/CPU/matrix refresh before second-PC capture.

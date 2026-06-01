@@ -1893,12 +1893,43 @@ fn spawn_bridge_process(
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
+        clear_standard_handle_inheritance();
+        const DETACHED_PROCESS: u32 = 0x0000_0008;
         const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
         const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-        cmd.creation_flags(CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW);
+        cmd.creation_flags(DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW);
     }
 
     cmd.spawn().map_err(Into::into)
+}
+
+#[cfg(windows)]
+fn clear_standard_handle_inheritance() {
+    use windows_sys::Win32::Foundation::{
+        SetHandleInformation, HANDLE_FLAG_INHERIT, INVALID_HANDLE_VALUE,
+    };
+    use windows_sys::Win32::System::Console::{
+        GetStdHandle, STD_ERROR_HANDLE, STD_INPUT_HANDLE, STD_OUTPUT_HANDLE,
+    };
+
+    // Windows can pass unrelated inheritable pipe handles to a detached child.
+    // `musu up --json | ConvertFrom-Json` then waits forever because the
+    // bridge keeps PowerShell's stdout pipe open. Clearing inheritance on the
+    // current standard handles is safe for this short-lived parent process and
+    // prevents the long-lived bridge from pinning caller pipelines.
+    for std_handle in [STD_INPUT_HANDLE, STD_OUTPUT_HANDLE, STD_ERROR_HANDLE] {
+        // SAFETY: GetStdHandle and SetHandleInformation are Win32 FFI calls.
+        // We only clear the inheritance flag on valid pseudo/real standard
+        // handles and intentionally ignore failures because the explicit bridge
+        // stdout/stderr log handles above remain the child stdio contract.
+        unsafe {
+            let handle = GetStdHandle(std_handle);
+            if handle.is_null() || handle == INVALID_HANDLE_VALUE {
+                continue;
+            }
+            let _ = SetHandleInformation(handle, HANDLE_FLAG_INHERIT, 0);
+        }
+    }
 }
 
 fn open_url(url: &str) -> Result<()> {

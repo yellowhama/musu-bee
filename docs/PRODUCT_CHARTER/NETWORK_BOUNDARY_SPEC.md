@@ -82,6 +82,20 @@ locks the route kinds (`lan`, `tailscale`, `direct_quic`, `relay`, `failed`),
 rendezvous API shape, and route evidence fields required before public
 multi-device claims.
 
+## 2026-06-02 deployment boundary update
+
+The public `musu.pro` website and the `musu.pro` P2P control plane are
+separate release surfaces.
+
+- The website scroll/logo/emerald accent fix is production-deployed and
+  verified on `https://musu.pro`.
+- The P2P control-plane release gate remains blocked until production scoped
+  relay auth is configured, deployed/reloaded, and verified with owner-scoped
+  lease evidence.
+- Store and public copy may mention `musu.pro` account-assisted setup only as a
+  beta/control-plane feature until release-grade two-machine route evidence
+  proves the data path and encryption claims.
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."

@@ -368,6 +368,27 @@ Tauri desktop shell evidence:
   Playwright QA against `https://musu.pro` passed 8/8 on `/`, `/landing`,
   `/pricing`, and `/install` for desktop/mobile scroll, no horizontal overflow,
   favicon-mark logo, and `#24C8DB` accent.
+- 2026-06-02 02:42 KST live public-site recheck: `https://musu.pro` still
+  passes 8/8 on `/`, `/landing`, `/pricing`, and `/install` across desktop
+  `1280x720` and mobile `390x844` for actual scroll movement, no horizontal
+  overflow, favicon-header logo, `.musu-public-scroll-root`, and `#24C8DB`
+  emerald accent. No additional website UI deploy is pending for this scope.
+- 2026-06-02 02:42 KST CLI pipe hardening: source `musu up --json` now clears
+  Windows standard-handle inheritance before spawning a detached bridge, so a
+  long-lived bridge cannot keep `musu up --json | ConvertFrom-Json` open after
+  JSON output. Debug-binary verification returned `ok=true`,
+  `bridge_started=true`, bridge PID `37284`, bridge status `ok`, then PID
+  `37284` was stopped. Next packaged release proof must run the same command
+  through the installed WindowsApps alias after a fresh MSIX build/install.
+- 2026-06-02 02:50 KST clean go/no-go after the CLI pipe hardening commit:
+  `ready=false`,
+  `manifest_dirty=false`, local artifacts true, public metadata true, MSIX
+  install true, MSIX desktop entrypoint true, desktop single-instance true,
+  startup single-instance true, process ownership true, but single-machine
+  false, runtime idle CPU `0/2`, runtime CPU matrix `0/2`, P2P control-plane
+  false, support false, and Store false. The Rust CLI source fix invalidates
+  the prior release-current primary evidence until a fresh MSIX with this fix
+  is built/installed and primary smoke/CPU/matrix evidence is refreshed.
 
 Release candidate manifest:
 
@@ -405,3 +426,6 @@ cargo test --manifest-path .\musu-rs\Cargo.toml `
 - Windows PATH can prefer `C:\Users\empty\.cargo\bin\musu.exe` over the packaged WindowsApps alias. `musu doctor` must keep reporting this.
 - `openai_compat_local` is not wired into the task runner hot path. Dashboard agent task default must stay on `claude` until runner dispatch is unified.
 - `musu up` currently checks standard dashboard ports, not arbitrary dev smoke ports such as `3002`.
+- Direct `musu up --json | ConvertFrom-Json` is now hardened in source for
+  fresh bridge spawn, but packaged MSIX evidence for that exact CLI pipe is
+  still pending.

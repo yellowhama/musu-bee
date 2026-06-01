@@ -242,6 +242,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | wiki/531 | Current qualitative audit, code audit, and next roadmap | 2026-06-01 | `RELEASE_1_15_0_RC1_QUAL_AUDIT_NEXT_STEPS_2026_06_01_2345.md` | active |
 | wiki/532 | Desktop single-instance release gate | 2026-06-02 | `DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md` | active |
 | wiki/533 | Fresh MSIX primary evidence audit | 2026-06-02 | `RELEASE_1_15_0_RC1_FRESH_MSIX_EVIDENCE_AUDIT_2026_06_02.md` | active |
+| wiki/534 | CLI pipe hardening and public site deploy audit | 2026-06-02 | `RELEASE_1_15_0_RC1_CLI_PIPE_SITE_DEPLOY_AUDIT_2026_06_02.md` | active |
 | — | 1.15.0-rc.1 beta release checklist and smoke evidence | 2026-05-29 | `BETA_RELEASE_CHECKLIST_1_15_0_RC1.md` | active |
 | — | 1.15.0-rc.1 final operator gates | 2026-05-29 | `RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md` | active |
 | — | MUSU Microsoft Store release run card | 2026-05-29 | `MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md` | active |
@@ -759,5 +760,42 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260602-015510-HUGH_SECOND.runtime-cpu-scenario-matrix`,
   `20260602-020031-HUGH_SECOND`, and
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_015510`.
+- 2026-06-02 CLI pipe hardening and public-site deploy recheck: wiki/534
+  records the root cause and fix for direct `musu up --json | ConvertFrom-Json`
+  hanging when a freshly spawned bridge inherited the caller stdout pipe.
+  Source now clears standard-handle inheritance before spawning the detached
+  bridge and preserves bridge logging to `~/.musu/logs/bridge.log`. Debug
+  binary verification returned `ok=true`, `bridge_started=true`, bridge PID
+  `37284`, bridge status `ok`, URL `http://127.0.0.1:5692`, and did not hang;
+  PID `37284` was stopped after the test. Live `https://musu.pro` QA also
+  passed 8/8 on `/`, `/landing`, `/pricing`, and `/install` for desktop/mobile
+  scroll, no horizontal overflow, favicon-header logo,
+  `.musu-public-scroll-root`, and `#24C8DB` accent. Search terms should include
+  `wiki/534`, `clear_standard_handle_inheritance`, `DETACHED_PROCESS`,
+  `stdout pipe`, `ConvertFrom-Json`, `bridge_pid 37284`, and
+  `musu.pro live QA 8/8`.
+- 2026-06-02 index refresh after wiki/534 CLI pipe/site deploy audit:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1232 files and 2214 symbols. Search terms should include `GOAL v231`,
+  `GOAL v232`, `wiki/534`, `clear_standard_handle_inheritance`,
+  `DETACHED_PROCESS`, `ConvertFrom-Json`, `bridge_pid 37284`,
+  `http://127.0.0.1:5692`, `musu.pro live QA 8/8`, and
+  `packaged CLI pipe proof`.
+- 2026-06-02 clean go/no-go after CLI pipe hardening commit: commit
+  the clean post-commit run reports `ready=false`, `manifest_dirty=false`, local artifacts,
+  public metadata, MSIX install, MSIX desktop entrypoint, desktop
+  single-instance, startup single-instance, and process ownership all true, but
+  `single_machine_verified=false`, runtime idle CPU `0/2`, runtime CPU matrix
+  `0/2`, `p2p_control_plane_verified=false`, support false, and Store false.
+  This is an expected source-freshness reset after the Rust CLI source changed.
+  Search terms should include `GOAL v233`, `post-commit No-Go`, `single_machine=false`,
+  `runtime idle CPU 0/2`, `runtime CPU matrix 0/2`, and
+  `fresh MSIX with CLI pipe fix`.
+- 2026-06-02 index refresh after clean post-commit No-Go docs:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1232 files and 2214 symbols. Search terms should include `GOAL v234`,
+  `post-commit No-Go`, `manifest_dirty=false`, `single_machine_verified=false`,
+  `runtime idle CPU 0/2`, `runtime CPU scenario matrix 0/2`, and
+  `fresh MSIX with CLI pipe fix`.
 
 **End of WIKI_INDEX.md.**
