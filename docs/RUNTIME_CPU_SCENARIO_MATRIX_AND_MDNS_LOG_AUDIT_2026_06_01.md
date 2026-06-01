@@ -360,6 +360,18 @@ after the matrix evidence commit:
   source change and therefore requires fresh clean/current CPU evidence before
   the release gates can count it.
 
+2026-06-01 20:17 KST post-commit go/no-go:
+
+- Commit `a1082dec` is clean (`manifest_dirty=false`).
+- Go/no-go reports `ready=false`, `single_machine_verified=false`, runtime idle
+  CPU `0/2`, runtime CPU scenario matrix `0/2`, multi-device false, support
+  false, and Store false.
+- Public metadata, MSIX install, MSIX desktop entrypoint, process ownership, and
+  startup single-instance gates still pass.
+- Interpretation: this is expected source-freshness behavior after the frontend
+  polling source change. Refresh primary smoke/CPU/matrix evidence before
+  expecting second-PC import to close the two-machine runtime gates.
+
 Parser validation:
 
 - `measure-musu-runtime-cpu-scenarios.ps1 parser ok`

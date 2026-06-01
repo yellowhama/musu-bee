@@ -29,3 +29,18 @@ This reduces frontend busy-loop risk for the operator-reported idle CPU problem,
 but it is a source change. Treat earlier CPU evidence as stale for release
 readiness until fresh primary and second-PC 60s CPU samples and four-state CPU
 matrices are captured from a clean commit.
+
+## Post-Commit Gate
+
+After commit `a1082dec`, clean go/no-go reported:
+
+- `ready_for_public_desktop_release=false`
+- `manifest_dirty=false`
+- `single_machine_verified=false`
+- runtime idle CPU `0/2`
+- runtime CPU scenario matrix `0/2`
+- multi-device, support, and Store gates false
+
+This is the expected conservative state after changing frontend source. Refresh
+primary smoke/CPU/matrix evidence before relying on any second-PC return to close
+runtime gates.
