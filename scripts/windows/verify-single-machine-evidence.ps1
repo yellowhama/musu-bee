@@ -116,6 +116,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/verify-runtime-cpu-scenario-matrix.ps1",
         "scripts/windows/verify-single-machine-evidence.ps1",
         "scripts/windows/write-release-go-no-go.ps1",
+        "scripts/windows/test-release-evidence-verifiers.ps1",
         "scripts/windows/show-musu-process-attribution.ps1",
         "scripts/windows/show-musu-pro-p2p-env-status.ps1"
     )

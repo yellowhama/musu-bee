@@ -448,4 +448,16 @@ verifies with `ok=true`, `fail_count=0`. The current second-PC transfer zip is
 `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-073356\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-073356.zip`.
 The next concrete operator action is to run that transfer package on the second
 Windows PC without `-SkipRuntimeIdleCpu` or `-SkipRuntimeCpuScenarioMatrix`, then
-return/import the generated `.local-build\second-pc-return\*.zip`.
+ return/import the generated `.local-build\second-pc-return\*.zip`.
+
+2026-06-02 08:02 KST release evidence verifier regression addendum:
+`scripts\windows\test-release-evidence-verifiers.ps1 -Json` passed 9/9 at
+`.local-build\release-evidence-verifier-tests\20260602-080146`. This is a code
+audit hardening result, not live release evidence: the P2P verifier accepts a
+release-grade hosted-control-plane fixture and rejects non-`musu.pro` base URL,
+unverified owner scope, and relay default data path; the multi-device verifier
+accepts release-grade direct QUIC route evidence and rejects non-release-grade
+transport proof, failed route kind, and false direct/relay payload-transit
+semantics. Current public release remains No-Go until the real second-PC
+runtime/route evidence, KV-backed live `musu.pro` P2P evidence,
+`musu@musu.pro` mailbox evidence, and Store evidence exist.

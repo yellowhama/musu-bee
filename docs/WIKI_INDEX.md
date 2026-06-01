@@ -973,5 +973,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2026-06-02_0633_kst_mdns_disconnected_receiver_hardening.md`. Search terms
   should include `GOAL v254`, `GOAL v255`, `1264 files`, `2217 symbols`,
   `MdnsRecvTimeoutKind`, and `closed browse channel`.
+- 2026-06-02 release evidence verifier regression harness:
+  `scripts\windows\test-release-evidence-verifiers.ps1` emits
+  `musu.release_evidence_verifier_regression.v1` and passed 9/9 synthetic
+  cases at `.local-build\release-evidence-verifier-tests\20260602-080146`.
+  Search terms should include `GOAL v262`, `wiki/538`,
+  `test-release-evidence-verifiers.ps1`, `non-musu.pro base_url`,
+  `owner_scope_verified=false`, `relay_default_data_path=true`,
+  `musu_bridge_forward_fingerprint_pinned_client`, `route_kind=failed`, and
+  `payload_transited_musu_infra`. The harness is included in desktop readiness
+  script coverage and exact evidence-freshness tooling allowlists.
+- 2026-06-02 index refresh after verifier regression audit:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1276 files and 2217 symbols after wiki/538, the verifier harness, freshness
+  allowlist updates, readiness audit script coverage, BETA/WIKI/GOAL/current
+  status updates, and CoS memory
+  `2026-06-02_0757_kst_release_evidence_verifier_regression.md`. Search terms
+  should include `GOAL v263`, `1276 files`,
+  `musu.release_evidence_verifier_regression.v1`,
+  `test-release-evidence-verifiers.ps1`, `20260602-080146`,
+  `owner_scope_verified=false`, and `route_kind=failed`.
 
 **End of WIKI_INDEX.md.**

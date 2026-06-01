@@ -622,6 +622,14 @@ Current Store path truth:
   `ok=false` and exit 1 under the flag with those four missing evidence issues;
   importing without the flag remains diagnostic-compatible and reports
   `release_gate_evidence_ok=false`.
+- Release evidence verifier regression harness:
+  `scripts\windows\test-release-evidence-verifiers.ps1` writes synthetic
+  P2P-control-plane and multi-device fixtures, invokes the real release
+  verifiers, and confirms fail-closed behavior. Validation passed 9/9 cases at
+  `.local-build\release-evidence-verifier-tests\20260602-080146`: release-grade
+  fixtures pass, while non-`musu.pro` base URL, unverified owner scope, relay
+  default data path, non-release-grade transport proof, failed route kind, and
+  false payload transit semantics fail as expected.
 - Remote release gates must be rechecked after the last pushed commit before public handoff; latest recorded runs were green, and live `https://musu.pro/privacy` plus `/support` passed public metadata verification with `musu@musu.pro`.
 - old 2026-05-27 package: template only (`1.13.0.0`, do not submit as current)
 - Tauri shell: dedicated static runtime launcher/status shell now builds to `musu-bee/out`, bundles as MSI/NSIS through `npm run tauri:build`, and is audited as `desktop_shell_ready=True`; it is still not the full dashboard GUI
@@ -644,6 +652,7 @@ Canonical reference:
 - `docs/RELEASE_1_15_0_RC1_PACKAGED_CLI_RUNTIME_EVIDENCE_2026_06_02.md` (wiki/535)
 - `docs/PROCESS_ATTRIBUTION_NODE_COUNT_AUDIT_2026_06_02.md` (wiki/536)
 - `docs/RELEASE_1_15_0_RC1_FRESH_MDNS_RUNTIME_EVIDENCE_AUDIT_2026_06_02.md` (wiki/537)
+- `docs/RELEASE_1_15_0_RC1_EVIDENCE_VERIFIER_REGRESSION_AUDIT_2026_06_02.md` (wiki/538)
 - `docs/P2P_CONTROL_PLANE_MUSU_PRO_NEXT_ACTIONS_2026_06_02.md`
 - `docs/RELEASE_1_15_0_RC1_QUAL_AUDIT_NEXT_STEPS_2026_06_01.md` (wiki/527)
 - `docs/RUNTIME_RELAY_FALLBACK_NEXT_STEPS_2026_06_01.md` (wiki/530)

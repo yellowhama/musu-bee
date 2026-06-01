@@ -509,6 +509,17 @@ Tauri desktop shell evidence:
   `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-073356\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-073356.zip`
   to the second Windows PC and run `run-second-pc-release-check.ps1` without
   `-SkipRuntimeIdleCpu` or `-SkipRuntimeCpuScenarioMatrix`.
+- 2026-06-02 08:02 KST release evidence verifier regression audit:
+  `scripts\windows\test-release-evidence-verifiers.ps1 -Json` passed 9/9 at
+  `.local-build\release-evidence-verifier-tests\20260602-080146`. The harness
+  uses synthetic fixtures only and proves the live release verifiers fail
+  closed for non-`musu.pro` P2P base URLs, unverified owner scope, relay as
+  default data path, non-release-grade route transport proof,
+  `route_kind=failed`, and incorrect direct/relay payload-transit claims. This
+  does not close second-PC, live P2P, support mailbox, or Store gates; it locks
+  the verifier policy while those external gates are still pending. The harness
+  is included in desktop readiness script coverage and in the exact
+  non-runtime-affecting evidence freshness allowlist.
 
 Release candidate manifest:
 
