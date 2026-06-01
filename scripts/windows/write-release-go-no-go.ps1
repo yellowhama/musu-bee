@@ -406,6 +406,7 @@ $msixInstallVerifierScript = Join-Path $scriptDir "verify-msix-install-evidence.
 $msixDesktopEntrypointAuditScript = Join-Path $scriptDir "audit-msix-desktop-entrypoint.ps1"
 $storeReleaseVerifierScript = Join-Path $scriptDir "verify-store-release-evidence.ps1"
 $runtimeCpuScenarioMatrixVerifierScript = Join-Path $scriptDir "verify-runtime-cpu-scenario-matrix.ps1"
+$p2pControlPlaneVerifierScript = Join-Path $scriptDir "verify-p2p-control-plane-evidence.ps1"
 $manifestPath = Join-Path $repoRoot ".local-build\release-candidates\$version\release-candidate-manifest.json"
 
 $auditResult = Invoke-JsonScript -FilePath $auditScript -Arguments @("-Json")
@@ -780,6 +781,53 @@ if ($storeReleaseEvidenceCandidate) {
     }
 }
 
+$p2pControlPlaneVerified = $false
+$p2pControlPlaneEvidence = $null
+$p2pControlPlaneEvidenceCandidate = $null
+$p2pControlPlaneEvidenceRoots = @(
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ("docs\evidence\p2p-control-plane\{0}" -f $version))
+        filter = "*.evidence.json"
+    },
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ".local-build\p2p-control-plane")
+        filter = "*.evidence.json"
+    }
+)
+
+foreach ($root in $p2pControlPlaneEvidenceRoots) {
+    if (Test-Path -LiteralPath $root.path) {
+        $candidate = Get-ChildItem -LiteralPath $root.path -Filter $root.filter -File -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+        if ($candidate) {
+            $p2pControlPlaneEvidenceCandidate = $candidate
+            break
+        }
+    }
+}
+
+if ($p2pControlPlaneEvidenceCandidate) {
+    $p2pControlPlaneEvidenceResult = Invoke-JsonScript `
+        -FilePath $p2pControlPlaneVerifierScript `
+        -Arguments @("-EvidencePath", $p2pControlPlaneEvidenceCandidate.FullName, "-ExpectedVersion", $version, "-ExpectedBaseUrl", $PublicMetadataBaseUrl, "-Json") `
+        -AllowFailure
+    if ($p2pControlPlaneEvidenceResult.json -and [bool]$p2pControlPlaneEvidenceResult.json.ok) {
+        $p2pControlPlaneVerified = $true
+        $p2pControlPlaneEvidence = $p2pControlPlaneEvidenceResult.json
+    }
+    elseif ($p2pControlPlaneEvidenceResult.json) {
+        $p2pControlPlaneEvidence = $p2pControlPlaneEvidenceResult.json
+    }
+    else {
+        $p2pControlPlaneEvidence = [pscustomobject]@{
+            ok = $false
+            evidence_path = $p2pControlPlaneEvidenceCandidate.FullName
+            raw = $p2pControlPlaneEvidenceResult.raw
+        }
+    }
+}
+
 $gitStatus = (& git -C $repoRoot status --short 2>$null | Out-String).Trim()
 $blockers = New-Object System.Collections.Generic.List[object]
 $warnings = New-Object System.Collections.Generic.List[object]
@@ -828,6 +876,9 @@ if (-not $supportMailboxVerified) {
 if (-not $storeReleaseVerified) {
     Add-Blocker -List $blockers -Area "store-release" -Message "Partner Center product name reservation, app submission, Microsoft certification, and restricted capability approval evidence has not been recorded."
 }
+if (-not $p2pControlPlaneVerified) {
+    Add-Blocker -List $blockers -Area "p2p-control-plane" -Message "Live $PublicMetadataBaseUrl P2P control-plane evidence has not verified owner-scoped relay lease queries with relay_default_data_path=false."
+}
 if (-not [string]::IsNullOrWhiteSpace($gitStatus)) {
     Add-Blocker -List $blockers -Area "git" -Message "Working tree is dirty; commit and regenerate manifest before final handoff."
 }
@@ -850,7 +901,7 @@ $manualInternalGates = @(
     "Process ownership audit on primary Windows PC",
     "Second-PC runtime/startup ownership verification",
     "Startup single-instance repeat audit",
-    "musu.pro registry/rendezvous/relay-control path decision"
+    "musu.pro registry/rendezvous/relay-control live evidence"
 )
 
 $ready = ($blockers.Count -eq 0)
@@ -905,6 +956,8 @@ $result = [pscustomobject]@{
     support_mailbox_evidence = $supportMailboxEvidence
     store_release_verified = [bool]$storeReleaseVerified
     store_release_evidence = $storeReleaseEvidence
+    p2p_control_plane_verified = [bool]$p2pControlPlaneVerified
+    p2p_control_plane_evidence = $p2pControlPlaneEvidence
     blockers = $blockers.ToArray()
     warnings = $warnings.ToArray()
     manual_internal_gates = $manualInternalGates
@@ -935,6 +988,7 @@ else {
     "public_metadata_ok: $($result.public_metadata_ok)"
     "support_mailbox_verified: $($result.support_mailbox_verified)"
     "store_release_verified: $($result.store_release_verified)"
+    "p2p_control_plane_verified: $($result.p2p_control_plane_verified)"
     ""
     "Blockers"
     $blockers | Format-Table area, message -Wrap

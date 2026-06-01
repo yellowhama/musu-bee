@@ -108,6 +108,15 @@ What it does not close:
   Vercel production run `26753908889` succeeded, `Tests` run `26753908911`
   succeeded, and live `musu.pro` QA passed on `/`, `/landing`, `/pricing`, and
   `/install` across desktop/mobile.
+- 2026-06-01 21:41 KST P2P control-plane live evidence: added
+  `record-p2p-control-plane-evidence.ps1` and
+  `verify-p2p-control-plane-evidence.ps1`, and wired the verifier into
+  go/no-go. Current evidence
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260601-214149-musu.pro.evidence.json`
+  fails as expected because the live relay lease query is not owner-scoped:
+  `ok=false`, `owner_scope_verified=false`, and the live error remains
+  `p2p_control_auth_not_configured`. This converts the production P2P env
+  issue from a note into a release blocker.
 
 ## Code Audit Findings
 
@@ -639,3 +648,57 @@ Release interpretation:
   primary CPU regression: second-PC CPU/matrix, release-grade multi-device
   route, production P2P env/live verification, `musu@musu.pro`, Store evidence,
   and relay/tunnel transport remain open.
+
+## 2026-06-01 P2P Control-Plane Live Gate Update
+
+The hosted P2P control-plane now has a release evidence contract instead of
+only ad hoc CLI diagnostics.
+
+New scripts:
+
+- `scripts\windows\record-p2p-control-plane-evidence.ps1`
+- `scripts\windows\verify-p2p-control-plane-evidence.ps1`
+
+The recorder runs:
+
+- `musu relay status --json`
+- `musu relay leases --json`
+
+Passing evidence requires:
+
+- logged-in `musu.pro` relay status
+- bridge path selection, rendezvous sessions, route-evidence client, relay
+  lease control-plane, and runtime relay fallback lease requests wired
+- `release_grade_transport_required=quic_tls_1_3`
+- `relay_default_data_path=false`
+- relay lease query `ok=true`
+- `owner_scope_verified=true`
+- `owner_scoped=true`
+
+Current live evidence:
+
+- evidence:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260601-214149-musu.pro.evidence.json`
+- verification:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260601-214149-musu.pro.verification.json`
+- result: `ok=false`
+- failure: relay lease query is logged in but not accepted by production auth;
+  `owner_scope_verified=false`, `owner_scoped=false`, and the live error is
+  `p2p_control_auth_not_configured` with no accepted auth modes.
+
+Deployment implication:
+
+- This is now a live `musu.pro` production env/deploy task. The desktop app
+  can only prove the hosted control-plane once production scoped auth is
+  configured (`MUSU_P2P_CONTROL_TOKEN_SHA256S` or equivalent), the production
+  environment is deployed/reloaded, and the recorder passes without
+  `-AllowUnverified`.
+
+Release interpretation:
+
+- `write-release-go-no-go.ps1` now reports
+  `p2p_control_plane_verified=false` and adds a `p2p-control-plane` blocker.
+- The next operational action is to configure production
+  `MUSU_P2P_CONTROL_TOKEN_SHA256S` from
+  `scripts\windows\show-p2p-control-token-hash.ps1 -Json`, redeploy/recheck if
+  needed, then record passing live evidence.

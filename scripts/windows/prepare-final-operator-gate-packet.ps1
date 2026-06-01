@@ -107,6 +107,8 @@ $scriptsToCopy = @(
     "verify-msix-install-evidence.ps1",
     "record-store-release-verification.ps1",
     "verify-store-release-evidence.ps1",
+    "record-p2p-control-plane-evidence.ps1",
+    "verify-p2p-control-plane-evidence.ps1",
     "verify-store-submission-bundle.ps1",
     "audit-msix-desktop-entrypoint.ps1",
     "measure-musu-idle-cpu.ps1",

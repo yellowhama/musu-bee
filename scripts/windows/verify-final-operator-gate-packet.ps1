@@ -112,6 +112,8 @@ try {
         "scripts\windows\verify-msix-install-evidence.ps1",
         "scripts\windows\record-store-release-verification.ps1",
         "scripts\windows\verify-store-release-evidence.ps1",
+        "scripts\windows\record-p2p-control-plane-evidence.ps1",
+        "scripts\windows\verify-p2p-control-plane-evidence.ps1",
         "scripts\windows\verify-store-submission-bundle.ps1",
         "scripts\windows\audit-msix-desktop-entrypoint.ps1",
         "scripts\windows\measure-musu-idle-cpu.ps1",

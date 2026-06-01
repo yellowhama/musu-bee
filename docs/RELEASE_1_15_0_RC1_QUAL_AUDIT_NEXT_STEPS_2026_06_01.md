@@ -381,13 +381,30 @@ submission/release evidence.
   `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260601-211252-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
   with route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260601_211252`.
 
+2026-06-01 21:41 KST update:
+
+- Added a real release gate for hosted P2P control-plane live verification:
+  `record-p2p-control-plane-evidence.ps1`,
+  `verify-p2p-control-plane-evidence.ps1`, and go/no-go integration.
+- Current live evidence is
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260601-214149-musu.pro.evidence.json`.
+  It fails correctly because `musu relay leases --json` is still not accepted
+  by production auth: relay status is logged in and wired, but relay leases
+  report `ok=false`, `owner_scope_verified=false`, and
+  `p2p_control_auth_not_configured`.
+- This turns "configure production `MUSU_P2P_CONTROL_TOKEN_SHA256S` and recheck"
+  from a roadmap note into a go/no-go blocker named `p2p-control-plane`.
+- Deployment conclusion: the next fix is on live `musu.pro` production
+  environment configuration/deploy, not only in local desktop code. Passing
+  evidence must be recorded without `-AllowUnverified`.
+
 ## Qualitative Evaluation
 
 | Dimension | Current score | Notes |
 |---|---:|---|
 | Packaging trust | 8/10 | MSIX desktop-entrypoint and local-sideload contract are now coherent. Store certification remains external. |
 | Runtime efficiency | 7.8/10 | Current primary packaged desktop-open CPU evidence passes with repo Node explicitly counted: `musu=0%`, `node=0%`, `webview2=0.23%` of one logical core. Primary 4-state matrix evidence also passes, and the reported 20%-of-one-core busy-loop is not reproduced on the current primary. Repeated manual desktop launches can still accumulate old shells, and second-PC evidence is still missing. |
-| P2P product story | 8.0/10 | The strategy is right, the bridge now has shared path-kind ranking for cached/manual/nodes candidates, runtime route evidence is stored/queryable on `musu.pro`, server-side rendezvous candidate exchange plus recent node candidate caching exists, runtime forwarding creates/uses sessions, refreshed target candidates can affect the actual forward address, peer identity material is exchanged, HTTPS bridge attempts can pin the advertised certificate fingerprint, relay fallback has a fail-closed lease policy API, lease audits are queryable from the CLI, and P2P auth now has a SHA-256 runtime-token allowlist path. The remaining penalty is production env/live verification, release-grade QUIC/TLS proof, real second-PC verification, and relay/tunnel transport. |
+| P2P product story | 8.1/10 | The strategy is right, the bridge now has shared path-kind ranking for cached/manual/nodes candidates, runtime route evidence is stored/queryable on `musu.pro`, server-side rendezvous candidate exchange plus recent node candidate caching exists, runtime forwarding creates/uses sessions, refreshed target candidates can affect the actual forward address, peer identity material is exchanged, HTTPS bridge attempts can pin the advertised certificate fingerprint, relay fallback has a fail-closed lease policy API, lease audits are queryable from the CLI, P2P auth has a SHA-256 runtime-token allowlist path, and live control-plane evidence is now a go/no-go gate. The remaining penalty is the current failing production env/live verification, release-grade QUIC/TLS proof, real second-PC verification, and relay/tunnel transport. |
 | UX/branding | 6/10 -> 7.5/10 | App mark is strong. Public web asset tracking, wordmark fallback, basic static logo lockups, scroll behavior, shared emerald accent regression coverage, and live `musu.pro` deploy QA are now in place. Store screenshots/product demo media are still needed. |
 | Release evidence quality | 8.3/10 | Gates are strict and honest. Runtime CPU evidence must now match current HEAD or documentation/evidence-only deltas, Node.js attribution includes repo-related command lines, and dashboard-open matrices must prove a real launched dashboard URL. |
 | Overall public readiness | ~70% | Stronger than the pre-hardening baseline, but still No-Go because second-PC CPU/matrix, real hardened route, support inbox, Store evidence, production P2P env/live verification, desktop shell reactivation hardening, and relay/tunnel transport remain open. |
