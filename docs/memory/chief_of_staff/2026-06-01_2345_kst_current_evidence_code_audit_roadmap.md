@@ -49,3 +49,12 @@ Indexer:
 
 - `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
   indexed 1217 files and 2213 symbols after this evidence/doc refresh.
+
+Post-doc go/no-go:
+
+- Clean go/no-go on commit `278ee8c9b451ba21c23c48fa262d45f505047b79`
+  reports `ready=false`, `single_machine=true`, runtime idle CPU `1/2`,
+  runtime CPU scenario matrix `1/2`, public metadata true, MSIX install true,
+  MSIX desktop entrypoint true, `manifest_dirty=false`, and blockers:
+  `multi-device`, `runtime-idle-cpu`, `runtime-cpu-scenario-matrix`,
+  `support-mailbox`, `store-release`, and `p2p-control-plane`.
