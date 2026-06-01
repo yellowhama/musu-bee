@@ -283,6 +283,8 @@ if ($routeRequired) {
         $routeKind = Get-StringProperty -Object $routeEvidence -Name "route_kind"
         $candidateAddr = Get-StringProperty -Object $routeEvidence -Name "candidate_addr"
         $encryption = Get-StringProperty -Object $routeEvidence -Name "encryption"
+        $peerIdentityMethod = Get-StringProperty -Object $routeEvidence -Name "peer_identity_method"
+        $peerPublicKey = Get-StringProperty -Object $routeEvidence -Name "peer_public_key"
         $routeResult = Get-StringProperty -Object $routeEvidence -Name "result"
         $recordedAt = Try-ParseDateTimeOffset -Text (Get-StringProperty -Object $routeEvidence -Name "recorded_at")
         $handshakeMs = Get-NumberProperty -Object $routeEvidence -Name "handshake_ms"
@@ -303,8 +305,11 @@ if ($routeRequired) {
         Add-CheckFromCondition "route total timing" ($null -ne $totalAttemptMs -and $totalAttemptMs -gt 0) "route total_attempt_ms is present" "route total_attempt_ms is missing or invalid"
         Add-CheckFromCondition "route peer identity field" $peerIdentityPresent "peer_identity_verified is present" "peer_identity_verified is missing"
         Add-CheckFromCondition "route peer identity verified" $peerIdentityVerified "peer identity is verified" "peer identity is not verified"
+        Add-CheckFromCondition "route peer identity method" (-not [string]::IsNullOrWhiteSpace($peerIdentityMethod)) "peer_identity_method is $peerIdentityMethod" "peer_identity_method is missing"
+        Add-CheckFromCondition "route peer public key" (-not [string]::IsNullOrWhiteSpace($peerPublicKey)) "peer_public_key is present" "peer_public_key is missing"
         Add-CheckFromCondition "route encryption field" (-not [string]::IsNullOrWhiteSpace($encryption)) "route encryption field is present" "route encryption field is missing"
         Add-CheckFromCondition "route encryption hardened" (-not ($legacyEncryptionValues -contains $encryption.ToLowerInvariant())) "route encryption is $encryption" "route encryption is legacy or unproven: $encryption"
+        Add-CheckFromCondition "route encryption release-grade" ($encryption.ToLowerInvariant() -eq "quic_tls_1_3") "route encryption is quic_tls_1_3" "route encryption is not release-grade QUIC/TLS: $encryption"
         Add-CheckFromCondition "route payload transit field" $payloadTransitPresent "payload_transited_musu_infra is present" "payload_transited_musu_infra is missing"
         if ($routeKind -eq "relay") {
             Add-CheckFromCondition "relay transit truth" $payloadTransited "relay evidence says payload transited MUSU infra" "relay route must set payload_transited_musu_infra=true"

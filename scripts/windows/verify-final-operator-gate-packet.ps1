@@ -311,9 +311,9 @@ try {
         $multiDeviceVerifierScript = Get-Content -LiteralPath $multiDeviceVerifierScriptPath -Raw
         Add-CheckFromCondition `
             "multi-device verifier schema gate" `
-            ($multiDeviceVerifierScript -like "*musu.multidevice_smoke_evidence.v1*" -and $multiDeviceVerifierScript -like "*ExpectedVersion*" -and $multiDeviceVerifierScript -like "*completed_at*" -and $multiDeviceVerifierScript -like "*operator user*" -and $multiDeviceVerifierScript -like "*remote address includes port*" -and $multiDeviceVerifierScript -like "*musu.route_evidence.v1*" -and $multiDeviceVerifierScript -like "*route_kind*" -and $multiDeviceVerifierScript -like "*peer_identity_verified*" -and $multiDeviceVerifierScript -like "*payload_transited_musu_infra*") `
-            "packet multi-device verifier checks schema, version, completion time, operator, remote endpoint shape, and route evidence" `
-            "packet multi-device verifier does not check schema, version, completion time, operator, endpoint shape, and route evidence"
+            ($multiDeviceVerifierScript -like "*musu.multidevice_smoke_evidence.v1*" -and $multiDeviceVerifierScript -like "*ExpectedVersion*" -and $multiDeviceVerifierScript -like "*completed_at*" -and $multiDeviceVerifierScript -like "*operator user*" -and $multiDeviceVerifierScript -like "*remote address includes port*" -and $multiDeviceVerifierScript -like "*musu.route_evidence.v1*" -and $multiDeviceVerifierScript -like "*route_kind*" -and $multiDeviceVerifierScript -like "*peer_identity_verified*" -and $multiDeviceVerifierScript -like "*peer_identity_method*" -and $multiDeviceVerifierScript -like "*peer_public_key*" -and $multiDeviceVerifierScript -like "*payload_transited_musu_infra*" -and $multiDeviceVerifierScript -like "*quic_tls_1_3*" -and $multiDeviceVerifierScript -like "*route encryption release-grade*") `
+            "packet multi-device verifier checks schema, version, completion time, operator, endpoint shape, route evidence, peer identity proof, and QUIC/TLS encryption" `
+            "packet multi-device verifier does not check schema, version, completion time, operator, endpoint shape, route evidence, peer identity proof, and QUIC/TLS encryption"
     }
 
     $msixInstallVerifierScriptPath = Join-Path $packetRoot "scripts\windows\verify-msix-install-evidence.ps1"

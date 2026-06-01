@@ -305,9 +305,11 @@ Use the multi-device kit in `kits\` if this packet includes one. Copy it to the 
 When the second-PC smoke creates `.local-build\multi-device\*.evidence.json`, return that file to the real MUSU release repo and record it from the release repo root:
 
 The evidence must include `musu.route_evidence.v1` and prove route kind,
-handshake timing, peer identity verification, hardened encryption, and whether
-payload transited MUSU infrastructure. A legacy manual HTTP bearer route can be
-useful debugging evidence but does not satisfy the public release gate.
+handshake timing, peer identity verification with method/key material,
+release-grade `quic_tls_1_3` encryption, and whether payload transited MUSU
+infrastructure. Legacy manual HTTP bearer routes and HTTPS fingerprint-pinned
+bridge evidence can be useful debugging evidence but do not satisfy the public
+release gate.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-multidevice-evidence.ps1 -EvidencePath .local-build\multi-device\<EVIDENCE_JSON>
