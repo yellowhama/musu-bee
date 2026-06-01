@@ -32,6 +32,8 @@ Current external evidence blockers:
 
 2026-06-01 12:18 KST addendum: current single-machine smoke and primary packaged desktop-open CPU evidence were refreshed after the relay fallback route-evidence commit. Single-machine evidence now passes at `docs\evidence\single-machine\1.15.0-rc.1\20260601-121339-HUGH_SECOND.evidence.json`. Primary CPU evidence now passes at `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-121701-HUGH_SECOND.desktop-open.evidence.json` with 60.023s sample, two MUSU processes, six owned WebView2 helpers, owned Node `0`, max one-core CPU `musu=0`, `webview2=0.03`, and working set `378.16MB`. Go/no-go reports `single_machine_verified=true`, runtime CPU `1/2` with `HUGH_SECOND`, and public release remains No-Go.
 
+2026-06-01 12:46 KST addendum: after the multi-device verifier was hardened to require `quic_tls_1_3` route evidence, current single-machine smoke and primary packaged desktop-open CPU evidence were refreshed again. Single-machine evidence now passes at `docs\evidence\single-machine\1.15.0-rc.1\20260601-124055-HUGH_SECOND.evidence.json`. Primary CPU evidence now passes at `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-124454-HUGH_SECOND.desktop-open.evidence.json` with `git_dirty=false`, 60.018s sample, two MUSU processes, six owned WebView2 helpers, owned Node `0`, max one-core CPU `musu=0`, `webview2=0.10`, and working set `387.75MB`. Go/no-go should still remain No-Go until second-PC desktop-open CPU evidence, real QUIC/TLS multi-device route evidence, `musu@musu.pro` inbox proof, and Store/Partner Center evidence are recorded.
+
 Current qualitative completion:
 
 | Surface | Completion | Reason |
@@ -50,7 +52,7 @@ This document supersedes wiki/521 for the **current 2026-05-31 release status**.
 | Latest local release code commit before this documentation pass | `c9bafa3451ec835e04b405a477e341cb9636fe71` after post-runtime-relay evidence refresh; this pass adds relay fallback route-evidence persistence |
 | Latest smoke source commit | `52698c4406de4747b4e1ce1834cfbad1cb0c75c1` |
 | Working tree | evidence/docs dirty during this update pass; public release remains blocked until committed and the release manifest is regenerated clean |
-| Latest single-machine evidence | `docs\evidence\single-machine\1.15.0-rc.1\20260601-121339-HUGH_SECOND.evidence.json` |
+| Latest single-machine evidence | `docs\evidence\single-machine\1.15.0-rc.1\20260601-124055-HUGH_SECOND.evidence.json` |
 | Single-machine output | `MUSU_RELEASE_SMOKE_OK_20260601_121339`; CLI route checked |
 | Dashboard task | `34375312-8b16-4015-ad1a-7bd5f2ccb19c` |
 | Bridge URL | `http://127.0.0.1:9157` |
@@ -63,7 +65,7 @@ This document supersedes wiki/521 for the **current 2026-05-31 release status**.
 | Store submission bundle verification | `ok=true`, `fail_count=0`; artifact MSIX desktop entrypoint launches `musu-desktop.exe` |
 | Public metadata | `https://musu.pro/privacy` and `/support` pass with `musu@musu.pro` |
 | Second-PC MSIX install evidence | `docs\evidence\msix-install\1.15.0-rc.1\20260531-165211-HUGH-MAIN.evidence.json` |
-| Runtime idle CPU evidence | primary clean desktop-open evidence passed at `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-121701-HUGH_SECOND.desktop-open.evidence.json` with `git_dirty=false`, two MUSU processes, six owned WebView2 helpers, owned Node `0`, max one-core CPU `musu=0`, `webview2=0.03`, and working set `378.16MB`; public readiness still requires the same clean evidence on the second PC |
+| Runtime idle CPU evidence | primary clean desktop-open evidence passed at `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-124454-HUGH_SECOND.desktop-open.evidence.json` with `git_dirty=false`, two MUSU processes, six owned WebView2 helpers, owned Node `0`, max one-core CPU `musu=0`, `webview2=0.10`, and working set `387.75MB`; public readiness still requires the same clean evidence on the second PC |
 | MSIX desktop entrypoint evidence | Store artifact audit passes at `docs\evidence\msix-desktop-entrypoint\1.15.0-rc.1\20260531-224328-HUGH_SECOND.store-msix-desktop-artifact.evidence.json`; local-sideload installed audit passes at `docs\evidence\msix-desktop-entrypoint\1.15.0-rc.1\20260531-232229-HUGH_SECOND.local-sideload-installed.evidence.json`; Store-reviewed local contract-mismatch proof is `docs\evidence\msix-desktop-entrypoint\1.15.0-rc.1\20260531-232229-HUGH_SECOND.store-reviewed-contract-mismatch.evidence.json` |
 | Process ownership evidence | local audit passed at `.local-build\process-ownership\musu-process-ownership-20260531-232247.json`; `musu_runtime=1`, `desktop_shell=1`, `owned_node=0`, `owned_webview2=6`, `machine_wide_node=2`, `machine_wide_webview2=19`, `orphan_repo_helpers=0`, bridge registry PID alive, `/health` HTTP 200 |
 | Startup single-instance evidence | local audit passed at `docs\evidence\startup-single-instance\1.15.0-rc.1\20260531-203635-HUGH_SECOND.evidence.json`; three repeated `musu up --json` calls reused bridge PID 31208, `after_musu_runtime=1`, `repeated_spawn_count=0`, nested process ownership audit passed |
