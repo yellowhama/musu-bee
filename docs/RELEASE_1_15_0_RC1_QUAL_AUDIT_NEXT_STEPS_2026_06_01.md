@@ -349,11 +349,13 @@ submission/release evidence.
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260601_203835`; `desktop-open` peaks at
   `node=0.18` and `webview2=0.18`, while `post-route` peaks at
   `webview2=0.16`.
-- Go/no-go should return to single-machine true, runtime idle CPU `1/2`, and
-  runtime CPU scenario matrix `1/2` after these evidence/docs files are
-  committed. Public release remains No-Go until second-PC CPU/matrix, hardened
-  route, support inbox, Store evidence, production P2P env/live verification,
-  and relay/tunnel transport are done.
+- Clean go/no-go on commit `1ab5a824be1291ac56667bc331474a7d63864d29`
+  returned to single-machine true, runtime idle CPU `1/2`, and runtime CPU
+  scenario matrix `1/2`, with public metadata/MSIX install/MSIX desktop
+  entrypoint/process ownership/startup single-instance true and
+  `manifest_dirty=false`. Public release remains No-Go until second-PC
+  CPU/matrix, hardened route, support inbox, Store evidence, production P2P
+  env/live verification, and relay/tunnel transport are done.
 
 ## Qualitative Evaluation
 
