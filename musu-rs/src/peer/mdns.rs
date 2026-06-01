@@ -24,11 +24,24 @@ const MDNS_IPV6_ENV: &str = "MUSU_MDNS_ENABLE_IPV6";
 const MDNS_TAILSCALE_ENV: &str = "MUSU_MDNS_ENABLE_TAILSCALE";
 const MDNS_VIRTUAL_ENV: &str = "MUSU_MDNS_ENABLE_VIRTUAL_INTERFACES";
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum MdnsRecvTimeoutKind {
+    Timeout,
+    Disconnected,
+}
+
 fn env_truthy(name: &str) -> bool {
     matches!(
         std::env::var(name).as_deref(),
         Ok("1") | Ok("true") | Ok("yes")
     )
+}
+
+fn classify_mdns_recv_timeout_error(err: &flume::RecvTimeoutError) -> MdnsRecvTimeoutKind {
+    match err {
+        flume::RecvTimeoutError::Timeout => MdnsRecvTimeoutKind::Timeout,
+        flume::RecvTimeoutError::Disconnected => MdnsRecvTimeoutKind::Disconnected,
+    }
 }
 
 fn mdns_ipv6_enabled() -> bool {
@@ -252,9 +265,21 @@ pub async fn discover_peers(duration: Duration) -> Vec<DiscoveredPeer> {
                     });
                 }
             }
-            Ok(Ok(Ok(_))) => {}  // other events, ignore
-            Ok(Ok(Err(_))) => {} // recv timeout, continue
-            _ => break,          // tokio timeout or join error
+            Ok(Ok(Ok(_))) => {} // other events, ignore
+            Ok(Ok(Err(err))) => match classify_mdns_recv_timeout_error(&err) {
+                MdnsRecvTimeoutKind::Timeout => {}
+                MdnsRecvTimeoutKind::Disconnected => {
+                    tracing::debug!(
+                        "mDNS browse receiver disconnected; ending discovery window early"
+                    );
+                    break;
+                }
+            },
+            Ok(Err(err)) => {
+                tracing::debug!(err = %err, "mDNS browse receiver task failed");
+                break;
+            }
+            Err(_) => break, // tokio deadline elapsed
         }
     }
 
@@ -330,7 +355,9 @@ fn token_hash(token: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::is_virtual_mdns_interface_name;
+    use super::{
+        classify_mdns_recv_timeout_error, is_virtual_mdns_interface_name, MdnsRecvTimeoutKind,
+    };
 
     #[test]
     fn virtual_mdns_interface_filter_matches_vpn_and_vm_adapters() {
@@ -356,5 +383,17 @@ mod tests {
         for name in ["Ethernet", "Wi-Fi", "Local Area Connection", "이더넷 2"] {
             assert!(!is_virtual_mdns_interface_name(name), "{name}");
         }
+    }
+
+    #[test]
+    fn mdns_receive_error_classification_breaks_on_disconnected_channel() {
+        assert_eq!(
+            classify_mdns_recv_timeout_error(&flume::RecvTimeoutError::Timeout),
+            MdnsRecvTimeoutKind::Timeout
+        );
+        assert_eq!(
+            classify_mdns_recv_timeout_error(&flume::RecvTimeoutError::Disconnected),
+            MdnsRecvTimeoutKind::Disconnected
+        );
     }
 }

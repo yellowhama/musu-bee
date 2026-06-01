@@ -942,5 +942,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   terms should include `GOAL v249`, `1258 files`, `HUGH-MAIN`,
   `MUSU-second-PC-transfer-1.15.0-rc.1-20260602-052442.zip`, and
   `no release-check JSON`.
+- 2026-06-02 mDNS disconnected-channel busy-loop hardening: `discover_peers`
+  now treats mDNS browse receive `Timeout` as ordinary bounded waiting but
+  breaks immediately on `Disconnected`. This preserves the default-off mDNS
+  release posture while preventing explicit mDNS opt-ins or `musu discover`
+  from rapidly re-spawning blocking receive tasks after a closed browse channel.
+  Search terms should include `MdnsRecvTimeoutKind`, `flume::RecvTimeoutError`,
+  `mDNS browse receiver disconnected`, `sending on a closed channel`,
+  `MUSU_ENABLE_MDNS=1`, and `peer::mdns::tests::`.
+- 2026-06-02 index refresh after mDNS disconnected-channel hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1264 files and 2217 symbols after the mDNS receive-loop patch,
+  BETA/WIKI/WIKI_INDEX/GOAL updates, and CoS memory
+  `2026-06-02_0633_kst_mdns_disconnected_receiver_hardening.md`. Search terms
+  should include `GOAL v254`, `GOAL v255`, `1264 files`, `2217 symbols`,
+  `MdnsRecvTimeoutKind`, and `closed browse channel`.
 
 **End of WIKI_INDEX.md.**

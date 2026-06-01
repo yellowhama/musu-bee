@@ -570,6 +570,24 @@ Current Store path truth:
   `musu.configure_musu_pro_p2p_env.v1`, `KV_REST_API_URL variable`,
   `KV_REST_API_TOKEN secret`, `Deploy`, `DryRun`, and
   `p2p_relay_lease_kv_not_configured`.
+- mDNS receive-loop hardening: explicit mDNS discovery now distinguishes
+  `flume::RecvTimeoutError::Timeout` from `Disconnected`. Timeout keeps the
+  bounded browse window alive; disconnected receiver exits immediately. This
+  closes the operator-observed `mdns_sd::service_daemon` / Windows Tailscale
+  `sending on a closed channel` class as a potential short busy-loop when
+  `MUSU_ENABLE_MDNS=1` or `musu discover` is used. Targeted validation command
+  `cargo test --manifest-path .\musu-rs\Cargo.toml --lib -j 1 peer::mdns::tests::`
+  passed 3/3. A broader filtered cargo run also passed the mDNS
+  tests but failed on the unrelated `r6_auto_update` integration harness because
+  that executable requires elevation on this Windows host.
+- Indexer refreshed after mDNS disconnected-receiver hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1264 files and 2217 symbols after the receive-loop patch, BETA/GOAL/WIKI
+  updates, and CoS memory
+  `2026-06-02_0633_kst_mdns_disconnected_receiver_hardening.md`. Search terms
+  include `MdnsRecvTimeoutKind`, `flume::RecvTimeoutError`,
+  `mDNS browse receiver disconnected`, `sending on a closed channel`,
+  `MUSU_ENABLE_MDNS=1`, and `peer::mdns::tests::`.
 - Remote release gates must be rechecked after the last pushed commit before public handoff; latest recorded runs were green, and live `https://musu.pro/privacy` plus `/support` passed public metadata verification with `musu@musu.pro`.
 - old 2026-05-27 package: template only (`1.13.0.0`, do not submit as current)
 - Tauri shell: dedicated static runtime launcher/status shell now builds to `musu-bee/out`, bundles as MSI/NSIS through `npm run tauri:build`, and is audited as `desktop_shell_ready=True`; it is still not the full dashboard GUI

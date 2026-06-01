@@ -182,6 +182,11 @@ Runtime hardening:
 - process ownership target: one live MUSU runtime, no repo-related orphan Node/WebView2 helpers, and bridge registry PID plus `/health` matching the live runtime. Machine-wide `node.exe` count is diagnostic only; MUSU-owned descendants and repo-related orphan helpers are the release accountability boundary.
 - startup single-instance target: repeated `musu up --json` calls reuse one bridge PID and do not spawn another runtime
 - default mDNS: off unless `MUSU_ENABLE_MDNS=1`; IPv6, Tailscale, and common VPN/virtual adapters also require `MUSU_MDNS_ENABLE_IPV6=1`, `MUSU_MDNS_ENABLE_TAILSCALE=1`, and `MUSU_MDNS_ENABLE_VIRTUAL_INTERFACES=1`
+- mDNS disconnected-channel hardening: explicit mDNS discovery now treats
+  receive timeouts as ordinary bounded waiting but exits immediately when the
+  browse receiver disconnects. This prevents the Windows/Tailscale
+  `sending on a closed channel` failure class from spinning inside the
+  discovery window when an operator opts into mDNS.
 - default clipboard polling: off unless `MUSU_ENABLE_CLIPBOARD_SYNC=1`
 - runtime hardening and relay-control roadmap: `docs/RELEASE_1_15_0_RC1_RUNTIME_HARDENING_RELAY_ROADMAP_2026_05_31.md`
 - go/no-go preflight now reports `msix_desktop_entrypoint_verified`, `runtime_idle_cpu_verified`, `runtime_cpu_scenario_matrix_verified`, `process_ownership_verified`, `startup_single_instance_verified`, and `desktop_single_instance_verified`

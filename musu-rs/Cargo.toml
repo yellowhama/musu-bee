@@ -103,6 +103,9 @@ getrandom = "0.2"                # S3 explicit CSPRNG for bridge token
 
 # V27-F2 (mDNS auto-discovery): advertise and browse musu nodes on LAN.
 mdns-sd = "0.11"
+# mdns-sd exposes flume receivers in its public browse API; declare it directly
+# so receive-timeout/disconnect handling is explicit instead of inferred.
+flume = { version = "0.11", default-features = false }
 
 # V27-F6 (TLS): self-signed cert generation + TLS server.
 rcgen = "0.13"
