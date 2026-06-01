@@ -436,3 +436,16 @@ runtime CPU matrix is `1/2 [HUGH_SECOND]`, and the remaining blockers are
 multi-device, second-machine CPU/matrix, `musu@musu.pro` mailbox proof, Store
 release evidence, P2P control-plane KV-backed relay lease evidence, and a
 temporary dirty-git blocker until these docs/evidence are committed.
+
+2026-06-02 07:36 KST operator handoff artifact addendum: after committing the
+fresh mDNS runtime evidence audit, clean HEAD
+`1228cb0396c76d2438f4a814e33eb4b38f398198` regenerated the final operator
+packet and action pack. Final packet
+`.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260602-073317.zip`
+verifies with `ok=true`, `fail_count=0`, `kit_count=1`. Operator action pack
+`.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-073356.zip`
+verifies with `ok=true`, `fail_count=0`. The current second-PC transfer zip is
+`.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-073356\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-073356.zip`.
+The next concrete operator action is to run that transfer package on the second
+Windows PC without `-SkipRuntimeIdleCpu` or `-SkipRuntimeCpuScenarioMatrix`, then
+return/import the generated `.local-build\second-pc-return\*.zip`.

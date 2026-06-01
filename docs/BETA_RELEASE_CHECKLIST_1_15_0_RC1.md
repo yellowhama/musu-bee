@@ -497,6 +497,16 @@ Tauri desktop shell evidence:
   `1/2 [HUGH_SECOND]`, real multi-device route evidence is false,
   `musu@musu.pro` support mailbox evidence is missing, Store evidence is
   missing, and `musu.pro` P2P relay lease KV storage is not configured.
+- 2026-06-02 07:36 KST current operator action pack refresh: clean HEAD
+  `1228cb0396c76d2438f4a814e33eb4b38f398198` produced and verified the current
+  final operator packet
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260602-073317.zip`
+  (`ok=true`, `fail_count=0`, `kit_count=1`) and current operator action pack
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-073356.zip`
+  (`ok=true`, `fail_count=0`). Send the nested second-PC transfer zip
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-073356\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-073356.zip`
+  to the second Windows PC and run `run-second-pc-release-check.ps1` without
+  `-SkipRuntimeIdleCpu` or `-SkipRuntimeCpuScenarioMatrix`.
 
 Release candidate manifest:
 
