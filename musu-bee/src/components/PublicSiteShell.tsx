@@ -51,7 +51,7 @@ export default function PublicSiteShell({
           <Link href="/landing" style={navLinkStyle}>
             Early Access
           </Link>
-          <Link href="/app" style={appButtonStyle}>
+          <Link href="/app" data-brand-accent="emerald" style={appButtonStyle}>
             Open App
           </Link>
         </div>
