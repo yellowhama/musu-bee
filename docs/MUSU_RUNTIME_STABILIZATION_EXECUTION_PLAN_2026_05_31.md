@@ -172,6 +172,13 @@ Already applied:
   `.local-build\runtime-cpu-scenarios\20260601-100515-HUGH_SECOND\20260601-100515-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
   with one MUSU process, zero owned Node/WebView2 helpers, and max one-core CPU
   `0`; this is diagnostic-only and not release evidence.
+- Current primary clean desktop-open release evidence after the scenario matrix
+  commit passed at
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-101541-HUGH_SECOND.desktop-open.evidence.json`
+  with commit `9d39ab2f7a02aca75beaaeb5d35198d850bbad98`,
+  `git_dirty=false`, one `musu-desktop`, six owned WebView2 helpers, owned
+  Node `0`, max one-core CPU `musu=0` and `webview2=0.13`, working set
+  `342.44MB`, and private memory `184.04MB`.
 - `musu up` now has code to terminate a live but unhealthy registered bridge
   PID before restarting the bridge. This addresses the observed "PID alive but
   `/health` dead" class. Runtime verification is still pending because a local
