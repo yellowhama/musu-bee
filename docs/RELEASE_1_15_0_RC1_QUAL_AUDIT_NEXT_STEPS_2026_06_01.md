@@ -302,16 +302,33 @@ The release gate still needs two-machine desktop-open CPU evidence, hardened
 multi-device route evidence, support inbox delivery evidence, and Store
 submission/release evidence.
 
+2026-06-01 16:02 KST update:
+
+- The public site scroll/logo/accent fix has already deployed through the
+  existing Vercel `main` workflow to `musu.pro`.
+- CPU attribution now counts repo-related Node.js by command line, so the local
+  Next production dashboard on port `3001` is no longer missed.
+- Current primary 4-state CPU matrix evidence passes at
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260601-154503-HUGH_SECOND.runtime-cpu-scenario-matrix.json`.
+- Current single-machine smoke passes at
+  `docs\evidence\single-machine\1.15.0-rc.1\20260601-155630-HUGH_SECOND.evidence.json`.
+- Current primary `desktop-open` CPU evidence passes at
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-160102-HUGH_SECOND.desktop-open.evidence.json`
+  with MUSU `2`, repo Node `1`, owned WebView2 `6`, max one-core CPU
+  `musu=0`, `node=0`, `webview2=0.08`, and working set `504.02MB`.
+- Go/no-go remains No-Go: runtime idle CPU is `1/2`, runtime CPU scenario matrix
+  is `1/2`, and real multi-device/support/Store evidence remains missing.
+
 ## Qualitative Evaluation
 
 | Dimension | Current score | Notes |
 |---|---:|---|
 | Packaging trust | 8/10 | MSIX desktop-entrypoint and local-sideload contract are now coherent. Store certification remains external. |
-| Runtime efficiency | 7/10 | Current primary packaged desktop-open CPU evidence passes at `musu=0%`, `webview2=0.08%` of one logical core, but second-PC evidence is still missing. |
+| Runtime efficiency | 7.4/10 | Current primary packaged desktop-open CPU evidence passes with repo Node explicitly counted: `musu=0%`, `node=0%`, `webview2=0.08%` of one logical core. Primary 4-state matrix evidence also passes, but second-PC evidence is still missing. |
 | P2P product story | 8.1/10 | The strategy is right, the bridge now has shared path-kind ranking for cached/manual/nodes candidates, runtime route evidence is stored/queryable on `musu.pro`, server-side rendezvous candidate exchange plus recent node candidate caching exists, runtime forwarding creates/uses sessions, refreshed target candidates can affect the actual forward address, peer identity material is exchanged, HTTPS bridge attempts can pin the advertised certificate fingerprint, and relay fallback now has a fail-closed lease policy API. Release-grade QUIC/TLS proof, real second-PC verification, and relay/tunnel transport are still not wired. |
 | UX/branding | 6/10 -> 7/10 | App mark is strong. Public web asset tracking, wordmark fallback, and basic static logo lockups are now fixed. Store screenshots and product demo media are still needed. |
-| Release evidence quality | 8/10 | Gates are strict and honest. Runtime CPU evidence must now match current HEAD or documentation/evidence-only deltas, preventing stale CPU samples from passing after code changes. |
-| Overall public readiness | ~64% | Stronger than before, but still No-Go because second-PC CPU, real hardened route, support inbox, and Store evidence remain open. |
+| Release evidence quality | 8.3/10 | Gates are strict and honest. Runtime CPU evidence must now match current HEAD or documentation/evidence-only deltas, Node.js attribution includes repo-related command lines, and dashboard-open matrices must prove a real launched dashboard URL. |
+| Overall public readiness | ~68% | Stronger than before, but still No-Go because second-PC CPU/matrix, real hardened route, support inbox, Store evidence, and relay/tunnel transport remain open. |
 
 ## Next Roadmap
 

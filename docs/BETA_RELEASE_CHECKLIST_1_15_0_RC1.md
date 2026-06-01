@@ -104,17 +104,17 @@ Fresh repeatable script smoke passed again on 2026-05-29 06:52 KST:
 - dashboard output: `MUSU_RELEASE_SMOKE_OK_20260529_0652`
 - CLI route output: `MUSU_CLI_ROUTE_OK_20260529_0652`
 
-Current machine-readable single-machine evidence passed and was recorded on 2026-06-01 14:41 KST after the dashboard-open CPU matrix gate tightening:
+Current machine-readable single-machine evidence passed and was recorded on 2026-06-01 15:56 KST after the CPU scenario matrix attribution fix:
 
-- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260601-144154-HUGH_SECOND.evidence.json`
-- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260601-144154-HUGH_SECOND.verification.json`
-- summary: `docs\evidence\single-machine\1.15.0-rc.1\20260601-144154-HUGH_SECOND.summary.md`
-- commit: `520e5a5c0bf9f49393510f65c6c5cd740bb5c6c3`
-- dashboard task id: `a55012e1-adab-48e6-950f-e6953cd1566b`
-- bridge: `http://127.0.0.1:2502`
-- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260601_144129`
-- evidence SHA-256: `2dc3311862fc4ea4f76b92df0592d1db8ddd9b2641a81b7552b138ec9e846c1f`
-- verification SHA-256: `06766b45a72efcb291ede7bef7e22901a19b9d01d06f0821a42ea608548b5977`
+- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260601-155630-HUGH_SECOND.evidence.json`
+- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260601-155630-HUGH_SECOND.verification.json`
+- summary: `docs\evidence\single-machine\1.15.0-rc.1\20260601-155630-HUGH_SECOND.summary.md`
+- commit: `f4c2e0fd6565a81a21d5537e146a0f098ff763bd`
+- dashboard task id: `e6757818-7dc2-432d-b9fb-19143cded009`
+- bridge: `http://127.0.0.1:4747`
+- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260601_155610`
+- evidence SHA-256: `6597a9e8b9c4d08f236a164c88e23f6c4d061d32f7e0226a9e4273600229eb70`
+- verification SHA-256: `c578cd6a7de7c83f99c44777e7f4acf2d787c4861db6fa78fdab9929eb23ef45`
 - CLI route checked: `true`
 
 Multi-device packet:
@@ -126,7 +126,7 @@ Multi-device packet:
 - second-PC return importer: `scripts\windows\import-second-pc-return.ps1`
 - MSIX install evidence capture: `scripts\windows\capture-msix-install-evidence.ps1`
 - runtime idle CPU evidence capture: `scripts\windows\measure-musu-idle-cpu.ps1` is now run by `run-second-pc-release-check.ps1` unless `-SkipRuntimeIdleCpu` is used
-- runtime CPU scenario matrix: `scripts\windows\measure-musu-runtime-cpu-scenarios.ps1` writes `musu.runtime_cpu_scenario_matrix.v1` for `runtime-started`, `dashboard-open`, `desktop-open`, and `post-route`; `dashboard-open` now launches an explicit or `musu up --json` discovered dashboard URL before sampling even when run out of order, `post-route` requires the exact per-run route token, and `scripts\windows\verify-runtime-cpu-scenario-matrix.ps1` rejects no-op dashboard-open matrices while verifying clean/current 60s matrices with a successful post-route probe; this is now bundled into the second-PC kit, captured by `run-second-pc-release-check.ps1` unless `-SkipRuntimeCpuScenarioMatrix` is used, imported by `import-second-pc-return.ps1`, and is a separate go/no-go attribution gate rather than a replacement for the release-grade two-machine `desktop-open` CPU evidence
+- runtime CPU scenario matrix: `scripts\windows\measure-musu-runtime-cpu-scenarios.ps1` writes `musu.runtime_cpu_scenario_matrix.v1` for `runtime-started`, `dashboard-open`, `desktop-open`, and `post-route`; `dashboard-open` now launches an explicit dashboard URL or the `reachable_url` from `musu up --json` before sampling, never an unverified `dev_url`/`start_url` fallback, `post-route` requires the exact per-run route token, and `scripts\windows\verify-runtime-cpu-scenario-matrix.ps1` rejects no-op dashboard-open matrices while verifying clean/current 60s matrices with a successful post-route probe; this is now bundled into the second-PC kit, captured by `run-second-pc-release-check.ps1` unless `-SkipRuntimeCpuScenarioMatrix` is used, imported by `import-second-pc-return.ps1`, and is a separate go/no-go attribution gate rather than a replacement for the release-grade two-machine `desktop-open` CPU evidence
 - MSIX install evidence verifier: `scripts\windows\verify-msix-install-evidence.ps1`
 - MSIX install evidence recorder: `scripts\windows\record-msix-install-evidence.ps1`
 - MSIX install evidence must match the current release version, include operator metadata, pass non-future timestamp checks, and include passing capture checks from the second-PC package install
@@ -170,7 +170,7 @@ Runtime hardening:
   `relay_fallback` addendum after direct-route failure and lease evaluation,
   so `musu.pro` can audit whether the lease was requested/issued/skipped
   without claiming relay payload transport
-- current state: primary clean packaged desktop-open evidence passes at `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-144311-HUGH_SECOND.desktop-open.evidence.json` with one `musu-desktop` process, owned WebView2 `6`, owned Node `0`, max one-core CPU `musu=0` and `webview2=0.18`, total working set `341.41MB`, and private memory `183.8MB`; current single-machine smoke passes at `docs\evidence\single-machine\1.15.0-rc.1\20260601-144154-HUGH_SECOND.evidence.json`; the old 3s scenario matrix smoke at `.local-build\runtime-cpu-scenarios\20260601-100515-HUGH_SECOND\20260601-100515-HUGH_SECOND.runtime-cpu-scenario-matrix.json` is not release evidence under the new verifier; second-PC returns now carry both release CPU evidence and the verified scenario matrix path; the regenerated Store-reviewed artifact launches `musu-desktop.exe` and contains `musu.exe` plus `musu-startup.exe`; the fixed `local-sideload-manual` package is installed on `HUGH_SECOND` and passes installed desktop-entrypoint audit; Store-reviewed restricted-capability sideload is refused by default and must not be used as ordinary install evidence; second-PC desktop-open CPU evidence and two-machine scenario matrix evidence are still pending but the second-PC return wrapper now captures and returns them; local process ownership and repeated startup evidence pass
+- current state: primary clean packaged desktop-open evidence passes at `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-160102-HUGH_SECOND.desktop-open.evidence.json` with `musu`/`musu-desktop` process count `2`, repo-related Next Node `1`, owned WebView2 `6`, max one-core CPU `musu=0`, `node=0`, `webview2=0.08`, total working set `504.02MB`, and private memory `330.43MB`; current single-machine smoke passes at `docs\evidence\single-machine\1.15.0-rc.1\20260601-155630-HUGH_SECOND.evidence.json`; primary clean 4-state CPU scenario matrix passes at `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260601-154503-HUGH_SECOND.runtime-cpu-scenario-matrix.json` with repo Node counted and no hot processes; go/no-go reports single-machine verified, runtime idle CPU `1/2`, runtime CPU scenario matrix `1/2`, public metadata ok, MSIX install ok, and MSIX desktop entrypoint ok; second-PC desktop-open CPU evidence and second-PC scenario matrix evidence are still pending; the regenerated Store-reviewed artifact launches `musu-desktop.exe` and contains `musu.exe` plus `musu-startup.exe`; the fixed `local-sideload-manual` package is installed on `HUGH_SECOND` and passes installed desktop-entrypoint audit; Store-reviewed restricted-capability sideload is refused by default and must not be used as ordinary install evidence; local process ownership and repeated startup evidence pass
 
 Brand assets:
 

@@ -62,11 +62,13 @@ can be attributed to the runtime start, dashboard/desktop opening, or post-route
 state before release is allowed.
 
 Current verifier behavior also rejects a no-op `dashboard-open` scenario. If
-`-DashboardUrl` is not supplied, the matrix runner uses the URL discovered from
-`musu up --json` (`reachable_url`, then `dev_url`, then `start_url`) and launches
-it before sampling. If `dashboard-open` is run without a prior `runtime-started`
-entry, it performs its own bounded `musu up --json` discovery first. This keeps
-the dashboard-open state aligned with the operator's busy-loop report instead of
+`-DashboardUrl` is not supplied, the matrix runner now uses only the
+`reachable_url` discovered from `musu up --json`; it no longer falls back to
+unverified `dev_url` or `start_url`. If `dashboard-open` is run without a prior
+`runtime-started` entry, it performs its own bounded `musu up --json` discovery
+first. Operators can still pass an explicit `-DashboardUrl`, but the verifier
+requires that the URL was actually launched before sampling. This keeps the
+dashboard-open state aligned with the operator's busy-loop report instead of
 measuring the same runtime-started state twice.
 
 Second-PC returns now carry both layers:
@@ -154,6 +156,48 @@ Result:
 - release status: not release evidence because the tree was dirty and the
   sample duration was 3s
 
+Current release-grade primary matrix:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -CommandTimeoutSec 180 -MusuExe .\musu-rs\target\debug\musu.exe -DashboardUrl http://127.0.0.1:3001/app -OpenDesktopApp -RunRouteProbe -FailOnHot -Json
+```
+
+Result:
+
+- matrix evidence:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260601-154503-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- source commit in matrix:
+  `68d183e0d285b3578b75e5c243a64855e64683bd`; later evidence/doc commits are
+  accepted by the verifier as documentation/evidence-only deltas
+- verifier result: `ok=true`, `fail_count=0`
+- `runtime-started`: MUSU `2`, repo Node `1`, owned WebView2 `6`; max one-core
+  CPU `musu=0`, `node=0`, `webview2=0.05`; working set `521.97MB`
+- `dashboard-open`: MUSU `2`, repo Node `1`, owned WebView2 `6`; launched
+  `http://127.0.0.1:3001/app`; max one-core CPU `musu=0`, `node=0`,
+  `webview2=0.05`; working set `521.29MB`
+- `desktop-open`: MUSU `3`, repo Node `1`, owned WebView2 `7`; max one-core CPU
+  `musu=0`, `node=0.03`, `webview2=0.05`; working set `620.41MB`
+- `post-route`: route probe returned
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260601_154503`; MUSU `3`, repo Node `1`, owned
+  WebView2 `7`; max one-core CPU `musu=0`, `node=0`, `webview2=0.16`; working
+  set `619.79MB`
+- release status: primary matrix is now valid, but the matrix gate remains
+  `1/2` until a second Windows PC returns the same clean/current 4-state matrix
+
+Current primary `desktop-open` runtime-idle CPU evidence was also refreshed
+after the matrix evidence commit:
+
+- evidence:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-160102-HUGH_SECOND.desktop-open.evidence.json`
+- source commit:
+  `34827ff4ecfdfe655e543b2635474308bb1ca53c`
+- result: `ok=true`, `git_dirty=false`, 60.047s sample
+- process counts: MUSU `2`, repo Node `1`, owned WebView2 `6`
+- max one-core CPU: `musu=0`, `node=0`, `webview2=0.08`
+- memory: working set `504.02MB`, private memory `330.43MB`
+- note: Node.js is now intentionally attributed through command-line metadata;
+  the `node` process is the local Next production dashboard on port `3001`
+
 Parser validation:
 
 - `measure-musu-runtime-cpu-scenarios.ps1 parser ok`
@@ -161,14 +205,11 @@ Parser validation:
 
 ## Next Steps
 
-1. Run the full 60s scenario matrix on the primary PC with the packaged desktop
-   actually open and `-RunRouteProbe` enabled:
-   `runtime-started`, `dashboard-open`, `desktop-open`, and `post-route`.
-2. Run the second-PC release wrapper again so returned evidence includes the
+1. Run the second-PC release wrapper again so returned evidence includes the
    fixed mDNS behavior and the required 60s `desktop-open` CPU evidence.
-3. Import the second-PC return archive and rerun go/no-go; the CPU gate should
+2. Import the second-PC return archive and rerun go/no-go; the CPU gate should
    remain blocked until it sees two valid machines.
-4. Finish real P2P release evidence through the `musu.pro` rendezvous/control
+3. Finish real P2P release evidence through the `musu.pro` rendezvous/control
    plane with transport-verified peer identity and hardened encryption.
-5. Record `musu@musu.pro` support inbox delivery evidence and Partner
+4. Record `musu@musu.pro` support inbox delivery evidence and Partner
    Center/Microsoft Store evidence.
