@@ -188,6 +188,37 @@ function Get-ProcessMetadataMap($Names) {
         }
     }
 
+    try {
+        $exeNames = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+        foreach ($name in $Names) {
+            [void]$exeNames.Add((ConvertTo-ExeName ([string]$name)))
+        }
+
+        $cimProcesses = Get-CimInstance Win32_Process -ErrorAction Stop |
+            Where-Object { $exeNames.Contains([string]$_.Name) }
+        foreach ($process in $cimProcesses) {
+            $processId = [int]$process.ProcessId
+            if (-not $map.ContainsKey($processId)) {
+                continue
+            }
+
+            if ($null -eq $map[$processId].parent_process_id -and $null -ne $process.ParentProcessId) {
+                $map[$processId].parent_process_id = [int]$process.ParentProcessId
+            }
+            if ([string]::IsNullOrWhiteSpace([string]$map[$processId].executable_path) -and
+                -not [string]::IsNullOrWhiteSpace([string]$process.ExecutablePath)) {
+                $map[$processId].executable_path = [string]$process.ExecutablePath
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$process.CommandLine)) {
+                $map[$processId].command_line = [string]$process.CommandLine
+            }
+            $script:processMetadataAvailable = $true
+        }
+    }
+    catch {
+        $script:processMetadataTimedOut = $true
+    }
+
     return $map
 }
 

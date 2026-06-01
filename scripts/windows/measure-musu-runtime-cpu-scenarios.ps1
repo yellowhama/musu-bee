@@ -236,11 +236,9 @@ function Resolve-DashboardUrlFromUpResult {
     }
 
     $dashboard = $UpResult.dashboard
-    foreach ($propertyName in @("reachable_url", "dev_url", "start_url")) {
-        $property = $dashboard.PSObject.Properties[$propertyName]
-        if ($property -and -not [string]::IsNullOrWhiteSpace([string]$property.Value)) {
-            return [string]$property.Value
-        }
+    $reachableUrl = $dashboard.PSObject.Properties["reachable_url"]
+    if ($reachableUrl -and -not [string]::IsNullOrWhiteSpace([string]$reachableUrl.Value)) {
+        return [string]$reachableUrl.Value
     }
 
     return ""
