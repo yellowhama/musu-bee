@@ -382,7 +382,7 @@ For hot-state attribution, the second-PC wrapper also returns a diagnostic
 runtime CPU scenario matrix. If you need to rerun it manually, use:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario runtime-started dashboard-open desktop-open post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -Json
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -Json
 ```
 
 This writes `musu.runtime_cpu_scenario_matrix.v1` under

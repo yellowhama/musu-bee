@@ -104,6 +104,13 @@ Additional audit points:
   payload path.
 - `post-route` probe success now requires the exact per-run expected token, not
   only any historical `MUSU_CPU_SCENARIO_ROUTE_OK_*` output.
+- Manual matrix commands must pass multiple scenarios as a comma-separated
+  value, for example
+  `-Scenario runtime-started,dashboard-open,desktop-open,post-route`. A
+  space-separated `-Scenario runtime-started dashboard-open ...` invocation was
+  observed under `powershell -File` to bind only the first scenario, so operator
+  packet/runbook commands now use the comma form and the runner normalizes
+  comma-separated input.
 - The short local smoke was run from a dirty tree and only sampled 3s, so it is
   not release evidence under the new verifier.
 

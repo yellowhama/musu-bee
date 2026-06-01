@@ -1,6 +1,5 @@
 [CmdletBinding()]
 param(
-    [ValidateSet("runtime-started", "dashboard-open", "desktop-open", "post-route")]
     [string[]]$Scenario = @("runtime-started", "dashboard-open", "desktop-open", "post-route"),
     [int]$SampleSeconds = 60,
     [int]$CommandTimeoutSec = 90,
@@ -36,6 +35,28 @@ if (-not (Test-Path -LiteralPath $MusuExe)) {
 if ($SampleSeconds -lt 3) {
     throw "SampleSeconds must be at least 3."
 }
+
+$knownScenarioNames = @("runtime-started", "dashboard-open", "desktop-open", "post-route")
+$normalizedScenarios = New-Object System.Collections.Generic.List[string]
+$extraScenarioArgs = @()
+if ($null -ne $MyInvocation.UnboundArguments) {
+    $extraScenarioArgs = @($MyInvocation.UnboundArguments)
+}
+foreach ($item in @($Scenario + $extraScenarioArgs)) {
+    foreach ($token in ([string]$item -split ",")) {
+        $value = $token.Trim()
+        if ([string]::IsNullOrWhiteSpace($value)) {
+            continue
+        }
+        if ($knownScenarioNames -contains $value -and -not $normalizedScenarios.Contains($value)) {
+            [void]$normalizedScenarios.Add($value)
+        }
+    }
+}
+if ($normalizedScenarios.Count -eq 0) {
+    throw "No valid runtime CPU scenarios were supplied."
+}
+$Scenario = $normalizedScenarios.ToArray()
 
 $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $machine = if ([string]::IsNullOrWhiteSpace($env:COMPUTERNAME)) { "unknown" } else { $env:COMPUTERNAME }
