@@ -66,5 +66,27 @@ install the MSIX and rerun:
 - desktop-open idle CPU evidence
 - four-state runtime CPU scenario matrix
 
+## Follow-up Evidence
+
+2026-06-02 08:40 KST follow-up: the required primary-machine refresh was
+completed after this source change.
+
+- Fresh `local-sideload-manual` MSIX build/install passed for
+  `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`.
+- Desktop single-instance evidence passed:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-0832-HUGH_SECOND.desktop-single-instance.json`
+- Process ownership evidence passed:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-0832-HUGH_SECOND.process-ownership.json`
+- Single-machine smoke passed:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-083131-HUGH_SECOND.evidence.json`
+- Desktop-open idle CPU passed:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-0833-HUGH_SECOND.desktop-open.evidence.json`
+- Four-state runtime CPU matrix passed:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-083314-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+The primary busy-loop report remains un-reproduced in current packaged
+evidence. Public release still requires second-PC CPU/matrix/route evidence,
+live `musu.pro` P2P evidence, `musu@musu.pro` evidence, and Store evidence.
+
 The public release remains No-Go until the second Windows PC, live `musu.pro`
 P2P control-plane, `musu@musu.pro`, and Store gates also pass.

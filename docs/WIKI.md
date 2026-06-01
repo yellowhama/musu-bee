@@ -639,6 +639,21 @@ Current Store path truth:
   `npm run lint -- --quiet`. Because this is runtime source, fresh MSIX install
   plus primary smoke/process/CPU/matrix evidence must be rerun before claiming
   release-grade current-HEAD evidence.
+- 2026-06-02 primary evidence after frontend polling timeout hardening:
+  fresh `local-sideload-manual` MSIX build/install passed on `HUGH_SECOND`;
+  packaged desktop repeated activation passed at
+  `20260602-0832-HUGH_SECOND.desktop-single-instance`; process ownership passed
+  with one runtime, one desktop shell, owned Node `0`, owned WebView2 `6`, and
+  bridge `127.0.0.1:9967`; single-machine smoke passed at
+  `20260602-083131-HUGH_SECOND`; desktop-open idle CPU passed at
+  `20260602-0833-HUGH_SECOND.desktop-open` from clean commit `22ba6c31`
+  with max one-core CPU `musu=0`, `node=0.08`, `webview2=0.34`; and the
+  four-state CPU matrix passed at `20260602-083314-HUGH_SECOND` with route
+  token `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_083314`. The primary busy-loop
+  report remains un-reproduced; release remains No-Go pending second-PC
+  CPU/matrix/route, live P2P KV/control-plane, `musu@musu.pro`, and Store
+  evidence. Local caveat: this dev shell still shadows the WindowsApps alias
+  with `C:\Users\empty\.cargo\bin\musu.exe`.
 - Remote release gates must be rechecked after the last pushed commit before public handoff; latest recorded runs were green, and live `https://musu.pro/privacy` plus `/support` passed public metadata verification with `musu@musu.pro`.
 - old 2026-05-27 package: template only (`1.13.0.0`, do not submit as current)
 - Tauri shell: dedicated static runtime launcher/status shell now builds to `musu-bee/out`, bundles as MSI/NSIS through `npm run tauri:build`, and is audited as `desktop_shell_ready=True`; it is still not the full dashboard GUI
@@ -663,6 +678,7 @@ Canonical reference:
 - `docs/RELEASE_1_15_0_RC1_FRESH_MDNS_RUNTIME_EVIDENCE_AUDIT_2026_06_02.md` (wiki/537)
 - `docs/RELEASE_1_15_0_RC1_EVIDENCE_VERIFIER_REGRESSION_AUDIT_2026_06_02.md` (wiki/538)
 - `docs/RELEASE_1_15_0_RC1_FRONTEND_POLLING_TIMEOUT_AUDIT_2026_06_02.md` (wiki/539)
+- `docs/RELEASE_1_15_0_RC1_QUAL_AUDIT_NEXT_STEPS_2026_06_02_0840.md` (wiki/540)
 - `docs/P2P_CONTROL_PLANE_MUSU_PRO_NEXT_ACTIONS_2026_06_02.md`
 - `docs/RELEASE_1_15_0_RC1_QUAL_AUDIT_NEXT_STEPS_2026_06_01.md` (wiki/527)
 - `docs/RUNTIME_RELAY_FALLBACK_NEXT_STEPS_2026_06_01.md` (wiki/530)

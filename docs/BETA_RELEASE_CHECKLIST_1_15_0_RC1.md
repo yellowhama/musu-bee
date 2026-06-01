@@ -128,6 +128,22 @@ Current machine-readable single-machine evidence was refreshed on 2026-06-02 02:
 - dashboard output: `MUSU_RELEASE_SMOKE_OK_20260602_015326`
 - CLI route checked: `true`
 
+Current machine-readable single-machine evidence was refreshed again on 2026-06-02 08:31 KST after frontend polling timeout hardening and a fresh packaged MSIX build/install:
+
+- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260602-083131-HUGH_SECOND.evidence.json`
+- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260602-083131-HUGH_SECOND.verification.json`
+- summary: `docs\evidence\single-machine\1.15.0-rc.1\20260602-083131-HUGH_SECOND.summary.md`
+- commit: `22ba6c313dea4dd32ae43a46dca424b3443edf85`
+- dashboard: `http://127.0.0.1:3001`
+- dashboard task id: `4ae56776-f54d-4955-98cb-d6774626d072`
+- bridge: `http://127.0.0.1:9967`
+- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260602_083131`
+- CLI route checked: `true`
+- paired desktop single-instance evidence: `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-0832-HUGH_SECOND.desktop-single-instance.json`
+- paired process ownership evidence: `docs\evidence\process-ownership\1.15.0-rc.1\20260602-0832-HUGH_SECOND.process-ownership.json`
+- paired CPU evidence: `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-0833-HUGH_SECOND.desktop-open.evidence.json`
+- paired CPU matrix evidence: `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-083314-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
 Multi-device packet:
 
 - script: `scripts\windows\smoke-multidevice-beta.ps1`

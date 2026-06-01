@@ -1008,5 +1008,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   CoS memory `2026-06-02_0817_kst_frontend_polling_timeout_hardening.md`.
   Search terms should include `GOAL v265`, `1278 files`, `taskTimeoutMs`,
   `AbortSignal.timeout`, `POLL_TIMEOUT_MS`, and `frontend polling timeout`.
+- 2026-06-02 primary runtime evidence after frontend polling timeout hardening:
+  fresh packaged primary evidence passed on clean commit `22ba6c31`.
+  Search terms should include `GOAL v266`, `wiki/540`,
+  `20260602-083131-HUGH_SECOND`, `20260602-0833-HUGH_SECOND.desktop-open`,
+  `20260602-083314-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_083314`,
+  `desktop single-instance 20260602-0832`, `process ownership 20260602-0832`,
+  `owned Node 0`, `WebView2 0.34`, and `cargo bin alias shadow`.
+- 2026-06-02 index refresh after frontend polling primary evidence refresh:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1287 files and 2217 symbols after wiki/540, fresh evidence JSON files,
+  BETA/current-status/frontend-polling-audit/WIKI/GOAL updates, and CoS memory
+  `2026-06-02_0840_kst_frontend_polling_primary_evidence_refresh.md`.
+  Search terms should include `GOAL v267`, `1287 files`, `2217 symbols`,
+  `20260602-083131-HUGH_SECOND`, and
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_083314`.
 
 **End of WIKI_INDEX.md.**
