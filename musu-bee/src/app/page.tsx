@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import React from "react";
 
 export const metadata = {
@@ -43,7 +44,15 @@ export default function ComingSoonPage() {
             gap: 8,
           }}
         >
-          <span style={{ color: "var(--accent)" }}>✦</span> musu
+          <Image
+            src="/images/favicon-header.png"
+            alt="MUSU"
+            width={28}
+            height={28}
+            style={siteLogoMarkStyle}
+            priority
+          />
+          <span>musu</span>
         </span>
         <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
           <Link
@@ -72,13 +81,13 @@ export default function ComingSoonPage() {
             style={{
               display: "inline-block",
               background: "var(--bg-card)",
-              color: "var(--accent)",
+              color: "var(--musu-color-brand-emerald)",
               fontFamily: "var(--font-mono)",
               fontWeight: 700,
               fontSize: "var(--text-xs)",
               textTransform: "uppercase",
               padding: "12px 16px",
-              border: "var(--neo-border)",
+              border: "2px solid var(--musu-color-brand-emerald)",
               marginBottom: 32,
               boxShadow: "var(--neo-shadow-sm)",
             }}
@@ -295,10 +304,23 @@ export default function ComingSoonPage() {
         }}
       >
         <span style={{ fontWeight: 800, fontSize: "var(--text-base)", fontFamily: "var(--font-display)", display: "flex", alignItems: "center", gap: 8, color: "var(--fg1)" }}>
-          <span style={{ color: "var(--accent)" }}>✦</span> musu
+          <Image
+            src="/images/favicon-header.png"
+            alt="MUSU"
+            width={28}
+            height={28}
+            style={siteLogoMarkStyle}
+          />
+          <span>musu</span>
         </span>
         <span style={{ fontSize: "var(--text-sm)", fontFamily: "var(--font-mono)", color: "var(--fg3)" }}>© 2026 MUSU. The Antigravity Workspace.</span>
       </footer>
     </div>
   );
 }
+
+const siteLogoMarkStyle: React.CSSProperties = {
+  width: 28,
+  height: 28,
+  objectFit: "contain",
+};

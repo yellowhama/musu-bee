@@ -1,21 +1,14 @@
 import Link from "next/link";
+import Image from "next/image";
+import type { CSSProperties, ReactNode } from "react";
 
 export default function PublicSiteShell({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background:
-          "radial-gradient(circle at top left, rgba(250,204,21,0.10), transparent 28%), radial-gradient(circle at top right, rgba(34,197,94,0.10), transparent 24%), #0d0d0d",
-        color: "var(--fg1)",
-        fontFamily:
-          "'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif",
-      }}
-    >
+    <div style={shellStyle}>
       <nav
         style={{
           position: "sticky",
@@ -44,7 +37,14 @@ export default function PublicSiteShell({
             fontSize: 18,
           }}
         >
-          <img src="/images/favicon-header.png" alt="MUSU" style={{ height: 22, width: "auto" }} />
+          <Image
+            src="/images/favicon-header.png"
+            alt="MUSU"
+            width={28}
+            height={28}
+            style={brandMarkStyle}
+            priority
+          />
           <span>MUSU</span>
         </Link>
         <div
@@ -98,24 +98,48 @@ export default function PublicSiteShell({
   );
 }
 
-const navLinkStyle: React.CSSProperties = {
+type ShellStyle = CSSProperties & Record<`--${string}`, string>;
+
+const shellStyle: ShellStyle = {
+  "--fg1": "#f8fafc",
+  "--fg2": "#cbd5e1",
+  "--fg3": "#94a3b8",
+  "--bg-base": "#0d0d0d",
+  "--bg-card": "#111111",
+  "--border-default": "rgba(255,255,255,0.12)",
+  minHeight: "100vh",
+  background: "#0d0d0d",
+  color: "var(--fg1)",
+  fontFamily:
+    "'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif",
+};
+
+const brandMarkStyle: CSSProperties = {
+  height: 28,
+  width: 28,
+  objectFit: "contain",
+  filter: "drop-shadow(0 0 12px rgba(var(--musu-color-brand-emerald-rgb), 0.22))",
+};
+
+const navLinkStyle: CSSProperties = {
   color: "var(--fg2)",
   textDecoration: "none",
   fontSize: 13,
   fontWeight: 600,
 };
 
-const appButtonStyle: React.CSSProperties = {
-  color: "var(--bg-base)",
-  background: "var(--musu-color-brand-accent)",
+const appButtonStyle: CSSProperties = {
+  color: "#041316",
+  background: "var(--musu-color-brand-emerald)",
   textDecoration: "none",
   fontSize: 13,
   fontWeight: 800,
   padding: "9px 14px",
   borderRadius: 999,
+  boxShadow: "0 0 0 1px rgba(var(--musu-color-brand-emerald-rgb), 0.35)",
 };
 
-const footerLinkStyle: React.CSSProperties = {
+const footerLinkStyle: CSSProperties = {
   color: "var(--fg2)",
   textDecoration: "none",
   fontWeight: 700,

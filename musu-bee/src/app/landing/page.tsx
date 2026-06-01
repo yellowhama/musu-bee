@@ -205,15 +205,15 @@ const chipStyle: React.CSSProperties = {
 };
 
 const formPanelStyle: React.CSSProperties = {
-  background: "linear-gradient(180deg, rgba(250,204,21,0.10), rgba(255,255,255,0.03))",
-  border: "1px solid rgba(250,204,21,0.18)",
+  background: "linear-gradient(180deg, rgba(var(--musu-color-brand-emerald-rgb), 0.12), rgba(255,255,255,0.03))",
+  border: "1px solid rgba(var(--musu-color-brand-emerald-rgb), 0.24)",
   borderRadius: 24,
   padding: 24,
 };
 
 const panelEyebrowStyle: React.CSSProperties = {
   fontSize: 11,
-  color: "var(--musu-color-brand-accent)",
+  color: "var(--musu-color-brand-emerald)",
   fontWeight: 900,
   letterSpacing: "0.12em",
   marginBottom: 8,
@@ -369,8 +369,8 @@ const installStatusStyle: React.CSSProperties = {
   alignItems: "center",
   padding: "6px 10px",
   borderRadius: 999,
-  background: "rgba(250,204,21,0.12)",
-  color: "#fde68a",
+  background: "rgba(var(--musu-color-brand-emerald-rgb), 0.12)",
+  color: "var(--musu-color-brand-emerald)",
   fontSize: 11,
   fontWeight: 900,
   letterSpacing: "0.08em",

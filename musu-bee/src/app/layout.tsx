@@ -5,6 +5,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "MUSU",
   description: "Multi-machine AI control plane for builders and operators.",
+  icons: {
+    icon: "/images/favicon-header.png",
+    shortcut: "/images/favicon-header.png",
+    apple: "/images/favicon-header.png",
+  },
 };
 
 export default function RootLayout({

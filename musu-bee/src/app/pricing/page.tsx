@@ -159,10 +159,10 @@ const descStyle: React.CSSProperties = {
 
 const successBannerStyle: React.CSSProperties = {
   marginTop: 24,
-  background: "rgba(34,197,94,0.10)",
-  border: "1px solid rgba(34,197,94,0.25)",
+  background: "rgba(var(--musu-color-brand-emerald-rgb), 0.10)",
+  border: "1px solid rgba(var(--musu-color-brand-emerald-rgb), 0.25)",
   borderRadius: 16,
-  color: "var(--status-online)",
+  color: "var(--musu-color-brand-emerald)",
   padding: "14px 16px",
   fontSize: 14,
   fontWeight: 700,
@@ -245,8 +245,8 @@ const tierCardStyle: React.CSSProperties = {
 };
 
 const highlightedTierStyle: React.CSSProperties = {
-  background: "linear-gradient(180deg, rgba(250,204,21,0.10), rgba(255,255,255,0.03))",
-  border: "1px solid rgba(250,204,21,0.18)",
+  background: "linear-gradient(180deg, rgba(var(--musu-color-brand-emerald-rgb), 0.10), rgba(255,255,255,0.03))",
+  border: "1px solid rgba(var(--musu-color-brand-emerald-rgb), 0.18)",
 };
 
 const tierTitleStyle: React.CSSProperties = {
