@@ -272,6 +272,10 @@ Tauri desktop shell evidence:
   capture and a 45s timeout so inherited bridge child handles cannot leave the
   UI in an indefinite busy state. `cargo test --manifest-path
   .\musu-bee\src-tauri\Cargo.toml -j 1` passed 3/3 shell tests.
+- 2026-06-01 failure handling: `desktop_status` now removes stale
+  `~/.musu/services/bridge.json` entries when the recorded Windows PID is dead,
+  and returns no bridge URL instead of probing an obsolete port. The same Tauri
+  shell test command now passes 5/5 tests.
 
 Release candidate manifest:
 

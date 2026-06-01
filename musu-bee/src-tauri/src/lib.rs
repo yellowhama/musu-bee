@@ -46,21 +46,22 @@ const START_RUNTIME_TIMEOUT: std::time::Duration = std::time::Duration::from_sec
 fn desktop_status() -> DesktopStatus {
     let version = env!("CARGO_PKG_VERSION").to_string();
     let home = musu_home();
-    let bridge_url = bridge_url_from_registry(&home);
+    let bridge_registry = bridge_registry_status(&home);
     let dashboard_probe = probe_dashboard();
-    let bridge_probe = bridge_url
+    let bridge_probe = bridge_registry
+        .url
         .as_deref()
         .map(|url| probe_http(url, "/health"))
         .unwrap_or_else(|| ProbeResult {
             ok: false,
-            detail: "bridge registry not found".to_string(),
+            detail: bridge_registry.detail,
         });
 
     DesktopStatus {
         version,
         musu_home: home.display().to_string(),
         bridge_status: if bridge_probe.ok { "ok" } else { "offline" }.to_string(),
-        bridge_url,
+        bridge_url: bridge_registry.url,
         bridge_detail: bridge_probe.detail,
         dashboard_status: if dashboard_probe.ok { "ok" } else { "offline" }.to_string(),
         dashboard_url: dashboard_probe.url,
@@ -124,6 +125,11 @@ struct DashboardProbe {
     detail: String,
 }
 
+struct BridgeRegistryStatus {
+    url: Option<String>,
+    detail: String,
+}
+
 fn musu_home() -> std::path::PathBuf {
     if let Some(home) = std::env::var_os("MUSU_HOME") {
         return std::path::PathBuf::from(home);
@@ -137,12 +143,101 @@ fn musu_home() -> std::path::PathBuf {
     std::path::PathBuf::from(".musu")
 }
 
-fn bridge_url_from_registry(home: &std::path::Path) -> Option<String> {
+fn bridge_registry_status(home: &std::path::Path) -> BridgeRegistryStatus {
+    bridge_registry_status_with_pid_checker(home, is_pid_alive)
+}
+
+fn bridge_registry_status_with_pid_checker(
+    home: &std::path::Path,
+    is_pid_alive_fn: impl Fn(u32) -> bool,
+) -> BridgeRegistryStatus {
     let path = home.join("services").join("bridge.json");
-    let text = std::fs::read_to_string(path).ok()?;
-    let value: serde_json::Value = serde_json::from_str(&text).ok()?;
-    let addr = value.get("addr")?.as_str()?;
-    Some(format!("http://{addr}"))
+    let text = match std::fs::read_to_string(&path) {
+        Ok(text) => text,
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+            return BridgeRegistryStatus {
+                url: None,
+                detail: "bridge registry not found".to_string(),
+            };
+        }
+        Err(err) => {
+            return BridgeRegistryStatus {
+                url: None,
+                detail: format!("bridge registry unreadable: {err}"),
+            };
+        }
+    };
+
+    let value: serde_json::Value = match serde_json::from_str(&text) {
+        Ok(value) => value,
+        Err(err) => {
+            return BridgeRegistryStatus {
+                url: None,
+                detail: format!("bridge registry parse failed: {err}"),
+            };
+        }
+    };
+
+    let pid = value
+        .get("pid")
+        .and_then(|value| value.as_u64())
+        .and_then(|value| u32::try_from(value).ok());
+    if let Some(pid) = pid {
+        if !is_pid_alive_fn(pid) {
+            let cleanup_detail = match std::fs::remove_file(&path) {
+                Ok(()) => format!("stale bridge registry removed: pid {pid} is not running"),
+                Err(err) => {
+                    format!("stale bridge registry detected: pid {pid} is not running; cleanup failed: {err}")
+                }
+            };
+            return BridgeRegistryStatus {
+                url: None,
+                detail: cleanup_detail,
+            };
+        }
+    }
+
+    let Some(addr) = value.get("addr").and_then(|value| value.as_str()) else {
+        return BridgeRegistryStatus {
+            url: None,
+            detail: "bridge registry missing addr".to_string(),
+        };
+    };
+
+    BridgeRegistryStatus {
+        url: Some(format!("http://{addr}")),
+        detail: if let Some(pid) = pid {
+            format!("bridge registry pid {pid} is running")
+        } else {
+            "bridge registry missing pid".to_string()
+        },
+    }
+}
+
+#[cfg(windows)]
+fn is_pid_alive(pid: u32) -> bool {
+    if pid == 0 {
+        return false;
+    }
+
+    unsafe {
+        use windows_sys::Win32::Foundation::CloseHandle;
+        use windows_sys::Win32::System::Threading::{
+            OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION,
+        };
+
+        let handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
+        if handle.is_null() {
+            return false;
+        }
+        let _ = CloseHandle(handle);
+        true
+    }
+}
+
+#[cfg(not(windows))]
+fn is_pid_alive(_pid: u32) -> bool {
+    true
 }
 
 fn probe_dashboard() -> DashboardProbe {
@@ -359,7 +454,9 @@ fn open_url(url: &str) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_allowed_dashboard_url, run_command_with_timeout};
+    use super::{
+        bridge_registry_status_with_pid_checker, is_allowed_dashboard_url, run_command_with_timeout,
+    };
 
     const TEST_MARKER: &str = "musu-desktop-command-capture-ok";
 
@@ -399,5 +496,56 @@ mod tests {
     #[cfg(unix)]
     fn shell_echo_command() -> (&'static str, Vec<&'static str>) {
         ("sh", vec!["-c", "printf '%s\\n' \"$1\"", "sh", TEST_MARKER])
+    }
+
+    #[test]
+    fn stale_bridge_registry_is_removed_before_status_probe() {
+        let home = make_temp_home("stale-bridge-registry");
+        let services = home.join("services");
+        std::fs::create_dir_all(&services).unwrap();
+        let path = services.join("bridge.json");
+        std::fs::write(
+            &path,
+            r#"{"name":"bridge","addr":"127.0.0.1:6677","pid":32192}"#,
+        )
+        .unwrap();
+
+        let status = bridge_registry_status_with_pid_checker(&home, |_| false);
+
+        assert!(status.url.is_none());
+        assert!(status.detail.contains("stale bridge registry removed"));
+        assert!(!path.exists());
+        let _ = std::fs::remove_dir_all(home);
+    }
+
+    #[test]
+    fn live_bridge_registry_returns_loopback_url() {
+        let home = make_temp_home("live-bridge-registry");
+        let services = home.join("services");
+        std::fs::create_dir_all(&services).unwrap();
+        std::fs::write(
+            services.join("bridge.json"),
+            r#"{"name":"bridge","addr":"127.0.0.1:6677","pid":32192}"#,
+        )
+        .unwrap();
+
+        let status = bridge_registry_status_with_pid_checker(&home, |_| true);
+
+        assert_eq!(status.url.as_deref(), Some("http://127.0.0.1:6677"));
+        assert!(status.detail.contains("pid 32192 is running"));
+        let _ = std::fs::remove_dir_all(home);
+    }
+
+    fn make_temp_home(name: &str) -> std::path::PathBuf {
+        let now_nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or_default();
+        let path = std::env::temp_dir().join(format!(
+            "musu-desktop-test-{name}-{}-{now_nanos}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&path);
+        path
     }
 }

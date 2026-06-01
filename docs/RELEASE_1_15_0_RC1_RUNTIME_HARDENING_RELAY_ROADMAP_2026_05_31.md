@@ -424,3 +424,26 @@ Process diagnostic note: a 2026-06-01 17:53 KST process ownership audit on
 helpers and repo-related orphan helpers were both 0. The audit failed only
 because no MUSU runtime was running and `~/.musu/services/bridge.json` pointed
 at a dead bridge PID, so it must not be used as release evidence.
+
+## 2026-06-01 Stale Bridge Registry Cleanup Update
+
+The desktop shell now treats a dead bridge registry PID as stale state before
+it probes health. `desktop_status` parses `~/.musu/services/bridge.json`,
+checks the recorded PID on Windows through
+`OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION)`, deletes the registry file when
+the PID is dead, and returns an offline status with no `bridge_url`. This means
+the shell no longer keeps pointing at an obsolete `127.0.0.1:<port>` after a
+bridge crash or manual process cleanup.
+
+Validation:
+
+- `cargo test --manifest-path .\musu-bee\src-tauri\Cargo.toml -j 1` passed
+  5/5 Tauri shell tests.
+- Tests cover stale registry removal before health probing and live registry
+  URL preservation.
+
+Release interpretation:
+
+This improves failure handling and process ownership hygiene, but it is not a
+release substitute for the packaged desktop Start Runtime click audit, live
+process ownership evidence, or two-machine 60s CPU evidence.

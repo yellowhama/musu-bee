@@ -237,6 +237,22 @@ after the matrix evidence commit:
   as release evidence because MUSU was not running and the bridge registry PID
   was dead.
 
+2026-06-01 18:07 KST stale bridge registry cleanup update:
+
+- `desktop_status` now parses `~/.musu/services/bridge.json` before bridge
+  health probing.
+- If the registry contains a Windows PID that no longer exists, the desktop
+  shell removes the stale `bridge.json`, returns `bridge_url=null`, and reports
+  the stale registry cleanup in `bridge_detail`.
+- This prevents stale `127.0.0.1:<port>` registry entries from confusing the
+  desktop shell after bridge crashes or manual process cleanup.
+- Validation:
+  `cargo test --manifest-path .\musu-bee\src-tauri\Cargo.toml -j 1` passed 5/5
+  Tauri shell tests, including stale cleanup and live registry URL preservation.
+- Release status: this is failure-handling hardening only. The next release
+  proof still needs live packaged Start Runtime click evidence and clean/current
+  two-machine CPU samples.
+
 Parser validation:
 
 - `measure-musu-runtime-cpu-scenarios.ps1 parser ok`
