@@ -66,6 +66,8 @@ Current external evidence blockers:
 
 2026-06-01 21:56 KST post-P2P-gate go/no-go addendum: clean go/no-go on commit `a6e41609d1c9ceaaf13ce73119f25e62471bfb5b` reports `ready=false`, `manifest_dirty=false`, `single_machine=false`, runtime idle CPU `0/2`, runtime CPU scenario matrix `0/2`, `p2p_control_plane_verified=false`, relay leases `ok=false`, and `owner_scope_verified=false`. Blockers are `single-machine`, `multi-device`, `runtime-idle-cpu`, `runtime-cpu-scenario-matrix`, `support-mailbox`, `store-release`, and `p2p-control-plane`. The primary smoke/CPU/matrix drop from `true`/`1/2` to `false`/`0/2` is expected source freshness after release-script changes; refresh primary evidence again on the final commit before using second-PC evidence to close runtime gates.
 
+2026-06-01 22:26 KST primary evidence refresh addendum: refreshed primary evidence after the P2P gate commits. Single-machine evidence now passes at `docs\evidence\single-machine\1.15.0-rc.1\20260601-221225-HUGH_SECOND.evidence.json` with dashboard task `927874c7-ce4d-4eb1-a84d-1bd7517ff844`, bridge `http://127.0.0.1:4752`, and CLI route checked. Production-dashboard `desktop-open` CPU evidence passes at `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-221918-HUGH_SECOND.desktop-open.evidence.json`: `git_dirty=false`, 60.064s sample, MUSU `2`, repo Node `1`, owned WebView2 `6`, max one-core CPU `musu=0`, `node=0`, `webview2=0.13`, working set `469.28MB`, private memory `337.38MB`, and no hot processes. Primary 4-state matrix passes at `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260601-222043-HUGH_SECOND.runtime-cpu-scenario-matrix.json` with route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260601_222043`; all four 60s scenarios passed, and `desktop-open`/`post-route` peaked at WebView2 `0.08` of one logical core. Clean go/no-go on commit `5b8650f084a0df9cf5cabde77af31dd11b366c0a` reports `ready=false`, `manifest_dirty=false`, `single_machine=true`, runtime idle CPU `1/2`, runtime CPU scenario matrix `1/2`, `p2p_control_plane_verified=false`, multi-device false, support false, and Store false.
+
 Current qualitative completion:
 
 | Surface | Completion | Reason |
@@ -81,12 +83,12 @@ This document supersedes wiki/521 for the **current 2026-05-31 release status**.
 
 | Item | Current value |
 |---|---|
-| Latest local release code commit before this documentation pass | `a0184e89851d7ac99e1162a301f9219104a4df04` after deploy workflow hardening and source-fresh smoke evidence |
-| Latest smoke source commit | `659503846c30fcfb1d1c8836c94b27d3464b7d96` |
-| Working tree | clean runtime CPU evidence on commit `a0184e89851d7ac99e1162a301f9219104a4df04` reports `git_dirty=false`; later documentation/evidence-only updates must preserve go/no-go freshness |
-| Latest single-machine evidence | `docs\evidence\single-machine\1.15.0-rc.1\20260601-211031-HUGH_SECOND.evidence.json` |
-| Single-machine output | `MUSU_RELEASE_SMOKE_OK_20260601_211010`; CLI route checked |
-| Dashboard task | `6a339c65-4d1a-46f3-894a-5a50cc69cd0e` |
+| Latest local release code commit before this documentation pass | `5b8650f084a0df9cf5cabde77af31dd11b366c0a` after post-P2P-gate primary evidence refresh |
+| Latest smoke source commit | `bcfdbf3222166aca05bf3196184311180375c5f9` after single-machine evidence refresh |
+| Working tree | clean go/no-go on `5b8650f084a0df9cf5cabde77af31dd11b366c0a` reports `manifest_dirty=false`; later documentation/evidence-only updates must preserve go/no-go freshness |
+| Latest single-machine evidence | `docs\evidence\single-machine\1.15.0-rc.1\20260601-221225-HUGH_SECOND.evidence.json` |
+| Single-machine output | `MUSU_RELEASE_SMOKE_OK_20260601_221202`; CLI route checked |
+| Dashboard task | `927874c7-ce4d-4eb1-a84d-1bd7517ff844` |
 | Bridge URL | `http://127.0.0.1:4752` |
 | Desktop readiness audit | `runtime_package_ready=true`, `desktop_shell_ready=true`, `single_machine_verified=true`, `multi_device_verified=false` |
 | Final operator packet | `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip` |
@@ -97,10 +99,10 @@ This document supersedes wiki/521 for the **current 2026-05-31 release status**.
 | Store submission bundle verification | `ok=true`, `fail_count=0`; artifact MSIX desktop entrypoint launches `musu-desktop.exe` |
 | Public metadata | `https://musu.pro/privacy` and `/support` pass with `musu@musu.pro` |
 | Second-PC MSIX install evidence | `docs\evidence\msix-install\1.15.0-rc.1\20260531-165211-HUGH-MAIN.evidence.json` |
-| Runtime idle CPU evidence | primary clean desktop-open evidence passed at `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-211132-HUGH_SECOND.desktop-open.evidence.json` with `git_dirty=false`, MUSU `2`, repo Node `1`, owned WebView2 `6`, max one-core CPU `musu=0`, `node=0`, `webview2=0.23`, working set `506.71MB`, private memory `329.62MB`, and no hot processes; public readiness still requires the same clean evidence on the second PC |
-| Runtime CPU scenario matrix evidence | primary clean 4-state matrix passed at `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260601-211252-HUGH_SECOND.runtime-cpu-scenario-matrix.json` with route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260601_211252`, no hot processes, and all four scenarios under budget; second-PC matrix evidence is still required |
+| Runtime idle CPU evidence | primary clean desktop-open evidence passed at `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-221918-HUGH_SECOND.desktop-open.evidence.json` with `git_dirty=false`, MUSU `2`, repo Node `1`, owned WebView2 `6`, max one-core CPU `musu=0`, `node=0`, `webview2=0.13`, working set `469.28MB`, private memory `337.38MB`, and no hot processes; public readiness still requires the same clean evidence on the second PC |
+| Runtime CPU scenario matrix evidence | primary clean 4-state matrix passed at `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260601-222043-HUGH_SECOND.runtime-cpu-scenario-matrix.json` with route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260601_222043`, no hot processes, and all four scenarios under budget; second-PC matrix evidence is still required |
 | Frontend polling hardening | no direct `setInterval(` matches in `musu-bee/src`; workflow run status, remote screen refresh, agents surface, onboarding research polling, dashboard main refresh, and node panel discovery/registry refresh are guarded by `useLowDutyPolling` contract tests |
-| Latest go/no-go after source commit | clean commit `a6e41609d1c9ceaaf13ce73119f25e62471bfb5b` reports `ready=false`, `manifest_dirty=false`, `single_machine=false`, runtime idle CPU `0/2`, runtime CPU scenario matrix `0/2`, multi-device false, support false, Store false, and `p2p_control_plane_verified=false`; primary runtime evidence must be refreshed after the release-script commit |
+| Latest go/no-go after source commit | clean commit `5b8650f084a0df9cf5cabde77af31dd11b366c0a` reports `ready=false`, `manifest_dirty=false`, `single_machine=true`, runtime idle CPU `1/2`, runtime CPU scenario matrix `1/2`, multi-device false, support false, Store false, and `p2p_control_plane_verified=false` |
 | Public site deployment | `65950384` hardened the Vercel workflow after stuck run `26753317276`; deploy run `26753908889` and Tests run `26753908911` passed; live `musu.pro` QA passed on `/`, `/landing`, `/pricing`, and `/install` across desktop/mobile with scroll, no horizontal overflow, favicon-header logo, `.musu-public-scroll-root`, and `#24C8DB` accent |
 | Relay lease production audit | `musu relay status --json` shows logged-in control-plane wiring; after `b1c4378` deployed, live `musu relay leases --json` still fails with `p2p_control_auth_not_configured` and `accepted_auth_modes=[]`, proving production `MUSU_P2P_CONTROL_TOKEN_SHA256S` is not configured yet |
 | P2P control-plane live evidence | `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260601-214149-musu.pro.evidence.json`; verification fails by design with `owner_scope_verified=false`, and go/no-go reports `p2p_control_plane_verified=false` until production scoped auth is configured |

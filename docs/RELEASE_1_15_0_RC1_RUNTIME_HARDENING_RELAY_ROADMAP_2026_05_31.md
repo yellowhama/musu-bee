@@ -708,3 +708,10 @@ Release interpretation:
   matrix `0/2` because release scripts changed after the last primary runtime
   evidence. Refresh primary smoke/CPU/matrix on the final commit before using
   second-PC evidence to close the two-machine runtime gates.
+- Primary evidence was refreshed after that reset. Clean go/no-go on
+  `5b8650f084a0df9cf5cabde77af31dd11b366c0a` reports
+  `single_machine=true`, runtime idle CPU `1/2`, runtime CPU scenario matrix
+  `1/2`, `manifest_dirty=false`, and `ready=false`. The refreshed
+  production-dashboard desktop-open CPU sample peaks at `webview2=0.13` of one
+  logical core with `469.28MB` working set, so the primary busy-loop report is
+  still not reproduced on current evidence. Second-PC CPU/matrix remains open.

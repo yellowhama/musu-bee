@@ -404,16 +404,29 @@ submission/release evidence.
   after release-script changes, so primary smoke/CPU/matrix must be refreshed
   again before second-PC runtime evidence can close those gates.
 
+2026-06-01 22:26 KST update:
+
+- Primary smoke/CPU/matrix evidence was refreshed after the P2P gate commits.
+  Current paths are `20260601-221225-HUGH_SECOND.evidence.json`,
+  `20260601-221918-HUGH_SECOND.desktop-open.evidence.json`, and
+  `20260601-222043-HUGH_SECOND.runtime-cpu-scenario-matrix.json`.
+- The production-dashboard desktop-open CPU sample passes with MUSU `2`, repo
+  Node `1`, owned WebView2 `6`, max one-core CPU `musu=0`, `node=0`,
+  `webview2=0.13`, working set `469.28MB`, and no hot processes.
+- Clean go/no-go on `5b8650f084a0df9cf5cabde77af31dd11b366c0a` is back to
+  `single_machine=true`, runtime idle CPU `1/2`, runtime CPU scenario matrix
+  `1/2`, `manifest_dirty=false`, and `ready=false`.
+
 ## Qualitative Evaluation
 
 | Dimension | Current score | Notes |
 |---|---:|---|
 | Packaging trust | 8/10 | MSIX desktop-entrypoint and local-sideload contract are now coherent. Store certification remains external. |
-| Runtime efficiency | 7.8/10 | Current primary packaged desktop-open CPU evidence passes with repo Node explicitly counted: `musu=0%`, `node=0%`, `webview2=0.23%` of one logical core. Primary 4-state matrix evidence also passes, and the reported 20%-of-one-core busy-loop is not reproduced on the current primary. Repeated manual desktop launches can still accumulate old shells, and second-PC evidence is still missing. |
+| Runtime efficiency | 7.9/10 | Current primary packaged desktop-open CPU evidence passes with repo Node explicitly counted: `musu=0%`, `node=0%`, `webview2=0.13%` of one logical core, with total working set `469.28MB`. Primary 4-state matrix evidence also passes, and the reported 20%-of-one-core busy-loop is not reproduced on the current primary. Repeated manual desktop launches can still accumulate old shells, and second-PC evidence is still missing. |
 | P2P product story | 8.1/10 | The strategy is right, the bridge now has shared path-kind ranking for cached/manual/nodes candidates, runtime route evidence is stored/queryable on `musu.pro`, server-side rendezvous candidate exchange plus recent node candidate caching exists, runtime forwarding creates/uses sessions, refreshed target candidates can affect the actual forward address, peer identity material is exchanged, HTTPS bridge attempts can pin the advertised certificate fingerprint, relay fallback has a fail-closed lease policy API, lease audits are queryable from the CLI, P2P auth has a SHA-256 runtime-token allowlist path, and live control-plane evidence is now a go/no-go gate. The remaining penalty is the current failing production env/live verification, release-grade QUIC/TLS proof, real second-PC verification, and relay/tunnel transport. |
 | UX/branding | 6/10 -> 7.5/10 | App mark is strong. Public web asset tracking, wordmark fallback, basic static logo lockups, scroll behavior, shared emerald accent regression coverage, and live `musu.pro` deploy QA are now in place. Store screenshots/product demo media are still needed. |
-| Release evidence quality | 8.3/10 | Gates are strict and honest. Runtime CPU evidence must now match current HEAD or documentation/evidence-only deltas, Node.js attribution includes repo-related command lines, dashboard-open matrices must prove a real launched dashboard URL, and the latest release-script commit intentionally reset primary runtime evidence to stale. |
-| Overall public readiness | ~68% | Stronger than the pre-hardening baseline, but current clean go/no-go is stricter after the P2P release-script commit: primary smoke/CPU/matrix must be refreshed again, and second-PC CPU/matrix, real hardened route, support inbox, Store evidence, production P2P env/live verification, desktop shell reactivation hardening, and relay/tunnel transport remain open. |
+| Release evidence quality | 8.4/10 | Gates are strict and honest. Runtime CPU evidence now matches the post-P2P-gate source line through documentation/evidence-only deltas, Node.js attribution includes repo-related command lines, and dashboard-open matrices prove a real launched dashboard URL. |
+| Overall public readiness | ~70% | Stronger than the pre-hardening baseline and primary runtime evidence is current again, but public release remains No-Go because second-PC CPU/matrix, real hardened route, support inbox, Store evidence, production P2P env/live verification, desktop shell reactivation hardening, and relay/tunnel transport remain open. |
 
 ## Next Roadmap
 
