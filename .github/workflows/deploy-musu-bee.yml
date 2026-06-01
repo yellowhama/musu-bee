@@ -1,6 +1,7 @@
 name: Deploy musu-bee to Vercel
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
