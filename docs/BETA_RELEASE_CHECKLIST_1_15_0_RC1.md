@@ -125,7 +125,7 @@ Multi-device packet:
 - second-PC return importer: `scripts\windows\import-second-pc-return.ps1`
 - MSIX install evidence capture: `scripts\windows\capture-msix-install-evidence.ps1`
 - runtime idle CPU evidence capture: `scripts\windows\measure-musu-idle-cpu.ps1` is now run by `run-second-pc-release-check.ps1` unless `-SkipRuntimeIdleCpu` is used
-- runtime CPU scenario diagnostics: `scripts\windows\measure-musu-runtime-cpu-scenarios.ps1` writes `musu.runtime_cpu_scenario_matrix.v1` for `runtime-started`, `dashboard-open`, `desktop-open`, and `post-route`; this is now bundled into the second-PC kit, captured by `run-second-pc-release-check.ps1` unless `-SkipRuntimeCpuScenarioMatrix` is used, imported by `import-second-pc-return.ps1`, and remains diagnostic state attribution only rather than a replacement for the release-grade two-machine `desktop-open` CPU evidence
+- runtime CPU scenario matrix: `scripts\windows\measure-musu-runtime-cpu-scenarios.ps1` writes `musu.runtime_cpu_scenario_matrix.v1` for `runtime-started`, `dashboard-open`, `desktop-open`, and `post-route`; `scripts\windows\verify-runtime-cpu-scenario-matrix.ps1` verifies clean/current 60s matrices with a successful post-route probe; this is now bundled into the second-PC kit, captured by `run-second-pc-release-check.ps1` unless `-SkipRuntimeCpuScenarioMatrix` is used, imported by `import-second-pc-return.ps1`, and is a separate go/no-go attribution gate rather than a replacement for the release-grade two-machine `desktop-open` CPU evidence
 - MSIX install evidence verifier: `scripts\windows\verify-msix-install-evidence.ps1`
 - MSIX install evidence recorder: `scripts\windows\record-msix-install-evidence.ps1`
 - MSIX install evidence must match the current release version, include operator metadata, pass non-future timestamp checks, and include passing capture checks from the second-PC package install
@@ -150,6 +150,7 @@ Runtime hardening:
 
 - idle CPU measurement: `scripts\windows\measure-musu-idle-cpu.ps1`
 - multi-state CPU diagnostics: `scripts\windows\measure-musu-runtime-cpu-scenarios.ps1`
+- multi-state CPU verifier: `scripts\windows\verify-runtime-cpu-scenario-matrix.ps1`
 - MSIX desktop entrypoint audit: `scripts\windows\audit-msix-desktop-entrypoint.ps1`
 - process ownership audit: `scripts\windows\audit-musu-process-ownership.ps1`
 - startup single-instance audit: `scripts\windows\audit-musu-startup-single-instance.ps1`
@@ -159,7 +160,7 @@ Runtime hardening:
 - default mDNS: off unless `MUSU_ENABLE_MDNS=1`; IPv6, Tailscale, and common VPN/virtual adapters also require `MUSU_MDNS_ENABLE_IPV6=1`, `MUSU_MDNS_ENABLE_TAILSCALE=1`, and `MUSU_MDNS_ENABLE_VIRTUAL_INTERFACES=1`
 - default clipboard polling: off unless `MUSU_ENABLE_CLIPBOARD_SYNC=1`
 - runtime hardening and relay-control roadmap: `docs/RELEASE_1_15_0_RC1_RUNTIME_HARDENING_RELAY_ROADMAP_2026_05_31.md`
-- go/no-go preflight now reports `msix_desktop_entrypoint_verified`, `runtime_idle_cpu_verified`, `process_ownership_verified`, and `startup_single_instance_verified`
+- go/no-go preflight now reports `msix_desktop_entrypoint_verified`, `runtime_idle_cpu_verified`, `runtime_cpu_scenario_matrix_verified`, `process_ownership_verified`, and `startup_single_instance_verified`
 - P2P relay control-plane status: runtime direct-route failure now requests a
   fail-closed `/api/v1/p2p/relay/lease` when a rendezvous session and account
   token exist; this is policy/audit wiring only and `relay_transport_wired`
@@ -168,7 +169,7 @@ Runtime hardening:
   `relay_fallback` addendum after direct-route failure and lease evaluation,
   so `musu.pro` can audit whether the lease was requested/issued/skipped
   without claiming relay payload transport
-- current state: primary clean packaged desktop-open evidence passes at `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-134219-HUGH_SECOND.desktop-open.evidence.json` with two MUSU processes, owned WebView2 `6`, owned Node `0`, WebView2 max one-core CPU `0.18`, and total working set `372.88MB`; current single-machine smoke passes at `docs\evidence\single-machine\1.15.0-rc.1\20260601-134022-HUGH_SECOND.evidence.json`; the scenario matrix smoke passed locally at `.local-build\runtime-cpu-scenarios\20260601-100515-HUGH_SECOND\20260601-100515-HUGH_SECOND.runtime-cpu-scenario-matrix.json` but is diagnostic evidence only; second-PC returns now carry both release CPU evidence and the diagnostic scenario matrix; the regenerated Store-reviewed artifact launches `musu-desktop.exe` and contains `musu.exe` plus `musu-startup.exe`; the fixed `local-sideload-manual` package is installed on `HUGH_SECOND` and passes installed desktop-entrypoint audit; Store-reviewed restricted-capability sideload is refused by default and must not be used as ordinary install evidence; second-PC desktop-open CPU evidence is still pending but the second-PC return wrapper now captures and returns it; local process ownership and repeated startup evidence pass
+- current state: primary clean packaged desktop-open evidence passes at `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-134219-HUGH_SECOND.desktop-open.evidence.json` with two MUSU processes, owned WebView2 `6`, owned Node `0`, WebView2 max one-core CPU `0.18`, and total working set `372.88MB`; current single-machine smoke passes at `docs\evidence\single-machine\1.15.0-rc.1\20260601-134022-HUGH_SECOND.evidence.json`; the old 3s scenario matrix smoke at `.local-build\runtime-cpu-scenarios\20260601-100515-HUGH_SECOND\20260601-100515-HUGH_SECOND.runtime-cpu-scenario-matrix.json` is not release evidence under the new verifier; second-PC returns now carry both release CPU evidence and the verified scenario matrix path; the regenerated Store-reviewed artifact launches `musu-desktop.exe` and contains `musu.exe` plus `musu-startup.exe`; the fixed `local-sideload-manual` package is installed on `HUGH_SECOND` and passes installed desktop-entrypoint audit; Store-reviewed restricted-capability sideload is refused by default and must not be used as ordinary install evidence; second-PC desktop-open CPU evidence and two-machine scenario matrix evidence are still pending but the second-PC return wrapper now captures and returns them; local process ownership and repeated startup evidence pass
 
 Brand assets:
 

@@ -83,6 +83,7 @@ scripts\windows\run-second-pc-release-check.ps1
 scripts\windows\capture-msix-install-evidence.ps1
 scripts\windows\collect-second-pc-handoff.ps1
 scripts\windows\measure-musu-runtime-cpu-scenarios.ps1
+scripts\windows\verify-runtime-cpu-scenario-matrix.ps1
 ```
 
 ## Step 3 - Run The One-Command Second-PC Check
@@ -128,9 +129,9 @@ the runtime idle CPU gate.
 
 The wrapper also captures a diagnostic CPU scenario matrix for
 `runtime-started`, `dashboard-open`, `desktop-open`, and `post-route`. That
-matrix helps identify which state causes idle CPU pressure. It is not the
-release gate; the release gate remains the two-machine 60s `desktop-open`
-runtime idle CPU evidence.
+matrix helps identify which state causes idle CPU pressure. It is now verified
+as a separate go/no-go attribution gate, but it still does not replace the
+two-machine 60s `desktop-open` runtime idle CPU evidence.
 
 ## Step 5 - Bring The Return ZIP Back To The Primary Repo
 

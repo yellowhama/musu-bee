@@ -111,6 +111,7 @@ $scriptsToCopy = @(
     "audit-msix-desktop-entrypoint.ps1",
     "measure-musu-idle-cpu.ps1",
     "measure-musu-runtime-cpu-scenarios.ps1",
+    "verify-runtime-cpu-scenario-matrix.ps1",
     "audit-musu-process-ownership.ps1",
     "audit-musu-startup-single-instance.ps1",
     "prepare-operator-action-pack.ps1",
@@ -192,10 +193,11 @@ Remaining blockers:
 2. clean/current MSIX install evidence from the second Windows PC
 3. real second-PC multi-device evidence
 4. runtime idle CPU evidence from the primary and second Windows PC
-5. process ownership evidence from a live MUSU runtime
-6. startup single-instance evidence from repeated `musu up` calls
-7. real __SUPPORT_EMAIL__ inbox delivery evidence
-8. Partner Center product name reservation, app submission, Microsoft certification, and restricted startup capability approval evidence
+5. runtime CPU scenario matrix evidence from the primary and second Windows PC
+6. process ownership evidence from a live MUSU runtime
+7. startup single-instance evidence from repeated `musu up` calls
+8. real __SUPPORT_EMAIL__ inbox delivery evidence
+9. Partner Center product name reservation, app submission, Microsoft certification, and restricted startup capability approval evidence
 
 The multi-device kit includes `collect-second-pc-handoff.ps1`; run it on the
 second PC after install to generate `.local-build\second-pc-handoff\*.handoff.json`
@@ -380,12 +382,14 @@ For hot-state attribution, the second-PC wrapper also returns a diagnostic
 runtime CPU scenario matrix. If you need to rerun it manually, use:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario runtime-started dashboard-open desktop-open post-route -SampleSeconds 60 -OpenDesktopApp -Json
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario runtime-started dashboard-open desktop-open post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -Json
 ```
 
 This writes `musu.runtime_cpu_scenario_matrix.v1` under
-`.local-build\runtime-cpu-scenarios\`. It is diagnostic evidence only; it does
-not replace the two-machine `desktop-open` release CPU gate.
+`.local-build\runtime-cpu-scenarios\`. It still does not replace the
+two-machine `desktop-open` release CPU gate, but final go/no-go also requires a
+verified 60s matrix on two machines so runtime-started, dashboard-open,
+desktop-open, and post-route busy-loop regressions are separately attributed.
 
 ## Gate F - Process ownership evidence
 

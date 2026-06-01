@@ -97,6 +97,7 @@ try {
         "docs\MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md",
         "docs\MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md",
         "docs\MSIX_DESKTOP_ENTRYPOINT_AUDIT_2026_05_31.md",
+        "docs\RUNTIME_CPU_SCENARIO_MATRIX_AND_MDNS_LOG_AUDIT_2026_06_01.md",
         "docs\MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md",
         "docs\RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md",
         "docs\STORE_SUBMISSION_METADATA_2026_05_29.md",
@@ -114,6 +115,8 @@ try {
         "scripts\windows\verify-store-submission-bundle.ps1",
         "scripts\windows\audit-msix-desktop-entrypoint.ps1",
         "scripts\windows\measure-musu-idle-cpu.ps1",
+        "scripts\windows\measure-musu-runtime-cpu-scenarios.ps1",
+        "scripts\windows\verify-runtime-cpu-scenario-matrix.ps1",
         "scripts\windows\audit-musu-process-ownership.ps1",
         "scripts\windows\audit-musu-startup-single-instance.ps1",
         "scripts\windows\prepare-operator-action-pack.ps1",
@@ -176,7 +179,7 @@ try {
         Add-CheckFromCondition "readme store bundle verifier" ($readme -like "*verify-store-submission-bundle.ps1*") "README includes Store submission bundle verifier command" "README missing Store submission bundle verifier command"
         Add-CheckFromCondition "readme msix desktop entrypoint audit" ($readme -like "*audit-msix-desktop-entrypoint.ps1*" -and $readme -like "*musu-desktop.exe*" -and $readme -like "*msix_desktop_entrypoint_verified=true*") "README includes MSIX desktop entrypoint gate" "README missing MSIX desktop entrypoint gate"
         Add-CheckFromCondition "readme runtime cpu measurement" ($readme -like "*measure-musu-idle-cpu.ps1*" -and $readme -like "*SampleSeconds 60*" -and $readme -like "*Scenario desktop-open*" -and $readme -like "*RequireOwnedWebView2*" -and $readme -like "*MaxOneCorePercent 5*" -and $readme -like "*MaxOwnedProcessCount 16*" -and $readme -like "*MaxOwnedWebView2ProcessCount 8*" -and $readme -like "*MaxTotalWorkingSetMb 1024*" -and $readme -like "*IncludeNode*" -and $readme -like "*IncludeWebView2*") "README includes runtime idle CPU/resource measurement command" "README missing runtime idle CPU/resource measurement command"
-        Add-CheckFromCondition "readme runtime cpu scenario matrix" ($readme -like "*measure-musu-runtime-cpu-scenarios.ps1*" -and $readme -like "*runtime-started*" -and $readme -like "*dashboard-open*" -and $readme -like "*desktop-open*" -and $readme -like "*post-route*" -and $readme -like "*.local-build\runtime-cpu-scenarios\*") "README includes runtime CPU scenario matrix command" "README missing runtime CPU scenario matrix command"
+        Add-CheckFromCondition "readme runtime cpu scenario matrix" ($readme -like "*measure-musu-runtime-cpu-scenarios.ps1*" -and $readme -like "*runtime-started*" -and $readme -like "*dashboard-open*" -and $readme -like "*desktop-open*" -and $readme -like "*post-route*" -and $readme -like "*RunRouteProbe*" -and $readme -like "*.local-build\runtime-cpu-scenarios\*") "README includes runtime CPU scenario matrix command" "README missing runtime CPU scenario matrix command"
         Add-CheckFromCondition "readme process ownership audit" ($readme -like "*audit-musu-process-ownership.ps1*" -and $readme -like "*process_ownership_verified=true*" -and $readme -like "*bridge registry PID*") "README includes process ownership audit gate" "README missing process ownership audit gate"
         Add-CheckFromCondition "readme startup single-instance audit" ($readme -like "*audit-musu-startup-single-instance.ps1*" -and $readme -like "*startup_single_instance_verified=true*" -and $readme -like "*one bridge PID*") "README includes startup single-instance audit gate" "README missing startup single-instance audit gate"
         Add-CheckFromCondition "readme handoff status command" ($readme -like "*show-final-release-handoff-status.ps1*") "README includes final release handoff status command" "README missing final release handoff status command"
@@ -254,6 +257,11 @@ try {
             ($goNoGoScript -like "*runtime_idle_cpu_verified*" -and $goNoGoScript -like "*runtime-idle-cpu*" -and $goNoGoScript -like "*MinRuntimeIdleCpuMachineCount*" -and $goNoGoScript -like "*RequiredRuntimeIdleCpuScenario*" -and $goNoGoScript -like "*require_owned_webview2*" -and $goNoGoScript -like "*max_owned_process_count*" -and $goNoGoScript -like "*max_owned_webview2_process_count*" -and $goNoGoScript -like "*max_total_working_set_mb*" -and $goNoGoScript -like "*memory_totals_by_role_mb*" -and $goNoGoScript -like "*ExpectedGitCommit*" -and $goNoGoScript -like "*Test-DocumentationOnlyGitDelta*") `
             "packet go/no-go blocks on current runtime idle CPU and resource-budget evidence" `
             "packet go/no-go does not block on runtime idle CPU and resource-budget evidence"
+        Add-CheckFromCondition `
+            "go no-go runtime CPU scenario matrix gate" `
+            ($goNoGoScript -like "*runtime_cpu_scenario_matrix_verified*" -and $goNoGoScript -like "*verify-runtime-cpu-scenario-matrix.ps1*" -and $goNoGoScript -like "*musu.runtime_cpu_scenario_matrix.v1*" -and $goNoGoScript -like "*RequiredRuntimeCpuScenarioMatrixScenarios*" -and $goNoGoScript -like "*runtime-started*" -and $goNoGoScript -like "*dashboard-open*" -and $goNoGoScript -like "*desktop-open*" -and $goNoGoScript -like "*post-route*" -and $goNoGoScript -like "*RequirePostRouteProbe*") `
+            "packet go/no-go blocks on verified runtime CPU scenario matrix evidence" `
+            "packet go/no-go does not block on verified runtime CPU scenario matrix evidence"
         Add-CheckFromCondition `
             "go no-go process ownership gate" `
             ($goNoGoScript -like "*process_ownership_verified*" -and $goNoGoScript -like "*process-ownership*" -and $goNoGoScript -like "*MinProcessOwnershipMachineCount*" -and $goNoGoScript -like "*musu.process_ownership_audit.v1*") `
@@ -424,7 +432,7 @@ try {
                         "kit README does not explain second-PC runtime idle CPU evidence capture"
                     Add-CheckFromCondition `
                         "kit readme runtime CPU scenario matrix: $($kitZip.Name)" `
-                        ($kitReadme -like "*measure-musu-runtime-cpu-scenarios.ps1*" -and $kitReadme -like "*musu.runtime_cpu_scenario_matrix.v1*" -and $kitReadme -like "*runtime-started*" -and $kitReadme -like "*dashboard-open*" -and $kitReadme -like "*desktop-open*" -and $kitReadme -like "*post-route*" -and $kitReadme -like "*.local-build\runtime-cpu-scenarios\*") `
+                        ($kitReadme -like "*measure-musu-runtime-cpu-scenarios.ps1*" -and $kitReadme -like "*musu.runtime_cpu_scenario_matrix.v1*" -and $kitReadme -like "*runtime-started*" -and $kitReadme -like "*dashboard-open*" -and $kitReadme -like "*desktop-open*" -and $kitReadme -like "*post-route*" -and $kitReadme -like "*RunRouteProbe*" -and $kitReadme -like "*.local-build\runtime-cpu-scenarios\*") `
                         "kit README explains runtime CPU scenario matrix diagnostics" `
                         "kit README does not explain runtime CPU scenario matrix diagnostics"
                     Add-CheckFromCondition `

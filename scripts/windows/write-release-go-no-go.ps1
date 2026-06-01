@@ -4,9 +4,11 @@ param(
     [int]$MinRuntimeIdleCpuSampleSeconds = 60,
     [double]$MaxRuntimeIdleCpuOneCorePercent = 5.0,
     [int]$MinRuntimeIdleCpuMachineCount = 2,
+    [int]$MinRuntimeCpuScenarioMatrixMachineCount = 2,
     [int]$MinProcessOwnershipMachineCount = 1,
     [int]$MinStartupSingleInstanceMachineCount = 1,
     [string]$RequiredRuntimeIdleCpuScenario = "desktop-open",
+    [string[]]$RequiredRuntimeCpuScenarioMatrixScenarios = @("runtime-started", "dashboard-open", "desktop-open", "post-route"),
     [switch]$SkipPublicMetadata,
     [switch]$FailOnNotReady,
     [switch]$Json
@@ -403,6 +405,7 @@ $supportMailboxVerifierScript = Join-Path $scriptDir "verify-support-mailbox-evi
 $msixInstallVerifierScript = Join-Path $scriptDir "verify-msix-install-evidence.ps1"
 $msixDesktopEntrypointAuditScript = Join-Path $scriptDir "audit-msix-desktop-entrypoint.ps1"
 $storeReleaseVerifierScript = Join-Path $scriptDir "verify-store-release-evidence.ps1"
+$runtimeCpuScenarioMatrixVerifierScript = Join-Path $scriptDir "verify-runtime-cpu-scenario-matrix.ps1"
 $manifestPath = Join-Path $repoRoot ".local-build\release-candidates\$version\release-candidate-manifest.json"
 
 $auditResult = Invoke-JsonScript -FilePath $auditScript -Arguments @("-Json")
@@ -576,6 +579,76 @@ $runtimeIdleCpuEvidence = [pscustomobject]@{
     candidates = $runtimeIdleCpuEvidenceResults
 }
 
+$runtimeCpuScenarioMatrixVerified = $false
+$runtimeCpuScenarioMatrixEvidence = $null
+$runtimeCpuScenarioMatrixCandidates = @()
+# Release gate for musu.runtime_cpu_scenario_matrix.v1 evidence.
+$runtimeCpuScenarioMatrixRoots = @(
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ("docs\evidence\runtime-cpu-scenarios\{0}" -f $version))
+        filter = "*.runtime-cpu-scenario-matrix.json"
+        recurse = $false
+    },
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ".local-build\runtime-cpu-scenarios")
+        filter = "*.runtime-cpu-scenario-matrix.json"
+        recurse = $true
+    }
+)
+
+foreach ($root in $runtimeCpuScenarioMatrixRoots) {
+    if (Test-Path -LiteralPath $root.path) {
+        $runtimeCpuScenarioMatrixCandidates += @(
+            Get-ChildItem -LiteralPath $root.path -Filter $root.filter -File -Recurse:([bool]$root.recurse) -ErrorAction SilentlyContinue
+        )
+    }
+}
+
+$runtimeCpuScenarioMatrixResults = @()
+$runtimeCpuScenarioMatrixMachines = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+foreach ($candidate in @($runtimeCpuScenarioMatrixCandidates | Sort-Object LastWriteTime -Descending)) {
+    $matrixArgs = @(
+        "-EvidencePath", $candidate.FullName,
+        "-ExpectedVersion", $version,
+        "-ExpectedGitCommit", $currentGitCommit,
+        "-RequiredScenarios", ($RequiredRuntimeCpuScenarioMatrixScenarios -join ",")
+    ) + @(
+        "-MinSampleSeconds", ([string]$MinRuntimeIdleCpuSampleSeconds),
+        "-MaxOneCorePercent", ([string]$MaxRuntimeIdleCpuOneCorePercent),
+        "-RequirePostRouteProbe",
+        "-Json"
+    )
+    $verification = Invoke-JsonScript `
+        -FilePath $runtimeCpuScenarioMatrixVerifierScript `
+        -Arguments $matrixArgs `
+        -AllowFailure
+    $runtimeCpuScenarioMatrixResults += if ($verification.json) {
+        $verification.json
+    }
+    else {
+        [pscustomobject]@{
+            ok = $false
+            evidence_path = $candidate.FullName
+            raw = $verification.raw
+        }
+    }
+    $latestMatrixResult = $runtimeCpuScenarioMatrixResults | Select-Object -Last 1
+    if ([bool]$latestMatrixResult.ok -and -not [string]::IsNullOrWhiteSpace([string]$latestMatrixResult.operator_machine)) {
+        [void]$runtimeCpuScenarioMatrixMachines.Add([string]$latestMatrixResult.operator_machine)
+    }
+}
+
+$runtimeCpuScenarioMatrixVerified = ($runtimeCpuScenarioMatrixMachines.Count -ge $MinRuntimeCpuScenarioMatrixMachineCount)
+$runtimeCpuScenarioMatrixEvidence = [pscustomobject]@{
+    ok = [bool]$runtimeCpuScenarioMatrixVerified
+    min_machine_count = $MinRuntimeCpuScenarioMatrixMachineCount
+    valid_machine_count = $runtimeCpuScenarioMatrixMachines.Count
+    valid_machines = @($runtimeCpuScenarioMatrixMachines)
+    candidate_count = $runtimeCpuScenarioMatrixResults.Count
+    required_scenarios = @($RequiredRuntimeCpuScenarioMatrixScenarios)
+    candidates = $runtimeCpuScenarioMatrixResults
+}
+
 $processOwnershipVerified = $false
 $processOwnershipEvidence = $null
 $processOwnershipEvidenceCandidates = @()
@@ -732,6 +805,9 @@ if (-not [bool]$audit.multi_device_verified) {
 if (-not $runtimeIdleCpuVerified) {
     Add-Blocker -List $blockers -Area "runtime-idle-cpu" -Message "Runtime idle CPU evidence has not passed on at least ${MinRuntimeIdleCpuMachineCount} machine(s) for ${MinRuntimeIdleCpuSampleSeconds}s at <= ${MaxRuntimeIdleCpuOneCorePercent}% of one logical CPU in scenario '${RequiredRuntimeIdleCpuScenario}' with owned WebView2 required."
 }
+if (-not $runtimeCpuScenarioMatrixVerified) {
+    Add-Blocker -List $blockers -Area "runtime-cpu-scenario-matrix" -Message "Runtime CPU scenario matrix evidence has not passed on at least ${MinRuntimeCpuScenarioMatrixMachineCount} machine(s) for scenarios '$($RequiredRuntimeCpuScenarioMatrixScenarios -join ', ')' with a successful post-route probe."
+}
 if (-not $processOwnershipVerified) {
     Add-Blocker -List $blockers -Area "process-ownership" -Message "Process ownership evidence has not passed on at least ${MinProcessOwnershipMachineCount} machine(s)."
 }
@@ -770,6 +846,7 @@ $manualInternalGates = @(
     "MSIX desktop entrypoint audit for Store package activation",
     "Runtime idle CPU verification on primary Windows PC",
     "Runtime idle CPU verification on second Windows PC",
+    "Runtime CPU scenario matrix verification for runtime-started/dashboard-open/desktop-open/post-route on primary and second Windows PC",
     "Process ownership audit on primary Windows PC",
     "Second-PC runtime/startup ownership verification",
     "Startup single-instance repeat audit",
@@ -813,6 +890,13 @@ $result = [pscustomobject]@{
     runtime_idle_cpu_valid_machines = @($runtimeIdleCpuEvidence.valid_machines)
     runtime_idle_cpu_candidate_count = $runtimeIdleCpuEvidence.candidate_count
     runtime_idle_cpu_evidence = $runtimeIdleCpuEvidence
+    runtime_cpu_scenario_matrix_verified = [bool]$runtimeCpuScenarioMatrixVerified
+    runtime_cpu_scenario_matrix_min_machine_count = $runtimeCpuScenarioMatrixEvidence.min_machine_count
+    runtime_cpu_scenario_matrix_valid_machine_count = $runtimeCpuScenarioMatrixEvidence.valid_machine_count
+    runtime_cpu_scenario_matrix_valid_machines = @($runtimeCpuScenarioMatrixEvidence.valid_machines)
+    runtime_cpu_scenario_matrix_candidate_count = $runtimeCpuScenarioMatrixEvidence.candidate_count
+    runtime_cpu_scenario_matrix_required_scenarios = @($runtimeCpuScenarioMatrixEvidence.required_scenarios)
+    runtime_cpu_scenario_matrix_evidence = $runtimeCpuScenarioMatrixEvidence
     process_ownership_verified = [bool]$processOwnershipVerified
     process_ownership_evidence = $processOwnershipEvidence
     startup_single_instance_verified = [bool]$startupSingleInstanceVerified
@@ -843,6 +927,8 @@ else {
     "msix_desktop_entrypoint_verified: $($result.msix_desktop_entrypoint_verified)"
     "runtime_idle_cpu_verified: $($result.runtime_idle_cpu_verified)"
     "runtime_idle_cpu_valid_machines: $($result.runtime_idle_cpu_valid_machine_count)/$($result.runtime_idle_cpu_min_machine_count) [$((@($result.runtime_idle_cpu_valid_machines) -join ', '))]"
+    "runtime_cpu_scenario_matrix_verified: $($result.runtime_cpu_scenario_matrix_verified)"
+    "runtime_cpu_scenario_matrix_valid_machines: $($result.runtime_cpu_scenario_matrix_valid_machine_count)/$($result.runtime_cpu_scenario_matrix_min_machine_count) [$((@($result.runtime_cpu_scenario_matrix_valid_machines) -join ', '))]"
     "process_ownership_verified: $($result.process_ownership_verified)"
     "startup_single_instance_verified: $($result.startup_single_instance_verified)"
     "multi_device_verified: $($result.multi_device_verified)"

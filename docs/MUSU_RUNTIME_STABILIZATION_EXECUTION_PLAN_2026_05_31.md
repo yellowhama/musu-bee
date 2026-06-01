@@ -161,17 +161,17 @@ Already applied:
   primary PC packaged desktop is quiet in the sampled state; the final release
   gate still needs the same evidence on the second PC.
 - `scripts\windows\measure-musu-runtime-cpu-scenarios.ps1` now records
-  `musu.runtime_cpu_scenario_matrix.v1` diagnostic matrices across
-  `runtime-started`, `dashboard-open`, `desktop-open`, and `post-route`. It
-  delegates process attribution to `measure-musu-idle-cpu.ps1`, includes
-  Node.js/WebView2 budgets, and exists to identify which state is hot before
-  rerunning release-grade two-machine CPU evidence.
+  `musu.runtime_cpu_scenario_matrix.v1` matrices across `runtime-started`,
+  `dashboard-open`, `desktop-open`, and `post-route`. It delegates process
+  attribution to `measure-musu-idle-cpu.ps1`, includes Node.js/WebView2 budgets,
+  and now has a verifier-backed go/no-go gate so those four states are checked
+  on two machines before release.
 - The scenario matrix script uses timeout-bounded `Start-Process` temp-file
   command capture for `musu up --json` so a spawned long-lived bridge cannot
   keep a PowerShell pipeline open. A 3s local `runtime-started` smoke passed at
   `.local-build\runtime-cpu-scenarios\20260601-100515-HUGH_SECOND\20260601-100515-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
   with one MUSU process, zero owned Node/WebView2 helpers, and max one-core CPU
-  `0`; this is diagnostic-only and not release evidence.
+  `0`; this is not release evidence under the new 60s/two-machine verifier.
 - Current primary clean desktop-open release evidence after the scenario matrix
   commit passed at
   `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-101541-HUGH_SECOND.desktop-open.evidence.json`
@@ -179,7 +179,7 @@ Already applied:
   `git_dirty=false`, one `musu-desktop`, six owned WebView2 helpers, owned
   Node `0`, max one-core CPU `musu=0` and `webview2=0.13`, working set
   `342.44MB`, and private memory `184.04MB`.
-- The second-PC wrapper now returns the diagnostic scenario matrix alongside
+- The second-PC wrapper now returns and verifies the scenario matrix alongside
   the release CPU sample. `import-second-pc-return.ps1` imports
   `musu.runtime_cpu_scenario_matrix.v1` separately and only treats
   `.local-build\runtime-idle-cpu\` `desktop-open` evidence with

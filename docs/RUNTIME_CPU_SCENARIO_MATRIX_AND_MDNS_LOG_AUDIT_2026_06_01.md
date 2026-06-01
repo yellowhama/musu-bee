@@ -36,9 +36,12 @@ Runtime CPU evaluation now has two layers:
    `scripts\windows\measure-musu-idle-cpu.ps1` with scenario `desktop-open`,
    `-RequireOwnedWebView2`, `-IncludeNode`, `-IncludeWebView2`, clean git
    state, and a 60s sample on at least two Windows machines.
-2. Diagnostic attribution uses
-   `scripts\windows\measure-musu-runtime-cpu-scenarios.ps1` to measure multiple
-   states in one matrix and identify which state causes idle CPU pressure.
+2. State attribution now has its own go/no-go gate:
+   `scripts\windows\measure-musu-runtime-cpu-scenarios.ps1` records the matrix
+   and `scripts\windows\verify-runtime-cpu-scenario-matrix.ps1` requires a
+   clean/current 60s matrix on two machines with `runtime-started`,
+   `dashboard-open`, `desktop-open`, `post-route`, and a successful post-route
+   probe.
 
 The new matrix evidence schema is `musu.runtime_cpu_scenario_matrix.v1`.
 
@@ -53,9 +56,10 @@ The base idle sampler now also accepts diagnostic scenario labels
 `runtime-started`, `dashboard-open`, and `startup-open`, in addition to the
 existing `bridge-only`, `desktop-open`, `post-route`, and `diagnostic` labels.
 
-The matrix script intentionally does not close the public release CPU gate by
-itself. It exists to answer "which state is hot?" before the full two-machine
-60s desktop-open release evidence is rerun.
+The matrix script still does not replace the public release CPU gate. It exists
+beside the two-machine 60s `desktop-open` evidence so a future busy-loop report
+can be attributed to the runtime start, dashboard/desktop opening, or post-route
+state before release is allowed.
 
 Second-PC returns now carry both layers:
 
@@ -64,7 +68,8 @@ Second-PC returns now carry both layers:
   default.
 - The same wrapper now also captures
   `.local-build\runtime-cpu-scenarios\*.runtime-cpu-scenario-matrix.json` unless
-  `-SkipRuntimeCpuScenarioMatrix` is used.
+  `-SkipRuntimeCpuScenarioMatrix` is used, and it runs the route probe by
+  default so `post-route` is a real post-route state.
 - `import-second-pc-return.ps1` imports the matrix under
   `.local-build\runtime-cpu-scenarios\` while selecting release CPU evidence
   only from `.local-build\runtime-idle-cpu\`, so diagnostic matrix samples
@@ -85,9 +90,12 @@ Additional audit points:
   delegates to it rather than duplicating CPU attribution logic.
 - `desktop-open` matrix runs require a real packaged desktop session to be
   meaningful; otherwise `-RequireOwnedWebView2` will correctly fail.
-- `post-route` matrix runs are diagnostic until real route evidence proves peer
-  identity, hardened encryption, route result, and payload path.
-- The short local smoke was run from a dirty tree, so it is not release evidence.
+- `post-route` matrix runs must include a successful local route probe. This is
+  CPU-state proof only; real multi-device release evidence still requires
+  transport-verified peer identity, hardened encryption, route result, and
+  payload path.
+- The short local smoke was run from a dirty tree and only sampled 3s, so it is
+  not release evidence under the new verifier.
 
 ## Current Evidence
 
@@ -118,8 +126,8 @@ Parser validation:
 ## Next Steps
 
 1. Run the full 60s scenario matrix on the primary PC with the packaged desktop
-   actually open:
-   `runtime-started`, `desktop-open`, and `post-route`.
+   actually open and `-RunRouteProbe` enabled:
+   `runtime-started`, `dashboard-open`, `desktop-open`, and `post-route`.
 2. Run the second-PC release wrapper again so returned evidence includes the
    fixed mDNS behavior and the required 60s `desktop-open` CPU evidence.
 3. Import the second-PC return archive and rerun go/no-go; the CPU gate should

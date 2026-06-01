@@ -12,7 +12,7 @@ param(
     [ValidateSet("runtime-started", "dashboard-open", "desktop-open", "post-route")]
     [string[]]$RuntimeCpuScenario = @("runtime-started", "dashboard-open", "desktop-open", "post-route"),
     [string]$RuntimeCpuDashboardUrl,
-    [switch]$RunRuntimeCpuRouteProbe,
+    [switch]$RunRuntimeCpuRouteProbe = $true,
     [switch]$SkipRuntimeCpuScenarioMatrix,
     [switch]$FailOnRuntimeCpuScenarioMatrix,
     [switch]$NoReturnZip,
@@ -56,6 +56,7 @@ $runtimeIdleCpu = $null
 $runtimeCpuScenarioMatrix = $null
 $runtimeCpuScenarioMatrixPath = $null
 $runtimeCpuScenarioMatrixError = $null
+$runtimeCpuScenarioMatrixVerification = $null
 
 function Invoke-ReleaseStep {
     param(
@@ -198,6 +199,57 @@ try {
             if ($FailOnRuntimeCpuScenarioMatrix -and $runtimeCpuScenarioMatrix -and -not [bool]$runtimeCpuScenarioMatrix.ok) {
                 throw "Runtime CPU scenario matrix reports ok=false: $runtimeCpuScenarioMatrixPath"
             }
+
+            if (-not [string]::IsNullOrWhiteSpace($runtimeCpuScenarioMatrixPath) -and (Test-Path -LiteralPath $runtimeCpuScenarioMatrixPath)) {
+                $verifyScript = Join-Path $scriptDir "verify-runtime-cpu-scenario-matrix.ps1"
+                if (Test-Path -LiteralPath $verifyScript) {
+                    $startedAt = Get-Date
+                    $verifyArgs = @(
+                        "-NoProfile",
+                        "-ExecutionPolicy", "Bypass",
+                        "-File", $verifyScript,
+                        "-EvidencePath", $runtimeCpuScenarioMatrixPath,
+                        "-ExpectedVersion", $version,
+                        "-RequiredScenarios", ($RuntimeCpuScenario -join ",")
+                    ) + @(
+                        "-MinSampleSeconds", ([string]$RuntimeCpuScenarioMatrixSampleSeconds),
+                        "-MaxOneCorePercent", "5",
+                        "-RequirePostRouteProbe",
+                        "-Json"
+                    )
+                    $verifyOutput = & powershell @verifyArgs 2>&1
+                    $verifyExitCode = $LASTEXITCODE
+                    $verifyRaw = ($verifyOutput | Out-String).Trim()
+                    $verifyParsed = $null
+                    if (-not [string]::IsNullOrWhiteSpace($verifyRaw)) {
+                        try {
+                            $verifyParsed = $verifyRaw | ConvertFrom-Json
+                        }
+                        catch {
+                            $verifyParsed = [pscustomobject]@{
+                                ok = $false
+                                parse_error = $_.Exception.Message
+                                raw = $verifyRaw
+                            }
+                        }
+                    }
+                    $steps.Add([pscustomobject]@{
+                        name = "verify runtime CPU scenario matrix"
+                        script = "verify-runtime-cpu-scenario-matrix.ps1"
+                        exit_code = $verifyExitCode
+                        started_at = $startedAt.ToString("o")
+                        completed_at = (Get-Date).ToString("o")
+                        output = $verifyRaw
+                    }) | Out-Null
+                    $runtimeCpuScenarioMatrixVerification = $verifyParsed
+                    if ($FailOnRuntimeCpuScenarioMatrix -and $verifyExitCode -ne 0) {
+                        throw "Runtime CPU scenario matrix verification failed with exit code ${verifyExitCode}.`n$verifyRaw"
+                    }
+                }
+                elseif ($FailOnRuntimeCpuScenarioMatrix) {
+                    throw "Runtime CPU scenario matrix verifier is missing: $verifyScript"
+                }
+            }
         }
         catch {
             $runtimeCpuScenarioMatrixError = $_.Exception.Message
@@ -241,6 +293,8 @@ $result = [pscustomobject]@{
     runtime_cpu_scenario_output_root = if ($SkipRuntimeCpuScenarioMatrix) { $null } else { $runtimeCpuScenarioOutputRoot }
     runtime_cpu_scenario_matrix_path = if ($SkipRuntimeCpuScenarioMatrix) { $null } else { $runtimeCpuScenarioMatrixPath }
     runtime_cpu_scenario_matrix_ok = if ($SkipRuntimeCpuScenarioMatrix) { $null } elseif ($runtimeCpuScenarioMatrix) { [bool]$runtimeCpuScenarioMatrix.ok } else { $false }
+    runtime_cpu_scenario_matrix_verified = if ($SkipRuntimeCpuScenarioMatrix) { $null } elseif ($runtimeCpuScenarioMatrixVerification) { [bool]$runtimeCpuScenarioMatrixVerification.ok } else { $false }
+    runtime_cpu_scenario_matrix_verification = $runtimeCpuScenarioMatrixVerification
     runtime_cpu_scenario_matrix_error = $runtimeCpuScenarioMatrixError
     suggested_remote_addrs = if ($handoff) { $handoff.suggested_remote_addrs } else { @() }
     remote_name_suggestion = if ($handoff) { [string]$handoff.remote_name_suggestion } else { $env:COMPUTERNAME }

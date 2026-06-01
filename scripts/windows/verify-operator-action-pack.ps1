@@ -160,6 +160,7 @@ try {
                                 Add-CheckFromCondition "second-pc nested kit wrapper" ($nestedEntries -contains "scripts\windows\run-second-pc-release-check.ps1") "nested kit includes run-second-pc-release-check.ps1" "nested kit missing run-second-pc-release-check.ps1"
                                 Add-CheckFromCondition "second-pc nested kit runtime CPU script" ($nestedEntries -contains "scripts\windows\measure-musu-idle-cpu.ps1") "nested kit includes measure-musu-idle-cpu.ps1" "nested kit missing measure-musu-idle-cpu.ps1"
                                 Add-CheckFromCondition "second-pc nested kit runtime CPU scenario matrix script" ($nestedEntries -contains "scripts\windows\measure-musu-runtime-cpu-scenarios.ps1") "nested kit includes measure-musu-runtime-cpu-scenarios.ps1" "nested kit missing measure-musu-runtime-cpu-scenarios.ps1"
+                                Add-CheckFromCondition "second-pc nested kit runtime CPU scenario matrix verifier" ($nestedEntries -contains "scripts\windows\verify-runtime-cpu-scenario-matrix.ps1") "nested kit includes verify-runtime-cpu-scenario-matrix.ps1" "nested kit missing verify-runtime-cpu-scenario-matrix.ps1"
                                 $kitReadmeEntry = $nestedArchive.Entries | Where-Object { $_.FullName -eq "README_MULTI_DEVICE_TEST_KIT.md" } | Select-Object -First 1
                                 if ($kitReadmeEntry) {
                                     $reader = [System.IO.StreamReader]::new($kitReadmeEntry.Open())

@@ -56,6 +56,7 @@ $scriptFiles = @(
     "capture-msix-install-evidence.ps1",
     "measure-musu-idle-cpu.ps1",
     "measure-musu-runtime-cpu-scenarios.ps1",
+    "verify-runtime-cpu-scenario-matrix.ps1",
     "collect-second-pc-handoff.ps1",
     "run-second-pc-release-check.ps1",
     "verify-msix-install-evidence.ps1",
@@ -138,13 +139,15 @@ The wrapper also captures a diagnostic runtime CPU scenario matrix with
 `dashboard-open`, `desktop-open`, and `post-route`:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario runtime-started dashboard-open desktop-open post-route -SampleSeconds 60 -OpenDesktopApp -Json
+powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario runtime-started dashboard-open desktop-open post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -Json
 ```
 
-This matrix is for hot-state attribution only. It helps identify whether CPU
-pressure appears after runtime start, dashboard/desktop opening, or route
-activity; it does not replace the release-grade two-machine `desktop-open`
-runtime idle CPU evidence. Use `-SkipRuntimeCpuScenarioMatrix` on
+This matrix is also verified by
+`scripts\windows\verify-runtime-cpu-scenario-matrix.ps1`. It does not replace
+the release-grade two-machine `desktop-open` runtime idle CPU evidence, but the
+final go/no-go now requires a clean 60s matrix on two machines so busy-loop
+regressions can be attributed to runtime start, dashboard/desktop opening, or
+post-route state. Use `-SkipRuntimeCpuScenarioMatrix` on
 `run-second-pc-release-check.ps1` only when debugging install/handoff failures.
 
 Manual fallback:
@@ -156,7 +159,7 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-ev
 powershell -ExecutionPolicy Bypass -File scripts\windows\collect-second-pc-handoff.ps1
 Start-Process explorer.exe 'shell:AppsFolder\Yellowhama.MUSU_ygcjq669as2b6!MUSU'
 powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -Scenario desktop-open -RequireOwnedWebView2 -MaxOneCorePercent 5 -MaxOwnedProcessCount 16 -MaxOwnedWebView2ProcessCount 8 -MaxTotalWorkingSetMb 1024 -IncludeNode -IncludeWebView2 -FailOnHot -Json
-powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario runtime-started dashboard-open desktop-open post-route -SampleSeconds 60 -OpenDesktopApp -Json
+powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario runtime-started dashboard-open desktop-open post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -Json
 musu up --json
 musu doctor --json
 musu status

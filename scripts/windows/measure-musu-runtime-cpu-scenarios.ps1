@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [ValidateSet("runtime-started", "dashboard-open", "desktop-open", "post-route")]
-    [string[]]$Scenario = @("runtime-started", "desktop-open", "post-route"),
+    [string[]]$Scenario = @("runtime-started", "dashboard-open", "desktop-open", "post-route"),
     [int]$SampleSeconds = 60,
     [int]$CommandTimeoutSec = 90,
     [string]$MusuExe,
