@@ -808,6 +808,10 @@ $result = [pscustomobject]@{
     }
     runtime_idle_cpu_verified = [bool]$runtimeIdleCpuVerified
     required_runtime_idle_cpu_scenario = $RequiredRuntimeIdleCpuScenario
+    runtime_idle_cpu_min_machine_count = $runtimeIdleCpuEvidence.min_machine_count
+    runtime_idle_cpu_valid_machine_count = $runtimeIdleCpuEvidence.valid_machine_count
+    runtime_idle_cpu_valid_machines = @($runtimeIdleCpuEvidence.valid_machines)
+    runtime_idle_cpu_candidate_count = $runtimeIdleCpuEvidence.candidate_count
     runtime_idle_cpu_evidence = $runtimeIdleCpuEvidence
     process_ownership_verified = [bool]$processOwnershipVerified
     process_ownership_evidence = $processOwnershipEvidence
@@ -838,6 +842,7 @@ else {
     "msix_install_verified: $($result.msix_install_verified)"
     "msix_desktop_entrypoint_verified: $($result.msix_desktop_entrypoint_verified)"
     "runtime_idle_cpu_verified: $($result.runtime_idle_cpu_verified)"
+    "runtime_idle_cpu_valid_machines: $($result.runtime_idle_cpu_valid_machine_count)/$($result.runtime_idle_cpu_min_machine_count) [$((@($result.runtime_idle_cpu_valid_machines) -join ', '))]"
     "process_ownership_verified: $($result.process_ownership_verified)"
     "startup_single_instance_verified: $($result.startup_single_instance_verified)"
     "multi_device_verified: $($result.multi_device_verified)"
