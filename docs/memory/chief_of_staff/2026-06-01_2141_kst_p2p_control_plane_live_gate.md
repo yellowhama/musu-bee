@@ -39,3 +39,13 @@ Next action:
   `scripts/windows/show-p2p-control-token-hash.ps1 -Json`, then rerun
   `record-p2p-control-plane-evidence.ps1` without `-AllowUnverified`.
 - Indexer sync after this gate recorded 1203 files and 2213 symbols.
+
+Post-commit go/no-go:
+
+- Clean commit `a6e41609d1c9ceaaf13ce73119f25e62471bfb5b` reports
+  `ready=false`, `manifest_dirty=false`, `single_machine=false`, runtime idle
+  CPU `0/2`, runtime CPU scenario matrix `0/2`, and
+  `p2p_control_plane_verified=false`.
+- The primary runtime evidence reset is expected because release scripts
+  changed. Refresh primary smoke/CPU/matrix on the final commit before treating
+  second-PC evidence as the last runtime blocker.

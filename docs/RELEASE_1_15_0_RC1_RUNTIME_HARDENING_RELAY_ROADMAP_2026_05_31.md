@@ -702,3 +702,9 @@ Release interpretation:
   `MUSU_P2P_CONTROL_TOKEN_SHA256S` from
   `scripts\windows\show-p2p-control-token-hash.ps1 -Json`, redeploy/recheck if
   needed, then record passing live evidence.
+- Clean go/no-go on P2P gate commit
+  `a6e41609d1c9ceaaf13ce73119f25e62471bfb5b` also reports
+  `single_machine=false`, runtime idle CPU `0/2`, and runtime CPU scenario
+  matrix `0/2` because release scripts changed after the last primary runtime
+  evidence. Refresh primary smoke/CPU/matrix on the final commit before using
+  second-PC evidence to close the two-machine runtime gates.
