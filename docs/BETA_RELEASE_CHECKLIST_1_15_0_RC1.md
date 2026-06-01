@@ -167,10 +167,14 @@ Runtime hardening:
   token exist; this is policy/audit wiring only and `relay_transport_wired`
   remains `false`
 - P2P relay lease audit status: `musu relay leases --json` now queries
-  owner-scoped relay lease records and reports `owner_scope_verified`, but live
-  production `https://musu.pro` currently returns
-  `p2p_control_auth_not_configured`; fix production P2P control auth before
-  treating relay lease evidence as release-grade
+  owner-scoped relay lease records and reports `owner_scope_verified`; P2P auth
+  now supports `MUSU_P2P_CONTROL_TOKEN_SHA256S`, but production env must be set
+  and live `https://musu.pro` must stop returning
+  `p2p_control_auth_not_configured` before relay lease evidence is release-grade
+- P2P control auth env helper:
+  `scripts\windows\show-p2p-control-token-hash.ps1 -Json` computes
+  `MUSU_P2P_CONTROL_TOKEN_SHA256S` from `~\.musu\token` without printing the
+  raw account token
 - relay fallback evidence status: failed runtime route evidence now carries a
   `relay_fallback` addendum after direct-route failure and lease evaluation,
   so `musu.pro` can audit whether the lease was requested/issued/skipped

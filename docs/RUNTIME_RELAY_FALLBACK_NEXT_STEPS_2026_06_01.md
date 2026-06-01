@@ -12,7 +12,11 @@
 - Failed runtime route evidence now records a `relay_fallback` addendum after that evaluation, including `direct_path_failed`, `lease_requested`, `status`, `lease_issued`, attempted route kinds, requested capability, policy/blockers, optional lease id, and relay failure class.
 - `musu relay leases --json` now exposes an operator-side audit query for owner-scoped relay lease records, with optional `--session-id`, `--source-node-id`, `--target-node-id`, and `--limit` filters.
 - Relay transport remains unwired. `relay_runtime_fallback_lease_request_wired=true` means the policy request exists, not that payload relay exists.
-- Live production audit on `https://musu.pro` currently returns `p2p_control_auth_not_configured` for `musu relay leases --json` even when the desktop is logged in. This means the deployed P2P control endpoint is still using static control-token env auth and is not yet wired to the logged-in account/device token model the runtime CLI sends.
+- P2P control auth now accepts either a raw static control token or a SHA-256
+  runtime token allowlist via `MUSU_P2P_CONTROL_TOKEN_SHA256S`. The live
+  production audit on `https://musu.pro` previously returned
+  `p2p_control_auth_not_configured`; after this code deploy it still requires
+  the production env to be set before `musu relay leases --json` can pass.
 - mDNS remains opt-in; IPv6, Tailscale, and common VPN/virtual interfaces each require explicit opt-in.
 
 ## Code Audit Result
@@ -21,7 +25,7 @@ No new default relay data path was introduced. The direct route failure remains 
 
 The remaining product risks are:
 
-1. `musu.pro` production P2P control auth is not configured for the runtime account token path; current live error is `p2p_control_auth_not_configured`.
+1. `musu.pro` production P2P control auth has code support for runtime-token SHA-256 allowlisting, but the production env must still be configured and live-verified.
 2. No live two-machine evidence that a direct failure produces and persists a relay fallback evaluation on `musu.pro`.
 3. No QUIC/TLS direct route proof accepted as release-grade; the verifier now also requires `transport_verified_by=musu_quic_tls_transport`, not just an `encryption=quic_tls_1_3` string.
 4. No relay/tunnel payload transport behind the lease.
@@ -30,7 +34,7 @@ The remaining product risks are:
 
 ## Next Implementation Order
 
-1. Fix the production P2P control auth model: either configure a proper server-side control token for operator-only evidence lanes or, preferably, validate the same account/device token that `MusuCloud` sends from the logged-in runtime.
+1. Deploy the P2P auth hash-allowlist code and configure production `MUSU_P2P_CONTROL_TOKEN_SHA256S` with the SHA-256 hash of the runtime account token that `MusuCloud` sends. Use `scripts\windows\show-p2p-control-token-hash.ps1 -Json` to compute the value without printing the raw token.
 2. Re-run `musu relay leases --json` against `https://musu.pro` and require `ok=true` or an owner-scoped empty result before treating relay lease evidence as production-queryable.
 3. Capture a live direct-route-failure lease request evidence run against a logged-in control plane. It should prove `direct_path_failed=true`, attempted direct route kinds, `relay_transport_wired=false`, and no payload relay.
 4. Capture real second-PC route evidence with rendezvous candidate selection and HTTPS fingerprint pinning where possible.
@@ -78,3 +82,32 @@ Interpretation:
 - This is a production configuration/auth-model blocker, not a desktop payload relay success.
 - The desktop runtime is sending its logged-in account token, while the deployed P2P control routes currently expect a static server env token (`MUSU_P2P_CONTROL_TOKEN`, `MUSU_ROUTE_EVIDENCE_TOKEN`, or `MUSU_TOKEN`).
 - Do not claim production relay fallback evidence until the production API can validate the runtime token or issue/verify a scoped P2P control token.
+
+## 2026-06-01 P2P Auth Hash-Allowlist Update
+
+Implemented the first production-safe bridge between the existing runtime token
+model and the hosted P2P control routes:
+
+- `musu-bee/src/lib/p2pControlAuth.ts` now accepts either the existing raw
+  static control token variables or `MUSU_P2P_CONTROL_TOKEN_SHA256S` /
+  `MUSU_P2P_CONTROL_TOKEN_SHA256`.
+- The hash allowlist accepts comma/space/semicolon-separated SHA-256 hashes,
+  with either bare hex or `sha256:<hex>` values.
+- `p2pControlPrincipal` continues deriving `owner_key` from the presented
+  Bearer token hash, so route evidence and relay leases stay token-owner scoped.
+- `scripts\windows\show-p2p-control-token-hash.ps1` computes the production env
+  value from `~\.musu\token` without printing the raw token.
+
+Validation:
+
+- P2P API tests passed for rendezvous, route evidence, relay lease, and the new
+  hash-allowlist auth path.
+- `npm run typecheck` passed.
+
+Still required:
+
+- Deploy this `musu-bee/**` change to `musu.pro`.
+- Configure production `MUSU_P2P_CONTROL_TOKEN_SHA256S`.
+- Re-run `musu relay leases --json` and require the live error to move away
+  from `p2p_control_auth_not_configured` to either an owner-scoped empty result
+  or a real session-bound lease record.

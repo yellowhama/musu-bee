@@ -2,7 +2,7 @@
 
 **Wiki ID**: wiki/524
 **Date**: 2026-05-31
-**Status**: Current implementation spec. Server-side rendezvous, route-evidence, and relay fallback lease APIs exist. Rust bridge runtime route attempts now create short-lived rendezvous sessions, seed sessions from recent node candidate cache, can use returned target candidates before legacy direct forwarding, exchange advertised TLS certificate fingerprints as peer identity material, verify HTTPS peer certificate fingerprints during bridge forwarding when a target candidate supplies a `sha256:<hex>` fingerprint, request a fail-closed relay lease after terminal direct-route failure when a rendezvous session and account token exist, persist the relay fallback evaluation inside failed route evidence, and expose `musu relay leases --json` for relay lease audit queries. This is still not final release-grade transport because the accepted release proof remains QUIC/TLS evidence, not bridge HTTP multipart over TLS, relay/tunnel data transport is still not wired, and live `https://musu.pro` currently returns `p2p_control_auth_not_configured` for relay lease queries until production P2P control auth accepts the runtime account/device token or a scoped control token.
+**Status**: Current implementation spec. Server-side rendezvous, route-evidence, and relay fallback lease APIs exist. Rust bridge runtime route attempts now create short-lived rendezvous sessions, seed sessions from recent node candidate cache, can use returned target candidates before legacy direct forwarding, exchange advertised TLS certificate fingerprints as peer identity material, verify HTTPS peer certificate fingerprints during bridge forwarding when a target candidate supplies a `sha256:<hex>` fingerprint, request a fail-closed relay lease after terminal direct-route failure when a rendezvous session and account token exist, persist the relay fallback evaluation inside failed route evidence, expose `musu relay leases --json` for relay lease audit queries, and accept either a raw static control token or SHA-256 runtime-token allowlist for P2P control auth. This is still not final release-grade transport because the accepted release proof remains QUIC/TLS evidence, not bridge HTTP multipart over TLS, relay/tunnel data transport is still not wired, and live `https://musu.pro` still needs the production `MUSU_P2P_CONTROL_TOKEN_SHA256S`/equivalent env configured before relay lease queries can pass.
 
 ## Product Decision
 
@@ -236,10 +236,12 @@ Release gates must reject multi-device evidence that lacks:
 Current `POST /api/v1/p2p/route-evidence` behavior:
 
 - Requires Bearer auth using server env `MUSU_P2P_CONTROL_TOKEN`,
-  `MUSU_ROUTE_EVIDENCE_TOKEN`, or `MUSU_TOKEN`. This is the current
-  implementation boundary, not the final production auth model; production must
-  either validate runtime account/device tokens or issue scoped P2P control
-  tokens.
+  `MUSU_ROUTE_EVIDENCE_TOKEN`, `MUSU_TOKEN`, or the SHA-256 allowlist
+  `MUSU_P2P_CONTROL_TOKEN_SHA256S` / `MUSU_P2P_CONTROL_TOKEN_SHA256`.
+  The hash allowlist is the current safe bridge for runtime account tokens:
+  production can accept the token `MusuCloud` already sends without storing the
+  raw token in Vercel env. The longer-term model should still map validated
+  account/device tokens to account ids or issue scoped P2P control tokens.
 - Validates `musu.route_evidence.v1` with the route kinds above.
 - Validates and stores the optional `relay_fallback` addendum for terminal
   direct-route failures. Valid statuses are `skipped_no_token`,
@@ -279,9 +281,11 @@ itself.
 Current `POST /api/v1/p2p/relay/lease` behavior:
 
 - Requires the same Bearer auth as the rendezvous and route-evidence APIs.
-  Live production currently returns `p2p_control_auth_not_configured`, which
-  means the deployed environment is not configured for this auth boundary and is
-  not yet accepting the logged-in runtime token used by `MusuCloud`.
+  Live production previously returned `p2p_control_auth_not_configured` because
+  no static token was configured; the code now also accepts
+  `MUSU_P2P_CONTROL_TOKEN_SHA256S`, but production must still set that env to
+  the SHA-256 hash of the accepted runtime token before this endpoint can pass
+  live diagnostics.
 - Validates `session_id`, `source_node_id`, `target_node_id`,
   `attempted_route_kinds`, `direct_path_failed`, optional
   `requested_capability`, and optional `failure_class`.

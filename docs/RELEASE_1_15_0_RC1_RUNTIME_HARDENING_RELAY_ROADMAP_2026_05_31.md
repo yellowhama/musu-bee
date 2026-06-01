@@ -290,9 +290,11 @@ Current 2026-06-01 implementation update:
   candidates, writes/submits route evidence, and requests a relay lease after
   terminal direct-route failure when a session/account token exists.
 - `musu relay leases --json` now queries relay lease audit records from the
-  operator CLI and reports `owner_scope_verified`; however live production
-  `https://musu.pro` currently returns `p2p_control_auth_not_configured`,
-  showing that P2P control auth is not yet wired to the logged-in runtime token.
+  operator CLI and reports `owner_scope_verified`.
+- P2P control auth now accepts `MUSU_P2P_CONTROL_TOKEN_SHA256S` /
+  `MUSU_P2P_CONTROL_TOKEN_SHA256`, so production can accept the logged-in
+  runtime token by storing only its SHA-256 hash. Production still needs that
+  env configured and live-verified before relay lease evidence is trusted.
 - This is still not release-grade P2P. Relay payload transport is not wired,
   `relay_default_data_path=false`, and QUIC/TLS route evidence remains the
   accepted release target.
@@ -344,7 +346,7 @@ Minimal client behavior:
 
 1. Treat existing cloud node registration as registry v0. **Done as baseline.**
 2. Add rendezvous/route-evidence DTOs and tests in the Next API or dedicated service. **Done for rendezvous, route evidence, and relay lease policy.**
-3. Fix production P2P control auth. **Open: `musu relay leases --json` reaches `https://musu.pro` but currently fails with `p2p_control_auth_not_configured`; the server must validate the runtime account/device token or a scoped P2P control token before relay lease evidence is production-queryable.**
+3. Fix production P2P control auth. **Code support for SHA-256 runtime-token allowlisting exists through `MUSU_P2P_CONTROL_TOKEN_SHA256S`; open work is Vercel production env configuration plus live `musu relay leases --json` verification.**
 4. Add bridge client diagnostics. **`musu relay status`, `musu relay leases`, and `musu route --explain` exist; `musu relay connect` / `musu relay route` remain pending because relay transport is not wired.**
 5. Add route path selection: manual/cached peer -> control-plane candidate -> relay fallback lease request. **Direct candidate selection and runtime lease request exist; relay payload fallback remains pending.**
 6. Record route evidence with path type and timings. **Runtime and CLI route evidence write `musu.route_evidence.v1`, but release-grade QUIC/TLS proof is still missing.**
