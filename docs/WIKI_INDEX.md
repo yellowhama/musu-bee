@@ -239,6 +239,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | wiki/528 | Runtime route evidence and mDNS audit | 2026-06-01 | `RUNTIME_ROUTE_EVIDENCE_MDNS_AUDIT_2026_06_01.md` | active |
 | wiki/529 | Runtime CPU scenario matrix and mDNS log audit | 2026-06-01 | `RUNTIME_CPU_SCENARIO_MATRIX_AND_MDNS_LOG_AUDIT_2026_06_01.md` | active |
 | wiki/530 | Runtime relay fallback next steps | 2026-06-01 | `RUNTIME_RELAY_FALLBACK_NEXT_STEPS_2026_06_01.md` | active |
+| wiki/531 | Current qualitative audit, code audit, and next roadmap | 2026-06-01 | `RELEASE_1_15_0_RC1_QUAL_AUDIT_NEXT_STEPS_2026_06_01_2345.md` | active |
 | — | 1.15.0-rc.1 beta release checklist and smoke evidence | 2026-05-29 | `BETA_RELEASE_CHECKLIST_1_15_0_RC1.md` | active |
 | — | 1.15.0-rc.1 final operator gates | 2026-05-29 | `RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md` | active |
 | — | MUSU Microsoft Store release run card | 2026-05-29 | `MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md` | active |

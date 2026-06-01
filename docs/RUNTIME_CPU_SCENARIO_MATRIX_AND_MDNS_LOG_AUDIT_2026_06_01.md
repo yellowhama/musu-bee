@@ -440,6 +440,31 @@ Parser validation:
 - `measure-musu-runtime-cpu-scenarios.ps1 parser ok`
 - `measure-musu-idle-cpu.ps1 parser ok`
 
+2026-06-01 23:45 KST source-current primary evidence refresh:
+
+- Single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260601-231612-HUGH_SECOND.evidence.json`
+  passed with dashboard output `MUSU_RELEASE_SMOKE_OK_20260601_231552`,
+  dashboard task `900260dc-d0d1-4ac6-9503-0001b4a2f451`, bridge
+  `http://127.0.0.1:4752`, and CLI route checked.
+- Primary `desktop-open` CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-231939-HUGH_SECOND.desktop-open.evidence.json`
+  passed from clean source commit `afd1ceab2db2b234c6c4d9f50a5a165830bfae65`
+  with 60.058s sample, MUSU `2`, repo Node `1`, owned WebView2 `6`, max
+  one-core CPU `musu=0`, `node=0`, `webview2=0.1`, working set `510.13MB`,
+  and no hot processes.
+- Primary 4-state CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260601-233638-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  passed from clean source commit `5434b4caf0c5e0f5a8dd345e775cb45259e4ebbd`
+  with `runtime-started`, `dashboard-open`, `desktop-open`, and `post-route`
+  all sampled for 60s from clean git. The verifier passed with
+  `fail_count=0`; `dashboard-open` launched `http://127.0.0.1:3001/app`;
+  route probe token was `MUSU_CPU_SCENARIO_ROUTE_OK_20260601_233638`.
+- Node audit note: machine-wide Node.js was high because Codex/MCP/npx helper
+  processes were running. The matrix intentionally counted only one
+  repo-related Node, the local Next dashboard on port `3001`; MUSU-owned Node
+  remains zero in process ownership audits.
+
 ## Next Steps
 
 1. Run the second-PC release wrapper again so returned evidence includes the

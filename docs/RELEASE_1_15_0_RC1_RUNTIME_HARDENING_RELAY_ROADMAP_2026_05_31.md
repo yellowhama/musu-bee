@@ -117,6 +117,19 @@ What it does not close:
   `ok=false`, `owner_scope_verified=false`, and the live error remains
   `p2p_control_auth_not_configured`. This converts the production P2P env
   issue from a note into a release blocker.
+- 2026-06-01 23:45 KST source-current primary runtime evidence: after the
+  final public-site/deploy source change, single-machine smoke
+  `docs\evidence\single-machine\1.15.0-rc.1\20260601-231612-HUGH_SECOND.evidence.json`
+  passes; primary `desktop-open` CPU
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-231939-HUGH_SECOND.desktop-open.evidence.json`
+  passes with MUSU `2`, repo Node `1`, owned WebView2 `6`, max one-core CPU
+  `musu=0`, `node=0`, `webview2=0.1`, working set `510.13MB`, and no hot
+  processes; primary 4-state matrix
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260601-233638-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  passes with route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260601_233638`.
+  The operator-reported primary busy-loop is not reproduced in current
+  evidence, but the runtime gates remain `1/2` until second-PC CPU and matrix
+  evidence are imported.
 
 ## Code Audit Findings
 

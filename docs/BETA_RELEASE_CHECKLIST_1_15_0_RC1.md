@@ -307,12 +307,13 @@ Tauri desktop shell evidence:
   returns HTTP 200 and browser QA passed on desktop/mobile for the homepage
   scroll, favicon-header logo, and `#24C8DB` brand accent. No extra manual web
   deploy is pending for the scroll/logo/accent fix.
-- 2026-06-01 20:35 KST public-site follow-up: `PublicSiteShell` now marks the
+- 2026-06-01 22:58 KST public-site follow-up: `PublicSiteShell` marks the
   shared emerald `Open App` CTA with `data-brand-accent="emerald"`, and
-  `public-site-scroll-brand.spec.ts` now covers `/`, `/landing`, `/pricing`,
-  and `/install` on desktop/mobile. Local Playwright passed 8/8. This follow-up
-  still needs the normal push -> Vercel production deploy -> live `musu.pro`
-  recheck before it is treated as live.
+  `public-site-scroll-brand.spec.ts` covers `/`, `/landing`, `/pricing`, and
+  `/install` on desktop/mobile. Commit `b08ed746` passed GitHub `Tests` run
+  `26759256487`, `E2E Tests - musu-bee` run `26759256574`, and Vercel
+  production deploy run `26759256616`; live `musu.pro` QA passed with scroll,
+  no horizontal overflow, favicon-header logo, and `#24C8DB` accent.
 
 Release candidate manifest:
 
