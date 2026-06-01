@@ -178,6 +178,12 @@ if ($matrix) {
 
         $entry = $matches | Select-Object -First 1
         [void]$validScenarioNames.Add($required)
+        if ($required -eq "dashboard-open") {
+            $preparation = Get-JsonPropertyValue -Object $entry -Name "preparation"
+            $preparationAction = if ($null -ne $preparation) { Get-JsonPropertyString -Object $preparation -Name "action" } else { "" }
+            $dashboardUrl = if ($null -ne $preparation) { Get-JsonPropertyString -Object $preparation -Name "dashboard_url" } else { "" }
+            Add-CheckFromCondition "dashboard opened" ($preparationAction -eq "Start-Process DashboardUrl" -and -not [string]::IsNullOrWhiteSpace($dashboardUrl)) "dashboard-open launched a dashboard URL" "dashboard-open did not launch a dashboard URL"
+        }
         $measurement = Get-JsonPropertyValue -Object $entry -Name "measurement"
         Add-CheckFromCondition "measurement present: $required" ($null -ne $measurement) "scenario '$required' has measurement" "scenario '$required' lacks measurement"
         if ($null -eq $measurement) {

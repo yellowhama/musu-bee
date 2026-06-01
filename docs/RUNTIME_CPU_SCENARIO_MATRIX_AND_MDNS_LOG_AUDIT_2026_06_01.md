@@ -61,6 +61,14 @@ beside the two-machine 60s `desktop-open` evidence so a future busy-loop report
 can be attributed to the runtime start, dashboard/desktop opening, or post-route
 state before release is allowed.
 
+Current verifier behavior also rejects a no-op `dashboard-open` scenario. If
+`-DashboardUrl` is not supplied, the matrix runner uses the URL discovered from
+`musu up --json` (`reachable_url`, then `dev_url`, then `start_url`) and launches
+it before sampling. If `dashboard-open` is run without a prior `runtime-started`
+entry, it performs its own bounded `musu up --json` discovery first. This keeps
+the dashboard-open state aligned with the operator's busy-loop report instead of
+measuring the same runtime-started state twice.
+
 Second-PC returns now carry both layers:
 
 - `run-second-pc-release-check.ps1` still captures the release-grade
@@ -94,6 +102,8 @@ Additional audit points:
   CPU-state proof only; real multi-device release evidence still requires
   transport-verified peer identity, hardened encryption, route result, and
   payload path.
+- `post-route` probe success now requires the exact per-run expected token, not
+  only any historical `MUSU_CPU_SCENARIO_ROUTE_OK_*` output.
 - The short local smoke was run from a dirty tree and only sampled 3s, so it is
   not release evidence under the new verifier.
 
@@ -117,6 +127,25 @@ Result:
 - sampled owned WebView2 processes: `0`
 - max one-core CPU: `musu=0`, `node=0`, `webview2=0`
 - working set after sample: `27.72MB`
+
+Dashboard-open harness smoke after gate tightening:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario dashboard-open -SampleSeconds 3 -CommandTimeoutSec 90 -MusuExe .\musu-rs\target\debug\musu.exe -Json
+```
+
+Result:
+
+- matrix path:
+  `.local-build\runtime-cpu-scenarios\20260601-143309-HUGH_SECOND\20260601-143309-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- `dashboard-open` preparation action: `Start-Process DashboardUrl`
+- `dashboard-open` discovery action: `musu up --json`
+- dashboard URL source: `musu_up_dashboard_open`
+- dashboard URL: `http://127.0.0.1:3000/app`
+- measurement: `ok=true`, 3.018s sample, MUSU process count `1`,
+  owned Node `0`, owned WebView2 `0`, max one-core CPU `0`
+- release status: not release evidence because the tree was dirty and the
+  sample duration was 3s
 
 Parser validation:
 

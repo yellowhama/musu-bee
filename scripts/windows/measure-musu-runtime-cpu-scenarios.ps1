@@ -201,8 +201,28 @@ function Invoke-MeasureScenario {
 }
 
 $routeProbe = $null
+$discoveredDashboardUrl = $null
+$expectedRouteToken = "MUSU_CPU_SCENARIO_ROUTE_OK_$($stamp.Replace('-', '_'))"
 if ([string]::IsNullOrWhiteSpace($RoutePrompt)) {
-    $RoutePrompt = "Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_$($stamp.Replace('-', '_'))"
+    $RoutePrompt = "Reply exactly: $expectedRouteToken"
+}
+
+function Resolve-DashboardUrlFromUpResult {
+    param($UpResult)
+
+    if ($null -eq $UpResult -or -not $UpResult.PSObject.Properties["dashboard"]) {
+        return ""
+    }
+
+    $dashboard = $UpResult.dashboard
+    foreach ($propertyName in @("reachable_url", "dev_url", "start_url")) {
+        $property = $dashboard.PSObject.Properties[$propertyName]
+        if ($property -and -not [string]::IsNullOrWhiteSpace([string]$property.Value)) {
+            return [string]$property.Value
+        }
+    }
+
+    return ""
 }
 
 $scenarioResults = @()
@@ -210,6 +230,10 @@ foreach ($name in $Scenario) {
     switch ($name) {
         "runtime-started" {
             $up = Invoke-JsonCommand -FilePath $MusuExe -Arguments @("up", "--json") -TimeoutSec $CommandTimeoutSec
+            $resolvedDashboardUrl = Resolve-DashboardUrlFromUpResult -UpResult $up
+            if (-not [string]::IsNullOrWhiteSpace($resolvedDashboardUrl)) {
+                $discoveredDashboardUrl = $resolvedDashboardUrl
+            }
             $scenarioResults += [pscustomobject]@{
                 scenario = "runtime-started"
                 preparation = [pscustomobject]@{
@@ -222,8 +246,21 @@ foreach ($name in $Scenario) {
         }
         "dashboard-open" {
             $dashboardOpened = $false
-            if (-not [string]::IsNullOrWhiteSpace($DashboardUrl)) {
-                Start-Process $DashboardUrl
+            $dashboardDiscoveryAction = "none"
+            $dashboardUrlToOpen = $DashboardUrl
+            if ([string]::IsNullOrWhiteSpace($dashboardUrlToOpen)) {
+                $dashboardUrlToOpen = $discoveredDashboardUrl
+            }
+            if ([string]::IsNullOrWhiteSpace($dashboardUrlToOpen)) {
+                $dashboardUp = Invoke-JsonCommand -FilePath $MusuExe -Arguments @("up", "--json") -TimeoutSec $CommandTimeoutSec
+                $dashboardDiscoveryAction = "musu up --json"
+                $dashboardUrlToOpen = Resolve-DashboardUrlFromUpResult -UpResult $dashboardUp
+                if (-not [string]::IsNullOrWhiteSpace($dashboardUrlToOpen)) {
+                    $discoveredDashboardUrl = $dashboardUrlToOpen
+                }
+            }
+            if (-not [string]::IsNullOrWhiteSpace($dashboardUrlToOpen)) {
+                Start-Process $dashboardUrlToOpen
                 $dashboardOpened = $true
                 Start-Sleep -Seconds 5
             }
@@ -231,8 +268,10 @@ foreach ($name in $Scenario) {
                 scenario = "dashboard-open"
                 preparation = [pscustomobject]@{
                     action = if ($dashboardOpened) { "Start-Process DashboardUrl" } else { "none" }
-                    dashboard_url = $DashboardUrl
-                    note = if ($dashboardOpened) { "Browser/WebView ownership depends on the caller; evidence still only budgets MUSU-owned/repo-related processes." } else { "DashboardUrl not supplied; measured current runtime state only." }
+                    discovery_action = $dashboardDiscoveryAction
+                    dashboard_url = $dashboardUrlToOpen
+                    dashboard_url_source = if (-not [string]::IsNullOrWhiteSpace($DashboardUrl)) { "argument" } elseif ($dashboardDiscoveryAction -eq "musu up --json") { "musu_up_dashboard_open" } elseif (-not [string]::IsNullOrWhiteSpace($discoveredDashboardUrl)) { "musu_up" } else { "none" }
+                    note = if ($dashboardOpened) { "Browser/WebView ownership depends on the caller; evidence still only budgets MUSU-owned/repo-related processes." } else { "DashboardUrl not supplied or discovered; measured current runtime state only." }
                 }
                 measurement = Invoke-MeasureScenario -Name $name
             }
@@ -256,8 +295,9 @@ foreach ($name in $Scenario) {
                 $routeOutput = Invoke-TextCommand -FilePath $MusuExe -Arguments @("route", "--wait", $RoutePrompt) -TimeoutSec $CommandTimeoutSec
                 $routeProbe = [pscustomobject]@{
                     prompt = $RoutePrompt
+                    expected_token = $expectedRouteToken
                     output = $routeOutput
-                    ok = ($routeOutput -like "*MUSU_CPU_SCENARIO_ROUTE_OK_*")
+                    ok = ($routeOutput -like "*$expectedRouteToken*")
                 }
             }
             $scenarioResults += [pscustomobject]@{
