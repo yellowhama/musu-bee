@@ -346,8 +346,11 @@ Minimal client behavior:
    noise.
 3. Keep `MUSU_ENABLE_CLIPBOARD_SYNC=1` opt-in.
 4. Keep cloud heartbeat interval, floor, backoff, and jitter enforced by default.
-5. Add a "background features" section to `musu doctor --json`.
-6. Add a Windows StartupTask cold-boot idle check.
+5. Keep desktop `Start Runtime` bounded. The Tauri shell now runs
+   `musu up --json` through temp-file stdout/stderr capture with a 45s timeout,
+   so inherited bridge child handles cannot keep the UI busy forever.
+6. Add a "background features" section to `musu doctor --json`.
+7. Add a Windows StartupTask cold-boot idle check.
 
 ### P1: Build `musu.pro` assisted peer path
 
@@ -398,3 +401,26 @@ Do not submit broadly or market as a reliable desktop utility until:
 - `musu.pro` assisted peer routing has at least a registry/direct path proof, with relay/tunnel fallback either implemented or explicitly excluded from the launch promise
 - production P2P control auth no longer returns `p2p_control_auth_not_configured`
   for `musu relay leases --json`
+
+## 2026-06-01 Desktop Start Runtime Hardening Update
+
+`musu-bee/src-tauri/src/lib.rs` now avoids `Command::output()` for
+`musu up --json`. The desktop shell captures stdout/stderr through temp files,
+sets `stdin` to null, waits with 200ms sleeps, and returns a visible timeout
+message after 45s. This closes a desktop-specific busy state where a long-lived
+bridge child can inherit stdout/stderr handles and keep the command result from
+settling.
+
+Validation:
+
+- `cargo test --manifest-path .\musu-bee\src-tauri\Cargo.toml -j 1` passed
+  3/3 tests.
+- The added unit test proves command output capture without direct output pipes.
+- A source search found no `.output()`/`wait_with_output` path left in
+  `musu-bee/src-tauri/src/lib.rs`.
+
+Process diagnostic note: a 2026-06-01 17:53 KST process ownership audit on
+`HUGH_SECOND` observed 16 machine-wide Node.js processes, but MUSU-owned Node
+helpers and repo-related orphan helpers were both 0. The audit failed only
+because no MUSU runtime was running and `~/.musu/services/bridge.json` pointed
+at a dead bridge PID, so it must not be used as release evidence.

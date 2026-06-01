@@ -267,6 +267,11 @@ Tauri desktop shell evidence:
 - NSIS bundle: `musu-bee\src-tauri\target\release\bundle\nsis\MUSU_1.15.0_x64-setup.exe`
 - render proof: `.local-build\tauri-shell-1280x800.png`
 - caveat: this is a runtime launcher/status shell, not the full dashboard GUI.
+- 2026-06-01 hardening: the shell's `Start Runtime` command no longer uses
+  direct `Command::output()` for `musu up --json`; it uses temp-file output
+  capture and a 45s timeout so inherited bridge child handles cannot leave the
+  UI in an indefinite busy state. `cargo test --manifest-path
+  .\musu-bee\src-tauri\Cargo.toml -j 1` passed 3/3 shell tests.
 
 Release candidate manifest:
 

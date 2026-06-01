@@ -216,6 +216,27 @@ after the matrix evidence commit:
   release proof still needs clean/current 60s primary and second-PC samples
   after this commit is built/deployed/packaged.
 
+2026-06-01 17:51 KST Tauri desktop start-runtime hardening update:
+
+- `musu-bee/src-tauri/src/lib.rs` no longer uses direct `Command::output()` for
+  `musu up --json`.
+- The desktop `Start Runtime` command now captures stdout/stderr through temp
+  files, sets `stdin` to null, waits with 200ms sleeps, and returns a timeout
+  message after 45s instead of staying busy indefinitely.
+- This specifically addresses the same inherited-output-handle risk already
+  found in the PowerShell harness audit: long-lived bridge children must not be
+  able to keep the runtime-start command result unsettled.
+- Validation:
+  `cargo test --manifest-path .\musu-bee\src-tauri\Cargo.toml -j 1` passed 3/3
+  Tauri shell tests, including command output capture without `.output()` pipes;
+  `rg -n "\.output\(\)|wait_with_output" musu-bee\src-tauri\src\lib.rs -S`
+  found no direct output-pipe wait in the desktop shell.
+- Diagnostic process ownership audit at 2026-06-01 17:53 KST saw 16
+  machine-wide Node.js processes, all non-MUSU Codex/MCP/npx helpers. It
+  reported MUSU-owned Node `0` and repo-related orphan helpers `0`, but failed
+  as release evidence because MUSU was not running and the bridge registry PID
+  was dead.
+
 Parser validation:
 
 - `measure-musu-runtime-cpu-scenarios.ps1 parser ok`
