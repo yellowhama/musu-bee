@@ -7,6 +7,7 @@ param(
     [int]$MinRuntimeCpuScenarioMatrixMachineCount = 2,
     [int]$MinProcessOwnershipMachineCount = 1,
     [int]$MinStartupSingleInstanceMachineCount = 1,
+    [int]$MinDesktopSingleInstanceMachineCount = 1,
     [string]$RequiredRuntimeIdleCpuScenario = "desktop-open",
     [string[]]$RequiredRuntimeCpuScenarioMatrixScenarios = @("runtime-started", "dashboard-open", "desktop-open", "post-route"),
     [switch]$SkipPublicMetadata,
@@ -398,6 +399,81 @@ function Test-StartupSingleInstanceEvidence {
     }
 }
 
+function Test-DesktopSingleInstanceEvidence {
+    param(
+        [Parameter(Mandatory = $true)][string]$EvidencePath,
+        [Parameter(Mandatory = $true)][string]$ExpectedVersion
+    )
+
+    $checks = New-Object System.Collections.Generic.List[object]
+    $evidence = $null
+    try {
+        $evidence = Get-Content -LiteralPath $EvidencePath -Raw | ConvertFrom-Json
+        $checks.Add((New-Check -Name "parse" -Status "pass" -Message "desktop single-instance evidence parses")) | Out-Null
+    }
+    catch {
+        $checks.Add((New-Check -Name "parse" -Status "fail" -Message "desktop single-instance evidence does not parse: $($_.Exception.Message)")) | Out-Null
+    }
+
+    if ($evidence) {
+        $schema = [string]$evidence.schema
+        $checks.Add((New-Check -Name "schema" -Status ($(if ($schema -eq "musu.desktop_single_instance_audit.v1") { "pass" } else { "fail" })) -Message ($(if ($schema -eq "musu.desktop_single_instance_audit.v1") { "schema is valid" } else { "schema is '$schema'" })))) | Out-Null
+
+        $versionValue = [string]$evidence.version
+        $checks.Add((New-Check -Name "version" -Status ($(if ($versionValue -eq $ExpectedVersion) { "pass" } else { "fail" })) -Message ($(if ($versionValue -eq $ExpectedVersion) { "version matches $ExpectedVersion" } else { "version is '$versionValue'" })))) | Out-Null
+
+        $okValue = [bool]$evidence.ok
+        $checks.Add((New-Check -Name "evidence ok" -Status ($(if ($okValue) { "pass" } else { "fail" })) -Message ($(if ($okValue) { "evidence reports ok=true" } else { "evidence reports ok=false" })))) | Out-Null
+
+        $operatorMachine = ""
+        if ($evidence.PSObject.Properties["operator_machine"]) {
+            $operatorMachine = [string]$evidence.operator_machine
+        }
+        $checks.Add((New-Check -Name "operator machine" -Status ($(if (-not [string]::IsNullOrWhiteSpace($operatorMachine)) { "pass" } else { "fail" })) -Message ($(if (-not [string]::IsNullOrWhiteSpace($operatorMachine)) { "operator_machine is present" } else { "operator_machine is missing" })))) | Out-Null
+
+        $recordedAtOk = $false
+        if ($evidence.PSObject.Properties["recorded_at"]) {
+            try {
+                [void][datetimeoffset]::Parse([string]$evidence.recorded_at)
+                $recordedAtOk = $true
+            }
+            catch {
+                $recordedAtOk = $false
+            }
+        }
+        $checks.Add((New-Check -Name "recorded timestamp" -Status ($(if ($recordedAtOk) { "pass" } else { "fail" })) -Message ($(if ($recordedAtOk) { "recorded_at parses" } else { "recorded_at is missing or invalid" })))) | Out-Null
+
+        $appUserModelId = if ($evidence.PSObject.Properties["app_user_model_id"]) { [string]$evidence.app_user_model_id } else { "" }
+        $checks.Add((New-Check -Name "AppUserModelId" -Status ($(if (-not [string]::IsNullOrWhiteSpace($appUserModelId)) { "pass" } else { "fail" })) -Message ($(if (-not [string]::IsNullOrWhiteSpace($appUserModelId)) { "AppUserModelId is recorded" } else { "AppUserModelId is missing" })))) | Out-Null
+
+        $repeatCount = if ($evidence.PSObject.Properties["repeat_count"]) { [int]$evidence.repeat_count } else { 0 }
+        $checks.Add((New-Check -Name "repeat count" -Status ($(if ($repeatCount -ge 2) { "pass" } else { "fail" })) -Message ($(if ($repeatCount -ge 2) { "repeat_count is $repeatCount" } else { "repeat_count is $repeatCount; expected at least 2" })))) | Out-Null
+
+        $failCountValue = if ($evidence.PSObject.Properties["fail_count"]) { [int]$evidence.fail_count } else { 1 }
+        $checks.Add((New-Check -Name "nested fail count" -Status ($(if ($failCountValue -eq 0) { "pass" } else { "fail" })) -Message ($(if ($failCountValue -eq 0) { "nested desktop activation checks passed" } else { "nested desktop activation fail_count is $failCountValue" })))) | Out-Null
+
+        $counts = $evidence.process_counts
+        $maxDesktopProcessCount = if ($evidence.PSObject.Properties["max_desktop_process_count"]) { [int]$evidence.max_desktop_process_count } else { 1 }
+        $afterDesktopShell = if ($counts -and $counts.PSObject.Properties["after_desktop_shell"]) { [int]$counts.after_desktop_shell } else { 999 }
+        $checks.Add((New-Check -Name "desktop shell count after activation" -Status ($(if ($afterDesktopShell -le $maxDesktopProcessCount) { "pass" } else { "fail" })) -Message ($(if ($afterDesktopShell -le $maxDesktopProcessCount) { "desktop shell count $afterDesktopShell <= $maxDesktopProcessCount" } else { "desktop shell count $afterDesktopShell exceeds $maxDesktopProcessCount" })))) | Out-Null
+
+        $newDesktopShell = if ($counts -and $counts.PSObject.Properties["new_desktop_shell"]) { [int]$counts.new_desktop_shell } else { 999 }
+        $checks.Add((New-Check -Name "new desktop shell count" -Status ($(if ($newDesktopShell -le $maxDesktopProcessCount) { "pass" } else { "fail" })) -Message ($(if ($newDesktopShell -le $maxDesktopProcessCount) { "new desktop shell count $newDesktopShell <= $maxDesktopProcessCount" } else { "new desktop shell count $newDesktopShell exceeds $maxDesktopProcessCount" })))) | Out-Null
+
+        $activationFailureCount = if ($counts -and $counts.PSObject.Properties["activation_failure_count"]) { [int]$counts.activation_failure_count } else { 1 }
+        $checks.Add((New-Check -Name "activation failures" -Status ($(if ($activationFailureCount -eq 0) { "pass" } else { "fail" })) -Message ($(if ($activationFailureCount -eq 0) { "all desktop activation attempts succeeded" } else { "$activationFailureCount desktop activation attempt(s) failed" })))) | Out-Null
+    }
+
+    $failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
+    [pscustomobject]@{
+        ok = ($failCount -eq 0)
+        evidence_path = $EvidencePath
+        fail_count = $failCount
+        operator_machine = if ($evidence -and $evidence.PSObject.Properties["operator_machine"]) { [string]$evidence.operator_machine } else { $null }
+        checks = $checks.ToArray()
+    }
+}
+
 $auditScript = Join-Path $scriptDir "audit-desktop-release-readiness.ps1"
 $metadataScript = Join-Path $scriptDir "verify-store-public-metadata.ps1"
 $manifestScript = Join-Path $scriptDir "write-release-candidate-manifest.ps1"
@@ -737,6 +813,50 @@ $startupSingleInstanceEvidence = [pscustomobject]@{
     candidates = $startupSingleInstanceEvidenceResults
 }
 
+$desktopSingleInstanceVerified = $false
+$desktopSingleInstanceEvidence = $null
+$desktopSingleInstanceEvidenceCandidates = @()
+$desktopSingleInstanceEvidenceRoots = @(
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ("docs\evidence\desktop-single-instance\{0}" -f $version))
+        filter = "*.json"
+    },
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ".local-build\desktop-single-instance")
+        filter = "*.json"
+    }
+)
+
+foreach ($root in $desktopSingleInstanceEvidenceRoots) {
+    if (Test-Path -LiteralPath $root.path) {
+        $desktopSingleInstanceEvidenceCandidates += @(
+            Get-ChildItem -LiteralPath $root.path -Filter $root.filter -File -ErrorAction SilentlyContinue
+        )
+    }
+}
+
+$desktopSingleInstanceEvidenceResults = @()
+$desktopSingleInstanceMachines = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+foreach ($candidate in @($desktopSingleInstanceEvidenceCandidates | Sort-Object LastWriteTime -Descending)) {
+    $verification = Test-DesktopSingleInstanceEvidence `
+        -EvidencePath $candidate.FullName `
+        -ExpectedVersion $version
+    $desktopSingleInstanceEvidenceResults += $verification
+    if ([bool]$verification.ok -and -not [string]::IsNullOrWhiteSpace([string]$verification.operator_machine)) {
+        [void]$desktopSingleInstanceMachines.Add([string]$verification.operator_machine)
+    }
+}
+
+$desktopSingleInstanceVerified = ($desktopSingleInstanceMachines.Count -ge $MinDesktopSingleInstanceMachineCount)
+$desktopSingleInstanceEvidence = [pscustomobject]@{
+    ok = [bool]$desktopSingleInstanceVerified
+    min_machine_count = $MinDesktopSingleInstanceMachineCount
+    valid_machine_count = $desktopSingleInstanceMachines.Count
+    valid_machines = @($desktopSingleInstanceMachines)
+    candidate_count = $desktopSingleInstanceEvidenceResults.Count
+    candidates = $desktopSingleInstanceEvidenceResults
+}
+
 $storeReleaseVerified = $false
 $storeReleaseEvidence = $null
 $storeReleaseEvidenceCandidate = $null
@@ -862,6 +982,9 @@ if (-not $processOwnershipVerified) {
 if (-not $startupSingleInstanceVerified) {
     Add-Blocker -List $blockers -Area "startup-single-instance" -Message "Startup single-instance evidence has not passed on at least ${MinStartupSingleInstanceMachineCount} machine(s)."
 }
+if (-not $desktopSingleInstanceVerified) {
+    Add-Blocker -List $blockers -Area "desktop-single-instance" -Message "Packaged desktop repeated activation evidence has not passed on at least ${MinDesktopSingleInstanceMachineCount} machine(s)."
+}
 if (-not $SkipPublicMetadata) {
     if (-not $publicMetadataResult.json -or -not [bool]$publicMetadataResult.json.ok) {
         Add-Blocker -List $blockers -Area "store-public-metadata" -Message "Public privacy/support metadata verification failed for $PublicMetadataBaseUrl."
@@ -901,6 +1024,7 @@ $manualInternalGates = @(
     "Process ownership audit on primary Windows PC",
     "Second-PC runtime/startup ownership verification",
     "Startup single-instance repeat audit",
+    "Packaged desktop repeated activation audit",
     "musu.pro registry/rendezvous/relay-control live evidence"
 )
 
@@ -952,6 +1076,8 @@ $result = [pscustomobject]@{
     process_ownership_evidence = $processOwnershipEvidence
     startup_single_instance_verified = [bool]$startupSingleInstanceVerified
     startup_single_instance_evidence = $startupSingleInstanceEvidence
+    desktop_single_instance_verified = [bool]$desktopSingleInstanceVerified
+    desktop_single_instance_evidence = $desktopSingleInstanceEvidence
     support_mailbox_verified = [bool]$supportMailboxVerified
     support_mailbox_evidence = $supportMailboxEvidence
     store_release_verified = [bool]$storeReleaseVerified
@@ -984,6 +1110,7 @@ else {
     "runtime_cpu_scenario_matrix_valid_machines: $($result.runtime_cpu_scenario_matrix_valid_machine_count)/$($result.runtime_cpu_scenario_matrix_min_machine_count) [$((@($result.runtime_cpu_scenario_matrix_valid_machines) -join ', '))]"
     "process_ownership_verified: $($result.process_ownership_verified)"
     "startup_single_instance_verified: $($result.startup_single_instance_verified)"
+    "desktop_single_instance_verified: $($result.desktop_single_instance_verified)"
     "multi_device_verified: $($result.multi_device_verified)"
     "public_metadata_ok: $($result.public_metadata_ok)"
     "support_mailbox_verified: $($result.support_mailbox_verified)"

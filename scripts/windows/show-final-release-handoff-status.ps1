@@ -213,6 +213,16 @@ $startupSingleInstanceRoots = @(
         filter = "*.json"
     }
 )
+$desktopSingleInstanceRoots = @(
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ("docs\evidence\desktop-single-instance\{0}" -f $version))
+        filter = "*.json"
+    },
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ".local-build\desktop-single-instance")
+        filter = "*.json"
+    }
+)
 $storeRoots = @(
     [pscustomobject]@{
         path = (Join-Path $repoRoot ("docs\evidence\store-release\{0}" -f $version))
@@ -235,6 +245,7 @@ $commands = [pscustomobject]@{
     measure_runtime_cpu_scenario_matrix = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -Json"
     audit_process_ownership = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-process-ownership.ps1 -FailOnProblem -Json"
     audit_startup_single_instance = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-startup-single-instance.ps1 -RepeatCount 3 -FailOnProblem -Json"
+    audit_desktop_single_instance = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-desktop-single-instance.ps1 -RequireInstalledPackage -RepeatCount 3 -FailOnProblem -Json"
     final_completion = @"
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-final-operator-gates.ps1 `
   -MsixInstallEvidencePath .local-build\msix-install\<INSTALL_EVIDENCE_JSON> `
@@ -328,6 +339,13 @@ if (-not [bool]$goNoGo.startup_single_instance_verified) {
         -Summary "Run repeated startup audit so `musu up`/desktop start reuses one bridge PID instead of spawning duplicate runtimes." `
         -Command $commands.audit_startup_single_instance
 }
+if (-not [bool]$goNoGo.desktop_single_instance_verified) {
+    Add-OperatorStep `
+        -List $operatorSteps `
+        -Gate "desktop-single-instance" `
+        -Summary "Run repeated installed desktop activation from AppsFolder/Start-menu so the packaged app proves it does not spawn duplicate Tauri shells." `
+        -Command $commands.audit_desktop_single_instance
+}
 if (-not [bool]$goNoGo.support_mailbox_verified) {
     Add-OperatorStep `
         -List $operatorSteps `
@@ -373,6 +391,7 @@ $result = [pscustomobject]@{
         runtime_idle_cpu_candidate_count = $goNoGo.runtime_idle_cpu_candidate_count
         process_ownership_verified = [bool]$goNoGo.process_ownership_verified
         startup_single_instance_verified = [bool]$goNoGo.startup_single_instance_verified
+        desktop_single_instance_verified = [bool]$goNoGo.desktop_single_instance_verified
         multi_device_verified = [bool]$goNoGo.multi_device_verified
         public_metadata_ok = $goNoGo.public_metadata_ok
         support_mailbox_verified = [bool]$goNoGo.support_mailbox_verified
@@ -387,6 +406,7 @@ $result = [pscustomobject]@{
         runtime_idle_cpu = Get-EvidenceRootStatus -Roots $runtimeIdleCpuRoots
         process_ownership = Get-EvidenceRootStatus -Roots $processOwnershipRoots
         startup_single_instance = Get-EvidenceRootStatus -Roots $startupSingleInstanceRoots
+        desktop_single_instance = Get-EvidenceRootStatus -Roots $desktopSingleInstanceRoots
         multi_device = Get-EvidenceRootStatus -Roots $multiDeviceRoots
         support_mailbox = Get-EvidenceRootStatus -Roots $supportRoots
         store_release = Get-EvidenceRootStatus -Roots $storeRoots

@@ -355,6 +355,26 @@ Current Store path truth:
   1218 files and 2213 symbols. Search terms should include `0ed3673a`,
   `26764307713`, `26764309477`, `26764310368`, `production Playwright QA 8/8`,
   and `musu.pro deploy verified`.
+- Desktop single-instance release gate is wiki/532:
+  `docs/DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md`. New script
+  `scripts\windows\audit-musu-desktop-single-instance.ps1` writes
+  `musu.desktop_single_instance_audit.v1` by launching the installed package
+  through `shell:AppsFolder\<AppUserModelId>`. Current installed package
+  `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6` fails: repeat count `3`,
+  before `1`, after `4`, new shells `3`, evidence
+  `.local-build\desktop-single-instance\musu-desktop-single-instance-20260602-005439-HUGH_SECOND.json`.
+  `write-release-go-no-go.ps1` now reports
+  `desktop_single_instance_verified=false` and adds blocker
+  `desktop-single-instance`; handoff status and final operator packet
+  verification include the new gate. Source has the Tauri single-instance
+  plugin, but a fresh MSIX build/install plus passing audit is still required.
+- Indexer refreshed after wiki/532 and the packaged desktop single-instance
+  release gate: `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1221 files and 2213 symbols on 2026-06-02. Search terms should
+  include `musu.desktop_single_instance_audit.v1`,
+  `desktop_single_instance_verified`, `desktop-single-instance`,
+  `audit-musu-desktop-single-instance.ps1`, `shell:AppsFolder`,
+  `20260602-005439-HUGH_SECOND`, and `new_desktop_shell=3`.
 - Remote release gates must be rechecked after the last pushed commit before public handoff; latest recorded runs were green, and live `https://musu.pro/privacy` plus `/support` passed public metadata verification with `musu@musu.pro`.
 - old 2026-05-27 package: template only (`1.13.0.0`, do not submit as current)
 - Tauri shell: dedicated static runtime launcher/status shell now builds to `musu-bee/out`, bundles as MSI/NSIS through `npm run tauri:build`, and is audited as `desktop_shell_ready=True`; it is still not the full dashboard GUI
@@ -371,6 +391,7 @@ Canonical reference:
 
 - `docs/RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md` (wiki/521)
 - `docs/RELEASE_1_15_0_RC1_CURRENT_STATUS_AUDIT_2026_05_31.md` (wiki/522)
+- `docs/DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md` (wiki/532)
 - `docs/RELEASE_1_15_0_RC1_QUAL_AUDIT_NEXT_STEPS_2026_06_01.md` (wiki/527)
 - `docs/RUNTIME_RELAY_FALLBACK_NEXT_STEPS_2026_06_01.md` (wiki/530)
 - `docs/STORE_LAUNCH_AND_PROMOTION_PLAN_2026_05_29.md`

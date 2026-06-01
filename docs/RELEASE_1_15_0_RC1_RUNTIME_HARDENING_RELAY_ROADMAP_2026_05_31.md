@@ -91,6 +91,16 @@ What it does not close:
   shells and showed the expected `musu=2`, repo Node `1`, WebView2 `6` desktop
   profile. This keeps "packaged desktop single-instance/window reactivation"
   as an explicit follow-up separate from bridge `musu up` reuse.
+- 2026-06-02 packaged desktop single-instance update: the follow-up is now a
+  formal release gate. `scripts\windows\audit-musu-desktop-single-instance.ps1`
+  writes `musu.desktop_single_instance_audit.v1`, and
+  `write-release-go-no-go.ps1` reports `desktop_single_instance_verified`.
+  Current installed package still fails: evidence
+  `.local-build\desktop-single-instance\musu-desktop-single-instance-20260602-005439-HUGH_SECOND.json`
+  shows repeated Start-menu activation expanded one `musu-desktop.exe` shell
+  to four (`new_desktop_shell=3`). Source has the Tauri single-instance plugin,
+  but the release gate remains open until a fresh MSIX build/install passes the
+  packaged activation audit.
 - 2026-06-01 21:17 KST final primary evidence after deploy workflow
   hardening: single-machine smoke
   `docs\evidence\single-machine\1.15.0-rc.1\20260601-211031-HUGH_SECOND.evidence.json`
@@ -175,6 +185,8 @@ Acceptance target for public beta:
 - owned process count <= 16, owned WebView2 process count <= 8, total owned
   working set <= 1024MB
 - no unbounded process growth after repeated `musu up` / desktop start clicks
+- no duplicate `musu-desktop.exe` shells after repeated packaged
+  Start-menu/AppsFolder activation
 - bridge remains reachable while idle CPU is low
 - second PC passes the same sample
 

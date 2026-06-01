@@ -83,6 +83,7 @@ $docsToCopy = @(
     "docs\MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md",
     "docs\MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md",
     "docs\MSIX_DESKTOP_ENTRYPOINT_AUDIT_2026_05_31.md",
+    "docs\DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md",
     "docs\RUNTIME_CPU_SCENARIO_MATRIX_AND_MDNS_LOG_AUDIT_2026_06_01.md",
     "docs\MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md",
     "docs\RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md",
@@ -116,6 +117,7 @@ $scriptsToCopy = @(
     "verify-runtime-cpu-scenario-matrix.ps1",
     "audit-musu-process-ownership.ps1",
     "audit-musu-startup-single-instance.ps1",
+    "audit-musu-desktop-single-instance.ps1",
     "prepare-operator-action-pack.ps1",
     "verify-operator-action-pack.ps1",
     "show-final-release-handoff-status.ps1",
@@ -159,6 +161,7 @@ For the shortest Store/submission sequence, review:
 - `docs\MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md`
 - `docs\MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md`
 - `docs\MSIX_DESKTOP_ENTRYPOINT_AUDIT_2026_05_31.md`
+- `docs\DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md`
 - `docs\RUNTIME_CPU_SCENARIO_MATRIX_AND_MDNS_LOG_AUDIT_2026_06_01.md`
 - `docs\RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md`
 - `docs\MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md`
@@ -198,8 +201,9 @@ Remaining blockers:
 5. runtime CPU scenario matrix evidence from the primary and second Windows PC
 6. process ownership evidence from a live MUSU runtime
 7. startup single-instance evidence from repeated `musu up` calls
-8. real __SUPPORT_EMAIL__ inbox delivery evidence
-9. Partner Center product name reservation, app submission, Microsoft certification, and restricted startup capability approval evidence
+8. packaged desktop single-instance evidence from repeated Start-menu/AppsFolder activations
+9. real __SUPPORT_EMAIL__ inbox delivery evidence
+10. Partner Center product name reservation, app submission, Microsoft certification, and restricted startup capability approval evidence
 
 The multi-device kit includes `collect-second-pc-handoff.ps1`; run it on the
 second PC after install to generate `.local-build\second-pc-handoff\*.handoff.json`
@@ -422,9 +426,24 @@ still passes the nested process ownership audit.
 
 Expected result: `startup_single_instance_verified=true`.
 
+## Gate H - Packaged desktop single-instance evidence
+
+Run this from the real MUSU release repo root after the current MSIX package is
+installed:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-desktop-single-instance.ps1 -RequireInstalledPackage -RepeatCount 3 -FailOnProblem -Json
+```
+
+This launches the installed packaged desktop app through
+`shell:AppsFolder\<AppUserModelId>` three times and verifies that repeated
+Start-menu activation leaves at most one `musu-desktop.exe` Tauri shell.
+
+Expected result: `desktop_single_instance_verified=true`.
+
 ## Final command
 
-After Gate A, Gate B, Gate C, Gate D, Gate E, Gate F, and Gate G evidence exists, run from the real MUSU release repo root:
+After Gate A, Gate B, Gate C, Gate D, Gate E, Gate F, Gate G, and Gate H evidence exists, run from the real MUSU release repo root:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-final-operator-gates.ps1 `
@@ -457,6 +476,7 @@ The release can proceed only when:
 - `runtime_idle_cpu_verified=true`
 - `process_ownership_verified=true`
 - `startup_single_instance_verified=true`
+- `desktop_single_instance_verified=true`
 - `multi_device_verified=true`
 - `public_metadata_ok=true`
 - `support_mailbox_verified=true`

@@ -326,9 +326,22 @@ reservation timestamp instead of silently substituting the later submission
 timestamp. This keeps the Partner Center identity step auditable and not only
 implied by a submission id.
 
+## Gate 5 - Packaged Desktop Single-Instance Evidence
+
+After installing the current MSIX package, run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-desktop-single-instance.ps1 -RequireInstalledPackage -RepeatCount 3 -FailOnProblem -Json
+```
+
+This launches the installed app through `shell:AppsFolder\<AppUserModelId>` and
+requires repeated Start-menu activation to leave at most one
+`musu-desktop.exe` shell. Expected result:
+`desktop_single_instance_verified=true`.
+
 ## Final Release Command
 
-After Gate 1, Gate 2, Gate 3, and Gate 4 evidence exists, the preferred final command is the single completion runner:
+After Gate 1, Gate 2, Gate 3, Gate 4, and Gate 5 evidence exists, the preferred final command is the single completion runner:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-final-operator-gates.ps1 `
@@ -366,6 +379,7 @@ The release is ready for public desktop release only when:
 - `runtime_idle_cpu_verified=true`
 - `process_ownership_verified=true`
 - `startup_single_instance_verified=true`
+- `desktop_single_instance_verified=true`
 - `multi_device_verified=true`
 - `public_metadata_ok=true`
 - `support_mailbox_verified=true`

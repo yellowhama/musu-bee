@@ -97,6 +97,7 @@ try {
         "docs\MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md",
         "docs\MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md",
         "docs\MSIX_DESKTOP_ENTRYPOINT_AUDIT_2026_05_31.md",
+        "docs\DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md",
         "docs\RUNTIME_CPU_SCENARIO_MATRIX_AND_MDNS_LOG_AUDIT_2026_06_01.md",
         "docs\MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md",
         "docs\RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md",
@@ -121,6 +122,7 @@ try {
         "scripts\windows\verify-runtime-cpu-scenario-matrix.ps1",
         "scripts\windows\audit-musu-process-ownership.ps1",
         "scripts\windows\audit-musu-startup-single-instance.ps1",
+        "scripts\windows\audit-musu-desktop-single-instance.ps1",
         "scripts\windows\prepare-operator-action-pack.ps1",
         "scripts\windows\verify-operator-action-pack.ps1",
         "scripts\windows\show-final-release-handoff-status.ps1",
@@ -173,6 +175,7 @@ try {
         Add-CheckFromCondition "readme p2p control plane spec" ($readme -like "*MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md*") "README points to P2P control-plane spec" "README missing P2P control-plane spec reference"
         Add-CheckFromCondition "readme stabilization execution plan" ($readme -like "*MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md*") "README points to stabilization execution plan" "README missing stabilization execution plan reference"
         Add-CheckFromCondition "readme msix desktop entrypoint audit doc" ($readme -like "*MSIX_DESKTOP_ENTRYPOINT_AUDIT_2026_05_31.md*") "README points to MSIX desktop entrypoint audit" "README missing MSIX desktop entrypoint audit reference"
+        Add-CheckFromCondition "readme desktop single-instance gate doc" ($readme -like "*DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md*") "README points to desktop single-instance gate" "README missing desktop single-instance gate reference"
         Add-CheckFromCondition "readme runtime CPU scenario matrix audit" ($readme -like "*RUNTIME_CPU_SCENARIO_MATRIX_AND_MDNS_LOG_AUDIT_2026_06_01.md*" -and $readme -like "*musu.runtime_cpu_scenario_matrix.v1*") "README points to runtime CPU scenario matrix diagnostics" "README missing runtime CPU scenario matrix diagnostic reference"
         Add-CheckFromCondition "readme Store run card" ($readme -like "*MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md*") "README points to the Store release run card" "README missing Store release run card reference"
         Add-CheckFromCondition "readme msix install gate" ($readme -like "*record-msix-install-evidence.ps1*" -and $readme -like "*msix_install_verified=true*") "README includes MSIX install evidence gate" "README missing MSIX install evidence gate"
@@ -184,6 +187,7 @@ try {
         Add-CheckFromCondition "readme runtime cpu scenario matrix" ($readme -like "*measure-musu-runtime-cpu-scenarios.ps1*" -and $readme -like "*runtime-started*" -and $readme -like "*dashboard-open*" -and $readme -like "*desktop-open*" -and $readme -like "*post-route*" -and $readme -like "*RunRouteProbe*" -and $readme -like "*.local-build\runtime-cpu-scenarios\*") "README includes runtime CPU scenario matrix command" "README missing runtime CPU scenario matrix command"
         Add-CheckFromCondition "readme process ownership audit" ($readme -like "*audit-musu-process-ownership.ps1*" -and $readme -like "*process_ownership_verified=true*" -and $readme -like "*bridge registry PID*") "README includes process ownership audit gate" "README missing process ownership audit gate"
         Add-CheckFromCondition "readme startup single-instance audit" ($readme -like "*audit-musu-startup-single-instance.ps1*" -and $readme -like "*startup_single_instance_verified=true*" -and $readme -like "*one bridge PID*") "README includes startup single-instance audit gate" "README missing startup single-instance audit gate"
+        Add-CheckFromCondition "readme desktop single-instance audit" ($readme -like "*audit-musu-desktop-single-instance.ps1*" -and $readme -like "*desktop_single_instance_verified=true*" -and $readme -like "*musu-desktop.exe*") "README includes packaged desktop single-instance audit gate" "README missing packaged desktop single-instance audit gate"
         Add-CheckFromCondition "readme handoff status command" ($readme -like "*show-final-release-handoff-status.ps1*") "README includes final release handoff status command" "README missing final release handoff status command"
         Add-CheckFromCondition "readme action pack commands" ($readme -like "*prepare-operator-action-pack.ps1*" -and $readme -like "*verify-operator-action-pack.ps1*" -and $readme -like "*copy/handoff convenience*") "README includes operator action pack generation/verification boundary" "README missing operator action pack generation/verification boundary"
         Add-CheckFromCondition "readme operator handoff card" ($readme -like "*show-operator-handoff-card.ps1*" -or $readme -like "*RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md*") "README includes operator handoff card path" "README missing operator handoff card reference"
@@ -214,6 +218,11 @@ try {
             ($handoffStatusScript -like "*audit-musu-startup-single-instance.ps1*" -and $handoffStatusScript -like "*startup_single_instance_verified*" -and $handoffStatusScript -like "*startup_single_instance = Get-EvidenceRootStatus*") `
             "packet handoff status script reports startup single-instance evidence" `
             "packet handoff status script does not report startup single-instance evidence"
+        Add-CheckFromCondition `
+            "handoff status desktop single-instance gate" `
+            ($handoffStatusScript -like "*audit-musu-desktop-single-instance.ps1*" -and $handoffStatusScript -like "*desktop_single_instance_verified*" -and $handoffStatusScript -like "*desktop_single_instance = Get-EvidenceRootStatus*") `
+            "packet handoff status script reports packaged desktop single-instance evidence" `
+            "packet handoff status script does not report packaged desktop single-instance evidence"
     }
 
     $operatorHandoffScriptPath = Join-Path $packetRoot "scripts\windows\show-operator-handoff-card.ps1"
@@ -274,6 +283,11 @@ try {
             ($goNoGoScript -like "*startup_single_instance_verified*" -and $goNoGoScript -like "*startup-single-instance*" -and $goNoGoScript -like "*MinStartupSingleInstanceMachineCount*" -and $goNoGoScript -like "*musu.startup_single_instance_audit.v1*") `
             "packet go/no-go blocks on startup single-instance evidence" `
             "packet go/no-go does not block on startup single-instance evidence"
+        Add-CheckFromCondition `
+            "go no-go desktop single-instance gate" `
+            ($goNoGoScript -like "*desktop_single_instance_verified*" -and $goNoGoScript -like "*desktop-single-instance*" -and $goNoGoScript -like "*MinDesktopSingleInstanceMachineCount*" -and $goNoGoScript -like "*musu.desktop_single_instance_audit.v1*") `
+            "packet go/no-go blocks on packaged desktop single-instance evidence" `
+            "packet go/no-go does not block on packaged desktop single-instance evidence"
     }
 
     $supportRecorderScriptPath = Join-Path $packetRoot "scripts\windows\record-support-mailbox-verification.ps1"

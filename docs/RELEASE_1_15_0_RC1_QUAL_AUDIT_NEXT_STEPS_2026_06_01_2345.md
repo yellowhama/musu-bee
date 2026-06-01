@@ -16,6 +16,7 @@ The last round of work improved confidence in three areas:
 
 Public release remains blocked by evidence and product gaps:
 
+- packaged desktop repeated activation evidence from the installed MSIX
 - second-PC `desktop-open` CPU evidence
 - second-PC 4-state runtime CPU matrix evidence
 - release-grade multi-device route evidence with verified peer identity and QUIC/TLS transport proof
@@ -56,6 +57,7 @@ Results:
 4. **Node attribution**: machine-wide Node count is diagnostic only. Release evidence distinguishes MUSU-owned descendants, repo-related helpers, and unrelated operator tooling.
 5. **P2P network role**: `musu.pro` is required as registry/rendezvous/route-evidence/relay-lease control plane for public multi-device setup, but it must not silently become the payload path. Relay remains fail-closed until transport exists and evidence says `route_kind=relay`.
 6. **Support address**: `musu@musu.pro` is the release support mailbox. Do not use `support@musu.pro` in current release materials.
+7. **Desktop single-instance**: source uses the Tauri single-instance plugin, but the release contract is the installed package behavior. Repeated Start-menu/AppsFolder activation must leave at most one `musu-desktop.exe` shell and must pass `desktop_single_instance_verified=true`.
 
 ## Code Audit
 
@@ -63,7 +65,7 @@ Findings:
 
 1. **No current primary busy-loop evidence**: latest primary 60s samples stay far below the 5% of one logical core budget. This lowers immediate CPU concern on `HUGH_SECOND`, but does not close the operator report until second-PC evidence is captured.
 2. **Node process concern is explained but should stay visible**: the system had many Node processes, but command-line audit attributes them to Codex/MCP/npx tooling. The only repo-related Node during matrix capture was the local Next dashboard on port `3001`, used to make `dashboard-open` a real scenario. That test server must be stopped after verification.
-3. **Desktop shell duplicate-launch risk remains**: repeated manual launches can still accumulate stale `musu-desktop.exe` windows if the shell is already open. This is separate from `musu up` bridge single-instance, which already has a passing gate.
+3. **Desktop shell duplicate-launch risk is now evidence-gated**: repeated manual launches can still accumulate stale `musu-desktop.exe` windows in the currently installed package. The source fix exists, but local evidence `.local-build\desktop-single-instance\musu-desktop-single-instance-20260602-005439-HUGH_SECOND.json` still fails until a fresh MSIX is built and installed. This is separate from `musu up` bridge single-instance, which already has a passing gate.
 4. **P2P control-plane live gate is correctly failing**: current `musu.pro` evidence fails on `p2p_control_auth_not_configured`. This is safer than passing locally while production auth is missing.
 5. **mDNS/Tailscale log issue is controlled by defaults**: the repeated `ff02::fb%9` / `os error 10065` pattern is a real stale/opt-in risk, but current Store-candidate defaults keep mDNS, IPv6 mDNS, Tailscale mDNS, and VPN/virtual mDNS off unless explicitly enabled.
 
@@ -74,16 +76,17 @@ No new code defect was found in the latest evidence refresh itself. The main unr
 P0 before any public Store launch:
 
 1. Configure production `MUSU_P2P_CONTROL_TOKEN_SHA256S` or equivalent scoped auth on `musu.pro`, then record passing P2P control-plane evidence without `-AllowUnverified`.
-2. Stop test-only local dashboard Node after evidence capture, then confirm process ownership remains one runtime, at most one desktop shell, zero MUSU-owned Node, and expected WebView2 helpers.
-3. Run the second-PC release wrapper again so the return archive includes `desktop-open` CPU evidence and the 4-state runtime CPU matrix.
-4. Import the second-PC return archive and rerun go/no-go. Runtime gates should move from `1/2` to `2/2` only if both machines are source-current and clean.
-5. Capture real multi-device route evidence with release-grade peer identity and `quic_tls_1_3` transport proof; same-machine or HTTP bearer evidence remains insufficient.
-6. Record `musu@musu.pro` inbox delivery evidence.
-7. Submit the current Store-reviewed MSIX in Partner Center and record reservation/submission/certification/restricted-capability evidence.
+2. Build and install a fresh MSIX from the current source, then run `audit-musu-desktop-single-instance.ps1 -RequireInstalledPackage -RepeatCount 3 -FailOnProblem -Json`.
+3. Stop test-only local dashboard Node after evidence capture, then confirm process ownership remains one runtime, at most one desktop shell, zero MUSU-owned Node, and expected WebView2 helpers.
+4. Run the second-PC release wrapper again so the return archive includes `desktop-open` CPU evidence and the 4-state runtime CPU matrix.
+5. Import the second-PC return archive and rerun go/no-go. Runtime gates should move from `1/2` to `2/2` only if both machines are source-current and clean.
+6. Capture real multi-device route evidence with release-grade peer identity and `quic_tls_1_3` transport proof; same-machine or HTTP bearer evidence remains insufficient.
+7. Record `musu@musu.pro` inbox delivery evidence.
+8. Submit the current Store-reviewed MSIX in Partner Center and record reservation/submission/certification/restricted-capability evidence.
 
 P1 after those gates:
 
-- Fix packaged desktop window reactivation/single-instance behavior.
+- Replace the local installed package and keep packaged desktop single-instance evidence current after any shell/package source change.
 - Implement relay/tunnel data transport only after direct QUIC/TLS route proof is stable.
 - Regenerate final operator packet/action pack from clean final HEAD.
 - Refresh public docs, Store listing copy, screenshots, and indexer after the final evidence commit.
