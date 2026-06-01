@@ -54,3 +54,17 @@ Post-push deploy verification:
   horizontal overflow, `.musu-public-scroll-root=true`, logo source contains
   `favicon-header`, `data-brand-accent=emerald`, and
   `--musu-color-brand-emerald=#24C8DB`.
+
+Final go/no-go check:
+
+- `write-release-go-no-go.ps1 -Json` on commit `bce29066` reports
+  `ready_for_public_desktop_release=false`, `manifest_dirty=false`,
+  `public_metadata_ok=true`, `msix_install_verified=true`, and
+  `msix_desktop_entrypoint_verified=true`.
+- `single_machine_verified=false`, runtime idle CPU `0/2`, and runtime CPU
+  scenario matrix `0/2` because the public-site CSS/workflow source commit made
+  the previous primary smoke/CPU/matrix evidence no longer source-current.
+- This does not affect the live public-site deployment result, but it does mean
+  the next release-gate step is another primary smoke, desktop-open CPU, and
+  4-state CPU matrix refresh before second-PC evidence can be treated as the
+  final runtime blocker.
