@@ -349,7 +349,8 @@ Minimal client behavior:
 5. Keep desktop `Start Runtime` bounded. The Tauri shell now runs
    `musu up --json` through temp-file stdout/stderr capture with a 45s timeout,
    so inherited bridge child handles cannot keep the UI busy forever.
-6. Add a "background features" section to `musu doctor --json`.
+6. Keep the `musu doctor --json` background features section current. It now
+   reports mDNS, clipboard, cloud heartbeat, file watcher, and planner opt-ins.
 7. Add a Windows StartupTask cold-boot idle check.
 
 ### P1: Build `musu.pro` assisted peer path
@@ -447,3 +448,29 @@ Release interpretation:
 This improves failure handling and process ownership hygiene, but it is not a
 release substitute for the packaged desktop Start Runtime click audit, live
 process ownership evidence, or two-machine 60s CPU evidence.
+
+## 2026-06-01 Doctor Background Profile Update
+
+`musu doctor --json` now reports a `background` object with the runtime
+resource-affecting feature profile:
+
+- `mdns`, `mdns_ipv6`, `mdns_tailscale`, and `mdns_virtual_interfaces`
+- `clipboard_sync`
+- `cloud_registration`, `cloud_heartbeat_interval_sec`, and
+  `cloud_heartbeat_floor_sec`
+- `file_sync`, `file_serve_root_count`, and `file_serve_writable`
+- `planner`
+
+Doctor marks the background profile `ok` when optional hot-loop-prone features
+are off and `warn` when opt-ins are enabled. Live `HUGH_SECOND` verification
+reported the intended Store-candidate idle profile: mDNS off, clipboard off,
+file sync off, planner off, cloud registration on, heartbeat `300s`, and
+heartbeat floor `60s`.
+
+Validation:
+
+- `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib
+  cli_commands::tests::doctor_background -- --nocapture` passed 3/3 tests.
+- `cargo build --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1` passed.
+- `musu doctor --json` and text `musu doctor` both expose the background
+  profile.

@@ -197,7 +197,9 @@ P1: after external evidence passes.
 - Keep `musu@musu.pro`, public metadata, and Store bundle verification in the pre-submit checklist.
 - Keep `MUSU_ENABLE_MDNS` off in Store-candidate smoke/release runs unless the mDNS path has its own passing Windows/Tailscale regression evidence.
 - Keep `MUSU_ENABLE_CLIPBOARD_SYNC` off by default unless clipboard sync has its own privacy/resource regression evidence.
-- Add `musu doctor --json` reporting for background features and relay path state.
+- Keep `musu doctor --json` background reporting in every CPU evidence review.
+  It now reports mDNS, clipboard, cloud heartbeat, file sync, and planner
+  status; relay path state still needs a fuller doctor surface.
 
 P2: after first Store submission.
 

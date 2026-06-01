@@ -253,6 +253,23 @@ after the matrix evidence commit:
   proof still needs live packaged Start Runtime click evidence and clean/current
   two-machine CPU samples.
 
+2026-06-01 18:35 KST doctor background profile update:
+
+- `musu doctor --json` now exposes a `background` object for resource-affecting
+  background features.
+- It reports mDNS, IPv6 mDNS, Tailscale mDNS, VPN/virtual mDNS interfaces,
+  clipboard sync, cloud registration, cloud heartbeat interval/floor, file
+  watcher roots/writable state, and planner status.
+- Live `HUGH_SECOND` output reported `background.status=ok`, mDNS off,
+  clipboard off, file sync off, planner off, cloud registration on,
+  `cloud_heartbeat_interval_sec=300`, and `cloud_heartbeat_floor_sec=60`.
+- Validation:
+  targeted doctor background tests passed 3/3, `cargo build --bin musu` passed,
+  `git diff --check` passed, and both JSON/text doctor output expose the
+  background profile.
+- Release status: this makes the idle evidence background profile explicit. It
+  does not replace the required clean/current two-machine 60s CPU samples.
+
 Parser validation:
 
 - `measure-musu-runtime-cpu-scenarios.ps1 parser ok`

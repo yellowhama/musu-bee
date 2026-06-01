@@ -1200,6 +1200,7 @@ struct DoctorReport {
     bridge: DoctorBridge,
     dashboard: DoctorDashboard,
     package: DoctorPackage,
+    background: DoctorBackground,
     next_steps: Vec<String>,
 }
 
@@ -1261,6 +1262,31 @@ struct DoctorPackage {
     status: DoctorLevel,
     distribution: String,
     package_status_command: String,
+    note: String,
+}
+
+#[derive(Debug, Serialize)]
+struct DoctorBackground {
+    status: DoctorLevel,
+    mdns: DoctorBackgroundFeature,
+    mdns_ipv6: DoctorBackgroundFeature,
+    mdns_tailscale: DoctorBackgroundFeature,
+    mdns_virtual_interfaces: DoctorBackgroundFeature,
+    clipboard_sync: DoctorBackgroundFeature,
+    cloud_registration: DoctorBackgroundFeature,
+    cloud_heartbeat_interval_sec: u64,
+    cloud_heartbeat_floor_sec: u64,
+    file_sync: DoctorBackgroundFeature,
+    file_serve_root_count: usize,
+    file_serve_writable: bool,
+    planner: DoctorBackgroundFeature,
+    note: String,
+}
+
+#[derive(Debug, Serialize)]
+struct DoctorBackgroundFeature {
+    enabled: bool,
+    env_var: Option<&'static str>,
     note: String,
 }
 
@@ -1373,6 +1399,7 @@ pub async fn run_doctor(opts: DoctorOpts) -> Result<()> {
 
     let bridge_check = check_bridge(&home).await;
     let dashboard_check = check_dashboard().await;
+    let background_check = check_background_features(&home, account_token_present);
     let distribution = crate::install::distribution::DistributionMode::current()
         .as_str()
         .to_string();
@@ -1399,6 +1426,7 @@ pub async fn run_doctor(opts: DoctorOpts) -> Result<()> {
         account_check.status,
         bridge_check.status,
         dashboard_check.status,
+        background_check.status,
     ];
     if cfg!(windows) {
         levels.push(package_check.status);
@@ -1423,6 +1451,7 @@ pub async fn run_doctor(opts: DoctorOpts) -> Result<()> {
         bridge: bridge_check,
         dashboard: dashboard_check,
         package: package_check,
+        background: background_check,
         next_steps,
     };
 
@@ -1646,6 +1675,160 @@ async fn check_dashboard() -> DoctorDashboard {
         reachable_url: None,
         note: "Dashboard is not reachable from this shell. Start `musu-bee` with `npm run dev` or `npm start`.".into(),
     }
+}
+
+fn check_background_features(
+    home: &std::path::Path,
+    account_token_present: bool,
+) -> DoctorBackground {
+    const CLOUD_HEARTBEAT_FLOOR_SEC: u64 = 60;
+
+    let mdns_enabled = env_truthy("MUSU_ENABLE_MDNS");
+    let mdns_ipv6_enabled = env_truthy("MUSU_MDNS_ENABLE_IPV6");
+    let mdns_tailscale_enabled = env_truthy("MUSU_MDNS_ENABLE_TAILSCALE");
+    let mdns_virtual_enabled = env_truthy("MUSU_MDNS_ENABLE_VIRTUAL_INTERFACES");
+    let clipboard_enabled = env_truthy("MUSU_ENABLE_CLIPBOARD_SYNC");
+    let planner_enabled = env_truthy("MUSU_ENABLE_PLANNER");
+    let cloud_heartbeat_interval_sec = std::env::var("MUSU_CLOUD_HEARTBEAT_INTERVAL_SEC")
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .unwrap_or(300)
+        .max(CLOUD_HEARTBEAT_FLOOR_SEC);
+
+    let (file_serve_root_count, file_serve_writable) = background_file_sync_state(home);
+    let file_sync_enabled = file_serve_root_count > 0;
+
+    let hot_opt_ins = [
+        mdns_enabled,
+        mdns_ipv6_enabled,
+        mdns_tailscale_enabled,
+        mdns_virtual_enabled,
+        clipboard_enabled,
+        file_sync_enabled,
+        planner_enabled,
+    ]
+    .into_iter()
+    .filter(|enabled| *enabled)
+    .count();
+
+    let status = if hot_opt_ins == 0 {
+        DoctorLevel::Ok
+    } else {
+        DoctorLevel::Warn
+    };
+
+    DoctorBackground {
+        status,
+        mdns: DoctorBackgroundFeature {
+            enabled: mdns_enabled,
+            env_var: Some("MUSU_ENABLE_MDNS"),
+            note: if mdns_enabled {
+                "mDNS LAN discovery is enabled; keep disabled for idle CPU evidence unless testing discovery.".into()
+            } else {
+                "mDNS LAN discovery is off by default.".into()
+            },
+        },
+        mdns_ipv6: DoctorBackgroundFeature {
+            enabled: mdns_ipv6_enabled,
+            env_var: Some("MUSU_MDNS_ENABLE_IPV6"),
+            note: if mdns_ipv6_enabled {
+                "IPv6 mDNS is enabled; Windows VPN/Tailscale link-local paths can be noisy.".into()
+            } else {
+                "IPv6 mDNS is off by default.".into()
+            },
+        },
+        mdns_tailscale: DoctorBackgroundFeature {
+            enabled: mdns_tailscale_enabled,
+            env_var: Some("MUSU_MDNS_ENABLE_TAILSCALE"),
+            note: if mdns_tailscale_enabled {
+                "Tailscale mDNS is enabled; use only when explicitly validating this path.".into()
+            } else {
+                "Tailscale mDNS is off by default.".into()
+            },
+        },
+        mdns_virtual_interfaces: DoctorBackgroundFeature {
+            enabled: mdns_virtual_enabled,
+            env_var: Some("MUSU_MDNS_ENABLE_VIRTUAL_INTERFACES"),
+            note: if mdns_virtual_enabled {
+                "VPN/virtual mDNS interfaces are enabled; this can expand multicast work.".into()
+            } else {
+                "VPN/virtual mDNS interfaces are filtered by default.".into()
+            },
+        },
+        clipboard_sync: DoctorBackgroundFeature {
+            enabled: clipboard_enabled,
+            env_var: Some("MUSU_ENABLE_CLIPBOARD_SYNC"),
+            note: if clipboard_enabled {
+                "Clipboard polling is enabled; keep disabled for Store-candidate idle evidence unless explicitly testing sync.".into()
+            } else {
+                "Clipboard polling is off by default.".into()
+            },
+        },
+        cloud_registration: DoctorBackgroundFeature {
+            enabled: account_token_present,
+            env_var: None,
+            note: if account_token_present {
+                "musu.pro registration uses a low-duty heartbeat with backoff and jitter.".into()
+            } else {
+                "musu.pro registration is disabled until account login.".into()
+            },
+        },
+        cloud_heartbeat_interval_sec,
+        cloud_heartbeat_floor_sec: CLOUD_HEARTBEAT_FLOOR_SEC,
+        file_sync: DoctorBackgroundFeature {
+            enabled: file_sync_enabled,
+            env_var: Some("MUSU_FILE_SERVE_ROOTS"),
+            note: if file_sync_enabled {
+                format!(
+                    "File watcher/sync will start for {file_serve_root_count} shared root(s) when the bridge runs."
+                )
+            } else {
+                "File watcher/sync is disabled because no shared roots are configured.".into()
+            },
+        },
+        file_serve_root_count,
+        file_serve_writable,
+        planner: DoctorBackgroundFeature {
+            enabled: planner_enabled,
+            env_var: Some("MUSU_ENABLE_PLANNER"),
+            note: if planner_enabled {
+                "Autonomous planner loop is enabled; keep disabled for desktop idle evidence unless intentionally testing it.".into()
+            } else {
+                "Autonomous planner loop is off by default.".into()
+            },
+        },
+        note: if status == DoctorLevel::Ok {
+            "Background work is in the low-duty default profile.".into()
+        } else {
+            "One or more optional background features are enabled; include them explicitly in idle CPU evidence.".into()
+        },
+    }
+}
+
+fn background_file_sync_state(home: &std::path::Path) -> (usize, bool) {
+    let shares = SharesConfig::load(home);
+    let mut roots: Vec<std::path::PathBuf> = std::env::var("MUSU_FILE_SERVE_ROOTS")
+        .unwrap_or_default()
+        .split(',')
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(std::path::PathBuf::from)
+        .collect();
+    for root in shares.roots() {
+        if !roots.contains(&root) {
+            roots.push(root);
+        }
+    }
+
+    let writable = env_truthy("MUSU_FILE_SERVE_WRITABLE") || shares.any_writable();
+    (roots.len(), writable)
+}
+
+fn env_truthy(name: &str) -> bool {
+    matches!(
+        std::env::var(name).as_deref(),
+        Ok("1") | Ok("true") | Ok("yes")
+    )
 }
 
 async fn wait_for_bridge(home: &std::path::Path, timeout: std::time::Duration) -> DoctorBridge {
@@ -1883,6 +2066,31 @@ fn print_doctor_report(report: &DoctorReport) {
     );
     print_line("dashboard", report.dashboard.status, &report.dashboard.note);
     print_line("package", report.package.status, &report.package.note);
+    print_line(
+        "background",
+        report.background.status,
+        &report.background.note,
+    );
+    println!(
+        "  mDNS={} clipboard={} cloud_heartbeat={}s file_roots={} planner={}",
+        if report.background.mdns.enabled {
+            "on"
+        } else {
+            "off"
+        },
+        if report.background.clipboard_sync.enabled {
+            "on"
+        } else {
+            "off"
+        },
+        report.background.cloud_heartbeat_interval_sec,
+        report.background.file_serve_root_count,
+        if report.background.planner.enabled {
+            "on"
+        } else {
+            "off"
+        }
+    );
     println!();
     println!("Next steps:");
     for step in &report.next_steps {
@@ -2411,6 +2619,9 @@ pub async fn run_whoami() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]
     fn shared_service_helper_normalizes_wildcards_to_loopback() {
@@ -2559,5 +2770,76 @@ mod tests {
         assert!(candidate.peer_public_key_present);
         assert!(candidate.https_fingerprint_pin_available);
         assert_eq!(candidate.encryption, "https_tls_fingerprint_pin");
+    }
+
+    #[test]
+    fn doctor_background_file_sync_state_reads_shares() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        clear_background_env();
+        let tmp = tempfile::tempdir().unwrap();
+        let home = tmp.path().join(".musu");
+        std::fs::create_dir_all(&home).unwrap();
+        let mut shares = SharesConfig::default();
+        shares.add("F:\\workspace", true, Some("workspace".to_string()));
+        shares.save(&home).unwrap();
+
+        let (root_count, writable) = background_file_sync_state(&home);
+
+        assert_eq!(root_count, 1);
+        assert!(writable);
+    }
+
+    #[test]
+    fn doctor_background_defaults_are_low_duty() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        clear_background_env();
+        let tmp = tempfile::tempdir().unwrap();
+
+        let background = check_background_features(tmp.path(), false);
+
+        assert_eq!(background.status, DoctorLevel::Ok);
+        assert!(!background.mdns.enabled);
+        assert!(!background.clipboard_sync.enabled);
+        assert_eq!(background.cloud_heartbeat_interval_sec, 300);
+        assert_eq!(background.cloud_heartbeat_floor_sec, 60);
+        assert_eq!(background.file_serve_root_count, 0);
+    }
+
+    #[test]
+    fn doctor_background_warns_for_hot_opt_ins_and_floors_heartbeat() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        clear_background_env();
+        std::env::set_var("MUSU_ENABLE_MDNS", "1");
+        std::env::set_var("MUSU_ENABLE_CLIPBOARD_SYNC", "true");
+        std::env::set_var("MUSU_CLOUD_HEARTBEAT_INTERVAL_SEC", "5");
+        let tmp = tempfile::tempdir().unwrap();
+
+        let background = check_background_features(tmp.path(), true);
+
+        assert_eq!(background.status, DoctorLevel::Warn);
+        assert!(background.mdns.enabled);
+        assert!(background.clipboard_sync.enabled);
+        assert!(background.cloud_registration.enabled);
+        assert_eq!(background.cloud_heartbeat_interval_sec, 60);
+
+        std::env::remove_var("MUSU_ENABLE_MDNS");
+        std::env::remove_var("MUSU_ENABLE_CLIPBOARD_SYNC");
+        std::env::remove_var("MUSU_CLOUD_HEARTBEAT_INTERVAL_SEC");
+    }
+
+    fn clear_background_env() {
+        for name in [
+            "MUSU_ENABLE_MDNS",
+            "MUSU_MDNS_ENABLE_IPV6",
+            "MUSU_MDNS_ENABLE_TAILSCALE",
+            "MUSU_MDNS_ENABLE_VIRTUAL_INTERFACES",
+            "MUSU_ENABLE_CLIPBOARD_SYNC",
+            "MUSU_ENABLE_PLANNER",
+            "MUSU_FILE_SERVE_ROOTS",
+            "MUSU_FILE_SERVE_WRITABLE",
+            "MUSU_CLOUD_HEARTBEAT_INTERVAL_SEC",
+        ] {
+            std::env::remove_var(name);
+        }
     }
 }

@@ -276,6 +276,11 @@ Tauri desktop shell evidence:
   `~/.musu/services/bridge.json` entries when the recorded Windows PID is dead,
   and returns no bridge URL instead of probing an obsolete port. The same Tauri
   shell test command now passes 5/5 tests.
+- 2026-06-01 idle diagnostics: `musu doctor --json` now includes a
+  `background` object that reports mDNS, clipboard sync, cloud heartbeat,
+  file watcher roots, writable file serving, and planner opt-ins. Live
+  `HUGH_SECOND` output showed the intended idle profile: mDNS/clipboard/file
+  sync/planner off and cloud heartbeat `300s` with a `60s` floor.
 
 Release candidate manifest:
 
