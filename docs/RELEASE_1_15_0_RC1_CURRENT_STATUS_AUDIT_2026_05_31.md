@@ -308,3 +308,33 @@ Production Playwright QA against `https://musu.pro` also passed 8/8 for `/`,
 `/landing`, `/pricing`, and `/install` on desktop/mobile, verifying actual
 scroll movement, no horizontal overflow, favicon-mark logo source, emerald
 accent marker, and `--musu-color-brand-emerald=#24C8DB`.
+
+2026-06-02 02:05 KST fresh MSIX evidence addendum: the source-fresh release
+MSIX now builds and installs on `HUGH_SECOND` with `CARGO_BUILD_JOBS=1`.
+Installed package `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6` passes the new
+packaged desktop repeated-activation gate:
+`docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-014803-HUGH_SECOND.evidence.json`
+records three AppsFolder activations of
+`Yellowhama.MUSU_ygcjq669as2b6!MUSU` with baseline desktop shell `0`, after
+`1`, new shell count `1`, and PID `32232` reused. Current primary
+single-machine smoke passes at
+`docs\evidence\single-machine\1.15.0-rc.1\20260602-015347-HUGH_SECOND.evidence.json`
+with dashboard task `3e96b141-6aa5-4d39-a29b-450f15eed8b3`, bridge
+`http://127.0.0.1:6907`, and output `MUSU_RELEASE_SMOKE_OK_20260602_015326`.
+Current primary desktop-open CPU passes at
+`docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-015358-HUGH_SECOND.desktop-open.evidence.json`
+with 60.055s sample, hot process count `0`, max one-core CPU `musu=0.03`,
+`node=0.68`, `webview2=0.7`, and working set `537.79MB`. Current primary
+four-state matrix passes at
+`docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-015510-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+with route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_015510`. Current process
+ownership passes at
+`docs\evidence\process-ownership\1.15.0-rc.1\20260602-020031-HUGH_SECOND.evidence.json`
+with one runtime, one desktop shell, owned Node `0`, owned WebView2 `6`,
+machine-wide Node `18`, orphan repo helpers `0`, and bridge `/health` HTTP
+200. This closes the primary installed desktop single-instance blocker, but
+public release remains No-Go until second-PC CPU/matrix evidence,
+release-grade multi-device route evidence, live `musu.pro` P2P control-plane
+auth, `musu@musu.pro` inbox proof, and Store/Partner Center evidence are
+recorded. The qualitative/code-audit addendum is wiki/533:
+`docs/RELEASE_1_15_0_RC1_FRESH_MSIX_EVIDENCE_AUDIT_2026_06_02.md`.

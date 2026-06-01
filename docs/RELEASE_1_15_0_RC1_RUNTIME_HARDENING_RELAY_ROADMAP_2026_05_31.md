@@ -782,3 +782,42 @@ Public-site follow-up:
   `26764307713`, Tests run `26764309477`, and E2E run `26764310368` passed.
   Production Playwright QA also passed 8/8 on `/`, `/landing`, `/pricing`, and
   `/install`.
+
+## 2026-06-02 Fresh MSIX Primary Evidence Update
+
+The fresh release MSIX now builds and installs on `HUGH_SECOND`, so the earlier
+local OOM/pagefile blocker is no longer current on this machine.
+
+Current primary evidence:
+
+- Packaged desktop repeated activation:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-014803-HUGH_SECOND.evidence.json`,
+  repeat count `3`, baseline desktop shell `0`, after `1`, new desktop shell
+  `1`.
+- Single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-015347-HUGH_SECOND.evidence.json`,
+  task `3e96b141-6aa5-4d39-a29b-450f15eed8b3`, bridge
+  `http://127.0.0.1:6907`, output `MUSU_RELEASE_SMOKE_OK_20260602_015326`.
+- Desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-015358-HUGH_SECOND.desktop-open.evidence.json`,
+  hot process count `0`, max one-core CPU `musu=0.03`, `node=0.68`,
+  `webview2=0.7`, working set `537.79MB`.
+- Four-state CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-015510-HUGH_SECOND.runtime-cpu-scenario-matrix.json`,
+  route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_015510`.
+- Process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-020031-HUGH_SECOND.evidence.json`,
+  runtime `1`, desktop shell `1`, owned Node `0`, owned WebView2 `6`,
+  machine-wide Node `18`, orphan repo helpers `0`.
+
+Release interpretation:
+
+- The primary installed package no longer reproduces desktop shell duplication
+  after repeated activation.
+- The primary busy-loop report is still not reproduced by current source-fresh
+  evidence.
+- This does not reduce the two-machine requirement. Second-PC desktop-open CPU
+  and second-PC matrix evidence remain required.
+- The website scroll/logo/accent fix is already deployed to `musu.pro`. The
+  remaining hosted task is production P2P control-plane auth/env verification,
+  not another website UI deploy.

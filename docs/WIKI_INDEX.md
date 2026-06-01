@@ -241,6 +241,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | wiki/530 | Runtime relay fallback next steps | 2026-06-01 | `RUNTIME_RELAY_FALLBACK_NEXT_STEPS_2026_06_01.md` | active |
 | wiki/531 | Current qualitative audit, code audit, and next roadmap | 2026-06-01 | `RELEASE_1_15_0_RC1_QUAL_AUDIT_NEXT_STEPS_2026_06_01_2345.md` | active |
 | wiki/532 | Desktop single-instance release gate | 2026-06-02 | `DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md` | active |
+| wiki/533 | Fresh MSIX primary evidence audit | 2026-06-02 | `RELEASE_1_15_0_RC1_FRESH_MSIX_EVIDENCE_AUDIT_2026_06_02.md` | active |
 | — | 1.15.0-rc.1 beta release checklist and smoke evidence | 2026-05-29 | `BETA_RELEASE_CHECKLIST_1_15_0_RC1.md` | active |
 | — | 1.15.0-rc.1 final operator gates | 2026-05-29 | `RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md` | active |
 | — | MUSU Microsoft Store release run card | 2026-05-29 | `MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md` | active |
@@ -737,5 +738,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   1218 files and 2213 symbols. Search terms should include `GOAL v225`,
   `GOAL v226`, `0ed3673a`, `26764307713`, `26764309477`, `26764310368`,
   `production Playwright QA 8/8`, and `musu.pro deploy verified`.
+- 2026-06-02 fresh MSIX primary evidence audit: wiki/533 records that a fresh
+  release MSIX built and installed on `HUGH_SECOND`, and that packaged desktop
+  repeated activation now passes on the installed package. Current primary
+  evidence paths are `20260602-014803-HUGH_SECOND.evidence.json`,
+  `20260602-015347-HUGH_SECOND.evidence.json`,
+  `20260602-015358-HUGH_SECOND.desktop-open.evidence.json`,
+  `20260602-015510-HUGH_SECOND.runtime-cpu-scenario-matrix.json`, and
+  `20260602-020031-HUGH_SECOND.evidence.json`. Search terms should include
+  `wiki/533`, `fresh MSIX primary evidence`,
+  `desktop repeated activation passes`,
+  `MUSU_RELEASE_SMOKE_OK_20260602_015326`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_015510`, `owned Node 0`,
+  `machine-wide Node 18`, and `p2p control-plane env`.
+- 2026-06-02 index refresh after fresh MSIX primary evidence docs:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1230 files and 2213 symbols. Search terms should include `GOAL v230`,
+  `wiki/533`, `fresh MSIX primary evidence`, `20260602-014803-HUGH_SECOND`,
+  `20260602-015347-HUGH_SECOND`, `20260602-015358-HUGH_SECOND.desktop-open`,
+  `20260602-015510-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `20260602-020031-HUGH_SECOND`, and
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_015510`.
 
 **End of WIKI_INDEX.md.**

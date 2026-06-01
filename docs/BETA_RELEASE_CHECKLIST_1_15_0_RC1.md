@@ -117,6 +117,17 @@ Current machine-readable single-machine evidence passed and was recorded on 2026
 - verification SHA-256: `c578cd6a7de7c83f99c44777e7f4acf2d787c4861db6fa78fdab9929eb23ef45`
 - CLI route checked: `true`
 
+Current machine-readable single-machine evidence was refreshed on 2026-06-02 02:02 KST after a fresh release MSIX build/install:
+
+- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260602-015347-HUGH_SECOND.evidence.json`
+- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260602-015347-HUGH_SECOND.verification.json`
+- summary: `docs\evidence\single-machine\1.15.0-rc.1\20260602-015347-HUGH_SECOND.summary.md`
+- commit: `2e97d135538f063252577c49762f8018bc366843`
+- dashboard task id: `3e96b141-6aa5-4d39-a29b-450f15eed8b3`
+- bridge: `http://127.0.0.1:6907`
+- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260602_015326`
+- CLI route checked: `true`
+
 Multi-device packet:
 
 - script: `scripts\windows\smoke-multidevice-beta.ps1`
@@ -257,6 +268,26 @@ Store metadata:
   `26743680165`; live `musu.pro` QA with `qa=674f501` passed for `/`,
   `/landing`, `/pricing`, and `/install` on desktop/mobile.
 - final operator gates: `docs/RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md`
+
+Fresh MSIX primary evidence:
+
+- fresh MSIX: `.local-build\msix\output\musu_1.15.0.0_x64_local-sideload-manual.msix`
+- installed package: `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`
+- AppUserModelId: `Yellowhama.MUSU_ygcjq669as2b6!MUSU`
+- desktop repeated activation evidence:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-014803-HUGH_SECOND.evidence.json`
+- primary desktop-open CPU evidence:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-015358-HUGH_SECOND.desktop-open.evidence.json`
+- primary four-state runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-015510-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- process ownership evidence:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-020031-HUGH_SECOND.evidence.json`
+- current state: the primary installed desktop single-instance blocker is
+  closed by fresh package evidence. Public release remains No-Go until the
+  second PC returns matching CPU/matrix evidence, release-grade multi-device
+  route proof exists, live `musu.pro` P2P control-plane auth verifies,
+  `musu@musu.pro` delivery evidence is recorded, and Store/Partner Center
+  evidence is recorded.
 
 Current MSIX artifacts:
 

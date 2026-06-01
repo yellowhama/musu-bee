@@ -375,6 +375,36 @@ Current Store path truth:
   `desktop_single_instance_verified`, `desktop-single-instance`,
   `audit-musu-desktop-single-instance.ps1`, `shell:AppsFolder`,
   `20260602-005439-HUGH_SECOND`, and `new_desktop_shell=3`.
+- Fresh MSIX primary evidence audit is wiki/533:
+  `docs/RELEASE_1_15_0_RC1_FRESH_MSIX_EVIDENCE_AUDIT_2026_06_02.md`.
+  Fresh release MSIX build/install now passes on `HUGH_SECOND`; packaged
+  desktop repeated activation passes at
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-014803-HUGH_SECOND.evidence.json`
+  with three activations and one desktop shell. Current primary smoke passes at
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-015347-HUGH_SECOND.evidence.json`
+  with task `3e96b141-6aa5-4d39-a29b-450f15eed8b3`, bridge
+  `http://127.0.0.1:6907`, output `MUSU_RELEASE_SMOKE_OK_20260602_015326`,
+  and CLI route checked. Current primary desktop-open CPU passes at
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-015358-HUGH_SECOND.desktop-open.evidence.json`
+  with hot process count `0`, max one-core CPU `musu=0.03`, `node=0.68`,
+  `webview2=0.7`, and working set `537.79MB`. Current primary four-state CPU
+  matrix passes at
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-015510-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  with route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_015510`. Process
+  ownership passes at
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-020031-HUGH_SECOND.evidence.json`
+  with runtime `1`, desktop shell `1`, owned Node `0`, owned WebView2 `6`,
+  machine-wide Node `18`, and orphan repo helpers `0`. Public release remains
+  No-Go until second-PC CPU/matrix, release-grade multi-device route, live
+  `musu.pro` P2P control-plane auth, `musu@musu.pro`, and Store evidence pass.
+- Indexer refreshed after wiki/533 and fresh MSIX primary evidence:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1230 files and 2213 symbols. Search terms include `wiki/533`,
+  `fresh MSIX primary evidence`, `20260602-014803-HUGH_SECOND`,
+  `20260602-015347-HUGH_SECOND`, `20260602-015358-HUGH_SECOND.desktop-open`,
+  `20260602-015510-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `20260602-020031-HUGH_SECOND`, and
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_015510`.
 - Remote release gates must be rechecked after the last pushed commit before public handoff; latest recorded runs were green, and live `https://musu.pro/privacy` plus `/support` passed public metadata verification with `musu@musu.pro`.
 - old 2026-05-27 package: template only (`1.13.0.0`, do not submit as current)
 - Tauri shell: dedicated static runtime launcher/status shell now builds to `musu-bee/out`, bundles as MSI/NSIS through `npm run tauri:build`, and is audited as `desktop_shell_ready=True`; it is still not the full dashboard GUI
@@ -392,6 +422,7 @@ Canonical reference:
 - `docs/RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md` (wiki/521)
 - `docs/RELEASE_1_15_0_RC1_CURRENT_STATUS_AUDIT_2026_05_31.md` (wiki/522)
 - `docs/DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md` (wiki/532)
+- `docs/RELEASE_1_15_0_RC1_FRESH_MSIX_EVIDENCE_AUDIT_2026_06_02.md` (wiki/533)
 - `docs/RELEASE_1_15_0_RC1_QUAL_AUDIT_NEXT_STEPS_2026_06_01.md` (wiki/527)
 - `docs/RUNTIME_RELAY_FALLBACK_NEXT_STEPS_2026_06_01.md` (wiki/530)
 - `docs/STORE_LAUNCH_AND_PROMOTION_PLAN_2026_05_29.md`
