@@ -471,6 +471,17 @@ Current Store path truth:
   `p2p_control_auth_not_configured`. Next hosted task is Vercel KV/Upstash
   provisioning for `KV_REST_API_URL` and `KV_REST_API_TOKEN`; GitHub repo
   secrets currently do not contain those values and repo variables are empty.
+- `scripts\windows\show-musu-pro-p2p-env-status.ps1` is the current hosted
+  P2P env preflight. It checks GitHub secret/variable names and latest live
+  P2P evidence without printing secret values. Current output reports
+  `missing_kv_rest_api_token`, `missing_kv_rest_api_url`, and
+  `live_evidence_p2p_relay_lease_kv_not_configured`.
+- Indexer refreshed after hosted P2P env preflight script:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1256 files and 2214 symbols. Search terms include
+  `show-musu-pro-p2p-env-status.ps1`,
+  `musu.p2p_control_plane_env_status.v1`, and
+  `missing_kv_rest_api_token`.
 - Indexer refreshed after P2P auth/KV blocker docs:
   `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
   1255 files and 2214 symbols. Search terms include

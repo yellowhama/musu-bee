@@ -40,3 +40,13 @@ Final remote verification:
   name, built production, and aliased `https://musu.pro`.
 - This proves the env-sync workflow itself is valid. The remaining hosted
   blocker is still KV/Upstash provisioning.
+
+Repeatable preflight:
+
+- `scripts\windows\show-musu-pro-p2p-env-status.ps1 -Json` now emits
+  `musu.p2p_control_plane_env_status.v1`.
+- Current output reports `MUSU_P2P_CONTROL_TOKEN_SHA256S` present, but
+  `KV_REST_API_URL` and `KV_REST_API_TOKEN` missing.
+- It also classifies the latest live evidence as
+  `p2p_relay_lease_kv_not_configured`.
+- The script prints secret names only, never secret values.

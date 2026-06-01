@@ -857,5 +857,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   production, and aliased `https://musu.pro`. Search terms should include
   `9a3ec52`, `26776909275`, `26776909221`, `musu-djt8mmil5`, and
   `KV_REST_API_URL is not set`.
+- 2026-06-02 hosted P2P env preflight script:
+  `scripts\windows\show-musu-pro-p2p-env-status.ps1` emits schema
+  `musu.p2p_control_plane_env_status.v1` and checks required GitHub
+  secret/variable names plus latest live P2P evidence without printing secret
+  values. Current output reports `MUSU_P2P_CONTROL_TOKEN_SHA256S` present,
+  `KV_REST_API_URL` and `KV_REST_API_TOKEN` missing, latest evidence
+  `20260602-041225-musu.pro`, and blocker
+  `live_evidence_p2p_relay_lease_kv_not_configured`. Search terms should
+  include `show-musu-pro-p2p-env-status.ps1`,
+  `musu.p2p_control_plane_env_status.v1`, `missing_kv_rest_api_token`,
+  `missing_kv_rest_api_url`, and `secret values are never printed`.
+- 2026-06-02 index refresh after hosted P2P env preflight script:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1256 files and 2214 symbols after adding
+  `show-musu-pro-p2p-env-status.ps1` and linking it in the P2P next-action
+  docs, beta checklist, WIKI, GOAL, and CoS memory. Search terms should include
+  `GOAL v241`, `1256 files`, `musu.p2p_control_plane_env_status.v1`,
+  `missing_kv_rest_api_token`, and `show-musu-pro-p2p-env-status.ps1`.
 
 **End of WIKI_INDEX.md.**

@@ -192,6 +192,13 @@ Runtime hardening:
   `scripts\windows\show-p2p-control-token-hash.ps1 -Json` computes
   `MUSU_P2P_CONTROL_TOKEN_SHA256S` from `~\.musu\token` without printing the
   raw account token
+- P2P hosted env/status preflight:
+  `scripts\windows\show-musu-pro-p2p-env-status.ps1 -Json` reports required
+  GitHub secret/variable names, the latest live P2P evidence error class, and
+  next steps without printing secret values. Current expected blockers before
+  KV provisioning are `missing_kv_rest_api_url`,
+  `missing_kv_rest_api_token`, and
+  `live_evidence_p2p_relay_lease_kv_not_configured`.
 - relay fallback evidence status: failed runtime route evidence now carries a
   `relay_fallback` addendum after direct-route failure and lease evaluation,
   so `musu.pro` can audit whether the lease was requested/issued/skipped

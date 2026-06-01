@@ -27,6 +27,18 @@ KV/Redis storage env.
 
 ## Immediate Operator Actions
 
+0. Confirm the current hosted blocker without exposing secret values:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\show-musu-pro-p2p-env-status.ps1 -Json
+```
+
+Current expected blockers before KV provisioning:
+
+- `missing_kv_rest_api_url`
+- `missing_kv_rest_api_token`
+- `live_evidence_p2p_relay_lease_kv_not_configured`
+
 1. Provision Vercel KV / Upstash Redis for the `musu.pro` Vercel project.
 2. Add these GitHub repository secrets for `yellowhama/musu-bee`:
    - `KV_REST_API_URL`
@@ -54,6 +66,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\verify-p2p
   -EvidencePath <new evidence json> `
   -ExpectedBaseUrl https://musu.pro `
   -ExpectedVersion 1.15.0-rc.1
+```
+
+6. Re-run the env/status preflight and require it to pass:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\show-musu-pro-p2p-env-status.ps1 -FailOnProblem
 ```
 
 ## Acceptance Criteria
