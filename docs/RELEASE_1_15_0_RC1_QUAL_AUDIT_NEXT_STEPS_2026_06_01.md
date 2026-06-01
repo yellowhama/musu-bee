@@ -357,16 +357,40 @@ submission/release evidence.
   CPU/matrix, hardened route, support inbox, Store evidence, production P2P
   env/live verification, and relay/tunnel transport are done.
 
+2026-06-01 21:22 KST update:
+
+- The public-site follow-up is deployed to `musu.pro`. The previous Vercel
+  production run for `96303af3` was stuck and canceled as run `26753317276`.
+  Commit `65950384` hardened the deploy workflow with job/step timeouts and
+  `vercel deploy --prebuilt --yes`; replacement deploy run `26753908889` and
+  `Tests` run `26753908911` passed.
+- Live browser QA against `https://musu.pro` with cachebuster `qa=65950384`
+  passed on `/`, `/landing`, `/pricing`, and `/install` across desktop
+  `1280x720` and mobile `390x844`: scroll works, horizontal overflow is absent,
+  the favicon-header mark renders, `.musu-public-scroll-root` exists, and the
+  emerald accent is `#24C8DB` / `36,200,219`.
+- Final primary single-machine smoke passes at
+  `docs\evidence\single-machine\1.15.0-rc.1\20260601-211031-HUGH_SECOND.evidence.json`
+  with dashboard task `6a339c65-4d1a-46f3-894a-5a50cc69cd0e`.
+- Final primary `desktop-open` CPU passes at
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-211132-HUGH_SECOND.desktop-open.evidence.json`
+  from clean commit `a0184e89851d7ac99e1162a301f9219104a4df04`: MUSU `2`,
+  repo Node `1`, owned WebView2 `6`, max one-core CPU `musu=0`, `node=0`,
+  `webview2=0.23`, working set `506.71MB`, and no hot processes.
+- Final primary 4-state matrix passes at
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260601-211252-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  with route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260601_211252`.
+
 ## Qualitative Evaluation
 
 | Dimension | Current score | Notes |
 |---|---:|---|
 | Packaging trust | 8/10 | MSIX desktop-entrypoint and local-sideload contract are now coherent. Store certification remains external. |
-| Runtime efficiency | 7.6/10 | Current primary packaged desktop-open CPU evidence passes with repo Node explicitly counted: `musu=0%`, `node=0.03%`, `webview2=0.05%` of one logical core. Primary 4-state matrix evidence also passes, but repeated manual desktop launches can accumulate old shells and second-PC evidence is still missing. |
+| Runtime efficiency | 7.8/10 | Current primary packaged desktop-open CPU evidence passes with repo Node explicitly counted: `musu=0%`, `node=0%`, `webview2=0.23%` of one logical core. Primary 4-state matrix evidence also passes, and the reported 20%-of-one-core busy-loop is not reproduced on the current primary. Repeated manual desktop launches can still accumulate old shells, and second-PC evidence is still missing. |
 | P2P product story | 8.0/10 | The strategy is right, the bridge now has shared path-kind ranking for cached/manual/nodes candidates, runtime route evidence is stored/queryable on `musu.pro`, server-side rendezvous candidate exchange plus recent node candidate caching exists, runtime forwarding creates/uses sessions, refreshed target candidates can affect the actual forward address, peer identity material is exchanged, HTTPS bridge attempts can pin the advertised certificate fingerprint, relay fallback has a fail-closed lease policy API, lease audits are queryable from the CLI, and P2P auth now has a SHA-256 runtime-token allowlist path. The remaining penalty is production env/live verification, release-grade QUIC/TLS proof, real second-PC verification, and relay/tunnel transport. |
-| UX/branding | 6/10 -> 7.2/10 | App mark is strong. Public web asset tracking, wordmark fallback, basic static logo lockups, scroll behavior, and shared emerald accent regression coverage are now fixed locally. The latest follow-up still needs live `musu.pro` deploy recheck, and Store screenshots/product demo media are still needed. |
+| UX/branding | 6/10 -> 7.5/10 | App mark is strong. Public web asset tracking, wordmark fallback, basic static logo lockups, scroll behavior, shared emerald accent regression coverage, and live `musu.pro` deploy QA are now in place. Store screenshots/product demo media are still needed. |
 | Release evidence quality | 8.3/10 | Gates are strict and honest. Runtime CPU evidence must now match current HEAD or documentation/evidence-only deltas, Node.js attribution includes repo-related command lines, and dashboard-open matrices must prove a real launched dashboard URL. |
-| Overall public readiness | ~69% | Stronger than the pre-hardening baseline, but still No-Go because second-PC CPU/matrix, real hardened route, support inbox, Store evidence, production P2P env/live verification, latest site deploy recheck, desktop shell reactivation hardening, and relay/tunnel transport remain open. |
+| Overall public readiness | ~70% | Stronger than the pre-hardening baseline, but still No-Go because second-PC CPU/matrix, real hardened route, support inbox, Store evidence, production P2P env/live verification, desktop shell reactivation hardening, and relay/tunnel transport remain open. |
 
 ## Next Roadmap
 
@@ -375,9 +399,9 @@ submission/release evidence.
      Codex/MCP Node helpers are diagnostic only unless the sampler classifies
      them as repo-related.
    - Primary evidence now exists at
-     `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-203537-HUGH_SECOND.desktop-open.evidence.json`.
+     `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-211132-HUGH_SECOND.desktop-open.evidence.json`.
    - Primary 4-state matrix now exists at
-     `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260601-203835-HUGH_SECOND.runtime-cpu-scenario-matrix.json`.
+     `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260601-211252-HUGH_SECOND.runtime-cpu-scenario-matrix.json`.
    - Run `run-second-pc-release-check.ps1` on the second PC; it now captures
      MSIX install evidence, handoff, `desktop-open` runtime CPU evidence, and
      the 4-state CPU scenario matrix in one return zip.
@@ -412,12 +436,15 @@ submission/release evidence.
      route-evidence API; next make that evidence release-grade after rendezvous
      and QUIC/TLS proof are wired.
 
-3. **Deploy and recheck the public-site follow-up**
-   - Push the `PublicSiteShell` accent/test follow-up to `main`.
-   - Wait for `Deploy musu-bee to Vercel` to complete.
-   - Re-run live browser QA on `https://musu.pro`, `/landing`, `/pricing`, and
+3. **Keep the public-site deploy gate green**
+   - The `PublicSiteShell` accent/test follow-up is live on `musu.pro` after
+     deploy run `26753908889`.
+   - Keep the workflow timeout/`--prebuilt` deployment contract; if another
+     run hangs, cancel it and inspect Vercel logs instead of leaving the gate
+     ambiguous.
+   - Keep live browser QA on `https://musu.pro`, `/landing`, `/pricing`, and
      `/install` for scroll, no horizontal overflow, favicon-header logo, and
-     `#24C8DB` accent.
+     `#24C8DB` accent after any future public-site change.
 
 4. **Re-run multi-device release proof**
    - Use second-PC returned handoff for candidate addresses.

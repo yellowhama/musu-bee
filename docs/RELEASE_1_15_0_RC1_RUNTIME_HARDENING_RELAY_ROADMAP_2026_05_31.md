@@ -91,6 +91,23 @@ What it does not close:
   shells and showed the expected `musu=2`, repo Node `1`, WebView2 `6` desktop
   profile. This keeps "packaged desktop single-instance/window reactivation"
   as an explicit follow-up separate from bridge `musu up` reuse.
+- 2026-06-01 21:17 KST final primary evidence after deploy workflow
+  hardening: single-machine smoke
+  `docs\evidence\single-machine\1.15.0-rc.1\20260601-211031-HUGH_SECOND.evidence.json`
+  passes; primary `desktop-open` CPU evidence
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-211132-HUGH_SECOND.desktop-open.evidence.json`
+  passes from clean commit `a0184e89851d7ac99e1162a301f9219104a4df04` with
+  MUSU `2`, repo Node `1`, owned WebView2 `6`, max one-core CPU `musu=0`,
+  `node=0`, `webview2=0.23`, working set `506.71MB`, and no hot processes;
+  primary 4-state matrix
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260601-211252-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  passes with route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260601_211252`.
+- Public-site deployment hardening is complete for the latest branding/scroll
+  change: stuck Vercel run `26753317276` for `96303af3` was canceled, commit
+  `65950384` added workflow timeouts and `vercel deploy --prebuilt --yes`,
+  Vercel production run `26753908889` succeeded, `Tests` run `26753908911`
+  succeeded, and live `musu.pro` QA passed on `/`, `/landing`, `/pricing`, and
+  `/install` across desktop/mobile.
 
 ## Code Audit Findings
 
@@ -586,3 +603,39 @@ Validation:
 - `cargo build --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1` passed.
 - `cargo fmt --manifest-path .\musu-rs\Cargo.toml --check` passed.
 - `git diff --check` passed.
+
+## 2026-06-01 Deploy Workflow and Final Evidence Update
+
+The `musu.pro` deploy path was hardened after a stuck Vercel production run:
+
+- `Deploy musu-bee to Vercel` run `26753317276` for commit `96303af3` was
+  canceled after staying in progress without useful logs.
+- Commit `65950384` added a 20-minute job timeout, 10-minute deploy-step
+  timeout, and switched the deployment command to `vercel deploy --prebuilt
+  --yes`.
+- Replacement Vercel production run `26753908889` passed, and `Tests` run
+  `26753908911` passed.
+- Live `https://musu.pro` QA passed on `/`, `/landing`, `/pricing`, and
+  `/install` for desktop and mobile: scroll movement works, no horizontal
+  overflow was observed, the favicon-header logo renders, the public scroll
+  root exists, and the emerald accent is `#24C8DB`.
+
+Final primary evidence was then refreshed:
+
+- Single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260601-211031-HUGH_SECOND.evidence.json`.
+- Primary `desktop-open` CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-211132-HUGH_SECOND.desktop-open.evidence.json`,
+  with max one-core CPU `musu=0`, `node=0`, `webview2=0.23`.
+- Primary 4-state CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260601-211252-HUGH_SECOND.runtime-cpu-scenario-matrix.json`,
+  with token `MUSU_CPU_SCENARIO_ROUTE_OK_20260601_211252`.
+
+Release interpretation:
+
+- The operator-reported busy-loop is still not reproduced on current primary
+  evidence.
+- The hard release block is now evidence coverage, not a confirmed current
+  primary CPU regression: second-PC CPU/matrix, release-grade multi-device
+  route, production P2P env/live verification, `musu@musu.pro`, Store evidence,
+  and relay/tunnel transport remain open.

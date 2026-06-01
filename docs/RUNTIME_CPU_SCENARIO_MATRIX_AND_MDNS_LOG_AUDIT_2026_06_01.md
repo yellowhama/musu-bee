@@ -231,6 +231,36 @@ hardening and the public-site common-shell accent follow-up:
   gates, but public release still requires the second-PC `desktop-open` CPU
   sample and second-PC 4-state matrix before the runtime gates close.
 
+2026-06-01 21:17 KST final primary evidence after deploy workflow hardening:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260601-211031-HUGH_SECOND.evidence.json`
+  with dashboard task `6a339c65-4d1a-46f3-894a-5a50cc69cd0e`, bridge
+  `http://127.0.0.1:4752`, dashboard output
+  `MUSU_RELEASE_SMOKE_OK_20260601_211010`, and CLI route checked.
+- primary `desktop-open` CPU evidence:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-211132-HUGH_SECOND.desktop-open.evidence.json`
+  from clean commit `a0184e89851d7ac99e1162a301f9219104a4df04`, 60.059s
+  sample, `git_dirty=false`, MUSU `2`, repo Node `1`, owned WebView2 `6`,
+  max one-core CPU `musu=0`, `node=0`, `webview2=0.23`, working set
+  `506.71MB`, private memory `329.62MB`, and no hot processes.
+- primary 4-state CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260601-211252-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  from clean commit `a0184e89851d7ac99e1162a301f9219104a4df04`, verifier
+  `ok=true`, `fail_count=0`.
+- matrix detail:
+  `runtime-started` sampled MUSU `1`, repo Node `1`, WebView2 `0`, max
+  one-core CPU `node=0.03`; `dashboard-open` sampled MUSU `1`, repo Node `1`,
+  WebView2 `0`, max CPU `musu=0.03`, `node=0.05`; `desktop-open` sampled
+  MUSU `2`, repo Node `1`, WebView2 `6`, max CPU `node=0.08`,
+  `webview2=0.23`; `post-route` sampled MUSU `2`, repo Node `1`, WebView2
+  `6`, max CPU `webview2=0.08`.
+- route probe token:
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260601_211252`.
+- release status: current primary still shows no 20%-of-one-core busy-loop,
+  but the runtime gates remain `1/2` until the second PC returns matching
+  clean/current `desktop-open` CPU and 4-state matrix evidence.
+
 2026-06-01 17:38 KST frontend polling hardening update:
 
 - `musu-bee/src` no longer contains direct `setInterval(` usage.
