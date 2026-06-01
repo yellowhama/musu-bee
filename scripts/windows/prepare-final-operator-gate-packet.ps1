@@ -110,6 +110,8 @@ $scriptsToCopy = @(
     "verify-store-release-evidence.ps1",
     "record-p2p-control-plane-evidence.ps1",
     "verify-p2p-control-plane-evidence.ps1",
+    "configure-musu-pro-p2p-env.ps1",
+    "show-musu-pro-p2p-env-status.ps1",
     "verify-store-submission-bundle.ps1",
     "audit-msix-desktop-entrypoint.ps1",
     "measure-musu-idle-cpu.ps1",
@@ -452,6 +454,23 @@ This launches the installed packaged desktop app through
 Start-menu activation leaves at most one `musu-desktop.exe` Tauri shell.
 
 Expected result: `desktop_single_instance_verified=true`.
+
+## Gate I - Hosted P2P control-plane environment
+
+After provisioning Vercel KV / Upstash Redis for `musu.pro`, set the production
+storage env without printing secret values:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\configure-musu-pro-p2p-env.ps1 `
+  -KvRestApiUrl "<KV_REST_API_URL>" `
+  -KvRestApiToken "<KV_REST_API_TOKEN>" `
+  -Deploy
+```
+
+This writes `KV_REST_API_URL` as a GitHub variable by default, writes
+`KV_REST_API_TOKEN` as a GitHub secret, triggers the deploy workflow when
+`-Deploy` is supplied, and then `show-musu-pro-p2p-env-status.ps1` can verify
+that the live blocker is no longer `p2p_relay_lease_kv_not_configured`.
 
 ## Final command
 

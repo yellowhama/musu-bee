@@ -555,6 +555,21 @@ Current Store path truth:
   1261 files and 2214 symbols. Search terms include
   `process-attribution-summary`, `machine-wide node.exe=16`, `owned_node=0`,
   `owned_webview2=6`, `show-musu-process-attribution.ps1`, and `wiki/536`.
+- Hosted P2P KV env configuration update: `configure-musu-pro-p2p-env.ps1`
+  now provides the safe operator path after Vercel KV / Upstash values exist.
+  It sets `KV_REST_API_URL` through `gh variable set` by default,
+  `KV_REST_API_TOKEN` through `gh secret set`, accepts optional relay policy
+  env names, can trigger `deploy-musu-bee.yml`, and never prints values. A
+  dry-run with redacted KV inputs returned `ok=true` and requested only
+  `KV_REST_API_URL` plus `KV_REST_API_TOKEN`. This advances the `musu.pro`
+  blocker from an English runbook to an executable, auditable operator step;
+  external KV provisioning is still required before live evidence can pass.
+- Indexer refreshed after hosted P2P KV env configurator wiring:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1263 files and 2214 symbols. Search terms include
+  `musu.configure_musu_pro_p2p_env.v1`, `KV_REST_API_URL variable`,
+  `KV_REST_API_TOKEN secret`, `Deploy`, `DryRun`, and
+  `p2p_relay_lease_kv_not_configured`.
 - Remote release gates must be rechecked after the last pushed commit before public handoff; latest recorded runs were green, and live `https://musu.pro/privacy` plus `/support` passed public metadata verification with `musu@musu.pro`.
 - old 2026-05-27 package: template only (`1.13.0.0`, do not submit as current)
 - Tauri shell: dedicated static runtime launcher/status shell now builds to `musu-bee/out`, bundles as MSI/NSIS through `npm run tauri:build`, and is audited as `desktop_shell_ready=True`; it is still not the full dashboard GUI

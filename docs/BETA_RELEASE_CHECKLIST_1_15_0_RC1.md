@@ -174,6 +174,10 @@ Runtime hardening:
   `scripts\windows\record-p2p-control-plane-evidence.ps1`
 - P2P control-plane live evidence verifier:
   `scripts\windows\verify-p2p-control-plane-evidence.ps1`
+- hosted P2P env configurator:
+  `scripts\windows\configure-musu-pro-p2p-env.ps1` sets `KV_REST_API_URL`
+  and `KV_REST_API_TOKEN` through `gh` without printing values and can trigger
+  `deploy-musu-bee.yml`
 - public beta target: MUSU packaged desktop open and idle, at least one MUSU runtime process sampled, at least one MUSU-owned WebView2 process attributed, no MUSU/Node.js/WebView2 process above 5% of one logical CPU for a 60s idle sample, owned process count <= 16, owned WebView2 count <= 8, total owned working set <= 1024MB
 - process ownership target: one live MUSU runtime, no repo-related orphan Node/WebView2 helpers, and bridge registry PID plus `/health` matching the live runtime. Machine-wide `node.exe` count is diagnostic only; MUSU-owned descendants and repo-related orphan helpers are the release accountability boundary.
 - startup single-instance target: repeated `musu up --json` calls reuse one bridge PID and do not spawn another runtime
@@ -433,7 +437,8 @@ Tauri desktop shell evidence:
   Current GitHub repo secrets include no `KV_REST_API_URL` or
   `KV_REST_API_TOKEN`, and repo variables are empty, so the next hosted action
   is provisioning Vercel KV/Upstash Redis and setting those env values before
-  rerunning P2P evidence.
+  rerunning P2P evidence. Use
+  `scripts\windows\configure-musu-pro-p2p-env.ps1` after KV values exist.
 - 2026-06-02 04:29 KST final remote verification: commit
   `9a3ec52df102d36075f245bdab526dc57fb99e08` passed `Tests` run
   `26776909221` and `Deploy musu-bee to Vercel` run `26776909275`. The deploy

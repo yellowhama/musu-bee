@@ -221,6 +221,7 @@ elseif (-not $evidenceSummary.ok) {
 $nextSteps = New-Object System.Collections.Generic.List[string]
 if ($blockers -contains "missing_kv_rest_api_url" -or $blockers -contains "missing_kv_rest_api_token" -or $blockers -contains "live_evidence_p2p_relay_lease_kv_not_configured") {
     $nextSteps.Add("Provision Vercel KV / Upstash Redis for the musu.pro project.") | Out-Null
+    $nextSteps.Add("Use scripts\windows\configure-musu-pro-p2p-env.ps1 to set KV_REST_API_URL and KV_REST_API_TOKEN without printing secret values.") | Out-Null
     $nextSteps.Add("Set KV_REST_API_URL and KV_REST_API_TOKEN in GitHub repo secrets or Vercel production env.") | Out-Null
     $nextSteps.Add("Run gh workflow run deploy-musu-bee.yml --repo $Repo --ref main, then rerun P2P control-plane evidence.") | Out-Null
 }

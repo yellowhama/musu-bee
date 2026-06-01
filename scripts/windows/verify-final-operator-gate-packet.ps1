@@ -115,6 +115,8 @@ try {
         "scripts\windows\verify-store-release-evidence.ps1",
         "scripts\windows\record-p2p-control-plane-evidence.ps1",
         "scripts\windows\verify-p2p-control-plane-evidence.ps1",
+        "scripts\windows\configure-musu-pro-p2p-env.ps1",
+        "scripts\windows\show-musu-pro-p2p-env-status.ps1",
         "scripts\windows\verify-store-submission-bundle.ps1",
         "scripts\windows\audit-msix-desktop-entrypoint.ps1",
         "scripts\windows\measure-musu-idle-cpu.ps1",
@@ -190,6 +192,7 @@ try {
         Add-CheckFromCondition "readme process attribution summary" ($readme -like "*show-musu-process-attribution.ps1*" -and $readme -like "*machine-wide*" -and $readme -like "*MUSU-owned*") "README explains Node/WebView2 process attribution summary" "README missing process attribution summary"
         Add-CheckFromCondition "readme startup single-instance audit" ($readme -like "*audit-musu-startup-single-instance.ps1*" -and $readme -like "*startup_single_instance_verified=true*" -and $readme -like "*one bridge PID*") "README includes startup single-instance audit gate" "README missing startup single-instance audit gate"
         Add-CheckFromCondition "readme desktop single-instance audit" ($readme -like "*audit-musu-desktop-single-instance.ps1*" -and $readme -like "*desktop_single_instance_verified=true*" -and $readme -like "*musu-desktop.exe*") "README includes packaged desktop single-instance audit gate" "README missing packaged desktop single-instance audit gate"
+        Add-CheckFromCondition "readme p2p env configuration" ($readme -like "*configure-musu-pro-p2p-env.ps1*" -and $readme -like "*KV_REST_API_URL*" -and $readme -like "*KV_REST_API_TOKEN*") "README includes hosted P2P env configuration command" "README missing hosted P2P env configuration command"
         Add-CheckFromCondition "readme handoff status command" ($readme -like "*show-final-release-handoff-status.ps1*") "README includes final release handoff status command" "README missing final release handoff status command"
         Add-CheckFromCondition "readme action pack commands" ($readme -like "*prepare-operator-action-pack.ps1*" -and $readme -like "*verify-operator-action-pack.ps1*" -and $readme -like "*copy/handoff convenience*") "README includes operator action pack generation/verification boundary" "README missing operator action pack generation/verification boundary"
         Add-CheckFromCondition "readme operator handoff card" ($readme -like "*show-operator-handoff-card.ps1*" -or $readme -like "*RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md*") "README includes operator handoff card path" "README missing operator handoff card reference"
@@ -357,7 +360,7 @@ try {
         $packetVerifierScript = Get-Content -LiteralPath $packetVerifierScriptPath -Raw
         Add-CheckFromCondition `
             "packet verifier release safety checks" `
-            ($packetVerifierScript -like "*go no-go dirty git blocker*" -and $packetVerifierScript -like "*go no-go process ownership gate*" -and $packetVerifierScript -like "*readme process attribution summary*" -and $packetVerifierScript -like "*go no-go startup single-instance gate*" -and $packetVerifierScript -like "*multi-device verifier schema gate*" -and $packetVerifierScript -like "*msix verifier version and capture gate*" -and $packetVerifierScript -like "*support verifier version and token gate*" -and $packetVerifierScript -like "*store recorder explicit reservation timestamp*" -and $packetVerifierScript -like "*operator handoff return archive*" -and $packetVerifierScript -like "*second pc return importer safety*" -and $packetVerifierScript -like "*runtime CPU scenario matrix*") `
+            ($packetVerifierScript -like "*go no-go dirty git blocker*" -and $packetVerifierScript -like "*go no-go process ownership gate*" -and $packetVerifierScript -like "*readme process attribution summary*" -and $packetVerifierScript -like "*readme p2p env configuration*" -and $packetVerifierScript -like "*go no-go startup single-instance gate*" -and $packetVerifierScript -like "*multi-device verifier schema gate*" -and $packetVerifierScript -like "*msix verifier version and capture gate*" -and $packetVerifierScript -like "*support verifier version and token gate*" -and $packetVerifierScript -like "*store recorder explicit reservation timestamp*" -and $packetVerifierScript -like "*operator handoff return archive*" -and $packetVerifierScript -like "*second pc return importer safety*" -and $packetVerifierScript -like "*runtime CPU scenario matrix*") `
             "packet verifier checks dirty git, process ownership, startup single-instance, MSIX, multi-device, support, and Store evidence rules" `
             "packet verifier does not check all release evidence rules"
     }

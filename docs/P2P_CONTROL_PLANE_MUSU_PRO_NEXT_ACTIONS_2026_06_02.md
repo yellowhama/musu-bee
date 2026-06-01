@@ -43,6 +43,39 @@ Current expected blockers before KV provisioning:
 2. Add these GitHub repository secrets for `yellowhama/musu-bee`:
    - `KV_REST_API_URL`
    - `KV_REST_API_TOKEN`
+
+Preferred command after KV values exist:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\configure-musu-pro-p2p-env.ps1 `
+  -KvRestApiUrl "<KV_REST_API_URL>" `
+  -KvRestApiToken "<KV_REST_API_TOKEN>" `
+  -Deploy `
+  -Json
+```
+
+The script sends values to `gh secret set` / `gh variable set` through stdin and
+does not print secret values. By default, `KV_REST_API_URL` is stored as a repo
+variable and `KV_REST_API_TOKEN` is stored as a repo secret. Use
+`-StoreKvUrlAsSecret` if the URL must also be treated as secret.
+
+Dry-run without setting anything:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\configure-musu-pro-p2p-env.ps1 `
+  -KvRestApiUrl "<KV_REST_API_URL>" `
+  -KvRestApiToken "<KV_REST_API_TOKEN>" `
+  -DryRun `
+  -Json
+```
+
+Manual fallback:
+
+```powershell
+gh variable set KV_REST_API_URL --repo yellowhama/musu-bee
+gh secret set KV_REST_API_TOKEN --repo yellowhama/musu-bee
+```
+
 3. Run the deploy workflow:
 
 ```powershell
