@@ -115,14 +115,14 @@ Observed result:
 
 This closes the assistant-side single-computer test for the current code commit, with later documentation/evidence-only commits allowed by the verifier.
 
-Current machine-readable evidence was added on 2026-06-01 08:40 KST after relay lease and runtime CPU evidence refresh:
+Current machine-readable evidence was added on 2026-06-01 09:05 KST after runtime CPU gate reporting code refresh:
 
-- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260601-084028-HUGH_SECOND.evidence.json`
-- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260601-084028-HUGH_SECOND.verification.json`
-- commit: `a1ee33fa0c8e3b68e85dc4b48077134ec5dd99ac`
-- dashboard task id: `5ac5baa6-471f-4633-9a57-9e3a87a20c7a`
-- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260601_084005`
-- CLI route output: `MUSU_CLI_ROUTE_OK_20260601_084005`
+- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260601-090548-HUGH_SECOND.evidence.json`
+- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260601-090548-HUGH_SECOND.verification.json`
+- commit: `da4999081073018ab3b1b72a26645140ad2e68f7`
+- dashboard task id: `38d1eb2c-1905-493b-b536-459866c25c78`
+- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260601_090528`
+- CLI route output: `MUSU_CLI_ROUTE_OK_20260601_090528`
 - release audit now reports `single_machine_verified=true`
 
 ## Gate 1 - Support Mailbox Evidence

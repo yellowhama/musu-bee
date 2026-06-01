@@ -104,16 +104,16 @@ Fresh repeatable script smoke passed again on 2026-05-29 06:52 KST:
 - dashboard output: `MUSU_RELEASE_SMOKE_OK_20260529_0652`
 - CLI route output: `MUSU_CLI_ROUTE_OK_20260529_0652`
 
-Current machine-readable single-machine evidence passed and was recorded on 2026-06-01 08:40 KST after the relay lease and runtime CPU evidence refresh:
+Current machine-readable single-machine evidence passed and was recorded on 2026-06-01 09:05 KST after the runtime CPU gate reporting code commit:
 
-- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260601-084028-HUGH_SECOND.evidence.json`
-- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260601-084028-HUGH_SECOND.verification.json`
-- summary: `docs\evidence\single-machine\1.15.0-rc.1\20260601-084028-HUGH_SECOND.summary.md`
-- commit: `a1ee33fa0c8e3b68e85dc4b48077134ec5dd99ac`
-- dashboard task id: `5ac5baa6-471f-4633-9a57-9e3a87a20c7a`
-- bridge: `http://127.0.0.1:13167`
-- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260601_084005`
-- CLI route output: `MUSU_CLI_ROUTE_OK_20260601_084005`
+- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260601-090548-HUGH_SECOND.evidence.json`
+- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260601-090548-HUGH_SECOND.verification.json`
+- summary: `docs\evidence\single-machine\1.15.0-rc.1\20260601-090548-HUGH_SECOND.summary.md`
+- commit: `da4999081073018ab3b1b72a26645140ad2e68f7`
+- dashboard task id: `38d1eb2c-1905-493b-b536-459866c25c78`
+- bridge: `http://127.0.0.1:5089`
+- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260601_090528`
+- CLI route output: `MUSU_CLI_ROUTE_OK_20260601_090528`
 - CLI route checked: `true`
 
 Multi-device packet:

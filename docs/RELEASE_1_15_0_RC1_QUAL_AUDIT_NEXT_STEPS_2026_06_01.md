@@ -269,6 +269,17 @@ against the advertised fingerprint during the actual bridge forward. That still
   false because real second-PC multi-device route evidence, second-PC
   `desktop-open` CPU evidence, `musu@musu.pro` delivery evidence, and
   Partner Center/Store release evidence are still missing.
+- After runtime CPU gate reporting fields landed, current single-machine smoke
+  was refreshed again and recorded as
+  `docs\evidence\single-machine\1.15.0-rc.1\20260601-090548-HUGH_SECOND.evidence.json`
+  on commit `da4999081073018ab3b1b72a26645140ad2e68f7`. It passed with
+  dashboard output `MUSU_RELEASE_SMOKE_OK_20260601_090528`, CLI output
+  `MUSU_CLI_ROUTE_OK_20260601_090528`, dashboard task
+  `38d1eb2c-1905-493b-b536-459866c25c78`, bridge
+  `http://127.0.0.1:5089`, evidence SHA-256
+  `52f34b6bc377404e118ec429bdc2c3d9c781d622870debee0d2d62a67e6eaae7`,
+  and verification SHA-256
+  `70f8665ddcc015305b539bf8832bcf57b4d4507c1f07d7284a1d0bfd59f7f22a`.
 
 The release gate still needs two-machine desktop-open CPU evidence, hardened
 multi-device route evidence, support inbox delivery evidence, and Store
