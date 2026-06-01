@@ -12,7 +12,7 @@ interface MusuLogoProps {
 const displayHeight: Record<LogoSize, number> = {
   hero:    120,
   display: 80,
-  header:  48,
+  header:  36,
 };
 
 const wordmarkColor: Record<LogoVariant, string> = {

@@ -4,10 +4,13 @@
 :root {
   /* ========== BRAND (Neo-Brutalism Color Block Stack) ========== */
   --musu-color-brand-ink: #000000;       
+  --musu-color-brand-ink-rgb: 0, 0, 0;
   --musu-color-brand-accent: #FF9800;    
+  --musu-color-brand-accent-rgb: 255, 152, 0;
   --musu-color-brand-emerald: #24C8DB;
   --musu-color-brand-emerald-rgb: 36, 200, 219;
   --musu-color-brand-canvas: #FFFFFF;    
+  --musu-color-brand-canvas-rgb: 255, 255, 255;
   --musu-color-brand-stroke: #000000;    
 
   /* Legacy aliases (carry over from globals.css) */
@@ -309,6 +312,7 @@
 
 html {
   min-height: 100%;
+  overflow-y: auto;
   background: var(--bg-base);
 }
 
@@ -322,6 +326,19 @@ body {
   font-size: var(--text-base);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.musu-public-scroll-root {
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: visible;
+  overscroll-behavior-y: auto;
+}
+
+@supports (overflow: clip) {
+  .musu-public-scroll-root {
+    overflow-x: clip;
+  }
 }
 
 /* ========== HEADING TYPOGRAPHY (VibeCode Town §3) ========== */

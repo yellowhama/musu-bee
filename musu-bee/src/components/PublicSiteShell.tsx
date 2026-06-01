@@ -1,6 +1,6 @@
 import Link from "next/link";
-import Image from "next/image";
 import type { CSSProperties, ReactNode } from "react";
+import { MusuLogo } from "@/components/brand/MusuLogo";
 
 export default function PublicSiteShell({
   children,
@@ -8,7 +8,7 @@ export default function PublicSiteShell({
   children: ReactNode;
 }) {
   return (
-    <div style={shellStyle}>
+    <div className="musu-public-scroll-root" style={shellStyle}>
       <nav
         style={{
           position: "sticky",
@@ -26,26 +26,9 @@ export default function PublicSiteShell({
       >
         <Link
           href="/"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 10,
-            color: "var(--fg1)",
-            textDecoration: "none",
-            fontWeight: 800,
-            letterSpacing: "-0.03em",
-            fontSize: 18,
-          }}
+          style={brandLinkStyle}
         >
-          <Image
-            src="/images/favicon-header.png"
-            alt="MUSU"
-            width={28}
-            height={28}
-            style={brandMarkStyle}
-            priority
-          />
-          <span>MUSU</span>
+          <MusuLogo size="header" variant="onDark" />
         </Link>
         <div
           style={{
@@ -114,10 +97,11 @@ const shellStyle: ShellStyle = {
     "'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif",
 };
 
-const brandMarkStyle: CSSProperties = {
-  height: 28,
-  width: 28,
-  objectFit: "contain",
+const brandLinkStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  color: "var(--fg1)",
+  textDecoration: "none",
   filter: "drop-shadow(0 0 12px rgba(var(--musu-color-brand-emerald-rgb), 0.22))",
 };
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import Image from "next/image";
-import React from "react";
+import type { CSSProperties } from "react";
+import { MusuLogo } from "@/components/brand/MusuLogo";
 
 export const metadata = {
   title: "MUSU | Coming Soon",
@@ -10,14 +10,15 @@ export const metadata = {
 export default function ComingSoonPage() {
   return (
     <div
+      className="musu-public-scroll-root"
+      data-testid="public-home"
       style={{
         background: "var(--bg-base)",
         color: "var(--fg1)",
         fontFamily: "var(--font-ui)",
-        minHeight: "100vh",
+        minHeight: "100dvh",
         display: "flex",
         flexDirection: "column",
-        overflowX: "hidden",
       }}
     >
       {/* NAV */}
@@ -34,26 +35,9 @@ export default function ComingSoonPage() {
           zIndex: 100,
         }}
       >
-        <span
-          style={{
-            fontWeight: 800,
-            fontSize: "var(--text-md)",
-            fontFamily: "var(--font-display)",
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-          }}
-        >
-          <Image
-            src="/images/favicon-header.png"
-            alt="MUSU"
-            width={28}
-            height={28}
-            style={siteLogoMarkStyle}
-            priority
-          />
-          <span>musu</span>
-        </span>
+        <Link href="/" aria-label="MUSU home" style={siteLogoLinkStyle}>
+          <MusuLogo size="header" variant="onLight" />
+        </Link>
         <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
           <Link
             href="/app"
@@ -78,6 +62,7 @@ export default function ComingSoonPage() {
           }}
         >
           <div
+            data-brand-accent="emerald"
             style={{
               display: "inline-block",
               background: "var(--bg-card)",
@@ -150,9 +135,13 @@ export default function ComingSoonPage() {
                 <button
                   type="submit"
                   className="btn btn-primary"
+                  data-brand-accent="emerald"
                   style={{
                     flex: "1 1 auto",
                     padding: "16px 32px",
+                    background: "var(--musu-color-brand-emerald)",
+                    borderColor: "var(--musu-color-brand-ink)",
+                    color: "var(--musu-color-brand-ink)",
                   }}
                 >
                   Request Access
@@ -181,11 +170,11 @@ export default function ComingSoonPage() {
             <div style={{ width: 220, borderRight: "var(--neo-border)", background: "var(--bg-base)", padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--fg2)", textTransform: "uppercase" }}>Devices</div>
               <div style={{ background: "var(--bg-card)", border: "var(--neo-border)", padding: "12px", display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 12, height: 12, borderRadius: "50%", background: "var(--status-online)" }} />
+                <div style={{ width: 12, height: 12, borderRadius: "50%", background: "var(--musu-color-brand-emerald)" }} />
                 <span style={{ fontSize: "var(--text-base)", fontFamily: "var(--font-mono)", fontWeight: 700 }}>MacBook-Pro</span>
               </div>
               <div style={{ background: "var(--bg-card)", border: "var(--neo-border)", padding: "12px", display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 12, height: 12, borderRadius: "50%", background: "var(--status-online)" }} />
+                <div style={{ width: 12, height: 12, borderRadius: "50%", background: "var(--musu-color-brand-emerald)" }} />
                 <span style={{ fontSize: "var(--text-base)", fontFamily: "var(--font-mono)", fontWeight: 700 }}>Cloud-A100</span>
               </div>
             </div>
@@ -303,24 +292,18 @@ export default function ComingSoonPage() {
           gap: 24,
         }}
       >
-        <span style={{ fontWeight: 800, fontSize: "var(--text-base)", fontFamily: "var(--font-display)", display: "flex", alignItems: "center", gap: 8, color: "var(--fg1)" }}>
-          <Image
-            src="/images/favicon-header.png"
-            alt="MUSU"
-            width={28}
-            height={28}
-            style={siteLogoMarkStyle}
-          />
-          <span>musu</span>
-        </span>
+        <Link href="/" aria-label="MUSU home" style={siteLogoLinkStyle}>
+          <MusuLogo size="header" variant="onLight" />
+        </Link>
         <span style={{ fontSize: "var(--text-sm)", fontFamily: "var(--font-mono)", color: "var(--fg3)" }}>© 2026 MUSU. The Antigravity Workspace.</span>
       </footer>
     </div>
   );
 }
 
-const siteLogoMarkStyle: React.CSSProperties = {
-  width: 28,
-  height: 28,
-  objectFit: "contain",
+const siteLogoLinkStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  color: "var(--fg1)",
+  textDecoration: "none",
 };

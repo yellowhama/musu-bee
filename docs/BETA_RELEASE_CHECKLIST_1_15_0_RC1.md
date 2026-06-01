@@ -217,6 +217,12 @@ Store metadata:
   be recorded before Partner Center submission; Store release approval evidence
   must be recorded after Microsoft certification and restricted capability
   approval.
+- public site regression gate: `musu-bee\playwright.public-site.config.ts` and
+  `musu-bee\e2e\public-site-scroll-brand.spec.ts` now verify the homepage
+  scrolls on desktop/mobile, has no horizontal overflow, renders the favicon
+  mark through `MusuLogo`, and exposes `--musu-color-brand-emerald=#24C8DB`;
+  local follow-up validation passed on 2026-06-01 before push, and live
+  `musu.pro` must be rechecked after the follow-up commit deploys.
 - final operator gates: `docs/RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md`
 
 Current MSIX artifacts:
