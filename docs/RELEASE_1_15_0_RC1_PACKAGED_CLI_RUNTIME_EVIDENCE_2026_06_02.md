@@ -75,6 +75,7 @@ P2P deployment/evidence addendum:
 - Vercel production deploy: GitHub Actions run `26776054030`, success, workflow_dispatch
 - Tests after workflow change: run `26775836294`, success
 - initial post-push deploy: run `26775836280`, success, but skipped P2P env because the GitHub secret was not yet populated
+- final env-sync workflow verification: commit `9a3ec52df102d36075f245bdab526dc57fb99e08`, deploy run `26776909275` success, Tests run `26776909221` success; deploy synced `MUSU_P2P_CONTROL_TOKEN_SHA256S`, skipped missing KV/relay env by name, and aliased `https://musu.pro`
 - current evidence after env sync: `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260602-041225-musu.pro.evidence.json`
 - current error: `relay_lease_query_failed`, detail `p2p_relay_lease_kv_not_configured`
 - interpretation: production P2P auth is no longer the active blocker; hosted relay lease storage now requires `KV_REST_API_URL` and `KV_REST_API_TOKEN` or an equivalent Vercel KV/Upstash Redis binding.

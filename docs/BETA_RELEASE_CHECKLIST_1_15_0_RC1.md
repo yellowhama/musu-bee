@@ -425,6 +425,12 @@ Tauri desktop shell evidence:
   `KV_REST_API_TOKEN`, and repo variables are empty, so the next hosted action
   is provisioning Vercel KV/Upstash Redis and setting those env values before
   rerunning P2P evidence.
+- 2026-06-02 04:29 KST final remote verification: commit
+  `9a3ec52df102d36075f245bdab526dc57fb99e08` passed `Tests` run
+  `26776909221` and `Deploy musu-bee to Vercel` run `26776909275`. The deploy
+  run synced `MUSU_P2P_CONTROL_TOKEN_SHA256S`, skipped missing KV/relay env
+  values by name, built production, and aliased `https://musu.pro`. The
+  workflow is valid; KV provisioning remains the blocker.
 
 Release candidate manifest:
 

@@ -404,3 +404,12 @@ lease store and fails closed with `relay_lease_query_failed` /
 include `KV_REST_API_URL` or `KV_REST_API_TOKEN`, and repo variables are empty.
 The next hosted action is provisioning Vercel KV/Upstash Redis for `musu.pro`,
 setting those env values, redeploying, and rerunning the P2P evidence gate.
+
+2026-06-02 04:29 KST final remote verification: follow-up commit
+`9a3ec52df102d36075f245bdab526dc57fb99e08` pushed the KV/env-sync workflow and
+documentation. `Deploy musu-bee to Vercel` run `26776909275` succeeded, synced
+`MUSU_P2P_CONTROL_TOKEN_SHA256S`, skipped missing `KV_REST_API_URL` /
+`KV_REST_API_TOKEN` by name, built production, and aliased `https://musu.pro`.
+`Tests` run `26776909221` succeeded across web build/typecheck, Rust core
+tests, and the final required-check job. This confirms the deployed workflow is
+valid; it also confirms KV remains the active hosted blocker.

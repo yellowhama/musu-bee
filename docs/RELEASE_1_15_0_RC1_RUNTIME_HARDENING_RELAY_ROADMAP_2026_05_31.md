@@ -909,6 +909,10 @@ allowlist wired:
 - commit: `3be37e54a30bbd0bee95e9b2e22ce27d0450846c`
 - successful production workflow_dispatch deploy: `26776054030`
 - successful Tests run after the workflow change: `26775836294`
+- final workflow validation commit: `9a3ec52df102d36075f245bdab526dc57fb99e08`
+- final production deploy run: `26776909275`, success, aliased
+  `https://musu.pro`
+- final Tests run: `26776909221`, success
 - current live evidence:
   `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260602-041225-musu.pro.evidence.json`
 

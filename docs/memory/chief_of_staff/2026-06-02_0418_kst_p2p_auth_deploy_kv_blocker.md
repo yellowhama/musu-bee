@@ -30,3 +30,13 @@ Provision Vercel KV / Upstash Redis for `musu.pro`, set `KV_REST_API_URL` and
 `scripts\windows\record-p2p-control-plane-evidence.ps1` without
 `-AllowUnverified`. Passing evidence must show `owner_scope_verified=true` and
 `relay_default_data_path=false`.
+
+Final remote verification:
+
+- Follow-up commit `9a3ec52df102d36075f245bdab526dc57fb99e08` passed
+  `Tests` run `26776909221`.
+- `Deploy musu-bee to Vercel` run `26776909275` succeeded, synced
+  `MUSU_P2P_CONTROL_TOKEN_SHA256S`, skipped missing KV/relay env values by
+  name, built production, and aliased `https://musu.pro`.
+- This proves the env-sync workflow itself is valid. The remaining hosted
+  blocker is still KV/Upstash provisioning.

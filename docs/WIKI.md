@@ -476,6 +476,11 @@ Current Store path truth:
   1255 files and 2214 symbols. Search terms include
   `p2p_relay_lease_kv_not_configured`, `26776054030`, `KV_REST_API_URL`,
   `KV_REST_API_TOKEN`, and `P2P_CONTROL_PLANE_MUSU_PRO_NEXT_ACTIONS`.
+- Final remote verification for the env-sync workflow: commit
+  `9a3ec52df102d36075f245bdab526dc57fb99e08` passed `Tests` run
+  `26776909221` and `Deploy musu-bee to Vercel` run `26776909275`; deploy
+  synced `MUSU_P2P_CONTROL_TOKEN_SHA256S`, skipped missing KV/relay env values,
+  and aliased `https://musu.pro`.
 - Remote release gates must be rechecked after the last pushed commit before public handoff; latest recorded runs were green, and live `https://musu.pro/privacy` plus `/support` passed public metadata verification with `musu@musu.pro`.
 - old 2026-05-27 package: template only (`1.13.0.0`, do not submit as current)
 - Tauri shell: dedicated static runtime launcher/status shell now builds to `musu-bee/out`, bundles as MSI/NSIS through `npm run tauri:build`, and is audited as `desktop_shell_ready=True`; it is still not the full dashboard GUI

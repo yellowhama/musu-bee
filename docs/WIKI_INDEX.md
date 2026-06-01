@@ -849,5 +849,13 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   docs, and CoS memory `2026-06-02_0418_kst_p2p_auth_deploy_kv_blocker.md`.
   Search terms should include `GOAL v238`, `p2p_relay_lease_kv_not_configured`,
   `26776054030`, `KV_REST_API_URL`, `KV_REST_API_TOKEN`, and `1255 files`.
+- 2026-06-02 final env-sync workflow verification: commit
+  `9a3ec52df102d36075f245bdab526dc57fb99e08` passed `Tests` run
+  `26776909221` and Vercel production deploy run `26776909275`. The deploy
+  step synced `MUSU_P2P_CONTROL_TOKEN_SHA256S`, skipped missing
+  `KV_REST_API_URL`, `KV_REST_API_TOKEN`, and relay env values by name, built
+  production, and aliased `https://musu.pro`. Search terms should include
+  `9a3ec52`, `26776909275`, `26776909221`, `musu-djt8mmil5`, and
+  `KV_REST_API_URL is not set`.
 
 **End of WIKI_INDEX.md.**
