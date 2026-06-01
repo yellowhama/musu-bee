@@ -614,6 +614,14 @@ Current Store path truth:
   `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-073356\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-073356.zip`.
   Use it for the next second-PC run without `-SkipRuntimeIdleCpu` or
   `-SkipRuntimeCpuScenarioMatrix`.
+- Second-PC release import hardening: `import-second-pc-return.ps1` now has
+  `-RequireReleaseGateEvidence`. With that flag, MSIX-only return archives fail
+  release import if they lack runtime idle CPU evidence, runtime CPU scenario
+  matrix, process attribution summary, or release-check JSON. The known
+  incomplete `20260531-165240-HUGH-MAIN.second-pc-return.zip` now returns
+  `ok=false` and exit 1 under the flag with those four missing evidence issues;
+  importing without the flag remains diagnostic-compatible and reports
+  `release_gate_evidence_ok=false`.
 - Remote release gates must be rechecked after the last pushed commit before public handoff; latest recorded runs were green, and live `https://musu.pro/privacy` plus `/support` passed public metadata verification with `musu@musu.pro`.
 - old 2026-05-27 package: template only (`1.13.0.0`, do not submit as current)
 - Tauri shell: dedicated static runtime launcher/status shell now builds to `musu-bee/out`, bundles as MSI/NSIS through `npm run tauri:build`, and is audited as `desktop_shell_ready=True`; it is still not the full dashboard GUI

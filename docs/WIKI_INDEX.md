@@ -270,6 +270,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | — | CoS memory note — hosted P2P KV env configurator | 2026-06-02 | `memory/chief_of_staff/2026-06-02_0605_kst_p2p_kv_env_configurator.md` | active |
 | — | CoS memory note — fresh mDNS runtime evidence refresh | 2026-06-02 | `memory/chief_of_staff/2026-06-02_0716_kst_fresh_mdns_runtime_evidence_refresh.md` | active |
 | — | CoS memory note — current operator action pack refresh | 2026-06-02 | `memory/chief_of_staff/2026-06-02_0736_kst_current_operator_action_pack_refresh.md` | active |
+| — | CoS memory note — second-PC import release-gate requirement | 2026-06-02 | `memory/chief_of_staff/2026-06-02_0746_kst_second_pc_import_release_gate_requirement.md` | active |
 | — | CoS memory note — desktop shell and musu-system refresh | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0415_kst_desktop_shell_and_musu_system_refresh.md` | active |
 | — | CoS memory note — multi-device test kit ready | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0445_kst_multidevice_test_kit_ready.md` | active |
 | — | CoS memory note — release candidate manifest | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0500_kst_release_candidate_manifest.md` | active |
@@ -432,6 +433,10 @@ These docs capture the post-install / post-review conclusion that Windows packag
 2026-06-02 current operator action pack refresh: clean HEAD `1228cb0396c76d2438f4a814e33eb4b38f398198` generated final operator packet `musu-final-operator-gates-1.15.0-rc.1-20260602-073317.zip` and action pack `MUSU-1.15.0-rc.1-operator-action-pack-20260602-073356.zip`; both verify with `ok=true` and `fail_count=0`. The current second-PC transfer zip is `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-073356\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-073356.zip`.
 
 2026-06-02 index refresh after current operator action pack documentation: `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed 1272 files and 2217 symbols. Search terms should include `MUSU-second-PC-transfer-1.15.0-rc.1-20260602-073356`, `operator-action-pack-20260602-073356`, `musu-final-operator-gates-1.15.0-rc.1-20260602-073317`, and `run-second-pc-release-check.ps1`.
+
+2026-06-02 second-PC release import hardening: `import-second-pc-return.ps1` now supports `-RequireReleaseGateEvidence`, and final packet/action-pack templates use it for release imports. The known incomplete `20260531-165240-HUGH-MAIN.second-pc-return.zip` fails under the flag with missing runtime idle CPU evidence, runtime CPU matrix, process attribution summary, and release-check JSON, while default diagnostic import remains backward-compatible.
+
+2026-06-02 index refresh after second-PC import release-gate hardening: `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed 1273 files and 2217 symbols. Search terms should include `RequireReleaseGateEvidence`, `missing_runtime_idle_cpu_evidence`, `missing_runtime_cpu_scenario_matrix`, `missing_process_attribution_summary`, `missing_second_pc_release_check`, and `release_gate_evidence_ok=false`.
 
 2026-05-30 second-PC return archive single-machine refresh: after adding the return archive flow, single-machine smoke was rerun from commit `7294d65`. Current evidence `20260530-100818-HUGH_SECOND` verifies with dashboard output `MUSU_RELEASE_SMOKE_OK_20260530_1008`, CLI route `MUSU_CLI_ROUTE_OK_20260530_1008`, task `695f1e1d-1d1b-46bd-8783-3eebb216842a`, bridge `http://127.0.0.1:2217`, `doctor_overall=warn`, and dashboard doctor `ok`.
 

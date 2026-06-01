@@ -173,7 +173,7 @@ Return these files/folders to the primary repo:
 
 After the return zip is copied back, run this on the primary PC from the real release repo:
 
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\import-second-pc-return.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP> -RecordMsixInstall -Json
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\import-second-pc-return.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP> -RecordMsixInstall -RequireReleaseGateEvidence -Json
 
 If you only need to preview the primary-side multi-device commands without recording install evidence:
 

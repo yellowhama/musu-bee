@@ -4,6 +4,7 @@ param(
     [string]$ExpectedVersion,
     [string]$ImportRoot,
     [switch]$RecordMsixInstall,
+    [switch]$RequireReleaseGateEvidence,
     [switch]$Json
 )
 
@@ -234,9 +235,50 @@ if ($RecordMsixInstall) {
     $recordMsixResult = $recordText | ConvertFrom-Json
 }
 
+$releaseGateEvidenceIssues = New-Object System.Collections.Generic.List[string]
+if (-not $canonicalRuntimeIdleCpuEvidence) {
+    $releaseGateEvidenceIssues.Add("missing_runtime_idle_cpu_evidence") | Out-Null
+}
+if (-not $canonicalRuntimeCpuScenarioMatrix) {
+    $releaseGateEvidenceIssues.Add("missing_runtime_cpu_scenario_matrix") | Out-Null
+}
+if (-not $canonicalProcessAttributionSummary) {
+    $releaseGateEvidenceIssues.Add("missing_process_attribution_summary") | Out-Null
+}
+if (-not $canonicalReleaseCheck) {
+    $releaseGateEvidenceIssues.Add("missing_second_pc_release_check") | Out-Null
+}
+else {
+    if (-not $releaseCheck.PSObject.Properties["runtime_idle_cpu_ok"]) {
+        $releaseGateEvidenceIssues.Add("release_check_runtime_idle_cpu_ok_missing") | Out-Null
+    }
+    elseif (-not [bool]$releaseCheck.runtime_idle_cpu_ok) {
+        $releaseGateEvidenceIssues.Add("release_check_runtime_idle_cpu_not_ok") | Out-Null
+    }
+    if (-not $releaseCheck.PSObject.Properties["runtime_cpu_scenario_matrix_verified"]) {
+        $releaseGateEvidenceIssues.Add("release_check_runtime_cpu_scenario_matrix_verified_missing") | Out-Null
+    }
+    elseif (-not [bool]$releaseCheck.runtime_cpu_scenario_matrix_verified) {
+        $releaseGateEvidenceIssues.Add("release_check_runtime_cpu_scenario_matrix_not_verified") | Out-Null
+    }
+    if (-not $releaseCheck.PSObject.Properties["process_attribution_ok"]) {
+        $releaseGateEvidenceIssues.Add("release_check_process_attribution_ok_missing") | Out-Null
+    }
+    elseif (-not [bool]$releaseCheck.process_attribution_ok) {
+        $releaseGateEvidenceIssues.Add("release_check_process_attribution_not_ok") | Out-Null
+    }
+    if (-not $releaseCheck.PSObject.Properties["return_zip_ok"]) {
+        $releaseGateEvidenceIssues.Add("release_check_return_zip_ok_missing") | Out-Null
+    }
+    elseif (-not [bool]$releaseCheck.return_zip_ok) {
+        $releaseGateEvidenceIssues.Add("release_check_return_zip_not_ok") | Out-Null
+    }
+}
+$releaseGateEvidenceOk = ($releaseGateEvidenceIssues.Count -eq 0)
+
 $result = [pscustomobject]@{
     schema = "musu.second_pc_return_import.v1"
-    ok = $true
+    ok = (-not $RequireReleaseGateEvidence -or $releaseGateEvidenceOk)
     version = $ExpectedVersion
     imported_at = (Get-Date).ToString("o")
     return_zip_path = $resolvedReturnZip
@@ -253,6 +295,9 @@ $result = [pscustomobject]@{
     msix_install_verification = $verifyMsix
     msix_install_recorded = ($null -ne $recordMsixResult)
     msix_install_record = $recordMsixResult
+    release_gate_evidence_required = [bool]$RequireReleaseGateEvidence
+    release_gate_evidence_ok = [bool]$releaseGateEvidenceOk
+    release_gate_evidence_issues = @($releaseGateEvidenceIssues)
     commands = $returnCard.commands
 }
 
@@ -277,4 +322,15 @@ else {
     $result.commands.PSObject.Properties | ForEach-Object {
         "[$($_.Name)] $($_.Value)"
     }
+    if ($result.release_gate_evidence_issues.Count -gt 0) {
+        ""
+        "release_gate_evidence_issues:"
+        foreach ($issue in @($result.release_gate_evidence_issues)) {
+            "  - $issue"
+        }
+    }
+}
+
+if ($RequireReleaseGateEvidence -and -not $releaseGateEvidenceOk) {
+    exit 1
 }

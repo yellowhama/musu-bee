@@ -135,6 +135,8 @@ Multi-device packet:
 - second-PC one-command release check: `scripts\windows\run-second-pc-release-check.ps1`
 - second-PC return archive: `.local-build\second-pc-return\*.zip`
 - second-PC return importer: `scripts\windows\import-second-pc-return.ps1`
+- release imports should use `-RequireReleaseGateEvidence` so MSIX-only return
+  archives cannot be mistaken for CPU/matrix release evidence
 - MSIX install evidence capture: `scripts\windows\capture-msix-install-evidence.ps1`
 - runtime idle CPU evidence capture: `scripts\windows\measure-musu-idle-cpu.ps1` is now run by `run-second-pc-release-check.ps1` unless `-SkipRuntimeIdleCpu` is used
 - runtime CPU scenario matrix: `scripts\windows\measure-musu-runtime-cpu-scenarios.ps1` writes `musu.runtime_cpu_scenario_matrix.v1` for `runtime-started`, `dashboard-open`, `desktop-open`, and `post-route`; `dashboard-open` now launches an explicit dashboard URL or the `reachable_url` from `musu up --json` before sampling, never an unverified `dev_url`/`start_url` fallback, `post-route` requires the exact per-run route token, and `scripts\windows\verify-runtime-cpu-scenario-matrix.ps1` rejects no-op dashboard-open matrices while verifying clean/current 60s matrices with a successful post-route probe; this is now bundled into the second-PC kit, captured by `run-second-pc-release-check.ps1` unless `-SkipRuntimeCpuScenarioMatrix` is used, imported by `import-second-pc-return.ps1`, and is a separate go/no-go attribution gate rather than a replacement for the release-grade two-machine `desktop-open` CPU evidence

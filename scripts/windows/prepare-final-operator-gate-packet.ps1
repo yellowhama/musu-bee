@@ -183,7 +183,7 @@ evidence, and print the exact `smoke-multidevice-beta.ps1` command from the
 returned `suggested_remote_addrs`:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\import-second-pc-return.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP> -Json
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\import-second-pc-return.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP> -RequireReleaseGateEvidence -Json
 ```
 
 Preview-only fallback if you do not want to import or record yet:
@@ -292,6 +292,7 @@ release repo. Import it from the release repo root:
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\import-second-pc-return.ps1 `
   -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP> `
   -RecordMsixInstall `
+  -RequireReleaseGateEvidence `
   -Json
 ```
 

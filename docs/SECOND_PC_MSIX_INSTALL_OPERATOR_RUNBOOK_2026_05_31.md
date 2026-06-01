@@ -159,7 +159,7 @@ Run this on the primary release PC from the repo root:
 
 ```powershell
 cd F:\workspace\musu-bee
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\import-second-pc-return.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP_NAME>.zip -RecordMsixInstall -Json
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\import-second-pc-return.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP_NAME>.zip -RecordMsixInstall -RequireReleaseGateEvidence -Json
 ```
 
 Expected result:
@@ -167,6 +167,8 @@ Expected result:
 - the returned MSIX install evidence verifies
 - the returned runtime idle CPU evidence is imported under `.local-build\runtime-idle-cpu\`
 - the returned runtime CPU scenario matrix is imported under `.local-build\runtime-cpu-scenarios\`
+- the import fails if runtime idle CPU, runtime CPU matrix, release-check, or
+  process attribution evidence is missing from the return archive
 - the MSIX install gate is recorded under `docs\evidence\msix-install\1.15.0-rc.1\`
 - the command prints the primary-side multi-device route commands for the next gate
 
