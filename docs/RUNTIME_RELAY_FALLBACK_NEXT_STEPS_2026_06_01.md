@@ -111,3 +111,12 @@ Still required:
 - Re-run `musu relay leases --json` and require the live error to move away
   from `p2p_control_auth_not_configured` to either an owner-scoped empty result
   or a real session-bound lease record.
+
+Deployment check:
+
+- Commit `b1c4378` deployed through Vercel production workflow run
+  `26742743319`; `Tests` run `26742743243` and E2E run `26742743299` passed.
+- Live `musu relay leases --json` now returns
+  `p2p_control_auth_not_configured` with `accepted_auth_modes=[]`.
+- Interpretation: the hash-allowlist code is live, but production has no raw
+  P2P token and no `MUSU_P2P_CONTROL_TOKEN_SHA256S` configured yet.
