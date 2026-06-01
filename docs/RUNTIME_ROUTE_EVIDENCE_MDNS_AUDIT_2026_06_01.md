@@ -2,7 +2,7 @@
 
 **Wiki ID**: wiki/528
 **Date**: 2026-06-01
-**Status**: Current implementation addendum after operator mDNS/Tailscale logs, bridge forwarding evidence wiring, stored `musu.pro` route-evidence API, rendezvous control-plane endpoints, Rust bridge runtime rendezvous wiring, HTTPS certificate fingerprint pinning for bridge forwarding, the relay fallback lease policy API, and runtime fail-closed relay lease requests after terminal direct-route failure.
+**Status**: Current implementation addendum after operator mDNS/Tailscale logs, bridge forwarding evidence wiring, stored `musu.pro` route-evidence API, rendezvous control-plane endpoints, Rust bridge runtime rendezvous wiring, HTTPS certificate fingerprint pinning for bridge forwarding, the relay fallback lease policy API, runtime fail-closed relay lease requests after terminal direct-route failure, and persisted `relay_fallback` route evidence.
 
 ## Executive Verdict
 
@@ -70,6 +70,11 @@ What changed materially:
   route attempts fail, but only when a rendezvous session id and account token
   exist. The lease request records the attempted direct route kinds and
   `direct_path_failed=true`; the payload still does not transit a relay.
+- Failed runtime route evidence now includes an optional `relay_fallback`
+  addendum after this evaluation. It records whether the direct path failed,
+  whether a lease was requested, the fallback status, whether a lease was
+  issued, attempted route kinds, requested capability, policy, blockers,
+  optional lease id, and relay failure class.
 - Runtime route evidence now records the rendezvous `session_id` when a session
   was created, so local files and best-effort `musu.pro` submissions can be
   joined with the control-plane session.
@@ -98,7 +103,8 @@ What is still not release-grade:
 - Rendezvous is now bridge-wired for session lifecycle and candidate publish,
   and `musu relay status` reports `rendezvous_session_wired=true`.
 - Relay lease control-plane and the runtime direct-failure lease request are
-  wired, but relay/tunnel data transport still does not exist.
+  wired and now leave evidence inside failed route records, but relay/tunnel
+  data transport still does not exist.
 - Runtime submission does not make legacy HTTP evidence pass the release gate;
   it only makes the gap visible to the control plane.
 - QUIC/TLS peer identity proof, account-scoped evidence UI/export, real
@@ -196,6 +202,10 @@ What is still not release-grade:
      failure when a rendezvous session/account token exists. This is a
      fail-closed policy/audit handoff only; denied or timed-out leases leave the
      original direct-route failure intact.
+   - Failed route evidence carries `relay_fallback` when fallback was evaluated.
+     This addendum is accepted/stored by `musu.pro`, but it does not make the
+     route release-grade and does not claim payload relay unless a future route
+     records `route_kind=relay` with `payload_transited_musu_infra=true`.
 
 The operator-supplied log pattern:
 
@@ -240,7 +250,7 @@ channel` output.
 | Runtime rendezvous wiring | High | Bridge remote forwarding selected a peer directly but did not create a `musu.pro` session, attach a session id to route evidence, or use session target candidates. | Fixed as first runtime wiring. Forwarding creates/refreshes a session, publishes source candidates, forwards the session id to target, target publishes candidates best-effort, uses refreshed target candidates when present, falls back once to the original peer if a selected candidate fails, and evidence records the session id. |
 | Peer identity material | High | Route evidence required peer identity proof, but route attempts had no durable identity material to carry. | Partially fixed. Local TLS certificate fingerprints are registered/published as candidate `public_key`, route evidence records advertised target fingerprints when available, and `musu.pro` rejects release-grade identity claims without method/key material. |
 | HTTPS fingerprint pinning | High | Advertised fingerprints were previously only copied into evidence and did not prove the peer served that certificate. | Partially fixed. HTTPS bridge forwarding now verifies the target server certificate fingerprint during the actual POST and records verified identity metadata only after a successful pinned request. This is still not release-grade until QUIC/TLS route transport exists. |
-| Relay fallback policy | High | Relay/tunnel fallback was documented as Connect/Pro-only but had no control-plane lease contract to prevent silent default relay use. | Partially fixed. `POST/GET /api/v1/p2p/relay/lease` is owner-scoped and fail-closed by default, requires direct path failure and explicit relay policy env, and `musu relay status` exposes the lease endpoint plus runtime fallback request wiring. Runtime forwarding now asks for a lease after terminal direct-route failure when session/token material exists, but relay payload transport remains unwired. |
+| Relay fallback policy | High | Relay/tunnel fallback was documented as Connect/Pro-only but had no control-plane lease contract to prevent silent default relay use. | Partially fixed. `POST/GET /api/v1/p2p/relay/lease` is owner-scoped and fail-closed by default, requires direct path failure and explicit relay policy env, and `musu relay status` exposes the lease endpoint plus runtime fallback request wiring. Runtime forwarding now asks for a lease after terminal direct-route failure when session/token material exists, and failed route evidence persists the `relay_fallback` evaluation. Relay payload transport remains unwired. |
 | Release-grade route proof | Critical | Submitted evidence still cannot prove peer identity, QUIC/TLS encryption, or payload transit truth. | Still blocked. This is the next P0. |
 
 ## Validation
@@ -272,10 +282,14 @@ Passed:
 - `cargo fmt --manifest-path .\musu-rs\Cargo.toml --check`
 - `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib bridge::rendezvous::tests::relay_lease_request_records_failed_direct_paths_without_using_relay_as_default -- --nocapture`
 - `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib cloud::tests::relay_lease_request_serializes_fallback_policy_fields -- --nocapture`
+- `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib route_evidence -- --nocapture`
 - `cargo build --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1`
 - `musu relay status --json` returned
   `relay_runtime_fallback_lease_request_wired=true`,
   `relay_transport_wired=false`, and `relay_default_data_path=false`
+- `npx tsx --test src/app/api/v1/p2p/route-evidence/route.test.ts`
+  now includes `stores relay fallback evidence after failed direct route`
+- `npm run typecheck`
 - `git diff --check`
 - `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
   indexed 1082 files and 2141 symbols after the relay fallback lease policy

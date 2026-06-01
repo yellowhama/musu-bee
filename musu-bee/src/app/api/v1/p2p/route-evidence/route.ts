@@ -13,13 +13,35 @@ import {
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+const RouteKindSchema = z.enum(["lan", "tailscale", "direct_quic", "relay", "failed"]);
+
+const RelayFallbackSchema = z.object({
+  direct_path_failed: z.boolean(),
+  lease_requested: z.boolean(),
+  status: z.enum([
+    "skipped_no_token",
+    "skipped_no_session",
+    "denied",
+    "issued",
+    "failed",
+    "timed_out",
+  ]),
+  lease_issued: z.boolean(),
+  attempted_route_kinds: z.array(RouteKindSchema),
+  requested_capability: z.string().min(1).nullable().optional(),
+  policy: z.string().min(1).nullable().optional(),
+  blockers: z.array(z.string().min(1)).optional(),
+  lease_id: z.string().min(1).nullable().optional(),
+  failure_class: z.string().min(1).nullable().optional(),
+});
+
 const RouteEvidenceSchema = z.object({
   schema: z.literal("musu.route_evidence.v1"),
   version: z.string().min(1),
   source_node_id: z.string().min(1),
   target_node_id: z.string().min(1),
   session_id: z.string().min(1).nullable().optional(),
-  route_kind: z.enum(["lan", "tailscale", "direct_quic", "relay", "failed"]),
+  route_kind: RouteKindSchema,
   candidate_addr: z.string().min(1),
   handshake_ms: z.number().int().nonnegative().nullable().optional(),
   total_attempt_ms: z.number().int().positive(),
@@ -30,6 +52,7 @@ const RouteEvidenceSchema = z.object({
   payload_transited_musu_infra: z.boolean(),
   result: z.enum(["success", "failed"]),
   failure_class: z.string().nullable().optional(),
+  relay_fallback: RelayFallbackSchema.optional(),
   recorded_at: z.string().min(1),
 }).passthrough();
 

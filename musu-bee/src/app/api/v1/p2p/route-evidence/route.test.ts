@@ -131,6 +131,66 @@ test("accepts legacy debug evidence but marks it non release grade", async () =>
   });
 });
 
+test("stores relay fallback evidence after failed direct route", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { GET, POST } = await loadModule("relay-fallback");
+    const evidence = {
+      ...hardenedEvidence,
+      route_kind: "tailscale",
+      peer_identity_verified: false,
+      encryption: "none_http_bearer",
+      result: "failed",
+      failure_class: "forward_failed_after_retries",
+      relay_fallback: {
+        direct_path_failed: true,
+        lease_requested: true,
+        status: "denied",
+        lease_issued: false,
+        attempted_route_kinds: ["tailscale", "lan"],
+        requested_capability: "remote_command",
+        policy: "connect_pro_fallback_only",
+        blockers: ["relay_transport_not_wired"],
+        failure_class: "relay_lease_denied",
+      },
+    };
+
+    const res = await POST(postReq(evidence));
+    assert.equal(res.status, 202);
+    const body = (await res.json()) as { release_grade: boolean; blockers: string[] };
+    assert.equal(body.release_grade, false);
+    assert.match(body.blockers.join(","), /route_attempt_failed/);
+
+    const getRes = await GET(getReq("?limit=1"));
+    assert.equal(getRes.status, 200);
+    const getBody = (await getRes.json()) as {
+      records: Array<{
+        evidence: {
+          relay_fallback?: {
+            status: string;
+            lease_requested: boolean;
+            attempted_route_kinds: string[];
+            requested_capability?: string;
+            blockers?: string[];
+          };
+        };
+      }>;
+    };
+    assert.equal(getBody.records[0]?.evidence.relay_fallback?.status, "denied");
+    assert.equal(getBody.records[0]?.evidence.relay_fallback?.lease_requested, true);
+    assert.deepEqual(
+      getBody.records[0]?.evidence.relay_fallback?.attempted_route_kinds,
+      ["tailscale", "lan"]
+    );
+    assert.equal(
+      getBody.records[0]?.evidence.relay_fallback?.requested_capability,
+      "remote_command"
+    );
+    assert.deepEqual(getBody.records[0]?.evidence.relay_fallback?.blockers, [
+      "relay_transport_not_wired",
+    ]);
+  });
+});
+
 test("requires identity proof material when evidence claims peer verification", async () => {
   await withRouteEvidenceToken(async () => {
     const { POST } = await loadModule("missing-identity-proof");

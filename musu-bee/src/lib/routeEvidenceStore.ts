@@ -20,6 +20,18 @@ export type RouteEvidencePayload = {
   payload_transited_musu_infra: boolean;
   result: "success" | "failed";
   failure_class?: string | null;
+  relay_fallback?: {
+    direct_path_failed: boolean;
+    lease_requested: boolean;
+    status: "skipped_no_token" | "skipped_no_session" | "denied" | "issued" | "failed" | "timed_out";
+    lease_issued: boolean;
+    attempted_route_kinds: Array<"lan" | "tailscale" | "direct_quic" | "relay" | "failed">;
+    requested_capability?: string | null;
+    policy?: string | null;
+    blockers?: string[];
+    lease_id?: string | null;
+    failure_class?: string | null;
+  };
   recorded_at: string;
 };
 

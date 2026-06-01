@@ -215,7 +215,29 @@ pub struct RouteEvidence {
     pub result: RouteAttemptResult,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub failure_class: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub relay_fallback: Option<RouteRelayFallbackEvidence>,
     pub recorded_at: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)] // Route evidence addendum; relay transport remains wired separately.
+pub struct RouteRelayFallbackEvidence {
+    pub direct_path_failed: bool,
+    pub lease_requested: bool,
+    pub status: String,
+    pub lease_issued: bool,
+    pub attempted_route_kinds: Vec<RouteKind>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub requested_capability: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub policy: Option<String>,
+    #[serde(default)]
+    pub blockers: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lease_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub failure_class: Option<String>,
 }
 
 impl MusuCloud {
@@ -530,6 +552,7 @@ mod tests {
             payload_transited_musu_infra: false,
             result: RouteAttemptResult::Success,
             failure_class: None,
+            relay_fallback: None,
             recorded_at: "2026-05-31T09:01:00Z".into(),
         };
 

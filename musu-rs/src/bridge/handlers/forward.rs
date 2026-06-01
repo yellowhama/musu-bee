@@ -90,6 +90,7 @@ pub struct ForwardAttemptError {
     pub handshake_ms: Option<u64>,
     pub total_attempt_ms: u64,
     pub failure_class: String,
+    pub relay_fallback: Option<crate::bridge::route_evidence::RouteRelayFallbackEvidence>,
 }
 
 #[derive(Debug)]
@@ -226,6 +227,61 @@ fn peer_with_verified_tls_fingerprint(peer: &ResolvedPeer, fingerprint: &str) ->
         name: peer.name.clone(),
         source: peer.source,
         meta: Some(meta),
+    }
+}
+
+fn relay_fallback_status_label(
+    status: &crate::bridge::rendezvous::RelayLeaseFallbackStatus,
+) -> &'static str {
+    match status {
+        crate::bridge::rendezvous::RelayLeaseFallbackStatus::SkippedNoToken => "skipped_no_token",
+        crate::bridge::rendezvous::RelayLeaseFallbackStatus::SkippedNoSession => {
+            "skipped_no_session"
+        }
+        crate::bridge::rendezvous::RelayLeaseFallbackStatus::Denied => "denied",
+        crate::bridge::rendezvous::RelayLeaseFallbackStatus::Issued => "issued",
+        crate::bridge::rendezvous::RelayLeaseFallbackStatus::Failed => "failed",
+        crate::bridge::rendezvous::RelayLeaseFallbackStatus::TimedOut => "timed_out",
+    }
+}
+
+fn attempted_route_kind_labels(
+    attempted_peers: &[ResolvedPeer],
+    fallback_peer: &ResolvedPeer,
+) -> Vec<String> {
+    let mut kinds = Vec::new();
+    for peer in attempted_peers.iter().chain(std::iter::once(fallback_peer)) {
+        let kind = crate::bridge::route_evidence::route_evidence_kind_for_addr(&peer.addr);
+        if !kinds.iter().any(|existing| existing == kind) {
+            kinds.push(kind.to_string());
+        }
+    }
+    kinds
+}
+
+fn relay_fallback_route_evidence(
+    relay: &crate::bridge::rendezvous::RelayLeaseFallback,
+    fallback_peer: &ResolvedPeer,
+    attempted_peers: &[ResolvedPeer],
+    requested_capability: Option<&str>,
+) -> crate::bridge::route_evidence::RouteRelayFallbackEvidence {
+    let lease_requested = !matches!(
+        relay.status,
+        crate::bridge::rendezvous::RelayLeaseFallbackStatus::SkippedNoToken
+            | crate::bridge::rendezvous::RelayLeaseFallbackStatus::SkippedNoSession
+    );
+
+    crate::bridge::route_evidence::RouteRelayFallbackEvidence {
+        direct_path_failed: true,
+        lease_requested,
+        status: relay_fallback_status_label(&relay.status).to_string(),
+        lease_issued: relay.lease_issued,
+        attempted_route_kinds: attempted_route_kind_labels(attempted_peers, fallback_peer),
+        requested_capability: requested_capability.map(str::to_string),
+        policy: relay.policy.clone(),
+        blockers: relay.blockers.clone(),
+        lease_id: relay.lease_id.clone(),
+        failure_class: relay.failure_class.clone(),
     }
 }
 
@@ -386,6 +442,7 @@ async fn forward_to_peer_attempt(
                 handshake_ms: None,
                 total_attempt_ms: elapsed_ms(total_started.elapsed()),
                 failure_class: "forward_tls_client_build_error".to_string(),
+                relay_fallback: None,
             })?,
         )
     } else {
@@ -407,6 +464,7 @@ async fn forward_to_peer_attempt(
         handshake_ms: None,
         total_attempt_ms: elapsed_ms(total_started.elapsed()),
         failure_class: "forward_serialize_error".to_string(),
+        relay_fallback: None,
     })?;
     let part = reqwest::multipart::Part::text(task_json)
         .mime_str("application/json")
@@ -428,6 +486,7 @@ async fn forward_to_peer_attempt(
             handshake_ms: Some(elapsed_ms(submit_started.elapsed())),
             total_attempt_ms: elapsed_ms(total_started.elapsed()),
             failure_class: "forward_http_error".to_string(),
+            relay_fallback: None,
         })?;
     let handshake_ms = Some(elapsed_ms(submit_started.elapsed()));
 
@@ -441,6 +500,7 @@ async fn forward_to_peer_attempt(
             handshake_ms,
             total_attempt_ms: elapsed_ms(total_started.elapsed()),
             failure_class: format!("peer_http_status_{}", status.as_u16()),
+            relay_fallback: None,
         });
     }
 
@@ -454,6 +514,7 @@ async fn forward_to_peer_attempt(
             handshake_ms,
             total_attempt_ms: elapsed_ms(total_started.elapsed()),
             failure_class: "forward_response_parse".to_string(),
+            relay_fallback: None,
         })?;
 
     let route_peer = if let Some(fingerprint) = expected_tls_fingerprint.as_deref() {
@@ -615,6 +676,7 @@ pub async fn forward_to_peer_with_retry(
         handshake_ms: None,
         total_attempt_ms: elapsed_ms(route_started.elapsed()),
         failure_class: "forward_no_attempt".to_string(),
+        relay_fallback: None,
     });
     let total_attempts = max_retries + 1 + if route_peer.addr != peer.addr { 1 } else { 0 };
     err.message = format!(
@@ -642,6 +704,12 @@ pub async fn forward_to_peer_with_retry(
         relay_failure_class = relay.failure_class.as_deref().unwrap_or(""),
         "relay fallback lease evaluated after failed direct route"
     );
+    err.relay_fallback = Some(relay_fallback_route_evidence(
+        &relay,
+        peer,
+        &attempted_route_peers,
+        Some("remote_command"),
+    ));
     if let Some(session_id) = session_id {
         let musu_home = state
             .config

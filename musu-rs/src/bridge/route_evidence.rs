@@ -19,6 +19,25 @@ pub enum RouteAttemptEvidenceResult {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct RouteRelayFallbackEvidence {
+    pub direct_path_failed: bool,
+    pub lease_requested: bool,
+    pub status: String,
+    pub lease_issued: bool,
+    pub attempted_route_kinds: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub requested_capability: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub policy: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub blockers: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lease_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub failure_class: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct RouteAttemptEvidence {
     schema: &'static str,
     version: String,
@@ -38,6 +57,8 @@ pub struct RouteAttemptEvidence {
     payload_transited_musu_infra: bool,
     result: RouteAttemptEvidenceResult,
     failure_class: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    relay_fallback: Option<RouteRelayFallbackEvidence>,
     recorded_at: String,
     note: &'static str,
 }
@@ -56,6 +77,7 @@ pub struct RouteAttemptEvidenceInput {
     pub peer_identity_method: Option<String>,
     pub peer_public_key: Option<String>,
     pub encryption: String,
+    pub relay_fallback: Option<RouteRelayFallbackEvidence>,
 }
 
 pub struct RouteEvidenceRecord {
@@ -87,6 +109,7 @@ pub fn build_route_attempt_evidence(input: RouteAttemptEvidenceInput) -> RouteAt
         payload_transited_musu_infra: false,
         result: input.result,
         failure_class: input.failure_class,
+        relay_fallback: input.relay_fallback,
         recorded_at: chrono::Utc::now().to_rfc3339(),
         note: input.note,
     }
@@ -110,7 +133,29 @@ pub fn cloud_route_evidence(evidence: &RouteAttemptEvidence) -> crate::cloud::Ro
         payload_transited_musu_infra: evidence.payload_transited_musu_infra,
         result: cloud_route_result(evidence.result),
         failure_class: evidence.failure_class.clone(),
+        relay_fallback: evidence.relay_fallback.as_ref().map(cloud_relay_fallback),
         recorded_at: evidence.recorded_at.clone(),
+    }
+}
+
+fn cloud_relay_fallback(
+    evidence: &RouteRelayFallbackEvidence,
+) -> crate::cloud::RouteRelayFallbackEvidence {
+    crate::cloud::RouteRelayFallbackEvidence {
+        direct_path_failed: evidence.direct_path_failed,
+        lease_requested: evidence.lease_requested,
+        status: evidence.status.clone(),
+        lease_issued: evidence.lease_issued,
+        attempted_route_kinds: evidence
+            .attempted_route_kinds
+            .iter()
+            .map(|kind| cloud_route_kind(kind))
+            .collect(),
+        requested_capability: evidence.requested_capability.clone(),
+        policy: evidence.policy.clone(),
+        blockers: evidence.blockers.clone(),
+        lease_id: evidence.lease_id.clone(),
+        failure_class: evidence.failure_class.clone(),
     }
 }
 
@@ -310,6 +355,7 @@ pub fn record_bridge_forward_route_evidence(
     total_attempt_ms: u64,
     result: RouteAttemptEvidenceResult,
     failure_class: Option<String>,
+    relay_fallback: Option<RouteRelayFallbackEvidence>,
 ) -> Result<RouteEvidenceRecord> {
     let path = route_evidence_path(musu_home, task_id);
     let peer_identity = peer_identity_meta(peer);
@@ -327,6 +373,7 @@ pub fn record_bridge_forward_route_evidence(
         peer_identity_method: peer_identity.method,
         peer_public_key: peer_identity.public_key,
         encryption: peer_identity.encryption,
+        relay_fallback,
     });
     write_route_attempt_evidence(&path, &evidence)?;
     Ok(RouteEvidenceRecord { path, evidence })
@@ -352,6 +399,7 @@ mod tests {
             peer_identity_method: None,
             peer_public_key: None,
             encryption: "none_http_bearer".to_string(),
+            relay_fallback: None,
         });
         let value = serde_json::to_value(evidence).unwrap();
 
@@ -384,6 +432,7 @@ mod tests {
             peer_identity_method: None,
             peer_public_key: None,
             encryption: "none_http_bearer".to_string(),
+            relay_fallback: None,
         });
         let value = serde_json::to_value(evidence).unwrap();
 
@@ -424,6 +473,7 @@ mod tests {
             Some(15),
             31,
             RouteAttemptEvidenceResult::Success,
+            None,
             None,
         )
         .unwrap();
@@ -467,6 +517,7 @@ mod tests {
             31,
             RouteAttemptEvidenceResult::Success,
             None,
+            None,
         )
         .unwrap();
         let value = serde_json::to_value(record.evidence).unwrap();
@@ -495,6 +546,18 @@ mod tests {
             peer_identity_method: Some("advertised_tls_cert_fingerprint_unverified".to_string()),
             peer_public_key: Some("sha256:test".to_string()),
             encryption: "none_http_bearer".to_string(),
+            relay_fallback: Some(RouteRelayFallbackEvidence {
+                direct_path_failed: true,
+                lease_requested: true,
+                status: "denied".to_string(),
+                lease_issued: false,
+                attempted_route_kinds: vec!["lan".to_string(), "tailscale".to_string()],
+                requested_capability: Some("remote_command".to_string()),
+                policy: Some("connect_pro_fallback_only".to_string()),
+                blockers: vec!["relay_transport_not_wired".to_string()],
+                lease_id: None,
+                failure_class: Some("relay_lease_denied".to_string()),
+            }),
         });
 
         let cloud = cloud_route_evidence(&evidence);
@@ -508,5 +571,25 @@ mod tests {
         );
         assert_eq!(cloud.peer_public_key.as_deref(), Some("sha256:test"));
         assert_eq!(cloud.encryption, "none_http_bearer");
+        let relay = cloud.relay_fallback.unwrap();
+        assert!(relay.direct_path_failed);
+        assert!(relay.lease_requested);
+        assert_eq!(relay.status, "denied");
+        assert!(!relay.lease_issued);
+        assert_eq!(
+            relay.attempted_route_kinds,
+            vec![
+                crate::cloud::RouteKind::Lan,
+                crate::cloud::RouteKind::Tailscale
+            ]
+        );
+        assert_eq!(
+            relay.requested_capability.as_deref(),
+            Some("remote_command")
+        );
+        assert_eq!(
+            relay.blockers,
+            vec!["relay_transport_not_wired".to_string()]
+        );
     }
 }

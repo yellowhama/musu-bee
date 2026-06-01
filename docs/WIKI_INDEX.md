@@ -628,5 +628,7 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
 - When adding a new wiki/N doc, also append to the correct §1..§5 table here.
 - When a `reserved` ID is realized (file created), update Status `reserved → draft → complete`.
 - "(wiki/N)" with parens indicates ID was referenced in another doc but the target file lacks an explicit `**Wiki ID**` header — verify before citing externally.
+- 2026-06-01 current addendum: wiki/522, wiki/524, wiki/528, and wiki/530 now include the `relay_fallback` route-evidence persistence contract. Search terms should include `relay_fallback`, `lease_requested`, `lease_issued`, `skipped_no_session`, `skipped_no_token`, `relay_lease_denied`, and `stores relay fallback evidence after failed direct route`.
+- 2026-06-01 index refresh after that addendum: `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed 1121 files and 2163 symbols.
 
 **End of WIKI_INDEX.md.**

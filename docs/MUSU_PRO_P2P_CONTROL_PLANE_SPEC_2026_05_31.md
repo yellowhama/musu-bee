@@ -2,7 +2,7 @@
 
 **Wiki ID**: wiki/524
 **Date**: 2026-05-31
-**Status**: Current implementation spec. Server-side rendezvous, route-evidence, and relay fallback lease APIs exist. Rust bridge runtime route attempts now create short-lived rendezvous sessions, seed sessions from recent node candidate cache, can use returned target candidates before legacy direct forwarding, exchange advertised TLS certificate fingerprints as peer identity material, verify HTTPS peer certificate fingerprints during bridge forwarding when a target candidate supplies a `sha256:<hex>` fingerprint, and request a fail-closed relay lease after terminal direct-route failure when a rendezvous session and account token exist. This is still not final release-grade transport because the accepted release proof remains QUIC/TLS evidence, not bridge HTTP multipart over TLS, and relay/tunnel data transport is still not wired.
+**Status**: Current implementation spec. Server-side rendezvous, route-evidence, and relay fallback lease APIs exist. Rust bridge runtime route attempts now create short-lived rendezvous sessions, seed sessions from recent node candidate cache, can use returned target candidates before legacy direct forwarding, exchange advertised TLS certificate fingerprints as peer identity material, verify HTTPS peer certificate fingerprints during bridge forwarding when a target candidate supplies a `sha256:<hex>` fingerprint, request a fail-closed relay lease after terminal direct-route failure when a rendezvous session and account token exist, and persist the relay fallback evaluation inside failed route evidence. This is still not final release-grade transport because the accepted release proof remains QUIC/TLS evidence, not bridge HTTP multipart over TLS, and relay/tunnel data transport is still not wired.
 
 ## Product Decision
 
@@ -195,6 +195,26 @@ The client must not spin or retry forever.
 }
 ```
 
+When a direct runtime route fails and relay fallback is evaluated, failed route
+evidence can include an optional addendum:
+
+```json
+{
+  "relay_fallback": {
+    "direct_path_failed": true,
+    "lease_requested": true,
+    "status": "denied",
+    "lease_issued": false,
+    "attempted_route_kinds": ["tailscale", "lan"],
+    "requested_capability": "remote_command",
+    "policy": "connect_pro_fallback_only",
+    "blockers": ["relay_transport_not_wired"],
+    "lease_id": null,
+    "failure_class": "relay_lease_denied"
+  }
+}
+```
+
 Release gates must reject multi-device evidence that lacks:
 
 - `route_kind`
@@ -208,6 +228,9 @@ Current `POST /api/v1/p2p/route-evidence` behavior:
 - Requires Bearer auth using server env `MUSU_P2P_CONTROL_TOKEN`,
   `MUSU_ROUTE_EVIDENCE_TOKEN`, or `MUSU_TOKEN`.
 - Validates `musu.route_evidence.v1` with the route kinds above.
+- Validates and stores the optional `relay_fallback` addendum for terminal
+  direct-route failures. Valid statuses are `skipped_no_token`,
+  `skipped_no_session`, `denied`, `issued`, `failed`, and `timed_out`.
 - Stores valid evidence and returns `202`, including `stored=true`,
   `evidence_id`, `owner_scoped=true`, `release_grade`, and `blockers`.
 - Stores an `owner_key` derived from the accepted Bearer token's SHA-256 hash,
@@ -281,6 +304,11 @@ Current Rust client/diagnostic behavior:
 - Runtime forwarding skips the lease call when there is no rendezvous session
   or no account token. A failed, denied, or timed-out lease does not mask the
   original direct-route failure and does not send payload over relay.
+- Failed runtime route evidence now carries `relay_fallback` when this
+  evaluation occurs, including whether a lease was requested/issued, the
+  attempted route kinds, policy/blockers, optional lease id, and relay failure
+  class. This lets local evidence and submitted `musu.pro` records prove the
+  control-plane fallback decision without claiming relay payload transport.
 - `musu relay status --json` reports
   `relay_control_plane_lease_wired=true`,
   `relay_lease_endpoint=/api/v1/p2p/relay/lease`,

@@ -211,6 +211,7 @@ pub async fn execute_workflow(state: &AppState, workflow_id: &str) -> Result<(),
                             report.total_attempt_ms,
                             crate::bridge::route_evidence::RouteAttemptEvidenceResult::Success,
                             None,
+                            None,
                         ) {
                             Ok(record) => {
                                 tracing::info!(
@@ -253,6 +254,7 @@ pub async fn execute_workflow(state: &AppState, workflow_id: &str) -> Result<(),
                             e.total_attempt_ms,
                             crate::bridge::route_evidence::RouteAttemptEvidenceResult::Failed,
                             Some(e.failure_class.clone()),
+                            e.relay_fallback.clone(),
                         ) {
                             Ok(record) => {
                                 tracing::info!(

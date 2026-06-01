@@ -399,6 +399,7 @@ fn write_route_evidence_if_requested(
         peer_identity_method: None,
         peer_public_key: None,
         encryption: "none_http_bearer".to_string(),
+        relay_fallback: None,
     });
     write_route_attempt_evidence(path, &evidence)?;
     println!("route evidence written: {}", path.display());

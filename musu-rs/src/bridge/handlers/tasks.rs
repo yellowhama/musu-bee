@@ -229,6 +229,7 @@ pub async fn delegate(
                         report.total_attempt_ms,
                         crate::bridge::route_evidence::RouteAttemptEvidenceResult::Success,
                         None,
+                        None,
                     ) {
                         Ok(record) => {
                             tracing::info!(
@@ -269,6 +270,7 @@ pub async fn delegate(
                         e.total_attempt_ms,
                         crate::bridge::route_evidence::RouteAttemptEvidenceResult::Failed,
                         Some(e.failure_class.clone()),
+                        e.relay_fallback.clone(),
                     ) {
                         Ok(record) => {
                             tracing::info!(
