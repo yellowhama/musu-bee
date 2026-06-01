@@ -271,3 +271,28 @@ Do **not** publicly release until these are all true:
 - `manifest_git.dirty=false`
 
 Current decision: **No-Go, internally and externally blocked**.
+
+2026-06-02 00:17 KST addendum: packaged desktop repeated activation is now a
+confirmed product-quality issue in the currently installed package. Repeated
+Start-menu launches of `Yellowhama.MUSU_ygcjq669as2b6!MUSU` on `HUGH_SECOND`
+expanded one `musu-desktop.exe` shell to three processes (`5744`, `27512`,
+`31496`). The duplicate shells were then stopped to avoid contaminating later
+CPU/process evidence. Source has been hardened with
+`tauri-plugin-single-instance = 2.4.2`; second activation now focuses,
+unminimizes, and shows the existing `main` window instead of creating another
+desktop shell. Local validation passed:
+`cargo test --manifest-path .\musu-bee\src-tauri\Cargo.toml -j 1` with 5/5
+tests. This does **not** make the installed MSIX fixed. The release evidence is
+source-stale until a new package is built, installed on primary and second PC,
+and desktop repeated-activation/process-ownership/CPU evidence is refreshed.
+
+2026-06-02 00:17 KST public-site addendum: the site change should be deployed
+to `musu.pro`. Source now renders the public logo as the favicon mark itself,
+keeps the emerald `#24C8DB` as a visible point color, and strengthens
+`.musu-public-scroll-root` with explicit width/height/overflow/touch scrolling
+rules. Local validation passed `npm run typecheck`,
+`npx playwright test --config=playwright.public-site.config.ts` (8/8), and
+`npm run build`. After push, the Vercel production workflow must deploy this to
+`https://musu.pro`, then live scroll/logo/accent QA should be rerun. The desktop
+single-instance fix is separate from the website deploy and requires MSIX
+rebuild/install evidence.

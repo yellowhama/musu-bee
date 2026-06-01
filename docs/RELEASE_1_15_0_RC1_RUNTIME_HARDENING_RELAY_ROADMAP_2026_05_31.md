@@ -728,3 +728,42 @@ Release interpretation:
   production-dashboard desktop-open CPU sample peaks at `webview2=0.13` of one
   logical core with `469.28MB` working set, so the primary busy-loop report is
   still not reproduced on current evidence. Second-PC CPU/matrix remains open.
+
+## 2026-06-02 Tauri Single-Instance and Site Deploy Update
+
+Packaged desktop repeated activation is now confirmed against the currently
+installed local-sideload package. Launching
+`shell:AppsFolder\Yellowhama.MUSU_ygcjq669as2b6!MUSU` twice while one shell was
+already open left three `musu-desktop.exe` processes on `HUGH_SECOND`. This is
+not the same as the earlier bridge `musu up` single-instance gate; it is a
+desktop shell/window reactivation gap.
+
+Source hardening:
+
+- `musu-bee/src-tauri/Cargo.toml` now depends on
+  `tauri-plugin-single-instance = 2.4.2`.
+- `musu-bee/src-tauri/src/lib.rs` registers the plugin and focuses the existing
+  `main` WebView window on repeat activation.
+- Local validation passed
+  `cargo test --manifest-path .\musu-bee\src-tauri\Cargo.toml -j 1` with 5/5
+  tests.
+
+Release interpretation:
+
+- The installed package is still old and should be treated as failing the new
+  desktop repeated-activation expectation.
+- Build/install a fresh MSIX before rerunning CPU or packaged desktop evidence.
+- Add packaged desktop repeated-activation evidence before accepting
+  `desktop-open` CPU samples as final release evidence.
+
+Public-site follow-up:
+
+- The website logo now renders the favicon mark itself instead of the wordmark.
+- `.musu-public-scroll-root` now has explicit width, auto height, `100svh` /
+  `100dvh` min-height, `overflow-y:auto`, touch panning, and stable scroll
+  gutter rules.
+- The homepage `Open App` CTA also uses the emerald `#24C8DB` point color.
+- Local validation passed `npm run typecheck`, public-site Playwright 8/8, and
+  `npm run build`.
+- This must deploy to `musu.pro` after push, followed by live QA on `/`,
+  `/landing`, `/pricing`, and `/install`.

@@ -314,6 +314,21 @@ Tauri desktop shell evidence:
   `26759256487`, `E2E Tests - musu-bee` run `26759256574`, and Vercel
   production deploy run `26759256616`; live `musu.pro` QA passed with scroll,
   no horizontal overflow, favicon-header logo, and `#24C8DB` accent.
+- 2026-06-02 00:17 KST desktop shell single-instance source hardening: current
+  installed MSIX/local-sideload package still duplicates desktop shells under
+  repeated Start-menu activation; local repro went from one to three
+  `musu-desktop.exe` PIDs. Source now registers
+  `tauri-plugin-single-instance = 2.4.2` and focuses the existing `main`
+  window on repeat activation. `cargo test --manifest-path
+  .\musu-bee\src-tauri\Cargo.toml -j 1` passed 5/5. Treat prior packaged
+  desktop evidence as stale until a fresh MSIX is built, installed, and
+  repeated-activation/process-ownership/CPU evidence is refreshed.
+- 2026-06-02 00:17 KST public-site source follow-up: public logo rendering now
+  uses the favicon mark only, scroll rules are explicit on
+  `.musu-public-scroll-root`, and the homepage `Open App` CTA uses the emerald
+  `#24C8DB` point color. Local `npm run typecheck`, public-site Playwright
+  8/8, and `npm run build` passed. Push should trigger `musu.pro` deployment;
+  run live QA after Vercel production completes.
 
 Release candidate manifest:
 

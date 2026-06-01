@@ -42,8 +42,11 @@ export default function ComingSoonPage() {
           <Link
             href="/app"
             className="btn btn-primary"
+            data-brand-accent="emerald"
             style={{
               textDecoration: "none",
+              background: "var(--musu-color-brand-emerald)",
+              color: "var(--musu-color-brand-ink)",
             }}
           >
             Open App →

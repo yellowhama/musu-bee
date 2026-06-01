@@ -327,6 +327,27 @@ Current Store path truth:
 - Current primary evidence after the final public-site/docs source change: single-machine `docs\evidence\single-machine\1.15.0-rc.1\20260601-231612-HUGH_SECOND.evidence.json`, desktop-open CPU `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-231939-HUGH_SECOND.desktop-open.evidence.json`, and 4-state matrix `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260601-233638-HUGH_SECOND.runtime-cpu-scenario-matrix.json` all pass on `HUGH_SECOND`. The CPU evidence shows no current primary busy-loop: desktop-open max one-core CPU is `musu=0`, `node=0`, `webview2=0.1`; matrix `desktop-open` peaks at WebView2 `0.18`; post-route token is `MUSU_CPU_SCENARIO_ROUTE_OK_20260601_233638`.
 - Current qualitative audit is wiki/531: `docs/RELEASE_1_15_0_RC1_QUAL_AUDIT_NEXT_STEPS_2026_06_01_2345.md`. It records that `musu.pro` deployment is complete, the primary busy-loop report is not reproduced, machine-wide Node.js is mostly Codex/MCP/npx tooling, the test-only Next dashboard is the single repo-related Node in CPU evidence, and public release remains No-Go until second-PC CPU/matrix, release-grade route, live P2P control-plane auth, `musu@musu.pro`, and Store evidence are recorded.
 - Indexer refreshed after wiki/531, current primary evidence refresh, code-audit/roadmap documentation, and CoS memory note `2026-06-01_2345_kst_current_evidence_code_audit_roadmap.md`: `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed 1217 files and 2213 symbols on 2026-06-01. Search terms should include `20260601-231612-HUGH_SECOND`, `20260601-231939-HUGH_SECOND.desktop-open`, `20260601-233638-HUGH_SECOND.runtime-cpu-scenario-matrix`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260601_233638`, `wiki/531`, `primary busy-loop not reproduced`, and `machine-wide Node.js`.
+- 2026-06-02 desktop shell source hardening: the currently installed packaged
+  app still duplicates `musu-desktop.exe` shells under repeated Start-menu
+  activation; local repro expanded one shell to three PIDs (`5744`, `27512`,
+  `31496`). Source now uses `tauri-plugin-single-instance = 2.4.2` and focuses
+  the existing `main` window on second activation. Validation passed
+  `cargo test --manifest-path .\musu-bee\src-tauri\Cargo.toml -j 1` 5/5. This
+  invalidates desktop release evidence until a fresh MSIX is built/installed
+  and packaged desktop repeated-activation, process ownership, and CPU evidence
+  are rerun.
+- 2026-06-02 public-site source follow-up: public logo rendering now uses the
+  favicon mark only, `.musu-public-scroll-root` has more explicit scrolling
+  rules, and the homepage `Open App` CTA uses the emerald `#24C8DB` point
+  color. Local validation passed `npm run typecheck`, public-site Playwright
+  8/8, and `npm run build`. This source change should deploy to `musu.pro`
+  after push and then be live-QA'd again.
+- Indexer refreshed after the 2026-06-02 desktop single-instance and
+  public-site follow-up: `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1218 files and 2213 symbols. Search terms should
+  include `tauri-plugin-single-instance`, `desktop repeated activation`,
+  `favicon mark only`, `scrollbar-gutter: stable`, `100svh`, `#24C8DB`, and
+  `musu.pro deploy pending`.
 - Remote release gates must be rechecked after the last pushed commit before public handoff; latest recorded runs were green, and live `https://musu.pro/privacy` plus `/support` passed public metadata verification with `musu@musu.pro`.
 - old 2026-05-27 package: template only (`1.13.0.0`, do not submit as current)
 - Tauri shell: dedicated static runtime launcher/status shell now builds to `musu-bee/out`, bundles as MSI/NSIS through `npm run tauri:build`, and is audited as `desktop_shell_ready=True`; it is still not the full dashboard GUI

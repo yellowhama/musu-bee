@@ -311,13 +311,18 @@
 }
 
 html {
+  width: 100%;
   min-height: 100%;
+  height: auto;
   overflow-y: auto;
   background: var(--bg-base);
 }
 
 body {
+  width: 100%;
+  max-width: 100%;
   min-height: 100%;
+  height: auto;
   overflow-x: hidden;
   overflow-y: auto;
   background: var(--bg-base);
@@ -329,12 +334,15 @@ body {
 }
 
 .musu-public-scroll-root {
+  width: 100%;
   height: auto;
   max-height: none;
+  min-height: 100svh;
   min-height: 100dvh;
   overflow-x: hidden;
-  overflow-y: visible;
+  overflow-y: auto;
   overscroll-behavior-y: auto;
+  scrollbar-gutter: stable;
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
 }
@@ -344,6 +352,8 @@ body:has(.musu-public-scroll-root) {
   height: auto;
   min-height: 100%;
   overflow-y: auto;
+  position: static;
+  touch-action: pan-y;
 }
 
 @supports (overflow: clip) {
