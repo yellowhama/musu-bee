@@ -10,6 +10,7 @@ import type { Agent } from "./AgentGrid";
 import { ActivityFeed } from "./ActivityFeed";
 import type { BridgeTask } from "./ActivityFeed";
 import CompanySelector from "./CompanySelector";
+import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 
 // ---- Watchdog types ----
 
@@ -29,6 +30,12 @@ interface RelayTokenResponse {
 
 const DASHBOARD_REFRESH_VISIBLE_MS = 30_000;
 const DASHBOARD_REFRESH_HIDDEN_MS = 120_000;
+const WATCHDOG_FETCH_TIMEOUT_MS = 5_000;
+
+function boundedAbortSignal(signal: AbortSignal | undefined, timeoutMs: number) {
+  const timeoutSignal = AbortSignal.timeout(timeoutMs);
+  return signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
+}
 
 // ---- Section label ----
 
@@ -195,7 +202,7 @@ export default function DashboardClient({ nodes }: Props) {
     };
   }, [relayInfo, selectedNode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const fetchAll = useCallback(async () => {
+  const fetchAll = useCallback(async (signal?: AbortSignal) => {
     // Agents: fetch from selected node, try company-scoped first
     if (!selectedNode) { setLoading(false); setLastRefresh(new Date()); return; }
     const nodeQ = `node=${encodeURIComponent(selectedNode)}`;
@@ -203,7 +210,7 @@ export default function DashboardClient({ nodes }: Props) {
     // Try to get active company for this node
     let activeCompanyId: string | null = null;
     try {
-      const wsRes = await fetch(`/api/bridge/workspace?${nodeQ}`);
+      const wsRes = await fetch(`/api/bridge/workspace?${nodeQ}`, { signal });
       if (wsRes.ok) {
         const ws = await wsRes.json() as { active_company_id?: string };
         if (ws.active_company_id) activeCompanyId = ws.active_company_id;
@@ -216,7 +223,7 @@ export default function DashboardClient({ nodes }: Props) {
       agentUrl = `/api/bridge/companies/${encodeURIComponent(activeCompanyId)}/agents?${nodeQ}`;
     }
     try {
-      const agentRes = await fetch(agentUrl);
+      const agentRes = await fetch(agentUrl, { signal });
       if (agentRes.ok) {
         const data: unknown = await agentRes.json();
         if (Array.isArray(data)) {
@@ -238,7 +245,7 @@ export default function DashboardClient({ nodes }: Props) {
     // Tasks: fetch from selected node only
     if (!selectedNode) { setLoading(false); setLastRefresh(new Date()); return; }
     const q = `?node=${encodeURIComponent(selectedNode)}`;
-    const tasksRes = await fetch(`/api/bridge/tasks${q}&limit=20`).catch(() => null);
+    const tasksRes = await fetch(`/api/bridge/tasks${q}&limit=20`, { signal }).catch(() => null);
     if (tasksRes?.ok) {
       const data: unknown = await tasksRes.json();
       setTasks(Array.isArray(data) ? (data as BridgeTask[]) : ((data as { tasks?: BridgeTask[] })?.tasks ?? []));
@@ -251,11 +258,11 @@ export default function DashboardClient({ nodes }: Props) {
   }, [selectedNode]);
 
   // ---- Runs/costs polling ----
-  const fetchRuns = useCallback(async (node: string) => {
+  const fetchRuns = useCallback(async (node: string, signal?: AbortSignal) => {
     if (!node) return;
     const [summaryRes, byAgentRes] = await Promise.all([
-      fetch(`/api/bridge/costs/summary?node=${encodeURIComponent(node)}`, { cache: "no-store" }).catch(() => null),
-      fetch(`/api/bridge/costs/by-agent?node=${encodeURIComponent(node)}`, { cache: "no-store" }).catch(() => null),
+      fetch(`/api/bridge/costs/summary?node=${encodeURIComponent(node)}`, { cache: "no-store", signal }).catch(() => null),
+      fetch(`/api/bridge/costs/by-agent?node=${encodeURIComponent(node)}`, { cache: "no-store", signal }).catch(() => null),
     ]);
     if (summaryRes?.ok) {
       const data = await summaryRes.json() as CostSummary;
@@ -277,14 +284,14 @@ export default function DashboardClient({ nodes }: Props) {
   }, []);
 
   // ---- Watchdog polling ----
-  const fetchWatchdogAll = useCallback(async () => {
+  const fetchWatchdogAll = useCallback(async (signal?: AbortSignal) => {
     const updates = new Map<string, WatchdogInfo>();
     await Promise.allSettled(
       nodes.map(async (n) => {
         try {
           const res = await fetch(
             `/api/bridge/watchdog?node=${encodeURIComponent(n.node_name)}`,
-            { signal: AbortSignal.timeout(5000) }
+            { signal: boundedAbortSignal(signal, WATCHDOG_FETCH_TIMEOUT_MS) }
           ).catch(() => null);
           if (res?.ok) {
             const data = (await res.json()) as WatchdogInfo;
@@ -344,65 +351,28 @@ export default function DashboardClient({ nodes }: Props) {
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    let inFlight = false;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-
-    const clearTimer = () => {
-      if (timer) {
-        clearTimeout(timer);
-        timer = null;
-      }
-    };
-
-    const refreshDelay = () =>
-      typeof document !== "undefined" && document.visibilityState === "hidden"
-        ? DASHBOARD_REFRESH_HIDDEN_MS
-        : DASHBOARD_REFRESH_VISIBLE_MS;
-
-    const schedule = () => {
-      if (cancelled) return;
-      clearTimer();
-      timer = setTimeout(() => {
-        void refresh();
-      }, refreshDelay());
-    };
-
-    const refresh = async () => {
-      if (cancelled || inFlight) return;
-      inFlight = true;
-      try {
-        await Promise.allSettled([
-          fetchAll(),
-          fetchWatchdogAll(),
-          selectedNode ? fetchRuns(selectedNode) : Promise.resolve(),
-        ]);
-      } finally {
-        inFlight = false;
-        schedule();
-      }
-    };
-
-    const handleVisibilityChange = () => {
-      if (typeof document !== "undefined" && document.visibilityState !== "hidden") {
-        clearTimer();
-        void refresh();
-      }
-    };
-
     setLoading(true);
     setAgents([]);
     setTasks([]);
     setAgentsErr(null);
     setTasksErr(null);
-    void refresh();
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      cancelled = true;
-      clearTimer();
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [fetchAll, fetchWatchdogAll, fetchRuns, selectedNode]);
+  }, [selectedNode]);
+
+  const refreshDashboard = useCallback(
+    async (signal: AbortSignal) => {
+      await Promise.allSettled([
+        fetchAll(signal),
+        fetchWatchdogAll(signal),
+        selectedNode ? fetchRuns(selectedNode, signal) : Promise.resolve(),
+      ]);
+    },
+    [fetchAll, fetchWatchdogAll, fetchRuns, selectedNode]
+  );
+
+  useLowDutyPolling(refreshDashboard, {
+    intervalMs: DASHBOARD_REFRESH_VISIBLE_MS,
+    maxBackoffMs: DASHBOARD_REFRESH_HIDDEN_MS,
+  });
 
   return (
     <div
@@ -456,7 +426,7 @@ export default function DashboardClient({ nodes }: Props) {
                 {lastRefresh ? `updated ${relativeTime(lastRefresh.toISOString())}` : ""}
               </span>
               <button
-                onClick={fetchAll}
+                onClick={() => void fetchAll()}
                 style={{
                   background: "rgba(255,255,255,0.05)",
                   border: "1px solid rgba(255,255,255,0.1)",

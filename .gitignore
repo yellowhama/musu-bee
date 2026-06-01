@@ -224,3 +224,4 @@ tools/rustdesk/data/
 .gemini/
 opencode.json
 AGENTS.md
+.gstack/

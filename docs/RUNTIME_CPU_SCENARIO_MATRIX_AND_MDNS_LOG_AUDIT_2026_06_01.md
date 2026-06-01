@@ -342,6 +342,24 @@ after the matrix evidence commit:
   `1`, public metadata ok, MSIX install ok, support false, Store false, and
   public release No-Go.
 
+2026-06-01 20:10 KST frontend polling follow-up:
+
+- The remaining custom dashboard refresh loops found in the frontend audit were
+  moved under the shared cancellable `useLowDutyPolling` contract.
+- `DashboardClient.tsx` now uses the shared poller for agents/tasks/watchdog
+  and run/cost refresh instead of a local visibility/timer loop.
+- `NodePanel.tsx` now uses the shared poller for nodes, cloud registry, and
+  discovered-node refresh instead of a local visibility/timer loop.
+- `runtime-polling-contract.test.ts` now guards six surfaces, including the
+  dashboard and node panel.
+- Validation:
+  `npx tsx --test src/app/runtime-polling-contract.test.ts` passed 6/6,
+  `npm run typecheck` passed, `npm run build` passed, `git diff --check`
+  passed, and `rg -n "setInterval\(" musu-bee\src` returned no matches.
+- Release status: this removes more frontend busy-loop candidates, but it is a
+  source change and therefore requires fresh clean/current CPU evidence before
+  the release gates can count it.
+
 Parser validation:
 
 - `measure-musu-runtime-cpu-scenarios.ps1 parser ok`

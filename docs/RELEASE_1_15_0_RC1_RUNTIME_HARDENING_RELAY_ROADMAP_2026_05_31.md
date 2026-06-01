@@ -510,6 +510,35 @@ Validation:
 - `cargo build --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1` passed.
 - `git diff --check` passed.
 
+## 2026-06-01 Frontend Polling Follow-up Update
+
+The frontend busy-loop audit found two remaining hand-written refresh loops
+outside the shared polling contract:
+
+- `musu-bee/src/components/dashboard/DashboardClient.tsx`
+- `musu-bee/src/components/NodePanel.tsx`
+
+Both now use `useLowDutyPolling`, so the dashboard agents/tasks/watchdog/runs
+refresh and the node panel nodes/registry/discovery refresh get the same
+AbortController cancellation, in-flight suppression, hidden-tab throttling, and
+failure backoff as the rest of the hardened runtime UI. The dashboard and node
+panel no longer own local `document.visibilitychange` timer loops.
+
+Validation:
+
+- `npx tsx --test src/app/runtime-polling-contract.test.ts` passed 6/6 tests.
+- `npm run typecheck` passed.
+- `npm run build` passed.
+- `rg -n "setInterval\(" musu-bee\src` returned no matches.
+- `git diff --check` passed.
+
+Release interpretation:
+
+This further reduces frontend busy-loop risk, but it is a source change. Treat
+the prior CPU evidence as stale for release gating until primary and second-PC
+60s CPU samples plus the four-state runtime matrix are refreshed from a clean
+commit.
+
 ## 2026-06-01 Hardware Probe Timeout Hardening Update
 
 The logged-in cloud heartbeat calls `gather_hardware_info()` before registering

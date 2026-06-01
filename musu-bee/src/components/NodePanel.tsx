@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 
 interface NodeInfo {
   name: string;
@@ -36,18 +37,18 @@ export default function NodePanel() {
   // mDNS discovered state
   const [discoveredNodes, setDiscoveredNodes] = useState<{ name: string; url: string; agents: string[] }[]>([]);
 
-  const fetchNodes = useCallback(async () => {
+  const fetchNodes = useCallback(async (signal?: AbortSignal) => {
     try {
-      const res = await fetch("/api/nodes");
+      const res = await fetch("/api/nodes", { signal });
       if (res.ok) setNodes(await res.json());
     } catch {
       // bridge unavailable
     }
   }, []);
 
-  const fetchRegistry = useCallback(async () => {
+  const fetchRegistry = useCallback(async (signal?: AbortSignal) => {
     try {
-      const res = await fetch("/api/registry");
+      const res = await fetch("/api/registry", { signal });
       if (res.ok) {
         const data = await res.json();
         setTokenConfigured(data.token_configured ?? false);
@@ -58,9 +59,9 @@ export default function NodePanel() {
     }
   }, []);
 
-  const fetchDiscovered = useCallback(async () => {
+  const fetchDiscovered = useCallback(async (signal?: AbortSignal) => {
     try {
-      const res = await fetch("/api/nodes/discovered");
+      const res = await fetch("/api/nodes/discovered", { signal });
       if (res.ok) {
         const data = await res.json();
         setDiscoveredNodes(Array.isArray(data) ? data : []);
@@ -70,57 +71,21 @@ export default function NodePanel() {
     }
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    let inFlight = false;
-    let timer: ReturnType<typeof setTimeout> | null = null;
+  const refreshNodes = useCallback(
+    async (signal: AbortSignal) => {
+      await Promise.allSettled([
+        fetchNodes(signal),
+        fetchRegistry(signal),
+        fetchDiscovered(signal),
+      ]);
+    },
+    [fetchNodes, fetchRegistry, fetchDiscovered]
+  );
 
-    const clearTimer = () => {
-      if (timer) {
-        clearTimeout(timer);
-        timer = null;
-      }
-    };
-
-    const refreshDelay = () =>
-      typeof document !== "undefined" && document.visibilityState === "hidden"
-        ? NODE_PANEL_REFRESH_HIDDEN_MS
-        : NODE_PANEL_REFRESH_VISIBLE_MS;
-
-    const schedule = () => {
-      if (cancelled) return;
-      clearTimer();
-      timer = setTimeout(() => {
-        void refresh();
-      }, refreshDelay());
-    };
-
-    const refresh = async () => {
-      if (cancelled || inFlight) return;
-      inFlight = true;
-      try {
-        await Promise.allSettled([fetchNodes(), fetchRegistry(), fetchDiscovered()]);
-      } finally {
-        inFlight = false;
-        schedule();
-      }
-    };
-
-    const handleVisibilityChange = () => {
-      if (typeof document !== "undefined" && document.visibilityState !== "hidden") {
-        clearTimer();
-        void refresh();
-      }
-    };
-
-    void refresh();
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      cancelled = true;
-      clearTimer();
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [fetchNodes, fetchRegistry, fetchDiscovered]);
+  useLowDutyPolling(refreshNodes, {
+    intervalMs: NODE_PANEL_REFRESH_VISIBLE_MS,
+    maxBackoffMs: NODE_PANEL_REFRESH_HIDDEN_MS,
+  });
 
   const handlePair = async () => {
     if (!ip.trim()) return;

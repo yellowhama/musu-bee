@@ -41,3 +41,21 @@ test("onboarding research task polling uses shared low-duty polling", () => {
   assert.doesNotMatch(text, /setInterval\s*\(/);
   assert.match(text, /pollResearchTask/);
 });
+
+test("dashboard refresh loop stays on shared low-duty polling", () => {
+  const text = source("src/components/dashboard/DashboardClient.tsx");
+
+  assert.match(text, /useLowDutyPolling/);
+  assert.doesNotMatch(text, /document\.addEventListener\("visibilitychange"/);
+  assert.match(text, /intervalMs:\s*DASHBOARD_REFRESH_VISIBLE_MS/);
+  assert.match(text, /maxBackoffMs:\s*DASHBOARD_REFRESH_HIDDEN_MS/);
+});
+
+test("node panel refresh loop stays on shared low-duty polling", () => {
+  const text = source("src/components/NodePanel.tsx");
+
+  assert.match(text, /useLowDutyPolling/);
+  assert.doesNotMatch(text, /document\.addEventListener\("visibilitychange"/);
+  assert.match(text, /intervalMs:\s*NODE_PANEL_REFRESH_VISIBLE_MS/);
+  assert.match(text, /maxBackoffMs:\s*NODE_PANEL_REFRESH_HIDDEN_MS/);
+});
