@@ -160,6 +160,18 @@ Already applied:
   `musu=0.13`, and `total_working_set_mb_after=373.38`. This proves the
   primary PC packaged desktop is quiet in the sampled state; the final release
   gate still needs the same evidence on the second PC.
+- `scripts\windows\measure-musu-runtime-cpu-scenarios.ps1` now records
+  `musu.runtime_cpu_scenario_matrix.v1` diagnostic matrices across
+  `runtime-started`, `dashboard-open`, `desktop-open`, and `post-route`. It
+  delegates process attribution to `measure-musu-idle-cpu.ps1`, includes
+  Node.js/WebView2 budgets, and exists to identify which state is hot before
+  rerunning release-grade two-machine CPU evidence.
+- The scenario matrix script uses timeout-bounded `Start-Process` temp-file
+  command capture for `musu up --json` so a spawned long-lived bridge cannot
+  keep a PowerShell pipeline open. A 3s local `runtime-started` smoke passed at
+  `.local-build\runtime-cpu-scenarios\20260601-100515-HUGH_SECOND\20260601-100515-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  with one MUSU process, zero owned Node/WebView2 helpers, and max one-core CPU
+  `0`; this is diagnostic-only and not release evidence.
 - `musu up` now has code to terminate a live but unhealthy registered bridge
   PID before restarting the bridge. This addresses the observed "PID alive but
   `/health` dead" class. Runtime verification is still pending because a local
@@ -182,6 +194,9 @@ Next implementation:
   package
 - run a queued-task/backlog CPU sample to prove the new event-driven admission
   path stays quiet when tasks are waiting for global/per-channel slots
+- run the full scenario matrix on both PCs when investigating a reported hot
+  state, then promote only clean 60s `desktop-open` samples into release
+  evidence
 - extend startup-repeat coverage from repeated `musu up` to desktop Start
   Runtime clicks and Store StartupTask/manual-launch collisions
 - fix the exact hot loop shown by those samples

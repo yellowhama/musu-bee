@@ -6,7 +6,7 @@ param(
     [switch]$IncludeNode,
     [switch]$IncludeWebView2,
     [switch]$IncludeUnrelatedHelpers,
-    [ValidateSet("bridge-only", "desktop-open", "post-route", "diagnostic")]
+    [ValidateSet("bridge-only", "runtime-started", "dashboard-open", "startup-open", "desktop-open", "post-route", "diagnostic")]
     [string]$Scenario = "bridge-only",
     [switch]$RequireOwnedWebView2,
     [int]$MaxOwnedProcessCount = 16,

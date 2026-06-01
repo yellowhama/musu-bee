@@ -1,0 +1,309 @@
+[CmdletBinding()]
+param(
+    [ValidateSet("runtime-started", "dashboard-open", "desktop-open", "post-route")]
+    [string[]]$Scenario = @("runtime-started", "desktop-open", "post-route"),
+    [int]$SampleSeconds = 60,
+    [int]$CommandTimeoutSec = 90,
+    [string]$MusuExe,
+    [switch]$OpenDesktopApp,
+    [string]$DesktopAppId = "Yellowhama.MUSU_ygcjq669as2b6!MUSU",
+    [string]$DashboardUrl,
+    [switch]$RunRouteProbe,
+    [string]$RoutePrompt,
+    [double]$MaxOneCorePercent = 5.0,
+    [int]$MaxOwnedProcessCount = 16,
+    [int]$MaxOwnedWebView2ProcessCount = 8,
+    [double]$MaxTotalWorkingSetMb = 1024.0,
+    [string]$OutputRoot,
+    [switch]$FailOnHot,
+    [switch]$Json
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
+$version = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
+$measureScript = Join-Path $scriptDir "measure-musu-idle-cpu.ps1"
+
+if ([string]::IsNullOrWhiteSpace($MusuExe)) {
+    $MusuExe = Join-Path $repoRoot "musu-rs\target\debug\musu.exe"
+}
+if (-not (Test-Path -LiteralPath $MusuExe)) {
+    throw "MusuExe not found: $MusuExe"
+}
+if ($SampleSeconds -lt 3) {
+    throw "SampleSeconds must be at least 3."
+}
+
+$stamp = Get-Date -Format "yyyyMMdd-HHmmss"
+$machine = if ([string]::IsNullOrWhiteSpace($env:COMPUTERNAME)) { "unknown" } else { $env:COMPUTERNAME }
+if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
+    $OutputRoot = Join-Path $repoRoot ".local-build\runtime-cpu-scenarios\$stamp-$machine"
+}
+New-Item -ItemType Directory -Force -Path $OutputRoot | Out-Null
+
+function ConvertTo-ProcessArgumentString {
+    param([string[]]$Items)
+
+    (@($Items) | ForEach-Object {
+        $item = [string]$_
+        $escaped = $item -replace '"', '\"'
+        if ($escaped -match "\s") {
+            "`"$escaped`""
+        }
+        else {
+            $escaped
+        }
+    }) -join " "
+}
+
+function Invoke-CapturedCommand {
+    param(
+        [Parameter(Mandatory = $true)][string]$FilePath,
+        [Parameter(Mandatory = $true)][string[]]$Arguments,
+        [Parameter(Mandatory = $true)][int]$TimeoutSec
+    )
+
+    $commandId = [guid]::NewGuid().ToString("N")
+    $tempRoot = [System.IO.Path]::GetTempPath()
+    $stdoutPath = Join-Path $tempRoot "musu-cpu-scenarios-$commandId.stdout.log"
+    $stderrPath = Join-Path $tempRoot "musu-cpu-scenarios-$commandId.stderr.log"
+    $process = $null
+
+    try {
+        $process = Start-Process `
+            -FilePath $FilePath `
+            -ArgumentList (ConvertTo-ProcessArgumentString -Items $Arguments) `
+            -RedirectStandardOutput $stdoutPath `
+            -RedirectStandardError $stderrPath `
+            -WindowStyle Hidden `
+            -PassThru
+
+        if (-not $process.WaitForExit($TimeoutSec * 1000)) {
+            try {
+                $process.Kill()
+            }
+            catch {
+            }
+            throw "command timed out after ${TimeoutSec}s: $FilePath $($Arguments -join ' ')"
+        }
+
+        $stdoutRaw = if (Test-Path -LiteralPath $stdoutPath) { Get-Content -LiteralPath $stdoutPath -Raw } else { "" }
+        $stderrRaw = if (Test-Path -LiteralPath $stderrPath) { Get-Content -LiteralPath $stderrPath -Raw } else { "" }
+        $stdoutText = if ($null -eq $stdoutRaw) { "" } else { ([string]$stdoutRaw).Trim() }
+        $stderrText = if ($null -eq $stderrRaw) { "" } else { ([string]$stderrRaw).Trim() }
+        $process.Refresh()
+        $exitCode = $process.ExitCode
+        if ($null -eq $exitCode -or [string]::IsNullOrWhiteSpace([string]$exitCode)) {
+            $exitCode = 0
+        }
+
+        return [pscustomobject]@{
+            exit_code = [int]$exitCode
+            stdout = $stdoutText
+            stderr = $stderrText
+        }
+    }
+    finally {
+        if ($null -ne $process) {
+            $process.Dispose()
+        }
+        Remove-Item -LiteralPath $stdoutPath, $stderrPath -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Invoke-TextCommand {
+    param(
+        [Parameter(Mandatory = $true)][string]$FilePath,
+        [Parameter(Mandatory = $true)][string[]]$Arguments,
+        [Parameter(Mandatory = $true)][int]$TimeoutSec
+    )
+
+    $result = Invoke-CapturedCommand -FilePath $FilePath -Arguments $Arguments -TimeoutSec $TimeoutSec
+    if ($result.exit_code -ne 0) {
+        throw "command failed with exit code $($result.exit_code): $FilePath $($Arguments -join ' ')`n$($result.stdout)`n$($result.stderr)"
+    }
+
+    if ([string]::IsNullOrWhiteSpace($result.stdout)) {
+        return $result.stderr
+    }
+    if (-not [string]::IsNullOrWhiteSpace($result.stderr)) {
+        return "$($result.stdout)`n$($result.stderr)"
+    }
+    return $result.stdout
+}
+
+function Invoke-JsonCommand {
+    param(
+        [Parameter(Mandatory = $true)][string]$FilePath,
+        [Parameter(Mandatory = $true)][string[]]$Arguments,
+        [Parameter(Mandatory = $true)][int]$TimeoutSec
+    )
+
+    $result = Invoke-CapturedCommand -FilePath $FilePath -Arguments $Arguments -TimeoutSec $TimeoutSec
+    if ($result.exit_code -ne 0) {
+        throw "command failed with exit code $($result.exit_code): $FilePath $($Arguments -join ' ')`n$($result.stdout)`n$($result.stderr)"
+    }
+    if ([string]::IsNullOrWhiteSpace($result.stdout)) {
+        throw "No JSON stdout returned from command: $FilePath $($Arguments -join ' ')`n$($result.stderr)"
+    }
+
+    return $result.stdout | ConvertFrom-Json
+}
+
+function Invoke-MeasureScenario {
+    param(
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    $outputPath = Join-Path $OutputRoot ("{0}-{1}.{2}.evidence.json" -f $stamp, $machine, $Name)
+    $measureArgs = @(
+        "-NoProfile",
+        "-ExecutionPolicy", "Bypass",
+        "-File", $measureScript,
+        "-SampleSeconds", $SampleSeconds,
+        "-Scenario", $Name,
+        "-MaxOneCorePercent", $MaxOneCorePercent,
+        "-MaxOwnedProcessCount", $MaxOwnedProcessCount,
+        "-MaxOwnedWebView2ProcessCount", $MaxOwnedWebView2ProcessCount,
+        "-MaxTotalWorkingSetMb", $MaxTotalWorkingSetMb,
+        "-IncludeNode",
+        "-IncludeWebView2",
+        "-OutputPath", $outputPath,
+        "-Json"
+    )
+    if ($Name -eq "desktop-open") {
+        $measureArgs += "-RequireOwnedWebView2"
+    }
+
+    $measureTimeoutSec = [Math]::Max($CommandTimeoutSec, $SampleSeconds + 30)
+    $evidence = Invoke-JsonCommand -FilePath "powershell" -Arguments $measureArgs -TimeoutSec $measureTimeoutSec
+    if ($null -eq $evidence) {
+        throw "No JSON returned while measuring scenario '$Name'."
+    }
+
+    return [pscustomobject]@{
+        scenario = $Name
+        ok = [bool]$evidence.ok
+        evidence_path = $outputPath
+        git_commit = [string]$evidence.git_commit
+        git_dirty = [bool]$evidence.git_dirty
+        sample_seconds = [double]$evidence.sample_seconds
+        process_counts_by_role = $evidence.process_counts_by_role
+        max_one_core_percent_by_role = $evidence.max_one_core_percent_by_role
+        total_working_set_mb_after = [double]$evidence.total_working_set_mb_after
+        total_private_memory_mb_after = [double]$evidence.total_private_memory_mb_after
+        resource_budget_violations = @($evidence.resource_budget_violations)
+        hot_process_count = [int]$evidence.hot_process_count
+    }
+}
+
+$routeProbe = $null
+if ([string]::IsNullOrWhiteSpace($RoutePrompt)) {
+    $RoutePrompt = "Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_$($stamp.Replace('-', '_'))"
+}
+
+$scenarioResults = @()
+foreach ($name in $Scenario) {
+    switch ($name) {
+        "runtime-started" {
+            $up = Invoke-JsonCommand -FilePath $MusuExe -Arguments @("up", "--json") -TimeoutSec $CommandTimeoutSec
+            $scenarioResults += [pscustomobject]@{
+                scenario = "runtime-started"
+                preparation = [pscustomobject]@{
+                    action = "musu up --json"
+                    bridge = if ($up) { $up.bridge } else { $null }
+                    dashboard = if ($up) { $up.dashboard } else { $null }
+                }
+                measurement = Invoke-MeasureScenario -Name $name
+            }
+        }
+        "dashboard-open" {
+            $dashboardOpened = $false
+            if (-not [string]::IsNullOrWhiteSpace($DashboardUrl)) {
+                Start-Process $DashboardUrl
+                $dashboardOpened = $true
+                Start-Sleep -Seconds 5
+            }
+            $scenarioResults += [pscustomobject]@{
+                scenario = "dashboard-open"
+                preparation = [pscustomobject]@{
+                    action = if ($dashboardOpened) { "Start-Process DashboardUrl" } else { "none" }
+                    dashboard_url = $DashboardUrl
+                    note = if ($dashboardOpened) { "Browser/WebView ownership depends on the caller; evidence still only budgets MUSU-owned/repo-related processes." } else { "DashboardUrl not supplied; measured current runtime state only." }
+                }
+                measurement = Invoke-MeasureScenario -Name $name
+            }
+        }
+        "desktop-open" {
+            if ($OpenDesktopApp) {
+                Start-Process explorer.exe ("shell:AppsFolder\{0}" -f $DesktopAppId)
+                Start-Sleep -Seconds 8
+            }
+            $scenarioResults += [pscustomobject]@{
+                scenario = "desktop-open"
+                preparation = [pscustomobject]@{
+                    action = if ($OpenDesktopApp) { "Start packaged desktop app" } else { "none" }
+                    desktop_app_id = $DesktopAppId
+                }
+                measurement = Invoke-MeasureScenario -Name $name
+            }
+        }
+        "post-route" {
+            if ($RunRouteProbe) {
+                $routeOutput = Invoke-TextCommand -FilePath $MusuExe -Arguments @("route", "--wait", $RoutePrompt) -TimeoutSec $CommandTimeoutSec
+                $routeProbe = [pscustomobject]@{
+                    prompt = $RoutePrompt
+                    output = $routeOutput
+                    ok = ($routeOutput -like "*MUSU_CPU_SCENARIO_ROUTE_OK_*")
+                }
+            }
+            $scenarioResults += [pscustomobject]@{
+                scenario = "post-route"
+                preparation = [pscustomobject]@{
+                    action = if ($RunRouteProbe) { "musu route --wait" } else { "none" }
+                    route_probe = $routeProbe
+                }
+                measurement = Invoke-MeasureScenario -Name $name
+            }
+        }
+    }
+}
+
+$failed = @($scenarioResults | Where-Object { -not [bool]$_.measurement.ok })
+$matrixPath = Join-Path $OutputRoot ("{0}-{1}.runtime-cpu-scenario-matrix.json" -f $stamp, $machine)
+$result = [ordered]@{
+    schema = "musu.runtime_cpu_scenario_matrix.v1"
+    ok = ($failed.Count -eq 0)
+    version = $version
+    git_commit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
+    git_dirty = -not [string]::IsNullOrWhiteSpace((& git -C $repoRoot status --short 2>$null | Out-String).Trim())
+    started_at = $stamp
+    completed_at = (Get-Date).ToString("o")
+    operator_machine = $machine
+    operator_user = $env:USERNAME
+    sample_seconds = $SampleSeconds
+    max_one_core_percent = $MaxOneCorePercent
+    max_owned_process_count = $MaxOwnedProcessCount
+    max_owned_webview2_process_count = $MaxOwnedWebView2ProcessCount
+    max_total_working_set_mb = $MaxTotalWorkingSetMb
+    requested_scenarios = @($Scenario)
+    route_probe = $routeProbe
+    fail_count = $failed.Count
+    scenarios = @($scenarioResults)
+    matrix_path = $matrixPath
+}
+
+$result | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $matrixPath -Encoding UTF8
+
+if ($Json) {
+    $result | ConvertTo-Json -Depth 12
+} else {
+    [pscustomobject]$result
+}
+
+if ($FailOnHot -and -not [bool]$result.ok) {
+    exit 1
+}
