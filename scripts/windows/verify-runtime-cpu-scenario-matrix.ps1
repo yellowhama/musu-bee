@@ -86,10 +86,18 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
 
     $statusOnlyScripts = @(
         ".github/workflows/deploy-musu-bee.yml",
+        "scripts/windows/audit-desktop-release-readiness.ps1",
+        "scripts/windows/import-second-pc-return.ps1",
+        "scripts/windows/prepare-final-operator-gate-packet.ps1",
+        "scripts/windows/prepare-multidevice-test-kit.ps1",
+        "scripts/windows/prepare-operator-action-pack.ps1",
+        "scripts/windows/run-second-pc-release-check.ps1",
         "scripts/windows/verify-final-operator-gate-packet.ps1",
+        "scripts/windows/verify-operator-action-pack.ps1",
         "scripts/windows/verify-runtime-cpu-scenario-matrix.ps1",
         "scripts/windows/verify-single-machine-evidence.ps1",
         "scripts/windows/write-release-go-no-go.ps1",
+        "scripts/windows/show-musu-process-attribution.ps1",
         "scripts/windows/show-musu-pro-p2p-env-status.ps1"
     )
     return ($statusOnlyScripts -contains $normalizedPath)

@@ -154,6 +154,7 @@ $sourceMsixEvidence = Resolve-LatestJsonBySchema -Root $extractRoot -Schema "mus
 $sourceHandoff = Resolve-LatestFile -Root $extractRoot -Filter "*.handoff.json" -Label "second-PC handoff"
 $sourceRuntimeIdleCpuEvidence = Resolve-LatestRuntimeIdleReleaseEvidence -Root $extractRoot -Optional
 $sourceRuntimeCpuScenarioMatrix = Resolve-LatestJsonBySchema -Root $extractRoot -Schema "musu.runtime_cpu_scenario_matrix.v1" -Label "runtime CPU scenario matrix" -Optional
+$sourceProcessAttributionSummary = Resolve-LatestJsonBySchema -Root $extractRoot -Schema "musu.process_attribution_summary.v1" -Label "process attribution summary" -Optional
 $sourceReleaseCheck = Get-ChildItem -LiteralPath $extractRoot -Filter "*.release-check.json" -File -Recurse -ErrorAction SilentlyContinue |
     Sort-Object LastWriteTimeUtc -Descending |
     Select-Object -First 1
@@ -168,6 +169,12 @@ else {
 }
 $canonicalRuntimeCpuScenarioMatrix = if ($sourceRuntimeCpuScenarioMatrix) {
     Copy-IntoRoot -SourcePath $sourceRuntimeCpuScenarioMatrix -TargetRoot (Join-Path $repoRoot ".local-build\runtime-cpu-scenarios")
+}
+else {
+    $null
+}
+$canonicalProcessAttributionSummary = if ($sourceProcessAttributionSummary) {
+    Copy-IntoRoot -SourcePath $sourceProcessAttributionSummary -TargetRoot (Join-Path $repoRoot ".local-build\process-attribution")
 }
 else {
     $null
@@ -238,6 +245,7 @@ $result = [pscustomobject]@{
     handoff_path = $canonicalHandoff
     runtime_idle_cpu_evidence_path = $canonicalRuntimeIdleCpuEvidence
     runtime_cpu_scenario_matrix_path = $canonicalRuntimeCpuScenarioMatrix
+    process_attribution_summary_path = $canonicalProcessAttributionSummary
     release_check_path = $canonicalReleaseCheck
     remote_name = [string]$returnCard.remote_name
     remote_addr = [string]$returnCard.remote_addr
@@ -259,6 +267,7 @@ else {
     "handoff: $($result.handoff_path)"
     "runtime_idle_cpu_evidence: $(if ($result.runtime_idle_cpu_evidence_path) { $result.runtime_idle_cpu_evidence_path } else { '<not present>' })"
     "runtime_cpu_scenario_matrix: $(if ($result.runtime_cpu_scenario_matrix_path) { $result.runtime_cpu_scenario_matrix_path } else { '<not present>' })"
+    "process_attribution_summary: $(if ($result.process_attribution_summary_path) { $result.process_attribution_summary_path } else { '<not present>' })"
     "release_check: $(if ($result.release_check_path) { $result.release_check_path } else { '<not present>' })"
     "remote_name: $($result.remote_name)"
     "remote_addr: $($result.remote_addr)"

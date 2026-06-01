@@ -539,6 +539,22 @@ Current Store path truth:
   1258 files and 2214 symbols. Search terms include `HUGH-MAIN`,
   `20260531-165240-HUGH-MAIN`, `20260602-052442`, and
   `no release-check JSON`.
+- Process attribution update: `show-musu-process-attribution.ps1` now writes
+  `musu.process_attribution_summary.v1` and is bundled into the second-PC kit,
+  final operator packet, operator action-pack verifier, and desktop readiness
+  audit. `run-second-pc-release-check.ps1` includes
+  `.local-build\process-attribution\*.process-attribution-summary.json` in the
+  return zip, and `import-second-pc-return.ps1` imports it. Local HUGH_SECOND
+  evidence currently shows machine-wide `node.exe=16`, MUSU-owned Node `0`,
+  unowned Node `16`, machine-wide WebView2 `12`, MUSU-owned WebView2 `6`, and
+  process ownership checks passing; raw Task Manager Node counts are diagnostic,
+  while MUSU-owned descendants, repo orphan helpers, and hot CPU/resource
+  samples remain the release accountability boundary.
+- Indexer refreshed after process attribution wiring:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1261 files and 2214 symbols. Search terms include
+  `process-attribution-summary`, `machine-wide node.exe=16`, `owned_node=0`,
+  `owned_webview2=6`, `show-musu-process-attribution.ps1`, and `wiki/536`.
 - Remote release gates must be rechecked after the last pushed commit before public handoff; latest recorded runs were green, and live `https://musu.pro/privacy` plus `/support` passed public metadata verification with `musu@musu.pro`.
 - old 2026-05-27 package: template only (`1.13.0.0`, do not submit as current)
 - Tauri shell: dedicated static runtime launcher/status shell now builds to `musu-bee/out`, bundles as MSI/NSIS through `npm run tauri:build`, and is audited as `desktop_shell_ready=True`; it is still not the full dashboard GUI
@@ -559,6 +575,7 @@ Canonical reference:
 - `docs/RELEASE_1_15_0_RC1_FRESH_MSIX_EVIDENCE_AUDIT_2026_06_02.md` (wiki/533)
 - `docs/RELEASE_1_15_0_RC1_CLI_PIPE_SITE_DEPLOY_AUDIT_2026_06_02.md` (wiki/534)
 - `docs/RELEASE_1_15_0_RC1_PACKAGED_CLI_RUNTIME_EVIDENCE_2026_06_02.md` (wiki/535)
+- `docs/PROCESS_ATTRIBUTION_NODE_COUNT_AUDIT_2026_06_02.md` (wiki/536)
 - `docs/P2P_CONTROL_PLANE_MUSU_PRO_NEXT_ACTIONS_2026_06_02.md`
 - `docs/RELEASE_1_15_0_RC1_QUAL_AUDIT_NEXT_STEPS_2026_06_01.md` (wiki/527)
 - `docs/RUNTIME_RELAY_FALLBACK_NEXT_STEPS_2026_06_01.md` (wiki/530)

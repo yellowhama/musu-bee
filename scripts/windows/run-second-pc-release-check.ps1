@@ -46,6 +46,7 @@ $msixEvidencePath = Join-Path $repoRoot ".local-build\msix-install\$stamp-$safeM
 $handoffPath = Join-Path $repoRoot ".local-build\second-pc-handoff\$stamp-$safeMachine.handoff.json"
 $runtimeIdleCpuEvidencePath = Join-Path $repoRoot ".local-build\runtime-idle-cpu\$stamp-$safeMachine.desktop-open.evidence.json"
 $runtimeCpuScenarioOutputRoot = Join-Path $repoRoot ".local-build\runtime-cpu-scenarios\$stamp-$safeMachine"
+$processAttributionSummaryPath = Join-Path $repoRoot ".local-build\process-attribution\$stamp-$safeMachine.process-attribution-summary.json"
 $returnZipPath = Join-Path $repoRoot ".local-build\second-pc-return\$stamp-$safeMachine.second-pc-return.zip"
 
 $steps = New-Object System.Collections.Generic.List[object]
@@ -57,6 +58,8 @@ $runtimeCpuScenarioMatrix = $null
 $runtimeCpuScenarioMatrixPath = $null
 $runtimeCpuScenarioMatrixError = $null
 $runtimeCpuScenarioMatrixVerification = $null
+$processAttributionSummary = $null
+$processAttributionError = $null
 
 function Invoke-ReleaseStep {
     param(
@@ -258,6 +261,17 @@ try {
             }
         }
     }
+
+    try {
+        $processAttributionSummary = Invoke-ReleaseStep `
+            -Name "summarize MUSU process attribution" `
+            -ScriptName "show-musu-process-attribution.ps1" `
+            -Arguments @("-OutputPath", $processAttributionSummaryPath, "-Json") `
+            -ParseJson
+    }
+    catch {
+        $processAttributionError = $_.Exception.Message
+    }
 }
 catch {
     $errorText = $_.Exception.Message
@@ -273,6 +287,7 @@ $returnFiles = @(
     $handoffPath,
     $(if (-not $SkipRuntimeIdleCpu) { $runtimeIdleCpuEvidencePath }),
     $runtimeCpuScenarioFiles,
+    $processAttributionSummaryPath,
     $summaryPath
 ) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }
 if (-not $NoReturnZip) {
@@ -296,6 +311,10 @@ $result = [pscustomobject]@{
     runtime_cpu_scenario_matrix_verified = if ($SkipRuntimeCpuScenarioMatrix) { $null } elseif ($runtimeCpuScenarioMatrixVerification) { [bool]$runtimeCpuScenarioMatrixVerification.ok } else { $false }
     runtime_cpu_scenario_matrix_verification = $runtimeCpuScenarioMatrixVerification
     runtime_cpu_scenario_matrix_error = $runtimeCpuScenarioMatrixError
+    process_attribution_summary_path = $processAttributionSummaryPath
+    process_attribution_ok = if ($processAttributionSummary) { [bool]$processAttributionSummary.ok } else { $false }
+    process_attribution_error = $processAttributionError
+    process_attribution_counts = if ($processAttributionSummary) { $processAttributionSummary.counts } else { $null }
     suggested_remote_addrs = if ($handoff) { $handoff.suggested_remote_addrs } else { @() }
     remote_name_suggestion = if ($handoff) { [string]$handoff.remote_name_suggestion } else { $env:COMPUTERNAME }
     capture_ok = if ($capture) { [bool]$capture.ok } else { $false }
@@ -314,7 +333,7 @@ $result | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $summaryPath -Encod
 
 if (-not $NoReturnZip) {
     try {
-        $filesToZip = @($msixEvidencePath, $handoffPath, $(if (-not $SkipRuntimeIdleCpu) { $runtimeIdleCpuEvidencePath }), $runtimeCpuScenarioFiles, $summaryPath) | Where-Object {
+        $filesToZip = @($msixEvidencePath, $handoffPath, $(if (-not $SkipRuntimeIdleCpu) { $runtimeIdleCpuEvidencePath }), $runtimeCpuScenarioFiles, $processAttributionSummaryPath, $summaryPath) | Where-Object {
             (-not [string]::IsNullOrWhiteSpace([string]$_)) -and (Test-Path -LiteralPath $_)
         }
         if ($filesToZip.Count -eq 0) {
@@ -341,6 +360,7 @@ else {
     "second_pc_handoff_path: $($result.second_pc_handoff_path)"
     "runtime_idle_cpu_evidence_path: $(if ($result.runtime_idle_cpu_evidence_path) { $result.runtime_idle_cpu_evidence_path } else { '<skipped>' })"
     "runtime_cpu_scenario_matrix_path: $(if ($result.runtime_cpu_scenario_matrix_path) { $result.runtime_cpu_scenario_matrix_path } elseif ($SkipRuntimeCpuScenarioMatrix) { '<skipped>' } else { '<not captured>' })"
+    "process_attribution_summary_path: $(if ($result.process_attribution_summary_path) { $result.process_attribution_summary_path } else { '<not captured>' })"
     "return_zip_path: $($result.return_zip_path)"
     "remote_name_suggestion: $($result.remote_name_suggestion)"
     "suggested_remote_addrs:"
@@ -355,6 +375,10 @@ else {
     if ($result.return_zip_error) {
         ""
         "return_zip_error: $($result.return_zip_error)"
+    }
+    if ($result.process_attribution_error) {
+        ""
+        "process_attribution_error: $($result.process_attribution_error)"
     }
     if (-not $result.ok) {
         ""

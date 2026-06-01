@@ -138,6 +138,7 @@ Multi-device packet:
 - MSIX install evidence capture: `scripts\windows\capture-msix-install-evidence.ps1`
 - runtime idle CPU evidence capture: `scripts\windows\measure-musu-idle-cpu.ps1` is now run by `run-second-pc-release-check.ps1` unless `-SkipRuntimeIdleCpu` is used
 - runtime CPU scenario matrix: `scripts\windows\measure-musu-runtime-cpu-scenarios.ps1` writes `musu.runtime_cpu_scenario_matrix.v1` for `runtime-started`, `dashboard-open`, `desktop-open`, and `post-route`; `dashboard-open` now launches an explicit dashboard URL or the `reachable_url` from `musu up --json` before sampling, never an unverified `dev_url`/`start_url` fallback, `post-route` requires the exact per-run route token, and `scripts\windows\verify-runtime-cpu-scenario-matrix.ps1` rejects no-op dashboard-open matrices while verifying clean/current 60s matrices with a successful post-route probe; this is now bundled into the second-PC kit, captured by `run-second-pc-release-check.ps1` unless `-SkipRuntimeCpuScenarioMatrix` is used, imported by `import-second-pc-return.ps1`, and is a separate go/no-go attribution gate rather than a replacement for the release-grade two-machine `desktop-open` CPU evidence
+- process attribution summary: `scripts\windows\show-musu-process-attribution.ps1` writes `musu.process_attribution_summary.v1`; the second-PC wrapper includes `.local-build\process-attribution\*.process-attribution-summary.json` in the return zip, and the importer copies it back to `.local-build\process-attribution\`. Use this to distinguish machine-wide `node.exe`/WebView2 counts from MUSU-owned helpers before treating Task Manager process counts as release defects.
 - MSIX install evidence verifier: `scripts\windows\verify-msix-install-evidence.ps1`
 - MSIX install evidence recorder: `scripts\windows\record-msix-install-evidence.ps1`
 - MSIX install evidence must match the current release version, include operator metadata, pass non-future timestamp checks, and include passing capture checks from the second-PC package install
@@ -165,6 +166,7 @@ Runtime hardening:
 - multi-state CPU verifier: `scripts\windows\verify-runtime-cpu-scenario-matrix.ps1`
 - MSIX desktop entrypoint audit: `scripts\windows\audit-msix-desktop-entrypoint.ps1`
 - process ownership audit: `scripts\windows\audit-musu-process-ownership.ps1`
+- process attribution summary: `scripts\windows\show-musu-process-attribution.ps1`
 - startup single-instance audit: `scripts\windows\audit-musu-startup-single-instance.ps1`
 - packaged desktop single-instance audit:
   `scripts\windows\audit-musu-desktop-single-instance.ps1`
@@ -173,7 +175,7 @@ Runtime hardening:
 - P2P control-plane live evidence verifier:
   `scripts\windows\verify-p2p-control-plane-evidence.ps1`
 - public beta target: MUSU packaged desktop open and idle, at least one MUSU runtime process sampled, at least one MUSU-owned WebView2 process attributed, no MUSU/Node.js/WebView2 process above 5% of one logical CPU for a 60s idle sample, owned process count <= 16, owned WebView2 count <= 8, total owned working set <= 1024MB
-- process ownership target: one live MUSU runtime, no repo-related orphan Node/WebView2 helpers, and bridge registry PID plus `/health` matching the live runtime
+- process ownership target: one live MUSU runtime, no repo-related orphan Node/WebView2 helpers, and bridge registry PID plus `/health` matching the live runtime. Machine-wide `node.exe` count is diagnostic only; MUSU-owned descendants and repo-related orphan helpers are the release accountability boundary.
 - startup single-instance target: repeated `musu up --json` calls reuse one bridge PID and do not spawn another runtime
 - default mDNS: off unless `MUSU_ENABLE_MDNS=1`; IPv6, Tailscale, and common VPN/virtual adapters also require `MUSU_MDNS_ENABLE_IPV6=1`, `MUSU_MDNS_ENABLE_TAILSCALE=1`, and `MUSU_MDNS_ENABLE_VIRTUAL_INTERFACES=1`
 - default clipboard polling: off unless `MUSU_ENABLE_CLIPBOARD_SYNC=1`

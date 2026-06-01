@@ -243,6 +243,8 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | wiki/532 | Desktop single-instance release gate | 2026-06-02 | `DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md` | active |
 | wiki/533 | Fresh MSIX primary evidence audit | 2026-06-02 | `RELEASE_1_15_0_RC1_FRESH_MSIX_EVIDENCE_AUDIT_2026_06_02.md` | active |
 | wiki/534 | CLI pipe hardening and public site deploy audit | 2026-06-02 | `RELEASE_1_15_0_RC1_CLI_PIPE_SITE_DEPLOY_AUDIT_2026_06_02.md` | active |
+| wiki/535 | Packaged CLI/runtime evidence audit | 2026-06-02 | `RELEASE_1_15_0_RC1_PACKAGED_CLI_RUNTIME_EVIDENCE_2026_06_02.md` | active |
+| wiki/536 | Process attribution and Node count audit | 2026-06-02 | `PROCESS_ATTRIBUTION_NODE_COUNT_AUDIT_2026_06_02.md` | active |
 | — | 1.15.0-rc.1 beta release checklist and smoke evidence | 2026-05-29 | `BETA_RELEASE_CHECKLIST_1_15_0_RC1.md` | active |
 | — | 1.15.0-rc.1 final operator gates | 2026-05-29 | `RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md` | active |
 | — | MUSU Microsoft Store release run card | 2026-05-29 | `MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md` | active |
@@ -263,6 +265,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | — | CoS memory note — startup single-instance gate | 2026-05-31 | `memory/chief_of_staff/2026-05-31_2040_kst_startup_single_instance_gate.md` | active |
 | — | CoS memory note — brand asset audit and current release state | 2026-06-01 | `memory/chief_of_staff/2026-06-01_0030_kst_brand_asset_and_current_audit.md` | active |
 | — | CoS memory note — desktop single-instance release gate | 2026-06-02 | `memory/chief_of_staff/2026-06-02_0055_kst_desktop_single_instance_gate.md` | active |
+| — | CoS memory note — process attribution and Node count audit | 2026-06-02 | `memory/chief_of_staff/2026-06-02_0540_kst_process_attribution_node_count.md` | active |
 | — | CoS memory note — desktop shell and musu-system refresh | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0415_kst_desktop_shell_and_musu_system_refresh.md` | active |
 | — | CoS memory note — multi-device test kit ready | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0445_kst_multidevice_test_kit_ready.md` | active |
 | — | CoS memory note — release candidate manifest | 2026-05-29 | `memory/chief_of_staff/2026-05-29_0500_kst_release_candidate_manifest.md` | active |
@@ -391,6 +394,7 @@ These docs capture the post-install / post-review conclusion that Windows packag
 | Second-PC MSIX install operator runbook | 2026-05-31 | `SECOND_PC_MSIX_INSTALL_OPERATOR_RUNBOOK_2026_05_31.md` | active |
 | MSIX desktop entrypoint audit | 2026-05-31 | `MSIX_DESKTOP_ENTRYPOINT_AUDIT_2026_05_31.md` | active |
 | Desktop single-instance release gate | 2026-06-02 | `DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md` | active |
+| Process attribution and Node count audit | 2026-06-02 | `PROCESS_ATTRIBUTION_NODE_COUNT_AUDIT_2026_06_02.md` | active |
 | Final operator gates | 2026-05-29 | `RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md` | active |
 | Release operator handoff card | 2026-05-29 | `RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md` | active |
 | musu-system integration assessment | 2026-05-29 | `MUSU_SYSTEM_INTEGRATION_ASSESSMENT_2026_05_29.md` | active |
@@ -408,6 +412,10 @@ These docs capture the post-install / post-review conclusion that Windows packag
 2026-05-30 Store bundle verifier single-machine refresh: after adding Store submission bundle verifier scripts/docs, single-machine smoke was rerun from commit `45209e8`. Current evidence `20260530-094254-HUGH_SECOND` verifies with dashboard output `MUSU_RELEASE_SMOKE_OK_20260530_094227`, CLI route `MUSU_CLI_ROUTE_OK_20260530_094227`, task `948fd44f-41b3-4bc8-9aa2-e05ea002d838`, bridge `http://127.0.0.1:12715`, `doctor_overall=warn`, and dashboard doctor `ok`.
 
 2026-05-30 second-PC return archive update: `run-second-pc-release-check.ps1` now writes `.local-build\second-pc-return\*.zip` containing the generated MSIX install evidence, handoff JSON, and release-check summary. `show-second-pc-return-card.ps1 -ReturnZipPath ...` extracts that archive and prints primary-side commands. Packet/action-pack generation docs and verifiers now require the archive handoff instructions. This reduces file-return risk but does not satisfy the external second-PC evidence gates.
+
+2026-06-02 process attribution update: `show-musu-process-attribution.ps1` writes `musu.process_attribution_summary.v1` and separates machine-wide Node.js/WebView2 processes from MUSU-owned descendants. It is bundled into the second-PC kit and final operator packet, `run-second-pc-release-check.ps1` includes `.local-build\process-attribution\*.process-attribution-summary.json` in the return zip, and `import-second-pc-return.ps1` imports it. Current local evidence shows machine-wide `node.exe=16`, MUSU-owned Node `0`, MUSU-owned WebView2 `6`, and process ownership checks passing; raw Task Manager Node count is diagnostic, while MUSU-owned helpers and repo-related orphan helpers remain the release accountability boundary.
+
+2026-06-02 index refresh after process attribution wiring: `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed 1261 files and 2214 symbols. Search terms should include `process-attribution-summary`, `musu.process_attribution_summary.v1`, `machine-wide node.exe=16`, `owned_node=0`, `owned_webview2=6`, `show-musu-process-attribution.ps1`, and `wiki/536`.
 
 2026-05-30 second-PC return archive single-machine refresh: after adding the return archive flow, single-machine smoke was rerun from commit `7294d65`. Current evidence `20260530-100818-HUGH_SECOND` verifies with dashboard output `MUSU_RELEASE_SMOKE_OK_20260530_1008`, CLI route `MUSU_CLI_ROUTE_OK_20260530_1008`, task `695f1e1d-1d1b-46bd-8783-3eebb216842a`, bridge `http://127.0.0.1:2217`, `doctor_overall=warn`, and dashboard doctor `ok`.
 

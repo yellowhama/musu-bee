@@ -116,6 +116,7 @@ $scriptsToCopy = @(
     "measure-musu-runtime-cpu-scenarios.ps1",
     "verify-runtime-cpu-scenario-matrix.ps1",
     "audit-musu-process-ownership.ps1",
+    "show-musu-process-attribution.ps1",
     "audit-musu-startup-single-instance.ps1",
     "audit-musu-desktop-single-instance.ps1",
     "prepare-operator-action-pack.ps1",
@@ -411,6 +412,17 @@ when those helpers are descendants of MUSU, rejects repo-owned orphan helpers,
 and verifies the bridge registry PID plus `/health`.
 
 Expected result: `process_ownership_verified=true`.
+
+If Task Manager shows many `node.exe` or WebView2 helpers, run this companion
+summary before treating them as MUSU-owned:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-musu-process-attribution.ps1
+```
+
+It reports machine-wide helper counts, MUSU-owned helper counts, unowned helper
+counts, and top CPU/working-set processes. The release blocker is the
+MUSU-owned process set, not unrelated machine-wide Node.js tooling.
 
 ## Gate G - Startup single-instance evidence
 
