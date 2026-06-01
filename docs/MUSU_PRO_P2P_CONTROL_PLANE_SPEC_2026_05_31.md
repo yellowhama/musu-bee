@@ -2,7 +2,7 @@
 
 **Wiki ID**: wiki/524
 **Date**: 2026-05-31
-**Status**: Current implementation spec. Server-side rendezvous, route-evidence, and relay fallback lease APIs exist. Rust bridge runtime route attempts now create short-lived rendezvous sessions, seed sessions from recent node candidate cache, can use returned target candidates before legacy direct forwarding, exchange advertised TLS certificate fingerprints as peer identity material, verify HTTPS peer certificate fingerprints during bridge forwarding when a target candidate supplies a `sha256:<hex>` fingerprint, request a fail-closed relay lease after terminal direct-route failure when a rendezvous session and account token exist, and persist the relay fallback evaluation inside failed route evidence. This is still not final release-grade transport because the accepted release proof remains QUIC/TLS evidence, not bridge HTTP multipart over TLS, and relay/tunnel data transport is still not wired.
+**Status**: Current implementation spec. Server-side rendezvous, route-evidence, and relay fallback lease APIs exist. Rust bridge runtime route attempts now create short-lived rendezvous sessions, seed sessions from recent node candidate cache, can use returned target candidates before legacy direct forwarding, exchange advertised TLS certificate fingerprints as peer identity material, verify HTTPS peer certificate fingerprints during bridge forwarding when a target candidate supplies a `sha256:<hex>` fingerprint, request a fail-closed relay lease after terminal direct-route failure when a rendezvous session and account token exist, persist the relay fallback evaluation inside failed route evidence, and expose `musu relay leases --json` for relay lease audit queries. This is still not final release-grade transport because the accepted release proof remains QUIC/TLS evidence, not bridge HTTP multipart over TLS, relay/tunnel data transport is still not wired, and live `https://musu.pro` currently returns `p2p_control_auth_not_configured` for relay lease queries until production P2P control auth accepts the runtime account/device token or a scoped control token.
 
 ## Product Decision
 
@@ -236,7 +236,10 @@ Release gates must reject multi-device evidence that lacks:
 Current `POST /api/v1/p2p/route-evidence` behavior:
 
 - Requires Bearer auth using server env `MUSU_P2P_CONTROL_TOKEN`,
-  `MUSU_ROUTE_EVIDENCE_TOKEN`, or `MUSU_TOKEN`.
+  `MUSU_ROUTE_EVIDENCE_TOKEN`, or `MUSU_TOKEN`. This is the current
+  implementation boundary, not the final production auth model; production must
+  either validate runtime account/device tokens or issue scoped P2P control
+  tokens.
 - Validates `musu.route_evidence.v1` with the route kinds above.
 - Validates and stores the optional `relay_fallback` addendum for terminal
   direct-route failures. Valid statuses are `skipped_no_token`,
@@ -276,6 +279,9 @@ itself.
 Current `POST /api/v1/p2p/relay/lease` behavior:
 
 - Requires the same Bearer auth as the rendezvous and route-evidence APIs.
+  Live production currently returns `p2p_control_auth_not_configured`, which
+  means the deployed environment is not configured for this auth boundary and is
+  not yet accepting the logged-in runtime token used by `MusuCloud`.
 - Validates `session_id`, `source_node_id`, `target_node_id`,
   `attempted_route_kinds`, `direct_path_failed`, optional
   `requested_capability`, and optional `failure_class`.
@@ -306,6 +312,8 @@ Current Rust client/diagnostic behavior:
 
 - `musu-rs/src/cloud/mod.rs` has relay lease request/response DTOs and
   `request_relay_lease`.
+- `musu-rs/src/cloud/mod.rs` also has relay lease query DTOs and
+  `query_relay_leases` for `GET /api/v1/p2p/relay/lease`.
 - `musu-rs/src/bridge/rendezvous.rs` now builds a relay lease request from the
   failed direct-route attempt and calls `/api/v1/p2p/relay/lease` after
   forwarding exhausts direct candidates. The request includes `session_id`,
@@ -325,6 +333,10 @@ Current Rust client/diagnostic behavior:
   `relay_runtime_fallback_lease_request_wired=true`,
   `relay_default_data_path=false`, and still
   `relay_transport_wired=false`.
+- `musu relay leases --json` reports schema `musu.relay_leases.v1`, the
+  registry URL, login state, filters, count, returned leases, `owner_scope_verified`,
+  and any non-crashing API error. It must not be treated as verified owner-scoped
+  evidence unless `owner_scope_verified=true`.
 - Relay/tunnel transport remains unwired. The runtime lease request is a policy
   and audit handoff only; it must not become a silent relay data path.
 

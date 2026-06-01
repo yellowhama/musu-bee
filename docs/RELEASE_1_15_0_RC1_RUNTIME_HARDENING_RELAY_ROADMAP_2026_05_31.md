@@ -289,6 +289,10 @@ Current 2026-06-01 implementation update:
 - Runtime forwarding now creates a rendezvous session, can use returned target
   candidates, writes/submits route evidence, and requests a relay lease after
   terminal direct-route failure when a session/account token exists.
+- `musu relay leases --json` now queries relay lease audit records from the
+  operator CLI and reports `owner_scope_verified`; however live production
+  `https://musu.pro` currently returns `p2p_control_auth_not_configured`,
+  showing that P2P control auth is not yet wired to the logged-in runtime token.
 - This is still not release-grade P2P. Relay payload transport is not wired,
   `relay_default_data_path=false`, and QUIC/TLS route evidence remains the
   accepted release target.
@@ -340,9 +344,10 @@ Minimal client behavior:
 
 1. Treat existing cloud node registration as registry v0. **Done as baseline.**
 2. Add rendezvous/route-evidence DTOs and tests in the Next API or dedicated service. **Done for rendezvous, route evidence, and relay lease policy.**
-3. Add bridge client diagnostics. **`musu relay status` and `musu route --explain` exist; `musu relay connect` / `musu relay route` remain pending because relay transport is not wired.**
-4. Add route path selection: manual/cached peer -> control-plane candidate -> relay fallback lease request. **Direct candidate selection and runtime lease request exist; relay payload fallback remains pending.**
-5. Record route evidence with path type and timings. **Runtime and CLI route evidence write `musu.route_evidence.v1`, but release-grade QUIC/TLS proof is still missing.**
+3. Fix production P2P control auth. **Open: `musu relay leases --json` reaches `https://musu.pro` but currently fails with `p2p_control_auth_not_configured`; the server must validate the runtime account/device token or a scoped P2P control token before relay lease evidence is production-queryable.**
+4. Add bridge client diagnostics. **`musu relay status`, `musu relay leases`, and `musu route --explain` exist; `musu relay connect` / `musu relay route` remain pending because relay transport is not wired.**
+5. Add route path selection: manual/cached peer -> control-plane candidate -> relay fallback lease request. **Direct candidate selection and runtime lease request exist; relay payload fallback remains pending.**
+6. Record route evidence with path type and timings. **Runtime and CLI route evidence write `musu.route_evidence.v1`, but release-grade QUIC/TLS proof is still missing.**
 
 Current enforcement update: `smoke-multidevice-beta.ps1` writes
 `musu.route_evidence.v1`, and `verify-multidevice-evidence.ps1` now rejects
@@ -364,9 +369,9 @@ HTTP bearer routing from satisfying the public multi-device release gate.
 |---|---:|---:|---|
 | Single-machine Windows local beta | ~92% | ~88% | Functionality is proven, local process/startup ownership passes, and current primary desktop-open CPU evidence is clean; second-PC CPU evidence remains open. |
 | Store/operator-gate infrastructure | ~90% | ~96% | Evidence tooling now includes runtime idle CPU, process ownership, startup single-instance, MSIX desktop-entrypoint gates, second-PC return CPU matrix capture, and a passing regenerated Store submission bundle artifact. |
-| Public desktop release readiness | ~68% | ~65% | MSIX install/desktop-entrypoint and primary idle CPU evidence are much stronger, but second-PC desktop CPU, real route proof, support mailbox, Store approval, and relay/QUIC evidence remain open. |
+| Public desktop release readiness | ~68% | ~64% | MSIX install/desktop-entrypoint, public site deployment, primary idle CPU evidence, and primary CPU matrix are much stronger, but second-PC desktop CPU, real route proof, support mailbox, Store approval, relay/QUIC evidence, and production P2P control auth remain open. |
 | Full desktop GUI product maturity | ~55-60% | ~50% | Tauri shell remains launcher/status only, and runtime resource polish is not yet product-grade. |
-| Multi-device product maturity | ~45% | ~50% | Direct second-PC install evidence exists and the `musu.pro` rendezvous/route-evidence/relay-lease control plane is wired, but release-grade QUIC/TLS route proof and relay payload transport do not exist yet. |
+| Multi-device product maturity | ~45% | ~48% | Direct second-PC install evidence exists and the `musu.pro` rendezvous/route-evidence/relay-lease control plane is wired in code, but live production relay lease queries currently fail on P2P control auth; release-grade QUIC/TLS route proof and relay payload transport do not exist yet. |
 
 ## Release Decision
 
@@ -382,3 +387,5 @@ Do not submit broadly or market as a reliable desktop utility until:
 - idle CPU evidence passes on primary and second PC
 - process ownership and startup single-instance evidence pass; repeated startup does not spawn duplicate runtimes
 - `musu.pro` assisted peer routing has at least a registry/direct path proof, with relay/tunnel fallback either implemented or explicitly excluded from the launch promise
+- production P2P control auth no longer returns `p2p_control_auth_not_configured`
+  for `musu relay leases --json`

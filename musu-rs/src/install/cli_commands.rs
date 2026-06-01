@@ -73,6 +73,8 @@ pub struct RouteOpts {
 pub enum RelayAction {
     /// Show current registry/rendezvous/relay readiness.
     Status(RelayStatusOpts),
+    /// Query owner-scoped relay lease audit records from musu.pro.
+    Leases(RelayLeasesOpts),
 }
 
 /// Options for `musu relay status`.
@@ -81,6 +83,26 @@ pub struct RelayStatusOpts {
     /// Emit machine-readable JSON.
     #[arg(long)]
     pub json: bool,
+}
+
+/// Options for `musu relay leases`.
+#[derive(Args, Debug)]
+pub struct RelayLeasesOpts {
+    /// Emit machine-readable JSON.
+    #[arg(long)]
+    pub json: bool,
+    /// Maximum leases to return.
+    #[arg(long, default_value_t = 20)]
+    pub limit: u32,
+    /// Filter by rendezvous session id.
+    #[arg(long)]
+    pub session_id: Option<String>,
+    /// Filter by source node id.
+    #[arg(long)]
+    pub source_node_id: Option<String>,
+    /// Filter by target node id.
+    #[arg(long)]
+    pub target_node_id: Option<String>,
 }
 
 /// Options for `musu ls peer-name:/path`.
@@ -677,13 +699,14 @@ fn candidate_meta_string(meta: Option<&serde_json::Value>, keys: &[&str]) -> Opt
 pub async fn run_relay(action: RelayAction) -> Result<()> {
     match action {
         RelayAction::Status(opts) => run_relay_status(opts).await,
+        RelayAction::Leases(opts) => run_relay_leases(opts).await,
     }
 }
 
 #[derive(Debug, Serialize)]
 struct RelayStatusReport {
     schema: &'static str,
-    registry_url: &'static str,
+    registry_url: String,
     logged_in: bool,
     cached_registry_present: bool,
     cached_registry_valid: bool,
@@ -704,6 +727,32 @@ struct RelayStatusReport {
     next_steps: Vec<&'static str>,
 }
 
+#[derive(Debug, Serialize)]
+struct RelayLeasesFilters {
+    limit: u32,
+    session_id: Option<String>,
+    source_node_id: Option<String>,
+    target_node_id: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct RelayLeasesReport {
+    schema: &'static str,
+    registry_url: String,
+    logged_in: bool,
+    ok: bool,
+    owner_scope_verified: bool,
+    owner_scoped: bool,
+    relay_control_plane_wired: bool,
+    relay_transport_wired: bool,
+    relay_default_data_path: bool,
+    count: usize,
+    filters: RelayLeasesFilters,
+    leases: Vec<crate::cloud::P2pRelayLease>,
+    error: Option<String>,
+    next_steps: Vec<&'static str>,
+}
+
 async fn run_relay_status(opts: RelayStatusOpts) -> Result<()> {
     let home = musu_home();
     let token_present =
@@ -716,7 +765,7 @@ async fn run_relay_status(opts: RelayStatusOpts) -> Result<()> {
 
     let report = RelayStatusReport {
         schema: "musu.relay_status.v1",
-        registry_url: "https://musu.pro",
+        registry_url: crate::cloud::base_url_from_env(),
         logged_in: token_present,
         cached_registry_present: cached_registry.is_some(),
         cached_registry_valid: cached_registry
@@ -798,6 +847,107 @@ async fn run_relay_status(opts: RelayStatusOpts) -> Result<()> {
         report.release_route_evidence_ready
     );
     println!("  path priority: {}", report.path_priority.join(" -> "));
+    println!("  next steps:");
+    for step in &report.next_steps {
+        println!("    - {step}");
+    }
+    Ok(())
+}
+
+async fn run_relay_leases(opts: RelayLeasesOpts) -> Result<()> {
+    let home = musu_home();
+    let registry_url = crate::cloud::base_url_from_env();
+    let filters = RelayLeasesFilters {
+        limit: opts.limit.clamp(1, 200),
+        session_id: opts.session_id.clone(),
+        source_node_id: opts.source_node_id.clone(),
+        target_node_id: opts.target_node_id.clone(),
+    };
+    let token = crate::cloud::token::load_token(&home)
+        .map(|token| token.trim().to_string())
+        .filter(|token| !token.is_empty());
+
+    let mut report = RelayLeasesReport {
+        schema: "musu.relay_leases.v1",
+        registry_url: registry_url.clone(),
+        logged_in: token.is_some(),
+        ok: false,
+        owner_scope_verified: false,
+        owner_scoped: false,
+        relay_control_plane_wired: true,
+        relay_transport_wired: false,
+        relay_default_data_path: false,
+        count: 0,
+        filters,
+        leases: vec![],
+        error: None,
+        next_steps: vec![
+            "run a real failed direct route with a logged-in account so relay fallback is evaluated",
+            "verify the lease audit record is owner-scoped and tied to the rendezvous session id",
+            "keep relay_default_data_path=false until relay/tunnel payload transport is implemented",
+        ],
+    };
+
+    if let Some(token) = token {
+        let cloud = crate::cloud::MusuCloud::new(&registry_url, Some(token));
+        let query = crate::cloud::P2pRelayLeaseQuery {
+            limit: Some(report.filters.limit),
+            session_id: report.filters.session_id.clone(),
+            source_node_id: report.filters.source_node_id.clone(),
+            target_node_id: report.filters.target_node_id.clone(),
+        };
+        match cloud.query_relay_leases(&query).await {
+            Ok(response) => {
+                report.ok = response.ok;
+                report.owner_scope_verified = true;
+                report.owner_scoped = response.owner_scoped;
+                report.relay_control_plane_wired = response.relay_control_plane_wired;
+                report.relay_transport_wired = response.relay_transport_wired;
+                report.count = response.count;
+                report.leases = response.leases;
+            }
+            Err(err) => {
+                report.error = Some(err.to_string());
+            }
+        }
+    } else {
+        report.error = Some("not_logged_in".to_string());
+    }
+
+    if opts.json {
+        println!("{}", serde_json::to_string_pretty(&report)?);
+        return Ok(());
+    }
+
+    println!("MUSU relay lease audits");
+    println!("  registry: {}", report.registry_url);
+    println!("  logged in: {}", report.logged_in);
+    println!("  ok: {}", report.ok);
+    println!("  owner scope verified: {}", report.owner_scope_verified);
+    println!("  owner scoped: {}", report.owner_scoped);
+    println!(
+        "  relay control-plane wired: {}",
+        report.relay_control_plane_wired
+    );
+    println!("  relay transport wired: {}", report.relay_transport_wired);
+    println!(
+        "  relay default data path: {}",
+        report.relay_default_data_path
+    );
+    println!("  count: {}", report.count);
+    if let Some(error) = &report.error {
+        println!("  error: {error}");
+    }
+    for lease in &report.leases {
+        println!(
+            "  - {} session={} {} -> {} expires={}",
+            lease.lease_id,
+            lease.session_id,
+            lease.source_node_id,
+            lease.target_node_id,
+            lease.expires_at
+        );
+    }
     println!("  next steps:");
     for step in &report.next_steps {
         println!("    - {step}");

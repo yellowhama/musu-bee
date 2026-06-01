@@ -316,6 +316,13 @@ submission/release evidence.
   `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-160102-HUGH_SECOND.desktop-open.evidence.json`
   with MUSU `2`, repo Node `1`, owned WebView2 `6`, max one-core CPU
   `musu=0`, `node=0`, `webview2=0.08`, and working set `504.02MB`.
+- Public `musu.pro` deployment of the scroll/logo/accent fix is verified:
+  Vercel production workflow run `26738950440` succeeded, and live Playwright
+  checks passed for `/`, `/landing`, `/pricing`, and `/install` on desktop and
+  mobile.
+- `musu relay leases --json` now exists as a relay lease audit surface, but the
+  live production query currently fails with `p2p_control_auth_not_configured`.
+  This is now a named production P2P control-plane auth blocker.
 - Go/no-go remains No-Go: runtime idle CPU is `1/2`, runtime CPU scenario matrix
   is `1/2`, and real multi-device/support/Store evidence remains missing.
 
@@ -325,10 +332,10 @@ submission/release evidence.
 |---|---:|---|
 | Packaging trust | 8/10 | MSIX desktop-entrypoint and local-sideload contract are now coherent. Store certification remains external. |
 | Runtime efficiency | 7.4/10 | Current primary packaged desktop-open CPU evidence passes with repo Node explicitly counted: `musu=0%`, `node=0%`, `webview2=0.08%` of one logical core. Primary 4-state matrix evidence also passes, but second-PC evidence is still missing. |
-| P2P product story | 8.1/10 | The strategy is right, the bridge now has shared path-kind ranking for cached/manual/nodes candidates, runtime route evidence is stored/queryable on `musu.pro`, server-side rendezvous candidate exchange plus recent node candidate caching exists, runtime forwarding creates/uses sessions, refreshed target candidates can affect the actual forward address, peer identity material is exchanged, HTTPS bridge attempts can pin the advertised certificate fingerprint, and relay fallback now has a fail-closed lease policy API. Release-grade QUIC/TLS proof, real second-PC verification, and relay/tunnel transport are still not wired. |
+| P2P product story | 7.8/10 | The strategy is right, the bridge now has shared path-kind ranking for cached/manual/nodes candidates, runtime route evidence is stored/queryable on `musu.pro`, server-side rendezvous candidate exchange plus recent node candidate caching exists, runtime forwarding creates/uses sessions, refreshed target candidates can affect the actual forward address, peer identity material is exchanged, HTTPS bridge attempts can pin the advertised certificate fingerprint, relay fallback has a fail-closed lease policy API, and lease audits are now queryable from the CLI. The score is reduced because live production currently returns `p2p_control_auth_not_configured` for relay lease queries; release-grade QUIC/TLS proof, real second-PC verification, and relay/tunnel transport are still not wired. |
 | UX/branding | 6/10 -> 7/10 | App mark is strong. Public web asset tracking, wordmark fallback, and basic static logo lockups are now fixed. Store screenshots and product demo media are still needed. |
 | Release evidence quality | 8.3/10 | Gates are strict and honest. Runtime CPU evidence must now match current HEAD or documentation/evidence-only deltas, Node.js attribution includes repo-related command lines, and dashboard-open matrices must prove a real launched dashboard URL. |
-| Overall public readiness | ~68% | Stronger than before, but still No-Go because second-PC CPU/matrix, real hardened route, support inbox, Store evidence, and relay/tunnel transport remain open. |
+| Overall public readiness | ~67% | Stronger than the pre-hardening baseline, but still No-Go because second-PC CPU/matrix, real hardened route, support inbox, Store evidence, production P2P control auth, and relay/tunnel transport remain open. |
 
 ## Next Roadmap
 
@@ -344,6 +351,13 @@ submission/release evidence.
    - Keep the 60s / 5%-of-one-core / owned process count / memory budgets.
 
 2. **Wire `musu.pro` assisted routing**
+   - Fix production P2P control auth first. Current live `musu relay leases --json`
+     against `https://musu.pro` fails with `p2p_control_auth_not_configured`,
+     meaning the deployed routes still expect static env-token auth while the
+     runtime sends the logged-in account token.
+   - After auth is fixed, require `musu relay leases --json` to return
+     `owner_scope_verified=true` with either an owner-scoped empty result or
+     the expected session-bound lease record.
    - Runtime route attempts now create/read/close rendezvous sessions and
      publish source/target candidates best-effort; returned target candidates
      can replace the original selected peer address. Candidate updates now seed
@@ -378,6 +392,7 @@ submission/release evidence.
 ## Decision
 
 Do not publish yet. The right next engineering move is to verify the new
-rendezvous lifecycle on the real second-PC route, collect clean two-machine
-desktop-open CPU evidence, then wire QUIC/TLS route proof before
+rendezvous lifecycle on the real second-PC route, fix production P2P control
+auth so relay lease audits are actually queryable on `musu.pro`, collect clean
+two-machine desktop-open CPU evidence, then wire QUIC/TLS route proof before
 touching relay transport.

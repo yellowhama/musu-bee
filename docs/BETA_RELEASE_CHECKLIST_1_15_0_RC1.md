@@ -166,6 +166,11 @@ Runtime hardening:
   fail-closed `/api/v1/p2p/relay/lease` when a rendezvous session and account
   token exist; this is policy/audit wiring only and `relay_transport_wired`
   remains `false`
+- P2P relay lease audit status: `musu relay leases --json` now queries
+  owner-scoped relay lease records and reports `owner_scope_verified`, but live
+  production `https://musu.pro` currently returns
+  `p2p_control_auth_not_configured`; fix production P2P control auth before
+  treating relay lease evidence as release-grade
 - relay fallback evidence status: failed runtime route evidence now carries a
   `relay_fallback` addendum after direct-route failure and lease evaluation,
   so `musu.pro` can audit whether the lease was requested/issued/skipped
@@ -202,7 +207,12 @@ Store metadata:
 - final evidence completion runner: `scripts\windows\complete-final-operator-gates.ps1`
 - final release handoff status: `scripts\windows\show-final-release-handoff-status.ps1`
 - metadata handoff: `docs/STORE_SUBMISSION_METADATA_2026_05_29.md`
-- public deployment now verifies; mailbox delivery evidence still must be recorded before Partner Center submission; Store release approval evidence must be recorded after Microsoft certification and restricted capability approval.
+- public deployment now verifies; Vercel production workflow run `26738950440`
+  and live Playwright checks confirmed scroll, favicon logo/browser icon, and
+  `#24C8DB` accent on `https://musu.pro`; mailbox delivery evidence still must
+  be recorded before Partner Center submission; Store release approval evidence
+  must be recorded after Microsoft certification and restricted capability
+  approval.
 - final operator gates: `docs/RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md`
 
 Current MSIX artifacts:

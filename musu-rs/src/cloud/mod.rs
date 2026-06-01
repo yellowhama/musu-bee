@@ -191,6 +191,31 @@ pub struct P2pRelayLeaseResponse {
     pub lease: Option<P2pRelayLease>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[allow(dead_code)] // Relay lease query DTO; used by CLI diagnostics and operator evidence.
+pub struct P2pRelayLeaseQuery {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_node_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_node_id: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)] // Relay lease query API response DTO.
+pub struct P2pRelayLeaseQueryResponse {
+    pub ok: bool,
+    pub owner_scoped: bool,
+    pub relay_control_plane_wired: bool,
+    pub relay_transport_wired: bool,
+    pub count: usize,
+    #[serde(default)]
+    pub leases: Vec<P2pRelayLease>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[allow(dead_code)] // P2P control-plane DTO; wired after the route selector lands.
 pub struct RouteEvidence {
@@ -488,6 +513,43 @@ impl MusuCloud {
         if !resp.status().is_success() && resp.status() != reqwest::StatusCode::CONFLICT {
             let err = resp.text().await.unwrap_or_default();
             return Err(anyhow!("Failed to request relay lease: {err}"));
+        }
+
+        Ok(resp.json().await?)
+    }
+
+    /// GET /api/v1/p2p/relay/lease to inspect owner-scoped relay lease audits.
+    #[allow(dead_code)] // Used by `musu relay leases`; also useful for operator evidence capture.
+    pub async fn query_relay_leases(
+        &self,
+        query: &P2pRelayLeaseQuery,
+    ) -> Result<P2pRelayLeaseQueryResponse> {
+        let token = self
+            .token
+            .as_ref()
+            .ok_or_else(|| anyhow!("Not logged in"))?;
+        let mut url = reqwest::Url::parse(&format!("{}/api/v1/p2p/relay/lease", self.base_url))?;
+        {
+            let mut pairs = url.query_pairs_mut();
+            if let Some(limit) = query.limit {
+                pairs.append_pair("limit", &limit.to_string());
+            }
+            if let Some(session_id) = query.session_id.as_deref() {
+                pairs.append_pair("session_id", session_id);
+            }
+            if let Some(source_node_id) = query.source_node_id.as_deref() {
+                pairs.append_pair("source_node_id", source_node_id);
+            }
+            if let Some(target_node_id) = query.target_node_id.as_deref() {
+                pairs.append_pair("target_node_id", target_node_id);
+            }
+        }
+
+        let resp = self.client.get(url).bearer_auth(token).send().await?;
+
+        if !resp.status().is_success() {
+            let err = resp.text().await.unwrap_or_default();
+            return Err(anyhow!("Failed to query relay leases: {err}"));
         }
 
         Ok(resp.json().await?)
