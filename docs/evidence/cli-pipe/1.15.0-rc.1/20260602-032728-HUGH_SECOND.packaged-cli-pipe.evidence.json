@@ -1,0 +1,73 @@
+{
+  "schema": "musu.cli_pipe_evidence.v1",
+  "ok": true,
+  "version": "1.15.0-rc.1",
+  "commit": "0e5541ebfc2f459ded2796a8e055c81634741acb",
+  "recorded_at": "2026-06-02T03:27:28.8279376+09:00",
+  "operator_machine": "HUGH_SECOND",
+  "operator_user": "empty",
+  "package_full_name": "Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6",
+  "installed_version": "1.15.0.0",
+  "install_location": "C:\\Program Files\\WindowsApps\\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6",
+  "alias_path": "C:\\Users\\empty\\AppData\\Local\\Microsoft\\WindowsApps\\musu.exe",
+  "command": "C:\\Users\\empty\\AppData\\Local\\Microsoft\\WindowsApps\\musu.exe up --json --timeout-sec 10 | ConvertFrom-Json",
+  "timeout_sec": 35,
+  "returned_without_hang": true,
+  "timed_out": false,
+  "error": null,
+  "result": {
+    "exit_code": 0,
+    "duration_ms": 7544,
+    "ok": true,
+    "bridge_started": true,
+    "bridge_pid": 33860,
+    "bridge_status": "ok",
+    "bridge_url": "http://127.0.0.1:10499",
+    "dashboard_status": "warn",
+    "raw": {
+      "ok": true,
+      "token_created": false,
+      "bridge_started": true,
+      "bridge_pid": 33860,
+      "terminated_unhealthy_bridge_pid": null,
+      "bridge_log_path": "C:\\Users\\empty\\.musu\\logs\\bridge.log",
+      "bridge": {
+        "status": "ok",
+        "local_url": "http://127.0.0.1:10499",
+        "service_registry_addr": "127.0.0.1:10499",
+        "service_registry_pid": 33860,
+        "public_url": "http://127.0.0.1:10499",
+        "public_url_valid": true,
+        "health_http_status": 200,
+        "health_body": {
+          "status": "ok",
+          "version": "1.15.0-rc.1",
+          "worker_ok": true,
+          "db_size_mb": 0.15625,
+          "disk_free_pct": 0.0,
+          "auth_mode": "production",
+          "audit_degraded": false,
+          "schema_applied": true,
+          "relay": null
+        },
+        "error": null,
+        "note": "Local bridge is reachable."
+      },
+      "dashboard": {
+        "status": "warn",
+        "dev_url": "http://127.0.0.1:3000/app",
+        "start_url": "http://127.0.0.1:3001/app",
+        "reachable_url": null,
+        "note": "Dashboard is not reachable from this shell. Start `musu-bee` with `npm run dev` or `npm start`."
+      },
+      "dashboard_open_attempted": false,
+      "dashboard_open_error": null,
+      "next_steps": [
+        "Start the dashboard from `musu-bee`: `npm run dev` or `npm start`."
+      ]
+    },
+    "PSComputerName": "localhost",
+    "RunspaceId": "8981df47-8a33-4b5a-8ee4-f4e84092007f",
+    "PSShowComputerName": false
+  }
+}
