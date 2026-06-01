@@ -270,6 +270,27 @@ after the matrix evidence commit:
 - Release status: this makes the idle evidence background profile explicit. It
   does not replace the required clean/current two-machine 60s CPU samples.
 
+2026-06-01 18:56 KST planner loop budget hardening update:
+
+- The optional `MUSU_ENABLE_PLANNER=1` loop now floors
+  `MUSU_PLANNER_INTERVAL_SEC` at 60s, so a `0` or very small value cannot create
+  a busy loop.
+- Planner crawler execution now uses timeout-bounded `tokio::process::Command`
+  with `stdin=null`, piped output, `kill_on_drop(true)`, and
+  `MUSU_PLANNER_COMMAND_TIMEOUT_SEC` clamped to 5s..120s.
+- `musu doctor --json` reports the effective planner interval and crawler
+  timeout budget. Live `HUGH_SECOND` verification with
+  `MUSU_ENABLE_PLANNER=1`, `MUSU_PLANNER_INTERVAL_SEC=0`, and
+  `MUSU_PLANNER_COMMAND_TIMEOUT_SEC=9999` returned
+  `planner_interval_sec=60`, `planner_command_timeout_sec=120`, and
+  `background.status=warn`.
+- Validation:
+  planner unit tests passed 2/2, doctor background tests passed 4/4,
+  `cargo build --bin musu -j 1` passed, and `git diff --check` passed.
+- Release status: this closes a background-loop hardening gap for an optional
+  feature. It still does not replace the required clean/current two-machine 60s
+  CPU samples.
+
 Parser validation:
 
 - `measure-musu-runtime-cpu-scenarios.ps1 parser ok`

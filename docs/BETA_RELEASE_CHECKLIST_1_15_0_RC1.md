@@ -186,6 +186,11 @@ Runtime hardening:
   `useLowDutyPolling`; `musu-bee/src/app/runtime-polling-contract.test.ts`
   guards the contract. This reduces known frontend busy-loop candidates but
   does not replace the two-machine 60s CPU evidence gate.
+- optional planner hardening: `MUSU_ENABLE_PLANNER=1` remains off by default,
+  `MUSU_PLANNER_INTERVAL_SEC` is floored at 60s, planner crawler execution is
+  timeout-bounded with `MUSU_PLANNER_COMMAND_TIMEOUT_SEC` clamped to 5s..120s,
+  and `musu doctor --json` reports the effective planner interval/timeout so
+  CPU evidence can see the active background budget.
 
 Brand assets:
 

@@ -1280,6 +1280,11 @@ struct DoctorBackground {
     file_serve_root_count: usize,
     file_serve_writable: bool,
     planner: DoctorBackgroundFeature,
+    planner_interval_sec: u64,
+    planner_interval_floor_sec: u64,
+    planner_command_timeout_sec: u64,
+    planner_command_timeout_floor_sec: u64,
+    planner_command_timeout_ceiling_sec: u64,
     note: String,
 }
 
@@ -1689,6 +1694,14 @@ fn check_background_features(
     let mdns_virtual_enabled = env_truthy("MUSU_MDNS_ENABLE_VIRTUAL_INTERFACES");
     let clipboard_enabled = env_truthy("MUSU_ENABLE_CLIPBOARD_SYNC");
     let planner_enabled = env_truthy("MUSU_ENABLE_PLANNER");
+    let planner_interval_sec = crate::brain::planner::normalize_planner_interval_sec(
+        std::env::var("MUSU_PLANNER_INTERVAL_SEC").ok().as_deref(),
+    );
+    let planner_command_timeout_sec = crate::brain::planner::normalize_planner_command_timeout_sec(
+        std::env::var("MUSU_PLANNER_COMMAND_TIMEOUT_SEC")
+            .ok()
+            .as_deref(),
+    );
     let cloud_heartbeat_interval_sec = std::env::var("MUSU_CLOUD_HEARTBEAT_INTERVAL_SEC")
         .ok()
         .and_then(|value| value.parse::<u64>().ok())
@@ -1792,11 +1805,18 @@ fn check_background_features(
             enabled: planner_enabled,
             env_var: Some("MUSU_ENABLE_PLANNER"),
             note: if planner_enabled {
-                "Autonomous planner loop is enabled; keep disabled for desktop idle evidence unless intentionally testing it.".into()
+                format!(
+                    "Autonomous planner loop is enabled at a bounded {planner_interval_sec}s interval with {planner_command_timeout_sec}s crawler timeout."
+                )
             } else {
                 "Autonomous planner loop is off by default.".into()
             },
         },
+        planner_interval_sec,
+        planner_interval_floor_sec: crate::brain::planner::PLANNER_MIN_INTERVAL_SEC,
+        planner_command_timeout_sec,
+        planner_command_timeout_floor_sec: crate::brain::planner::PLANNER_MIN_COMMAND_TIMEOUT_SEC,
+        planner_command_timeout_ceiling_sec: crate::brain::planner::PLANNER_MAX_COMMAND_TIMEOUT_SEC,
         note: if status == DoctorLevel::Ok {
             "Background work is in the low-duty default profile.".into()
         } else {
@@ -2072,7 +2092,7 @@ fn print_doctor_report(report: &DoctorReport) {
         &report.background.note,
     );
     println!(
-        "  mDNS={} clipboard={} cloud_heartbeat={}s file_roots={} planner={}",
+        "  mDNS={} clipboard={} cloud_heartbeat={}s file_roots={} planner={} planner_interval={}s planner_timeout={}s",
         if report.background.mdns.enabled {
             "on"
         } else {
@@ -2089,7 +2109,9 @@ fn print_doctor_report(report: &DoctorReport) {
             "on"
         } else {
             "off"
-        }
+        },
+        report.background.planner_interval_sec,
+        report.background.planner_command_timeout_sec
     );
     println!();
     println!("Next steps:");
@@ -2803,6 +2825,18 @@ mod tests {
         assert_eq!(background.cloud_heartbeat_interval_sec, 300);
         assert_eq!(background.cloud_heartbeat_floor_sec, 60);
         assert_eq!(background.file_serve_root_count, 0);
+        assert_eq!(
+            background.planner_interval_sec,
+            crate::brain::planner::PLANNER_DEFAULT_INTERVAL_SEC
+        );
+        assert_eq!(
+            background.planner_interval_floor_sec,
+            crate::brain::planner::PLANNER_MIN_INTERVAL_SEC
+        );
+        assert_eq!(
+            background.planner_command_timeout_sec,
+            crate::brain::planner::PLANNER_DEFAULT_COMMAND_TIMEOUT_SEC
+        );
     }
 
     #[test]
@@ -2827,6 +2861,37 @@ mod tests {
         std::env::remove_var("MUSU_CLOUD_HEARTBEAT_INTERVAL_SEC");
     }
 
+    #[test]
+    fn doctor_background_floors_planner_loop_budget() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        clear_background_env();
+        std::env::set_var("MUSU_ENABLE_PLANNER", "1");
+        std::env::set_var("MUSU_PLANNER_INTERVAL_SEC", "0");
+        std::env::set_var("MUSU_PLANNER_COMMAND_TIMEOUT_SEC", "9999");
+        let tmp = tempfile::tempdir().unwrap();
+
+        let background = check_background_features(tmp.path(), false);
+
+        assert_eq!(background.status, DoctorLevel::Warn);
+        assert!(background.planner.enabled);
+        assert_eq!(
+            background.planner_interval_sec,
+            crate::brain::planner::PLANNER_MIN_INTERVAL_SEC
+        );
+        assert_eq!(
+            background.planner_command_timeout_sec,
+            crate::brain::planner::PLANNER_MAX_COMMAND_TIMEOUT_SEC
+        );
+        assert_eq!(
+            background.planner_command_timeout_floor_sec,
+            crate::brain::planner::PLANNER_MIN_COMMAND_TIMEOUT_SEC
+        );
+        assert_eq!(
+            background.planner_command_timeout_ceiling_sec,
+            crate::brain::planner::PLANNER_MAX_COMMAND_TIMEOUT_SEC
+        );
+    }
+
     fn clear_background_env() {
         for name in [
             "MUSU_ENABLE_MDNS",
@@ -2835,6 +2900,8 @@ mod tests {
             "MUSU_MDNS_ENABLE_VIRTUAL_INTERFACES",
             "MUSU_ENABLE_CLIPBOARD_SYNC",
             "MUSU_ENABLE_PLANNER",
+            "MUSU_PLANNER_INTERVAL_SEC",
+            "MUSU_PLANNER_COMMAND_TIMEOUT_SEC",
             "MUSU_FILE_SERVE_ROOTS",
             "MUSU_FILE_SERVE_WRITABLE",
             "MUSU_CLOUD_HEARTBEAT_INTERVAL_SEC",

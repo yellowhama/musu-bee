@@ -474,3 +474,36 @@ Validation:
 - `cargo build --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1` passed.
 - `musu doctor --json` and text `musu doctor` both expose the background
   profile.
+
+## 2026-06-01 Planner Loop Budget Hardening Update
+
+The optional autonomous planner loop is still disabled by default, but it now
+has explicit idle-safety bounds when an operator opts into it:
+
+- `MUSU_PLANNER_INTERVAL_SEC` is floored at 60s. Misconfigurations such as
+  `MUSU_PLANNER_INTERVAL_SEC=0` can no longer turn the planner into a tight
+  loop.
+- `MUSU_PLANNER_COMMAND_TIMEOUT_SEC` defaults to 20s and is clamped to the
+  5s..120s range.
+- The planner crawler command now runs through `tokio::process::Command` with
+  `stdin=null`, piped output, `kill_on_drop(true)`, and a timeout instead of
+  blocking the async runtime on `std::process::Command::output()`.
+- `musu doctor --json` now reports `planner_interval_sec`,
+  `planner_interval_floor_sec`, `planner_command_timeout_sec`,
+  `planner_command_timeout_floor_sec`, and
+  `planner_command_timeout_ceiling_sec`.
+
+Live verification with deliberately bad env values
+`MUSU_ENABLE_PLANNER=1`, `MUSU_PLANNER_INTERVAL_SEC=0`, and
+`MUSU_PLANNER_COMMAND_TIMEOUT_SEC=9999` reported
+`planner_interval_sec=60`, `planner_command_timeout_sec=120`, and
+`background.status=warn`.
+
+Validation:
+
+- `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib
+  brain::planner::tests -- --nocapture` passed 2/2 tests.
+- `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib
+  cli_commands::tests::doctor_background -- --nocapture` passed 4/4 tests.
+- `cargo build --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1` passed.
+- `git diff --check` passed.

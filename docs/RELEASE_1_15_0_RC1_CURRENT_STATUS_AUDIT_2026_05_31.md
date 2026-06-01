@@ -103,6 +103,7 @@ This document supersedes wiki/521 for the **current 2026-05-31 release status**.
 13. **Process ownership policy**: machine-wide Node.js/WebView2 processes are not automatically MUSU-owned. Release evidence must distinguish MUSU descendants and repo-related helpers from unrelated processes, and bridge registry PID plus `/health` must match the live MUSU runtime.
 14. **Startup single-instance policy**: repeated `musu up`, desktop Start Runtime, and Store StartupTask/manual-launch overlap must reuse one runtime/bridge owner. The release gate now starts with repeated `musu up --json` evidence and must expand to packaged desktop click/startup-task collision tests.
 15. **MSIX desktop entrypoint policy**: the public Store package must launch `musu-desktop.exe` from the Start menu, keep `musu.exe` as the CLI alias, and keep `musu-startup.exe` as the startup task. Local install evidence uses the `local-sideload-manual` contract; Store submission evidence uses the `store-reviewed-immediate-registration` artifact and Partner Center/Microsoft certification evidence.
+16. **Planner background policy**: autonomous planner work remains opt-in via `MUSU_ENABLE_PLANNER=1`. When enabled, `MUSU_PLANNER_INTERVAL_SEC` is floored at 60s, `MUSU_PLANNER_COMMAND_TIMEOUT_SEC` is clamped to 5s..120s, and doctor output must report the effective interval/timeout with the CPU evidence review.
 
 ## Code Audit
 
@@ -141,6 +142,7 @@ Findings:
 19. **Unhealthy bridge PID recovery was added in code.** `musu up` now attempts to terminate a live registered bridge PID when `/health` is failing before spawning the replacement bridge. This targets the observed stale "PID alive but bridge dead" state. Runtime verification waits on a successful binary build; `cargo check -j 1` passes, while local rustc build attempts hit OOM/pagefile pressure.
 20. **Node.js attribution blind spot was fixed.** `measure-musu-idle-cpu.ps1` now reads process command lines through CIM for matching executable names, so repo-related `node.exe` processes are counted even when `ExecutablePath` is only `C:\Program Files\nodejs\node.exe`. This directly addresses the operator's "Node.js is open many times" concern: machine-wide Node remains visible, but release evidence now distinguishes repo-related Node from unrelated system/user Node processes.
 21. **Dashboard-open matrix proof is stricter.** `measure-musu-runtime-cpu-scenarios.ps1` no longer treats a non-reachable dashboard `dev_url`/`start_url` as proof that the dashboard was open. The matrix either launches an explicit `-DashboardUrl` or the `reachable_url` from `musu up --json`, and the verifier rejects no-op dashboard-open entries.
+22. **Optional planner busy-loop risk was hardened.** `musu-rs/src/brain/planner.rs` no longer allows a zero/near-zero planner interval and no longer runs the crawler through blocking `std::process::Command::output()`. The loop now floors the interval at 60s, clamps crawler timeout to 5s..120s, uses timeout-bounded `tokio::process::Command` with `kill_on_drop(true)`, and exposes the effective budget through `musu doctor --json`.
 
 ## Next Steps
 
@@ -199,7 +201,8 @@ P1: after external evidence passes.
 - Keep `MUSU_ENABLE_CLIPBOARD_SYNC` off by default unless clipboard sync has its own privacy/resource regression evidence.
 - Keep `musu doctor --json` background reporting in every CPU evidence review.
   It now reports mDNS, clipboard, cloud heartbeat, file sync, and planner
-  status; relay path state still needs a fuller doctor surface.
+  status, including the bounded planner interval/command-timeout budget; relay
+  path state still needs a fuller doctor surface.
 
 P2: after first Store submission.
 
