@@ -42,18 +42,41 @@ jobs:
       - name: Sync production P2P control-plane env
         if: github.ref == 'refs/heads/main'
         run: |
-          if [ -z "$MUSU_P2P_CONTROL_TOKEN_SHA256S" ]; then
-            echo "MUSU_P2P_CONTROL_TOKEN_SHA256S is not set; skipping P2P env sync."
-            exit 0
-          fi
-          vercel env add MUSU_P2P_CONTROL_TOKEN_SHA256S production \
-            --force \
-            --yes \
-            --value "$MUSU_P2P_CONTROL_TOKEN_SHA256S" \
-            --token=${{ secrets.VERCEL_TOKEN }}
+          sync_vercel_env() {
+            name="$1"
+            value="$2"
+            if [ -z "$value" ]; then
+              echo "$name is not set; skipping."
+              return 0
+            fi
+            vercel env add "$name" production \
+              --force \
+              --yes \
+              --value "$value" \
+              --token="$VERCEL_TOKEN"
+          }
+
+          sync_vercel_env MUSU_P2P_CONTROL_TOKEN_SHA256S "$MUSU_P2P_CONTROL_TOKEN_SHA256S"
+          sync_vercel_env KV_REST_API_URL "$KV_REST_API_URL"
+          sync_vercel_env KV_REST_API_TOKEN "$KV_REST_API_TOKEN"
+          sync_vercel_env MUSU_P2P_RELAY_ENABLED "$MUSU_P2P_RELAY_ENABLED"
+          sync_vercel_env MUSU_P2P_RELAY_TRANSPORT_WIRED "$MUSU_P2P_RELAY_TRANSPORT_WIRED"
+          sync_vercel_env MUSU_P2P_RELAY_URL "$MUSU_P2P_RELAY_URL"
+          sync_vercel_env MUSU_P2P_RELAY_ENTITLEMENT "$MUSU_P2P_RELAY_ENTITLEMENT"
+          sync_vercel_env MUSU_P2P_RELAY_LEASE_MAX_RECORDS "$MUSU_P2P_RELAY_LEASE_MAX_RECORDS"
+          sync_vercel_env MUSU_P2P_RELAY_LEASE_TTL_SEC "$MUSU_P2P_RELAY_LEASE_TTL_SEC"
         working-directory: musu-bee
         env:
           MUSU_P2P_CONTROL_TOKEN_SHA256S: ${{ secrets.MUSU_P2P_CONTROL_TOKEN_SHA256S }}
+          KV_REST_API_URL: ${{ secrets.KV_REST_API_URL || vars.KV_REST_API_URL }}
+          KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
+          MUSU_P2P_RELAY_ENABLED: ${{ secrets.MUSU_P2P_RELAY_ENABLED || vars.MUSU_P2P_RELAY_ENABLED }}
+          MUSU_P2P_RELAY_TRANSPORT_WIRED: ${{ secrets.MUSU_P2P_RELAY_TRANSPORT_WIRED || vars.MUSU_P2P_RELAY_TRANSPORT_WIRED }}
+          MUSU_P2P_RELAY_URL: ${{ secrets.MUSU_P2P_RELAY_URL || vars.MUSU_P2P_RELAY_URL }}
+          MUSU_P2P_RELAY_ENTITLEMENT: ${{ secrets.MUSU_P2P_RELAY_ENTITLEMENT || vars.MUSU_P2P_RELAY_ENTITLEMENT }}
+          MUSU_P2P_RELAY_LEASE_MAX_RECORDS: ${{ secrets.MUSU_P2P_RELAY_LEASE_MAX_RECORDS || vars.MUSU_P2P_RELAY_LEASE_MAX_RECORDS }}
+          MUSU_P2P_RELAY_LEASE_TTL_SEC: ${{ secrets.MUSU_P2P_RELAY_LEASE_TTL_SEC || vars.MUSU_P2P_RELAY_LEASE_TTL_SEC }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
       - name: Pull Vercel environment
         run: vercel pull --yes --environment=${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}

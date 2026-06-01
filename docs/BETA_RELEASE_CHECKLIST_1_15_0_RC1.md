@@ -413,6 +413,18 @@ Tauri desktop shell evidence:
   return `p2p_control_auth_not_configured` with `accepted_auth_modes=[]`,
   `owner_scope_verified=false`, and `relay_default_data_path=false`. The next
   hosted action is production env/auth configuration, not a website UI deploy.
+- 2026-06-02 04:12 KST hosted P2P auth deploy follow-up: deploy workflow
+  commit `3be37e54a30bbd0bee95e9b2e22ce27d0450846c` synced
+  `MUSU_P2P_CONTROL_TOKEN_SHA256S` into Vercel production via successful manual
+  deploy run `26776054030`; `Tests` run `26775836294` also passed. Fresh live
+  evidence
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260602-041225-musu.pro.evidence.json`
+  no longer fails on `p2p_control_auth_not_configured`; it now fails closed at
+  `relay_lease_query_failed` with detail `p2p_relay_lease_kv_not_configured`.
+  Current GitHub repo secrets include no `KV_REST_API_URL` or
+  `KV_REST_API_TOKEN`, and repo variables are empty, so the next hosted action
+  is provisioning Vercel KV/Upstash Redis and setting those env values before
+  rerunning P2P evidence.
 
 Release candidate manifest:
 

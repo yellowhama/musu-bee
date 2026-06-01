@@ -392,3 +392,15 @@ still fails because relay leases return `p2p_control_auth_not_configured` with
 `accepted_auth_modes=[]`. Set production `MUSU_P2P_CONTROL_TOKEN_SHA256S` (or
 equivalent scoped auth), redeploy/reload `musu.pro`, and rerun evidence without
 `-AllowUnverified`.
+
+2026-06-02 04:18 KST hosted blocker update: `MUSU_P2P_CONTROL_TOKEN_SHA256S`
+has now been synced into Vercel production and deployed. Commit
+`3be37e54a30bbd0bee95e9b2e22ce27d0450846c` passed `Tests` run `26775836294`;
+manual production deploy run `26776054030` succeeded. Fresh evidence
+`docs\evidence\p2p-control-plane\1.15.0-rc.1\20260602-041225-musu.pro.evidence.json`
+no longer returns `p2p_control_auth_not_configured`; it reaches the relay
+lease store and fails closed with `relay_lease_query_failed` /
+`p2p_relay_lease_kv_not_configured`. Current GitHub repo secrets do not
+include `KV_REST_API_URL` or `KV_REST_API_TOKEN`, and repo variables are empty.
+The next hosted action is provisioning Vercel KV/Upstash Redis for `musu.pro`,
+setting those env values, redeploying, and rerunning the P2P evidence gate.

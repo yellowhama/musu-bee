@@ -900,3 +900,45 @@ Roadmap adjustment:
 - Keep the P2P control-plane task as production env/auth, not public website
   UI deployment. Latest live evidence still fails with
   `p2p_control_auth_not_configured`.
+
+## 2026-06-02 P2P Auth Deploy and KV Storage Blocker Update
+
+The `musu.pro` production deployment path now has the runtime token hash
+allowlist wired:
+
+- commit: `3be37e54a30bbd0bee95e9b2e22ce27d0450846c`
+- successful production workflow_dispatch deploy: `26776054030`
+- successful Tests run after the workflow change: `26775836294`
+- current live evidence:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260602-041225-musu.pro.evidence.json`
+
+Important status change:
+
+- Old blocker: `p2p_control_auth_not_configured`.
+- Current blocker: `p2p_relay_lease_kv_not_configured`.
+
+This means the hosted API now gets past auth and reaches the relay lease store.
+The endpoint still fails closed because production lacks Vercel KV / Upstash
+Redis credentials (`KV_REST_API_URL`, `KV_REST_API_TOKEN`) or an equivalent
+explicit persistent file store path.
+
+Workflow hardening:
+
+- `.github/workflows/deploy-musu-bee.yml` now syncs optional P2P production env
+  values before `vercel pull`: control-token hash, KV URL/token, relay enabled
+  flag, relay transport-wired flag, relay URL, entitlement, max records, and
+  TTL.
+- Missing values are skipped by name; secret values are not printed.
+- Current GitHub repo secrets do not include `KV_REST_API_URL` or
+  `KV_REST_API_TOKEN`, and repo variables are empty, so this is still an
+  operator/infra provisioning task.
+
+Next relay/control-plane gate:
+
+1. Provision Vercel KV / Upstash Redis for `musu.pro`.
+2. Add `KV_REST_API_URL` and `KV_REST_API_TOKEN` to GitHub repository secrets
+   or directly to Vercel production env.
+3. Run the deploy workflow again so production reloads with the env.
+4. Rerun `record-p2p-control-plane-evidence.ps1` without `-AllowUnverified`.
+5. Require `owner_scope_verified=true`, `relay leases ok=true`, and
+   `relay_default_data_path=false`.

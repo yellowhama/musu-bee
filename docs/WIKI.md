@@ -462,6 +462,20 @@ Current Store path truth:
   `manifest_dirty=false`, `single_machine_verified=false`,
   `runtime idle CPU 0/2`, `runtime CPU scenario matrix 0/2`, and
   `fresh MSIX with CLI pipe fix`.
+- 2026-06-02 P2P auth deploy moved the hosted blocker forward: commit
+  `3be37e54a30bbd0bee95e9b2e22ce27d0450846c` deployed successfully to
+  `musu.pro` via run `26776054030` after `MUSU_P2P_CONTROL_TOKEN_SHA256S` was
+  synced. Live evidence
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260602-041225-musu.pro.evidence.json`
+  now fails on `p2p_relay_lease_kv_not_configured`, not
+  `p2p_control_auth_not_configured`. Next hosted task is Vercel KV/Upstash
+  provisioning for `KV_REST_API_URL` and `KV_REST_API_TOKEN`; GitHub repo
+  secrets currently do not contain those values and repo variables are empty.
+- Indexer refreshed after P2P auth/KV blocker docs:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1255 files and 2214 symbols. Search terms include
+  `p2p_relay_lease_kv_not_configured`, `26776054030`, `KV_REST_API_URL`,
+  `KV_REST_API_TOKEN`, and `P2P_CONTROL_PLANE_MUSU_PRO_NEXT_ACTIONS`.
 - Remote release gates must be rechecked after the last pushed commit before public handoff; latest recorded runs were green, and live `https://musu.pro/privacy` plus `/support` passed public metadata verification with `musu@musu.pro`.
 - old 2026-05-27 package: template only (`1.13.0.0`, do not submit as current)
 - Tauri shell: dedicated static runtime launcher/status shell now builds to `musu-bee/out`, bundles as MSI/NSIS through `npm run tauri:build`, and is audited as `desktop_shell_ready=True`; it is still not the full dashboard GUI
@@ -481,6 +495,8 @@ Canonical reference:
 - `docs/DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md` (wiki/532)
 - `docs/RELEASE_1_15_0_RC1_FRESH_MSIX_EVIDENCE_AUDIT_2026_06_02.md` (wiki/533)
 - `docs/RELEASE_1_15_0_RC1_CLI_PIPE_SITE_DEPLOY_AUDIT_2026_06_02.md` (wiki/534)
+- `docs/RELEASE_1_15_0_RC1_PACKAGED_CLI_RUNTIME_EVIDENCE_2026_06_02.md` (wiki/535)
+- `docs/P2P_CONTROL_PLANE_MUSU_PRO_NEXT_ACTIONS_2026_06_02.md`
 - `docs/RELEASE_1_15_0_RC1_QUAL_AUDIT_NEXT_STEPS_2026_06_01.md` (wiki/527)
 - `docs/RUNTIME_RELAY_FALLBACK_NEXT_STEPS_2026_06_01.md` (wiki/530)
 - `docs/STORE_LAUNCH_AND_PROMOTION_PLAN_2026_05_29.md`

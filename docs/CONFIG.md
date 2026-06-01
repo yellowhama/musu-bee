@@ -78,7 +78,13 @@ Windows distribution note:
 | `MUSU_P2P_RENDEZVOUS_STORE_PATH` | `data/p2p-rendezvous/sessions.json` | No | Local/dev file fallback for rendezvous sessions. In production, rendezvous storage requires Vercel KV unless this explicit persistent file path is set. |
 | `MUSU_P2P_RENDEZVOUS_TTL_SEC` | `300` | No | Short-lived rendezvous session TTL in seconds. Runtime clamps the value to `60..3600`. |
 | `MUSU_P2P_RENDEZVOUS_CLIENT_TIMEOUT_MS` | `3000` | No | Rust bridge timeout budget for create/update/get/close rendezvous control-plane calls. Runtime clamps the value to `250..10000` and falls back to the selected peer path on timeout. |
-| `KV_REST_API_URL` / `KV_REST_API_TOKEN` | *(empty)* | Yes on hosted `musu.pro` route-evidence storage | Vercel KV/Upstash Redis credentials used for durable server-side route-evidence storage. |
+| `KV_REST_API_URL` / `KV_REST_API_TOKEN` | *(empty)* | Yes on hosted `musu.pro` P2P storage | Vercel KV/Upstash Redis credentials used for durable server-side route-evidence, rendezvous, and relay-lease storage. Without these in production, `/api/v1/p2p/relay/lease` fails closed with `p2p_relay_lease_kv_not_configured` unless an explicit persistent file store path is configured. |
+| `MUSU_P2P_RELAY_ENABLED` | `false` | No | Enables the hosted relay lease policy endpoint to issue fallback relay leases after direct path failure. This does not make relay the default data path. |
+| `MUSU_P2P_RELAY_TRANSPORT_WIRED` | `false` | No | Set only when an actual relay/tunnel payload transport is implemented and ready. The endpoint reports this separately from control-plane lease storage. |
+| `MUSU_P2P_RELAY_URL` | *(empty)* | Required only when `MUSU_P2P_RELAY_ENABLED=1` | Relay/tunnel connection URL returned in issued relay leases. |
+| `MUSU_P2P_RELAY_ENTITLEMENT` | *(empty)* | Required only when issuing relay leases | Required entitlement for relay fallback. Accepted values: `connect`, `pro`, or `enterprise`. |
+| `MUSU_P2P_RELAY_LEASE_MAX_RECORDS` | `500` | No | Maximum retained relay lease audit records. Runtime caps the value at `5000`. |
+| `MUSU_P2P_RELAY_LEASE_TTL_SEC` | `300` | No | Relay lease TTL in seconds. Runtime clamps the value to `60..3600`. |
 | `MUSU_RELAY_ENABLED` | `false` | No | Set to `true` to connect to the cloud relay tunnel. |
 | `MUSU_RELAY_URL` | *(empty)* | No | WebSocket URL of the relay server (e.g. `wss://musu-relay-production.up.railway.app`). |
 | `MUSU_RELAY_PORT` | `9900` | No | Port for the relay server (musu-relay service). |

@@ -822,5 +822,32 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_033636`,
   `p2p_control_auth_not_configured`, `machine-wide Node 19`, and
   `owned Node 0`.
+- 2026-06-02 P2P auth deploy and KV blocker shift: commit
+  `3be37e54a30bbd0bee95e9b2e22ce27d0450846c` synced
+  `MUSU_P2P_CONTROL_TOKEN_SHA256S` to Vercel production, successful manual
+  deploy run `26776054030` published to `musu.pro`, and `Tests` run
+  `26775836294` passed. Live P2P evidence `20260602-041225-musu.pro` now
+  fails with `p2p_relay_lease_kv_not_configured`, proving the previous
+  `p2p_control_auth_not_configured` blocker is closed and the remaining hosted
+  blocker is Vercel KV/Upstash storage (`KV_REST_API_URL`,
+  `KV_REST_API_TOKEN`). Search terms should include `26776054030`,
+  `3be37e54`, `p2p_relay_lease_kv_not_configured`,
+  `relay_lease_query_failed`, and `KV_REST_API_TOKEN`.
+- 2026-06-02 `musu.pro` P2P next-action doc:
+  `docs/P2P_CONTROL_PLANE_MUSU_PRO_NEXT_ACTIONS_2026_06_02.md` records the
+  exact operator/infra steps: provision Vercel KV/Upstash, set
+  `KV_REST_API_URL` and `KV_REST_API_TOKEN`, rerun the Vercel deploy workflow,
+  rerun `record-p2p-control-plane-evidence.ps1`, and keep relay payload
+  transport claims off until `MUSU_P2P_RELAY_TRANSPORT_WIRED` is truthfully
+  backed by transport evidence. Search terms should include
+  `P2P_CONTROL_PLANE_MUSU_PRO_NEXT_ACTIONS`, `owner_scope_verified=true`,
+  `relay_default_data_path=false`, and `workflow_dispatch`.
+- 2026-06-02 index refresh after P2P auth/KV blocker docs:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1255 files and 2214 symbols after the workflow env-sync patch, live P2P
+  evidence `20260602-040849-musu.pro` / `20260602-041225-musu.pro`, KV blocker
+  docs, and CoS memory `2026-06-02_0418_kst_p2p_auth_deploy_kv_blocker.md`.
+  Search terms should include `GOAL v238`, `p2p_relay_lease_kv_not_configured`,
+  `26776054030`, `KV_REST_API_URL`, `KV_REST_API_TOKEN`, and `1255 files`.
 
 **End of WIKI_INDEX.md.**
