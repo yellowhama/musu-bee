@@ -20,7 +20,7 @@ No new default relay data path was introduced. The direct route failure remains 
 The remaining product risks are:
 
 1. No live two-machine evidence that a direct failure produces and persists a relay fallback evaluation on `musu.pro`.
-2. No QUIC/TLS direct route proof accepted as release-grade.
+2. No QUIC/TLS direct route proof accepted as release-grade; the verifier now also requires `transport_verified_by=musu_quic_tls_transport`, not just an `encryption=quic_tls_1_3` string.
 3. No relay/tunnel payload transport behind the lease.
 4. No second-PC `desktop-open` CPU sample for the two-machine idle budget.
 5. The repeated Tailscale IPv6 mDNS `10065` logs are fixed by current defaults, but stale installed binaries or explicit opt-in env vars can still reproduce them.
@@ -29,7 +29,7 @@ The remaining product risks are:
 
 1. Capture a live direct-route-failure lease request evidence run against a logged-in control plane. It should prove `direct_path_failed=true`, attempted direct route kinds, `relay_transport_wired=false`, and no payload relay.
 2. Capture real second-PC route evidence with rendezvous candidate selection and HTTPS fingerprint pinning where possible.
-3. Replace bridge HTTP evidence with QUIC/TLS route proof and update the release verifier to accept only `quic_tls_1_3`.
+3. Replace bridge HTTP evidence with QUIC/TLS route proof and update the release verifier to accept only `quic_tls_1_3` with `transport_verified_by=musu_quic_tls_transport`.
 4. Implement relay/tunnel transport only after QUIC/TLS direct evidence is stable, and only behind an issued lease.
 5. Capture two-machine `desktop-open` CPU evidence with owned WebView2 attribution on both PCs.
 6. Refresh go/no-go, readiness audit, wiki, and indexer after each code/evidence commit.

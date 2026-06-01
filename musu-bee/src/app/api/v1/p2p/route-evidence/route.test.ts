@@ -34,6 +34,7 @@ const hardenedEvidence = {
   peer_identity_method: "quic_tls_cert_fingerprint",
   peer_public_key: "sha256:test",
   encryption: "quic_tls_1_3",
+  transport_verified_by: "musu_quic_tls_transport",
   payload_transited_musu_infra: false,
   result: "success",
   recorded_at: "2026-06-01T01:00:00Z",
@@ -220,6 +221,21 @@ test("keeps HTTPS fingerprint-pinned bridge evidence non release grade until QUI
     const body = (await res.json()) as { release_grade: boolean; blockers: string[] };
     assert.equal(body.release_grade, false);
     assert.match(body.blockers.join(","), /transport_not_release_grade_quic_tls/);
+  });
+});
+
+test("keeps claimed QUIC/TLS evidence non release grade without transport proof", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { POST } = await loadModule("missing-transport-proof");
+    const res = await POST(postReq({
+      ...hardenedEvidence,
+      transport_verified_by: undefined,
+    }));
+    assert.equal(res.status, 202);
+
+    const body = (await res.json()) as { release_grade: boolean; blockers: string[] };
+    assert.equal(body.release_grade, false);
+    assert.match(body.blockers.join(","), /missing_release_grade_transport_proof/);
   });
 });
 

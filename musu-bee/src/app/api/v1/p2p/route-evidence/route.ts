@@ -49,6 +49,7 @@ const RouteEvidenceSchema = z.object({
   peer_identity_method: z.string().min(1).nullable().optional(),
   peer_public_key: z.string().min(1).nullable().optional(),
   encryption: z.string(),
+  transport_verified_by: z.string().min(1).nullable().optional(),
   payload_transited_musu_infra: z.boolean(),
   result: z.enum(["success", "failed"]),
   failure_class: z.string().nullable().optional(),
@@ -60,6 +61,7 @@ type RouteEvidence = z.infer<typeof RouteEvidenceSchema> & RouteEvidencePayload;
 
 const LEGACY_ENCRYPTION = new Set(["", "none", "http", "none_http_bearer", "unknown"]);
 const RELEASE_GRADE_ENCRYPTION = new Set(["quic_tls_1_3"]);
+const RELEASE_GRADE_TRANSPORT_VERIFIERS = new Set(["musu_quic_tls_transport"]);
 
 function releaseBlockers(evidence: RouteEvidence): string[] {
   const blockers: string[] = [];
@@ -84,6 +86,12 @@ function releaseBlockers(evidence: RouteEvidence): string[] {
   }
   if (!RELEASE_GRADE_ENCRYPTION.has(evidence.encryption.trim().toLowerCase())) {
     blockers.push("transport_not_release_grade_quic_tls");
+  }
+  if (
+    RELEASE_GRADE_ENCRYPTION.has(evidence.encryption.trim().toLowerCase()) &&
+    !RELEASE_GRADE_TRANSPORT_VERIFIERS.has(evidence.transport_verified_by?.trim() ?? "")
+  ) {
+    blockers.push("missing_release_grade_transport_proof");
   }
   if (evidence.route_kind === "relay" && !evidence.payload_transited_musu_infra) {
     blockers.push("relay_route_missing_infra_transit");

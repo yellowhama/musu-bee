@@ -10,6 +10,27 @@ use crate::peer::discovery::ResolvedPeer;
 
 pub const CLI_ROUTE_EVIDENCE_NOTE: &str = "Actual CLI route attempt evidence. Current transport is legacy HTTP bearer, so this records timing/result but is intentionally not release-grade until peer identity and QUIC/TLS proof are wired.";
 pub const BRIDGE_FORWARD_ROUTE_EVIDENCE_NOTE: &str = "Actual bridge remote forwarding evidence. Release-grade status depends on recorded peer identity and encryption proof; non-QUIC HTTP bearer remains non-release-grade.";
+pub const HTTPS_FINGERPRINT_TRANSPORT_VERIFIER: &str =
+    "musu_bridge_forward_fingerprint_pinned_client";
+#[allow(dead_code)]
+pub const QUIC_TLS_TRANSPORT_VERIFIER: &str = "musu_quic_tls_transport";
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RouteTransportProof {
+    pub peer_identity_method: String,
+    pub peer_public_key: String,
+    pub encryption: String,
+    pub transport_verified_by: String,
+}
+
+pub fn https_fingerprint_transport_proof(fingerprint: &str) -> RouteTransportProof {
+    RouteTransportProof {
+        peer_identity_method: "tls_cert_fingerprint_pin".to_string(),
+        peer_public_key: fingerprint.to_string(),
+        encryption: "https_tls_fingerprint_pin".to_string(),
+        transport_verified_by: HTTPS_FINGERPRINT_TRANSPORT_VERIFIER.to_string(),
+    }
+}
 
 #[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -54,6 +75,8 @@ pub struct RouteAttemptEvidence {
     #[serde(skip_serializing_if = "Option::is_none")]
     peer_public_key: Option<String>,
     encryption: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    transport_verified_by: Option<String>,
     payload_transited_musu_infra: bool,
     result: RouteAttemptEvidenceResult,
     failure_class: Option<String>,
@@ -77,6 +100,7 @@ pub struct RouteAttemptEvidenceInput {
     pub peer_identity_method: Option<String>,
     pub peer_public_key: Option<String>,
     pub encryption: String,
+    pub transport_verified_by: Option<String>,
     pub relay_fallback: Option<RouteRelayFallbackEvidence>,
 }
 
@@ -106,6 +130,7 @@ pub fn build_route_attempt_evidence(input: RouteAttemptEvidenceInput) -> RouteAt
         peer_identity_method: input.peer_identity_method,
         peer_public_key: input.peer_public_key,
         encryption: input.encryption,
+        transport_verified_by: input.transport_verified_by,
         payload_transited_musu_infra: false,
         result: input.result,
         failure_class: input.failure_class,
@@ -130,6 +155,7 @@ pub fn cloud_route_evidence(evidence: &RouteAttemptEvidence) -> crate::cloud::Ro
         peer_identity_method: evidence.peer_identity_method.clone(),
         peer_public_key: evidence.peer_public_key.clone(),
         encryption: evidence.encryption.to_string(),
+        transport_verified_by: evidence.transport_verified_by.clone(),
         payload_transited_musu_infra: evidence.payload_transited_musu_infra,
         result: cloud_route_result(evidence.result),
         failure_class: evidence.failure_class.clone(),
@@ -291,15 +317,30 @@ struct PeerIdentityEvidence {
     method: Option<String>,
     public_key: Option<String>,
     encryption: String,
+    transport_verified_by: Option<String>,
 }
 
-fn peer_identity_meta(peer: &ResolvedPeer) -> PeerIdentityEvidence {
+fn peer_identity_meta(
+    peer: &ResolvedPeer,
+    transport_proof: Option<&RouteTransportProof>,
+) -> PeerIdentityEvidence {
+    if let Some(proof) = transport_proof {
+        return PeerIdentityEvidence {
+            verified: true,
+            method: Some(proof.peer_identity_method.clone()),
+            public_key: Some(proof.peer_public_key.clone()),
+            encryption: proof.encryption.clone(),
+            transport_verified_by: Some(proof.transport_verified_by.clone()),
+        };
+    }
+
     let Some(meta) = &peer.meta else {
         return PeerIdentityEvidence {
             verified: false,
             method: None,
             public_key: None,
             encryption: "none_http_bearer".to_string(),
+            transport_verified_by: None,
         };
     };
     let public_key = meta
@@ -310,38 +351,14 @@ fn peer_identity_meta(peer: &ResolvedPeer) -> PeerIdentityEvidence {
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(str::to_string);
-    let verified = meta
-        .get("peer_identity_verified")
-        .and_then(|value| value.as_bool())
-        .unwrap_or(false)
-        && public_key.is_some();
-    let method = if verified {
-        meta.get("peer_identity_method")
-            .and_then(|value| value.as_str())
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .map(str::to_string)
-            .or_else(|| Some("tls_cert_fingerprint_pin".to_string()))
-    } else {
-        public_key
-            .as_ref()
-            .map(|_| "advertised_tls_cert_fingerprint_unverified".to_string())
-    };
-    let encryption = if verified {
-        meta.get("encryption")
-            .and_then(|value| value.as_str())
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .unwrap_or("https_tls_fingerprint_pin")
-            .to_string()
-    } else {
-        "none_http_bearer".to_string()
-    };
     PeerIdentityEvidence {
-        verified,
-        method,
+        verified: false,
+        method: public_key
+            .as_ref()
+            .map(|_| "advertised_tls_cert_fingerprint_unverified".to_string()),
         public_key,
-        encryption,
+        encryption: "none_http_bearer".to_string(),
+        transport_verified_by: None,
     }
 }
 
@@ -355,10 +372,11 @@ pub fn record_bridge_forward_route_evidence(
     total_attempt_ms: u64,
     result: RouteAttemptEvidenceResult,
     failure_class: Option<String>,
+    transport_proof: Option<RouteTransportProof>,
     relay_fallback: Option<RouteRelayFallbackEvidence>,
 ) -> Result<RouteEvidenceRecord> {
     let path = route_evidence_path(musu_home, task_id);
-    let peer_identity = peer_identity_meta(peer);
+    let peer_identity = peer_identity_meta(peer, transport_proof.as_ref());
     let evidence = build_route_attempt_evidence(RouteAttemptEvidenceInput {
         source_node_id: source_node_id.to_string(),
         target_node_id: target_node_id(peer),
@@ -373,6 +391,7 @@ pub fn record_bridge_forward_route_evidence(
         peer_identity_method: peer_identity.method,
         peer_public_key: peer_identity.public_key,
         encryption: peer_identity.encryption,
+        transport_verified_by: peer_identity.transport_verified_by,
         relay_fallback,
     });
     write_route_attempt_evidence(&path, &evidence)?;
@@ -399,6 +418,7 @@ mod tests {
             peer_identity_method: None,
             peer_public_key: None,
             encryption: "none_http_bearer".to_string(),
+            transport_verified_by: None,
             relay_fallback: None,
         });
         let value = serde_json::to_value(evidence).unwrap();
@@ -432,6 +452,7 @@ mod tests {
             peer_identity_method: None,
             peer_public_key: None,
             encryption: "none_http_bearer".to_string(),
+            transport_verified_by: None,
             relay_fallback: None,
         });
         let value = serde_json::to_value(evidence).unwrap();
@@ -475,6 +496,7 @@ mod tests {
             RouteAttemptEvidenceResult::Success,
             None,
             None,
+            None,
         )
         .unwrap();
         let value = serde_json::to_value(record.evidence).unwrap();
@@ -500,10 +522,53 @@ mod tests {
             name: Some("target-node".to_string()),
             source: crate::peer::discovery::PeerSource::Registry,
             meta: Some(serde_json::json!({
-                "peer_identity_verified": true,
-                "peer_identity_method": "tls_cert_fingerprint_pin",
                 "peer_public_key": "sha256:test",
-                "encryption": "https_tls_fingerprint_pin",
+            })),
+        };
+
+        let record = record_bridge_forward_route_evidence(
+            &dir,
+            "task-id",
+            "source-node",
+            &peer,
+            Some("rv_test".to_string()),
+            Some(15),
+            31,
+            RouteAttemptEvidenceResult::Success,
+            None,
+            Some(https_fingerprint_transport_proof("sha256:test")),
+            None,
+        )
+        .unwrap();
+        let value = serde_json::to_value(record.evidence).unwrap();
+
+        assert_eq!(value["peer_identity_verified"], true);
+        assert_eq!(value["peer_identity_method"], "tls_cert_fingerprint_pin");
+        assert_eq!(value["peer_public_key"], "sha256:test");
+        assert_eq!(value["encryption"], "https_tls_fingerprint_pin");
+        assert_eq!(
+            value["transport_verified_by"],
+            HTTPS_FINGERPRINT_TRANSPORT_VERIFIER
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn bridge_route_evidence_downgrades_untrusted_verified_quic_claim() {
+        let dir =
+            std::env::temp_dir().join(format!("musu-route-evidence-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let peer = ResolvedPeer {
+            addr: "203.0.113.10:8070".to_string(),
+            name: Some("target-node".to_string()),
+            source: crate::peer::discovery::PeerSource::Registry,
+            meta: Some(serde_json::json!({
+                "peer_identity_verified": true,
+                "peer_identity_method": "quic_tls_cert_fingerprint",
+                "transport_verified_by": QUIC_TLS_TRANSPORT_VERIFIER,
+                "peer_public_key": "sha256:test",
+                "encryption": "quic_tls_1_3",
             })),
         };
 
@@ -518,14 +583,19 @@ mod tests {
             RouteAttemptEvidenceResult::Success,
             None,
             None,
+            None,
         )
         .unwrap();
         let value = serde_json::to_value(record.evidence).unwrap();
 
-        assert_eq!(value["peer_identity_verified"], true);
-        assert_eq!(value["peer_identity_method"], "tls_cert_fingerprint_pin");
+        assert_eq!(value["peer_identity_verified"], false);
+        assert_eq!(
+            value["peer_identity_method"],
+            "advertised_tls_cert_fingerprint_unverified"
+        );
         assert_eq!(value["peer_public_key"], "sha256:test");
-        assert_eq!(value["encryption"], "https_tls_fingerprint_pin");
+        assert_eq!(value["encryption"], "none_http_bearer");
+        assert!(value.get("transport_verified_by").is_none());
 
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -546,6 +616,7 @@ mod tests {
             peer_identity_method: Some("advertised_tls_cert_fingerprint_unverified".to_string()),
             peer_public_key: Some("sha256:test".to_string()),
             encryption: "none_http_bearer".to_string(),
+            transport_verified_by: None,
             relay_fallback: Some(RouteRelayFallbackEvidence {
                 direct_path_failed: true,
                 lease_requested: true,
@@ -571,6 +642,7 @@ mod tests {
         );
         assert_eq!(cloud.peer_public_key.as_deref(), Some("sha256:test"));
         assert_eq!(cloud.encryption, "none_http_bearer");
+        assert_eq!(cloud.transport_verified_by, None);
         let relay = cloud.relay_fallback.unwrap();
         assert!(relay.direct_path_failed);
         assert!(relay.lease_requested);

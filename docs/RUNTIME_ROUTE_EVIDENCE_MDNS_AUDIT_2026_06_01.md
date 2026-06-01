@@ -97,6 +97,14 @@ What is still not release-grade:
 - `musu.pro` now also requires `encryption=quic_tls_1_3` for release-grade
   evidence and returns `transport_not_release_grade_quic_tls` for
   `https_tls_fingerprint_pin`.
+- `musu.pro` and the Windows verifier now also require
+  `transport_verified_by=musu_quic_tls_transport` for release-grade evidence.
+  A forged or stale metadata claim that merely says `encryption=quic_tls_1_3`
+  is non-release-grade until the actual QUIC/TLS transport writes that verifier.
+- Rust route evidence does not trust registry/rendezvous metadata as verified
+  transport proof. Metadata is recorded only as advertised identity material;
+  verified route identity requires an explicit local `RouteTransportProof`
+  supplied by the runtime transport code after the actual transport succeeds.
 - The server endpoint is now a minimal durable storage/query API, but not an
   operator UI, export surface, or long-term retention system yet. Token-owner
   scoping exists, but real account-id mapping remains pending.
@@ -176,9 +184,9 @@ What is still not release-grade:
      enabled and no public URL override is set.
    - `forward_to_peer_attempt` uses a fingerprint-pinned rustls reqwest client
      only for HTTPS peers with advertised `sha256:<hex>` key material.
-   - Successful pinned attempts update the route peer metadata before evidence
-     is written. Unpinned HTTP/HTTPS attempts do not get verified identity
-     metadata.
+   - Successful pinned attempts pass explicit local `RouteTransportProof`
+     before evidence is written. Unpinned HTTP/HTTPS attempts and raw
+     registry/rendezvous metadata do not get verified identity metadata.
    - The route-evidence API accepts this as useful evidence but keeps it
      non-release-grade until QUIC/TLS route proof exists.
 10. Relay fallback lease policy API:
@@ -234,6 +242,16 @@ virtual/VPN interfaces and sent multicast only on the physical `이더넷 2` LAN
 adapter, with no Tailscale/NordLynx/vEthernet/`ff02::fb`/`10065`/`closed
 channel` output.
 
+After the operator re-supplied the same log on 2026-06-01, the current debug
+binary was rebuilt and `RUST_LOG=debug musu discover --timeout 2` was run
+again on `HUGH_SECOND`. The refined bad-pattern check returned `ok=true` for
+`Failed to send|ff02::fb|10065|closed channel`; debug output showed
+`mDNS Tailscale interfaces disabled by default`, `disabled=9` virtual/VPN
+interfaces, and outbound multicast only on physical interface `이더넷 2`.
+Therefore the supplied log is classified as stale installed bits, an explicit
+mDNS opt-in environment, or a regression that still needs reproduction on the
+current build with all mDNS opt-in variables unset.
+
 ## Code Audit Findings
 
 | Area | Severity | Finding | Status |
@@ -249,7 +267,7 @@ channel` output.
 | Rendezvous server contract | High | The Rust client had rendezvous DTOs/methods but no server endpoint to create sessions or exchange endpoint candidates. | Fixed. Server endpoints now create/read/update/approve/close sessions and seed new sessions from a recent node candidate cache. |
 | Runtime rendezvous wiring | High | Bridge remote forwarding selected a peer directly but did not create a `musu.pro` session, attach a session id to route evidence, or use session target candidates. | Fixed as first runtime wiring. Forwarding creates/refreshes a session, publishes source candidates, forwards the session id to target, target publishes candidates best-effort, uses refreshed target candidates when present, falls back once to the original peer if a selected candidate fails, and evidence records the session id. |
 | Peer identity material | High | Route evidence required peer identity proof, but route attempts had no durable identity material to carry. | Partially fixed. Local TLS certificate fingerprints are registered/published as candidate `public_key`, route evidence records advertised target fingerprints when available, and `musu.pro` rejects release-grade identity claims without method/key material. |
-| HTTPS fingerprint pinning | High | Advertised fingerprints were previously only copied into evidence and did not prove the peer served that certificate. | Partially fixed. HTTPS bridge forwarding now verifies the target server certificate fingerprint during the actual POST and records verified identity metadata only after a successful pinned request. This is still not release-grade until QUIC/TLS route transport exists. |
+| HTTPS fingerprint pinning | High | Advertised fingerprints were previously only copied into evidence and did not prove the peer served that certificate. | Partially fixed. HTTPS bridge forwarding now verifies the target server certificate fingerprint during the actual POST and records verified identity metadata only when the forwarding code passes explicit local `RouteTransportProof`. Raw registry/rendezvous metadata remains unverified. This is still not release-grade until QUIC/TLS route transport exists. |
 | Relay fallback policy | High | Relay/tunnel fallback was documented as Connect/Pro-only but had no control-plane lease contract to prevent silent default relay use. | Partially fixed. `POST/GET /api/v1/p2p/relay/lease` is owner-scoped and fail-closed by default, requires direct path failure and explicit relay policy env, and `musu relay status` exposes the lease endpoint plus runtime fallback request wiring. Runtime forwarding now asks for a lease after terminal direct-route failure when session/token material exists, and failed route evidence persists the `relay_fallback` evaluation. Relay payload transport remains unwired. |
 | Release-grade route proof | Critical | Submitted evidence still cannot prove peer identity, QUIC/TLS encryption, or payload transit truth. | Still blocked. This is the next P0. |
 

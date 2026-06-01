@@ -80,6 +80,7 @@ pub struct ForwardAttemptReport {
     pub rendezvous_session_id: Option<String>,
     pub handshake_ms: Option<u64>,
     pub total_attempt_ms: u64,
+    pub transport_proof: Option<crate::bridge::route_evidence::RouteTransportProof>,
 }
 
 #[derive(Debug, Clone)]
@@ -213,21 +214,6 @@ fn fingerprint_pinned_client(
         .use_preconfigured_tls(tls_config)
         .build()
         .map_err(|err| format!("fingerprint-pinned reqwest client: {err}"))
-}
-
-fn peer_with_verified_tls_fingerprint(peer: &ResolvedPeer, fingerprint: &str) -> ResolvedPeer {
-    let mut meta = peer.meta.clone().unwrap_or_else(|| serde_json::json!({}));
-    meta["transport_scheme"] = serde_json::json!("https");
-    meta["peer_identity_verified"] = serde_json::json!(true);
-    meta["peer_identity_method"] = serde_json::json!("tls_cert_fingerprint_pin");
-    meta["peer_public_key"] = serde_json::json!(fingerprint);
-    meta["encryption"] = serde_json::json!("https_tls_fingerprint_pin");
-    ResolvedPeer {
-        addr: peer.addr.clone(),
-        name: peer.name.clone(),
-        source: peer.source,
-        meta: Some(meta),
-    }
 }
 
 fn relay_fallback_status_label(
@@ -517,18 +503,17 @@ async fn forward_to_peer_attempt(
             relay_fallback: None,
         })?;
 
-    let route_peer = if let Some(fingerprint) = expected_tls_fingerprint.as_deref() {
-        peer_with_verified_tls_fingerprint(peer, fingerprint)
-    } else {
-        peer.clone()
-    };
+    let transport_proof = expected_tls_fingerprint
+        .as_deref()
+        .map(crate::bridge::route_evidence::https_fingerprint_transport_proof);
 
     Ok(ForwardAttemptReport {
         response,
-        route_peer,
+        route_peer: peer.clone(),
         rendezvous_session_id: None,
         handshake_ms,
         total_attempt_ms: elapsed_ms(total_started.elapsed()),
+        transport_proof,
     })
 }
 
@@ -850,21 +835,16 @@ mod tests {
     }
 
     #[test]
-    fn verified_tls_fingerprint_metadata_marks_only_pinned_https_attempts() {
-        let original = peer(
-            "192.168.1.10:8070",
-            Some(serde_json::json!({
-                "public_key": "sha256:old",
-            })),
+    fn https_fingerprint_transport_proof_marks_pinned_attempts() {
+        let proof =
+            crate::bridge::route_evidence::https_fingerprint_transport_proof("sha256:verified");
+
+        assert_eq!(proof.peer_identity_method, "tls_cert_fingerprint_pin");
+        assert_eq!(proof.peer_public_key, "sha256:verified");
+        assert_eq!(proof.encryption, "https_tls_fingerprint_pin");
+        assert_eq!(
+            proof.transport_verified_by,
+            crate::bridge::route_evidence::HTTPS_FINGERPRINT_TRANSPORT_VERIFIER
         );
-
-        let verified = peer_with_verified_tls_fingerprint(&original, "sha256:verified-fingerprint");
-        let meta = verified.meta.expect("verified peer metadata");
-
-        assert_eq!(meta["transport_scheme"], "https");
-        assert_eq!(meta["peer_identity_verified"], true);
-        assert_eq!(meta["peer_identity_method"], "tls_cert_fingerprint_pin");
-        assert_eq!(meta["peer_public_key"], "sha256:verified-fingerprint");
-        assert_eq!(meta["encryption"], "https_tls_fingerprint_pin");
     }
 }

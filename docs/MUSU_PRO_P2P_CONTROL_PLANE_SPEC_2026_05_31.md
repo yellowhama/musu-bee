@@ -161,6 +161,13 @@ Current route-evidence identity fields:
 - `musu.pro` also keeps `https_tls_fingerprint_pin` evidence non-release-grade
   via `transport_not_release_grade_quic_tls`; accepted release-grade transport
   still requires `encryption=quic_tls_1_3`.
+- `transport_verified_by`: optional verifier id. Release-grade QUIC/TLS
+  evidence must set `transport_verified_by=musu_quic_tls_transport`. The bridge
+  HTTPS fingerprint-pinned path sets
+  `transport_verified_by=musu_bridge_forward_fingerprint_pinned_client`, which
+  proves an interim HTTPS certificate pin but is intentionally not release-grade.
+  A bare `encryption=quic_tls_1_3` string without this verifier is rejected as
+  missing transport proof.
 
 ## Client Path Selection Rules
 
@@ -187,7 +194,10 @@ The client must not spin or retry forever.
   "handshake_ms": 42,
   "total_attempt_ms": 611,
   "peer_identity_verified": true,
+  "peer_identity_method": "quic_tls_cert_fingerprint",
+  "peer_public_key": "sha256:<hex>",
   "encryption": "quic_tls_1_3",
+  "transport_verified_by": "musu_quic_tls_transport",
   "payload_transited_musu_infra": false,
   "result": "success",
   "failure_class": null,

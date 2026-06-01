@@ -211,6 +211,8 @@ pub struct RouteEvidence {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub peer_public_key: Option<String>,
     pub encryption: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transport_verified_by: Option<String>,
     pub payload_transited_musu_infra: bool,
     pub result: RouteAttemptResult,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -549,6 +551,7 @@ mod tests {
             peer_identity_method: Some("quic_tls_cert_fingerprint".into()),
             peer_public_key: Some("sha256:test".into()),
             encryption: "quic_tls_1_3".into(),
+            transport_verified_by: Some("musu_quic_tls_transport".into()),
             payload_transited_musu_infra: false,
             result: RouteAttemptResult::Success,
             failure_class: None,
@@ -561,6 +564,7 @@ mod tests {
         assert_eq!(value["route_kind"], "lan");
         assert_eq!(value["peer_identity_verified"], true);
         assert_eq!(value["encryption"], "quic_tls_1_3");
+        assert_eq!(value["transport_verified_by"], "musu_quic_tls_transport");
         assert_eq!(value["payload_transited_musu_infra"], false);
         assert_eq!(value["result"], "success");
     }

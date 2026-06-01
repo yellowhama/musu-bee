@@ -204,6 +204,7 @@ pub async fn run_company(
                         report.total_attempt_ms,
                         crate::bridge::route_evidence::RouteAttemptEvidenceResult::Success,
                         None,
+                        report.transport_proof.clone(),
                         None,
                     ) {
                         Ok(record) => {
@@ -245,6 +246,7 @@ pub async fn run_company(
                         e.total_attempt_ms,
                         crate::bridge::route_evidence::RouteAttemptEvidenceResult::Failed,
                         Some(e.failure_class.clone()),
+                        None,
                         e.relay_fallback.clone(),
                     ) {
                         Ok(record) => {

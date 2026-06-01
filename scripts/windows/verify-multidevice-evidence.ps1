@@ -286,6 +286,7 @@ if ($routeRequired) {
         $peerIdentityMethod = Get-StringProperty -Object $routeEvidence -Name "peer_identity_method"
         $peerPublicKey = Get-StringProperty -Object $routeEvidence -Name "peer_public_key"
         $routeResult = Get-StringProperty -Object $routeEvidence -Name "result"
+        $transportVerifiedBy = Get-StringProperty -Object $routeEvidence -Name "transport_verified_by"
         $recordedAt = Try-ParseDateTimeOffset -Text (Get-StringProperty -Object $routeEvidence -Name "recorded_at")
         $handshakeMs = Get-NumberProperty -Object $routeEvidence -Name "handshake_ms"
         $totalAttemptMs = Get-NumberProperty -Object $routeEvidence -Name "total_attempt_ms"
@@ -310,6 +311,7 @@ if ($routeRequired) {
         Add-CheckFromCondition "route encryption field" (-not [string]::IsNullOrWhiteSpace($encryption)) "route encryption field is present" "route encryption field is missing"
         Add-CheckFromCondition "route encryption hardened" (-not ($legacyEncryptionValues -contains $encryption.ToLowerInvariant())) "route encryption is $encryption" "route encryption is legacy or unproven: $encryption"
         Add-CheckFromCondition "route encryption release-grade" ($encryption.ToLowerInvariant() -eq "quic_tls_1_3") "route encryption is quic_tls_1_3" "route encryption is not release-grade QUIC/TLS: $encryption"
+        Add-CheckFromCondition "route transport proof" ($transportVerifiedBy -eq "musu_quic_tls_transport") "route transport proof is musu_quic_tls_transport" "route transport proof is missing or not release-grade: $transportVerifiedBy"
         Add-CheckFromCondition "route payload transit field" $payloadTransitPresent "payload_transited_musu_infra is present" "payload_transited_musu_infra is missing"
         if ($routeKind -eq "relay") {
             Add-CheckFromCondition "relay transit truth" $payloadTransited "relay evidence says payload transited MUSU infra" "relay route must set payload_transited_musu_infra=true"

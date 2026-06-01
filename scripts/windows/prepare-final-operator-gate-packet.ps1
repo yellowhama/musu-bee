@@ -307,9 +307,10 @@ When the second-PC smoke creates `.local-build\multi-device\*.evidence.json`, re
 The evidence must include `musu.route_evidence.v1` and prove route kind,
 handshake timing, peer identity verification with method/key material,
 release-grade `quic_tls_1_3` encryption, and whether payload transited MUSU
-infrastructure. Legacy manual HTTP bearer routes and HTTPS fingerprint-pinned
-bridge evidence can be useful debugging evidence but do not satisfy the public
-release gate.
+infrastructure. It must also include `transport_verified_by=musu_quic_tls_transport`;
+an encryption string alone is not proof. Legacy manual HTTP bearer routes and
+HTTPS fingerprint-pinned bridge evidence can be useful debugging evidence but do
+not satisfy the public release gate.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-multidevice-evidence.ps1 -EvidencePath .local-build\multi-device\<EVIDENCE_JSON>

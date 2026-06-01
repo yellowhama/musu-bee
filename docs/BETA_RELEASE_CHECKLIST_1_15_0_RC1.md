@@ -136,7 +136,9 @@ Multi-device packet:
   `musu.route_evidence.v1` instead of synthesizing route evidence in the
   script. The current HTTP bearer evidence is still intentionally rejected for
   release until peer identity and release-grade `quic_tls_1_3` encryption proof
-  exist. HTTPS fingerprint-pinned bridge evidence remains useful diagnostic
+  exist. Accepted release evidence must also include
+  `transport_verified_by=musu_quic_tls_transport`; an encryption string alone is
+  not proof. HTTPS fingerprint-pinned bridge evidence remains useful diagnostic
   evidence but is not accepted by the multi-device release verifier.
 - runbook: `docs/MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md`
 - latest generated kit pattern: `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-*.zip` (use the newest file by `LastWriteTime`)
