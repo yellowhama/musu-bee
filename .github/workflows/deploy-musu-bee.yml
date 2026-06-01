@@ -39,6 +39,22 @@ jobs:
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
 
+      - name: Sync production P2P control-plane env
+        if: github.ref == 'refs/heads/main'
+        run: |
+          if [ -z "$MUSU_P2P_CONTROL_TOKEN_SHA256S" ]; then
+            echo "MUSU_P2P_CONTROL_TOKEN_SHA256S is not set; skipping P2P env sync."
+            exit 0
+          fi
+          vercel env add MUSU_P2P_CONTROL_TOKEN_SHA256S production \
+            --force \
+            --yes \
+            --value "$MUSU_P2P_CONTROL_TOKEN_SHA256S" \
+            --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: musu-bee
+        env:
+          MUSU_P2P_CONTROL_TOKEN_SHA256S: ${{ secrets.MUSU_P2P_CONTROL_TOKEN_SHA256S }}
+
       - name: Pull Vercel environment
         run: vercel pull --yes --environment=${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
         working-directory: musu-bee
