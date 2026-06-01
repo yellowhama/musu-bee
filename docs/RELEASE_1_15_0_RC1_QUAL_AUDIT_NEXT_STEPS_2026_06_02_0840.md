@@ -18,6 +18,13 @@ not "the current primary app is burning CPU while idle"; it is that the same
 proof is still missing on the second PC, production `musu.pro` P2P evidence is
 still failing, and Store/support evidence is not recorded yet.
 
+Post-evidence clean go/no-go on commit
+`300b5b4419d728ceac58c38fc1597b02acb5d3c3` reports:
+`single_machine=true`, runtime idle CPU `1/2 [HUGH_SECOND]`, runtime CPU matrix
+`1/2 [HUGH_SECOND]`, public metadata/MSIX install/MSIX desktop entrypoint/process
+ownership/startup single-instance/desktop single-instance all true, and public
+release `ready=false`.
+
 ## Current Evidence
 
 Source commit for the clean runtime samples:

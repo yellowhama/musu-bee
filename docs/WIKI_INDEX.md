@@ -1024,5 +1024,19 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   Search terms should include `GOAL v267`, `1287 files`, `2217 symbols`,
   `20260602-083131-HUGH_SECOND`, and
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_083314`.
+- 2026-06-02 clean post-evidence go/no-go:
+  commit `300b5b44` reports `ready=false`, `manifest_dirty=false`,
+  `single_machine=true`, runtime idle CPU `1/2 [HUGH_SECOND]`, runtime CPU
+  scenario matrix `1/2 [HUGH_SECOND]`, public metadata/MSIX install/MSIX
+  desktop entrypoint/process ownership/startup single-instance/desktop
+  single-instance true, and blockers `multi-device`, `runtime-idle-cpu`,
+  `runtime-cpu-scenario-matrix`, `support-mailbox`, `store-release`, and
+  `p2p-control-plane`. Search terms should include `GOAL v268`,
+  `300b5b44`, `desktop_single_instance=true`, and `manifest_dirty=false`.
+- 2026-06-02 final index refresh after post-evidence go/no-go documentation:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1287 files and 2217 symbols. Search terms should include `GOAL v269`,
+  `post-evidence go/no-go`, `runtime idle CPU 1/2`, `runtime CPU scenario
+  matrix 1/2`, and `p2p-control-plane`.
 
 **End of WIKI_INDEX.md.**
