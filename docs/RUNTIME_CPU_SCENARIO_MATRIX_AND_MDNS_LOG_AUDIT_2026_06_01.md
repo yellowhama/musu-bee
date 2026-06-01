@@ -291,6 +291,24 @@ after the matrix evidence commit:
   feature. It still does not replace the required clean/current two-machine 60s
   CPU samples.
 
+2026-06-01 19:19 KST hardware probe timeout hardening update:
+
+- The logged-in `musu.pro` cloud heartbeat still gathers hardware metadata, but
+  `peer::hardware` no longer uses timeout-less PowerShell/WMIC/sysctl/nvidia-smi
+  process calls.
+- Windows PowerShell/WMIC, macOS `sysctl`, and `nvidia-smi` probes now use
+  `command_stdout_with_timeout()` with `stdin=null`, stderr discarded, and a 5s
+  timeout. Missing, failing, or timed-out probes fall back instead of blocking
+  the background heartbeat path.
+- Validation:
+  `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib
+  peer::hardware::tests -- --nocapture` passed 2/2 Windows tests,
+  `cargo build --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1` passed,
+  `cargo fmt --check` passed, and `git diff --check` passed.
+- Release status: this removes another background stall candidate. It is not
+  substitute CPU evidence; the gate remains 60s clean/current primary plus
+  second-PC samples.
+
 Parser validation:
 
 - `measure-musu-runtime-cpu-scenarios.ps1 parser ok`

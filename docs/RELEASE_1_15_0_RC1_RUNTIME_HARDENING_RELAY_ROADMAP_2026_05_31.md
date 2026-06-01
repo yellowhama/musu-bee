@@ -346,6 +346,8 @@ Minimal client behavior:
    noise.
 3. Keep `MUSU_ENABLE_CLIPBOARD_SYNC=1` opt-in.
 4. Keep cloud heartbeat interval, floor, backoff, and jitter enforced by default.
+   Hardware probes called from that heartbeat must remain timeout-bounded; current
+   `peer::hardware` probes use a 5s ceiling and degrade to fallback values.
 5. Keep desktop `Start Runtime` bounded. The Tauri shell now runs
    `musu up --json` through temp-file stdout/stderr capture with a 45s timeout,
    so inherited bridge child handles cannot keep the UI busy forever.
@@ -506,4 +508,36 @@ Validation:
 - `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib
   cli_commands::tests::doctor_background -- --nocapture` passed 4/4 tests.
 - `cargo build --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1` passed.
+- `git diff --check` passed.
+
+## 2026-06-01 Hardware Probe Timeout Hardening Update
+
+The logged-in cloud heartbeat calls `gather_hardware_info()` before registering
+capability metadata with `musu.pro`. That path is low-duty, but it previously
+used timeout-less process probes on some platforms:
+
+- Windows RAM/CPU probes through PowerShell and WMIC.
+- macOS RAM/CPU probes through `sysctl`.
+- GPU VRAM probe through `nvidia-smi`.
+
+`musu-rs/src/peer/hardware.rs` now routes those probes through
+`command_stdout_with_timeout()`:
+
+- `stdin` is closed.
+- stdout is captured only after the child exits.
+- stderr is discarded.
+- the probe is killed and ignored after 5s.
+- fallback hardware metadata is returned when a probe is missing, fails, or
+  times out.
+
+This is runtime hardening, not new release evidence. It removes another class
+of background worker stall from the logged-in `musu.pro` heartbeat, but public
+release still needs clean/current CPU evidence on two machines.
+
+Validation:
+
+- `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 --lib
+  peer::hardware::tests -- --nocapture` passed 2/2 Windows tests.
+- `cargo build --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1` passed.
+- `cargo fmt --manifest-path .\musu-rs\Cargo.toml --check` passed.
 - `git diff --check` passed.

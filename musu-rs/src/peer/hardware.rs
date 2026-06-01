@@ -1,4 +1,10 @@
 use serde::{Deserialize, Serialize};
+use std::io::Read;
+use std::process::{Command, Stdio};
+use std::time::{Duration, Instant};
+
+const HARDWARE_PROBE_TIMEOUT: Duration = Duration::from_secs(5);
+const HARDWARE_PROBE_WAIT_STEP: Duration = Duration::from_millis(50);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HardwareInfo {
@@ -37,24 +43,25 @@ pub fn gather_hardware_info() -> HardwareInfo {
 fn get_total_memory_mb() -> u64 {
     #[cfg(target_os = "windows")]
     {
-        if let Ok(output) = std::process::Command::new("powershell")
-            .args([
+        if let Some(stdout) = command_stdout_with_timeout(
+            "powershell",
+            &[
+                "-NoProfile",
                 "-Command",
                 "(Get-CimInstance Win32_PhysicalMemory | Measure-Object -Property Capacity -Sum).Sum",
-            ])
-            .output()
-        {
-            let stdout = String::from_utf8_lossy(&output.stdout);
+            ],
+            HARDWARE_PROBE_TIMEOUT,
+        ) {
             if let Ok(bytes) = stdout.trim().parse::<u64>() {
                 return bytes / 1024 / 1024;
             }
         }
         // Fallback wmic
-        if let Ok(output) = std::process::Command::new("wmic")
-            .args(["ComputerSystem", "get", "TotalPhysicalMemory"])
-            .output()
-        {
-            let stdout = String::from_utf8_lossy(&output.stdout);
+        if let Some(stdout) = command_stdout_with_timeout(
+            "wmic",
+            &["ComputerSystem", "get", "TotalPhysicalMemory"],
+            HARDWARE_PROBE_TIMEOUT,
+        ) {
             for line in stdout.lines() {
                 if let Ok(bytes) = line.trim().parse::<u64>() {
                     return bytes / 1024 / 1024;
@@ -83,11 +90,9 @@ fn get_total_memory_mb() -> u64 {
 
     #[cfg(target_os = "macos")]
     {
-        if let Ok(output) = std::process::Command::new("sysctl")
-            .args(["-n", "hw.memsize"])
-            .output()
+        if let Some(stdout) =
+            command_stdout_with_timeout("sysctl", &["-n", "hw.memsize"], HARDWARE_PROBE_TIMEOUT)
         {
-            let stdout = String::from_utf8_lossy(&output.stdout);
             if let Ok(bytes) = stdout.trim().parse::<u64>() {
                 return bytes / 1024 / 1024;
             }
@@ -106,16 +111,18 @@ fn get_cpu_brand() -> String {
     #[cfg(target_os = "windows")]
     {
         // Read processor name from registry
-        if let Ok(output) = std::process::Command::new("powershell")
-            .args([
+        if let Some(stdout) = command_stdout_with_timeout(
+            "powershell",
+            &[
+                "-NoProfile",
                 "-Command",
                 "(Get-ItemProperty 'HKLM:\\HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0').ProcessorNameString",
-            ])
-            .output()
-        {
-            let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            if !stdout.is_empty() {
-                return stdout;
+            ],
+            HARDWARE_PROBE_TIMEOUT,
+        ) {
+            let value = stdout.trim().to_string();
+            if !value.is_empty() {
+                return value;
             }
         }
         "Windows CPU".to_string()
@@ -138,11 +145,12 @@ fn get_cpu_brand() -> String {
 
     #[cfg(target_os = "macos")]
     {
-        if let Ok(output) = std::process::Command::new("sysctl")
-            .args(["-n", "machdep.cpu.brand_string"])
-            .output()
-        {
-            return String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if let Some(stdout) = command_stdout_with_timeout(
+            "sysctl",
+            &["-n", "machdep.cpu.brand_string"],
+            HARDWARE_PROBE_TIMEOUT,
+        ) {
+            return stdout.trim().to_string();
         }
         "Apple Silicon/Intel".to_string()
     }
@@ -155,18 +163,105 @@ fn get_cpu_brand() -> String {
 
 /// Fallback mechanism to get GPU VRAM via nvidia-smi.
 fn get_gpu_vram() -> Option<u64> {
-    if let Ok(output) = std::process::Command::new("nvidia-smi")
-        .args(["--query-gpu=memory.total", "--format=csv,noheader,nounits"])
-        .output()
-    {
-        if output.status.success() {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            if let Some(first_line) = stdout.lines().next() {
-                if let Ok(mb) = first_line.trim().parse::<u64>() {
-                    return Some(mb);
-                }
+    if let Some(stdout) = command_stdout_with_timeout(
+        "nvidia-smi",
+        &["--query-gpu=memory.total", "--format=csv,noheader,nounits"],
+        HARDWARE_PROBE_TIMEOUT,
+    ) {
+        if let Some(first_line) = stdout.lines().next() {
+            if let Ok(mb) = first_line.trim().parse::<u64>() {
+                return Some(mb);
             }
         }
     }
     None
+}
+
+fn command_stdout_with_timeout(program: &str, args: &[&str], timeout: Duration) -> Option<String> {
+    let mut child = Command::new(program)
+        .args(args)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .ok()?;
+
+    let started = Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                let mut stdout = String::new();
+                if let Some(mut pipe) = child.stdout.take() {
+                    let _ = pipe.read_to_string(&mut stdout);
+                }
+                return status.success().then_some(stdout);
+            }
+            Ok(None) => {
+                if started.elapsed() >= timeout {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return None;
+                }
+                std::thread::sleep(HARDWARE_PROBE_WAIT_STEP);
+            }
+            Err(_) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return None;
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::command_stdout_with_timeout;
+    use std::time::Duration;
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn command_stdout_with_timeout_captures_windows_stdout() {
+        let stdout = command_stdout_with_timeout(
+            "cmd",
+            &["/C", "echo hardware-probe-ok"],
+            Duration::from_secs(2),
+        )
+        .expect("command should complete");
+
+        assert!(stdout.contains("hardware-probe-ok"));
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn command_stdout_with_timeout_captures_unix_stdout() {
+        let stdout = command_stdout_with_timeout(
+            "sh",
+            &["-c", "printf hardware-probe-ok"],
+            Duration::from_secs(2),
+        )
+        .expect("command should complete");
+
+        assert_eq!(stdout, "hardware-probe-ok");
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn command_stdout_with_timeout_kills_slow_windows_probe() {
+        let stdout = command_stdout_with_timeout(
+            "powershell",
+            &["-NoProfile", "-Command", "Start-Sleep -Seconds 2"],
+            Duration::from_millis(100),
+        );
+
+        assert!(stdout.is_none());
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn command_stdout_with_timeout_kills_slow_unix_probe() {
+        let stdout =
+            command_stdout_with_timeout("sh", &["-c", "sleep 2"], Duration::from_millis(100));
+
+        assert!(stdout.is_none());
+    }
 }

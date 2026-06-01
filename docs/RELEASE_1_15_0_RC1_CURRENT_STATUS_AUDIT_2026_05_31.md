@@ -42,6 +42,8 @@ Current external evidence blockers:
 
 2026-06-01 P2P auth addendum: the `musu.pro` P2P routes now have a production-safe code path for the runtime account token without storing the raw token server-side. `musu-bee/src/lib/p2pControlAuth.ts` accepts `MUSU_P2P_CONTROL_TOKEN_SHA256S` / `MUSU_P2P_CONTROL_TOKEN_SHA256` in addition to the previous raw static token variables, and `scripts\windows\show-p2p-control-token-hash.ps1` computes the env value from `~\.musu\token` without printing the raw token. Targeted P2P API tests passed for rendezvous, route evidence, relay lease, and the new hash-allowlist auth path; `npm run typecheck` passed. The blocker is now narrowed from "no runtime-token auth code path" to "deploy this `musu-bee/**` change, configure production `MUSU_P2P_CONTROL_TOKEN_SHA256S`, and re-run live `musu relay leases --json`."
 
+2026-06-01 19:19 KST addendum: public-site deployment was rechecked live after the operator asked whether the scroll/logo/accent fix should be on `musu.pro`. `https://musu.pro`, `/privacy`, and `/support` return HTTP 200; live browser QA on the homepage passed on desktop `1280x720` and mobile `390x844` with real scroll movement, no horizontal overflow, favicon-header logo source through Next image optimization, `data-brand-accent=emerald`, and `--musu-color-brand-emerald=#24C8DB`. Runtime hardening also advanced: the logged-in cloud heartbeat's hardware metadata probes no longer use timeout-less PowerShell/WMIC/sysctl/nvidia-smi calls. `peer::hardware` now closes stdin, discards stderr, captures stdout only after process exit, kills probes after 5s, and falls back when a probe fails or times out. This is another background-stall mitigation; public release remains No-Go until second-PC CPU/matrix evidence, release-grade multi-device route proof, production P2P control env verification, `musu@musu.pro` inbox evidence, and Store evidence are complete.
+
 2026-06-01 deployment addendum: commit `b1c4378` deployed to `musu.pro` through Vercel production workflow run `26742743319`; `Tests` run `26742743243` and E2E run `26742743299` passed. Live `musu relay leases --json` now returns `p2p_control_auth_not_configured` with `accepted_auth_modes=[]`, which proves the new hash-allowlist code is deployed and the remaining production blocker is Vercel env configuration, not missing application code.
 
 Current qualitative completion:
@@ -104,6 +106,7 @@ This document supersedes wiki/521 for the **current 2026-05-31 release status**.
 14. **Startup single-instance policy**: repeated `musu up`, desktop Start Runtime, and Store StartupTask/manual-launch overlap must reuse one runtime/bridge owner. The release gate now starts with repeated `musu up --json` evidence and must expand to packaged desktop click/startup-task collision tests.
 15. **MSIX desktop entrypoint policy**: the public Store package must launch `musu-desktop.exe` from the Start menu, keep `musu.exe` as the CLI alias, and keep `musu-startup.exe` as the startup task. Local install evidence uses the `local-sideload-manual` contract; Store submission evidence uses the `store-reviewed-immediate-registration` artifact and Partner Center/Microsoft certification evidence.
 16. **Planner background policy**: autonomous planner work remains opt-in via `MUSU_ENABLE_PLANNER=1`. When enabled, `MUSU_PLANNER_INTERVAL_SEC` is floored at 60s, `MUSU_PLANNER_COMMAND_TIMEOUT_SEC` is clamped to 5s..120s, and doctor output must report the effective interval/timeout with the CPU evidence review.
+17. **Cloud heartbeat hardware policy**: logged-in `musu.pro` registration may gather coarse hardware metadata, but platform command probes must be bounded. Current Windows PowerShell/WMIC, macOS `sysctl`, and `nvidia-smi` calls time out after 5s and degrade to fallback metadata.
 
 ## Code Audit
 
@@ -143,6 +146,7 @@ Findings:
 20. **Node.js attribution blind spot was fixed.** `measure-musu-idle-cpu.ps1` now reads process command lines through CIM for matching executable names, so repo-related `node.exe` processes are counted even when `ExecutablePath` is only `C:\Program Files\nodejs\node.exe`. This directly addresses the operator's "Node.js is open many times" concern: machine-wide Node remains visible, but release evidence now distinguishes repo-related Node from unrelated system/user Node processes.
 21. **Dashboard-open matrix proof is stricter.** `measure-musu-runtime-cpu-scenarios.ps1` no longer treats a non-reachable dashboard `dev_url`/`start_url` as proof that the dashboard was open. The matrix either launches an explicit `-DashboardUrl` or the `reachable_url` from `musu up --json`, and the verifier rejects no-op dashboard-open entries.
 22. **Optional planner busy-loop risk was hardened.** `musu-rs/src/brain/planner.rs` no longer allows a zero/near-zero planner interval and no longer runs the crawler through blocking `std::process::Command::output()`. The loop now floors the interval at 60s, clamps crawler timeout to 5s..120s, uses timeout-bounded `tokio::process::Command` with `kill_on_drop(true)`, and exposes the effective budget through `musu doctor --json`.
+23. **Cloud heartbeat hardware probe stalls were hardened.** `musu-rs/src/peer/hardware.rs` no longer performs timeout-less PowerShell/WMIC/sysctl/nvidia-smi probes while gathering metadata for cloud registration. Targeted tests prove stdout capture and timeout killing on Windows.
 
 ## Next Steps
 
@@ -203,6 +207,8 @@ P1: after external evidence passes.
   It now reports mDNS, clipboard, cloud heartbeat, file sync, and planner
   status, including the bounded planner interval/command-timeout budget; relay
   path state still needs a fuller doctor surface.
+- Keep hardware metadata probes bounded in every logged-in heartbeat path; probe
+  failure should reduce metadata quality, not hold a background worker open.
 
 P2: after first Store submission.
 

@@ -191,6 +191,11 @@ Runtime hardening:
   timeout-bounded with `MUSU_PLANNER_COMMAND_TIMEOUT_SEC` clamped to 5s..120s,
   and `musu doctor --json` reports the effective planner interval/timeout so
   CPU evidence can see the active background budget.
+- cloud heartbeat hardware probes: logged-in `musu.pro` heartbeat still gathers
+  hardware capability metadata, but Windows PowerShell/WMIC, macOS `sysctl`, and
+  `nvidia-smi` probes in `musu-rs/src/peer/hardware.rs` now run with `stdin`
+  closed, stderr discarded, and a 5s timeout. A stuck vendor/system probe should
+  degrade to fallback hardware metadata instead of pinning a background worker.
 
 Brand assets:
 
@@ -286,6 +291,10 @@ Tauri desktop shell evidence:
   file watcher roots, writable file serving, and planner opt-ins. Live
   `HUGH_SECOND` output showed the intended idle profile: mDNS/clipboard/file
   sync/planner off and cloud heartbeat `300s` with a `60s` floor.
+- 2026-06-01 live public-site deployment check: `https://musu.pro` currently
+  returns HTTP 200 and browser QA passed on desktop/mobile for the homepage
+  scroll, favicon-header logo, and `#24C8DB` brand accent. No extra manual web
+  deploy is pending for the scroll/logo/accent fix.
 
 Release candidate manifest:
 
