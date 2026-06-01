@@ -38,3 +38,19 @@ Release implication:
 - Public desktop release remains No-Go until second-PC runtime evidence,
   release-grade route proof, production P2P control-plane auth, `musu@musu.pro`
   inbox evidence, Store evidence, and relay/tunnel transport are complete.
+
+Post-push deploy verification:
+
+- Commit `b08ed746` (`Harden public site deploy and scroll`) was pushed to
+  `main`.
+- GitHub Actions passed: `Tests` run `26759256487`, `E2E Tests - musu-bee` run
+  `26759256574`, and `Deploy musu-bee to Vercel` run `26759256616`.
+- Vercel deploy job completed successfully for head SHA
+  `b08ed74609db3b340590fd2122a4fef10d43f853`.
+- Live Playwright QA against `https://musu.pro` with `qa=b08ed746` passed on
+  `/`, `/landing`, `/pricing`, and `/install` for desktop `1280x720` and
+  mobile `390x844`.
+- Verified signals: actual scroll position changed after `window.scrollTo`, no
+  horizontal overflow, `.musu-public-scroll-root=true`, logo source contains
+  `favicon-header`, `data-brand-accent=emerald`, and
+  `--musu-color-brand-emerald=#24C8DB`.
