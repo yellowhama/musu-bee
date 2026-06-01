@@ -198,6 +198,39 @@ after the matrix evidence commit:
 - note: Node.js is now intentionally attributed through command-line metadata;
   the `node` process is the local Next production dashboard on port `3001`
 
+2026-06-01 20:43 KST source-fresh primary evidence after dashboard/node polling
+hardening and the public-site common-shell accent follow-up:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260601-203715-HUGH_SECOND.evidence.json`
+  with dashboard task `4345c783-ddc2-4f7c-9328-6a721e7b3f1c`, bridge
+  `http://127.0.0.1:4752`, and CLI route checked.
+- primary `desktop-open` CPU evidence:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-203537-HUGH_SECOND.desktop-open.evidence.json`
+  from clean commit `9f9e35ac0eefe1eb647cc62c13f6fb156b1ed62d`, 60.061s
+  sample, `git_dirty=false`, repo Node `1`, owned WebView2 `8`, max one-core
+  CPU `musu=0`, `node=0.03`, `webview2=0.05`, working set `655.4MB`, private
+  memory `457.63MB`, and no hot processes.
+- audit note: that first desktop-open sample intentionally measured the app as
+  found and exposed accumulated old `musu-desktop.exe` shells from repeated
+  manual launches. CPU was still inside the beta budget, but packaged desktop
+  window single-instance/reactivation remains a hardening task.
+- primary 4-state CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260601-203835-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  from clean commit `f89a67f9d45c98d6bd131fea330d6a4bc7633aa2`, verifier
+  `ok=true`, `fail_count=0`.
+- matrix detail:
+  `runtime-started` sampled MUSU `1`, repo Node `1`, WebView2 `0`, max
+  one-core CPU `musu=0.05`; `dashboard-open` sampled MUSU `1`, repo Node `1`,
+  WebView2 `0`, max CPU `0`; `desktop-open` sampled MUSU `2`, repo Node `1`,
+  WebView2 `6`, max CPU `node=0.18`, `webview2=0.18`; `post-route` sampled
+  MUSU `2`, repo Node `1`, WebView2 `6`, max CPU `webview2=0.16`.
+- route probe token:
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260601_203835`.
+- release status: primary evidence is back to one valid machine for both CPU
+  gates, but public release still requires the second-PC `desktop-open` CPU
+  sample and second-PC 4-state matrix before the runtime gates close.
+
 2026-06-01 17:38 KST frontend polling hardening update:
 
 - `musu-bee/src` no longer contains direct `setInterval(` usage.

@@ -75,6 +75,22 @@ What it does not close:
   `docs\evidence\startup-single-instance\1.15.0-rc.1\20260531-203635-HUGH_SECOND.evidence.json`.
   Three consecutive `musu up --json` calls reused bridge PID 31208, left one
   MUSU runtime process, and passed nested process ownership.
+- 2026-06-01 20:43 KST current primary evidence after the dashboard/node
+  polling source change: single-machine smoke
+  `docs\evidence\single-machine\1.15.0-rc.1\20260601-203715-HUGH_SECOND.evidence.json`
+  passes; primary `desktop-open` CPU evidence
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-203537-HUGH_SECOND.desktop-open.evidence.json`
+  passes from clean git with 60.061s sample and no hot processes; primary
+  4-state matrix
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260601-203835-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  passes from clean git with route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260601_203835`.
+- Current hardening note: the first 20:35 desktop-open sample found CPU inside
+  budget but also found old packaged `musu-desktop.exe` shells still present
+  from repeated manual launches. The matrix was rerun after closing stale
+  shells and showed the expected `musu=2`, repo Node `1`, WebView2 `6` desktop
+  profile. This keeps "packaged desktop single-instance/window reactivation"
+  as an explicit follow-up separate from bridge `musu up` reuse.
 
 ## Code Audit Findings
 

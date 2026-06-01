@@ -179,7 +179,7 @@ Runtime hardening:
   `relay_fallback` addendum after direct-route failure and lease evaluation,
   so `musu.pro` can audit whether the lease was requested/issued/skipped
   without claiming relay payload transport
-- current state: primary single-machine smoke is refreshed at `docs\evidence\single-machine\1.15.0-rc.1\20260601-194130-HUGH_SECOND.evidence.json`; primary clean packaged `desktop-open` evidence passes at `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-194410-HUGH_SECOND.desktop-open.evidence.json` with `git_dirty=false`, `musu`/`musu-desktop` process count `2`, repo-related Next Node `1`, owned WebView2 `6`, max one-core CPU `musu=0`, `node=0.03`, `webview2=0.08`, total working set `506.72MB`, and private memory `328.53MB`; primary clean 4-state CPU scenario matrix passes at `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260601-194528-HUGH_SECOND.runtime-cpu-scenario-matrix.json` with route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260601_194528`, repo Node counted, and no hot processes; go/no-go reports single-machine verified, runtime idle CPU `1/2`, runtime CPU scenario matrix `1/2`, public metadata ok, MSIX install ok, and MSIX desktop entrypoint ok; second-PC desktop-open CPU evidence and second-PC scenario matrix evidence are still pending; the regenerated Store-reviewed artifact launches `musu-desktop.exe` and contains `musu.exe` plus `musu-startup.exe`; the fixed `local-sideload-manual` package is installed on `HUGH_SECOND` and passes installed desktop-entrypoint audit; Store-reviewed restricted-capability sideload is refused by default and must not be used as ordinary install evidence; local process ownership and repeated startup evidence pass
+- current state: after the dashboard/node polling hardening and public-site accent follow-up, primary single-machine smoke is refreshed at `docs\evidence\single-machine\1.15.0-rc.1\20260601-203715-HUGH_SECOND.evidence.json`; primary clean packaged `desktop-open` evidence passes at `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-203537-HUGH_SECOND.desktop-open.evidence.json` with `git_dirty=false`, 60.061s sample, `musu` role count `4` during the initial desktop-open sample because old desktop shells were still present, repo-related Next Node `1`, owned WebView2 `8`, max one-core CPU `musu=0`, `node=0.03`, `webview2=0.05`, total working set `655.4MB`, and private memory `457.63MB`; after closing stale desktop shells, the primary clean 4-state CPU scenario matrix passes at `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260601-203835-HUGH_SECOND.runtime-cpu-scenario-matrix.json` with route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260601_203835`, `runtime-started`, `dashboard-open`, `desktop-open`, and `post-route` all under the 5%-of-one-logical-core budget, repo Node counted, owned WebView2 `6` in desktop/post-route states, and no hot processes; second-PC desktop-open CPU evidence and second-PC scenario matrix evidence are still pending; the regenerated Store-reviewed artifact launches `musu-desktop.exe` and contains `musu.exe` plus `musu-startup.exe`; the fixed `local-sideload-manual` package is installed on `HUGH_SECOND` and passes installed desktop-entrypoint audit; Store-reviewed restricted-capability sideload is refused by default and must not be used as ordinary install evidence; local process ownership and repeated startup evidence pass
 - frontend polling hardening: `musu-bee/src` currently has no direct
   `setInterval(` matches. Workflow run status, remote screen device refresh,
   agents surface refresh, onboarding research polling, dashboard main refresh,
@@ -298,6 +298,12 @@ Tauri desktop shell evidence:
   returns HTTP 200 and browser QA passed on desktop/mobile for the homepage
   scroll, favicon-header logo, and `#24C8DB` brand accent. No extra manual web
   deploy is pending for the scroll/logo/accent fix.
+- 2026-06-01 20:35 KST public-site follow-up: `PublicSiteShell` now marks the
+  shared emerald `Open App` CTA with `data-brand-accent="emerald"`, and
+  `public-site-scroll-brand.spec.ts` now covers `/`, `/landing`, `/pricing`,
+  and `/install` on desktop/mobile. Local Playwright passed 8/8. This follow-up
+  still needs the normal push -> Vercel production deploy -> live `musu.pro`
+  recheck before it is treated as live.
 
 Release candidate manifest:
 
