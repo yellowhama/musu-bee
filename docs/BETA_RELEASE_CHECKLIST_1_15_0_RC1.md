@@ -104,16 +104,17 @@ Fresh repeatable script smoke passed again on 2026-05-29 06:52 KST:
 - dashboard output: `MUSU_RELEASE_SMOKE_OK_20260529_0652`
 - CLI route output: `MUSU_CLI_ROUTE_OK_20260529_0652`
 
-Current machine-readable single-machine evidence passed and was recorded on 2026-06-01 10:50 KST after the second-PC CPU matrix return-flow commit:
+Current machine-readable single-machine evidence passed and was recorded on 2026-06-01 14:41 KST after the dashboard-open CPU matrix gate tightening:
 
-- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260601-105019-HUGH_SECOND.evidence.json`
-- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260601-105019-HUGH_SECOND.verification.json`
-- summary: `docs\evidence\single-machine\1.15.0-rc.1\20260601-105019-HUGH_SECOND.summary.md`
-- commit: `04d1ab13f1960d9f7adb5fb2d389ccd39c63923d`
-- dashboard task id: `e2f4b35b-7b79-4621-abbc-658413665d0b`
-- bridge: `http://127.0.0.1:4980`
-- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260601_104959`
-- CLI route output: `MUSU_CLI_ROUTE_OK_20260601_104959`
+- evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260601-144154-HUGH_SECOND.evidence.json`
+- verification: `docs\evidence\single-machine\1.15.0-rc.1\20260601-144154-HUGH_SECOND.verification.json`
+- summary: `docs\evidence\single-machine\1.15.0-rc.1\20260601-144154-HUGH_SECOND.summary.md`
+- commit: `520e5a5c0bf9f49393510f65c6c5cd740bb5c6c3`
+- dashboard task id: `a55012e1-adab-48e6-950f-e6953cd1566b`
+- bridge: `http://127.0.0.1:2502`
+- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260601_144129`
+- evidence SHA-256: `2dc3311862fc4ea4f76b92df0592d1db8ddd9b2641a81b7552b138ec9e846c1f`
+- verification SHA-256: `06766b45a72efcb291ede7bef7e22901a19b9d01d06f0821a42ea608548b5977`
 - CLI route checked: `true`
 
 Multi-device packet:
@@ -169,7 +170,7 @@ Runtime hardening:
   `relay_fallback` addendum after direct-route failure and lease evaluation,
   so `musu.pro` can audit whether the lease was requested/issued/skipped
   without claiming relay payload transport
-- current state: primary clean packaged desktop-open evidence passes at `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-141730-HUGH_SECOND.desktop-open.evidence.json` with two MUSU processes, owned WebView2 `6`, owned Node `0`, WebView2 max one-core CPU `0.16`, and total working set `374.19MB`; current single-machine smoke passes at `docs\evidence\single-machine\1.15.0-rc.1\20260601-141622-HUGH_SECOND.evidence.json`; the old 3s scenario matrix smoke at `.local-build\runtime-cpu-scenarios\20260601-100515-HUGH_SECOND\20260601-100515-HUGH_SECOND.runtime-cpu-scenario-matrix.json` is not release evidence under the new verifier; second-PC returns now carry both release CPU evidence and the verified scenario matrix path; the regenerated Store-reviewed artifact launches `musu-desktop.exe` and contains `musu.exe` plus `musu-startup.exe`; the fixed `local-sideload-manual` package is installed on `HUGH_SECOND` and passes installed desktop-entrypoint audit; Store-reviewed restricted-capability sideload is refused by default and must not be used as ordinary install evidence; second-PC desktop-open CPU evidence and two-machine scenario matrix evidence are still pending but the second-PC return wrapper now captures and returns them; local process ownership and repeated startup evidence pass
+- current state: primary clean packaged desktop-open evidence passes at `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-144311-HUGH_SECOND.desktop-open.evidence.json` with one `musu-desktop` process, owned WebView2 `6`, owned Node `0`, max one-core CPU `musu=0` and `webview2=0.18`, total working set `341.41MB`, and private memory `183.8MB`; current single-machine smoke passes at `docs\evidence\single-machine\1.15.0-rc.1\20260601-144154-HUGH_SECOND.evidence.json`; the old 3s scenario matrix smoke at `.local-build\runtime-cpu-scenarios\20260601-100515-HUGH_SECOND\20260601-100515-HUGH_SECOND.runtime-cpu-scenario-matrix.json` is not release evidence under the new verifier; second-PC returns now carry both release CPU evidence and the verified scenario matrix path; the regenerated Store-reviewed artifact launches `musu-desktop.exe` and contains `musu.exe` plus `musu-startup.exe`; the fixed `local-sideload-manual` package is installed on `HUGH_SECOND` and passes installed desktop-entrypoint audit; Store-reviewed restricted-capability sideload is refused by default and must not be used as ordinary install evidence; second-PC desktop-open CPU evidence and two-machine scenario matrix evidence are still pending but the second-PC return wrapper now captures and returns them; local process ownership and repeated startup evidence pass
 
 Brand assets:
 
