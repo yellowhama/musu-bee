@@ -44,6 +44,8 @@ Current external evidence blockers:
 
 2026-06-01 19:19 KST addendum: public-site deployment was rechecked live after the operator asked whether the scroll/logo/accent fix should be on `musu.pro`. `https://musu.pro`, `/privacy`, and `/support` return HTTP 200; live browser QA on the homepage passed on desktop `1280x720` and mobile `390x844` with real scroll movement, no horizontal overflow, favicon-header logo source through Next image optimization, `data-brand-accent=emerald`, and `--musu-color-brand-emerald=#24C8DB`. Runtime hardening also advanced: the logged-in cloud heartbeat's hardware metadata probes no longer use timeout-less PowerShell/WMIC/sysctl/nvidia-smi calls. `peer::hardware` now closes stdin, discards stderr, captures stdout only after process exit, kills probes after 5s, and falls back when a probe fails or times out. This is another background-stall mitigation; public release remains No-Go until second-PC CPU/matrix evidence, release-grade multi-device route proof, production P2P control env verification, `musu@musu.pro` inbox evidence, and Store evidence are complete.
 
+2026-06-01 19:27 KST addendum: after commit `4f099bf` was pushed and GitHub `Tests` run `26749151136` passed, go/no-go was rerun against the clean latest manifest commit. It reports `ready_for_public_desktop_release=false`, public metadata ok, MSIX install ok, `manifest_dirty=false`, but `single_machine_verified=false`, runtime idle CPU `0/2`, runtime CPU scenario matrix `0/2`, multi-device false, support false, and Store false. The reason the CPU counts dropped from prior `1/2` records is source freshness: the hardware-probe commit invalidated earlier smoke/CPU evidence. The next local evidence step must refresh primary single-machine smoke, primary packaged `desktop-open` CPU, and primary 4-state runtime CPU matrix before second-PC capture can close the two-machine gates.
+
 2026-06-01 deployment addendum: commit `b1c4378` deployed to `musu.pro` through Vercel production workflow run `26742743319`; `Tests` run `26742743243` and E2E run `26742743299` passed. Live `musu relay leases --json` now returns `p2p_control_auth_not_configured` with `accepted_auth_modes=[]`, which proves the new hash-allowlist code is deployed and the remaining production blocker is Vercel env configuration, not missing application code.
 
 Current qualitative completion:
@@ -167,6 +169,8 @@ P0: keep No-Go until internal runtime quality and external evidence gates both p
    if the default owned-helper scope cannot prove process ownership, if no
    MUSU-owned WebView2 process is attributed, or if resource budget fields are
    missing/exceeded.
+   After commit `4f099bf`, refresh primary evidence first because prior CPU and
+   smoke records are stale for the latest manifest.
 5. Run process ownership audit whenever the operator sees many Node.js/WebView2 processes:
    ```powershell
    powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-process-ownership.ps1 -FailOnProblem -Json

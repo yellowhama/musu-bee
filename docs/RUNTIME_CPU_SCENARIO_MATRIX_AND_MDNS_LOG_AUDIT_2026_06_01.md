@@ -309,6 +309,18 @@ after the matrix evidence commit:
   substitute CPU evidence; the gate remains 60s clean/current primary plus
   second-PC samples.
 
+2026-06-01 19:27 KST post-push go/no-go update:
+
+- Commit `4f099bf` passed GitHub `Tests` run `26749151136`.
+- A clean post-push go/no-go summary reports `ready=false`,
+  `single_machine_verified=false`, runtime idle CPU `0/2`, runtime CPU scenario
+  matrix `0/2`, public metadata ok, MSIX install ok, support false, Store false,
+  and `manifest_dirty=false`.
+- Interpretation: the latest hardening commit invalidated prior primary CPU and
+  smoke evidence by source commit freshness. Refresh primary smoke,
+  `desktop-open` CPU, and the 4-state CPU scenario matrix before treating the
+  next second-PC return as capable of closing the two-machine gates.
+
 Parser validation:
 
 - `measure-musu-runtime-cpu-scenarios.ps1 parser ok`

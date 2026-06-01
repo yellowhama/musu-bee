@@ -22,4 +22,7 @@ Validation:
 Release state:
 
 - This removes another background stall candidate but does not close runtime CPU evidence.
-- Public release remains No-Go until second-PC desktop-open CPU evidence, second-PC runtime CPU scenario matrix evidence, release-grade multi-device route proof, production `MUSU_P2P_CONTROL_TOKEN_SHA256S` verification, `musu@musu.pro` delivery evidence, and Store evidence are complete.
+- Commit `4f099bf` was pushed and GitHub `Tests` run `26749151136` passed.
+- Clean post-push go/no-go now reports public metadata ok, MSIX install ok, `manifest_dirty=false`, but `single_machine_verified=false`, runtime idle CPU `0/2`, runtime CPU scenario matrix `0/2`, multi-device false, support false, and Store false.
+- Because this source commit invalidated earlier primary smoke/CPU evidence, the next evidence step must refresh primary single-machine smoke, primary packaged `desktop-open` CPU, and primary 4-state CPU matrix before second-PC evidence can close the two-machine runtime gates.
+- Public release remains No-Go until refreshed primary evidence, second-PC desktop-open CPU evidence, second-PC runtime CPU scenario matrix evidence, release-grade multi-device route proof, production `MUSU_P2P_CONTROL_TOKEN_SHA256S` verification, `musu@musu.pro` delivery evidence, and Store evidence are complete.
