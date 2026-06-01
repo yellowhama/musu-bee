@@ -2,7 +2,7 @@
 
 **Wiki ID**: wiki/524
 **Date**: 2026-05-31
-**Status**: Current implementation spec. Server-side rendezvous, route-evidence, and relay fallback lease APIs exist. Rust bridge runtime route attempts now create short-lived rendezvous sessions, seed sessions from recent node candidate cache, can use returned target candidates before legacy direct forwarding, exchange advertised TLS certificate fingerprints as peer identity material, and verify HTTPS peer certificate fingerprints during bridge forwarding when a target candidate supplies a `sha256:<hex>` fingerprint. This is still not final release-grade transport because the accepted release proof remains QUIC/TLS evidence, not bridge HTTP multipart over TLS, and relay/tunnel data transport is still not wired.
+**Status**: Current implementation spec. Server-side rendezvous, route-evidence, and relay fallback lease APIs exist. Rust bridge runtime route attempts now create short-lived rendezvous sessions, seed sessions from recent node candidate cache, can use returned target candidates before legacy direct forwarding, exchange advertised TLS certificate fingerprints as peer identity material, verify HTTPS peer certificate fingerprints during bridge forwarding when a target candidate supplies a `sha256:<hex>` fingerprint, and request a fail-closed relay lease after terminal direct-route failure when a rendezvous session and account token exist. This is still not final release-grade transport because the accepted release proof remains QUIC/TLS evidence, not bridge HTTP multipart over TLS, and relay/tunnel data transport is still not wired.
 
 ## Product Decision
 
@@ -273,14 +273,22 @@ Current Rust client/diagnostic behavior:
 
 - `musu-rs/src/cloud/mod.rs` has relay lease request/response DTOs and
   `request_relay_lease`.
+- `musu-rs/src/bridge/rendezvous.rs` now builds a relay lease request from the
+  failed direct-route attempt and calls `/api/v1/p2p/relay/lease` after
+  forwarding exhausts direct candidates. The request includes `session_id`,
+  `source_node_id`, `target_node_id`, attempted direct route kinds,
+  `direct_path_failed=true`, failure class, and requested capability.
+- Runtime forwarding skips the lease call when there is no rendezvous session
+  or no account token. A failed, denied, or timed-out lease does not mask the
+  original direct-route failure and does not send payload over relay.
 - `musu relay status --json` reports
   `relay_control_plane_lease_wired=true`,
   `relay_lease_endpoint=/api/v1/p2p/relay/lease`,
+  `relay_runtime_fallback_lease_request_wired=true`,
   `relay_default_data_path=false`, and still
   `relay_transport_wired=false`.
-- Runtime forwarding does not call the relay lease API yet; it must only do so
-  after direct route failure and after the actual relay/tunnel transport is
-  implemented.
+- Relay/tunnel transport remains unwired. The runtime lease request is a policy
+  and audit handoff only; it must not become a silent relay data path.
 
 ## Runtime Hardening Requirements
 
@@ -313,9 +321,12 @@ Current Rust client/diagnostic behavior:
    path, cache recent node candidates, seed new sessions from that cache, and
    use refreshed target candidates when present. `musu-bee/src/app/api/v1/p2p/relay/lease/route.ts`
    now enforces the Connect/Pro fallback lease policy and stores/query-filters
-   leases by token owner. Account-scoped evidence is now token-owner scoped and
-   query-isolated. UI/export, retention policy, real account-id mapping,
-   runtime relay transport, and release-grade QUIC/TLS proof remain pending.
+   leases by token owner. Runtime forwarding now requests such a lease after
+   terminal direct-route failure when a rendezvous session/account token exists,
+   but does not send payload over relay. Account-scoped evidence is now
+   token-owner scoped and query-isolated. UI/export, retention policy, real
+   account-id mapping, runtime relay transport, and release-grade QUIC/TLS
+   proof remain pending.
 4. Add `musu relay status` and `musu route --explain`.
    **Initial diagnostic CLI done on 2026-06-01.** `musu relay status` reports
    login/cache/client readiness plus bridge path selection state, rendezvous
@@ -353,6 +364,6 @@ Current Rust client/diagnostic behavior:
    the selected transport is legacy HTTP bearer and relay/tunnel fallback is
    not implemented.
 6. Add relay/tunnel transport only after direct path evidence is stable.
-   **Control-plane lease boundary exists as of 2026-06-01; relay data
-   transport remains pending.** Relay must remain an explicit route kind, not a
-   silent default payload path.
+   **Control-plane lease boundary and runtime fail-closed lease request exist
+   as of 2026-06-01; relay data transport remains pending.** Relay must remain
+   an explicit route kind, not a silent default payload path.

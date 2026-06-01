@@ -52,6 +52,73 @@ impl RendezvousPreparation {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RelayLeaseFallbackStatus {
+    SkippedNoToken,
+    SkippedNoSession,
+    Denied,
+    Issued,
+    Failed,
+    TimedOut,
+}
+
+#[derive(Debug, Clone)]
+pub struct RelayLeaseFallback {
+    pub status: RelayLeaseFallbackStatus,
+    pub lease_issued: bool,
+    pub policy: Option<String>,
+    pub blockers: Vec<String>,
+    pub lease_id: Option<String>,
+    pub failure_class: Option<String>,
+}
+
+impl RelayLeaseFallback {
+    fn skipped_no_token() -> Self {
+        Self {
+            status: RelayLeaseFallbackStatus::SkippedNoToken,
+            lease_issued: false,
+            policy: None,
+            blockers: vec!["relay_no_account_token".to_string()],
+            lease_id: None,
+            failure_class: Some("relay_no_account_token".to_string()),
+        }
+    }
+
+    fn skipped_no_session() -> Self {
+        Self {
+            status: RelayLeaseFallbackStatus::SkippedNoSession,
+            lease_issued: false,
+            policy: None,
+            blockers: vec!["relay_requires_rendezvous_session".to_string()],
+            lease_id: None,
+            failure_class: Some("relay_requires_rendezvous_session".to_string()),
+        }
+    }
+
+    fn failed(failure_class: impl Into<String>) -> Self {
+        let failure_class = failure_class.into();
+        Self {
+            status: RelayLeaseFallbackStatus::Failed,
+            lease_issued: false,
+            policy: None,
+            blockers: vec![failure_class.clone()],
+            lease_id: None,
+            failure_class: Some(failure_class),
+        }
+    }
+
+    fn timed_out() -> Self {
+        Self {
+            status: RelayLeaseFallbackStatus::TimedOut,
+            lease_issued: false,
+            policy: None,
+            blockers: vec!["relay_lease_timeout".to_string()],
+            lease_id: None,
+            failure_class: Some("relay_lease_timeout".to_string()),
+        }
+    }
+}
+
 fn rendezvous_timeout() -> Duration {
     let millis = std::env::var("MUSU_P2P_RENDEZVOUS_CLIENT_TIMEOUT_MS")
         .ok()
@@ -112,6 +179,39 @@ fn cloud_route_kind_for_addr(addr: &str) -> crate::cloud::RouteKind {
         }
         crate::bridge::router::RoutePathKind::Tailscale => crate::cloud::RouteKind::Tailscale,
         crate::bridge::router::RoutePathKind::DirectQuic => crate::cloud::RouteKind::DirectQuic,
+    }
+}
+
+fn relay_attempted_route_kinds(
+    fallback_peer: &ResolvedPeer,
+    attempted_peers: &[ResolvedPeer],
+) -> Vec<crate::cloud::RouteKind> {
+    let mut kinds = Vec::new();
+    for peer in attempted_peers.iter().chain(std::iter::once(fallback_peer)) {
+        let kind = cloud_route_kind_for_addr(&peer.addr);
+        if !kinds.contains(&kind) {
+            kinds.push(kind);
+        }
+    }
+    kinds
+}
+
+fn relay_lease_request_for_direct_failure(
+    cfg: &crate::bridge::config::BridgeConfig,
+    fallback_peer: &ResolvedPeer,
+    session_id: &str,
+    attempted_peers: &[ResolvedPeer],
+    failure_class: &str,
+    requested_capability: Option<&str>,
+) -> crate::cloud::P2pRelayLeaseRequest {
+    crate::cloud::P2pRelayLeaseRequest {
+        session_id: session_id.to_string(),
+        source_node_id: cfg.node_name.clone(),
+        target_node_id: crate::bridge::route_evidence::target_node_id(fallback_peer),
+        requested_capability: requested_capability.map(str::to_string),
+        attempted_route_kinds: relay_attempted_route_kinds(fallback_peer, attempted_peers),
+        direct_path_failed: true,
+        failure_class: Some(failure_class.to_string()),
     }
 }
 
@@ -367,6 +467,100 @@ pub fn spawn_close_rendezvous_session(
     });
 }
 
+pub async fn request_relay_lease_after_direct_failure(
+    state: &AppState,
+    fallback_peer: &ResolvedPeer,
+    session_id: Option<&str>,
+    attempted_peers: &[ResolvedPeer],
+    failure_class: &str,
+    requested_capability: Option<&str>,
+) -> RelayLeaseFallback {
+    let Some(session_id) = session_id.filter(|value| !value.trim().is_empty()) else {
+        tracing::debug!(
+            peer = %fallback_peer.addr,
+            "relay lease request skipped; no rendezvous session for failed direct route"
+        );
+        return RelayLeaseFallback::skipped_no_session();
+    };
+
+    let musu_home = musu_home_from_state(state);
+    let Some(cloud) = account_cloud(musu_home) else {
+        tracing::debug!(
+            peer = %fallback_peer.addr,
+            session_id,
+            "relay lease request skipped; no account token"
+        );
+        return RelayLeaseFallback::skipped_no_token();
+    };
+
+    let req = relay_lease_request_for_direct_failure(
+        &state.config,
+        fallback_peer,
+        session_id,
+        attempted_peers,
+        failure_class,
+        requested_capability,
+    );
+
+    let result = tokio::time::timeout(rendezvous_timeout(), cloud.request_relay_lease(&req)).await;
+    match result {
+        Ok(Ok(response)) => {
+            let lease_id = response.lease.as_ref().map(|lease| lease.lease_id.clone());
+            if response.lease_issued {
+                tracing::info!(
+                    peer = %fallback_peer.addr,
+                    session_id,
+                    lease_id = lease_id.as_deref().unwrap_or(""),
+                    policy = %response.policy,
+                    "relay fallback lease issued after failed direct route"
+                );
+                RelayLeaseFallback {
+                    status: RelayLeaseFallbackStatus::Issued,
+                    lease_issued: true,
+                    policy: Some(response.policy),
+                    blockers: response.blockers,
+                    lease_id,
+                    failure_class: None,
+                }
+            } else {
+                tracing::warn!(
+                    peer = %fallback_peer.addr,
+                    session_id,
+                    policy = %response.policy,
+                    blockers = ?response.blockers,
+                    "relay fallback lease denied after failed direct route"
+                );
+                RelayLeaseFallback {
+                    status: RelayLeaseFallbackStatus::Denied,
+                    lease_issued: false,
+                    policy: Some(response.policy),
+                    blockers: response.blockers,
+                    lease_id,
+                    failure_class: Some("relay_lease_denied".to_string()),
+                }
+            }
+        }
+        Ok(Err(err)) => {
+            tracing::warn!(
+                peer = %fallback_peer.addr,
+                session_id,
+                err = %err,
+                "relay fallback lease request failed"
+            );
+            RelayLeaseFallback::failed(format!("relay_lease_error:{err}"))
+        }
+        Err(_) => {
+            tracing::warn!(
+                peer = %fallback_peer.addr,
+                session_id,
+                timeout_ms = rendezvous_timeout().as_millis(),
+                "relay fallback lease request timed out"
+            );
+            RelayLeaseFallback::timed_out()
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -523,6 +717,80 @@ mod tests {
                 .and_then(|meta| meta.get("transport_scheme"))
                 .and_then(|value| value.as_str()),
             Some("https")
+        );
+    }
+
+    #[test]
+    fn relay_lease_request_records_failed_direct_paths_without_using_relay_as_default() {
+        let cfg = crate::bridge::config::BridgeConfig {
+            bridge_host: "127.0.0.1".to_string(),
+            bridge_port: 8070,
+            python_facade_port: 8071,
+            public_url: Some("http://127.0.0.1:8070".to_string()),
+            node_name: "source-node".to_string(),
+            db_path: ":memory:".into(),
+            audit_db_path: ":memory:".into(),
+            nodes_toml_path: ".musu/nodes.toml".into(),
+            token: "x".repeat(32),
+            peer_token: None,
+            localhost_auth_required: true,
+            env: crate::bridge::config::AuthMode::Development,
+            rate_limit_disabled: true,
+            rate_limit_per_min: 0,
+            allow_plaintext_lan: false,
+            file_serve_roots: vec![],
+            file_serve_writable: false,
+            tls_enabled: false,
+            tls_cert_path: None,
+            tls_key_path: None,
+        };
+        let fallback_peer = ResolvedPeer {
+            addr: "203.0.113.10:8070".to_string(),
+            name: Some("target-node".to_string()),
+            source: crate::peer::discovery::PeerSource::Registry,
+            meta: None,
+        };
+        let attempted = vec![
+            ResolvedPeer {
+                addr: "192.168.1.10:8070".to_string(),
+                name: Some("target-node".to_string()),
+                source: crate::peer::discovery::PeerSource::Registry,
+                meta: None,
+            },
+            ResolvedPeer {
+                addr: "100.64.1.10:8070".to_string(),
+                name: Some("target-node".to_string()),
+                source: crate::peer::discovery::PeerSource::Registry,
+                meta: None,
+            },
+            fallback_peer.clone(),
+        ];
+
+        let req = relay_lease_request_for_direct_failure(
+            &cfg,
+            &fallback_peer,
+            "rv_test",
+            &attempted,
+            "forward_failed_after_retries",
+            Some("remote_command"),
+        );
+
+        assert_eq!(req.session_id, "rv_test");
+        assert_eq!(req.source_node_id, "source-node");
+        assert_eq!(req.target_node_id, "target-node");
+        assert_eq!(req.requested_capability.as_deref(), Some("remote_command"));
+        assert_eq!(
+            req.attempted_route_kinds,
+            vec![
+                crate::cloud::RouteKind::Lan,
+                crate::cloud::RouteKind::Tailscale,
+                crate::cloud::RouteKind::DirectQuic,
+            ]
+        );
+        assert!(req.direct_path_failed);
+        assert_eq!(
+            req.failure_class.as_deref(),
+            Some("forward_failed_after_retries")
         );
     }
 }

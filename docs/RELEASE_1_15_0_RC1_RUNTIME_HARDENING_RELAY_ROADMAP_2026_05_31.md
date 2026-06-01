@@ -282,6 +282,17 @@ Detailed control-plane API and route evidence contract:
 Execution plan for the three operator-reported blockers:
 `docs/MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md` (wiki/525).
 
+Current 2026-06-01 implementation update:
+
+- Rendezvous, route-evidence storage/query, HTTPS fingerprint pinning, and
+  fail-closed relay lease policy endpoints are implemented.
+- Runtime forwarding now creates a rendezvous session, can use returned target
+  candidates, writes/submits route evidence, and requests a relay lease after
+  terminal direct-route failure when a session/account token exists.
+- This is still not release-grade P2P. Relay payload transport is not wired,
+  `relay_default_data_path=false`, and QUIC/TLS route evidence remains the
+  accepted release target.
+
 Minimal client behavior:
 
 - keep one low-duty outbound control connection when user is logged in
@@ -327,11 +338,11 @@ Minimal client behavior:
 
 ### P1: Build `musu.pro` assisted peer path
 
-1. Treat existing cloud node registration as registry v0.
-2. Add rendezvous/route-evidence DTOs and tests in the Next API or dedicated service.
-3. Add bridge client commands: `musu relay status`, `musu relay connect`, `musu relay route`.
-4. Add route path selection: manual peer -> cached direct endpoint -> relay fallback.
-5. Record route evidence with path type and timings.
+1. Treat existing cloud node registration as registry v0. **Done as baseline.**
+2. Add rendezvous/route-evidence DTOs and tests in the Next API or dedicated service. **Done for rendezvous, route evidence, and relay lease policy.**
+3. Add bridge client diagnostics. **`musu relay status` and `musu route --explain` exist; `musu relay connect` / `musu relay route` remain pending because relay transport is not wired.**
+4. Add route path selection: manual/cached peer -> control-plane candidate -> relay fallback lease request. **Direct candidate selection and runtime lease request exist; relay payload fallback remains pending.**
+5. Record route evidence with path type and timings. **Runtime and CLI route evidence write `musu.route_evidence.v1`, but release-grade QUIC/TLS proof is still missing.**
 
 Current enforcement update: `smoke-multidevice-beta.ps1` writes
 `musu.route_evidence.v1`, and `verify-multidevice-evidence.ps1` now rejects
@@ -351,11 +362,11 @@ HTTP bearer routing from satisfying the public multi-device release gate.
 
 | Surface | Previous | Current | Reason |
 |---|---:|---:|---|
-| Single-machine Windows local beta | ~92% | ~85% | Functionality is proven and local process/startup ownership now passes; packaged desktop/WebView2 idle CPU is still unproven. |
-| Store/operator-gate infrastructure | ~90% | ~95% | Evidence tooling now includes runtime idle CPU, process ownership, startup single-instance, MSIX desktop-entrypoint gates, and a passing regenerated Store submission bundle artifact. |
-| Public desktop release readiness | ~68% | ~55% | MSIX artifact packaging is fixed, but installed desktop evidence, source-fresh release packaging, idle CPU, multi-device route, relay path, support mailbox, and Store approval remain open. |
+| Single-machine Windows local beta | ~92% | ~88% | Functionality is proven, local process/startup ownership passes, and current primary desktop-open CPU evidence is clean; second-PC CPU evidence remains open. |
+| Store/operator-gate infrastructure | ~90% | ~96% | Evidence tooling now includes runtime idle CPU, process ownership, startup single-instance, MSIX desktop-entrypoint gates, second-PC return CPU matrix capture, and a passing regenerated Store submission bundle artifact. |
+| Public desktop release readiness | ~68% | ~65% | MSIX install/desktop-entrypoint and primary idle CPU evidence are much stronger, but second-PC desktop CPU, real route proof, support mailbox, Store approval, and relay/QUIC evidence remain open. |
 | Full desktop GUI product maturity | ~55-60% | ~50% | Tauri shell remains launcher/status only, and runtime resource polish is not yet product-grade. |
-| Multi-device product maturity | ~45% | ~38% | Direct second-PC install evidence exists, but route proof and relay fallback do not. |
+| Multi-device product maturity | ~45% | ~50% | Direct second-PC install evidence exists and the `musu.pro` rendezvous/route-evidence/relay-lease control plane is wired, but release-grade QUIC/TLS route proof and relay payload transport do not exist yet. |
 
 ## Release Decision
 

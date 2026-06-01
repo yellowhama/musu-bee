@@ -519,6 +519,11 @@ pub async fn forward_to_peer_with_retry(
     }
 
     let session_id = task.rendezvous_session_id.clone();
+    let attempted_route_peers = if route_peer.addr != peer.addr {
+        vec![route_peer.clone(), peer.clone()]
+    } else {
+        vec![route_peer.clone()]
+    };
     let mut last_err: Option<ForwardAttemptError> = None;
     for attempt in 0..=max_retries {
         match forward_to_peer_attempt(
@@ -618,6 +623,25 @@ pub async fn forward_to_peer_with_retry(
     );
     err.total_attempt_ms = elapsed_ms(route_started.elapsed());
     err.failure_class = "forward_failed_after_retries".to_string();
+    let relay = crate::bridge::rendezvous::request_relay_lease_after_direct_failure(
+        state,
+        peer,
+        session_id.as_deref(),
+        &attempted_route_peers,
+        &err.failure_class,
+        Some("remote_command"),
+    )
+    .await;
+    tracing::debug!(
+        peer = %peer.addr,
+        relay_status = ?relay.status,
+        relay_lease_issued = relay.lease_issued,
+        relay_policy = relay.policy.as_deref().unwrap_or(""),
+        relay_blockers = ?relay.blockers,
+        relay_lease_id = relay.lease_id.as_deref().unwrap_or(""),
+        relay_failure_class = relay.failure_class.as_deref().unwrap_or(""),
+        "relay fallback lease evaluated after failed direct route"
+    );
     if let Some(session_id) = session_id {
         let musu_home = state
             .config

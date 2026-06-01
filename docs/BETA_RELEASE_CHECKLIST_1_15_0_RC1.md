@@ -156,6 +156,10 @@ Runtime hardening:
 - default clipboard polling: off unless `MUSU_ENABLE_CLIPBOARD_SYNC=1`
 - runtime hardening and relay-control roadmap: `docs/RELEASE_1_15_0_RC1_RUNTIME_HARDENING_RELAY_ROADMAP_2026_05_31.md`
 - go/no-go preflight now reports `msix_desktop_entrypoint_verified`, `runtime_idle_cpu_verified`, `process_ownership_verified`, and `startup_single_instance_verified`
+- P2P relay control-plane status: runtime direct-route failure now requests a
+  fail-closed `/api/v1/p2p/relay/lease` when a rendezvous session and account
+  token exist; this is policy/audit wiring only and `relay_transport_wired`
+  remains `false`
 - current state: primary clean packaged desktop-open evidence passes at `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-104726-HUGH_SECOND.desktop-open.evidence.json` with owned WebView2 `6`, owned Node `0`, WebView2 max one-core CPU `0.18`, and total working set `341.1MB`; the scenario matrix smoke passed locally at `.local-build\runtime-cpu-scenarios\20260601-100515-HUGH_SECOND\20260601-100515-HUGH_SECOND.runtime-cpu-scenario-matrix.json` but is diagnostic evidence only; second-PC returns now carry both release CPU evidence and the diagnostic scenario matrix; the regenerated Store-reviewed artifact launches `musu-desktop.exe` and contains `musu.exe` plus `musu-startup.exe`; the fixed `local-sideload-manual` package is installed on `HUGH_SECOND` and passes installed desktop-entrypoint audit; Store-reviewed restricted-capability sideload is refused by default and must not be used as ordinary install evidence; second-PC desktop-open CPU evidence is still pending but the second-PC return wrapper now captures and returns it; local process ownership and repeated startup evidence pass
 
 Brand assets:

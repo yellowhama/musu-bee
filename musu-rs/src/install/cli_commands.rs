@@ -694,6 +694,7 @@ struct RelayStatusReport {
     release_grade_transport_required: &'static str,
     relay_control_plane_lease_wired: bool,
     relay_lease_endpoint: &'static str,
+    relay_runtime_fallback_lease_request_wired: bool,
     relay_transport_wired: bool,
     relay_default_data_path: bool,
     release_route_evidence_ready: bool,
@@ -729,6 +730,7 @@ async fn run_relay_status(opts: RelayStatusOpts) -> Result<()> {
         release_grade_transport_required: "quic_tls_1_3",
         relay_control_plane_lease_wired: true,
         relay_lease_endpoint: "/api/v1/p2p/relay/lease",
+        relay_runtime_fallback_lease_request_wired: true,
         relay_transport_wired: false,
         relay_default_data_path: false,
         release_route_evidence_ready: false,
@@ -779,6 +781,10 @@ async fn run_relay_status(opts: RelayStatusOpts) -> Result<()> {
     println!(
         "  relay lease control-plane: {} ({})",
         report.relay_control_plane_lease_wired, report.relay_lease_endpoint
+    );
+    println!(
+        "  relay runtime fallback lease request wired: {}",
+        report.relay_runtime_fallback_lease_request_wired
     );
     println!("  relay transport wired: {}", report.relay_transport_wired);
     println!(
