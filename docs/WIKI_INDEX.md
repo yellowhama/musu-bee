@@ -883,8 +883,9 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   accent `36, 200, 219`. `write-release-go-no-go.ps1`,
   `verify-single-machine-evidence.ps1`, and
   `verify-runtime-cpu-scenario-matrix.ps1` now treat only docs, the deploy
-  workflow, and `show-musu-pro-p2p-env-status.ps1` as non-runtime-affecting
-  evidence freshness deltas. Search terms should include `26777905910`,
+  workflow, `show-musu-pro-p2p-env-status.ps1`, and exact release-gate verifier
+  scripts as non-runtime-affecting evidence freshness deltas. Search terms
+  should include `26777905910`,
   `00694a2e`, `Test-DocumentationOrStatusOnlyGitDelta`,
   `single_machine_verified=true`, `runtime idle CPU 1/2`, and
   `runtime CPU scenario matrix 1/2`.
@@ -894,7 +895,19 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   script updates, BETA/WIKI/WIKI_INDEX/GOAL updates, and CoS memory
   `2026-06-02_0458_kst_musu_pro_redeploy_freshness_gate.md`. Search terms
   should include `GOAL v243`, `GOAL v244`, `26777905910`, `1257 files`,
-  `docs/status-only`, `runtime idle CPU 1/2`, and
+  `docs/status/tooling-only`, `runtime idle CPU 1/2`, and
   `runtime CPU scenario matrix 1/2`.
+- 2026-06-02 post-push release-gate tooling allowlist correction:
+  after commit `da525769`, go/no-go briefly reset primary evidence to `0/2`
+  because release-gate verifier scripts were not yet allowed as
+  non-runtime-affecting deltas. The allowlist now includes only exact gate
+  tooling paths, not arbitrary `scripts/*`; dirty-state go/no-go returns
+  `single_machine_verified=true`, runtime idle CPU `1/2 [HUGH_SECOND]`,
+  runtime CPU matrix `1/2 [HUGH_SECOND]`, and the expected dirty-git blocker.
+  Index refresh still reports 1257 files and 2214 symbols. Search terms should
+  include `GOAL v246`, `da525769`, `release-gate tooling allowlist`,
+  `scripts/windows/write-release-go-no-go.ps1`,
+  `verify-single-machine-evidence.ps1`, and
+  `verify-runtime-cpu-scenario-matrix.ps1`.
 
 **End of WIKI_INDEX.md.**

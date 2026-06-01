@@ -450,8 +450,8 @@ Tauri desktop shell evidence:
   hosted P2P status script was a gate-classification problem. The only
   non-doc deltas since the latest primary evidence were the deploy workflow and
   the P2P env status preflight, neither of which changes local desktop runtime
-  behavior. The verifiers now allow exactly those docs/status-only deltas; full
-  go/no-go returns `single_machine_verified=true`, runtime idle CPU
+  behavior. The verifiers now allow exactly those docs/status/tooling-only
+  deltas; full go/no-go returns `single_machine_verified=true`, runtime idle CPU
   `1/2 [HUGH_SECOND]`, and runtime CPU matrix `1/2 [HUGH_SECOND]`. Public
   release remains No-Go pending second-PC evidence, release-grade multi-device
   route evidence, KV-backed P2P control-plane proof, `musu@musu.pro` mailbox

@@ -104,6 +104,10 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
 
     $statusOnlyScripts = @(
         ".github/workflows/deploy-musu-bee.yml",
+        "scripts/windows/verify-final-operator-gate-packet.ps1",
+        "scripts/windows/verify-runtime-cpu-scenario-matrix.ps1",
+        "scripts/windows/verify-single-machine-evidence.ps1",
+        "scripts/windows/write-release-go-no-go.ps1",
         "scripts/windows/show-musu-pro-p2p-env-status.ps1"
     )
     return ($statusOnlyScripts -contains $normalizedPath)
@@ -186,7 +190,7 @@ if (-not $gitCommitMatchesExpected -and $AllowDocumentationOnlyGitDelta) {
 Add-CheckFromCondition `
     "expected git commit" `
     ($gitCommitMatchesExpected -or $documentationOrStatusOnlyGitDelta) `
-    "git commit matches current HEAD $ExpectedGitCommit or differs only by documentation/evidence/status-only commits" `
+    "git commit matches current HEAD $ExpectedGitCommit or differs only by documentation/evidence/status/tooling-only commits" `
     "git commit is '$gitCommit', expected current HEAD '$ExpectedGitCommit' with no runtime-affecting changes after the evidence commit"
 Add-CheckFromCondition "started timestamp" ($null -ne $startedAt) "started_at parses" "started_at is missing or invalid"
 Add-CheckFromCondition "completed timestamp" ($null -ne $completedAt) "completed_at parses" "completed_at is missing or invalid"

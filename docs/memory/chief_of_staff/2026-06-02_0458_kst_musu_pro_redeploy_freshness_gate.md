@@ -20,8 +20,9 @@ non-runtime deltas: `.github/workflows/deploy-musu-bee.yml` and
 Corrective change: `write-release-go-no-go.ps1`,
 `verify-single-machine-evidence.ps1`, and
 `verify-runtime-cpu-scenario-matrix.ps1` now treat only `docs/*`, the deploy
-workflow file, and the P2P env status preflight script as allowed
-documentation/status-only evidence freshness deltas.
+workflow file, the P2P env status preflight script, and exact release-gate
+verifier script paths as allowed documentation/status/tooling-only evidence
+freshness deltas.
 
 Validation after the correction:
 

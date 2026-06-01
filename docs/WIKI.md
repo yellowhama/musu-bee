@@ -500,11 +500,12 @@ Current Store path truth:
   `favicon-header.png`, and `--musu-color-brand-emerald=#24C8DB` with emerald
   accent color `36, 200, 219`.
 - Release-gate freshness correction: local desktop smoke/CPU evidence should
-  not be invalidated by docs, deploy workflow metadata, or the hosted P2P env
-  status preflight script. The go/no-go/verifier scripts now allow only
-  `docs/*`, `.github/workflows/deploy-musu-bee.yml`, and
-  `scripts/windows/show-musu-pro-p2p-env-status.ps1` between the evidence commit
-  and current HEAD. After the correction, go/no-go reports
+  not be invalidated by docs, deploy workflow metadata, hosted P2P env status
+  preflight, or release-gate verifier tooling changes. The go/no-go/verifier
+  scripts now allow only `docs/*`, `.github/workflows/deploy-musu-bee.yml`,
+  `scripts/windows/show-musu-pro-p2p-env-status.ps1`, and the exact
+  release-gate verifier script paths between the evidence commit and current
+  HEAD. After the correction, go/no-go reports
   `single_machine_verified=true`, runtime idle CPU `1/2 [HUGH_SECOND]`, runtime
   CPU matrix `1/2 [HUGH_SECOND]`, and public release still No-Go because
   second-PC, multi-device route, KV-backed P2P, `musu@musu.pro`, and Store
@@ -512,8 +513,12 @@ Current Store path truth:
 - Indexer refreshed after the latest redeploy/freshness-gate documentation:
   `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
   1257 files and 2214 symbols. Search terms include `26777905910`,
-  `Test-DocumentationOrStatusOnlyGitDelta`, `docs/status-only`,
+  `Test-DocumentationOrStatusOnlyGitDelta`, `docs/status/tooling-only`,
   `single_machine_verified=true`, and `runtime CPU scenario matrix 1/2`.
+- Post-push freshness follow-up: exact release-gate verifier script paths are
+  now included in the non-runtime-affecting allowlist. This prevents gate
+  tooling commits from forcing primary desktop smoke/CPU evidence to `0/2`,
+  while still refusing arbitrary `scripts/*` deltas.
 - Remote release gates must be rechecked after the last pushed commit before public handoff; latest recorded runs were green, and live `https://musu.pro/privacy` plus `/support` passed public metadata verification with `musu@musu.pro`.
 - old 2026-05-27 package: template only (`1.13.0.0`, do not submit as current)
 - Tauri shell: dedicated static runtime launcher/status shell now builds to `musu-bee/out`, bundles as MSI/NSIS through `npm run tauri:build`, and is audited as `desktop_shell_ready=True`; it is still not the full dashboard GUI
