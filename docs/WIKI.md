@@ -709,6 +709,16 @@ Indexer note:
   `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
   1291 files and 2217 symbols. Search terms should include `GOAL v273`,
   `wiki/542`, `13/13`, and `1291 files`.
+- 2026-06-02 operator packet refresh after runtime matrix verifier hardening:
+  final operator packet `20260602-093212` and action pack `20260602-093312`
+  verify with `ok=true`, `fail_count=0`. Current second-PC transfer zip is
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-093312\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-093312.zip`.
+  Search terms should include `GOAL v274`, `20260602-093312`, and
+  `runtime matrix verifier`.
+- 2026-06-02 index refresh after operator packet docs:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1291 files and 2217 symbols. Search terms should include `GOAL v275`,
+  `20260602-093212`, and `20260602-093312`.
 
 ## 9. musu-system Integration State (2026-05-29)
 

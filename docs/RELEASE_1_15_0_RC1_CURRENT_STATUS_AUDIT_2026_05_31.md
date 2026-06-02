@@ -504,3 +504,15 @@ WebView2 process count over budget. Current primary matrix evidence
 `20260602-083314-HUGH_SECOND` still verifies with `ok=true`, `fail_count=0`, so
 the gate remains valid but still only `1/2` until a second Windows PC returns
 matching matrix evidence.
+
+2026-06-02 09:33 KST operator packet refresh addendum: after committing the
+runtime matrix resource-budget verifier hardening, clean HEAD
+`c3adf9f3` regenerated the final operator packet and action pack. Final packet
+`.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260602-093212.zip`
+verifies with `ok=true` and `fail_count=0`, including the new self-check that
+the packaged runtime matrix verifier fails closed on resource-budget evidence.
+Operator action pack
+`.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-093312.zip`
+also verifies with `ok=true` and `fail_count=0`. The current second-PC transfer
+zip is
+`.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-093312\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-093312.zip`.

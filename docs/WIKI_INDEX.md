@@ -1081,5 +1081,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2217 symbols`, `resource_budget_violations`,
   `total_working_set_mb_after`, `total_private_memory_mb_after`, and
   `WebView2 process budget`.
+- 2026-06-02 operator packet refresh after runtime matrix verifier hardening:
+  clean HEAD `c3adf9f3` regenerated final operator packet
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260602-093212.zip`
+  and action pack
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-093312.zip`;
+  both verify with `ok=true`, `fail_count=0`. The current second-PC transfer
+  zip is
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-093312\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-093312.zip`.
+  Search terms should include `GOAL v274`, `20260602-093212`,
+  `20260602-093312`, and `MUSU-second-PC-transfer-1.15.0-rc.1-20260602-093312`.
+- 2026-06-02 index refresh after operator packet refresh docs:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1291 files and 2217 symbols after documenting the refreshed final packet and
+  action pack. Search terms should include `GOAL v275`, `1291 files`,
+  `2217 symbols`, `20260602-093212`, `20260602-093312`, and
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260602-093312`.
 
 **End of WIKI_INDEX.md.**
