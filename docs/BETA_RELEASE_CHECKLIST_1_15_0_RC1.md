@@ -611,6 +611,13 @@ Tauri desktop shell evidence:
   `npm run lint -- --quiet`, `npm run build`, and `git diff --check`. This is
   runtime source, so fresh MSIX smoke/process/desktop-open CPU/matrix evidence
   is required after commit before current-HEAD release evidence can be claimed.
+- 2026-06-02 11:22 KST `musu.pro` deployment evidence:
+  commit `77ba7a112581dfd3a2e05d62d7ba0b6a0ce2a0d6` passed GitHub Actions
+  `Tests` run `26794342633`, `E2E Tests - musu-bee` run `26794342638`, and
+  `Deploy musu-bee to Vercel` run `26794342631`. Vercel production URL
+  `https://musu-9wn2j1cat-yellowhamas-projects.vercel.app` was aliased to
+  `https://musu.pro`. This confirms web deployment only; live P2P route/relay
+  lease evidence remains a separate release blocker.
 
 Release candidate manifest:
 

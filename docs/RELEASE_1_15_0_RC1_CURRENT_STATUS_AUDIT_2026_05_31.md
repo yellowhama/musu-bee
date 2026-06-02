@@ -580,3 +580,13 @@ MSIX/runtime evidence is stale for current-HEAD claims until fresh
 smoke/process/desktop-open CPU/matrix evidence is regenerated. Public release
 remains No-Go on second-PC CPU/matrix/route, live `musu.pro` P2P control-plane,
 `musu@musu.pro`, and Store evidence.
+
+2026-06-02 11:22 KST `musu.pro` deploy evidence addendum: after commit
+`77ba7a112581dfd3a2e05d62d7ba0b6a0ce2a0d6`, GitHub Actions `Tests`
+run `26794342633`, `E2E Tests - musu-bee` run `26794342638`, and
+`Deploy musu-bee to Vercel` run `26794342631` all succeeded. Vercel deployed
+production URL `https://musu-9wn2j1cat-yellowhamas-projects.vercel.app` and
+aliased it to `https://musu.pro`; deploy log reported `Ready in 19s`. This
+confirms the web/control-plane surface is deployed, but does not close the live
+P2P route/relay lease gate, Store gate, support mailbox gate, second-PC
+CPU/matrix gate, or fresh-current-HEAD MSIX runtime evidence gate.

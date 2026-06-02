@@ -1200,5 +1200,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   dashboard relay source/test changes. Search terms should include
   `GOAL v287`, `1309 files`, `2221 symbols`, `handleRelayConnect`,
   `fetchRelayToken`, `relay idle hardening`, and `on-demand fallback`.
+- 2026-06-02 `musu.pro` deployment after relay idle hardening:
+  commit `77ba7a112581dfd3a2e05d62d7ba0b6a0ce2a0d6` passed GitHub Actions
+  `Tests` run `26794342633`, `E2E Tests - musu-bee` run `26794342638`, and
+  `Deploy musu-bee to Vercel` run `26794342631`. Vercel deployed
+  `https://musu-9wn2j1cat-yellowhamas-projects.vercel.app` and aliased it to
+  `https://musu.pro`. Search terms should include `GOAL v288`,
+  `26794342631`, `26794342633`, `26794342638`, `musu.pro`, and
+  `Ready in 19s`.
+- 2026-06-02 index refresh after `musu.pro` deploy evidence:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1311 files and 2221 symbols after CoS memory
+  `2026-06-02_1122_kst_musu_pro_deploy_after_relay_idle_hardening.md`,
+  deploy evidence doc, WIKI/WIKI_INDEX/GOAL/BETA/current-status updates, and
+  the `musu.pro` deployment evidence. Search terms should include `GOAL v289`,
+  `1311 files`, `2221 symbols`, `26794342631`, `26794342633`, `26794342638`,
+  `musu.pro`, and `Ready in 19s`.
 
 **End of WIKI_INDEX.md.**
