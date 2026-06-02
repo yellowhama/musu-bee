@@ -684,6 +684,7 @@ Canonical reference:
 - `docs/RELEASE_1_15_0_RC1_FRONTEND_POLLING_TIMEOUT_AUDIT_2026_06_02.md` (wiki/539)
 - `docs/RELEASE_1_15_0_RC1_QUAL_AUDIT_NEXT_STEPS_2026_06_02_0840.md` (wiki/540)
 - `docs/MSIX_LEGACY_CONFLICT_PREFLIGHT_2026_06_02.md` (wiki/541)
+- `docs/RUNTIME_CPU_MATRIX_RESOURCE_BUDGET_VERIFIER_2026_06_02.md` (wiki/542)
 - `docs/P2P_CONTROL_PLANE_MUSU_PRO_NEXT_ACTIONS_2026_06_02.md`
 - `docs/RELEASE_1_15_0_RC1_QUAL_AUDIT_NEXT_STEPS_2026_06_01.md` (wiki/527)
 - `docs/RUNTIME_RELAY_FALLBACK_NEXT_STEPS_2026_06_01.md` (wiki/530)
@@ -699,6 +700,15 @@ Indexer note:
   1289 files and 2217 symbols. Search terms should include
   `musu.msix_legacy_conflicts.v1`, `msix_legacy_conflicts_path`,
   `alias_shadowing_count`, `wiki/541`, and `GOAL v271`.
+- 2026-06-02 runtime matrix verifier hardening: `verify-runtime-cpu-scenario-matrix.ps1`
+  now fails closed on missing or over-budget resource fields, and
+  `test-release-evidence-verifiers.ps1` passed 13/13 cases. Search terms should
+  include `wiki/542`, `GOAL v272`, `resource_budget_violations`,
+  `total_working_set_mb_after`, and `WebView2 process budget`.
+- 2026-06-02 index refresh after runtime matrix verifier hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1291 files and 2217 symbols. Search terms should include `GOAL v273`,
+  `wiki/542`, `13/13`, and `1291 files`.
 
 ## 9. musu-system Integration State (2026-05-29)
 

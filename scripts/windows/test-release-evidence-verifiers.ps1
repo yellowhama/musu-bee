@@ -23,6 +23,7 @@ New-Item -ItemType Directory -Force -Path $OutputRoot | Out-Null
 
 $p2pVerifier = Join-Path $scriptDir "verify-p2p-control-plane-evidence.ps1"
 $multiDeviceVerifier = Join-Path $scriptDir "verify-multidevice-evidence.ps1"
+$runtimeCpuScenarioMatrixVerifier = Join-Path $scriptDir "verify-runtime-cpu-scenario-matrix.ps1"
 
 function Copy-JsonObject {
     param([Parameter(Mandatory = $true)]$Object)
@@ -208,6 +209,88 @@ $validMultiDevice = [pscustomobject]@{
     }
 }
 
+function New-RuntimeMeasurement {
+    param(
+        [int]$WebView2Count = 6,
+        [double]$WorkingSetMb = 512.0,
+        [switch]$OmitResourceBudgetViolations
+    )
+
+    $measurement = [pscustomobject]@{
+        ok = $true
+        git_dirty = $false
+        sample_seconds = 60
+        process_counts_by_role = [pscustomobject]@{
+            musu = 2
+            node = 0
+            webview2 = $WebView2Count
+            other = 0
+        }
+        max_one_core_percent_by_role = [pscustomobject]@{
+            musu = 0.1
+            node = 0.0
+            webview2 = 0.2
+            other = 0.0
+        }
+        total_working_set_mb_after = $WorkingSetMb
+        total_private_memory_mb_after = 320.0
+        resource_budget_violations = @()
+        hot_process_count = 0
+    }
+
+    if ($OmitResourceBudgetViolations) {
+        $measurement.PSObject.Properties.Remove("resource_budget_violations")
+    }
+
+    return $measurement
+}
+
+$validRuntimeCpuMatrix = [pscustomobject]@{
+    schema = "musu.runtime_cpu_scenario_matrix.v1"
+    ok = $true
+    version = $ExpectedVersion
+    git_commit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
+    git_dirty = $false
+    started_at = $now.AddSeconds(-240).ToString("yyyyMMdd-HHmmss")
+    completed_at = $now.ToString("o")
+    operator_machine = "VERIFIER-TEST"
+    operator_user = "verifier-test"
+    sample_seconds = 60
+    max_one_core_percent = 5.0
+    max_owned_process_count = 16
+    max_owned_webview2_process_count = 8
+    max_total_working_set_mb = 1024.0
+    requested_scenarios = @("runtime-started", "dashboard-open", "desktop-open", "post-route")
+    route_probe = [pscustomobject]@{
+        ok = $true
+        expected_token = "MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST"
+        output = "MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST"
+    }
+    fail_count = 0
+    scenarios = @(
+        [pscustomobject]@{
+            scenario = "runtime-started"
+            preparation = [pscustomobject]@{ action = "musu up --json" }
+            measurement = (New-RuntimeMeasurement)
+        },
+        [pscustomobject]@{
+            scenario = "dashboard-open"
+            preparation = [pscustomobject]@{ action = "Start-Process DashboardUrl"; dashboard_url = "http://127.0.0.1:3000" }
+            measurement = (New-RuntimeMeasurement)
+        },
+        [pscustomobject]@{
+            scenario = "desktop-open"
+            preparation = [pscustomobject]@{ action = "Start packaged desktop app"; desktop_app_id = "Yellowhama.MUSU_ygcjq669as2b6!MUSU" }
+            measurement = (New-RuntimeMeasurement)
+        },
+        [pscustomobject]@{
+            scenario = "post-route"
+            preparation = [pscustomobject]@{ action = "musu route --wait" }
+            measurement = (New-RuntimeMeasurement)
+        }
+    )
+}
+
 $cases = New-Object System.Collections.Generic.List[object]
 
 $fixture = Write-Fixture -Name "p2p-valid" -Object $validP2p
@@ -262,6 +345,28 @@ $badRelayTransit.route_evidence.payload_transited_musu_infra = $false
 $fixture = Write-Fixture -Name "multidevice-bad-relay-transit" -Object $badRelayTransit
 $invocation = Invoke-Verifier -ScriptPath $multiDeviceVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-Json")
 Add-CaseResult -Cases $cases -Name "multidevice rejects relay route without MUSU infra payload transit" -Verifier "verify-multidevice-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$fixture = Write-Fixture -Name "runtime-matrix-valid" -Object $validRuntimeCpuMatrix
+$invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")
+Add-CaseResult -Cases $cases -Name "runtime matrix accepts complete resource-budget evidence" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$badRuntimeMatrixMissingBudgetField = Copy-JsonObject -Object $validRuntimeCpuMatrix
+$badRuntimeMatrixMissingBudgetField.scenarios[0].measurement.PSObject.Properties.Remove("resource_budget_violations")
+$fixture = Write-Fixture -Name "runtime-matrix-missing-resource-budget-field" -Object $badRuntimeMatrixMissingBudgetField
+$invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")
+Add-CaseResult -Cases $cases -Name "runtime matrix rejects missing resource budget field" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$badRuntimeMatrixWorkingSet = Copy-JsonObject -Object $validRuntimeCpuMatrix
+$badRuntimeMatrixWorkingSet.scenarios[1].measurement.total_working_set_mb_after = 2048.0
+$fixture = Write-Fixture -Name "runtime-matrix-working-set-over-budget" -Object $badRuntimeMatrixWorkingSet
+$invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")
+Add-CaseResult -Cases $cases -Name "runtime matrix rejects working set over budget" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$badRuntimeMatrixWebView2 = Copy-JsonObject -Object $validRuntimeCpuMatrix
+$badRuntimeMatrixWebView2.scenarios[2].measurement.process_counts_by_role.webview2 = 9
+$fixture = Write-Fixture -Name "runtime-matrix-webview2-over-budget" -Object $badRuntimeMatrixWebView2
+$invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")
+Add-CaseResult -Cases $cases -Name "runtime matrix rejects WebView2 process count over budget" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
 $failedCases = @($cases | Where-Object { -not [bool]$_.passed_expectation })
 $result = [pscustomobject]@{

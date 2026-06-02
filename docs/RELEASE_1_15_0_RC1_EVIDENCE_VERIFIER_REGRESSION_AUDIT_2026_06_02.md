@@ -6,10 +6,12 @@ Wiki ID: wiki/538
 ## Scope
 
 This audit covers the local release evidence verifiers that protect the two
-highest-risk remaining technical gates:
+highest-risk remaining technical gates, plus the runtime resource-budget matrix
+gate:
 
 - hosted `musu.pro` P2P control-plane evidence
 - second-PC multi-device route evidence
+- four-state runtime CPU/resource-budget matrix evidence
 
 It does not create live `musu.pro` or second-PC evidence. The purpose is to
 prove that weak or misleading evidence cannot accidentally satisfy the release
@@ -38,8 +40,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\test-relea
 Result:
 
 - output root:
-  `.local-build\release-evidence-verifier-tests\20260602-080146`
-- cases: `9`
+  `.local-build\release-evidence-verifier-tests\20260602-093028`
+- cases: `13`
 - failed cases: `0`
 - result: `ok=true`
 
@@ -59,6 +61,13 @@ fixture and rejects:
 - `route_kind=failed`
 - direct route evidence claiming payload transited MUSU infra
 - relay route evidence that does not claim payload transited MUSU infra
+
+The runtime CPU scenario matrix verifier accepts only the positive complete
+resource-budget fixture and rejects:
+
+- missing `resource_budget_violations`
+- total working set over budget
+- owned WebView2 process count over budget
 
 ## Code Audit Interpretation
 

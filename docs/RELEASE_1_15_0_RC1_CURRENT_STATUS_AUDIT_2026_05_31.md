@@ -491,3 +491,16 @@ alias present, and alias shadowing `1` because
 operator-shell cleanliness issue, not a new runtime CPU-loop finding. It should
 stay visible in second-PC and Store handoff packets so future evidence does not
 accidentally test an unpackaged dev binary.
+
+2026-06-02 09:25 KST runtime matrix verifier hardening addendum:
+`scripts\windows\verify-runtime-cpu-scenario-matrix.ps1` now treats the
+four-state matrix as a resource-budget gate, not only a CPU gate. It requires
+matrix-level process/WebView2/working-set budgets and per-scenario
+`resource_budget_violations`, `process_counts_by_role`,
+`total_working_set_mb_after`, and `total_private_memory_mb_after`. It also exits
+nonzero when `ok=false`. The release verifier regression harness now has 13
+cases and covers missing resource-budget fields, working set over budget, and
+WebView2 process count over budget. Current primary matrix evidence
+`20260602-083314-HUGH_SECOND` still verifies with `ok=true`, `fail_count=0`, so
+the gate remains valid but still only `1/2` until a second Windows PC returns
+matching matrix evidence.

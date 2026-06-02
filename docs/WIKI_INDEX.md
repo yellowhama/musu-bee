@@ -1057,5 +1057,29 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   return/import tooling. Search terms should include `GOAL v271`,
   `1289 files`, `2217 symbols`, `WindowsApps alias present`,
   `alias_shadowing_count=1`, and `musu.msix_legacy_conflicts.v1`.
+- 2026-06-02 runtime matrix resource-budget verifier hardening:
+  `verify-runtime-cpu-scenario-matrix.ps1` now fails closed on missing
+  `resource_budget_violations`, missing process/memory fields, working set over
+  budget, and WebView2 process count over budget; it also exits nonzero when
+  `ok=false`. `test-release-evidence-verifiers.ps1` now covers P2P,
+  multi-device, and runtime matrix verifiers and passed 13/13 cases at
+  `.local-build\release-evidence-verifier-tests\20260602-093028`.
+  `verify-final-operator-gate-packet.ps1` also checks that operator packets
+  include the hardened matrix verifier. Latest primary matrix
+  `20260602-083314-HUGH_SECOND` still verifies with `ok=true`.
+  Search terms should include `GOAL v272`, `wiki/542`,
+  `musu.runtime_cpu_scenario_matrix.v1`, `resource_budget_violations`,
+  `total_private_memory_mb_after`, `WebView2 process budget`, and
+  `release-evidence-verifier-tests\20260602-093028`.
+- 2026-06-02 index refresh after runtime matrix verifier hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1291 files and 2217 symbols after wiki/542, CoS memory
+  `2026-06-02_0925_kst_runtime_matrix_resource_budget_verifier.md`,
+  BETA/current-status/WIKI/WIKI_INDEX/GOAL updates, runtime matrix verifier
+  hardening, verifier regression updates, and final operator packet verifier
+  self-check updates. Search terms should include `GOAL v273`, `1291 files`,
+  `2217 symbols`, `resource_budget_violations`,
+  `total_working_set_mb_after`, `total_private_memory_mb_after`, and
+  `WebView2 process budget`.
 
 **End of WIKI_INDEX.md.**

@@ -44,6 +44,10 @@ Runtime CPU evaluation now has two layers:
    probe.
 
 The new matrix evidence schema is `musu.runtime_cpu_scenario_matrix.v1`.
+As of 2026-06-02 09:25 KST, the matrix verifier is fail-closed for resource
+budget fields as well as CPU fields: each scenario must carry process counts,
+working set, private memory, and `resource_budget_violations`, and the verifier
+exits nonzero when `ok=false`.
 
 Supported matrix scenarios:
 

@@ -250,6 +250,16 @@ try {
             "packet second-PC return importer lacks verification, command, or recording support"
     }
 
+    $runtimeMatrixVerifierScriptPath = Join-Path $packetRoot "scripts\windows\verify-runtime-cpu-scenario-matrix.ps1"
+    if (Test-Path -LiteralPath $runtimeMatrixVerifierScriptPath) {
+        $runtimeMatrixVerifierScript = Get-Content -LiteralPath $runtimeMatrixVerifierScriptPath -Raw
+        Add-CheckFromCondition `
+            "runtime CPU scenario matrix resource budget verifier" `
+            ($runtimeMatrixVerifierScript -like "*resource_budget_violations*" -and $runtimeMatrixVerifierScript -like "*process_counts_by_role*" -and $runtimeMatrixVerifierScript -like "*total_working_set_mb_after*" -and $runtimeMatrixVerifierScript -like "*total_private_memory_mb_after*" -and $runtimeMatrixVerifierScript -like "*max_owned_webview2_process_count*" -and $runtimeMatrixVerifierScript -like "*exit 1*") `
+            "packet runtime CPU matrix verifier fails closed on resource-budget evidence" `
+            "packet runtime CPU matrix verifier does not fail closed on resource-budget evidence"
+    }
+
     $goNoGoScriptPath = Join-Path $packetRoot "scripts\windows\write-release-go-no-go.ps1"
     if (Test-Path -LiteralPath $goNoGoScriptPath) {
         $goNoGoScript = Get-Content -LiteralPath $goNoGoScriptPath -Raw

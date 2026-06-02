@@ -195,6 +195,15 @@ if ($matrix) {
     $budget = if ($matrix.PSObject.Properties["max_one_core_percent"]) { [double]$matrix.max_one_core_percent } else { 0.0 }
     Add-CheckFromCondition "cpu budget" ($budget -gt 0 -and $budget -le $MaxOneCorePercent) "matrix CPU budget is <= ${MaxOneCorePercent}% of one logical core" "matrix CPU budget is '$budget', expected <= ${MaxOneCorePercent}"
 
+    $maxOwnedProcessCount = if ($matrix.PSObject.Properties["max_owned_process_count"]) { [int]$matrix.max_owned_process_count } else { 0 }
+    Add-CheckFromCondition "owned process budget present" ($maxOwnedProcessCount -gt 0) "owned process budget is $maxOwnedProcessCount" "owned process budget is missing"
+
+    $maxOwnedWebView2ProcessCount = if ($matrix.PSObject.Properties["max_owned_webview2_process_count"]) { [int]$matrix.max_owned_webview2_process_count } else { -1 }
+    Add-CheckFromCondition "WebView2 budget present" ($maxOwnedWebView2ProcessCount -ge 0) "WebView2 process budget is $maxOwnedWebView2ProcessCount" "WebView2 process budget is missing"
+
+    $maxTotalWorkingSetMb = if ($matrix.PSObject.Properties["max_total_working_set_mb"]) { [double]$matrix.max_total_working_set_mb } else { 0.0 }
+    Add-CheckFromCondition "working set budget present" ($maxTotalWorkingSetMb -gt 0.0) "working set budget is ${maxTotalWorkingSetMb}MB" "working set budget is missing"
+
     $scenarioEntries = @(Get-JsonPropertyValue -Object $matrix -Name "scenarios" -DefaultValue @())
     foreach ($required in $RequiredScenarios) {
         $matches = @($scenarioEntries | Where-Object { (Get-JsonPropertyString -Object $_ -Name "scenario") -eq $required })
@@ -231,17 +240,41 @@ if ($matrix) {
 
         $hotProcessCount = if ($measurement.PSObject.Properties["hot_process_count"]) { [int]$measurement.hot_process_count } else { -1 }
         Add-CheckFromCondition "hot process count: $required" ($hotProcessCount -eq 0) "scenario '$required' has no hot processes" "scenario '$required' hot_process_count is $hotProcessCount"
+        $resourceBudgetViolationsPresent = $measurement.PSObject.Properties["resource_budget_violations"]
+        Add-CheckFromCondition "resource budget field: $required" ([bool]$resourceBudgetViolationsPresent) "scenario '$required' records resource budget violations field" "scenario '$required' is missing resource_budget_violations"
         $violations = @()
-        if ($measurement.PSObject.Properties["resource_budget_violations"] -and $null -ne $measurement.resource_budget_violations) {
+        if ($resourceBudgetViolationsPresent -and $null -ne $measurement.resource_budget_violations) {
             $violations = @($measurement.resource_budget_violations)
         }
         Add-CheckFromCondition "resource budget: $required" ($violations.Count -eq 0) "scenario '$required' has no resource budget violations" "scenario '$required' has resource budget violations: $($violations -join ', ')"
 
-        if ($required -eq "desktop-open") {
-            $webView2Count = 0
-            if ($measurement.PSObject.Properties["process_counts_by_role"] -and $measurement.process_counts_by_role.PSObject.Properties["webview2"]) {
-                $webView2Count = [int]$measurement.process_counts_by_role.webview2
+        $processCounts = Get-JsonPropertyValue -Object $measurement -Name "process_counts_by_role"
+        $processCountsPresent = ($null -ne $processCounts)
+        Add-CheckFromCondition "process counts present: $required" $processCountsPresent "scenario '$required' records process counts by role" "scenario '$required' lacks process_counts_by_role"
+        $ownedProcessCount = 0
+        $webView2Count = 0
+        if ($processCountsPresent) {
+            foreach ($role in @("musu", "node", "webview2", "other")) {
+                if ($processCounts.PSObject.Properties[$role]) {
+                    $ownedProcessCount += [int]$processCounts.$role
+                }
             }
+            if ($processCounts.PSObject.Properties["webview2"]) {
+                $webView2Count = [int]$processCounts.webview2
+            }
+        }
+        Add-CheckFromCondition "owned process budget: $required" ($processCountsPresent -and $maxOwnedProcessCount -gt 0 -and $ownedProcessCount -le $maxOwnedProcessCount) "scenario '$required' owned process count $ownedProcessCount <= $maxOwnedProcessCount" "scenario '$required' owned process count $ownedProcessCount exceeds or lacks budget $maxOwnedProcessCount"
+        Add-CheckFromCondition "WebView2 process budget: $required" ($processCountsPresent -and $maxOwnedWebView2ProcessCount -ge 0 -and $webView2Count -le $maxOwnedWebView2ProcessCount) "scenario '$required' WebView2 process count $webView2Count <= $maxOwnedWebView2ProcessCount" "scenario '$required' WebView2 process count $webView2Count exceeds or lacks budget $maxOwnedWebView2ProcessCount"
+
+        $workingSetPresent = $measurement.PSObject.Properties["total_working_set_mb_after"]
+        $totalWorkingSetMb = if ($workingSetPresent) { [double]$measurement.total_working_set_mb_after } else { 0.0 }
+        Add-CheckFromCondition "working set present: $required" ([bool]$workingSetPresent) "scenario '$required' records total working set" "scenario '$required' lacks total_working_set_mb_after"
+        Add-CheckFromCondition "working set budget: $required" ($workingSetPresent -and $maxTotalWorkingSetMb -gt 0.0 -and $totalWorkingSetMb -le $maxTotalWorkingSetMb) "scenario '$required' working set ${totalWorkingSetMb}MB <= ${maxTotalWorkingSetMb}MB" "scenario '$required' working set ${totalWorkingSetMb}MB exceeds or lacks budget ${maxTotalWorkingSetMb}MB"
+
+        $privateMemoryPresent = $measurement.PSObject.Properties["total_private_memory_mb_after"]
+        Add-CheckFromCondition "private memory present: $required" ([bool]$privateMemoryPresent) "scenario '$required' records total private memory" "scenario '$required' lacks total_private_memory_mb_after"
+
+        if ($required -eq "desktop-open") {
             Add-CheckFromCondition "desktop owned WebView2" ($webView2Count -gt 0) "desktop-open has owned WebView2 processes" "desktop-open lacks owned WebView2 processes"
         }
     }
