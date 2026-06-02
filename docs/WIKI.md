@@ -1831,6 +1831,13 @@ because `C:\Users\empty\.cargo\bin\musu.exe` precedes the WindowsApps alias.
 
 Index refresh after wiki/583 recorded `1551` files and `2274` symbols.
 
+Current operator handoff for this build:
+
+- final packet `20260603-040654`, verifier `ok=true`, `fail_count=0`
+- action pack `20260603-040714`, verifier `ok=true`, `fail_count=0`
+- second-PC transfer `MUSU-second-PC-transfer-1.15.0-rc.1-20260603-040714.zip`
+- Partner Center zip `MUSU-1.15.0-rc.1-store-submission-20260603-040714.zip`
+
 Canonical reference:
 
 - `docs/RELEASE_1_15_0_RC1_POLLING_INTERVAL_CLAMP_PRIMARY_EVIDENCE_2026_06_03.md`

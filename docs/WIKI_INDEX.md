@@ -2011,4 +2011,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `polling interval clamp index refresh`, and
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_035608`.
 
+- 2026-06-03 polling clamp current operator handoff:
+  Current HEAD `35eb9352` generated final packet
+  `musu-final-operator-gates-1.15.0-rc.1-20260603-040654.zip` and action pack
+  `MUSU-1.15.0-rc.1-operator-action-pack-20260603-040714.zip`; both verify
+  with `ok=true` and `fail_count=0`. Search terms should include `GOAL v373`,
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260603-040714.zip`,
+  `MUSU-1.15.0-rc.1-store-submission-20260603-040714.zip`, and
+  `support_verification_id=musu-store-support-1.15.0-rc.1-20260603-040654`.
+
+- 2026-06-03 polling clamp handoff index refresh:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1552 files and 2274 symbols after GOAL v373-v374, wiki/583 handoff updates,
+  and the current operator packet/action pack regeneration. Search terms should
+  include `GOAL v374`, `1552 files`, `2274 symbols`,
+  `musu-final-operator-gates-1.15.0-rc.1-20260603-040654.zip`, and
+  `MUSU-1.15.0-rc.1-operator-action-pack-20260603-040714.zip`.
+
 **End of WIKI_INDEX.md.**

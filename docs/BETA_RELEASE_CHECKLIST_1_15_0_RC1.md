@@ -1576,3 +1576,16 @@ Local alias shadowing:
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POLLING_INTERVAL_CLAMP_PRIMARY_EVIDENCE_2026_06_03.md`
+
+Current operator handoff after the polling clamp evidence commit:
+
+- final packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260603-040654.zip`
+- action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260603-040714.zip`
+- second-PC transfer:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260603-040714\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260603-040714.zip`
+- Partner Center zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260603-040714\partner-center\MUSU-1.15.0-rc.1-store-submission-20260603-040714.zip`
+
+Both packet verifiers pass with `ok=true` and `fail_count=0`.

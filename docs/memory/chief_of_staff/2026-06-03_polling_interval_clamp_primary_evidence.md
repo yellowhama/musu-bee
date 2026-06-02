@@ -29,3 +29,14 @@ Clean go/no-go remains No-Go: runtime idle CPU and matrix are still `1/2`, and
 multi-device, P2P control-plane, support mailbox, Store release, and local
 runtime-package alias shadowing remain blockers. The local alias blocker is
 `C:\Users\empty\.cargo\bin\musu.exe` before the WindowsApps alias.
+
+Current operator handoff after docs commit:
+
+- final packet `musu-final-operator-gates-1.15.0-rc.1-20260603-040654.zip`
+  verified `ok=true`, `fail_count=0`, `kit_count=1`
+- action pack `MUSU-1.15.0-rc.1-operator-action-pack-20260603-040714.zip`
+  verified `ok=true`, `fail_count=0`
+- second-PC transfer
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260603-040714.zip`
+- Partner Center zip
+  `MUSU-1.15.0-rc.1-store-submission-20260603-040714.zip`

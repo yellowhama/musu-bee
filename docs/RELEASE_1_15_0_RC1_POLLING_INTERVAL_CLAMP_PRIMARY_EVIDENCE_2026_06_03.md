@@ -143,3 +143,22 @@ The product is still not public-release ready. The next high-value work is
 second-PC evidence and `musu.pro` KV/Upstash owner-scoped relay lease proof,
 plus resolving the local PATH alias shadow before using this developer machine
 as final Store install evidence.
+
+## Current Operator Handoff
+
+After documenting this evidence, current HEAD
+`35eb9352cefb239315c4774e13bd9adbe2d43604` regenerated the operator handoff:
+
+- final packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260603-040654.zip`
+- final packet verifier: `ok=true`, `fail_count=0`, `kit_count=1`
+- operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260603-040714.zip`
+- action pack verifier: `ok=true`, `fail_count=0`
+- second-PC transfer:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260603-040714\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260603-040714.zip`
+- Partner Center zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260603-040714\partner-center\MUSU-1.15.0-rc.1-store-submission-20260603-040714.zip`
+
+This is the current second-PC/operator packet set for the polling interval
+clamp build.
