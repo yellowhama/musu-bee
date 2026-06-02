@@ -2245,4 +2245,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `wiki/593 index refresh`, `external recheck CLI override index refresh`,
   `p2p_evidence_musu_exe_source`, and `20260603-070018-musu.pro`.
 
+- 2026-06-03 fleet SSE lifecycle hardening:
+  `RELEASE_1_15_0_RC1_FLEET_SSE_LIFECYCLE_HARDENING_2026_06_03.md`
+  (wiki/594) records bounded reconnect and explicit close ownership for the
+  global Fleet EventSource in `useFleetStore`. Search terms should include
+  `GOAL v395`, `wiki/594`, `aa23fc85`,
+  `FLEET_SSE_RECONNECT_INITIAL_MS`, `FLEET_SSE_RECONNECT_MAX_MS`,
+  `FLEET_SSE_MAX_RETRIES`, `fleetReconnectGeneration`, `closeSSE`,
+  `runtime-polling 12/12`, `single_machine_verified=false`, and
+  `fresh current-HEAD MSIX evidence required`.
+
+- 2026-06-03 fleet SSE lifecycle index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1618 files and 2283 symbols after GOAL v395-v396, wiki/594, Fleet
+  SSE code/docs, BETA checklist, WIKI/WIKI_INDEX updates, and CoS memories
+  `2026-06-03_fleet_sse_lifecycle_hardening.md` and
+  `2026-06-03_fleet_sse_lifecycle_index_refresh.md`. Search terms should
+  include `GOAL v396`, `1618 files`, `2283 symbols`,
+  `fleet SSE lifecycle index refresh`, `closeSSE`, `aa23fc85`, and
+  `FLEET_SSE_MAX_RETRIES`.
+
 **End of WIKI_INDEX.md.**

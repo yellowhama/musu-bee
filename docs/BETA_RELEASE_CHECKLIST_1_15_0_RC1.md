@@ -1861,3 +1861,52 @@ P2P env is missing KV/Upstash storage, and live P2P evidence records
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_EXTERNAL_RECHECK_CLI_OVERRIDE_OPERATOR_PACK_2026_06_03.md`
+
+## 2026-06-03 07:20 KST Fleet SSE Lifecycle Hardening
+
+The global Fleet EventSource in `useFleetStore` was hardened after the
+busy-loop/process attribution audit. This closes one frontend runtime lifecycle
+gap but does not close the public release gates.
+
+Code changes:
+
+- `useFleetStore` now has bounded Fleet SSE reconnect:
+  `1_000ms` initial, `10_000ms` max, multiplier `2`, max attempts `5`
+- stale reconnect timers are ignored through `fleetReconnectGeneration`
+- `closeSSE()` clears timers, closes the global EventSource, and resets retry
+  state
+- `/dashboard/fleet` and `/dashboard/agent/[id]` close Fleet SSE on unmount
+- `runtime-polling-contract.test.ts` now locks this behavior
+
+Validation:
+
+- `npm run test:runtime-polling`: `12/12`
+- `npm run typecheck`: passed
+- `npm run build`: passed
+- `git diff --check`: passed
+
+Clean go/no-go after code commit `aa23fc85c7caba0e05e3436df3aa3c64e3acfa39`:
+
+- `ready_for_public_desktop_release=false`
+- `local_artifacts_ready=true`
+- `single_machine_verified=false`
+- `multi_device_verified=false`
+- `public_metadata_ok=true`
+- `msix_install_verified=true`
+- `msix_desktop_entrypoint_verified=true`
+- `manifest_git.dirty=false`
+
+Interpretation:
+
+- the current frontend source is safer than before
+- previous primary-machine MSIX smoke/CPU/matrix evidence is stale for this
+  HEAD
+- next local release action is to rebuild/install MSIX for `aa23fc85` and
+  refresh single-machine smoke, desktop-open CPU, and runtime CPU matrix
+- external No-Go blockers remain second-PC evidence, `musu.pro` KV/Upstash
+  owner-scoped P2P evidence, relay payload transport proof,
+  `musu@musu.pro` mailbox evidence, and Store evidence
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_FLEET_SSE_LIFECYCLE_HARDENING_2026_06_03.md`

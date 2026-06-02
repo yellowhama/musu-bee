@@ -2151,3 +2151,45 @@ Canonical reference:
 
 Index refresh after wiki/593 recorded `1615` files and `2279` symbols using the
 explicit packaged WindowsApps alias invocation.
+
+## 24. Fleet SSE Lifecycle Hardening (2026-06-03)
+
+wiki/594 records the frontend Fleet SSE hardening pass. The global
+`useFleetStore` EventSource now has explicit bounded reconnect and close
+ownership instead of relying on implicit browser EventSource retry behavior.
+
+Changed:
+
+- `musu-bee/src/store/useFleetStore.ts`
+- `musu-bee/src/app/dashboard/fleet/page.tsx`
+- `musu-bee/src/app/dashboard/agent/[id]/page.tsx`
+- `musu-bee/src/app/runtime-polling-contract.test.ts`
+
+Behavior now guaranteed by contract:
+
+- Fleet SSE reconnect starts at `1_000ms`
+- reconnect delay caps at `10_000ms`
+- reconnect multiplier is `2`
+- maximum reconnect attempts are `5`
+- stale timers are rejected by `fleetReconnectGeneration`
+- `closeSSE()` clears timers and closes the global EventSource
+- Fleet and Agent dashboard pages call `closeSSE()` on unmount
+- Fleet SSE path does not use `setInterval`
+
+Validation passed `npm run test:runtime-polling` (`12/12`),
+`npm run typecheck`, `npm run build`, and `git diff --check`.
+
+Clean go/no-go on commit `aa23fc85c7caba0e05e3436df3aa3c64e3acfa39`
+still reports public release No-Go. `local_artifacts_ready=true`,
+`public_metadata_ok=true`, `msix_install_verified=true`,
+`msix_desktop_entrypoint_verified=true`, and `manifest_git.dirty=false`, but
+`single_machine_verified=false` because the frontend runtime source changed and
+fresh current-HEAD MSIX smoke/CPU/matrix evidence has not yet been recorded.
+
+Canonical reference:
+
+- `docs/RELEASE_1_15_0_RC1_FLEET_SSE_LIFECYCLE_HARDENING_2026_06_03.md`
+- `docs/memory/chief_of_staff/2026-06-03_fleet_sse_lifecycle_hardening.md`
+
+Index refresh after wiki/594 recorded `1618` files and `2283` symbols using the
+explicit packaged WindowsApps alias invocation.
