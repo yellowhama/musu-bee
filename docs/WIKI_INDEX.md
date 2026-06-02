@@ -1422,5 +1422,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   terms should include `GOAL v312`, `1361 files`, `2240 symbols`,
   `post-reconnect primary evidence refresh`, `machine-wide Node 18`,
   `owned Node 0`, and `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_153038`.
+- 2026-06-02 current operator action pack after post-reconnect evidence:
+  wiki/555 records current HEAD `7bb36798` final packet/action-pack refresh.
+  Search terms should include `GOAL v313`, `wiki/555`, `20260602-155746`,
+  `20260602-155815`, `musu-final-operator-gates-1.15.0-rc.1-20260602-155746`,
+  `MUSU-1.15.0-rc.1-operator-action-pack-20260602-155815`,
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260602-155815`,
+  `MUSU-1.15.0-rc.1-store-submission-20260602-155815`,
+  `musu-store-support-1.15.0-rc.1-20260602-155746`,
+  `action_pack.verified=true`, `ScriptTimeoutSeconds 240`, and
+  `multi-device,p2p-control-plane,runtime-cpu-scenario-matrix,runtime-idle-cpu,store-release,support-mailbox`.
+- 2026-06-02 index refresh after current operator action pack:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1363 files and 2240 symbols after wiki/555, GOAL v313/v314, BETA checklist,
+  current-head report, and CoS memories
+  `2026-06-02_1558_kst_current_operator_action_pack_after_post_reconnect_evidence.md`
+  and `2026-06-02_1600_kst_operator_action_pack_index_refresh.md`. Search
+  terms should include `GOAL v314`, `1363 files`, `2240 symbols`,
+  `20260602-155746`, `20260602-155815`, `ScriptTimeoutSeconds 240`, and
+  `action_pack.verified=true`.
 
 **End of WIKI_INDEX.md.**

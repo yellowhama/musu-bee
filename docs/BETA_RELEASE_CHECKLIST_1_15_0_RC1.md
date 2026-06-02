@@ -768,6 +768,24 @@ Tauri desktop shell evidence:
   remains No-Go until second-PC CPU/matrix/route evidence, live `musu.pro` P2P
   owner-scope evidence, `musu@musu.pro` mailbox evidence, and Store evidence
   are recorded.
+- 2026-06-02 15:58 KST current operator action pack refresh:
+  clean HEAD `7bb367988d1ae5cbc41bbcd7ce68f4eeb4f57d10` generated final packet
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260602-155746.zip`
+  and action pack
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-155815.zip`.
+  `verify-final-operator-gate-packet.ps1` passed with `ok=true`,
+  `fail_count=0`, `kit_count=1`; `verify-operator-action-pack.ps1` passed with
+  `ok=true`, `fail_count=0`. The current second-PC transfer zip is
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-155815\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-155815.zip`;
+  Partner Center zip is
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-155815\partner-center\MUSU-1.15.0-rc.1-store-submission-20260602-155815.zip`;
+  support verification id is `musu-store-support-1.15.0-rc.1-20260602-155746`.
+  `write-release-go-no-go.ps1 -ScriptTimeoutSeconds 120 -Json` remains
+  No-Go with blockers `multi-device`, `runtime-idle-cpu`,
+  `runtime-cpu-scenario-matrix`, `p2p-control-plane`, `support-mailbox`, and
+  `store-release`. On this host, full handoff status should be run singly with
+  `-ScriptTimeoutSeconds 240` when validating the current action pack; a
+  concurrent 120s status run timed out while the independent go/no-go completed.
 
 Release candidate manifest:
 
@@ -789,7 +807,7 @@ cargo check --manifest-path .\musu-rs\Cargo.toml -j 1
 cargo clippy --manifest-path .\musu-rs\Cargo.toml --all-targets -j 1 -- -D warnings
 cargo test --manifest-path .\musu-rs\Cargo.toml --lib -- --test-threads=1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -ScriptTimeoutSeconds 120 -Json
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-final-release-handoff-status.ps1 -ScriptTimeoutSeconds 120 -Json
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-final-release-handoff-status.ps1 -ScriptTimeoutSeconds 240 -Json
 ```
 
 Run the low-resource integration bundle before tagging:

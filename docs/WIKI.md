@@ -1121,6 +1121,35 @@ Indexer note:
   `2026-06-02_1545_kst_post_reconnect_primary_evidence_refresh.md` and
   `2026-06-02_1548_kst_post_reconnect_evidence_index_refresh.md`.
 
+- 2026-06-02 current operator action pack after post-reconnect evidence:
+  wiki/555 records current HEAD `7bb367988d1ae5cbc41bbcd7ce68f4eeb4f57d10`
+  operator handoff artifacts after the post-reconnect evidence commit. Final
+  packet `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260602-155746.zip`
+  verifies with `ok=true`, `fail_count=0`, `kit_count=1`. Action pack
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-155815.zip`
+  verifies with `ok=true`, `fail_count=0`; latest alias
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-latest.zip`
+  is also handoff-status verified as `action_pack.verified=true` in a single
+  240s status run. Current second-PC transfer zip is
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-155815\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-155815.zip`;
+  Partner Center zip is
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-155815\partner-center\MUSU-1.15.0-rc.1-store-submission-20260602-155815.zip`;
+  support verification id is `musu-store-support-1.15.0-rc.1-20260602-155746`.
+  `write-release-go-no-go.ps1 -ScriptTimeoutSeconds 120 -Json` remains No-Go
+  with `single_machine=true`, process/startup/desktop single-instance true, and
+  blockers `multi-device`, `runtime-idle-cpu`, `runtime-cpu-scenario-matrix`,
+  `p2p-control-plane`, `support-mailbox`, and `store-release`. Operational
+  note: full handoff status is now heavy enough that a concurrent 120s run can
+  time out; use a single run with `-ScriptTimeoutSeconds 240` when verifying
+  the current action pack on this Windows host.
+
+- 2026-06-02 index refresh after current operator action pack:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1363 files and 2240 symbols after GOAL v313/v314, wiki/555, BETA checklist
+  update, current-head report update, and CoS memories
+  `2026-06-02_1558_kst_current_operator_action_pack_after_post_reconnect_evidence.md`
+  and `2026-06-02_1600_kst_operator_action_pack_index_refresh.md`.
+
 ## 9. musu-system Integration State (2026-05-29)
 
 `yellowhama/musu-system` is a credible adjacent MUSU ecosystem line, not a Rust-core replacement. It contains:

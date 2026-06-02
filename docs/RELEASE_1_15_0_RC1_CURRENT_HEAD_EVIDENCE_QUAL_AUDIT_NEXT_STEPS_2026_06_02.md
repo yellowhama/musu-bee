@@ -453,3 +453,59 @@ Immediate next work:
 3. Record the `musu@musu.pro` mailbox evidence.
 4. Prepare Store submission only after the external gates are backed by current
    evidence.
+
+## 2026-06-02 15:58 KST Current Operator Handoff Refresh
+
+The current handoff artifacts were regenerated from clean HEAD
+`7bb367988d1ae5cbc41bbcd7ce68f4eeb4f57d10` after the post-reconnect evidence
+commit.
+
+Artifacts:
+
+- final packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260602-155746.zip`
+- final packet latest alias:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip`
+- action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-155815.zip`
+- action pack latest alias:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-latest.zip`
+- second-PC transfer zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-155815\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-155815.zip`
+- Partner Center zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-155815\partner-center\MUSU-1.15.0-rc.1-store-submission-20260602-155815.zip`
+- support verification id:
+  `musu-store-support-1.15.0-rc.1-20260602-155746`
+
+Verification:
+
+- `verify-final-operator-gate-packet.ps1`: `ok=true`, `fail_count=0`,
+  `kit_count=1`
+- `verify-operator-action-pack.ps1`: `ok=true`, `fail_count=0`
+- `write-release-go-no-go.ps1 -ScriptTimeoutSeconds 120 -Json`:
+  `ready=false`, `single_machine=true`, process/startup/desktop
+  single-instance true, `manifest_dirty=false`
+- blockers remain `multi-device`, `runtime-idle-cpu`,
+  `runtime-cpu-scenario-matrix`, `p2p-control-plane`, `support-mailbox`, and
+  `store-release`
+
+Operator status note:
+
+- `show-final-release-handoff-status.ps1` verifies the current action pack by
+  checksum and can be heavy on this Windows host.
+- A concurrent 120s status run timed out while an independent go/no-go run
+  completed.
+- A single `show-final-release-handoff-status.ps1 -ScriptTimeoutSeconds 240
+  -Json` run completed and reported `action_pack.verified=true`.
+- Use a single 240s status run for current handoff verification instead of
+  running full release status scripts in parallel.
+
+Next concrete release action:
+
+Copy or send the current second-PC transfer zip above to the second Windows PC,
+run its `run-second-pc-release-check.ps1`, return the generated
+`.local-build\second-pc-return\*.zip`, and import it with
+`import-second-pc-return.ps1 -RecordMsixInstall -RequireReleaseGateEvidence`.
+That is the next gate that can move `runtime-idle-cpu` and
+`runtime-cpu-scenario-matrix` from primary-only evidence toward the required
+two-machine threshold.
