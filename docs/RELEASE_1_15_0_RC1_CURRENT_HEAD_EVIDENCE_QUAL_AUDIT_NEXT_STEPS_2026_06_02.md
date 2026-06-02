@@ -1191,3 +1191,40 @@ and primary smoke/process/CPU/matrix evidence are refreshed.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_STATUS_JSON_HARDENING_2026_06_03.md`
+
+## 2026-06-03 02:25 KST Post Status JSON Primary Evidence
+
+After `musu status --json` hardening, the local-sideload MSIX was rebuilt and
+installed from packaged source commit `e2727025`. Primary packaged evidence is
+current again:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-021321-HUGH_SECOND.evidence.json`
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260603-021134-HUGH_SECOND.desktop-single-instance.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260603-021134-HUGH_SECOND.process-ownership.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-021134-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-021552-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Qualitative result: current packaged local evidence does not reproduce the
+busy-loop. Desktop-open CPU is MUSU `0`, Node `0`, WebView2 `0.13`, working set
+`367.91MB`, and hot `0`. Process ownership separates the user's machine-wide
+Node count from MUSU ownership: machine-wide Node `16`, MUSU-owned Node `0`,
+orphan repo helpers `0`. The CPU matrix passed from clean git state with route
+token `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_021552`.
+
+Clean go/no-go on manifest commit `043999d8` reports `ready=false`,
+`local_artifacts_ready=true`, `single_machine=true`, runtime idle CPU
+`1/2 [HUGH_SECOND]`, runtime CPU matrix `1/2 [HUGH_SECOND]`,
+`p2p_control_plane=false`, `support_mailbox=false`, `store_release=false`, and
+`manifest_dirty=false`. Public release remains No-Go until second-PC
+CPU/matrix/route, live `musu.pro` owner-scoped P2P evidence, release-grade
+transport proof, `musu@musu.pro` mailbox evidence, and Store evidence are
+recorded.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_STATUS_JSON_PRIMARY_EVIDENCE_2026_06_03.md`

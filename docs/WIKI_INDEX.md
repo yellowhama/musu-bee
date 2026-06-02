@@ -1880,4 +1880,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `GOAL v360`, `1499 files`, `2274 symbols`, `musu.fleet_status_cli.v1`,
   `status_cli_accepts_json_flag`, and `status JSON hardening index refresh`.
 
+- 2026-06-03 post status JSON primary evidence:
+  `RELEASE_1_15_0_RC1_POST_STATUS_JSON_PRIMARY_EVIDENCE_2026_06_03.md`
+  (wiki/578) records the fresh packaged evidence refresh after source commit
+  `e2727025`. Search terms should include `GOAL v361`, `wiki/578`,
+  `20260603-021321-HUGH_SECOND`, `20260603-021134-HUGH_SECOND.desktop-single-instance`,
+  `20260603-021134-HUGH_SECOND.process-ownership`,
+  `20260603-021134-HUGH_SECOND.desktop-open`,
+  `20260603-021552-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_021552`, `machine-wide Node 16`,
+  `MUSU-owned Node 0`, and `post status JSON primary evidence`.
+
+- 2026-06-03 index refresh after post status JSON primary evidence:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1512 files and 2274 symbols after GOAL v361-v362, wiki/578, fresh primary
+  evidence files, `RELEASE_1_15_0_RC1_POST_STATUS_JSON_PRIMARY_EVIDENCE_2026_06_03.md`,
+  BETA/current-head/WIKI updates, and CoS memory
+  `2026-06-03_post_status_json_primary_evidence.md`. Search terms should
+  include `GOAL v362`, `1512 files`, `2274 symbols`,
+  `20260603-021552-HUGH_SECOND`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_021552`,
+  and `post status JSON primary evidence index refresh`.
+
 **End of WIKI_INDEX.md.**

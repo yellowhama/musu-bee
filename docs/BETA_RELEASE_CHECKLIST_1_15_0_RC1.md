@@ -160,6 +160,18 @@ Current machine-readable single-machine evidence was refreshed again on 2026-06-
 - paired CPU evidence: `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-0833-HUGH_SECOND.desktop-open.evidence.json`
 - paired CPU matrix evidence: `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-083314-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
 
+Current machine-readable packaged evidence was refreshed on 2026-06-03 02:25 KST after `musu status --json` hardening and a fresh local-sideload MSIX build/install:
+
+- single-machine evidence: `docs\evidence\single-machine\1.15.0-rc.1\20260603-021321-HUGH_SECOND.evidence.json`
+- desktop single-instance evidence: `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260603-021134-HUGH_SECOND.desktop-single-instance.json`
+- process ownership evidence: `docs\evidence\process-ownership\1.15.0-rc.1\20260603-021134-HUGH_SECOND.process-ownership.json`
+- desktop-open CPU evidence: `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-021134-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix evidence: `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-021552-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260603_021259`
+- route token: `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_021552`
+- CPU summary: MUSU `0`, Node `0`, WebView2 `0.13`, hot `0`
+- go/no-go: local artifacts and single-machine pass; runtime CPU and matrix each have `1/2 [HUGH_SECOND]`, so public release still requires second-PC evidence.
+
 Multi-device packet:
 
 - script: `scripts\windows\smoke-multidevice-beta.ps1`
