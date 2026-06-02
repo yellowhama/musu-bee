@@ -17,7 +17,8 @@ mod writer;
 // V27: re-export CLI option structs from their canonical home in
 // `install::cli_commands` so the `Cmd` enum can reference them.
 use install::cli_commands::{
-    DoctorOpts, GetOpts, LsOpts, PutOpts, RelayAction, RouteOpts, ShareOpts, UnshareOpts, UpOpts,
+    DoctorOpts, GetOpts, LsOpts, PutOpts, RelayAction, RouteOpts, ShareOpts, StopOpts, UnshareOpts,
+    UpOpts,
 };
 
 #[derive(Parser)]
@@ -148,6 +149,10 @@ enum Cmd {
     Doctor(DoctorOpts),
     /// First-run helper: seed token, start bridge, and hand off to dashboard.
     Up(UpOpts),
+    /// Stop the local bridge runtime registered in ~/.musu/services/bridge.json.
+    Stop(StopOpts),
+    /// Alias for `musu stop`.
+    Down(StopOpts),
     /// Show package/runtime status, including Windows startup-task state
     /// when running with package identity.
     PackageStatus,
@@ -341,6 +346,10 @@ async fn main() -> anyhow::Result<()> {
         Cmd::Up(opts) => {
             init_tracing_default();
             install::cli_commands::run_up(opts).await
+        }
+        Cmd::Stop(opts) | Cmd::Down(opts) => {
+            init_tracing_default();
+            install::cli_commands::run_stop(opts).await
         }
         Cmd::PackageStatus => {
             init_tracing_default();

@@ -1090,3 +1090,29 @@ Roadmap status:
   next evidence step.
 - P2P/relay public claims remain blocked on live `musu.pro` owner-scoped
   control-plane evidence and release-grade two-machine route proof.
+
+## 2026-06-02 Runtime Stop/Down Command Hardening
+
+Process ownership now has an operator cleanup command:
+
+- `musu stop`
+- `musu down`
+- `--json` schema `musu.stop_report.v1`
+
+The command stops only the registered bridge PID from
+`~\.musu\services\bridge.json`, and only if the PID belongs to a MUSU runtime
+binary. It refuses non-MUSU PIDs, removes stale bridge registry records, and
+waits for PID exit with bounded backoff.
+
+Validation passed cargo fmt, `cargo check --bin musu`, targeted
+`install::cli_commands` tests, `cargo build --bin musu`, and a temporary-home
+CLI smoke where `up --json` started bridge PID `37292` and `down --json`
+stopped it with `registry_deregistered=true`.
+
+Roadmap impact:
+
+- This closes the missing operator-side bridge cleanup command.
+- It reduces the chance of evidence/operator runs leaving stale bridge
+  processes behind.
+- It does not close release gates and makes current primary MSIX evidence stale
+  until the package/evidence is rebuilt and refreshed after commit.

@@ -154,6 +154,17 @@ pub struct UpOpts {
     #[arg(long, default_value_t = 20)]
     pub timeout_sec: u64,
 }
+
+/// Options for `musu stop` / `musu down`.
+#[derive(Args, Debug, Clone)]
+pub struct StopOpts {
+    /// Emit machine-readable JSON.
+    #[arg(long)]
+    pub json: bool,
+    /// Seconds to wait for the registered bridge PID to exit.
+    #[arg(long, default_value_t = 5)]
+    pub timeout_sec: u64,
+}
 // ── share / unshare / shares ────────────────────────────────────────────
 
 /// `musu share <path>` — register a directory in `shares.toml`.
@@ -1312,6 +1323,24 @@ struct UpReport {
     next_steps: Vec<String>,
 }
 
+#[derive(Debug, Serialize)]
+struct StopReport {
+    schema: &'static str,
+    ok: bool,
+    home: String,
+    bridge_addr: Option<String>,
+    bridge_pid: Option<u32>,
+    registry_record_present: bool,
+    pid_alive_before: bool,
+    pid_is_musu_runtime: Option<bool>,
+    terminate_attempted: bool,
+    terminate_requested: bool,
+    pid_alive_after: bool,
+    registry_deregistered: bool,
+    error: Option<String>,
+    next_steps: Vec<String>,
+}
+
 /// `musu doctor` — diagnose install, login, bridge, dashboard, and package state.
 pub async fn run_doctor(opts: DoctorOpts) -> Result<()> {
     let home = musu_home();
@@ -1574,6 +1603,125 @@ pub async fn run_up(opts: UpOpts) -> Result<()> {
         print_up_report(&report);
     }
     Ok(())
+}
+
+/// `musu stop` / `musu down` — stop the registered local bridge runtime.
+pub async fn run_stop(opts: StopOpts) -> Result<()> {
+    let home = musu_home();
+    let registry = crate::bridge::services::ServiceRegistry::with_dir(home.join("services"));
+    let record = registry.discover("bridge");
+    let bridge_addr = record.as_ref().and_then(|record| {
+        if matches!(record.transport, crate::bridge::services::Transport::Tcp) {
+            Some(crate::bridge::services::normalize_loopback_addr(
+                &record.addr,
+            ))
+        } else {
+            None
+        }
+    });
+    let bridge_pid = record.as_ref().and_then(|record| record.pid);
+
+    let mut pid_alive_before = false;
+    let mut pid_is_musu_runtime = None;
+    let mut terminate_attempted = false;
+    let mut terminate_requested = false;
+    let mut pid_alive_after = false;
+    let mut registry_deregistered = false;
+    let mut error = None;
+    let mut next_steps = Vec::new();
+
+    match bridge_pid {
+        Some(pid) => {
+            pid_alive_before = crate::bridge::services::is_pid_alive(pid);
+            if pid_alive_before {
+                let is_runtime = crate::bridge::services::is_musu_runtime_pid(pid);
+                pid_is_musu_runtime = Some(is_runtime);
+                if is_runtime {
+                    terminate_attempted = true;
+                    terminate_requested = crate::bridge::services::terminate_pid(pid);
+                    if terminate_requested {
+                        wait_for_pid_exit(pid, std::time::Duration::from_secs(opts.timeout_sec))
+                            .await;
+                    }
+                    pid_alive_after = crate::bridge::services::is_pid_alive(pid);
+                    if pid_alive_after {
+                        error = Some(format!(
+                            "registered bridge PID {pid} did not exit within {}s",
+                            opts.timeout_sec
+                        ));
+                        next_steps.push(
+                            "Run `musu doctor --json` and inspect bridge.service_registry_pid."
+                                .into(),
+                        );
+                    } else {
+                        registry.deregister("bridge")?;
+                        registry_deregistered = true;
+                        next_steps.push("Local bridge runtime stopped.".into());
+                    }
+                } else {
+                    pid_alive_after = true;
+                    error = Some(format!(
+                        "registered bridge PID {pid} is alive but is not a MUSU runtime process"
+                    ));
+                    next_steps.push(
+                        "Registry was left intact to avoid terminating an unrelated process."
+                            .into(),
+                    );
+                }
+            } else {
+                registry.deregister("bridge")?;
+                registry_deregistered = true;
+                next_steps.push("Removed stale bridge registry record.".into());
+            }
+        }
+        None => {
+            if record.is_some() {
+                error = Some("bridge registry record has no PID; cannot stop it safely".into());
+                next_steps.push(
+                    "Remove the stale bridge registry only after confirming no bridge is running."
+                        .into(),
+                );
+            } else {
+                next_steps.push("No registered local bridge runtime found.".into());
+            }
+        }
+    }
+
+    let ok = error.is_none();
+    let report = StopReport {
+        schema: "musu.stop_report.v1",
+        ok,
+        home: home.display().to_string(),
+        bridge_addr,
+        bridge_pid,
+        registry_record_present: record.is_some(),
+        pid_alive_before,
+        pid_is_musu_runtime,
+        terminate_attempted,
+        terminate_requested,
+        pid_alive_after,
+        registry_deregistered,
+        error,
+        next_steps,
+    };
+
+    if opts.json {
+        println!("{}", serde_json::to_string_pretty(&report)?);
+    } else {
+        print_stop_report(&report);
+    }
+
+    if report.ok {
+        Ok(())
+    } else {
+        anyhow::bail!(
+            "{}",
+            report
+                .error
+                .as_deref()
+                .unwrap_or("failed to stop local bridge runtime")
+        )
+    }
 }
 
 async fn check_bridge(home: &std::path::Path) -> DoctorBridge {
@@ -1880,6 +2028,23 @@ fn bridge_health_poll_delay(attempt: u32) -> std::time::Duration {
             .saturating_mul(multiplier)
             .min(BRIDGE_HEALTH_POLL_MAX_MS),
     )
+}
+
+async fn wait_for_pid_exit(pid: u32, timeout: std::time::Duration) {
+    let deadline = std::time::Instant::now() + timeout;
+    let mut attempt = 0_u32;
+    while std::time::Instant::now() < deadline {
+        if !crate::bridge::services::is_pid_alive(pid) {
+            return;
+        }
+        let now = std::time::Instant::now();
+        if now >= deadline {
+            return;
+        }
+        let delay = bridge_health_poll_delay(attempt).min(deadline.saturating_duration_since(now));
+        attempt = attempt.saturating_add(1);
+        tokio::time::sleep(delay).await;
+    }
 }
 
 fn bridge_reachable(bridge: &DoctorBridge) -> bool {
@@ -2206,6 +2371,42 @@ fn print_up_report(report: &UpReport) {
     println!("Next steps:");
     for step in &report.next_steps {
         println!("  - {step}");
+    }
+}
+
+fn print_stop_report(report: &StopReport) {
+    if report.ok {
+        println!("MUSU bridge stop: ok");
+    } else {
+        println!("MUSU bridge stop: failed");
+    }
+    println!("  home: {}", report.home);
+    if let Some(addr) = &report.bridge_addr {
+        println!("  bridge: {addr}");
+    }
+    if let Some(pid) = report.bridge_pid {
+        println!("  pid: {pid}");
+    }
+    println!(
+        "  registry record present: {}",
+        report.registry_record_present
+    );
+    println!("  pid alive before: {}", report.pid_alive_before);
+    if let Some(is_runtime) = report.pid_is_musu_runtime {
+        println!("  pid is MUSU runtime: {is_runtime}");
+    }
+    println!("  terminate attempted: {}", report.terminate_attempted);
+    println!("  terminate requested: {}", report.terminate_requested);
+    println!("  pid alive after: {}", report.pid_alive_after);
+    println!("  registry deregistered: {}", report.registry_deregistered);
+    if let Some(error) = &report.error {
+        println!("  error: {error}");
+    }
+    if !report.next_steps.is_empty() {
+        println!("  next steps:");
+        for step in &report.next_steps {
+            println!("    - {step}");
+        }
     }
 }
 
@@ -2700,6 +2901,11 @@ mod tests {
             .map(|attempt| bridge_health_poll_delay(attempt).as_millis() as u64)
             .collect();
         assert_eq!(samples, vec![250, 500, 1_000, 2_000, 2_000, 2_000]);
+    }
+
+    #[tokio::test]
+    async fn wait_for_pid_exit_returns_without_timeout_for_dead_pid() {
+        wait_for_pid_exit(u32::MAX, std::time::Duration::from_secs(5)).await;
     }
 
     #[test]

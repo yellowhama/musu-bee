@@ -1501,5 +1501,17 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `RELEASE_1_15_0_RC1_POST_FILE_SYNC_PRIMARY_EVIDENCE_2026_06_02.md`,
   `2026-06-02_1725_kst_post_file_sync_primary_evidence_refresh.md`, and
   `post-file-sync primary evidence index refresh`.
+- 2026-06-02 runtime stop/down command hardening:
+  wiki/559 records `musu stop`, `musu down`, and
+  `musu.stop_report.v1`. Search terms should include `GOAL v321`, `wiki/559`,
+  `StopOpts`, `run_stop`, `musu down --json`, `musu stop --json`,
+  `registry_deregistered=true`, `pid_alive_after=false`, `bridge PID 37292`,
+  `wait_for_pid_exit`, `registered bridge PID`, and `process ownership cleanup`.
+- 2026-06-02 index refresh after runtime stop/down command hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1382 files and 2245 symbols after wiki/559, GOAL v321/v322, Rust CLI source,
+  runtime stop command docs, and CoS memory. Search terms should include
+  `GOAL v322`, `1382 files`, `2245 symbols`, `musu.stop_report.v1`,
+  `run_stop`, `StopOpts`, and `wait_for_pid_exit`.
 
 **End of WIKI_INDEX.md.**

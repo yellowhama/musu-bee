@@ -901,3 +901,33 @@ evidence, `musu@musu.pro` mailbox evidence, and Store evidence.
 - `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
   `1379` files and `2242` symbols after the post-file-sync primary evidence
   docs/evidence/spec updates.
+
+## 2026-06-02 Runtime Stop/Down Command
+
+The CLI now has a bounded runtime cleanup command for operator/evidence runs:
+
+```powershell
+musu stop --json
+musu down --json
+```
+
+Both commands emit `musu.stop_report.v1` and only terminate the bridge PID
+registered in `~\.musu\services\bridge.json` when that PID is a MUSU runtime
+binary. Stale registry records are removed; non-MUSU PIDs are refused.
+
+Validation passed:
+
+- cargo fmt
+- `cargo check --bin musu`
+- targeted `install::cli_commands` tests 14/14
+- `cargo build --bin musu`
+- temporary-home `up --json` then `down --json` smoke
+
+This is Rust CLI/runtime source, so package/evidence freshness must be restored
+after commit before current-HEAD primary release evidence is claimed again.
+
+2026-06-02 runtime stop/down index refresh:
+
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  `1382` files and `2245` symbols after the runtime stop/down source and docs
+  updates.

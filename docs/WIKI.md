@@ -1216,6 +1216,26 @@ Indexer note:
   spec update, BETA checklist update, new primary evidence files, and CoS
   memory `2026-06-02_1725_kst_post_file_sync_primary_evidence_refresh.md`.
 
+- 2026-06-02 runtime stop/down command hardening:
+  wiki/559 records the new `musu stop` and `musu down` commands. Both support
+  `--json` and emit `musu.stop_report.v1`. The command targets only the
+  registered `bridge` PID from `~\.musu\services\bridge.json`; it terminates
+  only if that PID belongs to a MUSU runtime binary, refuses non-MUSU PIDs,
+  removes stale bridge registry records, and waits for PID exit with bounded
+  backoff. Validation passed cargo fmt, `cargo check --bin musu`, targeted
+  `install::cli_commands` tests 14/14, `cargo build --bin musu`, and a
+  temporary-home CLI smoke where `up --json` started bridge PID `37292` and
+  `down --json` stopped it with `registry_deregistered=true` and
+  `pid_alive_after=false`. This improves process ownership cleanup but makes
+  current primary MSIX evidence stale again after commit.
+
+- 2026-06-02 index refresh after runtime stop/down command hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1382 files and 2245 symbols after wiki/559, GOAL v321/v322,
+  `musu-rs/src/main.rs`, `musu-rs/src/install/cli_commands.rs`, the runtime
+  stop command report, BETA/current-head/runtime roadmap updates, WIKI_INDEX,
+  and CoS memory `2026-06-02_1815_kst_runtime_stop_command_hardening.md`.
+
 ## 9. musu-system Integration State (2026-05-29)
 
 `yellowhama/musu-system` is a credible adjacent MUSU ecosystem line, not a Rust-core replacement. It contains:

@@ -649,3 +649,45 @@ Qualitative verdict:
 Canonical detailed report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_FILE_SYNC_PRIMARY_EVIDENCE_2026_06_02.md`
+
+## 2026-06-02 Runtime Stop/Down Command Hardening
+
+A process-ownership cleanup gap was fixed after evidence collection exposed it:
+the CLI had `musu up --json`, but no matching `musu down`/`musu stop` command
+to stop the registered local bridge runtime.
+
+Change:
+
+- added `musu stop`
+- added `musu down`
+- both support `--json` and emit `musu.stop_report.v1`
+- stop targets only the `bridge` PID registered in
+  `~\.musu\services\bridge.json`
+- the PID is terminated only if its process image is a MUSU runtime executable
+  (`musu`, `musu.exe`, `musud`, or `musud.exe`)
+- non-MUSU registered PIDs are left untouched and reported as an error
+- stale bridge registry records are deregistered
+- PID-exit waiting uses bounded backoff rather than a tight loop
+
+Validation:
+
+- `cargo fmt --manifest-path .\musu-rs\Cargo.toml --check` passed
+- `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1` passed
+- `cargo test --manifest-path .\musu-rs\Cargo.toml install::cli_commands --lib -- --test-threads=1`
+  passed 14/14
+- `cargo build --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1` passed
+- temporary-home CLI smoke passed: `up --json` started bridge PID `37292`,
+  `down --json` stopped it with `registry_deregistered=true` and
+  `pid_alive_after=false`, and a second `stop --json` no-op returned `ok=true`
+
+Release meaning:
+
+- This directly improves the process ownership / orphan-runtime cleanup track.
+- It does not close public release gates.
+- Because this is Rust runtime/CLI source, the current primary MSIX evidence is
+  stale again after commit and must be refreshed before current-HEAD release
+  claims.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RUNTIME_STOP_COMMAND_HARDENING_2026_06_02.md`
