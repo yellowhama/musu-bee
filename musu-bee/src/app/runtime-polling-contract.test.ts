@@ -84,6 +84,26 @@ test("chat SSE reconnect clears timers and ignores stale generations", () => {
   assert.match(text, /EventSource\.CONNECTING/);
 });
 
+test("fleet store SSE reconnect is bounded and explicitly closed", () => {
+  const storeText = source("src/store/useFleetStore.ts");
+  const fleetPageText = source("src/app/dashboard/fleet/page.tsx");
+  const agentPageText = source("src/app/dashboard/agent/[id]/page.tsx");
+
+  assert.match(storeText, /FLEET_SSE_RECONNECT_INITIAL_MS\s*=\s*1_000/);
+  assert.match(storeText, /FLEET_SSE_RECONNECT_MAX_MS\s*=\s*10_000/);
+  assert.match(storeText, /FLEET_SSE_RECONNECT_MULTIPLIER\s*=\s*2/);
+  assert.match(storeText, /FLEET_SSE_MAX_RETRIES\s*=\s*5/);
+  assert.match(storeText, /fleetReconnectGeneration/);
+  assert.match(storeText, /clearFleetReconnectTimer/);
+  assert.match(storeText, /scheduleFleetReconnect/);
+  assert.match(storeText, /fleetReconnectAttempts\s*>=\s*FLEET_SSE_MAX_RETRIES/);
+  assert.match(storeText, /fleetReconnectGeneration !== reconnectGeneration/);
+  assert.match(storeText, /EventSource\.CONNECTING/);
+  assert.doesNotMatch(storeText, /setInterval\s*\(/);
+  assert.match(fleetPageText, /return \(\) => closeSSE\(\)/);
+  assert.match(agentPageText, /return \(\) => closeSSE\(\)/);
+});
+
 test("node panel refresh loop stays on shared low-duty polling", () => {
   const text = source("src/components/NodePanel.tsx");
 

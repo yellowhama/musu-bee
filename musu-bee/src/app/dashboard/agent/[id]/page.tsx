@@ -14,6 +14,7 @@ export default function AgentPage() {
   const setIsTyping = useFleetStore((s) => s.setIsTyping);
   const addMessage = useFleetStore((s) => s.addMessage);
   const initSSE = useFleetStore((s) => s.initSSE);
+  const closeSSE = useFleetStore((s) => s.closeSSE);
   const overlayWidgets = useFleetStore((s) => s.overlayWidgets);
 
   const [input, setInput] = useState("");
@@ -21,7 +22,8 @@ export default function AgentPage() {
 
   useEffect(() => {
     initSSE();
-  }, [initSSE]);
+    return () => closeSSE();
+  }, [initSSE, closeSSE]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });

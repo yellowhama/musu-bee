@@ -2,7 +2,16 @@ import { create } from 'zustand';
 import { WidgetPayload } from '../components/workstation/town/widgets/WidgetRegistry';
 
 let fleetEvents: EventSource | null = null;
+let fleetReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let fleetReconnectDelayMs = 1_000;
+let fleetReconnectAttempts = 0;
+let fleetReconnectGeneration = 0;
 const seenFinalTaskIds = new Set<string>();
+
+const FLEET_SSE_RECONNECT_INITIAL_MS = 1_000;
+const FLEET_SSE_RECONNECT_MAX_MS = 10_000;
+const FLEET_SSE_RECONNECT_MULTIPLIER = 2;
+const FLEET_SSE_MAX_RETRIES = 5;
 
 export interface ChatMessage {
   id: string;
@@ -41,6 +50,7 @@ interface FleetStore {
   agentState: 'idle' | 'thinking' | 'speaking' | 'error';
   setAgentState: (state: 'idle' | 'thinking' | 'speaking' | 'error') => void;
   initSSE: () => void;
+  closeSSE: () => void;
 }
 
 interface TaskUpdateEvent {
@@ -80,6 +90,43 @@ function widgetFromTaskEvent(event: TaskUpdateEvent): WidgetPayload {
       log: `${header}\n\n${summarizeTaskEvent(event)}`,
     },
   };
+}
+
+function clearFleetReconnectTimer() {
+  if (fleetReconnectTimer) {
+    clearTimeout(fleetReconnectTimer);
+    fleetReconnectTimer = null;
+  }
+}
+
+function resetFleetReconnectState() {
+  fleetReconnectDelayMs = FLEET_SSE_RECONNECT_INITIAL_MS;
+  fleetReconnectAttempts = 0;
+}
+
+function closeFleetEventSource() {
+  if (fleetEvents) {
+    fleetEvents.close();
+    fleetEvents = null;
+  }
+}
+
+function scheduleFleetReconnect(reconnectGeneration: number) {
+  if (fleetReconnectAttempts >= FLEET_SSE_MAX_RETRIES) return;
+
+  clearFleetReconnectTimer();
+  const delayMs = fleetReconnectDelayMs;
+  fleetReconnectAttempts += 1;
+  fleetReconnectDelayMs = Math.min(
+    FLEET_SSE_RECONNECT_MAX_MS,
+    fleetReconnectDelayMs * FLEET_SSE_RECONNECT_MULTIPLIER,
+  );
+
+  fleetReconnectTimer = setTimeout(() => {
+    fleetReconnectTimer = null;
+    if (fleetReconnectGeneration !== reconnectGeneration) return;
+    useFleetStore.getState().initSSE();
+  }, delayMs);
 }
 
 export const useFleetStore = create<FleetStore>((set) => ({
@@ -129,11 +176,16 @@ export const useFleetStore = create<FleetStore>((set) => ({
       (fleetEvents.readyState === EventSource.CONNECTING ||
         fleetEvents.readyState === EventSource.OPEN)
     ) {
+      clearFleetReconnectTimer();
       return;
     }
 
+    clearFleetReconnectTimer();
+    fleetReconnectGeneration += 1;
+    const connectionGeneration = fleetReconnectGeneration;
     const es = new EventSource("/api/bridge-tasks/events");
     fleetEvents = es;
+    es.onopen = resetFleetReconnectState;
 
     const handleTaskUpdate = (e: MessageEvent) => {
       try {
@@ -177,6 +229,9 @@ export const useFleetStore = create<FleetStore>((set) => ({
     es.onerror = () => {
       es.close();
       if (fleetEvents === es) fleetEvents = null;
+      if (fleetReconnectGeneration === connectionGeneration) {
+        scheduleFleetReconnect(connectionGeneration);
+      }
     };
 
     es.addEventListener("ai_message", (e) => {
@@ -243,5 +298,12 @@ export const useFleetStore = create<FleetStore>((set) => ({
         console.error("Failed to parse a2a_message event:", err);
       }
     });
+  },
+
+  closeSSE: () => {
+    fleetReconnectGeneration += 1;
+    clearFleetReconnectTimer();
+    closeFleetEventSource();
+    resetFleetReconnectState();
   }
 }));

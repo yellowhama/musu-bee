@@ -44,7 +44,7 @@ export default function FleetDashboardPage() {
     activeViewMode, setActiveViewMode,
     selectedMachines, toggleMachine, setSelectedMachines,
     machineViewModes, setNodeViewMode, setInitialMachineViewModes,
-    isTyping, setIsTyping, initSSE
+    isTyping, setIsTyping, initSSE, closeSSE
   } = useFleetStore();
 
   const fetchFleetStatus = async (signal?: AbortSignal) => {
@@ -78,8 +78,8 @@ export default function FleetDashboardPage() {
   // Set up SSE Connection for Real-time AI events
   useEffect(() => {
     initSSE();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    return () => closeSSE();
+  }, [initSSE, closeSSE]);
 
   const handleSendChat = async () => {
     if (!chatInput.trim()) return;
