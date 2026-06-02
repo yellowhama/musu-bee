@@ -1753,4 +1753,36 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2026-06-02_2256_kst_post_route_explain_primary_evidence.md`, and
   `post route-explain primary evidence index refresh`.
 
+- 2026-06-02 relay route lease-proof hardening:
+  `RELEASE_1_15_0_RC1_RELAY_ROUTE_LEASE_PROOF_HARDENING_2026_06_02.md`
+  (wiki/572) records route-evidence API hardening for `route_kind=relay`.
+  Search terms should include `GOAL v347`, `wiki/572`,
+  `relay_route_missing_lease_proof`, `relay_route_lease_not_issued`,
+  `relay_route_lease_blocked`, `lease_issued=true`, `lease_id`,
+  `connect_pro_fallback_only`, and `relay route lease proof`.
+
+- 2026-06-02 index refresh after relay route lease-proof hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1461 files and 2261 symbols after wiki/572, GOAL v347/v348, route-evidence
+  API/test hardening, P2P spec/current-head/BETA/WIKI updates, and CoS memory.
+  Search terms should include `GOAL v348`, `1461 files`, `2261 symbols`,
+  `2026-06-02_relay_route_lease_proof_hardening.md`, and
+  `relay route lease-proof index refresh`.
+
+- 2026-06-02 relay route lease-proof single-machine refresh:
+  Fresh current-commit single-machine evidence is
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-231612-HUGH_SECOND.evidence.json`.
+  Search terms should include `GOAL v349`, `f9beb79f`,
+  `20260602-231612-HUGH_SECOND`, `a4ea114c-2483-4135-8dd0-756cf915d7a3`,
+  `http://127.0.0.1:13886`, and `relay route lease-proof single-machine`.
+
+- 2026-06-02 index refresh after relay route lease-proof single-machine:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1465 files and 2261 symbols after wiki/572, GOAL v347-v350, route-evidence
+  API hardening, fresh single-machine evidence, BETA/current-head/P2P spec
+  updates, WIKI updates, and CoS memories. Search terms should include
+  `GOAL v350`, `1465 files`, `2261 symbols`,
+  `2026-06-02_relay_route_lease_proof_single_machine_refresh.md`, and
+  `relay route lease-proof single-machine index refresh`.
+
 **End of WIKI_INDEX.md.**

@@ -1307,3 +1307,24 @@ Current release state: local artifacts remain usable, but public release is
 No-Go until second-PC CPU/matrix/route, live owner-scoped P2P KV evidence,
 release-grade transport proof, `musu@musu.pro` mailbox evidence, and Store
 evidence pass.
+
+## 2026-06-02 Relay Route Lease-Proof Hardening
+
+`POST /api/v1/p2p/route-evidence` now rejects relay-route false positives for
+release grading. A `route_kind=relay` record is release-grade only if it also
+includes relay fallback lease proof: direct route failure, lease requested,
+issued status, `lease_issued=true`, non-empty lease id, a prior non-relay
+attempted route, and no lease policy blockers.
+
+Validation:
+
+- `npm run test:p2p -- src/app/api/v1/p2p/route-evidence/route.test.ts`
+  23/23
+- `npm run typecheck`
+- `npm run build`
+- current-commit single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-231612-HUGH_SECOND.evidence.json`
+
+This does not implement relay payload transport. It hardens the evidence gate
+so relay remains an explicit Connect/Pro fallback after direct-route failure,
+not a silent/default data path.

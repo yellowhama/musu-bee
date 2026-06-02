@@ -116,6 +116,51 @@ test("accepts hardened release-grade route evidence", async () => {
   });
 });
 
+test("keeps relay route evidence non release grade without relay lease proof", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { POST } = await loadModule("relay-route-missing-lease-proof");
+    const res = await POST(postReq({
+      ...hardenedEvidence,
+      route_kind: "relay",
+      candidate_addr: "relay.musu.pro:443",
+      payload_transited_musu_infra: true,
+    }));
+    assert.equal(res.status, 202);
+
+    const body = (await res.json()) as { release_grade: boolean; blockers: string[] };
+    assert.equal(body.release_grade, false);
+    assert.match(body.blockers.join(","), /relay_route_missing_lease_proof/);
+  });
+});
+
+test("accepts release-grade relay route evidence only with issued lease proof", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { POST } = await loadModule("relay-route-issued-lease-proof");
+    const res = await POST(postReq({
+      ...hardenedEvidence,
+      route_kind: "relay",
+      candidate_addr: "relay.musu.pro:443",
+      payload_transited_musu_infra: true,
+      relay_fallback: {
+        direct_path_failed: true,
+        lease_requested: true,
+        status: "issued",
+        lease_issued: true,
+        attempted_route_kinds: ["lan", "tailscale"],
+        requested_capability: "remote_command",
+        policy: "connect_pro_fallback_only",
+        blockers: [],
+        lease_id: "lease_test_123",
+      },
+    }));
+    assert.equal(res.status, 202);
+
+    const body = (await res.json()) as { release_grade: boolean; blockers: string[] };
+    assert.equal(body.release_grade, true);
+    assert.deepEqual(body.blockers, []);
+  });
+});
+
 test("accepts legacy debug evidence but marks it non release grade", async () => {
   await withRouteEvidenceToken(async () => {
     const { POST } = await loadModule("legacy");

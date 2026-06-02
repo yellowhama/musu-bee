@@ -1517,6 +1517,42 @@ Indexer note:
   `20260602-224917-HUGH_SECOND`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_224917`,
   and `post route-explain primary evidence`.
 
+- 2026-06-02 relay route lease-proof hardening:
+  wiki/572 records that `POST /api/v1/p2p/route-evidence` now requires issued
+  relay lease proof before `route_kind=relay` can be release-grade. Required
+  proof includes direct path failure, lease requested, `status=issued`,
+  `lease_issued=true`, non-empty `lease_id`, a prior non-relay attempted route,
+  and no relay policy blockers. Missing proof stays auditable but adds blockers
+  such as `relay_route_missing_lease_proof`, `relay_route_lease_not_issued`,
+  and `relay_route_lease_blocked`. Validation passed `npm run test:p2p -- src/app/api/v1/p2p/route-evidence/route.test.ts`
+  23/23 and `npm run typecheck`.
+
+- 2026-06-02 index refresh after relay route lease-proof hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1461 files and 2261 symbols after wiki/572, GOAL v347/v348, route-evidence
+  API/test updates, P2P spec/current-head/BETA/WIKI_INDEX updates, and CoS
+  memory `2026-06-02_relay_route_lease_proof_hardening.md`. Search terms
+  should include `GOAL v348`, `1461 files`, `2261 symbols`,
+  `relay_route_missing_lease_proof`, and `relay route lease proof`.
+
+- 2026-06-02 relay route lease-proof single-machine refresh:
+  current commit `f9beb79f` has fresh single-machine smoke evidence
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-231612-HUGH_SECOND.evidence.json`
+  with dashboard task `a4ea114c-2483-4135-8dd0-756cf915d7a3`, bridge
+  `http://127.0.0.1:13886`, and CLI route checked. This restores the
+  current-commit single-machine gate after route-evidence API hardening; public
+  release still blocks on second-PC, live P2P KV/owner scope, release-grade
+  transport, support mailbox, and Store evidence.
+
+- 2026-06-02 index refresh after relay route lease-proof single-machine:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1465 files and 2261 symbols after wiki/572, GOAL v347-v350, route-evidence
+  API hardening, fresh single-machine evidence, BETA/current-head/P2P spec
+  updates, WIKI_INDEX updates, and CoS memories for relay lease proof and
+  single-machine refresh. Search terms should include `GOAL v350`,
+  `1465 files`, `2261 symbols`, `20260602-231612-HUGH_SECOND`, and
+  `relay route lease-proof single-machine`.
+
 ## 9. musu-system Integration State (2026-05-29)
 
 `yellowhama/musu-system` is a credible adjacent MUSU ecosystem line, not a Rust-core replacement. It contains:

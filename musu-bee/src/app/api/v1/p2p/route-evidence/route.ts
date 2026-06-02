@@ -96,6 +96,31 @@ function releaseBlockers(evidence: RouteEvidence): string[] {
   if (evidence.route_kind === "relay" && !evidence.payload_transited_musu_infra) {
     blockers.push("relay_route_missing_infra_transit");
   }
+  if (evidence.route_kind === "relay") {
+    const relay = evidence.relay_fallback;
+    if (!relay) {
+      blockers.push("relay_route_missing_lease_proof");
+    } else {
+      if (!relay.direct_path_failed) {
+        blockers.push("relay_route_missing_direct_failure");
+      }
+      if (!relay.lease_requested) {
+        blockers.push("relay_route_missing_lease_request");
+      }
+      if (relay.status !== "issued" || !relay.lease_issued) {
+        blockers.push("relay_route_lease_not_issued");
+      }
+      if (!relay.lease_id?.trim()) {
+        blockers.push("relay_route_missing_lease_id");
+      }
+      if (!relay.attempted_route_kinds.some((kind) => kind !== "relay")) {
+        blockers.push("relay_route_missing_direct_attempt");
+      }
+      if (relay.blockers?.length) {
+        blockers.push("relay_route_lease_blocked");
+      }
+    }
+  }
   if (evidence.route_kind !== "relay" && evidence.payload_transited_musu_infra) {
     blockers.push("direct_route_claims_infra_transit");
   }

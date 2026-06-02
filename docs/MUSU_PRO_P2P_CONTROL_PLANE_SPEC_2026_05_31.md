@@ -514,3 +514,18 @@ records MUSU-owned Node `0` even though the machine has `16` unrelated Node
 processes. This is local hardening evidence only. The P2P control-plane gate
 still requires production KV-backed owner-scoped relay leases, and the route
 gate still requires release-grade two-machine transport proof.
+
+## 2026-06-02 Relay Route Lease-Proof Requirement
+
+The route-evidence API now requires explicit relay lease proof before a
+`route_kind=relay` record can be considered release-grade. Relay evidence must
+prove direct path failure, lease request, `status=issued`, `lease_issued=true`,
+a non-empty lease id, at least one prior non-relay attempted route kind, and no
+relay policy blockers.
+
+This keeps relay fallback aligned with the Connect/Pro policy boundary:
+`musu.pro` may issue a relay lease after direct path failure, but a payload
+route cannot become release-grade by simply claiming `route_kind=relay` and
+infra transit. Missing or denied lease proof remains stored as audit evidence
+with blockers such as `relay_route_missing_lease_proof`,
+`relay_route_lease_not_issued`, or `relay_route_lease_blocked`.

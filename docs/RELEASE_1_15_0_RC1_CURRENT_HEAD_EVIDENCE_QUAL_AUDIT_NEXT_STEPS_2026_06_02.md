@@ -1060,3 +1060,31 @@ evidence. Public release remains No-Go.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_ROUTE_EXPLAIN_PRIMARY_EVIDENCE_2026_06_02.md`
+
+## 2026-06-02 Relay Route Lease-Proof Hardening
+
+The `musu.pro` route-evidence verifier now fail-closes relay release evidence
+unless `route_kind=relay` also carries issued relay lease proof. Required
+fields include direct path failure, lease requested, `status=issued`,
+`lease_issued=true`, a non-empty lease id, a prior non-relay attempted route
+kind, and no relay policy blockers.
+
+Validation passed:
+
+- `npm run test:p2p -- src/app/api/v1/p2p/route-evidence/route.test.ts`
+  23/23
+- `npm run typecheck`
+- `npm run build`
+- current-commit single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-231612-HUGH_SECOND.evidence.json`
+
+Qualitative result: this removes a false-positive route proof path. Relay
+remains a Connect/Pro fallback boundary and cannot become release-grade just by
+claiming `route_kind=relay` or MUSU infra transit. This is server/API hardening;
+single-machine smoke is current again for commit `f9beb79f`, but public release
+is still No-Go on live KV-backed relay lease evidence, second-PC route/CPU,
+release-grade transport, support mailbox, and Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_ROUTE_LEASE_PROOF_HARDENING_2026_06_02.md`
