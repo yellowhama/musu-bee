@@ -553,3 +553,26 @@ This is local auditability and runtime-hardening evidence only. The P2P
 control-plane gate still requires production KV-backed owner-scoped relay
 lease evidence from `musu.pro`, and the route gate still requires
 release-grade two-machine transport proof.
+
+## 2026-06-03 External Recheck Evidence Contract
+
+The release evidence spec now includes
+`musu.external_release_gate_recheck.v1`, written by
+`scripts\windows\record-external-release-gate-recheck.ps1`.
+
+This artifact is the operator-level snapshot that ties together:
+
+- final go/no-go state
+- second-PC reachability
+- `musu.pro` P2P env readiness
+- live P2P control-plane evidence
+
+Clean evidence `20260603-050915-HUGH_SECOND.external-gates` confirms the
+current boundary: local artifacts and single-machine evidence are ready, but
+`musu.pro` still lacks KV/Upstash-backed owner-scoped relay lease proof. Live
+P2P evidence `20260603-051044-musu.pro` uses the packaged WindowsApps alias and
+still fails with `p2p_relay_lease_kv_not_configured`.
+
+This does not make `musu.pro` a payload data path. `musu.pro` remains the
+account/rendezvous/path-selection/lease control plane until route evidence
+proves release-grade transport and explicit relay lease policy.

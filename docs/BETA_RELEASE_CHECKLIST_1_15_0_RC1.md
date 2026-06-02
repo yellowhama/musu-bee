@@ -1687,3 +1687,38 @@ P2P still fails correctly on production storage/owner-scope:
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_P2P_EVIDENCE_RECORDER_ALIAS_HARDENING_2026_06_03.md`
+
+## 2026-06-03 05:09 KST External Recheck Recorder and Clean Evidence
+
+Added `scripts\windows\record-external-release-gate-recheck.ps1` as the
+repeatable operator snapshot for external release gates. It records final
+go/no-go, second-PC reachability, `musu.pro` P2P env status, and live P2P
+control-plane evidence in one command under
+`docs\evidence\external-gates\1.15.0-rc.1`.
+
+Clean HEAD `d80e929e` evidence:
+
+- external recheck:
+  `docs\evidence\external-gates\1.15.0-rc.1\20260603-050915-HUGH_SECOND.external-gates.evidence.json`
+- P2P evidence:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-051044-musu.pro.evidence.json`
+
+Result:
+
+- `local_artifacts_ready=True`
+- `single_machine_verified=True`
+- runtime idle CPU `1/2`
+- runtime CPU scenario matrix `1/2`
+- second-PC `192.168.1.192:8949` unreachable
+  (`PingSucceeded=False`, `TcpTestSucceeded=False`, source `192.168.1.154`,
+  interface `이더넷 2`)
+- P2P evidence uses `musu_exe_source=windowsapps_alias`
+- P2P remains blocked by `p2p_relay_lease_kv_not_configured`
+
+Public desktop release remains No-Go on second-PC route/CPU/matrix evidence,
+live owner-scoped `musu.pro` P2P lease evidence, `musu@musu.pro` mailbox
+delivery evidence, and Store / Partner Center evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_EXTERNAL_RECHECK_RECORDER_2026_06_03.md`

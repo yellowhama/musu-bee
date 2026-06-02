@@ -107,3 +107,39 @@ Expected result before external remediation:
 - `p2p_env_ok=false`
 - `p2p_evidence_ok=false`
 - no `go_no_go_git` blocker from the pre-evidence go/no-go phase
+
+## Clean Evidence Result
+
+Clean HEAD `d80e929e` recorded the expected No-Go snapshot:
+
+- external evidence:
+  `docs\evidence\external-gates\1.15.0-rc.1\20260603-050915-HUGH_SECOND.external-gates.evidence.json`
+- external summary:
+  `docs\evidence\external-gates\1.15.0-rc.1\20260603-050915-HUGH_SECOND.external-gates.summary.md`
+- external evidence SHA256:
+  `d203259b78e013afbed225ac02ab467b3eacbd6d37c3b6a12a2183075a2c66a6`
+- P2P evidence:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-051044-musu.pro.evidence.json`
+- P2P verification:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-051044-musu.pro.verification.json`
+
+Key result:
+
+- `release_ready=false`
+- `local_artifacts_ready=true`
+- `single_machine_verified=true`
+- runtime idle CPU valid machines: `1`
+- runtime CPU scenario matrix valid machines: `1`
+- second-PC `192.168.1.192:8949` is unreachable from `192.168.1.154` on
+  interface `이더넷 2`
+- P2P evidence uses
+  `C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe` with
+  `musu_exe_source=windowsapps_alias`
+- P2P verification remains `ok=false`, `fail_count=4`, with
+  `p2p_relay_lease_kv_not_configured`
+- `go_no_go_git` is absent, proving the pre-evidence go/no-go phase ran from a
+  clean worktree
+
+Remaining blockers are unchanged: second-PC route/CPU/matrix evidence,
+production KV/Upstash owner-scoped P2P lease evidence, `musu@musu.pro` mailbox
+delivery evidence, and Microsoft Store / Partner Center evidence.

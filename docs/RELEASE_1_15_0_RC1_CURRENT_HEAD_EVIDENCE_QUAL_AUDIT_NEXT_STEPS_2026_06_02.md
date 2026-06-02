@@ -1490,3 +1490,34 @@ non-runtime script change does not stale current CPU evidence.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_P2P_EVIDENCE_RECORDER_ALIAS_HARDENING_2026_06_03.md`
+
+## 2026-06-03 05:09 KST External Recheck Recorder Evidence
+
+`record-external-release-gate-recheck.ps1` now gives the operator one repeatable
+command for the remaining external release gates. It records go/no-go,
+second-PC reachability, hosted P2P env state, and live P2P evidence.
+
+Clean HEAD `d80e929e` generated:
+
+- external gate evidence:
+  `docs\evidence\external-gates\1.15.0-rc.1\20260603-050915-HUGH_SECOND.external-gates.evidence.json`
+- external gate summary:
+  `docs\evidence\external-gates\1.15.0-rc.1\20260603-050915-HUGH_SECOND.external-gates.summary.md`
+- live P2P evidence:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-051044-musu.pro.evidence.json`
+
+Qualitative result: current local artifact confidence is unchanged and remains
+good (`local_artifacts_ready=True`, `single_machine_verified=True`), but public
+release is still not ready. Runtime idle CPU and runtime CPU matrix are each
+only `1/2`, second-PC `192.168.1.192:8949` remains unreachable from source
+`192.168.1.154`, and live P2P owner-scope verification still fails on
+`p2p_relay_lease_kv_not_configured`.
+
+This is a release evidence/spec update, not a runtime product behavior change.
+The next release actions remain KV/Upstash provisioning for `musu.pro`,
+second-PC route/CPU/matrix recapture, `musu@musu.pro` inbox delivery proof, and
+Microsoft Store / Partner Center evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_EXTERNAL_RECHECK_RECORDER_2026_06_03.md`

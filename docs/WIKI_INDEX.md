@@ -2083,4 +2083,30 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2274 symbols`, `wiki/586 index refresh`, and
   `musu_exe_source=windowsapps_alias`.
 
+- 2026-06-03 external recheck recorder clean evidence:
+  `RELEASE_1_15_0_RC1_EXTERNAL_RECHECK_RECORDER_2026_06_03.md` (wiki/587)
+  records the new `musu.external_release_gate_recheck.v1` artifact and clean
+  evidence `20260603-050915-HUGH_SECOND.external-gates`. Search terms should
+  include `GOAL v381`, `wiki/587`,
+  `record-external-release-gate-recheck.ps1`,
+  `musu.external_release_gate_recheck.v1`,
+  `20260603-050915-HUGH_SECOND.external-gates.evidence.json`,
+  `20260603-051044-musu.pro.evidence.json`,
+  `d203259b78e013afbed225ac02ab467b3eacbd6d37c3b6a12a2183075a2c66a6`,
+  `second_pc_unreachable`, `p2p_env_not_ready`,
+  `p2p_control_plane_evidence_not_verified`, `192.168.1.154`, and
+  `p2p_relay_lease_kv_not_configured`.
+
+- 2026-06-03 external recheck recorder index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1576 files and 2274 symbols after GOAL v381-v382, wiki/587, external
+  gate evidence `20260603-050915-HUGH_SECOND.external-gates`, P2P evidence
+  `20260603-051044-musu.pro`, the external recheck recorder report, P2P control
+  plane spec update, and CoS memories. Search terms should include `GOAL v382`,
+  `1576 files`, `2274 symbols`, `wiki/587 index refresh`,
+  `external recheck recorder index refresh`,
+  `musu.external_release_gate_recheck.v1`, and
+  `2026-06-03_external_recheck_recorder_index_refresh.md`.
+
 **End of WIKI_INDEX.md.**

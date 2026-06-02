@@ -1921,3 +1921,28 @@ Canonical reference:
 
 Index refresh after wiki/586 recorded `1567` files and `2274` symbols using the
 explicit packaged WindowsApps alias invocation.
+
+## 17. External Recheck Recorder Clean Evidence (2026-06-03)
+
+wiki/587 records the new external release gate recheck recorder and its clean
+evidence. `record-external-release-gate-recheck.ps1` writes
+`musu.external_release_gate_recheck.v1` under
+`docs\evidence\external-gates\<VERSION>` and captures final go/no-go,
+second-PC reachability, hosted P2P env state, and live P2P control-plane
+evidence in one operator command.
+
+Clean HEAD `d80e929e` generated
+`20260603-050915-HUGH_SECOND.external-gates` and live P2P evidence
+`20260603-051044-musu.pro`. The snapshot proves `local_artifacts_ready=True`
+and `single_machine_verified=True`, while public release remains No-Go:
+runtime idle CPU and runtime CPU matrix are each `1/2`, second-PC
+`192.168.1.192:8949` is unreachable from source `192.168.1.154`, and P2P owner
+scope still fails with `p2p_relay_lease_kv_not_configured`.
+
+Canonical reference:
+
+- `docs/RELEASE_1_15_0_RC1_EXTERNAL_RECHECK_RECORDER_2026_06_03.md`
+- `docs/memory/chief_of_staff/2026-06-03_external_recheck_recorder_clean_evidence.md`
+
+Index refresh after wiki/587 recorded `1576` files and `2274` symbols using the
+explicit packaged WindowsApps alias invocation.
