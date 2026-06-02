@@ -151,6 +151,7 @@ Multi-device packet:
 - second-PC one-command release check: `scripts\windows\run-second-pc-release-check.ps1`
 - second-PC return archive: `.local-build\second-pc-return\*.zip`
 - second-PC return importer: `scripts\windows\import-second-pc-return.ps1`
+- MSIX legacy conflict preflight: `scripts\windows\check-msix-legacy-conflicts.ps1 -Json -FailOnProblem`
 - release imports should use `-RequireReleaseGateEvidence` so MSIX-only return
   archives cannot be mistaken for CPU/matrix release evidence
 - MSIX install evidence capture: `scripts\windows\capture-msix-install-evidence.ps1`
@@ -582,6 +583,9 @@ cargo test --manifest-path .\musu-rs\Cargo.toml `
 ## Known Beta Caveats
 
 - Windows PATH can prefer `C:\Users\empty\.cargo\bin\musu.exe` over the packaged WindowsApps alias. `musu doctor` must keep reporting this.
+- `check-msix-legacy-conflicts.ps1` now emits `musu.msix_legacy_conflicts.v1`
+  JSON and exits nonzero with `-FailOnProblem`; `run-second-pc-release-check.ps1`
+  includes this summary in return zips when present.
 - `openai_compat_local` is not wired into the task runner hot path. Dashboard agent task default must stay on `claude` until runner dispatch is unified.
 - `musu up` currently checks standard dashboard ports, not arbitrary dev smoke ports such as `3002`.
 - Direct `musu up --json | ConvertFrom-Json` is now hardened in source for

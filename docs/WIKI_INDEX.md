@@ -1038,5 +1038,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   1287 files and 2217 symbols. Search terms should include `GOAL v269`,
   `post-evidence go/no-go`, `runtime idle CPU 1/2`, `runtime CPU scenario
   matrix 1/2`, and `p2p-control-plane`.
+- 2026-06-02 MSIX legacy conflict preflight:
+  `scripts\windows\check-msix-legacy-conflicts.ps1` now emits
+  `musu.msix_legacy_conflicts.v1`, supports `-Json`, `-OutputPath`, and
+  `-FailOnProblem`, and is included in second-PC release-check return zips plus
+  imports. Local `HUGH_SECOND` preflight currently has `startup_helper_count=0`,
+  `scheduled_task_count=0`, `legacy_bin_count=0`, WindowsApps alias present,
+  and `alias_shadowing_count=1` because
+  `C:\Users\empty\.cargo\bin\musu.exe` precedes the WindowsApps alias. Search
+  terms should include `GOAL v270`, `wiki/541`,
+  `musu.msix_legacy_conflicts.v1`, `msix_legacy_conflicts_path`,
+  `alias_shadowing_count`, and `check-msix-legacy-conflicts.ps1`.
+- 2026-06-02 index refresh after MSIX legacy conflict preflight docs:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1289 files and 2217 symbols after wiki/541, CoS memory
+  `2026-06-02_0905_kst_msix_legacy_conflict_preflight.md`,
+  BETA/current-status/WIKI/WIKI_INDEX/GOAL updates, and second-PC
+  return/import tooling. Search terms should include `GOAL v271`,
+  `1289 files`, `2217 symbols`, `WindowsApps alias present`,
+  `alias_shadowing_count=1`, and `musu.msix_legacy_conflicts.v1`.
 
 **End of WIKI_INDEX.md.**

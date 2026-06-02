@@ -77,6 +77,10 @@ Canonical references:
 - bridge URL source: dashboard server route마다 `~/.musu/services/bridge.json`를 재해석
 - dashboard/bridge task default adapter: `claude`
 - WindowsApps alias shadowing: beta blocker가 아니라 `doctor` warning
+- MSIX legacy conflict preflight: `check-msix-legacy-conflicts.ps1` emits
+  `musu.msix_legacy_conflicts.v1`; second-PC release checks and return imports
+  now preserve this JSON so stale direct-download/dev binaries cannot silently
+  shadow the packaged WindowsApps alias during release handoff.
 - `musu doctor` bridge `/health` probe timeout is now 10s, not 3s, to avoid false `bridge.status=fail` on slow Windows loopback while the same bridge is reachable by curl/dashboard
 - `smoke-single-machine-beta.ps1` uses readiness retries plus `Start-Process` temp-file command capture so `musu up` can spawn a long-lived bridge without PowerShell job/pipe hangs
 
@@ -679,6 +683,7 @@ Canonical reference:
 - `docs/RELEASE_1_15_0_RC1_EVIDENCE_VERIFIER_REGRESSION_AUDIT_2026_06_02.md` (wiki/538)
 - `docs/RELEASE_1_15_0_RC1_FRONTEND_POLLING_TIMEOUT_AUDIT_2026_06_02.md` (wiki/539)
 - `docs/RELEASE_1_15_0_RC1_QUAL_AUDIT_NEXT_STEPS_2026_06_02_0840.md` (wiki/540)
+- `docs/MSIX_LEGACY_CONFLICT_PREFLIGHT_2026_06_02.md` (wiki/541)
 - `docs/P2P_CONTROL_PLANE_MUSU_PRO_NEXT_ACTIONS_2026_06_02.md`
 - `docs/RELEASE_1_15_0_RC1_QUAL_AUDIT_NEXT_STEPS_2026_06_01.md` (wiki/527)
 - `docs/RUNTIME_RELAY_FALLBACK_NEXT_STEPS_2026_06_01.md` (wiki/530)
@@ -686,6 +691,14 @@ Canonical reference:
 - `docs/STORE_SUBMISSION_METADATA_2026_05_29.md`
 - `docs/DESKTOP_RELEASE_READINESS_AUDIT_2026_05_29.md` (wiki/520)
 - `docs/RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md`
+
+Indexer note:
+
+- 2026-06-02 after wiki/541 and MSIX legacy conflict preflight docs:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1289 files and 2217 symbols. Search terms should include
+  `musu.msix_legacy_conflicts.v1`, `msix_legacy_conflicts_path`,
+  `alias_shadowing_count`, `wiki/541`, and `GOAL v271`.
 
 ## 9. musu-system Integration State (2026-05-29)
 

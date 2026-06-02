@@ -44,6 +44,7 @@ $safeMachine = $machine -replace "[^A-Za-z0-9._-]", "_"
 $summaryPath = Join-Path $OutputRoot "$stamp-$safeMachine.release-check.json"
 $msixEvidencePath = Join-Path $repoRoot ".local-build\msix-install\$stamp-$safeMachine.evidence.json"
 $handoffPath = Join-Path $repoRoot ".local-build\second-pc-handoff\$stamp-$safeMachine.handoff.json"
+$msixLegacyConflictsPath = Join-Path $repoRoot ".local-build\msix-legacy-conflicts\$stamp-$safeMachine.msix-legacy-conflicts.json"
 $runtimeIdleCpuEvidencePath = Join-Path $repoRoot ".local-build\runtime-idle-cpu\$stamp-$safeMachine.desktop-open.evidence.json"
 $runtimeCpuScenarioOutputRoot = Join-Path $repoRoot ".local-build\runtime-cpu-scenarios\$stamp-$safeMachine"
 $processAttributionSummaryPath = Join-Path $repoRoot ".local-build\process-attribution\$stamp-$safeMachine.process-attribution-summary.json"
@@ -53,6 +54,8 @@ $steps = New-Object System.Collections.Generic.List[object]
 $errorText = $null
 $capture = $null
 $handoff = $null
+$msixLegacyConflicts = $null
+$msixLegacyConflictsError = $null
 $runtimeIdleCpu = $null
 $runtimeCpuScenarioMatrix = $null
 $runtimeCpuScenarioMatrixPath = $null
@@ -136,6 +139,17 @@ try {
         -Name "install and verify MSIX" `
         -ScriptName "install-and-verify-msix.ps1" `
         -Arguments $installArgs | Out-Null
+
+    try {
+        $msixLegacyConflicts = Invoke-ReleaseStep `
+            -Name "check MSIX legacy conflicts" `
+            -ScriptName "check-msix-legacy-conflicts.ps1" `
+            -Arguments @("-OutputPath", $msixLegacyConflictsPath, "-Json") `
+            -ParseJson
+    }
+    catch {
+        $msixLegacyConflictsError = $_.Exception.Message
+    }
 
     $capture = Invoke-ReleaseStep `
         -Name "capture MSIX install evidence" `
@@ -285,6 +299,7 @@ if (-not $SkipRuntimeCpuScenarioMatrix -and (Test-Path -LiteralPath $runtimeCpuS
 $returnFiles = @(
     $msixEvidencePath,
     $handoffPath,
+    $msixLegacyConflictsPath,
     $(if (-not $SkipRuntimeIdleCpu) { $runtimeIdleCpuEvidencePath }),
     $runtimeCpuScenarioFiles,
     $processAttributionSummaryPath,
@@ -304,6 +319,11 @@ $result = [pscustomobject]@{
     operator_user = $env:USERNAME
     msix_install_evidence_path = $msixEvidencePath
     second_pc_handoff_path = $handoffPath
+    msix_legacy_conflicts_path = $msixLegacyConflictsPath
+    msix_legacy_conflicts_ok = if ($msixLegacyConflicts) { [bool]$msixLegacyConflicts.ok } else { $false }
+    msix_legacy_conflicts_error = $msixLegacyConflictsError
+    msix_legacy_conflict_count = if ($msixLegacyConflicts) { [int]$msixLegacyConflicts.conflict_count } else { $null }
+    msix_alias_shadowing_count = if ($msixLegacyConflicts) { [int]$msixLegacyConflicts.alias_shadowing_count } else { $null }
     runtime_idle_cpu_evidence_path = if ($SkipRuntimeIdleCpu) { $null } else { $runtimeIdleCpuEvidencePath }
     runtime_cpu_scenario_output_root = if ($SkipRuntimeCpuScenarioMatrix) { $null } else { $runtimeCpuScenarioOutputRoot }
     runtime_cpu_scenario_matrix_path = if ($SkipRuntimeCpuScenarioMatrix) { $null } else { $runtimeCpuScenarioMatrixPath }
@@ -333,7 +353,7 @@ $result | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $summaryPath -Encod
 
 if (-not $NoReturnZip) {
     try {
-        $filesToZip = @($msixEvidencePath, $handoffPath, $(if (-not $SkipRuntimeIdleCpu) { $runtimeIdleCpuEvidencePath }), $runtimeCpuScenarioFiles, $processAttributionSummaryPath, $summaryPath) | Where-Object {
+        $filesToZip = @($msixEvidencePath, $handoffPath, $msixLegacyConflictsPath, $(if (-not $SkipRuntimeIdleCpu) { $runtimeIdleCpuEvidencePath }), $runtimeCpuScenarioFiles, $processAttributionSummaryPath, $summaryPath) | Where-Object {
             (-not [string]::IsNullOrWhiteSpace([string]$_)) -and (Test-Path -LiteralPath $_)
         }
         if ($filesToZip.Count -eq 0) {
@@ -358,6 +378,7 @@ else {
     "summary_path: $((Resolve-Path -LiteralPath $summaryPath).Path)"
     "msix_install_evidence_path: $($result.msix_install_evidence_path)"
     "second_pc_handoff_path: $($result.second_pc_handoff_path)"
+    "msix_legacy_conflicts_path: $(if ($result.msix_legacy_conflicts_path) { $result.msix_legacy_conflicts_path } else { '<not captured>' })"
     "runtime_idle_cpu_evidence_path: $(if ($result.runtime_idle_cpu_evidence_path) { $result.runtime_idle_cpu_evidence_path } else { '<skipped>' })"
     "runtime_cpu_scenario_matrix_path: $(if ($result.runtime_cpu_scenario_matrix_path) { $result.runtime_cpu_scenario_matrix_path } elseif ($SkipRuntimeCpuScenarioMatrix) { '<skipped>' } else { '<not captured>' })"
     "process_attribution_summary_path: $(if ($result.process_attribution_summary_path) { $result.process_attribution_summary_path } else { '<not captured>' })"
@@ -379,6 +400,10 @@ else {
     if ($result.process_attribution_error) {
         ""
         "process_attribution_error: $($result.process_attribution_error)"
+    }
+    if ($result.msix_legacy_conflicts_error) {
+        ""
+        "msix_legacy_conflicts_error: $($result.msix_legacy_conflicts_error)"
     }
     if (-not $result.ok) {
         ""

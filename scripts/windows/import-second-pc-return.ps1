@@ -153,6 +153,7 @@ $extractRoot = (Resolve-Path -LiteralPath $extractRoot).Path
 
 $sourceMsixEvidence = Resolve-LatestJsonBySchema -Root $extractRoot -Schema "musu.msix_install_evidence.v1" -Label "MSIX install evidence"
 $sourceHandoff = Resolve-LatestFile -Root $extractRoot -Filter "*.handoff.json" -Label "second-PC handoff"
+$sourceMsixLegacyConflicts = Resolve-LatestJsonBySchema -Root $extractRoot -Schema "musu.msix_legacy_conflicts.v1" -Label "MSIX legacy conflict summary" -Optional
 $sourceRuntimeIdleCpuEvidence = Resolve-LatestRuntimeIdleReleaseEvidence -Root $extractRoot -Optional
 $sourceRuntimeCpuScenarioMatrix = Resolve-LatestJsonBySchema -Root $extractRoot -Schema "musu.runtime_cpu_scenario_matrix.v1" -Label "runtime CPU scenario matrix" -Optional
 $sourceProcessAttributionSummary = Resolve-LatestJsonBySchema -Root $extractRoot -Schema "musu.process_attribution_summary.v1" -Label "process attribution summary" -Optional
@@ -162,6 +163,12 @@ $sourceReleaseCheck = Get-ChildItem -LiteralPath $extractRoot -Filter "*.release
 
 $canonicalMsixEvidence = Copy-IntoRoot -SourcePath $sourceMsixEvidence -TargetRoot (Join-Path $repoRoot ".local-build\msix-install")
 $canonicalHandoff = Copy-IntoRoot -SourcePath $sourceHandoff -TargetRoot (Join-Path $repoRoot ".local-build\second-pc-handoff")
+$canonicalMsixLegacyConflicts = if ($sourceMsixLegacyConflicts) {
+    Copy-IntoRoot -SourcePath $sourceMsixLegacyConflicts -TargetRoot (Join-Path $repoRoot ".local-build\msix-legacy-conflicts")
+}
+else {
+    $null
+}
 $canonicalRuntimeIdleCpuEvidence = if ($sourceRuntimeIdleCpuEvidence) {
     Copy-IntoRoot -SourcePath $sourceRuntimeIdleCpuEvidence -TargetRoot (Join-Path $repoRoot ".local-build\runtime-idle-cpu")
 }
@@ -285,6 +292,7 @@ $result = [pscustomobject]@{
     extract_root = $extractRoot
     msix_install_evidence_path = $canonicalMsixEvidence
     handoff_path = $canonicalHandoff
+    msix_legacy_conflicts_path = $canonicalMsixLegacyConflicts
     runtime_idle_cpu_evidence_path = $canonicalRuntimeIdleCpuEvidence
     runtime_cpu_scenario_matrix_path = $canonicalRuntimeCpuScenarioMatrix
     process_attribution_summary_path = $canonicalProcessAttributionSummary
@@ -310,6 +318,7 @@ else {
     "return_zip: $($result.return_zip_path)"
     "msix_install_evidence: $($result.msix_install_evidence_path)"
     "handoff: $($result.handoff_path)"
+    "msix_legacy_conflicts: $(if ($result.msix_legacy_conflicts_path) { $result.msix_legacy_conflicts_path } else { '<not present>' })"
     "runtime_idle_cpu_evidence: $(if ($result.runtime_idle_cpu_evidence_path) { $result.runtime_idle_cpu_evidence_path } else { '<not present>' })"
     "runtime_cpu_scenario_matrix: $(if ($result.runtime_cpu_scenario_matrix_path) { $result.runtime_cpu_scenario_matrix_path } else { '<not present>' })"
     "process_attribution_summary: $(if ($result.process_attribution_summary_path) { $result.process_attribution_summary_path } else { '<not present>' })"

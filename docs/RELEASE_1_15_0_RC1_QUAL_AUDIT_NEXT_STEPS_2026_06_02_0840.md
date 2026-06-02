@@ -115,7 +115,9 @@ P0:
 
 P1:
 
-- Add an operator preflight for WindowsApps alias shadowing.
+- Keep the new machine-readable MSIX legacy conflict preflight in second-PC and
+  Store handoff packets; it now reports WindowsApps alias shadowing through
+  `musu.msix_legacy_conflicts.v1`.
 - Keep stale bridge registry cleanup visible in desktop/startup status.
 - Continue suppressing or downgrading expected mDNS/Tailscale IPv6 send errors
   when mDNS is explicitly enabled.

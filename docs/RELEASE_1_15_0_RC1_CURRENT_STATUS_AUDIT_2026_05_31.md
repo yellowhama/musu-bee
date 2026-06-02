@@ -475,3 +475,19 @@ runtime-polling contract 7/7, `npm run typecheck`, `npm run build`, and
 busy-loop candidate, but it is runtime source: fresh MSIX install plus primary
 smoke/process/desktop-open CPU/matrix evidence must be rerun after commit before
 current-HEAD release evidence can be claimed again.
+
+2026-06-02 09:05 KST MSIX legacy conflict preflight addendum:
+`scripts\windows\check-msix-legacy-conflicts.ps1` now emits
+`musu.msix_legacy_conflicts.v1` JSON, supports `-OutputPath`, `-Json`, and
+`-FailOnProblem`, and is wired into `run-second-pc-release-check.ps1` plus
+`import-second-pc-return.ps1`. This captures active legacy startup helpers,
+legacy scheduled tasks, `~\.musu\bin` executables, WindowsApps alias presence,
+all discovered `musu.exe` command sources, and any alias paths that shadow the
+packaged WindowsApps alias. Local `HUGH_SECOND` validation currently reports
+startup helpers `0`, scheduled tasks `0`, legacy bin artifacts `0`, WindowsApps
+alias present, and alias shadowing `1` because
+`C:\Users\empty\.cargo\bin\musu.exe` appears before
+`C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe`. This is an
+operator-shell cleanliness issue, not a new runtime CPU-loop finding. It should
+stay visible in second-PC and Store handoff packets so future evidence does not
+accidentally test an unpackaged dev binary.
