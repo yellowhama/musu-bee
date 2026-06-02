@@ -1239,5 +1239,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260602-115359-HUGH_SECOND.runtime-cpu-scenario-matrix`,
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_115359`, `musu@musu.pro`, and
   `p2p_control_plane=false`.
+- 2026-06-02 current operator action pack after evidence audit:
+  clean HEAD `ef80aa94d76db4b08ca0866f6bc29c2ed889bdc4` generated final packet
+  `musu-final-operator-gates-1.15.0-rc.1-20260602-121850.zip` and operator
+  action pack `MUSU-1.15.0-rc.1-operator-action-pack-20260602-121918.zip`;
+  both verify with `ok=true`, `fail_count=0`. Search terms should include
+  `GOAL v292`, `20260602-121850`, `20260602-121918`,
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260602-121918`,
+  `MUSU-1.15.0-rc.1-store-submission-20260602-121918`, and
+  `musu-store-support-1.15.0-rc.1-20260602-121850`.
+- 2026-06-02 index refresh after current operator action pack:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1322 files and 2221 symbols after CoS memory
+  `2026-06-02_1222_kst_current_operator_action_pack_after_evidence_audit.md`,
+  current action pack/final packet documentation, WIKI/WIKI_INDEX/GOAL/BETA,
+  current-status, and current-head evidence report updates. Search terms
+  should include `GOAL v293`, `1322 files`, `20260602-121850`,
+  `20260602-121918`,
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260602-121918`, and
+  `musu-store-support-1.15.0-rc.1-20260602-121850`.
 
 **End of WIKI_INDEX.md.**

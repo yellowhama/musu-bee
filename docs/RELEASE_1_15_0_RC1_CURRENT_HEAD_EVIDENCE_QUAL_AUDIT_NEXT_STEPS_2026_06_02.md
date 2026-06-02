@@ -163,3 +163,21 @@ new local code defect found during this audit.
    - Keep process attribution visible so operator reports of many Node.js
      processes can distinguish MUSU-owned, repo-related, and unrelated tools.
 
+## Current Operator Handoff Artifacts
+
+2026-06-02 12:22 KST update: the latest handoff artifacts were regenerated from
+clean HEAD `ef80aa94d76db4b08ca0866f6bc29c2ed889bdc4` after this audit.
+
+- final packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260602-121850.zip`
+- operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-121918.zip`
+- second-PC transfer zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-121918\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-121918.zip`
+- Partner Center zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-121918\partner-center\MUSU-1.15.0-rc.1-store-submission-20260602-121918.zip`
+- support verification id:
+  `musu-store-support-1.15.0-rc.1-20260602-121850`
+
+Both `verify-final-operator-gate-packet.ps1` and
+`verify-operator-action-pack.ps1` passed with `ok=true`, `fail_count=0`.

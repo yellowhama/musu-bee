@@ -615,3 +615,20 @@ The primary busy-loop report remains un-reproduced in current evidence, but
 public release is still blocked by second-PC runtime/route evidence, live
 owner-scoped `musu.pro` P2P control-plane evidence, `musu@musu.pro` mailbox
 evidence, and Store/Partner Center evidence.
+
+2026-06-02 12:22 KST operator action pack refresh addendum: clean HEAD
+`ef80aa94d76db4b08ca0866f6bc29c2ed889bdc4` regenerated the final operator
+packet and action pack after the current-head evidence/qual audit. Final packet
+`.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260602-121850.zip`
+verifies with `ok=true`, `fail_count=0`, `kit_count=1`; latest alias
+`.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip`
+also verifies. Operator action pack
+`.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-121918.zip`
+verifies with `ok=true`, `fail_count=0`. The current second-PC transfer zip is
+`.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-121918\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-121918.zip`;
+the Partner Center zip is
+`.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-121918\partner-center\MUSU-1.15.0-rc.1-store-submission-20260602-121918.zip`;
+the support verification id is `musu-store-support-1.15.0-rc.1-20260602-121850`.
+Next operator action is to run the new second-PC transfer zip on the other
+Windows PC without skip flags and import the returned
+`.local-build\second-pc-return\*.zip` with `-RequireReleaseGateEvidence`.

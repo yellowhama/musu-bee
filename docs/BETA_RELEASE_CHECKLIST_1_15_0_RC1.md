@@ -638,6 +638,19 @@ Tauri desktop shell evidence:
   and blockers `multi-device`, `runtime-idle-cpu`,
   `runtime-cpu-scenario-matrix`, `p2p-control-plane`, `support-mailbox`, and
   `store-release`. Canonical public support address remains `musu@musu.pro`.
+- 2026-06-02 12:22 KST current operator action pack refresh:
+  clean HEAD `ef80aa94d76db4b08ca0866f6bc29c2ed889bdc4` generated final
+  packet
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260602-121850.zip`
+  and operator action pack
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-121918.zip`;
+  both verify with `ok=true`, `fail_count=0`. The current second-PC transfer
+  zip is
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-121918\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-121918.zip`.
+  The current Partner Center zip is
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-121918\partner-center\MUSU-1.15.0-rc.1-store-submission-20260602-121918.zip`.
+  The current support verification id is
+  `musu-store-support-1.15.0-rc.1-20260602-121850`.
 
 Release candidate manifest:
 
