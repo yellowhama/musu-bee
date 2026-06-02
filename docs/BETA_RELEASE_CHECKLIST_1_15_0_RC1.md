@@ -1621,3 +1621,38 @@ Validation:
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_MSIX_ALIAS_SHADOWING_HARDENING_2026_06_03.md`
+
+## 2026-06-03 04:30 KST External Gate Recheck
+
+Current HEAD `c7b0d599` still reports public No-Go, with
+`local_artifacts_ready=True` and local package/single-machine gates passing.
+
+Second-PC reachability:
+
+- command: `Test-NetConnection 192.168.1.192 -Port 8949`
+- source: `192.168.1.154`
+- interface: `이더넷 2`
+- `PingSucceeded=False`
+- `TcpTestSucceeded=False`
+
+Fresh P2P live evidence:
+
+- evidence:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-043017-musu.pro.evidence.json`
+- verification:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-043017-musu.pro.verification.json`
+- summary:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-043017-musu.pro.summary.md`
+
+The P2P verifier still reports `ok=false`, `fail_count=4`: relay status is
+logged in and path-selection/rendezvous/lease wiring pass, but relay leases are
+not ok and owner scope is not verified. `relay_default_data_path=false`, and the
+live error remains `p2p_relay_lease_kv_not_configured`.
+
+P2P env status still has `MUSU_P2P_CONTROL_TOKEN_SHA256S` but lacks
+`KV_REST_API_URL_OR_UPSTASH_REDIS_REST_URL` and
+`KV_REST_API_TOKEN_OR_UPSTASH_REDIS_REST_TOKEN`.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_EXTERNAL_GATE_RECHECK_2026_06_03_0430.md`

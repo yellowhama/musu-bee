@@ -2047,4 +2047,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `wiki/584 index refresh`, `AliasShadowing`, and
   `AlternateAliasSources`.
 
+- 2026-06-03 external gate recheck 04:30:
+  `RELEASE_1_15_0_RC1_EXTERNAL_GATE_RECHECK_2026_06_03_0430.md` (wiki/585)
+  records the fresh second-PC reachability failure and fresh live P2P evidence
+  `20260603-043017-musu.pro`. Search terms should include `GOAL v377`,
+  `wiki/585`, `20260603-043017-musu.pro.evidence.json`,
+  `PingSucceeded=False`, `TcpTestSucceeded=False`,
+  `p2p_relay_lease_kv_not_configured`,
+  `KV_REST_API_URL_OR_UPSTASH_REDIS_REST_URL`, and
+  `KV_REST_API_TOKEN_OR_UPSTASH_REDIS_REST_TOKEN`.
+
+- 2026-06-03 external gate recheck index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1561 files and 2274 symbols after GOAL v377-v378, wiki/585, fresh
+  P2P evidence `20260603-043017-musu.pro`, the external gate recheck report,
+  and CoS memories. Search terms should include `GOAL v378`, `1561 files`,
+  `2274 symbols`, `wiki/585 index refresh`, `PingSucceeded=False`, and
+  `TcpTestSucceeded=False`.
+
 **End of WIKI_INDEX.md.**

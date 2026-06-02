@@ -1435,3 +1435,34 @@ Validation:
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_MSIX_ALIAS_SHADOWING_HARDENING_2026_06_03.md`
+
+## 2026-06-03 04:30 KST External Gate Recheck
+
+Current HEAD `c7b0d599` remains public No-Go, but local artifacts stay clean:
+`local_artifacts_ready=True`, `single_machine_verified=True`,
+`msix_install_verified=True`, and `msix_desktop_entrypoint_verified=True`.
+
+Second-PC reachability recheck:
+
+- `Test-NetConnection 192.168.1.192 -Port 8949`
+- source `192.168.1.154`
+- interface `이더넷 2`
+- `PingSucceeded=False`
+- `TcpTestSucceeded=False`
+
+Fresh live P2P evidence was recorded with the packaged WindowsApps alias:
+
+- `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-043017-musu.pro.evidence.json`
+- `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-043017-musu.pro.verification.json`
+- `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-043017-musu.pro.summary.md`
+
+Verification is still `ok=false`, `fail_count=4`. Relay status is logged in
+and route/rendezvous/lease wiring pass, `relay_default_data_path=false`, but
+relay leases are not ok and owner scope is not verified. Live detail remains
+`p2p_relay_lease_kv_not_configured`; env status still lacks
+`KV_REST_API_URL_OR_UPSTASH_REDIS_REST_URL` and
+`KV_REST_API_TOKEN_OR_UPSTASH_REDIS_REST_TOKEN`.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_EXTERNAL_GATE_RECHECK_2026_06_03_0430.md`

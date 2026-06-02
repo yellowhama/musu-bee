@@ -1876,3 +1876,26 @@ Canonical reference:
 
 Index refresh after wiki/584 recorded `1555` files and `2274` symbols using the
 explicit packaged WindowsApps alias invocation.
+
+## 15. External Gate Recheck 04:30 (2026-06-03)
+
+wiki/585 records the fresh external gate recheck from HEAD `c7b0d599`.
+Second-PC `192.168.1.192:8949` remains unreachable from `HUGH_SECOND`
+(`PingSucceeded=False`, `TcpTestSucceeded=False`, source `192.168.1.154`,
+interface `이더넷 2`).
+
+Fresh live P2P evidence `20260603-043017-musu.pro` was recorded using the
+explicit packaged WindowsApps alias. Verification remains `ok=false` with
+`fail_count=4`: relay status is logged in and route/rendezvous/lease wiring
+pass, `relay_default_data_path=false`, but relay leases are not ok and owner
+scope is not verified. Live detail remains `p2p_relay_lease_kv_not_configured`;
+env status still lacks `KV_REST_API_URL_OR_UPSTASH_REDIS_REST_URL` and
+`KV_REST_API_TOKEN_OR_UPSTASH_REDIS_REST_TOKEN`.
+
+Canonical reference:
+
+- `docs/RELEASE_1_15_0_RC1_EXTERNAL_GATE_RECHECK_2026_06_03_0430.md`
+- `docs/memory/chief_of_staff/2026-06-03_external_gate_recheck_0430.md`
+
+Index refresh after wiki/585 recorded `1561` files and `2274` symbols using the
+explicit packaged WindowsApps alias invocation.
