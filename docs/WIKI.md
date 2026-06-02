@@ -749,6 +749,24 @@ Indexer note:
   `2026-06-02_0954_kst_local_auth_operator_packet_refresh.md` and packet
   refresh docs. Search terms should include `GOAL v279`, `1295 files`, and
   `MUSU-second-PC-transfer-1.15.0-rc.1-20260602-095354`.
+- 2026-06-02 health poll backoff hardening:
+  wiki/544 records that `musu up` bridge startup wait and auto-update
+  post-swap `/health` polling now use capped 250ms -> 500ms -> 1s -> 2s
+  backoff instead of a fixed 500ms cadence. Targeted Rust validation passed
+  `cargo test --manifest-path .\musu-rs\Cargo.toml --lib -j 1
+  health_poll_delay` with 2/2 tests, and `git diff --check` passed. This
+  reduces a local busy-loop candidate but does not close the release CPU gate;
+  fresh MSIX primary evidence is required because Rust runtime source changed.
+  Search terms should include `wiki/544`, `health_poll_delay`,
+  `bridge_health_poll_delay`, `250ms`, `2s`, and `fresh MSIX primary
+  evidence`.
+- 2026-06-02 index refresh after health poll backoff hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1297 files and 2221 symbols after wiki/544, CoS memory
+  `2026-06-02_1012_kst_health_poll_backoff_hardening.md`, Rust health poll
+  backoff tests, and current release docs. Search terms should include
+  `GOAL v281`, `1297 files`, `2221 symbols`, `health_poll_delay`, and
+  `bridge_health_poll_delay`.
 
 ## 9. musu-system Integration State (2026-05-29)
 

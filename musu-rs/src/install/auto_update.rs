@@ -34,6 +34,9 @@ use super::staged_swap;
 use super::update_lock::{UpdateLock, LOCK_HELD_EXIT_CODE};
 use super::AutoUpdateOpts;
 
+const HEALTH_POLL_INITIAL_MS: u64 = 250;
+const HEALTH_POLL_MAX_MS: u64 = 2_000;
+
 // ── S4 / S9 typed config + manifest ───────────────────────────────────────
 
 /// Strict enum for the `source` field. Refuses unknown values at load.
@@ -809,6 +812,7 @@ fn run_schema_precheck(staged: &Path) -> Result<bool> {
 /// Poll the local bridge `/health` endpoint for 30s. Returns Ok on first 200.
 async fn poll_health(home: &Path, deadline: Duration) -> Result<()> {
     let start = std::time::Instant::now();
+    let mut attempt = 0_u32;
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(3))
         .build()?;
@@ -817,13 +821,30 @@ async fn poll_health(home: &Path, deadline: Duration) -> Result<()> {
     while start.elapsed() < deadline {
         match client.get(&health_url).send().await {
             Ok(r) if r.status().is_success() => return Ok(()),
-            _ => tokio::time::sleep(Duration::from_millis(500)).await,
+            _ => {
+                let remaining = deadline.saturating_sub(start.elapsed());
+                if remaining.is_zero() {
+                    break;
+                }
+                let delay = health_poll_delay(attempt).min(remaining);
+                attempt = attempt.saturating_add(1);
+                tokio::time::sleep(delay).await;
+            }
         }
     }
     Err(anyhow!(
         "health probe did not return 200 within {:?}",
         deadline
     ))
+}
+
+fn health_poll_delay(attempt: u32) -> Duration {
+    let multiplier = 1_u64 << attempt.min(3);
+    Duration::from_millis(
+        HEALTH_POLL_INITIAL_MS
+            .saturating_mul(multiplier)
+            .min(HEALTH_POLL_MAX_MS),
+    )
 }
 
 /// Send an IPC line to the supervisor (Unix socket or Named Pipe).
@@ -895,6 +916,14 @@ async fn run_git_pull_build(home: &Path) -> Result<()> {
 mod tests {
     use super::*;
     use tempfile::TempDir;
+
+    #[test]
+    fn health_poll_delay_backs_off_and_caps() {
+        let samples: Vec<u64> = (0..6)
+            .map(|attempt| health_poll_delay(attempt).as_millis() as u64)
+            .collect();
+        assert_eq!(samples, vec![250, 500, 1_000, 2_000, 2_000, 2_000]);
+    }
 
     #[test]
     fn validate_github_repo_accepts_typical() {

@@ -979,3 +979,27 @@ Audit result:
   CPU matrix `1/2 [HUGH_SECOND]`, multi-device false, support mailbox false,
   Store false, and P2P control-plane false because production relay lease KV is
   not configured.
+
+## 2026-06-02 Health Poll Backoff Hardening
+
+`musu up` bridge startup wait and auto-update post-swap `/health` polling now
+use capped backoff: 250ms, 500ms, 1s, then 2s max. This replaces fixed 500ms
+retry cadence in the remaining local Rust health-polling paths while preserving
+their existing deadlines.
+
+Validation:
+
+- `cargo test --manifest-path .\musu-rs\Cargo.toml --lib -j 1 health_poll_delay`
+  passed 2/2 targeted tests.
+- `git diff --check` passed.
+
+Roadmap impact:
+
+- This reduces a local busy-loop candidate but does not close the CPU gate.
+- Because runtime Rust source changed, fresh MSIX primary evidence is required
+  before current HEAD can claim primary runtime CPU/matrix validity again.
+- The next runtime proof remains: fresh primary package evidence, then
+  second-PC runtime idle CPU and four-state matrix evidence.
+- P2P relay/control-plane remains separate: provision production KV/Upstash,
+  rerun live owner-scoped relay lease evidence, then complete relay payload or
+  direct QUIC/TLS route proof.

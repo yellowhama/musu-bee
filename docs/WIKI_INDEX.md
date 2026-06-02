@@ -1129,5 +1129,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2026-06-02_0954_kst_local_auth_operator_packet_refresh.md` and packet
   refresh docs. Search terms should include `GOAL v279`, `1295 files`,
   `2217 symbols`, and `MUSU-second-PC-transfer-1.15.0-rc.1-20260602-095354`.
+- 2026-06-02 health poll backoff hardening:
+  `musu up` bridge startup wait and auto-update post-swap `/health` polling now
+  use capped 250ms -> 500ms -> 1s -> 2s backoff instead of a fixed 500ms retry
+  cadence. `cargo test --manifest-path .\musu-rs\Cargo.toml --lib -j 1
+  health_poll_delay` passed 2/2 and `git diff --check` passed. This is
+  wiki/544 and a busy-loop candidate reduction only; fresh MSIX primary
+  runtime evidence is still required after commit. Search terms should include
+  `GOAL v280`, `wiki/544`, `health_poll_delay`,
+  `bridge_health_poll_delay`, and `fresh MSIX primary evidence`.
+- 2026-06-02 index refresh after health poll backoff hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1297 files and 2221 symbols after wiki/544, CoS memory
+  `2026-06-02_1012_kst_health_poll_backoff_hardening.md`, Rust health poll
+  backoff tests, WIKI/WIKI_INDEX/GOAL/current-status/BETA/runtime-roadmap
+  updates, and the health poll backoff assessment doc. Search terms should
+  include `GOAL v281`, `1297 files`, `2221 symbols`, `health_poll_delay`, and
+  `bridge_health_poll_delay`.
 
 **End of WIKI_INDEX.md.**

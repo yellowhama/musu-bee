@@ -526,3 +526,15 @@ Operator action pack
 also verifies with `ok=true` and `fail_count=0`. The current second-PC transfer
 zip is
 `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-093312\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-093312.zip`.
+
+2026-06-02 10:12 KST health poll backoff hardening addendum: `musu up` bridge
+startup wait and auto-update post-swap `/health` polling now use capped 250ms
+-> 500ms -> 1s -> 2s backoff instead of a fixed 500ms cadence. Targeted Rust
+validation passed `cargo test --manifest-path .\musu-rs\Cargo.toml --lib -j 1
+health_poll_delay` with 2/2 tests, and `git diff --check` passed. This is a
+local busy-loop candidate reduction, not release evidence. Because Rust runtime
+source changed, current-HEAD release status remains No-Go until fresh primary
+MSIX smoke/process/desktop-open CPU/matrix evidence is regenerated and a second
+Windows PC returns matching runtime evidence. Existing blockers also remain:
+release-grade route proof, live KV-backed `musu.pro` P2P owner-scope evidence,
+`musu@musu.pro` mailbox evidence, and Store/Partner Center evidence.

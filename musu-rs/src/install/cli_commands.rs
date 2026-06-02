@@ -17,6 +17,8 @@ use crate::bridge::route_evidence::{
 use super::shares::SharesConfig;
 
 const BRIDGE_HEALTH_TIMEOUT_SECS: u64 = 10;
+const BRIDGE_HEALTH_POLL_INITIAL_MS: u64 = 250;
+const BRIDGE_HEALTH_POLL_MAX_MS: u64 = 2_000;
 
 // ── V27 CLI option structs ──────────────────────────────────────────────
 
@@ -1854,14 +1856,30 @@ fn env_truthy(name: &str) -> bool {
 async fn wait_for_bridge(home: &std::path::Path, timeout: std::time::Duration) -> DoctorBridge {
     let deadline = std::time::Instant::now() + timeout;
     let mut last = check_bridge(home).await;
+    let mut attempt = 0_u32;
     while std::time::Instant::now() < deadline {
         if bridge_reachable(&last) {
             return last;
         }
-        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        let now = std::time::Instant::now();
+        if now >= deadline {
+            break;
+        }
+        let delay = bridge_health_poll_delay(attempt).min(deadline.saturating_duration_since(now));
+        attempt = attempt.saturating_add(1);
+        tokio::time::sleep(delay).await;
         last = check_bridge(home).await;
     }
     last
+}
+
+fn bridge_health_poll_delay(attempt: u32) -> std::time::Duration {
+    let multiplier = 1_u64 << attempt.min(3);
+    std::time::Duration::from_millis(
+        BRIDGE_HEALTH_POLL_INITIAL_MS
+            .saturating_mul(multiplier)
+            .min(BRIDGE_HEALTH_POLL_MAX_MS),
+    )
 }
 
 fn bridge_reachable(bridge: &DoctorBridge) -> bool {
@@ -2675,6 +2693,14 @@ mod tests {
     use std::sync::Mutex;
 
     static ENV_LOCK: Mutex<()> = Mutex::new(());
+
+    #[test]
+    fn bridge_health_poll_delay_backs_off_and_caps() {
+        let samples: Vec<u64> = (0..6)
+            .map(|attempt| bridge_health_poll_delay(attempt).as_millis() as u64)
+            .collect();
+        assert_eq!(samples, vec![250, 500, 1_000, 2_000, 2_000, 2_000]);
+    }
 
     #[test]
     fn shared_service_helper_normalizes_wildcards_to_loopback() {

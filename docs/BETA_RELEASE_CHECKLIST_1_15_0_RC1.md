@@ -564,6 +564,16 @@ Tauri desktop shell evidence:
   stale after commit; rebuild/install MSIX and rerun smoke, desktop
   single-instance, process ownership, desktop-open CPU, and matrix evidence
   before treating current HEAD as release-evidence-current.
+- 2026-06-02 10:12 KST health poll backoff hardening:
+  `musu up` bridge startup wait and auto-update post-swap `/health` polling now
+  use capped 250ms -> 500ms -> 1s -> 2s backoff instead of fixed 500ms retry.
+  Targeted Rust validation passed 2/2 via `cargo test --manifest-path
+  .\musu-rs\Cargo.toml --lib -j 1 health_poll_delay`, and `git diff --check`
+  passed. This reduces one local busy-loop candidate but is runtime source;
+  fresh primary MSIX install plus smoke, process ownership, desktop-open CPU,
+  and runtime CPU matrix evidence are required after commit. It does not close
+  the second-PC CPU/matrix, route, P2P control-plane, support mailbox, or Store
+  gates.
 
 Release candidate manifest:
 
