@@ -1146,5 +1146,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   updates, and the health poll backoff assessment doc. Search terms should
   include `GOAL v281`, `1297 files`, `2221 symbols`, `health_poll_delay`, and
   `bridge_health_poll_delay`.
+- 2026-06-02 primary evidence refresh after health poll backoff:
+  wiki/545 records fresh primary MSIX/runtime evidence for clean commit
+  `1990b60b`. Evidence paths include `20260602-104113-HUGH_SECOND.desktop-open`,
+  `20260602-104331-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `20260602-104202-HUGH_SECOND`, desktop single-instance
+  `20260602-104113-HUGH_SECOND`, and process ownership
+  `20260602-104113-HUGH_SECOND`. Search terms should include `GOAL v282`,
+  `wiki/545`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_104331`, `WebView2 0.31`,
+  `runtime idle CPU 1/2`, and `runtime CPU scenario matrix 1/2`.
+- 2026-06-02 index refresh after health poll primary evidence:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1306 files and 2221 symbols after wiki/545, fresh primary evidence files,
+  CoS memory `2026-06-02_1051_kst_health_poll_primary_evidence_refresh.md`,
+  BETA/current-status/runtime-roadmap/WIKI/WIKI_INDEX/GOAL updates, and the
+  health poll primary evidence refresh doc. Search terms should include
+  `GOAL v283`, `1306 files`, `2221 symbols`,
+  `20260602-104113-HUGH_SECOND.desktop-open`,
+  `20260602-104331-HUGH_SECOND.runtime-cpu-scenario-matrix`, and
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_104331`.
 
 **End of WIKI_INDEX.md.**

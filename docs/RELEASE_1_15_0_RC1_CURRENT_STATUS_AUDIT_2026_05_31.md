@@ -538,3 +538,20 @@ MSIX smoke/process/desktop-open CPU/matrix evidence is regenerated and a second
 Windows PC returns matching runtime evidence. Existing blockers also remain:
 release-grade route proof, live KV-backed `musu.pro` P2P owner-scope evidence,
 `musu@musu.pro` mailbox evidence, and Store/Partner Center evidence.
+
+2026-06-02 10:51 KST fresh primary evidence addendum: after the health-poll
+backoff commit, release MSIX build/install succeeded again for
+`Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`. Current primary evidence passes
+on clean commit `1990b60b7e0b9f093c62bc48fa9b101a3f035c1b`: desktop
+single-instance `20260602-104113-HUGH_SECOND`, process ownership
+`20260602-104113-HUGH_SECOND`, single-machine smoke
+`20260602-104202-HUGH_SECOND`, desktop-open CPU
+`20260602-104113-HUGH_SECOND.desktop-open`, and runtime CPU matrix
+`20260602-104331-HUGH_SECOND`. The desktop-open sample has `git_dirty=false`,
+hot `0`, MUSU `0`, Node `0.03`, WebView2 `0.18`, and working set `501.1MB`.
+The matrix has `git_dirty=false`, route token
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260602_104331`, and max WebView2 `0.31`.
+Primary busy-loop is not reproduced. Release remains No-Go because runtime CPU
+and matrix are still only one valid machine until the second Windows PC returns
+matching evidence; multi-device route, live P2P control-plane, mailbox, and
+Store evidence remain open.

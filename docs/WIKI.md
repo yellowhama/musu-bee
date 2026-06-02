@@ -767,6 +767,29 @@ Indexer note:
   backoff tests, and current release docs. Search terms should include
   `GOAL v281`, `1297 files`, `2221 symbols`, `health_poll_delay`, and
   `bridge_health_poll_delay`.
+- 2026-06-02 primary evidence refresh after health poll backoff:
+  wiki/545 records a fresh release MSIX build/install from commit
+  `1990b60b7e0b9f093c62bc48fa9b101a3f035c1b` and current primary evidence.
+  Desktop single-instance `20260602-104113-HUGH_SECOND` passed with one shell;
+  process ownership passed with runtime `1`, desktop `1`, owned Node `0`, owned
+  WebView2 `6`, machine-wide Node `18`; single-machine smoke
+  `20260602-104202-HUGH_SECOND` passed on bridge `http://127.0.0.1:9805`;
+  desktop-open CPU `20260602-104113-HUGH_SECOND.desktop-open` passed with
+  `git_dirty=false`, hot `0`, MUSU `0`, Node `0.03`, WebView2 `0.18`, and
+  working set `501.1MB`; runtime CPU matrix `20260602-104331-HUGH_SECOND`
+  passed with route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_104331` and max
+  WebView2 `0.31`. Release remains No-Go until second-PC CPU/matrix/route,
+  live `musu.pro` P2P relay lease owner-scope evidence, `musu@musu.pro`, and
+  Store evidence pass.
+- 2026-06-02 index refresh after health poll primary evidence:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1306 files and 2221 symbols after wiki/545, fresh primary evidence files,
+  CoS memory `2026-06-02_1051_kst_health_poll_primary_evidence_refresh.md`,
+  BETA/current-status/runtime-roadmap/WIKI/WIKI_INDEX/GOAL updates, and the
+  health poll primary evidence refresh doc. Search terms should include
+  `GOAL v283`, `1306 files`, `20260602-104113-HUGH_SECOND.desktop-open`,
+  `20260602-104331-HUGH_SECOND.runtime-cpu-scenario-matrix`, and
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_104331`.
 
 ## 9. musu-system Integration State (2026-05-29)
 

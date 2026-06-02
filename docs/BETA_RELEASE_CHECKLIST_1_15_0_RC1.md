@@ -574,6 +574,23 @@ Tauri desktop shell evidence:
   and runtime CPU matrix evidence are required after commit. It does not close
   the second-PC CPU/matrix, route, P2P control-plane, support mailbox, or Store
   gates.
+- 2026-06-02 10:51 KST fresh primary evidence after health poll backoff:
+  release MSIX build/install passed for
+  `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`. Current primary evidence now
+  passes on commit `1990b60b7e0b9f093c62bc48fa9b101a3f035c1b`:
+  desktop single-instance
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-104113-HUGH_SECOND.desktop-single-instance.json`,
+  process ownership
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-104113-HUGH_SECOND.process-ownership.json`,
+  single-machine smoke
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-104202-HUGH_SECOND.evidence.json`,
+  desktop-open CPU
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-104113-HUGH_SECOND.desktop-open.evidence.json`,
+  and runtime CPU matrix
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-104331-HUGH_SECOND.runtime-cpu-scenario-matrix.json`.
+  Primary busy-loop is not reproduced: CPU hot `0`, MUSU `0`, Node `0.03`,
+  WebView2 `0.18`; matrix max WebView2 `0.31`. Release remains No-Go because
+  the two-machine CPU/matrix gates still need second-PC evidence.
 
 Release candidate manifest:
 

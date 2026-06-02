@@ -1003,3 +1003,37 @@ Roadmap impact:
 - P2P relay/control-plane remains separate: provision production KV/Upstash,
   rerun live owner-scoped relay lease evidence, then complete relay payload or
   direct QUIC/TLS route proof.
+
+## 2026-06-02 Health Poll Primary Evidence Refresh
+
+After the health-poll backoff change, a fresh release MSIX build/install passed
+again on `HUGH_SECOND` for `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`.
+
+Fresh primary evidence from clean commit
+`1990b60b7e0b9f093c62bc48fa9b101a3f035c1b`:
+
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-104113-HUGH_SECOND.desktop-single-instance.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-104113-HUGH_SECOND.process-ownership.json`
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-104202-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-104113-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-104331-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Runtime result:
+
+- desktop-open CPU: `git_dirty=false`, hot `0`, MUSU `0`, Node `0.03`,
+  WebView2 `0.18`, working set `501.1MB`
+- matrix: `git_dirty=false`, route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_104331`, max WebView2 `0.31`
+- process ownership: runtime `1`, desktop `1`, owned Node `0`, owned WebView2
+  `6`
+
+Roadmap status:
+
+- Primary busy-loop is not reproduced after the health-poll backoff change.
+- Runtime CPU and matrix gates remain `1/2`; the second Windows PC is still the
+  next evidence step.
