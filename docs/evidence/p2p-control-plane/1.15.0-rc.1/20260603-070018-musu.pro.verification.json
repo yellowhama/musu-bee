@@ -1,0 +1,178 @@
+﻿{
+    "ok":  false,
+    "evidence_path":  "F:\\workspace\\musu-bee\\docs\\evidence\\p2p-control-plane\\1.15.0-rc.1\\20260603-070018-musu.pro.evidence.json",
+    "fail_count":  6,
+    "version":  "1.15.0-rc.1",
+    "base_url":  "https://musu.pro",
+    "recorded_at":  "2026-06-03T07:00:18.7029542+09:00",
+    "operator_machine":  "HUGH_SECOND",
+    "relay_status_logged_in":  true,
+    "relay_leases_ok":  false,
+    "owner_scope_verified":  false,
+    "relay_lease_count":  0,
+    "relay_lease_store_configured":  false,
+    "relay_lease_store_backend":  "unconfigured",
+    "relay_lease_store_release_grade":  false,
+    "checks":  [
+                   {
+                       "name":  "schema",
+                       "status":  "pass",
+                       "message":  "schema is valid"
+                   },
+                   {
+                       "name":  "evidence ok",
+                       "status":  "fail",
+                       "message":  "evidence does not report ok=true"
+                   },
+                   {
+                       "name":  "version",
+                       "status":  "pass",
+                       "message":  "version matches 1.15.0-rc.1"
+                   },
+                   {
+                       "name":  "base url",
+                       "status":  "pass",
+                       "message":  "base_url matches https://musu.pro"
+                   },
+                   {
+                       "name":  "recorded timestamp",
+                       "status":  "pass",
+                       "message":  "recorded_at parses"
+                   },
+                   {
+                       "name":  "operator machine",
+                       "status":  "pass",
+                       "message":  "operator_machine is present"
+                   },
+                   {
+                       "name":  "recorded timestamp not future",
+                       "status":  "pass",
+                       "message":  "recorded_at is not in the future"
+                   },
+                   {
+                       "name":  "evidence age",
+                       "status":  "pass",
+                       "message":  "recorded_at is within 14 days"
+                   },
+                   {
+                       "name":  "relay status exit",
+                       "status":  "pass",
+                       "message":  "relay status command exited 0"
+                   },
+                   {
+                       "name":  "relay leases exit",
+                       "status":  "pass",
+                       "message":  "relay leases command exited 0"
+                   },
+                   {
+                       "name":  "relay status schema",
+                       "status":  "pass",
+                       "message":  "relay status schema is valid"
+                   },
+                   {
+                       "name":  "relay status registry url",
+                       "status":  "pass",
+                       "message":  "relay status registry_url matches https://musu.pro"
+                   },
+                   {
+                       "name":  "relay status logged in",
+                       "status":  "pass",
+                       "message":  "relay status is logged in"
+                   },
+                   {
+                       "name":  "bridge path selection wired",
+                       "status":  "pass",
+                       "message":  "bridge path selection is wired"
+                   },
+                   {
+                       "name":  "rendezvous session wired",
+                       "status":  "pass",
+                       "message":  "rendezvous session is wired"
+                   },
+                   {
+                       "name":  "route evidence client wired",
+                       "status":  "pass",
+                       "message":  "route evidence client is wired"
+                   },
+                   {
+                       "name":  "relay lease control-plane wired",
+                       "status":  "pass",
+                       "message":  "relay lease control-plane is wired"
+                   },
+                   {
+                       "name":  "relay runtime fallback wired",
+                       "status":  "pass",
+                       "message":  "runtime relay fallback lease request is wired"
+                   },
+                   {
+                       "name":  "release transport requirement",
+                       "status":  "pass",
+                       "message":  "release transport requirement is quic_tls_1_3"
+                   },
+                   {
+                       "name":  "relay not default data path",
+                       "status":  "pass",
+                       "message":  "relay is not the default data path"
+                   },
+                   {
+                       "name":  "relay leases schema",
+                       "status":  "pass",
+                       "message":  "relay leases schema is valid"
+                   },
+                   {
+                       "name":  "relay leases registry url",
+                       "status":  "pass",
+                       "message":  "relay leases registry_url matches https://musu.pro"
+                   },
+                   {
+                       "name":  "relay leases logged in",
+                       "status":  "pass",
+                       "message":  "relay leases query is logged in"
+                   },
+                   {
+                       "name":  "relay leases ok",
+                       "status":  "fail",
+                       "message":  "relay leases query does not report ok=true"
+                   },
+                   {
+                       "name":  "relay leases owner scope verified",
+                       "status":  "fail",
+                       "message":  "relay leases owner scope is not verified"
+                   },
+                   {
+                       "name":  "relay leases owner scoped",
+                       "status":  "fail",
+                       "message":  "relay leases query is not owner-scoped"
+                   },
+                   {
+                       "name":  "relay leases control-plane wired",
+                       "status":  "pass",
+                       "message":  "relay leases control-plane is wired"
+                   },
+                   {
+                       "name":  "relay leases not default data path",
+                       "status":  "pass",
+                       "message":  "relay leases report relay_default_data_path=false"
+                   },
+                   {
+                       "name":  "relay lease store status present",
+                       "status":  "pass",
+                       "message":  "relay lease store backend is present"
+                   },
+                   {
+                       "name":  "relay lease store configured",
+                       "status":  "fail",
+                       "message":  "relay lease store is not configured"
+                   },
+                   {
+                       "name":  "relay lease store release-grade",
+                       "status":  "fail",
+                       "message":  "relay lease store is not release-grade"
+                   },
+                   {
+                       "name":  "relay leases count present",
+                       "status":  "pass",
+                       "message":  "relay lease count is present"
+                   }
+               ]
+}

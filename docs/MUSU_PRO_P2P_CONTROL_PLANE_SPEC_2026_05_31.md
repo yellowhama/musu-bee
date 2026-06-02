@@ -619,3 +619,22 @@ Product interpretation:
   evidence with `relay_default_data_path=false`.
 - Relay payload transport still requires separate implementation and evidence;
   relay lease status alone is not payload transit proof.
+
+## 2026-06-03 External Recheck CLI Override
+
+`record-external-release-gate-recheck.ps1` now accepts `-MusuExe` and passes it
+through to the live P2P control-plane evidence recorder. This keeps the external
+gate evidence path aligned with current-source CLI schema changes before a new
+MSIX package is rebuilt and installed.
+
+Clean evidence `20260603-065918-HUGH_SECOND.external-gates` used
+`.\musu-rs\target\debug\musu.exe` and produced P2P evidence
+`20260603-070018-musu.pro` with `musu_exe_source=parameter`. The live P2P
+result remains failed: `relay_lease_store_backend=unconfigured`,
+`relay_lease_store_release_grade=false`, and
+`p2p_relay_lease_kv_not_configured`.
+
+This is an evidence fidelity improvement, not a P2P completion. The product
+state remains unchanged: `musu.pro` is the control plane, not the default
+payload data path, until owner-scoped storage and relay/QUIC payload transport
+are implemented and proven.

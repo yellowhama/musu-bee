@@ -1821,3 +1821,43 @@ recorded.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_PRIMARY_EVIDENCE_REFRESH_AFTER_RELAY_STORE_STATUS_2026_06_03.md`
+
+## 2026-06-03 07:00 KST External Recheck CLI Override and Operator Pack
+
+`record-external-release-gate-recheck.ps1` now accepts `-MusuExe` and passes it
+through to `record-p2p-control-plane-evidence.ps1`. This lets the external gate
+recorder capture current-source CLI P2P fields when the installed WindowsApps
+alias is behind the current evidence schema.
+
+Fresh current operator artifacts:
+
+- final packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260603-065454.zip`
+- action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260603-065519.zip`
+- second-PC transfer:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260603-065519\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260603-065519.zip`
+- Partner Center zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260603-065519\partner-center\MUSU-1.15.0-rc.1-store-submission-20260603-065519.zip`
+
+Verification:
+
+- final packet: `ok=true`, `fail_count=0`, `kit_count=1`
+- action pack: `ok=true`, `fail_count=0`
+
+Fresh external evidence:
+
+- external:
+  `docs\evidence\external-gates\1.15.0-rc.1\20260603-065918-HUGH_SECOND.external-gates.evidence.json`
+- P2P:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-070018-musu.pro.evidence.json`
+
+Result remains No-Go: second-PC `192.168.1.192:8949` TCP connect timed out,
+P2P env is missing KV/Upstash storage, and live P2P evidence records
+`relay_lease_store_backend=unconfigured`,
+`relay_lease_store_release_grade=false`, and
+`p2p_relay_lease_kv_not_configured`.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_EXTERNAL_RECHECK_CLI_OVERRIDE_OPERATOR_PACK_2026_06_03.md`

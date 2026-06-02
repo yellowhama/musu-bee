@@ -2221,4 +2221,28 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `wiki/592 index refresh`, `primary evidence refresh index refresh`,
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_063400`, and `85dec851`.
 
+- 2026-06-03 external recheck CLI override and operator pack:
+  `RELEASE_1_15_0_RC1_EXTERNAL_RECHECK_CLI_OVERRIDE_OPERATOR_PACK_2026_06_03.md`
+  (wiki/593) records the `record-external-release-gate-recheck.ps1 -MusuExe`
+  passthrough, current operator packet/action-pack regeneration, and fresh
+  external evidence. Search terms should include `GOAL v393`, `wiki/593`,
+  `p2p_evidence_musu_exe_source=parameter`,
+  `musu-final-operator-gates-1.15.0-rc.1-20260603-065454.zip`,
+  `MUSU-1.15.0-rc.1-operator-action-pack-20260603-065519.zip`,
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260603-065519.zip`,
+  `20260603-065918-HUGH_SECOND.external-gates`,
+  `20260603-070018-musu.pro`, and `relay_lease_store_backend=unconfigured`.
+
+- 2026-06-03 external recheck CLI override index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1615 files and 2279 symbols after GOAL v393, wiki/593,
+  `record-external-release-gate-recheck.ps1` `-MusuExe` passthrough, fresh
+  external evidence `20260603-065918-HUGH_SECOND.external-gates`, P2P evidence
+  `20260603-070018-musu.pro`, the current operator pack report, BETA checklist,
+  P2P spec, WIKI/WIKI_INDEX updates, and CoS memories. Search terms should
+  include `GOAL v394`, `1615 files`, `2279 symbols`,
+  `wiki/593 index refresh`, `external recheck CLI override index refresh`,
+  `p2p_evidence_musu_exe_source`, and `20260603-070018-musu.pro`.
+
 **End of WIKI_INDEX.md.**
