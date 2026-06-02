@@ -1216,3 +1216,35 @@ bridge `127.0.0.1:7644`; desktop-open CPU passed with MUSU `0`, Node `0`,
 WebView2 `0.49`, working set `363.18MB`, hot `0`; matrix passed with token
 `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_213706`. Cleanup stopped bridge PID
 `32264`, desktop PID `34248`, and the temporary dashboard process tree.
+
+## 2026-06-02 21:58 KST P2P KV and Second-PC Recheck
+
+Fresh hosted P2P control-plane evidence:
+
+- `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260602-215651-musu.pro.evidence.json`
+- verification:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260602-215651-musu.pro.verification.json`
+
+Result: still No-Go. The live endpoint is logged in, rendezvous is wired, relay
+lease control-plane is wired, runtime relay fallback is wired, and
+`relay_default_data_path=false`; however relay lease query remains `ok=false`,
+`owner_scope_verified=false`, and `owner_scoped=false` with
+`p2p_relay_lease_kv_not_configured`. GitHub has
+`MUSU_P2P_CONTROL_TOKEN_SHA256S`, but `KV_REST_API_URL` and
+`KV_REST_API_TOKEN` are still missing. Local process/user/machine env also has
+no KV/Upstash values and the repo only has `.env.example`.
+
+Second-PC recheck: `Test-NetConnection 192.168.1.192 -Port 8949` failed
+(`TcpTestSucceeded=false`, ping timeout). The previous `HUGH-MAIN`
+multi-device target is not currently reachable, so fresh two-machine
+CPU/matrix/route evidence cannot be captured from `HUGH_SECOND`.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_KV_SECOND_PC_RECHECK_2026_06_02.md`
+
+2026-06-02 22:00 KST index refresh:
+
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  `1448` files and `2262` symbols after the P2P KV/second-PC recheck docs and
+  fresh hosted P2P evidence.

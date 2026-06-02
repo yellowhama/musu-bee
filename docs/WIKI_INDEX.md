@@ -1696,4 +1696,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2262 symbols`, `2026-06-02_2145_kst_post_cloud_hardware_probe_primary_evidence.md`,
   and `post cloud hardware probe evidence index refresh`.
 
+- 2026-06-02 P2P KV and second-PC recheck:
+  `RELEASE_1_15_0_RC1_P2P_KV_SECOND_PC_RECHECK_2026_06_02.md` (wiki/569)
+  records current hosted P2P and second-PC release blockers. Search terms
+  should include `GOAL v341`, `wiki/569`,
+  `20260602-215651-musu.pro.evidence.json`,
+  `p2p_relay_lease_kv_not_configured`, `KV_REST_API_URL`,
+  `KV_REST_API_TOKEN`, `owner_scope_verified=false`,
+  `relay_default_data_path=false`, `192.168.1.192:8949`,
+  and `TcpTestSucceeded=false`.
+
+- 2026-06-02 index refresh after P2P KV and second-PC recheck:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1448 files and 2262 symbols after wiki/569, GOAL v341/v342, fresh hosted P2P
+  evidence, P2P KV/second-PC docs, WIKI, BETA/current-head updates, and CoS
+  memory. Search terms should include `GOAL v342`, `1448 files`,
+  `2262 symbols`, `2026-06-02_2158_kst_p2p_kv_second_pc_recheck.md`, and
+  `P2P KV second-PC index refresh`.
+
 **End of WIKI_INDEX.md.**

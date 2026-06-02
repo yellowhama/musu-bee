@@ -983,3 +983,27 @@ The 4-state matrix passed with route token
 `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_213706`. Public release remains No-Go
 until second-PC CPU/matrix/route, live P2P owner scope, `musu@musu.pro`, and
 Store evidence pass.
+
+## 2026-06-02 21:58 KST P2P KV and Second-PC Recheck
+
+Fresh `musu.pro` P2P evidence was recorded at
+`docs\evidence\p2p-control-plane\1.15.0-rc.1\20260602-215651-musu.pro.evidence.json`.
+It confirms the current split:
+
+- passing: logged-in relay status, rendezvous wiring, relay lease
+  control-plane wiring, runtime relay fallback wiring, and
+  `relay_default_data_path=false`
+- failing: relay leases `ok=false`, `owner_scope_verified=false`, and
+  `owner_scoped=false`
+- blocker: `p2p_relay_lease_kv_not_configured`
+
+`show-musu-pro-p2p-env-status.ps1 -Json` confirms GitHub has
+`MUSU_P2P_CONTROL_TOKEN_SHA256S` but is missing `KV_REST_API_URL` and
+`KV_REST_API_TOKEN`. Local env has no KV/Upstash values and no secret-bearing
+`.env` file, so this cannot be fixed from this machine without provisioning
+those values.
+
+Second-PC reachability was rechecked against the prior target
+`192.168.1.192:8949`; TCP failed and ping timed out. Fresh two-machine
+CPU/matrix/route evidence still needs the remote PC to expose a reachable MUSU
+bridge or return a fresh evidence zip.

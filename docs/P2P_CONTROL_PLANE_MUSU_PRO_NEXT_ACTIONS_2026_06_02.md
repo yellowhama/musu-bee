@@ -21,6 +21,20 @@ Evidence:
 - Current P2P evidence:
   `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260602-041225-musu.pro.evidence.json`
 
+Fresh 2026-06-02 21:56 KST recheck:
+
+- Current P2P evidence:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260602-215651-musu.pro.evidence.json`
+- Verification:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260602-215651-musu.pro.verification.json`
+- Status: `ok=false`
+- Passing facts: logged in, rendezvous wired, relay lease control-plane wired,
+  runtime relay fallback wired, and `relay_default_data_path=false`
+- Failing facts: relay leases `ok=false`, `owner_scope_verified=false`,
+  `owner_scoped=false`
+- Current blocker:
+  `p2p_relay_lease_kv_not_configured`
+
 Interpretation: `MUSU_P2P_CONTROL_TOKEN_SHA256S` is now accepted in production.
 The API reaches relay lease storage and fails closed because production has no
 KV/Redis storage env.

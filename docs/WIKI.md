@@ -1442,6 +1442,31 @@ Indexer note:
   terms should include `GOAL v340`, `1443 files`, `2262 symbols`,
   `20260602-213706-HUGH_SECOND`, and `post cloud hardware probe evidence`.
 
+- 2026-06-02 P2P KV and second-PC recheck:
+  wiki/569 records fresh hosted P2P evidence
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260602-215651-musu.pro.evidence.json`.
+  `musu.pro` is logged in, rendezvous wired, relay lease control-plane wired,
+  runtime relay fallback wired, and `relay_default_data_path=false`, but relay
+  leases remain `ok=false`, `owner_scope_verified=false`, and
+  `owner_scoped=false` because production KV/Redis is not configured
+  (`p2p_relay_lease_kv_not_configured`). GitHub has
+  `MUSU_P2P_CONTROL_TOKEN_SHA256S`; `KV_REST_API_URL` and
+  `KV_REST_API_TOKEN` are still missing and no local KV/Upstash env values are
+  present. The prior second-PC target `192.168.1.192:8949` is currently
+  unreachable (`TcpTestSucceeded=false`, ping timeout), so fresh two-machine
+  CPU/matrix/route evidence still requires a reachable remote MUSU bridge or a
+  new return zip.
+
+- 2026-06-02 index refresh after P2P KV and second-PC recheck:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1448 files and 2262 symbols after wiki/569, GOAL v341/v342, the fresh hosted
+  P2P evidence, P2P KV/second-PC recheck report, P2P next-actions/spec updates,
+  BETA/current-head/WIKI_INDEX updates, and CoS memory
+  `2026-06-02_2158_kst_p2p_kv_second_pc_recheck.md`. Search terms should
+  include `GOAL v342`, `1448 files`, `2262 symbols`,
+  `20260602-215651-musu.pro.evidence.json`, `p2p_relay_lease_kv_not_configured`,
+  and `TcpTestSucceeded=false`.
+
 ## 9. musu-system Integration State (2026-05-29)
 
 `yellowhama/musu-system` is a credible adjacent MUSU ecosystem line, not a Rust-core replacement. It contains:
