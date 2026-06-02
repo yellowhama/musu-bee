@@ -1360,6 +1360,25 @@ Indexer note:
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_200531`, and
   `post stop/desktop cleanup primary evidence index refresh`.
 
+- 2026-06-02 desktop runtime autostart hardening:
+  wiki/565 records the product decision that desktop activation should start or
+  reuse the bridge runtime. `musu-bee\src-tauri\src\lib.rs` now spawns one
+  background `musu-runtime-autostart` during setup when bridge health is missing
+  or failed, and both autostart/manual `Start Runtime` prefer the packaged
+  sibling `musu.exe` next to `musu-desktop.exe` before PATH fallback. This
+  closes the prior shell-only activation gap and reduces WindowsApps/dev alias
+  shadowing risk. Tauri shell tests passed 7/7; packaged MSIX evidence must be
+  refreshed before current release evidence is clean again.
+
+- 2026-06-02 index refresh after desktop runtime autostart hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1423 files and 2257 symbols after wiki/565, GOAL v333/v334, desktop
+  autostart docs/spec updates, Tauri source updates, WIKI_INDEX, BETA/current
+  report/runtime roadmap updates, and CoS memory
+  `2026-06-02_2030_kst_desktop_runtime_autostart_hardening.md`. Search terms
+  should include `GOAL v334`, `1423 files`, `2257 symbols`,
+  `musu-runtime-autostart`, and `desktop runtime autostart index refresh`.
+
 ## 9. musu-system Integration State (2026-05-29)
 
 `yellowhama/musu-system` is a credible adjacent MUSU ecosystem line, not a Rust-core replacement. It contains:

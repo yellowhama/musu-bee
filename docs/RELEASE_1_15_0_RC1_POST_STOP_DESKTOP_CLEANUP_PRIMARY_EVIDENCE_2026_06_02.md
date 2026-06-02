@@ -96,5 +96,6 @@ Remaining blockers:
    live owner-scoped relay evidence without `-AllowUnverified`.
 3. Record `musu@musu.pro` inbox delivery evidence.
 4. Prepare Partner Center reservation/submission/certification evidence.
-5. Decide whether desktop activation should automatically start the bridge, or
-   keep `musu up` as the explicit runtime-start contract.
+5. Rebuild the MSIX after the desktop runtime autostart hardening and prove that
+   desktop activation starts or reuses the bridge runtime without a separate
+   manual `musu up`.

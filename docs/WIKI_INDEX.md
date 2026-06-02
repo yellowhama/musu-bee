@@ -1624,4 +1624,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2251 symbols`, `2026-06-02_2010_kst_post_stop_desktop_primary_evidence_refresh.md`,
   and `post stop/desktop cleanup primary evidence index refresh`.
 
+- 2026-06-02 desktop runtime autostart hardening:
+  `RELEASE_1_15_0_RC1_DESKTOP_RUNTIME_AUTOSTART_HARDENING_2026_06_02.md`
+  (wiki/565) records the Tauri desktop product/runtime-start contract update.
+  Search terms should include `GOAL v333`, `wiki/565`,
+  `musu-runtime-autostart`, `musu_command_path_for_current_exe`,
+  `packaged sibling musu.exe`, `desktop activation starts bridge`,
+  `developer alias shadowing`, and `Tauri shell tests 7/7`.
+
+- 2026-06-02 index refresh after desktop runtime autostart hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1423 files and 2257 symbols after wiki/565, GOAL v333/v334, desktop runtime
+  autostart source/docs/spec updates, WIKI, BETA/current-head/runtime roadmap
+  updates, and CoS memory. Search terms should include `GOAL v334`,
+  `1423 files`, `2257 symbols`,
+  `2026-06-02_2030_kst_desktop_runtime_autostart_hardening.md`, and
+  `desktop runtime autostart index refresh`.
+
 **End of WIKI_INDEX.md.**

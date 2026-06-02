@@ -868,3 +868,30 @@ evidence.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_STOP_DESKTOP_CLEANUP_PRIMARY_EVIDENCE_2026_06_02.md`
+
+## 2026-06-02 Desktop Runtime Autostart Hardening
+
+The product spec is now stricter: opening MUSU Desktop should start or reuse the
+bridge runtime. The Tauri shell now starts a one-shot background runtime
+autostart during setup when the registered bridge is missing or unhealthy.
+
+The manual `Start Runtime` command and the autostart path now prefer the
+packaged sibling `musu.exe` next to `musu-desktop.exe` before falling back to
+PATH. This prevents the known developer-alias shadowing issue where
+`C:\Users\empty\.cargo\bin\musu.exe` can be selected instead of the installed
+package runtime.
+
+Validation passed:
+
+- `cargo fmt --manifest-path .\musu-bee\src-tauri\Cargo.toml`
+- `cargo test --manifest-path .\musu-bee\src-tauri\Cargo.toml -- --test-threads=1`
+  7/7
+- `git diff --check`
+
+Release caveat: this is Tauri desktop source, so packaged primary evidence is
+stale again until the MSIX is rebuilt/installed and desktop activation proves
+the bridge runtime is present without a separate manual `musu up`.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_DESKTOP_RUNTIME_AUTOSTART_HARDENING_2026_06_02.md`

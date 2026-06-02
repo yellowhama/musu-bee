@@ -1226,3 +1226,16 @@ current packaged build, but public release remains No-Go until the same CPU and
 matrix proof returns from a real second PC, multi-device route evidence passes,
 the live `musu.pro` P2P control plane is owner-scope verified, and support/Store
 external evidence is recorded.
+
+## 2026-06-02 Desktop Runtime Autostart Hardening
+
+The runtime-start contract moved from "operator must manually run `musu up`" to
+"desktop activation starts or reuses the bridge runtime." The Tauri shell now
+spawns one background autostart attempt during setup only when bridge health is
+missing or failed.
+
+The command path also now prefers the packaged sibling `musu.exe` next to
+`musu-desktop.exe`, avoiding developer PATH alias shadowing. Source validation
+passed the Tauri shell unit suite 7/7. The next required gate is packaged MSIX
+evidence showing desktop activation leaves runtime `1`, desktop `1`, no MUSU
+owned Node leak, and idle CPU under budget.

@@ -23,6 +23,7 @@ pub fn run() {
                         .build(),
                 )?;
             }
+            spawn_runtime_autostart();
             Ok(())
         })
         .run(tauri::generate_context!())
@@ -81,9 +82,9 @@ fn desktop_status() -> DesktopStatus {
 
 #[tauri::command]
 fn start_runtime() -> Result<CommandResult, String> {
-    let command = musu_command_name();
-    let result = run_command_with_timeout(command, &["up", "--json"], START_RUNTIME_TIMEOUT)
-        .map_err(|err| format!("failed to run {command} up --json: {err}"))?;
+    let command = musu_command_path();
+    let result = run_command_with_timeout(&command, &["up", "--json"], START_RUNTIME_TIMEOUT)
+        .map_err(|err| format!("failed to run {} up --json: {err}", command.display()))?;
 
     let stdout = result.stdout.trim().to_string();
     let stderr = result.stderr.trim().to_string();
@@ -338,7 +339,70 @@ fn is_allowed_dashboard_url(url: &str) -> bool {
     port.parse::<u16>().is_ok_and(|value| value > 0)
 }
 
-fn musu_command_name() -> &'static str {
+fn spawn_runtime_autostart() {
+    let _ = std::thread::Builder::new()
+        .name("musu-runtime-autostart".to_string())
+        .spawn(|| {
+            let home = musu_home();
+            if bridge_is_healthy(&home) {
+                return;
+            }
+
+            let command = musu_command_path();
+            match run_command_with_timeout(&command, &["up", "--json"], START_RUNTIME_TIMEOUT) {
+                Ok(result) if result.status_success => {
+                    eprintln!("MUSU runtime autostart completed.");
+                }
+                Ok(result) => {
+                    eprintln!(
+                        "MUSU runtime autostart failed: {}; timed_out={}; stderr={}",
+                        result.status_detail,
+                        result.timed_out,
+                        result.stderr.trim()
+                    );
+                }
+                Err(err) => {
+                    eprintln!(
+                        "MUSU runtime autostart failed to spawn {}: {err}",
+                        command.display()
+                    );
+                }
+            }
+        });
+}
+
+fn bridge_is_healthy(home: &std::path::Path) -> bool {
+    let registry = bridge_registry_status(home);
+    registry
+        .url
+        .as_deref()
+        .map(|url| probe_http(url, "/health").ok)
+        .unwrap_or(false)
+}
+
+fn musu_command_path() -> std::path::PathBuf {
+    let runtime_name = musu_runtime_exe_name();
+    match std::env::current_exe() {
+        Ok(current_exe) => musu_command_path_for_current_exe(&current_exe, |path| path.exists()),
+        Err(_) => std::path::PathBuf::from(runtime_name),
+    }
+}
+
+fn musu_command_path_for_current_exe(
+    current_exe: &std::path::Path,
+    exists: impl Fn(&std::path::Path) -> bool,
+) -> std::path::PathBuf {
+    let runtime_name = musu_runtime_exe_name();
+    if let Some(parent) = current_exe.parent() {
+        let sibling = parent.join(runtime_name);
+        if exists(&sibling) {
+            return sibling;
+        }
+    }
+    std::path::PathBuf::from(runtime_name)
+}
+
+fn musu_runtime_exe_name() -> &'static str {
     if cfg!(target_os = "windows") {
         "musu.exe"
     } else {
@@ -355,7 +419,7 @@ struct TimedCommandOutput {
 }
 
 fn run_command_with_timeout(
-    command: &str,
+    command: &std::path::Path,
     args: &[&str],
     timeout: std::time::Duration,
 ) -> Result<TimedCommandOutput, String> {
@@ -464,7 +528,8 @@ fn open_url(url: &str) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        bridge_registry_status_with_pid_checker, is_allowed_dashboard_url, run_command_with_timeout,
+        bridge_is_healthy, bridge_registry_status_with_pid_checker, is_allowed_dashboard_url,
+        musu_command_path_for_current_exe, run_command_with_timeout,
     };
 
     const TEST_MARKER: &str = "musu-desktop-command-capture-ok";
@@ -489,7 +554,7 @@ mod tests {
     #[test]
     fn timed_command_captures_stdout_without_output_pipes() {
         let (command, args) = shell_echo_command();
-        let result = run_command_with_timeout(command, &args, std::time::Duration::from_secs(5))
+        let result = run_command_with_timeout(&command, &args, std::time::Duration::from_secs(5))
             .expect("command should run");
 
         assert!(result.status_success, "{:?}", result.status_detail);
@@ -498,13 +563,63 @@ mod tests {
     }
 
     #[cfg(windows)]
-    fn shell_echo_command() -> (&'static str, Vec<&'static str>) {
-        ("cmd", vec!["/C", "echo", TEST_MARKER])
+    fn shell_echo_command() -> (std::path::PathBuf, Vec<&'static str>) {
+        (
+            std::path::PathBuf::from("cmd"),
+            vec!["/C", "echo", TEST_MARKER],
+        )
     }
 
     #[cfg(unix)]
-    fn shell_echo_command() -> (&'static str, Vec<&'static str>) {
-        ("sh", vec!["-c", "printf '%s\\n' \"$1\"", "sh", TEST_MARKER])
+    fn shell_echo_command() -> (std::path::PathBuf, Vec<&'static str>) {
+        (
+            std::path::PathBuf::from("sh"),
+            vec!["-c", "printf '%s\\n' \"$1\"", "sh", TEST_MARKER],
+        )
+    }
+
+    #[test]
+    fn runtime_command_prefers_packaged_sibling() {
+        let desktop_exe = if cfg!(target_os = "windows") {
+            std::path::PathBuf::from(
+                r"C:\Program Files\WindowsApps\Yellowhama.MUSU\musu-desktop.exe",
+            )
+        } else {
+            std::path::PathBuf::from("/opt/musu/musu-desktop")
+        };
+        let expected_runtime = desktop_exe
+            .parent()
+            .unwrap()
+            .join(if cfg!(target_os = "windows") {
+                "musu.exe"
+            } else {
+                "musu"
+            });
+
+        let resolved =
+            musu_command_path_for_current_exe(&desktop_exe, |path| path == expected_runtime);
+
+        assert_eq!(resolved, expected_runtime);
+    }
+
+    #[test]
+    fn runtime_command_falls_back_to_path_name_when_sibling_missing() {
+        let desktop_exe = if cfg!(target_os = "windows") {
+            std::path::PathBuf::from(r"C:\Temp\musu-desktop.exe")
+        } else {
+            std::path::PathBuf::from("/tmp/musu-desktop")
+        };
+
+        let resolved = musu_command_path_for_current_exe(&desktop_exe, |_| false);
+
+        assert_eq!(
+            resolved,
+            std::path::PathBuf::from(if cfg!(target_os = "windows") {
+                "musu.exe"
+            } else {
+                "musu"
+            })
+        );
     }
 
     #[test]
@@ -523,6 +638,7 @@ mod tests {
 
         assert!(status.url.is_none());
         assert!(status.detail.contains("stale bridge registry removed"));
+        assert!(!bridge_is_healthy(&home));
         assert!(!path.exists());
         let _ = std::fs::remove_dir_all(home);
     }

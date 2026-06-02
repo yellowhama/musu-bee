@@ -1114,3 +1114,31 @@ owner-scoped evidence, `musu@musu.pro` mailbox evidence, and Store evidence.
 - `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
   `1421` files and `2251` symbols after the post stop/desktop cleanup primary
   evidence docs/evidence/wiki updates.
+
+## 2026-06-02 20:30 KST Desktop Runtime Autostart Hardening
+
+Desktop activation is now treated as a runtime-start contract. The Tauri shell
+starts one background `musu-runtime-autostart` attempt during setup when bridge
+health is missing or failed.
+
+The runtime command path now prefers the packaged sibling `musu.exe` next to
+`musu-desktop.exe` before PATH fallback. This avoids the known developer alias
+shadowing issue where `C:\Users\empty\.cargo\bin\musu.exe` can be selected
+instead of the installed package runtime.
+
+Validation passed:
+
+- `cargo fmt --manifest-path .\musu-bee\src-tauri\Cargo.toml`
+- `cargo test --manifest-path .\musu-bee\src-tauri\Cargo.toml -- --test-threads=1`
+  7/7
+- `git diff --check`
+
+Release caveat: this is Tauri source, so current packaged evidence is stale
+until MSIX rebuild/install proves desktop activation leaves bridge runtime
+running without a separate manual `musu up`.
+
+2026-06-02 20:30 KST index refresh:
+
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  `1423` files and `2257` symbols after the desktop runtime autostart
+  source/docs/spec updates.
