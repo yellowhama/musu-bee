@@ -6,6 +6,10 @@ param(
     [switch]$SkipPacketVerification,
     [string]$ActionPackPath,
     [switch]$SkipActionPackVerification,
+    [ValidateSet("quick", "deep", "skip")]
+    [string]$PacketVerificationMode = "quick",
+    [ValidateSet("quick", "deep", "skip")]
+    [string]$ActionPackVerificationMode = "quick",
     [int]$ScriptTimeoutSeconds = 120,
     [switch]$Json
 )
@@ -29,6 +33,12 @@ if ([string]::IsNullOrWhiteSpace($PacketPath)) {
 }
 if ([string]::IsNullOrWhiteSpace($ActionPackPath)) {
     $ActionPackPath = Join-Path $repoRoot ".local-build\operator-action-pack\MUSU-$safeVersion-operator-action-pack-latest.zip"
+}
+if ($SkipPacketVerification) {
+    $PacketVerificationMode = "skip"
+}
+if ($SkipActionPackVerification) {
+    $ActionPackVerificationMode = "skip"
 }
 
 function Invoke-JsonScript {
@@ -138,6 +148,225 @@ function Invoke-JsonScript {
     }
 }
 
+function New-CheckList {
+    New-Object System.Collections.Generic.List[object]
+}
+
+function Add-Check {
+    param(
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
+        [System.Collections.Generic.List[object]]$Checks,
+        [Parameter(Mandatory = $true)][string]$Name,
+        [ValidateSet("pass", "fail")]
+        [Parameter(Mandatory = $true)][string]$Status,
+        [Parameter(Mandatory = $true)][string]$Message
+    )
+
+    $Checks.Add([pscustomobject]@{
+        name = $Name
+        status = $Status
+        message = $Message
+    }) | Out-Null
+}
+
+function Add-CheckFromCondition {
+    param(
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
+        [System.Collections.Generic.List[object]]$Checks,
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][bool]$Condition,
+        [Parameter(Mandatory = $true)][string]$PassMessage,
+        [Parameter(Mandatory = $true)][string]$FailMessage
+    )
+
+    if ($Condition) {
+        Add-Check -Checks $Checks -Name $Name -Status "pass" -Message $PassMessage
+    }
+    else {
+        Add-Check -Checks $Checks -Name $Name -Status "fail" -Message $FailMessage
+    }
+}
+
+function Get-ArchiveEntryNames {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return @()
+    }
+
+    $resolved = (Resolve-Path -LiteralPath $Path).Path
+    $item = Get-Item -LiteralPath $resolved
+    if ($item.PSIsContainer) {
+        $prefixLength = $item.FullName.TrimEnd("\").Length + 1
+        return @(Get-ChildItem -LiteralPath $item.FullName -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
+            $_.FullName.Substring($prefixLength) -replace "/", "\"
+        })
+    }
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($resolved)
+    try {
+        return @($archive.Entries | Where-Object { -not [string]::IsNullOrWhiteSpace($_.Name) } | ForEach-Object {
+            $_.FullName -replace "/", "\"
+        })
+    }
+    finally {
+        $archive.Dispose()
+    }
+}
+
+function Read-ArchiveText {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$RelativePath
+    )
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return $null
+    }
+
+    $resolved = (Resolve-Path -LiteralPath $Path).Path
+    $item = Get-Item -LiteralPath $resolved
+    if ($item.PSIsContainer) {
+        $filePath = Join-Path $item.FullName $RelativePath
+        if (-not (Test-Path -LiteralPath $filePath)) {
+            return $null
+        }
+        return Get-Content -LiteralPath $filePath -Raw
+    }
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($resolved)
+    try {
+        $target = $RelativePath -replace "/", "\"
+        $entry = $archive.Entries | Where-Object { ($_.FullName -replace "/", "\") -eq $target } | Select-Object -First 1
+        if (-not $entry) {
+            return $null
+        }
+        $reader = [System.IO.StreamReader]::new($entry.Open())
+        try {
+            return $reader.ReadToEnd()
+        }
+        finally {
+            $reader.Dispose()
+        }
+    }
+    finally {
+        $archive.Dispose()
+    }
+}
+
+function Test-EntryLike {
+    param(
+        [Parameter(Mandatory = $true)][string[]]$Entries,
+        [Parameter(Mandatory = $true)][string]$Pattern
+    )
+
+    @($Entries | Where-Object { $_ -like $Pattern }).Count -gt 0
+}
+
+function Get-QuickPacketVerification {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $checks = New-CheckList
+    $entries = @(Get-ArchiveEntryNames -Path $Path)
+    Add-CheckFromCondition -Checks $checks -Name "quick packet entries" -Condition ($entries.Count -gt 0) -PassMessage "packet entries are readable" -FailMessage "packet entries are not readable"
+
+    foreach ($required in @(
+        "README_FINAL_OPERATOR_GATES.md",
+        "packet-build-metadata.json",
+        "support-mailbox-record-template.json",
+        "SUPPORT_EMAIL",
+        "SHA256SUMS.txt"
+    )) {
+        Add-CheckFromCondition -Checks $checks -Name "quick packet entry: $required" -Condition ($entries -contains $required) -PassMessage "$required exists" -FailMessage "$required is missing"
+    }
+
+    $kitCount = @($entries | Where-Object { $_ -like "kits\musu-multidevice-*.zip" }).Count
+    Add-CheckFromCondition -Checks $checks -Name "quick packet kit count" -Condition ($kitCount -eq 1) -PassMessage "packet contains one multi-device kit" -FailMessage "packet does not contain exactly one multi-device kit"
+
+    $pfxCount = @($entries | Where-Object { $_ -like "*.pfx" }).Count
+    Add-CheckFromCondition -Checks $checks -Name "quick packet private key exclusion" -Condition ($pfxCount -eq 0) -PassMessage "packet excludes private .pfx files" -FailMessage "packet includes private .pfx files"
+
+    $metadata = $null
+    $metadataText = Read-ArchiveText -Path $Path -RelativePath "packet-build-metadata.json"
+    if ([string]::IsNullOrWhiteSpace($metadataText)) {
+        Add-Check -Checks $checks -Name "quick packet metadata parse" -Status "fail" -Message "packet metadata is missing"
+    }
+    else {
+        try {
+            $metadata = $metadataText | ConvertFrom-Json
+            Add-CheckFromCondition -Checks $checks -Name "quick packet metadata schema" -Condition ([string]$metadata.schema -eq "musu.final_operator_gate_packet.v1") -PassMessage "packet metadata schema is valid" -FailMessage "packet metadata schema is invalid"
+            Add-CheckFromCondition -Checks $checks -Name "quick packet metadata git" -Condition ([string]$metadata.git.commit -match "^[0-9a-fA-F]{40}$" -and -not [bool]$metadata.git.dirty) -PassMessage "packet metadata has clean git state" -FailMessage "packet metadata git state is missing or dirty"
+            Add-CheckFromCondition -Checks $checks -Name "quick packet metadata support email" -Condition ([string]$metadata.support_email -eq $supportEmail) -PassMessage "packet metadata uses $supportEmail" -FailMessage "packet metadata support email does not match $supportEmail"
+        }
+        catch {
+            Add-Check -Checks $checks -Name "quick packet metadata parse" -Status "fail" -Message "packet metadata JSON did not parse: $($_.Exception.Message)"
+        }
+    }
+
+    $failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
+    [pscustomobject]@{
+        ok = ($failCount -eq 0)
+        mode = "quick"
+        fail_count = $failCount
+        kit_count = $kitCount
+        checks = $checks.ToArray()
+    }
+}
+
+function Get-QuickActionPackVerification {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $checks = New-CheckList
+    $entries = @(Get-ArchiveEntryNames -Path $Path)
+    Add-CheckFromCondition -Checks $checks -Name "quick action-pack entries" -Condition ($entries.Count -gt 0) -PassMessage "action-pack entries are readable" -FailMessage "action-pack entries are not readable"
+
+    foreach ($required in @(
+        "OPERATOR_ACTION_PACK_README_CURRENT.md",
+        "action-pack-metadata.json",
+        "SHA256SUMS.txt",
+        "support-mailbox\SUPPORT_MAILBOX_VERIFICATION_EMAIL_CURRENT.txt",
+        "support-mailbox\support-mailbox-record-template-current.json"
+    )) {
+        Add-CheckFromCondition -Checks $checks -Name "quick action-pack entry: $required" -Condition ($entries -contains $required) -PassMessage "$required exists" -FailMessage "$required is missing"
+    }
+
+    Add-CheckFromCondition -Checks $checks -Name "quick action-pack second-PC transfer" -Condition (Test-EntryLike -Entries $entries -Pattern "second-pc\MUSU-second-PC-transfer-*.zip") -PassMessage "second-PC transfer zip exists" -FailMessage "second-PC transfer zip is missing"
+    Add-CheckFromCondition -Checks $checks -Name "quick action-pack Partner Center zip" -Condition (Test-EntryLike -Entries $entries -Pattern "partner-center\MUSU-*-store-submission-*.zip") -PassMessage "Partner Center zip exists" -FailMessage "Partner Center zip is missing"
+
+    $pfxCount = @($entries | Where-Object { $_ -like "*.pfx" }).Count
+    Add-CheckFromCondition -Checks $checks -Name "quick action-pack private key exclusion" -Condition ($pfxCount -eq 0) -PassMessage "action pack excludes private .pfx files" -FailMessage "action pack includes private .pfx files"
+
+    $metadataText = Read-ArchiveText -Path $Path -RelativePath "action-pack-metadata.json"
+    if ([string]::IsNullOrWhiteSpace($metadataText)) {
+        Add-Check -Checks $checks -Name "quick action-pack metadata parse" -Status "fail" -Message "action-pack metadata is missing"
+    }
+    else {
+        try {
+            $metadata = $metadataText | ConvertFrom-Json
+            Add-CheckFromCondition -Checks $checks -Name "quick action-pack metadata schema" -Condition ([string]$metadata.schema -eq "musu.operator_action_pack.v1") -PassMessage "action-pack metadata schema is valid" -FailMessage "action-pack metadata schema is invalid"
+            Add-CheckFromCondition -Checks $checks -Name "quick action-pack metadata support email" -Condition ([string]$metadata.support_email -eq $supportEmail) -PassMessage "action-pack metadata uses $supportEmail" -FailMessage "action-pack metadata support email does not match $supportEmail"
+            Add-CheckFromCondition -Checks $checks -Name "quick action-pack metadata support id" -Condition ([string]$metadata.support_verification_id -like "musu-store-support-*") -PassMessage "action-pack metadata includes support verification id" -FailMessage "action-pack metadata support verification id is missing"
+            Add-CheckFromCondition -Checks $checks -Name "quick action-pack metadata git" -Condition ([string]$metadata.git.commit -match "^[0-9a-fA-F]{40}$" -and -not [bool]$metadata.git.dirty) -PassMessage "action-pack metadata has clean git state" -FailMessage "action-pack metadata git state is missing or dirty"
+            Add-CheckFromCondition -Checks $checks -Name "quick action-pack metadata final packet" -Condition ([bool]$metadata.final_packet.verified) -PassMessage "action-pack metadata references verified final packet" -FailMessage "action-pack metadata final packet is not verified"
+        }
+        catch {
+            Add-Check -Checks $checks -Name "quick action-pack metadata parse" -Status "fail" -Message "action-pack metadata JSON did not parse: $($_.Exception.Message)"
+        }
+    }
+
+    $failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
+    [pscustomobject]@{
+        ok = ($failCount -eq 0)
+        mode = "quick"
+        fail_count = $failCount
+        checks = $checks.ToArray()
+    }
+}
+
 function Get-EvidenceRootStatus {
     param([Parameter(Mandatory = $true)][object[]]$Roots)
 
@@ -200,26 +429,38 @@ $packetExists = Test-Path -LiteralPath $PacketPath
 $resolvedPacketPath = if ($packetExists) { (Resolve-Path -LiteralPath $PacketPath).Path } else { $PacketPath }
 $packetVerification = $null
 $packetVerified = $null
-if ($packetExists -and -not $SkipPacketVerification) {
-    $packetVerificationResult = Invoke-JsonScript `
-        -FilePath (Join-Path $scriptDir "verify-final-operator-gate-packet.ps1") `
-        -Arguments @("-PacketPath", $resolvedPacketPath, "-Json") `
-        -AllowFailure
-    $packetVerification = $packetVerificationResult.json
-    $packetVerified = ($packetVerificationResult.json -and [bool]$packetVerificationResult.json.ok)
+if ($packetExists -and $PacketVerificationMode -ne "skip") {
+    if ($PacketVerificationMode -eq "deep") {
+        $packetVerificationResult = Invoke-JsonScript `
+            -FilePath (Join-Path $scriptDir "verify-final-operator-gate-packet.ps1") `
+            -Arguments @("-PacketPath", $resolvedPacketPath, "-Json") `
+            -AllowFailure
+        $packetVerification = $packetVerificationResult.json
+        $packetVerified = ($packetVerificationResult.json -and [bool]$packetVerificationResult.json.ok)
+    }
+    else {
+        $packetVerification = Get-QuickPacketVerification -Path $resolvedPacketPath
+        $packetVerified = [bool]$packetVerification.ok
+    }
 }
 
 $actionPackExists = Test-Path -LiteralPath $ActionPackPath
 $resolvedActionPackPath = if ($actionPackExists) { (Resolve-Path -LiteralPath $ActionPackPath).Path } else { $ActionPackPath }
 $actionPackVerification = $null
 $actionPackVerified = $null
-if ($actionPackExists -and -not $SkipActionPackVerification) {
-    $actionPackVerificationResult = Invoke-JsonScript `
-        -FilePath (Join-Path $scriptDir "verify-operator-action-pack.ps1") `
-        -Arguments @("-PackPath", $resolvedActionPackPath, "-Json") `
-        -AllowFailure
-    $actionPackVerification = $actionPackVerificationResult.json
-    $actionPackVerified = ($actionPackVerificationResult.json -and [bool]$actionPackVerificationResult.json.ok)
+if ($actionPackExists -and $ActionPackVerificationMode -ne "skip") {
+    if ($ActionPackVerificationMode -eq "deep") {
+        $actionPackVerificationResult = Invoke-JsonScript `
+            -FilePath (Join-Path $scriptDir "verify-operator-action-pack.ps1") `
+            -Arguments @("-PackPath", $resolvedActionPackPath, "-Json") `
+            -AllowFailure
+        $actionPackVerification = $actionPackVerificationResult.json
+        $actionPackVerified = ($actionPackVerificationResult.json -and [bool]$actionPackVerificationResult.json.ok)
+    }
+    else {
+        $actionPackVerification = Get-QuickActionPackVerification -Path $resolvedActionPackPath
+        $actionPackVerified = [bool]$actionPackVerification.ok
+    }
 }
 
 $multiDeviceRoots = @(
@@ -315,6 +556,7 @@ $storeRoots = @(
 
 $commands = [pscustomobject]@{
     show_status = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-final-release-handoff-status.ps1 -ScriptTimeoutSeconds $ScriptTimeoutSeconds"
+    show_status_deep = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-final-release-handoff-status.ps1 -PacketVerificationMode deep -ActionPackVerificationMode deep -ScriptTimeoutSeconds $ScriptTimeoutSeconds"
     prepare_packet = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\prepare-final-operator-gate-packet.ps1 -IncludeDesktopShell"
     verify_packet = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-final-operator-gate-packet.ps1 -PacketPath .local-build\final-operator-gates\musu-final-operator-gates-$safeVersion-latest.zip -Json"
     prepare_action_pack = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\prepare-operator-action-pack.ps1 -Json"
@@ -354,7 +596,7 @@ if (-not $packetExists) {
         -Summary "Generate the final operator packet before handoff." `
         -Command $commands.prepare_packet
 }
-elseif (-not $SkipPacketVerification -and -not $packetVerified) {
+elseif ($PacketVerificationMode -ne "skip" -and -not $packetVerified) {
     Add-OperatorStep `
         -List $operatorSteps `
         -Gate "handoff-packet" `
@@ -368,7 +610,7 @@ if (-not $actionPackExists) {
         -Summary "Generate the operator action pack so second-PC, support-mailbox, and Partner Center handoff files are in one verified archive." `
         -Command $commands.prepare_action_pack
 }
-elseif (-not $SkipActionPackVerification -and -not $actionPackVerified) {
+elseif ($ActionPackVerificationMode -ne "skip" -and -not $actionPackVerified) {
     Add-OperatorStep `
         -List $operatorSteps `
         -Gate "operator-action-pack" `
@@ -450,12 +692,14 @@ $result = [pscustomobject]@{
         path = $resolvedPacketPath
         exists = [bool]$packetExists
         verified = $packetVerified
+        verification_mode = $PacketVerificationMode
         verification = $packetVerification
     }
     action_pack = [pscustomobject]@{
         path = $resolvedActionPackPath
         exists = [bool]$actionPackExists
         verified = $actionPackVerified
+        verification_mode = $ActionPackVerificationMode
         verification = $actionPackVerification
     }
     gates = [pscustomobject]@{
@@ -504,9 +748,11 @@ else {
     "ready_for_public_desktop_release: $($result.ready_for_public_desktop_release)"
     "packet_exists: $($result.packet.exists)"
     "packet_verified: $($result.packet.verified)"
+    "packet_verification_mode: $($result.packet.verification_mode)"
     "packet_path: $($result.packet.path)"
     "action_pack_exists: $($result.action_pack.exists)"
     "action_pack_verified: $($result.action_pack.verified)"
+    "action_pack_verification_mode: $($result.action_pack.verification_mode)"
     "action_pack_path: $($result.action_pack.path)"
     ""
     "Gates"

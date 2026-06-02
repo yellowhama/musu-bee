@@ -1441,5 +1441,29 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   terms should include `GOAL v314`, `1363 files`, `2240 symbols`,
   `20260602-155746`, `20260602-155815`, `ScriptTimeoutSeconds 240`, and
   `action_pack.verified=true`.
+- 2026-06-02 release status fast/deep verification hardening:
+  wiki/556 records that `show-final-release-handoff-status.ps1` now defaults
+  packet/action-pack verification to quick archive metadata checks and exposes
+  `-PacketVerificationMode quick|deep|skip` plus
+  `-ActionPackVerificationMode quick|deep|skip`. Deep mode still runs
+  `verify-final-operator-gate-packet.ps1` and
+  `verify-operator-action-pack.ps1`; old skip switches still map to `skip`.
+  `write-release-go-no-go.ps1` now selects latest evidence candidates per
+  machine before child verifier execution and reports
+  `available_candidate_count` plus `candidate_selection=latest-per-machine`.
+  Search terms should include `GOAL v315`, `wiki/556`,
+  `PacketVerificationMode`, `ActionPackVerificationMode`, `quick`, `deep`,
+  `latest-per-machine`, `available_candidate_count`, `runtime idle 4/59`,
+  `runtime matrix 3/38`, `process ownership 3/36`,
+  `test-release-evidence-verifiers.ps1 13/13`, and `public_metadata_ok=true`.
+- 2026-06-02 index refresh after release status fast/deep verification:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1364 files and 2240 symbols after wiki/556, GOAL v315/v316, BETA checklist,
+  current-head report, WIKI_INDEX, `show-final-release-handoff-status.ps1`,
+  `write-release-go-no-go.ps1`, and CoS memory
+  `2026-06-02_1630_kst_release_status_fast_path.md`. Search terms should
+  include `GOAL v316`, `1364 files`, `2240 symbols`, `PacketVerificationMode`,
+  `ActionPackVerificationMode`, `latest-per-machine`, and
+  `available_candidate_count`.
 
 **End of WIKI_INDEX.md.**

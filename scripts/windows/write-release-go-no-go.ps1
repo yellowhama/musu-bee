@@ -270,6 +270,50 @@ function Test-DocumentationOrStatusOnlyGitDelta {
     return ($runtimeAffectingPaths.Count -eq 0)
 }
 
+function Select-LatestEvidenceCandidatesByMachine {
+    param(
+        [object[]]$Candidates = @(),
+        [int]$MaxPerMachine = 3,
+        [int]$MaxUnknown = 6
+    )
+
+    $selected = New-Object System.Collections.Generic.List[object]
+    $byMachine = @{}
+    $unknownCount = 0
+
+    foreach ($candidate in @($Candidates | Sort-Object LastWriteTime -Descending)) {
+        $machine = $null
+        try {
+            $candidateJson = Get-Content -LiteralPath $candidate.FullName -Raw | ConvertFrom-Json
+            $machine = [string]$candidateJson.operator_machine
+            if ([string]::IsNullOrWhiteSpace($machine) -and $candidateJson.measurement) {
+                $machine = [string]$candidateJson.measurement.operator_machine
+            }
+        }
+        catch {
+            $machine = $null
+        }
+
+        if ([string]::IsNullOrWhiteSpace($machine)) {
+            if ($unknownCount -lt $MaxUnknown) {
+                $selected.Add($candidate) | Out-Null
+                $unknownCount += 1
+            }
+            continue
+        }
+
+        if (-not $byMachine.ContainsKey($machine)) {
+            $byMachine[$machine] = 0
+        }
+        if ([int]$byMachine[$machine] -lt $MaxPerMachine) {
+            $selected.Add($candidate) | Out-Null
+            $byMachine[$machine] = [int]$byMachine[$machine] + 1
+        }
+    }
+
+    @($selected.ToArray() | Sort-Object LastWriteTime -Descending)
+}
+
 function Test-RuntimeIdleCpuEvidence {
     param(
         [Parameter(Mandatory = $true)][string]$EvidencePath,
@@ -795,7 +839,8 @@ foreach ($root in $runtimeIdleCpuEvidenceRoots) {
 
 $runtimeIdleCpuEvidenceResults = @()
 $runtimeIdleCpuMachines = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
-foreach ($candidate in @($runtimeIdleCpuEvidenceCandidates | Sort-Object LastWriteTime -Descending)) {
+$runtimeIdleCpuSelectedCandidates = Select-LatestEvidenceCandidatesByMachine -Candidates $runtimeIdleCpuEvidenceCandidates -MaxPerMachine 3 -MaxUnknown 6
+foreach ($candidate in @($runtimeIdleCpuSelectedCandidates | Sort-Object LastWriteTime -Descending)) {
     $verification = Test-RuntimeIdleCpuEvidence `
         -EvidencePath $candidate.FullName `
         -ExpectedVersion $version `
@@ -815,6 +860,8 @@ $runtimeIdleCpuEvidence = [pscustomobject]@{
     valid_machine_count = $runtimeIdleCpuMachines.Count
     valid_machines = @($runtimeIdleCpuMachines)
     candidate_count = $runtimeIdleCpuEvidenceResults.Count
+    available_candidate_count = @($runtimeIdleCpuEvidenceCandidates).Count
+    candidate_selection = "latest-per-machine"
     candidates = $runtimeIdleCpuEvidenceResults
 }
 
@@ -845,7 +892,8 @@ foreach ($root in $runtimeCpuScenarioMatrixRoots) {
 
 $runtimeCpuScenarioMatrixResults = @()
 $runtimeCpuScenarioMatrixMachines = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
-foreach ($candidate in @($runtimeCpuScenarioMatrixCandidates | Sort-Object LastWriteTime -Descending)) {
+$runtimeCpuScenarioMatrixSelectedCandidates = Select-LatestEvidenceCandidatesByMachine -Candidates $runtimeCpuScenarioMatrixCandidates -MaxPerMachine 3 -MaxUnknown 6
+foreach ($candidate in @($runtimeCpuScenarioMatrixSelectedCandidates | Sort-Object LastWriteTime -Descending)) {
     $matrixArgs = @(
         "-EvidencePath", $candidate.FullName,
         "-ExpectedVersion", $version,
@@ -884,6 +932,8 @@ $runtimeCpuScenarioMatrixEvidence = [pscustomobject]@{
     valid_machine_count = $runtimeCpuScenarioMatrixMachines.Count
     valid_machines = @($runtimeCpuScenarioMatrixMachines)
     candidate_count = $runtimeCpuScenarioMatrixResults.Count
+    available_candidate_count = @($runtimeCpuScenarioMatrixCandidates).Count
+    candidate_selection = "latest-per-machine"
     required_scenarios = @($RequiredRuntimeCpuScenarioMatrixScenarios)
     candidates = $runtimeCpuScenarioMatrixResults
 }
@@ -910,7 +960,8 @@ foreach ($root in $processOwnershipEvidenceRoots) {
 
 $processOwnershipEvidenceResults = @()
 $processOwnershipMachines = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
-foreach ($candidate in @($processOwnershipEvidenceCandidates | Sort-Object LastWriteTime -Descending)) {
+$processOwnershipSelectedCandidates = Select-LatestEvidenceCandidatesByMachine -Candidates $processOwnershipEvidenceCandidates -MaxPerMachine 3 -MaxUnknown 6
+foreach ($candidate in @($processOwnershipSelectedCandidates | Sort-Object LastWriteTime -Descending)) {
     $verification = Test-ProcessOwnershipEvidence `
         -EvidencePath $candidate.FullName `
         -ExpectedVersion $version
@@ -927,6 +978,8 @@ $processOwnershipEvidence = [pscustomobject]@{
     valid_machine_count = $processOwnershipMachines.Count
     valid_machines = @($processOwnershipMachines)
     candidate_count = $processOwnershipEvidenceResults.Count
+    available_candidate_count = @($processOwnershipEvidenceCandidates).Count
+    candidate_selection = "latest-per-machine"
     candidates = $processOwnershipEvidenceResults
 }
 
@@ -955,7 +1008,8 @@ foreach ($root in $startupSingleInstanceEvidenceRoots) {
 
 $startupSingleInstanceEvidenceResults = @()
 $startupSingleInstanceMachines = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
-foreach ($candidate in @($startupSingleInstanceEvidenceCandidates | Sort-Object LastWriteTime -Descending)) {
+$startupSingleInstanceSelectedCandidates = Select-LatestEvidenceCandidatesByMachine -Candidates $startupSingleInstanceEvidenceCandidates -MaxPerMachine 3 -MaxUnknown 6
+foreach ($candidate in @($startupSingleInstanceSelectedCandidates | Sort-Object LastWriteTime -Descending)) {
     $verification = Test-StartupSingleInstanceEvidence `
         -EvidencePath $candidate.FullName `
         -ExpectedVersion $version
@@ -972,6 +1026,8 @@ $startupSingleInstanceEvidence = [pscustomobject]@{
     valid_machine_count = $startupSingleInstanceMachines.Count
     valid_machines = @($startupSingleInstanceMachines)
     candidate_count = $startupSingleInstanceEvidenceResults.Count
+    available_candidate_count = @($startupSingleInstanceEvidenceCandidates).Count
+    candidate_selection = "latest-per-machine"
     candidates = $startupSingleInstanceEvidenceResults
 }
 
@@ -999,7 +1055,8 @@ foreach ($root in $desktopSingleInstanceEvidenceRoots) {
 
 $desktopSingleInstanceEvidenceResults = @()
 $desktopSingleInstanceMachines = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
-foreach ($candidate in @($desktopSingleInstanceEvidenceCandidates | Sort-Object LastWriteTime -Descending)) {
+$desktopSingleInstanceSelectedCandidates = Select-LatestEvidenceCandidatesByMachine -Candidates $desktopSingleInstanceEvidenceCandidates -MaxPerMachine 3 -MaxUnknown 6
+foreach ($candidate in @($desktopSingleInstanceSelectedCandidates | Sort-Object LastWriteTime -Descending)) {
     $verification = Test-DesktopSingleInstanceEvidence `
         -EvidencePath $candidate.FullName `
         -ExpectedVersion $version
@@ -1016,6 +1073,8 @@ $desktopSingleInstanceEvidence = [pscustomobject]@{
     valid_machine_count = $desktopSingleInstanceMachines.Count
     valid_machines = @($desktopSingleInstanceMachines)
     candidate_count = $desktopSingleInstanceEvidenceResults.Count
+    available_candidate_count = @($desktopSingleInstanceEvidenceCandidates).Count
+    candidate_selection = "latest-per-machine"
     candidates = $desktopSingleInstanceEvidenceResults
 }
 

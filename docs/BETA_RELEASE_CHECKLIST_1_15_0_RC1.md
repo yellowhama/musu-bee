@@ -786,6 +786,24 @@ Tauri desktop shell evidence:
   `store-release`. On this host, full handoff status should be run singly with
   `-ScriptTimeoutSeconds 240` when validating the current action pack; a
   concurrent 120s status run timed out while the independent go/no-go completed.
+- 2026-06-02 16:30 KST release status fast/deep verification hardening:
+  `show-final-release-handoff-status.ps1` now defaults to quick packet/action
+  pack verification and exposes `-PacketVerificationMode quick|deep|skip` plus
+  `-ActionPackVerificationMode quick|deep|skip`; the old skip switches still
+  map to `skip`. Quick mode checks archive metadata, required entries, clean
+  git/support metadata, second-PC/Partner/support paths, and absence of `.pfx`
+  files without full checksum traversal. Deep mode still runs the packet/action
+  pack verifier scripts. `write-release-go-no-go.ps1` now preselects latest
+  evidence candidates per machine and reports `available_candidate_count` plus
+  `candidate_selection=latest-per-machine`, so accumulated stale evidence does
+  not force every historical sample through child verifiers. Validation passed
+  go/no-go with selected runtime idle `4/59`, runtime matrix `3/38`, and process
+  ownership `3/36`; default handoff status completed under 120s with quick
+  packet/action pack `fail_count=0` and `public_metadata_ok=true`; deep
+  packet/action pack status completed under 240s with `fail_count=0`; release
+  evidence verifier regression passed 13/13. Default operator status command is
+  now quick 120s; use deep 240s only for full packet/action pack checksum
+  verification.
 
 Release candidate manifest:
 
@@ -807,7 +825,8 @@ cargo check --manifest-path .\musu-rs\Cargo.toml -j 1
 cargo clippy --manifest-path .\musu-rs\Cargo.toml --all-targets -j 1 -- -D warnings
 cargo test --manifest-path .\musu-rs\Cargo.toml --lib -- --test-threads=1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -ScriptTimeoutSeconds 120 -Json
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-final-release-handoff-status.ps1 -ScriptTimeoutSeconds 240 -Json
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-final-release-handoff-status.ps1 -ScriptTimeoutSeconds 120 -Json
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-final-release-handoff-status.ps1 -PacketVerificationMode deep -ActionPackVerificationMode deep -ScriptTimeoutSeconds 240 -Json
 ```
 
 Run the low-resource integration bundle before tagging:

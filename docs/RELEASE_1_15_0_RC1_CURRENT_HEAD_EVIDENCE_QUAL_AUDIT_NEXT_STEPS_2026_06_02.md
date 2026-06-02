@@ -491,14 +491,16 @@ Verification:
 
 Operator status note:
 
-- `show-final-release-handoff-status.ps1` verifies the current action pack by
-  checksum and can be heavy on this Windows host.
-- A concurrent 120s status run timed out while an independent go/no-go run
-  completed.
-- A single `show-final-release-handoff-status.ps1 -ScriptTimeoutSeconds 240
-  -Json` run completed and reported `action_pack.verified=true`.
-- Use a single 240s status run for current handoff verification instead of
-  running full release status scripts in parallel.
+- The earlier full handoff status path verified packet/action-pack checksums and
+  could be heavy on this Windows host.
+- That bottleneck has now been split: default status uses quick archive
+  metadata checks under a 120s budget, and full packet/action-pack checksum
+  verification is available through explicit deep mode under a 240s budget.
+- Use `show-final-release-handoff-status.ps1 -ScriptTimeoutSeconds 120 -Json`
+  for normal operator status.
+- Use `show-final-release-handoff-status.ps1 -PacketVerificationMode deep
+  -ActionPackVerificationMode deep -ScriptTimeoutSeconds 240 -Json` only when
+  full packet/action-pack verifier execution is required.
 
 Next concrete release action:
 
@@ -509,3 +511,47 @@ run its `run-second-pc-release-check.ps1`, return the generated
 That is the next gate that can move `runtime-idle-cpu` and
 `runtime-cpu-scenario-matrix` from primary-only evidence toward the required
 two-machine threshold.
+
+## 2026-06-02 16:30 KST Release Status Fast Path
+
+The release status tooling was hardened after accumulated evidence history and
+full action-pack checksum verification made the default handoff path too heavy
+for a 120s operator status run.
+
+Code changes:
+
+- `show-final-release-handoff-status.ps1` now defaults packet and action-pack
+  verification to quick archive inspection and exposes
+  `-PacketVerificationMode quick|deep|skip` plus
+  `-ActionPackVerificationMode quick|deep|skip`.
+- Old `-SkipPacketVerification` and `-SkipActionPackVerification` switches still
+  map to `skip`.
+- Quick mode checks required archive entries, packet/action metadata, clean git
+  metadata, support email, required second-PC/Partner/support paths, and absence
+  of `.pfx` files.
+- Deep mode still invokes `verify-final-operator-gate-packet.ps1` and
+  `verify-operator-action-pack.ps1`.
+- `write-release-go-no-go.ps1` now preselects latest evidence candidates per
+  machine before child verifier execution and exposes
+  `available_candidate_count` plus `candidate_selection=latest-per-machine`.
+
+Validation:
+
+- `write-release-go-no-go.ps1 -ScriptTimeoutSeconds 120 -SkipPublicMetadata
+  -Json` completed in 41.733s while selecting runtime idle `4/59`, runtime
+  matrix `3/38`, and process ownership `3/36`.
+- Default `show-final-release-handoff-status.ps1 -ScriptTimeoutSeconds 120
+  -SkipPublicMetadata -Json` completed in 44.050s with quick packet/action pack
+  `fail_count=0`.
+- Deep handoff status completed in 50.663s with packet/action pack
+  `fail_count=0`.
+- Default status with public metadata enabled completed in 47.182s and reported
+  `public_metadata_ok=true`.
+- `test-release-evidence-verifiers.ps1` passed all 13 regression cases.
+
+Current release meaning:
+
+- This closes the operator-status timeout/UX issue.
+- It does not close public release gates. Required blockers remain second-PC
+  CPU/matrix/route evidence, live `musu.pro` owner-scoped P2P evidence,
+  `musu@musu.pro` mailbox evidence, and Store evidence.

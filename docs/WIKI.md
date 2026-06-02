@@ -1150,6 +1150,31 @@ Indexer note:
   `2026-06-02_1558_kst_current_operator_action_pack_after_post_reconnect_evidence.md`
   and `2026-06-02_1600_kst_operator_action_pack_index_refresh.md`.
 
+- 2026-06-02 release status fast/deep verification hardening:
+  wiki/556 records that `show-final-release-handoff-status.ps1` and
+  `write-release-go-no-go.ps1` were optimized after current action-pack history
+  made full status heavy. Handoff status now defaults to quick packet/action-pack
+  verification and exposes `-PacketVerificationMode quick|deep|skip` plus
+  `-ActionPackVerificationMode quick|deep|skip`; old skip switches still map to
+  `skip`. Quick verification reads archive metadata and required entries,
+  checks clean git metadata, support email, required second-PC/Partner/support
+  paths, and excludes `.pfx` files without full checksum traversal. Deep mode
+  still invokes `verify-final-operator-gate-packet.ps1` and
+  `verify-operator-action-pack.ps1`. Go/no-go now preselects latest evidence
+  candidates per machine before verifier execution and reports
+  `available_candidate_count` plus `candidate_selection=latest-per-machine`.
+  Validation: go/no-go `-SkipPublicMetadata` completed in 41.733s selecting
+  runtime idle `4/59`, runtime matrix `3/38`, and process ownership `3/36`;
+  default handoff status completed in 47.182s with `public_metadata_ok=true`;
+  quick packet/action pack had `fail_count=0`; deep packet/action pack also had
+  `fail_count=0`; release evidence verifier regression passed 13/13.
+- 2026-06-02 index refresh after release status fast/deep verification:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1364 files and 2240 symbols after wiki/556, GOAL v315/v316, BETA checklist
+  update, current-head report update, WIKI_INDEX update,
+  `show-final-release-handoff-status.ps1`, `write-release-go-no-go.ps1`, and
+  CoS memory `2026-06-02_1630_kst_release_status_fast_path.md`.
+
 ## 9. musu-system Integration State (2026-05-29)
 
 `yellowhama/musu-system` is a credible adjacent MUSU ecosystem line, not a Rust-core replacement. It contains:
