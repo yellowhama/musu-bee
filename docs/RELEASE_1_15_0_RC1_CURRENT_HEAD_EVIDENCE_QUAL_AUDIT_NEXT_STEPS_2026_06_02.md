@@ -1259,3 +1259,34 @@ It still fails release verification: relay status is logged-in and wired,
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_OPERATOR_PACK_P2P_RECHECK_2026_06_03.md`
+
+## 2026-06-03 02:51 KST Low-Duty Polling Default Timeout Hardening
+
+`useLowDutyPolling` now defines
+`DEFAULT_LOW_DUTY_POLL_TASK_TIMEOUT_MS = 10_000` and uses that value whenever a
+caller omits `taskTimeoutMs`. The shared frontend polling path already handled
+in-flight suppression, hidden-tab throttling, failure backoff, and abortable
+tasks; this change removes the remaining implicit unbounded-work gap for
+callers without an explicit task timeout.
+
+Validation passed:
+
+- `npx tsx --test src/app/runtime-polling-contract.test.ts` - 10/10
+- `npm run typecheck`
+- `npm run build`
+- `git diff --check`
+
+Qualitative result: this improves frontend idle/hang hardening, but it does
+not by itself close the user's busy-loop report. Remaining proof still requires
+fresh packaged primary evidence after this source change, second-PC
+CPU/matrix/route evidence, and separate handling for mDNS/Tailscale error-spam
+when optional mDNS is enabled.
+
+Release caveat: packaged MSIX evidence is stale until rebuilt/refreshed from
+this source commit. Public release remains No-Go on second-PC evidence, live
+owner-scoped `musu.pro` P2P KV/Upstash evidence, release-grade transport proof,
+`musu@musu.pro` mailbox evidence, and Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_LOW_DUTY_POLLING_DEFAULT_TIMEOUT_HARDENING_2026_06_03.md`

@@ -1923,4 +1923,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU-second-PC-transfer-1.15.0-rc.1-20260603-023727.zip`,
   `p2p_relay_lease_kv_not_configured`, and `operator pack P2P recheck index refresh`.
 
+- 2026-06-03 low-duty polling default timeout hardening:
+  `RELEASE_1_15_0_RC1_LOW_DUTY_POLLING_DEFAULT_TIMEOUT_HARDENING_2026_06_03.md`
+  (wiki/580) records that `useLowDutyPolling` now defaults omitted
+  `taskTimeoutMs` values to `DEFAULT_LOW_DUTY_POLL_TASK_TIMEOUT_MS = 10_000`.
+  Search terms should include `GOAL v365`, `wiki/580`,
+  `DEFAULT_LOW_DUTY_POLL_TASK_TIMEOUT_MS`, `AbortSignal.timeout`,
+  `AbortSignal.any`, `runtime-polling-contract.test.ts`,
+  `polling default timeout`, and `frontend busy-loop hardening`.
+
+- 2026-06-03 index refresh after low-duty polling default timeout hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1519 files and 2274 symbols after GOAL v365-v366, wiki/580,
+  `useLowDutyPolling.ts`, `runtime-polling-contract.test.ts`, the low-duty
+  polling hardening report, BETA/current-head/WIKI updates, and CoS memory
+  `2026-06-03_low_duty_polling_default_timeout_hardening.md`. Search terms
+  should include `GOAL v366`, `1519 files`, `2274 symbols`,
+  `DEFAULT_LOW_DUTY_POLL_TASK_TIMEOUT_MS`, and `low-duty polling default
+  timeout index refresh`.
+
 **End of WIKI_INDEX.md.**

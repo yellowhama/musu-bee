@@ -14,6 +14,8 @@ interface LowDutyPollingOptions {
 
 type PollTask = (signal: AbortSignal) => Promise<void> | void;
 
+export const DEFAULT_LOW_DUTY_POLL_TASK_TIMEOUT_MS = 10_000;
+
 function isDocumentVisible() {
   return typeof document === "undefined" || document.visibilityState !== "hidden";
 }
@@ -29,7 +31,7 @@ export function useLowDutyPolling(task: PollTask, options: LowDutyPollingOptions
     visibleOnly = true,
     maxBackoffMs = Math.max(intervalMs, 120_000),
     backoffMultiplier = 2,
-    taskTimeoutMs,
+    taskTimeoutMs = DEFAULT_LOW_DUTY_POLL_TASK_TIMEOUT_MS,
   } = options;
 
   useEffect(() => {

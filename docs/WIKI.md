@@ -1713,3 +1713,25 @@ Canonical reference:
 - `docs/MUSU_SYSTEM_INTEGRATION_ASSESSMENT_2026_05_29.md`
 - `docs/memory/chief_of_staff/2026-05-29_0814_kst_musu_system_recheck.md`
 - `docs/memory/chief_of_staff/2026-05-29_1241_kst_musu_system_recheck.md`
+
+## 10. Low-Duty Polling Default Timeout (2026-06-03)
+
+wiki/580 records frontend shared polling hardening. `useLowDutyPolling` now
+defines `DEFAULT_LOW_DUTY_POLL_TASK_TIMEOUT_MS = 10_000` and applies it when a
+caller omits `taskTimeoutMs`, so shared polling tasks default to
+`AbortSignal.timeout(...)` and `AbortSignal.any(...)` cancellation. The runtime
+polling contract test asserts the default constant and binding.
+
+Validation passed: runtime polling contract 10/10, `npm run typecheck`,
+`npm run build`, and `git diff --check`.
+
+Qualitative state: this reduces frontend polling hang risk, but it does not
+fully close the user's busy-loop report. Fresh packaged primary evidence and
+second-PC CPU/matrix/route evidence are still required after this source change.
+`musu.pro` P2P remains blocked on live KV/Upstash owner-scoped relay lease
+evidence.
+
+Canonical reference:
+
+- `docs/RELEASE_1_15_0_RC1_LOW_DUTY_POLLING_DEFAULT_TIMEOUT_HARDENING_2026_06_03.md`
+- `docs/memory/chief_of_staff/2026-06-03_low_duty_polling_default_timeout_hardening.md`

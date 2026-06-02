@@ -1430,3 +1430,29 @@ Fresh P2P live evidence:
 - live blocker: `p2p_relay_lease_kv_not_configured`
 - env blocker: missing `KV_REST_API_URL_OR_UPSTASH_REDIS_REST_URL` and
   `KV_REST_API_TOKEN_OR_UPSTASH_REDIS_REST_TOKEN`
+
+## 2026-06-03 02:51 KST Low-Duty Polling Default Timeout Hardening
+
+`useLowDutyPolling` now applies
+`DEFAULT_LOW_DUTY_POLL_TASK_TIMEOUT_MS = 10_000` when callers omit
+`taskTimeoutMs`. This means shared frontend polling tasks default to bounded
+`AbortSignal.timeout(...)` / `AbortSignal.any(...)` cancellation instead of
+relying on every caller to remember a timeout.
+
+Validation passed:
+
+- `npx tsx --test src/app/runtime-polling-contract.test.ts` - 10/10
+- `npm run typecheck`
+- `npm run build`
+- `git diff --check`
+
+Release caveat: this is a frontend source change, so the latest packaged MSIX
+primary evidence is stale until MSIX rebuild/install and primary
+single-machine/process/CPU/matrix evidence are refreshed from this commit.
+Public release remains No-Go on second-PC CPU/matrix/route, live owner-scoped
+P2P KV/Upstash evidence, release-grade transport proof, `musu@musu.pro`
+mailbox evidence, and Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_LOW_DUTY_POLLING_DEFAULT_TIMEOUT_HARDENING_2026_06_03.md`

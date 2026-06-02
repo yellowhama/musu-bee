@@ -97,6 +97,8 @@ test("shared low-duty polling supports bounded task timeout cancellation", () =>
   const text = source("src/lib/useLowDutyPolling.ts");
 
   assert.match(text, /taskTimeoutMs\?:\s*number/);
+  assert.match(text, /DEFAULT_LOW_DUTY_POLL_TASK_TIMEOUT_MS\s*=\s*10_000/);
+  assert.match(text, /taskTimeoutMs\s*=\s*DEFAULT_LOW_DUTY_POLL_TASK_TIMEOUT_MS/);
   assert.match(text, /AbortSignal\.timeout\(taskTimeoutMs\)/);
   assert.match(text, /AbortSignal\.any/);
 });
