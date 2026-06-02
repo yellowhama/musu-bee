@@ -1402,3 +1402,31 @@ Validation:
 This does not implement relay payload transport. It hardens the evidence gate
 so relay remains an explicit Connect/Pro fallback after direct-route failure,
 not a silent/default data path.
+
+## 2026-06-03 Current Operator Pack and P2P Recheck
+
+Current-head external handoff artifacts from clean commit `f83174fb`:
+
+- final operator packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260603-023702.zip`
+- operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260603-023727.zip`
+- second-PC transfer zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260603-023727\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260603-023727.zip`
+- Partner Center zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260603-023727\partner-center\MUSU-1.15.0-rc.1-store-submission-20260603-023727.zip`
+
+Both verifiers pass with `ok=true` and `fail_count=0`.
+
+Fresh P2P live evidence:
+
+- `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-023834-musu.pro.evidence.json`
+- verification fail count: `4`
+- passing: relay status logged-in/wired, route evidence client wired,
+  rendezvous wired, relay lease control-plane wired,
+  `relay_default_data_path=false`
+- failing: relay leases `ok=false`, `owner_scope_verified=false`,
+  `owner_scoped=false`
+- live blocker: `p2p_relay_lease_kv_not_configured`
+- env blocker: missing `KV_REST_API_URL_OR_UPSTASH_REDIS_REST_URL` and
+  `KV_REST_API_TOKEN_OR_UPSTASH_REDIS_REST_TOKEN`

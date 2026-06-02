@@ -1901,4 +1901,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260603-021552-HUGH_SECOND`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_021552`,
   and `post status JSON primary evidence index refresh`.
 
+- 2026-06-03 operator pack and P2P recheck:
+  `RELEASE_1_15_0_RC1_OPERATOR_PACK_P2P_RECHECK_2026_06_03.md` (wiki/579)
+  records the verified `f83174fb` final packet/action pack and fresh failing
+  P2P evidence. Search terms should include `GOAL v363`, `wiki/579`,
+  `musu-final-operator-gates-1.15.0-rc.1-20260603-023702.zip`,
+  `MUSU-1.15.0-rc.1-operator-action-pack-20260603-023727.zip`,
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260603-023727.zip`,
+  `20260603-023834-musu.pro.evidence.json`,
+  `p2p_relay_lease_kv_not_configured`,
+  `KV_REST_API_URL_OR_UPSTASH_REDIS_REST_URL`, and
+  `KV_REST_API_TOKEN_OR_UPSTASH_REDIS_REST_TOKEN`.
+
+- 2026-06-03 index refresh after operator pack and P2P recheck:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1517 files and 2274 symbols after GOAL v363-v364, wiki/579, fresh failing
+  P2P evidence `20260603-023834-musu.pro`, current operator pack documentation,
+  BETA/current-head/WIKI updates, and CoS memory
+  `2026-06-03_operator_pack_p2p_recheck.md`. Search terms should include
+  `GOAL v364`, `1517 files`, `2274 symbols`,
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260603-023727.zip`,
+  `p2p_relay_lease_kv_not_configured`, and `operator pack P2P recheck index refresh`.
+
 **End of WIKI_INDEX.md.**

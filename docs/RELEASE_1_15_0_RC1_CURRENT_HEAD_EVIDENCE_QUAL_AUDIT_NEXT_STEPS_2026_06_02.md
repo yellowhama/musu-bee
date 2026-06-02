@@ -1228,3 +1228,34 @@ recorded.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_STATUS_JSON_PRIMARY_EVIDENCE_2026_06_03.md`
+
+## 2026-06-03 02:40 KST Operator Pack and P2P Recheck
+
+Current-head external handoff artifacts were regenerated from clean commit
+`f83174fb`.
+
+- final packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260603-023702.zip`
+- action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260603-023727.zip`
+- second-PC transfer:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260603-023727\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260603-023727.zip`
+- Partner Center zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260603-023727\partner-center\MUSU-1.15.0-rc.1-store-submission-20260603-023727.zip`
+
+Both final packet and action pack verification passed with `ok=true` and
+`fail_count=0`. The nested second-PC kit includes runtime idle CPU, four-state
+CPU matrix, process attribution, return archive, and cleanup evidence tooling.
+
+Fresh live P2P evidence was recorded at
+`docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-023834-musu.pro.evidence.json`.
+It still fails release verification: relay status is logged-in and wired,
+`relay_default_data_path=false`, but relay leases are `ok=false`,
+`owner_scope_verified=false`, and `owner_scoped=false`. Env status still lacks
+`KV_REST_API_URL_OR_UPSTASH_REDIS_REST_URL` and
+`KV_REST_API_TOKEN_OR_UPSTASH_REDIS_REST_TOKEN`, with live error detail
+`p2p_relay_lease_kv_not_configured`.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_OPERATOR_PACK_P2P_RECHECK_2026_06_03.md`
