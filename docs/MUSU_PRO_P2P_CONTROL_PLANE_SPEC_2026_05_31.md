@@ -440,3 +440,28 @@ plane evidence:
   `relay_default_data_path=false`
 
 Public web deploy status and P2P control-plane readiness are separate gates.
+
+## 2026-06-02 Current-Head Evidence Boundary
+
+After relay idle hardening, the desktop dashboard no longer treats the cloud
+relay as idle background work:
+
+- no mount-time `/api/account/relay-token` fetch
+- no automatic relay WebSocket just because a node is selected
+- relay token fetch and relay WebSocket open occur only after explicit
+  `Connect`
+
+This clarifies the product contract for `musu.pro`:
+
+- `musu.pro` is the account/rendezvous/lease/control-plane surface.
+- `musu.pro` must not be described as the default payload data path.
+- Release evidence must prove owner-scoped relay/control auth before P2P
+  control-plane readiness can pass.
+- Store/public copy may mention account-assisted setup only as beta/control
+  plane support until real two-machine route evidence proves identity,
+  encryption, route kind, and payload-transit truth.
+
+Current go/no-go at 2026-06-02 12:05 KST remains No-Go even though primary
+desktop CPU evidence passes. The remaining P2P-specific blocker is still live
+owner-scoped `musu.pro` evidence: configure production scoped auth, redeploy or
+reload production, and rerun evidence without `-AllowUnverified`.

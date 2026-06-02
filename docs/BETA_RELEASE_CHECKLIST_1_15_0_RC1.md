@@ -618,6 +618,26 @@ Tauri desktop shell evidence:
   `https://musu-9wn2j1cat-yellowhamas-projects.vercel.app` was aliased to
   `https://musu.pro`. This confirms web deployment only; live P2P route/relay
   lease evidence remains a separate release blocker.
+- 2026-06-02 12:05 KST current-head evidence and qual audit:
+  fresh primary evidence after relay idle hardening now passes desktop
+  single-instance
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-113614-HUGH_SECOND.desktop-single-instance.json`,
+  process ownership
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-113702-HUGH_SECOND.process-ownership.json`,
+  single-machine smoke
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-113759-HUGH_SECOND.evidence.json`,
+  desktop-open CPU
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-114149-HUGH_SECOND.desktop-open.evidence.json`,
+  and four-state matrix
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-115359-HUGH_SECOND.runtime-cpu-scenario-matrix.json`.
+  The primary busy-loop report is not reproduced: desktop-open CPU records
+  MUSU `0`, Node `0`, WebView2 `0.13`, hot `0`; matrix route token is
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_115359`. Clean go/no-go on
+  `9b836bd1` reports `ready=false`, `local_artifacts_ready=true`,
+  `single_machine=true`, runtime idle CPU `1/2`, runtime CPU matrix `1/2`,
+  and blockers `multi-device`, `runtime-idle-cpu`,
+  `runtime-cpu-scenario-matrix`, `p2p-control-plane`, `support-mailbox`, and
+  `store-release`. Canonical public support address remains `musu@musu.pro`.
 
 Release candidate manifest:
 

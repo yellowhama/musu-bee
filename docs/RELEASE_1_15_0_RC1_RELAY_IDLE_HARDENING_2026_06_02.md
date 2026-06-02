@@ -82,3 +82,23 @@ install the MSIX and rerun:
 Public release still remains No-Go until second-PC CPU/matrix/route evidence,
 live `musu.pro` owner-scoped relay/control-plane evidence, `musu@musu.pro`
 mailbox evidence, and Store evidence also pass.
+
+## Follow-up Evidence
+
+2026-06-02 12:05 KST update: fresh primary evidence was recorded after this
+runtime source change.
+
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-113614-HUGH_SECOND.desktop-single-instance.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-113702-HUGH_SECOND.process-ownership.json`
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-113759-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-114149-HUGH_SECOND.desktop-open.evidence.json`
+- four-state runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-115359-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+The clean post-evidence go/no-go still reports No-Go because runtime CPU and
+matrix gates are `1/2` machines, and multi-device, live P2P control-plane,
+`musu@musu.pro`, and Store evidence remain open.

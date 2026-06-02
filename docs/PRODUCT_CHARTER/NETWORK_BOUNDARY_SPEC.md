@@ -96,6 +96,23 @@ separate release surfaces.
   beta/control-plane feature until release-grade two-machine route evidence
   proves the data path and encryption claims.
 
+## 2026-06-02 on-demand relay boundary update
+
+The dashboard cloud relay path is now an explicit action path, not an idle page
+load path.
+
+- Opening the dashboard must not fetch a relay token by default.
+- Selecting a node must not automatically open a relay WebSocket.
+- User-initiated `Connect` may request relay/control-plane help with bounded
+  timeout and reconnect behavior.
+
+This preserves the Core/Connect product boundary:
+
+- local/LAN/private operation remains Core
+- account-assisted rendezvous and relay/tunnel remain Connect/control-plane
+- public claims about internet P2P must wait for release-grade route evidence
+  and live `musu.pro` owner-scoped control-plane evidence
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."

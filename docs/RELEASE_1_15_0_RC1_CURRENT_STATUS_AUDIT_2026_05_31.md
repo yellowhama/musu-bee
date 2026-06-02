@@ -590,3 +590,28 @@ aliased it to `https://musu.pro`; deploy log reported `Ready in 19s`. This
 confirms the web/control-plane surface is deployed, but does not close the live
 P2P route/relay lease gate, Store gate, support mailbox gate, second-PC
 CPU/matrix gate, or fresh-current-HEAD MSIX runtime evidence gate.
+
+2026-06-02 12:05 KST current-head evidence/qual audit addendum: after the
+relay idle hardening source change and `musu.pro` deployment evidence, fresh
+primary evidence was recorded on the current packaged desktop path. Desktop
+single-instance passes at
+`docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-113614-HUGH_SECOND.desktop-single-instance.json`;
+process ownership passes at
+`docs\evidence\process-ownership\1.15.0-rc.1\20260602-113702-HUGH_SECOND.process-ownership.json`;
+single-machine smoke passes at
+`docs\evidence\single-machine\1.15.0-rc.1\20260602-113759-HUGH_SECOND.evidence.json`.
+Clean desktop-open CPU passes at
+`docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-114149-HUGH_SECOND.desktop-open.evidence.json`
+with MUSU `0`, Node `0`, WebView2 `0.13`, working set `500.54MB`, and no hot
+processes. Clean four-state matrix passes at
+`docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-115359-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+with route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_115359`, all scenarios
+under budget, and no hot processes. Clean go/no-go on commit
+`9b836bd1e5702a4a6b40b30fb7f15b5aa76be05a` reports `ready=false`,
+`local_artifacts_ready=true`, `single_machine=true`, runtime idle CPU `1/2`,
+runtime CPU matrix `1/2`, `p2p_control_plane=false`,
+`support_mailbox=false`, `store_release=false`, and `manifest_dirty=false`.
+The primary busy-loop report remains un-reproduced in current evidence, but
+public release is still blocked by second-PC runtime/route evidence, live
+owner-scoped `musu.pro` P2P control-plane evidence, `musu@musu.pro` mailbox
+evidence, and Store/Partner Center evidence.

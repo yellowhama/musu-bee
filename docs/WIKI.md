@@ -842,6 +842,31 @@ Indexer note:
   the `musu.pro` deployment evidence. Search terms should include `GOAL v289`,
   `1311 files`, `26794342631`, `26794342633`, `26794342638`, `musu.pro`, and
   `Ready in 19s`.
+- 2026-06-02 current-head evidence and qual audit after relay idle hardening:
+  wiki/547 records fresh current primary evidence after the on-demand relay
+  source change and `musu.pro` deploy. Current evidence passes desktop
+  single-instance `20260602-113614-HUGH_SECOND`, process ownership
+  `20260602-113702-HUGH_SECOND`, single-machine smoke
+  `20260602-113759-HUGH_SECOND`, desktop-open CPU
+  `20260602-114149-HUGH_SECOND.desktop-open`, and four-state matrix
+  `20260602-115359-HUGH_SECOND.runtime-cpu-scenario-matrix` with route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_115359`. Clean go/no-go on
+  `9b836bd1` reports `ready=false`, `local_artifacts_ready=true`,
+  `single_machine=true`, runtime idle CPU `1/2`, runtime CPU matrix `1/2`,
+  `p2p_control_plane=false`, `support_mailbox=false`, and
+  `store_release=false`. The primary busy-loop report is not reproduced on
+  current packaged evidence, but public release remains blocked by second-PC,
+  P2P control-plane, `musu@musu.pro`, and Store evidence.
+- 2026-06-02 index refresh after current-head evidence audit:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1320 files and 2221 symbols after wiki/547, CoS memory
+  `2026-06-02_1205_kst_current_head_evidence_qual_audit_next_steps.md`,
+  current-head evidence/qual audit report, WIKI/WIKI_INDEX/GOAL/BETA/status
+  updates, P2P control-plane spec updates, and network boundary spec updates.
+  Search terms should include `GOAL v291`, `1320 files`, `2221 symbols`,
+  `20260602-115359-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_115359`, `musu@musu.pro`, and
+  `p2p_control_plane=false`.
 
 ## 9. musu-system Integration State (2026-05-29)
 
