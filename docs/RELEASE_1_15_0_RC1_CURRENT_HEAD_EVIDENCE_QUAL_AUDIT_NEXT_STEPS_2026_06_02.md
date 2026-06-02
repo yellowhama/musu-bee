@@ -933,3 +933,30 @@ Public release remains No-Go because runtime CPU/matrix evidence is still
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_DESKTOP_AUTOSTART_PRIMARY_EVIDENCE_2026_06_02.md`
+
+## 2026-06-02 21:10 KST Cloud Hardware Probe Idle Hardening
+
+Current source now reduces one logged-in idle/background CPU candidate in the
+`musu.pro` cloud heartbeat path:
+
+- cloud registration uses process-cached hardware metadata through
+  `gather_hardware_info_cached()`;
+- Windows total memory uses Win32 `GlobalMemoryStatusEx`;
+- Windows CPU brand uses registry `RegGetValueW`;
+- PowerShell/WMIC are no longer the default Windows RAM/CPU metadata path;
+- `nvidia-smi` GPU VRAM probing remains available but is reached through the
+  cached metadata path, so recurring heartbeat cycles do not rerun it.
+
+Validation passed:
+
+- `cargo fmt --manifest-path .\musu-rs\Cargo.toml`
+- `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1`
+- `cargo test --manifest-path .\musu-rs\Cargo.toml peer::hardware --lib -- --test-threads=1`
+  3/3
+
+Qualitative assessment: this is a meaningful idle-hardening step, especially
+for logged-in desktop sessions, but it is not release evidence. Because Rust
+runtime source changed, the previous packaged primary evidence is stale until
+MSIX build/install and fresh primary smoke/process/CPU/matrix evidence are
+recorded again. Release remains No-Go on second-PC CPU/matrix/route, live
+`musu.pro` P2P owner scope, `musu@musu.pro`, and Store evidence.

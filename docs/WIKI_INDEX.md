@@ -1663,4 +1663,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2026-06-02_2045_kst_post_desktop_autostart_primary_evidence.md`, and
   `post desktop autostart index refresh`.
 
+- 2026-06-02 cloud hardware probe idle hardening:
+  `RELEASE_1_15_0_RC1_CLOUD_HARDWARE_PROBE_IDLE_HARDENING_2026_06_02.md`
+  (wiki/567) records process-cached cloud heartbeat hardware metadata and
+  Windows native RAM/CPU probes. Search terms should include `GOAL v337`,
+  `wiki/567`, `gather_hardware_info_cached`, `OnceLock`,
+  `GlobalMemoryStatusEx`, `RegGetValueW`, `PowerShell/WMIC`, `nvidia-smi`,
+  and `cloud hardware probe idle hardening`.
+
+- 2026-06-02 index refresh after cloud hardware probe idle hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1434 files and 2262 symbols after wiki/567, GOAL v337/v338, hardware probe
+  source/docs/spec updates, WIKI, BETA/current-head/runtime roadmap updates,
+  and CoS memory. Search terms should include `GOAL v338`, `1434 files`,
+  `2262 symbols`, `2026-06-02_2110_kst_cloud_hardware_probe_idle_hardening.md`,
+  `GlobalMemoryStatusEx`, and `RegGetValueW`.
+
 **End of WIKI_INDEX.md.**

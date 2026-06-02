@@ -413,8 +413,10 @@ Minimal client behavior:
    noise.
 3. Keep `MUSU_ENABLE_CLIPBOARD_SYNC=1` opt-in.
 4. Keep cloud heartbeat interval, floor, backoff, and jitter enforced by default.
-   Hardware probes called from that heartbeat must remain timeout-bounded; current
-   `peer::hardware` probes use a 5s ceiling and degrade to fallback values.
+   Hardware probes called from that heartbeat must remain low-duty and cached:
+   current `peer::hardware` metadata uses process-local caching, Windows native
+   Win32 RAM/CPU probes, and timeout-bounded fallback probes for remaining
+   external commands.
 5. Keep desktop `Start Runtime` bounded. The Tauri shell now runs
    `musu up --json` through temp-file stdout/stderr capture with a 45s timeout,
    so inherited bridge child handles cannot keep the UI busy forever.
@@ -1261,3 +1263,37 @@ desktop-open CPU sample reports MUSU `0`, WebView2 `0.42`, working set
 Current hardening verdict: the desktop-shell-only gap is closed locally, and
 busy-loop is still not reproduced. The next release-critical runtime step is
 the same current evidence on a real second PC.
+
+## 2026-06-02 Cloud Hardware Probe Idle Hardening
+
+The logged-in `musu.pro` cloud heartbeat now uses process-cached hardware
+metadata instead of gathering hardware from scratch on every heartbeat cycle.
+
+Runtime changes:
+
+- `musu-rs/src/peer/hardware.rs` added `gather_hardware_info_cached()` with a
+  `OnceLock`.
+- `musu-rs/src/bridge/mod.rs` uses cached hardware metadata in the low-duty
+  cloud registration loop.
+- Windows total-memory and CPU-brand detection now use Win32
+  `GlobalMemoryStatusEx` and registry `RegGetValueW`, avoiding default
+  PowerShell/WMIC process creation.
+- `nvidia-smi` GPU VRAM detection remains available but is reached through the
+  cached metadata path, so recurring cloud heartbeat cycles do not repeatedly
+  spawn it.
+
+Validation passed:
+
+- `cargo fmt --manifest-path .\musu-rs\Cargo.toml`
+- `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1`
+- `cargo test --manifest-path .\musu-rs\Cargo.toml peer::hardware --lib -- --test-threads=1`
+  3/3
+
+Release meaning: this reduces one logged-in idle/background CPU candidate, but
+does not close public release gates. Because runtime source changed, current
+primary packaged evidence is stale until the MSIX is rebuilt/installed and
+fresh primary smoke/process/CPU/matrix evidence is recorded.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CLOUD_HARDWARE_PROBE_IDLE_HARDENING_2026_06_02.md`

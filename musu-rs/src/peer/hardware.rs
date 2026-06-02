@@ -1,10 +1,12 @@
 use serde::{Deserialize, Serialize};
 use std::io::Read;
 use std::process::{Command, Stdio};
+use std::sync::OnceLock;
 use std::time::{Duration, Instant};
 
 const HARDWARE_PROBE_TIMEOUT: Duration = Duration::from_secs(5);
 const HARDWARE_PROBE_WAIT_STEP: Duration = Duration::from_millis(50);
+static HARDWARE_INFO_CACHE: OnceLock<HardwareInfo> = OnceLock::new();
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HardwareInfo {
@@ -15,6 +17,16 @@ pub struct HardwareInfo {
     pub cpu_cores: usize,
     pub cpu_brand: String,
     pub gpu_vram_mb: Option<u64>,
+}
+
+/// Return coarse hardware metadata with process-local caching.
+///
+/// The cloud heartbeat uses this path so idle registration cycles do not
+/// repeatedly spawn platform probes such as `nvidia-smi`.
+pub fn gather_hardware_info_cached() -> HardwareInfo {
+    HARDWARE_INFO_CACHE
+        .get_or_init(gather_hardware_info)
+        .clone()
 }
 
 /// Gathers local hardware information natively without external library dependencies (avoids Windows API compiler crashes).
@@ -43,30 +55,8 @@ pub fn gather_hardware_info() -> HardwareInfo {
 fn get_total_memory_mb() -> u64 {
     #[cfg(target_os = "windows")]
     {
-        if let Some(stdout) = command_stdout_with_timeout(
-            "powershell",
-            &[
-                "-NoProfile",
-                "-Command",
-                "(Get-CimInstance Win32_PhysicalMemory | Measure-Object -Property Capacity -Sum).Sum",
-            ],
-            HARDWARE_PROBE_TIMEOUT,
-        ) {
-            if let Ok(bytes) = stdout.trim().parse::<u64>() {
-                return bytes / 1024 / 1024;
-            }
-        }
-        // Fallback wmic
-        if let Some(stdout) = command_stdout_with_timeout(
-            "wmic",
-            &["ComputerSystem", "get", "TotalPhysicalMemory"],
-            HARDWARE_PROBE_TIMEOUT,
-        ) {
-            for line in stdout.lines() {
-                if let Ok(bytes) = line.trim().parse::<u64>() {
-                    return bytes / 1024 / 1024;
-                }
-            }
+        if let Some(mb) = windows_total_memory_mb() {
+            return mb;
         }
         16384 // generic 16GB default fallback
     }
@@ -110,20 +100,8 @@ fn get_total_memory_mb() -> u64 {
 fn get_cpu_brand() -> String {
     #[cfg(target_os = "windows")]
     {
-        // Read processor name from registry
-        if let Some(stdout) = command_stdout_with_timeout(
-            "powershell",
-            &[
-                "-NoProfile",
-                "-Command",
-                "(Get-ItemProperty 'HKLM:\\HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0').ProcessorNameString",
-            ],
-            HARDWARE_PROBE_TIMEOUT,
-        ) {
-            let value = stdout.trim().to_string();
-            if !value.is_empty() {
-                return value;
-            }
+        if let Some(brand) = windows_cpu_brand() {
+            return brand;
         }
         "Windows CPU".to_string()
     }
@@ -177,6 +155,51 @@ fn get_gpu_vram() -> Option<u64> {
     None
 }
 
+#[cfg(target_os = "windows")]
+fn windows_total_memory_mb() -> Option<u64> {
+    use windows_sys::Win32::System::SystemInformation::{GlobalMemoryStatusEx, MEMORYSTATUSEX};
+
+    let mut status: MEMORYSTATUSEX = unsafe { std::mem::zeroed() };
+    status.dwLength = std::mem::size_of::<MEMORYSTATUSEX>() as u32;
+
+    let ok = unsafe { GlobalMemoryStatusEx(&mut status) };
+    (ok != 0).then_some(status.ullTotalPhys / 1024 / 1024)
+}
+
+#[cfg(target_os = "windows")]
+fn windows_cpu_brand() -> Option<String> {
+    use windows_sys::Win32::System::Registry::{RegGetValueW, HKEY_LOCAL_MACHINE, RRF_RT_REG_SZ};
+
+    fn wide(value: &str) -> Vec<u16> {
+        value.encode_utf16().chain(std::iter::once(0)).collect()
+    }
+
+    let subkey = wide(r"HARDWARE\DESCRIPTION\System\CentralProcessor\0");
+    let value_name = wide("ProcessorNameString");
+    let mut buffer = vec![0u16; 256];
+    let mut size_bytes = (buffer.len() * std::mem::size_of::<u16>()) as u32;
+
+    let status = unsafe {
+        RegGetValueW(
+            HKEY_LOCAL_MACHINE,
+            subkey.as_ptr(),
+            value_name.as_ptr(),
+            RRF_RT_REG_SZ,
+            std::ptr::null_mut(),
+            buffer.as_mut_ptr().cast(),
+            &mut size_bytes,
+        )
+    };
+    if status != 0 || size_bytes < std::mem::size_of::<u16>() as u32 {
+        return None;
+    }
+
+    let len = ((size_bytes as usize) / std::mem::size_of::<u16>()).min(buffer.len());
+    let nul = buffer[..len].iter().position(|ch| *ch == 0).unwrap_or(len);
+    let brand = String::from_utf16_lossy(&buffer[..nul]).trim().to_string();
+    (!brand.is_empty()).then_some(brand)
+}
+
 fn command_stdout_with_timeout(program: &str, args: &[&str], timeout: Duration) -> Option<String> {
     let mut child = Command::new(program)
         .args(args)
@@ -215,8 +238,20 @@ fn command_stdout_with_timeout(program: &str, args: &[&str], timeout: Duration) 
 
 #[cfg(test)]
 mod tests {
-    use super::command_stdout_with_timeout;
+    use super::{command_stdout_with_timeout, gather_hardware_info_cached};
     use std::time::Duration;
+
+    #[test]
+    fn cached_hardware_info_is_stable_within_process() {
+        let first = gather_hardware_info_cached();
+        let second = gather_hardware_info_cached();
+
+        assert_eq!(first.os, second.os);
+        assert_eq!(first.total_memory_mb, second.total_memory_mb);
+        assert_eq!(first.cpu_cores, second.cpu_cores);
+        assert_eq!(first.cpu_brand, second.cpu_brand);
+        assert_eq!(first.gpu_vram_mb, second.gpu_vram_mb);
+    }
 
     #[test]
     #[cfg(target_os = "windows")]

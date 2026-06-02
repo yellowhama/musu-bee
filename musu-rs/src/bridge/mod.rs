@@ -314,7 +314,7 @@ pub async fn run() -> Result<()> {
                 }
 
                 let tailscale_ip = crate::peer::tailscale::get_tailscale_ip();
-                let hardware = crate::peer::hardware::gather_hardware_info();
+                let hardware = crate::peer::hardware::gather_hardware_info_cached();
                 let mut meta_obj = serde_json::json!({
                     "hardware": hardware,
                     "public_url": advertised_public_url,

@@ -270,10 +270,12 @@ Runtime hardening:
   and `musu doctor --json` reports the effective planner interval/timeout so
   CPU evidence can see the active background budget.
 - cloud heartbeat hardware probes: logged-in `musu.pro` heartbeat still gathers
-  hardware capability metadata, but Windows PowerShell/WMIC, macOS `sysctl`, and
-  `nvidia-smi` probes in `musu-rs/src/peer/hardware.rs` now run with `stdin`
-  closed, stderr discarded, and a 5s timeout. A stuck vendor/system probe should
-  degrade to fallback hardware metadata instead of pinning a background worker.
+  hardware capability metadata, but heartbeat metadata now uses process-cached
+  `gather_hardware_info_cached()`. Windows total memory and CPU brand use Win32
+  `GlobalMemoryStatusEx` and registry `RegGetValueW` instead of
+  PowerShell/WMIC. macOS `sysctl` and `nvidia-smi` remain timeout-bounded;
+  `nvidia-smi` is reached through the cached metadata path so recurring
+  heartbeat cycles do not repeatedly spawn it.
 
 Brand assets:
 
@@ -1170,3 +1172,23 @@ without manual `musu up`. Desktop-open CPU passes with MUSU `0`, WebView2
 - `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
   `1432` files and `2257` symbols after the post desktop autostart primary
   evidence docs/evidence/wiki updates.
+
+## 2026-06-02 21:10 KST Cloud Hardware Probe Idle Hardening
+
+The logged-in cloud registration loop now uses cached hardware metadata for
+heartbeat registration. Windows no longer uses PowerShell/WMIC as the default
+RAM/CPU metadata path; it uses Win32 `GlobalMemoryStatusEx` and registry
+`RegGetValueW`. GPU VRAM probing through `nvidia-smi` remains available but is
+behind the process-local hardware metadata cache, so it is not rerun on every
+heartbeat interval.
+
+Validation passed:
+
+- `cargo fmt --manifest-path .\musu-rs\Cargo.toml`
+- `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1`
+- `cargo test --manifest-path .\musu-rs\Cargo.toml peer::hardware --lib -- --test-threads=1`
+  3/3
+
+Release caveat: this is Rust runtime source. Current packaged primary evidence
+is stale until MSIX rebuild/install and fresh single-machine/process/CPU/matrix
+evidence are recorded again.

@@ -349,6 +349,10 @@ Current Rust client/diagnostic behavior:
 - One logged-in control connection per runtime process.
 - Control connection uses backoff and jitter.
 - Registry refresh interval defaults to 300s with a 60s floor.
+- Registry heartbeat hardware metadata is low-duty: it is process-cached in the
+  runtime, Windows RAM/CPU metadata uses native Win32 probes instead of default
+  PowerShell/WMIC process spawning, and remaining external probes must be
+  timeout-bounded.
 - Relay sessions are short-lived and explicit.
 - Remote command execution must stay allowlisted and audited.
 - `musu doctor --json` must show:

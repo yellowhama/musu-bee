@@ -1402,6 +1402,27 @@ Indexer note:
   terms should include `GOAL v336`, `1432 files`, `2257 symbols`,
   `desktop autostart evidence`, and `post desktop autostart index refresh`.
 
+- 2026-06-02 cloud hardware probe idle hardening:
+  wiki/567 records that the logged-in `musu.pro` cloud heartbeat now uses
+  process-cached hardware metadata. Windows RAM/CPU metadata uses Win32
+  `GlobalMemoryStatusEx` and registry `RegGetValueW` instead of default
+  PowerShell/WMIC process spawning. `nvidia-smi` GPU VRAM probing remains
+  timeout-bounded and is reached through the cached metadata path, so recurring
+  heartbeat cycles do not repeatedly spawn it. Validation passed
+  `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1` and
+  `cargo test --manifest-path .\musu-rs\Cargo.toml peer::hardware --lib -- --test-threads=1`
+  3/3. This reduces a logged-in idle CPU candidate but makes current packaged
+  evidence stale until MSIX primary evidence is refreshed.
+
+- 2026-06-02 index refresh after cloud hardware probe idle hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1434 files and 2262 symbols after wiki/567, GOAL v337/v338, cloud hardware
+  probe source/docs/spec updates, BETA/current-head/runtime roadmap updates,
+  WIKI_INDEX, and CoS memory
+  `2026-06-02_2110_kst_cloud_hardware_probe_idle_hardening.md`. Search terms
+  should include `GOAL v338`, `1434 files`, `2262 symbols`,
+  `gather_hardware_info_cached`, `GlobalMemoryStatusEx`, and `RegGetValueW`.
+
 ## 9. musu-system Integration State (2026-05-29)
 
 `yellowhama/musu-system` is a credible adjacent MUSU ecosystem line, not a Rust-core replacement. It contains:
