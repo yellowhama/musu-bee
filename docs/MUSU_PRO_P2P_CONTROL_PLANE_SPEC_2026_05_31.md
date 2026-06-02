@@ -592,3 +592,30 @@ Clean evidence `20260603-052447-HUGH_SECOND.external-gates` keeps the same
 product conclusion: local artifacts are ready, but second-PC reachability is
 false and live P2P evidence `20260603-052547-musu.pro` still fails owner scope
 with `p2p_relay_lease_kv_not_configured`.
+
+## 2026-06-03 Primary Evidence After Relay Store Status
+
+Fresh primary-machine evidence after the relay lease store status hardening
+confirms the local runtime remains quiet, but it does not close any P2P
+control-plane or payload-transport gate.
+
+Current primary evidence:
+
+- single-machine:
+  `20260603-062456-HUGH_SECOND`
+- desktop-open idle CPU:
+  `20260603-062633-HUGH_SECOND.desktop-open`
+- runtime CPU scenario matrix:
+  `20260603-063400-HUGH_SECOND.runtime-cpu-scenario-matrix`
+- route token:
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_063400`
+
+Product interpretation:
+
+- `musu.pro` remains the account, rendezvous, path-selection, and relay lease
+  control plane.
+- Primary local evidence proves local desktop resource quality only.
+- P2P readiness still requires live owner-scoped KV/Upstash relay lease
+  evidence with `relay_default_data_path=false`.
+- Relay payload transport still requires separate implementation and evidence;
+  relay lease status alone is not payload transit proof.

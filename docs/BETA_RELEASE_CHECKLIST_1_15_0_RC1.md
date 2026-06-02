@@ -1783,3 +1783,41 @@ The remaining live P2P blocker is production KV/Upstash provisioning:
 so even after owner-scoped relay lease storage is configured, relay payload
 transit evidence is still required before `route_kind=relay` can be treated as
 release-grade.
+
+## 2026-06-03 06:44 KST Primary Evidence Refresh After Relay Store Status
+
+Fresh primary-machine evidence was recorded after the live relay lease store
+status P2P pass:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-062456-HUGH_SECOND.evidence.json`
+- verification:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-062456-HUGH_SECOND.verification.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-062633-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-063400-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Result:
+
+- single-machine smoke passed with task
+  `5fa8a73b-3d0b-4976-b234-0b9d256827c6` and output
+  `MUSU_RELEASE_SMOKE_OK_20260603_062433`
+- desktop-open CPU passed for `60.068s`; MUSU `0`, Node `0.05`, WebView2
+  `0.31`, working set `501.98MB`, hot `0`
+- runtime matrix passed with route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_063400`; all four scenarios recorded
+  `git_dirty=false` and hot `0`
+- clean go/no-go on HEAD `85dec851` reports
+  `local_artifacts_ready=True`, `single_machine_verified=True`,
+  `multi_device_verified=False`, runtime idle CPU still not 2/2, runtime CPU
+  matrix still not 2/2, P2P false, support mailbox false, and Store false
+
+Public release remains No-Go until second-PC route/CPU/matrix evidence, live
+`musu.pro` owner-scoped KV/Upstash relay lease evidence, relay payload transport
+proof, `musu@musu.pro` mailbox evidence, and Partner Center/Store evidence are
+recorded.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_PRIMARY_EVIDENCE_REFRESH_AFTER_RELAY_STORE_STATUS_2026_06_03.md`

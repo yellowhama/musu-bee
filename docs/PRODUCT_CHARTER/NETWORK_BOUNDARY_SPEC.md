@@ -197,6 +197,28 @@ This still does not expand the public network claim:
   claims until route kind, peer identity, encryption, and payload transit truth
   are proven on two machines
 
+## 2026-06-03 primary evidence after relay-store-status boundary update
+
+Fresh primary evidence after the relay lease store status live P2P pass
+restores the local runtime quality claim on `HUGH_SECOND`:
+
+- single-machine smoke passed
+- desktop-open CPU passed with MUSU `0`, Node `0.05`, WebView2 `0.31`, and
+  hot `0`
+- four-state runtime CPU matrix passed with route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_063400`
+- clean go/no-go reports `local_artifacts_ready=True` and
+  `single_machine_verified=True`
+
+This does not expand public network claims:
+
+- second-PC route, runtime idle CPU, and runtime CPU matrix evidence are still
+  required for two-machine readiness
+- `musu.pro` still lacks owner-scoped KV/Upstash relay lease proof
+- `musu.pro` still must not be described as the default payload data path
+- relay payload transport must be separately implemented and proven before
+  `route_kind=relay` can be marketed as release-grade
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."

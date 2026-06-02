@@ -2199,4 +2199,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `relay_lease_store_backend=unconfigured`, and
   `relay_lease_store_release_grade=false`.
 
+- 2026-06-03 primary evidence refresh after relay store status:
+  `RELEASE_1_15_0_RC1_PRIMARY_EVIDENCE_REFRESH_AFTER_RELAY_STORE_STATUS_2026_06_03.md`
+  (wiki/592) records fresh primary-machine evidence after the relay lease store
+  status live P2P pass. Search terms should include `GOAL v391`, `wiki/592`,
+  `20260603-062456-HUGH_SECOND`, `20260603-062633-HUGH_SECOND.desktop-open`,
+  `20260603-063400-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_063400`,
+  `local_artifacts_ready=True`, `single_machine_verified=True`,
+  `runtime idle CPU not 2/2`, and `p2p-control-plane`.
+
+- 2026-06-03 primary evidence refresh index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1607 files and 2279 symbols after GOAL v391, wiki/592, fresh
+  primary evidence files, the primary evidence refresh report, BETA checklist,
+  P2P/network boundary specs, WIKI/WIKI_INDEX updates, and CoS memories
+  `2026-06-03_primary_evidence_refresh_after_relay_store_status.md` and
+  `2026-06-03_primary_evidence_refresh_index_refresh.md`. Search terms should
+  include `GOAL v392`, `1607 files`, `2279 symbols`,
+  `wiki/592 index refresh`, `primary evidence refresh index refresh`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_063400`, and `85dec851`.
+
 **End of WIKI_INDEX.md.**
