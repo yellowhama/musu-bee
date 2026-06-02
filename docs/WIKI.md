@@ -1262,6 +1262,28 @@ Indexer note:
   updates, WIKI_INDEX, new evidence files, and CoS memory
   `2026-06-02_1820_kst_post_stop_down_primary_evidence_refresh.md`.
 
+- 2026-06-02 second-PC runtime cleanup hardening:
+  wiki/561 records that `run-second-pc-release-check.ps1` now writes
+  `.local-build\runtime-cleanup\*.runtime-cleanup.json` with schema
+  `musu.second_pc_runtime_cleanup.v1`. Cleanup runs in `finally`, calls
+  packaged `musu down --json --timeout-sec 5`, stops packaged
+  `musu-desktop.exe` shells opened by the evidence run, includes cleanup JSON
+  in the second-PC return zip, and requires cleanup success for wrapper
+  `ok=true`. Parser validation passed for the wrapper, multidevice kit
+  generator, action-pack generator, and action-pack verifier. Release evidence
+  verifier regression passed 13/13. A short local
+  wrapper smoke on `HUGH_SECOND` failed at MSIX install evidence capture because
+  the known dev alias shadows WindowsApps, but cleanup still produced
+  `.local-build\runtime-cleanup\20260602-185052-HUGH_SECOND.runtime-cleanup.json`
+  with `ok=true`, `stop_exit_code=0`, and remaining desktop shell count `0`.
+
+- 2026-06-02 index refresh after second-PC runtime cleanup hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1409 files and 2245 symbols after wiki/561, GOAL v325/v326, the cleanup
+  hardening report, second-PC wrapper/action-pack scripts, BETA/current-head
+  report/runtime roadmap updates, WIKI_INDEX, and CoS memory
+  `2026-06-02_1852_kst_second_pc_runtime_cleanup_hardening.md`.
+
 ## 9. musu-system Integration State (2026-05-29)
 
 `yellowhama/musu-system` is a credible adjacent MUSU ecosystem line, not a Rust-core replacement. It contains:

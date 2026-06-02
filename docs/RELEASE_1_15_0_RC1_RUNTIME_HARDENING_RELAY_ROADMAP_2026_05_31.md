@@ -1091,6 +1091,34 @@ Roadmap status:
 - P2P/relay public claims remain blocked on live `musu.pro` owner-scoped
   control-plane evidence and release-grade two-machine route proof.
 
+## 2026-06-02 Second-PC Runtime Cleanup Hardening
+
+The second-PC release wrapper now has an explicit cleanup phase:
+
+- `run-second-pc-release-check.ps1` writes
+  `.local-build\runtime-cleanup\*.runtime-cleanup.json`
+- schema: `musu.second_pc_runtime_cleanup.v1`
+- cleanup runs in `finally`
+- cleanup calls packaged `musu down --json --timeout-sec 5`
+- cleanup stops packaged `musu-desktop.exe` shells opened by the evidence run
+- cleanup JSON is included in the second-PC return zip
+- top-level wrapper `ok=true` now requires cleanup success
+
+Parser validation passed for the wrapper, multidevice kit generator, operator
+action-pack generator, and action-pack verifier. Release evidence verifier
+regression passed 13/13. A short local wrapper smoke on
+`HUGH_SECOND` proved the cleanup path even though the known dev alias shadowing
+caused MSIX install evidence capture to fail first:
+`.local-build\runtime-cleanup\20260602-185052-HUGH_SECOND.runtime-cleanup.json`
+reported `ok=true`, `stop_exit_code=0`, and remaining desktop shell count `0`.
+
+Roadmap impact:
+
+- This improves second-PC process ownership and operator cleanup.
+- It does not close the second-PC release gate.
+- The next real second-PC run must return cleanup, runtime idle CPU, runtime
+  CPU matrix, process attribution, and route evidence together.
+
 ## 2026-06-02 Runtime Stop/Down Command Hardening
 
 Process ownership now has an operator cleanup command:

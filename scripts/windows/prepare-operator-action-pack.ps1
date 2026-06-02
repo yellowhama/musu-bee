@@ -168,6 +168,7 @@ Return these files/folders to the primary repo:
 - .local-build\second-pc-return\*.zip
 - .local-build\msix-install\*.evidence.json
 - .local-build\process-attribution\*.process-attribution-summary.json
+- .local-build\runtime-cleanup\*.runtime-cleanup.json
 - .local-build\second-pc-handoff\*.handoff.json
 - .local-build\second-pc-release-check\*.release-check.json
 

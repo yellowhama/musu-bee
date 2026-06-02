@@ -741,3 +741,36 @@ Qualitative verdict:
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_STOP_COMMAND_PRIMARY_EVIDENCE_2026_06_02.md`
+
+## 2026-06-02 18:52 KST Second-PC Runtime Cleanup Hardening
+
+The next second-PC evidence run now has a cleanup contract:
+
+- `run-second-pc-release-check.ps1` writes
+  `.local-build\runtime-cleanup\*.runtime-cleanup.json`
+- schema: `musu.second_pc_runtime_cleanup.v1`
+- cleanup runs even when earlier wrapper steps fail
+- cleanup calls packaged `musu down --json --timeout-sec 5`
+- cleanup closes packaged desktop shells opened by the evidence run
+- cleanup JSON is included in the return zip
+- wrapper `ok=true` requires cleanup success
+
+Validation:
+
+- PowerShell parser validation passed for the modified wrapper, kit generator,
+  action-pack generator, and action-pack verifier.
+- `scripts\windows\test-release-evidence-verifiers.ps1` passed 13/13.
+- Short local smoke with CPU/matrix skipped produced cleanup evidence
+  `.local-build\runtime-cleanup\20260602-185052-HUGH_SECOND.runtime-cleanup.json`
+  with `ok=true`, `stop_exit_code=0`, and remaining desktop shell count `0`.
+- The smoke's main flow still failed on `HUGH_SECOND` because the known
+  developer alias `C:\Users\empty\.cargo\bin\musu.exe` shadows the WindowsApps
+  alias during MSIX install evidence capture.
+
+Release meaning: process cleanup for the second-PC handoff is stronger, but
+public release still needs a real current second-PC return plus live P2P,
+support mailbox, and Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_SECOND_PC_CLEANUP_HARDENING_2026_06_02.md`

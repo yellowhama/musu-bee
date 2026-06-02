@@ -977,3 +977,38 @@ Store evidence are still required.
 - `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
   `1407` files and `2245` symbols after the post-stop/down primary evidence
   docs/evidence/spec/wiki updates.
+
+## 2026-06-02 18:52 KST Second-PC Runtime Cleanup Hardening
+
+The second-PC wrapper now records cleanup evidence at the end of every run:
+
+- script: `scripts\windows\run-second-pc-release-check.ps1`
+- schema: `musu.second_pc_runtime_cleanup.v1`
+- output: `.local-build\runtime-cleanup\*.runtime-cleanup.json`
+- action: packaged WindowsApps alias `musu down --json --timeout-sec 5`
+- action: close packaged `musu-desktop.exe` shells opened by the evidence run
+- return zip: includes the runtime cleanup JSON
+- wrapper `ok=true`: now requires cleanup success
+
+The multidevice kit README and operator action-pack quickstart now mention the
+cleanup artifact, and `verify-operator-action-pack.ps1` checks for those
+instructions. Parser validation passed for the wrapper, kit generator,
+operator action-pack generator, and action-pack verifier.
+`test-release-evidence-verifiers.ps1` passed 13/13.
+
+Short local wrapper smoke on `HUGH_SECOND` failed early at MSIX install evidence
+capture because the known development alias
+`C:\Users\empty\.cargo\bin\musu.exe` shadows the WindowsApps alias, but the new
+`finally` cleanup still ran and produced
+`.local-build\runtime-cleanup\20260602-185052-HUGH_SECOND.runtime-cleanup.json`
+with `ok=true`, `stop_exit_code=0`, and `remaining_desktop_shell_count=0`.
+
+Release meaning: this does not close the second-PC gate, but it makes the next
+second-PC return safer and more attributable. A real current second-PC run is
+still required for runtime idle CPU, runtime CPU matrix, and route evidence.
+
+2026-06-02 18:53 KST index refresh:
+
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  `1409` files and `2245` symbols after second-PC runtime cleanup hardening,
+  docs/wiki/spec updates, and CoS memory updates.

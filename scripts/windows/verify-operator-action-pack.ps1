@@ -145,7 +145,7 @@ try {
                     finally {
                         $reader.Dispose()
                     }
-                    Add-CheckFromCondition "second-pc transfer return zip instructions" ($quickstart -like "*.local-build\second-pc-return\*.zip*" -and $quickstart -like "*import-second-pc-return.ps1*") "second-PC transfer quickstart explains return archive" "second-PC transfer quickstart missing return archive instructions"
+                    Add-CheckFromCondition "second-pc transfer return zip instructions" ($quickstart -like "*.local-build\second-pc-return\*.zip*" -and $quickstart -like "*import-second-pc-return.ps1*" -and $quickstart -like "*.local-build\runtime-cleanup\*.runtime-cleanup.json*") "second-PC transfer quickstart explains return archive and cleanup evidence" "second-PC transfer quickstart missing return archive or cleanup instructions"
                 }
                 $nestedKit = @($entries | Where-Object { $_ -like "musu-multidevice-*.zip" })
                 Add-CheckFromCondition "second-pc transfer kit" ($nestedKit.Count -eq 1) "second-PC transfer includes one kit zip" "second-PC transfer missing nested kit zip"
@@ -171,7 +171,7 @@ try {
                                     finally {
                                         $reader.Dispose()
                                     }
-                                    Add-CheckFromCondition "second-pc nested kit README wrapper" ($kitReadme -like "*run-second-pc-release-check.ps1*" -and $kitReadme -like "*.release-check.json*" -and $kitReadme -like "*.local-build\second-pc-return\*.zip*" -and $kitReadme -like "*measure-musu-idle-cpu.ps1*" -and $kitReadme -like "*.local-build\runtime-idle-cpu\*.evidence.json*" -and $kitReadme -like "*measure-musu-runtime-cpu-scenarios.ps1*" -and $kitReadme -like "*.local-build\runtime-cpu-scenarios\*" -and $kitReadme -like "*show-musu-process-attribution.ps1*" -and $kitReadme -like "*machine-wide Node.js*") "nested kit README explains release-check wrapper, runtime CPU evidence, scenario matrix diagnostics, and process attribution" "nested kit README missing release-check wrapper/runtime CPU/scenario matrix/process attribution instructions"
+                                    Add-CheckFromCondition "second-pc nested kit README wrapper" ($kitReadme -like "*run-second-pc-release-check.ps1*" -and $kitReadme -like "*.release-check.json*" -and $kitReadme -like "*.local-build\second-pc-return\*.zip*" -and $kitReadme -like "*measure-musu-idle-cpu.ps1*" -and $kitReadme -like "*.local-build\runtime-idle-cpu\*.evidence.json*" -and $kitReadme -like "*measure-musu-runtime-cpu-scenarios.ps1*" -and $kitReadme -like "*.local-build\runtime-cpu-scenarios\*" -and $kitReadme -like "*show-musu-process-attribution.ps1*" -and $kitReadme -like "*machine-wide Node.js*" -and $kitReadme -like "*.local-build\runtime-cleanup\*.runtime-cleanup.json*" -and $kitReadme -like "*musu.second_pc_runtime_cleanup.v1*") "nested kit README explains release-check wrapper, runtime CPU evidence, scenario matrix diagnostics, process attribution, and cleanup evidence" "nested kit README missing release-check wrapper/runtime CPU/scenario matrix/process attribution/cleanup instructions"
                                 }
                                 else {
                                     Add-Check "second-pc nested kit README" "fail" "nested kit is missing README_MULTI_DEVICE_TEST_KIT.md"

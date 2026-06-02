@@ -121,6 +121,7 @@ The wrapper runs the same steps below, writes
 `.local-build\runtime-idle-cpu\*.evidence.json`,
 `.local-build\runtime-cpu-scenarios\*.runtime-cpu-scenario-matrix.json`,
 `.local-build\process-attribution\*.process-attribution-summary.json`,
+`.local-build\runtime-cleanup\*.runtime-cleanup.json`,
 `.local-build\second-pc-handoff\*.handoff.json`, and
 `.local-build\second-pc-release-check\*.release-check.json`, creates
 `.local-build\second-pc-return\*.zip`, then prints the return zip and raw files
@@ -162,6 +163,13 @@ extra `node.exe` processes belong to MUSU or to unrelated local tooling:
 powershell -ExecutionPolicy Bypass -File scripts\windows\show-musu-process-attribution.ps1
 ```
 
+At the end of the wrapper, MUSU runtime cleanup is recorded with schema
+`musu.second_pc_runtime_cleanup.v1`. The wrapper runs `musu down --json` to
+stop the registered bridge runtime, closes the packaged desktop shell it opened
+for CPU evidence, and includes `.local-build\runtime-cleanup\*.runtime-cleanup.json`
+in the return zip. This prevents a second-PC evidence run from leaving stale
+bridge or desktop processes behind.
+
 Manual fallback:
 
 ```powershell
@@ -173,6 +181,7 @@ Start-Process explorer.exe 'shell:AppsFolder\Yellowhama.MUSU_ygcjq669as2b6!MUSU'
 powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -Scenario desktop-open -RequireOwnedWebView2 -MaxOneCorePercent 5 -MaxOwnedProcessCount 16 -MaxOwnedWebView2ProcessCount 8 -MaxTotalWorkingSetMb 1024 -IncludeNode -IncludeWebView2 -FailOnHot -Json
 powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -Json
 powershell -ExecutionPolicy Bypass -File scripts\windows\show-musu-process-attribution.ps1
+musu down --json
 musu up --json
 musu doctor --json
 musu status
@@ -187,6 +196,7 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix
 The install evidence command writes `.local-build\msix-install\*.evidence.json`.
 The runtime CPU command writes `.local-build\runtime-idle-cpu\*.evidence.json`.
 The scenario matrix command writes `.local-build\runtime-cpu-scenarios\*.json`.
+The wrapper cleanup command writes `.local-build\runtime-cleanup\*.json`.
 The process-attribution command writes
 `.local-build\process-ownership\*.json` unless an explicit output path is used.
 The handoff command writes `.local-build\second-pc-handoff\*.handoff.json`

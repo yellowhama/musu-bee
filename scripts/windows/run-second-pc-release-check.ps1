@@ -48,6 +48,7 @@ $msixLegacyConflictsPath = Join-Path $repoRoot ".local-build\msix-legacy-conflic
 $runtimeIdleCpuEvidencePath = Join-Path $repoRoot ".local-build\runtime-idle-cpu\$stamp-$safeMachine.desktop-open.evidence.json"
 $runtimeCpuScenarioOutputRoot = Join-Path $repoRoot ".local-build\runtime-cpu-scenarios\$stamp-$safeMachine"
 $processAttributionSummaryPath = Join-Path $repoRoot ".local-build\process-attribution\$stamp-$safeMachine.process-attribution-summary.json"
+$runtimeCleanupReportPath = Join-Path $repoRoot ".local-build\runtime-cleanup\$stamp-$safeMachine.runtime-cleanup.json"
 $returnZipPath = Join-Path $repoRoot ".local-build\second-pc-return\$stamp-$safeMachine.second-pc-return.zip"
 
 $steps = New-Object System.Collections.Generic.List[object]
@@ -63,6 +64,8 @@ $runtimeCpuScenarioMatrixError = $null
 $runtimeCpuScenarioMatrixVerification = $null
 $processAttributionSummary = $null
 $processAttributionError = $null
+$runtimeCleanup = $null
+$runtimeCleanupError = $null
 
 function Invoke-ReleaseStep {
     param(
@@ -118,6 +121,108 @@ function Start-MusuDesktopApp {
 
     Start-Process explorer.exe ("shell:AppsFolder\{0}" -f $app.AppID) | Out-Null
     Start-Sleep -Seconds 10
+}
+
+function Resolve-PackagedMusuExe {
+    $windowsAppsAlias = Join-Path $env:LOCALAPPDATA "Microsoft\WindowsApps\musu.exe"
+    if (Test-Path -LiteralPath $windowsAppsAlias) {
+        return $windowsAppsAlias
+    }
+
+    $command = Get-Command "musu.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($command -and -not [string]::IsNullOrWhiteSpace([string]$command.Source)) {
+        return [string]$command.Source
+    }
+
+    $command = Get-Command "musu" -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($command -and -not [string]::IsNullOrWhiteSpace([string]$command.Source)) {
+        return [string]$command.Source
+    }
+
+    return $null
+}
+
+function Invoke-RuntimeCleanup {
+    param(
+        [Parameter(Mandatory = $true)][string]$OutputPath
+    )
+
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $OutputPath) | Out-Null
+
+    $startedAt = Get-Date
+    $musuExe = Resolve-PackagedMusuExe
+    $stopReport = $null
+    $stopRaw = $null
+    $stopExitCode = $null
+    $stopParseError = $null
+    $runtimeError = $null
+    $desktopStoppedPids = New-Object System.Collections.Generic.List[int]
+    $desktopErrors = New-Object System.Collections.Generic.List[string]
+
+    if ([string]::IsNullOrWhiteSpace($musuExe)) {
+        $runtimeError = "Unable to resolve packaged MUSU CLI for cleanup."
+    }
+    else {
+        $output = & $musuExe down --json --timeout-sec 5 2>&1
+        $stopExitCode = $LASTEXITCODE
+        $stopRaw = ($output | Out-String).Trim()
+        if (-not [string]::IsNullOrWhiteSpace($stopRaw)) {
+            try {
+                $stopReport = $stopRaw | ConvertFrom-Json
+            }
+            catch {
+                $stopParseError = $_.Exception.Message
+            }
+        }
+        if ($stopExitCode -ne 0) {
+            $runtimeError = "musu down exited ${stopExitCode}."
+        }
+        elseif ($stopParseError) {
+            $runtimeError = "musu down JSON parse failed: $stopParseError"
+        }
+        elseif ($stopReport -and -not [bool]$stopReport.ok) {
+            $runtimeError = "musu down reported ok=false: $([string]$stopReport.error)"
+        }
+    }
+
+    $desktopProcesses = @(Get-CimInstance Win32_Process -Filter "name='musu-desktop.exe'" -ErrorAction SilentlyContinue | Where-Object {
+        [string]$_.CommandLine -like "*Yellowhama.MUSU*"
+    })
+    foreach ($process in $desktopProcesses) {
+        try {
+            Stop-Process -Id $process.ProcessId -Force -ErrorAction Stop
+            [void]$desktopStoppedPids.Add([int]$process.ProcessId)
+        }
+        catch {
+            [void]$desktopErrors.Add(("pid {0}: {1}" -f $process.ProcessId, $_.Exception.Message))
+        }
+    }
+    Start-Sleep -Milliseconds 500
+    $remainingDesktop = @(Get-CimInstance Win32_Process -Filter "name='musu-desktop.exe'" -ErrorAction SilentlyContinue | Where-Object {
+        [string]$_.CommandLine -like "*Yellowhama.MUSU*"
+    })
+
+    $cleanup = [pscustomobject]@{
+        schema = "musu.second_pc_runtime_cleanup.v1"
+        ok = ([string]::IsNullOrWhiteSpace($runtimeError) -and (@($desktopErrors).Count -eq 0) -and (@($remainingDesktop).Count -eq 0))
+        version = $version
+        recorded_at = (Get-Date).ToString("o")
+        started_at = $startedAt.ToString("o")
+        operator_machine = $env:COMPUTERNAME
+        operator_user = $env:USERNAME
+        musu_exe = $musuExe
+        stop_exit_code = $stopExitCode
+        stop_raw = $stopRaw
+        stop_parse_error = $stopParseError
+        stop_report = $stopReport
+        desktop_stopped_pids = @($desktopStoppedPids)
+        desktop_cleanup_errors = @($desktopErrors)
+        remaining_desktop_shell_count = @($remainingDesktop).Count
+        remaining_desktop_pids = @($remainingDesktop | ForEach-Object { [int]$_.ProcessId })
+        error = $runtimeError
+    }
+    $cleanup | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $OutputPath -Encoding UTF8
+    return $cleanup
 }
 
 try {
@@ -290,6 +395,29 @@ try {
 catch {
     $errorText = $_.Exception.Message
 }
+finally {
+    try {
+        $runtimeCleanup = Invoke-RuntimeCleanup -OutputPath $runtimeCleanupReportPath
+    }
+    catch {
+        $runtimeCleanupError = $_.Exception.Message
+        try {
+            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $runtimeCleanupReportPath) | Out-Null
+            [pscustomobject]@{
+                schema = "musu.second_pc_runtime_cleanup.v1"
+                ok = $false
+                version = $version
+                recorded_at = (Get-Date).ToString("o")
+                operator_machine = $env:COMPUTERNAME
+                operator_user = $env:USERNAME
+                error = $runtimeCleanupError
+            } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $runtimeCleanupReportPath -Encoding UTF8
+        }
+        catch {
+            # The summary JSON below still records runtimeCleanupError.
+        }
+    }
+}
 
 $runtimeCpuScenarioFiles = @()
 if (-not $SkipRuntimeCpuScenarioMatrix -and (Test-Path -LiteralPath $runtimeCpuScenarioOutputRoot)) {
@@ -303,6 +431,7 @@ $returnFiles = @(
     $(if (-not $SkipRuntimeIdleCpu) { $runtimeIdleCpuEvidencePath }),
     $runtimeCpuScenarioFiles,
     $processAttributionSummaryPath,
+    $runtimeCleanupReportPath,
     $summaryPath
 ) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }
 if (-not $NoReturnZip) {
@@ -311,7 +440,7 @@ if (-not $NoReturnZip) {
 
 $result = [pscustomobject]@{
     schema = "musu.second_pc_release_check.v1"
-    ok = [string]::IsNullOrWhiteSpace($errorText)
+    ok = ([string]::IsNullOrWhiteSpace($errorText) -and ($runtimeCleanup -and [bool]$runtimeCleanup.ok))
     version = $version
     startup_contract = $StartupContract
     completed_at = (Get-Date).ToString("o")
@@ -335,6 +464,10 @@ $result = [pscustomobject]@{
     process_attribution_ok = if ($processAttributionSummary) { [bool]$processAttributionSummary.ok } else { $false }
     process_attribution_error = $processAttributionError
     process_attribution_counts = if ($processAttributionSummary) { $processAttributionSummary.counts } else { $null }
+    runtime_cleanup_report_path = $runtimeCleanupReportPath
+    runtime_cleanup_ok = if ($runtimeCleanup) { [bool]$runtimeCleanup.ok } else { $false }
+    runtime_cleanup_error = $runtimeCleanupError
+    runtime_cleanup = $runtimeCleanup
     suggested_remote_addrs = if ($handoff) { $handoff.suggested_remote_addrs } else { @() }
     remote_name_suggestion = if ($handoff) { [string]$handoff.remote_name_suggestion } else { $env:COMPUTERNAME }
     capture_ok = if ($capture) { [bool]$capture.ok } else { $false }
@@ -345,7 +478,7 @@ $result = [pscustomobject]@{
     return_zip_error = $null
     return_files = $returnFiles
     steps = $steps.ToArray()
-    error = $errorText
+    error = if (-not [string]::IsNullOrWhiteSpace($errorText)) { $errorText } elseif ($runtimeCleanup -and -not [bool]$runtimeCleanup.ok) { "runtime cleanup failed" } elseif ($runtimeCleanupError) { $runtimeCleanupError } else { $null }
 }
 
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $summaryPath) | Out-Null
@@ -353,7 +486,7 @@ $result | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $summaryPath -Encod
 
 if (-not $NoReturnZip) {
     try {
-        $filesToZip = @($msixEvidencePath, $handoffPath, $msixLegacyConflictsPath, $(if (-not $SkipRuntimeIdleCpu) { $runtimeIdleCpuEvidencePath }), $runtimeCpuScenarioFiles, $processAttributionSummaryPath, $summaryPath) | Where-Object {
+        $filesToZip = @($msixEvidencePath, $handoffPath, $msixLegacyConflictsPath, $(if (-not $SkipRuntimeIdleCpu) { $runtimeIdleCpuEvidencePath }), $runtimeCpuScenarioFiles, $processAttributionSummaryPath, $runtimeCleanupReportPath, $summaryPath) | Where-Object {
             (-not [string]::IsNullOrWhiteSpace([string]$_)) -and (Test-Path -LiteralPath $_)
         }
         if ($filesToZip.Count -eq 0) {
@@ -382,6 +515,7 @@ else {
     "runtime_idle_cpu_evidence_path: $(if ($result.runtime_idle_cpu_evidence_path) { $result.runtime_idle_cpu_evidence_path } else { '<skipped>' })"
     "runtime_cpu_scenario_matrix_path: $(if ($result.runtime_cpu_scenario_matrix_path) { $result.runtime_cpu_scenario_matrix_path } elseif ($SkipRuntimeCpuScenarioMatrix) { '<skipped>' } else { '<not captured>' })"
     "process_attribution_summary_path: $(if ($result.process_attribution_summary_path) { $result.process_attribution_summary_path } else { '<not captured>' })"
+    "runtime_cleanup_report_path: $(if ($result.runtime_cleanup_report_path) { $result.runtime_cleanup_report_path } else { '<not captured>' })"
     "return_zip_path: $($result.return_zip_path)"
     "remote_name_suggestion: $($result.remote_name_suggestion)"
     "suggested_remote_addrs:"
@@ -400,6 +534,10 @@ else {
     if ($result.process_attribution_error) {
         ""
         "process_attribution_error: $($result.process_attribution_error)"
+    }
+    if ($result.runtime_cleanup_error) {
+        ""
+        "runtime_cleanup_error: $($result.runtime_cleanup_error)"
     }
     if ($result.msix_legacy_conflicts_error) {
         ""

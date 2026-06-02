@@ -1537,4 +1537,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2026-06-02_1820_kst_post_stop_down_primary_evidence_refresh.md`, and
   `post-stop/down primary evidence index refresh`.
 
+- 2026-06-02 second-PC runtime cleanup hardening:
+  wiki/561 records cleanup evidence support in the second-PC release wrapper.
+  Search terms should include `GOAL v325`, `wiki/561`,
+  `musu.second_pc_runtime_cleanup.v1`, `.local-build\runtime-cleanup`,
+  `run-second-pc-release-check.ps1`, `musu down --json --timeout-sec 5`,
+  `runtime_cleanup_ok`, `remaining_desktop_shell_count=0`,
+  `20260602-185052-HUGH_SECOND.runtime-cleanup.json`, and
+  `second-PC runtime cleanup`.
+
+- 2026-06-02 index refresh after second-PC runtime cleanup hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1409 files and 2245 symbols after wiki/561, GOAL v325/v326, cleanup
+  hardening report, second-PC wrapper/action-pack script updates, BETA/current
+  report/runtime roadmap updates, WIKI_INDEX, and CoS memory. Search terms
+  should include `GOAL v326`, `1409 files`, `2245 symbols`,
+  `RELEASE_1_15_0_RC1_SECOND_PC_CLEANUP_HARDENING_2026_06_02.md`,
+  `2026-06-02_1852_kst_second_pc_runtime_cleanup_hardening.md`, and
+  `second-PC cleanup index refresh`.
+
 **End of WIKI_INDEX.md.**
