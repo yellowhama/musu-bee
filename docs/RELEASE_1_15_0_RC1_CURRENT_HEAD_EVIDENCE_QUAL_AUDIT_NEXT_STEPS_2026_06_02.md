@@ -1542,3 +1542,46 @@ Qualitative result: this improves release evidence reliability and operator
 latency, but it does not close the product gate. Public release still requires
 actual second-PC route/CPU/matrix evidence, `musu.pro` KV/Upstash owner-scoped
 P2P lease proof, `musu@musu.pro` inbox proof, and Store evidence.
+
+## 2026-06-03 05:37 KST Busy-Loop and Process Attribution Recheck
+
+Current HEAD `6f32d490` was re-audited against the operator-reported CPU
+busy-loop and machine-wide Node process concerns.
+
+Validation passed:
+
+- `cargo test --manifest-path .\musu-rs\Cargo.toml --lib -j 1 peer::mdns::tests::`
+  passed 3/3.
+- `npm run test:runtime-polling` passed 11/11.
+
+Code audit result:
+
+- mDNS remains default-off unless `MUSU_ENABLE_MDNS=1`; IPv6, Tailscale, and
+  VPN/virtual interfaces remain separately opt-in.
+- explicit mDNS discovery exits immediately on disconnected browse receivers.
+- frontend low-duty polling clamps accidental tight intervals, uses default
+  timeout cancellation, and keeps reconnect paths bounded.
+- `useFleetStore` does not contain a fixed EventSource reconnect timer; its
+  remaining `setTimeout` calls are UI speaking-state resets.
+- bridge cloud registration is a low-duty heartbeat loop with 300s default,
+  60s minimum, failure backoff, and jitter.
+
+Live process attribution at 05:35 KST produced
+`.local-build\process-ownership\musu-process-ownership-20260603-053549.json`.
+It failed as release evidence because MUSU was not running: `musu_runtime=0`,
+desktop shell `0`, bridge registry missing. It found 16 machine-wide
+`node.exe` processes and 6 WebView2 helpers, all outside the MUSU process tree,
+with no repo-related orphan helpers. This supports the current release boundary:
+raw machine-wide Node count is diagnostic only; release accountability is
+MUSU-owned descendants and repo-related orphan helpers.
+
+Fresh go/no-go at 05:37 KST remains public No-Go but local artifacts stay good:
+`local_artifacts_ready=True`, `single_machine_verified=True`,
+`public_metadata_ok=True`, `msix_install_verified=True`, and
+`msix_desktop_entrypoint_verified=True`. Multi-device remains false and the
+latest failed route evidence is still legacy `none_http_bearer` without
+release-grade peer identity or QUIC/TLS transport proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_BUSY_LOOP_PROCESS_ATTRIBUTION_AUDIT_2026_06_03.md`

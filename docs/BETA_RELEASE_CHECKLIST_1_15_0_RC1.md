@@ -227,6 +227,14 @@ Runtime hardening:
   `deploy-musu-bee.yml`
 - public beta target: MUSU packaged desktop open and idle, at least one MUSU runtime process sampled, at least one MUSU-owned WebView2 process attributed, no MUSU/Node.js/WebView2 process above 5% of one logical CPU for a 60s idle sample, owned process count <= 16, owned WebView2 count <= 8, total owned working set <= 1024MB
 - process ownership target: one live MUSU runtime, no repo-related orphan Node/WebView2 helpers, and bridge registry PID plus `/health` matching the live runtime. Machine-wide `node.exe` count is diagnostic only; MUSU-owned descendants and repo-related orphan helpers are the release accountability boundary.
+- current live process attribution recheck: `show-musu-process-attribution.ps1`
+  at 2026-06-03 05:35 KST found MUSU not running (`musu_runtime=0`,
+  missing bridge registry) and 16 machine-wide `node.exe` processes, all
+  outside the MUSU process tree. This is diagnostic evidence for local dev/tool
+  cleanup, not a MUSU-owned release CPU failure. Latest release-grade
+  desktop-open CPU evidence remains
+  `20260603-035458-HUGH_SECOND.desktop-open`, which passes with MUSU `0`,
+  Node `0.03`, WebView2 `0.6`, and hot process count `0`.
 - startup single-instance target: repeated `musu up --json` calls reuse one bridge PID and do not spawn another runtime
 - default mDNS: off unless `MUSU_ENABLE_MDNS=1`; IPv6, Tailscale, and common VPN/virtual adapters also require `MUSU_MDNS_ENABLE_IPV6=1`, `MUSU_MDNS_ENABLE_TAILSCALE=1`, and `MUSU_MDNS_ENABLE_VIRTUAL_INTERFACES=1`
 - mDNS disconnected-channel hardening: explicit mDNS discovery now treats

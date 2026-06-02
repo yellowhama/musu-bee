@@ -1973,3 +1973,39 @@ Canonical reference:
 
 Index refresh after wiki/588 recorded `1583` files and `2274` symbols using the
 explicit packaged WindowsApps alias invocation.
+
+## 19. Busy-Loop and Process Attribution Recheck (2026-06-03)
+
+wiki/589 records the current HEAD `6f32d490` re-audit of the operator-reported
+CPU busy-loop and machine-wide Node process concerns. Validation passed:
+`peer::mdns::tests::` 3/3 and `npm run test:runtime-polling` 11/11.
+
+The code audit found no new fixed-delay busy-loop in the audited default paths:
+mDNS is default-off, IPv6/Tailscale/VPN mDNS are separately opt-in, disconnected
+mDNS browse receivers break immediately, frontend low-duty polling clamps
+intervals and cancels tasks, chat/relay reconnects remain bounded, and the
+bridge `musu.pro` registration loop is a 300s low-duty heartbeat with minimum
+60s, failure backoff, and jitter.
+
+Live process attribution at 2026-06-03 05:35 KST generated
+`.local-build\process-ownership\musu-process-ownership-20260603-053549.json`.
+It is diagnostic, not release-pass evidence: MUSU was not running
+(`musu_runtime=0`, missing bridge registry), while 16 machine-wide `node.exe`
+processes and 6 WebView2 helpers were all outside the MUSU process tree with no
+repo-related orphan helpers. The latest release-grade desktop-open CPU evidence
+remains `20260603-035458-HUGH_SECOND`, which passes with MUSU `0`, Node `0.03`,
+WebView2 `0.6`, and hot process count `0`.
+
+Fresh go/no-go at 05:37 KST remains public No-Go while local artifacts remain
+ready: `local_artifacts_ready=True`, `single_machine_verified=True`,
+`public_metadata_ok=True`, `msix_install_verified=True`, and
+`msix_desktop_entrypoint_verified=True`; multi-device/P2P/support/Store gates
+remain open.
+
+Canonical reference:
+
+- `docs/RELEASE_1_15_0_RC1_BUSY_LOOP_PROCESS_ATTRIBUTION_AUDIT_2026_06_03.md`
+- `docs/memory/chief_of_staff/2026-06-03_busy_loop_process_attribution_audit.md`
+
+Index refresh after wiki/589 recorded `1587` files and `2274` symbols using the
+explicit packaged WindowsApps alias invocation.

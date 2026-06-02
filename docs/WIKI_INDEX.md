@@ -2129,4 +2129,28 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `wiki/588 index refresh`, `bounded external gate probe index refresh`,
   `SecondPcProbeTimeoutMs`, and `bounded_ping_and_tcp`.
 
+- 2026-06-03 busy-loop and process attribution recheck:
+  `RELEASE_1_15_0_RC1_BUSY_LOOP_PROCESS_ATTRIBUTION_AUDIT_2026_06_03.md`
+  (wiki/589) records current HEAD `6f32d490` against the operator-reported
+  busy-loop and machine-wide Node concerns. Validation passed mDNS tests 3/3
+  and runtime polling contract tests 11/11. Live process attribution
+  `.local-build\process-ownership\musu-process-ownership-20260603-053549.json`
+  found MUSU not running, missing bridge registry, machine-wide `node.exe=16`,
+  MUSU-owned Node `0`, machine-wide WebView2 `6`, MUSU-owned WebView2 `0`, and
+  orphan repo helpers `0`. Search terms should include `GOAL v385`,
+  `wiki/589`, `busy-loop process attribution`, `musu_runtime=0`,
+  `machine-wide node 16`, `owned_node=0`, `20260603-053549`,
+  `peer::mdns::tests:: 3/3`, and `runtime-polling 11/11`.
+
+- 2026-06-03 busy-loop/process attribution index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1587 files and 2274 symbols after GOAL v385-v386, wiki/589, the
+  busy-loop/process attribution report, BETA/current-head/WIKI/WIKI_INDEX
+  updates, and CoS memory
+  `2026-06-03_busy_loop_process_attribution_audit.md`. Search terms should
+  include `GOAL v386`, `1587 files`, `2274 symbols`,
+  `wiki/589 index refresh`, `busy-loop process attribution index refresh`,
+  `musu-process-ownership-20260603-053549`, and `machine-wide node 16`.
+
 **End of WIKI_INDEX.md.**
