@@ -1769,3 +1769,33 @@ Canonical reference:
 
 - `docs/RELEASE_1_15_0_RC1_POST_LOW_DUTY_POLLING_PRIMARY_EVIDENCE_2026_06_03.md`
 - `docs/memory/chief_of_staff/2026-06-03_post_low_duty_polling_primary_evidence.md`
+
+## 12. Operator Pack and P2P Recheck 03:35 (2026-06-03)
+
+wiki/582 records current-head handoff artifacts and hosted P2P state after the
+post low-duty polling primary evidence commit. Current final packet
+`.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260603-033322.zip`
+and action pack
+`.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260603-033353.zip`
+both verify with `ok=true` and `fail_count=0`.
+
+Current second-PC transfer zip:
+
+- `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260603-033353\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260603-033353.zip`
+
+Second-PC `192.168.1.192:8949` remains unreachable from `HUGH_SECOND`
+(`TcpTestSucceeded=false`, ping timeout), so live two-machine route/CPU/matrix
+evidence cannot be captured yet.
+
+Fresh P2P evidence `20260603-033453-musu.pro` still fails: relay leases are
+not ok, owner scope is not verified, and the query is not owner-scoped. Env
+status still has only `MUSU_P2P_CONTROL_TOKEN_SHA256S`; missing KV/Upstash
+URL/token blockers remain. `relay_default_data_path=false`.
+
+Index refresh after the recheck recorded `1537` files and `2274` symbols.
+
+Canonical reference:
+
+- `docs/RELEASE_1_15_0_RC1_OPERATOR_PACK_P2P_RECHECK_2026_06_03_0335.md`
+- `docs/memory/chief_of_staff/2026-06-03_operator_pack_p2p_recheck_0335.md`
+- `docs/memory/chief_of_staff/2026-06-03_operator_pack_p2p_recheck_index_refresh_0336.md`

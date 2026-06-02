@@ -1963,4 +1963,27 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260603-031911-HUGH_SECOND`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_031911`,
   and `post low-duty polling primary evidence index refresh`.
 
+- 2026-06-03 operator pack and P2P recheck 03:35:
+  `RELEASE_1_15_0_RC1_OPERATOR_PACK_P2P_RECHECK_2026_06_03_0335.md`
+  (wiki/582) records current-head final packet/action pack verification,
+  second-PC reachability failure, and fresh failing P2P evidence. Search terms
+  should include `GOAL v369`, `wiki/582`,
+  `musu-final-operator-gates-1.15.0-rc.1-20260603-033322.zip`,
+  `MUSU-1.15.0-rc.1-operator-action-pack-20260603-033353.zip`,
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260603-033353.zip`,
+  `20260603-033453-musu.pro.evidence.json`,
+  `TcpTestSucceeded=false`, `p2p_relay_lease_kv_not_configured`,
+  `KV_REST_API_URL_OR_UPSTASH_REDIS_REST_URL`, and
+  `KV_REST_API_TOKEN_OR_UPSTASH_REDIS_REST_TOKEN`.
+
+- 2026-06-03 operator pack/P2P recheck index refresh:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1537 files and 2274 symbols after GOAL v369-v370, wiki/582, fresh failing
+  P2P evidence `20260603-033453-musu.pro`, the operator pack/P2P recheck
+  report, BETA/current-head/WIKI/WIKI_INDEX updates, and CoS memories
+  `2026-06-03_operator_pack_p2p_recheck_0335.md` and
+  `2026-06-03_operator_pack_p2p_recheck_index_refresh_0336.md`. Search terms
+  should include `GOAL v370`, `1537 files`, `2274 symbols`,
+  `wiki/582 index refresh`, and `operator pack P2P recheck index refresh`.
+
 **End of WIKI_INDEX.md.**

@@ -1325,3 +1325,29 @@ false.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_LOW_DUTY_POLLING_PRIMARY_EVIDENCE_2026_06_03.md`
+
+## 2026-06-03 03:35 KST Operator Pack and P2P Recheck
+
+Current-head final packet and action pack were regenerated from clean commit
+`aaf74ca2`.
+
+- final packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260603-033322.zip`
+- action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260603-033353.zip`
+- second-PC transfer:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260603-033353\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260603-033353.zip`
+
+Both verifiers pass with `ok=true` and `fail_count=0`.
+
+Second-PC `192.168.1.192:8949` remains unreachable from `HUGH_SECOND`
+(`TcpTestSucceeded=false`, ping timeout). Fresh P2P evidence
+`20260603-033453-musu.pro` still fails release verification with relay leases
+`ok=false`, owner scope false, and live detail
+`p2p_relay_lease_kv_not_configured`. Env status still lacks
+`KV_REST_API_URL_OR_UPSTASH_REDIS_REST_URL` and
+`KV_REST_API_TOKEN_OR_UPSTASH_REDIS_REST_TOKEN`; `relay_default_data_path=false`.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_OPERATOR_PACK_P2P_RECHECK_2026_06_03_0335.md`

@@ -1494,3 +1494,38 @@ mailbox evidence, and Store evidence.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_LOW_DUTY_POLLING_PRIMARY_EVIDENCE_2026_06_03.md`
+
+## 2026-06-03 03:35 KST Operator Pack and P2P Recheck
+
+Current-head external handoff artifacts from clean commit `aaf74ca2`:
+
+- final packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260603-033322.zip`
+- action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260603-033353.zip`
+- second-PC transfer:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260603-033353\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260603-033353.zip`
+- Partner Center zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260603-033353\partner-center\MUSU-1.15.0-rc.1-store-submission-20260603-033353.zip`
+
+Both final packet and action pack verifiers pass with `ok=true` and
+`fail_count=0`.
+
+Second-PC reachability recheck: `Test-NetConnection 192.168.1.192 -Port 8949`
+still reports `TcpTestSucceeded=false` and ping timeout, so live two-machine
+route/CPU/matrix evidence cannot be captured from the primary machine yet.
+
+Fresh P2P live evidence:
+
+- `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-033453-musu.pro.evidence.json`
+- verification fail count: `4`
+- failing: evidence `ok=false`, relay leases `ok=false`,
+  owner scope false, owner-scoped false
+- env blocker: missing `KV_REST_API_URL_OR_UPSTASH_REDIS_REST_URL` and
+  `KV_REST_API_TOKEN_OR_UPSTASH_REDIS_REST_TOKEN`
+- live blocker: `p2p_relay_lease_kv_not_configured`
+- `relay_default_data_path=false`
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_OPERATOR_PACK_P2P_RECHECK_2026_06_03_0335.md`
