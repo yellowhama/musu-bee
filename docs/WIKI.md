@@ -2193,3 +2193,54 @@ Canonical reference:
 
 Index refresh after wiki/594 recorded `1618` files and `2283` symbols using the
 explicit packaged WindowsApps alias invocation.
+
+## 25. Post Fleet SSE Primary Evidence Refresh (2026-06-03)
+
+wiki/595 records the primary evidence refresh after Fleet SSE lifecycle
+hardening.
+
+Current source was rebuilt into the local-sideload MSIX:
+
+- `.local-build\msix\output\musu_1.15.0.0_x64_local-sideload-manual.msix`
+- installed package:
+  `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`
+
+Runtime evidence used the explicit packaged WindowsApps alias because local
+PATH still resolves `C:\Users\empty\.cargo\bin\musu.exe` before WindowsApps.
+The install verifier passed, but `capture-msix-install-evidence.ps1` still
+fails on this machine due alias shadowing, so no new MSIX install evidence was
+recorded to `docs\evidence` in this pass.
+
+Fresh primary evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-073941-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-074231-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-074415-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Single-machine smoke passed with dashboard task
+`595585da-e3c5-43f4-8468-d1cec100133a` and output
+`MUSU_RELEASE_SMOKE_OK_20260603_073920`.
+
+Desktop-open idle CPU passed for `60.061s` with MUSU `0`, Node `0.05`,
+WebView2 `0.16`, working set `500.12MB`, and hot process count `0`.
+
+The four-state runtime matrix passed with route token
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260603_074415`; all four scenarios were clean and
+under budget.
+
+Clean go/no-go on `0428c20020a5fbd0331e3aa6ed2ae319e54348d0` reports
+`local_artifacts_ready=true`, `single_machine_verified=true`, runtime idle CPU
+valid machines `1`, runtime CPU matrix valid machines `1`, and
+`manifest_git.dirty=false`. Public release remains No-Go on second-PC,
+release-grade live `musu.pro` P2P, `musu@musu.pro`, and Store evidence.
+
+Canonical reference:
+
+- `docs/RELEASE_1_15_0_RC1_POST_FLEET_SSE_PRIMARY_EVIDENCE_REFRESH_2026_06_03.md`
+- `docs/memory/chief_of_staff/2026-06-03_post_fleet_sse_primary_evidence_refresh.md`
+
+Index refresh after wiki/595 recorded `1630` files and `2283` symbols using the
+explicit packaged WindowsApps alias invocation.

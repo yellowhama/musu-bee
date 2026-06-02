@@ -2266,4 +2266,29 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `fleet SSE lifecycle index refresh`, `closeSSE`, `aa23fc85`, and
   `FLEET_SSE_MAX_RETRIES`.
 
+- 2026-06-03 post Fleet SSE primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_FLEET_SSE_PRIMARY_EVIDENCE_REFRESH_2026_06_03.md`
+  (wiki/595) records the fresh primary MSIX/smoke/CPU/matrix evidence after
+  Fleet SSE lifecycle hardening. Search terms should include `GOAL v397`,
+  `wiki/595`, `20260603-073941-HUGH_SECOND`,
+  `20260603-074231-HUGH_SECOND.desktop-open`,
+  `20260603-074415-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_074415`,
+  `local_artifacts_ready=true`, `single_machine_verified=true`,
+  `runtime idle CPU 1/2`, `runtime CPU matrix 1/2`, and
+  `cargo bin shadows WindowsApps`.
+
+- 2026-06-03 post Fleet SSE primary evidence index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1630 files and 2283 symbols after GOAL v397-v398, wiki/595, fresh
+  primary evidence files, BETA checklist, runtime hardening roadmap,
+  WIKI/WIKI_INDEX updates, and CoS memories
+  `2026-06-03_post_fleet_sse_primary_evidence_refresh.md` and
+  `2026-06-03_post_fleet_sse_primary_evidence_index_refresh.md`. Search terms
+  should include `GOAL v398`, `1630 files`, `2283 symbols`,
+  `post Fleet SSE primary evidence index refresh`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_074415`, and
+  `single_machine_verified=true`.
+
 **End of WIKI_INDEX.md.**

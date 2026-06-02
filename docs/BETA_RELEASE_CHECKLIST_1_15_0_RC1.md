@@ -1910,3 +1910,58 @@ Interpretation:
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_FLEET_SSE_LIFECYCLE_HARDENING_2026_06_03.md`
+
+## 2026-06-03 07:50 KST Post Fleet SSE Primary Evidence Refresh
+
+Current primary-machine evidence was restored after Fleet SSE lifecycle
+hardening.
+
+Build/install:
+
+- rebuilt local-sideload MSIX:
+  `.local-build\msix\output\musu_1.15.0.0_x64_local-sideload-manual.msix`
+- installed package:
+  `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`
+- runtime evidence used explicit packaged alias:
+  `C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe`
+
+Fresh evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-073941-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-074231-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-074415-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Results:
+
+- single-machine smoke passed with task
+  `595585da-e3c5-43f4-8468-d1cec100133a`
+- desktop-open CPU passed for `60.061s`: MUSU `0`, Node `0.05`,
+  WebView2 `0.16`, working set `500.12MB`, hot `0`
+- runtime matrix passed all four scenarios with route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_074415`
+- clean go/no-go on `0428c20020a5fbd0331e3aa6ed2ae319e54348d0`:
+  `local_artifacts_ready=true`, `single_machine_verified=true`, runtime idle
+  CPU valid machines `1`, runtime CPU matrix valid machines `1`,
+  `manifest_git.dirty=false`
+
+Caveat:
+
+- `capture-msix-install-evidence.ps1` still fails on HUGH_SECOND because
+  `C:\Users\empty\.cargo\bin\musu.exe` shadows the WindowsApps alias. The
+  package install verifier passed, but no new MSIX install evidence was recorded
+  to docs in this pass.
+
+Release state:
+
+- local primary evidence is restored
+- public release remains No-Go until second-PC route/CPU/matrix, live
+  `musu.pro` owner-scoped KV/Upstash relay lease evidence, relay payload
+  transport proof, `musu@musu.pro` mailbox evidence, and Store evidence are
+  recorded
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_FLEET_SSE_PRIMARY_EVIDENCE_REFRESH_2026_06_03.md`

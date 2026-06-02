@@ -1317,3 +1317,28 @@ route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_213706`.
 Hardening verdict: primary idle remains within budget after the hardware probe
 source change; second-PC CPU/matrix evidence is still the required next release
 gate.
+
+## 2026-06-03 Post Fleet SSE Primary Evidence Refresh
+
+After Fleet SSE lifecycle hardening, the current local-sideload MSIX was rebuilt
+and primary runtime evidence was restored on `HUGH_SECOND`.
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-073941-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-074231-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-074415-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Desktop-open CPU reports MUSU `0`, Node `0.05`, WebView2 `0.16`, working set
+`500.12MB`, and hot `0`. The runtime matrix passes runtime-started,
+dashboard-open, desktop-open, and post-route with route token
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260603_074415`.
+
+Clean go/no-go on `0428c200` is back to `local_artifacts_ready=true` and
+`single_machine_verified=true`; runtime idle CPU and matrix are each `1/2`
+because second-PC evidence is still missing.
+
+Hardening verdict: the Fleet SSE source change did not introduce a primary
+busy-loop regression. The next release-critical runtime step remains the same
+current CPU/matrix proof on a real second Windows PC.
