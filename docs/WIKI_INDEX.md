@@ -2291,4 +2291,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_074415`, and
   `single_machine_verified=true`.
 
+- 2026-06-03 MSIX alias shadow warning policy:
+  `RELEASE_1_15_0_RC1_MSIX_ALIAS_SHADOW_WARNING_POLICY_2026_06_03.md`
+  (wiki/596) records the strict-vs-warning split for MSIX install alias
+  evidence. Search terms should include `GOAL v399`, `wiki/596`,
+  `AliasShadowingMode=warn-explicit-windowsapps`,
+  `alias_shadowing_accepted=true`, `developer-warning-only`,
+  `20260603-080717-HUGH_SECOND.evidence.json`,
+  `20260603-080722-HUGH_SECOND.evidence.json`, `fail_count=4`,
+  `fail_count=0`, and `C:\Users\empty\.cargo\bin\musu.exe`.
+
+- 2026-06-03 MSIX alias shadow warning policy index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1634 files and 2283 symbols after GOAL v399-v400, wiki/596, MSIX
+  alias shadow warning tooling changes, BETA checklist, WIKI/WIKI_INDEX
+  updates, and CoS memories
+  `2026-06-03_msix_alias_shadow_warning_policy.md` and
+  `2026-06-03_msix_alias_shadow_warning_index_refresh.md`. Search terms should
+  include `GOAL v400`, `1634 files`, `2283 symbols`,
+  `wiki/596 index refresh`, `AliasShadowingMode=warn-explicit-windowsapps`,
+  and `alias_shadowing_accepted=true`.
+
 **End of WIKI_INDEX.md.**

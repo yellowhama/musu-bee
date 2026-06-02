@@ -5,6 +5,8 @@ param(
     [ValidateSet("local-sideload-manual", "store-reviewed-immediate-registration", "")]
     [string]$ExpectedStartupContract = "",
     [int]$MaxAgeDays = 30,
+    [ValidateSet("fail", "warn-explicit-windowsapps")]
+    [string]$AliasShadowingMode = "fail",
     [switch]$Json
 )
 
@@ -163,6 +165,31 @@ $operatorUser = Get-StringProperty -Object $evidence -Name "operator_user"
 $nestedChecks = Get-ArrayProperty -Object $evidence -Name "checks"
 $now = [datetimeoffset]::Now
 $futureTolerance = [timespan]::FromMinutes(5)
+$aliasShadowedBy = Get-StringProperty -Object $evidence -Name "alias_shadowed_by"
+$aliasShadowingCount = Get-IntProperty -Object $evidence -Name "alias_shadowing_count"
+$legacyConflictCount = Get-IntProperty -Object $evidence -Name "legacy_conflict_count"
+$startupConflictCount = Get-IntProperty -Object $evidence -Name "startup_conflict_count"
+$evidenceAliasShadowingMode = Get-StringProperty -Object $evidence -Name "alias_shadowing_mode"
+if ([string]::IsNullOrWhiteSpace($evidenceAliasShadowingMode)) {
+    $evidenceAliasShadowingMode = "fail"
+}
+$aliasShadowingPresent = (-not [string]::IsNullOrWhiteSpace($aliasShadowedBy) -or $aliasShadowingCount -gt 0)
+$explicitWindowsAppsAliasAvailable = (
+    (Get-BoolProperty -Object $evidence -Name "windowsapps_alias_present") -and
+    (Get-BoolProperty -Object $evidence -Name "alias_visible_in_get_command") -and
+    -not [string]::IsNullOrWhiteSpace((Get-StringProperty -Object $evidence -Name "windowsapps_alias_invocation"))
+)
+$aliasShadowingAccepted = (
+    $aliasShadowingPresent -and
+    $AliasShadowingMode -eq "warn-explicit-windowsapps" -and
+    $evidenceAliasShadowingMode -eq "warn-explicit-windowsapps" -and
+    (Get-BoolProperty -Object $evidence -Name "alias_shadowing_accepted") -and
+    $explicitWindowsAppsAliasAvailable
+)
+$legacyConflictsOnlyAliasShadowing = (
+    $legacyConflictCount -eq $aliasShadowingCount -and
+    $startupConflictCount -eq 0
+)
 
 Add-CheckFromCondition "schema" ($schema -eq "musu.msix_install_evidence.v1") "schema is valid" "schema is not musu.msix_install_evidence.v1"
 Add-CheckFromCondition "evidence ok" $ok "evidence reports ok=true" "evidence does not report ok=true"
@@ -192,11 +219,29 @@ Add-CheckFromCondition "operator user" (-not [string]::IsNullOrWhiteSpace($opera
 Add-CheckFromCondition "artifact contract match" (Get-BoolProperty -Object $evidence -Name "artifact_contract_match") "installed contract matches artifact" "installed contract does not match artifact"
 Add-CheckFromCondition "WindowsApps alias" (Get-BoolProperty -Object $evidence -Name "windowsapps_alias_present") "WindowsApps alias exists" "WindowsApps alias is missing"
 Add-CheckFromCondition "alias discoverable" (Get-BoolProperty -Object $evidence -Name "alias_visible_in_get_command") "alias is discoverable via Get-Command" "alias is not discoverable via Get-Command"
-Add-CheckFromCondition "alias not shadowed" ([string]::IsNullOrWhiteSpace((Get-StringProperty -Object $evidence -Name "alias_shadowed_by"))) "alias is not shadowed" "alias is shadowed by another musu.exe"
+Add-CheckFromCondition "alias shadowing mode" ($evidenceAliasShadowingMode -in @("fail", "warn-explicit-windowsapps")) "alias shadowing mode is valid" "alias shadowing mode is invalid"
+Add-CheckFromCondition `
+    "alias shadowing policy" `
+    (-not $aliasShadowingPresent -or $aliasShadowingAccepted) `
+    ($(if (-not $aliasShadowingPresent) { "no PATH alias shadowing is present" } else { "PATH alias shadowing is accepted only for explicit WindowsApps developer evidence" })) `
+    "PATH alias shadowing is present and AliasShadowingMode='$AliasShadowingMode' does not allow it"
+Add-CheckFromCondition `
+    "alias not shadowed" `
+    ([string]::IsNullOrWhiteSpace($aliasShadowedBy) -or $aliasShadowingAccepted) `
+    ($(if ([string]::IsNullOrWhiteSpace($aliasShadowedBy)) { "alias is not shadowed" } else { "alias shadowing is accepted for explicit WindowsApps developer evidence" })) `
+    "alias is shadowed by another musu.exe"
 Add-CheckFromCondition "startup task" (-not [string]::IsNullOrWhiteSpace((Get-StringProperty -Object $evidence -Name "startup_task_id"))) "startup task id is present" "startup task id is missing"
-Add-CheckFromCondition "startup conflicts" ((Get-IntProperty -Object $evidence -Name "startup_conflict_count") -eq 0) "no legacy startup conflicts" "legacy startup conflicts are present"
-Add-CheckFromCondition "alias shadowing conflicts" ((Get-IntProperty -Object $evidence -Name "alias_shadowing_count") -eq 0) "no alias shadowing conflicts" "alias shadowing conflicts are present"
-Add-CheckFromCondition "legacy conflicts" ((Get-IntProperty -Object $evidence -Name "legacy_conflict_count") -eq 0) "no legacy conflicts" "legacy conflicts are present"
+Add-CheckFromCondition "startup conflicts" ($startupConflictCount -eq 0) "no legacy startup conflicts" "legacy startup conflicts are present"
+Add-CheckFromCondition `
+    "alias shadowing conflicts" `
+    ($aliasShadowingCount -eq 0 -or $aliasShadowingAccepted) `
+    ($(if ($aliasShadowingCount -eq 0) { "no alias shadowing conflicts" } else { "alias shadowing conflicts are accepted for explicit WindowsApps developer evidence" })) `
+    "alias shadowing conflicts are present"
+Add-CheckFromCondition `
+    "legacy conflicts" `
+    ($legacyConflictCount -eq 0 -or ($aliasShadowingAccepted -and $legacyConflictsOnlyAliasShadowing)) `
+    ($(if ($legacyConflictCount -eq 0) { "no legacy conflicts" } else { "only alias shadowing legacy conflicts are accepted for explicit WindowsApps developer evidence" })) `
+    "legacy conflicts are present"
 
 $requiredNestedChecks = @(
     "artifact path",
@@ -234,6 +279,8 @@ $result = [pscustomobject]@{
     startup_contract = $startupContract
     package_full_name = $packageFullName
     install_location = $installLocation
+    alias_shadowing_mode = $evidenceAliasShadowingMode
+    alias_shadowing_accepted = [bool]$aliasShadowingAccepted
     checks = $checks.ToArray()
 }
 

@@ -1965,3 +1965,59 @@ Release state:
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_FLEET_SSE_PRIMARY_EVIDENCE_REFRESH_2026_06_03.md`
+
+## 2026-06-03 08:10 KST MSIX Alias Shadow Warning Policy
+
+MSIX install evidence now separates strict public release gates from developer
+warning diagnostics:
+
+- default `AliasShadowingMode=fail` remains the release-gate behavior
+- `warn-explicit-windowsapps` is explicit diagnostic mode only
+- warning mode requires a discoverable packaged WindowsApps alias and
+  `windowsapps_alias_invocation`
+- warning mode accepts only alias-shadow-only legacy conflicts; startup/bin
+  conflicts still fail
+
+Current HUGH_SECOND warning-mode evidence:
+
+- `.local-build\msix-install-shadow-warning\20260603-080717-HUGH_SECOND.evidence.json`
+- installed package:
+  `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`
+- shadowing path:
+  `C:\Users\empty\.cargo\bin\musu.exe`
+- packaged alias:
+  `C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe`
+- default verifier rejects it with `fail_count=4`
+- warning verifier accepts it with `fail_count=0`
+
+Release interpretation:
+
+- no warning evidence was recorded into canonical
+  `docs\evidence\msix-install\1.15.0-rc.1`
+- public release still requires clean alias order on the evidence machine
+- this fixes diagnosis/reporting; it does not close second-PC, `musu.pro`,
+  support mailbox, relay payload transport, or Store blockers
+
+Validation:
+
+- PowerShell parser: changed scripts parse
+- `test-release-evidence-verifiers.ps1 -Json`: `17/17`
+- real HUGH_SECOND warning capture: `ok=true`
+- dirty-tree go/no-go preserved `msix_install_verified=true` from the canonical
+  clean HUGH-MAIN MSIX install evidence with `alias_shadowing_mode=fail`
+- clean post-commit go/no-go at 2026-06-03 08:15 KST:
+  `local_artifacts_ready=true`, `single_machine_verified=true`,
+  `msix_install_verified=true`, `msix_desktop_entrypoint_verified=true`,
+  `public_metadata_ok=true`, `manifest_git.dirty=false`, public No-Go
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_MSIX_ALIAS_SHADOW_WARNING_POLICY_2026_06_03.md`
+
+2026-06-03 08:12 KST index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1634` files and `2283` symbols after wiki/596, GOAL v399-v400,
+  MSIX alias-shadow warning policy docs, WIKI/WIKI_INDEX updates, and CoS
+  memories

@@ -22,6 +22,7 @@ if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
 New-Item -ItemType Directory -Force -Path $OutputRoot | Out-Null
 
 $p2pVerifier = Join-Path $scriptDir "verify-p2p-control-plane-evidence.ps1"
+$msixVerifier = Join-Path $scriptDir "verify-msix-install-evidence.ps1"
 $multiDeviceVerifier = Join-Path $scriptDir "verify-multidevice-evidence.ps1"
 $runtimeCpuScenarioMatrixVerifier = Join-Path $scriptDir "verify-runtime-cpu-scenario-matrix.ps1"
 
@@ -295,7 +296,96 @@ $validRuntimeCpuMatrix = [pscustomobject]@{
     )
 }
 
+function New-MsixInstallEvidence {
+    param(
+        [switch]$Shadowed,
+        [switch]$WarningMode
+    )
+
+    $aliasPath = "C:\Users\verifier\AppData\Local\Microsoft\WindowsApps\musu.exe"
+    $shadowPath = "C:\Users\verifier\.cargo\bin\musu.exe"
+    $requiredChecks = @(
+        "artifact path",
+        "package identity",
+        "installed package",
+        "musu exe",
+        "startup exe",
+        "installed manifest",
+        "installed alias contract",
+        "installed startup contract",
+        "artifact contract match",
+        "version match",
+        "windowsapps alias file",
+        "windowsapps alias discoverable",
+        "alias not shadowed",
+        "legacy startup conflicts",
+        "legacy alias shadowing"
+    )
+
+    [pscustomobject]@{
+        schema = "musu.msix_install_evidence.v1"
+        ok = $true
+        version = $ExpectedVersion
+        startup_contract = "local-sideload-manual"
+        recorded_at = $now.ToString("o")
+        operator_machine = "VERIFIER-TEST"
+        operator_user = "verifier-test"
+        package_path = "F:\workspace\musu-bee\.local-build\msix\output\musu_1.15.0.0_x64_local-sideload-manual.msix"
+        package_name = "Yellowhama.MUSU"
+        artifact_version = "1.15.0.0"
+        package_full_name = "Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6"
+        installed_version = "1.15.0.0"
+        install_location = "C:\Program Files\WindowsApps\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6"
+        startup_task_id = "MusuBridgeStartup"
+        startup_enabled = "true"
+        startup_immediate_registration = "false"
+        non_user_configurable_startup_capability = $false
+        run_full_trust = $true
+        artifact_contract_match = $true
+        windowsapps_alias_present = $true
+        alias_visible_in_get_command = $true
+        windowsapps_alias_invocation = "& `"$aliasPath`""
+        first_alias_path = if ($Shadowed) { $shadowPath } else { $aliasPath }
+        alias_shadowed_by = if ($Shadowed) { $shadowPath } else { $null }
+        alias_shadowing_mode = if ($WarningMode) { "warn-explicit-windowsapps" } else { "fail" }
+        alias_shadowing_accepted = [bool]($Shadowed -and $WarningMode)
+        alias_resolution_order = if ($Shadowed) { @($shadowPath, $aliasPath) } else { @($aliasPath) }
+        alternate_alias_count = if ($Shadowed) { 1 } else { 0 }
+        alternate_alias_sources = if ($Shadowed) { @($shadowPath) } else { @() }
+        alias_remediation = if ($Shadowed) { "Move WindowsApps before the shadowing PATH entry." } else { $null }
+        start_menu_entry = $true
+        expected_start_app_id = "Yellowhama.MUSU_ygcjq669as2b6!MUSU"
+        startup_conflict_count = 0
+        alias_shadowing_count = if ($Shadowed) { 1 } else { 0 }
+        legacy_conflict_count = if ($Shadowed) { 1 } else { 0 }
+        legacy_startup_helpers = ""
+        legacy_scheduled_tasks = ""
+        legacy_bins = ""
+        fail_count = 0
+        checks = @($requiredChecks | ForEach-Object {
+            [pscustomobject]@{
+                name = $_
+                status = "pass"
+                message = "fixture check passed"
+            }
+        })
+        error = $null
+    }
+}
+
 $cases = New-Object System.Collections.Generic.List[object]
+
+$fixture = Write-Fixture -Name "msix-valid-clean-alias" -Object (New-MsixInstallEvidence)
+$invocation = Invoke-Verifier -ScriptPath $msixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "msix accepts clean WindowsApps alias evidence by default" -Verifier "verify-msix-install-evidence.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$fixture = Write-Fixture -Name "msix-shadow-warning-default-reject" -Object (New-MsixInstallEvidence -Shadowed -WarningMode)
+$invocation = Invoke-Verifier -ScriptPath $msixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "msix rejects developer alias shadow warning evidence by default" -Verifier "verify-msix-install-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$fixture = Write-Fixture -Name "msix-shadow-warning-explicit-accept" -Object (New-MsixInstallEvidence -Shadowed -WarningMode)
+$invocation = Invoke-Verifier -ScriptPath $msixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-AliasShadowingMode", "warn-explicit-windowsapps", "-Json")
+Add-CaseResult -Cases $cases -Name "msix accepts developer alias shadow warning only with explicit verifier mode" -Verifier "verify-msix-install-evidence.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
 
 $fixture = Write-Fixture -Name "p2p-valid" -Object $validP2p
 $invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")

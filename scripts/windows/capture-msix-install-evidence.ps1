@@ -7,6 +7,8 @@ param(
     [string]$EvidencePath,
     [string]$EvidenceRoot,
     [string]$Version,
+    [ValidateSet("fail", "warn-explicit-windowsapps")]
+    [string]$AliasShadowingMode = "fail",
     [switch]$Json
 )
 
@@ -158,15 +160,41 @@ try {
         $null
     }
 
+    $explicitWindowsAppsAliasAvailable = ($windowsAppsAliasPresent -and $windowsAppsAliasDiscovered.Count -gt 0)
+    $aliasResolutionShadowingAccepted = (
+        $AliasShadowingMode -eq "warn-explicit-windowsapps" -and
+        -not [string]::IsNullOrWhiteSpace($aliasShadowedBy) -and
+        $explicitWindowsAppsAliasAvailable
+    )
+
     Add-CheckFromCondition "windowsapps alias file" $windowsAppsAliasPresent "WindowsApps alias file exists" "WindowsApps alias file is missing"
     Add-CheckFromCondition "windowsapps alias discoverable" ($windowsAppsAliasDiscovered.Count -gt 0) "WindowsApps alias is discoverable via Get-Command" "WindowsApps alias is not discoverable via Get-Command"
-    Add-CheckFromCondition "alias not shadowed" ([string]::IsNullOrWhiteSpace($aliasShadowedBy)) "PATH resolves WindowsApps alias first" "PATH resolves another musu.exe before WindowsApps: $aliasShadowedBy"
+    Add-CheckFromCondition `
+        "alias not shadowed" `
+        ([string]::IsNullOrWhiteSpace($aliasShadowedBy) -or $aliasResolutionShadowingAccepted) `
+        ($(if ([string]::IsNullOrWhiteSpace($aliasShadowedBy)) { "PATH resolves WindowsApps alias first" } else { "PATH shadowing accepted for developer evidence; explicit WindowsApps alias is available: $windowsAppsAliasPath" })) `
+        "PATH resolves another musu.exe before WindowsApps: $aliasShadowedBy"
 
     $legacyConflicts = Get-MusuLegacyWindowsConflicts
     $activeStartupConflictCount = @($legacyConflicts.StartupHelpers).Count + @($legacyConflicts.ScheduledTasks).Count + @($legacyConflicts.LegacyBins).Count
     $aliasShadowingCount = @($legacyConflicts.AliasShadowing).Count
+    $legacyAliasShadowingAccepted = (
+        $AliasShadowingMode -eq "warn-explicit-windowsapps" -and
+        $aliasShadowingCount -gt 0 -and
+        [bool]$legacyConflicts.WindowsAppsAliasPresent -and
+        [bool]$legacyConflicts.WindowsAppsAliasDiscovered
+    )
     Add-CheckFromCondition "legacy startup conflicts" ($activeStartupConflictCount -eq 0) "no legacy startup/bin conflicts found" "legacy startup/bin conflicts found"
-    Add-CheckFromCondition "legacy alias shadowing" ($aliasShadowingCount -eq 0) "no legacy alias shadowing found" "legacy alias shadowing found"
+    Add-CheckFromCondition `
+        "legacy alias shadowing" `
+        ($aliasShadowingCount -eq 0 -or $legacyAliasShadowingAccepted) `
+        ($(if ($aliasShadowingCount -eq 0) { "no legacy alias shadowing found" } else { "legacy alias shadowing accepted for developer evidence with explicit WindowsApps invocation" })) `
+        "legacy alias shadowing found"
+    Add-CheckFromCondition `
+        "alias shadowing policy" `
+        (([string]::IsNullOrWhiteSpace($aliasShadowedBy) -and $aliasShadowingCount -eq 0) -or ($aliasResolutionShadowingAccepted -and $legacyAliasShadowingAccepted)) `
+        "alias shadowing mode '$AliasShadowingMode' is satisfied" `
+        "alias shadowing mode '$AliasShadowingMode' does not permit the detected PATH shadowing"
 
     $applicationNode = if ($manifestXml) {
         $ns = New-MsixNamespaceManager -Manifest $manifestXml
@@ -216,6 +244,9 @@ $evidence = [pscustomobject]@{
     windowsapps_alias_invocation = if ($windowsAppsAliasPresent) { "& `"$windowsAppsAliasPath`"" } else { $null }
     first_alias_path = $firstAliasPath
     alias_shadowed_by = $aliasShadowedBy
+    alias_shadowing_mode = $AliasShadowingMode
+    alias_shadowing_accepted = [bool]($aliasResolutionShadowingAccepted -and $legacyAliasShadowingAccepted)
+    alias_shadowing_release_gate = if ($aliasResolutionShadowingAccepted -and $legacyAliasShadowingAccepted) { "developer-warning-only; clean public release evidence still requires AliasShadowingMode=fail and no PATH shadowing" } else { "strict" }
     alias_resolution_order = @($aliasCommands | ForEach-Object { $_.Source })
     alternate_alias_count = @($legacyConflicts.AlternateAliasSources).Count
     alternate_alias_sources = @($legacyConflicts.AlternateAliasSources)

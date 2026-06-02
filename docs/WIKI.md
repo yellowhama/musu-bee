@@ -2244,3 +2244,48 @@ Canonical reference:
 
 Index refresh after wiki/595 recorded `1630` files and `2283` symbols using the
 explicit packaged WindowsApps alias invocation.
+
+## 26. MSIX Alias Shadow Warning Policy (2026-06-03)
+
+wiki/596 records the split between strict public MSIX install evidence and
+developer warning evidence for PATH alias shadowing.
+
+MSIX install evidence tooling now accepts:
+
+- `AliasShadowingMode=fail` (default, release gate)
+- `AliasShadowingMode=warn-explicit-windowsapps` (diagnostic only)
+
+Strict mode still requires the WindowsApps alias to be the first resolved
+`musu.exe`. Warning mode requires:
+
+- the packaged WindowsApps alias file exists
+- the packaged alias is discoverable by `Get-Command`
+- `windowsapps_alias_invocation` is recorded
+- both capture and verifier explicitly opt into warning mode
+- the only legacy conflict is alias shadowing
+
+Current HUGH_SECOND warning evidence:
+
+- `.local-build\msix-install-shadow-warning\20260603-080717-HUGH_SECOND.evidence.json`
+- installed package:
+  `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`
+- first alias path:
+  `C:\Users\empty\.cargo\bin\musu.exe`
+- packaged alias:
+  `C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe`
+
+Validation:
+
+- default verifier rejects the warning evidence with `fail_count=4`
+- warning verifier accepts it with `fail_count=0`
+- release evidence verifier regression passed `17/17`
+- dirty-tree go/no-go preserved the public MSIX gate on canonical clean
+  HUGH-MAIN evidence with `alias_shadowing_mode=fail`
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_MSIX_ALIAS_SHADOW_WARNING_POLICY_2026_06_03.md`
+- `docs\memory\chief_of_staff\2026-06-03_msix_alias_shadow_warning_policy.md`
+
+Index refresh after wiki/596 recorded `1634` files and `2283` symbols using the
+explicit packaged WindowsApps alias invocation.

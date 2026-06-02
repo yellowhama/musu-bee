@@ -3,6 +3,8 @@ param(
     [Parameter(Mandatory = $true)][string]$EvidencePath,
     [string]$Version,
     [string]$OutputRoot,
+    [ValidateSet("fail", "warn-explicit-windowsapps")]
+    [string]$AliasShadowingMode = "fail",
     [switch]$Json
 )
 
@@ -23,7 +25,7 @@ if (-not (Test-Path -LiteralPath $EvidencePath)) {
 }
 
 $verifyScript = Join-Path $scriptDir "verify-msix-install-evidence.ps1"
-$verifyText = (& powershell -NoProfile -ExecutionPolicy Bypass -File $verifyScript -EvidencePath $EvidencePath -ExpectedVersion $Version -Json 2>&1 | Out-String).Trim()
+$verifyText = (& powershell -NoProfile -ExecutionPolicy Bypass -File $verifyScript -EvidencePath $EvidencePath -ExpectedVersion $Version -AliasShadowingMode $AliasShadowingMode -Json 2>&1 | Out-String).Trim()
 if ($LASTEXITCODE -ne 0) {
     throw "MSIX install evidence did not verify.`n$verifyText"
 }
@@ -69,6 +71,8 @@ $summary = @"
 - Version: $Version
 - Verified: $($verification.ok)
 - Startup contract: $($verification.startup_contract)
+- Alias shadowing mode: $($verification.alias_shadowing_mode)
+- Alias shadowing accepted: $($verification.alias_shadowing_accepted)
 - Package: $($verification.package_full_name)
 - Install location: $($verification.install_location)
 - Evidence: $([System.IO.Path]::GetFileName($rawPath))
@@ -93,6 +97,8 @@ $result = [pscustomobject]@{
     verification_sha256 = $verificationHash.Hash.ToLowerInvariant()
     summary_path = (Resolve-Path -LiteralPath $summaryPath).Path
     startup_contract = [string]$verification.startup_contract
+    alias_shadowing_mode = [string]$verification.alias_shadowing_mode
+    alias_shadowing_accepted = [bool]$verification.alias_shadowing_accepted
     package_full_name = [string]$verification.package_full_name
 }
 
