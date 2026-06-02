@@ -130,6 +130,29 @@ This is part of the desktop idle-resource contract. It does not change the
 Core/Connect product boundary, and it does not replace installed MSIX CPU
 evidence.
 
+## 2026-06-02 post-reconnect evidence boundary update
+
+Fresh primary packaged evidence after reconnect hardening restores the local
+desktop claim on `HUGH_SECOND`:
+
+- packaged MSIX installs and runs through the explicit WindowsApps alias
+- desktop activation remains single-instance
+- process ownership separates MUSU-owned helpers from unrelated machine-wide
+  Node.js processes
+- desktop-open and four-state runtime CPU evidence stay below the 5% one-core
+  release budget on the primary machine
+
+This does not expand the public network claim:
+
+- one-machine smoke and post-route CPU evidence prove local orchestration only
+- second-PC CPU/matrix/route evidence is still required before two-machine
+  desktop readiness is claimed
+- live `musu.pro` owner-scoped control-plane evidence is still required before
+  account-assisted P2P/relay readiness is claimed
+- Store copy must continue to avoid universal NAT traversal, production relay,
+  or internet-P2P claims until route kind, identity, encryption, and payload
+  transit are proven on two machines
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."

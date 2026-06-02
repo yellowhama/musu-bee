@@ -465,3 +465,23 @@ Current go/no-go at 2026-06-02 12:05 KST remains No-Go even though primary
 desktop CPU evidence passes. The remaining P2P-specific blocker is still live
 owner-scoped `musu.pro` evidence: configure production scoped auth, redeploy or
 reload production, and rerun evidence without `-AllowUnverified`.
+
+## 2026-06-02 Post-Reconnect Evidence Status
+
+The post-reconnect primary evidence refresh confirms that MUSU's local packaged
+desktop runtime can stay under the idle CPU budget on `HUGH_SECOND`, including
+`post-route` measurement. This is useful hardening evidence but it is not a
+P2P control-plane completion signal.
+
+Current product interpretation:
+
+- `musu.pro` remains the account/rendezvous/lease/control-plane surface, not
+  the default payload data path.
+- The local runtime can use `musu.pro` only for assisted discovery, candidate
+  exchange, lease policy, and route evidence until relay/tunnel transport is
+  implemented and proven.
+- Production release still requires owner-scoped live control-plane evidence,
+  two-machine route evidence, and CPU/matrix evidence from both machines.
+- A machine-wide pile of unrelated Node.js processes is not sufficient release
+  evidence either way; evidence must classify MUSU-owned helpers separately
+  from repo-related or unrelated processes.

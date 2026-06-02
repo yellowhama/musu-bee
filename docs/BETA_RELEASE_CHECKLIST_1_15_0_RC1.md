@@ -745,6 +745,29 @@ Tauri desktop shell evidence:
   and `git diff --check`. This is runtime web source, so primary MSIX smoke,
   desktop-open CPU, and runtime matrix evidence must be refreshed after commit
   before current-HEAD release claims.
+- 2026-06-02 15:45 KST post-reconnect primary evidence refresh:
+  current-head primary evidence was restored on `HUGH_SECOND` after rebuilding
+  and installing the MSIX package
+  `musu_1.15.0.0_x64_local-sideload-manual.msix` as
+  `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`. Use the explicit WindowsApps
+  alias for packaged evidence because the local dev PATH still shadows with
+  `C:\Users\empty\.cargo\bin\musu.exe`. Desktop single-instance passes at
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-152526-HUGH_SECOND.desktop-single-instance.json`.
+  Process ownership passes at
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-152537-HUGH_SECOND.process-ownership.json`
+  with runtime `1`, desktop `1`, owned Node `0`, owned WebView2 `6`,
+  machine-wide Node `18`, machine-wide WebView2 `12`, and orphan repo helpers
+  `0`. Single-machine smoke passes at
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-152615-HUGH_SECOND.evidence.json`.
+  Desktop-open CPU passes at
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-152845-HUGH_SECOND.desktop-open.evidence.json`
+  with MUSU `0`, repo Node `0.05`, WebView2 `0.13`, working set `500.86MB`,
+  and hot `0`. The four-state matrix passes at
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-153038-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  with route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_153038`. Public release
+  remains No-Go until second-PC CPU/matrix/route evidence, live `musu.pro` P2P
+  owner-scope evidence, `musu@musu.pro` mailbox evidence, and Store evidence
+  are recorded.
 
 Release candidate manifest:
 

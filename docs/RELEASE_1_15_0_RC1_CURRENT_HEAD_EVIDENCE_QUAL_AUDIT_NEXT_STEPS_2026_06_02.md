@@ -371,3 +371,85 @@ Post-push status:
 The post-push verdict is correct: the source hardening is green, but current
 primary runtime release evidence is stale until rebuilt and remeasured from
 this HEAD.
+
+## 2026-06-02 15:45 KST Post-Reconnect Primary Evidence Refresh
+
+Fresh current-head primary release evidence has been restored after the runtime
+reconnect backoff hardening.
+
+MSIX/install:
+
+- release workflow rebuilt
+  `.local-build\msix\output\musu_1.15.0.0_x64_local-sideload-manual.msix`
+- package verification passed for `musu-desktop.exe`, `musu.exe`, and
+  `musu-startup.exe`
+- installed package:
+  `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`
+- the `-MachineTrust` wrapper waited for elevation; it was stopped after
+  existing machine trust made it unnecessary, and current-user reinstall
+  verified successfully
+- evidence commands used the explicit WindowsApps alias because the local PATH
+  still resolves `C:\Users\empty\.cargo\bin\musu.exe` before the packaged alias
+
+Runtime/dashboard:
+
+- packaged `musu up --json` restored bridge health at
+  `http://127.0.0.1:14397`
+- dashboard smoke used `http://127.0.0.1:3001/app` after starting production
+  `next start` for the evidence run
+
+Evidence:
+
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-152526-HUGH_SECOND.desktop-single-instance.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-152537-HUGH_SECOND.process-ownership.json`
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-152615-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-152845-HUGH_SECOND.desktop-open.evidence.json`
+- four-state CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-153038-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Key audit findings:
+
+- Desktop repeated activation produced one `musu-desktop.exe` shell after three
+  activations.
+- Process ownership passed with runtime `1`, desktop `1`, owned Node `0`,
+  owned WebView2 `6`, machine-wide Node `18`, machine-wide WebView2 `12`, and
+  orphan repo helpers `0`. The operator-visible many-Node state is therefore
+  not currently attributable to MUSU-owned helpers.
+- Desktop-open CPU sampled 60.061s with `git_dirty=false`, MUSU `0`, repo Node
+  `0.05`, WebView2 `0.13`, working set `500.86MB`, and hot `0`.
+- Runtime CPU matrix passed `runtime-started`, `dashboard-open`,
+  `desktop-open`, and `post-route`; the route probe token was
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_153038`. Worst observed one-core CPU in
+  the matrix was MUSU `0.05`, repo Node `0.08`, and WebView2 `0.1`, all under
+  the 5% release budget.
+
+Qualitative verdict:
+
+- The 20%-of-one-core busy-loop report is not reproduced on current packaged
+  primary evidence.
+- The reconnect, polling, process ownership, and single-instance hardening now
+  look coherent enough for continued beta evidence collection.
+- This is still not public-release complete because runtime CPU gates require a
+  second Windows PC, and P2P/control-plane claims require live `musu.pro`
+  owner-scoped evidence plus release-grade route proof.
+
+Current No-Go blockers:
+
+- second-PC CPU/matrix/route evidence
+- live `musu.pro` P2P owner-scope control-plane evidence
+- `musu@musu.pro` mailbox send/receive evidence
+- Store/Partner Center submission evidence
+
+Immediate next work:
+
+1. Import or rerun the second-PC return package against the current transfer
+   kit and require CPU/matrix evidence on the second machine.
+2. Provision production KV/control-plane env for `musu.pro` and rerun P2P
+   evidence without `-AllowUnverified`.
+3. Record the `musu@musu.pro` mailbox evidence.
+4. Prepare Store submission only after the external gates are backed by current
+   evidence.

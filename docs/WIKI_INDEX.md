@@ -1399,5 +1399,28 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   musu-bee` indexed 1352 files and 2240 symbols. Search terms should include
   `GOAL v310`, `1352 files`, `2240 symbols`, `runtime source evidence stale`,
   and `single_machine=false`.
+- 2026-06-02 post-reconnect primary MSIX/runtime evidence refresh:
+  wiki/554 records fresh current-head primary evidence after reconnect
+  hardening. Search terms should include `GOAL v311`, `wiki/554`,
+  `musu_1.15.0.0_x64_local-sideload-manual.msix`,
+  `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`,
+  `20260602-152526-HUGH_SECOND.desktop-single-instance`,
+  `20260602-152537-HUGH_SECOND.process-ownership`,
+  `20260602-152615-HUGH_SECOND`, `20260602-152845-HUGH_SECOND.desktop-open`,
+  `20260602-153038-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_153038`, `owned Node 0`,
+  `machine-wide Node 18`, `WebView2 0.13`, `runtime-started`,
+  `dashboard-open`, `desktop-open`, `post-route`, `musu@musu.pro`,
+  and `p2p-control-plane`.
+- 2026-06-02 index refresh after post-reconnect primary evidence:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1361 files and 2240 symbols after wiki/554, GOAL v311/v312, current-head
+  evidence report, BETA checklist, network/P2P spec boundary updates,
+  desktop/process evidence files, and CoS memories
+  `2026-06-02_1545_kst_post_reconnect_primary_evidence_refresh.md` and
+  `2026-06-02_1548_kst_post_reconnect_evidence_index_refresh.md`. Search
+  terms should include `GOAL v312`, `1361 files`, `2240 symbols`,
+  `post-reconnect primary evidence refresh`, `machine-wide Node 18`,
+  `owned Node 0`, and `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_153038`.
 
 **End of WIKI_INDEX.md.**

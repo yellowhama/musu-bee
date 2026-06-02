@@ -1083,6 +1083,44 @@ Indexer note:
   report updates, and CoS memory
   `2026-06-02_1510_kst_runtime_reconnect_post_push_status.md`.
 
+- 2026-06-02 post-reconnect primary MSIX/runtime evidence refresh:
+  wiki/554 records that current-head primary evidence was restored after the
+  runtime reconnect backoff hardening. The release MSIX workflow rebuilt
+  `musu_1.15.0.0_x64_local-sideload-manual.msix` and current-user reinstall
+  verified `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`; the `-MachineTrust`
+  elevation wrapper was stopped only after existing trust made it unnecessary.
+  Evidence used the explicit WindowsApps alias because the local dev PATH still
+  prefers `C:\Users\empty\.cargo\bin\musu.exe`. Current evidence paths:
+  desktop single-instance
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-152526-HUGH_SECOND.desktop-single-instance.json`;
+  process ownership
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-152537-HUGH_SECOND.process-ownership.json`;
+  single-machine smoke
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-152615-HUGH_SECOND.evidence.json`;
+  desktop-open CPU
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-152845-HUGH_SECOND.desktop-open.evidence.json`;
+  and runtime CPU scenario matrix
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-153038-HUGH_SECOND.runtime-cpu-scenario-matrix.json`.
+  Process ownership reports runtime `1`, desktop `1`, owned Node `0`, owned
+  WebView2 `6`, machine-wide Node `18`, machine-wide WebView2 `12`, and orphan
+  repo helpers `0`, so the many Node processes on the machine are not currently
+  MUSU-owned. Desktop-open CPU measured 60.061s with MUSU `0`, repo Node
+  `0.05`, WebView2 `0.13`, working set `500.86MB`, and hot `0`. The four-state
+  matrix passed `runtime-started`, `dashboard-open`, `desktop-open`, and
+  `post-route`; the route token was
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_153038`. Clean go/no-go remains No-Go
+  because second-PC CPU/matrix/route evidence, live `musu.pro` P2P owner-scope
+  evidence, `musu@musu.pro` mailbox evidence, and Store evidence are still
+  open.
+
+- 2026-06-02 index refresh after post-reconnect primary evidence:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1361 files and 2240 symbols after GOAL v311/v312, wiki/554, the current-head
+  evidence report update, BETA checklist update, network/P2P spec boundary
+  updates, desktop/process evidence files, and CoS memories
+  `2026-06-02_1545_kst_post_reconnect_primary_evidence_refresh.md` and
+  `2026-06-02_1548_kst_post_reconnect_evidence_index_refresh.md`.
+
 ## 9. musu-system Integration State (2026-05-29)
 
 `yellowhama/musu-system` is a credible adjacent MUSU ecosystem line, not a Rust-core replacement. It contains:
