@@ -1,7 +1,7 @@
 # MUSU 1.15.0-rc.1 Current-Head Evidence, Qual Audit, and Next Steps
 
-Date: 2026-06-03 00:25 KST
-Current evidence source commit: `c25c109ee579dbe042f8706b9af4f0e56fd941ca`
+Date: 2026-06-03 01:12 KST
+Current evidence source commit: `fbd01746c3741f79c31afdce493851934ddf6fa4`
 
 ## Verdict
 
@@ -26,27 +26,27 @@ The remaining blockers are external/release-gate blockers, not local UI polish:
 
 | Gate | Status | Evidence |
 | --- | --- | --- |
-| Desktop single instance | Pass | `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260603-000306-HUGH_SECOND.desktop-single-instance.json` |
-| Process ownership | Pass | `docs\evidence\process-ownership\1.15.0-rc.1\20260603-000306-HUGH_SECOND.process-ownership.json` |
-| Single-machine smoke | Pass | `docs\evidence\single-machine\1.15.0-rc.1\20260603-001225-HUGH_SECOND.evidence.json` |
-| Desktop-open idle CPU | Pass on primary, release gate 1/2 | `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-001200-HUGH_SECOND.desktop-open.evidence.json` |
-| Four-state CPU matrix | Pass on primary, release gate 1/2 | `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-001416-HUGH_SECOND.runtime-cpu-scenario-matrix.json` |
+| Desktop single instance | Pass | `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260603-005000-HUGH_SECOND.desktop-single-instance.json` |
+| Process ownership | Pass | `docs\evidence\process-ownership\1.15.0-rc.1\20260603-005010-HUGH_SECOND.process-ownership.json` |
+| Single-machine smoke | Pass | `docs\evidence\single-machine\1.15.0-rc.1\20260603-005257-HUGH_SECOND.evidence.json` |
+| Desktop-open idle CPU | Pass on primary, release gate 1/2 | `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-010000-HUGH_SECOND.desktop-open.evidence.json` |
+| Four-state CPU matrix | Pass on primary, release gate 1/2 | `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-010315-HUGH_SECOND.runtime-cpu-scenario-matrix.json` |
 | Public metadata | Pass | `https://musu.pro/privacy` and `https://musu.pro/support` return the expected `musu@musu.pro` support address |
 | MSIX install | Pass via existing release evidence | Go/no-go still selects `docs\evidence\msix-install\1.15.0-rc.1\20260531-165211-HUGH-MAIN.evidence.json` |
 
 Desktop-open CPU evidence was captured from clean git state:
 
-- sample: `60.059s`
+- sample: `60.048s`
 - process roles: MUSU `2`, repo-related Node `0`, owned WebView2 `6`
-- max one-core CPU: MUSU `0.03`, Node `0`, WebView2 `0.08`
-- working set: `454.06MB`
+- max one-core CPU: MUSU `0`, Node `0`, WebView2 `0.1`
+- working set: `363.87MB`
 - hot process count: `0`
 
 The four-state matrix also passes from clean git state:
 
-- route token: `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_001416`
+- route token: `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_010315`
 - scenarios: `runtime-started`, `dashboard-open`, `desktop-open`, `post-route`
-- max one-core CPU peaks: WebView2 `0.16`, Node `0.03`, MUSU `0`
+- max one-core CPU peaks: WebView2 `0.16`, Node `0`, MUSU `0`
 - all scenarios record no hot processes and no resource budget violations
 
 Clean go/no-go after the current evidence commits reports:
@@ -1129,3 +1129,39 @@ release-grade transport, support mailbox, and Store evidence.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RELAY_ROUTE_LEASE_PROOF_HARDENING_2026_06_02.md`
+
+## 2026-06-03 01:12 KST Post P2P Storage Env Alias Primary Evidence
+
+After hosted P2P storage env alias hardening, the local-sideload MSIX was
+rebuilt and installed from source commit `fbd01746`. Primary packaged evidence
+is current again:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-005257-HUGH_SECOND.evidence.json`
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260603-005000-HUGH_SECOND.desktop-single-instance.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260603-005010-HUGH_SECOND.process-ownership.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-010000-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-010315-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Qualitative result: current packaged local evidence does not reproduce the
+busy-loop. Desktop-open CPU is MUSU `0`, Node `0`, WebView2 `0.1`, working set
+`363.87MB`, and hot `0`. Process ownership separates the user's machine-wide
+Node count from MUSU ownership: machine-wide Node `16`, MUSU-owned Node `0`,
+orphan repo helpers `0`. The CPU matrix passed from clean git state with route
+token `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_010315`.
+
+Code audit result: no new critical local desktop issue was found. The P2P
+storage alias change improves production wiring by accepting both Vercel KV and
+Upstash Redis REST env names, but it does not prove live storage, owner scope,
+relay transport, peer identity, or encryption. Public release remains No-Go on
+second-PC CPU/matrix/route, live `musu.pro` KV/Upstash owner-scoped relay lease
+evidence, release-grade transport proof, `musu@musu.pro` mailbox evidence, and
+Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_P2P_STORAGE_ENV_ALIAS_PRIMARY_EVIDENCE_2026_06_03.md`

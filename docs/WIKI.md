@@ -1625,6 +1625,32 @@ Indexer note:
   `GOAL v356`, `1484 files`, `2272 symbols`, `UPSTASH_REDIS_REST_TOKEN`,
   `p2pKvEnv.test.ts`, and `P2P storage env alias index refresh`.
 
+- 2026-06-03 post P2P storage env alias primary evidence:
+  wiki/576 records fresh packaged primary evidence after source commit
+  `fbd01746`. Current evidence passes single-machine
+  `20260603-005257-HUGH_SECOND`, desktop single-instance
+  `20260603-005000-HUGH_SECOND.desktop-single-instance`, process ownership
+  `20260603-005010-HUGH_SECOND.process-ownership`, desktop-open CPU
+  `20260603-010000-HUGH_SECOND.desktop-open`, and runtime CPU matrix
+  `20260603-010315-HUGH_SECOND.runtime-cpu-scenario-matrix`. Desktop-open CPU
+  reports MUSU `0`, Node `0`, WebView2 `0.1`, working set `363.87MB`, hot
+  `0`; process ownership reports runtime `1`, desktop `1`, MUSU-owned Node
+  `0`, MUSU-owned WebView2 `6`, machine-wide Node `16`, orphan repo helpers
+  `0`, and bridge `127.0.0.1:2467` HTTP `200`. The matrix route token is
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_010315`. Public release remains No-Go
+  on second-PC route/CPU/matrix, live P2P KV/Upstash owner scope,
+  `musu@musu.pro` mailbox evidence, and Store evidence.
+
+- 2026-06-03 index refresh after post P2P storage env alias primary evidence:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1497 files and 2272 symbols after wiki/576, GOAL v357-v358, fresh primary
+  evidence files, the post P2P storage env alias primary evidence report,
+  BETA/current-head/WIKI_INDEX updates, and CoS memory
+  `2026-06-03_post_p2p_storage_alias_primary_evidence.md`. Search terms should
+  include `GOAL v358`, `1497 files`, `2272 symbols`,
+  `20260603-010315-HUGH_SECOND`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_010315`,
+  and `post P2P storage env alias primary evidence index refresh`.
+
 ## 9. musu-system Integration State (2026-05-29)
 
 `yellowhama/musu-system` is a credible adjacent MUSU ecosystem line, not a Rust-core replacement. It contains:

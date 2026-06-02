@@ -1844,4 +1844,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `GOAL v356`, `1484 files`, `2272 symbols`, `UPSTASH_REDIS_REST_URL`,
   `p2pKvEnv.ts`, and `P2P storage env alias index refresh`.
 
+- 2026-06-03 post P2P storage env alias primary evidence:
+  `RELEASE_1_15_0_RC1_POST_P2P_STORAGE_ENV_ALIAS_PRIMARY_EVIDENCE_2026_06_03.md`
+  (wiki/576) records the fresh packaged evidence refresh after source commit
+  `fbd01746`. Search terms should include `GOAL v357`, `wiki/576`,
+  `20260603-005257-HUGH_SECOND`, `20260603-005000-HUGH_SECOND.desktop-single-instance`,
+  `20260603-005010-HUGH_SECOND.process-ownership`,
+  `20260603-010000-HUGH_SECOND.desktop-open`,
+  `20260603-010315-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_010315`, `machine-wide Node 16`,
+  `MUSU-owned Node 0`, and `post P2P storage env alias primary evidence`.
+
+- 2026-06-03 index refresh after post P2P storage env alias primary evidence:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1497 files and 2272 symbols after wiki/576, GOAL v357-v358, fresh primary
+  evidence docs, the post P2P storage env alias primary evidence report,
+  BETA/current-head/WIKI updates, and CoS memory
+  `2026-06-03_post_p2p_storage_alias_primary_evidence.md`. Search terms should
+  include `GOAL v358`, `1497 files`, `2272 symbols`,
+  `20260603-010315-HUGH_SECOND`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_010315`,
+  and `post P2P storage env alias primary evidence index refresh`.
+
 **End of WIKI_INDEX.md.**

@@ -284,6 +284,26 @@ Runtime hardening:
   until second-PC desktop-open CPU evidence, second-PC scenario matrix
   evidence, release-grade multi-device route proof, live `musu.pro` P2P
   control-plane auth, support inbox, and Store evidence all pass.
+- current packaged primary evidence after P2P storage env alias hardening:
+  fresh MSIX rebuild/install succeeded for the same installed package from
+  source commit `fbd01746`. Current evidence now passes single-machine
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-005257-HUGH_SECOND.evidence.json`,
+  desktop single-instance
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260603-005000-HUGH_SECOND.desktop-single-instance.json`,
+  process ownership
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260603-005010-HUGH_SECOND.process-ownership.json`,
+  desktop-open CPU
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-010000-HUGH_SECOND.desktop-open.evidence.json`,
+  and runtime CPU matrix
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-010315-HUGH_SECOND.runtime-cpu-scenario-matrix.json`.
+  Desktop-open CPU reports MUSU `0`, Node `0`, WebView2 `0.1`, working set
+  `363.87MB`, hot `0`; process ownership reports MUSU-owned Node `0` while
+  machine-wide Node is `16`; matrix route token is
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_010315`. Public release remains No-Go
+  until second-PC desktop-open CPU evidence, second-PC scenario matrix
+  evidence, release-grade multi-device route proof, live `musu.pro` P2P
+  storage-backed owner-scope evidence, support inbox, and Store evidence all
+  pass.
 - 2026-06-01 21:17 KST final primary refresh after the deploy workflow hardening commit: single-machine smoke now passes at `docs\evidence\single-machine\1.15.0-rc.1\20260601-211031-HUGH_SECOND.evidence.json`; clean `desktop-open` CPU passes at `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260601-211132-HUGH_SECOND.desktop-open.evidence.json` from commit `a0184e89851d7ac99e1162a301f9219104a4df04` with `git_dirty=false`, MUSU `2`, repo Node `1`, owned WebView2 `6`, max one-core CPU `musu=0`, `node=0`, `webview2=0.23`, working set `506.71MB`, and no hot processes; clean 4-state matrix passes at `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260601-211252-HUGH_SECOND.runtime-cpu-scenario-matrix.json` with route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260601_211252`, all four scenarios under budget, and no hot processes. Public release remains No-Go until second-PC CPU/matrix, release-grade multi-device route, production P2P env/live verification, support inbox, and Store evidence are complete.
 - `musu.pro` deployment note: Vercel run `26753317276` for `96303af3` was stuck and canceled; deploy workflow hardening commit `65950384` passed Vercel production run `26753908889` and `Tests` run `26753908911`. Live `https://musu.pro` QA with cachebuster `qa=65950384` passed on `/`, `/landing`, `/pricing`, and `/install` across desktop/mobile for scroll, no horizontal overflow, favicon-header logo, `.musu-public-scroll-root`, and `#24C8DB` emerald accent.
 - 2026-06-01 21:41 KST P2P control-plane live gate: `record-p2p-control-plane-evidence.ps1 -AllowUnverified -Json` recorded `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260601-214149-musu.pro.evidence.json`. Relay status proves logged-in `musu.pro` control-plane wiring is present, but relay lease query still reports `ok=false`, `owner_scope_verified=false`, and the underlying live error is `p2p_control_auth_not_configured` with no accepted auth modes. `write-release-go-no-go.ps1` now reports `p2p_control_plane_verified=false` and adds a `p2p-control-plane` blocker until production `MUSU_P2P_CONTROL_TOKEN_SHA256S` or equivalent scoped auth is configured on live `musu.pro`, deployed/reloaded there, and live evidence verifies owner-scoped lease queries with `relay_default_data_path=false` without `-AllowUnverified`.
