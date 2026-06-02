@@ -133,6 +133,31 @@ runtime CPU matrix `0/2`, `p2p_control_plane=false`,
 `support_mailbox=false`, and `store_release=false`. Fresh current-HEAD primary
 MSIX install/smoke/CPU/matrix evidence is required before final release claims.
 
+13:36 KST primary evidence refresh: the current packaged path has been
+re-evidenced after the operator API hardening. Fresh MSIX workflow succeeded and
+installed `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`; explicit WindowsApps
+alias `musu up --json` restored bridge health at `http://127.0.0.1:1065`.
+Desktop repeated activation passed at
+`.local-build\desktop-single-instance\musu-desktop-single-instance-20260602-132523-HUGH_SECOND.json`
+with one shell, and process ownership passed at
+`.local-build\process-ownership\musu-process-ownership-20260602-132447.json`
+with one runtime and zero MUSU-owned Node helpers. Current single-machine smoke
+is committed at
+`docs\evidence\single-machine\1.15.0-rc.1\20260602-132814-HUGH_SECOND.evidence.json`.
+Current desktop-open CPU is committed at
+`docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-132531-HUGH_SECOND.desktop-open.evidence.json`
+with 60.05s, `git_dirty=false`, MUSU `0`, owned Node `0`, WebView2 `0.52`,
+working set `366.38MB`, and hot `0`. Current four-state matrix is committed at
+`docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-132921-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+with route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_132921`. Clean go/no-go
+on `6f7fe937fcc5dd7e9665bf374aee1bdd1be0e48c` reports `ready=false`,
+`local_artifacts_ready=true`, `single_machine=true`, runtime idle CPU
+`1/2 [HUGH_SECOND]`, runtime CPU matrix `1/2 [HUGH_SECOND]`,
+process/startup/desktop single-instance true, P2P/support/Store false, and
+`manifest_dirty=false`. This means the primary busy-loop report is not
+reproduced on current packaged evidence, but the release gate still correctly
+requires second-PC CPU/matrix and release-grade route evidence.
+
 ## Roadmap
 
 1. Close second-PC runtime gates.
@@ -199,3 +224,20 @@ clean HEAD `ef80aa94d76db4b08ca0866f6bc29c2ed889bdc4` after this audit.
 
 Both `verify-final-operator-gate-packet.ps1` and
 `verify-operator-action-pack.ps1` passed with `ok=true`, `fail_count=0`.
+
+2026-06-02 13:40 KST update: the current handoff artifacts were regenerated
+from clean HEAD `6f7fe937fcc5dd7e9665bf374aee1bdd1be0e48c` after the
+post-security primary evidence refresh.
+
+- final packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260602-134019.zip`
+- operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-134035.zip`
+- second-PC transfer zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-134035\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-134035.zip`
+- Partner Center zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-134035\partner-center\MUSU-1.15.0-rc.1-store-submission-20260602-134035.zip`
+- support verification id:
+  `musu-store-support-1.15.0-rc.1-20260602-134019`
+
+Both regenerated artifacts verify with `ok=true`, `fail_count=0`.

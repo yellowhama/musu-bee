@@ -948,6 +948,44 @@ Indexer note:
   `GOAL v299`, `94ecda1c`, `single_machine=false`,
   `runtime idle CPU 0/2`, `runtime CPU matrix 0/2`, `1336 files`, and
   `2239 symbols`.
+- 2026-06-02 current primary evidence refresh after operator API security:
+  wiki/550 records that primary evidence was regenerated after the operator API
+  hardening. Fresh MSIX install/startup succeeded for
+  `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`; explicit WindowsApps alias
+  `musu up --json` restored bridge health at `http://127.0.0.1:1065`.
+  Single-machine smoke passes at `20260602-132814-HUGH_SECOND.evidence.json`,
+  desktop-open CPU passes at
+  `20260602-132531-HUGH_SECOND.desktop-open.evidence.json` with MUSU `0`,
+  owned Node `0`, WebView2 `0.52`, working set `366.38MB`, and hot `0`.
+  Four-state runtime CPU matrix passes at
+  `20260602-132921-HUGH_SECOND.runtime-cpu-scenario-matrix.json` with route
+  token `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_132921`. Clean go/no-go on
+  `6f7fe937` reports `ready=false`, `single_machine=true`, runtime idle CPU
+  `1/2 [HUGH_SECOND]`, runtime CPU matrix `1/2 [HUGH_SECOND]`,
+  process/startup/desktop single-instance true, P2P/support/Store false, and
+  `manifest_dirty=false`. The primary busy-loop report is not reproduced on
+  current packaged evidence, but public release remains blocked by second-PC,
+  P2P control-plane, `musu@musu.pro`, and Store evidence.
+- 2026-06-02 current operator packet after primary evidence refresh:
+  clean HEAD `6f7fe937` generated final packet
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260602-134019.zip`
+  and action pack
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-134035.zip`.
+  Both verify with `ok=true`, `fail_count=0`. Current second-PC transfer zip is
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-134035\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-134035.zip`;
+  Partner Center zip is
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-134035\partner-center\MUSU-1.15.0-rc.1-store-submission-20260602-134035.zip`;
+  support verification id is `musu-store-support-1.15.0-rc.1-20260602-134019`.
+- 2026-06-02 index refresh after post-security primary evidence:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1343 files and 2239 symbols after wiki/550, current evidence files,
+  final packet/action-pack paths, BETA/current-status/current-head report/WIKI,
+  WIKI_INDEX, GOAL, and CoS memory
+  `2026-06-02_1340_kst_post_operator_security_primary_evidence_refresh.md`.
+  Search terms should include `GOAL v300`, `GOAL v301`, `wiki/550`,
+  `20260602-132814`, `20260602-132531`, `20260602-132921`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_132921`, `20260602-134019`,
+  `20260602-134035`, `1343 files`, and `2239 symbols`.
 
 ## 9. musu-system Integration State (2026-05-29)
 

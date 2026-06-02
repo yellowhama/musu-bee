@@ -686,6 +686,34 @@ Tauri desktop shell evidence:
   `store_release=false`. This is expected after runtime/web source hardening:
   fresh primary MSIX install, smoke, desktop-open CPU, and runtime CPU matrix
   evidence must be rerun before final release claims.
+- 2026-06-02 13:36 KST post-security primary evidence refresh:
+  fresh MSIX workflow succeeded and installed
+  `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`. Explicit WindowsApps alias
+  `musu up --json` restored bridge health at `http://127.0.0.1:1065`.
+  Current single-machine smoke passes at
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-132814-HUGH_SECOND.evidence.json`;
+  desktop-open CPU passes at
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-132531-HUGH_SECOND.desktop-open.evidence.json`
+  with MUSU `0`, owned Node `0`, WebView2 `0.52`, working set `366.38MB`,
+  and hot `0`; runtime CPU matrix passes at
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-132921-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  with route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_132921`. Clean
+  go/no-go on `6f7fe937fcc5dd7e9665bf374aee1bdd1be0e48c` reports
+  `single_machine=true`, runtime idle CPU `1/2 [HUGH_SECOND]`, runtime CPU
+  matrix `1/2 [HUGH_SECOND]`, process/startup/desktop single-instance true,
+  and `manifest_dirty=false`, but `ready=false` because second-PC,
+  P2P control-plane, support mailbox, and Store gates are still open.
+- 2026-06-02 13:40 KST current operator action pack refresh:
+  final packet
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260602-134019.zip`
+  and action pack
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-134035.zip`
+  both verify with `ok=true`, `fail_count=0`. The current second-PC transfer
+  zip is
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-134035\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-134035.zip`;
+  Partner Center zip is
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-134035\partner-center\MUSU-1.15.0-rc.1-store-submission-20260602-134035.zip`;
+  support verification id is `musu-store-support-1.15.0-rc.1-20260602-134019`.
 
 Release candidate manifest:
 

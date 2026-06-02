@@ -645,3 +645,24 @@ still reports `ok=false`: GitHub has `MUSU_P2P_CONTROL_TOKEN_SHA256S`, but
 remains `p2p_relay_lease_kv_not_configured`, and local env/files do not
 provide usable KV credentials. This is now classified as a production
 configuration/evidence blocker, not a code blocker.
+
+2026-06-02 13:36 KST post-operator-security evidence addendum: fresh primary
+packaged evidence was regenerated after the operator API security hardening.
+MSIX install/startup succeeded for `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`
+and explicit WindowsApps alias `musu up --json` restored bridge health at
+`http://127.0.0.1:1065`. Current single-machine smoke passes at
+`docs\evidence\single-machine\1.15.0-rc.1\20260602-132814-HUGH_SECOND.evidence.json`;
+desktop-open CPU passes at
+`docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-132531-HUGH_SECOND.desktop-open.evidence.json`
+with MUSU `0`, owned Node `0`, WebView2 `0.52`, working set `366.38MB`, hot
+`0`; four-state matrix passes at
+`docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-132921-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+with route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_132921`. Clean
+go/no-go on `6f7fe937fcc5dd7e9665bf374aee1bdd1be0e48c` reports
+`ready=false`, `local_artifacts_ready=true`, `single_machine=true`, runtime
+idle CPU `1/2 [HUGH_SECOND]`, runtime CPU matrix `1/2 [HUGH_SECOND]`,
+process/startup/desktop single-instance true, P2P/support/Store false, and
+`manifest_dirty=false`. Current final packet `20260602-134019` and operator
+action pack `20260602-134035` verify with `ok=true`, `fail_count=0`; the
+current second-PC transfer zip is
+`.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-134035\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-134035.zip`.

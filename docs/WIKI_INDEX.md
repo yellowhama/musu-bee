@@ -247,6 +247,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | wiki/536 | Process attribution and Node count audit | 2026-06-02 | `PROCESS_ATTRIBUTION_NODE_COUNT_AUDIT_2026_06_02.md` | active |
 | wiki/537 | Fresh mDNS runtime evidence audit | 2026-06-02 | `RELEASE_1_15_0_RC1_FRESH_MDNS_RUNTIME_EVIDENCE_AUDIT_2026_06_02.md` | active |
 | wiki/549 | Operator API security audit | 2026-06-02 | `RELEASE_1_15_0_RC1_OPERATOR_API_SECURITY_AUDIT_2026_06_02.md` | active |
+| wiki/550 | Post-operator-security primary evidence refresh | 2026-06-02 | `RELEASE_1_15_0_RC1_CURRENT_HEAD_EVIDENCE_QUAL_AUDIT_NEXT_STEPS_2026_06_02.md` | active |
 | — | 1.15.0-rc.1 beta release checklist and smoke evidence | 2026-05-29 | `BETA_RELEASE_CHECKLIST_1_15_0_RC1.md` | active |
 | — | 1.15.0-rc.1 final operator gates | 2026-05-29 | `RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md` | active |
 | — | MUSU Microsoft Store release run card | 2026-05-29 | `MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md` | active |
@@ -1304,5 +1305,33 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2026-06-02_1320_kst_post_operator_security_go_no_go_index_refresh.md`.
   Search terms should include `GOAL v299`, `1336 files`, `2239 symbols`, and
   `post-operator-security go/no-go`.
+- 2026-06-02 current primary evidence refresh after operator API security:
+  wiki/550 records fresh post-security primary evidence. Current single-machine
+  smoke is
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-132814-HUGH_SECOND.evidence.json`;
+  current desktop-open CPU is
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-132531-HUGH_SECOND.desktop-open.evidence.json`;
+  current four-state matrix is
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-132921-HUGH_SECOND.runtime-cpu-scenario-matrix.json`.
+  Go/no-go on `6f7fe937` reports `single_machine=true`, runtime idle CPU
+  `1/2 [HUGH_SECOND]`, runtime CPU matrix `1/2 [HUGH_SECOND]`,
+  process/startup/desktop single-instance true, public release `ready=false`,
+  and blockers `multi-device`, `runtime-idle-cpu`,
+  `runtime-cpu-scenario-matrix`, `p2p-control-plane`, `support-mailbox`, and
+  `store-release`.
+- 2026-06-02 current operator action pack after post-security evidence:
+  final packet `musu-final-operator-gates-1.15.0-rc.1-20260602-134019.zip`
+  and action pack `MUSU-1.15.0-rc.1-operator-action-pack-20260602-134035.zip`
+  both verify with `ok=true`, `fail_count=0`. Search terms should include
+  `GOAL v300`, `wiki/550`, `20260602-132814`, `20260602-132531`,
+  `20260602-132921`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_132921`,
+  `20260602-134019`, and `20260602-134035`.
+- 2026-06-02 index refresh after post-security primary evidence:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1343 files and 2239 symbols. Search terms should include `GOAL v301`,
+  `1343 files`, `2239 symbols`,
+  `2026-06-02_1340_kst_post_operator_security_primary_evidence_refresh.md`,
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260602-134035`, and
+  `musu-store-support-1.15.0-rc.1-20260602-134019`.
 
 **End of WIKI_INDEX.md.**
