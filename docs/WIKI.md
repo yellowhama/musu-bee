@@ -790,6 +790,25 @@ Indexer note:
   `GOAL v283`, `1306 files`, `20260602-104113-HUGH_SECOND.desktop-open`,
   `20260602-104331-HUGH_SECOND.runtime-cpu-scenario-matrix`, and
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_104331`.
+- 2026-06-02 operator packet refresh after health poll primary evidence:
+  clean HEAD `f68806cc` regenerated final operator packet
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260602-110033.zip`
+  and action pack
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-110105.zip`.
+  Both verify with `ok=true`, `fail_count=0`; final packet `kit_count=1`.
+  Current second-PC transfer zip is
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-110105\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-110105.zip`.
+  Partner Center zip is
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-110105\partner-center\MUSU-1.15.0-rc.1-store-submission-20260602-110105.zip`.
+  Support target remains `musu@musu.pro`.
+- 2026-06-02 index refresh after current operator packet/action pack:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1307 files and 2221 symbols after CoS memory
+  `2026-06-02_1101_kst_operator_packet_refresh_after_primary_evidence.md`,
+  packet/action-pack documentation, WIKI/WIKI_INDEX/GOAL/BETA/current-status
+  updates. Search terms should include `GOAL v285`, `1307 files`,
+  `20260602-110033`, `20260602-110105`, and
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260602-110105`.
 
 ## 9. musu-system Integration State (2026-05-29)
 

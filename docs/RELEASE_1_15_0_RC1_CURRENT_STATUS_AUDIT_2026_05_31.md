@@ -555,3 +555,14 @@ Primary busy-loop is not reproduced. Release remains No-Go because runtime CPU
 and matrix are still only one valid machine until the second Windows PC returns
 matching evidence; multi-device route, live P2P control-plane, mailbox, and
 Store evidence remain open.
+
+2026-06-02 11:01 KST operator packet refresh addendum: clean HEAD
+`f68806cc026cabfea6706ced31134001d4847016` regenerated the final operator
+packet and action pack after the fresh primary evidence commit. Final packet
+`.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260602-110033.zip`
+verifies with `ok=true`, `fail_count=0`, `kit_count=1`. Operator action pack
+`.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-110105.zip`
+verifies with `ok=true`, `fail_count=0`. The current second-PC transfer zip is
+`.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-110105\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-110105.zip`.
+The support mailbox target remains `musu@musu.pro`, with verification id
+`musu-store-support-1.15.0-rc.1-20260602-110033`.

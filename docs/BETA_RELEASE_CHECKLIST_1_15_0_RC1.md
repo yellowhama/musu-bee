@@ -591,6 +591,16 @@ Tauri desktop shell evidence:
   Primary busy-loop is not reproduced: CPU hot `0`, MUSU `0`, Node `0.03`,
   WebView2 `0.18`; matrix max WebView2 `0.31`. Release remains No-Go because
   the two-machine CPU/matrix gates still need second-PC evidence.
+- 2026-06-02 11:01 KST current operator packet/action pack refresh:
+  clean HEAD `f68806cc026cabfea6706ced31134001d4847016` produced final packet
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260602-110033.zip`
+  and action pack
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-110105.zip`;
+  both verify with `ok=true`, `fail_count=0`. Send the nested second-PC
+  transfer zip
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-110105\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-110105.zip`
+  to the second Windows PC and run the included release check without skipping
+  runtime idle CPU or runtime CPU scenario matrix.
 
 Release candidate manifest:
 

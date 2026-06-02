@@ -1165,5 +1165,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260602-104113-HUGH_SECOND.desktop-open`,
   `20260602-104331-HUGH_SECOND.runtime-cpu-scenario-matrix`, and
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_104331`.
+- 2026-06-02 operator packet refresh after health poll primary evidence:
+  clean HEAD `f68806cc` regenerated final operator packet `20260602-110033`
+  and action pack `20260602-110105`; both verify with `ok=true`,
+  `fail_count=0`. Current second-PC transfer zip is
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260602-110105.zip`, and Partner Center
+  zip is `MUSU-1.15.0-rc.1-store-submission-20260602-110105.zip`. Search terms
+  should include `GOAL v284`, `20260602-110033`, `20260602-110105`,
+  `musu-store-support-1.15.0-rc.1-20260602-110033`, and `musu@musu.pro`.
+- 2026-06-02 index refresh after current operator packet/action pack:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1307 files and 2221 symbols after CoS memory
+  `2026-06-02_1101_kst_operator_packet_refresh_after_primary_evidence.md`,
+  packet/action-pack documentation, WIKI/WIKI_INDEX/GOAL/BETA/current-status
+  updates. Search terms should include `GOAL v285`, `1307 files`,
+  `2221 symbols`, `20260602-110033`, `20260602-110105`, and
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260602-110105`.
 
 **End of WIKI_INDEX.md.**
