@@ -20,17 +20,50 @@ if ([string]::IsNullOrWhiteSpace($Version)) {
 if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
     $OutputRoot = Join-Path $repoRoot ("docs\evidence\p2p-control-plane\{0}" -f $Version)
 }
-if ([string]::IsNullOrWhiteSpace($MusuExe)) {
+
+function Resolve-MusuExeForReleaseEvidence {
+    param([string]$RequestedPath)
+
+    if (-not [string]::IsNullOrWhiteSpace($RequestedPath)) {
+        if (-not (Test-Path -LiteralPath $RequestedPath)) {
+            throw "MusuExe not found: $RequestedPath"
+        }
+        return [pscustomobject]@{
+            path = (Resolve-Path -LiteralPath $RequestedPath).Path
+            source = "parameter"
+        }
+    }
+
+    $windowsAppsAlias = Join-Path $env:LOCALAPPDATA "Microsoft\WindowsApps\musu.exe"
+    if (Test-Path -LiteralPath $windowsAppsAlias) {
+        return [pscustomobject]@{
+            path = $windowsAppsAlias
+            source = "windowsapps_alias"
+        }
+    }
+
     $localMusu = Join-Path $repoRoot "musu-rs\target\debug\musu.exe"
     if (Test-Path -LiteralPath $localMusu) {
-        $MusuExe = $localMusu
+        return [pscustomobject]@{
+            path = $localMusu
+            source = "repo_debug_binary"
+        }
     }
-    else {
-        $MusuExe = "musu"
+
+    $pathCommand = Get-Command "musu.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($pathCommand -and -not [string]::IsNullOrWhiteSpace([string]$pathCommand.Source)) {
+        return [pscustomobject]@{
+            path = [string]$pathCommand.Source
+            source = "path"
+        }
     }
+
+    throw "Unable to resolve MUSU. Install the MSIX package, build the debug binary, or pass -MusuExe."
 }
 
 New-Item -ItemType Directory -Force -Path $OutputRoot | Out-Null
+$musuExeResolution = Resolve-MusuExeForReleaseEvidence -RequestedPath $MusuExe
+$MusuExe = [string]$musuExeResolution.path
 
 function Invoke-MusuJson {
     param(
@@ -122,6 +155,7 @@ $evidence = [pscustomobject]@{
     operator_machine = $env:COMPUTERNAME
     operator_user = $env:USERNAME
     musu_exe = $MusuExe
+    musu_exe_source = [string]$musuExeResolution.source
     relay_status_exit_code = $relayStatusResult.exit_code
     relay_status = $relayStatus
     relay_status_raw = if ($relayStatus) { $null } else { $relayStatusResult.raw }
@@ -185,6 +219,8 @@ $result = [pscustomobject]@{
     summary_path = (Resolve-Path -LiteralPath $summaryPath).Path
     owner_scope_verified = Get-BoolProperty -Object $relayLeases -Name "owner_scope_verified"
     relay_leases_ok = Get-BoolProperty -Object $relayLeases -Name "ok"
+    musu_exe = $MusuExe
+    musu_exe_source = [string]$musuExeResolution.source
 }
 
 if ($Json) {

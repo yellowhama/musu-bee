@@ -2066,4 +2066,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2274 symbols`, `wiki/585 index refresh`, `PingSucceeded=False`, and
   `TcpTestSucceeded=False`.
 
+- 2026-06-03 P2P evidence recorder alias hardening:
+  `RELEASE_1_15_0_RC1_P2P_EVIDENCE_RECORDER_ALIAS_HARDENING_2026_06_03.md`
+  (wiki/586) records that the P2P evidence recorder now defaults to the
+  packaged WindowsApps alias and records `musu_exe_source`. Search terms should
+  include `GOAL v379`, `wiki/586`, `20260603-044110-musu.pro.evidence.json`,
+  `musu_exe_source=windowsapps_alias`, `record-p2p-control-plane-evidence.ps1`,
+  and `p2p_relay_lease_kv_not_configured`.
+
+- 2026-06-03 P2P evidence recorder alias index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1567 files and 2274 symbols after GOAL v379-v380, wiki/586, fresh
+  P2P evidence `20260603-044110-musu.pro`, the recorder alias hardening report,
+  and CoS memories. Search terms should include `GOAL v380`, `1567 files`,
+  `2274 symbols`, `wiki/586 index refresh`, and
+  `musu_exe_source=windowsapps_alias`.
+
 **End of WIKI_INDEX.md.**

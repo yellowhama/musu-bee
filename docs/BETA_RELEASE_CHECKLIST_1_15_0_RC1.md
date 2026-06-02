@@ -1656,3 +1656,34 @@ P2P env status still has `MUSU_P2P_CONTROL_TOKEN_SHA256S` but lacks
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_EXTERNAL_GATE_RECHECK_2026_06_03_0430.md`
+
+## 2026-06-03 04:41 KST P2P Evidence Recorder Alias Hardening
+
+`record-p2p-control-plane-evidence.ps1` now defaults to the packaged
+WindowsApps alias when the operator does not pass `-MusuExe`. Resolution order:
+
+1. explicit `-MusuExe`
+2. packaged WindowsApps alias
+3. repo debug binary
+4. PATH `musu.exe`
+
+Fresh default-run evidence:
+
+- evidence:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-044110-musu.pro.evidence.json`
+- verification:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-044110-musu.pro.verification.json`
+- summary:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-044110-musu.pro.summary.md`
+
+The recorder output includes:
+
+- `musu_exe=C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe`
+- `musu_exe_source=windowsapps_alias`
+
+P2P still fails correctly on production storage/owner-scope:
+`p2p_relay_lease_kv_not_configured`.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_EVIDENCE_RECORDER_ALIAS_HARDENING_2026_06_03.md`

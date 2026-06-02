@@ -1899,3 +1899,25 @@ Canonical reference:
 
 Index refresh after wiki/585 recorded `1561` files and `2274` symbols using the
 explicit packaged WindowsApps alias invocation.
+
+## 16. P2P Evidence Recorder Alias Hardening (2026-06-03)
+
+wiki/586 records that `record-p2p-control-plane-evidence.ps1` now defaults to
+the packaged WindowsApps alias before repo debug/PATH binaries when `-MusuExe`
+is omitted. Evidence now records `musu_exe` and `musu_exe_source`.
+
+Default-run validation generated fresh live P2P evidence
+`20260603-044110-musu.pro` with
+`musu_exe_source=windowsapps_alias` and
+`musu_exe=C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe`.
+Verification still fails on `p2p_relay_lease_kv_not_configured`, proving the
+remaining P2P blocker is production storage/owner-scope, not local evidence
+binary selection.
+
+Canonical reference:
+
+- `docs/RELEASE_1_15_0_RC1_P2P_EVIDENCE_RECORDER_ALIAS_HARDENING_2026_06_03.md`
+- `docs/memory/chief_of_staff/2026-06-03_p2p_evidence_recorder_alias_hardening.md`
+
+Index refresh after wiki/586 recorded `1567` files and `2274` symbols using the
+explicit packaged WindowsApps alias invocation.
