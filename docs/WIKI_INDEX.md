@@ -1826,4 +1826,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_001416`, and
   `post forwarded-task audit primary evidence index refresh`.
 
+- 2026-06-03 P2P storage env alias hardening:
+  `RELEASE_1_15_0_RC1_P2P_STORAGE_ENV_ALIAS_HARDENING_2026_06_03.md`
+  (wiki/575) records hosted P2P storage env alias support. Search terms should
+  include `GOAL v355`, `wiki/575`, `p2pKvEnv.ts`,
+  `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`,
+  `missing_kv_rest_api_url_or_upstash_redis_rest_url`,
+  `missing_kv_rest_api_token_or_upstash_redis_rest_token`, `27/27`,
+  `deploy-musu-bee.yml`, and `P2P storage env alias hardening`.
+
+- 2026-06-03 index refresh after P2P storage env alias hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1484 files and 2272 symbols after wiki/575, GOAL v355-v356, P2P storage env
+  source/test updates, workflow/script updates, BETA/CONFIG/P2P spec/WIKI
+  updates, and CoS memory
+  `2026-06-03_p2p_storage_env_alias_hardening.md`. Search terms should include
+  `GOAL v356`, `1484 files`, `2272 symbols`, `UPSTASH_REDIS_REST_URL`,
+  `p2pKvEnv.ts`, and `P2P storage env alias index refresh`.
+
 **End of WIKI_INDEX.md.**

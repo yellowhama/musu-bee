@@ -118,13 +118,21 @@ function Get-EvidenceErrorClass {
 }
 
 $requiredSecretNames = @(
-    "MUSU_P2P_CONTROL_TOKEN_SHA256S",
-    "KV_REST_API_TOKEN"
+    "MUSU_P2P_CONTROL_TOKEN_SHA256S"
 )
-$requiredSecretOrVariableNames = @(
-    "KV_REST_API_URL"
+$requiredStorageUrlNames = @(
+    "KV_REST_API_URL",
+    "UPSTASH_REDIS_REST_URL"
+)
+$requiredStorageTokenNames = @(
+    "KV_REST_API_TOKEN",
+    "UPSTASH_REDIS_REST_TOKEN"
 )
 $optionalSecretOrVariableNames = @(
+    "KV_REST_API_URL",
+    "UPSTASH_REDIS_REST_URL",
+    "UPSTASH_REDIS_REST_TOKEN",
+    "KV_REST_API_TOKEN",
     "MUSU_P2P_RELAY_ENABLED",
     "MUSU_P2P_RELAY_TRANSPORT_WIRED",
     "MUSU_P2P_RELAY_URL",
@@ -157,10 +165,11 @@ foreach ($name in $requiredSecretNames) {
         $githubMissing.Add($name) | Out-Null
     }
 }
-foreach ($name in $requiredSecretOrVariableNames) {
-    if ($githubChecked -and ($secretNames -notcontains $name) -and ($variableNames -notcontains $name)) {
-        $githubMissing.Add($name) | Out-Null
-    }
+if ($githubChecked -and (@($requiredStorageUrlNames | Where-Object { ($secretNames -contains $_) -or ($variableNames -contains $_) }).Count -eq 0)) {
+    $githubMissing.Add("KV_REST_API_URL_OR_UPSTASH_REDIS_REST_URL") | Out-Null
+}
+if ($githubChecked -and (@($requiredStorageTokenNames | Where-Object { $secretNames -contains $_ }).Count -eq 0)) {
+    $githubMissing.Add("KV_REST_API_TOKEN_OR_UPSTASH_REDIS_REST_TOKEN") | Out-Null
 }
 
 if ([string]::IsNullOrWhiteSpace($EvidencePath)) {
@@ -219,10 +228,10 @@ elseif (-not $evidenceSummary.ok) {
 }
 
 $nextSteps = New-Object System.Collections.Generic.List[string]
-if ($blockers -contains "missing_kv_rest_api_url" -or $blockers -contains "missing_kv_rest_api_token" -or $blockers -contains "live_evidence_p2p_relay_lease_kv_not_configured") {
+if ($blockers -contains "missing_kv_rest_api_url_or_upstash_redis_rest_url" -or $blockers -contains "missing_kv_rest_api_token_or_upstash_redis_rest_token" -or $blockers -contains "live_evidence_p2p_relay_lease_kv_not_configured") {
     $nextSteps.Add("Provision Vercel KV / Upstash Redis for the musu.pro project.") | Out-Null
-    $nextSteps.Add("Use scripts\windows\configure-musu-pro-p2p-env.ps1 to set KV_REST_API_URL and KV_REST_API_TOKEN without printing secret values.") | Out-Null
-    $nextSteps.Add("Set KV_REST_API_URL and KV_REST_API_TOKEN in GitHub repo secrets or Vercel production env.") | Out-Null
+    $nextSteps.Add("Use scripts\windows\configure-musu-pro-p2p-env.ps1 to set KV_REST_API_URL/KV_REST_API_TOKEN or UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN without printing secret values.") | Out-Null
+    $nextSteps.Add("Set KV_REST_API_URL and KV_REST_API_TOKEN, or the equivalent Upstash REST env names, in GitHub repo secrets/variables or Vercel production env.") | Out-Null
     $nextSteps.Add("Run gh workflow run deploy-musu-bee.yml --repo $Repo --ref main, then rerun P2P control-plane evidence.") | Out-Null
 }
 if ($blockers -contains "missing_musu_p2p_control_token_sha256s" -or $blockers -contains "live_evidence_p2p_control_auth_not_configured") {
@@ -243,10 +252,11 @@ $result = [pscustomobject]@{
         checked = $githubChecked
         error = $githubError
         required_secret_names = $requiredSecretNames
-        required_secret_or_variable_names = $requiredSecretOrVariableNames
+        required_storage_url_names = $requiredStorageUrlNames
+        required_storage_token_names = $requiredStorageTokenNames
         optional_secret_or_variable_names = $optionalSecretOrVariableNames
-        secret_names_present = @($secretNames | Where-Object { ($requiredSecretNames + $requiredSecretOrVariableNames + $optionalSecretOrVariableNames) -contains $_ })
-        variable_names_present = @($variableNames | Where-Object { ($requiredSecretOrVariableNames + $optionalSecretOrVariableNames) -contains $_ })
+        secret_names_present = @($secretNames | Where-Object { ($requiredSecretNames + $requiredStorageUrlNames + $requiredStorageTokenNames + $optionalSecretOrVariableNames) -contains $_ })
+        variable_names_present = @($variableNames | Where-Object { ($requiredStorageUrlNames + $optionalSecretOrVariableNames) -contains $_ })
         missing_required_names = $githubMissing.ToArray()
     }
     evidence = $evidenceSummary

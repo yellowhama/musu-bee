@@ -5,6 +5,8 @@ param(
     [string]$Workflow = "deploy-musu-bee.yml",
     [string]$KvRestApiUrl,
     [string]$KvRestApiToken,
+    [string]$UpstashRedisRestUrl,
+    [string]$UpstashRedisRestToken,
     [switch]$StoreKvUrlAsSecret,
     [string]$P2pControlTokenSha256s,
     [string]$RelayEnabled,
@@ -111,9 +113,22 @@ function Add-Setting {
 }
 
 $settings = New-Object System.Collections.Generic.List[object]
+$kvRestApiUrlValue = Get-EnvOrValue -Value $KvRestApiUrl -EnvName "KV_REST_API_URL"
+$kvRestApiTokenValue = Get-EnvOrValue -Value $KvRestApiToken -EnvName "KV_REST_API_TOKEN"
+$upstashRedisRestUrlValue = Get-EnvOrValue -Value $UpstashRedisRestUrl -EnvName "UPSTASH_REDIS_REST_URL"
+$upstashRedisRestTokenValue = Get-EnvOrValue -Value $UpstashRedisRestToken -EnvName "UPSTASH_REDIS_REST_TOKEN"
+if ([string]::IsNullOrWhiteSpace($kvRestApiUrlValue)) {
+    $kvRestApiUrlValue = $upstashRedisRestUrlValue
+}
+if ([string]::IsNullOrWhiteSpace($kvRestApiTokenValue)) {
+    $kvRestApiTokenValue = $upstashRedisRestTokenValue
+}
+
 Add-Setting -List $settings -Name "MUSU_P2P_CONTROL_TOKEN_SHA256S" -Value (Get-EnvOrValue -Value $P2pControlTokenSha256s -EnvName "MUSU_P2P_CONTROL_TOKEN_SHA256S") -Kind "secret"
-Add-Setting -List $settings -Name "KV_REST_API_URL" -Value (Get-EnvOrValue -Value $KvRestApiUrl -EnvName "KV_REST_API_URL") -Kind ($(if ($StoreKvUrlAsSecret) { "secret" } else { "variable" })) -Required
-Add-Setting -List $settings -Name "KV_REST_API_TOKEN" -Value (Get-EnvOrValue -Value $KvRestApiToken -EnvName "KV_REST_API_TOKEN") -Kind "secret" -Required
+Add-Setting -List $settings -Name "KV_REST_API_URL" -Value $kvRestApiUrlValue -Kind ($(if ($StoreKvUrlAsSecret) { "secret" } else { "variable" })) -Required
+Add-Setting -List $settings -Name "KV_REST_API_TOKEN" -Value $kvRestApiTokenValue -Kind "secret" -Required
+Add-Setting -List $settings -Name "UPSTASH_REDIS_REST_URL" -Value $upstashRedisRestUrlValue -Kind ($(if ($StoreKvUrlAsSecret) { "secret" } else { "variable" }))
+Add-Setting -List $settings -Name "UPSTASH_REDIS_REST_TOKEN" -Value $upstashRedisRestTokenValue -Kind "secret"
 Add-Setting -List $settings -Name "MUSU_P2P_RELAY_ENABLED" -Value (Get-EnvOrValue -Value $RelayEnabled -EnvName "MUSU_P2P_RELAY_ENABLED") -Kind "variable"
 Add-Setting -List $settings -Name "MUSU_P2P_RELAY_TRANSPORT_WIRED" -Value (Get-EnvOrValue -Value $RelayTransportWired -EnvName "MUSU_P2P_RELAY_TRANSPORT_WIRED") -Kind "variable"
 Add-Setting -List $settings -Name "MUSU_P2P_RELAY_URL" -Value (Get-EnvOrValue -Value $RelayUrl -EnvName "MUSU_P2P_RELAY_URL") -Kind "variable"

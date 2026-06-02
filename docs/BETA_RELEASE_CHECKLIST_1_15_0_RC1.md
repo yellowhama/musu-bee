@@ -242,9 +242,17 @@ Runtime hardening:
   `scripts\windows\show-musu-pro-p2p-env-status.ps1 -Json` reports required
   GitHub secret/variable names, the latest live P2P evidence error class, and
   next steps without printing secret values. Current expected blockers before
-  KV provisioning are `missing_kv_rest_api_url`,
-  `missing_kv_rest_api_token`, and
+  storage provisioning are
+  `missing_kv_rest_api_url_or_upstash_redis_rest_url`,
+  `missing_kv_rest_api_token_or_upstash_redis_rest_token`, and
   `live_evidence_p2p_relay_lease_kv_not_configured`.
+- P2P hosted storage env alias status: route-evidence, rendezvous, and relay
+  lease stores now accept either `KV_REST_API_URL` / `KV_REST_API_TOKEN` or
+  `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`. The deploy workflow
+  syncs both name families and maps Upstash values into the canonical
+  `KV_REST_API_*` names before `@vercel/kv` loads. This broadens production
+  provisioning options but does not close the live P2P gate until actual
+  storage credentials are set and owner-scoped evidence passes.
 - relay fallback evidence status: failed runtime route evidence now carries a
   `relay_fallback` addendum after direct-route failure and lease evaluation,
   so `musu.pro` can audit whether the lease was requested/issued/skipped

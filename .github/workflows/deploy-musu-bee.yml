@@ -59,6 +59,8 @@ jobs:
           sync_vercel_env MUSU_P2P_CONTROL_TOKEN_SHA256S "$MUSU_P2P_CONTROL_TOKEN_SHA256S"
           sync_vercel_env KV_REST_API_URL "$KV_REST_API_URL"
           sync_vercel_env KV_REST_API_TOKEN "$KV_REST_API_TOKEN"
+          sync_vercel_env UPSTASH_REDIS_REST_URL "$UPSTASH_REDIS_REST_URL"
+          sync_vercel_env UPSTASH_REDIS_REST_TOKEN "$UPSTASH_REDIS_REST_TOKEN"
           sync_vercel_env MUSU_P2P_RELAY_ENABLED "$MUSU_P2P_RELAY_ENABLED"
           sync_vercel_env MUSU_P2P_RELAY_TRANSPORT_WIRED "$MUSU_P2P_RELAY_TRANSPORT_WIRED"
           sync_vercel_env MUSU_P2P_RELAY_URL "$MUSU_P2P_RELAY_URL"
@@ -68,8 +70,10 @@ jobs:
         working-directory: musu-bee
         env:
           MUSU_P2P_CONTROL_TOKEN_SHA256S: ${{ secrets.MUSU_P2P_CONTROL_TOKEN_SHA256S }}
-          KV_REST_API_URL: ${{ secrets.KV_REST_API_URL || vars.KV_REST_API_URL }}
-          KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
+          KV_REST_API_URL: ${{ secrets.KV_REST_API_URL || vars.KV_REST_API_URL || secrets.UPSTASH_REDIS_REST_URL || vars.UPSTASH_REDIS_REST_URL }}
+          KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN || secrets.UPSTASH_REDIS_REST_TOKEN }}
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL || vars.UPSTASH_REDIS_REST_URL || secrets.KV_REST_API_URL || vars.KV_REST_API_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN || secrets.KV_REST_API_TOKEN }}
           MUSU_P2P_RELAY_ENABLED: ${{ secrets.MUSU_P2P_RELAY_ENABLED || vars.MUSU_P2P_RELAY_ENABLED }}
           MUSU_P2P_RELAY_TRANSPORT_WIRED: ${{ secrets.MUSU_P2P_RELAY_TRANSPORT_WIRED || vars.MUSU_P2P_RELAY_TRANSPORT_WIRED }}
           MUSU_P2P_RELAY_URL: ${{ secrets.MUSU_P2P_RELAY_URL || vars.MUSU_P2P_RELAY_URL }}

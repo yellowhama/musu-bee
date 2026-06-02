@@ -1600,6 +1600,31 @@ Indexer note:
   `20260603-001416-HUGH_SECOND`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_001416`,
   and `post forwarded-task audit primary evidence index refresh`.
 
+- 2026-06-03 P2P storage env alias hardening:
+  wiki/575 records that hosted P2P storage now accepts both Vercel KV
+  `KV_REST_API_URL` / `KV_REST_API_TOKEN` and Upstash Redis REST
+  `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`. Added
+  `p2pKvEnv.ts`, P2P KV env tests, and store wiring for route evidence,
+  rendezvous, and relay lease storage. `deploy-musu-bee.yml` now syncs both
+  env name families and maps Upstash values into canonical KV names.
+  `configure-musu-pro-p2p-env.ps1` accepts Upstash inputs and
+  `show-musu-pro-p2p-env-status.ps1` reports the new missing-name blockers
+  `missing_kv_rest_api_url_or_upstash_redis_rest_url` and
+  `missing_kv_rest_api_token_or_upstash_redis_rest_token`. Validation passed
+  `npm run test:p2p` 27/27, `npm run build`, sequential `npm run typecheck`,
+  configurator dry-run, and env-status JSON. Live P2P control-plane remains
+  No-Go until actual storage credentials are provisioned and owner-scoped
+  evidence passes.
+
+- 2026-06-03 index refresh after P2P storage env alias hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1484 files and 2272 symbols after wiki/575, GOAL v355-v356, P2P storage env
+  helper/source updates, deploy workflow update, scripts, BETA/CONFIG/P2P spec
+  updates, WIKI_INDEX updates, and CoS memory
+  `2026-06-03_p2p_storage_env_alias_hardening.md`. Search terms should include
+  `GOAL v356`, `1484 files`, `2272 symbols`, `UPSTASH_REDIS_REST_TOKEN`,
+  `p2pKvEnv.test.ts`, and `P2P storage env alias index refresh`.
+
 ## 9. musu-system Integration State (2026-05-29)
 
 `yellowhama/musu-system` is a credible adjacent MUSU ecosystem line, not a Rust-core replacement. It contains:

@@ -49,14 +49,17 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\show-musu-
 
 Current expected blockers before KV provisioning:
 
-- `missing_kv_rest_api_url`
-- `missing_kv_rest_api_token`
+- `missing_kv_rest_api_url_or_upstash_redis_rest_url`
+- `missing_kv_rest_api_token_or_upstash_redis_rest_token`
 - `live_evidence_p2p_relay_lease_kv_not_configured`
 
 1. Provision Vercel KV / Upstash Redis for the `musu.pro` Vercel project.
-2. Add these GitHub repository secrets for `yellowhama/musu-bee`:
+2. Add either the Vercel KV names or the Upstash REST names for
+   `yellowhama/musu-bee`:
    - `KV_REST_API_URL`
    - `KV_REST_API_TOKEN`
+   - or `UPSTASH_REDIS_REST_URL`
+   - and `UPSTASH_REDIS_REST_TOKEN`
 
 Preferred command after KV values exist:
 
@@ -68,10 +71,22 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\configure-
   -Json
 ```
 
+Equivalent Upstash input:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\configure-musu-pro-p2p-env.ps1 `
+  -UpstashRedisRestUrl "<UPSTASH_REDIS_REST_URL>" `
+  -UpstashRedisRestToken "<UPSTASH_REDIS_REST_TOKEN>" `
+  -Deploy `
+  -Json
+```
+
 The script sends values to `gh secret set` / `gh variable set` through stdin and
 does not print secret values. By default, `KV_REST_API_URL` is stored as a repo
 variable and `KV_REST_API_TOKEN` is stored as a repo secret. Use
-`-StoreKvUrlAsSecret` if the URL must also be treated as secret.
+`-StoreKvUrlAsSecret` if the URL must also be treated as secret. When Upstash
+inputs are used, the script also sets the canonical `KV_REST_API_*` names so
+the deployed app and `@vercel/kv` client can use the same storage path.
 
 Dry-run without setting anything:
 
@@ -88,6 +103,13 @@ Manual fallback:
 ```powershell
 gh variable set KV_REST_API_URL --repo yellowhama/musu-bee
 gh secret set KV_REST_API_TOKEN --repo yellowhama/musu-bee
+```
+
+or:
+
+```powershell
+gh variable set UPSTASH_REDIS_REST_URL --repo yellowhama/musu-bee
+gh secret set UPSTASH_REDIS_REST_TOKEN --repo yellowhama/musu-bee
 ```
 
 3. Run the deploy workflow:

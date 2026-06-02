@@ -2,6 +2,10 @@ import fs from "node:fs";
 import { randomUUID } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
+import {
+  ensureP2pKvRestEnvAliases,
+  hasP2pKvCredentials,
+} from "@/lib/p2pKvEnv";
 
 export type RouteEvidencePayload = {
   schema: "musu.route_evidence.v1";
@@ -65,7 +69,8 @@ const DEFAULT_MAX_RECORDS = 1000;
 let localLockQueue: Promise<void> = Promise.resolve();
 
 function shouldUseKv(): boolean {
-  return Boolean(process.env.KV_REST_API_URL) && Boolean(process.env.KV_REST_API_TOKEN);
+  ensureP2pKvRestEnvAliases();
+  return hasP2pKvCredentials();
 }
 
 function hasExplicitFileStore(): boolean {
