@@ -1112,6 +1112,26 @@ caused MSIX install evidence capture to fail first:
 `.local-build\runtime-cleanup\20260602-185052-HUGH_SECOND.runtime-cleanup.json`
 reported `ok=true`, `stop_exit_code=0`, and remaining desktop shell count `0`.
 
+## 2026-06-02 19:26 KST Stop/Desktop Cleanup Command Update
+
+`musu stop` / `musu down` now keep bridge-only cleanup as the default, but add
+an explicit desktop shell cleanup mode for operator/evidence runs:
+
+```powershell
+musu down --json --timeout-sec 5 --include-desktop
+```
+
+`musu.stop_report.v1` now records the desktop cleanup attempt, before/after
+desktop PIDs, requested terminations, and desktop cleanup errors. The second-PC
+release wrapper now uses this option before its PowerShell packaged-desktop
+fallback, so cleanup evidence is visible in both `musu.stop_report.v1` and
+`musu.second_pc_runtime_cleanup.v1`.
+
+This moves process cleanup closer to the product runtime instead of relying
+only on wrapper-specific PowerShell cleanup. It does not close release gates by
+itself; a current packaged MSIX evidence refresh is required after the Rust
+source change.
+
 Roadmap impact:
 
 - This improves second-PC process ownership and operator cleanup.

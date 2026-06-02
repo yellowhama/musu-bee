@@ -1582,4 +1582,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU-second-PC-transfer-1.15.0-rc.1-20260602-185802`, and
   `current operator action pack after cleanup`.
 
+- 2026-06-02 stop/desktop cleanup hardening:
+  `musu stop` / `musu down` now accept `--include-desktop` and report desktop
+  cleanup fields in `musu.stop_report.v1`. `run-second-pc-release-check.ps1`
+  now uses `musu down --json --timeout-sec 5 --include-desktop` before the
+  wrapper-level packaged desktop fallback. Search terms should include
+  `GOAL v329`, `wiki/563`, `--include-desktop`, `desktop_cleanup_attempted`,
+  `desktop_pids_before`, `desktop_terminate_requested_pids`,
+  `desktop_pids_after`, `desktop_errors`, and
+  `RELEASE_1_15_0_RC1_STOP_DESKTOP_CLEANUP_HARDENING_2026_06_02.md`.
+
+- 2026-06-02 index refresh after stop/desktop cleanup hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1412 files and 2251 symbols after wiki/563, GOAL v329/v330, stop/desktop
+  cleanup code/docs, BETA/current-head/runtime roadmap/WIKI/WIKI_INDEX updates,
+  and CoS memory
+  `2026-06-02_1926_kst_stop_desktop_cleanup_hardening.md`. Search terms should
+  include `GOAL v330`, `1412 files`, `2251 symbols`, `musu_desktop_pids`,
+  `wait_for_pids_exit`, `--include-desktop`, and `stop desktop cleanup index
+  refresh`.
+
 **End of WIKI_INDEX.md.**

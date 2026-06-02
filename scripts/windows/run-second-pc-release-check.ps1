@@ -163,7 +163,7 @@ function Invoke-RuntimeCleanup {
         $runtimeError = "Unable to resolve packaged MUSU CLI for cleanup."
     }
     else {
-        $output = & $musuExe down --json --timeout-sec 5 2>&1
+        $output = & $musuExe down --json --timeout-sec 5 --include-desktop 2>&1
         $stopExitCode = $LASTEXITCODE
         $stopRaw = ($output | Out-String).Trim()
         if (-not [string]::IsNullOrWhiteSpace($stopRaw)) {

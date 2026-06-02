@@ -264,6 +264,36 @@ current handoff artifacts were regenerated from clean HEAD
 with `ok=true` and `fail_count=0`; it specifically verifies that the second-PC
 transfer quickstart explains the return archive and cleanup evidence.
 
+## 2026-06-02 19:26 KST Stop/Desktop Cleanup Hardening Update
+
+The runtime stop command now has an explicit desktop cleanup mode:
+
+- command: `musu down --json --timeout-sec 5 --include-desktop`
+- default `musu down`: unchanged, bridge runtime PID only
+- new `musu.stop_report.v1` fields:
+  `include_desktop`, `desktop_cleanup_attempted`, `desktop_pids_before`,
+  `desktop_terminate_requested_pids`, `desktop_pids_after`, `desktop_errors`
+- second-PC wrapper:
+  `run-second-pc-release-check.ps1` now invokes the new option before its
+  packaged desktop-shell fallback
+
+Validation passed:
+
+- `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1`
+- `cargo test --manifest-path .\musu-rs\Cargo.toml bridge::services --lib -- --test-threads=1`
+  15/15
+- `cargo test --manifest-path .\musu-rs\Cargo.toml install::cli_commands --lib -- --test-threads=1`
+  14/14
+- parser check for `run-second-pc-release-check.ps1`
+- `git diff --check`
+- source CLI smoke `down --json --timeout-sec 1 --include-desktop` returned
+  `ok=true`, `desktop_cleanup_attempted=true`, empty desktop PID lists, and
+  `desktop_errors=[]`
+
+Release meaning: this improves process cleanup and second-PC evidence
+attribution, but it makes packaged primary evidence stale until a current MSIX
+is rebuilt/installed and smoke/CPU/matrix/process evidence are refreshed.
+
 ## 2026-06-02 13:57 KST P2P CI Hardening Update
 
 The P2P control-plane route contract is now covered by the web CI lane:

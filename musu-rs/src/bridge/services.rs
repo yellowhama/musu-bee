@@ -420,6 +420,13 @@ fn is_musu_runtime_exe_name(name: &str) -> bool {
     )
 }
 
+fn is_musu_desktop_exe_name(name: &str) -> bool {
+    matches!(
+        name.to_ascii_lowercase().as_str(),
+        "musu-desktop" | "musu-desktop.exe"
+    )
+}
+
 pub fn is_musu_runtime_pid(pid: u32) -> bool {
     process_exe_path(pid)
         .and_then(|path| {
@@ -427,6 +434,88 @@ pub fn is_musu_runtime_pid(pid: u32) -> bool {
                 .map(|name| name.to_string_lossy().to_string())
         })
         .is_some_and(|name| is_musu_runtime_exe_name(&name))
+}
+
+#[cfg(unix)]
+fn process_ids_by_exe_name(predicate: fn(&str) -> bool) -> Vec<u32> {
+    let mut pids = Vec::new();
+    let entries = match std::fs::read_dir("/proc") {
+        Ok(entries) => entries,
+        Err(_) => return pids,
+    };
+
+    for entry in entries.flatten() {
+        let Some(file_name) = entry.file_name().to_str().map(|name| name.to_string()) else {
+            continue;
+        };
+        let Ok(pid) = file_name.parse::<u32>() else {
+            continue;
+        };
+        let Some(exe_name) = process_exe_path(pid).and_then(|path| {
+            path.file_name()
+                .map(|name| name.to_string_lossy().to_string())
+        }) else {
+            continue;
+        };
+        if predicate(&exe_name) {
+            pids.push(pid);
+        }
+    }
+
+    pids.sort_unstable();
+    pids.dedup();
+    pids
+}
+
+#[cfg(windows)]
+fn process_ids_by_exe_name(predicate: fn(&str) -> bool) -> Vec<u32> {
+    use windows_sys::Win32::Foundation::{CloseHandle, INVALID_HANDLE_VALUE};
+    use windows_sys::Win32::System::Diagnostics::ToolHelp::{
+        CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W,
+        TH32CS_SNAPPROCESS,
+    };
+
+    let mut pids = Vec::new();
+    unsafe {
+        let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+        if snapshot == INVALID_HANDLE_VALUE {
+            return pids;
+        }
+
+        let mut entry: PROCESSENTRY32W = std::mem::zeroed();
+        entry.dwSize = std::mem::size_of::<PROCESSENTRY32W>() as u32;
+        if Process32FirstW(snapshot, &mut entry) != 0 {
+            loop {
+                let len = entry
+                    .szExeFile
+                    .iter()
+                    .position(|ch| *ch == 0)
+                    .unwrap_or(entry.szExeFile.len());
+                let exe_name = String::from_utf16_lossy(&entry.szExeFile[..len]);
+                if predicate(&exe_name) {
+                    pids.push(entry.th32ProcessID);
+                }
+
+                if Process32NextW(snapshot, &mut entry) == 0 {
+                    break;
+                }
+            }
+        }
+        CloseHandle(snapshot);
+    }
+
+    pids.sort_unstable();
+    pids.dedup();
+    pids
+}
+
+#[cfg(not(any(unix, windows)))]
+fn process_ids_by_exe_name(_predicate: fn(&str) -> bool) -> Vec<u32> {
+    Vec::new()
+}
+
+pub fn musu_desktop_pids() -> Vec<u32> {
+    process_ids_by_exe_name(is_musu_desktop_exe_name)
 }
 
 // ---------------------------------------------------------------------------
@@ -498,6 +587,15 @@ mod tests {
         assert!(is_musu_runtime_exe_name("MUSUD.EXE"));
         assert!(!is_musu_runtime_exe_name("musu-desktop.exe"));
         assert!(!is_musu_runtime_exe_name("node.exe"));
+    }
+
+    #[test]
+    fn musu_desktop_exe_name_matches_only_desktop_shell() {
+        assert!(is_musu_desktop_exe_name("musu-desktop"));
+        assert!(is_musu_desktop_exe_name("MUSU-DESKTOP.EXE"));
+        assert!(!is_musu_desktop_exe_name("musu.exe"));
+        assert!(!is_musu_desktop_exe_name("musud.exe"));
+        assert!(!is_musu_desktop_exe_name("node.exe"));
     }
 
     #[test]

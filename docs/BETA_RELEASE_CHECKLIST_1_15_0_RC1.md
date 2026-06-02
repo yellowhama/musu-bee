@@ -1044,3 +1044,32 @@ is listed for return.
   `1410` files and `2245` symbols after the current operator action pack
   refresh, BETA/current-head/WIKI/WIKI_INDEX/GOAL updates, and CoS memory
   `2026-06-02_1859_kst_current_operator_action_pack_after_cleanup.md`.
+
+## 2026-06-02 19:26 KST Stop/Desktop Cleanup Hardening
+
+`musu stop` / `musu down` now support explicit desktop-shell cleanup:
+
+```powershell
+musu down --json --timeout-sec 5 --include-desktop
+```
+
+The default command still stops only the registered bridge runtime. With
+`--include-desktop`, `musu.stop_report.v1` also records
+`desktop_cleanup_attempted`, `desktop_pids_before`,
+`desktop_terminate_requested_pids`, `desktop_pids_after`, and
+`desktop_errors`.
+
+The second-PC release wrapper now uses the new option before its existing
+packaged-desktop cleanup fallback. Validation passed `cargo check`, services
+tests 15/15, install CLI tests 14/14, PowerShell parser check, `git diff
+--check`, and a source CLI no-op smoke with `desktop_errors=[]`.
+
+Release caveat: this is a Rust source change, so packaged primary evidence must
+be rebuilt/refreshed after commit before current-source local gates are clean
+again.
+
+2026-06-02 19:27 KST index refresh:
+
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  `1412` files and `2251` symbols after stop/desktop cleanup hardening, docs,
+  WIKI, WIKI_INDEX, GOAL, and CoS memory updates.

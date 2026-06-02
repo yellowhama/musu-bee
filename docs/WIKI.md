@@ -1311,6 +1311,31 @@ Indexer note:
   `MUSU-1.15.0-rc.1-store-submission-20260602-185802`,
   `musu-store-support-1.15.0-rc.1-20260602-185745`, and `cleanup evidence`.
 
+- 2026-06-02 stop/desktop cleanup hardening:
+  wiki/563 records `musu stop` / `musu down` gaining explicit
+  `--include-desktop` cleanup. The default remains bridge-runtime-only; with
+  `--include-desktop`, `musu.stop_report.v1` records
+  `desktop_cleanup_attempted`, `desktop_pids_before`,
+  `desktop_terminate_requested_pids`, `desktop_pids_after`, and
+  `desktop_errors`. `run-second-pc-release-check.ps1` now calls
+  `musu down --json --timeout-sec 5 --include-desktop` before its existing
+  packaged-desktop fallback. Validation passed cargo fmt/check, services tests
+  15/15, install CLI tests 14/14, PowerShell parser check, `git diff --check`,
+  and source CLI no-op smoke. Current packaged release evidence must be
+  refreshed after commit because this is a Rust source change.
+
+- 2026-06-02 index refresh after stop/desktop cleanup hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1412 files and 2251 symbols after wiki/563, GOAL v329/v330,
+  `RELEASE_1_15_0_RC1_STOP_DESKTOP_CLEANUP_HARDENING_2026_06_02.md`,
+  `musu-rs\src\bridge\services.rs`, `musu-rs\src\install\cli_commands.rs`,
+  `scripts\windows\run-second-pc-release-check.ps1`, BETA/current-head/runtime
+  roadmap updates, WIKI_INDEX, and CoS memory
+  `2026-06-02_1926_kst_stop_desktop_cleanup_hardening.md`. Search terms should
+  include `GOAL v329`, `GOAL v330`, `wiki/563`, `1412 files`, `2251 symbols`,
+  `--include-desktop`, `desktop_cleanup_attempted`, `desktop_pids_after`, and
+  `musu_desktop_pids`.
+
 ## 9. musu-system Integration State (2026-05-29)
 
 `yellowhama/musu-system` is a credible adjacent MUSU ecosystem line, not a Rust-core replacement. It contains:

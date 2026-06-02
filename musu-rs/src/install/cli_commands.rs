@@ -164,6 +164,9 @@ pub struct StopOpts {
     /// Seconds to wait for the registered bridge PID to exit.
     #[arg(long, default_value_t = 5)]
     pub timeout_sec: u64,
+    /// Also stop MUSU desktop shell processes (`musu-desktop.exe`).
+    #[arg(long)]
+    pub include_desktop: bool,
 }
 // ── share / unshare / shares ────────────────────────────────────────────
 
@@ -1337,6 +1340,12 @@ struct StopReport {
     terminate_requested: bool,
     pid_alive_after: bool,
     registry_deregistered: bool,
+    include_desktop: bool,
+    desktop_cleanup_attempted: bool,
+    desktop_pids_before: Vec<u32>,
+    desktop_terminate_requested_pids: Vec<u32>,
+    desktop_pids_after: Vec<u32>,
+    desktop_errors: Vec<String>,
     error: Option<String>,
     next_steps: Vec<String>,
 }
@@ -1629,6 +1638,11 @@ pub async fn run_stop(opts: StopOpts) -> Result<()> {
     let mut registry_deregistered = false;
     let mut error = None;
     let mut next_steps = Vec::new();
+    let mut desktop_cleanup_attempted = false;
+    let mut desktop_pids_before = Vec::new();
+    let mut desktop_terminate_requested_pids = Vec::new();
+    let mut desktop_pids_after = Vec::new();
+    let mut desktop_errors = Vec::new();
 
     match bridge_pid {
         Some(pid) => {
@@ -1687,6 +1701,61 @@ pub async fn run_stop(opts: StopOpts) -> Result<()> {
         }
     }
 
+    if opts.include_desktop {
+        desktop_cleanup_attempted = true;
+        desktop_pids_before = crate::bridge::services::musu_desktop_pids();
+        for pid in &desktop_pids_before {
+            if !crate::bridge::services::is_pid_alive(*pid) {
+                continue;
+            }
+            if crate::bridge::services::terminate_pid(*pid) {
+                desktop_terminate_requested_pids.push(*pid);
+            } else {
+                desktop_errors.push(format!("failed to request desktop PID {pid} termination"));
+            }
+        }
+
+        if !desktop_terminate_requested_pids.is_empty() {
+            wait_for_pids_exit(
+                &desktop_terminate_requested_pids,
+                std::time::Duration::from_secs(opts.timeout_sec),
+            )
+            .await;
+        }
+
+        desktop_pids_after = crate::bridge::services::musu_desktop_pids();
+        if !desktop_pids_after.is_empty() {
+            desktop_errors.push(format!(
+                "desktop PID(s) still alive after cleanup: {}",
+                desktop_pids_after
+                    .iter()
+                    .map(|pid| pid.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ));
+        }
+
+        if desktop_errors.is_empty() {
+            if desktop_pids_before.is_empty() {
+                next_steps.push("No MUSU desktop shell processes found.".into());
+            } else {
+                next_steps.push(format!(
+                    "Stopped {} MUSU desktop shell process(es).",
+                    desktop_terminate_requested_pids.len()
+                ));
+            }
+        } else {
+            next_steps.push(
+                "Inspect remaining `musu-desktop` processes before recording release evidence."
+                    .into(),
+            );
+        }
+    }
+
+    if error.is_none() && !desktop_errors.is_empty() {
+        error = Some(desktop_errors.join("; "));
+    }
+
     let ok = error.is_none();
     let report = StopReport {
         schema: "musu.stop_report.v1",
@@ -1701,6 +1770,12 @@ pub async fn run_stop(opts: StopOpts) -> Result<()> {
         terminate_requested,
         pid_alive_after,
         registry_deregistered,
+        include_desktop: opts.include_desktop,
+        desktop_cleanup_attempted,
+        desktop_pids_before,
+        desktop_terminate_requested_pids,
+        desktop_pids_after,
+        desktop_errors,
         error,
         next_steps,
     };
@@ -2035,6 +2110,26 @@ async fn wait_for_pid_exit(pid: u32, timeout: std::time::Duration) {
     let mut attempt = 0_u32;
     while std::time::Instant::now() < deadline {
         if !crate::bridge::services::is_pid_alive(pid) {
+            return;
+        }
+        let now = std::time::Instant::now();
+        if now >= deadline {
+            return;
+        }
+        let delay = bridge_health_poll_delay(attempt).min(deadline.saturating_duration_since(now));
+        attempt = attempt.saturating_add(1);
+        tokio::time::sleep(delay).await;
+    }
+}
+
+async fn wait_for_pids_exit(pids: &[u32], timeout: std::time::Duration) {
+    let deadline = std::time::Instant::now() + timeout;
+    let mut attempt = 0_u32;
+    while std::time::Instant::now() < deadline {
+        if pids
+            .iter()
+            .all(|pid| !crate::bridge::services::is_pid_alive(*pid))
+        {
             return;
         }
         let now = std::time::Instant::now();
@@ -2399,6 +2494,22 @@ fn print_stop_report(report: &StopReport) {
     println!("  terminate requested: {}", report.terminate_requested);
     println!("  pid alive after: {}", report.pid_alive_after);
     println!("  registry deregistered: {}", report.registry_deregistered);
+    println!("  include desktop: {}", report.include_desktop);
+    println!(
+        "  desktop cleanup attempted: {}",
+        report.desktop_cleanup_attempted
+    );
+    if report.desktop_cleanup_attempted {
+        println!("  desktop pids before: {:?}", report.desktop_pids_before);
+        println!(
+            "  desktop termination requested: {:?}",
+            report.desktop_terminate_requested_pids
+        );
+        println!("  desktop pids after: {:?}", report.desktop_pids_after);
+        if !report.desktop_errors.is_empty() {
+            println!("  desktop errors: {}", report.desktop_errors.join("; "));
+        }
+    }
     if let Some(error) = &report.error {
         println!("  error: {error}");
     }
