@@ -1641,4 +1641,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2026-06-02_2030_kst_desktop_runtime_autostart_hardening.md`, and
   `desktop runtime autostart index refresh`.
 
+- 2026-06-02 post desktop autostart primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_DESKTOP_AUTOSTART_PRIMARY_EVIDENCE_2026_06_02.md`
+  (wiki/566) records the packaged proof that desktop activation starts bridge
+  runtime. Search terms should include `GOAL v335`, `wiki/566`,
+  `20260602-204104-HUGH_SECOND`,
+  `20260602-203815-HUGH_SECOND.desktop-single-instance`,
+  `20260602-203833-HUGH_SECOND.process-ownership`,
+  `20260602-203858-HUGH_SECOND.desktop-open`,
+  `20260602-204112-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_204112`, `bridge 127.0.0.1:14805`,
+  `runtime 1 desktop 1`, `MUSU-owned Node 0`, and
+  `desktop autostart evidence`.
+
+- 2026-06-02 index refresh after post desktop autostart evidence:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1432 files and 2257 symbols after wiki/566, GOAL v335/v336, post desktop
+  autostart evidence docs, new evidence files, WIKI, BETA/current-head/runtime
+  roadmap updates, and CoS memory. Search terms should include `GOAL v336`,
+  `1432 files`, `2257 symbols`,
+  `2026-06-02_2045_kst_post_desktop_autostart_primary_evidence.md`, and
+  `post desktop autostart index refresh`.
+
 **End of WIKI_INDEX.md.**

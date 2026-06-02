@@ -895,3 +895,41 @@ the bridge runtime is present without a separate manual `musu up`.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_DESKTOP_RUNTIME_AUTOSTART_HARDENING_2026_06_02.md`
+
+## 2026-06-02 20:45 KST Post Desktop Autostart Evidence Refresh
+
+The local-sideload MSIX was rebuilt and installed from commit
+`47bc8f8dd502e9fa884799ceb57db30778a3831c`. Desktop activation now proves the
+runtime autostart contract.
+
+Fresh evidence:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-204104-HUGH_SECOND.evidence.json`
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-203815-HUGH_SECOND.desktop-single-instance.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-203833-HUGH_SECOND.process-ownership.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-203858-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-204112-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Qualitative result:
+
+- desktop activation now leaves runtime `1` and desktop `1` without manual
+  `musu up`
+- bridge `/health` is HTTP 200 at `127.0.0.1:14805`
+- installed runtime path is the package sibling `musu.exe`, not the developer
+  cargo alias
+- desktop-open CPU passes with MUSU `0`, WebView2 `0.42`, owned Node `0`,
+  working set `364.02MB`, and hot `0`
+- runtime matrix passes with route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_204112`
+
+Public release remains No-Go because runtime CPU/matrix evidence is still
+`1/2`, and second-PC route/P2P/support/Store evidence is missing.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_DESKTOP_AUTOSTART_PRIMARY_EVIDENCE_2026_06_02.md`

@@ -46,17 +46,35 @@ New tests cover:
 - stale bridge registry cleanup still makes the bridge unhealthy
 - command stdout capture still avoids long-lived output pipes
 
+## Post-Commit Packaged Evidence
+
+The local-sideload MSIX was rebuilt and installed from commit
+`47bc8f8dd502e9fa884799ceb57db30778a3831c`. Fresh primary evidence is restored
+on `HUGH_SECOND`:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-204104-HUGH_SECOND.evidence.json`
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-203815-HUGH_SECOND.desktop-single-instance.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-203833-HUGH_SECOND.process-ownership.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-203858-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-204112-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Process ownership now passes immediately after packaged desktop activation
+without manually running `musu up`; the bridge runtime is PID `36620` at
+`127.0.0.1:14805` and the executable path is the installed package sibling
+`musu.exe`.
+
 ## Release Meaning
 
-This is Tauri desktop source. Existing MSIX/runtime evidence is stale until the
-local-sideload MSIX is rebuilt, installed, and retested. Required follow-up
-evidence:
+The desktop autostart gap is closed on the primary Windows package. Public
+release remains No-Go until:
 
-- packaged desktop single-instance audit should now leave both desktop shell and
-  bridge runtime running after desktop activation
-- process ownership should pass without manually running `musu up` first
-- desktop-open CPU and runtime CPU matrix must be refreshed from clean git state
-
-Public release remains No-Go until the two-machine CPU/matrix gates,
-multi-device route evidence, live `musu.pro` P2P control-plane proof,
-`musu@musu.pro` mailbox proof, and Store evidence all pass.
+- the two-machine CPU/matrix gates pass,
+- multi-device route evidence passes,
+- live `musu.pro` P2P control-plane proof passes,
+- `musu@musu.pro` mailbox proof passes,
+- Store evidence passes.

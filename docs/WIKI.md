@@ -1379,6 +1379,29 @@ Indexer note:
   should include `GOAL v334`, `1423 files`, `2257 symbols`,
   `musu-runtime-autostart`, and `desktop runtime autostart index refresh`.
 
+- 2026-06-02 post desktop autostart primary evidence refresh:
+  wiki/566 records that the rebuilt local-sideload MSIX proves desktop
+  activation starts the bridge runtime without manual `musu up`. Evidence:
+  `20260602-204104-HUGH_SECOND` single-machine,
+  `20260602-203815-HUGH_SECOND.desktop-single-instance`,
+  `20260602-203833-HUGH_SECOND.process-ownership`,
+  `20260602-203858-HUGH_SECOND.desktop-open`, and
+  `20260602-204112-HUGH_SECOND.runtime-cpu-scenario-matrix`. Process ownership
+  shows runtime `1`, desktop `1`, owned Node `0`, owned WebView2 `6`, bridge
+  `127.0.0.1:14805` HTTP 200, and runtime path under
+  `C:\Program Files\WindowsApps\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6\musu.exe`.
+  CPU reports MUSU `0`, WebView2 `0.42`, working set `364.02MB`, and matrix
+  token `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_204112`.
+
+- 2026-06-02 index refresh after post desktop autostart evidence:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1432 files and 2257 symbols after wiki/566, GOAL v335/v336, the post desktop
+  autostart evidence report, new evidence files, BETA/current-head/runtime
+  roadmap/WIKI_INDEX updates, and CoS memory
+  `2026-06-02_2045_kst_post_desktop_autostart_primary_evidence.md`. Search
+  terms should include `GOAL v336`, `1432 files`, `2257 symbols`,
+  `desktop autostart evidence`, and `post desktop autostart index refresh`.
+
 ## 9. musu-system Integration State (2026-05-29)
 
 `yellowhama/musu-system` is a credible adjacent MUSU ecosystem line, not a Rust-core replacement. It contains:

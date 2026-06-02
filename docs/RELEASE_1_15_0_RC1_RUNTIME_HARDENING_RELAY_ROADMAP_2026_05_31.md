@@ -1239,3 +1239,25 @@ The command path also now prefers the packaged sibling `musu.exe` next to
 passed the Tauri shell unit suite 7/7. The next required gate is packaged MSIX
 evidence showing desktop activation leaves runtime `1`, desktop `1`, no MUSU
 owned Node leak, and idle CPU under budget.
+
+## 2026-06-02 Post Desktop Autostart Evidence Refresh
+
+The packaged MSIX evidence now proves the desktop runtime-start contract on
+`HUGH_SECOND`:
+
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-203833-HUGH_SECOND.process-ownership.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-203858-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-204112-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Process ownership passed without manual `musu up`: runtime `1`, desktop `1`,
+owned Node `0`, owned WebView2 `6`, bridge `127.0.0.1:14805` HTTP 200. The
+desktop-open CPU sample reports MUSU `0`, WebView2 `0.42`, working set
+`364.02MB`, and hot process count `0`. The matrix route token is
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260602_204112`.
+
+Current hardening verdict: the desktop-shell-only gap is closed locally, and
+busy-loop is still not reproduced. The next release-critical runtime step is
+the same current evidence on a real second PC.

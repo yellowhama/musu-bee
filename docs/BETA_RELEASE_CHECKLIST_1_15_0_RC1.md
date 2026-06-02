@@ -1142,3 +1142,31 @@ running without a separate manual `musu up`.
 - `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
   `1423` files and `2257` symbols after the desktop runtime autostart
   source/docs/spec updates.
+
+## 2026-06-02 20:45 KST Post Desktop Autostart Primary Evidence
+
+The rebuilt local-sideload MSIX now proves desktop runtime autostart on
+`HUGH_SECOND`.
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-204104-HUGH_SECOND.evidence.json`
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-203815-HUGH_SECOND.desktop-single-instance.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-203833-HUGH_SECOND.process-ownership.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-203858-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-204112-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Result: desktop activation leaves runtime `1`, desktop `1`, bridge health HTTP
+200 at `127.0.0.1:14805`, MUSU-owned Node `0`, and MUSU-owned WebView2 `6`
+without manual `musu up`. Desktop-open CPU passes with MUSU `0`, WebView2
+`0.42`, working set `364.02MB`, and no hot processes. Matrix token:
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260602_204112`.
+
+2026-06-02 20:46 KST index refresh:
+
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  `1432` files and `2257` symbols after the post desktop autostart primary
+  evidence docs/evidence/wiki updates.
