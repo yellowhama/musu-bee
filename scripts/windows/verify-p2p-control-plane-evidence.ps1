@@ -141,6 +141,7 @@ Add-CheckFromCondition "bridge path selection wired" (Get-BoolProperty -Object $
 Add-CheckFromCondition "rendezvous session wired" (Get-BoolProperty -Object $relayStatus -Name "rendezvous_session_wired") "rendezvous session is wired" "rendezvous session is not wired"
 Add-CheckFromCondition "route evidence client wired" (Get-BoolProperty -Object $relayStatus -Name "route_evidence_client_wired") "route evidence client is wired" "route evidence client is not wired"
 Add-CheckFromCondition "relay lease control-plane wired" (Get-BoolProperty -Object $relayStatus -Name "relay_control_plane_lease_wired") "relay lease control-plane is wired" "relay lease control-plane is not wired"
+Add-CheckFromCondition "relay status transport wired" (Get-BoolProperty -Object $relayStatus -Name "relay_transport_wired") "relay status reports relay transport is wired" "relay status reports relay transport is not wired"
 Add-CheckFromCondition "relay runtime fallback wired" (Get-BoolProperty -Object $relayStatus -Name "relay_runtime_fallback_lease_request_wired") "runtime relay fallback lease request is wired" "runtime relay fallback lease request is not wired"
 Add-CheckFromCondition "release transport requirement" ((Get-StringProperty -Object $relayStatus -Name "release_grade_transport_required") -eq "quic_tls_1_3") "release transport requirement is quic_tls_1_3" "release transport requirement is not quic_tls_1_3"
 Add-CheckFromCondition "relay not default data path" (-not (Get-BoolProperty -Object $relayStatus -Name "relay_default_data_path")) "relay is not the default data path" "relay is incorrectly marked as default data path"
@@ -154,6 +155,7 @@ Add-CheckFromCondition "relay leases ok" (Get-BoolProperty -Object $relayLeases 
 Add-CheckFromCondition "relay leases owner scope verified" (Get-BoolProperty -Object $relayLeases -Name "owner_scope_verified") "relay leases owner scope is verified" "relay leases owner scope is not verified"
 Add-CheckFromCondition "relay leases owner scoped" (Get-BoolProperty -Object $relayLeases -Name "owner_scoped") "relay leases query is owner-scoped" "relay leases query is not owner-scoped"
 Add-CheckFromCondition "relay leases control-plane wired" (Get-BoolProperty -Object $relayLeases -Name "relay_control_plane_wired") "relay leases control-plane is wired" "relay leases control-plane is not wired"
+Add-CheckFromCondition "relay leases transport wired" (Get-BoolProperty -Object $relayLeases -Name "relay_transport_wired") "relay leases report relay transport is wired" "relay leases report relay transport is not wired"
 Add-CheckFromCondition "relay leases not default data path" (-not (Get-BoolProperty -Object $relayLeases -Name "relay_default_data_path")) "relay leases report relay_default_data_path=false" "relay leases report relay_default_data_path=true"
 Add-CheckFromCondition "relay lease store status present" (-not [string]::IsNullOrWhiteSpace((Get-StringProperty -Object $relayLeases -Name "relay_lease_store_backend"))) "relay lease store backend is present" "relay lease store backend is missing"
 Add-CheckFromCondition "relay lease store configured" (Get-BoolProperty -Object $relayLeases -Name "relay_lease_store_configured") "relay lease store is configured" "relay lease store is not configured"
@@ -162,6 +164,8 @@ Add-CheckFromCondition "relay lease store release-grade" (Get-BoolProperty -Obje
 $leaseCount = if ($relayLeases -and $relayLeases.PSObject.Properties["count"]) { [int]$relayLeases.count } else { -1 }
 Add-CheckFromCondition "relay leases count present" ($leaseCount -ge 0) "relay lease count is present" "relay lease count is missing"
 
+$relayStatusTransportWired = Get-BoolProperty -Object $relayStatus -Name "relay_transport_wired"
+$relayLeasesTransportWired = Get-BoolProperty -Object $relayLeases -Name "relay_transport_wired"
 $failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
 $result = [pscustomobject]@{
     ok = ($failCount -eq 0)
@@ -173,6 +177,9 @@ $result = [pscustomobject]@{
     operator_machine = $operatorMachine
     relay_status_logged_in = Get-BoolProperty -Object $relayStatus -Name "logged_in"
     relay_leases_ok = Get-BoolProperty -Object $relayLeases -Name "ok"
+    relay_status_transport_wired = $relayStatusTransportWired
+    relay_leases_transport_wired = $relayLeasesTransportWired
+    relay_transport_wired = ($relayStatusTransportWired -and $relayLeasesTransportWired)
     owner_scope_verified = Get-BoolProperty -Object $relayLeases -Name "owner_scope_verified"
     relay_lease_count = $leaseCount
     relay_lease_store_configured = Get-BoolProperty -Object $relayLeases -Name "relay_lease_store_configured"

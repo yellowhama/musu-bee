@@ -129,6 +129,7 @@ $validP2p = [pscustomobject]@{
         rendezvous_session_wired = $true
         route_evidence_client_wired = $true
         relay_control_plane_lease_wired = $true
+        relay_transport_wired = $true
         relay_runtime_fallback_lease_request_wired = $true
         release_grade_transport_required = "quic_tls_1_3"
         relay_default_data_path = $false
@@ -417,6 +418,13 @@ $badP2pDefaultRelay.relay_leases.relay_default_data_path = $true
 $fixture = Write-Fixture -Name "p2p-bad-default-relay" -Object $badP2pDefaultRelay
 $invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")
 Add-CaseResult -Cases $cases -Name "p2p rejects relay as default data path" -Verifier "verify-p2p-control-plane-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$badP2pRelayTransport = Copy-JsonObject -Object $validP2p
+$badP2pRelayTransport.relay_status.relay_transport_wired = $false
+$badP2pRelayTransport.relay_leases.relay_transport_wired = $false
+$fixture = Write-Fixture -Name "p2p-bad-relay-transport" -Object $badP2pRelayTransport
+$invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")
+Add-CaseResult -Cases $cases -Name "p2p rejects lease-only relay without payload transport" -Verifier "verify-p2p-control-plane-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
 $fixture = Write-Fixture -Name "multidevice-valid" -Object $validMultiDevice
 $invocation = Invoke-Verifier -ScriptPath $multiDeviceVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-Json")

@@ -2289,3 +2289,60 @@ Canonical report:
 
 Index refresh after wiki/596 recorded `1634` files and `2283` symbols using the
 explicit packaged WindowsApps alias invocation.
+
+## 27. P2P Relay Transport Gate Hardening (2026-06-03)
+
+wiki/597 records the release-gate split between relay lease control-plane proof
+and relay payload transport proof.
+
+The hosted P2P gate now rejects lease-only relay evidence. The verifier requires
+both:
+
+- `relay_status.relay_transport_wired=true`
+- `relay_leases.relay_transport_wired=true`
+
+Changed scripts:
+
+- `scripts\windows\verify-p2p-control-plane-evidence.ps1`
+- `scripts\windows\show-musu-pro-p2p-env-status.ps1`
+- `scripts\windows\test-release-evidence-verifiers.ps1`
+- `scripts\windows\write-release-go-no-go.ps1`
+
+Validation:
+
+- PowerShell parser passed
+- release evidence verifier regression passed `18/18`
+- new regression fixture:
+  `p2p rejects lease-only relay without payload transport`
+- live P2P evidence `20260603-070018-musu.pro` now fails with `fail_count=8`,
+  including relay status/lease transport failures
+- hosted P2P env status now reports
+  `live_evidence_relay_transport_not_wired`
+- clean post-commit go/no-go reports
+  `manifest_git.dirty=false`, `local_artifacts_ready=false` due
+  `runtime-package`, `single_machine_verified=true`, and
+  `p2p_control_plane_verified=false`
+
+Current hosted P2P blockers:
+
+- `missing_kv_rest_api_url_or_upstash_redis_rest_url`
+- `missing_kv_rest_api_token_or_upstash_redis_rest_token`
+- `live_evidence_p2p_relay_lease_kv_not_configured`
+- `live_evidence_relay_transport_not_wired`
+
+Product interpretation:
+
+- `musu.pro` remains the account/rendezvous/path-selection/relay lease control
+  plane.
+- Public P2P readiness must also prove actual relay payload transport before
+  `MUSU_P2P_RELAY_TRANSPORT_WIRED=1` is acceptable.
+- This closes a false-positive release-gate risk; it does not complete the P2P
+  product work.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_RELAY_TRANSPORT_GATE_HARDENING_2026_06_03.md`
+- `docs\memory\chief_of_staff\2026-06-03_p2p_relay_transport_gate_hardening.md`
+
+Index refresh after wiki/597 recorded `1637` files and `2283` symbols using the
+explicit packaged WindowsApps alias invocation.

@@ -4,6 +4,13 @@
 **Date**: 2026-05-31
 **Status**: Current implementation spec. Server-side rendezvous, route-evidence, and relay fallback lease APIs exist. Rust bridge runtime route attempts now create short-lived rendezvous sessions, seed sessions from recent node candidate cache, can use returned target candidates before legacy direct forwarding, exchange advertised TLS certificate fingerprints as peer identity material, verify HTTPS peer certificate fingerprints during bridge forwarding when a target candidate supplies a `sha256:<hex>` fingerprint, request a fail-closed relay lease after terminal direct-route failure when a rendezvous session and account token exist, persist the relay fallback evaluation inside failed route evidence, expose `musu relay leases --json` for relay lease audit queries, accept either a raw static control token or SHA-256 runtime-token allowlist for P2P control auth, write target-side audit rows when `/api/tasks/forward` accepts cross-machine work, and accept either `KV_REST_API_*` or `UPSTASH_REDIS_REST_*` storage env names for hosted P2P storage. This is still not final release-grade transport because the accepted release proof remains QUIC/TLS evidence, not bridge HTTP multipart over TLS, relay/tunnel data transport is still not wired, and live `https://musu.pro` still needs actual production KV/Upstash storage credentials before owner-scoped relay lease queries can pass. The 2026-06-02 21:56 KST live evidence shows auth/control-plane wiring reaches the lease endpoint with `relay_default_data_path=false`, then fails closed with `p2p_relay_lease_kv_not_configured`.
 
+**2026-06-03 gate update**: Hosted P2P release evidence now requires relay
+payload transport proof separately from relay lease control-plane proof.
+`verify-p2p-control-plane-evidence.ps1` fails unless
+`relay_status.relay_transport_wired=true` and
+`relay_leases.relay_transport_wired=true`. KV/Upstash owner-scoped lease storage
+alone is no longer enough to pass the public P2P gate.
+
 ## Product Decision
 
 `musu.pro` must not replace P2P as the default data path. It must make P2P
@@ -638,3 +645,35 @@ This is an evidence fidelity improvement, not a P2P completion. The product
 state remains unchanged: `musu.pro` is the control plane, not the default
 payload data path, until owner-scoped storage and relay/QUIC payload transport
 are implemented and proven.
+
+## 2026-06-03 Relay Transport Gate Hardening
+
+The P2P control-plane verifier now treats relay lease control-plane proof and
+relay payload transport proof as two separate release gates.
+
+Required live evidence fields:
+
+- `relay_status.relay_transport_wired=true`
+- `relay_leases.relay_transport_wired=true`
+- `relay_default_data_path=false`
+- owner-scoped relay lease query succeeds against release-grade KV/Upstash
+  storage
+
+Current live evidence `20260603-070018-musu.pro` fails with `fail_count=8`.
+The failure includes the existing KV/Upstash storage blocker and the explicit
+transport blocker:
+
+- `relay status transport wired=false`
+- `relay leases transport wired=false`
+- `live_evidence_relay_transport_not_wired`
+
+Product boundary:
+
+- `musu.pro` may coordinate accounts, rendezvous, candidate exchange,
+  path selection, route evidence, and relay leases.
+- `musu.pro` must not be treated as a release-grade payload route until the
+  relay/tunnel transport is implemented and route evidence proves which path
+  carried the payload.
+- Operators must not set `MUSU_P2P_RELAY_TRANSPORT_WIRED=1` as a workaround;
+  that flag is only acceptable after real payload transport has been
+  implemented and verified.

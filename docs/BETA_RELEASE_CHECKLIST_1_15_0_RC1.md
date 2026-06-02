@@ -2021,3 +2021,62 @@ Canonical report:
 - indexed `1634` files and `2283` symbols after wiki/596, GOAL v399-v400,
   MSIX alias-shadow warning policy docs, WIKI/WIKI_INDEX updates, and CoS
   memories
+
+## 2026-06-03 08:29 KST P2P Relay Transport Gate Hardening
+
+Hosted P2P release evidence now rejects lease-only relay readiness.
+
+Changed gate behavior:
+
+- `verify-p2p-control-plane-evidence.ps1` requires
+  `relay_status.relay_transport_wired=true`
+- `verify-p2p-control-plane-evidence.ps1` requires
+  `relay_leases.relay_transport_wired=true`
+- `show-musu-pro-p2p-env-status.ps1` reports relay transport fields and emits
+  `live_evidence_relay_transport_not_wired`
+- `write-release-go-no-go.ps1` now says the live P2P gate requires
+  `relay_default_data_path=false` and `relay_transport_wired=true`
+
+Validation:
+
+- PowerShell parser passed for changed scripts
+- release evidence verifier regression passed `18/18`
+- new regression fixture:
+  `p2p rejects lease-only relay without payload transport`
+- live P2P evidence
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-070018-musu.pro.evidence.json`
+  now fails with `fail_count=8`
+- clean post-commit go/no-go reports
+  `manifest_git.dirty=false`, `local_artifacts_ready=false`,
+  `single_machine_verified=true`, `msix_install_verified=true`,
+  `msix_desktop_entrypoint_verified=true`, `public_metadata_ok=true`,
+  `p2p_control_plane_verified=false`, and `p2p_relay_transport_wired=false`
+
+Current hosted P2P blockers:
+
+- missing `KV_REST_API_URL_OR_UPSTASH_REDIS_REST_URL`
+- missing `KV_REST_API_TOKEN_OR_UPSTASH_REDIS_REST_TOKEN`
+- `live_evidence_p2p_relay_lease_kv_not_configured`
+- `live_evidence_relay_transport_not_wired`
+
+Release interpretation:
+
+- KV/Upstash provisioning remains required but is no longer sufficient by
+  itself.
+- Relay payload transport must be implemented and proven before
+  `MUSU_P2P_RELAY_TRANSPORT_WIRED=1` can be treated as release-grade.
+- Public release remains No-Go on second-PC route/CPU/matrix, hosted P2P
+  storage plus relay transport, `musu@musu.pro` mailbox evidence, and Store
+  evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_RELAY_TRANSPORT_GATE_HARDENING_2026_06_03.md`
+
+2026-06-03 08:33 KST index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1637` files and `2283` symbols after wiki/597, GOAL v401-v402,
+  P2P relay transport gate tooling/docs/spec updates, WIKI/WIKI_INDEX updates,
+  and CoS memories

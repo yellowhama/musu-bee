@@ -2313,4 +2313,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `wiki/596 index refresh`, `AliasShadowingMode=warn-explicit-windowsapps`,
   and `alias_shadowing_accepted=true`.
 
+- 2026-06-03 P2P relay transport gate hardening:
+  `RELEASE_1_15_0_RC1_P2P_RELAY_TRANSPORT_GATE_HARDENING_2026_06_03.md`
+  (wiki/597) records that hosted P2P release evidence now requires
+  relay payload transport proof in addition to relay lease control-plane proof.
+  Search terms should include `GOAL v401`, `wiki/597`,
+  `relay_status.relay_transport_wired`, `relay_leases.relay_transport_wired`,
+  `live_evidence_relay_transport_not_wired`, `p2p-bad-relay-transport`,
+  `case_count=18`, `fail_count=8`, and `20260603-070018-musu.pro`.
+
+- 2026-06-03 P2P relay transport gate index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1637 files and 2283 symbols after GOAL v401-v402, wiki/597, P2P
+  relay transport gate tooling/docs/spec updates, and CoS memories
+  `2026-06-03_p2p_relay_transport_gate_hardening.md` and
+  `2026-06-03_p2p_relay_transport_gate_index_refresh.md`. Search terms should
+  include `GOAL v402`, `1637 files`, `2283 symbols`,
+  `wiki/597 index refresh`, `relay_transport_wired`, and
+  `live_evidence_relay_transport_not_wired`.
+
 **End of WIKI_INDEX.md.**

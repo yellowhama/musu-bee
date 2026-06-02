@@ -184,6 +184,9 @@ $evidenceSummary = [pscustomobject]@{
     relay_leases_ok = $false
     owner_scope_verified = $false
     owner_scoped = $false
+    relay_status_transport_wired = $false
+    relay_leases_transport_wired = $false
+    relay_transport_wired = $false
     relay_default_data_path = $null
     error = $null
     error_class = $null
@@ -194,6 +197,8 @@ if (-not [string]::IsNullOrWhiteSpace($EvidencePath) -and (Test-Path -LiteralPat
     $relayLeases = if ($evidence.PSObject.Properties["relay_leases"]) { $evidence.relay_leases } else { $null }
     $relayStatus = if ($evidence.PSObject.Properties["relay_status"]) { $evidence.relay_status } else { $null }
     $relayError = Get-StringProperty -Object $relayLeases -Name "error"
+    $relayStatusTransportWired = Get-BoolProperty -Object $relayStatus -Name "relay_transport_wired"
+    $relayLeasesTransportWired = Get-BoolProperty -Object $relayLeases -Name "relay_transport_wired"
     $evidenceSummary = [pscustomobject]@{
         checked = $true
         path = (Resolve-Path -LiteralPath $EvidencePath).Path
@@ -202,6 +207,9 @@ if (-not [string]::IsNullOrWhiteSpace($EvidencePath) -and (Test-Path -LiteralPat
         relay_leases_ok = Get-BoolProperty -Object $relayLeases -Name "ok"
         owner_scope_verified = Get-BoolProperty -Object $relayLeases -Name "owner_scope_verified"
         owner_scoped = Get-BoolProperty -Object $relayLeases -Name "owner_scoped"
+        relay_status_transport_wired = $relayStatusTransportWired
+        relay_leases_transport_wired = $relayLeasesTransportWired
+        relay_transport_wired = ($relayStatusTransportWired -and $relayLeasesTransportWired)
         relay_default_data_path = if ($relayLeases) { Get-BoolProperty -Object $relayLeases -Name "relay_default_data_path" } elseif ($relayStatus) { Get-BoolProperty -Object $relayStatus -Name "relay_default_data_path" } else { $null }
         error = $relayError
         error_class = Get-EvidenceErrorClass -Text $relayError
@@ -226,6 +234,9 @@ elseif (-not $evidenceSummary.ok) {
         $blockers.Add("live_evidence_not_ok") | Out-Null
     }
 }
+if ($evidenceSummary.checked -and -not $evidenceSummary.relay_transport_wired) {
+    $blockers.Add("live_evidence_relay_transport_not_wired") | Out-Null
+}
 
 $nextSteps = New-Object System.Collections.Generic.List[string]
 if ($blockers -contains "missing_kv_rest_api_url_or_upstash_redis_rest_url" -or $blockers -contains "missing_kv_rest_api_token_or_upstash_redis_rest_token" -or $blockers -contains "live_evidence_p2p_relay_lease_kv_not_configured") {
@@ -236,6 +247,10 @@ if ($blockers -contains "missing_kv_rest_api_url_or_upstash_redis_rest_url" -or 
 }
 if ($blockers -contains "missing_musu_p2p_control_token_sha256s" -or $blockers -contains "live_evidence_p2p_control_auth_not_configured") {
     $nextSteps.Add("Set MUSU_P2P_CONTROL_TOKEN_SHA256S from scripts\windows\show-p2p-control-token-hash.ps1 -Json, then redeploy.") | Out-Null
+}
+if ($blockers -contains "live_evidence_relay_transport_not_wired") {
+    $nextSteps.Add("Implement and prove the relay payload transport before setting MUSU_P2P_RELAY_TRANSPORT_WIRED=1; the lease control-plane alone is not enough for public P2P release.") | Out-Null
+    $nextSteps.Add("After relay payload transport is implemented, rerun scripts\windows\record-p2p-control-plane-evidence.ps1 and verify relay_status.relay_transport_wired and relay_leases.relay_transport_wired are both true.") | Out-Null
 }
 if ($nextSteps.Count -eq 0 -and $blockers.Count -gt 0) {
     $nextSteps.Add("Inspect the latest P2P evidence and rerun record-p2p-control-plane-evidence.ps1 after fixing the listed blockers.") | Out-Null

@@ -1229,7 +1229,7 @@ if (-not $storeReleaseVerified) {
     Add-Blocker -List $blockers -Area "store-release" -Message "Partner Center product name reservation, app submission, Microsoft certification, and restricted capability approval evidence has not been recorded."
 }
 if (-not $p2pControlPlaneVerified) {
-    Add-Blocker -List $blockers -Area "p2p-control-plane" -Message "Live $PublicMetadataBaseUrl P2P control-plane evidence has not verified owner-scoped relay lease queries with relay_default_data_path=false."
+    Add-Blocker -List $blockers -Area "p2p-control-plane" -Message "Live $PublicMetadataBaseUrl P2P control-plane evidence has not verified owner-scoped relay lease queries with relay_default_data_path=false and relay_transport_wired=true."
 }
 if (-not [string]::IsNullOrWhiteSpace($gitStatus)) {
     Add-Blocker -List $blockers -Area "git" -Message "Working tree is dirty; commit and regenerate manifest before final handoff."
