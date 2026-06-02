@@ -1946,3 +1946,30 @@ Canonical reference:
 
 Index refresh after wiki/587 recorded `1576` files and `2274` symbols using the
 explicit packaged WindowsApps alias invocation.
+
+## 18. Bounded External Gate Probe (2026-06-03)
+
+wiki/588 records that `record-external-release-gate-recheck.ps1` no longer uses
+unbounded `Test-NetConnection` defaults for second-PC reachability. It now
+records `probe_method=bounded_ping_and_tcp`, source IP/interface, bounded ICMP
+timing, bounded TCP timing, and timeout/error detail.
+
+Clean HEAD `080bc6dc` generated external evidence
+`20260603-052447-HUGH_SECOND.external-gates` and P2P evidence
+`20260603-052547-musu.pro`. Second-PC remains unreachable:
+`source_address=192.168.1.154`, `interface_alias=이더넷 2`,
+`ping_elapsed_ms=2887`, `tcp_elapsed_ms=3016`, and
+`tcp_error=tcp_connect_timeout`.
+
+Release status is unchanged: local artifacts and single-machine gates are true,
+runtime idle CPU and matrix remain `1/2`, and public release still needs
+second-PC route/CPU/matrix, `musu.pro` KV/Upstash owner scope, support mailbox,
+and Store evidence.
+
+Canonical reference:
+
+- `docs/RELEASE_1_15_0_RC1_EXTERNAL_RECHECK_RECORDER_2026_06_03.md`
+- `docs/memory/chief_of_staff/2026-06-03_bounded_external_probe_evidence.md`
+
+Index refresh after wiki/588 recorded `1583` files and `2274` symbols using the
+explicit packaged WindowsApps alias invocation.

@@ -2109,4 +2109,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `musu.external_release_gate_recheck.v1`, and
   `2026-06-03_external_recheck_recorder_index_refresh.md`.
 
+- 2026-06-03 bounded external gate probe:
+  `RELEASE_1_15_0_RC1_EXTERNAL_RECHECK_RECORDER_2026_06_03.md` (wiki/588)
+  records bounded second-PC reachability in the external recheck recorder.
+  Search terms should include `GOAL v383`, `wiki/588`,
+  `SecondPcProbeTimeoutMs`, `bounded_ping_and_tcp`,
+  `20260603-052447-HUGH_SECOND.external-gates.evidence.json`,
+  `20260603-052547-musu.pro.evidence.json`, `ping_elapsed_ms=2887`,
+  `tcp_elapsed_ms=3016`, `tcp_connect_timeout`, and `192.168.1.154`.
+
+- 2026-06-03 bounded external gate probe index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1583 files and 2274 symbols after GOAL v383-v384, wiki/588, bounded
+  external gate evidence `20260603-052447-HUGH_SECOND.external-gates`, P2P
+  evidence `20260603-052547-musu.pro`, BETA/current-head/spec/WIKI/WIKI_INDEX
+  updates, and CoS memory `2026-06-03_bounded_external_probe_evidence.md`.
+  Search terms should include `GOAL v384`, `1583 files`, `2274 symbols`,
+  `wiki/588 index refresh`, `bounded external gate probe index refresh`,
+  `SecondPcProbeTimeoutMs`, and `bounded_ping_and_tcp`.
+
 **End of WIKI_INDEX.md.**

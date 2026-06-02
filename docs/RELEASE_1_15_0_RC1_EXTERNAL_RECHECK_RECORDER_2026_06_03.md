@@ -176,3 +176,35 @@ current failure in less than a second for the second-PC subprobe:
 After this tooling commit, clean external gate evidence must be refreshed again
 so the canonical `docs\evidence\external-gates` snapshot includes
 `probe_method=bounded_ping_and_tcp`.
+
+## Bounded Probe Clean Evidence Result
+
+Clean HEAD `080bc6dc` recorded the bounded-probe snapshot:
+
+- external evidence:
+  `docs\evidence\external-gates\1.15.0-rc.1\20260603-052447-HUGH_SECOND.external-gates.evidence.json`
+- external evidence SHA256:
+  `964635896f7c94976e21b402d0bd4550af0613a876701a54c55986766d6782bd`
+- P2P evidence:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-052547-musu.pro.evidence.json`
+- P2P verification:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-052547-musu.pro.verification.json`
+
+Second-PC reachability now records:
+
+- `probe_method=bounded_ping_and_tcp`
+- `probe_timeout_ms=3000`
+- `remote_address=192.168.1.192`
+- `source_address=192.168.1.154`
+- `interface_alias=이더넷 2`
+- `ping_succeeded=false`
+- `ping_elapsed_ms=2887`
+- `tcp_test_succeeded=false`
+- `tcp_elapsed_ms=3016`
+- `tcp_error=tcp_connect_timeout`
+
+Release status is unchanged: `local_artifacts_ready=true`,
+`single_machine_verified=true`, runtime idle CPU and runtime CPU matrix are each
+`1/2`, and public release remains No-Go on second-PC route/CPU/matrix,
+owner-scoped `musu.pro` P2P lease evidence, support mailbox evidence, and Store
+evidence.

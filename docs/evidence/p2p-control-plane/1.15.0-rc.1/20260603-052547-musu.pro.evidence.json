@@ -1,0 +1,74 @@
+﻿{
+    "schema":  "musu.p2p_control_plane_live_evidence.v1",
+    "ok":  false,
+    "version":  "1.15.0-rc.1",
+    "base_url":  "https://musu.pro",
+    "recorded_at":  "2026-06-03T05:25:47.1626114+09:00",
+    "operator_machine":  "HUGH_SECOND",
+    "operator_user":  "empty",
+    "musu_exe":  "C:\\Users\\empty\\AppData\\Local\\Microsoft\\WindowsApps\\musu.exe",
+    "musu_exe_source":  "windowsapps_alias",
+    "relay_status_exit_code":  0,
+    "relay_status":  {
+                         "schema":  "musu.relay_status.v1",
+                         "registry_url":  "https://musu.pro",
+                         "logged_in":  true,
+                         "cached_registry_present":  false,
+                         "cached_registry_valid":  false,
+                         "cached_node_count":  0,
+                         "rust_client_dtos_wired":  true,
+                         "route_evidence_client_wired":  true,
+                         "bridge_path_selection_wired":  true,
+                         "rendezvous_session_wired":  true,
+                         "https_fingerprint_pinning_wired":  true,
+                         "release_grade_transport_required":  "quic_tls_1_3",
+                         "relay_control_plane_lease_wired":  true,
+                         "relay_lease_endpoint":  "/api/v1/p2p/relay/lease",
+                         "relay_runtime_fallback_lease_request_wired":  true,
+                         "relay_transport_wired":  false,
+                         "relay_default_data_path":  false,
+                         "release_route_evidence_ready":  false,
+                         "path_priority":  [
+                                               "lan",
+                                               "tailscale",
+                                               "direct_quic",
+                                               "relay"
+                                           ],
+                         "next_steps":  [
+                                            "verify rendezvous target-candidate-assisted routing on a real second PC route",
+                                            "verify HTTPS fingerprint pinning on a real second PC route, then replace bridge HTTP/TLS with QUIC/TLS proof",
+                                            "wire relay/tunnel transport behind the Connect/Pro fallback lease policy"
+                                        ]
+                     },
+    "relay_status_raw":  null,
+    "relay_leases_exit_code":  0,
+    "relay_leases":  {
+                         "schema":  "musu.relay_leases.v1",
+                         "registry_url":  "https://musu.pro",
+                         "logged_in":  true,
+                         "ok":  false,
+                         "owner_scope_verified":  false,
+                         "owner_scoped":  false,
+                         "relay_control_plane_wired":  true,
+                         "relay_transport_wired":  false,
+                         "relay_default_data_path":  false,
+                         "count":  0,
+                         "filters":  {
+                                         "limit":  20,
+                                         "session_id":  null,
+                                         "source_node_id":  null,
+                                         "target_node_id":  null
+                                     },
+                         "leases":  [
+
+                                    ],
+                         "error":  "Failed to query relay leases: {\"ok\":false,\"error\":\"relay_lease_query_failed\",\"detail\":\"p2p_relay_lease_kv_not_configured\"}",
+                         "next_steps":  [
+                                            "run a real failed direct route with a logged-in account so relay fallback is evaluated",
+                                            "verify the lease audit record is owner-scoped and tied to the rendezvous session id",
+                                            "keep relay_default_data_path=false until relay/tunnel payload transport is implemented"
+                                        ]
+                     },
+    "relay_leases_raw":  null,
+    "notes":  "Live P2P control-plane evidence. Passing evidence requires owner-scoped relay lease query against the configured base URL; lease count may be zero."
+}

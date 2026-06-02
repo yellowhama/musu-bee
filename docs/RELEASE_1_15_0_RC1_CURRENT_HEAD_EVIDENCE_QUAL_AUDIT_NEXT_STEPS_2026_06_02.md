@@ -1521,3 +1521,24 @@ Microsoft Store / Partner Center evidence.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_EXTERNAL_RECHECK_RECORDER_2026_06_03.md`
+
+## 2026-06-03 05:24 KST Bounded External Probe Evidence
+
+The external recheck recorder now bounds second-PC reachability measurement.
+Clean HEAD `080bc6dc` generated:
+
+- external gate evidence:
+  `docs\evidence\external-gates\1.15.0-rc.1\20260603-052447-HUGH_SECOND.external-gates.evidence.json`
+- live P2P evidence:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-052547-musu.pro.evidence.json`
+
+The second-PC probe now records `probe_method=bounded_ping_and_tcp` with a
+`3000ms` timeout. Current result remains unreachable:
+`192.168.1.192:8949`, source `192.168.1.154`, interface `이더넷 2`,
+`ping_succeeded=false`, `tcp_test_succeeded=false`, and
+`tcp_error=tcp_connect_timeout`.
+
+Qualitative result: this improves release evidence reliability and operator
+latency, but it does not close the product gate. Public release still requires
+actual second-PC route/CPU/matrix evidence, `musu.pro` KV/Upstash owner-scoped
+P2P lease proof, `musu@musu.pro` inbox proof, and Store evidence.

@@ -576,3 +576,19 @@ still fails with `p2p_relay_lease_kv_not_configured`.
 This does not make `musu.pro` a payload data path. `musu.pro` remains the
 account/rendezvous/path-selection/lease control plane until route evidence
 proves release-grade transport and explicit relay lease policy.
+
+## 2026-06-03 Bounded External Probe Evidence
+
+The external release evidence contract now records bounded second-PC
+reachability under `second_pc_reachability`:
+
+- `probe_method=bounded_ping_and_tcp`
+- `probe_timeout_ms`
+- `ping_elapsed_ms`
+- `tcp_elapsed_ms`
+- `tcp_error`
+
+Clean evidence `20260603-052447-HUGH_SECOND.external-gates` keeps the same
+product conclusion: local artifacts are ready, but second-PC reachability is
+false and live P2P evidence `20260603-052547-musu.pro` still fails owner scope
+with `p2p_relay_lease_kv_not_configured`.
