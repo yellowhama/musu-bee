@@ -1491,6 +1491,32 @@ Indexer note:
   `route explain trust boundary`, and
   `candidate_report_downgrades_verified_fingerprint_pin_metadata`.
 
+- 2026-06-02 post route-explain primary evidence:
+  wiki/571 records fresh packaged primary evidence after commit `93025897`.
+  Current evidence passes single-machine
+  `20260602-224345-HUGH_SECOND`, desktop single-instance
+  `20260602-223734-HUGH_SECOND.desktop-single-instance`, process ownership
+  `20260602-223756-HUGH_SECOND.process-ownership`, desktop-open CPU
+  `20260602-223806-HUGH_SECOND.desktop-open`, and runtime CPU matrix
+  `20260602-224917-HUGH_SECOND.runtime-cpu-scenario-matrix`. Desktop-open CPU
+  reports MUSU `0`, Node `0`, WebView2 `0.39`, working set `365.49MB`, and hot
+  `0`; process ownership reports runtime `1`, desktop `1`, MUSU-owned Node
+  `0`, MUSU-owned WebView2 `6`, machine-wide Node `16`, orphan repo helpers
+  `0`, and bridge `127.0.0.1:2785` HTTP `200`. The matrix route token is
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_224917`. Public release remains No-Go
+  on second-PC route/CPU/matrix, live P2P KV/owner scope, `musu@musu.pro`
+  mailbox evidence, and Store evidence.
+
+- 2026-06-02 index refresh after post route-explain primary evidence:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1459 files and 2261 symbols after wiki/571, GOAL v345/v346, fresh primary
+  evidence files, post route-explain primary evidence report, BETA/current-head
+  and P2P spec updates, WIKI_INDEX updates, and CoS memory
+  `2026-06-02_2256_kst_post_route_explain_primary_evidence.md`. Search terms
+  should include `GOAL v346`, `1459 files`, `2261 symbols`,
+  `20260602-224917-HUGH_SECOND`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_224917`,
+  and `post route-explain primary evidence`.
+
 ## 9. musu-system Integration State (2026-05-29)
 
 `yellowhama/musu-system` is a credible adjacent MUSU ecosystem line, not a Rust-core replacement. It contains:

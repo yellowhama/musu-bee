@@ -1027,3 +1027,36 @@ Qualitative result: this prevents preflight diagnostics from looking more
 release-ready than actual route evidence. It does not implement QUIC/TLS
 transport, so public release remains No-Go. Because Rust source changed, current
 packaged primary evidence is stale until it is rebuilt/refreshed.
+
+## 2026-06-02 22:56 KST Post Route Explain Primary Evidence
+
+The local-sideload MSIX was rebuilt and installed from commit `93025897`.
+Primary packaged evidence is current again:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-224345-HUGH_SECOND.evidence.json`
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-223734-HUGH_SECOND.desktop-single-instance.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-223756-HUGH_SECOND.process-ownership.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-223806-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-224917-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Qualitative result: current packaged local evidence does not reproduce the
+busy-loop. Desktop-open CPU is MUSU `0`, Node `0`, WebView2 `0.39`, working set
+`365.49MB`, and hot `0`. Process ownership separates the user's machine-wide
+Node count from MUSU ownership: machine-wide Node `16`, MUSU-owned Node `0`,
+orphan repo helpers `0`. The CPU matrix passed from clean git state with route
+token `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_224917`.
+
+Code audit result: no new critical local desktop issue was found. The remaining
+release risks are external/proof gates: second-PC CPU/matrix/route, live
+`musu.pro` KV and owner-scoped relay lease evidence, release-grade QUIC/TLS or
+equivalent route transport proof, `musu@musu.pro` mailbox evidence, and Store
+evidence. Public release remains No-Go.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_ROUTE_EXPLAIN_PRIMARY_EVIDENCE_2026_06_02.md`

@@ -1733,4 +1733,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2026-06-02_2218_kst_route_explain_trust_boundary_hardening.md`, and
   `route explain trust-boundary index refresh`.
 
+- 2026-06-02 post route-explain primary evidence:
+  `RELEASE_1_15_0_RC1_POST_ROUTE_EXPLAIN_PRIMARY_EVIDENCE_2026_06_02.md`
+  (wiki/571) records the fresh packaged evidence refresh after commit
+  `93025897`. Search terms should include `GOAL v345`, `wiki/571`,
+  `20260602-224345-HUGH_SECOND`, `20260602-223734-HUGH_SECOND.desktop-single-instance`,
+  `20260602-223756-HUGH_SECOND.process-ownership`,
+  `20260602-223806-HUGH_SECOND.desktop-open`,
+  `20260602-224917-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_224917`, `machine-wide Node 16`,
+  `MUSU-owned Node 0`, and `post route-explain primary evidence`.
+
+- 2026-06-02 index refresh after post route-explain primary evidence:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1459 files and 2261 symbols after wiki/571, GOAL v345/v346, fresh primary
+  evidence docs, the post route-explain evidence report, BETA/current-head/P2P
+  spec/WIKI updates, and CoS memory. Search terms should include `GOAL v346`,
+  `1459 files`, `2261 symbols`,
+  `2026-06-02_2256_kst_post_route_explain_primary_evidence.md`, and
+  `post route-explain primary evidence index refresh`.
+
 **End of WIKI_INDEX.md.**

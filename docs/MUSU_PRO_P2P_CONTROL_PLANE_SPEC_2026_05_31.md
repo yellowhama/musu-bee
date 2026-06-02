@@ -496,3 +496,21 @@ Current product interpretation:
 - A machine-wide pile of unrelated Node.js processes is not sufficient release
   evidence either way; evidence must classify MUSU-owned helpers separately
   from repo-related or unrelated processes.
+
+## 2026-06-02 Route Explain and Primary Evidence Update
+
+`musu route --explain` is now explicitly an advertised-metadata diagnostic.
+Registry or rendezvous metadata must not be treated as verified peer identity
+or release-grade encryption. Even when advertised fingerprint material exists,
+candidate explain output remains `peer_identity_verified=false`,
+`peer_identity_method=advertised_tls_cert_fingerprint_unverified`, and
+`encryption=none_http_bearer` until runtime route evidence proves the
+transport.
+
+Fresh primary local evidence after commit `93025897` confirms the current
+packaged desktop is quiet locally: desktop-open CPU records MUSU `0`, Node `0`,
+WebView2 `0.39`, working set `365.49MB`, and hot `0`; process ownership
+records MUSU-owned Node `0` even though the machine has `16` unrelated Node
+processes. This is local hardening evidence only. The P2P control-plane gate
+still requires production KV-backed owner-scoped relay leases, and the route
+gate still requires release-grade two-machine transport proof.

@@ -1280,3 +1280,30 @@ refreshed from this source commit.
 - `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
   `1450` files and `2261` symbols after route explain trust-boundary
   hardening.
+
+## 2026-06-02 22:56 KST Post Route Explain Primary Evidence
+
+Fresh packaged primary evidence after commit `93025897`:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-224345-HUGH_SECOND.evidence.json`
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-223734-HUGH_SECOND.desktop-single-instance.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-223756-HUGH_SECOND.process-ownership.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-223806-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-224917-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Result: primary local desktop evidence passes. Desktop repeated activation
+kept one final shell; process ownership shows runtime `1`, desktop `1`,
+MUSU-owned Node `0`, MUSU-owned WebView2 `6`, machine-wide Node `16`, and no
+orphan repo helpers. Desktop-open CPU is MUSU `0`, Node `0`, WebView2 `0.39`,
+working set `365.49MB`, and hot `0`. The 4-state matrix passed with token
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260602_224917`.
+
+Current release state: local artifacts remain usable, but public release is
+No-Go until second-PC CPU/matrix/route, live owner-scoped P2P KV evidence,
+release-grade transport proof, `musu@musu.pro` mailbox evidence, and Store
+evidence pass.
