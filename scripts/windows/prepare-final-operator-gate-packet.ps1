@@ -86,6 +86,7 @@ $docsToCopy = @(
     "docs\DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md",
     "docs\RUNTIME_CPU_SCENARIO_MATRIX_AND_MDNS_LOG_AUDIT_2026_06_01.md",
     "docs\LOCAL_API_AUTH_CONTRACT_AUDIT_2026_06_02.md",
+    "docs\RELEASE_1_15_0_RC1_EXTERNAL_RECHECK_RECORDER_2026_06_03.md",
     "docs\MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md",
     "docs\RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md",
     "docs\STORE_SUBMISSION_METADATA_2026_05_29.md"
@@ -113,6 +114,7 @@ $scriptsToCopy = @(
     "verify-p2p-control-plane-evidence.ps1",
     "configure-musu-pro-p2p-env.ps1",
     "show-musu-pro-p2p-env-status.ps1",
+    "record-external-release-gate-recheck.ps1",
     "verify-store-submission-bundle.ps1",
     "audit-msix-desktop-entrypoint.ps1",
     "audit-local-api-auth-contract.ps1",
@@ -169,6 +171,7 @@ For the shortest Store/submission sequence, review:
 - `docs\DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md`
 - `docs\RUNTIME_CPU_SCENARIO_MATRIX_AND_MDNS_LOG_AUDIT_2026_06_01.md`
 - `docs\LOCAL_API_AUTH_CONTRACT_AUDIT_2026_06_02.md`
+- `docs\RELEASE_1_15_0_RC1_EXTERNAL_RECHECK_RECORDER_2026_06_03.md`
 - `docs\RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md`
 - `docs\MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md`
 - `docs\RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md`
@@ -217,6 +220,15 @@ with candidate `RemoteAddr` values for the primary PC.
 
 Before handoff, or after each returned evidence file, run this status command
 from the real MUSU release repo root:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-external-release-gate-recheck.ps1 -Json
+```
+
+This writes a repeatable `docs\evidence\external-gates\__VERSION__\*.evidence.json`
+snapshot covering final go/no-go, second-PC reachability, `musu.pro` P2P env
+status, and live P2P control-plane evidence. It records blocker state without
+marking the release ready until all external gates actually pass.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-final-release-handoff-status.ps1

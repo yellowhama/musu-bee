@@ -100,6 +100,7 @@ try {
         "docs\DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md",
         "docs\RUNTIME_CPU_SCENARIO_MATRIX_AND_MDNS_LOG_AUDIT_2026_06_01.md",
         "docs\LOCAL_API_AUTH_CONTRACT_AUDIT_2026_06_02.md",
+        "docs\RELEASE_1_15_0_RC1_EXTERNAL_RECHECK_RECORDER_2026_06_03.md",
         "docs\MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md",
         "docs\RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md",
         "docs\STORE_SUBMISSION_METADATA_2026_05_29.md",
@@ -118,6 +119,7 @@ try {
         "scripts\windows\verify-p2p-control-plane-evidence.ps1",
         "scripts\windows\configure-musu-pro-p2p-env.ps1",
         "scripts\windows\show-musu-pro-p2p-env-status.ps1",
+        "scripts\windows\record-external-release-gate-recheck.ps1",
         "scripts\windows\verify-store-submission-bundle.ps1",
         "scripts\windows\audit-msix-desktop-entrypoint.ps1",
         "scripts\windows\audit-local-api-auth-contract.ps1",
@@ -183,6 +185,7 @@ try {
         Add-CheckFromCondition "readme desktop single-instance gate doc" ($readme -like "*DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md*") "README points to desktop single-instance gate" "README missing desktop single-instance gate reference"
         Add-CheckFromCondition "readme runtime CPU scenario matrix audit" ($readme -like "*RUNTIME_CPU_SCENARIO_MATRIX_AND_MDNS_LOG_AUDIT_2026_06_01.md*" -and $readme -like "*musu.runtime_cpu_scenario_matrix.v1*") "README points to runtime CPU scenario matrix diagnostics" "README missing runtime CPU scenario matrix diagnostic reference"
         Add-CheckFromCondition "readme local API auth contract audit" ($readme -like "*LOCAL_API_AUTH_CONTRACT_AUDIT_2026_06_02.md*" -and $readme -like "*audit-local-api-auth-contract.ps1*" -and $readme -like "*musu.local_api_auth_contract.v1*") "README points to local API auth contract audit" "README missing local API auth contract audit reference"
+        Add-CheckFromCondition "readme external recheck recorder doc" ($readme -like "*RELEASE_1_15_0_RC1_EXTERNAL_RECHECK_RECORDER_2026_06_03.md*" -and $readme -like "*record-external-release-gate-recheck.ps1*") "README points to external recheck recorder doc" "README missing external recheck recorder doc"
         Add-CheckFromCondition "readme Store run card" ($readme -like "*MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md*") "README points to the Store release run card" "README missing Store release run card reference"
         Add-CheckFromCondition "readme msix install gate" ($readme -like "*record-msix-install-evidence.ps1*" -and $readme -like "*msix_install_verified=true*") "README includes MSIX install evidence gate" "README missing MSIX install evidence gate"
         Add-CheckFromCondition "readme store release blocker" ($readme -like "*Partner Center product name reservation*" -and $readme -like "*app submission*" -and $readme -like "*store_release_verified=true*") "README states Store release approval is a blocker" "README does not clearly state Store release approval evidence is required"
@@ -196,6 +199,7 @@ try {
         Add-CheckFromCondition "readme startup single-instance audit" ($readme -like "*audit-musu-startup-single-instance.ps1*" -and $readme -like "*startup_single_instance_verified=true*" -and $readme -like "*one bridge PID*") "README includes startup single-instance audit gate" "README missing startup single-instance audit gate"
         Add-CheckFromCondition "readme desktop single-instance audit" ($readme -like "*audit-musu-desktop-single-instance.ps1*" -and $readme -like "*desktop_single_instance_verified=true*" -and $readme -like "*musu-desktop.exe*") "README includes packaged desktop single-instance audit gate" "README missing packaged desktop single-instance audit gate"
         Add-CheckFromCondition "readme p2p env configuration" ($readme -like "*configure-musu-pro-p2p-env.ps1*" -and $readme -like "*KV_REST_API_URL*" -and $readme -like "*KV_REST_API_TOKEN*") "README includes hosted P2P env configuration command" "README missing hosted P2P env configuration command"
+        Add-CheckFromCondition "readme external release gate recheck" ($readme -like "*record-external-release-gate-recheck.ps1*" -and $readme -like "*external-gates*" -and $readme -like "*second-PC reachability*" -and $readme -like "*P2P control-plane evidence*") "README includes external release gate recheck command" "README missing external release gate recheck command"
         Add-CheckFromCondition "readme handoff status command" ($readme -like "*show-final-release-handoff-status.ps1*") "README includes final release handoff status command" "README missing final release handoff status command"
         Add-CheckFromCondition "readme action pack commands" ($readme -like "*prepare-operator-action-pack.ps1*" -and $readme -like "*verify-operator-action-pack.ps1*" -and $readme -like "*copy/handoff convenience*") "README includes operator action pack generation/verification boundary" "README missing operator action pack generation/verification boundary"
         Add-CheckFromCondition "readme operator handoff card" ($readme -like "*show-operator-handoff-card.ps1*" -or $readme -like "*RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md*") "README includes operator handoff card path" "README missing operator handoff card reference"
@@ -383,7 +387,7 @@ try {
         $packetVerifierScript = Get-Content -LiteralPath $packetVerifierScriptPath -Raw
         Add-CheckFromCondition `
             "packet verifier release safety checks" `
-            ($packetVerifierScript -like "*go no-go dirty git blocker*" -and $packetVerifierScript -like "*go no-go process ownership gate*" -and $packetVerifierScript -like "*readme process attribution summary*" -and $packetVerifierScript -like "*readme p2p env configuration*" -and $packetVerifierScript -like "*go no-go startup single-instance gate*" -and $packetVerifierScript -like "*multi-device verifier schema gate*" -and $packetVerifierScript -like "*msix verifier version and capture gate*" -and $packetVerifierScript -like "*support verifier version and token gate*" -and $packetVerifierScript -like "*store recorder explicit reservation timestamp*" -and $packetVerifierScript -like "*operator handoff return archive*" -and $packetVerifierScript -like "*second pc return importer safety*" -and $packetVerifierScript -like "*runtime CPU scenario matrix*") `
+            ($packetVerifierScript -like "*go no-go dirty git blocker*" -and $packetVerifierScript -like "*go no-go process ownership gate*" -and $packetVerifierScript -like "*readme process attribution summary*" -and $packetVerifierScript -like "*readme p2p env configuration*" -and $packetVerifierScript -like "*readme external release gate recheck*" -and $packetVerifierScript -like "*go no-go startup single-instance gate*" -and $packetVerifierScript -like "*multi-device verifier schema gate*" -and $packetVerifierScript -like "*msix verifier version and capture gate*" -and $packetVerifierScript -like "*support verifier version and token gate*" -and $packetVerifierScript -like "*store recorder explicit reservation timestamp*" -and $packetVerifierScript -like "*operator handoff return archive*" -and $packetVerifierScript -like "*second pc return importer safety*" -and $packetVerifierScript -like "*runtime CPU scenario matrix*") `
             "packet verifier checks dirty git, process ownership, startup single-instance, MSIX, multi-device, support, and Store evidence rules" `
             "packet verifier does not check all release evidence rules"
     }
