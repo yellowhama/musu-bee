@@ -1258,5 +1258,19 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260602-121918`,
   `MUSU-second-PC-transfer-1.15.0-rc.1-20260602-121918`, and
   `musu-store-support-1.15.0-rc.1-20260602-121850`.
+- 2026-06-02 current mDNS regression and P2P KV blocker audit:
+  wiki/548 records current clean source `6f3f5982` mDNS/Tailscale regression
+  evidence and the P2P control-plane KV blocker. Search terms should include
+  `GOAL v294`, `wiki/548`, `peer::mdns::tests::`, `이더넷 2`,
+  `p2p_relay_lease_kv_not_configured`, `KV_REST_API_TOKEN`,
+  `KV_REST_API_URL`, and `MUSU_P2P_CONTROL_TOKEN_SHA256S`.
+- 2026-06-02 index refresh after mDNS/P2P KV audit:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1325 files and 2221 symbols after wiki/548, CoS memory
+  `2026-06-02_1238_kst_mdns_regression_p2p_kv_blocker.md`, the current
+  mDNS/P2P KV blocker audit, and WIKI/WIKI_INDEX/GOAL/BETA/current-status
+  updates. Search terms should include `GOAL v295`, `1325 files`,
+  `peer::mdns::tests::`, `이더넷 2`, `p2p_relay_lease_kv_not_configured`,
+  `KV_REST_API_TOKEN`, and `KV_REST_API_URL`.
 
 **End of WIKI_INDEX.md.**

@@ -888,6 +888,24 @@ Indexer note:
   `20260602-121918`,
   `MUSU-second-PC-transfer-1.15.0-rc.1-20260602-121918`, and
   `musu-store-support-1.15.0-rc.1-20260602-121850`.
+- 2026-06-02 current mDNS regression and P2P KV blocker audit:
+  wiki/548 records that current clean source `6f3f5982` still passes the
+  mDNS/Tailscale default regression: targeted mDNS tests `3/3`, debug `musu`
+  build passed, and `RUST_LOG=debug .\musu-rs\target\debug\musu.exe discover
+  --timeout 2` with mDNS opt-in env unset emitted no `Failed to send`,
+  `ff02::fb`, `10065`, or `closed channel`; it disabled IPv6, Tailscale, and 9
+  virtual/VPN interfaces and sent only on `이더넷 2`. P2P env status still
+  reports `ok=false` because `KV_REST_API_TOKEN` and `KV_REST_API_URL` are
+  missing while `MUSU_P2P_CONTROL_TOKEN_SHA256S` exists in GitHub; live
+  evidence remains blocked by `p2p_relay_lease_kv_not_configured`.
+- 2026-06-02 index refresh after mDNS/P2P KV audit:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1325 files and 2221 symbols after wiki/548, CoS memory
+  `2026-06-02_1238_kst_mdns_regression_p2p_kv_blocker.md`, the current
+  mDNS/P2P KV blocker audit, and WIKI/WIKI_INDEX/GOAL/BETA/current-status
+  updates. Search terms should include `GOAL v295`, `1325 files`,
+  `peer::mdns::tests::`, `이더넷 2`, `p2p_relay_lease_kv_not_configured`,
+  `KV_REST_API_TOKEN`, and `KV_REST_API_URL`.
 
 ## 9. musu-system Integration State (2026-05-29)
 

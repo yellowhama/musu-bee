@@ -632,3 +632,16 @@ the support verification id is `musu-store-support-1.15.0-rc.1-20260602-121850`.
 Next operator action is to run the new second-PC transfer zip on the other
 Windows PC without skip flags and import the returned
 `.local-build\second-pc-return\*.zip` with `-RequireReleaseGateEvidence`.
+
+2026-06-02 12:38 KST mDNS/P2P KV blocker addendum: current clean source
+`6f3f598271ec0b6225524c7d63bbd8da068e7ae5` still passes the mDNS/Tailscale
+regression path. Targeted `peer::mdns::tests::` passed 3/3, debug `musu` build
+passed, and `RUST_LOG=debug .\musu-rs\target\debug\musu.exe discover --timeout
+2` with default mDNS opt-in env unset emitted no `Failed to send`, `ff02::fb`,
+`10065`, or `closed channel`; it disabled IPv6, Tailscale, and 9 virtual/VPN
+interfaces and sent only on physical LAN `이더넷 2`. P2P control-plane status
+still reports `ok=false`: GitHub has `MUSU_P2P_CONTROL_TOKEN_SHA256S`, but
+`KV_REST_API_TOKEN` and `KV_REST_API_URL` are missing, latest live evidence
+remains `p2p_relay_lease_kv_not_configured`, and local env/files do not
+provide usable KV credentials. This is now classified as a production
+configuration/evidence blocker, not a code blocker.

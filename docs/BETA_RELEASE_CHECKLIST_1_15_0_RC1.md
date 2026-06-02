@@ -651,6 +651,18 @@ Tauri desktop shell evidence:
   `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-121918\partner-center\MUSU-1.15.0-rc.1-store-submission-20260602-121918.zip`.
   The current support verification id is
   `musu-store-support-1.15.0-rc.1-20260602-121850`.
+- 2026-06-02 12:38 KST mDNS/P2P KV blocker audit:
+  current clean source `6f3f598271ec0b6225524c7d63bbd8da068e7ae5` preserves
+  the mDNS/Tailscale default hardening. Targeted mDNS unit tests passed 3/3,
+  `cargo build --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1` passed,
+  and `RUST_LOG=debug .\musu-rs\target\debug\musu.exe discover --timeout 2`
+  with mDNS opt-in env vars unset emitted no `Failed to send`, `ff02::fb`,
+  `10065`, or `closed channel`; it disabled IPv6, Tailscale, and 9
+  virtual/VPN interfaces and sent only on physical LAN `이더넷 2`.
+  P2P control-plane status still reports `ok=false` because
+  `KV_REST_API_TOKEN` and `KV_REST_API_URL` are missing while
+  `MUSU_P2P_CONTROL_TOKEN_SHA256S` is present in GitHub. Latest live evidence
+  remains blocked by `p2p_relay_lease_kv_not_configured`.
 
 Release candidate manifest:
 
