@@ -986,6 +986,26 @@ Indexer note:
   `20260602-132814`, `20260602-132531`, `20260602-132921`,
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_132921`, `20260602-134019`,
   `20260602-134035`, `1343 files`, and `2239 symbols`.
+- 2026-06-02 P2P control-plane CI coverage:
+  wiki/551 records that P2P API route contracts are now part of web CI.
+  `package.json` adds `npm run test:p2p`, covering route evidence,
+  rendezvous sessions, and relay lease fallback routes; `.github/workflows/test.yml`
+  runs it after `npm run test:routes`. Local validation passed
+  `npm run test:p2p` 21/21, `npm run test:routes` 12/12, and
+  `git diff --check`. This hardens owner-scoped route evidence, rendezvous
+  lifecycle, relay fallback policy, and bearer-auth fail-closed behavior, but
+  it does not close the live `musu.pro` gate until KV production env is
+  provisioned and owner-scope evidence passes.
+- 2026-06-02 index refresh after P2P control-plane CI coverage:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1346 files and 2239 symbols after wiki/551, `test:p2p`, GitHub Actions P2P
+  control-plane test wiring, BETA/WIKI/WIKI_INDEX/GOAL/current-head report
+  updates, and CoS memories
+  `2026-06-02_1357_kst_p2p_control_plane_ci_coverage.md` and
+  `2026-06-02_1403_kst_p2p_ci_index_refresh.md`. Search terms should
+  include `GOAL v302`, `GOAL v303`, `wiki/551`, `test:p2p`, `route-evidence`,
+  `rendezvous`, `relay lease`, `owner-scoped route evidence`,
+  `KV_REST_API_URL`, `KV_REST_API_TOKEN`, `1346 files`, and `2239 symbols`.
 
 ## 9. musu-system Integration State (2026-05-29)
 

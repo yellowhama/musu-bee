@@ -241,3 +241,23 @@ post-security primary evidence refresh.
   `musu-store-support-1.15.0-rc.1-20260602-134019`
 
 Both regenerated artifacts verify with `ok=true`, `fail_count=0`.
+
+## 2026-06-02 13:57 KST P2P CI Hardening Update
+
+The P2P control-plane route contract is now covered by the web CI lane:
+
+- `musu-bee/package.json` adds `npm run test:p2p`.
+- `.github/workflows/test.yml` runs `P2P control-plane tests` after
+  `Route security tests`.
+- Local validation passed `npm run test:p2p` 21/21, `npm run test:routes`
+  12/12, and `git diff --check`.
+
+This closes a local code-audit gap: release-critical P2P routes existed but
+were not included in the required CI test set. The coverage now exercises
+owner-scoped route evidence, release-grade route blockers, rendezvous lifecycle,
+relay fallback lease policy, and bearer-token fail-closed behavior.
+
+This does not change the public release verdict. Live `musu.pro` P2P evidence
+is still No-Go until production KV credentials (`KV_REST_API_URL` and
+`KV_REST_API_TOKEN`) are provisioned and owner-scope evidence passes without
+`-AllowUnverified`.

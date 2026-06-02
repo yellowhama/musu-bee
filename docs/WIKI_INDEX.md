@@ -1333,5 +1333,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2026-06-02_1340_kst_post_operator_security_primary_evidence_refresh.md`,
   `MUSU-second-PC-transfer-1.15.0-rc.1-20260602-134035`, and
   `musu-store-support-1.15.0-rc.1-20260602-134019`.
+- 2026-06-02 P2P control-plane CI coverage:
+  wiki/551 records `npm run test:p2p` and the GitHub Actions
+  `P2P control-plane tests` step. Search terms should include `GOAL v302`,
+  `wiki/551`, `test:p2p`, `route-evidence`, `rendezvous`, `relay lease`,
+  `owner-scoped route evidence`, `npm run test:p2p 21/21`,
+  `npm run test:routes 12/12`, `KV_REST_API_URL`, and
+  `KV_REST_API_TOKEN`.
+- 2026-06-02 index refresh after P2P control-plane CI coverage:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1346 files and 2239 symbols. Search terms should include `GOAL v303`,
+  `1346 files`, `2239 symbols`,
+  `2026-06-02_1357_kst_p2p_control_plane_ci_coverage.md`, `test:p2p`,
+  and `P2P control-plane tests`.
 
 **End of WIKI_INDEX.md.**

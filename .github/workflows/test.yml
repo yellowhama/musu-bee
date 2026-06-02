@@ -44,6 +44,9 @@ jobs:
       - name: Route security tests
         run: npm run test:routes
 
+      - name: P2P control-plane tests
+        run: npm run test:p2p
+
   rust:
     name: Rust core tests
     runs-on: ubuntu-latest

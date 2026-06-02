@@ -714,6 +714,13 @@ Tauri desktop shell evidence:
   Partner Center zip is
   `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-134035\partner-center\MUSU-1.15.0-rc.1-store-submission-20260602-134035.zip`;
   support verification id is `musu-store-support-1.15.0-rc.1-20260602-134019`.
+- 2026-06-02 13:57 KST P2P control-plane CI coverage:
+  `npm run test:p2p` now covers route evidence, rendezvous, and relay lease
+  routes and is wired into GitHub Actions after `npm run test:routes`. Local
+  validation passed `npm run test:p2p` 21/21, `npm run test:routes` 12/12, and
+  `git diff --check`. This is CI hardening only; the live release gate remains
+  blocked until production KV env is configured and `musu.pro` owner-scope P2P
+  evidence passes.
 
 Release candidate manifest:
 
@@ -726,6 +733,8 @@ Release candidate manifest:
 
 ```powershell
 npm run typecheck
+npm run test:routes
+npm run test:p2p
 npm run lint -- --quiet
 npm run build
 cargo check --manifest-path .\musu-rs\Cargo.toml -j 1
