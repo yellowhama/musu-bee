@@ -734,6 +734,21 @@ Indexer note:
   `2026-06-02_0947_kst_local_api_auth_contract_audit.md`, current docs
   correction, and final packet audit wiring. Search terms should include
   `GOAL v277`, `musu.local_api_auth_contract.v1`, and `1294 files`.
+- 2026-06-02 operator packet refresh after local API auth contract audit:
+  clean commit `fbcc2a6f` regenerated final operator packet
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260602-095328.zip`
+  and action pack
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-095354.zip`;
+  both verify with `ok=true`, `fail_count=0`. Current second-PC transfer zip is
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-095354\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-095354.zip`.
+  Search terms should include `GOAL v278`, `20260602-095328`, and
+  `20260602-095354`.
+- 2026-06-02 index refresh after local auth operator packet refresh:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1295 files and 2217 symbols after CoS memory
+  `2026-06-02_0954_kst_local_auth_operator_packet_refresh.md` and packet
+  refresh docs. Search terms should include `GOAL v279`, `1295 files`, and
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260602-095354`.
 
 ## 9. musu-system Integration State (2026-05-29)
 

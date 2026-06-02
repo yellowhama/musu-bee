@@ -1113,5 +1113,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   correction, and final packet audit wiring. Search terms should include
   `GOAL v277`, `1294 files`, `2217 symbols`,
   `musu.local_api_auth_contract.v1`, and `MUSU_BRIDGE_LOCALHOST_AUTH=0`.
+- 2026-06-02 operator packet refresh after local API auth contract audit:
+  clean commit `fbcc2a6f` regenerated final operator packet
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260602-095328.zip`
+  and action pack
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-095354.zip`;
+  both verify with `ok=true`, `fail_count=0`. Current second-PC transfer zip is
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-095354\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-095354.zip`.
+  Search terms should include `GOAL v278`, `20260602-095328`,
+  `20260602-095354`, and
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260602-095354`.
+- 2026-06-02 index refresh after local auth operator packet refresh:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1295 files and 2217 symbols after CoS memory
+  `2026-06-02_0954_kst_local_auth_operator_packet_refresh.md` and packet
+  refresh docs. Search terms should include `GOAL v279`, `1295 files`,
+  `2217 symbols`, and `MUSU-second-PC-transfer-1.15.0-rc.1-20260602-095354`.
 
 **End of WIKI_INDEX.md.**

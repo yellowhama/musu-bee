@@ -86,6 +86,10 @@ Current external evidence blockers:
 
 2026-06-02 09:50 KST index addendum: `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed 1294 files and 2217 symbols after the local API auth contract audit, wiki/543, and CoS memory update.
 
+2026-06-02 09:54 KST operator packet addendum: clean commit `fbcc2a6f0cbf26701e0e82a4aec335103a9ea364` regenerated the final operator packet at `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260602-095328.zip`; final packet verification passed with `ok=true`, `fail_count=0`. The operator action pack was regenerated at `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-095354.zip`; action pack verification passed with `ok=true`, `fail_count=0`. The current second-PC transfer zip is `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-095354\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-095354.zip`.
+
+2026-06-02 09:55 KST index addendum: `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed 1295 files and 2217 symbols after the local auth operator packet refresh documentation.
+
 Current qualitative completion:
 
 | Surface | Completion | Reason |
