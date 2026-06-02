@@ -1865,4 +1865,19 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260603-010315-HUGH_SECOND`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_010315`,
   and `post P2P storage env alias primary evidence index refresh`.
 
+- 2026-06-03 status JSON hardening:
+  `RELEASE_1_15_0_RC1_STATUS_JSON_HARDENING_2026_06_03.md` (wiki/577)
+  records `musu status --json` support. Search terms should include
+  `GOAL v359`, `wiki/577`, `musu.fleet_status_cli.v1`, `StatusOpts`,
+  `status_cli_accepts_json_flag`, `bridge_url`, `127.0.0.1:6409`,
+  `single_machine=false`, `runtime idle CPU 0/2`, and `status JSON hardening`.
+
+- 2026-06-03 index refresh after status JSON hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1499 files and 2274 symbols after wiki/577, GOAL v359-v360, status JSON
+  source/docs updates, BETA/current-head/WIKI updates, and CoS memory
+  `2026-06-03_status_json_hardening.md`. Search terms should include
+  `GOAL v360`, `1499 files`, `2274 symbols`, `musu.fleet_status_cli.v1`,
+  `status_cli_accepts_json_flag`, and `status JSON hardening index refresh`.
+
 **End of WIKI_INDEX.md.**

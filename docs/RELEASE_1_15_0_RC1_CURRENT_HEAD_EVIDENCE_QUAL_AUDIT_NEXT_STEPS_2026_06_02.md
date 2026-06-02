@@ -1,17 +1,22 @@
 # MUSU 1.15.0-rc.1 Current-Head Evidence, Qual Audit, and Next Steps
 
-Date: 2026-06-03 01:12 KST
-Current evidence source commit: `fbd01746c3741f79c31afdce493851934ddf6fa4`
+Date: 2026-06-03 01:45 KST
+Current source commit: `f4ad68cb2a9b4f2e809f0caf4b31e50c4c630884`
+Latest packaged evidence source commit: `fbd01746c3741f79c31afdce493851934ddf6fa4`
 
 ## Verdict
 
 Public desktop release is still **No-Go**.
 
-The local desktop/package path is now in a much better state: current primary
-machine evidence passes for single-machine smoke, desktop single-instance,
-process ownership, idle CPU, and the four-state CPU matrix. The operator
-reported busy-loop pattern is not reproduced on `HUGH_SECOND` in the current
-packaged desktop path.
+The local desktop/package path is in a much better state, but current HEAD has
+a new Rust CLI hardening commit after the latest packaged evidence. The latest
+packaged primary evidence passes for source commit `fbd01746`; it is stale for
+current source commit `f4ad68cb` until MSIX rebuild/install and primary
+single-machine/process/CPU/matrix evidence are refreshed again.
+
+The operator reported busy-loop pattern was not reproduced on `HUGH_SECOND` in
+the latest packaged desktop path, but that result cannot be used as
+current-HEAD release evidence after the `musu status --json` source change.
 
 The remaining blockers are external/release-gate blockers, not local UI polish:
 
@@ -21,16 +26,17 @@ The remaining blockers are external/release-gate blockers, not local UI polish:
 - live `musu.pro` P2P owner-scoped control-plane evidence
 - `musu@musu.pro` support mailbox delivery evidence
 - Microsoft Store / Partner Center submission evidence
+- fresh current-HEAD MSIX primary evidence after `musu status --json` hardening
 
 ## Current Evidence
 
 | Gate | Status | Evidence |
 | --- | --- | --- |
-| Desktop single instance | Pass | `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260603-005000-HUGH_SECOND.desktop-single-instance.json` |
-| Process ownership | Pass | `docs\evidence\process-ownership\1.15.0-rc.1\20260603-005010-HUGH_SECOND.process-ownership.json` |
-| Single-machine smoke | Pass | `docs\evidence\single-machine\1.15.0-rc.1\20260603-005257-HUGH_SECOND.evidence.json` |
-| Desktop-open idle CPU | Pass on primary, release gate 1/2 | `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-010000-HUGH_SECOND.desktop-open.evidence.json` |
-| Four-state CPU matrix | Pass on primary, release gate 1/2 | `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-010315-HUGH_SECOND.runtime-cpu-scenario-matrix.json` |
+| Desktop single instance | Pass for latest packaged source; stale for current HEAD | `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260603-005000-HUGH_SECOND.desktop-single-instance.json` |
+| Process ownership | Pass for latest packaged source; stale for current HEAD | `docs\evidence\process-ownership\1.15.0-rc.1\20260603-005010-HUGH_SECOND.process-ownership.json` |
+| Single-machine smoke | Pass for latest packaged source; stale for current HEAD | `docs\evidence\single-machine\1.15.0-rc.1\20260603-005257-HUGH_SECOND.evidence.json` |
+| Desktop-open idle CPU | Pass for latest packaged source; current HEAD release gate 0/2 | `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-010000-HUGH_SECOND.desktop-open.evidence.json` |
+| Four-state CPU matrix | Pass for latest packaged source; current HEAD release gate 0/2 | `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-010315-HUGH_SECOND.runtime-cpu-scenario-matrix.json` |
 | Public metadata | Pass | `https://musu.pro/privacy` and `https://musu.pro/support` return the expected `musu@musu.pro` support address |
 | MSIX install | Pass via existing release evidence | Go/no-go still selects `docs\evidence\msix-install\1.15.0-rc.1\20260531-165211-HUGH-MAIN.evidence.json` |
 
@@ -49,19 +55,19 @@ The four-state matrix also passes from clean git state:
 - max one-core CPU peaks: WebView2 `0.16`, Node `0`, MUSU `0`
 - all scenarios record no hot processes and no resource budget violations
 
-Clean go/no-go after the current evidence commits reports:
+Clean go/no-go after the status JSON source commit reports:
 
 - `ready_for_public_desktop_release=false`
 - `local_artifacts_ready=true`
-- `single_machine_verified=true`
+- `single_machine_verified=false`
 - `process_ownership_verified=true`
 - `desktop_single_instance_verified=true`
-- `runtime_idle_cpu_verified=false` with `1/2` valid machines
-- `runtime_cpu_scenario_matrix_verified=false` with `1/2` valid machines
+- `runtime_idle_cpu_verified=false` with `0/2` valid machines
+- `runtime_cpu_scenario_matrix_verified=false` with `0/2` valid machines
 - `p2p_control_plane_verified=false`
 - `support_mailbox_verified=false`
 - `store_release_verified=false`
-- blockers: `multi-device`, `runtime-idle-cpu`, `runtime-cpu-scenario-matrix`, `p2p-control-plane`, `support-mailbox`, `store-release`
+- blockers: `single-machine`, `multi-device`, `runtime-idle-cpu`, `runtime-cpu-scenario-matrix`, `p2p-control-plane`, `support-mailbox`, `store-release`
 
 ## Qualitative Assessment
 
@@ -1165,3 +1171,23 @@ Store evidence.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_P2P_STORAGE_ENV_ALIAS_PRIMARY_EVIDENCE_2026_06_03.md`
+
+## 2026-06-03 01:45 KST Status JSON Hardening
+
+`musu status --json` now works and emits schema `musu.fleet_status_cli.v1`
+with `ok`, `bridge_url`, and raw fleet status from `/api/fleet/status`.
+Human-readable `musu status` remains unchanged.
+
+Validation passed: `cargo fmt --check`, `cargo check --bin musu -j 1`,
+`cargo test install::cli_commands --lib` 14/14, `cargo build --bin musu -j 1`,
+binary parser test `status_cli_accepts_json_flag` 1/1, and a debug runtime
+smoke where `up --json`, `status --json`, and `down --json` all succeeded.
+
+Qualitative result: this improves release automation and support diagnostics
+because status no longer needs terminal-text scraping. It is Rust source, so
+the current packaged primary evidence is stale again until MSIX rebuild/install
+and primary smoke/process/CPU/matrix evidence are refreshed.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_STATUS_JSON_HARDENING_2026_06_03.md`

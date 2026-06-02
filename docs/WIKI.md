@@ -1651,6 +1651,24 @@ Indexer note:
   `20260603-010315-HUGH_SECOND`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_010315`,
   and `post P2P storage env alias primary evidence index refresh`.
 
+- 2026-06-03 status JSON hardening:
+  wiki/577 records that `musu status --json` now emits
+  `musu.fleet_status_cli.v1` with `ok`, `bridge_url`, and raw fleet status.
+  Validation passed Rust fmt/check/build, `install::cli_commands` tests 14/14,
+  binary parser test `status_cli_accepts_json_flag`, and a debug
+  `up/status/down --json` runtime smoke. This improves process/status
+  automation, but Rust source changed, so current packaged primary evidence is
+  stale until MSIX rebuild/install and primary evidence are refreshed again.
+
+- 2026-06-03 index refresh after status JSON hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1499 files and 2274 symbols after wiki/577, GOAL v359-v360,
+  `musu.fleet_status_cli.v1`, `StatusOpts`, Rust CLI source updates,
+  BETA/current-head/WIKI_INDEX updates, and CoS memory
+  `2026-06-03_status_json_hardening.md`. Search terms should include
+  `GOAL v360`, `1499 files`, `2274 symbols`, `status_cli_accepts_json_flag`,
+  `single_machine=false`, and `status JSON hardening index refresh`.
+
 ## 9. musu-system Integration State (2026-05-29)
 
 `yellowhama/musu-system` is a credible adjacent MUSU ecosystem line, not a Rust-core replacement. It contains:
