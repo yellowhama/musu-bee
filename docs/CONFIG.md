@@ -50,6 +50,17 @@ Windows distribution note:
 | `MUSU_WORKER_MAX_STDOUT_BYTES` | `2000000` | No | Maximum stdout bytes captured per execution. |
 | `MUSU_WORKER_MAX_STDERR_BYTES` | `2000000` | No | Maximum stderr bytes captured per execution. |
 
+## musu-bee Operator API Guards
+
+These guard the Next.js operator-facing API routes that proxy worker process or node execution actions. All guarded routes require an authenticated `musu.pro` operator session before these flags are evaluated.
+
+| Name | Default | Required | Description |
+|------|---------|----------|-------------|
+| `MUSU_NODE_EXECUTE_ALLOWLIST` | `echo,hostname,whoami` | No | Comma/space/semicolon-separated command basename allowlist for `/api/nodes/execute`. Arguments are length-limited and control characters are rejected. |
+| `MUSU_PROCESS_START_ALLOWLIST` | *(empty)* | No | Comma/space/semicolon-separated command basename allowlist for `/api/processes/start`. Empty means process start fails closed. User-supplied env values are not forwarded to the worker route. |
+| `MUSU_ENABLE_PROCESS_KILL` | `false` | No | Explicit opt-in for `/api/processes/kill`. When unset, authenticated kill requests are rejected and audit-logged. |
+| `MUSU_ENABLE_REMOTE_WORKER_PROXY` | `false` | No | Explicit opt-in for remote `device_id` worker proxying in `/api/processes*`. When unset, only `device_id=local` is accepted. |
+
 ## Mesh (Multi-Machine)
 
 | Name | Default | Required | Description |

@@ -906,6 +906,29 @@ Indexer note:
   updates. Search terms should include `GOAL v295`, `1325 files`,
   `peer::mdns::tests::`, `이더넷 2`, `p2p_relay_lease_kv_not_configured`,
   `KV_REST_API_TOKEN`, and `KV_REST_API_URL`.
+- 2026-06-02 operator API security hardening:
+  wiki/549 records a real code-audit finding in `musu-bee`: node/process
+  worker proxy routes were too open for public release. `/api/nodes/execute`,
+  `/api/processes`, `/api/processes/start`, and `/api/processes/kill` now
+  require authenticated operator identity. Node execute is allowlisted by
+  `MUSU_NODE_EXECUTE_ALLOWLIST`; process start fails closed unless
+  `MUSU_PROCESS_START_ALLOWLIST` names the command basename; process kill is
+  disabled unless `MUSU_ENABLE_PROCESS_KILL=1`; remote process proxying is
+  disabled unless `MUSU_ENABLE_REMOTE_WORKER_PROXY=1`. Accepted/rejected
+  mutations write `~\.musu\audit\command-center.jsonl`. Validation passed
+  `npm run test:routes` 12/12, `npm run typecheck`, `npm run build`, `git diff
+  --check`, and `audit-operator-api-security-contract.ps1` with `ok=true`.
+- 2026-06-02 index refresh after operator API security hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1334 files and 2239 symbols after wiki/549, CoS memories
+  `2026-06-02_1305_kst_operator_api_security_hardening.md` and
+  `2026-06-02_1310_kst_operator_api_security_index_refresh.md`, route
+  source/test/CI changes, CONFIG/BETA/WIKI/WIKI_INDEX/GOAL/current-head
+  report updates, and the operator API audit script. Search terms should
+  include `GOAL v296`, `GOAL v297`, `musu.operator_api_security_contract.v1`,
+  `operator-api-security.ts`, `MUSU_NODE_EXECUTE_ALLOWLIST`,
+  `MUSU_PROCESS_START_ALLOWLIST`, `MUSU_ENABLE_PROCESS_KILL`,
+  `MUSU_ENABLE_REMOTE_WORKER_PROXY`, `1334 files`, and `2239 symbols`.
 
 ## 9. musu-system Integration State (2026-05-29)
 

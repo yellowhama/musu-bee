@@ -116,9 +116,15 @@ Current audit reading:
   release-grade route, P2P control-plane, support mailbox, and Store evidence
   all exist.
 
-No new code regression was found in this pass. The remaining risks are
-unverified external workflows and incomplete P2P/Store release evidence, not a
-new local code defect found during this audit.
+13:05 KST follow-up correction: a later operator API code audit did find and
+fix a real local hardening issue in `musu-bee`. `/api/nodes/execute`,
+`/api/processes`, `/api/processes/start`, and `/api/processes/kill` are now
+authenticated operator actions with allowlist/enable-flag policy gates and
+mutation audit logging. See
+`docs/RELEASE_1_15_0_RC1_OPERATOR_API_SECURITY_AUDIT_2026_06_02.md`.
+The remaining public release blockers are still external/current evidence
+gates: second-PC CPU/matrix/route, P2P KV/live owner-scoped control-plane,
+`musu@musu.pro` mailbox evidence, and Store evidence.
 
 ## Roadmap
 
@@ -162,6 +168,11 @@ new local code defect found during this audit.
      are not actionable.
    - Keep process attribution visible so operator reports of many Node.js
      processes can distinguish MUSU-owned, repo-related, and unrelated tools.
+
+7. Replace ad hoc process controls with a command catalog.
+   - Keep `MUSU_PROCESS_START_ALLOWLIST` fail-closed for the release candidate.
+   - Add named safe actions, approval gates, RBAC, and richer per-command audit
+     metadata before broad process start becomes a product feature.
 
 ## Current Operator Handoff Artifacts
 

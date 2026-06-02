@@ -1,5 +1,6 @@
 import { getBridgeUrl } from '../../../lib/bridge-config';
 import { NextRequest, NextResponse } from "next/server";
+import { requireOperator, resolveWorkerTarget } from "@/lib/operator-api-security";
 
 /** Process info shape returned by musu-worker /processes */
 export interface ProcessInfo {
@@ -20,12 +21,6 @@ const FETCH_TIMEOUT_MS = 5_000;
 
 function defaultWorkerUrl(): string {
   return (process.env.MUSU_WORKER_URL ?? getBridgeUrl()).trim().replace(/\/+$/, "");
-}
-
-function workerUrl(deviceId: string | null): string {
-  if (!deviceId || deviceId === "local") return defaultWorkerUrl();
-  // deviceId is an IP or hostname — worker is always on port 9700
-  return `http://${deviceId}:9700`;
 }
 
 async function fetchProcesses(
@@ -57,11 +52,19 @@ async function fetchProcesses(
  * device_id=<ip>                 → worker at http://<ip>:9700
  */
 export async function GET(req: NextRequest) {
+  const auth = await requireOperator(req);
+  if ("response" in auth) {
+    return auth.response;
+  }
+
   const { searchParams } = new URL(req.url);
   const deviceId = searchParams.get("device_id") ?? "local";
   const nameFilter = searchParams.get("name");
+  const target = resolveWorkerTarget(deviceId, defaultWorkerUrl());
+  if (!target.ok) {
+    return NextResponse.json({ error: target.error }, { status: target.status });
+  }
 
-  const base = workerUrl(deviceId);
-  const processes = await fetchProcesses(base, nameFilter, deviceId);
+  const processes = await fetchProcesses(target.baseUrl, nameFilter, target.deviceId);
   return NextResponse.json(processes);
 }

@@ -663,6 +663,20 @@ Tauri desktop shell evidence:
   `KV_REST_API_TOKEN` and `KV_REST_API_URL` are missing while
   `MUSU_P2P_CONTROL_TOKEN_SHA256S` is present in GitHub. Latest live evidence
   remains blocked by `p2p_relay_lease_kv_not_configured`.
+- 2026-06-02 13:00 KST operator API security hardening:
+  `/api/nodes/execute`, `/api/processes`, `/api/processes/start`, and
+  `/api/processes/kill` are no longer anonymous worker proxy conveniences.
+  They now require authenticated operator identity, route through
+  `operator-api-security.ts`, and enforce command/process policy gates:
+  `MUSU_NODE_EXECUTE_ALLOWLIST` defaults to narrow diagnostics,
+  `MUSU_PROCESS_START_ALLOWLIST` fails closed when empty,
+  `MUSU_ENABLE_PROCESS_KILL` must be explicitly set for process termination,
+  and `MUSU_ENABLE_REMOTE_WORKER_PROXY` must be explicitly set for remote
+  process proxying. Accepted/rejected mutations are written to
+  `~\.musu\audit\command-center.jsonl`. Validation passed `npm run
+  test:routes` 12/12, `npm run typecheck`, `npm run build`, `git diff
+  --check`, and `audit-operator-api-security-contract.ps1 -FailOnProblem`
+  with `ok=true`, `fail_count=0`.
 
 Release candidate manifest:
 

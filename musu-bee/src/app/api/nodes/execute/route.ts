@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { readFile } from "fs/promises";
 import { join } from "path";
 import { homedir } from "os";
+import { appendControlAudit, createTraceId } from "@/lib/control-audit";
+import { isAllowedNodeExecuteCommand, requireOperator } from "@/lib/operator-api-security";
 
 interface NodeConfig {
   name: string;
@@ -97,6 +99,15 @@ async function readNodesConfig(): Promise<NodesConfig> {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireOperator(request);
+  if ("response" in auth) {
+    return auth.response;
+  }
+
+  const traceId = createTraceId();
+  let nodeForAudit = "unknown";
+  let commandForAudit = "";
+
   try {
     const body = (await request.json()) as ExecuteBody;
     const { node_name, command } = body;
@@ -104,7 +115,10 @@ export async function POST(request: NextRequest) {
       ? body.args.filter((arg): arg is string => typeof arg === "string")
       : [];
     const cwd = typeof body.cwd === "string" ? body.cwd : undefined;
-    const timeout_sec = typeof body.timeout_sec === "number" ? body.timeout_sec : 30;
+    const timeout_sec =
+      typeof body.timeout_sec === "number"
+        ? Math.min(Math.max(Math.floor(body.timeout_sec), 1), 30)
+        : 30;
 
     if (typeof node_name !== "string" || typeof command !== "string") {
       return NextResponse.json(
@@ -113,6 +127,25 @@ export async function POST(request: NextRequest) {
         },
         { status: 400 }
       );
+    }
+
+    nodeForAudit = node_name;
+    commandForAudit = command;
+
+    if (!isAllowedNodeExecuteCommand(command, args)) {
+      await appendControlAudit({
+        event: "nodes.execute",
+        actor_id: auth.user.id,
+        actor_email: auth.user.email,
+        node: node_name,
+        command,
+        result: "rejected",
+        http_status: 400,
+        trace_id: traceId,
+        created_at: new Date().toISOString(),
+        reason: "command outside node execute allowlist",
+      });
+      return NextResponse.json({ error: "command is not allowlisted" }, { status: 400 });
     }
 
     const config = await readNodesConfig();
@@ -169,12 +202,36 @@ export async function POST(request: NextRequest) {
 
     if (workerResponse.ok) {
       const result = await workerResponse.json();
+      await appendControlAudit({
+        event: "nodes.execute",
+        actor_id: auth.user.id,
+        actor_email: auth.user.email,
+        node: node_name,
+        command,
+        result: "accepted",
+        http_status: 200,
+        bridge_status: workerResponse.status,
+        trace_id: traceId,
+        created_at: new Date().toISOString(),
+      });
       return NextResponse.json({
         node: node_name,
         result,
       });
     } else {
       const errorText = await workerResponse.text();
+      await appendControlAudit({
+        event: "nodes.execute",
+        actor_id: auth.user.id,
+        actor_email: auth.user.email,
+        node: node_name,
+        command,
+        result: "bridge_error",
+        http_status: workerResponse.status,
+        bridge_status: workerResponse.status,
+        trace_id: traceId,
+        created_at: new Date().toISOString(),
+      });
       return NextResponse.json(
         {
           error: "Remote execution failed",
@@ -184,6 +241,18 @@ export async function POST(request: NextRequest) {
       );
     }
   } catch (error: unknown) {
+    await appendControlAudit({
+      event: "nodes.execute",
+      actor_id: auth.user.id,
+      actor_email: auth.user.email,
+      node: nodeForAudit,
+      command: commandForAudit,
+      result: "bridge_error",
+      http_status: 500,
+      trace_id: traceId,
+      created_at: new Date().toISOString(),
+      reason: error instanceof Error ? error.message : "unknown error",
+    });
     return NextResponse.json(
       {
         error: "Failed to execute remote process",

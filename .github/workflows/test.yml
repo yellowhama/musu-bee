@@ -41,6 +41,9 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Route security tests
+        run: npm run test:routes
+
   rust:
     name: Rust core tests
     runs-on: ubuntu-latest

@@ -246,6 +246,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | wiki/535 | Packaged CLI/runtime evidence audit | 2026-06-02 | `RELEASE_1_15_0_RC1_PACKAGED_CLI_RUNTIME_EVIDENCE_2026_06_02.md` | active |
 | wiki/536 | Process attribution and Node count audit | 2026-06-02 | `PROCESS_ATTRIBUTION_NODE_COUNT_AUDIT_2026_06_02.md` | active |
 | wiki/537 | Fresh mDNS runtime evidence audit | 2026-06-02 | `RELEASE_1_15_0_RC1_FRESH_MDNS_RUNTIME_EVIDENCE_AUDIT_2026_06_02.md` | active |
+| wiki/549 | Operator API security audit | 2026-06-02 | `RELEASE_1_15_0_RC1_OPERATOR_API_SECURITY_AUDIT_2026_06_02.md` | active |
 | — | 1.15.0-rc.1 beta release checklist and smoke evidence | 2026-05-29 | `BETA_RELEASE_CHECKLIST_1_15_0_RC1.md` | active |
 | — | 1.15.0-rc.1 final operator gates | 2026-05-29 | `RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md` | active |
 | — | MUSU Microsoft Store release run card | 2026-05-29 | `MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md` | active |
@@ -1272,5 +1273,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   updates. Search terms should include `GOAL v295`, `1325 files`,
   `peer::mdns::tests::`, `이더넷 2`, `p2p_relay_lease_kv_not_configured`,
   `KV_REST_API_TOKEN`, and `KV_REST_API_URL`.
+- 2026-06-02 operator API security hardening:
+  wiki/549 records the worker proxy route security audit. `/api/nodes/execute`,
+  `/api/processes`, `/api/processes/start`, and `/api/processes/kill` now
+  require authenticated operator identity and fail closed around command/process
+  policy. Search terms should include `GOAL v296`, `wiki/549`,
+  `musu.operator_api_security_contract.v1`, `operator-api-security.ts`,
+  `MUSU_NODE_EXECUTE_ALLOWLIST`, `MUSU_PROCESS_START_ALLOWLIST`,
+  `MUSU_ENABLE_PROCESS_KILL`, `MUSU_ENABLE_REMOTE_WORKER_PROXY`,
+  `npm run test:routes`, and `audit-operator-api-security-contract.ps1`.
+- 2026-06-02 index refresh after operator API security hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1334 files and 2239 symbols after wiki/549, CoS memories
+  `2026-06-02_1305_kst_operator_api_security_hardening.md` and
+  `2026-06-02_1310_kst_operator_api_security_index_refresh.md`, source/tests,
+  CI, CONFIG/BETA/WIKI/WIKI_INDEX/GOAL/current-head report updates, and the
+  operator API audit script. Search terms should include `GOAL v297`,
+  `1334 files`, `2239 symbols`, `operator-api-security.ts`, and
+  `musu.operator_api_security_contract.v1`.
 
 **End of WIKI_INDEX.md.**
