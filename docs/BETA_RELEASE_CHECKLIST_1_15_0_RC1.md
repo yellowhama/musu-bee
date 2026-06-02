@@ -677,6 +677,15 @@ Tauri desktop shell evidence:
   test:routes` 12/12, `npm run typecheck`, `npm run build`, `git diff
   --check`, and `audit-operator-api-security-contract.ps1 -FailOnProblem`
   with `ok=true`, `fail_count=0`.
+- 2026-06-02 13:15 KST post-security go/no-go:
+  clean commit `94ecda1caceba4a40f091071e8d64825ce7a7b29` reports
+  `ready=false`, `local_artifacts_ready=true`, `single_machine=false`,
+  `multi_device=false`, `msix_install=true`, `msix_desktop_entrypoint=true`,
+  runtime idle CPU `0/2`, runtime CPU matrix `0/2`,
+  `p2p_control_plane=false`, `support_mailbox=false`, and
+  `store_release=false`. This is expected after runtime/web source hardening:
+  fresh primary MSIX install, smoke, desktop-open CPU, and runtime CPU matrix
+  evidence must be rerun before final release claims.
 
 Release candidate manifest:
 

@@ -1291,5 +1291,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   operator API audit script. Search terms should include `GOAL v297`,
   `1334 files`, `2239 symbols`, `operator-api-security.ts`, and
   `musu.operator_api_security_contract.v1`.
+- 2026-06-02 post-operator-security go/no-go:
+  clean commit `94ecda1caceba4a40f091071e8d64825ce7a7b29` reports
+  `ready=false`, `single_machine=false`, runtime idle CPU `0/2`, runtime CPU
+  matrix `0/2`, and external P2P/support/Store/multi-device blockers still
+  false. Search terms should include `GOAL v298`, `94ecda1c`,
+  `single_machine=false`, `runtime idle CPU 0/2`, and
+  `runtime CPU matrix 0/2`.
+- 2026-06-02 index refresh after post-operator-security go/no-go:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1336 files and 2239 symbols after CoS memory
+  `2026-06-02_1320_kst_post_operator_security_go_no_go_index_refresh.md`.
+  Search terms should include `GOAL v299`, `1336 files`, `2239 symbols`, and
+  `post-operator-security go/no-go`.
 
 **End of WIKI_INDEX.md.**

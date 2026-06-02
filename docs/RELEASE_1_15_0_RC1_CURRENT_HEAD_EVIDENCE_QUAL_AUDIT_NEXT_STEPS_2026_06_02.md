@@ -126,6 +126,13 @@ The remaining public release blockers are still external/current evidence
 gates: second-PC CPU/matrix/route, P2P KV/live owner-scoped control-plane,
 `musu@musu.pro` mailbox evidence, and Store evidence.
 
+Post-security go/no-go on clean commit
+`94ecda1caceba4a40f091071e8d64825ce7a7b29` reports `ready=false`,
+`local_artifacts_ready=true`, `single_machine=false`, runtime idle CPU `0/2`,
+runtime CPU matrix `0/2`, `p2p_control_plane=false`,
+`support_mailbox=false`, and `store_release=false`. Fresh current-HEAD primary
+MSIX install/smoke/CPU/matrix evidence is required before final release claims.
+
 ## Roadmap
 
 1. Close second-PC runtime gates.

@@ -929,6 +929,25 @@ Indexer note:
   `operator-api-security.ts`, `MUSU_NODE_EXECUTE_ALLOWLIST`,
   `MUSU_PROCESS_START_ALLOWLIST`, `MUSU_ENABLE_PROCESS_KILL`,
   `MUSU_ENABLE_REMOTE_WORKER_PROXY`, `1334 files`, and `2239 symbols`.
+- 2026-06-02 post-operator-security go/no-go:
+  clean commit `94ecda1caceba4a40f091071e8d64825ce7a7b29` reports
+  `ready=false`, `local_artifacts_ready=true`, `single_machine=false`,
+  `multi_device=false`, `msix_install=true`, `msix_desktop_entrypoint=true`,
+  runtime idle CPU `0/2`, runtime CPU matrix `0/2`,
+  `p2p_control_plane=false`, `support_mailbox=false`, and
+  `store_release=false`. Interpretation: the operator API hardening is runtime
+  source, so previous primary evidence is no longer current. Next release
+  action is fresh current-HEAD MSIX install/smoke/desktop-open CPU/matrix
+  evidence, then second-PC/P2P/support/Store gates.
+- 2026-06-02 index refresh after post-operator-security go/no-go:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1336 files and 2239 symbols after CoS memory
+  `2026-06-02_1320_kst_post_operator_security_go_no_go_index_refresh.md`,
+  BETA/WIKI/WIKI_INDEX/GOAL/current-head report updates, and post-security
+  go/no-go documentation. Search terms should include `GOAL v298`,
+  `GOAL v299`, `94ecda1c`, `single_machine=false`,
+  `runtime idle CPU 0/2`, `runtime CPU matrix 0/2`, `1336 files`, and
+  `2239 symbols`.
 
 ## 9. musu-system Integration State (2026-05-29)
 
