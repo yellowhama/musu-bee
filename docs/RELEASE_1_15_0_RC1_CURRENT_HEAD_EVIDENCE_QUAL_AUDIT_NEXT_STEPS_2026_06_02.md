@@ -1,7 +1,7 @@
 # MUSU 1.15.0-rc.1 Current-Head Evidence, Qual Audit, and Next Steps
 
-Date: 2026-06-02 12:05 KST
-Current clean go/no-go commit: `9b836bd1e5702a4a6b40b30fb7f15b5aa76be05a`
+Date: 2026-06-03 00:25 KST
+Current evidence source commit: `c25c109ee579dbe042f8706b9af4f0e56fd941ca`
 
 ## Verdict
 
@@ -26,27 +26,27 @@ The remaining blockers are external/release-gate blockers, not local UI polish:
 
 | Gate | Status | Evidence |
 | --- | --- | --- |
-| Desktop single instance | Pass | `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-113614-HUGH_SECOND.desktop-single-instance.json` |
-| Process ownership | Pass | `docs\evidence\process-ownership\1.15.0-rc.1\20260602-113702-HUGH_SECOND.process-ownership.json` |
-| Single-machine smoke | Pass | `docs\evidence\single-machine\1.15.0-rc.1\20260602-113759-HUGH_SECOND.evidence.json` |
-| Desktop-open idle CPU | Pass on primary, release gate 1/2 | `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-114149-HUGH_SECOND.desktop-open.evidence.json` |
-| Four-state CPU matrix | Pass on primary, release gate 1/2 | `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-115359-HUGH_SECOND.runtime-cpu-scenario-matrix.json` |
+| Desktop single instance | Pass | `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260603-000306-HUGH_SECOND.desktop-single-instance.json` |
+| Process ownership | Pass | `docs\evidence\process-ownership\1.15.0-rc.1\20260603-000306-HUGH_SECOND.process-ownership.json` |
+| Single-machine smoke | Pass | `docs\evidence\single-machine\1.15.0-rc.1\20260603-001225-HUGH_SECOND.evidence.json` |
+| Desktop-open idle CPU | Pass on primary, release gate 1/2 | `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-001200-HUGH_SECOND.desktop-open.evidence.json` |
+| Four-state CPU matrix | Pass on primary, release gate 1/2 | `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-001416-HUGH_SECOND.runtime-cpu-scenario-matrix.json` |
 | Public metadata | Pass | `https://musu.pro/privacy` and `https://musu.pro/support` return the expected `musu@musu.pro` support address |
 | MSIX install | Pass via existing release evidence | Go/no-go still selects `docs\evidence\msix-install\1.15.0-rc.1\20260531-165211-HUGH-MAIN.evidence.json` |
 
 Desktop-open CPU evidence was captured from clean git state:
 
-- sample: `60.042s`
-- process roles: MUSU `2`, repo-related Node `1`, owned WebView2 `6`
-- max one-core CPU: MUSU `0`, Node `0`, WebView2 `0.13`
-- working set: `500.54MB`
+- sample: `60.059s`
+- process roles: MUSU `2`, repo-related Node `0`, owned WebView2 `6`
+- max one-core CPU: MUSU `0.03`, Node `0`, WebView2 `0.08`
+- working set: `454.06MB`
 - hot process count: `0`
 
 The four-state matrix also passes from clean git state:
 
-- route token: `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_115359`
+- route token: `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_001416`
 - scenarios: `runtime-started`, `dashboard-open`, `desktop-open`, `post-route`
-- max one-core CPU peaks: WebView2 `0.16`, Node `0.05`, MUSU `0`
+- max one-core CPU peaks: WebView2 `0.16`, Node `0.03`, MUSU `0`
 - all scenarios record no hot processes and no resource budget violations
 
 Clean go/no-go after the current evidence commits reports:
@@ -98,9 +98,8 @@ Weaknesses:
 
 ## Code Audit
 
-No source code was changed in this evidence refresh; the new commits are
-evidence and documentation commits. The current source state being audited is
-the relay-idle-hardened runtime/web code from commit `77ba7a11`.
+This evidence refresh audits the source state through commit `c25c109e`,
+including the Rust target-side forwarded-task audit hardening.
 
 Current audit reading:
 
@@ -171,6 +170,34 @@ primary smoke/process/desktop-open CPU/matrix refresh are recorded. Validation
 passed `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1` and
 the focused Rust unit test
 `forwarded_task_audit_note_is_bounded_and_excludes_prompt`.
+
+2026-06-03 00:25 KST primary evidence refresh: the current packaged path has
+been re-evidenced after the forwarded-task audit hardening. Fresh MSIX
+workflow succeeded and installed
+`Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`; packaged runtime bridge health
+was restored at `http://127.0.0.1:8738`. Current single-machine smoke is
+committed at
+`docs\evidence\single-machine\1.15.0-rc.1\20260603-001225-HUGH_SECOND.evidence.json`
+with dashboard task `17241539-c53f-4bd1-b605-89546902f89f`, output
+`MUSU_RELEASE_SMOKE_OK_20260603_001203`, and CLI route checked. Desktop
+single-instance passed at
+`docs\evidence\desktop-single-instance\1.15.0-rc.1\20260603-000306-HUGH_SECOND.desktop-single-instance.json`
+with repeat count `3`, before `0`, after `1`, and new shell `1`. Process
+ownership passed at
+`docs\evidence\process-ownership\1.15.0-rc.1\20260603-000306-HUGH_SECOND.process-ownership.json`
+with runtime `1`, desktop `1`, MUSU-owned Node `0`, owned WebView2 `6`,
+machine-wide Node `19`, orphan repo helpers `0`, and bridge PID `35804`
+health HTTP `200`. Desktop-open CPU is committed at
+`docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-001200-HUGH_SECOND.desktop-open.evidence.json`
+with 60.059s, `git_dirty=false`, MUSU `0.03`, Node `0`, WebView2 `0.08`,
+working set `454.06MB`, private memory `265.8MB`, and hot `0`. Current
+four-state matrix is committed at
+`docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-001416-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+with route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_001416`; verifier
+reports `ok=true`, `fail_count=0`. The primary busy-loop report is not
+reproduced on current packaged evidence, but the release gate still correctly
+requires second-PC CPU/matrix/route, live `musu.pro` owner-scoped control-plane
+evidence, `musu@musu.pro` mailbox evidence, and Store evidence.
 
 ## Roadmap
 

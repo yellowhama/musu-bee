@@ -1804,4 +1804,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2026-06-02_p2p_forwarded_task_audit_hardening.md`, and
   `P2P forwarded-task target audit index refresh`.
 
+- 2026-06-03 post forwarded-task audit primary evidence:
+  `RELEASE_1_15_0_RC1_POST_FORWARDED_TASK_AUDIT_PRIMARY_EVIDENCE_2026_06_03.md`
+  (wiki/574) records the fresh packaged evidence refresh after commit
+  `c25c109e`. Search terms should include `GOAL v353`, `wiki/574`,
+  `20260603-001225-HUGH_SECOND`, `20260603-000306-HUGH_SECOND.desktop-single-instance`,
+  `20260603-000306-HUGH_SECOND.process-ownership`,
+  `20260603-001200-HUGH_SECOND.desktop-open`,
+  `20260603-001416-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_001416`, `machine-wide Node 19`,
+  `MUSU-owned Node 0`, and `post forwarded-task audit primary evidence`.
+
+- 2026-06-03 index refresh after post forwarded-task audit primary evidence:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1480 files and 2265 symbols after wiki/574, GOAL v353-v354, fresh primary
+  evidence files, the post forwarded-task audit primary evidence report,
+  BETA/current-head/P2P spec/WIKI updates, and CoS memory
+  `2026-06-03_post_forwarded_task_audit_primary_evidence.md`. Search terms
+  should include `GOAL v354`, `1480 files`, `2265 symbols`,
+  `20260603-001225-HUGH_SECOND`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_001416`, and
+  `post forwarded-task audit primary evidence index refresh`.
+
 **End of WIKI_INDEX.md.**

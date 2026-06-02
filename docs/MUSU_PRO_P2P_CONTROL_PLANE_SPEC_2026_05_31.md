@@ -534,3 +534,22 @@ route cannot become release-grade by simply claiming `route_kind=relay` and
 infra transit. Missing or denied lease proof remains stored as audit evidence
 with blockers such as `relay_route_missing_lease_proof`,
 `relay_route_lease_not_issued`, or `relay_route_lease_blocked`.
+
+## 2026-06-03 Post Forwarded-Task Audit Evidence Update
+
+The Rust bridge target now writes an `audit_log` row when
+`/api/tasks/forward` accepts and spawns forwarded cross-machine work. The row
+records the `ConnectInfo` peer IP, `cross_machine=true`, status `202`,
+company id, and bounded task/source/rendezvous identifiers while excluding
+prompt text, cwd, callback URL, model, and adapter metadata.
+
+Fresh primary packaged evidence after this source change confirms the local
+desktop remains quiet on `HUGH_SECOND`: desktop-open CPU records MUSU `0.03`,
+Node `0`, WebView2 `0.08`, working set `454.06MB`, private memory `265.8MB`,
+and hot `0`; process ownership records MUSU-owned Node `0` even though the
+machine has `19` machine-wide Node processes.
+
+This is local auditability and runtime-hardening evidence only. The P2P
+control-plane gate still requires production KV-backed owner-scoped relay
+lease evidence from `musu.pro`, and the route gate still requires
+release-grade two-machine transport proof.

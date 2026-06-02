@@ -1574,6 +1574,32 @@ Indexer note:
   `2265 symbols`, `forwarded_task_audit_note_is_bounded_and_excludes_prompt`,
   `/api/tasks/forward`, `cross_machine=true`, and `target-side audit`.
 
+- 2026-06-03 post forwarded-task audit primary evidence:
+  wiki/574 records fresh packaged primary evidence after source commit
+  `c25c109e`. Current evidence passes single-machine
+  `20260603-001225-HUGH_SECOND`, desktop single-instance
+  `20260603-000306-HUGH_SECOND.desktop-single-instance`, process ownership
+  `20260603-000306-HUGH_SECOND.process-ownership`, desktop-open CPU
+  `20260603-001200-HUGH_SECOND.desktop-open`, and runtime CPU matrix
+  `20260603-001416-HUGH_SECOND.runtime-cpu-scenario-matrix`. Desktop-open CPU
+  reports MUSU `0.03`, Node `0`, WebView2 `0.08`, working set `454.06MB`,
+  private memory `265.8MB`, and hot `0`; process ownership reports runtime
+  `1`, desktop `1`, MUSU-owned Node `0`, MUSU-owned WebView2 `6`,
+  machine-wide Node `19`, orphan repo helpers `0`, and bridge
+  `127.0.0.1:8738` HTTP `200`. The matrix route token is
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_001416`. Public release remains No-Go
+  on second-PC route/CPU/matrix, live P2P KV/owner scope, `musu@musu.pro`
+  mailbox evidence, and Store evidence.
+
+- 2026-06-03 index refresh after post forwarded-task audit primary evidence:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1480 files and 2265 symbols after wiki/574, GOAL v353-v354, fresh primary
+  evidence files, BETA/current-head/P2P spec updates, WIKI_INDEX updates, and
+  CoS memory `2026-06-03_post_forwarded_task_audit_primary_evidence.md`.
+  Search terms should include `GOAL v354`, `1480 files`, `2265 symbols`,
+  `20260603-001416-HUGH_SECOND`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_001416`,
+  and `post forwarded-task audit primary evidence index refresh`.
+
 ## 9. musu-system Integration State (2026-05-29)
 
 `yellowhama/musu-system` is a credible adjacent MUSU ecosystem line, not a Rust-core replacement. It contains:
