@@ -1006,6 +1006,46 @@ Indexer note:
   include `GOAL v302`, `GOAL v303`, `wiki/551`, `test:p2p`, `route-evidence`,
   `rendezvous`, `relay lease`, `owner-scoped route evidence`,
   `KV_REST_API_URL`, `KV_REST_API_TOKEN`, `1346 files`, and `2239 symbols`.
+- 2026-06-02 release gate status script failure handling:
+  wiki/552 records that `write-release-candidate-manifest.ps1` no longer
+  depends solely on `Get-FileHash`; it falls back to .NET SHA256 hashing when
+  a child Windows PowerShell host lacks that cmdlet. `write-release-go-no-go.ps1`
+  and `show-final-release-handoff-status.ps1` now expose
+  `-ScriptTimeoutSeconds` and run child verifiers through a bounded process
+  wrapper with stdout/stderr capture, elapsed time, timeout metadata, and
+  child kill on timeout. Validation: manifest generation exits 0 under
+  `powershell.exe`; `write-release-go-no-go.ps1 -ScriptTimeoutSeconds 120 -Json`
+  completes; full `show-final-release-handoff-status.ps1 -ScriptTimeoutSeconds
+  120 -Json` completes with packet/action pack verification true; forced
+  `write-release-go-no-go.ps1 -ScriptTimeoutSeconds 1 -Json` exits nonzero in
+  about 2.9s with a bounded timeout instead of hanging. Public release remains
+  No-Go on the external/evidence gates. Status-only freshness allowlists in
+  `write-release-go-no-go.ps1`, `verify-single-machine-evidence.ps1`, and
+  `verify-runtime-cpu-scenario-matrix.ps1` now include
+  `show-final-release-handoff-status.ps1` and
+  `write-release-candidate-manifest.ps1`. The same verifiers also recognize
+  the exact `test:p2p` package/workflow diff as tooling-only without broadly
+  allowing `package.json` dependency or build changes.
+- 2026-06-02 index refresh after release gate script hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1348 files and 2239 symbols after wiki/552, release gate status script
+  hardening, BETA/WIKI/WIKI_INDEX/GOAL/current-head report updates, and CoS
+  memories `2026-06-02_1425_kst_release_gate_status_script_hardening.md` and
+  `2026-06-02_1428_kst_release_gate_script_index_refresh.md`.
+  Search terms should include `GOAL v304`, `GOAL v305`, `wiki/552`,
+  `Script timed out after 1s`, `packet_verified true`,
+  `action_pack_verified true`, `write-release-go-no-go.ps1`,
+  `show-final-release-handoff-status.ps1`,
+  `write-release-candidate-manifest.ps1`, `1348 files`, and `2239 symbols`.
+- 2026-06-02 clean post-hardening go/no-go:
+  clean `write-release-go-no-go.ps1 -ScriptTimeoutSeconds 120 -Json` after the
+  release gate script hardening reports `ready=false`, `single_machine=true`,
+  runtime idle CPU `1/2`, runtime CPU scenario matrix `1/2`,
+  `process_ownership=true`,
+  `startup_single_instance=true`, `desktop_single_instance=true`, and
+  `manifest_dirty=false`. Public release blockers remain `multi-device`,
+  `runtime-idle-cpu`, `runtime-cpu-scenario-matrix`, `support-mailbox`,
+  `store-release`, and `p2p-control-plane`.
 
 ## 9. musu-system Integration State (2026-05-29)
 

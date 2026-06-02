@@ -26,6 +26,27 @@ function Get-GitValue([string[]]$Arguments) {
     return ($output | Out-String).Trim()
 }
 
+function Get-Sha256FileHash([string]$Path) {
+    $cmd = Get-Command Get-FileHash -ErrorAction SilentlyContinue
+    if ($cmd) {
+        return (Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash.ToLowerInvariant()
+    }
+
+    $stream = [System.IO.File]::Open($Path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+    try {
+        $sha = [System.Security.Cryptography.SHA256]::Create()
+        try {
+            return (($sha.ComputeHash($stream) | ForEach-Object { $_.ToString("x2") }) -join "")
+        }
+        finally {
+            $sha.Dispose()
+        }
+    }
+    finally {
+        $stream.Dispose()
+    }
+}
+
 function Get-FileArtifact([string]$Role, [string]$Path, [bool]$Required = $true) {
     if (-not (Test-Path -LiteralPath $Path)) {
         if ($Required) {
@@ -39,14 +60,14 @@ function Get-FileArtifact([string]$Role, [string]$Path, [bool]$Required = $true)
     }
 
     $item = Get-Item -LiteralPath $Path
-    $hash = Get-FileHash -Algorithm SHA256 -LiteralPath $Path
+    $hash = Get-Sha256FileHash -Path $Path
     return [pscustomobject]@{
         role = $Role
         present = $true
         path = $item.FullName
         name = $item.Name
         size_bytes = $item.Length
-        sha256 = $hash.Hash.ToLowerInvariant()
+        sha256 = $hash
         last_write_time = $item.LastWriteTime.ToString("o")
     }
 }
@@ -66,11 +87,11 @@ function Get-DirectoryArtifact([string]$Role, [string]$Path, [bool]$Required = $
     $root = (Resolve-Path -LiteralPath $Path).Path
     $files = @(Get-ChildItem -LiteralPath $root -Recurse -File | Sort-Object FullName | ForEach-Object {
         $relative = $_.FullName.Substring($root.Length + 1) -replace "\\", "/"
-        $hash = Get-FileHash -Algorithm SHA256 -LiteralPath $_.FullName
+        $hash = Get-Sha256FileHash -Path $_.FullName
         [pscustomobject]@{
             relative_path = $relative
             size_bytes = $_.Length
-            sha256 = $hash.Hash.ToLowerInvariant()
+            sha256 = $hash
         }
     })
 

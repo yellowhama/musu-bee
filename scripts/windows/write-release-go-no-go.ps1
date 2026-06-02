@@ -10,6 +10,7 @@ param(
     [int]$MinDesktopSingleInstanceMachineCount = 1,
     [string]$RequiredRuntimeIdleCpuScenario = "desktop-open",
     [string[]]$RequiredRuntimeCpuScenarioMatrixScenarios = @("runtime-started", "dashboard-open", "desktop-open", "post-route"),
+    [int]$ScriptTimeoutSeconds = 120,
     [switch]$SkipPublicMetadata,
     [switch]$FailOnNotReady,
     [switch]$Json
@@ -25,6 +26,10 @@ $version = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim(
 $supportEmail = Get-MusuReleaseSupportEmail -RepoRoot $repoRoot
 $currentGitCommit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
 
+if ($ScriptTimeoutSeconds -lt 1) {
+    throw "ScriptTimeoutSeconds must be at least 1."
+}
+
 function Invoke-JsonScript {
     param(
         [Parameter(Mandatory = $true)][string]$FilePath,
@@ -32,9 +37,75 @@ function Invoke-JsonScript {
         [switch]$AllowFailure
     )
 
-    $output = & powershell -NoProfile -ExecutionPolicy Bypass -File $FilePath @Arguments 2>&1
-    $exitCode = $LASTEXITCODE
-    $text = ($output | Out-String).Trim()
+    $processArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $FilePath) + $Arguments
+
+    function ConvertTo-ProcessArgument {
+        param([Parameter(Mandatory = $true)][AllowEmptyString()][string]$Value)
+
+        if ([string]::IsNullOrEmpty($Value)) {
+            return '""'
+        }
+        if ($Value -notmatch '[\s"]') {
+            return $Value
+        }
+        return '"' + ($Value.Replace('"', '\"')) + '"'
+    }
+
+    $watch = [Diagnostics.Stopwatch]::StartNew()
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName = "powershell.exe"
+    $startInfo.Arguments = (($processArgs | ForEach-Object { ConvertTo-ProcessArgument -Value ([string]$_) }) -join " ")
+    $startInfo.WorkingDirectory = $repoRoot
+    $startInfo.UseShellExecute = $false
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    $startInfo.CreateNoWindow = $true
+
+    $process = $null
+    $startError = $null
+    try {
+        $process = [System.Diagnostics.Process]::Start($startInfo)
+    }
+    catch {
+        $startError = $_.Exception.Message
+    }
+
+    if (-not $process) {
+        $watch.Stop()
+        if (-not $AllowFailure) {
+            throw "Script failed to start: $FilePath`n$startError"
+        }
+        return [pscustomobject]@{
+            exit_code = -1
+            timed_out = $false
+            elapsed_ms = [int]$watch.ElapsedMilliseconds
+            json = $null
+            raw = $startError
+            stderr = $startError
+        }
+    }
+
+    $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+    $stderrTask = $process.StandardError.ReadToEndAsync()
+    $completed = $process.WaitForExit($ScriptTimeoutSeconds * 1000)
+    $timedOut = -not $completed
+    if ($timedOut) {
+        try {
+            $process.Kill()
+        }
+        catch {
+        }
+        $process.WaitForExit()
+    }
+    $watch.Stop()
+
+    $exitCode = if ($timedOut) { -1 } else { $process.ExitCode }
+    try { $stdoutTask.Wait(5000) | Out-Null } catch { }
+    try { $stderrTask.Wait(5000) | Out-Null } catch { }
+    $text = if ($stdoutTask.IsCompleted) { ([string]$stdoutTask.Result).Trim() } else { "" }
+    $stderr = if ($stderrTask.IsCompleted) { ([string]$stderrTask.Result).Trim() } else { "" }
+    $rawText = @($text, $stderr) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    $raw = ($rawText -join "`n").Trim()
     $parsed = $null
     if (-not [string]::IsNullOrWhiteSpace($text)) {
         try {
@@ -42,19 +113,26 @@ function Invoke-JsonScript {
         }
         catch {
             if (-not $AllowFailure) {
-                throw "Script did not return parseable JSON: $FilePath`n$text"
+                throw "Script did not return parseable JSON: $FilePath`n$raw"
             }
         }
     }
 
+    if ($timedOut -and -not $AllowFailure) {
+        throw "Script timed out after ${ScriptTimeoutSeconds}s: $FilePath"
+    }
+
     if ($exitCode -ne 0 -and -not $AllowFailure) {
-        throw "Script failed with exit code ${exitCode}: $FilePath`n$text"
+        throw "Script failed with exit code ${exitCode}: $FilePath`n$raw"
     }
 
     [pscustomobject]@{
         exit_code = $exitCode
+        timed_out = [bool]$timedOut
+        elapsed_ms = [int]$watch.ElapsedMilliseconds
         json = $parsed
-        raw = $text
+        raw = $raw
+        stderr = $stderr
     }
 }
 
@@ -108,12 +186,61 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/verify-operator-action-pack.ps1",
         "scripts/windows/verify-runtime-cpu-scenario-matrix.ps1",
         "scripts/windows/verify-single-machine-evidence.ps1",
+        "scripts/windows/show-final-release-handoff-status.ps1",
         "scripts/windows/write-release-go-no-go.ps1",
+        "scripts/windows/write-release-candidate-manifest.ps1",
         "scripts/windows/test-release-evidence-verifiers.ps1",
         "scripts/windows/show-musu-process-attribution.ps1",
         "scripts/windows/show-musu-pro-p2p-env-status.ps1"
     )
     return ($statusOnlyScripts -contains $normalizedPath)
+}
+
+function Test-ReleaseEvidenceFreshnessAllowedDiff {
+    param(
+        [Parameter(Mandatory = $true)][string]$FromCommit,
+        [Parameter(Mandatory = $true)][string]$ToCommit,
+        [Parameter(Mandatory = $true)][string]$Path
+    )
+
+    $normalizedPath = $Path.Replace("\", "/")
+    if ($normalizedPath -notin @(".github/workflows/test.yml", "musu-bee/package.json")) {
+        return $false
+    }
+
+    $diffText = (& git -C $repoRoot diff --unified=0 $FromCommit $ToCommit -- $Path 2>$null | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($diffText)) {
+        return $false
+    }
+
+    $changedLines = @(
+        $diffText -split "`r?`n" |
+            Where-Object { ($_ -match "^[+-]") -and ($_ -notmatch "^\+\+\+") -and ($_ -notmatch "^---") }
+    )
+    if ($changedLines.Count -eq 0) {
+        return $true
+    }
+
+    if ($normalizedPath -eq ".github/workflows/test.yml") {
+        $allowed = @(
+            '^\+\s*- name: P2P control-plane tests\s*$',
+            '^\+\s*run: npm run test:p2p\s*$',
+            '^\+\s*$'
+        )
+        return (@($changedLines | Where-Object {
+            $line = [string]$_
+            -not (@($allowed | Where-Object { $line -match $_ }).Count -gt 0)
+        }).Count -eq 0)
+    }
+
+    if ($normalizedPath -eq "musu-bee/package.json") {
+        return (@($changedLines | Where-Object {
+            $line = [string]$_
+            $line -notmatch '^\+\s*"test:p2p":\s*"tsx --test src/app/api/v1/p2p/route-evidence/route\.test\.ts src/app/api/v1/p2p/rendezvous/route\.test\.ts src/app/api/v1/p2p/relay/lease/route\.test\.ts",\s*$'
+        }).Count -eq 0)
+    }
+
+    return $false
 }
 
 function Test-DocumentationOrStatusOnlyGitDelta {
@@ -135,7 +262,11 @@ function Test-DocumentationOrStatusOnlyGitDelta {
     }
 
     $changedPaths = @($changedPathsText -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
-    $runtimeAffectingPaths = @($changedPaths | Where-Object { -not (Test-ReleaseEvidenceFreshnessAllowedPath -Path ([string]$_)) })
+    $runtimeAffectingPaths = @($changedPaths | Where-Object {
+        $path = [string]$_
+        -not (Test-ReleaseEvidenceFreshnessAllowedPath -Path $path) -and
+        -not (Test-ReleaseEvidenceFreshnessAllowedDiff -FromCommit $FromCommit -ToCommit $ToCommit -Path $path)
+    })
     return ($runtimeAffectingPaths.Count -eq 0)
 }
 
@@ -530,9 +661,12 @@ $msixDesktopEntrypointVerified = (
     [bool]$msixLocalDesktopEntrypointInstalledAuditResult.json.ok
 )
 
-& powershell -NoProfile -ExecutionPolicy Bypass -File $manifestScript | Out-Null
-if ($LASTEXITCODE -ne 0) {
-    throw "Release candidate manifest generation failed."
+$manifestResult = Invoke-JsonScript -FilePath $manifestScript -AllowFailure
+if ($manifestResult.timed_out) {
+    throw "Release candidate manifest generation timed out after ${ScriptTimeoutSeconds}s."
+}
+if ($manifestResult.exit_code -ne 0) {
+    throw "Release candidate manifest generation failed.`n$($manifestResult.raw)"
 }
 $manifest = if (Test-Path -LiteralPath $manifestPath) {
     Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json

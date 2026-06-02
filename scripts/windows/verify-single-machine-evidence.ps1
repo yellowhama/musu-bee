@@ -117,12 +117,61 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/verify-operator-action-pack.ps1",
         "scripts/windows/verify-runtime-cpu-scenario-matrix.ps1",
         "scripts/windows/verify-single-machine-evidence.ps1",
+        "scripts/windows/show-final-release-handoff-status.ps1",
         "scripts/windows/write-release-go-no-go.ps1",
+        "scripts/windows/write-release-candidate-manifest.ps1",
         "scripts/windows/test-release-evidence-verifiers.ps1",
         "scripts/windows/show-musu-process-attribution.ps1",
         "scripts/windows/show-musu-pro-p2p-env-status.ps1"
     )
     return ($statusOnlyScripts -contains $normalizedPath)
+}
+
+function Test-ReleaseEvidenceFreshnessAllowedDiff {
+    param(
+        [Parameter(Mandatory = $true)][string]$FromCommit,
+        [Parameter(Mandatory = $true)][string]$ToCommit,
+        [Parameter(Mandatory = $true)][string]$Path
+    )
+
+    $normalizedPath = $Path.Replace("\", "/")
+    if ($normalizedPath -notin @(".github/workflows/test.yml", "musu-bee/package.json")) {
+        return $false
+    }
+
+    $diffText = (& git -C $repoRoot diff --unified=0 $FromCommit $ToCommit -- $Path 2>$null | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($diffText)) {
+        return $false
+    }
+
+    $changedLines = @(
+        $diffText -split "`r?`n" |
+            Where-Object { ($_ -match "^[+-]") -and ($_ -notmatch "^\+\+\+") -and ($_ -notmatch "^---") }
+    )
+    if ($changedLines.Count -eq 0) {
+        return $true
+    }
+
+    if ($normalizedPath -eq ".github/workflows/test.yml") {
+        $allowed = @(
+            '^\+\s*- name: P2P control-plane tests\s*$',
+            '^\+\s*run: npm run test:p2p\s*$',
+            '^\+\s*$'
+        )
+        return (@($changedLines | Where-Object {
+            $line = [string]$_
+            -not (@($allowed | Where-Object { $line -match $_ }).Count -gt 0)
+        }).Count -eq 0)
+    }
+
+    if ($normalizedPath -eq "musu-bee/package.json") {
+        return (@($changedLines | Where-Object {
+            $line = [string]$_
+            $line -notmatch '^\+\s*"test:p2p":\s*"tsx --test src/app/api/v1/p2p/route-evidence/route\.test\.ts src/app/api/v1/p2p/rendezvous/route\.test\.ts src/app/api/v1/p2p/relay/lease/route\.test\.ts",\s*$'
+        }).Count -eq 0)
+    }
+
+    return $false
 }
 
 function Test-DocumentationOrStatusOnlyGitDelta {
@@ -144,7 +193,11 @@ function Test-DocumentationOrStatusOnlyGitDelta {
     }
 
     $changedPaths = @($changedPathsText -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
-    $runtimeAffectingPaths = @($changedPaths | Where-Object { -not (Test-ReleaseEvidenceFreshnessAllowedPath -Path ([string]$_)) })
+    $runtimeAffectingPaths = @($changedPaths | Where-Object {
+        $path = [string]$_
+        -not (Test-ReleaseEvidenceFreshnessAllowedPath -Path $path) -and
+        -not (Test-ReleaseEvidenceFreshnessAllowedDiff -FromCommit $FromCommit -ToCommit $ToCommit -Path $path)
+    })
     return ($runtimeAffectingPaths.Count -eq 0)
 }
 

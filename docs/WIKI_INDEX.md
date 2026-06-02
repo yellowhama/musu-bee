@@ -1346,5 +1346,28 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `1346 files`, `2239 symbols`,
   `2026-06-02_1357_kst_p2p_control_plane_ci_coverage.md`, `test:p2p`,
   and `P2P control-plane tests`.
+- 2026-06-02 release gate status script failure handling:
+  wiki/552 records `-ScriptTimeoutSeconds`, bounded child verifier execution,
+  `.NET ProcessStartInfo`, `.NET SHA256` fallback, `Get-FileHash` fallback,
+  `write-release-go-no-go.ps1`, `show-final-release-handoff-status.ps1`, and
+  `write-release-candidate-manifest.ps1`. Search terms should include
+  `GOAL v304`, `wiki/552`, `Script timed out after 1s`,
+  `packet_verified true`, `action_pack_verified true`, and
+  `release gate status script failure handling`, plus
+  `verify-single-machine-evidence.ps1` and
+  `verify-runtime-cpu-scenario-matrix.ps1` freshness allowlists, and
+  `test:p2p package workflow tooling-only diff`.
+- 2026-06-02 index refresh after release gate status script hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1348 files and 2239 symbols. Search terms should include `GOAL v305`,
+  `1348 files`, `2239 symbols`,
+  `2026-06-02_1425_kst_release_gate_status_script_hardening.md`,
+  `-ScriptTimeoutSeconds`, and `.NET ProcessStartInfo`.
+- 2026-06-02 clean post-hardening go/no-go:
+  GOAL v306 records clean post-hardening go/no-go, `single_machine=true`,
+  runtime idle CPU `1/2`, runtime CPU scenario matrix `1/2`,
+  `manifest_dirty=false`, and blockers `multi-device`, `runtime-idle-cpu`,
+  `runtime-cpu-scenario-matrix`, `support-mailbox`, `store-release`, and
+  `p2p-control-plane`.
 
 **End of WIKI_INDEX.md.**

@@ -6,6 +6,7 @@ param(
     [switch]$SkipPacketVerification,
     [string]$ActionPackPath,
     [switch]$SkipActionPackVerification,
+    [int]$ScriptTimeoutSeconds = 120,
     [switch]$Json
 )
 
@@ -18,6 +19,10 @@ $repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
 $version = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
 $supportEmail = Get-MusuReleaseSupportEmail -RepoRoot $repoRoot
 $safeVersion = $version -replace "[^A-Za-z0-9._-]", "_"
+
+if ($ScriptTimeoutSeconds -lt 1) {
+    throw "ScriptTimeoutSeconds must be at least 1."
+}
 
 if ([string]::IsNullOrWhiteSpace($PacketPath)) {
     $PacketPath = Join-Path $repoRoot ".local-build\final-operator-gates\musu-final-operator-gates-$safeVersion-latest.zip"
@@ -33,9 +38,75 @@ function Invoke-JsonScript {
         [switch]$AllowFailure
     )
 
-    $output = & powershell -NoProfile -ExecutionPolicy Bypass -File $FilePath @Arguments 2>&1
-    $exitCode = $LASTEXITCODE
-    $text = ($output | Out-String).Trim()
+    $processArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $FilePath) + $Arguments
+
+    function ConvertTo-ProcessArgument {
+        param([Parameter(Mandatory = $true)][AllowEmptyString()][string]$Value)
+
+        if ([string]::IsNullOrEmpty($Value)) {
+            return '""'
+        }
+        if ($Value -notmatch '[\s"]') {
+            return $Value
+        }
+        return '"' + ($Value.Replace('"', '\"')) + '"'
+    }
+
+    $watch = [Diagnostics.Stopwatch]::StartNew()
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName = "powershell.exe"
+    $startInfo.Arguments = (($processArgs | ForEach-Object { ConvertTo-ProcessArgument -Value ([string]$_) }) -join " ")
+    $startInfo.WorkingDirectory = $repoRoot
+    $startInfo.UseShellExecute = $false
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    $startInfo.CreateNoWindow = $true
+
+    $process = $null
+    $startError = $null
+    try {
+        $process = [System.Diagnostics.Process]::Start($startInfo)
+    }
+    catch {
+        $startError = $_.Exception.Message
+    }
+
+    if (-not $process) {
+        $watch.Stop()
+        if (-not $AllowFailure) {
+            throw "Script failed to start: $FilePath`n$startError"
+        }
+        return [pscustomobject]@{
+            exit_code = -1
+            timed_out = $false
+            elapsed_ms = [int]$watch.ElapsedMilliseconds
+            json = $null
+            raw = $startError
+            stderr = $startError
+        }
+    }
+
+    $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+    $stderrTask = $process.StandardError.ReadToEndAsync()
+    $completed = $process.WaitForExit($ScriptTimeoutSeconds * 1000)
+    $timedOut = -not $completed
+    if ($timedOut) {
+        try {
+            $process.Kill()
+        }
+        catch {
+        }
+        $process.WaitForExit()
+    }
+    $watch.Stop()
+
+    $exitCode = if ($timedOut) { -1 } else { $process.ExitCode }
+    try { $stdoutTask.Wait(5000) | Out-Null } catch { }
+    try { $stderrTask.Wait(5000) | Out-Null } catch { }
+    $text = if ($stdoutTask.IsCompleted) { ([string]$stdoutTask.Result).Trim() } else { "" }
+    $stderr = if ($stderrTask.IsCompleted) { ([string]$stderrTask.Result).Trim() } else { "" }
+    $rawText = @($text, $stderr) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    $raw = ($rawText -join "`n").Trim()
     $parsed = $null
 
     if (-not [string]::IsNullOrWhiteSpace($text)) {
@@ -44,19 +115,26 @@ function Invoke-JsonScript {
         }
         catch {
             if (-not $AllowFailure) {
-                throw "Script did not return parseable JSON: $FilePath`n$text"
+                throw "Script did not return parseable JSON: $FilePath`n$raw"
             }
         }
     }
 
+    if ($timedOut -and -not $AllowFailure) {
+        throw "Script timed out after ${ScriptTimeoutSeconds}s: $FilePath"
+    }
+
     if ($exitCode -ne 0 -and -not $AllowFailure) {
-        throw "Script failed with exit code ${exitCode}: $FilePath`n$text"
+        throw "Script failed with exit code ${exitCode}: $FilePath`n$raw"
     }
 
     [pscustomobject]@{
         exit_code = $exitCode
+        timed_out = [bool]$timedOut
+        elapsed_ms = [int]$watch.ElapsedMilliseconds
         json = $parsed
-        raw = $text
+        raw = $raw
+        stderr = $stderr
     }
 }
 
@@ -115,6 +193,7 @@ if ($SkipPublicMetadata) {
 else {
     $goNoGoArgs += @("-PublicMetadataBaseUrl", $PublicMetadataBaseUrl)
 }
+$goNoGoArgs += @("-ScriptTimeoutSeconds", ([string]$ScriptTimeoutSeconds))
 $goNoGo = (Invoke-JsonScript -FilePath (Join-Path $scriptDir "write-release-go-no-go.ps1") -Arguments $goNoGoArgs).json
 
 $packetExists = Test-Path -LiteralPath $PacketPath
@@ -235,7 +314,7 @@ $storeRoots = @(
 )
 
 $commands = [pscustomobject]@{
-    show_status = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-final-release-handoff-status.ps1"
+    show_status = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-final-release-handoff-status.ps1 -ScriptTimeoutSeconds $ScriptTimeoutSeconds"
     prepare_packet = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\prepare-final-operator-gate-packet.ps1 -IncludeDesktopShell"
     verify_packet = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-final-operator-gate-packet.ps1 -PacketPath .local-build\final-operator-gates\musu-final-operator-gates-$safeVersion-latest.zip -Json"
     prepare_action_pack = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\prepare-operator-action-pack.ps1 -Json"
@@ -264,7 +343,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-fin
   -FailOnNotReady `
   -Json
 "@
-    go_no_go = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json"
+    go_no_go = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -ScriptTimeoutSeconds $ScriptTimeoutSeconds -Json"
 }
 
 $operatorSteps = New-Object System.Collections.Generic.List[object]

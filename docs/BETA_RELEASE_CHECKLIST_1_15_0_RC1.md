@@ -721,6 +721,19 @@ Tauri desktop shell evidence:
   `git diff --check`. This is CI hardening only; the live release gate remains
   blocked until production KV env is configured and `musu.pro` owner-scope P2P
   evidence passes.
+- 2026-06-02 14:25 KST release gate status script failure handling:
+  `write-release-candidate-manifest.ps1` now falls back to .NET SHA256 when a
+  child Windows PowerShell host lacks `Get-FileHash`. `write-release-go-no-go.ps1`
+  and `show-final-release-handoff-status.ps1` now accept
+  `-ScriptTimeoutSeconds` and bound child verifier execution. Validation passed
+  manifest generation under `powershell.exe`, `write-release-go-no-go.ps1
+  -ScriptTimeoutSeconds 120 -Json`, full `show-final-release-handoff-status.ps1
+  -ScriptTimeoutSeconds 120 -Json`, and a forced 1s timeout fail-fast test.
+  Status-only freshness allowlists were also updated in go/no-go,
+  single-machine, and runtime-matrix verifiers for the new status scripts and
+  the exact `test:p2p` package/workflow tooling-only diff.
+  This is release-gate failure handling only; it does not close second-PC,
+  P2P, support mailbox, or Store evidence gates.
 
 Release candidate manifest:
 
@@ -740,6 +753,8 @@ npm run build
 cargo check --manifest-path .\musu-rs\Cargo.toml -j 1
 cargo clippy --manifest-path .\musu-rs\Cargo.toml --all-targets -j 1 -- -D warnings
 cargo test --manifest-path .\musu-rs\Cargo.toml --lib -- --test-threads=1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -ScriptTimeoutSeconds 120 -Json
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-final-release-handoff-status.ps1 -ScriptTimeoutSeconds 120 -Json
 ```
 
 Run the low-resource integration bundle before tagging:

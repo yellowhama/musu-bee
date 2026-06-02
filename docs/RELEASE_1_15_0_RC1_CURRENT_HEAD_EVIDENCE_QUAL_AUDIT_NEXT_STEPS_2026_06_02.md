@@ -261,3 +261,46 @@ This does not change the public release verdict. Live `musu.pro` P2P evidence
 is still No-Go until production KV credentials (`KV_REST_API_URL` and
 `KV_REST_API_TOKEN`) are provisioned and owner-scope evidence passes without
 `-AllowUnverified`.
+
+## 2026-06-02 14:25 KST Release Gate Script Hardening Update
+
+The previous status check surfaced a local release-operations bug: the
+go/no-go and handoff status scripts could block indefinitely or fail unclearly
+when a child verifier or manifest generator misbehaved.
+
+Fixes:
+
+- `write-release-candidate-manifest.ps1` now falls back to .NET SHA256 hashing
+  when `Get-FileHash` is missing in the child Windows PowerShell host.
+- `write-release-go-no-go.ps1` and `show-final-release-handoff-status.ps1`
+  now accept `-ScriptTimeoutSeconds`.
+- Child verifier execution is bounded with `.NET ProcessStartInfo`, stdout and
+  stderr capture, elapsed time, timeout metadata, and child process kill on
+  timeout.
+- Status-only script paths now include `show-final-release-handoff-status.ps1`
+  and `write-release-candidate-manifest.ps1` in go/no-go, single-machine, and
+  runtime-matrix evidence freshness handling.
+- The exact `test:p2p` `package.json` and GitHub Actions diff is treated as
+  tooling-only without broadly allowing dependency or build-script changes.
+
+Validation:
+
+- `write-release-candidate-manifest.ps1` exits 0 under `powershell.exe`.
+- `write-release-go-no-go.ps1 -ScriptTimeoutSeconds 120 -Json` completes.
+- The current dirty-tree go/no-go after the freshness fix reports
+  `single_machine=true`, runtime idle CPU `1/2`, runtime matrix `1/2`,
+  process/startup/desktop single-instance true, and release No-Go on
+  second-PC/P2P/support/Store plus dirty git.
+- Clean post-hardening go/no-go reports
+  `single_machine=true`, runtime idle CPU `1/2`, runtime matrix `1/2`,
+  process/startup/desktop single-instance true, `manifest_dirty=false`, and
+  release No-Go on second-PC/P2P/support/Store gates.
+- Full `show-final-release-handoff-status.ps1 -ScriptTimeoutSeconds 120 -Json`
+  completes with `packet_verified=true` and `action_pack_verified=true`.
+- Forced `write-release-go-no-go.ps1 -ScriptTimeoutSeconds 1 -Json` exits
+  nonzero in about 2.9s with `Script timed out after 1s`, proving fail-fast
+  behavior instead of hang.
+
+Verdict remains **No-Go**. This improves release gate failure handling only;
+second-PC CPU/matrix/route, live P2P KV owner-scope, `musu@musu.pro`, and Store
+evidence are still required.
