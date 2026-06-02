@@ -2178,4 +2178,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `wiki/590 index refresh`, `relay_lease_store_backend`, and
   `p2p relay lease store status index refresh`.
 
+- 2026-06-03 post relay-store-status live P2P evidence:
+  `RELEASE_1_15_0_RC1_POST_RELAY_STORE_STATUS_LIVE_P2P_EVIDENCE_2026_06_03.md`
+  (wiki/591) records live `musu.pro` evidence captured with current-source
+  debug CLI `.\musu-rs\target\debug\musu.exe`. Search terms should include
+  `GOAL v389`, `wiki/591`, `20260603-061246-musu.pro`,
+  `musu_exe_source=parameter`, `relay_lease_store_backend=unconfigured`,
+  `relay_lease_store_release_grade=false`, `fail_count=6`, and
+  `p2p_relay_lease_kv_not_configured`.
+
+- 2026-06-03 post relay-store-status live P2P evidence index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1596 files and 2279 symbols after GOAL v389-v390, wiki/591, fresh
+  P2P evidence `20260603-061246-musu.pro`, BETA/WIKI/WIKI_INDEX updates, and
+  CoS memories `2026-06-03_post_relay_store_status_live_p2p_evidence.md` and
+  `2026-06-03_post_relay_store_status_live_p2p_index_refresh.md`. Search terms
+  should include `GOAL v390`, `1596 files`, `2279 symbols`,
+  `wiki/591 index refresh`, `20260603-061246-musu.pro`,
+  `relay_lease_store_backend=unconfigured`, and
+  `relay_lease_store_release_grade=false`.
+
 **End of WIKI_INDEX.md.**

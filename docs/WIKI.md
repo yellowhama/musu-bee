@@ -2044,3 +2044,36 @@ Canonical reference:
 
 Index refresh after wiki/590 recorded `1590` files and `2279` symbols using the
 explicit packaged WindowsApps alias invocation.
+
+## 21. Post Relay Store Status Live P2P Evidence (2026-06-03)
+
+wiki/591 records fresh live `musu.pro` P2P control-plane evidence after the
+relay lease store status hardening was deployed. The evidence used a freshly
+built current-source debug CLI, passed via `-MusuExe
+.\musu-rs\target\debug\musu.exe`, so the new CLI error-body parsing fields are
+present in the artifact.
+
+Artifacts:
+
+- `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-061246-musu.pro.evidence.json`
+- `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-061246-musu.pro.verification.json`
+- `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-061246-musu.pro.summary.md`
+
+Result: verification remains `ok=false` with `fail_count=6`.
+`relay_status_logged_in=true`, `relay_default_data_path=false`, but relay lease
+query is not ok, owner scope is not verified, and store status is
+`relay_lease_store_configured=false`,
+`relay_lease_store_backend=unconfigured`, and
+`relay_lease_store_release_grade=false`.
+
+The live error remains `p2p_relay_lease_kv_not_configured`; the new value is
+that the live evidence now explicitly proves unconfigured release-grade storage
+instead of only surfacing a generic lease-query failure.
+
+Canonical reference:
+
+- `docs/RELEASE_1_15_0_RC1_POST_RELAY_STORE_STATUS_LIVE_P2P_EVIDENCE_2026_06_03.md`
+- `docs/memory/chief_of_staff/2026-06-03_post_relay_store_status_live_p2p_evidence.md`
+
+Index refresh after wiki/591 recorded `1596` files and `2279` symbols using the
+explicit packaged WindowsApps alias invocation.

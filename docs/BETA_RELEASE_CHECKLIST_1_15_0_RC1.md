@@ -1751,3 +1751,35 @@ Release result remains No-Go: `local_artifacts_ready=True`,
 `single_machine_verified=True`, runtime idle CPU `1/2`, runtime CPU matrix
 `1/2`, P2P still blocked by `p2p_relay_lease_kv_not_configured`, and
 support/Store evidence are still missing.
+
+## 2026-06-03 06:12 KST Post Relay Store Status Live P2P Evidence
+
+After the relay lease store status hardening was deployed, current-source CLI
+evidence was recorded with:
+
+```powershell
+cargo build --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-p2p-control-plane-evidence.ps1 -MusuExe .\musu-rs\target\debug\musu.exe -AllowUnverified -Json
+```
+
+Fresh P2P artifacts:
+
+- evidence:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-061246-musu.pro.evidence.json`
+- verification:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-061246-musu.pro.verification.json`
+- summary:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-061246-musu.pro.summary.md`
+
+Verification remains failed with `ok=false`, `fail_count=6`:
+`relay_status_logged_in=true`, `relay_leases_ok=false`,
+`owner_scope_verified=false`, `owner_scoped=false`,
+`relay_default_data_path=false`, `relay_lease_store_configured=false`,
+`relay_lease_store_backend=unconfigured`, and
+`relay_lease_store_release_grade=false`.
+
+The remaining live P2P blocker is production KV/Upstash provisioning:
+`p2p_relay_lease_kv_not_configured`. Relay payload transport remains unwired,
+so even after owner-scoped relay lease storage is configured, relay payload
+transit evidence is still required before `route_kind=relay` can be treated as
+release-grade.
