@@ -84,3 +84,29 @@ The public release blockers are unchanged:
 - live `musu.pro` owner-scoped P2P control-plane evidence
 - `musu@musu.pro` mailbox evidence
 - Store/Partner Center evidence
+
+## Packaged Evidence Refresh
+
+After this source change landed, the release MSIX was rebuilt and installed
+again on `HUGH_SECOND` as
+`Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`.
+
+The explicit WindowsApps alias path was used for packaged CLI proof:
+
+```powershell
+C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe up --json --timeout-sec 20
+C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe down --json --timeout-sec 5
+```
+
+Packaged stop/down result:
+
+- `up` started bridge PID `37660`
+- `down` returned `ok=true`
+- `terminate_attempted=true`
+- `terminate_requested=true`
+- `registry_deregistered=true`
+- `pid_alive_after=false`
+
+Fresh current-head primary evidence is documented in:
+
+- `docs\RELEASE_1_15_0_RC1_POST_STOP_COMMAND_PRIMARY_EVIDENCE_2026_06_02.md`

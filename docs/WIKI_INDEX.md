@@ -1514,4 +1514,27 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `GOAL v322`, `1382 files`, `2245 symbols`, `musu.stop_report.v1`,
   `run_stop`, `StopOpts`, and `wait_for_pid_exit`.
 
+- 2026-06-02 post-stop/down primary evidence refresh:
+  wiki/560 records fresh primary packaged evidence after commit `d6f37ed5`.
+  Search terms should include `GOAL v323`, `wiki/560`,
+  `20260602-181009-HUGH_SECOND`, `20260602-181022-HUGH_SECOND`,
+  `20260602-181230-HUGH_SECOND.desktop-open`,
+  `20260602-181343-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_181343`,
+  `69fdafb2-1e99-4c6d-9345-537257eb4db0`, `http://127.0.0.1:11739`,
+  `musu.stop_report.v1`, `registry_deregistered=true`,
+  `pid_alive_after=false`, `MUSU-owned Node 0`, `machine-wide Node 18`,
+  `WebView2 0.18`, `working set 497.34MB`, `busy-loop not reproduced`, and
+  `post-stop/down primary evidence`.
+
+- 2026-06-02 index refresh after post-stop/down primary evidence:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1396 files and 2245 symbols after wiki/560, GOAL v323/v324, post-stop/down
+  primary evidence docs, current-head report, runtime hardening roadmap, BETA
+  checklist, runtime stop command report, new evidence files, and CoS memory.
+  Search terms should include `GOAL v324`, `1396 files`, `2245 symbols`,
+  `RELEASE_1_15_0_RC1_POST_STOP_COMMAND_PRIMARY_EVIDENCE_2026_06_02.md`,
+  `2026-06-02_1820_kst_post_stop_down_primary_evidence_refresh.md`, and
+  `post-stop/down primary evidence index refresh`.
+
 **End of WIKI_INDEX.md.**

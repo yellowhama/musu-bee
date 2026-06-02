@@ -691,3 +691,53 @@ Release meaning:
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RUNTIME_STOP_COMMAND_HARDENING_2026_06_02.md`
+
+## 2026-06-02 18:20 KST Post Stop/Down Primary Evidence Refresh
+
+After the runtime stop/down source change, the release MSIX was rebuilt and
+installed again. Current HEAD primary evidence is restored for
+`d6f37ed58d543b5e98b4d71ce1b0b07405a730e3`.
+
+Fresh evidence:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-181009-HUGH_SECOND.evidence.json`
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-181022-HUGH_SECOND.desktop-single-instance.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-181022-HUGH_SECOND.process-ownership.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-181230-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-181343-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Result:
+
+- packaged `musu down --json` was verified through the WindowsApps alias and
+  stopped the registered bridge with `registry_deregistered=true` and
+  `pid_alive_after=false`
+- single-machine smoke passed with task
+  `69fdafb2-1e99-4c6d-9345-537257eb4db0`, bridge `http://127.0.0.1:11739`,
+  and output `MUSU_RELEASE_SMOKE_OK_20260602_180946`
+- desktop repeated activation passed with one final desktop shell
+- process ownership passed with runtime `1`, desktop `1`, MUSU-owned Node `0`,
+  MUSU-owned WebView2 `7`, machine-wide Node `18`, orphan repo helpers `0`
+- desktop-open CPU passed with MUSU `0`, repo Node `0`, WebView2 `0.18`,
+  working set `497.34MB`, hot `0`
+- runtime matrix passed with route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_181343`
+
+Qualitative verdict:
+
+- Single-machine Windows beta remains strong and current.
+- The reported primary busy-loop is not reproduced in current packaged
+  evidence.
+- Machine-wide Node count is still visible, but current evidence attributes
+  zero Node helpers to MUSU.
+- Public release remains No-Go until second-PC CPU/matrix/route evidence, live
+  `musu.pro` P2P owner-scope evidence, `musu@musu.pro` mailbox evidence, and
+  Store evidence are recorded.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_STOP_COMMAND_PRIMARY_EVIDENCE_2026_06_02.md`

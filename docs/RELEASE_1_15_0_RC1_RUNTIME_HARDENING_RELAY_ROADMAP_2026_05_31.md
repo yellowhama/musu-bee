@@ -1116,3 +1116,40 @@ Roadmap impact:
   processes behind.
 - It does not close release gates and makes current primary MSIX evidence stale
   until the package/evidence is rebuilt and refreshed after commit.
+
+## 2026-06-02 Post Stop/Down Primary Evidence Refresh
+
+The runtime stop/down command has now been included in a rebuilt and installed
+primary release MSIX on `HUGH_SECOND`.
+
+Fresh evidence:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-181009-HUGH_SECOND.evidence.json`
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-181022-HUGH_SECOND.desktop-single-instance.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-181022-HUGH_SECOND.process-ownership.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-181230-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-181343-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Runtime result:
+
+- packaged `musu down --json` cleanly stopped the registered bridge and
+  deregistered it
+- desktop-open CPU: 60.04s sample, MUSU `0`, repo Node `0`, WebView2 `0.18`,
+  working set `497.34MB`, hot `0`
+- runtime matrix: token `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_181343`, all four
+  scenarios passed under 5%-of-one-core
+- process ownership: runtime `1`, desktop `1`, MUSU-owned Node `0`,
+  MUSU-owned WebView2 `7`, machine-wide Node `18`
+
+Roadmap status:
+
+- Primary busy-loop is not reproduced after the stop/down source change.
+- Runtime CPU and matrix gates remain `1/2`; the second Windows PC is still the
+  next evidence step.
+- P2P/relay public claims remain blocked on live `musu.pro` owner-scoped
+  control-plane evidence and release-grade two-machine route proof.
