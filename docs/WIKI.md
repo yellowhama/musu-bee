@@ -1843,3 +1843,36 @@ Canonical reference:
 - `docs/RELEASE_1_15_0_RC1_POLLING_INTERVAL_CLAMP_PRIMARY_EVIDENCE_2026_06_03.md`
 - `docs/memory/chief_of_staff/2026-06-03_polling_interval_clamp_primary_evidence.md`
 - `docs/memory/chief_of_staff/2026-06-03_polling_interval_clamp_index_refresh.md`
+
+## 14. MSIX Alias Shadowing Hardening (2026-06-03)
+
+wiki/584 records a release-tooling correction: true PATH alias shadowing is now
+separated from later alternate `musu.exe` binaries. `msix-common.ps1` records
+alias order, WindowsApps alias presence/discovery, first alias path, alternate
+alias sources, and true alias shadowing. `check-msix-legacy-conflicts.ps1`,
+`capture-msix-install-evidence.ps1`, and `verify-installed-msix-package.ps1`
+surface explicit packaged invocation and remediation fields.
+
+Current local alias state remains:
+
+- first alias path `C:\Users\empty\.cargo\bin\musu.exe`
+- WindowsApps alias
+  `C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe`
+- explicit packaged invocation:
+  `& "C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe"`
+
+Validation showed the installed MSIX package, manifest, Start menu entry, alias
+contract, and artifact contract match. `audit-desktop-release-readiness.ps1`
+now reports `runtime_package_ready=True`, `desktop_shell_ready=True`, and
+`single_machine_verified=True`. `write-release-go-no-go.ps1` reports
+`local_artifacts_ready=True`; public release remains No-Go on second-PC route,
+runtime CPU 2/2, live `musu.pro` P2P owner scope, `musu@musu.pro`, and Store
+evidence.
+
+Canonical reference:
+
+- `docs/RELEASE_1_15_0_RC1_MSIX_ALIAS_SHADOWING_HARDENING_2026_06_03.md`
+- `docs/memory/chief_of_staff/2026-06-03_msix_alias_shadowing_hardening.md`
+
+Index refresh after wiki/584 recorded `1555` files and `2274` symbols using the
+explicit packaged WindowsApps alias invocation.

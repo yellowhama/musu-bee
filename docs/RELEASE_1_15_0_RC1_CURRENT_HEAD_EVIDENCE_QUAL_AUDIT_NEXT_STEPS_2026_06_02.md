@@ -1400,3 +1400,38 @@ Current operator handoff was regenerated from HEAD `35eb9352`:
 
 Final packet and action pack verification both pass with `ok=true` and
 `fail_count=0`.
+
+## 2026-06-03 04:25 KST MSIX Alias Shadowing Hardening
+
+The MSIX release tooling now distinguishes true PATH alias shadowing from other
+visible `musu.exe` binaries. `AliasShadowing` is populated only when the first
+resolved `musu.exe` appears before the WindowsApps execution alias; later
+alternate binaries are recorded as `alternate_alias_sources` for operator
+visibility.
+
+Current developer-machine finding:
+
+- first alias path: `C:\Users\empty\.cargo\bin\musu.exe`
+- packaged alias path:
+  `C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe`
+- explicit packaged invocation:
+  `& "C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe"`
+
+Validation:
+
+- `check-msix-legacy-conflicts.ps1 -Json` reports
+  `alias_shadowing_count=1` and the exact `first_alias_path`.
+- `verify-installed-msix-package.ps1` confirms the installed package, manifest,
+  Start menu entry, alias contract, and artifact contract match.
+- `capture-msix-install-evidence.ps1 -Json` records alias order and remediation.
+- `audit-desktop-release-readiness.ps1 -Json` now reports
+  `runtime_package_ready=True`, `desktop_shell_ready=True`, and
+  `single_machine_verified=True`.
+- `write-release-go-no-go.ps1 -ScriptTimeoutSeconds 120` reports
+  `local_artifacts_ready=True`; public release remains No-Go on second-PC,
+  runtime CPU 2/2, P2P control-plane, support mailbox, Store, and temporary
+  dirty-git gates before commit.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_MSIX_ALIAS_SHADOWING_HARDENING_2026_06_03.md`

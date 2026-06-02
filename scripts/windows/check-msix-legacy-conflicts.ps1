@@ -55,7 +55,25 @@ $scheduledTaskCount = @($conflicts.ScheduledTasks).Count
 $disabledTaskCount = @($conflicts.DisabledScheduledTasks).Count
 $legacyBinCount = @($conflicts.LegacyBins).Count
 $aliasShadowingCount = @($conflicts.AliasShadowing).Count
-$windowsAppsAliasPresent = -not [string]::IsNullOrWhiteSpace([string]$conflicts.WindowsAppsAlias) -and (Test-Path -LiteralPath $conflicts.WindowsAppsAlias)
+$alternateAliasCount = @($conflicts.AlternateAliasSources).Count
+$windowsAppsAliasPresent = if ($conflicts.PSObject.Properties["WindowsAppsAliasPresent"]) {
+    [bool]$conflicts.WindowsAppsAliasPresent
+}
+else {
+    -not [string]::IsNullOrWhiteSpace([string]$conflicts.WindowsAppsAlias) -and (Test-Path -LiteralPath $conflicts.WindowsAppsAlias)
+}
+$windowsAppsAliasInvocation = if ($windowsAppsAliasPresent) {
+    "& `"$($conflicts.WindowsAppsAlias)`""
+}
+else {
+    $null
+}
+$aliasRemediation = if ($aliasShadowingCount -gt 0) {
+    "Move '$env:LOCALAPPDATA\Microsoft\WindowsApps' before the shadowing PATH entry, or invoke the packaged app explicitly with $windowsAppsAliasInvocation. Do not delete developer binaries unless the operator intentionally retires that toolchain."
+}
+else {
+    $null
+}
 
 Add-CheckFromCondition -Checks $checks -Name "scheduled task probe" -Condition (-not [bool]$conflicts.ScheduledTaskProbeTimedOut -and [string]::IsNullOrWhiteSpace([string]$conflicts.ScheduledTaskProbeError)) -PassMessage "scheduled tasks were enumerated" -FailMessage "scheduled task probe failed or timed out"
 Add-CheckFromCondition -Checks $checks -Name "active startup helpers" -Condition ($startupHelperCount -eq 0) -PassMessage "no active legacy startup folder helpers" -FailMessage "$startupHelperCount active legacy startup folder helper(s) found"
@@ -80,9 +98,15 @@ $result = [pscustomobject]@{
     scheduled_task_probe_error = $conflicts.ScheduledTaskProbeError
     legacy_bin_count = $legacyBinCount
     alias_shadowing_count = $aliasShadowingCount
+    alternate_alias_count = $alternateAliasCount
     windowsapps_alias_path = $conflicts.WindowsAppsAlias
     windowsapps_alias_present = $windowsAppsAliasPresent
+    windowsapps_alias_discovered = if ($conflicts.PSObject.Properties["WindowsAppsAliasDiscovered"]) { [bool]$conflicts.WindowsAppsAliasDiscovered } else { $null }
+    windowsapps_alias_invocation = $windowsAppsAliasInvocation
+    first_alias_path = if ($conflicts.PSObject.Properties["FirstAliasPath"]) { $conflicts.FirstAliasPath } else { $null }
+    alias_remediation = $aliasRemediation
     alias_sources = @($conflicts.AliasSources)
+    alternate_alias_sources = @($conflicts.AlternateAliasSources)
     alias_shadowing = @($conflicts.AliasShadowing)
     startup_helpers = @($conflicts.StartupHelpers | Select-Object Name, FullName)
     disabled_startup_helpers = @($conflicts.DisabledStartupHelpers | Select-Object Name, FullName)
@@ -124,6 +148,12 @@ if ($Json) {
     ScheduledTaskProbeError    = $conflicts.ScheduledTaskProbeError
 } | Format-List
 
+if (-not [string]::IsNullOrWhiteSpace([string]$windowsAppsAliasInvocation)) {
+    Write-Host ""
+    Write-Host "Packaged WindowsApps alias invocation:"
+    Write-Host $windowsAppsAliasInvocation
+}
+
 if (@($conflicts.StartupHelpers).Count -gt 0) {
     Write-Host ""
     Write-Host "Startup folder helpers:"
@@ -158,6 +188,17 @@ if (@($conflicts.AliasShadowing).Count -gt 0) {
     Write-Host ""
     Write-Host "PATH entries shadowing the WindowsApps alias:"
     $conflicts.AliasShadowing | ForEach-Object { Write-Host $_ }
+    if (-not [string]::IsNullOrWhiteSpace([string]$aliasRemediation)) {
+        Write-Host ""
+        Write-Host "Alias remediation:"
+        Write-Host $aliasRemediation
+    }
+}
+
+if (@($conflicts.AlternateAliasSources).Count -gt 0) {
+    Write-Host ""
+    Write-Host "Other musu.exe entries visible in PATH:"
+    $conflicts.AlternateAliasSources | ForEach-Object { Write-Host $_ }
 }
 
 if ($FailOnProblem -and -not [bool]$result.ok) {

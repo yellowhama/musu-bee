@@ -241,8 +241,17 @@ function Get-MusuLegacyWindowsConflicts() {
 
     $windowsAppsAliasPath = Join-Path $env:LOCALAPPDATA "Microsoft\WindowsApps\musu.exe"
     $aliasCommands = @(Get-Command musu.exe -All -ErrorAction SilentlyContinue)
-    $aliasSources = @($aliasCommands | ForEach-Object { $_.Source })
-    $shadowingSources = @($aliasSources | Where-Object { $_ -ne $windowsAppsAliasPath })
+    $aliasSources = @($aliasCommands | ForEach-Object { $_.Source } | Where-Object {
+        -not [string]::IsNullOrWhiteSpace([string]$_)
+    })
+    $windowsAppsAliasPresent = Test-Path -LiteralPath $windowsAppsAliasPath
+    $windowsAppsAliasDiscovered = @($aliasSources | Where-Object { $_ -eq $windowsAppsAliasPath })
+    $firstAliasPath = if ($aliasSources.Count -gt 0) { $aliasSources[0] } else { $null }
+    $alternateAliasSources = @($aliasSources | Where-Object { $_ -ne $windowsAppsAliasPath })
+    $shadowingSources = @()
+    if (-not [string]::IsNullOrWhiteSpace([string]$firstAliasPath) -and $firstAliasPath -ne $windowsAppsAliasPath) {
+        $shadowingSources = @($firstAliasPath)
+    }
 
     return [pscustomobject]@{
         StartupHelpers         = $startupHelpers
@@ -254,6 +263,10 @@ function Get-MusuLegacyWindowsConflicts() {
         LegacyBins             = $legacyBins
         AliasSources           = $aliasSources
         WindowsAppsAlias       = $windowsAppsAliasPath
+        WindowsAppsAliasPresent = $windowsAppsAliasPresent
+        WindowsAppsAliasDiscovered = ($windowsAppsAliasDiscovered.Count -gt 0)
+        FirstAliasPath         = $firstAliasPath
+        AlternateAliasSources  = $alternateAliasSources
         AliasShadowing         = $shadowingSources
         ConflictCount          = @($startupHelpers).Count + @($scheduledTasks).Count + @($legacyBins).Count + @($shadowingSources).Count
     }

@@ -109,6 +109,7 @@ $aliasResolutionOrder = @($aliasCommands | ForEach-Object { $_.Source }) -join "
 $legacyConflicts = Get-MusuLegacyWindowsConflicts
 $activeStartupConflictCount = @($legacyConflicts.StartupHelpers).Count + @($legacyConflicts.ScheduledTasks).Count + @($legacyConflicts.LegacyBins).Count
 $aliasShadowingCount = @($legacyConflicts.AliasShadowing).Count
+$alternateAliasCount = @($legacyConflicts.AlternateAliasSources).Count
 
 [pscustomobject]@{
     PackageName              = $pkg.Name
@@ -134,9 +135,12 @@ $aliasShadowingCount = @($legacyConflicts.AliasShadowing).Count
     FirstAliasPath           = $firstAliasPath
     AliasShadowedBy          = $aliasShadowedBy
     AliasResolutionOrder     = $aliasResolutionOrder
+    WindowsAppsAliasInvocation = if ($windowsAppsAliasPresent) { "& `"$windowsAppsAliasPath`"" } else { $null }
     LegacyConflictCount      = $legacyConflicts.ConflictCount
     StartupConflictCount     = $activeStartupConflictCount
     AliasShadowingCount      = $aliasShadowingCount
+    AlternateAliasCount      = $alternateAliasCount
+    AlternateAliasSources    = (@($legacyConflicts.AlternateAliasSources) -join "; ")
     LegacyStartupHelpers     = (@($legacyConflicts.StartupHelpers | ForEach-Object { $_.Name }) -join "; ")
     LegacyScheduledTasks     = (@($legacyConflicts.ScheduledTasks | ForEach-Object { "{0}{1}" -f $_.TaskPath, $_.TaskName }) -join "; ")
     LegacyBins               = (@($legacyConflicts.LegacyBins) -join "; ")

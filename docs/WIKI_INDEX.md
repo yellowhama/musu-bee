@@ -2028,4 +2028,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `musu-final-operator-gates-1.15.0-rc.1-20260603-040654.zip`, and
   `MUSU-1.15.0-rc.1-operator-action-pack-20260603-040714.zip`.
 
+- 2026-06-03 MSIX alias shadowing hardening:
+  `RELEASE_1_15_0_RC1_MSIX_ALIAS_SHADOWING_HARDENING_2026_06_03.md`
+  (wiki/584) records the release-tooling correction that true PATH alias
+  shadowing is only counted when the first resolved `musu.exe` appears before
+  the packaged WindowsApps execution alias. Search terms should include
+  `GOAL v375`, `wiki/584`, `FirstAliasPath`, `AlternateAliasSources`,
+  `windowsapps_alias_invocation`, `alias_resolution_order`,
+  `runtime_package_ready=True`, `local_artifacts_ready=True`, and
+  `C:\Users\empty\.cargo\bin\musu.exe`.
+
+- 2026-06-03 MSIX alias shadowing index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1555 files and 2274 symbols after GOAL v375-v376, wiki/584, MSIX
+  alias shadowing tooling changes, the canonical report, and CoS memories.
+  Search terms should include `GOAL v376`, `1555 files`, `2274 symbols`,
+  `wiki/584 index refresh`, `AliasShadowing`, and
+  `AlternateAliasSources`.
+
 **End of WIKI_INDEX.md.**

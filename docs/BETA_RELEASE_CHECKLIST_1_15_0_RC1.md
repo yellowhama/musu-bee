@@ -434,8 +434,8 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.
 
 Latest result:
 
-- `runtime_package_ready=False`
-- `msix_desktop_entrypoint_ready=False`
+- `runtime_package_ready=True`
+- `msix_desktop_entrypoint_ready=True`
 - `desktop_shell_ready=True`
 - `single_machine_verified=True`
 - `multi_device_verified=False`
@@ -1561,17 +1561,21 @@ Desktop-open CPU reports MUSU `0`, Node `0.03`, WebView2 `0.6`, working set
 `500.44MB`, and hot `0`. Matrix route token:
 `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_035608`.
 
-Clean go/no-go remains No-Go: single-machine, MSIX install, MSIX desktop
-entrypoint, process ownership, startup single-instance, desktop single-instance,
-and public metadata pass, but runtime idle CPU and matrix are still `1/2`.
-Remaining blockers are runtime-package alias shadowing on this dev machine,
-second-PC multi-device/CPU/matrix evidence, support mailbox, Store release, and
-live owner-scoped `musu.pro` P2P relay lease evidence.
+Clean go/no-go remains No-Go: local artifacts, single-machine, MSIX install,
+MSIX desktop entrypoint, process ownership, startup single-instance, desktop
+single-instance, and public metadata pass, but runtime idle CPU and matrix are
+still `1/2`. Remaining blockers are second-PC multi-device/CPU/matrix evidence,
+support mailbox, Store release, and live owner-scoped `musu.pro` P2P relay lease
+evidence.
 
 Local alias shadowing:
 
 - `C:\Users\empty\.cargo\bin\musu.exe` precedes
   `C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe`
+- explicit packaged invocation:
+  `& "C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe"`
+- this is now recorded as an operator PATH remediation item, not a
+  `runtime-package` artifact blocker.
 
 Canonical report:
 
@@ -1589,3 +1593,31 @@ Current operator handoff after the polling clamp evidence commit:
   `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260603-040714\partner-center\MUSU-1.15.0-rc.1-store-submission-20260603-040714.zip`
 
 Both packet verifiers pass with `ok=true` and `fail_count=0`.
+
+## 2026-06-03 04:25 KST MSIX Alias Shadowing Hardening
+
+MSIX release tooling now separates true PATH alias shadowing from later
+alternate `musu.exe` binaries. `msix-common.ps1` records alias order, WindowsApps
+alias presence/discovery, first alias path, alternate alias sources, and true
+alias shadowing. The install evidence capture also records
+`windowsapps_alias_invocation`, `alias_resolution_order`, `alternate_alias_count`,
+`alternate_alias_sources`, and `alias_remediation`.
+
+Validation:
+
+- `check-msix-legacy-conflicts.ps1 -Json` reports current local shadowing:
+  `C:\Users\empty\.cargo\bin\musu.exe` before the WindowsApps alias.
+- `verify-installed-msix-package.ps1` confirms the installed MSIX package,
+  manifest, Start menu entry, alias contract, and artifact contract match.
+- `capture-msix-install-evidence.ps1 -Json` records alias order and remediation.
+- `audit-desktop-release-readiness.ps1 -Json` reports
+  `runtime_package_ready=True`, `desktop_shell_ready=True`,
+  `single_machine_verified=True`.
+- `write-release-go-no-go.ps1 -ScriptTimeoutSeconds 120` reports
+  `local_artifacts_ready=True`; public release remains No-Go on second-PC,
+  runtime CPU 2/2, support mailbox, Store, and live `musu.pro` P2P
+  control-plane evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_MSIX_ALIAS_SHADOWING_HARDENING_2026_06_03.md`

@@ -91,6 +91,8 @@ $legacyConflicts = [pscustomobject]@{
     StartupHelpers = @()
     ScheduledTasks = @()
     LegacyBins = @()
+    AliasShadowing = @()
+    AlternateAliasSources = @()
     ConflictCount = 0
 }
 
@@ -211,8 +213,13 @@ $evidence = [pscustomobject]@{
     artifact_contract_match = if ($artifactContract -and $installedContract) { Test-MsixStartupContractEquivalent -Left $installedContract -Right $artifactContract } else { $false }
     windowsapps_alias_present = [bool]$windowsAppsAliasPresent
     alias_visible_in_get_command = ($windowsAppsAliasDiscovered.Count -gt 0)
+    windowsapps_alias_invocation = if ($windowsAppsAliasPresent) { "& `"$windowsAppsAliasPath`"" } else { $null }
     first_alias_path = $firstAliasPath
     alias_shadowed_by = $aliasShadowedBy
+    alias_resolution_order = @($aliasCommands | ForEach-Object { $_.Source })
+    alternate_alias_count = @($legacyConflicts.AlternateAliasSources).Count
+    alternate_alias_sources = @($legacyConflicts.AlternateAliasSources)
+    alias_remediation = if ($aliasShadowingCount -gt 0) { "Move '$env:LOCALAPPDATA\Microsoft\WindowsApps' before the shadowing PATH entry, or invoke the packaged app explicitly with & `"$windowsAppsAliasPath`"." } else { $null }
     start_menu_entry = [bool]$startApp
     expected_start_app_id = $expectedAppId
     startup_conflict_count = [int]$activeStartupConflictCount
