@@ -219,8 +219,9 @@ Schema managed by `musu_core/migrations.py` — migration-only changes, no direc
 - All bridge API calls require `Authorization: Bearer <MUSU_BRIDGE_TOKEN>`
 - Set via environment variable, never hardcoded
 
-**Localhost Bypass**:
-- Requests from `127.0.0.1` / `::1` skip token validation (dev convenience)
+**Localhost Auth**:
+- Localhost requests also require the token by default.
+- `MUSU_BRIDGE_LOCALHOST_AUTH=0` is the only explicit local development bypass.
 
 **Mesh Token Exchange**:
 - Per-node tokens in `nodes.toml` (`token` field)

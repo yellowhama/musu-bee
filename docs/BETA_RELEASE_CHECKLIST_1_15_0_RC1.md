@@ -74,6 +74,22 @@ curl.exe -I --max-time 5 http://127.0.0.1:3001/api/bridge-tasks/events
 
 Expected: `HTTP/1.1 200 OK` and `content-type: text/event-stream`.
 
+## Current Security Contract Audit
+
+Current Rust bridge local API auth contract:
+
+- localhost requests require `Authorization: Bearer <MUSU_BRIDGE_TOKEN>` by default
+- `MUSU_BRIDGE_LOCALHOST_AUTH=0` is only an explicit trusted local development bypass
+- production/shared-machine docs must not recommend localhost auth bypass
+
+Repeatable audit:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-local-api-auth-contract.ps1 -FailOnProblem -Json
+```
+
+Expected: schema `musu.local_api_auth_contract.v1`, `ok=true`, `fail_count=0`.
+
 ## Current Verified Result
 
 Verified locally against dashboards on `3001` and `3000`, and bridge on dynamic port `11041`:

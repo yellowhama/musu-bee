@@ -21,7 +21,7 @@ Windows distribution note:
 | `BRIDGE_PORT` | `8070` | No | Bridge HTTP port. Local CLI / control clients prefer `~/.musu/services/bridge.json` when present, then fall back to this port. |
 | `MUSU_BRIDGE_PUBLIC_URL` | *(empty)* | No | URL advertised to peers during pairing (e.g. `http://100.64.0.1:8070`). |
 | `MUSU_BRIDGE_ALLOWED_ORIGINS` | `https://musu.pro` | No | Comma-separated CORS origins for browser clients. |
-| `MUSU_BRIDGE_LOCALHOST_AUTH` | *(unset)* | No | If set, localhost requests also require Bearer token (default: localhost bypasses auth). |
+| `MUSU_BRIDGE_LOCALHOST_AUTH` | auth required | No | Auth is required by default, including localhost. Set `0` only for explicit local dev bypass. |
 | `MUSU_NODE_NAME` | hostname | No | Human-readable name for this node in the registry and UI. |
 | `MUSU_NODE_ROLE` | `primary` | No | Node role (`primary` or `secondary`). Controls CEO heartbeat scheduling. |
 | `MUSU_ENV` | `development` | No | `production` enables stricter security checks. |

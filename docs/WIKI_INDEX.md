@@ -1097,5 +1097,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   action pack. Search terms should include `GOAL v275`, `1291 files`,
   `2217 symbols`, `20260602-093212`, `20260602-093312`, and
   `MUSU-second-PC-transfer-1.15.0-rc.1-20260602-093312`.
+- 2026-06-02 local API auth contract audit:
+  Added wiki/543 and `scripts\windows\audit-local-api-auth-contract.ps1`
+  (`musu.local_api_auth_contract.v1`). Current docs now match Rust behavior:
+  localhost auth is required by default, and `MUSU_BRIDGE_LOCALHOST_AUTH=0`
+  is only an explicit trusted local development bypass. The audit passed with
+  `ok=true`, `fail_count=0`, and `stale_doc_hit_count=0`; final operator
+  packets now include and self-check the audit. Search terms should include
+  `GOAL v276`, `wiki/543`, `audit-local-api-auth-contract.ps1`, and
+  `localhost auth required by default`.
+- 2026-06-02 index refresh after local API auth contract audit:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1294 files and 2217 symbols after wiki/543, CoS memory
+  `2026-06-02_0947_kst_local_api_auth_contract_audit.md`, the current docs
+  correction, and final packet audit wiring. Search terms should include
+  `GOAL v277`, `1294 files`, `2217 symbols`,
+  `musu.local_api_auth_contract.v1`, and `MUSU_BRIDGE_LOCALHOST_AUTH=0`.
 
 **End of WIKI_INDEX.md.**

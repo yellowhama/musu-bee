@@ -9,16 +9,16 @@
 
 ## Security Checklist
 
-### 0. Localhost Auth Bypass (Important)
+### 0. Localhost Auth Required (Important)
 
-By default, requests from `127.0.0.1` bypass token auth. This is fine for single-user machines but **dangerous on shared servers or containers**.
+By default, requests from `127.0.0.1` and `::1` require the bridge bearer token. Do not set `MUSU_BRIDGE_LOCALHOST_AUTH=0` in production.
 
-To require auth even for localhost:
+For local-only development on a trusted single-user machine, this explicit opt-out exists:
 ```bash
-export MUSU_BRIDGE_LOCALHOST_AUTH=1
+export MUSU_BRIDGE_LOCALHOST_AUTH=0
 ```
 
-Add to `~/.musu/bridge.env` for persistence.
+Do not add that opt-out to `~/.musu/bridge.env` on production or shared machines.
 
 ### 1. Generate Strong Tokens
 

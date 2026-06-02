@@ -99,6 +99,7 @@ try {
         "docs\MSIX_DESKTOP_ENTRYPOINT_AUDIT_2026_05_31.md",
         "docs\DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md",
         "docs\RUNTIME_CPU_SCENARIO_MATRIX_AND_MDNS_LOG_AUDIT_2026_06_01.md",
+        "docs\LOCAL_API_AUTH_CONTRACT_AUDIT_2026_06_02.md",
         "docs\MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md",
         "docs\RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md",
         "docs\STORE_SUBMISSION_METADATA_2026_05_29.md",
@@ -119,6 +120,7 @@ try {
         "scripts\windows\show-musu-pro-p2p-env-status.ps1",
         "scripts\windows\verify-store-submission-bundle.ps1",
         "scripts\windows\audit-msix-desktop-entrypoint.ps1",
+        "scripts\windows\audit-local-api-auth-contract.ps1",
         "scripts\windows\measure-musu-idle-cpu.ps1",
         "scripts\windows\measure-musu-runtime-cpu-scenarios.ps1",
         "scripts\windows\verify-runtime-cpu-scenario-matrix.ps1",
@@ -180,6 +182,7 @@ try {
         Add-CheckFromCondition "readme msix desktop entrypoint audit doc" ($readme -like "*MSIX_DESKTOP_ENTRYPOINT_AUDIT_2026_05_31.md*") "README points to MSIX desktop entrypoint audit" "README missing MSIX desktop entrypoint audit reference"
         Add-CheckFromCondition "readme desktop single-instance gate doc" ($readme -like "*DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md*") "README points to desktop single-instance gate" "README missing desktop single-instance gate reference"
         Add-CheckFromCondition "readme runtime CPU scenario matrix audit" ($readme -like "*RUNTIME_CPU_SCENARIO_MATRIX_AND_MDNS_LOG_AUDIT_2026_06_01.md*" -and $readme -like "*musu.runtime_cpu_scenario_matrix.v1*") "README points to runtime CPU scenario matrix diagnostics" "README missing runtime CPU scenario matrix diagnostic reference"
+        Add-CheckFromCondition "readme local API auth contract audit" ($readme -like "*LOCAL_API_AUTH_CONTRACT_AUDIT_2026_06_02.md*" -and $readme -like "*audit-local-api-auth-contract.ps1*" -and $readme -like "*musu.local_api_auth_contract.v1*") "README points to local API auth contract audit" "README missing local API auth contract audit reference"
         Add-CheckFromCondition "readme Store run card" ($readme -like "*MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md*") "README points to the Store release run card" "README missing Store release run card reference"
         Add-CheckFromCondition "readme msix install gate" ($readme -like "*record-msix-install-evidence.ps1*" -and $readme -like "*msix_install_verified=true*") "README includes MSIX install evidence gate" "README missing MSIX install evidence gate"
         Add-CheckFromCondition "readme store release blocker" ($readme -like "*Partner Center product name reservation*" -and $readme -like "*app submission*" -and $readme -like "*store_release_verified=true*") "README states Store release approval is a blocker" "README does not clearly state Store release approval evidence is required"
@@ -258,6 +261,16 @@ try {
             ($runtimeMatrixVerifierScript -like "*resource_budget_violations*" -and $runtimeMatrixVerifierScript -like "*process_counts_by_role*" -and $runtimeMatrixVerifierScript -like "*total_working_set_mb_after*" -and $runtimeMatrixVerifierScript -like "*total_private_memory_mb_after*" -and $runtimeMatrixVerifierScript -like "*max_owned_webview2_process_count*" -and $runtimeMatrixVerifierScript -like "*exit 1*") `
             "packet runtime CPU matrix verifier fails closed on resource-budget evidence" `
             "packet runtime CPU matrix verifier does not fail closed on resource-budget evidence"
+    }
+
+    $localApiAuthAuditScriptPath = Join-Path $packetRoot "scripts\windows\audit-local-api-auth-contract.ps1"
+    if (Test-Path -LiteralPath $localApiAuthAuditScriptPath) {
+        $localApiAuthAuditScript = Get-Content -LiteralPath $localApiAuthAuditScriptPath -Raw
+        Add-CheckFromCondition `
+            "local API auth contract audit script" `
+            ($localApiAuthAuditScript -like "*musu.local_api_auth_contract.v1*" -and $localApiAuthAuditScript -like "*localhost_auth_required_default_true*" -and $localApiAuthAuditScript -like "*MUSU_BRIDGE_LOCALHOST_AUTH=0*" -and $localApiAuthAuditScript -like "*localhost requests require the same token by default*") `
+            "packet local API auth audit verifies source and docs contract" `
+            "packet local API auth audit does not verify source and docs contract"
     }
 
     $goNoGoScriptPath = Join-Path $packetRoot "scripts\windows\write-release-go-no-go.ps1"

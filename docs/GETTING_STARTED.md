@@ -180,10 +180,9 @@ BRIDGE_HOST=127.0.0.1                 # default; set 0.0.0.0 for LAN
 BRIDGE_PORT=8070                       # default
 ```
 
-LAN clients ALWAYS require the bearer token. The default auth bypass
-applies only to `127.0.0.1`/`::1`. If this is a shared machine and
-you want even localhost requests to require the token, set
-`MUSU_BRIDGE_LOCALHOST_AUTH=1`. Full env var reference:
+LAN clients ALWAYS require the bearer token. Localhost requests require
+the bearer token by default. Set `MUSU_BRIDGE_LOCALHOST_AUTH=0` only for
+explicit local development bypass on a trusted single-user machine. Full env var reference:
 [CONFIG.md](CONFIG.md).
 
 ---

@@ -85,6 +85,7 @@ $docsToCopy = @(
     "docs\MSIX_DESKTOP_ENTRYPOINT_AUDIT_2026_05_31.md",
     "docs\DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md",
     "docs\RUNTIME_CPU_SCENARIO_MATRIX_AND_MDNS_LOG_AUDIT_2026_06_01.md",
+    "docs\LOCAL_API_AUTH_CONTRACT_AUDIT_2026_06_02.md",
     "docs\MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md",
     "docs\RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md",
     "docs\STORE_SUBMISSION_METADATA_2026_05_29.md"
@@ -114,6 +115,7 @@ $scriptsToCopy = @(
     "show-musu-pro-p2p-env-status.ps1",
     "verify-store-submission-bundle.ps1",
     "audit-msix-desktop-entrypoint.ps1",
+    "audit-local-api-auth-contract.ps1",
     "measure-musu-idle-cpu.ps1",
     "measure-musu-runtime-cpu-scenarios.ps1",
     "verify-runtime-cpu-scenario-matrix.ps1",
@@ -166,6 +168,7 @@ For the shortest Store/submission sequence, review:
 - `docs\MSIX_DESKTOP_ENTRYPOINT_AUDIT_2026_05_31.md`
 - `docs\DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md`
 - `docs\RUNTIME_CPU_SCENARIO_MATRIX_AND_MDNS_LOG_AUDIT_2026_06_01.md`
+- `docs\LOCAL_API_AUTH_CONTRACT_AUDIT_2026_06_02.md`
 - `docs\RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md`
 - `docs\MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md`
 - `docs\RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md`
@@ -365,6 +368,19 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-store
 ```
 
 Expected result: `store_release_verified=true`.
+
+## Gate D1 - Local API auth contract audit
+
+Before final handoff, verify that the Rust bridge source and current operator
+docs agree on the local API auth contract. Localhost requests require the same
+bearer token by default; `MUSU_BRIDGE_LOCALHOST_AUTH=0` is only an explicit
+trusted local development bypass.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-local-api-auth-contract.ps1 -FailOnProblem -Json
+```
+
+Expected schema: `musu.local_api_auth_contract.v1`.
 
 ## Gate E - Runtime idle CPU evidence
 

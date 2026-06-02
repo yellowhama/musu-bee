@@ -473,8 +473,8 @@ sqlite3 ~/.musu/musu.db "DELETE FROM route_executions WHERE status='failed' AND 
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | MUSU_BRIDGE_TOKEN | (required) | API authentication |
-| BRIDGE_HOST | 127.0.0.1 | Bind address. Set `0.0.0.0` to listen on LAN/Tailscale. LAN clients ALWAYS need the bearer token; only `127.0.0.1`/`::1` bypasses auth by default. |
-| MUSU_BRIDGE_LOCALHOST_AUTH | (unset) | If set to any value, also requires the bearer token for `127.0.0.1`/`::1` requests (removes the localhost auth bypass per `musu-core/middleware.py:146`). Recommended for shared-machine setups. |
+| BRIDGE_HOST | 127.0.0.1 | Bind address. Set `0.0.0.0` to listen on LAN/Tailscale. LAN clients ALWAYS need the bearer token; localhost does too unless explicitly opted out for local development. |
+| MUSU_BRIDGE_LOCALHOST_AUTH | auth required | Auth is required by default, including `127.0.0.1`/`::1`. Set `0` only for explicit local development bypass on a trusted single-user machine. |
 | BRIDGE_PORT | 8070 | HTTP port |
 | MUSU_NODE_NAME | hostname | Device identifier |
 | MUSU_TOKEN | | Cloud registry token |

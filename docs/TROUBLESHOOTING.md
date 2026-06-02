@@ -182,8 +182,8 @@ grep MUSU_BRIDGE_TOKEN ~/.musu/bridge.env
 # On node B: set MUSU_TOKEN to node A's MUSU_BRIDGE_TOKEN, or set MUSU_TOKEN
 # to the same account-level value on both nodes.
 
-# Note: localhost requests (127.0.0.1) bypass auth by default.
-# Set MUSU_BRIDGE_LOCALHOST_AUTH=1 to require tokens even from localhost.
+# Note: localhost requests require the bearer token by default.
+# Set MUSU_BRIDGE_LOCALHOST_AUTH=0 only for explicit trusted local dev bypass.
 ```
 
 ---

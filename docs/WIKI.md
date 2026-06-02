@@ -719,6 +719,21 @@ Indexer note:
   `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
   1291 files and 2217 symbols. Search terms should include `GOAL v275`,
   `20260602-093212`, and `20260602-093312`.
+- 2026-06-02 local API auth contract audit:
+  wiki/543 records that current Rust bridge localhost API requests require
+  bearer auth by default and `MUSU_BRIDGE_LOCALHOST_AUTH=0` is only an explicit
+  trusted local development bypass. Added
+  `scripts\windows\audit-local-api-auth-contract.ps1` with schema
+  `musu.local_api_auth_contract.v1`; it passed with `ok=true`,
+  `fail_count=0`, and `stale_doc_hit_count=0` after correcting current docs.
+  Search terms should include `wiki/543`, `MUSU_BRIDGE_LOCALHOST_AUTH=0`,
+  and `localhost auth required by default`.
+- 2026-06-02 index refresh after local API auth contract audit:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1294 files and 2217 symbols after wiki/543, CoS memory
+  `2026-06-02_0947_kst_local_api_auth_contract_audit.md`, current docs
+  correction, and final packet audit wiring. Search terms should include
+  `GOAL v277`, `musu.local_api_auth_contract.v1`, and `1294 files`.
 
 ## 9. musu-system Integration State (2026-05-29)
 

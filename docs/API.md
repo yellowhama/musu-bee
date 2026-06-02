@@ -1,7 +1,7 @@
 # musu-bridge API Reference
 
 **Base URL:** `http://localhost:8070`
-**Auth:** Bearer token via `Authorization: Bearer <MUSU_BRIDGE_TOKEN>` header. Localhost requests bypass auth.
+**Auth:** Bearer token via `Authorization: Bearer <MUSU_BRIDGE_TOKEN>` header. Localhost requests require the same token by default.
 
 ---
 
