@@ -168,6 +168,13 @@ Current route-evidence identity fields:
   proves an interim HTTPS certificate pin but is intentionally not release-grade.
   A bare `encryption=quic_tls_1_3` string without this verifier is rejected as
   missing transport proof.
+- `musu route --explain` is a preflight diagnostic and must not trust
+  registry/rendezvous metadata claims such as `peer_identity_verified=true` or
+  `encryption=quic_tls_1_3`. As of 2026-06-02 22:18 KST, explain output only
+  reports advertised key material as
+  `advertised_tls_cert_fingerprint_unverified` and keeps
+  `peer_identity_verified=false` / `encryption=none_http_bearer` until a real
+  runtime transport proof exists.
 
 ## Client Path Selection Rules
 

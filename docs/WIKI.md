@@ -1467,6 +1467,30 @@ Indexer note:
   `20260602-215651-musu.pro.evidence.json`, `p2p_relay_lease_kv_not_configured`,
   and `TcpTestSucceeded=false`.
 
+- 2026-06-02 route explain trust-boundary hardening:
+  wiki/570 records that `musu route --explain` no longer trusts
+  registry/rendezvous candidate metadata claims such as
+  `peer_identity_verified=true` or `encryption=quic_tls_1_3`. Explain remains a
+  preflight surface: advertised key material can make
+  `https_fingerprint_pin_available=true`, but identity stays
+  `peer_identity_verified=false` with
+  `peer_identity_method=advertised_tls_cert_fingerprint_unverified` and
+  `encryption=none_http_bearer` until an actual runtime transport proof exists.
+  Validation passed `cargo check --manifest-path .\musu-rs\Cargo.toml --bin
+  musu -j 1`, `install::cli_commands` tests 14/14, `cargo fmt --check`, and
+  `git diff --check`. This is source hardening toward release-grade route proof,
+  not QUIC/TLS transport implementation; packaged primary evidence is stale
+  until refreshed from the new source commit.
+
+- 2026-06-02 index refresh after route explain trust-boundary hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1450 files and 2261 symbols after wiki/570, GOAL v343/v344, route explain
+  source hardening, BETA/current-head/P2P spec/WIKI_INDEX updates, and CoS
+  memory `2026-06-02_2218_kst_route_explain_trust_boundary_hardening.md`.
+  Search terms should include `GOAL v344`, `1450 files`, `2261 symbols`,
+  `route explain trust boundary`, and
+  `candidate_report_downgrades_verified_fingerprint_pin_metadata`.
+
 ## 9. musu-system Integration State (2026-05-29)
 
 `yellowhama/musu-system` is a credible adjacent MUSU ecosystem line, not a Rust-core replacement. It contains:

@@ -1248,3 +1248,35 @@ Canonical report:
 - `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
   `1448` files and `2262` symbols after the P2P KV/second-PC recheck docs and
   fresh hosted P2P evidence.
+
+## 2026-06-02 22:18 KST Route Explain Trust Boundary
+
+`musu route --explain` no longer trusts candidate metadata claims that peer
+identity or encryption are already verified. Explain output can still report
+that HTTPS fingerprint pinning is available when advertised key material exists,
+but it keeps `peer_identity_verified=false`,
+`peer_identity_method=advertised_tls_cert_fingerprint_unverified`, and
+`encryption=none_http_bearer` until an actual runtime transport proof exists.
+
+Validation passed:
+
+- `cargo fmt --manifest-path .\musu-rs\Cargo.toml`
+- `cargo fmt --manifest-path .\musu-rs\Cargo.toml --check`
+- `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1`
+- `cargo test --manifest-path .\musu-rs\Cargo.toml install::cli_commands --lib -- --test-threads=1`
+  14/14
+- `git diff --check`
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_ROUTE_EXPLAIN_TRUST_BOUNDARY_HARDENING_2026_06_02.md`
+
+Release caveat: Rust source changed, so current packaged primary evidence is
+stale until MSIX build/install and primary smoke/process/CPU/matrix evidence are
+refreshed from this source commit.
+
+2026-06-02 22:20 KST index refresh:
+
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  `1450` files and `2261` symbols after route explain trust-boundary
+  hardening.

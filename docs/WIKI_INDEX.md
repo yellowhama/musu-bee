@@ -1714,4 +1714,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2262 symbols`, `2026-06-02_2158_kst_p2p_kv_second_pc_recheck.md`, and
   `P2P KV second-PC index refresh`.
 
+- 2026-06-02 route explain trust-boundary hardening:
+  `RELEASE_1_15_0_RC1_ROUTE_EXPLAIN_TRUST_BOUNDARY_HARDENING_2026_06_02.md`
+  (wiki/570) records that `musu route --explain` downgrades advertised-only
+  identity/encryption metadata and never reports candidate metadata as verified
+  route proof. Search terms should include `GOAL v343`, `wiki/570`,
+  `candidate_report_downgrades_verified_fingerprint_pin_metadata`,
+  `advertised_tls_cert_fingerprint_unverified`, `route explain trust boundary`,
+  `peer_identity_verified=false`, `encryption=none_http_bearer`, and
+  `install::cli_commands 14/14`.
+
+- 2026-06-02 index refresh after route explain trust-boundary hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1450 files and 2261 symbols after wiki/570, GOAL v343/v344, Rust route
+  explain source update, BETA/current-head/P2P spec/WIKI updates, and CoS
+  memory. Search terms should include `GOAL v344`, `1450 files`,
+  `2261 symbols`,
+  `2026-06-02_2218_kst_route_explain_trust_boundary_hardening.md`, and
+  `route explain trust-boundary index refresh`.
+
 **End of WIKI_INDEX.md.**

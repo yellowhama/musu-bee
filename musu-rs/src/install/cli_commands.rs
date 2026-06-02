@@ -623,10 +623,9 @@ fn candidate_report(
 ) -> RouteCandidateReport {
     let transport_scheme = candidate_transport_scheme(&addr, meta.as_ref());
     let peer_public_key_present = candidate_peer_public_key(meta.as_ref()).is_some();
-    let peer_identity_verified = candidate_peer_identity_verified(meta.as_ref());
-    let peer_identity_method =
-        candidate_peer_identity_method(meta.as_ref(), peer_identity_verified);
-    let encryption = candidate_encryption(meta.as_ref(), peer_identity_verified);
+    let peer_identity_verified = false;
+    let peer_identity_method = candidate_peer_identity_method(meta.as_ref());
+    let encryption = candidate_encryption();
     let https_fingerprint_pin_available = transport_scheme == "https" && peer_public_key_present;
 
     RouteCandidateReport {
@@ -671,34 +670,14 @@ fn candidate_peer_public_key(meta: Option<&serde_json::Value>) -> Option<String>
         .filter(|value| value.starts_with("sha256:"))
 }
 
-fn candidate_peer_identity_verified(meta: Option<&serde_json::Value>) -> bool {
-    meta.and_then(|meta| meta.get("peer_identity_verified"))
-        .and_then(|value| value.as_bool())
-        .unwrap_or(false)
-        && candidate_peer_public_key(meta).is_some()
+fn candidate_peer_identity_method(meta: Option<&serde_json::Value>) -> Option<String> {
+    candidate_peer_public_key(meta)
+        .as_ref()
+        .map(|_| "advertised_tls_cert_fingerprint_unverified".to_string())
 }
 
-fn candidate_peer_identity_method(
-    meta: Option<&serde_json::Value>,
-    verified: bool,
-) -> Option<String> {
-    if verified {
-        candidate_meta_string(meta, &["peer_identity_method"])
-            .or_else(|| Some("tls_cert_fingerprint_pin".to_string()))
-    } else {
-        candidate_peer_public_key(meta)
-            .as_ref()
-            .map(|_| "advertised_tls_cert_fingerprint_unverified".to_string())
-    }
-}
-
-fn candidate_encryption(meta: Option<&serde_json::Value>, verified: bool) -> String {
-    if verified {
-        candidate_meta_string(meta, &["encryption"])
-            .unwrap_or_else(|| "https_tls_fingerprint_pin".to_string())
-    } else {
-        "none_http_bearer".to_string()
-    }
+fn candidate_encryption() -> String {
+    "none_http_bearer".to_string()
 }
 
 fn candidate_meta_string(meta: Option<&serde_json::Value>, keys: &[&str]) -> Option<String> {
@@ -3144,7 +3123,7 @@ mod tests {
     }
 
     #[test]
-    fn candidate_report_preserves_verified_fingerprint_pin_metadata() {
+    fn candidate_report_downgrades_verified_fingerprint_pin_metadata() {
         let candidate = candidate_report(
             Some("remote".to_string()),
             "192.168.1.50:8070".to_string(),
@@ -3158,14 +3137,14 @@ mod tests {
             })),
         );
 
-        assert!(candidate.peer_identity_verified);
+        assert!(!candidate.peer_identity_verified);
         assert_eq!(
             candidate.peer_identity_method.as_deref(),
-            Some("tls_cert_fingerprint_pin")
+            Some("advertised_tls_cert_fingerprint_unverified")
         );
         assert!(candidate.peer_public_key_present);
         assert!(candidate.https_fingerprint_pin_available);
-        assert_eq!(candidate.encryption, "https_tls_fingerprint_pin");
+        assert_eq!(candidate.encryption, "none_http_bearer");
     }
 
     #[test]

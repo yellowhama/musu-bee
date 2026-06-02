@@ -1007,3 +1007,23 @@ Second-PC reachability was rechecked against the prior target
 `192.168.1.192:8949`; TCP failed and ping timed out. Fresh two-machine
 CPU/matrix/route evidence still needs the remote PC to expose a reachable MUSU
 bridge or return a fresh evidence zip.
+
+## 2026-06-02 22:18 KST Route Explain Trust Boundary
+
+The route diagnostic surface now matches the release-evidence trust boundary.
+`musu route --explain` no longer preserves registry/rendezvous metadata claims
+that a candidate is already verified. Advertised key material can still show
+`https_fingerprint_pin_available=true`, but explain output keeps
+`peer_identity_verified=false`,
+`peer_identity_method=advertised_tls_cert_fingerprint_unverified`, and
+`encryption=none_http_bearer` until a real runtime transport proof exists.
+
+Validation passed: `cargo check --manifest-path .\musu-rs\Cargo.toml --bin
+musu -j 1`, `cargo test --manifest-path .\musu-rs\Cargo.toml
+install::cli_commands --lib -- --test-threads=1` 14/14,
+`cargo fmt --check`, and `git diff --check`.
+
+Qualitative result: this prevents preflight diagnostics from looking more
+release-ready than actual route evidence. It does not implement QUIC/TLS
+transport, so public release remains No-Go. Because Rust source changed, current
+packaged primary evidence is stale until it is rebuilt/refreshed.
