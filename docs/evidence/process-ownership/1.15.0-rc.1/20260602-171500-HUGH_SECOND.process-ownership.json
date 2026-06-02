@@ -1,0 +1,490 @@
+﻿{
+    "schema":  "musu.process_ownership_audit.v1",
+    "ok":  true,
+    "version":  "1.15.0-rc.1",
+    "git_commit":  "62381f7feec64ff5c6b17cd689b8729197e3a98e",
+    "recorded_at":  "2026-06-02T17:15:18.2261069+09:00",
+    "operator_machine":  "HUGH_SECOND",
+    "operator_user":  "empty",
+    "repo_root":  "F:\\workspace\\musu-bee",
+    "musu_home":  "C:\\Users\\empty\\.musu",
+    "max_musu_runtime_processes":  1,
+    "max_musu_desktop_processes":  1,
+    "max_owned_node_processes":  1,
+    "max_owned_webview2_processes":  12,
+    "fail_count":  0,
+    "process_counts":  {
+                           "all_target_processes":  33,
+                           "musu_runtime":  1,
+                           "desktop_shell":  1,
+                           "owned_node":  0,
+                           "owned_webview2":  7,
+                           "machine_wide_node":  18,
+                           "machine_wide_webview2":  13,
+                           "orphan_repo_helpers":  0
+                       },
+    "bridge_registry":  {
+                            "path":  "C:\\Users\\empty\\.musu\\services\\bridge.json",
+                            "exists":  true,
+                            "parse_error":  null,
+                            "pid":  34864,
+                            "addr":  "127.0.0.1:8155",
+                            "pid_alive":  true,
+                            "health":  {
+                                           "ok":  true,
+                                           "detail":  "HTTP 200",
+                                           "status_code":  200
+                                       }
+                        },
+    "checks":  [
+                   {
+                       "name":  "native parent lookup",
+                       "status":  "pass",
+                       "message":  "native parent-process lookup is available"
+                   },
+                   {
+                       "name":  "MUSU runtime process count",
+                       "status":  "pass",
+                       "message":  "1 MUSU runtime process(es) running"
+                   },
+                   {
+                       "name":  "MUSU desktop process count",
+                       "status":  "pass",
+                       "message":  "1 MUSU desktop shell process(es)"
+                   },
+                   {
+                       "name":  "owned Node helper count",
+                       "status":  "pass",
+                       "message":  "0 owned Node helper process(es)"
+                   },
+                   {
+                       "name":  "owned WebView2 helper count",
+                       "status":  "pass",
+                       "message":  "7 owned WebView2 helper process(es)"
+                   },
+                   {
+                       "name":  "orphan repo helper count",
+                       "status":  "pass",
+                       "message":  "no repo-related orphan Node/WebView2 helpers"
+                   },
+                   {
+                       "name":  "bridge registry exists",
+                       "status":  "pass",
+                       "message":  "bridge registry exists"
+                   },
+                   {
+                       "name":  "bridge registry parse",
+                       "status":  "pass",
+                       "message":  "bridge registry parses"
+                   },
+                   {
+                       "name":  "bridge registry pid alive",
+                       "status":  "pass",
+                       "message":  "bridge registry pid is a live MUSU process"
+                   },
+                   {
+                       "name":  "bridge health",
+                       "status":  "pass",
+                       "message":  "bridge /health is reachable at 127.0.0.1:8155"
+                   }
+               ],
+    "processes":  [
+                      {
+                          "pid":  23980,
+                          "process_name":  "musu-desktop",
+                          "role":  "desktop_shell",
+                          "parent_pid":  13568,
+                          "owned_by_musu":  true,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files\\WindowsApps\\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6\\musu-desktop.exe",
+                          "start_time":  "2026-06-02T17:15:04.5235073+09:00",
+                          "cpu_seconds":  0.125,
+                          "working_set_mb":  23.33
+                      },
+                      {
+                          "pid":  34864,
+                          "process_name":  "musu",
+                          "role":  "musu_runtime",
+                          "parent_pid":  29232,
+                          "owned_by_musu":  true,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files\\WindowsApps\\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6\\musu.exe",
+                          "start_time":  "2026-06-02T17:13:08.6643886+09:00",
+                          "cpu_seconds":  0.1875,
+                          "working_set_mb":  21.66
+                      },
+                      {
+                          "pid":  3440,
+                          "process_name":  "node",
+                          "role":  "node_helper",
+                          "parent_pid":  4652,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files\\nodejs\\node.exe",
+                          "start_time":  "2026-06-02T17:13:19.2624939+09:00",
+                          "cpu_seconds":  2.578125,
+                          "working_set_mb":  136.92
+                      },
+                      {
+                          "pid":  5604,
+                          "process_name":  "node",
+                          "role":  "node_helper",
+                          "parent_pid":  33748,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files\\nodejs\\node.exe",
+                          "start_time":  "2026-06-02T17:13:18.9315316+09:00",
+                          "cpu_seconds":  0.3125,
+                          "working_set_mb":  57.53
+                      },
+                      {
+                          "pid":  6484,
+                          "process_name":  "node",
+                          "role":  "node_helper",
+                          "parent_pid":  34544,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files\\nodejs\\node.exe",
+                          "start_time":  "2026-06-01T17:20:34.5075890+09:00",
+                          "cpu_seconds":  5.953125,
+                          "working_set_mb":  36.86
+                      },
+                      {
+                          "pid":  11292,
+                          "process_name":  "node",
+                          "role":  "node_helper",
+                          "parent_pid":  10988,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files\\nodejs\\node.exe",
+                          "start_time":  "2026-06-01T17:20:39.2461207+09:00",
+                          "cpu_seconds":  1.0625,
+                          "working_set_mb":  36.53
+                      },
+                      {
+                          "pid":  22688,
+                          "process_name":  "node",
+                          "role":  "node_helper",
+                          "parent_pid":  34620,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files\\nodejs\\node.exe",
+                          "start_time":  "2026-06-01T17:20:40.8790634+09:00",
+                          "cpu_seconds":  5.4375,
+                          "working_set_mb":  37.5
+                      },
+                      {
+                          "pid":  23900,
+                          "process_name":  "node",
+                          "role":  "node_helper",
+                          "parent_pid":  33804,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files\\nodejs\\node.exe",
+                          "start_time":  "2026-06-01T17:20:33.5545529+09:00",
+                          "cpu_seconds":  0.75,
+                          "working_set_mb":  34.31
+                      },
+                      {
+                          "pid":  25308,
+                          "process_name":  "node",
+                          "role":  "node_helper",
+                          "parent_pid":  34080,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files\\nodejs\\node.exe",
+                          "start_time":  "2026-06-01T17:20:39.1169119+09:00",
+                          "cpu_seconds":  1.296875,
+                          "working_set_mb":  36.18
+                      },
+                      {
+                          "pid":  27360,
+                          "process_name":  "node",
+                          "role":  "node_helper",
+                          "parent_pid":  25712,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files\\nodejs\\node.exe",
+                          "start_time":  "2026-06-01T01:08:30.0061797+09:00",
+                          "cpu_seconds":  0.078125,
+                          "working_set_mb":  8.78
+                      },
+                      {
+                          "pid":  33464,
+                          "process_name":  "node",
+                          "role":  "node_helper",
+                          "parent_pid":  21728,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files\\nodejs\\node.exe",
+                          "start_time":  "2026-06-01T17:20:40.5733810+09:00",
+                          "cpu_seconds":  5.1875,
+                          "working_set_mb":  37.47
+                      },
+                      {
+                          "pid":  33588,
+                          "process_name":  "node",
+                          "role":  "node_helper",
+                          "parent_pid":  34320,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files\\nodejs\\node.exe",
+                          "start_time":  "2026-06-01T17:20:26.4626864+09:00",
+                          "cpu_seconds":  6.109375,
+                          "working_set_mb":  35.85
+                      },
+                      {
+                          "pid":  33832,
+                          "process_name":  "node",
+                          "role":  "node_helper",
+                          "parent_pid":  6720,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files\\nodejs\\node.exe",
+                          "start_time":  "2026-06-01T17:20:33.1701857+09:00",
+                          "cpu_seconds":  13.671875,
+                          "working_set_mb":  46.07
+                      },
+                      {
+                          "pid":  34112,
+                          "process_name":  "node",
+                          "role":  "node_helper",
+                          "parent_pid":  3096,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files\\nodejs\\node.exe",
+                          "start_time":  "2026-06-01T17:20:19.3526203+09:00",
+                          "cpu_seconds":  8.71875,
+                          "working_set_mb":  35.78
+                      },
+                      {
+                          "pid":  34500,
+                          "process_name":  "node",
+                          "role":  "node_helper",
+                          "parent_pid":  34456,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files\\nodejs\\node.exe",
+                          "start_time":  "2026-06-01T17:20:31.6701684+09:00",
+                          "cpu_seconds":  0.703125,
+                          "working_set_mb":  34.3
+                      },
+                      {
+                          "pid":  34540,
+                          "process_name":  "node",
+                          "role":  "node_helper",
+                          "parent_pid":  34008,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files\\nodejs\\node.exe",
+                          "start_time":  "2026-06-01T17:20:23.8250191+09:00",
+                          "cpu_seconds":  7.6875,
+                          "working_set_mb":  35.85
+                      },
+                      {
+                          "pid":  34664,
+                          "process_name":  "node",
+                          "role":  "node_helper",
+                          "parent_pid":  14656,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files\\nodejs\\node.exe",
+                          "start_time":  "2026-06-01T17:20:22.5450510+09:00",
+                          "cpu_seconds":  0.171875,
+                          "working_set_mb":  31.03
+                      },
+                      {
+                          "pid":  34772,
+                          "process_name":  "node",
+                          "role":  "node_helper",
+                          "parent_pid":  34468,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files\\nodejs\\node.exe",
+                          "start_time":  "2026-06-01T17:20:34.2069024+09:00",
+                          "cpu_seconds":  6.546875,
+                          "working_set_mb":  36.93
+                      },
+                      {
+                          "pid":  34952,
+                          "process_name":  "node",
+                          "role":  "node_helper",
+                          "parent_pid":  34780,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files\\nodejs\\node.exe",
+                          "start_time":  "2026-06-01T17:20:44.8386863+09:00",
+                          "cpu_seconds":  0.953125,
+                          "working_set_mb":  35.79
+                      },
+                      {
+                          "pid":  35280,
+                          "process_name":  "node",
+                          "role":  "node_helper",
+                          "parent_pid":  35284,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files\\nodejs\\node.exe",
+                          "start_time":  "2026-06-01T17:20:45.4789028+09:00",
+                          "cpu_seconds":  1.0625,
+                          "working_set_mb":  35.9
+                      },
+                      {
+                          "pid":  1320,
+                          "process_name":  "msedgewebview2",
+                          "role":  "webview2_helper",
+                          "parent_pid":  22572,
+                          "owned_by_musu":  true,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                          "start_time":  "2026-06-02T17:15:09.0380986+09:00",
+                          "cpu_seconds":  0.109375,
+                          "working_set_mb":  59.15
+                      },
+                      {
+                          "pid":  19484,
+                          "process_name":  "msedgewebview2",
+                          "role":  "webview2_helper",
+                          "parent_pid":  20436,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                          "start_time":  "2026-06-01T01:08:08.1380501+09:00",
+                          "cpu_seconds":  0.8125,
+                          "working_set_mb":  6.36
+                      },
+                      {
+                          "pid":  19632,
+                          "process_name":  "msedgewebview2",
+                          "role":  "webview2_helper",
+                          "parent_pid":  20436,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                          "start_time":  "2026-06-01T01:08:08.9839826+09:00",
+                          "cpu_seconds":  6.71875,
+                          "working_set_mb":  72.91
+                      },
+                      {
+                          "pid":  20436,
+                          "process_name":  "msedgewebview2",
+                          "role":  "webview2_helper",
+                          "parent_pid":  17940,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                          "start_time":  "2026-06-01T01:08:07.9988706+09:00",
+                          "cpu_seconds":  21.640625,
+                          "working_set_mb":  70.93
+                      },
+                      {
+                          "pid":  21296,
+                          "process_name":  "msedgewebview2",
+                          "role":  "webview2_helper",
+                          "parent_pid":  20436,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                          "start_time":  "2026-06-01T01:08:08.6856703+09:00",
+                          "cpu_seconds":  3.78125,
+                          "working_set_mb":  25.32
+                      },
+                      {
+                          "pid":  21308,
+                          "process_name":  "msedgewebview2",
+                          "role":  "webview2_helper",
+                          "parent_pid":  20436,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                          "start_time":  "2026-06-01T01:08:08.7059833+09:00",
+                          "cpu_seconds":  4.609375,
+                          "working_set_mb":  37.26
+                      },
+                      {
+                          "pid":  21388,
+                          "process_name":  "msedgewebview2",
+                          "role":  "webview2_helper",
+                          "parent_pid":  20436,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                          "start_time":  "2026-06-01T01:08:08.7514472+09:00",
+                          "cpu_seconds":  0.8125,
+                          "working_set_mb":  9.66
+                      },
+                      {
+                          "pid":  22572,
+                          "process_name":  "msedgewebview2",
+                          "role":  "webview2_helper",
+                          "parent_pid":  23980,
+                          "owned_by_musu":  true,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                          "start_time":  "2026-06-02T17:15:04.6307105+09:00",
+                          "cpu_seconds":  1.84375,
+                          "working_set_mb":  113.96
+                      },
+                      {
+                          "pid":  31308,
+                          "process_name":  "msedgewebview2",
+                          "role":  "webview2_helper",
+                          "parent_pid":  22572,
+                          "owned_by_musu":  true,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                          "start_time":  "2026-06-02T17:15:04.8852791+09:00",
+                          "cpu_seconds":  0.390625,
+                          "working_set_mb":  37.53
+                      },
+                      {
+                          "pid":  33336,
+                          "process_name":  "msedgewebview2",
+                          "role":  "webview2_helper",
+                          "parent_pid":  22572,
+                          "owned_by_musu":  true,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                          "start_time":  "2026-06-02T17:15:04.8739535+09:00",
+                          "cpu_seconds":  0.734375,
+                          "working_set_mb":  71.32
+                      },
+                      {
+                          "pid":  35136,
+                          "process_name":  "msedgewebview2",
+                          "role":  "webview2_helper",
+                          "parent_pid":  22572,
+                          "owned_by_musu":  true,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                          "start_time":  "2026-06-02T17:15:17.4491166+09:00",
+                          "cpu_seconds":  0.078125,
+                          "working_set_mb":  15.61
+                      },
+                      {
+                          "pid":  37144,
+                          "process_name":  "msedgewebview2",
+                          "role":  "webview2_helper",
+                          "parent_pid":  22572,
+                          "owned_by_musu":  true,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                          "start_time":  "2026-06-02T17:15:04.6857262+09:00",
+                          "cpu_seconds":  0.046875,
+                          "working_set_mb":  9.89
+                      },
+                      {
+                          "pid":  39924,
+                          "process_name":  "msedgewebview2",
+                          "role":  "webview2_helper",
+                          "parent_pid":  22572,
+                          "owned_by_musu":  true,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                          "start_time":  "2026-06-02T17:15:04.9274772+09:00",
+                          "cpu_seconds":  0.0625,
+                          "working_set_mb":  18.59
+                      }
+                  ],
+    "evidence_path":  "docs\\evidence\\process-ownership\\1.15.0-rc.1\\20260602-171500-HUGH_SECOND.process-ownership.json"
+}

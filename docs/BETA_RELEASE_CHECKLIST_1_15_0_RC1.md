@@ -865,3 +865,39 @@ cargo test --manifest-path .\musu-rs\Cargo.toml `
   now present and passing through the explicit WindowsApps alias. Developer
   PATH shadowing still exists on `HUGH_SECOND` because
   `C:\Users\empty\.cargo\bin\musu.exe` precedes the WindowsApps alias.
+
+## 2026-06-02 17:22 KST Post File-Sync Primary Evidence
+
+After file sync watcher storm hardening, the primary release MSIX was rebuilt
+and installed again on `HUGH_SECOND`. Fresh current evidence:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-171420-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-171538-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-171659-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-171500-HUGH_SECOND.desktop-single-instance.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-171500-HUGH_SECOND.process-ownership.json`
+
+Current primary result:
+
+- bridge health: `http://127.0.0.1:8155`
+- single-machine dashboard task id: `60884022-fa9f-4e81-b0fc-775045bb63d0`
+- desktop-open CPU: MUSU `0`, repo Node `0.03`, WebView2 `0.57`, hot `0`
+- runtime matrix token: `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_171659`
+- process ownership: runtime `1`, desktop `1`, MUSU-owned Node `0`,
+  MUSU-owned WebView2 `7`, machine-wide Node `18`
+
+Public release remains No-Go: this restores primary evidence to `1/2` for the
+runtime CPU gates, not `2/2`. The next gate is current second-PC CPU/matrix and
+release-grade route evidence, followed by live `musu.pro` P2P owner-scope
+evidence, `musu@musu.pro` mailbox evidence, and Store evidence.
+
+2026-06-02 17:27 KST index refresh:
+
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  `1379` files and `2242` symbols after the post-file-sync primary evidence
+  docs/evidence/spec updates.

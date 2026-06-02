@@ -1481,5 +1481,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2026-06-02_1650_kst_file_sync_watcher_storm_hardening.md`. Search terms
   should include `GOAL v318`, `1366 files`, `2242 symbols`,
   `SYNC_BATCH_MAX_EVENTS`, `bounded mpsc`, and `coalesce_sync_batch`.
+- 2026-06-02 post-file-sync primary evidence refresh:
+  wiki/558 records fresh primary packaged evidence after commit `62381f7f`.
+  Search terms should include `GOAL v319`, `wiki/558`,
+  `20260602-171420-HUGH_SECOND`, `20260602-171500-HUGH_SECOND`,
+  `20260602-171538-HUGH_SECOND.desktop-open`,
+  `20260602-171659-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_171659`,
+  `60884022-fa9f-4e81-b0fc-775045bb63d0`, `http://127.0.0.1:8155`,
+  `MUSU-owned Node 0`, `machine-wide Node 18`, `WebView2 0.57`,
+  `working set 496.62MB`, `busy-loop not reproduced`, and
+  `post-file-sync primary evidence`.
+- 2026-06-02 index refresh after post-file-sync primary evidence:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1379 files and 2242 symbols after wiki/558, GOAL v319/v320, post-file-sync
+  primary evidence docs, current-head report, runtime hardening roadmap, network
+  boundary spec, BETA checklist, and new evidence files. Search terms should
+  include `GOAL v320`, `1379 files`, `2242 symbols`,
+  `RELEASE_1_15_0_RC1_POST_FILE_SYNC_PRIMARY_EVIDENCE_2026_06_02.md`,
+  `2026-06-02_1725_kst_post_file_sync_primary_evidence_refresh.md`, and
+  `post-file-sync primary evidence index refresh`.
 
 **End of WIKI_INDEX.md.**

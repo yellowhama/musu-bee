@@ -1190,6 +1190,32 @@ Indexer note:
   report updates, WIKI_INDEX update, `musu-rs/src/install/sync.rs`, and CoS
   memory `2026-06-02_1650_kst_file_sync_watcher_storm_hardening.md`.
 
+- 2026-06-02 post-file-sync primary evidence refresh:
+  wiki/558 records fresh primary evidence after runtime Rust file sync hardening
+  commit `62381f7feec64ff5c6b17cd689b8729197e3a98e`. Release MSIX rebuild and
+  sideload install succeeded for `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`.
+  Explicit WindowsApps alias `musu up --json` reached bridge health at
+  `http://127.0.0.1:8155`. Current evidence passes single-machine smoke
+  `20260602-171420-HUGH_SECOND`, desktop single-instance and process ownership
+  `20260602-171500-HUGH_SECOND`, desktop-open CPU
+  `20260602-171538-HUGH_SECOND.desktop-open`, and runtime CPU matrix
+  `20260602-171659-HUGH_SECOND.runtime-cpu-scenario-matrix` with route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_171659`. Process ownership reports MUSU
+  runtime `1`, desktop `1`, MUSU-owned Node `0`, MUSU-owned WebView2 `7`,
+  machine-wide Node `18`, and orphan repo helpers `0`. Desktop-open CPU reports
+  MUSU `0`, repo Node `0.03`, WebView2 `0.57`, working set `496.62MB`, hot
+  `0`. The reported busy-loop is not reproduced on current primary packaged
+  evidence; public release remains No-Go until second-PC CPU/matrix/route,
+  `musu.pro` P2P owner-scope, `musu@musu.pro`, and Store evidence are recorded.
+
+- 2026-06-02 index refresh after post-file-sync primary evidence:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1379 files and 2242 symbols after wiki/558, GOAL v319/v320,
+  `RELEASE_1_15_0_RC1_POST_FILE_SYNC_PRIMARY_EVIDENCE_2026_06_02.md`,
+  current-head report update, runtime hardening roadmap update, network boundary
+  spec update, BETA checklist update, new primary evidence files, and CoS
+  memory `2026-06-02_1725_kst_post_file_sync_primary_evidence_refresh.md`.
+
 ## 9. musu-system Integration State (2026-05-29)
 
 `yellowhama/musu-system` is a credible adjacent MUSU ecosystem line, not a Rust-core replacement. It contains:

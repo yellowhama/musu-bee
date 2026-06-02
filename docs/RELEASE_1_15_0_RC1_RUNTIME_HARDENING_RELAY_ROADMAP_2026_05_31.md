@@ -1054,3 +1054,39 @@ can no longer collect an unbounded event stream before yielding. Validation
 passed cargo fmt, targeted `install::sync` unit test, and `git diff --check`.
 Fresh runtime evidence is still required after commit because this is Rust
 runtime source.
+
+## 2026-06-02 Post File-Sync Primary Evidence Refresh
+
+After the file sync watcher storm hardening commit, the primary release MSIX was
+rebuilt, installed, and revalidated on `HUGH_SECOND`.
+
+Fresh primary evidence:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-171420-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-171538-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-171659-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-171500-HUGH_SECOND.desktop-single-instance.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-171500-HUGH_SECOND.process-ownership.json`
+
+Runtime result:
+
+- desktop-open CPU: 60.048s sample, MUSU `0`, repo Node `0.03`, WebView2
+  `0.57`, working set `496.62MB`, hot `0`
+- runtime matrix: token `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_171659`, all four
+  scenarios passed under 5%-of-one-core
+- process ownership: runtime `1`, desktop `1`, MUSU-owned Node `0`, MUSU-owned
+  WebView2 `7`, machine-wide Node `18`
+
+Roadmap status:
+
+- Primary busy-loop is not reproduced after the file sync watcher storm
+  hardening.
+- Runtime CPU and matrix gates remain `1/2`; the second Windows PC is still the
+  next evidence step.
+- P2P/relay public claims remain blocked on live `musu.pro` owner-scoped
+  control-plane evidence and release-grade two-machine route proof.

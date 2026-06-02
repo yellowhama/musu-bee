@@ -590,3 +590,62 @@ Release meaning:
 - It is runtime Rust source, so after commit the current primary evidence must
   be treated as stale until MSIX, single-machine smoke, desktop-open CPU, and
   four-state matrix evidence are refreshed.
+
+## 2026-06-02 17:22 KST Post File-Sync Primary Evidence Refresh
+
+Fresh primary evidence has now been restored after the file sync watcher storm
+hardening commit `62381f7feec64ff5c6b17cd689b8729197e3a98e`.
+
+Package/runtime state:
+
+- release MSIX workflow rebuilt and installed
+  `.local-build\msix\output\musu_1.15.0.0_x64_local-sideload-manual.msix`
+- installed package:
+  `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`
+- explicit WindowsApps alias `musu up --json` returned bridge health at
+  `http://127.0.0.1:8155`
+- `HUGH_SECOND` still has developer PATH shadowing from
+  `C:\Users\empty\.cargo\bin\musu.exe`, so release evidence must keep using the
+  explicit WindowsApps alias
+
+Fresh evidence:
+
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-171500-HUGH_SECOND.desktop-single-instance.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-171500-HUGH_SECOND.process-ownership.json`
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-171420-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-171538-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-171659-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Runtime quality:
+
+- single-machine smoke passed with dashboard task
+  `60884022-fa9f-4e81-b0fc-775045bb63d0`, bridge `http://127.0.0.1:8155`, and
+  CLI route checked
+- desktop repeated activation passed: one `musu-desktop.exe`, no duplicate shell
+- process ownership passed: runtime `1`, desktop `1`, MUSU-owned Node `0`,
+  MUSU-owned WebView2 `7`, machine-wide Node `18`, orphan repo helpers `0`
+- desktop-open CPU passed with 60.048s sample, MUSU `0`, repo Node `0.03`,
+  WebView2 `0.57`, working set `496.62MB`, hot `0`
+- four-state CPU matrix passed with route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_171659`; all scenarios stayed under the
+  5%-of-one-core budget
+
+Qualitative verdict:
+
+- Primary packaged Windows beta is strong again after the Rust file sync change.
+- The reported 20%-of-one-core busy loop is not reproduced on current primary
+  packaged evidence.
+- The many-Node observation is real on the machine, but not attributable to
+  MUSU-owned helpers in the current evidence.
+- Public release remains No-Go until the second-PC CPU/matrix/route proof,
+  `musu.pro` owner-scoped P2P evidence, `musu@musu.pro` mailbox evidence, and
+  Store evidence are recorded.
+
+Canonical detailed report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_FILE_SYNC_PRIMARY_EVIDENCE_2026_06_02.md`

@@ -153,6 +153,32 @@ This does not expand the public network claim:
   or internet-P2P claims until route kind, identity, encryption, and payload
   transit are proven on two machines
 
+## 2026-06-02 post-file-sync primary evidence boundary update
+
+Fresh primary packaged evidence after file sync watcher storm hardening restores
+the local desktop/resource claim on `HUGH_SECOND`:
+
+- single-machine smoke passed through the packaged WindowsApps alias and local
+  dashboard bridge
+- desktop repeated activation stayed single-instance
+- process ownership reported runtime `1`, desktop `1`, MUSU-owned Node `0`, and
+  MUSU-owned WebView2 `7`
+- desktop-open CPU and the four-state runtime matrix stayed below the 5%
+  one-core release budget
+- machine-wide Node process count was `18`, but current evidence does not
+  attribute those processes to MUSU-owned helpers
+
+This still does not expand the public network claim:
+
+- primary evidence is one-machine evidence
+- second-PC CPU/matrix/route evidence remains required for two-machine desktop
+  readiness
+- live `musu.pro` owner-scoped control-plane evidence remains required before
+  account-assisted rendezvous/relay readiness is claimed
+- Store copy must stay limited to evidence-backed local/LAN/private workflow
+  claims until route kind, peer identity, encryption, and payload transit truth
+  are proven on two machines
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."
