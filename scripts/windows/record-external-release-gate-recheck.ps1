@@ -5,6 +5,7 @@ param(
     [int]$SecondPcPort = 8949,
     [string]$Version,
     [string]$OutputRoot,
+    [string]$MusuExe,
     [int]$ScriptTimeoutSeconds = 120,
     [int]$SecondPcProbeTimeoutMs = 3000,
     [switch]$FailOnNotReady,
@@ -366,9 +367,14 @@ $p2pEnv = Invoke-JsonScript `
     -Arguments @("-BaseUrl", $BaseUrl, "-Json") `
     -AllowFailure
 
+$p2pEvidenceArgs = @("-BaseUrl", $BaseUrl, "-AllowUnverified", "-Json")
+if (-not [string]::IsNullOrWhiteSpace($MusuExe)) {
+    $p2pEvidenceArgs += @("-MusuExe", $MusuExe)
+}
+
 $p2pEvidence = Invoke-JsonScript `
     -FilePath (Join-Path $scriptDir "record-p2p-control-plane-evidence.ps1") `
-    -Arguments @("-BaseUrl", $BaseUrl, "-AllowUnverified", "-Json") `
+    -Arguments $p2pEvidenceArgs `
     -AllowFailure
 
 $releaseReady = ($goNoGo.json -and [bool]$goNoGo.json.ready_for_public_desktop_release)
@@ -439,6 +445,8 @@ $result = [pscustomobject]@{
     p2p_evidence_exit_code = $p2pEvidence.exit_code
     p2p_evidence_path = if ($p2pEvidence.json) { [string]$p2pEvidence.json.evidence_path } else { $null }
     p2p_verification_path = if ($p2pEvidence.json) { [string]$p2pEvidence.json.verification_path } else { $null }
+    p2p_evidence_musu_exe = if ($p2pEvidence.json) { [string]$p2pEvidence.json.musu_exe } else { $null }
+    p2p_evidence_musu_exe_source = if ($p2pEvidence.json) { [string]$p2pEvidence.json.musu_exe_source } else { $null }
     blockers = $blockers.ToArray()
     go_no_go_blockers = $goNoGoBlockers
     go_no_go = $goNoGo.json
@@ -469,6 +477,8 @@ $summary = @"
 - P2P env ready: $($result.p2p_env_ok)
 - P2P evidence verified: $($result.p2p_evidence_ok)
 - P2P evidence: $($result.p2p_evidence_path)
+- P2P evidence MUSU exe: $($result.p2p_evidence_musu_exe)
+- P2P evidence MUSU exe source: $($result.p2p_evidence_musu_exe_source)
 - Blockers: $blockerText
 - Evidence: $([System.IO.Path]::GetFileName($evidencePath))
 - Evidence SHA256: $($hash.Hash.ToLowerInvariant())
@@ -491,6 +501,8 @@ $final = [pscustomobject]@{
     p2p_env_ok = [bool]$p2pEnvOk
     p2p_evidence_ok = [bool]$p2pEvidenceOk
     p2p_evidence_path = $result.p2p_evidence_path
+    p2p_evidence_musu_exe = $result.p2p_evidence_musu_exe
+    p2p_evidence_musu_exe_source = $result.p2p_evidence_musu_exe_source
     blockers = $result.blockers
 }
 
