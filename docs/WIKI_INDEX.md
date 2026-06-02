@@ -1942,4 +1942,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `DEFAULT_LOW_DUTY_POLL_TASK_TIMEOUT_MS`, and `low-duty polling default
   timeout index refresh`.
 
+- 2026-06-03 post low-duty polling primary evidence:
+  `RELEASE_1_15_0_RC1_POST_LOW_DUTY_POLLING_PRIMARY_EVIDENCE_2026_06_03.md`
+  (wiki/581) records the fresh packaged primary evidence refresh after commit
+  `335f2836`. Search terms should include `GOAL v367`, `wiki/581`,
+  `20260603-031050-HUGH_SECOND`, `20260603-031229-HUGH_SECOND.desktop-single-instance`,
+  `20260603-031234-HUGH_SECOND.process-ownership`,
+  `20260603-031248-HUGH_SECOND.desktop-open`,
+  `20260603-031911-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_031911`, `MUSU-owned Node 0`,
+  `machine-wide Node 18`, `mDNS regression`, and `이더넷 2`.
+
+- 2026-06-03 index refresh after post low-duty polling primary evidence:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1532 files and 2274 symbols after GOAL v367-v368, wiki/581, fresh primary
+  evidence files, the post low-duty polling primary evidence report,
+  BETA/current-head/WIKI updates, and CoS memory
+  `2026-06-03_post_low_duty_polling_primary_evidence.md`. Search terms should
+  include `GOAL v368`, `1532 files`, `2274 symbols`,
+  `20260603-031911-HUGH_SECOND`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_031911`,
+  and `post low-duty polling primary evidence index refresh`.
+
 **End of WIKI_INDEX.md.**

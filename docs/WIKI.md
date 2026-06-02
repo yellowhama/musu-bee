@@ -1735,3 +1735,37 @@ Canonical reference:
 
 - `docs/RELEASE_1_15_0_RC1_LOW_DUTY_POLLING_DEFAULT_TIMEOUT_HARDENING_2026_06_03.md`
 - `docs/memory/chief_of_staff/2026-06-03_low_duty_polling_default_timeout_hardening.md`
+
+## 11. Post Low-Duty Polling Primary Evidence (2026-06-03)
+
+wiki/581 records fresh current-head packaged primary evidence after the
+low-duty polling timeout source change. The local-sideload MSIX was rebuilt and
+replaced, then single-machine smoke, desktop single-instance, process
+ownership, desktop-open CPU, and four-state runtime CPU matrix evidence were
+captured from clean commit `335f2836473137e2fae06f1f8ce0b0fc198678a9`.
+
+Current evidence:
+
+- single-machine `20260603-031050-HUGH_SECOND`
+- desktop single-instance `20260603-031229-HUGH_SECOND`
+- process ownership `20260603-031234-HUGH_SECOND`
+- desktop-open CPU `20260603-031248-HUGH_SECOND`
+- runtime CPU matrix `20260603-031911-HUGH_SECOND`
+
+Desktop-open CPU reports MUSU `0.03`, Node `0.05`, WebView2 `0.6`, working set
+`499.66MB`, and hot `0`. The matrix passed all four scenarios with route token
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260603_031911`.
+
+mDNS regression also passed: current debug `musu discover --timeout 2` with
+opt-in env vars unset emitted no `Failed to send`, `ff02::fb`, `10065`, or
+`closed channel`, disabled 9 virtual/VPN interfaces, and sent only on physical
+`이더넷 2`.
+
+Clean go/no-go is still public No-Go because second-PC CPU/matrix/route, live
+owner-scoped `musu.pro` P2P KV/Upstash evidence, release-grade transport proof,
+`musu@musu.pro` mailbox evidence, and Store evidence remain open.
+
+Canonical reference:
+
+- `docs/RELEASE_1_15_0_RC1_POST_LOW_DUTY_POLLING_PRIMARY_EVIDENCE_2026_06_03.md`
+- `docs/memory/chief_of_staff/2026-06-03_post_low_duty_polling_primary_evidence.md`

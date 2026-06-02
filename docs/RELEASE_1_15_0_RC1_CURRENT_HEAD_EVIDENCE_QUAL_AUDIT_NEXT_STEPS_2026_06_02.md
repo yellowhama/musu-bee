@@ -1290,3 +1290,38 @@ owner-scoped `musu.pro` P2P KV/Upstash evidence, release-grade transport proof,
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_LOW_DUTY_POLLING_DEFAULT_TIMEOUT_HARDENING_2026_06_03.md`
+
+## 2026-06-03 03:25 KST Post Low-Duty Polling Primary Evidence
+
+The local-sideload MSIX was rebuilt/replaced after the low-duty polling timeout
+commit, and current primary evidence was refreshed from clean commit
+`335f2836473137e2fae06f1f8ce0b0fc198678a9`.
+
+Evidence:
+
+- single-machine `20260603-031050-HUGH_SECOND`
+- desktop single-instance `20260603-031229-HUGH_SECOND`
+- process ownership `20260603-031234-HUGH_SECOND`
+- desktop-open CPU `20260603-031248-HUGH_SECOND`
+- runtime CPU matrix `20260603-031911-HUGH_SECOND`
+
+Qualitative result: the primary machine still does not reproduce the user's
+busy-loop report under release sampling. Desktop-open CPU is MUSU `0.03`, Node
+`0.05`, WebView2 `0.6`, working set `499.66MB`, and hot `0`. The four-state
+matrix passed with route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_031911`.
+
+Process ownership separates the machine-wide background noise from MUSU:
+machine-wide Node `18`, MUSU-owned Node `0`, machine-wide WebView2 `12`,
+MUSU-owned WebView2 `6`, orphan repo helpers `0`.
+
+mDNS regression also passed with no `Failed to send`, `ff02::fb`, `10065`, or
+`closed channel` output in the current debug `musu discover --timeout 2` run.
+
+Clean go/no-go is still No-Go: single-machine true, runtime idle CPU `1/2`,
+runtime CPU matrix `1/2`, process ownership true, desktop single-instance true,
+but multi-device, P2P control-plane, support mailbox, and Store release remain
+false.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_LOW_DUTY_POLLING_PRIMARY_EVIDENCE_2026_06_03.md`
