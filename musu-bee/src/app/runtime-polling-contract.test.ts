@@ -102,3 +102,14 @@ test("shared low-duty polling supports bounded task timeout cancellation", () =>
   assert.match(text, /AbortSignal\.timeout\(taskTimeoutMs\)/);
   assert.match(text, /AbortSignal\.any/);
 });
+
+test("shared low-duty polling clamps accidental tight intervals", () => {
+  const text = source("src/lib/useLowDutyPolling.ts");
+
+  assert.match(text, /MIN_LOW_DUTY_POLL_INTERVAL_MS\s*=\s*5_000/);
+  assert.match(text, /LOW_DUTY_HIDDEN_BACKOFF_MULTIPLIER\s*=\s*4/);
+  assert.match(text, /effectiveIntervalMs\s*=\s*Math\.max\(intervalMs,\s*MIN_LOW_DUTY_POLL_INTERVAL_MS\)/);
+  assert.match(text, /effectiveMaxBackoffMs\s*=\s*Math\.max\(maxBackoffMs,\s*effectiveIntervalMs\)/);
+  assert.match(text, /MAX_FAILURE_BACKOFF_EXPONENT\s*=\s*8/);
+  assert.match(text, /typeof document !== "undefined"/);
+});

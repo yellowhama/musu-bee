@@ -14,7 +14,10 @@ interface LowDutyPollingOptions {
 
 type PollTask = (signal: AbortSignal) => Promise<void> | void;
 
+export const MIN_LOW_DUTY_POLL_INTERVAL_MS = 5_000;
 export const DEFAULT_LOW_DUTY_POLL_TASK_TIMEOUT_MS = 10_000;
+export const LOW_DUTY_HIDDEN_BACKOFF_MULTIPLIER = 4;
+const MAX_FAILURE_BACKOFF_EXPONENT = 8;
 
 function isDocumentVisible() {
   return typeof document === "undefined" || document.visibilityState !== "hidden";
@@ -33,6 +36,8 @@ export function useLowDutyPolling(task: PollTask, options: LowDutyPollingOptions
     backoffMultiplier = 2,
     taskTimeoutMs = DEFAULT_LOW_DUTY_POLL_TASK_TIMEOUT_MS,
   } = options;
+  const effectiveIntervalMs = Math.max(intervalMs, MIN_LOW_DUTY_POLL_INTERVAL_MS);
+  const effectiveMaxBackoffMs = Math.max(maxBackoffMs, effectiveIntervalMs);
 
   useEffect(() => {
     if (!enabled || intervalMs <= 0) return;
@@ -51,9 +56,11 @@ export function useLowDutyPolling(task: PollTask, options: LowDutyPollingOptions
     };
 
     const nextDelay = () => {
-      if (visibleOnly && !isDocumentVisible()) return Math.min(maxBackoffMs, intervalMs * 4);
-      if (failures === 0) return intervalMs;
-      return Math.min(maxBackoffMs, intervalMs * backoffMultiplier ** failures);
+      if (visibleOnly && !isDocumentVisible()) {
+        return Math.min(effectiveMaxBackoffMs, effectiveIntervalMs * LOW_DUTY_HIDDEN_BACKOFF_MULTIPLIER);
+      }
+      if (failures === 0) return effectiveIntervalMs;
+      return Math.min(effectiveMaxBackoffMs, effectiveIntervalMs * backoffMultiplier ** failures);
     };
 
     const schedule = (delayMs = nextDelay()) => {
@@ -84,7 +91,7 @@ export function useLowDutyPolling(task: PollTask, options: LowDutyPollingOptions
         await taskRef.current(taskSignal);
         failures = 0;
       } catch {
-        failures = Math.min(failures + 1, 8);
+        failures = Math.min(failures + 1, MAX_FAILURE_BACKOFF_EXPONENT);
       } finally {
         inFlight = false;
         controller = null;
@@ -101,15 +108,28 @@ export function useLowDutyPolling(task: PollTask, options: LowDutyPollingOptions
     if (immediate) {
       void run();
     } else {
-      schedule(intervalMs);
+      schedule(effectiveIntervalMs);
     }
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+    }
     return () => {
       cancelled = true;
       clearTimer();
       controller?.abort();
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+      }
     };
-  }, [backoffMultiplier, enabled, immediate, intervalMs, maxBackoffMs, taskTimeoutMs, visibleOnly]);
+  }, [
+    backoffMultiplier,
+    effectiveIntervalMs,
+    effectiveMaxBackoffMs,
+    enabled,
+    immediate,
+    intervalMs,
+    taskTimeoutMs,
+    visibleOnly,
+  ]);
 }
