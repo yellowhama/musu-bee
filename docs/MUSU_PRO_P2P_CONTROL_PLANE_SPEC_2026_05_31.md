@@ -2,7 +2,7 @@
 
 **Wiki ID**: wiki/524
 **Date**: 2026-05-31
-**Status**: Current implementation spec. Server-side rendezvous, route-evidence, and relay fallback lease APIs exist. Rust bridge runtime route attempts now create short-lived rendezvous sessions, seed sessions from recent node candidate cache, can use returned target candidates before legacy direct forwarding, exchange advertised TLS certificate fingerprints as peer identity material, verify HTTPS peer certificate fingerprints during bridge forwarding when a target candidate supplies a `sha256:<hex>` fingerprint, request a fail-closed relay lease after terminal direct-route failure when a rendezvous session and account token exist, persist the relay fallback evaluation inside failed route evidence, expose `musu relay leases --json` for relay lease audit queries, and accept either a raw static control token or SHA-256 runtime-token allowlist for P2P control auth. This is still not final release-grade transport because the accepted release proof remains QUIC/TLS evidence, not bridge HTTP multipart over TLS, relay/tunnel data transport is still not wired, and live `https://musu.pro` still needs production `KV_REST_API_URL` and `KV_REST_API_TOKEN` before owner-scoped relay lease queries can pass. The 2026-06-02 21:56 KST live evidence shows auth/control-plane wiring reaches the lease endpoint with `relay_default_data_path=false`, then fails closed with `p2p_relay_lease_kv_not_configured`.
+**Status**: Current implementation spec. Server-side rendezvous, route-evidence, and relay fallback lease APIs exist. Rust bridge runtime route attempts now create short-lived rendezvous sessions, seed sessions from recent node candidate cache, can use returned target candidates before legacy direct forwarding, exchange advertised TLS certificate fingerprints as peer identity material, verify HTTPS peer certificate fingerprints during bridge forwarding when a target candidate supplies a `sha256:<hex>` fingerprint, request a fail-closed relay lease after terminal direct-route failure when a rendezvous session and account token exist, persist the relay fallback evaluation inside failed route evidence, expose `musu relay leases --json` for relay lease audit queries, accept either a raw static control token or SHA-256 runtime-token allowlist for P2P control auth, and write target-side audit rows when `/api/tasks/forward` accepts cross-machine work. This is still not final release-grade transport because the accepted release proof remains QUIC/TLS evidence, not bridge HTTP multipart over TLS, relay/tunnel data transport is still not wired, and live `https://musu.pro` still needs production `KV_REST_API_URL` and `KV_REST_API_TOKEN` before owner-scoped relay lease queries can pass. The 2026-06-02 21:56 KST live evidence shows auth/control-plane wiring reaches the lease endpoint with `relay_default_data_path=false`, then fails closed with `p2p_relay_lease_kv_not_configured`.
 
 ## Product Decision
 
@@ -123,6 +123,11 @@ Current rendezvous API behavior:
   node's current advertised bridge endpoint, attach `session_id` to the
   forwarded task, let the receiving target publish its local candidate set, and
   close the session after terminal forward success/failure.
+- When the receiving target accepts a forwarded task through
+  `/api/tasks/forward`, it now writes an `audit_log` row with the real peer IP
+  from `ConnectInfo`, `cross_machine=true`, `status_code=202`, and bounded
+  task/source/rendezvous identifiers. Prompt text, cwd, callback URL, model, and
+  adapter metadata are intentionally excluded from the audit note.
 - If the refreshed session already contains target candidate endpoints, the
   bridge picks the best non-relay endpoint using the same LAN -> Tailscale ->
   direct-public priority and forwards to that selected candidate instead of the

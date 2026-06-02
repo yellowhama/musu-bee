@@ -7,7 +7,9 @@
 //! executing node POSTs a `TaskCallback` to the originating node's
 //! `/api/tasks/callback` endpoint so it can update its local row.
 
-use axum::extract::State;
+use std::net::SocketAddr;
+
+use axum::extract::{ConnectInfo, State};
 use axum::http::StatusCode;
 use axum::Json;
 use serde::{Deserialize, Serialize};
@@ -194,6 +196,37 @@ fn forward_url_for_peer(peer: &ResolvedPeer) -> String {
     format!("{}/api/tasks/forward", base.trim_end_matches('/'))
 }
 
+const AUDIT_FRAGMENT_MAX_CHARS: usize = 160;
+
+fn audit_fragment(value: &str) -> String {
+    let trimmed = value.trim();
+    if trimmed.chars().count() <= AUDIT_FRAGMENT_MAX_CHARS {
+        return trimmed.to_string();
+    }
+
+    let mut out: String = trimmed.chars().take(AUDIT_FRAGMENT_MAX_CHARS).collect();
+    out.push_str("...");
+    out
+}
+
+fn audit_fragment_or_none(value: Option<&str>) -> String {
+    value
+        .map(audit_fragment)
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| "none".to_string())
+}
+
+fn forwarded_task_audit_note(task_id: &str, req: &ForwardedTask) -> String {
+    format!(
+        "accepted forwarded task task_id={} source_node={} source_task_id={} rendezvous_session_id={} rendezvous_target_node_id={}",
+        audit_fragment(task_id),
+        audit_fragment(&req.source_node),
+        audit_fragment(&req.source_task_id),
+        audit_fragment_or_none(req.rendezvous_session_id.as_deref()),
+        audit_fragment_or_none(req.rendezvous_target_node_id.as_deref())
+    )
+}
+
 fn fingerprint_pinned_client(
     expected_fingerprint: &str,
 ) -> std::result::Result<reqwest::Client, String> {
@@ -275,6 +308,7 @@ fn relay_fallback_route_evidence(
 ///
 /// Handles receiving forwarded tasks, with an optional workspace ZIP context.
 pub async fn receive_forwarded(
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     State(state): State<AppState>,
     mut multipart: axum::extract::Multipart,
 ) -> Result<(StatusCode, Json<ForwardResponse>)> {
@@ -380,6 +414,20 @@ pub async fn receive_forwarded(
         })
         .await
         .map_err(|e| MusuError::Internal(format!("spawn forwarded task: {e}")))?;
+
+    state
+        .audit
+        .write(crate::bridge::audit::AuditEntry {
+            actor_ip: addr.ip(),
+            method: "POST".to_string(),
+            path: "/api/tasks/forward".to_string(),
+            status_code: StatusCode::ACCEPTED.as_u16(),
+            agent_id: None,
+            note: Some(forwarded_task_audit_note(&task_id, &req)),
+            company_id: req.company_id.clone(),
+            cross_machine: true,
+        })
+        .await;
 
     tracing::info!(
         task_id = %task_id,
@@ -846,5 +894,36 @@ mod tests {
             proof.transport_verified_by,
             crate::bridge::route_evidence::HTTPS_FINGERPRINT_TRANSPORT_VERIFIER
         );
+    }
+
+    #[test]
+    fn forwarded_task_audit_note_is_bounded_and_excludes_prompt() {
+        let task = ForwardedTask {
+            source_node: "source-node".repeat(80),
+            source_task_id: "source-task-123".to_string(),
+            channel: "ops".to_string(),
+            sender_id: "operator".to_string(),
+            text: "sensitive prompt body that must not be written to audit".to_string(),
+            adapter_type: None,
+            model: None,
+            cwd: Some("F:/sensitive/workspace".to_string()),
+            deadline_unix_ms: None,
+            company_id: Some("company-1".to_string()),
+            timeout_sec: None,
+            callback_url: Some("http://127.0.0.1/callback".to_string()),
+            rendezvous_session_id: Some("rv-session-1".to_string()),
+            rendezvous_target_node_id: Some("target-node".to_string()),
+        };
+
+        let note = forwarded_task_audit_note("target-task-456", &task);
+
+        assert!(note.contains("target-task-456"));
+        assert!(note.contains("source_task_id=source-task-123"));
+        assert!(note.contains("rendezvous_session_id=rv-session-1"));
+        assert!(note.contains("source_node="));
+        assert!(note.len() < 512);
+        assert!(!note.contains("sensitive prompt"));
+        assert!(!note.contains("F:/sensitive/workspace"));
+        assert!(!note.contains("127.0.0.1/callback"));
     }
 }

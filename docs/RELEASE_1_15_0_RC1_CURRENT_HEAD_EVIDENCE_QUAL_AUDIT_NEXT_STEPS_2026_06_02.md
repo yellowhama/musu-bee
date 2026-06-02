@@ -158,6 +158,20 @@ process/startup/desktop single-instance true, P2P/support/Store false, and
 reproduced on current packaged evidence, but the release gate still correctly
 requires second-PC CPU/matrix and release-grade route evidence.
 
+23:35 KST follow-up: a P2P audit gap was fixed in
+`musu-rs/src/bridge/handlers/forward.rs`. When `/api/tasks/forward` accepts and
+spawns a forwarded cross-machine task, the target bridge now writes an
+`audit_log` row with the real peer IP from `ConnectInfo`, `cross_machine=true`,
+status `202`, `company_id`, and bounded task/source/rendezvous identifiers. The
+audit note intentionally excludes prompt text, cwd, callback URL, model, and
+adapter metadata. This improves target-side command forensics but does not make
+P2P route evidence release-grade. Because Rust source changed, previous
+packaged MSIX primary evidence is stale until a fresh MSIX build/install and
+primary smoke/process/desktop-open CPU/matrix refresh are recorded. Validation
+passed `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1` and
+the focused Rust unit test
+`forwarded_task_audit_note_is_bounded_and_excludes_prompt`.
+
 ## Roadmap
 
 1. Close second-PC runtime gates.

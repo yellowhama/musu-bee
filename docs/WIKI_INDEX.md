@@ -248,6 +248,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | wiki/537 | Fresh mDNS runtime evidence audit | 2026-06-02 | `RELEASE_1_15_0_RC1_FRESH_MDNS_RUNTIME_EVIDENCE_AUDIT_2026_06_02.md` | active |
 | wiki/549 | Operator API security audit | 2026-06-02 | `RELEASE_1_15_0_RC1_OPERATOR_API_SECURITY_AUDIT_2026_06_02.md` | active |
 | wiki/550 | Post-operator-security primary evidence refresh | 2026-06-02 | `RELEASE_1_15_0_RC1_CURRENT_HEAD_EVIDENCE_QUAL_AUDIT_NEXT_STEPS_2026_06_02.md` | active |
+| wiki/573 | P2P forwarded task target audit hardening | 2026-06-02 | `RELEASE_1_15_0_RC1_P2P_FORWARDED_TASK_AUDIT_HARDENING_2026_06_02.md` | active |
 | — | 1.15.0-rc.1 beta release checklist and smoke evidence | 2026-05-29 | `BETA_RELEASE_CHECKLIST_1_15_0_RC1.md` | active |
 | — | 1.15.0-rc.1 final operator gates | 2026-05-29 | `RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md` | active |
 | — | MUSU Microsoft Store release run card | 2026-05-29 | `MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md` | active |
@@ -1784,5 +1785,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `GOAL v350`, `1465 files`, `2261 symbols`,
   `2026-06-02_relay_route_lease_proof_single_machine_refresh.md`, and
   `relay route lease-proof single-machine index refresh`.
+
+- 2026-06-02 P2P forwarded-task target audit hardening:
+  `RELEASE_1_15_0_RC1_P2P_FORWARDED_TASK_AUDIT_HARDENING_2026_06_02.md`
+  (wiki/573) records that the Rust bridge now writes target-side audit rows
+  when `/api/tasks/forward` accepts and spawns forwarded cross-machine work.
+  Search terms should include `GOAL v351`, `wiki/573`,
+  `forwarded_task_audit_note_is_bounded_and_excludes_prompt`,
+  `/api/tasks/forward`, `cross_machine=true`, `ConnectInfo`,
+  `target-side audit`, and `P2P command forensics`.
+
+- 2026-06-02 index refresh after P2P forwarded-task target audit hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1467 files and 2265 symbols after wiki/573, GOAL v351-v352, Rust forwarded
+  task audit code/test updates, P2P spec/BETA/current-head/WIKI updates, and
+  CoS memory. Search terms should include `GOAL v352`, `1467 files`,
+  `2265 symbols`,
+  `2026-06-02_p2p_forwarded_task_audit_hardening.md`, and
+  `P2P forwarded-task target audit index refresh`.
 
 **End of WIKI_INDEX.md.**

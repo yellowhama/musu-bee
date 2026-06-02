@@ -1553,6 +1553,27 @@ Indexer note:
   `1465 files`, `2261 symbols`, `20260602-231612-HUGH_SECOND`, and
   `relay route lease-proof single-machine`.
 
+- 2026-06-02 P2P forwarded-task target audit hardening:
+  wiki/573 records that `musu-rs/src/bridge/handlers/forward.rs` now writes a
+  target-side `audit_log` row when `/api/tasks/forward` accepts and spawns a
+  forwarded cross-machine task. The row uses the real peer IP from
+  `ConnectInfo`, `cross_machine=true`, `status_code=202`, `company_id`, and a
+  bounded note containing task/source/rendezvous identifiers. The note
+  intentionally excludes prompt text, cwd, callback URL, model, and adapter
+  metadata. Validation passed `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1`
+  and the focused unit test
+  `forwarded_task_audit_note_is_bounded_and_excludes_prompt`. Public release
+  remains No-Go; this is auditability hardening, not QUIC/TLS route proof.
+
+- 2026-06-02 index refresh after P2P forwarded-task target audit hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1467 files and 2265 symbols after wiki/573, GOAL v351-v352, Rust forwarded
+  task audit code/test updates, P2P spec/BETA/current-head/WIKI_INDEX updates,
+  and CoS memory `2026-06-02_p2p_forwarded_task_audit_hardening.md`. Search
+  terms should include `GOAL v352`, `wiki/573`, `1467 files`,
+  `2265 symbols`, `forwarded_task_audit_note_is_bounded_and_excludes_prompt`,
+  `/api/tasks/forward`, `cross_machine=true`, and `target-side audit`.
+
 ## 9. musu-system Integration State (2026-05-29)
 
 `yellowhama/musu-system` is a credible adjacent MUSU ecosystem line, not a Rust-core replacement. It contains:
