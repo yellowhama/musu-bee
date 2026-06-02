@@ -41,6 +41,9 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Runtime polling contract tests
+        run: npm run test:runtime-polling
+
       - name: Route security tests
         run: npm run test:routes
 

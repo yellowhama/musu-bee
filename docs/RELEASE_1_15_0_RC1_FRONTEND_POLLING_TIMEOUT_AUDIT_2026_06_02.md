@@ -114,3 +114,31 @@ live `musu.pro` P2P evidence, `musu@musu.pro` evidence, and Store evidence.
 
 The public release remains No-Go until the second Windows PC, live `musu.pro`
 P2P control-plane, `musu@musu.pro`, and Store gates also pass.
+
+## 2026-06-02 15:00 KST Reconnect Backoff Follow-up
+
+After the release-gate script hardening, the remaining frontend idle-work audit
+focused on reconnect loops rather than ordinary polling. Ordinary polling
+surfaces already use `useLowDutyPolling`; this follow-up hardens the direct
+network reconnect paths:
+
+- dashboard cloud relay WebSocket reconnect now uses capped backoff
+  `5s -> 10s -> 20s -> 40s -> 60s` instead of a fixed retry delay
+- chat task SSE reconnect now clears existing timers before scheduling,
+  suppresses duplicate `EventSource.CONNECTING` instances, and ignores stale
+  timers with `reconnectGenerationRef`
+- `npm run test:runtime-polling` now runs the expanded 10-test runtime polling
+  contract suite and is wired into GitHub Actions before route/P2P tests
+
+Validation passed:
+
+- `npm run test:runtime-polling`: `10/10`
+- `npm run typecheck`
+- `npm run test:routes`: `12/12`
+- `npm run test:p2p`: `21/21`
+- `npm run build`
+- `npm run lint`: 0 errors
+- `git diff --check`
+
+This is runtime web source. Fresh MSIX runtime evidence must be collected after
+commit before current-HEAD CPU release claims.

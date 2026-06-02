@@ -1369,5 +1369,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `manifest_dirty=false`, and blockers `multi-device`, `runtime-idle-cpu`,
   `runtime-cpu-scenario-matrix`, `support-mailbox`, `store-release`, and
   `p2p-control-plane`.
+- 2026-06-02 runtime reconnect backoff hardening:
+  wiki/553 records dashboard relay WebSocket capped backoff and chat SSE stale
+  timer cleanup. Search terms should include `GOAL v307`, `wiki/553`,
+  `RELAY_RECONNECT_INITIAL_MS`, `RELAY_RECONNECT_MAX_MS`,
+  `relayReconnectDelayMs`, `SSE_RECONNECT_INITIAL_MS`,
+  `SSE_RECONNECT_MAX_MS`, `reconnectGenerationRef`,
+  `EventSource.CONNECTING`, `test:runtime-polling`, `Runtime polling contract
+  tests`, `runtime-polling-contract.test.ts 10/10`, `npm run test:p2p 21/21`,
+  and `runtime web source refresh evidence required`.
+- 2026-06-02 index refresh after runtime reconnect backoff hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1351 files and 2240 symbols. Search terms should include `GOAL v308`,
+  `1351 files`, `2240 symbols`,
+  `2026-06-02_1500_kst_runtime_reconnect_backoff_hardening.md`,
+  `2026-06-02_1508_kst_runtime_reconnect_backoff_index_refresh.md`, and
+  `RELEASE_1_15_0_RC1_RUNTIME_RECONNECT_BACKOFF_HARDENING_2026_06_02.md`.
 
 **End of WIKI_INDEX.md.**

@@ -734,6 +734,17 @@ Tauri desktop shell evidence:
   the exact `test:p2p` package/workflow tooling-only diff.
   This is release-gate failure handling only; it does not close second-PC,
   P2P, support mailbox, or Store evidence gates.
+- 2026-06-02 15:00 KST runtime reconnect backoff hardening:
+  dashboard cloud relay WebSocket reconnect now uses capped backoff instead of
+  a fixed retry delay, and chat task SSE reconnect now clears pending timers,
+  suppresses duplicate `EventSource.CONNECTING` attempts, and uses a generation
+  guard to prevent stale reconnects after channel/node changes or unmount.
+  `npm run test:runtime-polling` is now a first-class web CI step before route
+  and P2P tests. Validation passed runtime polling contract 10/10, typecheck,
+  route tests 12/12, P2P tests 21/21, production build, lint with 0 errors,
+  and `git diff --check`. This is runtime web source, so primary MSIX smoke,
+  desktop-open CPU, and runtime matrix evidence must be refreshed after commit
+  before current-HEAD release claims.
 
 Release candidate manifest:
 
@@ -746,6 +757,7 @@ Release candidate manifest:
 
 ```powershell
 npm run typecheck
+npm run test:runtime-polling
 npm run test:routes
 npm run test:p2p
 npm run lint -- --quiet

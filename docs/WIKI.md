@@ -1046,6 +1046,28 @@ Indexer note:
   `manifest_dirty=false`. Public release blockers remain `multi-device`,
   `runtime-idle-cpu`, `runtime-cpu-scenario-matrix`, `support-mailbox`,
   `store-release`, and `p2p-control-plane`.
+- 2026-06-02 runtime reconnect backoff hardening:
+  wiki/553 records dashboard relay WebSocket and chat SSE reconnect hardening.
+  Dashboard relay reconnect now uses capped backoff `5s -> 10s -> 20s ->
+  40s -> 60s` with the existing 5-attempt limit and cleanup on disconnect,
+  selected-node change, and unmount. Chat SSE reconnect now has explicit `1s`
+  initial delay, `2x` multiplier, `10s` cap, `EventSource.CONNECTING`
+  suppression, `clearReconnectTimer`, centralized EventSource close/reset,
+  and `reconnectGenerationRef` so stale timers cannot reconnect after channel
+  changes, active-node changes, or unmount. `npm run test:runtime-polling` is
+  now wired into GitHub Actions before route/P2P tests; the runtime polling
+  contract suite is 10/10. Validation also passed typecheck, route tests
+  12/12, P2P tests 21/21, production build, lint with 0 errors, and
+  `git diff --check`. This is runtime web source, so primary MSIX smoke/CPU
+  evidence must be refreshed after commit before current-HEAD release claims.
+- 2026-06-02 index refresh after runtime reconnect backoff hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1351 files and 2240 symbols after wiki/553, runtime reconnect backoff
+  hardening, runtime polling contract CI wiring, product network boundary
+  update, runtime stabilization plan update, current-head qualitative audit
+  update, BETA checklist update, WIKI/WIKI_INDEX/GOAL updates, and CoS
+  memories `2026-06-02_1500_kst_runtime_reconnect_backoff_hardening.md` and
+  `2026-06-02_1508_kst_runtime_reconnect_backoff_index_refresh.md`.
 
 ## 9. musu-system Integration State (2026-05-29)
 

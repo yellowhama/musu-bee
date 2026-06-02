@@ -33,6 +33,17 @@ const DASHBOARD_REFRESH_HIDDEN_MS = 120_000;
 const WATCHDOG_FETCH_TIMEOUT_MS = 5_000;
 const DASHBOARD_REFRESH_TIMEOUT_MS = 10_000;
 const RELAY_TOKEN_FETCH_TIMEOUT_MS = 5_000;
+const RELAY_RECONNECT_INITIAL_MS = 5_000;
+const RELAY_RECONNECT_MAX_MS = 60_000;
+const RELAY_RECONNECT_MULTIPLIER = 2;
+
+function relayReconnectDelayMs(retryCount: number) {
+  const exponent = Math.max(0, retryCount - 1);
+  return Math.min(
+    RELAY_RECONNECT_MAX_MS,
+    RELAY_RECONNECT_INITIAL_MS * RELAY_RECONNECT_MULTIPLIER ** exponent,
+  );
+}
 
 function boundedAbortSignal(signal: AbortSignal | undefined, timeoutMs: number) {
   const timeoutSignal = AbortSignal.timeout(timeoutMs);
@@ -127,8 +138,8 @@ export default function DashboardClient({ nodes }: Props) {
   const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const relayTokenControllerRef = useRef<AbortController | null>(null);
   const retryCountRef = useRef(0);
+  const [relayRetryDelayMs, setRelayRetryDelayMs] = useState<number | null>(null);
   const MAX_RETRIES = 5;
-  const RETRY_DELAY_MS = 5000;
 
   const fetchRelayToken = useCallback(async (signal?: AbortSignal) => {
     const response = await fetch("/api/account/relay-token", {
@@ -140,6 +151,7 @@ export default function DashboardClient({ nodes }: Props) {
 
   const clearRetry = useCallback(() => {
     if (retryRef.current) { clearTimeout(retryRef.current); retryRef.current = null; }
+    setRelayRetryDelayMs(null);
   }, []);
 
   const connectRelay = useCallback((relayInfoArg: RelayTokenResponse, node: string) => {
@@ -158,6 +170,7 @@ export default function DashboardClient({ nodes }: Props) {
       wsRef.current = ws;
       ws.onopen = () => {
         retryCountRef.current = 0;
+        setRelayRetryDelayMs(null);
         setWsStatus("connected");
         setWsError(null);
       };
@@ -172,8 +185,11 @@ export default function DashboardClient({ nodes }: Props) {
         setWsStatus("error");
         setWsError(msg);
         if (retryCountRef.current < MAX_RETRIES) {
-          retryCountRef.current += 1;
-          retryRef.current = setTimeout(() => connectRelay(relayInfoArg, node), RETRY_DELAY_MS);
+          const nextRetryCount = retryCountRef.current + 1;
+          retryCountRef.current = nextRetryCount;
+          const delayMs = relayReconnectDelayMs(nextRetryCount);
+          setRelayRetryDelayMs(delayMs);
+          retryRef.current = setTimeout(() => connectRelay(relayInfoArg, node), delayMs);
         }
       };
     } catch (err) {
@@ -829,7 +845,7 @@ export default function DashboardClient({ nodes }: Props) {
               </span>
               {wsStatus === "error" && retryCountRef.current < MAX_RETRIES && (
                 <span style={{ color: "rgba(253,251,247,0.3)", fontSize: "11px" }}>
-                  {`Retrying in ${RETRY_DELAY_MS / 1000}s… (${retryCountRef.current}/${MAX_RETRIES})`}
+                  {`Retrying in ${Math.round((relayRetryDelayMs ?? RELAY_RECONNECT_INITIAL_MS) / 1000)}s… (${retryCountRef.current}/${MAX_RETRIES})`}
                 </span>
               )}
             </div>

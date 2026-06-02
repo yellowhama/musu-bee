@@ -62,6 +62,28 @@ test("dashboard relay connection is on-demand instead of mount-time polling", ()
   assert.doesNotMatch(text, /useEffect\(\(\)\s*=>\s*\{[\s\S]*const controller = new AbortController\(\);[\s\S]*fetch\("\/api\/account\/relay-token"/);
 });
 
+test("dashboard relay reconnect stays bounded with capped backoff", () => {
+  const text = source("src/components/dashboard/DashboardClient.tsx");
+
+  assert.match(text, /RELAY_RECONNECT_INITIAL_MS\s*=\s*5_000/);
+  assert.match(text, /RELAY_RECONNECT_MAX_MS\s*=\s*60_000/);
+  assert.match(text, /relayReconnectDelayMs/);
+  assert.match(text, /Math\.min\(\s*RELAY_RECONNECT_MAX_MS/);
+  assert.doesNotMatch(text, /const RETRY_DELAY_MS\s*=/);
+});
+
+test("chat SSE reconnect clears timers and ignores stale generations", () => {
+  const text = source("src/lib/useChat.ts");
+
+  assert.match(text, /SSE_RECONNECT_INITIAL_MS\s*=\s*1_000/);
+  assert.match(text, /SSE_RECONNECT_MAX_MS\s*=\s*10_000/);
+  assert.match(text, /SSE_RECONNECT_MULTIPLIER\s*=\s*2/);
+  assert.match(text, /reconnectGenerationRef/);
+  assert.match(text, /clearReconnectTimer/);
+  assert.match(text, /reconnectGenerationRef\.current !== reconnectGeneration/);
+  assert.match(text, /EventSource\.CONNECTING/);
+});
+
 test("node panel refresh loop stays on shared low-duty polling", () => {
   const text = source("src/components/NodePanel.tsx");
 

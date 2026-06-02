@@ -113,6 +113,23 @@ This preserves the Core/Connect product boundary:
 - public claims about internet P2P must wait for release-grade route evidence
   and live `musu.pro` owner-scoped control-plane evidence
 
+## 2026-06-02 reconnect duty-cycle update
+
+When an explicit relay or task event connection fails, MUSU must use bounded
+retry behavior instead of fixed-delay indefinite reconnect loops.
+
+- dashboard relay WebSocket reconnect is capped at five attempts and backs off
+  from `5s` to a `60s` maximum
+- chat task SSE reconnect starts at `1s`, doubles, and caps at `10s`
+- pending reconnect timers must be cleared on disconnect, route/node changes,
+  channel changes, and unmount
+- duplicate `EventSource.CONNECTING` attempts must be suppressed
+- stale timers must not reconnect after a UI lifecycle change
+
+This is part of the desktop idle-resource contract. It does not change the
+Core/Connect product boundary, and it does not replace installed MSIX CPU
+evidence.
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."

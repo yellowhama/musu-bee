@@ -189,6 +189,13 @@ Already applied:
   PID before restarting the bridge. This addresses the observed "PID alive but
   `/health` dead" class. Runtime verification is still pending because a local
   debug binary build hit rustc/LLVM OOM.
+- 2026-06-02 15:00 KST reconnect hardening: dashboard relay WebSocket reconnect
+  now uses capped backoff instead of fixed retry delay, and chat task SSE
+  reconnect now clears pending timers, suppresses duplicate
+  `EventSource.CONNECTING` attempts, and ignores stale timers with a generation
+  guard. `npm run test:runtime-polling` is now a CI gate. This reduces an idle
+  busy-loop candidate, but fresh MSIX CPU evidence is required because runtime
+  web source changed.
 - Source-fresh release packaging still needs a stronger build machine or build
   profile adjustment: a `build-msix.ps1` release build attempt on `HUGH_SECOND`
   failed in `musu-rs` rustc OOM/pagefile pressure even with

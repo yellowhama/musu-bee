@@ -304,3 +304,53 @@ Validation:
 Verdict remains **No-Go**. This improves release gate failure handling only;
 second-PC CPU/matrix/route, live P2P KV owner-scope, `musu@musu.pro`, and Store
 evidence are still required.
+
+## 2026-06-02 15:00 KST Runtime Reconnect Backoff Hardening Update
+
+The next CPU-hardened code pass targeted reconnect paths rather than ordinary
+polling loops.
+
+Changes:
+
+- `DashboardClient.tsx` relay WebSocket reconnect now uses capped backoff
+  `5s -> 10s -> 20s -> 40s -> 60s` while preserving the existing 5-attempt
+  limit.
+- Relay reconnect delay state is cleared on successful connect, explicit
+  disconnect, selected-node change, and unmount.
+- `useChat.ts` task SSE reconnect now has explicit `1s` initial delay, `2x`
+  multiplier, `10s` cap, pending-timer cleanup, `EventSource.CONNECTING`
+  suppression, and `reconnectGenerationRef` to ignore stale reconnect timers
+  after channel/node changes or unmount.
+- `runtime-polling-contract.test.ts` now covers these reconnect contracts.
+- `npm run test:runtime-polling` is now wired into GitHub Actions before route
+  and P2P tests.
+
+Validation:
+
+- `npm run test:runtime-polling`: `10/10`
+- `npm run typecheck`: passed
+- `npm run test:routes`: `12/12`
+- `npm run test:p2p`: `21/21`
+- `npm run build`: passed
+- `npm run lint`: `0` errors, warning-only existing state
+- `git diff --check`: passed
+
+Code-audit verdict:
+
+- This is a focused, low-blast-radius hardening pass.
+- It reduces the probability of network-failure reconnect loops causing idle
+  work in the desktop WebView/browser.
+- It does not replace installed MSIX runtime CPU evidence.
+- Because this is runtime web source, the previous primary MSIX CPU evidence is
+  not current-HEAD evidence after this commit.
+
+Next release evidence:
+
+1. Commit and push this hardening slice.
+2. Watch CI for build/typecheck, runtime polling contract, route security, P2P,
+   and Rust core tests.
+3. Rebuild/install MSIX from the new HEAD.
+4. Rerun desktop single-instance, process ownership, single-machine smoke,
+   desktop-open idle CPU, and four-state runtime CPU matrix evidence.
+5. Continue second-PC CPU/matrix/route, live P2P KV owner-scope,
+   `musu@musu.pro`, and Store evidence gates.

@@ -36,6 +36,9 @@ function parsePlan(msgId: string, text: string): MessagePlan | null {
 }
 
 const SSE_URL = "/api/bridge-tasks/events";
+const SSE_RECONNECT_INITIAL_MS = 1_000;
+const SSE_RECONNECT_MAX_MS = 10_000;
+const SSE_RECONNECT_MULTIPLIER = 2;
 
 // ── History localStorage cache ─────────────────────────────────────────────
 // Restores the last 50 messages per channel when musu-bridge is unreachable.
@@ -123,8 +126,9 @@ export function useChat(
   const [selectedAdapter, setSelectedAdapter] = useState<string | null>(null);
 
   const esRef = useRef<EventSource | null>(null);
-  const reconnectTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const reconnectDelay = useRef(1000);
+  const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectDelay = useRef(SSE_RECONNECT_INITIAL_MS);
+  const reconnectGenerationRef = useRef(0);
   const oldestHistoryId = useRef<string | null>(null);
   const seenTaskUpdates = useRef<Set<string>>(new Set());
   const isAgentChannel = AGENT_CHANNELS.includes(channel);
@@ -236,26 +240,52 @@ export function useChat(
   const isEmbedded = typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("embed") === "1";
 
+  const clearReconnectTimer = useCallback(() => {
+    if (reconnectTimer.current) {
+      clearTimeout(reconnectTimer.current);
+      reconnectTimer.current = null;
+    }
+  }, []);
+
+  const closeEventSource = useCallback(() => {
+    esRef.current?.close();
+    esRef.current = null;
+    setIsConnected(false);
+  }, []);
+
   const connect = useCallback(() => {
     if (!isAgentChannel) return;
     if (isEmbedded) return; // Skip in iframe embed mode
-    if (esRef.current?.readyState === EventSource.OPEN) return;
+    if (
+      esRef.current?.readyState === EventSource.OPEN ||
+      esRef.current?.readyState === EventSource.CONNECTING
+    ) return;
+    clearReconnectTimer();
 
     const es = new EventSource(SSE_URL);
     esRef.current = es;
+    const reconnectGeneration = reconnectGenerationRef.current;
 
     es.onopen = () => {
       setIsConnected(true);
-      reconnectDelay.current = 1000;
+      reconnectDelay.current = SSE_RECONNECT_INITIAL_MS;
     };
 
     es.onerror = () => {
       es.close();
+      if (esRef.current === es) esRef.current = null;
       setIsConnected(false);
+      clearReconnectTimer();
+      const delayMs = reconnectDelay.current;
       reconnectTimer.current = setTimeout(() => {
-        reconnectDelay.current = Math.min(reconnectDelay.current * 2, 10000);
+        reconnectTimer.current = null;
+        if (reconnectGenerationRef.current !== reconnectGeneration) return;
+        reconnectDelay.current = Math.min(
+          reconnectDelay.current * SSE_RECONNECT_MULTIPLIER,
+          SSE_RECONNECT_MAX_MS,
+        );
         connect();
-      }, reconnectDelay.current);
+      }, delayMs);
     };
 
     es.addEventListener("task_update", (event) => {
@@ -297,36 +327,35 @@ export function useChat(
         // ignore malformed messages
       }
     });
-  }, [appendChatMessage, channel, isAgentChannel, isEmbedded]);
+  }, [appendChatMessage, channel, clearReconnectTimer, isAgentChannel, isEmbedded]);
 
   useEffect(() => {
     if (!isAgentChannel) {
-      clearTimeout(reconnectTimer.current);
-      esRef.current?.close();
-      esRef.current = null;
-      setIsConnected(false);
+      reconnectGenerationRef.current += 1;
+      clearReconnectTimer();
+      closeEventSource();
       setIsAgentTyping(false);
       return;
     }
     setIsAgentTyping(false);
     connect();
     return () => {
-      clearTimeout(reconnectTimer.current);
-      esRef.current?.close();
-      esRef.current = null;
+      reconnectGenerationRef.current += 1;
+      clearReconnectTimer();
+      closeEventSource();
     };
-  }, [connect, isAgentChannel]);
+  }, [clearReconnectTimer, closeEventSource, connect, isAgentChannel]);
 
   // Reconnect SSE when activeNode changes (LOCAL ↔ REMOTE)
   useEffect(() => {
     if (!isAgentChannel) return;
-    clearTimeout(reconnectTimer.current);
-    esRef.current?.close();
-    esRef.current = null;
-    reconnectDelay.current = 1000;
+    reconnectGenerationRef.current += 1;
+    clearReconnectTimer();
+    closeEventSource();
+    reconnectDelay.current = SSE_RECONNECT_INITIAL_MS;
     connect();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeNode]);
+  }, [activeNode, clearReconnectTimer, closeEventSource]);
 
   // ── musu-bridge agent route ────────────────────────────────────────────────
 
