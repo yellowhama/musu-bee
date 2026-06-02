@@ -168,6 +168,14 @@ pub struct StopOpts {
     #[arg(long)]
     pub include_desktop: bool,
 }
+
+/// Options for `musu status`.
+#[derive(Args, Debug, Clone)]
+pub struct StatusOpts {
+    /// Emit machine-readable JSON.
+    #[arg(long)]
+    pub json: bool,
+}
 // ── share / unshare / shares ────────────────────────────────────────────
 
 /// `musu share <path>` — register a directory in `shares.toml`.
@@ -2526,10 +2534,10 @@ fn musu_home() -> std::path::PathBuf {
 // ── F3 fleet dashboard CLI ──────────────────────────────────────────
 
 /// `musu status` — show fleet status across all connected nodes.
-pub async fn run_status() -> Result<()> {
-    let _home = musu_home();
+pub async fn run_status(opts: StatusOpts) -> Result<()> {
+    let bridge_url = local_bridge_base_url();
     let token = get_token();
-    let url = format!("{}/api/fleet/status", local_bridge_base_url());
+    let url = format!("{bridge_url}/api/fleet/status");
     let client = reqwest::Client::new();
 
     let resp = client
@@ -2548,6 +2556,18 @@ pub async fn run_status() -> Result<()> {
     }
 
     let fleet: serde_json::Value = resp.json().await?;
+    if opts.json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "schema": "musu.fleet_status_cli.v1",
+                "ok": true,
+                "bridge_url": bridge_url,
+                "fleet": fleet,
+            }))?
+        );
+        return Ok(());
+    }
 
     println!("\n\u{1f41d} MUSU Fleet Status\n");
 

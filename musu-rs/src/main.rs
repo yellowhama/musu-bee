@@ -17,8 +17,8 @@ mod writer;
 // V27: re-export CLI option structs from their canonical home in
 // `install::cli_commands` so the `Cmd` enum can reference them.
 use install::cli_commands::{
-    DoctorOpts, GetOpts, LsOpts, PutOpts, RelayAction, RouteOpts, ShareOpts, StopOpts, UnshareOpts,
-    UpOpts,
+    DoctorOpts, GetOpts, LsOpts, PutOpts, RelayAction, RouteOpts, ShareOpts, StatusOpts, StopOpts,
+    UnshareOpts, UpOpts,
 };
 
 #[derive(Parser)]
@@ -111,7 +111,7 @@ enum Cmd {
     },
 
     /// Show fleet status across all connected nodes.
-    Status,
+    Status(StatusOpts),
     /// List recent tasks across the fleet.
     Tasks,
 
@@ -294,9 +294,9 @@ async fn main() -> anyhow::Result<()> {
             Ok(())
         }
 
-        Cmd::Status => {
+        Cmd::Status(opts) => {
             init_tracing_default();
-            install::cli_commands::run_status().await
+            install::cli_commands::run_status(opts).await
         }
         Cmd::Tasks => {
             init_tracing_default();
@@ -354,6 +354,20 @@ async fn main() -> anyhow::Result<()> {
         Cmd::PackageStatus => {
             init_tracing_default();
             install::run_package_status().await
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn status_cli_accepts_json_flag() {
+        let cli = Cli::try_parse_from(["musu", "status", "--json"]).unwrap();
+        match cli.command {
+            Cmd::Status(opts) => assert!(opts.json),
+            _ => panic!("expected status command"),
         }
     }
 }
