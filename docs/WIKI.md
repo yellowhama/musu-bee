@@ -809,6 +809,24 @@ Indexer note:
   updates. Search terms should include `GOAL v285`, `1307 files`,
   `20260602-110033`, `20260602-110105`, and
   `MUSU-second-PC-transfer-1.15.0-rc.1-20260602-110105`.
+- 2026-06-02 relay idle hardening:
+  wiki/546 changes dashboard cloud relay from mount-time background work to an
+  on-demand fallback. `DashboardClient.tsx` no longer fetches
+  `/api/account/relay-token` on mount and no longer auto-connects relay
+  WebSocket when a node is selected. `Connect` lazily fetches the token with
+  the existing `5s` timeout; selected-node changes and unmount abort pending
+  token fetches, clear retry timers, and close relay WebSocket state. Validation
+  passed: runtime-polling contract `8/8`, `npm run typecheck`,
+  `npm run lint -- --quiet`, `npm run build`, and `git diff --check`. This is
+  runtime source; fresh MSIX primary runtime evidence is required after commit.
+- 2026-06-02 index refresh after relay idle hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1309 files and 2221 symbols after wiki/546, CoS memory
+  `2026-06-02_1114_kst_relay_idle_hardening.md`, relay idle audit doc, WIKI,
+  WIKI_INDEX, GOAL, BETA, current-status, frontend-polling audit updates, and
+  dashboard relay source/test changes. Search terms should include
+  `GOAL v287`, `1309 files`, `handleRelayConnect`, `fetchRelayToken`,
+  `relay idle hardening`, and `on-demand fallback`.
 
 ## 9. musu-system Integration State (2026-05-29)
 

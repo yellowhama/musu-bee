@@ -566,3 +566,17 @@ verifies with `ok=true`, `fail_count=0`. The current second-PC transfer zip is
 `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-110105\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-110105.zip`.
 The support mailbox target remains `musu@musu.pro`, with verification id
 `musu-store-support-1.15.0-rc.1-20260602-110033`.
+
+2026-06-02 11:14 KST relay idle hardening addendum: the dashboard cloud relay
+path is now on-demand instead of a mount-time background connection.
+`DashboardClient.tsx` no longer fetches `/api/account/relay-token` on mount and
+no longer auto-connects the relay WebSocket when `relayInfo` and `selectedNode`
+exist. `Connect` lazily fetches the token with a `5s` timeout; selected-node
+changes and unmount abort pending token fetches, clear retry timers, and close
+relay WebSocket state. Validation passed with runtime-polling contract `8/8`,
+`npm run typecheck`, `npm run lint -- --quiet`, `npm run build`, and
+`git diff --check`. This is a runtime source change, so the previous primary
+MSIX/runtime evidence is stale for current-HEAD claims until fresh
+smoke/process/desktop-open CPU/matrix evidence is regenerated. Public release
+remains No-Go on second-PC CPU/matrix/route, live `musu.pro` P2P control-plane,
+`musu@musu.pro`, and Store evidence.

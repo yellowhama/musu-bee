@@ -118,25 +118,24 @@ export default function DashboardClient({ nodes }: Props) {
   // ---- Auto-update state: node_name → "idle" | "updating" | "ok" | "error" ----
   const [updateState, setUpdateState] = useState<Map<string, string>>(new Map());
 
-  // ---- Relay WS — auto-connect + auto-reconnect ----
+  // ---- Relay WS — on-demand fallback + bounded reconnect ----
   const [relayInfo, setRelayInfo] = useState<RelayTokenResponse | null>(null);
+  const [relayLoading, setRelayLoading] = useState(false);
   const [wsStatus, setWsStatus] = useState<WsStatus>("idle");
   const [wsError, setWsError] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const relayTokenControllerRef = useRef<AbortController | null>(null);
   const retryCountRef = useRef(0);
   const MAX_RETRIES = 5;
   const RETRY_DELAY_MS = 5000;
 
-  useEffect(() => {
-    const controller = new AbortController();
-    fetch("/api/account/relay-token", {
-      signal: boundedAbortSignal(controller.signal, RELAY_TOKEN_FETCH_TIMEOUT_MS),
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: RelayTokenResponse | null) => { if (!controller.signal.aborted && data) setRelayInfo(data); })
-      .catch(() => {});
-    return () => controller.abort();
+  const fetchRelayToken = useCallback(async (signal?: AbortSignal) => {
+    const response = await fetch("/api/account/relay-token", {
+      signal: boundedAbortSignal(signal, RELAY_TOKEN_FETCH_TIMEOUT_MS),
+    });
+    if (!response.ok) throw new Error(`relay token ${response.status}`);
+    return (await response.json()) as RelayTokenResponse;
   }, []);
 
   const clearRetry = useCallback(() => {
@@ -186,6 +185,8 @@ export default function DashboardClient({ nodes }: Props) {
 
   const disconnectRelay = useCallback(() => {
     if (typeof window === "undefined") return;
+    relayTokenControllerRef.current?.abort();
+    relayTokenControllerRef.current = null;
     clearRetry();
     retryCountRef.current = MAX_RETRIES; // prevent auto-reconnect
     if (wsRef.current) {
@@ -193,20 +194,59 @@ export default function DashboardClient({ nodes }: Props) {
       wsRef.current.close(1000);
       wsRef.current = null;
     }
+    setRelayLoading(false);
     setWsStatus("idle");
     setWsError(null);
   }, [clearRetry]);
 
-  // Auto-connect when relayInfo + selectedNode are ready
   useEffect(() => {
-    if (!relayInfo || !selectedNode) return;
-    retryCountRef.current = 0;
-    connectRelay(relayInfo, selectedNode);
+    setRelayLoading(false);
+    setWsStatus("idle");
+    setWsError(null);
     return () => {
+      relayTokenControllerRef.current?.abort();
+      relayTokenControllerRef.current = null;
       clearRetry();
-      if (wsRef.current) { wsRef.current.onclose = null; wsRef.current.close(); wsRef.current = null; }
+      retryCountRef.current = MAX_RETRIES;
+      if (wsRef.current) {
+        wsRef.current.onclose = null;
+        wsRef.current.close();
+        wsRef.current = null;
+      }
     };
-  }, [relayInfo, selectedNode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [clearRetry, selectedNode]);
+
+  const handleRelayConnect = useCallback(async () => {
+    if (!selectedNode || relayLoading) return;
+    let info = relayInfo;
+    if (!info) {
+      relayTokenControllerRef.current?.abort();
+      const controller = new AbortController();
+      relayTokenControllerRef.current = controller;
+      setRelayLoading(true);
+      setWsStatus("connecting");
+      setWsError(null);
+      try {
+        info = await fetchRelayToken(controller.signal);
+        if (controller.signal.aborted) return;
+        setRelayInfo(info);
+      } catch {
+        if (!controller.signal.aborted) {
+          retryCountRef.current = MAX_RETRIES;
+          setWsStatus("error");
+          setWsError("Relay unavailable");
+        }
+        return;
+      } finally {
+        if (relayTokenControllerRef.current === controller) {
+          relayTokenControllerRef.current = null;
+        }
+        setRelayLoading(false);
+      }
+    }
+    retryCountRef.current = 0;
+    connectRelay(info, selectedNode);
+  }, [connectRelay, fetchRelayToken, relayInfo, relayLoading, selectedNode]);
 
   const fetchAll = useCallback(async (signal?: AbortSignal) => {
     // Agents: fetch from selected node, try company-scoped first
@@ -753,7 +793,7 @@ export default function DashboardClient({ nodes }: Props) {
       )}
 
       {/* Relay WS */}
-      {selectedNode && relayInfo && (
+      {selectedNode && (
         <section>
           <SectionLabel>Cloud relay — {selectedNode}</SectionLabel>
           <div
@@ -796,7 +836,8 @@ export default function DashboardClient({ nodes }: Props) {
             <div style={{ display: "flex", gap: "8px" }}>
               {wsStatus === "error" && retryCountRef.current >= MAX_RETRIES && (
                 <button
-                  onClick={() => { retryCountRef.current = 0; connectRelay(relayInfo, selectedNode); }}
+                  onClick={() => { void handleRelayConnect(); }}
+                  disabled={relayLoading}
                   style={{
                     background: "transparent",
                     border: "1px solid var(--accent)",
@@ -804,12 +845,33 @@ export default function DashboardClient({ nodes }: Props) {
                     padding: "5px 14px",
                     color: "var(--accent)",
                     fontSize: "12px",
-                    cursor: "pointer",
+                    cursor: relayLoading ? "wait" : "pointer",
                     fontFamily: "inherit",
                     fontWeight: 700,
+                    opacity: relayLoading ? 0.65 : 1,
                   }}
                 >
-                  Reconnect
+                  {relayLoading ? "Connecting..." : "Reconnect"}
+                </button>
+              )}
+              {wsStatus === "idle" && (
+                <button
+                  onClick={() => { void handleRelayConnect(); }}
+                  disabled={relayLoading}
+                  style={{
+                    background: "transparent",
+                    border: "1px solid var(--accent)",
+                    borderRadius: "6px",
+                    padding: "5px 14px",
+                    color: "var(--accent)",
+                    fontSize: "12px",
+                    cursor: relayLoading ? "wait" : "pointer",
+                    fontFamily: "inherit",
+                    fontWeight: 700,
+                    opacity: relayLoading ? 0.65 : 1,
+                  }}
+                >
+                  {relayLoading ? "Connecting..." : "Connect"}
                 </button>
               )}
               {(wsStatus === "connected" || wsStatus === "connecting") && (

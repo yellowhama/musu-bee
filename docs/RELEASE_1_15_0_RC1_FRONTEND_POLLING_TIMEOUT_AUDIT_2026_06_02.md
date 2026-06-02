@@ -19,7 +19,9 @@ combined from the hook's cancellation controller and `AbortSignal.timeout`.
 Timeouts were applied to these frontend background surfaces:
 
 - dashboard aggregate refresh: `10s`
-- account relay-token lookup on dashboard mount: `5s`
+- dashboard relay-token lookup: `5s`; as of the 2026-06-02 11:14 KST relay
+  idle hardening, this lookup is on-demand instead of running on dashboard
+  mount
 - service health polling: `5s`
 - device discovery polling: `5s`
 - node mesh polling: `8s`
@@ -51,6 +53,28 @@ Results:
 - typecheck: passed
 - production build: passed
 - eslint quiet: passed
+
+## 2026-06-02 11:14 KST Follow-up
+
+Dashboard relay connection is now on-demand instead of mount-time background
+work. `DashboardClient.tsx` no longer fetches `/api/account/relay-token` on
+mount and no longer auto-connects the relay WebSocket when `relayInfo` and
+`selectedNode` exist. The relay token fetch remains bounded to `5s` when the
+operator explicitly clicks `Connect`; selected-node changes and unmount abort
+the pending token fetch, clear retry timers, and close relay WebSocket state.
+
+Validation passed:
+
+- `npx tsx --test src/app/runtime-polling-contract.test.ts`: `8/8`
+- `npm run typecheck`
+- `npm run lint -- --quiet`
+- `npm run build`
+- `git diff --check`
+
+This supersedes the older mount-time relay-token note above. Because it is a
+runtime source change, the 08:40 KST primary evidence below is no longer
+current-HEAD evidence after this commit; fresh MSIX smoke/process/CPU/matrix
+evidence is required again.
 
 ## Code Audit Interpretation
 

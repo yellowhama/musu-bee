@@ -52,6 +52,16 @@ test("dashboard refresh loop stays on shared low-duty polling", () => {
   assert.match(text, /taskTimeoutMs:\s*DASHBOARD_REFRESH_TIMEOUT_MS/);
 });
 
+test("dashboard relay connection is on-demand instead of mount-time polling", () => {
+  const text = source("src/components/dashboard/DashboardClient.tsx");
+
+  assert.match(text, /handleRelayConnect/);
+  assert.match(text, /fetchRelayToken/);
+  assert.doesNotMatch(text, /Auto-connect when relayInfo/);
+  assert.doesNotMatch(text, /connectRelay\(relayInfo,\s*selectedNode\)/);
+  assert.doesNotMatch(text, /useEffect\(\(\)\s*=>\s*\{[\s\S]*const controller = new AbortController\(\);[\s\S]*fetch\("\/api\/account\/relay-token"/);
+});
+
 test("node panel refresh loop stays on shared low-duty polling", () => {
   const text = source("src/components/NodePanel.tsx");
 

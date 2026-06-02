@@ -601,6 +601,16 @@ Tauri desktop shell evidence:
   `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-110105\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-110105.zip`
   to the second Windows PC and run the included release check without skipping
   runtime idle CPU or runtime CPU scenario matrix.
+- 2026-06-02 11:14 KST relay idle hardening:
+  dashboard cloud relay is now on-demand. `DashboardClient.tsx` no longer
+  fetches `/api/account/relay-token` on mount and no longer auto-connects the
+  relay WebSocket just because a node is selected. `Connect` lazily fetches the
+  token with the existing `5s` timeout; selected-node changes and unmount abort
+  pending token fetches, clear retry timers, and close relay WebSocket state.
+  Validation passed: runtime-polling contract `8/8`, `npm run typecheck`,
+  `npm run lint -- --quiet`, `npm run build`, and `git diff --check`. This is
+  runtime source, so fresh MSIX smoke/process/desktop-open CPU/matrix evidence
+  is required after commit before current-HEAD release evidence can be claimed.
 
 Release candidate manifest:
 
