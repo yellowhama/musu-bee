@@ -9,15 +9,15 @@ installed again on `HUGH_SECOND`.
 Current primary evidence:
 
 - single-machine:
-  `docs/evidence/single-machine/1.15.0-rc.1/20260602-181009-HUGH_SECOND.evidence.json`
+  `docs/evidence/single-machine/1.15.0-rc.1/20260602-183133-HUGH_SECOND.evidence.json`
 - desktop single-instance:
-  `docs/evidence/desktop-single-instance/1.15.0-rc.1/20260602-181022-HUGH_SECOND.desktop-single-instance.json`
+  `docs/evidence/desktop-single-instance/1.15.0-rc.1/20260602-183056-HUGH_SECOND.desktop-single-instance.json`
 - process ownership:
-  `docs/evidence/process-ownership/1.15.0-rc.1/20260602-181022-HUGH_SECOND.process-ownership.json`
+  `docs/evidence/process-ownership/1.15.0-rc.1/20260602-183056-HUGH_SECOND.process-ownership.json`
 - desktop-open CPU:
-  `docs/evidence/runtime-idle-cpu/1.15.0-rc.1/20260602-181230-HUGH_SECOND.desktop-open.evidence.json`
+  `docs/evidence/runtime-idle-cpu/1.15.0-rc.1/20260602-183056-HUGH_SECOND.desktop-open.evidence.json`
 - runtime CPU matrix:
-  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.1/20260602-181343-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.1/20260602-183240-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
 
 Key results:
 
@@ -25,15 +25,15 @@ Key results:
   registered bridge with `registry_deregistered=true` and
   `pid_alive_after=false`
 - single-machine task id:
-  `69fdafb2-1e99-4c6d-9345-537257eb4db0`
+  `74e0a4fa-64ce-4463-a288-7b4ed2f7ba3a`
 - bridge:
-  `http://127.0.0.1:11739`
+  `http://127.0.0.1:2890`
 - route token:
-  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_181343`
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_183240`
 - desktop-open CPU:
-  MUSU `0`, repo Node `0`, WebView2 `0.18`, working set `497.34MB`, hot `0`
+  MUSU `0`, repo Node `0.03`, WebView2 `0`, working set `497.57MB`, hot `0`
 - process ownership:
-  runtime `1`, desktop `1`, MUSU-owned Node `0`, MUSU-owned WebView2 `7`,
+  runtime `1`, desktop `1`, MUSU-owned Node `0`, MUSU-owned WebView2 `6`,
   machine-wide Node `18`, orphan repo helpers `0`
 
 Qualitative result:

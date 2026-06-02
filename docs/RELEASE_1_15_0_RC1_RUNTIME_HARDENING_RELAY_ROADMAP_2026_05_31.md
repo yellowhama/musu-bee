@@ -1125,26 +1125,26 @@ primary release MSIX on `HUGH_SECOND`.
 Fresh evidence:
 
 - single-machine smoke:
-  `docs\evidence\single-machine\1.15.0-rc.1\20260602-181009-HUGH_SECOND.evidence.json`
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-183133-HUGH_SECOND.evidence.json`
 - desktop single-instance:
-  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-181022-HUGH_SECOND.desktop-single-instance.json`
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-183056-HUGH_SECOND.desktop-single-instance.json`
 - process ownership:
-  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-181022-HUGH_SECOND.process-ownership.json`
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-183056-HUGH_SECOND.process-ownership.json`
 - desktop-open CPU:
-  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-181230-HUGH_SECOND.desktop-open.evidence.json`
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-183056-HUGH_SECOND.desktop-open.evidence.json`
 - runtime CPU matrix:
-  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-181343-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-183240-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
 
 Runtime result:
 
 - packaged `musu down --json` cleanly stopped the registered bridge and
   deregistered it
-- desktop-open CPU: 60.04s sample, MUSU `0`, repo Node `0`, WebView2 `0.18`,
-  working set `497.34MB`, hot `0`
-- runtime matrix: token `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_181343`, all four
+- desktop-open CPU: clean 60.04s sample, MUSU `0`, repo Node `0.03`, WebView2
+  `0`, working set `497.57MB`, hot `0`
+- runtime matrix: token `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_183240`, all four
   scenarios passed under 5%-of-one-core
 - process ownership: runtime `1`, desktop `1`, MUSU-owned Node `0`,
-  MUSU-owned WebView2 `7`, machine-wide Node `18`
+  MUSU-owned WebView2 `6`, machine-wide Node `18`
 
 Roadmap status:
 

@@ -1243,21 +1243,21 @@ Indexer note:
   WindowsApps alias `musu up --json` started bridge PID `37660`, and
   `musu down --json` emitted `musu.stop_report.v1` with `ok=true`,
   `registry_deregistered=true`, and `pid_alive_after=false`. Current evidence
-  passes single-machine smoke `20260602-181009-HUGH_SECOND`, desktop
-  single-instance and process ownership `20260602-181022-HUGH_SECOND`,
-  desktop-open CPU `20260602-181230-HUGH_SECOND.desktop-open`, and runtime CPU
-  matrix `20260602-181343-HUGH_SECOND.runtime-cpu-scenario-matrix` with route
-  token `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_181343`. Process ownership reports
-  MUSU runtime `1`, desktop `1`, MUSU-owned Node `0`, MUSU-owned WebView2 `7`,
+  passes single-machine smoke `20260602-183133-HUGH_SECOND`, desktop
+  single-instance and process ownership `20260602-183056-HUGH_SECOND`,
+  desktop-open CPU `20260602-183056-HUGH_SECOND.desktop-open`, and runtime CPU
+  matrix `20260602-183240-HUGH_SECOND.runtime-cpu-scenario-matrix` with route
+  token `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_183240`. Process ownership reports
+  MUSU runtime `1`, desktop `1`, MUSU-owned Node `0`, MUSU-owned WebView2 `6`,
   machine-wide Node `18`, and orphan repo helpers `0`. Desktop-open CPU reports
-  MUSU `0`, repo Node `0`, WebView2 `0.18`, working set `497.34MB`, hot `0`.
+  MUSU `0`, repo Node `0.03`, WebView2 `0`, working set `497.57MB`, hot `0`.
   The reported busy-loop is not reproduced on current primary packaged
   evidence; public release remains No-Go until second-PC CPU/matrix/route,
   `musu.pro` P2P owner-scope, `musu@musu.pro`, and Store evidence are recorded.
 
 - 2026-06-02 index refresh after post-stop/down primary evidence:
   `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
-  1396 files and 2245 symbols after wiki/560, GOAL v323/v324, the
+  1407 files and 2245 symbols after wiki/560, GOAL v323/v324, the
   post-stop/down primary evidence report, BETA/current-head/runtime roadmap
   updates, WIKI_INDEX, new evidence files, and CoS memory
   `2026-06-02_1820_kst_post_stop_down_primary_evidence_refresh.md`.

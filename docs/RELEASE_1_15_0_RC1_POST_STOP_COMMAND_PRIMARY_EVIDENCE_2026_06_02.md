@@ -44,62 +44,70 @@ Packaged stop/down command proof from this run:
 - stop report had `ok=true`, `terminate_attempted=true`,
   `terminate_requested=true`, `registry_deregistered=true`,
   `pid_alive_after=false`
-- after evidence capture, `musu down --json` also stopped the evidence bridge
-  PID `13696` with the same clean registry deregistration result
+- after the first evidence capture, `musu down --json` also stopped bridge PID
+  `13696`; after the clean evidence rerun, it stopped bridge PID `38260` with
+  the same clean registry deregistration result
+
+After the first documentation commit, the runtime CPU gate was rerun from a
+clean worktree and written through a repo-external temp directory before copying
+into `docs\evidence`. The current evidence below is the clean set:
+`git_commit=82bd47153672c35c23d1dedba0464cb6b65f084c`,
+`git_dirty=false` for desktop-open CPU and the runtime CPU matrix.
 
 ## Fresh Evidence
 
 - single-machine smoke:
-  `docs\evidence\single-machine\1.15.0-rc.1\20260602-181009-HUGH_SECOND.evidence.json`
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-183133-HUGH_SECOND.evidence.json`
 - single-machine verification:
-  `docs\evidence\single-machine\1.15.0-rc.1\20260602-181009-HUGH_SECOND.verification.json`
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-183133-HUGH_SECOND.verification.json`
 - single-machine summary:
-  `docs\evidence\single-machine\1.15.0-rc.1\20260602-181009-HUGH_SECOND.summary.md`
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-183133-HUGH_SECOND.summary.md`
 - desktop single-instance:
-  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-181022-HUGH_SECOND.desktop-single-instance.json`
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-183056-HUGH_SECOND.desktop-single-instance.json`
 - process ownership:
-  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-181022-HUGH_SECOND.process-ownership.json`
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-183056-HUGH_SECOND.process-ownership.json`
 - desktop-open CPU:
-  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-181230-HUGH_SECOND.desktop-open.evidence.json`
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-183056-HUGH_SECOND.desktop-open.evidence.json`
 - runtime CPU matrix:
-  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-181343-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-183240-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
 
 ## Evidence Result
 
 Single-machine smoke:
 
 - dashboard task id: `69fdafb2-1e99-4c6d-9345-537257eb4db0`
-- bridge: `http://127.0.0.1:11739`
-- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260602_180946`
+- dashboard task id: `74e0a4fa-64ce-4463-a288-7b4ed2f7ba3a`
+- bridge: `http://127.0.0.1:2890`
+- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260602_183115`
 - CLI route checked: `true`
 - evidence SHA256:
-  `6e099be1602d25afc9b96da8aabf970820088de807d83447faba73a0f14ef653`
+  `34979772918331c30423e4f2e8c3f5f618debb6298bbb46323534c4996eea49f`
 - verification SHA256:
-  `2edc88bcb5b659a35b267a4e69b6556554cf5a8e0cf1c5c7b96cde7db92cd0d2`
+  `70b29b67413afe73b96d249fcda7d9b85863cc2b7e3ec8b2025c9b1aa201247a`
 
 Desktop/process:
 
 - repeated activation: repeat count `3`, final desktop shell count `1`,
-  new desktop shell count `1`, fail count `0`
+  new desktop shell count `0`, fail count `0`
 - process ownership: runtime `1`, desktop `1`, MUSU-owned Node `0`,
-  MUSU-owned WebView2 `7`, machine-wide Node `18`, orphan repo helpers `0`
-- bridge registry health: HTTP 200 at `127.0.0.1:11739`
+  MUSU-owned WebView2 `6`, machine-wide Node `18`, orphan repo helpers `0`
+- bridge registry health: HTTP 200 at `127.0.0.1:2890`
 
 CPU:
 
 - desktop-open 60.04s sample passed
-- max one-core CPU: MUSU `0`, repo Node `0`, owned WebView2 `0.18`
-- total owned/repo-related working set: `497.34MB`
+- max one-core CPU: MUSU `0`, repo Node `0.03`, owned WebView2 `0`
+- total owned/repo-related working set: `497.57MB`
 - hot process count: `0`
 
 Runtime matrix:
 
-- route token: `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_181343`
+- route token: `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_183240`
 - fail count: `0`
-- `runtime-started`: MUSU `0`, Node `0.05`, WebView2 `0.1`, hot `0`
-- `dashboard-open`: MUSU `0`, Node `0.03`, WebView2 `0.23`, hot `0`
-- `desktop-open`: MUSU `0`, Node `0.03`, WebView2 `0.08`, hot `0`
-- `post-route`: MUSU `0`, Node `0`, WebView2 `0.55`, hot `0`
+- `runtime-started`: MUSU `0`, Node `0`, WebView2 `0.13`, hot `0`
+- `dashboard-open`: MUSU `0`, Node `0.05`, WebView2 `0.1`, hot `0`
+- `desktop-open`: MUSU `0`, Node `0.08`, WebView2 `0.08`, hot `0`
+- `post-route`: MUSU `0`, Node `0.03`, WebView2 `0.26`, hot `0`
 
 ## Qualitative Audit
 
